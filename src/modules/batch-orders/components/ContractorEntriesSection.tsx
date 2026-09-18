@@ -32,6 +32,19 @@ const SectionHeader = styled.div`
     background: ${p => p.theme.colors.surface};
     gap: 12px;
     flex-wrap: wrap;
+
+    /* Na telefonie bez zawijania: przy długiej nazwie kontrahenta „⋯" spadało
+       do własnego wiersza i zostawiało pod nazwą pusty blok wysokości przycisku.
+       Nazwa ma się łamać w swojej kolumnie, a nie spychać przycisk. */
+    @media (max-width: 639px) {
+        flex-wrap: nowrap;
+        align-items: flex-start;
+        padding: 14px 14px;
+        gap: 10px;
+    }
+
+    /* Blok tytułu musi móc się kurczyć, inaczej długa nazwa rozpycha nagłówek. */
+    > div:first-child { min-width: 0; }
 `;
 
 const ContractorName = styled.h3`
@@ -76,12 +89,12 @@ const TitleIconBtn = styled.button<{ $danger?: boolean }>`
         color: ${p => p.$danger ? p.theme.colors.error : p.theme.colors.text};
     }
 
-    /* Na telefonie ikony są jedynym wejściem do tych akcji, więc dostają
-       pełny target dotykowy. */
-    @media (hover: none) and (pointer: coarse) {
-        width: 36px;
-        height: 36px;
-        svg { width: 17px; height: 17px; }
+    /* Na telefonie te dwie ikony schodzą do menu „⋯". Edycja i usunięcie
+       KONTRAHENTA to akcje rzadkie (raz przy zakładaniu, potem prawie nigdy),
+       a jako stale widoczne ikony zabierały cały wiersz nad tabelą - ten sam
+       wiersz, na którym miały stanąć kwoty. */
+    @media (max-width: 639px) {
+        display: none;
     }
 `;
 
@@ -89,6 +102,37 @@ const ContractorMeta = styled.div`
     font-size: ${p => p.theme.fontSizes.xs};
     color: ${p => p.theme.colors.textMuted};
     margin-top: 2px;
+
+    /* NIP i telefon to dane do faktury - potrzebne przy biurku, nie w hali.
+       Na telefonie ten wiersz oddaje miejsce podsumowaniu okresu. */
+    @media (max-width: 639px) { display: none; }
+`;
+
+/**
+ * Po tę liczbę wchodzi się na ten ekran: „ile mi ten kontrahent uzbierał".
+ * Dotąd stała w stopce POD wszystkimi wpisami, więc na telefonie trzeba było
+ * przewinąć całą listę, żeby ją zobaczyć. Teraz stoi w nagłówku karty i przy
+ * okazji zastępuje wiersz z NIP-em, więc nie kosztuje ani jednej linii więcej.
+ */
+const MobileMeta = styled.div`
+    display: none;
+
+    @media (max-width: 639px) {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-top: 3px;
+        font-size: ${p => p.theme.fontSizes.xs};
+        color: ${p => p.theme.colors.textMuted};
+    }
+`;
+
+const MobileMetaTotal = styled.span`
+    font-size: ${p => p.theme.fontSizes.sm};
+    font-weight: ${p => p.theme.fontWeights.bold};
+    color: ${p => p.theme.colors.text};
+    font-variant-numeric: tabular-nums;
 `;
 
 /**
@@ -102,17 +146,12 @@ const HeaderActions = styled.div`
     align-items: center;
     margin-left: auto;
 
-    /* Na telefonie rząd dostaje własną linię, wyrównaną do lewej krawędzi karty -
-       w jednej osi z nazwą kontrahenta i z chipem okresu wiersz niżej. Przyciski
-       zostają przy szerokości swojej etykiety (nie rozciągają się na pół karty):
-       rozciągnięte robiły z dwóch krótkich słów dwa bloki większe od przycisku
-       kroku następnego w nagłówku strony. */
+    /* Na telefonie NIE dostaje własnego wiersza: zostaje samo „⋯" i stoi
+       w linii z nazwą kontrahenta. Cała reszta zeszła albo do menu pod „⋯",
+       albo do wiersza filtrów. Wcześniej ten rząd był drugim z czterech
+       wierszy sterowania, które trzeba było minąć, zanim pokazał się wpis. */
     @media (max-width: 639px) {
-        width: 100%;
-        margin-left: 0;
-        margin-top: 2px;
-        flex-wrap: wrap;
-        row-gap: 8px;
+        align-self: flex-start;
     }
 `;
 
@@ -124,6 +163,26 @@ const FilterRow = styled.div`
     border-bottom: 1px solid ${p => p.theme.colors.border};
     background: ${p => p.theme.colors.surfaceAlt};
     flex-wrap: wrap;
+
+    /* Na telefonie to JEDYNY wiersz sterowania nad tabelą: chip okresu po lewej
+       (z „Pokaż rozliczone" schowanym w jego panelu), „+ Dodaj wpis" po prawej. */
+    @media (max-width: 639px) {
+        padding: 10px 14px;
+        flex-wrap: nowrap;
+    }
+`;
+
+/* Jedyna akcja karty, która ma sens z telefonem w ręce przy aucie. Reszta
+   („Rozlicz", „PDF", „Historia") to robota miesięczna przy biurku i siedzi
+   pod „⋯". Stoi w wierszu filtrów, żeby nie otwierać własnego wiersza. */
+const MobileAddEntry = styled.div`
+    display: none;
+
+    @media (max-width: 639px) {
+        display: flex;
+        margin-left: auto;
+        flex-shrink: 0;
+    }
 `;
 
 /**
@@ -293,17 +352,53 @@ const MoreActionsTrigger = styled.button<{ $active?: boolean }>`
     }
 `;
 
+/**
+ * Lista pozycji, nie rząd przycisków: pozycje menu czytają się z góry na dół
+ * i nie udają akcji równorzędnych temu, co zostało widoczne. Mieszczą się tu
+ * akcje miesięczne (rozliczenie, wydruk, historia) i akcje na samym
+ * kontrahencie (edycja, usunięcie).
+ */
 const MobileSecondaryPanel = styled.div<{ $open: boolean }>`
     display: none;
 
     @media (max-width: 639px) {
         display: ${p => p.$open ? 'flex' : 'none'};
-        flex-wrap: wrap;
-        gap: 6px;
-        padding: 8px 18px;
+        flex-direction: column;
+        padding: 6px;
         border-bottom: 1px solid ${p => p.theme.colors.border};
         background: ${p => p.theme.colors.surfaceAlt};
     }
+`;
+
+const PanelItem = styled.button<{ $danger?: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 42px;
+    padding: 0 12px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    font-family: inherit;
+    font-size: ${p => p.theme.fontSizes.sm};
+    font-weight: ${p => p.theme.fontWeights.medium};
+    text-align: left;
+    cursor: pointer;
+    color: ${p => p.$danger ? p.theme.colors.error : p.theme.colors.text};
+    -webkit-tap-highlight-color: transparent;
+
+    svg { width: 16px; height: 16px; flex-shrink: 0; color: ${p => p.theme.colors.textMuted}; }
+    ${p => p.$danger && `svg { color: ${p.theme.colors.error}; }`}
+
+    &:active { background: ${p => p.theme.colors.surfaceHover}; }
+    &:disabled { opacity: 0.55; }
+`;
+
+const PanelDivider = styled.div`
+    height: 1px;
+    margin: 5px 10px;
+    background: ${p => p.theme.colors.border};
 `;
 
 /* ── Table ── */
@@ -357,6 +452,11 @@ const Th = styled.th<{ $align?: 'left' | 'right' | 'center' }>`
 `;
 
 const Tr = styled.tr<{ $closed?: boolean }>`
+    /* Wiersz otwiera edytor wpisu - to samo, co „Edytuj" w menu ⋮, tylko bez
+       szukania. Kursor mówi o tym na każdej szerokości, żeby zachowanie nie
+       różniło się między telefonem a biurkiem. */
+    cursor: pointer;
+
     /* Linia w kolorze surfaceAlt, nie border: wiersze mają się rozdzielać,
        a nie być kratkownicą. Tak samo jak w tabeli Leadów. */
     border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
@@ -366,16 +466,23 @@ const Tr = styled.tr<{ $closed?: boolean }>`
     &:last-child { border-bottom: none; }
     &:hover { background: ${p => p.$closed ? 'rgba(34, 197, 94, 0.09)' : p.theme.colors.surfaceHover}; }
 
+    /* Na telefonie wpis to POZYCJA LISTY, nie rozpisana karta: dwie linie,
+       które odpowiadają na „który to samochód" i „za ile". Reszta (netto,
+       rozbicie na usługi z cenami, VIN, uwagi, zdjęcia) czeka w edytorze
+       pod tapnięciem wiersza - tym samym, który i tak trzeba otworzyć, żeby
+       cokolwiek poprawić. Dziewięć linii na wpis sprawiało, że na ekran
+       wchodziły dwa wpisy i nie dało się listy przeskanować. */
     @media (max-width: 767px) {
-        /* data | pojazd | usługi | netto | brutto | uwagi | menu
-           układane w dwie kolumny: treść i wąska kolumna akcji. */
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 34px;
-        /* Bez tego wiersz z datą rozciąga się do wysokości przycisku ⋮
-           i zostawia pustą przerwę nad marką pojazdu. */
-        align-items: start;
-        gap: 2px 8px;
-        padding: 10px 14px 12px;
+        grid-template-columns: auto minmax(0, 1fr) auto 36px;
+        grid-template-areas:
+            "veh  veh  gross menu"
+            "date svc  svc   menu";
+        align-items: center;
+        column-gap: 8px;
+        row-gap: 1px;
+        padding: 9px 14px;
+        cursor: pointer;
     }
 `;
 
@@ -388,37 +495,38 @@ const Td = styled.td<{ $align?: 'left' | 'right' | 'center' }>`
 
     @media (max-width: 767px) {
         display: block;
-        padding: 2px 0;
+        padding: 0;
         text-align: left;
-        grid-column: 1;
 
-        /* Kwoty dostają etykietę, bo bez nagłówka tabeli sama liczba nie mówi,
-           czy to netto czy brutto. */
-        &[data-label]::before {
-            content: attr(data-label);
-            display: inline-block;
-            min-width: 52px;
-            margin-right: 6px;
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: ${p => p.theme.colors.textMuted};
+        &[data-cell='vehicle'] { grid-area: veh; }
+        &[data-cell='date'] {
+            grid-area: date;
+            /* Stała szerokość, bo każdy wiersz jest osobnym gridem: przy torze
+               o szerokości auto „3.09.2026" i „15.09.2026" dawały dwa różne
+               wcięcia i nazwy usług nie stały w jednej kolumnie. */
+            width: 76px;
+            flex-shrink: 0;
         }
-
-        /* Menu ⋮ wraca do prawej krawędzi karty i obejmuje jej pierwszy wiersz. */
-        &[data-cell='menu'] {
-            grid-column: 2;
-            /* Przez dwa wiersze, nie jeden: przycisk ma 44px targetu dotykowego,
-               więc sam w wierszu z datą (24px) zostawiał pod nią 20px pustki. */
-            grid-row: 1 / span 2;
-            justify-self: end;
-            align-self: start;
-            padding: 0;
+        &[data-cell='services'] {
+            grid-area: svc;
+            min-width: 0;
+            /* Flex, nie blok: „+2" ma stać OBOK nazwy usługi. Jako rodzeństwo
+               listy blokowej lądowało w nowej linii i robiło z pozycji trzy
+               wiersze zamiast dwóch. */
+            display: flex;
+            align-items: baseline;
+            gap: 0;
         }
+        &[data-cell='gross']   { grid-area: gross; text-align: right; }
+        &[data-cell='menu']    { grid-area: menu; justify-self: end; }
 
-        /* Pusta komórka uwag nie zostawia wiersza z samym myślnikiem. */
-        &[data-empty='true'] { display: none; }
+        /* Netto i uwagi nie jadą na listę: netto jest pochodną brutta i VAT-u,
+           a uwagi bywają długie. Obie rzeczy pokazuje edytor wpisu. */
+        &[data-cell='net'], &[data-cell='notes'] { display: none; }
+
+        /* Etykiety „NETTO"/„BRUTTO" przestały być potrzebne: w dwuwierszowym
+           układzie została jedna kwota i stoi tam, gdzie zawsze - po prawej. */
+        &[data-label]::before { content: none; }
     }
 `;
 
@@ -428,6 +536,17 @@ const VehicleCell = styled.div`
     font-weight: ${p => p.theme.fontWeights.semibold};
     line-height: 1.4;
     color: ${p => p.theme.colors.text};
+
+    @media (max-width: 767px) {
+        display: inline;
+        font-size: 14px;
+    }
+`;
+
+/* Na telefonie marka i tablica stoją w jednej linii - stąd `display: inline`
+   na obu, zamiast tablicy w osobnym bloku pod spodem. */
+const VehicleIdent = styled.div`
+    @media (max-width: 767px) { display: inline; }
 `;
 
 const PlateTag = styled.span`
@@ -442,11 +561,30 @@ const PlateTag = styled.span`
     letter-spacing: 0.07em;
     font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
     line-height: 1.5;
+
+    /* Na telefonie tablica traci ciemne wypełnienie. Przy jednym wpisie był to
+       detal, przy liście - czarny klocek w każdym wierszu, czyli piąty kolor
+       na ekranie walczący o uwagę z kwotą. Że to tablica, wystarczająco mówi
+       krój maszynowy i wersaliki; wypełnienie nie niosło tu żadnej informacji. */
+    @media (max-width: 767px) {
+        margin-top: 0;
+        margin-left: 6px;
+        padding: 0;
+        background: transparent;
+        color: ${p => p.theme.colors.textMuted};
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+    }
 `;
 
 const VinTag = styled.span`
     display: inline-block;
     margin-top: 2px;
+
+    /* VIN jest długi i na liście nie służy do niczego - szuka się po tablicy.
+       Zostaje w edytorze wpisu. */
+    @media (max-width: 767px) { display: none; }
     margin-left: 6px;
     padding: 2px 7px;
     background: ${p => p.theme.colors.surfaceAlt};
@@ -477,6 +615,21 @@ const ServiceList = styled.ul`
         flex-direction: column;
         gap: 1px;
     }
+
+    /* Na telefonie z listy usług zostaje pierwsza pozycja, bez ceny - rozbicie
+       na kwoty jest w edytorze. Ceny per usługa w wierszu listy powtarzały to,
+       co i tak sumuje kwota po prawej, i robiły z wpisu akapit. */
+    @media (max-width: 767px) {
+        flex-direction: row;
+        li { display: none; }
+        li:first-child {
+            display: block;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
 `;
 
 const ServiceName = styled.span`
@@ -484,6 +637,12 @@ const ServiceName = styled.span`
     color: ${p => p.theme.colors.text};
     font-weight: ${p => p.theme.fontWeights.medium};
     line-height: 1.35;
+
+    @media (max-width: 767px) {
+        font-size: 12px;
+        font-weight: ${p => p.theme.fontWeights.normal};
+        color: ${p => p.theme.colors.textMuted};
+    }
 `;
 
 const ServicePrice = styled.span`
@@ -491,6 +650,33 @@ const ServicePrice = styled.span`
     color: ${p => p.theme.colors.textMuted};
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
+
+    @media (max-width: 767px) { display: none; }
+`;
+
+/* „+2" zamiast wypisywania reszty usług: mówi, że wpis ma więcej pozycji,
+   i nie rośnie razem z ich liczbą. */
+const MoreServices = styled.span`
+    display: none;
+
+    @media (max-width: 767px) {
+        display: inline;
+        margin-left: 6px;
+        font-size: 12px;
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        color: ${p => p.theme.colors.textMuted};
+        white-space: nowrap;
+    }
+`;
+
+/* Wiersz drugi pozycji listy: data i usługi czytają się jako podpis pod marką,
+   więc dostają jeden stopień mniej kontrastu niż ona. */
+const RowSubText = styled.span`
+    @media (max-width: 767px) {
+        font-size: 12px;
+        color: ${p => p.theme.colors.textMuted};
+        white-space: nowrap;
+    }
 `;
 
 /* ── Money values ── */
@@ -508,6 +694,13 @@ const GrossMoney = styled(Money)`
     font-size: 13px;
     font-weight: ${p => p.theme.fontWeights.semibold};
     color: ${p => p.theme.colors.text};
+
+    /* Jedyna kwota w pozycji listy - i jedyna rzecz po prawej stronie, więc
+       skanuje się ją pionowo bez czytania reszty wiersza. */
+    @media (max-width: 767px) {
+        font-size: 14px;
+        font-weight: ${p => p.theme.fontWeights.bold};
+    }
 `;
 
 /* ── Notes cell ── */
@@ -553,6 +746,12 @@ const DotsBtn = styled.button<{ $open?: boolean }>`
         opacity: 1;
         width: 44px;
         height: 44px;
+    }
+
+    @media (max-width: 767px) {
+        opacity: 1;
+        width: 36px;
+        height: 36px;
     }
 `;
 
@@ -601,6 +800,13 @@ const SummaryBar = styled.div`
     display: flex;
     align-items: center;
     flex-wrap: wrap;
+
+    /* Na telefonie stopka znika: te same trzy liczby (a właściwie ta jedna,
+       po którą się wraca) stoją teraz w nagłówku karty, czyli NAD listą,
+       zamiast za nią. */
+    @media (max-width: 639px) {
+        display: none;
+    }
 
     @media (max-width: 767px) {
         flex-wrap: nowrap;
@@ -661,6 +867,19 @@ const EmptyRow = styled.div`
 
 function formatMoney(cents: number) {
     return new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(cents / 100);
+}
+
+/**
+ * Polska odmiana rzeczownika po liczbie: 1 wpis, 2-4 wpisy, 5+ wpisów -
+ * z wyjątkiem nastek (12 wpisów, nie „12 wpisy").
+ */
+function entryCountLabel(count: number) {
+    if (count === 1) return 'wpis';
+    const lastTwo = count % 100;
+    const last = count % 10;
+    if (lastTwo >= 12 && lastTwo <= 14) return 'wpisów';
+    if (last >= 2 && last <= 4) return 'wpisy';
+    return 'wpisów';
 }
 
 function vatLabel(rate: number) {
@@ -803,6 +1022,12 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                             {contractor.contactPersonName}
                             {contractor.phone && ` · ${contractor.phone}`}
                         </ContractorMeta>
+                        <MobileMeta>
+                            <MobileMetaTotal>{formatMoney(summary?.totalGrossCents ?? 0)}</MobileMetaTotal>
+                            <span>
+                                {summary?.entryCount ?? 0} {entryCountLabel(summary?.entryCount ?? 0)}
+                            </span>
+                        </MobileMeta>
                     </div>
                     <HeaderActions>
                         <ActionBtn $mobileHide $variant="ghost" onClick={handleDownloadReport} disabled={downloading}>
@@ -820,16 +1045,17 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                             </svg>
                             Historia
                         </ActionBtn>
-                        <ActionBtn $variant="success" onClick={() => setShowSettlement(true)}>
+                        <ActionBtn $mobileHide $variant="success" onClick={() => setShowSettlement(true)}>
                             Rozlicz
                         </ActionBtn>
-                        <ActionBtn $variant="primary" onClick={() => { setEditEntry(null); setShowEntryForm(true); }}>
+                        <ActionBtn $mobileHide $variant="primary" onClick={() => { setEditEntry(null); setShowEntryForm(true); }}>
                             + Dodaj wpis
                         </ActionBtn>
                         <MoreActionsTrigger
                             $active={showMoreActions}
                             onClick={() => setShowMoreActions(v => !v)}
                             title={showMoreActions ? 'Ukryj opcje' : 'Więcej opcji'}
+                            aria-label={showMoreActions ? 'Ukryj opcje' : 'Więcej opcji'}
                         >
                             {showMoreActions ? '✕' : '⋯'}
                         </MoreActionsTrigger>
@@ -837,23 +1063,43 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                 </SectionHeader>
 
                 <MobileSecondaryPanel $open={showMoreActions}>
-                    {/* Bez „Edytuj" i „Usuń" - te siedzą teraz przy nazwie kontrahenta
-                        i są na telefonie widoczne od razu, bez rozwijania. */}
-                    <ActionBtn $variant="ghost" onClick={handleDownloadReport} disabled={downloading}>
-                        {downloading ? 'Generowanie…' : (
-                            <>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-                                PDF
-                            </>
-                        )}
-                    </ActionBtn>
-                    <ActionBtn $variant="ghost" onClick={() => setShowHistory(true)}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+                    <PanelItem onClick={() => { setShowMoreActions(false); setShowSettlement(true); }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                        Rozlicz okres
+                    </PanelItem>
+                    <PanelItem onClick={() => { setShowMoreActions(false); handleDownloadReport(); }} disabled={downloading}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                        {downloading ? 'Generowanie zestawienia…' : 'Pobierz zestawienie PDF'}
+                    </PanelItem>
+                    <PanelItem onClick={() => { setShowMoreActions(false); setShowHistory(true); }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <circle cx="12" cy="12" r="10" />
                             <polyline points="12 6 12 12 16 14" />
                         </svg>
-                        Historia
-                    </ActionBtn>
+                        Historia rozliczeń
+                    </PanelItem>
+
+                    <PanelDivider />
+
+                    {/* Akcje na samym kontrahencie, nie na jego wpisach - stąd
+                        oddzielone kreską i na samym dole. */}
+                    <PanelItem onClick={() => { setShowMoreActions(false); onEdit(); }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                        </svg>
+                        Edytuj kontrahenta
+                    </PanelItem>
+                    <PanelItem $danger onClick={() => { setShowMoreActions(false); onDelete(); }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 6h18" />
+                            <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+                            <path d="M19 6l-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6" />
+                        </svg>
+                        Usuń kontrahenta
+                    </PanelItem>
                 </MobileSecondaryPanel>
 
                 <FilterRow>
@@ -861,16 +1107,23 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                         from={filterFrom}
                         to={filterTo}
                         onChange={(f, t) => { setFilterFrom(f); setFilterTo(t); }}
+                        extra={
+                            <SettledToggle>
+                                <input
+                                    type="checkbox"
+                                    checked={showSettled}
+                                    onChange={e => setShowSettled(e.target.checked)}
+                                />
+                                Pokaż rozliczone
+                                {settledCount > 0 && <SettledCount>({settledCount})</SettledCount>}
+                            </SettledToggle>
+                        }
                     />
-                    <SettledToggle>
-                        <input
-                            type="checkbox"
-                            checked={showSettled}
-                            onChange={e => setShowSettled(e.target.checked)}
-                        />
-                        Pokaż rozliczone
-                        {settledCount > 0 && <SettledCount>({settledCount})</SettledCount>}
-                    </SettledToggle>
+                    <MobileAddEntry>
+                        <ActionBtn $variant="primary" onClick={() => { setEditEntry(null); setShowEntryForm(true); }}>
+                            + Dodaj wpis
+                        </ActionBtn>
+                    </MobileAddEntry>
                 </FilterRow>
 
                 {isLoading ? (
@@ -901,47 +1154,57 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                 <tbody>
                                     {entries.map(entry => (
                                         <Fragment key={entry.id}>
-                                            <Tr $closed={entry.isClosed}>
-                                                <Td style={{ whiteSpace: 'nowrap' }}>
-                                                    {new Date(entry.serviceDate).toLocaleDateString('pl-PL')}
+                                            <Tr
+                                                $closed={entry.isClosed}
+                                                onClick={() => setEditEntry(entry)}
+                                            >
+                                                <Td style={{ whiteSpace: 'nowrap' }} data-cell="date">
+                                                    <RowSubText>
+                                                        {new Date(entry.serviceDate).toLocaleDateString('pl-PL')}
+                                                    </RowSubText>
                                                     {entry.isClosed && <SettledBadge>Rozliczone</SettledBadge>}
                                                 </Td>
-                                                <Td>
+                                                <Td data-cell="vehicle">
                                                     <VehicleCell>
                                                         {[entry.vehicleMake, entry.vehicleModel].filter(Boolean).join(' ') || '-'}
                                                     </VehicleCell>
                                                     {(entry.vehicleLicensePlate || entry.vehicleVin) && (
-                                                        <div>
+                                                        <VehicleIdent>
                                                             {entry.vehicleLicensePlate && (
                                                                 <PlateTag>{entry.vehicleLicensePlate}</PlateTag>
                                                             )}
                                                             {entry.vehicleVin && (
                                                                 <VinTag>VIN {entry.vehicleVin}</VinTag>
                                                             )}
-                                                        </div>
+                                                        </VehicleIdent>
                                                     )}
                                                 </Td>
-                                                <Td>
+                                                <Td data-cell="services">
                                                     {entry.services.length > 0 ? (
-                                                        <ServiceList>
-                                                            {entry.services.map((s, i) => (
-                                                                <li key={i}>
-                                                                    <ServiceName>{s.name}</ServiceName>
-                                                                    <ServicePrice>
-                                                                        {formatMoney(s.netAmountCents)} / {formatMoney(s.grossAmountCents)} {vatLabel(s.vatRate)}
-                                                                    </ServicePrice>
-                                                                </li>
-                                                            ))}
-                                                        </ServiceList>
+                                                        <>
+                                                            <ServiceList>
+                                                                {entry.services.map((s, i) => (
+                                                                    <li key={i}>
+                                                                        <ServiceName>{s.name}</ServiceName>
+                                                                        <ServicePrice>
+                                                                            {formatMoney(s.netAmountCents)} / {formatMoney(s.grossAmountCents)} {vatLabel(s.vatRate)}
+                                                                        </ServicePrice>
+                                                                    </li>
+                                                                ))}
+                                                            </ServiceList>
+                                                            {entry.services.length > 1 && (
+                                                                <MoreServices>+{entry.services.length - 1}</MoreServices>
+                                                            )}
+                                                        </>
                                                     ) : '-'}
                                                 </Td>
-                                                <Td $align="right" data-label="Netto">
+                                                <Td $align="right" data-label="Netto" data-cell="net">
                                                     <Money>{formatMoney(entry.netAmountCents)}</Money>
                                                 </Td>
-                                                <Td $align="right" data-label="Brutto">
+                                                <Td $align="right" data-label="Brutto" data-cell="gross">
                                                     <GrossMoney>{formatMoney(entry.grossAmountCents)}</GrossMoney>
                                                 </Td>
-                                                <Td data-empty={!entry.notes}>
+                                                <Td data-empty={!entry.notes} data-cell="notes">
                                                     <NoteText title={entry.notes ?? undefined}>
                                                         {entry.notes || '-'}
                                                     </NoteText>
