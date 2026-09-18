@@ -1,6 +1,7 @@
 // src/modules/auth/components/PasswordInput.tsx
 import { useState } from 'react';
 import styled from 'styled-components';
+import { authFieldStyles } from './AuthInput';
 
 const InputWrapper = styled.div`
     position: relative;
@@ -8,23 +9,9 @@ const InputWrapper = styled.div`
 `;
 
 const StyledInput = styled.input<{ $hasError?: boolean }>`
-    width: 100%;
-    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.xl} ${props => props.theme.spacing.md} ${props => props.theme.spacing.md};
-    border: 2px solid ${props => props.$hasError ? props.theme.colors.error : props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
-    font-size: ${props => props.theme.fontSizes.md};
-    transition: all ${props => props.theme.transitions.fast};
-    background-color: ${props => props.theme.colors.surface};
-
-    &:focus {
-        outline: none;
-        border-color: ${props => props.$hasError ? props.theme.colors.error : props.theme.colors.primary};
-        box-shadow: 0 0 0 3px ${props => props.$hasError ? 'rgba(220, 38, 38, 0.1)' : 'rgba(14, 165, 233, 0.1)'};
-    }
-
-    &::placeholder {
-        color: ${props => props.theme.colors.textMuted};
-    }
+    ${authFieldStyles}
+    /* Jedyna różnica wobec pozostałych pól auth: miejsce na przycisk podglądu. */
+    padding-right: ${props => props.theme.spacing.xl};
 `;
 
 const ToggleButton = styled.button`
@@ -75,6 +62,9 @@ interface PasswordInputProps {
     autoComplete?: string;
     id?: string;
     name?: string;
+    /** Podpięcie podpowiedzi zależnych od aktywnego pola (np. lista wymogów hasła). */
+    onFocus?: () => void;
+    onBlur?: () => void;
 }
 
 export const PasswordInput = ({
@@ -85,6 +75,8 @@ export const PasswordInput = ({
                                   autoComplete = 'current-password',
                                   id,
                                   name,
+                                  onFocus,
+                                  onBlur,
                               }: PasswordInputProps) => {
     const [isVisible, setIsVisible] = useState(false);
 
@@ -99,6 +91,8 @@ export const PasswordInput = ({
                 autoComplete={autoComplete}
                 id={id}
                 name={name}
+                onFocus={onFocus}
+                onBlur={onBlur}
             />
             <ToggleButton
                 type="button"

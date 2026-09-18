@@ -27,12 +27,6 @@ export interface AuthError {
     message: string;
 }
 
-export interface PasswordStrength {
-    score: 0 | 1 | 2 | 3;
-    label: 'weak' | 'medium' | 'strong';
-    color: string;
-}
-
 export interface User {
     userId: string;
     studioId: string;

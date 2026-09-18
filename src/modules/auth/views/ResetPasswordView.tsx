@@ -5,6 +5,7 @@ import styled from 'styled-components';
 import { useResetPassword } from '../hooks/useAuth';
 import { resetPasswordSchema, type ResetPasswordFormData } from '../utils/validators';
 import { PasswordInput } from '../components/PasswordInput';
+import { PasswordRequirements } from '../components/PasswordRequirements';
 import { ErrorAlert } from '../components/ErrorAlert';
 import { SuccessAlert } from '../components/SuccessAlert';
 import { authApi } from '../api/authApi';
@@ -127,6 +128,8 @@ export const ResetPasswordView = ({ mode = 'reset' }: ResetPasswordViewProps) =>
     const [errors, setErrors] = useState<Partial<Record<keyof ResetPasswordFormData, string>>>({});
     const [apiError, setApiError] = useState('');
     const [success, setSuccess] = useState(false);
+    // Jak w rejestracji: wymogi widoczne od wejścia w pole i dopóki coś w nim stoi.
+    const [passwordFocused, setPasswordFocused] = useState(false);
 
     const resetPasswordMutation = useResetPassword();
 
@@ -150,9 +153,14 @@ export const ResetPasswordView = ({ mode = 'reset' }: ResetPasswordViewProps) =>
 
         if (!result.success) {
             const fieldErrors: Partial<Record<keyof ResetPasswordFormData, string>> = {};
+            // Pierwszy zarzut, nie ostatni: zod zgłasza je w kolejności sprawdzeń,
+            // więc dla pustego pola pierwszy mówi „jest wymagane", a kolejny już
+            // „nieprawidłowy format" - i to ten drugi widział użytkownik, który
+            // po prostu niczego nie wpisał.
             result.error.issues.forEach((err) => {
-                if (err.path[0]) {
-                    fieldErrors[err.path[0] as keyof ResetPasswordFormData] = err.message;
+                const field = err.path[0] as keyof ResetPasswordFormData | undefined;
+                if (field && !fieldErrors[field]) {
+                    fieldErrors[field] = err.message;
                 }
             });
             setErrors(fieldErrors);
@@ -237,6 +245,12 @@ export const ResetPasswordView = ({ mode = 'reset' }: ResetPasswordViewProps) =>
                                 placeholder={copy.passwordPlaceholder}
                                 hasError={!!errors.password}
                                 autoComplete="new-password"
+                                onFocus={() => setPasswordFocused(true)}
+                                onBlur={() => setPasswordFocused(false)}
+                            />
+                            <PasswordRequirements
+                                password={formData.password}
+                                visible={passwordFocused || formData.password.length > 0}
                             />
                             {errors.password && <ErrorMessage>{errors.password}</ErrorMessage>}
                         </FieldGroup>
