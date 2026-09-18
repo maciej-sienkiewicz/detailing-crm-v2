@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { acquireScrollLock } from '@/common/utils/scrollLock';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { ChannelEditor } from './ChannelEditor';
@@ -126,13 +127,11 @@ export const RuleDrawer: React.FC<RuleDrawerProps> = ({
   // leci po KAŻDYM wpisanym znaku, bo treść szablonu jest stanem rodzica)
   // uruchamiał efekt od nowa i przestawiał focus z pola na sam panel: znak
   // wchodził jeden, a potem trzeba było klikać w pole ponownie.
+  // Blokada przez współdzielony scrollLock (CLAUDE.md §3): własna migawka
+  // stylów przywracała nieaktualne `hidden` przy nakładających się oknach.
   useEffect(() => {
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     panelRef.current?.focus();
-    return () => {
-      document.body.style.overflow = previous;
-    };
+    return acquireScrollLock();
   }, []);
 
   // Escape zamyka panel. Ten efekt może się przepinać przy zmianie `onClose` -

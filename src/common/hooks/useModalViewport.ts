@@ -2,6 +2,7 @@
 
 import { useEffect, useId, type RefObject } from 'react';
 import { useHideMobileChrome } from '@/common/context/MobileChromeContext';
+import { acquireScrollLock } from '@/common/utils/scrollLock';
 
 /**
  * Zachowanie okna modalnego, którego nie da się opisać samym CSS-em. Wyjęte
@@ -12,10 +13,11 @@ import { useHideMobileChrome } from '@/common/context/MobileChromeContext';
  * Robi trzy rzeczy:
  *
  *  1. Escape zamyka okno.
- *  2. Blokuje przewijanie tła. Musi objąć <html>, nie tylko <body>: to element
- *     dokumentu jest kontenerem przewijania, więc samo wyciszenie <body> nic
- *     nie dawało. `overscroll-behavior` odcina jeszcze łańcuch przewijania
- *     z wnętrza okna na dokument.
+ *  2. Blokuje przewijanie tła — przez współdzielony `acquireScrollLock()`,
+ *     nigdy własnym zapisem po stylach <body>/<html>. Okna piętrowe (modal +
+ *     potwierdzenie) zwalniane w dowolnej kolejności zostawiały dokument
+ *     zablokowany na stałe, gdy każde z nich „przywracało" własną migawkę
+ *     stylów; szczegóły w src/common/utils/scrollLock.ts.
  *  3. Chowa na telefonie oba dolne paski nawigacji. Leżą przy tej samej
  *     krawędzi co stopka okna i potrafiły ją zasłonić - a nawigacja pod
  *     otwartym oknem i tak jest nieklikalna.
@@ -51,20 +53,7 @@ export const useModalViewport = (
 
     useEffect(() => {
         if (!isOpen) return;
-        const root = document.documentElement;
-        const prev = {
-            rootOverflow: root.style.overflow,
-            rootOverscroll: root.style.overscrollBehavior,
-            bodyOverflow: document.body.style.overflow,
-        };
-        root.style.overflow = 'hidden';
-        root.style.overscrollBehavior = 'none';
-        document.body.style.overflow = 'hidden';
-        return () => {
-            root.style.overflow = prev.rootOverflow;
-            root.style.overscrollBehavior = prev.rootOverscroll;
-            document.body.style.overflow = prev.bodyOverflow;
-        };
+        return acquireScrollLock();
     }, [isOpen]);
 
     useEffect(() => {

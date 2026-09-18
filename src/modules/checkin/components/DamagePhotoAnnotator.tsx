@@ -8,6 +8,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { acquireScrollLock } from '@/common/utils/scrollLock';
 import styled from 'styled-components';
 import type { AnnotationStroke, AnnotationPoint } from '../types';
 
@@ -299,12 +300,10 @@ export const DamagePhotoAnnotator = ({
         return () => ro.disconnect();
     }, []);
 
-    // Block background scroll while the editor is open
-    useEffect(() => {
-        const prev = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
-        return () => { document.body.style.overflow = prev; };
-    }, []);
+    // Block background scroll while the editor is open — through the shared,
+    // ref-counted lock (CLAUDE.md §3): a private style snapshot here restores
+    // stale 'hidden' when windows overlap and freezes the page.
+    useEffect(() => acquireScrollLock(), []);
 
     const toPercent = useCallback((e: React.PointerEvent): AnnotationPoint | null => {
         const svg = svgRef.current;

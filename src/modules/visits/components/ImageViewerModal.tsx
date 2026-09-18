@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
+import { acquireScrollLock } from '@/common/utils/scrollLock';
 
 // ImageViewerModal is a fullscreen lightbox with a very dark overlay.
 // It intentionally keeps its own custom overlay and does NOT use ModalShell,
@@ -266,13 +267,17 @@ export const ImageViewerModal = ({
         };
 
         document.addEventListener('keydown', handleEscape);
-        document.body.style.overflow = 'hidden';
-
-        return () => {
-            document.removeEventListener('keydown', handleEscape);
-            document.body.style.overflow = 'unset';
-        };
+        return () => document.removeEventListener('keydown', handleEscape);
     }, [isOpen, onClose, hasNext, hasPrev, onNext, onPrev]);
+
+    // Blokada scrolla osobno od klawiatury: tamten efekt przeżywa restart przy
+    // każdej zmianie callbacków rodzica, a blokada ma trwać dokładnie tyle,
+    // ile otwarte okno. Współdzielony scrollLock zamiast zapisu po stylach
+    // <body> — sztywne przywracanie 'unset' rozbrajało blokadę okna pod spodem.
+    useEffect(() => {
+        if (!isOpen) return;
+        return acquireScrollLock();
+    }, [isOpen]);
 
     if (!isOpen) return null;
 

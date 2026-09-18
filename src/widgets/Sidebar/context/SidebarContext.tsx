@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { acquireScrollLock } from '@/common/utils/scrollLock';
 
 interface SidebarContextValue {
     isCollapsed: boolean;
@@ -42,44 +43,15 @@ export const SidebarProvider = ({ children }: SidebarProviderProps) => {
         }
     }, [isCollapsed]);
 
-    // Blokada scrolla tła po otwarciu menu bocznego.
-    //
-    // Sam `overflow: hidden` na <body> nie wystarcza w mobilnych przeglądarkach
-    // (zwłaszcza iOS Safari): gesty dotyku dalej przesuwają viewport, więc palcem
-    // można było scrollować treść pod overlayem, co dezorientuje. Sztywnym stopem
-    // jest `position: fixed` na <body> - viewport nie ma już czego przewijać.
-    // Zapamiętujemy aktualną pozycję scrolla, po zamknięciu przywracamy ją, żeby
-    // użytkownik nie wracał na górę strony.
+    // Blokada scrolla tła po otwarciu menu bocznego — wariant 'fixed', bo sam
+    // `overflow: hidden` nie wystarcza w mobilnych przeglądarkach (zwłaszcza
+    // iOS Safari): gesty dotyku dalej przesuwały viewport pod overlayem.
+    // Zapamiętanie i przywrócenie pozycji scrolla oraz odporność na nałożenie
+    // z blokadą okna modalnego załatwia współdzielony scrollLock; własny
+    // zapis migawki stylów tutaj potrafił przywrócić `hidden` cudzej blokady.
     useEffect(() => {
         if (!isMobileOpen) return;
-
-        const scrollY = window.scrollY;
-        const body = document.body;
-        const prev = {
-            position: body.style.position,
-            top: body.style.top,
-            left: body.style.left,
-            right: body.style.right,
-            width: body.style.width,
-            overflow: body.style.overflow,
-        };
-
-        body.style.position = 'fixed';
-        body.style.top = `-${scrollY}px`;
-        body.style.left = '0';
-        body.style.right = '0';
-        body.style.width = '100%';
-        body.style.overflow = 'hidden';
-
-        return () => {
-            body.style.position = prev.position;
-            body.style.top = prev.top;
-            body.style.left = prev.left;
-            body.style.right = prev.right;
-            body.style.width = prev.width;
-            body.style.overflow = prev.overflow;
-            window.scrollTo(0, scrollY);
-        };
+        return acquireScrollLock('fixed');
     }, [isMobileOpen]);
 
     const toggleCollapse = () => setIsCollapsed(prev => !prev);
