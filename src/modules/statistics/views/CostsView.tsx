@@ -1254,8 +1254,11 @@ type CtxMenuState = {
 };
 
 export const CostsView = () => {
-    // Ten sam domyślny zakres co po stronie przychodów - koszty czyta się
-    // w parze z nimi, więc oba widoki muszą startować z tego samego miesiąca.
+    // Bieżący miesiąc — świadomie INNY domyślny zakres niż po stronie przychodów, które
+    // startują z kwartału w podziale tygodniowym. Tutejszy wykres zna tylko podział
+    // dzienny i miesięczny (patrz chartGranularity niżej), więc kwartał zmieściłby się
+    // w trzech słupkach. Zanim oba widoki wrócą do wspólnego zakresu, koszty potrzebują
+    // grupowania tygodniowego.
     const [startDate, setStartDate] = useState(currentMonthStart());
     const [endDate,   setEndDate]   = useState(today());
     const [viewMode,  setViewMode]  = useState<CostViewMode>('INVOICE');
