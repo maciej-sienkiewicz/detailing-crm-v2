@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useState } from 'react';
 import styled from 'styled-components';
 
@@ -5,6 +6,12 @@ interface Props {
     from: string;
     to: string;
     onChange: (from: string, to: string) => void;
+    /**
+     * Dodatkowe filtry doklejane do tego samego panelu (dziś: „Pokaż rozliczone").
+     * Stoją tu, a nie obok, bo zawężają tę samą listę co okres - a na telefonie
+     * każdy filtr trzymany osobno kosztował własny wiersz nad tabelą.
+     */
+    extra?: ReactNode;
 }
 
 type ActivePreset = 'current' | 'previous' | 'pick-month' | 'custom';
@@ -46,6 +53,14 @@ const Wrapper = styled.div`
     gap: 8px;
     flex-wrap: wrap;
     width: 100%;
+
+    /* Na telefonie oddaje szerokość przyciskowi „+ Dodaj wpis" obok - chip
+       okresu kurczy się z wielokropkiem zamiast spychać go poza kartę. */
+    @media (max-width: 639px) {
+        width: auto;
+        min-width: 0;
+        flex: 1 1 auto;
+    }
 `;
 
 const FilterLabel = styled.span`
@@ -71,11 +86,18 @@ const MobileSummaryBtn = styled.button<{ $open: boolean }>`
         cursor: pointer;
         white-space: nowrap;
         min-height: 36px;
+        min-width: 0;
         border: 1px solid ${p => p.$open ? p.theme.colors.primary : p.theme.colors.border};
         background: ${p => p.$open ? 'color-mix(in srgb, var(--brand-primary) 12%, transparent)' : 'transparent'};
         color: ${p => p.$open ? p.theme.colors.primary : p.theme.colors.text};
         transition: border-color 0.15s, color 0.15s, background 0.15s;
     }
+`;
+
+const PeriodLabel = styled.span`
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 `;
 
 const ChevronIcon = styled.svg<{ $open: boolean }>`
@@ -119,6 +141,21 @@ const Chip = styled.button<{ $active?: boolean }>`
     }
 
     @media (hover: none) and (pointer: coarse) { min-height: 40px; }
+`;
+
+/* Na desktopie dosuwa się do prawej krawędzi rzędu chipów - czyli tam, gdzie
+   „Pokaż rozliczone" stało dotąd, tylko bez zajmowania osobnego wiersza.
+   Na telefonie schodzi pod chipy, wewnątrz rozwijanego panelu. */
+const ExtraSlot = styled.div`
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+
+    @media (max-width: 639px) {
+        margin-left: 0;
+        flex-basis: 100%;
+        padding-top: 4px;
+    }
 `;
 
 const MonthSelect = styled.select`
@@ -170,7 +207,7 @@ const ApplyBtn = styled.button`
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function DateRangeFilter({ onChange }: Props) {
+export function DateRangeFilter({ onChange, extra }: Props) {
     const [activePreset, setActivePreset] = useState<ActivePreset>('current');
     const [selectedMonth, setSelectedMonth] = useState(() => {
         const now = new Date();
@@ -245,7 +282,11 @@ export function DateRangeFilter({ onChange }: Props) {
                 $open={mobileExpanded}
                 onClick={() => setMobileExpanded(v => !v)}
             >
-                Okres: {activePeriodLabel()}
+                {/* Bez przedrostka „Okres:" - że chip filtruje okres, widać
+                    po treści i po tym, że stoi nad tabelą. Przedrostek kosztował
+                    ~55px, przez co przy 320px „+ Dodaj wpis" nie mieścił się
+                    w tym samym wierszu. */}
+                <PeriodLabel>{activePeriodLabel()}</PeriodLabel>
                 <ChevronIcon
                     $open={mobileExpanded}
                     width="10" height="10" viewBox="0 0 10 10"
@@ -298,6 +339,8 @@ export function DateRangeFilter({ onChange }: Props) {
                         <ApplyBtn onClick={handleCustomApply}>Zastosuj</ApplyBtn>
                     </>
                 )}
+
+                {extra && <ExtraSlot>{extra}</ExtraSlot>}
             </FilterOptions>
         </Wrapper>
     );
