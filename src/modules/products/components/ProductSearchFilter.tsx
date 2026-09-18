@@ -28,10 +28,14 @@ const Input = styled.input`
     &:focus { outline: none; border-color: ${st.borderFocus}; box-shadow: ${st.shadowBlue}; }
 `;
 
-// Filtry są listami wyboru, nie przełącznikami: „tylko nasze" i ocena mają po
-// kilka stanów, a chip potrafi pokazać tylko dwa. Wygląd celowo taki sam jak pole
-// wyszukiwania — to jeden pasek narzędzi, więc nic w nim nie jest wypełnione
-// kolorem (CLAUDE.md §2); krokiem następnym na tej stronie jest „Dodaj produkt".
+// Ocena jest listą wyboru, nie przełącznikiem: ma kilka stanów, a chip potrafi pokazać
+// tylko dwa. Wygląd celowo taki sam jak pole wyszukiwania — to jeden pasek narzędzi, więc
+// nic w nim nie jest wypełnione kolorem (CLAUDE.md §2); krokiem następnym na tej stronie
+// jest „Dodaj produkt".
+//
+// Filtr „tylko nasze / wszystkie" został usunięty razem z samym rozróżnieniem: katalog
+// pokazuje wyłącznie produkty tego studia, a współdzielona tabela jest cache’em
+// rozpoznawania po kodzie, nie półką do przeglądania.
 const Combo = styled.select`
     flex: 0 1 auto;
     padding: 10px 38px 10px 12px;
@@ -68,15 +72,11 @@ const RATING_OPTIONS: { value: RatingFilter; label: string }[] = [
 interface Props {
     search: string;
     onSearch: (v: string) => void;
-    onlyOurs: boolean;
-    onChangeOurs: (v: boolean) => void;
     rating: RatingFilter;
     onChangeRating: (v: RatingFilter) => void;
 }
 
-export function ProductSearchFilter({
-    search, onSearch, onlyOurs, onChangeOurs, rating, onChangeRating,
-}: Props) {
+export function ProductSearchFilter({ search, onSearch, rating, onChangeRating }: Props) {
     return (
         <Bar>
             <SearchBox>
@@ -87,15 +87,6 @@ export function ProductSearchFilter({
                     onChange={e => onSearch(e.target.value)}
                 />
             </SearchBox>
-
-            <Combo
-                aria-label="Zakres katalogu"
-                value={onlyOurs ? 'ours' : 'all'}
-                onChange={e => onChangeOurs(e.target.value === 'ours')}
-            >
-                <option value="all">Wszystkie</option>
-                <option value="ours">Tylko nasze</option>
-            </Combo>
 
             <Combo
                 aria-label="Ocena"

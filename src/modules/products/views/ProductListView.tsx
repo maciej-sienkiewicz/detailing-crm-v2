@@ -48,14 +48,13 @@ export function ProductListView() {
     const canSeeCosts = can('PRODUCTS_COSTS');
 
     const [search, setSearch] = useState('');
-    const [onlyOurs, setOnlyOurs] = useState(false);
     const [rating, setRating] = useState<RatingFilter>('');
     const [page, setPage] = useState(1);
     const [adding, setAdding] = useState(false);
     const debounced = useDebounce(search, 300);
 
     const { products, pagination, isLoading } = useProducts({
-        search: debounced, onlyOurs, rating, page, limit: 50, sortBy: 'name', sortDirection: 'asc',
+        search: debounced, rating, page, limit: 50, sortBy: 'name', sortDirection: 'asc',
     });
 
     const open = (id: string) => navigate(`/products/${id}`);
@@ -102,8 +101,6 @@ export function ProductListView() {
                 <ProductSearchFilter
                     search={search}
                     onSearch={v => { setSearch(v); setPage(1); }}
-                    onlyOurs={onlyOurs}
-                    onChangeOurs={v => { setOnlyOurs(v); setPage(1); }}
                     rating={rating}
                     onChangeRating={v => { setRating(v); setPage(1); }}
                 />
@@ -116,7 +113,7 @@ export function ProductListView() {
                             icon={<Package size={40} />}
                             title={debounced ? 'Nic nie znaleziono' : 'Katalog jest pusty'}
                             description={debounced
-                                ? 'Zmień frazy wyszukiwania albo dodaj nowy produkt.'
+                                ? 'Katalog pokazuje tylko produkty, które dodaliście u siebie. Zeskanuj kod, żeby dodać nowy.'
                                 : 'Dodaj pierwszy produkt — ręcznie, z kodu kreskowego albo skanując telefonem.'}
                         />
                     ) : isDesktop ? (

@@ -24,7 +24,6 @@ export const productsApi = {
             search: filters.search,
             page: String(filters.page),
             limit: String(filters.limit),
-            onlyOurs: String(filters.onlyOurs ?? false),
             onlyFavourite: String(filters.onlyFavourite ?? false),
             includeHidden: String(filters.includeHidden ?? false),
             rating: filters.rating ?? '',

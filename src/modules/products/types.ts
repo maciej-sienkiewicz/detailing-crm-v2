@@ -82,6 +82,10 @@ export interface ProductListItem {
     imageFileId: string | null;
     verificationLevel: VerificationLevel;
     isFavourite: boolean;
+    /**
+     * Zostało dla karty produktu. Na liście nie niesie już informacji: katalog pokazuje
+     * wyłącznie produkty tego studia, więc każdy wiersz jest „nasz".
+     */
     isOurs: boolean;
     price: ProductPrice | null;
     ratingValue: number | null;
@@ -89,7 +93,6 @@ export interface ProductListItem {
 
 export interface ProductListFilters {
     search: string;
-    onlyOurs?: boolean;
     /** '1'..'5' = dokładnie tyle gwiazdek, 'none' = bez oceny, '' = nie filtruj. */
     rating?: string;
     onlyFavourite?: boolean;
