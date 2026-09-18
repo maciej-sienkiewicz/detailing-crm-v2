@@ -27,6 +27,7 @@ export const productsApi = {
             onlyOurs: String(filters.onlyOurs ?? false),
             onlyFavourite: String(filters.onlyFavourite ?? false),
             includeHidden: String(filters.includeHidden ?? false),
+            rating: filters.rating ?? '',
         });
         if (filters.sortBy) params.append('sortBy', filters.sortBy);
         if (filters.sortDirection) params.append('sortDirection', filters.sortDirection);

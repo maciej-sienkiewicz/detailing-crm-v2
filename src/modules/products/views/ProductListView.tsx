@@ -7,7 +7,7 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { PageContainer } from '@/common/components/PageContainer';
 import {
     PageHeader, PageHeaderPrimaryButton,
-    MobilePageHeader, MobilePageHeaderButton,
+    MobilePageHeader, MobilePageHeaderButton, MobilePageHeaderCountValue,
 } from '@/common/components/PageHeader';
 import { EmptyState } from '@/common/components/EmptyState';
 import { useBreakpoint } from '@/common/hooks/useBreakpoint';
@@ -15,6 +15,7 @@ import { useDebounce } from '@/common/hooks/useDebounce';
 import { usePermissions } from '@/core/permissions';
 import { useProducts } from '../hooks/useProducts';
 import { ProductSearchFilter } from '../components/ProductSearchFilter';
+import type { RatingFilter } from '../components/ProductSearchFilter';
 import { ProductTable } from '../components/ProductTable';
 import { ProductGrid } from '../components/ProductGrid';
 import { AddProductModal } from '../components/AddProductModal';
@@ -25,8 +26,11 @@ const ViewContainer = styled.div`
     ${hexBackdrop}
 `;
 const PageBody = styled(PageContainer)` display: flex; flex-direction: column; gap: 20px; `;
+// Licznik stoi przy podtytule, po LEWEJ — tak samo jak na liście pojazdów.
+// Po prawej zostaje sam krok następny, więc nagłówek czyta się jednakowo
+// w całej aplikacji.
 const TotalChip = styled.span`
-    display: inline-flex; align-items: center; padding: 2px 10px;
+    display: inline-flex; align-items: center; margin-left: 10px; padding: 2px 10px;
     background: ${st.accentBlueDim}; color: ${st.accentBlue};
     border-radius: ${st.radiusFull}; font-size: 12px; font-weight: 600;
 `;
@@ -45,12 +49,13 @@ export function ProductListView() {
 
     const [search, setSearch] = useState('');
     const [onlyOurs, setOnlyOurs] = useState(false);
+    const [rating, setRating] = useState<RatingFilter>('');
     const [page, setPage] = useState(1);
     const [adding, setAdding] = useState(false);
     const debounced = useDebounce(search, 300);
 
     const { products, pagination, isLoading } = useProducts({
-        search: debounced, onlyOurs, page, limit: 50, sortBy: 'name', sortDirection: 'asc',
+        search: debounced, onlyOurs, rating, page, limit: 50, sortBy: 'name', sortDirection: 'asc',
     });
 
     const open = (id: string) => navigate(`/products/${id}`);
@@ -62,24 +67,34 @@ export function ProductListView() {
                 {isDesktop ? (
                     <PageHeader
                         title="Produkty"
-                        subtitle="Katalog preparatów używanych w studiu"
-                        actions={
+                        subtitle={
                             <>
-                                <TotalChip>{total}</TotalChip>
-                                {canManage && (
-                                    <PageHeaderPrimaryButton onClick={() => setAdding(true)}>
-                                        Dodaj produkt
-                                    </PageHeaderPrimaryButton>
-                                )}
+                                Katalog preparatów używanych w studiu
+                                {!isLoading && <TotalChip>{total} rekordów</TotalChip>}
                             </>
                         }
+                        actions={canManage && (
+                            <PageHeaderPrimaryButton onClick={() => setAdding(true)}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <line x1="12" y1="5" x2="12" y2="19" />
+                                    <line x1="5" y1="12" x2="19" y2="12" />
+                                </svg>
+                                Dodaj produkt
+                            </PageHeaderPrimaryButton>
+                        )}
                     />
                 ) : (
                     <MobilePageHeader
                         icon={<Package size={18} />}
                         title="Produkty"
+                        subtitle={isLoading
+                            ? 'Wczytywanie…'
+                            : <><MobilePageHeaderCountValue>{total}</MobilePageHeaderCountValue> rekordów</>}
                         actions={canManage && (
-                            <MobilePageHeaderButton onClick={() => setAdding(true)}>Dodaj</MobilePageHeaderButton>
+                            <MobilePageHeaderButton onClick={() => setAdding(true)}>
+                                <span aria-hidden="true">+</span>
+                                Produkt
+                            </MobilePageHeaderButton>
                         )}
                     />
                 )}
@@ -88,8 +103,9 @@ export function ProductListView() {
                     search={search}
                     onSearch={v => { setSearch(v); setPage(1); }}
                     onlyOurs={onlyOurs}
-                    onToggleOurs={() => { setOnlyOurs(v => !v); setPage(1); }}
-                    onScan={canManage ? () => setAdding(true) : undefined}
+                    onChangeOurs={v => { setOnlyOurs(v); setPage(1); }}
+                    rating={rating}
+                    onChangeRating={v => { setRating(v); setPage(1); }}
                 />
 
                 <ContentSection>

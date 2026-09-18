@@ -90,6 +90,8 @@ export interface ProductListItem {
 export interface ProductListFilters {
     search: string;
     onlyOurs?: boolean;
+    /** '1'..'5' = dokładnie tyle gwiazdek, 'none' = bez oceny, '' = nie filtruj. */
+    rating?: string;
     onlyFavourite?: boolean;
     includeHidden?: boolean;
     page: number;
