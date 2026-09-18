@@ -211,7 +211,87 @@ tam „kolejność" znaczy „ile trzeba przewinąć", a nie „gdzie pada wzrok
 
 ---
 
-## 3. Uwaga o `.masterPrompt.txt`
+## 3. SCROLL: blokadę przewijania tła wolno założyć tylko przez `acquireScrollLock()`
+
+> **Nikomu nie wolno pisać po `document.body.style` ani po stylach `<html>`
+> na własną rękę.** Jedynym właścicielem blokady scrolla jest
+> `src/common/utils/scrollLock.ts`.
+
+### Dlaczego to jest reguła, a nie preferencja
+
+Wzorzec „zapisz poprzedni styl → nadpisz → przywróć zapisany" jest poprawny
+w izolacji i błędny przy nakładających się oknach. Okno otwarte NAD innym
+zapamiętuje `hidden` jako „stan do przywrócenia" — a React odmontowuje efekty
+od rodzica w dół, więc modal + jego potwierdzenie zamykane jednym kliknięciem
+sprzątają w kolejności odwrotnej do otwierania. To okno, które sprząta
+ostatnie, przywraca `hidden` i dokument zostaje zablokowany NA STAŁE.
+
+Skutek biznesowy: zgłoszenie „strona się blokuje, nie reaguje na scroll na
+komputerze ani na telefonie, pomaga dopiero odświeżenie". Błąd nie zostawia
+śladu w konsoli i nie da się go złapać po fakcie, bo F5 czyści style inline —
+dowód znika razem z objawem. Zanim blokadę scentralizowano, w kodzie żyło
+SZEŚĆ niezależnych wariantów tego wzorca, z trzema różnymi wartościami
+„odblokowania" (`prev`, `'unset'`, `''`).
+
+### Jak to robić w kodzie
+
+```ts
+// DOBRZE — blokada ze zliczaniem referencji, odporna na kolejność zamykania
+useEffect(() => {
+    if (!isOpen) return;
+    return acquireScrollLock();          // menu mobilne: acquireScrollLock('fixed')
+}, [isOpen]);
+```
+
+```ts
+// ŹLE — każda z tych linijek prędzej czy później zamrozi stronę
+document.body.style.overflow = 'hidden';
+document.body.style.overflow = 'unset';
+document.documentElement.style.overflow = prev;
+```
+
+Zasady szczegółowe:
+
+- **Okna budowane na `ModalShell` / `useModalViewport` mają blokadę w cenie** —
+  nie dokładaj drugiej. Własna nakładka poza ModalShell woła `acquireScrollLock()`
+  sama, wprost z efektu, i oddaje zwróconą funkcję jako cleanup.
+- **Wariant `'fixed'`** (twarde `position: fixed` na `<body>`, dla menu
+  mobilnego i pełnoekranowych nakładek dotykowych) też przechodzi przez ten
+  moduł — sam zdejmuje się we właściwym momencie i wraca do zapamiętanej
+  pozycji scrolla.
+- **Blokada żyje w osobnym efekcie zależnym tylko od `isOpen`**, nigdy w jednym
+  efekcie z obsługą klawiatury zależną od callbacków rodzica: restart takiego
+  efektu przy każdym renderze zwalnia i zakłada blokadę w pętli.
+- **Siatka bezpieczeństwa**: `ScrollLockRouteReset` w routerze zwalnia wszystkie
+  blokady po zmianie ścieżki. Nie jest to licencja na brak cleanupu — chroni
+  przed awarią, nie przed niechlujstwem.
+
+### Wzorce do skopiowania
+
+- `src/common/utils/scrollLock.ts` — moduł blokady i pełne uzasadnienie
+- `src/common/hooks/useModalViewport.ts` — użycie w oknie modalnym
+- `src/widgets/Sidebar/context/SidebarContext.tsx` — wariant `'fixed'` (menu mobilne)
+
+### Testy, które tego pilnują
+
+- `src/common/utils/scrollLock.test.tsx` → nakładające się blokady w obu
+  kolejnościach zwalniania, idempotentny release, wariant `'fixed'`
+- `src/common/hooks/useModalViewport.test.tsx` → odtworzenie zgłoszenia
+  z produkcji: modal + potwierdzenie odmontowane jednym kliknięciem nie
+  zostawiają `overflow: hidden`
+
+**Nie osłabiaj tych testów, żeby przepuścić zmianę.**
+
+### Zlecenie stałe
+
+Gdy natrafisz na kod piszący po stylach scrolla `<body>`/`<html>` poza
+`scrollLock.ts` — przepnij go na `acquireScrollLock()`, nie tylko opisz.
+Dotyczy to także kodu wklejanego z bibliotek i przykładów: wzorzec
+„save/restore overflow" wygląda niewinnie i właśnie dlatego wraca.
+
+---
+
+## 4. Uwaga o `.masterPrompt.txt`
 
 `.masterPrompt.txt` zawiera wytyczne architektoniczne, ale jeden jego punkt jest
 sprzeczny z kodem: „Zero-Comment Policy". Realna konwencja tego repozytorium jest

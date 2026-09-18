@@ -16,6 +16,7 @@ import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { X } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
+import { acquireScrollLock } from '@/common/utils/scrollLock';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { CalendarView, type CalendarRangeSelection } from './CalendarView';
 import { QuickEventModal, type QuickEventFormData, type QuickEventInitialData } from './QuickEventModal';
@@ -160,11 +161,10 @@ export function BookingFlowModal({
         return () => document.removeEventListener('keydown', onKey);
     }, [range, onClose]);
 
-    useEffect(() => {
-        const previous = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
-        return () => { document.body.style.overflow = previous; };
-    }, []);
+    // Współdzielona blokada zamiast własnej migawki stylów: to okno otwiera
+    // w kroku formularza ModalShell (własna blokada), więc przywracanie tu
+    // zapamiętanego `hidden` potrafiło zamrozić stronę na stałe.
+    useEffect(() => acquireScrollLock(), []);
 
     const handleRangeSelected = (selection: CalendarRangeSelection) => {
         setRange({ start: selection.start, end: selection.end, allDay: selection.allDay });

@@ -12,6 +12,7 @@
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { acquireScrollLock } from '@/common/utils/scrollLock';
 import styled, { keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { ReservationContextMenu } from '@/common/components/ReservationContextMenu';
@@ -699,13 +700,9 @@ const VisitDrawer = ({
   const navigate = useNavigate();
   const Icon = CARD_ICON[data.variant];
 
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, []);
+  // Blokada przez współdzielony scrollLock (CLAUDE.md §3): własna migawka
+  // stylów przywracała nieaktualne `hidden` przy nakładających się oknach.
+  useEffect(() => acquireScrollLock(), []);
 
   return createPortal(
     <>

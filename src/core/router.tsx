@@ -25,6 +25,7 @@ import { ProtocolRulesView, ProtocolDemoView } from "@/modules/protocols";
 import { BatchOrdersView } from "@/modules/batch-orders";
 import { ProductListView, ProductDetailView, MobileProductScanView } from "@/modules/products";
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { ScrollLockRouteReset } from './components/ScrollLockRouteReset';
 import { RequirePermission, HomeRedirect, NoAccessView, ANY_FINANCE, ANY_DASHBOARD } from './permissions';
 import { NotificationsView } from '@/modules/notifications';
 import type { PermissionRequirement } from './permissions';
@@ -124,7 +125,9 @@ export const router = createBrowserRouter([
         //
         // `<Outlet />` jako element: rodzic nic nie renderuje od siebie,
         // dzieci wyglądają dokładnie tak jak przed zmianą.
-        element: <Outlet />,
+        // ScrollLockRouteReset: zwolnienie blokad scrolla po każdej nawigacji
+        // (siatka bezpieczeństwa; opis w komponencie).
+        element: <><ScrollLockRouteReset /><Outlet /></>,
         errorElement: <RouteErrorBoundary />,
         children: [
         {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
+import { acquireScrollLock } from '@/common/utils/scrollLock';
 import { PiiValue } from '@/common/pii';
 import { useNavigate } from 'react-router-dom';
 import { TagChip } from '@/modules/photos/components/TagChip';
@@ -359,11 +360,10 @@ export const GalleryLightbox = ({ photo, onClose }: GalleryLightboxProps) => {
         return () => document.removeEventListener('keydown', handler);
     }, [onClose]);
 
-    // Lock body scroll
-    useEffect(() => {
-        document.body.style.overflow = 'hidden';
-        return () => { document.body.style.overflow = ''; };
-    }, []);
+    // Lock body scroll — through the shared, ref-counted lock: a hardcoded
+    // restore here used to unfreeze (or permanently freeze) windows stacked
+    // with this one; see src/common/utils/scrollLock.ts.
+    useEffect(() => acquireScrollLock(), []);
 
     const vehicleLabel = [photo.vehicleBrand, photo.vehicleModel].filter(Boolean).join(' ');
     const vehicleSubLabel = [photo.vehicleLicensePlate, photo.vehicleYear].filter(Boolean).join(' · ');
