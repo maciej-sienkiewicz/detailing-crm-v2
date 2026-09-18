@@ -1,6 +1,6 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
-import { Eye, EyeOff, FileText } from 'lucide-react';
+import { Check, Eye, EyeOff, FileText } from 'lucide-react';
 import { useMediaQuery } from '@/common/hooks';
 import { useToast } from '@/common/components/Toast';
 import type { IncomeDocument, IncomeDocumentType, KsefRevenueStatus } from '../types';
@@ -28,7 +28,7 @@ const Wrapper = styled.div`
 
 const Table = styled.table`
   width: 100%;
-  min-width: 1140px;
+  min-width: 1060px;
   border-collapse: collapse;
 `;
 
@@ -93,28 +93,77 @@ const PartyNip = styled.div`
   color: ${(p) => p.theme.colors.textMuted};
 `;
 
-const Amount = styled.span<{ $negative?: boolean }>`
+/* Kwota czyta się tak samo jak w tabeli kosztowej: brutto monospace’em, netto pod spodem
+   drugim planem. Dwie tabele w jednym module nie mogą pokazywać pieniędzy dwoma krojami. */
+const AmountPrimary = styled.span<{ $negative?: boolean }>`
+  display: block;
+  font-size: 13px;
   font-weight: 600;
-  font-variant-numeric: tabular-nums;
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  font-feature-settings: 'tnum';
+  white-space: nowrap;
   color: ${(p) => (p.$negative ? '#dc2626' : p.theme.colors.text)};
 `;
 
-const Badge = styled.span<{ $bg: string; $fg: string; $border?: string }>`
+const AmountSecondary = styled.span`
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  font-feature-settings: 'tnum';
+  white-space: nowrap;
+  color: ${(p) => p.theme.colors.textMuted};
+`;
+
+/* Paleta i kształt wzięte wprost z tabeli kosztów (KsefExpensesTable): ten sam moduł,
+   ten sam wiersz tabeli, więc plakietka nie może mieć raz promienia 5 px, a raz kapsułki. */
+type BadgeVariant = 'blue' | 'teal' | 'purple' | 'green' | 'amber' | 'red' | 'slate';
+
+const BADGE_COLORS: Record<BadgeVariant, { bg: string; color: string; border: string }> = {
+  blue:   { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
+  teal:   { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0' },
+  purple: { bg: '#f5f3ff', color: '#6d28d9', border: '#ddd6fe' },
+  green:  { bg: '#dcfce7', color: '#166534', border: '#86efac' },
+  amber:  { bg: '#fef9c3', color: '#92400e', border: '#fde68a' },
+  red:    { bg: '#fee2e2', color: '#991b1b', border: '#fca5a5' },
+  slate:  { bg: '#f1f5f9', color: '#475569', border: '#cbd5e1' },
+};
+
+const Badge = styled.span<{ $variant: BadgeVariant }>`
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 9px;
-  border-radius: 9999px;
+  padding: 2px 8px;
+  border-radius: 5px;
   font-size: 11px;
   font-weight: 600;
-  background: ${(p) => p.$bg};
-  color: ${(p) => p.$fg};
-  border: 1px solid ${(p) => p.$border ?? 'transparent'};
+  letter-spacing: 0.05px;
   white-space: nowrap;
+  background: ${(p) => BADGE_COLORS[p.$variant].bg};
+  color: ${(p) => BADGE_COLORS[p.$variant].color};
+  border: 1px solid ${(p) => BADGE_COLORS[p.$variant].border};
 `;
 
-const Muted = styled.span`
-  color: ${(p) => p.theme.colors.textMuted};
+/* Typ dokumentu i znacznik KSeF czytają się razem: „co to jest" i „czy jest w rejestrze". */
+const TypeCell = styled.div`
+  display: flex;         /* blokowy, żeby plakietka alertu pod spodem zaczynała nową linię */
+  align-items: center;
+  gap: 7px;
+`;
+
+/**
+ * Ptaszek zamiast kolumny „Status KSeF".
+ *
+ * Kolumna niesieła siedem różnych etykiet, z których sześć znaczyło to samo: jeszcze nie ma
+ * w KSeF. Pytanie, które naprawdę się zadaje, jest dwustanowe — jest w rejestrze czy nie —
+ * a szczegół („czeka na wysyłkę", „offline24") to już wyjaśnienie, nie stan. Dlatego stan
+ * niesie kolor ptaszka, a wyjaśnienie siedzi w tooltipie.
+ */
+const KsefCheck = styled.span<{ $on: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  color: ${(p) => (p.$on ? '#16a34a' : '#cbd5e1')};
+  cursor: help;
 `;
 
 const ActionsCell = styled.div`
@@ -239,21 +288,48 @@ const CardSkeleton = styled.div`
 
 // ─── Słowniki prezentacji ─────────────────────────────────────────────────────
 
-const DOCUMENT_TYPE: Record<IncomeDocumentType, { label: string; bg: string; fg: string }> = {
-  INVOICE:    { label: 'Faktura',  bg: '#eff6ff', fg: '#1d4ed8' },
-  CORRECTION: { label: 'Korekta',  bg: '#fdf4ff', fg: '#a21caf' },
-  RECEIPT:    { label: 'Paragon',  bg: '#f0fdf4', fg: '#15803d' },
-  OTHER:      { label: 'Inny',     bg: '#f8fafc', fg: '#475569' },
+const DOCUMENT_TYPE: Record<IncomeDocumentType, { label: string; variant: BadgeVariant }> = {
+  INVOICE:    { label: 'Faktura', variant: 'blue' },
+  CORRECTION: { label: 'Korekta', variant: 'purple' },
+  RECEIPT:    { label: 'Paragon', variant: 'teal' },
+  OTHER:      { label: 'Inny',    variant: 'slate' },
 };
 
-const KSEF_STATUS: Record<KsefRevenueStatus, { label: string; bg: string; fg: string; title?: string }> = {
-  PENDING:      { label: 'Oczekuje',      bg: '#f1f5f9', fg: '#475569' },
-  SENDING:      { label: 'Wysyłanie...',  bg: '#eff6ff', fg: '#1d4ed8' },
-  SUBMITTED:    { label: 'Przetwarzanie', bg: '#eff6ff', fg: '#1d4ed8', title: 'Przyjęta do sesji KSeF, oczekuje na numer' },
-  ACCEPTED:     { label: 'W KSeF',        bg: '#f0fdf4', fg: '#15803d' },
-  REJECTED:     { label: 'Odrzucona',     bg: '#fef2f2', fg: '#dc2626' },
-  QUEUED_RETRY: { label: 'Offline24',     bg: '#fffbeb', fg: '#b45309', title: 'KSeF niedostępny: faktura zostanie dosłana automatycznie' },
-  NOT_SENT:     { label: 'Poza KSeF',     bg: '#f8fafc', fg: '#475569', title: 'Faktura wystawiona bez wysyłki do KSeF' },
+/**
+ * Tooltip ptaszka. Zielony znaczy dokładnie jedno: dokument jest w KSeF i ma nadany numer.
+ * Każdy inny stan jest szary, a różnice między nimi (czeka, jedzie, odrzucona, świadomie
+ * poza systemem) niesie już zdanie po najeżdżeniu — w kolumnie były siedmioma etykietami,
+ * z których sześć znaczyło to samo.
+ */
+const KSEF_MARK: Record<KsefRevenueStatus, { on: boolean; title: string }> = {
+  ACCEPTED: {
+    on: true,
+    title: 'Faktura jest w KSeF — Ministerstwo Finansów potwierdziło przyjęcie i nadało numer KSeF.',
+  },
+  PENDING: {
+    on: false,
+    title: 'Jeszcze nie ma jej w KSeF — faktura czeka na wysłanie.',
+  },
+  SENDING: {
+    on: false,
+    title: 'Jeszcze nie ma jej w KSeF — trwa wysyłka.',
+  },
+  SUBMITTED: {
+    on: false,
+    title: 'Jeszcze nie ma jej w KSeF — została przyjęta do sesji i czeka na nadanie numeru.',
+  },
+  REJECTED: {
+    on: false,
+    title: 'Nie ma jej w KSeF — system odrzucił fakturę. Popraw dane i wyślij ponownie.',
+  },
+  QUEUED_RETRY: {
+    on: false,
+    title: 'Jeszcze nie ma jej w KSeF — system był niedostępny, faktura zostanie dosłana automatycznie (offline24).',
+  },
+  NOT_SENT: {
+    on: false,
+    title: 'Nie ma jej w KSeF — dokument wystawiono świadomie bez wysyłki.',
+  },
 };
 
 const ORIGIN_LABEL: Record<string, string> = {
@@ -263,10 +339,10 @@ const ORIGIN_LABEL: Record<string, string> = {
   MANUAL:   'Ręcznie',
 };
 
-const PAYMENT_STATUS: Record<string, { label: string; bg: string; fg: string }> = {
-  PAID:    { label: 'Opłacony',        bg: '#f0fdf4', fg: '#15803d' },
-  PENDING: { label: 'Oczekuje',        bg: '#fffbeb', fg: '#b45309' },
-  OVERDUE: { label: 'Przeterminowany', bg: '#fef2f2', fg: '#dc2626' },
+const PAYMENT_STATUS: Record<string, { label: string; variant: BadgeVariant }> = {
+  PAID:    { label: 'Opłacony',        variant: 'green' },
+  PENDING: { label: 'Oczekuje',        variant: 'amber' },
+  OVERDUE: { label: 'Przeterminowany', variant: 'red' },
 };
 
 // ─── Skeleton / empty ─────────────────────────────────────────────────────────
@@ -380,10 +456,9 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
           : documents.map((doc) => {
               const type = DOCUMENT_TYPE[doc.documentType] ?? DOCUMENT_TYPE.OTHER;
               const payment = PAYMENT_STATUS[doc.paymentStatus] ?? PAYMENT_STATUS.PENDING;
-              const ksef = doc.ksefStatus ? KSEF_STATUS[doc.ksefStatus] : null;
-              // KSeF pokazujemy tylko wtedy, gdy coś jest nie tak - „W KSeF" to
-              // stan oczekiwany i na telefonie byłby wyłącznie szumem.
-              const ksefAlert = doc.ksefStatus === 'REJECTED' || doc.ksefStatus === 'QUEUED_RETRY' ? ksef : null;
+              // Ptaszek tylko dla dokumentów, które w ogóle idą do KSeF: przy paragonie
+              // szary znaczek sugerowałby zaległość, której nie ma.
+              const ksefMark = doc.ksefStatus ? KSEF_MARK[doc.ksefStatus] : null;
 
               return (
                 <Card
@@ -402,17 +477,20 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                   </CardMeta>
 
                   <CardBadges>
-                    <Badge $bg={type.bg} $fg={type.fg}>{type.label}</Badge>
-                    <Badge $bg={payment.bg} $fg={payment.fg}>{payment.label}</Badge>
-                    {ksefAlert && (
-                      <Badge $bg={ksefAlert.bg} $fg={ksefAlert.fg}>{ksefAlert.label}</Badge>
-                    )}
+                    <TypeCell>
+                      <Badge $variant={type.variant}>{type.label}</Badge>
+                      {ksefMark && (
+                        <KsefCheck $on={ksefMark.on} title={ksefMark.title} aria-label={ksefMark.title}>
+                          <Check size={15} strokeWidth={3} />
+                        </KsefCheck>
+                      )}
+                    </TypeCell>
+                    <Badge $variant={payment.variant}>{payment.label}</Badge>
+                    {doc.ksefStatus === 'REJECTED' && <Badge $variant="red">Odrzucona</Badge>}
                     {doc.duplicateStatus === 'SUSPECTED' && (
-                      <Badge $bg="#fef2f2" $fg="#b91c1c" $border="#fecaca">⚠ Duplikat?</Badge>
+                      <Badge $variant="red">⚠ Duplikat?</Badge>
                     )}
-                    {doc.excluded && (
-                      <Badge $bg="#f1f5f9" $fg="#475569" $border="#cbd5e1">Ukryty</Badge>
-                    )}
+                    {doc.excluded && <Badge $variant="slate">Ukryty</Badge>}
                     <CardBadgeSpacer />
                     {canPreviewPdf(doc) && (
                       <ActionBtn
@@ -452,8 +530,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
             <Th>Typ</Th>
             <Th>Numer</Th>
             <Th>Nabywca</Th>
-            <Th $align="right">Brutto</Th>
-            <Th>Status KSeF</Th>
+            <Th $align="right">Kwota</Th>
             <Th>Źródło</Th>
             <Th>Płatność</Th>
             <Th $align="right">Akcje</Th>
@@ -463,15 +540,17 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
           {isLoading
             ? Array.from({ length: 5 }).map((_, i) => (
                 <SkeletonRow key={i}>
-                  {Array.from({ length: 9 }).map((_, j) => (
+                  {Array.from({ length: 8 }).map((_, j) => (
                     <td key={j}><div /></td>
                   ))}
                 </SkeletonRow>
               ))
             : documents.map((doc) => {
                 const type = DOCUMENT_TYPE[doc.documentType] ?? DOCUMENT_TYPE.OTHER;
-                const ksef = doc.ksefStatus ? KSEF_STATUS[doc.ksefStatus] : null;
                 const payment = PAYMENT_STATUS[doc.paymentStatus] ?? PAYMENT_STATUS.PENDING;
+                // Ptaszek tylko dla dokumentów, które w ogóle idą do KSeF — paragon nie ma
+                // czego „jeszcze nie mieć" i szary znaczek mówiłby o zaległości, której nie ma.
+                const ksefMark = doc.ksefStatus ? KSEF_MARK[doc.ksefStatus] : null;
 
                 return (
                   <Tr
@@ -484,13 +563,36 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                     onClick={() => onSelect(doc)}
                   >
                     <Td>{formatDate(doc.issueDate)}</Td>
-                    <Td><Badge $bg={type.bg} $fg={type.fg}>{type.label}</Badge></Td>
+                    <Td>
+                      <TypeCell>
+                        <Badge $variant={type.variant}>{type.label}</Badge>
+                        {ksefMark && (
+                          <KsefCheck $on={ksefMark.on} title={ksefMark.title} aria-label={ksefMark.title}>
+                            <Check size={15} strokeWidth={3} />
+                          </KsefCheck>
+                        )}
+                      </TypeCell>
+                      {/* Stany wymagające reakcji zostają nazwane wprost: szary ptaszek mówi
+                          tylko „nie ma w KSeF", a odrzucenie i duplikat to praca do zrobienia. */}
+                      {doc.ksefStatus === 'REJECTED' && (
+                        <Badge $variant="red" style={{ marginTop: 4 }}>Odrzucona</Badge>
+                      )}
+                      {doc.duplicateStatus === 'SUSPECTED' && (
+                        <Badge
+                          $variant="red"
+                          style={{ marginTop: 4 }}
+                          title="Możliwe podwójne fakturowanie: kliknij, aby rozstrzygnąć"
+                        >
+                          ⚠ Duplikat?
+                        </Badge>
+                      )}
+                    </Td>
                     <Td>
                       <DocumentNumber>{doc.documentNumber}</DocumentNumber>
                       {doc.ksefNumber && <KsefNumber title={doc.ksefNumber}>{doc.ksefNumber}</KsefNumber>}
                       {doc.excluded && (
                         <Badge
-                          $bg="#f1f5f9" $fg="#475569" $border="#cbd5e1"
+                          $variant="slate"
                           title="Dokument nie wchodzi do statystyk ani do kafli podsumowania"
                           style={{ marginTop: 4 }}
                         >
@@ -503,35 +605,16 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                       <PartyNip>{doc.counterpartyNip ? `NIP ${doc.counterpartyNip}` : 'Konsument'}</PartyNip>
                     </Td>
                     <Td $align="right">
-                      <Amount $negative={doc.totalGross < 0}>{formatMoney(doc.totalGross)}</Amount>
+                      <AmountPrimary $negative={doc.totalGross < 0}>
+                        {formatMoney(doc.totalGross)}
+                      </AmountPrimary>
+                      <AmountSecondary>{formatMoney(doc.totalNet)} netto</AmountSecondary>
                     </Td>
                     <Td>
-                      {ksef ? (
-                        <>
-                          <Badge $bg={ksef.bg} $fg={ksef.fg} title={ksef.title}>{ksef.label}</Badge>
-                          {doc.duplicateStatus === 'SUSPECTED' && (
-                            <>
-                              {' '}
-                              <Badge
-                                $bg="#fef2f2" $fg="#b91c1c" $border="#fecaca"
-                                title="Możliwe podwójne fakturowanie: kliknij, aby rozstrzygnąć"
-                              >
-                                ⚠ Duplikat?
-                              </Badge>
-                            </>
-                          )}
-                        </>
-                      ) : (
-                        <Muted title="Dokument nie podlega wysyłce do KSeF">-</Muted>
-                      )}
+                      <Badge $variant="slate">{ORIGIN_LABEL[doc.origin ?? ''] ?? '-'}</Badge>
                     </Td>
                     <Td>
-                      <Badge $bg="#f8fafc" $fg="#475569">
-                        {ORIGIN_LABEL[doc.origin ?? ''] ?? '-'}
-                      </Badge>
-                    </Td>
-                    <Td>
-                      <Badge $bg={payment.bg} $fg={payment.fg}>{payment.label}</Badge>
+                      <Badge $variant={payment.variant}>{payment.label}</Badge>
                       {doc.paymentLabel && <PartyNip>{doc.paymentLabel}</PartyNip>}
                     </Td>
                     <Td $align="right">
