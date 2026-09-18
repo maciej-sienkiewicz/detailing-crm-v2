@@ -475,7 +475,7 @@ export function QualityCertificateModal({ visit, onClose }: Props) {
                     <CareArea
                         value={careNote}
                         onChange={e => setCareNote(e.target.value)}
-                        placeholder="Uwagi tylko do tego certyfikatu — np. auto odbierane w deszczu, przełóż pierwsze mycie."
+                        placeholder="Uwagi tylko do tego certyfikatu, np. auto odbierane w deszczu, przełóż pierwsze mycie."
                     />
                 </Section>
             </ModalContent>

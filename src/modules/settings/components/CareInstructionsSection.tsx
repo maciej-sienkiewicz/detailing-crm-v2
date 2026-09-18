@@ -152,7 +152,7 @@ export function CareInstructionsSection() {
                         <Input
                             value={draft.title}
                             onChange={e => setDraft({ ...draft, title: e.target.value })}
-                            placeholder="np. Powłoka ceramiczna — utwardzanie"
+                            placeholder="np. Powłoka ceramiczna, utwardzanie"
                             autoFocus
                         />
                     </Field>
