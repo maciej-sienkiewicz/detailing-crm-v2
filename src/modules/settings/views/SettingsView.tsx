@@ -7,8 +7,8 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { AccessRequirement } from '@/core/permissions';
 import { CompanySection } from '../components/CompanySection';
 import { LabelsSection, type LabelsSubView } from '../components/LabelsSection';
+import { ServicesAndCareSection, type ServicesSubView } from '../components/ServicesAndCareSection';
 import { DocumentsSection } from '../components/DocumentsSection';
-import { ServicesSection } from '../components/ServicesSection';
 import { TeamAndRolesSection } from '../components/TeamAndRolesSection';
 import type { TeamSubView } from '../components/TeamAndRolesSection';
 import { SubscriptionSettingsPage } from '@/modules/subscription';
@@ -354,7 +354,7 @@ const SECTION_ALIASES: Record<string, { section: SectionId; view?: SubView }> = 
 };
 
 /** Sekcje z widokami wewnętrznymi trzymają je w tym samym parametrze URL. */
-type SubView = TeamSubView | LabelsSubView | MobileDevicesSubView;
+type SubView = TeamSubView | LabelsSubView | MobileDevicesSubView | ServicesSubView;
 
 const VIEW_PARAM = 'view';
 const SECTIONS_WITH_SUBVIEWS = new Set<SectionId>(['team', 'labels', 'mobile-devices']);
@@ -421,6 +421,7 @@ export function SettingsView() {
     const viewParam = alias?.view ?? searchParams.get(VIEW_PARAM);
     const teamSubView: TeamSubView = viewParam === 'roles' ? 'roles' : 'employees';
     const labelsSubView: LabelsSubView = viewParam === 'colors' ? 'colors' : 'numbering';
+    const servicesSubView: ServicesSubView = viewParam === 'care' ? 'care' : 'pricing';
     const mobileDevicesSubView: MobileDevicesSubView =
         viewParam === 'notifications' || viewParam === 'contacts' ? viewParam : 'tablets';
 
@@ -461,7 +462,12 @@ export function SettingsView() {
     } else if (section === 'templates') {
         content = <MessageTemplatesSection />;
     } else if (section === 'services') {
-        content = <ServicesSection />;
+        content = (
+            <ServicesAndCareSection
+                subView={servicesSubView}
+                onSubViewChange={view => goToSection('services', view)}
+            />
+        );
     } else if (section === 'team') {
         content = (
             <TeamAndRolesSection

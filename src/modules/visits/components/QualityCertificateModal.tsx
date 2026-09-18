@@ -13,6 +13,7 @@ import { useToast } from '@/common/components/Toast/ToastContainer';
 import { usePermissions } from '@/core/permissions';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useProducts, useVisitProducts } from '@/modules/products/hooks/useProducts';
+import { useCareInstructions } from '@/modules/settings/hooks/useCareInstructions';
 import { qualityCertificateApi, type CertificateProductEntry } from '../api/qualityCertificateApi';
 import type { Visit } from '../types';
 
@@ -75,6 +76,7 @@ const RemoveBtn = styled.button`
     &:hover { color: ${st.accentRed}; }
 `;
 const Empty = styled.p` margin: 0; font-size: 13px; color: ${st.textMuted}; `;
+const RowHint = styled.div` margin-top: 2px; font-size: 11.5px; font-weight: 600; color: ${st.accentBlue}; `;
 
 const Combo = styled.div` position: relative; `;
 const LeadIcon = styled.span` display: inline-flex; padding-left: 12px; color: ${st.textMuted}; flex-shrink: 0; `;
@@ -235,7 +237,48 @@ export function QualityCertificateModal({ visit, onClose }: Props) {
     const [extras, setExtras] = useState<ManualEntry[]>([]);
     const [recommended, setRecommended] = useState<ManualEntry[]>([]);
     const [careNote, setCareNote] = useState('');
+    // Odstępstwa od zaznaczenia automatycznego. Trzymamy je osobno, zamiast jednego
+    // zbioru „zaznaczone": inaczej odznaczenie usługi cofałoby ręczną decyzję
+    // użytkownika albo — odwrotnie — zamrażałoby listę przy pierwszej zmianie.
+    const [careOn, setCareOn] = useState<Set<string>>(new Set());
+    const [careOff, setCareOff] = useState<Set<string>>(new Set());
     const [busy, setBusy] = useState(false);
+
+    const { instructions } = useCareInstructions();
+
+    // Identyfikatory KATALOGOWE zaznaczonych usług — po nich idzie przypisanie
+    // instrukcji. Pozycja wizyty ma własne id, które z cennikiem nie ma nic wspólnego.
+    const selectedCatalogServiceIds = useMemo(
+        () => new Set(services.filter(s => serviceIds.has(s.id)).map(s => s.serviceId).filter(Boolean)),
+        [services, serviceIds],
+    );
+
+    const autoCareIds = useMemo(() => new Set(
+        instructions
+            .filter(i => i.isDefaultSelected || i.serviceIds.some(id => selectedCatalogServiceIds.has(id)))
+            .map(i => i.id),
+    ), [instructions, selectedCatalogServiceIds]);
+
+    const careSelected = useMemo(() => {
+        const next = new Set(autoCareIds);
+        careOn.forEach(id => next.add(id));
+        careOff.forEach(id => next.delete(id));
+        return next;
+    }, [autoCareIds, careOn, careOff]);
+
+    const toggleCare = (id: string) => {
+        const isOn = careSelected.has(id);
+        setCareOn(prev => {
+            const next = new Set(prev);
+            if (isOn) next.delete(id); else next.add(id);
+            return next;
+        });
+        setCareOff(prev => {
+            const next = new Set(prev);
+            if (isOn) next.add(id); else next.delete(id);
+            return next;
+        });
+    };
 
     // Powiązania z produktami dociągają się osobnym zapytaniem, więc ich zaznaczenie musi
     // poczekać na dane — ale tylko RAZ, z tego samego powodu co wyżej.
@@ -261,7 +304,7 @@ export function QualityCertificateModal({ visit, onClose }: Props) {
 
     const nothingSelected =
         serviceIds.size === 0 && linkIds.size === 0 && extras.length === 0
-        && recommended.length === 0 && careNote.trim().length === 0;
+        && recommended.length === 0 && careSelected.size === 0 && careNote.trim().length === 0;
 
     const generate = async () => {
         setBusy(true);
@@ -273,6 +316,7 @@ export function QualityCertificateModal({ visit, onClose }: Props) {
                     productLinkIds: [...linkIds],
                     extraProducts: extras.map(({ productId, name, note }) => ({ productId, name, note })),
                     recommendations: recommended.map(({ productId, name, note }) => ({ productId, name, note })),
+                    careInstructionIds: [...careSelected],
                     careNote: careNote.trim() || null,
                 },
                 visit.visitNumber,
@@ -401,16 +445,37 @@ export function QualityCertificateModal({ visit, onClose }: Props) {
                 <Divider />
 
                 <Section>
-                    <SectionHead><Droplets size={16} /> Zalecenia dla tej realizacji</SectionHead>
+                    <SectionHead><Droplets size={16} /> Jak utrzymać efekt</SectionHead>
                     <SectionNote>
-                        Certyfikat ma już stałą sekcję o pielęgnacji — mycie dwoma wiadrami, osuszanie,
-                        odchody ptaków, odczyn preparatów. Tu wpisz to, co dotyczy TEJ pracy, np. termin
-                        pierwszego mycia po nałożeniu powłoki. Puste pole nie dodaje niczego do dokumentu.
+                        Zaznaczone instrukcje trafią na certyfikat. Same zaznaczają się te oznaczone
+                        w ustawieniach jako stałe oraz przypisane do wybranych wyżej usług — możesz
+                        to zmienić.
                     </SectionNote>
+                    {instructions.length === 0 && (
+                        <Empty>
+                            Słownik instrukcji jest pusty. Uzupełnisz go w Ustawieniach → Cennik usług →
+                            Instrukcje pielęgnacji.
+                        </Empty>
+                    )}
+                    {instructions.map(instruction => {
+                        const on = careSelected.has(instruction.id);
+                        const fromService = !instruction.isDefaultSelected
+                            && instruction.serviceIds.some(id => selectedCatalogServiceIds.has(id));
+                        return (
+                            <Row key={instruction.id} $on={on}>
+                                <Check type="checkbox" checked={on} onChange={() => toggleCare(instruction.id)} />
+                                <RowMain>
+                                    <RowTitle>{instruction.title}</RowTitle>
+                                    <RowSub>{instruction.content}</RowSub>
+                                    {fromService && <RowHint>zaznaczona przez wybraną usługę</RowHint>}
+                                </RowMain>
+                            </Row>
+                        );
+                    })}
                     <CareArea
                         value={careNote}
                         onChange={e => setCareNote(e.target.value)}
-                        placeholder="Np. powłoka utwardza się 7 dni — do tego czasu nie myj auta i nie parkuj pod drzewami."
+                        placeholder="Uwagi tylko do tego certyfikatu — np. auto odbierane w deszczu, przełóż pierwsze mycie."
                     />
                 </Section>
             </ModalContent>
