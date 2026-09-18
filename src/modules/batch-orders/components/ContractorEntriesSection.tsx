@@ -91,11 +91,29 @@ const ContractorMeta = styled.div`
     margin-top: 2px;
 `;
 
+/**
+ * `margin-left: auto` zamiast polegania na `justify-content` nagłówka: gdy rząd
+ * akcji zawinie się pod nazwę kontrahenta (tablet), bez tego lądował przy lewej
+ * krawędzi i dwie sąsiadujące karty miały akcje w dwóch różnych miejscach.
+ */
 const HeaderActions = styled.div`
     display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
+    gap: 8px;
     align-items: center;
+    margin-left: auto;
+
+    /* Na telefonie rząd dostaje własną linię, wyrównaną do lewej krawędzi karty -
+       w jednej osi z nazwą kontrahenta i z chipem okresu wiersz niżej. Przyciski
+       zostają przy szerokości swojej etykiety (nie rozciągają się na pół karty):
+       rozciągnięte robiły z dwóch krótkich słów dwa bloki większe od przycisku
+       kroku następnego w nagłówku strony. */
+    @media (max-width: 639px) {
+        width: 100%;
+        margin-left: 0;
+        margin-top: 2px;
+        flex-wrap: wrap;
+        row-gap: 8px;
+    }
 `;
 
 const FilterRow = styled.div`
@@ -164,66 +182,94 @@ const SettledBadge = styled.span`
 `;
 
 /**
- * Metryka i warianty wzięte z SharedButton (rozmiar „sm"): 13px, 7/16px,
- * promień 8px. Wcześniej przyciski miały 12px i 5/12px z obramowaniem na
- * każdym z nich - rząd sześciu ramek obok siebie czytał się jak pasek
- * narzędzi doklejony do karty, a nie jak część tego samego widoku co tabela.
- * Teraz akcję niesie wypełnienie, nie kontur: jedna akcja główna (primary),
- * jedna potwierdzająca (success) i reszta wyciszona (secondary).
+ * Jeden kształt na całą aplikację: pigułka (`radii.full`), tak jak
+ * `PageHeaderPrimaryButton`, `SharedButton` i chipy okresu stojące wiersz niżej.
+ * Wcześniej te przyciski były prostokątami o promieniu 8px, a „⋯" kwadratem o
+ * promieniu 7px - trzy języki kształtu jeden pod drugim w tej samej karcie.
+ *
+ * Żaden z nich nie jest WYPEŁNIONY i to jest celowe (CLAUDE.md §2). Wypełnienie
+ * niesie priorytet, a krokiem następnym całego okna jest „+ Kontrahent" w
+ * nagłówku strony. „+ Dodaj wpis" powtarza się przy KAŻDYM kontrahencie, więc
+ * wypełniony dawał trzy nasycone bloki na jedną listę - dokładnie ten remis,
+ * którego reguła zabrania. Odcień zostaje i dalej niesie znaczenie: błękit =
+ * główna akcja karty, zieleń = domknięcie, szarość = wydruk i archiwum.
+ *
+ * Jedna metryka dla wszystkich: 34px (38px pod palcem), 13px, promień pełny.
  */
 const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' | 'outline' | 'ghost' | 'success'; $mobileHide?: boolean }>`
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
-    padding: 7px 16px;
-    border: none;
-    border-radius: 8px;
+    height: 34px;
+    padding: 0 14px;
+    border-radius: ${p => p.theme.radii.full};
+    border: 1px solid transparent;
     font-family: inherit;
     font-size: 13px;
     font-weight: ${p => p.theme.fontWeights.semibold};
-    line-height: 1.2;
+    line-height: 1;
     cursor: pointer;
     white-space: nowrap;
-    transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease;
-    min-height: 34px;
+    transition: background ${p => p.theme.transitions.fast}, border-color ${p => p.theme.transitions.fast}, color ${p => p.theme.transitions.fast};
+    -webkit-tap-highlight-color: transparent;
+
+    svg { width: 14px; height: 14px; flex-shrink: 0; }
 
     @media (hover: none) and (pointer: coarse) {
-        min-height: 40px;
-        padding: 9px 16px;
+        height: 38px;
     }
 
     @media (max-width: 639px) {
         display: ${p => p.$mobileHide ? 'none' : undefined};
+        /* Bez rozciągania: szerokość niesie etykieta, nie dostępne miejsce. */
+        flex: 0 0 auto;
     }
 
     &:disabled { opacity: 0.55; cursor: not-allowed; }
 
     ${p => p.$variant === 'primary' && `
-        background: var(--brand-primary);
-        color: #fff;
-        box-shadow: 0 2px 8px color-mix(in srgb, var(--brand-primary) 28%, transparent);
-        &:hover:not(:disabled) { background: var(--brand-primary-dark); box-shadow: 0 4px 14px color-mix(in srgb, var(--brand-primary) 38%, transparent); }
+        border-color: color-mix(in srgb, var(--brand-primary) 32%, transparent);
+        background: color-mix(in srgb, var(--brand-primary) 10%, transparent);
+        color: ${p.theme.colors.primary};
+        &:hover:not(:disabled) {
+            border-color: ${p.theme.colors.primary};
+            background: color-mix(in srgb, var(--brand-primary) 18%, transparent);
+        }
     `}
     ${p => p.$variant === 'success' && `
-        background: #f0fdf4;
+        border-color: #86efac;
+        background: ${p.theme.colors.successLight};
         color: #15803d;
-        box-shadow: inset 0 0 0 1px #bbf7d0;
-        &:hover:not(:disabled) { background: #dcfce7; box-shadow: inset 0 0 0 1px #86efac; }
+        &:hover:not(:disabled) { background: #dcfce7; border-color: #4ade80; }
     `}
     ${p => p.$variant === 'danger' && `
-        background: ${p.theme.colors.surfaceAlt};
+        border-color: ${p.theme.colors.border};
+        background: transparent;
         color: ${p.theme.colors.textSecondary};
-        &:hover:not(:disabled) { background: ${p.theme.colors.errorLight}; color: ${p.theme.colors.error}; }
+        &:hover:not(:disabled) {
+            border-color: #fecaca;
+            background: ${p.theme.colors.errorLight};
+            color: ${p.theme.colors.error};
+        }
     `}
     ${p => (!p.$variant || p.$variant === 'outline' || p.$variant === 'ghost') && `
-        background: ${p.theme.colors.surfaceAlt};
+        border-color: ${p.theme.colors.border};
+        background: transparent;
         color: ${p.theme.colors.textSecondary};
-        &:hover:not(:disabled) { background: #e2e8f0; color: ${p.theme.colors.text}; }
+        &:hover:not(:disabled) {
+            border-color: ${p.theme.colors.textMuted};
+            background: ${p.theme.colors.surfaceAlt};
+            color: ${p.theme.colors.text};
+        }
     `}
 `;
 
 /* ── Mobile overflow menu ── */
 
+/* Ta sama pigułka co reszta rzędu, tylko okrągła - kwadrat z promieniem 7px
+   był jedynym takim kształtem w całej karcie. `flex: 0 0 38px`, żeby nie brał
+   udziału w równym podziale szerokości razem z etykietowanymi przyciskami. */
 const MoreActionsTrigger = styled.button<{ $active?: boolean }>`
     display: none;
 
@@ -231,16 +277,19 @@ const MoreActionsTrigger = styled.button<{ $active?: boolean }>`
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 36px;
-        min-height: 40px;
-        border-radius: 7px;
-        font-size: 18px;
+        flex: 0 0 38px;
+        width: 38px;
+        height: 38px;
+        padding: 0;
+        border-radius: ${p => p.theme.radii.full};
+        font-size: 16px;
         line-height: 1;
         cursor: pointer;
         border: 1px solid ${p => p.$active ? p.theme.colors.primary : p.theme.colors.border};
-        background: ${p => p.$active ? 'color-mix(in srgb, var(--brand-primary) 12%, transparent)' : 'transparent'};
-        color: ${p => p.$active ? p.theme.colors.primary : p.theme.colors.textMuted};
-        transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
+        background: ${p => p.$active ? 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' : 'transparent'};
+        color: ${p => p.$active ? p.theme.colors.primary : p.theme.colors.textSecondary};
+        transition: border-color ${p => p.theme.transitions.fast}, background ${p => p.theme.transitions.fast}, color ${p => p.theme.transitions.fast};
+        -webkit-tap-highlight-color: transparent;
     }
 `;
 
