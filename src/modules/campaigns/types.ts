@@ -180,6 +180,13 @@ export interface CampaignRecipient {
   customerId: string;
   channel: RecipientChannel;
   address: string;
+  /**
+   * Dane bieżące klienta, dołączane przez backend wyłącznie do prezentacji listy.
+   * Null dla kampanii sprzed tej zmiany i dla usuniętych kartotek - wtedy
+   * w tabeli zostaje sam adres.
+   */
+  firstName: string | null;
+  lastName: string | null;
   status: RecipientStatus;
   errorMessage: string | null;
   scheduledFor: string;
