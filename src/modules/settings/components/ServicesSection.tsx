@@ -18,6 +18,7 @@ import {
 } from '@/modules/services/utils/priceCalculator';
 import type { Service, VatRate, AffectedPackage } from '@/modules/services/types';
 import { useCareInstructions, useCareInstructionMutations } from '../hooks/useCareInstructions';
+import { CareInstructionPickerModal } from './services/CareInstructionPickerModal';
 import { ServicesTableRow } from './services/ServicesTableRow';
 import { SERVICES_TABLE_GRID } from './services/servicesTable.helpers';
 
@@ -728,9 +729,10 @@ const PackageInfoBox = styled.div`
 
 // ── Instrukcje pielęgnacyjne przypięte do usługi ──────────────────────────────────────────
 //
-// Blok mieszka w formularzu usługi, a nie w słowniku, bo pytanie brzmi „co dopisać do
-// certyfikatu po TEJ usłudze", a odpowiedź jest częścią definicji usługi. Same treści
-// są w słowniku obok — tutaj zaznacza się tylko, które z nich dotyczą tej pozycji.
+// W formularzu został sam podsumowujący wiersz, a wybór przeniósł się do osobnego okna
+// (CareInstructionPickerModal): przypisanie zmienia się raz przy zakładaniu usługi i
+// prawie nigdy później, a rozwinięta lista rozpychała formularz ceny, w którym ludzie
+// bywają codziennie.
 
 const CareBlock = styled.div`
   display: flex;
@@ -746,63 +748,49 @@ const CareHint = styled.p`
   color: #64748b;
 `;
 
-const CareList = styled.div`
+const CareSummaryRow = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-height: 210px;
-  overflow-y: auto;
-  padding: 2px;
-  margin: -2px;
-`;
-
-const CareItem = styled.label<{ $on: boolean }>`
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 9px 11px;
-  cursor: pointer;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
-  border: 1px solid ${p => (p.$on ? '#0ea5e9' : '#e2e8f0')};
-  background: ${p => (p.$on ? 'rgba(14,165,233,0.06)' : '#fff')};
-  transition: border-color 150ms ease, background 150ms ease;
+  background: #fff;
 
-  &:hover { border-color: ${p => (p.$on ? '#0ea5e9' : '#cbd5e1')}; }
+  @media (max-width: 520px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
 `;
 
-const CareCheck = styled.input`
-  margin: 2px 0 0;
-  width: 15px;
-  height: 15px;
-  flex-shrink: 0;
-  accent-color: #0ea5e9;
-`;
-
-const CareTexts = styled.span`
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+const CareSummaryText = styled.span`
+  font-size: 13px;
+  color: #0f172a;
   min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
-const CareTitle = styled.span`
+const CareSummaryMuted = styled.span`
+  font-size: 13px;
+  color: #94a3b8;
+`;
+
+// Akcja drugorzędna: odcień i obwódka, bez wypełnienia (CLAUDE.md §2) — wypełniony
+// w tym formularzu jest „Zapisz zmiany".
+const CarePickBtn = styled.button`
+  flex-shrink: 0;
+  padding: 8px 14px;
+  font-family: inherit;
   font-size: 13px;
   font-weight: 600;
-  color: #0f172a;
-  overflow-wrap: anywhere;
-`;
-
-const CareContent = styled.span`
-  font-size: 12px;
-  line-height: 1.45;
-  color: #64748b;
-  overflow-wrap: anywhere;
-`;
-
-const CareAlways = styled.span`
-  font-size: 11px;
-  font-weight: 600;
   color: #0369a1;
+  background: #fff;
+  border: 1px solid #7dd3fc;
+  border-radius: 8px;
+  cursor: pointer;
+
+  &:hover { border-color: #0ea5e9; background: #f0f9ff; }
 `;
 
 const VAT_OPTIONS: { value: VatRate; label: string }[] = [
@@ -1022,6 +1010,7 @@ export const ServicesSection: React.FC = () => {
   const { instructions: careInstructions } = useCareInstructions();
   const { setForService: setServiceCare } = useCareInstructionMutations();
   const [formCareIds, setFormCareIds] = useState<string[]>([]);
+  const [carePickerOpen, setCarePickerOpen] = useState(false);
 
   const createMutation  = useCreateService();
   const updateMutation  = useUpdateService();
@@ -1116,7 +1105,7 @@ export const ServicesSection: React.FC = () => {
     }
   };
 
-  const closeForm = () => { setFormMode(null); setEditTarget(null); };
+  const closeForm = () => { setFormMode(null); setEditTarget(null); setCarePickerOpen(false); };
 
   // ── Package form handlers ──
   const openAddPackage = () => {
@@ -1278,10 +1267,6 @@ export const ServicesSection: React.FC = () => {
     } catch {
       // Świadomie po cichu — użytkownik zobaczy stan w formularzu przy następnym wejściu.
     }
-  };
-
-  const toggleCareId = (id: string) => {
-    setFormCareIds(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
   };
 
   const handleSubmit = async () => {
@@ -1505,27 +1490,21 @@ export const ServicesSection: React.FC = () => {
                   Zaznaczą się same, gdy ta usługa trafi na certyfikat jakości. Treści
                   edytujesz w zakładce „Instrukcje pielęgnacji".
                 </CareHint>
-                <CareList>
-                  {careInstructions.map(instruction => {
-                    const on = formCareIds.includes(instruction.id);
-                    return (
-                      <CareItem key={instruction.id} $on={on}>
-                        <CareCheck
-                          type="checkbox"
-                          checked={on}
-                          onChange={() => toggleCareId(instruction.id)}
-                        />
-                        <CareTexts>
-                          <CareTitle>{instruction.title}</CareTitle>
-                          <CareContent>{instruction.content}</CareContent>
-                          {instruction.isDefaultSelected && (
-                            <CareAlways>Zaznaczana przy każdym certyfikacie</CareAlways>
-                          )}
-                        </CareTexts>
-                      </CareItem>
-                    );
-                  })}
-                </CareList>
+                <CareSummaryRow>
+                  {formCareIds.length === 0 ? (
+                    <CareSummaryMuted>Nie przypisano żadnej instrukcji</CareSummaryMuted>
+                  ) : (
+                    <CareSummaryText>
+                      {careInstructions
+                        .filter(i => formCareIds.includes(i.id))
+                        .map(i => i.title)
+                        .join(', ')}
+                    </CareSummaryText>
+                  )}
+                  <CarePickBtn type="button" onClick={() => setCarePickerOpen(true)}>
+                    {formCareIds.length === 0 ? 'Przypisz instrukcje' : 'Zmień'}
+                  </CarePickBtn>
+                </CareSummaryRow>
               </CareBlock>
             )}
           </FormBody>
@@ -1539,6 +1518,16 @@ export const ServicesSection: React.FC = () => {
             </SubmitBtn>
           </FormFooter>
         </FormPanel>
+      )}
+
+      {carePickerOpen && (
+        <CareInstructionPickerModal
+          instructions={careInstructions}
+          selectedIds={formCareIds}
+          serviceName={formValues.name.trim()}
+          onCancel={() => setCarePickerOpen(false)}
+          onConfirm={ids => { setFormCareIds(ids); setCarePickerOpen(false); }}
+        />
       )}
 
       {/* ── Package form panel ── */}

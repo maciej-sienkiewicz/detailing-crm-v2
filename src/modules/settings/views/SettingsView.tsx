@@ -357,7 +357,7 @@ const SECTION_ALIASES: Record<string, { section: SectionId; view?: SubView }> = 
 type SubView = TeamSubView | LabelsSubView | MobileDevicesSubView | ServicesSubView;
 
 const VIEW_PARAM = 'view';
-const SECTIONS_WITH_SUBVIEWS = new Set<SectionId>(['team', 'labels', 'mobile-devices']);
+const SECTIONS_WITH_SUBVIEWS = new Set<SectionId>(['team', 'labels', 'mobile-devices', 'services']);
 
 // Permission (or owner-only) requirements per settings tab. Tabs without an
 // entry are visible to everyone. Hidden tabs disappear from the nav and cannot
