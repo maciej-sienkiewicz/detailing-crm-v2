@@ -222,6 +222,9 @@ const SHOTS = [
     // Kryteria odbiorców po rozwinięciu.
     { name: '07-desktop-kryteria-rozwiniete', scenario: 'completed', viewport: { width: 1440, height: 1000 },
       expandCriteria: true },
+    // Filtr „tylko nieudane" - bez kliknięcia nie widać, czy działa.
+    { name: '08-desktop-tylko-nieudane', scenario: 'completed', viewport: { width: 1440, height: 1000 },
+      clickText: 'Tylko nieudane' },
 ];
 
 const isMain = process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop());
@@ -251,6 +254,13 @@ if (isMain) await (async () => {
         if (shot.expandCriteria) {
             await page.getByText('Kryteria odbiorców').first().click();
             await page.waitForTimeout(400);
+        }
+        if (shot.clickText) {
+            const btn = page.getByText(shot.clickText).first();
+            await btn.scrollIntoViewIfNeeded();
+            await btn.click();
+            await page.waitForTimeout(400);
+            await btn.scrollIntoViewIfNeeded();
         }
         if (shot.hoverName) {
             const cell = page.getByText(shot.hoverName).first();

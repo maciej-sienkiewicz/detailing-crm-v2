@@ -71,11 +71,12 @@ import { formatDateTime } from '@/modules/comms/components/shared';
 const BodyGrid = styled.div`
     display: grid;
     grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
-    gap: 16px;
+    gap: 0 28px;
     align-items: start;
 
     @media (max-width: ${p => p.theme.breakpoints.md}) {
         grid-template-columns: minmax(0, 1fr);
+        gap: 16px;
     }
 `;
 
@@ -90,6 +91,26 @@ const Column = styled.div`
     flex-direction: column;
     gap: 16px;
     min-width: 0;
+`;
+
+/**
+ * Szyna po prawej - oddzielona kreską od kolumny roboczej.
+ *
+ * Obie kolumny są płaskie (jedyna wyniesiona powierzchnia to treść wiadomości),
+ * więc bez kreski „Odbiorcy" z lewej i „Przebieg" z prawej stały obok siebie na
+ * tym samym planie i czytały się jako jeden ciąg sekcji. Kreska mówi, że to dwa
+ * osobne pasma: po lewej to, czym kampania JEST, po prawej to, co się o niej wie.
+ */
+const Rail = styled(Column)`
+    padding-left: 28px;
+    border-left: 1px solid ${p => p.theme.colors.surfaceAlt};
+
+    @media (max-width: ${p => p.theme.breakpoints.md}) {
+        padding-left: 0;
+        padding-top: 16px;
+        border-left: none;
+        border-top: 1px solid ${p => p.theme.colors.surfaceAlt};
+    }
 `;
 
 const ModalBody = styled.div`
@@ -174,7 +195,8 @@ const HeaderDuplicate = styled.button`
 /** Etap w nagłówku - jedyne miejsce widoczne niezależnie od przewinięcia. */
 const HeaderStatus = styled.div`
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-end;
     gap: 8px;
     flex-shrink: 0;
 
@@ -239,6 +261,12 @@ const OutcomeHead = styled.h3`
 
 /* Sama liczba zostaje dominantą okna - przez ROZMIAR, nie przez barwę.
    Cyfry o stałej szerokości, żeby kolejne kampanie dały się porównać wzrokiem. */
+/* Koszt przy zdaniu - cichszy od niego, bo to fakt towarzyszący, nie odpowiedź. */
+const CreditsNote = styled.span`
+    color: ${p => p.theme.colors.textMuted};
+    font-variant-numeric: tabular-nums;
+`;
+
 const OutcomeNumber = styled.strong<{ $empty?: boolean }>`
     font-size: 30px;
     line-height: 1;
@@ -300,28 +328,6 @@ const LegendDot = styled.span<{ $tone: PartTone }>`
     flex-shrink: 0;
     align-self: center;
     background: ${p => partColor(p.$tone)};
-`;
-
-/* Koszt, kanał i moment - fakty towarzyszące, nie odpowiedzi. Jedna linia
-   pod kreską, bo dotąd każdy z nich miał własną komórkę tej samej wagi
-   co liczba odbiorców. */
-const OutcomeMeta = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px 14px;
-    padding-top: 11px;
-    border-top: 1px solid ${p => p.theme.colors.surfaceAlt};
-    font-size: 13px;
-    color: ${p => p.theme.colors.textMuted};
-
-    span.item {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    svg { width: 14px; height: 14px; }
 `;
 
 /* ── Nagłówek sekcji: język z okna leada ───────────────────────────────────
@@ -479,6 +485,9 @@ const NameCell = styled.span`
     align-items: center;
     gap: 6px;
     cursor: default;
+    /* Nazwisko w jednej linii - „Katarzyna Dąbrowska" łamane na dwie robiło
+       z wiersza listy dwuwierszowy blok i rozjeżdżało rytm tabeli. */
+    white-space: nowrap;
 
     .tip {
         position: absolute;
@@ -623,6 +632,45 @@ const SearchRow = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
+`;
+
+/**
+ * Filtr listy odbiorców: „tylko nieudane" / „tylko pominięte".
+ *
+ * Blok u góry mówi, ILE ich jest - ale żeby coś z nimi zrobić, trzeba dojść do
+ * tych kilku wierszy w liście liczącej setki pozycji. Szukanie po nazwisku tu
+ * nie pomaga, bo nie wiadomo, czyje nazwisko wpisać; to właśnie jest pytanie.
+ *
+ * Ten sam chip co filtr okresu w zleceniach zbiorczych: pigułka, tło i obwódka
+ * przy włączeniu, nigdy wypełnienie.
+ */
+const FilterChip = styled.button<{ $active: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 34px;
+    padding: 0 13px;
+    border-radius: ${p => p.theme.radii.full};
+    border: 1px solid ${p => (p.$active ? p.theme.colors.primary : p.theme.colors.border)};
+    background: ${p => (p.$active ? 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' : 'transparent')};
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    color: ${p => (p.$active ? p.theme.colors.primary : p.theme.colors.textSecondary)};
+    white-space: nowrap;
+    cursor: pointer;
+    transition: border-color ${p => p.theme.transitions.fast}, background ${p => p.theme.transitions.fast}, color ${p => p.theme.transitions.fast};
+
+    .n {
+        font-variant-numeric: tabular-nums;
+        color: ${p => (p.$active ? p.theme.colors.primary : p.theme.colors.textMuted)};
+    }
+
+    &:hover {
+        border-color: ${p => p.theme.colors.primary};
+        color: ${p => p.theme.colors.primary};
+    }
 `;
 
 const ConditionText = styled.p`
@@ -640,6 +688,14 @@ const ConditionText = styled.p`
 // ─── Pomocnicze ───────────────────────────────────────────────────────────────
 
 const NON_RETRYABLE = new Set(['SENT', 'PENDING', 'EXCLUDED_MANUALLY', 'SKIPPED_OPTED_OUT']);
+
+/** „Nie wyszło" - próbowaliśmy i się nie udało. */
+const FAILED_STATUSES = new Set<string>(['FAILED', 'STOPPED']);
+/** „Nie próbowaliśmy" - odfiltrowani przed wysyłką. */
+const SKIPPED_STATUSES = new Set<string>([
+    'SKIPPED_NO_CONSENT', 'SKIPPED_NO_ADDRESS', 'SKIPPED_FREQUENCY_CAP',
+    'SKIPPED_OPTED_OUT', 'SKIPPED_NO_CREDITS', 'EXCLUDED_MANUALLY',
+]);
 const BULK_RETRYABLE = new Set(['FAILED', 'STOPPED', 'SKIPPED_NO_CREDITS', 'SKIPPED_FREQUENCY_CAP']);
 
 const ELIGIBILITY_LABELS: Record<string, string> = {
@@ -657,6 +713,15 @@ function peopleWord(n: number) {
     const last = n % 10;
     if (lastTwo >= 12 && lastTwo <= 14) return 'osób';
     return last >= 2 && last <= 4 ? 'osoby' : 'osób';
+}
+
+/** Polska odmiana po liczbie: 1 kredyt, 2-4 kredyty, 5+ kredytów. */
+function creditWord(n: number) {
+    if (n === 1) return 'kredyt';
+    const lastTwo = n % 100;
+    const last = n % 10;
+    if (lastTwo >= 12 && lastTwo <= 14) return 'kredytów';
+    return last >= 2 && last <= 4 ? 'kredyty' : 'kredytów';
 }
 
 interface OutcomePart {
@@ -778,6 +843,8 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
     const retryAllFailed = useRetryAllFailed(campaignId);
 
     const [search, setSearch] = useState('');
+    /** null = bez zawężenia; inaczej pokazujemy wyłącznie nieudane albo pominięte. */
+    const [onlyStatus, setOnlyStatus] = useState<'failed' | 'skipped' | null>(null);
     // Schowane domyślnie - patrz komentarz przy [SectionToggle].
     const [showCriteria, setShowCriteria] = useState(false);
     const [pending, setPending] = useState<PendingAction>(null);
@@ -804,13 +871,28 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
             : null,
     });
 
+    /* Nieudane to FAILED i STOPPED; pominięte to cała rodzina SKIPPED_* oraz
+       ręczne wykluczenie. Liczymy z listy, a nie z liczników kampanii, bo to te
+       wiersze filtr ma pokazać. */
+    const failedCount = useMemo(
+        () => recipients.filter((r) => FAILED_STATUSES.has(r.status)).length,
+        [recipients],
+    );
+    const skippedCount = useMemo(
+        () => recipients.filter((r) => SKIPPED_STATUSES.has(r.status)).length,
+        [recipients],
+    );
+
     const filteredRecipients = useMemo(() => {
-        if (!search.trim()) return recipients;
-        const query = search.toLowerCase();
-        return recipients.filter((item) =>
-            item.address.toLowerCase().includes(query) ||
-            [item.firstName, item.lastName].filter(Boolean).join(' ').toLowerCase().includes(query));
-    }, [recipients, search]);
+        const query = search.trim().toLowerCase();
+        return recipients.filter((item) => {
+            if (onlyStatus === 'failed' && !FAILED_STATUSES.has(item.status)) return false;
+            if (onlyStatus === 'skipped' && !SKIPPED_STATUSES.has(item.status)) return false;
+            if (!query) return true;
+            return item.address.toLowerCase().includes(query)
+                || [item.firstName, item.lastName].filter(Boolean).join(' ').toLowerCase().includes(query);
+        });
+    }, [recipients, search, onlyStatus]);
 
     const chips = useMemo(
         () => (campaign ? audienceChips(campaign.audience, serviceNames) : []),
@@ -831,6 +913,9 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
         plannedCredits != null && stats != null && plannedCredits > stats.smsCreditsAvailable;
 
     const outcome = summarizeOutcome(c, estimate);
+    const creditsNote = isProjection
+        ? plannedCredits != null ? `szacunkowo ${plannedCredits} ${creditWord(plannedCredits)}` : null
+        : c.creditsSpent > 0 ? `${c.creditsSpent} ${creditWord(c.creditsSpent)}` : null;
 
     const openEditor = () => navigate(`/campaigns/${c.id}/edit`);
 
@@ -867,11 +952,9 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                         <CampaignIdentity>
                             <CampaignKindMark kind={c.kind} />
                             {CHANNEL_LABELS[c.channel]}
-                            {/* Data utworzenia zeszła stąd do „Przebiegu": tam stoi
-                                razem z resztą dat i nie rozpycha wiersza tożsamości. */}
-                            <HeaderDuplicate type="button" onClick={runDuplicate} disabled={duplicate.isPending}>
-                                <Copy /> Duplikuj
-                            </HeaderDuplicate>
+                            {/* Data utworzenia zeszła stąd do „Przebiegu", a „Duplikuj"
+                                pod plakietkę etapu: ten wiersz niesie już tylko fakty. */}
+
                         </CampaignIdentity>
                     </ModalTitleGroup>
                     <HeaderStatus>
@@ -879,6 +962,11 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                             <span className="dot" />
                             {STATUS_LABELS[c.status]}
                         </StatusPill>
+                        {/* Pod plakietką, nie w wierszu tożsamości: „Duplikuj" jest
+                            akcją, a tamten wiersz niesie same fakty o kampanii. */}
+                        <HeaderDuplicate type="button" onClick={runDuplicate} disabled={duplicate.isPending}>
+                            <Copy /> Duplikuj
+                        </HeaderDuplicate>
                     </HeaderStatus>
                     <CloseBtn onClick={onClose} />
                 </CampaignHeader>
@@ -931,7 +1019,14 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                         <Outcome>
                             <OutcomeHead>
                                 <OutcomeNumber $empty={outcome.value === '—'}>{outcome.value}</OutcomeNumber>
-                                <span>{outcome.after}</span>
+                                <span>
+                                    {outcome.after}
+                                    {/* Koszt w nawiasie przy zdaniu, nie w osobnej stopce: to ta
+                                        sama odpowiedź („ile to było"), tylko w innej walucie.
+                                        Kanał i moment zakończenia wypadły stąd zupełnie - kanał
+                                        stoi w wierszu tożsamości pod tytułem, a daty w „Przebiegu". */}
+                                    {creditsNote && <CreditsNote> ({creditsNote})</CreditsNote>}
+                                </span>
                             </OutcomeHead>
 
                             {outcome.parts.length > 0 && (
@@ -958,32 +1053,6 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                                 </>
                             )}
 
-                            <OutcomeMeta>
-                                <span className="item">
-                                    {c.channel === 'EMAIL' ? <Mail /> : <MessageSquare />}
-                                    {CHANNEL_LABELS[c.channel]}
-                                </span>
-                                <span className="item">
-                                    <Coins />
-                                    {isProjection
-                                        ? plannedCredits != null
-                                            ? `${plannedCredits} kredytów (szacunek)`
-                                            : 'koszt liczymy…'
-                                        : c.creditsSpent > 0
-                                            ? `${c.creditsSpent} kredytów`
-                                            : 'bez kosztu'}
-                                </span>
-                                <span className="item">
-                                    <CalendarClock />
-                                    {c.status === 'SCHEDULED' && c.scheduledAt
-                                        ? `wyjdzie ${formatDateTime(c.scheduledAt)} (${describeMoment(c.scheduledAt)})`
-                                        : c.completedAt
-                                            ? `zakończona ${formatDateTime(c.completedAt)}`
-                                            : c.startedAt
-                                                ? `ruszyła ${formatDateTime(c.startedAt)}`
-                                                : `utworzona ${formatDateTime(c.createdAt)}`}
-                                </span>
-                            </OutcomeMeta>
                         </Outcome>
 
                         <BodyGrid>
@@ -1037,6 +1106,31 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                                                     value={search}
                                                     onChange={(e) => setSearch(e.target.value)}
                                                 />
+                                                {/* Chipy pojawiają się tylko wtedy, gdy jest co
+                                                    filtrować - filtr na zero wierszy to obietnica
+                                                    bez pokrycia. */}
+                                                {failedCount > 0 && (
+                                                    <FilterChip
+                                                        type="button"
+                                                        $active={onlyStatus === 'failed'}
+                                                        aria-pressed={onlyStatus === 'failed'}
+                                                        onClick={() => setOnlyStatus((v) => (v === 'failed' ? null : 'failed'))}
+                                                    >
+                                                        Tylko nieudane
+                                                        <span className="n">{failedCount}</span>
+                                                    </FilterChip>
+                                                )}
+                                                {skippedCount > 0 && (
+                                                    <FilterChip
+                                                        type="button"
+                                                        $active={onlyStatus === 'skipped'}
+                                                        aria-pressed={onlyStatus === 'skipped'}
+                                                        onClick={() => setOnlyStatus((v) => (v === 'skipped' ? null : 'skipped'))}
+                                                    >
+                                                        Tylko pominięte
+                                                        <span className="n">{skippedCount}</span>
+                                                    </FilterChip>
+                                                )}
                                             </SearchRow>
                                             <TableScroll>
                                                 <RecipientsTable>
@@ -1137,7 +1231,7 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                             </Column>
 
                             {/* Materiał pomocniczy: cofnięty o plan, bez ramki, na tle strony. */}
-                            <Column>
+                            <Rail>
                                 {c.kind === 'AUTOMATIC' && c.trigger && (
                                     <FlatSection>
                                         <SectionHead>
@@ -1216,7 +1310,7 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                                         )}
                                     </Timeline>
                                 </FlatSection>
-                            </Column>
+                            </Rail>
                         </BodyGrid>
                     </ModalBody>
                 </ModalContent>
