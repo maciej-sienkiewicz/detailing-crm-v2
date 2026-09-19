@@ -2,7 +2,7 @@ import styled from 'styled-components';
 import { Package } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { ProductListItem } from '../types';
-import { formatPackage, formatPrice } from '../utils/productFormat';
+import { formatLastUsed, formatPackage, formatPrice } from '../utils/productFormat';
 import { ProductRatingCompact } from './ProductRatingStars';
 
 const Grid = styled.div`
@@ -55,6 +55,15 @@ export function ProductGrid({ products, canSeeCosts, onOpen }: Props) {
                     <Meta>
                         <span>{formatPackage(p.packageSizeValue, p.packageSizeUnit)}</span>
                         {p.ratingValue !== null && <ProductRatingCompact value={p.ratingValue} size={13} />}
+                    </Meta>
+                    <Meta>
+                        {/* Na kafelku liczy się sam fakt obiegu - „12 wizyt · miesiąc temu"
+                            nie zmieści się obok ceny, więc idzie własnym wierszem. */}
+                        <span>
+                            {p.usageCount > 0
+                                ? `${p.usageCount} × w wizytach${p.lastUsedAt ? ` · ${formatLastUsed(p.lastUsedAt)}` : ''}`
+                                : 'Nieużywany'}
+                        </span>
                     </Meta>
                     {canSeeCosts && p.price && <Meta><span>{formatPrice(p.price)}</span></Meta>}
                 </Card>

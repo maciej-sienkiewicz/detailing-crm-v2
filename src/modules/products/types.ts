@@ -89,6 +89,13 @@ export interface ProductListItem {
     isOurs: boolean;
     price: ProductPrice | null;
     ratingValue: number | null;
+    /**
+     * W ilu WIZYTACH użyto tego produktu. Serwer liczy różne wizyty, nie wpisy:
+     * ten sam produkt bywa dopięty do jednej wizyty przez dwie osoby.
+     */
+    usageCount: number;
+    /** ISO. Kiedy ostatnio poszedł do wizyty; null, gdy nigdy. */
+    lastUsedAt: string | null;
 }
 
 export interface ProductListFilters {
