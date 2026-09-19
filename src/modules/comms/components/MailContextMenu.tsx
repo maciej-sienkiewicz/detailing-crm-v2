@@ -1,13 +1,17 @@
-// src/modules/comms/components/MessageContextMenu.tsx
+// src/modules/comms/components/MailContextMenu.tsx
 //
-// Menu kontekstowe pojedynczej wiadomości w rozmowie (prawy przycisk myszy).
-// Na razie jedna pozycja - „Oznacz jako nieprzeczytaną" - ale kształt (portal,
-// pozycja z kursora, zamknięcie klikiem obok i Esc) jest gotowy na kolejne.
+// Menu kontekstowe poczty (prawy przycisk myszy) - wspólne dla dwóch miejsc:
+// pojedynczej wiadomości w otwartej rozmowie i wiersza na liście rozmów.
+//
+// Wspólne, bo cała trudność siedzi nie w pozycjach, tylko w mechanice: portal
+// (menu nie może być przycięte przez przewijaną kolumnę), dosunięcie do krawędzi
+// ekranu, zamknięcie klikiem obok i Esc, pierwsza pozycja pod klawiaturą. Drugi
+// raz napisane od nowa różniłoby się w którymś z tych szczegółów.
 
+import type { ReactNode } from 'react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
-import { Mail } from 'lucide-react';
 
 const Menu = styled.div`
     position: fixed;
@@ -46,14 +50,22 @@ const Item = styled.button`
     }
 `;
 
-export interface MessageContextMenuProps {
+export interface MailContextMenuItem {
+    /** Ikona 16 px; menu bez ikon czyta się jak lista linków, nie jak akcje. */
+    icon: ReactNode;
+    label: string;
+    onSelect: () => void;
+}
+
+export interface MailContextMenuProps {
     x: number;
     y: number;
     onClose: () => void;
-    onMarkUnread: () => void;
+    /** Pozycje w kolejności czytania; pusta lista nie ma po co się otwierać. */
+    items: MailContextMenuItem[];
 }
 
-export function MessageContextMenu({ x, y, onClose, onMarkUnread }: MessageContextMenuProps) {
+export function MailContextMenu({ x, y, onClose, items }: MailContextMenuProps) {
     const menuRef = useRef<HTMLDivElement>(null);
     // Dosunięcie kursora do prawej/dolnej krawędzi nie może wypchnąć menu poza ekran:
     // po zmierzeniu przesuwamy je tak, by w całości się zmieściło.
@@ -85,17 +97,22 @@ export function MessageContextMenu({ x, y, onClose, onMarkUnread }: MessageConte
         };
     }, [onClose]);
 
+    if (items.length === 0) return null;
+
     return createPortal(
         <Menu ref={menuRef} style={{ left: pos.x, top: pos.y }} role="menu">
-            <Item
-                type="button"
-                role="menuitem"
-                autoFocus
-                onClick={() => { onMarkUnread(); onClose(); }}
-            >
-                <Mail />
-                Oznacz jako nieprzeczytaną
-            </Item>
+            {items.map((item, index) => (
+                <Item
+                    key={item.label}
+                    type="button"
+                    role="menuitem"
+                    autoFocus={index === 0}
+                    onClick={() => { item.onSelect(); onClose(); }}
+                >
+                    {item.icon}
+                    {item.label}
+                </Item>
+            ))}
         </Menu>,
         document.body
     );

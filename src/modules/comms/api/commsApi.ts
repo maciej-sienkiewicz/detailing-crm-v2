@@ -101,6 +101,18 @@ export const commsApi = {
         await apiClient.post(`/v1/comms/messages/${messageId}/unread`);
     },
 
+    /**
+     * Cofnięcie rozmowy do nieprzeczytanej z listy. Dotyka JEDNEJ wiadomości -
+     * najnowszej przychodzącej - i oddaje jej identyfikator albo null, gdy nie
+     * było czego cofać (rozmowa bez wiadomości od klienta, najnowsza już czeka).
+     */
+    markThreadUnread: async (threadId: string): Promise<string | null> => {
+        const response = await apiClient.post<{ messageId: string | null }>(
+            `/v1/comms/threads/${threadId}/unread`
+        );
+        return response.data.messageId;
+    },
+
     setThreadArchived: async (threadId: string, archived: boolean): Promise<void> => {
         await apiClient.put(`/v1/comms/threads/${threadId}/archive`, { archived });
     },

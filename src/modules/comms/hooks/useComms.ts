@@ -344,6 +344,52 @@ export const useMarkMessageUnread = () => {
     });
 };
 
+/**
+ * „Oznacz jako nieprzeczytaną" klikane na WĄTKU, z listy rozmów.
+ *
+ * Cofa jedną wiadomość - najnowszą przychodzącą - więc licznik rośnie o JEDEN,
+ * nie o liczbę wiadomości w rozmowie. Optymistycznie podbijamy go od razu, ale
+ * serwer ma prawo powiedzieć „nie było czego cofać" (rozmowa bez wiadomości od
+ * klienta albo taka, której najnowsza już czeka nieprzeczytana) - wtedy zamiast
+ * zostawiać zmyśloną jedynkę odświeżamy listę z serwera.
+ */
+export const useMarkThreadUnread = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ threadId }: { threadId: string }) => commsApi.markThreadUnread(threadId),
+        onMutate: async ({ threadId }) => {
+            queryClient.setQueriesData<CommThreadPage>(
+                { queryKey: [...COMMS_THREADS_KEY, 'list'] },
+                (page) => {
+                    if (!page) return page;
+                    const target = page.items.find((item) => item.id === threadId);
+                    if (!target) return page;
+                    return {
+                        ...page,
+                        totalUnread: page.totalUnread + 1,
+                        items: page.items.map((item) =>
+                            item.id === threadId ? { ...item, unreadCount: item.unreadCount + 1 } : item
+                        ),
+                    };
+                }
+            );
+        },
+        onSuccess: (messageId, { threadId }) => {
+            // Serwer nic nie cofnął - optymistyczny +1 nie ma pokrycia w bazie.
+            if (messageId === null) {
+                queryClient.invalidateQueries({ queryKey: [...COMMS_THREADS_KEY, 'list'] });
+                return;
+            }
+            // Otwarta rozmowa musi pokazać tę samą wiadomość jako nieprzeczytaną.
+            queryClient.invalidateQueries({ queryKey: [...COMMS_THREADS_KEY, 'detail', threadId] });
+        },
+        onError: (_error, { threadId }) => {
+            queryClient.invalidateQueries({ queryKey: [...COMMS_THREADS_KEY, 'detail', threadId] });
+            queryClient.invalidateQueries({ queryKey: [...COMMS_THREADS_KEY, 'list'] });
+        },
+    });
+};
+
 export const useSetThreadArchived = () => {
     const queryClient = useQueryClient();
     return useMutation({
