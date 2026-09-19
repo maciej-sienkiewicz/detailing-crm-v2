@@ -87,6 +87,24 @@ export const useBlockAdvertiser = () => {
     });
 };
 
+/**
+ * Odznaczenie nowości. Unieważnia wszystkie strony wyników (odznaki gasną i wiersze
+ * wracają do zwykłej kolejności, więc żadna strona nie zostaje aktualna), ustawienia
+ * oraz podpowiedzi Tablicy — pasek liczy nowości z tego samego ustawienia, więc
+ * zostawiony bez odświeżenia mówiłby o czymś, czego w tabeli już nie widać.
+ */
+export const useAcknowledgeAreaNovelty = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: () => instagramApi.acknowledgeAreaNovelty(),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [AREA_KEYS.results] });
+            queryClient.invalidateQueries({ queryKey: [AREA_KEYS.settings] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard', 'hints'] });
+        },
+    });
+};
+
 export const useUnblockAdvertiser = () => {
     const queryClient = useQueryClient();
     return useMutation({

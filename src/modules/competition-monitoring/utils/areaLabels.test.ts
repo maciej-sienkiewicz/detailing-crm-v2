@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AdvertiserRow } from '../types';
-import { formatStartDay, noveltyBadge, noveltySummary } from './areaNovelty';
+import { activeAdsWord, companiesWord, formatStartDay, noveltyBadge } from './areaLabels';
 
 const row = (overrides: Partial<AdvertiserRow> = {}): AdvertiserRow => ({
     pageId: '100',
@@ -63,12 +63,16 @@ describe('odznaka nowości w tabeli reklamodawców', () => {
         expect(formatStartDay('2026-12-31')).toBe('31 gru');
     });
 
-    it('zdanie o nowościach nad tabelą odmienia firmy i kampanie', () => {
-        expect(noveltySummary(0, 0, 14)).toBeNull();
-        expect(noveltySummary(1, 0, 14)).toBe('1 nowa firma z ostatnich 14 dni');
-        expect(noveltySummary(2, 3, 14)).toBe('2 nowe firmy i 3 nowe kampanie z ostatnich 14 dni');
-        expect(noveltySummary(5, 1, 14)).toBe('5 nowych firm i 1 nowa kampania z ostatnich 14 dni');
-        expect(noveltySummary(0, 22, 14)).toBe('22 nowe kampanie z ostatnich 14 dni');
-        expect(noveltySummary(12, 0, 14)).toBe('12 nowych firm z ostatnich 14 dni');
+    it('licznik nad tabelą odmienia firmy i reklamy', () => {
+        expect(companiesWord(1)).toBe('firma');
+        expect(companiesWord(3)).toBe('firmy');
+        expect(companiesWord(12)).toBe('firm');
+        expect(companiesWord(22)).toBe('firmy');
+        expect(companiesWord(25)).toBe('firm');
+
+        expect(activeAdsWord(1)).toBe('aktywna reklama');
+        expect(activeAdsWord(4)).toBe('aktywne reklamy');
+        expect(activeAdsWord(13)).toBe('aktywnych reklam');
+        expect(activeAdsWord(73)).toBe('aktywne reklamy');
     });
 });
