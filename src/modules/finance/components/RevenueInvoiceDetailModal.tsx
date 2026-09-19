@@ -10,7 +10,6 @@ import {
   ModalSubtitle,
   ModalContent,
   ModalFooter,
-  ModalSectionTitle,
   CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
@@ -438,11 +437,54 @@ const HiddenBox = styled.div`
   line-height: 1.5;
 `;
 
-const ActionsRow = styled.div`
+/**
+ * Akcje dokumentu w STOPCE, po lewej stronie.
+ *
+ * Wcześniej stały w treści, pod pełnym podglądem faktury, jako sekcja „Akcje".
+ * Faktura ma tyle wierszy, ile ma pozycji, więc przyciski wypadały poniżej
+ * krawędzi okna: żeby pobrać PDF albo oznaczyć zapłatę, trzeba było najpierw
+ * domyślić się, że w ogóle istnieją, i przewinąć cały dokument. Stopka jest
+ * widoczna zawsze i to w niej ludzie szukają tego, co da się z oknem zrobić.
+ *
+ * `margin-right: auto` odsuwa grupę na lewy koniec rzędu, zostawiając „Zamknij"
+ * tam, gdzie stoi w każdym innym oknie aplikacji - po prawej.
+ */
+const FooterActions = styled.div`
   display: flex;
+  align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  margin-right: auto;
+  min-width: 0;
+
+  @media (max-width: 640px) {
+    /* Stopka rozciąga swoje własne przyciski na całą szerokość, gdy się zawiną
+       (patrz ModalFooter). Ta grupa jest dla niej jednym dzieckiem, więc ten
+       sam zabieg trzeba powtórzyć w środku, inaczej akcje kleją się w lewym
+       rogu, a obok zostaje pusty pas. */
+    width: 100%;
+    > button { flex: 1 1 auto; min-width: 0; }
+  }
+`;
+
+/**
+ * Formularz korekty stoi NA GÓRZE treści, nie na dole.
+ *
+ * Przycisk, który go włącza, siedzi w stopce - gdyby pole przyczyny pojawiało
+ * się pod dokumentem, kliknięcie wyglądałoby na bezskuteczne, bo jedyny jego
+ * ślad byłby poza ekranem. Tu jest widoczne od razu, a kursor ląduje w polu.
+ */
+const CorrectionBox = styled.div`
   flex-shrink: 0;
+  padding: 14px 16px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #92400e;
+  line-height: 1.55;
+
+  strong { display: block; margin-bottom: 4px; }
 `;
 
 // ─── Formatowanie ────────────────────────────────────────────────────────────
@@ -552,6 +594,23 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
           <>
             {actionError && <FormAlertBanner>{actionError}</FormAlertBanner>}
 
+            {correctionMode && (
+              <CorrectionBox>
+                <strong>Korekta do zera</strong>
+                Wystawimy korektę zerującą tę fakturę i wyślemy ją do KSeF. Pierwotny dokument
+                zostaje w systemie i w KSeF - korekta go nie usuwa, tylko sprowadza do zera.
+                <FieldLabel>Przyczyna korekty *</FieldLabel>
+                <InputShell>
+                  <BareInput
+                    autoFocus
+                    value={correctionReason}
+                    onChange={(e) => setCorrectionReason(e.target.value)}
+                    placeholder="np. Rezygnacja z usługi / błędne dane"
+                  />
+                </InputShell>
+              </CorrectionBox>
+            )}
+
             {invoice.excluded && (
               <HiddenBox>
                 Faktura jest ukryta ze statystyk - nie wchodzi do kafli podsumowania ani do
@@ -590,7 +649,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
               <OfflineBox>
                 Faktura została wystawiona bez wysyłki do KSeF - dokument istnieje w CRM,
                 ale nie w KSeF. Możesz pobrać jego plik XML i wgrać go ręcznie albo wysłać
-                fakturę przyciskiem poniżej.
+                fakturę przyciskiem w stopce okna.
               </OfflineBox>
             )}
 
@@ -811,112 +870,106 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
                 )}
               </PaperBody>
             </Paper>
-
-            <ModalSectionTitle>Akcje</ModalSectionTitle>
-            <ActionsRow>
-              {/* Wizualizacja PDF stoi pierwsza: to ona idzie do nabywcy i to po nią
-                  się tu wraca. XML i UPO są dla księgowości, nie dla klienta. */}
-              <SharedButton
-                $variant="secondary" $size="sm"
-                onClick={() => run(() => ksefRevenueApi.openInvoicePdf(invoice.id))}
-              >
-                <FileText size={14} /> Faktura PDF
-              </SharedButton>
-              {invoice.hasXml && (
-                <SharedButton
-                  $variant="secondary" $size="sm"
-                  onClick={() => run(() => ksefRevenueApi.downloadInvoiceXml(invoice.id, invoice.invoiceNumber))}
-                >
-                  <Download size={14} /> XML faktury
-                </SharedButton>
-              )}
-              {invoice.hasUpo && (
-                <SharedButton
-                  $variant="secondary" $size="sm"
-                  onClick={() => run(() => ksefRevenueApi.downloadUpo(invoice.id, invoice.invoiceNumber))}
-                >
-                  <FileCheck2 size={14} /> Pobierz UPO
-                </SharedButton>
-              )}
-              {invoice.source === 'CRM' &&
-                ['PENDING', 'QUEUED_RETRY', 'SUBMITTED', 'NOT_SENT'].includes(invoice.ksefStatus) && (
-                <SharedButton
-                  $variant="secondary" $size="sm" disabled={busy}
-                  onClick={() => run(() => retryMutation.mutateAsync(invoice.id))}
-                >
-                  <RefreshCw size={14} />
-                  {retryMutation.isPending
-                    ? 'Wysyłanie...'
-                    : invoice.ksefStatus === 'NOT_SENT'
-                      ? 'Wyślij do KSeF'
-                      : 'Ponów wysyłkę do KSeF'}
-                </SharedButton>
-              )}
-              <SharedButton
-                $variant="secondary" $size="sm" disabled={busy}
-                onClick={() => run(() => paymentMutation.mutateAsync({
-                  id: invoice.id,
-                  paymentStatus: invoice.paymentStatus === 'PAID' ? 'PENDING' : 'PAID',
-                }))}
-              >
-                {invoice.paymentStatus === 'PAID' ? 'Oznacz jako nieopłaconą' : 'Oznacz jako opłaconą'}
-              </SharedButton>
-              <SharedButton
-                $variant="secondary" $size="sm" disabled={busy}
-                title={invoice.excluded
-                  ? 'Faktura wróci do kafli podsumowania i raportów'
-                  : 'Faktura zniknie ze statystyk, ale zostanie w systemie i w KSeF'}
-                onClick={() => run(() =>
-                  (invoice.excluded ? restoreMutation : excludeMutation)
-                    .mutateAsync({ sourceKind: 'KSEF', id: invoice.id }))}
-              >
-                {invoice.excluded
-                  ? <><Eye size={14} /> Przywróć do statystyk</>
-                  : <><EyeOff size={14} /> Ukryj ze statystyk</>}
-              </SharedButton>
-              {invoice.source === 'CRM' && invoice.ksefStatus === 'ACCEPTED' &&
-                invoice.invoiceType === 'VAT' && !correctionMode && (
-                <SharedButton $variant="secondary" $size="sm" onClick={() => setCorrectionMode(true)}>
-                  Wystaw korektę do zera
-                </SharedButton>
-              )}
-              {invoice.source === 'CRM' && invoice.ksefStatus === 'REJECTED' && (
-                <SharedButton $variant="danger" $size="sm" disabled={busy} onClick={handleDelete}>
-                  <Trash2 size={14} /> Usuń odrzuconą fakturę
-                </SharedButton>
-              )}
-            </ActionsRow>
-
-            {correctionMode && (
-              <>
-                <FieldLabel>Przyczyna korekty *</FieldLabel>
-                <InputShell>
-                  <BareInput
-                    value={correctionReason}
-                    onChange={(e) => setCorrectionReason(e.target.value)}
-                    placeholder="np. Rezygnacja z usługi / błędne dane"
-                  />
-                </InputShell>
-                <ActionsRow>
-                  <SharedButton
-                    $variant="primary" $size="sm"
-                    disabled={busy || !correctionReason.trim()}
-                    onClick={handleFullCorrection}
-                  >
-                    {correctionMutation.isPending ? 'Wysyłanie korekty...' : 'Wystaw korektę (do zera) i wyślij do KSeF'}
-                  </SharedButton>
-                  <SharedButton $variant="secondary" $size="sm" onClick={() => setCorrectionMode(false)}>
-                    Anuluj
-                  </SharedButton>
-                </ActionsRow>
-              </>
-            )}
           </>
         )}
       </ModalContent>
 
       <ModalFooter>
-        <SharedButton $variant="secondary" onClick={close}>Zamknij</SharedButton>
+        {invoice && (correctionMode ? (
+          /* Tryb korekty przejmuje okno: stopka przestaje być listą tego, co MOŻNA
+             zrobić, i staje się dwoma wyjściami z rozpoczętej czynności. „Zamknij"
+             znika, żeby nie stało obok „Anuluj" i nie kazało zgadywać, które z nich
+             porzuca korektę, a które całe okno - od zamknięcia jest krzyżyk w nagłówku. */
+          <>
+            <SharedButton $variant="secondary" onClick={() => setCorrectionMode(false)}>
+              Anuluj korektę
+            </SharedButton>
+            <SharedButton
+              $variant="primary"
+              disabled={busy || !correctionReason.trim()}
+              onClick={handleFullCorrection}
+            >
+              {correctionMutation.isPending ? 'Wysyłanie korekty...' : 'Wystaw korektę (do zera) i wyślij do KSeF'}
+            </SharedButton>
+          </>
+        ) : (
+          <FooterActions>
+            {/* Wizualizacja PDF stoi pierwsza: to ona idzie do nabywcy i to po nią
+                się tu wraca. XML i UPO są dla księgowości, nie dla klienta. */}
+            <SharedButton
+              $variant="secondary" $size="sm"
+              onClick={() => run(() => ksefRevenueApi.openInvoicePdf(invoice.id))}
+            >
+              <FileText size={14} /> Faktura PDF
+            </SharedButton>
+            {invoice.hasXml && (
+              <SharedButton
+                $variant="secondary" $size="sm"
+                onClick={() => run(() => ksefRevenueApi.downloadInvoiceXml(invoice.id, invoice.invoiceNumber))}
+              >
+                <Download size={14} /> XML faktury
+              </SharedButton>
+            )}
+            {invoice.hasUpo && (
+              <SharedButton
+                $variant="secondary" $size="sm"
+                onClick={() => run(() => ksefRevenueApi.downloadUpo(invoice.id, invoice.invoiceNumber))}
+              >
+                <FileCheck2 size={14} /> Pobierz UPO
+              </SharedButton>
+            )}
+            {invoice.source === 'CRM' &&
+              ['PENDING', 'QUEUED_RETRY', 'SUBMITTED', 'NOT_SENT'].includes(invoice.ksefStatus) && (
+              <SharedButton
+                $variant="secondary" $size="sm" disabled={busy}
+                onClick={() => run(() => retryMutation.mutateAsync(invoice.id))}
+              >
+                <RefreshCw size={14} />
+                {retryMutation.isPending
+                  ? 'Wysyłanie...'
+                  : invoice.ksefStatus === 'NOT_SENT'
+                    ? 'Wyślij do KSeF'
+                    : 'Ponów wysyłkę do KSeF'}
+              </SharedButton>
+            )}
+            <SharedButton
+              $variant="secondary" $size="sm" disabled={busy}
+              onClick={() => run(() => paymentMutation.mutateAsync({
+                id: invoice.id,
+                paymentStatus: invoice.paymentStatus === 'PAID' ? 'PENDING' : 'PAID',
+              }))}
+            >
+              {invoice.paymentStatus === 'PAID' ? 'Oznacz jako nieopłaconą' : 'Oznacz jako opłaconą'}
+            </SharedButton>
+            <SharedButton
+              $variant="secondary" $size="sm" disabled={busy}
+              title={invoice.excluded
+                ? 'Faktura wróci do kafli podsumowania i raportów'
+                : 'Faktura zniknie ze statystyk, ale zostanie w systemie i w KSeF'}
+              onClick={() => run(() =>
+                (invoice.excluded ? restoreMutation : excludeMutation)
+                  .mutateAsync({ sourceKind: 'KSEF', id: invoice.id }))}
+            >
+              {invoice.excluded
+                ? <><Eye size={14} /> Przywróć do statystyk</>
+                : <><EyeOff size={14} /> Ukryj ze statystyk</>}
+            </SharedButton>
+            {invoice.source === 'CRM' && invoice.ksefStatus === 'ACCEPTED' &&
+              invoice.invoiceType === 'VAT' && !correctionMode && (
+              <SharedButton $variant="secondary" $size="sm" onClick={() => setCorrectionMode(true)}>
+                Wystaw korektę do zera
+              </SharedButton>
+            )}
+            {invoice.source === 'CRM' && invoice.ksefStatus === 'REJECTED' && (
+              <SharedButton $variant="danger" $size="sm" disabled={busy} onClick={handleDelete}>
+                <Trash2 size={14} /> Usuń odrzuconą fakturę
+              </SharedButton>
+            )}
+          </FooterActions>
+        ))}
+        {(!correctionMode || !invoice) && (
+          <SharedButton $variant="secondary" onClick={close}>Zamknij</SharedButton>
+        )}
       </ModalFooter>
     </ModalShell>
   );
