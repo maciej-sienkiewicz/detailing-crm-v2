@@ -6,6 +6,7 @@ import {
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { usePaymentMethodReport } from '../hooks/useFinance';
 import type { ReportGranularity, PaymentMethodEntry } from '../types';
+import { resolveDateRange, type DatePreset } from '../utils/dateRange';
 
 // ─── Colors ───────────────────────────────────────────────────────────────────
 
@@ -89,6 +90,23 @@ const GranBtn = styled.button<{ $active: boolean }>`
   transition: all 150ms ease;
   box-shadow: ${p => p.$active ? '0 1px 3px rgba(0,0,0,0.07)' : 'none'};
   white-space: nowrap;
+`;
+
+/**
+ * Wybór zakresu jako trzy opcje, nie dwa kalendarze.
+ *
+ * Wcześniej stały tu dwa niezależne pola „od" i „do", ustawione na początek roku.
+ * Rozliczenia prowadzi się miesiącami, więc najczęstsze dwa zakresy - ten miesiąc
+ * i poprzedni - wymagały czterech kliknięć w kalendarzu i wybrania dwóch dat,
+ * z których każda mogła być o dzień obok. Kalendarz zostaje, ale dopiero dla
+ * zakresu, którego nie da się nazwać.
+ */
+const RangeGroup = styled.div`
+  display: inline-flex;
+  background: #f1f5f9;
+  border-radius: 9px;
+  padding: 2px;
+  gap: 2px;
 `;
 
 const DateInput = styled.input`
@@ -608,15 +626,49 @@ const DonutChart: React.FC<DonutChartProps> = ({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-const DEFAULT_DATE_FROM = new Date(new Date().getFullYear(), 0, 1)
-  .toISOString().slice(0, 10);
-const DEFAULT_DATE_TO = new Date().toISOString().slice(0, 10);
+/** Zakresy nazwane wprost; „custom" odsłania kalendarz. */
+const RANGE_OPTIONS = [
+  { preset: 'currentMonth' as const, label: 'Bieżący miesiąc' },
+  { preset: 'previousMonth' as const, label: 'Poprzedni miesiąc' },
+  { preset: 'custom' as const, label: 'Niestandardowy zakres' },
+];
 
-export const PaymentSummaryTab: React.FC = () => {
+interface PaymentSummaryTabProps {
+  /**
+   * Zakres jest WSPÓLNY z resztą widoku finansów: te same daty filtrują tabelę
+   * i kafle „Podsumowanie finansowe" nad zakładkami. Stan mieszka w widoku, tu
+   * jest tylko jego jedyna widoczna kontrolka.
+   */
+  preset: DatePreset;
+  customFrom: string;
+  customTo: string;
+  onDateChange: (preset: DatePreset, from: string, to: string) => void;
+}
+
+export const PaymentSummaryTab: React.FC<PaymentSummaryTabProps> = ({
+  preset,
+  customFrom,
+  customTo,
+  onDateChange,
+}) => {
   const [granularity, setGranularity] = useState<ReportGranularity>('MONTHLY');
-  const [dateFrom, setDateFrom] = useState(DEFAULT_DATE_FROM);
-  const [dateTo, setDateTo]     = useState(DEFAULT_DATE_TO);
   const [docType, setDocType]   = useState('');
+
+  // Presety, które nie należą do tej kontrolki (np. „Ostatni kwartał" wybrany
+  // wcześniej na innej zakładce), pokazujemy jako zakres własny - zamiast
+  // podświetlać nie ten przycisk albo żaden.
+  const isNamedRange = preset === 'currentMonth' || preset === 'previousMonth';
+  const { dateFrom, dateTo } = resolveDateRange(preset, customFrom, customTo);
+
+  const selectRange = (next: DatePreset) => {
+    if (next === 'custom') {
+      // Wchodząc w zakres własny zaczynamy od dat, które użytkownik właśnie
+      // widział - inaczej tabela na moment pokazuje całą historię.
+      onDateChange('custom', customFrom || dateFrom || '', customTo || dateTo || '');
+      return;
+    }
+    onDateChange(next, '', '');
+  };
 
   const { report, isLoading, isError, refetch } = usePaymentMethodReport({
     granularity,
@@ -656,18 +708,36 @@ export const PaymentSummaryTab: React.FC = () => {
           ))}
         </GranularityGroup>
 
-        <DateInput
-          type="date"
-          value={dateFrom}
-          onChange={e => setDateFrom(e.target.value)}
-          title="Data od"
-        />
-        <DateInput
-          type="date"
-          value={dateTo}
-          onChange={e => setDateTo(e.target.value)}
-          title="Data do"
-        />
+        <RangeGroup>
+          {RANGE_OPTIONS.map(({ preset: option, label }) => (
+            <GranBtn
+              key={option}
+              $active={option === 'custom' ? !isNamedRange : preset === option}
+              onClick={() => selectRange(option)}
+            >
+              {label}
+            </GranBtn>
+          ))}
+        </RangeGroup>
+
+        {!isNamedRange && (
+          <>
+            <DateInput
+              type="date"
+              value={customFrom}
+              max={customTo || undefined}
+              onChange={e => onDateChange('custom', e.target.value, customTo)}
+              title="Data od"
+            />
+            <DateInput
+              type="date"
+              value={customTo}
+              min={customFrom || undefined}
+              onChange={e => onDateChange('custom', customFrom, e.target.value)}
+              title="Data do"
+            />
+          </>
+        )}
 
         <DocTypeSelect value={docType} onChange={e => setDocType(e.target.value)}>
           <option value="">Wszystkie typy</option>
