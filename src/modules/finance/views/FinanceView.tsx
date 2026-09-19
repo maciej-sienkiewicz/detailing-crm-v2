@@ -24,6 +24,7 @@ import {
   RevenueInvoiceDetailModal,
 } from '../components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { monthHint, resolveDateRange, type DatePreset } from '../utils/dateRange';
 import { PageHeader, PageHeaderPrimaryButton, PageHeaderGhostButton } from '@/common/components/PageHeader';
 import { PageContainer } from '@/common/components/PageContainer';
 import { useDebounce } from '@/common/hooks';
@@ -1021,7 +1022,8 @@ const FinHeaderDatePicker: React.FC<FinHeaderDatePickerProps> = ({ preset, custo
         <HdrPickerPanel ref={panelRef}>
           <DPPresetGroup>
             {([
-              ['currentMonth', 'Bieżący miesiąc', currentMonthHint()] as const,
+              ['currentMonth', 'Bieżący miesiąc', monthHint()] as const,
+              ['previousMonth', 'Poprzedni miesiąc', monthHint(-1)] as const,
               ['all',     'Cały czas',       ''] as const,
               ['week',    'Ostatni tydzień',  '7 dni'] as const,
               ['month',   'Ostatni miesiąc',  '30 dni'] as const,
@@ -1056,43 +1058,10 @@ const FinHeaderDatePicker: React.FC<FinHeaderDatePickerProps> = ({ preset, custo
 
 // ─── Date range picker (filter strip, light) ──────────────────────────────────
 
-export type DatePreset = 'currentMonth' | 'all' | 'week' | 'month' | 'quarter' | 'custom';
-
-/**
- * Data w strefie użytkownika, nie w UTC. toISOString() cofa datę o strefę, więc nad
- * ranem pierwszego dnia miesiąca „bieżący miesiąc" zaczynałby się w miesiącu poprzednim.
- */
-const toISODate = (d: Date): string => {
-  const month = `${d.getMonth() + 1}`.padStart(2, '0');
-  const day = `${d.getDate()}`.padStart(2, '0');
-  return `${d.getFullYear()}-${month}-${day}`;
-};
-
-export const getPresetRange = (preset: DatePreset): { dateFrom?: string; dateTo?: string } => {
-  if (preset === 'all' || preset === 'custom') return {};
-  const today = new Date();
-
-  // Bieżący miesiąc to miesiąc kalendarzowy, a nie ostatnie 30 dni: rozliczenia
-  // prowadzi się od pierwszego do ostatniego dnia, więc zakres obejmuje cały miesiąc
-  // (także dni, które dopiero nadejdą - faktura bywa wystawiona z datą w przód).
-  if (preset === 'currentMonth') {
-    const from = new Date(today.getFullYear(), today.getMonth(), 1);
-    const to = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    return { dateFrom: toISODate(from), dateTo: toISODate(to) };
-  }
-
-  const days = preset === 'week' ? 7 : preset === 'month' ? 30 : 90;
-  const from = new Date(today);
-  from.setDate(today.getDate() - days);
-  return { dateFrom: toISODate(from), dateTo: toISODate(today) };
-};
-
-/** Nazwa bieżącego miesiąca jako podpowiedź przy presecie - „sierpień 2026". */
-const currentMonthHint = (): string =>
-  new Date().toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' });
 
 const formatPresetLabel = (preset: DatePreset, customFrom?: string, customTo?: string): string => {
   if (preset === 'currentMonth') return 'Bieżący miesiąc';
+  if (preset === 'previousMonth') return 'Poprzedni miesiąc';
   if (preset === 'all') return 'Cały czas';
   if (preset === 'week') return 'Ostatni tydzień';
   if (preset === 'month') return 'Ostatni miesiąc';
@@ -1107,6 +1076,10 @@ const formatPresetLabel = (preset: DatePreset, customFrom?: string, customTo?: s
 const formatPresetLabelShort = (preset: DatePreset, customFrom?: string, customTo?: string): string => {
   if (preset === 'currentMonth') {
     const month = new Date().toLocaleDateString('pl-PL', { month: 'long' });
+    return month.charAt(0).toUpperCase() + month.slice(1);
+  }
+  if (preset === 'previousMonth') {
+    const month = monthHint(-1).split(' ')[0];
     return month.charAt(0).toUpperCase() + month.slice(1);
   }
   if (preset === 'all') return 'Cały czas';
@@ -1585,9 +1558,7 @@ export const FinanceView: React.FC = () => {
   const [customFrom, setCustomFrom]       = useState('');
   const [customTo, setCustomTo]           = useState('');
 
-  const activeDateRange = datePreset === 'custom'
-    ? { dateFrom: customFrom || undefined, dateTo: customTo || undefined }
-    : getPresetRange(datePreset);
+  const activeDateRange = resolveDateRange(datePreset, customFrom, customTo);
 
   const openIncomeModal  = useCallback(() => setIncomeModalOpen(true),  []);
   const closeIncomeModal = useCallback(() => setIncomeModalOpen(false), []);
@@ -1613,12 +1584,20 @@ export const FinanceView: React.FC = () => {
         subtitle="Dokumenty przychodowe, koszty KSeF i raporty"
         actions={
           <FinHdrActions>
-            <FinHeaderDatePicker
-              preset={datePreset}
-              customFrom={customFrom}
-              customTo={customTo}
-              onChange={handleDateChange}
-            />
+            {/*
+              * Zakładka „Podsumowanie płatności" ma własny wybór zakresu w pasku
+              * nad tabelą i steruje tym samym stanem co ten wybierak. Dwa widoczne
+              * naraz pokazywały ten sam zakres w dwóch miejscach i kazały zgadywać,
+              * który z nich rządzi - zostaje ten bliżej danych.
+              */}
+            {activeTab !== 'payment-summary' && (
+              <FinHeaderDatePicker
+                preset={datePreset}
+                customFrom={customFrom}
+                customTo={customTo}
+                onChange={handleDateChange}
+              />
+            )}
             {activeTab === 'income' && (
               <>
                 <PageHeaderGhostButton onClick={openIncomeModal} title="Dodaj paragon">
@@ -1649,7 +1628,9 @@ export const FinanceView: React.FC = () => {
           <SectionLabelText>Podsumowanie finansowe</SectionLabelText>
           <SectionLabelLine />
         </SectionLabel>
-        <FinanceSummaryCards />
+        {/* Kafle pokazują ten sam zakres co zakładka pod nimi - inaczej „Przychody"
+            nad tabelą filtrowaną do jednego miesiąca dotyczyły czegoś innego niż tabela. */}
+        <FinanceSummaryCards dateFrom={activeDateRange.dateFrom} dateTo={activeDateRange.dateTo} />
       </div>
 
       <div>
@@ -1692,7 +1673,14 @@ export const FinanceView: React.FC = () => {
               dateTo={activeDateRange.dateTo}
             />
           )}
-          {activeTab === 'payment-summary' && <PaymentSummaryTab />}
+          {activeTab === 'payment-summary' && (
+            <PaymentSummaryTab
+              preset={datePreset}
+              customFrom={customFrom}
+              customTo={customTo}
+              onDateChange={handleDateChange}
+            />
+          )}
         </PanelCard>
       </div>
 
