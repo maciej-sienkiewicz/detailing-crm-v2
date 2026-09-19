@@ -11,6 +11,7 @@ import {
 } from './DataTable';
 import { AreaConfigModal, phraseWord } from './AreaConfigModal';
 import { useAreaResults, useAreaSettings, useBlockAdvertiser } from '../hooks/useAreaDiscovery';
+import { formatStartDay, noveltyBadge, noveltySummary } from '../utils/areaNovelty';
 
 /**
  * „Reklamodawcy w okolicy" — kto jeszcze reklamuje się w moim rejonie.
@@ -102,6 +103,109 @@ const Tally = styled.p`
 
     strong { color: ${st.text}; font-weight: 600; }
 `;
+
+// ── Nowości ───────────────────────────────────────────────────────────────────
+
+/**
+ * Bursztyn, nie zieleń — i to nie jest kompromis.
+ *
+ * W tej zakładce zieleń znaczy dokładnie jedno: „emituje teraz" (kolumna
+ * „Aktywne", kalendarz obok). Zielona odznaka „Nowe" stałaby w jednym wierszu
+ * z zieloną liczbą i obie mówiłyby co innego tym samym kolorem; a przypięta
+ * konkurentowi czytałaby się jak medal. Bursztyn w wierszu ma jedno, zapisane
+ * w DataTable znaczenie: „wymaga Twojej reakcji" — a nowy gracz w rejonie to
+ * dokładnie to.
+ *
+ * Tło i obwódka, bez wypełnienia: w oknie wypełniony jest tylko krok następny,
+ * a tych odznak potrafi być kilka naraz (patrz CLAUDE.md, „jedno wypełnienie").
+ */
+const NewBadge = styled.span`
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    height: 18px;
+    padding: 0 7px;
+    border-radius: ${st.radiusFull};
+    border: 1px solid ${st.accentAmber};
+    background: ${st.accentAmberDim};
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    color: #92400E;
+    white-space: nowrap;
+    cursor: default;
+`;
+
+/** Pierwszy rząd komórki nazwy: nazwa (przycinana) i odznaka (nigdy). */
+const NameLine = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    height: 20px;
+`;
+
+/** Drugi rząd: „od 12 wrz · @profil" — każdy człon opcjonalny, całość w jednym wierszu 16 px. */
+const MetaLine = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    height: 16px;
+    font-size: 12px;
+    line-height: 16px;
+    color: ${INK_MUTED};
+    white-space: nowrap;
+
+    > * { min-width: 0; }
+`;
+
+const SinceText = styled.span`
+    flex-shrink: 0;
+    color: #92400E;
+`;
+
+/** Zdanie o nowościach w podsumowaniu — tym samym bursztynem co odznaki, których dotyczy. */
+const NoveltyTally = styled.span`
+    color: #92400E;
+    font-weight: 600;
+`;
+
+/**
+ * Komórka nazwy współdzielona przez tabelę i listę kart — jedno miejsce, żeby
+ * odznaka i data startu wyglądały identycznie na komputerze i telefonie.
+ */
+const AdvertiserName = ({ row, windowDays }: { row: AdvertiserRow; windowDays: number }) => {
+    const badge = noveltyBadge(row, windowDays);
+    const since = badge && row.latestCampaignStart ? `od ${formatStartDay(row.latestCampaignStart)}` : null;
+
+    return (
+        <NameCell style={{ flex: 1, minWidth: 0 }}>
+            <NameLine>
+                <NameText title={row.companyName}>{row.companyName}</NameText>
+                {badge && (
+                    <NewBadge title={badge.title} aria-label={`${badge.label}. ${badge.title}`}>
+                        {badge.label}
+                    </NewBadge>
+                )}
+            </NameLine>
+            <MetaLine>
+                {since && <SinceText>{since}</SinceText>}
+                {since && row.instagram && <span aria-hidden="true">·</span>}
+                {row.instagram && (
+                    <MetaLink
+                        href={`https://www.instagram.com/${row.instagram}/`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        @{row.instagram}
+                    </MetaLink>
+                )}
+            </MetaLine>
+        </NameCell>
+    );
+};
 
 // ── Tabela ────────────────────────────────────────────────────────────────────
 
@@ -338,18 +442,7 @@ const Results = ({ results, page, onPage }: { results: AreaResults; page: number
                             {results.advertisers.map(row => (
                                 <Row key={row.pageId}>
                                     <Td>
-                                        <NameCell>
-                                            <NameText title={row.companyName}>{row.companyName}</NameText>
-                                            {row.instagram && (
-                                                <MetaLink
-                                                    href={`https://www.instagram.com/${row.instagram}/`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                >
-                                                    @{row.instagram}
-                                                </MetaLink>
-                                            )}
-                                        </NameCell>
+                                        <AdvertiserName row={row} windowDays={results.newWindowDays} />
                                     </Td>
                                     <Td $num>
                                         <NumLive $on={row.activeAds > 0}>{row.activeAds}</NumLive>
@@ -376,18 +469,7 @@ const Results = ({ results, page, onPage }: { results: AreaResults; page: number
                         </CardHead>
                         {results.advertisers.map(row => (
                             <AdvertiserCard key={row.pageId}>
-                                <NameCell style={{ flex: 1, minWidth: 0 }}>
-                                    <NameText title={row.companyName}>{row.companyName}</NameText>
-                                    {row.instagram && (
-                                        <MetaLink
-                                            href={`https://www.instagram.com/${row.instagram}/`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                        >
-                                            @{row.instagram}
-                                        </MetaLink>
-                                    )}
-                                </NameCell>
+                                <AdvertiserName row={row} windowDays={results.newWindowDays} />
                                 <CardNums>
                                     <NumLive $on={row.activeAds > 0}>{row.activeAds}</NumLive>
                                     <span>{formatExact(row.reach)}</span>
@@ -473,6 +555,11 @@ export const AreaSection = () => {
     const settings = settingsQuery.data;
     const hasArea = (settings?.locations.length ?? 0) > 0;
     const resultsQuery = useAreaResults(page);
+    // Zdanie o nowościach dotyczy CAŁEJ tabeli, nie bieżącej strony — serwer liczy
+    // je ze wszystkich wierszy, żeby „2 nowe firmy" zgadzało się z paskiem na Tablicy.
+    const novelty = resultsQuery.data
+        ? noveltySummary(resultsQuery.data.newAdvertisers, resultsQuery.data.newCampaigns, resultsQuery.data.newWindowDays)
+        : null;
 
     return (
         <AreaCard>
@@ -511,6 +598,12 @@ export const AreaSection = () => {
                                 <Tally>
                                     <strong>{resultsQuery.data.totalAdvertisers}</strong> firm ·{' '}
                                     <strong>{resultsQuery.data.totalActiveAds}</strong> aktywnych reklam
+                                    {novelty && (
+                                        <>
+                                            {' · '}
+                                            <NoveltyTally>{novelty}</NoveltyTally>
+                                        </>
+                                    )}
                                 </Tally>
                             )}
                             <Results results={resultsQuery.data} page={page} onPage={setPage} />
