@@ -1,8 +1,9 @@
 import styled from 'styled-components';
-import { Star, Package } from 'lucide-react';
+import { Package } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { ProductListItem } from '../types';
 import { formatPackage, formatPrice } from '../utils/productFormat';
+import { ProductRatingCompact } from './ProductRatingStars';
 
 const Table = styled.table` width: 100%; border-collapse: collapse; font-size: 14px; `;
 const Th = styled.th<{ $right?: boolean }>`
@@ -34,7 +35,6 @@ const NameMain = styled.div` display: flex; flex-direction: column; min-width: 0
 const NameTitle = styled.span` font-weight: 600; color: ${st.text}; display: flex; align-items: center; gap: 8px; `;
 const NameSub = styled.span` font-size: 12px; color: ${st.textMuted}; `;
 const Muted = styled.span` color: ${st.textMuted}; `;
-const StarWrap = styled.span` display: inline-flex; align-items: center; gap: 4px; color: ${st.accentAmber}; `;
 
 interface Props {
     products: ProductListItem[];
@@ -72,9 +72,7 @@ export function ProductTable({ products, canSeeCosts, onOpen }: Props) {
                             <Td $right>{p.price ? formatPrice(p.price) : <Muted>—</Muted>}</Td>
                         )}
                         <Td $right>
-                            {p.ratingValue
-                                ? <StarWrap><Star size={14} fill={st.accentAmber} color={st.accentAmber} /> {p.ratingValue}</StarWrap>
-                                : <Muted>—</Muted>}
+                            <ProductRatingCompact value={p.ratingValue} />
                         </Td>
                     </Tr>
                 ))}

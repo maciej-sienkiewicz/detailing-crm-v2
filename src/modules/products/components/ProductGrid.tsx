@@ -1,8 +1,9 @@
 import styled from 'styled-components';
-import { Star, Package } from 'lucide-react';
+import { Package } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { ProductListItem } from '../types';
 import { formatPackage, formatPrice } from '../utils/productFormat';
+import { ProductRatingCompact } from './ProductRatingStars';
 
 const Grid = styled.div`
     display: grid;
@@ -32,7 +33,6 @@ const Thumb = styled.div`
 const Title = styled.div` font-weight: 600; color: ${st.text}; font-size: 14px; `;
 const Sub = styled.div` font-size: 12px; color: ${st.textMuted}; `;
 const Meta = styled.div` display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: ${st.textSecondary}; `;
-const StarWrap = styled.span` display: inline-flex; align-items: center; gap: 4px; color: ${st.accentAmber}; `;
 
 interface Props {
     products: ProductListItem[];
@@ -54,9 +54,7 @@ export function ProductGrid({ products, canSeeCosts, onOpen }: Props) {
                     </Top>
                     <Meta>
                         <span>{formatPackage(p.packageSizeValue, p.packageSizeUnit)}</span>
-                        {p.ratingValue
-                            ? <StarWrap><Star size={13} fill={st.accentAmber} color={st.accentAmber} /> {p.ratingValue}</StarWrap>
-                            : null}
+                        {p.ratingValue !== null && <ProductRatingCompact value={p.ratingValue} size={13} />}
                     </Meta>
                     {canSeeCosts && p.price && <Meta><span>{formatPrice(p.price)}</span></Meta>}
                 </Card>

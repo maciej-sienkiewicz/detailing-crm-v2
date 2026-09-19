@@ -15,3 +15,18 @@ export function formatPrice(price: ProductPrice): string {
     const suffix = price.priceEnteredAs === 'GROSS' ? 'brutto' : 'netto';
     return `${formatMoneyAmount(cents)} zł ${suffix}`;
 }
+
+/**
+ * Ocena jako liczba do pokazania obok gwiazdki: „4", „4,5".
+ *
+ * Zespół stawia oceny całkowite, ale lista potrafi podać średnią - a „4.3333"
+ * w kolumnie obok gwiazdki wygląda jak wyciek z bazy, nie jak ocena. Całkowite
+ * zostają bez części dziesiętnej, reszta dostaje jedną cyfrę po przecinku
+ * (polskim, nie kropce).
+ */
+export function formatRating(value: number): string {
+    const rounded = Math.round(value * 10) / 10;
+    return Number.isInteger(rounded)
+        ? String(rounded)
+        : rounded.toFixed(1).replace('.', ',');
+}
