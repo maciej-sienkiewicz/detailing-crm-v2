@@ -2,6 +2,7 @@
 
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { OPS_LIST_CONTAINER, opsCards, opsTable } from './opsListLayout';
 import type { FilterStatus } from '../types';
 
 // ─── Filter chip color map ────────────────────────────────────────────────────
@@ -19,25 +20,35 @@ const chipColor: Record<FilterStatus | 'ALL', string> = {
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
+/**
+ * Pasek filtrów mierzy się własną szerokością, nie szerokością okna.
+ *
+ * Stoi w tej samej karcie co lista i musi przełączać się w tym samym momencie
+ * co ona — inaczej przy oknie 1100 px z rozwiniętym paskiem bocznym filtry były
+ * jeszcze „szerokie" (pole daty w rzędzie, etykieta przy lejku), a na tabelę
+ * nie zostawało już miejsca. Próg i nazwa kontenera: opsListLayout.ts.
+ */
 const Wrapper = styled.div`
+    container-type: inline-size;
+    container-name: ${OPS_LIST_CONTAINER};
     border-bottom: 1px solid ${st.border};
 `;
 
 const TopRow = styled.div`
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 14px 20px;
+    gap: 8px;
+    padding: 12px 14px;
+    /* Zawijanie jest stanem WYJŚCIOWYM, jeden rząd dostajemy dopiero wtedy, gdy
+       pasek naprawdę ma na niego miejsce. Odwrotna kolejność (nowrap od 768 px
+       okna) upychała pole szukania do kilkudziesięciu pikseli w każdym układzie
+       z paskiem bocznym. */
     flex-wrap: wrap;
 
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
+    ${opsTable} {
         flex-wrap: nowrap;
-    }
-
-    @media (max-width: 900px) {
-        flex-wrap: wrap;
-        gap: 8px;
-        padding: 12px 14px;
+        gap: 10px;
+        padding: 14px 20px;
     }
 `;
 
@@ -92,7 +103,7 @@ const DateWrap = styled.div`
     gap: 6px;
     flex-shrink: 0;
 
-    @media (max-width: 900px) {
+    ${opsCards} {
         display: none;
     }
 `;
@@ -178,7 +189,7 @@ const DateChipWrap = styled.div<{ $active: boolean }>`
 
     svg { width: 12px; height: 12px; stroke-width: 2; flex-shrink: 0; }
 
-    @media (min-width: 901px) {
+    ${opsTable} {
         display: none;
     }
 `;
@@ -253,7 +264,7 @@ const FiltersRow = styled.div`
         display: none;
     }
 
-    @media (max-width: 900px) {
+    ${opsCards} {
         padding: 0 14px 12px;
     }
 `;
@@ -355,7 +366,7 @@ const FilterBtn = styled.button<{ $active?: boolean }>`
 
     svg { width: 14px; height: 14px; }
 
-    @media (max-width: 900px) {
+    ${opsCards} {
         padding: 9px 11px;
         gap: 5px;
     }
@@ -379,7 +390,7 @@ const FilterBadge = styled.span`
 /* Sama ikonka lejka mówi na telefonie dokładnie to samo, co ikonka z napisem,
    a zwalnia miejsce w wierszu na pole statusu. */
 const FilterBtnLabel = styled.span`
-    @media (max-width: 900px) {
+    ${opsCards} {
         display: none;
     }
 `;

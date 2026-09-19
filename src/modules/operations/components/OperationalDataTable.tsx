@@ -22,7 +22,8 @@ import { joinPiiName } from '@/common/pii';
 import { ReservationContextMenu } from '@/common/components/ReservationContextMenu';
 import { useCalendarNavigation } from '@/common/context/CalendarNavigationContext';
 import { usePortalDropdownPos } from '@/common/hooks/usePortalDropdownPos';
-import { useMediaQuery } from '@/common/hooks';
+import { useContainerWidth } from '@/common/hooks';
+import { OPS_LIST_CONTAINER, isOpsCardLayout, opsCards } from './opsListLayout';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -55,20 +56,55 @@ const fadeIn = keyframes`
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
 
-const COLS = '1fr 160px 160px 148px 138px 44px';
+/**
+ * Kolumny SPRĘŻYSTE, nie stałe.
+ *
+ * Wcześniej było `1fr 160px 160px 148px 138px 44px`: pięć kolumn trzymało swoją
+ * szerokość do upadłego, a całą ciasnotę brała na siebie kolumna tytułu. Przy
+ * liście szerokiej na ~790 px (okno 1100 px + rozwinięty pasek boczny) zostawało
+ * dla niej kilkadziesiąt pikseli — bąbelek ikony, nazwa i klient zawijały się
+ * jedno pod drugim i wiersz wyglądał jak zlepiona kolumna.
+ *
+ * `minmax()` odwraca kolejność ustępowania: najpierw kurczą się kolumny boczne,
+ * do swoich minimów, a tytuł schodzi poniżej 200 px dopiero wtedy, gdy nie ma
+ * już czego zabrać. Dzięki temu przejście od szerokiego ekranu do wąskiego jest
+ * płynne i nie ma progu, na którym coś nagle przeskakuje.
+ */
+const COLS = [
+    'minmax(200px, 1fr)', // tytuł + klient — zawsze najwięcej miejsca
+    'minmax(112px, 160px)', // pojazd
+    'minmax(112px, 160px)', // klient
+    'minmax(104px, 148px)', // data przyjazdu
+    'minmax(96px, 138px)', // wartość
+    '44px', // menu
+].join(' ');
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
+/**
+ * Element odniesienia dla całej responsywności listy.
+ *
+ * `container-type: inline-size` sprawia, że reguły niżej pytają o szerokość TEJ
+ * ramki, a nie okna — patrz opsListLayout.ts, gdzie stoi powód i próg. Menu
+ * wiersza rysuje się przez portal w `body`, więc wprowadzony tu `contain` nie ma
+ * jak go przyciąć.
+ *
+ * Przewijanie poziome zostaje jako siatka bezpieczeństwa: przy najwęższej tabeli
+ * i tak wchodzą już kafelki, ale gdyby czyjaś czcionka albo tłumaczenie rozepchnęły
+ * wiersz, lepiej dać go przewinąć niż rozciąć.
+ */
 const Outer = styled.div`
+    container-type: inline-size;
+    container-name: ${OPS_LIST_CONTAINER};
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
 `;
 
 const ListWrap = styled.div`
-    min-width: 700px;
-
-    @media (max-width: 900px) {
-        min-width: 0;
+    /* Bez własnego min-width: o tym, kiedy tabela się nie mieści, decydują teraz
+       minima kolumn i próg kafelek, a nie trzecia, niezależna liczba, która przy
+       zmianie kolumn cicho przestawała się z nimi zgadzać. */
+    ${opsCards} {
         /* Kafelki są białe - tło listy musi być od nich ciemniejsze, inaczej
            zaokrąglone rogi i odstępy nie są widoczne. */
         background: ${st.bg};
@@ -84,7 +120,7 @@ const HeaderRow = styled.div`
     background: ${st.bg};
     border-bottom: 1px solid ${st.border};
 
-    @media (max-width: 900px) {
+    ${opsCards} {
         display: none;
     }
 `;
@@ -120,10 +156,11 @@ const DataRow = styled.div<{ $accentColor: string; $clickable?: boolean; $menuOp
         border-bottom: none;
     }
 
-    /* Na telefonie wiersz przestaje być wierszem tabeli i staje się kafelką:
+    /* Na wąskiej liście wiersz przestaje być wierszem tabeli i staje się kafelką:
        przy dłuższej liście same linie rozdzielające zlewały się w jedno pasmo
-       i nie było widać, gdzie kończy się jedna wizyta, a zaczyna następna. */
-    @media (max-width: 900px) {
+       i nie było widać, gdzie kończy się jedna wizyta, a zaczyna następna.
+       „Wąska" znaczy wąska LISTA, nie wąskie okno — patrz opsListLayout.ts. */
+    ${opsCards} {
         grid-template-columns: 1fr auto;
         grid-template-rows: auto auto auto;
         gap: 0 10px;
@@ -189,7 +226,7 @@ const VehicleName = styled.div`
     line-height: 1.4;
     word-break: break-word;
 
-    @media (max-width: 900px) {
+    ${opsCards} {
         word-break: normal;
         white-space: nowrap;
         overflow: hidden;
@@ -378,7 +415,7 @@ const VehicleSubInfo = styled.div`
     line-height: 1.5;
     transition: color 0.15s ease;
 
-    @media (max-width: 900px) {
+    ${opsCards} {
         flex-wrap: nowrap;
         overflow: hidden;
         white-space: nowrap;
@@ -420,7 +457,7 @@ const GrossAmt = styled.div`
     letter-spacing: -0.3px;
     white-space: nowrap;
 
-    @media (max-width: 900px) {
+    ${opsCards} {
         font-size: 13px;
     }
 `;
@@ -430,7 +467,7 @@ const NetAmt = styled.div`
     color: ${st.textMuted};
     white-space: nowrap;
 
-    @media (max-width: 900px) {
+    ${opsCards} {
         display: none;
     }
 `;
@@ -764,10 +801,15 @@ export const OperationalDataTable = ({
 
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const { menuRef: dropdownMenuRef, pos: menuPos, style: menuStyle, open: openDropdownPos, close: closeDropdownPos } = usePortalDropdownPos();
-    // Poniżej 900px wiersz zamienia się w kafelkę dotykową: cała jest jednym
+    // Na wąskiej LIŚCIE wiersz zamienia się w kafelkę dotykową: cała jest jednym
     // celem (otwarcie wizyty), więc odnośniki do profilu klienta i pojazdu
     // w jej środku tylko przenoszą użytkownika tam, gdzie nie chciał trafić.
-    const isCompact = useMediaQuery('(max-width: 900px)');
+    //
+    // Mierzymy dokładnie ten element, który jest kontenerem dla CSS — inaczej
+    // przy szerokościach granicznych style rysowałyby już kafelkę, a kod wciąż
+    // uważałby wiersz za tabelę (albo odwrotnie).
+    const [listRef, listWidth] = useContainerWidth<HTMLDivElement>();
+    const isCompact = isOpsCardLayout(listWidth);
     // Rect wiersza, z którego otwarto menu - „Pokaż w kalendarzu" animuje
     // przelot kafelki do siatki kalendarza i potrzebuje punktu startu.
     const [menuRowRect, setMenuRowRect] = useState<DOMRect | null>(null);
@@ -935,7 +977,7 @@ export const OperationalDataTable = ({
 
     return (
         <>
-            <Outer>
+            <Outer ref={listRef}>
                 <ListWrap>
                     <HeaderRow>
                         <HeaderCell>Tytuł</HeaderCell>
