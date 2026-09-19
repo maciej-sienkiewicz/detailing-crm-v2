@@ -98,6 +98,9 @@ export interface ProductListItem {
     lastUsedAt: string | null;
 }
 
+/** Po czym da się posortować listę. Serwer zna te same klucze — patrz ProductListSort. */
+export type ProductSortKey = 'name' | 'brand' | 'usage' | 'rating';
+
 export interface ProductListFilters {
     search: string;
     /** '1'..'5' = dokładnie tyle gwiazdek, 'none' = bez oceny, '' = nie filtruj. */
@@ -106,7 +109,7 @@ export interface ProductListFilters {
     includeHidden?: boolean;
     page: number;
     limit: number;
-    sortBy?: 'name' | 'brand';
+    sortBy?: ProductSortKey;
     sortDirection?: 'asc' | 'desc';
 }
 

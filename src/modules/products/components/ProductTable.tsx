@@ -1,7 +1,7 @@
 import styled from 'styled-components';
-import { Package } from 'lucide-react';
+import { ArrowDown, ArrowUp, Package } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import type { ProductListItem } from '../types';
+import type { ProductListItem, ProductSortKey } from '../types';
 import { formatLastUsed, formatPackage, formatPrice, formatUsageDate } from '../utils/productFormat';
 import { ProductRatingCompact } from './ProductRatingStars';
 
@@ -16,6 +16,33 @@ const Th = styled.th<{ $right?: boolean }>`
     white-space: nowrap;
 `;
 const Tr = styled.tr` cursor: pointer; &:hover { background: ${st.bgCardAlt}; } `;
+
+/**
+ * Nagłówek, po którym da się sortować.
+ *
+ * Strzałka pojawia się WYŁĄCZNIE przy kolumnie, która akurat rządzi kolejnością.
+ * Trzy strzałki naraz (po jednej w każdym klikalnym nagłówku) nie mówią „można
+ * sortować", tylko każą sprawdzać, która z nich jest ta aktywna.
+ */
+const SortBtn = styled.button<{ $active: boolean; $right?: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    justify-content: ${p => (p.$right ? 'flex-end' : 'flex-start')};
+    gap: 4px;
+    width: 100%;
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    color: ${p => (p.$active ? st.text : 'inherit')};
+    cursor: pointer;
+    white-space: nowrap;
+
+    &:hover { color: ${st.text}; }
+    &:focus-visible { outline: 2px solid ${st.accentBlue}; outline-offset: 2px; border-radius: 4px; }
+
+    svg { width: 12px; height: 12px; flex-shrink: 0; }
+`;
 const Td = styled.td<{ $right?: boolean }>`
     padding: 12px 16px;
     text-align: ${p => (p.$right ? 'right' : 'left')};
@@ -76,18 +103,40 @@ interface Props {
     products: ProductListItem[];
     canSeeCosts: boolean;
     onOpen: (id: string) => void;
+    sortBy: ProductSortKey;
+    sortDirection: 'asc' | 'desc';
+    onSort: (key: ProductSortKey) => void;
 }
 
-export function ProductTable({ products, canSeeCosts, onOpen }: Props) {
+export function ProductTable({ products, canSeeCosts, onOpen, sortBy, sortDirection, onSort }: Props) {
+    const header = (key: ProductSortKey, label: string, right?: boolean) => {
+        const active = sortBy === key;
+        return (
+            <Th $right={right}>
+                <SortBtn
+                    type="button"
+                    $active={active}
+                    $right={right}
+                    onClick={() => onSort(key)}
+                    aria-sort={active ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+                    title={`Sortuj wg: ${label.toLowerCase()}`}
+                >
+                    {label}
+                    {active && (sortDirection === 'asc' ? <ArrowUp /> : <ArrowDown />)}
+                </SortBtn>
+            </Th>
+        );
+    };
+
     return (
         <Table>
             <thead>
                 <tr>
-                    <Th>Produkt</Th>
+                    {header('name', 'Produkt')}
                     <Th>Opakowanie</Th>
                     {canSeeCosts && <Th $right>Cena jedn.</Th>}
-                    <Th $right>Użycie</Th>
-                    <Th $right>Ocena</Th>
+                    {header('usage', 'Użycie', true)}
+                    {header('rating', 'Ocena', true)}
                 </tr>
             </thead>
             <tbody>
