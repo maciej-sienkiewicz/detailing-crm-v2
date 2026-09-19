@@ -30,3 +30,34 @@ export function formatRating(value: number): string {
         ? String(rounded)
         : rounded.toFixed(1).replace('.', ',');
 }
+
+/**
+ * Kiedy produkt był ostatnio w ruchu, w formie, która nie każe liczyć w pamięci.
+ *
+ * „14.05.2026" nic nie mówi bez kalendarza pod ręką, a w tabeli chodzi o jedno
+ * pytanie: czy to produkt, którego używamy, czy leżak. Dlatego najpierw czas
+ * względny, a dokładna data zostaje w podpowiedzi pod kursorem.
+ */
+export function formatLastUsed(iso: string, now: Date = new Date()): string {
+    const then = new Date(iso);
+    if (Number.isNaN(then.getTime())) return '';
+
+    const days = Math.floor((now.getTime() - then.getTime()) / 86_400_000);
+    if (days <= 0) return 'dziś';
+    if (days === 1) return 'wczoraj';
+    if (days < 7) return `${days} dni temu`;
+    if (days < 31) {
+        const weeks = Math.floor(days / 7);
+        return weeks === 1 ? 'tydzień temu' : `${weeks} tyg. temu`;
+    }
+    const months = Math.floor(days / 30);
+    if (months < 12) return months === 1 ? 'miesiąc temu' : `${months} mies. temu`;
+    const years = Math.floor(days / 365);
+    return years === 1 ? 'rok temu' : `${years} lata temu`;
+}
+
+/** Pełna data do podpowiedzi pod kursorem: „14.05.2026". */
+export function formatUsageDate(iso: string): string {
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('pl-PL');
+}
