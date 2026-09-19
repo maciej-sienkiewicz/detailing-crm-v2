@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import styled, { css } from 'styled-components';
 import { pageGutter } from '@/common/components/PageContainer';
+import { useMediaQuery } from '@/common/hooks';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 
 // ─── outer shell ──────────────────────────────────────────────────────────────
@@ -19,10 +20,22 @@ const Bar = styled.div`
     min-height: 72px;
     gap: 0;
 
+    /*
+     * Na telefonie pasek zostaje JEDNYM rzędem: marka, model, tagi i czyszczenie.
+     *
+     * Wcześniej był kolumną - każda sekcja miała własną etykietę („POJAZD",
+     * „TAGI") i własny wiersz, więc trzy kontrolki zajmowały trzy piętra i
+     * spychały zdjęcia poniżej krawędzi ekranu. Etykiety niczego nie dodawały:
+     * pola same mówią, czym są („Marka", „Model", „Tagi").
+     *
+     * Sekcje nie znikają z kodu, tylko z układu - display: contents wpuszcza
+     * ich zawartość wprost do tego rzędu (ten sam zabieg co w podglądzie leada).
+     */
     @media (max-width: 768px) {
-        flex-direction: column;
-        padding-block: ${p => p.theme.spacing.md};
-        gap: ${p => p.theme.spacing.sm};
+        align-items: center;
+        flex-wrap: nowrap;
+        padding-block: ${p => p.theme.spacing.sm};
+        gap: 8px;
         min-height: unset;
     }
 `;
@@ -36,6 +49,10 @@ const FilterSection = styled.div<{ $grow?: boolean }>`
     gap: 5px;
     padding: 10px 0;
     ${p => p.$grow && css`flex: 1; min-width: 0;`}
+
+    @media (max-width: 768px) {
+        display: contents;
+    }
 `;
 
 const SectionLabel = styled.div`
@@ -53,6 +70,11 @@ const SectionLabel = styled.div`
         width: 11px;
         height: 11px;
         flex-shrink: 0;
+    }
+
+    /* Nazwa pola mówi to samo, co etykieta sekcji, i robi to bez własnego piętra. */
+    @media (max-width: 768px) {
+        display: none;
     }
 `;
 
@@ -73,6 +95,28 @@ const SectionControls = styled.div`
     align-items: center;
     gap: 6px;
     flex-wrap: wrap;
+
+    @media (max-width: 768px) {
+        display: contents;
+    }
+`;
+
+/**
+ * Wybrane tagi jako osobne pigułki - tylko na szerokim ekranie.
+ *
+ * Na telefonie nie mają gdzie stanąć bez łamania rzędu, więc liczbę wybranych
+ * tagów niesie sam przycisk („Tagi (2)"), a odznaczyć je można tam, gdzie się
+ * je zaznacza: na liście w rozwijanym panelu.
+ */
+const TagChips = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+
+    @media (max-width: 768px) {
+        display: none;
+    }
 `;
 
 // ─── separator between sections ──────────────────────────────────────────────
@@ -100,18 +144,23 @@ const RightSide = styled.div`
     flex-shrink: 0;
 
     @media (max-width: 768px) {
-        margin-left: 0;
-        padding-left: 0;
-        justify-content: space-between;
+        display: contents;
     }
 `;
 
+/* Licznik zdjęć żyje tu tylko na szerokim ekranie. Na telefonie tę samą liczbę
+   podaje pasek tytułu („Galeria / 12 zdjęć”), a dwa razy to samo w jednym widoku
+   to nie potwierdzenie, tylko szum. */
 const PhotoCount = styled.div`
     display: flex;
     flex-direction: column;
     align-items: flex-end;
     gap: 1px;
     text-align: right;
+
+    @media (max-width: 768px) {
+        display: none;
+    }
 `;
 
 const CountNumber = styled.span`
@@ -149,12 +198,37 @@ const ClearAllBtn = styled.button`
         border-color: #fca5a5;
         background: rgba(220, 38, 38, 0.04);
     }
+
+    /* W jednym rzędzie z trzema polami zostaje na niego tyle miejsca, ile ma
+       ikona - a sam krzyżyk przy polach filtrów czyta się bez podpisu. */
+    @media (max-width: 768px) {
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+`;
+
+/** Podpis przycisku czyszczenia - na telefonie zostaje sama ikona. */
+const ClearLabel = styled.span`
+    @media (max-width: 768px) {
+        display: none;
+    }
 `;
 
 // ─── brand / model selects ────────────────────────────────────────────────────
 
 const SelectWrap = styled.div`
     width: 160px;
+
+    @media (max-width: 768px) {
+        /* Równy podział rzędu: trzy pola tej samej szerokości czytają się jako
+           jeden zestaw, a nie jako pole i dwa dodatki. */
+        width: auto;
+        flex: 1 1 0;
+        min-width: 0;
+    }
 
     button {
         min-height: 36px;
@@ -212,6 +286,11 @@ const TagChip = styled.button`
 
 const AddTagWrap = styled.div`
     position: relative;
+
+    @media (max-width: 768px) {
+        flex: 1 1 0;
+        min-width: 0;
+    }
 `;
 
 const AddTagBtn = styled.button<{ $hasActive: boolean }>`
@@ -231,6 +310,17 @@ const AddTagBtn = styled.button<{ $hasActive: boolean }>`
     white-space: nowrap;
 
     svg { width: 12px; height: 12px; }
+
+    /* Ta sama wysokość i szerokość co pola obok - rząd ma wyglądać jak jeden
+       zestaw kontrolek, a nie jak pola z doklejonym przyciskiem. */
+    @media (max-width: 768px) {
+        width: 100%;
+        height: 36px;
+        justify-content: center;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
 
     &:hover {
         border-style: solid;
@@ -437,6 +527,11 @@ export const GalleryFilterBar = ({
     const hasTagFilter = activeTags.length > 0;
     const hasAnyFilter = hasVehicleFilter || hasTagFilter;
 
+    // Ten sam próg co w regułach stylów niżej - jeden rząd na telefonie ma mieć
+    // krótsze podpisy, inaczej „Marka pojazdu" nie mieści się w trzeciej części
+    // szerokości ekranu i urywa się w połowie słowa.
+    const isNarrow = useMediaQuery('(max-width: 768px)');
+
     const countLabel = isFetching
         ? '...'
         : `${totalPhotos}`;
@@ -458,7 +553,7 @@ export const GalleryFilterBar = ({
                         <BrandSelect
                             value={brand || undefined}
                             onChange={b => { onBrandChange(b); onModelChange(''); }}
-                            placeholder="Marka pojazdu"
+                            placeholder={isNarrow ? 'Marka' : 'Marka pojazdu'}
                         />
                     </SelectWrap>
                     <SelectWrap>
@@ -466,7 +561,7 @@ export const GalleryFilterBar = ({
                             brand={brand || undefined}
                             value={model || undefined}
                             onChange={onModelChange}
-                            placeholder={brand ? 'Model' : 'Model (wybierz markę)'}
+                            placeholder={brand || isNarrow ? 'Model' : 'Model (wybierz markę)'}
                         />
                     </SelectWrap>
                 </SectionControls>
@@ -484,12 +579,18 @@ export const GalleryFilterBar = ({
                     )}
                 </SectionLabel>
                 <SectionControls>
-                    {activeTags.map(tag => (
-                        <TagChip key={tag} onClick={() => onTagToggle(tag)} type="button">
-                            {tag}
-                            <IconX size={10} />
-                        </TagChip>
-                    ))}
+                    {/* Pusty kontener zostawiłby po sobie odstęp przed przyciskiem,
+                        więc nie renderujemy go, dopóki nie ma czego pokazać. */}
+                    {hasTagFilter && (
+                        <TagChips>
+                            {activeTags.map(tag => (
+                                <TagChip key={tag} onClick={() => onTagToggle(tag)} type="button">
+                                    {tag}
+                                    <IconX size={10} />
+                                </TagChip>
+                            ))}
+                        </TagChips>
+                    )}
 
                     {/* Add tag dropdown */}
                     <AddTagWrap ref={dropdownRef}>
@@ -499,7 +600,9 @@ export const GalleryFilterBar = ({
                             type="button"
                         >
                             <IconPlus />
-                            {hasTagFilter ? 'Dodaj kolejny' : 'Wybierz tagi'}
+                            {isNarrow
+                                ? (hasTagFilter ? `Tagi (${activeTags.length})` : 'Tagi')
+                                : (hasTagFilter ? 'Dodaj kolejny' : 'Wybierz tagi')}
                         </AddTagBtn>
 
                         <DropdownPanel $open={dropdownOpen}>
@@ -543,9 +646,9 @@ export const GalleryFilterBar = ({
             {/* ── Right side ── */}
             <RightSide>
                 {hasAnyFilter && (
-                    <ClearAllBtn onClick={onClearAll} type="button">
+                    <ClearAllBtn onClick={onClearAll} type="button" aria-label="Wyczyść filtry" title="Wyczyść filtry">
                         <IconX size={11} />
-                        Wyczyść filtry
+                        <ClearLabel>Wyczyść filtry</ClearLabel>
                     </ClearAllBtn>
                 )}
                 <PhotoCount>
