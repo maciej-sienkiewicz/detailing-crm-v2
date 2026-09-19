@@ -81,12 +81,6 @@ export function RolesSection({ onGoToEmployees }: RolesSectionProps = {}) {
                 </AddButton>
             </Toolbar>
 
-            <StatsRow>
-                {!isLoading && (
-                    <StatText><strong>{roles.length}</strong> {roles.length === 1 ? 'rola' : 'ról'} w firmie</StatText>
-                )}
-            </StatsRow>
-
             {isLoading ? (
                 <Grid>
                     {Array.from({ length: 3 }).map((_, i) => (

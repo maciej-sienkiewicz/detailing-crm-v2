@@ -129,11 +129,10 @@ export function CareInstructionsSection() {
         <Wrap>
             <Head>
                 <div>
-                    <Title>Instrukcje pielęgnacji</Title>
                     <Desc>
                         Zdania, z których składa się sekcja „Jak utrzymać efekt" na certyfikacie
                         jakości. Zaznaczane zawsze dotyczą każdej realizacji; pozostałe przypisz do
-                        usług w zakładce obok — wtedy zaznaczą się same, gdy usługa znajdzie się na
+                        usług w zakładce obok - wtedy zaznaczą się same, gdy usługa znajdzie się na
                         certyfikacie.
                     </Desc>
                 </div>

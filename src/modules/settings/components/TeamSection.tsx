@@ -205,14 +205,6 @@ export function TeamSection({ onGoToRoles }: TeamSectionProps = {}) {
                 </AddButton>
             </Toolbar>
 
-            <StatsRow>
-                {!isLoading && (
-                    <StatText>
-                        <strong>{totalItems}</strong> pracowników
-                    </StatText>
-                )}
-            </StatsRow>
-
             {lockedOut.length > 0 && (
                 <NoticeBar>
                     <NoticeIcon>

@@ -334,12 +334,6 @@ export function AppointmentColorsSection() {
                     <CardTitle>Kolory wizyt</CardTitle>
                     <AddButton onClick={openAdd}>+ Dodaj kolor</AddButton>
                 </CardHead>
-                <CardHint>
-                    Kolory oznaczają typy wizyt w kalendarzu. Kolor domyślny jest zaznaczany z góry
-                    przy rozpoczynaniu wizyty i w szybkim dodawaniu z kalendarza. Może być tylko
-                    jeden. Koloru używanego przez wizyty nie da się usunąć. Zarchiwizuj go, a zniknie
-                    z list wyboru, nie ruszając historii.
-                </CardHint>
 
                 {isLoading && <Empty>Wczytywanie kolorów...</Empty>}
 
