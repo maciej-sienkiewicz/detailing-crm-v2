@@ -37,6 +37,7 @@ import {
     ChevronRight,
     FileInput,
     FileText,
+    Mail,
     Maximize2,
     Paperclip,
     MessagesSquare,
@@ -58,7 +59,7 @@ import { ContactCardPopover } from './ContactCardPopover';
 import { ContactNotesPopover } from './ContactNotesPopover';
 import { ThreadHistoryPanel } from './ThreadHistoryPanel';
 import { useContactCard, useFormMailSources, useMarkMessageUnread, useThreadContactBadges } from '../hooks/useComms';
-import { MessageContextMenu } from './MessageContextMenu';
+import { MailContextMenu } from './MailContextMenu';
 import { MarkAsFormLeadModal } from './MarkAsFormLeadModal';
 import { ThreadActionsMenu, type ThreadAction } from './ThreadActionsMenu';
 import { plainPreview, splitQuotedHistory } from '../utils/emailHtml';
@@ -948,13 +949,21 @@ function ConversationViewImpl({
                     />
                 )}
                 {messageMenu && (
-                    <MessageContextMenu
+                    <MailContextMenu
                         x={messageMenu.x}
                         y={messageMenu.y}
                         onClose={() => setMessageMenu(null)}
-                        onMarkUnread={() =>
-                            markMessageUnread.mutate({ messageId: messageMenu.messageId, threadId: thread.id })
-                        }
+                        items={[
+                            {
+                                icon: <Mail />,
+                                label: 'Oznacz jako nieprzeczytaną',
+                                onSelect: () =>
+                                    markMessageUnread.mutate({
+                                        messageId: messageMenu.messageId,
+                                        threadId: thread.id,
+                                    }),
+                            },
+                        ]}
                     />
                 )}
                 {leadDetailOpen && thread.leadId && (

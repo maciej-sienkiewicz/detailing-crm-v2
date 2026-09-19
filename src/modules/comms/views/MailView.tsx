@@ -38,6 +38,7 @@ import {
     useMailAccounts,
     useMailboxSyncState,
     useMarkThreadRead,
+    useMarkThreadUnread,
     usePrefetchThread,
     useSetThreadArchived,
     useSyncAccount,
@@ -45,6 +46,7 @@ import {
     useThreads,
 } from '../hooks/useComms';
 import type { CommThread, MailFolder } from '../types';
+import { MailContextMenu } from '../components/MailContextMenu';
 import { ComposePane } from '../components/ComposePane';
 import { ConversationView } from '../components/ConversationView';
 import { MailboxSyncPanel } from '../components/MailboxSyncPanel';
@@ -447,7 +449,28 @@ export default function MailView() {
     );
 
     const markRead = useMarkThreadRead();
+    const markThreadUnread = useMarkThreadUnread();
     const setArchived = useSetThreadArchived();
+
+    /*
+     * Prawy przycisk na wierszu listy rozmów.
+     *
+     * Przeglądarka pokazuje w tym miejscu własne menu („Wstecz", „Drukuj"),
+     * całkowicie bezużyteczne nad listą maili - przechwytujemy je zdarzeniem
+     * `contextmenu` i `preventDefault()`. To działa też pod Ctrl+kliknięciem na
+     * macOS i przy długim przytrzymaniu na dotyku. Menu przeglądarki da się
+     * wyłącznie ZASTĄPIĆ w całości; dołożenie własnej pozycji do systemowego
+     * nie jest możliwe z poziomu strony.
+     *
+     * Zostawiamy je tam, gdzie menu przeglądarki jest potrzebne - na treści
+     * rozwiniętej wiadomości (kopiowanie tekstu, otwieranie odnośników);
+     * ConversationView przechwytuje tylko nagłówek wiadomości.
+     */
+    const [threadMenu, setThreadMenu] = useState<{ x: number; y: number; thread: CommThread } | null>(null);
+    const openThreadMenu = useCallback((event: React.MouseEvent, thread: CommThread) => {
+        event.preventDefault();
+        setThreadMenu({ x: event.clientX, y: event.clientY, thread });
+    }, []);
     const syncAccount = useSyncAccount();
 
     // Otwarcie konwersacji oznacza ją jako przeczytaną - lokalnie od razu,
@@ -592,6 +615,7 @@ export default function MailView() {
                                 $active={thread.id === selectedThreadId}
                                 $unread={thread.unreadCount > 0}
                                 onClick={() => selectThread(thread.id)}
+                                onContextMenu={(event) => openThreadMenu(event, thread)}
                                 // Zanim palec/kursor dojdzie do kliknięcia, wątek zdąży
                                 // trafić do cache - treść podmienia się wtedy bez migotania.
                                 onMouseEnter={() => prefetchThread(thread.id, thread.participantEmail)}
@@ -714,6 +738,35 @@ export default function MailView() {
                         message={fullMessage}
                         onClose={() => setFullMessageId(null)}
                         onDownloadAttachment={downloadAttachment}
+                    />
+                )}
+
+                {threadMenu && (
+                    <MailContextMenu
+                        x={threadMenu.x}
+                        y={threadMenu.y}
+                        onClose={() => setThreadMenu(null)}
+                        items={
+                            threadMenu.thread.unreadCount > 0
+                                ? [
+                                    {
+                                        icon: <MailOpen />,
+                                        label: 'Oznacz jako przeczytaną',
+                                        onSelect: () => markRead.mutate(threadMenu.thread.id),
+                                    },
+                                ]
+                                : [
+                                    {
+                                        icon: <Mail />,
+                                        // Wprost o JEDNEJ wiadomości, bo tyle się dzieje: wraca
+                                        // najnowsza wiadomość od klienta, a nie cała rozmowa.
+                                        // „Oznacz rozmowę jako nieprzeczytaną" obiecywałoby licznik
+                                        // równy liczbie wiadomości, które trzeba by potem odklikać.
+                                        label: 'Oznacz ostatnią jako nieprzeczytaną',
+                                        onSelect: () => markThreadUnread.mutate({ threadId: threadMenu.thread.id }),
+                                    },
+                                ]
+                        }
                     />
                 )}
             </AppCard>
