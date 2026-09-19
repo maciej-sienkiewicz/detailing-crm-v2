@@ -15,6 +15,7 @@ import { Modal } from '@/common/components/Modal';
 import { useToast } from '@/common/components/Toast';
 import { useDeleteMailSignature, useMailSignature, useSaveMailSignature } from '../hooks/useComms';
 import { IconButton, PrimaryButton } from './shared';
+import { signatureHtmlToText, signatureTextToHtml } from '../utils/signatureText';
 
 const Body = styled.div`
     display: flex;
@@ -84,23 +85,6 @@ const Actions = styled.div`
     padding-top: 4px;
 `;
 
-const escapeHtml = (value: string): string =>
-    value
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-
-const textToHtml = (value: string): string =>
-    `<div>${escapeHtml(value.trim()).replace(/\n/g, '<br>')}</div>`;
-
-/** Zapisany HTML z powrotem na tekst - stopkę edytujemy tak, jak ją napisano. */
-const htmlToText = (html: string | null): string => {
-    if (!html) return '';
-    const withBreaks = html.replace(/<br\s*\/?>/gi, '\n').replace(/<\/div>\s*<div>/gi, '\n');
-    const parsed = new DOMParser().parseFromString(withBreaks, 'text/html');
-    return (parsed.body.textContent ?? '').trim();
-};
 
 interface SignatureSettingsModalProps {
     isOpen: boolean;
@@ -115,13 +99,13 @@ export function SignatureSettingsModal({ isOpen, onClose }: SignatureSettingsMod
 
     // Modal montuje się przy otwarciu (key w rodzicu), więc stan startowy
     // bierzemy raz - bez efektu synchronizującego go z zapytaniem.
-    const [text, setText] = useState(() => htmlToText(signature?.bodyHtml ?? null));
+    const [text, setText] = useState(() => signatureHtmlToText(signature?.bodyHtml ?? null));
     const [enabledByDefault, setEnabledByDefault] = useState(signature?.enabledByDefault ?? true);
 
     const submit = () => {
         if (!text.trim()) return;
         saveSignature.mutate(
-            { bodyHtml: textToHtml(text), enabledByDefault },
+            { bodyHtml: signatureTextToHtml(text), enabledByDefault },
             {
                 onSuccess: () => {
                     showSuccess('Stopka zapisana', 'Dołączysz ją przełącznikiem przy wysyłce');

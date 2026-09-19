@@ -16,6 +16,7 @@ import { usePermissions } from '@/core/permissions';
 import { useProducts } from '../hooks/useProducts';
 import { ProductSearchFilter } from '../components/ProductSearchFilter';
 import type { RatingFilter } from '../components/ProductSearchFilter';
+import type { ProductSortKey } from '../types';
 import { ProductTable } from '../components/ProductTable';
 import { ProductGrid } from '../components/ProductGrid';
 import { AddProductModal } from '../components/AddProductModal';
@@ -50,11 +51,31 @@ export function ProductListView() {
     const [search, setSearch] = useState('');
     const [rating, setRating] = useState<RatingFilter>('');
     const [page, setPage] = useState(1);
+    /**
+     * Kolejność listy. Domyślnie alfabetycznie, bo katalog bez wskazanego porządku
+     * czyta się jak spis, a nie jak ranking.
+     *
+     * Pierwsze kliknięcie w kolumnę LICZBOWĄ daje malejąco („co idzie w ruch"),
+     * a w tekstową rosnąco (A-Z) - w obu przypadkach od razu to, po co się klika,
+     * zamiast kierunku, który trzeba poprawić drugim kliknięciem.
+     */
+    const [sortBy, setSortBy] = useState<ProductSortKey>('name');
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+    const changeSort = (key: ProductSortKey) => {
+        if (key === sortBy) {
+            setSortDirection(d => (d === 'asc' ? 'desc' : 'asc'));
+        } else {
+            setSortBy(key);
+            setSortDirection(key === 'name' || key === 'brand' ? 'asc' : 'desc');
+        }
+        setPage(1);
+    };
     const [adding, setAdding] = useState(false);
     const debounced = useDebounce(search, 300);
 
     const { products, pagination, isLoading } = useProducts({
-        search: debounced, rating, page, limit: 50, sortBy: 'name', sortDirection: 'asc',
+        search: debounced, rating, page, limit: 50, sortBy, sortDirection,
     });
 
     const open = (id: string) => navigate(`/products/${id}`);
@@ -117,7 +138,14 @@ export function ProductListView() {
                                 : 'Dodaj pierwszy produkt — ręcznie, z kodu kreskowego albo skanując telefonem.'}
                         />
                     ) : isDesktop ? (
-                        <ProductTable products={products} canSeeCosts={canSeeCosts} onOpen={open} />
+                        <ProductTable
+                            products={products}
+                            canSeeCosts={canSeeCosts}
+                            onOpen={open}
+                            sortBy={sortBy}
+                            sortDirection={sortDirection}
+                            onSort={changeSort}
+                        />
                     ) : (
                         <ProductGrid products={products} canSeeCosts={canSeeCosts} onOpen={open} />
                     )}
