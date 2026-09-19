@@ -571,6 +571,16 @@ export interface AdvertiserRow {
      * wyprowadza ją z adresu, na który kieruje reklama, więc bywa pusta.
      */
     instagram: string | null;
+    /** Ile aktywnych reklam firmy w rejonie ruszyło w oknie nowości (`AreaResults.newWindowDays`). */
+    newCampaigns: number;
+    /**
+     * Firma zaczęła się reklamować dopiero w oknie nowości — debiutant, nie rotacja
+     * kreacji. Serwer rozstrzyga to po własnym rejestrze reklamodawców, nie po tym,
+     * co akurat widać w cache.
+     */
+    newAdvertiser: boolean;
+    /** ISO data (bez czasu) startu najświeższej nowej kampanii; null, gdy żadna nie jest nowa. */
+    latestCampaignStart: string | null;
 }
 
 /** Status frazy we wspólnym cache — po nim wiadomo, czemu tabela jest pusta/niepełna. */
@@ -603,6 +613,12 @@ export interface AreaResults {
     totalActiveAds: number;
     /** Ilu reklamodawców odpadło przez wykluczenia - bez tego krótka tabela nie mówi dlaczego. */
     hiddenAdvertisers: number;
+    /** Ile firm w CAŁEJ tabeli zadebiutowało w oknie nowości. */
+    newAdvertisers: number;
+    /** Nowe kampanie firm, które już tu były (bez kampanii debiutantów). */
+    newCampaigns: number;
+    /** Długość okna nowości w dniach — o niej decyduje serwer, ekran tylko ją wypisuje. */
+    newWindowDays: number;
     phraseStatuses: PhraseStatus[];
 }
 
