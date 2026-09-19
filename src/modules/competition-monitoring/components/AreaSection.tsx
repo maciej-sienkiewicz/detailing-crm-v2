@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import styled from 'styled-components';
-import { ChevronLeft, ChevronRight, ExternalLink, EyeOff, MapPin, Settings } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, ExternalLink, EyeOff, MapPin, Settings } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { SharedButton } from '@/common/styles';
 import type { AreaResults, AdvertiserRow } from '../types';
@@ -10,8 +10,10 @@ import {
     IconBtn, IconLink, RowActions, HiddenLabel, ROW_HEIGHT, INK_MUTED,
 } from './DataTable';
 import { AreaConfigModal, phraseWord } from './AreaConfigModal';
-import { useAreaResults, useAreaSettings, useBlockAdvertiser } from '../hooks/useAreaDiscovery';
-import { formatStartDay, noveltyBadge, noveltySummary } from '../utils/areaNovelty';
+import {
+    useAcknowledgeAreaNovelty, useAreaResults, useAreaSettings, useBlockAdvertiser,
+} from '../hooks/useAreaDiscovery';
+import { activeAdsWord, companiesWord, formatStartDay, noveltyBadge } from '../utils/areaLabels';
 
 /**
  * „Reklamodawcy w okolicy" — kto jeszcze reklamuje się w moim rejonie.
@@ -50,6 +52,44 @@ const GearButton = styled.button`
 
     &:hover { border-color: ${st.borderHover}; color: ${st.text}; }
     svg { width: 17px; height: 17px; }
+`;
+
+/** Dwie akcje nagłówka obok siebie — „odznacz" pojawia się tylko, gdy jest co odznaczać. */
+const HeadActions = styled.div`
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+`;
+
+/**
+ * „Odznacz nowe" — tło i obwódka, NIE wypełnienie.
+ *
+ * W oknie wypełniony jest wyłącznie krok następny, a ten przycisk nim nie jest:
+ * to sprzątanie po przeczytaniu, czynność drugorzędna i całkowicie opcjonalna.
+ * Bursztyn wiąże go z odznakami, które gasi — człowiek nie musi zgadywać, czego
+ * dotyczy, bo kolor już to powiedział.
+ */
+const AckButton = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 13px;
+    border-radius: ${st.radiusFull};
+    border: 1px solid ${st.accentAmber};
+    background: ${st.accentAmberDim};
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    color: #92400E;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all ${st.transition};
+
+    &:hover:not(:disabled) { background: rgba(245, 158, 11, 0.22); }
+    &:disabled { opacity: 0.55; cursor: default; }
+    svg { width: 14px; height: 14px; }
 `;
 
 const AreaLine = styled.p`
@@ -95,7 +135,18 @@ const AreaCard = styled(Card)`
     min-width: 0;
 `;
 
+/**
+ * Licznik nad tabelą: dwie wartości rozdzielone ODSTĘPEM, nie kropką.
+ *
+ * Kropka w roli separatora każe czytać ciąg jako jedno zdanie i przy trzecim
+ * członie robi się z tego linijka, w której nic nie jest ważniejsze od reszty.
+ * Odstęp rozdziela tak samo, a nic nie dodaje do przeczytania.
+ */
 const Tally = styled.p`
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 20px;
     margin: 0 0 12px;
     font-size: 13px;
     color: ${INK_MUTED};
@@ -146,11 +197,14 @@ const NameLine = styled.div`
     height: 20px;
 `;
 
-/** Drugi rząd: „od 12 wrz · @profil" — każdy człon opcjonalny, całość w jednym wierszu 16 px. */
+/**
+ * Drugi rząd: data startu i uchwyt profilu, każdy człon opcjonalny, całość w jednym
+ * wierszu 16 px. Rozdziela je ODSTĘP, nie kropka — tak samo jak licznik nad tabelą.
+ */
 const MetaLine = styled.div`
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 10px;
     min-width: 0;
     height: 16px;
     font-size: 12px;
@@ -164,12 +218,6 @@ const MetaLine = styled.div`
 const SinceText = styled.span`
     flex-shrink: 0;
     color: #92400E;
-`;
-
-/** Zdanie o nowościach w podsumowaniu — tym samym bursztynem co odznaki, których dotyczy. */
-const NoveltyTally = styled.span`
-    color: #92400E;
-    font-weight: 600;
 `;
 
 /**
@@ -192,7 +240,6 @@ const AdvertiserName = ({ row, windowDays }: { row: AdvertiserRow; windowDays: n
             </NameLine>
             <MetaLine>
                 {since && <SinceText>{since}</SinceText>}
-                {since && row.instagram && <span aria-hidden="true">·</span>}
                 {row.instagram && (
                     <MetaLink
                         href={`https://www.instagram.com/${row.instagram}/`}
@@ -555,24 +602,38 @@ export const AreaSection = () => {
     const settings = settingsQuery.data;
     const hasArea = (settings?.locations.length ?? 0) > 0;
     const resultsQuery = useAreaResults(page);
-    // Zdanie o nowościach dotyczy CAŁEJ tabeli, nie bieżącej strony — serwer liczy
-    // je ze wszystkich wierszy, żeby „2 nowe firmy" zgadzało się z paskiem na Tablicy.
-    const novelty = resultsQuery.data
-        ? noveltySummary(resultsQuery.data.newAdvertisers, resultsQuery.data.newCampaigns, resultsQuery.data.newWindowDays)
-        : null;
+    const acknowledge = useAcknowledgeAreaNovelty();
+    // Liczby dotyczą CAŁEJ tabeli, nie bieżącej strony: nowość bywa na trzeciej
+    // stronie, a przycisk ma się pokazać i wtedy. Samych liczb nie wypisujemy —
+    // mówią je odznaki przy wierszach, a powtórzone w nagłówku byłyby tą samą
+    // informacją drugi raz, tyle że oderwaną od firmy, której dotyczy.
+    const hasNovelty =
+        ((resultsQuery.data?.newAdvertisers ?? 0) + (resultsQuery.data?.newCampaigns ?? 0)) > 0;
 
     return (
         <AreaCard>
             <HeadRow>
                 <CardTitle>Reklamodawcy w okolicy</CardTitle>
-                <GearButton
-                    type="button"
-                    aria-label="Ustawienia rejonu"
-                    title="Ustawienia rejonu"
-                    onClick={() => setConfigOpen(true)}
-                >
-                    <Settings />
-                </GearButton>
+                <HeadActions>
+                    {hasNovelty && (
+                        <AckButton
+                            type="button"
+                            title={'Zgaś odznaki \u201ENowa firma\u201D i \u201ENowa kampania\u201D. Kolejna nowość zapali je znowu.'}
+                            disabled={acknowledge.isPending}
+                            onClick={() => acknowledge.mutate()}
+                        >
+                            <Check /> Odznacz nowe
+                        </AckButton>
+                    )}
+                    <GearButton
+                        type="button"
+                        aria-label="Ustawienia rejonu"
+                        title="Ustawienia rejonu"
+                        onClick={() => setConfigOpen(true)}
+                    >
+                        <Settings />
+                    </GearButton>
+                </HeadActions>
             </HeadRow>
 
             {hasArea ? (
@@ -580,7 +641,8 @@ export const AreaSection = () => {
                     <AreaLine>
                         <MapPin />
                         <span>
-                            <strong>{settings!.locations.join(', ')}</strong> ·{' '}
+                            <strong>{settings!.locations.join(', ')}</strong>
+                            {'\u2003'}
                             {settings!.trackedPhraseCount} {phraseWord(settings!.trackedPhraseCount)} z katalogu
                         </span>
                     </AreaLine>
@@ -596,14 +658,14 @@ export const AreaSection = () => {
                               */}
                             {resultsQuery.data.totalAdvertisers > 0 && (
                                 <Tally>
-                                    <strong>{resultsQuery.data.totalAdvertisers}</strong> firm ·{' '}
-                                    <strong>{resultsQuery.data.totalActiveAds}</strong> aktywnych reklam
-                                    {novelty && (
-                                        <>
-                                            {' · '}
-                                            <NoveltyTally>{novelty}</NoveltyTally>
-                                        </>
-                                    )}
+                                    <span>
+                                        <strong>{formatExact(resultsQuery.data.totalAdvertisers)}</strong>{' '}
+                                        {companiesWord(resultsQuery.data.totalAdvertisers)}
+                                    </span>
+                                    <span>
+                                        <strong>{formatExact(resultsQuery.data.totalActiveAds)}</strong>{' '}
+                                        {activeAdsWord(resultsQuery.data.totalActiveAds)}
+                                    </span>
                                 </Tally>
                             )}
                             <Results results={resultsQuery.data} page={page} onPage={setPage} />

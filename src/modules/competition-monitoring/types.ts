@@ -648,6 +648,8 @@ export interface AreaSettings {
     excludedPhraseIds: string[];
     /** Ile fraz katalogu zostaje po odznaczeniach. */
     trackedPhraseCount: number;
+    /** ISO data, do której studio odznaczyło nowości; null, gdy nigdy tego nie robiło. */
+    noveltyAckedThrough: string | null;
     /** ISO albo null, gdy studio jeszcze nic nie ustawiło. */
     updatedAt: string | null;
 }

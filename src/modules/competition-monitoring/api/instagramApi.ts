@@ -224,6 +224,17 @@ export const instagramApi = {
         return response.data;
     },
 
+    /**
+     * „Odznacz nowe" - studio potwierdza, że przejrzało nowości w swoim rejonie.
+     * Serwer zapisuje dzień; odznaki gasną wtedy i tu, i w pasku na Tablicy.
+     */
+    acknowledgeAreaNovelty: async (): Promise<string | null> => {
+        const response = await apiClient.post<{ noveltyAckedThrough: string | null }>(
+            `${ADS_PATH}/discovery/novelty/ack`
+        );
+        return response.data.noveltyAckedThrough;
+    },
+
     /** Katalog fraz - zamknięta lista ustalona przez administratora aplikacji. */
     getPhraseCatalog: async (): Promise<CatalogPhrase[]> => {
         const response = await apiClient.get<{ phrases: CatalogPhrase[] }>(`${ADS_PATH}/discovery/phrases`);
