@@ -41,7 +41,7 @@ import { LeadQueueCard } from '../components/LeadQueueCard';
 import { LeadSegments, type LeadSegment } from '../components/LeadSegments';
 import { describeLeadUrgency } from '../utils/leadUrgency';
 import type { LeadStatus } from '../types';
-import { EmptyHint, SurfaceCard, formatMoney } from '../components/shared';
+import { EmptyHint, SurfaceCard } from '../components/shared';
 import LeadAnalyticsView from './LeadAnalyticsView';
 
 /**
@@ -170,93 +170,103 @@ const DetailColumn = styled.div`
 `;
 
 /** Nagłówek kolumny kolejki: tytuł, licznik i jedno wyjście do analityki. */
+/**
+ * Nagłówek kolejki - pasek listy, nie okładka rozdziału.
+ *
+ * Wzorem jest lewa kolumna Poczty (MailView.ListHeader): rząd z wyszukiwarką
+ * i jedną akcją, pod nim rząd chipów, a zaraz potem lista. Ten sam rytm w obu
+ * skrzynkach znaczy, że przejście między nimi nie wymaga przestawiania wzroku.
+ *
+ * Nie ma tu tytułu. Stał tu nagłówek 21 px z podtytułem i przyciskiem wysokim
+ * na 44 px, czyli układ strony tytułowej - ponad sto pikseli wysokości na
+ * powtórzenie nazwy widoku, do którego wchodzi się z bocznego menu.
+ */
 const QueueHeader = styled.header`
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 20px 16px 12px 16px;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid ${p => p.theme.colors.border};
     flex-shrink: 0;
+`;
 
-    h1 {
-        margin: 0;
-        font-size: 21px;
-        font-weight: ${p => p.theme.fontWeights.bold};
-        letter-spacing: -0.02em;
-        line-height: 1.15;
+const SearchRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+`;
+
+/** Pigułka wyszukiwania - ta sama co w lewej kolumnie Poczty. */
+const SearchInput = styled.div`
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: ${p => p.theme.radii.full};
+    padding: 7px 12px;
+    color: ${p => p.theme.colors.textMuted};
+    background: ${p => p.theme.colors.surface};
+    transition: border-color ${p => p.theme.transitions.fast};
+
+    &:focus-within { border-color: ${p => p.theme.colors.primary}; }
+
+    input {
+        border: none;
+        outline: none;
+        flex: 1;
+        min-width: 0;
+        font-size: 13px;
+        background: transparent;
         color: ${p => p.theme.colors.text};
-    }
-    p {
-        margin: 2px 0 0 0;
-        font-size: 12.5px;
-        color: ${p => p.theme.colors.textSecondary};
+        font-family: inherit;
     }
 `;
 
+/**
+ * Akcja przy wyszukiwarce. Obwódka, nie wypełnienie: analityka i archiwum są
+ * drugorzędne wobec samej kolejki, a w oknie wypełniony jest tylko krok
+ * następny - w Poczcie jest nim „Napisz", tu odpowiednika nie ma, bo zapytań
+ * nie zakłada się ręcznie. Rozmiar 34 px, ten sam co tam.
+ */
 const GhostAction = styled.span`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 7px;
-    height: 44px;
-    padding: 0 16px;
+    gap: 6px;
+    height: 34px;
+    padding: 0 13px;
     border-radius: ${p => p.theme.radii.full};
     border: 1px solid ${p => p.theme.colors.border};
     background: ${p => p.theme.colors.surface};
     color: ${p => p.theme.colors.textSecondary};
-    font-size: 13.5px;
+    font-size: 12.5px;
     font-weight: ${p => p.theme.fontWeights.medium};
     white-space: nowrap;
     cursor: pointer;
     font-family: inherit;
+    transition: border-color ${p => p.theme.transitions.fast}, color ${p => p.theme.transitions.fast};
 
-    svg { width: 16px; height: 16px; }
+    &:hover { border-color: ${p => p.theme.colors.primary}; color: ${p => p.theme.colors.text}; }
+
+    svg { width: 15px; height: 15px; }
 `;
 
-/** Wariant kwadratowy - cel dotykowy 48x48 tam, gdzie nie ma miejsca na etykietę. */
+/** Wariant bez etykiety - okrągły, tej samej wysokości co rząd. */
 const IconAction = styled(GhostAction)`
-    width: 48px;
-    height: 48px;
+    width: 34px;
+    height: 34px;
     padding: 0;
-    border-radius: ${p => p.theme.radii.lg};
-
-    svg { width: 20px; height: 20px; }
+    flex-shrink: 0;
 `;
 
+/** Rząd przełączników - w nagłówku, tuż pod tytułem (jak chipy folderów w Poczcie). */
 const Toolbar = styled.div`
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 0 16px;
-    flex-shrink: 0;
-`;
-
-/**
- * Pasek zaległości nad kolejką. Liczony z tego SAMEGO zbioru co segment „Twój
- * ruch", więc kwota i licznik nie mają jak się rozjechać - wcześniej pasek brał
- * dane z analityki, która liczyła zaległość inną regułą niż lista pod nim.
- *
- * Pojawia się wyłącznie wtedy, gdy jest zaległość. Cisza nie zajmuje miejsca.
- */
-const OwedStrip = styled.div`
-    display: flex;
-    align-items: baseline;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 12px 20px 4px 20px;
-    flex-shrink: 0;
-
-    .amount {
-        font-size: 16px;
-        font-weight: ${p => p.theme.fontWeights.semibold};
-        color: ${p => p.theme.colors.text};
-        font-variant-numeric: tabular-nums;
-        letter-spacing: -0.01em;
-    }
-    .text {
-        font-size: 12.5px;
-        color: ${p => p.theme.colors.textSecondary};
-    }
+    gap: 6px;
+    min-width: 0;
 `;
 
 /** Lista przewija się sama, żeby nagłówek i segmenty zostały na miejscu. */
@@ -264,8 +274,8 @@ const QueueScroll = styled.div`
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
-    margin-top: 10px;
-    border-top: 1px solid ${p => p.theme.colors.border};
+    /* Bez własnego odstępu i kreski u góry - nagłówek ma już swoją krawędź,
+       a druga linia w odległości dziesięciu pikseli czytała się jak pusty pasek. */
 
     @media (max-width: ${p => p.theme.breakpoints.xl}) {
         overflow-y: visible;
@@ -342,6 +352,13 @@ export default function LeadsView() {
         return status && CLOSED_SET.has(status) ? status : undefined;
     });
     const [archiveQuery, setArchiveQuery] = useState('');
+    /**
+     * Szukanie w kolejce. Filtruje to, co już jest na ekranie - kolejka to
+     * wszystkie sprawy otwarte, a nie strona wyników, więc nie ma po co pytać
+     * serwera o coś, co leży w pamięci. Archiwum ma własne, serwerowe (tam
+     * zbiór jest nieograniczony i rośnie z każdym miesiącem).
+     */
+    const [queueQuery, setQueueQuery] = useState('');
 
     const selectedLeadId = searchParams.get('lead');
     const selectLead = useCallback(
@@ -396,8 +413,27 @@ export default function LeadsView() {
         };
     }, [open.items, thresholds]);
 
-    const owedValue = queue.ours.reduce((sum, entry) => sum + entry.lead.estimatedValue, 0);
-    const visible = segment === 'CLIENT' ? queue.client : queue.ours;
+    const segmentEntries = segment === 'CLIENT' ? queue.client : queue.ours;
+    /*
+     * Po czym szukamy: nazwisko/kontakt, auto, usługi. Te trzy rzeczy stoją na
+     * karcie, więc szukanie obiecuje dokładnie to, co widać - a nie trafia
+     * w pola, których na liście nie ma i których nikt nie zobaczy w wyniku.
+     */
+    const visible = useMemo(() => {
+        const needle = queueQuery.trim().toLowerCase();
+        if (!needle) return segmentEntries;
+        return segmentEntries.filter(({ lead }) =>
+            [
+                lead.customerName,
+                lead.contactIdentifier,
+                lead.vehicleBrand,
+                lead.vehicleModel,
+                ...lead.tagLabels,
+            ]
+                .filter(Boolean)
+                .some((field) => String(field).toLowerCase().includes(needle))
+        );
+    }, [segmentEntries, queueQuery]);
     const inArchive = segment === 'ARCHIVE';
 
     /** Rączka stoi tylko tam, gdzie jest co zwijać: panel obok kolejki i otwarta sprawa. */
@@ -515,39 +551,36 @@ export default function LeadsView() {
                 $railed={railed}
             >
                 <QueueHeader>
-                    <div>
-                        <h1>Zapytania</h1>
-                        <p>
-                            {open.isLoading
-                                ? 'Zapytania od potencjalnych klientów'
-                                : `${open.total} ${open.total === 1 ? 'otwarta sprawa' : 'otwartych spraw'}`}
-                        </p>
-                    </div>
-                    {/* Na desktopie (panel obok kolejki) analityka jest domyślną treścią
-                        panelu, więc osobne wyjście nie jest potrzebne. Poniżej progu podziału
-                        panelu nie ma — tam analityka zostaje osobnym ekranem pod tym przyciskiem. */}
-                    {!isSplit && (isWide ? (
-                        <Link to="/leads/analytics">
-                            <GhostAction><BarChart3 /> Analityka</GhostAction>
-                        </Link>
-                    ) : (
-                        <Link to="/leads/analytics" aria-label="Analityka">
-                            <IconAction title="Analityka"><BarChart3 /></IconAction>
-                        </Link>
-                    ))}
-                </QueueHeader>
+                    <SearchRow>
+                        <SearchInput>
+                            <Search size={14} />
+                            <input
+                                placeholder="Szukaj w zapytaniach"
+                                value={queueQuery}
+                                onChange={(event) => setQueueQuery(event.target.value)}
+                                aria-label="Szukaj w zapytaniach"
+                            />
+                        </SearchInput>
+                        {/* Na desktopie (panel obok kolejki) analityka jest domyślną treścią
+                            panelu, więc osobne wyjście nie jest potrzebne. Poniżej progu podziału
+                            panelu nie ma — tam analityka zostaje osobnym ekranem pod tym przyciskiem. */}
+                        {!isSplit && (
+                            <Link to="/leads/analytics" aria-label="Analityka">
+                                <IconAction title="Analityka"><BarChart3 /></IconAction>
+                            </Link>
+                        )}
+                    </SearchRow>
 
-                {/* Na wąskim ekranie archiwum jest trybem, nie zakładką - więc i wyjście
-                    z niego jest jawne, a nie ukryte w przełączniku, którego tam nie ma. */}
-                {!isWide && inArchive ? (
-                    <Toolbar>
-                        <BackToQueue type="button" onClick={() => changeSegment('OURS')}>
-                            <ArrowLeft /> Wróć do kolejki
-                        </BackToQueue>
-                    </Toolbar>
-                ) : (
-                    <Toolbar>
-                        <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+                    {/* Na wąskim ekranie archiwum jest trybem, nie zakładką - więc i wyjście
+                        z niego jest jawne, a nie ukryte w przełączniku, którego tam nie ma. */}
+                    {!isWide && inArchive ? (
+                        <Toolbar>
+                            <BackToQueue type="button" onClick={() => changeSegment('OURS')}>
+                                <ArrowLeft /> Wróć do kolejki
+                            </BackToQueue>
+                        </Toolbar>
+                    ) : (
+                        <Toolbar>
                             <LeadSegments
                                 value={segment}
                                 ours={queue.ours.length}
@@ -555,31 +588,21 @@ export default function LeadsView() {
                                 showArchive={isWide}
                                 onChange={changeSegment}
                             />
-                        </div>
-                        {!isWide && (
-                            <IconAction
-                                as="button"
-                                type="button"
-                                onClick={openArchive}
-                                title="Szukaj w zamkniętych sprawach"
-                                aria-label="Szukaj w zamkniętych sprawach"
-                            >
-                                <Search />
-                            </IconAction>
-                        )}
-                    </Toolbar>
-                )}
-
-                {segment === 'OURS' && queue.ours.length > 0 && (
-                    <OwedStrip>
-                        {/* Bez groszy: to jest kwota-hasło, nie pozycja na fakturze. */}
-                        <span className="amount">{formatMoney(owedValue)}</span>
-                        <span className="text">
-                            czeka na Twoją odpowiedź w {queue.ours.length}{' '}
-                            {queue.ours.length === 1 ? 'sprawie' : 'sprawach'}
-                        </span>
-                    </OwedStrip>
-                )}
+                            {!isWide && (
+                                <IconAction
+                                    as="button"
+                                    type="button"
+                                    onClick={openArchive}
+                                    title="Szukaj w zamkniętych sprawach"
+                                    aria-label="Szukaj w zamkniętych sprawach"
+                                    style={{ marginLeft: 'auto' }}
+                                >
+                                    <Search />
+                                </IconAction>
+                            )}
+                        </Toolbar>
+                    )}
+                </QueueHeader>
 
                 {inArchive ? (
                     <ArchivePane>
@@ -596,9 +619,11 @@ export default function LeadsView() {
                     <QueueScroll>
                         {!open.isLoading && visible.length === 0 && (
                             <EmptyHint>
-                                {segment === 'OURS'
-                                    ? 'Nikt nie czeka na Twoją odpowiedź.'
-                                    : 'Nie czekamy teraz na żadnego klienta.'}
+                                {queueQuery.trim()
+                                    ? 'Nic nie pasuje do wyszukiwania'
+                                    : segment === 'OURS'
+                                        ? 'Nikt nie czeka na Twoją odpowiedź.'
+                                        : 'Nie czekamy teraz na żadnego klienta.'}
                             </EmptyHint>
                         )}
 

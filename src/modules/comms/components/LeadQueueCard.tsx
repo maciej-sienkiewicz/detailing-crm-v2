@@ -22,8 +22,10 @@ const Card = styled.div<{ $tone: ReplyTone; $active: boolean; $dense: boolean }>
     display: flex;
     align-items: stretch;
     /* Gęściej na desktopie (panel obok kolejki, mysz), luźniej na telefonie
-       (jedna ręka, rękawica) - stąd wysokość zależna od gęstości, nie stała. */
-    min-height: ${p => (p.$dense ? '64px' : '80px')};
+       (jedna ręka, rękawica) - stąd wysokość zależna od gęstości, nie stała.
+       Wartości zeszły o kilkanaście pikseli, żeby wiersz kolejki miał ten sam
+       rytm co wiersz rozmowy w Poczcie: trzy linijki i nic ponad to. */
+    min-height: ${p => (p.$dense ? '58px' : '70px')};
     background: ${({ $active, theme }) => ($active ? theme.colors.surfaceAlt : theme.colors.surface)};
     border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
     transition: background ${p => p.theme.transitions.fast};
@@ -56,8 +58,8 @@ const OpenArea = styled.button<{ $dense: boolean }>`
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: ${p => (p.$dense ? '2px' : '3px')};
-    padding: ${p => (p.$dense ? '10px 16px 10px 16px' : '13px 16px 13px 16px')};
+    gap: ${p => (p.$dense ? '1px' : '2px')};
+    padding: ${p => (p.$dense ? '9px 12px' : '11px 12px')};
     border: none;
     background: transparent;
     text-align: left;
@@ -84,7 +86,9 @@ const Headline = styled.span`
     align-items: center;
     gap: 6px;
     min-width: 0;
-    font-size: 14.5px;
+    /* Skala pisma wiersza w Poczcie: 13 / 12 / 12. Wcześniej 14,5 / 13 / 12,5
+       robiło z kolejki listę nagłówków, a z listy rozmów - listę wpisów. */
+    font-size: 13px;
     font-weight: ${p => p.theme.fontWeights.semibold};
     letter-spacing: -0.01em;
     color: ${p => p.theme.colors.text};
@@ -103,7 +107,7 @@ const Headline = styled.span`
  */
 const Kind = styled.span`
     flex-shrink: 0;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: ${p => p.theme.fontWeights.medium};
     white-space: nowrap;
     color: ${p => p.theme.colors.textMuted};
@@ -111,7 +115,7 @@ const Kind = styled.span`
 
 const Services = styled.span`
     min-width: 0;
-    font-size: 13px;
+    font-size: 12px;
     color: ${p => p.theme.colors.textSecondary};
     overflow: hidden;
     text-overflow: ellipsis;
@@ -121,9 +125,9 @@ const Services = styled.span`
 const Who = styled.span`
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     min-width: 0;
-    font-size: 12.5px;
+    font-size: 12px;
     color: ${p => p.theme.colors.textMuted};
 
     > span {
