@@ -2,14 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { ExternalLink, Lightbulb, Megaphone, Trophy, TrendingUp, Flame, Moon, Minus, Sparkles } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import type {
-    DigestAd,
-    DigestVerdict,
-    ProfileDigest,
-    PulseEvent,
-    PulseEventKind,
-    WeeklyDigest,
-} from '../types';
+import type { DigestAd, DigestVerdict, ProfileDigest, PulseEvent, WeeklyDigest } from '../types';
 import { FORMAT_LABELS } from '../types';
 import { usePulse } from '../hooks/useAnalytics';
 import { Card, CardTitle, CardHint, CenterState, SelfTag, formatNumber } from './MetricBits';
@@ -373,20 +366,6 @@ const DigestRow: React.FC<{ profile: ProfileDigest; signals: PulseEvent[] }> = (
 };
 
 /**
- * Sygnały pulsu, które NIE powielają wiersza tygodnia.
- *
- * Przyspieszenie tempa, hit ponad normę, cisza własnego profilu i reklamy mają
- * już swoje miejsce w wierszu (werdykt, dowód, zdanie o kampaniach). Zostają te
- * cztery, których digest nie wyraża w ogóle.
- */
-const EXTRA_SIGNALS = new Set<PulseEventKind>([
-    'SLOWDOWN',
-    'NEW_TOPIC',
-    'FOLLOWER_SPIKE',
-    'FOLLOWER_DROP',
-]);
-
-/**
  * Wiersze, które nic nie wnoszą.
  *
  * Profil bez historii i bez publikacji daje nagłówek „@x bez publikacji w tym
@@ -409,8 +388,13 @@ export const WeekTab: React.FC<{ digest: WeeklyDigest | null }> = ({ digest }) =
     const pulse = usePulse();
     const signalsByUser = React.useMemo(() => {
         const map = new Map<string, PulseEvent[]>();
+        /*
+         * Bez filtrowania po rodzaju: backend emituje już WYŁĄCZNIE sygnały, których
+         * wiersz tygodnia nie niesie (spowolnienie, nowy temat, ruch obserwujących).
+         * Sześć pozostałych rodzajów przestało istnieć razem z sekcją „Puls konkurencji",
+         * dla której powstały - patrz PulseEventKind.
+         */
         (pulse.data?.events ?? [])
-            .filter(event => EXTRA_SIGNALS.has(event.kind))
             .forEach(event => {
                 const key = event.username.toLowerCase();
                 map.set(key, [...(map.get(key) ?? []), event]);

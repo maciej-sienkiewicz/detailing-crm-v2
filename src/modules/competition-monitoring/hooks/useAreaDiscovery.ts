@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { instagramApi } from '../api/instagramApi';
+import { INSTAGRAM_PROFILES_KEY } from './useInstagramProfiles';
 import type { SaveAreaSettings } from '../types';
 
 /**
@@ -46,6 +47,24 @@ export const useSaveAreaSettings = () => {
         mutationFn: (request: SaveAreaSettings) => instagramApi.saveAreaSettings(request),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [AREA_KEYS.settings] });
+            queryClient.invalidateQueries({ queryKey: [AREA_KEYS.results] });
+        },
+    });
+};
+
+/**
+ * „Obserwuj" przy reklamodawcy: profil trafia na listę obserwowanych studia.
+ *
+ * Po powodzeniu unieważniamy listę profili (pojawia się tam nowy, oczekujący na
+ * zatwierdzenie) ORAZ wyniki rejonu - tabela pokazuje przy wierszu, że jest już
+ * obserwowany, więc musi się o tym dowiedzieć bez odświeżania strony.
+ */
+export const useFollowAdvertiser = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (pageId: string) => instagramApi.followAdvertiser(pageId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [INSTAGRAM_PROFILES_KEY] });
             queryClient.invalidateQueries({ queryKey: [AREA_KEYS.results] });
         },
     });

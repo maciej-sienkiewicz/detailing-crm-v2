@@ -190,16 +190,20 @@ export interface ResyncResult {
 }
 
 /** Rodzaj zdarzenia w pulsie konkurencji. */
+/**
+ * Cztery rodzaje i to jest cały kontrakt.
+ *
+ * Sześć wcześniejszych - „twój post", „nie opublikowałeś nic", przyspieszenie tempa,
+ * post ponad normę, uruchomienie i zakończenie kampanii - mówiło dokładnie to samo,
+ * co wiersz profilu w zakładce Tydzień, tyle że w osobnej sekcji i w innej zakładce.
+ * Sekcja zniknęła, a razem z nią zdarzenia, które istniały wyłącznie dla niej;
+ * backend przestał je liczyć i wysyłać.
+ *
+ * Te zostają, bo wiersz tygodnia nie zna żadnego z nich: patrzy na posty i ich
+ * zaangażowanie, a nie na liczbę obserwujących ani na to, o czym profil zaczął mówić.
+ */
 export type PulseEventKind =
-    | 'YOUR_POST'
-    | 'YOUR_SILENCE'
-    /** Konkurent uruchomił sponsorowaną kampanię (Biblioteka reklam Meta). */
-    | 'AD_STARTED'
-    /** Nasz odczyt wykrył, że kampania przestała się emitować. */
-    | 'AD_ENDED'
-    | 'ACCELERATION'
     | 'SLOWDOWN'
-    | 'STANDOUT_POST'
     | 'NEW_TOPIC'
     | 'FOLLOWER_SPIKE'
     | 'FOLLOWER_DROP';
@@ -555,6 +559,14 @@ export const DAY_LABELS = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Nd'];
 export type AreaMatchMode = 'CITIES_ONLY' | 'INCLUDE_BROADER';
 
 /** Jeden wiersz tabeli wyników — jedna firma reklamująca się w rejonie. */
+/** Odpowiedź „Obserwuj": nazwa profilu USTALONA PRZEZ SERWER, nie przez przeglądarkę. */
+export interface FollowedAdvertiser {
+    profileId: string;
+    username: string;
+    /** PENDING_APPROVAL zaraz po dodaniu - tak samo jak przy ręcznym wpisaniu nazwy. */
+    status: InstagramProfileStatus;
+}
+
 export interface AdvertiserRow {
     pageId: string;
     companyName: string;

@@ -12,7 +12,10 @@ import {
 import { AreaConfigModal, phraseWord } from './AreaConfigModal';
 import {
     useAcknowledgeAreaNovelty, useAreaResults, useAreaSettings, useBlockAdvertiser,
+    useFollowAdvertiser,
 } from '../hooks/useAreaDiscovery';
+import { useInstagramProfiles } from '../hooks/useInstagramProfiles';
+import { useToast } from '@/common/components/Toast';
 import { activeAdsWord, companiesWord, formatStartDay, noveltyBadge } from '../utils/areaLabels';
 
 /**
@@ -221,12 +224,92 @@ const SinceText = styled.span`
 `;
 
 /**
+ * „Obserwuj" przy reklamodawcy, dla którego znamy profil na Instagramie.
+ *
+ * Wygląda jak metadana, a nie jak przycisk akcji: 12 px, bez tła, w tym samym
+ * wierszu co uchwyt profilu. Tabela jest do PRZEGLĄDANIA, a kolumna wypełnionych
+ * przycisków w każdym wierszu przeciągnęłaby wzrok na działanie, które wykonuje
+ * się raz na kilka wizyt. Dopiero najechanie mówi, że to jest klikalne.
+ */
+const FollowBtn = styled.button`
+    flex-shrink: 0;
+    border: none;
+    background: none;
+    padding: 0;
+    font: inherit;
+    font-size: 12px;
+    line-height: 16px;
+    color: ${st.accentBlue};
+    cursor: pointer;
+    white-space: nowrap;
+
+    &:hover:not(:disabled) { text-decoration: underline; }
+    &:disabled { color: ${INK_MUTED}; cursor: progress; }
+    &:focus-visible { outline: 2px solid ${st.accentBlue}; outline-offset: 2px; border-radius: 3px; }
+`;
+
+/** Stan „już go obserwujesz" — informacja, nie akcja, więc bez koloru akcji. */
+const FollowedLabel = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    font-size: 12px;
+    line-height: 16px;
+    color: ${INK_MUTED};
+    white-space: nowrap;
+
+    svg { width: 12px; height: 12px; }
+`;
+
+/**
  * Komórka nazwy współdzielona przez tabelę i listę kart — jedno miejsce, żeby
  * odznaka i data startu wyglądały identycznie na komputerze i telefonie.
  */
 const AdvertiserName = ({ row, windowDays }: { row: AdvertiserRow; windowDays: number }) => {
     const badge = noveltyBadge(row, windowDays);
     const since = badge && row.latestCampaignStart ? `od ${formatStartDay(row.latestCampaignStart)}` : null;
+
+    const { profiles } = useInstagramProfiles();
+    const follow = useFollowAdvertiser();
+    const { showSuccess, showError, showInfo } = useToast();
+
+    /*
+     * Porównanie po nazwie, nie po identyfikatorze: reklamodawca z tabeli i profil
+     * z listy obserwowanych to dwa różne byty w dwóch różnych źródłach (Biblioteka
+     * reklam Meta i Instagram), a jedyne, co je łączy, to uchwyt konta.
+     */
+    const alreadyFollowed = Boolean(
+        row.instagram &&
+            profiles.some(profile => profile.username.toLowerCase() === row.instagram!.toLowerCase())
+    );
+
+    const handleFollow = () => {
+        follow.mutate(row.pageId, {
+            onSuccess: result => {
+                // Nazwa z ODPOWIEDZI, nie z wiersza: pokazujemy to, co serwer
+                // faktycznie dodał, a nie to, co wyświetlaliśmy przed kliknięciem.
+                showSuccess(
+                    `@${result.username} dodany do obserwowanych`,
+                    'Czeka na zatwierdzenie — dane pojawią się po najbliższej synchronizacji.'
+                );
+            },
+            onError: (error: unknown) => {
+                const response = (error as { response?: { status?: number; data?: { message?: string } } })
+                    .response;
+                if (response?.status === 409) {
+                    // Ktoś dodał ten profil wcześniej albo z drugiej karty. To nie jest
+                    // błąd użytkownika, tylko stan, którego jeszcze nie widział.
+                    showInfo('Ten profil jest już obserwowany', response.data?.message ?? '');
+                    return;
+                }
+                showError(
+                    'Nie udało się dodać profilu',
+                    response?.data?.message ?? 'Spróbuj ponownie za chwilę.'
+                );
+            },
+        });
+    };
 
     return (
         <NameCell style={{ flex: 1, minWidth: 0 }}>
@@ -248,6 +331,24 @@ const AdvertiserName = ({ row, windowDays }: { row: AdvertiserRow; windowDays: n
                     >
                         @{row.instagram}
                     </MetaLink>
+                )}
+                {/* Przycisk tylko tam, gdzie jest co obserwować: bez rozpoznanego
+                    profilu nie ma nazwy, którą serwer mógłby potwierdzić. */}
+                {row.instagram && (
+                    alreadyFollowed ? (
+                        <FollowedLabel title="Ten profil jest już na Twojej liście obserwowanych">
+                            <Check /> Obserwowany
+                        </FollowedLabel>
+                    ) : (
+                        <FollowBtn
+                            type="button"
+                            disabled={follow.isPending}
+                            onClick={handleFollow}
+                            title={`Dodaj @${row.instagram} do obserwowanych profili`}
+                        >
+                            {follow.isPending ? 'Dodaję…' : 'Obserwuj'}
+                        </FollowBtn>
+                    )
                 )}
             </MetaLine>
         </NameCell>

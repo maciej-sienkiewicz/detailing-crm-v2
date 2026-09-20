@@ -1,5 +1,6 @@
 import { apiClient } from '@/core/apiClient';
 import type {
+    FollowedAdvertiser,
     AdCalendar,
     AdDetail,
     AreaResults,
@@ -257,6 +258,24 @@ export const instagramApi = {
 
     unblockAdvertiser: async (pageId: string): Promise<void> => {
         await apiClient.delete(`${ADS_PATH}/discovery/blocks/${pageId}`);
+    },
+
+    /**
+     * „Obserwuj" przy reklamodawcy z tabeli rejonu.
+     *
+     * Wysyłamy IDENTYFIKATOR STRONY, nie nazwę profilu - mimo że nazwę mamy
+     * w wierszu i moglibyśmy ją podać. Nazwa z przeglądarki jest danymi od klienta,
+     * a po drugiej stronie stoi dopisanie cudzego konta do listy, którą studio
+     * będzie regularnie pobierać. Serwer ustala ją sam, tą samą drogą, którą
+     * wypełnił tabelę, i odsyła w odpowiedzi - stąd wiemy, co pokazać w komunikacie.
+     */
+    followAdvertiser: async (pageId: string): Promise<FollowedAdvertiser> => {
+        const response = await apiClient.post<FollowedAdvertiser>(
+            `${ADS_PATH}/discovery/advertisers/${encodeURIComponent(pageId)}/follow`,
+            undefined,
+            { skipErrorToast: true }
+        );
+        return response.data;
     },
 
     // ── Reakcje i generator AI ───────────────────────────────────────────────
