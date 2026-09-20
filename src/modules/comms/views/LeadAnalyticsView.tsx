@@ -453,7 +453,7 @@ export default function LeadAnalyticsView({
             {!demo && thin && data && data.totalCreated > 0 && (
                 <ThinDataBar>
                     <span className="grow">
-                        {leadCount(data.totalCreated)} w tym okresie — za mało na wiarygodne
+                        {leadCount(data.totalCreated)} w tym okresie. Za mało na wiarygodne
                         porównania.
                     </span>
                     <DemoButton type="button" onClick={() => setDemo(true)}>
@@ -604,8 +604,8 @@ function Report({
                         podaje kwotę i mówi, gdzie ona leży. Co z tym zrobić, właściciel
                         wie lepiej niż CRM. */}
                     <span>
-                        <strong>{formatMoney(data.silentValue)}</strong> w rozmowach bez odzewu
-                        — zobacz, które to.
+                        <strong>{formatMoney(data.silentValue)}</strong> w rozmowach bez odzewu.
+                        Zobacz, które to.
                     </span>
                     <ArrowRight className="go" />
                 </ActionStrip>
@@ -713,8 +713,8 @@ function SpeedCard({ data }: { data: LeadAnalytics }) {
             return (
                 <>
                     <strong>Tak.</strong> Odpowiedź w ciągu doby kończy się zleceniem
-                    w {percent(impact.fastWinRate)} rozmów, późniejsza w {percent(impact.slowWinRate)} —
-                    różnica {points(gap)}
+                    w {percent(impact.fastWinRate)} rozmów, późniejsza w {percent(impact.slowWinRate)}.
+                    Różnica: {points(gap)}
                 </>
             );
         }

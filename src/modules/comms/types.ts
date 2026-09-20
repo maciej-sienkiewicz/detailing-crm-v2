@@ -289,11 +289,34 @@ export interface Lead {
  * PRZERYSOWAĆ, a nie iść po dane: pobranie przy każdym przełączeniu zamieniłoby
  * pytanie „a ile to było sztuk?" w sekundę czekania.
  */
-export interface LeadIntakeYear {
+export interface LeadOverview {
     year: number;
     months: LeadIntakeMonth[];
     /** Ile pieniędzy zamieniło się w rezerwacje od poniedziałku - pokwitowanie, nie zadanie. */
     confirmedValueThisWeek: number;
+    recent: LeadRecent;
+}
+
+/**
+ * Ostatnie [days] dni na tle punktu odniesienia.
+ *
+ * Każda liczba przychodzi z LICZNOŚCIĄ, z której powstała. To nie jest nadmiarowość:
+ * widok musi umieć zamilczeć tam, gdzie próba jest za mała, a tej decyzji nie da się
+ * podjąć, mając samą średnią - „średnia z trzech odpowiedzi" wygląda na ekranie
+ * identycznie jak „średnia ze stu".
+ */
+export interface LeadRecent {
+    days: number;
+    inquiries: number;
+    inquiriesPrevious: number;
+    /** Średni czas pierwszej odpowiedzi w oknie (minuty); null, gdy nikt nie odpowiedział. */
+    averageResponseMinutes: number | null;
+    /** To samo z całej historii studia - punkt odniesienia dla okna. */
+    averageResponseMinutesAllTime: number | null;
+    /** P95 z całej historii: 95% odpowiedzi poszło szybciej niż to. */
+    p95ResponseMinutes: number | null;
+    answered: number;
+    answeredAllTime: number;
 }
 
 export interface LeadIntakeMonth {

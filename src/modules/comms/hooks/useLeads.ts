@@ -7,6 +7,7 @@ import { subscribeToTopic } from '@/core/socketClient';
 import { useAuth } from '@/core';
 import { apiClient } from '@/core/apiClient';
 import { useToast } from '@/common/components/Toast';
+import { hasMaskedPii, mergeMaskedPii } from '@/common/pii';
 import { leadsApi } from '../api/leadsApi';
 import { COMMS_THREADS_KEY } from './useComms';
 import { DEFAULT_STAGNATION, type StagnationThresholds } from '../utils/leadUrgency';
@@ -24,7 +25,15 @@ import type {
 export const LEADS_KEY = ['leads'];
 export const LEAD_DICTIONARIES_KEY = [...LEADS_KEY, 'dictionaries'];
 export const LEAD_ANALYTICS_KEY = [...LEADS_KEY, 'analytics'];
-export const LEAD_INTAKE_YEAR_KEY = [...LEADS_KEY, 'intake-year'];
+export const LEAD_OVERVIEW_KEY = [...LEADS_KEY, 'overview'];
+
+/**
+ * Pola leada, które backend maskuje przy serializacji (@Pii po stronie serwera).
+ *
+ * Lista jest krótka i musi taka zostać: gdy przybędzie kolejne pole osobowe,
+ * dopisanie go tutaj jest jedyną rzeczą, jakiej wymaga scalanie rozgłoszeń.
+ */
+const LEAD_PII_FIELDS = ['customerName', 'contactIdentifier'] as const satisfies ReadonlyArray<keyof Lead>;
 
 export const useLeads = (filters: {
     status?: LeadStatus;
@@ -162,18 +171,21 @@ export const useStagnationThresholds = (): StagnationThresholds => {
 };
 
 /**
- * Wykres „co miesiąc wpływa" na ekranie startowym modułu.
+ * Kafle kontekstu i wykres roku na ekranie startowym modułu.
  *
  * Osobne, lekkie zapytanie zamiast pełnej analityki: ta ostatnia liczy macierze,
  * segmenty aut i kilkaset surowych faktów, a ekran startowy rysuje z tego dwanaście
- * punktów. `staleTime` godzinny, bo miesięczne słupki nie zmieniają się w trakcie
- * jednej sesji na tyle, żeby warto było o nie pytać przy każdym wejściu w moduł.
+ * punktów i cztery liczby.
+ *
+ * `staleTime` piętnastominutowy - krócej niż godzina, bo w kaflach stoi okno
+ * czternastu dni i czas odpowiedzi, a te rzeczy zmieniają się w trakcie dnia pracy.
+ * Wciąż na tyle długo, żeby trzydzieści wejść w moduł nie było trzydziestoma zapytaniami.
  */
-export const useLeadIntakeYear = (year?: number) =>
+export const useLeadOverview = (year?: number) =>
     useQuery({
-        queryKey: [...LEAD_INTAKE_YEAR_KEY, year ?? 'current'],
-        queryFn: () => leadsApi.getIntakeYear(year),
-        staleTime: 60 * 60_000,
+        queryKey: [...LEAD_OVERVIEW_KEY, year ?? 'current'],
+        queryFn: () => leadsApi.getOverview(year),
+        staleTime: 15 * 60_000,
         retry: false,
     });
 
@@ -533,14 +545,43 @@ export function useLeadsSocket(): void {
             const lead = event.payload as Lead;
             if (!lead?.id) return;
 
+            /*
+             * Rozgłoszenie przychodzi z ZAMASKOWANYMI danymi osobowymi i tak ma być:
+             * topic jest wspólny dla całego studia, a uprawnienia subskrybentów są
+             * w chwili nadania nieznane (WebSocketEventBridge.send → withMasked).
+             *
+             * Wpisywanie takiego rekordu wprost do pamięci podręcznej zamieniało
+             * nazwisko klienta na „***" po KAŻDEJ operacji na leadzie - zmianie
+             * statusu, odnotowaniu kontaktu, zapisaniu wyceny - u wszystkich, którzy
+             * mają prawo widzieć dane. Nazwisko nie znikało z bazy; po prostu nie
+             * przyjechało tym kanałem, a my nadpisywaliśmy nim to, co już mieliśmy.
+             *
+             * Maska w polu przychodzącym znaczy „nic o tym nie powiedziano".
+             */
+            const merged = (previous: Lead | undefined) =>
+                mergeMaskedPii(previous, lead, LEAD_PII_FIELDS);
+
             updateLeadPages(queryClient, (page) => {
                 const index = page.items.findIndex((item) => item.id === lead.id);
                 if (index === -1) return page;
                 const items = [...page.items];
-                items[index] = lead;
+                items[index] = merged(page.items[index]);
                 return { ...page, items };
             });
-            queryClient.setQueryData([...LEADS_KEY, 'detail', lead.id], lead);
+
+            const detailKey = [...LEADS_KEY, 'detail', lead.id];
+            const cachedDetail = queryClient.getQueryData<Lead>(detailKey);
+            if (cachedDetail || !hasMaskedPii(lead, LEAD_PII_FIELDS)) {
+                queryClient.setQueryData(detailKey, merged(cachedDetail));
+            } else {
+                /*
+                 * Nie ma z czym scalić, a rekord jest uboższy niż to, co dałby REST.
+                 * Zasianie go tutaj oznaczałoby, że przy otwarciu sprawy przez chwilę
+                 * widać „***" zamiast klienta. Lepiej nie zapisać nic - zapytanie
+                 * pobierze pełne dane przy pierwszym wyświetleniu.
+                 */
+                queryClient.invalidateQueries({ queryKey: detailKey });
+            }
         },
         [queryClient]
     );

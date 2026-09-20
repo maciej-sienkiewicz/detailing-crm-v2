@@ -17,6 +17,7 @@ import { useAuth } from '@/core';
 import { DASHBOARD_STATS_KEY } from './useDashboard';
 import type { DashboardData, DashboardEvent, InboundCallPayload, IncomingCall } from '../types';
 import { DashboardEventType } from '../types';
+import { isPiiMasked } from '@/common/pii';
 
 /**
  * Hook that subscribes to the dashboard WebSocket topic for real-time updates.
@@ -34,10 +35,18 @@ export function useDashboardSocket(): void {
     // Map WebSocket payload to the IncomingCall interface. The backend event
     // uses the lead payload shape (contactIdentifier/customerName/createdAt);
     // legacy fields are kept as fallbacks.
+    /*
+     * Rozgłoszenia idą topikiem wspólnym dla całego studia, więc backend nadaje je
+     * z zamaskowanymi danymi osobowymi (WebSocketEventBridge.send → withMasked).
+     * Nazwisko przyjeżdża wtedy jako „***" i wpisane wprost do listy ostatnich
+     * połączeń wyglądało jak nazwisko klienta. Maska znaczy „nie podano", więc
+     * zostaje sam numer - i to jest prawda o tym, co wiemy z tego kanału.
+     */
+    const broadcastName = payload.callerName ?? payload.customerName;
     const newCall: IncomingCall = {
       id: payload.id,
       phoneNumber: payload.phoneNumber ?? payload.contactIdentifier ?? '',
-      contactName: payload.callerName ?? payload.customerName ?? undefined,
+      contactName: isPiiMasked(broadcastName) ? undefined : broadcastName ?? undefined,
       timestamp: payload.receivedAt ?? payload.createdAt ?? event.timestamp,
     };
 

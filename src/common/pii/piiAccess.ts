@@ -29,6 +29,57 @@ export const joinPiiName = (
     return present.join(' ');
 };
 
+/**
+ * Scala rekord z transmisji ROZGŁOSZENIOWEJ z tym, co już leży w pamięci podręcznej.
+ *
+ * ── Po co to w ogóle istnieje ───────────────────────────────────────────────
+ *
+ * Topic WebSocketu jest wspólny dla całego studia, a uprawnienia subskrybentów są
+ * w chwili nadania nieznane, więc backend nadaje wszystkie rozgłoszenia z danymi
+ * osobowymi ZAMASKOWANYMI (PiiAccessContext.withMasked w WebSocketEventBridge).
+ * To jest poprawne i nie wolno tego zmieniać: inaczej nazwisko klienta trafiałoby
+ * do każdego zalogowanego pracownika niezależnie od tego, czy wolno mu je widzieć.
+ *
+ * Skutek uboczny jest jednak taki, że odbiorca, KTÓRY MA prawo do danych, dostaje
+ * rekord uboższy niż ten, który już ma z REST-a. Wpisanie takiego rekordu wprost do
+ * pamięci podręcznej zamienia nazwisko klienta na „***" po każdej operacji, która
+ * wywołuje rozgłoszenie. Dane nie są utracone - po prostu nie przyjechały.
+ *
+ * Dlatego: maska w polu przychodzącym znaczy „nic o tym nie powiedziano", a nie
+ * „zmieniło się na gwiazdki". Zostaje wartość, którą już znamy.
+ *
+ * ⚠️ Nie ma tu żadnej ochrony do obejścia: jeżeli w pamięci podręcznej leży prawdziwe
+ * nazwisko, to znaczy, że serwer już je wcześniej wydał temu użytkownikowi przez REST.
+ * Ta funkcja niczego nie odsłania, tylko przestaje zasłaniać to, co było widoczne.
+ */
+export function mergeMaskedPii<T extends object>(
+    previous: T | undefined,
+    incoming: T,
+    piiFields: ReadonlyArray<keyof T>
+): T {
+    if (!previous) return incoming;
+    let merged: T | null = null;
+    for (const field of piiFields) {
+        if (!isPiiMasked(incoming[field] as unknown as string | null | undefined)) continue;
+        const known = previous[field];
+        if (known === undefined || known === null) continue;
+        if (isPiiMasked(known as unknown as string | null | undefined)) continue;
+        merged = merged ?? { ...incoming };
+        merged[field] = known;
+    }
+    return merged ?? incoming;
+}
+
+/** Czy w rekordzie z rozgłoszenia którekolwiek z pól osobowych przyjechało zamaskowane. */
+export function hasMaskedPii<T extends object>(
+    record: T,
+    piiFields: ReadonlyArray<keyof T>
+): boolean {
+    return piiFields.some((field) =>
+        isPiiMasked(record[field] as unknown as string | null | undefined)
+    );
+}
+
 type Listener = () => void;
 
 let piiGranted = true; // optimistic until the first response says otherwise

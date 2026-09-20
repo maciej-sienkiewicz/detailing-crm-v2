@@ -13,7 +13,7 @@ import type {
     LeadStatus,
     LeadTimelineEntry,
     LeadCallback,
-    LeadIntakeYear,
+    LeadOverview,
     SimilarVisits,
     MarkThreadAsLeadRequest,
 } from '../types';
@@ -117,13 +117,14 @@ export const leadsApi = {
     },
 
     /**
-     * Wykres „co miesiąc wpływa". Osobno od /analytics, bo to jedyna rzecz z analityki,
-     * która stoi na domyślnym ekranie modułu — pełny rachunek liczyłby przy każdym
-     * wejściu w Leady macierze i segmenty, których ten ekran nie pokazuje.
+     * Ekran startowy: kafle kontekstu i wykres roku. Osobno od /analytics, bo to
+     * jedyne liczby z analityki, które stoją na domyślnym ekranie modułu — pełny
+     * rachunek liczyłby przy każdym wejściu w Leady macierze i segmenty, których
+     * ten ekran nie pokazuje.
      */
-    getIntakeYear: async (year?: number): Promise<LeadIntakeYear> => {
+    getOverview: async (year?: number): Promise<LeadOverview> => {
         const { data } = await apiClient.get(
-            year ? `/v1/leads/intake-year?year=${year}` : '/v1/leads/intake-year',
+            year ? `/v1/leads/overview?year=${year}` : '/v1/leads/overview',
             { skipErrorToast: true }
         );
         return data;

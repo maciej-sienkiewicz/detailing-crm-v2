@@ -269,7 +269,7 @@ const StagnationCard = () => {
             <CardTitle>Progi czasu w kolejce</CardTitle>
             <CardDescription>
                 Te dwie liczby dzielą kolejkę zapytań na sekcje i decydują o tym, kiedy wiek
-                sprawy zapala się na czerwono. Jednej dobrej wartości nie ma — inaczej wygląda
+                sprawy zapala się na czerwono. Jednej dobrej wartości nie ma: inaczej wygląda
                 to przy myciu, inaczej przy powłoce ceramicznej.
             </CardDescription>
 
