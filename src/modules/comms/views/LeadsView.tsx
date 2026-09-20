@@ -52,12 +52,20 @@ import LeadAnalyticsView from './LeadAnalyticsView';
  * 38% ekranu zajęte, zanim widać cokolwiek do zrobienia. Tu nagłówek jest
  * częścią kolumny kolejki i mieści się w jednym wierszu.
  */
+/**
+ * Ekran modułu. Na szerokim ekranie zostawia margines wokół treści - dokładnie
+ * ten sam co Poczta (MailView.Screen), bo obie skrzynki są tym samym rodzajem
+ * widoku i stojąc obok siebie w menu nie mają powodu różnić się obudową.
+ *
+ * Wcześniej kolejka i panel leżały wprost na krawędziach okna: moduł wyglądał
+ * jak strona pełnoekranowa, a Poczta jak aplikacja w karcie.
+ */
 const ViewShell = styled.main`
     display: flex;
     width: 100%;
     min-height: 0;
     height: 100dvh;
-    background: ${p => p.theme.colors.surface};
+    padding: ${p => p.theme.spacing.lg};
 
     /*
      * Próg podziału to xl, nie lg. Przy 1024 px sidebar aplikacji zabiera 248,
@@ -69,7 +77,30 @@ const ViewShell = styled.main`
         flex-direction: column;
         height: auto;
         min-height: 100dvh;
+        padding: 0;
         background: transparent;
+    }
+`;
+
+/**
+ * Powierzchnia, na której leży moduł - biel, obwódka, zaokrąglenie i cień,
+ * te same co w Poczcie.
+ *
+ * Poniżej progu podziału karta ZNIKA Z UKŁADU (`display: contents`), a nie
+ * zwija się do zera: tam moduł jest jedną kolumną przewijaną razem ze stroną,
+ * a własną kartę ma już sama lista (patrz QueueScroll). Druga ramka wokół niej
+ * dawałaby ramkę w ramce, a zamknięcie kolumny w powierzchni o stałej wysokości
+ * przeniosłoby przewijanie do środka i zabrało telefonowi chowający się pasek
+ * adresu.
+ */
+const AppCard = styled(SurfaceCard)`
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+
+    @media (max-width: ${p => p.theme.breakpoints.xl}) {
+        display: contents;
     }
 `;
 
@@ -528,6 +559,7 @@ export default function LeadsView() {
     if (mailboxSync.syncing) {
         return (
             <ViewShell>
+                <AppCard>
                 <QueueColumn $split={false} $collapsed={false} $railed={false}>
                     <QueueHeader>
                         <div>
@@ -539,12 +571,14 @@ export default function LeadsView() {
                         <MailboxSyncPanel />
                     </SurfaceCard>
                 </QueueColumn>
-            </ViewShell>
+            </AppCard>
+        </ViewShell>
         );
     }
 
     return (
         <ViewShell>
+            <AppCard>
             <QueueColumn
                 $split={isSplit && !inArchive}
                 $collapsed={queueCollapsed}
@@ -708,6 +742,7 @@ export default function LeadsView() {
                     onDeleted={() => selectLead(null)}
                 />
             )}
+            </AppCard>
         </ViewShell>
     );
 }
