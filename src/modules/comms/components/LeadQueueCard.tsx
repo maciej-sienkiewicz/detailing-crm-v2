@@ -6,19 +6,34 @@
 // stoją wszystkie akcje razem z kontekstem (wycena, termin) - osobny przycisk na
 // karcie tylko dublował jedną z nich i przyciągał wzrok na każdym wierszu.
 //
-// Zamiast „Czeka N dni" i szacowanej kwoty karta mówi, CZEGO wymaga: nowej
-// odpowiedzi albo ponownego kontaktu. Wiek i kwota niosły mniej: wiek powtarzał
-// to, co pasek pilności przy krawędzi, a kwota jest często zgadywana, więc na
-// liście wprowadzała w błąd. Pilność zostaje na pasku i na kolorze - nie w liczbie.
+// ── Dlaczego zniknął kolorowy pasek przy krawędzi ───────────────────────────
+//
+// Pasek nosił KATEGORIĘ: czerwony „ruch po naszej stronie", bursztynowy „cisza".
+// Odkąd lista dzieli się na sekcje, kategorię mówi już nagłówek nad wierszami -
+// pasek powtarzał ją przy każdym z nich i zamieniał kolumnę w ciągły pas barwy,
+// w którym nie widać granicy między sekcjami.
+//
+// Gorzej: czerwień #dc2626 i bursztyn #d97706 dzieli ΔE 41 przy normalnym widzeniu,
+// ale tylko 11 przy deuteranopii - dla mniej więcej jednego mężczyzny na dwunastu
+// to były dwa paski w tym samym kolorze. Para ciepłych barw nie nadaje się do
+// rozróżniania dwóch rzeczy, które i tak stoją jedna pod drugą.
+//
+// Zamiast paska: WAGA PISMA niesie „czyj ruch" (jak nieprzeczytane w Poczcie),
+// a kolor zostaje wyłącznie dla wyjątku - wieku, który przekroczył próg studia.
+// Jeden akcent na wiersz, i to nie na każdym wierszu.
+//
+// Wiek wraca na kartę - po prawej, cyframi tabelarycznymi. Kolumna liczb przy
+// prawej krawędzi skanuje się w dół szybciej niż cokolwiek innego na liście
+// i jest jedyną rzeczą, która RÓŻNI wiersze w obrębie sekcji. Etykieta
+// „Nowa wiadomość" przy każdym z nich różniła ich zero.
 import styled from 'styled-components';
 import { CarLogoImage } from '@/modules/vehicles/components/CarLogoImage';
 import { formatVehicle } from '../utils/leadFormat';
-import type { LeadUrgency, ReplyTone } from '../utils/leadUrgency';
+import { formatAge, type LeadUrgency } from '../utils/leadUrgency';
 import type { Lead } from '../types';
 import { LeadSourceIcon } from './LeadSourceIcon';
 
-const Card = styled.div<{ $tone: ReplyTone; $active: boolean; $dense: boolean }>`
-    position: relative;
+const Card = styled.div<{ $active: boolean; $dense: boolean }>`
     display: flex;
     align-items: stretch;
     /* Gęściej na desktopie (panel obok kolejki, mysz), luźniej na telefonie
@@ -32,24 +47,6 @@ const Card = styled.div<{ $tone: ReplyTone; $active: boolean; $dense: boolean }>
 
     &:last-child { border-bottom: none; }
     &:hover { background: ${p => p.theme.colors.surfaceHover}; }
-
-    /*
-     * Pasek pilności przy lewej krawędzi. Zaległość jest cechą całej sprawy,
-     * a nie zawartością którejś linijki, i - co ważniejsze - pasek nie zabiera
-     * ani piksela szerokości. Skanuje się go jednym spojrzeniem w dół listy.
-     */
-    &::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 3px;
-        background: ${({ $tone, theme }) =>
-            $tone === 'due' ? theme.colors.error
-            : $tone === 'stale' ? theme.colors.warning
-            : 'transparent'};
-    }
 `;
 
 /** Cała karta otwiera szczegóły. */
@@ -94,7 +91,7 @@ const Headline = styled.span<{ $unread: boolean }>`
      * ruch jest po Twojej stronie. To jedyne pogrubienie w całym module - gdyby
      * niosło coś jeszcze, przestałoby nieść to.
      */
-    font-weight: ${p => (p.$unread ? p.theme.fontWeights.bold : p.theme.fontWeights.semibold)};
+    font-weight: ${p => (p.$unread ? p.theme.fontWeights.bold : p.theme.fontWeights.medium)};
     letter-spacing: -0.01em;
     color: ${p => (p.$unread ? p.theme.colors.text : p.theme.colors.textSecondary)};
 
@@ -106,16 +103,28 @@ const Headline = styled.span<{ $unread: boolean }>`
 `;
 
 /**
- * Czego karta wymaga - „Nowa wiadomość" (ruch po naszej stronie) albo „Ponowny
- * kontakt" (czekamy na klienta). Ton neutralny: pilność niesie pasek przy
- * krawędzi, więc etykieta nie musi jej powtarzać kolorem.
+ * Wiek oczekiwania przy prawej krawędzi - ten sam kształt i rozmiar, co data przy
+ * wierszu rozmowy w Poczcie (.when).
+ *
+ * Cyfry tabelaryczne, żeby „3 dni" i „31 godz." zaczynały się w tym samym miejscu:
+ * kolumna liczb, która skacze w poziomie, przestaje być kolumną.
+ *
+ * Kolor zapala się TYLKO w sekcji „Czeka na nas" i tylko po przekroczeniu progu
+ * studia. W „Ucichło" przekroczony próg ma z definicji KAŻDY wiersz - czerwień
+ * pomalowałaby tam całą sekcję i wróciłby dokładnie ten pas barwy, przez który
+ * zniknęły paski przy krawędzi. Wyjątek przestaje być wyjątkiem, gdy dotyczy
+ * wszystkich; tam rolę „to jest stan nienormalny" pełni już nazwa sekcji.
+ *
+ * Czerwień to #b91c1c, nie #dc2626: ta druga daje na bieli 4,83:1, pierwsza 6,47:1,
+ * a mówimy o jedenastopunktowym piśmie.
  */
-const Kind = styled.span`
+const Age = styled.span<{ $alarm: boolean }>`
     flex-shrink: 0;
     font-size: 11px;
-    font-weight: ${p => p.theme.fontWeights.medium};
+    font-variant-numeric: tabular-nums;
     white-space: nowrap;
-    color: ${p => p.theme.colors.textMuted};
+    color: ${p => (p.$alarm ? '#b91c1c' : p.theme.colors.textSecondary)};
+    font-weight: ${p => (p.$alarm ? p.theme.fontWeights.semibold : p.theme.fontWeights.normal)};
 `;
 
 const Services = styled.span`
@@ -127,13 +136,18 @@ const Services = styled.span`
     white-space: nowrap;
 `;
 
+/*
+ * textSecondary (#475569), nie textMuted (#94a3b8): ten drugi daje na bieli 2,56:1,
+ * czyli poniżej progu WCAG AA nawet dla dużego pisma, a tu stoi nazwisko klienta -
+ * jedyna rzecz na karcie, po której da się kogoś rozpoznać.
+ */
 const Who = styled.span`
     display: flex;
     align-items: center;
     gap: 5px;
     min-width: 0;
     font-size: 12px;
-    color: ${p => p.theme.colors.textMuted};
+    color: ${p => p.theme.colors.textSecondary};
 
     > span {
         overflow: hidden;
@@ -161,37 +175,29 @@ export function LeadQueueCard({ lead, urgency, active, dense = false, onOpen }: 
      */
     const subtitle = vehicle ? person : lead.customerName ? lead.contactIdentifier : null;
     /*
-     * Czego karta wymaga. Dług ma własną etykietę, bo wymaga czego innego niż
-     * zaległa odpowiedź: przy „Nowa wiadomość" trzeba przeczytać i odpisać, przy
-     * „Obiecane" - wysłać coś, co się obiecało przez telefon. Zlanie ich w jedno
-     * kazałoby otwierać sprawę, żeby się dowiedzieć, o którą z dwóch rzeczy chodzi.
+     * Druga linijka mówi o usługach - ale przy obietnicy ważniejsze jest, CO zostało
+     * do wysłania. Notatka pochodzi wprost z rozmowy („wysłać wycenę ceramiki"),
+     * więc jest konkretniejsza niż lista tagów i to ona ma stać na karcie.
      */
-    const kind = urgency.owed
-        ? 'Obiecane'
-        : urgency.turn === 'OURS'
-            ? 'Nowa wiadomość'
-            : 'Ponowny kontakt';
-
-    /*
-     * Druga linijka mówi o usługach - ale przy długu ważniejsze jest, CO jesteśmy
-     * winni. Notatka pochodzi z rozmowy („wysłać wycenę ceramiki"), więc jest
-     * konkretniejsza niż lista tagów i to ona ma stać na karcie.
-     */
-    const second = urgency.owed && lead.owedNote
-        ? lead.owedNote
+    const second = urgency.owed
+        ? `Obiecane: ${lead.owedNote ?? 'odpowiedź po rozmowie'}`
         : lead.tagLabels.length > 0
             ? lead.tagLabels.join(', ')
             : 'Bez opisu usługi';
 
     return (
-        <Card $tone={urgency.tone} $active={active} $dense={dense}>
+        <Card $active={active} $dense={dense}>
             <OpenArea type="button" $dense={dense} onClick={onOpen}>
                 <Line>
                     <Headline $unread={urgency.turn === 'OURS'}>
                         {lead.vehicleBrand && <CarLogoImage brand={lead.vehicleBrand} size="xs" />}
                         <span>{vehicle ?? person}</span>
                     </Headline>
-                    {urgency.turn !== 'SETTLED' && <Kind>{kind}</Kind>}
+                    {urgency.turn !== 'SETTLED' && (
+                        <Age $alarm={urgency.turn === 'OURS' && urgency.overdue} title={urgency.title}>
+                            {formatAge(urgency.waitingMs)}
+                        </Age>
+                    )}
                 </Line>
 
                 <Services>{second}</Services>

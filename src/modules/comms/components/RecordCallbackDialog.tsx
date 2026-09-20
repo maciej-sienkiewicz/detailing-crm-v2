@@ -200,11 +200,11 @@ export function RecordCallbackDialog({ leadId, onClose }: RecordCallbackDialogPr
                 <Choice>
                     <ChoiceButton type="button" disabled={record.isPending} onClick={() => submit(false)}>
                         <span className="title">Czekam na klienta</span>
-                        <span className="sub">Piłka jest po jego stronie</span>
+                        <span className="sub">Nic nie zostało po naszej stronie</span>
                     </ChoiceButton>
                     <ChoiceButton type="button" disabled={record.isPending} onClick={() => submit(true)}>
                         <span className="title">Mam coś wysłać</span>
-                        <span className="sub">Sprawa zostaje w „Czeka na Ciebie"</span>
+                        <span className="sub">Sprawa zostaje w „Czeka na nas”</span>
                     </ChoiceButton>
                 </Choice>
 

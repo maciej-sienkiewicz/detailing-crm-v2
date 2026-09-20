@@ -3,7 +3,7 @@
 //
 // ── Dlaczego sekcje, a nie zakładki ─────────────────────────────────────────
 //
-// „Twój ruch" i „U klienta" były dwoma przyciskami przełączającymi widok tej samej
+// „Czeka na nas" i „U klienta" były dwoma przyciskami przełączającymi widok tej samej
 // listy. Kosztowało to dokładnie tyle, ile kosztuje każda zakładka: pracy, której
 // nie widać, nie ma. Licznik przy „U klienta" był do tego celowo niepozorny (szary
 // tekst, nie czerwona pigułka) - a to właśnie tam leżą rozmowy do odzyskania za
@@ -12,12 +12,12 @@
 // Jedna lista posortowana samym wiekiem też nie działa: pięć dni ciszy klienta to
 // stan normalny, a pięć dni naszej zwłoki to katastrofa. Posortowane razem wypchnie
 // na górę rzeczy nieszkodliwe. Stąd klucz dwustopniowy: najpierw czyj ruch, potem
-// wiek oczekiwania - czyli Messenger, w którym „nieprzeczytane" znaczy „Twój ruch".
+// wiek oczekiwania - czyli Messenger, w którym „nieprzeczytane" znaczy „nasz ruch".
 //
 // ── Dlaczego to jest czysta funkcja ─────────────────────────────────────────
 //
-// Bo tę samą odpowiedź musi dać nagłówek sekcji („Czeka na Ciebie · 5") i zdanie
-// w panelu obok („Najdłużej czeka Marek Nowak"). Policzone dwa razy rozjechałyby
+// Bo tę samą odpowiedź musi dać nagłówek sekcji („Czeka na nas 5") i kwota
+// w panelu obok („Wyceny w rozmowach bez odzewu"). Policzone dwa razy rozjechałyby
 // się pierwszego dnia, w którym ktoś zmieni jeden z warunków.
 import type { Lead } from '../types';
 import { CLOSED_STATUSES } from './leadFormat';
@@ -45,7 +45,7 @@ export interface WorklistSection {
      * Suma wycen spraw w sekcji (grosze).
      *
      * Ma sens WYŁĄCZNIE w „Ucichło": tam każda sprawa przeszła już przez wycenę,
-     * więc kwota jest faktem. W „Czeka na Ciebie" większość spraw ma zero złotych,
+     * więc kwota jest faktem. W „Czeka na nas" większość spraw ma zero złotych,
      * bo nikt ich jeszcze nie wycenił - suma mówiłaby tam, że najpilniejsze sprawy
      * są najmniej warte. Widok bierze tę liczbę tylko z sekcji ciszy.
      */
@@ -61,15 +61,31 @@ export interface Worklist {
     /** Wszystkie sprawy otwarte razem - mianownik dla „nic nie czeka". */
     total: number;
     /**
-     * Sprawa, od której zaczyna się dzisiejsza praca: najstarsza z „Czeka na Ciebie",
-     * a gdy tam pusto - najstarsza z „Ucichło". Panel obok kieruje tu swój jedyny
-     * przycisk, więc decyzja „co kliknąć" nie należy już do użytkownika.
+     * Sprawa, od której zaczyna się dzisiejsza praca: najstarsza z „Czeka na nas",
+     * a gdy tam pusto - najstarsza z „Ucichło".
+     *
+     * Dziś czyta to wyłącznie test i ewentualny skrót klawiaturowy - panel obok
+     * świadomie nie ma przycisku, który by tu prowadził (to kolumna kontekstu,
+     * nie druga kolejka). Zostaje, bo jest jednozdaniową definicją „od czego się
+     * zaczyna", a ta definicja i tak musi gdzieś mieszkać.
      */
     head: WorklistEntry | null;
 }
 
+/*
+ * Nazwy sekcji mówią o STANIE SPRAWY, nie do użytkownika.
+ *
+ * „Czeka na nas", a nie „Czeka na Ciebie": w studiu przy skrzynce siada kilka
+ * osób, a poza tym forma „my" jest już językiem tego modułu (podpowiedzi mówią
+ * „odpisaliśmy", „czekamy na decyzję"). Przy okazji znika problem, którego polski
+ * nie wybacza - druga osoba w czasie przeszłym ma rodzaj, a aplikacja nie wie,
+ * kto siedzi po drugiej stronie.
+ *
+ * Bez wykrzykników, bez „aż" i „tylko", bez metafor z prezentacji sprzedażowej.
+ * Etykieta nazywa rzecz; ocena należy do właściciela.
+ */
 const TITLES: Record<WorklistSectionKey, string> = {
-    OURS: 'Czeka na Ciebie',
+    OURS: 'Czeka na nas',
     SILENT: 'Ucichło',
     CLIENT: 'U klienta',
 };
@@ -131,7 +147,7 @@ export function buildWorklist(
 }
 
 /**
- * Ile spraw w „Czeka na Ciebie" przekroczyło próg studia.
+ * Ile spraw w „Czeka na nas" przekroczyło próg studia.
  *
  * Osobno od liczby spraw, bo to są dwa różne zdania: „pięć osób czeka" mówi o pracy
  * do zrobienia, „trzy czekają ponad dobę" mówi o długu. Pierwsze jest normalne,

@@ -387,7 +387,7 @@ interface LeadAnalyticsViewProps {
      * i linku powrotu, przewijana w panelu; odnośniki sterują tym samym widokiem.
      */
     embedded?: boolean;
-    /** Embedded: pokaż kolejkę „Twój ruch" (zamiast navigate('/leads')). */
+    /** Embedded: wróć do kolejki (zamiast navigate('/leads')). */
     onOpenQueue?: () => void;
     /** Embedded: pokaż archiwum, opcjonalnie z filtrem statusu (zamiast navigate('/leads?status=...')). */
     onOpenArchive?: (status?: LeadStatus) => void;
@@ -428,8 +428,8 @@ export default function LeadAnalyticsView({
                 <DemoBanner role="status">
                     <Sparkles />
                     <span className="grow">
-                        <strong>To są przykładowe dane.</strong> Tak wygląda ten widok w studiu,
-                        do którego wpływa około stu zapytań miesięcznie. Twoje dane są ukryte.
+                        <strong>Dane przykładowe.</strong> Tak wygląda ten widok w studiu,
+                        do którego wpływa około stu zapytań miesięcznie. Prawdziwe dane są ukryte.
                     </span>
                     <DemoButton type="button" onClick={() => setDemo(false)}>
                         <EyeOff /> Schowaj
@@ -439,11 +439,10 @@ export default function LeadAnalyticsView({
 
             {!demo && data && data.totalCreated === 0 && (
                 <EmptyCard>
-                    <h2>Jeszcze nic tu nie ma</h2>
+                    <h2>Brak zapytań w tym okresie</h2>
                     <p>
-                        W tym okresie nie wpłynęło żadne zapytanie, więc nie ma czego liczyć.
-                        Widok wypełni się sam, gdy zaczną przychodzić — a na razie możesz zobaczyć,
-                        co się tu pojawi.
+                        Nie ma czego liczyć. Zamiast pustego ekranu można zobaczyć,
+                        jak ten widok wygląda przy pełnych danych.
                     </p>
                     <DemoButton type="button" onClick={() => setDemo(true)}>
                         <Eye /> Zobacz ten widok na przykładzie
@@ -454,8 +453,8 @@ export default function LeadAnalyticsView({
             {!demo && thin && data && data.totalCreated > 0 && (
                 <ThinDataBar>
                     <span className="grow">
-                        Na razie {leadCount(data.totalCreated)} w tym okresie — za mało, żeby
-                        porównania i wnioski były wiarygodne.
+                        {leadCount(data.totalCreated)} w tym okresie — za mało na wiarygodne
+                        porównania.
                     </span>
                     <DemoButton type="button" onClick={() => setDemo(true)}>
                         <Eye /> Zobacz ten widok na przykładzie
@@ -552,8 +551,13 @@ function Report({
     const hasWins = data.wonValue > 0;
     const phrase = periodPhrase(period);
 
+    /*
+     * Bezosobowo. Stało tu „domknąłeś" - a polszczyzna nie ma bezrodzajowej drugiej
+     * osoby w czasie przeszłym, więc to zdanie połowie użytkowników mówiło, że
+     * aplikacja ich nie zna. Przy okazji krócej i bez poklepywania po ramieniu.
+     */
     const reward = data.confirmedValueThisWeek > 0
-        ? `W tym tygodniu domknąłeś zlecenia za ${formatMoney(data.confirmedValueThisWeek)}.`
+        ? `Domknięte w tym tygodniu: ${formatMoney(data.confirmedValueThisWeek)}.`
         : undefined;
 
     const showDeep = data.totalCreated >= THIN_DATA_BELOW;
@@ -567,10 +571,10 @@ function Report({
                 // Panel obok kolejki: kwotę „w toku" pokazuje już pasek nad kolejką,
                 // więc nie dublujemy jej wielką liczbą - mówimy wprost i odsyłamy tam.
                 <PipelineCoach>
-                    <h3>Jeszcze nic nie zamknięte {phrase}</h3>
+                    <h3>Nic nie zamknięte {phrase}</h3>
                     <p>
-                        Pieniądze w toku masz w kolejce obok. Domknij pierwszą sprawę,
-                        a pojawi się tu Twój przychód.
+                        Zapytania w toku są w kolejce obok. Pierwsze domknięte zlecenie
+                        pojawi się tutaj.
                     </p>
                     {reward && <span className="reward">{reward}</span>}
                 </PipelineCoach>
@@ -596,19 +600,24 @@ function Report({
             {/* ── FRONT · jedno działanie ─────────────────────────────────────── */}
             {data.silentValue > 0 && (
                 <ActionStrip type="button" onClick={goSilent}>
+                    {/* Bez straszenia konkurencją i bez trybu rozkazującego: zdanie
+                        podaje kwotę i mówi, gdzie ona leży. Co z tym zrobić, właściciel
+                        wie lepiej niż CRM. */}
                     <span>
-                        <strong>{formatMoney(data.silentValue)}</strong> w zapytaniach, które ucichły.
-                        Odezwij się, zanim klient pojedzie gdzie indziej.
+                        <strong>{formatMoney(data.silentValue)}</strong> w rozmowach bez odzewu
+                        — zobacz, które to.
                     </span>
                     <ArrowRight className="go" />
                 </ActionStrip>
             )}
 
             {/* ── FRONT · wszystkie zapytania przez cały rok ──────────────────── */}
+            {/* Bez podpowiedzi „przełącz na sztuki, gdy…": przełącznik stoi nad wykresem
+                i jest podpisany. Instrukcja obsługi widocznego przycisku dokłada zdanie
+                do przeczytania i niczego nie wyjaśnia. */}
             <AnalyticsCard
                 question="Zapytania miesiąc po miesiącu"
-                answer="Ile przyszło we wszystkich zapytaniach - cały rok, od stycznia do grudnia."
-                footnote="Przełącz na sztuki, gdy chcesz porównać ruch, a nie przychód."
+                answer={`Rok ${new Date().getFullYear()}, od stycznia do grudnia.`}
             >
                 <IntakeYearChart points={yearSeries} />
             </AnalyticsCard>
@@ -703,8 +712,9 @@ function SpeedCard({ data }: { data: LeadAnalytics }) {
             const gap = (impact.fastWinRate ?? 0) - (impact.slowWinRate ?? 0);
             return (
                 <>
-                    <strong>Tak.</strong> Gdy odpiszesz w ciągu doby, zamykasz {percent(impact.fastWinRate)}{' '}
-                    zapytań, później tylko {percent(impact.slowWinRate)} — różnica {points(gap)}
+                    <strong>Tak.</strong> Odpowiedź w ciągu doby kończy się zleceniem
+                    w {percent(impact.fastWinRate)} rozmów, późniejsza w {percent(impact.slowWinRate)} —
+                    różnica {points(gap)}
                 </>
             );
         }

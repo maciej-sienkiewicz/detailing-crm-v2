@@ -78,6 +78,15 @@ export interface LeadUrgency {
      * tylko „obiecałeś".
      */
     owed: boolean;
+    /**
+     * Czy oczekiwanie przekroczyło próg studia.
+     *
+     * Osobne pole, bo to JEDYNA rzecz na liście, która ma prawo zapalić kolor.
+     * Kategoria (czyj ruch) jest już nazwana nagłówkiem sekcji; kolor powtarzający
+     * ją przy każdym wierszu daje pas barwy, w którym nie widać granic - a nie
+     * informację. Wyjątek widać tylko wtedy, gdy nie jest regułą.
+     */
+    overdue: boolean;
     /** Od kiedy trwa oczekiwanie; null przy sprawie zamkniętej. */
     waitingSince: string | null;
     /** Wiek oczekiwania w milisekundach; 0 przy sprawie zamkniętej. */
@@ -143,7 +152,7 @@ function resolveTurn(lead: UrgencyInput): { turn: LeadTurn; since: string | null
          *
          * Backend liczy „czyj ruch" wyłącznie z `comm_messages`, a odnotowany telefon
          * ląduje w `lead_callbacks` (RecordLeadCallbackHandler). Lead, do którego
-         * zadzwoniliśmy po ostatnim mailu klienta, zostawał więc w „Twój ruch" na
+         * zadzwoniliśmy po ostatnim mailu klienta, zostawał więc w „Czeka na nas" na
          * zawsze - a użytkownik dostawał komunikat, że zszedł z kolejki. Za dobre
          * zachowanie dostawał kłamstwo.
          *
@@ -154,7 +163,7 @@ function resolveTurn(lead: UrgencyInput): { turn: LeadTurn; since: string | null
          *
          * ⚠️ To łapie pierwszy kontakt, nie każdy: `firstResponseAt` z definicji nie
          * przesuwa się przy kolejnych telefonach. Lead, w którym odpisaliśmy mailem,
-         * klient napisał znowu, a my oddzwoniliśmy, nadal zostanie w „Twój ruch".
+         * klient napisał znowu, a my oddzwoniliśmy, nadal zostanie w „Czeka na nas".
          * Pełne domknięcie wymaga kolumny „ostatni kontakt dowolnym kanałem" -
          * zmiana O4 w docs/leads-queue-backend-spec.md.
          */
@@ -196,6 +205,7 @@ export function describeLeadUrgency(
             turn: 'SETTLED',
             tone: 'neutral',
             owed: false,
+            overdue: false,
             waitingSince: null,
             waitingMs: 0,
             label: '',
@@ -221,24 +231,24 @@ export function describeLeadUrgency(
                 turn,
                 tone: 'due',
                 owed: true,
+                overdue,
                 waitingSince: since,
                 waitingMs,
                 icon: 'reply',
-                label: overdue ? `Obiecane ${age} temu` : 'Masz coś wysłać',
-                title: overdue
-                    ? `Obiecaliśmy coś przysłać ${age} temu i wciąż tego nie ma`
-                    : 'Po ostatniej rozmowie coś zostało po naszej stronie',
+                label: 'Obiecana odpowiedź',
+                title: `Po rozmowie zostało coś po naszej stronie — od ${age}`,
             };
         }
         return {
             turn,
             tone: 'due',
             owed: false,
+            overdue,
             waitingSince: since,
             waitingMs,
             icon: 'reply',
-            label: overdue ? `Czeka ${age}` : 'Wymagany kontakt',
-            title: overdue ? `Klient czeka na odpowiedź od ${age}` : 'Klient czeka na naszą odpowiedź',
+            label: 'Bez odpowiedzi',
+            title: `Klient czeka na odpowiedź od ${age}`,
         };
     }
 
@@ -247,13 +257,14 @@ export function describeLeadUrgency(
         turn,
         tone: stale ? 'stale' : 'neutral',
         owed: false,
+        overdue: stale,
         waitingSince: since,
         waitingMs,
         icon: stale ? 'clock' : 'question',
-        label: stale ? `Cisza ${age}` : `U klienta ${age}`,
+        label: stale ? 'Bez odzewu' : 'U klienta',
         title: stale
-            ? `Klient milczy od ${age} - czas na przypomnienie albo zamknięcie leada`
-            : 'Odpisaliśmy - czekamy na decyzję klienta',
+            ? `Klient milczy od ${age}`
+            : `Odpisaliśmy ${age} temu — czekamy na decyzję`,
     };
 }
 

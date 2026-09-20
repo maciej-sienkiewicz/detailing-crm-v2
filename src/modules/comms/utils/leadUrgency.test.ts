@@ -36,20 +36,23 @@ const phoneLead = (overrides: Partial<UrgencyInput> = {}): UrgencyInput => ({
 });
 
 describe('lead mailowy - ruch po naszej stronie', () => {
-    it('świeże zapytanie klienta woła o kontakt i jest czerwone', () => {
+    it('świeże zapytanie klienta jest zadaniem, ale jeszcze nie zaległością', () => {
         const urgency = describeLeadUrgency(mailLead({ waitingSince: ago(2 * HOUR) }));
 
         expect(urgency.turn).toBe('OURS');
-        expect(urgency.label).toBe('Wymagany kontakt');
-        // Czerwień od pierwszej minuty: „klient napisał ostatni" to zawsze zadanie
-        // dla nas, a nie stan neutralny, który czytelnik ma sam ocenić.
+        expect(urgency.label).toBe('Bez odpowiedzi');
         expect(urgency.tone).toBe('due');
+        // Wiek jeszcze nie przekroczył progu studia - nic się nie zapala.
+        expect(urgency.overdue).toBe(false);
     });
 
-    it('po przekroczeniu progu etykieta nazywa zwłokę, kolor się nie zmienia', () => {
+    it('po przekroczeniu progu zapala się wyjątek, etykieta zostaje ta sama', () => {
         const urgency = describeLeadUrgency(mailLead({ waitingSince: ago(3 * DAY) }));
 
-        expect(urgency.label).toBe('Czeka 3 dni');
+        // Etykieta nazywa STAN, a nie czas: czas stoi osobno, w kolumnie wieku,
+        // i tylko on zmienia kolor po przekroczeniu progu.
+        expect(urgency.label).toBe('Bez odpowiedzi');
+        expect(urgency.overdue).toBe(true);
         expect(urgency.tone).toBe('due');
         expect(urgency.title).toBe('Klient czeka na odpowiedź od 3 dni');
     });
@@ -63,21 +66,23 @@ describe('lead mailowy - ruch po stronie klienta', () => {
         const urgency = describeLeadUrgency(waiting(2 * DAY));
 
         expect(urgency.turn).toBe('CLIENT');
-        expect(urgency.label).toBe('U klienta 2 dni');
+        expect(urgency.label).toBe('U klienta');
         expect(urgency.tone).toBe('neutral');
+        expect(urgency.overdue).toBe(false);
     });
 
-    it('cisza klienta ostrzega, ale nie oskarża - bursztyn, nie czerwień', () => {
+    it('cisza dłuższa niż próg studia jest wyjątkiem, nie nowym rodzajem ruchu', () => {
         const urgency = describeLeadUrgency(waiting(6 * DAY));
 
-        expect(urgency.label).toBe('Cisza 6 dni');
+        expect(urgency.label).toBe('Bez odzewu');
         expect(urgency.tone).toBe('stale');
+        expect(urgency.overdue).toBe(true);
     });
 });
 
 /*
  * Zgłoszenie: „klikam »Kontakt poza pocztą«, dostaję komunikat, że lead zszedł
- * z kolejki, a on dalej wisi w »Twój ruch«".
+ * z kolejki, a on dalej wisi w »Czeka na nas«".
  *
  * Przyczyna jest po stronie danych, nie widoku: backend liczy `replyState`
  * wyłącznie z `comm_messages` (LeadConversationStateService), a odnotowany telefon
@@ -111,7 +116,7 @@ describe('kontakt poza pocztą przesuwa ruch do klienta', () => {
         expect(urgency.waitingSince).toBe(waitingSince);
     });
 
-    it('lead bez żadnej naszej reakcji zostaje w „Twój ruch"', () => {
+    it('lead bez żadnej naszej reakcji zostaje w „Czeka na nas"', () => {
         expect(leadSegmentOf(mailLead({ firstResponseAt: null }))).toBe('OURS');
     });
 });
@@ -122,7 +127,7 @@ describe('lead bez wątku - dziura, dla której powstała ta reguła', () => {
 
         expect(urgency.turn).toBe('OURS');
         expect(urgency.tone).toBe('due');
-        expect(urgency.label).toBe('Wymagany kontakt');
+        expect(urgency.label).toBe('Bez odpowiedzi');
     });
 
     it('czekanie liczy się od wpłynięcia zapytania, nie od korespondencji', () => {
@@ -130,7 +135,7 @@ describe('lead bez wątku - dziura, dla której powstała ta reguła', () => {
         const urgency = describeLeadUrgency(phoneLead({ createdAt }));
 
         expect(urgency.waitingSince).toBe(createdAt);
-        expect(urgency.label).toBe('Czeka 4 dni');
+        expect(urgency.overdue).toBe(true);
     });
 
     it('odnotowany kontakt przesuwa piłkę do klienta, ale NIE kasuje leada z kolejki', () => {
@@ -154,7 +159,7 @@ describe('lead bez wątku - dziura, dla której powstała ta reguła', () => {
         );
 
         expect(urgency.tone).toBe('stale');
-        expect(urgency.label).toBe('Cisza 7 dni');
+        expect(urgency.label).toBe('Bez odzewu');
     });
 });
 
@@ -174,13 +179,13 @@ describe('sprawy zamknięte', () => {
 });
 
 describe('progi z ustawień studia', () => {
-    it('próg naszej zwłoki decyduje, kiedy etykieta zaczyna liczyć dni', () => {
+    it('próg naszej zwłoki decyduje, kiedy wiek staje się wyjątkiem', () => {
         const lead = mailLead({ waitingSince: ago(30 * HOUR) });
 
-        expect(describeLeadUrgency(lead, { ...DEFAULT_STAGNATION, ourReplyHours: 24 }).label)
-            .toBe('Czeka 1 dzień');
-        expect(describeLeadUrgency(lead, { ...DEFAULT_STAGNATION, ourReplyHours: 48 }).label)
-            .toBe('Wymagany kontakt');
+        expect(describeLeadUrgency(lead, { ...DEFAULT_STAGNATION, ourReplyHours: 24 }).overdue)
+            .toBe(true);
+        expect(describeLeadUrgency(lead, { ...DEFAULT_STAGNATION, ourReplyHours: 48 }).overdue)
+            .toBe(false);
     });
 
     it('próg ciszy klienta decyduje, kiedy rozmowa stygnie', () => {

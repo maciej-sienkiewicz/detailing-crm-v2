@@ -1,38 +1,37 @@
 // src/modules/comms/components/WorklistPanel.tsx
-// Domyślna treść panelu obok kolejki: co robić teraz, ile wpływa, co domknięte.
+// Prawa kolumna: KONTEKST, nie praca.
 //
-// ── Co tu NIE stoi i dlaczego ───────────────────────────────────────────────
+// ── Podział ról między kolumnami ────────────────────────────────────────────
 //
-// Stała tu wcześniej analityka: kwota „Zamknięte w tym miesiącu", belka wartości
-// zapytań i rozkład strat. Trzy liczby, z których żadna nie zmienia się w ciągu
-// dnia pracy, żadna nie wskazuje konkretnej sprawy i pod żadną nie ma przycisku.
-// To jest definicja raportu miesięcznego, a nie ekranu operacyjnego - i tam
-// wróciły, pod „Podsumowanie miesiąca".
+// Lewa kolumna jest jedynym miejscem, w którym cokolwiek się robi. Prawa ma
+// wyłącznie mówić, jak wygląda rok i co się domknęło - i ma to robić tak, żeby
+// nie zabierać wzroku z lewej.
 //
-// Nie ma tu też „wartości zapytań w toku". Ta liczba jest ślepa dokładnie tam,
-// gdzie miałaby pomóc: wycena powstaje, dopiero gdy ktoś się leadem zajmie, więc
-// zapytanie leżące od rana nietknięte wnosi do niej zero złotych.
+// Dlatego NIE MA tu ani jednego wezwania do działania. Stał tu wcześniej duży
+// przycisk „Odpisz Markowi" - i to był błąd dwa razy: raz, bo przeciągał uwagę
+// z kolumny, w której ta sama sprawa stoi pierwsza od góry, a drugi raz, bo
+// wypełniony kolorem marki (#0ea5e9) z białym napisem dawał kontrast 2,77:1,
+// czyli poniżej progu WCAG AA. Przycisk był jednocześnie najgłośniejszym
+// i najmniej czytelnym elementem ekranu.
 //
-// ── Co tu stoi ──────────────────────────────────────────────────────────────
+// ── Kolor ───────────────────────────────────────────────────────────────────
 //
-//  1. JEDNA SPRAWA Z NAZWISKIEM i jeden przycisk. Nie licznik - konkretny człowiek,
-//     bo licznik wymaga drugiego kroku („no dobra, ale która?"), a właściciel ma
-//     piętnaście sekund między dwoma autami.
-//  2. Ile wpływa miesiąc po miesiącu - w złotówkach albo w sztukach, do wyboru.
-//     Jedyny wykres w module i jedyna rzecz tutaj, która patrzy wstecz.
-//  3. Jedna linijka pokwitowania: ile domknięte od poniedziałku.
+// Panel nie ma własnego akcentu. Wcześniej karta miała czerwoną krawędź przy
+// jasnoniebieskim przycisku - dwie barwy, z których każda coś krzyczała, i żadna
+// nie znaczyła tego samego co druga. Tu zostaje biel kart na szarej podłodze
+// i jeden kolor pisma. Kolor w tym module ma jedno zadanie i jest nim wiek, który
+// przekroczył próg - w kolumnie obok.
 //
-// Panel NIE POWTARZA listy obok: sekcje mają własne nagłówki z licznikami, więc
-// zdanie „5 osób czeka" byłoby tą samą liczbą dwa razy na jednym ekranie. Stąd
-// forma osobowa („Najdłużej czeka Marek Nowak"), a nie statystyczna.
+// ── Liczby ──────────────────────────────────────────────────────────────────
+//
+// Trzy fakty i wykres. Żaden z faktów nie wskazuje konkretnej sprawy: nazwiska
+// mieszkają w kolejce i tylko tam, bo nazwisko w prawej kolumnie prosi się
+// o kliknięcie, którego ta kolumna nie obsługuje.
 import styled from 'styled-components';
-import { ArrowRight, BarChart3, Check } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useLeadIntakeYear } from '../hooks/useLeads';
-import { formatVehicle } from '../utils/leadFormat';
-import { formatAge, type StagnationThresholds } from '../utils/leadUrgency';
-import { leadPrimaryAction } from '../utils/leadPrimaryAction';
-import { overdueCount, type Worklist } from '../utils/leadWorklist';
+import type { Worklist } from '../utils/leadWorklist';
 import { AnalyticsCard, IntakeYearChart, type YearPoint } from './analytics/charts';
 import { formatMoney } from './shared';
 
@@ -65,183 +64,87 @@ const Body = styled.div<{ $compact?: boolean }>`
 `;
 
 /**
- * Karta pierwszej sprawy. Czerwona krawędź z lewej - ta sama, którą nosi wiersz
- * zaległości w kolejce obok, żeby było widać, że to jest ta sama rzecz, a nie
- * drugi rodzaj alarmu.
+ * Trzy fakty jako lista definicyjna: etykieta po lewej, liczba po prawej.
+ *
+ * Nie kafle. Kafel obiecuje, że liczba jest ważna sama z siebie i że da się w nią
+ * kliknąć; wiersz listy definicyjnej obiecuje tyle, ile tu faktycznie jest -
+ * że tak to wygląda. Liczby wyrównane do prawej i tabelaryczne, więc trzy wiersze
+ * czyta się jednym ruchem oka w dół, a nie trzema w poprzek.
  */
-const NextCard = styled.section<{ $tone: 'due' | 'stale' }>`
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    padding: 22px 24px;
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-left: 3px solid ${p => (p.$tone === 'due' ? p.theme.colors.error : p.theme.colors.warning)};
-    border-radius: ${st.radius};
-    box-shadow: ${st.shadowSm};
-
-    @container (max-width: 420px) { padding: 18px 16px; }
-`;
-
-const Kicker = styled.div`
-    font-size: ${st.fontXs};
-    font-weight: 700;
-    letter-spacing: 0.6px;
-    text-transform: uppercase;
-    color: ${st.textSecondary};
-`;
-
-const Who = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    min-width: 0;
-
-    .name {
-        font-size: 22px;
-        line-height: 1.2;
-        font-weight: ${p => p.theme.fontWeights.bold};
-        color: ${p => p.theme.colors.text};
-        /* Nazwisko może być długie, a panel wąski - łamiemy, nie przycinamy.
-           Ucięte nazwisko jest gorsze niż brak nazwiska: wygląda na dane. */
-        overflow-wrap: anywhere;
-    }
-    .what {
-        font-size: 13.5px;
-        color: ${p => p.theme.colors.textSecondary};
-    }
-`;
-
-const GoButton = styled.button`
-    display: inline-flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    width: 100%;
-    padding: 13px 16px;
-    border: none;
-    border-radius: ${p => p.theme.radii.lg};
-    background: ${p => p.theme.colors.primary};
-    color: #ffffff;
-    font-family: inherit;
-    font-size: 14.5px;
-    font-weight: ${p => p.theme.fontWeights.semibold};
-    cursor: pointer;
-    transition: filter ${p => p.theme.transitions.fast};
-
-    &:hover { filter: brightness(1.06); }
-    &:focus-visible { outline: 2px solid ${p => p.theme.colors.primary}; outline-offset: 2px; }
-
-    svg { width: 18px; height: 18px; flex-shrink: 0; }
-`;
-
-/** Drugie zdanie karty: skala długu. Osobno, bo to jest inna informacja niż „kto". */
-const Footnote = styled.p`
+const Facts = styled.dl`
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px 16px;
     margin: 0;
-    font-size: 12.5px;
-    line-height: 1.5;
-    color: ${st.textSecondary};
-
-    strong { color: ${p => p.theme.colors.text}; font-weight: ${p => p.theme.fontWeights.semibold}; }
-`;
-
-/** Skrzynka pusta - projektowany cel tego ekranu, nie stan awaryjny. */
-const DoneCard = styled.section`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    padding: 34px 24px;
+    padding: 18px 22px;
     background: ${st.bgCard};
     border: 1px solid ${st.border};
     border-radius: ${st.radius};
     box-shadow: ${st.shadowSm};
-    text-align: center;
 
-    svg {
-        width: 26px;
-        height: 26px;
-        color: ${p => p.theme.colors.success};
-    }
-    h2 {
-        margin: 0;
-        font-size: 17px;
-        font-weight: ${p => p.theme.fontWeights.bold};
-        color: ${p => p.theme.colors.text};
-    }
-    p {
-        margin: 0;
+    dt {
         font-size: 13px;
-        color: ${st.textSecondary};
+        color: ${p => p.theme.colors.textSecondary};
+        min-width: 0;
+    }
+
+    dd {
+        margin: 0;
+        font-size: 14px;
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        color: ${p => p.theme.colors.text};
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+    @container (max-width: 380px) {
+        padding: 16px;
+        dt { font-size: 12.5px; }
     }
 `;
 
-const Reward = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 16px;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    background: ${st.bgCard};
-    font-size: 13.5px;
-    color: ${p => p.theme.colors.text};
-
-    svg { width: 16px; height: 16px; flex-shrink: 0; color: ${p => p.theme.colors.success}; }
-    strong { font-weight: ${p => p.theme.fontWeights.bold}; }
-`;
-
+/**
+ * Wejście w podsumowanie miesiąca. Tekst z podkreśleniem przy najechaniu, nie
+ * przycisk: to jest droga dalej, a nie czynność do wykonania na tym ekranie.
+ *
+ * Kolor: #0369a1 zamiast #0ea5e9 z palety marki. Marka na bieli daje 2,77:1,
+ * czyli mniej niż wymaga WCAG AA dla trzynastopunktowego pisma; ciemniejszy
+ * odcień tej samej barwy daje 5,93:1 i wygląda jak ta sama marka.
+ */
 const SummaryLink = styled.button`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 7px;
+    gap: 6px;
     align-self: center;
-    padding: 9px 16px;
-    border: 1px solid ${st.border};
-    border-radius: ${p => p.theme.radii.lg};
+    padding: 6px 4px;
+    border: none;
     background: transparent;
-    color: ${p => p.theme.colors.textSecondary};
+    color: #0369a1;
     font-family: inherit;
     font-size: 13px;
     font-weight: ${p => p.theme.fontWeights.medium};
     cursor: pointer;
-    transition: all ${p => p.theme.transitions.fast};
 
-    &:hover {
-        background: ${p => p.theme.colors.surfaceHover};
-        color: ${p => p.theme.colors.text};
-    }
-    &:focus-visible { outline: 2px solid ${p => p.theme.colors.primary}; outline-offset: 1px; }
+    &:hover { text-decoration: underline; }
+    &:focus-visible { outline: 2px solid ${p => p.theme.colors.primary}; outline-offset: 2px; }
 
-    svg { width: 15px; height: 15px; }
+    svg { width: 14px; height: 14px; }
 `;
 
 interface WorklistPanelProps {
     worklist: Worklist;
-    thresholds: StagnationThresholds;
-    /** Otwiera sprawę w panelu obok - ten sam odnośnik, co kliknięcie w wiersz kolejki. */
-    onOpenLead: (leadId: string) => void;
     /** Wejście w podsumowanie miesiąca (pełna analityka). */
     onOpenSummary: () => void;
     /**
-     * Wariant spod listy na wąskim ekranie: bez karty pierwszej sprawy.
-     *
-     * Tam kolejka jest tuż nad wykresem, więc karta „zacznij od tej sprawy"
-     * powtarzałaby pierwszy wiersz listy o kilka pikseli niżej. Zostaje to,
-     * czego lista nie mówi: ile wpływa i ile domknięte.
+     * Wariant spod listy na wąskim ekranie: bez własnej podłogi i przewijania.
+     * Treść jest ta sama - tam też jest to kontekst pod pracą, nie obok niej.
      */
     compact?: boolean;
 }
 
-export function WorklistPanel({
-    worklist,
-    thresholds,
-    onOpenLead,
-    onOpenSummary,
-    compact = false,
-}: WorklistPanelProps) {
+export function WorklistPanel({ worklist, onOpenSummary, compact = false }: WorklistPanelProps) {
     /*
      * Wykres idzie po własne, lekkie dane, a nie po pełną analitykę: ta liczy
      * macierze dni tygodnia, segmenty aut i kilkaset surowych faktów - przy każdym
@@ -249,98 +152,46 @@ export function WorklistPanel({
      */
     const intake = useLeadIntakeYear();
 
-    const head = worklist.head;
-    const overdue = overdueCount(worklist, thresholds);
-    const silentValue = worklist.silent.value;
-    const reward = intake.data?.confirmedValueThisWeek ?? 0;
-
-    const points: YearPoint[] = (intake.data?.months ?? []).map((month) => ({
+    const months = intake.data?.months ?? [];
+    const points: YearPoint[] = months.map((month) => ({
         period: MONTH_ABBR[month.month - 1],
         value: month.value,
         count: month.count,
     }));
 
+    const thisMonth = new Date().getMonth();
+    const thisMonthCount = months[thisMonth]?.count ?? null;
+    const closedThisWeek = intake.data?.confirmedValueThisWeek ?? 0;
+    const silentValue = worklist.silent.value;
+
     return (
         <Shell $compact={compact}>
             <Body $compact={compact}>
-                {compact ? null : head ? (
-                    <NextCard $tone={head.urgency.tone === 'stale' ? 'stale' : 'due'}>
-                        <Kicker>
-                            {head.urgency.turn === 'OURS' ? 'Zacznij od tej sprawy' : 'Najdłużej milczy'}
-                        </Kicker>
-                        <Who>
-                            <span className="name">
-                                {head.lead.customerName?.trim() || head.lead.contactIdentifier}
-                            </span>
-                            <span className="what">
-                                {[
-                                    formatVehicle(head.lead),
-                                    head.lead.tagLabels[0],
-                                    formatAge(head.urgency.waitingMs),
-                                ]
-                                    .filter(Boolean)
-                                    .join(' · ')}
-                            </span>
-                        </Who>
+                <Facts>
+                    <dt>Domknięte w tym tygodniu</dt>
+                    {/*
+                      * Bezosobowo, bo polszczyzna nie ma bezrodzajowej drugiej osoby
+                      * w czasie przeszłym. Stało tu „domknąłeś" - słowo, które połowie
+                      * użytkowników mówi, że aplikacja ich nie zna.
+                      */}
+                    <dd>{formatMoney(closedThisWeek)}</dd>
 
-                        {/* Etykieta z tej samej reguły, co przycisk na karcie sprawy:
-                            „Odpisz" przy zaległej odpowiedzi, „Zadzwoń" przy leadzie
-                            z telefonu, „Przypomnij się" przy ciszy. Decyzja co kliknąć
-                            nie należy do użytkownika. */}
-                        <GoButton type="button" onClick={() => onOpenLead(head.lead.id)}>
-                            <span>
-                                {head.urgency.turn === 'OURS'
-                                    ? leadPrimaryAction(head.lead, head.urgency).label
-                                    : 'Przypomnij się'}
-                            </span>
-                            <ArrowRight />
-                        </GoButton>
+                    <dt>Zapytania w tym miesiącu</dt>
+                    <dd>{thisMonthCount ?? '—'}</dd>
 
-                        {overdue > 0 && (
-                            <Footnote>
-                                <strong>{overdue}</strong>
-                                {overdue === 1 ? ' sprawa czeka' : ' z nich czeka'} ponad{' '}
-                                {formatAge(thresholds.ourReplyHours * 3_600_000)}.
-                            </Footnote>
-                        )}
-                        {silentValue > 0 && worklist.silent.entries.length > 0 && (
-                            <Footnote>
-                                W ucichłych rozmowach leży <strong>{formatMoney(silentValue)}</strong>.
-                                Przypomnienie kosztuje zero złotych.
-                            </Footnote>
-                        )}
-                    </NextCard>
-                ) : (
-                    <DoneCard>
-                        <Check />
-                        <h2>Skrzynka pusta</h2>
-                        <p>
-                            {worklist.total === 0
-                                ? 'Nie ma otwartych zapytań.'
-                                : 'Nikt nie czeka na Twoją odpowiedź i nic nie ucichło.'}
-                        </p>
-                    </DoneCard>
-                )}
-
-                {reward > 0 && (
-                    <Reward>
-                        <Check />
-                        <span>
-                            W tym tygodniu domknąłeś <strong>{formatMoney(reward)}</strong>.
-                        </span>
-                    </Reward>
-                )}
+                    <dt>Wyceny w rozmowach bez odzewu</dt>
+                    <dd>{formatMoney(silentValue)}</dd>
+                </Facts>
 
                 <AnalyticsCard
                     question="Zapytania miesiąc po miesiącu"
-                    answer="Ile wpływa w ciągu roku - od stycznia do grudnia."
-                    footnote="Przełącz na sztuki, gdy chcesz porównać ruch, a nie przychód."
+                    answer={`Rok ${intake.data?.year ?? new Date().getFullYear()}, od stycznia do grudnia.`}
                 >
                     <IntakeYearChart points={points} />
                 </AnalyticsCard>
 
                 <SummaryLink type="button" onClick={onOpenSummary}>
-                    <BarChart3 /> Podsumowanie miesiąca
+                    Podsumowanie miesiąca <ArrowRight />
                 </SummaryLink>
             </Body>
         </Shell>

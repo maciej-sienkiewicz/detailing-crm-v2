@@ -126,7 +126,7 @@ describe('dług studia w sekcjach', () => {
      * Klient zadzwonił i poprosił o ofertę mailem. Korespondencja mówi „piłka
      * u klienta" - i to jest ten jeden przypadek, w którym mówi nieprawdę.
      */
-    it('sprawa z ręcznie zgłoszonym długiem stoi w „Czeka na Ciebie"', () => {
+    it('sprawa z zgłoszoną obietnicą stoi w „Czeka na nas"', () => {
         const owed = waitingOnClient(6, { owedSince: ago(2 * DAY) });
 
         const worklist = buildWorklist([owed]);

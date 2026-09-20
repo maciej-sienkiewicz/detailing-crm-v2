@@ -116,24 +116,6 @@ export const leadsApi = {
         return data;
     },
 
-    /** „Wróć do mojego ruchu" — ręczne obejście reguły wnioskującej czyj ruch. */
-    declareOwed: async (leadId: string, note?: string): Promise<Lead> => {
-        const { data } = await apiClient.post(
-            `/v1/leads/${leadId}/owed`,
-            { note: note?.trim() || null },
-            { skipErrorToast: true }
-        );
-        return data;
-    },
-
-    /** „Już wysłane" — jedyne ręczne zdjęcie długu; resztę kasują dowody spłaty. */
-    settleOwed: async (leadId: string): Promise<Lead> => {
-        const { data } = await apiClient.delete(`/v1/leads/${leadId}/owed`, {
-            skipErrorToast: true,
-        });
-        return data;
-    },
-
     /**
      * Wykres „co miesiąc wpływa". Osobno od /analytics, bo to jedyna rzecz z analityki,
      * która stoi na domyślnym ekranie modułu — pełny rachunek liczyłby przy każdym

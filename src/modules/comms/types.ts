@@ -271,7 +271,7 @@ export interface Lead {
     /**
      * Od kiedy TO MY jesteśmy coś winni klientowi - dług zgłoszony ręcznie.
      *
-     * Odpowiednik „nieprzeczytanej" w poczcie: sprawa wraca do „Czeka na Ciebie"
+     * Odpowiednik „nieprzeczytanej" w poczcie: sprawa zostaje w „Czeka na nas"
      * niezależnie od tego, kto napisał ostatni. Backend kasuje go dowodem spłaty
      * (nasza wiadomość, kolejny kontakt bez obietnicy, rozstrzygnięcie sprawy).
      */

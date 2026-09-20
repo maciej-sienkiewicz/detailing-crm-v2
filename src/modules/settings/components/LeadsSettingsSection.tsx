@@ -266,11 +266,11 @@ const StagnationCard = () => {
 
     return (
         <Card>
-            <CardTitle>Kiedy sprawa stygnie</CardTitle>
+            <CardTitle>Progi czasu w kolejce</CardTitle>
             <CardDescription>
-                Te dwie liczby dzielą kolejkę zapytań na sekcje i decydują o kolorze paska
-                przy każdym wierszu. Nie ma jednej dobrej wartości — zależy, po ilu godzinach
-                Twój klient dzwoni do konkurencji.
+                Te dwie liczby dzielą kolejkę zapytań na sekcje i decydują o tym, kiedy wiek
+                sprawy zapala się na czerwono. Jednej dobrej wartości nie ma — inaczej wygląda
+                to przy myciu, inaczej przy powłoce ceramicznej.
             </CardDescription>
 
             {isPending || !current ? (
@@ -279,10 +279,10 @@ const StagnationCard = () => {
                 <>
                     <OptionRow>
                         <OptionTexts>
-                            <OptionLabel>Nasza zwłoka przestaje być zadaniem, a staje się długiem</OptionLabel>
+                            <OptionLabel>Po ilu godzinach brak odpowiedzi jest zaległością</OptionLabel>
                             <OptionHint>
-                                Po tylu godzinach bez naszej odpowiedzi wiersz zaczyna mówić, JAK DŁUGO
-                                klient czeka, a nie tylko że czeka. Teraz: {inDays(current.leadStagnantOurThresholdHours)}.
+                                Po tym czasie wiek sprawy w sekcji „Czeka na nas” zapala się na
+                                czerwono. Teraz: {inDays(current.leadStagnantOurThresholdHours)}.
                             </OptionHint>
                         </OptionTexts>
                         <HoursField>
@@ -305,10 +305,10 @@ const StagnationCard = () => {
 
                     <OptionRow>
                         <OptionTexts>
-                            <OptionLabel>Cisza klienta to moment na przypomnienie</OptionLabel>
+                            <OptionLabel>Po ilu godzinach cisza klienta to rozmowa bez odzewu</OptionLabel>
                             <OptionHint>
-                                Po tylu godzinach bez odzewu sprawa schodzi z „U klienta" do sekcji
-                                „Ucichło”. Teraz: {inDays(current.leadStagnantClientThresholdHours)}.
+                                Po tym czasie sprawa przechodzi z „U klienta” do sekcji „Ucichło”.
+                                Teraz: {inDays(current.leadStagnantClientThresholdHours)}.
                             </OptionHint>
                         </OptionTexts>
                         <HoursField>

@@ -16,8 +16,10 @@
 //  2. STATUSU NIE MA NA LIŚCIE. Awans dzieje się jako skutek pracy (pierwsza
 //     odpowiedź stempluje NOWY → W KONTAKCIE po stronie backendu), a ręczna
 //     zmiana mieszka w panelu szczegółów.
-//  3. SEGMENTY ZAMIAST FILTRÓW. „Twój ruch" i „U klienta" to jedna oś - czyj
-//     jest ruch - prostopadła do statusu. „Zamknięte" to osobny tryb pracy.
+//  3. SEKCJE ZAMIAST ZAKŁADEK. „Czeka na nas", „Ucichło" i „U klienta" to jedna
+//     oś - czyj jest ruch - prostopadła do statusu, i stoją pod sobą w jednej
+//     przewijanej liście. Zakładka ukrywa pracę; sekcja ją porządkuje.
+//     „Zamknięte" zostaje osobnym trybem: to inny zbiór, nie trzecia wartość osi.
 //  4. SZCZEGÓŁY OBOK, NIE ZAMIAST. Na szerokim ekranie panel stoi przy kolejce,
 //     więc przeskakiwanie między sprawami nie zamyka i nie otwiera okna. Na
 //     telefonie miejsca na to nie ma i szczegóły wracają jako okno pełnoekranowe.
@@ -364,51 +366,59 @@ const BackToQueue = styled.button`
 `;
 
 /**
- * Nagłówek sekcji w kolejce. Przyklejony, bo lista bywa długa, a bez niego
- * po trzech przewinięciach nie wiadomo, na co się patrzy - a od tego, czy to
- * „Czeka na Ciebie", czy „U klienta", zależy, czy trzydniowy wiek jest
- * katastrofą, czy stanem normalnym.
+ * Nagłówek sekcji w kolejce - i granica między sekcjami.
  *
- * Kolor paska po lewej ten sam, co pasek pilności na karcie pod spodem: sekcja
- * nie jest osobnym rodzajem alarmu, tylko podpisem tego, co i tak widać na
- * krawędziach wierszy.
+ * Granicy nie rysuje kolor, tylko MATERIAŁ: wiersze leżą na bieli, nagłówek na
+ * szarej podłodze aplikacji (#eef2f7). Dwa różne tła czytają się jako dwie różne
+ * powierzchnie, więc przecięcie widać nawet kątem oka i nawet wtedy, gdy nagłówek
+ * przykleił się do górnej krawędzi.
+ *
+ * Wcześniej stał tu kolorowy pasek wpuszczony w krawędź - ten sam zabieg, co na
+ * kartach pod spodem. Powtórzony na nagłówku i na każdym wierszu pod nim dawał
+ * ciągły pas barwy: nagłówek przestawał być granicą, bo wyglądał jak kolejny
+ * wiersz, tylko mniejszy.
+ *
+ * Nad każdą sekcją poza pierwszą jest 10 px pustki. Odstęp robi więcej dla
+ * czytelności podziału niż jakakolwiek kreska - i nie dokłada nic do obrazu.
  */
-const SectionHeader = styled.div<{ $tone: 'due' | 'stale' | 'quiet' }>`
+const SectionHeader = styled.div<{ $first: boolean }>`
     position: sticky;
     top: 0;
     z-index: 2;
     display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 7px 12px 7px 12px;
-    background: ${p => p.theme.colors.surfaceAlt};
+    align-items: baseline;
+    gap: 7px;
+    margin-top: ${p => (p.$first ? '0' : '10px')};
+    padding: 8px 12px;
+    background: ${p => p.theme.colors.background};
+    border-top: 1px solid ${p => p.theme.colors.border};
     border-bottom: 1px solid ${p => p.theme.colors.border};
-    box-shadow: inset 3px 0 0 0 ${p =>
-        p.$tone === 'due' ? p.theme.colors.error
-        : p.$tone === 'stale' ? p.theme.colors.warning
-        : 'transparent'};
 
+    /* Wersaliki w 10,5 px z rozstrzeleniem 0,08 em - etykieta ma być rozpoznawana
+       jako podpis sekcji, zanim zostanie przeczytana jako słowo. Poniżej 10 px
+       wersaliki przestają się składać w kształt i zaczynają w plamę. */
     .title {
-        font-size: 11.5px;
+        font-size: 10.5px;
         font-weight: ${p => p.theme.fontWeights.bold};
-        letter-spacing: 0.06em;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
         color: ${p => p.theme.colors.textSecondary};
     }
 
-    /* Licznik należy do etykiety sekcji, a nie do osobnej plakietki obok:
-       „Czeka na Ciebie · 5" to jedno zdanie, nie liczba przy tytule. */
+    /* Licznik należy do etykiety, a nie do osobnej plakietki obok: „Czeka na nas 5"
+       to jedno zdanie. Bez czerwonej pigułki - liczba spraw do zrobienia jest
+       stanem normalnym, a nie alarmem. */
     .count {
-        font-size: 11.5px;
+        font-size: 11px;
         font-weight: ${p => p.theme.fontWeights.bold};
         color: ${p => p.theme.colors.text};
+        font-variant-numeric: tabular-nums;
     }
 
-    /* Kwota tylko przy ciszy - tam każda sprawa przeszła przez wycenę. */
+    /* Kwota tylko przy ciszy - tam każda sprawa przeszła już przez wycenę. */
     .value {
         margin-left: auto;
-        font-size: 11.5px;
-        font-weight: ${p => p.theme.fontWeights.semibold};
+        font-size: 11px;
         color: ${p => p.theme.colors.textSecondary};
         font-variant-numeric: tabular-nums;
     }
@@ -423,12 +433,12 @@ const SectionHeader = styled.div<{ $tone: 'due' | 'stale' | 'quiet' }>`
         padding: 2px 4px;
         color: ${p => p.theme.colors.textMuted};
         font-family: inherit;
-        font-size: 11.5px;
+        font-size: 11px;
         cursor: pointer;
 
         &:hover { color: ${p => p.theme.colors.text}; }
         &:focus-visible { outline: 2px solid ${p => p.theme.colors.primary}; outline-offset: 1px; }
-        svg { width: 14px; height: 14px; }
+        svg { width: 13px; height: 13px; }
     }
 `;
 
@@ -668,14 +678,6 @@ export default function LeadsView() {
         [selectLead]
     );
 
-    const openLeadFromPanel = useCallback(
-        (leadId: string) => {
-            setSummaryOpen(false);
-            selectLead(leadId);
-        },
-        [selectLead]
-    );
-
     // Pierwsza synchronizacja skrzynki w toku: leady dopiero powstają z nadciągającej
     // poczty, więc lista rosnąca z sekundy na sekundę wyglądałaby jak zepsuta.
     if (mailboxSync.syncing) {
@@ -791,17 +793,11 @@ export default function LeadsView() {
                             przy „U klienta" był celowo niepozorny, a to właśnie tam
                             leżą rozmowy do odzyskania za zero złotych. Sekcja tego nie
                             robi - porządkuje, zamiast chować. */}
-                        {sections.map((section) => {
+                        {sections.map((section, index) => {
                             const folded = section.key === 'CLIENT' && quietFolded;
                             return (
                                 <Fragment key={section.key}>
-                                    <SectionHeader
-                                        $tone={
-                                            section.key === 'OURS' ? 'due'
-                                            : section.key === 'SILENT' ? 'stale'
-                                            : 'quiet'
-                                        }
-                                    >
+                                    <SectionHeader $first={index === 0}>
                                         <span className="title">{section.title}</span>
                                         <span className="count">{section.entries.length}</span>
                                         {section.key === 'SILENT' && section.value > 0 && (
@@ -851,8 +847,6 @@ export default function LeadsView() {
                         <WorklistPanel
                             compact
                             worklist={worklist}
-                            thresholds={thresholds}
-                            onOpenLead={openLeadFromPanel}
                             onOpenSummary={() => setSummaryOpen(true)}
                         />
                     </MobilePanel>
@@ -910,8 +904,6 @@ export default function LeadsView() {
                     ) : (
                         <WorklistPanel
                             worklist={worklist}
-                            thresholds={thresholds}
-                            onOpenLead={openLeadFromPanel}
                             onOpenSummary={() => setSummaryOpen(true)}
                         />
                     )}

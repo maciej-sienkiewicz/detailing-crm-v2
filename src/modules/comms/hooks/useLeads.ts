@@ -419,39 +419,6 @@ export const useRecordLeadCallback = () => {
 };
 
 /**
- * „Wróć do mojego ruchu" i „Już wysłane" - ręczne obejście reguły, która wnioskuje
- * czyj ruch z kierunku ostatniej wiadomości.
- *
- * Odpowiednik „Oznacz jako nieprzeczytaną" z poczty i rzecz tego samego rodzaju:
- * system uznał, że załatwione, człowiek mówi, że nie. Każde wnioskowanie stanu musi
- * mieć takie obejście - inaczej użytkownik przestaje karmić system danymi, bo za
- * uczciwe odnotowanie telefonu dostaje zniknięcie sprawy z listy.
- *
- * Komunikat mówi, CO SIĘ STAŁO z widokiem („wraca do…"), bo skutek tej akcji jest
- * widoczny gdzie indziej niż miejsce kliknięcia - w kolejce obok albo pod spodem.
- */
-export const useLeadOwed = () => {
-    const invalidate = useLeadInvalidation();
-    const { showSuccess, showError } = useToast();
-    return useMutation({
-        mutationFn: ({ leadId, owed, note }: { leadId: string; owed: boolean; note?: string }) =>
-            owed ? leadsApi.declareOwed(leadId, note) : leadsApi.settleOwed(leadId),
-        onSuccess: (_lead, { leadId, owed }) => {
-            invalidate(leadId);
-            showSuccess(
-                owed ? 'Sprawa wraca do Twojego ruchu' : 'Zdjęte z Twojego ruchu',
-                owed ? 'Znajdziesz ją w „Czeka na Ciebie"' : 'Sprawa wraca do „U klienta"'
-            );
-        },
-        onError: (error) => {
-            const message =
-                (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
-            showError('Nie udało się zmienić stanu sprawy', message ?? 'Spróbuj ponownie');
-        },
-    });
-};
-
-/**
  * Usunięcie leada. Wiersz znika z listy od razu - czekanie na odświeżenie po
  * potwierdzonym kliknięciu „Usuń" wygląda jak zawieszenie, a nie jak ostrożność.
  *
