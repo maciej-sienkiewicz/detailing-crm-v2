@@ -1,6 +1,7 @@
 // src/modules/comms/api/leadsApi.ts
 import { apiClient } from '@/core/apiClient';
 import type {
+    BulkDeleteResult,
     Lead,
     LeadAlertConfig,
     LeadAnalytics,
@@ -260,6 +261,25 @@ export const leadsApi = {
      * [deleteAppointment] = true kasuje razem z leadem jego rezerwację; false
      * zostawia ją w kalendarzu. Decyzja pada w oknie potwierdzenia.
      */
+    /**
+     * Usunięcie zaznaczonych spraw jednym żądaniem.
+     *
+     * POST, nie DELETE: lista identyfikatorów jedzie w ciele, a DELETE z ciałem bywa
+     * po drodze wycinany przez pośredniki. Odpowiedź mówi, ile poszło i czego nie dało
+     * się usunąć - pominięcie pojedynczej sprawy nie jest błędem całości.
+     */
+    bulkDeleteLeads: async (
+        ids: string[],
+        deleteAppointments = false
+    ): Promise<BulkDeleteResult> => {
+        const { data } = await apiClient.post(
+            '/v1/leads/bulk-delete',
+            { ids, deleteAppointments },
+            { skipErrorToast: true }
+        );
+        return data;
+    },
+
     deleteLead: async (leadId: string, deleteAppointment = false): Promise<void> => {
         await apiClient.delete(
             `/v1/leads/${leadId}?deleteAppointment=${deleteAppointment}`,

@@ -110,8 +110,6 @@ import { SimilarVisitsSection } from './SimilarVisitsSection';
 import { SuggestedServiceRows } from './SuggestedServiceRows';
 import { RecordCallbackDialog } from './RecordCallbackDialog';
 import { IconButton, PrimaryButton, formatDateTime, formatMoney } from './shared';
-import { useMediaQuery } from '@/common/hooks';
-import { breakpoints } from '@/common/theme/breakpoints';
 
 const spin = keyframes`from { transform: rotate(0deg); } to { transform: rotate(360deg); }`;
 
@@ -1069,19 +1067,47 @@ const ModalBody = styled.div`
     gap: 16px;
 `;
 
-/** Podtytuł okna: skąd przyszedł lead i jak się z nim skontaktować. */
 /**
- * Tożsamość jako ZDANIE, nie rząd elementów flex.
+ * Podtytuł okna: kto to jest. Ikona i nazwisko, nic więcej.
  *
- * Flex robił z niej pasek: każdy człon był osobnym pudełkiem, więc łamała się
- * w całych członach i zostawiała dziury na końcu wiersza. Zwykły blok tekstu łamie
- * się tam, gdzie kończy się miejsce.
+ * ── Dlaczego to już nie jest „zdanie" ───────────────────────────────────────
+ *
+ * Stało tu „Marek Kowalczyk · 601 448 210 · m.kowalczyk@wp.pl" zbudowane jako blok
+ * tekstu, bo trzy człony musiały się łamać jak zdanie, a nie jak rząd pudełek.
+ * Kontakt z tego wiersza zszedł (numer i adres są pod „ludzikiem", w karcie
+ * kontaktu, czyli przy osobie, o której mówią), więc został jeden człon - i cały
+ * powód, dla którego to był blok tekstu, zniknął razem z pozostałymi dwoma.
+ *
+ * Teraz jest to rząd flex z `align-items: center`. To NIE jest kosmetyka: ikona
+ * stała wcześniej w linii pisma jako element liniowy dosunięty ręcznie
+ * (`vertical-align: -7px`), więc jej środek wypadał względem nazwiska tam, gdzie
+ * akurat wypadał przy danym rozmiarze pisma i wysokości wiersza. Flex wyrównuje
+ * oba elementy po ich środkach i nie wymaga zgadywania w pikselach.
  */
 const LeadIdentity = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
     margin-top: 4px;
     font-size: 14px;
     line-height: 1.45;
     color: ${p => p.theme.colors.textSecondary};
+`;
+
+/**
+ * Nazwisko: jedyny człon wiersza, więc zabiera całą wolną szerokość.
+ *
+ * Jedna linia z wielokropkiem, nie zawijanie. Zawinięte na dwie linie nazwisko
+ * zmusiłoby ikonę do wyrównania na górze (środek dwuliniowego bloku wypada
+ * wyraźnie poniżej ikony), a wtedy wiersz znowu byłby nierówny w typowym
+ * przypadku jednej linii. Pełne brzmienie zostaje w podpowiedzi i w karcie kontaktu.
+ */
+const IdentityName = styled.span`
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 `;
 
 /**
@@ -1090,15 +1116,16 @@ const LeadIdentity = styled.div`
  *
  * Ta sama ikona, ten sam kolor i to samo kliknięcie co w nagłówku rozmowy
  * w skrzynce - a stoi przy nazwisku, bo mówi właśnie o TEJ osobie, nie o sprawie.
- * Element liniowy (`inline-flex` + `vertical-align`), żeby nie rozbić zdania
- * tożsamości, które ma się łamać jak zdanie.
+ * Pod kliknięciem jest karta kontaktu z numerem i adresem: dane kontaktowe należą
+ * do osoby, więc mieszkają przy niej, a nie w podtytule okna.
+ *
+ * Element rzędu flex, nie liniowy. `vertical-align: -7px` dosuwał ikonę do linii
+ * pisma na oko i przy 14 px z interlinią 1,45 zostawiał ją odrobinę za nisko.
  */
 const IdentityPerson = styled.button<{ $known?: boolean }>`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    vertical-align: -7px;
-    margin-right: 7px;
     width: 26px;
     height: 26px;
     flex-shrink: 0;
@@ -1117,52 +1144,6 @@ const IdentityPerson = styled.button<{ $known?: boolean }>`
     }
 
     svg { width: 14px; height: 14px; }
-`;
-
-/**
- * Człon tożsamości (nazwisko, telefon, adres) - element liniowy, nie flexowy.
- *
- * Elementy flex zawijają się w całości: przy nagłówku węższym o kilka pikseli cały
- * człon zjeżdżał do następnej linii i zostawiał nad sobą pustkę. Człony liniowe
- * łamią się jak zdanie, bo zdaniem są.
- */
-const IdentityPart = styled.span`
-    overflow-wrap: anywhere;
-`;
-
-/**
- * Kropka rozdzielająca, przyklejona do członu, który KOŃCZY.
- *
- * Spacja nierozdzielająca przed kropką (`white-space: nowrap` na całości) sprawia,
- * że „601 448 210 ·" łamie się jako jedno; miejsce na złamanie zostaje dopiero za
- * kropką. Bez tego wąski nagłówek zaczynał wiersz od „· m.kowalczyk@wp.pl", co
- * czyta się jak urwane zdanie.
- */
-const Separator = styled.span`
-    color: ${p => p.theme.colors.textMuted};
-    white-space: nowrap;
-`;
-
-/**
- * Numer telefonu jako odnośnik `tel:`, ale bez wyglądu odnośnika.
- *
- * Na telefonie ma być tapnięty, na biurku przeczytany - a podkreślony, niebieski
- * numer w wierszu tożsamości wyglądał na akcję ważniejszą niż ta w stopce.
- */
-const IdentityLink = styled.a`
-    color: inherit;
-    text-decoration: none;
-    /* Wariant [as="button"] - reset, żeby przycisk czytał się jak reszta zdania. */
-    border: none;
-    background: none;
-    padding: 0;
-    font: inherit;
-    cursor: pointer;
-
-    &:hover {
-        color: ${p => p.theme.colors.primary};
-        text-decoration: underline;
-    }
 `;
 
 const VehiclePickers = styled.div`
@@ -1518,13 +1499,6 @@ export function LeadDetailModal({
         deleteLead.mutate({ leadId, deleteAppointment });
     };
 
-    /*
-     * Na telefonie adres schodzi z nagłówka (patrz `showEmail` niżej). Hook stoi
-     * NAD wyjściem dla pustego leada, bo kolejność wywołań hooków musi być ta
-     * sama w każdym renderze.
-     */
-    const isNarrow = useMediaQuery(`(max-width: ${breakpoints.md})`);
-
     if (!lead) return null;
 
     const closed = CLOSED_STATUSES.has(lead.status);
@@ -1539,29 +1513,22 @@ export function LeadDetailModal({
     const appointmentAt = appointment?.schedule?.startDateTime ?? null;
     /** Wątek istnieje i nie stoimy właśnie w nim. */
     const canWrite = showThreadLink && Boolean(lead.threadId);
-    const phone = lead.source === 'PHONE' ? lead.contactIdentifier : contactCard?.customer?.phone ?? null;
     /*
-     * Adres do wiersza tożsamości. `contactIdentifier` jest adresem tylko wtedy, gdy
-     * lead NIE przyszedł telefonem - przy leadzie telefonicznym niesie numer, który
-     * stoi już w `phone` i nie ma się powtarzać jako „adres". Kartoteka klienta nie
-     * przechowuje adresu, więc dla takiego leada po prostu go nie ma.
-     */
-    const email = lead.source === 'PHONE' ? null : lead.contactIdentifier;
-    const showEmail = !isNarrow || (!lead.customerName && !phone);
-    /*
-     * Wiersz tożsamości ma się czytać jednym spojrzeniem, a adres jest w nim
-     * najdłuższym członem i jedynym, który łamie się na dwie linijki - zabiera
-     * wysokość nad treścią, choć na małym ekranie nikt go stamtąd nie przepisuje
-     * ani nie klika (od pisania jest stopka). Nazwisko i numer zostają: numer
-     * na dotyku jest odnośnikiem, który faktycznie się naciska.
+     * Wiersz tożsamości niesie SAMO NAZWISKO.
      *
-     * Wyjątek: gdy adres jest JEDYNĄ rzeczą, jaką wiemy o kontakcie, zostaje -
-     * inaczej wiersz stałby pusty, z samym „ludzikiem".
+     * Stał tu jeszcze numer i adres. Oba są danymi kontaktowymi, czyli czymś, co
+     * należy do osoby - i oba są pod „ludzikiem", w karcie kontaktu, razem z resztą
+     * tego, co o niej wiemy. W podtytule okna zabierały miejsce, łamały wiersz na
+     * dwie linijki i rozciągały nagłówek nad treścią sprawy.
+     *
+     * Nic nie stało się nieosiągalne: do korespondencji prowadzi akcja główna
+     * w stopce („Odpisz klientowi"), a numer do wybrania jest w karcie kontaktu
+     * i w akcji „Zadzwoń" przy leadzie telefonicznym.
+     *
+     * Zapas, gdy nazwiska nie znamy: sam identyfikator kontaktu. Inaczej wiersz
+     * stałby pusty, z samym „ludzikiem" i bez odpowiedzi na pytanie „kto to jest".
      */
-    /** Tożsamość jako zdanie: „Marek Kowalczyk · 601 448 210 · m.kowalczyk@wp.pl". */
-    const identityParts = [lead.customerName, phone, showEmail ? email : null].filter(
-        (part): part is string => Boolean(part)
-    );
+    const identityName = lead.customerName?.trim() || lead.contactIdentifier;
     const openThread = () => navigate(`/communication?thread=${lead.threadId}`);
     /**
      * Kalendarz nie ma trasy per rezerwacja: skacze się do niego z datą, żeby
@@ -1663,11 +1630,9 @@ export function LeadDetailModal({
                                     {formatVehicle(lead) ?? lead.customerName ?? lead.contactIdentifier}
                                 </ModalTitle>
                                 {/*
-                                    Tożsamość jednym zdaniem: „Marek Kowalczyk · 601 448 210 ·
-                                    m.kowalczyk@wp.pl", a przed nim „ludzik" mówiący kolorem,
-                                    czy ta osoba jest w kartotece. Numer jest faktem, którego
-                                    szuka się wzrokiem, i sam w sobie jest odnośnikiem: na
-                                    telefonie da się go tapnąć, na biurku przepisać.
+                                    Kto to jest: „ludzik" mówiący kolorem, czy ta osoba jest
+                                    w kartotece, i nazwisko. Dane kontaktowe siedzą pod ikoną,
+                                    w karcie kontaktu - przy osobie, której dotyczą.
                                 */}
                                 <LeadIdentity>
                                     <IdentityPerson
@@ -1689,40 +1654,7 @@ export function LeadDetailModal({
                                     >
                                         <UserRound />
                                     </IdentityPerson>
-                                    {identityParts.map((part, index) => (
-                                        <IdentityPart key={part}>
-                                            {part === phone && (
-                                                <IdentityLink
-                                                    href={`tel:${part.replace(/\s/g, '')}`}
-                                                    title="Zadzwoń"
-                                                >
-                                                    {part}
-                                                </IdentityLink>
-                                            )}
-                                            {/* Adres prowadzi do wątku: to droga do wiadomości
-                                                OD TEGO KONTAKTU, więc stoi przy adresie, a nie
-                                                jako osobna ikona koperty w rogu nagłówka. */}
-                                            {part === email && canWrite && (
-                                                <IdentityLink
-                                                    as="button"
-                                                    type="button"
-                                                    onClick={openThread}
-                                                    title="Przejdź do korespondencji"
-                                                >
-                                                    {part}
-                                                </IdentityLink>
-                                            )}
-                                            {part !== phone && !(part === email && canWrite) && part}
-                                            {/* Kropka NA KOŃCU członu, nie na początku
-                                                następnego: inaczej wąski nagłówek zaczyna
-                                                wiersz od „· ", co wygląda na urwane zdanie. */}
-                                            {index < identityParts.length - 1 && (
-                                                <>
-                                                    <Separator>{' ·'}</Separator>{' '}
-                                                </>
-                                            )}
-                                        </IdentityPart>
-                                    ))}
+                                    <IdentityName title={identityName}>{identityName}</IdentityName>
                                 </LeadIdentity>
                             </ModalTitleGroup>
                         </HeaderIdentity>

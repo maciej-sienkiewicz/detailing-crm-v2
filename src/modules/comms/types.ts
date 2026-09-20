@@ -327,6 +327,20 @@ export interface LeadIntakeMonth {
     value: number | null;
 }
 
+/**
+ * Wynik usuwania zbiorczego.
+ *
+ * Pominięcia wracają z POWODEM, bo „nie udało się usunąć 2 spraw" jest komunikatem,
+ * z którym użytkownik nie może nic zrobić. Najczęstszy powód: sprawa ma wizytę,
+ * czyli wykonaną pracę i dokumenty - takiej nie kasuje się z poziomu kolejki.
+ */
+export interface BulkDeleteResult {
+    /** Ile spraw wskazał użytkownik, po odsianiu duplikatów. */
+    requested: number;
+    deleted: number;
+    skipped: { leadId: string; reason: string }[];
+}
+
 export interface LeadPage {
     items: Lead[];
     total: number;

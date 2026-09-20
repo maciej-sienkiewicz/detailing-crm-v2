@@ -33,6 +33,35 @@ import { formatAge, type LeadUrgency } from '../utils/leadUrgency';
 import type { Lead } from '../types';
 import { LeadSourceIcon } from './LeadSourceIcon';
 
+/**
+ * Pole wyboru wiersza. Pojawia się dopiero w trybie zaznaczania.
+ *
+ * Nie ma go na stałe, choć tak byłoby prościej: kolumna kwadracików przy każdym
+ * wierszu jest widoczna zawsze, a przydaje się parę razy w miesiącu - i na liście,
+ * którą cały ten moduł upraszczał do trzech faktów, dokładałaby czwarty.
+ *
+ * Stoi POZA obszarem otwierania sprawy, a nie w nim: zagnieżdżone byłoby klikane
+ * dwa razy jednym kliknięciem. 44 px szerokości, bo na telefonie trafia w nie kciuk.
+ */
+const SelectCell = styled.label`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 40px;
+    cursor: pointer;
+
+    input {
+        width: 17px;
+        height: 17px;
+        margin: 0;
+        accent-color: ${p => p.theme.colors.primary};
+        cursor: pointer;
+    }
+
+    &:hover input { filter: brightness(0.95); }
+`;
+
 const Card = styled.div<{ $active: boolean; $dense: boolean }>`
     display: flex;
     align-items: stretch;
@@ -163,9 +192,22 @@ interface LeadQueueCardProps {
     /** Gęstszy układ (niższa karta, ciaśniejsze odstępy) - desktop z panelem obok. */
     dense?: boolean;
     onOpen: () => void;
+    /** Tryb zaznaczania: wiersz dostaje pole wyboru, a kliknięcie zaznacza zamiast otwierać. */
+    selectable?: boolean;
+    selected?: boolean;
+    onToggleSelect?: () => void;
 }
 
-export function LeadQueueCard({ lead, urgency, active, dense = false, onOpen }: LeadQueueCardProps) {
+export function LeadQueueCard({
+    lead,
+    urgency,
+    active,
+    dense = false,
+    onOpen,
+    selectable = false,
+    selected = false,
+    onToggleSelect,
+}: LeadQueueCardProps) {
     const vehicle = formatVehicle(lead);
     const person = lead.customerName ?? lead.contactIdentifier;
     /*
@@ -185,9 +227,30 @@ export function LeadQueueCard({ lead, urgency, active, dense = false, onOpen }: 
             ? lead.tagLabels.join(', ')
             : 'Bez opisu usługi';
 
+    /*
+     * W trybie zaznaczania kliknięcie w wiersz ZAZNACZA, a nie otwiera sprawę.
+     * Tak działa każda skrzynka pocztowa i jest ku temu powód: zaznaczyłeś osiem
+     * spraw, trafiłeś obok kwadracika i zamiast dziewiątej dostajesz otwarty panel
+     * z utraconym zaznaczeniem. Celem myszy jest wtedy cały wiersz, nie 17 pikseli.
+     */
+    const activate = selectable && onToggleSelect ? onToggleSelect : onOpen;
+
     return (
-        <Card $active={active} $dense={dense}>
-            <OpenArea type="button" $dense={dense} onClick={onOpen}>
+        <Card $active={active || (selectable && selected)} $dense={dense}>
+            {selectable && (
+                <SelectCell
+                    onClick={(event) => event.stopPropagation()}
+                    title={selected ? 'Odznacz sprawę' : 'Zaznacz sprawę'}
+                >
+                    <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => onToggleSelect?.()}
+                        aria-label={`${selected ? 'Odznacz' : 'Zaznacz'}: ${vehicle ?? person}`}
+                    />
+                </SelectCell>
+            )}
+            <OpenArea type="button" $dense={dense} onClick={activate}>
                 <Line>
                     <Headline $unread={urgency.turn === 'OURS'}>
                         {lead.vehicleBrand && <CarLogoImage brand={lead.vehicleBrand} size="xs" />}

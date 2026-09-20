@@ -30,16 +30,21 @@ import {
     Archive,
     ArrowLeft,
     BarChart3,
+    CheckSquare,
     ChevronDown,
     ChevronLeft,
     ChevronRight,
     ChevronUp,
     Search,
+    Trash2,
+    X,
 } from 'lucide-react';
+import { ChoiceModal, ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useBreakpoint } from '@/common/hooks';
 import {
     CLOSED_LEAD_STATUSES,
     OPEN_LEAD_STATUSES,
+    useBulkDeleteLeads,
     useLeadsByStatuses,
     useLeadsSocket,
     useStagnationThresholds,
@@ -443,6 +448,84 @@ const SectionHeader = styled.div<{ $first: boolean }>`
 `;
 
 /**
+ * Pasek operacji na zaznaczonych sprawach.
+ *
+ * Na DOLE kolumny, nie na górze. Trzy powody, w tej kolejności: na telefonie dół
+ * jest w zasięgu kciuka, a góra nie; pasek u góry spychałby listę w dół dokładnie
+ * w chwili, gdy użytkownik celuje w kolejne wiersze; i wreszcie decyzja „usuń to"
+ * zapada PO przejrzeniu zaznaczenia, czyli po dojściu wzrokiem w dół.
+ *
+ * Przyklejony, więc widoczny także po przewinięciu listy.
+ */
+const BulkBar = styled.div`
+    position: sticky;
+    bottom: 0;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    padding: 10px 12px;
+    border-top: 1px solid ${p => p.theme.colors.border};
+    background: ${p => p.theme.colors.surface};
+    box-shadow: 0 -4px 12px rgba(15, 23, 42, 0.06);
+
+    .count {
+        flex: 1;
+        min-width: 0;
+        font-size: 13px;
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        color: ${p => p.theme.colors.text};
+        font-variant-numeric: tabular-nums;
+    }
+`;
+
+/**
+ * Usuwanie w pasku wygląda groźnie, bo takie jest: to jedyna operacja w tym module,
+ * której nie da się cofnąć. Reszta paska zostaje cicha.
+ */
+const BulkDanger = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 14px;
+    border: 1px solid ${p => p.theme.colors.error};
+    border-radius: ${p => p.theme.radii.full};
+    background: ${p => p.theme.colors.errorLight};
+    color: ${p => p.theme.colors.error};
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    cursor: pointer;
+    transition: all ${p => p.theme.transitions.fast};
+
+    &:hover:not(:disabled) { background: ${p => p.theme.colors.error}; color: #ffffff; }
+    &:focus-visible { outline: 2px solid ${p => p.theme.colors.error}; outline-offset: 2px; }
+    &:disabled { opacity: 0.6; cursor: progress; }
+
+    svg { width: 15px; height: 15px; }
+`;
+
+/** Pole wyboru w nagłówku sekcji: zaznacza i odznacza całą sekcję naraz. */
+const SectionSelect = styled.label`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    margin-left: -7px;
+    cursor: pointer;
+
+    input {
+        width: 15px;
+        height: 15px;
+        margin: 0;
+        accent-color: ${p => p.theme.colors.primary};
+        cursor: pointer;
+    }
+`;
+
+/**
  * Treść panelu startowego na wąskim ekranie - pod listą, bo tam kończy się praca.
  *
  * Renderowana wyłącznie poniżej progu podziału (warunek w JS, nie samo `display:none`):
@@ -506,6 +589,22 @@ export default function LeadsView() {
      * w trakcie pracy.
      */
     const [summaryOpen, setSummaryOpen] = useState(false);
+
+    /**
+     * Tryb zaznaczania i zbiór zaznaczonych spraw.
+     *
+     * Tryb jest jawny, a nie wywoływany najechaniem myszą: kwadracik pojawiający się
+     * na hover nie istnieje na dotyku, a to na telefonie robi się porządki między
+     * jednym autem a drugim. Wejście jest jedno dla obu urządzeń - przycisk w nagłówku.
+     *
+     * Zbiór trzyma identyfikatory, nie indeksy: lista przychodzi WebSocketem i potrafi
+     * się przestawić między zaznaczeniem a kliknięciem „Usuń".
+     */
+    const [selecting, setSelecting] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(() => new Set());
+    const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+    const [bulkAppointmentsOpen, setBulkAppointmentsOpen] = useState(false);
+    const bulkDelete = useBulkDeleteLeads();
 
     /** Zwinięcie najspokojniejszej sekcji - studio z osiemdziesięcioma sprawami zwinie ją raz. */
     const [quietFolded, setQuietFolded] = useState(() => {
@@ -601,6 +700,81 @@ export default function LeadsView() {
         [sections, quietFolded]
     );
 
+    const toggleSelected = useCallback((leadId: string) => {
+        setSelectedIds((current) => {
+            const next = new Set(current);
+            if (next.has(leadId)) next.delete(leadId);
+            else next.add(leadId);
+            return next;
+        });
+    }, []);
+
+    /**
+     * Zaznaczenie całej sekcji. Zaznacza to, co widać: przy aktywnym wyszukiwaniu
+     * bierze przefiltrowane wiersze, a nie wszystko, co sekcja zawiera. Inaczej
+     * „zaznacz wszystko" po wpisaniu nazwiska braloby też sprawy spoza wyniku.
+     */
+    const toggleSection = useCallback((ids: string[], allSelected: boolean) => {
+        setSelectedIds((current) => {
+            const next = new Set(current);
+            ids.forEach((id) => (allSelected ? next.delete(id) : next.add(id)));
+            return next;
+        });
+    }, []);
+
+    const leaveSelection = useCallback(() => {
+        setSelecting(false);
+        setSelectedIds(new Set());
+    }, []);
+
+    /*
+     * Zaznaczone sprawy w kolejności kolejki, nie w kolejności klikania. Backend
+     * usuwa po kolei, więc przy przerwaniu w połowie znika to, co stało wyżej -
+     * czyli to, na co użytkownik patrzył.
+     */
+    const selectedInOrder = useMemo(
+        () =>
+            worklist.sections
+                .flatMap((section) => section.entries)
+                .map((entry) => entry.lead.id)
+                .filter((id) => selectedIds.has(id)),
+        [worklist.sections, selectedIds]
+    );
+
+    /** Czy w zaznaczeniu jest choć jedna sprawa z terminem - wtedy pytamy o rezerwacje. */
+    const selectedWithAppointment = useMemo(
+        () =>
+            worklist.sections
+                .flatMap((section) => section.entries)
+                .filter((entry) => selectedIds.has(entry.lead.id) && entry.lead.appointmentId).length,
+        [worklist.sections, selectedIds]
+    );
+
+    const runBulkDelete = useCallback(
+        (deleteAppointments: boolean) => {
+            setBulkConfirmOpen(false);
+            setBulkAppointmentsOpen(false);
+            if (selectedInOrder.length === 0) return;
+            bulkDelete.mutate(
+                { ids: selectedInOrder, deleteAppointments },
+                {
+                    /*
+                     * Zaznaczenie znika także po nieudanej próbie: zostawione wyglądałoby
+                     * na gotowe do drugiego kliknięcia „Usuń", a przy części spraw
+                     * usuniętych drugie kliknięcie znaczyłoby już co innego niż pierwsze.
+                     */
+                    onSettled: leaveSelection,
+                }
+            );
+        },
+        [bulkDelete, selectedInOrder, leaveSelection]
+    );
+
+    const askBulkDelete = useCallback(() => {
+        if (selectedWithAppointment > 0) setBulkAppointmentsOpen(true);
+        else setBulkConfirmOpen(true);
+    }, [selectedWithAppointment]);
+
     /** Rączka stoi tylko tam, gdzie jest co zwijać: panel obok kolejki i otwarta sprawa. */
     const railed = isSplit && !inArchive && Boolean(selectedLeadId);
     const queueCollapsed = railed && queueExpandedFor !== selectedLeadId;
@@ -626,6 +800,25 @@ export default function LeadsView() {
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
     }, [queueCollapsed, selectedLeadId]);
+
+    /**
+     * Esc kończy zaznaczanie. Nasłuch stoi OSOBNO i wcześniej niż ten od rączki,
+     * bo to jest tryb: dopóki trwa, Escape znaczy „wyjdź z niego", a nie „pokaż
+     * listę". Okno potwierdzenia obsługuje Escape samo i wtedy klawisz należy do niego.
+     */
+    useEffect(() => {
+        if (!selecting) return;
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key !== 'Escape') return;
+            if (document.querySelector('[role="dialog"], [role="listbox"], [role="menu"]')) return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            leaveSelection();
+        };
+        window.addEventListener('keydown', onKey, true);
+        return () => window.removeEventListener('keydown', onKey, true);
+    }, [selecting, leaveSelection]);
+
 
     /**
      * `j` / `k` - następna i poprzednia sprawa bez odrywania ręki od klawiatury.
@@ -674,8 +867,16 @@ export default function LeadsView() {
             setInArchive(archive);
             if (!archive) setArchiveStatus(undefined);
             selectLead(null);
+            /*
+             * Zaznaczenie też należy do LISTY, na którą się patrzy. Zostawione
+             * przeżyłoby przejście do archiwum i „Usuń 3" kasowałoby sprawy, których
+             * na ekranie już nie ma. Zdejmujemy je TUTAJ, w miejscu zmiany trybu,
+             * a nie efektem po fakcie: efekt zrobiłby to samo o jeden render później
+             * i o jeden mechanizm drożej.
+             */
+            leaveSelection();
         },
-        [selectLead]
+        [selectLead, leaveSelection]
     );
 
     // Pierwsza synchronizacja skrzynki w toku: leady dopiero powstają z nadciągającej
@@ -722,10 +923,25 @@ export default function LeadsView() {
                             />
                         </SearchInput>
 
+                        {/* Wejście w tryb zaznaczania. Jedno dla myszy i dla dotyku:
+                            kwadracik pojawiający się na hover nie istnieje na telefonie,
+                            a porządki w kolejce robi się właśnie z telefonu. */}
+                        {!inArchive && !selecting && visible.length > 0 && (
+                            <IconAction
+                                as="button"
+                                type="button"
+                                onClick={() => setSelecting(true)}
+                                title="Zaznacz sprawy"
+                                aria-label="Zaznacz sprawy"
+                            >
+                                <CheckSquare />
+                            </IconAction>
+                        )}
+
                         {/* Archiwum to osobny tryb, więc i wejście do niego jest jedno:
                             tutaj. Nie ma go w rzędzie sekcji, bo sprawa rozstrzygnięta
                             nie jest trzecim rodzajem ruchu. */}
-                        {!inArchive && (
+                        {!inArchive && !selecting && (
                             isWide ? (
                                 <GhostAction
                                     as="button"
@@ -795,9 +1011,24 @@ export default function LeadsView() {
                             robi - porządkuje, zamiast chować. */}
                         {sections.map((section, index) => {
                             const folded = section.key === 'CLIENT' && quietFolded;
+                            const sectionIds = section.entries.map((entry) => entry.lead.id);
+                            const allSelected =
+                                sectionIds.length > 0 && sectionIds.every((id) => selectedIds.has(id));
                             return (
                                 <Fragment key={section.key}>
                                     <SectionHeader $first={index === 0}>
+                                        {selecting && (
+                                            <SectionSelect
+                                                title={allSelected ? 'Odznacz sekcję' : 'Zaznacz całą sekcję'}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={allSelected}
+                                                    onChange={() => toggleSection(sectionIds, allSelected)}
+                                                    aria-label={`${allSelected ? 'Odznacz' : 'Zaznacz'} sekcję ${section.title}`}
+                                                />
+                                            </SectionSelect>
+                                        )}
                                         <span className="title">{section.title}</span>
                                         <span className="count">{section.entries.length}</span>
                                         {section.key === 'SILENT' && section.value > 0 && (
@@ -824,6 +1055,9 @@ export default function LeadsView() {
                                             active={lead.id === selectedLeadId}
                                             dense={isSplit}
                                             onOpen={() => selectLead(lead.id)}
+                                            selectable={selecting}
+                                            selected={selectedIds.has(lead.id)}
+                                            onToggleSelect={() => toggleSelected(lead.id)}
                                         />
                                     ))}
                                 </Fragment>
@@ -837,6 +1071,34 @@ export default function LeadsView() {
                             </Truncated>
                         )}
                     </QueueScroll>
+                )}
+
+                {/* Pasek operacji zbiorczych. Stoi POD listą i nad panelem startowym:
+                    dotyczy tego, co jest wyżej, i znika razem z trybem zaznaczania. */}
+                {selecting && !inArchive && (
+                    <BulkBar>
+                        <span className="count">
+                            {selectedIds.size === 0
+                                ? 'Zaznacz sprawy'
+                                : `Zaznaczono ${selectedIds.size}`}
+                        </span>
+                        <BulkDanger
+                            type="button"
+                            disabled={selectedIds.size === 0 || bulkDelete.isPending}
+                            onClick={askBulkDelete}
+                        >
+                            <Trash2 /> {bulkDelete.isPending ? 'Usuwanie…' : 'Usuń'}
+                        </BulkDanger>
+                        <IconAction
+                            as="button"
+                            type="button"
+                            onClick={leaveSelection}
+                            title="Zakończ zaznaczanie (Esc)"
+                            aria-label="Zakończ zaznaczanie"
+                        >
+                            <X />
+                        </IconAction>
+                    </BulkBar>
                 )}
 
                 {/* Wąski ekran: panelu obok nie ma, więc wykres i pokwitowanie stoją
@@ -909,6 +1171,41 @@ export default function LeadsView() {
                     )}
                 </DetailColumn>
             )}
+
+            {/*
+              * Dwa okna, bo to dwa różne pytania. Bez terminów w zaznaczeniu pytamy
+              * o jedną rzecz („na pewno?"), z terminami trzeba najpierw rozstrzygnąć,
+              * co z nimi - i jest to pełnoprawny wybór, a nie potwierdzenie.
+              */}
+            <ConfirmationModal
+                isOpen={bulkConfirmOpen}
+                title={
+                    selectedIds.size === 1
+                        ? 'Usunąć zaznaczoną sprawę?'
+                        : `Usunąć ${selectedIds.size} zaznaczonych spraw?`
+                }
+                message="Tej operacji nie da się cofnąć. Wiadomości w skrzynce zostają nietknięte, a sprawy z wizytą zostaną pominięte."
+                variant="danger"
+                confirmText="Usuń"
+                onConfirm={() => runBulkDelete(false)}
+                onCancel={() => setBulkConfirmOpen(false)}
+            />
+
+            <ChoiceModal
+                isOpen={bulkAppointmentsOpen}
+                title="Co zrobić z rezerwacjami?"
+                message={
+                    selectedWithAppointment === 1
+                        ? 'Jedna z zaznaczonych spraw ma rezerwację w kalendarzu. Możesz usunąć ją razem ze sprawą albo zostawić jako samodzielny termin.'
+                        : `${selectedWithAppointment} zaznaczonych spraw ma rezerwacje w kalendarzu. Możesz usunąć je razem ze sprawami albo zostawić jako samodzielne terminy.`
+                }
+                variant="danger"
+                primaryText="Usuń też rezerwacje"
+                onPrimary={() => runBulkDelete(true)}
+                secondaryText="Zostaw terminy"
+                onSecondary={() => runBulkDelete(false)}
+                onDismiss={() => setBulkAppointmentsOpen(false)}
+            />
 
             {/* Wąski ekran (albo archiwum): szczegóły jako okno pełnoekranowe. */}
             {(!isSplit || inArchive) && selectedLeadId && (

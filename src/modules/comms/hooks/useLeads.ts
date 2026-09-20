@@ -475,6 +475,69 @@ export const useDeleteLead = () => {
     });
 };
 
+/**
+ * Usunięcie wielu spraw naraz.
+ *
+ * Z cache'u znikają tylko te, które FAKTYCZNIE zniknęły na serwerze: serwer zwraca
+ * listę pominiętych, więc usunięte to zaznaczenie minus pominięte. Wyrzucenie z listy
+ * wszystkiego, co było zaznaczone, pokazywałoby kolejkę krótszą niż jest i sprawy
+ * wracałyby przy pierwszym odświeżeniu - a użytkownik zdążyłby uznać, że zrobione.
+ *
+ * Komunikat mówi osobno o powodzeniu i o pominięciach, z powodem pierwszego z nich.
+ * Dwa zdania zamiast jednego, bo to są dwie różne wiadomości.
+ */
+export const useBulkDeleteLeads = () => {
+    const queryClient = useQueryClient();
+    const invalidate = useLeadInvalidation();
+    const { showSuccess, showError, showInfo } = useToast();
+    return useMutation({
+        mutationFn: ({ ids, deleteAppointments }: { ids: string[]; deleteAppointments?: boolean }) =>
+            leadsApi.bulkDeleteLeads(ids, deleteAppointments ?? false),
+        onSuccess: (result, { ids }) => {
+            const skippedIds = new Set(result.skipped.map((entry) => entry.leadId));
+            const removed = new Set(ids.filter((id) => !skippedIds.has(id)));
+
+            if (removed.size > 0) {
+                updateLeadPages(queryClient, (page) => {
+                    const items = page.items.filter((item) => !removed.has(item.id));
+                    if (items.length === page.items.length) return page;
+                    return {
+                        ...page,
+                        items,
+                        total: Math.max(0, page.total - (page.items.length - items.length)),
+                    };
+                });
+                removed.forEach((id) =>
+                    queryClient.removeQueries({ queryKey: [...LEADS_KEY, 'detail', id] })
+                );
+                // Wątki odzyskują możliwość ponownego oznaczenia - skrzynka musi o tym wiedzieć.
+                queryClient.invalidateQueries({ queryKey: COMMS_THREADS_KEY });
+                invalidate();
+            }
+
+            if (result.deleted > 0) {
+                showSuccess(
+                    result.deleted === 1 ? 'Sprawa usunięta' : `Usunięto ${result.deleted} spraw`,
+                    'Korespondencja została w skrzynce'
+                );
+            }
+            if (result.skipped.length > 0) {
+                showInfo(
+                    result.skipped.length === 1
+                        ? 'Jednej sprawy nie usunięto'
+                        : `${result.skipped.length} spraw nie usunięto`,
+                    result.skipped[0].reason
+                );
+            }
+        },
+        onError: (error) => {
+            const message =
+                (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            showError('Nie udało się usunąć zaznaczonych spraw', message ?? 'Spróbuj ponownie');
+        },
+    });
+};
+
 /** Nowy tag w słowniku studia. */
 export const useCreateLeadTag = () => {
     const queryClient = useQueryClient();
