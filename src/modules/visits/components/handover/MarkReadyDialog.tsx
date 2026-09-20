@@ -302,15 +302,6 @@ export const MarkReadyDialog = ({ visit, isOpen, onClose, onSuccess }: MarkReady
                             </Channel>
                         </LockedSection>
                     </Section>
-
-                    <Box>
-                        <StatusNote>
-                            {serviceCount === 1
-                                ? 'Jedna usługa potwierdzona.'
-                                : `Wszystkie ${serviceCount} usługi potwierdzone.`}{' '}
-                            Po oznaczeniu pojazd trafi na listę gotowych do odbioru.
-                        </StatusNote>
-                    </Box>
                 </Body>
             </ModalContent>
 
