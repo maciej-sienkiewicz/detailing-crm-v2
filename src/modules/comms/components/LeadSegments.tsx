@@ -11,56 +11,47 @@
 // zaległość do nadrobienia, a to jedyne miejsce w module, gdzie nie ma nic do
 // zrobienia.
 import styled from 'styled-components';
+import { FilterChip } from './shared';
 
 export type LeadSegment = 'OURS' | 'CLIENT' | 'ARCHIVE';
 
-/**
- * Lekki przełącznik segmentowy: jasny tor, a aktywny segment to biała pigułka
- * z delikatnym cieniem - nie pełny ciemny blok. Pełny granat na aktywnej zakładce
- * ciążył całej kolejce; tu wybór jest czytelny, ale nie krzyczy.
- */
+/** Rząd chipów - ten sam układ co rząd folderów w Poczcie. */
 const Bar = styled.div`
     display: flex;
-    gap: 2px;
-    background: ${p => p.theme.colors.surfaceAlt};
-    border-radius: ${p => p.theme.radii.lg};
-    padding: 3px;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
 `;
 
-const Tab = styled.button<{ $active: boolean }>`
-    flex: 1 1 0;
-    min-width: 0;
-    height: 40px;
+/**
+ * Chip segmentu - dokładnie ten sam kształt co chip folderu w Poczcie
+ * (FilterChip z shared.ts): aktywny to ciemna pigułka, nieaktywny obwódka.
+ *
+ * Wcześniej był tu jasny tor z białą pigułką w środku - inny język niż
+ * o jedną zakładkę dalej, choć obie rzeczy robią to samo: przełączają widok
+ * tej samej listy. Licznik siedzi teraz wewnątrz chipa, bo należy do jego
+ * etykiety („Twój ruch: 3"), a nie do osobnego elementu obok.
+ */
+const Tab = styled(FilterChip)`
     display: inline-flex;
     align-items: center;
-    justify-content: center;
     gap: 6px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 13px;
-    white-space: nowrap;
-    transition: all ${p => p.theme.transitions.fast};
-
-    background: ${({ $active, theme }) => ($active ? theme.colors.surface : 'transparent')};
-    box-shadow: ${({ $active, theme }) => ($active ? theme.shadows.sm : 'none')};
-    color: ${({ $active, theme }) => ($active ? theme.colors.text : theme.colors.textSecondary)};
-    font-weight: ${({ $active, theme }) =>
-        $active ? theme.fontWeights.semibold : theme.fontWeights.medium};
-
-    &:hover {
-        ${({ $active, theme }) => !$active && `color: ${theme.colors.text};`}
-    }
+    padding: 5px 13px;
+    font-size: 12px;
+    min-width: 0;
 `;
 
-/** Licznik zaległości - jedyna liczba w module, która ma prawo być czerwona. */
-const DueCount = styled.span`
+/**
+ * Licznik zaległości - jedyna liczba w module, która ma prawo być czerwona.
+ * Na chipie aktywnym (ciemne tło) czerwień na jasnym tle traci kontrast, więc
+ * tam licznik przechodzi na jasny napis bez własnego tła.
+ */
+const DueCount = styled.span<{ $onDark?: boolean }>`
     min-width: 21px;
     height: 19px;
     padding: 0 6px;
     border-radius: ${p => p.theme.radii.full};
-    background: ${p => p.theme.colors.error};
+    background: ${p => (p.$onDark ? 'rgba(255, 255, 255, 0.18)' : p.theme.colors.error)};
     color: #ffffff;
     font-size: 11.5px;
     font-weight: ${p => p.theme.fontWeights.bold};
@@ -69,10 +60,10 @@ const DueCount = styled.span`
     justify-content: center;
 `;
 
-const QuietCount = styled.span`
+const QuietCount = styled.span<{ $onDark?: boolean }>`
     font-size: 11.5px;
     font-weight: ${p => p.theme.fontWeights.semibold};
-    color: ${p => p.theme.colors.textMuted};
+    color: ${p => (p.$onDark ? 'rgba(255, 255, 255, 0.72)' : p.theme.colors.textMuted)};
 `;
 
 interface LeadSegmentsProps {
@@ -100,7 +91,7 @@ export function LeadSegments({ value, ours, client, showArchive, onChange }: Lea
                 onClick={() => onChange('OURS')}
             >
                 Twój ruch
-                {ours > 0 && <DueCount>{ours}</DueCount>}
+                {ours > 0 && <DueCount $onDark={value === 'OURS'}>{ours}</DueCount>}
             </Tab>
             <Tab
                 type="button"
@@ -110,7 +101,7 @@ export function LeadSegments({ value, ours, client, showArchive, onChange }: Lea
                 onClick={() => onChange('CLIENT')}
             >
                 U klienta
-                {client > 0 && <QuietCount>{client}</QuietCount>}
+                {client > 0 && <QuietCount $onDark={value === 'CLIENT'}>{client}</QuietCount>}
             </Tab>
             {showArchive && (
                 <Tab
