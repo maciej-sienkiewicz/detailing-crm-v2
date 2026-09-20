@@ -2,7 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <!-- Ikona w zakładce: znak DetailBoost na czarnym kafelku. Dwa rozmiary, bo
+         przeglądarka wybiera bliższy docelowemu - 32 px ma znak sięgający niemal
+         krawędzi (w zakładce liczy się każdy piksel), 192 px oddycha tak jak
+         ikona na ekranie głównym. -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
     <!-- interactive-widget=resizes-content: the on-screen keyboard shrinks the layout
          viewport instead of sliding it, so position:fixed chrome (mobile bottom nav,
          modal footers) stays glued to the bottom edge while typing. -->
@@ -20,7 +25,7 @@
     <link rel="manifest" href="/api/v1/pwa/manifest" crossorigin="use-credentials" />
     <meta name="theme-color" content="#0f172a" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
-    <title>automotive-crm</title>
+    <title>DetailBoost</title>
   </head>
   <body>
     <div id="root"></div>
