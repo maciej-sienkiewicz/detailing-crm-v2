@@ -110,6 +110,8 @@ import { SimilarVisitsSection } from './SimilarVisitsSection';
 import { SuggestedServiceRows } from './SuggestedServiceRows';
 import { RecordCallbackDialog } from './RecordCallbackDialog';
 import { IconButton, PrimaryButton, formatDateTime, formatMoney } from './shared';
+import { useMediaQuery } from '@/common/hooks';
+import { breakpoints } from '@/common/theme/breakpoints';
 
 const spin = keyframes`from { transform: rotate(0deg); } to { transform: rotate(360deg); }`;
 
@@ -666,6 +668,7 @@ const KeyHint = styled.span`
  * etapie"). Wspólne tło wiąże je z nazwą sprawy i oddziela całość od przebiegu.
  */
 const LeadHeader = styled(ModalHeader)`
+    position: relative;
     flex-direction: column;
     align-items: stretch;
     gap: 16px;
@@ -741,6 +744,27 @@ const HeaderRight = styled.div`
     gap: 8px;
     flex-shrink: 0;
     margin-left: auto;
+`;
+
+/**
+ * Zamknięcie w samym rogu okna - na telefonie.
+ *
+ * Krzyżyk stał w rzędzie razem z etapem sprawy i usługami, a ten rząd na wąskim
+ * ekranie zawija się pod tytuł. Zamknięcie lądowało wtedy w środku nagłówka,
+ * czyli tam, gdzie nikt go nie szuka, i zmieniało miejsce w zależności od tego,
+ * ile chipów akurat było. Wyjście z okna jest zawsze w tym samym punkcie -
+ * prawym górnym rogu - więc wyjmujemy je z rzędu i przypinamy do narożnika.
+ *
+ * Na szerokim ekranie rząd się nie zawija i krzyżyk wraca do niego, bo tam
+ * kończy linię z chipami i nie ma powodu, żeby nachodzić na treść.
+ */
+const HeaderClose = styled.div`
+    @media (max-width: ${p => p.theme.breakpoints.md}) {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 1;
+    }
 `;
 
 /**
@@ -1494,6 +1518,13 @@ export function LeadDetailModal({
         deleteLead.mutate({ leadId, deleteAppointment });
     };
 
+    /*
+     * Na telefonie adres schodzi z nagłówka (patrz `showEmail` niżej). Hook stoi
+     * NAD wyjściem dla pustego leada, bo kolejność wywołań hooków musi być ta
+     * sama w każdym renderze.
+     */
+    const isNarrow = useMediaQuery(`(max-width: ${breakpoints.md})`);
+
     if (!lead) return null;
 
     const closed = CLOSED_STATUSES.has(lead.status);
@@ -1516,8 +1547,19 @@ export function LeadDetailModal({
      * przechowuje adresu, więc dla takiego leada po prostu go nie ma.
      */
     const email = lead.source === 'PHONE' ? null : lead.contactIdentifier;
+    const showEmail = !isNarrow || (!lead.customerName && !phone);
+    /*
+     * Wiersz tożsamości ma się czytać jednym spojrzeniem, a adres jest w nim
+     * najdłuższym członem i jedynym, który łamie się na dwie linijki - zabiera
+     * wysokość nad treścią, choć na małym ekranie nikt go stamtąd nie przepisuje
+     * ani nie klika (od pisania jest stopka). Nazwisko i numer zostają: numer
+     * na dotyku jest odnośnikiem, który faktycznie się naciska.
+     *
+     * Wyjątek: gdy adres jest JEDYNĄ rzeczą, jaką wiemy o kontakcie, zostaje -
+     * inaczej wiersz stałby pusty, z samym „ludzikiem".
+     */
     /** Tożsamość jako zdanie: „Marek Kowalczyk · 601 448 210 · m.kowalczyk@wp.pl". */
-    const identityParts = [lead.customerName, phone, email].filter(
+    const identityParts = [lead.customerName, phone, showEmail ? email : null].filter(
         (part): part is string => Boolean(part)
     );
     const openThread = () => navigate(`/communication?thread=${lead.threadId}`);
@@ -1753,7 +1795,11 @@ export function LeadDetailModal({
                             </FactChip>
 
                             {/* Panel nie ma czego zamykać - następna karta go podmienia. */}
-                            {!isPane && <CloseBtn onClick={onClose} />}
+                            {!isPane && (
+                                <HeaderClose>
+                                    <CloseBtn onClick={onClose} />
+                                </HeaderClose>
+                            )}
                         </HeaderRight>
                     </HeaderTop>
                 </LeadHeader>
