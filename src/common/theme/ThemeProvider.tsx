@@ -78,15 +78,23 @@ const GlobalStyles = createGlobalStyle`
      16px is also the smallest comfortable tap-to-type size, so this is a win
      twice over.
 
-     The :not()s are deliberate: they lift the rule to (0,1,1) so it outranks
-     the single class styled-components emits. Fields that intentionally render
-     LARGER than 16px re-declare their size with a doubled && selector in their
-     own mobile query.
+     The :not()s and the leading html are deliberate, and both are about
+     specificity. A styled-component that styles a field through a NESTED
+     selector emits ".sc-hash textarea", which weighs (0,1,1) - exactly as much
+     as "textarea:not([hidden])". A tie is settled by order, and styled-components
+     injects after this sheet, so the component won and the field stayed at 13px.
+     That is how the „Kontakt poza pocztą" dialog kept zooming the page on iOS:
+     its note field is styled from the card around it.
+
+     The html prefix adds one element to each selector, which beats the nested
+     selector tie without touching fields that render LARGER than 16px on
+     purpose - those re-declare their size with a doubled && selector, worth
+     (0,2,0), and two classes still outrank one class plus two elements.
   */
   @media (hover: none) and (pointer: coarse) {
-    input:not([type='checkbox']):not([type='radio']):not([type='range']),
-    textarea:not([hidden]),
-    select:not([hidden]) {
+    html input:not([type='checkbox']):not([type='radio']):not([type='range']),
+    html textarea:not([hidden]),
+    html select:not([hidden]) {
       font-size: 16px;
     }
   }
