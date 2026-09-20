@@ -9,7 +9,7 @@
 // sześćdziesięciu–stu zapytaniach miesięcznie i rozrzucie cen od 300 do 10 000 zł
 // były to wykresy szumu z podpisem sugerującym prawidłowość - a nie dane, na
 // których właściciel podejmuje decyzję.
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import styled from 'styled-components';
 import {
     CartesianGrid,
@@ -181,13 +181,29 @@ export function RankedBars({ rows, color = MAGNITUDE }: RankedBarsProps) {
     );
 }
 
-// ── Jedyny prawdziwy wykres: wartość zapytań przez cały rok ──────────────────
+// ── Jedyny prawdziwy wykres: co miesiąc wpływa - w złotówkach albo w sztukach ─
 //
 // Recharts w jasnej skórce modułu statystyk: jedna linia, jedna oś, hairline'owa
 // siatka (ciągła, nie kreskowana - kreska czyta się jak próg albo prognoza).
-// Zawsze pełny rok (styczeń–grudzień); miesiące jeszcze nieprzeżyte są dziurą
+// Zawsze pełny rok (styczeń-grudzień); miesiące jeszcze nieprzeżyte są dziurą
 // w linii (null), nie zerem - „nic nie przyszło" i „miesiąc nie nadszedł" to
-// dwie różne rzeczy. Bez drugiej osi i bez linii skuteczności.
+// dwie różne rzeczy.
+//
+// ── Dwie jednostki, jeden wykres ────────────────────────────────────────────
+//
+// Złotówki i sztuki opowiadają o tym samym miesiącu dwie różne rzeczy i żadna
+// z nich nie jest pełna. Miesiąc z jedną wyceną na dziesięć tysięcy i miesiąc
+// z dwudziestoma zapytaniami bez wyceny wyglądają w złotówkach niemal tak samo,
+// choć pracy jest w nich dwadzieścia razy więcej; za to czternaście zapytań
+// o mycie i trzy o folię to ta sama liczba sztuk i zupełnie inny przychód.
+// Dlatego nie wybieramy za użytkownika - dajemy przełącznik.
+//
+// Obie serie przychodzą w jednej odpowiedzi, więc przełączenie PRZERYSOWUJE
+// wykres, a nie idzie po dane: pytanie „a ile to było sztuk?" ma kosztować
+// kliknięcie, nie sekundę czekania.
+//
+// Wybór przeżywa odświeżenie (localStorage), bo to jest nawyk czytania, a nie
+// jednorazowe spojrzenie - właściciel, który myśli sztukami, myśli nimi zawsze.
 
 /** Oś Y w tysiącach złotych: „13 tys." zamiast „12 580 zł" - kwota na osi ma być skalą, nie treścią. */
 const axisMoney = (grosze: number): string => {
@@ -196,14 +212,41 @@ const axisMoney = (grosze: number): string => {
     return `${Math.round(zl)}`;
 };
 
-interface WonTooltipProps {
+export type IntakeUnit = 'MONEY' | 'COUNT';
+
+/** Wybór jednostki - per przeglądarka, przeżywa odświeżenie. */
+const UNIT_KEY = 'leadIntake.unit';
+
+const readUnit = (): IntakeUnit => {
+    try {
+        return localStorage.getItem(UNIT_KEY) === 'COUNT' ? 'COUNT' : 'MONEY';
+    } catch {
+        return 'MONEY';
+    }
+};
+
+const writeUnit = (unit: IntakeUnit) => {
+    try { localStorage.setItem(UNIT_KEY, unit); } catch { /* prywatne okno itp. */ }
+};
+
+/** „1 zapytanie", „3 zapytania", „11 zapytań" - polska odmiana bez zaskoczeń przy 12-14. */
+const inquiries = (n: number): string => {
+    if (n === 1) return '1 zapytanie';
+    const rest = n % 10;
+    const teens = n % 100;
+    return rest >= 2 && rest <= 4 && (teens < 12 || teens > 14) ? `${n} zapytania` : `${n} zapytań`;
+};
+
+interface PointTooltipProps {
     active?: boolean;
     payload?: { value?: number }[];
     label?: string | number;
+    unit?: IntakeUnit;
 }
 
-function WonTooltip({ active, payload, label }: WonTooltipProps) {
+function PointTooltip({ active, payload, label, unit = 'MONEY' }: PointTooltipProps) {
     if (!active || !payload?.length) return null;
+    const raw = payload[0].value ?? 0;
     return (
         <div
             style={{
@@ -220,7 +263,7 @@ function WonTooltip({ active, payload, label }: WonTooltipProps) {
                 {label}
             </div>
             <div style={{ fontWeight: 700, color: st.text, fontSize: 15 }}>
-                {formatMoney(payload[0].value ?? 0)}
+                {unit === 'MONEY' ? formatMoney(raw) : inquiries(raw)}
             </div>
         </div>
     );
@@ -229,46 +272,120 @@ function WonTooltip({ active, payload, label }: WonTooltipProps) {
 export interface YearPoint {
     /** Skrót miesiąca na osi: „sty", „lut", … */
     period: string;
-    /** Wartość zapytań, które przyszły w tym miesiącu; null dla miesięcy, które jeszcze nie nadeszły. */
+    /** Wartość zapytań tego miesiąca w groszach; null dla miesięcy, które nie nadeszły. */
     value: number | null;
+    /** Liczba zapytań tego miesiąca; null dla miesięcy, które nie nadeszły. */
+    count: number | null;
 }
 
-export function YearLineChart({ points }: { points: YearPoint[] }) {
+/**
+ * Przełącznik jednostki. Stoi NAD wykresem i po prawej: to jest podpis osi Y,
+ * a nie akcja - ustawiony po lewej czytałby się jak tytuł karty.
+ */
+const UnitSwitch = styled.div`
+    display: inline-flex;
+    align-self: flex-end;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid ${st.border};
+    border-radius: ${p => p.theme.radii.full};
+    background: ${TRACK};
+`;
+
+const UnitButton = styled.button<{ $active: boolean }>`
+    padding: 3px 11px;
+    border: none;
+    border-radius: ${p => p.theme.radii.full};
+    background: ${p => (p.$active ? '#FFFFFF' : 'transparent')};
+    box-shadow: ${p => (p.$active ? st.shadowSm : 'none')};
+    color: ${p => (p.$active ? p.theme.colors.text : st.textSecondary)};
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: ${p => (p.$active ? p.theme.fontWeights.semibold : p.theme.fontWeights.medium)};
+    cursor: pointer;
+    transition: all ${p => p.theme.transitions.fast};
+
+    &:focus-visible {
+        outline: 2px solid ${p => p.theme.colors.primary};
+        outline-offset: 1px;
+    }
+`;
+
+const ChartFrame = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+`;
+
+export function IntakeYearChart({ points }: { points: YearPoint[] }) {
+    const [unit, setUnit] = useState<IntakeUnit>(readUnit);
+
+    const pick = (next: IntakeUnit) => {
+        setUnit(next);
+        writeUnit(next);
+    };
+
+    const money = unit === 'MONEY';
+    const data = points.map((point) => ({
+        period: point.period,
+        plotted: money ? point.value : point.count,
+    }));
+
     return (
-        <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={points} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
-                <CartesianGrid stroke={st.border} vertical={false} />
-                <XAxis
-                    dataKey="period"
-                    tick={{ fontSize: 11, fill: st.textSecondary }}
-                    tickLine={false}
-                    axisLine={{ stroke: st.border }}
-                    interval={0}
-                    minTickGap={0}
-                />
-                <YAxis
-                    tick={{ fontSize: 11, fill: st.textSecondary }}
-                    tickLine={false}
-                    axisLine={false}
-                    /* Na tyle szeroko, żeby „340 tys." zmieściło się w JEDNEJ linii -
-                       przy węższej osi Recharts łamał etykietę na „340" i „tys.". */
-                    width={64}
-                    allowDecimals={false}
-                    tickFormatter={axisMoney}
-                />
-                <Tooltip cursor={{ stroke: st.border, strokeWidth: 1 }} content={<WonTooltip />} />
-                <Line
-                    type="monotone"
-                    dataKey="value"
-                    stroke={WON}
-                    strokeWidth={2.5}
-                    connectNulls={false}
-                    dot={{ r: 3, fill: WON, strokeWidth: 0 }}
-                    activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff' }}
-                    animationDuration={700}
-                    animationEasing="ease-out"
-                />
-            </LineChart>
-        </ResponsiveContainer>
+        <ChartFrame>
+            <UnitSwitch role="group" aria-label="Jednostka wykresu">
+                <UnitButton type="button" $active={money} aria-pressed={money} onClick={() => pick('MONEY')}>
+                    Złotówki
+                </UnitButton>
+                <UnitButton type="button" $active={!money} aria-pressed={!money} onClick={() => pick('COUNT')}>
+                    Sztuki
+                </UnitButton>
+            </UnitSwitch>
+            <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={data} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
+                    <CartesianGrid stroke={st.border} vertical={false} />
+                    <XAxis
+                        dataKey="period"
+                        tick={{ fontSize: 11, fill: st.textSecondary }}
+                        tickLine={false}
+                        axisLine={{ stroke: st.border }}
+                        interval={0}
+                        minTickGap={0}
+                    />
+                    <YAxis
+                        tick={{ fontSize: 11, fill: st.textSecondary }}
+                        tickLine={false}
+                        axisLine={false}
+                        /* Na tyle szeroko, żeby „340 tys." zmieściło się w JEDNEJ linii -
+                           przy węższej osi Recharts łamał etykietę na „340" i „tys.".
+                           W sztukach etykieta jest krótka i ta sama szerokość trzyma
+                           wykres w tym samym miejscu przy przełączaniu jednostki. */
+                        width={64}
+                        allowDecimals={false}
+                        tickFormatter={money ? axisMoney : (n: number) => String(n)}
+                    />
+                    <Tooltip
+                        cursor={{ stroke: st.border, strokeWidth: 1 }}
+                        content={<PointTooltip unit={unit} />}
+                    />
+                    <Line
+                        type="monotone"
+                        dataKey="plotted"
+                        stroke={WON}
+                        strokeWidth={2.5}
+                        connectNulls={false}
+                        dot={{ r: 3, fill: WON, strokeWidth: 0 }}
+                        activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff' }}
+                        /* Bez animacji przy przełączaniu jednostki: siedemsetmilisekundowe
+                           przejście między skalą złotówek a skalą sztuk wygląda jak awaria
+                           wykresu, a nie jak zmiana podpisu osi. */
+                        animationDuration={700}
+                        animationEasing="ease-out"
+                        isAnimationActive={false}
+                    />
+                </LineChart>
+            </ResponsiveContainer>
+        </ChartFrame>
     );
 }

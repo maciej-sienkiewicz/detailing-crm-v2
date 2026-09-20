@@ -21,10 +21,19 @@
 //  4. SZCZEGÓŁY OBOK, NIE ZAMIAST. Na szerokim ekranie panel stoi przy kolejce,
 //     więc przeskakiwanie między sprawami nie zamyka i nie otwiera okna. Na
 //     telefonie miejsca na to nie ma i szczegóły wracają jako okno pełnoekranowe.
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styled, { css } from 'styled-components';
-import { ArrowLeft, BarChart3, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import {
+    Archive,
+    ArrowLeft,
+    BarChart3,
+    ChevronDown,
+    ChevronLeft,
+    ChevronRight,
+    ChevronUp,
+    Search,
+} from 'lucide-react';
 import { useBreakpoint } from '@/common/hooks';
 import {
     CLOSED_LEAD_STATUSES,
@@ -38,10 +47,10 @@ import { MailboxSyncPanel } from '../components/MailboxSyncPanel';
 import { LeadArchive } from '../components/LeadArchive';
 import { LeadDetailModal, LeadDetailPane } from '../components/LeadDetailModal';
 import { LeadQueueCard } from '../components/LeadQueueCard';
-import { LeadSegments, type LeadSegment } from '../components/LeadSegments';
-import { describeLeadUrgency } from '../utils/leadUrgency';
+import { WorklistPanel } from '../components/WorklistPanel';
+import { buildWorklist } from '../utils/leadWorklist';
 import type { LeadStatus } from '../types';
-import { EmptyHint, SurfaceCard } from '../components/shared';
+import { EmptyHint, SurfaceCard, formatMoney } from '../components/shared';
 import LeadAnalyticsView from './LeadAnalyticsView';
 
 /**
@@ -354,8 +363,92 @@ const BackToQueue = styled.button`
     svg { width: 16px; height: 16px; }
 `;
 
+/**
+ * Nagłówek sekcji w kolejce. Przyklejony, bo lista bywa długa, a bez niego
+ * po trzech przewinięciach nie wiadomo, na co się patrzy - a od tego, czy to
+ * „Czeka na Ciebie", czy „U klienta", zależy, czy trzydniowy wiek jest
+ * katastrofą, czy stanem normalnym.
+ *
+ * Kolor paska po lewej ten sam, co pasek pilności na karcie pod spodem: sekcja
+ * nie jest osobnym rodzajem alarmu, tylko podpisem tego, co i tak widać na
+ * krawędziach wierszy.
+ */
+const SectionHeader = styled.div<{ $tone: 'due' | 'stale' | 'quiet' }>`
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px 7px 12px;
+    background: ${p => p.theme.colors.surfaceAlt};
+    border-bottom: 1px solid ${p => p.theme.colors.border};
+    box-shadow: inset 3px 0 0 0 ${p =>
+        p.$tone === 'due' ? p.theme.colors.error
+        : p.$tone === 'stale' ? p.theme.colors.warning
+        : 'transparent'};
+
+    .title {
+        font-size: 11.5px;
+        font-weight: ${p => p.theme.fontWeights.bold};
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: ${p => p.theme.colors.textSecondary};
+    }
+
+    /* Licznik należy do etykiety sekcji, a nie do osobnej plakietki obok:
+       „Czeka na Ciebie · 5" to jedno zdanie, nie liczba przy tytule. */
+    .count {
+        font-size: 11.5px;
+        font-weight: ${p => p.theme.fontWeights.bold};
+        color: ${p => p.theme.colors.text};
+    }
+
+    /* Kwota tylko przy ciszy - tam każda sprawa przeszła przez wycenę. */
+    .value {
+        margin-left: auto;
+        font-size: 11.5px;
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        color: ${p => p.theme.colors.textSecondary};
+        font-variant-numeric: tabular-nums;
+    }
+
+    button.fold {
+        margin-left: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        border: none;
+        background: transparent;
+        padding: 2px 4px;
+        color: ${p => p.theme.colors.textMuted};
+        font-family: inherit;
+        font-size: 11.5px;
+        cursor: pointer;
+
+        &:hover { color: ${p => p.theme.colors.text}; }
+        &:focus-visible { outline: 2px solid ${p => p.theme.colors.primary}; outline-offset: 1px; }
+        svg { width: 14px; height: 14px; }
+    }
+`;
+
+/**
+ * Treść panelu startowego na wąskim ekranie - pod listą, bo tam kończy się praca.
+ *
+ * Renderowana wyłącznie poniżej progu podziału (warunek w JS, nie samo `display:none`):
+ * ukryta CSS-em nadal montowałaby drugi wykres Recharts przy każdym wejściu
+ * w moduł na desktopie. Zapytanie o dane jest wspólne (ten sam klucz), ale render
+ * już nie.
+ */
+const MobilePanel = styled.div`
+    margin: 0 12px 24px 12px;
+`;
+
 /** Statusy zamknięte - do rozpoznania deep-linku z analityki. */
 const CLOSED_SET = new Set<LeadStatus>(CLOSED_LEAD_STATUSES);
+
+/** Zwinięcie sekcji „U klienta" - per przeglądarka, przeżywa odświeżenie. */
+const QUIET_FOLDED_KEY = 'leadsQueue.quietFolded';
 
 export default function LeadsView() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -370,13 +463,16 @@ export default function LeadsView() {
     const isWide = useBreakpoint('md');
 
     /*
-     * Stan startowy z adresu, czytany raz. Analityka prowadzi tu z konkretnym
-     * pytaniem („pokaż zaległe", „pokaż przegrane"), więc kwota na poprzednim
-     * ekranie ma być dowodem, a nie twierdzeniem.
+     * Archiwum jest TRYBEM, nie trzecią sekcją.
+     *
+     * Sprawa rozstrzygnięta nie ma czyjego ruchu, więc nie mieści się w żadnej
+     * sekcji kolejki - a poza tym to inny zbiór: serwerowo stronicowany, rosnący
+     * bez końca i odwiedzany z konkretnym pytaniem, nie przeglądany. Kolejka
+     * i archiwum różnią się tak, jak w Poczcie różnią się foldery.
      */
-    const [segment, setSegment] = useState<LeadSegment>(() => {
+    const [inArchive, setInArchive] = useState(() => {
         const status = searchParams.get('status') as LeadStatus | null;
-        return status && CLOSED_SET.has(status) ? 'ARCHIVE' : 'OURS';
+        return Boolean(status && CLOSED_SET.has(status));
     });
     const [archiveStatus, setArchiveStatus] = useState<LeadStatus | undefined>(() => {
         const status = searchParams.get('status') as LeadStatus | null;
@@ -390,6 +486,28 @@ export default function LeadsView() {
      * zbiór jest nieograniczony i rośnie z każdym miesiącem).
      */
     const [queueQuery, setQueueQuery] = useState('');
+
+    /**
+     * Czy panel obok pokazuje podsumowanie miesiąca zamiast ekranu startowego.
+     *
+     * Analityka przestała być domyślną treścią panelu i jest teraz tym, czym
+     * zawsze była: raportem, po który się sięga. Stan jest lokalny, nie w adresie -
+     * to nie jest miejsce, do którego się wraca linkiem, tylko spojrzenie w bok
+     * w trakcie pracy.
+     */
+    const [summaryOpen, setSummaryOpen] = useState(false);
+
+    /** Zwinięcie najspokojniejszej sekcji - studio z osiemdziesięcioma sprawami zwinie ją raz. */
+    const [quietFolded, setQuietFolded] = useState(() => {
+        try { return localStorage.getItem(QUIET_FOLDED_KEY) === '1'; } catch { return false; }
+    });
+    const toggleQuiet = useCallback(() => {
+        setQuietFolded((folded) => {
+            const next = !folded;
+            try { localStorage.setItem(QUIET_FOLDED_KEY, next ? '1' : '0'); } catch { /* prywatne okno */ }
+            return next;
+        });
+    }, []);
 
     const selectedLeadId = searchParams.get('lead');
     const selectLead = useCallback(
@@ -405,8 +523,7 @@ export default function LeadsView() {
      * Stan trzyma ID sprawy, przy której użytkownik listę ROZWINĄŁ - a nie zwykłe
      * „otwarta/zamknięta". Dzięki temu otwarcie kolejnej sprawy zwija listę z
      * powrotem bez żadnego efektu synchronizującego: nowe ID po prostu nie zgadza
-     * się z zapamiętanym. Efekt ustawiający stan po zmianie propsa robiłby to samo,
-     * tylko o jeden render później i o jeden mechanizm drożej.
+     * się z zapamiętanym.
      */
     const [queueExpandedFor, setQueueExpandedFor] = useState<string | null>(null);
 
@@ -415,7 +532,7 @@ export default function LeadsView() {
     // Archiwum pobiera się dopiero, gdy ktoś w nie wejdzie: pusta lista statusów
     // to zero zapytań, więc kolejka nie płaci za dane, których nie pokazuje.
     const archive = useLeadsByStatuses(
-        segment === 'ARCHIVE' ? (archiveStatus ? [archiveStatus] : CLOSED_LEAD_STATUSES) : [],
+        inArchive ? (archiveStatus ? [archiveStatus] : CLOSED_LEAD_STATUSES) : [],
         { query: archiveQuery, sortDirection: 'DESC' }
     );
 
@@ -424,48 +541,55 @@ export default function LeadsView() {
     const mailboxSync = useMailboxSyncState();
 
     /**
-     * Kolejka: podział po tym, czyj jest ruch, i kolejność po wieku oczekiwania.
+     * Kolejka: trzy sekcje po tym, czyj jest ruch, w każdej kolejność po wieku.
      *
-     * Sortowanie jest tutaj, a nie na serwerze, bo „wszystkie otwarte" to trzy
-     * osobne odpowiedzi (filtr statusu jest jednowartościowy) - żadne sortowanie
-     * serwerowe nie ułoży trzech list w jedną. Zbiór jest ograniczony i widok
-     * ostrzega, gdy przestaje być kompletny.
+     * Cała reguła mieszka w [buildWorklist], bo tę samą odpowiedź musi dać nagłówek
+     * sekcji i zdanie w panelu obok. Policzona dwa razy rozjechałaby się pierwszego
+     * dnia, w którym ktoś zmieni jeden z warunków.
      */
-    const queue = useMemo(() => {
-        const entries = open.items.map((lead) => ({
-            lead,
-            urgency: describeLeadUrgency(lead, thresholds),
-        }));
-        const byAge = (a: typeof entries[number], b: typeof entries[number]) =>
-            b.urgency.waitingMs - a.urgency.waitingMs;
-        return {
-            ours: entries.filter((entry) => entry.urgency.turn === 'OURS').sort(byAge),
-            client: entries.filter((entry) => entry.urgency.turn === 'CLIENT').sort(byAge),
-        };
-    }, [open.items, thresholds]);
+    const worklist = useMemo(
+        () => buildWorklist(open.items, thresholds),
+        [open.items, thresholds]
+    );
 
-    const segmentEntries = segment === 'CLIENT' ? queue.client : queue.ours;
     /*
      * Po czym szukamy: nazwisko/kontakt, auto, usługi. Te trzy rzeczy stoją na
      * karcie, więc szukanie obiecuje dokładnie to, co widać - a nie trafia
      * w pola, których na liście nie ma i których nikt nie zobaczy w wyniku.
+     *
+     * Szukanie przecina WSZYSTKIE sekcje i zostawia te, w których coś zostało:
+     * człowiek szukający „Kowalskiego" nie wie, w której sekcji ten Kowalski
+     * siedzi, i nie powinien musieć wiedzieć.
      */
-    const visible = useMemo(() => {
+    const sections = useMemo(() => {
         const needle = queueQuery.trim().toLowerCase();
-        if (!needle) return segmentEntries;
-        return segmentEntries.filter(({ lead }) =>
-            [
-                lead.customerName,
-                lead.contactIdentifier,
-                lead.vehicleBrand,
-                lead.vehicleModel,
-                ...lead.tagLabels,
-            ]
-                .filter(Boolean)
-                .some((field) => String(field).toLowerCase().includes(needle))
-        );
-    }, [segmentEntries, queueQuery]);
-    const inArchive = segment === 'ARCHIVE';
+        if (!needle) return worklist.sections;
+        return worklist.sections
+            .map((section) => ({
+                ...section,
+                entries: section.entries.filter(({ lead }) =>
+                    [
+                        lead.customerName,
+                        lead.contactIdentifier,
+                        lead.vehicleBrand,
+                        lead.vehicleModel,
+                        ...lead.tagLabels,
+                    ]
+                        .filter(Boolean)
+                        .some((field) => String(field).toLowerCase().includes(needle))
+                ),
+            }))
+            .filter((section) => section.entries.length > 0);
+    }, [worklist.sections, queueQuery]);
+
+    /** Płaska lista widocznych spraw - dla skrótów j/k i dla pustego stanu. */
+    const visible = useMemo(
+        () =>
+            sections.flatMap((section) =>
+                section.key === 'CLIENT' && quietFolded ? [] : section.entries
+            ),
+        [sections, quietFolded]
+    );
 
     /** Rączka stoi tylko tam, gdzie jest co zwijać: panel obok kolejki i otwarta sprawa. */
     const railed = isSplit && !inArchive && Boolean(selectedLeadId);
@@ -480,10 +604,6 @@ export default function LeadsView() {
      * Escape w tym widoku nie miał dotąd żadnego znaczenia - panel szczegółów nie
      * jest oknem modalnym i nie ma czego zamykać. Teraz jest: „wyjdź ze sprawy
      * z powrotem do listy" to najczęstszy odruch po przeczytaniu zapytania.
-     *
-     * Podokna i menu obsługują Escape same (kreator rezerwacji, potwierdzenie
-     * kasacji, wybierak etapu) - gdy któreś stoi na wierzchu, klawisz należy do
-     * niego, nie do kolejki.
      */
     useEffect(() => {
         if (!queueCollapsed) return;
@@ -500,10 +620,8 @@ export default function LeadsView() {
     /**
      * `j` / `k` - następna i poprzednia sprawa bez odrywania ręki od klawiatury.
      *
-     * Ma sens wyłącznie przy panelu obok kolejki: skok, który za każdym razem
-     * zamyka i otwiera okno modalne, jest wolniejszy od kliknięcia. Skróty milczą,
-     * gdy fokus stoi w polu tekstowym - inaczej „j" w wyszukiwarce przewijałoby
-     * listę zamiast się wpisać.
+     * Skacze przez granice sekcji, bo to jest jedna lista: użytkownik przechodzi
+     * przez pracę po kolei, a nie po kategoriach.
      */
     useEffect(() => {
         if (!isSplit || inArchive) return;
@@ -531,28 +649,32 @@ export default function LeadsView() {
     }, [isSplit, inArchive, visible, selectedLeadId, selectLead]);
 
     /**
-     * Zmiana segmentu ZDEJMUJE zaznaczenie.
+     * Wejście i wyjście z archiwum ZDEJMUJE zaznaczenie.
      *
-     * Bez tego wejście w „Zamknięte" przy otwartym panelu podmieniało go na okno
+     * Bez tego wejście w archiwum przy otwartym panelu podmieniało go na okno
      * modalne z tą samą sprawą: panel stoi pod warunkiem `isSplit && !inArchive`,
-     * okno pod `(!isSplit || inArchive) && selectedLeadId`, więc archiwum gasiło
-     * pierwszy warunek i zapalało drugi. Wyglądało to na przypadkowe otwarcie
-     * cudzego leada, bo nim było.
+     * okno pod `(!isSplit || inArchive) && selectedLeadId`. Wyglądało to na
+     * przypadkowe otwarcie cudzego leada, bo nim było.
      *
      * Reguła jest szersza niż sama naprawa i celowo: zaznaczenie należy do LISTY,
-     * na którą się patrzy. Sprawa z „Twój ruch" wyświetlana obok kolejki „U klienta"
-     * to szczegóły rekordu, którego nie ma w widocznym spisie.
+     * na którą się patrzy.
      */
-    const changeSegment = useCallback(
-        (next: LeadSegment) => {
-            setSegment(next);
-            if (next !== 'ARCHIVE') setArchiveStatus(undefined);
+    const changeMode = useCallback(
+        (archive: boolean) => {
+            setInArchive(archive);
+            if (!archive) setArchiveStatus(undefined);
             selectLead(null);
         },
         [selectLead]
     );
 
-    const openArchive = () => changeSegment('ARCHIVE');
+    const openLeadFromPanel = useCallback(
+        (leadId: string) => {
+            setSummaryOpen(false);
+            selectLead(leadId);
+        },
+        [selectLead]
+    );
 
     // Pierwsza synchronizacja skrzynki w toku: leady dopiero powstają z nadciągającej
     // poczty, więc lista rosnąca z sekundy na sekundę wyglądałaby jak zepsuta.
@@ -589,51 +711,55 @@ export default function LeadsView() {
                         <SearchInput>
                             <Search size={14} />
                             <input
-                                placeholder="Szukaj w zapytaniach"
-                                value={queueQuery}
-                                onChange={(event) => setQueueQuery(event.target.value)}
-                                aria-label="Szukaj w zapytaniach"
+                                placeholder={inArchive ? 'Szukaj w zamkniętych' : 'Szukaj w zapytaniach'}
+                                value={inArchive ? archiveQuery : queueQuery}
+                                onChange={(event) =>
+                                    (inArchive ? setArchiveQuery : setQueueQuery)(event.target.value)
+                                }
+                                aria-label={inArchive ? 'Szukaj w zamkniętych' : 'Szukaj w zapytaniach'}
                             />
                         </SearchInput>
-                        {/* Na desktopie (panel obok kolejki) analityka jest domyślną treścią
-                            panelu, więc osobne wyjście nie jest potrzebne. Poniżej progu podziału
-                            panelu nie ma — tam analityka zostaje osobnym ekranem pod tym przyciskiem. */}
-                        {!isSplit && (
-                            <Link to="/leads/analytics" aria-label="Analityka">
-                                <IconAction title="Analityka"><BarChart3 /></IconAction>
+
+                        {/* Archiwum to osobny tryb, więc i wejście do niego jest jedno:
+                            tutaj. Nie ma go w rzędzie sekcji, bo sprawa rozstrzygnięta
+                            nie jest trzecim rodzajem ruchu. */}
+                        {!inArchive && (
+                            isWide ? (
+                                <GhostAction
+                                    as="button"
+                                    type="button"
+                                    onClick={() => changeMode(true)}
+                                    title="Szukaj w zamkniętych sprawach"
+                                >
+                                    <Archive /> Zamknięte
+                                </GhostAction>
+                            ) : (
+                                <IconAction
+                                    as="button"
+                                    type="button"
+                                    onClick={() => changeMode(true)}
+                                    title="Szukaj w zamkniętych sprawach"
+                                    aria-label="Szukaj w zamkniętych sprawach"
+                                >
+                                    <Archive />
+                                </IconAction>
+                            )
+                        )}
+
+                        {/* Poniżej progu podziału panelu nie ma, więc podsumowanie
+                            miesiąca zostaje osobnym ekranem pod tym przyciskiem. */}
+                        {!isSplit && !inArchive && (
+                            <Link to="/leads/analytics" aria-label="Podsumowanie miesiąca">
+                                <IconAction title="Podsumowanie miesiąca"><BarChart3 /></IconAction>
                             </Link>
                         )}
                     </SearchRow>
 
-                    {/* Na wąskim ekranie archiwum jest trybem, nie zakładką - więc i wyjście
-                        z niego jest jawne, a nie ukryte w przełączniku, którego tam nie ma. */}
-                    {!isWide && inArchive ? (
+                    {inArchive && (
                         <Toolbar>
-                            <BackToQueue type="button" onClick={() => changeSegment('OURS')}>
+                            <BackToQueue type="button" onClick={() => changeMode(false)}>
                                 <ArrowLeft /> Wróć do kolejki
                             </BackToQueue>
-                        </Toolbar>
-                    ) : (
-                        <Toolbar>
-                            <LeadSegments
-                                value={segment}
-                                ours={queue.ours.length}
-                                client={queue.client.length}
-                                showArchive={isWide}
-                                onChange={changeSegment}
-                            />
-                            {!isWide && (
-                                <IconAction
-                                    as="button"
-                                    type="button"
-                                    onClick={openArchive}
-                                    title="Szukaj w zamkniętych sprawach"
-                                    aria-label="Szukaj w zamkniętych sprawach"
-                                    style={{ marginLeft: 'auto' }}
-                                >
-                                    <Search />
-                                </IconAction>
-                            )}
                         </Toolbar>
                     )}
                 </QueueHeader>
@@ -655,36 +781,85 @@ export default function LeadsView() {
                             <EmptyHint>
                                 {queueQuery.trim()
                                     ? 'Nic nie pasuje do wyszukiwania'
-                                    : segment === 'OURS'
-                                        ? 'Nikt nie czeka na Twoją odpowiedź.'
-                                        : 'Nie czekamy teraz na żadnego klienta.'}
+                                    : worklist.total === 0
+                                        ? 'Nie ma otwartych zapytań.'
+                                        : 'Nikt nie czeka na Twoją odpowiedź.'}
                             </EmptyHint>
                         )}
 
-                        {visible.map(({ lead, urgency }) => (
-                            <LeadQueueCard
-                                key={lead.id}
-                                lead={lead}
-                                urgency={urgency}
-                                active={lead.id === selectedLeadId}
-                                dense={isSplit}
-                                onOpen={() => selectLead(lead.id)}
-                            />
-                        ))}
+                        {/* Jedna lista, trzy sekcje. Zakładki ukrywały pracę: licznik
+                            przy „U klienta" był celowo niepozorny, a to właśnie tam
+                            leżą rozmowy do odzyskania za zero złotych. Sekcja tego nie
+                            robi - porządkuje, zamiast chować. */}
+                        {sections.map((section) => {
+                            const folded = section.key === 'CLIENT' && quietFolded;
+                            return (
+                                <Fragment key={section.key}>
+                                    <SectionHeader
+                                        $tone={
+                                            section.key === 'OURS' ? 'due'
+                                            : section.key === 'SILENT' ? 'stale'
+                                            : 'quiet'
+                                        }
+                                    >
+                                        <span className="title">{section.title}</span>
+                                        <span className="count">{section.entries.length}</span>
+                                        {section.key === 'SILENT' && section.value > 0 && (
+                                            <span className="value">{formatMoney(section.value)}</span>
+                                        )}
+                                        {section.key === 'CLIENT' && (
+                                            <button
+                                                type="button"
+                                                className="fold"
+                                                aria-expanded={!folded}
+                                                onClick={toggleQuiet}
+                                            >
+                                                {folded ? <ChevronDown /> : <ChevronUp />}
+                                                {folded ? 'Pokaż' : 'Zwiń'}
+                                            </button>
+                                        )}
+                                    </SectionHeader>
+
+                                    {!folded && section.entries.map(({ lead, urgency }) => (
+                                        <LeadQueueCard
+                                            key={lead.id}
+                                            lead={lead}
+                                            urgency={urgency}
+                                            active={lead.id === selectedLeadId}
+                                            dense={isSplit}
+                                            onOpen={() => selectLead(lead.id)}
+                                        />
+                                    ))}
+                                </Fragment>
+                            );
+                        })}
 
                         {open.truncated && (
                             <Truncated>
                                 Otwartych spraw jest więcej, niż mieści jedna strona. Zamknij
-                                część zapytań albo skorzystaj z analityki, żeby zobaczyć całość.
+                                część zapytań albo skorzystaj z podsumowania, żeby zobaczyć całość.
                             </Truncated>
                         )}
                     </QueueScroll>
                 )}
+
+                {/* Wąski ekran: panelu obok nie ma, więc wykres i pokwitowanie stoją
+                    POD listą - za pracą, nie przed nią. Karta pierwszej sprawy tu nie
+                    wchodzi: powtarzałaby pierwszy wiersz listy o dwa piksele wyżej. */}
+                {!inArchive && !isSplit && (
+                    <MobilePanel>
+                        <WorklistPanel
+                            compact
+                            worklist={worklist}
+                            thresholds={thresholds}
+                            onOpenLead={openLeadFromPanel}
+                            onOpenSummary={() => setSummaryOpen(true)}
+                        />
+                    </MobilePanel>
+                )}
             </QueueColumn>
 
-            {/* Rączka kolejki: strzałka wysuwa listę z powrotem (to samo robi Esc)
-                i chowa ją ponownie. Zwinięcie dokłada panelowi 440 px - przy 1280 px
-                to różnica między dwiema wąskimi kolumnami a czytelnym oknem sprawy. */}
+            {/* Rączka kolejki: strzałka wysuwa listę z powrotem (to samo robi Esc). */}
             {railed && (
                 <QueueRail>
                     <RailToggle
@@ -704,28 +879,40 @@ export default function LeadsView() {
                 kliknięć, a nie piętnaście. */}
             {isSplit && !inArchive && (
                 <DetailColumn>
-                    {/* Jeden panel, dwa stany: wybrana sprawa albo — domyślnie — analityka.
-                        Analityka nie jest już osobnym ekranem, tylko domyślną treścią tej
-                        sekcji; zamknięcie sprawy wraca do niej, a jej odnośniki sterują
-                        kolejką/archiwum obok, zamiast przenosić na inny adres. */}
+                    {/*
+                      * Trzy stany panelu, w kolejności ważności: wybrana sprawa,
+                      * podsumowanie miesiąca na życzenie, a domyślnie - ekran startowy.
+                      *
+                      * Analityka NIE jest już treścią domyślną. Stała tu, bo było ją
+                      * gdzie postawić, a nie dlatego, że odpowiada na pytanie, z którym
+                      * wchodzi się do modułu. Pytanie brzmi „co mam teraz zrobić",
+                      * a nie „ile zamknąłem w tym miesiącu".
+                      */}
                     {selectedLeadId ? (
                         <LeadDetailPane
                             key={selectedLeadId}
                             leadId={selectedLeadId}
-                            /* Skrót bez podpowiedzi jest skrótem, którego nikt nie zna -
-                               a Esc jest tu jedyną drogą powrotu do listy z klawiatury. */
                             keyHint={queueCollapsed ? 'Esc — lista zapytań' : undefined}
                             onClose={() => selectLead(null)}
                             onDeleted={() => selectLead(null)}
                         />
-                    ) : (
+                    ) : summaryOpen ? (
                         <LeadAnalyticsView
                             embedded
-                            onOpenQueue={() => changeSegment('OURS')}
+                            onBack={() => setSummaryOpen(false)}
+                            onOpenQueue={() => setSummaryOpen(false)}
                             onOpenArchive={(status) => {
-                                changeSegment('ARCHIVE');
+                                setSummaryOpen(false);
+                                changeMode(true);
                                 if (status) setArchiveStatus(status);
                             }}
+                        />
+                    ) : (
+                        <WorklistPanel
+                            worklist={worklist}
+                            thresholds={thresholds}
+                            onOpenLead={openLeadFromPanel}
+                            onOpenSummary={() => setSummaryOpen(true)}
                         />
                     )}
                 </DetailColumn>

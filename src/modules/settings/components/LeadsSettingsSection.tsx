@@ -10,13 +10,15 @@
 // co dokładnie automat robi, czego NIE ruszy (poczta sprzed włączenia) i że jego
 // decyzja jest odwracalna jednym kliknięciem w skrzynce.
 
+import { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/common/components/Toast';
 import { leadsSettingsApi } from '../api/leadsSettingsApi';
-import type { AutoLeadConfig } from '../types';
+import type { AutoLeadConfig, LeadAlertConfig } from '../types';
 
 const AUTO_LEAD_CONFIG_QUERY_KEY = ['settings', 'auto-lead-config'] as const;
+const LEAD_ALERT_CONFIG_QUERY_KEY = ['settings', 'lead-alert-config'] as const;
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
 
@@ -30,6 +32,13 @@ const Spinner = styled.div`
     border-radius: 50%;
     animation: ${spin} 700ms linear infinite;
     margin: 60px auto;
+`;
+
+/** Dwie karty jedna pod drugą - ten sam odstęp, co między sekcjami ustawień. */
+const Stack = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 `;
 
 const Card = styled.div`
@@ -140,6 +149,58 @@ const DetailsList = styled.ul`
     }
 `;
 
+/** Pole liczbowe z jednostką w środku - „24 godz." czyta się jak zdanie, nie jak formularz. */
+const HoursField = styled.label`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+
+    input {
+        width: 68px;
+        padding: 7px 10px;
+        border: 1px solid ${p => p.theme.colors.border};
+        border-radius: ${p => p.theme.radii.md};
+        font-family: inherit;
+        font-size: 14px;
+        text-align: right;
+        color: ${p => p.theme.colors.text};
+        background: ${p => p.theme.colors.surface};
+        font-variant-numeric: tabular-nums;
+
+        &:focus { outline: none; border-color: ${p => p.theme.colors.primary}; }
+        &:disabled { opacity: 0.6; }
+    }
+
+    span {
+        font-size: 13px;
+        color: ${p => p.theme.colors.textSecondary};
+    }
+`;
+
+const SaveRow = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid ${p => p.theme.colors.border};
+`;
+
+const SaveButton = styled.button`
+    padding: 9px 18px;
+    border: none;
+    border-radius: ${p => p.theme.radii.md};
+    background: ${p => p.theme.colors.primary};
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    cursor: pointer;
+
+    &:disabled { opacity: 0.5; cursor: default; }
+`;
+
 const ActiveSince = styled.div`
     margin-top: 14px;
     font-size: 12.5px;
@@ -154,6 +215,133 @@ const formatMoment = (iso: string | null): string | null => {
     return Number.isNaN(date.getTime())
         ? null
         : date.toLocaleString('pl-PL', { dateStyle: 'long', timeStyle: 'short' });
+};
+
+/**
+ * Progi stygnięcia sprawy.
+ *
+ * Do tej pory te dwie liczby istniały wyłącznie w bazie i nikt nie miał jak ich
+ * zmienić, więc interfejs podstawiał własne 24/120 i musiał zgadywać, czy 48/72
+ * z serwera to wybór właściciela, czy brak wyboru. Odkąd kolejka dzieli się na
+ * sekcje według tych progów, to nie jest już detal plakietki: od nich zależy, co
+ * trafia do „Czeka na Ciebie", a co do „Ucichło".
+ *
+ * Jednostką są godziny, także przy ciszy klienta - przeliczanie dni na godziny
+ * przy zapisie i z powrotem przy odczycie dawałoby pole, które po zapisaniu „5 dni"
+ * pokazuje „4,96". Podpowiedź pod polem tłumaczy liczbę na dni.
+ */
+const StagnationCard = () => {
+    const { showSuccess, showError } = useToast();
+    const queryClient = useQueryClient();
+
+    const { data, isPending } = useQuery({
+        queryKey: LEAD_ALERT_CONFIG_QUERY_KEY,
+        queryFn: leadsSettingsApi.getAlertConfig,
+    });
+
+    const [draft, setDraft] = useState<LeadAlertConfig | null>(null);
+    const current = draft ?? data ?? null;
+
+    const save = useMutation({
+        mutationFn: (config: LeadAlertConfig) => leadsSettingsApi.updateAlertConfig(config),
+        onSuccess: (saved) => {
+            queryClient.setQueryData(LEAD_ALERT_CONFIG_QUERY_KEY, saved);
+            setDraft(null);
+            showSuccess('Progi zapisane');
+        },
+        onError: () => showError('Nie udało się zapisać progów'),
+    });
+
+    /** Zakres pilnuje backend (1–720 h); tu tylko nie wypuszczamy wartości, których nie przyjmie. */
+    const clamp = (value: number) => Math.min(720, Math.max(1, Math.round(value) || 1));
+    const dirty = Boolean(draft && data &&
+        (draft.leadStagnantOurThresholdHours !== data.leadStagnantOurThresholdHours ||
+         draft.leadStagnantClientThresholdHours !== data.leadStagnantClientThresholdHours));
+
+    const inDays = (hours: number) => {
+        const days = hours / 24;
+        if (days < 1) return `${hours} godz.`;
+        return Number.isInteger(days) ? `${days} dni` : `${days.toFixed(1)} dnia`;
+    };
+
+    return (
+        <Card>
+            <CardTitle>Kiedy sprawa stygnie</CardTitle>
+            <CardDescription>
+                Te dwie liczby dzielą kolejkę zapytań na sekcje i decydują o kolorze paska
+                przy każdym wierszu. Nie ma jednej dobrej wartości — zależy, po ilu godzinach
+                Twój klient dzwoni do konkurencji.
+            </CardDescription>
+
+            {isPending || !current ? (
+                <Spinner />
+            ) : (
+                <>
+                    <OptionRow>
+                        <OptionTexts>
+                            <OptionLabel>Nasza zwłoka przestaje być zadaniem, a staje się długiem</OptionLabel>
+                            <OptionHint>
+                                Po tylu godzinach bez naszej odpowiedzi wiersz zaczyna mówić, JAK DŁUGO
+                                klient czeka, a nie tylko że czeka. Teraz: {inDays(current.leadStagnantOurThresholdHours)}.
+                            </OptionHint>
+                        </OptionTexts>
+                        <HoursField>
+                            <input
+                                type="number"
+                                min={1}
+                                max={720}
+                                value={current.leadStagnantOurThresholdHours}
+                                disabled={save.isPending}
+                                onChange={(event) =>
+                                    setDraft({
+                                        ...current,
+                                        leadStagnantOurThresholdHours: clamp(Number(event.target.value)),
+                                    })
+                                }
+                            />
+                            <span>godz.</span>
+                        </HoursField>
+                    </OptionRow>
+
+                    <OptionRow>
+                        <OptionTexts>
+                            <OptionLabel>Cisza klienta to moment na przypomnienie</OptionLabel>
+                            <OptionHint>
+                                Po tylu godzinach bez odzewu sprawa schodzi z „U klienta" do sekcji
+                                „Ucichło”. Teraz: {inDays(current.leadStagnantClientThresholdHours)}.
+                            </OptionHint>
+                        </OptionTexts>
+                        <HoursField>
+                            <input
+                                type="number"
+                                min={1}
+                                max={720}
+                                value={current.leadStagnantClientThresholdHours}
+                                disabled={save.isPending}
+                                onChange={(event) =>
+                                    setDraft({
+                                        ...current,
+                                        leadStagnantClientThresholdHours: clamp(Number(event.target.value)),
+                                    })
+                                }
+                            />
+                            <span>godz.</span>
+                        </HoursField>
+                    </OptionRow>
+
+                    <SaveRow>
+                        <SaveButton
+                            type="button"
+                            disabled={!dirty || save.isPending}
+                            onClick={() => draft && save.mutate(draft)}
+                        >
+                            {save.isPending ? 'Zapisywanie…' : 'Zapisz progi'}
+                        </SaveButton>
+                    </SaveRow>
+                </>
+            )}
+        </Card>
+    );
 };
 
 export const LeadsSettingsSection = () => {
@@ -181,6 +369,7 @@ export const LeadsSettingsSection = () => {
     const activeSince = formatMoment(config?.enabledAt ?? null);
 
     return (
+        <Stack>
         <Card>
             <CardTitle>Automatyczne tworzenie leadów</CardTitle>
             <CardDescription>
@@ -241,5 +430,11 @@ export const LeadsSettingsSection = () => {
                 </>
             )}
         </Card>
+
+        {/* Progi stygnięcia stoją pod automatem, bo dotyczą tych samych leadów,
+            tyle że po ich powstaniu: pierwszy ustawia, CO wpada do kolejki,
+            drugi - kiedy kolejka zaczyna się dopominać. */}
+        <StagnationCard />
+        </Stack>
     );
 };

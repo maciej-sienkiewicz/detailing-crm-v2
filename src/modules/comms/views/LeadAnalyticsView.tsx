@@ -36,7 +36,7 @@ import { PeriodPicker } from '../components/analytics/PeriodPicker';
 import { buildPeriod, formatShort, type Period } from '../components/analytics/period';
 import { buildDemoAnalytics } from '../components/analytics/demoData';
 import { Hero, LeakList, MoneyLedger } from '../components/analytics/money';
-import { AnalyticsCard, RankedBars, YearLineChart, type YearPoint } from '../components/analytics/charts';
+import { AnalyticsCard, IntakeYearChart, RankedBars, type YearPoint } from '../components/analytics/charts';
 import { SOURCE_LABELS, formatMoney, percent, points } from '../components/analytics/tokens';
 
 // ── Progi ────────────────────────────────────────────────────────────────────
@@ -114,6 +114,26 @@ const EmbeddedHeader = styled.header`
     padding: 12px 20px;
     background: ${p => p.theme.colors.background};
     border-bottom: 1px solid ${st.border};
+`;
+
+/** Powrót z podsumowania na ekran startowy - ten sam kształt co „Wróć do kolejki". */
+const BackToStart = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px 4px 4px;
+    border: none;
+    background: transparent;
+    color: ${p => p.theme.colors.primary};
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: ${p => p.theme.fontWeights.medium};
+    cursor: pointer;
+
+    &:hover { text-decoration: underline; }
+    &:focus-visible { outline: 2px solid ${p => p.theme.colors.primary}; outline-offset: 1px; }
+
+    svg { width: 15px; height: 15px; }
 `;
 
 const HeaderCount = styled.span`
@@ -371,9 +391,21 @@ interface LeadAnalyticsViewProps {
     onOpenQueue?: () => void;
     /** Embedded: pokaż archiwum, opcjonalnie z filtrem statusu (zamiast navigate('/leads?status=...')). */
     onOpenArchive?: (status?: LeadStatus) => void;
+    /**
+     * Embedded: wyjście z podsumowania z powrotem na ekran startowy.
+     *
+     * Odkąd analityka nie jest domyślną treścią panelu, musi mieć drzwi: panel
+     * bez wyjścia zostawiałby użytkownika w raporcie, do którego wszedł na chwilę.
+     */
+    onBack?: () => void;
 }
 
-export default function LeadAnalyticsView({ embedded = false, onOpenQueue, onOpenArchive }: LeadAnalyticsViewProps) {
+export default function LeadAnalyticsView({
+    embedded = false,
+    onOpenQueue,
+    onOpenArchive,
+    onBack,
+}: LeadAnalyticsViewProps) {
     // „Ten miesiąc" domyślnie: właściciel rozlicza się miesiącami (księgowa, podatek, ZUS).
     const [period, setPeriod] = useState<Period>(() => buildPeriod('current', new Date()));
     const [demo, setDemo] = useState(false);
@@ -448,6 +480,13 @@ export default function LeadAnalyticsView({ embedded = false, onOpenQueue, onOpe
         return (
             <EmbeddedShell>
                 <EmbeddedHeader>
+                    {/* Wyjście stoi po lewej, przed liczbą zapytań: to jest droga
+                        powrotna, a nie jedna z akcji raportu. */}
+                    {onBack && (
+                        <BackToStart type="button" onClick={onBack}>
+                            <ArrowLeft /> Kolejka
+                        </BackToStart>
+                    )}
                     {/* Pusty element, gdy danych jeszcze nie ma - żeby wybór okresu
                         został przy prawej krawędzi i nie skakał po doczytaniu. */}
                     <HeaderCount>{shown ? leadCount(shown.totalCreated) : ''}</HeaderCount>
@@ -568,9 +607,10 @@ function Report({
             {/* ── FRONT · wszystkie zapytania przez cały rok ──────────────────── */}
             <AnalyticsCard
                 question="Zapytania miesiąc po miesiącu"
-                answer="Ile pieniędzy przyszło we wszystkich zapytaniach - cały rok, od stycznia do grudnia."
+                answer="Ile przyszło we wszystkich zapytaniach - cały rok, od stycznia do grudnia."
+                footnote="Przełącz na sztuki, gdy chcesz porównać ruch, a nie przychód."
             >
-                <YearLineChart points={yearSeries} />
+                <IntakeYearChart points={yearSeries} />
             </AnalyticsCard>
 
             {/* ── SZCZEGÓŁY (zwinięte) ────────────────────────────────────────── */}
@@ -702,16 +742,19 @@ function periodPhrase(period: Period): string {
 function buildYearSeries(analytics: LeadAnalytics | undefined): YearPoint[] {
     const currentMonth = new Date().getMonth();
     const byMonth = new Array<number>(12).fill(0);
+    const countByMonth = new Array<number>(12).fill(0);
     if (analytics) {
         for (const point of analytics.timeline) {
             const month = new Date(`${point.periodStart}T00:00:00`).getMonth();
             if (month < 0 || month > 11) continue;
             byMonth[month] += point.wonValue + point.lostValue + point.openValue + point.silentValue;
+            countByMonth[month] += point.created;
         }
     }
     return MONTH_ABBR.map((label, index) => ({
         period: label,
         value: index > currentMonth ? null : byMonth[index],
+        count: index > currentMonth ? null : countByMonth[index],
     }));
 }
 
@@ -722,9 +765,15 @@ function buildDemoYearSeries(): YearPoint[] {
         24_500_000, 27_800_000, 31_200_000, 28_600_000, 33_400_000, 30_100_000,
         25_900_000, 29_700_000, 31_860_000, 34_000_000, 36_500_000, 38_000_000,
     ];
+    // Sztuki nie są proporcjonalne do kwot i w przykładzie też nie mają być:
+    // lipiec z najniższym przychodem ma sporo tanich zapytań o mycie, a listopad
+    // odwrotnie. Przykład, w którym obie linie mają ten sam kształt, uczyłby, że
+    // przełącznik niczego nie zmienia.
+    const counts = [68, 74, 81, 77, 92, 88, 103, 84, 79, 71, 66, 70];
     return MONTH_ABBR.map((label, index) => ({
         period: label,
         value: index > currentMonth ? null : values[index],
+        count: index > currentMonth ? null : counts[index],
     }));
 }
 

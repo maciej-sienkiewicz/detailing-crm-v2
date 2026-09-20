@@ -268,8 +268,40 @@ export interface Lead {
     lastOutboundAt: string | null;
     firstResponseAt: string | null;
     closedAt: string | null;
+    /**
+     * Od kiedy TO MY jesteśmy coś winni klientowi - dług zgłoszony ręcznie.
+     *
+     * Odpowiednik „nieprzeczytanej" w poczcie: sprawa wraca do „Czeka na Ciebie"
+     * niezależnie od tego, kto napisał ostatni. Backend kasuje go dowodem spłaty
+     * (nasza wiadomość, kolejny kontakt bez obietnicy, rozstrzygnięcie sprawy).
+     */
+    owedSince: string | null;
+    /** Co jesteśmy winni - jedno zdanie z rozmowy; null, gdy nikt nie zanotował. */
+    owedNote: string | null;
     createdAt: string;
     updatedAt: string;
+}
+
+/**
+ * Dwanaście punktów na wykres „co miesiąc wpływa" - w sztukach i w złotówkach naraz.
+ *
+ * Obie jednostki jadą w jednej odpowiedzi, bo przełącznik nad wykresem ma go
+ * PRZERYSOWAĆ, a nie iść po dane: pobranie przy każdym przełączeniu zamieniłoby
+ * pytanie „a ile to było sztuk?" w sekundę czekania.
+ */
+export interface LeadIntakeYear {
+    year: number;
+    months: LeadIntakeMonth[];
+    /** Ile pieniędzy zamieniło się w rezerwacje od poniedziałku - pokwitowanie, nie zadanie. */
+    confirmedValueThisWeek: number;
+}
+
+export interface LeadIntakeMonth {
+    /** 1 = styczeń … 12 = grudzień. */
+    month: number;
+    /** null = miesiąc jeszcze nie nadszedł (dziura w linii, nie zero). */
+    count: number | null;
+    value: number | null;
 }
 
 export interface LeadPage {

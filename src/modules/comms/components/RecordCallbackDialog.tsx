@@ -10,12 +10,28 @@
 // Notatka jest opcjonalna świadomie: gdyby była wymagana, ludzie odnotowywaliby kontakt
 // rzadziej, a wtedy oś czasu kłamałaby dalej. Sam fakt kontaktu jest tu wartością,
 // jego treść tylko uzupełnieniem.
+//
+// ── „Co dalej?" - dwa przyciski zamiast jednego ─────────────────────────────
+//
+// Odnotowany kontakt stempluje reakcję studia, więc sprawa schodzi z kolejki
+// zaległości. W jednym codziennym przypadku jest to nieprawda: klient dzwoni
+// i prosi o przesłanie oferty mailem. Ruch zostaje wtedy PO NASZEJ stronie,
+// a sprawa - w danych nie do odróżnienia od załatwionej - znika z oczu.
+//
+// System nie dowie się tego nigdy, a człowiek wie na pewno przez trzydzieści
+// sekund po odłożeniu telefonu. To jest najtańsza chwila w całej aplikacji na
+// zadanie tego pytania - i dlatego pada tutaj, a nie nigdzie indziej.
+//
+// DWA PRZYCISKI, nie przycisk plus checkbox: checkbox zaznacza się świadomie,
+// a więc rzadko, a wtedy wróciłby stan sprzed pytania. Lewy jest częstszym
+// przypadkiem, ale żaden nie jest szary - wybór ma kosztować pół sekundy, a nie
+// chwilę zastanowienia nad tym, który jest „właściwy".
 
 import { useState } from 'react';
 import styled from 'styled-components';
 import { PhoneCall } from 'lucide-react';
 import { useRecordLeadCallback } from '../hooks/useLeads';
-import { IconButton, PrimaryButton } from './shared';
+import { IconButton } from './shared';
 
 const Backdrop = styled.div`
     position: fixed;
@@ -78,6 +94,66 @@ const Actions = styled.div`
     gap: 8px;
 `;
 
+/** Pytanie nad parą przycisków - nie etykieta pola, bo pola tu nie ma. */
+const Question = styled.div`
+    margin-top: 2px;
+    font-size: 12px;
+    font-weight: ${p => p.theme.fontWeights.bold};
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: ${p => p.theme.colors.textSecondary};
+`;
+
+/**
+ * Para równorzędnych wyjść. Na wąskim oknie łamią się na dwa wiersze, a nie
+ * ściskają do dwóch słów - „Mam coś wysłać" przycięte do „Mam coś…" przestaje
+ * być pytaniem, na które da się odpowiedzieć bez zgadywania.
+ */
+const Choice = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+
+    @media (max-width: 420px) {
+        grid-template-columns: 1fr;
+    }
+`;
+
+const ChoiceButton = styled.button`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: ${p => p.theme.radii.lg};
+    background: ${p => p.theme.colors.surface};
+    text-align: left;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all ${p => p.theme.transitions.fast};
+
+    .title {
+        font-size: 13.5px;
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        color: ${p => p.theme.colors.text};
+    }
+    .sub {
+        font-size: 11.5px;
+        line-height: 1.35;
+        color: ${p => p.theme.colors.textSecondary};
+    }
+
+    &:hover:not(:disabled) {
+        border-color: ${p => p.theme.colors.primary};
+        background: ${p => p.theme.colors.surfaceHover};
+    }
+    &:focus-visible {
+        outline: 2px solid ${p => p.theme.colors.primary};
+        outline-offset: 1px;
+    }
+    &:disabled { opacity: 0.6; cursor: progress; }
+`;
+
 interface RecordCallbackDialogProps {
     leadId: string;
     onClose: () => void;
@@ -87,9 +163,9 @@ export function RecordCallbackDialog({ leadId, onClose }: RecordCallbackDialogPr
     const [note, setNote] = useState('');
     const record = useRecordLeadCallback();
 
-    const submit = () => {
+    const submit = (owed: boolean) => {
         record.mutate(
-            { leadId, note: note.trim() || undefined },
+            { leadId, note: note.trim() || undefined, owed },
             { onSuccess: onClose }
         );
     };
@@ -100,8 +176,7 @@ export function RecordCallbackDialog({ leadId, onClose }: RecordCallbackDialogPr
                 <h4><PhoneCall /> Kontakt poza pocztą</h4>
                 <Hint>
                     Rozmowa telefoniczna, SMS albo spotkanie. Kontakt trafi na oś czasu
-                    leada, a lead zejdzie z kolejki oczekujących na naszą odpowiedź —
-                    tak samo jak po wysłaniu maila.
+                    sprawy — tak samo jak wysłany mail.
                 </Hint>
                 <textarea
                     placeholder="Notatka (opcjonalnie) — np. prosił o kontakt po 15…"
@@ -110,20 +185,33 @@ export function RecordCallbackDialog({ leadId, onClose }: RecordCallbackDialogPr
                     autoFocus
                     /* Ctrl/Cmd+Enter zapisuje - sam Enter łamie linię, jak w każdym
                        polu wielolinijkowym w tej aplikacji. */
+                    /* Ctrl/Cmd+Enter zapisuje wariant częstszy: skrót ma przyspieszać
+                       przypadek typowy, a nie podejmować za użytkownika decyzji, której
+                       nie widać na klawiaturze. */
                     onKeyDown={(event) => {
                         if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
                             event.preventDefault();
-                            submit();
+                            submit(false);
                         }
                     }}
                 />
+
+                <Question>Co dalej?</Question>
+                <Choice>
+                    <ChoiceButton type="button" disabled={record.isPending} onClick={() => submit(false)}>
+                        <span className="title">Czekam na klienta</span>
+                        <span className="sub">Piłka jest po jego stronie</span>
+                    </ChoiceButton>
+                    <ChoiceButton type="button" disabled={record.isPending} onClick={() => submit(true)}>
+                        <span className="title">Mam coś wysłać</span>
+                        <span className="sub">Sprawa zostaje w „Czeka na Ciebie"</span>
+                    </ChoiceButton>
+                </Choice>
+
                 <Actions>
                     <IconButton type="button" onClick={onClose} disabled={record.isPending}>
                         Anuluj
                     </IconButton>
-                    <PrimaryButton type="button" onClick={submit} disabled={record.isPending}>
-                        {record.isPending ? 'Zapisywanie…' : 'Zapisz kontakt'}
-                    </PrimaryButton>
                 </Actions>
             </Card>
         </Backdrop>

@@ -13,6 +13,7 @@ import type {
     LeadStatus,
     LeadTimelineEntry,
     LeadCallback,
+    LeadIntakeYear,
     SimilarVisits,
     MarkThreadAsLeadRequest,
 } from '../types';
@@ -98,11 +99,49 @@ export const leadsApi = {
         });
     },
 
-    /** „Oddzwoniłem" — notatka opcjonalna, sam fakt telefonu bywa całą informacją. */
-    recordCallback: async (leadId: string, note?: string): Promise<LeadCallback> => {
+    /**
+     * „Oddzwoniłem" — notatka opcjonalna, sam fakt telefonu bywa całą informacją.
+     *
+     * [owed] to odpowiedź na pytanie „co dalej": true, gdy po rozmowie coś zostało
+     * PO NASZEJ stronie (klient prosił o ofertę mailem). Bez tego rozmowa zakończona
+     * obietnicą zdejmowała sprawę z kolejki zaległości, bo w danych wygląda
+     * identycznie jak udzielona odpowiedź.
+     */
+    recordCallback: async (leadId: string, note?: string, owed = false): Promise<LeadCallback> => {
         const { data } = await apiClient.post(
             `/v1/leads/${leadId}/callbacks`,
+            { note: note?.trim() || null, owed },
+            { skipErrorToast: true }
+        );
+        return data;
+    },
+
+    /** „Wróć do mojego ruchu" — ręczne obejście reguły wnioskującej czyj ruch. */
+    declareOwed: async (leadId: string, note?: string): Promise<Lead> => {
+        const { data } = await apiClient.post(
+            `/v1/leads/${leadId}/owed`,
             { note: note?.trim() || null },
+            { skipErrorToast: true }
+        );
+        return data;
+    },
+
+    /** „Już wysłane" — jedyne ręczne zdjęcie długu; resztę kasują dowody spłaty. */
+    settleOwed: async (leadId: string): Promise<Lead> => {
+        const { data } = await apiClient.delete(`/v1/leads/${leadId}/owed`, {
+            skipErrorToast: true,
+        });
+        return data;
+    },
+
+    /**
+     * Wykres „co miesiąc wpływa". Osobno od /analytics, bo to jedyna rzecz z analityki,
+     * która stoi na domyślnym ekranie modułu — pełny rachunek liczyłby przy każdym
+     * wejściu w Leady macierze i segmenty, których ten ekran nie pokazuje.
+     */
+    getIntakeYear: async (year?: number): Promise<LeadIntakeYear> => {
+        const { data } = await apiClient.get(
+            year ? `/v1/leads/intake-year?year=${year}` : '/v1/leads/intake-year',
             { skipErrorToast: true }
         );
         return data;

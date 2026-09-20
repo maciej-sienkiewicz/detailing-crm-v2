@@ -57,11 +57,27 @@ export interface UrgencyInput {
     threadId: string | null;
     firstResponseAt: string | null;
     createdAt: string;
+    /**
+     * Od kiedy MY jesteśmy coś winni klientowi - dług zgłoszony ręcznie.
+     *
+     * Opcjonalne, bo ta reguła bywa wołana z kształtu uboższego niż pełny lead
+     * (i z testów sprzed tego pola). Brak długu to najczęstszy przypadek, więc
+     * jego nieobecność ma znaczyć „nie ma", a nie „nie wiadomo".
+     */
+    owedSince?: string | null;
+    /** Ostatnia NASZA wiadomość - dowód spłaty długu. */
+    lastOutboundAt?: string | null;
 }
 
 export interface LeadUrgency {
     turn: LeadTurn;
     tone: ReplyTone;
+    /**
+     * Czy ruch jest u nas DLATEGO, że ktoś zgłosił dług („mam coś wysłać"), a nie
+     * dlatego, że klient napisał ostatni. Karta mówi wtedy co innego: nie „odpisz",
+     * tylko „obiecałeś".
+     */
+    owed: boolean;
     /** Od kiedy trwa oczekiwanie; null przy sprawie zamkniętej. */
     waitingSince: string | null;
     /** Wiek oczekiwania w milisekundach; 0 przy sprawie zamkniętej. */
@@ -100,8 +116,26 @@ function respondedAfter(respondedAt: string | null, waitingSince: string): boole
     return new Date(respondedAt).getTime() > new Date(waitingSince).getTime();
 }
 
-function resolveTurn(lead: UrgencyInput): { turn: LeadTurn; since: string | null } {
-    if (CLOSED_STATUSES.has(lead.status)) return { turn: 'SETTLED', since: null };
+function resolveTurn(lead: UrgencyInput): { turn: LeadTurn; since: string | null; owed: boolean } {
+    if (CLOSED_STATUSES.has(lead.status)) return { turn: 'SETTLED', since: null, owed: false };
+
+    /*
+     * DŁUG ZGŁOSZONY RĘCZNIE bije wnioskowanie z korespondencji.
+     *
+     * Reguła „czyj ruch" czyta kierunek ostatniej wiadomości i w jednym codziennym
+     * przypadku myli się zawsze: klient dzwoni i prosi o przesłanie oferty mailem.
+     * Odnotowanie tej rozmowy stempluje reakcję studia, więc sprawa schodzi do
+     * „U klienta" - a klient czeka na coś, czego nie wysłaliśmy. Człowiek wie to
+     * na pewno w chwili, gdy odkłada telefon; system nie dowie się tego nigdy.
+     *
+     * Spłatą jest DOWÓD - nasza wiadomość wysłana po zgłoszeniu długu. Backend
+     * kasuje pole sam (przy wysyłce, przy kolejnym kontakcie, przy rozstrzygnięciu),
+     * ale robi to asynchronicznie; ten warunek jest zaworem na te kilkaset
+     * milisekund, w których pole jeszcze stoi, a wiadomość już poszła.
+     */
+    if (lead.owedSince && !respondedAfter(lead.lastOutboundAt ?? null, lead.owedSince)) {
+        return { turn: 'OURS', since: lead.owedSince, owed: true };
+    }
 
     if (lead.replyState === 'AWAITING_OUR_REPLY' && lead.waitingSince) {
         /*
@@ -125,24 +159,24 @@ function resolveTurn(lead: UrgencyInput): { turn: LeadTurn; since: string | null
          * zmiana O4 w docs/leads-queue-backend-spec.md.
          */
         if (respondedAfter(lead.firstResponseAt, lead.waitingSince)) {
-            return { turn: 'CLIENT', since: lead.firstResponseAt! };
+            return { turn: 'CLIENT', since: lead.firstResponseAt!, owed: false };
         }
-        return { turn: 'OURS', since: lead.waitingSince };
+        return { turn: 'OURS', since: lead.waitingSince, owed: false };
     }
     if (lead.replyState === 'AWAITING_CLIENT_REPLY' && lead.waitingSince) {
-        return { turn: 'CLIENT', since: lead.waitingSince };
+        return { turn: 'CLIENT', since: lead.waitingSince, owed: false };
     }
 
     // Lead bez wątku (telefon, formularz, dodany ręcznie) albo z wątkiem jeszcze
     // pustym. Dopóki nikt z naszej strony się nie odezwał, ruch jest nasz i trwa
     // od chwili wpłynięcia zapytania - to jest ten przypadek, który dotąd nie
     // istniał dla żadnego mechanizmu pilności.
-    if (!lead.firstResponseAt) return { turn: 'OURS', since: lead.createdAt };
+    if (!lead.firstResponseAt) return { turn: 'OURS', since: lead.createdAt, owed: false };
 
     // Odezwaliśmy się (mailem albo odnotowanym telefonem) - piłka jest u klienta.
     // Drugi i kolejny telefon nie przesuwa tej daty, bo backend zna wyłącznie
     // PIERWSZĄ odpowiedź; to świadome przybliżenie, opisane w specyfikacji.
-    return { turn: 'CLIENT', since: lead.firstResponseAt };
+    return { turn: 'CLIENT', since: lead.firstResponseAt, owed: false };
 }
 
 /**
@@ -155,12 +189,13 @@ export function describeLeadUrgency(
     thresholds: StagnationThresholds = DEFAULT_STAGNATION,
     now: number = Date.now()
 ): LeadUrgency {
-    const { turn, since } = resolveTurn(lead);
+    const { turn, since, owed } = resolveTurn(lead);
 
     if (turn === 'SETTLED' || !since) {
         return {
             turn: 'SETTLED',
             tone: 'neutral',
+            owed: false,
             waitingSince: null,
             waitingMs: 0,
             label: '',
@@ -178,9 +213,27 @@ export function describeLeadUrgency(
         // ton wypowiedzi, nie jej wagę: etykieta przestaje mówić, co trzeba
         // zrobić, i zaczyna mówić, jak długo tego nie robimy.
         const overdue = waitingMs >= thresholds.ourReplyHours * HOUR_MS;
+        // Dług mówi co innego niż zaległa odpowiedź: nie „klient napisał, odpisz",
+        // tylko „obiecałeś coś przysłać". Z tej różnicy wynika inna akcja i inne
+        // zdanie na karcie, więc nie wolno ich zlać w jedną etykietę.
+        if (owed) {
+            return {
+                turn,
+                tone: 'due',
+                owed: true,
+                waitingSince: since,
+                waitingMs,
+                icon: 'reply',
+                label: overdue ? `Obiecane ${age} temu` : 'Masz coś wysłać',
+                title: overdue
+                    ? `Obiecaliśmy coś przysłać ${age} temu i wciąż tego nie ma`
+                    : 'Po ostatniej rozmowie coś zostało po naszej stronie',
+            };
+        }
         return {
             turn,
             tone: 'due',
+            owed: false,
             waitingSince: since,
             waitingMs,
             icon: 'reply',
@@ -193,6 +246,7 @@ export function describeLeadUrgency(
     return {
         turn,
         tone: stale ? 'stale' : 'neutral',
+        owed: false,
         waitingSince: since,
         waitingMs,
         icon: stale ? 'clock' : 'question',

@@ -81,7 +81,7 @@ const Line = styled.div`
     min-width: 0;
 `;
 
-const Headline = styled.span`
+const Headline = styled.span<{ $unread: boolean }>`
     display: flex;
     align-items: center;
     gap: 6px;
@@ -89,9 +89,14 @@ const Headline = styled.span`
     /* Skala pisma wiersza w Poczcie: 13 / 12 / 12. Wcześniej 14,5 / 13 / 12,5
        robiło z kolejki listę nagłówków, a z listy rozmów - listę wpisów. */
     font-size: 13px;
-    font-weight: ${p => p.theme.fontWeights.semibold};
+    /*
+     * Pogrubienie znaczy dokładnie to, co w poczcie znaczy „nieprzeczytane":
+     * ruch jest po Twojej stronie. To jedyne pogrubienie w całym module - gdyby
+     * niosło coś jeszcze, przestałoby nieść to.
+     */
+    font-weight: ${p => (p.$unread ? p.theme.fontWeights.bold : p.theme.fontWeights.semibold)};
     letter-spacing: -0.01em;
-    color: ${p => p.theme.colors.text};
+    color: ${p => (p.$unread ? p.theme.colors.text : p.theme.colors.textSecondary)};
 
     > span {
         overflow: hidden;
@@ -155,24 +160,41 @@ export function LeadQueueCard({ lead, urgency, active, dense = false, onOpen }: 
      * zostaje sam identyfikator, żeby nie powtarzać nazwiska dwa razy.
      */
     const subtitle = vehicle ? person : lead.customerName ? lead.contactIdentifier : null;
-    // Ruch po naszej stronie = ktoś czeka na odpowiedź; u klienta = następny krok
-    // to ponowny kontakt z naszej strony.
-    const kind = urgency.turn === 'OURS' ? 'Nowa wiadomość' : 'Ponowny kontakt';
+    /*
+     * Czego karta wymaga. Dług ma własną etykietę, bo wymaga czego innego niż
+     * zaległa odpowiedź: przy „Nowa wiadomość" trzeba przeczytać i odpisać, przy
+     * „Obiecane" - wysłać coś, co się obiecało przez telefon. Zlanie ich w jedno
+     * kazałoby otwierać sprawę, żeby się dowiedzieć, o którą z dwóch rzeczy chodzi.
+     */
+    const kind = urgency.owed
+        ? 'Obiecane'
+        : urgency.turn === 'OURS'
+            ? 'Nowa wiadomość'
+            : 'Ponowny kontakt';
+
+    /*
+     * Druga linijka mówi o usługach - ale przy długu ważniejsze jest, CO jesteśmy
+     * winni. Notatka pochodzi z rozmowy („wysłać wycenę ceramiki"), więc jest
+     * konkretniejsza niż lista tagów i to ona ma stać na karcie.
+     */
+    const second = urgency.owed && lead.owedNote
+        ? lead.owedNote
+        : lead.tagLabels.length > 0
+            ? lead.tagLabels.join(', ')
+            : 'Bez opisu usługi';
 
     return (
         <Card $tone={urgency.tone} $active={active} $dense={dense}>
             <OpenArea type="button" $dense={dense} onClick={onOpen}>
                 <Line>
-                    <Headline>
+                    <Headline $unread={urgency.turn === 'OURS'}>
                         {lead.vehicleBrand && <CarLogoImage brand={lead.vehicleBrand} size="xs" />}
                         <span>{vehicle ?? person}</span>
                     </Headline>
                     {urgency.turn !== 'SETTLED' && <Kind>{kind}</Kind>}
                 </Line>
 
-                <Services>
-                    {lead.tagLabels.length > 0 ? lead.tagLabels.join(', ') : 'Bez opisu usługi'}
-                </Services>
+                <Services>{second}</Services>
 
                 {subtitle && (
                     <Who>

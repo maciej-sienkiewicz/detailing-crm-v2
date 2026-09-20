@@ -24,6 +24,7 @@ import type {
 export const LEADS_KEY = ['leads'];
 export const LEAD_DICTIONARIES_KEY = [...LEADS_KEY, 'dictionaries'];
 export const LEAD_ANALYTICS_KEY = [...LEADS_KEY, 'analytics'];
+export const LEAD_INTAKE_YEAR_KEY = [...LEADS_KEY, 'intake-year'];
 
 export const useLeads = (filters: {
     status?: LeadStatus;
@@ -159,6 +160,22 @@ export const useStagnationThresholds = (): StagnationThresholds => {
         };
     }, [data]);
 };
+
+/**
+ * Wykres „co miesiąc wpływa" na ekranie startowym modułu.
+ *
+ * Osobne, lekkie zapytanie zamiast pełnej analityki: ta ostatnia liczy macierze,
+ * segmenty aut i kilkaset surowych faktów, a ekran startowy rysuje z tego dwanaście
+ * punktów. `staleTime` godzinny, bo miesięczne słupki nie zmieniają się w trakcie
+ * jednej sesji na tyle, żeby warto było o nie pytać przy każdym wejściu w moduł.
+ */
+export const useLeadIntakeYear = (year?: number) =>
+    useQuery({
+        queryKey: [...LEAD_INTAKE_YEAR_KEY, year ?? 'current'],
+        queryFn: () => leadsApi.getIntakeYear(year),
+        staleTime: 60 * 60_000,
+        retry: false,
+    });
 
 export const useLead = (leadId: string | null) =>
     useQuery({
@@ -376,8 +393,8 @@ export const useRecordLeadCallback = () => {
     const invalidate = useLeadInvalidation();
     const { showSuccess, showError } = useToast();
     return useMutation({
-        mutationFn: ({ leadId, note }: { leadId: string; note?: string }) =>
-            leadsApi.recordCallback(leadId, note),
+        mutationFn: ({ leadId, note, owed }: { leadId: string; note?: string; owed?: boolean }) =>
+            leadsApi.recordCallback(leadId, note, owed ?? false),
         onSuccess: (_callback, { leadId }) => {
             invalidate(leadId);
             /*
@@ -397,6 +414,39 @@ export const useRecordLeadCallback = () => {
             const message =
                 (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
             showError('Nie udało się zapisać kontaktu', message ?? 'Spróbuj ponownie');
+        },
+    });
+};
+
+/**
+ * „Wróć do mojego ruchu" i „Już wysłane" - ręczne obejście reguły, która wnioskuje
+ * czyj ruch z kierunku ostatniej wiadomości.
+ *
+ * Odpowiednik „Oznacz jako nieprzeczytaną" z poczty i rzecz tego samego rodzaju:
+ * system uznał, że załatwione, człowiek mówi, że nie. Każde wnioskowanie stanu musi
+ * mieć takie obejście - inaczej użytkownik przestaje karmić system danymi, bo za
+ * uczciwe odnotowanie telefonu dostaje zniknięcie sprawy z listy.
+ *
+ * Komunikat mówi, CO SIĘ STAŁO z widokiem („wraca do…"), bo skutek tej akcji jest
+ * widoczny gdzie indziej niż miejsce kliknięcia - w kolejce obok albo pod spodem.
+ */
+export const useLeadOwed = () => {
+    const invalidate = useLeadInvalidation();
+    const { showSuccess, showError } = useToast();
+    return useMutation({
+        mutationFn: ({ leadId, owed, note }: { leadId: string; owed: boolean; note?: string }) =>
+            owed ? leadsApi.declareOwed(leadId, note) : leadsApi.settleOwed(leadId),
+        onSuccess: (_lead, { leadId, owed }) => {
+            invalidate(leadId);
+            showSuccess(
+                owed ? 'Sprawa wraca do Twojego ruchu' : 'Zdjęte z Twojego ruchu',
+                owed ? 'Znajdziesz ją w „Czeka na Ciebie"' : 'Sprawa wraca do „U klienta"'
+            );
+        },
+        onError: (error) => {
+            const message =
+                (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            showError('Nie udało się zmienić stanu sprawy', message ?? 'Spróbuj ponownie');
         },
     });
 };

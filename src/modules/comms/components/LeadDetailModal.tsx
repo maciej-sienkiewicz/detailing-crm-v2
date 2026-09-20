@@ -57,6 +57,7 @@ import {
     StickyNote,
     Tag,
     Trash2,
+    Undo2,
     UserRound,
     X,
 } from 'lucide-react';
@@ -86,6 +87,7 @@ import {
     useLeadDictionaries,
     useLeadTimeline,
     useLeadNotes,
+    useLeadOwed,
     useSimilarVisits,
     useUpdateLeadServices,
     useAcceptAllSuggestions,
@@ -1334,6 +1336,7 @@ export function LeadDetailModal({
     // „Kontakt poza pocztą": rozmowa czy SMS to kontakt, nie notatka — pyta o niego
     // osobne okno, bo notatka przy nim jest opcjonalna.
     const [callbackDialogOpen, setCallbackDialogOpen] = useState(false);
+    const owedMutation = useLeadOwed();
     // Drugie pytanie przy leadzie z rezerwacją: czy termin w kalendarzu idzie razem z nim.
     const [deleteAppointmentDialogOpen, setDeleteAppointmentDialogOpen] = useState(false);
     const [booking, setBooking] = useState(false);
@@ -2281,6 +2284,34 @@ export function LeadDetailModal({
                     <FooterButton type="button" onClick={() => setCallbackDialogOpen(true)}>
                         <PhoneCall size={17} /> Kontakt poza pocztą
                     </FooterButton>
+
+                    {/*
+                      * „Wróć do mojego ruchu" — odpowiednik „Oznacz jako nieprzeczytaną"
+                      * z poczty i rzecz tego samego rodzaju: system wywnioskował z rozmowy,
+                      * że sprawa jest załatwiona, a człowiek wie, że nie jest.
+                      *
+                      * Okno kontaktu pyta o to samo w chwili, gdy ktoś odkłada telefon —
+                      * to jest najtańszy moment. Tu stoi wersja na wszystkie pozostałe
+                      * przypadki: obietnicę złożoną mailem, kontakt odnotowany wcześniej
+                      * bez tego pytania, zwykłą pomyłkę w kliknięciu.
+                      *
+                      * Przy sprawie zamkniętej nie ma go wcale: nikt nie czeka na nic,
+                      * a przycisk cofający zamkniętą sprawę do kolejki byłby zaproszeniem
+                      * do odkopywania archiwum.
+                      */}
+                    {!closed && (
+                        <FooterButton
+                            type="button"
+                            disabled={owedMutation.isPending}
+                            onClick={() =>
+                                owedMutation.mutate({ leadId: lead.id, owed: !lead.owedSince })
+                            }
+                        >
+                            {lead.owedSince
+                                ? <><Check size={17} /> Już wysłane</>
+                                : <><Undo2 size={17} /> Wróć do mojego ruchu</>}
+                        </FooterButton>
+                    )}
 
                     {isPane && keyHint && <KeyHint>{keyHint}</KeyHint>}
 

@@ -125,3 +125,15 @@ export interface AutoLeadConfig {
     enabled: boolean;
     enabledAt: string | null;
 }
+
+/**
+ * Progi stygnięcia sprawy — po ilu godzinach kolejka zaczyna mówić podniesionym głosem.
+ *
+ * To są liczby, które dzielą kolejkę na sekcje i decydują o kolorze paska przy
+ * każdym wierszu, więc należą do studia, a nie do kodu: właściciel wie, po ilu
+ * godzinach JEGO klient dzwoni do konkurencji. Zakres 1–720 h pilnuje backend.
+ */
+export interface LeadAlertConfig {
+    leadStagnantOurThresholdHours: number;
+    leadStagnantClientThresholdHours: number;
+}
