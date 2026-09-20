@@ -1,19 +1,16 @@
 import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import {
-    Bar, CartesianGrid, ComposedChart, Line, LineChart, ReferenceLine,
+    CartesianGrid, ComposedChart, Line, LineChart, ReferenceLine,
     ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
-import {
-    ArrowDownRight, ArrowUpRight, Eye, ExternalLink, FileText, Flame, Megaphone, Pause,
-    RefreshCw, Sparkles, Star, TrendingDown, TrendingUp, type LucideIcon,
-} from 'lucide-react';
+import { RefreshCw, Star } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useBreakpoint } from '@/common/hooks';
-import type { Benchmark, BenchmarkRow, PulseEvent, PulseEventKind } from '../types';
+import type { Benchmark, BenchmarkRow } from '../types';
 import { PROFILE_COLORS } from '../types';
-import { usePulse, useResyncFailedProfiles } from '../hooks/useAnalytics';
-import { Card, CardTitle, CardHint, MetricCell, Pill, SelfTag, Spinner, formatNumber } from './MetricBits';
+import { useResyncFailedProfiles } from '../hooks/useAnalytics';
+import { Card, CardTitle, CardHint, MetricCell, Pill, SelfTag, formatNumber } from './MetricBits';
 import { WeekExplainPanel } from './WeekExplainPanel';
 
 /**
@@ -242,22 +239,6 @@ const MobileHeadline = styled.div`
     strong { font-weight: 700; }
 `;
 
-const MobilePulseFold = styled.button`
-    all: unset;
-    display: block;
-    width: 100%;
-    padding: 10px 12px;
-    margin-top: 6px;
-    border: 1px dashed ${st.border};
-    border-radius: ${st.radiusSm};
-    text-align: center;
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    color: ${st.accentBlue};
-    cursor: pointer;
-
-    &:hover { background: ${st.bgAccentBlue}; }
-`;
 
 const HintNote = styled.p`
     margin: 8px 0 0;
@@ -315,157 +296,10 @@ const WindowWarning = styled.p`
     line-height: 1.5;
 `;
 
-// ─── Puls konkurencji ────────────────────────────────────────────────────────
-
-const PulseHead = styled.div`
-    display: flex;
-    align-items: baseline;
-    flex-wrap: wrap;
-    gap: 10px;
-`;
-
-const PulseList = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 14px;
-`;
-
-/**
- * Wiersz płatny ma własny kolor ramki: kanał reklamowy jest jedyną rzeczą na tym
- * ekranie, która kosztuje konkurenta pieniądze, i nie może wyglądać jak kolejny post.
- */
-const PAID_COLOR = '#7c3aed';
-const PAID_DIM = 'rgba(139, 92, 246, 0.12)';
-
-const PulseRow = styled.div<{ $self: boolean; $paid?: boolean }>`
-    display: flex;
-    align-items: flex-start;
-    gap: 11px;
-    padding: 11px 13px;
-    border: 1px solid ${p => {
-        if (p.$paid) return 'rgba(139, 92, 246, 0.35)';
-        return p.$self ? st.accentBlue : st.border;
-    }};
-    border-radius: ${st.radiusSm};
-    background: ${p => {
-        if (p.$paid) return 'rgba(139, 92, 246, 0.05)';
-        return p.$self ? st.bgAccentBlue : st.bgCard;
-    }};
-`;
-
-const PaidBadge = styled.span`
-    padding: 1px 7px;
-    border-radius: ${st.radiusFull};
-    background: ${PAID_DIM};
-    color: #6d28d9;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.03em;
-`;
-
-const TONE_COLOR = {
-    good: st.accentGreen,
-    warn: st.accentAmber,
-    bad: st.accentRed,
-    neutral: st.accentBlue,
-    paid: PAID_COLOR,
-} as const;
-
-const TONE_BG = {
-    good: st.accentGreenDim,
-    warn: st.accentAmberDim,
-    bad: st.accentRedDim,
-    neutral: st.accentBlueDim,
-    paid: PAID_DIM,
-} as const;
-
-const PulseIcon = styled.span<{ $tone: keyof typeof TONE_COLOR }>`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    color: ${p => TONE_COLOR[p.$tone]};
-    background: ${p => TONE_BG[p.$tone]};
-`;
-
-const PulseBody = styled.div`
-    min-width: 0;
-    flex: 1;
-`;
-
-const PulseHeadline = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    flex-wrap: wrap;
-    font-size: ${st.fontSm};
-    font-weight: 700;
-    color: ${st.text};
-`;
-
-const PulseDetail = styled.div`
-    margin-top: 2px;
-    font-size: ${st.fontSm};
-    color: ${st.textSecondary};
-    line-height: 1.55;
-`;
-
-const PulseLink = styled.a`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    margin-top: 4px;
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    color: ${st.accentBlue};
-    text-decoration: none;
-
-    &:hover { text-decoration: underline; }
-`;
-
-const PulseDate = styled.span`
-    flex-shrink: 0;
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-    white-space: nowrap;
-    padding-top: 2px;
-`;
-
-const PulseFootnote = styled.p`
-    margin: 12px 0 0;
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-    line-height: 1.5;
-`;
-
-const DemoBanner = styled.div`
-    display: flex;
-    align-items: flex-start;
-    gap: 9px;
-    margin-top: 14px;
-    padding: 10px 12px;
-    border: 1px dashed ${st.accentAmber};
-    border-radius: ${st.radiusSm};
-    background: ${st.accentAmberDim};
-    font-size: ${st.fontSm};
-    color: ${st.text};
-    line-height: 1.5;
-
-    strong { font-weight: 700; }
-`;
-
-const DemoBtn = styled(Pill)`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    flex-shrink: 0;
-`;
-
 const MAX_CHART_PROFILES = 4;
+
+/** Ile profili mieści podpowiedź, zanim zacznie zasłaniać wykres, który opisuje. */
+const TOOLTIP_ROWS = 5;
 
 const formatWeekTick = (weekStart: string) =>
     new Date(weekStart).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
@@ -519,87 +353,6 @@ interface GrowthHeadline {
     multiple: number | null;
     gap: number;
 }
-
-type PulseTone = 'good' | 'warn' | 'bad' | 'neutral' | 'paid';
-
-/**
- * Podgląd sekcji dla studiów, u których nic się jeszcze nie wydarzyło albo norma
- * profili dopiero się zbiera. Pokazuje, jakiego rodzaju informacje tu trafiają -
- * dane są zmyślone i wyraźnie oznaczone jako przykład.
- */
-const DEMO_EVENTS: PulseEvent[] = [
-    {
-        kind: 'YOUR_POST',
-        isSelf: true,
-        username: 'ty',
-        headline: 'Twój post ze środy',
-        detail: '142 reakcje - powyżej twojej zwykłej średniej (58).',
-        permalink: null,
-        occurredAt: '20.08',
-    },
-    {
-        kind: 'FOLLOWER_SPIKE',
-        isSelf: true,
-        username: 'ty',
-        headline: 'U ciebie wyraźny przyrost obserwujących',
-        detail: '+34 w tym okresie, przy typowym tygodniu +6.',
-        permalink: null,
-        occurredAt: '23.08',
-    },
-    {
-        kind: 'ACCELERATION',
-        isSelf: false,
-        username: 'detailing_pro',
-        headline: '@detailing_pro publikuje więcej niż zwykle',
-        detail: '5 postów w tym okresie, przy zwykłym tempie 1 tygodniowo.',
-        permalink: null,
-        occurredAt: '22.08',
-    },
-    {
-        kind: 'STANDOUT_POST',
-        isSelf: false,
-        username: 'car_studio',
-        headline: '@car_studio ma post powyżej swojej normy',
-        detail: '312 reakcji przy zwykłych 74 - 4,2× więcej.',
-        permalink: null,
-        occurredAt: '21.08',
-    },
-    {
-        kind: 'NEW_TOPIC',
-        isSelf: false,
-        username: 'auto_spa',
-        headline: '@auto_spa pierwszy raz o: Folia ochronna PPF',
-        detail: 'Nie poruszał tego tematu przez ostatnie 26 tygodni.',
-        permalink: null,
-        occurredAt: '19.08',
-    },
-    {
-        kind: 'SLOWDOWN',
-        isSelf: false,
-        username: 'lakier_serwis',
-        headline: '@lakier_serwis milczy od 4 tygodni',
-        detail: 'Wcześniej publikował około 2 posty tygodniowo.',
-        permalink: null,
-        occurredAt: '26.07',
-    },
-];
-
-/**
- * Kolor niesie znaczenie: zielony to Twój dobry wynik, czerwony Twój problem,
- * bursztynowy to ruch u konkurencji wart uwagi, niebieski to zwykła informacja.
- */
-const PULSE_STYLE: Record<PulseEventKind, { icon: LucideIcon; tone: PulseTone }> = {
-    YOUR_POST: { icon: FileText, tone: 'neutral' },
-    YOUR_SILENCE: { icon: Pause, tone: 'bad' },
-    FOLLOWER_SPIKE: { icon: ArrowUpRight, tone: 'good' },
-    FOLLOWER_DROP: { icon: ArrowDownRight, tone: 'bad' },
-    ACCELERATION: { icon: TrendingUp, tone: 'warn' },
-    STANDOUT_POST: { icon: Flame, tone: 'warn' },
-    NEW_TOPIC: { icon: Sparkles, tone: 'warn' },
-    SLOWDOWN: { icon: TrendingDown, tone: 'neutral' },
-    AD_STARTED: { icon: Megaphone, tone: 'paid' },
-    AD_ENDED: { icon: Megaphone, tone: 'paid' },
-};
 
 export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) => {
     const isDesktop = useBreakpoint('md');
@@ -751,16 +504,6 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
             gap: leader.gain - self.gain,
         };
     }, [growth.totals]);
-
-    // ── Puls konkurencji ──────────────────────────────────────────────────────
-    // Liczony w całości po stronie backendu, bez modelu AI - więc ładuje się razem
-    // z zakładką, bez przycisku i bez czekania.
-    const pulseQuery = usePulse();
-    const [showPulseDemo, setShowPulseDemo] = useState(false);
-    const [pulseExpanded, setPulseExpanded] = useState(false);
-    const pulseEvents = showPulseDemo ? DEMO_EVENTS : pulseQuery.data?.events ?? [];
-    /** Na mobile pokazujemy 3 wydarzenia domyślnie, resztę pod expand — na desktopie wszystko naraz. */
-    const visiblePulseEvents = !isDesktop && !pulseExpanded ? pulseEvents.slice(0, 3) : pulseEvents;
 
     // ── Ponowienie pobrania dla profili z błędem ─────────────────────────────
     // Przycisk pojawia się WYŁĄCZNIE gdy jakiś profil ma flagę błędu - poza tym
@@ -981,21 +724,43 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                             />
                             <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: st.textMuted }} />
                             <Tooltip
+                                /* Podpowiedź trzymana przy górnej krawędzi wykresu zamiast
+                                   pod kursorem: przy kilku profilach chodziła po całym polu
+                                   danych i zasłaniała dokładnie to, co użytkownik porównywał. */
+                                position={{ y: 0 }}
+                                isAnimationActive={false}
                                 content={({ active, payload, label }) => {
                                     if (!active || !payload?.length) return null;
+                                    /*
+                                     * Tylko profile, które w tym tygodniu cokolwiek opublikowały,
+                                     * od najaktywniejszego. Lista wszystkich wybranych z zerami
+                                     * rosła do wysokości wykresu i mówiła głównie o tym, kto nic
+                                     * nie zrobił - a to widać na wykresie bez najeżdżania.
+                                     */
+                                    const rows = payload
+                                        .filter(entry => String(entry.dataKey).startsWith('p_'))
+                                        .filter(entry => Number(entry.value) > 0)
+                                        .sort((a, b) => Number(b.value) - Number(a.value));
                                     return (
                                         <TooltipBox>
                                             <strong>tydzień od {formatWeekTick(String(label))}</strong>
-                                            {payload
-                                                .filter(entry => String(entry.dataKey).startsWith('p_'))
-                                                .map(entry => {
+                                            {rows.length === 0 ? (
+                                                <div style={{ color: st.textMuted }}>nikt nie publikował</div>
+                                            ) : (
+                                                rows.slice(0, TOOLTIP_ROWS).map(entry => {
                                                     const profileId = String(entry.dataKey).slice(2);
                                                     return (
                                                         <div key={profileId} style={{ color: colorFor(profileId) }}>
-                                                            @{usernameFor(profileId)}: {entry.value} postów
+                                                            @{usernameFor(profileId)}: {entry.value}
                                                         </div>
                                                     );
-                                                })}
+                                                })
+                                            )}
+                                            {rows.length > TOOLTIP_ROWS && (
+                                                <div style={{ color: st.textMuted }}>
+                                                    +{rows.length - TOOLTIP_ROWS} więcej
+                                                </div>
+                                            )}
                                         </TooltipBox>
                                     );
                                 }}
@@ -1008,15 +773,32 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                                     strokeDasharray="4 3"
                                 />
                             ))}
-                            {selected.map(profileId => (
-                                <Bar
-                                    key={profileId}
-                                    dataKey={`p_${profileId}`}
-                                    fill={colorFor(profileId)}
-                                    radius={[3, 3, 0, 0]}
-                                    maxBarSize={18}
-                                />
-                            ))}
+                            {/*
+                              * Linie, nie słupki. Przy czterech profilach słupki dzielą każdy
+                              * tydzień na cztery wąskie paski i wykres zaczyna mówić o tygodniach,
+                              * a nie o profilach - a pytanie brzmi „kto publikuje więcej i czy
+                              * tempo rośnie". Linia niesie kierunek, słupek tylko wysokość.
+                              *
+                              * Własny profil grubszą kreską i bez przezroczystości - dokładnie
+                              * tak, jak na wykresie przyrostu obok, żeby oba czytało się tak samo.
+                              */}
+                            {selected.map(profileId => {
+                                const isSelf = benchmark.rows.find(r => r.profileId === profileId)?.isSelf;
+                                return (
+                                    <Line
+                                        key={profileId}
+                                        type="monotone"
+                                        dataKey={`p_${profileId}`}
+                                        stroke={colorFor(profileId)}
+                                        strokeWidth={isSelf ? 3 : 1.75}
+                                        strokeOpacity={isSelf ? 1 : 0.7}
+                                        dot={false}
+                                        activeDot={{ r: 4 }}
+                                        connectNulls={false}
+                                        isAnimationActive={false}
+                                    />
+                                );
+                            })}
                         </ComposedChart>
                     </ResponsiveContainer>
                     {annotations.length > 0 && (
@@ -1224,116 +1006,6 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                 </Card>
             </ChartsGrid>}
 
-            <Card>
-                <PulseHead>
-                    <div style={{ minWidth: 0 }}>
-                        <CardTitle>
-                            {isDesktop ? 'Puls konkurencji · ostatnie 7 dni' : 'Ostatnie 7 dni'}
-                            {isDesktop && pulseQuery.data && ` (${pulseQuery.data.windowFrom} – ${pulseQuery.data.windowTo})`}
-                        </CardTitle>
-                        {isDesktop && (
-                            <CardHint style={{ margin: 0 }}>
-                                Co wydarzyło się u obserwowanych profili. Każdą liczbę zestawiamy z normą
-                                danego profilu z ostatnich {pulseQuery.data?.baselineWeeks ?? 26} tygodni.
-                                Ta sekcja zawsze pokazuje ostatnie 7 dni - <strong>nie zależy od przełącznika
-                                okresu</strong> nad zakładką, bo zdarzenia sprzed miesięcy nie są już
-                                wiadomością.
-                            </CardHint>
-                        )}
-                    </div>
-                    {isDesktop && (
-                        <DemoBtn
-                            $active={showPulseDemo}
-                            onClick={() => setShowPulseDemo(value => !value)}
-                        >
-                            <Eye size={13} />
-                            {showPulseDemo ? 'Ukryj przykład' : 'Zobacz jak może wyglądać sekcja'}
-                        </DemoBtn>
-                    )}
-                </PulseHead>
-
-                {isDesktop && showPulseDemo && (
-                    <DemoBanner>
-                        <Eye size={15} style={{ flexShrink: 0, marginTop: 1 }} />
-                        <span>
-                            <strong>To jest przykład, nie Twoje dane.</strong> Tak wygląda ta sekcja, gdy
-                            zbierze się komplet historii - wpisy dotyczące prawdziwych postów mają dodatkowo
-                            link, który otwiera post na Instagramie.
-                        </span>
-                    </DemoBanner>
-                )}
-
-                {!showPulseDemo && pulseQuery.isLoading && (
-                    <div style={{ display: 'flex', justifyContent: 'center', padding: '28px 0' }}>
-                        <Spinner />
-                    </div>
-                )}
-
-                {!showPulseDemo && pulseQuery.isError && (
-                    <HintNote style={{ marginTop: 14 }}>
-                        Nie udało się pobrać pulsu. Odśwież stronę.
-                    </HintNote>
-                )}
-
-                {!showPulseDemo && pulseQuery.data && pulseQuery.data.events.length === 0 && (
-                    <HintNote style={{ marginTop: 14 }}>
-                        {pulseQuery.data.profilesWatched === 0
-                            ? 'Dodaj profile do obserwacji, aby zobaczyć, co się u nich dzieje.'
-                            : isDesktop
-                                ? 'W ostatnich 7 dniach nic się nie wydarzyło - ani u ciebie, ani u konkurencji. ' +
-                                  'Zobacz przykład powyżej, żeby sprawdzić, jakie zdarzenia tu trafiają.'
-                                : 'Ostatnie 7 dni bez zdarzeń.'}
-                    </HintNote>
-                )}
-
-                {pulseEvents.length > 0 && (
-                    <>
-                        <PulseList>
-                            {visiblePulseEvents.map((event, index) => {
-                                const style = PULSE_STYLE[event.kind];
-                                const Icon = style.icon;
-                                const isAd = event.kind === 'AD_STARTED' || event.kind === 'AD_ENDED';
-                                return (
-                                    <PulseRow key={`${event.kind}-${index}`} $self={event.isSelf} $paid={isAd}>
-                                        <PulseIcon $tone={style.tone}>
-                                            <Icon size={14} />
-                                        </PulseIcon>
-                                        <PulseBody>
-                                            <PulseHeadline>
-                                                {event.headline}
-                                                {isAd && <PaidBadge>REKLAMA</PaidBadge>}
-                                            </PulseHeadline>
-                                            {isDesktop && <PulseDetail>{event.detail}</PulseDetail>}
-                                            {event.permalink && (
-                                                <PulseLink
-                                                    href={event.permalink}
-                                                    target="_blank"
-                                                    rel="noreferrer noopener"
-                                                >
-                                                    {isAd ? 'Podgląd reklamy' : 'Zobacz post'}{' '}
-                                                    <ExternalLink size={11} />
-                                                </PulseLink>
-                                            )}
-                                        </PulseBody>
-                                        {event.occurredAt && <PulseDate>{event.occurredAt}</PulseDate>}
-                                    </PulseRow>
-                                );
-                            })}
-                        </PulseList>
-                        {!isDesktop && !pulseExpanded && pulseEvents.length > 3 && (
-                            <MobilePulseFold type="button" onClick={() => setPulseExpanded(true)}>
-                                Pokaż {pulseEvents.length - 3} więcej
-                            </MobilePulseFold>
-                        )}
-                        {isDesktop && !showPulseDemo && (
-                            <PulseFootnote>
-                                Nie widzimy zasięgów, zapisów, udostępnień ani tego, czy post był promowany
-                                płatnie - Instagram nie udostępnia tych danych dla obserwowanych profili.
-                            </PulseFootnote>
-                        )}
-                    </>
-                )}
-            </Card>
         </Layout>
     );
 };

@@ -11,12 +11,11 @@ import {
 } from '@/common/components/PageHeader/PageHeader';
 import { TabBar as SharedTabBar, type TabDefinition } from '@/common/components/TabBar/TabBar';
 import { useBreakpoint } from '@/common/hooks';
-import { useOverview, useBenchmark, useDigest } from '../hooks/useAnalytics';
+import { useBenchmark, useDigest } from '../hooks/useAnalytics';
 import { useInstagramProfiles } from '../hooks/useInstagramProfiles';
 import { useAdCalendar } from '../hooks/useAds';
 import { WeekTab } from '../components/WeekTab';
 import { BenchmarkTab } from '../components/BenchmarkTab';
-import { SyncStatusBar } from '../components/SyncStatusBar';
 import { ContentTab } from '../components/ContentTab';
 import { AdsTab } from '../components/AdsTab';
 import { AdDetailModal } from '../components/AdDetailModal';
@@ -293,7 +292,6 @@ export const CompetitionMonitoringView = () => {
     const [isAddOpen, setAddOpen] = useState(false);
     const [isGenerateOpen, setGenerateOpen] = useState(false);
 
-    const overviewQuery = useOverview(weeks);
     const digestQuery = useDigest(tab === 'tydzien');
     const benchmarkQuery = useBenchmark(weeks, tab === 'porownanie');
     const adsQuery = useAdCalendar(year, tab === 'reklamy');
@@ -421,7 +419,7 @@ export const CompetitionMonitoringView = () => {
         </MobileToolbar>
     );
 
-    /** Zakładki na desktopie: pod hero, pełny SyncStatusBar; na mobile są już w toolbarze. */
+    /** Zakładki na desktopie: pod hero; na mobile są już w toolbarze. */
     const desktopTabs = isDesktop && (
         <SharedTabBar
             tabs={TABS}
@@ -436,14 +434,6 @@ export const CompetitionMonitoringView = () => {
             {desktopHeader}
             {mobileToolbar}
 
-            {overviewQuery.data && (
-                <SyncStatusBar
-                    lastSyncAt={overviewQuery.data.lastSyncAt}
-                    nextDailySyncAt={overviewQuery.data.nextDailySyncAt}
-                    nextDeepSyncAt={overviewQuery.data.nextDeepSyncAt}
-                />
-            )}
-
             {desktopTabs}
 
             {tab === 'tydzien' && (
@@ -455,7 +445,7 @@ export const CompetitionMonitoringView = () => {
                         <span>Spróbuj odświeżyć stronę, jeśli problem wraca, daj nam znać.</span>
                     </CenterState>
                 ) : (
-                    <WeekTab digest={digestQuery.data ?? null} onOpenAd={setOpenAdId} />
+                    <WeekTab digest={digestQuery.data ?? null} />
                 )
             )}
 

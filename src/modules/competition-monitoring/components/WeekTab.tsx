@@ -2,9 +2,17 @@ import React from 'react';
 import styled from 'styled-components';
 import { ExternalLink, Lightbulb, Megaphone, Trophy, TrendingUp, Flame, Moon, Minus, Sparkles } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import type { DigestAd, DigestVerdict, ProfileDigest, WeeklyDigest } from '../types';
+import type {
+    DigestAd,
+    DigestVerdict,
+    ProfileDigest,
+    PulseEvent,
+    PulseEventKind,
+    WeeklyDigest,
+} from '../types';
 import { FORMAT_LABELS } from '../types';
-import { Card, CardTitle, CardHint, CenterState, SelfTag, formatExact, formatNumber } from './MetricBits';
+import { usePulse } from '../hooks/useAnalytics';
+import { Card, CardTitle, CardHint, CenterState, SelfTag, formatNumber } from './MetricBits';
 import { SuggestionsSection } from './SuggestionsSection';
 
 /**
@@ -145,49 +153,6 @@ const Evidence = styled.p<{ $secondary?: boolean }>`
     }
 `;
 
-/**
- * Kampania reklamowa obok linków do postów. Fioletowa, bo to jedyna rzecz w tym
- * wierszu, za którą konkurent zapłacił - i nie ma wyglądać jak kolejny post.
- */
-const AdChip = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 11px;
-    border-radius: ${st.radiusFull};
-    border: 1px solid rgba(139, 92, 246, 0.28);
-    background: rgba(139, 92, 246, 0.1);
-    color: #6d28d9;
-    font-family: inherit;
-    font-size: 11.5px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background ${st.transition};
-    max-width: 100%;
-    min-width: 0;
-    text-align: left;
-
-    /* Długie tytuły kampanii („Uruchomił: Powłoka ceramiczna · od 2 wrz") nie
-       mogą rozpychać wiersza profilu w bok — tniemy elipsą i pokazujemy pełny
-       tekst po tapnięciu przez AdDetailModal. */
-    > span, > strong {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        min-width: 0;
-    }
-
-    &:hover { background: rgba(139, 92, 246, 0.18); }
-    svg { width: 13px; height: 13px; flex-shrink: 0; }
-`;
-
-const AdChipLabel = styled.span`
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    min-width: 0;
-`;
-
 const PostLinks = styled.div`
     display: flex;
     flex-wrap: wrap;
@@ -213,6 +178,55 @@ const PostLink = styled.a<{ $highlight?: boolean }>`
     &:hover { border-color: ${st.accentBlue}; color: ${st.accentBlue}; }
 
     svg { width: 11px; height: 11px; }
+`;
+
+/**
+ * Dopisek w wierszu profilu: jeden sygnał, jedna linia.
+ *
+ * Te same fakty stały wcześniej w osobnej sekcji „Puls konkurencji" w zakładce
+ * Porównanie - jako druga lista o tym samym tygodniu, tylko w innym układzie
+ * i pod innym tytułem. Przy profilu, którego dotyczą, znaczą to samo i nie każą
+ * niczego zestawiać w głowie.
+ */
+const Signal = styled.div`
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    font-size: ${st.fontSm};
+    color: ${st.textSecondary};
+    line-height: 1.5;
+
+    svg { width: 13px; height: 13px; flex-shrink: 0; align-self: center; color: ${st.textMuted}; }
+
+    .detail { color: ${st.textMuted}; }
+`;
+
+/**
+ * Kropka zamiast ikony na sygnał: cztery różne ikony w jednym wierszu robiły
+ * z niego pasek narzędzi. Kolor niesie kierunek (w górę / w dół / neutralny),
+ * a treść i tak stoi obok słowami.
+ */
+const SIGNAL_COLOR: Record<string, string> = {
+    FOLLOWER_SPIKE: st.accentGreen,
+    FOLLOWER_DROP: st.accentRed,
+    SLOWDOWN: st.accentAmber,
+    NEW_TOPIC: st.accentBlue,
+};
+
+const SignalDot = styled.span<{ $kind: string }>`
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    align-self: center;
+    background: ${p => SIGNAL_COLOR[p.$kind] ?? st.textMuted};
+`;
+
+/** Nota pod listą: co pominięto i dlaczego. Cicho, bo to nie jest wiadomość. */
+const HiddenNote = styled.p`
+    margin: 14px 0 0;
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
 `;
 
 // ─── Sugestia ─────────────────────────────────────────────────────────────────
@@ -252,27 +266,54 @@ const RecoReason = styled.p`
 const formatDay = (iso: string) =>
     new Date(`${iso}T00:00:00Z`).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long' });
 
-/** „Uruchomił: Powłoka ceramiczna · od 2 wrz" - stan, nazwa, liczba. Bez zdania. */
-const adChipLabel = (ad: DigestAd): string => {
-    const name = ad.title?.trim() || 'kampania';
-    const reach = ad.reach !== null ? ` · ${formatExact(ad.reach)}` : '';
-    if (ad.state === 'STARTED') {
-        return `Uruchomił: ${name} · od ${formatDay(ad.startedOn)}`;
-    }
-    if (ad.state === 'RUNNING') {
-        return `Reklamuje: ${name} · ${ad.days}. dzień${reach}`;
-    }
-    return `Zakończył: ${name} · ${ad.days} dni${reach}`;
+/** „1 kampanię", „2 kampanie", „5 kampanii" - biernik, bo stoi po czasowniku. */
+const campaignWord = (n: number): string => {
+    if (n === 1) return 'kampanię';
+    const rest = n % 10;
+    const teens = n % 100;
+    return rest >= 2 && rest <= 4 && (teens < 12 || teens > 14) ? 'kampanie' : 'kampanii';
 };
 
-const DigestRow: React.FC<{ profile: ProfileDigest; onOpenAd?: (adId: string) => void }> = ({
+/**
+ * Reklamy jako JEDNO zdanie na profil, nie pigułka na kampanię.
+ *
+ * Stała tu nazwa kampanii wprost z Biblioteki Reklam Meta - a tam reklamodawcy
+ * wpisują w nagłówek cokolwiek, łącznie z listą wariantów do testowania
+ * („Alternatywnie dodaj kilka wariantów nagłówków: * Zabezpiecz lakier…").
+ * Takie pigułki miały po kilka linijek każda i zjadały cały wiersz profilu,
+ * a niosły to, co i tak widać w zakładce Reklamy.
+ *
+ * Tutaj liczy się sam FAKT: ktoś zaczął płacić za zasięg albo przestał. Treść
+ * kampanii, jej zasięg i czas trwania mają własną zakładkę i tam są czytelne.
+ */
+const adsSummary = (ads: DigestAd[]): string | null => {
+    if (ads.length === 0) return null;
+    const started = ads.filter(ad => ad.state === 'STARTED').length;
+    const ended = ads.filter(ad => ad.state === 'ENDED').length;
+    const running = ads.filter(ad => ad.state === 'RUNNING').length;
+
+    const parts: string[] = [];
+    if (started > 0) parts.push(`uruchomił ${started} ${campaignWord(started)}`);
+    // Rzeczownik tylko przy pierwszym członie: „uruchomił 1 kampanię, zakończył 1"
+    // czyta się jak zdanie, a powtórzone „kampanię" jak formularz.
+    if (ended > 0) parts.push(started > 0 ? `zakończył ${ended}` : `zakończył ${ended} ${campaignWord(ended)}`);
+    // Kampanie trwające dopisujemy tylko wtedy, gdy nic się w tym tygodniu nie
+    // zmieniło - inaczej zdanie rośnie o fakt, który nie jest nowiną.
+    if (parts.length === 0 && running > 0) parts.push(`prowadzi ${running} ${campaignWord(running)}`);
+    if (parts.length === 0) return null;
+
+    const sentence = parts.join(', ');
+    return sentence.charAt(0).toUpperCase() + sentence.slice(1);
+};
+
+const DigestRow: React.FC<{ profile: ProfileDigest; signals: PulseEvent[] }> = ({
     profile,
-    onOpenAd,
+    signals,
 }) => {
     const { Icon } = VERDICT_STYLE[profile.verdict];
     const links = profile.highlight ? [profile.highlight, ...profile.posts] : profile.posts;
     // Pole `ads` doszło później - w trakcie wdrożenia odpowiedź może go jeszcze nie mieć.
-    const ads = profile.ads ?? [];
+    const ads = adsSummary(profile.ads ?? []);
 
     return (
         <ProfileRow $self={profile.isSelf}>
@@ -289,7 +330,28 @@ const DigestRow: React.FC<{ profile: ProfileDigest; onOpenAd?: (adId: string) =>
 
                 <Evidence $secondary={Boolean(profile.achievements)}>{profile.evidence}</Evidence>
 
-                {(links.length > 0 || ads.length > 0) && (
+                {/*
+                  * Sygnały z pulsu, których wiersz sam nie niesie: zwolnienie tempa,
+                  * nowy temat, skok i spadek obserwujących. Przyspieszenie, hit i reklamy
+                  * są już wyżej - powtórzone tutaj byłyby tym samym faktem dwa razy
+                  * w jednym wierszu.
+                  */}
+                {signals.map(signal => (
+                    <Signal key={`${signal.kind}-${signal.occurredAt}`}>
+                        <SignalDot $kind={signal.kind} />
+                        {signal.headline}
+                        {signal.detail && <span className="detail"> {signal.detail}</span>}
+                    </Signal>
+                ))}
+
+                {ads && (
+                    <Signal>
+                        <Megaphone />
+                        {ads}
+                    </Signal>
+                )}
+
+                {links.length > 0 && (
                     <PostLinks>
                         {links.map(post => (
                             <PostLink
@@ -303,16 +365,6 @@ const DigestRow: React.FC<{ profile: ProfileDigest; onOpenAd?: (adId: string) =>
                                 {formatNumber(post.engagement)} <ExternalLink />
                             </PostLink>
                         ))}
-                        {ads.map(ad => (
-                            <AdChip
-                                key={ad.adId}
-                                type="button"
-                                onClick={() => onOpenAd?.(ad.adId)}
-                                title={adChipLabel(ad)}
-                            >
-                                <Megaphone /> <AdChipLabel>{adChipLabel(ad)}</AdChipLabel>
-                            </AdChip>
-                        ))}
                     </PostLinks>
                 )}
             </RowBody>
@@ -320,10 +372,52 @@ const DigestRow: React.FC<{ profile: ProfileDigest; onOpenAd?: (adId: string) =>
     );
 };
 
-export const WeekTab: React.FC<{
-    digest: WeeklyDigest | null;
-    onOpenAd?: (adId: string) => void;
-}> = ({ digest, onOpenAd }) => {
+/**
+ * Sygnały pulsu, które NIE powielają wiersza tygodnia.
+ *
+ * Przyspieszenie tempa, hit ponad normę, cisza własnego profilu i reklamy mają
+ * już swoje miejsce w wierszu (werdykt, dowód, zdanie o kampaniach). Zostają te
+ * cztery, których digest nie wyraża w ogóle.
+ */
+const EXTRA_SIGNALS = new Set<PulseEventKind>([
+    'SLOWDOWN',
+    'NEW_TOPIC',
+    'FOLLOWER_SPIKE',
+    'FOLLOWER_DROP',
+]);
+
+/**
+ * Wiersze, które nic nie wnoszą.
+ *
+ * Profil bez historii i bez publikacji daje nagłówek „@x bez publikacji w tym
+ * tygodniu" i dowód „Za krótko obserwowany, żeby ocenić, czy to nietypowe" -
+ * czyli dwa zdania, które razem mówią „nic nie wiemy i nic się nie stało".
+ * To jest jedyny przypadek, w którym wiersz jest pusty informacyjnie: cisza
+ * profilu, KTÓREGO rytm znamy (werdykt SILENT), jest już wiadomością.
+ *
+ * Nie znikają bez śladu: liczba ukrytych stoi pod listą, żeby właściciel wiedział,
+ * że nikt ich nie zgubił.
+ */
+const carriesNothing = (profile: ProfileDigest): boolean =>
+    profile.verdict === 'NEW' && profile.postsCount === 0;
+
+export const WeekTab: React.FC<{ digest: WeeklyDigest | null }> = ({ digest }) => {
+    /*
+     * Puls dociągamy tutaj, bo jego treść należy do tego ekranu - wcześniej był
+     * osobną sekcją w zakładce Porównanie i opowiadał o tym samym tygodniu drugi raz.
+     */
+    const pulse = usePulse();
+    const signalsByUser = React.useMemo(() => {
+        const map = new Map<string, PulseEvent[]>();
+        (pulse.data?.events ?? [])
+            .filter(event => EXTRA_SIGNALS.has(event.kind))
+            .forEach(event => {
+                const key = event.username.toLowerCase();
+                map.set(key, [...(map.get(key) ?? []), event]);
+            });
+        return map;
+    }, [pulse.data]);
+
     if (!digest || digest.profilesWatched === 0) {
         return (
             <Card>
@@ -337,6 +431,9 @@ export const WeekTab: React.FC<{
             </Card>
         );
     }
+
+    const shown = digest.profiles.filter(profile => !carriesNothing(profile));
+    const hidden = digest.profiles.length - shown.length;
 
     return (
         <Layout>
@@ -373,15 +470,28 @@ export const WeekTab: React.FC<{
                     Każdy profil raz, z tego tygodnia. Liczby porównujemy z normą danego profilu
                     z ostatniego pół roku, a nie ze średnią całej grupy.
                 </CardHint>
-                {digest.profiles.length === 0 ? (
+                {shown.length === 0 ? (
                     <CardHint style={{ marginBottom: 0 }}>
-                        Żaden z obserwowanych profili nie ma jeszcze danych. Wróć po najbliższej
-                        synchronizacji.
+                        {digest.profiles.length === 0
+                            ? 'Żaden z obserwowanych profili nie ma jeszcze danych. Wróć po najbliższej synchronizacji.'
+                            : 'W tym tygodniu nic się nie wydarzyło u obserwowanych profili.'}
                     </CardHint>
                 ) : (
-                    digest.profiles.map(profile => (
-                        <DigestRow key={profile.profileId} profile={profile} onOpenAd={onOpenAd} />
+                    shown.map(profile => (
+                        <DigestRow
+                            key={profile.profileId}
+                            profile={profile}
+                            signals={signalsByUser.get(profile.username.toLowerCase()) ?? []}
+                        />
                     ))
+                )}
+
+                {hidden > 0 && (
+                    <HiddenNote>
+                        {hidden === 1
+                            ? 'Jeden profil pominięty: bez publikacji i bez historii, z której dałoby się coś wyczytać.'
+                            : `${hidden} profile pominięte: bez publikacji i bez historii, z której dałoby się coś wyczytać.`}
+                    </HiddenNote>
                 )}
             </Card>
 
