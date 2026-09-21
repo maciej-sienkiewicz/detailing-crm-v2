@@ -80,23 +80,42 @@ const HeroHeader = styled.header`
     }
 `;
 
+/* Nagłówek łamie się SAM, bez zgadywania progu.
+   Poprzednio szyna akcji miała `flex-shrink: 0` przy `flex-direction: row`, więc
+   zabierała tyle, ile chciała (Door to door + „Wystaw fakturę konsumencką" + kebab
+   to ~470px), a blok tożsamości - `flex: 1; min-width: 0` - oddawał jej WSZYSTKO.
+   Przy 800px szerokości okna, gdy menu aplikacji zjada 248px, na tytuł zostawało
+   kilkanaście pikseli i „Kompleksowa korekta lakieru..." łamało się PO JEDNEJ
+   LITERZE w pionową kolumnę. Zgłoszenie z produkcji dotyczyło dokładnie tego.
+
+   Progu w media query tu nie da się trafić: nagłówek nie zna szerokości OKNA,
+   tylko swoją własną - a ta zależy od tego, czy menu boczne stoi rozwinięte.
+   Dlatego zamiast progu jest zawijanie: lewy blok ma bazę `HERO_LEFT_MIN`, więc
+   gdy tytuł i szyna nie mieszczą się obok siebie, szyna schodzi do własnego
+   wiersza. To samo zachowanie na każdej szerokości okna i przy każdym stanie menu. */
+const HERO_LEFT_MIN = '380px';
+
 const HeaderContent = styled.div`
     position: relative;
     z-index: 1;
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-start;
     justify-content: space-between;
     gap: 24px;
+    row-gap: 14px;
     padding: 22px 28px 18px;
     min-width: 0;
 
     @media (max-width: 900px) {
         gap: 16px;
+        row-gap: 12px;
         padding: 18px 20px 14px;
     }
 
     @media (max-width: 640px) {
         flex-direction: column;
+        flex-wrap: nowrap;
         align-items: stretch;
         gap: 10px;
         padding: 12px 14px 12px;
@@ -115,7 +134,10 @@ const HeaderLeftRow = styled.div`
     align-items: flex-start;
     gap: 16px;
     min-width: 0;
-    flex: 1;
+    /* Baza, nie zero: to ona decyduje, kiedy szyna akcji zejdzie do drugiego
+       wiersza. „flex: 1" (czyli „1 1 0%") nie ustąpiłoby nigdy - szyna dostawałaby
+       swoje ~470px zawsze, a tytuł resztę, choćby było jej kilkanaście pikseli. */
+    flex: 1 1 ${HERO_LEFT_MIN};
 
     /* Na telefonie kolumna z logo zabierała 72px z ~330px, przez co tytuł łamał
        się na dwie linie, a ołówek zostawał sam w trzeciej - wyglądało to na
@@ -124,6 +146,9 @@ const HeaderLeftRow = styled.div`
     @media (max-width: 640px) {
         flex-direction: column;
         gap: 12px;
+        /* Nagłówek jest tu KOLUMNĄ, a w kolumnie flex-basis opisuje WYSOKOŚĆ -
+           baza z układu poziomego rozpychała hero o 380px pustki pod tytułem. */
+        flex: 0 0 auto;
     }
 `;
 
@@ -447,21 +472,22 @@ const VehicleRow = styled.div`
 const HeaderRight = styled.div`
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
     gap: 8px;
     flex-shrink: 0;
     padding-top: 4px;
-
-    /* 900-640px: the hero is still a row, but three pill buttons plus a kebab no
-       longer fit next to the title, so let them wrap under each other. */
-    @media (max-width: 900px) {
-        flex-wrap: wrap;
-        justify-content: flex-end;
-    }
+    /* Trzyma szynę przy prawej krawędzi także wtedy, gdy zeszła do własnego
+       wiersza i jest na nim jedyna („space-between" wyrzuciłoby ją wtedy w lewo). */
+    margin-left: auto;
 
     /* On phones the primary action and the kebab share a single row: the
        action stretches, the kebab keeps its fixed 38px next to it. */
     @media (max-width: 640px) {
         width: 100%;
+        /* Szyna zajmuje tu całą szerokość, więc dosuwanie jej w prawo nie ma
+           już czego robić - a zostawione, odbierałoby przyciskowi rozciąganie. */
+        margin-left: 0;
         padding-top: 0;
         gap: 8px;
         flex-wrap: nowrap;
