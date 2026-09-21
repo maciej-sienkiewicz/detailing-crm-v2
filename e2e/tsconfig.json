@@ -1,0 +1,20 @@
+{
+  "//": "Testy E2E stoją poza `include: [\"src\"]` głównego projektu (tamten jest budowany przez Vite). Własny tsconfig daje im typy Node i te same aliasy ścieżek.",
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "baseUrl": "..",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
+  "include": ["**/*.ts", "../playwright.config.ts"]
+}

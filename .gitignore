@@ -30,3 +30,8 @@ vite.config.js
 
 # Zrzuty z scripts/screenshot-leads.mjs - artefakt przeglądu, nie kod.
 /screenshots/
+
+# Artefakty Playwrighta (ślady, zrzuty z nieudanych testów, raport HTML).
+/test-results/
+/playwright-report/
+/blob-report/
