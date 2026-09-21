@@ -32,8 +32,6 @@ import {
     BarChart3,
     CheckSquare,
     ChevronDown,
-    ChevronLeft,
-    ChevronRight,
     ChevronUp,
     Search,
     Trash2,
@@ -127,18 +125,20 @@ const AppCard = styled(SurfaceCard)`
  * w dwóch kolumnach. Przy 1280 px zostawało mu 592 px, bo 440 zabierała lista,
  * którą w trakcie czytania sprawy i tak się tylko mija. Zwinięcie oddaje te
  * 440 px treści, a lista wraca jednym klawiszem (Esc) albo jednym kliknięciem
- * w strzałkę - więc przeskakiwanie między sprawami nic nie traci.
+ * w strzałkę w nagłówku panelu - więc przeskakiwanie między sprawami nic nie traci.
  *
  * `visibility` zmienia się dopiero PO animacji: kolumna o zerowej szerokości
  * nadal trzyma w sobie przyciski, które łapałyby Tab i czytnik ekranu.
  */
-const QueueColumn = styled.div<{ $split: boolean; $collapsed: boolean; $railed: boolean }>`
+const QueueColumn = styled.div<{ $split: boolean; $collapsed: boolean }>`
     display: flex;
     flex-direction: column;
     min-height: 0;
     flex: ${p => (p.$split ? `0 0 ${p.$collapsed ? '0px' : '440px'}` : '1 1 auto')};
     width: ${p => (p.$split ? (p.$collapsed ? '0px' : '440px') : '100%')};
-    border-right: ${p => (p.$split && !p.$railed ? `1px solid ${p.theme.colors.border}` : 'none')};
+    /* Kreska podziału należy do kolumny, nie do osobnej rączki: gaśnie razem
+       z nią (patrz opacity niżej), więc po zwinięciu nie zostaje wisząca linia. */
+    border-right: ${p => (p.$split ? `1px solid ${p.theme.colors.border}` : 'none')};
     background: ${p => p.theme.colors.surface};
 
     ${p => p.$split && css`
@@ -163,50 +163,6 @@ const QueueColumn = styled.div<{ $split: boolean; $collapsed: boolean; $railed: 
         opacity: 1;
         visibility: visible;
     }
-`;
-
-/**
- * Rączka między kolejką a szczegółami - jedyna rzecz, która zostaje na ekranie
- * po zwinięciu listy.
- *
- * Stoi w układzie, a nie na wierzchu: przycisk unoszący się nad panelem zasłaniałby
- * jego treść, a tu nie ma czego zasłaniać, bo rączka ma własne 40 px.
- */
-const QueueRail = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    flex-shrink: 0;
-    width: 40px;
-    padding-top: 22px;
-    border-right: 1px solid ${p => p.theme.colors.border};
-    background: ${p => p.theme.colors.surface};
-`;
-
-const RailToggle = styled.button`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 44px;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.lg};
-    background: ${p => p.theme.colors.surface};
-    color: ${p => p.theme.colors.textSecondary};
-    cursor: pointer;
-    transition: all ${p => p.theme.transitions.fast};
-
-    &:hover {
-        background: ${p => p.theme.colors.surfaceHover};
-        border-color: ${p => p.theme.colors.textMuted};
-        color: ${p => p.theme.colors.text};
-    }
-    &:focus-visible {
-        outline: 2px solid ${p => p.theme.colors.primary};
-        outline-offset: 1px;
-    }
-
-    svg { width: 18px; height: 18px; }
 `;
 
 const DetailColumn = styled.div`
@@ -775,9 +731,9 @@ export default function LeadsView() {
         else setBulkConfirmOpen(true);
     }, [selectedWithAppointment]);
 
-    /** Rączka stoi tylko tam, gdzie jest co zwijać: panel obok kolejki i otwarta sprawa. */
-    const railed = isSplit && !inArchive && Boolean(selectedLeadId);
-    const queueCollapsed = railed && queueExpandedFor !== selectedLeadId;
+    /** Zwijać jest co tylko wtedy, gdy panel stoi obok kolejki i sprawa jest otwarta. */
+    const canCollapseQueue = isSplit && !inArchive && Boolean(selectedLeadId);
+    const queueCollapsed = canCollapseQueue && queueExpandedFor !== selectedLeadId;
     const toggleQueue = useCallback(() => {
         setQueueExpandedFor((current) => (current === selectedLeadId ? null : selectedLeadId));
     }, [selectedLeadId]);
@@ -802,7 +758,7 @@ export default function LeadsView() {
     }, [queueCollapsed, selectedLeadId]);
 
     /**
-     * Esc kończy zaznaczanie. Nasłuch stoi OSOBNO i wcześniej niż ten od rączki,
+     * Esc kończy zaznaczanie. Nasłuch stoi OSOBNO i wcześniej niż ten od kolejki,
      * bo to jest tryb: dopóki trwa, Escape znaczy „wyjdź z niego", a nie „pokaż
      * listę". Okno potwierdzenia obsługuje Escape samo i wtedy klawisz należy do niego.
      */
@@ -885,7 +841,7 @@ export default function LeadsView() {
         return (
             <ViewShell>
                 <AppCard>
-                <QueueColumn $split={false} $collapsed={false} $railed={false}>
+                <QueueColumn $split={false} $collapsed={false}>
                     <QueueHeader>
                         <div>
                             <h1>Zapytania</h1>
@@ -907,7 +863,6 @@ export default function LeadsView() {
             <QueueColumn
                 $split={isSplit && !inArchive}
                 $collapsed={queueCollapsed}
-                $railed={railed}
             >
                 <QueueHeader>
                     <SearchRow>
@@ -1115,21 +1070,6 @@ export default function LeadsView() {
                 )}
             </QueueColumn>
 
-            {/* Rączka kolejki: strzałka wysuwa listę z powrotem (to samo robi Esc). */}
-            {railed && (
-                <QueueRail>
-                    <RailToggle
-                        type="button"
-                        aria-expanded={!queueCollapsed}
-                        aria-label={queueCollapsed ? 'Pokaż listę zapytań' : 'Ukryj listę zapytań'}
-                        title={queueCollapsed ? 'Pokaż listę zapytań (Esc)' : 'Ukryj listę zapytań'}
-                        onClick={toggleQueue}
-                    >
-                        {queueCollapsed ? <ChevronRight /> : <ChevronLeft />}
-                    </RailToggle>
-                </QueueRail>
-            )}
-
             {/* Szczegóły obok kolejki: przeskakiwanie między sprawami nie zamyka
                 i nie otwiera okna, więc obsłużenie pięciu zapytań pod rząd to pięć
                 kliknięć, a nie piętnaście. */}
@@ -1149,6 +1089,8 @@ export default function LeadsView() {
                             key={selectedLeadId}
                             leadId={selectedLeadId}
                             keyHint={queueCollapsed ? 'Esc — lista zapytań' : undefined}
+                            queueCollapsed={queueCollapsed}
+                            onToggleQueue={canCollapseQueue ? toggleQueue : undefined}
                             onClose={() => selectLead(null)}
                             onDeleted={() => selectLead(null)}
                         />
