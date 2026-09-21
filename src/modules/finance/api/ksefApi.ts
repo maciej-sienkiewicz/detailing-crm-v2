@@ -15,6 +15,8 @@ import type {
   UpdateExpensePaymentStatusRequest,
   UpdateExpenseNoteRequest,
   KsefStatistics,
+  BulkPaymentStatusResult,
+  BulkPaymentStatusTarget,
 } from '../types';
 
 const BASE = '/v1/ksef';
@@ -132,6 +134,18 @@ export const ksefApi = {
     data: UpdateExpensePaymentStatusRequest,
   ): Promise<KsefExpense> => {
     const response = await apiClient.patch(`${BASE}/expenses/${id}/payment-status`, data);
+    return response.data;
+  },
+
+  /**
+   * Status płatności wielu dokumentów kosztowych naraz - jedno żądanie zamiast N
+   * PATCH-y z paska zaznaczenia.
+   */
+  updateExpensesPaymentStatus: async (
+    ids: string[],
+    paymentStatus: BulkPaymentStatusTarget,
+  ): Promise<BulkPaymentStatusResult> => {
+    const response = await apiClient.patch(`${BASE}/expenses/payment-status`, { ids, paymentStatus });
     return response.data;
   },
 

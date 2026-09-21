@@ -2,11 +2,13 @@ import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Check, Eye, EyeOff, FileText } from 'lucide-react';
 import { useMediaQuery } from '@/common/hooks';
+import type { RowSelection } from '@/common/hooks';
 import { useToast } from '@/common/components/Toast';
 import type { IncomeDocument, IncomeDocumentType, KsefRevenueStatus } from '../types';
 import { useExcludeIncomeDocument, useRestoreIncomeDocument } from '../hooks/useIncomeDocuments';
 import { ksefRevenueApi } from '../api/ksefRevenueApi';
 import { formatMoney, formatDate } from '../utils/formatters';
+import { RowCheckbox } from './SelectionControls';
 
 // ─── Layout (spójny z pozostałymi tabelami modułu finansowego) ───────────────
 
@@ -28,7 +30,7 @@ const Wrapper = styled.div`
 
 const Table = styled.table`
   width: 100%;
-  min-width: 1060px;
+  min-width: 1104px;
   border-collapse: collapse;
 `;
 
@@ -49,14 +51,29 @@ const Th = styled.th<{ $align?: 'left' | 'right' }>`
   &:last-child  { padding-right: 20px; }
 `;
 
-const Tr = styled.tr<{ $muted?: boolean }>`
+const Tr = styled.tr<{ $muted?: boolean; $selected?: boolean }>`
   border-bottom: 1px solid ${(p) => p.theme.colors.border};
   transition: background 0.12s ease;
   animation: ${fadeIn} 0.18s ease-out;
   cursor: pointer;
   opacity: ${(p) => (p.$muted ? 0.55 : 1)};
+  background: ${(p) => (p.$selected ? '#eff6ff' : 'transparent')};
   &:last-child { border-bottom: none; }
-  &:hover { background: ${(p) => p.theme.colors.surfaceHover}; }
+  &:hover { background: ${(p) => (p.$selected ? '#dbeafe' : p.theme.colors.surfaceHover)}; }
+`;
+
+/* Kolumna zaznaczenia: wąska i cicha, bo nie jest treścią wiersza - jest tylko
+   wejściem do operacji na wielu wierszach naraz. */
+const SelectCell = styled.td`
+  width: 44px;
+  padding: 13px 0 13px 20px;
+  vertical-align: middle;
+`;
+
+const SelectHead = styled.th`
+  width: 44px;
+  padding: 14px 0 14px 20px;
+  text-align: left;
 `;
 
 const Td = styled.td<{ $align?: 'left' | 'right' }>`
@@ -209,21 +226,40 @@ const CardList = styled.div`
   flex-direction: column;
 `;
 
+/* Na telefonie karta jest przyciskiem (cała otwiera dokument), więc pole wyboru
+   nie może siedzieć w środku - input wewnątrz <button> to nieprawidłowy HTML
+   i przeglądarka gubi wtedy kliknięcia. Stąd wiersz: pole obok przycisku. */
+const CardRow = styled.div<{ $selected?: boolean }>`
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding-left: 12px;
+  background: ${(p) => (p.$selected ? '#eff6ff' : 'transparent')};
+  border-bottom: 1px solid ${(p) => p.theme.colors.border};
+
+  &:last-child { border-bottom: none; }
+`;
+
+const CardSelect = styled.div`
+  display: flex;
+  align-items: center;
+  padding-top: 18px;
+`;
+
 const Card = styled.button<{ $muted?: boolean }>`
   display: flex;
   flex-direction: column;
   gap: 7px;
-  width: 100%;
-  padding: 14px 16px;
-  background: ${(p) => p.theme.colors.surface};
+  flex: 1;
+  min-width: 0;
+  padding: 14px 16px 14px 4px;
+  background: transparent;
   border: none;
-  border-bottom: 1px solid ${(p) => p.theme.colors.border};
   font-family: inherit;
   text-align: left;
   cursor: pointer;
   opacity: ${(p) => (p.$muted ? 0.6 : 1)};
 
-  &:last-child { border-bottom: none; }
   &:active { background: ${(p) => p.theme.colors.surfaceHover}; }
 `;
 
@@ -377,12 +413,21 @@ const EmptyState = styled.div`
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+/**
+ * Klucz wiersza listy przychodów. Samo id nie wystarcza: lista łączy ledger KSeF
+ * z dokumentami modułu finansowego, a te numerują się niezależnie.
+ */
+export const incomeRowKey = (doc: Pick<IncomeDocument, 'sourceKind' | 'id'>): string =>
+  `${doc.sourceKind}:${doc.id}`;
+
 interface IncomeDocumentsTableProps {
   documents: IncomeDocument[];
   isLoading: boolean;
   onSelect: (document: IncomeDocument) => void;
   /** Aktywna fraza wyszukiwarki - pusty wynik szukania to co innego niż pusta lista. */
   searchTerm?: string;
+  /** Zaznaczanie wielu wierszy pod operację grupową; brak = tabela bez pól wyboru. */
+  selection?: RowSelection;
 }
 
 export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
@@ -390,6 +435,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
   isLoading,
   onSelect,
   searchTerm,
+  selection,
 }) => {
   const excludeMutation = useExcludeIncomeDocument();
   const restoreMutation = useRestoreIncomeDocument();
@@ -460,61 +506,74 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
               // szary znaczek sugerowałby zaległość, której nie ma.
               const ksefMark = doc.ksefStatus ? KSEF_MARK[doc.ksefStatus] : null;
 
+              const rowKey = incomeRowKey(doc);
+              const selected = selection?.isSelected(rowKey) ?? false;
+
               return (
-                <Card
-                  key={`${doc.sourceKind}-${doc.id}`}
-                  type="button"
-                  $muted={doc.excluded || doc.duplicateStatus === 'CONFIRMED_DUPLICATE' || doc.ksefStatus === 'REJECTED'}
-                  onClick={() => onSelect(doc)}
-                >
-                  <CardTop>
-                    <CardParty>{doc.counterpartyName ?? 'Konsument'}</CardParty>
-                    <CardAmount $negative={doc.totalGross < 0}>{formatMoney(doc.totalGross)}</CardAmount>
-                  </CardTop>
+                <CardRow key={rowKey} $selected={selected}>
+                  {selection && (
+                    <CardSelect>
+                      <RowCheckbox
+                        checked={selected}
+                        onChange={() => selection.toggle(rowKey)}
+                        label={`Zaznacz dokument ${doc.documentNumber}`}
+                      />
+                    </CardSelect>
+                  )}
+                  <Card
+                    type="button"
+                    $muted={doc.excluded || doc.duplicateStatus === 'CONFIRMED_DUPLICATE' || doc.ksefStatus === 'REJECTED'}
+                    onClick={() => onSelect(doc)}
+                  >
+                    <CardTop>
+                      <CardParty>{doc.counterpartyName ?? 'Konsument'}</CardParty>
+                      <CardAmount $negative={doc.totalGross < 0}>{formatMoney(doc.totalGross)}</CardAmount>
+                    </CardTop>
 
-                  <CardMeta>
-                    {doc.documentNumber} · {formatDate(doc.issueDate)}
-                  </CardMeta>
+                    <CardMeta>
+                      {doc.documentNumber} · {formatDate(doc.issueDate)}
+                    </CardMeta>
 
-                  <CardBadges>
-                    <TypeCell>
-                      <Badge $variant={type.variant}>{type.label}</Badge>
-                      {ksefMark && (
-                        <KsefCheck $on={ksefMark.on} title={ksefMark.title} aria-label={ksefMark.title}>
-                          <Check size={15} strokeWidth={3} />
-                        </KsefCheck>
+                    <CardBadges>
+                      <TypeCell>
+                        <Badge $variant={type.variant}>{type.label}</Badge>
+                        {ksefMark && (
+                          <KsefCheck $on={ksefMark.on} title={ksefMark.title} aria-label={ksefMark.title}>
+                            <Check size={15} strokeWidth={3} />
+                          </KsefCheck>
+                        )}
+                      </TypeCell>
+                      <Badge $variant={payment.variant}>{payment.label}</Badge>
+                      {doc.ksefStatus === 'REJECTED' && <Badge $variant="red">Odrzucona</Badge>}
+                      {doc.duplicateStatus === 'SUSPECTED' && (
+                        <Badge $variant="red">⚠ Duplikat?</Badge>
                       )}
-                    </TypeCell>
-                    <Badge $variant={payment.variant}>{payment.label}</Badge>
-                    {doc.ksefStatus === 'REJECTED' && <Badge $variant="red">Odrzucona</Badge>}
-                    {doc.duplicateStatus === 'SUSPECTED' && (
-                      <Badge $variant="red">⚠ Duplikat?</Badge>
-                    )}
-                    {doc.excluded && <Badge $variant="slate">Ukryty</Badge>}
-                    <CardBadgeSpacer />
-                    {canPreviewPdf(doc) && (
+                      {doc.excluded && <Badge $variant="slate">Ukryty</Badge>}
+                      <CardBadgeSpacer />
+                      {canPreviewPdf(doc) && (
+                        <ActionBtn
+                          type="button"
+                          $variant="pdf"
+                          disabled={pdfPendingId === doc.id}
+                          onClick={(e) => openPdf(e, doc)}
+                          title="Faktura PDF"
+                          aria-label="Faktura PDF"
+                        >
+                          <FileText size={15} />
+                        </ActionBtn>
+                      )}
                       <ActionBtn
                         type="button"
-                        $variant="pdf"
-                        disabled={pdfPendingId === doc.id}
-                        onClick={(e) => openPdf(e, doc)}
-                        title="Faktura PDF"
-                        aria-label="Faktura PDF"
+                        $variant={doc.excluded ? 'restore' : 'exclude'}
+                        disabled={busy}
+                        onClick={(e) => toggleExcluded(e, doc)}
+                        title={doc.excluded ? 'Przywróć do statystyk' : 'Ukryj ze statystyk'}
                       >
-                        <FileText size={15} />
+                        {doc.excluded ? <Eye size={15} /> : <EyeOff size={15} />}
                       </ActionBtn>
-                    )}
-                    <ActionBtn
-                      type="button"
-                      $variant={doc.excluded ? 'restore' : 'exclude'}
-                      disabled={busy}
-                      onClick={(e) => toggleExcluded(e, doc)}
-                      title={doc.excluded ? 'Przywróć do statystyk' : 'Ukryj ze statystyk'}
-                    >
-                      {doc.excluded ? <Eye size={15} /> : <EyeOff size={15} />}
-                    </ActionBtn>
-                  </CardBadges>
-                </Card>
+                    </CardBadges>
+                  </Card>
+                </CardRow>
               );
             })}
       </CardList>
@@ -526,6 +585,17 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
       <Table>
         <Thead>
           <tr>
+            {selection && (
+              <SelectHead>
+                <RowCheckbox
+                  onDark
+                  checked={selection.allSelected}
+                  indeterminate={selection.someSelected}
+                  onChange={selection.toggleAll}
+                  label="Zaznacz wszystkie dokumenty na stronie"
+                />
+              </SelectHead>
+            )}
             <Th>Data</Th>
             <Th>Typ</Th>
             <Th>Numer</Th>
@@ -540,7 +610,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
           {isLoading
             ? Array.from({ length: 5 }).map((_, i) => (
                 <SkeletonRow key={i}>
-                  {Array.from({ length: 8 }).map((_, j) => (
+                  {Array.from({ length: selection ? 9 : 8 }).map((_, j) => (
                     <td key={j}><div /></td>
                   ))}
                 </SkeletonRow>
@@ -552,16 +622,28 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                 // czego „jeszcze nie mieć" i szary znaczek mówiłby o zaległości, której nie ma.
                 const ksefMark = doc.ksefStatus ? KSEF_MARK[doc.ksefStatus] : null;
 
+                const rowKey = incomeRowKey(doc);
+
                 return (
                   <Tr
-                    key={`${doc.sourceKind}-${doc.id}`}
+                    key={rowKey}
                     $muted={
                       doc.excluded ||
                       doc.duplicateStatus === 'CONFIRMED_DUPLICATE' ||
                       doc.ksefStatus === 'REJECTED'
                     }
+                    $selected={selection?.isSelected(rowKey) ?? false}
                     onClick={() => onSelect(doc)}
                   >
+                    {selection && (
+                      <SelectCell>
+                        <RowCheckbox
+                          checked={selection.isSelected(rowKey)}
+                          onChange={() => selection.toggle(rowKey)}
+                          label={`Zaznacz dokument ${doc.documentNumber}`}
+                        />
+                      </SelectCell>
+                    )}
                     <Td>{formatDate(doc.issueDate)}</Td>
                     <Td>
                       <TypeCell>

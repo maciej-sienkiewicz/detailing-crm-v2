@@ -6,3 +6,5 @@ export { useVisualViewportSheet } from './useVisualViewportSheet';
 export { useModalViewport } from './useModalViewport';
 export { useMediaQuery } from './useMediaQuery';
 export { useContainerWidth } from './useContainerWidth';
+export { useRowSelection } from './useRowSelection';
+export type { RowSelection } from './useRowSelection';

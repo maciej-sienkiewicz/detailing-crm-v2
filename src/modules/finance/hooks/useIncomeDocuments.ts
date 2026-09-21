@@ -2,7 +2,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { incomeDocumentsApi } from '../api/incomeDocumentsApi';
 import { KSEF_REVENUE_KEY } from './useKsefRevenue';
 import { useInvalidateFinance } from './useFinance';
-import type { IncomeDocumentFilters, IncomeSourceKind } from '../types';
+import type {
+  BulkPaymentStatusTarget,
+  IncomeDocumentFilters,
+  IncomeDocumentRef,
+  IncomeSourceKind,
+} from '../types';
 
 export const INCOME_DOCUMENTS_KEY = ['finance', 'income-documents'] as const;
 
@@ -53,6 +58,24 @@ export const useRestoreIncomeDocument = () => {
   return useMutation({
     mutationFn: ({ sourceKind, id }: { sourceKind: IncomeSourceKind; id: string }) =>
       incomeDocumentsApi.restore(sourceKind, id),
+    onSuccess: invalidate,
+  });
+};
+
+/**
+ * Grupowa zmiana statusu płatności zaznaczonych dokumentów przychodowych.
+ *
+ * Bez optymistycznej podmiany: odpowiedź mówi, ile pozycji faktycznie się zmieniło,
+ * a ile backend pominął - zgadywanie tego z góry dałoby licznik rozjeżdżający się
+ * z tym, co naprawdę zapisano.
+ */
+export const useBulkUpdateIncomePaymentStatus = () => {
+  const invalidate = useInvalidateIncomeDocuments();
+  return useMutation({
+    mutationFn: ({ documents, paymentStatus }: {
+      documents: IncomeDocumentRef[];
+      paymentStatus: BulkPaymentStatusTarget;
+    }) => incomeDocumentsApi.updatePaymentStatus(documents, paymentStatus),
     onSuccess: invalidate,
   });
 };

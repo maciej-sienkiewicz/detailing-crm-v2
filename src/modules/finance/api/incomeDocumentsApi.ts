@@ -1,5 +1,12 @@
 import { apiClient } from '@/core';
-import type { IncomeDocumentFilters, IncomeDocumentListResponse, IncomeSourceKind } from '../types';
+import type {
+  BulkPaymentStatusResult,
+  BulkPaymentStatusTarget,
+  IncomeDocumentFilters,
+  IncomeDocumentListResponse,
+  IncomeDocumentRef,
+  IncomeSourceKind,
+} from '../types';
 
 const BASE = '/v1/finance/income-documents';
 
@@ -37,5 +44,18 @@ export const incomeDocumentsApi = {
   /** Przywraca ukryty wcześniej dokument do statystyk i domyślnej listy. */
   restore: async (sourceKind: IncomeSourceKind, id: string): Promise<void> => {
     await apiClient.patch(`${BASE}/${sourceKind}/${id}/restore`);
+  },
+
+  /**
+   * Zmienia status płatności wielu dokumentów naraz. Jedno żądanie zamiast N PATCH-y:
+   * backend rozdziela je po źródłach i odsiewa te, których nie wolno ruszyć, zamiast
+   * wywracać całą operację na pierwszym opłaconym dokumencie.
+   */
+  updatePaymentStatus: async (
+    documents: IncomeDocumentRef[],
+    paymentStatus: BulkPaymentStatusTarget,
+  ): Promise<BulkPaymentStatusResult> => {
+    const response = await apiClient.patch(`${BASE}/payment-status`, { documents, paymentStatus });
+    return response.data;
   },
 };

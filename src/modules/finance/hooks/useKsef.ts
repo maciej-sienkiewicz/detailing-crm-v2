@@ -6,6 +6,7 @@ import type {
   KsefExpenseListFilters,
   CreateExpenseRequest,
   UpdateExpensePaymentStatusRequest,
+  BulkPaymentStatusTarget,
   UpdateExpenseNoteRequest,
   SaveKsefCredentialsRequest,
   KsefSyncRangeRequest,
@@ -243,6 +244,23 @@ export const useUpdateExpensePaymentStatus = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateExpensePaymentStatusRequest }) =>
       ksefApi.updateExpensePaymentStatus(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KSEF_EXPENSES_KEY });
+      queryClient.invalidateQueries({ queryKey: FINANCE_SUMMARY_KEY });
+    },
+  });
+};
+
+/**
+ * Grupowa zmiana statusu płatności zaznaczonych dokumentów kosztowych. Kafle
+ * podsumowania liczą z tych samych rekordów, więc lecą razem z listą.
+ */
+export const useBulkUpdateExpensesPaymentStatus = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ ids, paymentStatus }: { ids: string[]; paymentStatus: BulkPaymentStatusTarget }) =>
+      ksefApi.updateExpensesPaymentStatus(ids, paymentStatus),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: KSEF_EXPENSES_KEY });
       queryClient.invalidateQueries({ queryKey: FINANCE_SUMMARY_KEY });
