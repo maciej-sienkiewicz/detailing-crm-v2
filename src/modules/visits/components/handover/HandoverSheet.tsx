@@ -23,7 +23,7 @@ import { ProtocolSection } from './ProtocolSection';
 import { ThankYouSmsSection } from './ThankYouSmsSection';
 import { advanceLabel, allProtocolsSigned, type ProtocolSignatureStatus } from './signatureStep';
 import { HandoverResultView } from './HandoverResultView';
-import { resolveThankYouSendAt } from './thankYouSms';
+import { defaultThankYouSendAt } from './thankYouSms';
 import type { Visit } from '../../types';
 
 type Step = 'signature' | 'payment';
@@ -168,7 +168,7 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
     // zastosuje u siebie, żeby na wyniku pokazać, kiedy podziękowanie wyjdzie.
     const thankYouAt =
         handover.thankYouSms.available && handover.state.thankYouSms
-            ? resolveThankYouSendAt(handover.state.thankYouSmsAt)
+            ? defaultThankYouSendAt()
             : null;
 
     return (
@@ -227,8 +227,6 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                     <ThankYouSmsSection
                                         enabled={handover.state.thankYouSms}
                                         onEnabledChange={value => handover.patch({ thankYouSms: value })}
-                                        sendAt={handover.state.thankYouSmsAt}
-                                        onSendAtChange={value => handover.patch({ thankYouSmsAt: value })}
                                     />
                                 )}
                             </Body>

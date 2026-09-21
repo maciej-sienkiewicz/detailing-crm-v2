@@ -12,7 +12,6 @@ const state = (overrides: Partial<HandoverState> = {}): HandoverState => ({
     protocolSigned: false,
     sendToKsef: null,
     thankYouSms: true,
-    thankYouSmsAt: '2026-09-15T15:15',
     ...overrides,
 });
 
@@ -82,6 +81,16 @@ describe('restoreDraft', () => {
         expect(restored.buyer.name).toBe('Firma');
         expect(restored.paymentMethod).toBe('TRANSFER');
         expect(restored.sendToKsef).toBe(false);
+    });
+
+    it('po zmianie usług pamięta odmowę wysłania podziękowania', () => {
+        // „Nie wysyłaj" to decyzja o kliencie, nie o pozycjach faktury - dopisanie
+        // usługi do wizyty nie ma prawa jej cofnąć i wysłać SMS-a wbrew niej.
+        const stale = state({ thankYouSms: false });
+
+        const restored = restoreDraft(state(), draft({ servicesFingerprint: 'stary', state: stale }), 'nowy');
+
+        expect(restored.thankYouSms).toBe(false);
     });
 
     it('uszkodzony draft nie blokuje wydania', () => {

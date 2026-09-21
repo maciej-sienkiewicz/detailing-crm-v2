@@ -1,5 +1,4 @@
 import type { PaymentMethod, InvoiceType, CompleteInvoicePayload } from './stateTransitions';
-import { isUsableThankYouDraft } from '../components/handover/thankYouSms';
 
 export type VatRateCode = '23' | '8' | '5' | '0' | 'zw';
 export type PriceMode = 'NET' | 'GROSS';
@@ -60,8 +59,6 @@ export interface HandoverState {
      * useThankYouSmsAvailability), więc „true" nie oznacza tu wysyłki na siłę.
      */
     thankYouSms: boolean;
-    /** Termin wysyłki podziękowania: „YYYY-MM-DDTHH:mm" w czasie lokalnym. */
-    thankYouSmsAt: string;
 }
 
 // ─── Draft ekranu wydania ─────────────────────────────────────────────────────
@@ -118,29 +115,18 @@ export const restoreDraft = (
             paymentMethod: draft.state.paymentMethod ?? fresh.paymentMethod,
             documentType: draft.state.documentType ?? fresh.documentType,
             sendToKsef: draft.state.sendToKsef ?? fresh.sendToKsef,
-            ...restoredThankYou(fresh, draft.state),
+            // Decyzja o podziękowaniu nie zależy od pozycji faktury, więc przeżywa
+            // także wtedy, gdy usługi wizyty zmieniły się od zapisania draftu.
+            thankYouSms: draft.state.thankYouSms ?? fresh.thankYouSms,
         };
     }
-    return { ...fresh, ...draft.state, ...restoredThankYou(fresh, draft.state) };
+    /*
+     * Sam wybór „wysyłać / nie wysyłać" przeżywa draft bez zastrzeżeń — to decyzja
+     * człowieka. Termin nie przeżywał i nie musi już przeżywać: nie ma go w stanie,
+     * bo wylicza go serwer w chwili wydania pojazdu.
+     */
+    return { ...fresh, ...draft.state };
 };
-
-/**
- * Termin podziękowania z draftu wraca tylko wtedy, gdy nadal ma sens.
- *
- * Draft przeżywa zamknięcie okna, a więc i noc: „dziś o 16:30" odtworzone nazajutrz
- * opisuje godzinę, która dawno minęła. Sam wybór „wysyłać / nie wysyłać" jest decyzją
- * człowieka i przeżywa bez zastrzeżeń - termin liczy się od „teraz" i musi być liczony
- * na nowo.
- */
-const restoredThankYou = (
-    fresh: HandoverState,
-    drafted: Partial<HandoverState>
-): Pick<HandoverState, 'thankYouSms' | 'thankYouSmsAt'> => ({
-    thankYouSms: drafted.thankYouSms ?? fresh.thankYouSms,
-    thankYouSmsAt: isUsableThankYouDraft(drafted.thankYouSmsAt)
-        ? (drafted.thankYouSmsAt as string)
-        : fresh.thankYouSmsAt,
-});
 
 // ─── Arytmetyka kwot (grosze) ─────────────────────────────────────────────────
 

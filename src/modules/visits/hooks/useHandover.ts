@@ -11,11 +11,7 @@ import { useServicePricing } from '@/modules/appointments/hooks/useServicePricin
 import { useToast } from '@/common/components/Toast';
 import { isPiiMasked } from '@/common/pii';
 import { useThankYouSmsAvailability } from './useThankYouSmsAvailability';
-import {
-    buildThankYouSmsPayload,
-    defaultThankYouSendAt,
-    toDateTimeLocal,
-} from '../components/handover/thankYouSms';
+import { buildThankYouSmsPayload } from '../components/handover/thankYouSms';
 import type { ServiceLineItem, Visit } from '../types';
 import type { CompleteVisitResponse, PaymentMethod } from '../types/stateTransitions';
 import {
@@ -188,7 +184,6 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
             // Zaznaczone domyślnie: podziękowanie jest tym, co studio chce wysłać -
             // problemem była zawsze pora, a nie sama wiadomość.
             thankYouSms: true,
-            thankYouSmsAt: toDateTimeLocal(defaultThankYouSendAt()),
         };
     }, [visit, priceOf, totals.gross]);
 
@@ -322,7 +317,6 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
                 thankYouSms: buildThankYouSmsPayload({
                     available: thankYouSms.available,
                     send: state.thankYouSms,
-                    sendAt: state.thankYouSmsAt,
                 }),
             });
         },
