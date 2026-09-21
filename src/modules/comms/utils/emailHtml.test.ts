@@ -138,3 +138,168 @@ describe('plainPreview', () => {
         expect(plainPreview('<p>' + 'słowo '.repeat(60) + '</p>', 40)).toHaveLength(41);
     });
 });
+
+// ── Odpowiedź napisana POD cytatem ──────────────────────────────────────────
+//
+// Thunderbird, Roundcube i większość webmaili wstawiają nagłówek „W dniu …
+// napisał(a):" na samą górę, pod nim cytat, a odpowiedź dopiero pod nim. Cięcie
+// „od nagłówka w dół" wrzucało wtedy do historii także samą odpowiedź, treść
+// właściwa wychodziła pusta i splitter oddawał oryginał - czyli wiadomość
+// z pełnym cytatem, dokładnie tym, co miało zostać zwinięte.
+describe('splitQuotedHistory - odpowiedź pod cytatem', () => {
+    it('odzyskuje odpowiedź z czystego tekstu pod cytatem', () => {
+        const html =
+            '<div style="white-space:pre-wrap">W dniu 2026-09-21 11:17, klient@example.com napisał(a):\n' +
+            '&gt; Dzień dobry, proszę o wycenę renowacji lamp.\n' +
+            '&gt;\n' +
+            '&gt; Pozdrawiam,\n' +
+            '&gt; Piotr Franaszek\n' +
+            '\n' +
+            'Koszt usługi to 500,00 zł brutto za parę reflektorów.\n' +
+            'Najbliższy termin to piątek 25.09.</div>';
+
+        const { mainHtml, quotedHtml } = splitQuotedHistory(html);
+
+        expect(mainHtml).toContain('500,00 zł brutto');
+        expect(mainHtml).toContain('piątek 25.09');
+        expect(mainHtml).not.toContain('Piotr Franaszek');
+        expect(quotedHtml).toContain('Piotr Franaszek');
+    });
+
+    it('odzyskuje odpowiedź spod cytatu w blockquote', () => {
+        const html =
+            '<div class="moz-cite-prefix">W dniu 2026-09-21 11:17, klient napisał(a):</div>' +
+            '<blockquote type="cite"><p>Dzień dobry, proszę o wycenę renowacji lamp przednich.</p>' +
+            '<p>Pozdrawiam, Piotr Franaszek</p></blockquote>' +
+            '<p>Koszt usługi to 500,00 zł brutto za parę reflektorów.</p>';
+
+        const { mainHtml, quotedHtml } = splitQuotedHistory(html);
+
+        expect(mainHtml).toContain('500,00 zł brutto');
+        expect(mainHtml).not.toContain('Piotr Franaszek');
+        expect(quotedHtml).toContain('Piotr Franaszek');
+    });
+
+    it('zagnieżdżony cytat w całości zostaje historią', () => {
+        const html =
+            '<div style="white-space:pre-wrap">W dniu 2026-09-21 12:27, klient napisał(a):\n' +
+            '&gt; Dziękuję, prosiłbym o zapisanie na piątek.\n' +
+            '&gt;&gt; Wiadomość napisana przez biuro@carslab.pl:\n' +
+            '&gt;&gt;&gt; Koszt usługi to 500 zł za parę reflektorów, termin piątek.\n' +
+            '\n' +
+            'Oczywiście, wizyta wpisana. Zapraszamy między 9:00 a 10:00.</div>';
+
+        const { mainHtml, quotedHtml } = splitQuotedHistory(html);
+
+        expect(mainHtml).toContain('wizyta wpisana');
+        expect(mainHtml).not.toContain('&gt;');
+        expect(mainHtml).not.toContain('Dziękuję, prosiłbym');
+        expect(quotedHtml).toContain('Dziękuję, prosiłbym');
+    });
+
+    it('odpowiedź nad cytatem działa jak dotąd', () => {
+        // Kolejność prób nie jest dowolna: odzyskiwanie ogona rusza dopiero wtedy,
+        // gdy cięcie zostawiło pustkę. Przy top-postingu nie ma prawa się odezwać.
+        const html =
+            '<p>Poproszę o wycenę powłoki ceramicznej na cały samochód.</p>' +
+            '<div class="gmail_quote"><p>Dzień dobry, w czym możemy pomóc? Pozdrawiam, Studio Detailingu</p></div>';
+
+        const { mainHtml, quotedHtml } = splitQuotedHistory(html);
+
+        expect(mainHtml).toContain('powłoki ceramicznej');
+        expect(mainHtml).not.toContain('w czym możemy pomóc');
+        expect(quotedHtml).toContain('w czym możemy pomóc');
+    });
+
+    it('wieloczęściowy nagłówek trafia do historii w swojej kolejności', () => {
+        // Nagłówki wędrują na początek historii pojedynczo, więc przenoszenie ich
+        // w przód odwracałoby kolejność - cytat czytałby się od tyłu.
+        const html =
+            '<div class="moz-cite-prefix">-------- Wiadomość oryginalna --------</div>' +
+            '<div class="moz-cite-prefix">W dniu 2026-09-21 11:17, klient napisał(a):</div>' +
+            '<blockquote type="cite"><p>Dzień dobry, proszę o wycenę renowacji lamp przednich.</p></blockquote>' +
+            '<p>Koszt usługi to 500,00 zł brutto za parę reflektorów.</p>';
+
+        const { mainHtml, quotedHtml } = splitQuotedHistory(html);
+
+        expect(mainHtml).toContain('500,00 zł brutto');
+        expect(quotedHtml?.indexOf('Wiadomość oryginalna')).toBeLessThan(
+            quotedHtml?.indexOf('W dniu 2026-09-21') ?? -1
+        );
+    });
+
+    it('wiadomość złożona wyłącznie z cytatu zostaje pokazana w całości', () => {
+        // Przekazana korespondencja nie ma własnej treści. Zwinięcie wszystkiego
+        // zostawiłoby pustą chmurkę, więc lepiej pokazać za dużo niż nic.
+        const html =
+            '<div style="white-space:pre-wrap">W dniu 2026-09-21 11:17, klient napisał(a):\n' +
+            '&gt; Dzień dobry, proszę o wycenę renowacji lamp przednich w Passacie.</div>';
+
+        const { mainHtml, quotedHtml } = splitQuotedHistory(html);
+
+        expect(quotedHtml).toBeNull();
+        expect(mainHtml).toBe(html);
+    });
+});
+
+// ── Rozpoznanie niezależne od języka ────────────────────────────────────────
+//
+// Lista fraz zna tyle języków, ile jej wpisano. Obok niej stoi reguła kształtu:
+// krótka linia z dwukropkiem, a zaraz pod nią cytat - konwencja formatu poczty,
+// nie języka. Poniższe wiadomości nie zawierają ani jednego słowa z listy.
+describe('splitQuotedHistory - klienci spoza listy fraz', () => {
+    it('niemiecka zapowiedź cytatu w czystym tekście', () => {
+        const html =
+            '<div style="white-space:pre-wrap">Am 21.09.2026 um 11:17 schrieb Piotr Franaszek:\n' +
+            '&gt; Dzień dobry, proszę o wycenę renowacji lamp przednich.\n' +
+            '\n' +
+            'Koszt usługi to 500,00 zł brutto za parę reflektorów.</div>';
+
+        const { mainHtml, quotedHtml } = splitQuotedHistory(html);
+
+        expect(mainHtml).toContain('500,00 zł brutto');
+        expect(mainHtml).not.toContain('Am 21.09.2026');
+        expect(quotedHtml).toContain('proszę o wycenę');
+    });
+
+    it('francuska zapowiedź cytatu nad blockquote', () => {
+        const html =
+            '<div>Le 21/09/2026 à 11:17, Piotr Franaszek a écrit :</div>' +
+            '<blockquote><p>Dzień dobry, proszę o wycenę renowacji lamp przednich w Passacie.</p></blockquote>' +
+            '<p>Koszt usługi to 500,00 zł brutto za parę reflektorów.</p>';
+
+        const { mainHtml, quotedHtml } = splitQuotedHistory(html);
+
+        expect(mainHtml).toContain('500,00 zł brutto');
+        expect(mainHtml).not.toContain('a écrit');
+        expect(quotedHtml).toContain('a écrit');
+    });
+
+    it('niemiecka zapowiedź nad cytatem, odpowiedź na górze', () => {
+        const html =
+            '<div style="white-space:pre-wrap">Poproszę o termin na przyszły tydzień.\n' +
+            '\n' +
+            'Am 21.09.2026 um 11:17 schrieb Studio:\n' +
+            '&gt; Dzień dobry, w załączeniu wycena renowacji lamp przednich.</div>';
+
+        const { mainHtml, quotedHtml } = splitQuotedHistory(html);
+
+        expect(mainHtml).toContain('przyszły tydzień');
+        expect(mainHtml).not.toContain('Am 21.09.2026');
+        expect(quotedHtml).toContain('w załączeniu wycena');
+    });
+
+    it('zdanie z dwukropkiem bez cytatu pod spodem zostaje treścią', () => {
+        // Reguła kształtu nie może zjadać treści - trzyma ją warunek „zaraz pod
+        // spodem stoi cytat". Bez cytatu dwukropek jest po prostu dwukropkiem.
+        const html =
+            '<div style="white-space:pre-wrap">Dzień dobry, proszę o wycenę na:\n' +
+            'renowację lamp oraz polerowanie maski.</div>';
+
+        const { mainHtml, quotedHtml } = splitQuotedHistory(html);
+
+        expect(quotedHtml).toBeNull();
+        expect(mainHtml).toContain('proszę o wycenę na:');
+        expect(mainHtml).toContain('polerowanie maski');
+    });
+});
