@@ -50,6 +50,8 @@ import {
     History,
     Loader2,
     MessagesSquare,
+    PanelLeftClose,
+    PanelLeftOpen,
     PhoneCall,
     Receipt,
     Reply,
@@ -693,6 +695,52 @@ const HeaderIdentity = styled.div`
 `;
 
 /**
+ * Zwinięcie kolejki - pierwsza rzecz w nagłówku panelu.
+ *
+ * Stała tu wcześniej osobna kolumna-rączka między listą a panelem: 40 px na całą
+ * wysokość karty, z czego używane były 32 x 44 px u samej góry. Miała własne białe
+ * tło, więc wycinała pionową szczelinę w pasmach nagłówka i stopki (oba mają
+ * `surfaceAlt`), a jej `border-right` stawiał trzecią pionową kreskę na czterdziestu
+ * pikselach. Przycisk zwijający panel należy do nagłówka panelu - dokładnie tam,
+ * gdzie w tej aplikacji stoi już zwijanie menu głównego.
+ *
+ * Bez obwódki celowo: zaraz obok stoi kafelek pojazdu, który obwódkę ma, a dwa
+ * obramowane pudełka obok siebie czytałyby się jak para równorzędnych akcji.
+ * Ujemny margines wyrównuje ZNAK strzałki do krawędzi treści nagłówka (28 px),
+ * a nie pudełko przycisku - inaczej ikona wyglądałaby na wciętą.
+ */
+const QueueToggle = styled.button`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    margin-left: -8px;
+    border: none;
+    border-radius: 9px;
+    background: none;
+    color: ${p => p.theme.colors.textMuted};
+    cursor: pointer;
+    transition: all ${p => p.theme.transitions.fast};
+
+    &:hover {
+        background: ${p => p.theme.colors.surfaceHover};
+        color: ${p => p.theme.colors.text};
+    }
+    &:focus-visible {
+        outline: 2px solid ${p => p.theme.colors.primary};
+        outline-offset: 1px;
+    }
+
+    svg { width: 18px; height: 18px; }
+
+    @media (max-width: 640px) {
+        margin-left: -4px;
+    }
+`;
+
+/**
  * Logo marki w nagłówku - na wysokość całego wiersza z nazwą sprawy i kontaktem.
  *
  * Marka była dotąd chipem w rzędzie faktów: tekstem wielkości wszystkich innych
@@ -1289,6 +1337,16 @@ export interface LeadDetailModalProps {
     chrome?: 'modal' | 'pane';
     /** Podpowiedź klawiszowa w stopce; sam skok obsługuje właściciel listy. */
     keyHint?: string;
+    /**
+     * Zwijanie kolejki, gdy panel stoi obok niej.
+     *
+     * Przełącznik należy do nagłówka TEGO panelu, a nie do osobnej rączki między
+     * kolumnami - tak samo jak zwijanie menu głównego siedzi w nagłówku menu
+     * (Sidebar.tsx, CollapseButton). Stan trzyma właściciel listy, bo to on wie,
+     * przy której sprawie kolejka została wysunięta.
+     */
+    onToggleQueue?: () => void;
+    queueCollapsed?: boolean;
 }
 
 export function LeadDetailModal({
@@ -1299,6 +1357,8 @@ export function LeadDetailModal({
     onDeleted,
     chrome = 'modal',
     keyHint,
+    onToggleQueue,
+    queueCollapsed = false,
 }: LeadDetailModalProps) {
     const navigate = useNavigate();
     const { data: lead } = useLead(leadId);
@@ -1582,6 +1642,18 @@ export function LeadDetailModal({
             <LeadHeader>
                     <HeaderTop>
                         <HeaderIdentity>
+                            {isPane && onToggleQueue && (
+                                <QueueToggle
+                                    type="button"
+                                    aria-expanded={!queueCollapsed}
+                                    aria-label={queueCollapsed ? 'Pokaż listę zapytań' : 'Ukryj listę zapytań'}
+                                    title={queueCollapsed ? 'Pokaż listę zapytań (Esc)' : 'Ukryj listę zapytań'}
+                                    onClick={onToggleQueue}
+                                >
+                                    {queueCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+                                </QueueToggle>
+                            )}
+
                             {/*
                                 POJAZD JAKO ZNAK, nie jako chip.
 

@@ -146,19 +146,25 @@ const CLOSED = [
 
 const page1 = (items) => ({ items, total: items.length, page: 0, pageSize: 100 });
 
+/*
+ * `attachments` jest polem WYMAGANYM w LeadTimelineEntry, a LeadTimeline czyta
+ * `entry.attachments.length` bez żadnej osłony. Stub bez tego pola wywracał cały
+ * widok na ekran błędu - skrypt robił wtedy zrzut RouteErrorBoundary zamiast
+ * kolejki zapytań. Dopisując tu zdarzenie, dopisz też pustą listę załączników.
+ */
 const TIMELINE = [
     { id: 't1', kind: 'INBOUND_MESSAGE', at: daysAgo(10), actorName: 'Marek Kowalczyk',
       toStatus: null, fromStatus: null, lostReasonLabel: null, subject: 'Powłoka ceramiczna Cayenne',
-      body: 'Dzień dobry, interesuje mnie powłoka ceramiczna na Cayenne’a rocznik 2021. Auto po dwóch sezonach, lakier ma sporo mikrorys.', note: null },
+      body: 'Dzień dobry, interesuje mnie powłoka ceramiczna na Cayenne’a rocznik 2021. Auto po dwóch sezonach, lakier ma sporo mikrorys.', note: null, attachments: [] },
     { id: 't2', kind: 'CALLBACK', at: daysAgo(9), actorName: 'Michał',
       toStatus: null, fromStatus: null, lostReasonLabel: null, subject: null,
-      body: null, note: 'Dzwonił, prosił o wycenę mailem' },
+      body: null, note: 'Dzwonił, prosił o wycenę mailem', attachments: [] },
     { id: 't3', kind: 'OUTBOUND_MESSAGE', at: daysAgo(8), actorName: 'Michał',
       toStatus: null, fromStatus: null, lostReasonLabel: null, subject: 'Re: Powłoka ceramiczna Cayenne',
-      body: 'W załączeniu wycena na powłokę ceramiczną 5Y i korektę dwuetapową.', note: null },
+      body: 'W załączeniu wycena na powłokę ceramiczną 5Y i korektę dwuetapową.', note: null, attachments: [] },
     { id: 't4', kind: 'INBOUND_MESSAGE', at: daysAgo(6), actorName: 'Marek Kowalczyk',
       toStatus: null, fromStatus: null, lostReasonLabel: null, subject: 'Re: Powłoka ceramiczna Cayenne',
-      body: 'Czy cena obejmuje też felgi? I czy da się to zrobić w ciągu tygodnia?', note: null },
+      body: 'Czy cena obejmuje też felgi? I czy da się to zrobić w ciągu tygodnia?', note: null, attachments: [] },
 ];
 
 const DETAIL = {
