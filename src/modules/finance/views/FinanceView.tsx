@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
@@ -8,8 +8,8 @@ import type { FinanceTab, IncomeDocument, IncomeDocumentType } from '../types';
 const FINANCE_TABS: FinanceTab[] = ['income', 'expenses', 'cash', 'payment-summary'];
 import type { ExpenseSource, ExpensePaymentStatus } from '../types';
 import { useFinanceDocument } from '../hooks/useFinance';
-import { useKsefExpenses } from '../hooks/useKsef';
-import { useIncomeDocuments } from '../hooks/useIncomeDocuments';
+import { useKsefExpenses, useBulkUpdateExpensesPaymentStatus } from '../hooks/useKsef';
+import { useIncomeDocuments, useBulkUpdateIncomePaymentStatus } from '../hooks/useIncomeDocuments';
 import {
   FinanceSummaryCards,
   CreateDocumentModal,
@@ -22,12 +22,17 @@ import {
   IncomeDocumentsTable,
   IssueInvoiceModal,
   RevenueInvoiceDetailModal,
+  BulkPaymentStatusBar,
 } from '../components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { monthHint, resolveDateRange, type DatePreset } from '../utils/dateRange';
 import { PageHeader, PageHeaderPrimaryButton, PageHeaderGhostButton } from '@/common/components/PageHeader';
 import { PageContainer } from '@/common/components/PageContainer';
-import { useDebounce } from '@/common/hooks';
+import { useDebounce, useRowSelection } from '@/common/hooks';
+import { useToast } from '@/common/components/Toast';
+import { incomeRowKey } from '../components/IncomeDocumentsTable';
+import { describeBulkPaymentStatus } from '../utils/bulkPaymentStatus';
+import type { BulkPaymentStatusResult, BulkPaymentStatusTarget, IncomeDocumentRef } from '../types';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -1217,6 +1222,31 @@ const EMPTY_INCOME_FILTERS: IncomeFilters = {
 /** Pisanie we frazie nie może wysyłać zapytania na każdą literę. */
 const SEARCH_DEBOUNCE_MS = 300;
 
+/**
+ * Wspólna obsługa wyniku operacji grupowej. Ten sam komunikat na obu zakładkach,
+ * bo z punktu widzenia użytkownika to ta sama czynność - tylko lista inna.
+ *
+ * Zaznaczenie czyścimy wyłącznie wtedy, gdy coś faktycznie się zmieniło: gdy nic
+ * nie przeszło (np. same opłacone dokumenty przy cofaniu), zostawiamy zaznaczenie,
+ * żeby dało się od razu kliknąć drugą akcję zamiast zaznaczać wszystko od nowa.
+ */
+const useBulkPaymentStatusFeedback = (clearSelection: () => void) => {
+  const { showSuccess, showInfo } = useToast();
+
+  return useCallback(
+    (result: BulkPaymentStatusResult, target: BulkPaymentStatusTarget) => {
+      const message = describeBulkPaymentStatus(result, target);
+      if (message.nothingChanged) {
+        showInfo(message.title, message.detail);
+        return;
+      }
+      showSuccess(message.title, message.detail);
+      clearSelection();
+    },
+    [clearSelection, showInfo, showSuccess]
+  );
+};
+
 interface IncomeTabContentProps {
   activeDateRange: { dateFrom?: string; dateTo?: string };
   onSelect: (document: IncomeDocument) => void;
@@ -1245,14 +1275,32 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
 
   // Podejrzane duplikaty dotyczą wyłącznie faktur z ledgera KSeF, filtr działa
   // po stronie klienta, bo to zawężenie widoku, nie osobne zapytanie
-  const visibleDocuments = filters.duplicates
-    ? documents.filter((doc) => doc.duplicateStatus === 'SUSPECTED')
-    : documents;
+  const visibleDocuments = useMemo(
+    () => (filters.duplicates ? documents.filter((doc) => doc.duplicateStatus === 'SUSPECTED') : documents),
+    [documents, filters.duplicates]
+  );
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const hasFilters = !!(filters.documentType || filters.paymentStatus || filters.duplicates || filters.search);
   const setFilter  = <K extends keyof IncomeFilters>(key: K, value: IncomeFilters[K]) =>
     setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
+
+  // Zaznaczenie zawsze dotyczy wierszy widocznych TERAZ - zmiana filtra albo strony
+  // wyrzuca z niego to, czego użytkownik już nie widzi (useRowSelection).
+  const selection = useRowSelection(useMemo(() => visibleDocuments.map(incomeRowKey), [visibleDocuments]));
+  const bulkStatus = useBulkUpdateIncomePaymentStatus();
+  const reportBulkResult = useBulkPaymentStatusFeedback(selection.clear);
+
+  const applyBulkStatus = (paymentStatus: BulkPaymentStatusTarget) => {
+    const documents: IncomeDocumentRef[] = selection.selected.map((key) => {
+      const [sourceKind, id] = key.split(':');
+      return { sourceKind: sourceKind as IncomeDocumentRef['sourceKind'], id };
+    });
+    bulkStatus.mutate(
+      { documents, paymentStatus },
+      { onSuccess: (result) => reportBulkResult(result, paymentStatus) }
+    );
+  };
 
   return (
     <>
@@ -1338,6 +1386,13 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
         />
       )}
 
+      <BulkPaymentStatusBar
+        count={selection.count}
+        busy={bulkStatus.isPending}
+        onApply={applyBulkStatus}
+        onClear={selection.clear}
+      />
+
       {isError ? (
         <InlineError>
           Nie udało się załadować dokumentów przychodowych.
@@ -1350,6 +1405,7 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
           isLoading={isLoading}
           onSelect={onSelect}
           searchTerm={searchTerm}
+          selection={selection}
         />
       )}
 
@@ -1417,6 +1473,17 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
   const hasFilters = !!(filters.source || filters.paymentStatus || filters.search);
   const setFilter  = <K extends keyof ExpenseFilters>(key: K, value: ExpenseFilters[K]) =>
     setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
+
+  const selection = useRowSelection(useMemo(() => expenses.map((exp) => exp.id), [expenses]));
+  const bulkStatus = useBulkUpdateExpensesPaymentStatus();
+  const reportBulkResult = useBulkPaymentStatusFeedback(selection.clear);
+
+  const applyBulkStatus = (paymentStatus: BulkPaymentStatusTarget) => {
+    bulkStatus.mutate(
+      { ids: selection.selected, paymentStatus },
+      { onSuccess: (result) => reportBulkResult(result, paymentStatus) }
+    );
+  };
 
   return (
     <>
@@ -1487,6 +1554,13 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
         />
       )}
 
+      <BulkPaymentStatusBar
+        count={selection.count}
+        busy={bulkStatus.isPending}
+        onApply={applyBulkStatus}
+        onClear={selection.clear}
+      />
+
       {isError ? (
         <InlineError>
           Nie udało się załadować faktur kosztowych.
@@ -1494,7 +1568,12 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
           <button onClick={() => refetch()}>Spróbuj ponownie</button>
         </InlineError>
       ) : (
-        <KsefExpensesTable expenses={expenses} isLoading={isLoading} searchTerm={searchTerm} />
+        <KsefExpensesTable
+          expenses={expenses}
+          isLoading={isLoading}
+          searchTerm={searchTerm}
+          selection={selection}
+        />
       )}
 
       {totalPages > 1 && (

@@ -525,6 +525,34 @@ export interface IncomeDocumentFilters {
   search?:        string;
 }
 
+// ─── Operacje grupowe na statusie płatności ───────────────────────────────────
+
+/** Jeden zaznaczony wiersz listy przychodów: id samo nie wystarcza, bo źródła są dwa. */
+export interface IncomeDocumentRef {
+  sourceKind: IncomeSourceKind;
+  id:         string;
+}
+
+export interface BulkPaymentStatusSkip {
+  id:     string;
+  /** Zdanie po polsku, gotowe do pokazania - dlaczego ten dokument został pominięty. */
+  reason: string;
+}
+
+/**
+ * Wynik grupowej zmiany statusu. `unchanged` to dokumenty, które miały już docelowy
+ * status - nie są błędem, ale nie wolno ich doliczyć do „oznaczono N", bo komunikat
+ * przestałby być prawdą.
+ */
+export interface BulkPaymentStatusResult {
+  updated:   number;
+  unchanged: number;
+  skipped:   BulkPaymentStatusSkip[];
+}
+
+/** Cel operacji grupowej: tylko te dwa stany da się ustawić ręcznie. */
+export type BulkPaymentStatusTarget = 'PAID' | 'PENDING';
+
 // ─── KSeF: Faktury przychodowe ────────────────────────────────────────────────
 
 export type RevenueSource = 'CRM' | 'EXTERNAL';

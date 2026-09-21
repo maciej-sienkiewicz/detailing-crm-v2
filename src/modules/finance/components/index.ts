@@ -13,3 +13,4 @@ export { IncomeDocumentsTable }    from './IncomeDocumentsTable';
 export { RevenueStatusBadge }      from './RevenueStatusBadge';
 export { IssueInvoiceModal }       from './IssueInvoiceModal';
 export { RevenueInvoiceDetailModal } from './RevenueInvoiceDetailModal';
+export { BulkPaymentStatusBar, RowCheckbox } from './SelectionControls';

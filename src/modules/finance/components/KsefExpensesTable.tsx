@@ -14,6 +14,8 @@ import { ExpenseNoteModal } from './ExpenseNoteModal';
 import { InvoicePreviewModal } from './InvoicePreviewModal';
 import { formatMoneyFloat, formatDate } from '../utils/formatters';
 import { useMediaQuery } from '@/common/hooks';
+import type { RowSelection } from '@/common/hooks';
+import { RowCheckbox } from './SelectionControls';
 
 // ─── Animations ──────────────────────────────────────────────────────────────
 
@@ -37,7 +39,7 @@ const Wrapper = styled.div`
 
 const Table = styled.table`
   width: 100%;
-  min-width: 1080px;
+  min-width: 1124px;
   border-collapse: collapse;
 
   @media (max-width: 639px) {
@@ -69,7 +71,7 @@ const Th = styled.th<{ $align?: 'left' | 'right' | 'center'; $width?: string }>`
   &:last-child  { padding-right: 20px; }
 `;
 
-const Tr = styled.tr<{ $excluded?: boolean }>`
+const Tr = styled.tr<{ $excluded?: boolean; $selected?: boolean }>`
   border-bottom: 1px solid ${(p) => p.theme.colors.border};
   transition: background 0.12s ease;
   animation: ${fadeIn} 0.18s ease-out;
@@ -78,7 +80,13 @@ const Tr = styled.tr<{ $excluded?: boolean }>`
   &:last-child { border-bottom: none; }
 
   ${(p) =>
-    p.$excluded
+    p.$selected
+      ? `
+    background: #eff6ff;
+    opacity: ${p.$excluded ? 0.55 : 1};
+    &:hover { background: #dbeafe; }
+  `
+      : p.$excluded
       ? `
     background: rgba(100, 116, 139, 0.04);
     opacity: 0.55;
@@ -130,6 +138,20 @@ const Td = styled.td<{ $align?: 'left' | 'right' | 'center' }>`
     &:first-child { padding-left: 0; }
     &:last-child  { padding-right: 0; }
   }
+`;
+
+/* Kolumna zaznaczenia: wąska i cicha, bo nie jest treścią wiersza - jest tylko
+   wejściem do operacji na wielu wierszach naraz. */
+const SelectCell = styled.td`
+  width: 44px;
+  padding: 13px 0 13px 20px;
+  vertical-align: middle;
+`;
+
+const SelectHead = styled.th`
+  width: 44px;
+  padding: 14px 0 14px 20px;
+  text-align: left;
 `;
 
 const CellPrimary = styled.span`
@@ -456,27 +478,30 @@ const CardList = styled.div`
   flex-direction: column;
 `;
 
-const Card = styled.div<{ $muted?: boolean }>`
+const Card = styled.div<{ $muted?: boolean; $selected?: boolean }>`
   display: flex;
   flex-direction: column;
   gap: 7px;
   padding: 14px 16px;
   border-bottom: 1px solid #e5e7eb;
+  background: ${(p) => (p.$selected ? '#eff6ff' : 'transparent')};
   cursor: pointer;
   opacity: ${(p) => (p.$muted ? 0.6 : 1)};
 
   &:last-child { border-bottom: none; }
-  &:active { background: #f8fafc; }
+  &:active { background: ${(p) => (p.$selected ? '#dbeafe' : '#f8fafc')}; }
 `;
 
 const CardTop = styled.div`
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
 `;
 
 const CardSeller = styled.span`
+  flex: 1;
+  min-width: 0;
   font-size: 14px;
   font-weight: 600;
   color: #0f172a;
@@ -535,11 +560,13 @@ interface Props {
   isLoading?: boolean;
   /** Aktywna fraza wyszukiwarki - pusty wynik szukania to co innego niż pusta lista. */
   searchTerm?: string;
+  /** Zaznaczanie wielu wierszy pod operację grupową; brak = tabela bez pól wyboru. */
+  selection?: RowSelection;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, searchTerm }) => {
+export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, searchTerm, selection }) => {
   const [openPaymentId, setOpenPaymentId]   = useState<string | null>(null);
   const [noteExpense, setNoteExpense]       = useState<KsefExpense | null>(null);
   const [previewId, setPreviewId]           = useState<string | null>(null);
@@ -623,6 +650,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
         <Table>
           <Thead>
             <tr>
+              {selection && <SelectHead />}
               <Th>Data sprzedaży</Th><Th>Numer dokumentu</Th><Th>Sprzedawca</Th><Th>Notatka</Th>
               <Th $align="right">Kwota</Th><Th>Płatność</Th><Th>Źródło</Th>
               <Th $width="80px" />
@@ -631,7 +659,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
           <tbody>
             {[1, 2, 3, 4, 5].map((i) => (
               <tr key={i} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                {[80, 110, 140, 100, 90, 90, 70].map((w, j) => (
+                {(selection ? [16, 80, 110, 140, 100, 90, 90, 70] : [80, 110, 140, 100, 90, 90, 70]).map((w, j) => (
                   <td key={j} style={{ padding: '13px 16px' }}>
                     <Skeleton $w={`${w}px`} />
                   </td>
@@ -663,8 +691,20 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
         const isExcluded = exp.status === 'EXCLUDED';
 
         return (
-          <Card key={exp.id} $muted={isExcluded} onClick={() => setPreviewId(exp.id)}>
+          <Card
+            key={exp.id}
+            $muted={isExcluded}
+            $selected={selection?.isSelected(exp.id) ?? false}
+            onClick={() => setPreviewId(exp.id)}
+          >
             <CardTop>
+              {selection && (
+                <RowCheckbox
+                  checked={selection.isSelected(exp.id)}
+                  onChange={() => selection.toggle(exp.id)}
+                  label={`Zaznacz dokument ${exp.documentNumber ?? 'bez numeru'}`}
+                />
+              )}
               <CardSeller>{exp.sellerName ?? 'Bez sprzedawcy'}</CardSeller>
               <CardAmount>{formatMoneyFloat(exp.grossAmount)}</CardAmount>
             </CardTop>
@@ -716,6 +756,17 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
         <Table>
           <Thead>
             <tr>
+              {selection && (
+                <SelectHead>
+                  <RowCheckbox
+                    onDark
+                    checked={selection.allSelected}
+                    indeterminate={selection.someSelected}
+                    onChange={selection.toggleAll}
+                    label="Zaznacz wszystkie dokumenty na stronie"
+                  />
+                </SelectHead>
+              )}
               <Th>Data sprzedaży</Th>
               <Th>Numer dokumentu</Th>
               <Th>Sprzedawca</Th>
@@ -732,7 +783,22 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
               const currentPaymentStatus = exp.paymentStatus;
 
               return (
-                <Tr key={exp.id} $excluded={isExcluded} onClick={() => setPreviewId(exp.id)}>
+                <Tr
+                  key={exp.id}
+                  $excluded={isExcluded}
+                  $selected={selection?.isSelected(exp.id) ?? false}
+                  onClick={() => setPreviewId(exp.id)}
+                >
+
+                  {selection && (
+                    <SelectCell>
+                      <RowCheckbox
+                        checked={selection.isSelected(exp.id)}
+                        onChange={() => selection.toggle(exp.id)}
+                        label={`Zaznacz dokument ${exp.documentNumber ?? 'bez numeru'}`}
+                      />
+                    </SelectCell>
+                  )}
 
                   {/* Data sprzedaży */}
                   <Td>
