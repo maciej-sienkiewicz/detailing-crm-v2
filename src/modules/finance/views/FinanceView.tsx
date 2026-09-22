@@ -472,6 +472,78 @@ const ToggleText = styled.span`
   white-space: nowrap;
 `;
 
+// ─── Filtr widoczności ukrytych (3 stany, segmentowany jak w ustawieniach usług) ─
+
+type HiddenFilter = 'default' | 'all' | 'only';
+
+const HIDDEN_FILTER_OPTIONS: readonly { value: HiddenFilter; label: string }[] = [
+  { value: 'default', label: 'Bez ukrytych' },
+  { value: 'all',     label: 'Ukryte' },
+  { value: 'only',    label: 'Tylko ukryte' },
+];
+
+/** Zamienia 3-stanowy filtr na parę parametrów API (pełna wsteczna zgodność). */
+const hiddenParams = (f: HiddenFilter) => ({
+  includeExcluded: f === 'all'  || undefined,
+  onlyExcluded:    f === 'only' || undefined,
+});
+
+const HiddenFilterGroup = styled.div`
+  display: flex;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 9px;
+  overflow: hidden;
+  flex-shrink: 0;
+`;
+
+const HiddenFilterBtn = styled.button<{ $active: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: ${p => (p.$active ? 600 : 500)};
+  background: ${p => (p.$active ? '#f0f9ff' : 'white')};
+  color: ${p => (p.$active ? '#0369a1' : '#475569')};
+  border: none;
+  border-right: 1.5px solid #e2e8f0;
+  box-shadow: ${p => (p.$active ? 'inset 0 -2px 0 #0ea5e9' : 'none')};
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  transition: all 150ms;
+
+  &:last-child { border-right: none; }
+  &:hover:not(:disabled) { background: ${p => (p.$active ? '#f0f9ff' : '#f8fafc')}; }
+`;
+
+const HiddenCheck = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+       strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
+const HiddenFilterControl: React.FC<{ value: HiddenFilter; onChange: (v: HiddenFilter) => void }> = ({ value, onChange }) => (
+  <HiddenFilterGroup role="group" aria-label="Widoczność ukrytych dokumentów">
+    {HIDDEN_FILTER_OPTIONS.map((o) => (
+      <HiddenFilterBtn key={o.value} type="button" $active={value === o.value} onClick={() => onChange(o.value)}>
+        {o.label}
+      </HiddenFilterBtn>
+    ))}
+  </HiddenFilterGroup>
+);
+
+/** Wersja filtra do menu „trzy kropki" na telefonie: trzy pozycje z ptaszkiem na aktywnej. */
+const hiddenFilterKebabItems = (value: HiddenFilter, onChange: (v: HiddenFilter) => void): ToolbarMenuItem[] =>
+  HIDDEN_FILTER_OPTIONS.map((o) => ({
+    kind: 'action',
+    key: `hidden-${o.value}`,
+    label: o.label,
+    icon: value === o.value ? <HiddenCheck /> : <span style={{ width: 15, display: 'inline-block' }} />,
+    onSelect: () => onChange(o.value),
+  }));
+
 // ─── Search field ─────────────────────────────────────────────────────────────
 
 /**
@@ -1259,7 +1331,7 @@ interface IncomeTabContentProps {
  */
 const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, onSelect }) => {
   const [filters, setFilters] = useState<IncomeFilters>(EMPTY_INCOME_FILTERS);
-  const [showExcluded, setShowExcluded] = useState(false);
+  const [hiddenFilter, setHiddenFilter] = useState<HiddenFilter>('default');
   const searchTerm = useDebounce(filters.search.trim(), SEARCH_DEBOUNCE_MS);
 
   const { documents, total, isLoading, isError, refetch } = useIncomeDocuments({
@@ -1267,7 +1339,7 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
     paymentStatus: (filters.paymentStatus as 'PAID' | 'PENDING' | 'OVERDUE') || undefined,
     dateFrom:        activeDateRange.dateFrom,
     dateTo:          activeDateRange.dateTo,
-    includeExcluded: showExcluded || undefined,
+    ...hiddenParams(hiddenFilter),
     search:          searchTerm || undefined,
     page:            filters.page,
     pageSize:        PAGE_SIZE,
@@ -1350,16 +1422,8 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
               style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
             />
           </ToggleLabel>
-          <ToggleLabel>
-            <ToggleTrack $on={showExcluded} />
-            <ToggleText>Pokaż ukryte</ToggleText>
-            <input
-              type="checkbox"
-              checked={showExcluded}
-              onChange={(e) => { setShowExcluded(e.target.checked); setFilters((p) => ({ ...p, page: 1 })); }}
-              style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
-            />
-          </ToggleLabel>
+          <HiddenFilterControl value={hiddenFilter}
+            onChange={(v) => { setHiddenFilter(v); setFilters((p) => ({ ...p, page: 1 })); }} />
           <RefreshBtn onClick={() => refetch()} title="Odśwież">
             <RefreshIcon />
           </RefreshBtn>
@@ -1369,8 +1433,7 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
           items={[
             { kind: 'toggle', key: 'dup', label: 'Tylko podejrzane duplikaty', on: filters.duplicates,
               onSelect: () => setFilter('duplicates', !filters.duplicates) },
-            { kind: 'toggle', key: 'excluded', label: 'Pokaż ukryte', on: showExcluded,
-              onSelect: () => { setShowExcluded(!showExcluded); setFilters((p) => ({ ...p, page: 1 })); } },
+            ...hiddenFilterKebabItems(hiddenFilter, (v) => { setHiddenFilter(v); setFilters((p) => ({ ...p, page: 1 })); }),
             ...(hasFilters ? [{ kind: 'action' as const, key: 'clear', label: 'Wyczyść filtry',
               onSelect: () => setFilters(EMPTY_INCOME_FILTERS) }] : []),
             { kind: 'action', key: 'refresh', label: 'Odśwież', icon: <RefreshIcon />, onSelect: () => refetch() },
@@ -1455,7 +1518,7 @@ interface ExpensesTabContentProps {
 
 const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange }) => {
   const [filters, setFilters] = useState<ExpenseFilters>(EMPTY_EXPENSE_FILTERS);
-  const [showExcluded, setShowExcluded] = useState(false);
+  const [hiddenFilter, setHiddenFilter] = useState<HiddenFilter>('default');
   const searchTerm = useDebounce(filters.search.trim(), SEARCH_DEBOUNCE_MS);
 
   const { expenses, total, isLoading, isError, refetch } = useKsefExpenses({
@@ -1463,7 +1526,7 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
     paymentStatus:   (filters.paymentStatus as ExpensePaymentStatus) || undefined,
     dateFrom:        activeDateRange.dateFrom,
     dateTo:          activeDateRange.dateTo,
-    includeExcluded: showExcluded      || undefined,
+    ...hiddenParams(hiddenFilter),
     search:          searchTerm || undefined,
     page:            filters.page,
     pageSize:        PAGE_SIZE,
@@ -1520,16 +1583,8 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
               Wyczyść filtry
             </ClearFiltersBtn>
           )}
-          <ToggleLabel>
-            <ToggleTrack $on={showExcluded} />
-            <ToggleText>Pokaż ukryte</ToggleText>
-            <input
-              type="checkbox"
-              checked={showExcluded}
-              onChange={(e) => setShowExcluded(e.target.checked)}
-              style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
-            />
-          </ToggleLabel>
+          <HiddenFilterControl value={hiddenFilter}
+            onChange={(v) => { setHiddenFilter(v); setFilters((p) => ({ ...p, page: 1 })); }} />
           <RefreshBtn onClick={() => refetch()} title="Odśwież">
             <RefreshIcon />
           </RefreshBtn>
@@ -1537,8 +1592,7 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
 
         <ToolbarKebab
           items={[
-            { kind: 'toggle', key: 'excluded', label: 'Pokaż ukryte', on: showExcluded,
-              onSelect: () => setShowExcluded(!showExcluded) },
+            ...hiddenFilterKebabItems(hiddenFilter, (v) => { setHiddenFilter(v); setFilters((p) => ({ ...p, page: 1 })); }),
             ...(hasFilters ? [{ kind: 'action' as const, key: 'clear', label: 'Wyczyść filtry',
               onSelect: () => setFilters(EMPTY_EXPENSE_FILTERS) }] : []),
             { kind: 'action', key: 'refresh', label: 'Odśwież', icon: <RefreshIcon />, onSelect: () => refetch() },

@@ -1,14 +1,15 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
-import { Check, Eye, EyeOff, FileText } from 'lucide-react';
+import { Check, Eye, EyeOff, FileText, Pencil, Trash2 } from 'lucide-react';
 import { useMediaQuery } from '@/common/hooks';
 import type { RowSelection } from '@/common/hooks';
 import { useToast } from '@/common/components/Toast';
 import type { IncomeDocument, IncomeDocumentType, KsefRevenueStatus } from '../types';
-import { useExcludeIncomeDocument, useRestoreIncomeDocument } from '../hooks/useIncomeDocuments';
+import { useExcludeIncomeDocument, useRestoreIncomeDocument, useDeleteIncomeNote } from '../hooks/useIncomeDocuments';
 import { ksefRevenueApi } from '../api/ksefRevenueApi';
 import { formatMoney, formatDate } from '../utils/formatters';
 import { RowCheckbox } from './SelectionControls';
+import { IncomeNoteModal } from './IncomeNoteModal';
 
 // ─── Layout (spójny z pozostałymi tabelami modułu finansowego) ───────────────
 
@@ -30,7 +31,7 @@ const Wrapper = styled.div`
 
 const Table = styled.table`
   width: 100%;
-  min-width: 1104px;
+  min-width: 1264px;
   border-collapse: collapse;
 `;
 
@@ -192,8 +193,9 @@ const ActionsCell = styled.div`
 
 /* „pdf" chodzi po tej samej ścieżce co „exclude": w tabeli żadna akcja wiersza nie
    jest wypełniona kolorem — krokiem następnym na tym widoku jest „Wystaw fakturę"
-   w nagłówku (CLAUDE.md §2). */
-const ActionBtn = styled.button<{ $variant: 'exclude' | 'restore' | 'pdf' }>`
+   w nagłówku (CLAUDE.md §2). „note"/„note-delete" dostają barwę na hover taką samą
+   jak edycja/usunięcie notatki w tabeli kosztów, żeby oba widoki czytały się tak samo. */
+const ActionBtn = styled.button<{ $variant: 'exclude' | 'restore' | 'pdf' | 'note' | 'note-delete' }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -207,12 +209,59 @@ const ActionBtn = styled.button<{ $variant: 'exclude' | 'restore' | 'pdf' }>`
   transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
 
   &:hover:not(:disabled) {
-    background: ${(p) => (p.$variant === 'restore' ? '#f0fdf4' : '#f8fafc')};
-    border-color: ${(p) => (p.$variant === 'restore' ? '#86efac' : '#cbd5e1')};
-    color: ${(p) => (p.$variant === 'restore' ? '#166534' : p.theme.colors.text)};
+    ${(p) => {
+      switch (p.$variant) {
+        case 'restore':     return `background: #f0fdf4; border-color: #86efac; color: #166534;`;
+        case 'note':        return `background: #eef2ff; border-color: #c7d2fe; color: #4f46e5;`;
+        case 'note-delete': return `background: #fee2e2; border-color: #fca5a5; color: #ef4444;`;
+        default:            return `background: #f8fafc; border-color: #cbd5e1; color: ${p.theme.colors.text};`;
+      }
+    }}
   }
 
   &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
+/* ─── Notatka (kolumna spójna z tabelą kosztów) ───────────────────────────────
+   Tekst notatki widać wprost w kolumnie — po to jest notatka, żeby nie trzeba było
+   jej otwierać. Puste pole to zachęta „Dodaj notatkę", dokładnie jak po stronie
+   kosztów, bo obie tabele siedzą w jednym module. */
+const NoteCell = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+const NoteText = styled.span`
+  display: block;
+  max-width: 160px;
+  font-size: 13px;
+  color: ${(p) => p.theme.colors.text};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const AddNoteBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.12s ease;
+
+  &:hover {
+    color: #4f46e5;
+    border-color: #c7d2fe;
+    background: #eef2ff;
+  }
 `;
 
 /* ─── Karta na telefonie ──────────────────────────────────────────────────────
@@ -291,6 +340,16 @@ const CardAmount = styled.span<{ $negative?: boolean }>`
 const CardMeta = styled.div`
   font-size: 12px;
   color: ${(p) => p.theme.colors.textMuted};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+/* Na telefonie notatkę tylko pokazujemy (jak w kartach kosztów) — edycja siedzi na
+   desktopie, gdzie jest kolumna „Notatka". */
+const CardNote = styled.div`
+  font-size: 12px;
+  color: #64748b;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -439,16 +498,30 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
 }) => {
   const excludeMutation = useExcludeIncomeDocument();
   const restoreMutation = useRestoreIncomeDocument();
+  const deleteNoteMutation = useDeleteIncomeNote();
   const busy = excludeMutation.isPending || restoreMutation.isPending;
   const isMobile = useMediaQuery('(max-width: 639px)');
   const { showError } = useToast();
   const [pdfPendingId, setPdfPendingId] = React.useState<string | null>(null);
+  /** Dokument, którego notatkę edytujemy; null = modal zamknięty. */
+  const [noteDoc, setNoteDoc] = React.useState<IncomeDocument | null>(null);
 
   /** Ukrycie to akcja wiersza, nie wejście w szczegóły - klik nie może otwierać modala. */
   const toggleExcluded = (event: React.MouseEvent, doc: IncomeDocument) => {
     event.stopPropagation();
     const mutation = doc.excluded ? restoreMutation : excludeMutation;
     mutation.mutate({ sourceKind: doc.sourceKind, id: doc.id });
+  };
+
+  /** Notatka to akcja wiersza — otwarcie modala nie może otwierać szczegółów dokumentu. */
+  const openNote = (event: React.MouseEvent, doc: IncomeDocument) => {
+    event.stopPropagation();
+    setNoteDoc(doc);
+  };
+
+  const handleDeleteNote = (event: React.MouseEvent, doc: IncomeDocument) => {
+    event.stopPropagation();
+    deleteNoteMutation.mutate({ sourceKind: doc.sourceKind, id: doc.id });
   };
 
   /**
@@ -534,6 +607,8 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                       {doc.documentNumber} · {formatDate(doc.issueDate)}
                     </CardMeta>
 
+                    {doc.note && <CardNote title={doc.note}>{doc.note}</CardNote>}
+
                     <CardBadges>
                       <TypeCell>
                         <Badge $variant={type.variant}>{type.label}</Badge>
@@ -581,6 +656,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
   }
 
   return (
+    <>
     <Wrapper>
       <Table>
         <Thead>
@@ -600,6 +676,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
             <Th>Typ</Th>
             <Th>Numer</Th>
             <Th>Nabywca</Th>
+            <Th>Notatka</Th>
             <Th $align="right">Kwota</Th>
             <Th>Źródło</Th>
             <Th>Płatność</Th>
@@ -610,7 +687,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
           {isLoading
             ? Array.from({ length: 5 }).map((_, i) => (
                 <SkeletonRow key={i}>
-                  {Array.from({ length: selection ? 9 : 8 }).map((_, j) => (
+                  {Array.from({ length: selection ? 10 : 9 }).map((_, j) => (
                     <td key={j}><div /></td>
                   ))}
                 </SkeletonRow>
@@ -686,6 +763,38 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                       <PartyName>{doc.counterpartyName ?? '-'}</PartyName>
                       <PartyNip>{doc.counterpartyNip ? `NIP ${doc.counterpartyNip}` : 'Konsument'}</PartyNip>
                     </Td>
+                    {/* Notatka — tekst wprost w kolumnie, edycja/usuwanie jak po stronie kosztów. */}
+                    <Td onClick={(e) => e.stopPropagation()}>
+                      {doc.note ? (
+                        <NoteCell>
+                          <NoteText title={doc.note}>{doc.note}</NoteText>
+                          <ActionBtn
+                            type="button"
+                            $variant="note"
+                            onClick={(e) => openNote(e, doc)}
+                            title="Edytuj notatkę"
+                            aria-label="Edytuj notatkę"
+                          >
+                            <Pencil size={14} />
+                          </ActionBtn>
+                          <ActionBtn
+                            type="button"
+                            $variant="note-delete"
+                            disabled={deleteNoteMutation.isPending}
+                            onClick={(e) => handleDeleteNote(e, doc)}
+                            title="Usuń notatkę"
+                            aria-label="Usuń notatkę"
+                          >
+                            <Trash2 size={14} />
+                          </ActionBtn>
+                        </NoteCell>
+                      ) : (
+                        <AddNoteBtn type="button" onClick={(e) => openNote(e, doc)}>
+                          <Pencil size={11} />
+                          Dodaj notatkę
+                        </AddNoteBtn>
+                      )}
+                    </Td>
                     <Td $align="right">
                       <AmountPrimary $negative={doc.totalGross < 0}>
                         {formatMoney(doc.totalGross)}
@@ -730,5 +839,11 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
         </tbody>
       </Table>
     </Wrapper>
+    <IncomeNoteModal
+      isOpen={noteDoc !== null}
+      onClose={() => setNoteDoc(null)}
+      document={noteDoc}
+    />
+    </>
   );
 };

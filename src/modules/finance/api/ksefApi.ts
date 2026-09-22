@@ -101,6 +101,7 @@ export const ksefApi = {
     if (filters.dateFrom)        params.append('dateFrom',        filters.dateFrom);
     if (filters.dateTo)          params.append('dateTo',          filters.dateTo);
     if (filters.includeExcluded) params.append('includeExcluded', 'true');
+    if (filters.onlyExcluded)    params.append('onlyExcluded',    'true');
     if (filters.search)          params.append('search',          filters.search);
     const response = await apiClient.get(`${BASE}/expenses?${params}`);
     return response.data;
