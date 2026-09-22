@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { getCarLogoUrl } from '../services/carLogos';
+import { trimmedLogoUrl, trimmedLogoUrlSync } from '../services/logoTrim';
 
 type Size = 'xs' | 'sm' | 'md' | 'lg';
 
@@ -79,12 +80,43 @@ const CarFallbackIcon = ({ h }: { h: number }) => (
 
 type ImgState = 'loading' | 'loaded' | 'error';
 
+/** Po tylu ms bez przyciętej wersji pokazujemy oryginał - skeleton nie może wisieć. */
+const TRIM_WAIT_MS = 1500;
+
+/**
+ * Adres do wyświetlenia: logo bez pustego obrzeża (jak logo firmy na dokumentach),
+ * a gdy przycięcie się nie uda albo trwa za długo - oryginał. `undefined` = jeszcze czekamy.
+ */
+const useDisplayedLogoUrl = (logoUrl: string | null): string | undefined => {
+    // Stan przypięty do adresu: po zmianie marki stary wynik nie przecieka na nowe logo.
+    const [state, setState] = useState<{ url: string; trimmed?: string | null; timedOut?: boolean } | null>(null);
+
+    useEffect(() => {
+        if (!logoUrl) return;
+        let active = true;
+        trimmedLogoUrl(logoUrl).then(trimmed => {
+            if (active) setState(prev => ({ ...(prev?.url === logoUrl ? prev : {}), url: logoUrl, trimmed }));
+        });
+        const timer = setTimeout(() => {
+            if (active) setState(prev => ({ ...(prev?.url === logoUrl ? prev : {}), url: logoUrl, timedOut: true }));
+        }, TRIM_WAIT_MS);
+        return () => { active = false; clearTimeout(timer); };
+    }, [logoUrl]);
+
+    if (!logoUrl) return undefined;
+    const current = state?.url === logoUrl ? state : null;
+    const trimmed = current?.trimmed !== undefined ? current.trimmed : trimmedLogoUrlSync(logoUrl);
+    if (trimmed) return trimmed;
+    return trimmed === null || current?.timedOut ? logoUrl : undefined;
+};
+
 export const CarLogoImage = ({ brand, size = 'md', className }: CarLogoImageProps) => {
     const logoUrl = getCarLogoUrl(brand);
     const h = SIZE_H[size];
     const maxW = SIZE_MAX_W[size];
 
     const [imgState, setImgState] = useState<ImgState>(logoUrl ? 'loading' : 'error');
+    const src = useDisplayedLogoUrl(logoUrl);
 
     if (!logoUrl || imgState === 'error') {
         return <CarFallbackIcon h={h} />;
@@ -93,18 +125,19 @@ export const CarLogoImage = ({ brand, size = 'md', className }: CarLogoImageProp
     return (
         <Stack $h={h} $maxW={maxW} className={className}>
             <Skeleton $visible={imgState === 'loading'} />
-            <Img
+            {src && <Img
+                key={src}
                 $h={h}
                 $maxW={maxW}
                 $visible={imgState === 'loaded'}
-                src={logoUrl}
+                src={src}
                 alt={brand ?? ''}
                 decoding="async"
                 onLoad={() => setImgState('loaded')}
                 onError={() => {
                     setImgState('error');
                 }}
-            />
+            />}
         </Stack>
     );
 };
