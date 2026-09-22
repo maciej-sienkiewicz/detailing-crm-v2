@@ -27,7 +27,7 @@ import {
  * te same co w formularzach leadów, usług czy finansów.
  */
 
-type Status = 'confirmed' | 'pending' | 'none';
+type Status = 'confirmed' | 'pending' | 'awaiting_document' | 'none';
 
 const MAX_LENGTH = 11;
 
@@ -124,7 +124,7 @@ const Badge = styled.span<{ $status: Status }>`
     border-color: rgba(245, 158, 11, 0.35);
     color: #92400e;
   `}
-  ${p => p.$status === 'none' && css`
+  ${p => (p.$status === 'awaiting_document' || p.$status === 'none') && css`
     background: #fef3c7;
     border-color: rgba(217, 119, 6, 0.35);
     color: #b45309;
@@ -230,18 +230,26 @@ const HiddenFile = styled.input`
   display: none;
 `;
 
-const statusOf = (cfg: SmsSenderNameConfig | null): Status =>
-  cfg?.confirmed ? 'confirmed' : cfg?.senderName ? 'pending' : 'none';
+const statusOf = (cfg: SmsSenderNameConfig | null): Status => {
+  if (!cfg?.senderName) return 'none';
+  if (cfg.confirmed) return 'confirmed';
+  // Nazwa zapisana, ale bez przesłanego upoważnienia operator nie ma czego
+  // weryfikować - „czeka na weryfikację" byłoby wtedy nieprawdą. Weryfikacja
+  // rusza dopiero po przesłaniu pliku (hasAuthDocument).
+  return cfg.hasAuthDocument ? 'pending' : 'awaiting_document';
+};
 
 const STATUS_LABEL: Record<Status, string> = {
   confirmed: 'Zatwierdzona',
   pending: 'Czeka na weryfikację',
+  awaiting_document: 'Prześlij upoważnienie',
   none: 'Wymaga konfiguracji',
 };
 
 const STATUS_ICON: Record<Status, React.ReactNode> = {
   confirmed: <Check />,
   pending: <Clock />,
+  awaiting_document: <Upload />,
   none: null,
 };
 
@@ -284,7 +292,7 @@ export const SmsSenderNameCard: React.FC = () => {
     try {
       await updateMutation.mutateAsync(name.trim());
       setDraft(null);
-      flash(false, 'Zapisano. Nazwa czeka na weryfikację operatora.');
+      flash(false, 'Zapisano. Teraz prześlij podpisane upoważnienie, żeby ruszyła weryfikacja.');
     } catch {
       flash(true, 'Nie udało się zapisać nazwy nadawcy.');
     }
