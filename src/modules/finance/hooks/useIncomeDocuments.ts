@@ -62,6 +62,26 @@ export const useRestoreIncomeDocument = () => {
   });
 };
 
+/** Zapisuje odręczną notatkę operatora na dokumencie przychodowym. */
+export const useUpdateIncomeNote = () => {
+  const invalidate = useInvalidateIncomeDocuments();
+  return useMutation({
+    mutationFn: ({ sourceKind, id, note }: { sourceKind: IncomeSourceKind; id: string; note: string }) =>
+      incomeDocumentsApi.updateNote(sourceKind, id, { note }),
+    onSuccess: invalidate,
+  });
+};
+
+/** Usuwa notatkę z dokumentu przychodowego. */
+export const useDeleteIncomeNote = () => {
+  const invalidate = useInvalidateIncomeDocuments();
+  return useMutation({
+    mutationFn: ({ sourceKind, id }: { sourceKind: IncomeSourceKind; id: string }) =>
+      incomeDocumentsApi.deleteNote(sourceKind, id),
+    onSuccess: invalidate,
+  });
+};
+
 /**
  * Grupowa zmiana statusu płatności zaznaczonych dokumentów przychodowych.
  *

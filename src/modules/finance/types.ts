@@ -413,6 +413,8 @@ export interface KsefExpenseListFilters {
   dateFrom?:        string;
   dateTo?:          string;
   includeExcluded?: boolean;
+  /** true = pokaż WYŁĄCZNIE ukryte. */
+  onlyExcluded?:    boolean;
   /**
    * Jedna fraza szukana po NIP-ie i nazwie sprzedawcy, nazwach pozycji, numerze
    * dokumentu, numerze KSeF i kwocie. Dopasowanie robi backend — szuka w całym
@@ -499,6 +501,12 @@ export interface IncomeDocument {
   createdAt:        string;
   /** Ukryty ze statystyk - pozycja widoczna dopiero po włączeniu „Pokaż ukryte". */
   excluded:         boolean;
+  /** Odręczna notatka operatora; null gdy nie dodano. Odpowiednik notatki na koszcie. */
+  note:             string | null;
+}
+
+export interface UpdateIncomeNoteRequest {
+  note: string;
 }
 
 export interface IncomeDocumentListResponse {
@@ -517,6 +525,8 @@ export interface IncomeDocumentFilters {
   dateTo?:        string;
   onlyKsef?:      boolean;
   includeExcluded?: boolean;
+  /** true = pokaż WYŁĄCZNIE ukryte. */
+  onlyExcluded?:   boolean;
   /**
    * Jedna fraza szukana po NIP-ie i nazwie kontrahenta, nazwach pozycji, numerze
    * dokumentu, numerze KSeF i kwocie. Dopasowanie robi backend — szuka w całym

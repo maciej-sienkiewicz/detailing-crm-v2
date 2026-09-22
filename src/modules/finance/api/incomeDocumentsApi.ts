@@ -6,6 +6,7 @@ import type {
   IncomeDocumentListResponse,
   IncomeDocumentRef,
   IncomeSourceKind,
+  UpdateIncomeNoteRequest,
 } from '../types';
 
 const BASE = '/v1/finance/income-documents';
@@ -27,6 +28,7 @@ export const incomeDocumentsApi = {
     if (filters.search)        params.append('search',        filters.search);
     if (filters.onlyKsef)        params.append('onlyKsef',        'true');
     if (filters.includeExcluded) params.append('includeExcluded', 'true');
+    if (filters.onlyExcluded)    params.append('onlyExcluded',    'true');
 
     const response = await apiClient.get(`${BASE}?${params}`);
     return response.data;
@@ -44,6 +46,24 @@ export const incomeDocumentsApi = {
   /** Przywraca ukryty wcześniej dokument do statystyk i domyślnej listy. */
   restore: async (sourceKind: IncomeSourceKind, id: string): Promise<void> => {
     await apiClient.patch(`${BASE}/${sourceKind}/${id}/restore`);
+  },
+
+  /**
+   * Zapisuje odręczną notatkę operatora. `sourceKind` decyduje, do którego źródła
+   * trafia zapis (faktura KSeF vs dokument modułu finansowego) - tak samo jak przy
+   * ukrywaniu, bo lista przychodów łączy oba źródła.
+   */
+  updateNote: async (
+    sourceKind: IncomeSourceKind,
+    id: string,
+    data: UpdateIncomeNoteRequest,
+  ): Promise<void> => {
+    await apiClient.patch(`${BASE}/${sourceKind}/${id}/note`, data);
+  },
+
+  /** Usuwa notatkę z dokumentu przychodowego. */
+  deleteNote: async (sourceKind: IncomeSourceKind, id: string): Promise<void> => {
+    await apiClient.delete(`${BASE}/${sourceKind}/${id}/note`);
   },
 
   /**
