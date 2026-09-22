@@ -10,6 +10,8 @@
 import { describe, expect, it } from 'vitest';
 import { buildAppointmentPayload } from './buildAppointmentPayload';
 import type { QuickEventFormData } from '@/modules/calendar/components/QuickEventModal';
+import { catalogLinePrices } from '@/modules/calendar/components/QuickEventModal/linePrices';
+import { netToGross } from '@/common/utils/priceAdjustment';
 
 const baseData = (overrides: Partial<QuickEventFormData> = {}): QuickEventFormData => ({
   title: '',
@@ -156,5 +158,48 @@ describe('buildAppointmentPayload - vatRate dla usługi tworzonej w QuickEventMo
     });
 
     expect(buildAppointmentPayload(data).services[0].vatRate).toBe(23);
+  });
+});
+
+// Regresja: pozycja z CENNIKA nietknięta w tabeli jechała do API z 23%, bo formularz
+// nie zapisywał jej stawki przy dodaniu (serviceVatRates wypełniała dopiero zmiana
+// w tabeli), a ten builder nie ma cennika, z którego mógłby ją wziąć. Backend bierze
+// stawkę pozycji katalogowej z żądania, więc usługa z 8% zapisywała się z 23%.
+// Mapy formularza budujemy tu tą samą funkcją, której używa addService.
+describe('buildAppointmentPayload - vatRate pozycji z cennika', () => {
+  const catalogLine = (service: { basePriceNet: number; basePriceGross: number; vatRate: number }) => {
+    const line = catalogLinePrices(service);
+    return baseData({
+      serviceRefs: { 'line-1': 'catalog-svc' },
+      servicePrices: { 'line-1': line.grossPln },
+      serviceBasePrices: { 'line-1': line.netCents },
+      serviceVatRates: { 'line-1': line.vatRate },
+    });
+  };
+
+  it('usługa z cennika z 8% VAT jedzie z 8%, a jej brutto 1900,00 dokładnie', () => {
+    // 1900,00 zł brutto przy 8%: netto 175926 gr, a 175926 × 1,08 = 190000,08 → 190000.
+    const payload = buildAppointmentPayload(catalogLine({ basePriceNet: 175926, basePriceGross: 190000, vatRate: 8 }));
+
+    expect(payload.services[0]).toMatchObject({
+      serviceId: 'catalog-svc',
+      vatRate: 8,
+      basePriceNet: 175926,
+      basePriceGross: 190000,
+    });
+  });
+
+  it('usługa z cennika z 23% i brutto 1900,00: 190000, nie 190001 odtworzone z netta', () => {
+    const payload = buildAppointmentPayload(catalogLine({ basePriceNet: 154472, basePriceGross: 190000, vatRate: 23 }));
+
+    expect(payload.services[0]).toMatchObject({ vatRate: 23, basePriceNet: 154472, basePriceGross: 190000 });
+  });
+
+  it.each([5, 0, -1])('stawka %i z cennika nie zamienia się w 23%%', (vatRate) => {
+    const payload = buildAppointmentPayload(
+      catalogLine({ basePriceNet: 10000, basePriceGross: netToGross(10000, vatRate), vatRate }),
+    );
+
+    expect(payload.services[0].vatRate).toBe(vatRate);
   });
 });

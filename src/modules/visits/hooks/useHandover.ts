@@ -15,8 +15,8 @@ import { buildThankYouSmsPayload } from '../components/handover/thankYouSms';
 import type { ServiceLineItem, Visit } from '../types';
 import type { CompleteVisitResponse, PaymentMethod } from '../types/stateTransitions';
 import {
-    detectRate,
     invoiceGrossOf,
+    invoiceItemFromService,
     restoreDraft,
     servicesFingerprint,
     toInvoicePayload,
@@ -136,18 +136,10 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
 
     // ── Stan początkowy ──────────────────────────────────────────────────────
     const buildInitialState = useCallback((): HandoverState => {
+        // Stawka pozycji z usługi, nie z proporcji kwot - patrz invoiceRateOf.
         const seedItems: HandoverItem[] =
             visit.services.length > 0
-                ? visit.services.map(service => {
-                      const pricing = priceOf(service);
-                      return withDerived({
-                          name: service.serviceName,
-                          net: '',
-                          gross: toPln(pricing.finalPriceGross),
-                          mode: 'GROSS',
-                          vatRate: detectRate(pricing.finalPriceNet, pricing.finalPriceGross),
-                      });
-                  })
+                ? visit.services.map(service => invoiceItemFromService(service, priceOf(service)))
                 : [
                       withDerived({
                           name: 'Usługi detailingowe',

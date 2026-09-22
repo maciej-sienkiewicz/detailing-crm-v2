@@ -16,7 +16,8 @@ import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { PriceInput } from '@/modules/services/components/PriceInput';
 import type { Service, VatRate } from '@/modules/services/types';
 import { VAT_OPTIONS } from '@/modules/services/vatOptions';
-import { netToGross } from '@/common/utils/priceAdjustment';
+import { repriceForVatRate } from '@/common/utils/priceAdjustment';
+import { useTypedPriceSide } from '@/modules/services/components/useTypedPriceSide';
 import {
     Overlay,
     ModalContainer,
@@ -71,6 +72,7 @@ export const ManualPriceModal = ({
     const [vatRate, setVatRate] = useState<VatRate>(service.vatRate);
     const [basePriceNet, setBasePriceNet] = useState(0);
     const [basePriceGross, setBasePriceGross] = useState(0);
+    const { typedSide, fieldsRef, onFieldsChange } = useTypedPriceSide();
 
     const handleSubmit = (event: React.FormEvent) => {
         event.preventDefault();
@@ -81,15 +83,20 @@ export const ManualPriceModal = ({
     };
 
     /**
-     * Zmiana stawki przelicza brutto od netto - netto jest tym, co wpisał użytkownik.
+     * Zmiana stawki zachowuje stronę, którą wpisał człowiek, i przelicza drugą.
      *
-     * Wspólnym `netToGross`, a nie własnym mnożeniem: cała arytmetyka VAT ma jedną
-     * implementację (patrz CLAUDE.md), więc nie ma gdzie powstać drugiemu wynikowi
-     * dla tej samej pary liczb. `netToGross` sam obsługuje ZW i 0%.
+     * Wcześniej brutto liczyło się zawsze od netta - także wtedy, gdy wpisano brutto,
+     * a netto było z niego tylko wyliczone. 1900,00 zł brutto po 23% → 8% → 23%
+     * wracało jako 1900,01 zł (CLAUDE.md §1). Wspólnym `repriceForVatRate`, a nie
+     * własnym mnożeniem: obsługuje ZW i 0%, a przy tej samej stawce nie rusza pary.
      */
     const handleVatChange = (nextRate: VatRate) => {
+        const next = repriceForVatRate(
+            { netCents: basePriceNet, grossCents: basePriceGross }, vatRate, nextRate, typedSide,
+        );
         setVatRate(nextRate);
-        setBasePriceGross(netToGross(basePriceNet, nextRate));
+        setBasePriceNet(next.netCents);
+        setBasePriceGross(next.grossCents);
     };
 
     return createPortal(
@@ -127,7 +134,9 @@ export const ManualPriceModal = ({
                             </Select>
                         </FieldGroup>
 
-                        <FieldGroup>
+                        {/* Obudowa pól ceny słyszy, w którym polu człowiek pisze - od tego
+                            zależy, którą stronę zachowa zmiana stawki VAT. */}
+                        <FieldGroup ref={fieldsRef} onChange={onFieldsChange}>
                             <PriceInput
                                 netAmount={basePriceNet}
                                 grossAmount={basePriceGross}

@@ -26,6 +26,7 @@ import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandMod
 import { ServicesTable } from '@/common/components/ServicesTable';
 import type { ServiceLineItem, SaveServiceData } from '@/common/components/ServicesTable';
 import { buildServicesAsLineItems } from './servicesAsLineItems';
+import { formPricesFromLineItems } from './linePrices';
 import { netToGross } from '@/common/utils/priceAdjustment';
 import { servicesApi } from '@/modules/services/api/servicesApi';
 import type { VatRate, Service as CatalogService } from '@/modules/services/types';
@@ -462,7 +463,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     );
 
     const handleServicesChange = useCallback((newItems: ServiceLineItem[]) => {
-        const newIds = new Set(newItems.map(i => i.id));
         form.setSelectedServiceIds(newItems.map(i => i.id));
         form.setServiceRefs(() => {
             const next: { [lineId: string]: string } = {};
@@ -484,52 +484,12 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             newItems.forEach(item => { next[item.id] = item.vatRate; });
             return next;
         });
-        form.setServiceBasePrices(() => {
-            const next: { [id: string]: number } = {};
-            newItems.forEach(item => {
-                if (item.basePriceGross != null) {
-                    next[item.id] = item.basePriceNet;
-                } else {
-                    const catalogId = item.serviceId || item.id;
-                    const catalogSvc = form.services.find((s: Service) => s.id === catalogId);
-                    next[item.id] = catalogSvc?.basePriceNet ?? form.tempServices[catalogId]?.basePriceNet ?? item.basePriceNet;
-                }
-            });
-            return next;
-        });
-        form.setServicePrices(prev => {
-            const next = { ...prev };
-            Object.keys(next).forEach(id => { if (!newIds.has(id)) delete next[id]; });
-            newItems.forEach(item => {
-                if (item.basePriceGross != null) {
-                    // "Edytuj pozycję" (albo zwykłe przejście przez servicesAsLineItems)
-                    // przyniosło dokładne brutto - zapisz je wprost.
-                    next[item.id] = item.basePriceGross / 100;
-                } else {
-                    // basePriceGross == null to sygnał ze zbiorczej zmiany stawki VAT
-                    // (patrz ServicesTable): stare brutto liczyło się przy starej stawce,
-                    // więc trzyma się teraz TYLKO netto - brutto trzeba przeliczyć raz,
-                    // przy nowej stawce, żeby nie zostało z poprzedniego procentu.
-                    next[item.id] = netToGross(item.basePriceNet, item.vatRate) / 100;
-                }
-            });
-            return next;
-        });
-        form.setServicePriceInputs(prev => {
-            const next = { ...prev };
-            Object.keys(next).forEach(id => { if (!newIds.has(id)) delete next[id]; });
-            newItems.forEach(item => {
-                if (item.basePriceGross != null) {
-                    // Oba pola wprost z pozycji, nie odtwarzane jedno z drugiego: netto
-                    // przeżywa niezależnie od tego, że brutto też jest tu ustalone.
-                    next[item.id] = {
-                        gross: (item.basePriceGross / 100).toFixed(2),
-                        net: (item.basePriceNet / 100).toFixed(2),
-                    };
-                }
-            });
-            return next;
-        });
+        // Netto i brutto wprost z pozycji, nigdy z cennika - także po zbiorczej zmianie
+        // VAT, po której pozycja wpisana od netta wraca bez brutta (patrz linePrices.ts).
+        const prices = formPricesFromLineItems(newItems);
+        form.setServiceBasePrices(() => prices.serviceBasePrices);
+        form.setServicePrices(() => prices.servicePrices);
+        form.setServicePriceInputs(() => prices.servicePriceInputs);
     }, [form]);
 
     const handleSaveService = useCallback(async (serviceId: string, data: SaveServiceData): Promise<string | null> => {
@@ -2368,7 +2328,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                     key={form.pendingService.id}
                     isOpen
                     serviceName={form.pendingService.name}
-                    vatRate={form.pendingService.vatRate || 23}
+                    // `??`, nie `||`: stawka 0% to prawdziwa stawka, a nie jej brak.
+                    vatRate={form.pendingService.vatRate ?? 23}
                     onClose={form.handlePriceInputModalClose}
                     onConfirm={form.handlePriceConfirm}
                 />

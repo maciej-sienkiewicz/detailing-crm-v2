@@ -5,6 +5,7 @@ import { ChevronDown } from 'lucide-react';
 import { DocumentType, PaymentMethod, DocumentDirection, type FinancialDocument } from '../types';
 import { useUpdateDocument } from '../hooks/useFinance';
 import { groszToInputValue, inputValueToGrosze } from '../utils/formatters';
+import { documentVatForNet } from '../utils/amountInputs';
 import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import {
     ModalShell,
@@ -187,8 +188,6 @@ interface FormState {
     counterpartyNip:  string;
 }
 
-const VAT_RATE = 0.23;
-
 function docToForm(doc: FinancialDocument): FormState {
     return {
         documentType:     doc.documentType,
@@ -219,12 +218,13 @@ export const EditDocumentModal: React.FC<Props> = ({ document, onClose }) => {
 
     const isIncome = document.direction === DocumentDirection.INCOME;
 
+    // VAT w groszach (brutto − netto przy 23%), nie `(netto × 0,23).toFixed(2)`:
+    // zmiennoprzecinkowo 13,50 zł netto dawało 3,10 zł VAT zamiast 3,11 zł.
     const handleNetChange = (value: string) => {
-        const net = parseFloat(value.replace(',', '.'));
         setForm(prev => prev && ({
             ...prev,
             totalNetDisplay: value,
-            totalVatDisplay: isNaN(net) ? '' : (net * VAT_RATE).toFixed(2),
+            totalVatDisplay: documentVatForNet(value),
         }));
     };
 

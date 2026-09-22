@@ -9,7 +9,9 @@ import type { SelectedCustomer, SelectedVehicle, RecurrenceRuleRequest } from '@
 import { pickInitialColorId } from '@/modules/appointment-colors';
 import { appointmentColorApi } from '@/modules/appointment-colors/api/appointmentColorApi';
 import { useDebounce } from '@/common/hooks';
-import { formatDateTimeLocal, formatDate, roundTo2, calculateFinalPrice } from './helpers';
+import { formatDateTimeLocal, formatDate } from './helpers';
+import { catalogLinePrices, manualLinePrices } from './linePrices';
+import { grossToNet } from '@/common/utils/priceAdjustment';
 import type { DoorToDoorInfo } from '@/modules/visits/types';
 import type { ManualPriceInput } from '../PriceInputModal';
 
@@ -926,7 +928,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
      * inna liczba niż w żądaniu (CLAUDE.md §1).
      */
     const initPriceInputs = (id: string, grossPrice: number, vatRate: number, exactNetPln?: number) => {
-        const net = exactNetPln ?? roundTo2(grossPrice / (1 + vatRate / 100));
+        const net = exactNetPln ?? grossToNet(Math.round(grossPrice * 100), vatRate) / 100;
         setServicePriceInputs(prev => ({
             ...prev,
             [id]: { gross: grossPrice.toFixed(2), net: net.toFixed(2) },
@@ -946,18 +948,19 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         const lineId = nextLineId(service.id);
         setSelectedServiceIds(prev => [...prev, lineId]);
         setServiceRefs(prev => ({ ...prev, [lineId]: service.id }));
-        // Prefer the catalog's stored gross: re-deriving from net drifts by 1 gr for gross-entered prices
-        const grossPrice = service.basePriceGross != null
-            ? roundTo2(service.basePriceGross / 100)
-            : roundTo2((service.basePriceNet / 100) * (100 + service.vatRate) / 100);
-        setServicePrices(prev => ({ ...prev, [lineId]: grossPrice }));
+        // Brutto z cennika wygrywa z przeliczeniem: odtworzone z netta dryfuje o grosz
+        // dla cen wpisanych od brutta.
+        const prices = catalogLinePrices(service);
+        setServicePrices(prev => ({ ...prev, [lineId]: prices.grossPln }));
         // Netto zapisujemy TERAZ, wprost z katalogu - nie po pierwszej interakcji z tabelą.
         // servicesAsLineItems czyta tę wartość bez przeliczania: odtwarzanie netta ze
-        // wzoru VAT z grossPrice nie jest odwrotnością tego, jak katalog policzył
-        // grossPrice z netta (1900,00 zł brutto -> 1544,72 zł netto -> z powrotem
+        // wzoru VAT z brutta nie jest odwrotnością tego, jak katalog policzył
+        // brutto z netta (1900,00 zł brutto -> 1544,72 zł netto -> z powrotem
         // odtworzone 1900,01 zł), więc cena wpisana jako netto zaczęłaby "pływać".
-        setServiceBasePrices(prev => ({ ...prev, [lineId]: service.basePriceNet }));
-        initPriceInputs(lineId, grossPrice, service.vatRate, service.basePriceNet / 100);
+        setServiceBasePrices(prev => ({ ...prev, [lineId]: prices.netCents }));
+        // Stawka z cennika też TERAZ: bez niej payload wysyłał pozycję katalogową z 23%.
+        setServiceVatRates(prev => ({ ...prev, [lineId]: prices.vatRate }));
+        initPriceInputs(lineId, prices.grossPln, prices.vatRate, prices.netCents / 100);
         setServiceSearch('');
         setShowServiceDropdown(false);
     };
@@ -974,18 +977,18 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
      * Zapasowe przeliczenie zostaje wyłącznie dla kwoty podanej w netcie: wtedy
      * brutto jest z definicji pochodne i nie ma czego chronić.
      */
-    const handlePriceConfirm = ({ priceNet, priceGross }: ManualPriceInput) => {
+    const handlePriceConfirm = (price: ManualPriceInput) => {
         if (!pendingService) return;
-        const vatRate = pendingService.vatRate || 23;
-        const gross = priceGross > 0
-            ? roundTo2(priceGross / 100)
-            : roundTo2((priceNet / 100) * (100 + vatRate) / 100);
+        // `??`, nie `||`: 0% to prawdziwa stawka - `||` robiło z niej 23%. Ta sama
+        // stawka idzie do okna ceny (index.tsx), więc para liczy się przy jednej stawce.
+        const prices = manualLinePrices(price, pendingService.vatRate ?? 23);
         const lineId = nextLineId(pendingService.id);
         setSelectedServiceIds(prev => [...prev, lineId]);
         setServiceRefs(prev => ({ ...prev, [lineId]: pendingService.id }));
-        setServicePrices(prev => ({ ...prev, [lineId]: gross }));
-        setServiceBasePrices(prev => ({ ...prev, [lineId]: priceNet }));
-        initPriceInputs(lineId, gross, vatRate, priceNet / 100);
+        setServicePrices(prev => ({ ...prev, [lineId]: prices.grossPln }));
+        setServiceBasePrices(prev => ({ ...prev, [lineId]: prices.netCents }));
+        setServiceVatRates(prev => ({ ...prev, [lineId]: prices.vatRate }));
+        initPriceInputs(lineId, prices.grossPln, prices.vatRate, prices.netCents / 100);
         setPendingService(null);
     };
 
@@ -1000,16 +1003,17 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         }
         const serviceId = service.id || `temp-${Date.now()}`;
         setSelectedServiceIds(prev => [...prev, serviceId]);
-        const grossPrice = service.basePriceGross != null
-            ? roundTo2(service.basePriceGross / 100)
-            : roundTo2((service.basePriceNet / 100) * (100 + service.vatRate) / 100);
-        setServicePrices(prev => ({ ...prev, [serviceId]: grossPrice }));
+        const prices = catalogLinePrices(service);
+        setServicePrices(prev => ({ ...prev, [serviceId]: prices.grossPln }));
         // Ta sama zasada co w addService: netto ustalone TERAZ, w chwili utworzenia
         // usługi (w QuickServiceModal, gdzie PriceInput wiąże netto i brutto atomowo),
         // przeżywa bez przeliczania - niezależnie od tego, czy w oknie wpisano netto
         // czy brutto.
-        setServiceBasePrices(prev => ({ ...prev, [serviceId]: service.basePriceNet }));
-        initPriceInputs(serviceId, grossPrice, service.vatRate, service.basePriceNet / 100);
+        setServiceBasePrices(prev => ({ ...prev, [serviceId]: prices.netCents }));
+        // Usługa zapisana od razu do cennika nie trafia do tempServices, więc bez tego
+        // wpisu payload wysłałby ją z domyślnymi 23% zamiast stawki wybranej w oknie.
+        setServiceVatRates(prev => ({ ...prev, [serviceId]: prices.vatRate }));
+        initPriceInputs(serviceId, prices.grossPln, prices.vatRate, prices.netCents / 100);
         if (!service.id) {
             // Stawka wybrana w oknie tworzenia usługi - nie zawsze 23%. Ta wartość zasila
             // `servicesAsLineItems`/`buildAppointmentPayload` jako domyślna, gdy nikt

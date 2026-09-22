@@ -1,5 +1,28 @@
 import { describe, expect, it } from 'vitest';
-import { formatLastUsed, formatRating } from './productFormat';
+import { formatLastUsed, formatPrice, formatRating } from './productFormat';
+
+/**
+ * Cena produktu pokazuje stronę, którą wpisał człowiek (CLAUDE.md §1): brutto wpisane
+ * jako 1900,00 zł ma się pokazać jako 1900,00, a nie jako 1900,01 odtworzone z netta.
+ */
+describe('formatPrice', () => {
+    it('cena wpisana jako brutto: dokładne brutto, z dopiskiem', () => {
+        expect(formatPrice({ unitPriceNet: 154472, unitPriceGross: 190000, priceEnteredAs: 'GROSS', vatRate: 23 }))
+            .toBe('1900.00 zł brutto');
+    });
+
+    it('cena wpisana jako netto: netto, nie brutto policzone z niego', () => {
+        expect(formatPrice({ unitPriceNet: 154472, unitPriceGross: 190001, priceEnteredAs: 'NET', vatRate: 23 }))
+            .toBe('1544.72 zł netto');
+        expect(formatPrice({ unitPriceNet: 42000, unitPriceGross: 51660, priceEnteredAs: 'NET', vatRate: 23 }))
+            .toBe('420.00 zł netto');
+    });
+
+    it('ZW: pokazuje wpisaną stronę tak samo', () => {
+        expect(formatPrice({ unitPriceNet: 5000, unitPriceGross: 5000, priceEnteredAs: 'GROSS', vatRate: -1 }))
+            .toBe('50.00 zł brutto');
+    });
+});
 
 /**
  * Ocena stoi w tabeli obok gwiazdki, więc jest czytana jako jedna rzecz z nią.

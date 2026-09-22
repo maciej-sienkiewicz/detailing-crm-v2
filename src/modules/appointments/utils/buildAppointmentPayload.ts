@@ -113,6 +113,10 @@ export function buildAppointmentPayload(data: QuickEventFormData): AppointmentPa
     const isTempService = !!temp;
 
     const catalogBasePriceNet = data.serviceBasePrices?.[lineId] ?? temp?.basePriceNet ?? 0;
+    // Tu nie ma cennika, więc stawka pozycji z cennika MUSI stać w serviceVatRates -
+    // formularz zapisuje ją przy dodaniu pozycji (QuickEventModal/linePrices.ts).
+    // Backend bierze stawkę pozycji katalogowej z żądania, a 23 jest wyłącznie
+    // bezpiecznikiem dla szkicu sprzed tej zmiany: brak wpisu oznaczał 8% zapisane jako 23%.
     const catalogVatRate = temp?.vatRate ?? 23;
     const overriddenVatRate = data.serviceVatRates?.[lineId] ?? catalogVatRate;
     const adjustment: ServiceLineItemPayload['adjustment'] =

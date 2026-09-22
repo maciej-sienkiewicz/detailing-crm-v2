@@ -16,6 +16,7 @@ import {
 import { SharedButton } from '@/common/styles';
 import { MAX_2_DECIMALS, centsToInput, inputToCents, handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import { netToGross, grossToNet } from '@/common/utils/priceAdjustment';
+import { priceInputsForVatRate, storedPriceSide, type PriceSide } from '@/common/utils/priceInputs';
 import { formatCurrency } from '@/common/utils';
 import { batchOrderApi } from '../api/batchOrderApi';
 import { useVisualViewportSheet } from '@/common/hooks';
@@ -411,10 +412,12 @@ interface ServiceFormItem {
     netDisplay: string;
     grossDisplay: string;
     vatRate: number;
+    /** The price field the operator typed last - it survives a VAT change unchanged. */
+    priceSide: PriceSide;
 }
 
 function emptyService(): ServiceFormItem {
-    return { name: '', netDisplay: '', grossDisplay: '', vatRate: 23 };
+    return { name: '', netDisplay: '', grossDisplay: '', vatRate: 23, priceSide: 'net' };
 }
 
 function serviceToForm(svc: { name: string; netAmountCents: number; grossAmountCents: number; vatRate: number }): ServiceFormItem {
@@ -423,6 +426,7 @@ function serviceToForm(svc: { name: string; netAmountCents: number; grossAmountC
         netDisplay: centsToInput(svc.netAmountCents),
         grossDisplay: centsToInput(svc.grossAmountCents),
         vatRate: svc.vatRate,
+        priceSide: storedPriceSide(svc.netAmountCents, svc.grossAmountCents, svc.vatRate),
     };
 }
 
@@ -549,6 +553,8 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
             netDisplay: centsToInput(service.netAmountCents),
             grossDisplay: centsToInput(service.grossAmountCents),
             vatRate: service.vatRate,
+            // The catalog pair replaces whatever was typed in this row, and so does its side.
+            priceSide: storedPriceSide(service.netAmountCents, service.grossAmountCents, service.vatRate),
         });
         setSuggestFor(null);
     }
@@ -668,6 +674,7 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
         updateService(idx, {
             netDisplay: val,
             grossDisplay: val === '' ? '' : centsToInput(gross),
+            priceSide: 'net',
         });
     }
 
@@ -678,18 +685,21 @@ export function EntryFormModal({ initial, onSave, onClose }: Props) {
         updateService(idx, {
             grossDisplay: val,
             netDisplay: val === '' ? '' : centsToInput(net),
+            priceSide: 'gross',
         });
     }
 
-    // A VAT change keeps net and re-derives gross: net is the figure the contract is
-    // written in, so it is the one that should survive.
+    // A VAT change keeps the side the operator typed and re-derives the other
+    // (CLAUDE.md §1). Keeping net unconditionally turned a gross typed as 1900,00 into
+    // 1900,01 after 23% → 8% → 23%. Net still survives when net was typed, or when
+    // nothing was typed and the stored pair cannot tell which side was entered - net is
+    // the figure the contract is usually written in.
     function updateVat(idx: number, vatRate: number) {
-        const { netDisplay } = services[idx];
-        const gross = netToGross(inputToCents(netDisplay), vatRate);
-        updateService(idx, {
-            vatRate,
-            grossDisplay: netDisplay === '' ? '' : centsToInput(gross),
-        });
+        const s = services[idx];
+        const { net, gross } = priceInputsForVatRate(
+            { net: s.netDisplay, gross: s.grossDisplay }, s.vatRate, vatRate, s.priceSide,
+        );
+        updateService(idx, { vatRate, netDisplay: net, grossDisplay: gross });
     }
 
     function addService() {

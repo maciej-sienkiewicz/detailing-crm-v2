@@ -3,6 +3,7 @@ import {
     netToGross, grossToNet,
     netPlnToGrossPln, grossPlnToNetPln,
     applyAdjustment, distributeAdjustment, toApiServiceLineItem, resolveBaseNet, exactBaseGross,
+    resolveBaseGross, isTypedGross, typedPriceSide, repriceForVatRate, withVatRate,
 } from './priceAdjustment';
 
 // ─── netToGross ───────────────────────────────────────────────────────────────
@@ -510,5 +511,267 @@ describe('cena wpisana jako brutto nie pływa', () => {
         );
         expect(finalNetCents).toBe(139025);
         expect(finalGrossCents).toBe(netToGross(139025, 23));
+    });
+});
+
+// ─── Dokładne brutto w pozostałych gałęziach (luki z inwentaryzacji) ──────────
+
+describe('applyAdjustment z dokładnym brutto bazowym', () => {
+    // 1900,00 zł brutto przy 23%: netto 154472 gr, a netto × 1,23 dałoby 190001 gr.
+    const NET = 154472;
+    const GROSS = 190000;
+
+    it('upust brutto liczy się od WPISANEGO brutto, a nie od netto × stawka', () => {
+        const r = applyAdjustment(NET, 23, { type: 'FIXED_GROSS', value: 10000 }, GROSS);
+        expect(r.finalGrossCents).toBe(180000);
+        expect(r.finalNetCents).toBe(grossToNet(180000, 23));
+    });
+
+    it('SET_GROSS zwraca wpisaną kwotę bez względu na bazę', () => {
+        const r = applyAdjustment(NET, 23, { type: 'SET_GROSS', value: GROSS }, GROSS);
+        expect(r.finalGrossCents).toBe(190000);
+        expect(r.finalNetCents).toBe(154472);
+    });
+
+    it.each(['PERCENT', 'FIXED_NET', 'FIXED_GROSS'] as const)('rabat zerowy %s przepuszcza dokładne brutto', type => {
+        const r = applyAdjustment(NET, 23, { type, value: 0 }, GROSS);
+        expect(r.finalGrossCents).toBe(190000);
+        expect(r.finalNetCents).toBe(NET);
+    });
+
+    it('rabat od netta liczy brutto od nowa - dokładne brutto przestaje obowiązywać', () => {
+        const r = applyAdjustment(NET, 23, { type: 'FIXED_NET', value: 10000 }, GROSS);
+        expect(r.finalNetCents).toBe(144472);
+        expect(r.finalGrossCents).toBe(netToGross(144472, 23));
+    });
+
+    it('bez dokładnego brutto baza wynika z netta (dotychczasowe zachowanie)', () => {
+        expect(applyAdjustment(NET, 23, { type: 'PERCENT', value: 0 }).finalGrossCents).toBe(190001);
+    });
+});
+
+describe('exactBaseGross przy innych stawkach', () => {
+    const noOp = { type: 'PERCENT', value: 0 } as const;
+
+    it.each([
+        [8, 100000],
+        [5, 100000],
+        [0, 100000],
+        [-1, 100000],
+    ])('stawka %i: brutto z serwera przy rabacie zerowym jest bazą', (vatRate, gross) => {
+        expect(exactBaseGross({
+            basePriceNet: grossToNet(gross, vatRate), vatRate, adjustment: noOp, finalPriceGross: gross,
+        })).toBe(gross);
+    });
+
+    it.each([
+        // [stawka, brutto wpisane, netto, brutto odtworzone z netta]
+        [8, 1100, 1019, 1101],
+        [8, 1600, 1481, 1599],
+        [5, 1900, 1810, 1901],
+    ])('stawka %i%%: %i gr brutto nie wraca jako kwota odtworzona z netta', (vatRate, gross, net, drifted) => {
+        expect(grossToNet(gross, vatRate)).toBe(net);
+        expect(netToGross(net, vatRate)).toBe(drifted);
+        expect(exactBaseGross({ basePriceNet: net, vatRate, adjustment: noOp, basePriceGross: gross })).toBe(gross);
+        expect(applyAdjustment(net, vatRate, noOp, gross).finalGrossCents).toBe(gross);
+    });
+});
+
+describe('distributeAdjustment z dokładnym brutto', () => {
+    it('upust brutto dzieli proporcjonalnie do DOKŁADNEGO brutto, suma się zgadza', () => {
+        const bases = [
+            { basePriceNetCents: 154472, basePriceGrossCents: 190000, vatRate: 23 },
+            { basePriceNetCents: 81301, basePriceGrossCents: 100000, vatRate: 23 },
+        ];
+        const result = distributeAdjustment(bases, 'FIXED_GROSS', 29000);
+        expect(result[0].value).toBe(19000);
+        expect(result[1].value).toBe(10000);
+        // Po rabacie brutto końcowe to równo 1710,00 i 900,00 zł.
+        expect(applyAdjustment(154472, 23, result[0], 190000).finalGrossCents).toBe(171000);
+        expect(applyAdjustment(81301, 23, result[1], 100000).finalGrossCents).toBe(90000);
+    });
+
+    it('SET_GROSS dzieli kwotę docelową bez gubienia grosza', () => {
+        const bases = [
+            { basePriceNetCents: 154472, basePriceGrossCents: 190000, vatRate: 23 },
+            { basePriceNetCents: 154472, basePriceGrossCents: 190000, vatRate: 23 },
+        ];
+        const result = distributeAdjustment(bases, 'SET_GROSS', 300001);
+        expect(result.reduce((s, a) => s + a.value, 0)).toBe(300001);
+    });
+});
+
+describe('toApiServiceLineItem - cena ręczna wpisana jako brutto', () => {
+    const base = { vatRate: 23, serviceId: 'svc-1', serviceName: 'Test', id: 'line-1', note: '' };
+
+    it('brutto wpisane przez człowieka jedzie jako SET_GROSS z dokładną kwotą', () => {
+        const svc = {
+            ...base, basePriceNet: 154472, basePriceGross: 190000,
+            adjustment: { type: 'PERCENT' as const, value: 0 }, requireManualPrice: true,
+        };
+        const result = toApiServiceLineItem(svc);
+        expect(result.basePriceNet).toBe(0);
+        expect(result.basePriceGross).toBeUndefined();
+        expect(result.adjustment).toEqual({ type: 'SET_GROSS', value: 190000 });
+    });
+
+    it('upust brutto na cenie ręcznej schodzi z wpisanego brutto', () => {
+        const svc = {
+            ...base, basePriceNet: 154472, basePriceGross: 190000,
+            adjustment: { type: 'FIXED_GROSS' as const, value: 10000 }, requireManualPrice: true,
+        };
+        expect(toApiServiceLineItem(svc).adjustment).toEqual({ type: 'SET_GROSS', value: 180000 });
+    });
+
+    it('brutto zgodne z netto × stawka nie jest dowodem wpisania - jedzie netto', () => {
+        const svc = {
+            ...base, basePriceNet: 100000, basePriceGross: 123000,
+            adjustment: { type: 'PERCENT' as const, value: 0 }, requireManualPrice: true,
+        };
+        expect(toApiServiceLineItem(svc).adjustment).toEqual({ type: 'SET_NET', value: 100000 });
+    });
+});
+
+// ─── resolveBaseGross ─────────────────────────────────────────────────────────
+
+describe('resolveBaseGross', () => {
+    it('cena ręczna SET_GROSS: bazą jest wpisane brutto', () => {
+        expect(resolveBaseGross({ basePriceNet: 0, vatRate: 23, adjustment: { type: 'SET_GROSS', value: 190000 } })).toBe(190000);
+    });
+
+    it('cena ręczna SET_GROSS: nie bierze zapisanego brutto zera jako bazy', () => {
+        expect(resolveBaseGross({
+            basePriceNet: 0, vatRate: 23, adjustment: { type: 'SET_GROSS', value: 190000 }, basePriceGross: 0,
+        })).toBe(190000);
+    });
+
+    it('cena ręczna SET_NET: brutto wolno policzyć (undefined)', () => {
+        expect(resolveBaseGross({
+            basePriceNet: 0, vatRate: 23, adjustment: { type: 'SET_NET', value: 100000 }, finalPriceGross: 123000,
+        })).toBeUndefined();
+    });
+
+    it('zwykła pozycja: to samo co exactBaseGross', () => {
+        const line = { basePriceNet: 154472, vatRate: 23, adjustment: { type: 'PERCENT' as const, value: -10 }, basePriceGross: 190000 };
+        expect(resolveBaseGross(line)).toBe(190000);
+        expect(resolveBaseGross({ ...line, basePriceGross: null })).toBeUndefined();
+    });
+
+    it('para z resolveBaseNet trzyma się ±1 gr - serwer ją przyjmie', () => {
+        const line = { basePriceNet: 0, vatRate: 23, adjustment: { type: 'SET_GROSS' as const, value: 190000 } };
+        const net = resolveBaseNet(line);
+        const gross = resolveBaseGross(line)!;
+        expect(Math.abs(netToGross(net, 23) - gross)).toBeLessThanOrEqual(1);
+    });
+});
+
+// ─── isTypedGross ─────────────────────────────────────────────────────────────
+
+describe('isTypedGross', () => {
+    it('brutto nieosiągalne z netta = wpisane', () => {
+        expect(isTypedGross(154472, 190000, 23)).toBe(true);
+    });
+
+    it('brutto zgodne z przeliczeniem jest niejednoznaczne, więc nie jest dowodem', () => {
+        expect(isTypedGross(100000, 123000, 23)).toBe(false);
+    });
+
+    it('brak brutta = brak dowodu', () => {
+        expect(isTypedGross(100000, null, 23)).toBe(false);
+        expect(isTypedGross(100000, undefined, 23)).toBe(false);
+    });
+
+    it('ZW: brutto równe netto nie jest wpisaniem, różne - jest', () => {
+        expect(isTypedGross(100000, 100000, -1)).toBe(false);
+        expect(isTypedGross(100000, 100001, -1)).toBe(true);
+    });
+});
+
+// ─── typedPriceSide ───────────────────────────────────────────────────────────
+
+describe('typedPriceSide', () => {
+    const line = (adjustment: { type: 'PERCENT' | 'FIXED_NET' | 'FIXED_GROSS' | 'SET_NET' | 'SET_GROSS'; value: number }, extra = {}) =>
+        ({ basePriceNet: 154472, vatRate: 23, adjustment, ...extra });
+
+    it('SET_GROSS i upust brutto: strona brutto', () => {
+        expect(typedPriceSide(line({ type: 'SET_GROSS', value: 190000 }))).toBe('gross');
+        expect(typedPriceSide(line({ type: 'FIXED_GROSS', value: 1000 }))).toBe('gross');
+    });
+
+    it('SET_NET i rabaty od netta: strona netto', () => {
+        expect(typedPriceSide(line({ type: 'SET_NET', value: 100000 }))).toBe('net');
+        expect(typedPriceSide(line({ type: 'PERCENT', value: -10 }, { basePriceGross: 190000 }))).toBe('net');
+        expect(typedPriceSide(line({ type: 'FIXED_NET', value: 1000 }, { basePriceGross: 190000 }))).toBe('net');
+    });
+
+    it('rabat zerowy z brutto wpisanym od strony brutto: strona brutto', () => {
+        expect(typedPriceSide(line({ type: 'PERCENT', value: 0 }, { basePriceGross: 190000 }))).toBe('gross');
+        expect(typedPriceSide(line({ type: 'FIXED_GROSS', value: 0 }, { finalPriceGross: 190000 }))).toBe('gross');
+    });
+
+    it('rabat zerowy bez dokładnego brutto: strona netto', () => {
+        expect(typedPriceSide(line({ type: 'PERCENT', value: 0 }))).toBe('net');
+    });
+
+    it('rabat zerowy z brutto zgodnym z przeliczeniem: nie da się rozstrzygnąć', () => {
+        expect(typedPriceSide({
+            basePriceNet: 100000, vatRate: 23, adjustment: { type: 'PERCENT', value: 0 }, basePriceGross: 123000,
+        })).toBeNull();
+    });
+});
+
+// ─── repriceForVatRate ────────────────────────────────────────────────────────
+
+describe('repriceForVatRate', () => {
+    const price = { netCents: 154472, grossCents: 190000 };
+
+    it('ta sama stawka: para wraca nietknięta (brutto nie staje się 1900,01)', () => {
+        expect(repriceForVatRate(price, 23, 23, 'net')).toBe(price);
+        expect(repriceForVatRate(price, 23, 23, 'gross')).toBe(price);
+    });
+
+    it('wpisane brutto przechodzi przez zmianę stawki, netto liczy się od nowa', () => {
+        expect(repriceForVatRate(price, 23, 8, 'gross')).toEqual({ netCents: grossToNet(190000, 8), grossCents: 190000 });
+    });
+
+    it('wpisane netto przechodzi przez zmianę stawki, brutto liczy się od nowa', () => {
+        expect(repriceForVatRate({ netCents: 100000, grossCents: 123000 }, 23, 8, 'net'))
+            .toEqual({ netCents: 100000, grossCents: 108000 });
+    });
+
+    it('23% → 8% → 23% z wpisanym brutto wraca do 1900,00 zł', () => {
+        const at8 = repriceForVatRate(price, 23, 8, 'gross');
+        const back = repriceForVatRate(at8, 8, 23, 'gross');
+        expect(back.grossCents).toBe(190000);
+    });
+
+    it('ZW: netto = brutto w obie strony', () => {
+        expect(repriceForVatRate(price, 23, -1, 'gross')).toEqual({ netCents: 190000, grossCents: 190000 });
+        expect(repriceForVatRate(price, 23, -1, 'net')).toEqual({ netCents: 154472, grossCents: 154472 });
+    });
+});
+
+// ─── withVatRate ──────────────────────────────────────────────────────────────
+
+describe('withVatRate', () => {
+    const typedGross = { id: 'a', basePriceNet: 154472, basePriceGross: 190000, vatRate: 23 };
+    const catalog = { id: 'b', basePriceNet: 100000, basePriceGross: 123000, vatRate: 23 };
+
+    it('ta sama stawka: pozycja nietknięta, dokładne brutto zostaje', () => {
+        expect(withVatRate(typedGross, 23)).toBe(typedGross);
+    });
+
+    it('brutto wpisane od strony brutto zostaje, netto liczy się przy nowej stawce', () => {
+        expect(withVatRate(typedGross, 8)).toEqual({ id: 'a', basePriceNet: grossToNet(190000, 8), basePriceGross: 190000, vatRate: 8 });
+    });
+
+    it('brutto zgodne z przeliczeniem: zostaje netto, stare brutto znika', () => {
+        const r = withVatRate(catalog, 8);
+        expect(r).toEqual({ id: 'b', basePriceNet: 100000, basePriceGross: undefined, vatRate: 8 });
+        expect(netToGross(r.basePriceNet, r.vatRate)).toBe(108000);
+    });
+
+    it('pozycja bez brutto: zostaje netto', () => {
+        expect(withVatRate({ basePriceNet: 5000, vatRate: 23 }, 5)).toEqual({ basePriceNet: 5000, vatRate: 5, basePriceGross: undefined });
     });
 });

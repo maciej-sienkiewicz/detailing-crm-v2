@@ -170,6 +170,104 @@ export const resolveBaseNet = (
         ? applyAdjustment(service.basePriceNet, service.vatRate, service.adjustment).finalNetCents
         : service.basePriceNet;
 
+/** Pozycja, o której da się powiedzieć, jakie brutto ktoś ustalił. */
+interface PricedLine {
+    basePriceNet: number;
+    vatRate: number;
+    adjustment: PriceAdjustment;
+    basePriceGross?: number | null;
+    finalPriceGross?: number | null;
+}
+
+/**
+ * Dokładne brutto do pary z {@link resolveBaseNet} - albo `undefined`, gdy tej bazy
+ * nikt nie ustalił od strony brutto i brutto wolno policzyć.
+ *
+ * Pozycja z ceną ręczną (`basePriceNet = 0` + SET_*) ma bazę równą kwocie ustalonej
+ * z klientem: przy SET_GROSS jest nią wpisane brutto, przy SET_NET netto. Liczenie
+ * brutto z netta takiej bazy dawało 1900,01 zł zamiast wpisanych 1900,00 zł przy
+ * każdym rabacie i przy „Przywróć cenę z cennika".
+ */
+export const resolveBaseGross = (service: PricedLine): number | undefined => {
+    if (service.basePriceNet === 0) {
+        if (service.adjustment.type === 'SET_GROSS') return Math.max(0, service.adjustment.value);
+        if (service.adjustment.type === 'SET_NET') return undefined;
+    }
+    return exactBaseGross(service);
+};
+
+/**
+ * Czy brutto tej pary na pewno wpisał człowiek: różni się od netto × stawka, więc
+ * z netta wyjść nie mogło. Para zgodna z przeliczeniem jest niejednoznaczna -
+ * każda ze stron mogła być wpisana, więc to NIE jest dowód na netto.
+ */
+export const isTypedGross = (
+    netCents: number,
+    grossCents: number | null | undefined,
+    vatRate: number,
+): boolean => grossCents != null && grossCents !== netToGross(netCents, vatRate);
+
+/**
+ * Która strona ceny KOŃCOWEJ pozycji jest ustalona, a która policzona:
+ *  - `'gross'` - brutto końcowe jest dokładne: SET_GROSS, upust brutto albo cena
+ *    bazowa wpisana od strony brutto,
+ *  - `'net'`   - brutto końcowe wynika z netta: SET_NET, rabat od netta albo brak
+ *    jakiegokolwiek dokładnego brutto,
+ *  - `null`    - nie da się tego rozstrzygnąć: brutto bazowe jest znane, ale równe
+ *    netto × stawka (typowa pozycja z cennika).
+ *
+ * Zmiana stawki VAT zachowuje stronę ustaloną (CLAUDE.md §1) - inaczej kwota wpisana
+ * przez człowieka zostałaby odtworzona z drugiej. Przy `null` o kierunku decyduje
+ * ekran; każdy zachowuje wtedy swoje dotychczasowe zachowanie.
+ */
+export const typedPriceSide = (line: PricedLine): 'net' | 'gross' | null => {
+    const { type, value } = line.adjustment;
+    if (type === 'SET_GROSS') return 'gross';
+    if (type === 'SET_NET') return 'net';
+    if (value !== 0) return type === 'FIXED_GROSS' ? 'gross' : 'net';
+    // Rabat zerowy: stronę wyznacza cena bazowa.
+    const exact = exactBaseGross(line);
+    if (exact == null) return 'net';
+    return isTypedGross(line.basePriceNet, exact, line.vatRate) ? 'gross' : null;
+};
+
+/**
+ * Para netto/brutto po zmianie stawki VAT: strona wpisana przez człowieka
+ * przechodzi bez zmian, druga liczy się od nowa. Ta sama stawka - para wraca
+ * nietknięta, bo przeliczenie „na wszelki wypadek" zgubiłoby grosz na brutto.
+ */
+export const repriceForVatRate = (
+    price: { netCents: number; grossCents: number },
+    fromRate: number,
+    toRate: number,
+    keep: 'net' | 'gross',
+): { netCents: number; grossCents: number } => {
+    if (fromRate === toRate) return price;
+    return keep === 'gross'
+        ? { netCents: grossToNet(price.grossCents, toRate), grossCents: price.grossCents }
+        : { netCents: price.netCents, grossCents: netToGross(price.netCents, toRate) };
+};
+
+/**
+ * Pozycja wyceny po zbiorczej zmianie stawki VAT.
+ *
+ * Ta sama stawka - pozycja wraca nietknięta, razem z dokładnym brutto (wcześniej
+ * zmiana „na 23%" kasowała je także w pozycjach, które już miały 23%). Brutto
+ * bazowe wpisane od strony brutto zostaje, a netto liczy się od nowa. W każdym
+ * innym przypadku zostaje netto - udokumentowany wybór tego ekranu - a brutto
+ * policzone przy starej stawce znika, żeby nie udawało dokładnego przy nowej.
+ */
+export function withVatRate<T extends { basePriceNet: number; basePriceGross?: number | null; vatRate: number }>(
+    line: T,
+    vatRate: number,
+): T {
+    if (line.vatRate === vatRate) return line;
+    if (line.basePriceGross != null && isTypedGross(line.basePriceNet, line.basePriceGross, line.vatRate)) {
+        return { ...line, vatRate, basePriceNet: grossToNet(line.basePriceGross, vatRate) };
+    }
+    return { ...line, vatRate, basePriceGross: undefined };
+}
+
 // ─── Bulk distribution ────────────────────────────────────────────────────────
 
 /**
@@ -243,9 +341,7 @@ export function toApiServiceLineItem<T extends {
     );
     // When the manual price was entered gross-side, send SET_GROSS so the backend
     // keeps the exact gross the user typed (SET_NET would re-derive it with 1-grosz drift).
-    const enteredGross =
-        service.basePriceGross != null &&
-        service.basePriceGross !== netToGross(service.basePriceNet, service.vatRate);
+    const enteredGross = isTypedGross(service.basePriceNet, service.basePriceGross, service.vatRate);
     return {
         ...service,
         basePriceNet: 0,
