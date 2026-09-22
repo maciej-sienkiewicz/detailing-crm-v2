@@ -19,7 +19,7 @@ import { ksefRevenueApi } from '@/modules/finance/api/ksefRevenueApi';
 import { useServicePricing } from '@/modules/appointments/hooks/useServicePricing';
 import { InvoiceItemsEditor } from './handover/InvoiceItemsEditor';
 import { PaymentMethodPicker } from './handover/PaymentMethodPicker';
-import { detectRate, invoiceGrossOf, parsePln, toPln, withDerived } from '../types/handover';
+import { invoiceGrossOf, invoiceItemFromService, parsePln, withDerived } from '../types/handover';
 import type { HandoverItem } from '../types/handover';
 import type { PaymentMethod } from '../types/stateTransitions';
 import type { Visit } from '../types';
@@ -220,16 +220,8 @@ export const ConsumerInvoiceModal = ({ visit, isOpen, onClose, onIssued }: Consu
         if (visit.services.length === 0) {
             return [withDerived({ name: 'Usługi detailingowe', net: '', gross: '0.00', mode: 'GROSS', vatRate: '23' })];
         }
-        return visit.services.map(service => {
-            const pricing = priceOf(service);
-            return withDerived({
-                name: service.serviceName,
-                net: '',
-                gross: toPln(pricing.finalPriceGross),
-                mode: 'GROSS',
-                vatRate: detectRate(pricing.finalPriceNet, pricing.finalPriceGross),
-            });
-        });
+        // Stawka z usługi, nie z proporcji kwot - patrz invoiceRateOf.
+        return visit.services.map(service => invoiceItemFromService(service, priceOf(service)));
     }, [visit.services, priceOf]);
 
     const [items, setItems] = useState<HandoverItem[]>(seedItems);

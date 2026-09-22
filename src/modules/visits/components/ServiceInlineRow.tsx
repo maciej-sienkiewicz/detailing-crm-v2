@@ -11,8 +11,9 @@ import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
 import { useDebounce, useVisualViewportSheet } from '@/common/hooks';
 import { formatCurrency } from '@/common/utils';
-import { netPlnToGrossPln, grossPlnToNetPln } from '@/common/utils/priceAdjustment';
+import { grossToNet } from '@/common/utils/priceAdjustment';
 import type { AdjustmentType } from '@/common/utils/priceAdjustment';
+import { draftRowGross, formatZlField, parseZlCents } from '../utils/servicePriceEdits';
 import { servicesApi } from '@/modules/services/api/servicesApi';
 import type { Service } from '@/modules/services/types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -28,6 +29,12 @@ export interface NewRow {
     serviceId: string | null;
     serviceName: string;
     basePriceNet: number;   // in cents (grosz)
+    /**
+     * Dokładne brutto (grosze): wpisane w polu „Brutto" albo z cennika. Brak = cenę
+     * wpisano od netta i brutto wolno policzyć. Bez tego pola wpisane 1900,00 zł
+     * jechało do serwera jako samo netto i wracało jako 1900,01 zł.
+     */
+    basePriceGross?: number;
     vatRate: number;
     requireManualPrice: boolean;
     adjustment: { type: AdjustmentType; value: number };
@@ -460,15 +467,10 @@ const ActionBtns = styled.div`
 
 /* ─── Helpers ─────────────────────────────────────────────────────────────── */
 
-function pln(cents: number): number { return cents / 100; }
-function cents(pln: number): number { return Math.round(pln * 100); }
-const grossFromNet = netPlnToGrossPln;
-const netFromGross = grossPlnToNetPln;
-function fmtPrice(val: number): string { return val.toFixed(2); }
-function parsePln(raw: string): number | null {
-    const v = parseFloat(raw.replace(',', '.'));
-    return isNaN(v) || v < 0 ? null : v;
-}
+// Kwoty w groszach - przeliczenia netto ↔ brutto na złotówkach we floatach dawały
+// 1544,72 × 1,23 = 1900,0056 → „1900.01".
+const fmtPrice = formatZlField;
+const parsePln = parseZlCents;
 
 /* ─── Component ───────────────────────────────────────────────────────────── */
 
@@ -564,10 +566,10 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
     // every keystroke. Parent basePriceNet is updated immediately on each valid
     // change so "Zaakceptuj" always sees the current value.
     const [netStr, setNetStr] = useState(() =>
-        row.basePriceNet > 0 ? fmtPrice(pln(row.basePriceNet)) : ''
+        row.basePriceNet > 0 ? fmtPrice(row.basePriceNet) : ''
     );
     const [grossStr, setGrossStr] = useState(() =>
-        row.basePriceNet > 0 ? fmtPrice(grossFromNet(pln(row.basePriceNet), row.vatRate)) : ''
+        row.basePriceNet > 0 ? fmtPrice(draftRowGross(row)) : ''
     );
 
     // Sync display when basePriceNet is updated externally (catalog selection,
@@ -585,13 +587,14 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
         if (lastSyncedPrice.current === row.basePriceNet) return;
         lastSyncedPrice.current = row.basePriceNet;
         if (row.basePriceNet > 0) {
-            setNetStr(fmtPrice(pln(row.basePriceNet)));
-            setGrossStr(fmtPrice(grossFromNet(pln(row.basePriceNet), row.vatRate)));
+            // Brutto z cennika albo z okna nowej usługi jest dokładne - nie z netta.
+            setNetStr(fmtPrice(row.basePriceNet));
+            setGrossStr(fmtPrice(draftRowGross(row)));
         } else {
             setNetStr('');
             setGrossStr('');
         }
-    }, [row.basePriceNet, row.vatRate]);
+    }, [row.basePriceNet, row.basePriceGross, row.vatRate]);
 
     const { data } = useQuery({
         queryKey: ['svc-inline-search', debouncedQuery],
@@ -613,9 +616,10 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
         setQuery(svc.name);
         setOpen(false);
         if (!svc.requireManualPrice) {
-            const net = pln(svc.basePriceNet);
-            setNetStr(fmtPrice(net));
-            setGrossStr(fmtPrice(grossFromNet(net, Number(svc.vatRate))));
+            setNetStr(fmtPrice(svc.basePriceNet));
+            setGrossStr(fmtPrice(draftRowGross({
+                basePriceNet: svc.basePriceNet, basePriceGross: svc.basePriceGross, vatRate: Number(svc.vatRate),
+            })));
         } else {
             // Requires manual price, so clear it and let the user fill it in
             setNetStr('');
@@ -625,6 +629,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
             serviceId: svc.id,
             serviceName: svc.name,
             basePriceNet: svc.basePriceNet,
+            basePriceGross: svc.requireManualPrice ? undefined : svc.basePriceGross,
             vatRate: Number(svc.vatRate),
             requireManualPrice: svc.requireManualPrice,
         });
@@ -648,20 +653,21 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
         setNetStr(str);
         if (!str.trim()) {
             setGrossStr('');
-            onUpdate({ basePriceNet: 0 });
+            onUpdate({ basePriceNet: 0, basePriceGross: undefined });
             return;
         }
-        const val = parsePln(str);
-        if (val !== null) {
-            setGrossStr(fmtPrice(grossFromNet(val, row.vatRate)));
+        const net = parsePln(str);
+        if (net !== null) {
+            // Wpisane netto jest ustalone; brutto tylko się z niego liczy.
+            setGrossStr(fmtPrice(draftRowGross({ basePriceNet: net, vatRate: row.vatRate })));
             selfUpdateRef.current = true;
-            onUpdate({ basePriceNet: cents(val) });
+            onUpdate({ basePriceNet: net, basePriceGross: undefined });
         }
     };
 
     const formatNet = () => {
-        const val = parsePln(netStr);
-        if (val !== null) setNetStr(fmtPrice(val));
+        const net = parsePln(netStr);
+        if (net !== null) setNetStr(fmtPrice(net));
     };
 
     // ── Gross input handlers ────────────────────────────────────────────────
@@ -671,21 +677,22 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
         setGrossStr(str);
         if (!str.trim()) {
             setNetStr('');
-            onUpdate({ basePriceNet: 0 });
+            onUpdate({ basePriceNet: 0, basePriceGross: undefined });
             return;
         }
-        const val = parsePln(str);
-        if (val !== null) {
-            const netVal = netFromGross(val, row.vatRate);
-            setNetStr(fmtPrice(netVal));
+        const gross = parsePln(str);
+        if (gross !== null) {
+            // Wpisane brutto jest ustalone i jedzie do serwera wprost; netto liczy się z niego.
+            const net = grossToNet(gross, row.vatRate);
+            setNetStr(fmtPrice(net));
             selfUpdateRef.current = true;
-            onUpdate({ basePriceNet: cents(netVal) });
+            onUpdate({ basePriceNet: net, basePriceGross: gross });
         }
     };
 
     const formatGross = () => {
-        const val = parsePln(grossStr);
-        if (val !== null) setGrossStr(fmtPrice(val));
+        const gross = parsePln(grossStr);
+        if (gross !== null) setGrossStr(fmtPrice(gross));
     };
 
     // Price fields are editable unless it's a catalog service with a fixed price
@@ -803,10 +810,10 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
                 {priceReadOnly ? (
                     <PriceReadRow>
                         <PriceReadItem>
-                            Netto <PriceReadValue>{formatCurrency(parsePln(netStr) ?? 0)}</PriceReadValue>
+                            Netto <PriceReadValue>{formatCurrency((parsePln(netStr) ?? 0) / 100)}</PriceReadValue>
                         </PriceReadItem>
                         <PriceReadItem>
-                            Brutto <PriceReadValue>{formatCurrency(parsePln(grossStr) ?? 0)}</PriceReadValue>
+                            Brutto <PriceReadValue>{formatCurrency((parsePln(grossStr) ?? 0) / 100)}</PriceReadValue>
                         </PriceReadItem>
                         <PriceReadItem>VAT {row.vatRate}%</PriceReadItem>
                     </PriceReadRow>

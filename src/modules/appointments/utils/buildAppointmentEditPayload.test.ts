@@ -256,6 +256,50 @@ describe('buildAppointmentEditPayload', () => {
         });
     });
 
+    // 1900,00 zł brutto przy 23% VAT: netto 154472 gr, a 154472 × 1,23 = 190001 gr.
+    // Brutto ustalone przez człowieka musi dojść do PUT dokładnie (CLAUDE.md §1).
+    it('dokładne brutto pozycji (1900,00 zł) przechodzi do payloadu bez zmian - 190000, nie 190001', () => {
+        const payload = buildAppointmentEditPayload({
+            ...baseFormData(),
+            services: [
+                {
+                    id: 'line-1',
+                    serviceId: null,
+                    serviceName: 'Usługa spoza cennika',
+                    basePriceNet: 154472,
+                    basePriceGross: 190000,
+                    vatRate: 23,
+                    adjustment: { type: 'PERCENT', value: 0 },
+                    requireManualPrice: false,
+                },
+            ],
+        })!;
+        expect(payload.services[0]).toMatchObject({ basePriceNet: 154472, basePriceGross: 190000 });
+    });
+
+    it('cena ręczna wpisana jako brutto 1900,00 zwija się do SET_GROSS 190000, a nie do SET_NET', () => {
+        const payload = buildAppointmentEditPayload({
+            ...baseFormData(),
+            services: [
+                {
+                    id: 'line-1',
+                    serviceId: 'service-manual',
+                    serviceName: 'Wycena indywidualna',
+                    basePriceNet: 154472,
+                    basePriceGross: 190000,
+                    vatRate: 23,
+                    adjustment: { type: 'PERCENT', value: 0 },
+                    requireManualPrice: true,
+                },
+            ],
+        })!;
+        expect(payload.services[0]).toMatchObject({
+            basePriceNet: 0,
+            adjustment: { type: 'SET_GROSS', value: 190000 },
+        });
+        expect(payload.services[0].basePriceGross).toBeUndefined();
+    });
+
     it('podmiana listy usług zamienia całą listę, nie dokleja pozycji', () => {
         const payload = buildAppointmentEditPayload({
             ...baseFormData(),

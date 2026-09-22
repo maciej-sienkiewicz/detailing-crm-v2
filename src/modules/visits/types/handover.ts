@@ -1,3 +1,4 @@
+import { MAX_2_DECIMALS } from '@/common/utils/moneyInput';
 import type { PaymentMethod, InvoiceType, CompleteInvoicePayload } from './stateTransitions';
 
 export type VatRateCode = '23' | '8' | '5' | '0' | 'zw';
@@ -73,14 +74,22 @@ export interface HandoverDraft {
 }
 
 /**
- * Odcisk usług wizyty: identyfikator, nazwa i kwota brutto każdej z nich.
+ * Odcisk usług wizyty: identyfikator, nazwa, kwota brutto i stawka VAT każdej z nich.
  * Zmiana czegokolwiek z tej listy unieważnia pozycje faktury zapisane w draftcie,
  * bo to właśnie z tej listy powstały.
+ *
+ * Stawka należy do odcisku, bo pozycja faktury bierze ją z usługi (invoiceRateOf),
+ * a zmiana stawki przy cenie wpisanej w brutto brutta nie zmienia - draft wracałby
+ * ze starą stawką. Drafty sprzed dodania stawki mają inny odcisk, więc ich pozycje
+ * (w tym „0%" zgadnięte dla usług zwolnionych zamiast „zw") powstają od nowa.
  */
 export const servicesFingerprint = (
-    services: Array<{ id: string; serviceName: string }>,
+    services: Array<{ id: string; serviceName: string; vatRate?: number | null }>,
     grossOf: (service: { id: string; serviceName: string }) => number
-): string => services.map(service => `${service.id}:${service.serviceName}:${grossOf(service)}`).join('|');
+): string =>
+    services
+        .map(service => `${service.id}:${service.serviceName}:${grossOf(service)}:${service.vatRate ?? ''}`)
+        .join('|');
 
 /**
  * Stan początkowy ekranu z uwzględnieniem zapisanego draftu.
@@ -132,7 +141,21 @@ export const restoreDraft = (
 
 export const toPln = (grosz: number): string => (grosz / 100).toFixed(2);
 
+/**
+ * Czy treść pola jest kwotą w groszach: najwyżej dwa miejsca po przecinku (albo
+ * kropce); spacje jako separator tysięcy są dozwolone. Niedokończone „12," też
+ * przechodzi, żeby nie blokować wpisywania.
+ */
+export const isPlnInput = (value: string): boolean => MAX_2_DECIMALS.test(value.replace(/\s/g, ''));
+
+/**
+ * Kwota w złotych → grosze. Treść, która kwotą w groszach nie jest (patrz isPlnInput),
+ * daje 0, jak puste pole. Trzecie miejsce po przecinku było wcześniej zaokrąglane po
+ * cichu: „12,345" szło na fakturę jako 12,35, kwota, której nikt nie wpisał. Teraz
+ * walidacja pozycji pokaże „podaj kwotę".
+ */
 export const parsePln = (value: string): number => {
+    if (!isPlnInput(value)) return 0;
     const parsed = parseFloat(value.replace(',', '.').replace(/\s/g, ''));
     return Number.isFinite(parsed) ? Math.round(parsed * 100) : 0;
 };
@@ -161,7 +184,10 @@ export const withDerived = (item: HandoverItem): HandoverItem => {
     return item.mode === 'GROSS' ? { ...item, net: toPln(net) } : { ...item, gross: toPln(gross) };
 };
 
-/** Stawka wykryta z relacji brutto/netto usługi; przy braku dopasowania 23%. */
+/**
+ * Stawka wykryta z relacji brutto/netto usługi; przy braku dopasowania 23%.
+ * Wyłącznie zapasowo, dla usługi bez zapisanej stawki - patrz invoiceRateOf.
+ */
 export const detectRate = (net: number, gross: number): VatRateCode => {
     if (net <= 0) return '23';
     const ratio = gross / net;
@@ -171,6 +197,48 @@ export const detectRate = (net: number, gross: number): VatRateCode => {
     if (Math.abs(ratio - 1.0) < 0.005) return '0';
     return '23';
 };
+
+/** Stawka VAT usługi w procentach (-1 = zwolniona) → kod stawki faktury; null dla nieznanej. */
+export const vatRateCodeOf = (vatRate: number | null | undefined): VatRateCode | null => {
+    switch (vatRate) {
+        case 23: return '23';
+        case 8: return '8';
+        case 5: return '5';
+        case 0: return '0';
+        case -1: return 'zw';
+        default: return null;
+    }
+};
+
+/**
+ * Stawka pozycji faktury dla usługi wizyty: ta zapisana przy usłudze.
+ *
+ * Zgadywanie z proporcji brutto/netto (detectRate) myli się tam, gdzie proporcja stawki
+ * nie niesie: usługa zwolniona ma brutto = netto, więc szła do KSeF jako „0%" zamiast
+ * „zw", a przy groszowych kwotach zaokrąglenie zjada VAT (1 gr netto przy 23% to 1 gr
+ * brutto → „0%", 7 gr netto przy 8% to 8 gr brutto → „23%"). Proporcja zostaje tylko
+ * dla usługi bez zapisanej stawki.
+ */
+export const invoiceRateOf = (vatRate: number | null | undefined, net: number, gross: number): VatRateCode =>
+    vatRateCodeOf(vatRate) ?? detectRate(net, gross);
+
+/**
+ * Pozycja faktury z usługi wizyty. Autorytatywne jest brutto końcowe usługi (tryb GROSS),
+ * czyli kwota uzgodniona z klientem; netto wynika z niego „w stu", jak na backendzie.
+ * Przy 5/8/23% daje to z powrotem dokładnie netto usługi, także gdy jej brutto policzono
+ * z netta, więc żadna ze stron ceny nie drgnie.
+ */
+export const invoiceItemFromService = (
+    service: { serviceName: string; vatRate: number | null | undefined },
+    pricing: { finalPriceNet: number; finalPriceGross: number }
+): HandoverItem =>
+    withDerived({
+        name: service.serviceName,
+        net: '',
+        gross: toPln(pricing.finalPriceGross),
+        mode: 'GROSS',
+        vatRate: invoiceRateOf(service.vatRate, pricing.finalPriceNet, pricing.finalPriceGross),
+    });
 
 export const invoiceGrossOf = (items: HandoverItem[]): number =>
     items.reduce((sum, item) => sum + itemAmounts(item).gross, 0);

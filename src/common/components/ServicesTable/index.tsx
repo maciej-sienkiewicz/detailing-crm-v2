@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
-import { applyAdjustment, distributeAdjustment, netToGross } from '@/common/utils/priceAdjustment';
+import {
+    applyAdjustment, distributeAdjustment, netToGross, resolveBaseGross, resolveBaseNet, withVatRate,
+} from '@/common/utils/priceAdjustment';
 import { MAX_2_DECIMALS, centsToInput, handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import { ServiceDiscountModal } from '@/common/components/ServiceDiscountModal';
 import type { AdjustmentType, PriceAdjustment } from '@/common/utils/priceAdjustment';
+import { discountBases, editedPricePair, withAdjustment } from './servicesTablePricing';
 import * as S from './styles';
 
 export interface PackageItemSnapshot {
@@ -90,11 +93,6 @@ const useNarrowTable = () => {
     }, []);
 
     return { blockRef, isNarrow };
-};
-
-const grossToNet = (grossCents: number, vatRate: number): number => {
-    if (vatRate <= 0) return grossCents;
-    return Math.round(grossCents / (1 + vatRate / 100));
 };
 
 const IconChevronDown = () => (
@@ -192,16 +190,18 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
         setDiscountModalId(null);
     };
 
+    // Rabat podmieniany przez withAdjustment: pozycja z ceną ręczną (baza 0 + SET_*)
+    // najpierw przenosi ustaloną cenę do bazy, inaczej rabat liczyłby się od zera.
     const applyServiceDiscount = (adjustment: PriceAdjustment) => {
         if (!discountModalId) return;
-        onChange(services.map(s => s.id === discountModalId ? { ...s, adjustment } : s));
+        onChange(services.map(s => s.id === discountModalId ? withAdjustment(s, adjustment) : s));
         closeDiscountModal();
     };
 
     const removeServiceDiscount = () => {
         if (!discountModalId) return;
         onChange(services.map(s => s.id === discountModalId
-            ? { ...s, adjustment: { type: 'PERCENT', value: 0 } }
+            ? withAdjustment(s, { type: 'PERCENT', value: 0 })
             : s
         ));
         closeDiscountModal();
@@ -211,9 +211,8 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
         const val = parseFloat(bulkDiscountValue.replace(',', '.'));
         if (isNaN(val) || val <= 0) return;
         const valueInCents = bulkDiscountType === 'PERCENT' ? val : Math.round(val * 100);
-        const bases = services.map(s => ({ basePriceNetCents: s.basePriceNet, basePriceGrossCents: s.basePriceGross, vatRate: s.vatRate }));
-        const adjustments = distributeAdjustment(bases, bulkDiscountType, valueInCents);
-        onChange(services.map((s, i) => ({ ...s, adjustment: adjustments[i] })));
+        const adjustments = distributeAdjustment(discountBases(services), bulkDiscountType, valueInCents);
+        onChange(services.map((s, i) => withAdjustment(s, adjustments[i])));
         setBulkDiscountOpen(false);
         setBulkDiscountValue('');
     };
@@ -231,36 +230,26 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
         setEditSaving(false);
     };
 
+    // Para zmienia się zawsze w całości (editedPricePair): puste pole czyści też drugie,
+    // żeby do cennika nie poszła połowa pary sprzed zmiany.
     const handleEditNetChange = (raw: string) => {
         if (!MAX_2_DECIMALS.test(raw)) return;
         setEditNetInput(raw);
         setEditError('');
-        const val = parseFloat(raw.replace(',', '.'));
-        if (!isNaN(val) && val > 0) {
-            const net = Math.round(val * 100);
-            const gross = netToGross(net, editVatRate);
-            setEditPriceNet(net);
-            setEditPriceGross(gross);
-            setEditGrossInput(centsToInput(gross));
-        } else {
-            setEditPriceNet(0);
-        }
+        const { netCents, grossCents } = editedPricePair(raw, 'net', editVatRate);
+        setEditPriceNet(netCents);
+        setEditPriceGross(grossCents);
+        setEditGrossInput(netCents > 0 ? centsToInput(grossCents) : '');
     };
 
     const handleEditGrossChange = (raw: string) => {
         if (!MAX_2_DECIMALS.test(raw)) return;
         setEditGrossInput(raw);
         setEditError('');
-        const val = parseFloat(raw.replace(',', '.'));
-        if (!isNaN(val) && val > 0) {
-            const gross = Math.round(val * 100);
-            const net = grossToNet(gross, editVatRate);
-            setEditPriceGross(gross);
-            setEditPriceNet(net);
-            setEditNetInput(centsToInput(net));
-        } else {
-            setEditPriceGross(0);
-        }
+        const { netCents, grossCents } = editedPricePair(raw, 'gross', editVatRate);
+        setEditPriceGross(grossCents);
+        setEditPriceNet(netCents);
+        setEditNetInput(grossCents > 0 ? centsToInput(netCents) : '');
     };
 
     const saveEditService = async () => {
@@ -336,9 +325,12 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
 
     const discountModalService = discountModalId ? services.find(s => s.id === discountModalId) : null;
 
-    const bulkBaseNet = Math.round(services.reduce((sum, s) => sum + s.basePriceNet, 0)) / 100;
-    const bulkBaseGross = Math.round(services.reduce((sum, s) => {
-        return sum + (s.basePriceGross ?? netToGross(s.basePriceNet, s.vatRate));
+    // „Łącznie przed rabatem" z tych samych baz, od których rozłoży się rabat - pozycja
+    // z ceną ręczną (baza 0 + SET_*) wlicza się ustaloną ceną, a nie zerem.
+    const bulkBases = discountBases(services);
+    const bulkBaseNet = Math.round(bulkBases.reduce((sum, b) => sum + b.basePriceNetCents, 0)) / 100;
+    const bulkBaseGross = Math.round(bulkBases.reduce((sum, b) => {
+        return sum + (b.basePriceGrossCents ?? netToGross(b.basePriceNetCents, b.vatRate));
     }, 0)) / 100;
 
     const editService = editModalServiceId ? services.find(s => s.id === editModalServiceId) : null;
@@ -503,8 +495,8 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
             {discountModalId && discountModalService && (
                 <ServiceDiscountModal
                     serviceName={discountModalService.serviceName}
-                    basePriceNet={discountModalService.basePriceNet}
-                    basePriceGross={discountModalService.basePriceGross}
+                    basePriceNet={resolveBaseNet(discountModalService)}
+                    basePriceGross={resolveBaseGross(discountModalService)}
                     vatRate={discountModalService.vatRate}
                     adjustment={discountModalService.adjustment}
                     onApply={applyServiceDiscount}
@@ -533,9 +525,11 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
                                             type="button"
                                             $selected={bulkVatRate === r}
                                             onClick={() => {
-                                                // Clear basePriceGross: it was computed at the old VAT rate
-                                                // and would otherwise override the recalculated gross display.
-                                                onChange(services.map(s => ({ ...s, vatRate: r, basePriceGross: undefined })));
+                                                // withVatRate: pozycja z tą samą stawką zostaje nietknięta
+                                                // (razem z dokładnym brutto), brutto wpisane przez człowieka
+                                                // przechodzi bez zmian, a brutto policzone przy starej stawce
+                                                // znika i liczy się od netta przy nowej.
+                                                onChange(services.map(s => withVatRate(s, r)));
                                                 setBulkVatRate(r);
                                                 setBulkVatOpen(false);
                                             }}

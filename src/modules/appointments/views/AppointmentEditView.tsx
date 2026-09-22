@@ -17,6 +17,7 @@ import { StickyFormFooter, FooterPrimaryButton, FooterSecondaryButton } from '@/
 import { t } from '@/common/i18n';
 import { fromInstantToLocalInput } from '@/common/dateTime';
 import { buildAppointmentEditPayload } from '../utils/buildAppointmentEditPayload';
+import { toEditServiceLine } from '../utils/toEditServiceLine';
 import { SmsReminderEditSection } from '../components/SmsReminderEditSection';
 import { RecurrenceEditScopeModal } from '../components/RecurrenceEditScopeModal';
 import type { AppointmentSmsInfo, RecurrenceEditScope, RecurrenceInfo } from '../types';
@@ -145,16 +146,9 @@ export const AppointmentEditView = () => {
             isNewVehicle: false,
             homeAddress: appointment.customer?.homeAddress || null,
             company: appointment.customer?.company || null,
-            services: (appointment.services || []).map((s: any) => ({
-                id: s.id,
-                serviceId: s.serviceId,
-                serviceName: s.serviceName || s.name,
-                basePriceNet: s.basePriceNet ?? s.priceNet ?? 0,
-                vatRate: s.vatRate ?? 23,
-                adjustment: s.adjustment || { type: 'PERCENT', value: 0 },
-                note: s.note,
-                requireManualPrice: !!s.requireManualPrice,
-            })),
+            // Z dokładnym bruttem: bez niego każdy zapis, nawet samej daty, odtwarzał
+            // brutto z netta (1900,00 → 1900,01) - patrz toEditServiceLine.
+            services: (appointment.services || []).map(toEditServiceLine),
             appointmentColorId: appointment.appointmentColor?.id || '',
             technicalState: {
                 mileage: 0,

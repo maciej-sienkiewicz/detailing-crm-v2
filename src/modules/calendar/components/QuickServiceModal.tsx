@@ -6,8 +6,10 @@ import { PriceInput } from '@/modules/services/components/PriceInput';
 import { useCreateService } from '@/modules/services/hooks/useServices';
 import type { VatRate } from '@/modules/services/types';
 import { VAT_OPTIONS } from '@/modules/services/vatOptions';
+import { repriceForVatRate } from '@/common/utils/priceAdjustment';
 import { useModalViewport } from '@/common/hooks';
 import { shouldAutoFocusInput } from '@/common/utils';
+import { useTypedPriceSide } from '@/modules/services/components/useTypedPriceSide';
 import {
     Overlay,
     ModalContainer,
@@ -61,6 +63,7 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
     const [basePriceNet, setBasePriceNet] = useState(0);
     const [basePriceGross, setBasePriceGross] = useState(0);
     const [vatRate, setVatRate] = useState<VatRate>(23);
+    const { typedSide, fieldsRef, onFieldsChange } = useTypedPriceSide();
     const [saveToDatabase, setSaveToDatabase] = useState(false);
     const [requireManualPrice, setRequireManualPrice] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -84,13 +87,22 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
         }
     }, [isOpen, initialServiceName]);
 
-    useEffect(() => {
-        if (basePriceNet > 0) {
-            const rate = Math.max(0, vatRate);
-            setBasePriceGross(Math.round(basePriceNet * (1 + rate / 100)));
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [vatRate]);
+    /**
+     * Zmiana stawki zachowuje stronę, którą wpisał człowiek, i przelicza drugą.
+     *
+     * Wcześniej efekt na zmianie stawki liczył brutto zawsze od netta (własnym
+     * mnożeniem), także gdy wpisano brutto, a netto było z niego tylko wyliczone:
+     * 1900,00 zł brutto po 23% → 8% → 23% wracało jako 1900,01 zł (CLAUDE.md §1).
+     * Bliźniak tej obsługi siedzi w checkin/ManualPriceModal.
+     */
+    const handleVatChange = (nextRate: VatRate) => {
+        const next = repriceForVatRate(
+            { netCents: basePriceNet, grossCents: basePriceGross }, vatRate, nextRate, typedSide,
+        );
+        setVatRate(nextRate);
+        setBasePriceNet(next.netCents);
+        setBasePriceGross(next.grossCents);
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -176,7 +188,7 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                             <Label>Stawka VAT</Label>
                             <Select
                                 value={vatRate}
-                                onChange={(e) => setVatRate(Number(e.target.value) as VatRate)}
+                                onChange={(e) => handleVatChange(Number(e.target.value) as VatRate)}
                             >
                                 {VAT_OPTIONS.map((opt) => (
                                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -184,7 +196,9 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                             </Select>
                         </FieldGroup>
 
-                        <FieldGroup>
+                        {/* Obudowa pól ceny słyszy, w którym polu człowiek pisze - od tego
+                            zależy, którą stronę zachowa zmiana stawki VAT. */}
+                        <FieldGroup ref={fieldsRef} onChange={onFieldsChange}>
                             <PriceInput
                                 netAmount={basePriceNet}
                                 grossAmount={basePriceGross}

@@ -75,19 +75,29 @@ podano w brutto.
 - **Rabat liczony od netta** (procent, upust netto, ustaw netto) zmienia kwotę
   bazową, więc brutto końcowe **należy** policzyć. Rabat gross-side (`SET_GROSS`,
   `FIXED_GROSS`) i rabat zerowy — nie wolno.
+- **Zmiana stawki VAT zachowuje stronę wpisaną** i liczy drugą
+  (`repriceForVatRate`, `withVatRate`). Ta sama stawka nie zmienia niczego —
+  „przeliczenie na wszelki wypadek" kasuje dokładne brutto. Gdy strony nie da się
+  ustalić (`typedPriceSide` zwraca `null`: brutto z cennika równe netto × stawka),
+  ekran zachowuje swoje dotychczasowe zachowanie.
 - **Dokładne brutto musi przejść przez każdą granicę**: katalog → pozycja
   wyceny → payload API → odczyt z API. Zgubione raz, nie odtworzy się już nigdy.
 - **Mapowania odpowiedzi API to miejsce, w którym ginie najczęściej.** Funkcja
   wypisująca pola ręcznie (`services.map(s => ({ id: s.id, basePriceNet: … }))`)
   po cichu wyrzuca `finalPriceGross`, bo nikt o nim nie pomyślał — a wtedy każda
   tabela niżej MUSI odtwarzać brutto z netta i cała naprawa idzie na marne.
-  Serwer nie zwraca `basePriceGross` przy pozycjach rezerwacji; dokładne brutto
-  siedzi w `finalPriceGross` i wydobywa je `exactBaseGross()`. Dodając pole do
-  takiego mapowania, sprawdź najpierw, czy nie gubisz kwoty.
+  Serwer zwraca `basePriceGross` przy pozycjach rezerwacji i wizyty (od migracji
+  V151); przy starszych pozycjach bywa `null` i wtedy dokładne brutto siedzi
+  w `finalPriceGross` — wydobywa je `exactBaseGross()`, które sprawdza oba pola.
+  Dodając pole do takiego mapowania, sprawdź najpierw, czy nie gubisz kwoty.
 
 ### Wzorce do skopiowania
 
-- `src/common/utils/priceAdjustment.ts` — `exactBaseGross`, `applyAdjustment`
+- `src/common/utils/priceAdjustment.ts` — `exactBaseGross`, `applyAdjustment`,
+  `resolveBaseGross` (cena ręczna: baza 0 + SET_*), `typedPriceSide`,
+  `repriceForVatRate`, `withVatRate`
+- `src/modules/visits/utils/servicePriceEdits.ts` — edycja cen wizyty: okno ceny,
+  rabat i VAT zbiorczy, sumy, payload z `basePriceGross`
 - `src/modules/appointments/hooks/useServicePricing.ts` — wycena pozycji i sumy
 - `src/modules/checkin/components/SummaryStep.tsx` — podsumowanie protokołu
 - `src/modules/checkin/utils/toCheckInServiceLine.ts` — przeniesienie dokładnego
@@ -102,6 +112,10 @@ podano w brutto.
   zgłoszenia z produkcji (154472 gr / 23% / rabat zerowy → **190000**, nie 190001)
 - `src/modules/checkin/utils/toCheckInServiceLine.test.ts` → brutto przeżywa
   granicę API; brak brutta daje `undefined`, a nie zmyśloną kwotę
+- `src/modules/visits/utils/servicePriceEdits.test.ts` i
+  `src/modules/visits/components/ServiceInlineRow.test.tsx` → brutto wpisane
+  w wykazie usług wizyty dochodzi do payloadu; VAT zbiorczy nie rusza pozycji
+  z tą samą stawką; podgląd rabatu = zapis
 
 **Nie osłabiaj tych testów, żeby przepuścić zmianę.** Jeśli test zaczyna
 przeszkadzać, to zmiana jest zła, a nie test.

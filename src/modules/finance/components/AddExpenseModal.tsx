@@ -15,6 +15,13 @@ import {
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
 import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
+import { priceInputsForVatRate, type PriceSide } from '@/common/utils/priceInputs';
+import {
+    EXPENSE_AMOUNT_INPUT,
+    expenseGrossForNet,
+    expenseNetForGross,
+    expenseVatRate,
+} from '../utils/amountInputs';
 import {
     FormGrid,
     FormField,
@@ -227,11 +234,6 @@ const VAT_RATES = [
 
 const MAX_2_DECIMALS = /^\d*\.?\d{0,2}$/;
 
-const roundTo2 = (n: number): string => {
-    if (!isFinite(n) || isNaN(n)) return '';
-    return (Math.round(n * 100) / 100).toFixed(2);
-};
-
 const parseAmount = (s: string): number | null => {
     const n = parseFloat(s.replace(',', '.'));
     return isFinite(n) ? n : null;
@@ -255,6 +257,8 @@ interface FormState {
     grossAmount:    string;
     vatRate:        string;
     paymentMethod:  string;
+    /** Kwota wpisana ostatnio - przechodzi przez zmianę stawki VAT bez zmian. */
+    priceSide:      PriceSide;
 }
 
 const today = new Date().toISOString().split('T')[0];
@@ -268,6 +272,7 @@ const EMPTY_FORM: FormState = {
     grossAmount:    '',
     vatRate:        '23',
     paymentMethod:  '',
+    priceSide:      'net',
 };
 
 export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
@@ -290,35 +295,33 @@ export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
     const setField = (key: keyof FormState) => (value: string) =>
         setForm(prev => ({ ...prev, [key]: value }));
 
-    const getMultiplier = (vatRate: string): number | null => {
-        if (vatRate === 'zw') return 1;
-        const r = parseFloat(vatRate);
-        return isFinite(r) ? 1 + r / 100 : null;
-    };
-
+    // Przeliczenie netto ↔ brutto w groszach, wspólnymi helperami - nie na złotówkach
+    // zmiennoprzecinkowo, które przy połówce grosza zaokrąglały w złą stronę.
     const handleNetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const raw = e.target.value;
         if (!MAX_2_DECIMALS.test(raw)) return;
-        const net = parseAmount(raw);
-        const multiplier = getMultiplier(form.vatRate);
-        const gross = net !== null && multiplier !== null ? roundTo2(net * multiplier) : '';
-        setForm(prev => ({ ...prev, netAmount: raw, grossAmount: gross }));
+        const gross = expenseGrossForNet(raw, expenseVatRate(form.vatRate));
+        setForm(prev => ({ ...prev, netAmount: raw, grossAmount: gross, priceSide: 'net' }));
     };
 
     const handleGrossChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const raw = e.target.value;
         if (!MAX_2_DECIMALS.test(raw)) return;
-        const gross = parseAmount(raw);
-        const multiplier = getMultiplier(form.vatRate);
-        const net = gross !== null && multiplier !== null ? roundTo2(gross / multiplier) : '';
-        setForm(prev => ({ ...prev, grossAmount: raw, netAmount: net }));
+        const net = expenseNetForGross(raw, expenseVatRate(form.vatRate));
+        setForm(prev => ({ ...prev, grossAmount: raw, netAmount: net, priceSide: 'gross' }));
     };
 
+    // Zmiana stawki zostawia kwotę wpisaną przez człowieka, a drugą liczy od nowa
+    // (CLAUDE.md §1). Brutto liczone zawsze z netta zamieniało wpisane 1900.00
+    // w 1900.01 po 23% → 8% → 23% - wystarczył nawet ponowny wybór tej samej stawki.
     const handleVatChange = (vatRate: string) => {
-        const multiplier = getMultiplier(vatRate);
-        const net = parseAmount(form.netAmount);
-        const gross = net !== null && multiplier !== null ? roundTo2(net * multiplier) : form.grossAmount;
-        setForm(prev => ({ ...prev, vatRate, grossAmount: gross }));
+        setForm(prev => {
+            const { net, gross } = priceInputsForVatRate(
+                { net: prev.netAmount, gross: prev.grossAmount },
+                expenseVatRate(prev.vatRate), expenseVatRate(vatRate), prev.priceSide, EXPENSE_AMOUNT_INPUT,
+            );
+            return { ...prev, vatRate, netAmount: net, grossAmount: gross };
+        });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {

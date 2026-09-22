@@ -13,8 +13,9 @@ import styled from 'styled-components';
 import { Plus } from 'lucide-react';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { formatCurrency } from '@/common/utils';
-import { MAX_2_DECIMALS, centsToInput, handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
+import { MAX_2_DECIMALS, centsToInput, inputToCents, handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import { netToGross, grossToNet } from '@/common/utils/priceAdjustment';
+import { priceInputsForVatRate, storedPriceSide, type PriceSide } from '@/common/utils/priceInputs';
 import {
     ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle,
     ModalContent, ModalFooter, CloseBtn,
@@ -106,10 +107,12 @@ interface DraftState {
     netCents: number;
     grossCents: number;
     vatRate: number;
+    /** The price field the operator typed last - it survives a VAT change unchanged. */
+    priceSide: PriceSide;
 }
 
 const emptyDraft = (): DraftState => ({
-    name: '', netInput: '', grossInput: '', netCents: 0, grossCents: 0, vatRate: 23,
+    name: '', netInput: '', grossInput: '', netCents: 0, grossCents: 0, vatRate: 23, priceSide: 'net',
 });
 
 const draftFrom = (service: BatchService): DraftState => ({
@@ -119,6 +122,7 @@ const draftFrom = (service: BatchService): DraftState => ({
     netCents: service.netAmountCents,
     grossCents: service.grossAmountCents,
     vatRate: service.vatRate,
+    priceSide: storedPriceSide(service.netAmountCents, service.grossAmountCents, service.vatRate),
 });
 
 const IconPencil = () => (
@@ -195,6 +199,7 @@ export function BatchServicesModal({ onClose }: Props) {
             netCents: net,
             grossCents: gross,
             grossInput: raw === '' ? '' : centsToInput(gross),
+            priceSide: 'net',
         }));
     }
 
@@ -209,20 +214,29 @@ export function BatchServicesModal({ onClose }: Props) {
             grossCents: gross,
             netCents: net,
             netInput: raw === '' ? '' : centsToInput(net),
+            priceSide: 'gross',
         }));
     }
 
-    // Changing VAT keeps net and re-derives gross: net is the figure a contract is
-    // usually written in, so it is the one that should survive the rate change.
+    // Changing VAT keeps the side the operator typed and re-derives the other
+    // (CLAUDE.md §1). Keeping net unconditionally turned a gross typed as 1900,00 into
+    // 1900,01 after 23% → 8% → 23%. Net still survives when net was typed, or when
+    // nothing was typed and the stored pair cannot tell which side was entered - net is
+    // the figure a contract is usually written in. The cents follow the fields, exactly
+    // as they do while typing.
     function handleVatChange(vatRate: number) {
         setError('');
         setDraft(d => {
-            const gross = netToGross(d.netCents, vatRate);
+            const { net, gross } = priceInputsForVatRate(
+                { net: d.netInput, gross: d.grossInput }, d.vatRate, vatRate, d.priceSide,
+            );
             return {
                 ...d,
                 vatRate,
-                grossCents: gross,
-                grossInput: d.netInput === '' ? '' : centsToInput(gross),
+                netInput: net,
+                grossInput: gross,
+                netCents: inputToCents(net),
+                grossCents: inputToCents(gross),
             };
         });
     }

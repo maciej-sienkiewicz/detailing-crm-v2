@@ -4,7 +4,7 @@ import { InputShell, BareInput, Select, FieldLabel, FormField } from '@/common/c
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { Muted } from './HandoverKit';
 import type { HandoverItem, VatRateCode } from '../../types/handover';
-import { withDerived } from '../../types/handover';
+import { isPlnInput, withDerived } from '../../types/handover';
 import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 
 const Wrap = styled.div`
@@ -122,6 +122,13 @@ export const InvoiceItemsEditor = ({
             })
         );
 
+    // Trzecie miejsce po przecinku odrzucamy już przy wpisywaniu, jak w każdym polu
+    // kwoty: grosz go nie ma, a zaokrąglone po cichu trafiało na fakturę.
+    const updateAmount = (index: number, field: 'net' | 'gross', value: string) => {
+        if (!isPlnInput(value)) return;
+        updateItem(index, field === 'net' ? { net: value } : { gross: value });
+    };
+
     return (
         <Wrap>
             <HeaderRow>
@@ -148,8 +155,8 @@ export const InvoiceItemsEditor = ({
                             inputMode="decimal"
                             aria-label={`Netto pozycji ${index + 1}`}
                             title={item.mode === 'GROSS' ? 'Wyliczone z brutto' : 'Kwota wpisana'}
-                            onChange={e => updateItem(index, { net: e.target.value })}
-                            onKeyDown={handleZeroAwareKeyDown(item.net, val => updateItem(index, { net: val }))}
+                            onChange={e => updateAmount(index, 'net', e.target.value)}
+                            onKeyDown={handleZeroAwareKeyDown(item.net, val => updateAmount(index, 'net', val))}
                             $compact
                         />
                     </DerivedShell>
@@ -159,8 +166,8 @@ export const InvoiceItemsEditor = ({
                             inputMode="decimal"
                             aria-label={`Brutto pozycji ${index + 1}`}
                             title={item.mode === 'NET' ? 'Wyliczone z netto' : 'Kwota wpisana'}
-                            onChange={e => updateItem(index, { gross: e.target.value })}
-                            onKeyDown={handleZeroAwareKeyDown(item.gross, val => updateItem(index, { gross: val }))}
+                            onChange={e => updateAmount(index, 'gross', e.target.value)}
+                            onKeyDown={handleZeroAwareKeyDown(item.gross, val => updateAmount(index, 'gross', val))}
                             $compact
                         />
                     </DerivedShell>

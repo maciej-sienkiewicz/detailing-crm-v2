@@ -13,14 +13,15 @@ import {
 import {
   calculateGrossFromNet,
   calculateNetFromGross,
-  formatMoneyAmount,
   parseMoneyInput,
 } from '@/modules/services/utils/priceCalculator';
+import { priceInputsForVatRate, storedPriceSide, type PriceSide } from '@/common/utils/priceInputs';
 import type { Service, VatRate, AffectedPackage } from '@/modules/services/types';
 import { useCareInstructions, useCareInstructionMutations } from '../hooks/useCareInstructions';
 import { CareInstructionPickerModal } from './services/CareInstructionPickerModal';
 import { ServicesTableRow } from './services/ServicesTableRow';
 import { SERVICES_TABLE_GRID, SERVICES_TABLE_GRID_WITH_STATUS } from './services/servicesTable.helpers';
+import { formatDecimalInput, SERVICE_PRICE_INPUT } from './services/servicePriceForm.helpers';
 
 // ─── Animations ───────────────────────────────────────────────────────────────────────────────
 
@@ -845,9 +846,6 @@ const VAT_OPTIONS: { value: VatRate; label: string }[] = [
   { value: -1, label: 'zw.' },
 ];
 
-const formatDecimalInput = (grosze: number): string =>
-  formatMoneyAmount(grosze).replace('.', ',');
-
 const isValidPriceInput = (raw: string): boolean =>
   raw === '' || /^\d*[,.]?\d{0,2}$/.test(raw);
 
@@ -871,6 +869,8 @@ interface FormValues {
   grossInput: string;
   vatRate: VatRate;
   requireManualPrice: boolean;
+  /** Pole ceny wpisane ostatnio - przechodzi przez zmianę stawki VAT bez zmian. */
+  priceSide: PriceSide;
 }
 
 interface FormErrors {
@@ -884,11 +884,12 @@ const EMPTY_FORM: FormValues = {
   grossInput: '',
   vatRate: 23,
   requireManualPrice: false,
+  priceSide: 'net',
 };
 
 function serviceToForm(s: Service): FormValues {
   if (s.requireManualPrice) {
-    return { name: s.name, netInput: '', grossInput: '', vatRate: s.vatRate, requireManualPrice: true };
+    return { name: s.name, netInput: '', grossInput: '', vatRate: s.vatRate, requireManualPrice: true, priceSide: 'net' };
   }
   return {
     name: s.name,
@@ -896,6 +897,9 @@ function serviceToForm(s: Service): FormValues {
     grossInput: formatDecimalInput(s.basePriceGross ?? calculateGrossFromNet(s.basePriceNet, s.vatRate).priceGross),
     vatRate: s.vatRate,
     requireManualPrice: false,
+    // Nic jeszcze nie wpisano: brutto z katalogu, którego nie da się uzyskać z netta,
+    // wpisał człowiek - i to ono ma przetrwać zmianę stawki.
+    priceSide: storedPriceSide(s.basePriceNet, s.basePriceGross, s.vatRate),
   };
 }
 
@@ -925,6 +929,8 @@ interface PackageFormValues {
   vatRate: VatRate;
   requireManualPrice: boolean;
   selectedServices: Service[];
+  /** Pole ceny wpisane ostatnio - przechodzi przez zmianę stawki VAT bez zmian. */
+  priceSide: PriceSide;
 }
 
 interface PackageFormErrors {
@@ -940,6 +946,7 @@ const EMPTY_PKG_FORM: PackageFormValues = {
   vatRate: 23,
   requireManualPrice: false,
   selectedServices: [],
+  priceSide: 'net',
 };
 
 function packageToForm(pkg: Service): PackageFormValues {
@@ -957,7 +964,7 @@ function packageToForm(pkg: Service): PackageFormValues {
     updatedBy: '', replacesServiceId: null,
   }));
   if (pkg.requireManualPrice) {
-    return { name: pkg.name, netInput: '', grossInput: '', vatRate: pkg.vatRate, requireManualPrice: true, selectedServices };
+    return { name: pkg.name, netInput: '', grossInput: '', vatRate: pkg.vatRate, requireManualPrice: true, selectedServices, priceSide: 'net' };
   }
   return {
     name: pkg.name,
@@ -966,6 +973,7 @@ function packageToForm(pkg: Service): PackageFormValues {
     vatRate: pkg.vatRate,
     requireManualPrice: false,
     selectedServices,
+    priceSide: storedPriceSide(pkg.basePriceNet, pkg.basePriceGross, pkg.vatRate),
   };
 }
 
@@ -1191,7 +1199,7 @@ export const ServicesSection: React.FC = () => {
     const grossStr = raw.trim() === '' || net <= 0
       ? ''
       : formatDecimalInput(calculateGrossFromNet(net, pkgFormValues.vatRate).priceGross);
-    setPkgFormValues(prev => ({ ...prev, netInput: raw, grossInput: grossStr }));
+    setPkgFormValues(prev => ({ ...prev, netInput: raw, grossInput: grossStr, priceSide: 'net' }));
     setPkgFormErrors(prev => ({ ...prev, netInput: undefined }));
   };
 
@@ -1201,16 +1209,19 @@ export const ServicesSection: React.FC = () => {
     const netStr = raw.trim() === '' || gross <= 0
       ? ''
       : formatDecimalInput(calculateNetFromGross(gross, pkgFormValues.vatRate).priceNet);
-    setPkgFormValues(prev => ({ ...prev, grossInput: raw, netInput: netStr }));
+    setPkgFormValues(prev => ({ ...prev, grossInput: raw, netInput: netStr, priceSide: 'gross' }));
     setPkgFormErrors(prev => ({ ...prev, netInput: undefined }));
   };
 
+  // Jak w formularzu usługi: zmiana stawki zostawia pole wpisane, a drugie liczy od nowa.
   const handlePkgVatChange = (vatRate: VatRate) => {
-    const net = parseMoneyInput(pkgFormValues.netInput);
-    const grossStr = pkgFormValues.netInput.trim() === '' || isNaN(net) || net <= 0
-      ? ''
-      : formatDecimalInput(calculateGrossFromNet(net, vatRate).priceGross);
-    setPkgFormValues(prev => ({ ...prev, vatRate, grossInput: grossStr }));
+    setPkgFormValues(prev => {
+      const { net, gross } = priceInputsForVatRate(
+        { net: prev.netInput, gross: prev.grossInput },
+        prev.vatRate, vatRate, prev.priceSide, SERVICE_PRICE_INPUT,
+      );
+      return { ...prev, vatRate, netInput: net, grossInput: gross };
+    });
   };
 
   const addServiceToPkg = (svc: Service) => {
@@ -1286,7 +1297,7 @@ export const ServicesSection: React.FC = () => {
     const grossStr = raw.trim() === '' || net <= 0
       ? ''
       : formatDecimalInput(calculateGrossFromNet(net, formValues.vatRate).priceGross);
-    setFormValues(prev => ({ ...prev, netInput: raw, grossInput: grossStr }));
+    setFormValues(prev => ({ ...prev, netInput: raw, grossInput: grossStr, priceSide: 'net' }));
     setFormErrors(prev => ({ ...prev, netInput: undefined }));
   };
 
@@ -1296,16 +1307,21 @@ export const ServicesSection: React.FC = () => {
     const netStr = raw.trim() === '' || gross <= 0
       ? ''
       : formatDecimalInput(calculateNetFromGross(gross, formValues.vatRate).priceNet);
-    setFormValues(prev => ({ ...prev, grossInput: raw, netInput: netStr }));
+    setFormValues(prev => ({ ...prev, grossInput: raw, netInput: netStr, priceSide: 'gross' }));
     setFormErrors(prev => ({ ...prev, netInput: undefined }));
   };
 
+  // Zmiana stawki zostawia pole wpisane przez człowieka, a drugie liczy od nowa
+  // (CLAUDE.md §1). Brutto liczone zawsze z netta zamieniało wpisane 1900,00 zł
+  // w 1900,01 zł po 23% → 8% → 23% - i taka cena szła potem do katalogu.
   const handleVatChange = (vatRate: VatRate) => {
-    const net = parseMoneyInput(formValues.netInput);
-    const grossStr = formValues.netInput.trim() === '' || isNaN(net) || net <= 0
-      ? ''
-      : formatDecimalInput(calculateGrossFromNet(net, vatRate).priceGross);
-    setFormValues(prev => ({ ...prev, vatRate, grossInput: grossStr }));
+    setFormValues(prev => {
+      const { net, gross } = priceInputsForVatRate(
+        { net: prev.netInput, gross: prev.grossInput },
+        prev.vatRate, vatRate, prev.priceSide, SERVICE_PRICE_INPUT,
+      );
+      return { ...prev, vatRate, netInput: net, grossInput: gross };
+    });
   };
 
   const handleManualToggle = () => {

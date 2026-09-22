@@ -98,6 +98,12 @@ export interface ServiceLineItem {
     hasPendingChange?: boolean;
     previousPriceNet?: number | null;
     previousPriceGross?: number | null;
+    /**
+     * Dokładne brutto ceny bazowej - wpisane od strony brutto albo z cennika; null = nikt
+     * go nie ustalił (cena od netta, pozycje sprzed V151) i wolno je policzyć z netta.
+     * Edytor ceny wypełnia pole brutto TĄ kwotą - netto × stawka dałoby 1900,01 zamiast 1900,00.
+     */
+    basePriceGross?: number | null;
 }
 
 export interface VehicleInfo {
@@ -323,15 +329,27 @@ export interface ServicesChangesPayload {
             value: number;
         };
         note?: string;
+        /**
+         * Dokładne brutto ceny bazowej, gdy użytkownik wpisał ją od strony brutto. Bez niego
+         * serwer liczy brutto z netta (1900,00 → 1900,01) - chyba że to usługa z cennika po
+         * cenie z cennika: wtedy bierze brutto z katalogu sam. Serwer odrzuca (400) brutto
+         * różniące się od netto × stawka o więcej niż 1 gr.
+         */
+        basePriceGross?: number;
     }>;
     updated: Array<{
         serviceLineItemId: string;
         basePriceNet: number;
         vatRate: number;
         adjustment: {
-            type: 'SET_NET' | 'SET_GROSS';
+            type: 'PERCENT' | 'FIXED_NET' | 'FIXED_GROSS' | 'SET_NET' | 'SET_GROSS';
             value: number;
         };
+        /**
+         * Dokładne brutto nowej ceny bazowej - jak przy `added`. Bez niego serwer zachowuje
+         * zapisane brutto tylko wtedy, gdy ani cena bazowa, ani stawka się nie zmieniły.
+         */
+        basePriceGross?: number;
     }>;
     deleted: Array<{
         serviceLineItemId: string;

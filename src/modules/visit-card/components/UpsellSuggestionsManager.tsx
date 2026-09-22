@@ -15,11 +15,12 @@ import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { FieldGroup, Label, Input } from '@/common/components/Form';
 import { t } from '@/common/i18n';
-import { applyAdjustment, type AdjustmentType } from '@/common/utils/priceAdjustment';
+import type { AdjustmentType } from '@/common/utils/priceAdjustment';
 import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import { QuickServiceModal } from '@/modules/calendar/components/QuickServiceModal';
 import { ServiceAutocomplete } from '@/modules/checkin/components/ServiceAutocomplete';
 import { useUpsellNotificationAvailability } from '../hooks/useUpsellNotificationAvailability';
+import { upsellPricePreview } from './upsellPricePreview';
 import type { Service, VatRate } from '@/modules/services/types';
 import { visitCardApi, type UpsellTarget } from '../api/visitCardApi';
 import type { UpsellNotificationResult, UpsellSuggestion, UpsellSuggestionStatus } from '../types';
@@ -599,12 +600,9 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
             : Math.round(Math.abs(parsedValue || 0) * 100),
     });
 
+    // Z dokładnego brutto cennika, tak jak policzy serwer - patrz upsellPricePreview.
     const preview = selectedService
-        ? applyAdjustment(
-            selectedService.basePriceNet,
-            selectedService.vatRate,
-            discountActive ? toAdjustment() : { type: 'PERCENT', value: 0 },
-        )
+        ? upsellPricePreview(selectedService, discountActive ? toAdjustment() : undefined)
         : null;
 
     const handleSelectService = (service: Service) => {
@@ -622,7 +620,7 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
         setQuickServiceOpen(true);
     };
 
-    const handleQuickServiceCreate = (service: { id?: string; name: string; basePriceNet: number; vatRate: VatRate }) => {
+    const handleQuickServiceCreate = (service: { id?: string; name: string; basePriceNet: number; basePriceGross: number; vatRate: VatRate }) => {
         if (!service.id) {
             setError('Aby dodać sugestię, usługa musi być zapisana w bazie. Zaznacz „Zapisz w bazie danych" w formularzu.');
             return;
@@ -631,6 +629,8 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
             id: service.id,
             name: service.name,
             basePriceNet: service.basePriceNet,
+            // Brutto wpisane w formularzu - bez niego podgląd liczyłby je z netta (1900,00 → 1900,01).
+            basePriceGross: service.basePriceGross,
             vatRate: service.vatRate,
             requireManualPrice: false,
             isActive: true,
@@ -652,12 +652,13 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
             setError('Wartość rabatu musi być liczbą nieujemną.');
             return null;
         }
+        const adjustment = discountActive ? toAdjustment() : undefined;
         return {
             key: `${selectedService.id}:${Date.now()}`,
             service: selectedService,
-            adjustment: discountActive ? toAdjustment() : undefined,
+            adjustment,
             note: noteOpen ? (note.trim() || undefined) : undefined,
-            finalGrossCents: preview?.finalGrossCents ?? selectedService.basePriceNet,
+            finalGrossCents: upsellPricePreview(selectedService, adjustment).finalGrossCents,
         };
     };
 
@@ -761,9 +762,7 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
                             {preview && (
                                 <>
                                     {preview.hasDiscount && (
-                                        <PreviewOld>
-                                            {formatPln(applyAdjustment(selectedService.basePriceNet, selectedService.vatRate, { type: 'PERCENT', value: 0 }).finalGrossCents)}
-                                        </PreviewOld>
+                                        <PreviewOld>{formatPln(preview.originalGrossCents)}</PreviewOld>
                                     )}
                                     {formatPln(preview.finalGrossCents)} brutto
                                 </>

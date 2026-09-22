@@ -1,9 +1,15 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { useServicePricing } from '@/modules/appointments/hooks/useServicePricing';
-import { netPlnToGrossPln, grossPlnToNetPln, netToGross, applyAdjustment, distributeAdjustment, exactBaseGross, resolveBaseNet } from '@/common/utils/priceAdjustment';
+import { resolveBaseNet } from '@/common/utils/priceAdjustment';
 import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import type { AdjustmentType, PriceAdjustment } from '@/common/utils/priceAdjustment';
+import {
+    bulkDiscountPlan, bulkVatEdits, buildServicesChangesPayload, editFromEditor, editorAdjustment,
+    editorPrefill, editorPreview as previewEditor, formatZlField, grossFieldFor, netFieldFor, parseZlCents,
+    previewSide, pricedLine, restoreListPrice, visitTotals, withEditedPrice,
+} from '../utils/servicePriceEdits';
+import type { EditedPrice } from '../utils/servicePriceEdits';
 import { formatCurrency, shouldAutoFocusInput } from '@/common/utils';
 import type { ServiceLineItem, VisitStatus } from '../types';
 import type { ServicesChangesPayload } from '../types';
@@ -1754,7 +1760,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     /* ── Draft discount modal ── */
     const [draftDiscountId, setDraftDiscountId] = useState<string | null>(null);
 
-    const [editedPrices, setEditedPrices] = useState<Record<string, { basePriceNet: number; vatRate: number; adjustment: { type: AdjustmentType; value: number } }>>({}); // id → price override
+    const [editedPrices, setEditedPrices] = useState<Record<string, EditedPrice>>({}); // id → price override
 
     /* ── Unified price editor ── */
     const [editorId, setEditorId] = useState<string | null>(null);
@@ -1781,12 +1787,6 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const [bulkVatOpen, setBulkVatOpen] = useState(false);
     const [bulkVatRate, setBulkVatRate] = useState<number>(23);
 
-    const epln = (c: number) => c / 100;
-    const eCents = (v: number) => Math.round(v * 100);
-    const eGrossFromNet = netPlnToGrossPln;
-    const eNetFromGross = grossPlnToNetPln;
-    const eFmt = (v: number) => v.toFixed(2);
-    const eParse = (raw: string) => { const v = parseFloat(raw.replace(',', '.')); return isNaN(v) || v < 0 ? null : v; };
     const fmtVat = (v: number) => v === -1 ? 'zw.' : `${v}%`;
 
     /**
@@ -1804,33 +1804,24 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
      * `resolveBaseNet` istnieje dokładnie po to i było już używane przy rabacie
      * zbiorczym; edytor pojedynczej pozycji jako jedyny go pomijał.
      */
-    const listBaseNet = (service: ServiceLineItem): number => resolveBaseNet({
-        basePriceNet: service.basePriceNet ?? 0,
-        vatRate: service.vatRate ?? edVatRate,
-        adjustment: service.adjustment ?? { type: 'PERCENT', value: 0 },
-    });
+    const listBaseNet = (service: ServiceLineItem): number => resolveBaseNet(pricedLine(service));
 
     /* ── Editor open / close / apply ── */
 
     const openEditor = (service: ServiceLineItem) => {
         const ep = editedPrices[service.id];
-        const vat = ep?.vatRate ?? service.vatRate;
-        const adj = ep?.adjustment ?? service.adjustment;
+        const line = pricedLine(service);
+        const adj = ep?.adjustment ?? line.adjustment;
         const isDiscountAdj = (adj.type === 'PERCENT' || adj.type === 'FIXED_NET' || adj.type === 'FIXED_GROSS') && adj.value !== 0;
-
-        let finalNetCents: number;
-        if (ep) {
-            finalNetCents = applyAdjustment(ep.basePriceNet, ep.vatRate, ep.adjustment).finalNetCents;
-        } else {
-            finalNetCents = calculateServicePrice(service).finalPriceNet;
-        }
-        const netPlnVal = epln(finalNetCents);
+        // Kwota, którą pozycja ma teraz, z DOKŁADNYM brutto - netto × stawka otwierało
+        // 1900,00 zł jako 1900,01 zł, a sama zmiana stawki zapisywała tę kwotę jako cenę.
+        const prefill = editorPrefill(line, ep);
 
         setEditorId(service.id);
-        setEdVatRate(vat);
-        setEdNetStr(eFmt(netPlnVal));
-        setEdGrossStr(eFmt(eGrossFromNet(netPlnVal, vat)));
-        setEdLastField('gross');
+        setEdVatRate(prefill.vatRate);
+        setEdNetStr(formatZlField(prefill.netCents));
+        setEdGrossStr(formatZlField(prefill.grossCents));
+        setEdLastField(prefill.lastField);
         if (isDiscountAdj) {
             setEdMode('DISCOUNT');
             setEdAdjType(adj.type);
@@ -1846,25 +1837,14 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const closeEditor = () => { setEditorId(null); setEdDirty(false); };
 
     /** Preview of the editor's current state against the ORIGINAL base price. */
-    const editorPreview = (service: ServiceLineItem) => {
-        const baseNet = listBaseNet(service);
-        let adj: { type: AdjustmentType; value: number };
-        if (edMode === 'DISCOUNT') {
-            const val = parseFloat(edDiscountValue.replace(',', '.'));
-            const storeVal = isNaN(val) ? 0
-                : edAdjType === 'PERCENT' ? -Math.abs(val) : Math.round(val * 100);
-            adj = { type: edAdjType, value: storeVal };
-        } else {
-            const net = eParse(edNetStr);
-            const gross = eParse(edGrossStr);
-            adj = edLastField === 'gross' && gross !== null
-                ? { type: 'SET_GROSS', value: eCents(gross) }
-                : { type: 'SET_NET', value: eCents(net ?? 0) };
-        }
-        const result = applyAdjustment(baseNet, edVatRate, adj);
-        const listGross = netToGross(baseNet, edVatRate);
-        return { adj, finalNetCents: result.finalNetCents, finalGrossCents: result.finalGrossCents, listGross, savedGross: listGross - result.finalGrossCents };
-    };
+    const editorPreview = (service: ServiceLineItem) => previewEditor(
+        pricedLine(service),
+        edVatRate,
+        editorAdjustment({
+            mode: edMode, discountType: edAdjType, discount: edDiscountValue,
+            net: edNetStr, gross: edGrossStr, lastField: edLastField,
+        }),
+    );
 
     const applyEditor = () => {
         if (!editorId) return;
@@ -1875,8 +1855,9 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         setEditedPrices(prev => ({
             ...prev,
             // Baza zapisana wprost, a nie jako zero z rabatem SET_NET: dzięki temu
-            // kolejny rabat nałożony na tę pozycję ma od czego liczyć.
-            [editorId]: { basePriceNet: listBaseNet(service), vatRate: edVatRate, adjustment: adj },
+            // kolejny rabat nałożony na tę pozycję ma od czego liczyć. Jej dokładne
+            // brutto jedzie razem z nią - upust brutto schodzi z wpisanej kwoty.
+            [editorId]: editFromEditor(pricedLine(service), edVatRate, adj),
         }));
         closeEditor();
     };
@@ -1889,8 +1870,8 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         setEditedPrices(prev => ({
             ...prev,
             // Dla usługi z ceną ręczną „cena cennikowa" to kwota ustalona z klientem -
-            // cennik nie ma dla niej żadnej innej.
-            [editorId]: { basePriceNet: listBaseNet(service), vatRate: service.vatRate, adjustment: { type: 'PERCENT', value: 0 } },
+            // cennik nie ma dla niej żadnej innej. Wraca z dokładnym brutto.
+            [editorId]: restoreListPrice(pricedLine(service)),
         }));
         closeEditor();
     };
@@ -1901,8 +1882,8 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         setEdLastField('net');
         setEdNetStr(val);
         setEdDirty(true);
-        const n = eParse(val);
-        if (n !== null) setEdGrossStr(eFmt(eGrossFromNet(n, edVatRate)));
+        const gross = grossFieldFor(val, edVatRate);
+        if (gross !== null) setEdGrossStr(gross);
     };
 
     const handleEdGrossChange = (val: string) => {
@@ -1911,19 +1892,20 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         setEdLastField('gross');
         setEdGrossStr(val);
         setEdDirty(true);
-        const g = eParse(val);
-        if (g !== null) setEdNetStr(eFmt(eNetFromGross(g, edVatRate)));
+        const net = netFieldFor(val, edVatRate);
+        if (net !== null) setEdNetStr(net);
     };
 
+    /** Zmiana stawki zachowuje stronę wpisaną (albo ustaloną przy pozycji) i liczy drugą. */
     const handleEdVatChange = (rate: number) => {
         setEdVatRate(rate);
         setEdDirty(true);
         if (edLastField === 'gross') {
-            const g = eParse(edGrossStr);
-            if (g !== null) setEdNetStr(eFmt(eNetFromGross(g, rate)));
+            const net = netFieldFor(edGrossStr, rate);
+            if (net !== null) setEdNetStr(net);
         } else {
-            const n = eParse(edNetStr);
-            if (n !== null) setEdGrossStr(eFmt(eGrossFromNet(n, rate)));
+            const gross = grossFieldFor(edNetStr, rate);
+            if (gross !== null) setEdGrossStr(gross);
         }
     };
 
@@ -1933,11 +1915,15 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         if (mode === 'SET') {
             const service = services.find(s => s.id === editorId);
             if (service) {
-                const { finalNetCents, finalGrossCents } = editorPreview(service);
-                setEdNetStr(eFmt(finalNetCents / 100));
-                setEdGrossStr(eFmt(finalGrossCents / 100));
+                const { adj, finalNetCents, finalGrossCents } = editorPreview(service);
+                setEdNetStr(formatZlField(finalNetCents));
+                setEdGrossStr(formatZlField(finalGrossCents));
+                // Po rabacie od netta ustalone jest netto - brutto z podglądu jest z niego
+                // policzone i zapisane jako SET_GROSS przesunęłoby netto o grosz.
+                setEdLastField(previewSide(pricedLine(service), edVatRate, adj));
+            } else {
+                setEdLastField('gross');
             }
-            setEdLastField('gross');
         }
         setEdMode(mode);
     };
@@ -1951,53 +1937,23 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
     /* ── Bulk actions ── */
 
-    const applyBulkDiscount = () => {
+    /** Pozycje objęte operacjami zbiorczymi: bez usuniętych i bez czekających na klienta. */
+    const bulkEligibleLines = () => services
+        .filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING')))
+        .map(s => ({ id: s.id, ...pricedLine(s) }));
+
+    /** Wartość rabatu zbiorczego: procent albo grosze; null, gdy nie wpisano poprawnej. */
+    const bulkDiscountAmount = (): number | null => {
         const val = parseFloat(bulkDiscountValue.replace(',', '.'));
-        if (isNaN(val) || val <= 0) return;
-        const valueInCents = bulkDiscountType === 'PERCENT' ? val : Math.round(val * 100);
-        const eligible = services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING')));
+        if (isNaN(val) || val <= 0) return null;
+        return bulkDiscountType === 'PERCENT' ? val : Math.round(val * 100);
+    };
 
-        if (bulkDiscountUseEdited) {
-            // Distribute against current effective prices (respecting manual edits),
-            // but preserve original basePriceNet: store result as SET_NET.
-            const effectiveBases = eligible.map(s => {
-                const ep = editedPrices[s.id];
-                if (ep) {
-                    const { finalNetCents } = applyAdjustment(ep.basePriceNet, ep.vatRate, ep.adjustment);
-                    return { basePriceNetCents: finalNetCents, vatRate: ep.vatRate };
-                }
-                return { basePriceNetCents: resolveBaseNet(s), vatRate: s.vatRate };
-            });
-            const adjustments = distributeAdjustment(effectiveBases, bulkDiscountType, valueInCents);
-            setEditedPrices(prev => {
-                const next = { ...prev };
-                eligible.forEach((s, i) => {
-                    const vatRate = editedPrices[s.id]?.vatRate ?? s.vatRate;
-                    const { finalNetCents } = applyAdjustment(effectiveBases[i].basePriceNetCents, vatRate, adjustments[i]);
-                    next[s.id] = {
-                        basePriceNet: s.basePriceNet, // always keep original base
-                        vatRate,
-                        adjustment: { type: 'SET_NET', value: Math.max(0, finalNetCents) },
-                    };
-                });
-                return next;
-            });
-        } else {
-            const bases = eligible.map(s => ({ basePriceNetCents: resolveBaseNet(s), vatRate: s.vatRate }));
-            const adjustments = distributeAdjustment(bases, bulkDiscountType, valueInCents);
-            setEditedPrices(prev => {
-                const next = { ...prev };
-                eligible.forEach((s, i) => {
-                    next[s.id] = {
-                        basePriceNet: bases[i].basePriceNetCents,
-                        vatRate: s.vatRate,
-                        adjustment: adjustments[i],
-                    };
-                });
-                return next;
-            });
-        }
-
+    const applyBulkDiscount = () => {
+        const value = bulkDiscountAmount();
+        if (value === null) return;
+        // Podgląd w oknie liczy się tą samą funkcją - zapisuje się dokładnie to, co było widać.
+        setEditedPrices(bulkDiscountPlan(bulkEligibleLines(), editedPrices, bulkDiscountType, value, bulkDiscountUseEdited).edits);
         setBulkDiscountOpen(false);
         setBulkDiscountValue('');
     };
@@ -2018,22 +1974,9 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     };
 
     const applyBulkVat = (rate: number) => {
-        const eligible = services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING')));
-        setEditedPrices(prev => {
-            const next = { ...prev };
-            eligible.forEach(s => {
-                const ep = prev[s.id];
-                const currentNet = ep
-                    ? applyAdjustment(ep.basePriceNet, ep.vatRate, ep.adjustment).finalNetCents
-                    : applyAdjustment(s.basePriceNet, s.vatRate, s.adjustment).finalNetCents;
-                next[s.id] = {
-                    basePriceNet: s.basePriceNet,
-                    vatRate: rate,
-                    adjustment: { type: 'SET_NET', value: currentNet },
-                };
-            });
-            return next;
-        });
+        const eligible = bulkEligibleLines();
+        // Pozycje z tą stawką zostają nietknięte; przy zmianie stawki zostaje strona ustalona.
+        setEditedPrices(prev => bulkVatEdits(eligible, prev, rate));
         setBulkVatOpen(false);
     };
 
@@ -2074,12 +2017,14 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         setIsQuickServiceOpen(true);
     };
 
-    const handleQuickServiceCreate = (svc: { id?: string; name: string; basePriceNet: number; vatRate: number }) => {
+    const handleQuickServiceCreate = (svc: { id?: string; name: string; basePriceNet: number; basePriceGross: number; vatRate: number }) => {
         if (quickServiceDraftId) {
             updateRow(quickServiceDraftId, {
                 serviceId: svc.id ?? null,
                 serviceName: svc.name,
                 basePriceNet: svc.basePriceNet,
+                // Para z okna nowej usługi - brutto wpisane tam przechodzi bez przeliczania.
+                basePriceGross: svc.basePriceGross,
                 vatRate: svc.vatRate,
                 requireManualPrice: false,
             });
@@ -2158,29 +2103,13 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         pendingSmsPayload, triggerHighlight, discardDraft]);
 
 
-    const buildChangesPayload = (): ServicesChangesPayload => {
-        const validNewRows = newRows.filter(r => r.serviceName.trim());
-        const effectiveNotify = smsFeature.enabled ? notifyCustomer : false;
-        return {
-            notifyCustomer: effectiveNotify,
-            requireConfirmation: effectiveNotify ? requireConfirmation : false,
-            added: validNewRows.map(r => ({
-                serviceId: r.serviceId,
-                serviceName: r.serviceName,
-                basePriceNet: r.basePriceNet,
-                vatRate: r.vatRate,
-                adjustment: r.adjustment,
-                note: '',
-            })),
-            updated: Object.entries(editedPrices).map(([serviceLineItemId, { basePriceNet, vatRate, adjustment }]) => ({
-                serviceLineItemId,
-                basePriceNet,
-                vatRate,
-                adjustment,
-            })),
-            deleted: Array.from(deletedIds).map(id => ({ serviceLineItemId: id })),
-        };
-    };
+    const buildChangesPayload = (): ServicesChangesPayload => buildServicesChangesPayload({
+        newRows,
+        editedPrices,
+        deletedIds,
+        notifyCustomer: smsFeature.enabled ? notifyCustomer : false,
+        requireConfirmation,
+    });
 
     /** Nazwy usług i cena końcowa dla treści SMS-a - wszystko już jest w komponencie. */
     const buildSmsSummary = (): ServiceChangeSummary => {
@@ -2237,75 +2166,11 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     // price columns and calculations to avoid Dinero crashes.
     const pricesHidden = services.length > 0 && services[0]?.basePriceNet === null;
 
-    const totals = (() => {
-        if (pricesHidden) return { totalFinalNet: 0, totalFinalGross: 0, totalVat: 0, totalDiscountGross: 0, hasTotalDiscount: false, totalGrossBefore: 0 };
-
-        let totalFinalNet = 0;
-        let totalFinalGross = 0;
-        let totalVat = 0;
-        let totalOriginalGross = 0;
-        // Stan sprzed edycji w tej sesji: bez usunięć, bez zmian cen, bez nowych wierszy.
-        let totalGrossBefore = 0;
-
-        services.forEach(service => {
-            const pendingEdit = (service.hasPendingChange ?? (service.status === 'PENDING'))
-                && service.pendingOperation === 'EDIT'
-                && (service.previousPriceGross ?? null) !== null;
-            totalGrossBefore += pendingEdit
-                ? (service.previousPriceGross as number)
-                : calculateServicePrice(service as Parameters<typeof calculateServicePrice>[0]).finalPriceGross;
-
-            if (deletedIds.has(service.id)) return;
-            const isPending = (service.hasPendingChange ?? (service.status === 'PENDING'));
-            const isEditPending = isPending && service.pendingOperation === 'EDIT' && (service.previousPriceNet ?? null) !== null && (service.previousPriceGross ?? null) !== null;
-            if (isEditPending) {
-                const net = service.previousPriceNet as number;
-                const gross = service.previousPriceGross as number;
-                totalFinalNet += net;
-                totalFinalGross += gross;
-                totalVat += Math.max(gross - net, 0);
-                totalOriginalGross += gross;
-            } else if (editedPrices[service.id] !== undefined) {
-                const ep = editedPrices[service.id];
-                const result = applyAdjustment(ep.basePriceNet, ep.vatRate, ep.adjustment);
-                const originalGross = netToGross(ep.basePriceNet, ep.vatRate);
-                totalFinalNet += result.finalNetCents;
-                totalFinalGross += result.finalGrossCents;
-                totalVat += Math.max(result.finalGrossCents - result.finalNetCents, 0);
-                totalOriginalGross += originalGross;
-            } else {
-                const pricing = calculateServicePrice(service);
-                totalFinalNet += pricing.finalPriceNet;
-                totalFinalGross += pricing.finalPriceGross;
-                totalVat += pricing.vatAmount;
-                totalOriginalGross += pricing.originalPriceGross;
-            }
-        });
-
-        newRows.filter(r => r.serviceName.trim()).forEach(r => {
-            // To samo co wyżej: brutto wpisane albo wzięte z cennika jest dokładne
-            // i nie wolno go odtwarzać z netta.
-            const baseGross = exactBaseGross(r) ?? netToGross(r.basePriceNet, r.vatRate);
-            const { finalNetCents, finalGrossCents } = applyAdjustment(
-                r.basePriceNet, r.vatRate, r.adjustment, baseGross,
-            );
-            totalFinalNet += finalNetCents;
-            totalFinalGross += finalGrossCents;
-            totalVat += Math.max(finalGrossCents - finalNetCents, 0);
-            totalOriginalGross += baseGross;
-        });
-
-        const totalDiscountGross = Math.max(totalOriginalGross - totalFinalGross, 0);
-
-        return {
-            totalFinalNet,
-            totalFinalGross,
-            totalVat,
-            totalDiscountGross,
-            hasTotalDiscount: totalDiscountGross > 0,
-            totalGrossBefore,
-        };
-    })();
+    // Te same kwoty trafiają do treści SMS-a dla klienta („Razem X zł"), więc liczą się
+    // z dokładnym brutto - także pozycji zmienionych w tej sesji i nowych wierszy.
+    const totals = pricesHidden
+        ? { totalFinalNet: 0, totalFinalGross: 0, totalVat: 0, totalDiscountGross: 0, hasTotalDiscount: false, totalGrossBefore: 0 }
+        : visitTotals({ services, editedPrices, newRows, deletedIds });
 
     const { approveServiceChange, isApproving } = useApproveServiceChange(visitId || '');
     const { rejectServiceChange, isRejecting } = useRejectServiceChange(visitId || '');
@@ -2405,9 +2270,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                         // Zmiana ceny w tabeli unieważnia brutto policzone przez serwer:
                         // dotyczyło POPRZEDNIEJ ceny, a rozlany obiekt zachowałby je
                         // i pokazywał kwotę sprzed edycji jako dokładną.
-                        const effectiveService = ep
-                            ? { ...service, ...ep, finalPriceGross: null }
-                            : service;
+                        const effectiveService = withEditedPrice(service, ep);
                         const pricing = pricesHidden ? null : calculateServicePrice(effectiveService as Parameters<typeof calculateServicePrice>[0]);
                         const showDiscount = !pricesHidden && !!pricing?.hasDiscount && service.basePriceNet !== 0;
                         const isMarkedForDelete = deletedIds.has(service.id);
@@ -2648,6 +2511,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 <ServiceDiscountModal
                     serviceName={draftRow.serviceName}
                     basePriceNet={draftRow.basePriceNet}
+                    basePriceGross={draftRow.basePriceGross}
                     vatRate={draftRow.vatRate}
                     adjustment={draftRow.adjustment}
                     onApply={applyDraftDiscount}
@@ -2670,7 +2534,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
             const discountValNum = parseFloat(edDiscountValue.replace(',', '.'));
             const discountInvalid = edMode === 'DISCOUNT' && (isNaN(discountValNum) || discountValNum <= 0);
-            const setInvalid = edMode === 'SET' && eParse(edNetStr) === null;
+            const setInvalid = edMode === 'SET' && parseZlCents(edNetStr) === null;
             const applyDisabled = discountInvalid || setInvalid;
 
             return (
@@ -2887,44 +2751,36 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         {/* Bulk discount modal */}
         {bulkDiscountOpen && (() => {
             const eligible = services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING')));
-            const getEffective = (s: ServiceLineItem) => {
-                const ep = editedPrices[s.id];
-                if (ep && bulkDiscountUseEdited) {
-                    return applyAdjustment(ep.basePriceNet, ep.vatRate, ep.adjustment);
-                }
-                const baseNet = resolveBaseNet(s);
-                return { finalNetCents: baseNet, finalGrossCents: netToGross(baseNet, s.vatRate) };
-            };
-
-            const allBases = eligible.map(s => {
-                const eff = getEffective(s);
-                return { basePriceNetCents: eff.finalNetCents, vatRate: s.vatRate };
-            });
-
             const parsedVal = parseFloat(bulkDiscountValue.replace(',', '.'));
-            const hasValidValue = !isNaN(parsedVal) && parsedVal > 0;
-            const valueInCents = bulkDiscountType === 'PERCENT' ? parsedVal : Math.round(parsedVal * 100);
-            const liveAdjustments = hasValidValue ? distributeAdjustment(allBases, bulkDiscountType, valueInCents) : null;
+            const discountAmount = bulkDiscountAmount();
+            const hasValidValue = discountAmount !== null;
+            // Ta sama funkcja co przy zapisie - okno pokazuje dokładnie to, co się zapisze,
+            // z dokładnym brutto cen z cennika (a nie netto × stawka).
+            const plan = bulkDiscountPlan(bulkEligibleLines(), editedPrices, bulkDiscountType, discountAmount, bulkDiscountUseEdited);
+            const allBases = plan.bases;
 
-            const previews = eligible.map((s, i) => {
-                const base = allBases[i];
-                const beforeNet = base.basePriceNetCents / 100;
-                const beforeGross = netToGross(base.basePriceNetCents, base.vatRate) / 100;
-                if (!liveAdjustments) {
-                    return { service: s, beforeNet, afterNet: beforeNet, beforeGross, afterGross: beforeGross, discountGross: 0 };
-                }
-                const { finalNetCents, finalGrossCents } = applyAdjustment(base.basePriceNetCents, base.vatRate, liveAdjustments[i]);
-                const afterNet = finalNetCents / 100;
-                const afterGross = finalGrossCents / 100;
-                return { service: s, beforeNet, afterNet, beforeGross, afterGross, discountGross: beforeGross - afterGross };
+            const previews = plan.rows.map((row, i) => {
+                const beforeGross = row.beforeGross / 100;
+                const afterGross = row.afterGross / 100;
+                return {
+                    service: eligible[i],
+                    beforeNet: row.beforeNet / 100,
+                    afterNet: row.afterNet / 100,
+                    beforeGross,
+                    afterGross,
+                    discountGross: beforeGross - afterGross,
+                };
             });
 
-            const totalBeforeNet = previews.reduce((s, p) => s + p.beforeNet, 0);
-            const totalAfterNet = previews.reduce((s, p) => s + p.afterNet, 0);
-            const totalBeforeGross = previews.reduce((s, p) => s + p.beforeGross, 0);
-            const totalAfterGross = previews.reduce((s, p) => s + p.afterGross, 0);
-            const totalSavedGross = totalBeforeGross - totalAfterGross;
-            const totalSavedNet = totalBeforeNet - totalAfterNet;
+            // Sumy w groszach - sumowanie złotówek we floatach gubiło grosze na długich listach.
+            const sumCents = (pick: (row: typeof plan.rows[number]) => number) =>
+                plan.rows.reduce((sum, row) => sum + pick(row), 0);
+            const totalBeforeNet = sumCents(r => r.beforeNet) / 100;
+            const totalAfterNet = sumCents(r => r.afterNet) / 100;
+            const totalBeforeGross = sumCents(r => r.beforeGross) / 100;
+            const totalAfterGross = sumCents(r => r.afterGross) / 100;
+            const totalSavedGross = (sumCents(r => r.beforeGross) - sumCents(r => r.afterGross)) / 100;
+            const totalSavedNet = (sumCents(r => r.beforeNet) - sumCents(r => r.afterNet)) / 100;
 
             const fmtPct = (v: number) => `${Math.round(Math.abs(v))}%`;
             const fmtAmt = (v: number) => `−${Math.abs(v).toFixed(2)} zł`;
