@@ -64,6 +64,10 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
     if (!LOGO_URL_PATTERN.test(event.request.url)) return;
+    // Żądanie CORS pochodzi z przycinania logo (vehicles/services/logoTrim.ts), które czyta
+    // piksele. Z tego cache'u poszłaby mu nieprzezroczysta (opaque) odpowiedź zapisana dla
+    // <img>, a z niej przeglądarka pikseli nie odda - takie żądanie obsługuje zwykły cache HTTP.
+    if (event.request.mode === 'cors') return;
 
     event.respondWith(cacheFirst(event.request));
 });
