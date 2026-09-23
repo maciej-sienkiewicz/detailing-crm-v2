@@ -17,8 +17,12 @@ type SheetRef = RefObject<HTMLElement | null>;
  * `'resize'` - dolna krawędź arkusza dojeżdża nad klawiaturę. Potrzebne tylko
  * tam, gdzie na dole arkusza siedzi pasek akcji („Zatwierdź"), który musi
  * zostać w zasięgu kciuka.
+ *
+ * `'lift'` - to samo dla niskiego arkusza przy dolnej krawędzi, którego wysokość
+ * wyznacza treść (pole + „Anuluj / Zapisz"): cały arkusz podjeżdża nad klawiaturę.
+ * Górnej krawędzi nie ruszamy - `top` rozciągnąłby taki arkusz na cały ekran.
  */
-type KeyboardBehaviour = 'pad' | 'resize';
+type KeyboardBehaviour = 'pad' | 'resize' | 'lift';
 
 interface VisualViewportSheetOptions {
     keyboard?: KeyboardBehaviour;
@@ -78,6 +82,11 @@ export const useVisualViewportSheet = (
                 const el = ref.current;
                 if (!el) continue;
                 if (!touched.includes(el)) touched.push(el);
+
+                if (keyboard === 'lift') {
+                    el.style.bottom = `${keyboardInset}px`;
+                    continue;
+                }
 
                 el.style.top = `${vv.offsetTop}px`;
 
