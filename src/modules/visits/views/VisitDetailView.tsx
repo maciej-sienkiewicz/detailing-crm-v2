@@ -1049,6 +1049,7 @@ export const VisitDetailView = () => {
                                 visitStatus={visit.status}
                                 visitId={visitId!}
                                 highlightPending={highlightPendingServices}
+                                printVisit={visit}
                             />
                             <MobileOnlyWrap>
                                 <VisitComments
