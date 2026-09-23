@@ -8,6 +8,7 @@ import type {
     CreateAccountRequest,
     CreateAccountResponse,
     ChangePasswordRequest,
+    ResendInvitationResponse,
 } from '../teamTypes';
 
 const BASE = '/v1/employees';
@@ -73,5 +74,13 @@ export const teamApi = {
         payload: ChangePasswordRequest,
     ): Promise<void> => {
         await apiClient.post(`${BASE}/${employeeId}/account/change-password`, payload);
+    },
+
+    /** Only for an account the employee has not activated yet; the backend refuses the rest. */
+    resendInvitation: async (employeeId: string): Promise<ResendInvitationResponse> => {
+        const res = await apiClient.post<ResendInvitationResponse>(
+            `${BASE}/${employeeId}/account/resend-invitation`,
+        );
+        return res.data;
     },
 };

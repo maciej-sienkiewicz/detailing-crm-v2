@@ -4,17 +4,20 @@ import { useQueryClient } from '@tanstack/react-query';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useToast } from '@/common/components/Toast';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { formatDateTime } from '@/common/utils';
 import {
     useCreateAccount,
     useSetAccountBlocked,
     useDeleteAccount,
     useChangePassword,
     useDeleteEmployee,
+    useResendInvitation,
 } from '@/modules/settings/hooks/useTeam';
 import { useRoles } from '@/modules/settings/hooks/useRoles';
 import { rolesApi } from '@/modules/settings/api/rolesApi';
 import { ChangePasswordModal } from '@/modules/settings/components/team/ChangePasswordModal';
 import { EMPLOYEES_KEY } from '../hooks/useEmployees';
+import { ACCOUNT_STATUS_LABEL, accountStatusOf, invitationSummary, type AccountStatus } from '../utils/accountStatus';
 import type { EmployeeDetail } from '../types';
 
 const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
@@ -43,7 +46,7 @@ const StatusRow = styled.div`
     gap: 10px;
 `;
 
-const StatusPill = styled.span<{ $tone: 'active' | 'blocked' | 'none' }>`
+const StatusPill = styled.span<{ $tone: AccountStatus }>`
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -53,6 +56,7 @@ const StatusPill = styled.span<{ $tone: 'active' | 'blocked' | 'none' }>`
     font-weight: 700;
     ${({ $tone }) => {
         if ($tone === 'active') return `background: ${st.accentGreenDim}; color: #059669;`;
+        if ($tone === 'pending') return `background: ${st.accentAmberDim}; color: #D97706;`;
         if ($tone === 'blocked') return `background: ${st.accentRedDim}; color: #DC2626;`;
         return `background: ${st.bgCardAlt}; color: ${st.textMuted};`;
     }}
@@ -207,6 +211,12 @@ const TrashIcon = () => (
     </svg>
 );
 
+const MailIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="4" width="20" height="16" rx="2" /><path d="M22 6l-10 7L2 6" />
+    </svg>
+);
+
 const PinStatusBadge = styled.div<{ $configured: boolean }>`
     display: inline-flex;
     align-items: center;
@@ -242,6 +252,7 @@ export const AccountManagementCard = ({ employee, onChanged, onEmployeeDeleted }
     const deleteAccount = useDeleteAccount();
     const changePassword = useChangePassword();
     const deleteEmployee = useDeleteEmployee();
+    const resendInvitation = useResendInvitation();
 
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [accountEmail, setAccountEmail] = useState(employee.email ?? '');
@@ -251,7 +262,7 @@ export const AccountManagementCard = ({ employee, onChanged, onEmployeeDeleted }
     const [confirm, setConfirm] = useState<null | 'block' | 'unblock' | 'deleteAccount' | 'deleteEmployee'>(null);
 
     const account = employee.account;
-    const tone = account ? (account.isActive ? 'active' : 'blocked') : 'none';
+    const status = accountStatusOf(account);
 
     // Hooki z ustawień unieważniają klucze ['settings','team'], a profil żyje na
     // kluczach modułu employees, więc dokładamy własną inwalidację + refetch.
@@ -321,6 +332,16 @@ export const AccountManagementCard = ({ employee, onChanged, onEmployeeDeleted }
         });
     };
 
+    // Błąd (np. drugie kliknięcie w ciągu minuty, odrzucony adres) pokazuje globalny handler.
+    const handleResendInvitation = () => {
+        resendInvitation.mutate(employee.id, {
+            onSuccess: ({ expiresAt }) => {
+                showSuccess('Zaproszenie wysłane ponownie', `Nowy link działa do ${formatDateTime(expiresAt)}.`);
+                refreshProfile();
+            },
+        });
+    };
+
     const handleChangePassword = (payload: { newPassword: string; confirmPassword: string }) => {
         changePassword.mutate(
             { employeeId: employee.id, payload },
@@ -339,10 +360,19 @@ export const AccountManagementCard = ({ employee, onChanged, onEmployeeDeleted }
                 <SectionTitle>Konto i dostęp</SectionTitle>
 
                 <StatusRow>
-                    <StatusPill $tone={tone}>
-                        {account ? (account.isActive ? 'Konto aktywne' : 'Konto zablokowane') : 'Brak konta'}
-                    </StatusPill>
+                    <StatusPill $tone={status}>{ACCOUNT_STATUS_LABEL[status]}</StatusPill>
                 </StatusRow>
+
+                {account && status === 'pending' && (
+                    <>
+                        <HintText>
+                            Pracownik jeszcze nie aktywował konta. {invitationSummary(account)}
+                        </HintText>
+                        <OutlineBtn onClick={handleResendInvitation} disabled={resendInvitation.isPending}>
+                            <MailIcon /> {resendInvitation.isPending ? 'Wysyłanie...' : 'Wyślij maila ponownie'}
+                        </OutlineBtn>
+                    </>
+                )}
 
                 {!account && !showCreateForm && (
                     <>

@@ -36,8 +36,17 @@ export interface EmployeeListResponse {
 export interface EmployeeAccountInfo {
     userId: string;
     roleId: string | null;
+    /** Konto nie jest zablokowane. NIE znaczy, że pracownik je aktywował - patrz `invitationPending`. */
     isActive: boolean;
     hasPinConfigured?: boolean;
+    /** Login konta - na ten adres idzie zaproszenie. */
+    email?: string | null;
+    /** Pracownik jeszcze nie aktywował konta z zaproszenia (nie ustawił hasła, nie wszedł do aplikacji). */
+    invitationPending?: boolean;
+    /** Kiedy wysłano ostatnie zaproszenie; null, gdy konto nie czeka albo wysyłka się nie udała. */
+    invitationSentAt?: string | null;
+    /** Do kiedy działa link z ostatniego zaproszenia. */
+    invitationExpiresAt?: string | null;
 }
 
 export interface EmployeeDetail {
