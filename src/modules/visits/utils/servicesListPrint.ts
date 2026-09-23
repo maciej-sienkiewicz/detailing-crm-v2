@@ -33,7 +33,15 @@ export interface ServicesListPrintData {
         logoUrl: string | null;
     } | null;
     services: ServiceLineItem[];
+    /** Notatka techniczna wizyty; pusta = sekcja się nie drukuje. */
+    technicalNotes: string | null;
 }
+
+/** Pola wizyty potrzebne do wydruku wykazu. */
+export type VisitForServicesListPrint = Pick<
+    Visit,
+    'visitNumber' | 'scheduledDate' | 'estimatedCompletionDate' | 'pickupDate' | 'vehicle' | 'technicalNotes'
+>;
 
 const escapeHtml = (value: string): string =>
     value
@@ -46,7 +54,7 @@ const escapeHtml = (value: string): string =>
 /** Komentarz wieloliniowy: zachowujemy łamanie wierszy wpisane przez pracownika. */
 const multiline = (value: string): string => escapeHtml(value).replace(/\r?\n/g, '<br>');
 
-const formatDateTime = (iso: string | null): string => {
+const formatInstant = (iso: string | null, withTime: boolean): string => {
     if (!iso) return '—';
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return '—';
@@ -54,10 +62,12 @@ const formatDateTime = (iso: string | null): string => {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
+        ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}),
     }).format(d);
 };
+
+/** Daty przyjęcia i wydania drukujemy bez godzin. */
+const formatDate = (iso: string | null): string => formatInstant(iso, false);
 
 const pendingLabel = (service: ServiceLineItem): string | null => {
     const isPending = service.hasPendingChange ?? service.status === 'PENDING';
@@ -97,6 +107,7 @@ const renderService = (service: ServiceLineItem): string => {
 
 export const buildServicesListHtml = (data: ServicesListPrintData, fontUrls?: { latin: string; latinExt: string }): string => {
     const services = printableServices(data.services);
+    const technicalNotes = data.technicalNotes?.trim() || null;
     const company = data.company;
     const providerLines = company
         ? [company.name, company.street, [company.postalCode, company.city].filter(Boolean).join(' ')]
@@ -231,9 +242,10 @@ export const buildServicesListHtml = (data: ServicesListPrintData, fontUrls?: { 
   }
 
   /* ============ Nr wizyty / daty ============ */
+  /* Same daty (bez godzin) mieszczą się w węższych polach niż w protokołach. */
   .meta-row {
     display: flex;
-    justify-content: space-between;
+    gap: 14pt;
     margin-top: 23.57pt;
   }
   .meta-col .box {
@@ -245,8 +257,8 @@ export const buildServicesListHtml = (data: ServicesListPrintData, fontUrls?: { 
     white-space: nowrap;
   }
   .meta-col.c1 { width: 128.16pt; }
-  .meta-col.c2 { width: 183.12pt; }
-  .meta-col.c3 { width: 189.60pt; }
+  .meta-col.c2 { width: 110pt; }
+  .meta-col.c3 { width: 160pt; }
 
   /* ============ POJAZD ============ */
   .vehicle { margin-top: 15.85pt; }
@@ -357,6 +369,19 @@ export const buildServicesListHtml = (data: ServicesListPrintData, fontUrls?: { 
     line-height: 1.2832;
   }
   .note-label { font-weight: 700; }
+  /* ============ Notatka techniczna ============ */
+  .technical {
+    margin-top: 15.85pt;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .technical .tab { width: 124pt; }
+  .technical .box {
+    margin-top: 2.41pt;
+    padding: 4pt;
+    line-height: 1.2832;
+  }
+
   .empty {
     margin-top: 6pt;
     padding: 6pt;
@@ -394,12 +419,12 @@ export const buildServicesListHtml = (data: ServicesListPrintData, fontUrls?: { 
       <div class="box">${escapeHtml(data.visitNumber || '—')}</div>
     </div>
     <div class="meta-col c2">
-      <div class="tab">DATA PRZYJĘCIA POJAZDU</div>
-      <div class="box">${escapeHtml(formatDateTime(data.receivedAt))}</div>
+      <div class="tab">DATA PRZYJĘCIA</div>
+      <div class="box">${escapeHtml(formatDate(data.receivedAt))}</div>
     </div>
     <div class="meta-col c3">
-      <div class="tab">${data.releaseIsPlanned ? 'PLANOWANA DATA WYDANIA POJAZDU' : 'DATA WYDANIA POJAZDU'}</div>
-      <div class="box">${escapeHtml(formatDateTime(data.releasedAt))}</div>
+      <div class="tab">${data.releaseIsPlanned ? 'PLANOWANA DATA WYDANIA' : 'DATA WYDANIA'}</div>
+      <div class="box">${escapeHtml(formatDate(data.releasedAt))}</div>
     </div>
   </div>
 
@@ -418,8 +443,13 @@ export const buildServicesListHtml = (data: ServicesListPrintData, fontUrls?: { 
         ? `<ol class="services">${services.map(renderService).join('')}</ol>`
         : '<div class="empty">Brak usług w wizycie.</div>'}
   </div>
-
-  <div class="footer">Wydrukowano ${escapeHtml(formatDateTime(new Date().toISOString()))}</div>
+${technicalNotes ? `
+  <div class="technical">
+    <div class="tab">NOTATKA TECHNICZNA</div>
+    <div class="box">${multiline(technicalNotes)}</div>
+  </div>
+` : ''}
+  <div class="footer">Wydrukowano ${escapeHtml(formatInstant(new Date().toISOString(), true))}</div>
 
 </div>
 </body>
@@ -445,7 +475,7 @@ export const companyForPrint = (company: {
         : null;
 
 export const servicesListPrintData = (
-    visit: Pick<Visit, 'visitNumber' | 'scheduledDate' | 'estimatedCompletionDate' | 'pickupDate' | 'vehicle'>,
+    visit: VisitForServicesListPrint,
     services: ServiceLineItem[],
     company: ServicesListPrintData['company'],
 ): ServicesListPrintData => ({
@@ -458,6 +488,7 @@ export const servicesListPrintData = (
     licensePlate: visit.vehicle?.licensePlate ?? '',
     company,
     services,
+    technicalNotes: visit.technicalNotes ?? null,
 });
 
 /**
