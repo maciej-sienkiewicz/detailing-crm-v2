@@ -22,6 +22,7 @@ const visit = {
     scheduledDate: '2026-09-20T08:00:00Z',
     estimatedCompletionDate: '2026-09-22T15:00:00Z',
     pickupDate: null,
+    technicalNotes: null,
     vehicle: {
         id: 'v1', licensePlate: 'KR 12345', brand: 'Porsche', model: '911',
         yearOfProduction: 2020, color: 'Czarny',
@@ -38,8 +39,12 @@ describe('buildServicesListHtml', () => {
         expect(html).toContain('Porsche');
         expect(html).toContain('911');
         expect(html).toContain('VIS-2026-001');
-        expect(html).toContain('DATA PRZYJĘCIA POJAZDU');
-        expect(html).toContain('PLANOWANA DATA WYDANIA POJAZDU');
+        expect(html).toContain('DATA PRZYJĘCIA');
+        expect(html).toContain('PLANOWANA DATA WYDANIA');
+        expect(html).toContain('20.09.2026');
+        expect(html).toContain('22.09.2026');
+        expect(html).not.toContain('20.09.2026,');
+        expect(html).not.toContain('NOTATKA TECHNICZNA');
         expect(html).toContain('<img src="https://cdn.example/logo.png"');
         expect(html).toContain('Mycie');
         expect(html).not.toMatch(/1\s?900|zł|1544|brutto|netto/i);
@@ -49,7 +54,7 @@ describe('buildServicesListHtml', () => {
         const html = buildServicesListHtml(servicesListPrintData(
             { ...visit, pickupDate: '2026-09-23T10:00:00Z' }, [line({})], company));
 
-        expect(html).toContain('>DATA WYDANIA POJAZDU<');
+        expect(html).toContain('>DATA WYDANIA<');
         expect(html).not.toContain('PLANOWANA');
     });
 
@@ -88,5 +93,13 @@ describe('buildServicesListHtml', () => {
         expect(html).toContain('Zostaje');
         expect(html).not.toContain('Odrzucona');
         expect(html).not.toContain('<img');
+    });
+
+    it('prints the technical note with line breaks', () => {
+        const html = buildServicesListHtml(servicesListPrintData(
+            { ...visit, technicalNotes: 'Rysa na drzwiach\n<pilnować>' }, [line({})], company));
+
+        expect(html).toContain('NOTATKA TECHNICZNA');
+        expect(html).toContain('Rysa na drzwiach<br>&lt;pilnować&gt;');
     });
 });

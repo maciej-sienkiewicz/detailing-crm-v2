@@ -11,8 +11,9 @@ import {
 } from '../utils/servicePriceEdits';
 import type { EditedPrice } from '../utils/servicePriceEdits';
 import { formatCurrency, shouldAutoFocusInput } from '@/common/utils';
-import type { ServiceLineItem, Visit, VisitStatus } from '../types';
+import type { ServiceLineItem, VisitStatus } from '../types';
 import { companyForPrint, printServicesList, servicesListPrintData } from '../utils/servicesListPrint';
+import type { VisitForServicesListPrint } from '../utils/servicesListPrint';
 import { useCompanySettings } from '@/modules/settings/hooks/useCompany';
 import type { ServicesChangesPayload } from '../types';
 import { useApproveServiceChange, useRejectServiceChange, useSaveServicesChanges } from '../hooks';
@@ -1712,7 +1713,7 @@ interface ServicesTableProps {
     visitId?: string;
     highlightPending?: boolean;
     /** Dane nagłówka wydruku „Drukuj wykaz"; bez nich pozycja menu się nie pokazuje. */
-    printVisit?: Pick<Visit, 'visitNumber' | 'scheduledDate' | 'estimatedCompletionDate' | 'pickupDate' | 'vehicle'>;
+    printVisit?: VisitForServicesListPrint;
 }
 
 const HEADER_MENU = '__header__';
