@@ -426,6 +426,24 @@ export const buildServicesListHtml = (data: ServicesListPrintData, fontUrls?: { 
 </html>`;
 };
 
+/** Dane studia do nagłówka wydruku (ustawienia firmy; logo tylko gdy wgrane). */
+export const companyForPrint = (company: {
+    name: string | null;
+    street: string | null;
+    postalCode: string | null;
+    city: string | null;
+    logoUrl: string | null;
+} | null | undefined): ServicesListPrintData['company'] =>
+    company
+        ? {
+            name: company.name,
+            street: company.street,
+            postalCode: company.postalCode,
+            city: company.city,
+            logoUrl: company.logoUrl?.trim() || null,
+        }
+        : null;
+
 export const servicesListPrintData = (
     visit: Pick<Visit, 'visitNumber' | 'scheduledDate' | 'estimatedCompletionDate' | 'pickupDate' | 'vehicle'>,
     services: ServiceLineItem[],

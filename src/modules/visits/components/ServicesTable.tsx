@@ -12,7 +12,7 @@ import {
 import type { EditedPrice } from '../utils/servicePriceEdits';
 import { formatCurrency, shouldAutoFocusInput } from '@/common/utils';
 import type { ServiceLineItem, Visit, VisitStatus } from '../types';
-import { printServicesList, servicesListPrintData } from '../utils/servicesListPrint';
+import { companyForPrint, printServicesList, servicesListPrintData } from '../utils/servicesListPrint';
 import { useCompanySettings } from '@/modules/settings/hooks/useCompany';
 import type { ServicesChangesPayload } from '../types';
 import { useApproveServiceChange, useRejectServiceChange, useSaveServicesChanges } from '../hooks';
@@ -2188,13 +2188,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     // Wykaz drukuje stan zapisany na serwerze - bez cen i bez niezapisanych zmian z edycji.
     const handlePrint = () => {
         if (!printVisit) return;
-        printServicesList(servicesListPrintData(printVisit, services, company ? {
-            name: company.name,
-            street: company.street,
-            postalCode: company.postalCode,
-            city: company.city,
-            logoUrl: company.logoUrl?.trim() || null,
-        } : null));
+        printServicesList(servicesListPrintData(printVisit, services, companyForPrint(company)));
     };
     const bulkEligibleCount = services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING'))).length;
 

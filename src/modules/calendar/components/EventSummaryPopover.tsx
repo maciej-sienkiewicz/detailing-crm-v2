@@ -11,6 +11,11 @@ import { VisitCardLinkModal } from '@/modules/visit-card';
 import { usePermissions } from '@/core/permissions';
 import { useCapability } from '@/modules/subscription';
 import { HoverInfo } from '@/common/components/InfoTooltip';
+import { useToast } from '@/common/components/Toast';
+import { visitApi } from '@/modules/visits/api/visitApi';
+import { visitDetailQueryKey } from '@/modules/visits/hooks';
+import { companyForPrint, printServicesList, servicesListPrintData } from '@/modules/visits/utils/servicesListPrint';
+import { useCompanySettings } from '@/modules/settings/hooks/useCompany';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -234,6 +239,14 @@ const HeaderDeleteButton = styled.button`
     &:hover { background: rgba(239, 68, 68, 0.55); }
 
     svg { width: 14px; height: 14px; }
+`;
+
+/** Drukarka stoi na lewo od kosza; bez kosza (brak uprawnienia) zajmuje jego miejsce. */
+const HeaderPrintButton = styled(HeaderDeleteButton)<{ $shifted: boolean }>`
+    right: ${p => (p.$shifted ? '82px' : '46px')};
+
+    &:hover { background: rgba(255, 255, 255, 0.32); }
+    &:disabled { opacity: 0.6; cursor: progress; }
 `;
 
 const EventTitle = styled.h3`
@@ -944,6 +957,10 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
     const isAppointment = event.type === 'APPOINTMENT';
     const [closing, setClosing] = useState(false);
     const [isCardModalOpen, setIsCardModalOpen] = useState(false);
+    const [isPrinting, setIsPrinting] = useState(false);
+    const queryClient = useQueryClient();
+    const { company } = useCompanySettings();
+    const { showError } = useToast();
     const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
     const [coords, setCoords] = useState(position);
@@ -1083,6 +1100,25 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
         return `${fmtDate(start)}, ${fmtTime(start)}-${fmtDate(end)}, ${fmtTime(end)}`;
     };
 
+    const canDeleteEvent = can('VISITS_DELETE') && !!(isAppointment ? onDeleteAppointmentClick : onDeleteVisitClick);
+
+    // Kalendarz zna tylko nazwy usług - pakiety i komentarze są w szczegółach wizyty.
+    const handlePrintServicesList = async () => {
+        setIsPrinting(true);
+        try {
+            const detail = await queryClient.fetchQuery({
+                queryKey: visitDetailQueryKey(event.id),
+                queryFn: () => visitApi.getVisitDetail(event.id),
+                staleTime: 30_000,
+            });
+            printServicesList(servicesListPrintData(detail.visit, detail.visit.services, companyForPrint(company)));
+        } catch {
+            showError('Nie udało się przygotować wydruku', 'Spróbuj ponownie za chwilę.');
+        } finally {
+            setIsPrinting(false);
+        }
+    };
+
     const isAllDay = isAppointment ? (event as AppointmentEventData).isAllDay : false;
     const eventTimeLabel = formatEventTime(event.startTime, event.endTime, isAllDay);
 
@@ -1096,7 +1132,23 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                         </svg>
                     </HeaderCloseButton>
-                    {can('VISITS_DELETE') && (isAppointment ? onDeleteAppointmentClick : onDeleteVisitClick) && (
+                    {!isAppointment && (
+                        <HeaderPrintButton
+                            type="button"
+                            onClick={handlePrintServicesList}
+                            disabled={isPrinting}
+                            $shifted={canDeleteEvent}
+                            title="Drukuj wykaz usług"
+                            aria-label="Drukuj wykaz usług"
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="6 9 6 2 18 2 18 9"/>
+                                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                                <rect x="6" y="14" width="12" height="8"/>
+                            </svg>
+                        </HeaderPrintButton>
+                    )}
+                    {canDeleteEvent && (
                         <HeaderDeleteButton
                             type="button"
                             onClick={isAppointment ? onDeleteAppointmentClick : onDeleteVisitClick}
