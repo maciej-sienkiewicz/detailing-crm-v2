@@ -419,7 +419,8 @@ export function SettingsView() {
         VALID_SECTIONS.has(tabParam) && canSee(tabParam) ? tabParam : firstVisibleSection;
 
     const viewParam = alias?.view ?? searchParams.get(VIEW_PARAM);
-    const teamSubView: TeamSubView = viewParam === 'roles' ? 'roles' : 'employees';
+    const teamSubView: TeamSubView =
+        viewParam === 'roles' || viewParam === 'settlements' ? viewParam : 'employees';
     const labelsSubView: LabelsSubView = viewParam === 'colors' ? 'colors' : 'numbering';
     const servicesSubView: ServicesSubView = viewParam === 'care' ? 'care' : 'pricing';
     const mobileDevicesSubView: MobileDevicesSubView =

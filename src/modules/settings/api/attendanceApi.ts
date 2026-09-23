@@ -1,26 +1,43 @@
 // src/modules/settings/api/attendanceApi.ts
 //
-// Lista obecności: wygeneruj → (opcjonalnie) podpisz → pobierz.
+// Lista obecności jako rozliczenie: wygeneruj → podejrzyj → zatwierdź (opcjonalnie
+// z podpisem) albo usuń.
 //
-// Generowanie zwraca OPIS dokumentu, a nie plik: arkusz jest zapisywany w systemie
-// (podpisany dokument kadrowy musi dać się odszukać później), a użytkownik decyduje
-// jeszcze, czy podpisać go przed pobraniem.
+// Generowanie zwraca OPIS dokumentu, a nie plik: arkusz zostaje w systemie, w zakładce
+// Rozliczenia, gdzie każdy administrator widzi, czy ktoś go już zatwierdził.
 
 import { apiClient } from '@/core/apiClient';
 
 const BASE = '/v1/worktime/team';
 
+/** GENERATED - czeka na zatwierdzenie, APPROVED - sprawdzona, gotowa dla księgowości. */
+export type AttendanceSheetStatus = 'GENERATED' | 'APPROVED';
+
 export interface AttendanceSheet {
     id: string;
+    /** Miesiąc rozliczenia, YYYY-MM. */
     period: string;
     employeeCount: number;
     signed: boolean;
     signerName: string | null;
     signedAt: number | null;
     createdAt: number;
+    status: AttendanceSheetStatus;
+    /** Kto wygenerował listę; null, gdy autora nie da się już ustalić. */
+    createdByName: string | null;
+    approvedAt: number | null;
+    approvedByName: string | null;
 }
 
 export const attendanceApi = {
+    /** Rozliczenia studia, od najnowszych. */
+    listAttendanceSheets: async (limit = 100): Promise<AttendanceSheet[]> => {
+        const response = await apiClient.get<AttendanceSheet[]>(`${BASE}/attendance-sheets`, {
+            params: { limit },
+        });
+        return response.data;
+    },
+
     /**
      * `skipErrorToast`: backend odpowiada błędem walidacji, gdy żaden z zaznaczonych
      * pracowników nie ma modułu Czasu pracy - komunikat pokazuje modal, przy którym
@@ -35,14 +52,21 @@ export const attendanceApi = {
         return response.data;
     },
 
-    /** Podpis z kanwy jako `data:image/png;base64,...`; kto podpisuje, backend bierze z sesji. */
-    signAttendanceSheet: async (sheetId: string, signatureImage: string): Promise<AttendanceSheet> => {
+    /**
+     * Zatwierdzenie, opcjonalnie z podpisem z kanwy (`data:image/png;base64,...`).
+     * Kto zatwierdza, backend bierze z sesji. Konflikt (ktoś zatwierdził chwilę wcześniej)
+     * pokazuje globalny dymek z nazwiskiem tej osoby.
+     */
+    approveAttendanceSheet: async (sheetId: string, signatureImage: string | null): Promise<AttendanceSheet> => {
         const response = await apiClient.post<AttendanceSheet>(
-            `${BASE}/attendance-sheet/${sheetId}/sign`,
+            `${BASE}/attendance-sheet/${sheetId}/approve`,
             { signatureImage },
-            { skipErrorToast: true },
         );
         return response.data;
+    },
+
+    deleteAttendanceSheet: async (sheetId: string): Promise<void> => {
+        await apiClient.delete(`${BASE}/attendance-sheet/${sheetId}`);
     },
 
     /** Plik arkusza - podpisany, jeśli podpis już złożono. */
