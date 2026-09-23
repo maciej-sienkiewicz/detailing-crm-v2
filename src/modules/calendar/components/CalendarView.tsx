@@ -41,6 +41,16 @@ import type { StudioCalendarEvent, StudioCalendarEventPayload } from '../types';
 import { CalendarSearchModal } from './CalendarSearchModal';
 import { attachMorePopoverPlacement } from '../utils/morePopoverPlacement';
 import { localDateKey, toFullCalendarEvent } from '../utils/calendarDates';
+import {
+    D2D_DELIVERY_COLOR,
+    D2D_DIRECTION_COLOR,
+    D2D_DIRECTION_LABEL,
+    D2D_PICKUP_COLOR,
+    createD2DBadge,
+    placeD2DBadge,
+    sortByDirection,
+    updateD2DBadge,
+} from '../utils/doorToDoorBadge';
 import { WeekKanbanView } from './WeekKanbanView';
 import { DayTimelineView } from './DayTimeline';
 import { AgendaListView } from './AgendaListView';
@@ -314,7 +324,9 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
 
     /* ===================== DOOR TO DOOR INDICATOR (samochodzik) =====================
        Analogicznie do ludzika urlopowego, wstrzykiwany imperatywnie do
-       .fc-daygrid-day-frame; prawy górny róg, pozycja right ustawiana inline w JS. */
+       .fc-daygrid-day-frame; prawy górny róg, pozycja right ustawiana inline w JS.
+       Dwa samochodziki, każdy z własną liczbą: niebieski - przyjęcie pojazdu od
+       klienta, czerwony - oddanie pojazdu klientowi. */
     .fc-d2d-badge {
         position: absolute;
         top: 3px;
@@ -322,10 +334,9 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
         left: auto;
         display: inline-flex;
         align-items: center;
-        gap: 2px;
+        gap: 4px;
         padding: 2px 4px;
         border-radius: 6px;
-        color: #0ea5e9;
         z-index: 5;
         cursor: default;
         line-height: 1;
@@ -334,8 +345,17 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
     }
 
     .fc-d2d-badge:hover {
-        background: rgba(14, 165, 233, 0.1);
+        background: rgba(15, 23, 42, 0.06);
     }
+
+    .fc-d2d-leg {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+    }
+
+    .fc-d2d-leg--pickup { color: ${D2D_PICKUP_COLOR}; }
+    .fc-d2d-leg--delivery { color: ${D2D_DELIVERY_COLOR}; }
 
     .fc-d2d-badge svg {
         width: 14px;
@@ -351,6 +371,35 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
 
     .fc-day-other .fc-d2d-badge {
         opacity: 0.55;
+    }
+
+    /* Samochodziki jeden pod drugim, mniejsze, gdy obok numeru dnia nie ma na nie
+       miejsca (placeD2DBadge: wąska komórka, do tego ludzik urlopowy). */
+    .fc-d2d-badge.fc-d2d-badge--stacked {
+        top: 2px;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 1px;
+        padding: 1px 2px;
+    }
+    .fc-d2d-badge--stacked .fc-d2d-leg { gap: 1px; }
+    .fc-d2d-badge--stacked svg { width: 11px; height: 11px; }
+    .fc-d2d-badge--stacked .fc-d2d-count { font-size: 9px; }
+
+    /* Komórka telefonu ma ~55 px, a numer dnia stoi na środku: dwa samochodziki
+       obok siebie wychodziły poza komórkę. Na wąskim ekranie zawsze jeden pod
+       drugim - słupek mieści się w prawym marginesie obok numeru. */
+    @media (max-width: 639px) {
+        .fc-d2d-badge {
+            top: 2px;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 1px;
+            padding: 1px 2px;
+        }
+        .fc-d2d-leg { gap: 1px; }
+        .fc-d2d-badge svg { width: 10px; height: 10px; }
+        .fc-d2d-badge .fc-d2d-count { font-size: 9px; }
     }
 
     /* ===================== EVENTS ===================== */
@@ -1470,16 +1519,23 @@ const LeaveTooltipRow = styled.div`
     }
 `;
 
-const D2DTooltipRow = styled(LeaveTooltipRow)`
+/** Kropka w kolorze samochodzika: niebieska przy przyjęciu pojazdu, czerwona przy oddaniu. */
+const D2DTooltipRow = styled(LeaveTooltipRow)<{ $color: string }>`
     flex-direction: column;
     align-items: flex-start;
     gap: 1px;
 
     &::before {
-        background: #0ea5e9;
+        background: ${p => p.$color};
         align-self: flex-start;
         margin-top: 5px;
     }
+`;
+
+const D2DTooltipDirection = styled.span<{ $color: string }>`
+    color: ${p => p.$color};
+    font-weight: 700;
+    margin-right: 5px;
 `;
 
 const StudioEventTooltipRow = styled(LeaveTooltipRow)`
@@ -1977,8 +2033,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         if (!info || info.count <= 0) {
             existing?.remove();
             // Przesuń D2D badge z powrotem do prawego rogu jeśli nie ma już ludzika
-            const d2dBadge = frame.querySelector<HTMLElement>(':scope > .fc-d2d-badge');
-            if (d2dBadge) { d2dBadge.style.right = '3px'; d2dBadge.style.left = ''; }
+            placeD2DBadge(frame);
             return;
         }
 
@@ -2016,8 +2071,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         if (countEl) countEl.textContent = String(info.count);
 
         // Przelicz pozycję D2D badge jeśli już istnieje w tej komórce
-        const d2dBadge = frame.querySelector<HTMLElement>(':scope > .fc-d2d-badge');
-        if (d2dBadge) { d2dBadge.style.right = `${badge.offsetWidth + 6}px`; d2dBadge.style.left = ''; }
+        placeD2DBadge(frame);
     }, []);
 
     // Po zmianie danych urlopowych odśwież badge na wszystkich zamontowanych komórkach
@@ -2051,16 +2105,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
         let badge = existing;
         if (!badge) {
-            badge = document.createElement('span');
-            badge.className = 'fc-d2d-badge';
-            badge.innerHTML =
-                '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
-                '<path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 ' +
-                '1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 ' +
-                '1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 ' +
-                '13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 ' +
-                '1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>' +
-                '</svg><span class="fc-d2d-count"></span>';
+            badge = createD2DBadge();
             badge.addEventListener('mouseenter', () => {
                 const current = d2dDayMapRef.current.get(iso);
                 if (!current) return;
@@ -2081,14 +2126,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             });
             frame.appendChild(badge);
         }
-        badge.setAttribute('aria-label', `Wyjazdy Door to Door: ${info.count}`);
-        const countEl = badge.querySelector<HTMLElement>('.fc-d2d-count');
-        if (countEl) countEl.textContent = String(info.count);
-
-        // Jeśli jest badge urlopowy, przesuń samochodzik w lewo (oba po prawej stronie)
-        const leaveBadge = frame.querySelector<HTMLElement>(':scope > .fc-leave-badge');
-        badge.style.right = leaveBadge ? `${leaveBadge.offsetWidth + 6}px` : '3px';
-        badge.style.left = '';
+        updateD2DBadge(badge, info.entries);
+        // Na lewo od ludzika urlopowego, jeśli jest (oba po prawej stronie).
+        placeD2DBadge(frame);
     }, []);
 
     // Po zmianie danych D2D odśwież badge na wszystkich zamontowanych komórkach
@@ -3329,9 +3369,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             day: 'numeric', month: 'long',
                         })}
                     </LeaveTooltipTitle>
-                    {d2dTooltip.entries.map(e => (
-                        <D2DTooltipRow key={`${e.id}-${e.direction}`}>
-                            <div>{e.vehicle}{e.customerLastName ? ` (${e.customerLastName})` : ''}</div>
+                    {sortByDirection(d2dTooltip.entries).map(e => (
+                        <D2DTooltipRow key={`${e.id}-${e.direction}`} $color={D2D_DIRECTION_COLOR[e.direction]}>
+                            <div>
+                                <D2DTooltipDirection $color={D2D_DIRECTION_COLOR[e.direction]}>
+                                    {D2D_DIRECTION_LABEL[e.direction]}
+                                </D2DTooltipDirection>
+                                {e.vehicle}{e.customerLastName ? ` (${e.customerLastName})` : ''}
+                            </div>
                             {e.address && <D2DTooltipAddress>{e.address}</D2DTooltipAddress>}
                         </D2DTooltipRow>
                     ))}
