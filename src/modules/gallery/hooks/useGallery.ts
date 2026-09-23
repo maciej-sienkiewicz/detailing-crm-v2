@@ -45,6 +45,8 @@ export const useGallery = (filters: GalleryFilters) => {
         availableTags: data?.availableTags ?? EMPTY_TAGS,
         isLoading,
         isFetching,
+        /** `photos` to jeszcze poprzednia strona, pokazywana w trakcie wczytywania nowej. */
+        isPlaceholderData,
         error,
     };
 };

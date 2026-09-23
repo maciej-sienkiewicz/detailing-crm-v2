@@ -10,6 +10,13 @@ import { MobilePageHeader, MobilePageHeaderCountValue } from '@/common/component
 import { PAGE_MAX_WIDTH, pageColumn } from '@/common/components/PageContainer';
 import { GalleryFilterBar } from '../components/GalleryFilterBar';
 import { GalleryLightbox } from '../components/GalleryLightbox';
+import {
+    photoPosition,
+    shownPhoto,
+    stepLightbox,
+    type GalleryPageView,
+    type LightboxState,
+} from '../utils/lightboxNavigation';
 import { useGallery } from '../hooks/useGallery';
 import type { GalleryPhoto } from '../types';
 
@@ -517,7 +524,7 @@ export const GalleryView = () => {
     const [brand, setBrand] = useState('');
     const [model, setModel] = useState('');
     const [activeTags, setActiveTags] = useState<string[]>([]);
-    const [selectedPhoto, setSelectedPhoto] = useState<GalleryPhoto | null>(null);
+    const [lightbox, setLightbox] = useState<LightboxState>(null);
 
     // Stable filter identity so the query key (and the next-page prefetch
     // effect in useGallery) only change when a filter actually changes.
@@ -529,12 +536,30 @@ export const GalleryView = () => {
         pageSize: PAGE_SIZE,
     }), [activeTags, brand, model, page]);
 
-    const { photos, pagination, availableTags, isFetching, isLoading } = useGallery(filters);
+    const { photos, pagination, availableTags, isFetching, isLoading, isPlaceholderData } = useGallery(filters);
+
+    // Podgląd przechodzi strzałkami przez całą galerię, także przez granicę strony
+    // (patrz lightboxNavigation) - strona siatki idzie za nim.
+    const pageView: GalleryPageView = {
+        page,
+        totalPages: pagination?.totalPages ?? page,
+        photos,
+        isPlaceholderData,
+    };
+    const lightboxPhoto = shownPhoto(lightbox, pageView);
+    const stepPrev = stepLightbox(lightbox, -1, pageView);
+    const stepNext = stepLightbox(lightbox, 1, pageView);
+    const applyStep = (step: ReturnType<typeof stepLightbox>) => {
+        if (!step) return;
+        setLightbox(step.state);
+        if (step.page !== page) setPage(step.page);
+    };
+    const lightboxIndex = lightboxPhoto ? photos.findIndex(p => p.id === lightboxPhoto.id) : -1;
 
     const isDesktopHeader = useBreakpoint('md');
 
     const handleSelectPhoto = useCallback((photo: GalleryPhoto) => {
-        setSelectedPhoto(photo);
+        setLightbox({ kind: 'photo', photo });
     }, []);
 
     const handleBrandChange = useCallback((b: string) => {
@@ -691,10 +716,19 @@ export const GalleryView = () => {
             </Content>
 
             {/* Lightbox */}
-            {selectedPhoto && (
+            {lightboxPhoto && (
                 <GalleryLightbox
-                    photo={selectedPhoto}
-                    onClose={() => setSelectedPhoto(null)}
+                    photo={lightboxPhoto}
+                    onClose={() => setLightbox(null)}
+                    onPrev={stepPrev ? () => applyStep(stepPrev) : undefined}
+                    onNext={stepNext ? () => applyStep(stepNext) : undefined}
+                    position={pagination ? {
+                        index: photoPosition(lightboxPhoto, pageView, PAGE_SIZE),
+                        total: pagination.total,
+                    } : undefined}
+                    preload={[photos[lightboxIndex - 1], photos[lightboxIndex + 1]]
+                        .filter((p): p is GalleryPhoto => !!p && lightboxIndex >= 0)
+                        .map(p => p.fullSizeUrl)}
                 />
             )}
         </Page>

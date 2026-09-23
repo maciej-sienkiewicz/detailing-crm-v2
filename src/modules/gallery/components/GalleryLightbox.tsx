@@ -127,6 +127,56 @@ const SourceBadgeImg = styled.span<{ $source: 'VEHICLE' | 'VISIT' | 'BATCH_ORDER
     `}
 `;
 
+/** Poprzednie / następne zdjęcie - po bokach zdjęcia, jak w każdej przeglądarce zdjęć. */
+const NavBtn = styled.button<{ $side: 'left' | 'right' }>`
+    position: absolute;
+    top: 50%;
+    ${p => p.$side}: ${p => p.theme.spacing.md};
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(15, 23, 42, 0.55);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    transition: background 0.15s ease, opacity 0.15s ease;
+    z-index: 2;
+
+    &:hover:not(:disabled) { background: rgba(15, 23, 42, 0.8); }
+
+    &:disabled {
+        opacity: 0.25;
+        cursor: default;
+    }
+
+    svg { width: 22px; height: 22px; }
+
+    @media (max-width: 768px) {
+        width: 38px;
+        height: 38px;
+        ${p => p.$side}: ${p => p.theme.spacing.sm};
+    }
+`;
+
+const Counter = styled.span`
+    position: absolute;
+    top: ${p => p.theme.spacing.md};
+    right: ${p => p.theme.spacing.md};
+    padding: 4px 10px;
+    border-radius: ${p => p.theme.radii.full};
+    background: rgba(15, 23, 42, 0.55);
+    color: white;
+    font-size: ${p => p.theme.fontSizes.xs};
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    backdrop-filter: blur(6px);
+`;
+
 // ─── right: info panel ────────────────────────────────────────────────────────
 
 const InfoPanel = styled.div`
@@ -335,9 +385,16 @@ function formatDate(iso: string): string {
 interface GalleryLightboxProps {
     photo: GalleryPhoto;
     onClose: () => void;
+    /** Poprzednie / następne zdjęcie (strzałki i klawisze ← →); brak = początek / koniec galerii. */
+    onPrev?: () => void;
+    onNext?: () => void;
+    /** Pozycja w całej galerii; `index` null, gdy strona z tym zdjęciem jeszcze się wczytuje. */
+    position?: { index: number | null; total: number };
+    /** Pełne rozdzielczości sąsiednich zdjęć - wczytane w tle, strzałka pokazuje je od razu. */
+    preload?: string[];
 }
 
-export const GalleryLightbox = ({ photo, onClose }: GalleryLightboxProps) => {
+export const GalleryLightbox = ({ photo, onClose, onPrev, onNext, position, preload }: GalleryLightboxProps) => {
     const navigate = useNavigate();
 
     // Show the thumbnail instantly, then swap the same <img> to the full-size
@@ -353,12 +410,23 @@ export const GalleryLightbox = ({ photo, onClose }: GalleryLightboxProps) => {
         return () => { cancelled = true; };
     }, [photo.thumbnailUrl, photo.fullSizeUrl]);
 
-    // Close on Escape
+    // Escape zamyka, strzałki ← → przechodzą do poprzedniego / następnego zdjęcia.
     useEffect(() => {
-        const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+        const handler = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+            else if (e.key === 'ArrowLeft' && onPrev) { e.preventDefault(); onPrev(); }
+            else if (e.key === 'ArrowRight' && onNext) { e.preventDefault(); onNext(); }
+        };
         document.addEventListener('keydown', handler);
         return () => document.removeEventListener('keydown', handler);
-    }, [onClose]);
+    }, [onClose, onPrev, onNext]);
+
+    // Sąsiednie zdjęcia w pełnej rozdzielczości wczytujemy w tle, zanim ktoś kliknie strzałkę.
+    const preloadKey = (preload ?? []).join('\n');
+    useEffect(() => {
+        if (!preloadKey) return;
+        preloadKey.split('\n').forEach(url => { new Image().src = url; });
+    }, [preloadKey]);
 
     // Lock body scroll — through the shared, ref-counted lock: a hardcoded
     // restore here used to unfreeze (or permanently freeze) windows stacked
@@ -383,6 +451,24 @@ export const GalleryLightbox = ({ photo, onClose }: GalleryLightboxProps) => {
                         alt={photo.description ?? photo.fileName}
                         decoding="async"
                     />
+
+                    {position && position.total > 1 && (
+                        <>
+                            {position.index !== null && (
+                                <Counter>{position.index} / {position.total}</Counter>
+                            )}
+                            <NavBtn $side="left" onClick={onPrev} disabled={!onPrev} aria-label="Poprzednie zdjęcie" title="Poprzednie (←)">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="15 18 9 12 15 6" />
+                                </svg>
+                            </NavBtn>
+                            <NavBtn $side="right" onClick={onNext} disabled={!onNext} aria-label="Następne zdjęcie" title="Następne (→)">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="9 18 15 12 9 6" />
+                                </svg>
+                            </NavBtn>
+                        </>
+                    )}
 
                     <FullResBtn
                         href={photo.fullSizeUrl}
