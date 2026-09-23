@@ -3,6 +3,7 @@ import styled, { css, keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/core/context/AuthContext';
 import { useToast } from '@/common/components/Toast';
+import { useVisualViewportSheet } from '@/common/hooks';
 import { BOTTOM_NAV_SPACE } from '@/widgets/BottomNav';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import {
@@ -115,20 +116,6 @@ const STATUS_BG: Record<PeriodStatus, string> = {
     RETURNED: '#fef2f2',
 };
 
-const STATUS_BG_DARK: Record<PeriodStatus, string> = {
-    DRAFT: '#1e293b',
-    SUBMITTED: '#1c1407',
-    APPROVED: '#052e16',
-    RETURNED: '#1f0a0a',
-};
-
-const STATUS_COLOR_DARK: Record<PeriodStatus, string> = {
-    DRAFT: '#94a3b8',
-    SUBMITTED: '#fbbf24',
-    APPROVED: '#4ade80',
-    RETURNED: '#f87171',
-};
-
 // ─── WorkTimeView ─────────────────────────────────────────────────────────────
 
 export function WorkTimeView() {
@@ -144,6 +131,11 @@ export function WorkTimeView() {
 
     // Saved scroll position before the sheet opened; restored on close
     const savedScrollY = useRef(0);
+
+    // Klawiatura na iOS nie skraca layout viewportu - arkusz przyklejony do dołu
+    // chowałby się pod nią razem z „Anuluj / Zapisz", więc podjeżdża nad nią.
+    const sheetRef = useRef<HTMLDivElement>(null);
+    useVisualViewportSheet(editDay !== null, sheetRef, { keyboard: 'lift' });
 
     // Guard: redirect if user doesn't have time tracking
     if (user && !user.trackWorkTime) {
@@ -269,18 +261,9 @@ export function WorkTimeView() {
                         (sum, e) => sum + Math.max(0, e.minutes - 480), 0
                     );
                     return (
-                        <SummaryCard
-                            $bg={STATUS_BG[detail.status as PeriodStatus]}
-                            $darkBg={STATUS_BG_DARK[detail.status as PeriodStatus]}
-                        >
-                            <StatusBadge
-                                $color={STATUS_COLOR[detail.status as PeriodStatus]}
-                                $darkColor={STATUS_COLOR_DARK[detail.status as PeriodStatus]}
-                            >
-                                <StatusDot
-                                    $color={STATUS_COLOR[detail.status as PeriodStatus]}
-                                    $darkColor={STATUS_COLOR_DARK[detail.status as PeriodStatus]}
-                                />
+                        <SummaryCard $bg={STATUS_BG[detail.status as PeriodStatus]}>
+                            <StatusBadge $color={STATUS_COLOR[detail.status as PeriodStatus]}>
+                                <StatusDot $color={STATUS_COLOR[detail.status as PeriodStatus]} />
                                 {STATUS_LABELS[detail.status as PeriodStatus]}
                             </StatusBadge>
                             <SummaryRow>
@@ -392,17 +375,24 @@ export function WorkTimeView() {
                 onCancel={() => setShowFillConfirm(false)}
             />
 
-            {/* Edit bottom sheet */}
+            {/* Edit bottom sheet: nakładka i arkusz to dwie osobne warstwy (patrz BottomSheet) */}
             {editDay && (
-                <SheetBackdrop onClick={closeEdit}>
-                    <BottomSheet onClick={e => e.stopPropagation()}>
+                <>
+                    <SheetBackdrop onClick={closeEdit} />
+                    <BottomSheet
+                        ref={sheetRef}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="worktime-sheet-title"
+                    >
                         <SheetHandle />
-                        <SheetTitle>
+                        <SheetTitle id="worktime-sheet-title">
                             {DAYS_FULL[editDay.dateObj.getDay()]}, {formatDate(editDay.dateObj)}
                         </SheetTitle>
                         <SheetBody>
-                            <SheetLabel>Czas pracy (np. 8, 8:30, 3:50)</SheetLabel>
+                            <SheetLabel htmlFor="worktime-sheet-input">Czas pracy (np. 8, 8:30, 3:50)</SheetLabel>
                             <TimeInput
+                                id="worktime-sheet-input"
                                 autoFocus
                                 type="text"
                                 inputMode="decimal"
@@ -429,7 +419,7 @@ export function WorkTimeView() {
                             </SheetSaveBtn>
                         </SheetFooter>
                     </BottomSheet>
-                </SheetBackdrop>
+                </>
             )}
         </Page>
     );
@@ -485,10 +475,10 @@ function CalendarIcon() {
 const Page = styled.div`
     min-height: 100%;
     background: #f8fafc;
-
-    @media (prefers-color-scheme: dark) {
-        background: #0f172a;
-    }
+    /* Czas pracy ma tylko jasny wygląd, jak reszta aplikacji - telefon w trybie
+       ciemnym malował go wcześniej na ciemno. „only light" nie pozwala też
+       przeglądarce przyciemnić widoku ani pól na własną rękę. */
+    color-scheme: only light;
 `;
 
 const Container = styled.div<{ $hasSubmit: boolean }>`
@@ -514,10 +504,6 @@ const PageTitle = styled.h1`
     font-weight: 700;
     color: #0f172a;
     margin: 0;
-
-    @media (prefers-color-scheme: dark) {
-        color: #f1f5f9;
-    }
 `;
 
 const MonthNav = styled.div`
@@ -536,21 +522,12 @@ const MonthNav = styled.div`
         border: 1px solid #e2e8f0;
         margin-bottom: 12px;
     }
-
-    @media (prefers-color-scheme: dark) {
-        background: #1e293b;
-        border-color: #334155;
-    }
 `;
 
 const MonthLabel = styled.span`
     font-size: 17px;
     font-weight: 700;
     color: #0f172a;
-
-    @media (prefers-color-scheme: dark) {
-        color: #f1f5f9;
-    }
 `;
 
 const NavBtn = styled.button`
@@ -574,14 +551,9 @@ const NavBtn = styled.button`
     &:not(:disabled):hover {
         background: #f1f5f9;
     }
-
-    @media (prefers-color-scheme: dark) {
-        color: #94a3b8;
-        &:not(:disabled):hover { background: #334155; }
-    }
 `;
 
-const SummaryCard = styled.div<{ $bg?: string; $darkBg?: string }>`
+const SummaryCard = styled.div<{ $bg?: string }>`
     margin: 12px 16px;
     padding: 16px;
     background: ${p => p.$bg ?? '#f1f5f9'};
@@ -593,35 +565,23 @@ const SummaryCard = styled.div<{ $bg?: string; $darkBg?: string }>`
     @media (min-width: 640px) {
         margin: 0 0 12px;
     }
-
-    @media (prefers-color-scheme: dark) {
-        background: ${p => p.$darkBg ?? '#1e293b'};
-    }
 `;
 
-const StatusBadge = styled.div<{ $color: string; $darkColor?: string }>`
+const StatusBadge = styled.div<{ $color: string }>`
     display: flex;
     align-items: center;
     gap: 6px;
     font-size: 13px;
     font-weight: 600;
     color: ${p => p.$color};
-
-    @media (prefers-color-scheme: dark) {
-        color: ${p => p.$darkColor ?? p.$color};
-    }
 `;
 
-const StatusDot = styled.span<{ $color: string; $darkColor?: string }>`
+const StatusDot = styled.span<{ $color: string }>`
     width: 8px;
     height: 8px;
     border-radius: 50%;
     background: ${p => p.$color};
     flex-shrink: 0;
-
-    @media (prefers-color-scheme: dark) {
-        background: ${p => p.$darkColor ?? p.$color};
-    }
 `;
 
 const SummaryRow = styled.div`
@@ -642,10 +602,6 @@ const SummaryValue = styled.span<{ $overtime?: boolean }>`
     font-weight: 800;
     color: ${p => p.$overtime ? '#d97706' : '#0f172a'};
     letter-spacing: -0.5px;
-
-    @media (prefers-color-scheme: dark) {
-        color: ${p => p.$overtime ? '#f59e0b' : '#f1f5f9'};
-    }
 `;
 
 const SummaryLabel = styled.span`
@@ -654,20 +610,12 @@ const SummaryLabel = styled.span`
     color: #64748b;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-
-    @media (prefers-color-scheme: dark) {
-        color: #94a3b8;
-    }
 `;
 
 const SummaryDivider = styled.div`
     width: 1px;
     height: 40px;
     background: #e2e8f0;
-
-    @media (prefers-color-scheme: dark) {
-        background: #334155;
-    }
 `;
 
 const ReturnNote = styled.div`
@@ -678,12 +626,6 @@ const ReturnNote = styled.div`
     border-radius: 8px;
     padding: 10px 12px;
     line-height: 1.5;
-
-    @media (prefers-color-scheme: dark) {
-        color: #fca5a5;
-        background: #2d0a0a;
-        border-color: #7f1d1d;
-    }
 `;
 
 const QuickActions = styled.div`
@@ -722,12 +664,6 @@ const QuickBtn = styled.button`
         opacity: 0.5;
         cursor: default;
     }
-
-    @media (prefers-color-scheme: dark) {
-        background: #1e293b;
-        border-color: #334155;
-        color: #94a3b8;
-    }
 `;
 
 const DayList = styled.div`
@@ -741,11 +677,6 @@ const DayList = styled.div`
 
     @media (min-width: 640px) {
         margin: 0;
-    }
-
-    @media (prefers-color-scheme: dark) {
-        background: #1e293b;
-        border-color: #334155;
     }
 `;
 
@@ -771,12 +702,6 @@ const DayRow = styled.div<{ $weekend: boolean; $today: boolean; $approved: boole
             background: #f1f5f9;
         }
     `}
-
-    @media (prefers-color-scheme: dark) {
-        border-color: #334155;
-        background: ${p => p.$today ? '#0c4a6e' : p.$weekend ? '#0f172a' : 'transparent'};
-        &:hover { background: #1e293b; }
-    }
 `;
 
 const DayLeft = styled.div`
@@ -791,20 +716,12 @@ const DayShort = styled.span<{ $weekend: boolean }>`
     width: 22px;
     color: ${p => p.$weekend ? '#94a3b8' : '#475569'};
     flex-shrink: 0;
-
-    @media (prefers-color-scheme: dark) {
-        color: ${p => p.$weekend ? '#475569' : '#94a3b8'};
-    }
 `;
 
 const DayDate = styled.span<{ $today: boolean }>`
     font-size: 14px;
     font-weight: ${p => p.$today ? '700' : '400'};
     color: ${p => p.$today ? '#0284c7' : '#334155'};
-
-    @media (prefers-color-scheme: dark) {
-        color: ${p => p.$today ? '#38bdf8' : '#94a3b8'};
-    }
 `;
 
 const DayRight = styled.div`
@@ -820,10 +737,6 @@ const HoursChip = styled.span<{ $filled: boolean }>`
     color: ${p => p.$filled ? '#0f172a' : '#cbd5e1'};
     min-width: 40px;
     text-align: right;
-
-    @media (prefers-color-scheme: dark) {
-        color: ${p => p.$filled ? '#f1f5f9' : '#475569'};
-    }
 `;
 
 const StickySubmitBar = styled.div`
@@ -840,11 +753,6 @@ const StickySubmitBar = styled.div`
         /* Ponad dolnym paskiem nawigacji; safe-area obsługuje już sam pasek. */
         bottom: ${BOTTOM_NAV_SPACE};
         padding-bottom: 12px;
-    }
-
-    @media (prefers-color-scheme: dark) {
-        background: #0f172a;
-        border-color: #334155;
     }
 `;
 
@@ -876,12 +784,25 @@ const SheetBackdrop = styled.div`
     inset: 0;
     background: rgba(0,0,0,0.45);
     z-index: 100;
-    display: flex;
-    align-items: flex-end;
+    /* Przeciągnięcie palcem po tle nie przewija strony pod spodem. */
+    touch-action: none;
 `;
 
+/**
+ * Arkusz to osobna warstwa `fixed` przy dolnej krawędzi, a nie dziecko nakładki
+ * dociśnięte do jej dołu. Na iPhonie pod „Anuluj / Zapisz" prześwitywał pas strony:
+ * Safari 26 nie rysuje warstw `fixed` pod swoim pływającym paskiem (ten obszar barwi
+ * kolorem warstwy leżącej przy krawędzi - była nią półprzezroczysta nakładka), a po
+ * schowaniu klawiatury potrafi zostawić je przesunięte w górę. Przy krawędzi leży
+ * teraz biały arkusz, jego biel ciągnie się w dół (::after), a nad klawiaturę
+ * podnosi go useVisualViewportSheet.
+ */
 const BottomSheet = styled.div`
-    width: 100%;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 101;
     max-width: 640px;
     margin: 0 auto;
     background: white;
@@ -889,8 +810,17 @@ const BottomSheet = styled.div`
     padding: 12px 20px max(env(safe-area-inset-bottom, 0px), 32px);
     animation: ${slideUp} 220ms cubic-bezier(0.32, 0.72, 0, 1);
 
-    @media (prefers-color-scheme: dark) {
-        background: #1e293b;
+    /* Biel arkusza ciągnie się w dół poza jego krawędź: cokolwiek odsłoni pas
+       pod przyciskami (przesunięta warstwa, odbicie przy przewijaniu), pokaże
+       dalszą część arkusza, a nie stronę. */
+    &::after {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        height: 100vh;
+        background: white;
     }
 `;
 
@@ -907,10 +837,6 @@ const SheetTitle = styled.h3`
     font-weight: 700;
     color: #0f172a;
     margin: 0 0 20px;
-
-    @media (prefers-color-scheme: dark) {
-        color: #f1f5f9;
-    }
 `;
 
 const SheetBody = styled.div`
@@ -946,12 +872,6 @@ const TimeInput = styled.input<{ $error: boolean }>`
         outline: none;
         border-color: ${p => p.$error ? '#ef4444' : '#0284c7'};
     }
-
-    @media (prefers-color-scheme: dark) {
-        background: #0f172a;
-        color: #f1f5f9;
-        border-color: ${p => p.$error ? '#ef4444' : '#334155'};
-    }
 `;
 
 const InputError = styled.span`
@@ -984,12 +904,6 @@ const SheetCancelBtn = styled.button`
     transition: all 150ms;
 
     &:hover { background: #f1f5f9; }
-
-    @media (prefers-color-scheme: dark) {
-        background: #1e293b;
-        border-color: #334155;
-        color: #94a3b8;
-    }
 `;
 
 const SheetSaveBtn = styled.button`
