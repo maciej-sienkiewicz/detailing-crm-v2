@@ -381,6 +381,11 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
         margin: 0 2px 1px;
     }
 
+    /* Kawałek wizyty trwającej dalej dochodzi do krawędzi komórki - widać, że pasek
+       ciągnie się dalej, a nie kończy w tym dniu. */
+    .fc-daygrid-event.fc-event:not(.fc-event-start) { margin-left: 0; }
+    .fc-daygrid-event.fc-event:not(.fc-event-end) { margin-right: 0; }
+
     .fc-daygrid-event.fc-event:hover {
         filter: none;
         transform: none;
@@ -732,6 +737,9 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
     ${p => p.$compact && compactCalendarCss}
 `;
 
+/** Promień chipa w siatce miesiąca; tryb wyboru terminu zwęża go przez --chip-radius. */
+const CHIP_RADIUS = 'var(--chip-radius, 5px)';
+
 /**
  * Zagęszczenie kafelków dnia na potrzeby wyboru terminu.
  *
@@ -750,7 +758,9 @@ const compactCalendarCss = css`
     /* Chip miesiąca ma style inline (eventContent), stąd !important. */
     .fc-daygrid-event .fc-event-main > div {
         padding: 1px 5px 1px 4px !important;
-        border-radius: 4px !important;
+        /* Promień przez zmienną, nie border-radius: kawałek wizyty trwającej dalej
+           zostaje płaski od strony ciągu dalszego (CHIP_RADIUS w eventContent). */
+        --chip-radius: 4px;
         line-height: 1.15 !important;
     }
 
@@ -3178,7 +3188,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                     : (isSolid ? '1px 6px' : '1px 6px 1px 5px'),
                                 background: isSolid ? color : `${color}1F`,
                                 borderLeft: isSolid ? 'none' : `3px solid ${color}`,
-                                borderRadius: '5px',
+                                // Kawałek wizyty, która trwa dalej, ma płaską krawędź od
+                                // strony ciągu dalszego - jak w każdym kalendarzu. Zaokrąglony
+                                // z obu stron udawał początek: wizyta od czwartku, której
+                                // czwartek i piątek FullCalendar schował pod „jeszcze N"
+                                // (pełne dni), „zaczynała się" w sobotę.
+                                borderRadius: [
+                                    arg.isStart ? CHIP_RADIUS : '0',
+                                    arg.isEnd ? CHIP_RADIUS : '0',
+                                    arg.isEnd ? CHIP_RADIUS : '0',
+                                    arg.isStart ? CHIP_RADIUS : '0',
+                                ].join(' '),
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap',
                                 textOverflow: 'ellipsis',
@@ -3192,6 +3212,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                     fontWeight: isSolid ? 600 : 500,
                                     textDecoration: isCancelled ? 'line-through' : 'none',
                                 }}>
+                                    {/* Ciąg dalszy wizyty z wcześniejszych dni - początek jest
+                                        w poprzednim tygodniu albo pod „jeszcze N". */}
+                                    {!arg.isStart && <span aria-hidden="true" style={{ marginRight: 3, opacity: 0.75 }}>‹</span>}
                                     <PiiText value={arg.event.title} kind="name" />
                                 </span>
                             </div>
