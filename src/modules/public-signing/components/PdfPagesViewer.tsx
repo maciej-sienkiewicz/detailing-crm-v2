@@ -51,9 +51,13 @@ export const PdfPagesViewer = ({ data, onRenderError }: PdfPagesViewerProps) => 
 
         const render = async (retriesLeft: number): Promise<void> => {
             try {
-                const pdfjs = await import('pdfjs-dist');
+                // Wersja „legacy": pdf.js 6 wprost woła API, których starsze przeglądarki
+                // nie mają (Map.prototype.getOrInsertComputed - Chrome 145+, Safari 18.4+),
+                // i na takim telefonie każdy dokument kończył się „Nie udało się wyświetlić".
+                // Legacy build niesie polyfille - i ta sama wersja musi być w workerze.
+                const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
                 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-                    'pdfjs-dist/build/pdf.worker.min.mjs',
+                    'pdfjs-dist/legacy/build/pdf.worker.min.mjs',
                     import.meta.url,
                 ).toString();
 
@@ -99,7 +103,7 @@ export const PdfPagesViewer = ({ data, onRenderError }: PdfPagesViewerProps) => 
                 }
 
                 setState('done');
-            } catch (err) {
+            } catch {
                 if (cancelled) return;
                 if (retriesLeft > 0) {
                     // A failed dynamic import of pdf.js or its worker chunk (flaky

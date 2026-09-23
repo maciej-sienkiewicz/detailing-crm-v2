@@ -12,6 +12,7 @@ import { useRoles } from '../hooks/useRoles';
 import { EmployeeFormModal } from './team/EmployeeFormModal';
 import { AttendanceSheetModal } from './team/AttendanceSheetModal';
 import type { CreateEmployeeFormOutput, TeamEmployeeListItem } from '../teamTypes';
+import type { AttendanceSheet } from '../api/attendanceApi';
 
 /** Also the page size the merged tab reads to label its segment. */
 export const TEAM_PAGE_SIZE = 20;
@@ -31,9 +32,11 @@ function buildPageNumbers(current: number, total: number): (number | '...')[] {
 interface TeamSectionProps {
     /** Jumps to the roles view of the merged tab; absent when rendered standalone. */
     onGoToRoles?: () => void;
+    /** Lista obecności trafiła do Rozliczeń - zakładka obok ma to zasygnalizować. */
+    onAttendanceSheetGenerated?: (sheet: AttendanceSheet) => void;
 }
 
-export function TeamSection({ onGoToRoles }: TeamSectionProps = {}) {
+export function TeamSection({ onGoToRoles, onAttendanceSheetGenerated }: TeamSectionProps = {}) {
     const navigate = useNavigate();
     const { showSuccess } = useToast();
 
@@ -343,6 +346,7 @@ export function TeamSection({ onGoToRoles }: TeamSectionProps = {}) {
                     employeeIds={selectedWithWorkTime.map(emp => emp.id)}
                     employeeCount={selectedWithWorkTime.length}
                     onClose={() => setIsAttendanceOpen(false)}
+                    onGenerated={sheet => onAttendanceSheetGenerated?.(sheet)}
                 />
             )}
 
