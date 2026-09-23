@@ -23,9 +23,17 @@ vi.mock('../../api/attendanceApi', async importOriginal => {
             approveAttendanceSheet: vi.fn(),
             deleteAttendanceSheet: vi.fn(),
             downloadAttendanceSheet: vi.fn(),
+            // Okno zatwierdzania pyta też o podpis na tablecie / telefonie.
+            getSigningOptions: vi.fn(async () => ({ tablets: [], phone: null })),
+            getLatestRemoteSignature: vi.fn(async () => null),
+            requestRemoteSignature: vi.fn(),
+            cancelRemoteSignature: vi.fn(),
         },
     };
 });
+
+vi.mock('@/modules/checkin/hooks/useSignatureRequestsSocket', () => ({ useSignatureRequestsSocket: () => undefined }));
+vi.mock('@/modules/subscription', () => ({ useCapability: () => ({ enabled: true, lockReason: null }) }));
 
 // pdf.js i kanwa nie działają w jsdom - podgląd i podpis podmieniamy na atrapy.
 vi.mock('@/modules/public-signing/components/PdfPagesViewer', () => ({
