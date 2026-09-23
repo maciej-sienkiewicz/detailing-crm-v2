@@ -40,18 +40,11 @@ import { ReportProblemModal } from '@/modules/support/components/ReportProblemMo
 import { useCompanySettings } from '@/modules/settings/hooks/useCompany';
 import { companyInitials } from './companyBadge';
 import { readCompanyHeader, writeCompanyHeader } from './companyHeaderCache';
+import { SidebarBrand } from './SidebarBrand';
 import {
     Overlay,
     SidebarContainer,
     SidebarHeader,
-    Logo,
-    CollapsedInitials,
-    LogoCaption,
-    LogoIcon,
-    LogoImage,
-    LogoStack,
-    LogoText,
-    LogoWide,
     HeaderActions,
     CollapseButton,
     CloseButton,
@@ -273,12 +266,12 @@ export const Sidebar = () => {
     const showLogo = !!logoUrl && failedLogoUrl !== logoUrl;
 
     /**
-     * Układ nagłówka zależy od kształtu logo. Poziomy logotyp (szerokość ≥ 1,6 ×
-     * wysokość) dostaje całą szerokość, a nazwa firmy schodzi pod niego w jednej
-     * linii. Sygnet albo logo zbliżone do kwadratu staje jako 36-pikselowy kafelek
-     * obok nazwy. Podkładka pod logo tylko wtedy, gdy backend uznał, że bez niej logo
-     * zniknie na ciemnym pasku (przezroczyste tło + ciemny tusz); logo sprzed tej
-     * analizy (brak proporcji) zachowuje dawny wygląd: kafelek z białą podkładką.
+     * Logo w każdym kształcie stoi na środku nagłówka (SidebarBrand); kształt decyduje
+     * już tylko o zwiniętym menu: poziomy logotyp (szerokość ≥ 1,6 × wysokość) nie
+     * zmieści się czytelnie w 36-pikselowym kafelku, więc tam ustępuje inicjałom.
+     * Podkładka pod logo tylko wtedy, gdy backend uznał, że bez niej logo zniknie na
+     * ciemnym pasku (przezroczyste tło + ciemny tusz); logo sprzed tej analizy (brak
+     * proporcji) zachowuje dawny wygląd: białą podkładkę.
      */
     const logoSource = company ?? cachedHeader;
     const logoAspectRatio = logoSource?.logoAspectRatio ?? null;
@@ -295,54 +288,29 @@ export const Sidebar = () => {
 
             <SidebarContainer $isCollapsed={isCollapsed} $isMobileOpen={isMobileOpen}>
                 <SidebarHeader $isCollapsed={isCollapsed}>
-                    <Logo $isCollapsed={isCollapsed}>
-                        {showLogo && isWideLogo ? (
-                            <>
-                                <LogoStack $isCollapsed={isCollapsed}>
-                                    <LogoWide
-                                        src={logoUrl!}
-                                        alt={companyName}
-                                        title={companyName}
-                                        $isCollapsed={isCollapsed}
-                                        $plate={logoNeedsPlate}
-                                        onError={() => setFailedLogoUrl(logoUrl)}
-                                    />
-                                    <LogoCaption title={companyName}>{companyName}</LogoCaption>
-                                </LogoStack>
-                                <CollapsedInitials $isCollapsed={isCollapsed}>
-                                    <LogoIcon>{companyInitials(company?.name)}</LogoIcon>
-                                </CollapsedInitials>
-                            </>
-                        ) : (
-                            <>
-                                {showLogo
-                                    ? (
-                                        <LogoImage
-                                            src={logoUrl!}
-                                            alt={companyName}
-                                            $plate={logoNeedsPlate}
-                                            onError={() => setFailedLogoUrl(logoUrl)}
-                                        />
-                                    )
-                                    : <LogoIcon>{companyInitials(company?.name)}</LogoIcon>}
-                                <LogoText $isCollapsed={isCollapsed} title={companyName}>
-                                    {companyName}
-                                </LogoText>
-                            </>
-                        )}
-                    </Logo>
-                    <HeaderActions>
-                        <CollapseButton
-                            onClick={toggleCollapse}
-                            title="Zwiń menu"
-                            $isCollapsed={isCollapsed}
-                        >
-                            <PanelLeftClose />
-                        </CollapseButton>
-                        <CloseButton onClick={closeMobileMenu} aria-label="Zamknij menu">
-                            <X />
-                        </CloseButton>
-                    </HeaderActions>
+                    <SidebarBrand
+                        isCollapsed={isCollapsed}
+                        companyName={companyName}
+                        initials={companyInitials(company?.name)}
+                        logoUrl={showLogo ? logoUrl : null}
+                        logoNeedsPlate={logoNeedsPlate}
+                        isWideLogo={isWideLogo}
+                        onLogoError={() => setFailedLogoUrl(logoUrl)}
+                        actions={
+                            <HeaderActions>
+                                <CollapseButton
+                                    onClick={toggleCollapse}
+                                    title="Zwiń menu"
+                                    $isCollapsed={isCollapsed}
+                                >
+                                    <PanelLeftClose />
+                                </CollapseButton>
+                                <CloseButton onClick={closeMobileMenu} aria-label="Zamknij menu">
+                                    <X />
+                                </CloseButton>
+                            </HeaderActions>
+                        }
+                    />
                 </SidebarHeader>
 
 

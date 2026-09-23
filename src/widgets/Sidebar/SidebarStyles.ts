@@ -117,7 +117,7 @@ export const LogoIcon = styled.div`
 `;
 
 /**
- * Kafelek z logo studia w miejscu inicjałów (sygnet, logo zbliżone do kwadratu).
+ * Kafelek z logo studia w zwiniętym menu (sygnet, logo zbliżone do kwadratu).
  *
  * Jasna podkładka NIE jest domyślna: pasek jest ciemny (#0f172a), więc czarny
  * logotyp na przezroczystym tle by na nim zniknął, ale logo z własnym tłem
@@ -137,16 +137,16 @@ export const LogoImage = styled.img<{ $plate: boolean }>`
 `;
 
 /**
- * Poziomy logotyp z nazwą firmy pod spodem: logo dostaje całą szerokość nagłówka,
- * nazwa jedną linię pod nim. Sam logotyp nie wystarcza: ogranicza go wysokość,
- * więc bywa niski i nagłówek bez nazwy wyglądał na pusty. W zwiniętym menu (64 px)
- * 36-pikselowy logotyp byłby nieczytelny, więc całość ustępuje kafelkowi z inicjałami.
+ * Logo studia na środku nagłówka, nazwa firmy pod nim: logo dostaje całą szerokość
+ * nagłówka, nazwa jedną linię pod nim. Samo logo nie wystarcza: ogranicza je wysokość,
+ * więc bywa niskie i nagłówek bez nazwy wyglądał na pusty. W zwiniętym menu (64 px)
+ * całość ustępuje kafelkowi (CollapsedInitials).
  */
 export const LogoStack = styled.div<{ $isCollapsed: boolean }>`
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 7px;
+    align-items: center;
+    gap: 6px;
     flex: 1;
     min-width: 0;
 
@@ -155,37 +155,39 @@ export const LogoStack = styled.div<{ $isCollapsed: boolean }>`
     }
 `;
 
-export const LogoWide = styled.img<{ $isCollapsed: boolean; $plate: boolean }>`
+/**
+ * Logo na całą szerokość nagłówka, w każdym kształcie. Obraz ma rozmiar samego logo
+ * (szerokość i wysokość auto, z zachowaniem proporcji), a na środek stawia go kolumna
+ * LogoStack - dzięki temu podkładka obejmuje logo, a nie pusty pas po bokach. Pod
+ * poziomym logotypem podkładka ma szersze boki, pod sygnetem zostaje kwadratowa.
+ */
+export const LogoWide = styled.img<{ $plate: boolean; $wide: boolean }>`
     display: block;
     max-width: 100%;
     max-height: 48px;
     width: auto;
     height: auto;
     object-fit: contain;
-    object-position: left center;
     border-radius: 8px;
     background: ${p => (p.$plate ? '#ffffff' : 'transparent')};
-    padding: ${p => (p.$plate ? '4px 8px' : '0')};
-
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
-        display: ${p => (p.$isCollapsed ? 'none' : 'block')};
-    }
+    padding: ${p => (!p.$plate ? '0' : p.$wide ? '4px 8px' : '4px')};
 `;
 
-/** Nazwa firmy pod poziomym logotypem: jedna linia, przycięta wielokropkiem. */
+/** Nazwa firmy pod logo: jedna linia na środku, przycięta wielokropkiem. */
 export const LogoCaption = styled.span`
     color: ${S.text};
     font-size: 12.5px;
     font-weight: 600;
     letter-spacing: -0.1px;
     line-height: 1.2;
+    text-align: center;
     max-width: 100%;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 `;
 
-/** Inicjały widoczne tylko w zwiniętym menu na desktopie, w miejscu ukrytego logotypu. */
+/** Kafelek widoczny tylko w zwiniętym menu na desktopie, w miejscu ukrytego logo. */
 export const CollapsedInitials = styled.div<{ $isCollapsed: boolean }>`
     display: none;
 
@@ -222,6 +224,22 @@ export const HeaderActions = styled.div`
     align-items: center;
     gap: 4px;
     flex-shrink: 0;
+`;
+
+/**
+ * Wiersz z nazwą firmy pod logo. Przycisk zwijania (na telefonie: zamykania) stoi na
+ * jego końcu, a pusta kolumna po lewej ma szerokość przycisku - nazwa zostaje na osi
+ * nagłówka, tej samej co logo.
+ */
+export const LogoCaptionRow = styled.div`
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) 28px;
+    align-items: center;
+    column-gap: 8px;
+    width: 100%;
+
+    & > ${LogoCaption} { grid-column: 2; }
+    & > ${HeaderActions} { grid-column: 3; }
 `;
 
 export const CollapseButton = styled.button<{ $isCollapsed: boolean }>`
