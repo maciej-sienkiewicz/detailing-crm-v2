@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { installChunkErrorHandler } from './core/errors';
+import { isRolePreviewShellPath } from './modules/role-preview/entryCode';
 import './index.css';
 
 // Musi stać PRZED renderem: łapie nieudane pobrania chunków, które nigdy nie
@@ -22,14 +23,28 @@ installChunkErrorHandler();
 // a broken notificationclick handler, with no way to update short of clearing
 // site data by hand. A never-before-fetched URL sidesteps that cache entirely,
 // and the nginx rule now keeps this file out of it for good.
-if ('serviceWorker' in navigator) {
+//
+// Not in the role preview: neither its window (/podglad) nor the app in its frame
+// registers the worker. The preview is a throwaway sandbox under its own address -
+// a worker there would outlive it, cache its data and could subscribe to push.
+const isRolePreviewShell = isRolePreviewShellPath(window.location.pathname);
+const isInFrame = window.self !== window.top;
+if ('serviceWorker' in navigator && !isRolePreviewShell && !isInFrame) {
     navigator.serviceWorker
         .register('/service-worker.js', { scope: '/' })
         .catch(() => {/* SW is an enhancement, silently ignore failures */});
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-    <React.StrictMode>
-        <App />
-    </React.StrictMode>
-);
+const root = ReactDOM.createRoot(document.getElementById('root')!);
+
+if (isRolePreviewShell) {
+    // The role preview window: its own small app around the real one in a frame.
+    void import('./modules/role-preview/shell/mountRolePreviewShell')
+        .then(({ mountRolePreviewShell }) => mountRolePreviewShell(root));
+} else {
+    root.render(
+        <React.StrictMode>
+            <App />
+        </React.StrictMode>
+    );
+}

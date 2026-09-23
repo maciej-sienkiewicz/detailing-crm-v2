@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { useToast } from '@/common/components/Toast';
 import {
-    Container, Toolbar, AddButton, StatsRow, StatText, EmptyWrap, EmptyTitle,
+    Container, Toolbar, AddButton, EmptyWrap, EmptyTitle,
     EmptyDesc, SkeletonBox, Badge,
 } from './rbacShared.styles';
 import {
@@ -10,6 +10,7 @@ import {
 } from '../hooks/useRoles';
 import { RoleEditorModal } from './roles/RoleEditorModal';
 import { RoleDeletionModal } from './roles/RoleDeletionModal';
+import { useRolePreview, PreviewIcon } from '@/modules/role-preview';
 import type { Role, CreateRoleRequest } from '../rbacTypes';
 
 interface RolesSectionProps {
@@ -25,6 +26,8 @@ export function RolesSection({ onGoToEmployees }: RolesSectionProps = {}) {
     const createRole = useCreateRole();
     const updateRole = useUpdateRole();
     const deleteRole = useDeleteRole();
+
+    const preview = useRolePreview();
 
     const [editor, setEditor] = useState<{ mode: 'add' | 'edit'; role: Role | null } | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<Role | null>(null);
@@ -109,6 +112,12 @@ export function RolesSection({ onGoToEmployees }: RolesSectionProps = {}) {
                             role={role}
                             onEdit={() => setEditor({ mode: 'edit', role })}
                             onDelete={() => setDeleteTarget(role)}
+                            onPreview={preview.available ? () => preview.open({
+                                roleName: role.name,
+                                permissions: role.permissions.map(p => p.code),
+                                trackWorkTime: role.trackWorkTime,
+                            }) : undefined}
+                            previewOpening={preview.opening}
                             onShowHolders={onGoToEmployees}
                         />
                     ))}
@@ -141,11 +150,14 @@ export function RolesSection({ onGoToEmployees }: RolesSectionProps = {}) {
 }
 
 // ─── Role card ──────────────────────────────────────────────────────────────────
-function RoleCardItem({ role, onEdit, onDelete, onShowHolders }: {
+function RoleCardItem({ role, onEdit, onDelete, onShowHolders, onPreview, previewOpening }: {
     role: Role;
     onEdit: () => void;
     onDelete: () => void;
     onShowHolders?: () => void;
+    /** Absent when the role preview is not available (switched off or not configured). */
+    onPreview?: () => void;
+    previewOpening?: boolean;
 }) {
     const moduleChips = useMemo(() => {
         const seen = new Map<string, string>();
@@ -161,6 +173,16 @@ function RoleCardItem({ role, onEdit, onDelete, onShowHolders }: {
                     {role.description && <RoleDesc>{role.description}</RoleDesc>}
                 </div>
                 <Actions>
+                    {onPreview && (
+                        <IconBtn
+                            title="Przejdź do podglądu roli - CRM oczami pracownika z tą rolą, na danych przykładowych"
+                            aria-label={`Podgląd roli ${role.name}`}
+                            onClick={onPreview}
+                            disabled={previewOpening}
+                        >
+                            <PreviewIcon />
+                        </IconBtn>
+                    )}
                     <IconBtn title="Edytuj" onClick={onEdit}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -269,11 +291,13 @@ const IconBtn = styled.button<{ $danger?: boolean }>`
     cursor: pointer;
     transition: all 150ms;
 
-    &:hover {
+    &:hover:not(:disabled) {
         background: ${p => (p.$danger ? 'rgba(239,68,68,0.08)' : '#f1f5f9')};
         border-color: ${p => (p.$danger ? 'rgba(239,68,68,0.2)' : '#e2e8f0')};
         color: ${p => (p.$danger ? '#ef4444' : '#334155')};
     }
+
+    &:disabled { opacity: 0.5; cursor: wait; }
 `;
 
 const usageLabel = (n: number) =>

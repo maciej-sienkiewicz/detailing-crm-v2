@@ -63,6 +63,8 @@ apiClient.interceptors.response.use(
             const publicPaths = ['/login', '/signup', '/forgot-password', '/reset-password', '/confirm-password', '/m/upload', '/m/voice', '/m/contacts'];
             // Public token-based pages must never bounce to /login
             const isPublicPath = publicPaths.includes(currentPath)
+                // The role preview window handles an ended preview itself; /login there leads nowhere.
+                || currentPath === '/podglad'
                 || currentPath.startsWith('/vc/')
                 || currentPath.startsWith('/sign/')
                 || currentPath.startsWith('/m/sig/');
