@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppointmentForm, useAppointmentServices, useAppointmentColors, useCustomerVehicles } from './useAppointmentForm';
 import type { SelectedCustomer, SelectedVehicle, ServiceLineItem, RecurrenceRuleRequest } from '../types';
-import { toInstant, fromInstantToLocalInput } from '@/common/dateTime';
+import { isSameLocalDay, toInstant, fromInstantToLocalInput } from '@/common/dateTime';
 import { pickInitialColorId } from '@/modules/appointment-colors';
 import { appointmentApi } from '../api/appointmentApi';
 
@@ -147,7 +147,9 @@ export const useAppointmentCreation = () => {
                     },
             services: serviceItems,
             schedule: {
-                isAllDay,
+                // Całodniowa może być tylko wizyta jednodniowa (adres z parametrami potrafi
+                // przynieść isAllDay=true razem z końcem kilka dni dalej).
+                isAllDay: isAllDay && isSameLocalDay(startInstant, endInstant),
                 startDateTime: startInstant,
                 endDateTime: endInstant,
             },

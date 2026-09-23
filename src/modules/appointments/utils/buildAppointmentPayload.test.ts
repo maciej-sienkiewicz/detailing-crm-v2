@@ -203,3 +203,26 @@ describe('buildAppointmentPayload - vatRate pozycji z cennika', () => {
     expect(payload.services[0].vatRate).toBe(vatRate);
   });
 });
+
+describe('buildAppointmentPayload - całodniowa tylko wizyta jednodniowa', () => {
+  it('całodniowa na jeden dzień zostaje całodniowa', () => {
+    const payload = buildAppointmentPayload(baseData({
+      isAllDay: true,
+      startDateTime: '2026-09-24',
+      endDateTime: '2026-09-24T23:59:59',
+    }));
+
+    expect(payload.schedule.isAllDay).toBe(true);
+    expect(payload.schedule.startDateTime).toBe(new Date('2026-09-24T00:00:00').toISOString());
+  });
+
+  it('isAllDay z końcem kilka dni dalej nie przechodzi - wielodniowa ma godziny', () => {
+    const payload = buildAppointmentPayload(baseData({
+      isAllDay: true,
+      startDateTime: '2026-09-24',
+      endDateTime: '2026-09-28T23:59:59',
+    }));
+
+    expect(payload.schedule.isAllDay).toBe(false);
+  });
+});

@@ -9,7 +9,7 @@
 
 import type { CheckInFormData } from '@/modules/checkin/types';
 import type { AppointmentCreateRequest } from '@/modules/appointments/types';
-import { toInstant } from '@/common/dateTime';
+import { isSameLocalDay, toInstant } from '@/common/dateTime';
 import { toApiServiceLineItem } from '@/common/utils/priceAdjustment';
 
 // CheckInFormData.technicalState (edited in VerificationStep) -> the note fields
@@ -105,7 +105,10 @@ export function buildAppointmentEditPayload(formData: CheckInFormData): Appointm
                 },
         services: formData.services.map(toApiServiceLineItem),
         schedule: {
-            isAllDay: formData.isAllDay ?? false,
+            // Ekran edycji nie ma przełącznika „całodniowa" - flaga przychodzi z oryginału.
+            // Rezerwacja całodniowa przeciągnięta tu na kilka dni zostawała całodniowa
+            // (24-28.09 z isAllDay), a całodniowa może być tylko wizyta jednodniowa.
+            isAllDay: (formData.isAllDay ?? false) && isSameLocalDay(startInstant, endInstant),
             startDateTime: startInstant,
             endDateTime: endInstant,
         },

@@ -34,6 +34,18 @@ export function fromDateToLocalInput(date: Date): string {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
+/**
+ * Czy obie chwile wypadają tego samego dnia w strefie przeglądarki.
+ *
+ * Tylko taka wizyta może być całodniowa: wizyta na kilka dni ma zawsze godzinę
+ * rozpoczęcia i zakończenia. Backend pilnuje tego samego (AppointmentSchedule.resolveAllDay).
+ */
+export function isSameLocalDay(start: string | Date, end: string | Date): boolean {
+  const s = new Date(start);
+  const e = new Date(end);
+  return s.getFullYear() === e.getFullYear() && s.getMonth() === e.getMonth() && s.getDate() === e.getDate();
+}
+
 /** Add hours to a date string or Date and return Instant */
 export function addHoursAsInstant(start: string | Date, hours: number): string {
   const d = typeof start === 'string' ? new Date(start) : new Date(start.getTime());

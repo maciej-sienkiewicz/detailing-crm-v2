@@ -30,6 +30,10 @@ export const nextDateKey = (key: string): string => {
  * kończył się 27.09, dzień za wcześnie. Dostaje więc same daty (dni lokalne) i koniec
  * na dzień po ostatnim.
  *
+ * Nowa rezerwacja całodniowa jest zawsze jednodniowa (isSameLocalDay przy zapisie,
+ * AppointmentSchedule.resolveAllDay na backendzie), ale zapisane wcześniej bywają
+ * wielodniowe - stąd koniec z danych, a nie założony jeden dzień.
+ *
  * Wydarzenia z godzinami przechodzą bez zmian.
  */
 export function toFullCalendarEvent(event: CalendarEvent): CalendarEvent {

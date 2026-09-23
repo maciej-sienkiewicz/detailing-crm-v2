@@ -432,3 +432,45 @@ describe('buildAppointmentEditPayload', () => {
         });
     });
 });
+
+/*
+ * Ekran edycji rezerwacji nie ma przełącznika „całodniowa": flaga przychodzi z oryginału.
+ * Rezerwacja utworzona jako całodniowa na 24.09, przeciągnięta tu do 28.09 23:45, szła
+ * do serwera z isAllDay=true i kalendarz rysował ją jako całodniową na pięć dni.
+ */
+describe('buildAppointmentEditPayload - całodniowa tylko wizyta jednodniowa', () => {
+    it('całodniowa przeciągnięta na kilka dni przestaje być całodniowa, godziny zostają', () => {
+        const payload = buildAppointmentEditPayload({
+            ...baseFormData(),
+            isAllDay: true,
+            visitStartAt: '2026-09-24T00:00',
+            visitEndAt: '2026-09-28T23:45',
+        })!;
+
+        expect(payload.schedule.isAllDay).toBe(false);
+        expect(payload.schedule.startDateTime).toBe(new Date('2026-09-24T00:00').toISOString());
+        expect(payload.schedule.endDateTime).toBe(new Date('2026-09-28T23:45').toISOString());
+    });
+
+    it('całodniowa w obrębie jednego dnia zostaje całodniowa', () => {
+        const payload = buildAppointmentEditPayload({
+            ...baseFormData(),
+            isAllDay: true,
+            visitStartAt: '2026-09-24T00:00',
+            visitEndAt: '2026-09-24T23:59',
+        })!;
+
+        expect(payload.schedule.isAllDay).toBe(true);
+    });
+
+    it('wizyta z godzinami na kilka dni zostaje z godzinami', () => {
+        const payload = buildAppointmentEditPayload({
+            ...baseFormData(),
+            isAllDay: false,
+            visitStartAt: '2026-09-24T09:00',
+            visitEndAt: '2026-09-28T17:00',
+        })!;
+
+        expect(payload.schedule.isAllDay).toBe(false);
+    });
+});

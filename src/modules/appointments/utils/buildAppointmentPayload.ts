@@ -4,7 +4,7 @@
 // Used by both the standard calendar flow (/v1/appointments)
 // and the lead conversion flow (/v1/leads/{id}/appointment).
 
-import { toInstant } from '@/common/dateTime';
+import { isSameLocalDay, toInstant } from '@/common/dateTime';
 import type { QuickEventFormData, AdjustmentType } from '@/modules/calendar/components/QuickEventModal';
 
 export interface ServiceLineItemPayload {
@@ -147,7 +147,12 @@ export function buildAppointmentPayload(data: QuickEventFormData): AppointmentPa
     customer,
     vehicle,
     services,
-    schedule: { isAllDay: data.isAllDay, startDateTime: startInstant, endDateTime: endInstant },
+    // Całodniowa może być tylko wizyta jednodniowa - wielodniowa ma zawsze godziny.
+    schedule: {
+      isAllDay: data.isAllDay && isSameLocalDay(startInstant, endInstant),
+      startDateTime: startInstant,
+      endDateTime: endInstant,
+    },
     appointmentTitle: data.title || undefined,
     note: data.notes || undefined,
     appointmentColorId: data.colorId,
