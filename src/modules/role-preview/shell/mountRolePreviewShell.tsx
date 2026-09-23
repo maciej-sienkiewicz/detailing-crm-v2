@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Root } from 'react-dom/client';
 import { readEntryCodeFromHash, ROLE_PREVIEW_SHELL_PATH } from '../entryCode';
+import { watchStartFailure } from '../startFailure';
 import { RolePreviewShell } from './RolePreviewShell';
 
 /**
@@ -10,12 +11,15 @@ import { RolePreviewShell } from './RolePreviewShell';
 export function mountRolePreviewShell(root: Root) {
     const entryCode = readEntryCodeFromHash(window.location.hash);
     window.history.replaceState(null, '', ROLE_PREVIEW_SHELL_PATH);
+    // Nasłuch PRZED odcięciem: po nim tylko wiadomość od okna studia zamknie to okno,
+    // gdy piaskownica nie powstanie.
+    const startFailure = watchStartFailure(window.opener);
     // Okno otworzyła aplikacja administratora - odcinamy się od niej od razu.
     try { window.opener = null; } catch { /* bez znaczenia, gdy przeglądarka nie pozwala */ }
 
     root.render(
         <React.StrictMode>
-            <RolePreviewShell entryCode={entryCode} />
+            <RolePreviewShell entryCode={entryCode} startFailure={startFailure} />
         </React.StrictMode>,
     );
 }

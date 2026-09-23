@@ -57,6 +57,29 @@ describe('okno podglądu roli', () => {
         expect(api.current).not.toHaveBeenCalled();
     });
 
+    it('nie czeka na piaskownicę, gdy okno studia zgłosiło odmowę serwera', async () => {
+        const startFailure = { reason: () => 'W tym studiu jest już otwartych 5 podglądów roli.' };
+
+        render(<RolePreviewShell entryCode={code('c')} startFailure={startFailure} />);
+
+        expect(await screen.findByText('Nie udało się otworzyć podglądu')).toBeInTheDocument();
+        expect(screen.getByText(/W tym studiu jest już otwartych 5 podglądów roli\./)).toBeInTheDocument();
+        expect(api.enter).not.toHaveBeenCalled();
+    });
+
+    it('przerywa czekanie na piaskownicę, gdy odmowa przyjdzie w trakcie', async () => {
+        api.enter.mockRejectedValue({ response: { status: 404 } });
+        let refused: string | null = null;
+        const startFailure = { reason: () => refused };
+
+        render(<RolePreviewShell entryCode={code('d')} startFailure={startFailure} />);
+        await vi.waitFor(() => expect(api.enter).toHaveBeenCalledTimes(1));
+        refused = 'Nie udało się przygotować podglądu.';
+
+        expect(await screen.findByText('Nie udało się otworzyć podglądu', {}, { timeout: 3000 })).toBeInTheDocument();
+        expect(api.enter).toHaveBeenCalledTimes(1);
+    });
+
     it('bez kodu i bez żywej sesji pokazuje, że podgląd się zakończył', async () => {
         api.current.mockRejectedValue({ response: { status: 401 } });
 

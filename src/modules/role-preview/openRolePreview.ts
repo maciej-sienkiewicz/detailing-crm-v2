@@ -1,5 +1,6 @@
 import { generateEntryCode, previewWindowUrl } from './entryCode';
 import { rolePreviewApi } from './rolePreviewApi';
+import { sendStartFailed } from './startFailure';
 
 export interface RolePreviewInput {
     roleName: string;
@@ -36,10 +37,16 @@ export function openRolePreview(previewBaseUrl: string, input: RolePreviewInput,
         return Promise.reject(new PreviewWindowBlockedError());
     }
     return deps.start({ ...input, entryCode }).catch(error => {
+        // Okno podglądu mogło się już odciąć od tego okna - wtedy samo close() nic nie da,
+        // a okno czekałoby na piaskownicę, która nie powstanie. Wiadomość zamyka je od środka.
+        sendStartFailed(previewWindow, previewBaseUrl, serverMessageOf(error));
         previewWindow.close();
         throw error;
     });
 }
+
+const serverMessageOf = (error: unknown) =>
+    (error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? '';
 
 export class PreviewWindowBlockedError extends Error {
     constructor() {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { rolePreviewApi, type RolePreviewState } from '../rolePreviewApi';
+import type { StartFailureWatch } from '../startFailure';
 import { PreviewPanel } from './PreviewPanel';
 import {
     changeCount, DEVICE_LABEL, DEVICE_WIDTH, diffCodes, effectiveExpiry, frameLostSession, type DeviceMode,
@@ -32,9 +33,12 @@ type EnterOutcome = { kind: 'entered' } | { kind: 'used' } | { kind: 'failed'; m
  * Wymiana kodu na sesję piaskownicy - z czekaniem, aż piaskownica powstanie (404), bo okno
  * otwiera się, zanim serwer ją założy.
  */
-async function enterWithRetry(entryCode: string): Promise<EnterOutcome> {
+async function enterWithRetry(entryCode: string, startFailure?: StartFailureWatch): Promise<EnterOutcome> {
     const started = Date.now();
     while (Date.now() - started < ENTER_DEADLINE_MS) {
+        // Okno studia zgłosiło, że serwer odmówił - piaskownica nie powstanie, nie ma na co czekać.
+        const refused = startFailure?.reason();
+        if (refused) return { kind: 'failed', message: refused };
         try {
             await rolePreviewApi.enter(entryCode);
             return { kind: 'entered' };
@@ -56,10 +60,10 @@ async function enterWithRetry(entryCode: string): Promise<EnterOutcome> {
  * React uruchomi efekt dwukrotnie (StrictMode). Drugie wywołanie dostaje tę samą obietnicę.
  */
 const enterAttempts = new Map<string, Promise<EnterOutcome>>();
-function enterOnce(entryCode: string): Promise<EnterOutcome> {
+function enterOnce(entryCode: string, startFailure?: StartFailureWatch): Promise<EnterOutcome> {
     let attempt = enterAttempts.get(entryCode);
     if (!attempt) {
-        attempt = enterWithRetry(entryCode);
+        attempt = enterWithRetry(entryCode, startFailure);
         enterAttempts.set(entryCode, attempt);
     }
     return attempt;
@@ -74,7 +78,11 @@ function enterOnce(entryCode: string): Promise<EnterOutcome> {
  * uprawnień. Kod wejścia przychodzi w części adresu po `#` i znika z paska adresu, zanim
  * okno zrobi cokolwiek innego.
  */
-export function RolePreviewShell({ entryCode }: { entryCode: string | null }) {
+export function RolePreviewShell({ entryCode, startFailure }: {
+    entryCode: string | null;
+    /** Sygnał od okna studia, że piaskownica nie powstanie (patrz `watchStartFailure`). */
+    startFailure?: StartFailureWatch;
+}) {
     const [phase, setPhase] = useState<Phase>(() =>
         entryCode ? { kind: 'entering', slow: false } : { kind: 'loading' },
     );
@@ -111,7 +119,7 @@ export function RolePreviewShell({ entryCode }: { entryCode: string | null }) {
         const slowTimer = window.setTimeout(() => {
             if (!cancelled) setPhase(prev => (prev.kind === 'entering' ? { kind: 'entering', slow: true } : prev));
         }, SLOW_AFTER_MS);
-        void enterOnce(entryCode).then(outcome => {
+        void enterOnce(entryCode, startFailure).then(outcome => {
             if (cancelled) return;
             if (outcome.kind === 'entered') void refresh();
             else if (outcome.kind === 'used') setPhase({ kind: 'used' });
@@ -121,7 +129,7 @@ export function RolePreviewShell({ entryCode }: { entryCode: string | null }) {
             cancelled = true;
             window.clearTimeout(slowTimer);
         };
-    }, [entryCode, refresh]);
+    }, [entryCode, refresh, startFailure]);
 
     // Odświeżanie stanu (efekty, czas wygaśnięcia) - tylko gdy okno jest na wierzchu.
     const ready = phase.kind === 'ready';
