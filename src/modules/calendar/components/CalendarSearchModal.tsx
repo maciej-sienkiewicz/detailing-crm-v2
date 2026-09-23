@@ -6,6 +6,7 @@ import { useBreakpoint, useVisualViewportSheet } from '@/common/hooks';
 import { calendarApi } from '../api/calendarApi';
 import { PiiValue, PiiText } from '@/common/pii';
 import type { CalendarEvent, AppointmentEventData, VisitEventData } from '../types';
+import { localDateKey } from '../utils/calendarDates';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -388,7 +389,9 @@ function matchesQuery(event: CalendarEvent, q: string): boolean {
 function groupByDay(results: SearchResult[]): GroupedResults[] {
     const map = new Map<string, SearchResult[]>();
     for (const r of results) {
-        const key = r.date.toISOString().slice(0, 10);
+        // Dzień lokalny, jak w etykiecie grupy: rezerwacja całodniowa zaczyna się o 22:00Z
+        // dnia poprzedniego i w kluczu z UTC trafiała do grupy dnia wcześniejszego.
+        const key = localDateKey(r.date);
         if (!map.has(key)) map.set(key, []);
         map.get(key)!.push(r);
     }

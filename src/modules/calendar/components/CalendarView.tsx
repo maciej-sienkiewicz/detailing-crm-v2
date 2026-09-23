@@ -40,11 +40,12 @@ import { useStudioCalendarEvents, useStudioCalendarEventMutations, toIsoDate } f
 import type { StudioCalendarEvent, StudioCalendarEventPayload } from '../types';
 import { CalendarSearchModal } from './CalendarSearchModal';
 import { attachMorePopoverPlacement } from '../utils/morePopoverPlacement';
+import { localDateKey, toFullCalendarEvent } from '../utils/calendarDates';
 import { WeekKanbanView } from './WeekKanbanView';
 import { DayTimelineView } from './DayTimeline';
 import { AgendaListView } from './AgendaListView';
 import { usePermissions } from '@/core/permissions';
-import type { DateRange, CalendarView as CalendarViewType, EventCreationData, AppointmentEventData, VisitEventData, CalendarEvent, DoorToDoorCalendarEntry, DoorToDoorCalendarDay } from '../types';
+import type { DateRange, CalendarView as CalendarViewType, EventCreationData, AppointmentEventData, VisitEventData, CalendarEvent, DoorToDoorCalendarEntry } from '../types';
 import type { Operation } from '@/modules/operations/types';
 import '../calendar.css';
 
@@ -1804,6 +1805,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
     const { createQuickEventAsync } = useQuickEventCreation();
     const { data: events = [], isLoading } = useCalendarEvents(dateRange, selectedAppointmentStatuses, selectedVisitStatuses, hiddenColorIds);
+    // Siatka miesiąca (FullCalendar) czyta koniec wydarzenia całodniowego jako wyłączny,
+    // więc dostaje go przesuniętego na dzień po ostatnim (toFullCalendarEvent). Własne
+    // widoki - tydzień, dzień, lista - biorą dane jak z API: ostatni dzień włącznie.
+    const fullCalendarEvents = useMemo(() => events.map(toFullCalendarEvent), [events]);
 
     /* ── Wydarzenia studia ──────────────────────────────────────────────────
        Tryb dodawania: kalendarz przestaje być widokiem, z którego otwiera się
@@ -1932,42 +1937,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const { leaveDayMap } = useLeaveCalendar(leaveRangeFrom, leaveRangeTo);
 
     // Wyjazdy Door to Door per dzień, zasila ikonkę samochodu w rogu każdego dnia
-    // (ten sam zakres dat co urlopy).
-    const { d2dData } = useDoorToDoorCalendar(leaveRangeFrom, leaveRangeTo);
-
-    // Mapa dat kalendarza eventId → {start, end} potrzebna do remappingu D2D.
-    // Backend umieszcza wszystkie D2D na estimatedCompletionDate (ostatni dzień);
-    // frontend koryguje: PICKUP → start wizyty, DELIVERY → end wizyty.
-    const eventDateMap = useMemo(() => {
-        const map = new Map<string, { start: string; end: string }>();
-        events.forEach(ev => {
-            map.set(ev.id, {
-                start: (ev.start as string).slice(0, 10),
-                end: ((ev.end ?? ev.start) as string).slice(0, 10),
-            });
-        });
-        return map;
-    }, [events]);
-
-    const correctedD2DMap = useMemo(() => {
-        const map = new Map<string, DoorToDoorCalendarDay>();
-        d2dData.forEach(day => {
-            day.entries.forEach(entry => {
-                const dates = eventDateMap.get(entry.id);
-                // Jeśli event nie jest w bieżącym zakresie, zostaw datę z backendu
-                const targetDate = dates
-                    ? (entry.direction === 'PICKUP' ? dates.start : dates.end)
-                    : day.date;
-                if (!map.has(targetDate)) {
-                    map.set(targetDate, { date: targetDate, count: 0, entries: [] });
-                }
-                const slot = map.get(targetDate)!;
-                slot.entries.push(entry);
-                slot.count = slot.entries.length;
-            });
-        });
-        return map;
-    }, [d2dData, eventDateMap]);
+    // (ten sam zakres dat co urlopy). Dzień wyjazdu liczy backend, w strefie studia:
+    // odbiór w dniu rozpoczęcia rezerwacji, dostawa w dniu jej zakończenia albo
+    // planowanego zakończenia wizyty. Bierzemy go wprost - wcześniejsza „korekta"
+    // przeliczała go tu z dat wydarzeń ciętych jak napis (dzień w UTC), więc odbiór
+    // rezerwacji całodniowej (start 22:00Z dnia poprzedniego) lądował dzień za wcześnie.
+    const { d2dDayMap } = useDoorToDoorCalendar(leaveRangeFrom, leaveRangeTo);
 
     // ── Ludzik na dniach z urlopami ──────────────────────────────────────────
     // Komórki rejestrują się w dayCellDidMount/dayCellWillUnmount (przeżywa to
@@ -2046,7 +2021,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     // Mechanika identyczna jak przy ludziku urlopowym: komórki rejestrowane w
     // dayCellDidMount/dayCellWillUnmount, badge wstrzykiwany imperatywnie do
     // .fc-daygrid-day-frame; hover otwiera tooltip z listą pojazdów.
-    const d2dDayMapRef = useRef(correctedD2DMap);
+    const d2dDayMapRef = useRef(d2dDayMap);
     const [d2dTooltip, setD2DTooltip] = useState<{
         x: number;
         y: number;
@@ -2108,10 +2083,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
     // Po zmianie danych D2D odśwież badge na wszystkich zamontowanych komórkach
     useEffect(() => {
-        d2dDayMapRef.current = correctedD2DMap;
+        d2dDayMapRef.current = d2dDayMap;
         leaveCellsRef.current.forEach((frame, iso) => applyD2DBadge(iso, frame));
         setD2DTooltip(null);
-    }, [correctedD2DMap, applyD2DBadge]);
+    }, [d2dDayMap, applyD2DBadge]);
 
     // ── Dzwoneczek na dniach z wydarzeniami studia ───────────────────────────
     // Ta sama mechanika co urlop i Door to Door, tylko po lewej stronie komórki,
@@ -2446,7 +2421,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
      */
     const handleSearchSelect = useCallback((event: CalendarEvent, sourceRect: DOMRect) => {
         const eventDate = new Date(event.start as string);
-        const isoDate = eventDate.toISOString().slice(0, 10);
+        const isoDate = localDateKey(eventDate);
         const props = event.extendedProps as AppointmentEventData | VisitEventData;
         const price = props.totalPrice
             ? `${(props.totalPrice / 100).toFixed(2)} ${props.currency ?? 'PLN'}`
@@ -3077,7 +3052,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 longPressDelay={400}
 
                 // Events data: wizyty/rezerwacje + wydarzenia studia
-                events={events}
+                events={fullCalendarEvents}
 
                 eventDidMount={(arg) => {
                     eventElMapRef.current.set(arg.event.id, arg.el);
