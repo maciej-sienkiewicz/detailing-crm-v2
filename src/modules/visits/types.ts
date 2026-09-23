@@ -162,6 +162,8 @@ export interface Visit {
     scheduledDate: string;
     estimatedCompletionDate?: string;
     completedDate?: string;
+    /** Faktyczne wydanie pojazdu klientowi; brak, dopóki auto nie zostało odebrane. */
+    pickupDate?: string | null;
     vehicle: VehicleInfo;
     customer: CustomerInfo;
     services: ServiceLineItem[];

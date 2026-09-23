@@ -11,7 +11,9 @@ import {
 } from '../utils/servicePriceEdits';
 import type { EditedPrice } from '../utils/servicePriceEdits';
 import { formatCurrency, shouldAutoFocusInput } from '@/common/utils';
-import type { ServiceLineItem, VisitStatus } from '../types';
+import type { ServiceLineItem, Visit, VisitStatus } from '../types';
+import { printServicesList, servicesListPrintData } from '../utils/servicesListPrint';
+import { useCompanySettings } from '@/modules/settings/hooks/useCompany';
 import type { ServicesChangesPayload } from '../types';
 import { useApproveServiceChange, useRejectServiceChange, useSaveServicesChanges } from '../hooks';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -1709,12 +1711,15 @@ interface ServicesTableProps {
     visitStatus?: VisitStatus;
     visitId?: string;
     highlightPending?: boolean;
+    /** Dane nagłówka wydruku „Drukuj wykaz"; bez nich pozycja menu się nie pokazuje. */
+    printVisit?: Pick<Visit, 'visitNumber' | 'scheduledDate' | 'estimatedCompletionDate' | 'pickupDate' | 'vehicle'>;
 }
 
 const HEADER_MENU = '__header__';
 
-export const ServicesTable = ({ services, visitStatus, visitId, highlightPending }: ServicesTableProps) => {
+export const ServicesTable = ({ services, visitStatus, visitId, highlightPending, printVisit }: ServicesTableProps) => {
     const { calculateServicePrice } = useServicePricing();
+    const { company } = useCompanySettings();
     const { saveServicesChanges, isSaving } = useSaveServicesChanges(visitId ?? '');
     const smsFeature = useFeature('SMS_EMAIL');
     const [upsellOpen, setUpsellOpen] = useState(false);
@@ -2178,6 +2183,19 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const canEdit = !pricesHidden && (visitStatus === 'IN_PROGRESS' || visitStatus === 'READY_FOR_PICKUP');
     const hasPendingServices = services.some(s => (s.hasPendingChange ?? (s.status === 'PENDING')));
     const showActionsCol = canEdit || hasPendingServices;
+    const canPrint = !!printVisit && services.length > 0;
+
+    // Wykaz drukuje stan zapisany na serwerze - bez cen i bez niezapisanych zmian z edycji.
+    const handlePrint = () => {
+        if (!printVisit) return;
+        printServicesList(servicesListPrintData(printVisit, services, company ? {
+            name: company.name,
+            street: company.street,
+            postalCode: company.postalCode,
+            city: company.city,
+            logoUrl: company.logoUrl?.trim() || null,
+        } : null));
+    };
     const bulkEligibleCount = services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING'))).length;
 
     const colSpan = 1 + (pricesHidden ? 0 : 1) + (showActionsCol ? 1 : 0);
@@ -2214,8 +2232,9 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                         {hasPendingServices && ' · Zawiera usługi oczekujące na potwierdzenie'}
                     </TableSubtitle>
                 </TableHeaderLeft>
-                {canEdit && (
+                {(canEdit || canPrint) && (
                     <HeaderActions>
+                        {canEdit && (
                         <AddBtn onClick={addNewRow} disabled={isSaving}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                 <line x1="12" y1="5" x2="12" y2="19" />
@@ -2223,12 +2242,13 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                             </svg>
                             Dodaj usługę
                         </AddBtn>
+                        )}
                         {!isInEditMode && (
                         <ActionMenuWrapper>
                             <KebabBtn
                                 onClick={() => setOpenMenuId(openMenuId === HEADER_MENU ? null : HEADER_MENU)}
                                 disabled={isSaving}
-                                title="Operacje zbiorcze"
+                                title={canEdit ? 'Operacje zbiorcze' : 'Więcej opcji'}
                             >
                                 <svg viewBox="0 0 24 24" fill="currentColor">
                                     <circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" />
@@ -2236,6 +2256,8 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                             </KebabBtn>
                             {openMenuId === HEADER_MENU && (
                                 <ContextMenu>
+                                    {canEdit && (
+                                    <>
                                     <ContextMenuItem
                                         disabled={bulkEligibleCount === 0}
                                         onClick={() => { setOpenMenuId(null); openBulkDiscountModal(); }}
@@ -2248,6 +2270,13 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                     >
                                         VAT dla wszystkich usług...
                                     </ContextMenuItem>
+                                    </>
+                                    )}
+                                    {canPrint && (
+                                    <ContextMenuItem onClick={() => { setOpenMenuId(null); handlePrint(); }}>
+                                        Drukuj wykaz
+                                    </ContextMenuItem>
+                                    )}
                                 </ContextMenu>
                             )}
                         </ActionMenuWrapper>
