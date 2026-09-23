@@ -11,7 +11,7 @@
 // (a razem z nim stare `main-<hash>.js` z zapisanymi na sztywno nazwami
 // chunków). Dopóki użytkownik chodzi po już wczytanych widokach - wszystko
 // działa. W momencie wejścia w route z `lazy()` przeglądarka próbuje pobrać
-// `assets/MailView-CRm-D0lQ.js`, nginx zwraca 404 (reguła `location ~* \.(js|css)$`
+// `assets/MailView-CRm-D0lQ.js`, nginx zwraca 404 (reguła `location ~* \.(m?js|css)$`
 // serwuje wyłącznie istniejące pliki), a `import()` odrzuca się z
 // `TypeError: Failed to fetch dynamically imported module`.
 //
