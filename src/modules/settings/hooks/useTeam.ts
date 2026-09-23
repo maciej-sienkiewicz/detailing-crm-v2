@@ -109,3 +109,11 @@ export const useChangePassword = () => {
             teamApi.changePassword(employeeId, payload),
     });
 };
+
+export const useResendInvitation = () => {
+    const invalidate = useInvalidateTeam();
+    return useMutation({
+        mutationFn: (employeeId: string) => teamApi.resendInvitation(employeeId),
+        onSuccess: (_data, employeeId) => invalidate(employeeId),
+    });
+};

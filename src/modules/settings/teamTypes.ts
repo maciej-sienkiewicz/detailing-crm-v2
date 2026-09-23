@@ -21,6 +21,11 @@ export interface TeamEmployeeListItem {
     phone: string | null;
     hasAccount: boolean;
     /**
+     * The account exists but the employee has not activated it from the invitation yet.
+     * Like `role`, only reported to callers who manage the team.
+     */
+    accountPending?: boolean;
+    /**
      * Null means three different things; read it together with `hasAccount`: no
      * account, an account with no role (signed in but locked out), or a caller
      * without permission to see roles.
@@ -82,6 +87,12 @@ export interface CreateAccountRequest {
 
 export interface CreateAccountResponse {
     userId: string;
+}
+
+/** A fresh invitation link: when it went out and until when it works. */
+export interface ResendInvitationResponse {
+    sentAt: string;
+    expiresAt: string;
 }
 
 /** Data collected by the "add employee" form: maps to a 3-step API flow. */

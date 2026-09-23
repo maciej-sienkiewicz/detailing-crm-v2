@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/common/components/Toast';
 import {
     Container, Toolbar, SearchWrap, SearchIconWrap, SearchInput,
-    AddButton, StatsRow, StatText, Card, ColLabel, Badge, Dot, EmptyWrap,
+    AddButton, Card, ColLabel, Badge, Dot, EmptyWrap,
     EmptyTitle, EmptyDesc, SkeletonBox, Pager, PagerInfo, PagerControls, PagerBtn,
 } from './rbacShared.styles';
 import { useEmployees, useCreateEmployee } from '../hooks/useTeam';
@@ -303,9 +303,13 @@ export function TeamSection({ onGoToRoles }: TeamSectionProps = {}) {
                                     {tracksWorkTime && <Badge $variant="blue">Czas pracy</Badge>}
                                 </RoleCell>
                                 <div>
-                                    {hasAccount
-                                        ? <Badge $variant="blue"><Dot $color="#0284c7" />Ma konto</Badge>
-                                        : <Badge $variant="gray">Brak konta</Badge>}
+                                    {/* Konto z niewykorzystanym zaproszeniem to jeszcze nie „Ma
+                                        konto": pracownik nie ustawił hasła ani nie wszedł do aplikacji. */}
+                                    {emp.accountPending
+                                        ? <Badge $variant="amber"><Dot $color="#d97706" />Czeka na aktywację</Badge>
+                                        : hasAccount
+                                            ? <Badge $variant="blue"><Dot $color="#0284c7" />Ma konto</Badge>
+                                            : <Badge $variant="gray">Brak konta</Badge>}
                                 </div>
                             </Row>
                         );
@@ -357,7 +361,8 @@ export function TeamSection({ onGoToRoles }: TeamSectionProps = {}) {
 }
 
 // ─── Styled ─────────────────────────────────────────────────────────────────────
-const GRID = '32px 1.3fr 1.1fr 190px 130px';
+// Ostatnia kolumna mieści najdłuższą plakietkę konta, „Czeka na aktywację".
+const GRID = '32px 1.3fr 1.1fr 190px 160px';
 
 const ListHeader = styled.div`
     display: grid;
