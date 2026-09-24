@@ -66,13 +66,28 @@ export interface CommThread {
     leadId: string | null;
     labelId: string | null;
     archived: boolean;
+    /**
+     * DIRECT - zwykła rozmowa; FORM - jedno zgłoszenie z formularza na stronie (drugą
+     * stroną jest klient z Reply-To, nie robot formularza); SYSTEM - zwroty serwera poczty.
+     */
+    kind?: CommThreadKind;
+    /** Robot formularza, przez który przyszło zgłoszenie (tylko FORM). */
+    relayEmail?: string | null;
+    /** Krótki tytuł sprawy z odczytu zgłoszenia - lista pokazuje go zamiast tematu robota. */
+    title?: string | null;
+    /** Automat uznał zgłoszenie za spam albo test ze studia - zakładka „Odrzucone". */
+    screening?: CommThreadScreening | null;
+    screeningReason?: string | null;
 }
+
+export type CommThreadKind = 'DIRECT' | 'FORM' | 'SYSTEM';
+export type CommThreadScreening = 'SPAM' | 'INTERNAL';
 
 /**
  * Folder listy wątków. Wątek może być w obu naraz (klient napisał, my odpisaliśmy):
  * to dwa spojrzenia na tę samą rozmowę, nie przenoszenie między katalogami.
  */
-export type MailFolder = 'INBOX' | 'SENT';
+export type MailFolder = 'INBOX' | 'SENT' | 'REJECTED';
 
 export interface CommThreadPage {
     items: CommThread[];
@@ -112,11 +127,19 @@ export interface CommMessage {
      * konkretnej wiadomości, a nie przy wątku.
      */
     formLeadId?: string | null;
+    /** Adres z nagłówka Reply-To - tam odpowiada każdy program pocztowy. */
+    replyToEmail?: string | null;
 }
 
 export interface CommThreadDetail {
     thread: CommThread;
     messages: CommMessage[];
+    /**
+     * Dokąd pójdzie odpowiedź - ustalone na serwerze (Reply-To, potem nadawca; nigdy
+     * skrzynka studia ani robot formularza). null: nie wiadomo, adres trzeba wpisać.
+     */
+    replyAddress?: string | null;
+    replyName?: string | null;
 }
 
 export interface CommLabel {
@@ -150,6 +173,11 @@ export interface SendMailRequest {
     appendSignature?: boolean;
     /** Pliki z kompozytora; z nimi żądanie idzie jako multipart, bez nich jako JSON. */
     attachments?: File[];
+    /**
+     * Pierwsza wiadomość do klienta z leada, który nie ma jeszcze wątku (webhook
+     * formularza, telefon). Wątek powstały z wysyłki zostaje przypięty do leada.
+     */
+    leadId?: string;
 }
 
 /** Limity załączników wychodzących - lustro OutgoingAttachmentPolicy na backendzie. */

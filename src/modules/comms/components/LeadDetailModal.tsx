@@ -1574,6 +1574,18 @@ export function LeadDetailModal({
     /** Wątek istnieje i nie stoimy właśnie w nim. */
     const canWrite = showThreadLink && Boolean(lead.threadId);
     /*
+     * Lead bez wątku, ale z adresem e-mail - webhook formularza, zgłoszenie ze starego
+     * wielkiego wątku formularza. Dawniej nie było tu z czego odpisać: „Odpisz klientowi"
+     * wymagało wątku, a wątek powstawał wyłącznie z poczty przychodzącej. Teraz pierwsza
+     * wiadomość otwiera nową rozmowę i serwer przypina ją do leada.
+     */
+    const contactEmail = lead.contactIdentifier?.includes('@') ? lead.contactIdentifier.trim() : null;
+    const canCompose = showThreadLink && !lead.threadId && contactEmail !== null;
+    const openCompose = () =>
+        navigate(
+            `/communication?compose=1&to=${encodeURIComponent(contactEmail ?? '')}&lead=${encodeURIComponent(lead.id)}`
+        );
+    /*
      * Wiersz tożsamości niesie SAMO NAZWISKO.
      *
      * Stał tu jeszcze numer i adres. Oba są danymi kontaktowymi, czyli czymś, co
@@ -1590,6 +1602,8 @@ export function LeadDetailModal({
      */
     const identityName = lead.customerName?.trim() || lead.contactIdentifier;
     const openThread = () => navigate(`/communication?thread=${lead.threadId}`);
+    /** Dokąd prowadzi „Odpisz klientowi": do rozmowy, a bez niej - do nowej wiadomości. */
+    const writeToClient = canWrite ? openThread : canCompose ? openCompose : null;
     /**
      * Kalendarz nie ma trasy per rezerwacja: skacze się do niego z datą, żeby
      * najpierw trafił w odpowiedni miesiąc, a potem podświetlił wydarzenie.
@@ -2302,8 +2316,8 @@ export function LeadDetailModal({
                             );
                         }
                         if (closed) {
-                            return canWrite ? (
-                                <FooterPrimary type="button" onClick={openThread}>
+                            return writeToClient ? (
+                                <FooterPrimary type="button" onClick={writeToClient}>
                                     <span className="glyph"><Send /></span>
                                     <span className="labels">
                                         <span className="title">Napisz wiadomość</span>
@@ -2313,13 +2327,13 @@ export function LeadDetailModal({
                                 </FooterPrimary>
                             ) : null;
                         }
-                        if (replyTone === 'due' && canWrite) {
+                        if (replyTone === 'due' && writeToClient) {
                             return (
                                 <>
                                     <FooterButton type="button" onClick={openBooking}>
                                         <CalendarPlus size={17} /> Stwórz rezerwację
                                     </FooterButton>
-                                    <FooterPrimary type="button" onClick={openThread}>
+                                    <FooterPrimary type="button" onClick={writeToClient}>
                                         <span className="glyph"><Reply /></span>
                                         <span className="labels">
                                             <span className="title">Odpisz klientowi</span>

@@ -61,8 +61,15 @@ import {
 } from '../components/shared';
 
 /** Foldery w adresie: ?folder=sent - odświeżenie strony ma zastać ten sam widok. */
-const FOLDER_PARAM: Record<MailFolder, string | null> = { INBOX: null, SENT: 'sent' };
-const folderFromParam = (value: string | null): MailFolder => (value === 'sent' ? 'SENT' : 'INBOX');
+const FOLDER_PARAM: Record<MailFolder, string | null> = { INBOX: null, SENT: 'sent', REJECTED: 'rejected' };
+const folderFromParam = (value: string | null): MailFolder =>
+    value === 'sent' ? 'SENT' : value === 'rejected' ? 'REJECTED' : 'INBOX';
+
+/** Plakietka werdyktu automatu przy zgłoszeniu z formularza. */
+const SCREENING_LABEL: Record<NonNullable<CommThread['screening']>, string> = {
+    SPAM: 'Spam',
+    INTERNAL: 'Test ze studia',
+};
 
 // ── Media query hook ─────────────────────────────────────────────────────────
 
@@ -351,6 +358,8 @@ export default function MailView() {
     // „Napisz do tego klienta" z innego widoku: ?compose=1&to=adres otwiera
     // nową wiadomość z wpisanym odbiorcą zamiast pustej skrzynki.
     const composeTo = searchParams.get('to');
+    // …a z leada bez wątku także ?lead=id - rozmowa z tej wysyłki przypnie się do leada.
+    const composeLeadId = searchParams.get('lead');
     const [composeOpen, setComposeOpen] = useState(() => searchParams.get('compose') === '1');
     const { showInfo } = useToast();
 
@@ -392,7 +401,7 @@ export default function MailView() {
     // formularza po raz drugi.
     const closeCompose = useCallback(() => {
         setComposeOpen(false);
-        if (searchParams.get('compose') || searchParams.get('to')) {
+        if (searchParams.get('compose') || searchParams.get('to') || searchParams.get('lead')) {
             setSearchParams(paramsFor(folder, null), { replace: true });
         }
     }, [searchParams, setSearchParams, paramsFor, folder]);
@@ -597,6 +606,16 @@ export default function MailView() {
                             >
                                 Wysłane
                             </FilterChip>
+                            <FilterChip
+                                type="button"
+                                role="tab"
+                                aria-selected={folder === 'REJECTED'}
+                                $active={folder === 'REJECTED'}
+                                onClick={() => selectFolder('REJECTED')}
+                                title="Zgłoszenia z formularza, które automat uznał za spam albo test ze studia"
+                            >
+                                Odrzucone
+                            </FilterChip>
                         </FolderRow>
                     </ListHeader>
                     <ThreadListScroll>
@@ -606,7 +625,9 @@ export default function MailView() {
                                     ? 'Nic nie pasuje do wyszukiwania'
                                     : folder === 'SENT'
                                         ? 'Nie wysłano jeszcze żadnej wiadomości'
-                                        : 'Brak odebranych wiadomości'}
+                                        : folder === 'REJECTED'
+                                            ? 'Automat niczego nie odrzucił'
+                                            : 'Brak odebranych wiadomości'}
                             </EmptyHint>
                         )}
                         {(threadPage?.items ?? []).map((thread: CommThread) => (
@@ -628,11 +649,27 @@ export default function MailView() {
                                     </span>
                                     <span className="when">{formatRelativeTime(thread.lastMessageAt)}</span>
                                 </div>
-                                <div className="subject">{thread.subject ?? '(bez tematu)'}</div>
+                                {/* Zgłoszenia z formularza mają wspólny temat robota („Formularz
+                                    kontaktowy - …") - tytuł sprawy z odczytu odróżnia je od siebie. */}
+                                <div className="subject" title={thread.subject ?? undefined}>
+                                    {thread.title ?? thread.subject ?? '(bez tematu)'}
+                                </div>
                                 <div className="snippet">
                                     {thread.hasAttachments && <Paperclip size={11} />}
-                                    {formSenderEmails.has(thread.participantEmail.trim().toLowerCase()) && (
-                                        <Pill $bg="#eef2ff" $fg="#4338ca">Formularz</Pill>
+                                    {(thread.kind === 'FORM' ||
+                                        formSenderEmails.has(thread.participantEmail.trim().toLowerCase())) && (
+                                        <Pill
+                                            $bg="#eef2ff"
+                                            $fg="#4338ca"
+                                            title={thread.relayEmail ? `Zgłoszenie z formularza przez ${thread.relayEmail}` : undefined}
+                                        >
+                                            Formularz
+                                        </Pill>
+                                    )}
+                                    {thread.screening && (
+                                        <Pill $bg="#fffbeb" $fg="#b45309" title={thread.screeningReason ?? undefined}>
+                                            {SCREENING_LABEL[thread.screening]}
+                                        </Pill>
                                     )}
                                     {thread.leadId && <Pill $bg="#f0fdf4" $fg="#15803d">Lead</Pill>}
                                     {folder === 'SENT' && thread.inboundCount === 0 && (
@@ -698,6 +735,7 @@ export default function MailView() {
                         hiddenOnMobile={false}
                         isDesktop={isDesktop}
                         initialTo={composeTo ?? undefined}
+                        leadId={composeLeadId ?? undefined}
                         onClose={closeCompose}
                         onSent={openSentThread}
                     />
@@ -723,6 +761,11 @@ export default function MailView() {
                     <ConversationView
                         thread={openThread}
                         messages={openMessages}
+                        replyTarget={
+                            detailMatches
+                                ? { email: detail!.replyAddress ?? null, name: detail!.replyName ?? null }
+                                : undefined
+                        }
                         isDesktop={isDesktop}
                         hiddenOnMobile={!conversationOpen}
                         clientSummary={knownClient}

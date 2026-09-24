@@ -78,12 +78,14 @@ interface ComposePaneProps {
     isDesktop: boolean;
     /** Adres wpisany z góry - np. „napisz do tego klienta". */
     initialTo?: string;
+    /** Wiadomość pisana z leada bez wątku - powstała rozmowa zostanie przypięta do leada. */
+    leadId?: string;
     onClose: () => void;
     /** Wiadomość poszła - rodzic pokazuje nowy wątek (w folderze Wysłane). */
     onSent: (threadId: string) => void;
 }
 
-export function ComposePane({ hiddenOnMobile, isDesktop, initialTo, onClose, onSent }: ComposePaneProps) {
+export function ComposePane({ hiddenOnMobile, isDesktop, initialTo, leadId, onClose, onSent }: ComposePaneProps) {
     const { data: accounts } = useMailAccounts();
     const activeAccount = accounts?.find((account) => account.status !== 'DISABLED');
 
@@ -111,10 +113,15 @@ export function ComposePane({ hiddenOnMobile, isDesktop, initialTo, onClose, onS
                     <ReplyComposer
                         accountId={activeAccount.id}
                         initialTo={initialTo}
+                        leadId={leadId}
                         requireSubject
                         onSent={onSent}
                     />
-                    <Hint>Wysłana wiadomość utworzy nowy wątek w folderze Wysłane - wróci do Odebranych, gdy klient odpisze.</Hint>
+                    <Hint>
+                        {leadId
+                            ? 'Wysłana wiadomość zacznie korespondencję tego leada - odpowiedź klienta trafi do niej i na oś czasu leada.'
+                            : 'Wysłana wiadomość utworzy nowy wątek w folderze Wysłane - wróci do Odebranych, gdy klient odpisze.'}
+                    </Hint>
                 </Body>
             ) : (
                 <EmptyHint>Podłącz skrzynkę, żeby wysyłać wiadomości.</EmptyHint>
