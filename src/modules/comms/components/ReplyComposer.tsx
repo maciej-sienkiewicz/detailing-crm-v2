@@ -177,6 +177,16 @@ const RecipientToggle = styled.button`
     &:hover { color: #4b5563; }
 `;
 
+/**
+ * Dopisek przy odbiorcy - dokąd naprawdę pójdzie odpowiedź. Przy zgłoszeniu z
+ * formularza to informacja, której wcześniej brakowało: odpowiedź szła do robota
+ * (czyli do studia), a nikt tego nie widział, bo „wysłało się".
+ */
+const RecipientHint = styled.span<{ $warn?: boolean }>`
+    font-size: 12px;
+    color: ${p => (p.$warn ? p.theme.colors.warning : p.theme.colors.textMuted)};
+`;
+
 /** Przycisk korekty - obok „Wyślij", ale wizualnie wtórny wobec niego. */
 const ProofreadButton = styled.button`
     display: inline-flex;
@@ -319,6 +329,10 @@ interface ReplyComposerProps {
     initialTo?: string;
     /** Nazwa odbiorcy do dyskretnej etykiety, gdy pole „Do" jest schowane. */
     recipientLabel?: string;
+    /** Dopisek przy odbiorcy, np. „prosto do klienta, nie do formularza". */
+    recipientHint?: string;
+    /** Pierwsza wiadomość z leada bez wątku - wątek z tej wysyłki przypnie się do leada. */
+    leadId?: string;
     requireSubject?: boolean;
     /** Wywołane po wysłaniu - z id wątku, w którym wylądowała wiadomość. */
     onSent?: (threadId: string) => void;
@@ -329,6 +343,8 @@ export function ReplyComposer({
     accountId,
     initialTo,
     recipientLabel,
+    recipientHint,
+    leadId,
     requireSubject,
     onSent,
 }: ReplyComposerProps) {
@@ -356,6 +372,9 @@ export function ReplyComposer({
     // W wątku odbiorca jest oczywisty - pokazujemy go dopiero na żądanie.
     const replyInThread = Boolean(threadId) && Boolean(initialTo);
     const [recipientShown, setRecipientShown] = useState(!replyInThread);
+    // Odpowiedź w wątku, dla którego serwer nie ustalił klienta (np. stary wątek
+    // formularza) - zamiast podstawiać adres robota każemy go wpisać.
+    const recipientUnknown = Boolean(threadId) && !initialTo;
 
     const bodyEmpty = isComposerHtmlEmpty(body);
     const totalAttachmentBytes = attachments.reduce((sum, file) => sum + file.size, 0);
@@ -468,6 +487,7 @@ export function ReplyComposer({
             {
                 threadId,
                 accountId,
+                leadId,
                 to: to.split(',').map((address) => address.trim()).filter(Boolean),
                 subject: subject.trim() || undefined,
                 bodyHtml,
@@ -518,6 +538,12 @@ export function ReplyComposer({
                         disabled={replyInThread}
                     />
                 </MetaRow>
+            )}
+            {recipientUnknown && (
+                <RecipientHint $warn>
+                    Nie wiemy, kto jest klientem w tym wątku - wpisz jego adres. Adres studia
+                    i formularza na stronie nie zostanie przyjęty.
+                </RecipientHint>
             )}
             {requireSubject && (
                 <MetaRow>
@@ -599,6 +625,7 @@ export function ReplyComposer({
                             <AtSign size={11} /> Do: {recipientLabel ?? initialTo}
                         </RecipientToggle>
                     )}
+                    {replyInThread && recipientHint && <RecipientHint>{recipientHint}</RecipientHint>}
 
                     {hasSignature ? (
                         <SignatureToggle

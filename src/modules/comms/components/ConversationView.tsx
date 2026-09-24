@@ -41,6 +41,7 @@ import {
     Maximize2,
     Paperclip,
     MessagesSquare,
+    ShieldAlert,
     Sparkles,
     StickyNote,
     Tag,
@@ -253,6 +254,27 @@ const ClientBar = styled.button`
     @media (max-width: calc(${p => p.theme.breakpoints.md} - 1px)) {
         .cta { display: none; }
     }
+`;
+
+/**
+ * Pasek nad korespondencją z werdyktem automatu: to zgłoszenie uznał za spam albo za
+ * test ze studia. Bursztyn = „przeczytaj"; cofnięcie decyzji to krok następny
+ * w nagłówku („To jednak lead"), jedyny wypełniony element okna (CLAUDE.md §2).
+ */
+const ThreadNotice = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 9px 16px;
+    border-bottom: 1px solid #fde68a;
+    background: ${p => p.theme.colors.warningLight};
+    color: #92400e;
+    font-size: 13px;
+
+    .text { flex: 1; min-width: 220px; }
+    strong { font-weight: ${p => p.theme.fontWeights.semibold}; }
+    svg { flex-shrink: 0; }
 `;
 
 const MessagesScroll = styled.div`
@@ -584,10 +606,23 @@ const threadsLabel = (count: number): string => {
     return plural ? 'inne wątki' : 'innych wątków';
 };
 
+/** Adresat odpowiedzi ustalony przez serwer (Reply-To, potem nadawca). */
+export interface ConversationReplyTarget {
+    /** null: serwer nie wie, kto jest klientem - adres trzeba wpisać ręcznie. */
+    email: string | null;
+    name: string | null;
+}
+
 interface ConversationViewProps {
     thread: CommThread;
     /** null = treść wątku jeszcze się dociąga (nagłówek jest już poprawny). */
     messages: CommMessage[] | null;
+    /**
+     * Dokąd pójdzie odpowiedź - z serwera, razem z treścią wątku. undefined = jeszcze
+     * się dociąga: pole odpowiedzi czeka, zamiast podstawić drugą stronę wątku, która
+     * przy zgłoszeniu z formularza bywała adresem samego studia.
+     */
+    replyTarget?: ConversationReplyTarget;
     isDesktop: boolean;
     hiddenOnMobile: boolean;
     /** Rozpoznany klient z kartoteki - źródło paska nad korespondencją. */
@@ -601,6 +636,7 @@ interface ConversationViewProps {
 function ConversationViewImpl({
     thread,
     messages,
+    replyTarget,
     isDesktop,
     hiddenOnMobile,
     clientSummary,
@@ -640,6 +676,7 @@ function ConversationViewImpl({
         setMessageMenu({ x: event.clientX, y: event.clientY, messageId: message.id });
     };
     const openMessageLeadId = messageLead?.threadId === thread.id ? messageLead.leadId : null;
+
     // Oznaczeni nadawcy-formularze: jedna cache'owana lista na całą skrzynkę.
     // Z niej bierze się plakietka „Formularz" przy adresie robota.
     const { data: formSources } = useFormMailSources();
@@ -687,7 +724,9 @@ function ConversationViewImpl({
           ? bookAction
           : {
                 key: 'lead',
-                label: 'Oznacz jako lead',
+                // Automat odrzucił zgłoszenie - to samo „Oznacz jako lead", ale nazwane
+                // tym, czym jest w tej chwili: cofnięciem jego decyzji.
+                label: thread.screening ? 'To jednak lead' : 'Oznacz jako lead',
                 icon: <Tag />,
                 onSelect: () => setLeadPopoverThreadId(thread.id),
             };
@@ -717,9 +756,22 @@ function ConversationViewImpl({
     // Do odczytu idzie ostatnia wiadomość PRZYCHODZĄCA - wątek formularza potrafi
     // zbierać zgłoszenia wielu klientów pod wspólnym tematem, więc liczy się
     // konkretna wiadomość, nie wątek.
+    //
+    // W wątku jednego zgłoszenia (FORM) ostatnią przychodzącą bywa odpis klienta - a
+    // „Lead z formularza" rejestruje NADAWCĘ oznaczonej wiadomości jako robota. Bierzemy
+    // więc ostatnią wiadomość od robota, inaczej robotem zostałby klient.
+    const formRobot = thread.kind === 'FORM' ? thread.relayEmail?.trim().toLowerCase() ?? null : null;
     const latestInboundId = useMemo(
-        () => (messages ?? []).slice().reverse().find((m) => m.direction === 'INBOUND')?.id ?? null,
-        [messages]
+        () =>
+            (messages ?? [])
+                .slice()
+                .reverse()
+                .find(
+                    (m) =>
+                        m.direction === 'INBOUND' &&
+                        (formRobot === null || m.fromEmail.trim().toLowerCase() === formRobot)
+                )?.id ?? null,
+        [messages, formRobot]
     );
 
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -808,13 +860,21 @@ function ConversationViewImpl({
                     </IconButton>
                 )}
                 <div className="titles">
-                    <h3 title={thread.subject ?? undefined}>{thread.subject ?? '(bez tematu)'}</h3>
+                    <h3 title={thread.subject ?? undefined}>{thread.title ?? thread.subject ?? '(bez tematu)'}</h3>
                     <div className="sub">
                         {/* Jedyne miejsce w widoku, w którym stoi adres uczestnika. */}
-                        <span className="identity" title={thread.participantEmail}>
+                        <span
+                            className="identity"
+                            title={
+                                thread.kind === 'FORM' && thread.relayEmail
+                                    ? `${thread.participantEmail} - zgłoszenie z formularza przez ${thread.relayEmail}`
+                                    : thread.participantEmail
+                            }
+                        >
                             {thread.participantName
                                 ? `${thread.participantName} · ${thread.participantEmail}`
                                 : thread.participantEmail}
+                            {thread.kind === 'FORM' && ' · z formularza'}
                         </span>
                     </div>
                 </div>
@@ -984,7 +1044,7 @@ function ConversationViewImpl({
                 )}
                 {formLeadOpen && (
                     <MarkAsFormLeadModal
-                        senderEmail={thread.participantEmail}
+                        senderEmail={formRobot ?? thread.participantEmail}
                         messageId={latestInboundId}
                         onClose={() => setFormLeadThreadId(null)}
                     />
@@ -1026,6 +1086,21 @@ function ConversationViewImpl({
                     <span className="cta">Kliknij i dowiedz się więcej</span>
                     <ChevronRight size={14} />
                 </ClientBar>
+            )}
+
+            {thread.screening && (
+                <ThreadNotice role="status">
+                    <ShieldAlert size={15} />
+                    <span className="text">
+                        <strong>
+                            {thread.screening === 'SPAM'
+                                ? 'Automat uznał to zgłoszenie za spam'
+                                : 'Automat uznał to zgłoszenie za test ze studia'}
+                        </strong>
+                        {thread.screeningReason ? ` - ${thread.screeningReason}` : ''}. Jeśli to klient,
+                        kliknij „To jednak lead".
+                    </span>
+                </ThreadNotice>
             )}
 
             <MessagesScroll ref={scrollRef}>
@@ -1210,12 +1285,22 @@ function ConversationViewImpl({
                 />
             )}
 
-            <ReplyComposer
-                key={thread.id}
-                threadId={thread.id}
-                initialTo={thread.participantEmail}
-                recipientLabel={thread.participantName ?? thread.participantEmail}
-            />
+            {/* Adresata zna dopiero serwer (Reply-To zgłoszenia, nigdy adres studia ani
+                robota) - pole odpowiedzi montujemy, gdy go poda. Zwroty serwera poczty
+                nie mają komu odpowiadać. */}
+            {replyTarget && thread.kind !== 'SYSTEM' && (
+                <ReplyComposer
+                    key={`${thread.id}:${replyTarget.email ?? ''}`}
+                    threadId={thread.id}
+                    initialTo={replyTarget.email ?? ''}
+                    recipientLabel={replyTarget.name ?? replyTarget.email ?? undefined}
+                    recipientHint={
+                        thread.kind === 'FORM'
+                            ? 'zgłoszenie z formularza - odpowiedź trafi prosto do klienta'
+                            : undefined
+                    }
+                />
+            )}
         </Pane>
     );
 }

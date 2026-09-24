@@ -407,11 +407,15 @@ export const useSendMail = () => {
             ...request
         }: SendMailRequest & { onUploadProgress?: (fraction: number) => void }) =>
             commsApi.send(request, onUploadProgress),
-        onSuccess: (result) => {
+        onSuccess: (result, request) => {
             queryClient.invalidateQueries({
                 queryKey: [...COMMS_THREADS_KEY, 'detail', result.threadId],
             });
             queryClient.invalidateQueries({ queryKey: [...COMMS_THREADS_KEY, 'list'] });
+            // Pierwsza wiadomość z leada bez wątku przypięła mu wątek - lead ma to
+            // zobaczyć (odtąd „Odpisz klientowi" prowadzi do tej rozmowy). Klucz wprost,
+            // bez importu z useLeads, który sam importuje stąd.
+            if (request.leadId) queryClient.invalidateQueries({ queryKey: ['leads'] });
         },
     });
 };
