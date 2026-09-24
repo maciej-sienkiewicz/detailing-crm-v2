@@ -2,18 +2,20 @@
  * „Drukuj wykaz" — wykaz usług wizyty do wydruku (A4), w tym samym systemie
  * wizualnym co systemowe protokoły przyjęcia i wydania pojazdu
  * (backend: templates/protokol_przyjecia_pojazdu.html): granatowe belki,
- * szare pola, slot logo 200 x 56 pt w lewym górnym rogu, wymiary w pt.
+ * szare pola, slot logo w lewym górnym rogu, wymiary w pt.
  *
  * Wykaz celowo NIE zawiera cen - to kartka dla warsztatu i klienta z zakresem
  * prac, nie dokument rozliczeniowy. Dlatego builder w ogóle nie dostaje kwot.
  *
- * W odróżnieniu od protokołów (jedna sztywna strona) wykaz ma zmienną długość,
- * więc treść płynie przez kolejne strony A4 zamiast być ucinana.
+ * Wykaz ma się mieścić na JEDNEJ kartce: usługi i mapa uszkodzeń stoją obok
+ * siebie, a gdy treść i tak jest dłuższa niż strona, `printServicesList`
+ * proporcjonalnie ją zmniejsza (do MIN_FIT_ZOOM). Dopiero poniżej tej skali tekst
+ * byłby nieczytelny - wtedy wydruk przechodzi na kolejną stronę.
  */
 
 import interLatinUrl from '@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url';
 import interLatinExtUrl from '@fontsource-variable/inter/files/inter-latin-ext-wght-normal.woff2?url';
-import type { ServiceLineItem, Visit } from '../types';
+import type { DamagePoint, ServiceLineItem, Visit, VisitDamageMapResponse } from '../types';
 
 export interface ServicesListPrintData {
     visitNumber: string;
@@ -25,6 +27,8 @@ export interface ServicesListPrintData {
     brand: string;
     model: string;
     licensePlate: string;
+    /** Przebieg przy przyjęciu, km. */
+    mileage: number | null;
     company: {
         name: string | null;
         street: string | null;
@@ -35,13 +39,28 @@ export interface ServicesListPrintData {
     services: ServiceLineItem[];
     /** Notatka techniczna wizyty; pusta = sekcja się nie drukuje. */
     technicalNotes: string | null;
+    /** Mapa uszkodzeń; null albo brak punktów = sekcja się nie drukuje. */
+    damageMap: {
+        /** Sylwetka nadwozia - ta sama grafika co w edytorze mapy. */
+        imageUrl: string;
+        points: Pick<DamagePoint, 'x' | 'y' | 'note'>[];
+    } | null;
 }
 
 /** Pola wizyty potrzebne do wydruku wykazu. */
 export type VisitForServicesListPrint = Pick<
     Visit,
-    'visitNumber' | 'scheduledDate' | 'estimatedCompletionDate' | 'pickupDate' | 'vehicle' | 'technicalNotes'
+    'visitNumber' | 'scheduledDate' | 'estimatedCompletionDate' | 'pickupDate' | 'vehicle'
+    | 'technicalNotes' | 'mileageAtArrival' | 'services'
 >;
+
+const VEHICLE_BODY_TYPES = ['cabrio', 'coupe', 'hatchback', 'kombi', 'sedan', 'suv', 'van'] as const;
+
+/** Ta sama sylwetka co w VehicleDamageMapper; nieznany typ = sedan, jak w edytorze. */
+export const damageMapImagePath = (vehicleType: string | null | undefined): string => {
+    const type = (VEHICLE_BODY_TYPES as readonly string[]).includes(vehicleType ?? '') ? vehicleType : 'sedan';
+    return `/assets/${type}.webp`;
+};
 
 const escapeHtml = (value: string): string =>
     value
@@ -68,6 +87,12 @@ const formatInstant = (iso: string | null, withTime: boolean): string => {
 
 /** Daty przyjęcia i wydania drukujemy bez godzin. */
 const formatDate = (iso: string | null): string => formatInstant(iso, false);
+
+const formatMileage = (km: number | null): string =>
+    typeof km === 'number' && km > 0 ? `${new Intl.NumberFormat('pl-PL').format(km)} km` : '—';
+
+/** Pozycja w procentach, przycięta do obrazka - punkt poza kartką nic nie mówi. */
+const pct = (value: number): string => `${Math.min(100, Math.max(0, Number(value) || 0))}%`;
 
 const pendingLabel = (service: ServiceLineItem): string | null => {
     const isPending = service.hasPendingChange ?? service.status === 'PENDING';
@@ -105,9 +130,24 @@ const renderService = (service: ServiceLineItem): string => {
     </li>`;
 };
 
+const renderDamageMap = (map: NonNullable<ServicesListPrintData['damageMap']>): string => `
+  <div class="damage">
+    <div class="tab">MAPA USZKODZEŃ</div>
+    <div class="damage-figure">
+      <img src="${escapeHtml(map.imageUrl)}" alt="">
+      ${map.points.map((p, i) => `
+      <span class="marker" style="left:${pct(p.x)};top:${pct(p.y)}">${i + 1}</span>`).join('')}
+    </div>
+    <ol class="damage-notes">
+      ${map.points.map((p, i) => `
+      <li><span class="num">${i + 1}</span><span class="txt">${p.note?.trim() ? multiline(p.note.trim()) : '<em>bez opisu</em>'}</span></li>`).join('')}
+    </ol>
+  </div>`;
+
 export const buildServicesListHtml = (data: ServicesListPrintData, fontUrls?: { latin: string; latinExt: string }): string => {
     const services = printableServices(data.services);
     const technicalNotes = data.technicalNotes?.trim() || null;
+    const damageMap = data.damageMap && data.damageMap.points.length > 0 ? data.damageMap : null;
     const company = data.company;
     const providerLines = company
         ? [company.name, company.street, [company.postalCode, company.city].filter(Boolean).join(' ')]
@@ -133,6 +173,14 @@ export const buildServicesListHtml = (data: ServicesListPrintData, fontUrls?: { 
     unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
   }` : '';
 
+    const servicesBlock = `
+    <div class="scope">
+      <div class="tab">ZAKRES USŁUG</div>
+      ${services.length > 0
+        ? `<ol class="services">${services.map(renderService).join('')}</ol>`
+        : '<div class="empty">Brak usług w wizycie.</div>'}
+    </div>`;
+
     return `<!DOCTYPE html>
 <html lang="pl">
 <head>
@@ -143,6 +191,7 @@ export const buildServicesListHtml = (data: ServicesListPrintData, fontUrls?: { 
     --navy:  #111729; /* granatowe belki nagłówków */
     --gray:  #EDEEEE; /* szare pola formularza */
     --ink:   #080606; /* kolor tekstu */
+    --damage: #DC2626; /* znacznik uszkodzenia - ten sam czerwony co w edytorze mapy */
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -155,13 +204,14 @@ export const buildServicesListHtml = (data: ServicesListPrintData, fontUrls?: { 
     background: #fff;
   }
 
-  /* Protokoły mają margines 0 i jedną sztywną stronę; wykaz płynie przez
-     kolejne strony, więc górny/dolny margines daje oddech stronom 2+. */
-  @page { size: A4; margin: 12pt 0 24pt 0; }
+  /* Pionowy margines strony zamiast paddingu .page: gdy wykaz mimo zmniejszenia
+     przejdzie na drugą kartkę, ta też dostaje oddech u góry i u dołu. */
+  @page { size: A4; margin: 14pt 0; }
 
   .page {
     position: relative;
     width: 595.44pt;
+    margin: 0 auto;              /* po zmniejszeniu (fitToOnePage) kartka zostaje na środku */
     padding: 0 29.76pt 0 30.24pt;
     background: #fff;
   }
@@ -187,13 +237,13 @@ export const buildServicesListHtml = (data: ServicesListPrintData, fontUrls?: { 
   }
 
   /* ============ Nagłówek: logo + USŁUGODAWCA (jak w protokołach) ============ */
-  .header { position: relative; height: 56.65pt; }
+  .header { position: relative; height: 50pt; }
   .company-logo {
     position: absolute;
     left: -0.94pt;
-    top: 2.42pt;
+    top: 0;
     width: 200pt;
-    height: 56pt;
+    height: 50pt;
     display: flex;
     align-items: flex-start;
     justify-content: flex-start;
@@ -209,7 +259,7 @@ export const buildServicesListHtml = (data: ServicesListPrintData, fontUrls?: { 
   .header .provider {
     position: absolute;
     right: 0;
-    top: 10.32pt;
+    top: 0;
     width: 160pt;
   }
   .header .provider .box {
@@ -224,7 +274,7 @@ export const buildServicesListHtml = (data: ServicesListPrintData, fontUrls?: { 
   .title-row {
     display: flex;
     align-items: center;
-    margin: 9.39pt 0 0 -30.24pt;
+    margin: 6pt 0 0 -30.24pt;
     height: 18.15pt;
   }
   .title-row .accent {
@@ -246,7 +296,7 @@ export const buildServicesListHtml = (data: ServicesListPrintData, fontUrls?: { 
   .meta-row {
     display: flex;
     gap: 14pt;
-    margin-top: 23.57pt;
+    margin-top: 12pt;
   }
   .meta-col .box {
     display: flex;
@@ -261,21 +311,23 @@ export const buildServicesListHtml = (data: ServicesListPrintData, fontUrls?: { 
   .meta-col.c3 { width: 160pt; }
 
   /* ============ POJAZD ============ */
-  .vehicle { margin-top: 15.85pt; }
+  .vehicle { margin-top: 12pt; }
   .vehicle .tab { width: 48.72pt; }
   .vehicle-fields {
     display: flex;
-    justify-content: space-between;
+    gap: 12pt;
     margin-top: 4.71pt;
   }
-  .field-row { display: flex; align-items: center; }
+  .field-row { display: flex; align-items: center; min-width: 0; }
   .field-row label {
     font-size: 8pt;
     line-height: 1.21;
     white-space: nowrap;
-    margin-right: 6.87pt;
+    margin-right: 5pt;
   }
   .field-row .box {
+    flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
     height: 18.42pt;
@@ -283,23 +335,32 @@ export const buildServicesListHtml = (data: ServicesListPrintData, fontUrls?: { 
     white-space: nowrap;
     overflow: hidden;
   }
-  .field-row.brand .box { width: 150pt; }
-  .field-row.model .box { width: 150pt; }
-  .field-row.plate .box { width: 90pt; }
+  .field-row.brand   { flex: 1.1; }
+  .field-row.model   { flex: 1.4; }
+  .field-row.plate   { flex: 0.9; }
+  .field-row.mileage { flex: 0.9; }
 
-  /* ============ ZAKRES USŁUG ============ */
-  .scope { margin-top: 15.85pt; }
+  /* ============ Usługi | mapa uszkodzeń ============ */
+  .body-row {
+    display: flex;
+    gap: 16pt;
+    align-items: flex-start;
+    margin-top: 12pt;
+  }
+  .body-row > .scope { flex: 1; min-width: 0; }
+  .body-row > .damage { width: 205pt; flex-shrink: 0; }
+
   .scope .tab { width: 83.76pt; }
 
   ol.services {
-    margin-top: 6pt;
+    margin-top: 4pt;
     list-style: none;
     counter-reset: service;
   }
   ol.services > li.service {
     position: relative;
     counter-increment: service;
-    padding: 5pt 6pt 5pt 24pt;
+    padding: 4pt 4pt 4pt 22pt;
     border-bottom: 0.75pt solid var(--gray);
     break-inside: avoid;
     page-break-inside: avoid;
@@ -307,8 +368,8 @@ export const buildServicesListHtml = (data: ServicesListPrintData, fontUrls?: { 
   ol.services > li.service::before {
     content: counter(service) ".";
     position: absolute;
-    left: 6pt;
-    top: 5pt;
+    left: 4pt;
+    top: 4pt;
     font-size: 9pt;
     font-weight: 600;
     color: var(--navy);
@@ -337,15 +398,15 @@ export const buildServicesListHtml = (data: ServicesListPrintData, fontUrls?: { 
     font-style: italic;
   }
   .package-caption {
-    margin-top: 3pt;
+    margin-top: 2pt;
     font-size: 7.5pt;
     line-height: 1.21;
   }
   ul.package-items {
-    margin-top: 2pt;
+    margin-top: 1pt;
     list-style: none;
     font-size: 8pt;
-    line-height: 1.35;
+    line-height: 1.3;
   }
   ul.package-items li {
     position: relative;
@@ -355,23 +416,87 @@ export const buildServicesListHtml = (data: ServicesListPrintData, fontUrls?: { 
     content: "";
     position: absolute;
     left: 3pt;
-    top: 0.52em;
+    top: 0.5em;
     width: 3pt;
     height: 3pt;
     background: var(--navy);
   }
   .note {
-    margin-top: 4pt;
-    padding: 3pt 4pt;
+    margin-top: 3pt;
+    padding: 2pt 4pt;
     background: var(--gray);
     font-family: 'Liberation Sans', Arial, Helvetica, sans-serif;
     font-size: 7.5pt;
     line-height: 1.2832;
   }
   .note-label { font-weight: 700; }
+  .empty {
+    margin-top: 6pt;
+    padding: 6pt;
+    background: var(--gray);
+    font-size: 8pt;
+  }
+
+  /* ============ Mapa uszkodzeń ============ */
+  /* Sylwetka jest kwadratowa, a punkty zapisane w procentach jej szerokości
+     i wysokości - dokładnie tak, jak w edytorze mapy (VehicleDamageMapper). */
+  .damage { break-inside: avoid; page-break-inside: avoid; }
+  .damage .tab { width: 100pt; }
+  .damage-figure {
+    position: relative;
+    margin-top: 4pt;
+    border: 0.75pt solid var(--gray);
+  }
+  .damage-figure img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .marker {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    width: 11pt;
+    height: 11pt;
+    border-radius: 50%;
+    background: var(--damage);
+    border: 1pt solid #fff;
+    color: #fff;
+    font-size: 6.5pt;
+    font-weight: 700;
+    line-height: 9pt;
+    text-align: center;
+  }
+  ol.damage-notes {
+    margin-top: 4pt;
+    list-style: none;
+    font-family: 'Liberation Sans', Arial, Helvetica, sans-serif;
+    font-size: 7.5pt;
+    line-height: 1.2832;
+  }
+  ol.damage-notes li {
+    display: flex;
+    gap: 4pt;
+    padding: 2pt 0;
+    border-bottom: 0.75pt solid var(--gray);
+  }
+  ol.damage-notes .num {
+    flex-shrink: 0;
+    width: 11pt;
+    height: 11pt;
+    border-radius: 50%;
+    background: var(--damage);
+    color: #fff;
+    font-family: 'Inter', Helvetica, Arial, sans-serif;
+    font-size: 6.5pt;
+    font-weight: 700;
+    line-height: 11pt;
+    text-align: center;
+  }
+  ol.damage-notes .txt { min-width: 0; overflow-wrap: anywhere; }
+
   /* ============ Notatka techniczna ============ */
   .technical {
-    margin-top: 15.85pt;
+    margin-top: 12pt;
     break-inside: avoid;
     page-break-inside: avoid;
   }
@@ -382,15 +507,8 @@ export const buildServicesListHtml = (data: ServicesListPrintData, fontUrls?: { 
     line-height: 1.2832;
   }
 
-  .empty {
-    margin-top: 6pt;
-    padding: 6pt;
-    background: var(--gray);
-    font-size: 8pt;
-  }
-
   .footer {
-    margin-top: 12pt;
+    margin-top: 10pt;
     font-size: 7pt;
     color: #555;
   }
@@ -434,14 +552,13 @@ export const buildServicesListHtml = (data: ServicesListPrintData, fontUrls?: { 
       <div class="field-row brand"><label>Marka</label><div class="box">${escapeHtml(data.brand || '—')}</div></div>
       <div class="field-row model"><label>Model</label><div class="box">${escapeHtml(data.model || '—')}</div></div>
       <div class="field-row plate"><label>Nr rej.</label><div class="box">${escapeHtml(data.licensePlate || '—')}</div></div>
+      <div class="field-row mileage"><label>Przebieg</label><div class="box">${escapeHtml(formatMileage(data.mileage))}</div></div>
     </div>
   </div>
 
-  <div class="scope">
-    <div class="tab">ZAKRES USŁUG</div>
-    ${services.length > 0
-        ? `<ol class="services">${services.map(renderService).join('')}</ol>`
-        : '<div class="empty">Brak usług w wizycie.</div>'}
+  <div class="body-row">
+    ${servicesBlock}
+    ${damageMap ? renderDamageMap(damageMap) : ''}
   </div>
 ${technicalNotes ? `
   <div class="technical">
@@ -476,8 +593,10 @@ export const companyForPrint = (company: {
 
 export const servicesListPrintData = (
     visit: VisitForServicesListPrint,
-    services: ServiceLineItem[],
     company: ServicesListPrintData['company'],
+    damageMap: Pick<VisitDamageMapResponse, 'damagePoints' | 'vehicleType'> | null = null,
+    /** Zamienia ścieżkę sylwetki na adres, który otworzy się w ramce wydruku. */
+    resolveUrl: (path: string) => string = path => path,
 ): ServicesListPrintData => ({
     visitNumber: visit.visitNumber,
     receivedAt: visit.scheduledDate ?? null,
@@ -486,15 +605,28 @@ export const servicesListPrintData = (
     brand: visit.vehicle?.brand ?? '',
     model: visit.vehicle?.model ?? '',
     licensePlate: visit.vehicle?.licensePlate ?? '',
+    mileage: visit.mileageAtArrival ?? null,
     company,
-    services,
+    services: visit.services ?? [],
     technicalNotes: visit.technicalNotes ?? null,
+    damageMap: damageMap && damageMap.damagePoints.length > 0
+        ? {
+            imageUrl: resolveUrl(damageMapImagePath(damageMap.vehicleType)),
+            points: damageMap.damagePoints.map(p => ({ x: p.x, y: p.y, note: p.note })),
+        }
+        : null,
 });
+
+/** Poniżej tej skali tekst na kartce przestaje być czytelny - wtedy lepsza druga strona. */
+const MIN_FIT_ZOOM = 0.6;
+/** Wysokość A4 minus pionowe marginesy @page (2 x 14pt), w pikselach CSS (96 dpi). */
+const PRINTABLE_HEIGHT_PX = (841.92 - 28) * (96 / 72);
 
 /**
  * Drukuje dokument w ukrytym iframe - bez nowej karty i bez blokady wyskakujących
- * okien. Czeka na fonty i logo, bo `print()` wywołane wcześniej drukuje pustą
- * ramkę na logo i font zastępczy.
+ * okien. Czeka na fonty i obrazy (logo, sylwetka mapy), bo `print()` wywołane
+ * wcześniej drukuje puste ramki i font zastępczy; potem dopasowuje skalę tak,
+ * żeby całość zmieściła się na jednej kartce.
  */
 export const printServicesList = (data: ServicesListPrintData): void => {
     const fontUrls = {
@@ -505,7 +637,8 @@ export const printServicesList = (data: ServicesListPrintData): void => {
 
     const iframe = document.createElement('iframe');
     iframe.setAttribute('aria-hidden', 'true');
-    iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+    // Poza ekranem, ale z prawdziwymi wymiarami - dopasowanie skali mierzy wysokość treści.
+    iframe.style.cssText = 'position:fixed;left:-10000px;top:0;width:820px;height:1200px;border:0;';
     document.body.appendChild(iframe);
 
     const cleanup = () => {
@@ -527,7 +660,7 @@ export const printServicesList = (data: ServicesListPrintData): void => {
             ? Promise.resolve()
             : new Promise<void>(resolve => {
                 img.addEventListener('load', () => resolve(), { once: true });
-                // Wygasły podpisany link S3: drukujemy bez logo, zamiast pustej ramki.
+                // Wygasły podpisany link S3: drukujemy bez obrazka, zamiast pustej ramki.
                 img.addEventListener('error', () => { img.remove(); resolve(); }, { once: true });
             }),
     );
@@ -535,10 +668,21 @@ export const printServicesList = (data: ServicesListPrintData): void => {
     const timeout = new Promise<void>(resolve => window.setTimeout(resolve, 4000));
 
     void Promise.race([Promise.all([fonts, ...images]), timeout]).then(() => {
+        fitToOnePage(doc);
         win.addEventListener('afterprint', cleanup, { once: true });
         win.focus();
         win.print();
         // Safari na iOS nie zawsze wysyła afterprint.
         window.setTimeout(cleanup, 60_000);
     });
+};
+
+/** Zmniejsza całą kartkę proporcjonalnie, gdy treść jest wyższa niż jedna strona A4. */
+const fitToOnePage = (doc: Document): void => {
+    const page = doc.querySelector<HTMLElement>('.page');
+    if (!page) return;
+    const height = page.scrollHeight;
+    if (height <= PRINTABLE_HEIGHT_PX) return;
+    const zoom = Math.max(MIN_FIT_ZOOM, Math.floor((PRINTABLE_HEIGHT_PX / height) * 1000) / 1000);
+    page.style.setProperty('zoom', String(zoom));
 };
