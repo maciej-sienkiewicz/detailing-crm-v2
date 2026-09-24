@@ -12,7 +12,10 @@ import type {
     CommThreadPage,
     CommThreadUpdatedPayload,
     DashboardSocketEvent,
+    MailSignature,
+    SaveMailSignaturePayload,
     SendMailRequest,
+    SignatureImageKind,
     ThreadListFilters,
 } from '../types';
 
@@ -571,8 +574,7 @@ export const useMailSignature = () =>
 export const useSaveMailSignature = () => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ bodyHtml, enabledByDefault }: { bodyHtml: string; enabledByDefault: boolean }) =>
-            commsApi.saveSignature(bodyHtml, enabledByDefault),
+        mutationFn: (payload: SaveMailSignaturePayload) => commsApi.saveSignature(payload),
         onSuccess: (signature) => queryClient.setQueryData(COMMS_SIGNATURE_KEY, signature),
     });
 };
@@ -581,7 +583,19 @@ export const useDeleteMailSignature = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: commsApi.deleteSignature,
+        // Katalog ikon i podpowiedzi zostają - usuwamy stopkę, nie konfigurację kreatora.
         onSuccess: () =>
-            queryClient.setQueryData(COMMS_SIGNATURE_KEY, { bodyHtml: null, enabledByDefault: false }),
+            queryClient.setQueryData<MailSignature>(COMMS_SIGNATURE_KEY, previous =>
+                previous ? { ...previous, bodyHtml: null, enabledByDefault: false, design: null } : previous
+            ),
     });
 };
+
+export const useUploadSignatureImage = () =>
+    useMutation({
+        mutationFn: ({ file, kind }: { file: Blob; kind: SignatureImageKind }) =>
+            commsApi.uploadSignatureImage(file, kind),
+    });
+
+export const useCopyCompanyLogoToSignature = () =>
+    useMutation({ mutationFn: commsApi.copyCompanyLogoToSignature });

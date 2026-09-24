@@ -1,69 +1,204 @@
 // src/modules/comms/components/SignatureSettingsModal.tsx
-// Konfiguracja stopki zalogowanego użytkownika.
+// Stopka zalogowanego użytkownika: kreator z pięcioma motywami albo zwykły tekst.
 //
 // Stopka należy do osoby, nie do studia: z jednej skrzynki (biuro@…) odpisuje kilka
 // osób i każda podpisuje się własnym nazwiskiem i telefonem. Backend trzyma ją per
-// użytkownik i sam dokleja przy wysyłce - tu edytujemy treść i to, czy przełącznik
-// „Dodaj stopkę" ma startować włączony.
+// użytkownik i sam dokleja przy wysyłce - tu powstaje jej treść i decyzja, czy
+// przełącznik „Dodaj stopkę" ma startować włączony.
 //
-// Edycja jest tekstowa (linie zamieniamy na <br>), bo stopka to cztery linijki
-// danych kontaktowych, a nie dokument - pełny edytor WYSIWYG byłby tu ciężarem.
-import { useState } from 'react';
+// Kreator renderuje HTML motywu tym samym kodem, który rysuje podgląd
+// (utils/signatureTemplates.ts), i wysyła na serwer oba: HTML do wysyłki i projekt do
+// ponownej edycji. Stopka tekstowa zostaje dla tych, którzy wolą cztery linijki bez
+// ramek - i dla stopek zapisanych, zanim kreator powstał.
+import { useCallback, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
-import { Trash2 } from 'lucide-react';
-import { Modal } from '@/common/components/Modal';
+import { ArrowLeft, ArrowRight, Copy, Loader2, Trash2, Type, X } from 'lucide-react';
+import { ModalFooter, ModalHeader, ModalShell, ModalSubtitle, ModalTitle, ModalTitleGroup } from '@/common/components/ModalKit';
+import { ModalCloseButton } from '@/common/styles';
 import { useToast } from '@/common/components/Toast';
-import { useDeleteMailSignature, useMailSignature, useSaveMailSignature } from '../hooks/useComms';
+import { apiErrorMessage } from '@/modules/visits/api/apiError';
+import {
+    useCopyCompanyLogoToSignature,
+    useDeleteMailSignature,
+    useMailSignature,
+    useSaveMailSignature,
+} from '../hooks/useComms';
+import type { MailSignature } from '../types';
 import { IconButton, PrimaryButton } from './shared';
 import { signatureHtmlToText, signatureTextToHtml } from '../utils/signatureText';
+import {
+    createSignatureDesign,
+    getSignatureTemplate,
+    isHexColor,
+    isSignatureDesignComplete,
+    renderSignature,
+    type SignatureDesign,
+    type SignatureTemplateId,
+} from '../utils/signatureTemplates';
+import { SignaturePreview } from './signature/SignaturePreview';
+import { DetailsStep, ImagesStep, SocialStep, StyleStep, TemplateStep } from './signature/SignatureSteps';
+import { SIGNATURE_STEPS, type SignatureStepId } from './signature/designerSteps';
+import { StepHeader, StepHint, StepIcon, StepTitle, TextArea, LinkButton, brandTint } from './signature/designerStyles';
 
-const Body = styled.div`
+// ── Układ okna ───────────────────────────────────────────────────────────────
+
+const Layout = styled.div`
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 480px) minmax(0, 1fr);
+
+    /* Na wąskim ekranie kolumny idą jedna pod drugą i przewija się całość. Wiersze muszą
+       mieć wysokość treści: przy domyślnym rozciąganiu panel dostawał ułamek okna, a jego
+       treść wychodziła na podgląd. */
+    @media (max-width: 960px) {
+        grid-template-columns: minmax(0, 1fr);
+        grid-auto-rows: max-content;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+`;
+
+const Panel = styled.div`
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border-right: 1px solid ${p => p.theme.colors.border};
+
+    @media (max-width: 960px) {
+        min-height: auto;
+        border-right: 0;
+        border-bottom: 1px solid ${p => p.theme.colors.border};
+    }
+`;
+
+const Tabs = styled.nav`
+    display: flex;
+    gap: 2px;
+    padding: 0 16px;
+    border-bottom: 1px solid ${p => p.theme.colors.border};
+    overflow-x: auto;
+    flex-shrink: 0;
+`;
+
+/** Aktywny krok: podkreślenie i odcień marki - bez wypełnienia (jedno wypełnienie na okno). */
+const Tab = styled.button<{ $active: boolean; $done: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 8px;
+    border: 0;
+    border-bottom: 2px solid ${p => (p.$active ? 'var(--brand-primary)' : 'transparent')};
+    background: none;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: ${p => (p.$active ? p.theme.fontWeights.semibold : p.theme.fontWeights.medium)};
+    color: ${p => (p.$active ? p.theme.colors.text : p.theme.colors.textSecondary)};
+    white-space: nowrap;
+    cursor: pointer;
+
+    span {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        border: 1px solid ${p => (p.$active || p.$done ? 'var(--brand-primary)' : p.theme.colors.border)};
+        background: ${p => (p.$active ? brandTint(14) : p.theme.colors.surface)};
+        color: ${p => (p.$active || p.$done ? 'var(--brand-primary)' : p.theme.colors.textMuted)};
+    }
+`;
+
+const PanelBody = styled.div`
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 22px 24px 28px;
+
+    @media (max-width: 960px) {
+        overflow: visible;
+    }
+`;
+
+const PanelNav = styled.div`
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 12px 24px;
+    border-top: 1px solid ${p => p.theme.colors.border};
+    flex-shrink: 0;
+`;
+
+const Stage = styled.div`
     display: flex;
     flex-direction: column;
     gap: 14px;
-    padding: 4px 0 8px;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 22px 28px 28px;
+    background: ${p => p.theme.colors.surfaceAlt};
+
+    @media (max-width: 960px) {
+        overflow: visible;
+    }
 `;
 
-const Hint = styled.p`
-    margin: 0;
+const StageHead = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    h3 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        color: ${p => p.theme.colors.text};
+    }
+`;
+
+const Switch = styled.button<{ $on: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-family: inherit;
     font-size: 13px;
     color: ${p => p.theme.colors.textSecondary};
+    cursor: pointer;
+
+    .track {
+        width: 32px;
+        height: 18px;
+        border-radius: 9px;
+        padding: 2px;
+        background: ${p => (p.$on ? '#334155' : '#cbd5e1')};
+        transition: background ${p => p.theme.transitions.fast};
+    }
+    .knob {
+        display: block;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #ffffff;
+        transform: translateX(${p => (p.$on ? '14px' : '0')});
+        transition: transform ${p => p.theme.transitions.fast};
+    }
 `;
 
-const TextArea = styled.textarea`
-    width: 100%;
-    min-height: 140px;
-    resize: vertical;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.md};
-    padding: 12px 14px;
-    font-size: 14px;
-    font-family: inherit;
-    line-height: 1.6;
-    outline: none;
-    color: ${p => p.theme.colors.text};
-
-    &:focus { border-color: ${p => p.theme.colors.primary}; }
-`;
-
-const PreviewLabel = styled.div`
-    font-size: 11px;
-    font-weight: ${p => p.theme.fontWeights.semibold};
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: ${p => p.theme.colors.textMuted};
-`;
-
-const Preview = styled.div`
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.md};
-    background: ${p => p.theme.colors.surfaceAlt};
-    padding: 12px 14px;
-    font-size: 14px;
-    line-height: 1.6;
-    color: ${p => p.theme.colors.textSecondary};
-    min-height: 52px;
-    overflow-wrap: anywhere;
+const FooterStart = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-right: auto;
+    flex-wrap: wrap;
 `;
 
 const DefaultRow = styled.label`
@@ -74,17 +209,281 @@ const DefaultRow = styled.label`
     color: ${p => p.theme.colors.textSecondary};
     cursor: pointer;
 
-    input { width: 16px; height: 16px; accent-color: ${p => p.theme.colors.primary}; cursor: pointer; }
+    input { width: 16px; height: 16px; accent-color: var(--brand-primary); cursor: pointer; }
 `;
 
-const Actions = styled.div`
+const Loading = styled.div`
+    flex: 1;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding-top: 4px;
+    justify-content: center;
+    padding: 64px;
+    color: ${p => p.theme.colors.textMuted};
+
+    .spin { animation: sig-spin 0.9s linear infinite; }
+    @keyframes sig-spin { to { transform: rotate(360deg); } }
 `;
 
+const TextEditor = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+`;
+
+// ── Stan początkowy ──────────────────────────────────────────────────────────
+
+/** Kolor marki studia (ustawienia wyglądu) jako podpowiedź koloru przewodniego. */
+const readBrandColor = (): string | null => {
+    if (typeof window === 'undefined') return null;
+    const value = getComputedStyle(document.documentElement).getPropertyValue('--brand-primary').trim().toLowerCase();
+    return isHexColor(value) ? value : null;
+};
+
+type Mode = 'design' | 'text';
+
+interface DesignerProps {
+    signature: MailSignature;
+    onClose: () => void;
+}
+
+function SignatureDesigner({ signature, onClose }: DesignerProps) {
+    const saveSignature = useSaveMailSignature();
+    const deleteSignature = useDeleteMailSignature();
+    const copyCompanyLogo = useCopyCompanyLogoToSignature();
+    const { showSuccess, showError } = useToast();
+
+    const [brandColor] = useState(readBrandColor);
+    // Okno montuje się przy otwarciu (key w rodzicu), więc stan startowy bierzemy raz.
+    // Zapisana stopka tekstowa otwiera się jako tekst - kreator nie może jej po cichu
+    // zastąpić motywem przy pierwszym „Zapisz".
+    const [mode, setMode] = useState<Mode>(() =>
+        !signature.design && signature.bodyHtml ? 'text' : 'design'
+    );
+    const [design, setDesign] = useState<SignatureDesign>(() =>
+        signature.design ?? createSignatureDesign(signature.defaults, brandColor ?? undefined)
+    );
+    const [text, setText] = useState(() => (signature.design ? '' : signatureHtmlToText(signature.bodyHtml)));
+    const [enabledByDefault, setEnabledByDefault] = useState(signature.bodyHtml ? signature.enabledByDefault : true);
+    const [step, setStep] = useState<SignatureStepId>('template');
+    const [dark, setDark] = useState(false);
+    const [nameInvalid, setNameInvalid] = useState(false);
+    const logoAutofillTried = useRef(false);
+
+    const patch = useCallback((changes: Partial<SignatureDesign>) => {
+        setDesign(prev => ({ ...prev, ...changes }));
+        if ('fullName' in changes) setNameInvalid(false);
+    }, []);
+
+    const html = useMemo(
+        () => (isHexColor(design.color) ? renderSignature(design, signature.iconsBaseUrl) : null),
+        [design, signature.iconsBaseUrl]
+    );
+
+    /**
+     * Pierwszy wybór motywu z logo podstawia logo studia z ustawień firmy - to samo, które
+     * jest na protokołach. Raz: użytkownik, który je usunął, nie chce go z powrotem.
+     */
+    const selectTemplate = (id: SignatureTemplateId) => {
+        patch({ template: id });
+        const wantsLogo = getSignatureTemplate(id).images.includes('logoUrl');
+        if (!wantsLogo || design.logoUrl || !signature.defaults.hasCompanyLogo || logoAutofillTried.current) return;
+        logoAutofillTried.current = true;
+        copyCompanyLogo.mutate(undefined, {
+            onSuccess: url => setDesign(prev => (prev.logoUrl ? prev : { ...prev, logoUrl: url })),
+        });
+    };
+
+    const stepIndex = SIGNATURE_STEPS.findIndex(s => s.id === step);
+
+    const submit = () => {
+        const onError = (error: unknown) =>
+            showError('Nie udało się zapisać stopki', apiErrorMessage(error, 'Spróbuj ponownie za chwilę'));
+        const onSuccess = () => {
+            showSuccess('Stopka zapisana', 'Dołączysz ją przełącznikiem przy wysyłce');
+            onClose();
+        };
+
+        if (mode === 'text') {
+            if (!text.trim()) return;
+            saveSignature.mutate({ bodyHtml: signatureTextToHtml(text), enabledByDefault, design: null }, { onSuccess, onError });
+            return;
+        }
+        if (!isSignatureDesignComplete(design)) {
+            setNameInvalid(true);
+            setStep('details');
+            showError('Uzupełnij imię i nazwisko', 'To nagłówek każdego motywu stopki');
+            return;
+        }
+        if (!html) {
+            setStep('style');
+            showError('Nieprawidłowy kolor', 'Podaj kolor w postaci #RRGGBB');
+            return;
+        }
+        saveSignature.mutate({ bodyHtml: html, enabledByDefault, design }, { onSuccess, onError });
+    };
+
+    /**
+     * Ta sama stopka do wklejenia w Gmailu, Outlooku czy telefonie. Kopiujemy jako HTML:
+     * wklejona w ustawieniach podpisu zachowuje układ i obrazki (adresy są absolutne).
+     */
+    const copyToClipboard = async () => {
+        if (!html) return;
+        try {
+            if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
+                const plain = new DOMParser().parseFromString(html, 'text/html').body.innerText;
+                await navigator.clipboard.write([
+                    new ClipboardItem({
+                        'text/html': new Blob([html], { type: 'text/html' }),
+                        'text/plain': new Blob([plain], { type: 'text/plain' }),
+                    }),
+                ]);
+            } else {
+                await navigator.clipboard.writeText(html);
+            }
+            showSuccess('Stopka skopiowana', 'Wklej ją w ustawieniach podpisu w swojej poczcie');
+        } catch {
+            showError('Nie udało się skopiować', 'Przeglądarka zablokowała dostęp do schowka');
+        }
+    };
+
+    const remove = () =>
+        deleteSignature.mutate(undefined, {
+            onSuccess: () => {
+                showSuccess('Stopka usunięta');
+                onClose();
+            },
+        });
+
+    const hasSaved = Boolean(signature.bodyHtml);
+    const canSave = mode === 'text' ? Boolean(text.trim()) : true;
+
+    return (
+        <>
+            <Layout>
+                <Panel>
+                    {mode === 'design' ? (
+                        <>
+                            <Tabs aria-label="Kroki kreatora stopki">
+                                {SIGNATURE_STEPS.map((s, index) => (
+                                    <Tab
+                                        key={s.id}
+                                        type="button"
+                                        $active={s.id === step}
+                                        $done={index < stepIndex}
+                                        aria-current={s.id === step ? 'step' : undefined}
+                                        onClick={() => setStep(s.id)}
+                                    >
+                                        <span>{index + 1}</span>{s.label}
+                                    </Tab>
+                                ))}
+                            </Tabs>
+                            <PanelBody>
+                                {step === 'template' && (
+                                    <TemplateStep
+                                        design={design}
+                                        iconsBaseUrl={signature.iconsBaseUrl}
+                                        onSelect={selectTemplate}
+                                        onTextMode={() => setMode('text')}
+                                    />
+                                )}
+                                {step === 'details' && <DetailsStep design={design} onChange={patch} nameInvalid={nameInvalid} />}
+                                {step === 'style' && (
+                                    <StyleStep
+                                        design={design}
+                                        onChange={patch}
+                                        brandColor={brandColor}
+                                        iconsBaseUrl={signature.iconsBaseUrl}
+                                    />
+                                )}
+                                {step === 'images' && (
+                                    <ImagesStep
+                                        design={design}
+                                        onChange={patch}
+                                        companyLogoAvailable={signature.defaults.hasCompanyLogo}
+                                    />
+                                )}
+                                {step === 'social' && <SocialStep design={design} onChange={patch} />}
+                            </PanelBody>
+                            <PanelNav>
+                                <IconButton
+                                    type="button"
+                                    onClick={() => setStep(SIGNATURE_STEPS[stepIndex - 1].id)}
+                                    disabled={stepIndex === 0}
+                                >
+                                    <ArrowLeft /> Wstecz
+                                </IconButton>
+                                {stepIndex < SIGNATURE_STEPS.length - 1 && (
+                                    <IconButton type="button" onClick={() => setStep(SIGNATURE_STEPS[stepIndex + 1].id)}>
+                                        Dalej <ArrowRight />
+                                    </IconButton>
+                                )}
+                            </PanelNav>
+                        </>
+                    ) : (
+                        <PanelBody>
+                            <TextEditor>
+                                <StepHeader>
+                                    <StepIcon><Type /></StepIcon>
+                                    <div>
+                                        <StepTitle>Stopka tekstowa</StepTitle>
+                                        <StepHint>Każda linia to osobny wiersz stopki. Bez ramek, zdjęć i kolorów.</StepHint>
+                                    </div>
+                                </StepHeader>
+                                <TextArea
+                                    value={text}
+                                    onChange={event => setText(event.target.value)}
+                                    placeholder={'Jan Kowalski\nTwojaFirma\n123 123 123'}
+                                    aria-label="Treść stopki"
+                                    rows={8}
+                                />
+                                <LinkButton type="button" onClick={() => setMode('design')}>
+                                    ← Wybierz motyw graficzny
+                                </LinkButton>
+                            </TextEditor>
+                        </PanelBody>
+                    )}
+                </Panel>
+
+                <Stage>
+                    <StageHead>
+                        <h3>Podgląd na żywo</h3>
+                        <Switch type="button" role="switch" aria-checked={dark} $on={dark} onClick={() => setDark(!dark)}>
+                            <span className="track"><span className="knob" /></span>
+                            Ciemne tło
+                        </Switch>
+                    </StageHead>
+                    <SignaturePreview html={mode === 'design' ? html ?? '' : null} text={text} dark={dark} />
+                </Stage>
+            </Layout>
+
+            <ModalFooter>
+                <FooterStart>
+                    {hasSaved && (
+                        <IconButton type="button" onClick={remove} disabled={deleteSignature.isPending}>
+                            <Trash2 /> Usuń stopkę
+                        </IconButton>
+                    )}
+                    <DefaultRow>
+                        <input
+                            type="checkbox"
+                            checked={enabledByDefault}
+                            onChange={event => setEnabledByDefault(event.target.checked)}
+                        />
+                        Dołączaj stopkę domyślnie
+                    </DefaultRow>
+                </FooterStart>
+                {mode === 'design' && (
+                    <IconButton type="button" onClick={copyToClipboard} disabled={!html} title="Do wklejenia w Gmailu, Outlooku albo na telefonie">
+                        <Copy /> Kopiuj stopkę
+                    </IconButton>
+                )}
+                <PrimaryButton type="button" onClick={submit} disabled={saveSignature.isPending || !canSave}>
+                    {saveSignature.isPending ? 'Zapisywanie…' : 'Zapisz stopkę'}
+                </PrimaryButton>
+            </ModalFooter>
+        </>
+    );
+}
 
 interface SignatureSettingsModalProps {
     isOpen: boolean;
@@ -92,88 +491,28 @@ interface SignatureSettingsModalProps {
 }
 
 export function SignatureSettingsModal({ isOpen, onClose }: SignatureSettingsModalProps) {
-    const { data: signature } = useMailSignature();
-    const saveSignature = useSaveMailSignature();
-    const deleteSignature = useDeleteMailSignature();
-    const { showSuccess, showError } = useToast();
-
-    // Modal montuje się przy otwarciu (key w rodzicu), więc stan startowy
-    // bierzemy raz - bez efektu synchronizującego go z zapytaniem.
-    const [text, setText] = useState(() => signatureHtmlToText(signature?.bodyHtml ?? null));
-    const [enabledByDefault, setEnabledByDefault] = useState(signature?.enabledByDefault ?? true);
-
-    const submit = () => {
-        if (!text.trim()) return;
-        saveSignature.mutate(
-            { bodyHtml: signatureTextToHtml(text), enabledByDefault },
-            {
-                onSuccess: () => {
-                    showSuccess('Stopka zapisana', 'Dołączysz ją przełącznikiem przy wysyłce');
-                    onClose();
-                },
-                onError: () => showError('Nie udało się zapisać stopki', 'Spróbuj ponownie za chwilę'),
-            }
-        );
-    };
+    const { data: signature, isError } = useMailSignature();
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Twoja stopka">
-            <Body>
-                <Hint>
-                    Stopka jest przypisana do Ciebie, nie do skrzynki - inne osoby w studiu
-                    podpisują się własną.
-                </Hint>
-
-                <TextArea
-                    value={text}
-                    onChange={(event) => setText(event.target.value)}
-                    placeholder={'Jan Kowalski\nTwojaFirma\n123 123 123'}
-                    aria-label="Treść stopki"
-                />
-
-                <div>
-                    <PreviewLabel>Podgląd</PreviewLabel>
-                    <Preview>
-                        <div>--</div>
-                        {text.trim()
-                            ? text.split('\n').map((line, index) => <div key={index}>{line || ' '}</div>)
-                            : <span>Stopka jest pusta</span>}
-                    </Preview>
-                </div>
-
-                <DefaultRow>
-                    <input
-                        type="checkbox"
-                        checked={enabledByDefault}
-                        onChange={(event) => setEnabledByDefault(event.target.checked)}
-                    />
-                    Dołączaj stopkę domyślnie do nowych odpowiedzi
-                </DefaultRow>
-
-                <Actions>
-                    {signature?.bodyHtml ? (
-                        <IconButton
-                            onClick={() =>
-                                deleteSignature.mutate(undefined, {
-                                    onSuccess: () => {
-                                        setText('');
-                                        showSuccess('Stopka usunięta');
-                                        onClose();
-                                    },
-                                })
-                            }
-                            disabled={deleteSignature.isPending}
-                        >
-                            <Trash2 /> Usuń stopkę
-                        </IconButton>
-                    ) : (
-                        <span />
-                    )}
-                    <PrimaryButton onClick={submit} disabled={saveSignature.isPending || !text.trim()}>
-                        {saveSignature.isPending ? 'Zapisywanie…' : 'Zapisz stopkę'}
-                    </PrimaryButton>
-                </Actions>
-            </Body>
-        </Modal>
+        // Zamknięcie Escape'em albo kliknięciem w tło zgubiłoby kilka minut konfiguracji,
+        // a Escape w oknie kadru zamykałby oba okna naraz - dlatego tylko krzyżyk.
+        <ModalShell isOpen={isOpen} onClose={onClose} size="full" fillHeight dismissible={false}>
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>Twoja stopka e-mail</ModalTitle>
+                    <ModalSubtitle>
+                        Przypisana do Ciebie, nie do skrzynki - inne osoby w studiu podpisują się własną.
+                    </ModalSubtitle>
+                </ModalTitleGroup>
+                <ModalCloseButton type="button" onClick={onClose} aria-label="Zamknij">
+                    <X />
+                </ModalCloseButton>
+            </ModalHeader>
+            {signature ? (
+                <SignatureDesigner signature={signature} onClose={onClose} />
+            ) : (
+                <Loading>{isError ? 'Nie udało się wczytać stopki' : <Loader2 className="spin" />}</Loading>
+            )}
+        </ModalShell>
     );
 }

@@ -13,6 +13,8 @@ import type {
     MailAccountState,
     MarkFormLeadResult,
     MailSignature,
+    SaveMailSignaturePayload,
+    SignatureImageKind,
     ProviderDetectResult,
     SendMailRequest,
     ThreadContactBadges,
@@ -78,9 +80,26 @@ export const commsApi = {
         return data;
     },
 
-    saveSignature: async (bodyHtml: string, enabledByDefault: boolean): Promise<MailSignature> => {
-        const { data } = await apiClient.put('/v1/comms/signature', { bodyHtml, enabledByDefault });
+    saveSignature: async (payload: SaveMailSignaturePayload): Promise<MailSignature> => {
+        const { data } = await apiClient.put('/v1/comms/signature', payload, { skipErrorToast: true });
         return data;
+    },
+
+    /** Zdjęcie albo logo do stopki; zwraca stały, publiczny adres absolutny obrazka. */
+    uploadSignatureImage: async (file: Blob, kind: SignatureImageKind): Promise<string> => {
+        const form = new FormData();
+        form.append('file', file, file instanceof File ? file.name : `${kind}.png`);
+        const { data } = await apiClient.post(`/v1/comms/signature/images?kind=${kind}`, form, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            skipErrorToast: true,
+        });
+        return data.url;
+    },
+
+    /** Kopia logo studia (z ustawień firmy) jako logo stopki - adres nie zniknie po zmianie logo. */
+    copyCompanyLogoToSignature: async (): Promise<string> => {
+        const { data } = await apiClient.post('/v1/comms/signature/images/company-logo', undefined, { skipErrorToast: true });
+        return data.url;
     },
 
     deleteSignature: async (): Promise<void> => {

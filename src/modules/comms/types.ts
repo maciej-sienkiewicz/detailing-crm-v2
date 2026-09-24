@@ -4,6 +4,7 @@
 
 // ── Skrzynki ─────────────────────────────────────────────────────────────────
 
+import type { SignatureDesign } from './utils/signatureTemplates';
 export type MailAccountStatus = 'ACTIVE' | 'AUTH_FAILED' | 'DISABLED';
 
 export interface MailAccountState {
@@ -191,12 +192,37 @@ export const OUTGOING_ATTACHMENT_LIMITS = {
     ]),
 } as const;
 
+/** Podpowiedzi do pierwszego uruchomienia kreatora stopki: dane z konta i ze studia. */
+export interface MailSignatureDefaults {
+    fullName: string | null;
+    email: string | null;
+    phone: string | null;
+    company: string | null;
+    website: string | null;
+    address: string | null;
+    hasCompanyLogo: boolean;
+}
+
 /** Stopka nadawcy - należy do zalogowanego użytkownika, nie do studia. */
 export interface MailSignature {
     bodyHtml: string | null;
     /** Czy przełącznik „Dodaj stopkę" startuje włączony. */
     enabledByDefault: boolean;
+    /** Projekt z kreatora; `null` - stopka tekstowa albo brak stopki. */
+    design: SignatureDesign | null;
+    /** Absolutny katalog ikon stopki na backendzie (trafia do HTML-a wysyłanych maili). */
+    iconsBaseUrl: string;
+    defaults: MailSignatureDefaults;
 }
+
+export interface SaveMailSignaturePayload {
+    bodyHtml: string;
+    enabledByDefault: boolean;
+    /** Obecny = stopka z kreatora (bodyHtml to jej render); brak = stopka tekstowa. */
+    design?: SignatureDesign | null;
+}
+
+export type SignatureImageKind = 'photo' | 'logo';
 
 // ── Insights ─────────────────────────────────────────────────────────────────
 
