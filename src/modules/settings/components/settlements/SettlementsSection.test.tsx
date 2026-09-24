@@ -124,15 +124,14 @@ describe('SettlementsSection - zakładka Rozliczenia', () => {
         expect(within(await rowOf('Sierpień 2026')).queryByRole('button', { name: 'Zatwierdź' })).toBeNull();
     });
 
-    it('zatwierdzenie bez podpisu', async () => {
+    it('zatwierdzenie wymaga podpisu', async () => {
         renderSection();
         fireEvent.click(within(await rowOf('Wrzesień 2026')).getByRole('button', { name: 'Zatwierdź' }));
 
         const dialog = await screen.findByRole('dialog');
-        fireEvent.click(within(dialog).getByRole('button', { name: 'Zatwierdź' }));
-
-        await waitFor(() => expect(attendanceApi.approveAttendanceSheet).toHaveBeenCalledWith('sheet-sep', null));
-        expect(await screen.findByText('Lista obecności zatwierdzona')).toBeTruthy();
+        expect(within(dialog).queryByRole('button', { name: 'Zatwierdź' })).toBeNull();
+        expect((within(dialog).getByRole('button', { name: 'Podpisz i zatwierdź' }) as HTMLButtonElement).disabled).toBe(true);
+        expect(attendanceApi.approveAttendanceSheet).not.toHaveBeenCalled();
     });
 
     it('zatwierdzenie z podpisem wysyła podpis razem z zatwierdzeniem', async () => {
@@ -146,6 +145,7 @@ describe('SettlementsSection - zakładka Rozliczenia', () => {
         await waitFor(() =>
             expect(attendanceApi.approveAttendanceSheet).toHaveBeenCalledWith('sheet-sep', 'data:image/png;base64,PODPIS'),
         );
+        expect(await screen.findByText('Lista obecności zatwierdzona')).toBeTruthy();
     });
 
     it('usunięcie wymaga potwierdzenia', async () => {
