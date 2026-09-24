@@ -11,11 +11,7 @@ import { VisitCardLinkModal } from '@/modules/visit-card';
 import { usePermissions } from '@/core/permissions';
 import { useCapability } from '@/modules/subscription';
 import { HoverInfo } from '@/common/components/InfoTooltip';
-import { useToast } from '@/common/components/Toast';
-import { visitApi } from '@/modules/visits/api/visitApi';
-import { visitDetailQueryKey } from '@/modules/visits/hooks';
-import { companyForPrint, printServicesList, servicesListPrintData } from '@/modules/visits/utils/servicesListPrint';
-import { useCompanySettings } from '@/modules/settings/hooks/useCompany';
+import { usePrintServicesList } from '@/modules/visits/hooks/usePrintServicesList';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -957,10 +953,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
     const isAppointment = event.type === 'APPOINTMENT';
     const [closing, setClosing] = useState(false);
     const [isCardModalOpen, setIsCardModalOpen] = useState(false);
-    const [isPrinting, setIsPrinting] = useState(false);
-    const queryClient = useQueryClient();
-    const { company } = useCompanySettings();
-    const { showError } = useToast();
+    const { print: printServicesList, isPrinting } = usePrintServicesList();
     const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
     const [coords, setCoords] = useState(position);
@@ -1102,22 +1095,8 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
 
     const canDeleteEvent = can('VISITS_DELETE') && !!(isAppointment ? onDeleteAppointmentClick : onDeleteVisitClick);
 
-    // Kalendarz zna tylko nazwy usług - pakiety i komentarze są w szczegółach wizyty.
-    const handlePrintServicesList = async () => {
-        setIsPrinting(true);
-        try {
-            const detail = await queryClient.fetchQuery({
-                queryKey: visitDetailQueryKey(event.id),
-                queryFn: () => visitApi.getVisitDetail(event.id),
-                staleTime: 30_000,
-            });
-            printServicesList(servicesListPrintData(detail.visit, detail.visit.services, companyForPrint(company)));
-        } catch {
-            showError('Nie udało się przygotować wydruku', 'Spróbuj ponownie za chwilę.');
-        } finally {
-            setIsPrinting(false);
-        }
-    };
+    // Kalendarz zna tylko nazwy usług - pakiety, komentarze i mapę dociąga hook.
+    const handlePrintServicesList = () => { void printServicesList(event.id); };
 
     const isAllDay = isAppointment ? (event as AppointmentEventData).isAllDay : false;
     const eventTimeLabel = formatEventTime(event.startTime, event.endTime, isAllDay);

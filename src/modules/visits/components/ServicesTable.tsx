@@ -12,9 +12,7 @@ import {
 import type { EditedPrice } from '../utils/servicePriceEdits';
 import { formatCurrency, shouldAutoFocusInput } from '@/common/utils';
 import type { ServiceLineItem, VisitStatus } from '../types';
-import { companyForPrint, printServicesList, servicesListPrintData } from '../utils/servicesListPrint';
-import type { VisitForServicesListPrint } from '../utils/servicesListPrint';
-import { useCompanySettings } from '@/modules/settings/hooks/useCompany';
+import { usePrintServicesList } from '../hooks/usePrintServicesList';
 import type { ServicesChangesPayload } from '../types';
 import { useApproveServiceChange, useRejectServiceChange, useSaveServicesChanges } from '../hooks';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -1712,15 +1710,13 @@ interface ServicesTableProps {
     visitStatus?: VisitStatus;
     visitId?: string;
     highlightPending?: boolean;
-    /** Dane nagłówka wydruku „Drukuj wykaz"; bez nich pozycja menu się nie pokazuje. */
-    printVisit?: VisitForServicesListPrint;
 }
 
 const HEADER_MENU = '__header__';
 
-export const ServicesTable = ({ services, visitStatus, visitId, highlightPending, printVisit }: ServicesTableProps) => {
+export const ServicesTable = ({ services, visitStatus, visitId, highlightPending }: ServicesTableProps) => {
     const { calculateServicePrice } = useServicePricing();
-    const { company } = useCompanySettings();
+    const { print: printServicesList, isPrinting } = usePrintServicesList();
     const { saveServicesChanges, isSaving } = useSaveServicesChanges(visitId ?? '');
     const smsFeature = useFeature('SMS_EMAIL');
     const [upsellOpen, setUpsellOpen] = useState(false);
@@ -2184,12 +2180,11 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const canEdit = !pricesHidden && (visitStatus === 'IN_PROGRESS' || visitStatus === 'READY_FOR_PICKUP');
     const hasPendingServices = services.some(s => (s.hasPendingChange ?? (s.status === 'PENDING')));
     const showActionsCol = canEdit || hasPendingServices;
-    const canPrint = !!printVisit && services.length > 0;
+    const canPrint = !!visitId && services.length > 0;
 
     // Wykaz drukuje stan zapisany na serwerze - bez cen i bez niezapisanych zmian z edycji.
     const handlePrint = () => {
-        if (!printVisit) return;
-        printServicesList(servicesListPrintData(printVisit, services, companyForPrint(company)));
+        if (visitId) void printServicesList(visitId);
     };
     const bulkEligibleCount = services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING'))).length;
 
@@ -2268,7 +2263,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                     </>
                                     )}
                                     {canPrint && (
-                                    <ContextMenuItem onClick={() => { setOpenMenuId(null); handlePrint(); }}>
+                                    <ContextMenuItem disabled={isPrinting} onClick={() => { setOpenMenuId(null); handlePrint(); }}>
                                         Drukuj wykaz
                                     </ContextMenuItem>
                                     )}
