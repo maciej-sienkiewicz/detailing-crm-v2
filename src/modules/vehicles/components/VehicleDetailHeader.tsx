@@ -1,13 +1,12 @@
 // src/modules/vehicles/components/VehicleDetailHeader.tsx
 //
 // Nagłówek karty pojazdu - ten sam ciemny blok co nagłówek wizyty: logo marki na
-// jasnej płytce, nazwa, tablica, a pod spodem rząd faktów o historii auta.
+// jasnej płytce, nazwa, tablica, rocznik i kolor.
 //
-// Wcześniej te fakty stały pod nagłówkiem jako trzy osobne, wyniesione kafle
-// („Łączny przychód", „Zakończone wizyty", „Ostatnia wizyta") z etykietami 11px
-// wersalikami - trzy kolejne karty obok karty historii wizyt, więc żadna nie była
-// tematem okna (CLAUDE.md §2). Teraz są jednym rzędem w nagłówku, a kwota wraca
-// jako nagłówek karty wizyt.
+// Nagłówek nie powtarza faktów z sekcji pod nim. Był tu rząd „Ostatnia wizyta /
+// Przebieg / Właściciel", ale przebieg i właściciele stoją już w szynie obok,
+// a dla samej daty ostatniej wizyty nie warto rozciągać ciemnego bloku - trafiła
+// do „Danych pojazdu". Kwota wydana na auto jest nagłówkiem karty wizyt.
 //
 // W oknie jest jedno wypełnienie: „Nowa wizyta". Reszta akcji siedzi w ⋯.
 
@@ -143,47 +142,9 @@ const PrimaryAction = styled(Button)`
     @container vehicle-hero (max-width: 640px) { width: 100%; height: 48px; font-size: 15px; }
 `;
 
-/* Fakty o historii auta: etykieta nad wartością, bez wersalików i bez własnych kart. */
-const Facts = styled.dl`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px 32px;
-    margin: 0;
-    padding-top: 14px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-
-    @container vehicle-hero (max-width: 640px) {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px 16px;
-        padding-top: 12px;
-
-        /* Nieparzysty ostatni fakt (zwykle właściciel z długą nazwą) dostaje cały rząd. */
-        > div:last-child:nth-child(odd) { grid-column: 1 / -1; }
-    }
-`;
-
-const Fact = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-
-    dt { font-size: 12.5px; color: #94a3b8; }
-    dd { margin: 0; font-size: 15px; font-weight: 600; color: #fff; font-variant-numeric: tabular-nums; }
-    dd span { font-size: 12.5px; font-weight: 500; color: #94a3b8; }
-`;
-
-export interface VehicleFact {
-    label: string;
-    value: string;
-    hint?: string;
-}
-
 interface Props {
     vehicle: Vehicle;
     isArchived: boolean;
-    facts: VehicleFact[];
     onNewVisit: () => void;
     onEdit: () => void;
     onOwners: () => void;
@@ -191,7 +152,7 @@ interface Props {
     isDeleting?: boolean;
 }
 
-export function VehicleDetailHeader({ vehicle, isArchived, facts, onNewVisit, onEdit, onOwners, onDelete, isDeleting }: Props) {
+export function VehicleDetailHeader({ vehicle, isArchived, onNewVisit, onEdit, onOwners, onDelete, isDeleting }: Props) {
     const [heroRef, heroWidth] = useContainerWidth<HTMLElement>();
     const compact = heroWidth === null
         ? typeof window !== 'undefined' && window.innerWidth <= COMPACT_MAX_WIDTH
@@ -250,17 +211,6 @@ export function VehicleDetailHeader({ vehicle, isArchived, facts, onNewVisit, on
                         {!compact && primary}
                     </Actions>
                 </Top>
-
-                {facts.length > 0 && (
-                    <Facts>
-                        {facts.map(f => (
-                            <Fact key={f.label}>
-                                <dt>{f.label}</dt>
-                                <dd>{f.value}{f.hint && <span> {f.hint}</span>}</dd>
-                            </Fact>
-                        ))}
-                    </Facts>
-                )}
 
                 {compact && primary}
             </Inner>

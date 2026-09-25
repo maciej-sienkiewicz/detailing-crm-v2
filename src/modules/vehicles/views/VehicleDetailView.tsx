@@ -29,7 +29,7 @@ import { VehicleDocuments } from '../components/VehicleDocuments';
 import { VehiclePhotoGallery } from '../components/VehiclePhotoGallery';
 import { VehicleNotes } from '../components/VehicleNotes';
 import { VehicleComments } from '../components/VehicleComments';
-import { VehicleDetailHeader, type VehicleFact } from '../components/VehicleDetailHeader';
+import { VehicleDetailHeader } from '../components/VehicleDetailHeader';
 import { EditVehicleModal } from '../components/EditVehicleModal';
 import { EditOwnersModal } from '../components/EditOwnersModal';
 import { EntityActivityTimeline } from '@/modules/activity';
@@ -349,6 +349,11 @@ function visitStatus(status: string): { label: string; tone: PillTone } {
 const pad = (n: number) => String(n).padStart(2, '0');
 
 
+const LastVisitAgo = styled.span`
+    color: ${ui.textMuted};
+    font-weight: 400;
+`;
+
 function daysAgo(iso: string): string {
     const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
     if (days <= 0) return 'dziś';
@@ -418,21 +423,6 @@ export const VehicleDetailView = () => {
         ? [...historyEvents, ...deletedVisitEvents].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         : historyEvents;
     const shownEvents = showAllVisits ? allEvents : allEvents.slice(0, VISITS_COLLAPSED);
-
-    const primaryOwner = vehicle.owners.find(o => o.role === 'PRIMARY') ?? vehicle.owners[0] ?? null;
-    const facts: VehicleFact[] = [
-        {
-            label: 'Ostatnia wizyta',
-            value: lastVisit ? new Date(lastVisit).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'jeszcze nie było',
-            hint: lastVisit ? daysAgo(lastVisit) : undefined,
-        },
-        ...(vehicle.currentMileage ? [{ label: 'Przebieg', value: `${vehicle.currentMileage.toLocaleString('pl-PL')} km` }] : []),
-        ...(primaryOwner ? [{
-            label: vehicle.owners.length > 1 ? 'Właściciele' : 'Właściciel',
-            value: primaryOwner.customerName,
-            hint: vehicle.owners.length > 1 ? `i ${vehicle.owners.length - 1} ${vehicle.owners.length === 2 ? 'inny' : 'innych'}` : undefined,
-        }] : []),
-    ];
 
     const startVisit = () => {
         const singleOwner = vehicle.owners.length === 1 ? vehicle.owners[0] : null;
@@ -508,7 +498,6 @@ export const VehicleDetailView = () => {
                 <VehicleDetailHeader
                     vehicle={vehicle}
                     isArchived={isArchived}
-                    facts={facts}
                     onNewVisit={startVisit}
                     onEdit={() => setIsEditModalOpen(true)}
                     onOwners={() => setIsEditOwnersModalOpen(true)}
@@ -687,6 +676,17 @@ export const VehicleDetailView = () => {
                                         {vehicle.currentMileage ? (
                                             <FieldRow label="Przebieg"><strong>{vehicle.currentMileage.toLocaleString('pl-PL')} km</strong></FieldRow>
                                         ) : null}
+                                        {/* Ostatnia wizyta stała w nagłówku jako jedyny fakt, którego nie ma
+                                            nigdzie indziej - dla jednej daty nie warto było rozciągać ciemnego
+                                            bloku, więc siedzi tu, obok reszty danych auta. */}
+                                        <FieldRow label="Ostatnia wizyta">
+                                            {lastVisit ? (
+                                                <span>
+                                                    {new Date(lastVisit).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                                    <LastVisitAgo>, {daysAgo(lastVisit)}</LastVisitAgo>
+                                                </span>
+                                            ) : 'jeszcze nie było'}
+                                        </FieldRow>
                                         <FieldRow label="Numer w systemie">{vehicle.id.slice(0, 8).toUpperCase()}</FieldRow>
                                     </FieldList>
                                 </RailPanel>
