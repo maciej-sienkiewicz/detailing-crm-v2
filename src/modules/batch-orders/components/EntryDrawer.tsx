@@ -14,7 +14,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
-import { Check, Download, Lock, RotateCcw, Trash2, Unlock, X } from 'lucide-react';
+import { Check, ChevronDown, Download, Lock, RotateCcw, Trash2, Unlock, X } from 'lucide-react';
 import { InputShellTextArea, BareTextArea } from '@/common/components/Form';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useToast } from '@/common/components/Toast';
@@ -99,6 +99,32 @@ const Title = styled.h2`
     color: ${p => p.theme.colors.text};
 `;
 
+/**
+ * Nazwa auta w nagłówku jest przyciskiem: prowadzi do sekcji „Pojazd i data". Przy
+ * edycji ta sekcja stoi pod usługami i zdjęciami, a to po nazwę auta sięga się
+ * odruchowo, gdy trzeba poprawić markę czy tablicę.
+ */
+const TitleBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 0 -6px;
+    padding: 2px 6px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    > svg { width: 16px; height: 16px; color: #94a3b8; transition: color ${p => p.theme.transitions.fast}; }
+    &:hover { background: ${p => p.theme.colors.surfaceAlt}; }
+    &:hover > svg { color: #0369a1; }
+    &:focus-visible { outline: 2px solid #38bdf8; outline-offset: 1px; }
+`;
+
 const Plate = styled.span`
     padding: 2px 8px;
     border-radius: 5px;
@@ -173,6 +199,8 @@ const Section = styled.section`
     display: flex;
     flex-direction: column;
     gap: 12px;
+    /* Przewinięcie do sekcji zostawia oddech nad jej tytułem. */
+    scroll-margin-top: 16px;
 `;
 
 const SectionTitle = styled.h3`
@@ -185,13 +213,6 @@ const SectionTitle = styled.h3`
     color: ${p => p.theme.colors.text};
 
     span { font-weight: 500; color: #64748b; }
-`;
-
-const Hint = styled.p`
-    margin: 0;
-    font-size: 12.5px;
-    line-height: 1.5;
-    color: #64748b;
 `;
 
 const Totals = styled.div`
@@ -412,6 +433,11 @@ export function EntryDrawer({ contractorId, contractorName, entry: initialEntry,
 
     const firstGrossRef = useRef<HTMLInputElement>(null);
     const photosRef = useRef<HTMLElement>(null);
+    const vehicleRef = useRef<HTMLElement>(null);
+
+    function scrollToVehicle(behavior: ScrollBehavior = 'smooth') {
+        vehicleRef.current?.scrollIntoView({ block: 'start', behavior });
+    }
     const overlayRef = useRef<HTMLDivElement>(null);
 
     function requestClose() {
@@ -431,6 +457,8 @@ export function EntryDrawer({ contractorId, contractorName, entry: initialEntry,
             el?.select();
         } else if (focus === 'photos') {
             photosRef.current?.scrollIntoView({ block: 'start' });
+        } else if (focus === 'vehicle') {
+            scrollToVehicle('auto');
         }
         // Tylko przy otwarciu - późniejsze rendery nie mogą przestawiać kursora.
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -500,6 +528,67 @@ export function EntryDrawer({ contractorId, contractorName, entry: initialEntry,
 
     const status = !entry ? 'new' : entry.isClosed ? 'settled' : entry.isCorrection ? 'correction' : 'open';
 
+    // Sekcje jako elementy, bo nowe auto i edycja układają je w innej kolejności.
+    const servicesSection = (
+        <Fieldset disabled={locked}>
+            <Section aria-labelledby="entry-services-title">
+                <SectionTitle id="entry-services-title">Usługi i ceny</SectionTitle>
+                <ServicesEditor
+                    services={form.services}
+                    onChange={services => setForm(f => ({ ...f, services }))}
+                    disabled={locked}
+                    firstGrossRef={firstGrossRef}
+                />
+                <Totals aria-live="polite">
+                    <TotalsRow><span>Netto</span><span>{formatMoney(totals.netCents)}</span></TotalsRow>
+                    <TotalsRow><span>VAT{vat !== null ? ` ${vatLabel(vat)}` : ''}</span><span>{formatMoney(totals.vatCents)}</span></TotalsRow>
+                    <TotalsDivider />
+                    <TotalsGrand><span>Razem brutto</span><strong>{formatMoney(totals.grossCents)}</strong></TotalsGrand>
+                </Totals>
+            </Section>
+        </Fieldset>
+    );
+
+    const photosSection = entry && (
+        <Section ref={photosRef} aria-labelledby="entry-photos-title">
+            <SectionTitle id="entry-photos-title">
+                Zdjęcia<span>{entry.photoCount}</span>
+            </SectionTitle>
+            <BatchOrderPhotoSection entryId={entry.id} contractorId={contractorId} />
+        </Section>
+    );
+
+    const vehicleSection = (
+        <Fieldset disabled={locked}>
+            <Section ref={vehicleRef} aria-labelledby="entry-vehicle-title">
+                <SectionTitle id="entry-vehicle-title">Pojazd i data</SectionTitle>
+                <VehicleFields
+                    value={form.vehicle}
+                    onChange={patch => setForm(f => ({ ...f, vehicle: { ...f.vehicle, ...patch } }))}
+                    onError={setError}
+                    disabled={locked}
+                />
+            </Section>
+        </Fieldset>
+    );
+
+    const notesSection = (
+        <Fieldset disabled={locked}>
+            <Section aria-labelledby="entry-notes-title">
+                <SectionTitle id="entry-notes-title">Uwagi</SectionTitle>
+                <InputShellTextArea>
+                    <BareTextArea
+                        aria-labelledby="entry-notes-title"
+                        value={form.notes}
+                        onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                        placeholder="Np. rysa na zderzaku - bez korekty"
+                        style={{ minHeight: 72 }}
+                    />
+                </InputShellTextArea>
+            </Section>
+        </Fieldset>
+    );
+
     return createPortal(
         <Overlay
             ref={overlayRef}
@@ -520,8 +609,13 @@ export function EntryDrawer({ contractorId, contractorName, entry: initialEntry,
                             {entry && <span>wykonane {formatDay(entry.serviceDate)}</span>}
                         </HeaderMeta>
                         <Title id="entry-drawer-title">
-                            {entry ? vehicleName(entry) : 'Nowe auto'}
-                            {entry?.vehicleLicensePlate && <Plate>{entry.vehicleLicensePlate}</Plate>}
+                            {entry ? (
+                                <TitleBtn type="button" onClick={() => scrollToVehicle()} title="Przejdź do danych pojazdu">
+                                    {vehicleName(entry)}
+                                    {entry.vehicleLicensePlate && <Plate>{entry.vehicleLicensePlate}</Plate>}
+                                    <ChevronDown aria-hidden="true" />
+                                </TitleBtn>
+                            ) : 'Nowe auto'}
                         </Title>
                         <HeaderMeta>{contractorName}</HeaderMeta>
                     </HeaderText>
@@ -561,57 +655,23 @@ export function EntryDrawer({ contractorId, contractorName, entry: initialEntry,
                         </Banner>
                     )}
 
-                    <Fieldset disabled={locked}>
-                        <Section aria-labelledby="entry-services-title">
-                            <SectionTitle id="entry-services-title">Usługi i ceny</SectionTitle>
-                            <ServicesEditor
-                                services={form.services}
-                                onChange={services => setForm(f => ({ ...f, services }))}
-                                disabled={locked}
-                                firstGrossRef={firstGrossRef}
-                            />
-                            <Totals aria-live="polite">
-                                <TotalsRow><span>Netto</span><span>{formatMoney(totals.netCents)}</span></TotalsRow>
-                                <TotalsRow><span>VAT{vat !== null ? ` ${vatLabel(vat)}` : ''}</span><span>{formatMoney(totals.vatCents)}</span></TotalsRow>
-                                <TotalsDivider />
-                                <TotalsGrand><span>Razem brutto</span><strong>{formatMoney(totals.grossCents)}</strong></TotalsGrand>
-                            </Totals>
-                        </Section>
-                    </Fieldset>
-
-                    <Section ref={photosRef} aria-labelledby="entry-photos-title">
-                        <SectionTitle id="entry-photos-title">
-                            Zdjęcia{entry ? <span>{entry.photoCount}</span> : null}
-                        </SectionTitle>
-                        {entry
-                            ? <BatchOrderPhotoSection entryId={entry.id} contractorId={contractorId} />
-                            : <Hint>Zdjęcia dodasz po zapisaniu auta - otwórz je wtedy z listy.</Hint>}
-                    </Section>
-
-                    <Fieldset disabled={locked}>
-                        <Section aria-labelledby="entry-vehicle-title">
-                            <SectionTitle id="entry-vehicle-title">Pojazd i data</SectionTitle>
-                            <VehicleFields
-                                value={form.vehicle}
-                                onChange={patch => setForm(f => ({ ...f, vehicle: { ...f.vehicle, ...patch } }))}
-                                onError={setError}
-                                disabled={locked}
-                            />
-                        </Section>
-
-                        <Section aria-labelledby="entry-notes-title">
-                            <SectionTitle id="entry-notes-title">Uwagi</SectionTitle>
-                            <InputShellTextArea>
-                                <BareTextArea
-                                    aria-labelledby="entry-notes-title"
-                                    value={form.notes}
-                                    onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                                    placeholder="Np. rysa na zderzaku - bez korekty"
-                                    style={{ minHeight: 72 }}
-                                />
-                            </InputShellTextArea>
-                        </Section>
-                    </Fieldset>
+                    {entry ? (
+                        <>
+                            {servicesSection}
+                            {photosSection}
+                            {vehicleSection}
+                            {notesSection}
+                        </>
+                    ) : (
+                        // Nowe auto: najpierw KTÓRE auto, potem co przy nim zrobiono -
+                        // w tej kolejności pracownik ma to przed oczami przy aucie.
+                        // Zdjęć przy nowym aucie jeszcze nie ma (dodaje się je po zapisie).
+                        <>
+                            {vehicleSection}
+                            {servicesSection}
+                            {notesSection}
+                        </>
+                    )}
                 </Body>
 
                 <Footer>

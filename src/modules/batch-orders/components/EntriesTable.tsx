@@ -19,7 +19,8 @@ import type { BatchOrderEntry } from '../types';
 import { formatAmount, formatMoney, photosLabel, vehicleName } from '../utils/format';
 import { formatDay, formatDayShort } from '../utils/period';
 
-export type EntryFocus = 'price' | 'photos';
+/** Gdzie ustawić edytor po otwarciu: kursor w cenie, zdjęcia albo dane pojazdu. */
+export type EntryFocus = 'price' | 'photos' | 'vehicle';
 
 // ─── Desktop ──────────────────────────────────────────────────────────────────
 
@@ -570,7 +571,9 @@ export function EntriesTable({ entries, isDesktop, onOpen, onDelete, onReopen }:
                     style={{ top: menu.top, right: menu.right }}
                     onClick={e => e.stopPropagation()}
                 >
-                    <MenuItem role="menuitem" type="button" onClick={() => run(() => onOpen(menu.entry))}>
+                    {/* „Popraw auto" = marka, model, tablica, data - edytor otwiera się od razu
+                        na tej sekcji, a nie na cenach, które stoją w nim pierwsze. */}
+                    <MenuItem role="menuitem" type="button" onClick={() => run(() => onOpen(menu.entry, menu.entry.isClosed ? undefined : 'vehicle'))}>
                         <Pencil />{menu.entry.isClosed ? 'Otwórz' : 'Popraw auto'}
                     </MenuItem>
                     {!menu.entry.isClosed && (

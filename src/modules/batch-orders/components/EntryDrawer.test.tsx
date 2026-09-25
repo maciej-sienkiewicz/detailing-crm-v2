@@ -84,6 +84,8 @@ const grossInputs = () => screen.getAllByPlaceholderText('0,00').filter((_, i) =
 
 describe('EntryDrawer', () => {
     beforeEach(() => {
+        // jsdom nie przewija - śledzimy tylko, NA CZYM przewinięcie zostało wywołane.
+        Element.prototype.scrollIntoView = vi.fn();
         Object.values(api).forEach(fn => fn.mockClear());
         api.updateEntry.mockImplementation(async (_id: string, data: unknown) => data);
         api.createEntry.mockImplementation(async (_c: string, data: unknown) => data);
@@ -155,5 +157,33 @@ describe('EntryDrawer', () => {
         renderDrawer();
         fireEvent.click(screen.getByRole('button', { name: 'Zapisz zmiany' }));
         expect(await screen.findByRole('alert')).toHaveTextContent('Odblokuj go do korekty');
+    });
+
+    it('nowe auto: najpierw pojazd i data, potem usługi', () => {
+        renderDrawer({ entry: null });
+        const vehicle = screen.getByRole('heading', { name: 'Pojazd i data' });
+        const services = screen.getByRole('heading', { name: 'Usługi i ceny' });
+        expect(vehicle.compareDocumentPosition(services) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it('edycja: usługi i ceny zostają na górze', () => {
+        renderDrawer();
+        const vehicle = screen.getByRole('heading', { name: 'Pojazd i data' });
+        const services = screen.getByRole('heading', { name: 'Usługi i ceny' });
+        expect(services.compareDocumentPosition(vehicle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it('„Popraw auto" otwiera edytor na sekcji pojazdu', () => {
+        renderDrawer({ focus: 'vehicle' });
+        const section = screen.getByRole('heading', { name: 'Pojazd i data' }).closest('section');
+        expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+        expect(vi.mocked(Element.prototype.scrollIntoView).mock.contexts[0]).toBe(section);
+    });
+
+    it('kliknięcie w nazwę auta w nagłówku przewija do sekcji pojazdu', () => {
+        renderDrawer();
+        fireEvent.click(screen.getByRole('button', { name: /Mercedes GLC/ }));
+        const section = screen.getByRole('heading', { name: 'Pojazd i data' }).closest('section');
+        expect(vi.mocked(Element.prototype.scrollIntoView).mock.contexts.at(-1)).toBe(section);
     });
 });

@@ -94,4 +94,12 @@ describe('EntriesTable', () => {
         fireEvent.click(screen.getByRole('button', { name: /Audi A6.*615,00/ }));
         expect(onOpen).toHaveBeenCalledWith(e);
     });
+
+    it('„Popraw auto" otwiera edytor na danych pojazdu', () => {
+        const e = entry();
+        const { onOpen } = renderTable([e]);
+        fireEvent.click(screen.getByRole('button', { name: /Więcej akcji/ }));
+        fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: /Popraw auto/ }));
+        expect(onOpen).toHaveBeenCalledWith(e, 'vehicle');
+    });
 });
