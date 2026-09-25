@@ -40,6 +40,19 @@ const draftFixture = {
     unverifiedAmounts: ['350 zł'],
     notice: null,
 };
+// „Popraw szkic" ma własne testy (ReplyDraftRevise.test.tsx) - tu pokazuje, jaką treść
+// dostał z kompozytora, i oddaje poprawioną wersję.
+vi.mock('./ReplyDraftRevise', () => ({
+    ReplyDraftRevise: ({ currentText, onDraft }: { currentText: string; onDraft: (draft: typeof draftFixture) => void }) => (
+        <button
+            type="button"
+            data-current-text={currentText}
+            onClick={() => onDraft({ ...draftFixture, bodyText: 'Dzień dobry,\n\nzapraszamy we wtorek o 10:00.', placeholders: [] })}
+        >
+            Popraw szkic
+        </button>
+    ),
+}));
 vi.mock('./ReplyDraftButton', () => ({
     ReplyDraftButton: ({ onDraft }: { onDraft: (draft: typeof draftFixture) => void }) => (
         <button type="button" onClick={() => onDraft(draftFixture)}>Szkic AI</button>
@@ -143,6 +156,26 @@ describe('ReplyComposer - szkic AI', () => {
         fireEvent.click(screen.getByRole('button', { name: /Cofnij/ }));
 
         expect((screen.getByLabelText('Treść') as HTMLTextAreaElement).value).toBe('<div>Mój początek</div>');
+    });
+
+    it('„Popraw szkic" dostaje treść z ręcznymi zmianami, a poprawioną wersję można cofnąć', () => {
+        renderComposer({ threadId: 'thread-1', initialTo: 'klient@gmail.com' });
+        fireEvent.click(screen.getByRole('button', { name: 'Szkic AI' }));
+
+        const editor = screen.getByLabelText('Treść') as HTMLTextAreaElement;
+        fireEvent.change(editor, { target: { value: editor.value.replace('Dzień dobry,', 'Dzień dobry Panie Janie,') } });
+        const beforeRevision = editor.value;
+
+        const revise = screen.getByRole('button', { name: 'Popraw szkic' });
+        expect(revise.getAttribute('data-current-text')).toContain('Dzień dobry Panie Janie,');
+        fireEvent.click(revise);
+
+        expect(editor.value).toContain('zapraszamy we wtorek o 10:00.');
+        // Poprawka nie ma już znaczników - wysyłka się odblokowuje.
+        expect((screen.getByRole('button', { name: /Wyślij/ }) as HTMLButtonElement).disabled).toBe(false);
+
+        fireEvent.click(screen.getByRole('button', { name: /Cofnij/ }));
+        expect(editor.value).toBe(beforeRevision);
     });
 
     it('nowa wiadomość bez wątku nie ma szkicu - nie ma na co odpowiadać', () => {

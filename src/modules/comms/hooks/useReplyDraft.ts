@@ -2,7 +2,7 @@
 // Szkic odpowiedzi na maila - generowany na kliknięcie, nigdy w tle.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { commsApi } from '../api/commsApi';
-import type { ReplyDraftPreferences } from '../types';
+import type { DraftReplyPayload, ReplyDraftPreferences } from '../types';
 import { COMMS_KEY } from './useComms';
 
 export const REPLY_DRAFT_PREFERENCES_KEY = [...COMMS_KEY, 'reply-draft', 'preferences'];
@@ -23,15 +23,9 @@ export const useSaveReplyDraftPreferences = () => {
     });
 };
 
+/** Nowy szkic albo poprawka istniejącego - ten sam adres, patrz `DraftReplyPayload`. */
 export const useDraftReply = () =>
     useMutation({
-        mutationFn: ({
-            threadId,
-            useSentStyle,
-            signatureAppended,
-        }: {
-            threadId: string;
-            useSentStyle: boolean;
-            signatureAppended: boolean;
-        }) => commsApi.draftReply(threadId, { useSentStyle, signatureAppended }),
+        mutationFn: ({ threadId, ...payload }: DraftReplyPayload & { threadId: string }) =>
+            commsApi.draftReply(threadId, payload),
     });

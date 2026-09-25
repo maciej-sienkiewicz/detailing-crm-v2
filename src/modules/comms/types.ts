@@ -899,6 +899,15 @@ export interface ReplyDraftExample {
     similarity: number;
 }
 
+export interface DraftReplyPayload {
+    useSentStyle: boolean;
+    signatureAppended: boolean;
+    /** „Popraw": bieżąca treść z edytora. Brak = nowy szkic. */
+    currentDraft?: string;
+    /** Co poprawić. Wymagane przy `currentDraft`. */
+    instructions?: string;
+}
+
 export interface ReplyDraft {
     /** Czysty tekst: akapity rozdzielone pustą linią, wyliczenia od „- ". */
     bodyText: string;

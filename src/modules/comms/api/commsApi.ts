@@ -17,6 +17,7 @@ import type {
     SaveMailSignaturePayload,
     SignatureImageKind,
     ProviderDetectResult,
+    DraftReplyPayload,
     ReplyDraft,
     ReplyDraftPreferences,
     SendMailRequest,
@@ -92,11 +93,11 @@ export const commsApi = {
      * Szkic odpowiedzi w wątku. `useSentStyle` - flaga trybu: w stylu wysłanych
      * wiadomości studia albo propozycja asystenta. `signatureAppended` mówi serwerowi,
      * że stopkę doklei wysyłka - szkic nie ma jej wtedy powtarzać.
+     *
+     * „Popraw": `currentDraft` to bieżąca treść z edytora (z ręcznymi zmianami),
+     * a `instructions` - co w niej zmienić. Bez `currentDraft` powstaje nowy szkic.
      */
-    draftReply: async (
-        threadId: string,
-        payload: { useSentStyle: boolean; signatureAppended: boolean }
-    ): Promise<ReplyDraft> => {
+    draftReply: async (threadId: string, payload: DraftReplyPayload): Promise<ReplyDraft> => {
         const { data } = await apiClient.post(`/v1/comms/threads/${threadId}/reply-draft`, payload, {
             skipErrorToast: true,
         });

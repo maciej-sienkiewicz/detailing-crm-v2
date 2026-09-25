@@ -14,6 +14,7 @@
 // Szkic AI (tylko w wątku): asystent pisze projekt odpowiedzi, który zastępuje treść
 // edytora - z „Cofnij", jak po korekcie. Znaczniki do uzupełnienia („[proponowany
 // termin]") blokują wysyłkę, dopóki stoją w treści: klient nie może dostać nawiasu.
+// „Popraw szkic" oddaje asystentowi bieżącą treść edytora razem z uwagami pracownika.
 //
 // Odpowiadając w wątku nie powtarzamy adresu odbiorcy: rozmowa ma jednego
 // uczestnika, wypisanego już w nagłówku i w panelu klienta. Pole „Do" jest
@@ -46,6 +47,7 @@ import {
 } from '../utils/composerHtml';
 import { draftOriginLabel, pendingPlaceholders as findPendingPlaceholders } from '../utils/replyDraft';
 import { ReplyDraftButton } from './ReplyDraftButton';
+import { ReplyDraftRevise } from './ReplyDraftRevise';
 import { RichTextEditor } from './RichTextEditor';
 import { SignatureSettingsModal } from './SignatureSettingsModal';
 import { PrimaryButton } from './shared';
@@ -340,7 +342,7 @@ const DraftNote = styled.div`
     .lines { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
     .warn { color: ${p => p.theme.colors.warning}; }
 
-    button {
+    > button.close {
         flex-shrink: 0;
         display: inline-flex;
         align-items: center;
@@ -670,10 +672,20 @@ export function ReplyComposer({
                                 Sprawdź kwoty, których nie ma w wycenie leada: {draft.unverifiedAmounts.join(', ')}
                             </span>
                         )}
+                        {threadId && (
+                            <ReplyDraftRevise
+                                threadId={threadId}
+                                draft={draft}
+                                currentText={composerHtmlToText(body)}
+                                signatureAppended={appendSignature}
+                                disabled={sendMail.isPending}
+                                onDraft={applyDraft}
+                            />
+                        )}
                     </div>
                     {/* Informację wolno schować dopiero po uzupełnieniu znaczników - to ona niesie blokadę wysyłki. */}
                     {pendingPlaceholders.length === 0 && (
-                        <button type="button" onClick={() => setDraft(null)} aria-label="Ukryj informację o szkicu">
+                        <button type="button" className="close" onClick={() => setDraft(null)} aria-label="Ukryj informację o szkicu">
                             <X size={12} />
                         </button>
                     )}
