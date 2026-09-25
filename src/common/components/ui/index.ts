@@ -28,3 +28,6 @@ export { Notice } from './Notice';
 export { ChoiceCard, ChoiceList } from './ChoiceCard';
 export { StepPills } from './StepPills';
 export type { StepState } from './StepPills';
+export { SectionChips } from './SectionChips';
+export { FileDrop } from './FileDrop';
+export type { SectionChip } from './SectionChips';

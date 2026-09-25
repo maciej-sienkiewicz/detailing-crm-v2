@@ -1,6 +1,6 @@
-// src/modules/visits/components/SectionChips.tsx
+// src/common/components/ui/SectionChips.tsx
 //
-// Skróty do sekcji karty wizyty na telefonie, przypięte pod nagłówkiem.
+// Skróty do sekcji długiej karty (wizyta, pojazd) na telefonie, przypięte pod nagłówkiem.
 //
 // Zastępują dolny pasek zakładek (MobileSectionNav). Tamten pasek siedział nad
 // globalną nawigacją aplikacji - na dole ekranu były więc DWA rzędy przycisków -
@@ -10,7 +10,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
-import { ui } from '@/common/components/ui';
+import { ui } from './tokens';
 
 /* Miejsce paska w układzie - trzyma wysokość, gdy sam pasek jest przypięty. */
 const Slot = styled.div`
@@ -74,9 +74,10 @@ interface Props {
     items: SectionChip[];
     /** Sekcja zwinięta (historia) rozwija się, zanim do niej przewiniemy. */
     onOpen?: (id: string) => void;
+    label?: string;
 }
 
-export function SectionChips({ items, onOpen }: Props) {
+export function SectionChips({ items, onOpen, label = 'Sekcje' }: Props) {
     const [active, setActive] = useState(items[0]?.id ?? '');
     const barRef = useRef<HTMLElement>(null);
     /** Po kliknięciu przewijanie samo przestawiałoby podświetlenie po drodze. */
@@ -136,7 +137,7 @@ export function SectionChips({ items, onOpen }: Props) {
 
     return (
         <Slot ref={slotRef}>
-        <Bar ref={barRef} $pinned={pinned} aria-label="Sekcje wizyty">
+        <Bar ref={barRef} $pinned={pinned} aria-label={label}>
             {items.map(item => (
                 <Chip
                     key={item.id}

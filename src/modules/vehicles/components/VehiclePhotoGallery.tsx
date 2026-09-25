@@ -1,362 +1,248 @@
-import React, { useState } from 'react';
-import styled, { keyframes } from 'styled-components';
+// src/modules/vehicles/components/VehiclePhotoGallery.tsx
+//
+// Zdjęcia pojazdu - ta sama gęsta siatka co w karcie wizyty: 8 kwadratów w rzędzie
+// (na wąskim panelu 4), zwinięta do jednego rzędu z kafelkiem „+N".
+//
+// Zdjęcia z wizyt i dodane wprost do pojazdu leżą w jednej siatce - zdjęcia z wizyty
+// nie da się tu usunąć (należy do wizyty), a jej numer stoi w podpisie przeglądarki. Kliknięcie
+// otwiera przeglądarkę z poprzednim i następnym zdjęciem zamiast nowej karty
+// przeglądarki, a usunięcie pyta oknem potwierdzenia, nie systemowym `confirm`.
+
+import { useState } from 'react';
+import styled from 'styled-components';
+import { ChevronLeft, ChevronRight, ChevronUp, Download, ImagePlus, Trash2 } from 'lucide-react';
 import type { VehiclePhoto } from '../types';
 import { useVehiclePhotoGallery, useDeleteVehiclePhoto } from '../hooks';
 import { UploadPhotoModal } from './UploadPhotoModal';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { t } from '@/common/i18n';
+import { ImageViewerModal } from '@/modules/customers/components/ImageViewerModal';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { useContainerWidth } from '@/common/hooks';
+import { Button, Panel, PanelActions, PanelBody, PanelHead, SectionTitle, ui } from '@/common/components/ui';
 
-const spin = keyframes`to { transform: rotate(360deg); }`;
+/** Poniżej tej szerokości panelu siatka ma 4 kolumny zamiast 8. */
+const NARROW_MAX_WIDTH = 520;
+const PAGE_SIZE = 48;
 
-const GalleryContainer = styled.div`
-    background: ${st.bgCard};
-`;
-
-const GalleryHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 20px;
-    border-bottom: 1px solid ${st.border};
-    background: ${st.bg};
-`;
-
-const HeaderLeft = styled.div``;
-
-const Title = styled.h3`
-    margin: 0 0 2px;
-    font-size: ${st.fontMd};
-    font-weight: 700;
-    color: ${st.text};
-`;
-
-const Subtitle = styled.p`
-    margin: 0;
-    font-size: ${st.fontSm};
-    color: ${st.textMuted};
-`;
-
-const UploadButton = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 14px;
-    background: ${st.accentBlue};
-    color: white;
-    border: none;
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    cursor: pointer;
-    transition: all ${st.transition};
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
-
-    &:hover { background: #2563EB; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35); }
-    svg { width: 15px; height: 15px; }
-`;
-
-const PhotoGrid = styled.div`
+const Grid = styled.ul<{ $cols: number }>`
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 12px;
-    padding: 20px;
+    grid-template-columns: repeat(${p => p.$cols}, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    @media (max-width: 640px) { gap: 6px; }
 `;
 
-const PhotoCard = styled.div`
+const Tile = styled.li`
     position: relative;
-    aspect-ratio: 4 / 3;
-    border-radius: ${st.radiusSm};
+    aspect-ratio: 1;
+    border-radius: 10px;
     overflow: hidden;
-    border: 1px solid ${st.border};
-    cursor: pointer;
-    transition: all 0.2s ease;
-    background: ${st.bgCardAlt};
+    background: #cbd5e1;
 
-    &:hover {
-        transform: translateY(-3px);
-        box-shadow: ${st.shadowMd};
-        border-color: ${st.borderHover};
-    }
+    &:hover > div, &:focus-within > div { opacity: 1; }
 `;
 
-const PhotoImage = styled.img`
+const TileButton = styled.button`
+    display: block;
     width: 100%;
     height: 100%;
-    object-fit: cover;
-`;
-
-const PhotoOverlay = styled.div`
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
-    padding: 12px;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-
-    ${PhotoCard}:hover & { opacity: 1; }
-`;
-
-const PhotoDescription = styled.p`
-    margin: 0 0 4px;
-    font-size: ${st.fontXs};
-    color: white;
-    line-height: 1.4;
-`;
-
-const PhotoMeta = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: ${st.fontXs};
-    color: rgba(255, 255, 255, 0.8);
-`;
-
-const SourceBadge = styled.span<{ $source: 'VEHICLE' | 'VISIT' }>`
-    display: inline-flex;
-    align-items: center;
-    padding: 1px 6px;
-    border-radius: ${st.radiusSm};
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-
-    ${props => props.$source === 'VEHICLE' ? `
-        background: ${st.accentBlue};
-        color: white;
-    ` : `
-        background: ${st.accentGreen};
-        color: white;
-    `}
-`;
-
-const DeleteButton = styled.button`
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 30px;
-    height: 30px;
-    border-radius: ${st.radiusFull};
+    padding: 0;
     border: none;
-    background: rgba(239, 68, 68, 0.9);
-    color: white;
+    background: none;
+    cursor: zoom-in;
+
+    img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: -2px; }
+`;
+
+const MoreTile = styled.button`
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #d5dde7;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: ${ui.inkSoft};
     cursor: pointer;
+
+    &:hover { background: #cbd5e1; }
+`;
+
+const TileActions = styled.div`
+    position: absolute;
+    top: 4px;
+    right: 4px;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    gap: 3px;
     opacity: 0;
-    transition: all 0.2s ease;
-    z-index: 10;
+    transition: opacity 150ms ease;
 
-    ${PhotoCard}:hover & { opacity: 1; }
-    &:hover { background: ${st.accentRed}; transform: scale(1.1); }
-    svg { width: 14px; height: 14px; }
+    @media (hover: none) { opacity: 1; }
 `;
 
-const Pagination = styled.div`
+const TileAction = styled.button<{ $danger?: boolean }>`
+    width: 26px;
+    height: 26px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 16px 20px;
-    border-top: 1px solid ${st.border};
-`;
-
-const PageButton = styled.button<{ $isActive?: boolean }>`
-    min-width: 34px;
-    height: 34px;
-    padding: 0 8px;
-    border: 1px solid ${props => props.$isActive ? st.accentBlue : st.border};
-    border-radius: ${st.radiusSm};
-    background: ${props => props.$isActive ? st.accentBlue : st.bgCard};
-    color: ${props => props.$isActive ? 'white' : st.text};
-    font-size: ${st.fontSm};
-    font-weight: 500;
+    border: none;
+    border-radius: 8px;
+    background: rgba(15, 23, 42, 0.62);
+    color: ${p => p.$danger ? '#fecaca' : '#fff'};
     cursor: pointer;
-    transition: all ${st.transition};
 
-    &:hover:not(:disabled) {
-        border-color: ${st.accentBlue};
-        background: ${props => props.$isActive ? st.accentBlue : st.accentBlueDim};
-        color: ${props => props.$isActive ? 'white' : st.accentBlue};
-    }
-    &:disabled { opacity: 0.4; cursor: not-allowed; }
+    svg { width: 13px; height: 13px; }
+    &:hover { background: ${p => p.$danger ? 'rgba(185, 28, 28, 0.9)' : 'rgba(15, 23, 42, 0.85)'}; }
 `;
 
-const PageInfo = styled.span`
-    font-size: ${st.fontSm};
-    color: ${st.textMuted};
-    margin: 0 6px;
-`;
 
-const EmptyState = styled.div`
-    text-align: center;
-    padding: 48px 20px;
-    color: ${st.textMuted};
-`;
-
-const EmptyIcon = styled.div`
-    font-size: 52px;
-    margin-bottom: 12px;
-    opacity: 0.5;
-`;
-
-const EmptyText = styled.p`
-    margin: 0;
-    font-size: ${st.fontMd};
-    color: ${st.textMuted};
-`;
-
-const LoadingContainer = styled.div`
+const Footer = styled.div`
     display: flex;
     align-items: center;
-    justify-content: center;
-    padding: 48px;
+    gap: 4px;
+    margin: 8px 0 0 -11px;
+    font-size: 12.5px;
+    color: ${ui.textMuted};
 `;
 
-const Spinner = styled.div`
-    width: 36px;
-    height: 36px;
-    border: 3px solid ${st.border};
-    border-top-color: ${st.accentBlue};
-    border-radius: 50%;
-    animation: ${spin} 0.7s linear infinite;
+const Empty = styled.p`
+    margin: 0;
+    font-size: 13.5px;
+    color: ${ui.textMuted};
 `;
 
-interface VehiclePhotoGalleryProps {
+/** 1 zdjęcie, 2 zdjęcia, 5 zdjęć, 22 zdjęcia. */
+const photosWord = (n: number) => {
+    if (n === 1) return 'zdjęcie';
+    const u = n % 10;
+    const t = n % 100;
+    return u >= 2 && u <= 4 && (t < 12 || t > 14) ? 'zdjęcia' : 'zdjęć';
+};
+
+interface Props {
     vehicleId: string;
+    readOnly?: boolean;
+    id?: string;
+    /** Zdjęcia z odpowiedzi szczegółów - nieużywane, zostaje dla zgodności wywołań. */
     photos?: VehiclePhoto[];
 }
 
-export const VehiclePhotoGallery = ({ vehicleId }: VehiclePhotoGalleryProps) => {
-    const [currentPage, setCurrentPage] = useState(1);
-    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+export const VehiclePhotoGallery = ({ vehicleId, readOnly, id }: Props) => {
+    const [page, setPage] = useState(1);
+    const [expanded, setExpanded] = useState(false);
+    const [isUploadOpen, setIsUploadOpen] = useState(false);
+    const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+    const [toDelete, setToDelete] = useState<VehiclePhoto | null>(null);
+    const [wrapRef, width] = useContainerWidth<HTMLDivElement>();
 
-    const pageSize = 12;
-    const { photos, pagination, isLoading } = useVehiclePhotoGallery(vehicleId, currentPage, pageSize);
+    const { photos, pagination, isLoading } = useVehiclePhotoGallery(vehicleId, page, PAGE_SIZE);
     const { deletePhoto, isDeleting } = useDeleteVehiclePhoto(vehicleId);
 
-    const handleDeletePhoto = (photoId: string, e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (window.confirm('Czy na pewno chcesz usunąć to zdjęcie?')) {
-            deletePhoto(photoId);
-        }
-    };
-
-    const handlePhotoClick = (photo: VehiclePhoto) => {
-        window.open(photo.fullSizeUrl, '_blank');
-    };
-
-    const renderPageNumbers = () => {
-        if (!pagination || pagination.totalPages <= 1) return null;
-
-        const pages = [];
-        const maxVisible = 5;
-        let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-        const endPage = Math.min(pagination.totalPages, startPage + maxVisible - 1);
-        if (endPage - startPage < maxVisible - 1) {
-            startPage = Math.max(1, endPage - maxVisible + 1);
-        }
-
-        for (let i = startPage; i <= endPage; i++) {
-            pages.push(
-                <PageButton key={i} $isActive={i === currentPage} onClick={() => setCurrentPage(i)}>
-                    {i}
-                </PageButton>
-            );
-        }
-        return pages;
-    };
+    const total = pagination?.total ?? photos.length;
+    const cols = width !== null && width < NARROW_MAX_WIDTH ? 4 : 8;
+    const collapsed = !expanded && photos.length > cols;
+    const shown = collapsed ? photos.slice(0, cols - 1) : photos;
+    const current = viewerIndex !== null ? photos[viewerIndex] : null;
 
     return (
-        <>
-            <GalleryContainer>
-                <GalleryHeader>
-                    <HeaderLeft>
-                        <Title>{t.vehicles.detail.photoGallery.title}</Title>
-                        <Subtitle>
-                            {pagination
-                                ? `${pagination.total} ${pagination.total === 1 ? 'zdjęcie' : pagination.total < 5 ? 'zdjęcia' : 'zdjęć'}`
-                                : 'Ładowanie...'
-                            }
-                        </Subtitle>
-                    </HeaderLeft>
-                    <UploadButton onClick={() => setIsUploadModalOpen(true)}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M12 5v14M5 12h14" />
-                        </svg>
-                        {t.vehicles.detail.photoGallery.uploadPhoto}
-                    </UploadButton>
-                </GalleryHeader>
-
-                {isLoading ? (
-                    <LoadingContainer><Spinner /></LoadingContainer>
-                ) : photos.length === 0 ? (
-                    <EmptyState>
-                        <EmptyIcon>📸</EmptyIcon>
-                        <EmptyText>{t.vehicles.detail.photoGallery.noPhotos}</EmptyText>
-                    </EmptyState>
-                ) : (
-                    <>
-                        <PhotoGrid>
-                            {photos.map(photo => (
-                                <PhotoCard key={photo.id} onClick={() => handlePhotoClick(photo)}>
-                                    <PhotoImage
-                                        src={photo.thumbnailUrl}
-                                        alt={photo.description || 'Zdjęcie pojazdu'}
-                                        loading="lazy"
-                                    />
-                                    {photo.source === 'VEHICLE' && (
-                                        <DeleteButton
-                                            onClick={e => handleDeletePhoto(photo.id, e)}
-                                            disabled={isDeleting}
-                                            title="Usuń zdjęcie"
-                                        >
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                            </svg>
-                                        </DeleteButton>
-                                    )}
-                                    <PhotoOverlay>
-                                        <PhotoDescription>{photo.description || 'Brak opisu'}</PhotoDescription>
-                                        <PhotoMeta>
-                                            <SourceBadge $source={photo.source}>
-                                                {photo.source === 'VEHICLE' ? 'Pojazd' : 'Wizyta'}
-                                            </SourceBadge>
-                                            {photo.visitNumber && <span>· {photo.visitNumber}</span>}
-                                        </PhotoMeta>
-                                    </PhotoOverlay>
-                                </PhotoCard>
-                            ))}
-                        </PhotoGrid>
-
-                        {pagination && pagination.totalPages > 1 && (
-                            <Pagination>
-                                <PageButton
-                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                    disabled={currentPage === 1}
-                                >←</PageButton>
-
-                                {renderPageNumbers()}
-
-                                <PageButton
-                                    onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
-                                    disabled={currentPage === pagination.totalPages}
-                                >→</PageButton>
-
-                                <PageInfo>Strona {currentPage} z {pagination.totalPages}</PageInfo>
-                            </Pagination>
-                        )}
-                    </>
+        <Panel id={id} aria-labelledby="vehicle-photos-title">
+            <PanelHead>
+                <SectionTitle id="vehicle-photos-title" count={total ? `${total} ${photosWord(total)}` : undefined}>Zdjęcia</SectionTitle>
+                {!readOnly && (
+                    <PanelActions>
+                        <Button variant="tinted" size="sm" onClick={() => setIsUploadOpen(true)}>
+                            <ImagePlus />Dodaj zdjęcie
+                        </Button>
+                    </PanelActions>
                 )}
-            </GalleryContainer>
+            </PanelHead>
+            <PanelBody ref={wrapRef}>
+                {isLoading ? (
+                    <Empty>Wczytywanie zdjęć...</Empty>
+                ) : photos.length === 0 ? (
+                    <Empty>Nie ma jeszcze zdjęć. Zdjęcia z wizyt pojawią się tu same.</Empty>
+                ) : (
+                    <Grid $cols={cols} aria-label="Zdjęcia pojazdu">
+                        {shown.map((photo, index) => (
+                            <Tile key={photo.id}>
+                                <TileButton
+                                    type="button"
+                                    onClick={() => setViewerIndex(index)}
+                                    title={[photo.visitNumber ? `Z wizyty ${photo.visitNumber}` : null, photo.description || photo.fileName].filter(Boolean).join(': ')}
+                                    aria-label={`Otwórz zdjęcie ${photo.description || photo.fileName}`}
+                                >
+                                    <img src={photo.thumbnailUrl} alt="" loading="lazy" decoding="async" />
+                                </TileButton>
+                                <TileActions>
+                                    <TileAction type="button" onClick={() => window.open(photo.fullSizeUrl, '_blank')} title="Pobierz" aria-label={`Pobierz ${photo.fileName}`}>
+                                        <Download />
+                                    </TileAction>
+                                    {!readOnly && photo.source === 'VEHICLE' && (
+                                        <TileAction type="button" $danger disabled={isDeleting} onClick={() => setToDelete(photo)} title="Usuń" aria-label={`Usuń ${photo.fileName}`}>
+                                            <Trash2 />
+                                        </TileAction>
+                                    )}
+                                </TileActions>
+                            </Tile>
+                        ))}
+                        {collapsed && (
+                            <Tile>
+                                <MoreTile type="button" onClick={() => setExpanded(true)} aria-label={`Pokaż wszystkie zdjęcia (${photos.length})`}>
+                                    +{photos.length - shown.length}
+                                </MoreTile>
+                            </Tile>
+                        )}
+                    </Grid>
+                )}
 
-            <UploadPhotoModal
-                isOpen={isUploadModalOpen}
-                onClose={() => setIsUploadModalOpen(false)}
-                vehicleId={vehicleId}
+                {expanded && (photos.length > cols || (pagination?.totalPages ?? 1) > 1) && (
+                    <Footer>
+                        <Button variant="ghost" size="sm" onClick={() => setExpanded(false)}><ChevronUp />Zwiń</Button>
+                        {pagination && pagination.totalPages > 1 && (
+                            <>
+                                <Button variant="ghost" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
+                                    <ChevronLeft />Poprzednie
+                                </Button>
+                                <span>strona {page} z {pagination.totalPages}</span>
+                                <Button variant="ghost" size="sm" disabled={page === pagination.totalPages} onClick={() => setPage(p => p + 1)}>
+                                    Następne<ChevronRight />
+                                </Button>
+                            </>
+                        )}
+                    </Footer>
+                )}
+            </PanelBody>
+
+            <UploadPhotoModal isOpen={isUploadOpen} onClose={() => setIsUploadOpen(false)} vehicleId={vehicleId} />
+
+            {current && (
+                <ImageViewerModal
+                    isOpen
+                    onClose={() => setViewerIndex(null)}
+                    imageUrl={current.fullSizeUrl || current.photoUrl}
+                    imageName={[current.visitNumber ? `Wizyta ${current.visitNumber}` : null, current.description || current.fileName].filter(Boolean).join(': ')}
+                    hasNext={viewerIndex! < photos.length - 1}
+                    hasPrev={viewerIndex! > 0}
+                    onNext={() => setViewerIndex(i => (i ?? 0) + 1)}
+                    onPrev={() => setViewerIndex(i => (i ?? 0) - 1)}
+                    onDownload={() => window.open(current.fullSizeUrl, '_blank')}
+                />
+            )}
+
+            <ConfirmationModal
+                isOpen={toDelete !== null}
+                title="Usunąć zdjęcie?"
+                message="Zdjęcie zniknie z galerii pojazdu. Tej operacji nie można cofnąć."
+                variant="danger"
+                confirmText="Usuń zdjęcie"
+                cancelText="Zostaw"
+                onConfirm={() => { if (toDelete) deletePhoto(toDelete.id); setToDelete(null); }}
+                onCancel={() => setToDelete(null)}
             />
-        </>
+        </Panel>
     );
 };

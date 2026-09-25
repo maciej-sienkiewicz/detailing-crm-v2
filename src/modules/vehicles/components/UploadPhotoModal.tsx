@@ -1,64 +1,17 @@
-import { useState } from 'react';
-import styled from 'styled-components';
-import { Upload } from 'lucide-react';
-import { useUploadVehiclePhoto } from '../hooks';
+// src/modules/vehicles/components/UploadPhotoModal.tsx
+//
+// Dodanie zdjęcia do galerii pojazdu. Po wyborze pliku widać miniaturę - przed
+// wysłaniem da się sprawdzić, czy to właściwe ujęcie. Błąd wysyłki mówi toastem
+// zamiast systemowego `alert`.
+
+import { useState, type FormEvent } from 'react';
 import {
-    ModalShell,
-    ModalHeader,
-    ModalTitleGroup,
-    ModalTitle,
-    ModalSubtitle,
-    ModalContent,
-    ModalFooter,
-    CloseBtn,
+    ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle, ModalContent, ModalFooter, CloseBtn,
 } from '@/common/components/ModalKit';
-import { SharedButton } from '@/common/styles';
-import {
-    FormField,
-    FieldLabel,
-    InputShellTextArea,
-    BareTextArea,
-} from '@/common/components/Form';
-
-const FilePickerArea = styled.label<{ $hasFile?: boolean }>`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 8px;
-    padding: 28px 16px;
-    border: 2px dashed ${props => props.$hasFile ? 'var(--brand-primary)' : props.theme.colors.border};
-    border-radius: 12px;
-    background: ${props => props.$hasFile ? '#f0f9ff' : props.theme.colors.surfaceHover};
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-        border-color: var(--brand-primary);
-        background: #f0f9ff;
-    }
-`;
-
-const FilePickerText = styled.span`
-    font-size: 14px;
-    font-weight: 500;
-    color: ${props => props.theme.colors.textSecondary};
-`;
-
-const SelectedFileLabel = styled.div`
-    margin-top: 8px;
-    padding: 8px 12px;
-    background: #f0f9ff;
-    border: 1px solid var(--brand-primary);
-    border-radius: 8px;
-    font-size: 13px;
-    color: var(--brand-primary);
-    font-weight: 500;
-`;
-
-const HiddenFileInput = styled.input`
-    display: none;
-`;
+import { FormField, FieldLabel, InputShellTextArea, BareTextArea } from '@/common/components/Form';
+import { useToast } from '@/common/components/Toast';
+import { Button, FileDrop } from '@/common/components/ui';
+import { useUploadVehiclePhoto } from '../hooks';
 
 interface UploadPhotoModalProps {
     isOpen: boolean;
@@ -70,62 +23,53 @@ export const UploadPhotoModal = ({ isOpen, onClose, vehicleId }: UploadPhotoModa
     const [file, setFile] = useState<File | null>(null);
     const [description, setDescription] = useState('');
     const { uploadPhotoAsync, isUploading } = useUploadVehiclePhoto(vehicleId);
+    const { showSuccess, showError } = useToast();
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const selected = e.target.files?.[0];
-        if (selected) setFile(selected);
+    const reset = () => {
+        setFile(null);
+        setDescription('');
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const submit = async (e: FormEvent) => {
         e.preventDefault();
         if (!file) return;
         try {
-            await uploadPhotoAsync({ file, description: description || '' });
-            setFile(null);
-            setDescription('');
+            await uploadPhotoAsync({ file, description: description.trim() });
+            showSuccess('Zdjęcie dodane', 'Jest już w galerii pojazdu.');
+            reset();
             onClose();
         } catch {
-            alert('Nie udało się dodać zdjęcia. Spróbuj ponownie.');
+            showError('Nie udało się dodać zdjęcia', 'Spróbuj ponownie za chwilę.');
         }
     };
 
-    const handleClose = () => {
-        if (!isUploading) {
-            setFile(null);
-            setDescription('');
-            onClose();
-        }
+    const close = () => {
+        if (isUploading) return;
+        reset();
+        onClose();
     };
 
     return (
-        <ModalShell isOpen={isOpen} onClose={handleClose} size="sm">
+        <ModalShell isOpen={isOpen} onClose={close} size="sm">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Dodaj zdjęcie</ModalTitle>
-                    <ModalSubtitle>Prześlij zdjęcie pojazdu</ModalSubtitle>
+                    <ModalSubtitle>Trafi do galerii pojazdu, poza wizytami</ModalSubtitle>
                 </ModalTitleGroup>
-                <CloseBtn onClick={handleClose} />
+                <CloseBtn onClick={close} />
             </ModalHeader>
 
             <ModalContent>
-                <form id="upload-photo-form" onSubmit={handleSubmit}>
-                    <FormField $fullWidth>
-                        <FieldLabel>Zdjęcie *</FieldLabel>
-                        <FilePickerArea as="label" $hasFile={!!file}>
-                            <Upload size={24} color="var(--brand-primary)" />
-                            <FilePickerText>
-                                {file ? 'Zmień zdjęcie' : 'Kliknij, aby wybrać zdjęcie'}
-                            </FilePickerText>
-                            <HiddenFileInput
-                                type="file"
-                                accept="image/*"
-                                onChange={handleFileChange}
-                                disabled={isUploading}
-                            />
-                        </FilePickerArea>
-                        {file && <SelectedFileLabel>Wybrano: {file.name}</SelectedFileLabel>}
-                    </FormField>
-
+                <form id="upload-photo-form" onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <FileDrop
+                        file={file}
+                        onChange={setFile}
+                        disabled={isUploading}
+                        accept="image/*"
+                        preview
+                        title="Wybierz zdjęcie albo upuść je tutaj"
+                        hint="JPG albo PNG, prosto z aparatu albo z telefonu"
+                    />
                     <FormField $fullWidth>
                         <FieldLabel htmlFor="photo-description">Opis (opcjonalnie)</FieldLabel>
                         <InputShellTextArea>
@@ -133,7 +77,7 @@ export const UploadPhotoModal = ({ isOpen, onClose, vehicleId }: UploadPhotoModa
                                 id="photo-description"
                                 value={description}
                                 onChange={e => setDescription(e.target.value)}
-                                placeholder="Dodaj opis zdjęcia..."
+                                placeholder="Np. rysa na tylnym zderzaku przed korektą"
                                 disabled={isUploading}
                             />
                         </InputShellTextArea>
@@ -142,17 +86,10 @@ export const UploadPhotoModal = ({ isOpen, onClose, vehicleId }: UploadPhotoModa
             </ModalContent>
 
             <ModalFooter>
-                <SharedButton type="button" $variant="secondary" onClick={handleClose} disabled={isUploading}>
-                    Anuluj
-                </SharedButton>
-                <SharedButton
-                    type="submit"
-                    form="upload-photo-form"
-                    $variant="primary"
-                    disabled={!file || isUploading}
-                >
-                    {isUploading ? 'Dodawanie...' : 'Dodaj zdjęcie'}
-                </SharedButton>
+                <Button onClick={close} disabled={isUploading}>Anuluj</Button>
+                <Button type="submit" form="upload-photo-form" variant="primary" disabled={!file || isUploading}>
+                    {isUploading ? 'Wysyłanie...' : 'Dodaj zdjęcie'}
+                </Button>
             </ModalFooter>
         </ModalShell>
     );

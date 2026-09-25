@@ -24,7 +24,7 @@ import styled, { keyframes } from 'styled-components';
 import { Award, CarFront, ChevronDown, MessageSquare, Pencil, Plus, Truck } from 'lucide-react';
 import { PageContainer } from '@/common/components/PageContainer';
 import {
-    Button, ButtonLabel, Panel, PanelActions, PanelBody, PanelHead, SectionTitle, StatusPill, ui,
+    Button, ButtonLabel, Panel, PanelActions, PanelBody, PanelHead, SectionChips, SectionTitle, StatusPill, ui,
 } from '@/common/components/ui';
 import { useMediaQuery } from '@/common/hooks';
 import { useVisitDetail, useVisitDocuments, useVisitPhotos, visitDetailQueryKey, visitPhotosQueryKey } from '../hooks';
@@ -41,7 +41,6 @@ import { ServicesTable } from '../components/ServicesTable';
 import { DocumentGallery } from '../components/DocumentGallery';
 import { VisitComments } from '../components/VisitComments';
 import { VisitCommunicationHistory } from '../components/VisitCommunicationHistory';
-import { SectionChips } from '../components/SectionChips';
 import { HandoverSheet, MarkReadyDialog } from '../components/handover';
 import { QualityCertificateModal } from '../components/QualityCertificateModal';
 import { SmsReminderModal } from '../components/SmsReminderModal';
@@ -636,6 +635,7 @@ export const VisitDetailView = () => {
 
                 {isPhone && (
                     <SectionChips
+                        label="Sekcje wizyty"
                         items={chips}
                         onOpen={id => { if (id === 'visit-history') setIsAuditOpen(true); }}
                     />

@@ -1,574 +1,243 @@
 // src/modules/vehicles/components/VehicleDocuments.tsx
+//
+// Dokumenty pojazdu - płaski panel, ten sam wiersz co w karcie wizyty: ikona,
+// nazwa, kiedy i kto, a z prawej „Podgląd" słowem, pobranie i usunięcie ikoną.
+//
+// Wcześniej był to zwijany blok z nagłówkiem-kafelkiem w gradiencie, w środku
+// drugi nagłówek „Dokumenty (2)" i wypełniony przycisk „Dodaj dokument" - drugie
+// wypełnienie w oknie obok „Nowa wizyta" (CLAUDE.md §2). Dokumenty były kartami
+// w siatce, a usunięcie pytało systemowym `confirm`.
+//
+// Wyszukiwarka pojawia się dopiero przy dłuższej liście: przy dwóch plikach
+// zabierała więcej miejsca niż one same.
 
-import React, { useState, useMemo } from 'react';
-import styled, { keyframes } from 'styled-components';
+import { useMemo, useState } from 'react';
+import styled from 'styled-components';
+import { Download, FileImage, FileText, Search, Trash2, Upload } from 'lucide-react';
 import { useVehicleDocuments, useDeleteVehicleDocument } from '../hooks/useVehicleDocuments';
 import { UploadVehicleDocumentModal } from './UploadVehicleDocumentModal';
 import { ImageViewerModal } from '@/modules/customers/components/ImageViewerModal';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { formatDateTime } from '@/common/utils';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
+import {
+    Button, IconButton, Panel, PanelActions, PanelBody, PanelHead, SectionTitle, StatusPill, ui,
+} from '@/common/components/ui';
 import type { VehicleDocument } from '../types';
 
-const spin = keyframes`to { transform: rotate(360deg); }`;
+/** Od tylu dokumentów pokazujemy wyszukiwarkę; tyle też mieści się przed „Pokaż wszystkie". */
+const SEARCH_FROM = 7;
+const COLLAPSED = 6;
 
-/* ─── Document Card ──────────────────────────────────── */
-
-const Card = styled.article<{ $isClickable?: boolean }>`
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    padding: 14px;
-    transition: all 0.2s cubic-bezier(0.32, 0.72, 0, 1);
-    position: relative;
-    overflow: hidden;
-    cursor: ${props => props.$isClickable ? 'pointer' : 'default'};
+const Rows = styled.ul`
     display: flex;
     flex-direction: column;
-    gap: 12px;
-
-    &::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 3px;
-        background: ${st.gradientBlue};
-        transform: scaleX(0);
-        transform-origin: left;
-        transition: transform 0.25s ease;
-    }
-
-    &:hover {
-        border-color: ${st.borderHover};
-        box-shadow: ${st.shadowMd};
-        &::before { transform: scaleX(1); }
-    }
-`;
-
-const CardBody = styled.div`
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-`;
-
-const FileIcon = styled.div<{ $ext: string }>`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    border-radius: ${st.radiusSm};
-    flex-shrink: 0;
-
-    ${({ $ext }) => {
-        if ($ext === 'pdf') return `background: ${st.accentRedDim}; color: ${st.accentRed};`;
-        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes($ext)) return `background: ${st.accentBlueDim}; color: ${st.accentBlue};`;
-        if (['doc', 'docx'].includes($ext)) return `background: ${st.accentBlueDim}; color: #1d4ed8;`;
-        if (['xls', 'xlsx'].includes($ext)) return `background: ${st.accentGreenDim}; color: ${st.accentGreen};`;
-        return `background: ${st.bgCardAlt}; color: ${st.textMuted};`;
-    }}
-
-    svg { width: 22px; height: 22px; }
-`;
-
-const FileInfo = styled.div`
-    flex: 1;
-    min-width: 0;
-`;
-
-const DocName = styled.div`
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    color: ${st.text};
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-bottom: 2px;
-`;
-
-const DocFileName = styled.div`
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-`;
-
-const CardFooter = styled.footer`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 10px;
-    border-top: 1px solid ${st.border};
-`;
-
-const UploadInfo = styled.div`
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-    line-height: 1.5;
-`;
-
-const CardActions = styled.div`
-    display: flex;
-    gap: 6px;
-`;
-
-const ActionButton = styled.button`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    border: none;
-    border-radius: ${st.radiusSm};
-    background: ${st.bgCardAlt};
-    color: ${st.textMuted};
-    cursor: pointer;
-    transition: all ${st.transition};
-
-    &:hover { background: ${st.accentBlueDim}; color: ${st.accentBlue}; }
-    svg { width: 14px; height: 14px; }
-`;
-
-const DeleteButton = styled(ActionButton)`
-    &:hover { background: ${st.accentRedDim}; color: ${st.accentRed}; }
-`;
-
-function getFileIcon(ext: string) {
-    if (ext === 'pdf') {
-        return (
-            <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline fill="none" stroke="currentColor" strokeWidth="2" points="14,2 14,8 20,8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
-            </svg>
-        );
-    }
-    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
-        return (
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                <circle cx="8.5" cy="8.5" r="1.5"/>
-                <polyline points="21,15 16,10 5,21"/>
-            </svg>
-        );
-    }
-    return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14,2 14,8 20,8"/>
-        </svg>
-    );
-}
-
-interface VehicleDocumentCardProps {
-    document: VehicleDocument;
-    onDelete: (documentId: string) => void;
-    onImageClick?: (document: VehicleDocument) => void;
-    isDeleting?: boolean;
-}
-
-const VehicleDocumentCard = ({ document, onDelete, onImageClick, isDeleting = false }: VehicleDocumentCardProps) => {
-    const ext = document.fileName.split('.').pop()?.toLowerCase() || '';
-    const isImage    = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
-    const isViewable = isImage || ext === 'pdf';
-
-    const handleCardClick = () => {
-        if (isViewable && onImageClick) onImageClick(document);
-    };
-
-    const handleDownload = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        window.open(document.fileUrl, '_blank');
-    };
-
-    const handleDelete = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (confirm(`Czy na pewno chcesz usunąć dokument "${document.name}"?`)) {
-            onDelete(document.id);
-        }
-    };
-
-    return (
-        <Card $isClickable={isViewable} onClick={handleCardClick}>
-            <CardBody>
-                <FileIcon $ext={ext}>{getFileIcon(ext)}</FileIcon>
-                <FileInfo>
-                    <DocName title={document.name}>{document.name}</DocName>
-                    <DocFileName title={document.fileName}>{document.fileName}</DocFileName>
-                </FileInfo>
-            </CardBody>
-
-            <CardFooter>
-                <UploadInfo>
-                    {formatDateTime(document.uploadedAt)}
-                    {document.uploadedByName && (
-                        <><br />przez {document.uploadedByName}</>
-                    )}
-                </UploadInfo>
-                <CardActions>
-                    <ActionButton onClick={handleDownload} title="Pobierz">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                            <polyline points="7,10 12,15 17,10"/>
-                            <line x1="12" y1="15" x2="12" y2="3"/>
-                        </svg>
-                    </ActionButton>
-                    <DeleteButton onClick={handleDelete} disabled={isDeleting} title="Usuń">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="3,6 5,6 21,6"/>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                        </svg>
-                    </DeleteButton>
-                </CardActions>
-            </CardFooter>
-        </Card>
-    );
-};
-
-/* ─── Manager Layout ─────────────────────────────────── */
-
-const Container = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    padding: 20px;
-`;
-
-const Header = styled.header`
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-    }
-`;
-
-const Title = styled.h2`
-    margin: 0;
-    font-size: ${st.fontMd};
-    font-weight: 700;
-    color: ${st.text};
-`;
-
-const UploadButton = styled.button`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     gap: 8px;
-    padding: 8px 16px;
-    background: ${st.accentBlue};
-    color: white;
-    border: none;
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    cursor: pointer;
-    transition: all ${st.transition};
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
-
-    &:hover { background: #2563EB; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35); transform: translateY(-1px); }
-    svg { width: 15px; height: 15px; }
-`;
-
-const SearchInput = styled.input`
-    width: 100%;
-    padding: 8px 14px;
-    border: 1.5px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontSm};
-    background: ${st.bgCard};
-    color: ${st.text};
-    transition: border-color ${st.transition}, box-shadow ${st.transition};
-
-    &:focus {
-        outline: none;
-        border-color: ${st.accentBlue};
-        box-shadow: ${st.shadowBlue};
-    }
-
-    &::placeholder { color: ${st.textMuted}; }
-`;
-
-const DocumentsGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 12px;
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    @media (min-width: ${props => props.theme.breakpoints.xl}) {
-        grid-template-columns: repeat(3, 1fr);
-    }
-`;
-
-const EmptyState = styled.div`
-    text-align: center;
-    padding: 40px 20px;
-    background: ${st.bgCardAlt};
-    border-radius: ${st.radius};
-    border: 1px dashed ${st.border};
-`;
-
-const EmptyIcon = styled.div`
-    width: 56px;
-    height: 56px;
-    margin: 0 auto 12px;
-    border-radius: ${st.radiusFull};
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${st.textMuted};
-    svg { width: 28px; height: 28px; }
-`;
-
-const EmptyTitle = styled.h3`
-    margin: 0 0 4px;
-    font-size: ${st.fontMd};
-    font-weight: 600;
-    color: ${st.text};
-`;
-
-const EmptyDescription = styled.p`
     margin: 0;
-    color: ${st.textMuted};
-    font-size: ${st.fontSm};
+    padding: 0;
+    list-style: none;
 `;
 
-const LoadingContainer = styled.div`
+const Row = styled.li`
     display: flex;
     align-items: center;
-    justify-content: center;
-    min-height: 200px;
+    gap: 12px;
+    min-width: 0;
+    padding: 10px 12px;
+    border-radius: ${ui.radiusStrip};
+    border: 1px solid ${ui.lineSoft};
+    font-size: 13.5px;
+
+    > svg { width: 16px; height: 16px; flex-shrink: 0; color: ${ui.dangerInk}; }
+    > svg.image { color: ${ui.brandInk}; }
+
+    @media (max-width: 480px) { flex-wrap: wrap; row-gap: 6px; }
 `;
 
-const Spinner = styled.div`
-    width: 36px;
-    height: 36px;
-    border: 3px solid ${st.border};
-    border-top-color: ${st.accentBlue};
-    border-radius: 50%;
-    animation: ${spin} 0.7s linear infinite;
-`;
-
-const ErrorContainer = styled.div`
-    padding: 20px;
-    text-align: center;
-    background: ${st.accentRedDim};
-    border: 1px solid rgba(239, 68, 68, 0.2);
-    border-radius: ${st.radius};
-    color: ${st.accentRed};
-    font-size: ${st.fontSm};
-`;
-
-const Pagination = styled.div`
+const Text = styled.span`
     display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 6px;
-    padding-top: 4px;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    min-width: 0;
+    flex: 1;
+
+    strong { font-weight: 600; color: ${ui.ink}; overflow-wrap: anywhere; }
+    span { font-size: 12.5px; color: ${ui.textMuted}; }
 `;
 
-const PageButton = styled.button<{ $isActive?: boolean }>`
+const RowActions = styled.div`
     display: flex;
     align-items: center;
-    justify-content: center;
-    min-width: 36px;
-    height: 36px;
-    padding: 0 8px;
-    border: 1px solid ${props => props.$isActive ? st.accentBlue : st.border};
-    border-radius: ${st.radiusSm};
-    background: ${props => props.$isActive ? st.accentBlue : st.bgCard};
-    color: ${props => props.$isActive ? 'white' : st.text};
-    font-size: ${st.fontSm};
-    font-weight: 500;
-    cursor: pointer;
-    transition: all ${st.transition};
-
-    &:hover:not(:disabled) {
-        border-color: ${st.accentBlue};
-        background: ${props => props.$isActive ? st.accentBlue : st.accentBlueDim};
-        color: ${props => props.$isActive ? 'white' : st.accentBlue};
-    }
-    &:disabled { opacity: 0.45; cursor: not-allowed; }
+    gap: 2px;
+    flex-shrink: 0;
+    margin-left: auto;
 `;
 
-/* ─── Main Component ─────────────────────────────────── */
+const SearchBox = styled.label`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 40px;
+    margin-bottom: 10px;
+    padding: 0 14px;
+    border: 1px solid ${ui.line};
+    border-radius: ${ui.radiusStrip};
+    background: ${ui.surfaceSoft};
+    color: ${ui.textMuted};
 
-interface VehicleDocumentsProps {
+    &:focus-within { border-color: ${ui.focusRing}; background: ${ui.surface}; }
+    svg { width: 15px; height: 15px; flex-shrink: 0; }
+    input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; font-family: inherit; font-size: 16px; color: ${ui.ink}; }
+    @media (min-width: 768px) { input { font-size: 13.5px; } }
+`;
+
+const Empty = styled.p`
+    margin: 0;
+    font-size: 13.5px;
+    color: ${ui.textMuted};
+`;
+
+const isImageFile = (name: string) => /\.(jpg|jpeg|png|gif|webp)$/i.test(name);
+const isViewable = (name: string) => isImageFile(name) || /\.pdf$/i.test(name);
+
+interface Props {
     vehicleId: string;
+    readOnly?: boolean;
+    id?: string;
 }
 
-export const VehicleDocuments = ({ vehicleId }: VehicleDocumentsProps) => {
-    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [page, setPage] = useState(1);
-    const limit = 9;
+export const VehicleDocuments = ({ vehicleId, readOnly, id }: Props) => {
+    const [isUploadOpen, setIsUploadOpen] = useState(false);
+    const [query, setQuery] = useState('');
+    const [expanded, setExpanded] = useState(false);
+    const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+    const [toDelete, setToDelete] = useState<VehicleDocument | null>(null);
 
-    const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
-    const [currentImageIndex, setCurrentImageIndex] = useState(0);
-
-    const { documents: allDocuments, isLoading, isError, refetch } = useVehicleDocuments(vehicleId);
+    const { documents, isLoading, isError, refetch } = useVehicleDocuments(vehicleId);
     const deleteMutation = useDeleteVehicleDocument(vehicleId);
 
-    const filteredDocuments = useMemo(() => {
-        if (!searchQuery) return allDocuments;
-        const q = searchQuery.toLowerCase();
-        return allDocuments.filter(doc =>
-            doc.fileName.toLowerCase().includes(q) ||
-            doc.name.toLowerCase().includes(q)
-        );
-    }, [allDocuments, searchQuery]);
+    const filtered = useMemo(() => {
+        const q = query.trim().toLowerCase();
+        if (!q) return documents;
+        return documents.filter(d => d.fileName.toLowerCase().includes(q) || d.name.toLowerCase().includes(q));
+    }, [documents, query]);
 
-    const { documents, pagination } = useMemo(() => {
-        const totalItems  = filteredDocuments.length;
-        const totalPages  = Math.ceil(totalItems / limit);
-        const startIndex  = (page - 1) * limit;
-        const paginatedDocs = filteredDocuments.slice(startIndex, startIndex + limit);
-        return {
-            documents: paginatedDocs,
-            pagination: { currentPage: page, totalPages, totalItems },
-        };
-    }, [filteredDocuments, page]);
+    const shown = expanded || query ? filtered : filtered.slice(0, COLLAPSED);
+    const viewable = useMemo(() => documents.filter(d => isViewable(d.fileName)), [documents]);
+    const current = viewerIndex !== null ? viewable[viewerIndex] : null;
 
-    const viewableDocuments = useMemo(
-        () => allDocuments.filter(doc => /\.(jpg|jpeg|png|gif|webp|pdf)$/i.test(doc.fileName)),
-        [allDocuments]
-    );
-
-    const handleImageClick = (doc: VehicleDocument) => {
-        const idx = viewableDocuments.findIndex(d => d.id === doc.id);
-        if (idx !== -1) {
-            setCurrentImageIndex(idx);
-            setIsImageViewerOpen(true);
-        }
+    const open = (doc: VehicleDocument) => {
+        const idx = viewable.findIndex(d => d.id === doc.id);
+        if (idx !== -1) setViewerIndex(idx);
+        else window.open(doc.fileUrl, '_blank');
     };
 
-    const currentDocument = viewableDocuments[currentImageIndex];
-
-    if (isLoading) return <LoadingContainer><Spinner /></LoadingContainer>;
-
-    if (isError) {
-        return (
-            <ErrorContainer>
-                <p>Nie udało się załadować dokumentów.</p>
-                <button onClick={() => refetch()}>Spróbuj ponownie</button>
-            </ErrorContainer>
-        );
-    }
-
     return (
-        <Container>
-            <Header>
-                <Title>Dokumenty ({pagination.totalItems})</Title>
-                <UploadButton onClick={() => setIsUploadModalOpen(true)}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="17,8 12,3 7,8"/>
-                        <line x1="12" y1="3" x2="12" y2="15"/>
-                    </svg>
-                    Dodaj dokument
-                </UploadButton>
-            </Header>
+        <Panel id={id} aria-labelledby="vehicle-docs-title">
+            <PanelHead>
+                <SectionTitle id="vehicle-docs-title" count={documents.length || undefined}>Dokumenty</SectionTitle>
+                {!readOnly && (
+                    <PanelActions>
+                        <Button variant="tinted" size="sm" onClick={() => setIsUploadOpen(true)}>
+                            <Upload />Dodaj dokument
+                        </Button>
+                    </PanelActions>
+                )}
+            </PanelHead>
+            <PanelBody>
+                {documents.length >= SEARCH_FROM && (
+                    <SearchBox>
+                        <Search aria-hidden="true" />
+                        <input
+                            aria-label="Szukaj dokumentu"
+                            placeholder="Szukaj po nazwie pliku"
+                            value={query}
+                            onChange={e => setQuery(e.target.value)}
+                        />
+                    </SearchBox>
+                )}
 
-            <SearchInput
-                type="text"
-                placeholder="Szukaj dokumentów..."
-                value={searchQuery}
-                onChange={e => { setSearchQuery(e.target.value); setPage(1); }}
-            />
-
-            {documents.length === 0 ? (
-                <EmptyState>
-                    <EmptyIcon>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                            <polyline points="14,2 14,8 20,8"/>
-                        </svg>
-                    </EmptyIcon>
-                    <EmptyTitle>
-                        {searchQuery ? 'Nie znaleziono dokumentów' : 'Brak dokumentów'}
-                    </EmptyTitle>
-                    <EmptyDescription>
-                        {searchQuery
-                            ? 'Spróbuj zmienić kryteria wyszukiwania'
-                            : 'Dodaj pierwszy dokument klikając przycisk powyżej'
-                        }
-                    </EmptyDescription>
-                </EmptyState>
-            ) : (
-                <>
-                    <DocumentsGrid>
-                        {documents.map(document => (
-                            <VehicleDocumentCard
-                                key={document.id}
-                                document={document}
-                                onDelete={id => deleteMutation.mutate(id)}
-                                onImageClick={handleImageClick}
-                                isDeleting={deleteMutation.isPending}
-                            />
+                {isLoading ? (
+                    <Empty>Wczytywanie dokumentów...</Empty>
+                ) : isError ? (
+                    <Empty>
+                        Nie udało się wczytać dokumentów.{' '}
+                        <Button variant="ghost" size="sm" onClick={() => refetch()}>Spróbuj ponownie</Button>
+                    </Empty>
+                ) : filtered.length === 0 ? (
+                    <Empty>
+                        {query
+                            ? `Żaden dokument nie pasuje do „${query.trim()}".`
+                            : 'Nie ma jeszcze dokumentów. Dowód rejestracyjny, polisa czy protokoły z wizyt trafią tutaj.'}
+                    </Empty>
+                ) : (
+                    <Rows>
+                        {shown.map(doc => (
+                            <Row key={doc.id}>
+                                {isImageFile(doc.fileName) ? <FileImage className="image" aria-hidden="true" /> : <FileText aria-hidden="true" />}
+                                <Text>
+                                    <strong>{doc.name || doc.fileName}</strong>
+                                    <span>{formatDateTime(doc.uploadedAt)}{doc.uploadedByName ? `, ${doc.uploadedByName}` : ''}</span>
+                                    {doc.source === 'VISIT' && <StatusPill $tone="info">Z wizyty</StatusPill>}
+                                </Text>
+                                <RowActions>
+                                    {isViewable(doc.fileName) && (
+                                        <Button variant="ghost" size="sm" onClick={() => open(doc)}>Podgląd</Button>
+                                    )}
+                                    <IconButton label={`Pobierz ${doc.name || doc.fileName}`} variant="ghost" size="sm" onClick={() => window.open(doc.fileUrl, '_blank')}>
+                                        <Download />
+                                    </IconButton>
+                                    {!readOnly && (
+                                        <IconButton
+                                            label={`Usuń ${doc.name || doc.fileName}`}
+                                            variant="danger"
+                                            size="sm"
+                                            disabled={deleteMutation.isPending}
+                                            onClick={() => setToDelete(doc)}
+                                        >
+                                            <Trash2 />
+                                        </IconButton>
+                                    )}
+                                </RowActions>
+                            </Row>
                         ))}
-                    </DocumentsGrid>
+                    </Rows>
+                )}
 
-                    {pagination.totalPages > 1 && (
-                        <Pagination>
-                            <PageButton
-                                onClick={() => setPage(p => Math.max(1, p - 1))}
-                                disabled={page === 1}
-                            >←</PageButton>
+                {!query && filtered.length > COLLAPSED && (
+                    <Button variant="ghost" size="sm" style={{ marginTop: 8, marginLeft: -11 }} onClick={() => setExpanded(v => !v)}>
+                        {expanded ? 'Pokaż mniej' : `Pokaż wszystkie (${filtered.length})`}
+                    </Button>
+                )}
+            </PanelBody>
 
-                            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
-                                .filter(p => {
-                                    if (pagination.totalPages <= 7) return true;
-                                    if (p === 1 || p === pagination.totalPages) return true;
-                                    return Math.abs(p - page) <= 1;
-                                })
-                                .map((p, i, arr) => (
-                                    <React.Fragment key={p}>
-                                        {i > 0 && arr[i - 1] !== p - 1 && <span style={{ color: st.textMuted }}>...</span>}
-                                        <PageButton $isActive={p === page} onClick={() => setPage(p)}>
-                                            {p}
-                                        </PageButton>
-                                    </React.Fragment>
-                                ))
-                            }
+            <UploadVehicleDocumentModal isOpen={isUploadOpen} onClose={() => setIsUploadOpen(false)} vehicleId={vehicleId} />
 
-                            <PageButton
-                                onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
-                                disabled={page === pagination.totalPages}
-                            >→</PageButton>
-                        </Pagination>
-                    )}
-                </>
-            )}
-
-            <UploadVehicleDocumentModal
-                isOpen={isUploadModalOpen}
-                onClose={() => setIsUploadModalOpen(false)}
-                vehicleId={vehicleId}
-            />
-
-            {currentDocument && (
+            {current && (
                 <ImageViewerModal
-                    isOpen={isImageViewerOpen}
-                    onClose={() => setIsImageViewerOpen(false)}
-                    imageUrl={currentDocument.fileUrl}
-                    imageName={currentDocument.fileName}
-                    isPDF={/\.pdf$/i.test(currentDocument.fileName)}
-                    hasNext={currentImageIndex < viewableDocuments.length - 1}
-                    hasPrev={currentImageIndex > 0}
-                    onNext={() => setCurrentImageIndex(i => i + 1)}
-                    onPrev={() => setCurrentImageIndex(i => i - 1)}
-                    onDownload={() => window.open(currentDocument.fileUrl, '_blank')}
+                    isOpen
+                    onClose={() => setViewerIndex(null)}
+                    imageUrl={current.fileUrl}
+                    imageName={current.fileName}
+                    isPDF={/\.pdf$/i.test(current.fileName)}
+                    hasNext={viewerIndex! < viewable.length - 1}
+                    hasPrev={viewerIndex! > 0}
+                    onNext={() => setViewerIndex(i => (i ?? 0) + 1)}
+                    onPrev={() => setViewerIndex(i => (i ?? 0) - 1)}
+                    onDownload={() => window.open(current.fileUrl, '_blank')}
                 />
             )}
-        </Container>
+
+            <ConfirmationModal
+                isOpen={toDelete !== null}
+                title="Usunąć dokument?"
+                message={toDelete ? `„${toDelete.name || toDelete.fileName}" zniknie z dokumentów pojazdu. Tej operacji nie można cofnąć.` : ''}
+                variant="danger"
+                confirmText="Usuń dokument"
+                cancelText="Zostaw"
+                onConfirm={() => { if (toDelete) deleteMutation.mutate(toDelete.id); setToDelete(null); }}
+                onCancel={() => setToDelete(null)}
+            />
+        </Panel>
     );
 };

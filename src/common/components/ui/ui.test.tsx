@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import {
-    ActionMenu, Button, ChoiceCard, IconButton, MenuItem, Notice, PriceButton, Segmented, StepPills, SummaryStrip, useActionMenu,
+    ActionMenu, Button, ChoiceCard, FileDrop, IconButton, MenuItem, Notice, PriceButton, Segmented, StepPills, SummaryStrip, useActionMenu,
 } from '.';
 
 function MenuHarness({ onEdit }: { onEdit: (id: string) => void }) {
@@ -123,5 +123,34 @@ describe('ui', () => {
         ]} />);
         expect(screen.getByText('Rozliczenie').closest('li')).toHaveAttribute('aria-current', 'step');
         expect(screen.getByText('Podpis protokołu').closest('li')).not.toHaveAttribute('aria-current');
+    });
+});
+
+function FileDropHarness({ onPick }: { onPick: (f: File | null) => void }) {
+    const [file, setFile] = useState<File | null>(null);
+    return <FileDrop file={file} onChange={f => { setFile(f); onPick(f); }} hint="PDF, do 10 MB" />;
+}
+
+describe('FileDrop', () => {
+    it('pokazuje wybrany plik z rozmiarem i pozwala go usunąć', () => {
+        const onPick = vi.fn();
+        render(<FileDropHarness onPick={onPick} />);
+        const file = new File(['x'.repeat(2048)], 'polisa.pdf', { type: 'application/pdf' });
+
+        fireEvent.change(screen.getByTestId('file-drop-input'), { target: { files: [file] } });
+        expect(screen.getByText('polisa.pdf')).toBeInTheDocument();
+        expect(screen.getByText('2,0 KB')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Usuń plik' }));
+        expect(onPick).toHaveBeenLastCalledWith(null);
+        expect(screen.getByRole('button', { name: /Wybierz plik albo upuść/ })).toHaveAccessibleDescription('PDF, do 10 MB');
+    });
+
+    it('przyjmuje plik upuszczony na strefę', () => {
+        const onPick = vi.fn();
+        render(<FileDropHarness onPick={onPick} />);
+        const file = new File(['a'], 'zdjecie.png', { type: 'image/png' });
+        fireEvent.drop(screen.getByRole('button', { name: /Wybierz plik/ }), { dataTransfer: { files: [file] } });
+        expect(onPick).toHaveBeenCalledWith(file);
     });
 });

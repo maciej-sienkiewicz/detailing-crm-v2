@@ -1,35 +1,51 @@
-import { useState } from 'react';
+// src/modules/vehicles/components/EditVehicleModal.tsx
+//
+// Edycja danych pojazdu. Sześć pól mieści się na jednym ekranie, więc okno nie ma
+// już zakładek „Dane identyfikacyjne / Wygląd i stan": druga zakładka miała dwa
+// pola, a błąd walidacji w ukrytej zakładce blokował zapis bez słowa - użytkownik
+// widział tylko, że „Zapisz" nic nie robi. Teraz obie grupy stoją jedna pod drugą,
+// każda z nagłówkiem pisanym zwykłym tekstem.
+
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import styled from 'styled-components';
 import {
-    ModalShell,
-    ModalHeader,
-    ModalTitleGroup,
-    ModalTitle,
-    ModalSubtitle,
-    ModalContent,
-    ModalFooter,
-    CloseBtn,
+    ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle, ModalContent, ModalFooter, CloseBtn,
 } from '@/common/components/ModalKit';
-import { SharedButton } from '@/common/styles';
 import {
-    FormGrid,
-    FormField,
-    FieldLabel,
-    InputShell,
-    BareInput,
-    FormErrorMsg,
-    FormTabBar,
-    FormTabBtn,
-    FormTabPanel,
+    FormGrid, FormField, FieldLabel, InputShell, BareInput, FormErrorMsg,
 } from '@/common/components/Form';
+import { useToast } from '@/common/components/Toast';
+import { Button, ui } from '@/common/components/ui';
 import { useUpdateVehicle } from '../hooks/useUpdateVehicle';
 import { updateVehicleSchema, type UpdateVehicleFormData } from '../utils/vehicleValidation';
 import type { Vehicle } from '../types';
-import { t } from '@/common/i18n';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 
-type TabId = 'identity' | 'appearance';
+const Form = styled.form`
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+`;
+
+const Group = styled.section`
+    min-width: 0;
+
+    & + & { padding-top: 20px; border-top: 1px solid ${ui.lineFaint}; }
+`;
+
+const GroupTitle = styled.h3`
+    margin: 0 0 12px;
+    font-size: 15px;
+    font-weight: 600;
+    color: ${ui.ink};
+`;
+
+const Unit = styled.span`
+    padding-right: 12px;
+    font-size: 13px;
+    color: ${ui.textMuted};
+`;
 
 interface EditVehicleModalProps {
     isOpen: boolean;
@@ -38,8 +54,8 @@ interface EditVehicleModalProps {
 }
 
 export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalProps) => {
-    const [activeTab, setActiveTab] = useState<TabId>('identity');
     const { updateVehicle, isUpdating } = useUpdateVehicle(vehicle.id);
+    const { showSuccess, showError } = useToast();
 
     const {
         register,
@@ -62,40 +78,28 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
 
     const onSubmit = (data: UpdateVehicleFormData) => {
         updateVehicle(data, {
-            onSuccess: () => onClose(),
+            onSuccess: () => {
+                showSuccess('Dane pojazdu zapisane', 'Zmiany widać już w karcie pojazdu.');
+                onClose();
+            },
+            onError: () => showError('Nie udało się zapisać zmian', 'Spróbuj ponownie za chwilę.'),
         });
     };
 
     return (
-        <ModalShell isOpen={isOpen} onClose={onClose} size="xl">
+        <ModalShell isOpen={isOpen} onClose={onClose} size="lg">
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>Edytuj pojazd</ModalTitle>
-                    <ModalSubtitle>Zaktualizuj dane pojazdu</ModalSubtitle>
+                    <ModalTitle>Edytuj dane pojazdu</ModalTitle>
+                    <ModalSubtitle>{[vehicle.brand, vehicle.model].filter(Boolean).join(' ')}{vehicle.licensePlate ? `, ${vehicle.licensePlate}` : ''}</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
 
-            <ModalContent style={{ paddingTop: '8px' }}>
-                <form id="edit-vehicle-form" onSubmit={handleSubmit(onSubmit)} autoComplete="off">
-                    <FormTabBar>
-                        <FormTabBtn
-                            type="button"
-                            $active={activeTab === 'identity'}
-                            onClick={() => setActiveTab('identity')}
-                        >
-                            Dane identyfikacyjne
-                        </FormTabBtn>
-                        <FormTabBtn
-                            type="button"
-                            $active={activeTab === 'appearance'}
-                            onClick={() => setActiveTab('appearance')}
-                        >
-                            Wygląd i stan
-                        </FormTabBtn>
-                    </FormTabBar>
-
-                    <FormTabPanel $active={activeTab === 'identity'}>
+            <ModalContent>
+                <Form id="edit-vehicle-form" onSubmit={handleSubmit(onSubmit)} autoComplete="off">
+                    <Group aria-labelledby="ev-group-identity">
+                        <GroupTitle id="ev-group-identity">Identyfikacja</GroupTitle>
                         <FormGrid>
                             <FormField>
                                 <FieldLabel htmlFor="ev-brand">Marka</FieldLabel>
@@ -168,9 +172,10 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
                                 )}
                             </FormField>
                         </FormGrid>
-                    </FormTabPanel>
+                    </Group>
 
-                    <FormTabPanel $active={activeTab === 'appearance'}>
+                    <Group aria-labelledby="ev-group-look">
+                        <GroupTitle id="ev-group-look">Wygląd i stan</GroupTitle>
                         <FormGrid>
                             <FormField>
                                 <FieldLabel htmlFor="ev-color">Kolor</FieldLabel>
@@ -188,7 +193,7 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
                             </FormField>
 
                             <FormField>
-                                <FieldLabel htmlFor="ev-mileage">Przebieg (km)</FieldLabel>
+                                <FieldLabel htmlFor="ev-mileage">Przebieg</FieldLabel>
                                 <InputShell $hasError={!!errors.currentMileage}>
                                     <BareInput
                                         id="ev-mileage"
@@ -198,28 +203,22 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
                                         placeholder="45000"
                                         min="0"
                                     />
+                                    <Unit>km</Unit>
                                 </InputShell>
                                 {errors.currentMileage && (
                                     <FormErrorMsg>{errors.currentMileage.message}</FormErrorMsg>
                                 )}
                             </FormField>
                         </FormGrid>
-                    </FormTabPanel>
-                </form>
+                    </Group>
+                </Form>
             </ModalContent>
 
             <ModalFooter>
-                <SharedButton type="button" $variant="secondary" onClick={onClose}>
-                    {t.common.cancel}
-                </SharedButton>
-                <SharedButton
-                    type="submit"
-                    form="edit-vehicle-form"
-                    $variant="primary"
-                    disabled={isUpdating}
-                >
-                    {isUpdating ? 'Zapisywanie...' : t.common.save}
-                </SharedButton>
+                <Button onClick={onClose}>Anuluj</Button>
+                <Button type="submit" form="edit-vehicle-form" variant="primary" disabled={isUpdating}>
+                    {isUpdating ? 'Zapisywanie...' : 'Zapisz zmiany'}
+                </Button>
             </ModalFooter>
         </ModalShell>
     );

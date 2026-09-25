@@ -1,8 +1,24 @@
 // src/modules/vehicles/views/VehicleDetailView.tsx
+//
+// Karta pojazdu - ten sam układ i te same klocki co karta wizyty
+// (common/components/ui): ciemny nagłówek z faktami o aucie, jedna wyniesiona
+// karta („Wizyty", z kwotą wydaną na auto jako nagłówkiem), reszta jako płaskie
+// panele, a z prawej szyna z właścicielami, danymi i notatkami.
+//
+// Przed przebudową karta miała:
+//   - trzy wyniesione kafle statystyk z etykietami 11px wersalikami,
+//   - kolorowe gradientowe kafelki ikon przy każdej zwijanej sekcji,
+//   - awatary z inicjałami przy właścicielach,
+//   - kilka wypełnionych przycisków naraz („Nowa wizyta", „Dodaj dokument",
+//     „Dodaj zdjęcie") - żaden nie był krokiem następnym (CLAUDE.md §2),
+//   - na telefonie pasek zakładek nad globalną nawigacją.
+//
+// Telefon: jedna kolumna i przypięte skróty do sekcji, jak w wizycie.
 
-import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import styled, { keyframes } from 'styled-components';
+import { CalendarDays, ChevronDown, ChevronRight, Pencil } from 'lucide-react';
 import { useDeleteVehicle } from '../hooks/useDeleteVehicle';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useVehicleDetail } from '../hooks/useVehicleDetail';
@@ -12,272 +28,362 @@ import { useVehicleDeletedVisits } from '../hooks/useVehicleDeletedVisits';
 import { VehicleDocuments } from '../components/VehicleDocuments';
 import { VehiclePhotoGallery } from '../components/VehiclePhotoGallery';
 import { VehicleNotes } from '../components/VehicleNotes';
-import { EntityActivityTimeline } from '@/modules/activity';
 import { VehicleComments } from '../components/VehicleComments';
+import { VehicleDetailHeader, type VehicleFact } from '../components/VehicleDetailHeader';
 import { EditVehicleModal } from '../components/EditVehicleModal';
 import { EditOwnersModal } from '../components/EditOwnersModal';
-import { SharedButton } from '@/common/styles/sharedButtonStyles';
-import { formatCurrency, formatDate, pluralPl } from '@/common/utils';
+import { EntityActivityTimeline } from '@/modules/activity';
+import { PageContainer } from '@/common/components/PageContainer';
+import { formatCurrency } from '@/common/utils';
 import { t } from '@/common/i18n';
+import { useMediaQuery } from '@/common/hooks';
+import {
+    Button, Card, FieldList, FieldRow, Notice, Panel, PanelBody, SectionChips, SectionTitle,
+    StatusPill, SummaryStrip, ui, type PillTone,
+} from '@/common/components/ui';
 import type { VehicleOwner } from '../types';
 import { toCalendarDate } from '../utils/calendarDeepLink';
 
-import { CarLogoImage } from '../components/CarLogoImage';
-import { MobileSectionNav, MobileSectionPanel } from '@/common/components/MobileSectionNav';
-import {
-    HeroHeader, HeroContent, HeroLeft, HeroNameBlock, HeroName,
-    HeroMetaRow, HeroMetaItem, HeroRight, HeroPrimaryBtn,
-    HeroKebabWrap, HeroKebabBtn, HeroKebabMenu, HeroKebabItem,
-} from '@/common/components/DetailHero';
-import {
-    ViewContainer, PageContent,
-    BreadcrumbNav, BreadcrumbLink, BreadcrumbSep, BreadcrumbCurrent,
-    VehicleStatusBadge, StatusDot,
-    TwoColGrid, LeftRail, MainCol,
-    Panel, PanelHead, PanelTitle, PanelBody, PanelBodyFlush, PanelCountBadge, PanelAction,
-    OwnerItem, OwnerAvatar, OwnerInfo, OwnerName, OwnerRole,
-    SummaryStrip, SumCell, KpiEyebrow, KpiValue, KpiDelta,
-    VisitRow, VisitDateCol, VisitDateMain, VisitDateSub, VisitInfo, VisitTitle, VisitSub, VisitAmount,
-    StatusBadge,
-    PrefRow, PrefKey, PrefVal,
-    NoteText,
-    CollapsibleSection, CollapsibleHeader, CollapsibleHeaderLeft,
-    SectionIconWrap, CollapsibleTitle, CollapsibleBadge, ChevronIcon, CollapsibleBody,
-    CenteredBox, SpinnerEl, LoadingText, ErrorTitle, ErrorMsg,
-} from './VehicleDetailView.styles';
-import styled from 'styled-components';
+// ─── Układ ────────────────────────────────────────────────────────────────────
+
+// Opacity-only: animacja z transformem na przodku psuje modale z position: fixed.
+const fadeIn = keyframes`from { opacity: 0; } to { opacity: 1; }`;
+const spin = keyframes`to { transform: rotate(360deg); }`;
+
+const ViewContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+    background: ${ui.bg};
+    animation: ${fadeIn} 0.3s ease both;
+`;
+
+const ContentArea = styled(PageContainer)`
+    flex: 1;
+    min-width: 0;
+    padding-block-end: 40px;
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) { padding-block-end: 48px; }
+`;
 
 /**
- * Podpowiedź nad wierszem historii wizyt.
- *
- * Renderowana przez portal do <body>: wiersze siedzą w panelu z własnym
- * kontekstem nakładania i przycinaniem zawartości, więc dymek pozycjonowany
- * wewnątrz listy chowałby się za sąsiednimi kartami albo urywał na krawędzi
- * panelu. Fixed + portal + z-index ponad panelami (jak InfoTooltip), a
- * pointer-events: none, żeby nie przechwytywał kliknięcia w wiersz.
+ * Dwie kolumny od 960px szerokości TREŚCI (zapytanie kontenerowe), nie okna. W jednej
+ * kolumnie kolumny się rozpadają (`display: contents`), a kolejność ustawia `order`.
  */
-const RowHint = styled.div`
-  position: fixed;
-  z-index: 9999;
-  background: #1e293b;
-  color: #f1f5f9;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.4;
-  padding: 7px 11px;
-  border-radius: 8px;
-  pointer-events: none;
-  white-space: nowrap;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-
-  &::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 5px solid transparent;
-    border-top-color: #1e293b;
-  }
-`;
-
-// ── Deletion banner ────────────────────────────────────────────────────────────
-
-const DeletionBanner = styled.div`
-    width: 100%;
-    background: #fff1f2;
-    border: 1.5px solid #fecdd3;
-    border-radius: 12px;
-    padding: 16px 20px;
-    margin-bottom: 20px;
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-
-    @media (max-width: 640px) {
-        padding: 14px 16px;
-        gap: 12px;
-    }
-`;
-
-const DeletionBannerIcon = styled.div`
-    flex-shrink: 0;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: #fee2e2;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #dc2626;
-    margin-top: 1px;
-
-    svg { width: 18px; height: 18px; }
-`;
-
-const DeletionBannerBody = styled.div`
-    flex: 1;
+const Layout = styled.div`
+    container: vehicle-layout / inline-size;
     min-width: 0;
 `;
 
-const DeletionBannerTitle = styled.p`
-    margin: 0 0 4px;
-    font-size: 15px;
-    font-weight: 700;
-    color: #991b1b;
-    line-height: 1.4;
+const MainColumn = styled.div`display: contents;`;
+const Rail = styled.aside`display: contents;`;
+
+const Columns = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+
+    @container vehicle-layout (min-width: 960px) {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 344px;
+        gap: 20px;
+        align-items: start;
+
+        ${MainColumn}, ${Rail} {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            min-width: 0;
+        }
+    }
 `;
 
-const DeletionBannerDetail = styled.p`
-    margin: 0;
-    font-size: 13px;
-    font-weight: 500;
-    color: #b91c1c;
-    line-height: 1.5;
+const Slot = styled.div<{ $order: number }>`
+    order: ${p => p.$order};
+    min-width: 0;
+    scroll-margin-top: 64px;
 `;
 
-const DeletedToggleWrap = styled.div`
+const Breadcrumb = styled.nav`
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-left: auto;
+    gap: 6px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: ${ui.textMuted};
+
+    a { color: ${ui.textSecondary}; text-decoration: none; }
+    a:hover { color: ${ui.brandInk}; text-decoration: underline; }
+    svg { width: 13px; height: 13px; }
+    span[aria-current] { color: ${ui.ink}; font-weight: 600; }
 `;
 
-const DeletedToggleLabel = styled.span`
-    font-size: 12px;
-    color: #64748b;
+// ─── Karta wizyt ──────────────────────────────────────────────────────────────
+
+const VisitsCard = styled(Card)`
+    display: flex;
+    flex-direction: column;
+`;
+
+const CardHead = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 22px 0;
+
+    @media (max-width: 640px) { padding: 14px 16px 0; }
+`;
+
+const Strip = styled(SummaryStrip)`
+    margin: 14px 22px 0;
+
+    @media (max-width: 640px) { margin: 10px 16px 0; }
+`;
+
+const VisitList = styled.ul`
+    list-style: none;
+    margin: 12px 0 0;
+    padding: 0;
+`;
+
+const VisitRow = styled.button<{ $muted?: boolean }>`
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr) auto auto 16px;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 12px 22px;
+    border: none;
+    border-top: 1px solid ${ui.lineFaint};
+    background: ${ui.surface};
+    font-family: inherit;
+    text-align: left;
+    color: inherit;
+    cursor: ${p => p.$muted ? 'default' : 'pointer'};
+    opacity: ${p => p.$muted ? 0.55 : 1};
+
+    &:hover:not(:disabled) { background: ${ui.surfaceSoft}; }
+    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: -2px; }
+    > svg { width: 16px; height: 16px; color: ${ui.textFaint}; }
+
+    @media (max-width: 640px) {
+        grid-template-columns: 52px minmax(0, 1fr) auto 16px;
+        gap: 10px;
+        padding: 12px 12px 12px 16px;
+        .pill { display: none; }
+    }
+`;
+
+const DateCol = styled.span`
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    font-variant-numeric: tabular-nums;
+
+    strong { font-size: 14px; font-weight: 700; color: ${ui.ink}; }
+    span { font-size: 12px; color: ${ui.textMuted}; }
+`;
+
+const VisitText = styled.span`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+
+    strong { font-size: 14px; font-weight: 600; color: ${ui.ink}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    span { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: ${ui.textMuted}; }
+    span svg { width: 13px; height: 13px; }
+`;
+
+const Amount = styled.span`
+    font-size: 14.5px;
+    font-weight: 700;
+    color: ${ui.ink};
+    font-variant-numeric: tabular-nums;
     white-space: nowrap;
 `;
 
-const ToggleSwitch = styled.button<{ $active: boolean }>`
-    width: 36px;
-    height: 20px;
-    border-radius: 10px;
-    border: none;
-    background: ${p => p.$active ? '#9F1239' : '#cbd5e1'};
-    cursor: pointer;
-    padding: 2px;
+const CardFoot = styled.div`
     display: flex;
     align-items: center;
-    transition: background 150ms ease;
-    flex-shrink: 0;
+    gap: 8px;
+    padding: 10px 22px 14px;
+    border-top: 1px solid ${ui.lineFaint};
+
+    @media (max-width: 640px) { padding: 10px 16px 12px; }
 `;
 
-const ToggleThumb = styled.span<{ $active: boolean }>`
-    width: 16px;
-    height: 16px;
+const EmptyVisits = styled.p`
+    margin: 14px 22px 18px;
+    font-size: 13.5px;
+    color: ${ui.textMuted};
+`;
+
+// ─── Szyna ────────────────────────────────────────────────────────────────────
+
+const RailPanel = styled(Panel)`
+    padding: 16px 18px;
+
+    @media (max-width: 640px) { padding: 14px 16px; }
+`;
+
+const RailHead = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+`;
+
+const Owners = styled.ul`
+    display: flex;
+    flex-direction: column;
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+`;
+
+/* Właściciel jako wiersz-odnośnik: nazwa, rola, strzałka. Bez awatara z inicjałami -
+   powtarzał tylko to, co stoi obok literami. */
+const OwnerLink = styled.a`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 0;
+    border-top: 1px solid ${ui.lineFaint};
+    text-decoration: none;
+    color: inherit;
+
+    li:first-child > & { border-top: none; }
+    &:hover strong { color: ${ui.brandInk}; }
+    > svg { width: 15px; height: 15px; color: ${ui.textFaint}; flex-shrink: 0; }
+`;
+
+const OwnerText = styled.span`
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    flex: 1;
+
+    strong { font-size: 14px; font-weight: 600; color: ${ui.ink}; overflow-wrap: anywhere; }
+    span { font-size: 12.5px; color: ${ui.textMuted}; }
+`;
+
+const Muted = styled.p`
+    margin: 10px 0 0;
+    font-size: 13.5px;
+    color: ${ui.textMuted};
+`;
+
+const HistoryToggle = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    padding: 14px 18px;
+    border: none;
+    border-radius: ${ui.radiusPanel};
+    background: transparent;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    > svg { width: 16px; height: 16px; color: ${ui.textMuted}; transition: transform 200ms ease; }
+    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: -2px; }
+    @media (max-width: 640px) { padding: 14px 16px; }
+`;
+
+const Centered = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    min-height: 400px;
+    text-align: center;
+
+    h2 { margin: 0; font-size: 20px; color: ${ui.dangerInk}; }
+    p { margin: 0; color: ${ui.textSecondary}; font-size: 14px; }
+`;
+
+const Spinner = styled.div`
+    width: 38px;
+    height: 38px;
+    border: 3px solid ${ui.line};
+    border-top-color: ${ui.brand};
     border-radius: 50%;
-    background: #fff;
-    transform: translateX(${p => p.$active ? '16px' : '0'});
-    transition: transform 150ms ease;
+    animation: ${spin} 0.7s linear infinite;
 `;
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Pomocnicze ───────────────────────────────────────────────────────────────
 
-const MONTH_LABELS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
-
-const roleLabels: Record<string, string> = {
-    PRIMARY:  'Właściciel',
+const ROLE_LABEL: Record<string, string> = {
+    PRIMARY: 'Właściciel',
     CO_OWNER: 'Współwłaściciel',
-    COMPANY:  'Firma',
+    COMPANY: 'Firma',
 };
 
-const statusLabels: Record<string, string> = {
-    active:   'Aktywny',
-    sold:     'Sprzedany',
-    archived: 'Archiwum',
-};
+const VISITS_COLLAPSED = 6;
 
-function getOwnerInitials(owner: VehicleOwner): string {
-    return owner.customerName
-        .split(' ')
-        .map(n => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2);
-}
-
-function visitStatusBadge(status: string): { label: string; kind: 'success' | 'info' | 'warn' | 'neutral' | 'error' } {
+function visitStatus(status: string): { label: string; tone: PillTone } {
     switch (status.toUpperCase()) {
-        case 'COMPLETED':         return { label: 'Zakończona',        kind: 'success' };
-        case 'CONVERTED':         return { label: 'Zrealizowana',      kind: 'success' };
-        case 'IN_PROGRESS':       return { label: 'W trakcie',         kind: 'info' };
-        case 'READY_FOR_PICKUP':  return { label: 'Gotowa do odbioru', kind: 'warn' };
+        case 'COMPLETED': return { label: 'Zakończona', tone: 'ok' };
+        case 'CONVERTED': return { label: 'Zrealizowana', tone: 'ok' };
+        case 'IN_PROGRESS': return { label: 'W realizacji', tone: 'info' };
+        case 'READY_FOR_PICKUP': return { label: 'Do odbioru', tone: 'warn' };
         case 'CREATED':
-        case 'SCHEDULED':         return { label: 'Rezerwacja',        kind: 'neutral' };
-        case 'ABANDONED':         return { label: 'Porzucona',         kind: 'error' };
-        case 'CANCELLED':         return { label: 'Anulowana',         kind: 'error' };
-        default:                  return { label: status,              kind: 'neutral' };
+        case 'SCHEDULED': return { label: 'Rezerwacja', tone: 'neutral' };
+        case 'ABANDONED': return { label: 'Porzucona', tone: 'danger' };
+        case 'CANCELLED': return { label: 'Anulowana', tone: 'danger' };
+        default: return { label: status, tone: 'neutral' };
     }
 }
 
-type VehicleMobileTab = 'visits' | 'stats' | 'other';
+const pad = (n: number) => String(n).padStart(2, '0');
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+
+function daysAgo(iso: string): string {
+    const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+    if (days <= 0) return 'dziś';
+    if (days === 1) return 'wczoraj';
+    return `${days} dni temu`;
+}
+
+// ─── Widok ────────────────────────────────────────────────────────────────────
 
 export const VehicleDetailView = () => {
     const { vehicleId } = useParams<{ vehicleId: string }>();
     const navigate = useNavigate();
+    const isPhone = useMediaQuery('(max-width: 767px)');
 
-    const [isDocsOpen,      setIsDocsOpen]      = useState(true);
-    const [isPhotosOpen,    setIsPhotosOpen]    = useState(false);
-    const [isAuditOpen,     setIsAuditOpen]     = useState(false);
-    const [isCommentsOpen,  setIsCommentsOpen]  = useState(false);
-    const [isEditModalOpen,       setIsEditModalOpen]       = useState(false);
+    const [isAuditOpen, setIsAuditOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isEditOwnersModalOpen, setIsEditOwnersModalOpen] = useState(false);
     const [showDeletedVisits, setShowDeletedVisits] = useState(false);
-    // Pozycja dymka „Pokaż w kalendarzu" - jedna na całą listę, bo naraz
-    // najeżdżamy na jeden wiersz.
-    const [rowHint, setRowHint] = useState<{ left: number; top: number; label: string } | null>(null);
-
-    // Dymek jest pozycjonowany na sztywno względem okna, więc przy przewijaniu
-    // oderwałby się od swojego wiersza - chowamy go zamiast przeliczać.
-    useEffect(() => {
-        if (!rowHint) return;
-        const hide = () => setRowHint(null);
-        window.addEventListener('scroll', hide, true);
-        return () => window.removeEventListener('scroll', hide, true);
-    }, [rowHint]);
+    const [showAllVisits, setShowAllVisits] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    // Karta pojazdu jest długa - na telefonie dzielimy ją na sekcje przełączane
-    // paskiem przy dolnej krawędzi, tak samo jak kartę klienta.
-    const [mobileTab, setMobileTab] = useState<VehicleMobileTab>('visits');
-    const [isKebabOpen, setIsKebabOpen] = useState(false);
-    const [kebabPos, setKebabPos] = useState<{ top: number; right: number } | null>(null);
-    const kebabRef = useRef<HTMLDivElement>(null);
-
-    const openKebab = () => {
-        const rect = kebabRef.current?.getBoundingClientRect();
-        if (rect) setKebabPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
-        setIsKebabOpen(open => !open);
-    };
-
-    useEffect(() => {
-        if (!isKebabOpen) return;
-        const handler = (event: MouseEvent) => {
-            if (!kebabRef.current?.contains(event.target as Node)) setIsKebabOpen(false);
-        };
-        document.addEventListener('click', handler);
-        return () => document.removeEventListener('click', handler);
-    }, [isKebabOpen]);
 
     const { deleteVehicle, isDeleting } = useDeleteVehicle();
-
     const { vehicleDetail, isLoading, isError, refetch } = useVehicleDetail(vehicleId!);
     const { events: historyEvents } = useVehicleHistory(vehicleId!);
     const { events: deletedVisitEvents } = useVehicleDeletedVisits(vehicleId!, showDeletedVisits);
 
-    // ── Loading ──────────────────────────────────────────────────────────────
-
     if (isLoading) {
         return (
             <ViewContainer>
-                <PageContent>
-                    <CenteredBox>
-                        <SpinnerEl />
-                        <LoadingText>Ładowanie danych pojazdu...</LoadingText>
-                    </CenteredBox>
-                </PageContent>
+                <ContentArea>
+                    <Centered>
+                        <Spinner />
+                        <p>Ładowanie danych pojazdu...</p>
+                    </Centered>
+                </ContentArea>
             </ViewContainer>
         );
     }
@@ -285,611 +391,315 @@ export const VehicleDetailView = () => {
     if (isError || !vehicleDetail) {
         return (
             <ViewContainer>
-                <PageContent>
-                    <CenteredBox>
-                        <ErrorTitle>{t.common.error}</ErrorTitle>
-                        <ErrorMsg>{t.vehicles.error.detailLoadFailed}</ErrorMsg>
-                        <SharedButton $variant="primary" onClick={() => refetch()}>
-                            {t.common.retry}
-                        </SharedButton>
-                    </CenteredBox>
-                </PageContent>
+                <ContentArea>
+                    <Centered>
+                        <h2>{t.common.error}</h2>
+                        <p>{t.vehicles.error.detailLoadFailed}</p>
+                        <Button variant="primary" onClick={() => refetch()}>{t.common.retry}</Button>
+                    </Centered>
+                </ContentArea>
             </ViewContainer>
         );
     }
 
     const { vehicle, photos } = vehicleDetail;
     const vehicleName = [vehicle.brand, vehicle.model].filter(Boolean).join(' ') || 'Pojazd';
-
     const isArchived = vehicle.status === 'archived' || !!vehicle.deletedAt;
-
     const deletedAtFormatted = vehicle.deletedAt
         ? new Date(vehicle.deletedAt).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' })
         : null;
 
-    const totalSpent   = vehicle.stats?.totalSpent  ?? { grossAmount: 0, currency: 'PLN' };
-    const totalVisits  = vehicle.stats?.totalVisits ?? 0;
-    const lastVisit    = vehicle.stats?.lastVisitDate ?? null;
-    const avgCost      = vehicle.stats?.averageVisitCost ?? { grossAmount: 0, currency: 'PLN' };
+    const totalSpent = vehicle.stats?.totalSpent ?? { grossAmount: 0, currency: 'PLN' };
+    const totalVisits = vehicle.stats?.totalVisits ?? 0;
+    const lastVisit = vehicle.stats?.lastVisitDate ?? null;
+    const avgCost = vehicle.stats?.averageVisitCost ?? { grossAmount: 0, currency: 'PLN' };
 
     const allEvents = showDeletedVisits
         ? [...historyEvents, ...deletedVisitEvents].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         : historyEvents;
-    const recentVisits = allEvents.slice(0, 6);
+    const shownEvents = showAllVisits ? allEvents : allEvents.slice(0, VISITS_COLLAPSED);
+
+    const primaryOwner = vehicle.owners.find(o => o.role === 'PRIMARY') ?? vehicle.owners[0] ?? null;
+    const facts: VehicleFact[] = [
+        {
+            label: 'Ostatnia wizyta',
+            value: lastVisit ? new Date(lastVisit).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'jeszcze nie było',
+            hint: lastVisit ? daysAgo(lastVisit) : undefined,
+        },
+        ...(vehicle.currentMileage ? [{ label: 'Przebieg', value: `${vehicle.currentMileage.toLocaleString('pl-PL')} km` }] : []),
+        ...(primaryOwner ? [{
+            label: vehicle.owners.length > 1 ? 'Właściciele' : 'Właściciel',
+            value: primaryOwner.customerName,
+            hint: vehicle.owners.length > 1 ? `i ${vehicle.owners.length - 1} ${vehicle.owners.length === 2 ? 'inny' : 'innych'}` : undefined,
+        }] : []),
+    ];
+
+    const startVisit = () => {
+        const singleOwner = vehicle.owners.length === 1 ? vehicle.owners[0] : null;
+        const nameParts = singleOwner?.customerName.split(' ') ?? [];
+        navigate('/checkin/new', {
+            state: {
+                prefillVehicle: {
+                    id: vehicle.id,
+                    brand: vehicle.brand,
+                    model: vehicle.model,
+                    yearOfProduction: vehicle.yearOfProduction,
+                    licensePlate: vehicle.licensePlate,
+                    color: vehicle.color ?? undefined,
+                },
+                ...(singleOwner ? {
+                    prefillCustomer: {
+                        id: singleOwner.customerId,
+                        firstName: nameParts[0] ?? '',
+                        lastName: nameParts.slice(1).join(' '),
+                        phone: '',
+                        email: '',
+                    },
+                } : {}),
+            },
+        });
+    };
+
+    const openEvent = (event: VehicleHistoryEvent) => {
+        if (event.type === 'VISIT') {
+            navigate(`/visits/${event.id}`);
+            return;
+        }
+        // Rezerwacja nie ma własnego widoku - żyje w kalendarzu. Ten sam kontrakt co
+        // deep-link z Aktywności: podświetl zdarzenie i otwórz jego podsumowanie.
+        navigate('/calendar', {
+            state: {
+                highlightEventId: event.id,
+                highlightDate: toCalendarDate(event.date),
+                openEventPopover: true,
+            },
+        });
+    };
+
+    const chips = [
+        { id: 'vehicle-visits', label: 'Wizyty', count: historyEvents.length },
+        { id: 'vehicle-photos', label: 'Zdjęcia', count: photos.length },
+        { id: 'vehicle-docs', label: 'Dokumenty' },
+        { id: 'vehicle-owners', label: 'Właściciele', count: vehicle.owners.length },
+        { id: 'vehicle-notes', label: 'Notatki' },
+        { id: 'vehicle-history', label: 'Historia' },
+    ];
 
     return (
         <ViewContainer>
-            <PageContent>
+            <ContentArea>
+                <Breadcrumb aria-label="Nawigacja">
+                    <a href="/vehicles" onClick={e => { e.preventDefault(); navigate('/vehicles'); }}>Pojazdy</a>
+                    <ChevronRight aria-hidden="true" />
+                    <span aria-current="page">{vehicle.licensePlate || vehicleName}</span>
+                </Breadcrumb>
 
-                {/* ─── Breadcrumb ────────────────────────────────── */}
-                <BreadcrumbNav aria-label="Nawigacja">
-                    <BreadcrumbLink to="/vehicles">Pojazdy</BreadcrumbLink>
-                    <BreadcrumbSep>›</BreadcrumbSep>
-                    <BreadcrumbCurrent>{vehicle.licensePlate || vehicleName}</BreadcrumbCurrent>
-                </BreadcrumbNav>
-
-                {/* ─── Deletion banner ───────────────────────────── */}
                 {isArchived && (
-                    <DeletionBanner role="alert">
-                        <DeletionBannerIcon>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="12" cy="12" r="10"/>
-                                <line x1="12" y1="8" x2="12" y2="12"/>
-                                <line x1="12" y1="16" x2="12.01" y2="16"/>
-                            </svg>
-                        </DeletionBannerIcon>
-                        <DeletionBannerBody>
-                            <DeletionBannerTitle>
-                                Ten pojazd został usunięty
-                                {deletedAtFormatted ? ` dnia ${deletedAtFormatted}` : ''}
-                                {vehicle.deletedBy ? ` przez ${vehicle.deletedBy}` : ''}.
-                            </DeletionBannerTitle>
-                            <DeletionBannerDetail>
-                                Operacja jest nieodwracalna. Nie możesz wprowadzić żadnych danych do tego pojazdu.
-                            </DeletionBannerDetail>
-                        </DeletionBannerBody>
-                    </DeletionBanner>
+                    <Notice
+                        tone="danger"
+                        role="alert"
+                        title={`Ten pojazd został usunięty${deletedAtFormatted ? ` ${deletedAtFormatted}` : ''}${vehicle.deletedBy ? ` przez ${vehicle.deletedBy}` : ''}`}
+                    >
+                        Operacja jest nieodwracalna. Nie można wprowadzać zmian w tym pojeździe.
+                    </Notice>
+                )}
+                {isArchived && <div style={{ height: 14 }} />}
+
+                <VehicleDetailHeader
+                    vehicle={vehicle}
+                    isArchived={isArchived}
+                    facts={facts}
+                    onNewVisit={startVisit}
+                    onEdit={() => setIsEditModalOpen(true)}
+                    onOwners={() => setIsEditOwnersModalOpen(true)}
+                    onDelete={() => setShowDeleteConfirm(true)}
+                    isDeleting={isDeleting}
+                />
+
+                {isPhone && (
+                    <SectionChips
+                        label="Sekcje pojazdu"
+                        items={chips}
+                        onOpen={id => { if (id === 'vehicle-history') setIsAuditOpen(true); }}
+                    />
                 )}
 
-                {/* ─── Hero header ───────────────────────────────── */}
-                <HeroHeader>
-                    <HeroContent>
-                        <HeroLeft>
-                            <CarLogoImage brand={vehicle.brand} size="lg" />
-                            <HeroNameBlock>
-                                <HeroName>{vehicleName}</HeroName>
-                                <HeroMetaRow>
-                                    {vehicle.licensePlate && (
-                                        <HeroMetaItem>
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <rect x="2" y="6" width="20" height="12" rx="2"/>
-                                                <path d="M6 10v4M10 10v4M14 10v4M18 10v4"/>
-                                            </svg>
-                                            {vehicle.licensePlate}
-                                        </HeroMetaItem>
+                <Layout>
+                    <Columns>
+                        <MainColumn>
+                            {/* Jedyna wyniesiona karta: to po historię wizyt i kwotę się tu wraca. */}
+                            <Slot id="vehicle-visits" $order={1}>
+                                <VisitsCard aria-labelledby="vehicle-visits-title">
+                                    <CardHead>
+                                        <SectionTitle
+                                            id="vehicle-visits-title"
+                                            size="lg"
+                                            count={historyEvents.length || undefined}
+                                        >
+                                            Wizyty
+                                        </SectionTitle>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            aria-pressed={showDeletedVisits}
+                                            onClick={() => setShowDeletedVisits(v => !v)}
+                                        >
+                                            {showDeletedVisits ? 'Ukryj usunięte' : 'Pokaż usunięte'}
+                                        </Button>
+                                    </CardHead>
+
+                                    <Strip
+                                        label="Łącznie wydano na ten pojazd"
+                                        amount={formatCurrency(totalSpent.grossAmount, totalSpent.currency)}
+                                        details={totalVisits > 0
+                                            ? `${totalVisits} ${totalVisits === 1 ? 'zakończona wizyta' : 'zakończone wizyty'}, średnio ${formatCurrency(avgCost.grossAmount, avgCost.currency)}`
+                                            : 'żadna wizyta nie jest jeszcze zakończona'}
+                                    />
+
+                                    {shownEvents.length === 0 ? (
+                                        <EmptyVisits>Ten pojazd nie ma jeszcze wizyt ani rezerwacji.</EmptyVisits>
+                                    ) : (
+                                        <VisitList>
+                                            {shownEvents.map((event: VehicleHistoryEvent & { deletedAt?: string }) => {
+                                                const d = new Date(event.date);
+                                                const isDeleted = !!event.deletedAt;
+                                                const status = isDeleted ? { label: 'Usunięta', tone: 'danger' as const } : visitStatus(event.status);
+                                                const sameYear = d.getFullYear() === new Date().getFullYear();
+                                                return (
+                                                    <li key={`${event.type}-${event.id}`}>
+                                                        <VisitRow
+                                                            type="button"
+                                                            $muted={isDeleted}
+                                                            disabled={isDeleted}
+                                                            onClick={() => openEvent(event)}
+                                                            title={event.type === 'APPOINTMENT' ? 'Pokaż w kalendarzu' : 'Otwórz wizytę'}
+                                                        >
+                                                            <DateCol>
+                                                                <strong>{pad(d.getDate())}.{pad(d.getMonth() + 1)}</strong>
+                                                                <span>{sameYear ? `${pad(d.getHours())}:${pad(d.getMinutes())}` : d.getFullYear()}</span>
+                                                            </DateCol>
+                                                            <VisitText>
+                                                                <strong>{event.title}</strong>
+                                                                <span>
+                                                                    {event.type === 'APPOINTMENT' && <CalendarDays aria-hidden="true" />}
+                                                                    {event.customerName}
+                                                                </span>
+                                                            </VisitText>
+                                                            <StatusPill className="pill" $tone={status.tone}>{status.label}</StatusPill>
+                                                            <Amount>{formatCurrency(event.grossAmount, event.currency)}</Amount>
+                                                            <ChevronRight aria-hidden="true" />
+                                                        </VisitRow>
+                                                    </li>
+                                                );
+                                            })}
+                                        </VisitList>
                                     )}
-                                    <HeroMetaItem>
-                                        <VehicleStatusBadge $status={vehicle.status}>
-                                            <StatusDot $status={vehicle.status} />
-                                            {statusLabels[vehicle.status] ?? vehicle.status}
-                                        </VehicleStatusBadge>
-                                    </HeroMetaItem>
-                                    {vehicle.yearOfProduction && (
-                                        <HeroMetaItem>rocznik {vehicle.yearOfProduction}</HeroMetaItem>
+
+                                    {allEvents.length > VISITS_COLLAPSED && (
+                                        <CardFoot>
+                                            <Button variant="ghost" size="sm" onClick={() => setShowAllVisits(v => !v)}>
+                                                {showAllVisits ? 'Pokaż mniej' : `Pokaż wszystkie (${allEvents.length})`}
+                                            </Button>
+                                        </CardFoot>
                                     )}
-                                    {vehicle.color && (
-                                        <HeroMetaItem>{vehicle.color}</HeroMetaItem>
-                                    )}
-                                    {vehicle.owners.length > 0 && (
-                                        <HeroMetaItem>
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                                                <circle cx="12" cy="7" r="4"/>
-                                            </svg>
-                                            {vehicle.owners.length === 1
-                                                ? vehicle.owners[0].customerName
-                                                : `${vehicle.owners.length} ${pluralPl(vehicle.owners.length, 'właściciel', 'właścicieli', 'właścicieli')}`}
-                                        </HeroMetaItem>
-                                    )}
-                                    <HeroMetaItem>ID: {vehicle.id.slice(0, 8).toUpperCase()}</HeroMetaItem>
-                                </HeroMetaRow>
-                            </HeroNameBlock>
-                        </HeroLeft>
+                                    {allEvents.length <= VISITS_COLLAPSED && <div style={{ height: 8 }} />}
+                                </VisitsCard>
+                            </Slot>
 
-                        <HeroRight>
-                            <HeroPrimaryBtn
-                                disabled={isArchived}
-                                onClick={() => {
-                                    const singleOwner = vehicle.owners.length === 1 ? vehicle.owners[0] : null;
-                                    const nameParts = singleOwner?.customerName.split(' ') ?? [];
-                                    navigate('/checkin/new', {
-                                        state: {
-                                            prefillVehicle: {
-                                                id:              vehicle.id,
-                                                brand:           vehicle.brand,
-                                                model:           vehicle.model,
-                                                yearOfProduction: vehicle.yearOfProduction,
-                                                licensePlate:    vehicle.licensePlate,
-                                                color:           vehicle.color ?? undefined,
-                                            },
-                                            ...(singleOwner ? {
-                                                prefillCustomer: {
-                                                    id:        singleOwner.customerId,
-                                                    firstName: nameParts[0] ?? '',
-                                                    lastName:  nameParts.slice(1).join(' '),
-                                                    phone:     '',
-                                                    email:     '',
-                                                },
-                                            } : {}),
-                                        },
-                                    });
-                                }}
-                            >
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                    <line x1="16" y1="2" x2="16" y2="6"/>
-                                    <line x1="8" y1="2" x2="8" y2="6"/>
-                                    <line x1="3" y1="10" x2="21" y2="10"/>
-                                    <line x1="12" y1="14" x2="12" y2="18"/>
-                                    <line x1="10" y1="16" x2="14" y2="16"/>
-                                </svg>
-                                Nowa wizyta
-                            </HeroPrimaryBtn>
+                            <Slot $order={2}>
+                                <VehiclePhotoGallery id="vehicle-photos" vehicleId={vehicleId!} readOnly={isArchived} />
+                            </Slot>
 
-                            <HeroKebabWrap ref={kebabRef}>
-                                <HeroKebabBtn onClick={openKebab} title="Więcej opcji">
-                                    <svg viewBox="0 0 4 18" fill="currentColor">
-                                        <circle cx="2" cy="2" r="2" />
-                                        <circle cx="2" cy="9" r="2" />
-                                        <circle cx="2" cy="16" r="2" />
-                                    </svg>
-                                </HeroKebabBtn>
-                            </HeroKebabWrap>
-                        </HeroRight>
-                    </HeroContent>
-                </HeroHeader>
+                            <Slot $order={3}>
+                                <VehicleDocuments id="vehicle-docs" vehicleId={vehicleId!} readOnly={isArchived} />
+                            </Slot>
 
-                {isKebabOpen && kebabPos && createPortal(
-                    <HeroKebabMenu style={{ top: kebabPos.top, right: kebabPos.right }}>
-                        <HeroKebabItem
-                            disabled={isArchived}
-                            onClick={() => { setIsKebabOpen(false); setIsEditModalOpen(true); }}
-                        >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                            </svg>
-                            Edytuj dane
-                        </HeroKebabItem>
-                        <HeroKebabItem
-                            disabled={isArchived}
-                            onClick={() => { setIsKebabOpen(false); setIsEditOwnersModalOpen(true); }}
-                        >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                                <circle cx="9" cy="7" r="4"/>
-                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                            </svg>
-                            Właściciele
-                        </HeroKebabItem>
-                        <HeroKebabItem
-                            $danger
-                            disabled={isDeleting || isArchived}
-                            onClick={() => { setIsKebabOpen(false); setShowDeleteConfirm(true); }}
-                        >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polyline points="3 6 5 6 21 6"/>
-                                <path d="M19 6l-1 14H6L5 6"/>
-                                <path d="M9 6V4h6v2"/>
-                            </svg>
-                            Usuń pojazd
-                        </HeroKebabItem>
-                    </HeroKebabMenu>,
-                    document.body
-                )}
+                            <Slot $order={7}>
+                                <VehicleComments id="vehicle-comments" vehicleId={vehicleId!} />
+                            </Slot>
 
-                {/* ─── Two-column layout ─────────────────────────── */}
-                <TwoColGrid>
-
-                    {/* ── LEFT RAIL ────────────────────────────────── */}
-                    <LeftRail>
-                      <MobileSectionPanel $visible={mobileTab === 'other'} $desktopContents>
-
-                        {/* Tożsamość pojazdu - logo, nazwa, tablica i ID - niesie teraz
-                            nagłówek, więc lewa szyna zaczyna się od danych technicznych. */}
-
-                        {/* Technical specs */}
-                        <Panel>
-                            <PanelHead>
-                                <PanelTitle>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <circle cx="12" cy="12" r="3"/>
-                                        <path d="M19.07 4.93A10 10 0 0 0 4.93 19.07M4.93 4.93A10 10 0 0 1 19.07 19.07"/>
-                                    </svg>
-                                    Dane techniczne
-                                </PanelTitle>
-                            </PanelHead>
-                            <PanelBody>
-                                <PrefRow>
-                                    <PrefKey>Marka</PrefKey>
-                                    <PrefVal>{vehicle.brand || '-'}</PrefVal>
-                                </PrefRow>
-                                <PrefRow>
-                                    <PrefKey>Model</PrefKey>
-                                    <PrefVal>{vehicle.model || '-'}</PrefVal>
-                                </PrefRow>
-                                {vehicle.yearOfProduction && (
-                                    <PrefRow>
-                                        <PrefKey>Rocznik</PrefKey>
-                                        <PrefVal>{vehicle.yearOfProduction}</PrefVal>
-                                    </PrefRow>
-                                )}
-                                {vehicle.color && (
-                                    <PrefRow>
-                                        <PrefKey>Kolor</PrefKey>
-                                        <PrefVal>{vehicle.color}</PrefVal>
-                                    </PrefRow>
-                                )}
-                                <PrefRow>
-                                    <PrefKey>W systemie od</PrefKey>
-                                    <PrefVal>
-                                        {new Date(vehicle.createdAt).toLocaleDateString('pl-PL', {
-                                            day: '2-digit', month: '2-digit', year: 'numeric',
-                                        })}
-                                    </PrefVal>
-                                </PrefRow>
-                            </PanelBody>
-                        </Panel>
-
-                        {/* Owners */}
-                        <Panel>
-                            <PanelHead>
-                                <PanelTitle>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                                        <circle cx="9" cy="7" r="4"/>
-                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                                    </svg>
-                                    Właściciele
-                                </PanelTitle>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <PanelCountBadge>{vehicle.owners.length}</PanelCountBadge>
-                                    {!isArchived && (
-                                    <PanelAction onClick={() => setIsEditOwnersModalOpen(true)}>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                            <line x1="12" y1="5" x2="12" y2="19"/>
-                                            <line x1="5" y1="12" x2="19" y2="12"/>
-                                        </svg>
-                                        Zarządzaj
-                                    </PanelAction>
-                                    )}
-                                </div>
-                            </PanelHead>
-                            <PanelBodyFlush>
-                                {vehicle.owners.length === 0 ? (
-                                    <PanelBody>
-                                        <NoteText>Brak przypisanych właścicieli.</NoteText>
-                                    </PanelBody>
-                                ) : (
-                                    vehicle.owners.map((owner: VehicleOwner) => (
-                                        <OwnerItem key={owner.customerId} to={`/customers/${owner.customerId}`}>
-                                            <OwnerAvatar>{getOwnerInitials(owner)}</OwnerAvatar>
-                                            <OwnerInfo>
-                                                <OwnerName>{owner.customerName}</OwnerName>
-                                                <OwnerRole>{roleLabels[owner.role] ?? owner.role}</OwnerRole>
-                                            </OwnerInfo>
-                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2">
-                                                <path d="M9 18l6-6-6-6"/>
-                                            </svg>
-                                        </OwnerItem>
-                                    ))
-                                )}
-                            </PanelBodyFlush>
-                        </Panel>
-
-                        {/* Notes */}
-                        <VehicleNotes vehicleId={vehicleId!} readOnly={isArchived} />
-
-                      </MobileSectionPanel>
-                    </LeftRail>
-
-                    {/* ── MAIN COLUMN ──────────────────────────────── */}
-                    <MainCol>
-
-                        {/* KPI summary strip */}
-                        <MobileSectionPanel $visible={mobileTab === 'stats'} $desktopContents>
-                        <SummaryStrip>
-                            <SumCell>
-                                <KpiEyebrow>Łączny przychód</KpiEyebrow>
-                                <KpiValue>
-                                    {formatCurrency(totalSpent.grossAmount, totalSpent.currency)}
-                                </KpiValue>
-                                <KpiDelta>{totalVisits} wizyt łącznie</KpiDelta>
-                            </SumCell>
-
-                            <SumCell>
-                                <KpiEyebrow>Zakończone wizyty</KpiEyebrow>
-                                <KpiValue>{totalVisits}</KpiValue>
-                                <KpiDelta>
-                                    śr. {totalVisits > 0
-                                        ? formatCurrency(avgCost.grossAmount, avgCost.currency)
-                                        : '-'} / wizyta
-                                </KpiDelta>
-                            </SumCell>
-
-                            <SumCell>
-                                <KpiEyebrow>Ostatnia wizyta</KpiEyebrow>
-                                <KpiValue>
-                                    {lastVisit ? formatDate(lastVisit) : '-'}
-                                </KpiValue>
-                                <KpiDelta>
-                                    {lastVisit
-                                        ? `${Math.floor((Date.now() - new Date(lastVisit).getTime()) / 86400000)} dni temu`
-                                        : 'Brak wizyt'}
-                                </KpiDelta>
-                            </SumCell>
-                        </SummaryStrip>
-                        </MobileSectionPanel>
-
-                        {/* Recent visits */}
-                        <MobileSectionPanel $visible={mobileTab === 'visits'} $desktopContents>
-                        <Panel>
-                            <PanelHead>
-                                <PanelTitle>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <circle cx="12" cy="12" r="10"/>
-                                        <polyline points="12 6 12 12 16 14"/>
-                                    </svg>
-                                    Historia wizyt
-                                </PanelTitle>
-                                {allEvents.length > 6 && (
-                                    <span style={{ fontSize: 12, color: '#64748b' }}>
-                                        Łącznie: <strong style={{ color: '#0f172a' }}>{allEvents.length}</strong>
-                                    </span>
-                                )}
-                                <DeletedToggleWrap>
-                                    <DeletedToggleLabel>Wyświetl usunięte</DeletedToggleLabel>
-                                    <ToggleSwitch
-                                        $active={showDeletedVisits}
-                                        onClick={() => setShowDeletedVisits(v => !v)}
-                                        title={showDeletedVisits ? 'Pokaż aktywne wizyty' : 'Pokaż usunięte wizyty'}
+                            <Slot id="vehicle-history" $order={8}>
+                                <Panel>
+                                    <HistoryToggle
+                                        type="button"
+                                        onClick={() => setIsAuditOpen(v => !v)}
+                                        aria-expanded={isAuditOpen}
+                                        aria-controls="vehicle-history-body"
                                     >
-                                        <ToggleThumb $active={showDeletedVisits} />
-                                    </ToggleSwitch>
-                                </DeletedToggleWrap>
-                            </PanelHead>
-                            <PanelBodyFlush>
-                                {recentVisits.length === 0 ? (
-                                    <PanelBody>
-                                        <NoteText>Brak historii wizyt dla tego pojazdu.</NoteText>
-                                    </PanelBody>
-                                ) : (
-                                    recentVisits.map((event: VehicleHistoryEvent & { deletedAt?: string }) => {
-                                        const d = new Date(event.date);
-                                        const isDeleted = !!event.deletedAt;
-                                        const { label, kind } = isDeleted
-                                            ? { label: 'Usunięta', kind: 'error' as const }
-                                            : visitStatusBadge(event.status);
-                                        return (
-                                            <VisitRow
-                                                key={event.id}
-                                                $active={event.status === 'IN_PROGRESS'}
-                                                onClick={() => {
-                                                    if (isDeleted) return;
-                                                    if (event.type === 'VISIT') {
-                                                        navigate(`/visits/${event.id}`);
-                                                        return;
-                                                    }
-                                                    // Rezerwacja nie ma własnego widoku - żyje w kalendarzu.
-                                                    // Ten sam kontrakt, co deep-link z Aktywności: podświetl
-                                                    // zdarzenie i otwórz jego podsumowanie.
-                                                    setRowHint(null);
-                                                    navigate('/calendar', {
-                                                        state: {
-                                                            highlightEventId: event.id,
-                                                            highlightDate: toCalendarDate(event.date),
-                                                            openEventPopover: true,
-                                                        },
-                                                    });
-                                                }}
-                                                onMouseEnter={e => {
-                                                    if (isDeleted || event.type === 'VISIT') return;
-                                                    const r = e.currentTarget.getBoundingClientRect();
-                                                    setRowHint({
-                                                        left: r.left + r.width / 2,
-                                                        top: r.top,
-                                                        label: 'Pokaż w kalendarzu',
-                                                    });
-                                                }}
-                                                onMouseLeave={() => setRowHint(null)}
-                                                style={isDeleted ? { opacity: 0.55, cursor: 'default' } : undefined}
-                                            >
-                                                <VisitDateCol>
-                                                    <VisitDateMain>
-                                                        {d.getDate().toString().padStart(2, '0')}.{(d.getMonth() + 1).toString().padStart(2, '0')}
-                                                    </VisitDateMain>
-                                                    <VisitDateSub>
-                                                        {d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}
-                                                    </VisitDateSub>
-                                                </VisitDateCol>
-
-                                                <VisitInfo>
-                                                    <VisitTitle>{event.title}</VisitTitle>
-                                                    <VisitSub>{event.customerName}</VisitSub>
-                                                </VisitInfo>
-
-                                                <StatusBadge $kind={kind} className="visit-hide-sm">{label}</StatusBadge>
-
-                                                <VisitAmount>
-                                                    {formatCurrency(event.grossAmount, event.currency)}
-                                                </VisitAmount>
-
-                                                <svg
-                                                    className="visit-hide-sm"
-                                                    width="16" height="16"
-                                                    viewBox="0 0 24 24" fill="none"
-                                                    stroke="#cbd5e1" strokeWidth="2"
-                                                >
-                                                    <path d="M9 18l6-6-6-6"/>
-                                                </svg>
-                                            </VisitRow>
-                                        );
-                                    })
-                                )}
-                            </PanelBodyFlush>
-                        </Panel>
-
-                        {/* ── Collapsible sections ───────────────── */}
-
-                        {/* Documents */}
-                        <CollapsibleSection>
-                            <CollapsibleHeader
-                                onClick={() => setIsDocsOpen(v => !v)}
-                                aria-expanded={isDocsOpen}
-                                aria-controls="docs-section"
-                            >
-                                <CollapsibleHeaderLeft>
-                                    <SectionIconWrap>
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                            <polyline points="14 2 14 8 20 8"/>
-                                        </svg>
-                                    </SectionIconWrap>
-                                    <CollapsibleTitle>Dokumenty</CollapsibleTitle>
-                                </CollapsibleHeaderLeft>
-                                <ChevronIcon $open={isDocsOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <polyline points="6 9 12 15 18 9"/>
-                                </ChevronIcon>
-                            </CollapsibleHeader>
-                            <CollapsibleBody $visible={isDocsOpen} $flush id="docs-section">
-                                <VehicleDocuments vehicleId={vehicleId!} />
-                            </CollapsibleBody>
-                        </CollapsibleSection>
-
-                        {/* Photos */}
-                        <CollapsibleSection>
-                            <CollapsibleHeader
-                                onClick={() => setIsPhotosOpen(v => !v)}
-                                aria-expanded={isPhotosOpen}
-                                aria-controls="photos-section"
-                            >
-                                <CollapsibleHeaderLeft>
-                                    <SectionIconWrap $gradient="linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                            <circle cx="8.5" cy="8.5" r="1.5"/>
-                                            <polyline points="21 15 16 10 5 21"/>
-                                        </svg>
-                                    </SectionIconWrap>
-                                    <CollapsibleTitle>Zdjęcia</CollapsibleTitle>
-                                    {photos.length > 0 && (
-                                        <CollapsibleBadge>{photos.length}</CollapsibleBadge>
+                                        <SectionTitle as="span">Historia zmian</SectionTitle>
+                                        <ChevronDown aria-hidden="true" style={{ transform: isAuditOpen ? 'rotate(180deg)' : undefined }} />
+                                    </HistoryToggle>
+                                    {isAuditOpen && (
+                                        <PanelBody id="vehicle-history-body">
+                                            <EntityActivityTimeline scope={{ vehicleId: vehicleId! }} />
+                                        </PanelBody>
                                     )}
-                                </CollapsibleHeaderLeft>
-                                <ChevronIcon $open={isPhotosOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <polyline points="6 9 12 15 18 9"/>
-                                </ChevronIcon>
-                            </CollapsibleHeader>
-                            <CollapsibleBody $visible={isPhotosOpen} $flush id="photos-section">
-                                <VehiclePhotoGallery vehicleId={vehicleId!} photos={photos} />
-                            </CollapsibleBody>
-                        </CollapsibleSection>
-                        </MobileSectionPanel>
+                                </Panel>
+                            </Slot>
+                        </MainColumn>
 
-                        <MobileSectionPanel $visible={mobileTab === 'other'} $desktopContents>
-                        {/* Audit trail */}
-                        <CollapsibleSection>
-                            <CollapsibleHeader
-                                onClick={() => setIsAuditOpen(v => !v)}
-                                aria-expanded={isAuditOpen}
-                                aria-controls="audit-section"
-                            >
-                                <CollapsibleHeaderLeft>
-                                    <SectionIconWrap $gradient="linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <circle cx="12" cy="12" r="10"/>
-                                            <polyline points="12 6 12 12 16 14"/>
-                                        </svg>
-                                    </SectionIconWrap>
-                                    <CollapsibleTitle>Historia zmian</CollapsibleTitle>
-                                </CollapsibleHeaderLeft>
-                                <ChevronIcon $open={isAuditOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <polyline points="6 9 12 15 18 9"/>
-                                </ChevronIcon>
-                            </CollapsibleHeader>
-                            <CollapsibleBody $visible={isAuditOpen} id="audit-section">
-                                <EntityActivityTimeline scope={{ vehicleId: vehicleId! }} />
-                            </CollapsibleBody>
-                        </CollapsibleSection>
+                        <Rail>
+                            <Slot $order={4}>
+                                <RailPanel id="vehicle-owners" aria-labelledby="vehicle-owners-title">
+                                    <RailHead>
+                                        <SectionTitle id="vehicle-owners-title" count={vehicle.owners.length || undefined}>Właściciele</SectionTitle>
+                                        {!isArchived && (
+                                            <Button variant="ghost" size="sm" onClick={() => setIsEditOwnersModalOpen(true)}>Zarządzaj</Button>
+                                        )}
+                                    </RailHead>
+                                    {vehicle.owners.length === 0 ? (
+                                        <Muted>Pojazd nie ma przypisanego właściciela.</Muted>
+                                    ) : (
+                                        <Owners>
+                                            {vehicle.owners.map((owner: VehicleOwner) => (
+                                                <li key={owner.customerId}>
+                                                    <OwnerLink
+                                                        href={`/customers/${owner.customerId}`}
+                                                        onClick={e => { e.preventDefault(); navigate(`/customers/${owner.customerId}`); }}
+                                                    >
+                                                        <OwnerText>
+                                                            <strong>{owner.customerName}</strong>
+                                                            <span>{ROLE_LABEL[owner.role] ?? owner.role}</span>
+                                                        </OwnerText>
+                                                        <ChevronRight aria-hidden="true" />
+                                                    </OwnerLink>
+                                                </li>
+                                            ))}
+                                        </Owners>
+                                    )}
+                                </RailPanel>
+                            </Slot>
 
-                        {/* Comments */}
-                        <CollapsibleSection>
-                            <CollapsibleHeader
-                                onClick={() => setIsCommentsOpen(v => !v)}
-                                aria-expanded={isCommentsOpen}
-                                aria-controls="comments-section"
-                            >
-                                <CollapsibleHeaderLeft>
-                                    <SectionIconWrap $gradient="linear-gradient(135deg, #10B981 0%, #059669 100%)">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                                        </svg>
-                                    </SectionIconWrap>
-                                    <CollapsibleTitle>Komentarze z wizyt</CollapsibleTitle>
-                                </CollapsibleHeaderLeft>
-                                <ChevronIcon $open={isCommentsOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <polyline points="6 9 12 15 18 9"/>
-                                </ChevronIcon>
-                            </CollapsibleHeader>
-                            <CollapsibleBody $visible={isCommentsOpen} $flush id="comments-section">
-                                <VehicleComments vehicleId={vehicleId!} />
-                            </CollapsibleBody>
-                        </CollapsibleSection>
-                        </MobileSectionPanel>
+                            <Slot $order={5}>
+                                <RailPanel aria-labelledby="vehicle-data-title">
+                                    <RailHead>
+                                        <SectionTitle id="vehicle-data-title">Dane pojazdu</SectionTitle>
+                                        {!isArchived && (
+                                            <Button variant="ghost" size="sm" onClick={() => setIsEditModalOpen(true)}><Pencil />Edytuj</Button>
+                                        )}
+                                    </RailHead>
+                                    <FieldList style={{ marginTop: 10 }}>
+                                        <FieldRow label="Marka">{vehicle.brand || '-'}</FieldRow>
+                                        <FieldRow label="Model">{vehicle.model || '-'}</FieldRow>
+                                        {vehicle.licensePlate && <FieldRow label="Tablica">{vehicle.licensePlate}</FieldRow>}
+                                        {vehicle.yearOfProduction && <FieldRow label="Rocznik">{vehicle.yearOfProduction}</FieldRow>}
+                                        {vehicle.color && <FieldRow label="Kolor">{vehicle.color}</FieldRow>}
+                                        {vehicle.currentMileage ? (
+                                            <FieldRow label="Przebieg"><strong>{vehicle.currentMileage.toLocaleString('pl-PL')} km</strong></FieldRow>
+                                        ) : null}
+                                        <FieldRow label="Numer w systemie">{vehicle.id.slice(0, 8).toUpperCase()}</FieldRow>
+                                    </FieldList>
+                                </RailPanel>
+                            </Slot>
 
-                    </MainCol>
-                </TwoColGrid>
-            </PageContent>
+                            <Slot $order={6}>
+                                <VehicleNotes id="vehicle-notes" vehicleId={vehicleId!} readOnly={isArchived} />
+                            </Slot>
+                        </Rail>
+                    </Columns>
+                </Layout>
+            </ContentArea>
 
-            <MobileSectionNav
-                ariaLabel="Nawigacja sekcji pojazdu"
-                active={mobileTab}
-                onChange={setMobileTab}
-                items={[
-                    {
-                        key: 'visits', label: 'Wizyty', ariaLabel: 'Wizyty, dokumenty i zdjęcia', icon: (
-                            <>
-                                <rect x="3" y="4" width="18" height="18" rx="2"/>
-                                <line x1="16" y1="2" x2="16" y2="6"/>
-                                <line x1="8" y1="2" x2="8" y2="6"/>
-                                <line x1="3" y1="10" x2="21" y2="10"/>
-                            </>
-                        ),
-                    },
-                    {
-                        key: 'stats', label: 'Statystyki', icon: (
-                            <>
-                                <line x1="18" y1="20" x2="18" y2="10"/>
-                                <line x1="12" y1="20" x2="12" y2="4"/>
-                                <line x1="6" y1="20" x2="6" y2="14"/>
-                            </>
-                        ),
-                    },
-                    {
-                        key: 'other', label: 'Inne', ariaLabel: 'Dane pojazdu, właściciele i historia', icon: (
-                            <>
-                                <circle cx="12" cy="12" r="1.6"/>
-                                <circle cx="5" cy="12" r="1.6"/>
-                                <circle cx="19" cy="12" r="1.6"/>
-                            </>
-                        ),
-                    },
-                ]}
-            />
-
-            {/* ─── Modals ─────────────────────────────────────── */}
             <EditVehicleModal
                 isOpen={isEditModalOpen}
                 onClose={() => setIsEditModalOpen(false)}
@@ -904,34 +714,16 @@ export const VehicleDetailView = () => {
 
             <ConfirmationModal
                 isOpen={showDeleteConfirm}
-                title="Usuń pojazd"
-                message={`Pojazd ${vehicleName}${vehicle.licensePlate ? ` (${vehicle.licensePlate})` : ''} zostanie zarchiwizowany. Powiązane wizyty, dokumenty i zdjęcia pozostaną nienaruszone.`}
+                title="Usunąć pojazd?"
+                message={`${vehicleName}${vehicle.licensePlate ? `, ${vehicle.licensePlate},` : ''} trafi do archiwum. Wizyty, dokumenty i zdjęcia zostaną nienaruszone.`}
                 variant="danger"
                 confirmText="Usuń pojazd"
-                cancelText="Anuluj"
+                cancelText="Zostaw"
                 onConfirm={() => {
-                    deleteVehicle(vehicleId!, {
-                        onSuccess: () => navigate('/vehicles'),
-                    });
+                    deleteVehicle(vehicleId!, { onSuccess: () => navigate('/vehicles') });
                 }}
                 onCancel={() => setShowDeleteConfirm(false)}
             />
-
-            {rowHint && createPortal(
-                <RowHint
-                    role="tooltip"
-                    style={{
-                        // Dymek siedzi nad wierszem; przy krawędzi ekranu dosuwamy go
-                        // do środka, żeby nie wychodził poza widok.
-                        left: Math.min(Math.max(rowHint.left, 90), window.innerWidth - 90),
-                        top: rowHint.top - 8,
-                        transform: 'translate(-50%, -100%)',
-                    }}
-                >
-                    {rowHint.label}
-                </RowHint>,
-                document.body
-            )}
         </ViewContainer>
     );
 };

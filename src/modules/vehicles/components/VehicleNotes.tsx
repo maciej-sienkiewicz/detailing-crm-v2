@@ -1,236 +1,121 @@
 // src/modules/vehicles/components/VehicleNotes.tsx
+//
+// Notatki o pojeździe - panel w szynie bocznej, ten sam co notatka techniczna
+// wizyty: tytuł zwykłym pismem, „Dodaj" obrysowane (wypełnienie należy do „Nowa
+// wizyta" w nagłówku), edycja w miejscu. Autor i data zwykłym zdaniem, nie
+// sklejone kropką (CLAUDE.md §4); usunięcie pyta oknem potwierdzenia.
 
 import { useState } from 'react';
-import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import styled from 'styled-components';
-import { useVehicleNotes, useCreateVehicleNote, useUpdateVehicleNote, useDeleteVehicleNote } from '../hooks/useVehicleNotes';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { formatDateTime } from '@/common/utils';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { Button, IconButton, Panel, SectionTitle, ui } from '@/common/components/ui';
+import { useVehicleNotes, useCreateVehicleNote, useUpdateVehicleNote, useDeleteVehicleNote } from '../hooks/useVehicleNotes';
 import type { VehicleNote } from '../types';
 
-/* ─── Sidebar card shell ─── */
+const RailPanel = styled(Panel)`
+    padding: 16px 18px;
 
-const Card = styled.div`
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    overflow: hidden;
-    box-shadow: ${st.shadowSm};
+    @media (max-width: 640px) { padding: 14px 16px; }
 `;
 
-const CardHeader = styled.div`
+const Head = styled.div`
     display: flex;
+    align-items: center;
     justify-content: space-between;
-    align-items: center;
-    padding: 13px 18px;
-    border-bottom: 1px solid ${st.border};
-    background: ${st.bg};
+    gap: 8px;
 `;
 
-const CardTitle = styled.h4`
+const List = styled.ul`
+    display: flex;
+    flex-direction: column;
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+`;
+
+const Item = styled.li`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 0;
+    border-top: 1px solid ${ui.lineFaint};
+
+    &:first-child { border-top: none; padding-top: 0; }
+`;
+
+const Text = styled.p`
     margin: 0;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: ${ui.inkSoft};
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+`;
+
+const Foot = styled.div`
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 8px;
-    font-size: ${st.fontSm};
-    font-weight: 700;
-    color: ${st.text};
-
-    svg {
-        width: 15px;
-        height: 15px;
-        color: ${st.accentBlue};
-    }
 `;
 
-const Badge = styled.span`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 20px;
-    height: 18px;
-    padding: 0 6px;
-    border-radius: ${st.radiusFull};
-    background: ${st.bgCardAlt};
-    border: 1px solid ${st.border};
-    font-size: 11px;
-    font-weight: 600;
-    color: ${st.textMuted};
+const Meta = styled.span`
+    font-size: 12.5px;
+    color: ${ui.textMuted};
 `;
 
-const AddButton = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    border: 1.5px solid ${st.accentBlue};
-    border-radius: ${st.radiusFull};
-    background: transparent;
-    color: ${st.accentBlue};
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    cursor: pointer;
-    transition: all ${st.transition};
-
-    &:hover { background: ${st.accentBlue}; color: white; }
-    svg { width: 12px; height: 12px; }
+const Actions = styled.div`
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
 `;
 
-/* ─── Add-note form ─── */
-
-const AddForm = styled.div`
-    padding: 12px 18px;
-    border-bottom: 1px solid ${st.border};
-    background: ${st.bgCardAlt};
+const Form = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
 `;
 
 const Textarea = styled.textarea`
     width: 100%;
     min-height: 72px;
-    padding: 8px 10px;
-    border: 1.5px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontSm};
-    color: ${st.text};
-    background: ${st.bgCard};
-    resize: vertical;
-    font-family: inherit;
-    line-height: 1.5;
     box-sizing: border-box;
-    transition: border-color ${st.transition}, box-shadow ${st.transition};
+    padding: 10px 12px;
+    border: 1px solid ${ui.line};
+    border-radius: 10px;
+    background: ${ui.surface};
+    color: ${ui.ink};
+    font-family: inherit;
+    font-size: 13.5px;
+    line-height: 1.5;
+    resize: vertical;
 
-    &:focus {
-        outline: none;
-        border-color: ${st.accentBlue};
-        box-shadow: ${st.shadowBlue};
-    }
-
-    &::placeholder { color: ${st.textMuted}; }
+    &:focus { outline: none; border-color: ${ui.focusRing}; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15); }
 `;
 
 const FormActions = styled.div`
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
-    margin-top: 8px;
+    gap: 6px;
 `;
-
-const CancelBtn = styled.button`
-    padding: 5px 12px;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusFull};
-    background: ${st.bgCard};
-    color: ${st.textSecondary};
-    font-size: ${st.fontXs};
-    font-weight: 500;
-    cursor: pointer;
-    transition: all ${st.transition};
-
-    &:hover { background: ${st.bgCardAlt}; border-color: ${st.borderHover}; }
-`;
-
-const SaveBtn = styled.button`
-    padding: 5px 14px;
-    border: none;
-    border-radius: ${st.radiusFull};
-    background: ${st.accentBlue};
-    color: white;
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    cursor: pointer;
-    transition: all ${st.transition};
-    box-shadow: ${st.shadowXs};
-
-    &:disabled { opacity: 0.6; cursor: not-allowed; }
-    &:hover:not(:disabled) { background: #2563EB; box-shadow: ${st.shadowSm}; }
-`;
-
-/* ─── Note list ─── */
-
-const NotesList = styled.ul`
-    list-style: none;
-    margin: 0;
-    padding: 0;
-`;
-
-const NoteItem = styled.li`
-    padding: 12px 18px;
-    border-bottom: 1px solid ${st.border};
-    transition: background ${st.transition};
-
-    &:last-child { border-bottom: none; }
-    &:hover { background: ${st.bgCardAlt}; }
-`;
-
-const NoteContent = styled.p`
-    margin: 0 0 6px;
-    font-size: ${st.fontSm};
-    color: ${st.text};
-    line-height: 1.6;
-    white-space: pre-wrap;
-    word-break: break-word;
-`;
-
-const NoteFooter = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 8px;
-`;
-
-const NoteMeta = styled.span`
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-`;
-
-const NoteActions = styled.div`
-    display: flex;
-    gap: 4px;
-    opacity: 0;
-    transition: opacity ${st.transition};
-
-    ${NoteItem}:hover & { opacity: 1; }
-`;
-
-const IconBtn = styled.button<{ $danger?: boolean }>`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 26px;
-    height: 26px;
-    border: none;
-    border-radius: ${st.radiusSm};
-    background: ${st.bgCardAlt};
-    color: ${st.textMuted};
-    cursor: pointer;
-    transition: all ${st.transition};
-
-    &:hover {
-        background: ${props => props.$danger ? st.accentRedDim : st.accentBlueDim};
-        color: ${props => props.$danger ? st.accentRed : st.accentBlue};
-    }
-
-    svg { width: 13px; height: 13px; }
-`;
-
-/* ─── Empty state ─── */
 
 const Empty = styled.p`
-    margin: 0;
-    padding: 20px 18px;
-    font-size: ${st.fontSm};
-    color: ${st.textMuted};
-    text-align: center;
+    margin: 10px 0 0;
+    font-size: 13.5px;
+    color: ${ui.textMuted};
 `;
-
-/* ─── Component ─── */
 
 interface VehicleNotesProps {
     vehicleId: string;
     readOnly?: boolean;
+    id?: string;
 }
 
-export const VehicleNotes = ({ vehicleId, readOnly = false }: VehicleNotesProps) => {
+export const VehicleNotes = ({ vehicleId, readOnly = false, id }: VehicleNotesProps) => {
     const { notes, isLoading } = useVehicleNotes(vehicleId);
     const createMutation = useCreateVehicleNote(vehicleId);
     const updateMutation = useUpdateVehicleNote(vehicleId);
@@ -240,148 +125,108 @@ export const VehicleNotes = ({ vehicleId, readOnly = false }: VehicleNotesProps)
     const [newContent, setNewContent] = useState('');
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editContent, setEditContent] = useState('');
+    const [toDelete, setToDelete] = useState<VehicleNote | null>(null);
 
     const handleAdd = () => {
         const trimmed = newContent.trim();
         if (!trimmed) return;
         createMutation.mutate(trimmed, {
-            onSuccess: () => {
-                setNewContent('');
-                setIsAdding(false);
-            },
+            onSuccess: () => { setNewContent(''); setIsAdding(false); },
         });
-    };
-
-    const handleStartEdit = (note: VehicleNote) => {
-        setEditingId(note.id);
-        setEditContent(note.content);
     };
 
     const handleSaveEdit = () => {
         const trimmed = editContent.trim();
         if (!trimmed || !editingId) return;
-        updateMutation.mutate({ noteId: editingId, content: trimmed }, {
-            onSuccess: () => setEditingId(null),
-        });
-    };
-
-    const handleDelete = (note: VehicleNote) => {
-        if (confirm(`Czy na pewno chcesz usunąć tę notatkę?`)) {
-            deleteMutation.mutate(note.id);
-        }
+        updateMutation.mutate({ noteId: editingId, content: trimmed }, { onSuccess: () => setEditingId(null) });
     };
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                        <polyline points="14 2 14 8 20 8" />
-                        <line x1="16" y1="13" x2="8" y2="13" />
-                        <line x1="16" y1="17" x2="8" y2="17" />
-                        <polyline points="10 9 9 9 8 9" />
-                    </svg>
-                    Notatki
-                    {!isLoading && <Badge>{notes.length}</Badge>}
-                </CardTitle>
-
+        <RailPanel id={id} aria-labelledby="vehicle-notes-title">
+            <Head>
+                <SectionTitle id="vehicle-notes-title" count={!isLoading && notes.length ? notes.length : undefined}>Notatki</SectionTitle>
                 {!isAdding && !readOnly && (
-                    <AddButton onClick={() => setIsAdding(true)}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <line x1="12" y1="5" x2="12" y2="19" />
-                            <line x1="5" y1="12" x2="19" y2="12" />
-                        </svg>
-                        Dodaj
-                    </AddButton>
+                    <Button size="sm" onClick={() => setIsAdding(true)}><Plus />Dodaj</Button>
                 )}
-            </CardHeader>
+            </Head>
 
             {isAdding && (
-                <AddForm>
+                <Form>
                     <Textarea
                         autoFocus
+                        aria-label="Treść nowej notatki"
                         value={newContent}
                         onChange={e => setNewContent(capitalizeFirst(e.target.value))}
-                        placeholder="Treść notatki..."
+                        placeholder="Np. klient prosi, żeby nie polerować listew chromowanych"
                     />
                     <FormActions>
-                        <CancelBtn onClick={() => { setIsAdding(false); setNewContent(''); }}>
-                            Anuluj
-                        </CancelBtn>
-                        <SaveBtn
-                            onClick={handleAdd}
-                            disabled={!newContent.trim() || createMutation.isPending}
-                        >
-                            {createMutation.isPending ? 'Zapisywanie...' : 'Dodaj'}
-                        </SaveBtn>
+                        <Button variant="ghost" size="sm" onClick={() => { setIsAdding(false); setNewContent(''); }}>Anuluj</Button>
+                        <Button variant="tinted" size="sm" onClick={handleAdd} disabled={!newContent.trim() || createMutation.isPending}>
+                            {createMutation.isPending ? 'Zapisywanie...' : 'Zapisz notatkę'}
+                        </Button>
                     </FormActions>
-                </AddForm>
+                </Form>
             )}
 
             {isLoading ? (
-                <Empty>Ładowanie...</Empty>
+                <Empty>Wczytywanie notatek...</Empty>
             ) : notes.length === 0 ? (
-                <Empty>Brak notatek. Kliknij „Dodaj" aby dodać pierwszą.</Empty>
+                !isAdding && <Empty>Brak notatek o tym pojeździe.</Empty>
             ) : (
-                <NotesList>
+                <List>
                     {notes.map(note => (
-                        <NoteItem key={note.id}>
+                        <Item key={note.id}>
                             {editingId === note.id ? (
-                                <>
+                                <Form style={{ marginTop: 0 }}>
                                     <Textarea
                                         autoFocus
+                                        aria-label="Zmiana treści notatki"
                                         value={editContent}
                                         onChange={e => setEditContent(capitalizeFirst(e.target.value))}
                                     />
                                     <FormActions>
-                                        <CancelBtn onClick={() => setEditingId(null)}>
-                                            Anuluj
-                                        </CancelBtn>
-                                        <SaveBtn
-                                            onClick={handleSaveEdit}
-                                            disabled={!editContent.trim() || updateMutation.isPending}
-                                        >
+                                        <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>Anuluj</Button>
+                                        <Button variant="tinted" size="sm" onClick={handleSaveEdit} disabled={!editContent.trim() || updateMutation.isPending}>
                                             {updateMutation.isPending ? 'Zapisywanie...' : 'Zapisz'}
-                                        </SaveBtn>
+                                        </Button>
                                     </FormActions>
-                                </>
+                                </Form>
                             ) : (
                                 <>
-                                    <NoteContent>{note.content}</NoteContent>
-                                    <NoteFooter>
-                                        <NoteMeta>
-                                            {note.createdByName} · {formatDateTime(note.createdAt)}
-                                            {note.updatedAt !== note.createdAt && ' (edytowano)'}
-                                        </NoteMeta>
+                                    <Text>{note.content}</Text>
+                                    <Foot>
+                                        <Meta>
+                                            {note.createdByName}, {formatDateTime(note.createdAt)}
+                                            {note.updatedAt !== note.createdAt && ', edytowana'}
+                                        </Meta>
                                         {!readOnly && (
-                                        <NoteActions>
-                                            <IconBtn onClick={() => handleStartEdit(note)} title="Edytuj">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                                </svg>
-                                            </IconBtn>
-                                            <IconBtn
-                                                $danger
-                                                onClick={() => handleDelete(note)}
-                                                disabled={deleteMutation.isPending}
-                                                title="Usuń"
-                                            >
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <polyline points="3,6 5,6 21,6"/>
-                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                                </svg>
-                                            </IconBtn>
-                                        </NoteActions>
+                                            <Actions>
+                                                <IconButton label="Edytuj notatkę" variant="ghost" size="sm" onClick={() => { setEditingId(note.id); setEditContent(note.content); }}>
+                                                    <Pencil />
+                                                </IconButton>
+                                                <IconButton label="Usuń notatkę" variant="danger" size="sm" disabled={deleteMutation.isPending} onClick={() => setToDelete(note)}>
+                                                    <Trash2 />
+                                                </IconButton>
+                                            </Actions>
                                         )}
-                                    </NoteFooter>
+                                    </Foot>
                                 </>
                             )}
-                        </NoteItem>
+                        </Item>
                     ))}
-                </NotesList>
+                </List>
             )}
-        </Card>
+
+            <ConfirmationModal
+                isOpen={toDelete !== null}
+                title="Usunąć notatkę?"
+                message="Notatka zniknie z karty pojazdu. Tej operacji nie można cofnąć."
+                variant="danger"
+                confirmText="Usuń notatkę"
+                cancelText="Zostaw"
+                onConfirm={() => { if (toDelete) deleteMutation.mutate(toDelete.id); setToDelete(null); }}
+                onCancel={() => setToDelete(null)}
+            />
+        </RailPanel>
     );
 };
