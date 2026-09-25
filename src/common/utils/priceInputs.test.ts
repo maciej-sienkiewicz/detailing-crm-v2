@@ -119,7 +119,7 @@ describe('priceInputsForVatRate', () => {
 });
 
 /*
- * Zlecenia zbiorcze (EntryFormModal, BatchServicesModal): pola w formacie domyślnym,
+ * Zlecenia zbiorcze (ServicesEditor w edytorze wpisu, BatchServicesModal): pola w formacie domyślnym,
  * a do API idzie `{ netAmountCents, grossAmountCents }` = inputToCents obu pól.
  */
 describe('zlecenia zbiorcze: zmiana stawki VAT w wierszu usługi', () => {

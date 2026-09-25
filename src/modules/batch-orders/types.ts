@@ -32,9 +32,23 @@ export interface BatchOrderEntry {
     grossAmountCents: number;
     notes: string | null;
     isClosed: boolean;
+    /**
+     * Wpis rozliczony, a potem świadomie odblokowany do korekty. Wraca do najbliższego
+     * rozliczenia i do tego czasu nosi oznaczenie, żeby nikt nie wziął go za zwykły nowy wpis.
+     */
+    isCorrection: boolean;
+    /** Rozliczenie, w którym wpis został ujęty; null dla wpisu otwartego. */
+    closeHistoryId: string | null;
+    photoCount: number;
     createdAt: string;
     updatedAt: string;
 }
+
+/**
+ * Co pokazuje lista wpisów. Ten sam filtr idzie do zestawienia PDF, żeby kwota
+ * w pliku była tą samą kwotą, którą widać na ekranie.
+ */
+export type EntryStatusFilter = 'OPEN' | 'SETTLED' | 'ALL';
 
 export interface EntrySummary {
     totalNetCents: number;
@@ -55,7 +69,24 @@ export interface ContractorEntriesResponse {
      * indistinguishable from no settled entry at all.
      */
     settledCount: number;
+    /** Sumy wpisów zwróconych w `entries` - zależą od filtra statusu. */
     summary: EntrySummary;
+    /** Co w okresie czeka na rozliczenie - niezależnie od filtra. Kwota nagłówka. */
+    openSummary: EntrySummary;
+    /** Co w okresie już rozliczono - niezależnie od filtra. */
+    settledSummary: EntrySummary;
+    /** Kiedy ostatnio rozliczono ten okres (ISO); null, gdy nigdy. */
+    lastSettledAt: string | null;
+}
+
+/** Pozycja listy kontrahentów: ile każdy ma do rozliczenia w wybranym okresie. */
+export interface ContractorOverview {
+    contractor: BatchContractor;
+    openCount: number;
+    openNetCents: number;
+    openGrossCents: number;
+    settledCount: number;
+    lastSettledAt: string | null;
 }
 
 /**
@@ -147,10 +178,13 @@ export interface PhotoUploadResponse {
  */
 export type SettlementMode = 'ALL' | 'NEW_ONLY';
 
+/**
+ * Bez `addToFinances`: backend nigdy tej flagi nie obsłużył, a okno obiecywało
+ * „dokument finansowy", którego nie było. Wróci razem z obsługą po stronie serwera.
+ */
 export interface SettlementRequest {
     from: string;
     to: string;
-    addToFinances: boolean;
     sendEmail: boolean;
     emailOverride?: string;
     mode: SettlementMode;
@@ -158,7 +192,9 @@ export interface SettlementRequest {
 
 export interface SettlementResult {
     closedEntryCount: number;
-    financeEntryCreated: boolean;
+    totalNetCents: number;
+    totalGrossCents: number;
+    emailRequested: boolean;
     emailSent: boolean;
     historyId: string;
 }

@@ -6,9 +6,12 @@ import {
     ModalContent, CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
+import { useToast } from '@/common/components/Toast';
 import { useSettlementHistory } from '../hooks/useBatchOrders';
 import { batchOrderApi } from '../api/batchOrderApi';
 import type { BatchContractor, SettlementHistoryRecord } from '../types';
+import { entriesLabel } from '../utils/format';
+import { formatDay } from '../utils/period';
 
 const EmptyMsg = styled.p`
     text-align: center;
@@ -126,19 +129,22 @@ function formatDateTime(iso: string) {
     });
 }
 
+/** Data okresu (YYYY-MM-DD) bez przejścia przez UTC. */
 function formatDate(iso: string | null) {
-    if (!iso) return '';
-    return new Date(iso).toLocaleDateString('pl-PL');
+    return iso ? formatDay(iso) : '';
 }
 
 function HistoryCard({ record, contractorName }: { record: SettlementHistoryRecord; contractorName: string }) {
     const [downloading, setDownloading] = useState(false);
+    const { showError } = useToast();
 
     async function handleDownload() {
         if (downloading) return;
         setDownloading(true);
         try {
             await batchOrderApi.downloadHistorySnapshot(record.id, contractorName);
+        } catch {
+            showError('Nie udało się pobrać zestawienia', 'Spróbuj ponownie za chwilę.');
         } finally {
             setDownloading(false);
         }
@@ -157,7 +163,7 @@ function HistoryCard({ record, contractorName }: { record: SettlementHistoryReco
                     <ClosedAt>{formatDateTime(record.closedAt)}</ClosedAt>
                     {period && <PeriodLabel>Okres: {period}</PeriodLabel>}
                     {record.closedByUserName && (
-                        <ClosedBy>Wygenerował/a: {record.closedByUserName}</ClosedBy>
+                        <ClosedBy>Rozliczył(a): {record.closedByUserName}</ClosedBy>
                     )}
                 </DateInfo>
                 <SharedButton $variant="secondary" $size="sm" type="button" onClick={handleDownload} disabled={downloading}>
@@ -167,16 +173,15 @@ function HistoryCard({ record, contractorName }: { record: SettlementHistoryReco
             </CardTop>
 
             <MetaRow>
-                <Badge $neutral>{record.entryCount} {record.entryCount === 1 ? 'wpis' : record.entryCount < 5 ? 'wpisy' : 'wpisów'}</Badge>
+                <Badge $neutral>{entriesLabel(record.entryCount)}</Badge>
                 <Badge $neutral>{modeLabel}</Badge>
-                {record.financeEntryCreated
-                    ? <Badge $ok>✓ Dodano do finansów</Badge>
-                    : <Badge $neutral>Bez wpisu finansowego</Badge>
-                }
+                {/* Bez plakietki „finanse": serwer nigdy nie tworzył wpisu finansowego,
+                    więc „Bez wpisu finansowego" przy KAŻDYM rozliczeniu nic nie mówiło,
+                    a sugerowało, że gdzieś da się to włączyć. */}
                 {record.emailRequested ? (
                     record.emailSent
                         ? <Badge $ok>✓ Mail wysłany{record.emailRecipient ? ` (${record.emailRecipient})` : ''}</Badge>
-                        : <Badge $warn>✗ Mail nie wysłany</Badge>
+                        : <Badge $warn>✗ Mail nie wysłany - pobierz raport i wyślij ręcznie</Badge>
                 ) : (
                     <Badge $neutral>Bez maila</Badge>
                 )}

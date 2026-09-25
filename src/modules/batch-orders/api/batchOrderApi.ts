@@ -7,6 +7,8 @@ import type {
     BatchServiceRequest,
     ContractorsResponse,
     ContractorEntriesResponse,
+    ContractorOverview,
+    EntryStatusFilter,
     ContractorRequest,
     EntryRequest,
     PhotoUploadRequest,
@@ -39,19 +41,26 @@ export const batchOrderApi = {
         await apiClient.delete(`${BASE}/contractors/${contractorId}`);
     },
 
+    /** Lista kontrahentów z tym, co każdy ma do rozliczenia w okresie - jedno zapytanie na całą listę. */
+    getOverview: async (from?: string, to?: string): Promise<ContractorOverview[]> => {
+        const response = await apiClient.get<{ contractors: ContractorOverview[] }>(
+            `${BASE}/contractors/overview`,
+            { params: { ...(from ? { from } : {}), ...(to ? { to } : {}) } },
+        );
+        return response.data.contractors;
+    },
+
     getContractorEntries: async (
         contractorId: string,
         from?: string,
         to?: string,
-        includeSettled = false,
+        status: EntryStatusFilter = 'OPEN',
     ): Promise<ContractorEntriesResponse> => {
         const params = new URLSearchParams();
         if (from) params.append('from', from);
         if (to) params.append('to', to);
-        // Only sent when on: the backend defaults to hiding settled entries, and an
-        // explicit `false` on every request would make the default meaningless.
-        if (includeSettled) params.append('includeSettled', 'true');
-        const query = params.toString() ? `?${params}` : '';
+        params.append('status', status);
+        const query = `?${params}`;
         const response = await apiClient.get<ContractorEntriesResponse>(`${BASE}/contractors/${contractorId}/entries${query}`);
         return response.data;
     },
@@ -68,6 +77,16 @@ export const batchOrderApi = {
 
     deleteEntry: async (entryId: string): Promise<void> => {
         await apiClient.delete(`${BASE}/entries/${entryId}`);
+    },
+
+    /**
+     * Odblokowuje rozliczony wpis do korekty. Rozliczonego wpisu nie da się zmienić
+     * ani usunąć wprost - dawniej każdy zapis po cichu zdejmował z niego rozliczenie
+     * i ta sama praca szła do kontrahenta drugi raz.
+     */
+    reopenEntry: async (entryId: string): Promise<BatchOrderEntry> => {
+        const response = await apiClient.post<{ entry: BatchOrderEntry }>(`${BASE}/entries/${entryId}/reopen`);
+        return response.data.entry;
     },
 
     searchVehicles: async (q: string): Promise<VehicleSuggestion[]> => {
@@ -93,11 +112,14 @@ export const batchOrderApi = {
     },
 
     uploadPhotoToS3: async (uploadUrl: string, file: File): Promise<void> => {
-        await fetch(uploadUrl, {
+        const response = await fetch(uploadUrl, {
             method: 'PUT',
             body: file,
             headers: { 'Content-Type': file.type || 'image/jpeg' },
         });
+        // fetch nie rzuca przy 4xx/5xx. Bez tej linijki odrzucony upload wyglądał jak
+        // udany: miniatura znikała, a zdjęcia w dokumentacji nie było.
+        if (!response.ok) throw new Error(`Upload failed: ${response.status}`);
     },
 
     deleteEntryPhoto: async (entryId: string, photoId: string): Promise<void> => {
@@ -113,10 +135,17 @@ export const batchOrderApi = {
         return response.data.vin;
     },
 
-    downloadReport: async (contractorId: string, contractorName: string, from?: string, to?: string): Promise<void> => {
+    downloadReport: async (
+        contractorId: string,
+        contractorName: string,
+        from?: string,
+        to?: string,
+        status: EntryStatusFilter = 'ALL',
+    ): Promise<void> => {
         const params = new URLSearchParams();
         if (from) params.append('from', from);
         if (to) params.append('to', to);
+        params.append('status', status);
         const query = params.toString() ? `?${params}` : '';
         const response = await apiClient.get(`${BASE}/contractors/${contractorId}/report${query}`, {
             responseType: 'blob',

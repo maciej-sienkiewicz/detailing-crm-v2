@@ -1,78 +1,47 @@
-import { useRef, useState } from 'react';
+// src/modules/batch-orders/components/BatchOrderPhotoSection.tsx
+//
+// Zdjęcia wpisu, wewnątrz jego edytora. Dawniej siedziały w menu ⋮ jako
+// „Dokumentacja zdjęciowa" rozwijana pod wierszem tabeli - kto nie znalazł menu,
+// nie znalazł też zdjęć, a wiersz nie mówił, czy wpis w ogóle je ma.
+
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
-import { batchOrderApi } from '../api/batchOrderApi';
-import { useEntryPhotos, useDeleteEntryPhoto } from '../hooks/useBatchOrders';
 import { useQueryClient } from '@tanstack/react-query';
-import { ENTRY_PHOTOS_KEY } from '../hooks/useBatchOrders';
+import { Camera, X } from 'lucide-react';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { useToast } from '@/common/components/Toast';
+import { batchOrderApi } from '../api/batchOrderApi';
+import { ENTRIES_KEY, ENTRY_PHOTOS_KEY, useDeleteEntryPhoto, useEntryPhotos } from '../hooks/useBatchOrders';
 import type { BatchOrderPhoto } from '../types';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-const MAX_SIZE = 20 * 1024 * 1024; // 20MB
+const MAX_SIZE = 20 * 1024 * 1024;
 
-// ─── styled components ────────────────────────────────────────────────────────
-
-const Wrap = styled.div`
-    padding: 12px 16px;
-    background: ${p => p.theme.colors.surfaceAlt};
-    border-top: 1px solid ${p => p.theme.colors.border};
-`;
-
-const Header = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 10px;
-`;
-
-const Label = styled.span`
-    font-size: ${p => p.theme.fontSizes.xs};
-    font-weight: 700;
-    color: ${p => p.theme.colors.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-`;
-
-const AddBtn = styled.label`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 12px;
-    border-radius: 8px;
-    background: transparent;
-    border: 1px solid ${p => p.theme.colors.border};
-    color: ${p => p.theme.colors.text};
-    font-size: ${p => p.theme.fontSizes.xs};
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 150ms ease, border-color 150ms ease;
-    white-space: nowrap;
-    min-height: 32px;
-
-    @media (hover: none) and (pointer: coarse) {
-        min-height: 40px;
-        padding: 8px 14px;
-    }
-
-    &:hover {
-        background: ${p => p.theme.colors.primary};
-        color: #fff;
-        border-color: ${p => p.theme.colors.primary};
-    }
-
-    svg { width: 14px; height: 14px; flex-shrink: 0; }
-`;
-
-const HiddenInput = styled.input`
-    display: none;
-`;
-
-const PhotoGrid = styled.div`
-    display: flex;
-    flex-wrap: wrap;
+const Grid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
     gap: 8px;
+`;
+
+const Thumb = styled.div`
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 10px;
+    overflow: hidden;
+    background: ${p => p.theme.colors.border};
+
+    img { width: 100%; height: 100%; object-fit: cover; display: block; }
+`;
+
+const ThumbBtn = styled.button`
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: zoom-in;
 `;
 
 const shimmer = keyframes`
@@ -80,125 +49,147 @@ const shimmer = keyframes`
     100% { background-position: 200px 0; }
 `;
 
-const PhotoThumb = styled.div`
-    position: relative;
-    width: 72px;
-    height: 72px;
-    border-radius: 8px;
-    overflow: hidden;
-    background: ${p => p.theme.colors.border};
-    border: 1px solid ${p => p.theme.colors.border};
-    flex-shrink: 0;
-
-    img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-    }
-`;
-
-const UploadingOverlay = styled.div`
-    position: absolute;
-    inset: 0;
-    background: rgba(0,0,0,0.55);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-`;
-
-const Spinner = styled.div`
-    width: 20px;
-    height: 20px;
-    border: 2px solid rgba(255,255,255,0.3);
-    border-top-color: #fff;
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-`;
-
-const DeleteBtn = styled.button`
-    position: absolute;
-    top: 3px;
-    right: 3px;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: rgba(0,0,0,0.65);
-    border: none;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    opacity: 0;
-    transition: opacity 0.15s;
-    padding: 0;
-
-    svg { width: 10px; height: 10px; }
-
-    ${PhotoThumb}:hover & { opacity: 1; }
-
-    /* Touch devices: always visible and 44px tap target */
-    @media (hover: none) and (pointer: coarse) {
-        opacity: 1;
-        width: 28px;
-        height: 28px;
-        top: 2px;
-        right: 2px;
-
-        svg { width: 12px; height: 12px; }
-    }
-`;
-
-const SkeletonThumb = styled.div`
-    width: 72px;
-    height: 72px;
-    border-radius: 8px;
+const Skeleton = styled.div`
+    aspect-ratio: 1;
+    border-radius: 10px;
     background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
     background-size: 200px 100%;
     animation: ${shimmer} 1.2s infinite linear;
-    flex-shrink: 0;
 `;
 
-const EmptyText = styled.span`
-    font-size: ${p => p.theme.fontSizes.xs};
-    color: ${p => p.theme.colors.textMuted};
-    font-style: italic;
+const spin = keyframes`to { transform: rotate(360deg); }`;
+
+const Uploading = styled.div`
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 23, 42, 0.55);
+
+    &::after {
+        content: '';
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: ${spin} 0.7s linear infinite;
+    }
 `;
 
-// ─── local state for optimistic uploads ──────────────────────────────────────
+/* Na dotyku zawsze widoczny i duży - nie ma najechania, które by go odsłoniło. */
+const RemoveBtn = styled.button`
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: rgba(15, 23, 42, 0.7);
+    color: #fff;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 150ms ease;
 
-interface UploadingPhoto {
-    localId: string;
-    previewUrl: string;
-    fileName: string;
-}
+    svg { width: 13px; height: 13px; }
+    ${Thumb}:hover &, &:focus-visible { opacity: 1; }
+    @media (hover: none) and (pointer: coarse) { opacity: 1; width: 30px; height: 30px; }
+`;
 
-// ─── component ────────────────────────────────────────────────────────────────
+const AddTile = styled.label`
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    border: 1.5px dashed #cbd5e1;
+    border-radius: 10px;
+    background: ${p => p.theme.colors.surface};
+    font-size: 12px;
+    font-weight: 600;
+    color: ${p => p.theme.colors.textSecondary};
+    cursor: pointer;
+
+    svg { width: 18px; height: 18px; }
+    &:hover { border-color: #38bdf8; color: #075985; background: #f0f9ff; }
+    &:focus-within { outline: 2px solid #38bdf8; outline-offset: 2px; }
+
+    input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+`;
+
+const Lightbox = styled.div`
+    position: fixed;
+    inset: 0;
+    z-index: 3500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.88);
+    cursor: zoom-out;
+
+    img { max-width: 92vw; max-height: 90vh; border-radius: 8px; cursor: default; }
+`;
+
+const LightboxClose = styled.button`
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+    cursor: pointer;
+
+    svg { width: 20px; height: 20px; }
+`;
+
+interface UploadingPhoto { localId: string; previewUrl: string; fileName: string; }
 
 interface Props {
     entryId: string;
+    contractorId: string;
 }
 
-export function BatchOrderPhotoSection({ entryId }: Props) {
-    const inputRef = useRef<HTMLInputElement>(null);
+export function BatchOrderPhotoSection({ entryId, contractorId }: Props) {
     const qc = useQueryClient();
+    const { showError } = useToast();
     const [uploading, setUploading] = useState<UploadingPhoto[]>([]);
-    const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+    const [lightbox, setLightbox] = useState<BatchOrderPhoto | null>(null);
+    const [confirmDelete, setConfirmDelete] = useState<BatchOrderPhoto | null>(null);
 
     const { data: photos = [], isLoading } = useEntryPhotos(entryId);
-    const deletePhoto = useDeleteEntryPhoto(entryId);
+    const deletePhoto = useDeleteEntryPhoto(entryId, contractorId);
+
+    useEffect(() => {
+        if (!lightbox) return;
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') { e.stopPropagation(); setLightbox(null); }
+        };
+        // capture: Escape ma zamknąć podgląd, a nie cały edytor wpisu pod nim.
+        document.addEventListener('keydown', onKey, true);
+        return () => document.removeEventListener('keydown', onKey, true);
+    }, [lightbox]);
 
     async function handleFiles(files: File[]) {
         for (const file of files) {
             if (!ALLOWED_TYPES.includes(file.type)) {
-                alert(`Nieobsługiwany format: ${file.type}. Używaj JPEG, PNG lub WebP.`);
+                showError('Nieobsługiwany format zdjęcia', `„${file.name}": użyj JPEG, PNG albo WebP.`);
                 continue;
             }
             if (file.size > MAX_SIZE) {
-                alert(`Plik "${file.name}" przekracza 20 MB.`);
+                showError('Zdjęcie jest za duże', `„${file.name}" przekracza 20 MB.`);
                 continue;
             }
 
@@ -210,8 +201,9 @@ export function BatchOrderPhotoSection({ entryId }: Props) {
                 const { uploadUrl } = await batchOrderApi.requestPhotoUploadUrl(entryId, { fileName: file.name });
                 await batchOrderApi.uploadPhotoToS3(uploadUrl, file);
                 await qc.invalidateQueries({ queryKey: ENTRY_PHOTOS_KEY(entryId) });
+                qc.invalidateQueries({ queryKey: ENTRIES_KEY(contractorId) });
             } catch {
-                alert(`Błąd przesyłania pliku "${file.name}". Spróbuj ponownie.`);
+                showError('Nie udało się dodać zdjęcia', `„${file.name}" - spróbuj ponownie.`);
             } finally {
                 URL.revokeObjectURL(previewUrl);
                 setUploading(prev => prev.filter(u => u.localId !== localId));
@@ -219,101 +211,64 @@ export function BatchOrderPhotoSection({ entryId }: Props) {
         }
     }
 
-    function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-        const files = Array.from(e.target.files ?? []);
-        e.target.value = '';
-        handleFiles(files);
-    }
-
     return (
-        <Wrap>
-            <Header>
-                <Label>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
-                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                        <circle cx="12" cy="13" r="4" />
-                    </svg>
-                    Dokumentacja ({photos.length})
-                </Label>
-                <AddBtn>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                        <circle cx="12" cy="13" r="4" />
-                    </svg>
-                    Dodaj zdjęcie
-                    <HiddenInput
+        <>
+            <Grid>
+                {isLoading
+                    ? [0, 1].map(i => <Skeleton key={i} />)
+                    : photos.map(photo => (
+                        <Thumb key={photo.id}>
+                            <ThumbBtn type="button" onClick={() => setLightbox(photo)} aria-label={`Powiększ zdjęcie ${photo.fileName}`}>
+                                <img src={photo.url} alt={photo.fileName} loading="lazy" />
+                            </ThumbBtn>
+                            <RemoveBtn type="button" onClick={() => setConfirmDelete(photo)} aria-label={`Usuń zdjęcie ${photo.fileName}`}>
+                                <X />
+                            </RemoveBtn>
+                        </Thumb>
+                    ))}
+                {uploading.map(u => (
+                    <Thumb key={u.localId} title={u.fileName}>
+                        <img src={u.previewUrl} alt={u.fileName} />
+                        <Uploading />
+                    </Thumb>
+                ))}
+                <AddTile>
+                    <Camera />
+                    Dodaj
+                    <input
                         type="file"
                         accept="image/jpeg,image/jpg,image/png,image/webp"
                         multiple
-                        capture="environment"
-                        onChange={handleInputChange}
-                        ref={inputRef}
+                        onChange={e => {
+                            const files = Array.from(e.target.files ?? []);
+                            e.target.value = '';
+                            handleFiles(files);
+                        }}
                     />
-                </AddBtn>
-            </Header>
+                </AddTile>
+            </Grid>
 
-            <PhotoGrid>
-                {isLoading ? (
-                    Array.from({ length: 2 }).map((_, i) => <SkeletonThumb key={i} />)
-                ) : (
-                    <>
-                        {photos.map((photo: BatchOrderPhoto) => (
-                            <PhotoThumb key={photo.id} title={photo.fileName}>
-                                <img
-                                    src={photo.url}
-                                    alt={photo.fileName}
-                                    loading="lazy"
-                                    onClick={() => setLightboxUrl(photo.url)}
-                                    style={{ cursor: 'pointer' }}
-                                />
-                                <DeleteBtn
-                                    onClick={e => {
-                                        e.stopPropagation();
-                                        deletePhoto.mutate(photo.id);
-                                    }}
-                                    title="Usuń zdjęcie"
-                                >
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                        <line x1="18" y1="6" x2="6" y2="18" />
-                                        <line x1="6" y1="6" x2="18" y2="18" />
-                                    </svg>
-                                </DeleteBtn>
-                            </PhotoThumb>
-                        ))}
-                        {uploading.map(u => (
-                            <PhotoThumb key={u.localId} title={u.fileName}>
-                                <img src={u.previewUrl} alt={u.fileName} />
-                                <UploadingOverlay>
-                                    <Spinner />
-                                </UploadingOverlay>
-                            </PhotoThumb>
-                        ))}
-                        {photos.length === 0 && uploading.length === 0 && (
-                            <EmptyText>Brak zdjęć, dodaj dokumentację pojazdu</EmptyText>
-                        )}
-                    </>
-                )}
-            </PhotoGrid>
-
-            {/* Simple lightbox */}
-            {lightboxUrl && (
-                <div
-                    onClick={() => setLightboxUrl(null)}
-                    style={{
-                        position: 'fixed', inset: 0, zIndex: 9999,
-                        background: 'rgba(0,0,0,0.85)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'zoom-out',
-                    }}
-                >
-                    <img
-                        src={lightboxUrl}
-                        alt="Podgląd"
-                        style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8 }}
-                        onClick={e => e.stopPropagation()}
-                    />
-                </div>
+            {lightbox && createPortal(
+                <Lightbox onClick={() => setLightbox(null)} role="dialog" aria-label="Podgląd zdjęcia">
+                    <LightboxClose type="button" aria-label="Zamknij podgląd" onClick={() => setLightbox(null)}><X /></LightboxClose>
+                    <img src={lightbox.url} alt={lightbox.fileName} onClick={e => e.stopPropagation()} />
+                </Lightbox>,
+                document.body,
             )}
-        </Wrap>
+
+            <ConfirmationModal
+                isOpen={confirmDelete !== null}
+                title="Usunąć zdjęcie?"
+                message="Zdjęcie zniknie z dokumentacji tego wpisu."
+                variant="danger"
+                confirmText="Usuń zdjęcie"
+                cancelText="Zostaw"
+                onConfirm={() => {
+                    if (!confirmDelete) return;
+                    deletePhoto.mutateAsync(confirmDelete.id).catch(() => showError('Nie udało się usunąć zdjęcia'));
+                }}
+                onCancel={() => setConfirmDelete(null)}
+            />
+        </>
     );
 }
