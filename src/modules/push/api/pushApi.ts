@@ -27,6 +27,14 @@ export const pushApi = {
         return data;
     },
 
+    /**
+     * One real notification to THIS device, through the production path
+     * (VAPID → push service → Service Worker). 422 carries the reason in words.
+     */
+    sendTestPush: async (endpoint: string): Promise<void> => {
+        await apiClient.post(`${BASE_PATH}/devices/test`, { endpoint }, { skipErrorToast: true });
+    },
+
     listDevices: async (): Promise<PushDeviceDto[]> => {
         const { data } = await apiClient.get<PushDeviceDto[]>(`${BASE_PATH}/devices`);
         return data;

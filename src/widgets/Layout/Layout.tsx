@@ -11,6 +11,7 @@ import { IdleTimeoutProvider } from '@/core/context/IdleTimeoutProvider';
 import { GlobalShortcuts } from '@/common/shortcuts';
 import { QuickNoteProvider } from '@/modules/dashboard/components/QuickNoteProvider';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
+import { PushOnboardingPrompt } from '@/modules/push/components/PushOnboardingPrompt';
 
 const LayoutContainer = styled.div`
     display: flex;
@@ -102,6 +103,8 @@ export const Layout = ({ children }: LayoutProps) => {
                     </LayoutContainer>
                     </QuickNoteProvider>
                     <BottomNav />
+                    {/* Zachęta do powiadomień - tylko na telefonie i tylko gdy jest co zrobić. */}
+                    <PushOnboardingPrompt />
                 </MobileChromeProvider>
                 <CalendarNavigationOverlay />
             </CalendarNavigationProvider>

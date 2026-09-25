@@ -18,7 +18,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useToast } from '@/common/components/Toast';
 import { usePushDevice } from '../hooks/usePushDevice';
 import { isMobileDevice } from '../utils/webPush';
-import { PushPairingCard } from './PushPairingCard';
+import { PushNotificationWizard } from './PushNotificationWizard';
 import { PushDeviceList } from './PushDeviceList';
 
 const PAIRING_URL_PATH = '/call-device';
@@ -30,7 +30,7 @@ export function PushNotificationsPanel() {
 
     // Tylko o układ ekranu: na telefonie kod QR jest bezużyteczny, na komputerze
     // jest jedyną wygodną drogą na telefon. O tym, czy da się tu sparować,
-    // decyduje wyłącznie wsparcie przeglądarki (patrz PushPairingCard).
+    // decyduje wyłącznie wsparcie przeglądarki (patrz PushNotificationWizard).
     const onPhone = isMobileDevice();
     const pairingUrl = `${window.location.origin}${PAIRING_URL_PATH}`;
 
@@ -48,10 +48,7 @@ export function PushNotificationsPanel() {
         <Wrap>
             <PairingBlock>
                 <BlockLabel>To urządzenie</BlockLabel>
-                <PushPairingCard
-                    push={push}
-                    actionLabel={onPhone ? 'Włącz powiadomienia na tym telefonie' : 'Włącz powiadomienia tutaj'}
-                />
+                <PushNotificationWizard push={push} />
                 {!onPhone && !push.isSubscribedHere && push.support === 'supported' && (
                     <DesktopNote>
                         Powiadomienia mają sens na telefonie, który nosisz przy sobie - na komputerze
@@ -83,9 +80,9 @@ export function PushNotificationsPanel() {
                             <StepList>
                                 <li>Zeskanuj kod telefonem i <strong>zaloguj się</strong> do CRM, jeśli poprosi.</li>
                                 <li>
-                                    Na iPhonie najpierw <strong>dodaj aplikację do ekranu głównego</strong>
-                                    {' '}(Safari → Udostępnij → „Dodaj do ekranu głównego") i otwórz ją z ikony -
-                                    inaczej iOS nie pozwala na powiadomienia.
+                                    Telefon sam poprowadzi dalej. Na iPhonie pierwszym krokiem będzie
+                                    {' '}<strong>dodanie CRM do ekranu początkowego</strong> - bez tego iOS nie
+                                    pozwala na powiadomienia.
                                 </li>
                                 <li>Dotknij <strong>„Włącz powiadomienia"</strong> i zezwól, gdy telefon zapyta.</li>
                                 <li>
@@ -143,13 +140,13 @@ const DevicesBlock = styled.section`
     border-top: 1px solid #f1f5f9;
 `;
 
+// Nazwa sekcji pismem tekstowym, nie 11 px wersalikami w szarości - te jako jedyna
+// rama sekcji są wycofane (CLAUDE.md §2).
 const BlockLabel = styled.h4`
     margin: 0;
-    font-size: 11px;
+    font-size: 14.5px;
     font-weight: 700;
-    letter-spacing: 0.6px;
-    text-transform: uppercase;
-    color: #94a3b8;
+    color: #0f172a;
 `;
 
 const DesktopNote = styled.p`

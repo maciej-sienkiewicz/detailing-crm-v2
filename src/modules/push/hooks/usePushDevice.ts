@@ -1,15 +1,25 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { pushApi } from '../api/pushApi';
 import {
-    describeThisDevice, getPushSupportState, isIosOutsidePwa,
-    urlBase64ToUint8Array, waitForServiceWorker,
+    describeThisDevice, getPushSupportState, urlBase64ToUint8Array, waitForServiceWorker,
 } from '../utils/webPush';
+import { detectPushPlatform, readPlatformEnv } from '../utils/pushPlatform';
+import { getServiceWorkerVersion } from '../utils/serviceWorkerRegistration';
 import type { PushSupportState } from '../types';
 
 export const pushQueryKeys = {
     devices: ['push', 'devices'] as const,
+    swVersion: ['push', 'sw-version'] as const,
 };
+
+interface Options {
+    /**
+     * Lista urządzeń konta z serwera. Wyłączona tam, gdzie liczy się tylko stan
+     * TEGO urządzenia (zachęta w układzie aplikacji) - bez zapytania przy każdym widoku.
+     */
+    withDevices?: boolean;
+}
 
 /**
  * Pairing the CURRENT device (the phone) as a receiver of the studio's push
@@ -17,14 +27,19 @@ export const pushQueryKeys = {
  *
  * The whole flow rides on a user gesture: `enable()` must be called from a
  * click handler, because Notification.requestPermission() without a gesture
- * is auto-denied on both Chrome and Safari.
+ * is auto-denied on both Chrome and Safari. `enable()` therefore asks for the
+ * permission SYNCHRONOUSLY, before anything is awaited: a mutation runs its
+ * function only after a few internal awaits, and Safari on iOS does not always
+ * carry the tap's activation across them - the prompt then never appeared and
+ * the user saw "zablokowane" without having been asked.
  *
  * Flow: permission → SW registration ready → pushManager.subscribe(VAPID key
  * from the backend) → POST the subscription to /v1/push/devices, where the
  * session cookie ties it to the logged-in user.
  */
-export const usePushDevice = () => {
+export const usePushDevice = ({ withDevices = true }: Options = {}) => {
     const queryClient = useQueryClient();
+    const platform = useMemo(() => detectPushPlatform(readPlatformEnv()), []);
     const [support, setSupport] = useState<PushSupportState>(() => getPushSupportState());
     const [isSubscribedHere, setIsSubscribedHere] = useState<boolean | null>(() =>
         getPushSupportState() === 'supported' ? null : false,
@@ -34,13 +49,22 @@ export const usePushDevice = () => {
         queryKey: pushQueryKeys.devices,
         queryFn: pushApi.listDevices,
         staleTime: 30_000,
+        enabled: withDevices,
+    });
+
+    // Which worker version serves this page - the answer to "has this phone got the fix yet?".
+    const swVersionQuery = useQuery({
+        queryKey: pushQueryKeys.swVersion,
+        queryFn: () => getServiceWorkerVersion(),
+        staleTime: 5 * 60_000,
+        enabled: withDevices && support !== 'unsupported',
     });
 
     // Does THIS browser hold a live subscription? (Server list alone can't say -
     // it covers all of the user's devices.)
-    useEffect(() => {
+    const refreshSubscription = useCallback(() => {
+        if (getPushSupportState() !== 'supported') return () => {};
         let cancelled = false;
-        if (getPushSupportState() !== 'supported') return;
         // Z limitem czasu: bez zarejestrowanego workera `ready` nigdy nie odpowiada,
         // a stan „sprawdzam" zostawał na ekranie na zawsze.
         waitForServiceWorker()
@@ -56,9 +80,41 @@ export const usePushDevice = () => {
         };
     }, []);
 
+    useEffect(() => refreshSubscription(), [refreshSubscription]);
+
+    // Odblokowanie powiadomień dzieje się POZA aplikacją - w ustawieniach systemu albo
+    // przeglądarki. Po powrocie ekran ma sam zauważyć zmianę, a nie trzymać komunikatu
+    // „zablokowane" do przeładowania, którego użytkownik PWA nie ma jak zrobić.
+    useEffect(() => {
+        const recheck = () => {
+            if (document.visibilityState !== 'visible') return;
+            const next = getPushSupportState();
+            setSupport(next);
+            // Tanie (lokalne getSubscription), a łapie też subskrypcję zdjętą w ustawieniach.
+            if (next === 'supported') refreshSubscription();
+        };
+        document.addEventListener('visibilitychange', recheck);
+
+        let status: PermissionStatus | null = null;
+        let disposed = false;
+        navigator.permissions?.query({ name: 'notifications' as PermissionName })
+            .then(result => {
+                if (disposed) return;
+                status = result;
+                status.onchange = recheck;
+            })
+            .catch(() => {/* Safari bez Permissions API dla powiadomień - zostaje visibilitychange */});
+
+        return () => {
+            disposed = true;
+            document.removeEventListener('visibilitychange', recheck);
+            if (status) status.onchange = null;
+        };
+    }, [refreshSubscription]);
+
     const enableMutation = useMutation({
-        mutationFn: async () => {
-            const permission = await Notification.requestPermission();
+        mutationFn: async (permissionRequest: Promise<NotificationPermission>) => {
+            const permission = await permissionRequest;
             setSupport(getPushSupportState());
             if (permission !== 'granted') {
                 throw new Error('permission-denied');
@@ -94,6 +150,14 @@ export const usePushDevice = () => {
         },
     });
 
+    /** Wołać WYŁĄCZNIE z obsługi kliknięcia - patrz komentarz nad hookiem. */
+    const enable = useCallback(() => {
+        const permissionRequest = 'Notification' in window
+            ? Notification.requestPermission()
+            : Promise.resolve<NotificationPermission>('denied');
+        return enableMutation.mutateAsync(permissionRequest);
+    }, [enableMutation]);
+
     const disableMutation = useMutation({
         mutationFn: async () => {
             // Local unsubscribe only. The server row self-heals: the next
@@ -110,6 +174,15 @@ export const usePushDevice = () => {
         },
     });
 
+    const testMutation = useMutation({
+        mutationFn: async () => {
+            const registration = await waitForServiceWorker();
+            const subscription = await registration.pushManager.getSubscription();
+            if (!subscription) throw new Error('not-subscribed');
+            await pushApi.sendTestPush(subscription.endpoint);
+        },
+    });
+
     const revokeDevice = useCallback(
         async (deviceId: string) => {
             await pushApi.revokeDevice(deviceId);
@@ -119,15 +192,20 @@ export const usePushDevice = () => {
     );
 
     return {
+        platform,
         support,
-        iosNeedsInstall: isIosOutsidePwa(),
         isSubscribedHere,
         devices: devicesQuery.data ?? [],
         isLoadingDevices: devicesQuery.isLoading,
-        enable: enableMutation.mutateAsync,
+        serviceWorkerVersion: swVersionQuery.data ?? null,
+        enable,
         isEnabling: enableMutation.isPending,
         disable: disableMutation.mutateAsync,
         isDisabling: disableMutation.isPending,
+        sendTest: testMutation.mutateAsync,
+        isSendingTest: testMutation.isPending,
         revokeDevice,
     };
 };
+
+export type PushDeviceState = ReturnType<typeof usePushDevice>;

@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 import { usePushDevice } from '../hooks/usePushDevice';
-import { PushPairingCard } from '../components/PushPairingCard';
+import { PushNotificationWizard } from '../components/PushNotificationWizard';
 import { PushDeviceList } from '../components/PushDeviceList';
 
 /**
@@ -9,9 +9,9 @@ import { PushDeviceList } from '../components/PushDeviceList';
  * urządzeniu powiadomienia z CRM: prośby o połączenie, zakończone wizyty, nowe
  * zapytania. Niżej lista wszystkich urządzeń konta z możliwością odłączenia.
  *
- * Stan parowania i lista urządzeń są tymi samymi komponentami, których używa
- * panel w Ustawieniach - jedna implementacja znaczy, że telefon zachowuje się
- * identycznie niezależnie od tego, którą drogą użytkownik tu trafił.
+ * Kreator i lista urządzeń są tymi samymi komponentami, których używa panel
+ * w Ustawieniach i zachęta na telefonie - jedna implementacja znaczy, że telefon
+ * zachowuje się identycznie niezależnie od tego, którą drogą użytkownik tu trafił.
  */
 
 const Page = styled.div`
@@ -68,7 +68,7 @@ export const CallDeviceView = () => {
             </PageSubtitle>
 
             <Card>
-                <PushPairingCard push={push} actionLabel="Włącz powiadomienia na tym telefonie" />
+                <PushNotificationWizard push={push} />
             </Card>
 
             {push.devices.length > 0 && (
