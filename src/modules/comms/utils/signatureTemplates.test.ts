@@ -9,6 +9,8 @@ import {
     isSignatureDesignComplete,
     missingImages,
     renderSignature,
+    scaleSignatureHtml,
+    signatureScale,
     SIGNATURE_LOGO_PLACEHOLDER,
     SIGNATURE_PHOTO_PLACEHOLDER,
     withImagePlaceholders,
@@ -124,12 +126,43 @@ describe('renderSignature', () => {
         expect(parse(faxOnly).querySelector('a[href^="tel:"]')).toBeNull();
     });
 
-    it('wielkość tekstu skaluje pismo, nie szerokości', () => {
-        const medium = renderSignature(full, ICONS);
-        const large = renderSignature({ ...full, size: 'l' }, ICONS);
-        expect(medium).toContain('font-size:16px');
-        expect(large).toContain('font-size:18px');
-        expect(large).toContain('max-width:520px');
+    it('rozmiar stopki zmniejsza wszystko: pismo, odstępy, szerokości i obrazki', () => {
+        const normal = renderSignature({ ...full, template: 'ze-zdjeciem', scale: 100 }, ICONS);
+        const small = renderSignature({ ...full, template: 'ze-zdjeciem', scale: 80 }, ICONS);
+        expect(normal).toContain('font-size:17px');
+        expect(small).toContain('font-size:14px');
+        expect(normal).toContain('max-width:520px');
+        expect(small).toContain('max-width:416px');
+        // Zdjęcie: atrybuty dla Outlooka i CSS - jedno i drugie.
+        const photo = parse(small).querySelector(`img[src="${full.photoUrl}"]`)!;
+        expect(photo.getAttribute('width')).toBe('74');
+        expect(photo.getAttribute('height')).toBe('74');
+        expect(photo.getAttribute('style')).toContain('width:74px;height:74px');
+        // Ikony social też maleją.
+        expect(small).toContain('width="16" height="16"');
+    });
+
+    it('zmniejszanie nie rusza procentów, zer i nie schodzi z pismem poniżej 9 px', () => {
+        const smallest = renderSignature({ ...full, template: 'baner-okrag', scale: 70, disclaimer: 'Poufne' }, ICONS);
+        expect(smallest).toContain('border-radius:50%');
+        expect(smallest).toContain('width:100%');
+        expect(renderSignature({ ...full, scale: 70 }, ICONS)).toContain('font-size:0;line-height:0');
+        const fonts = [...smallest.matchAll(/font-size:(\d+)px/g)].map(m => Number(m[1])).filter(px => px > 0);
+        expect(Math.min(...fonts)).toBe(9);
+        // Obramowanie 1 px zostaje linią, a nie znika.
+        expect(smallest).toContain('border:1px solid #ececec');
+    });
+
+    it('projekt sprzed suwaka: wielkość tekstu S/M/L to rozmiar 90/100/110%', () => {
+        expect(signatureScale({ size: 's' })).toBe(90);
+        expect(signatureScale({ size: 'm' })).toBe(100);
+        expect(signatureScale({ size: 'l' })).toBe(110);
+        expect(signatureScale({ size: 'l', scale: 75 })).toBe(75);
+        expect(renderSignature({ ...full, size: 'l', scale: null }, ICONS)).toContain('font-size:18px');
+    });
+
+    it('rozmiar 100% zostawia HTML bez zmian', () => {
+        expect(scaleSignatureHtml('<div style="width:48px" width="10"></div>', 1)).toBe('<div style="width:48px" width="10"></div>');
     });
 
     it('czcionka trafia do każdego wiersza tekstu', () => {
@@ -148,7 +181,7 @@ describe('renderSignature', () => {
             renderSignature({
                 ...full,
                 template: t.id,
-                size: 'l',
+                scale: 120,
                 phone2: '+48 601 000 000',
                 phoneLand: '+48 22 000 00 00',
                 fax: '+48 22 000 00 01',

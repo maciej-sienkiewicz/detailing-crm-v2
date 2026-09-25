@@ -33,6 +33,7 @@ import {
     isSignatureDesignComplete,
     missingImages,
     renderSignature,
+    signatureScale,
     withImagePlaceholders,
     type SignatureDesign,
     type SignatureTemplateId,
@@ -293,8 +294,12 @@ function SignatureDesigner({ signature, onClose }: DesignerProps) {
     const [mode, setMode] = useState<Mode>(() =>
         !signature.design && signature.bodyHtml ? 'text' : 'design'
     );
+    // Projekt sprzed suwaka rozmiaru ma tylko „wielkość tekstu" - tłumaczymy ją na rozmiar,
+    // żeby suwak startował tam, gdzie stopka faktycznie jest.
     const [design, setDesign] = useState<SignatureDesign>(() =>
-        signature.design ?? createSignatureDesign(signature.defaults, brandColor ?? undefined)
+        signature.design
+            ? { ...signature.design, scale: signatureScale(signature.design), size: 'm' }
+            : createSignatureDesign(signature.defaults, brandColor ?? undefined)
     );
     const [text, setText] = useState(() => (signature.design ? '' : signatureHtmlToText(signature.bodyHtml)));
     const [enabledByDefault, setEnabledByDefault] = useState(signature.bodyHtml ? signature.enabledByDefault : true);

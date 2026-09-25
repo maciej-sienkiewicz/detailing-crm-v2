@@ -9,7 +9,7 @@ import {
     SIGNATURE_LOGO_PLACEHOLDER,
     SIGNATURE_PHOTO_PLACEHOLDER,
     SIGNATURE_ICON_STYLES,
-    SIGNATURE_SIZES,
+    SIGNATURE_SCALE,
     SIGNATURE_SOCIAL_FIELDS,
     SIGNATURE_SOCIAL_KEYS,
     SIGNATURE_SWATCHES,
@@ -18,6 +18,7 @@ import {
     getSignatureTemplate,
     isHexColor,
     renderSignature,
+    signatureScale,
     type SignatureDesign,
     type SignatureTemplateId,
     type SignatureTextKey,
@@ -256,6 +257,46 @@ const ColorInputs = styled.div`
     }
 `;
 
+const ScaleHead = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    button { padding: 4px 10px; font-size: 12px; }
+`;
+
+const ScaleValue = styled.span`
+    margin-right: auto;
+    min-width: 42px;
+    padding: 2px 8px;
+    border-radius: ${p => p.theme.radii.full};
+    background: ${p => p.theme.colors.surfaceAlt};
+    font-size: 12px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    color: ${p => p.theme.colors.textSecondary};
+`;
+
+/**
+ * Suwak rozmiaru całej stopki. Zastąpił „Wielkość tekstu" (Mała/Średnia/Duża), która
+ * skalowała samo pismo - przy dużym zdjęciu i banerze stopka zostawała za duża.
+ */
+const ScaleRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: ${p => p.theme.colors.textMuted};
+
+    input {
+        flex: 1;
+        min-width: 0;
+        accent-color: var(--brand-primary);
+        cursor: pointer;
+    }
+`;
+
 const FontGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -271,12 +312,13 @@ export function StyleStep({ design, onChange, brandColor, iconsBaseUrl }: {
     iconsBaseUrl: string;
 }) {
     const template = getSignatureTemplate(design.template);
+    const scale = signatureScale(design);
     const swatches = brandColor && !SIGNATURE_SWATCHES.includes(brandColor)
         ? [brandColor, ...SIGNATURE_SWATCHES]
         : SIGNATURE_SWATCHES;
     return (
         <Step>
-            <Header icon={<Palette />} title="Styl" hint="Kolor przewodni, czcionka i wielkość tekstu." />
+            <Header icon={<Palette />} title="Styl" hint="Kolor przewodni, rozmiar stopki i czcionka." />
 
             <Group>
                 <GroupTitle>Kolor przewodni</GroupTitle>
@@ -312,6 +354,32 @@ export function StyleStep({ design, onChange, brandColor, iconsBaseUrl }: {
             </Group>
 
             <Group>
+                <ScaleHead>
+                    <GroupTitle>Rozmiar stopki</GroupTitle>
+                    <ScaleValue>{scale}%</ScaleValue>
+                    {scale !== SIGNATURE_SCALE.default && (
+                        <Choice type="button" $active={false} onClick={() => onChange({ scale: SIGNATURE_SCALE.default })}>
+                            Przywróć 100%
+                        </Choice>
+                    )}
+                </ScaleHead>
+                <ScaleRow>
+                    <span aria-hidden="true">Mniejsza</span>
+                    <input
+                        type="range"
+                        min={SIGNATURE_SCALE.min}
+                        max={SIGNATURE_SCALE.max}
+                        step={SIGNATURE_SCALE.step}
+                        value={scale}
+                        onChange={event => onChange({ scale: Number(event.target.value), size: 'm' })}
+                        aria-label="Rozmiar stopki"
+                        aria-valuetext={`${scale}%`}
+                    />
+                    <span aria-hidden="true">Większa</span>
+                </ScaleRow>
+            </Group>
+
+            <Group>
                 <GroupTitle>Czcionka</GroupTitle>
                 <FontGrid>
                     {SIGNATURE_FONTS.map(font => (
@@ -327,23 +395,6 @@ export function StyleStep({ design, onChange, brandColor, iconsBaseUrl }: {
                         </Choice>
                     ))}
                 </FontGrid>
-            </Group>
-
-            <Group>
-                <GroupTitle>Wielkość tekstu</GroupTitle>
-                <Segmented>
-                    {SIGNATURE_SIZES.map(size => (
-                        <Choice
-                            key={size.id}
-                            type="button"
-                            $active={design.size === size.id}
-                            aria-pressed={design.size === size.id}
-                            onClick={() => onChange({ size: size.id })}
-                        >
-                            {size.label}
-                        </Choice>
-                    ))}
-                </Segmented>
             </Group>
 
             {template.social && (
