@@ -481,9 +481,11 @@ interface Props {
     onAddCustom: (name: string) => void;
     onEdit?: () => void;
     onDiscount?: () => void;
+    /** Tabela wizyty ma osobną kolumnę VAT - nazwa nowej usługi zajmuje wtedy obie. */
+    nameColSpan?: number;
 }
 
-export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit, onDiscount }: Props) => {
+export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit, onDiscount, nameColSpan }: Props) => {
     const [isMobile] = useState(() => window.innerWidth < 640);
     const [query, setQuery] = useState(row.serviceName);
     // On a phone the row is unusable until a service is picked, so the picker
@@ -703,7 +705,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
     return (
         <InlineRow>
             {/* Usługa */}
-            <Cell>
+            <Cell colSpan={nameColSpan}>
                 <NameWrap ref={nameWrapRef}>
                     <NameInput
                         ref={nameInputRef}

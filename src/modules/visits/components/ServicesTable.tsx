@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { useServicePricing } from '@/modules/appointments/hooks/useServicePricing';
 import { resolveBaseNet } from '@/common/utils/priceAdjustment';
@@ -11,7 +11,7 @@ import {
 } from '../utils/servicePriceEdits';
 import type { EditedPrice } from '../utils/servicePriceEdits';
 import { formatCurrency, shouldAutoFocusInput } from '@/common/utils';
-import type { ServiceLineItem, VisitStatus } from '../types';
+import type { ServiceLineItem, VisitSettlement, VisitStatus } from '../types';
 import { usePrintServicesList } from '../hooks/usePrintServicesList';
 import type { ServicesChangesPayload } from '../types';
 import { useApproveServiceChange, useRejectServiceChange, useSaveServicesChanges } from '../hooks';
@@ -24,156 +24,25 @@ import { ServiceDiscountModal } from '@/common/components/ServiceDiscountModal';
 import { ServiceChangeSmsModal } from './ServiceChangeSmsModal';
 import type { ServiceChangeSummary } from '../utils/serviceChangeSms';
 import { useFeature, UpsellModal } from '@/modules/subscription';
-import { useModalViewport } from '@/common/hooks';
+import { useContainerWidth, useModalViewport } from '@/common/hooks';
+import {
+    ActionMenu, Button, Card, IconButton, MenuItem, PriceButton, PriceSub, SectionTitle, StatusPill, SummaryStrip,
+    ui, useActionMenu,
+} from '@/common/components/ui';
+import {
+    Check, ChevronRight, Clock, MoreHorizontal, MoreVertical, Pencil, Percent, Plus, Printer, ReceiptText, Trash2, Undo2,
+} from 'lucide-react';
 import { useHideMobileChrome } from '@/common/context/MobileChromeContext';
 
-const BRAND = '#0ea5e9';
-const BRAND_DARK = '#0284c7';
+// Jeden niebieski marki dla całego widoku wizyty - patrz common/components/ui/tokens.
+const BRAND = ui.brand;
+const BRAND_DARK = ui.brandStrong;
 const BRAND_DIM = 'rgba(14, 165, 233, 0.10)';
 
 const pendingPulse = keyframes`
     0%   { background-color: rgba(245,158,11,0.04); }
     50%  { background-color: rgba(245,158,11,0.18); }
     100% { background-color: rgba(245,158,11,0.04); }
-`;
-
-const TableContainer = styled.div`
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    overflow: hidden;
-    min-width: 0;
-    max-width: 100%;
-    box-shadow: ${st.shadowSm};
-
-    @media (max-width: 640px) {
-        border-radius: 10px;
-    }
-`;
-
-const TableHeader = styled.div`
-    padding: 16px 20px;
-    background: ${st.bgCard};
-    border-bottom: 1px solid ${st.border};
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-
-    @media (max-width: 640px) {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
-`;
-
-const TableHeaderLeft = styled.div`
-    min-width: 0;
-    flex: 1;
-`;
-
-const HeaderActions = styled.div`
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    flex-shrink: 0;
-
-    @media (max-width: 640px) {
-        width: 100%;
-    }
-`;
-
-const TableTitle = styled.h3`
-    margin: 0 0 2px;
-    font-size: ${st.fontMd};
-    font-weight: 700;
-    letter-spacing: -0.2px;
-    color: ${st.text};
-`;
-
-const TableSubtitle = styled.p`
-    margin: 0;
-    font-size: ${st.fontSm};
-    color: ${st.textMuted};
-`;
-
-const AddBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 14px;
-    background: ${st.bgCard};
-    color: ${st.textSecondary};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    cursor: pointer;
-    transition: all ${st.transition};
-    white-space: nowrap;
-    box-shadow: ${st.shadowXs};
-
-    svg { width: 13px; height: 13px; }
-
-    &:hover:not(:disabled) {
-        border-color: ${BRAND};
-        color: ${BRAND};
-        background: ${BRAND_DIM};
-        transform: translateY(-1px);
-    }
-
-    &:disabled {
-        opacity: 0.45;
-        cursor: not-allowed;
-    }
-
-    @media (max-width: 640px) {
-        flex: 1;
-        justify-content: center;
-    }
-`;
-
-const KebabBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusFull};
-    background: ${st.bgCard};
-    color: ${st.textMuted};
-    cursor: pointer;
-    transition: all ${st.transition};
-    flex-shrink: 0;
-
-    svg { width: 15px; height: 15px; }
-
-    &:hover:not(:disabled) {
-        border-color: ${BRAND};
-        color: ${BRAND_DARK};
-        background: ${BRAND_DIM};
-    }
-
-    &:disabled { opacity: 0.4; cursor: not-allowed; }
-`;
-
-const RowKebabBtn = styled(KebabBtn)`
-    width: 28px;
-    height: 28px;
-    border-color: transparent;
-    background: transparent;
-    opacity: 0.45;
-
-    tr:hover & { opacity: 1; }
-
-    &:hover:not(:disabled) {
-        border-color: ${st.border};
-        background: ${st.bg};
-        color: ${st.textSecondary};
-    }
-
-    @media (max-width: 767px) { opacity: 1; }
 `;
 
 const EditorVatSelect = styled.select`
@@ -196,81 +65,6 @@ const EditorVatSelect = styled.select`
     &:focus {
         border-color: ${BRAND};
         box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
-    }
-`;
-
-const Table = styled.table`
-    width: 100%;
-    border-collapse: collapse;
-
-    @media (max-width: 767px) { display: block; }
-`;
-
-const Thead = styled.thead`
-    background: ${st.bg};
-    position: sticky;
-    top: 0;
-    z-index: 1;
-
-    @media (max-width: 767px) { display: none; }
-`;
-
-const Th = styled.th<{ $right?: boolean }>`
-    padding: 9px 16px;
-    text-align: ${p => p.$right ? 'right' : 'left'};
-    font-size: ${st.fontXs};
-    font-weight: 700;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    border-bottom: 1px solid ${st.border};
-`;
-
-const ActionsCell = styled.td`
-    padding: 10px 12px 10px 4px;
-    text-align: right;
-    width: 44px;
-
-    @media (max-width: 767px) { padding: 0; width: auto; }
-`;
-
-const ActionMenuWrapper = styled.div`
-    position: relative;
-    display: inline-flex;
-`;
-
-const ContextMenu = styled.div`
-    position: absolute;
-    right: 0;
-    top: calc(100% + 4px);
-    z-index: 100;
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    box-shadow: ${st.shadowLg};
-    min-width: 190px;
-    overflow: hidden;
-`;
-
-const ContextMenuItem = styled.button<{ $variant?: 'danger' }>`
-    display: block;
-    width: 100%;
-    padding: 10px 14px;
-    border: none;
-    background: transparent;
-    text-align: left;
-    font-size: ${st.fontSm};
-    cursor: pointer;
-    color: ${props => props.$variant === 'danger' ? st.accentRed : st.text};
-    transition: background ${st.transition};
-
-    &:hover:not(:disabled) {
-        background: ${props => props.$variant === 'danger' ? st.accentRedDim : st.bg};
-    }
-
-    &:disabled {
-        opacity: 0.45;
-        cursor: not-allowed;
     }
 `;
 
@@ -406,301 +200,224 @@ const PrimaryBtn = styled.button<{ $danger?: boolean }>`
     &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
-const Tbody = styled.tbody`
-    @media (max-width: 767px) { display: block; }
+/* Status shown only by exception: pending states */
+
+/* ─── Karta „Usługi" ─────────────────────────────────────────────────────────
+ *
+ * Jedyna wyniesiona powierzchnia w kolumnie treści wizyty (CLAUDE.md §2,
+ * „wyniesienie"): wszystko inne - produkty, zdjęcia, komunikacja - leży płasko.
+ * Kwota do zapłaty stoi na GÓRZE karty jako pasek podsumowania (ten sam co w
+ * zleceniach zbiorczych), a nie 22px na dole pod tabelą: przy kilku pozycjach
+ * i pakietach trzeba było przewinąć cały wykaz, żeby zobaczyć sumę.
+ *
+ * Tabela albo lista zależy od szerokości KARTY, nie okna.
+ */
+
+/** Od tej szerokości karty usługi są tabelą, poniżej listą jak na telefonie. */
+const TABLE_MIN_WIDTH = 560;
+
+const ServicesCard = styled(Card)`
+    display: flex;
+    flex-direction: column;
 `;
 
-const Tr = styled.tr<{ $pendingOp?: 'ADD' | 'EDIT' | 'DELETE' | null; $highlight?: boolean }>`
-    transition: background-color ${st.transition};
-    background: ${props => props.$pendingOp === 'DELETE' ? 'rgba(239,68,68,0.04)'
-        : props.$pendingOp === 'EDIT' ? 'rgba(245,158,11,0.04)'
-        : props.$pendingOp === 'ADD' ? 'rgba(16,185,129,0.04)'
-        : 'transparent'};
-
-    /* Exceptional states get a thin accent bar on the left edge */
-    box-shadow: ${props => props.$pendingOp === 'DELETE' ? 'inset 3px 0 0 #ef4444'
-        : props.$pendingOp === 'EDIT' ? 'inset 3px 0 0 #f59e0b'
-        : props.$pendingOp === 'ADD' ? 'inset 3px 0 0 #10b981'
-        : 'none'};
-
-    ${props => props.$highlight && css`animation: ${pendingPulse} 0.9s ease-in-out 4;`}
-
-    &:hover {
-        background: ${props => props.$pendingOp ? 'inherit' : st.bg};
-    }
-
-    &:not(:last-child) {
-        border-bottom: 1px solid ${st.border};
-    }
-
-    @media (max-width: 767px) {
-        display: flex;
-        align-items: flex-start;
-        flex-wrap: wrap;
-        gap: 10px;
-        padding: 14px 16px;
-
-        /* Usługa: grows */
-        td:nth-child(1) {
-            flex: 1;
-            padding: 0;
-            min-width: 0;
-        }
-
-        /* Cena: right */
-        td:nth-child(2) {
-            flex: 0 0 auto;
-            padding: 0;
-            text-align: right;
-            min-width: 0;
-        }
-
-        /* Akcje */
-        td:nth-child(3) {
-            flex: 0 0 auto;
-            padding: 0;
-        }
-    }
-
-    /* Below ~480px the name and the "netto ... · VAT ..." line cannot share a row
-       without one of them being squeezed to a few characters. Give the name the
-       full width and let price + kebab settle underneath, right-aligned. */
-    @media (max-width: 480px) {
-        padding: 12px 14px;
-        row-gap: 8px;
-
-        td:nth-child(1) { flex: 0 0 100%; }
-        td:nth-child(2) { flex: 1; }
-    }
-`;
-
-const Td = styled.td`
-    padding: 12px 16px;
-    font-size: ${st.fontSm};
-    color: ${st.text};
-    vertical-align: top;
-    min-width: 0;
-
-    @media (max-width: 767px) { padding: 0; }
-`;
-
-const PriceTd = styled(Td)<{ $clickable?: boolean }>`
-    text-align: right;
-    white-space: nowrap;
-    cursor: ${p => p.$clickable ? 'pointer' : 'default'};
-    border-radius: 8px;
-
-    ${p => p.$clickable && css`
-        &:hover {
-            background: ${BRAND_DIM};
-        }
-    `}
-`;
-
-const NameLine = styled.div`
+const CardHead = styled.div`
     display: flex;
     align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 22px 0;
+
+    @media (max-width: 640px) { padding: 14px 16px 0; }
+`;
+
+const Strip = styled(SummaryStrip)`
+    margin: 14px 22px 0;
+
+    @media (max-width: 640px) { margin: 10px 16px 0; }
+`;
+
+const Grid = styled.table`
+    width: 100%;
+    margin-top: 14px;
+    border-collapse: collapse;
+    table-layout: fixed;
+`;
+
+const Th = styled.th<{ $right?: boolean }>`
+    padding: 10px 12px;
+    text-align: ${p => p.$right ? 'right' : 'left'};
+    font-size: 12px;
+    font-weight: 600;
+    color: ${ui.textMuted};
+    background: ${ui.surfaceSoft};
+    border-top: 1px solid ${ui.lineSoft};
+    border-bottom: 1px solid ${ui.lineSoft};
+    white-space: nowrap;
+
+    &:first-child { padding-left: 22px; }
+    &:last-child { padding-right: 22px; }
+`;
+
+type RowTone = 'ADD' | 'EDIT' | 'DELETE' | null;
+
+const Row = styled.tr<{ $tone: RowTone; $highlight?: boolean; $struck?: boolean }>`
+    border-bottom: 1px solid ${ui.lineFaint};
+    background: ${p => p.$tone === 'DELETE' ? 'rgba(239, 68, 68, 0.04)'
+        : p.$tone === 'EDIT' ? 'rgba(245, 158, 11, 0.04)'
+        : p.$tone === 'ADD' ? 'rgba(16, 185, 129, 0.04)'
+        : ui.surface};
+    /* Stan wyjątkowy dostaje cienki pasek przy lewej krawędzi. */
+    box-shadow: ${p => p.$tone === 'DELETE' ? 'inset 3px 0 0 #ef4444'
+        : p.$tone === 'EDIT' ? 'inset 3px 0 0 #f59e0b'
+        : p.$tone === 'ADD' ? 'inset 3px 0 0 #10b981'
+        : 'none'};
+    opacity: ${p => p.$struck ? 0.55 : 1};
+    transition: background 150ms ease;
+    ${p => p.$highlight && css`animation: ${pendingPulse} 0.9s ease-in-out 4;`}
+
+    &:hover { background: ${p => p.$tone ? undefined : ui.surfaceSoft}; }
+`;
+
+const Td = styled.td<{ $right?: boolean }>`
+    padding: 12px;
+    vertical-align: middle;
+    text-align: ${p => p.$right ? 'right' : 'left'};
+    font-size: 13px;
+    color: ${ui.textSecondary};
+    min-width: 0;
+
+    &:first-child { padding-left: 22px; }
+    &:last-child { padding-right: 22px; }
+`;
+
+const NameCell = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
     min-width: 0;
 `;
 
 const ServiceName = styled.span`
-    font-weight: 600;
-    color: ${st.text};
-    min-width: 0;
-    /* Service names are free text and regularly contain long unbroken tokens. */
-    overflow-wrap: anywhere;
-`;
-
-const ServiceNote = styled.div`
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-    font-style: italic;
-    margin-top: 2px;
-    overflow-wrap: anywhere;
-`;
-
-const PackageSubTr = styled.tr<{ $last?: boolean }>`
-    background: rgba(37, 99, 235, 0.025);
-
-    td {
-        border-bottom: ${props => props.$last
-            ? '2px solid rgba(37, 99, 235, 0.08)'
-            : '1px solid rgba(37, 99, 235, 0.06)'} !important;
-    }
-
-    @media (max-width: 767px) { display: block; }
-`;
-
-const PackageSubTd = styled.td`
-    padding: 6px 16px 6px 36px !important;
-    font-size: 12px;
-    font-weight: 500;
-    color: #475569;
-`;
-
-const PackageSubDot = styled.span`
-    display: inline-block;
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: rgba(37, 99, 235, 0.4);
-    margin-right: 8px;
-    vertical-align: middle;
-    flex-shrink: 0;
-`;
-
-const PackageBadge = styled.span`
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 7px;
-    background: rgba(37, 99, 235, 0.08);
-    color: #2563eb;
-    border: 1px solid rgba(37, 99, 235, 0.18);
-    border-radius: 6px;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    white-space: nowrap;
-    flex-shrink: 0;
-`;
-
-/* Status shown only by exception: pending states */
-const PendingChip = styled.span`
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 8px;
-    background: ${st.accentAmberDim};
-    color: ${st.accentAmber};
-    border-radius: ${st.radiusFull};
-    font-size: 10px;
-    font-weight: 700;
-    white-space: nowrap;
-    flex-shrink: 0;
-`;
-
-const DiscountChip = styled.span`
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 8px;
-    background: ${st.accentGreenDim};
-    color: ${st.accentGreen};
-    border-radius: ${st.radiusFull};
-    font-size: 10px;
-    font-weight: 700;
-    white-space: nowrap;
-    flex-shrink: 0;
-`;
-
-const EditedChip = styled.span`
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 8px;
-    background: ${BRAND_DIM};
-    color: ${BRAND_DARK};
-    border-radius: ${st.radiusFull};
-    font-size: 10px;
-    font-weight: 700;
-    white-space: nowrap;
-    flex-shrink: 0;
-`;
-
-/* ─── Price cell: one column, one story ─── */
-
-const PriceMain = styled.div`
-    display: flex;
-    align-items: baseline;
-    justify-content: flex-end;
-    gap: 7px;
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: 'tnum';
-`;
-
-const PriceFinal = styled.span`
     font-size: 14px;
-    font-weight: 700;
-    color: ${st.text};
-    letter-spacing: -0.2px;
+    font-weight: 600;
+    color: ${ui.ink};
+    /* Nazwy usług to wolny tekst i bywają jednym długim słowem. */
+    overflow-wrap: anywhere;
 `;
 
-const PriceOld = styled.span`
-    font-size: 12px;
-    color: ${st.textMuted};
-    text-decoration: line-through;
-    font-weight: 400;
-`;
-
-const PriceSub = styled.div`
-    margin-top: 2px;
-    font-size: 11px;
-    color: ${st.textMuted};
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: 'tnum';
-    white-space: nowrap;
-`;
-
-const TrendMark = styled.span<{ $trend: 'up' | 'down' | 'neutral' }>`
-    font-size: 10px;
-    font-weight: 700;
-    color: ${p => p.$trend === 'up' ? st.accentRed : p.$trend === 'down' ? st.accentGreen : st.textMuted};
-`;
-
-const PendingArrow = styled.span`
-    font-size: 11px;
-    color: ${st.accentAmber};
-`;
-
-/* ─── Totals ─── */
-
-const TotalRow = styled.div`
+const Pills = styled.span`
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 14px 20px;
-    background: ${st.bg};
-    border-top: 1px solid ${st.border};
-
-    @media (max-width: 480px) {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-    }
+    flex-wrap: wrap;
+    gap: 6px;
 `;
 
-const TotalLabel = styled.span`
-    font-size: ${st.fontMd};
+const ServiceNote = styled.span`
+    font-size: 12.5px;
+    color: ${ui.textMuted};
+    overflow-wrap: anywhere;
+`;
+
+const PackageItems = styled.ul`
+    margin: 2px 0 0;
+    padding: 0 0 0 14px;
+    font-size: 12.5px;
+    color: ${ui.textSecondary};
+
+    li::marker { color: ${ui.textFaint}; }
+`;
+
+const Trend = styled.span<{ $trend: 'up' | 'down' | 'neutral' }>`
+    font-size: 11px;
     font-weight: 700;
-    color: ${st.text};
+    color: ${p => p.$trend === 'up' ? ui.dangerInk : p.$trend === 'down' ? ui.okInk : ui.textMuted};
 `;
 
-const TotalValue = styled.span`
-    font-size: 22px;
-    font-weight: 800;
-    color: ${BRAND_DARK};
-    font-feature-settings: 'tnum';
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -0.5px;
+const EmptyServices = styled.p`
+    margin: 14px 22px 4px;
+    font-size: 13.5px;
+    color: ${ui.textMuted};
 `;
 
-const TotalBreakdown = styled.div`
+/* ── Telefon: lista, pozycja to jeden duży przycisk ── */
+
+const MobileList = styled.ul`
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+`;
+
+const MobileItem = styled.li<{ $tone: RowTone; $highlight?: boolean; $struck?: boolean }>`
+    border-top: 1px solid ${ui.lineFaint};
+    box-shadow: ${p => p.$tone === 'DELETE' ? 'inset 3px 0 0 #ef4444'
+        : p.$tone === 'EDIT' ? 'inset 3px 0 0 #f59e0b'
+        : p.$tone === 'ADD' ? 'inset 3px 0 0 #10b981'
+        : 'none'};
+    opacity: ${p => p.$struck ? 0.55 : 1};
+    ${p => p.$highlight && css`animation: ${pendingPulse} 0.9s ease-in-out 4;`}
+`;
+
+/* Strzałka mówi „to się otwiera" - na dotyku nie ma najechania, które by to zdradziło. */
+const MobileRow = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 60px;
+    padding: 10px 12px 10px 16px;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+
+    &:active { background: ${ui.surfaceSoft}; }
+    &:disabled { cursor: default; }
+    > svg { width: 16px; height: 16px; flex-shrink: 0; color: ${ui.textFaint}; }
+`;
+
+const MobileText = styled.span`
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 3px;
-    align-items: flex-end;
+    align-items: flex-start;
+    gap: 5px;
 
-    @media (max-width: 480px) {
-        align-items: flex-start;
-    }
+    ${ServiceName} { font-size: 14.5px; }
 `;
 
-const BreakdownItem = styled.div<{ $accent?: boolean }>`
-    font-size: ${st.fontXs};
-    color: ${p => p.$accent ? st.accentGreen : st.textMuted};
-    font-weight: ${p => p.$accent ? 700 : 400};
-    font-feature-settings: 'tnum';
+const MobileAmounts = styled.span`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1px;
+    flex-shrink: 0;
+`;
+
+const MobileGross = styled.span`
+    font-size: 14.5px;
+    font-weight: 700;
+    color: ${ui.ink};
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+`;
+
+const MobileSub = styled.span<{ $ok?: boolean }>`
+    font-size: 12px;
+    color: ${p => p.$ok ? ui.okInk : ui.textMuted};
+    white-space: nowrap;
+`;
+
+/* Nowe wiersze w trakcie edycji to <tr> - na telefonie stoją pod listą w tabeli blokowej. */
+const DraftTable = styled.table`
+    width: 100%;
+    border-collapse: collapse;
+
+    @media (max-width: 767px) { display: block; tbody { display: block; } }
 `;
 
 /* ─── Discount / editor modal shared styles ─── */
@@ -1710,11 +1427,44 @@ interface ServicesTableProps {
     visitStatus?: VisitStatus;
     visitId?: string;
     highlightPending?: boolean;
+    /** Czym wizytę rozliczono; brak = nierozliczona. */
+    settlement?: VisitSettlement | null;
+}
+
+const SETTLEMENT_LABEL: Record<NonNullable<VisitSettlement['documentType']>, string> = {
+    INVOICE: 'Rozliczona fakturą',
+    RECEIPT: 'Rozliczona paragonem',
+    OTHER: 'Rozliczona',
+};
+
+/** 1 usługa, 2 usługi, 5 usług, 22 usługi. */
+function servicesWord(n: number): string {
+    if (n === 1) return 'usługa';
+    const tens = n % 100;
+    const units = n % 10;
+    return units >= 2 && units <= 4 && (tens < 12 || tens > 14) ? 'usługi' : 'usług';
+}
+
+/** Zmiana czeka na zgodę klienta (SMS z prośbą o potwierdzenie) - pełnym zdaniem, nie „OCZEKUJE". */
+function pendingLabel(op: ServiceLineItem['pendingOperation']): string {
+    if (op === 'ADD') return 'Nowa, czeka na zgodę klienta';
+    if (op === 'DELETE') return 'Usunięcie czeka na zgodę klienta';
+    if (op === 'EDIT') return 'Zmiana czeka na zgodę klienta';
+    return 'Czeka na zgodę klienta';
+}
+
+/** „Rabat 10%" zamiast gołego „-10%"; kwotowe i ręczne ceny mają już pełną etykietę. */
+function discountPillLabel(adjustment: PriceAdjustment, label: string): string {
+    if (adjustment.type === 'PERCENT') {
+        const v = Math.abs(adjustment.value);
+        return adjustment.value < 0 ? `Rabat ${v}%` : `Narzut ${v}%`;
+    }
+    return label;
 }
 
 const HEADER_MENU = '__header__';
 
-export const ServicesTable = ({ services, visitStatus, visitId, highlightPending }: ServicesTableProps) => {
+export const ServicesTable = ({ services, visitStatus, visitId, highlightPending, settlement }: ServicesTableProps) => {
     const { calculateServicePrice } = useServicePricing();
     const { print: printServicesList, isPrinting } = usePrintServicesList();
     const { saveServicesChanges, isSaving } = useSaveServicesChanges(visitId ?? '');
@@ -1722,14 +1472,15 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const [upsellOpen, setUpsellOpen] = useState(false);
 
     /* ── Row / header menus ── */
-    const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+    const menu = useActionMenu<ServiceLineItem | null>();
+    const [cardRef, cardWidth] = useContainerWidth<HTMLElement>();
+    const asList = cardWidth === null ? window.innerWidth < 768 : cardWidth < TABLE_MIN_WIDTH;
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [confirmAction, setConfirmAction] = useState<null | 'approve' | 'reject'>(null);
     const [targetService, setTargetService] = useState<ServiceLineItem | null>(null);
 
     /* ── Draft state ── */
     const [newRows, setNewRows] = useState<NewRow[]>([]);
-    const isAddingService = newRows.length > 0;
 
     /* ── Focus-mode button highlight ── */
     const [isHighlighting, setIsHighlighting] = useState(false);
@@ -2008,7 +1759,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const toggleDelete = (serviceId: string) => {
         setDeletedIds(prev => {
             const next = new Set(prev);
-            next.has(serviceId) ? next.delete(serviceId) : next.add(serviceId);
+            if (next.has(serviceId)) next.delete(serviceId); else next.add(serviceId);
             return next;
         });
     };
@@ -2104,7 +1855,6 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         bulkDiscountConflictOpen, bulkDiscountOpen, bulkVatOpen, draftDiscountId, editorId,
         pendingSmsPayload, triggerHighlight, discardDraft]);
 
-
     const buildChangesPayload = (): ServicesChangesPayload => buildServicesChangesPayload({
         newRows,
         editedPrices,
@@ -2188,7 +1938,106 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     };
     const bulkEligibleCount = services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING'))).length;
 
-    const colSpan = 1 + (pricesHidden ? 0 : 1) + (showActionsCol ? 1 : 0);
+    /* ── Model wiersza: to samo dla tabeli i listy na telefonie ── */
+    const rows = services.map(service => {
+        const ep = editedPrices[service.id];
+        // Zmiana ceny w tabeli unieważnia brutto policzone przez serwer:
+        // dotyczyło POPRZEDNIEJ ceny, a rozlany obiekt zachowałby je
+        // i pokazywał kwotę sprzed edycji jako dokładną.
+        const effectiveService = withEditedPrice(service, ep);
+        const pricing = pricesHidden ? null : calculateServicePrice(effectiveService as Parameters<typeof calculateServicePrice>[0]);
+        const showDiscount = !pricesHidden && !!pricing?.hasDiscount && service.basePriceNet !== 0;
+        const isMarkedForDelete = deletedIds.has(service.id);
+        const isPendingRow = service.hasPendingChange ?? (service.status === 'PENDING');
+        const canDelete = canEdit && !isPendingRow && !isMarkedForDelete;
+        const canEditPrice = canEdit && !isPendingRow && !isMarkedForDelete;
+        const hasEditedPrice = ep !== undefined;
+        const effectiveVat = ep?.vatRate ?? service.vatRate;
+        const tone: 'ADD' | 'EDIT' | 'DELETE' | null = isMarkedForDelete ? 'DELETE'
+            : isPendingRow ? (service.pendingOperation || 'EDIT') : null;
+
+        const isEditPending = isPendingRow && service.pendingOperation === 'EDIT'
+            && (service.previousPriceNet ?? null) !== null
+            && (service.previousPriceGross ?? null) !== null;
+
+        const discountPill = showDiscount && pricing
+            ? (effectiveService.adjustment ? discountPillLabel(effectiveService.adjustment, pricing.discountLabel) : pricing.discountLabel)
+            : null;
+
+        const name = (
+            <NameCell>
+                <ServiceName>{service.serviceName}</ServiceName>
+                {(service.isPackage || isPendingRow || isMarkedForDelete || discountPill || (!isPendingRow && hasEditedPrice)) && (
+                    <Pills>
+                        {service.isPackage && <StatusPill $tone="neutral">Pakiet</StatusPill>}
+                        {isPendingRow && <StatusPill $tone="warn"><Clock />{pendingLabel(service.pendingOperation)}</StatusPill>}
+                        {isMarkedForDelete && <StatusPill $tone="danger">Do usunięcia po zapisie</StatusPill>}
+                        {discountPill && <StatusPill $tone="ok">{discountPill}</StatusPill>}
+                        {!isPendingRow && !discountPill && hasEditedPrice && <StatusPill $tone="info">Cena zmieniona</StatusPill>}
+                    </Pills>
+                )}
+                {service.note && <ServiceNote>{service.note}</ServiceNote>}
+                {service.isPackage && service.packageItems && service.packageItems.length > 0 && (
+                    <PackageItems>
+                        {service.packageItems.map(item => <li key={item.serviceId}>{item.serviceName}</li>)}
+                    </PackageItems>
+                )}
+            </NameCell>
+        );
+
+        let price: ReactNode = null;
+        if (pricing) {
+            if (isEditPending) {
+                const prevGross = service.previousPriceGross as number;
+                const prevNet = service.previousPriceNet as number;
+                const trend: 'up' | 'down' | 'neutral' = pricing.finalPriceGross > prevGross ? 'up'
+                    : pricing.finalPriceGross < prevGross ? 'down' : 'neutral';
+                price = (
+                    <PriceButton
+                        readOnly
+                        old={formatCurrency(prevGross / 100)}
+                        gross={<>{formatCurrency(pricing.finalPriceGross / 100)} <Trend $trend={trend}>{trend === 'up' ? '▲' : trend === 'down' ? '▼' : '▬'}</Trend></>}
+                        sub={<PriceSub>netto {formatCurrency(prevNet / 100)} → {formatCurrency(pricing.finalPriceNet / 100)}</PriceSub>}
+                    />
+                );
+            } else {
+                price = (
+                    <PriceButton
+                        readOnly={!canEditPrice}
+                        old={showDiscount ? formatCurrency(pricing.originalPriceGross / 100) : undefined}
+                        gross={formatCurrency(pricing.finalPriceGross / 100)}
+                        net={formatCurrency(pricing.finalPriceNet / 100).replace(/\s?zł$/, '')}
+                        aria-label={`Zmień cenę: ${service.serviceName}, ${formatCurrency(pricing.finalPriceGross / 100)}`}
+                        title="Zmień cenę lub rabat"
+                        onClick={() => openEditor(service)}
+                    />
+                );
+            }
+        }
+
+        return {
+            service, pricing, isMarkedForDelete, isPendingRow, canDelete, canEditPrice, effectiveVat, tone,
+            discountPill, name, price,
+            showRowMenu: showActionsCol && (isPendingRow || canEditPrice || canDelete || isMarkedForDelete),
+        };
+    });
+
+    const menuService = menu.menu?.item ?? null;
+    const menuRow = menuService ? rows.find(r => r.service.id === menuService.id) ?? null : null;
+
+    const pendingCount = rows.filter(r => r.isPendingRow).length;
+    const servicesSubtitle = services.length === 0 ? undefined : [
+        `${services.length} ${servicesWord(services.length)}`,
+        pendingCount > 0 ? `${pendingCount} ${pendingCount === 1 ? 'czeka' : 'czekają'} na zgodę klienta` : null,
+    ].filter(Boolean).join(', ');
+
+    // Stan rozliczenia jako plakietka obok kwoty - to z nią wraca się do wizyty
+    // przy wydaniu pojazdu.
+    const settlementPill = pricesHidden || services.length === 0 ? null : settlement ? (
+        <StatusPill $tone="ok"><Check />{SETTLEMENT_LABEL[settlement.documentType ?? 'OTHER']}</StatusPill>
+    ) : (
+        <StatusPill $tone="neutral">Nierozliczona</StatusPill>
+    );
 
     // W trybie edycji dolne paski nawigacji ustępują miejsca paskowi
     // „Odrzuć / Zaakceptuj", który na telefonie jest przypięty do dołu ekranu.
@@ -2207,265 +2056,173 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     return (
         <>
         <FocusWrapper $active={isInEditMode} ref={wrapperRef}>
-        {openMenuId && (
-            <div
-                style={{ position: 'fixed', inset: 0, zIndex: 99 }}
-                onClick={() => setOpenMenuId(null)}
-            />
-        )}
-        <TableContainer>
-            <TableHeader>
-                <TableHeaderLeft>
-                    <TableTitle>Wykaz usług</TableTitle>
-                    <TableSubtitle>
-                        {services.length} pozycji
-                        {hasPendingServices && ' · Zawiera usługi oczekujące na potwierdzenie'}
-                    </TableSubtitle>
-                </TableHeaderLeft>
-                {(canEdit || canPrint) && (
-                    <HeaderActions>
-                        {canEdit && (
-                        <AddBtn onClick={addNewRow} disabled={isSaving}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                <line x1="12" y1="5" x2="12" y2="19" />
-                                <line x1="5" y1="12" x2="19" y2="12" />
-                            </svg>
-                            Dodaj usługę
-                        </AddBtn>
-                        )}
-                        {!isInEditMode && (
-                        <ActionMenuWrapper>
-                            <KebabBtn
-                                onClick={() => setOpenMenuId(openMenuId === HEADER_MENU ? null : HEADER_MENU)}
-                                disabled={isSaving}
-                                title={canEdit ? 'Operacje zbiorcze' : 'Więcej opcji'}
-                            >
-                                <svg viewBox="0 0 24 24" fill="currentColor">
-                                    <circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" />
-                                </svg>
-                            </KebabBtn>
-                            {openMenuId === HEADER_MENU && (
-                                <ContextMenu>
-                                    {canEdit && (
-                                    <>
-                                    <ContextMenuItem
-                                        disabled={bulkEligibleCount === 0}
-                                        onClick={() => { setOpenMenuId(null); openBulkDiscountModal(); }}
-                                    >
-                                        Rabatuj całość...
-                                    </ContextMenuItem>
-                                    <ContextMenuItem
-                                        disabled={bulkEligibleCount === 0}
-                                        onClick={() => { setOpenMenuId(null); setBulkVatOpen(true); }}
-                                    >
-                                        VAT dla wszystkich usług...
-                                    </ContextMenuItem>
-                                    </>
-                                    )}
-                                    {canPrint && (
-                                    <ContextMenuItem disabled={isPrinting} onClick={() => { setOpenMenuId(null); handlePrint(); }}>
-                                        Drukuj wykaz
-                                    </ContextMenuItem>
-                                    )}
-                                </ContextMenu>
-                            )}
-                        </ActionMenuWrapper>
-                        )}
-                    </HeaderActions>
+        <ServicesCard ref={cardRef} aria-labelledby="visit-services-title">
+            <CardHead>
+                <SectionTitle id="visit-services-title" size="lg" count={servicesSubtitle}>Usługi</SectionTitle>
+                {(canEdit || canPrint) && !isInEditMode && (
+                    <IconButton
+                        label={canEdit ? 'Rabat i VAT dla całej wizyty' : 'Więcej opcji wykazu'}
+                        aria-haspopup="menu"
+                        aria-expanded={menu.isOpen(HEADER_MENU)}
+                        active={menu.isOpen(HEADER_MENU)}
+                        disabled={isSaving}
+                        onClick={e => menu.toggle(e, null, HEADER_MENU)}
+                    >
+                        <MoreHorizontal />
+                    </IconButton>
                 )}
-            </TableHeader>
-
-            <Table>
-                <Thead>
-                    <Tr>
-                        <Th>Usługa</Th>
-                        {!pricesHidden && <Th $right>Cena</Th>}
-                        {showActionsCol && <Th $right aria-label="Akcje" />}
-                    </Tr>
-                </Thead>
-                <Tbody>
-                    {services.map(service => {
-                        const ep = editedPrices[service.id];
-                        // Zmiana ceny w tabeli unieważnia brutto policzone przez serwer:
-                        // dotyczyło POPRZEDNIEJ ceny, a rozlany obiekt zachowałby je
-                        // i pokazywał kwotę sprzed edycji jako dokładną.
-                        const effectiveService = withEditedPrice(service, ep);
-                        const pricing = pricesHidden ? null : calculateServicePrice(effectiveService as Parameters<typeof calculateServicePrice>[0]);
-                        const showDiscount = !pricesHidden && !!pricing?.hasDiscount && service.basePriceNet !== 0;
-                        const isMarkedForDelete = deletedIds.has(service.id);
-                        const isPendingRow = service.hasPendingChange ?? (service.status === 'PENDING');
-                        const canDelete = canEdit && !isPendingRow && !isMarkedForDelete;
-                        const canEditPrice = canEdit && !isPendingRow && !isMarkedForDelete;
-                        const hasEditedPrice = ep !== undefined;
-                        const effectiveVat = ep?.vatRate ?? service.vatRate;
-
-                        const isEditPending = isPendingRow && service.pendingOperation === 'EDIT'
-                            && (service.previousPriceNet ?? null) !== null
-                            && (service.previousPriceGross ?? null) !== null;
-
-                        const pendingLabel = isPendingRow
-                            ? (service.pendingOperation === 'ADD' ? 'Nowa: oczekuje'
-                                : service.pendingOperation === 'EDIT' ? 'Edycja: oczekuje'
-                                : service.pendingOperation === 'DELETE' ? 'Usunięcie: oczekuje'
-                                : 'Oczekuje')
-                            : null;
-
-                        const showRowMenu = showActionsCol && (isPendingRow || canEditPrice || canDelete || isMarkedForDelete);
-
-                        const packageSubRows = service.isPackage && service.packageItems && service.packageItems.length > 0
-                            ? service.packageItems
-                            : null;
-
-                        return (
-                            <React.Fragment key={service.id}>
-                            <Tr
-                                $pendingOp={isMarkedForDelete ? 'DELETE' : (isPendingRow ? (service.pendingOperation || 'EDIT') : null)}
-                                $highlight={highlightPending && service.status === 'PENDING'}
-                                style={isMarkedForDelete ? { opacity: 0.55 } : undefined}
-                            >
-                                <Td>
-                                    <NameLine>
-                                        <ServiceName>{service.serviceName}</ServiceName>
-                                        {service.isPackage && <PackageBadge>Pakiet</PackageBadge>}
-                                        {pendingLabel && <PendingChip>{pendingLabel}</PendingChip>}
-                                        {isMarkedForDelete && <PendingChip style={{ background: st.accentRedDim, color: st.accentRed }}>Do usunięcia</PendingChip>}
-                                        {!isPendingRow && showDiscount && <DiscountChip>{pricing!.discountLabel}</DiscountChip>}
-                                        {!isPendingRow && !showDiscount && hasEditedPrice && <EditedChip>Zmieniona</EditedChip>}
-                                    </NameLine>
-                                    {service.note && <ServiceNote>{service.note}</ServiceNote>}
-                                </Td>
-                                {!pricesHidden && (
-                                    <PriceTd
-                                        $clickable={canEditPrice}
-                                        onClick={canEditPrice ? () => openEditor(service) : undefined}
-                                        title={canEditPrice ? 'Kliknij, aby zmienić cenę lub rabat' : undefined}
-                                    >
-                                        {isEditPending ? (() => {
-                                            const prevGross = service.previousPriceGross as number;
-                                            const prevNet = service.previousPriceNet as number;
-                                            const proposedGross = pricing!.finalPriceGross;
-                                            const proposedNet = pricing!.finalPriceNet;
-                                            const trend: 'up' | 'down' | 'neutral' = proposedGross > prevGross ? 'up' : proposedGross < prevGross ? 'down' : 'neutral';
-                                            return (
-                                                <>
-                                                    <PriceMain>
-                                                        <PriceOld>{formatCurrency(prevGross / 100)}</PriceOld>
-                                                        <PendingArrow>→</PendingArrow>
-                                                        <PriceFinal>{formatCurrency(proposedGross / 100)}</PriceFinal>
-                                                        <TrendMark $trend={trend}>{trend === 'up' ? '▲' : trend === 'down' ? '▼' : '▬'}</TrendMark>
-                                                    </PriceMain>
-                                                    <PriceSub>
-                                                        netto {formatCurrency(prevNet / 100)} → {formatCurrency(proposedNet / 100)}
-                                                    </PriceSub>
-                                                </>
-                                            );
-                                        })() : (
-                                            <>
-                                                <PriceMain>
-                                                    {showDiscount && (
-                                                        <PriceOld>{formatCurrency(pricing!.originalPriceGross / 100)}</PriceOld>
-                                                    )}
-                                                    <PriceFinal>{formatCurrency(pricing!.finalPriceGross / 100)}</PriceFinal>
-                                                </PriceMain>
-                                                <PriceSub>
-                                                    netto {formatCurrency(pricing!.finalPriceNet / 100)} · VAT {fmtVat(effectiveVat)}
-                                                </PriceSub>
-                                            </>
-                                        )}
-                                    </PriceTd>
-                                )}
-                                {showActionsCol && (
-                                    <ActionsCell>
-                                        {showRowMenu && (
-                                            <ActionMenuWrapper>
-                                                <RowKebabBtn
-                                                    onClick={() => setOpenMenuId(openMenuId === service.id ? null : service.id)}
-                                                    disabled={isApproving || isRejecting}
-                                                    title="Akcje"
-                                                >
-                                                    <svg viewBox="0 0 24 24" fill="currentColor">
-                                                        <circle cx="12" cy="5" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="12" cy="19" r="1.8" />
-                                                    </svg>
-                                                </RowKebabBtn>
-                                                {openMenuId === service.id && (
-                                                    <ContextMenu>
-                                                        {isPendingRow && (
-                                                            <>
-                                                                <ContextMenuItem
-                                                                    disabled={!visitId}
-                                                                    onClick={() => { setOpenMenuId(null); openConfirm(service, 'approve'); }}
-                                                                >
-                                                                    Zatwierdź zmianę
-                                                                </ContextMenuItem>
-                                                                <ContextMenuItem
-                                                                    $variant="danger"
-                                                                    disabled={!visitId}
-                                                                    onClick={() => { setOpenMenuId(null); openConfirm(service, 'reject'); }}
-                                                                >
-                                                                    Wycofaj zmianę
-                                                                </ContextMenuItem>
-                                                            </>
-                                                        )}
-                                                        {canEditPrice && (
-                                                            <ContextMenuItem onClick={() => { setOpenMenuId(null); openEditor(service); }}>
-                                                                Zmień cenę / rabat
-                                                            </ContextMenuItem>
-                                                        )}
-                                                        {canDelete && (
-                                                            <ContextMenuItem $variant="danger" onClick={() => { setOpenMenuId(null); toggleDelete(service.id); }}>
-                                                                Usuń usługę
-                                                            </ContextMenuItem>
-                                                        )}
-                                                        {isMarkedForDelete && (
-                                                            <ContextMenuItem onClick={() => { setOpenMenuId(null); toggleDelete(service.id); }}>
-                                                                Przywróć
-                                                            </ContextMenuItem>
-                                                        )}
-                                                    </ContextMenu>
-                                                )}
-                                            </ActionMenuWrapper>
-                                        )}
-                                    </ActionsCell>
-                                )}
-                            </Tr>
-                            {packageSubRows && packageSubRows.map((item, idx) => (
-                                <PackageSubTr key={item.serviceId} $last={idx === packageSubRows.length - 1}>
-                                    <PackageSubTd colSpan={colSpan}>
-                                        <PackageSubDot />
-                                        {item.serviceName}
-                                    </PackageSubTd>
-                                </PackageSubTr>
-                            ))}
-                            </React.Fragment>
-                        );
-                    })}
-                    {newRows.map(row => (
-                        <ServiceInlineRow
-                            key={row.draftId}
-                            row={row}
-                            onUpdate={partial => updateRow(row.draftId, partial)}
-                            onRemove={() => removeRow(row.draftId)}
-                            onAddCustom={name => handleAddCustom(row.draftId, name)}
-                            onEdit={() => handleAddCustom(row.draftId, row.serviceName)}
-                            onDiscount={() => openDraftDiscount(row.draftId)}
-                        />
-                    ))}
-                </Tbody>
-            </Table>
+            </CardHead>
 
             {!pricesHidden && (
-            <TotalRow>
-                <TotalLabel>Razem do zapłaty</TotalLabel>
-                <TotalBreakdown>
-                    <BreakdownItem>Netto: {formatCurrency(totals.totalFinalNet / 100)}</BreakdownItem>
-                    <BreakdownItem>VAT: {formatCurrency(totals.totalVat / 100)}</BreakdownItem>
-                    {totals.hasTotalDiscount && (
-                        <BreakdownItem $accent>Rabaty: −{formatCurrency(totals.totalDiscountGross / 100)}</BreakdownItem>
+                <Strip
+                    label="Do zapłaty"
+                    amount={formatCurrency(totals.totalFinalGross / 100)}
+                    details={[
+                        `netto ${formatCurrency(totals.totalFinalNet / 100)}`,
+                        `VAT ${formatCurrency(totals.totalVat / 100)}`,
+                        totals.hasTotalDiscount ? `rabaty −${formatCurrency(totals.totalDiscountGross / 100)}` : null,
+                    ].filter(Boolean).join(', ')}
+                    actions={(
+                        <>
+                            {!asList && settlementPill}
+                            {canEdit && (
+                                <Button variant="tinted" onClick={addNewRow} disabled={isSaving}>
+                                    <Plus />Dodaj usługę
+                                </Button>
+                            )}
+                        </>
                     )}
-                    <TotalValue>{formatCurrency(totals.totalFinalGross / 100)}</TotalValue>
-                </TotalBreakdown>
-            </TotalRow>
+                />
             )}
+            {pricesHidden && canEdit && (
+                <Strip
+                    label="Usługi wizyty"
+                    amount={`${services.length} ${servicesWord(services.length)}`}
+                    actions={<Button variant="tinted" onClick={addNewRow} disabled={isSaving}><Plus />Dodaj usługę</Button>}
+                />
+            )}
+
+            {services.length === 0 && newRows.length === 0 && (
+                <EmptyServices>Wizyta nie ma jeszcze żadnej usługi.</EmptyServices>
+            )}
+
+            {!asList ? (
+                <Grid>
+                    <colgroup>
+                        <col />
+                        {!pricesHidden && <col style={{ width: 76 }} />}
+                        {!pricesHidden && <col style={{ width: 210 }} />}
+                        {showActionsCol && <col style={{ width: 74 }} />}
+                    </colgroup>
+                    {(services.length > 0 || newRows.length > 0) && (
+                        <thead>
+                            <tr>
+                                <Th>Usługa</Th>
+                                {!pricesHidden && <Th>VAT</Th>}
+                                {!pricesHidden && <Th $right>Kwota brutto</Th>}
+                                {showActionsCol && <Th><span className="sr-only">Akcje</span></Th>}
+                            </tr>
+                        </thead>
+                    )}
+                    <tbody>
+                        {rows.map(r => (
+                            <Row
+                                key={r.service.id}
+                                $tone={r.tone}
+                                $highlight={highlightPending && r.service.status === 'PENDING'}
+                                $struck={r.isMarkedForDelete}
+                            >
+                                <Td>{r.name}</Td>
+                                {!pricesHidden && <Td>{fmtVat(r.effectiveVat)}</Td>}
+                                {!pricesHidden && <Td $right>{r.price}</Td>}
+                                {showActionsCol && (
+                                    <Td $right>
+                                        {r.showRowMenu && (
+                                            <IconButton
+                                                shape="square"
+                                                label={`Więcej akcji: ${r.service.serviceName}`}
+                                                aria-haspopup="menu"
+                                                aria-expanded={menu.isOpen(r.service.id)}
+                                                active={menu.isOpen(r.service.id)}
+                                                disabled={isApproving || isRejecting}
+                                                onClick={e => menu.toggle(e, r.service, r.service.id)}
+                                            >
+                                                <MoreVertical />
+                                            </IconButton>
+                                        )}
+                                    </Td>
+                                )}
+                            </Row>
+                        ))}
+                        {newRows.map(row => (
+                            <ServiceInlineRow
+                                key={row.draftId}
+                                row={row}
+                                nameColSpan={pricesHidden ? 1 : 2}
+                                onUpdate={partial => updateRow(row.draftId, partial)}
+                                onRemove={() => removeRow(row.draftId)}
+                                onAddCustom={name => handleAddCustom(row.draftId, name)}
+                                onEdit={() => handleAddCustom(row.draftId, row.serviceName)}
+                                onDiscount={() => openDraftDiscount(row.draftId)}
+                            />
+                        ))}
+                    </tbody>
+                </Grid>
+            ) : (
+                <>
+                    <MobileList>
+                        {rows.map(r => {
+                            const interactive = r.canEditPrice || r.showRowMenu;
+                            return (
+                                <MobileItem
+                                    key={r.service.id}
+                                    $tone={r.tone}
+                                    $highlight={highlightPending && r.service.status === 'PENDING'}
+                                    $struck={r.isMarkedForDelete}
+                                >
+                                    {/* Na dotyku cała pozycja otwiera menu akcji usługi - cena,
+                                        usunięcie, zatwierdzenie zmiany - zamiast małego ⋮ z boku. */}
+                                    <MobileRow
+                                        type="button"
+                                        disabled={!interactive}
+                                        aria-haspopup={interactive ? 'menu' : undefined}
+                                        onClick={interactive ? e => menu.toggle(e, r.service, r.service.id) : undefined}
+                                    >
+                                        <MobileText>{r.name}</MobileText>
+                                        {!pricesHidden && r.pricing && (
+                                            <MobileAmounts>
+                                                <MobileGross>{formatCurrency(r.pricing.finalPriceGross / 100)}</MobileGross>
+                                                {r.discountPill
+                                                    ? <MobileSub $ok>{r.discountPill.toLowerCase()}</MobileSub>
+                                                    : <MobileSub>VAT {fmtVat(r.effectiveVat)}</MobileSub>}
+                                            </MobileAmounts>
+                                        )}
+                                        {interactive && <ChevronRight aria-hidden="true" />}
+                                    </MobileRow>
+                                </MobileItem>
+                            );
+                        })}
+                    </MobileList>
+                    {newRows.length > 0 && (
+                        <DraftTable>
+                            <tbody>
+                                {newRows.map(row => (
+                                    <ServiceInlineRow
+                                        key={row.draftId}
+                                        row={row}
+                                        onUpdate={partial => updateRow(row.draftId, partial)}
+                                        onRemove={() => removeRow(row.draftId)}
+                                        onAddCustom={name => handleAddCustom(row.draftId, name)}
+                                        onEdit={() => handleAddCustom(row.draftId, row.serviceName)}
+                                        onDiscount={() => openDraftDiscount(row.draftId)}
+                                    />
+                                ))}
+                            </tbody>
+                        </DraftTable>
+                    )}
+                </>
+            )}
+            <div style={{ height: 8 }} />
 
             {isInEditMode && (
                 <DraftBar>
@@ -2511,7 +2268,50 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                     </DraftBarActions>
                 </DraftBar>
             )}
-        </TableContainer>
+        </ServicesCard>
+
+        <ActionMenu anchor={menu.menu?.anchor ?? null} onClose={menu.close} label={menuService ? `Akcje usługi ${menuService.serviceName}` : 'Operacje na całej wizycie'}>
+            {menu.isOpen(HEADER_MENU) && (
+                <>
+                    {canEdit && (
+                        <>
+                            <MenuItem icon={<Percent />} disabled={bulkEligibleCount === 0} onClick={openBulkDiscountModal}>
+                                Rabatuj całość...
+                            </MenuItem>
+                            <MenuItem icon={<ReceiptText />} disabled={bulkEligibleCount === 0} onClick={() => setBulkVatOpen(true)}>
+                                VAT dla wszystkich usług...
+                            </MenuItem>
+                        </>
+                    )}
+                    {canPrint && (
+                        <MenuItem icon={<Printer />} disabled={isPrinting} onClick={handlePrint}>Drukuj wykaz</MenuItem>
+                    )}
+                </>
+            )}
+            {menuRow && (
+                <>
+                    {menuRow.isPendingRow && (
+                        <>
+                            <MenuItem icon={<Check />} disabled={!visitId} onClick={() => openConfirm(menuRow.service, 'approve')}>
+                                Zatwierdź zmianę
+                            </MenuItem>
+                            <MenuItem icon={<Undo2 />} danger disabled={!visitId} onClick={() => openConfirm(menuRow.service, 'reject')}>
+                                Wycofaj zmianę
+                            </MenuItem>
+                        </>
+                    )}
+                    {menuRow.canEditPrice && (
+                        <MenuItem icon={<Pencil />} onClick={() => openEditor(menuRow.service)}>Zmień cenę / rabat</MenuItem>
+                    )}
+                    {menuRow.canDelete && (
+                        <MenuItem icon={<Trash2 />} danger onClick={() => toggleDelete(menuRow.service.id)}>Usuń usługę</MenuItem>
+                    )}
+                    {menuRow.isMarkedForDelete && (
+                        <MenuItem icon={<Undo2 />} onClick={() => toggleDelete(menuRow.service.id)}>Przywróć</MenuItem>
+                    )}
+                </>
+            )}
+        </ActionMenu>
 
         <div style={{ zIndex: 1100, position: 'relative' }}>
             <QuickServiceModal

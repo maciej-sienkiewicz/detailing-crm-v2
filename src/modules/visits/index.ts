@@ -20,7 +20,6 @@ export { visitCommentApi } from './api/visitCommentApi';
 export { stateTransitionApi } from './api/stateTransitionApi';
 
 export { VisitHeader } from './components/VisitHeader';
-export { StatusStepper } from './components/StatusStepper';
 export { VehicleInfoCard, CustomerInfoCard } from './components/InfoCards';
 export { ServicesTable } from './components/ServicesTable';
 export { VisitComments } from './components/VisitComments';

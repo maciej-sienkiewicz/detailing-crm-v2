@@ -181,6 +181,12 @@ okno, więc jego „Zapisz" jest na ten moment krokiem następnym i wolno mu by�
 wypełnionym. Wyjątek działa, bo edytor jest stanem PRZEJŚCIOWYM i sam znika —
 nie wolno go rozciągać na elementy widoczne stale.
 
+Te reguły są już zaszyte we wspólnych klockach `src/common/components/ui`
+(`Button` z wariantami priorytetu, `IconButton`, `StatusPill`, `SummaryStrip`,
+`Card`/`Panel`, `SectionTitle`, `PriceButton`, `FieldRow`, `Segmented`,
+`SideDrawer`, `ActionMenu`). Widok wizyty i zlecenia zbiorcze stoją na
+nich (okna edycji wizyty jeszcze nie w pełni). Zanim zbudujesz lokalny `ActionBtn` czy `SidebarCard` - użyj ich.
+
 ### Czego ta reguła NIE znaczy, część druga
 
 Nie znaczy „akcja główna ma być skromna". Zakazany jest REMIS, a nie zwycięstwo.

@@ -1,635 +1,343 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { createPortal } from 'react-dom';
-import styled, { css } from 'styled-components';
+// src/modules/visits/components/VisitHeader.tsx
+//
+// Nagłówek wizyty: CO to za auto, NA KIEDY i CO ZROBIĆ DALEJ - w jednym ciemnym bloku.
+//
+// Wcześniej były to dwa osobne ciemne bloki jeden pod drugim: nagłówek z tytułem
+// i akcjami, a pod nim pasek postępu „W realizacji - Do odbioru - Zakończona".
+// Dwa ciemne prostokąty zabierały ~250px nad wykazem usług, a termin odbioru
+// (pytanie, które pada przy ladzie) był zakresem dat bez godziny w szarej linijce.
+// Teraz postęp i termin stoją w jednym rzędzie pod tytułem.
+//
+// W oknie jest dokładnie JEDNO wypełnienie (CLAUDE.md §2): zielone „Oznacz jako
+// gotowe" / „Wydaj pojazd" (albo akcja rozliczenia po wydaniu). „Door to door"
+// i menu ⋯ są obrysowane na ciemnym tle.
+//
+// Układ zależy od szerokości NAGŁÓWKA, nie okna: obok rozwiniętego menu aplikacji
+// nagłówek ma realnie mniej miejsca, niż twierdzi `@media`, a tytuł łamał się
+// wtedy po jednej literze (zgłoszenie z produkcji).
+
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import styled, { css, keyframes } from 'styled-components';
+import { CalendarDays, Check, FileText, FilePlus, MoreHorizontal, Pencil, Sparkles, Trash2, Truck, X } from 'lucide-react';
 import type { Visit, VisitStatus } from '../types';
 import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, ModalFooter, CloseBtn } from '@/common/components/ModalKit';
-import { SharedButton } from '@/common/styles';
 import { usePermissions } from '@/core/permissions';
 import { DateTimePicker } from '@/common/components/DateTimePicker';
 import { CarLogoImage } from '@/modules/vehicles/components/CarLogoImage';
+import { ActionMenu, Button, IconButton, MenuItem, ui, useActionMenu } from '@/common/components/ui';
+import { useContainerWidth } from '@/common/hooks';
+import { pickupPhrase } from '../utils/pickupPhrase';
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const formatDate = (dateStr: string): string => {
-    try {
-        return new Date(dateStr).toLocaleDateString('pl-PL', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-        });
-    } catch {
-        return dateStr;
-    }
-};
-
-const formatDateRange = (startStr: string, endStr?: string): string => {
-    try {
-        const start = new Date(startStr);
-        if (!endStr) return formatDate(startStr);
-        const end = new Date(endStr);
-        const sameYear = start.getFullYear() === end.getFullYear();
-        const sameMonth = sameYear && start.getMonth() === end.getMonth();
-        const startFmt = start.toLocaleDateString('pl-PL', {
-            day: 'numeric',
-            month: sameMonth ? undefined : 'long',
-            year: sameYear ? undefined : 'numeric',
-        });
-        const endFmt = end.toLocaleDateString('pl-PL', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-        });
-        return `${startFmt} - ${endFmt}`;
-    } catch {
-        return formatDate(startStr);
-    }
-};
-
-// ─── Status config ────────────────────────────────────────────────────────────
+/** Poniżej tej szerokości nagłówka układ telefonu: akcja główna na całą szerokość pod spodem. */
+const COMPACT_MAX_WIDTH = 640;
 
 const COMPLETE_LABEL: Partial<Record<VisitStatus, string>> = {
-    IN_PROGRESS:      'Oznacz jako gotowe',
+    IN_PROGRESS: 'Oznacz jako gotowe',
     READY_FOR_PICKUP: 'Wydaj pojazd',
 };
 
-// ─── Styled components ────────────────────────────────────────────────────────
+const STEPS: { status: VisitStatus; label: string }[] = [
+    { status: 'IN_PROGRESS', label: 'W realizacji' },
+    { status: 'READY_FOR_PICKUP', label: 'Do odbioru' },
+    { status: 'COMPLETED', label: 'Zakończona' },
+];
 
-const HeroHeader = styled.header`
-    position: relative;
-    overflow: hidden;
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0c1f35 100%);
-    border-radius: 16px;
-    margin-bottom: 22px;
-    box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 8px 28px rgba(0,0,0,0.14);
+const SPECIAL_STATUS: Partial<Record<VisitStatus, string>> = {
+    DRAFT: 'Przyjęcie niedokończone, czeka na podpisy',
+    REJECTED: 'Wizyta odrzucona',
+    ARCHIVED: 'Wizyta w archiwum',
+};
 
-    &::before {
-        content: '';
-        position: absolute;
-        top: -100px;
-        right: -60px;
-        width: 320px;
-        height: 320px;
-        border-radius: 50%;
-        background: radial-gradient(circle, rgba(14,165,233,0.35) 0%, transparent 60%);
-        pointer-events: none;
-    }
+// ─── Styl ─────────────────────────────────────────────────────────────────────
 
-    @media (max-width: 640px) {
-        border-radius: 12px;
-        margin-bottom: 14px;
-    }
+const Hero = styled.header`
+    container: visit-hero / inline-size;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 65%, #0c1f35 100%);
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.18);
+    color: #fff;
+    margin-bottom: 16px;
 `;
 
-/* Nagłówek łamie się SAM, bez zgadywania progu.
-   Poprzednio szyna akcji miała `flex-shrink: 0` przy `flex-direction: row`, więc
-   zabierała tyle, ile chciała (Door to door + „Wystaw fakturę konsumencką" + kebab
-   to ~470px), a blok tożsamości - `flex: 1; min-width: 0` - oddawał jej WSZYSTKO.
-   Przy 800px szerokości okna, gdy menu aplikacji zjada 248px, na tytuł zostawało
-   kilkanaście pikseli i „Kompleksowa korekta lakieru..." łamało się PO JEDNEJ
-   LITERZE w pionową kolumnę. Zgłoszenie z produkcji dotyczyło dokładnie tego.
-
-   Progu w media query tu nie da się trafić: nagłówek nie zna szerokości OKNA,
-   tylko swoją własną - a ta zależy od tego, czy menu boczne stoi rozwinięte.
-   Dlatego zamiast progu jest zawijanie: lewy blok ma bazę `HERO_LEFT_MIN`, więc
-   gdy tytuł i szyna nie mieszczą się obok siebie, szyna schodzi do własnego
-   wiersza. To samo zachowanie na każdej szerokości okna i przy każdym stanie menu. */
-const HERO_LEFT_MIN = '380px';
-
-const HeaderContent = styled.div`
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 24px;
-    row-gap: 14px;
-    padding: 22px 28px 18px;
-    min-width: 0;
-
-    @media (max-width: 900px) {
-        gap: 16px;
-        row-gap: 12px;
-        padding: 18px 20px 14px;
-    }
-
-    @media (max-width: 640px) {
-        flex-direction: column;
-        flex-wrap: nowrap;
-        align-items: stretch;
-        gap: 10px;
-        padding: 12px 14px 12px;
-    }
-`;
-
-/* ── Blok tożsamości pojazdu ──────────────────────────────────────────────
-   Nagłówek nie miał kotwicy: pod tytułem szły trzy wiersze tej samej szarej
-   czcionki, a 14-pikselowa kreska auta była punktorem, nie tożsamością.
-   Aplikacja ma już prawdziwe logotypy marek (CarLogoImage - CDN + własny
-   service worker; ten sam komponent jest w nagłówku pojazdu i tabeli
-   pojazdów), więc nagłówek wizyty dostaje to samo: logo jako awatar. */
-
-const HeaderLeftRow = styled.div`
-    display: flex;
-    align-items: flex-start;
-    gap: 16px;
-    min-width: 0;
-    /* Baza, nie zero: to ona decyduje, kiedy szyna akcji zejdzie do drugiego
-       wiersza. „flex: 1" (czyli „1 1 0%") nie ustąpiłoby nigdy - szyna dostawałaby
-       swoje ~470px zawsze, a tytuł resztę, choćby było jej kilkanaście pikseli. */
-    flex: 1 1 ${HERO_LEFT_MIN};
-
-    /* Na telefonie kolumna z logo zabierała 72px z ~330px, przez co tytuł łamał
-       się na dwie linie, a ołówek zostawał sam w trzeciej - wyglądało to na
-       błąd. Blok tożsamości kładzie się więc poziomo NAD treścią i oddaje
-       tytułowi całą szerokość. */
-    @media (max-width: 640px) {
-        flex-direction: column;
-        gap: 12px;
-        /* Nagłówek jest tu KOLUMNĄ, a w kolumnie flex-basis opisuje WYSOKOŚĆ -
-           baza z układu poziomego rozpychała hero o 380px pustki pod tytułem. */
-        flex: 0 0 auto;
-    }
-`;
-
-const IdentityBlock = styled.div`
+const Inner = styled.div`
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    flex-shrink: 0;
-    width: 96px;
+    gap: 18px;
+    padding: 22px 26px 18px;
 
-    @media (max-width: 640px) {
-        flex-direction: row;
-        align-items: center;
-        width: 100%;
-        gap: 10px;
-        text-align: left;
-    }
+    @container visit-hero (max-width: 640px) { gap: 12px; padding: 16px; }
 `;
 
-/* Jasna płytka pod logo: thumbnaile marek są rysowane na biało i część z nich
-   (Audi, Peugeot, Skoda) na granacie znika. Płytka gwarantuje kontrast każdej
-   marce, zamiast podbijać jasność i liczyć, że wyjdzie. */
-const LogoPlate = styled.div`
-    width: 96px;
-    height: 62px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.94);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+const Top = styled.div`
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px 24px;
+    min-width: 0;
+    flex-wrap: wrap;
+
+    @container visit-hero (max-width: 640px) { flex-wrap: nowrap; gap: 10px; }
+`;
+
+const Identity = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+    /* Baza, nie zero: to ona decyduje, kiedy akcje zejdą do drugiego wiersza,
+       zamiast ściskać tytuł do kilkunastu pikseli. */
+    flex: 1 1 360px;
+
+    @container visit-hero (max-width: 640px) { flex: 1 1 auto; }
+`;
+
+/* Jasna płytka pod logo: logotypy marek są rysowane na biało i część z nich
+   (Audi, Peugeot, Skoda) na granacie znika. */
+const LogoTile = styled.div`
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 8px 14px;
+    padding: 8px;
     box-sizing: border-box;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid rgba(255, 255, 255, 0.12);
 
-    @media (max-width: 640px) {
-        width: 64px;
-        height: 44px;
-        border-radius: 9px;
-        padding: 5px 8px;
-    }
+    @container visit-hero (max-width: 640px) { display: none; }
 `;
 
-/* Marka pisana wprost, nie tylko w logo: gdy CDN nie odda logotypu,
-   CarLogoImage pokazuje ogólną ikonę auta i nazwa marki zniknęłaby z ekranu. */
-const IdentityCaption = styled.div`
+const IdentText = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 7px;
     min-width: 0;
-    max-width: 100%;
 
-    @media (max-width: 640px) {
-        flex-direction: row;
-        align-items: baseline;
-        gap: 7px;
-    }
+    @container visit-hero (max-width: 640px) { gap: 6px; }
 `;
 
-const IdentityBrand = styled.div`
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #64748b;
-    text-align: center;
-    line-height: 1.2;
-    max-width: 100%;
-    overflow-wrap: anywhere;
+const Eyebrow = styled.span`
+    font-size: 12.5px;
+    color: #94a3b8;
+    font-variant-numeric: tabular-nums;
 
-    @media (max-width: 640px) {
-        text-align: left;
-    }
+    @container visit-hero (max-width: 640px) { font-size: 12px; }
 `;
-
-const IdentityModel = styled.div`
-    font-size: 13px;
-    font-weight: 600;
-    color: #cbd5e1;
-    text-align: center;
-    line-height: 1.25;
-    max-width: 100%;
-    overflow-wrap: anywhere;
-
-    @media (max-width: 640px) {
-        text-align: left;
-    }
-`;
-
-/* Numer rejestracyjny wychodzi z nawiasu. Na hali to on jest nazwą auta
-   ("WX 1234A jest gotowy"), a siedział szarym 14px w środku zdania. */
-const PlateBadge = styled.span`
-    display: inline-flex;
-    align-items: center;
-    padding: 3px 11px;
-    border-radius: 7px;
-    background: rgba(255, 255, 255, 0.09);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    color: #e2e8f0;
-    white-space: nowrap;
-    flex-shrink: 0;
-`;
-
-const HeaderLeft = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    min-width: 0;
-    flex: 1;
-
-    @media (max-width: 640px) {
-        width: 100%;
-    }
-`;
-
-/* ── Title ── */
 
 const TitleRow = styled.div`
     display: flex;
     align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-bottom: 10px;
+    gap: 8px;
     min-width: 0;
-
-    @media (max-width: 640px) {
-        flex: 0 0 100%;
-        flex-wrap: nowrap;
-        align-items: flex-start;
-        margin-top: 10px;
-        margin-bottom: 6px;
-        gap: 6px;
-    }
 `;
 
-const VisitTitle = styled.h1`
+const Title = styled.h1<{ $placeholder?: boolean }>`
     margin: 0;
-    /* Kurczliwy, ale nie rozpychający się: na desktopie ołówek ma stać zaraz
-       za tytułem, a nie przy prawej krawędzi. */
-    flex: 0 1 auto;
     min-width: 0;
-    font-size: 26px;
-    font-weight: 700;
-    letter-spacing: -0.4px;
-    line-height: 1.15;
-    color: #fff;
-    word-break: break-word;
+    font-size: 24px;
+    font-weight: ${p => p.$placeholder ? 400 : 700};
+    font-style: ${p => p.$placeholder ? 'italic' : 'normal'};
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    color: ${p => p.$placeholder ? 'rgba(148, 163, 184, 0.7)' : '#fff'};
+    overflow-wrap: anywhere;
 
-    @media (max-width: 900px) {
-        font-size: 22px;
-    }
-
-    @media (max-width: 768px) {
-        font-size: 18px;
-        letter-spacing: -0.2px;
-    }
+    @container visit-hero (max-width: 640px) { font-size: 20px; }
 `;
 
-const TitlePlaceholder = styled.h1`
-    margin: 0;
-    font-size: 26px;
-    font-weight: 300;
-    font-style: italic;
-    letter-spacing: -0.2px;
-    line-height: 1.15;
-    color: rgba(148, 163, 184, 0.45);
-    word-break: break-word;
-
-    @media (max-width: 900px) {
-        font-size: 22px;
-    }
-
-    @media (max-width: 768px) {
-        font-size: 18px;
-    }
-`;
-
-
-const TitleEditInput = styled.input`
-    background: rgba(255, 255, 255, 0.08);
-    border: 1.5px solid rgba(14, 165, 233, 0.45);
-    border-radius: 8px;
-    color: #f1f5f9;
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: -0.4px;
-    padding: 4px 12px;
-    outline: none;
-    min-width: 0;
-    width: 300px;
-    max-width: 100%;
-    transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
-
-    &:focus {
-        border-color: rgba(14, 165, 233, 0.8);
-        background: rgba(255, 255, 255, 0.12);
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
-    }
-
-    /* Doubled selector so the global touch-device 16px floor cannot shrink the
-       hero title field below its intended display size. */
-    && { font-size: 22px; }
-
-    @media (max-width: 640px) {
-        width: 100%;
-        && { font-size: 17px; }
-    }
-`;
-
-const TitleIconBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
-    border: 1px solid transparent;
-    background: none;
-    cursor: pointer;
-    transition: all 160ms ease;
-    flex-shrink: 0;
+const TitlePlaceholderBtn = styled.button`
     padding: 0;
-
-    svg { width: 14px; height: 14px; }
+    border: none;
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
 `;
 
-const PencilBtn = styled(TitleIconBtn)`
-    color: rgba(148, 163, 184, 0.45);
-    width: auto;
-    height: auto;
-    padding: 3px 8px;
-    gap: 5px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    white-space: nowrap;
-    &:hover { color: rgba(241, 245, 249, 0.8); background: rgba(255,255,255,0.08); }
+const TitleInput = styled.input`
+    min-width: 0;
+    width: 340px;
+    max-width: 100%;
+    padding: 4px 12px;
+    border: 1.5px solid rgba(14, 165, 233, 0.6);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #f1f5f9;
+    font-family: inherit;
+    font-weight: 700;
+    outline: none;
 
-    @media (max-width: 640px) {
-        padding: 5px 6px;
-        span { display: none; }
-    }
+    /* Podwójny selektor: globalne 16px dla dotyku nie może zmniejszyć pola tytułu. */
+    && { font-size: 20px; }
+    &:focus { border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2); }
+    @container visit-hero (max-width: 640px) { width: 100%; && { font-size: 17px; } }
 `;
 
-const SaveBtn = styled(TitleIconBtn)`
-    color: #6EE7B7;
-    border-color: rgba(16, 185, 129, 0.3);
-    background: rgba(16, 185, 129, 0.1);
-    &:hover { background: rgba(16, 185, 129, 0.2); }
-`;
-
-const CancelEditBtn = styled(TitleIconBtn)`
-    color: rgba(148, 163, 184, 0.6);
-    border-color: rgba(148, 163, 184, 0.2);
-    background: rgba(255,255,255,0.04);
-    &:hover { color: rgba(241, 245, 249, 0.8); background: rgba(255,255,255,0.08); }
-`;
-
-/* ── Meta row ── */
-
-const MetaRow = styled.div`
+const Meta = styled.div`
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 18px;
+    gap: 4px 14px;
     min-width: 0;
     font-size: 13px;
+    color: #cbd5e1;
+
+    span { overflow-wrap: anywhere; }
+`;
+
+const Plate = styled.span`
+    padding: 2px 8px;
+    border-radius: 5px;
+    background: #e2e8f0;
+    color: ${ui.ink};
+    font-family: ${ui.mono};
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    white-space: nowrap;
+`;
+
+const Faint = styled.span`
     color: #94a3b8;
-    overflow-wrap: anywhere;
-
-    @media (max-width: 640px) {
-        flex: 0 0 100%;
-        gap: 8px;
-        row-gap: 3px;
-        font-size: 12px;
-        margin-bottom: 2px;
-    }
 `;
 
-const MetaItem = styled.span`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    min-width: 0;
-
-    svg { width: 14px; height: 14px; opacity: 0.7; flex-shrink: 0; }
-`;
-
-
-/* ── Vehicle row (pod tytułem, osobna linia) ── */
-
-const VehicleRow = styled.div`
+const Actions = styled.div`
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 7px;
-    min-width: 0;
-    overflow-wrap: anywhere;
-    font-size: 14px;
-    color: rgba(148, 163, 184, 0.85);
-    font-weight: 500;
-    margin-bottom: 8px;
-    letter-spacing: 0.01em;
-
-    svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.7; }
-
-    @media (max-width: 640px) {
-        flex: 0 0 100%;
-        font-size: 13px;
-    }
-`;
-
-/* ── Date edit modal ── */
-
-/* ── Right actions ── */
-
-const HeaderRight = styled.div`
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    justify-content: flex-end;
     gap: 8px;
     flex-shrink: 0;
-    padding-top: 4px;
-    /* Trzyma szynę przy prawej krawędzi także wtedy, gdy zeszła do własnego
-       wiersza i jest na nim jedyna („space-between" wyrzuciłoby ją wtedy w lewo). */
     margin-left: auto;
-
-    /* On phones the primary action and the kebab share a single row: the
-       action stretches, the kebab keeps its fixed 38px next to it. */
-    @media (max-width: 640px) {
-        width: 100%;
-        /* Szyna zajmuje tu całą szerokość, więc dosuwanie jej w prawo nie ma
-           już czego robić - a zostawione, odbierałoby przyciskowi rozciąganie. */
-        margin-left: 0;
-        padding-top: 0;
-        gap: 8px;
-        flex-wrap: nowrap;
-        align-items: center;
-    }
 `;
 
-const ActionButton = styled.button<{ $variant?: 'complete' | 'ghost' | 'danger'; $mobilePrimary?: boolean; $hideOnMobile?: boolean }>`
-    display: inline-flex;
+/* Jedyne wypełnienie w oknie jest zbudowane tak, żeby nie dało się go pomylić
+   z „Zapisz": wyższe, większe pismo, cień w kolorze (CLAUDE.md §2, część druga). */
+const PrimaryAction = styled(Button)`
+    height: 44px;
+    padding: 0 20px;
+    font-size: 14.5px;
+
+    @container visit-hero (max-width: 640px) { width: 100%; height: 48px; font-size: 15px; }
+`;
+
+const Progress = styled.div`
+    display: flex;
     align-items: center;
-    gap: 7px;
-    padding: 9px 18px;
-    border-radius: 9999px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 180ms ease;
-    white-space: nowrap;
+    gap: 12px 16px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    min-width: 0;
+    flex-wrap: wrap;
 
-    svg { width: 15px; height: 15px; }
-
-    &:disabled {
-        opacity: 0.32;
-        cursor: not-allowed;
-    }
-
-    @media (max-width: 640px) {
-        min-width: 0;
-        padding: 9px 14px;
-        ${p => p.$hideOnMobile && 'display: none;'}
-        ${p => p.$mobilePrimary && 'flex: 1 1 auto; justify-content: center; padding: 11px 16px; font-size: 14px; min-height: 44px;'}
-    }
-
-    ${p => {
-        switch (p.$variant) {
-            case 'complete':
-                return css`
-                    background: #10B981;
-                    color: #fff;
-                    border: 1px solid #10B981;
-                    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
-                    &:hover:not(:disabled) {
-                        background: #059669;
-                        box-shadow: 0 4px 14px rgba(16, 185, 129, 0.45);
-                        transform: translateY(-1px);
-                    }
-                `;
-            case 'danger':
-                return css`
-                    background: transparent;
-                    color: #fca5a5;
-                    border: 1px solid rgba(239, 68, 68, 0.22);
-                    &:hover:not(:disabled) {
-                        background: rgba(239, 68, 68, 0.1);
-                        border-color: rgba(239, 68, 68, 0.4);
-                        color: #fca5a5;
-                        transform: translateY(-1px);
-                    }
-                `;
-            default: // ghost = on-dark
-                return css`
-                    background: rgba(255, 255, 255, 0.08);
-                    color: #f1f5f9;
-                    border: 1px solid rgba(255, 255, 255, 0.14);
-                    backdrop-filter: blur(4px);
-                    &:hover:not(:disabled) {
-                        background: rgba(255, 255, 255, 0.16);
-                        transform: translateY(-1px);
-                    }
-                `;
-        }
-    }}
+    @container visit-hero (max-width: 640px) { padding-top: 0; border-top: none; gap: 10px; }
 `;
 
-/* ── Kebab menu ── */
-
-const KebabWrap = styled.div`
-    position: relative;
-    flex-shrink: 0;
-`;
-
-const KebabBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 38px;
-    height: 38px;
-    border-radius: 9999px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    background: rgba(255, 255, 255, 0.08);
-    color: #f1f5f9;
-    cursor: pointer;
-    transition: background 180ms ease;
-    flex-shrink: 0;
-
-    &:hover { background: rgba(255, 255, 255, 0.16); }
-    svg { width: 4px; height: 18px; }
-`;
-
-const KebabMenu = styled.div`
-    position: fixed;
-    min-width: 200px;
-    max-width: calc(100vw - 16px);
-    background: #1e293b;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 10px;
-    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
-    z-index: 9000;
-    overflow: hidden;
-`;
-
-const KebabItem = styled.button<{ $danger?: boolean }>`
+const Steps = styled.ol`
     display: flex;
     align-items: center;
     gap: 10px;
-    width: 100%;
-    padding: 11px 14px;
-    background: none;
-    border: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    text-align: left;
-    font-family: inherit;
+    flex: 1 1 360px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    @container visit-hero (max-width: 640px) { flex: 1 1 100%; gap: 8px; }
+`;
+
+const pulse = keyframes`
+    0%, 100% { box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2); }
+    50%      { box-shadow: 0 0 0 7px rgba(56, 189, 248, 0.06); }
+`;
+
+type StepState = 'done' | 'active' | 'future';
+
+const Step = styled.li<{ $state: StepState }>`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
     font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 140ms ease;
-    color: ${p => p.$danger ? '#fca5a5' : '#e2e8f0'};
+    font-weight: ${p => p.$state === 'active' ? 600 : 500};
+    white-space: nowrap;
+    color: ${p => p.$state === 'active' ? '#fff' : p.$state === 'done' ? '#86efac' : '#94a3b8'};
 
-    &:last-child { border-bottom: none; }
-    &:hover:not(:disabled) { background: rgba(255, 255, 255, 0.08); }
-    &:disabled { opacity: 0.35; cursor: not-allowed; }
-    svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.8; }
+    @container visit-hero (max-width: 640px) { gap: 6px; font-size: 12.5px; }
+    @container visit-hero (max-width: 360px) { font-size: 11.5px; }
 `;
 
-/* "Door to door" lives in the header on desktop and inside the kebab on phones,
-   where the row only has space for the primary action plus the kebab. */
-const MobileKebabItem = styled(KebabItem)`
-    display: none;
-    @media (max-width: 640px) { display: flex; }
+const Dot = styled.span<{ $state: StepState }>`
+    width: 10px;
+    height: 10px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    box-sizing: border-box;
+    ${p => p.$state === 'active' ? css`
+        background: #38bdf8;
+        animation: ${pulse} 2.4s ease-in-out infinite;
+        @media (prefers-reduced-motion: reduce) { animation: none; box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2); }
+    ` : p.$state === 'done' ? css`
+        background: #4ade80;
+    ` : css`
+        border: 2px solid #475569;
+    `}
 `;
 
-// ─── Component ────────────────────────────────────────────────────────────────
+const Line = styled.li<{ $state: 'done' | 'leading' | 'future' }>`
+    flex: 1 1 24px;
+    min-width: 12px;
+    height: 2px;
+    border-radius: 1px;
+    background: ${p => p.$state === 'done' ? '#4ade80'
+        : p.$state === 'leading' ? 'linear-gradient(90deg, #38bdf8, rgba(255, 255, 255, 0.12))'
+        : 'rgba(255, 255, 255, 0.12)'};
+`;
+
+const Special = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 auto;
+    font-size: 13px;
+    font-weight: 600;
+    color: #e2e8f0;
+`;
+
+const Schedule = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 4px 8px;
+    flex-wrap: wrap;
+    padding-left: 16px;
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+    min-width: 0;
+
+    @container visit-hero (max-width: 640px) { padding-left: 0; border-left: none; flex: 1 1 100%; }
+`;
+
+const ScheduleText = styled.span<{ $overdue: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: ${p => p.$overdue ? '#fcd34d' : '#cbd5e1'};
+
+    svg { width: 15px; height: 15px; color: ${p => p.$overdue ? '#fcd34d' : '#94a3b8'}; flex-shrink: 0; }
+`;
+
+const QuietIcon = styled(IconButton)`
+    color: #94a3b8;
+    &:hover:not(:disabled) { color: #fff; background: rgba(255, 255, 255, 0.08); }
+`;
+
+const ScheduleBtn = styled(Button)`
+    color: #94a3b8;
+    &:hover:not(:disabled) { color: #fff; background: rgba(255, 255, 255, 0.08); }
+`;
+
+// ─── Komponent ────────────────────────────────────────────────────────────────
 
 interface VisitHeaderProps {
     visit: Visit;
@@ -645,6 +353,10 @@ interface VisitHeaderProps {
     onEstimatedCompletionDateUpdate?: (isoDate: string) => Promise<void>;
 }
 
+function stepState(index: number, current: number): StepState {
+    return index < current ? 'done' : index === current ? 'active' : 'future';
+}
+
 export const VisitHeader = ({
     visit,
     onCompleteVisit,
@@ -656,99 +368,33 @@ export const VisitHeader = ({
     onTitleUpdate,
     onEstimatedCompletionDateUpdate,
 }: VisitHeaderProps) => {
+    const { can } = usePermissions();
+    const [heroRef, heroWidth] = useContainerWidth<HTMLElement>();
+    const compact = heroWidth === null
+        ? typeof window !== 'undefined' && window.innerWidth <= COMPACT_MAX_WIDTH
+        : heroWidth <= COMPACT_MAX_WIDTH;
+    const menu = useActionMenu();
+
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [draftTitle, setDraftTitle] = useState('');
     const [isSavingTitle, setIsSavingTitle] = useState(false);
     const titleInputRef = useRef<HTMLInputElement>(null);
 
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
-    /** Kotwica menu: przycisk „⋮". Po niej liczona jest pozycja panelu. */
-    const menuRef = useRef<HTMLDivElement>(null);
-    /**
-     * Sam panel menu. Osobna referencja, bo panel renderuje się PORTALEM do document.body
-     * - poza drzewem przycisku. Bez niej zamykanie „po kliknięciu obok" uznawało za
-     * „obok" także kliknięcie we własną pozycję menu.
-     */
-    const menuPanelRef = useRef<HTMLDivElement>(null);
-
-    const syncMenuPos = useCallback(() => {
-        if (!menuRef.current) return;
-        const rect = menuRef.current.getBoundingClientRect();
-        const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
-        setMenuPos({
-            top: rect.bottom + 6,
-            // Never let the 200px panel hang off the left edge on a narrow phone.
-            right: Math.max(8, viewportWidth - rect.right),
-        });
-    }, []);
-
-    const openMenu = () => {
-        syncMenuPos();
-        setIsMenuOpen(v => !v);
-    };
-
-    useEffect(() => {
-        if (!isMenuOpen) return;
-        /*
-         * Zamknięcie na `mousedown`, nie na `click` - żeby menu znikało od razu przy
-         * kliknięciu w tło. Cena jest taka, że kliknięcie w POZYCJĘ menu też zaczyna się
-         * od `mousedown`: jeśli uznamy je za „obok", panel zniknie przed `click`, a
-         * `onClick` pozycji nigdy się nie wykona. Dokładnie tak umarły „Generuj post",
-         * „Door to door" i „Usuń wizytę": przycisk reagował, menu się zamykało i nic
-         * więcej się nie działo.
-         *
-         * Dlatego sprawdzamy oba elementy - kotwicę i panel z portalu.
-         */
-        const handler = (e: MouseEvent) => {
-            const target = e.target as Node;
-            const insideAnchor = menuRef.current?.contains(target) ?? false;
-            const insidePanel = menuPanelRef.current?.contains(target) ?? false;
-            if (!insideAnchor && !insidePanel) setIsMenuOpen(false);
-        };
-        document.addEventListener('mousedown', handler);
-        // A fixed panel anchored once would drift away from its button the moment
-        // the page scrolls or the phone is rotated.
-        window.addEventListener('scroll', syncMenuPos, true);
-        window.addEventListener('resize', syncMenuPos);
-        window.addEventListener('orientationchange', syncMenuPos);
-        return () => {
-            document.removeEventListener('mousedown', handler);
-            window.removeEventListener('scroll', syncMenuPos, true);
-            window.removeEventListener('resize', syncMenuPos);
-            window.removeEventListener('orientationchange', syncMenuPos);
-        };
-    }, [isMenuOpen, syncMenuPos]);
-
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
     const [draftDate, setDraftDate] = useState('');
     const [isSavingDate, setIsSavingDate] = useState(false);
-
-    const openDateModal = () => {
-        const current = visit.estimatedCompletionDate
-            ? new Date(visit.estimatedCompletionDate).toISOString().slice(0, 16)
-            : '';
-        setDraftDate(current);
-        setIsDateModalOpen(true);
-    };
-
-    const saveDateModal = async () => {
-        if (!onEstimatedCompletionDateUpdate || !draftDate || isSavingDate) return;
-        setIsSavingDate(true);
-        try {
-            await onEstimatedCompletionDateUpdate(new Date(draftDate).toISOString());
-            setIsDateModalOpen(false);
-        } finally {
-            setIsSavingDate(false);
-        }
-    };
 
     useEffect(() => {
         if (isEditingTitle) titleInputRef.current?.focus();
     }, [isEditingTitle]);
 
-    const startEditTitle = () => { setDraftTitle(visit.title ?? ''); setIsEditingTitle(true); };
+    /** Tytuł da się edytować tylko wtedy, gdy jest i handler, i uprawnienie. */
+    const canEditTitle = Boolean(onTitleUpdate) && can('VISITS_CREATE');
+    const canEditDate = Boolean(onEstimatedCompletionDateUpdate) && can('VISITS_CREATE');
+    const isTerminal = visit.status === 'COMPLETED' || visit.status === 'REJECTED' || visit.status === 'ARCHIVED';
 
+    const startEditTitle = () => { setDraftTitle(visit.title ?? ''); setIsEditingTitle(true); };
+    const cancelEditTitle = () => setIsEditingTitle(false);
     const saveTitle = async () => {
         if (!onTitleUpdate || isSavingTitle) return;
         setIsSavingTitle(true);
@@ -760,239 +406,189 @@ export const VisitHeader = ({
         }
     };
 
-    const cancelEditTitle = () => setIsEditingTitle(false);
-
-    const { can } = usePermissions();
-    /** Tytuł da się edytować tylko wtedy, gdy jest i handler, i uprawnienie. */
-    const canEditTitle = Boolean(onTitleUpdate) && can('VISITS_CREATE');
-    const isTerminal = visit.status === 'COMPLETED' || visit.status === 'REJECTED' || visit.status === 'ARCHIVED';
-    const completeLabel = COMPLETE_LABEL[visit.status] ?? 'Zakończ wizytę';
+    const openDateModal = () => {
+        setDraftDate(visit.estimatedCompletionDate
+            ? new Date(visit.estimatedCompletionDate).toISOString().slice(0, 16)
+            : '');
+        setIsDateModalOpen(true);
+    };
+    const saveDateModal = async () => {
+        if (!onEstimatedCompletionDateUpdate || !draftDate || isSavingDate) return;
+        setIsSavingDate(true);
+        try {
+            await onEstimatedCompletionDateUpdate(new Date(draftDate).toISOString());
+            setIsDateModalOpen(false);
+        } finally {
+            setIsSavingDate(false);
+        }
+    };
 
     /*
-     * Wizyta zakończona: „Zakończ wizytę" nie ma już czego zrobić i wisiał tu
-     * wyłącznie jako wygaszony przycisk. Zastępuje go akcja wynikająca z tego,
-     * czym wizytę rozliczono:
-     *   faktura w KSeF  → podgląd dokumentu,
-     *   inny dokument   → wystawienie brakującej faktury konsumenckiej.
-     * Sprawdzamy revenueInvoiceId, nie documentType: dokument finansowy typu
-     * INVOICE może istnieć bez rekordu KSeF (adnotacja bez wysyłki), a wtedy
-     * nie ma czego pokazać w podglądzie.
+     * Wizyta zakończona: „Zakończ wizytę" nie ma już czego zrobić. Zastępuje ją akcja
+     * wynikająca z tego, czym wizytę rozliczono: faktura w KSeF → podgląd dokumentu,
+     * inny dokument → wystawienie brakującej faktury konsumenckiej. Sprawdzamy
+     * revenueInvoiceId, nie documentType: dokument typu INVOICE może istnieć bez
+     * rekordu KSeF (adnotacja bez wysyłki), a wtedy nie ma czego pokazać.
      */
-    const isCompleted = visit.status === 'COMPLETED';
     const invoiceId = visit.settlement?.revenueInvoiceId ?? null;
     const settlementAction: 'preview' | 'issue' | null =
-        !isCompleted ? null
+        visit.status !== 'COMPLETED' ? null
         : invoiceId && onPreviewInvoice ? 'preview'
         : visit.settlement?.documentType && visit.settlement.documentType !== 'INVOICE' && onIssueConsumerInvoice ? 'issue'
         : null;
+
+    const primary = settlementAction === 'preview' && can('VISITS_VIEW') ? (
+        <PrimaryAction variant="success" onClick={onPreviewInvoice}><FileText />Podgląd faktury</PrimaryAction>
+    ) : settlementAction === 'issue' && can('VISITS_CREATE') ? (
+        <PrimaryAction variant="success" onClick={onIssueConsumerInvoice}><FilePlus />Wystaw fakturę konsumencką</PrimaryAction>
+    ) : settlementAction === null && can('VISITS_VIEW') && !isTerminal ? (
+        <PrimaryAction variant="success" onClick={onCompleteVisit}>
+            <Check />{COMPLETE_LABEL[visit.status] ?? 'Zakończ wizytę'}
+        </PrimaryAction>
+    ) : null;
+
+    const canUseDoorToDoor = Boolean(onDoorToDoor) && can('VISITS_CREATE');
+    const moreButton = can('VISITS_CREATE') && (
+        <IconButton
+            label="Więcej akcji wizyty"
+            variant="onDark"
+            size={compact ? 'md' : 'lg'}
+            aria-haspopup="menu"
+            aria-expanded={menu.isOpen()}
+            onClick={e => menu.toggle(e, null)}
+        >
+            <MoreHorizontal />
+        </IconButton>
+    );
+
+    const vehicleLine = [
+        [visit.vehicle.brand, visit.vehicle.model].filter(Boolean).join(' '),
+        !compact && visit.vehicle.yearOfProduction ? String(visit.vehicle.yearOfProduction) : null,
+        !compact && visit.vehicle.color ? visit.vehicle.color : null,
+    ].filter(Boolean).join(', ');
+
+    const currentStep = STEPS.findIndex(s => s.status === visit.status);
+    const special = SPECIAL_STATUS[visit.status];
+    const pickup = pickupPhrase(visit.status, visit.estimatedCompletionDate, visit.pickupDate);
+
     return (
-        <HeroHeader>
-            <HeaderContent>
-                <HeaderLeftRow>
-                    <IdentityBlock>
-                        <LogoPlate title={visit.vehicle.brand || undefined}>
+        <Hero ref={heroRef}>
+            <Inner>
+                <Top>
+                    <Identity>
+                        <LogoTile title={visit.vehicle.brand || undefined}>
                             <CarLogoImage brand={visit.vehicle.brand} size="md" />
-                        </LogoPlate>
-                        <IdentityCaption>
-                            {visit.vehicle.brand && <IdentityBrand>{visit.vehicle.brand}</IdentityBrand>}
-                            {visit.vehicle.model && <IdentityModel>{visit.vehicle.model}</IdentityModel>}
-                        </IdentityCaption>
-                    </IdentityBlock>
-
-                <HeaderLeft>
-                    {/* Title row: tylko tytuł + ikona ołówka */}
-                    <TitleRow>
-                        {isEditingTitle ? (
-                            <>
-                                <TitleEditInput
-                                    ref={titleInputRef}
-                                    value={draftTitle}
-                                    onChange={e => setDraftTitle(e.target.value)}
-                                    onKeyDown={e => {
-                                        if (e.key === 'Enter') saveTitle();
-                                        if (e.key === 'Escape') cancelEditTitle();
-                                    }}
-                                    disabled={isSavingTitle}
-                                />
-                                <SaveBtn onClick={saveTitle} disabled={isSavingTitle} title="Zapisz tytuł">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                        <polyline points="20 6 9 17 4 12" />
-                                    </svg>
-                                </SaveBtn>
-                                <CancelEditBtn onClick={cancelEditTitle} title="Anuluj">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                        <line x1="18" y1="6" x2="6" y2="18" />
-                                        <line x1="6" y1="6" x2="18" y2="18" />
-                                    </svg>
-                                </CancelEditBtn>
-                            </>
-                        ) : (
-                            <>
-                                {visit.title ? (
-                                    <VisitTitle>
-                                        {visit.title}
-                                    </VisitTitle>
+                        </LogoTile>
+                        <IdentText>
+                            <Eyebrow>Wizyta {visit.visitNumber}</Eyebrow>
+                            <TitleRow>
+                                {isEditingTitle ? (
+                                    <>
+                                        <TitleInput
+                                            ref={titleInputRef}
+                                            aria-label="Tytuł wizyty"
+                                            value={draftTitle}
+                                            onChange={e => setDraftTitle(e.target.value)}
+                                            onKeyDown={e => {
+                                                if (e.key === 'Enter') saveTitle();
+                                                if (e.key === 'Escape') cancelEditTitle();
+                                            }}
+                                            disabled={isSavingTitle}
+                                        />
+                                        <IconButton label="Zapisz tytuł" variant="onDark" size="sm" onClick={saveTitle} disabled={isSavingTitle}>
+                                            <Check />
+                                        </IconButton>
+                                        <IconButton label="Anuluj" variant="onDark" size="sm" onClick={cancelEditTitle}>
+                                            <X />
+                                        </IconButton>
+                                    </>
+                                ) : visit.title ? (
+                                    <>
+                                        <Title>{visit.title}</Title>
+                                        {canEditTitle && (
+                                            <QuietIcon label="Zmień nazwę wizyty" variant="ghost" size="sm" onClick={startEditTitle}>
+                                                <Pencil />
+                                            </QuietIcon>
+                                        )}
+                                    </>
                                 ) : canEditTitle ? (
-                                    <TitlePlaceholder onClick={startEditTitle} style={{ cursor: 'pointer' }}>
-                                        Kliknij, żeby ustawić tytuł...
-                                    </TitlePlaceholder>
+                                    <Title $placeholder>
+                                        <TitlePlaceholderBtn type="button" onClick={startEditTitle}>Nadaj wizycie nazwę</TitlePlaceholderBtn>
+                                    </Title>
                                 ) : (
-                                    /* Bez uprawnienia do edycji "Kliknij, żeby ustawić tytuł"
-                                       było zaproszeniem donikąd - kliknięcie nic nie robiło. */
-                                    <TitlePlaceholder>Bez tytułu</TitlePlaceholder>
+                                    /* Bez uprawnienia zaproszenie do nadania nazwy prowadziłoby donikąd. */
+                                    <Title $placeholder>Bez nazwy</Title>
                                 )}
-                                {/* Sam placeholder jest już przyciskiem ("Kliknij, żeby
-                                    ustawić tytuł..."), więc ołówek obok mówiłby to samo
-                                    drugi raz. Pokazujemy go tylko wtedy, gdy jest co
-                                    edytować. */}
-                                {canEditTitle && visit.title && (
-                                    <PencilBtn onClick={startEditTitle} title="Edytuj tytuł wizyty">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                        </svg>
-                                        <span>Edytuj tytuł...</span>
-                                    </PencilBtn>
+                            </TitleRow>
+                            <Meta>
+                                {visit.vehicle.licensePlate && <Plate>{visit.vehicle.licensePlate}</Plate>}
+                                {vehicleLine && <span>{vehicleLine}</span>}
+                                {!compact && visit.acceptedByName && (
+                                    <Faint title="Pracownik, który przyjął pojazd">Przyjęcie: {visit.acceptedByName}</Faint>
                                 )}
-                            </>
-                        )}
-                    </TitleRow>
+                            </Meta>
+                        </IdentText>
+                    </Identity>
 
-                    {/* Marka i model stoją teraz pod logo, więc tutaj zostaje sam
-                        numer rejestracyjny - jako odznaka, nie jako tekst w nawiasie. */}
-                    {visit.vehicle.licensePlate && (
-                        <VehicleRow>
-                            <PlateBadge>{visit.vehicle.licensePlate}</PlateBadge>
-                        </VehicleRow>
+                    <Actions>
+                        {!compact && canUseDoorToDoor && (
+                            <Button variant="onDark" size="lg" onClick={onDoorToDoor}><Truck />Door to door</Button>
+                        )}
+                        {moreButton}
+                        {!compact && primary}
+                    </Actions>
+                </Top>
+
+                <Progress>
+                    {special ? (
+                        <Special>{special}</Special>
+                    ) : (
+                        <Steps aria-label="Etap wizyty">
+                            {STEPS.map((step, i) => {
+                                const state = stepState(i, currentStep);
+                                return (
+                                    <FragmentStep key={step.status} withLine={i > 0} lineState={
+                                        i <= currentStep ? 'done' : i === currentStep + 1 ? 'leading' : 'future'
+                                    }>
+                                        <Step $state={state} aria-current={state === 'active' ? 'step' : undefined}>
+                                            <Dot $state={state} aria-hidden="true" />{step.label}
+                                        </Step>
+                                    </FragmentStep>
+                                );
+                            })}
+                        </Steps>
                     )}
-
-                    {/* Meta: accepted by · date */}
-                    <MetaRow>
-                        {visit.acceptedByName && (
-                            <MetaItem title="Pracownik, który przyjął pojazd">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="9" cy="8" r="4" />
-                                    <path d="M2 20c0-3.314 3.134-6 7-6s7 2.686 7 6" />
-                                    <polyline points="16 11 18 13 22 9" />
-                                </svg>
-                                Przyjął: {visit.acceptedByName}
-                            </MetaItem>
-                        )}
-                        <MetaItem>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <rect x="3" y="4" width="18" height="18" rx="2" />
-                                <line x1="16" y1="2" x2="16" y2="6" />
-                                <line x1="8" y1="2" x2="8" y2="6" />
-                                <line x1="3" y1="10" x2="21" y2="10" />
-                            </svg>
-                            {formatDateRange(visit.scheduledDate, visit.estimatedCompletionDate)}
-                            {onEstimatedCompletionDateUpdate && can('VISITS_CREATE') && (
-                                <PencilBtn onClick={openDateModal} title="Edytuj datę zakończenia">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                    </svg>
-                                    <span>Edytuj datę...</span>
-                                </PencilBtn>
+                    {!special && (
+                        <Schedule>
+                            <ScheduleText $overdue={pickup.overdue}>
+                                <CalendarDays aria-hidden="true" />{pickup.text}
+                            </ScheduleText>
+                            {canEditDate && visit.status !== 'COMPLETED' && (
+                                <ScheduleBtn variant="ghost" size="sm" onClick={openDateModal}>
+                                    {visit.estimatedCompletionDate ? 'Zmień termin' : 'Ustal termin'}
+                                </ScheduleBtn>
                             )}
-                        </MetaItem>
-                    </MetaRow>
-                </HeaderLeft>
-                </HeaderLeftRow>
+                        </Schedule>
+                    )}
+                </Progress>
 
-                {/* Actions */}
-                <HeaderRight>
-                    {onDoorToDoor && can('VISITS_CREATE') && (
-                        <ActionButton $variant="ghost" $hideOnMobile onClick={onDoorToDoor}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                                <polyline points="9 22 9 12 15 12 15 22" />
-                            </svg>
-                            Door to door
-                        </ActionButton>
-                    )}
+                {compact && primary}
+            </Inner>
 
-                    {settlementAction === 'preview' && can('VISITS_VIEW') && (
-                        <ActionButton $variant="complete" $mobilePrimary onClick={onPreviewInvoice}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                <polyline points="14 2 14 8 20 8" />
-                                <line x1="8" y1="13" x2="16" y2="13" />
-                                <line x1="8" y1="17" x2="14" y2="17" />
-                            </svg>
-                            Podgląd faktury
-                        </ActionButton>
-                    )}
-
-                    {settlementAction === 'issue' && can('VISITS_CREATE') && (
-                        <ActionButton $variant="complete" $mobilePrimary onClick={onIssueConsumerInvoice}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                <polyline points="14 2 14 8 20 8" />
-                                <line x1="12" y1="18" x2="12" y2="12" />
-                                <line x1="9" y1="15" x2="15" y2="15" />
-                            </svg>
-                            Wystaw fakturę konsumencką
-                        </ActionButton>
-                    )}
-
-                    {settlementAction === null && can('VISITS_VIEW') && (
-                        <ActionButton $variant="complete" $mobilePrimary onClick={onCompleteVisit} disabled={isTerminal}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                            {completeLabel}
-                        </ActionButton>
-                    )}
-
-                    {can('VISITS_CREATE') && (
-                    <KebabWrap ref={menuRef}>
-                        <KebabBtn onClick={openMenu} title="Więcej opcji">
-                            <svg viewBox="0 0 4 18" fill="currentColor">
-                                <circle cx="2" cy="2" r="2" />
-                                <circle cx="2" cy="9" r="2" />
-                                <circle cx="2" cy="16" r="2" />
-                            </svg>
-                        </KebabBtn>
-                    </KebabWrap>
-                    )}
-                </HeaderRight>
-            </HeaderContent>
-
-            {can('VISITS_CREATE') && isMenuOpen && menuPos && createPortal(
-                <KebabMenu ref={menuPanelRef} style={{ top: menuPos.top, right: menuPos.right }}>
-                    {onDoorToDoor && (
-                        <MobileKebabItem onClick={() => { setIsMenuOpen(false); onDoorToDoor(); }}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                                <polyline points="9 22 9 12 15 12 15 22" />
-                            </svg>
-                            Door to door
-                        </MobileKebabItem>
-                    )}
-                    <KebabItem onClick={() => { setIsMenuOpen(false); onGeneratePost(); }}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5" />
-                        </svg>
-                        Generuj post
-                    </KebabItem>
-                    {can('VISITS_DELETE') && (
-                        <KebabItem $danger disabled={isTerminal} onClick={() => { setIsMenuOpen(false); onCancelVisit(); }}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                <line x1="18" y1="6" x2="6" y2="18" />
-                                <line x1="6" y1="6" x2="18" y2="18" />
-                            </svg>
-                            Usuń wizytę
-                        </KebabItem>
-                    )}
-                </KebabMenu>,
-                document.body
-            )}
+            <ActionMenu anchor={menu.menu?.anchor ?? null} onClose={menu.close} label="Akcje wizyty">
+                {compact && canUseDoorToDoor && (
+                    <MenuItem icon={<Truck />} onClick={onDoorToDoor}>Door to door</MenuItem>
+                )}
+                <MenuItem icon={<Sparkles />} onClick={onGeneratePost}>Generuj post</MenuItem>
+                {can('VISITS_DELETE') && (
+                    <MenuItem icon={<Trash2 />} danger disabled={isTerminal} onClick={onCancelVisit}>Usuń wizytę</MenuItem>
+                )}
+            </ActionMenu>
 
             <ModalShell isOpen={isDateModalOpen} onClose={() => setIsDateModalOpen(false)} size="sm">
                 <ModalHeader>
                     <ModalTitleGroup>
-                        <ModalTitle>Planowana data zakończenia</ModalTitle>
+                        <ModalTitle>Termin odbioru</ModalTitle>
                     </ModalTitleGroup>
                     <CloseBtn onClick={() => setIsDateModalOpen(false)} />
                 </ModalHeader>
@@ -1002,16 +598,30 @@ export const VisitHeader = ({
                         onChange={setDraftDate}
                         showTime
                         placeholder="Wybierz datę i godzinę"
-                        accentColor="#6366f1"
+                        accentColor={ui.brand}
                     />
                 </ModalContent>
                 <ModalFooter>
-                    <SharedButton $variant="secondary" onClick={() => setIsDateModalOpen(false)}>Anuluj</SharedButton>
-                    <SharedButton $variant="primary" onClick={saveDateModal} disabled={!draftDate || isSavingDate}>
-                        {isSavingDate ? 'Zapisywanie...' : 'Zapisz'}
-                    </SharedButton>
+                    <Button onClick={() => setIsDateModalOpen(false)}>Anuluj</Button>
+                    <Button variant="primary" onClick={saveDateModal} disabled={!draftDate || isSavingDate}>
+                        {isSavingDate ? 'Zapisywanie...' : 'Zapisz termin'}
+                    </Button>
                 </ModalFooter>
             </ModalShell>
-        </HeroHeader>
+        </Hero>
     );
 };
+
+/** Krok z kreską przed nim - kreska jest częścią listy, nie osobnym elementem <li>. */
+function FragmentStep({ withLine, lineState, children }: {
+    withLine: boolean;
+    lineState: 'done' | 'leading' | 'future';
+    children: ReactNode;
+}) {
+    return (
+        <>
+            {withLine && <Line $state={lineState} role="presentation" aria-hidden="true" />}
+            {children}
+        </>
+    );
+}

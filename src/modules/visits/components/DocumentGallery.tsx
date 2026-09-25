@@ -1,6 +1,9 @@
 // src/modules/visits/components/DocumentGallery.tsx
 
 import { useState, useMemo, useCallback } from 'react';
+import { ChevronUp, Download, FileText, ImageOff, Tag, Trash2 } from 'lucide-react';
+import { Button, IconButton, ui } from '@/common/components/ui';
+import { useContainerWidth } from '@/common/hooks';
 import styled from 'styled-components';
 import { formatDateTime } from '@/common/utils';
 import type { VisitDocument, VisitPhoto } from '../types';
@@ -8,449 +11,193 @@ import { ImageViewerModal } from './ImageViewerModal';
 import { PdfViewerModal } from './PdfViewerModal';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { usePermissions } from '@/core/permissions';
-import { TagChip } from '@/modules/photos/components/TagChip';
 import { PhotoTagEditModal } from '@/modules/photos/components/PhotoTagEditModal';
 import { useTagSuggestions, useUpdatePhotoTags } from '@/modules/photos/hooks/usePhotoTags';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// ─── Styl ─────────────────────────────────────────────────────────────────────
+//
+// Zdjęcia jako gęsta siatka kwadratów (8 w rzędzie, na wąskim panelu 4), zwinięta
+// do jednego rzędu z kafelkiem „+N". Dokumenty jako wiersze: ikona, nazwa, kiedy,
+// a akcje z prawej - „Podgląd" słowem, pobranie i usunięcie ikoną.
+//
+// Wcześniej każde zdjęcie było kartą z paskiem tagów pod spodem, a każdy dokument
+// miał trzy obrysowane przyciski - sekcja rosła na pół ekranu przy kilku plikach
+// i zagłuszała wykaz usług, który jest tematem okna.
 
-// ─── Tag filter bar ───────────────────────────────────────────────────────────
+/** Poniżej tej szerokości panelu siatka ma 4 kolumny zamiast 8. */
+const NARROW_MAX_WIDTH = 520;
+
+const Wrap = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 0 18px 16px;
+    min-width: 0;
+
+    @media (max-width: 640px) { padding: 0 16px 14px; }
+`;
 
 const FilterBar = styled.div`
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     flex-wrap: wrap;
-    padding: 12px ${props => props.theme.spacing.lg};
-    border-bottom: 1px solid ${props => props.theme.colors.border};
-    background: ${st.bg};
-
-    @media (max-width: 640px) {
-        padding: 10px 14px;
-        gap: 6px;
-    }
 `;
 
 const FilterLabel = styled.span`
-    font-size: 11px;
-    font-weight: 700;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    white-space: nowrap;
+    font-size: 12.5px;
+    color: ${ui.textMuted};
 `;
 
-const AllFilterBtn = styled.button<{ $active: boolean }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 10px;
-    border-radius: 9999px;
-    border: 1px solid ${p => p.$active ? st.accentBlue : st.border};
-    background: ${p => p.$active ? st.accentBlue : 'transparent'};
-    color: ${p => p.$active ? '#fff' : st.textSecondary};
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 140ms ease;
-    white-space: nowrap;
-
-    &:hover {
-        border-color: ${st.accentBlue};
-        color: ${p => p.$active ? '#fff' : st.accentBlue};
-    }
-`;
-
-// ─── Gallery content ──────────────────────────────────────────────────────────
-
-const GalleryContent = styled.div`
-    padding: ${props => props.theme.spacing.lg};
-
-    @media (max-width: 640px) {
-        padding: 14px;
-    }
-`;
-
-const SectionTitle = styled.h4`
-    margin: 0 0 12px;
-    font-size: 14px;
-    font-weight: 600;
-    color: ${props => props.theme.colors.text};
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-`;
-
-const CountBadge = styled.span`
-    display: inline-flex;
-    align-items: center;
-    padding: 1px 7px;
-    background: ${st.accentBlueDim};
-    color: ${st.accentBlue};
-    border-radius: 9999px;
-    font-size: 11px;
-    font-weight: 600;
-`;
-
-const PhotoGrid = styled.div`
+const PhotoGrid = styled.ul<{ $cols: number }>`
     display: grid;
-    /* min() keeps the track from demanding 200px on a 320px-wide phone, which
-       is what pushed the grid past the viewport edge. */
-    grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
-    gap: ${props => props.theme.spacing.md};
+    grid-template-columns: repeat(${p => p.$cols}, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
 
-    @media (max-width: 480px) {
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-    }
-
-    @media (max-width: 360px) {
-        grid-template-columns: 1fr;
-    }
+    @media (max-width: 640px) { gap: 6px; }
 `;
 
-// ─── Photo card ───────────────────────────────────────────────────────────────
-
-const PhotoCard = styled.div`
-    display: flex;
-    flex-direction: column;
-    border-radius: ${props => props.theme.radii.md};
-    overflow: hidden;
-    border: 1px solid ${props => props.theme.colors.border};
-    transition: all 0.2s ease;
-    background: #f8fafc;
-
-    &:hover {
-        box-shadow: ${props => props.theme.shadows.lg};
-        transform: translateY(-2px);
-    }
-`;
-
-const PhotoImageBox = styled.div`
+const Tile = styled.li`
     position: relative;
     aspect-ratio: 1;
+    border-radius: 10px;
     overflow: hidden;
+    background: #cbd5e1;
+
+    &:hover > div, &:focus-within > div { opacity: 1; }
 `;
 
-const PhotoImage = styled.img`
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    cursor: pointer;
+const TileButton = styled.button`
     display: block;
-`;
-
-const PhotoPlaceholder = styled.div`
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 48px;
-`;
-
-const PhotoOverlay = styled.div`
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: ${props => props.theme.spacing.sm};
-    background: linear-gradient(0deg, rgba(0,0,0,0.75) 0%, transparent 100%);
-    color: white;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    gap: 6px;
-    min-width: 0;
-
-    /* Two-up grid on a phone leaves ~140px per tile: the caption and the three
-       icon buttons cannot share a line there, so the buttons get their own. */
-    @media (max-width: 480px) {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 4px;
-        padding: 6px;
-    }
-`;
-
-const PhotoInfo = styled.div`
-    flex: 1;
-    min-width: 0;
-`;
-
-const PhotoNameText = styled.div`
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-`;
-
-const PhotoDate = styled.div`
-    font-size: ${props => props.theme.fontSizes.xs};
-    opacity: 0.8;
-`;
-
-const PhotoActions = styled.div`
-    display: flex;
-    gap: ${props => props.theme.spacing.xs};
-    flex-shrink: 0;
-
-    @media (max-width: 480px) {
-        justify-content: flex-end;
-    }
-`;
-
-const IconButton = styled.button`
-    width: 28px;
-    height: 28px;
+    padding: 0;
     border: none;
-    border-radius: ${props => props.theme.radii.sm};
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(4px);
+    background: none;
+    cursor: zoom-in;
+
+    img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: -2px; }
+`;
+
+const MoreTile = styled.button`
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #d5dde7;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: ${ui.inkSoft};
+    cursor: pointer;
+
+    &:hover { background: #cbd5e1; }
+`;
+
+/* Akcje zdjęcia na najechaniu (i zawsze pod palcem - tam najechania nie ma). */
+const TileActions = styled.div`
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    display: flex;
+    gap: 3px;
+    opacity: 0;
+    transition: opacity 150ms ease;
+
+    @media (hover: none) { opacity: 1; }
+`;
+
+const TileAction = styled.button<{ $danger?: boolean }>`
+    width: 26px;
+    height: 26px;
     display: flex;
     align-items: center;
     justify-content: center;
+    border: none;
+    border-radius: 8px;
+    background: rgba(15, 23, 42, 0.62);
+    color: ${p => p.$danger ? '#fecaca' : '#fff'};
     cursor: pointer;
-    transition: all 0.2s ease;
-    color: white;
 
-    &:hover {
-        background: rgba(255, 255, 255, 0.28);
-        transform: scale(1.1);
-    }
-
-    svg {
-        width: 15px;
-        height: 15px;
-    }
+    svg { width: 13px; height: 13px; }
+    &:hover { background: ${p => p.$danger ? 'rgba(185, 28, 28, 0.9)' : 'rgba(15, 23, 42, 0.85)'}; }
 `;
 
-const DeleteIconButton = styled(IconButton)`
-    &:hover {
-        background: rgba(220, 38, 38, 0.85);
-    }
-`;
-
-// Tags strip: shown below the image box
-const PhotoTagsStrip = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 4px;
-    padding: 6px 10px 8px;
-    background: white;
-    border-top: 1px solid ${props => props.theme.colors.border};
-    min-height: 36px;
-    cursor: pointer;
-    transition: background 140ms ease;
-
-    &:hover {
-        background: ${st.bg};
-    }
-`;
-
-const AddTagInlineBtn = styled.button`
+const TagCount = styled.span`
+    position: absolute;
+    left: 4px;
+    bottom: 4px;
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    padding: 2px 7px;
-    border-radius: 9999px;
-    border: 1px dashed ${st.border};
-    background: transparent;
-    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.62);
+    color: #fff;
+    font-size: 11px;
     font-weight: 600;
-    color: ${st.textMuted};
-    cursor: pointer;
-    transition: all 140ms ease;
-    white-space: nowrap;
+    pointer-events: none;
 
-    svg { width: 9px; height: 9px; }
-
-    &:hover {
-        border-color: ${st.accentBlue};
-        color: ${st.accentBlue};
-        background: ${st.accentBlueDim};
-    }
+    svg { width: 10px; height: 10px; }
 `;
 
-// ─── Document list ────────────────────────────────────────────────────────────
+const GridFooter = styled.div`
+    display: flex;
+    justify-content: flex-start;
+    margin: -4px 0 0 -11px;
+`;
 
-const DocumentList = styled.div`
+const Docs = styled.ul`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.sm};
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
 `;
 
-/**
- * Desktop: icon · info · actions on one line.
- * Phone:   icon + info on the first line, actions on their own full-width line.
- * Small phone: actions stack vertically, each a full-width 44px tap target.
- *
- * `min-width: 0` on every flex level is what actually stops a long file name
- * from forcing the card wider than the viewport.
- */
-const DocumentCard = styled.div`
+const DocRow = styled.li`
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.md};
-    padding: ${props => props.theme.spacing.md};
+    gap: 12px;
     min-width: 0;
-    background: ${props => props.theme.colors.surfaceAlt};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    transition: all 0.2s ease;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid ${ui.lineSoft};
+    font-size: 13.5px;
 
-    &:hover {
-        border-color: var(--brand-primary);
-        box-shadow: ${props => props.theme.shadows.md};
-    }
+    > svg { width: 16px; height: 16px; flex-shrink: 0; color: ${ui.dangerInk}; }
 
-    @media (max-width: 640px) {
-        flex-wrap: wrap;
-        align-items: flex-start;
-        gap: 10px;
-        padding: 12px;
-    }
+    @media (max-width: 480px) { flex-wrap: wrap; row-gap: 6px; }
 `;
 
-const DocumentIcon = styled.div`
-    width: 48px;
-    height: 48px;
-    border-radius: ${props => props.theme.radii.md};
-    background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+const DocText = styled.span`
     display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    flex-shrink: 0;
-
-    @media (max-width: 640px) {
-        width: 38px;
-        height: 38px;
-        font-size: 19px;
-    }
-`;
-
-const DocumentInfo = styled.div`
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    min-width: 0;
     flex: 1;
-    min-width: 0;
+
+    strong { font-weight: 600; color: ${ui.ink}; overflow-wrap: anywhere; }
+    span { font-size: 12.5px; color: ${ui.textMuted}; }
 `;
 
-const DocumentName = styled.div`
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 500;
-    color: ${props => props.theme.colors.text};
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-
-    /* On a phone the name gets a whole line, wrap it instead of hiding half. */
-    @media (max-width: 640px) {
-        white-space: normal;
-        overflow-wrap: anywhere;
-        line-height: 1.35;
-    }
-`;
-
-const DocumentMeta = styled.div`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
-    overflow-wrap: anywhere;
-
-    @media (max-width: 640px) {
-        line-height: 1.45;
-        margin-top: 2px;
-    }
-`;
-
-const DocumentActions = styled.div`
-    display: flex;
-    gap: ${props => props.theme.spacing.sm};
-    flex-shrink: 0;
-
-    @media (max-width: 640px) {
-        flex-basis: 100%;
-        gap: 6px;
-    }
-
-    @media (max-width: 420px) {
-        flex-direction: column;
-        align-items: stretch;
-    }
-`;
-
-const ActionButton = styled.button`
-    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.sm};
-    background: white;
-    color: ${props => props.theme.colors.text};
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
+const DocActions = styled.div`
     display: flex;
     align-items: center;
-    gap: 4px;
-    white-space: nowrap;
-
-    &:hover {
-        border-color: var(--brand-primary);
-        color: var(--brand-primary);
-    }
-
-    svg {
-        width: 14px;
-        height: 14px;
-        flex-shrink: 0;
-    }
-
-    @media (max-width: 640px) {
-        flex: 1;
-        min-width: 0;
-        justify-content: center;
-        min-height: 38px;
-        font-size: ${props => props.theme.fontSizes.sm};
-    }
-
-    @media (max-width: 420px) {
-        flex: none;
-        width: 100%;
-        min-height: 44px;
-    }
+    gap: 2px;
+    flex-shrink: 0;
+    margin-left: auto;
 `;
 
-const DeleteButton = styled(ActionButton)`
-    &:hover {
-        border-color: #dc2626;
-        color: #dc2626;
-        background: rgba(220, 38, 38, 0.05);
-    }
-`;
-
-const EmptyState = styled.div`
-    text-align: center;
-    padding: ${props => props.theme.spacing.xxl} ${props => props.theme.spacing.md};
-    color: ${props => props.theme.colors.textMuted};
-    overflow-wrap: anywhere;
-
-    @media (max-width: 640px) {
-        padding: ${props => props.theme.spacing.xl} ${props => props.theme.spacing.sm};
-    }
-`;
-
-const SectionDivider = styled.div`
-    height: 1px;
-    background: ${props => props.theme.colors.border};
-    margin: ${props => props.theme.spacing.xl} 0;
-
-    @media (max-width: 640px) {
-        margin: ${props => props.theme.spacing.lg} 0;
-    }
+const EmptyState = styled.p`
+    margin: 0;
+    font-size: 13.5px;
+    color: ${ui.textMuted};
 `;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -509,6 +256,8 @@ export const DocumentGallery = ({
     const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null);
     const [localTagsMap, setLocalTagsMap] = useState<Record<string, string[]>>({});
     const [previewPdf, setPreviewPdf] = useState<{ fileUrl: string; fileName: string } | null>(null);
+    const [expanded, setExpanded] = useState(false);
+    const [wrapRef, width] = useContainerWidth<HTMLDivElement>();
 
     // Tag support
     const { data: suggestions = [] } = useTagSuggestions();
@@ -627,190 +376,125 @@ export const DocumentGallery = ({
 
     const selectedPhoto = selectedPhotoIndex !== null ? filteredPhotos[selectedPhotoIndex] : null;
 
+    const cols = width !== null && width < NARROW_MAX_WIDTH ? 4 : 8;
+    const collapsed = !expanded && filteredPhotos.length > cols;
+    const shownPhotos = collapsed ? filteredPhotos.slice(0, cols - 1) : filteredPhotos;
+
     return (
         <>
-            {/* ── Tag filter bar (only when tags exist) ─────────────── */}
-            {allTags.length > 0 && (
-                <FilterBar>
-                    <FilterLabel>Filtruj:</FilterLabel>
-                    <AllFilterBtn
-                        $active={activeTagFilter === null}
-                        onClick={() => setActiveTagFilter(null)}
-                    >
-                        Wszystkie ({allPhotos.length})
-                    </AllFilterBtn>
-                    {allTags.map(tag => (
-                        <TagChip
-                            key={tag}
-                            label={tag}
+            <Wrap ref={wrapRef}>
+                {allTags.length > 0 && (
+                    <FilterBar>
+                        <FilterLabel>Tagi:</FilterLabel>
+                        {/* Wybrany filtr to stan, nie krok następny: odcień, bez wypełnienia (CLAUDE.md §2). */}
+                        <Button
                             size="sm"
-                            active={activeTagFilter === tag}
-                            onClick={() => setActiveTagFilter(prev => prev === tag ? null : tag)}
-                        />
-                    ))}
-                </FilterBar>
-            )}
-
-            {/* ── Content ───────────────────────────────────────────── */}
-            <GalleryContent>
-
-                {/* Photos section */}
-                {filteredPhotos.length > 0 && (
-                    <div style={{ marginBottom: '24px' }}>
-                        <SectionTitle>
-                            Zdjęcia
-                            <CountBadge>{filteredPhotos.length}</CountBadge>
-                            {activeTagFilter && (
-                                <span style={{ fontSize: '12px', fontWeight: 400, color: st.textMuted }}>
-                                    · filtr: <strong style={{ color: st.accentBlue }}>{activeTagFilter}</strong>
-                                </span>
-                            )}
-                        </SectionTitle>
-                        <PhotoGrid>
-                            {filteredPhotos.map((photo, index) => (
-                                <PhotoCard key={photo.id}>
-                                    {/* Image */}
-                                    <PhotoImageBox>
-                                        {photo.fileUrl ? (
-                                            <PhotoImage
-                                                src={photo.fileUrl}
-                                                alt={photo.fileName}
-                                                loading="lazy"
-                                                decoding="async"
-                                                onClick={() => handleImageClick(index)}
-                                            />
-                                        ) : (
-                                            <PhotoPlaceholder>📸</PhotoPlaceholder>
-                                        )}
-                                        <PhotoOverlay>
-                                            <PhotoInfo>
-                                                <PhotoNameText>{photo.fileName}</PhotoNameText>
-                                                {photo.description && (
-                                                    <PhotoDate style={{ marginTop: '2px' }}>{photo.description}</PhotoDate>
-                                                )}
-                                                <PhotoDate>{formatDateTime(photo.uploadedAt)}</PhotoDate>
-                                            </PhotoInfo>
-                                            <PhotoActions>
-                                                <IconButton
-                                                    onClick={e => { e.stopPropagation(); openTagEditor(photo); }}
-                                                    title="Edytuj tagi"
-                                                >
-                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
-                                                        <line x1="7" y1="7" x2="7.01" y2="7"/>
-                                                    </svg>
-                                                </IconButton>
-                                                <IconButton
-                                                    onClick={e => {
-                                                        e.stopPropagation();
-                                                        handleDownload(photo.fullSizeUrl, photo.fileName);
-                                                    }}
-                                                    title="Pobierz"
-                                                >
-                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                                        <polyline points="7 10 12 15 17 10"/>
-                                                        <line x1="12" y1="15" x2="12" y2="3"/>
-                                                    </svg>
-                                                </IconButton>
-                                                {canDeletePhotos && <DeleteIconButton
-                                                    onClick={e => {
-                                                        e.stopPropagation();
-                                                        handleDeleteClick(photo.id, photo.isVisitPhoto, photo.fileName);
-                                                    }}
-                                                    title="Usuń"
-                                                >
-                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                        <polyline points="3 6 5 6 21 6"/>
-                                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                                    </svg>
-                                                </DeleteIconButton>}
-                                            </PhotoActions>
-                                        </PhotoOverlay>
-                                    </PhotoImageBox>
-
-                                    {/* Tags strip */}
-                                    <PhotoTagsStrip onClick={() => openTagEditor(photo)}>
-                                        {(photo.tags ?? []).map(tag => (
-                                            <TagChip key={tag} label={tag} size="sm" />
-                                        ))}
-                                        <AddTagInlineBtn
-                                            type="button"
-                                            onClick={e => { e.stopPropagation(); openTagEditor(photo); }}
-                                        >
-                                            <svg fill="none" viewBox="0 0 10 10" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                                                <line x1="5" y1="1" x2="5" y2="9" />
-                                                <line x1="1" y1="5" x2="9" y2="5" />
-                                            </svg>
-                                            {(photo.tags ?? []).length === 0 ? 'Dodaj tagi' : 'Edytuj'}
-                                        </AddTagInlineBtn>
-                                    </PhotoTagsStrip>
-                                </PhotoCard>
-                            ))}
-                        </PhotoGrid>
-                    </div>
+                            variant={activeTagFilter === null ? 'tinted' : 'outline'}
+                            aria-pressed={activeTagFilter === null}
+                            onClick={() => setActiveTagFilter(null)}
+                        >
+                            Wszystkie {allPhotos.length}
+                        </Button>
+                        {allTags.map(tag => (
+                            <Button
+                                key={tag}
+                                size="sm"
+                                variant={activeTagFilter === tag ? 'tinted' : 'outline'}
+                                aria-pressed={activeTagFilter === tag}
+                                onClick={() => setActiveTagFilter(prev => prev === tag ? null : tag)}
+                            >
+                                <Tag />{tag}
+                            </Button>
+                        ))}
+                    </FilterBar>
                 )}
 
-                {/* PDFs */}
-                {pdfs.length > 0 && (
-                    <div>
-                        {filteredPhotos.length > 0 && <SectionDivider />}
-                        <SectionTitle>
-                            Dokumenty PDF
-                            <CountBadge>{pdfs.length}</CountBadge>
-                        </SectionTitle>
-                        <DocumentList>
-                            {pdfs.map(doc => (
-                                <DocumentCard key={doc.id}>
-                                    <DocumentIcon>📄</DocumentIcon>
-                                    <DocumentInfo>
-                                        <DocumentName>{doc.name || doc.fileName}</DocumentName>
-                                        <DocumentMeta>
-                                            {doc.name && doc.name !== doc.fileName && `${doc.fileName} · `}
-                                            Dodano: {formatDateTime(doc.uploadedAt)} · {doc.uploadedByName}
-                                        </DocumentMeta>
-                                    </DocumentInfo>
-                                    <DocumentActions>
-                                        <ActionButton onClick={() => handlePreview(doc.fileUrl, doc.fileName)}>
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                                <circle cx="12" cy="12" r="3"/>
-                                            </svg>
-                                            Podgląd
-                                        </ActionButton>
-                                        <ActionButton
-                                            title="Pobierz"
-                                            onClick={() => handleDownload(doc.fileUrl, doc.fileName)}
+                {filteredPhotos.length > 0 && (
+                    <PhotoGrid $cols={cols} aria-label="Zdjęcia">
+                        {shownPhotos.map((photo, index) => (
+                            <Tile key={photo.id}>
+                                <TileButton
+                                    type="button"
+                                    onClick={() => handleImageClick(index)}
+                                    title={[photo.fileName, photo.description, formatDateTime(photo.uploadedAt)].filter(Boolean).join('\n')}
+                                    aria-label={`Otwórz zdjęcie ${photo.fileName}`}
+                                >
+                                    {photo.fileUrl
+                                        ? <img src={photo.fileUrl} alt="" loading="lazy" decoding="async" />
+                                        : <ImageOff aria-hidden="true" />}
+                                </TileButton>
+                                {(photo.tags ?? []).length > 0 && (
+                                    <TagCount title={(photo.tags ?? []).join(', ')}><Tag />{(photo.tags ?? []).length}</TagCount>
+                                )}
+                                <TileActions>
+                                    <TileAction type="button" onClick={() => openTagEditor(photo)} title="Tagi zdjęcia" aria-label={`Tagi zdjęcia ${photo.fileName}`}>
+                                        <Tag />
+                                    </TileAction>
+                                    <TileAction type="button" onClick={() => handleDownload(photo.fullSizeUrl, photo.fileName)} title="Pobierz" aria-label={`Pobierz ${photo.fileName}`}>
+                                        <Download />
+                                    </TileAction>
+                                    {canDeletePhotos && (
+                                        <TileAction
+                                            type="button"
+                                            $danger
+                                            onClick={() => handleDeleteClick(photo.id, photo.isVisitPhoto, photo.fileName)}
+                                            title="Usuń"
+                                            aria-label={`Usuń ${photo.fileName}`}
                                         >
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                                <polyline points="7 10 12 15 17 10"/>
-                                                <line x1="12" y1="15" x2="12" y2="3"/>
-                                            </svg>
-                                            Pobierz
-                                        </ActionButton>
-                                        {canDeleteDocuments && <DeleteButton onClick={() => handleDeleteClick(doc.id, false, doc.fileName)}>
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <polyline points="3 6 5 6 21 6"/>
-                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                            </svg>
-                                            Usuń
-                                        </DeleteButton>}
-                                    </DocumentActions>
-                                </DocumentCard>
-                            ))}
-                        </DocumentList>
-                    </div>
+                                            <Trash2 />
+                                        </TileAction>
+                                    )}
+                                </TileActions>
+                            </Tile>
+                        ))}
+                        {collapsed && (
+                            <Tile>
+                                <MoreTile type="button" onClick={() => setExpanded(true)} aria-label={`Pokaż wszystkie zdjęcia (${filteredPhotos.length})`}>
+                                    +{filteredPhotos.length - shownPhotos.length}
+                                </MoreTile>
+                            </Tile>
+                        )}
+                    </PhotoGrid>
+                )}
+                {expanded && filteredPhotos.length > cols && (
+                    <GridFooter>
+                        <Button variant="ghost" size="sm" onClick={() => setExpanded(false)}><ChevronUp />Zwiń zdjęcia</Button>
+                    </GridFooter>
+                )}
+
+                {pdfs.length > 0 && (
+                    <Docs aria-label="Dokumenty">
+                        {pdfs.map(doc => (
+                            <DocRow key={doc.id}>
+                                <FileText aria-hidden="true" />
+                                <DocText>
+                                    <strong>{doc.name || doc.fileName}</strong>
+                                    <span>{formatDateTime(doc.uploadedAt)}{doc.uploadedByName ? `, ${doc.uploadedByName}` : ''}</span>
+                                </DocText>
+                                <DocActions>
+                                    <Button variant="ghost" size="sm" onClick={() => handlePreview(doc.fileUrl, doc.fileName)}>Podgląd</Button>
+                                    <IconButton label={`Pobierz ${doc.name || doc.fileName}`} variant="ghost" size="sm" onClick={() => handleDownload(doc.fileUrl, doc.fileName)}>
+                                        <Download />
+                                    </IconButton>
+                                    {canDeleteDocuments && (
+                                        <IconButton label={`Usuń ${doc.name || doc.fileName}`} variant="danger" size="sm" onClick={() => handleDeleteClick(doc.id, false, doc.fileName)}>
+                                            <Trash2 />
+                                        </IconButton>
+                                    )}
+                                </DocActions>
+                            </DocRow>
+                        ))}
+                    </Docs>
                 )}
 
                 {filteredPhotos.length === 0 && pdfs.length === 0 && (
                     <EmptyState>
                         {activeTagFilter
                             ? `Brak zdjęć z tagiem „${activeTagFilter}"`
-                            : 'Brak dokumentów dla tej wizyty'}
+                            : isLoadingPhotos ? 'Wczytywanie zdjęć...' : 'Nie ma jeszcze zdjęć ani dokumentów.'}
                     </EmptyState>
                 )}
-            </GalleryContent>
+            </Wrap>
 
             {/* PDF viewer */}
             <PdfViewerModal

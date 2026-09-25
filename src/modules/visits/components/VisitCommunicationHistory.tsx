@@ -1,217 +1,97 @@
 // src/modules/visits/components/VisitCommunicationHistory.tsx
+//
+// Wiadomości wysłane do klienta w ramach wizyty. Każda pozycja to jeden przycisk:
+// kafelek kanału, co to było, do kogo i kiedy, a z prawej plakietka stanu.
+//
+// Linia pod tytułem jest zwykłym zdaniem - „SMS na +48 601 234 567, 22.09 o 10:15"
+// - a nie trzema faktami sklejonymi kropkami (CLAUDE.md §4).
 
 import { useState } from 'react';
 import styled from 'styled-components';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { Mail, MessageSquare } from 'lucide-react';
 import {
     CommunicationPreviewModal,
-    EmailIcon,
-    SmsIcon,
-    CheckIcon,
-    AlertIcon,
-    ClockIcon,
     formatCommDate,
 } from '@/common/components/CommunicationPreviewModal';
-import { COMMUNICATION_STATUS_LABEL, COMMUNICATION_TONE_STYLE, communicationTone, queuedHint } from '@/common/utils/communicationStatus';
-import type { CommunicationEntry, CommunicationStatus } from '../types';
+import { COMMUNICATION_STATUS_LABEL, communicationTone, queuedHint } from '@/common/utils/communicationStatus';
+import { StatusPill, ui, type PillTone } from '@/common/components/ui';
+import type { CommunicationEntry } from '../types';
 
-const BRAND     = '#0ea5e9';
-const BRAND_DIM = 'rgba(14, 165, 233, 0.10)';
-
-// ─── Timeline List ────────────────────────────────────────────────────────────
-
-const TimelineList = styled.ul`
-    list-style: none;
-    margin: 0;
-    padding: 16px 20px;
+const List = styled.ul`
     display: flex;
     flex-direction: column;
-    gap: 0;
+    margin: 0;
+    padding: 0 18px 12px;
+    list-style: none;
 
-    @media (max-width: 640px) { padding: 12px 16px; }
+    @media (max-width: 640px) { padding: 0 16px 10px; }
 `;
 
-const TimelineItem = styled.li<{ $last?: boolean }>`
-    display: flex;
-    gap: 14px;
-    position: relative;
-    min-width: 0;
-    padding-bottom: ${p => p.$last ? '0' : '16px'};
+const Entry = styled.button`
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    width: 100%;
+    padding: 10px 0;
+    border: none;
+    border-top: 1px solid ${ui.lineFaint};
+    background: transparent;
+    font-family: inherit;
+    text-align: left;
+    color: inherit;
+    cursor: pointer;
 
-    @media (max-width: 480px) { gap: 10px; }
-
-    &::before {
-        content: ${p => p.$last ? 'none' : '""'};
-        position: absolute;
-        left: 15px;
-        top: 32px;
-        bottom: 0;
-        width: 1px;
-        background: ${st.border};
-    }
+    &:hover > span:nth-child(2) > span:first-child { color: ${ui.brandInk}; }
+    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: 2px; border-radius: 8px; }
 `;
 
-const ChannelDot = styled.div<{ $channel: 'EMAIL' | 'SMS'; $failed?: boolean }>`
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
+const Channel = styled.span<{ $failed: boolean }>`
+    width: 34px;
+    height: 34px;
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
-    margin-top: 2px;
-    background: ${p =>
-        p.$failed
-            ? 'rgba(239,68,68,0.12)'
-            : p.$channel === 'EMAIL'
-                ? BRAND_DIM
-                : 'rgba(16,185,129,0.12)'
-    };
-    border: 1px solid ${p =>
-        p.$failed
-            ? 'rgba(239,68,68,0.25)'
-            : p.$channel === 'EMAIL'
-                ? 'rgba(14,165,233,0.25)'
-                : 'rgba(16,185,129,0.2)'
-    };
-    color: ${p =>
-        p.$failed
-            ? st.accentRed
-            : p.$channel === 'EMAIL'
-                ? BRAND
-                : st.accentGreen
-    };
-    position: relative;
-    z-index: 1;
+    border-radius: 10px;
+    background: ${p => p.$failed ? ui.dangerTint : ui.brandTint};
+    color: ${p => p.$failed ? ui.dangerInk : ui.brandInk};
+
+    svg { width: 16px; height: 16px; }
 `;
 
-const EntryCard = styled.button`
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    padding: 10px 14px;
-    cursor: pointer;
-    text-align: left;
-    transition: all ${st.transition};
-    box-shadow: ${st.shadowXs};
-
-    &:hover {
-        border-color: ${st.borderHover};
-        background: ${st.bgCardAlt};
-        box-shadow: ${st.shadowSm};
-        transform: translateY(-1px);
-    }
-
-    &:active { transform: translateY(0); }
-
-    @media (max-width: 480px) {
-        flex-direction: column;
-        /* stretch, not flex-start: in a column the cross axis is horizontal, and
-           flex-start lets the children size to max-content, which is how a long
-           recipient address used to drag the card past the screen edge. */
-        align-items: stretch;
-        gap: 8px;
-    }
-`;
-
-const EntryMain = styled.div`
+const Text = styled.span`
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 2px;
     min-width: 0;
-    max-width: 100%;
 `;
 
-const EntryLabel = styled.span`
-    font-size: ${st.fontSm};
+const Label = styled.span`
+    font-size: 13.5px;
     font-weight: 600;
-    color: ${st.text};
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-`;
-
-const EntryMeta = styled.span`
-    font-size: 11px;
-    color: ${st.textMuted};
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    flex-wrap: wrap;
-    row-gap: 2px;
-    min-width: 0;
-    /* Recipient is an e-mail address: one long unbreakable token. */
+    color: ${ui.ink};
     overflow-wrap: anywhere;
 `;
 
-const EntryRight = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 4px;
-    flex-shrink: 0;
-
-    @media (max-width: 480px) { flex-direction: row; align-items: center; gap: 8px; }
+const Meta = styled.span`
+    font-size: 12.5px;
+    color: ${ui.textMuted};
+    overflow-wrap: anywhere;
 `;
 
-const StatusBadge = styled.span<{ $status: CommunicationStatus }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 11px;
-    font-weight: 700;
-    padding: 2px 8px;
-    border-radius: ${st.radiusFull};
-    background: ${p => COMMUNICATION_TONE_STYLE[communicationTone(p.$status)].background};
-    color: ${p => COMMUNICATION_TONE_STYLE[communicationTone(p.$status)].color};
-    border: 1px solid ${p => COMMUNICATION_TONE_STYLE[communicationTone(p.$status)].border};
-`;
-
-const PreviewHint = styled.span`
-    font-size: 10px;
-    color: #0284c7;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    opacity: 0.8;
-`;
-
-// ─── Empty state ──────────────────────────────────────────────────────────────
-
-const EmptyState = styled.div`
-    padding: 28px 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    color: ${st.textMuted};
-`;
-
-const EmptyIcon = styled.div`
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: ${st.bgCardAlt};
-    border: 1px solid ${st.border};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-`;
-
-const EmptyText = styled.p`
+const Empty = styled.p`
     margin: 0;
-    font-size: ${st.fontSm};
-    color: ${st.textMuted};
-    text-align: center;
+    padding: 0 18px 16px;
+    font-size: 13.5px;
+    color: ${ui.textMuted};
 `;
 
-// ─── Component ────────────────────────────────────────────────────────────────
+const TONE: Record<ReturnType<typeof communicationTone>, PillTone> = {
+    sent: 'ok',
+    received: 'info',
+    queued: 'neutral',
+    failed: 'danger',
+};
 
 interface VisitCommunicationHistoryProps {
     entries: CommunicationEntry[];
@@ -221,86 +101,34 @@ interface VisitCommunicationHistoryProps {
 export const VisitCommunicationHistory = ({ entries, isLoading }: VisitCommunicationHistoryProps) => {
     const [selected, setSelected] = useState<CommunicationEntry | null>(null);
 
-    if (isLoading) {
-        return (
-            <EmptyState>
-                <EmptyIcon>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={st.textMuted} strokeWidth="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <polyline points="12 6 12 12 16 14" />
-                    </svg>
-                </EmptyIcon>
-                <EmptyText>Ładowanie historii komunikacji...</EmptyText>
-            </EmptyState>
-        );
-    }
-
-    if (entries.length === 0) {
-        return (
-            <EmptyState>
-                <EmptyIcon>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={st.textMuted} strokeWidth="2">
-                        <rect x="2" y="4" width="20" height="16" rx="2" />
-                        <path d="M2 7l10 7 10-7" />
-                    </svg>
-                </EmptyIcon>
-                <EmptyText>Brak wysłanej komunikacji dla tej wizyty</EmptyText>
-            </EmptyState>
-        );
-    }
+    if (isLoading) return <Empty>Wczytywanie komunikacji...</Empty>;
+    if (entries.length === 0) return <Empty>Do klienta nie wyszła jeszcze żadna wiadomość w tej wizycie.</Empty>;
 
     return (
         <>
-            <TimelineList>
-                {entries.map((entry, idx) => {
-                    const isFailed = entry.status === 'FAILED';
-                    const isLast = idx === entries.length - 1;
+            <List>
+                {entries.map(entry => {
+                    const tone = communicationTone(entry.status);
+                    const channel = entry.channel === 'EMAIL' ? 'E-mail' : 'SMS';
+                    const when = queuedHint(entry) ?? formatCommDate(entry.sentAt);
                     return (
-                        <TimelineItem key={entry.id} $last={isLast}>
-                            <ChannelDot $channel={entry.channel} $failed={isFailed}>
-                                {entry.channel === 'EMAIL'
-                                    ? <EmailIcon size={14} />
-                                    : <SmsIcon size={14} />
-                                }
-                            </ChannelDot>
-                            <EntryCard
-                                onClick={() => setSelected(entry)}
-                                aria-label={`Podgląd: ${entry.messageTypeLabel}`}
-                            >
-                                <EntryMain>
-                                    <EntryLabel>{entry.messageTypeLabel}</EntryLabel>
-                                    <EntryMeta>
-                                        <span>{entry.channel === 'EMAIL' ? 'E-mail' : 'SMS'}</span>
-                                        <span>·</span>
-                                        <span>{entry.recipientAddress}</span>
-                                        <span>·</span>
-                                        <span>{queuedHint(entry) ?? formatCommDate(entry.sentAt)}</span>
-                                    </EntryMeta>
-                                </EntryMain>
-                                <EntryRight>
-                                    <StatusBadge $status={entry.status}>
-                                        {entry.status === 'FAILED'
-                                            ? <AlertIcon />
-                                            : entry.status === 'QUEUED'
-                                                ? <ClockIcon />
-                                                : <CheckIcon />
-                                        }
-                                        {' '}{COMMUNICATION_STATUS_LABEL[communicationTone(entry.status)]}
-                                    </StatusBadge>
-                                    <PreviewHint>Podgląd →</PreviewHint>
-                                </EntryRight>
-                            </EntryCard>
-                        </TimelineItem>
+                        <li key={entry.id}>
+                            <Entry type="button" onClick={() => setSelected(entry)} aria-label={`Podgląd: ${entry.messageTypeLabel}`}>
+                                <Channel $failed={tone === 'failed'} aria-hidden="true">
+                                    {entry.channel === 'EMAIL' ? <Mail /> : <MessageSquare />}
+                                </Channel>
+                                <Text>
+                                    <Label>{entry.messageTypeLabel}</Label>
+                                    <Meta>{channel} na {entry.recipientAddress}, {when}</Meta>
+                                </Text>
+                                <StatusPill $tone={TONE[tone]}>{COMMUNICATION_STATUS_LABEL[tone]}</StatusPill>
+                            </Entry>
+                        </li>
                     );
                 })}
-            </TimelineList>
+            </List>
 
-            {selected && (
-                <CommunicationPreviewModal
-                    entry={selected}
-                    onClose={() => setSelected(null)}
-                />
-            )}
+            {selected && <CommunicationPreviewModal entry={selected} onClose={() => setSelected(null)} />}
         </>
     );
 };

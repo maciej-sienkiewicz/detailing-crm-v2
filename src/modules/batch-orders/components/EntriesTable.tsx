@@ -11,9 +11,10 @@
 //      otwiera edytor z kursorem w polu ceny.
 //   3. ⋮ jest widoczne zawsze - na komputerze tak samo jak na telefonie.
 
-import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
 import styled from 'styled-components';
+import {
+    ActionMenu, IconButton, MenuDivider, MenuItem, PriceButton, StatusPill, useActionMenu,
+} from '@/common/components/ui';
 import { Camera, ChevronRight, Lock, MoreVertical, Pencil, RotateCcw, Trash2, Unlock } from 'lucide-react';
 import type { BatchOrderEntry } from '../types';
 import { formatAmount, formatMoney, photosLabel, vehicleName } from '../utils/format';
@@ -125,22 +126,6 @@ const Plate = styled.span`
     white-space: nowrap;
 `;
 
-const StatusTag = styled.span<{ $tone: 'settled' | 'correction' }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 1px 8px;
-    border-radius: ${p => p.theme.radii.full};
-    font-size: 11px;
-    font-weight: 600;
-    white-space: nowrap;
-    border: 1px solid ${p => p.$tone === 'settled' ? '#86efac' : '#fcd34d'};
-    background: ${p => p.$tone === 'settled' ? p.theme.colors.successLight : '#fffbeb'};
-    color: ${p => p.$tone === 'settled' ? '#15803d' : '#92400e'};
-
-    svg { width: 11px; height: 11px; }
-`;
-
 /* Tablica i liczba zdjęć w jednej linii pod nazwą auta. Osobna kolumna „Zdjęcia"
    zabierała 84px kolumnie usług, która obok paska bocznego aplikacji ucinała
    nazwy do „Korekta la…". */
@@ -160,83 +145,6 @@ const Photos = styled.span<{ $empty: boolean }>`
     color: ${p => p.$empty ? '#94a3b8' : p.theme.colors.textSecondary};
 
     svg { width: 14px; height: 14px; }
-`;
-
-/**
- * Kwota jako przycisk. Ołówek jest widoczny ZAWSZE (nie dopiero po najechaniu) -
- * właśnie jego brak sprawił, że nikt nie wiedział, że cenę da się zmienić.
- */
-const PriceBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    margin-right: -10px;
-    padding: 6px 10px;
-    border-radius: 10px;
-    border: 1px dashed transparent;
-    background: transparent;
-    font-family: inherit;
-    text-align: right;
-    cursor: pointer;
-    transition: background ${p => p.theme.transitions.fast}, border-color ${p => p.theme.transitions.fast};
-
-    > svg { width: 15px; height: 15px; flex-shrink: 0; color: #64748b; }
-
-    ${Tr}:hover &, &:focus-visible {
-        border-color: #7dd3fc;
-        background: #f0f9ff;
-        > svg { color: #0369a1; }
-    }
-    &:focus-visible { outline: 2px solid #38bdf8; outline-offset: 1px; }
-`;
-
-const PriceBtnStatic = styled(PriceBtn)`
-    cursor: pointer;
-    > svg { color: #94a3b8; }
-    ${Tr}:hover &, &:focus-visible {
-        border-color: ${p => p.theme.colors.border};
-        background: ${p => p.theme.colors.surfaceAlt};
-        > svg { color: #64748b; }
-    }
-`;
-
-const Amounts = styled.span`
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 1px;
-`;
-
-const Gross = styled.span`
-    font-size: 14.5px;
-    font-weight: 700;
-    color: ${p => p.theme.colors.text};
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-`;
-
-const Net = styled.span`
-    font-size: 12px;
-    color: #64748b;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-`;
-
-const MenuBtn = styled.button<{ $open: boolean }>`
-    width: 36px;
-    height: 36px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 10px;
-    border: 1px solid ${p => p.$open ? '#94a3b8' : p.theme.colors.border};
-    background: ${p => p.$open ? p.theme.colors.surfaceAlt : p.theme.colors.surface};
-    color: ${p => p.theme.colors.textSecondary};
-    cursor: pointer;
-
-    svg { width: 16px; height: 16px; }
-    &:hover { border-color: #94a3b8; color: ${p => p.theme.colors.text}; }
-    @media (hover: none) and (pointer: coarse) { width: 44px; height: 44px; }
 `;
 
 // ─── Mobile ───────────────────────────────────────────────────────────────────
@@ -317,55 +225,19 @@ const SubLine = styled.span`
     }
 `;
 
+const MobileGross = styled.span`
+    font-size: 14.5px;
+    font-weight: 700;
+    color: ${p => p.theme.colors.text};
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+`;
+
 const RowMenu = styled.div`
     display: flex;
     align-items: center;
     padding-right: 8px;
 `;
-
-// ─── Menu ─────────────────────────────────────────────────────────────────────
-
-const Dropdown = styled.div`
-    position: fixed;
-    z-index: 900;
-    min-width: 200px;
-    max-width: calc(100vw - 16px);
-    padding: 4px;
-    background: ${p => p.theme.colors.surface};
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: 10px;
-    box-shadow: 0 8px 32px rgba(15, 23, 42, 0.16);
-`;
-
-const MenuItem = styled.button<{ $danger?: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    min-height: 38px;
-    padding: 0 10px;
-    border: none;
-    border-radius: 6px;
-    background: transparent;
-    font-family: inherit;
-    font-size: 13.5px;
-    font-weight: 500;
-    text-align: left;
-    color: ${p => p.$danger ? '#b91c1c' : p.theme.colors.text};
-    cursor: pointer;
-
-    svg { width: 15px; height: 15px; flex-shrink: 0; color: ${p => p.$danger ? '#b91c1c' : '#64748b'}; }
-    &:hover, &:focus-visible { background: ${p => p.$danger ? p.theme.colors.errorLight : p.theme.colors.surfaceAlt}; outline: none; }
-    @media (hover: none) and (pointer: coarse) { min-height: 46px; }
-`;
-
-const MenuDivider = styled.div`
-    height: 1px;
-    margin: 4px 2px;
-    background: ${p => p.theme.colors.border};
-`;
-
-interface MenuState { entry: BatchOrderEntry; top: number; right: number; }
 
 interface Props {
     entries: BatchOrderEntry[];
@@ -384,63 +256,27 @@ function servicesSummary(entry: BatchOrderEntry): { first: string; rest: string 
 }
 
 function StatusBadge({ entry }: { entry: BatchOrderEntry }) {
-    if (entry.isClosed) return <StatusTag $tone="settled"><Lock />W zestawieniu</StatusTag>;
-    if (entry.isCorrection) return <StatusTag $tone="correction"><RotateCcw />Korekta</StatusTag>;
+    if (entry.isClosed) return <StatusPill $tone="ok"><Lock />W zestawieniu</StatusPill>;
+    if (entry.isCorrection) return <StatusPill $tone="warn"><RotateCcw />Korekta</StatusPill>;
     return null;
 }
 
 export function EntriesTable({ entries, isDesktop, onOpen, onDelete, onReopen }: Props) {
-    const [menu, setMenu] = useState<MenuState | null>(null);
-
-    useEffect(() => {
-        if (!menu) return;
-        const close = () => setMenu(null);
-        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
-        document.addEventListener('click', close);
-        document.addEventListener('keydown', onKey);
-        // Menu stoi w `position: fixed` - przy przewinięciu odjechałoby od swojego wiersza.
-        window.addEventListener('scroll', close, true);
-        window.addEventListener('resize', close);
-        return () => {
-            document.removeEventListener('click', close);
-            document.removeEventListener('keydown', onKey);
-            window.removeEventListener('scroll', close, true);
-            window.removeEventListener('resize', close);
-        };
-    }, [menu]);
-
-    function toggleMenu(e: React.MouseEvent<HTMLButtonElement>, entry: BatchOrderEntry) {
-        e.stopPropagation();
-        if (menu?.entry.id === entry.id) { setMenu(null); return; }
-        const rect = e.currentTarget.getBoundingClientRect();
-        const vpWidth = window.visualViewport?.width ?? window.innerWidth;
-        const vpHeight = window.visualViewport?.height ?? window.innerHeight;
-        // Przy ostatnich wierszach menu otwiera się w górę, zamiast wyjeżdżać pod ekran.
-        const openUp = vpHeight - rect.bottom < 220;
-        setMenu({
-            entry,
-            top: openUp ? Math.max(8, rect.top - 4 - 190) : rect.bottom + 4,
-            right: Math.max(8, vpWidth - rect.right),
-        });
-    }
-
-    function run(action: () => void) {
-        setMenu(null);
-        action();
-    }
+    const rowMenu = useActionMenu<BatchOrderEntry>();
+    const menu = rowMenu.menu ? { entry: rowMenu.menu.item } : null;
 
     const menuButton = (entry: BatchOrderEntry) => (
-        <MenuBtn
-            type="button"
-            $open={menu?.entry.id === entry.id}
-            aria-label={`Więcej akcji: ${vehicleName(entry)}`}
+        <IconButton
+            shape="square"
+            label={`Więcej akcji: ${vehicleName(entry)}`}
             aria-haspopup="menu"
-            aria-expanded={menu?.entry.id === entry.id}
-            onClick={e => toggleMenu(e, entry)}
+            aria-expanded={rowMenu.isOpen(entry.id)}
+            active={rowMenu.isOpen(entry.id)}
+            onClick={e => rowMenu.toggle(e, entry, entry.id)}
             onKeyDown={e => e.stopPropagation()}
         >
             <MoreVertical />
-        </MenuBtn>
+        </IconButton>
     );
 
     return (
@@ -503,32 +339,14 @@ export function EntriesTable({ entries, isDesktop, onOpen, onDelete, onReopen }:
                                         </Cell>
                                     </Td>
                                     <Td $align="right">
-                                        {entry.isClosed ? (
-                                            <PriceBtnStatic
-                                                type="button"
-                                                title="Auto jest już w zestawieniu. Otwórz, żeby odblokować je do korekty"
-                                                onClick={e => { e.stopPropagation(); onOpen(entry, 'price'); }}
-                                            >
-                                                <Lock />
-                                                <Amounts>
-                                                    <Gross>{formatMoney(entry.grossAmountCents)}</Gross>
-                                                    <Net>{formatAmount(entry.netAmountCents)} netto</Net>
-                                                </Amounts>
-                                            </PriceBtnStatic>
-                                        ) : (
-                                            <PriceBtn
-                                                type="button"
-                                                title="Zmień cenę"
-                                                aria-label={`Zmień cenę: ${formatMoney(entry.grossAmountCents)}`}
-                                                onClick={e => { e.stopPropagation(); onOpen(entry, 'price'); }}
-                                            >
-                                                <Pencil />
-                                                <Amounts>
-                                                    <Gross>{formatMoney(entry.grossAmountCents)}</Gross>
-                                                    <Net>{formatAmount(entry.netAmountCents)} netto</Net>
-                                                </Amounts>
-                                            </PriceBtn>
-                                        )}
+                                        <PriceButton
+                                            locked={entry.isClosed}
+                                            gross={formatMoney(entry.grossAmountCents)}
+                                            net={formatAmount(entry.netAmountCents)}
+                                            title={entry.isClosed ? 'Auto jest już w zestawieniu. Otwórz, żeby odblokować je do korekty' : 'Zmień cenę'}
+                                            aria-label={entry.isClosed ? undefined : `Zmień cenę: ${formatMoney(entry.grossAmountCents)}`}
+                                            onClick={e => { e.stopPropagation(); onOpen(entry, 'price'); }}
+                                        />
                                     </Td>
                                     <Td $align="right">{menuButton(entry)}</Td>
                                 </Tr>
@@ -555,7 +373,7 @@ export function EntriesTable({ entries, isDesktop, onOpen, onDelete, onReopen }:
                                         </SubLine>
                                         <StatusBadge entry={entry} />
                                     </RowText>
-                                    <Gross>{formatMoney(entry.grossAmountCents)}</Gross>
+                                    <MobileGross>{formatMoney(entry.grossAmountCents)}</MobileGross>
                                     <ChevronRight />
                                 </RowMain>
                                 <RowMenu>{menuButton(entry)}</RowMenu>
@@ -565,39 +383,34 @@ export function EntriesTable({ entries, isDesktop, onOpen, onDelete, onReopen }:
                 </List>
             )}
 
-            {menu && createPortal(
-                <Dropdown
-                    role="menu"
-                    style={{ top: menu.top, right: menu.right }}
-                    onClick={e => e.stopPropagation()}
-                >
-                    {/* „Popraw auto" = marka, model, tablica, data - edytor otwiera się od razu
-                        na tej sekcji, a nie na cenach, które stoją w nim pierwsze. */}
-                    <MenuItem role="menuitem" type="button" onClick={() => run(() => onOpen(menu.entry, menu.entry.isClosed ? undefined : 'vehicle'))}>
-                        <Pencil />{menu.entry.isClosed ? 'Otwórz' : 'Popraw auto'}
-                    </MenuItem>
-                    {!menu.entry.isClosed && (
-                        <MenuItem role="menuitem" type="button" onClick={() => run(() => onOpen(menu.entry, 'price'))}>
-                            <span aria-hidden="true" style={{ width: 15, textAlign: 'center', fontWeight: 700, color: '#64748b' }}>zł</span>
-                            Zmień cenę
+            <ActionMenu anchor={rowMenu.menu?.anchor ?? null} onClose={rowMenu.close} label="Akcje auta">
+                {menu && (
+                    <>
+                        {/* „Popraw auto" = marka, model, tablica, data - edytor otwiera się od razu
+                            na tej sekcji, a nie na cenach, które stoją w nim pierwsze. */}
+                        <MenuItem icon={<Pencil />} onClick={() => onOpen(menu.entry, menu.entry.isClosed ? undefined : 'vehicle')}>
+                            {menu.entry.isClosed ? 'Otwórz' : 'Popraw auto'}
                         </MenuItem>
-                    )}
-                    <MenuItem role="menuitem" type="button" onClick={() => run(() => onOpen(menu.entry, 'photos'))}>
-                        <Camera />Zdjęcia ({menu.entry.photoCount})
-                    </MenuItem>
-                    <MenuDivider />
-                    {menu.entry.isClosed ? (
-                        <MenuItem role="menuitem" type="button" onClick={() => run(() => onReopen(menu.entry))}>
-                            <Unlock />Odblokuj do korekty
+                        {!menu.entry.isClosed && (
+                            <MenuItem
+                                icon={<span aria-hidden="true" style={{ width: 15, textAlign: 'center', fontWeight: 700, color: '#64748b' }}>zł</span>}
+                                onClick={() => onOpen(menu.entry, 'price')}
+                            >
+                                Zmień cenę
+                            </MenuItem>
+                        )}
+                        <MenuItem icon={<Camera />} onClick={() => onOpen(menu.entry, 'photos')}>
+                            Zdjęcia ({menu.entry.photoCount})
                         </MenuItem>
-                    ) : (
-                        <MenuItem role="menuitem" type="button" $danger onClick={() => run(() => onDelete(menu.entry))}>
-                            <Trash2 />Usuń z listy
-                        </MenuItem>
-                    )}
-                </Dropdown>,
-                document.body,
-            )}
+                        <MenuDivider />
+                        {menu.entry.isClosed ? (
+                            <MenuItem icon={<Unlock />} onClick={() => onReopen(menu.entry)}>Odblokuj do korekty</MenuItem>
+                        ) : (
+                            <MenuItem icon={<Trash2 />} danger onClick={() => onDelete(menu.entry)}>Usuń z listy</MenuItem>
+                        )}
+                    </>
+                )}
+            </ActionMenu>
         </>
     );
 }

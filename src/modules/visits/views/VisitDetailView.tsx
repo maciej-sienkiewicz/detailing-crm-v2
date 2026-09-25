@@ -1,9 +1,32 @@
-import { useState, useRef } from 'react';
+// src/modules/visits/views/VisitDetailView.tsx
+//
+// Karta wizyty. Jedna kolejność czytania: co to za auto i na kiedy (nagłówek),
+// co robimy i za ile (usługi), dowody i rozmowa (zdjęcia, komunikacja, historia),
+// a z prawej kontekst - klient, przyjęcie, notatka, komentarze.
+//
+// Trzy nośniki hierarchii (CLAUDE.md §2):
+//   wypełnienie - JEDNO w oknie: zielona akcja kroku następnego w nagłówku,
+//   wyniesienie - JEDNO w kolumnie: karta „Usługi"; reszta to płaskie panele,
+//   odcień      - znaczenie: plakietki stanu, bursztyn dla „przeczytaj".
+// Przed przebudową okno miało cztery stale wypełnione przyciski, dziesięć
+// jednakowo wyniesionych kart i sześć stylów nagłówków sekcji.
+//
+// Klocki (Button, Panel, SectionTitle, StatusPill…) są wspólne ze zleceniami
+// zbiorczymi - common/components/ui.
+//
+// Telefon: jedna kolumna i przypięte skróty do sekcji pod nagłówkiem. Dawny pasek
+// zakładek przy dolnej krawędzi dublował globalną nawigację aplikacji i chował
+// połowę karty za przełączaniem.
+
+import { useRef, useState, type ChangeEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
+import { Award, CarFront, ChevronDown, MessageSquare, Pencil, Plus, Truck } from 'lucide-react';
 import { PageContainer } from '@/common/components/PageContainer';
-import { hexBackdrop } from '@/common/styles/hexBackdrop';
-import { MobileSectionNav, MobileSectionPanel } from '@/common/components/MobileSectionNav';
+import {
+    Button, ButtonLabel, Panel, PanelActions, PanelBody, PanelHead, SectionTitle, StatusPill, ui,
+} from '@/common/components/ui';
+import { useMediaQuery } from '@/common/hooks';
 import { useVisitDetail, useVisitDocuments, useVisitPhotos, visitDetailQueryKey, visitPhotosQueryKey } from '../hooks';
 import { useVisitDamageMap, useUpdateVisitDamageMap } from '../hooks';
 import { ConsumerInvoiceModal } from '../components/ConsumerInvoiceModal';
@@ -11,15 +34,14 @@ import { RevenueInvoiceDetailModal } from '@/modules/finance/components/RevenueI
 import { useUpdateVisit, useUpdateVisitTitle, useUpdateEstimatedCompletionDate, useUpdateArrivalState } from '../hooks';
 import { useUploadDocument, useUploadPhoto, useDeleteDocument, useDeletePhoto } from '../hooks';
 import { useVisitComments, useVisitCommunication } from '../hooks';
-import { useUpdateServiceStatus } from '../hooks';
 import { VisitHeader } from '../components/VisitHeader';
-import { StatusStepper } from '../components/StatusStepper';
 import { VehicleInfoCard, CustomerInfoCard } from '../components/InfoCards';
 import { TechnicalNotesCard } from '../components/TechnicalNotesCard';
 import { ServicesTable } from '../components/ServicesTable';
 import { DocumentGallery } from '../components/DocumentGallery';
 import { VisitComments } from '../components/VisitComments';
 import { VisitCommunicationHistory } from '../components/VisitCommunicationHistory';
+import { SectionChips } from '../components/SectionChips';
 import { HandoverSheet, MarkReadyDialog } from '../components/handover';
 import { QualityCertificateModal } from '../components/QualityCertificateModal';
 import { SmsReminderModal } from '../components/SmsReminderModal';
@@ -27,7 +49,7 @@ import { useSmsReminder, type SmsReminderResponse } from '../hooks/useSmsReminde
 import { useDeleteVisit } from '../hooks/useDeleteVisit';
 import { GeneratePostModal } from '@/modules/competition-monitoring/components/GeneratePostModal';
 import type { GeneratePostPrefill } from '@/modules/competition-monitoring/components/GeneratePostModal';
-import type { DocumentType, ServiceStatus } from '../types';
+import type { DocumentType } from '../types';
 import { useToast } from '@/common/components/Toast';
 import { usePermissions } from '@/core/permissions';
 import { useQueryClient } from '@tanstack/react-query';
@@ -38,24 +60,12 @@ import { DamageMapUpdateModal } from '../components/DamageMapUpdateModal';
 import { EntityActivityTimeline } from '@/modules/activity';
 import { VisitProductsSection, useVisitProducts } from '@/modules/products';
 import { useFeature } from '@/modules/subscription/hooks/useFeature';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { formatDateTime } from '@/common/utils';
 
-// ─── Brand tokens (visit view uses sky-500, not stats blue) ──────────────────
-const BRAND = '#0ea5e9';
-const BRAND_DARK = '#0284c7';
-const BRAND_DIM = 'rgba(14, 165, 233, 0.10)';
-const BRAND_RING = '0 0 0 3px rgba(14, 165, 233, 0.14)';
+// ─── Układ ────────────────────────────────────────────────────────────────────
 
-// ─── Animations ───────────────────────────────────────────────────────────────
-
-const fadeUp = keyframes`
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
-`;
-
-// Opacity-only fade for top-level containers: transform-based animations
-// on ancestors break position:fixed modals (they become the containing block).
+// Opacity-only: animacja z transformem na przodku psuje modale z position: fixed
+// (przodek staje się dla nich blokiem zawierającym).
 const fadeIn = keyframes`
     from { opacity: 0; }
     to   { opacity: 1; }
@@ -65,11 +75,8 @@ const spin = keyframes`
     to { transform: rotate(360deg); }
 `;
 
-// ─── Layout ───────────────────────────────────────────────────────────────────
-
-// Pełnoekranowe tło + gwarancja, że widok nigdy nie rozepchnie strony
-// (overflow-x: clip). Wrapper prezentacyjny (div) - landmarkiem <main> jest
-// ContentArea, który dba też o spójną szerokość (PageContainer).
+/* Jednolite tło: sześciokąty przebijały spod kart i brudziły powierzchnie,
+   które mają czytać się jako płaskie panele. */
 const ViewContainer = styled.div`
     display: flex;
     flex-direction: column;
@@ -77,373 +84,160 @@ const ViewContainer = styled.div`
     min-height: 100dvh;
     width: 100%;
     max-width: 100%;
-    /* clip, not hidden: keeps sticky table headers working while guaranteeing
-       the view can never widen the page. */
+    /* clip, nie hidden: widok nigdy nie rozepchnie strony, a sticky dalej działa. */
     overflow-x: clip;
-    background: ${st.bg};
-    ${hexBackdrop}
+    background: ${ui.bg};
     animation: ${fadeIn} 0.3s ease both;
 `;
 
 const ContentArea = styled(PageContainer)`
     flex: 1;
     min-width: 0;
-    /* Górny odstęp jest wspólny (z PageContainer); tu tylko dolny zapas. */
     padding-block-end: 40px;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         padding-block-end: 48px;
     }
-
-    @media (max-width: 767px) {
-        /* Bottom clearance = nav height + home-indicator inset, so the last card
-           is never parked under the tab bar. */
-        /* Zapas na zakładki sekcji; pasek globalny i safe-area dokłada Layout. */
-        padding-block-end: 84px;
-    }
 `;
 
-const D2dBanner = styled.div`
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 11px 18px;
-    margin-bottom: 14px;
+/**
+ * Dwie kolumny od 960px szerokości TREŚCI (zapytanie kontenerowe), nie okna: obok
+ * rozwiniętego menu aplikacji okno 1200px daje treści ~900px, a szyna 344px
+ * ścisnęłaby wtedy wykaz usług do połowy.
+ *
+ * W jednej kolumnie kolumny rozpadają się (`display: contents`), a sekcje ustawia
+ * `order`: usługi, zdjęcia, klient, komentarze - kolejność z makiety telefonu.
+ */
+const Layout = styled.div`
+    container: visit-layout / inline-size;
     min-width: 0;
-    background: rgba(14, 165, 233, 0.07);
-    border: 1px solid rgba(14, 165, 233, 0.2);
-    border-radius: 12px;
-    font-size: 13px;
-    font-weight: 500;
-    line-height: 1.5;
-    color: #0369a1;
-    /* Addresses are user data and can be long single tokens. */
-    overflow-wrap: anywhere;
-
-    svg { flex-shrink: 0; margin-top: 2px; }
-
-    @media (max-width: 640px) {
-        gap: 9px;
-        padding: 10px 12px;
-        font-size: 12.5px;
-    }
-`;
-
-const D2dBannerLabel = styled.span`
-    font-weight: 700;
-    margin-right: 2px;
-`;
-
-const D2dBannerAddress = styled.span`
-    color: #0284c7;
-    font-weight: 600;
-`;
-
-// ─── Main grid ────────────────────────────────────────────────────────────────
-// Flex (not grid) so col-1 expand/collapse never shifts col-2.
-
-const MainGrid = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    margin-bottom: 20px;
-
-    @media (min-width: ${props => props.theme.breakpoints.lg}) {
-        flex-direction: row;
-        gap: 20px;
-    }
-
-    @media (max-width: 767px) {
-        gap: 0;
-    }
 `;
 
 const MainColumn = styled.div`
-    flex: 1;
+    display: contents;
+`;
+
+const Rail = styled.aside`
+    display: contents;
+`;
+
+const Slot = styled.div<{ $order: number }>`
+    order: ${p => p.$order};
     min-width: 0;
-    max-width: 100%;
-    width: 100%;
+    /* Przewinięcie ze skrótu zostawia oddech nad sekcją i pod przypiętym paskiem. */
+    scroll-margin-top: 64px;
+`;
+
+/* Zapytanie kontenerowe dotyczy PRZODKA - szerokość mierzy Layout, a siatkę
+   ustawia jego wnętrze. */
+const Columns = styled.div`
     display: flex;
     flex-direction: column;
     gap: 14px;
-`;
-
-const Sidebar = styled.aside<{ $mobileVisible?: boolean }>`
-    width: 100%;
     min-width: 0;
-    max-width: 100%;
+
+    @container visit-layout (min-width: 960px) {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 344px;
+        gap: 20px;
+        align-items: start;
+
+        ${MainColumn}, ${Rail} {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            min-width: 0;
+        }
+    }
+`;
+
+const D2dStrip = styled.div`
     display: flex;
-    flex-direction: column;
-    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    padding: 11px 16px;
+    border-radius: ${ui.radiusStrip};
+    background: ${ui.brandTint};
+    border: 1px solid ${ui.brandLineSoft};
+    font-size: 13px;
+    color: ${ui.brandDeep};
+    overflow-wrap: anywhere;
 
-    @media (min-width: ${props => props.theme.breakpoints.lg}) {
-        width: 320px;
-        flex-shrink: 0;
-    }
-
-    @media (min-width: ${props => props.theme.breakpoints.xl}) {
-        width: 340px;
-    }
-
-    @media (max-width: 767px) {
-        display: ${p => p.$mobileVisible ? 'flex' : 'none'};
-    }
+    > svg { width: 16px; height: 16px; flex-shrink: 0; }
+    strong { font-weight: 700; }
 `;
 
-// ─── Section wrapper (docs, audit, communication) ─────────────────────────────
-
-const Section = styled.div`
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    overflow: hidden;
-    box-shadow: ${st.shadowSm};
+const D2dChange = styled(Button)`
+    margin-left: auto;
+    color: ${ui.brandDeep};
 `;
 
-const SectionHeader = styled.button`
-    width: 100%;
+const HistoryToggle = styled.button`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
-    padding: 14px 20px;
-    background: ${st.bgCard};
-    border: none;
-    border-bottom: 1px solid ${st.border};
-    cursor: pointer;
-    transition: background ${st.transition};
-    text-align: left;
-
-    &:hover { background: ${st.bg}; }
-
-    @media (max-width: 640px) {
-        padding: 13px 14px;
-        min-height: 48px;
-    }
-`;
-
-const SectionHeaderLeft = styled.div`
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-    min-width: 0;
-
-    @media (max-width: 640px) { gap: 8px; }
-`;
-
-const SectionIconWrap = styled.div<{ $gradient?: string }>`
-    width: 28px;
-    height: 28px;
-    border-radius: 7px;
-    background: ${p => p.$gradient ?? `linear-gradient(135deg, ${BRAND} 0%, ${BRAND_DARK} 100%)`};
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-`;
-
-const SectionIconPlain = styled.span`
-    display: inline-flex;
-    align-items: center;
-    color: ${st.textMuted};
-    flex-shrink: 0;
-    svg { width: 16px; height: 16px; }
-`;
-
-const SectionTitle = styled.span`
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    letter-spacing: -0.1px;
-    color: ${st.text};
-`;
-
-const SectionCount = styled.span`
-    font-size: 11px;
-    font-weight: 700;
-    color: ${st.textMuted};
-    background: ${st.bgCardAlt};
-    border: 1px solid ${st.border};
-    padding: 2px 8px;
-    border-radius: ${st.radiusFull};
-`;
-
-const ChevronIcon = styled.svg<{ $open: boolean }>`
-    width: 16px;
-    height: 16px;
-    color: ${st.textMuted};
-    transition: transform 250ms ease;
-    transform: ${props => props.$open ? 'rotate(180deg)' : 'rotate(0deg)'};
-    flex-shrink: 0;
-`;
-
-const SectionBody = styled.div<{ $visible: boolean; $flush?: boolean }>`
-    display: ${props => props.$visible ? 'block' : 'none'};
-    padding: ${props => props.$flush ? '0' : '20px'};
-    min-width: 0;
-    animation: ${fadeUp} 0.2s ease;
-
-    @media (max-width: 640px) {
-        padding: ${props => props.$flush ? '0' : '14px'};
-    }
-`;
-
-const DocsSectionHeader = styled.div`
+    gap: 12px;
     width: 100%;
-    display: flex;
-    align-items: center;
-    min-width: 0;
-    background: ${st.bg};
-    border-bottom: 1px solid ${st.border};
-    cursor: pointer;
-    transition: background ${st.transition};
-    &:hover { background: ${st.bgCardAlt}; }
-
-    /* Title + counters + "Dodaj plik" do not fit one phone line. Below 640px the
-       header becomes two rows: identity on top, upload action underneath. */
-    @media (max-width: 640px) {
-        flex-wrap: wrap;
-        padding: 12px 14px;
-        row-gap: 10px;
-    }
-`;
-
-const DocsHeaderMain = styled.div`
-    flex: 1;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-    padding: 14px 20px;
-    min-width: 0;
-
-    @media (max-width: 640px) {
-        flex-basis: 100%;
-        padding: 0;
-        gap: 8px;
-    }
-`;
-
-const DocsHeaderStats = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-shrink: 0;
-`;
-
-const StatPill = styled.span`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 2px 9px;
-    border-radius: ${st.radiusFull};
-    background: ${st.bg};
-    color: ${st.textMuted};
-    border: 1px solid ${st.border};
-`;
-
-const DocsHeaderRight = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding-right: 16px;
-    flex-shrink: 0;
-
-    @media (max-width: 640px) {
-        flex-basis: 100%;
-        padding-right: 0;
-        justify-content: space-between;
-    }
-`;
-
-/*
- * „Zaktualizuj uszkodzenia" jest NEUTRALNE i takie ma zostać.
- *
- * Miało wcześniej bursztynowy odcień, a bursztyn znaczy w tym interfejsie
- * „przeczytaj to". Sięga się tu raz na kilkanaście wizyt, więc kolor obiecywał
- * uwagę, której ta akcja nie potrzebuje, i konkurował z „Dodaj plik" obok.
- * Wypełnienia nie ma żadne z dwojga poza „Dodaj plik" (krok następny sekcji), a
- * odcień zostaje tam, gdzie faktycznie coś znaczy.
- *
- * Ta sama cicha pastylka co „Cofnij" i „Wyczyść wszystko" pod mapą: narzędzie
- * dostępne, ale nie proszące się o kliknięcie.
- */
-const DamageMapHeaderBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    font-family: inherit;
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    color: ${st.textSecondary};
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusFull};
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all ${st.transition};
-
-    svg { width: 13px; height: 13px; flex-shrink: 0; color: ${st.textMuted}; }
-
-    &:hover {
-        color: ${st.text};
-        background: ${st.bgCardAlt};
-        border-color: ${st.borderHover};
-
-        svg { color: ${st.textSecondary}; }
-    }
-
-    @media (max-width: 640px) {
-        flex: 1;
-        justify-content: center;
-        padding: 9px 14px;
-        min-height: 40px;
-    }
-`;
-
-const UploadHeaderLabel = styled.label<{ $uploading?: boolean }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    background: ${BRAND};
-    color: white;
+    padding: 14px 18px;
     border: none;
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    cursor: ${p => p.$uploading ? 'not-allowed' : 'pointer'};
-    opacity: ${p => p.$uploading ? 0.6 : 1};
-    transition: all ${st.transition};
-    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
+    border-radius: ${ui.radiusPanel};
+    background: transparent;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    > svg { width: 16px; height: 16px; color: ${ui.textMuted}; transition: transform 200ms ease; }
+    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: -2px; }
+    @media (max-width: 640px) { padding: 14px 16px; }
+`;
+
+const RailPanel = styled(Panel)`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 16px 18px;
+`;
+
+const RailHead = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+`;
+
+const ReminderWhen = styled.span`
+    font-size: 13px;
+    color: ${ui.textSecondary};
+    font-variant-numeric: tabular-nums;
+`;
+
+const ReminderText = styled.p`
+    margin: 0;
+    max-width: 100%;
+    font-size: 12.5px;
+    color: ${ui.textMuted};
     white-space: nowrap;
-    user-select: none;
-
-    &:hover {
-        background: ${p => p.$uploading ? BRAND : BRAND_DARK};
-        box-shadow: ${p => p.$uploading ? '0 2px 8px rgba(14,165,233,0.28)' : '0 4px 14px rgba(14,165,233,0.36)'};
-        transform: ${p => p.$uploading ? 'none' : 'translateY(-1px)'};
-    }
-
-    svg { width: 13px; height: 13px; flex-shrink: 0; }
-
-    @media (max-width: 640px) {
-        flex: 1;
-        justify-content: center;
-        padding: 9px 14px;
-        min-height: 40px;
-    }
+    overflow: hidden;
+    text-overflow: ellipsis;
 `;
 
-const HiddenFileInput = styled.input`
-    display: none;
+const AfterCare = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 `;
 
-// ─── Loading / Error ──────────────────────────────────────────────────────────
+const AfterCareNote = styled.p`
+    margin: 0;
+    font-size: 12.5px;
+    color: ${ui.textMuted};
+    text-align: center;
+`;
+
+// ─── Wczytywanie i błędy ──────────────────────────────────────────────────────
 
 const LoadingContainer = styled.div`
     display: flex;
@@ -457,19 +251,22 @@ const LoadingContainer = styled.div`
 const Spinner = styled.div`
     width: 38px;
     height: 38px;
-    border: 3px solid ${st.border};
-    border-top-color: ${st.accentBlue};
+    border: 3px solid ${ui.line};
+    border-top-color: ${ui.brand};
     border-radius: 50%;
     animation: ${spin} 0.7s linear infinite;
 `;
 
 const LoadingText = styled.p`
     margin: 0;
-    color: ${st.textMuted};
-    font-size: ${st.fontSm};
+    color: ${ui.textMuted};
+    font-size: 14px;
 `;
 
 const ErrorContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     padding: 48px 32px;
     text-align: center;
 `;
@@ -478,13 +275,15 @@ const ErrorTitle = styled.h2`
     margin: 0 0 8px;
     font-size: 20px;
     font-weight: 700;
-    color: ${st.accentRed};
+    color: ${ui.dangerInk};
 `;
 
 const ErrorMessage = styled.p`
+    max-width: 560px;
     margin: 0 0 20px;
-    color: ${st.textSecondary};
-    font-size: ${st.fontSm};
+    color: ${ui.textSecondary};
+    font-size: 14px;
+    line-height: 1.55;
 `;
 
 /** Nierozpoczęta wizyta to stan procesu, nie awaria - stąd inny kolor niż przy błędzie. */
@@ -492,213 +291,18 @@ const NotStartedTitle = styled.h2`
     margin: 0 0 8px;
     font-size: 20px;
     font-weight: 700;
-    color: ${st.text};
+    color: ${ui.ink};
 `;
 
-const RetryButton = styled.button`
-    padding: 9px 22px;
-    background: ${BRAND};
-    color: white;
-    border: none;
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    cursor: pointer;
-    transition: all ${st.transition};
-    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
-    &:hover { background: ${BRAND_DARK}; box-shadow: 0 4px 14px rgba(14,165,233,0.36); transform: translateY(-1px); }
-`;
+/** 1 zdjęcie, 2 zdjęcia, 5 zdjęć, 22 zdjęcia. */
+function photosWord(n: number): string {
+    if (n === 1) return '1 zdjęcie';
+    const units = n % 10;
+    const tens = n % 100;
+    return `${n} ${units >= 2 && units <= 4 && (tens < 12 || tens > 14) ? 'zdjęcia' : 'zdjęć'}`;
+}
 
-// ─── SMS Reminder Card ────────────────────────────────────────────────────────
-
-const ReminderCard = styled.div`
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    overflow: hidden;
-    box-shadow: ${st.shadowSm};
-`;
-
-const ReminderCardHeader = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 14px 10px;
-    background: ${st.bgCard};
-    border-bottom: 1px solid ${st.border};
-`;
-
-const ReminderCardIcon = styled.div`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: ${st.textMuted};
-    flex-shrink: 0;
-    svg { width: 15px; height: 15px; }
-`;
-
-const ReminderCardTitle = styled.span`
-    flex: 1;
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    color: ${st.text};
-`;
-
-const ReminderCardBadge = styled.span`
-    font-size: 10px;
-    font-weight: 700;
-    padding: 2px 7px;
-    border-radius: ${st.radiusFull};
-    background: ${st.bgCardAlt};
-    color: ${st.textMuted};
-    border: 1px solid ${st.border};
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-`;
-
-const ReminderCardBody = styled.div`
-    padding: 12px 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-`;
-
-const ReminderDate = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: ${st.fontXs};
-    color: ${st.textSecondary};
-    font-variant-numeric: tabular-nums;
-    svg { width: 12px; height: 12px; color: ${st.textMuted}; flex-shrink: 0; }
-`;
-
-const ReminderMessagePreview = styled.p`
-    margin: 0;
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-    line-height: 1.45;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-`;
-
-const ReminderCardActions = styled.div`
-    display: flex;
-    gap: 6px;
-    padding: 0 14px 12px;
-`;
-
-const ReminderActionBtn = styled.button<{ $danger?: boolean }>`
-    flex: 1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    padding: 6px 10px;
-    border-radius: ${st.radiusFull};
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all ${st.transition};
-
-    ${p => p.$danger ? `
-        background: transparent;
-        color: #EF4444;
-        border: 1px solid rgba(239,68,68,0.3);
-        &:hover { background: rgba(239,68,68,0.08); border-color: #EF4444; }
-    ` : `
-        background: transparent;
-        color: ${st.textSecondary};
-        border: 1px solid ${st.border};
-        &:hover { border-color: ${BRAND}; color: ${BRAND}; background: ${BRAND_DIM}; }
-    `}
-
-    svg { width: 11px; height: 11px; }
-`;
-
-// Akcja drugorzędna po zakończonej wizycie: odcień marki, obwódka, zero wypełnienia
-// (CLAUDE.md §2). Wypełnienie pojawia się dopiero w otwartym oknie certyfikatu.
-const CertificateBtn = styled.button`
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 10px 16px;
-    border-radius: ${st.radius};
-    border: 1px solid #fcd34d;
-    background: ${st.bgAccentAmber};
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 600;
-    color: #b45309;
-    cursor: pointer;
-    transition: all ${st.transition};
-
-    svg { width: 15px; height: 15px; flex-shrink: 0; }
-
-    &:hover { border-color: #f59e0b; }
-`;
-
-const ScheduleSmsBtn = styled.button`
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 10px 16px;
-    border-radius: ${st.radius};
-    border: 1.5px dashed #cbd5e1;
-    background: transparent;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 600;
-    color: ${st.textSecondary};
-    cursor: pointer;
-    transition: all ${st.transition};
-
-    svg { width: 15px; height: 15px; flex-shrink: 0; }
-
-    &:hover:not(:disabled) {
-        border-color: #0ea5e9;
-        color: #0369a1;
-        background: #f0f9ff;
-    }
-
-    &:disabled {
-        cursor: not-allowed;
-        opacity: 0.5;
-    }
-`;
-
-const ScheduleSmsNoPhone = styled.p`
-    margin: 6px 0 0;
-    font-size: 11px;
-    color: ${st.textMuted};
-    text-align: center;
-    line-height: 1.4;
-`;
-
-// ─── Visibility helpers ───────────────────────────────────────────────────────
-
-const MobileOnlyWrap = styled.div`
-    margin-top: 14px;
-    @media (min-width: 768px) { display: none; }
-`;
-
-const DesktopOnlyWrap = styled.div`
-    @media (max-width: 767px) { display: none; }
-`;
-
-// ─── Mobile tab navigation ────────────────────────────────────────────────────
-
-type MobileTab = 'services' | 'info' | 'docs' | 'communication' | 'history';
-
-// Pasek zakładek i sekcje są wspólne z kartą klienta - patrz
-// common/components/MobileSectionNav.
-
-// ─── View ─────────────────────────────────────────────────────────────────────
+// ─── Widok ────────────────────────────────────────────────────────────────────
 
 export const VisitDetailView = () => {
     const { visitId } = useParams<{ visitId: string }>();
@@ -717,19 +321,10 @@ export const VisitDetailView = () => {
     const [isCertificateOpen, setIsCertificateOpen] = useState(false);
     const [smsReminderForEdit, setSmsReminderForEdit] = useState<SmsReminderResponse | null>(null);
     const [highlightPendingServices, setHighlightPendingServices] = useState(false);
-    const [isDocsOpen, setIsDocsOpen] = useState(false);
     const [isDamageMapOpen, setIsDamageMapOpen] = useState(false);
     const [isAuditOpen, setIsAuditOpen] = useState(false);
-    const [isCommunicationOpen, setIsCommunicationOpen] = useState(true);
-    const [isProductsOpen, setIsProductsOpen] = useState(true);
-    const [mobileTab, setMobileTab] = useState<MobileTab>('services');
-
-    const handleMobileTabChange = (tab: MobileTab) => {
-        setMobileTab(tab);
-        if (tab === 'docs') setIsDocsOpen(true);
-        if (tab === 'history') setIsAuditOpen(true);
-        if (tab === 'communication') setIsCommunicationOpen(true);
-    };
+    // Telefon: jedna kolumna, skróty do sekcji zamiast zakładek, klient razem z przyjęciem.
+    const isPhone = useMediaQuery('(max-width: 767px)');
     const docFileInputRef = useRef<HTMLInputElement>(null);
 
     // Zapytania (GET-y) pytają o wizytę tylko dopóki ona istnieje; mutacje niżej
@@ -749,7 +344,6 @@ export const VisitDetailView = () => {
     const { deletePhoto } = useDeletePhoto(visitId!);
     const { comments, isLoading: isLoadingComments } = useVisitComments(activeVisitId);
     const { entries: communicationEntries, isLoading: isLoadingCommunication } = useVisitCommunication(activeVisitId);
-    const { updateServiceStatus } = useUpdateServiceStatus(visitId!);
     // Punkty uszkodzeń pytamy dopiero przy otwartym oknie: przy każdym wejściu w
     // kartę wizyty byłoby to zapytanie, którego nikt nie czyta.
     const { damageMap, isLoading: isLoadingDamageMap } = useVisitDamageMap(activeVisitId, isDamageMapOpen);
@@ -816,9 +410,9 @@ export const VisitDetailView = () => {
                             brakuje podpisów i zatwierdzenia, więc wizyta jeszcze nie ruszyła.
                             Znajdziesz ją w sekcji „Nieukończone przyjęcia".
                         </ErrorMessage>
-                        <RetryButton onClick={() => navigate('/operations')}>
+                        <Button variant="primary" onClick={() => navigate('/operations')}>
                             Przejdź do nieukończonych przyjęć
-                        </RetryButton>
+                        </Button>
                     </ErrorContainer>
                 </ContentArea>
             </ViewContainer>
@@ -834,9 +428,9 @@ export const VisitDetailView = () => {
                         <ErrorMessage>
                             Nie udało się załadować szczegółów wizyty. Spróbuj ponownie.
                         </ErrorMessage>
-                        <RetryButton onClick={() => refetch()}>
+                        <Button variant="primary" onClick={() => refetch()}>
                             Spróbuj ponownie
-                        </RetryButton>
+                        </Button>
                     </ErrorContainer>
                 </ContentArea>
             </ViewContainer>
@@ -881,7 +475,7 @@ export const VisitDetailView = () => {
 
         const topic = [vehicleLabel, serviceNames.length > 0 ? serviceNames.join(', ') : '']
             .filter(Boolean)
-            .join(' · ');
+            .join(': ');
 
         const statusLabel =
             status === 'COMPLETED'        ? 'Realizacja zakończona.'       :
@@ -953,10 +547,6 @@ export const VisitDetailView = () => {
     const handleDeleteDocument = (documentId: string) => { deleteDocument(documentId); };
     const handleDeletePhoto = (photoId: string) => { deletePhoto(photoId); };
 
-    const handleUpdateServiceStatus = (serviceLineItemId: string, status: ServiceStatus) => {
-        updateServiceStatus({ serviceLineItemId, payload: { status } });
-    };
-
     /*
      * Liczniki w nagłówku muszą zgadzać się z tym, co pokazuje galeria (patrz
      * `documentPhotos` / `pdfs` w DocumentGallery), a ta dzieli pliki po
@@ -970,9 +560,12 @@ export const VisitDetailView = () => {
 
     const photoCount = visitPhotos.length + documents.filter(d => !isPdfDocument(d)).length;
     const pdfCount = documents.filter(isPdfDocument).length;
-    const totalDocCount = photoCount + pdfCount;
+    const docsSummary = [
+        photoCount > 0 ? photosWord(photoCount) : null,
+        pdfCount > 0 ? `${pdfCount} PDF` : null,
+    ].filter(Boolean).join(', ');
 
-    const handleDocFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleDocFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
         const isImage = file.type.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(file.name);
@@ -983,6 +576,47 @@ export const VisitDetailView = () => {
         }
         if (docFileInputRef.current) docFileInputRef.current.value = '';
     };
+
+
+    const canSeeCustomer = can('CUSTOMERS_VIEW');
+    const canSeeProducts = productsFeatureEnabled && can('PRODUCTS_VIEW');
+    const canSeeCommunication = can('COMMUNICATION_SEND');
+    const canSeeHistory = can('VISITS_CREATE');
+    const visibleCommentCount = comments.filter(c => !c.isDeleted).length;
+    const failedMessages = communicationEntries.filter(e => e.status === 'FAILED').length;
+
+    /* Door to Door: `enabled === false` to świadoma rezygnacja klienta - adresy
+       zostają zapisane, ale wizyta nie jest już Door to Door. */
+    const d2d = visit.doorToDoor && visit.doorToDoor.enabled !== false ? visit.doorToDoor : null;
+    const d2dPickup = d2d ? [d2d.pickupAddress?.street, d2d.pickupAddress?.city].filter(Boolean).join(', ') : '';
+    const d2dDelivery = d2d ? [d2d.deliveryAddress?.street, d2d.deliveryAddress?.city].filter(Boolean).join(', ') : '';
+
+    const vehicleCard = can('CUSTOMERS_VIEW') && (
+        <VehicleInfoCard
+            vehicle={visit.vehicle}
+            mileageAtArrival={visit.mileageAtArrival}
+            keysHandedOver={visit.keysHandedOver}
+            documentsHandedOver={visit.documentsHandedOver}
+            vehicleHandoff={visit.vehicleHandoff}
+            onMileageChange={handleMileageChange}
+            canEdit={can('VISITS_CREATE')}
+            onKeysToggle={handleKeysToggle}
+            onDocumentsToggle={handleDocumentsToggle}
+            onViewDetails={() => navigate(`/vehicles/${visit.vehicle.id}`)}
+            acceptedByName={visit.acceptedByName}
+            acceptedAt={visit.createdAt}
+            embedded={isPhone}
+        />
+    );
+
+    const chips = [
+        { id: 'visit-services', label: 'Usługi' },
+        { id: 'visit-docs', label: 'Zdjęcia', count: photoCount + pdfCount },
+        ...(canSeeCustomer ? [{ id: 'visit-customer', label: 'Klient' }] : []),
+        { id: 'visit-comments', label: 'Komentarze', count: visibleCommentCount },
+        ...(canSeeCommunication ? [{ id: 'visit-communication', label: 'Wiadomości', count: communicationEntries.length }] : []),
+        ...(canSeeHistory ? [{ id: 'visit-history', label: 'Historia' }] : []),
+    ];
 
     return (
     <>
@@ -1000,197 +634,100 @@ export const VisitDetailView = () => {
                     onEstimatedCompletionDateUpdate={updateEstimatedCompletionDate}
                 />
 
-                {visit.doorToDoor && (() => {
-                    const d2d = visit.doorToDoor!;
-                    /* `enabled === false` to świadoma rezygnacja klienta - adresy
-                       zostają zapisane, ale wizyta nie jest już Door to Door. */
-                    if (d2d.enabled === false) return null;
-                    const hasPickup = !!(d2d.pickupAddress?.city || d2d.pickupAddress?.street);
-                    const hasDelivery = !!(d2d.deliveryAddress?.city || d2d.deliveryAddress?.street);
-                    const modeText = hasPickup && hasDelivery
-                        ? 'odbiór i dostawa'
-                        : hasPickup  ? 'wyłącznie odbiór'
-                        : hasDelivery ? 'wyłącznie dostawa'
-                        : null;
-                    if (!modeText) return null;
-                    const pickupStr = hasPickup
-                        ? [d2d.pickupAddress.street, d2d.pickupAddress.city].filter(Boolean).join(', ')
-                        : '';
-                    const deliveryStr = hasDelivery
-                        ? [d2d.deliveryAddress.street, d2d.deliveryAddress.city].filter(Boolean).join(', ')
-                        : '';
-                    return (
-                        <D2dBanner>
-                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="1" y="3" width="15" height="13" rx="1"/>
-                                <path d="M16 8h4l3 5v3h-7V8z"/>
-                                <circle cx="5.5" cy="18.5" r="2.5"/>
-                                <circle cx="18.5" cy="18.5" r="2.5"/>
-                            </svg>
-                            <span>
-                                <D2dBannerLabel>Door to Door</D2dBannerLabel>
-                                {' · '}{modeText}
-                                {pickupStr && <> · odbiór: <D2dBannerAddress>{pickupStr}</D2dBannerAddress></>}
-                                {deliveryStr && <> · dostawa: <D2dBannerAddress>{deliveryStr}</D2dBannerAddress></>}
-                                {d2d.driverName && <> · kierowca: <D2dBannerAddress>{d2d.driverName}</D2dBannerAddress></>}
-                                {d2d.scheduledAt && <> · termin: <D2dBannerAddress>{formatDateTime(d2d.scheduledAt)}</D2dBannerAddress></>}
-                            </span>
-                        </D2dBanner>
-                    );
-                })()}
+                {isPhone && (
+                    <SectionChips
+                        items={chips}
+                        onOpen={id => { if (id === 'visit-history') setIsAuditOpen(true); }}
+                    />
+                )}
 
-                <StatusStepper currentStatus={visit.status} />
-
-                <MainGrid>
+                <Layout>
+                <Columns>
                     <MainColumn>
-                        <MobileSectionPanel $visible={mobileTab === 'services'}>
+                        {/* Door to Door jako płaski pasek informacji: każdy fakt osobno,
+                            nie jeden ciąg sklejony kropkami (CLAUDE.md §4). */}
+                        {d2d && (d2dPickup || d2dDelivery) && (
+                            <D2dStrip style={{ order: 0 }}>
+                                <Truck aria-hidden="true" />
+                                <strong>Door to door</strong>
+                                {d2dPickup && <span>Odbiór{d2d.scheduledAt ? ` ${formatDateTime(d2d.scheduledAt)}` : ''}, {d2dPickup}</span>}
+                                {d2dDelivery && (
+                                    <span>{d2dDelivery === d2dPickup ? 'Dostawa pod ten sam adres' : `Dostawa: ${d2dDelivery}`}</span>
+                                )}
+                                {d2d.driverName && <span>Kierowca {d2d.driverName}</span>}
+                                {can('VISITS_CREATE') && (
+                                    <D2dChange variant="ghost" size="sm" onClick={() => setIsDoorToDoorOpen(true)}>Zmień</D2dChange>
+                                )}
+                            </D2dStrip>
+                        )}
+
+                        <Slot id="visit-services" $order={1}>
                             <ServicesTable
                                 services={visit.services}
                                 visitStatus={visit.status}
                                 visitId={visitId!}
                                 highlightPending={highlightPendingServices}
+                                settlement={visit.settlement}
                             />
-                            <MobileOnlyWrap>
-                                <VisitComments
-                                    visitId={visitId!}
-                                    comments={comments}
-                                    isLoading={isLoadingComments}
-                                />
-                            </MobileOnlyWrap>
-                        </MobileSectionPanel>
+                        </Slot>
 
-                        {/* Użyte produkty ───────────────────────────────── */}
-                        {productsFeatureEnabled && can('PRODUCTS_VIEW') && (
-                            <MobileSectionPanel $visible={mobileTab === 'services'}>
-                                <Section>
-                                    <SectionHeader
-                                        onClick={() => setIsProductsOpen(v => !v)}
-                                        aria-expanded={isProductsOpen}
-                                        aria-controls="products-section"
-                                    >
-                                        <SectionHeaderLeft>
-                                            <SectionIconPlain>
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                                                    <path d="M16.5 9.4 7.5 4.21" />
-                                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                                                    <path d="m3.3 7 8.7 5 8.7-5" />
-                                                    <path d="M12 22V12" />
-                                                </svg>
-                                            </SectionIconPlain>
-                                            <SectionTitle>Użyte produkty</SectionTitle>
-                                            {visitProductLinks.length > 0 && (
-                                                <SectionCount>{visitProductLinks.length}</SectionCount>
-                                            )}
-                                        </SectionHeaderLeft>
-                                        <ChevronIcon $open={isProductsOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <polyline points="6 9 12 15 18 9" />
-                                        </ChevronIcon>
-                                    </SectionHeader>
-                                    <SectionBody $visible={isProductsOpen} id="products-section">
+                        {canSeeProducts && (
+                            <Slot $order={2}>
+                                <Panel aria-labelledby="visit-products-title">
+                                    <PanelHead>
+                                        <SectionTitle id="visit-products-title" count={visitProductLinks.length || undefined}>
+                                            Użyte produkty
+                                        </SectionTitle>
+                                    </PanelHead>
+                                    <PanelBody>
                                         <VisitProductsSection
                                             visitId={visitId!}
                                             canUsage={can('PRODUCTS_USAGE')}
                                             canManageProducts={can('PRODUCTS_MANAGE')}
                                             canSeeCosts={can('PRODUCTS_COSTS')}
                                         />
-                                    </SectionBody>
-                                </Section>
-                            </MobileSectionPanel>
+                                    </PanelBody>
+                                </Panel>
+                            </Slot>
                         )}
 
-                        {/* Dokumentacja ─────────────────────────────────── */}
-                        <MobileSectionPanel $visible={mobileTab === 'docs'}>
-                        <Section>
-                            <DocsSectionHeader
-                                onClick={() => setIsDocsOpen(v => !v)}
-                                role="button"
-                                tabIndex={0}
-                                aria-expanded={isDocsOpen}
-                                aria-controls="docs-section"
-                                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setIsDocsOpen(v => !v); }}
-                            >
-                                <DocsHeaderMain>
-                                    <SectionIconPlain>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                                            <rect x="3" y="3" width="7" height="7" rx="1" />
-                                            <rect x="14" y="3" width="7" height="7" rx="1" />
-                                            <rect x="3" y="14" width="7" height="7" rx="1" />
-                                            <rect x="14" y="14" width="7" height="7" rx="1" />
-                                        </svg>
-                                    </SectionIconPlain>
-                                    <SectionTitle>Dokumentacja</SectionTitle>
-                                    <DocsHeaderStats>
-                                        {photoCount > 0 && (
-                                            <StatPill>
-                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                                                    <circle cx="8.5" cy="8.5" r="1.5" />
-                                                    <polyline points="21 15 16 10 5 21" />
-                                                </svg>
-                                                {photoCount}
-                                            </StatPill>
+                        <Slot id="visit-docs" $order={3}>
+                            <Panel aria-labelledby="visit-docs-title">
+                                <PanelHead>
+                                    <SectionTitle id="visit-docs-title" count={docsSummary || undefined}>
+                                        Zdjęcia i dokumenty
+                                    </SectionTitle>
+                                    <PanelActions>
+                                        {/* Mapa uszkodzeń jest edytowalna, dopóki pojazd jest w studiu.
+                                            Po wydaniu (COMPLETED) i po odrzuceniu wizyty backend odmawia
+                                            zapisu, więc przycisk też nie może obiecywać, że się uda. */}
+                                        {can('VISITS_CREATE') && visit.status !== 'COMPLETED'
+                                            && visit.status !== 'REJECTED' && visit.status !== 'ARCHIVED' && !isPhone && (
+                                            <Button
+                                                size="sm"
+                                                onClick={() => setIsDamageMapOpen(true)}
+                                                title="Dopisz uszkodzenia, które pojawiły się w trakcie wizyty"
+                                            >
+                                                <CarFront />Mapa uszkodzeń
+                                            </Button>
                                         )}
-                                        {pdfCount > 0 && (
-                                            <StatPill>
-                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                                    <polyline points="14 2 14 8 20 8"/>
-                                                </svg>
-                                                {pdfCount}
-                                            </StatPill>
-                                        )}
-                                        {totalDocCount === 0 && (
-                                            <SectionCount>Brak plików</SectionCount>
-                                        )}
-                                    </DocsHeaderStats>
-                                </DocsHeaderMain>
-                                <DocsHeaderRight>
-                                    {/* Mapa uszkodzeń jest edytowalna, dopóki pojazd jest w studiu.
-                                        Po wydaniu (COMPLETED) i po odrzuceniu wizyty backend odmawia
-                                        zapisu, więc przycisk też nie może obiecywać, że się uda. */}
-                                    {can('VISITS_CREATE') && visit.status !== 'COMPLETED'
-                                        && visit.status !== 'REJECTED' && visit.status !== 'ARCHIVED' && (
-                                        <DamageMapHeaderBtn
-                                            type="button"
-                                            onClick={e => { e.stopPropagation(); setIsDamageMapOpen(true); }}
-                                            /* Nagłówek sekcji sam reaguje na Enter/Spację (zwija ją),
-                                               więc bez tego klawiatura otwierałaby okno I zwijała
-                                               Dokumentację pod nim. */
-                                            onKeyDown={e => e.stopPropagation()}
-                                            title="Dopisz uszkodzenia, które pojawiły się w trakcie wizyty"
+                                        <ButtonLabel
+                                            $variant="tinted"
+                                            $size="sm"
+                                            aria-disabled={isUploading || isUploadingPhoto}
                                         >
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M5 17h14l-1.5-5a3 3 0 0 0-2.85-2h-6.3a3 3 0 0 0-2.85 2z" />
-                                                <circle cx="7.5" cy="17" r="1.6" />
-                                                <circle cx="16.5" cy="17" r="1.6" />
-                                                <path d="M12 3v4M12 7l2.2-2.2M12 7 9.8 4.8" />
-                                            </svg>
-                                            Zaktualizuj uszkodzenia
-                                        </DamageMapHeaderBtn>
-                                    )}
-                                    <UploadHeaderLabel
-                                        $uploading={isUploading || isUploadingPhoto}
-                                        onClick={e => e.stopPropagation()}
-                                    >
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                            <line x1="12" y1="5" x2="12" y2="19" />
-                                            <line x1="5" y1="12" x2="19" y2="12" />
-                                        </svg>
-                                        {isUploading || isUploadingPhoto ? 'Wysyłanie...' : 'Dodaj plik'}
-                                        <HiddenFileInput
-                                            ref={docFileInputRef}
-                                            type="file"
-                                            accept="image/*,.pdf"
-                                            onChange={handleDocFileSelect}
-                                            disabled={isUploading || isUploadingPhoto}
-                                        />
-                                    </UploadHeaderLabel>
-                                    <ChevronIcon $open={isDocsOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <polyline points="6 9 12 15 18 9" />
-                                    </ChevronIcon>
-                                </DocsHeaderRight>
-                            </DocsSectionHeader>
-                            <SectionBody $flush $visible={isDocsOpen} id="docs-section">
+                                            <Plus />
+                                            {isUploading || isUploadingPhoto ? 'Wysyłanie...' : isPhone ? 'Dodaj' : 'Dodaj plik'}
+                                            <input
+                                                ref={docFileInputRef}
+                                                type="file"
+                                                accept="image/*,.pdf"
+                                                onChange={handleDocFileSelect}
+                                                disabled={isUploading || isUploadingPhoto}
+                                            />
+                                        </ButtonLabel>
+                                    </PanelActions>
+                                </PanelHead>
                                 <DocumentGallery
                                     documents={documents}
                                     visitPhotos={visitPhotos}
@@ -1198,182 +735,131 @@ export const VisitDetailView = () => {
                                     onDelete={handleDeleteDocument}
                                     onDeletePhoto={handleDeletePhoto}
                                 />
-                            </SectionBody>
-                        </Section>
-                        </MobileSectionPanel>
+                                {isPhone && can('VISITS_CREATE') && visit.status !== 'COMPLETED'
+                                    && visit.status !== 'REJECTED' && visit.status !== 'ARCHIVED' && (
+                                    <PanelBody>
+                                        <Button block onClick={() => setIsDamageMapOpen(true)}><CarFront />Mapa uszkodzeń</Button>
+                                    </PanelBody>
+                                )}
+                            </Panel>
+                        </Slot>
 
-                        {/* Komunikacja ──────────────────────────────────── */}
-                        {can('COMMUNICATION_SEND') && <MobileSectionPanel $visible={mobileTab === 'communication'}>
-                            <Section>
-                                <SectionHeader
-                                    onClick={() => setIsCommunicationOpen(v => !v)}
-                                    aria-expanded={isCommunicationOpen}
-                                    aria-controls="communication-section"
-                                >
-                                    <SectionHeaderLeft>
-                                        <SectionIconPlain>
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                                                <rect x="2" y="4" width="20" height="16" rx="2" />
-                                                <path d="M2 7l10 7 10-7" />
-                                            </svg>
-                                        </SectionIconPlain>
-                                        <SectionTitle>Komunikacja z klientem</SectionTitle>
-                                        {communicationEntries.length > 0 && (
-                                            <SectionCount>{communicationEntries.length}</SectionCount>
+                        {canSeeCommunication && (
+                            <Slot id="visit-communication" $order={8}>
+                                <Panel aria-labelledby="visit-communication-title">
+                                    <PanelHead>
+                                        <SectionTitle id="visit-communication-title" count={communicationEntries.length || undefined}>
+                                            Komunikacja z klientem
+                                        </SectionTitle>
+                                        {failedMessages > 0 && (
+                                            <StatusPill $tone="danger">
+                                                {failedMessages === 1 ? 'Jedna wiadomość nie wyszła' : `${failedMessages} wiadomości nie wyszły`}
+                                            </StatusPill>
                                         )}
-                                        {communicationEntries.some(e => e.status === 'FAILED') && (
-                                            <SectionCount title="Błąd wysyłki">⚠ Błąd</SectionCount>
-                                        )}
-                                    </SectionHeaderLeft>
-                                    <ChevronIcon $open={isCommunicationOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <polyline points="6 9 12 15 18 9" />
-                                    </ChevronIcon>
-                                </SectionHeader>
-                                <SectionBody $visible={isCommunicationOpen} $flush id="communication-section">
-                                    <VisitCommunicationHistory
-                                        entries={communicationEntries}
-                                        isLoading={isLoadingCommunication}
-                                    />
-                                </SectionBody>
-                            </Section>
-                        </MobileSectionPanel>}
+                                    </PanelHead>
+                                    <VisitCommunicationHistory entries={communicationEntries} isLoading={isLoadingCommunication} />
+                                </Panel>
+                            </Slot>
+                        )}
 
-                        {/* Historia zmian ───────────────────────────────── */}
-                        {can('VISITS_CREATE') && <MobileSectionPanel $visible={mobileTab === 'history'}>
-                        <Section>
-                            <SectionHeader
-                                onClick={() => setIsAuditOpen(v => !v)}
-                                aria-expanded={isAuditOpen}
-                                aria-controls="audit-section"
-                            >
-                                <SectionHeaderLeft>
-                                    <SectionIconPlain>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                                            <circle cx="12" cy="12" r="10" />
-                                            <polyline points="12 6 12 12 16 14" />
-                                        </svg>
-                                    </SectionIconPlain>
-                                    <SectionTitle>Historia zmian</SectionTitle>
-                                </SectionHeaderLeft>
-                                <ChevronIcon $open={isAuditOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <polyline points="6 9 12 15 18 9" />
-                                </ChevronIcon>
-                            </SectionHeader>
-                            <SectionBody $visible={isAuditOpen} id="audit-section">
-                                <EntityActivityTimeline scope={{ visitId: visitId! }} />
-                            </SectionBody>
-                        </Section>
-                        </MobileSectionPanel>}
+                        {canSeeHistory && (
+                            <Slot id="visit-history" $order={9}>
+                                <Panel>
+                                    <HistoryToggle
+                                        type="button"
+                                        onClick={() => setIsAuditOpen(v => !v)}
+                                        aria-expanded={isAuditOpen}
+                                        aria-controls="visit-history-body"
+                                    >
+                                        <SectionTitle as="span">Historia zmian</SectionTitle>
+                                        <ChevronDown aria-hidden="true" style={{ transform: isAuditOpen ? 'rotate(180deg)' : undefined }} />
+                                    </HistoryToggle>
+                                    {isAuditOpen && (
+                                        <PanelBody id="visit-history-body">
+                                            <EntityActivityTimeline scope={{ visitId: visitId! }} />
+                                        </PanelBody>
+                                    )}
+                                </Panel>
+                            </Slot>
+                        )}
                     </MainColumn>
 
-                    <Sidebar $mobileVisible={mobileTab === 'info'}>
+                    <Rail>
                         {pendingReminder && (
-                            <ReminderCard>
-                                <ReminderCardHeader>
-                                    <ReminderCardIcon>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                                        </svg>
-                                    </ReminderCardIcon>
-                                    <ReminderCardTitle>SMS Przypominający</ReminderCardTitle>
-                                    <ReminderCardBadge>Zaplanowany</ReminderCardBadge>
-                                </ReminderCardHeader>
-                                <ReminderCardBody>
-                                    <ReminderDate>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <circle cx="12" cy="12" r="10"/>
-                                            <polyline points="12 6 12 12 16 14"/>
-                                        </svg>
+                            <Slot $order={4}>
+                                <RailPanel aria-labelledby="visit-reminder-title">
+                                    <RailHead>
+                                        <SectionTitle id="visit-reminder-title">SMS przypominający</SectionTitle>
+                                        <StatusPill $tone="info">Zaplanowany</StatusPill>
+                                    </RailHead>
+                                    <ReminderWhen>
                                         {new Date(pendingReminder.scheduledFor).toLocaleString('pl-PL', {
-                                            day: 'numeric', month: 'short', year: 'numeric',
-                                            hour: '2-digit', minute: '2-digit'
+                                            day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
                                         })}
-                                    </ReminderDate>
-                                    <ReminderMessagePreview>{pendingReminder.messageContent}</ReminderMessagePreview>
-                                </ReminderCardBody>
-                                <ReminderCardActions>
-                                    <ReminderActionBtn onClick={() => {
-                                        setSmsReminderForEdit(pendingReminder);
-                                        setIsSmsReminderOpen(true);
-                                    }}>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                        </svg>
-                                        Edytuj
-                                    </ReminderActionBtn>
-                                </ReminderCardActions>
-                            </ReminderCard>
+                                    </ReminderWhen>
+                                    <ReminderText>{pendingReminder.messageContent}</ReminderText>
+                                    <Button size="sm" onClick={() => { setSmsReminderForEdit(pendingReminder); setIsSmsReminderOpen(true); }}>
+                                        <Pencil />Edytuj
+                                    </Button>
+                                </RailPanel>
+                            </Slot>
                         )}
-                        {/* Certyfikat jakości — dopiero po wydaniu pojazdu. Wcześniej byłby
-                            obietnicą, a nie potwierdzeniem wykonanej pracy. */}
+
+                        {/* Po wydaniu pojazdu: certyfikat i przypomnienie. Obrysowane - to akcje
+                            dostępne, nie krok następny (CLAUDE.md §2). */}
                         {visit.status === 'COMPLETED' && (
-                            <CertificateBtn onClick={() => setIsCertificateOpen(true)}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="12" cy="8" r="6"/>
-                                    <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>
-                                </svg>
-                                Certyfikat jakości
-                            </CertificateBtn>
-                        )}
-                        {!pendingReminder && visit.status === 'COMPLETED' && (() => {
-                            const hasPhone = !!visit.customer.phone?.trim();
-                            // The button always opens something. Disabling it with a note
-                            // was a dead end: it stated the problem and offered no way out,
-                            // so the modal now owns the explanation and the fix.
-                            return (
-                                <>
-                                    <ScheduleSmsBtn
-                                        onClick={() => { setSmsReminderForEdit(null); setIsSmsReminderOpen(true); }}
-                                    >
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                                        </svg>
-                                        Zaplanuj SMS przypominający
-                                    </ScheduleSmsBtn>
-                                    {!hasPhone && (
-                                        <ScheduleSmsNoPhone>
-                                            Klient nie ma numeru telefonu, uzupełnij go w kartotece
-                                        </ScheduleSmsNoPhone>
+                            <Slot $order={4}>
+                                <AfterCare>
+                                    <Button block onClick={() => setIsCertificateOpen(true)}><Award />Certyfikat jakości</Button>
+                                    {!pendingReminder && (
+                                        <>
+                                            {/* Przycisk zawsze coś otwiera - brak numeru wyjaśnia i naprawia okno. */}
+                                            <Button block onClick={() => { setSmsReminderForEdit(null); setIsSmsReminderOpen(true); }}>
+                                                <MessageSquare />Zaplanuj SMS przypominający
+                                            </Button>
+                                            {!visit.customer.phone?.trim() && (
+                                                <AfterCareNote>Klient nie ma numeru telefonu, uzupełnij go w karcie klienta.</AfterCareNote>
+                                            )}
+                                        </>
                                     )}
-                                </>
-                            );
-                        })()}
-                        {can('CUSTOMERS_VIEW') && (
-                            <>
+                                </AfterCare>
+                            </Slot>
+                        )}
+
+                        {canSeeCustomer && (
+                            <Slot $order={4}>
                                 <CustomerInfoCard
+                                    id="visit-customer"
                                     customer={visit.customer}
                                     visitId={visit.id}
                                     onViewDetails={() => navigate(`/customers/${visit.customer.id}`)}
-                                />
-                                <VehicleInfoCard
-                                    vehicle={visit.vehicle}
-                                    mileageAtArrival={visit.mileageAtArrival}
-                                    keysHandedOver={visit.keysHandedOver}
-                                    documentsHandedOver={visit.documentsHandedOver}
-                                    vehicleHandoff={visit.vehicleHandoff}
-                                    onMileageChange={handleMileageChange}
-                                    canEdit={can('VISITS_CREATE')}
-                                    onKeysToggle={handleKeysToggle}
-                                    onDocumentsToggle={handleDocumentsToggle}
-                                    onViewDetails={() => navigate(`/vehicles/${visit.vehicle.id}`)}
-                                />
+                                    compact={isPhone}
+                                >
+                                    {isPhone && vehicleCard}
+                                </CustomerInfoCard>
+                            </Slot>
+                        )}
+                        {!isPhone && vehicleCard && <Slot $order={5}>{vehicleCard}</Slot>}
+                        {canSeeCustomer && (
+                            <Slot $order={6}>
                                 <TechnicalNotesCard
                                     notes={visit.technicalNotes ?? null}
                                     visitId={visit.id}
                                     canEdit={can('VISITS_CREATE')}
                                 />
-                            </>
+                            </Slot>
                         )}
-                        <DesktopOnlyWrap>
+                        <Slot $order={7}>
                             <VisitComments
+                                id="visit-comments"
                                 visitId={visitId!}
                                 comments={comments}
                                 isLoading={isLoadingComments}
                             />
-                        </DesktopOnlyWrap>
-                    </Sidebar>
-                </MainGrid>
+                        </Slot>
+                    </Rail>
+                </Columns>
+                </Layout>
             </ContentArea>
 
             {transitionType === 'in_progress_to_ready' && (
@@ -1507,53 +993,6 @@ export const VisitDetailView = () => {
                 operationName={`${visit.customer.firstName} ${visit.customer.lastName}`}
             />
         </ViewContainer>
-
-        <MobileSectionNav
-            ariaLabel="Nawigacja sekcji wizyty"
-            active={mobileTab}
-            onChange={handleMobileTabChange}
-            items={[
-                {
-                    key: 'services', label: 'Usługi', icon: (
-                        <>
-                            <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
-                            <rect x="9" y="3" width="6" height="4" rx="1"/>
-                            <path d="M9 12h6M9 16h4"/>
-                        </>
-                    ),
-                },
-                ...(can('CUSTOMERS_VIEW') ? [{
-                    key: 'info' as const, label: 'Klient', icon: (
-                        <>
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                            <circle cx="12" cy="7" r="4"/>
-                        </>
-                    ),
-                }] : []),
-                {
-                    key: 'docs', label: 'Zdjęcia', ariaLabel: 'Zdjęcia i dokumenty', icon: (
-                        <>
-                            <rect x="3" y="3" width="7" height="7" rx="1"/>
-                            <rect x="14" y="3" width="7" height="7" rx="1"/>
-                            <rect x="3" y="14" width="7" height="7" rx="1"/>
-                            <rect x="14" y="14" width="7" height="7" rx="1"/>
-                        </>
-                    ),
-                },
-                ...(can('COMMUNICATION_SEND') ? [{
-                    key: 'communication' as const, label: 'Kontakt', ariaLabel: 'Komunikacja',
-                    icon: <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>,
-                }] : []),
-                ...(can('VISITS_CREATE') ? [{
-                    key: 'history' as const, label: 'Historia', ariaLabel: 'Historia zmian', icon: (
-                        <>
-                            <circle cx="12" cy="12" r="10"/>
-                            <polyline points="12 6 12 12 16 14"/>
-                        </>
-                    ),
-                }] : []),
-            ]}
-        />
     </>
     );
 };

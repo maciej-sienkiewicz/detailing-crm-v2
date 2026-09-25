@@ -1,626 +1,236 @@
-import { useState } from 'react';
+// src/modules/visits/components/InfoCards.tsx
+//
+// Szyna boczna wizyty: klient i przyjęcie pojazdu.
+//
+// Obie karty są PANELAMI - płasko, bez cienia (CLAUDE.md §2, „wyniesienie"):
+// temat okna to usługi, a te karty są kontekstem. Wcześniej każda miała cień,
+// nagłówek z kreską, zwijanie i etykiety 11px wersalikami - sześć takich samych
+// ram obok siebie, z których żadna nie była ważniejsza.
+//
+// Etykieta i wartość to FieldRow: szara etykieta zwykłym pismem, wartość po prawej.
+
+import { useState, type ReactNode } from 'react';
+import styled from 'styled-components';
+import { ArrowUpRight, Check, IdCard, MessageSquare, Pencil, Phone, TriangleAlert } from 'lucide-react';
 import { CustomerContactModal } from './CustomerContactModal';
 import { MileageModal } from './MileageModal';
-import styled, { css, keyframes } from 'styled-components';
-import { CarFront } from 'lucide-react';
 import { PiiValue, joinPiiName, isPiiMasked } from '@/common/pii';
 import type { VehicleInfo, CustomerInfo } from '../types';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { VisitCardLinkModal } from '@/modules/visit-card';
 import { usePermissions } from '@/core/permissions';
+import {
+    Button, ButtonLink, FieldList, FieldRow, IconButton, Panel, SectionTitle, StatusPill, ui,
+} from '@/common/components/ui';
 
-const BRAND = '#0ea5e9';
+// ─── Wspólne ──────────────────────────────────────────────────────────────────
 
-// ─── Shared card shell ────────────────────────────────────────────────────────
+const RailPanel = styled(Panel)`
+    padding: 16px 18px;
 
-const SidebarCard = styled.div`
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    overflow: hidden;
-    box-shadow: ${st.shadowSm};
+    @media (max-width: 640px) { padding: 14px 16px; }
 `;
 
-const fadeDown = keyframes`
-    from { opacity: 0; transform: translateY(-4px); }
-    to   { opacity: 1; transform: translateY(0); }
-`;
-
-const CardHeader = styled.div<{ $clickable?: boolean }>`
+const Head = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
     min-width: 0;
-    padding: 12px 16px;
-    border-bottom: 1px solid ${st.border};
-    background: ${st.bgCard};
-
-    @media (max-width: 640px) { min-height: 46px; }
-    ${p => p.$clickable && css`
-        cursor: pointer;
-        user-select: none;
-        transition: background 150ms ease;
-        &:hover { background: ${st.bgCardAlt}; }
-    `}
 `;
 
-const CardChevron = styled.svg<{ $open: boolean }>`
-    width: 15px;
-    height: 15px;
-    flex-shrink: 0;
-    color: ${st.textMuted};
-    transition: transform 220ms ease;
-    transform: ${p => p.$open ? 'rotate(180deg)' : 'rotate(0deg)'};
+const Rows = styled(FieldList)`
+    margin-top: 12px;
 `;
 
-const CardBody = styled.div<{ $visible: boolean }>`
-    display: ${p => p.$visible ? 'block' : 'none'};
-    animation: ${fadeDown} 0.18s ease;
-`;
-
-const CardTitleGroup = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-`;
-
-const CardIconWrap = styled.div`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: ${st.textMuted};
-    flex-shrink: 0;
-`;
-
-const CardTitle = styled.h3`
-    margin: 0;
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    letter-spacing: -0.1px;
-    color: ${st.text};
-`;
-
-const ViewBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    background: transparent;
-    color: ${st.textSecondary};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusFull};
-    font-size: 11px;
-    font-weight: 600;
+const LinkLike = styled.button`
+    padding: 0;
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: 500;
+    color: ${ui.brandInk};
     cursor: pointer;
-    transition: all ${st.transition};
-    white-space: nowrap;
 
-    &:hover {
-        border-color: ${st.borderHover};
-        color: ${st.text};
-    }
-
-    svg { width: 11px; height: 11px; }
+    &:hover { color: ${ui.brandDeep}; text-decoration: underline; }
 `;
 
-// ─── Customer-specific ────────────────────────────────────────────────────────
-
-const CustomerBody = styled.div`
-    padding: 14px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
+const Missing = styled.span`
+    color: ${ui.textFaint};
 `;
 
-const CustomerRow = styled.div`
+// ─── Klient ───────────────────────────────────────────────────────────────────
+
+const Person = styled.div`
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 12px;
+    margin-top: 12px;
     min-width: 0;
-
-    /* The name/company block is the only flexible child, so let it shrink. */
-    > div:last-child { min-width: 0; }
 `;
 
-const CustomerName = styled.div`
+const Initials = styled.span`
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: ${ui.brandTintHover};
+    color: ${ui.brandInk};
     font-size: 14px;
     font-weight: 700;
-    color: ${st.text};
-    letter-spacing: -0.2px;
-    line-height: 1.3;
-    overflow-wrap: anywhere;
 `;
 
-const CustomerSub = styled.div`
-    font-size: 11px;
-    color: ${st.textMuted};
-    margin-top: 2px;
-    font-weight: 500;
-    overflow-wrap: anywhere;
-`;
-
-const ContactLinks = styled.div`
+const PersonText = styled.span`
     display: flex;
     flex-direction: column;
-    gap: 0;
-`;
-
-const ContactLink = styled.a`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    color: ${st.textSecondary};
-    text-decoration: none;
-    padding: 6px 0;
-    transition: color ${st.transition};
-    border-bottom: 1px solid ${st.border};
-    word-break: break-all;
-    min-width: 0;
-
-    &:last-child { border-bottom: none; }
-
-    &:hover { color: ${BRAND}; }
-
-    svg { flex-shrink: 0; color: ${st.textMuted}; }
-`;
-
-const ContactPlaceholder = styled.span`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    color: ${st.textMuted};
-    padding: 6px 0;
-    font-style: italic;
-    border-bottom: 1px solid ${st.border};
-
-    &:last-child { border-bottom: none; }
-
-    svg { flex-shrink: 0; opacity: 0.4; }
-`;
-
-/* Brak numeru to nie stan do odnotowania, tylko rzecz do uzupełnienia -
-   i najczęściej właśnie wtedy, gdy patrzy się na wizytę i trzeba zadzwonić.
-   Szara kursywa wyglądała na pole wyłączone, więc wiersz jest teraz
-   przyciskiem z widocznym zaproszeniem. */
-const ContactAddButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    padding: 7px 0;
-    background: none;
-    border: none;
-    border-bottom: 1px solid ${st.border};
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 500;
-    color: ${BRAND};
-    cursor: pointer;
-    text-align: left;
-    transition: color 150ms ease;
-
-    &:last-child { border-bottom: none; }
-    &:hover { color: #0369a1; }
-
-    svg { flex-shrink: 0; }
-`;
-
-const CompanyRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    color: ${st.textSecondary};
-    padding: 6px 0;
-    border-bottom: 1px solid ${st.border};
-
-    svg { flex-shrink: 0; color: ${st.textMuted}; }
-`;
-
-/* Dyskretna linia historii współpracy: kontekst, nie dashboard */
-/* Najcenniejsza informacja w tej karcie - czy to stały klient i ile u nas
-   zostawił - była najmniej widoczna: 12-pikselowa szara linijka, do tego
-   z ikoną zegara, która z liczbą wizyt nie ma nic wspólnego. Teraz to pasek
-   z czytelnymi wartościami. Miękkie tło oddziela go od listy kontaktów,
-   nie dokładając kolejnej kreski. */
-const StatsStrip = styled.div`
-    display: flex;
-    align-items: stretch;
     gap: 2px;
-    margin-top: 14px;
-    padding: 10px 4px;
-    border-radius: 10px;
-    background: #f8fafc;
-    border: 1px solid ${st.border};
-`;
-
-/* Kwota potrzebuje więcej miejsca niż licznik wizyt, więc komórki dzielą pasek
-   proporcjonalnie do treści (flex: auto), a nie po równo. */
-const StatCell = styled.div`
-    display: flex;
-    flex: 1 1 auto;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
     min-width: 0;
-    padding: 0 8px;
-
-    & + & { border-left: 1px solid ${st.border}; }
 `;
 
-const StatValue = styled.span`
-    font-size: 16px;
+const PersonName = styled.span`
+    font-size: 15px;
     font-weight: 700;
-    line-height: 1;
-    letter-spacing: -0.02em;
-    color: ${st.text};
-    font-variant-numeric: tabular-nums;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-`;
-
-const StatLabel = styled.span`
-    font-size: 11px;
-    font-weight: 600;
-    color: ${st.textMuted};
-    line-height: 1.2;
-    text-align: center;
-`;
-
-/* Karta Wizyty: główna akcja sekcji klienta */
-const VisitCardButton = styled.button`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
-    margin-top: 14px;
-    padding: 9px 14px;
-    background: ${st.bgCardAlt};
-    color: ${st.textSecondary};
-    border: 1px solid ${st.border};
-    border-radius: 9px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all ${st.transition};
-
-    &:hover {
-        background: ${st.accentBlueDim};
-        border-color: rgba(59, 130, 246, 0.3);
-        color: ${st.accentBlue};
-    }
-
-    svg { width: 15px; height: 15px; flex-shrink: 0; }
-`;
-
-// ─── Vehicle-specific ─────────────────────────────────────────────────────────
-
-const VehicleBody = styled.div`
-    padding: 6px 0 0;
-`;
-
-const KvRow = styled.div`
-    display: grid;
-    grid-template-columns: 108px minmax(0, 1fr);
-    gap: 8px;
-    padding: 9px 16px;
-    border-bottom: 1px dashed #f1f5f9;
-    align-items: baseline;
-    font-size: 13px;
-
-    &:last-child { border-bottom: none; }
-
-    @media (max-width: 400px) { grid-template-columns: 84px minmax(0, 1fr); }
-`;
-
-const KvLabel = styled.span`
-    font-size: 11px;
-    font-weight: 700;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    padding-top: 1px;
-`;
-
-const KvValue = styled.span`
-    color: ${st.text};
-    font-weight: 500;
-    word-break: break-word;
-    min-width: 0;
-`;
-
-const KvMissing = styled.span`
-    color: ${st.textMuted};
-    font-style: italic;
-    font-weight: 400;
-`;
-
-const MileageValueRow = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    min-width: 0;
-`;
-
-const MileageEditBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
-    background: transparent;
-    color: ${st.textSecondary};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusFull};
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: all ${st.transition};
-
-    &:hover { color: ${BRAND}; border-color: ${BRAND}; }
-`;
-
-const StatusPill = styled.span<{ $ok: boolean }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 9px;
-    border-radius: ${st.radiusFull};
-    font-size: 11px;
-    font-weight: 700;
-    width: fit-content;
-
-    /* Not handing over keys or documents is a normal outcome, not a failure:
-       red would read as something went wrong. Only the positive state gets a colour. */
-    ${props => props.$ok ? `
-        background: ${st.accentGreenDim};
-        color: ${st.accentGreen};
-        border: 1px solid rgba(16, 185, 129, 0.2);
-    ` : `
-        background: transparent;
-        color: ${st.textMuted};
-        border: 1px solid ${st.border};
-    `}
-`;
-
-const HandoffBanner = styled.div`
-    margin: 0 12px 12px;
-    padding: 10px 12px;
-    background: rgba(245, 158, 11, 0.07);
-    border: 1px solid rgba(245, 158, 11, 0.22);
-    border-radius: 10px;
-`;
-
-const HandoffLabel = styled.div`
-    font-size: 10px;
-    font-weight: 700;
-    color: ${st.accentAmber};
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-`;
-
-const HandoffKv = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-`;
-
-const HandoffRow = styled.div`
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    font-size: 12px;
-    min-width: 0;
-`;
-
-const HandoffKey = styled.span`
-    color: ${st.textMuted};
-    font-weight: 600;
-    flex: 0 0 80px;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-`;
-
-const HandoffVal = styled.span`
-    color: ${st.text};
-    font-weight: 500;
-    min-width: 0;
+    color: ${ui.ink};
     overflow-wrap: anywhere;
 `;
 
-// ─── CustomerInfoCard ─────────────────────────────────────────────────────────
+const PersonSub = styled.span`
+    font-size: 12.5px;
+    color: ${ui.textMuted};
+    overflow-wrap: anywhere;
+`;
+
+const ContactButtons = styled.div`
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+`;
+
+function initialsOf(first?: string | null, last?: string | null): string {
+    const letters = [first, last].map(p => (p ?? '').trim().charAt(0)).join('').toUpperCase();
+    return letters || '?';
+}
 
 interface CustomerInfoCardProps {
     customer: CustomerInfo;
     visitId?: string;
     onViewDetails?: () => void;
+    /** Telefon: „Zadzwoń / SMS" zamiast wierszy kontaktu, historia w jednej linii. */
+    compact?: boolean;
+    /** Na telefonie przyjęcie pojazdu stoi w tej samej karcie, pod klientem. */
+    children?: ReactNode;
+    id?: string;
 }
 
-export const CustomerInfoCard = ({ customer, visitId, onViewDetails }: CustomerInfoCardProps) => {
+export const CustomerInfoCard = ({ customer, visitId, onViewDetails, compact, children, id }: CustomerInfoCardProps) => {
     const fullName = joinPiiName(customer.firstName, customer.lastName) ?? '';
     const masked = isPiiMasked(fullName);
     const [isCardModalOpen, setIsCardModalOpen] = useState(false);
     /* null = zamknięte; wartość mówi, od którego pola zaczął użytkownik. */
     const [contactModalField, setContactModalField] = useState<'phone' | 'email' | null>(null);
-    const [isOpen, setIsOpen] = useState(true);
     const { can } = usePermissions();
 
-    /* Dane osobowe zamaskowane przez backend = użytkownik i tak ich nie zobaczy,
-       więc nie ma czego uzupełniać. Edycja wymaga dostępu do kartoteki klientów. */
+    /* Dane zamaskowane przez backend = i tak ich nie zobaczymy, więc nie ma czego
+       uzupełniać. Edycja wymaga dostępu do kartoteki klientów. */
     const canEditContact = can('CUSTOMERS_VIEW') && !masked;
-    /* Bez groszy: w sumie życiowej klienta ",00" nie niesie informacji, a to
-       właśnie te pięć znaków wypychało kwotę pod wielokropek. */
+    const phoneUsable = !!customer.phone && !isPiiMasked(customer.phone);
+    /* Bez groszy: w sumie życiowej klienta „,00" nie niesie informacji. */
     const totalSpentLabel = new Intl.NumberFormat('pl-PL', {
         style: 'currency',
         currency: customer.stats.totalSpent.currency || 'PLN',
         maximumFractionDigits: 0,
     }).format(customer.stats.totalSpent.grossAmount / 100);
-    const vehiclesLabel = customer.stats.vehiclesCount === 1 ? 'pojazd' :
-        customer.stats.vehiclesCount % 10 >= 2 && customer.stats.vehiclesCount % 10 <= 4
-            && (customer.stats.vehiclesCount % 100 < 10 || customer.stats.vehiclesCount % 100 >= 20)
-            ? 'pojazdy' : 'pojazdów';
+    const visitsLabel = `${customer.stats.totalVisits} ${customer.stats.totalVisits === 1 ? 'wizyta' : 'wizyty'}`;
+
+    const phoneValue = customer.phone ? (
+        phoneUsable
+            ? <a href={`tel:${customer.phone}`}><PiiValue value={customer.phone} kind="phone" /></a>
+            : <PiiValue value={customer.phone} kind="phone" />
+    ) : canEditContact ? (
+        /* Brak numeru to nie stan do odnotowania, tylko rzecz do uzupełnienia - i to
+           najczęściej właśnie wtedy, gdy patrzy się na wizytę i trzeba zadzwonić. */
+        <LinkLike type="button" onClick={() => setContactModalField('phone')}>Dodaj numer</LinkLike>
+    ) : <Missing>Brak numeru</Missing>;
+
+    const emailValue = customer.email ? (
+        isPiiMasked(customer.email)
+            ? <PiiValue value={customer.email} kind="email" />
+            : <a href={`mailto:${customer.email}`}><PiiValue value={customer.email} kind="email" /></a>
+    ) : canEditContact ? (
+        <LinkLike type="button" onClick={() => setContactModalField('email')}>Dodaj adres e-mail</LinkLike>
+    ) : <Missing>Brak adresu</Missing>;
+
+    const sub = compact
+        ? [visitsLabel, can('VISITS_SERVICE_PRICES_VIEW') ? `${totalSpentLabel} łącznie` : null].filter(Boolean).join(', ')
+        : customer.companyName;
 
     return (
-        <SidebarCard>
-            <CardHeader
-                $clickable
-                onClick={() => setIsOpen(v => !v)}
-                aria-expanded={isOpen}
-                aria-controls="customer-card-body"
-            >
-                <CardTitleGroup>
-                    <CardIconWrap aria-hidden="true">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                            <circle cx="12" cy="8" r="4" />
-                            <path d="M4 20c0-3.314 3.582-6 8-6s8 2.686 8 6" />
-                        </svg>
-                    </CardIconWrap>
-                    <CardTitle>Klient</CardTitle>
-                </CardTitleGroup>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    {onViewDetails && can('CUSTOMERS_VIEW') && (
-                        <ViewBtn onClick={e => { e.stopPropagation(); onViewDetails(); }} aria-label="Otwórz profil klienta">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
-                                <polyline points="15 3 21 3 21 9" />
-                                <line x1="10" y1="14" x2="21" y2="3" />
-                            </svg>
-                            Profil
-                        </ViewBtn>
-                    )}
-                    <CardChevron $open={isOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                        <polyline points="6 9 12 15 18 9" />
-                    </CardChevron>
-                </div>
-            </CardHeader>
+        <RailPanel id={id} aria-labelledby="visit-customer-title">
+            <Head>
+                <SectionTitle id="visit-customer-title">Klient</SectionTitle>
+                {onViewDetails && can('CUSTOMERS_VIEW') && (
+                    <Button variant="ghost" size="sm" onClick={onViewDetails}>
+                        Profil klienta<ArrowUpRight />
+                    </Button>
+                )}
+            </Head>
 
-            <CardBody $visible={isOpen} id="customer-card-body">
-            <CustomerBody>
-                {/* Nazwa klienta. Awatar z inicjałami zniknął: był najbardziej
-                    nasyconym elementem panelu, a powtarzał tylko to, co i tak
-                    stoi obok literami. */}
-                <CustomerRow>
-                    <div>
-                        <CustomerName><PiiValue value={fullName} kind="name" emptyFallback="Brak nazwy" /></CustomerName>
-                        {customer.companyName && (
-                            <CustomerSub>{customer.companyName}</CustomerSub>
-                        )}
-                    </div>
-                </CustomerRow>
+            <Person>
+                <Initials aria-hidden="true">{masked ? '?' : initialsOf(customer.firstName, customer.lastName)}</Initials>
+                <PersonText>
+                    <PersonName><PiiValue value={fullName} kind="name" emptyFallback="Brak nazwy" /></PersonName>
+                    {sub && <PersonSub>{sub}</PersonSub>}
+                </PersonText>
+            </Person>
 
-                {/* Contact links */}
-                <ContactLinks>
-                    {customer.phone ? (
-                        <ContactLink href={isPiiMasked(customer.phone) ? undefined : `tel:${customer.phone}`}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
-                            </svg>
-                            <PiiValue value={customer.phone} kind="phone" />
-                        </ContactLink>
-                    ) : (
-                        canEditContact ? (
-                            <ContactAddButton onClick={() => setContactModalField('phone')}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
-                            </svg>
-                                Dodaj numer telefonu
-                            </ContactAddButton>
-                        ) : (
-                        <ContactPlaceholder>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
-                            </svg>
-                            Brak numeru
-                        </ContactPlaceholder>
-                        )
-                    )}
-
-                    {customer.email ? (
-                        <ContactLink href={isPiiMasked(customer.email) ? undefined : `mailto:${customer.email}`}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="2" y="4" width="20" height="16" rx="2" />
-                                <path d="M2 7l10 7 10-7" />
-                            </svg>
-                            <PiiValue value={customer.email} kind="email" />
-                        </ContactLink>
-                    ) : (
-                        canEditContact ? (
-                            <ContactAddButton onClick={() => setContactModalField('email')}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="2" y="4" width="20" height="16" rx="2" />
-                                <path d="M2 7l10 7 10-7" />
-                            </svg>
-                                Dodaj adres e-mail
-                            </ContactAddButton>
-                        ) : (
-                        <ContactPlaceholder>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="2" y="4" width="20" height="16" rx="2" />
-                                <path d="M2 7l10 7 10-7" />
-                            </svg>
-                            Brak adresu e-mail
-                        </ContactPlaceholder>
-                        )
-                    )}
-                </ContactLinks>
-
-                {/* Historia współpracy. Liczba pojazdów była dotąd w danych, ale
-                    nigdzie jej nie pokazywano - a "3 pojazdy" od razu mówi, że to
-                    klient flotowy, a nie jednorazowy. */}
-                <StatsStrip title="Historia współpracy z klientem">
-                    <StatCell>
-                        <StatValue>{customer.stats.totalVisits}</StatValue>
-                        <StatLabel>{customer.stats.totalVisits === 1 ? 'wizyta' : 'wizyty'}</StatLabel>
-                    </StatCell>
+            {compact ? (
+                <>
+                    {phoneUsable ? (
+                        <ContactButtons>
+                            <ButtonLink href={`tel:${customer.phone}`} $variant="outline" $size="md"><Phone />Zadzwoń</ButtonLink>
+                            <ButtonLink href={`sms:${customer.phone}`} $variant="outline" $size="md"><MessageSquare />SMS</ButtonLink>
+                        </ContactButtons>
+                    ) : canEditContact && !customer.phone ? (
+                        <Button block style={{ marginTop: 12 }} onClick={() => setContactModalField('phone')}>
+                            <Phone />Dodaj numer telefonu
+                        </Button>
+                    ) : null}
+                    <Rows>
+                        {(customer.email || canEditContact) && <FieldRow label="E-mail">{emailValue}</FieldRow>}
+                        {children}
+                    </Rows>
+                </>
+            ) : (
+                <Rows>
+                    <FieldRow label="Telefon">{phoneValue}</FieldRow>
+                    <FieldRow label="E-mail">{emailValue}</FieldRow>
+                    <FieldRow label="Wizyty"><strong>{customer.stats.totalVisits}</strong></FieldRow>
                     {can('VISITS_SERVICE_PRICES_VIEW') && (
-                        <StatCell>
-                            <StatValue>{totalSpentLabel}</StatValue>
-                            <StatLabel>łącznie</StatLabel>
-                        </StatCell>
+                        <FieldRow label="Łącznie"><strong>{totalSpentLabel}</strong></FieldRow>
                     )}
                     {customer.stats.vehiclesCount > 0 && (
-                        <StatCell>
-                            <StatValue>{customer.stats.vehiclesCount}</StatValue>
-                            <StatLabel>{vehiclesLabel}</StatLabel>
-                        </StatCell>
+                        <FieldRow label="Pojazdy"><strong>{customer.stats.vehiclesCount}</strong></FieldRow>
                     )}
-                </StatsStrip>
+                </Rows>
+            )}
 
-                {/* Karta Wizyty: widok dla klienta */}
-                {visitId && can('VISITS_CREATE') && (
-                    <>
-                        <VisitCardButton onClick={() => setIsCardModalOpen(true)} title="Karta Wizyty: widok dla klienta">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <rect x="2" y="4" width="20" height="16" rx="2" />
-                                <line x1="2" y1="9" x2="22" y2="9" />
-                                <line x1="6" y1="14" x2="12" y2="14" />
-                            </svg>
-                            Karta Wizyty
-                        </VisitCardButton>
-                        <VisitCardLinkModal
-                            visitId={visitId}
-                            isOpen={isCardModalOpen}
-                            onClose={() => setIsCardModalOpen(false)}
-                        />
-                    </>
-                )}
-            </CustomerBody>
-            </CardBody>
+            {/* Karta Wizyty: widok dla klienta. */}
+            {visitId && can('VISITS_CREATE') && (
+                <>
+                    <Button block style={{ marginTop: 12 }} onClick={() => setIsCardModalOpen(true)}>
+                        <IdCard />Karta wizyty dla klienta
+                    </Button>
+                    <VisitCardLinkModal
+                        visitId={visitId}
+                        isOpen={isCardModalOpen}
+                        onClose={() => setIsCardModalOpen(false)}
+                    />
+                </>
+            )}
 
             {contactModalField && (
                 <CustomerContactModal
@@ -633,11 +243,28 @@ export const CustomerInfoCard = ({ customer, visitId, onViewDetails }: CustomerI
                     onClose={() => setContactModalField(null)}
                 />
             )}
-        </SidebarCard>
+        </RailPanel>
     );
 };
 
-// ─── VehicleInfoCard ──────────────────────────────────────────────────────────
+// ─── Przyjęcie pojazdu ────────────────────────────────────────────────────────
+
+const Handoff = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid ${ui.warnLine};
+    background: ${ui.warnTint};
+    font-size: 13px;
+    color: ${ui.warnInk};
+
+    strong { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+    svg { width: 14px; height: 14px; }
+    span { color: ${ui.inkSoft}; overflow-wrap: anywhere; }
+`;
 
 interface VehicleInfoCardProps {
     vehicle: VehicleInfo;
@@ -659,10 +286,21 @@ interface VehicleInfoCardProps {
     onKeysToggle: (checked: boolean) => void;
     onDocumentsToggle: (checked: boolean) => void;
     onViewDetails?: () => void;
+    /** Kto przyjął pojazd i kiedy - wiersz „Przyjęcie". */
+    acceptedByName?: string;
+    acceptedAt?: string;
+    /** Same wiersze, bez własnego panelu - na telefonie w karcie klienta. */
+    embedded?: boolean;
 }
 
+const shortDay = (iso?: string) => {
+    if (!iso) return null;
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return null;
+    return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+
 export const VehicleInfoCard = ({
-    vehicle,
     mileageAtArrival,
     keysHandedOver,
     documentsHandedOver,
@@ -670,138 +308,90 @@ export const VehicleInfoCard = ({
     onMileageChange,
     canEdit = true,
     onViewDetails,
+    acceptedByName,
+    acceptedAt,
+    embedded,
 }: VehicleInfoCardProps) => {
     const hasMileage = typeof mileageAtArrival === 'number' && mileageAtArrival > 0;
-    const mileageStr = hasMileage ? `${mileageAtArrival!.toLocaleString('pl-PL')} km` : null;
-    const [isOpen, setIsOpen] = useState(true);
-
     /* Przebieg spisany przy ladzie bywa z literówką (12 400 zamiast 124 000).
-       Poprawka idzie oknem - tak samo jak uzupełnienie kontaktu klienta
-       w sąsiedniej karcie. Wcześniej było to jedyne pole edytowane w miejscu,
-       więc dwa sąsiadujące pola uczyły dwóch różnych odruchów. */
+       Poprawka idzie oknem - tak samo jak uzupełnienie kontaktu klienta obok. */
     const [mileageModalOpen, setMileageModalOpen] = useState(false);
+    const accepted = [acceptedByName, shortDay(acceptedAt)].filter(Boolean).join(', ');
+
+    /* Nieprzekazanie kluczyków czy dokumentów to normalny wynik, nie błąd:
+       czerwień czytałaby się jak „coś poszło nie tak". Kolor ma tylko „tak". */
+    const rows = (
+        <>
+            <FieldRow label="Przebieg">
+                {hasMileage
+                    ? <strong style={{ fontVariantNumeric: 'tabular-nums' }}>{mileageAtArrival!.toLocaleString('pl-PL')} km</strong>
+                    : <Missing>Nie podano</Missing>}
+                {canEdit && (
+                    <IconButton
+                        label={hasMileage ? 'Popraw przebieg' : 'Uzupełnij przebieg'}
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setMileageModalOpen(true)}
+                    >
+                        <Pencil />
+                    </IconButton>
+                )}
+            </FieldRow>
+            <FieldRow label="Kluczyki">
+                {keysHandedOver
+                    ? <StatusPill $tone="ok"><Check />Przekazane</StatusPill>
+                    : <StatusPill $tone="neutral">Nie przekazano</StatusPill>}
+            </FieldRow>
+            <FieldRow label="Dokumenty pojazdu">
+                {documentsHandedOver
+                    ? <StatusPill $tone="ok"><Check />Przekazane</StatusPill>
+                    : <StatusPill $tone="neutral">Nie przekazano</StatusPill>}
+            </FieldRow>
+            {accepted && <FieldRow label="Przyjęcie">{accepted}</FieldRow>}
+        </>
+    );
+
+    const handoff = vehicleHandoff?.isHandedOffByOtherPerson && (
+        <Handoff>
+            <strong><TriangleAlert />Auto przywiozła inna osoba</strong>
+            <span>
+                <PiiValue value={joinPiiName(vehicleHandoff.contactPerson.firstName, vehicleHandoff.contactPerson.lastName)} kind="name" />
+            </span>
+            {vehicleHandoff.contactPerson.phone && (
+                <span><PiiValue value={vehicleHandoff.contactPerson.phone} kind="phone" /></span>
+            )}
+            {vehicleHandoff.contactPerson.email && (
+                <span><PiiValue value={vehicleHandoff.contactPerson.email} kind="email" /></span>
+            )}
+        </Handoff>
+    );
+
+    const modal = mileageModalOpen && (
+        <MileageModal
+            isOpen
+            mileage={mileageAtArrival}
+            onSave={onMileageChange}
+            onClose={() => setMileageModalOpen(false)}
+        />
+    );
+
+    if (embedded) {
+        return <>{rows}{handoff}{modal}</>;
+    }
 
     return (
-        <SidebarCard>
-            <CardHeader
-                $clickable
-                onClick={() => setIsOpen(v => !v)}
-                aria-expanded={isOpen}
-                aria-controls="vehicle-card-body"
-            >
-                <CardTitleGroup>
-                    <CardIconWrap aria-hidden="true">
-                        {/* Odręczna sylwetka auta z wypełnionymi kołami, ściśnięta do
-                            18x10, czytała się jak naklejka. Ten sam techniczny widok
-                            z przodu co w nagłówku wizyty - jedna ikona pojazdu w całej
-                            aplikacji zamiast dwóch różnych rysunków. */}
-                        <CarFront width={17} height={17} strokeWidth={1.9} />
-                    </CardIconWrap>
-                    <CardTitle>Stan przy przyjęciu</CardTitle>
-                </CardTitleGroup>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    {onViewDetails && (
-                        <ViewBtn onClick={e => { e.stopPropagation(); onViewDetails(); }} aria-label="Otwórz kartę pojazdu">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
-                                <polyline points="15 3 21 3 21 9" />
-                                <line x1="10" y1="14" x2="21" y2="3" />
-                            </svg>
-                            Profil
-                        </ViewBtn>
-                    )}
-                    <CardChevron $open={isOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                        <polyline points="6 9 12 15 18 9" />
-                    </CardChevron>
-                </div>
-            </CardHeader>
-
-            <CardBody $visible={isOpen} id="vehicle-card-body">
-            <VehicleBody>
-                <KvRow>
-                    <KvLabel>Przebieg</KvLabel>
-                    <MileageValueRow>
-                            {mileageStr
-                                ? <KvValue style={{ fontVariantNumeric: 'tabular-nums' }}>{mileageStr}</KvValue>
-                                : <KvMissing>Nie podano</KvMissing>
-                            }
-                            {canEdit && (
-                                <MileageEditBtn type="button" onClick={() => setMileageModalOpen(true)} aria-label="Edytuj przebieg">
-                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M12 20h9" />
-                                        <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                                    </svg>
-                                    {hasMileage ? 'Popraw' : 'Uzupełnij'}
-                                </MileageEditBtn>
-                            )}
-                    </MileageValueRow>
-                </KvRow>
-
-                <KvRow>
-                    <KvLabel>Kluczyki</KvLabel>
-                    <StatusPill $ok={keysHandedOver}>
-                        {keysHandedOver ? (
-                            <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>Przekazano</>
-                        ) : (
-                            <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Nieprzekazano</>
-                        )}
-                    </StatusPill>
-                </KvRow>
-
-                <KvRow>
-                    <KvLabel>Dokumenty</KvLabel>
-                    <StatusPill $ok={documentsHandedOver}>
-                        {documentsHandedOver ? (
-                            <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>Przekazano</>
-                        ) : (
-                            <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Nieprzekazano</>
-                        )}
-                    </StatusPill>
-                </KvRow>
-
-                {vehicleHandoff?.isHandedOffByOtherPerson && (
-                    <HandoffBanner>
-                        <HandoffLabel>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="12" cy="12" r="10"/>
-                                <line x1="12" y1="8" x2="12" y2="12"/>
-                                <line x1="12" y1="16" x2="12.01" y2="16"/>
-                            </svg>
-                            Przekazano przez inną osobę
-                        </HandoffLabel>
-                        <HandoffKv>
-                            <HandoffRow>
-                                <HandoffKey>Imię</HandoffKey>
-                                <HandoffVal>
-                                    <PiiValue value={joinPiiName(vehicleHandoff.contactPerson.firstName, vehicleHandoff.contactPerson.lastName)} kind="name" />
-                                </HandoffVal>
-                            </HandoffRow>
-                            {vehicleHandoff.contactPerson.phone && (
-                                <HandoffRow>
-                                    <HandoffKey>Telefon</HandoffKey>
-                                    <HandoffVal><PiiValue value={vehicleHandoff.contactPerson.phone} kind="phone" /></HandoffVal>
-                                </HandoffRow>
-                            )}
-                            {vehicleHandoff.contactPerson.email && (
-                                <HandoffRow>
-                                    <HandoffKey>E-mail</HandoffKey>
-                                    <HandoffVal><PiiValue value={vehicleHandoff.contactPerson.email} kind="email" /></HandoffVal>
-                                </HandoffRow>
-                            )}
-                        </HandoffKv>
-                    </HandoffBanner>
+        <RailPanel aria-labelledby="visit-intake-title">
+            <Head>
+                <SectionTitle id="visit-intake-title">Przyjęcie pojazdu</SectionTitle>
+                {onViewDetails && (
+                    <Button variant="ghost" size="sm" onClick={onViewDetails}>
+                        Karta pojazdu<ArrowUpRight />
+                    </Button>
                 )}
-            </VehicleBody>
-            </CardBody>
-
-            {mileageModalOpen && (
-                <MileageModal
-                    isOpen
-                    mileage={mileageAtArrival}
-                    onSave={onMileageChange}
-                    onClose={() => setMileageModalOpen(false)}
-                />
-            )}
-        </SidebarCard>
+            </Head>
+            <Rows>{rows}</Rows>
+            {handoff}
+            {modal}
+        </RailPanel>
     );
 };

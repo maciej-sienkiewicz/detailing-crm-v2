@@ -184,6 +184,7 @@ describe('EntryDrawer', () => {
         renderDrawer();
         fireEvent.click(screen.getByRole('button', { name: /Mercedes GLC/ }));
         const section = screen.getByRole('heading', { name: 'Pojazd i data' }).closest('section');
-        expect(vi.mocked(Element.prototype.scrollIntoView).mock.contexts.at(-1)).toBe(section);
+        const contexts = vi.mocked(Element.prototype.scrollIntoView).mock.contexts;
+        expect(contexts[contexts.length - 1]).toBe(section);
     });
 });

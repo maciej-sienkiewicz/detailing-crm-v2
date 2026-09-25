@@ -12,13 +12,12 @@
 // kontrahenta drugi raz. Teraz zmiana wymaga świadomego „Odblokuj do korekty".
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import styled, { keyframes } from 'styled-components';
-import { Check, ChevronDown, Download, Lock, RotateCcw, Trash2, Unlock, X } from 'lucide-react';
+import styled from 'styled-components';
+import { Check, ChevronDown, Download, Lock, RotateCcw, Trash2, Unlock } from 'lucide-react';
 import { InputShellTextArea, BareTextArea } from '@/common/components/Form';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useToast } from '@/common/components/Toast';
-import { useModalViewport } from '@/common/hooks';
+import { Button, DrawerBody, DrawerFooterSpacer, SideDrawer, StatusPill } from '@/common/components/ui';
 import { batchOrderApi } from '../api/batchOrderApi';
 import {
     useCreateEntry, useDeleteEntry, useReopenEntry, useSettlementHistory, useUpdateEntry,
@@ -35,69 +34,7 @@ import type { EntryFocus } from './EntriesTable';
 import { ServicesEditor } from './ServicesEditor';
 import { VehicleFields, type VehicleValues } from './VehicleFields';
 
-// ─── Shell ────────────────────────────────────────────────────────────────────
-
-const fadeIn = keyframes`from { opacity: 0; } to { opacity: 1; }`;
-const slideIn = keyframes`from { transform: translateX(32px); opacity: 0; } to { transform: none; opacity: 1; }`;
-
-const Overlay = styled.div`
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
-    display: flex;
-    justify-content: flex-end;
-    background: rgba(15, 23, 42, 0.32);
-    animation: ${fadeIn} 160ms ease;
-`;
-
-const Panel = styled.aside`
-    display: flex;
-    flex-direction: column;
-    width: min(560px, 100%);
-    height: 100%;
-    background: ${p => p.theme.colors.surface};
-    box-shadow: -16px 0 40px rgba(15, 23, 42, 0.14);
-    animation: ${slideIn} 220ms cubic-bezier(0.22, 1, 0.36, 1);
-`;
-
-const Header = styled.header`
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 18px 20px 16px 24px;
-    border-bottom: 1px solid #eef2f7;
-
-    @media (max-width: 639px) { padding: calc(14px + env(safe-area-inset-top)) 12px 14px 16px; }
-`;
-
-const HeaderText = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    min-width: 0;
-`;
-
-const HeaderMeta = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    font-size: 13px;
-    color: #64748b;
-`;
-
-const Title = styled.h2`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin: 0;
-    font-size: 21px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    color: ${p => p.theme.colors.text};
-`;
+// ─── Nagłówek i sekcje ─────────────────────────────────────────────────────────
 
 /**
  * Nazwa auta w nagłówku jest przyciskiem: prowadzi do sekcji „Pojazd i data". Przy
@@ -134,55 +71,6 @@ const Plate = styled.span`
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.07em;
-`;
-
-const StatusPill = styled.span<{ $tone: 'open' | 'settled' | 'correction' | 'new' }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 2px 10px;
-    border-radius: ${p => p.theme.radii.full};
-    font-size: 12px;
-    font-weight: 600;
-    ${p => ({
-        open: 'border: 1px solid #bae6fd; background: #f0f9ff; color: #075985;',
-        new: 'border: 1px solid #bae6fd; background: #f0f9ff; color: #075985;',
-        settled: 'border: 1px solid #86efac; background: #f0fdf4; color: #15803d;',
-        correction: 'border: 1px solid #fcd34d; background: #fffbeb; color: #92400e;',
-    })[p.$tone]}
-
-    svg { width: 12px; height: 12px; }
-`;
-
-const CloseBtn = styled.button`
-    flex-shrink: 0;
-    width: 40px;
-    height: 40px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    border-radius: 10px;
-    background: ${p => p.theme.colors.surfaceAlt};
-    color: ${p => p.theme.colors.textSecondary};
-    cursor: pointer;
-
-    svg { width: 18px; height: 18px; }
-    &:hover { color: ${p => p.theme.colors.text}; }
-    @media (hover: none) and (pointer: coarse) { width: 44px; height: 44px; }
-`;
-
-const Body = styled.div`
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-    padding: 20px 24px 28px;
-
-    @media (max-width: 639px) { padding: 16px 16px 24px; }
 `;
 
 const Fieldset = styled.fieldset`
@@ -306,75 +194,6 @@ const BannerAction = styled.button`
     &:disabled { opacity: 0.6; cursor: progress; }
 `;
 
-const Footer = styled.footer`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 14px 24px;
-    border-top: 1px solid #eef2f7;
-    background: ${p => p.theme.colors.surface};
-
-    @media (max-width: 639px) { padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); }
-`;
-
-const FooterGhost = styled.button<{ $danger?: boolean }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    height: 44px;
-    padding: 0 12px;
-    border: none;
-    border-radius: ${p => p.theme.radii.full};
-    background: transparent;
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 600;
-    color: ${p => p.$danger ? '#b91c1c' : p.theme.colors.textSecondary};
-    cursor: pointer;
-
-    svg { width: 15px; height: 15px; }
-    &:hover { background: ${p => p.$danger ? p.theme.colors.errorLight : p.theme.colors.surfaceAlt}; }
-    @media (max-width: 639px) { padding: 0 8px; }
-`;
-
-const FooterSecondary = styled.button`
-    margin-left: auto;
-    height: 44px;
-    padding: 0 18px;
-    border: 1px solid #cbd5e1;
-    border-radius: ${p => p.theme.radii.full};
-    background: ${p => p.theme.colors.surface};
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 600;
-    color: #334155;
-    cursor: pointer;
-
-    &:hover { border-color: #94a3b8; }
-`;
-
-/* Otwarty edytor przejmuje okno, więc jego „Zapisz" jest na ten moment krokiem
-   następnym i wolno mu być wypełnionym (CLAUDE.md §2, wyjątek edytora). */
-const FooterPrimary = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    height: 44px;
-    padding: 0 22px;
-    border: none;
-    border-radius: ${p => p.theme.radii.full};
-    background: linear-gradient(135deg, #0284c7, #075985);
-    box-shadow: 0 6px 16px rgba(3, 105, 161, 0.28);
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 700;
-    color: #fff;
-    cursor: pointer;
-
-    svg { width: 16px; height: 16px; }
-    &:disabled { opacity: 0.6; cursor: progress; }
-`;
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface FormState {
@@ -438,17 +257,11 @@ export function EntryDrawer({ contractorId, contractorName, entry: initialEntry,
     function scrollToVehicle(behavior: ScrollBehavior = 'smooth') {
         vehicleRef.current?.scrollIntoView({ block: 'start', behavior });
     }
-    const overlayRef = useRef<HTMLDivElement>(null);
 
     function requestClose() {
         if (dirty && !locked) setConfirm('discard');
         else onClose();
     }
-
-    // Escape, blokada przewijania tła i chowanie dolnych pasków na telefonie - te same
-    // co w każdym oknie aplikacji. Póki otwarte jest okno potwierdzenia, Escape należy
-    // do niego, a nie do panelu pod spodem.
-    useModalViewport(true, overlayRef, confirm ? undefined : requestClose);
 
     useEffect(() => {
         if (focus === 'price' && !locked) {
@@ -589,148 +402,149 @@ export function EntryDrawer({ contractorId, contractorName, entry: initialEntry,
         </Fieldset>
     );
 
-    return createPortal(
-        <Overlay
-            ref={overlayRef}
-            onMouseDown={e => { if (e.target === e.currentTarget) requestClose(); }}
-        >
-            <Panel role="dialog" aria-modal="true" aria-labelledby="entry-drawer-title">
-                <Header>
-                    <HeaderText>
-                        <HeaderMeta>
-                            {status === 'new' && <StatusPill $tone="new">Nowe auto</StatusPill>}
-                            {status === 'open' && <StatusPill $tone="open">Czeka na zestawienie</StatusPill>}
-                            {status === 'correction' && <StatusPill $tone="correction"><RotateCcw />Korekta</StatusPill>}
-                            {status === 'settled' && (
-                                <StatusPill $tone="settled">
-                                    <Check />W zestawieniu{settlement ? ` z ${formatInstantDay(settlement.closedAt)}` : ''}
-                                </StatusPill>
-                            )}
-                            {entry && <span>wykonane {formatDay(entry.serviceDate)}</span>}
-                        </HeaderMeta>
-                        <Title id="entry-drawer-title">
-                            {entry ? (
-                                <TitleBtn type="button" onClick={() => scrollToVehicle()} title="Przejdź do danych pojazdu">
-                                    {vehicleName(entry)}
-                                    {entry.vehicleLicensePlate && <Plate>{entry.vehicleLicensePlate}</Plate>}
-                                    <ChevronDown aria-hidden="true" />
-                                </TitleBtn>
-                            ) : 'Nowe auto'}
-                        </Title>
-                        <HeaderMeta>{contractorName}</HeaderMeta>
-                    </HeaderText>
-                    <CloseBtn type="button" aria-label="Zamknij" onClick={requestClose}><X /></CloseBtn>
-                </Header>
-
-                <Body>
-                    {error && (
-                        <Banner $tone="error" role="alert">{error}</Banner>
+    return (
+        <SideDrawer
+            onClose={requestClose}
+            // Póki otwarte jest okno potwierdzenia, Escape należy do niego, a nie do panelu.
+            escapeEnabled={!confirm}
+            titleId="entry-drawer-title"
+            status={(
+                <>
+                    {status === 'new' && <StatusPill $tone="info">Nowe auto</StatusPill>}
+                    {status === 'open' && <StatusPill $tone="info">Czeka na zestawienie</StatusPill>}
+                    {status === 'correction' && <StatusPill $tone="warn"><RotateCcw />Korekta</StatusPill>}
+                    {status === 'settled' && (
+                        <StatusPill $tone="ok">
+                            <Check />W zestawieniu{settlement ? ` z ${formatInstantDay(settlement.closedAt)}` : ''}
+                        </StatusPill>
                     )}
-
-                    {locked && (
-                        <Banner $tone="amber">
-                            <BannerIcon><Lock /></BannerIcon>
-                            <BannerBody>
-                                <strong>To auto jest już w zestawieniu, więc jest zablokowane</strong>
-                                <span>
-                                    {settlement
-                                        ? `Trafiło do zestawienia z ${formatInstantDay(settlement.closedAt)} (${carsLabel(settlement.entryCount)}, ${formatMoney(settlement.totalGrossCents)})${settlement.emailSent && settlement.emailRecipient ? `, wysłanego na ${settlement.emailRecipient}` : ''}. `
-                                        : 'Trafiło już do zestawienia dla kontrahenta. '}
-                                    Po odblokowaniu trafi do następnego zestawienia jako korekta. Utworzone już zestawienie się nie zmieni.
-                                </span>
-                                <BannerAction type="button" onClick={() => setConfirm('reopen')} disabled={reopenEntry.isPending}>
-                                    <Unlock />Odblokuj do korekty
-                                </BannerAction>
-                            </BannerBody>
-                        </Banner>
-                    )}
-
-                    {!locked && entry?.isCorrection && (
-                        <Banner $tone="amber">
-                            <BannerIcon><RotateCcw /></BannerIcon>
-                            <BannerBody>
-                                <strong>Korekta auta z wcześniejszego zestawienia</strong>
-                                <span>Po zapisie trafi do następnego zestawienia z nową kwotą.</span>
-                            </BannerBody>
-                        </Banner>
-                    )}
-
-                    {entry ? (
-                        <>
-                            {servicesSection}
-                            {photosSection}
-                            {vehicleSection}
-                            {notesSection}
-                        </>
-                    ) : (
-                        // Nowe auto: najpierw KTÓRE auto, potem co przy nim zrobiono -
-                        // w tej kolejności pracownik ma to przed oczami przy aucie.
-                        // Zdjęć przy nowym aucie jeszcze nie ma (dodaje się je po zapisie).
-                        <>
-                            {vehicleSection}
-                            {servicesSection}
-                            {notesSection}
-                        </>
-                    )}
-                </Body>
-
-                <Footer>
+                    {entry && <span>wykonane {formatDay(entry.serviceDate)}</span>}
+                </>
+            )}
+            title={entry ? (
+                <TitleBtn type="button" onClick={() => scrollToVehicle()} title="Przejdź do danych pojazdu">
+                    {vehicleName(entry)}
+                    {entry.vehicleLicensePlate && <Plate>{entry.vehicleLicensePlate}</Plate>}
+                    <ChevronDown aria-hidden="true" />
+                </TitleBtn>
+            ) : 'Nowe auto'}
+            subtitle={contractorName}
+            footer={(
+                <>
                     {locked ? (
                         <>
                             {settlement && (
-                                <FooterGhost type="button" onClick={handleSnapshot}>
+                                <Button variant="ghost" size="lg" onClick={handleSnapshot}>
                                     <Download />Pobierz zestawienie z {formatInstantDay(settlement.closedAt).slice(0, 5)}
-                                </FooterGhost>
+                                </Button>
                             )}
-                            <FooterSecondary type="button" onClick={onClose}>Zamknij</FooterSecondary>
+                            <DrawerFooterSpacer />
+                            <Button size="lg" onClick={onClose}>Zamknij</Button>
                         </>
                     ) : (
                         <>
                             {entry && (
-                                <FooterGhost type="button" $danger onClick={() => setConfirm('delete')}>
+                                <Button variant="danger" size="lg" onClick={() => setConfirm('delete')}>
                                     <Trash2 />Usuń
-                                </FooterGhost>
+                                </Button>
                             )}
-                            <FooterSecondary type="button" onClick={requestClose}>Anuluj</FooterSecondary>
-                            <FooterPrimary type="button" onClick={handleSave} disabled={saving}>
+                            <DrawerFooterSpacer />
+                            <Button size="lg" onClick={requestClose}>Anuluj</Button>
+                            {/* Otwarty edytor przejmuje okno, więc jego „Zapisz" jest na ten moment
+                                krokiem następnym i wolno mu być wypełnionym (CLAUDE.md §2). */}
+                            <Button variant="primary" size="lg" onClick={handleSave} disabled={saving}>
                                 {saving ? 'Zapisywanie…' : entry ? 'Zapisz zmiany' : 'Dodaj auto'}
-                            </FooterPrimary>
+                            </Button>
                         </>
                     )}
-                </Footer>
-            </Panel>
+                </>
+            )}
+            overlays={(
+                <>
+                    <ConfirmationModal
+                        isOpen={confirm === 'discard'}
+                        title="Porzucić zmiany?"
+                        message="Masz niezapisane zmiany. Po zamknięciu przepadną."
+                        variant="warning"
+                        confirmText="Porzuć zmiany"
+                        cancelText="Wróć do edycji"
+                        onConfirm={onClose}
+                        onCancel={() => setConfirm(null)}
+                    />
+                    <ConfirmationModal
+                        isOpen={confirm === 'delete'}
+                        title="Usunąć auto z listy?"
+                        message={entry ? `${vehicleName(entry)} z ${formatDay(entry.serviceDate)} zniknie z listy razem ze zdjęciami i nie trafi do zestawienia.` : ''}
+                        variant="danger"
+                        confirmText="Usuń auto"
+                        cancelText="Zostaw"
+                        onConfirm={handleDelete}
+                        onCancel={() => setConfirm(null)}
+                    />
+                    <ConfirmationModal
+                        isOpen={confirm === 'reopen'}
+                        title="Odblokować auto do korekty?"
+                        message="Auto wróci na listę czekających i trafi do następnego zestawienia jako korekta. Zestawienie, które już powstało, zostaje bez zmian."
+                        variant="warning"
+                        confirmText="Odblokuj"
+                        cancelText="Zostaw zamknięte"
+                        onConfirm={handleReopen}
+                        onCancel={() => setConfirm(null)}
+                    />
+                </>
+            )}
+        >
+            <DrawerBody>
+                {error && (
+                    <Banner $tone="error" role="alert">{error}</Banner>
+                )}
 
-            <ConfirmationModal
-                isOpen={confirm === 'discard'}
-                title="Porzucić zmiany?"
-                message="Masz niezapisane zmiany. Po zamknięciu przepadną."
-                variant="warning"
-                confirmText="Porzuć zmiany"
-                cancelText="Wróć do edycji"
-                onConfirm={onClose}
-                onCancel={() => setConfirm(null)}
-            />
-            <ConfirmationModal
-                isOpen={confirm === 'delete'}
-                title="Usunąć auto z listy?"
-                message={entry ? `${vehicleName(entry)} z ${formatDay(entry.serviceDate)} zniknie z listy razem ze zdjęciami i nie trafi do zestawienia.` : ''}
-                variant="danger"
-                confirmText="Usuń auto"
-                cancelText="Zostaw"
-                onConfirm={handleDelete}
-                onCancel={() => setConfirm(null)}
-            />
-            <ConfirmationModal
-                isOpen={confirm === 'reopen'}
-                title="Odblokować auto do korekty?"
-                message="Auto wróci na listę czekających i trafi do następnego zestawienia jako korekta. Zestawienie, które już powstało, zostaje bez zmian."
-                variant="warning"
-                confirmText="Odblokuj"
-                cancelText="Zostaw zamknięte"
-                onConfirm={handleReopen}
-                onCancel={() => setConfirm(null)}
-            />
-        </Overlay>,
-        document.body,
+                {locked && (
+                    <Banner $tone="amber">
+                        <BannerIcon><Lock /></BannerIcon>
+                        <BannerBody>
+                            <strong>To auto jest już w zestawieniu, więc jest zablokowane</strong>
+                            <span>
+                                {settlement
+                                    ? `Trafiło do zestawienia z ${formatInstantDay(settlement.closedAt)} (${carsLabel(settlement.entryCount)}, ${formatMoney(settlement.totalGrossCents)})${settlement.emailSent && settlement.emailRecipient ? `, wysłanego na ${settlement.emailRecipient}` : ''}. `
+                                    : 'Trafiło już do zestawienia dla kontrahenta. '}
+                                Po odblokowaniu trafi do następnego zestawienia jako korekta. Utworzone już zestawienie się nie zmieni.
+                            </span>
+                            <BannerAction type="button" onClick={() => setConfirm('reopen')} disabled={reopenEntry.isPending}>
+                                <Unlock />Odblokuj do korekty
+                            </BannerAction>
+                        </BannerBody>
+                    </Banner>
+                )}
+
+                {!locked && entry?.isCorrection && (
+                    <Banner $tone="amber">
+                        <BannerIcon><RotateCcw /></BannerIcon>
+                        <BannerBody>
+                            <strong>Korekta auta z wcześniejszego zestawienia</strong>
+                            <span>Po zapisie trafi do następnego zestawienia z nową kwotą.</span>
+                        </BannerBody>
+                    </Banner>
+                )}
+
+                {entry ? (
+                    <>
+                        {servicesSection}
+                        {photosSection}
+                        {vehicleSection}
+                        {notesSection}
+                    </>
+                ) : (
+                    // Nowe auto: najpierw KTÓRE auto, potem co przy nim zrobiono -
+                    // w tej kolejności pracownik ma to przed oczami przy aucie.
+                    // Zdjęć przy nowym aucie jeszcze nie ma (dodaje się je po zapisie).
+                    <>
+                        {vehicleSection}
+                        {servicesSection}
+                        {notesSection}
+                    </>
+                )}
+            </DrawerBody>
+        </SideDrawer>
     );
 }
