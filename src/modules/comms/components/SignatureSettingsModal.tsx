@@ -41,7 +41,7 @@ import { appAssetUrl } from '../utils/signatureImage';
 import { SignaturePreview } from './signature/SignaturePreview';
 import { DetailsStep, ImagesStep, SocialStep, StyleStep, TemplateStep } from './signature/SignatureSteps';
 import { SIGNATURE_STEPS, type SignatureStepId } from './signature/designerSteps';
-import { StepHeader, StepHint, StepIcon, StepTitle, TextArea, brandTint } from './signature/designerStyles';
+import { PillSwitch, StepHeader, StepHint, StepIcon, StepTitle, TextArea, brandTint } from './signature/designerStyles';
 
 // ── Układ okna ───────────────────────────────────────────────────────────────
 
@@ -90,6 +90,14 @@ const ModeSwitch = styled.div`
     background: ${p => p.theme.colors.surfaceAlt};
     border: 1px solid ${p => p.theme.colors.border};
     flex-shrink: 0;
+
+    /* Laptop z powiększeniem przeglądarki: każdy piksel stałej ramy zabiera miejsce
+       treści kroku, która przy ~530 px wysokości miała niecałe 150 px. */
+    @media (max-height: 760px) {
+        margin: 10px 24px 0;
+        padding: 3px;
+        button { padding-top: 5px; padding-bottom: 5px; }
+    }
 `;
 
 const ModeOption = styled.button<{ $active: boolean }>`
@@ -188,6 +196,17 @@ const PanelNav = styled.div`
     padding: 12px 24px;
     border-top: 1px solid ${p => p.theme.colors.border};
     flex-shrink: 0;
+
+    @media (max-height: 760px) {
+        padding: 8px 24px;
+    }
+`;
+
+/** Podtytuł to kontekst na pierwsze otwarcie - na niskim ekranie ustępuje miejsca treści. */
+const Subtitle = styled(ModalSubtitle)`
+    @media (max-height: 760px) {
+        display: none;
+    }
 `;
 
 const Stage = styled.div`
@@ -219,54 +238,12 @@ const StageHead = styled.div`
     }
 `;
 
-const Switch = styled.button<{ $on: boolean }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 0;
-    border: 0;
-    background: none;
-    font-family: inherit;
-    font-size: 13px;
-    color: ${p => p.theme.colors.textSecondary};
-    cursor: pointer;
-
-    .track {
-        width: 32px;
-        height: 18px;
-        border-radius: 9px;
-        padding: 2px;
-        background: ${p => (p.$on ? '#334155' : '#cbd5e1')};
-        transition: background ${p => p.theme.transitions.fast};
-    }
-    .knob {
-        display: block;
-        width: 14px;
-        height: 14px;
-        border-radius: 50%;
-        background: #ffffff;
-        transform: translateX(${p => (p.$on ? '14px' : '0')});
-        transition: transform ${p => p.theme.transitions.fast};
-    }
-`;
-
 const FooterStart = styled.div`
     display: flex;
     align-items: center;
     gap: 14px;
     margin-right: auto;
     flex-wrap: wrap;
-`;
-
-const DefaultRow = styled.label`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    color: ${p => p.theme.colors.textSecondary};
-    cursor: pointer;
-
-    input { width: 16px; height: 16px; accent-color: var(--brand-primary); cursor: pointer; }
 `;
 
 const Loading = styled.div`
@@ -509,10 +486,10 @@ function SignatureDesigner({ signature, onClose }: DesignerProps) {
                 <Stage>
                     <StageHead>
                         <h3>Podgląd na żywo</h3>
-                        <Switch type="button" role="switch" aria-checked={dark} $on={dark} onClick={() => setDark(!dark)}>
+                        <PillSwitch type="button" role="switch" aria-checked={dark} $on={dark} onClick={() => setDark(!dark)}>
                             <span className="track"><span className="knob" /></span>
                             Ciemne tło
-                        </Switch>
+                        </PillSwitch>
                     </StageHead>
                     <SignaturePreview html={mode === 'design' ? previewHtml ?? '' : null} text={text} dark={dark} />
                     {mode === 'design' && missing.length > 0 && (
@@ -536,14 +513,17 @@ function SignatureDesigner({ signature, onClose }: DesignerProps) {
                             <Trash2 /> Usuń stopkę
                         </IconButton>
                     )}
-                    <DefaultRow>
-                        <input
-                            type="checkbox"
-                            checked={enabledByDefault}
-                            onChange={event => setEnabledByDefault(event.target.checked)}
-                        />
+                    <PillSwitch
+                        type="button"
+                        role="switch"
+                        aria-checked={enabledByDefault}
+                        $on={enabledByDefault}
+                        onClick={() => setEnabledByDefault(!enabledByDefault)}
+                        title="Czy przełącznik „Dodaj stopkę” przy nowej wiadomości ma startować włączony"
+                    >
+                        <span className="track"><span className="knob" /></span>
                         Dołączaj stopkę domyślnie
-                    </DefaultRow>
+                    </PillSwitch>
                 </FooterStart>
                 <PrimaryButton type="button" onClick={submit} disabled={saveSignature.isPending || !canSave}>
                     {saveSignature.isPending ? 'Zapisywanie…' : 'Zapisz stopkę'}
@@ -568,9 +548,9 @@ export function SignatureSettingsModal({ isOpen, onClose }: SignatureSettingsMod
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Twoja stopka e-mail</ModalTitle>
-                    <ModalSubtitle>
+                    <Subtitle>
                         Przypisana do Ciebie, nie do skrzynki - inne osoby w studiu podpisują się własną.
-                    </ModalSubtitle>
+                    </Subtitle>
                 </ModalTitleGroup>
                 <ModalCloseButton type="button" onClick={onClose} aria-label="Zamknij">
                     <X />

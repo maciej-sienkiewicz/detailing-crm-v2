@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
@@ -99,6 +99,25 @@ describe('SignatureSettingsModal', () => {
 
         await userEvent.click(saveButton());
         expect(save.mock.calls[0][0].bodyHtml).toContain(`src="${window.location.origin}${ICONS_PATH}/mono/linkedin.png"`);
+    });
+
+    it('przełącznik „Dołączaj stopkę domyślnie" trafia do zapisu', async () => {
+        renderModal();
+
+        const toggle = screen.getByRole('switch', { name: /Dołączaj stopkę domyślnie/ });
+        expect(toggle).toHaveAttribute('aria-checked', 'true');
+        await userEvent.click(toggle);
+        await userEvent.click(saveButton());
+
+        expect(save.mock.calls[0][0].enabledByDefault).toBe(false);
+    });
+
+    it('kliknięcie kafelka motywu myszą nie przenosi na niego fokusu (przewijało listę)', () => {
+        renderModal();
+
+        const card = screen.getByRole('button', { name: /Baner z kołem/ });
+        // fireEvent zwraca false, gdy obsługa wywołała preventDefault().
+        expect(fireEvent.mouseDown(card)).toBe(false);
     });
 
     it('przełącznik trybu zamienia kreator na stopkę tekstową i z powrotem', async () => {

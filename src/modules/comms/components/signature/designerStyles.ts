@@ -154,3 +154,48 @@ export const Choice = styled.button<{ $active: boolean }>`
 
     img { width: 16px; height: 16px; display: block; }
 `;
+
+/**
+ * Przełącznik włącz/wyłącz w pigułce - ten sam wygląd co „Dodaj stopkę" w kompozytorze,
+ * bo „Dołączaj stopkę domyślnie" to ta sama decyzja, tylko na zapas. Włączony dostaje
+ * odcień i obwódkę marki; pełne wypełnienie zostaje dla „Zapisz stopkę".
+ */
+export const PillSwitch = styled.button<{ $on: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px 6px 8px;
+    border-radius: ${p => p.theme.radii.full};
+    border: 1px solid ${p => (p.$on ? 'var(--brand-primary)' : p.theme.colors.border)};
+    background: ${p => (p.$on ? brandTint(8) : p.theme.colors.surface)};
+    color: ${p => (p.$on ? p.theme.colors.text : p.theme.colors.textSecondary)};
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: ${p => p.theme.fontWeights.medium};
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all ${p => p.theme.transitions.fast};
+
+    &:hover { border-color: var(--brand-primary); }
+
+    .track {
+        position: relative;
+        flex-shrink: 0;
+        width: 28px;
+        height: 16px;
+        border-radius: 999px;
+        background: ${p => (p.$on ? 'var(--brand-primary)' : '#cbd5e1')};
+        transition: background ${p => p.theme.transitions.fast};
+    }
+    .knob {
+        position: absolute;
+        top: 2px;
+        left: ${p => (p.$on ? '14px' : '2px')};
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #ffffff;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
+        transition: left ${p => p.theme.transitions.fast};
+    }
+`;

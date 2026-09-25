@@ -6,6 +6,10 @@ import styled from 'styled-components';
 import DOMPurify from 'dompurify';
 
 const Card = styled.div<{ $dark: boolean }>`
+    /* Nie kurczy się do wysokości kolumny: przy niskim oknie kurczyła się i ucinała
+       stopkę (overflow: hidden), a kolumna nie miała czego przewijać. Teraz rośnie
+       z treścią, a przewija się kolumna podglądu. */
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     border-radius: ${p => p.theme.radii.xl};
@@ -42,6 +46,13 @@ const Body = styled.div<{ $dark: boolean }>`
     gap: 8px;
     padding: 22px 24px 28px;
     color: ${p => (p.$dark ? '#e8eaed' : '#202124')};
+`;
+
+/** Atrapa treści wiadomości - na niskim ekranie ustępuje miejsca samej stopce. */
+const BodyBar = styled(Bar)`
+    @media (max-height: 760px) {
+        display: none;
+    }
 `;
 
 const Greeting = styled.div`
@@ -87,9 +98,9 @@ export function SignaturePreview({ html, text, dark }: SignaturePreviewProps) {
                 <span>Temat:</span><Bar $w={65} $dark={dark} />
             </Head>
             <Body $dark={dark}>
-                <Bar $w={92} $dark={dark} aria-hidden="true" />
-                <Bar $w={74} $dark={dark} aria-hidden="true" />
-                <Bar $w={38} $dark={dark} aria-hidden="true" />
+                <BodyBar $w={92} $dark={dark} aria-hidden="true" />
+                <BodyBar $w={74} $dark={dark} aria-hidden="true" />
+                <BodyBar $w={38} $dark={dark} aria-hidden="true" />
                 <Greeting>Pozdrawiam,</Greeting>
                 {html !== null ? (
                     <Signature onClick={swallowLinks} dangerouslySetInnerHTML={{ __html: sanitize(html) }} />
