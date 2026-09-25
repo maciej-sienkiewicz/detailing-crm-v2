@@ -1,533 +1,504 @@
-import { PiiValue, joinPiiName, isPiiMasked } from '@/common/pii';
-import { useState, useMemo, useRef, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { createPortal } from 'react-dom';
+// src/modules/customers/views/CustomerDetailView.tsx
+//
+// Karta klienta - ten sam układ i te same klocki co karta pojazdu i wizyty
+// (common/components/ui): ciemny nagłówek bez powtórzonych danych, jedna
+// wyniesiona karta („Wizyty", z przychodem od klienta jako nagłówkiem), reszta
+// jako płaskie panele, a z prawej szyna z danymi, pojazdami, notatkami i zgodami.
+//
+// Przed przebudową karta miała:
+//   - awatar z inicjałami i cały kontakt w nagłówku, a pod nim cztery kafle
+//     statystyk z etykietami 11px wersalikami - „Łączny przychód" i „Wizyty"
+//     pokazywały tę samą liczbę wizyt dwa razy;
+//   - dokumenty, zgody, komunikację i historię za czterema zwijanymi blokami
+//     z kafelkami ikon w czterech różnych gradientach;
+//   - kropki klejące fakty („WX 4821K · 2022", „BMW · Marek"), CLAUDE.md §4;
+//   - na telefonie pasek trzech zakładek nad globalną nawigacją.
+//
+// Telefon: jedna kolumna i przypięte skróty do sekcji, jak w wizycie i pojeździe.
+
+import { useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import styled, { keyframes } from 'styled-components';
+import { CalendarDays, ChevronDown, ChevronRight, Pencil, Phone, Plus } from 'lucide-react';
+import { PiiValue, isPiiMasked, joinPiiName } from '@/common/pii';
 import { ReservationContextMenu } from '@/common/components/ReservationContextMenu';
-import styled from 'styled-components';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { PageContainer } from '@/common/components/PageContainer';
+import { EntityActivityTimeline } from '@/modules/activity';
+import { CarLogoImage } from '@/modules/vehicles/components/CarLogoImage';
+import { useClickToCall } from '@/modules/push';
+import { useMediaQuery } from '@/common/hooks';
+import { t } from '@/common/i18n';
+import {
+    Button, Card, FieldList, FieldRow, Notice, Panel, PanelBody, PanelHead, SectionChips, SectionTitle,
+    StatusPill, SummaryStrip, ui, type PillTone,
+} from '@/common/components/ui';
 import { useCustomerDetail } from '../hooks/useCustomerDetail';
 import { useDeleteCustomer } from '../hooks/useDeleteCustomer';
 import { useCustomerVehicles } from '../hooks/useCustomerVehicles';
 import { useCustomerActiveData, useCustomerDeletedVisits } from '../hooks/useCustomerVisits';
 import { useCustomerCommunication } from '../hooks/useCustomerCommunication';
 import { useCustomerRevenue } from '../hooks/useCustomerRevenue';
+import { CustomerDetailHeader } from '../components/CustomerDetailHeader';
 import { CustomerNotes } from '../components/CustomerNotes';
 import { CustomerCommunicationList } from '../components/CustomerCommunicationList';
-import { CarLogoImage } from '@/modules/vehicles/components/CarLogoImage';
 import { DocumentsManager } from '../components/DocumentsManager';
 import { CustomerConsentsSection } from '../components/CustomerConsentsSection';
-import { EntityActivityTimeline } from '@/modules/activity';
 import { EditCustomerModal } from '../components/EditCustomerModal';
 import { AddVehicleModal } from '../components/AddVehicleModal';
-import { ConfirmationModal } from '@/common/components/ConfirmationModal';
-import { MobileSectionNav, MobileSectionPanel } from '@/common/components/MobileSectionNav';
-import { SharedButton } from '@/common/styles/sharedButtonStyles';
-import { useClickToCall } from '@/modules/push';
+import { SendSmsModal } from '../components/SendSmsModal';
 import { formatCurrency } from '../utils/customerMappers';
-import { formatDate } from '@/common/utils';
-import { t } from '@/common/i18n';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
-import type { Vehicle, Visit, Reservation, MarketingConsent } from '../types';
+import type { Reservation, Vehicle, Visit } from '../types';
 
-import {
-    ViewContainer, PageContent,
-    TwoColGrid, LeftRail, MainCol,
-    Panel, PanelHead, PanelTitle, PanelBody, PanelBodyFlush, PanelCountBadge, PanelLinkBtn, PanelActionBtn,
-    VehicleItem, VehicleInfo, VehicleName, VehicleSub,
-    SummaryStrip, SumCell, SumCellActive, KpiEyebrow, KpiValue, KpiDelta,
-    ChartGrid, ChartBars, ChartBarCol, ChartBarWrap, ChartBar, ChartBarLabel,
-    UpcomingItem, UpcomingDateBox, UpcomingDateNum, UpcomingInfo, UpcomingTitle, UpcomingSub,
-    VisitRow, VisitDateCol, VisitDateMain, VisitDateSub, VisitInfo, VisitTitle, VisitSub, VisitAmount,
-    StatusBadge,
-    PrefRow, PrefKey, PrefVal,
-    NoteText,
-    CollapsibleSection, CollapsibleHeader, CollapsibleHeaderLeft,
-    SectionIconWrap, CollapsibleTitle, CollapsibleBadge, ChevronIcon, CollapsibleBody,
-    CenteredBox, SpinnerEl, LoadingText, ErrorTitle, ErrorMsg,
-} from './CustomerDetailView.styles';
+// ─── Układ ────────────────────────────────────────────────────────────────────
 
-type CustomerMobileTab = 'visits' | 'stats' | 'other';
+// Opacity-only: animacja z transformem na przodku psuje modale z position: fixed.
+const fadeIn = keyframes`from { opacity: 0; } to { opacity: 1; }`;
+const spin = keyframes`to { transform: rotate(360deg); }`;
 
-// ─── Local styled components ──────────────────────────────────────────────────
+const ViewContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+    background: ${ui.bg};
+    animation: ${fadeIn} 0.3s ease both;
+`;
 
-const AddVehicleButton = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    border: 1.5px solid ${st.accentBlue};
-    border-radius: ${st.radiusFull};
-    background: transparent;
-    color: ${st.accentBlue};
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    cursor: pointer;
-    transition: all ${st.transition};
+const ContentArea = styled(PageContainer)`
+    flex: 1;
+    min-width: 0;
+    padding-block-end: 40px;
 
-    &:hover {
-        background: ${st.accentBlue};
-        color: white;
+    @media (min-width: ${props => props.theme.breakpoints.md}) { padding-block-end: 48px; }
+`;
+
+/**
+ * Dwie kolumny od 960px szerokości TREŚCI (zapytanie kontenerowe), nie okna. W jednej
+ * kolumnie kolumny się rozpadają (`display: contents`), a kolejność ustawia `order`.
+ */
+const Layout = styled.div`
+    container: customer-layout / inline-size;
+    min-width: 0;
+`;
+
+const MainColumn = styled.div`display: contents;`;
+const Rail = styled.aside`display: contents;`;
+
+const Columns = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+
+    @container customer-layout (min-width: 960px) {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 344px;
+        gap: 20px;
+        align-items: start;
+
+        ${MainColumn}, ${Rail} {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            min-width: 0;
+        }
     }
-
-    svg { width: 12px; height: 12px; }
 `;
 
-
-const PaginationBar = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 18px;
-  border-top: 1px solid ${st.bgCardAlt};
+const Slot = styled.div<{ $order: number }>`
+    order: ${p => p.$order};
+    min-width: 0;
+    scroll-margin-top: 64px;
 `;
 
-const PaginationInfo = styled.span`
-  font-size: 12px;
-  color: ${st.textMuted};
-`;
-
-const PaginationBtns = styled.div`
-  display: flex;
-  gap: 6px;
-`;
-
-const PaginationBtn = styled.button<{ $disabled?: boolean }>`
-  height: 28px;
-  padding: 0 10px;
-  border-radius: 6px;
-  border: 1px solid ${st.border};
-  background: ${p => p.$disabled ? st.bgCardAlt : '#fff'};
-  color: ${p => p.$disabled ? st.textMuted : st.text};
-  font-size: 12px;
-  font-weight: 500;
-  cursor: ${p => p.$disabled ? 'default' : 'pointer'};
-  font-family: inherit;
-  transition: background 140ms ease;
-  &:hover:not([disabled]) { background: ${st.bgCardAlt}; }
-`;
-
-const DeletedToggleWrap = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-`;
-
-const DeletedToggleLabel = styled.span`
-    font-size: 12px;
-    color: #64748b;
-    white-space: nowrap;
-`;
-
-const ToggleSwitch = styled.button<{ $active: boolean }>`
-    width: 36px;
-    height: 20px;
-    border-radius: 10px;
-    border: none;
-    background: ${p => p.$active ? '#9F1239' : '#cbd5e1'};
-    cursor: pointer;
-    padding: 2px;
-    display: flex;
-    align-items: center;
-    transition: background 150ms ease;
-    flex-shrink: 0;
-`;
-
-const ToggleThumb = styled.span<{ $active: boolean }>`
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #fff;
-    transform: translateX(${p => p.$active ? '16px' : '0'});
-    transition: transform 150ms ease;
-`;
-
-const VehicleHeaderActions = styled.div`
+const Breadcrumb = styled.nav`
     display: flex;
     align-items: center;
     gap: 6px;
-    flex-shrink: 0;
-`;
-
-const ArchiveToggleBtn = styled.button<{ $active: boolean }>`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
-    border: 1.5px solid ${p => p.$active ? '#9F1239' : '#e2e8f0'};
-    background: ${p => p.$active ? '#FFF1F2' : 'transparent'};
-    color: ${p => p.$active ? '#9F1239' : '#94a3b8'};
-    cursor: pointer;
-    transition: all 150ms ease;
-    flex-shrink: 0;
-    svg { width: 13px; height: 13px; }
-    &:hover {
-        border-color: #9F1239;
-        color: #9F1239;
-        background: #FFF1F2;
-    }
-`;
-
-// ─── Hero header ──────────────────────────────────────────────────────────────
-
-const HeroHeader = styled.header`
-    position: relative;
-    overflow: hidden;
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0c1f35 100%);
-    border-radius: 16px;
-    margin-bottom: 22px;
-    box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 8px 28px rgba(0,0,0,0.14);
-
-    &::before {
-        content: '';
-        position: absolute;
-        top: -100px;
-        right: -60px;
-        width: 320px;
-        height: 320px;
-        border-radius: 50%;
-        background: radial-gradient(circle, rgba(14,165,233,0.35) 0%, transparent 60%);
-        pointer-events: none;
-    }
-
-    @media (max-width: 640px) {
-        border-radius: 12px;
-        margin-bottom: 14px;
-    }
-`;
-
-const HeroContent = styled.div`
-    position: relative;
-    z-index: 1;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 24px;
-    padding: 22px 28px 20px;
-
-    @media (max-width: 900px) {
-        padding: 18px 20px 16px;
-    }
-
-    @media (max-width: 640px) {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 14px;
-        padding: 14px 16px 14px;
-    }
-`;
-
-const HeroLeft = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    flex: 1;
-    min-width: 0;
-
-    @media (max-width: 640px) {
-        width: 100%;
-    }
-`;
-
-const HeroAvatarLg = styled.div`
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #0ea5e9, #6366f1);
-    color: #fff;
-    font-size: 18px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    letter-spacing: -0.3px;
-    border: 2px solid rgba(255,255,255,0.12);
-    box-shadow: 0 4px 16px rgba(14,165,233,0.25);
-`;
-
-const HeroNameBlock = styled.div`
-    min-width: 0;
-    flex: 1;
-`;
-
-const HeroName = styled.h1`
-    margin: 0 0 6px;
-    font-size: 24px;
-    font-weight: 700;
-    letter-spacing: -0.4px;
-    line-height: 1.15;
-    color: #fff;
-    word-break: break-word;
-
-    @media (max-width: 900px) { font-size: 20px; }
-    @media (max-width: 640px) { font-size: 18px; letter-spacing: -0.2px; }
-`;
-
-const HeroMetaRow = styled.div`
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 14px;
+    margin-bottom: 12px;
     font-size: 13px;
-    color: #94a3b8;
+    color: ${ui.textMuted};
 
-    @media (max-width: 640px) { gap: 8px; font-size: 12px; }
+    a { color: ${ui.textSecondary}; text-decoration: none; }
+    a:hover { color: ${ui.brandInk}; text-decoration: underline; }
+    svg { width: 13px; height: 13px; }
+    span[aria-current] { color: ${ui.ink}; font-weight: 600; }
 `;
 
-const HeroMetaItem = styled.span`
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    min-width: 0;
-    svg { width: 13px; height: 13px; opacity: 0.65; flex-shrink: 0; }
+// ─── Karta wizyt ──────────────────────────────────────────────────────────────
+
+const VisitsCard = styled(Card)`
+    display: flex;
+    flex-direction: column;
 `;
 
-// Click-to-Call: numer wygląda jak reszta metadanych, ale jest przyciskiem -
-// klik wysyła powiadomienie na sparowany telefon zalogowanego użytkownika.
-const HeroMetaCallBtn = styled.button`
-    display: inline-flex;
+const CardHead = styled.div`
+    display: flex;
     align-items: center;
-    gap: 5px;
-    min-width: 0;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 22px 0;
+
+    @media (max-width: 640px) { padding: 14px 16px 0; }
+`;
+
+const Strip = styled(SummaryStrip)`
+    margin: 14px 22px 0;
+
+    @media (max-width: 640px) { margin: 10px 16px 0; }
+`;
+
+const RowList = styled.ul`
+    list-style: none;
+    margin: 12px 0 0;
     padding: 0;
-    background: none;
-    border: none;
-    font: inherit;
-    color: inherit;
-    cursor: pointer;
-    transition: color 0.15s;
-    svg { width: 13px; height: 13px; opacity: 0.65; flex-shrink: 0; }
-    &:hover { color: #38bdf8; }
-    &:disabled { cursor: default; opacity: 0.6; }
 `;
 
+const EventRow = styled.button<{ $muted?: boolean }>`
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr) auto auto 16px;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 12px 22px;
+    border: none;
+    border-top: 1px solid ${ui.lineFaint};
+    background: ${ui.surface};
+    font-family: inherit;
+    text-align: left;
+    color: inherit;
+    cursor: ${p => p.$muted ? 'default' : 'pointer'};
+    opacity: ${p => p.$muted ? 0.55 : 1};
 
-const HeroRight = styled.div`
+    &:hover:not(:disabled) { background: ${ui.surfaceSoft}; }
+    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: -2px; }
+    > svg { width: 16px; height: 16px; color: ${ui.textFaint}; }
+
+    @media (max-width: 640px) {
+        grid-template-columns: 52px minmax(0, 1fr) auto 16px;
+        gap: 10px;
+        padding: 12px 12px 12px 16px;
+        .pill { display: none; }
+    }
+`;
+
+/* Wiersz rezerwacji w płaskim panelu: bez własnego tła i z odstępem panelu. */
+const FlatRow = styled(EventRow)`
+    padding: 11px 0;
+    background: transparent;
+
+    li:first-child > & { border-top: none; padding-top: 0; }
+    &:hover:not(:disabled) { background: transparent; }
+    &:hover strong { color: ${ui.brandInk}; }
+
+    @media (max-width: 640px) { padding: 11px 0; }
+`;
+
+const DateCol = styled.span`
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    font-variant-numeric: tabular-nums;
+
+    strong { font-size: 14px; font-weight: 700; color: ${ui.ink}; }
+    span { font-size: 12px; color: ${ui.textMuted}; }
+`;
+
+const EventText = styled.span`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+
+    strong { font-size: 14px; font-weight: 600; color: ${ui.ink}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    > span { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 2px 10px; font-size: 12.5px; color: ${ui.textMuted}; }
+`;
+
+const Amount = styled.span`
+    font-size: 14.5px;
+    font-weight: 700;
+    color: ${ui.ink};
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+`;
+
+const CardFoot = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
-    flex-shrink: 0;
-    padding-top: 4px;
+    padding: 10px 22px 14px;
+    border-top: 1px solid ${ui.lineFaint};
 
-    @media (max-width: 640px) {
-        width: 100%;
-        padding-top: 0;
-    }
+    @media (max-width: 640px) { padding: 10px 16px 12px; }
 `;
 
-const HeroPrimaryBtn = styled.button`
-    display: inline-flex;
+const EmptyCard = styled.p`
+    margin: 14px 22px 18px;
+    font-size: 13.5px;
+    color: ${ui.textMuted};
+`;
+
+// ─── Wykres przychodu ────────────────────────────────────────────────────────
+
+const Bars = styled.ol`
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    align-items: end;
+    gap: 6px;
+    height: 132px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    @media (max-width: 480px) { gap: 3px; }
+`;
+
+const BarCol = styled.li`
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-end;
+    gap: 6px;
+    height: 100%;
+    min-width: 0;
+
+    span { font-size: 11.5px; color: ${ui.textMuted}; text-align: center; }
+`;
+
+const Bar = styled.div<{ $h: number; $current: boolean }>`
+    height: ${p => p.$h}%;
+    min-height: 3px;
+    border-radius: 6px 6px 3px 3px;
+    background: ${p => p.$current ? ui.brand : ui.brandLineSoft};
+`;
+
+// ─── Szyna ────────────────────────────────────────────────────────────────────
+
+const RailPanel = styled(Panel)`
+    padding: 16px 18px;
+
+    @media (max-width: 640px) { padding: 14px 16px; }
+`;
+
+const RailHead = styled.div`
+    display: flex;
     align-items: center;
-    gap: 7px;
-    padding: 9px 18px;
-    border-radius: 9999px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 180ms ease;
-    white-space: nowrap;
-    background: #0ea5e9;
-    color: #fff;
-    border: 1px solid #0ea5e9;
-    box-shadow: 0 2px 8px rgba(14,165,233,0.35);
-    svg { width: 15px; height: 15px; }
-
-    &:hover {
-        background: #0284c7;
-        box-shadow: 0 4px 14px rgba(14,165,233,0.45);
-        transform: translateY(-1px);
-    }
-
-    @media (max-width: 640px) { flex: 1; justify-content: center; padding: 11px 18px; font-size: 14px; }
+    justify-content: space-between;
+    gap: 8px;
 `;
 
-const HeroKebabWrap = styled.div`
-    position: relative;
+const RailActions = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 2px;
     flex-shrink: 0;
 `;
 
-const HeroKebabBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 38px;
-    height: 38px;
-    border-radius: 9999px;
-    border: 1px solid rgba(255,255,255,0.14);
-    background: rgba(255,255,255,0.08);
-    color: #f1f5f9;
-    cursor: pointer;
-    transition: background 180ms ease;
-    svg { width: 4px; height: 18px; }
-    &:hover { background: rgba(255,255,255,0.15); }
+const ContactActions = styled.div`
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+
+    > * { flex: 1; }
 `;
 
-const HeroKebabMenu = styled.div`
-    position: fixed;
-    min-width: 200px;
-    background: #1e293b;
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 10px;
-    box-shadow: 0 8px 28px rgba(0,0,0,0.45);
-    z-index: 9000;
-    overflow: hidden;
+const Muted = styled.p`
+    margin: 10px 0 0;
+    font-size: 13.5px;
+    color: ${ui.textMuted};
 `;
 
-const HeroKebabItem = styled.button<{ $danger?: boolean }>`
+const Faint = styled.span`
+    color: ${ui.textMuted};
+    font-weight: 400;
+`;
+
+const VehicleList = styled.ul`
+    display: flex;
+    flex-direction: column;
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+`;
+
+/* Pojazd jako wiersz-odnośnik: logo marki, nazwa, tablica i rocznik obok siebie. */
+const VehicleLink = styled.a<{ $muted?: boolean }>`
     display: flex;
     align-items: center;
     gap: 10px;
-    width: 100%;
-    padding: 11px 14px;
-    background: none;
-    border: none;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 140ms ease;
-    color: ${p => p.$danger ? '#fca5a5' : '#e2e8f0'};
+    padding: 9px 0;
+    border-top: 1px solid ${ui.lineFaint};
+    text-decoration: none;
+    color: inherit;
+    opacity: ${p => p.$muted ? 0.55 : 1};
+    pointer-events: ${p => p.$muted ? 'none' : 'auto'};
 
-    &:last-child { border-bottom: none; }
-    &:hover:not(:disabled) { background: rgba(255,255,255,0.08); }
-    svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.8; }
+    li:first-child > & { border-top: none; }
+    &:hover strong { color: ${ui.brandInk}; }
+    > svg { width: 15px; height: 15px; color: ${ui.textFaint}; flex-shrink: 0; }
 `;
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+const VehicleText = styled.span`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+
+    strong { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: ${ui.ink}; overflow-wrap: anywhere; }
+    > span { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 12.5px; color: ${ui.textMuted}; }
+`;
+
+const Plate = styled.span`
+    font-family: ${ui.mono};
+    letter-spacing: 0.04em;
+    color: ${ui.inkSoft};
+`;
+
+const HistoryToggle = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    padding: 14px 18px;
+    border: none;
+    border-radius: ${ui.radiusPanel};
+    background: transparent;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    > svg { width: 16px; height: 16px; color: ${ui.textMuted}; transition: transform 200ms ease; }
+    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: -2px; }
+    @media (max-width: 640px) { padding: 14px 16px; }
+`;
+
+const Centered = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    min-height: 400px;
+    text-align: center;
+
+    h2 { margin: 0; font-size: 20px; color: ${ui.dangerInk}; }
+    p { margin: 0; color: ${ui.textSecondary}; font-size: 14px; }
+`;
+
+const Spinner = styled.div`
+    width: 38px;
+    height: 38px;
+    border: 3px solid ${ui.line};
+    border-top-color: ${ui.brand};
+    border-radius: 50%;
+    animation: ${spin} 0.7s linear infinite;
+`;
+
+// ─── Pomocnicze ───────────────────────────────────────────────────────────────
 
 const MONTH_LABELS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
+const VISITS_COLLAPSED = 6;
 
-function getInitials(firstName: string | null, lastName: string | null): string {
-    if (isPiiMasked(firstName) || isPiiMasked(lastName)) return '•';
-    const f = firstName?.[0] ?? '';
-    const l = lastName?.[0] ?? '';
-    return (f + l).toUpperCase() || '?';
-}
-
-function formatShortDate(dateStr: string): { day: string; month: string; time: string } {
-    const d = new Date(dateStr);
-    return {
-        day:   d.getDate().toString().padStart(2, '0'),
-        month: MONTH_LABELS[d.getMonth()].toUpperCase(),
-        time:  d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }),
-    };
-}
-
-function visitStatusBadge(status: Visit['status']): { label: string; kind: 'success' | 'info' | 'warn' | 'neutral' | 'error' } {
+function visitStatus(status: Visit['status']): { label: string; tone: PillTone } {
     switch (status) {
-        case 'completed':   return { label: 'Zakończona',  kind: 'success' };
-        case 'in-progress':       return { label: 'W trakcie',          kind: 'info' };
-        case 'ready-for-pickup':  return { label: 'Gotowa do odbioru', kind: 'warn' };
-        case 'scheduled':         return { label: 'Zaplanowana',       kind: 'neutral' };
-        case 'cancelled':         return { label: 'Anulowana',         kind: 'error' };
-        default:            return { label: status,        kind: 'neutral' };
+        case 'completed': return { label: 'Zakończona', tone: 'ok' };
+        case 'in-progress': return { label: 'W realizacji', tone: 'info' };
+        case 'ready-for-pickup': return { label: 'Do odbioru', tone: 'warn' };
+        case 'scheduled': return { label: 'Zaplanowana', tone: 'neutral' };
+        case 'cancelled': return { label: 'Anulowana', tone: 'danger' };
+        default: return { label: status, tone: 'neutral' };
     }
 }
 
-function reservationStatusBadge(status: Reservation['status']): { label: string; kind: 'success' | 'info' | 'warn' | 'neutral' | 'error' } {
+function reservationStatus(status: Reservation['status']): { label: string; tone: PillTone } {
     switch (status) {
-        case 'CREATED':   return { label: 'Rezerwacja', kind: 'neutral' };
-        case 'CONVERTED': return { label: 'Aktywna',    kind: 'info' };
-        case 'CANCELLED': return { label: 'Anulowana',  kind: 'error' };
-        case 'ABANDONED': return { label: 'Porzucona',  kind: 'warn' };
-        default:          return { label: status,        kind: 'neutral' };
+        case 'CREATED': return { label: 'Rezerwacja', tone: 'neutral' };
+        case 'CONVERTED': return { label: 'Przyjęta', tone: 'info' };
+        case 'CANCELLED': return { label: 'Anulowana', tone: 'danger' };
+        case 'ABANDONED': return { label: 'Porzucona', tone: 'warn' };
+        default: return { label: status, tone: 'neutral' };
     }
 }
 
-function deriveContactPreference(consents: MarketingConsent[]): string {
-    const granted = consents.filter(c => c.granted).map(c => c.type);
-    if (granted.length === 0) return 'Brak zgód';
-    const labels: Record<string, string> = { email: 'E-mail', sms: 'SMS', phone: 'Telefon', postal: 'Poczta' };
-    return granted.map(t => labels[t] ?? t).join(', ');
+/** 1 wizyta, 2 wizyty, 5 wizyt, 22 wizyty. */
+function visitsWord(n: number): string {
+    if (n === 1) return 'wizyta';
+    const u = n % 10;
+    const t2 = n % 100;
+    return u >= 2 && u <= 4 && (t2 < 12 || t2 > 14) ? 'wizyty' : 'wizyt';
 }
 
-// ─── Main view ────────────────────────────────────────────────────────────────
+function daysAgo(iso: string): string {
+    const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+    if (days <= 0) return 'dziś';
+    if (days === 1) return 'wczoraj';
+    return `${days} dni temu`;
+}
+
+const pad = (n: number) => String(n).padStart(2, '0');
+const shortDate = (iso: string) => new Date(iso).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+function DateCell({ iso }: { iso: string }) {
+    const d = new Date(iso);
+    const sameYear = d.getFullYear() === new Date().getFullYear();
+    return (
+        <DateCol>
+            <strong>{pad(d.getDate())}.{pad(d.getMonth() + 1)}</strong>
+            <span>{sameYear ? `${pad(d.getHours())}:${pad(d.getMinutes())}` : d.getFullYear()}</span>
+        </DateCol>
+    );
+}
+
+type VisitRowData = Visit & { licensePlate?: string; _deleted: boolean };
+
+// ─── Widok ────────────────────────────────────────────────────────────────────
 
 export const CustomerDetailView = () => {
     const { customerId } = useParams<{ customerId: string }>();
     const navigate = useNavigate();
+    const isPhone = useMediaQuery('(max-width: 767px)');
 
-    const [isEditModalOpen,   setIsEditModalOpen]   = useState(false);
-    const [isAddVehicleOpen,  setIsAddVehicleOpen]  = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editModalInitialTab, setEditModalInitialTab] = useState<'basic' | 'address' | 'company'>('basic');
-    // Karta klienta jest długa - na telefonie dzielimy ją na trzy sekcje
-    // przełączane paskiem przy dolnej krawędzi, tak jak kartę wizyty.
-    const [mobileTab, setMobileTab] = useState<CustomerMobileTab>('visits');
+    const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
+    const [isSmsOpen, setIsSmsOpen] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const deleteCustomer = useDeleteCustomer();
-    const { requestCall, isRequesting: isRequestingCall } = useClickToCall();
-    const [isKebabOpen,  setIsKebabOpen]  = useState(false);
-    const [kebabPos,     setKebabPos]     = useState<{ top: number; right: number } | null>(null);
-    const kebabRef = useRef<HTMLDivElement>(null);
-
-    const openKebab = () => {
-        if (kebabRef.current) {
-            const rect = kebabRef.current.getBoundingClientRect();
-            setKebabPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
-        }
-        setIsKebabOpen(v => !v);
-    };
-
-    useEffect(() => {
-        if (!isKebabOpen) return;
-        const handler = (e: MouseEvent) => {
-            if (kebabRef.current && !kebabRef.current.contains(e.target as Node)) setIsKebabOpen(false);
-        };
-        document.addEventListener('click', handler);
-        return () => document.removeEventListener('click', handler);
-    }, [isKebabOpen]);
-
-    const [isDocsOpen,             setIsDocsOpen]             = useState(false);
-    const [isCommOpen,             setIsCommOpen]             = useState(false);
-    const [isConsentsOpen,         setIsConsentsOpen]         = useState(false);
-    const [isAuditOpen,            setIsAuditOpen]            = useState(false);
+    const [isAuditOpen, setIsAuditOpen] = useState(false);
     const [reservationMenu, setReservationMenu] = useState<{ id: string; x: number; y: number } | null>(null);
-    const [visitsPage, setVisitsPage] = useState(0);
+    const [showAllVisits, setShowAllVisits] = useState(false);
     const [showDeletedVisits, setShowDeletedVisits] = useState(false);
     const [showDeletedVehicles, setShowDeletedVehicles] = useState(false);
 
-    const VISITS_PAGE_SIZE = 4;
+    const deleteCustomer = useDeleteCustomer();
+    const { requestCall, isRequesting: isRequestingCall } = useClickToCall();
+    const { customerDetail, isLoading, isError, refetch } = useCustomerDetail(customerId!);
+    const { vehicles, isLoading: vehiclesLoading } = useCustomerVehicles(customerId!, showDeletedVehicles);
+    const { visits: regularVisits, reservations } = useCustomerActiveData(customerId!);
+    const { visits: deletedVisits } = useCustomerDeletedVisits(customerId!, showDeletedVisits);
+    const { entries: commEntries } = useCustomerCommunication(customerId!);
+    const { data: revenueSummary } = useCustomerRevenue(customerId!);
 
-    const { customerDetail, isLoading, isError, refetch }   = useCustomerDetail(customerId!);
-    const { vehicles, isLoading: vehiclesLoading }           = useCustomerVehicles(customerId!, showDeletedVehicles);
-    const { visits: regularVisits, reservations }            = useCustomerActiveData(customerId!);
-    const { visits: deletedVisits }                          = useCustomerDeletedVisits(customerId!, showDeletedVisits);
-    const { entries: commEntries }                           = useCustomerCommunication(customerId!);
-    const { data: revenueSummary }                           = useCustomerRevenue(customerId!);
-
-    const visits = useMemo(() => {
-        const base = regularVisits.map(v => ({
+    const visits: VisitRowData[] = useMemo(() => {
+        const withPlate = (v: Visit, deleted: boolean) => ({
             ...v,
             licensePlate: v.licensePlate || vehicles.find(vh => vh.id === v.vehicleId)?.licensePlate,
-            _deleted: false,
-        }));
+            _deleted: deleted,
+        });
+        const base = regularVisits.map(v => withPlate(v, false));
         if (!showDeletedVisits) return base;
-        const deleted = deletedVisits.map(v => ({
-            ...v,
-            licensePlate: v.licensePlate || vehicles.find(vh => vh.id === v.vehicleId)?.licensePlate,
-            _deleted: true,
-        }));
-        return [...base, ...deleted].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        return [...base, ...deletedVisits.map(v => withPlate(v, true))]
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }, [regularVisits, deletedVisits, vehicles, showDeletedVisits]);
 
-    const monthlyRevenue = useMemo(
-        () => revenueSummary?.buckets.map(b => b.grossAmount) ?? Array(12).fill(0),
-        [revenueSummary],
-    );
-    const monthLabels = useMemo(
-        () => revenueSummary?.buckets.map(b => MONTH_LABELS[b.month - 1]) ?? Array(12).fill(''),
-        [revenueSummary],
-    );
-    const revenueMax = useMemo(() => Math.max(...monthlyRevenue, 1), [monthlyRevenue]);
+    const activeVisit = useMemo(() => visits.find(v => v.status === 'in-progress' && !v._deleted), [visits]);
 
-    const activeVisit = useMemo(
-        () => visits.find(v => v.status === 'in-progress' && !(v as any)._deleted),
-        [visits],
-    );
-
-    const upcomingReservations = useMemo(
+    const upcoming = useMemo(
         () => [...reservations]
             .filter(r => r.status === 'CREATED' || r.status === 'CONVERTED')
             .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
@@ -535,17 +506,15 @@ export const CustomerDetailView = () => {
         [reservations],
     );
 
-    // ── Loading ──────────────────────────────────────────────────────────────
-
     if (isLoading) {
         return (
             <ViewContainer>
-                <PageContent>
-                    <CenteredBox>
-                        <SpinnerEl />
-                        <LoadingText>Ładowanie danych klienta...</LoadingText>
-                    </CenteredBox>
-                </PageContent>
+                <ContentArea>
+                    <Centered>
+                        <Spinner />
+                        <p>Ładowanie danych klienta...</p>
+                    </Centered>
+                </ContentArea>
             </ViewContainer>
         );
     }
@@ -553,668 +522,403 @@ export const CustomerDetailView = () => {
     if (isError || !customerDetail) {
         return (
             <ViewContainer>
-                <PageContent>
-                    <CenteredBox>
-                        <ErrorTitle>{t.common.error}</ErrorTitle>
-                        <ErrorMsg>{t.customers.error.detailLoadFailed}</ErrorMsg>
-                        <SharedButton $variant="primary" onClick={() => refetch()}>
-                            {t.common.retry}
-                        </SharedButton>
-                    </CenteredBox>
-                </PageContent>
+                <ContentArea>
+                    <Centered>
+                        <h2>{t.common.error}</h2>
+                        <p>{t.customers.error.detailLoadFailed}</p>
+                        <Button variant="primary" onClick={() => refetch()}>{t.common.retry}</Button>
+                    </Centered>
+                </ContentArea>
             </ViewContainer>
         );
     }
 
-    const { customer, marketingConsents, loyaltyTier, lifetimeValue } = customerDetail;
+    const { customer, lifetimeValue } = customerDetail;
     const fullName = joinPiiName(customer.firstName, customer.lastName) ?? 'Nieznany klient';
-    const initials = getInitials(customer.firstName, customer.lastName);
+    const phone = customer.contact.phone;
+    const phoneUsable = !!phone && !isPiiMasked(phone);
+    const currency = lifetimeValue.currency;
 
-    const visitsTotalPages = Math.ceil(visits.length / VISITS_PAGE_SIZE);
-    const recentVisits = visits.slice(visitsPage * VISITS_PAGE_SIZE, (visitsPage + 1) * VISITS_PAGE_SIZE);
+    const shownVisits = showAllVisits ? visits : visits.slice(0, VISITS_COLLAPSED);
+    const monthly = revenueSummary?.buckets ?? [];
+    const revenueMax = Math.max(...monthly.map(b => b.grossAmount), 1);
+
+    const startVisit = () => navigate('/checkin/new', {
+        state: {
+            prefillCustomer: {
+                id: customer.id,
+                firstName: customer.firstName ?? '',
+                lastName: customer.lastName ?? '',
+                phone: customer.contact.phone ?? '',
+                email: customer.contact.email ?? '',
+            },
+        },
+    });
+
+    const openEdit = (tab: 'basic' | 'address' | 'company' = 'basic') => {
+        setEditModalInitialTab(tab);
+        setIsEditModalOpen(true);
+    };
+
+    const chips = [
+        { id: 'customer-visits', label: 'Wizyty', count: regularVisits.length },
+        { id: 'customer-data', label: 'Dane' },
+        { id: 'customer-vehicles', label: 'Pojazdy', count: customer.vehicleCount },
+        { id: 'customer-upcoming', label: 'Nadchodzące', count: upcoming.length },
+        { id: 'customer-notes', label: 'Notatki' },
+        { id: 'customer-docs', label: 'Dokumenty' },
+        { id: 'customer-consents', label: 'Zgody' },
+        { id: 'customer-comm', label: 'Wiadomości', count: commEntries.length },
+        { id: 'customer-history', label: 'Historia' },
+    ];
 
     return (
         <ViewContainer>
-            <PageContent>
+            <ContentArea>
+                <Breadcrumb aria-label="Nawigacja">
+                    <a href="/customers" onClick={e => { e.preventDefault(); navigate('/customers'); }}>Klienci</a>
+                    <ChevronRight aria-hidden="true" />
+                    <span aria-current="page"><PiiValue value={fullName} kind="name" /></span>
+                </Breadcrumb>
 
-                {/* ─── Hero header ───────────────────────────────── */}
-                <HeroHeader>
-                    <HeroContent>
-                        <HeroLeft>
-                            <HeroAvatarLg aria-hidden="true">{initials}</HeroAvatarLg>
-                            <HeroNameBlock>
-                                <HeroName><PiiValue value={fullName} kind="name" /></HeroName>
-                                <HeroMetaRow>
-                                    {customer.contact.phone && (
-                                        isPiiMasked(customer.contact.phone) ? (
-                                            <HeroMetaItem>
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.93a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 3h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 18"/>
-                                                </svg>
-                                                <PiiValue value={customer.contact.phone} kind="phone" />
-                                            </HeroMetaItem>
-                                        ) : (
-                                            <HeroMetaCallBtn
-                                                type="button"
-                                                onClick={() => requestCall(customer.contact.phone!, fullName)}
-                                                disabled={isRequestingCall}
-                                                title="Zadzwoń z telefonu (powiadomienie push)"
-                                            >
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.93a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 3h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 18"/>
-                                                </svg>
-                                                {customer.contact.phone}
-                                            </HeroMetaCallBtn>
-                                        )
-                                    )}
-                                    {customer.contact.email && (
-                                        <HeroMetaItem>
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <rect x="2" y="4" width="20" height="16" rx="2"/>
-                                                <path d="M2 7l10 7 10-7"/>
-                                            </svg>
-                                            <PiiValue value={customer.contact.email} kind="email" />
-                                        </HeroMetaItem>
-                                    )}
-                                    <HeroMetaItem>
-                                        ID: {customer.id.slice(0, 8).toUpperCase()}
-                                    </HeroMetaItem>
-                                    {customer.homeAddress && (
-                                        <HeroMetaItem>
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                                                <circle cx="12" cy="10" r="3"/>
-                                            </svg>
-                                            <PiiValue value={customer.homeAddress.city} kind="text" />
-                                            {customer.homeAddress.street && (
-                                                <>, <PiiValue value={customer.homeAddress.street} kind="text" /></>
-                                            )}
-                                        </HeroMetaItem>
-                                    )}
-                                </HeroMetaRow>
-                            </HeroNameBlock>
-                        </HeroLeft>
+                <CustomerDetailHeader
+                    fullName={fullName}
+                    companyName={customer.company?.name}
+                    createdAt={customer.createdAt}
+                    canSms={phoneUsable}
+                    onNewVisit={startVisit}
+                    onEdit={() => openEdit()}
+                    onSms={() => setIsSmsOpen(true)}
+                    onDelete={() => setShowDeleteConfirm(true)}
+                />
 
-                        <HeroRight>
-                            <HeroPrimaryBtn
-                                onClick={() => navigate('/checkin/new', {
-                                    state: {
-                                        prefillCustomer: {
-                                            id:        customer.id,
-                                            firstName: customer.firstName ?? '',
-                                            lastName:  customer.lastName  ?? '',
-                                            phone:     customer.contact.phone ?? '',
-                                            email:     customer.contact.email ?? '',
-                                        },
-                                    },
-                                })}
-                            >
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                    <line x1="16" y1="2" x2="16" y2="6"/>
-                                    <line x1="8" y1="2" x2="8" y2="6"/>
-                                    <line x1="3" y1="10" x2="21" y2="10"/>
-                                    <line x1="12" y1="14" x2="12" y2="18"/>
-                                    <line x1="10" y1="16" x2="14" y2="16"/>
-                                </svg>
-                                Nowa wizyta
-                            </HeroPrimaryBtn>
-
-                            <HeroKebabWrap ref={kebabRef}>
-                                <HeroKebabBtn onClick={openKebab} title="Więcej opcji">
-                                    <svg viewBox="0 0 4 18" fill="currentColor">
-                                        <circle cx="2" cy="2" r="2" />
-                                        <circle cx="2" cy="9" r="2" />
-                                        <circle cx="2" cy="16" r="2" />
-                                    </svg>
-                                </HeroKebabBtn>
-                            </HeroKebabWrap>
-                        </HeroRight>
-                    </HeroContent>
-                </HeroHeader>
-
-                {isKebabOpen && kebabPos && createPortal(
-                    <HeroKebabMenu style={{ top: kebabPos.top, right: kebabPos.right }}>
-                        <HeroKebabItem onClick={() => { setIsKebabOpen(false); setIsEditModalOpen(true); }}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                            </svg>
-                            Edytuj dane
-                        </HeroKebabItem>
-                        <HeroKebabItem onClick={() => { setIsKebabOpen(false); }}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                            </svg>
-                            Wyślij SMS
-                        </HeroKebabItem>
-                        <HeroKebabItem $danger onClick={() => { setIsKebabOpen(false); setShowDeleteConfirm(true); }}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polyline points="3 6 5 6 21 6"/>
-                                <path d="M19 6l-1 14H6L5 6"/>
-                                <path d="M9 6V4h6v2"/>
-                            </svg>
-                            Usuń klienta
-                        </HeroKebabItem>
-                    </HeroKebabMenu>,
-                    document.body
+                {/* Auto klienta stoi teraz w studiu - to jedyna rzecz, z którą ktoś wchodzi
+                    na kartę klienta i wychodzi od razu dalej. Wcześniej był to czwarty,
+                    wypełniony kafel statystyk z dopiskiem „W trakcie · kliknij aby przejść". */}
+                {activeVisit && (
+                    <div style={{ marginBottom: 14 }}>
+                        <Notice
+                            tone="info"
+                            title={`${activeVisit.vehicleName} jest teraz w studiu`}
+                            action={<Button variant="tinted" size="sm" onClick={() => navigate(`/visits/${activeVisit.id}`)}>Otwórz wizytę</Button>}
+                        >
+                            {activeVisit.description || 'Wizyta w realizacji'}, przyjęta {shortDate(activeVisit.date)}.
+                        </Notice>
+                    </div>
                 )}
 
-                {/* ─── Two-column layout ─────────────────────────── */}
-                <TwoColGrid>
+                {isPhone && (
+                    <SectionChips
+                        label="Sekcje klienta"
+                        items={chips}
+                        onOpen={id => { if (id === 'customer-history') setIsAuditOpen(true); }}
+                    />
+                )}
 
-                    {/* ── LEFT RAIL ────────────────────────────────── */}
-                    <LeftRail>
-                      <MobileSectionPanel $visible={mobileTab === 'other'} $desktopContents>
+                <Layout>
+                    <Columns>
+                        <MainColumn>
+                            {/* Jedyna wyniesiona karta: po historię wizyt i przychód wraca się tu najczęściej. */}
+                            <Slot id="customer-visits" $order={1}>
+                                <VisitsCard aria-labelledby="customer-visits-title">
+                                    <CardHead>
+                                        <SectionTitle id="customer-visits-title" size="lg" count={regularVisits.length || undefined}>
+                                            Wizyty
+                                        </SectionTitle>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            aria-pressed={showDeletedVisits}
+                                            onClick={() => setShowDeletedVisits(v => !v)}
+                                        >
+                                            {showDeletedVisits ? 'Ukryj usunięte' : 'Pokaż usunięte'}
+                                        </Button>
+                                    </CardHead>
 
-                        {/* Company */}
-                        {customer.company && (
-                            <Panel>
-                                <PanelHead>
-                                    <PanelTitle>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                                            <polyline points="9,22 9,12 15,12 15,22"/>
-                                        </svg>
-                                        Dane firmy
-                                    </PanelTitle>
-                                    <SharedButton
-                                        $variant="ghost"
-                                        $size="sm"
-                                        onClick={() => {
-                                            setEditModalInitialTab('company');
-                                            setIsEditModalOpen(true);
-                                        }}
-                                    >
-                                        Edytuj
-                                    </SharedButton>
-                                </PanelHead>
-                                <PanelBody>
-                                    <PrefRow>
-                                        <PrefKey>Nazwa</PrefKey>
-                                        <PrefVal>{customer.company.name}</PrefVal>
-                                    </PrefRow>
-                                    {customer.company.nip && (
-                                        <PrefRow>
-                                            <PrefKey>NIP</PrefKey>
-                                            <PrefVal>{customer.company.nip}</PrefVal>
-                                        </PrefRow>
-                                    )}
-                                    {customer.company.regon && (
-                                        <PrefRow>
-                                            <PrefKey>REGON</PrefKey>
-                                            <PrefVal>{customer.company.regon}</PrefVal>
-                                        </PrefRow>
-                                    )}
-                                    {customer.company.address && (
-                                        <PrefRow>
-                                            <PrefKey>Adres</PrefKey>
-                                            <PrefVal>
-                                                {customer.company.address.street}, {customer.company.address.postalCode} {customer.company.address.city}
-                                            </PrefVal>
-                                        </PrefRow>
-                                    )}
-                                </PanelBody>
-                            </Panel>
-                        )}
+                                    <Strip
+                                        label="Łączny przychód od klienta"
+                                        amount={formatCurrency(lifetimeValue.grossAmount, currency)}
+                                        details={customer.totalVisits > 0
+                                            ? `${customer.totalVisits} ${visitsWord(customer.totalVisits)}, średnio ${formatCurrency(lifetimeValue.grossAmount / customer.totalVisits, currency)}`
+                                            : 'klient nie ma jeszcze zakończonej wizyty'}
+                                    />
 
-                        {/* Vehicles */}
-                        <Panel>
-                            <PanelHead>
-                                <PanelTitle>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                                        <path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.4L19 11"/>
-                                        <rect x="2" y="11" width="20" height="6" rx="1"/>
-                                        <circle cx="7" cy="17" r="2"/>
-                                        <circle cx="17" cy="17" r="2"/>
-                                        <path d="M5 11h14"/>
-                                    </svg>
-                                    Pojazdy
-                                    <PanelCountBadge>{vehicles.length}</PanelCountBadge>
-                                </PanelTitle>
-                                <VehicleHeaderActions>
-                                    <ArchiveToggleBtn
-                                        $active={showDeletedVehicles}
-                                        onClick={() => setShowDeletedVehicles(v => !v)}
-                                        title={showDeletedVehicles ? 'Ukryj usunięte pojazdy' : 'Pokaż usunięte pojazdy'}
-                                    >
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <polyline points="3 6 5 6 21 6"/>
-                                            <path d="M19 6l-1 14H6L5 6"/>
-                                            <path d="M9 6V4h6v2"/>
-                                        </svg>
-                                    </ArchiveToggleBtn>
-                                    <AddVehicleButton onClick={() => setIsAddVehicleOpen(true)}>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                            <line x1="12" y1="5" x2="12" y2="19" />
-                                            <line x1="5" y1="12" x2="19" y2="12" />
-                                        </svg>
-                                        Dodaj
-                                    </AddVehicleButton>
-                                </VehicleHeaderActions>
-                            </PanelHead>
-                            <PanelBodyFlush>
-                                {vehiclesLoading ? (
-                                    <PanelBody>
-                                        <LoadingText>Ładowanie...</LoadingText>
-                                    </PanelBody>
-                                ) : vehicles.length === 0 ? (
-                                    <PanelBody>
-                                        <NoteText>Brak przypisanych pojazdów.</NoteText>
-                                    </PanelBody>
-                                ) : (
-                                    vehicles.map((vehicle: Vehicle) => {
-                                        const isDeleted = vehicle.status === 'archived';
-                                        return (
-                                            <VehicleItem
-                                                key={vehicle.id}
-                                                onClick={() => !isDeleted && navigate(`/vehicles/${vehicle.id}`)}
-                                                style={{ opacity: isDeleted ? 0.5 : 1, cursor: isDeleted ? 'default' : 'pointer' }}
-                                            >
-                                                <CarLogoImage brand={vehicle.make} size="sm" />
-                                                <VehicleInfo>
-                                                    <VehicleName>
-                                                        {vehicle.make} {vehicle.model}
-                                                        {isDeleted && (
-                                                            <StatusBadge $kind="error" style={{ marginLeft: 6, fontSize: 10 }}>
-                                                                Usunięty
-                                                            </StatusBadge>
-                                                        )}
-                                                    </VehicleName>
-                                                    <VehicleSub>
-                                                        {vehicle.licensePlate}
-                                                        {vehicle.year ? ` · ${vehicle.year}` : ''}
-                                                    </VehicleSub>
-                                                </VehicleInfo>
-                                            </VehicleItem>
-                                        );
-                                    })
-                                )}
-                            </PanelBodyFlush>
-                        </Panel>
-
-
-                        {/* Notes */}
-                        <CustomerNotes customerId={customerId!} />
-
-                      </MobileSectionPanel>
-                    </LeftRail>
-
-                    {/* ── MAIN COLUMN ──────────────────────────────── */}
-                    <MainCol>
-
-                        {/* KPI summary strip */}
-                        <MobileSectionPanel $visible={mobileTab === 'stats'} $desktopContents>
-                        <SummaryStrip>
-                            <SumCell>
-                                <KpiEyebrow>Łączny przychód</KpiEyebrow>
-                                <KpiValue>
-                                    {formatCurrency(lifetimeValue.grossAmount, lifetimeValue.currency)}
-                                </KpiValue>
-                                <KpiDelta>
-                                    {customer.totalVisits} wizyt łącznie
-                                </KpiDelta>
-                            </SumCell>
-
-                            <SumCell>
-                                <KpiEyebrow>Wizyty</KpiEyebrow>
-                                <KpiValue>{customer.totalVisits}</KpiValue>
-                                <KpiDelta>
-                                    śr. {customer.totalVisits > 0
-                                        ? formatCurrency(
-                                              lifetimeValue.grossAmount / customer.totalVisits,
-                                              lifetimeValue.currency,
-                                          )
-                                        : '-'} / wizyta
-                                </KpiDelta>
-                            </SumCell>
-
-                            <SumCell>
-                                <KpiEyebrow>Ostatnia wizyta</KpiEyebrow>
-                                <KpiValue>
-                                    {customer.lastVisitDate
-                                        ? formatDate(customer.lastVisitDate)
-                                        : '-'}
-                                </KpiValue>
-                                <KpiDelta>
-                                    {customer.lastVisitDate
-                                        ? `${Math.floor((Date.now() - new Date(customer.lastVisitDate).getTime()) / 86400000)} dni temu`
-                                        : 'Brak wizyt'}
-                                </KpiDelta>
-                            </SumCell>
-
-                            {activeVisit ? (
-                                <SumCellActive
-                                    style={{ cursor: 'pointer' }}
-                                    onClick={() => navigate(`/visits/${activeVisit.id}`)}
-                                >
-                                    <KpiEyebrow $light>Aktywna wizyta</KpiEyebrow>
-                                    <KpiValue $light>{activeVisit.vehicleName}</KpiValue>
-                                    <KpiDelta $light>W trakcie · kliknij aby przejść</KpiDelta>
-                                </SumCellActive>
-                            ) : (
-                                <SumCell>
-                                    <KpiEyebrow>Pojazdy</KpiEyebrow>
-                                    <KpiValue>{customer.vehicleCount}</KpiValue>
-                                    <KpiDelta>zarejestrowanych</KpiDelta>
-                                </SumCell>
-                            )}
-                        </SummaryStrip>
-                        </MobileSectionPanel>
-
-                        {/* Revenue chart + Upcoming visits */}
-                        <ChartGrid>
-
-                            {/* Revenue chart */}
-                            <MobileSectionPanel $visible={mobileTab === 'stats'} $desktopContents>
-                            <Panel>
-                                <PanelHead>
-                                    <PanelTitle>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <line x1="18" y1="20" x2="18" y2="10"/>
-                                            <line x1="12" y1="20" x2="12" y2="4"/>
-                                            <line x1="6" y1="20" x2="6" y2="14"/>
-                                        </svg>
-                                        Przychód · 12 miesięcy
-                                    </PanelTitle>
-                                    <span style={{ fontSize: 12, color: '#64748b' }}>
-                                        Suma: <strong style={{ color: '#0f172a' }}>
-                                            {formatCurrency(
-                                                revenueSummary?.total.grossAmount ?? 0,
-                                                revenueSummary?.total.currency ?? lifetimeValue.currency,
-                                            )}
-                                        </strong>
-                                    </span>
-                                </PanelHead>
-                                <PanelBody>
-                                    <ChartBars>
-                                        {monthlyRevenue.map((val, i) => (
-                                            <ChartBarCol key={i}>
-                                                <ChartBarWrap>
-                                                    <ChartBar
-                                                        $h={Math.max(3, Math.round((val / revenueMax) * 100))}
-                                                        $active={i === 11}
-                                                        title={formatCurrency(val, revenueSummary?.total.currency ?? lifetimeValue.currency)}
-                                                    />
-                                                </ChartBarWrap>
-                                                <ChartBarLabel>{monthLabels[i]}</ChartBarLabel>
-                                            </ChartBarCol>
-                                        ))}
-                                    </ChartBars>
-                                </PanelBody>
-                            </Panel>
-                            </MobileSectionPanel>
-
-                            {/* Upcoming reservations */}
-                            <MobileSectionPanel $visible={mobileTab === 'visits'} $desktopContents>
-                            <Panel>
-                                <PanelHead>
-                                    <PanelTitle>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                            <line x1="16" y1="2" x2="16" y2="6"/>
-                                            <line x1="8" y1="2" x2="8" y2="6"/>
-                                            <line x1="3" y1="10" x2="21" y2="10"/>
-                                        </svg>
-                                        Nadchodzące
-                                    </PanelTitle>
-                                </PanelHead>
-                                <PanelBodyFlush>
-                                    {upcomingReservations.length === 0 ? (
-                                        <PanelBody>
-                                            <NoteText>Brak zaplanowanych wizyt.</NoteText>
-                                        </PanelBody>
+                                    {shownVisits.length === 0 ? (
+                                        <EmptyCard>Ten klient nie ma jeszcze wizyt.</EmptyCard>
                                     ) : (
-                                        upcomingReservations.map((r: Reservation) => {
-                                            const { day, month } = formatShortDate(r.date);
-                                            const { label, kind } = reservationStatusBadge(r.status);
-                                            return (
-                                                <UpcomingItem
-                                                    key={r.id}
-                                                    style={{ cursor: 'pointer' }}
-                                                    onClick={e => setReservationMenu({ id: r.id, x: e.clientX, y: e.clientY })}
-                                                >
-                                                    <UpcomingDateBox>
-                                                        <UpcomingDateNum>{day}</UpcomingDateNum>
-                                                        {month}
-                                                    </UpcomingDateBox>
-                                                    <UpcomingInfo>
-                                                        <UpcomingTitle>{r.vehicleName}</UpcomingTitle>
-                                                        <UpcomingSub>
-                                                            {r.licensePlate ?? '-'}
-                                                            {' · '}
-                                                            {formatCurrency(r.totalCost.grossAmount, r.totalCost.currency)}
-                                                        </UpcomingSub>
-                                                    </UpcomingInfo>
-                                                    <StatusBadge $kind={kind}>{label}</StatusBadge>
-                                                </UpcomingItem>
-                                            );
-                                        })
+                                        <RowList>
+                                            {shownVisits.map(visit => {
+                                                const status = visit._deleted ? { label: 'Usunięta', tone: 'danger' as const } : visitStatus(visit.status);
+                                                return (
+                                                    <li key={visit.id}>
+                                                        <EventRow
+                                                            type="button"
+                                                            $muted={visit._deleted}
+                                                            disabled={visit._deleted}
+                                                            onClick={() => navigate(`/visits/${visit.id}`)}
+                                                        >
+                                                            <DateCell iso={visit.date} />
+                                                            <EventText>
+                                                                <strong>{visit.description || visit.type || 'Wizyta'}</strong>
+                                                                <span>
+                                                                    <span>{visit.vehicleName}</span>
+                                                                    {visit.licensePlate && <Plate>{visit.licensePlate}</Plate>}
+                                                                </span>
+                                                            </EventText>
+                                                            <StatusPill className="pill" $tone={status.tone}>{status.label}</StatusPill>
+                                                            <Amount>{formatCurrency(visit.totalCost.grossAmount, visit.totalCost.currency)}</Amount>
+                                                            <ChevronRight aria-hidden="true" />
+                                                        </EventRow>
+                                                    </li>
+                                                );
+                                            })}
+                                        </RowList>
                                     )}
-                                </PanelBodyFlush>
-                            </Panel>
-                            </MobileSectionPanel>
 
-                        </ChartGrid>
+                                    {visits.length > VISITS_COLLAPSED ? (
+                                        <CardFoot>
+                                            <Button variant="ghost" size="sm" onClick={() => setShowAllVisits(v => !v)}>
+                                                {showAllVisits ? 'Pokaż mniej' : `Pokaż wszystkie (${visits.length})`}
+                                            </Button>
+                                        </CardFoot>
+                                    ) : <div style={{ height: 8 }} />}
+                                </VisitsCard>
+                            </Slot>
 
-                        {/* Recent visits */}
-                        <MobileSectionPanel $visible={mobileTab === 'visits'} $desktopContents>
-                        <Panel>
-                            <PanelHead>
-                                <PanelTitle>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M3 3h18v18H3z" fill="none"/>
-                                        <circle cx="12" cy="12" r="10"/>
-                                        <polyline points="12 6 12 12 16 14"/>
-                                    </svg>
-                                    Ostatnie wizyty
-                                </PanelTitle>
-                                {visits.length > 0 && (
-                                    <PanelCountBadge>{visits.length}</PanelCountBadge>
-                                )}
-                                <DeletedToggleWrap>
-                                    <DeletedToggleLabel>Wyświetl usunięte</DeletedToggleLabel>
-                                    <ToggleSwitch
-                                        $active={showDeletedVisits}
-                                        onClick={() => { setShowDeletedVisits(v => !v); setVisitsPage(0); }}
-                                        title={showDeletedVisits ? 'Pokaż aktywne wizyty' : 'Pokaż usunięte wizyty'}
-                                    >
-                                        <ToggleThumb $active={showDeletedVisits} />
-                                    </ToggleSwitch>
-                                </DeletedToggleWrap>
-                            </PanelHead>
-                            <PanelBodyFlush>
-                                {visits.length === 0 ? (
+                            <Slot id="customer-upcoming" $order={4}>
+                                <Panel aria-labelledby="customer-upcoming-title">
+                                    <PanelHead>
+                                        <SectionTitle id="customer-upcoming-title" count={upcoming.length || undefined}>Nadchodzące</SectionTitle>
+                                    </PanelHead>
                                     <PanelBody>
-                                        <NoteText>Brak historii wizyt.</NoteText>
+                                        {upcoming.length === 0 ? (
+                                            <Muted style={{ marginTop: 0 }}>Nic nie jest zaplanowane.</Muted>
+                                        ) : (
+                                            <RowList style={{ marginTop: 0 }}>
+                                                {upcoming.map(r => {
+                                                    const status = reservationStatus(r.status);
+                                                    return (
+                                                        <li key={r.id}>
+                                                            <FlatRow
+                                                                type="button"
+                                                                aria-haspopup="menu"
+                                                                onClick={e => setReservationMenu({ id: r.id, x: e.clientX, y: e.clientY })}
+                                                            >
+                                                                <DateCell iso={r.date} />
+                                                                <EventText>
+                                                                    <strong>{r.vehicleName}</strong>
+                                                                    <span>
+                                                                        <CalendarDays aria-hidden="true" style={{ width: 13, height: 13 }} />
+                                                                        {r.licensePlate && <Plate>{r.licensePlate}</Plate>}
+                                                                    </span>
+                                                                </EventText>
+                                                                <StatusPill className="pill" $tone={status.tone}>{status.label}</StatusPill>
+                                                                <Amount>{formatCurrency(r.totalCost.grossAmount, r.totalCost.currency)}</Amount>
+                                                                <ChevronRight aria-hidden="true" />
+                                                            </FlatRow>
+                                                        </li>
+                                                    );
+                                                })}
+                                            </RowList>
+                                        )}
                                     </PanelBody>
-                                ) : (
-                                    recentVisits.map((visit: Visit & { licensePlate?: string; _deleted?: boolean }) => {
-                                        const d = new Date(visit.date);
-                                        const isDeleted = !!visit._deleted;
-                                        const { label, kind } = isDeleted
-                                            ? { label: 'Usunięta', kind: 'error' as const }
-                                            : visitStatusBadge(visit.status);
-                                        return (
-                                            <VisitRow
-                                                key={visit.id}
-                                                $active={!isDeleted && visit.status === 'in-progress'}
-                                                onClick={() => !isDeleted && navigate(`/visits/${visit.id}`)}
-                                                style={isDeleted ? { opacity: 0.4, cursor: 'default' } : undefined}
-                                            >
-                                                <VisitDateCol>
-                                                    <VisitDateMain>
-                                                        {d.getDate().toString().padStart(2, '0')}.{(d.getMonth() + 1).toString().padStart(2, '0')}
-                                                    </VisitDateMain>
-                                                    <VisitDateSub>
-                                                        {d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}
-                                                    </VisitDateSub>
-                                                </VisitDateCol>
+                                </Panel>
+                            </Slot>
 
-                                                <VisitInfo>
-                                                    <VisitTitle>{visit.description || visit.type || 'Wizyta'}</VisitTitle>
-                                                    <VisitSub>
-                                                        {visit.vehicleName}
-                                                        {visit.technician ? ` · ${visit.technician}` : ''}
-                                                    </VisitSub>
-                                                </VisitInfo>
+                            <Slot $order={6}>
+                                <DocumentsManager id="customer-docs" customerId={customerId!} />
+                            </Slot>
 
-                                                <StatusBadge $kind={kind} className="visit-hide-sm">{label}</StatusBadge>
+                            <Slot $order={8}>
+                                <CustomerCommunicationList id="customer-comm" entries={commEntries} />
+                            </Slot>
 
-                                                <VisitAmount>
-                                                    {formatCurrency(visit.totalCost.grossAmount, visit.totalCost.currency)}
-                                                </VisitAmount>
-
-                                                <svg
-                                                    className="visit-hide-sm"
-                                                    width="16" height="16"
-                                                    viewBox="0 0 24 24" fill="none"
-                                                    stroke="#cbd5e1" strokeWidth="2"
-                                                >
-                                                    <path d="M9 18l6-6-6-6"/>
-                                                </svg>
-                                            </VisitRow>
-                                        );
-                                    })
-                                )}
-                            </PanelBodyFlush>
-                            {visitsTotalPages > 1 && (
-                                <PaginationBar>
-                                    <PaginationInfo>
-                                        {visitsPage * VISITS_PAGE_SIZE + 1}-{Math.min((visitsPage + 1) * VISITS_PAGE_SIZE, visits.length)} z {visits.length}
-                                    </PaginationInfo>
-                                    <PaginationBtns>
-                                        <PaginationBtn
-                                            $disabled={visitsPage === 0}
-                                            disabled={visitsPage === 0}
-                                            onClick={() => setVisitsPage(p => p - 1)}
+                            {/* Suma za 12 miesięcy jest nagłówkiem, słupki są dowodem pod nią. */}
+                            <Slot $order={9}>
+                                <Panel aria-labelledby="customer-revenue-title">
+                                    <PanelHead>
+                                        <SectionTitle
+                                            id="customer-revenue-title"
+                                            count={formatCurrency(revenueSummary?.total.grossAmount ?? 0, revenueSummary?.total.currency ?? currency)}
                                         >
-                                            ← Poprzednie
-                                        </PaginationBtn>
-                                        <PaginationBtn
-                                            $disabled={visitsPage >= visitsTotalPages - 1}
-                                            disabled={visitsPage >= visitsTotalPages - 1}
-                                            onClick={() => setVisitsPage(p => p + 1)}
-                                        >
-                                            Następne →
-                                        </PaginationBtn>
-                                    </PaginationBtns>
-                                </PaginationBar>
-                            )}
-                        </Panel>
+                                            Przychód w ostatnich 12 miesiącach
+                                        </SectionTitle>
+                                    </PanelHead>
+                                    <PanelBody>
+                                        {monthly.length === 0 ? (
+                                            <Muted style={{ marginTop: 0 }}>Brak danych o przychodzie.</Muted>
+                                        ) : (
+                                            <Bars aria-label="Przychód miesięcznie">
+                                                {monthly.map((b, i) => (
+                                                    <BarCol
+                                                        key={`${b.month}-${i}`}
+                                                        title={`${MONTH_LABELS[b.month - 1]}: ${formatCurrency(b.grossAmount, revenueSummary?.total.currency ?? currency)}`}
+                                                    >
+                                                        <Bar $h={Math.max(2, Math.round((b.grossAmount / revenueMax) * 100))} $current={i === monthly.length - 1} />
+                                                        <span>{MONTH_LABELS[b.month - 1]}</span>
+                                                    </BarCol>
+                                                ))}
+                                            </Bars>
+                                        )}
+                                    </PanelBody>
+                                </Panel>
+                            </Slot>
 
-                        {/* ── Collapsible sections ───────────────── */}
-
-                        {/* Documents */}
-                        <CollapsibleSection>
-                            <CollapsibleHeader
-                                onClick={() => setIsDocsOpen(v => !v)}
-                                aria-expanded={isDocsOpen}
-                                aria-controls="docs-section"
-                            >
-                                <CollapsibleHeaderLeft>
-                                    <SectionIconWrap>
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                            <polyline points="14 2 14 8 20 8"/>
-                                        </svg>
-                                    </SectionIconWrap>
-                                    <CollapsibleTitle>Dokumenty</CollapsibleTitle>
-                                </CollapsibleHeaderLeft>
-                                <ChevronIcon $open={isDocsOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <polyline points="6 9 12 15 18 9"/>
-                                </ChevronIcon>
-                            </CollapsibleHeader>
-                            <CollapsibleBody $visible={isDocsOpen} $flush id="docs-section">
-                                <DocumentsManager customerId={customerId!} />
-                            </CollapsibleBody>
-                        </CollapsibleSection>
-
-                        {/* Consents */}
-                        <CollapsibleSection>
-                            <CollapsibleHeader
-                                onClick={() => setIsConsentsOpen(v => !v)}
-                                aria-expanded={isConsentsOpen}
-                                aria-controls="consents-section"
-                            >
-                                <CollapsibleHeaderLeft>
-                                    <SectionIconWrap $gradient="linear-gradient(135deg, #F59E0B 0%, #D97706 100%)">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0 1 12 2.944a11.955 11.955 0 0 1-8.618 3.04A12.02 12.02 0 0 0 3 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                                        </svg>
-                                    </SectionIconWrap>
-                                    <CollapsibleTitle>Zgody klienta</CollapsibleTitle>
-                                </CollapsibleHeaderLeft>
-                                <ChevronIcon $open={isConsentsOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <polyline points="6 9 12 15 18 9"/>
-                                </ChevronIcon>
-                            </CollapsibleHeader>
-                            <CollapsibleBody $visible={isConsentsOpen} $flush id="consents-section">
-                                <CustomerConsentsSection customerId={customerId!} noCard />
-                            </CollapsibleBody>
-                        </CollapsibleSection>
-                        </MobileSectionPanel>
-
-                        <MobileSectionPanel $visible={mobileTab === 'other'} $desktopContents>
-                        {/* Communication */}
-                        <CollapsibleSection>
-                            <CollapsibleHeader
-                                onClick={() => setIsCommOpen(v => !v)}
-                                aria-expanded={isCommOpen}
-                                aria-controls="comm-section"
-                            >
-                                <CollapsibleHeaderLeft>
-                                    <SectionIconWrap $gradient="linear-gradient(135deg, #10B981 0%, #059669 100%)">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <rect x="2" y="4" width="20" height="16" rx="2"/>
-                                            <path d="M2 7l10 7 10-7"/>
-                                        </svg>
-                                    </SectionIconWrap>
-                                    <CollapsibleTitle>Komunikacja</CollapsibleTitle>
-                                    {commEntries.length > 0 && (
-                                        <CollapsibleBadge>{commEntries.length}</CollapsibleBadge>
+                            <Slot id="customer-history" $order={10}>
+                                <Panel>
+                                    <HistoryToggle
+                                        type="button"
+                                        onClick={() => setIsAuditOpen(v => !v)}
+                                        aria-expanded={isAuditOpen}
+                                        aria-controls="customer-history-body"
+                                    >
+                                        <SectionTitle as="span">Historia zmian</SectionTitle>
+                                        <ChevronDown aria-hidden="true" style={{ transform: isAuditOpen ? 'rotate(180deg)' : undefined }} />
+                                    </HistoryToggle>
+                                    {isAuditOpen && (
+                                        <PanelBody id="customer-history-body">
+                                            <EntityActivityTimeline scope={{ customerId: customerId! }} />
+                                        </PanelBody>
                                     )}
-                                </CollapsibleHeaderLeft>
-                                <ChevronIcon $open={isCommOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <polyline points="6 9 12 15 18 9"/>
-                                </ChevronIcon>
-                            </CollapsibleHeader>
-                            <CollapsibleBody $visible={isCommOpen} $flush id="comm-section">
-                                <CustomerCommunicationList entries={commEntries} />
-                            </CollapsibleBody>
-                        </CollapsibleSection>
+                                </Panel>
+                            </Slot>
+                        </MainColumn>
 
-                        {/* Audit trail */}
-                        <CollapsibleSection>
-                            <CollapsibleHeader
-                                onClick={() => setIsAuditOpen(v => !v)}
-                                aria-expanded={isAuditOpen}
-                                aria-controls="audit-section"
-                            >
-                                <CollapsibleHeaderLeft>
-                                    <SectionIconWrap $gradient="linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <circle cx="12" cy="12" r="10"/>
-                                            <polyline points="12 6 12 12 16 14"/>
-                                        </svg>
-                                    </SectionIconWrap>
-                                    <CollapsibleTitle>Historia zmian</CollapsibleTitle>
-                                </CollapsibleHeaderLeft>
-                                <ChevronIcon $open={isAuditOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <polyline points="6 9 12 15 18 9"/>
-                                </ChevronIcon>
-                            </CollapsibleHeader>
-                            <CollapsibleBody $visible={isAuditOpen} id="audit-section">
-                                <EntityActivityTimeline scope={{ customerId: customerId! }} />
-                            </CollapsibleBody>
-                        </CollapsibleSection>
-                        </MobileSectionPanel>
+                        <Rail>
+                            <Slot $order={2}>
+                                <RailPanel id="customer-data" aria-labelledby="customer-data-title">
+                                    <RailHead>
+                                        <SectionTitle id="customer-data-title">Dane klienta</SectionTitle>
+                                        <Button variant="ghost" size="sm" onClick={() => openEdit()}><Pencil />Edytuj</Button>
+                                    </RailHead>
+                                    <FieldList style={{ marginTop: 10 }}>
+                                        <FieldRow label="Telefon">
+                                            {phone ? <PiiValue value={phone} kind="phone" /> : <Faint>brak</Faint>}
+                                        </FieldRow>
+                                        <FieldRow label="E-mail">
+                                            {customer.contact.email ? <PiiValue value={customer.contact.email} kind="email" /> : <Faint>brak</Faint>}
+                                        </FieldRow>
+                                        {customer.homeAddress && (
+                                            <FieldRow label="Adres">
+                                                <span style={{ textAlign: 'right' }}>
+                                                    <PiiValue value={customer.homeAddress.street} kind="text" />
+                                                    {customer.homeAddress.street && ', '}
+                                                    {customer.homeAddress.postalCode} <PiiValue value={customer.homeAddress.city} kind="text" />
+                                                </span>
+                                            </FieldRow>
+                                        )}
+                                        <FieldRow label="Ostatnia wizyta">
+                                            {customer.lastVisitDate ? (
+                                                <span>{shortDate(customer.lastVisitDate)}<Faint>, {daysAgo(customer.lastVisitDate)}</Faint></span>
+                                            ) : 'jeszcze nie było'}
+                                        </FieldRow>
+                                        <FieldRow label="Numer w systemie">{customer.id.slice(0, 8).toUpperCase()}</FieldRow>
+                                    </FieldList>
+                                    {phoneUsable && (
+                                        <ContactActions>
+                                            <Button
+                                                size="sm"
+                                                disabled={isRequestingCall}
+                                                title="Telefon sparowany z kontem zadzwoni do klienta"
+                                                onClick={() => requestCall(phone!, fullName)}
+                                            >
+                                                <Phone />Zadzwoń
+                                            </Button>
+                                            <Button size="sm" onClick={() => setIsSmsOpen(true)}>Wyślij SMS</Button>
+                                        </ContactActions>
+                                    )}
+                                </RailPanel>
+                            </Slot>
 
-                    </MainCol>
-                </TwoColGrid>
-            </PageContent>
+                            {customer.company && (
+                                <Slot $order={5}>
+                                    <RailPanel aria-labelledby="customer-company-title">
+                                        <RailHead>
+                                            <SectionTitle id="customer-company-title">Dane firmy</SectionTitle>
+                                            <Button variant="ghost" size="sm" onClick={() => openEdit('company')}><Pencil />Edytuj</Button>
+                                        </RailHead>
+                                        <FieldList style={{ marginTop: 10 }}>
+                                            <FieldRow label="Nazwa"><span style={{ textAlign: 'right' }}>{customer.company.name}</span></FieldRow>
+                                            {customer.company.nip && <FieldRow label="NIP">{customer.company.nip}</FieldRow>}
+                                            {customer.company.regon && <FieldRow label="REGON">{customer.company.regon}</FieldRow>}
+                                            {customer.company.address?.city && (
+                                                <FieldRow label="Adres">
+                                                    <span style={{ textAlign: 'right' }}>
+                                                        {customer.company.address.street}{customer.company.address.street && ', '}
+                                                        {customer.company.address.postalCode} {customer.company.address.city}
+                                                    </span>
+                                                </FieldRow>
+                                            )}
+                                        </FieldList>
+                                    </RailPanel>
+                                </Slot>
+                            )}
 
-            {/* ─── Modals ─────────────────────────────────────── */}
+                            <Slot $order={3}>
+                                <RailPanel id="customer-vehicles" aria-labelledby="customer-vehicles-title">
+                                    <RailHead>
+                                        <SectionTitle id="customer-vehicles-title" count={vehicles.length || undefined}>Pojazdy</SectionTitle>
+                                        <RailActions>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                aria-pressed={showDeletedVehicles}
+                                                onClick={() => setShowDeletedVehicles(v => !v)}
+                                            >
+                                                {showDeletedVehicles ? 'Ukryj usunięte' : 'Usunięte'}
+                                            </Button>
+                                            <Button size="sm" onClick={() => setIsAddVehicleOpen(true)}><Plus />Dodaj</Button>
+                                        </RailActions>
+                                    </RailHead>
+                                    {vehiclesLoading ? (
+                                        <Muted>Wczytywanie pojazdów...</Muted>
+                                    ) : vehicles.length === 0 ? (
+                                        <Muted>Klient nie ma jeszcze przypisanego pojazdu.</Muted>
+                                    ) : (
+                                        <VehicleList>
+                                            {vehicles.map((vehicle: Vehicle) => {
+                                                const archived = vehicle.status === 'archived';
+                                                return (
+                                                    <li key={vehicle.id}>
+                                                        <VehicleLink
+                                                            href={`/vehicles/${vehicle.id}`}
+                                                            $muted={archived}
+                                                            aria-disabled={archived || undefined}
+                                                            onClick={e => { e.preventDefault(); if (!archived) navigate(`/vehicles/${vehicle.id}`); }}
+                                                        >
+                                                            <CarLogoImage brand={vehicle.make} size="sm" />
+                                                            <VehicleText>
+                                                                <strong>
+                                                                    {vehicle.make} {vehicle.model}
+                                                                    {archived && <StatusPill $tone="neutral">Usunięty</StatusPill>}
+                                                                </strong>
+                                                                <span>
+                                                                    {vehicle.licensePlate && <Plate>{vehicle.licensePlate}</Plate>}
+                                                                    {vehicle.year ? <span>{vehicle.year}</span> : null}
+                                                                </span>
+                                                            </VehicleText>
+                                                            {!archived && <ChevronRight aria-hidden="true" />}
+                                                        </VehicleLink>
+                                                    </li>
+                                                );
+                                            })}
+                                        </VehicleList>
+                                    )}
+                                </RailPanel>
+                            </Slot>
+
+                            <Slot $order={5}>
+                                <CustomerNotes id="customer-notes" customerId={customerId!} />
+                            </Slot>
+
+                            <Slot $order={7}>
+                                <CustomerConsentsSection id="customer-consents" customerId={customerId!} />
+                            </Slot>
+                        </Rail>
+                    </Columns>
+                </Layout>
+            </ContentArea>
+
             <EditCustomerModal
                 isOpen={isEditModalOpen}
                 onClose={() => { setIsEditModalOpen(false); setEditModalInitialTab('basic'); }}
@@ -1225,7 +929,17 @@ export const CustomerDetailView = () => {
             {isAddVehicleOpen && (
                 <AddVehicleModal
                     customerId={customerId!}
+                    customerName={isPiiMasked(fullName) ? undefined : fullName}
                     onClose={() => setIsAddVehicleOpen(false)}
+                />
+            )}
+
+            {isSmsOpen && phoneUsable && (
+                <SendSmsModal
+                    customerId={customerId!}
+                    customerName={fullName}
+                    phone={phone!}
+                    onClose={() => setIsSmsOpen(false)}
                 />
             )}
 
@@ -1237,42 +951,6 @@ export const CustomerDetailView = () => {
                     onClose={() => setReservationMenu(null)}
                 />
             )}
-
-            <MobileSectionNav
-                ariaLabel="Nawigacja sekcji klienta"
-                active={mobileTab}
-                onChange={setMobileTab}
-                items={[
-                    {
-                        key: 'visits', label: 'Wizyty', ariaLabel: 'Wizyty, dokumenty i zgody', icon: (
-                            <>
-                                <rect x="3" y="4" width="18" height="18" rx="2"/>
-                                <line x1="16" y1="2" x2="16" y2="6"/>
-                                <line x1="8" y1="2" x2="8" y2="6"/>
-                                <line x1="3" y1="10" x2="21" y2="10"/>
-                            </>
-                        ),
-                    },
-                    {
-                        key: 'stats', label: 'Statystyki', icon: (
-                            <>
-                                <line x1="18" y1="20" x2="18" y2="10"/>
-                                <line x1="12" y1="20" x2="12" y2="4"/>
-                                <line x1="6" y1="20" x2="6" y2="14"/>
-                            </>
-                        ),
-                    },
-                    {
-                        key: 'other', label: 'Inne', ariaLabel: 'Dane, pojazdy, notatki i historia', icon: (
-                            <>
-                                <circle cx="12" cy="12" r="1.6"/>
-                                <circle cx="5" cy="12" r="1.6"/>
-                                <circle cx="19" cy="12" r="1.6"/>
-                            </>
-                        ),
-                    },
-                ]}
-            />
 
             {/* Usunięcie = anonimizacja RODO. Komunikat mówi wprost, co znika,
                 a co zostaje - „nie można cofnąć" bez tej informacji brzmiałoby

@@ -1,381 +1,241 @@
 // src/modules/customers/components/DocumentsManager.tsx
+//
+// Dokumenty klienta - płaski panel z tym samym wierszem co dokumenty pojazdu
+// i wizyty: ikona, nazwa, kiedy i kto, a z prawej „Podgląd" słowem, pobranie
+// i usunięcie ikoną.
+//
+// Wcześniej dokumenty były kartami w siatce 3×3 ukrytymi w zwijanym bloku,
+// z numerowanym stronicowaniem, wyszukiwarką widoczną już przy jednym pliku
+// i wypełnionym przyciskiem „Dodaj dokument" - drugim wypełnieniem w oknie obok
+// „Nowa wizyta" (CLAUDE.md §2). Usunięcie pytało systemowym `confirm`.
 
-import React, { useState, useMemo } from 'react';
-import styled, { keyframes } from 'styled-components';
+import { useMemo, useState } from 'react';
+import styled from 'styled-components';
+import { Download, FileImage, FileText, Search, Trash2, Upload } from 'lucide-react';
 import { useCustomerDocuments, useDeleteDocument } from '../hooks/useCustomerDocuments';
-import { DocumentCard } from './DocumentCard';
 import { UploadDocumentModal } from './UploadDocumentModal';
 import { ImageViewerModal } from './ImageViewerModal';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { usePermissions } from '@/core/permissions';
+import { formatDateTime } from '@/common/utils';
+import {
+    Button, IconButton, Panel, PanelActions, PanelBody, PanelHead, SectionTitle, ui,
+} from '@/common/components/ui';
 import type { CustomerDocument } from '../types';
 
-// ─── Animations ───────────────────────────────────────────────────────────────
+/** Od tylu dokumentów pokazujemy wyszukiwarkę; tyle też mieści się przed „Pokaż wszystkie". */
+const SEARCH_FROM = 7;
+const COLLAPSED = 6;
 
-const spin = keyframes`
-    to { transform: rotate(360deg); }
-`;
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const Container = styled.div`
+const Rows = styled.ul`
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    padding: 20px;
-`;
-
-const Toolbar = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-
-    @media (min-width: ${props => props.theme.breakpoints.sm}) {
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-    }
-`;
-
-const SearchInput = styled.input`
-    flex: 1;
-    min-width: 0;
-    padding: 8px 14px;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontSm};
-    background: ${st.bgCard};
-    color: ${st.text};
-    transition: border-color ${st.transition}, box-shadow ${st.transition};
-
-    &:focus {
-        outline: none;
-        border-color: ${st.accentBlue};
-        box-shadow: ${st.shadowBlue};
-    }
-
-    &::placeholder { color: ${st.textMuted}; }
-`;
-
-const UploadButton = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 8px 18px;
-    background: ${st.accentBlue};
-    color: white;
-    border: none;
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    cursor: pointer;
-    transition: all ${st.transition};
-    box-shadow: ${st.shadowSm};
-    white-space: nowrap;
-    flex-shrink: 0;
-
-    &:hover {
-        background: #2563EB;
-        box-shadow: ${st.shadowMd};
-        transform: translateY(-1px);
-    }
-
-    svg { width: 14px; height: 14px; }
-`;
-
-const DocumentsGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 12px;
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    @media (min-width: ${props => props.theme.breakpoints.xl}) {
-        grid-template-columns: repeat(3, 1fr);
-    }
-`;
-
-const EmptyState = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 40px 20px;
-    text-align: center;
-`;
-
-const EmptyIcon = styled.div`
-    width: 52px;
-    height: 52px;
-    margin: 0 auto 12px;
-    border-radius: ${st.radius};
-    background: ${st.bgCardAlt};
-    border: 1px solid ${st.border};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${st.textMuted};
-
-    svg { width: 26px; height: 26px; }
-`;
-
-const EmptyTitle = styled.h3`
-    margin: 0 0 4px;
-    font-size: ${st.fontMd};
-    font-weight: 600;
-    color: ${st.text};
-`;
-
-const EmptyDescription = styled.p`
+    gap: 8px;
     margin: 0;
-    color: ${st.textMuted};
-    font-size: ${st.fontSm};
+    padding: 0;
+    list-style: none;
 `;
 
-const LoadingContainer = styled.div`
+const Row = styled.li`
     display: flex;
     align-items: center;
-    justify-content: center;
-    min-height: 200px;
+    gap: 12px;
+    min-width: 0;
+    padding: 10px 12px;
+    border-radius: ${ui.radiusStrip};
+    border: 1px solid ${ui.lineSoft};
+    font-size: 13.5px;
+
+    > svg { width: 16px; height: 16px; flex-shrink: 0; color: ${ui.dangerInk}; }
+    > svg.image { color: ${ui.brandInk}; }
+
+    @media (max-width: 480px) { flex-wrap: wrap; row-gap: 6px; }
 `;
 
-const Spinner = styled.div`
-    width: 34px;
-    height: 34px;
-    border: 3px solid ${st.border};
-    border-top-color: ${st.accentBlue};
-    border-radius: 50%;
-    animation: ${spin} 0.7s linear infinite;
-`;
-
-const ErrorContainer = styled.div`
-    padding: 20px;
-    text-align: center;
-    background: ${st.accentRedDim};
-    border: 1px solid rgba(239, 68, 68, 0.2);
-    border-radius: ${st.radiusSm};
-    color: ${st.accentRed};
-    font-size: ${st.fontSm};
-
-    button {
-        display: inline-block;
-        margin-top: 8px;
-        padding: 5px 14px;
-        background: ${st.accentRed};
-        color: white;
-        border: none;
-        border-radius: ${st.radiusFull};
-        font-size: ${st.fontXs};
-        font-weight: 600;
-        cursor: pointer;
-    }
-`;
-
-const Pagination = styled.div`
+const Text = styled.span`
     display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 6px;
-    padding-top: 4px;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    min-width: 0;
+    flex: 1;
+
+    strong { font-weight: 600; color: ${ui.ink}; overflow-wrap: anywhere; }
+    span { font-size: 12.5px; color: ${ui.textMuted}; }
 `;
 
-const PageButton = styled.button<{ $isActive?: boolean }>`
+const RowActions = styled.div`
     display: flex;
     align-items: center;
-    justify-content: center;
-    min-width: 34px;
-    height: 34px;
-    padding: 0 10px;
-    border: 1px solid ${props => props.$isActive ? st.accentBlue : st.border};
-    border-radius: ${st.radiusSm};
-    background: ${props => props.$isActive ? st.accentBlue : st.bgCard};
-    color: ${props => props.$isActive ? 'white' : st.text};
-    font-size: ${st.fontSm};
-    font-weight: ${props => props.$isActive ? '700' : '500'};
-    cursor: pointer;
-    transition: all ${st.transition};
-
-    &:hover:not(:disabled) {
-        border-color: ${st.accentBlue};
-        background: ${props => props.$isActive ? st.accentBlue : st.bgAccentBlue};
-        color: ${props => props.$isActive ? 'white' : st.accentBlue};
-    }
-
-    &:disabled { opacity: 0.4; cursor: not-allowed; }
+    gap: 2px;
+    flex-shrink: 0;
+    margin-left: auto;
 `;
 
-// ─── Component ────────────────────────────────────────────────────────────────
+const SearchBox = styled.label`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 40px;
+    margin-bottom: 10px;
+    padding: 0 14px;
+    border: 1px solid ${ui.line};
+    border-radius: ${ui.radiusStrip};
+    background: ${ui.surfaceSoft};
+    color: ${ui.textMuted};
+
+    &:focus-within { border-color: ${ui.focusRing}; background: ${ui.surface}; }
+    svg { width: 15px; height: 15px; flex-shrink: 0; }
+    input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; font-family: inherit; font-size: 16px; color: ${ui.ink}; }
+    @media (min-width: 768px) { input { font-size: 13.5px; } }
+`;
+
+const Empty = styled.p`
+    margin: 0;
+    font-size: 13.5px;
+    color: ${ui.textMuted};
+`;
+
+const isImageFile = (name: string) => /\.(jpg|jpeg|png|gif|webp)$/i.test(name);
+const isViewable = (name: string) => isImageFile(name) || /\.pdf$/i.test(name);
 
 interface DocumentsManagerProps {
     customerId: string;
+    id?: string;
 }
 
-export const DocumentsManager = ({ customerId }: DocumentsManagerProps) => {
-    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-    const [searchQuery, setSearchQuery]             = useState('');
-    const [page, setPage]                           = useState(1);
-    const limit = 9;
+export const DocumentsManager = ({ customerId, id }: DocumentsManagerProps) => {
+    const { can } = usePermissions();
+    const [isUploadOpen, setIsUploadOpen] = useState(false);
+    const [query, setQuery] = useState('');
+    const [expanded, setExpanded] = useState(false);
+    const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+    const [toDelete, setToDelete] = useState<CustomerDocument | null>(null);
 
-    const [isImageViewerOpen, setIsImageViewerOpen]   = useState(false);
-    const [currentImageIndex, setCurrentImageIndex]   = useState(0);
-
-    const { documents: allDocuments, isLoading, isError, refetch } = useCustomerDocuments(customerId);
+    const { documents, isLoading, isError, refetch } = useCustomerDocuments(customerId);
     const deleteMutation = useDeleteDocument(customerId);
 
-    const filteredDocuments = useMemo(() => {
-        if (!searchQuery) return allDocuments;
-        const q = searchQuery.toLowerCase();
-        return allDocuments.filter(doc =>
-            doc.fileName.toLowerCase().includes(q) ||
-            doc.name.toLowerCase().includes(q)
-        );
-    }, [allDocuments, searchQuery]);
+    const filtered = useMemo(() => {
+        const q = query.trim().toLowerCase();
+        if (!q) return documents;
+        return documents.filter(d => d.fileName.toLowerCase().includes(q) || d.name.toLowerCase().includes(q));
+    }, [documents, query]);
 
-    const { documents, pagination } = useMemo(() => {
-        const totalItems  = filteredDocuments.length;
-        const totalPages  = Math.ceil(totalItems / limit);
-        const startIndex  = (page - 1) * limit;
-        const paginatedDocs = filteredDocuments.slice(startIndex, startIndex + limit);
-        return {
-            documents: paginatedDocs,
-            pagination: { currentPage: page, totalPages, totalItems, itemsPerPage: limit },
-        };
-    }, [filteredDocuments, page, limit]);
+    const shown = expanded || query ? filtered : filtered.slice(0, COLLAPSED);
+    const viewable = useMemo(() => documents.filter(d => isViewable(d.fileName)), [documents]);
+    const current = viewerIndex !== null ? viewable[viewerIndex] : null;
+    // Usuwanie dokumentów było i zostaje za tym samym uprawnieniem co wcześniej w karcie dokumentu.
+    const canDelete = can('VISITS_DELETE');
 
-    const viewableDocuments = useMemo(() =>
-        allDocuments.filter(doc => doc.fileName.match(/\.(jpg|jpeg|png|gif|webp|pdf)$/i)),
-        [allDocuments]
-    );
-
-    const handleImageClick = (document: CustomerDocument) => {
-        const idx = viewableDocuments.findIndex(doc => doc.id === document.id);
-        if (idx !== -1) { setCurrentImageIndex(idx); setIsImageViewerOpen(true); }
+    const open = (doc: CustomerDocument) => {
+        const idx = viewable.findIndex(d => d.id === doc.id);
+        if (idx !== -1) setViewerIndex(idx);
+        else window.open(doc.fileUrl, '_blank');
     };
 
-    const currentDocument = viewableDocuments[currentImageIndex];
-    const currentDocumentIsPDF = !!(currentDocument?.fileName.match(/\.pdf$/i));
-
-    if (isLoading) {
-        return <LoadingContainer><Spinner /></LoadingContainer>;
-    }
-
-    if (isError) {
-        return (
-            <ErrorContainer>
-                <p>Nie udało się załadować dokumentów.</p>
-                <button onClick={() => refetch()}>Spróbuj ponownie</button>
-            </ErrorContainer>
-        );
-    }
-
     return (
-        <Container>
-            <Toolbar>
-                <SearchInput
-                    type="text"
-                    placeholder="Szukaj dokumentów..."
-                    value={searchQuery}
-                    onChange={e => { setSearchQuery(e.target.value); setPage(1); }}
-                />
-                <UploadButton onClick={() => setIsUploadModalOpen(true)}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19" />
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                    Dodaj dokument
-                </UploadButton>
-            </Toolbar>
+        <Panel id={id} aria-labelledby="customer-docs-title">
+            <PanelHead>
+                <SectionTitle id="customer-docs-title" count={documents.length || undefined}>Dokumenty</SectionTitle>
+                <PanelActions>
+                    <Button variant="tinted" size="sm" onClick={() => setIsUploadOpen(true)}>
+                        <Upload />Dodaj dokument
+                    </Button>
+                </PanelActions>
+            </PanelHead>
+            <PanelBody>
+                {documents.length >= SEARCH_FROM && (
+                    <SearchBox>
+                        <Search aria-hidden="true" />
+                        <input
+                            aria-label="Szukaj dokumentu"
+                            placeholder="Szukaj po nazwie pliku"
+                            value={query}
+                            onChange={e => setQuery(e.target.value)}
+                        />
+                    </SearchBox>
+                )}
 
-            {documents.length === 0 ? (
-                <EmptyState>
-                    <EmptyIcon>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                            <polyline points="14,2 14,8 20,8"/>
-                        </svg>
-                    </EmptyIcon>
-                    <EmptyTitle>
-                        {searchQuery ? 'Nie znaleziono dokumentów' : 'Brak dokumentów'}
-                    </EmptyTitle>
-                    <EmptyDescription>
-                        {searchQuery
-                            ? 'Spróbuj zmienić kryteria wyszukiwania'
-                            : 'Dodaj pierwszy dokument klikając przycisk powyżej'
-                        }
-                    </EmptyDescription>
-                </EmptyState>
-            ) : (
-                <>
-                    <DocumentsGrid>
-                        {documents.map(document => (
-                            <DocumentCard
-                                key={document.id}
-                                document={document}
-                                onDelete={id => deleteMutation.mutate(id)}
-                                onImageClick={handleImageClick}
-                                isDeleting={deleteMutation.isPending}
-                            />
+                {isLoading ? (
+                    <Empty>Wczytywanie dokumentów...</Empty>
+                ) : isError ? (
+                    <Empty>
+                        Nie udało się wczytać dokumentów.{' '}
+                        <Button variant="ghost" size="sm" onClick={() => refetch()}>Spróbuj ponownie</Button>
+                    </Empty>
+                ) : filtered.length === 0 ? (
+                    <Empty>
+                        {query
+                            ? `Żaden dokument nie pasuje do „${query.trim()}".`
+                            : 'Nie ma jeszcze dokumentów. Umowy, oświadczenia i skany od klienta trafią tutaj.'}
+                    </Empty>
+                ) : (
+                    <Rows>
+                        {shown.map(doc => (
+                            <Row key={doc.id}>
+                                {isImageFile(doc.fileName) ? <FileImage className="image" aria-hidden="true" /> : <FileText aria-hidden="true" />}
+                                <Text>
+                                    <strong>{doc.name || doc.fileName}</strong>
+                                    <span>{formatDateTime(doc.uploadedAt)}{doc.uploadedByName ? `, ${doc.uploadedByName}` : ''}</span>
+                                </Text>
+                                <RowActions>
+                                    {isViewable(doc.fileName) && (
+                                        <Button variant="ghost" size="sm" onClick={() => open(doc)}>Podgląd</Button>
+                                    )}
+                                    <IconButton label={`Pobierz ${doc.name || doc.fileName}`} variant="ghost" size="sm" onClick={() => window.open(doc.fileUrl, '_blank')}>
+                                        <Download />
+                                    </IconButton>
+                                    {canDelete && (
+                                        <IconButton
+                                            label={`Usuń ${doc.name || doc.fileName}`}
+                                            variant="danger"
+                                            size="sm"
+                                            disabled={deleteMutation.isPending}
+                                            onClick={() => setToDelete(doc)}
+                                        >
+                                            <Trash2 />
+                                        </IconButton>
+                                    )}
+                                </RowActions>
+                            </Row>
                         ))}
-                    </DocumentsGrid>
+                    </Rows>
+                )}
 
-                    {pagination.totalPages > 1 && (
-                        <Pagination>
-                            <PageButton
-                                onClick={() => setPage(p => Math.max(1, p - 1))}
-                                disabled={page === 1}
-                            >
-                                ←
-                            </PageButton>
+                {!query && filtered.length > COLLAPSED && (
+                    <Button variant="ghost" size="sm" style={{ marginTop: 8, marginLeft: -11 }} onClick={() => setExpanded(v => !v)}>
+                        {expanded ? 'Pokaż mniej' : `Pokaż wszystkie (${filtered.length})`}
+                    </Button>
+                )}
+            </PanelBody>
 
-                            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
-                                .filter(p => {
-                                    if (pagination.totalPages <= 7) return true;
-                                    if (p === 1 || p === pagination.totalPages) return true;
-                                    return Math.abs(p - page) <= 1;
-                                })
-                                .map((p, i, arr) => (
-                                    <React.Fragment key={p}>
-                                        {i > 0 && arr[i - 1] !== p - 1 && (
-                                            <span style={{ color: st.textMuted, fontSize: st.fontSm }}>...</span>
-                                        )}
-                                        <PageButton $isActive={p === page} onClick={() => setPage(p)}>
-                                            {p}
-                                        </PageButton>
-                                    </React.Fragment>
-                                ))
-                            }
+            <UploadDocumentModal isOpen={isUploadOpen} onClose={() => setIsUploadOpen(false)} customerId={customerId} />
 
-                            <PageButton
-                                onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
-                                disabled={page === pagination.totalPages}
-                            >
-                                →
-                            </PageButton>
-                        </Pagination>
-                    )}
-                </>
-            )}
-
-            <UploadDocumentModal
-                isOpen={isUploadModalOpen}
-                onClose={() => setIsUploadModalOpen(false)}
-                customerId={customerId}
-            />
-
-            {currentDocument && (
+            {current && (
                 <ImageViewerModal
-                    isOpen={isImageViewerOpen}
-                    onClose={() => setIsImageViewerOpen(false)}
-                    imageUrl={currentDocument.fileUrl}
-                    imageName={currentDocument.fileName}
-                    isPDF={currentDocumentIsPDF}
-                    hasNext={currentImageIndex < viewableDocuments.length - 1}
-                    hasPrev={currentImageIndex > 0}
-                    onNext={() => setCurrentImageIndex(i => i + 1)}
-                    onPrev={() => setCurrentImageIndex(i => i - 1)}
-                    onDownload={() => window.open(currentDocument.fileUrl, '_blank')}
+                    isOpen
+                    onClose={() => setViewerIndex(null)}
+                    imageUrl={current.fileUrl}
+                    imageName={current.name || current.fileName}
+                    isPDF={/\.pdf$/i.test(current.fileName)}
+                    hasNext={viewerIndex! < viewable.length - 1}
+                    hasPrev={viewerIndex! > 0}
+                    onNext={() => setViewerIndex(i => (i ?? 0) + 1)}
+                    onPrev={() => setViewerIndex(i => (i ?? 0) - 1)}
+                    onDownload={() => window.open(current.fileUrl, '_blank')}
                 />
             )}
-        </Container>
+
+            <ConfirmationModal
+                isOpen={toDelete !== null}
+                title="Usunąć dokument?"
+                message={toDelete ? `„${toDelete.name || toDelete.fileName}" zniknie z dokumentów klienta. Tej operacji nie można cofnąć.` : ''}
+                variant="danger"
+                confirmText="Usuń dokument"
+                cancelText="Zostaw"
+                onConfirm={() => { if (toDelete) deleteMutation.mutate(toDelete.id); setToDelete(null); }}
+                onCancel={() => setToDelete(null)}
+            />
+        </Panel>
     );
 };

@@ -1,9 +1,17 @@
 // src/modules/customers/components/UploadDocumentModal.tsx
+//
+// Dodanie dokumentu do karty klienta. Wybór pliku stoi na wspólnej strefie
+// `FileDrop` - tej samej co w oknach pojazdu. Poprzednia, własna strefa miała
+// wypełnione gradientem koło ikony obok wypełnionego „Dodaj dokument", czyli dwa
+// wypełnienia w jednym oknie (CLAUDE.md §2).
+//
+// Dwie ciche awarie poprzedniej wersji:
+//  - nieudana wysyłka nie mówiła nic, okno po prostu zostawało otwarte;
+//  - zamknięcie okna krzyżykiem lub „Anuluj" nie czyściło wyboru, więc po
+//    ponownym otwarciu czekał w nim plik wybrany poprzednio.
 
-import { useState, useRef, ChangeEvent } from 'react';
-import styled from 'styled-components';
+import { useState, type FormEvent } from 'react';
 import { useUploadDocument } from '../hooks/useUploadDocument';
-import { t } from '@/common/i18n';
 import {
     ModalShell,
     ModalHeader,
@@ -14,188 +22,9 @@ import {
     ModalFooter,
     CloseBtn,
 } from '@/common/components/ModalKit';
-import { SharedButton } from '@/common/styles';
-
-const DropZone = styled.div<{ $isDragging?: boolean; $hasFile?: boolean }>`
-    border: 2px dashed ${props =>
-        props.$hasFile ? 'var(--brand-primary)' :
-        props.$isDragging ? 'var(--brand-primary)' :
-        props.theme.colors.border
-    };
-    border-radius: ${props => props.theme.radii.lg};
-    padding: ${props => props.theme.spacing.xl};
-    text-align: center;
-    background: ${props =>
-        props.$hasFile ? '#f0f9ff' :
-        props.$isDragging ? '#f0f9ff' :
-        props.theme.colors.surface
-    };
-    transition: all 0.2s ease;
-    cursor: pointer;
-    margin-bottom: ${props => props.theme.spacing.lg};
-
-    &:hover {
-        border-color: var(--brand-primary);
-        background: #f0f9ff;
-    }
-`;
-
-const UploadIcon = styled.div`
-    width: 64px;
-    height: 64px;
-    margin: 0 auto ${props => props.theme.spacing.md};
-    border-radius: ${props => props.theme.radii.full};
-    background: linear-gradient(135deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 80%, black) 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-
-    svg {
-        width: 32px;
-        height: 32px;
-    }
-`;
-
-const DropText = styled.p`
-    margin: 0 0 ${props => props.theme.spacing.xs};
-    font-size: ${props => props.theme.fontSizes.md};
-    font-weight: 600;
-    color: ${props => props.theme.colors.text};
-`;
-
-const DropHint = styled.p`
-    margin: 0;
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textMuted};
-`;
-
-const FileInput = styled.input`
-    display: none;
-`;
-
-const SelectedFile = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${props => props.theme.spacing.md};
-    padding: ${props => props.theme.spacing.md};
-    background: white;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    margin-bottom: ${props => props.theme.spacing.lg};
-`;
-
-const FileIconWrapper = styled.div`
-    width: 40px;
-    height: 40px;
-    border-radius: ${props => props.theme.radii.md};
-    background: linear-gradient(135deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 80%, black) 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    flex-shrink: 0;
-
-    svg {
-        width: 20px;
-        height: 20px;
-    }
-`;
-
-const FileDetails = styled.div`
-    flex: 1;
-    min-width: 0;
-`;
-
-const FileName = styled.div`
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 600;
-    color: ${props => props.theme.colors.text};
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-`;
-
-const FileSize = styled.div`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
-    margin-top: 2px;
-`;
-
-const RemoveButton = styled.button`
-    width: 32px;
-    height: 32px;
-    border: none;
-    border-radius: ${props => props.theme.radii.md};
-    background: #fee2e2;
-    color: #991b1b;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: #fecaca;
-    }
-
-    svg {
-        width: 16px;
-        height: 16px;
-    }
-`;
-
-const FormField = styled.div`
-    margin-bottom: ${props => props.theme.spacing.lg};
-`;
-
-const Label = styled.label`
-    display: block;
-    margin-bottom: 6px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #374151;
-`;
-
-const Select = styled.select`
-    width: 100%;
-    padding: 12px 14px;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 10px;
-    font-size: 14px;
-    background: white;
-    color: #0f172a;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:focus {
-        outline: none;
-        border-color: var(--brand-primary);
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
-    }
-`;
-
-const Input = styled.input`
-    width: 100%;
-    padding: 12px 14px;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 10px;
-    font-size: 14px;
-    background: white;
-    color: #0f172a;
-
-    &:focus {
-        outline: none;
-        border-color: var(--brand-primary);
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
-    }
-`;
-
-const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
+import { FormField, FieldLabel, InputShell, BareInput } from '@/common/components/Form';
+import { useToast } from '@/common/components/Toast';
+import { Button, FileDrop } from '@/common/components/ui';
 
 interface UploadDocumentModalProps {
     isOpen: boolean;
@@ -210,146 +39,90 @@ export const UploadDocumentModal = ({
 }: UploadDocumentModalProps) => {
     const [file, setFile] = useState<File | null>(null);
     const [name, setName] = useState('');
-    const [isDragging, setIsDragging] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const { showSuccess, showError } = useToast();
+
+    const reset = () => {
+        setFile(null);
+        setName('');
+    };
 
     const { uploadDocument, isUploading } = useUploadDocument({
         customerId,
         onSuccess: () => {
-            handleReset();
+            showSuccess('Dokument dodany', 'Plik jest już na liście dokumentów klienta.');
+            reset();
             onClose();
         },
+        onError: () => showError('Nie udało się dodać dokumentu', 'Sprawdź plik i spróbuj ponownie.'),
     });
 
-    const handleReset = () => {
-        setFile(null);
-        setName('');
-        setIsDragging(false);
+    // W trakcie wysyłki okna nie da się zamknąć: wynik i tak przyjdzie, a toast
+    // o błędzie bez okna, w którym można ponowić, zostawia użytkownika z niczym.
+    const close = () => {
+        if (isUploading) return;
+        reset();
+        onClose();
     };
 
-    const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-        const selectedFile = e.target.files?.[0];
-        if (selectedFile) {
-            setFile(selectedFile);
-        }
-    };
-
-    const handleDragOver = (e: React.DragEvent) => {
+    const submit = (e: FormEvent) => {
         e.preventDefault();
-        setIsDragging(true);
-    };
-
-    const handleDragLeave = () => {
-        setIsDragging(false);
-    };
-
-    const handleDrop = (e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragging(false);
-
-        const droppedFile = e.dataTransfer.files[0];
-        if (droppedFile) {
-            setFile(droppedFile);
-        }
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (!file) return;
-
+        if (!file || isUploading) return;
         uploadDocument({
             file,
             customerId,
-            name: name || file.name,
+            name: name.trim() || file.name,
         });
     };
 
     return (
-        <ModalShell isOpen={isOpen} onClose={onClose} size="md">
+        <ModalShell isOpen={isOpen} onClose={close} size="md">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Dodaj dokument</ModalTitle>
-                    <ModalSubtitle>Prześlij plik do magazynu dokumentów</ModalSubtitle>
+                    <ModalSubtitle>Umowa, skan dokumentu, faktura</ModalSubtitle>
                 </ModalTitleGroup>
-                <CloseBtn onClick={onClose} />
+                <CloseBtn onClick={close} />
             </ModalHeader>
 
             <ModalContent>
-                <form onSubmit={handleSubmit}>
-                    {!file ? (
-                        <DropZone
-                            $isDragging={isDragging}
-                            onClick={() => fileInputRef.current?.click()}
-                            onDragOver={handleDragOver}
-                            onDragLeave={handleDragLeave}
-                            onDrop={handleDrop}
-                        >
-                            <UploadIcon>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                    <polyline points="17,8 12,3 7,8"/>
-                                    <line x1="12" y1="3" x2="12" y2="15"/>
-                                </svg>
-                            </UploadIcon>
-                            <DropText>
-                                Kliknij lub przeciągnij plik
-                            </DropText>
-                            <DropHint>
-                                Obsługiwane: PDF, DOCX, JPG, PNG (max 10 MB)
-                            </DropHint>
-                        </DropZone>
-                    ) : (
-                        <SelectedFile>
-                            <FileIconWrapper>
-                                <svg viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                    <polyline points="14,2 14,8 20,8"/>
-                                </svg>
-                            </FileIconWrapper>
-                            <FileDetails>
-                                <FileName>{file.name}</FileName>
-                                <FileSize>{formatFileSize(file.size)}</FileSize>
-                            </FileDetails>
-                            <RemoveButton type="button" onClick={() => setFile(null)}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <line x1="18" y1="6" x2="6" y2="18"/>
-                                    <line x1="6" y1="6" x2="18" y2="18"/>
-                                </svg>
-                            </RemoveButton>
-                        </SelectedFile>
-                    )}
-
-                    <FileInput
-                        ref={fileInputRef}
-                        type="file"
-                        onChange={handleFileChange}
+                <form
+                    id="upload-customer-document-form"
+                    onSubmit={submit}
+                    style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
+                >
+                    <FileDrop
+                        file={file}
+                        onChange={setFile}
+                        disabled={isUploading}
                         accept=".pdf,.docx,.doc,.jpg,.jpeg,.png,.xlsx"
+                        hint="PDF, DOCX, XLSX, JPG albo PNG, do 10 MB"
                     />
-
-                    <FormField>
-                        <Label>Nazwa dokumentu</Label>
-                        <Input
-                            value={name}
-                            onChange={e => setName(e.target.value)}
-                            placeholder="Nazwa dokumentu (opcjonalnie)"
-                        />
+                    <FormField $fullWidth>
+                        <FieldLabel htmlFor="customer-doc-name">Nazwa na liście</FieldLabel>
+                        <InputShell>
+                            <BareInput
+                                id="customer-doc-name"
+                                value={name}
+                                onChange={e => setName(e.target.value)}
+                                placeholder={file ? file.name : 'Zostaw puste, żeby użyć nazwy pliku'}
+                                autoComplete="off"
+                                disabled={isUploading}
+                            />
+                        </InputShell>
                     </FormField>
                 </form>
             </ModalContent>
 
             <ModalFooter>
-                <SharedButton $variant="secondary" type="button" onClick={onClose}>
-                    {t.common.cancel}
-                </SharedButton>
-                <SharedButton
-                    $variant="primary"
-                    type="button"
+                <Button onClick={close} disabled={isUploading}>Anuluj</Button>
+                <Button
+                    type="submit"
+                    form="upload-customer-document-form"
+                    variant="primary"
                     disabled={!file || isUploading}
-                    onClick={handleSubmit}
                 >
                     {isUploading ? 'Wysyłanie...' : 'Dodaj dokument'}
-                </SharedButton>
+                </Button>
             </ModalFooter>
         </ModalShell>
     );

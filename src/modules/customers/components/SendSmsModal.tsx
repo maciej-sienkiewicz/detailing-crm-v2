@@ -13,12 +13,11 @@ import {
     ModalContent, ModalFooter, CloseBtn,
 } from '@/common/components/ModalKit';
 import { FormField, FieldLabel, InputShellTextArea, BareTextArea } from '@/common/components/Form';
-import { SharedButton } from '@/common/styles';
 import { useToast } from '@/common/components/Toast';
 import { useProofread } from '@/modules/comms/hooks/useComms';
 import { hasPolishCharacters, smsSegments, smsWord } from '@/common/utils';
 import { customerEditApi } from '../api/customerEditApi';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { Button, ui } from '@/common/components/ui';
 
 /* Bez polskich znaków SMS mieści się w GSM-7 (160 znaków na segment, 153 przy
    dzieleniu). Z ogonkami operator przechodzi na UCS-2 i segment ma 70 znaków. */
@@ -31,12 +30,12 @@ const Meta = styled.div`
     gap: 10px;
     margin-top: 6px;
     font-size: 12px;
-    color: ${st.textMuted};
+    color: ${ui.textMuted};
 `;
 
 const CostHint = styled.span<{ $warn?: boolean }>`
     font-variant-numeric: tabular-nums;
-    color: ${p => p.$warn ? st.accentAmber : st.textMuted};
+    color: ${p => p.$warn ? ui.warnInk : ui.textMuted};
     font-weight: 600;
 `;
 
@@ -111,7 +110,7 @@ export const SendSmsModal = ({ customerId, customerName, phone, onClose }: SendS
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Wyślij SMS</ModalTitle>
-                    <ModalSubtitle>{customerName} · {phone}</ModalSubtitle>
+                    <ModalSubtitle>Do: {customerName}, {phone}</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
@@ -134,7 +133,7 @@ export const SendSmsModal = ({ customerId, customerName, phone, onClose }: SendS
                         <CostHint $warn={segments > 1}>
                             {segments === 0
                                 ? (polish ? 'Z polskimi znakami: 70 znaków na SMS' : '160 znaków na SMS')
-                                : `${segments} ${smsWord(segments)}${polish ? ' · polskie znaki' : ''}`}
+                                : `${segments} ${smsWord(segments)}${polish ? ', z polskimi znakami' : ''}`}
                         </CostHint>
                     </Meta>
                 </FormField>
@@ -143,32 +142,31 @@ export const SendSmsModal = ({ customerId, customerName, phone, onClose }: SendS
             <ModalFooter>
                 <FooterActions>
                     {beforeProofread !== null && (
-                        <SharedButton
-                            $variant="ghost"
+                        <Button
+                            variant="ghost"
                             onClick={() => { setMessage(beforeProofread); setBeforeProofread(null); }}
                             title="Przywróć treść sprzed korekty"
                         >
-                            <Undo2 size={14} /> Cofnij
-                        </SharedButton>
+                            <Undo2 />Cofnij
+                        </Button>
                     )}
-                    <SharedButton
-                        $variant="secondary"
+                    <Button
                         onClick={runProofread}
                         disabled={proofread.isPending || !message.trim()}
                         title="Popraw literówki, interpunkcję i odmianę - bez zmiany treści"
                     >
                         {proofread.isPending
-                            ? <><Loader2 size={14} className="spin" /> Poprawiam…</>
-                            : <><SpellCheck size={14} /> Popraw błędy</>}
-                    </SharedButton>
-                    <SharedButton
-                        $variant="primary"
+                            ? <><Loader2 className="spin" />Poprawiam…</>
+                            : <><SpellCheck />Popraw błędy</>}
+                    </Button>
+                    <Button
+                        variant="primary"
                         onClick={submit}
                         disabled={sendSms.isPending || !message.trim()}
                     >
-                        <Send size={14} />
-                        {sendSms.isPending ? 'Wysyłanie…' : 'Wyślij'}
-                    </SharedButton>
+                        <Send />
+                        {sendSms.isPending ? 'Wysyłanie…' : 'Wyślij SMS'}
+                    </Button>
                 </FooterActions>
             </ModalFooter>
         </ModalShell>
