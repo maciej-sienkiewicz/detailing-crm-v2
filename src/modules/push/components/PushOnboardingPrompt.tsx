@@ -45,6 +45,23 @@ const SHOW_DELAY_MS = 6_000;
 /** Aplikacja z ikony na iPhonie: krok „zezwól" czeka od razu. */
 const SHOW_DELAY_AFTER_INSTALL_MS = 1_200;
 
+const CARD_COPY: Partial<Record<ReturnType<typeof wizardStage>, { title: string; text: string }>> = {
+    install: {
+        title: 'Powiadomienia na tym iPhonie',
+        text: 'Dwa kroki i telefon da znać o nowym zapytaniu czy zamkniętej wizycie.',
+    },
+    // Konto ma już aplikację na iPhonie, a użytkownik jest w Safari - nie każemy mu
+    // instalować drugi raz, tylko mówimy, gdzie są jego powiadomienia.
+    'open-installed': {
+        title: 'Masz CRM na ekranie początkowym',
+        text: 'Powiadomienia działają w aplikacji z ikony, nie w przeglądarce.',
+    },
+    ask: {
+        title: 'Włącz powiadomienia',
+        text: 'Telefon da znać o nowym zapytaniu, zamkniętej wizycie i połączeniu z komputera.',
+    },
+};
+
 /** Tam kreator już jest na ekranie - druga droga do niego tylko by przeszkadzała. */
 const HIDDEN_ON = ['/call-device', '/settings'];
 
@@ -88,7 +105,11 @@ function Prompt() {
     const [wizardOpen, setWizardOpen] = useState(false);
     const [dismissed, setDismissed] = useState(false);
 
-    const actionable = stage === 'install' || stage === 'ask';
+    // Na iPhonie w Safari etap zależy od listy urządzeń konta („install" czy
+    // „open-installed") - bez czekania na nią karta mogła zmienić treść pod palcem.
+    const devicesPending = push.platform.kind === 'ios-install' && push.isLoadingDevices;
+    const actionable = !devicesPending &&
+        (stage === 'install' || stage === 'open-installed' || stage === 'ask');
     const justInstalled = push.platform.kind === 'ios-app';
 
     useEffect(() => {
@@ -115,18 +136,12 @@ function Prompt() {
                 <Card role="region" aria-label="Powiadomienia na telefon">
                     <Tile><BellIcon /></Tile>
                     <Copy>
-                        <CardTitle>
-                            {stage === 'install' ? 'Powiadomienia na tym iPhonie' : 'Włącz powiadomienia'}
-                        </CardTitle>
-                        <CardText>
-                            {stage === 'install'
-                                ? 'Dwa kroki i telefon da znać o nowym zapytaniu czy zamkniętej wizycie.'
-                                : 'Telefon da znać o nowym zapytaniu, zamkniętej wizycie i połączeniu z komputera.'}
-                        </CardText>
+                        <CardTitle>{CARD_COPY[stage]?.title}</CardTitle>
+                        <CardText>{CARD_COPY[stage]?.text}</CardText>
                     </Copy>
                     <Actions>
                         <Button variant="tinted" size="sm" onClick={() => setWizardOpen(true)}>
-                            {stage === 'install' ? 'Pokaż jak' : 'Włącz'}
+                            {stage === 'ask' ? 'Włącz' : 'Pokaż jak'}
                         </Button>
                         <Button variant="ghost" size="sm" onClick={dismiss}>Nie teraz</Button>
                     </Actions>

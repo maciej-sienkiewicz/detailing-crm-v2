@@ -4,6 +4,11 @@ export interface PushDeviceDto {
     createdAt: string;
     lastUsedAt: string | null;
     active: boolean;
+    /**
+     * Z User-Agenta, z którym urządzenie się sparowało. Opcjonalne, bo starszy
+     * backend go nie wysyła - wtedy po prostu nie ma podpowiedzi.
+     */
+    platform?: 'IOS' | 'ANDROID' | 'DESKTOP' | 'UNKNOWN';
 }
 
 export interface RequestCallResponse {
