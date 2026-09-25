@@ -33,7 +33,24 @@
  *      - 'pushsubscriptionchange' → the browser rotated the subscription;
  *                              re-subscribe with the same VAPID key and
  *                              re-register server-side (cookie-authenticated).
+ *
+ * UPDATES. A phone runs whichever copy of this file it last installed, so how a
+ * new copy gets there matters as much as what is in it. Three links, all needed:
+ *   1. nginx serves this file with `no-store` (deploy/ngnix/ngnix.conf) - the
+ *      browser's update check always reaches the server;
+ *   2. the page asks for that check when the app returns to the screen
+ *      (src/modules/push/utils/serviceWorkerRegistration.ts) - on its own the
+ *      browser checks only on navigation, which an installed PWA resumed from
+ *      the background never does;
+ *   3. install → skipWaiting(), activate → clients.claim() below - the new copy
+ *      takes over at once instead of waiting until every tab is closed, which
+ *      on a phone with the app parked in memory means "never".
  */
+
+// Bump on every change to this file. Browsers compare bytes, so the bump is not
+// what triggers an update - it is what Settings → Urządzenia mobilne →
+// Powiadomienia shows, so "does this phone have the fix yet?" has an answer.
+const SW_VERSION = '2026-09-25.1';
 
 const CACHE_VERSION = 'v1';
 const CACHE_NAME    = `car-logos-${CACHE_VERSION}`;
@@ -42,9 +59,10 @@ const LOGO_URL_PATTERN = /cdn\.jsdelivr\.net\/gh\/filippofilip95\/car-logos-data
 
 // ─── Lifecycle ────────────────────────────────────────────────────────────────
 
-self.addEventListener('install', () => {
+self.addEventListener('install', event => {
     // Take control immediately without waiting for existing clients to close.
-    self.skipWaiting();
+    // Inside waitUntil, so installation does not finish before the skip is granted.
+    event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', event => {
@@ -58,6 +76,14 @@ self.addEventListener('activate', event => {
             )
         ).then(() => self.clients.claim())
     );
+});
+
+// The page asks which version serves it (diagnostics in the notifications panel).
+self.addEventListener('message', event => {
+    if (!event.data || event.data.type !== 'GET_VERSION') return;
+    const reply = { version: SW_VERSION };
+    if (event.ports && event.ports[0]) event.ports[0].postMessage(reply);
+    else if (event.source) event.source.postMessage(reply);
 });
 
 // ─── Fetch interception (car-logo CacheFirst) ─────────────────────────────────
@@ -88,15 +114,64 @@ async function cacheFirst(request) {
     return response;
 }
 
-// ─── Web Push: Click-to-Call ──────────────────────────────────────────────────
+// ─── Web Push: icons, sound, vibration ────────────────────────────────────────
+//
+// ICON (`icon`) - the picture beside the text. 192×192 PNG: Android draws it at
+// 40-64 dp, which is 192 px on the densest screens; anything bigger is only
+// downloaded, not seen. Keep the subject inside the central ~80% (Android may
+// crop it into a circle) and fill the square edge-to-edge with the background
+// colour - transparency comes out as a white or grey square on some skins.
+// iOS IGNORES `icon` entirely: a notification there always carries the
+// home-screen icon (apple-touch-icon / manifest icon captured at install).
+//
+// BADGE (`badge`) - the small glyph in the Android status bar and on the
+// notification's header. 96×96 PNG, a WHITE glyph on transparency, ~12 px
+// margin (safe area 72×72). Android keeps ONLY the alpha channel and paints it
+// white, so a coloured or boxed image comes out as a solid blob. Desktop and
+// iOS ignore it.
+//
+// SOUND - there is no way to ship a custom sound in Web Push, on any mobile OS.
+// The `sound` option was dropped from the Notifications spec without a single
+// browser having implemented it. What rings is decided by the operating system:
+//   - Android: the notification channel's sound. Chrome creates channels per
+//     site (per app, once installed as a WebAPK); the USER can pick any tone,
+//     including their own file, in the system settings for that channel. We
+//     cannot set it from here - the wizard tells them where.
+//   - iOS: always the system notification sound; no API, no setting per web app
+//     beyond on/off.
+//   - `silent: true` works (no sound, no vibration) - the only control we have.
+//
+// VIBRATION (`vibrate`) - honoured by Chrome on Android only. Even there, since
+// Android 8 the channel's vibration setting can override it, so treat a pattern
+// as a hint, not a guarantee. iOS ignores it. The patterns below are short on
+// purpose: a distinct rhythm for "act now" (call) vs "for your information".
+
+// Bump when an icon FILE changes under the same name. Android caches notification
+// images by URL, and the files are not content-hashed, so without a new query
+// string a phone keeps showing the old picture long after the new one shipped.
+const ICON_VERSION = '2';
+const art = (icon, badge) => ({
+    icon: `${icon}?v=${ICON_VERSION}`,
+    badge: `${badge}?v=${ICON_VERSION}`,
+});
 
 // Icon keys (PushIcon on the backend) resolved to files here, so the backend
 // never has to know the frontend's asset paths.
 const ICONS = {
-    EARNINGS: { icon: '/icons/notification-earnings.png', badge: '/icons/badge-earnings.png' },
-    LEAD:     { icon: '/icons/notification-lead.png',     badge: '/icons/badge-lead.png' },
-    CALL:     { icon: '/icons/notification-call.png',     badge: '/icons/badge-call.png' },
+    EARNINGS: art('/icons/notification-earnings.png', '/icons/badge-earnings.png'),
+    LEAD:     art('/icons/notification-lead.png',     '/icons/badge-lead.png'),
+    CALL:     art('/icons/notification-call.png',     '/icons/badge-call.png'),
+    APP:      art('/icons/icon-192.png',              '/icons/badge-app.png'),
 };
+
+const VIBRATE = {
+    // Two firm pulses: "someone is waiting for you to act".
+    CALL: [200, 100, 200],
+    // One short pulse - noticeable in a pocket, not an alarm.
+    INFO: [120],
+};
+
+// ─── Web Push: dispatch ───────────────────────────────────────────────────────
 
 self.addEventListener('push', event => {
     let payload = null;
@@ -128,17 +203,15 @@ function showCallNotification(payload) {
         : `Zadzwoń: ${payload.phoneNumber}`;
 
     return self.registration.showNotification(title, {
-        body: `${payload.phoneNumber} · zlecono z komputera`,
+        body: payload.displayName
+            ? `Numer ${payload.phoneNumber}, zlecono z komputera.`
+            : 'Zlecono z komputera.',
         icon: ICONS.CALL.icon,
-        // Status-bar badge. Android keeps ONLY the alpha channel and paints the
-        // shape white, so these files are solid glyphs on transparency - a
-        // coloured or boxed image would come out as a grey blob. Ignored on
-        // desktop and on iOS, which uses the home-screen icon.
         badge: ICONS.CALL.badge,
         tag: 'click-to-call',       // a newer call replaces a stale one instead of stacking
         renotify: true,
         requireInteraction: true,    // stays on screen until acted upon - it's a call to action
-        vibrate: [200, 100, 200],
+        vibrate: VIBRATE.CALL,
         actions: [
             { action: 'call', title: '📞 Zadzwoń' },
             { action: 'dismiss', title: 'Odrzuć' },
@@ -161,8 +234,7 @@ function showInfoNotification(payload) {
         // A notification that has to be dismissed by hand is a chore, and money
         // stated once does not need to be acknowledged.
         requireInteraction: false,
-        // A short, single pulse - noticeable in a pocket, not an alarm.
-        vibrate: [120],
+        vibrate: VIBRATE.INFO,
         data: { url: payload.url },
     });
 }

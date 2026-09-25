@@ -1,4 +1,5 @@
 import type { PushSupportState } from '../types';
+import { isServiceWorkerAllowedHere, registerAppServiceWorker } from './serviceWorkerRegistration';
 
 /**
  * pushManager.subscribe() wants the VAPID key as a Uint8Array, but the
@@ -25,22 +26,6 @@ export const getPushSupportState = (): PushSupportState => {
     return 'supported';
 };
 
-/** Aplikacja uruchomiona z ekranu głównego (PWA), a nie z karty przeglądarki. */
-export const isStandaloneDisplay = (): boolean =>
-    window.matchMedia('(display-mode: standalone)').matches ||
-    window.matchMedia('(display-mode: fullscreen)').matches ||
-    window.matchMedia('(display-mode: minimal-ui)').matches ||
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (navigator as any).standalone === true;
-
-export const isIosDevice = (): boolean =>
-    /iphone|ipad|ipod/i.test(navigator.userAgent) ||
-    // iPadOS podaje się za Maca; rozpoznajemy go po ekranie dotykowym.
-    (/macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
-
-/** iOS allows Web Push ONLY inside a Home-Screen-installed PWA. */
-export const isIosOutsidePwa = (): boolean => isIosDevice() && !isStandaloneDisplay();
-
 /**
  * Czy to urządzenie wygląda na telefon/tablet.
  *
@@ -52,7 +37,8 @@ export const isIosOutsidePwa = (): boolean => isIosDevice() && !isStandaloneDisp
  */
 export const isMobileDevice = (): boolean =>
     /android|iphone|ipad|ipod|windows phone/i.test(navigator.userAgent) ||
-    isIosDevice() ||
+    // iPadOS podaje się za Maca; rozpoznajemy go po ekranie dotykowym.
+    (/macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1) ||
     (navigator.maxTouchPoints > 1 && window.matchMedia('(pointer: coarse)').matches);
 
 /**
@@ -65,10 +51,10 @@ export const isMobileDevice = (): boolean =>
  * z limitem czasu i jawnym błędem.
  */
 export const waitForServiceWorker = async (timeoutMs = 15_000): Promise<ServiceWorkerRegistration> => {
-    if (!('serviceWorker' in navigator)) throw new Error('sw-unavailable');
+    if (!isServiceWorkerAllowedHere()) throw new Error('sw-unavailable');
 
     try {
-        await navigator.serviceWorker.register('/service-worker.js', { scope: '/' });
+        await registerAppServiceWorker();
     } catch {
         // Rejestracja mogła już istnieć albo być zablokowana - rozstrzygnie to `ready`.
     }
@@ -86,7 +72,7 @@ export const waitForServiceWorker = async (timeoutMs = 15_000): Promise<ServiceW
     }
 };
 
-/** Best-effort human label for the devices list, e.g. "Android · Chrome". */
+/** Best-effort human label for the devices list, e.g. "Android, Chrome". */
 export const describeThisDevice = (): string => {
     const ua = navigator.userAgent;
     const os = /android/i.test(ua)
@@ -107,5 +93,5 @@ export const describeThisDevice = (): string => {
                 : /safari/i.test(ua)
                     ? 'Safari'
                     : 'przeglądarka';
-    return `${os} · ${browser}`;
+    return `${os}, ${browser}`;
 };

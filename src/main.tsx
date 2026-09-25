@@ -3,6 +3,9 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { installChunkErrorHandler } from './core/errors';
 import { isRolePreviewShellPath } from './modules/role-preview/entryCode';
+import {
+    isServiceWorkerAllowedHere, keepServiceWorkerFresh, registerAppServiceWorker,
+} from './modules/push/utils/serviceWorkerRegistration';
 import './index.css';
 
 // Musi stać PRZED renderem: łapie nieudane pobrania chunków, które nigdy nie
@@ -11,7 +14,7 @@ import './index.css';
 installChunkErrorHandler();
 
 // Register the application Service Worker: car-logo CacheFirst cache + Web Push
-// Click-to-Call (push / notificationclick handlers live in service-worker.js).
+// (push / notificationclick handlers live in public/service-worker.js).
 //
 // A scope holds exactly one registration, so registering this script replaces
 // whatever was registered before - first /logo-sw.js, then /sw.js.
@@ -24,20 +27,18 @@ installChunkErrorHandler();
 // site data by hand. A never-before-fetched URL sidesteps that cache entirely,
 // and the nginx rule now keeps this file out of it for good.
 //
-// Not in the role preview: neither its window (/podglad) nor the app in its frame
-// registers the worker. The preview is a throwaway sandbox under its own address -
-// a worker there would outlive it, cache its data and could subscribe to push.
-const isRolePreviewShell = isRolePreviewShellPath(window.location.pathname);
-const isInFrame = window.self !== window.top;
-if ('serviceWorker' in navigator && !isRolePreviewShell && !isInFrame) {
-    navigator.serviceWorker
-        .register('/service-worker.js', { scope: '/' })
+// keepServiceWorkerFresh: the browser checks for a new worker only on navigation,
+// and an installed PWA resumed from the background never navigates - see
+// serviceWorkerRegistration.ts. Not in the role preview (isServiceWorkerAllowedHere).
+if (isServiceWorkerAllowedHere()) {
+    registerAppServiceWorker()
+        .then(registration => { keepServiceWorkerFresh(registration); })
         .catch(() => {/* SW is an enhancement, silently ignore failures */});
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 
-if (isRolePreviewShell) {
+if (isRolePreviewShellPath(window.location.pathname)) {
     // The role preview window: its own small app around the real one in a frame.
     void import('./modules/role-preview/shell/mountRolePreviewShell')
         .then(({ mountRolePreviewShell }) => mountRolePreviewShell(root));

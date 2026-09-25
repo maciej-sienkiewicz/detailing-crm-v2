@@ -120,3 +120,37 @@ describe('nginx wydaje zasoby aplikacji z właściwym typem MIME', () => {
         expect(mimeFor(server, '/assets/index-c5d34e0d.css')).toBe('text/css');
     });
 });
+
+/**
+ * Service Worker ma stałą nazwę pliku, bez hasha - więc każda warstwa cache, która go
+ * zatrzyma, przypina telefony do starej wersji. Tak już było: /sw.js poszedł kiedyś pod
+ * regułę „*.js na rok, immutable" i poprawiony handler powiadomień nie docierał do nikogo,
+ * dopóki worker nie dostał nowej nazwy. Ten test pilnuje, żeby żaden nowy blok location
+ * nie przejął workera przed regułą no-store, a CDN przed serwerem też dostał zakaz.
+ */
+describe('nginx nigdy nie pozwala zatrzymać Service Workera w cache', () => {
+    const [app, preview] = servers;
+    const headers = (location: Directive | undefined) =>
+        Object.fromEntries(
+            (location?.block ?? [])
+                .filter(d => d.name === 'add_header')
+                .map(d => [d.args[0].toLowerCase(), d.args[1]]),
+        );
+
+    it.each(['/service-worker.js', '/sw.js', '/logo-sw.js', '/call.html'])(
+        '%s: no-store w przeglądarce i na CDN, bez expires',
+        uri => {
+            const location = locationFor(app, uri);
+            const h = headers(location);
+            expect(h['cache-control']).toContain('no-store');
+            expect(h['cdn-cache-control']).toBe('no-store');
+            expect(h['cloudflare-cdn-cache-control']).toBe('no-store');
+            expect(location?.block?.some(d => d.name === 'expires')).toBe(false);
+        },
+    );
+
+    it('podgląd roli nie wydaje workera wcale', () => {
+        const location = locationFor(preview, '/service-worker.js');
+        expect(location?.block?.find(d => d.name === 'return')?.args).toEqual(['404']);
+    });
+});
