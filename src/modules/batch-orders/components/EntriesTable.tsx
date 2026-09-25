@@ -301,6 +301,21 @@ const MobilePlate = styled.span`
     white-space: nowrap;
 `;
 
+/* Data i usługa jako dwa elementy z odstępem, nie „24.09 · Korekta" (CLAUDE.md §4). */
+const SubLine = styled.span`
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    min-width: 0;
+
+    > span:first-child {
+        flex-shrink: 0;
+        font-size: 12.5px;
+        color: #64748b;
+        font-variant-numeric: tabular-nums;
+    }
+`;
+
 const RowMenu = styled.div`
     display: flex;
     align-items: center;
@@ -368,7 +383,7 @@ function servicesSummary(entry: BatchOrderEntry): { first: string; rest: string 
 }
 
 function StatusBadge({ entry }: { entry: BatchOrderEntry }) {
-    if (entry.isClosed) return <StatusTag $tone="settled"><Lock />Rozliczony</StatusTag>;
+    if (entry.isClosed) return <StatusTag $tone="settled"><Lock />W zestawieniu</StatusTag>;
     if (entry.isCorrection) return <StatusTag $tone="correction"><RotateCcw />Korekta</StatusTag>;
     return null;
 }
@@ -456,7 +471,7 @@ export function EntriesTable({ entries, isDesktop, onOpen, onDelete, onReopen }:
                                     key={entry.id}
                                     $settled={entry.isClosed}
                                     tabIndex={0}
-                                    aria-label={`${vehicleName(entry)}, ${formatDay(entry.serviceDate)}, ${formatMoney(entry.grossAmountCents)}. Otwórz wpis`}
+                                    aria-label={`${vehicleName(entry)}, ${formatDay(entry.serviceDate)}, ${formatMoney(entry.grossAmountCents)}. Otwórz auto`}
                                     onClick={() => onOpen(entry)}
                                     onKeyDown={e => {
                                         if (e.target !== e.currentTarget) return;
@@ -490,7 +505,7 @@ export function EntriesTable({ entries, isDesktop, onOpen, onDelete, onReopen }:
                                         {entry.isClosed ? (
                                             <PriceBtnStatic
                                                 type="button"
-                                                title="Wpis rozliczony - otwórz, żeby odblokować go do korekty"
+                                                title="Auto jest już w zestawieniu. Otwórz, żeby odblokować je do korekty"
                                                 onClick={e => { e.stopPropagation(); onOpen(entry, 'price'); }}
                                             >
                                                 <Lock />
@@ -533,7 +548,10 @@ export function EntriesTable({ entries, isDesktop, onOpen, onDelete, onReopen }:
                                             <Primary>{vehicleName(entry)}</Primary>
                                             {entry.vehicleLicensePlate && <MobilePlate>{entry.vehicleLicensePlate}</MobilePlate>}
                                         </RowTitle>
-                                        <Secondary>{formatDayShort(entry.serviceDate)} · {svc.first}{extra}</Secondary>
+                                        <SubLine>
+                                            <span>{formatDayShort(entry.serviceDate)}</span>
+                                            <Secondary>{svc.first}{extra}</Secondary>
+                                        </SubLine>
                                         <StatusBadge entry={entry} />
                                     </RowText>
                                     <Gross>{formatMoney(entry.grossAmountCents)}</Gross>
@@ -553,7 +571,7 @@ export function EntriesTable({ entries, isDesktop, onOpen, onDelete, onReopen }:
                     onClick={e => e.stopPropagation()}
                 >
                     <MenuItem role="menuitem" type="button" onClick={() => run(() => onOpen(menu.entry))}>
-                        <Pencil />{menu.entry.isClosed ? 'Otwórz wpis' : 'Edytuj wpis'}
+                        <Pencil />{menu.entry.isClosed ? 'Otwórz' : 'Popraw auto'}
                     </MenuItem>
                     {!menu.entry.isClosed && (
                         <MenuItem role="menuitem" type="button" onClick={() => run(() => onOpen(menu.entry, 'price'))}>
@@ -571,7 +589,7 @@ export function EntriesTable({ entries, isDesktop, onOpen, onDelete, onReopen }:
                         </MenuItem>
                     ) : (
                         <MenuItem role="menuitem" type="button" $danger onClick={() => run(() => onDelete(menu.entry))}>
-                            <Trash2 />Usuń wpis
+                            <Trash2 />Usuń z listy
                         </MenuItem>
                     )}
                 </Dropdown>,

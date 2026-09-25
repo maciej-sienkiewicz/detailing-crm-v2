@@ -11,17 +11,23 @@ export const formatAmount = (cents: number): string =>
     (cents / 100).toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 /**
- * „8 wpisów", „22 wpisy", „12 wpisów". Historia rozliczeń miała własną odmianę
- * (`< 5 ? 'wpisy' : 'wpisów'`), która pisała „12 wpisy" i „22 wpisów".
+ * „1 auto", „2 auta", „8 aut". Liczymy AUTA, nie „wpisy": wpis to słowo z bazy
+ * danych, a pracownia myśli samochodami, które zrobiła dla kontrahenta.
+ * Historia miała dawniej własną odmianę (`< 5 ? 'wpisy' : 'wpisów'`), która
+ * pisała „12 wpisy" i „22 wpisów".
  */
-export const entriesLabel = (count: number): string =>
-    `${count} ${pluralPl(count, 'wpis', 'wpisy', 'wpisów')}`;
+export const carsLabel = (count: number): string =>
+    `${count} ${pluralPl(count, 'auto', 'auta', 'aut')}`;
 
 export const contractorsLabel = (count: number): string =>
     `${count} ${pluralPl(count, 'kontrahent', 'kontrahentów', 'kontrahentów')}`;
 
 export const photosLabel = (count: number): string =>
     `${count} ${pluralPl(count, 'zdjęcie', 'zdjęcia', 'zdjęć')}`;
+
+/** „Brutto za 8 aut. Netto 10 689,44 zł." - kwota główna jest brutto, netto to dopisek. */
+export const grossForCars = (count: number, netCents: number): string =>
+    `Brutto za ${carsLabel(count)}. Netto ${formatMoney(netCents)}.`;
 
 export const vatLabel = (rate: number): string => (rate === -1 ? 'ZW' : `${rate}%`);
 

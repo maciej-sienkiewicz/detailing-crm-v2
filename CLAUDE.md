@@ -305,7 +305,53 @@ Dotyczy to także kodu wklejanego z bibliotek i przykładów: wzorzec
 
 ---
 
-## 4. Uwaga o `.masterPrompt.txt`
+## 4. TEKST: kropka środkowa (`·`) nie jest separatorem
+
+> **W tekście interfejsu nie łączymy informacji kropką środkową** —
+> ani `·`, ani `•`, ani `' · '` w `join()`.
+
+### Dlaczego to jest reguła, a nie preferencja
+
+Kropka nie mówi, JAKI jest związek między dwiema rzeczami, więc czytelnik musi
+go zgadywać. „8 wpisów · 10 689,44 zł netto · rozliczono już 3 wpisy (4551,00 zł,
+12.09)" to trzy fakty sklejone w jeden ciąg: nie wiadomo, co jest główne, co jest
+dopiskiem, a co się do czego odnosi. Na wąskim ekranie taki ciąg łamie się
+w przypadkowym miejscu i kropka ląduje na początku linii. Czytnik ekranu czyta ją
+jako „kropka" albo połyka, zlewając fakty w jedno zdanie bez sensu.
+
+### Co zamiast
+
+| Sytuacja | Zamiast `A · B` |
+|---|---|
+| dwa atrybuty obiektu (tablica, liczba zdjęć) | osobne elementy obok siebie z odstępem (`gap`), każdy z własnym stylem albo ikoną |
+| fakt + jego doprecyzowanie | zdanie z przecinkiem: „8 aut, netto 10 689,44 zł" |
+| dwa niezależne fakty | dwie linie albo dwa zdania |
+| etykieta + wartość | etykieta i wartość, np. „Netto 10 689,44 zł" |
+| toast | tytuł mówi CO się stało, treść to zwykłe zdanie |
+
+```tsx
+// DOBRZE — dwa atrybuty jako dwa elementy
+<Meta>
+    <span>NIP 527-123-45-67</span>
+    <span>Anna Nowak</span>
+</Meta>                                    // Meta: display: flex; gap: 12px; flex-wrap: wrap
+
+// ŹLE
+<Meta>{[taxId, contact, phone].filter(Boolean).join(' · ')}</Meta>
+```
+
+Myślnik w zakresie (`03.09–17.09.2026`) i dwukropek po etykiecie są w porządku —
+mówią, jaki jest związek. Chodzi wyłącznie o kropkę jako „klej" między faktami.
+
+### Zlecenie stałe
+
+W kodzie jest jeszcze wiele miejsc z `·` (moduł zleceń zbiorczych jest już
+wyczyszczony). Gdy dotykasz pliku, który ją zawiera — przepisz te miejsca według
+tabeli wyżej, nie zostawiaj ich „bo tak było".
+
+---
+
+## 5. Uwaga o `.masterPrompt.txt`
 
 `.masterPrompt.txt` zawiera wytyczne architektoniczne, ale jeden jego punkt jest
 sprzeczny z kodem: „Zero-Comment Policy". Realna konwencja tego repozytorium jest

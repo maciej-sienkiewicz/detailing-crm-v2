@@ -1,19 +1,22 @@
 // src/modules/batch-orders/components/ContractorDetail.tsx
 //
-// Wybrany kontrahent: kto to jest, ile ma do rozliczenia w okresie, i jego wpisy.
+// Wybrany kontrahent: kto to jest, ile aut czeka na zestawienie w okresie, i te auta.
 //
-// Kwota „do rozliczenia" jest nagłówkiem sekcji, a nie stopką tabeli - to po nią się
-// tu wraca, a stopka pod długą listą wymagała przewinięcia całości. Rozpisanie na
-// wpisy jest dowodem pod nią.
+// Słownictwo: „zestawienie" to konkretny dokument (PDF z listą aut i sumą), który
+// dostaje kontrahent. Dawne „do rozliczenia" / „rozlicz okres" nic nie mówiło osobie
+// otwierającej ekran pierwszy raz - pytała, czym jest to „rozliczenie".
 //
-// Jedna wypełniona rzecz w oknie: „Dodaj wpis" (CLAUDE.md §2). „Rozlicz okres" nosi
-// zieleń jako tło i obwódkę - ważne, ale robione raz w miesiącu.
+// Kwota czekająca na zestawienie jest nagłówkiem sekcji, a nie stopką tabeli - to po
+// nią się tu wraca, a stopka pod długą listą wymagała przewinięcia całości.
+//
+// Jedna wypełniona rzecz w oknie: „Dodaj auto" (CLAUDE.md §2), w zwykłym rozmiarze
+// przycisku. Dwulinijkowe kafle 56px zagłuszały kwotę, która jest tu tematem.
 
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import {
-    ArrowRight, Building2, Check, Clock, Download, Info, MoreHorizontal, Pencil, Plus, Search, Trash2,
+    Building2, Check, Clock, Download, FileText, Info, MoreHorizontal, Pencil, Plus, Search, Trash2,
 } from 'lucide-react';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useToast } from '@/common/components/Toast';
@@ -21,8 +24,9 @@ import { useContainerWidth } from '@/common/hooks';
 import { batchOrderApi } from '../api/batchOrderApi';
 import { useContractorEntries, useDeleteEntry, useReopenEntry } from '../hooks/useBatchOrders';
 import type { BatchContractor, BatchOrderEntry, EntryStatusFilter } from '../types';
-import { apiErrorMessage, entriesLabel, formatMoney, vehicleName } from '../utils/format';
-import { formatDay, formatInstantDay, periodPhrase, type Period } from '../utils/period';
+import { pluralPl } from '@/common/utils/plural';
+import { apiErrorMessage, carsLabel, formatMoney, grossForCars, vehicleName } from '../utils/format';
+import { formatDay, formatInstantDay, periodIn, type Period } from '../utils/period';
 import { EntriesTable, type EntryFocus } from './EntriesTable';
 import { EntryDrawer } from './EntryDrawer';
 import { SettlementHistoryModal } from './SettlementHistoryModal';
@@ -103,10 +107,17 @@ const Name = styled.h2`
     @container detail (max-width: 560px) { font-size: 17px; }
 `;
 
-const Meta = styled.span`
+/* Atrybuty kontrahenta jako osobne elementy z odstępem, nie ciąg sklejony
+   kropkami (CLAUDE.md §4). */
+const Meta = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 14px;
+    row-gap: 2px;
     font-size: 13px;
     color: #64748b;
-    overflow-wrap: break-word;
+
+    span { overflow-wrap: break-word; }
 `;
 
 const HeadActions = styled.div`
@@ -174,17 +185,30 @@ const HeroLabel = styled.span`
 `;
 
 const HeroAmount = styled.span`
-    font-size: 40px;
-    line-height: 1.1;
+    font-size: 32px;
+    line-height: 1.15;
     font-weight: 800;
-    letter-spacing: -0.025em;
+    letter-spacing: -0.02em;
     color: ${p => p.theme.colors.text};
     font-variant-numeric: tabular-nums;
 
-    @container detail (max-width: 560px) { font-size: 30px; }
+    @container detail (max-width: 560px) { font-size: 28px; }
 `;
 
-const HeroMeta = styled.span`
+/* Kwota jeszcze się wczytuje: szary pasek w jej miejscu, nie „…" (CLAUDE.md §4)
+   - trzy kropki w rozmiarze 32px wyglądały jak zepsuta liczba. */
+const AmountSkeleton = styled.span`
+    display: block;
+    width: 200px;
+    max-width: 60%;
+    height: 34px;
+    margin: 2px 0;
+    border-radius: 8px;
+    background: ${p => p.theme.colors.surfaceAlt};
+`;
+
+const HeroMeta = styled.p`
+    margin: 0;
     font-size: 13px;
     line-height: 1.5;
     color: #64748b;
@@ -217,92 +241,50 @@ const InlineLink = styled.button`
 const HeroActions = styled.div`
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     flex-shrink: 0;
 
-    @container detail (max-width: 900px) { > * { flex: 1 1 0; min-width: 0; } }
+    @container detail (max-width: 560px) { > * { flex: 1 1 0; min-width: 0; } }
 `;
 
-const SettleBtn = styled.button`
+/* Jedna metryka dla obu przycisków: 40px (44px pod palcem), 14px, pigułka -
+   ta sama co reszta przycisków w nagłówku karty. */
+const ActionBase = styled.button`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    height: 52px;
-    padding: 0 20px;
-    border: 1px solid #86efac;
-    border-radius: 14px;
-    background: ${p => p.theme.colors.successLight};
+    gap: 7px;
+    height: 40px;
+    padding: 0 16px;
+    border-radius: ${p => p.theme.radii.full};
     font-family: inherit;
     font-size: 14px;
     font-weight: 600;
-    color: #15803d;
     white-space: nowrap;
     cursor: pointer;
 
-    svg { width: 16px; height: 16px; }
+    svg { width: 16px; height: 16px; flex-shrink: 0; }
+    @media (hover: none) and (pointer: coarse) { height: 44px; }
+`;
+
+/* Zieleń jako tło i obwódka: ważne, ale robione raz w miesiącu. */
+const SettleBtn = styled(ActionBase)`
+    border: 1px solid #86efac;
+    background: ${p => p.theme.colors.successLight};
+    color: #15803d;
+
     &:hover:not(:disabled) { background: #dcfce7; border-color: #4ade80; }
     &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
-/**
- * Jedyny wypełniony element w oknie, więc zbudowany tak, żeby nie dało się go pomylić
- * z „Zapisz": dwie linie (co + dla kogo), kafelek ikony, gradient i cień marki,
- * strzałka reagująca na kursor. Wzorzec: FooterPrimary w LeadDetailModal.
- */
-const AddEntryBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    height: 56px;
-    padding: 0 20px 0 10px;
+/* Jedyne wypełnienie w oknie (CLAUDE.md §2) - wygrywa kolorem, nie rozmiarem. */
+const AddEntryBtn = styled(ActionBase)`
     border: none;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #0284c7, #075985);
-    box-shadow: 0 8px 20px rgba(3, 105, 161, 0.3);
-    font-family: inherit;
+    background: linear-gradient(135deg, #0284c7, #0369a1);
+    box-shadow: 0 4px 12px rgba(3, 105, 161, 0.25);
     color: #fff;
-    text-align: left;
-    cursor: pointer;
-    transition: box-shadow ${p => p.theme.transitions.fast}, transform ${p => p.theme.transitions.fast};
 
-    > svg { width: 16px; height: 16px; margin-left: auto; transition: transform ${p => p.theme.transitions.fast}; }
-    &:hover { box-shadow: 0 10px 26px rgba(3, 105, 161, 0.38); }
-    &:hover > svg { transform: translateX(3px); }
-    &:active { transform: translateY(1px); }
-
-    /* Na wąskiej karcie stoi obok „Rozlicz okres" w połowie szerokości: zostaje
-       kafelek i „Dodaj wpis", bez podpisu i strzałki, które wychodziły poza kartę. */
-    @container detail (max-width: 560px) {
-        height: 52px;
-        padding: 0 14px 0 8px;
-        gap: 10px;
-        > svg { display: none; }
-    }
-`;
-
-const AddTile = styled.span`
-    width: 36px;
-    height: 36px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.18);
-
-    svg { width: 18px; height: 18px; }
-`;
-
-const AddText = styled.span`
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    min-width: 0;
-
-    strong { font-size: 15px; font-weight: 700; white-space: nowrap; }
-    span { font-size: 12px; opacity: 0.9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    @container detail (max-width: 560px) { span { display: none; } }
+    &:hover { box-shadow: 0 6px 16px rgba(3, 105, 161, 0.32); }
 `;
 
 // ─── Pasek nad listą ──────────────────────────────────────────────────────────
@@ -475,8 +457,8 @@ const MenuDivider = styled.div`
 type DrawerState = { entry: BatchOrderEntry | null; focus?: EntryFocus } | null;
 
 const STATUS_LABELS: Record<EntryStatusFilter, string> = {
-    OPEN: 'Do rozliczenia',
-    SETTLED: 'Rozliczone',
+    OPEN: 'Czekają',
+    SETTLED: 'W zestawieniach',
     ALL: 'Wszystkie',
 };
 
@@ -552,7 +534,7 @@ export function ContractorDetail({ contractor, period, isDesktop, onEditContract
         contractor.taxId && `NIP ${contractor.taxId}`,
         contractor.contactPersonName,
         contractor.phone,
-    ].filter(Boolean).join(' · ');
+    ].filter((v): v is string => !!v);
 
     async function handleDownload() {
         setDownloading(true);
@@ -568,19 +550,19 @@ export function ContractorDetail({ contractor, period, isDesktop, onEditContract
     async function handleDelete(entry: BatchOrderEntry) {
         try {
             await deleteEntry.mutateAsync(entry.id);
-            showSuccess('Wpis usunięty', `${vehicleName(entry)} · ${formatDay(entry.serviceDate)}`);
+            showSuccess('Auto usunięte z listy', `${vehicleName(entry)} z ${formatDay(entry.serviceDate)}.`);
         } catch (e) {
-            showError('Nie udało się usunąć wpisu', apiErrorMessage(e, 'Spróbuj ponownie.'));
+            showError('Nie udało się usunąć auta', apiErrorMessage(e, 'Spróbuj ponownie.'));
         }
     }
 
     async function handleReopen(entry: BatchOrderEntry) {
         try {
             const reopened = await reopenEntry.mutateAsync(entry.id);
-            showSuccess('Wpis odblokowany', 'Po zapisie wróci do najbliższego rozliczenia jako korekta.');
+            showSuccess('Auto odblokowane do korekty', 'Po zapisie trafi do następnego zestawienia.');
             setDrawer({ entry: reopened, focus: 'price' });
         } catch (e) {
-            showError('Nie udało się odblokować wpisu', apiErrorMessage(e, 'Spróbuj ponownie.'));
+            showError('Nie udało się odblokować auta', apiErrorMessage(e, 'Spróbuj ponownie.'));
         }
     }
 
@@ -592,7 +574,7 @@ export function ContractorDetail({ contractor, period, isDesktop, onEditContract
         setMenuPos({ top: rect.bottom + 4, right: Math.max(8, vw - rect.right) });
     }
 
-    const phrase = periodPhrase(period);
+    const inPeriod = periodIn(period);
 
     return (
         <Card ref={cardRef} aria-labelledby="contractor-detail-name">
@@ -601,17 +583,17 @@ export function ContractorDetail({ contractor, period, isDesktop, onEditContract
                     <IconTile><Building2 /></IconTile>
                     <NameBlock>
                         <Name id="contractor-detail-name">{contractor.name}</Name>
-                        {meta && <Meta>{meta}</Meta>}
+                        {meta.length > 0 && <Meta>{meta.map(m => <span key={m}>{m}</span>)}</Meta>}
                     </NameBlock>
                 </Identity>
                 <HeadActions>
                     {headButtons && (
                         <>
                             <GhostBtn type="button" onClick={() => setShowHistory(true)}>
-                                <Clock />Historia rozliczeń
+                                <Clock />Historia zestawień
                             </GhostBtn>
-                            <GhostBtn type="button" onClick={handleDownload} disabled={downloading}>
-                                <Download />{downloading ? 'Generowanie…' : 'Zestawienie PDF'}
+                            <GhostBtn type="button" onClick={handleDownload} disabled={downloading} title="Lista aut widocznych poniżej, bez tworzenia zestawienia">
+                                <Download />{downloading ? 'Generowanie…' : 'Pobierz listę PDF'}
                             </GhostBtn>
                         </>
                     )}
@@ -629,38 +611,41 @@ export function ContractorDetail({ contractor, period, isDesktop, onEditContract
 
             <Hero>
                 <HeroText>
-                    <HeroLabel>Do rozliczenia · {phrase}</HeroLabel>
-                    <HeroAmount>{isLoading && !data ? '…' : formatMoney(open?.totalGrossCents ?? 0)}</HeroAmount>
-                    {data && (
-                        openCount === 0 && settledCount > 0 ? (
-                            <HeroDone><Check />Wszystko z tego okresu jest rozliczone</HeroDone>
-                        ) : (
+                    <HeroLabel>Czeka na zestawienie {inPeriod}</HeroLabel>
+                    {isLoading && !data
+                        ? <AmountSkeleton aria-label="Wczytywanie kwoty" />
+                        : <HeroAmount>{formatMoney(open?.totalGrossCents ?? 0)}</HeroAmount>}
+                    {data && (openCount === 0 && settledCount > 0 ? (
+                        <HeroDone><Check />Wszystkie auta z tego okresu są już w zestawieniu</HeroDone>
+                    ) : (
+                        <>
                             <HeroMeta>
-                                {formatMoney(open?.totalNetCents ?? 0)} netto · {entriesLabel(openCount)}
-                                {settledCount > 0 && (
-                                    <>
-                                        {' · '}rozliczono już {entriesLabel(settledCount)} ({formatMoney(settled?.totalGrossCents ?? 0)}
-                                        {data.lastSettledAt ? `, ${formatInstantDay(data.lastSettledAt).slice(0, 5)}` : ''}){' '}
-                                        {status !== 'SETTLED' && <InlineLink type="button" onClick={() => setStatus('SETTLED')}>zobacz</InlineLink>}
-                                    </>
-                                )}
+                                {openCount === 0
+                                    ? 'Brak aut czekających na zestawienie.'
+                                    : grossForCars(openCount, open?.totalNetCents ?? 0)}
                             </HeroMeta>
-                        )
-                    )}
+                            {settledCount > 0 && (
+                                <HeroMeta>
+                                    {carsLabel(settledCount)} z tego okresu {pluralPl(settledCount, 'jest', 'są', 'jest')} już
+                                    {' '}w zestawieniu{data.lastSettledAt ? ` z ${formatInstantDay(data.lastSettledAt).slice(0, 5)}` : ''}
+                                    {' '}({formatMoney(settled?.totalGrossCents ?? 0)}).{' '}
+                                    {status !== 'SETTLED' && <InlineLink type="button" onClick={() => setStatus('SETTLED')}>Pokaż je</InlineLink>}
+                                </HeroMeta>
+                            )}
+                        </>
+                    ))}
                 </HeroText>
                 <HeroActions>
                     <SettleBtn
                         type="button"
                         onClick={() => setShowSettlement(true)}
                         disabled={openCount === 0}
-                        title={openCount === 0 ? 'W tym okresie nie ma nic do rozliczenia' : undefined}
+                        title={openCount === 0 ? 'Żadne auto nie czeka na zestawienie w tym okresie' : 'PDF z listą aut i sumą do zapłaty dla kontrahenta'}
                     >
-                        <Check />Rozlicz okres
+                        <FileText />Utwórz zestawienie
                     </SettleBtn>
                     <AddEntryBtn type="button" onClick={() => setDrawer({ entry: null })}>
-                        <AddTile><Plus /></AddTile>
-                        <AddText><strong>Dodaj wpis</strong><span>kolejne auto dla kontrahenta</span></AddText>
-                        <ArrowRight />
+                        <Plus />Dodaj auto
                     </AddEntryBtn>
                 </HeroActions>
             </Hero>
@@ -669,13 +654,13 @@ export function ContractorDetail({ contractor, period, isDesktop, onEditContract
                 <SearchBox>
                     <Search />
                     <input
-                        aria-label="Szukaj wpisu"
+                        aria-label="Szukaj auta"
                         placeholder="Szukaj po tablicy, VIN lub usłudze"
                         value={query}
                         onChange={e => setQuery(e.target.value)}
                     />
                 </SearchBox>
-                <Segmented role="group" aria-label="Status wpisów">
+                <Segmented role="group" aria-label="Które auta pokazać">
                     {(Object.keys(STATUS_LABELS) as EntryStatusFilter[]).map(s => (
                         <Segment key={s} type="button" $active={status === s} aria-pressed={status === s} onClick={() => setStatus(s)}>
                             {STATUS_LABELS[s]} {data && <span>{counts[s]}</span>}
@@ -683,15 +668,15 @@ export function ContractorDetail({ contractor, period, isDesktop, onEditContract
                     ))}
                 </Segmented>
                 {asTable && visible.length > 0 && (
-                    <ToolbarHint><Info />Kliknij wiersz albo kwotę, żeby edytować wpis</ToolbarHint>
+                    <ToolbarHint><Info />Kliknij wiersz albo kwotę, żeby poprawić auto lub cenę</ToolbarHint>
                 )}
             </Toolbar>
 
             {isLoading && !data ? (
-                <Empty>Wczytywanie wpisów…</Empty>
+                <Empty>Wczytywanie aut…</Empty>
             ) : isError ? (
                 <Empty>
-                    <strong>Nie udało się wczytać wpisów</strong>
+                    <strong>Nie udało się wczytać aut</strong>
                     <TintedBtn type="button" onClick={() => refetch()}>Spróbuj ponownie</TintedBtn>
                 </Empty>
             ) : visible.length > 0 ? (
@@ -709,16 +694,16 @@ export function ContractorDetail({ contractor, period, isDesktop, onEditContract
                 </Empty>
             ) : status === 'OPEN' && settledCount > 0 ? (
                 <Empty>
-                    <strong>Wszystko z okresu {phrase} jest rozliczone</strong>
-                    <TintedBtn type="button" onClick={() => setStatus('SETTLED')}>Pokaż rozliczone ({settledCount})</TintedBtn>
+                    <strong>Wszystkie auta {inPeriod} są już w zestawieniu</strong>
+                    <TintedBtn type="button" onClick={() => setStatus('SETTLED')}>Pokaż auta z zestawień ({settledCount})</TintedBtn>
                 </Empty>
             ) : status === 'SETTLED' ? (
-                <Empty><strong>W okresie {phrase} nic jeszcze nie rozliczono</strong></Empty>
+                <Empty><strong>Żadne auto {inPeriod} nie trafiło jeszcze do zestawienia</strong></Empty>
             ) : (
                 <Empty>
-                    <strong>Brak wpisów w okresie {phrase}</strong>
-                    <span>Każde auto zrobione dla tego kontrahenta to jeden wpis. Rozliczysz je razem na koniec okresu.</span>
-                    <TintedBtn type="button" onClick={() => setDrawer({ entry: null })}><Plus />Dodaj pierwszy wpis</TintedBtn>
+                    <strong>Brak aut {inPeriod}</strong>
+                    <span>Dopisuj każde auto zrobione dla tego kontrahenta. Na koniec okresu zbierzesz je w jedno zestawienie do zapłaty.</span>
+                    <TintedBtn type="button" onClick={() => setDrawer({ entry: null })}><Plus />Dodaj pierwsze auto</TintedBtn>
                 </Empty>
             )}
 
@@ -727,10 +712,10 @@ export function ContractorDetail({ contractor, period, isDesktop, onEditContract
                     {!headButtons && (
                         <>
                             <MenuItem role="menuitem" type="button" onClick={() => { setMenuPos(null); setShowHistory(true); }}>
-                                <Clock />Historia rozliczeń
+                                <Clock />Historia zestawień
                             </MenuItem>
                             <MenuItem role="menuitem" type="button" disabled={downloading} onClick={() => { setMenuPos(null); handleDownload(); }}>
-                                <Download />Zestawienie PDF ({STATUS_LABELS[status].toLowerCase()})
+                                <Download />Pobierz listę PDF
                             </MenuItem>
                             <MenuDivider />
                         </>
@@ -766,21 +751,21 @@ export function ContractorDetail({ contractor, period, isDesktop, onEditContract
 
             <ConfirmationModal
                 isOpen={confirmDelete !== null}
-                title="Usunąć wpis?"
-                message={confirmDelete ? `${vehicleName(confirmDelete)} z ${formatDay(confirmDelete.serviceDate)} (${formatMoney(confirmDelete.grossAmountCents)}) zniknie z listy do rozliczenia razem ze zdjęciami.` : ''}
+                title="Usunąć auto z listy?"
+                message={confirmDelete ? `${vehicleName(confirmDelete)} z ${formatDay(confirmDelete.serviceDate)} (${formatMoney(confirmDelete.grossAmountCents)}) zniknie z listy razem ze zdjęciami i nie trafi do zestawienia.` : ''}
                 variant="danger"
-                confirmText="Usuń wpis"
+                confirmText="Usuń auto"
                 cancelText="Zostaw"
                 onConfirm={() => { if (confirmDelete) handleDelete(confirmDelete); }}
                 onCancel={() => setConfirmDelete(null)}
             />
             <ConfirmationModal
                 isOpen={confirmReopen !== null}
-                title="Odblokować wpis do korekty?"
-                message="Wpis wróci na listę do rozliczenia i trafi do najbliższego zestawienia jako korekta. Zestawienie, które już wysłano, zostaje bez zmian."
+                title="Odblokować auto do korekty?"
+                message="Auto wróci na listę czekających i trafi do następnego zestawienia jako korekta. Zestawienie, które już powstało, zostaje bez zmian."
                 variant="warning"
                 confirmText="Odblokuj"
-                cancelText="Zostaw rozliczony"
+                cancelText="Zostaw zamknięte"
                 onConfirm={() => { if (confirmReopen) handleReopen(confirmReopen); }}
                 onCancel={() => setConfirmReopen(null)}
             />

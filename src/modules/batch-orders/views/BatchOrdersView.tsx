@@ -14,7 +14,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
-import { ChevronDown, Layers, ListChecks } from 'lucide-react';
+import { ChevronDown, HelpCircle, Layers, ListChecks } from 'lucide-react';
 import { PageContainer } from '@/common/components/PageContainer';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader/PageHeader';
 import { MobilePageHeader, MobilePageHeaderIconButton, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
@@ -33,7 +33,8 @@ import { BatchServicesModal } from '../components/BatchServicesModal';
 import { PeriodPicker } from '../components/PeriodPicker';
 import type { BatchContractor, ContractorRequest } from '../types';
 import { apiErrorMessage, formatMoney } from '../utils/format';
-import { currentMonthPeriod, periodPhrase, type Period } from '../utils/period';
+import { currentMonthPeriod, periodIn, type Period } from '../utils/period';
+import { HowItWorks } from '../components/HowItWorks';
 
 const ViewContainer = styled(PageContainer)`
     display: flex;
@@ -110,6 +111,26 @@ const StateBox = styled.div<{ $error?: boolean }>`
     p { margin: 0; max-width: 420px; line-height: 1.5; }
 `;
 
+const HOW_IT_WORKS_KEY = 'batch-orders.how-it-works.hidden';
+
+/**
+ * „Jak to działa" widać przy pierwszej wizycie; ukrycie zapamiętujemy w przeglądarce.
+ * localStorage bywa niedostępny (tryb prywatny) - wtedy wyjaśnienie po prostu wraca.
+ */
+function useHowItWorks(): [boolean, (show: boolean) => void] {
+    const [show, setShow] = useState(() => {
+        try { return window.localStorage.getItem(HOW_IT_WORKS_KEY) !== '1'; } catch { return true; }
+    });
+    function update(next: boolean) {
+        setShow(next);
+        try {
+            if (next) window.localStorage.removeItem(HOW_IT_WORKS_KEY);
+            else window.localStorage.setItem(HOW_IT_WORKS_KEY, '1');
+        } catch { /* bez pamięci - trudno */ }
+    }
+    return [show, update];
+}
+
 /** Lista kontrahentów (340) + odstęp (24) + szczegóły szerokie na tabelę (~700). */
 const WIDE_LAYOUT_MIN_WIDTH = 1060;
 
@@ -135,6 +156,7 @@ export function BatchOrdersView() {
     const [confirmDelete, setConfirmDelete] = useState<BatchContractor | null>(null);
     const [showServices, setShowServices] = useState(false);
     const [showPicker, setShowPicker] = useState(false);
+    const [showHowItWorks, setHowItWorks] = useHowItWorks();
 
     const items = overview ?? [];
     const requestedId = searchParams.get('kontrahent');
@@ -184,14 +206,14 @@ export function BatchOrdersView() {
         }
     }
 
-    const phrase = periodPhrase(period);
-    const list = (
+    const list = (framed: boolean) => (
         <ContractorList
             items={items}
             selectedId={selected?.contractor.id ?? null}
             onSelect={select}
             onCreate={() => { setShowPicker(false); setShowCreate(true); }}
-            periodPhrase={phrase}
+            periodIn={periodIn(period)}
+            framed={framed}
         />
     );
 
@@ -210,8 +232,9 @@ export function BatchOrdersView() {
             <StateBox>
                 <strong>Nie masz jeszcze kontrahentów B2B</strong>
                 <p>
-                    Kontrahent to firma, dla której robisz wiele aut i rozliczasz je zbiorczo - np. salon,
-                    flota albo leasing. Dodaj go, a potem wpisuj kolejne auta i rozliczaj je raz na okres.
+                    Kontrahent to firma, dla której robisz wiele aut i płaci za nie zbiorczo, np. salon,
+                    flota albo leasing. Dodaj go, dopisuj kolejne auta, a na koniec miesiąca utwórz
+                    zestawienie z listą aut i sumą do zapłaty.
                 </p>
                 <SharedButton $variant="primary" type="button" onClick={() => setShowCreate(true)}>Dodaj kontrahenta</SharedButton>
             </StateBox>
@@ -229,10 +252,7 @@ export function BatchOrdersView() {
         );
         content = isWide ? (
             <Layout>
-                <Aside>
-                    <PeriodPicker value={period} onChange={setPeriod} />
-                    {list}
-                </Aside>
+                <Aside>{list(true)}</Aside>
                 {detail}
             </Layout>
         ) : (
@@ -241,12 +261,12 @@ export function BatchOrdersView() {
                     <span>
                         <strong>{selected.contractor.name}</strong>
                         <small>
-                            {items.length > 1 ? `1 z ${items.length} kontrahentów · zmień` : 'Kontrahent · zmień lub dodaj'}
+                            {items.length > 1 ? `Zmień kontrahenta (masz ${items.length})` : 'Zmień lub dodaj kontrahenta'}
                         </small>
                     </span>
                     <ChevronDown />
                 </SwitcherBtn>
-                <PeriodPicker value={period} onChange={setPeriod} />
+                {!isDesktop && <PeriodPicker value={period} onChange={setPeriod} />}
                 {detail}
             </Stack>
         );
@@ -259,11 +279,21 @@ export function BatchOrdersView() {
             {isDesktop ? (
                 <PageHeader
                     title="Zlecenia zbiorcze"
-                    subtitle="Kontrahenci B2B, ich wpisy i rozliczenia"
+                    subtitle="Auta robione dla firm i zestawienia, które im wysyłasz"
                     actions={
-                        <PageHeaderGhostButton onClick={() => setShowServices(true)} title="Cennik usług zleceń zbiorczych">
-                            Cennik usług
-                        </PageHeaderGhostButton>
+                        <>
+                            {/* Okres w nagłówku strony, jak w makiecie: dotyczy WSZYSTKIEGO
+                                pod spodem - listy kontrahentów i szczegółów naraz. */}
+                            <PeriodPicker value={period} onChange={setPeriod} />
+                            {!showHowItWorks && (
+                                <PageHeaderGhostButton onClick={() => setHowItWorks(true)}>
+                                    Jak to działa?
+                                </PageHeaderGhostButton>
+                            )}
+                            <PageHeaderGhostButton onClick={() => setShowServices(true)} title="Cennik usług zleceń zbiorczych">
+                                Cennik usług
+                            </PageHeaderGhostButton>
+                        </>
                     }
                 />
             ) : (
@@ -271,15 +301,24 @@ export function BatchOrdersView() {
                     icon={<Layers />}
                     title="Zlecenia zbiorcze"
                     subtitle={overview
-                        ? <><MobilePageHeaderCountValue>{formatMoney(totalOpen)}</MobilePageHeaderCountValue> do rozliczenia</>
+                        ? <><MobilePageHeaderCountValue>{formatMoney(totalOpen)}</MobilePageHeaderCountValue> czeka na zestawienie</>
                         : 'Wczytywanie…'}
                     actions={
-                        <MobilePageHeaderIconButton onClick={() => setShowServices(true)} title="Cennik usług" aria-label="Cennik usług">
-                            <ListChecks />
-                        </MobilePageHeaderIconButton>
+                        <>
+                            {!showHowItWorks && (
+                                <MobilePageHeaderIconButton onClick={() => setHowItWorks(true)} title="Jak to działa?" aria-label="Jak to działa?">
+                                    <HelpCircle />
+                                </MobilePageHeaderIconButton>
+                            )}
+                            <MobilePageHeaderIconButton onClick={() => setShowServices(true)} title="Cennik usług" aria-label="Cennik usług">
+                                <ListChecks />
+                            </MobilePageHeaderIconButton>
+                        </>
                     }
                 />
             )}
+
+            {showHowItWorks && <HowItWorks onClose={() => setHowItWorks(false)} />}
 
             {content}
 
@@ -289,7 +328,7 @@ export function BatchOrdersView() {
                         <ModalTitleGroup><ModalTitle>Wybierz kontrahenta</ModalTitle></ModalTitleGroup>
                         <CloseBtn onClick={() => setShowPicker(false)} />
                     </ModalHeader>
-                    <ModalContent>{list}</ModalContent>
+                    <ModalContent>{list(false)}</ModalContent>
                 </ModalShell>
             )}
 
@@ -313,7 +352,7 @@ export function BatchOrdersView() {
             <ConfirmationModal
                 isOpen={confirmDelete !== null}
                 title="Usunąć kontrahenta z listy?"
-                message={`„${confirmDelete?.name ?? ''}" zniknie z listy zleceń zbiorczych. Jego wpisy i historia rozliczeń zostaną zachowane w systemie.`}
+                message={`„${confirmDelete?.name ?? ''}" zniknie z listy zleceń zbiorczych. Jego auta i zestawienia zostaną zachowane w systemie.`}
                 variant="danger"
                 confirmText="Usuń z listy"
                 cancelText="Anuluj"

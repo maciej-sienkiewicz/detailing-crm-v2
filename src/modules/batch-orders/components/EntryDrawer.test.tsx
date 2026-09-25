@@ -117,12 +117,12 @@ describe('EntryDrawer', () => {
     it('pozycja z ceną bez nazwy zatrzymuje zapis zamiast zgubić kwotę', async () => {
         renderDrawer({ entry: null });
         fireEvent.change(grossInputs()[0], { target: { value: '615,00' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Dodaj wpis' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Dodaj auto' }));
         expect(await screen.findByRole('alert')).toHaveTextContent(/nie ma nazwy usługi/);
         expect(api.createEntry).not.toHaveBeenCalled();
     });
 
-    it('rozliczony wpis jest zablokowany i mówi, gdzie trafił', async () => {
+    it('auto w zestawieniu jest zablokowane i mówi, do którego trafiło', async () => {
         renderDrawer({ entry: entry({ isClosed: true, closeHistoryId: 'h-1' }) });
         expect(grossInputs()[0]).toBeDisabled();
         expect(screen.queryByRole('button', { name: 'Zapisz zmiany' })).toBeNull();
@@ -137,7 +137,7 @@ describe('EntryDrawer', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Odblokuj' }));
         await waitFor(() => expect(api.reopenEntry).toHaveBeenCalledWith('e-1'));
         await waitFor(() => expect(grossInputs()[0]).not.toBeDisabled());
-        expect(screen.getByText('Korekta rozliczonego wpisu')).toBeInTheDocument();
+        expect(screen.getByText('Korekta auta z wcześniejszego zestawienia')).toBeInTheDocument();
     });
 
     it('zamknięcie z niezapisanymi zmianami pyta, zanim je porzuci', () => {

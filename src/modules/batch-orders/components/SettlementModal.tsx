@@ -1,7 +1,9 @@
 // src/modules/batch-orders/components/SettlementModal.tsx
 //
-// Rozliczenie okresu. Zasada: przed kliknięciem widać DOKŁADNIE, co i za ile się
-// rozlicza, a po kliknięciu - co się stało (także to, czego się nie udało zrobić).
+// Tworzenie zestawienia: PDF z listą aut i sumą do zapłaty dla kontrahenta. Dawniej
+// „Rozlicz okres" - słowo, które nic nie mówiło osobie widzącej ekran pierwszy raz.
+// Zasada: przed kliknięciem widać DOKŁADNIE, które auta i za ile trafią do
+// zestawienia, a po kliknięciu - co się stało (także to, czego się nie udało zrobić).
 //
 // Co zniknęło i dlaczego:
 //  - „Dodaj wpis do finansów": backend nigdy tej flagi nie obsłużył, a historia
@@ -24,7 +26,7 @@ import { SharedButton } from '@/common/styles';
 import { pluralPl } from '@/common/utils/plural';
 import { useContractorEntries, useSettle, useSettlementHistory } from '../hooks/useBatchOrders';
 import type { BatchContractor, SettlementMode } from '../types';
-import { apiErrorMessage, entriesLabel, formatMoney, vehicleName } from '../utils/format';
+import { apiErrorMessage, carsLabel, formatMoney, grossForCars, vehicleName } from '../utils/format';
 import { formatDayShort, formatInstantDay, periodPhrase, type Period } from '../utils/period';
 
 const Preview = styled.div`
@@ -54,7 +56,10 @@ const PreviewAmount = styled.span`
 `;
 
 const PreviewMeta = styled.span`
+    display: block;
+    margin-top: 2px;
     font-size: 13px;
+    line-height: 1.5;
     color: #64748b;
 `;
 
@@ -65,18 +70,32 @@ const Lines = styled.ul`
     border-top: 1px solid ${p => p.theme.colors.border};
 `;
 
+/* Data, auto (z usługą w drugiej linii) i kwota - trzy kolumny zamiast jednego
+   ciągu „BMW X5 · WX 4821K · Korekta" (CLAUDE.md §4). */
 const Line = styled.li`
     display: grid;
     grid-template-columns: 48px minmax(0, 1fr) auto;
     gap: 10px;
-    align-items: center;
+    align-items: baseline;
     padding: 8px 0;
     border-bottom: 1px solid #eef2f7;
     font-size: 13px;
 
     > span:nth-child(1) { color: #64748b; font-variant-numeric: tabular-nums; }
-    > span:nth-child(2) { color: ${p => p.theme.colors.text}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     > span:nth-child(3) { font-weight: 600; font-variant-numeric: tabular-nums; color: ${p => p.theme.colors.text}; }
+`;
+
+const LineCar = styled.span`
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+
+    > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    > span:first-child { display: flex; gap: 8px; color: ${p => p.theme.colors.text}; }
+    > span:last-child { font-size: 12px; color: #64748b; }
+    b { font-weight: 600; }
+    em { font-style: normal; font-weight: 600; color: #92400e; }
 `;
 
 const LinkBtn = styled.button`
@@ -224,22 +243,27 @@ export function SettlementModal({ contractor, period, onClose }: Props) {
                 sendEmail: emailOn,
                 emailOverride: emailOn ? email.trim() : undefined,
             });
-            const what = `${entriesLabel(result.closedEntryCount)} · ${formatMoney(result.totalGrossCents)}`;
+            const what = `${carsLabel(result.closedEntryCount)} na ${formatMoney(result.totalGrossCents)}`;
             if (result.emailRequested && !result.emailSent) {
-                // Rozliczenie jest zapisane - nie udała się tylko wysyłka. Mówimy to
-                // wprost, zamiast zostawiać wrażenie, że kontrahent już ma zestawienie.
+                // Zestawienie jest zapisane - nie udała się tylko wysyłka. Mówimy to
+                // wprost, zamiast zostawiać wrażenie, że kontrahent już je ma.
                 showToast({
                     variant: 'warning',
-                    title: 'Rozliczono, ale e-mail nie wyszedł',
-                    message: `${what}. Pobierz zestawienie z historii rozliczeń i wyślij je ręcznie.`,
+                    title: 'Zestawienie utworzone, ale e-mail nie wyszedł',
+                    message: `Zestawienie obejmuje ${what}. Pobierz je z historii zestawień i wyślij ręcznie.`,
                     duration: 10000,
                 });
             } else {
-                showSuccess('Okres rozliczony', result.emailSent ? `${what} · zestawienie wysłane na ${email.trim()}` : what);
+                showSuccess(
+                    'Zestawienie utworzone',
+                    result.emailSent
+                        ? `Obejmuje ${what}. Wysłaliśmy je na ${email.trim()}.`
+                        : `Obejmuje ${what}. PDF znajdziesz w historii zestawień.`,
+                );
             }
             onClose();
         } catch (e) {
-            setError(apiErrorMessage(e, 'Nie udało się rozliczyć okresu. Spróbuj ponownie.'));
+            setError(apiErrorMessage(e, 'Nie udało się utworzyć zestawienia. Spróbuj ponownie.'));
         }
     }
 
@@ -247,7 +271,7 @@ export function SettlementModal({ contractor, period, onClose }: Props) {
         <ModalShell isOpen onClose={onClose} size="md">
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>Rozlicz {periodPhrase(period)}</ModalTitle>
+                    <ModalTitle>Nowe zestawienie: {periodPhrase(period)}</ModalTitle>
                     <ModalSubtitle>{contractor.name}</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
@@ -258,12 +282,12 @@ export function SettlementModal({ contractor, period, onClose }: Props) {
 
                 <Preview aria-busy={isLoading}>
                     <div>
-                        <PreviewLabel>Rozliczasz</PreviewLabel>
-                        <PreviewAmount>{isLoading ? '…' : formatMoney(summary?.totalGrossCents ?? 0)}</PreviewAmount>
+                        <PreviewLabel>Suma do zapłaty w zestawieniu</PreviewLabel>
+                        <PreviewAmount>{isLoading ? '\u00a0' : formatMoney(summary?.totalGrossCents ?? 0)}</PreviewAmount>
                         <PreviewMeta>
-                            {isLoading ? 'Wczytywanie wpisów…'
-                                : count === 0 ? 'Nie ma wpisów do rozliczenia w tym okresie.'
-                                    : `${entriesLabel(count)} · ${formatMoney(summary?.totalNetCents ?? 0)} netto`}
+                            {isLoading ? 'Wczytywanie aut…'
+                                : count === 0 ? 'Żadne auto nie czeka na zestawienie w tym okresie.'
+                                    : `${grossForCars(count, summary?.totalNetCents ?? 0)} Kontrahent dostanie PDF z listą tych aut.`}
                         </PreviewMeta>
                     </div>
                     {entries.length > 0 && (
@@ -271,11 +295,19 @@ export function SettlementModal({ contractor, period, onClose }: Props) {
                             {visibleLines.map(e => (
                                 <Line key={e.id}>
                                     <span>{formatDayShort(e.serviceDate)}</span>
-                                    <span>
-                                        {vehicleName(e)}{e.vehicleLicensePlate ? ` · ${e.vehicleLicensePlate}` : ''}
-                                        {e.services[0] ? ` · ${e.services[0].name}` : ''}
-                                        {e.isCorrection ? ' · korekta' : ''}
-                                    </span>
+                                    <LineCar>
+                                        <span>
+                                            <b>{vehicleName(e)}</b>
+                                            {e.vehicleLicensePlate && <span>{e.vehicleLicensePlate}</span>}
+                                            {e.isCorrection && <em>korekta</em>}
+                                        </span>
+                                        {e.services[0] && (
+                                            <span>
+                                                {e.services[0].name}
+                                                {e.services.length > 1 ? ` i ${e.services.length - 1} ${pluralPl(e.services.length - 1, 'inna', 'inne', 'innych')}` : ''}
+                                            </span>
+                                        )}
+                                    </LineCar>
                                     <span>{formatMoney(e.grossAmountCents)}</span>
                                 </Line>
                             ))}
@@ -291,7 +323,9 @@ export function SettlementModal({ contractor, period, onClose }: Props) {
                 {corrections > 0 && (
                     <Note $tone="warn">
                         <Info />
-                        <span>W zestawieniu są korekty wcześniej rozliczonych wpisów: {entriesLabel(corrections)}.</span>
+                        <span>
+                            Korekty aut z wcześniejszych zestawień: {carsLabel(corrections)}. Mają poprawione kwoty, oznaczyliśmy je na liście.
+                        </span>
                     </Note>
                 )}
 
@@ -300,9 +334,9 @@ export function SettlementModal({ contractor, period, onClose }: Props) {
                         <Info />
                         <span>
                             {mode === 'NEW_ONLY'
-                                ? <>{entriesLabel(settledBefore)} z tego okresu {pluralPl(settledBefore, 'został już rozliczony', 'zostały już rozliczone', 'zostało już rozliczonych')}{data?.lastSettledAt ? ` ${formatInstantDay(data.lastSettledAt)}` : ''}. {settledBefore === 1 ? 'Nie trafi' : 'Nie trafią'} do zestawienia drugi raz.{' '}
+                                ? <>{carsLabel(settledBefore)} z tego okresu {pluralPl(settledBefore, 'jest', 'są', 'jest')} już w zestawieniu{data?.lastSettledAt ? ` z ${formatInstantDay(data.lastSettledAt)}` : ''}, więc {settledBefore === 1 ? 'nie trafi' : 'nie trafią'} do nowego drugi raz.{' '}
                                     <LinkBtn type="button" onClick={() => setMode('ALL')}>Dołącz je mimo to</LinkBtn></>
-                                : <>Zestawienie obejmie też {entriesLabel(settledBefore)} rozliczone wcześniej.{' '}
+                                : <>Nowe zestawienie obejmie też {carsLabel(settledBefore)} z wcześniejszego zestawienia.{' '}
                                     <LinkBtn type="button" onClick={() => setMode('NEW_ONLY')}>Pomiń je</LinkBtn></>}
                         </span>
                     </Note>
@@ -320,7 +354,7 @@ export function SettlementModal({ contractor, period, onClose }: Props) {
                                 disabled={!comms.enabled}
                                 onChange={e => setSendEmail(e.target.checked)}
                             />
-                            Wyślij zestawienie PDF e-mailem
+                            Wyślij zestawienie kontrahentowi e-mailem
                         </CheckLabel>
                         {emailOn && (
                             <>
@@ -330,7 +364,7 @@ export function SettlementModal({ contractor, period, onClose }: Props) {
                                     value={email}
                                     $invalid={emailInvalid && email.length > 0}
                                     onChange={e => setEmail(e.target.value)}
-                                    placeholder="rozliczenia@firma.pl"
+                                    placeholder="ksiegowosc@firma.pl"
                                 />
                                 <EmailHint>
                                     {!contractor.email
@@ -343,7 +377,7 @@ export function SettlementModal({ contractor, period, onClose }: Props) {
                             <Note $tone="warn">
                                 <Info />
                                 <span>
-                                    Zestawienie za ten okres poszło już e-mailem {formatInstantDay(previousEmail.closedAt)}. Z rozliczonymi wpisami kontrahent dostanie te pozycje drugi raz.
+                                    Zestawienie za ten okres poszło już e-mailem {formatInstantDay(previousEmail.closedAt)}. Jeśli dołączysz auta z tamtego zestawienia, kontrahent dostanie je drugi raz.
                                 </span>
                             </Note>
                         )}
@@ -352,7 +386,7 @@ export function SettlementModal({ contractor, period, onClose }: Props) {
 
                 <LockNote>
                     <Lock />
-                    Po rozliczeniu wpisy zostaną zablokowane. Poprawka wymaga odblokowania i trafia do kolejnego rozliczenia jako korekta.
+                    Auta z zestawienia zostaną zamknięte, żeby nie trafiły do kolejnego drugi raz. Poprawkę zrobisz, odblokowując auto do korekty.
                 </LockNote>
             </ModalContent>
 
@@ -362,9 +396,7 @@ export function SettlementModal({ contractor, period, onClose }: Props) {
                 </SharedButton>
                 <SharedButton $variant="primary" type="button" onClick={handleConfirm} disabled={!canSettle}>
                     <Check size={16} />
-                    {settle.isPending
-                        ? 'Rozliczanie…'
-                        : count > 0 ? `Rozlicz ${entriesLabel(count)} · ${formatMoney(summary?.totalGrossCents ?? 0)}` : 'Rozlicz'}
+                    {settle.isPending ? 'Tworzenie…' : 'Utwórz zestawienie'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

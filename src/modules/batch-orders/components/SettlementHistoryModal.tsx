@@ -10,7 +10,7 @@ import { useToast } from '@/common/components/Toast';
 import { useSettlementHistory } from '../hooks/useBatchOrders';
 import { batchOrderApi } from '../api/batchOrderApi';
 import type { BatchContractor, SettlementHistoryRecord } from '../types';
-import { entriesLabel } from '../utils/format';
+import { carsLabel } from '../utils/format';
 import { formatDay } from '../utils/period';
 
 const EmptyMsg = styled.p`
@@ -154,7 +154,7 @@ function HistoryCard({ record, contractorName }: { record: SettlementHistoryReco
         ? `${formatDate(record.periodFrom)}-${formatDate(record.periodTo)}`
         : null;
 
-    const modeLabel = record.mode === 'NEW_ONLY' ? 'Tylko nowe' : 'Wszystkie';
+    const modeLabel = record.mode === 'NEW_ONLY' ? 'Tylko nowe auta' : 'Z autami z wcześniejszych zestawień';
 
     return (
         <Card>
@@ -163,27 +163,27 @@ function HistoryCard({ record, contractorName }: { record: SettlementHistoryReco
                     <ClosedAt>{formatDateTime(record.closedAt)}</ClosedAt>
                     {period && <PeriodLabel>Okres: {period}</PeriodLabel>}
                     {record.closedByUserName && (
-                        <ClosedBy>Rozliczył(a): {record.closedByUserName}</ClosedBy>
+                        <ClosedBy>Utworzył(a): {record.closedByUserName}</ClosedBy>
                     )}
                 </DateInfo>
                 <SharedButton $variant="secondary" $size="sm" type="button" onClick={handleDownload} disabled={downloading}>
                     <Download size={14} />
-                    {downloading ? 'Pobieranie...' : 'Pobierz raport'}
+                    {downloading ? 'Pobieranie…' : 'Pobierz PDF'}
                 </SharedButton>
             </CardTop>
 
             <MetaRow>
-                <Badge $neutral>{entriesLabel(record.entryCount)}</Badge>
+                <Badge $neutral>{carsLabel(record.entryCount)}</Badge>
                 <Badge $neutral>{modeLabel}</Badge>
                 {/* Bez plakietki „finanse": serwer nigdy nie tworzył wpisu finansowego,
                     więc „Bez wpisu finansowego" przy KAŻDYM rozliczeniu nic nie mówiło,
                     a sugerowało, że gdzieś da się to włączyć. */}
                 {record.emailRequested ? (
                     record.emailSent
-                        ? <Badge $ok>✓ Mail wysłany{record.emailRecipient ? ` (${record.emailRecipient})` : ''}</Badge>
-                        : <Badge $warn>✗ Mail nie wysłany - pobierz raport i wyślij ręcznie</Badge>
+                        ? <Badge $ok>✓ Wysłane e-mailem{record.emailRecipient ? ` na ${record.emailRecipient}` : ''}</Badge>
+                        : <Badge $warn>✗ E-mail nie wyszedł, pobierz PDF i wyślij ręcznie</Badge>
                 ) : (
-                    <Badge $neutral>Bez maila</Badge>
+                    <Badge $neutral>Bez wysyłki e-mailem</Badge>
                 )}
             </MetaRow>
 
@@ -213,7 +213,7 @@ export function SettlementHistoryModal({ contractor, onClose }: Props) {
         <ModalShell isOpen onClose={onClose} size="lg">
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>Historia rozliczeń</ModalTitle>
+                    <ModalTitle>Historia zestawień</ModalTitle>
                     <ModalSubtitle>{contractor.name}</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
@@ -222,7 +222,7 @@ export function SettlementHistoryModal({ contractor, onClose }: Props) {
                 {isLoading ? (
                     <EmptyMsg>Ładowanie...</EmptyMsg>
                 ) : !records || records.length === 0 ? (
-                    <EmptyMsg>Brak historii rozliczeń dla tego kontrahenta.</EmptyMsg>
+                    <EmptyMsg>Dla tego kontrahenta nie utworzono jeszcze żadnego zestawienia.</EmptyMsg>
                 ) : (
                     records.map(r => (
                         <HistoryCard key={r.id} record={r} contractorName={contractor.name} />

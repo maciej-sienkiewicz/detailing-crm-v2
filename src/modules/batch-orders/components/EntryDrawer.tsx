@@ -28,7 +28,7 @@ import {
     commonVatRate, emptyService, entryTotals, serviceToForm, toServiceItems, validateServices,
     type ServiceFormItem,
 } from '../utils/entryForm';
-import { apiErrorMessage, entriesLabel, formatMoney, vatLabel, vehicleName } from '../utils/format';
+import { apiErrorMessage, carsLabel, formatMoney, vatLabel, vehicleName } from '../utils/format';
 import { formatDay, formatInstantDay, todayIso } from '../utils/period';
 import { BatchOrderPhotoSection } from './BatchOrderPhotoSection';
 import type { EntryFocus } from './EntriesTable';
@@ -453,14 +453,14 @@ export function EntryDrawer({ contractorId, contractorName, entry: initialEntry,
         try {
             if (entry) {
                 await updateEntry.mutateAsync({ entryId: entry.id, data: payload });
-                showSuccess('Wpis zapisany', `${vehicleName({ vehicleMake: payload.vehicleMake ?? null, vehicleModel: payload.vehicleModel ?? null })} · ${formatMoney(totals.grossCents)}`);
+                showSuccess('Zapisano zmiany', `${vehicleName({ vehicleMake: payload.vehicleMake ?? null, vehicleModel: payload.vehicleModel ?? null })} za ${formatMoney(totals.grossCents)}.`);
             } else {
                 await createEntry.mutateAsync(payload);
-                showSuccess('Wpis dodany', `${contractorName} · ${formatMoney(totals.grossCents)}`);
+                showSuccess('Auto dodane', `Czeka na zestawienie dla ${contractorName}, ${formatMoney(totals.grossCents)}.`);
             }
             onClose();
         } catch (e) {
-            setError(apiErrorMessage(e, 'Nie udało się zapisać wpisu. Spróbuj ponownie.'));
+            setError(apiErrorMessage(e, 'Nie udało się zapisać auta. Spróbuj ponownie.'));
         } finally {
             setSaving(false);
         }
@@ -470,10 +470,10 @@ export function EntryDrawer({ contractorId, contractorName, entry: initialEntry,
         if (!entry) return;
         try {
             await deleteEntry.mutateAsync(entry.id);
-            showSuccess('Wpis usunięty');
+            showSuccess('Auto usunięte z listy');
             onClose();
         } catch (e) {
-            setError(apiErrorMessage(e, 'Nie udało się usunąć wpisu.'));
+            setError(apiErrorMessage(e, 'Nie udało się usunąć auta.'));
         }
     }
 
@@ -482,10 +482,10 @@ export function EntryDrawer({ contractorId, contractorName, entry: initialEntry,
         try {
             const reopened = await reopenEntry.mutateAsync(entry.id);
             setEntry(reopened);
-            showSuccess('Wpis odblokowany', 'Po zapisie wróci do najbliższego rozliczenia jako korekta.');
+            showSuccess('Auto odblokowane do korekty', 'Po zapisie trafi do następnego zestawienia.');
             requestAnimationFrame(() => firstGrossRef.current?.focus());
         } catch (e) {
-            setError(apiErrorMessage(e, 'Nie udało się odblokować wpisu.'));
+            setError(apiErrorMessage(e, 'Nie udało się odblokować auta.'));
         }
     }
 
@@ -509,18 +509,18 @@ export function EntryDrawer({ contractorId, contractorName, entry: initialEntry,
                 <Header>
                     <HeaderText>
                         <HeaderMeta>
-                            {status === 'new' && <StatusPill $tone="new">Nowy wpis</StatusPill>}
-                            {status === 'open' && <StatusPill $tone="open">Do rozliczenia</StatusPill>}
+                            {status === 'new' && <StatusPill $tone="new">Nowe auto</StatusPill>}
+                            {status === 'open' && <StatusPill $tone="open">Czeka na zestawienie</StatusPill>}
                             {status === 'correction' && <StatusPill $tone="correction"><RotateCcw />Korekta</StatusPill>}
                             {status === 'settled' && (
                                 <StatusPill $tone="settled">
-                                    <Check />Rozliczony{settlement ? ` ${formatInstantDay(settlement.closedAt)}` : ''}
+                                    <Check />W zestawieniu{settlement ? ` z ${formatInstantDay(settlement.closedAt)}` : ''}
                                 </StatusPill>
                             )}
-                            {entry && <span>wpis z {formatDay(entry.serviceDate)}</span>}
+                            {entry && <span>wykonane {formatDay(entry.serviceDate)}</span>}
                         </HeaderMeta>
                         <Title id="entry-drawer-title">
-                            {entry ? vehicleName(entry) : 'Nowy wpis'}
+                            {entry ? vehicleName(entry) : 'Nowe auto'}
                             {entry?.vehicleLicensePlate && <Plate>{entry.vehicleLicensePlate}</Plate>}
                         </Title>
                         <HeaderMeta>{contractorName}</HeaderMeta>
@@ -537,12 +537,12 @@ export function EntryDrawer({ contractorId, contractorName, entry: initialEntry,
                         <Banner $tone="amber">
                             <BannerIcon><Lock /></BannerIcon>
                             <BannerBody>
-                                <strong>Ten wpis jest rozliczony, więc jest zablokowany</strong>
+                                <strong>To auto jest już w zestawieniu, więc jest zablokowane</strong>
                                 <span>
                                     {settlement
-                                        ? `Trafił do zestawienia z ${formatInstantDay(settlement.closedAt)} (${entriesLabel(settlement.entryCount)}, ${formatMoney(settlement.totalGrossCents)})${settlement.emailSent && settlement.emailRecipient ? `, wysłanego na ${settlement.emailRecipient}` : ''}. `
-                                        : 'Trafił już do zestawienia dla kontrahenta. '}
-                                    Po odblokowaniu wróci do najbliższego rozliczenia jako korekta. Wysłany dokument się nie zmieni.
+                                        ? `Trafiło do zestawienia z ${formatInstantDay(settlement.closedAt)} (${carsLabel(settlement.entryCount)}, ${formatMoney(settlement.totalGrossCents)})${settlement.emailSent && settlement.emailRecipient ? `, wysłanego na ${settlement.emailRecipient}` : ''}. `
+                                        : 'Trafiło już do zestawienia dla kontrahenta. '}
+                                    Po odblokowaniu trafi do następnego zestawienia jako korekta. Utworzone już zestawienie się nie zmieni.
                                 </span>
                                 <BannerAction type="button" onClick={() => setConfirm('reopen')} disabled={reopenEntry.isPending}>
                                     <Unlock />Odblokuj do korekty
@@ -555,8 +555,8 @@ export function EntryDrawer({ contractorId, contractorName, entry: initialEntry,
                         <Banner $tone="amber">
                             <BannerIcon><RotateCcw /></BannerIcon>
                             <BannerBody>
-                                <strong>Korekta rozliczonego wpisu</strong>
-                                <span>Wpis był już rozliczony. Po zapisie trafi do najbliższego rozliczenia z nową kwotą.</span>
+                                <strong>Korekta auta z wcześniejszego zestawienia</strong>
+                                <span>Po zapisie trafi do następnego zestawienia z nową kwotą.</span>
                             </BannerBody>
                         </Banner>
                     )}
@@ -588,7 +588,7 @@ export function EntryDrawer({ contractorId, contractorName, entry: initialEntry,
                         </SectionTitle>
                         {entry
                             ? <BatchOrderPhotoSection entryId={entry.id} contractorId={contractorId} />
-                            : <Hint>Zdjęcia dodasz po zapisaniu wpisu - otwórz go wtedy z listy.</Hint>}
+                            : <Hint>Zdjęcia dodasz po zapisaniu auta - otwórz je wtedy z listy.</Hint>}
                     </Section>
 
                     <Fieldset disabled={locked}>
@@ -622,7 +622,7 @@ export function EntryDrawer({ contractorId, contractorName, entry: initialEntry,
                         <>
                             {settlement && (
                                 <FooterGhost type="button" onClick={handleSnapshot}>
-                                    <Download />Zestawienie z {formatInstantDay(settlement.closedAt).slice(0, 5)}
+                                    <Download />Pobierz zestawienie z {formatInstantDay(settlement.closedAt).slice(0, 5)}
                                 </FooterGhost>
                             )}
                             <FooterSecondary type="button" onClick={onClose}>Zamknij</FooterSecondary>
@@ -636,7 +636,7 @@ export function EntryDrawer({ contractorId, contractorName, entry: initialEntry,
                             )}
                             <FooterSecondary type="button" onClick={requestClose}>Anuluj</FooterSecondary>
                             <FooterPrimary type="button" onClick={handleSave} disabled={saving}>
-                                {saving ? 'Zapisywanie…' : entry ? 'Zapisz zmiany' : 'Dodaj wpis'}
+                                {saving ? 'Zapisywanie…' : entry ? 'Zapisz zmiany' : 'Dodaj auto'}
                             </FooterPrimary>
                         </>
                     )}
@@ -646,7 +646,7 @@ export function EntryDrawer({ contractorId, contractorName, entry: initialEntry,
             <ConfirmationModal
                 isOpen={confirm === 'discard'}
                 title="Porzucić zmiany?"
-                message="Wpis ma niezapisane zmiany. Po zamknięciu przepadną."
+                message="Masz niezapisane zmiany. Po zamknięciu przepadną."
                 variant="warning"
                 confirmText="Porzuć zmiany"
                 cancelText="Wróć do edycji"
@@ -655,21 +655,21 @@ export function EntryDrawer({ contractorId, contractorName, entry: initialEntry,
             />
             <ConfirmationModal
                 isOpen={confirm === 'delete'}
-                title="Usunąć wpis?"
-                message={entry ? `${vehicleName(entry)} z ${formatDay(entry.serviceDate)} zniknie z listy do rozliczenia razem ze zdjęciami.` : ''}
+                title="Usunąć auto z listy?"
+                message={entry ? `${vehicleName(entry)} z ${formatDay(entry.serviceDate)} zniknie z listy razem ze zdjęciami i nie trafi do zestawienia.` : ''}
                 variant="danger"
-                confirmText="Usuń wpis"
+                confirmText="Usuń auto"
                 cancelText="Zostaw"
                 onConfirm={handleDelete}
                 onCancel={() => setConfirm(null)}
             />
             <ConfirmationModal
                 isOpen={confirm === 'reopen'}
-                title="Odblokować wpis do korekty?"
-                message="Wpis wróci na listę do rozliczenia i trafi do najbliższego zestawienia jako korekta. Zestawienie, które już wysłano, zostaje bez zmian."
+                title="Odblokować auto do korekty?"
+                message="Auto wróci na listę czekających i trafi do następnego zestawienia jako korekta. Zestawienie, które już powstało, zostaje bez zmian."
                 variant="warning"
                 confirmText="Odblokuj"
-                cancelText="Zostaw rozliczony"
+                cancelText="Zostaw zamknięte"
                 onConfirm={handleReopen}
                 onCancel={() => setConfirm(null)}
             />

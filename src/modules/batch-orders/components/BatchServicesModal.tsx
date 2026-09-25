@@ -429,8 +429,8 @@ export function BatchServicesModal({ onClose }: Props) {
                     </S.ServicesBlock>
 
                     <HistoryNote>
-                        Zmiany dotyczą wyłącznie podpowiedzi przy kolejnych wpisach. Wpisy już
-                        zapisane - w tym rozliczone - przechowują własną kopię nazwy i kwot, więc
+                        Cennik to tylko podpowiedzi przy dodawaniu kolejnych aut. Auta już
+                        zapisane, także te w zestawieniach, mają własną kopię nazwy i kwot, więc
                         edycja ani usunięcie pozycji ich nie zmieni.
                     </HistoryNote>
                 </ModalContent>
@@ -443,7 +443,7 @@ export function BatchServicesModal({ onClose }: Props) {
             <ConfirmationModal
                 isOpen={confirmDelete !== null}
                 title="Usuń usługę"
-                message={`Usunąć „${confirmDelete?.name}" z listy podpowiedzi? Wpisy, w których ta usługa już wystąpiła, pozostaną bez zmian.`}
+                message={`Usunąć „${confirmDelete?.name}" z listy podpowiedzi? Auta, przy których ta usługa już wystąpiła, pozostaną bez zmian.`}
                 variant="danger"
                 confirmText="Usuń"
                 cancelText="Anuluj"

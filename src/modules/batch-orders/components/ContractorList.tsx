@@ -9,21 +9,33 @@ import { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { Check, Plus, Search } from 'lucide-react';
 import type { ContractorOverview } from '../types';
-import { contractorsLabel, entriesLabel, formatMoney } from '../utils/format';
+import { carsLabel, contractorsLabel, formatMoney } from '../utils/format';
 import { formatInstantDay } from '../utils/period';
 
-const Wrap = styled.div`
+/**
+ * Lista stoi na własnej, płaskiej powierzchni (biel + obwódka, bez cienia). Leżąca
+ * wprost na tle aplikacji przepuszczała teksturę heksagonów pod tekst kwot i nazw.
+ * Płaska, bo wyniesiona jest karta kontrahenta obok (CLAUDE.md §2).
+ */
+const Wrap = styled.div<{ $framed: boolean }>`
     display: flex;
     flex-direction: column;
     gap: 14px;
     min-height: 0;
+    ${p => p.$framed && `
+        padding: 16px 12px 12px;
+        background: ${p.theme.colors.surface};
+        border: 1px solid ${p.theme.colors.border};
+        border-radius: 16px;
+    `}
 `;
 
 const Totals = styled.div`
     display: flex;
     flex-direction: column;
     gap: 2px;
-    padding: 0 4px;
+    padding: 0 6px 12px;
+    border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
 `;
 
 const TotalsLabel = styled.span`
@@ -101,14 +113,13 @@ const Item = styled.button<{ $selected: boolean }>`
     text-align: left;
     font-family: inherit;
     border-radius: 14px;
-    border: ${p => p.$selected ? '1.5px solid #38bdf8' : '1.5px solid transparent'};
-    background: ${p => p.$selected ? p.theme.colors.surface : 'transparent'};
-    box-shadow: ${p => p.$selected ? '0 1px 2px rgba(15,23,42,0.06), 0 6px 16px rgba(15,23,42,0.06)' : 'none'};
+    border: ${p => p.$selected ? '1.5px solid #7dd3fc' : '1.5px solid transparent'};
+    background: ${p => p.$selected ? '#f0f9ff' : 'transparent'};
     cursor: pointer;
     transition: background ${p => p.theme.transitions.fast};
     -webkit-tap-highlight-color: transparent;
 
-    &:hover { background: ${p => p.theme.colors.surface}; }
+    &:hover { background: ${p => p.$selected ? '#f0f9ff' : p.theme.colors.surfaceHover}; }
 `;
 
 const ItemText = styled.span`
@@ -185,13 +196,13 @@ const Empty = styled.p`
 `;
 
 function itemMeta(o: ContractorOverview): string {
-    if (o.openCount > 0) return `${entriesLabel(o.openCount)} do rozliczenia`;
+    if (o.openCount > 0) return `${carsLabel(o.openCount)} czeka na zestawienie`;
     if (o.settledCount > 0) {
         return o.lastSettledAt
-            ? `Rozliczono ${formatInstantDay(o.lastSettledAt).slice(0, 5)} · ${entriesLabel(o.settledCount)}`
-            : `Rozliczono · ${entriesLabel(o.settledCount)}`;
+            ? `${carsLabel(o.settledCount)} w zestawieniu z ${formatInstantDay(o.lastSettledAt).slice(0, 5)}`
+            : `${carsLabel(o.settledCount)} w zestawieniu`;
     }
-    return 'Brak wpisów w tym okresie';
+    return 'Brak aut w tym okresie';
 }
 
 interface Props {
@@ -199,11 +210,13 @@ interface Props {
     selectedId: string | null;
     onSelect: (contractorId: string) => void;
     onCreate: () => void;
-    /** Np. „wrzesień 2026" - do podpisu sumy. */
-    periodPhrase: string;
+    /** Np. „we wrześniu 2026" - do podpisu sumy. */
+    periodIn: string;
+    /** Własna powierzchnia pod listą - w bocznej kolumnie tak, w oknie wyboru nie. */
+    framed?: boolean;
 }
 
-export function ContractorList({ items, selectedId, onSelect, onCreate, periodPhrase }: Props) {
+export function ContractorList({ items, selectedId, onSelect, onCreate, periodIn, framed = false }: Props) {
     const [query, setQuery] = useState('');
 
     const visible = useMemo(() => {
@@ -221,12 +234,14 @@ export function ContractorList({ items, selectedId, onSelect, onCreate, periodPh
     const withOpen = items.filter(o => o.openCount > 0).length;
 
     return (
-        <Wrap>
+        <Wrap $framed={framed}>
             <Totals>
-                <TotalsLabel>Do rozliczenia · {periodPhrase}</TotalsLabel>
+                <TotalsLabel>Czeka na zestawienie {periodIn}</TotalsLabel>
                 <TotalsValue>{formatMoney(totalOpenGross)}</TotalsValue>
                 <TotalsMeta>
-                    brutto · {withOpen > 0 ? `u ${withOpen} z ${contractorsLabel(items.length)}` : 'wszystko rozliczone'}
+                    {withOpen > 0
+                        ? `Brutto, u ${withOpen} z ${contractorsLabel(items.length)}`
+                        : 'Wszystkie auta są już w zestawieniach'}
                 </TotalsMeta>
             </Totals>
 
@@ -258,7 +273,7 @@ export function ContractorList({ items, selectedId, onSelect, onCreate, periodPh
                         {o.openCount > 0 ? (
                             <ItemAmount>{formatMoney(o.openGrossCents)}</ItemAmount>
                         ) : o.settledCount > 0 ? (
-                            <DonePill><Check />Rozliczone</DonePill>
+                            <DonePill><Check />Gotowe</DonePill>
                         ) : null}
                     </Item>
                 ))}

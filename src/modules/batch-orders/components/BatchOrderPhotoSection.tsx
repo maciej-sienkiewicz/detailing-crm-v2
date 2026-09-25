@@ -259,7 +259,7 @@ export function BatchOrderPhotoSection({ entryId, contractorId }: Props) {
             <ConfirmationModal
                 isOpen={confirmDelete !== null}
                 title="Usunąć zdjęcie?"
-                message="Zdjęcie zniknie z dokumentacji tego wpisu."
+                message="Zdjęcie zniknie z dokumentacji tego auta."
                 variant="danger"
                 confirmText="Usuń zdjęcie"
                 cancelText="Zostaw"

@@ -253,7 +253,8 @@ export function VehicleFields({ value, onChange, onError, disabled }: Props) {
                             {vin.items.map(s => (
                                 <SuggestionItem key={`${s.vin ?? ''}-${s.licensePlate}`} onMouseDown={() => applySuggestion(s)}>
                                     <strong>{s.vin}</strong>
-                                    <span>{[s.brand, s.model, s.licensePlate].filter(Boolean).join(' · ')}</span>
+                                    <span>{[s.brand, s.model].filter(Boolean).join(' ')}</span>
+                                    {s.licensePlate && <span>{s.licensePlate}</span>}
                                 </SuggestionItem>
                             ))}
                         </SuggestionList>

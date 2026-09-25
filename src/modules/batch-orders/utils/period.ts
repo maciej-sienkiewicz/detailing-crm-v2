@@ -20,6 +20,12 @@ const MONTHS_NOMINATIVE = [
     'lipiec', 'sierpień', 'wrzesień', 'październik', 'listopad', 'grudzień',
 ];
 
+/** Miejscownik z przyimkiem: „we wrześniu", „w lutym". */
+const MONTHS_IN = [
+    'w styczniu', 'w lutym', 'w marcu', 'w kwietniu', 'w maju', 'w czerwcu',
+    'w lipcu', 'w sierpniu', 'we wrześniu', 'w październiku', 'w listopadzie', 'w grudniu',
+];
+
 const pad = (n: number) => String(n).padStart(2, '0');
 
 export const toIsoDate = (d: Date): string =>
@@ -75,8 +81,8 @@ export const formatDayShort = (iso: string): string => {
 export const formatInstantDay = (iso: string): string => toIsoDate(new Date(iso)).split('-').reverse().join('.');
 
 /**
- * Nazwa okresu do zdań („Do rozliczenia · wrzesień 2026"): pełny miesiąc jako nazwa
- * miesiąca, każdy inny zakres jako daty.
+ * Nazwa okresu jako rzeczownik („Nowe zestawienie: wrzesień 2026"): pełny miesiąc
+ * jako nazwa miesiąca, każdy inny zakres jako daty.
  */
 export const periodPhrase = (p: Period): string => {
     if (isWholeMonth(p)) {
@@ -95,4 +101,16 @@ export const periodPhrase = (p: Period): string => {
 export const periodTitle = (p: Period): string => {
     const phrase = periodPhrase(p);
     return phrase.charAt(0).toUpperCase() + phrase.slice(1);
+};
+
+/**
+ * Okres jako okolicznik czasu - do zdań: „Czeka na zestawienie we wrześniu 2026",
+ * „Brak aut w okresie 03.09–17.09.2026".
+ */
+export const periodIn = (p: Period): string => {
+    if (isWholeMonth(p)) {
+        const d = parseIsoDate(p.from);
+        return `${MONTHS_IN[d.getMonth()]} ${d.getFullYear()}`;
+    }
+    return `w okresie ${periodPhrase(p)}`;
 };

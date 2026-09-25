@@ -53,7 +53,7 @@ describe('EntriesTable', () => {
     it('Enter na wierszu otwiera edytor - bez myszy też', () => {
         const e = entry();
         const { onOpen } = renderTable([e]);
-        const row = screen.getByRole('row', { name: /Audi A6.*Otwórz wpis/ });
+        const row = screen.getByRole('row', { name: /Audi A6.*Otwórz auto/ });
         fireEvent.keyDown(row, { key: 'Enter' });
         expect(onOpen).toHaveBeenCalledWith(e);
     });
@@ -66,24 +66,24 @@ describe('EntriesTable', () => {
         expect(onOpen).toHaveBeenCalledWith(e, 'price');
     });
 
-    it('menu akcji jest przyciskiem widocznym bez najechania i ma „Usuń wpis"', () => {
+    it('menu akcji jest przyciskiem widocznym bez najechania i ma „Usuń z listy"', () => {
         const e = entry();
         const { onDelete } = renderTable([e]);
         const menuBtn = screen.getByRole('button', { name: /Więcej akcji: Audi A6/ });
         expect(menuBtn).toBeVisible();
         fireEvent.click(menuBtn);
         const menu = screen.getByRole('menu');
-        fireEvent.click(within(menu).getByRole('menuitem', { name: /Usuń wpis/ }));
+        fireEvent.click(within(menu).getByRole('menuitem', { name: /Usuń z listy/ }));
         expect(onDelete).toHaveBeenCalledWith(e);
     });
 
-    it('rozliczony wpis nie ma „Usuń", tylko „Odblokuj do korekty"', () => {
+    it('auto w zestawieniu nie ma „Usuń", tylko „Odblokuj do korekty"', () => {
         const e = entry({ isClosed: true, closeHistoryId: 'h-1' });
         const { onReopen } = renderTable([e]);
-        expect(screen.getByText('Rozliczony')).toBeInTheDocument();
+        expect(screen.getByText('W zestawieniu')).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: /Więcej akcji/ }));
         const menu = screen.getByRole('menu');
-        expect(within(menu).queryByRole('menuitem', { name: /Usuń wpis/ })).toBeNull();
+        expect(within(menu).queryByRole('menuitem', { name: /Usuń/ })).toBeNull();
         fireEvent.click(within(menu).getByRole('menuitem', { name: /Odblokuj do korekty/ }));
         expect(onReopen).toHaveBeenCalledWith(e);
     });
