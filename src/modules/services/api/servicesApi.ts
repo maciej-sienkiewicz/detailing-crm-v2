@@ -1,5 +1,6 @@
 // src/modules/services/api/servicesApi.ts
 import { apiClient } from '@/core';
+import { isCatalogServiceId } from '@/common/utils/catalogServiceId';
 import type {
     Service,
     ServiceListFilters,
@@ -311,6 +312,12 @@ export const servicesApi = {
     },
 
     updateService: async (data: UpdateServiceRequest): Promise<Service> => {
+        // Pozycja spoza cennika (`temp-…`) nie ma czego aktualizować w bazie. Backend
+        // i tak ją odrzuci - tu kończy się wcześniej i z nazwą winnego, zamiast
+        // anonimowego 400 „Żądanie zawiera nieprawidłowe dane".
+        if (!isCatalogServiceId(data.originalServiceId)) {
+            throw new Error(`Usługa ${data.originalServiceId} nie jest zapisana w cenniku - nie można jej zaktualizować`);
+        }
         if (USE_MOCKS) {
             return mockUpdateService(data);
         }
