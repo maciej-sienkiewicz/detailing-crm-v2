@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
+import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/core/context/AuthContext';
 import { useToast } from '@/common/components/Toast';
 import {
     ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle, ModalFooter, CloseBtn,
 } from '@/common/components/ModalKit';
-import { SharedButton } from '@/common/styles';
+import { Button, Notice, StatusPill, StepPills, ui, type PillTone } from '@/common/components/ui';
+import { BareTextArea, FieldLabel, InputShellTextArea } from '@/common/components/Form';
 import { ModuleGateCard } from '@/modules/subscription/components/ModuleGate';
 import { AddOnActivationDialog } from '@/modules/subscription/components/PlanChangeDialog';
 import { useAddOnUnlock } from '@/modules/subscription/hooks/useAddOnUnlock';
@@ -66,11 +68,6 @@ export function SmsActivationWizard({
     return (
         <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="560px">
             <ModalHeader>
-                <IconWrap>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                    </svg>
-                </IconWrap>
                 <ModalTitleGroup>
                     <ModalTitle>Uruchom SMS-y dla tej wizyty</ModalTitle>
                     {contextLabel && <ModalSubtitle>{contextLabel}</ModalSubtitle>}
@@ -79,15 +76,15 @@ export function SmsActivationWizard({
             </ModalHeader>
 
             {started && plan.length > 1 && !done && (
-                <Steps aria-label={`Krok ${stepIndex + 1} z ${plan.length}`}>
-                    {plan.map((req, i) => (
-                        <Step key={req.id} $state={i < stepIndex ? 'done' : i === stepIndex ? 'now' : 'todo'}>
-                            <StepDot $state={i < stepIndex ? 'done' : i === stepIndex ? 'now' : 'todo'}>
-                                {i < stepIndex ? '✓' : i + 1}
-                            </StepDot>
-                            {STEP_TITLES[req.id]}
-                        </Step>
-                    ))}
+                <Steps>
+                    <StepPills
+                        label={`Krok ${stepIndex + 1} z ${plan.length}`}
+                        steps={plan.map((req, i) => ({
+                            key: req.id,
+                            label: STEP_TITLES[req.id],
+                            state: i < stepIndex ? 'done' : i === stepIndex ? 'active' : 'todo',
+                        }))}
+                    />
                 </Steps>
             )}
 
@@ -113,36 +110,33 @@ export function SmsActivationWizard({
                 <FooterRow>
                     {!started ? (
                         <>
-                            <SharedButton $variant="secondary" onClick={onClose}>
-                                Nie teraz, wróć do pracy
-                            </SharedButton>
-                            <SharedButton
-                                $variant="primary"
+                            <Button onClick={onClose}>Nie teraz</Button>
+                            <Button
+                                variant="primary"
                                 onClick={() => setStarted(true)}
                                 disabled={plan.length === 0}
                             >
                                 {plan.length === 0
                                     ? 'Nie ma czego konfigurować'
-                                    : `Skonfiguruj (${plan.length} ${plan.length === 1 ? 'krok' : 'kroki'}) →`}
-                            </SharedButton>
+                                    : plan.length === 1 ? 'Skonfiguruj, to jeden krok' : `Skonfiguruj w ${plan.length} krokach`}
+                                <ArrowRight />
+                            </Button>
                         </>
                     ) : done ? (
-                        <SharedButton $variant="primary" onClick={onReady}>
+                        <Button variant="primary" onClick={onReady} style={{ marginLeft: 'auto' }}>
                             Wróć do wysyłki SMS
-                        </SharedButton>
+                        </Button>
                     ) : (
                         <>
-                            <SharedButton
-                                $variant="secondary"
+                            <Button
+                                variant="ghost"
                                 onClick={() => (stepIndex === 0 ? setStarted(false) : setStepIndex(i => i - 1))}
                             >
-                                ← Wstecz
-                            </SharedButton>
+                                <ArrowLeft />Wstecz
+                            </Button>
                             {/* The module step finishes in the payment dialog, not here. */}
                             {current?.id === 'module' && (
-                                <SharedButton $variant="secondary" onClick={goNext}>
-                                    Moduł już aktywny, dalej
-                                </SharedButton>
+                                <Button onClick={goNext}>Moduł już aktywny, dalej</Button>
                             )}
                         </>
                     )}
@@ -170,16 +164,15 @@ function Overview({ readiness, plan, unresolvablePhone }: {
             <CheckList>
                 {readiness.requirements.map(req => (
                     <CheckRow key={req.id}>
-                        <StatusPill $status={req.status}>{statusLabel(req)}</StatusPill>
                         <CheckLabel>{req.label}</CheckLabel>
                         <CheckDetail>{req.detail}</CheckDetail>
+                        <StatusPill $tone={STATUS_TONE[req.status] ?? 'neutral'}>{statusLabel(req)}</StatusPill>
                     </CheckRow>
                 ))}
             </CheckList>
 
             {unresolvablePhone && (
-                <Notice $tone="bad">
-                    <NoticeTitle>Ten klient nie ma numeru telefonu</NoticeTitle>
+                <Notice tone="danger" title="Ten klient nie ma numeru telefonu">
                     Uzupełnij numer w kartotece klienta, bez niego nie wyślemy tej wiadomości,
                     nawet po skonfigurowaniu reszty.
                 </Notice>
@@ -189,11 +182,13 @@ function Overview({ readiness, plan, unresolvablePhone }: {
 }
 
 const statusLabel = (req: SmsRequirement): string => {
-    if (req.status === 'ok') return 'gotowe';
-    if (req.status === 'warning') return 'mało';
-    if (req.status === 'unknown') return '-';
-    return req.id === 'credits' ? '0 szt.' : 'brak';
+    if (req.status === 'ok') return 'Gotowe';
+    if (req.status === 'warning') return 'Mało';
+    if (req.status === 'unknown') return 'Później';
+    return req.id === 'credits' ? 'Brak kredytów' : 'Brak';
 };
+
+const STATUS_TONE: Record<string, PillTone> = { ok: 'ok', warning: 'warn', missing: 'danger', unknown: 'neutral' };
 
 // ─── Step: module ────────────────────────────────────────────────────────────
 
@@ -299,23 +294,28 @@ function TemplateStep({ templateKey, onDone }: { templateKey?: MessageKey; onDon
             </ChoiceList>
 
             <FieldLabel htmlFor="starter-body">Treść (możesz edytować)</FieldLabel>
-            <Textarea
-                id="starter-body"
-                value={body}
-                onChange={e => setBody(e.target.value)}
-                rows={3}
-            />
+            <InputShellTextArea>
+                <BareTextArea
+                    id="starter-body"
+                    value={body}
+                    onChange={e => setBody(e.target.value)}
+                    rows={3}
+                    style={{ minHeight: 84 }}
+                />
+            </InputShellTextArea>
             <Hint>
                 Dostępne zmienne: {spec.sms?.placeholders.map(p => `{{${p}}}`).join(', ')}
             </Hint>
 
-            <SharedButton
-                $variant="primary"
+            {/* Krok kreatora ma jedno wypełnienie: to jego akcja, stopka niesie tylko „Wstecz". */}
+            <Button
+                variant="primary"
                 onClick={() => save.mutate(body)}
                 disabled={!body.trim() || save.isPending}
+                style={{ alignSelf: 'flex-start' }}
             >
                 {save.isPending ? 'Zapisywanie...' : 'Włącz ten szablon'}
-            </SharedButton>
+            </Button>
         </>
     );
 }
@@ -366,24 +366,24 @@ function CreditsStep({ onDone }: { onDone: () => void }) {
                                 <strong>{pkg.creditAmount} SMS</strong>
                                 <ChoiceSub>{pkg.name}</ChoiceSub>
                             </ChoiceText>
-                            <Price>{pkg.priceGross.toFixed(2).replace('.', ',')} {pkg.currency}</Price>
+                            <Price>{pkg.priceGross.toFixed(2).replace('.', ',')} {pkg.currency === 'PLN' ? 'zł' : pkg.currency}</Price>
                         </Choice>
                     ))}
                 </ChoiceList>
             )}
 
-            <Notice $tone="good">
-                <NoticeTitle>Po zakupie wrócisz dokładnie tutaj</NoticeTitle>
+            <Notice tone="ok" title="Po zakupie wrócisz dokładnie tutaj">
                 Wiadomość dla tej wizyty będzie gotowa do zatwierdzenia jednym kliknięciem.
             </Notice>
 
-            <SharedButton
-                $variant="primary"
+            <Button
+                variant="primary"
                 onClick={buy}
                 disabled={!chosen || purchase.isPending}
+                style={{ alignSelf: 'flex-start' }}
             >
                 {purchase.isPending ? 'Doładowywanie...' : 'Kup i dokończ konfigurację'}
-            </SharedButton>
+            </Button>
         </>
     );
 }
@@ -393,7 +393,7 @@ function CreditsStep({ onDone }: { onDone: () => void }) {
 function DonePanel() {
     return (
         <DoneWrap>
-            <DoneMark>✓</DoneMark>
+            <DoneMark><Check aria-hidden="true" /></DoneMark>
             <DoneTitle>Gotowe, SMS-y są uruchomione</DoneTitle>
             <Lede>
                 Wracamy do wysyłki dla tej wizyty. Wszystko, co przed chwilą włączyłeś,
@@ -405,18 +405,6 @@ function DonePanel() {
 
 // ─── Styled ──────────────────────────────────────────────────────────────────
 
-const IconWrap = styled.div`
-    width: 28px;
-    height: 28px;
-    border-radius: 7px;
-    background: linear-gradient(135deg, #0ea5e9, #0284c7);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    svg { width: 14px; height: 14px; }
-`;
 
 const Body = styled.div`
     padding: 20px;
@@ -433,49 +421,23 @@ const Body = styled.div`
 
 const Lede = styled.p`
     margin: 0;
-    font-size: 13px;
-    color: #475569;
+    font-size: 13.5px;
+    color: ${ui.textSecondary};
     line-height: 1.6;
 `;
 
 const Steps = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 20px 0;
-    flex-wrap: wrap;
+    padding: 14px 20px 0;
 `;
 
-type StepState = 'done' | 'now' | 'todo';
 
-const Step = styled.span<{ $state: StepState }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12.5px;
-    font-weight: ${p => (p.$state === 'now' ? 600 : 500)};
-    color: ${p => (p.$state === 'now' ? '#0f172a' : '#94a3b8')};
-`;
 
-const StepDot = styled.span<{ $state: StepState }>`
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 700;
-    background: ${p => (p.$state === 'done' ? '#10b981' : 'white')};
-    color: ${p => (p.$state === 'done' ? 'white' : p.$state === 'now' ? '#0ea5e9' : '#94a3b8')};
-    border: 1.5px solid ${p => (p.$state === 'done' ? '#10b981' : p.$state === 'now' ? '#0ea5e9' : '#e2e8f0')};
-`;
 
 const CheckList = styled.div`
     display: flex;
     flex-direction: column;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
+    border: 1px solid ${ui.line};
+    border-radius: ${ui.radiusStrip};
     overflow: hidden;
 `;
 
@@ -483,61 +445,29 @@ const CheckRow = styled.div`
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 13px;
-    border-bottom: 1px solid #f1f5f9;
+    padding: 10px 14px;
+    border-bottom: 1px solid ${ui.lineFaint};
     &:last-child { border-bottom: none; }
 `;
 
-const StatusPill = styled.span<{ $status: string }>`
-    flex-shrink: 0;
-    min-width: 56px;
-    text-align: center;
-    padding: 2px 8px;
-    border-radius: 9999px;
-    font-size: 11px;
-    font-weight: 700;
-    ${p => {
-        switch (p.$status) {
-            case 'ok':      return 'background: rgba(16,185,129,0.12); color: #059669;';
-            case 'warning': return 'background: rgba(245,158,11,0.14); color: #d97706;';
-            case 'missing': return 'background: rgba(239,68,68,0.1); color: #dc2626;';
-            default:        return 'background: #f1f5f9; color: #94a3b8;';
-        }
-    }}
-`;
 
 const CheckLabel = styled.span`
     flex: 1;
     min-width: 0;
-    font-size: 13px;
-    color: #0f172a;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: ${ui.ink};
 `;
 
 const CheckDetail = styled.span`
     flex-shrink: 0;
-    font-size: 11.5px;
-    color: #94a3b8;
-`;
-
-const Notice = styled.div<{ $tone: 'good' | 'bad' | 'warn' }>`
-    padding: 11px 14px;
-    border-radius: 10px;
     font-size: 12.5px;
-    line-height: 1.55;
-    ${p => {
-        switch (p.$tone) {
-            case 'good': return 'border: 1px solid rgba(16,185,129,0.3); background: rgba(16,185,129,0.07); color: #065f46;';
-            case 'bad':  return 'border: 1px solid rgba(239,68,68,0.3); background: rgba(239,68,68,0.06); color: #7f1d1d;';
-            default:     return 'border: 1px solid rgba(245,158,11,0.35); background: rgba(245,158,11,0.08); color: #78350f;';
-        }
-    }}
+    color: ${ui.textMuted};
+
+    @media (max-width: 480px) { display: none; }
 `;
 
-const NoticeTitle = styled.strong`
-    display: block;
-    font-weight: 700;
-    margin-bottom: 2px;
-`;
+
 
 const ChoiceList = styled.div`
     display: flex;
@@ -555,11 +485,11 @@ const Choice = styled.button<{ $selected: boolean }>`
     font-family: inherit;
     border-radius: 10px;
     cursor: pointer;
-    border: 1.5px solid ${p => (p.$selected ? '#0ea5e9' : '#e2e8f0')};
-    background: ${p => (p.$selected ? 'rgba(14,165,233,0.06)' : 'white')};
+    border: 1px solid ${p => (p.$selected ? ui.brandLine : ui.line)};
+    background: ${p => (p.$selected ? ui.brandTint : ui.surface)};
     transition: border-color 150ms, background 150ms;
 
-    &:hover { border-color: #0ea5e9; }
+    &:hover { border-color: ${p => (p.$selected ? ui.brandLine : ui.lineStrong)}; }
 `;
 
 const Radio = styled.span<{ $selected: boolean }>`
@@ -567,7 +497,7 @@ const Radio = styled.span<{ $selected: boolean }>`
     height: 16px;
     border-radius: 50%;
     flex-shrink: 0;
-    border: ${p => (p.$selected ? '5px solid #0ea5e9' : '1.5px solid #cbd5e1')};
+    border: ${p => (p.$selected ? `5px solid ${ui.brandStrong}` : '1.5px solid #cbd5e1')};
 `;
 
 const ChoiceText = styled.span`
@@ -580,8 +510,8 @@ const ChoiceText = styled.span`
 
 const ChoiceSub = styled.span`
     display: block;
-    font-size: 11.5px;
-    color: #94a3b8;
+    font-size: 12.5px;
+    color: ${ui.textMuted};
 `;
 
 const Price = styled.span`
@@ -591,29 +521,11 @@ const Price = styled.span`
     color: #0f172a;
 `;
 
-const FieldLabel = styled.label`
-    font-size: 12px;
-    font-weight: 600;
-    color: #334155;
-`;
 
-const Textarea = styled.textarea`
-    width: 100%;
-    box-sizing: border-box;
-    padding: 10px 12px;
-    font-size: 13px;
-    font-family: inherit;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 9px;
-    resize: vertical;
-    outline: none;
-
-    &:focus { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14,165,233,0.14); }
-`;
 
 const Hint = styled.span`
-    font-size: 11px;
-    color: #94a3b8;
+    font-size: 12.5px;
+    color: ${ui.textMuted};
     line-height: 1.5;
 `;
 
@@ -644,8 +556,7 @@ const DoneMark = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
-    font-weight: 700;
+    svg { width: 22px; height: 22px; }
 `;
 
 const DoneTitle = styled.h3`

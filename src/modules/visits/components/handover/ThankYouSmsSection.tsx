@@ -28,7 +28,7 @@ const SendLabel = styled.label`
     color: ${st.text};
     cursor: pointer;
 
-    svg { width: 15px; height: 15px; color: ${st.accentBlue}; }
+    svg { width: 15px; height: 15px; color: #0369a1; }
 `;
 
 interface ThankYouSmsSectionProps {

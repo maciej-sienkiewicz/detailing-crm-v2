@@ -12,7 +12,7 @@ import {
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { FormField, FieldLabel, InputShellTextArea, BareTextArea } from '@/common/components/Form';
-import { SharedButton } from '@/common/styles';
+import { Button } from '@/common/components/ui';
 import { Pill, PillRow } from './HandoverKit';
 
 /**
@@ -122,18 +122,14 @@ export const VisualConditionModal = ({
             </ModalContent>
 
             <ModalFooter>
-                <SharedButton type="button" $variant="secondary" $size="sm" onClick={onCancel} disabled={isSaving}>
-                    Anuluj
-                </SharedButton>
-                <SharedButton
-                    type="button"
-                    $variant="primary"
-                    $size="sm"
+                <Button onClick={onCancel} disabled={isSaving}>Anuluj</Button>
+                <Button
+                    variant="primary"
                     disabled={!canConfirm || isSaving}
                     onClick={() => onConfirm(match as boolean, remarks.trim() || null)}
                 >
                     {isSaving ? 'Zapisywanie…' : 'Zapisz i wyślij do podpisu'}
-                </SharedButton>
+                </Button>
             </ModalFooter>
         </ModalShell>
     );

@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 import { AlertTriangle } from 'lucide-react';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { ui } from '@/common/components/ui';
 import type { HandoverProblem } from '../../types/handover';
 
 /**
@@ -10,6 +10,10 @@ import type { HandoverProblem } from '../../types/handover';
  * krok to zestaw sekcji na tej samej powierzchni, nie osobne okno. Wszystkie
  * bloki mają więc wyglądać jak elementy jednej całości, a nie jak karty
  * konkurujące o uwagę.
+ *
+ * Język jest ten sam co na karcie wizyty (common/components/ui): nagłówek sekcji
+ * zwykłym pismem 15px zamiast szarych wersalików 11px, wybór odcieniem marki
+ * zamiast drugiego niebieskiego (#3B82F6), kwoty w cyfrach tabelarycznych.
  */
 
 export const Section = styled.section`
@@ -27,11 +31,10 @@ export const SectionHead = styled.div`
 
 export const SectionLabel = styled.h3`
     margin: 0;
-    font-size: ${st.fontXs};
+    font-size: 15px;
     font-weight: 700;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
+    letter-spacing: -0.005em;
+    color: ${ui.ink};
 `;
 
 export const Box = styled.div`
@@ -39,9 +42,9 @@ export const Box = styled.div`
     flex-direction: column;
     gap: 10px;
     padding: 12px 14px;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    background: ${st.bgCard};
+    border: 1px solid ${ui.line};
+    border-radius: ${ui.radiusStrip};
+    background: ${ui.surface};
 `;
 
 export const BoxRow = styled.div`
@@ -54,7 +57,7 @@ export const BoxRow = styled.div`
 
 export const Divider = styled.div`
     height: 1px;
-    background: ${st.border};
+    background: ${ui.lineSoft};
     margin: 2px 0;
 `;
 
@@ -68,36 +71,28 @@ export const Pill = styled.button<{ $selected: boolean }>`
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 7px 15px;
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontSm};
+    height: 36px;
+    padding: 0 14px;
+    border-radius: ${ui.radiusControl};
+    font-family: inherit;
+    font-size: 13.5px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 140ms ease;
+    transition: background 150ms ease, border-color 150ms ease;
     white-space: nowrap;
 
-    /* Zaznaczenie niesie ODCIEŃ, nie WYPEŁNIENIE (reguła 2): pełny błękit robił
-       z każdej wybranej pigułki drugie „zrób to teraz" obok przycisku w stopce.
-       Przy dwóch pickerach naraz (forma zapłaty + dokument) dawało to dwa nasycone
-       bloki konkurujące z jedynym prawowitym wypełnieniem. Wybór pokazujemy więc
-       odcieniem i obwódką; hover pigułki niewybranej jest neutralny, żeby błękit
-       znaczył wyłącznie „to jest wybrane". */
-    ${p =>
-        p.$selected
-            ? `
-        background: ${st.accentBlueDim};
-        color: ${st.accentBlue};
-        border: 1px solid ${st.accentBlue};
-        box-shadow: inset 0 0 0 1px ${st.accentBlue};
-    `
-            : `
-        background: ${st.bgCard};
-        color: ${st.textSecondary};
-        border: 1px solid ${st.border};
-        &:hover { border-color: ${st.borderHover}; color: ${st.text}; background: ${st.bgCardAlt}; }
-    `}
+    /* Zaznaczenie niesie ODCIEŃ, nie WYPEŁNIENIE (CLAUDE.md §2): przy dwóch
+       pickerach naraz (forma zapłaty + dokument) wypełnione pigułki konkurowałyby
+       z jedynym prawowitym wypełnieniem - „Wydaj pojazd" w stopce. */
+    background: ${p => p.$selected ? ui.brandTint : ui.surface};
+    color: ${p => p.$selected ? ui.brandDeep : ui.textSecondary};
+    border: 1px solid ${p => p.$selected ? ui.brandLine : ui.line};
 
-    svg { width: 13px; height: 13px; flex-shrink: 0; }
+    &:hover { border-color: ${p => p.$selected ? ui.brandLine : ui.lineStrong}; color: ${p => p.$selected ? ui.brandDeep : ui.ink}; }
+    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: 2px; }
+    svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+    @media (hover: none) and (pointer: coarse) { height: 44px; }
 `;
 
 /** Przycisk-link do rozwijania szczegółów i zmiany danych, bez wagi wizualnej. */
@@ -108,9 +103,10 @@ export const GhostAction = styled.button`
     padding: 0;
     border: none;
     background: none;
-    font-size: ${st.fontSm};
+    font-family: inherit;
+    font-size: 13.5px;
     font-weight: 600;
-    color: ${st.accentBlue};
+    color: ${ui.brandInk};
     cursor: pointer;
     white-space: nowrap;
 
@@ -119,17 +115,17 @@ export const GhostAction = styled.button`
 `;
 
 export const Muted = styled.span`
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
+    font-size: 12.5px;
+    color: ${ui.textMuted};
     line-height: 1.5;
 `;
 
 export const Money = styled.span<{ $strong?: boolean }>`
     font-variant-numeric: tabular-nums;
-    font-size: ${p => (p.$strong ? '20px' : st.fontSm)};
+    font-size: ${p => (p.$strong ? '20px' : '13.5px')};
     font-weight: ${p => (p.$strong ? 700 : 600)};
-    color: ${st.text};
-    letter-spacing: ${p => (p.$strong ? '-0.3px' : '0')};
+    color: ${ui.ink};
+    letter-spacing: ${p => (p.$strong ? '-0.01em' : '0')};
 `;
 
 // ─── Komunikaty przy sekcji, nie w banerze na górze ───────────────────────────
@@ -137,15 +133,15 @@ export const Money = styled.span<{ $strong?: boolean }>`
 const ProblemBox = styled.div`
     display: flex;
     gap: 8px;
-    padding: 9px 11px;
-    border-radius: ${st.radiusSm};
-    background: ${st.accentRedDim};
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    font-size: ${st.fontSm};
+    padding: 10px 12px;
+    border-radius: ${ui.radiusStrip};
+    background: ${ui.dangerTint};
+    border: 1px solid ${ui.dangerLine};
+    font-size: 13px;
     line-height: 1.5;
     color: #7f1d1d;
 
-    svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px; color: ${st.accentRed}; }
+    svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px; color: ${ui.dangerInk}; }
 `;
 
 const ProblemList = styled.div`

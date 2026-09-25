@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { ChevronDown, MoreHorizontal } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { ui } from '@/common/components/ui';
 import { Pill, PillRow } from './HandoverKit';
 import { primaryPaymentMethods, secondaryPaymentMethods } from './paymentOptions';
 import type { PaymentMethod } from '../../types/stateTransitions';
@@ -32,8 +33,8 @@ const MenuItem = styled.button<{ $selected: boolean }>`
     gap: 8px;
     padding: 8px 10px;
     border: none;
-    background: ${p => (p.$selected ? st.accentBlueDim : 'transparent')};
-    color: ${p => (p.$selected ? st.accentBlue : st.text)};
+    background: ${p => (p.$selected ? ui.brandTint : 'transparent')};
+    color: ${p => (p.$selected ? ui.brandDeep : st.text)};
     font-size: ${st.fontSm};
     font-weight: ${p => (p.$selected ? 600 : 500)};
     text-align: left;
@@ -41,7 +42,7 @@ const MenuItem = styled.button<{ $selected: boolean }>`
     cursor: pointer;
     white-space: nowrap;
 
-    &:hover { background: ${st.accentBlueDim}; color: ${st.accentBlue}; }
+    &:hover { background: ${ui.surfaceAlt}; color: ${st.text}; }
     svg { width: 13px; height: 13px; flex-shrink: 0; }
 `;
 

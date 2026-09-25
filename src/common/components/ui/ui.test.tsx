@@ -8,7 +8,9 @@
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { ActionMenu, Button, IconButton, MenuItem, PriceButton, Segmented, SummaryStrip, useActionMenu } from '.';
+import {
+    ActionMenu, Button, ChoiceCard, IconButton, MenuItem, Notice, PriceButton, Segmented, StepPills, SummaryStrip, useActionMenu,
+} from '.';
 
 function MenuHarness({ onEdit }: { onEdit: (id: string) => void }) {
     const { menu, toggle, close } = useActionMenu<string>();
@@ -98,5 +100,28 @@ describe('ui', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Dla klienta' }));
         expect(screen.getByRole('button', { name: 'Dla klienta' })).toHaveAttribute('aria-pressed', 'true');
         expect(screen.getByRole('button', { name: 'Wewnętrzny' })).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('karta wyboru przełącza się kliknięciem w całą kartę, nie tylko w kwadracik', () => {
+        const onChange = vi.fn();
+        render(<ChoiceCard checked={false} onChange={onChange} title="SMS" detail="+48 601 234 567" />);
+        fireEvent.click(screen.getByText('+48 601 234 567'));
+        expect(onChange).toHaveBeenCalledWith(true);
+    });
+
+    it('komunikat niesie akcję naprawczą obok treści', () => {
+        const fix = vi.fn();
+        render(<Notice tone="warn" title="SMS nie wyjdzie" action={<Button onClick={fix}>Napraw teraz</Button>}>Szablon wyłączony.</Notice>);
+        fireEvent.click(screen.getByRole('button', { name: 'Napraw teraz' }));
+        expect(fix).toHaveBeenCalled();
+    });
+
+    it('kroki okna oznaczają bieżący krok dla czytnika ekranu', () => {
+        render(<StepPills steps={[
+            { key: 'a', label: 'Podpis protokołu', state: 'done' },
+            { key: 'b', label: 'Rozliczenie', state: 'active' },
+        ]} />);
+        expect(screen.getByText('Rozliczenie').closest('li')).toHaveAttribute('aria-current', 'step');
+        expect(screen.getByText('Podpis protokołu').closest('li')).not.toHaveAttribute('aria-current');
     });
 });

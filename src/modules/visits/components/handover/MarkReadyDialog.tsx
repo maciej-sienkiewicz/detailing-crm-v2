@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { MessageSquare, Mail, User } from 'lucide-react';
+import { MessageSquare, Mail } from 'lucide-react';
 import {
     ModalShell,
     ModalHeader,
@@ -11,127 +11,27 @@ import {
     ModalFooter,
     CloseBtn,
 } from '@/common/components/ModalKit';
-import { SharedButton } from '@/common/styles';
 import { PiiValue, joinPiiName } from '@/common/pii';
 import { LockedSection } from '@/common/components/LockedSection';
 import { useCapability, UpsellModal } from '@/modules/subscription';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { Button, ChoiceCard, ChoiceList, Notice, SectionTitle } from '@/common/components/ui';
 import { useMarkReady } from '../../hooks/useMarkReady';
 import { useSmsReadiness } from '../../hooks/useSmsReadiness';
 import { SmsActivationWizard } from '../SmsActivationWizard';
-import { Box, Section, SectionLabel } from './HandoverKit';
 import type { Visit } from '../../types';
 import type { NotificationChannels } from '../../types/stateTransitions';
 
 const Body = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 12px;
 `;
 
-const CustomerRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    background: ${st.bg};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-`;
-
-const Avatar = styled.div`
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: ${st.gradientBlue};
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-
-    svg { width: 15px; height: 15px; }
-`;
-
-const CustomerText = styled.div`
-    flex: 1;
-    min-width: 0;
-`;
-
-const CustomerName = styled.div`
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    color: ${st.text};
-`;
-
-const CustomerContact = styled.div`
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-`;
-
-const Channel = styled.label<{ $checked: boolean; $disabled?: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    border-radius: ${st.radiusSm};
-    border: 1px solid ${p => (p.$checked && !p.$disabled ? 'rgba(59,130,246,0.3)' : st.border)};
-    background: ${p => (p.$checked && !p.$disabled ? st.accentBlueDim : st.bgCard)};
-    cursor: ${p => (p.$disabled ? 'not-allowed' : 'pointer')};
-    opacity: ${p => (p.$disabled ? 0.5 : 1)};
-    transition: all 140ms ease;
-
-    input {
-        width: 15px;
-        height: 15px;
-        flex-shrink: 0;
-        cursor: inherit;
-        accent-color: ${st.accentBlue};
-    }
-`;
-
-const ChannelIcon = styled.div`
-    width: 28px;
-    height: 28px;
-    border-radius: 7px;
-    background: ${st.bgCardAlt};
-    border: 1px solid ${st.border};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    color: ${st.textSecondary};
-
-    svg { width: 13px; height: 13px; }
-`;
-
-const ChannelText = styled.div`
-    flex: 1;
-    min-width: 0;
-`;
-
-const ChannelLabel = styled.div`
-    font-size: ${st.fontSm};
-    font-weight: 500;
-    color: ${st.text};
-`;
-
-const ChannelDetail = styled.div`
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-`;
-
-const StatusNote = styled.p`
+const Lede = styled.p`
     margin: 0;
-    font-size: ${st.fontSm};
-    color: ${st.textSecondary};
-    line-height: 1.5;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: #475569;
 `;
 
 const ModalFooterSplit = styled(ModalFooter)`
@@ -204,119 +104,67 @@ export const MarkReadyDialog = ({ visit, isOpen, onClose, onSuccess }: MarkReady
     };
 
     const willNotify = channels.sms || channels.email;
-    const serviceCount = visit.services.filter(s => s.status !== 'REJECTED').length;
+    const vehicleLabel = [[visit.vehicle.brand, visit.vehicle.model].filter(Boolean).join(' '), visit.vehicle.licensePlate].filter(Boolean).join(', ');
 
     return (
         <ModalShell isOpen={isOpen} onClose={isMarkingReady ? () => {} : onClose} size="md">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Pojazd gotowy do odbioru</ModalTitle>
-                    <ModalSubtitle>
-                        {[visit.vehicle.brand, visit.vehicle.model, visit.vehicle.licensePlate]
-                            .filter(Boolean)
-                            .join(' · ')}
-                    </ModalSubtitle>
+                    <ModalSubtitle>{vehicleLabel}</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={isMarkingReady ? () => {} : onClose} />
             </ModalHeader>
 
             <ModalContent>
                 <Body>
-                    <CustomerRow>
-                        <Avatar>
-                            <User />
-                        </Avatar>
-                        <CustomerText>
-                            <CustomerName>
-                                <PiiValue
-                                    value={joinPiiName(visit.customer.firstName, visit.customer.lastName)}
-                                    kind="name"
-                                />
-                            </CustomerName>
-                            <CustomerContact>
-                                <PiiValue value={visit.customer.phone} kind="phone" />
-                                {visit.customer.phone && visit.customer.email ? ' · ' : ''}
-                                <PiiValue value={visit.customer.email} kind="email" />
-                            </CustomerContact>
-                        </CustomerText>
-                    </CustomerRow>
+                    <SectionTitle as="h3">Powiadom klienta</SectionTitle>
+                    <Lede>
+                        <PiiValue value={joinPiiName(visit.customer.firstName, visit.customer.lastName)} kind="name" />
+                        {' '}dostanie wiadomość, że może odebrać auto.
+                    </Lede>
 
-                    <Section>
-                        <SectionLabel>Powiadom klienta</SectionLabel>
-
-                        {channels.sms && smsGaps.length > 0 && (
-                            <SmsGapBar>
-                                <SmsGapText>
-                                    <strong>SMS nie wyjdzie</strong>
-                                    {': '}
-                                    {smsGaps.map(g => `${g.label.toLowerCase()}: ${g.detail}`).join('; ')}.
-                                </SmsGapText>
-                                <SmsGapAction type="button" onClick={() => setWizardOpen(true)}>
-                                    Napraw teraz
-                                </SmsGapAction>
-                            </SmsGapBar>
-                        )}
-
-                        <LockedSection
-                            locked={!comms.enabled}
-                            message="Twój abonament nie obsługuje powiadomień SMS ani e-mail."
-                            onLockedClick={() => setUpsellOpen(true)}
+                    {channels.sms && smsGaps.length > 0 && (
+                        <Notice
+                            tone="warn"
+                            title="SMS nie wyjdzie"
+                            action={<Button size="sm" onClick={() => setWizardOpen(true)}>Napraw teraz</Button>}
                         >
-                            <Channel $checked={channels.sms}>
-                                <input
-                                    type="checkbox"
-                                    checked={channels.sms}
-                                    onChange={() => toggle('sms')}
-                                />
-                                <ChannelIcon>
-                                    <MessageSquare />
-                                </ChannelIcon>
-                                <ChannelText>
-                                    <ChannelLabel>SMS</ChannelLabel>
-                                    <ChannelDetail>
-                                        <PiiValue value={visit.customer.phone} kind="phone" />
-                                    </ChannelDetail>
-                                </ChannelText>
-                            </Channel>
+                            {smsGaps.map(g => `${g.label}: ${g.detail}`).join('. ')}.
+                        </Notice>
+                    )}
 
-                            <Channel $checked={channels.email} $disabled={!hasEmail}>
-                                <input
-                                    type="checkbox"
-                                    checked={channels.email}
-                                    disabled={!hasEmail}
-                                    onChange={() => toggle('email')}
-                                />
-                                <ChannelIcon>
-                                    <Mail />
-                                </ChannelIcon>
-                                <ChannelText>
-                                    <ChannelLabel>E-mail</ChannelLabel>
-                                    <ChannelDetail>
-                                        <PiiValue
-                                            value={visit.customer.email}
-                                            kind="email"
-                                            emptyFallback="Brak adresu e-mail"
-                                        />
-                                    </ChannelDetail>
-                                </ChannelText>
-                            </Channel>
-                        </LockedSection>
-                    </Section>
+                    <LockedSection
+                        locked={!comms.enabled}
+                        message="Twój abonament nie obsługuje powiadomień SMS ani e-mail."
+                        onLockedClick={() => setUpsellOpen(true)}
+                    >
+                        <ChoiceList>
+                            <ChoiceCard
+                                checked={channels.sms}
+                                onChange={() => toggle('sms')}
+                                icon={<MessageSquare />}
+                                title="SMS"
+                                detail={<PiiValue value={visit.customer.phone} kind="phone" emptyFallback="Brak numeru telefonu" />}
+                            />
+                            <ChoiceCard
+                                checked={channels.email}
+                                disabled={!hasEmail}
+                                onChange={() => toggle('email')}
+                                icon={<Mail />}
+                                title="E-mail"
+                                detail={<PiiValue value={visit.customer.email} kind="email" emptyFallback="Brak adresu e-mail" />}
+                            />
+                        </ChoiceList>
+                    </LockedSection>
                 </Body>
             </ModalContent>
 
             <ModalFooterSplit>
-                <SharedButton
-                    $variant="secondary"
-                    type="button"
-                    disabled={isMarkingReady}
-                    onClick={onClose}
-                >
-                    Anuluj
-                </SharedButton>
-                <SharedButton
-                    $variant="primary"
-                    type="button"
+                <Button disabled={isMarkingReady} onClick={onClose}>Anuluj</Button>
+                {/* Zieleń: krok domyka etap wizyty - ten sam przycisk co w nagłówku. */}
+                <Button
+                    variant="success"
                     disabled={isMarkingReady}
                     onClick={() => markReady({
                         sms: comms.enabled && channels.sms,
@@ -328,7 +176,7 @@ export const MarkReadyDialog = ({ visit, isOpen, onClose, onSuccess }: MarkReady
                         : willNotify
                           ? 'Powiadom i oznacz jako gotowe'
                           : 'Oznacz jako gotowe'}
-                </SharedButton>
+                </Button>
             </ModalFooterSplit>
 
             {/* Mounted only while open: the wizard freezes its step list on mount. */}
@@ -336,9 +184,7 @@ export const MarkReadyDialog = ({ visit, isOpen, onClose, onSuccess }: MarkReady
                 isOpen={wizardOpen}
                 readiness={smsReadiness}
                 templateKey="visitReadyForPickup"
-                contextLabel={[visit.vehicle.brand, visit.vehicle.model, visit.vehicle.licensePlate]
-                    .filter(Boolean)
-                    .join(' · ')}
+                contextLabel={vehicleLabel}
                 onClose={() => setWizardOpen(false)}
                 onReady={() => setWizardOpen(false)}
             />}
@@ -348,41 +194,3 @@ export const MarkReadyDialog = ({ visit, isOpen, onClose, onSuccess }: MarkReady
         </ModalShell>
     );
 };
-
-const SmsGapBar = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    padding: 10px 12px;
-    margin-bottom: 8px;
-    border: 1px solid rgba(245, 158, 11, 0.35);
-    background: rgba(245, 158, 11, 0.08);
-    border-radius: ${st.radiusSm};
-`;
-
-const SmsGapText = styled.p`
-    flex: 1;
-    min-width: 180px;
-    margin: 0;
-    font-size: ${st.fontXs};
-    color: #78350f;
-    line-height: 1.5;
-
-    strong { font-weight: 700; }
-`;
-
-const SmsGapAction = styled.button`
-    flex-shrink: 0;
-    padding: 6px 12px;
-    font-family: inherit;
-    font-size: ${st.fontXs};
-    font-weight: 700;
-    color: #92400e;
-    background: white;
-    border: 1px solid rgba(245, 158, 11, 0.45);
-    border-radius: 8px;
-    cursor: pointer;
-
-    &:hover { background: rgba(245, 158, 11, 0.12); }
-`;

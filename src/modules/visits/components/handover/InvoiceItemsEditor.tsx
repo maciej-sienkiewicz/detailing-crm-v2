@@ -31,11 +31,9 @@ const Row = styled.div`
 `;
 
 const HeaderRow = styled(Row)`
-    font-size: 11px;
+    font-size: 12.5px;
     font-weight: 600;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    color: ${st.textSecondary};
 
     @media (max-width: 640px) { display: none; }
 `;

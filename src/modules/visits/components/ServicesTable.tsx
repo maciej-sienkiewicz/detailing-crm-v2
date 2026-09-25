@@ -26,7 +26,7 @@ import type { ServiceChangeSummary } from '../utils/serviceChangeSms';
 import { useFeature, UpsellModal } from '@/modules/subscription';
 import { useContainerWidth, useModalViewport } from '@/common/hooks';
 import {
-    ActionMenu, Button, Card, IconButton, MenuItem, PriceButton, PriceSub, SectionTitle, StatusPill, SummaryStrip,
+    ActionMenu, Button, Card, IconButton, MenuItem, Notice, PriceButton, PriceSub, SectionTitle, StatusPill, SummaryStrip,
     ui, useActionMenu,
 } from '@/common/components/ui';
 import {
@@ -456,10 +456,10 @@ const DiscountModalHeader = styled.div`
 
 const DiscountModalTitle = styled.h4`
     margin: 0;
-    font-size: ${st.fontMd};
+    font-size: 17px;
     font-weight: 700;
-    letter-spacing: -0.2px;
-    color: ${st.text};
+    letter-spacing: -0.01em;
+    color: ${ui.ink};
 `;
 
 const DiscountModalSubtitle = styled.p`
@@ -509,12 +509,10 @@ const DiscountFromBox = styled.div`
 `;
 
 const DiscountFromBoxLabel = styled.div`
-    font-size: ${st.fontXs};
-    font-weight: 700;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 10px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: ${ui.textSecondary};
+    margin-bottom: 8px;
 `;
 
 const DiscountFromPrices = styled.div`
@@ -543,19 +541,15 @@ const DiscountFromPriceValue = styled.span`
 `;
 
 const DiscountFromPriceLabel = styled.span`
-    font-size: ${st.fontXs};
+    font-size: 12.5px;
     font-weight: 600;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    color: ${ui.textSecondary};
 `;
 
 const DiscountSectionLabel = styled.div`
-    font-size: ${st.fontXs};
-    font-weight: 700;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: ${ui.textSecondary};
     margin-bottom: 8px;
 `;
 
@@ -566,26 +560,21 @@ const DiscountTypeRow = styled.div`
 `;
 
 const DiscountTypePill = styled.button<{ $selected?: boolean }>`
-    padding: 6px 12px;
-    font-size: 12px;
-    font-weight: ${p => p.$selected ? 700 : 600};
-    color: ${p => p.$selected ? '#ffffff' : st.textSecondary};
-    background: ${p => p.$selected ? BRAND : st.bgCard};
-    border: 1.5px solid ${p => p.$selected ? BRAND : st.border};
-    border-radius: ${st.radiusFull};
-    cursor: pointer;
-    transition: all ${st.transition};
-    white-space: nowrap;
+    height: 32px;
+    padding: 0 12px;
+    font-size: 13px;
+    font-weight: 600;
     font-family: inherit;
-    box-shadow: ${p => p.$selected ? '0 2px 8px rgba(14, 165, 233, 0.28)' : 'none'};
+    white-space: nowrap;
+    border-radius: ${ui.radiusControl};
+    cursor: pointer;
+    transition: background 150ms ease, border-color 150ms ease;
+    /* Wybór to stan, nie krok następny: odcień zamiast wypełnienia (CLAUDE.md §2). */
+    color: ${p => p.$selected ? ui.brandDeep : ui.textSecondary};
+    background: ${p => p.$selected ? ui.brandTint : ui.surface};
+    border: 1px solid ${p => p.$selected ? ui.brandLine : ui.line};
 
-    &:hover {
-        ${p => !p.$selected && css`
-            border-color: ${BRAND};
-            color: ${BRAND_DARK};
-            background: ${BRAND_DIM};
-        `}
-    }
+    &:hover { border-color: ${p => p.$selected ? ui.brandLine : ui.lineStrong}; color: ${p => p.$selected ? ui.brandDeep : ui.ink}; }
 `;
 
 const DiscountValueRow = styled.div`
@@ -636,68 +625,68 @@ const DiscountValueSuffix = styled.span`
 
 const DiscountCloseBtn = styled.button`
     flex-shrink: 0;
-    padding: 5px;
-    color: ${st.textMuted};
-    background: none;
-    border: none;
-    border-radius: ${st.radiusFull};
-    cursor: pointer;
+    width: 36px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all ${st.transition};
-    &:hover { color: ${st.accentRed}; background: ${st.accentRedDim}; }
-    svg { width: 14px; height: 14px; }
+    color: ${ui.textSecondary};
+    background: ${ui.surface};
+    border: 1px solid ${ui.line};
+    border-radius: ${ui.radiusControl};
+    cursor: pointer;
+
+    &:hover { border-color: ${ui.lineStrong}; color: ${ui.ink}; }
+    svg { width: 15px; height: 15px; }
 `;
 
 const DiscountApplyBtn = styled.button`
-    padding: 9px 20px;
-    font-size: ${st.fontSm};
-    font-weight: 700;
-    color: #ffffff;
-    background: ${BRAND};
-    border: none;
-    border-radius: ${st.radiusFull};
-    cursor: pointer;
+    height: 40px;
+    padding: 0 20px;
+    font-size: 14px;
+    font-weight: 600;
     font-family: inherit;
-    transition: all ${st.transition};
-    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
+    color: #ffffff;
+    border: none;
+    border-radius: ${ui.radiusControl};
+    /* Otwarty edytor przejmuje okno - jego „Zapisz" wolno wypełnić (CLAUDE.md §2). */
+    background: linear-gradient(135deg, ${ui.brandStrong}, ${ui.brandInk});
+    box-shadow: 0 4px 12px rgba(3, 105, 161, 0.25);
+    cursor: pointer;
 
-    &:hover:not(:disabled) {
-        background: ${BRAND_DARK};
-        box-shadow: 0 4px 14px rgba(14, 165, 233, 0.36);
-        transform: translateY(-1px);
-    }
+    &:hover:not(:disabled) { box-shadow: 0 6px 16px rgba(3, 105, 161, 0.32); }
     &:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
 `;
 
 const DiscountCancelBtn = styled.button`
-    padding: 9px 18px;
-    font-size: ${st.fontSm};
-    font-weight: 500;
-    color: ${st.textSecondary};
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusFull};
-    cursor: pointer;
+    height: 40px;
+    padding: 0 18px;
+    font-size: 14px;
+    font-weight: 600;
     font-family: inherit;
-    transition: all ${st.transition};
-    &:hover { background: ${st.bg}; border-color: ${st.borderHover}; }
+    color: ${ui.inkSoft};
+    background: ${ui.surface};
+    border: 1px solid ${ui.line};
+    border-radius: ${ui.radiusControl};
+    cursor: pointer;
+
+    &:hover { border-color: ${ui.lineStrong}; color: ${ui.ink}; }
 `;
 
 const DiscountRemoveBtn = styled.button`
-    padding: 9px 16px;
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    color: ${st.textSecondary};
-    background: transparent;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusFull};
-    cursor: pointer;
-    font-family: inherit;
+    height: 40px;
+    padding: 0 14px;
     margin-right: auto;
-    transition: all ${st.transition};
-    &:hover { color: ${st.accentRed}; border-color: #fca5a5; background: ${st.accentRedDim}; }
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    color: ${ui.textSecondary};
+    background: transparent;
+    border: none;
+    border-radius: ${ui.radiusControl};
+    cursor: pointer;
+
+    &:hover { background: ${ui.surfaceAlt}; color: ${ui.ink}; }
 `;
 
 /* ─── Unified price editor ─── */
@@ -722,11 +711,9 @@ const EditorField = styled.div`
 `;
 
 const EditorFieldLabel = styled.label`
-    font-size: 10px;
-    font-weight: 700;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: ${ui.textSecondary};
 `;
 
 const EditorPriceInput = styled.input`
@@ -771,11 +758,9 @@ const EditorPreviewLine = styled.div`
 `;
 
 const EditorPreviewLabel = styled.span`
-    font-size: ${st.fontXs};
-    font-weight: 700;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: ${ui.textSecondary};
 `;
 
 const EditorPreviewOld = styled.span`
@@ -789,26 +774,26 @@ const EditorPreviewOld = styled.span`
 const EditorModeRow = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 6px;
-    padding: 4px;
-    background: ${st.bg};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
+    gap: 2px;
+    padding: 3px;
+    background: ${ui.surfaceAlt};
+    border-radius: 12px;
 `;
 
 const EditorModeTab = styled.button<{ $active?: boolean }>`
-    padding: 9px 10px;
+    height: 34px;
+    padding: 0 10px;
     font-size: 13px;
-    font-weight: ${p => p.$active ? 700 : 500};
+    font-weight: 600;
     font-family: inherit;
-    color: ${p => p.$active ? BRAND_DARK : st.textMuted};
-    background: ${p => p.$active ? st.bgCard : 'transparent'};
-    border: 1.5px solid ${p => p.$active ? BRAND : 'transparent'};
-    border-radius: ${st.radiusSm};
+    color: ${p => p.$active ? ui.ink : ui.textSecondary};
+    background: ${p => p.$active ? ui.surface : 'transparent'};
+    box-shadow: ${p => p.$active ? '0 1px 2px rgba(15, 23, 42, 0.12)' : 'none'};
+    border: none;
+    border-radius: 9px;
     cursor: pointer;
-    transition: all 140ms ease;
 
-    &:hover { color: ${BRAND_DARK}; }
+    &:hover { color: ${ui.ink}; }
 `;
 
 const EditorListBox = styled.div`
@@ -822,11 +807,9 @@ const EditorListBox = styled.div`
 `;
 
 const EditorListLabel = styled.span`
-    font-size: ${st.fontXs};
-    font-weight: 700;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: ${ui.textSecondary};
 `;
 
 /* Netto → brutto → VAT: ta sama kolejność kolumn co w polach edycji ceny,
@@ -850,18 +833,16 @@ const EditorSummaryCell = styled.div`
 `;
 
 const EditorSummaryLabel = styled.span`
-    font-size: 10px;
-    font-weight: 700;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: ${ui.textSecondary};
 `;
 
 const EditorSummaryValue = styled.span<{ $strong?: boolean }>`
     font-size: ${p => p.$strong ? '17px' : '14px'};
-    font-weight: ${p => p.$strong ? 800 : 600};
-    color: ${p => p.$strong ? BRAND_DARK : st.textSecondary};
-    letter-spacing: ${p => p.$strong ? '-0.3px' : 'normal'};
+    font-weight: ${p => p.$strong ? 700 : 600};
+    color: ${p => p.$strong ? ui.ink : ui.textSecondary};
+    letter-spacing: ${p => p.$strong ? '-0.01em' : 'normal'};
     font-variant-numeric: tabular-nums;
     line-height: 1.25;
 `;
@@ -913,13 +894,13 @@ const EditorNarrowField = styled(EditorField)`
 `;
 
 const EditorSavedChip = styled.span`
-    font-size: 11px;
-    font-weight: 700;
-    color: ${st.accentGreen};
-    background: ${st.accentGreenDim};
-    border: 1px solid rgba(16, 185, 129, 0.25);
-    border-radius: ${st.radiusFull};
-    padding: 3px 9px;
+    font-size: 12px;
+    font-weight: 600;
+    color: ${ui.okInk};
+    background: ${ui.okTint};
+    border: 1px solid ${ui.okLine};
+    border-radius: ${ui.radiusControl};
+    padding: 2px 9px;
     white-space: nowrap;
     flex-shrink: 0;
 `;
@@ -1052,12 +1033,11 @@ const BulkPreviewList = styled.div`
 `;
 
 const BulkPreviewCard = styled.div<{ $active: boolean }>`
-    background: ${st.bgCard};
-    border: 1px solid ${p => p.$active ? 'rgba(14, 165, 233, 0.35)' : st.border};
-    border-radius: ${st.radiusSm};
+    background: ${ui.surface};
+    border: 1px solid ${p => p.$active ? ui.brandLineSoft : ui.line};
+    border-radius: ${ui.radiusStrip};
     padding: 10px 14px;
-    transition: border-color 200ms ease, box-shadow 200ms ease;
-    box-shadow: ${p => p.$active ? '0 1px 6px rgba(14, 165, 233, 0.10)' : st.shadowXs};
+    transition: border-color 200ms ease;
 `;
 
 const BulkPreviewCardTop = styled.div`
@@ -1098,11 +1078,9 @@ const BulkPreviewPriceCol = styled.div`
 `;
 
 const BulkPreviewPriceColLabel = styled.span`
-    font-size: 9px;
-    font-weight: 700;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: ${ui.textSecondary};
 `;
 
 const BulkPreviewRowPrices = styled.div`
@@ -1133,24 +1111,22 @@ const BulkPreviewNewPrice = styled.span<{ $active: boolean; $primary?: boolean }
     font-size: ${p => p.$primary ? '14px' : '12px'};
     font-weight: 700;
     font-variant-numeric: tabular-nums;
-    color: ${p => p.$active ? BRAND_DARK : st.text};
-    transition: color 200ms ease;
+    color: ${ui.ink};
     white-space: nowrap;
 `;
 
 const BulkPreviewDiscountChip = styled.span<{ $visible: boolean }>`
-    font-size: 10px;
-    font-weight: 700;
-    color: ${BRAND_DARK};
-    background: ${BRAND_DIM};
-    border: 1px solid rgba(14, 165, 233, 0.25);
-    border-radius: ${st.radiusFull};
-    padding: 2px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: ${ui.okInk};
+    background: ${ui.okTint};
+    border: 1px solid ${ui.okLine};
+    border-radius: ${ui.radiusControl};
+    padding: 1px 8px;
     white-space: nowrap;
     flex-shrink: 0;
     opacity: ${p => p.$visible ? 1 : 0};
-    transform: scale(${p => p.$visible ? 1 : 0.85});
-    transition: opacity 200ms ease, transform 200ms ease;
+    transition: opacity 200ms ease;
 `;
 
 const BulkPreviewTotalsBar = styled.div`
@@ -1171,11 +1147,9 @@ const BulkPreviewTotalsRow = styled.div<{ $secondary?: boolean }>`
 `;
 
 const BulkPreviewTotalsLabel = styled.div<{ $secondary?: boolean }>`
-    font-size: ${p => p.$secondary ? '10px' : st.fontXs};
-    font-weight: 700;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    font-size: ${p => p.$secondary ? '12.5px' : '13px'};
+    font-weight: 600;
+    color: ${ui.textSecondary};
     flex: 1;
 `;
 
@@ -1193,21 +1167,22 @@ const BulkPreviewTotalsArrow = styled.span`
 `;
 
 const BulkPreviewTotalsAfter = styled.span<{ $active?: boolean; $secondary?: boolean }>`
-    font-size: ${p => p.$secondary ? '12px' : st.fontLg};
+    font-size: ${p => p.$secondary ? '12.5px' : '18px'};
     font-weight: 700;
-    letter-spacing: -0.2px;
+    letter-spacing: -0.01em;
     font-variant-numeric: tabular-nums;
-    color: ${p => p.$active ? BRAND_DARK : (p.$secondary ? st.textSecondary : st.text)};
+    color: ${p => p.$secondary ? ui.textSecondary : ui.ink};
 `;
 
 const BulkPreviewTotalsSaved = styled.span`
-    font-size: 11px;
-    font-weight: 700;
-    color: ${st.accentGreen};
-    background: ${st.accentGreenDim};
-    border: 1px solid rgba(16, 185, 129, 0.25);
-    border-radius: ${st.radiusFull};
-    padding: 3px 9px;
+    font-size: 12px;
+    font-weight: 600;
+    color: ${ui.okInk};
+    background: ${ui.okTint};
+    border: 1px solid ${ui.okLine};
+    border-radius: ${ui.radiusControl};
+    padding: 2px 9px;
+    white-space: nowrap;
 `;
 
 const BulkPreviewEmptyState = styled.div`
@@ -1221,10 +1196,6 @@ const BulkPreviewEmptyState = styled.div`
     color: ${st.textMuted};
 `;
 
-const BulkPreviewEmptyIcon = styled.div`
-    font-size: 28px;
-    opacity: 0.5;
-`;
 
 const BulkPreviewEmptyText = styled.div`
     font-size: ${st.fontSm};
@@ -1249,11 +1220,12 @@ const BulkModalFooter = styled.div`
 `;
 
 const DISCOUNT_TYPES: { type: AdjustmentType; label: string }[] = [
-    { type: 'PERCENT', label: '%' },
-    { type: 'FIXED_NET', label: '−Netto' },
-    { type: 'FIXED_GROSS', label: '−Brutto' },
-    { type: 'SET_NET', label: '=Netto' },
-    { type: 'SET_GROSS', label: '=Brutto' },
+    // Słowami, nie „−Netto / =Brutto": skróty z symbolami trzeba było odgadywać.
+    { type: 'PERCENT', label: 'Procent' },
+    { type: 'FIXED_NET', label: 'Rabat netto' },
+    { type: 'FIXED_GROSS', label: 'Rabat brutto' },
+    { type: 'SET_NET', label: 'Razem netto' },
+    { type: 'SET_GROSS', label: 'Razem brutto' },
 ];
 
 /* Editor uses only the true discount types; setting a price is done via the price fields */
@@ -1262,6 +1234,22 @@ const EDITOR_DISCOUNT_TYPES: { type: AdjustmentType; label: string }[] = [
     { type: 'FIXED_NET', label: 'Kwota netto' },
     { type: 'FIXED_GROSS', label: 'Kwota brutto' },
 ];
+
+/** Co dokładnie zrobi wybrany rodzaj - jednym zdaniem pod przełącznikiem. */
+const BULK_TYPE_HINT: Record<AdjustmentType, string> = {
+    PERCENT: 'Każda usługa tanieje o ten sam procent.',
+    FIXED_NET: 'Kwotę netto odejmujemy od całości i rozkładamy proporcjonalnie na usługi.',
+    FIXED_GROSS: 'Kwotę brutto odejmujemy od całości i rozkładamy proporcjonalnie na usługi.',
+    SET_NET: 'Wpisujesz, ile ma wynieść całość netto - różnicę rozkładamy na usługi.',
+    SET_GROSS: 'Wpisujesz, ile ma wynieść całość brutto - różnicę rozkładamy na usługi.',
+};
+
+const DiscountHint = styled.p`
+    margin: 8px 0 0;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: ${ui.textMuted};
+`;
 
 const MAX_2_DECIMALS = /^\d*[.,]?\d{0,2}$/;
 
@@ -2539,33 +2527,59 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
             />
         )}
 
-        {/* Bulk VAT modal */}
-        {bulkVatOpen && (
-            <DiscountModalOverlay ref={bulkVatOverlayRef} onClick={() => setBulkVatOpen(false)}>
-                <DiscountModalCard onClick={e => e.stopPropagation()}>
-                    <DiscountModalHeader>
-                        <DiscountModalTitle>VAT dla wszystkich usług</DiscountModalTitle>
-                        <DiscountCloseBtn type="button" aria-label="Zamknij" onClick={() => setBulkVatOpen(false)}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                        </DiscountCloseBtn>
-                    </DiscountModalHeader>
-                    <DiscountModalBody>
-                        <DiscountTypeRow>
-                            {([23, 8, 5, 0, -1] as const).map(rate => (
-                                <DiscountTypePill
-                                    key={rate}
-                                    type="button"
-                                    $selected={bulkVatRate === rate}
-                                    onClick={() => { setBulkVatRate(rate); applyBulkVat(rate); }}
-                                >
-                                    {rate === -1 ? 'zw.' : `${rate}%`}
-                                </DiscountTypePill>
-                            ))}
-                        </DiscountTypeRow>
-                    </DiscountModalBody>
-                </DiscountModalCard>
-            </DiscountModalOverlay>
-        )}
+        {/* VAT dla wszystkich usług: wybór, podgląd, zatwierdzenie. Wcześniej kliknięcie
+            w stawkę od razu ją nadawało - bez informacji, których usług to dotyczy. */}
+        {bulkVatOpen && (() => {
+            const lines = bulkEligibleLines();
+            const changing = lines.filter(l => (editedPrices[l.id]?.vatRate ?? l.vatRate) !== bulkVatRate).length;
+            return (
+                <DiscountModalOverlay ref={bulkVatOverlayRef} onClick={() => setBulkVatOpen(false)}>
+                    <DiscountModalCard role="dialog" aria-modal="true" aria-labelledby="bulk-vat-title" onClick={e => e.stopPropagation()}>
+                        <DiscountModalHeader>
+                            <div>
+                                <DiscountModalTitle id="bulk-vat-title">VAT dla wszystkich usług</DiscountModalTitle>
+                                <DiscountModalSubtitle>{lines.length} {servicesWord(lines.length)} bez zmian czekających na zgodę klienta</DiscountModalSubtitle>
+                            </div>
+                            <DiscountCloseBtn type="button" aria-label="Zamknij" onClick={() => setBulkVatOpen(false)}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                            </DiscountCloseBtn>
+                        </DiscountModalHeader>
+                        <DiscountModalBody>
+                            <div>
+                                <DiscountSectionLabel>Stawka VAT</DiscountSectionLabel>
+                                <DiscountTypeRow role="radiogroup" aria-label="Stawka VAT">
+                                    {([23, 8, 5, 0, -1] as const).map(rate => (
+                                        <DiscountTypePill
+                                            key={rate}
+                                            type="button"
+                                            role="radio"
+                                            aria-checked={bulkVatRate === rate}
+                                            $selected={bulkVatRate === rate}
+                                            onClick={() => setBulkVatRate(rate)}
+                                        >
+                                            {rate === -1 ? 'zw.' : `${rate}%`}
+                                        </DiscountTypePill>
+                                    ))}
+                                </DiscountTypeRow>
+                            </div>
+                            {/* Strona wpisana zostaje, druga się przelicza (CLAUDE.md §1) - mówimy to
+                                wprost, bo „zmiana VAT" bywa rozumiana jako zmiana kwoty dla klienta. */}
+                            <Notice tone="info">
+                                {changing === 0
+                                    ? `Wszystkie usługi mają już stawkę ${fmtVat(bulkVatRate)}. Nic się nie zmieni.`
+                                    : `Stawka zmieni się w ${changing} z ${lines.length} usług. Cena wpisana jako brutto zostaje brutto, wpisana jako netto zostaje netto - druga kwota się przeliczy.`}
+                            </Notice>
+                        </DiscountModalBody>
+                        <DiscountModalFooter>
+                            <DiscountCancelBtn type="button" onClick={() => setBulkVatOpen(false)} style={{ marginLeft: 'auto' }}>Anuluj</DiscountCancelBtn>
+                            <DiscountApplyBtn type="button" disabled={changing === 0} onClick={() => applyBulkVat(bulkVatRate)}>
+                                Zmień stawkę
+                            </DiscountApplyBtn>
+                        </DiscountModalFooter>
+                    </DiscountModalCard>
+                </DiscountModalOverlay>
+            );
+        })()}
 
         {/* Bulk discount modal */}
         {bulkDiscountOpen && (() => {
@@ -2602,7 +2616,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
             const totalSavedNet = (sumCents(r => r.beforeNet) - sumCents(r => r.afterNet)) / 100;
 
             const fmtPct = (v: number) => `${Math.round(Math.abs(v))}%`;
-            const fmtAmt = (v: number) => `−${Math.abs(v).toFixed(2)} zł`;
+            const fmtAmt = (v: number) => `−${formatCurrency(Math.abs(v))}`;
             const fmtZl = (v: number) => formatCurrency(v);
 
             return (
@@ -2611,7 +2625,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                         <BulkModalHeader>
                             <div>
                                 <DiscountModalTitle>Rabatuj całość</DiscountModalTitle>
-                                <DiscountModalSubtitle>{eligible.length} {eligible.length === 1 ? 'pozycja' : eligible.length < 5 ? 'pozycje' : 'pozycji'}</DiscountModalSubtitle>
+                                <DiscountModalSubtitle>{eligible.length} {servicesWord(eligible.length)} bez zmian czekających na zgodę klienta</DiscountModalSubtitle>
                             </div>
                             <DiscountCloseBtn type="button" aria-label="Zamknij" onClick={() => setBulkDiscountOpen(false)}>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
@@ -2625,11 +2639,11 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                     <DiscountFromBoxLabel>Łącznie przed rabatem</DiscountFromBoxLabel>
                                     <DiscountFromPrices>
                                         <DiscountFromPrice>
-                                            <DiscountFromPriceValue>{totalBeforeGross.toFixed(2)} zł</DiscountFromPriceValue>
+                                            <DiscountFromPriceValue>{formatCurrency(totalBeforeGross)}</DiscountFromPriceValue>
                                             <DiscountFromPriceLabel>Brutto</DiscountFromPriceLabel>
                                         </DiscountFromPrice>
                                         <DiscountFromPrice>
-                                            <DiscountFromPriceValue>{(allBases.reduce((s, b) => s + b.basePriceNetCents, 0) / 100).toFixed(2)} zł</DiscountFromPriceValue>
+                                            <DiscountFromPriceValue>{formatCurrency(allBases.reduce((s, b) => s + b.basePriceNetCents, 0) / 100)}</DiscountFromPriceValue>
                                             <DiscountFromPriceLabel>Netto</DiscountFromPriceLabel>
                                         </DiscountFromPrice>
                                     </DiscountFromPrices>
@@ -2645,6 +2659,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                             </DiscountTypePill>
                                         ))}
                                     </DiscountTypeRow>
+                                    <DiscountHint>{BULK_TYPE_HINT[bulkDiscountType]}</DiscountHint>
                                 </div>
 
                                 <div>
@@ -2680,8 +2695,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
                                 {previews.length === 0 ? (
                                     <BulkPreviewEmptyState>
-                                        <BulkPreviewEmptyIcon>🏷️</BulkPreviewEmptyIcon>
-                                        <BulkPreviewEmptyText>Brak pozycji do rabatowania</BulkPreviewEmptyText>
+                                        <BulkPreviewEmptyText>Nie ma usług, które można objąć rabatem - te czekające na zgodę klienta są pomijane.</BulkPreviewEmptyText>
                                     </BulkPreviewEmptyState>
                                 ) : (
                                     <>

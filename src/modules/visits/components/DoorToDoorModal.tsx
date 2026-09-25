@@ -1,62 +1,32 @@
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
-import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, ModalFooter, CloseBtn } from '@/common/components/ModalKit';
-import { SharedButton } from '@/common/styles';
+import { House, MapPin } from 'lucide-react';
+import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle, ModalContent, ModalFooter, CloseBtn } from '@/common/components/ModalKit';
+import { BareInput, BareTextArea, FieldLabel, InputShell, InputShellTextArea } from '@/common/components/Form';
+import { Button, Notice, SectionTitle, ui } from '@/common/components/ui';
 import { Toggle } from '@/common/components/Toggle';
 import { DateTimePicker } from '@/common/components/DateTimePicker';
 import { instantToLocalDateTime } from '@/common/utils';
 import { useEmployees } from '@/modules/employees/hooks';
 import type { DoorToDoorInfo } from '../types';
 
-// ─── Styled components ────────────────────────────────────────────────────────
+// ─── Styl ─────────────────────────────────────────────────────────────────────
+//
+// Ten sam język co karta wizyty: nagłówki sekcji zwykłym pismem 15px zamiast
+// błękitnych wersalików 11px, etykiety pól 13px, podsumowanie trasy jako
+// komunikat, jedno wypełnienie („Zapisz") w stopce.
 
-const FieldGroup = styled.div`
+const Form = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 18px;
 `;
 
-const Label = styled.label`
-    font-size: 11px;
-    font-weight: 700;
-    color: #94a3b8;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-`;
-
-const Input = styled.input`
-    padding: 8px 11px;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 14px;
-    color: #0f172a;
-    outline: none;
-    transition: border-color 150ms ease, box-shadow 150ms ease;
-    background: #fff;
-
-    &:focus {
-        border-color: #0ea5e9;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
-    }
-`;
-
-const TextArea = styled.textarea`
-    padding: 8px 11px;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 14px;
-    color: #0f172a;
-    outline: none;
-    resize: none;
-    height: 64px;
-    font-family: inherit;
-    transition: border-color 150ms ease, box-shadow 150ms ease;
-    background: #fff;
-
-    &:focus {
-        border-color: #0ea5e9;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
-    }
+const Field = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
 `;
 
 const TwoCol = styled.div`
@@ -64,47 +34,35 @@ const TwoCol = styled.div`
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 10px;
 
-    @media (max-width: 480px) {
-        grid-template-columns: minmax(0, 1fr);
-    }
+    @media (max-width: 480px) { grid-template-columns: minmax(0, 1fr); }
 `;
 
-const Section = styled.div`
+const Leg = styled.section`
     display: flex;
     flex-direction: column;
     gap: 10px;
 `;
 
-const SectionHeader = styled.div`
+const LegHead = styled.div`
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    font-weight: 700;
-    color: #0ea5e9;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 2px;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
 
-    svg { width: 13px; height: 13px; flex-shrink: 0; }
+    h3 { display: flex; align-items: center; gap: 8px; }
+    h3 svg { width: 16px; height: 16px; color: ${ui.brandInk}; }
 `;
-
-const Divider = styled.hr`
-    border: none;
-    border-top: 1px solid #f1f5f9;
-    margin: 4px 0;
-`;
-
-// ─── Dodane przy przebudowie ──────────────────────────────────────────────────
 
 const EnableRow = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding-bottom: 14px;
-    margin-bottom: 4px;
-    border-bottom: 1px solid #f1f5f9;
+    padding: 12px 14px;
+    border-radius: ${ui.radiusStrip};
+    background: ${ui.surfaceSoft};
+    border: 1px solid ${ui.lineSoft};
 `;
 
 const EnableText = styled.div`
@@ -112,104 +70,35 @@ const EnableText = styled.div`
     flex-direction: column;
     gap: 2px;
     min-width: 0;
-`;
 
-const EnableTitle = styled.span`
-    font-size: 14px;
-    font-weight: 600;
-    color: #0f172a;
-`;
-
-const EnableHint = styled.span`
-    font-size: 12px;
-    color: #64748b;
-`;
-
-const SectionHeadRow = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    flex-wrap: wrap;
-`;
-
-/* "Odwieźcie tam, skąd wzięliście" to najczęstszy wariant po odbiorze z domu -
-   bez tego trzeba było przepisywać ten sam adres ręcznie. */
-const CopyBtn = styled.button`
-    background: none;
-    border: none;
-    padding: 0;
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    color: #0284c7;
-    cursor: pointer;
-
-    &:hover { color: #0369a1; }
-    &:disabled { color: #cbd5e1; cursor: default; }
-`;
-
-/* Który odcinek trasy bierzemy na siebie, wynika z tego, które adresy są
-   wypełnione - nie każde zlecenie to przejazd w obie strony. Mówimy to wprost,
-   zamiast kazać użytkownikowi zgadywać. */
-const RouteSummary = styled.p`
-    display: flex;
-    align-items: flex-start;
-    gap: 7px;
-    margin: 0;
-    padding: 9px 11px;
-    border-radius: 8px;
-    background: #f0f9ff;
-    color: #075985;
-    font-size: 12.5px;
-    line-height: 1.45;
-
-    svg {
-        width: 14px;
-        height: 14px;
-        flex-shrink: 0;
-        margin-top: 1px;
-    }
-`;
-
-const FormError = styled.p`
-    margin: 0;
-    padding: 9px 11px;
-    border-radius: 8px;
-    background: #fef2f2;
-    color: #b91c1c;
-    font-size: 12.5px;
-    line-height: 1.45;
+    strong { font-size: 14px; font-weight: 600; color: ${ui.ink}; }
+    span { font-size: 12.5px; color: ${ui.textMuted}; }
 `;
 
 const FieldError = styled.p`
-    margin: 4px 0 0;
-    font-size: 12px;
-    color: #dc2626;
+    margin: 0;
+    font-size: 12.5px;
+    color: ${ui.dangerInk};
 `;
 
-const Select = styled.select`
-    padding: 8px 11px;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 14px;
+const NativeSelect = styled.select`
+    width: 100%;
+    padding: 12px 14px;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
     font-family: inherit;
-    color: #0f172a;
-    background: #fff;
+    font-size: 14px;
+    color: ${ui.ink};
     outline: none;
-    transition: border-color 150ms ease, box-shadow 150ms ease;
-
-    &:focus {
-        border-color: #0ea5e9;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
-    }
+    cursor: pointer;
 `;
 
 const DisabledNote = styled.p`
     margin: 0;
-    font-size: 13px;
+    font-size: 13.5px;
     line-height: 1.5;
-    color: #64748b;
+    color: ${ui.textMuted};
 `;
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -320,176 +209,155 @@ export const DoorToDoorModal = ({
 
     const driverOptions = employees.map(e => ({ id: e.id, label: e.fullName }));
 
+    const addressField = (
+        leg: 'pickupAddress' | 'deliveryAddress',
+        key: 'city' | 'street',
+        label: string,
+        placeholder: string,
+    ) => {
+        const id = `d2d-${leg}-${key}`;
+        return (
+            <Field>
+                <FieldLabel htmlFor={id}>{label}</FieldLabel>
+                <InputShell>
+                    <BareInput
+                        id={id}
+                        value={data[leg][key]}
+                        onChange={e => update({ [leg]: { ...data[leg], [key]: e.target.value } })}
+                        placeholder={placeholder}
+                    />
+                </InputShell>
+            </Field>
+        );
+    };
+
     return (
-        <ModalShell isOpen={isOpen} onClose={onClose} size="sm">
+        <ModalShell isOpen={isOpen} onClose={onClose} size="md">
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>Door to Door</ModalTitle>
+                    <ModalTitle>Door to door</ModalTitle>
+                    <ModalSubtitle>Odbiór auta od klienta, odwiezienie po realizacji albo jedno i drugie</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
 
             <ModalContent>
-                <Section>
-                    {/* Klient potrafi zrezygnować z dowozu - dotąd nie było jak
-                        tego odnotować: EMPTY.enabled było na sztywno true, a zapis
-                        i tak wymuszał true. */}
+                <Form>
+                    {/* Klient potrafi zrezygnować z dowozu - wyłączenie zachowuje adresy. */}
                     <EnableRow>
                         <EnableText>
-                            <EnableTitle>Dowóz i odbiór pojazdu</EnableTitle>
-                            <EnableHint>
-                                {data.enabled ? 'Usługa zlecona dla tej wizyty' : 'Usługa wyłączona'}
-                            </EnableHint>
+                            <strong>Dowóz i odbiór pojazdu</strong>
+                            <span>{data.enabled ? 'Usługa zlecona dla tej wizyty' : 'Usługa wyłączona'}</span>
                         </EnableText>
                         <Toggle
                             size="sm"
                             checked={data.enabled}
                             onChange={v => update({ enabled: v })}
-                            ariaLabel="Usługa Door to Door"
+                            ariaLabel="Usługa Door to door"
                         />
                     </EnableRow>
 
                     {!data.enabled ? (
                         <DisabledNote>
                             Adresy i termin zostaną zachowane, ale wizyta nie będzie
-                            oznaczona jako Door to Door.
+                            oznaczona jako Door to door.
                         </DisabledNote>
                     ) : (
                         <>
-                            <div>
-                                <SectionHeader>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <circle cx="12" cy="10" r="3" />
-                                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
-                                    </svg>
-                                    Miejsce odbioru
-                                </SectionHeader>
-                                {/* Adres odbioru był polem TYLKO DO ODCZYTU pokazującym "-".
-                                    Gdy wizyta nie powstała jako Door to Door, nie dało się go
-                                    w ogóle wpisać - a prośba "odwieźcie mi auto" pada
-                                    najczęściej właśnie w trakcie realizacji. */}
+                            {/* Adres odbioru da się wpisać także w trakcie realizacji - prośba
+                                „odwieźcie mi auto" pada najczęściej właśnie wtedy. */}
+                            <Leg aria-labelledby="d2d-pickup-title">
+                                <LegHead>
+                                    <SectionTitle as="h3" id="d2d-pickup-title"><MapPin aria-hidden="true" />Odbiór od klienta</SectionTitle>
+                                </LegHead>
                                 <TwoCol>
-                                    <FieldGroup>
-                                        <Label>Miasto</Label>
-                                        <Input
-                                            value={data.pickupAddress.city}
-                                            onChange={e => update({ pickupAddress: { ...data.pickupAddress, city: e.target.value } })}
-                                            placeholder="np. Warszawa"
-                                        />
-                                    </FieldGroup>
-                                    <FieldGroup>
-                                        <Label>Ulica i numer</Label>
-                                        <Input
-                                            value={data.pickupAddress.street}
-                                            onChange={e => update({ pickupAddress: { ...data.pickupAddress, street: e.target.value } })}
-                                            placeholder="np. ul. Kowalska 12"
-                                        />
-                                    </FieldGroup>
+                                    {addressField('pickupAddress', 'city', 'Miasto', 'np. Warszawa')}
+                                    {addressField('pickupAddress', 'street', 'Ulica i numer', 'np. ul. Kowalska 12')}
                                 </TwoCol>
                                 {touched && errors.pickup && <FieldError>{errors.pickup}</FieldError>}
-                            </div>
+                            </Leg>
 
-                            <Divider />
-
-                            <div>
-                                <SectionHeadRow>
-                                    <SectionHeader>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                                            <polyline points="9 22 9 12 15 12 15 22" />
-                                        </svg>
-                                        Miejsce dostarczenia
-                                    </SectionHeader>
-                                    <CopyBtn
-                                        type="button"
+                            <Leg aria-labelledby="d2d-delivery-title">
+                                <LegHead>
+                                    <SectionTitle as="h3" id="d2d-delivery-title"><House aria-hidden="true" />Dostarczenie po realizacji</SectionTitle>
+                                    {/* „Odwieźcie tam, skąd wzięliście" to najczęstszy wariant. */}
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
                                         onClick={copyPickupToDelivery}
                                         disabled={pickupState !== 'complete'}
                                     >
                                         Taki sam jak odbiór
-                                    </CopyBtn>
-                                </SectionHeadRow>
+                                    </Button>
+                                </LegHead>
                                 <TwoCol>
-                                    <FieldGroup>
-                                        <Label>Miasto</Label>
-                                        <Input
-                                            value={data.deliveryAddress.city}
-                                            onChange={e => update({ deliveryAddress: { ...data.deliveryAddress, city: e.target.value } })}
-                                            placeholder="np. Warszawa"
-                                        />
-                                    </FieldGroup>
-                                    <FieldGroup>
-                                        <Label>Ulica i numer</Label>
-                                        <Input
-                                            value={data.deliveryAddress.street}
-                                            onChange={e => update({ deliveryAddress: { ...data.deliveryAddress, street: e.target.value } })}
-                                            placeholder="np. ul. Kowalska 12"
-                                        />
-                                    </FieldGroup>
+                                    {addressField('deliveryAddress', 'city', 'Miasto', 'np. Warszawa')}
+                                    {addressField('deliveryAddress', 'street', 'Ulica i numer', 'np. ul. Kowalska 12')}
                                 </TwoCol>
                                 {touched && errors.delivery && <FieldError>{errors.delivery}</FieldError>}
-                            </div>
+                            </Leg>
 
-                            {routeSummary && (
-                                <RouteSummary>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <circle cx="12" cy="12" r="10" />
-                                        <path d="M12 16v-4M12 8h.01" />
-                                    </svg>
-                                    {routeSummary}
-                                </RouteSummary>
-                            )}
-                            {touched && errors.form && <FormError>{errors.form}</FormError>}
-
-                            <Divider />
+                            {/* Który odcinek bierzemy na siebie, wynika z wypełnionych adresów -
+                                mówimy to wprost, zamiast kazać zgadywać. */}
+                            {routeSummary && <Notice tone="info">{routeSummary}</Notice>}
+                            {touched && errors.form && <Notice tone="danger" role="alert">{errors.form}</Notice>}
 
                             <TwoCol>
-                                <FieldGroup>
-                                    <Label>Kierowca</Label>
-                                    <Select
-                                        value={data.driverId ?? ''}
-                                        onChange={e => {
-                                            const id = e.target.value || null;
-                                            update({
-                                                driverId: id,
-                                                driverName: driverOptions.find(d => d.id === id)?.label ?? null,
-                                            });
-                                        }}
-                                    >
-                                        <option value="">Nieprzypisany</option>
-                                        {driverOptions.map(d => (
-                                            <option key={d.id} value={d.id}>{d.label}</option>
-                                        ))}
-                                    </Select>
-                                </FieldGroup>
-                                <FieldGroup>
-                                    <Label>Termin dostarczenia</Label>
+                                <Field>
+                                    <FieldLabel htmlFor="d2d-driver">Kierowca</FieldLabel>
+                                    <InputShell>
+                                        <NativeSelect
+                                            id="d2d-driver"
+                                            value={data.driverId ?? ''}
+                                            onChange={e => {
+                                                const id = e.target.value || null;
+                                                update({
+                                                    driverId: id,
+                                                    driverName: driverOptions.find(d => d.id === id)?.label ?? null,
+                                                });
+                                            }}
+                                        >
+                                            <option value="">Nieprzypisany</option>
+                                            {driverOptions.map(d => (
+                                                <option key={d.id} value={d.id}>{d.label}</option>
+                                            ))}
+                                        </NativeSelect>
+                                    </InputShell>
+                                </Field>
+                                <Field>
+                                    <FieldLabel>Termin</FieldLabel>
                                     <DateTimePicker
                                         value={data.scheduledAt ?? ''}
                                         onChange={v => update({ scheduledAt: v || null })}
                                         showTime
                                         placeholder="Wybierz datę i godzinę"
+                                        accentColor={ui.brand}
                                     />
-                                </FieldGroup>
+                                </Field>
                             </TwoCol>
 
-                            <FieldGroup>
-                                <Label>Uwagi</Label>
-                                <TextArea
-                                    value={data.notes}
-                                    onChange={e => update({ notes: e.target.value })}
-                                    placeholder="np. kod do bramy, piętro, kontakt na miejscu"
-                                />
-                            </FieldGroup>
+                            <Field>
+                                <FieldLabel htmlFor="d2d-notes">Uwagi dla kierowcy</FieldLabel>
+                                <InputShellTextArea>
+                                    <BareTextArea
+                                        id="d2d-notes"
+                                        value={data.notes}
+                                        onChange={e => update({ notes: e.target.value })}
+                                        placeholder="np. kod do bramy, piętro, kontakt na miejscu"
+                                        style={{ minHeight: 72 }}
+                                    />
+                                </InputShellTextArea>
+                            </Field>
                         </>
                     )}
-                </Section>
+                </Form>
             </ModalContent>
 
             <ModalFooter>
-                <SharedButton $variant="secondary" onClick={onClose}>Anuluj</SharedButton>
-                <SharedButton $variant="primary" onClick={handleSave} disabled={isSaving}>
-                    {isSaving ? 'Zapisuję...' : 'Zapisz'}
-                </SharedButton>
+                <Button onClick={onClose}>Anuluj</Button>
+                <Button variant="primary" onClick={handleSave} disabled={isSaving}>
+                    {isSaving ? 'Zapisywanie...' : 'Zapisz'}
+                </Button>
             </ModalFooter>
         </ModalShell>
     );

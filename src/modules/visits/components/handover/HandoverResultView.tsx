@@ -5,7 +5,7 @@ import { formatCurrency } from '@/common/utils';
 import { useToast } from '@/common/components/Toast';
 import { useKsefAutomation } from '@/modules/finance/hooks';
 import { ksefRevenueApi } from '@/modules/finance/api/ksefRevenueApi';
-import { SharedButton } from '@/common/styles';
+import { Button, ui } from '@/common/components/ui';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { Box, BoxRow, Money, Muted } from './HandoverKit';
 import type { CompleteVisitResponse } from '../../types/stateTransitions';
@@ -29,8 +29,8 @@ const Mark = styled.div<{ $tone: 'ok' | 'warn' | 'bad' }>`
     flex-shrink: 0;
 
     background: ${p =>
-        p.$tone === 'ok' ? st.accentGreenDim : p.$tone === 'warn' ? st.accentAmberDim : st.accentRedDim};
-    color: ${p => (p.$tone === 'ok' ? st.accentGreen : p.$tone === 'warn' ? st.accentAmber : st.accentRed)};
+        p.$tone === 'ok' ? ui.okTint : p.$tone === 'warn' ? ui.warnTint : ui.dangerTint};
+    color: ${p => (p.$tone === 'ok' ? ui.okInk : p.$tone === 'warn' ? '#b45309' : ui.dangerInk)};
 
     svg { width: 26px; height: 26px; }
 `;
@@ -70,7 +70,7 @@ const ThankYouLabel = styled.span`
     font-size: ${st.fontSm};
     color: ${st.textSecondary};
 
-    svg { width: 14px; height: 14px; color: ${st.accentBlue}; }
+    svg { width: 14px; height: 14px; color: ${ui.brandInk}; }
 `;
 
 const Actions = styled.div`
@@ -95,7 +95,7 @@ interface Presentation {
 }
 
 /** KSeF 440: numer dokumentu jest już zajęty pod tym NIP-em. */
-export const isDuplicateRejection = (error?: string | null): boolean =>
+const isDuplicateRejection = (error?: string | null): boolean =>
     !!error && (error.includes('440') || /duplikat/i.test(error));
 
 /**
@@ -299,30 +299,20 @@ export const HandoverResultView = ({
 
             <Actions>
                 {!!result.ksefInvoiceId && (
-                    <SharedButton
-                        $variant="secondary"
-                        type="button"
-                        onClick={handleOpenPdf}
-                        disabled={openingPdf}
-                    >
-                        <FileText size={15} />
+                    <Button onClick={handleOpenPdf} disabled={openingPdf}>
+                        <FileText />
                         {openingPdf ? 'Otwieranie...' : 'Faktura PDF'}
-                    </SharedButton>
+                    </Button>
                 )}
                 {canDownloadXml && (
-                    <SharedButton
-                        $variant="secondary"
-                        type="button"
-                        onClick={handleDownload}
-                        disabled={downloading}
-                    >
-                        <Download size={15} />
+                    <Button onClick={handleDownload} disabled={downloading}>
+                        <Download />
                         {downloading ? 'Pobieranie...' : 'Pobierz plik'}
-                    </SharedButton>
+                    </Button>
                 )}
-                <SharedButton $variant="primary" type="button" onClick={onClose}>
+                <Button variant="primary" onClick={onClose}>
                     Wróć do wizyty
-                </SharedButton>
+                </Button>
             </Actions>
         </Wrap>
     );

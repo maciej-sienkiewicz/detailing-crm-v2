@@ -2,7 +2,7 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { FormGrid, FormField, FieldLabel, InputShell, BareInput } from '@/common/components/Form';
-import { SharedButton } from '@/common/styles';
+import { Button } from '@/common/components/ui';
 import { companyApi } from '@/modules/settings/api/companyApi';
 import type { CompanySettings } from '@/modules/settings/types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -128,15 +128,16 @@ export const SellerPrompt = ({ company }: SellerPromptProps) => {
                     </InputShell>
                 </FormField>
             </FormGrid>
-            <SharedButton
-                $variant="primary"
-                $size="sm"
-                type="button"
+            {/* Odcień, nie wypełnienie: krokiem następnym okna jest „Wydaj pojazd" w stopce. */}
+            <Button
+                variant="tinted"
+                size="sm"
                 disabled={save.isPending || !draft.name.trim() || !draft.taxId.trim()}
                 onClick={() => save.mutate()}
+                style={{ alignSelf: 'flex-start' }}
             >
                 {save.isPending ? 'Zapisywanie...' : 'Zapisz dane firmy'}
-            </SharedButton>
+            </Button>
         </Box>
     );
 };

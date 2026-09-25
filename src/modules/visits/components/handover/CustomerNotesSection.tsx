@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import { MessageSquareQuote } from 'lucide-react';
 import { formatDateTime } from '@/common/utils';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { Section, SectionLabel } from './HandoverKit';
@@ -18,16 +17,15 @@ const NotesBox = styled.div`
     background: #fffbeb;
     border: 1px solid #fde68a;
     border-left: 3px solid ${st.accentAmber};
-    border-radius: ${st.radiusSm};
+    border-radius: 12px;
 `;
 
 const AmberLabel = styled(SectionLabel)`
     display: flex;
-    align-items: center;
-    gap: 6px;
-    color: #92400e;
+    align-items: baseline;
+    gap: 8px;
 
-    svg { width: 13px; height: 13px; }
+    span { font-size: 13px; font-weight: 500; color: #64748b; }
 `;
 
 const Note = styled.div`
@@ -86,8 +84,7 @@ export const CustomerNotesSection = ({ comments }: CustomerNotesSectionProps) =>
     return (
         <Section>
             <AmberLabel>
-                <MessageSquareQuote strokeWidth={2.2} />
-                Do przekazania klientowi · {comments.length}
+                Do przekazania klientowi <span>{comments.length}</span>
             </AmberLabel>
             <NotesBox>
                 {comments.map(comment => (

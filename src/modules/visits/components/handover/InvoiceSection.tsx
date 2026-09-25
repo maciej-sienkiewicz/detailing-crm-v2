@@ -53,7 +53,10 @@ const BuyerName = styled.span`
 `;
 
 const BuyerMeta = styled.span`
-    font-size: ${st.fontXs};
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 12px;
+    font-size: 12.5px;
     color: ${st.textSecondary};
     font-variant-numeric: tabular-nums;
     overflow-wrap: anywhere;
@@ -211,8 +214,9 @@ export const InvoiceSection = ({
                             {state.buyer.name.trim() || 'Nabywca nieokreślony'}
                         </BuyerName>
                         <BuyerMeta>
-                            {isCompanyBuyer ? `NIP ${formatNip(nip)}` : 'Faktura dla konsumenta'}
-                            {addressSummary && ` · ${addressSummary}`}
+                            {/* Dwa fakty jako dwa elementy, nie ciąg z kropką (CLAUDE.md §4). */}
+                            <span>{isCompanyBuyer ? `NIP ${formatNip(nip)}` : 'Faktura dla konsumenta'}</span>
+                            {addressSummary && <span>{addressSummary}</span>}
                         </BuyerMeta>
                     </BuyerText>
                 </BuyerLine>
@@ -232,9 +236,9 @@ export const InvoiceSection = ({
             {/* ── Pozycje ─────────────────────────────────────────────────── */}
             <BoxRow>
                 <RowLabel>
-                    Pozycje: <strong>{state.items.length}</strong> ·{' '}
+                    {state.items.length} {state.items.length === 1 ? 'pozycja' : state.items.length % 10 >= 2 && state.items.length % 10 <= 4 && (state.items.length % 100 < 12 || state.items.length % 100 > 14) ? 'pozycje' : 'pozycji'} na{' '}
                     <strong className="num">{fmt(invoiceGross)}</strong>
-                    {invoiceGross === visitGross && ' · zgodne z usługami wizyty'}
+                    {invoiceGross === visitGross && ', zgodnie z usługami wizyty'}
                 </RowLabel>
                 <GhostAction type="button" onClick={() => setItemsOpen(open => !open)}>
                     {areItemsOpen ? <ChevronDown /> : <ChevronRight />}

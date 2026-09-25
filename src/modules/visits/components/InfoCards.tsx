@@ -32,7 +32,7 @@ const RailPanel = styled(Panel)`
 
 const Head = styled.div`
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 8px;
     min-width: 0;
@@ -61,40 +61,19 @@ const Missing = styled.span`
 
 // ─── Klient ───────────────────────────────────────────────────────────────────
 
-const Person = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 12px;
-    min-width: 0;
-`;
 
-const Initials = styled.span`
-    width: 40px;
-    height: 40px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 12px;
-    background: ${ui.brandTintHover};
-    color: ${ui.brandInk};
-    font-size: 14px;
-    font-weight: 700;
-`;
 
-const PersonText = styled.span`
+
+
+/* Nazwa klienta JEST nagłówkiem karty. Osobny nagłówek „Klient" plus awatar
+   z inicjałami zajmowały dwa wiersze, żeby powiedzieć to, co i tak stoi obok. */
+const NameTitle = styled.div`
     display: flex;
     flex-direction: column;
     gap: 2px;
     min-width: 0;
-`;
 
-const PersonName = styled.span`
-    font-size: 15px;
-    font-weight: 700;
-    color: ${ui.ink};
-    overflow-wrap: anywhere;
+    h2 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.005em; color: ${ui.ink}; overflow-wrap: anywhere; }
 `;
 
 const PersonSub = styled.span`
@@ -110,10 +89,6 @@ const ContactButtons = styled.div`
     margin-top: 12px;
 `;
 
-function initialsOf(first?: string | null, last?: string | null): string {
-    const letters = [first, last].map(p => (p ?? '').trim().charAt(0)).join('').toUpperCase();
-    return letters || '?';
-}
 
 interface CustomerInfoCardProps {
     customer: CustomerInfo;
@@ -171,21 +146,18 @@ export const CustomerInfoCard = ({ customer, visitId, onViewDetails, compact, ch
     return (
         <RailPanel id={id} aria-labelledby="visit-customer-title">
             <Head>
-                <SectionTitle id="visit-customer-title">Klient</SectionTitle>
+                <NameTitle>
+                    <h2 id="visit-customer-title">
+                        <PiiValue value={fullName} kind="name" emptyFallback="Klient bez nazwy" />
+                    </h2>
+                    {sub && <PersonSub>{sub}</PersonSub>}
+                </NameTitle>
                 {onViewDetails && can('CUSTOMERS_VIEW') && (
-                    <Button variant="ghost" size="sm" onClick={onViewDetails}>
-                        Profil klienta<ArrowUpRight />
+                    <Button variant="ghost" size="sm" onClick={onViewDetails} title="Profil klienta">
+                        Profil<ArrowUpRight />
                     </Button>
                 )}
             </Head>
-
-            <Person>
-                <Initials aria-hidden="true">{masked ? '?' : initialsOf(customer.firstName, customer.lastName)}</Initials>
-                <PersonText>
-                    <PersonName><PiiValue value={fullName} kind="name" emptyFallback="Brak nazwy" /></PersonName>
-                    {sub && <PersonSub>{sub}</PersonSub>}
-                </PersonText>
-            </Person>
 
             {compact ? (
                 <>
