@@ -6,6 +6,17 @@
 // środek kadru wybiera człowiek, bo automatyczne cięcie ze środka ucina czoło
 // na portretach robionych z góry.
 
+/**
+ * Adres absolutny obrazka stopki z domeny, na której działa aplikacja.
+ *
+ * Backend zwraca ścieżkę (/api/public/mail-signature/...), bo tylko przeglądarka wie na
+ * pewno, pod jakim adresem API jest osiągalne - to ten sam, przez który apiClient woła
+ * `/api`. Pierwsza wersja brała adres z konfiguracji backendu, której wdrożenie nie
+ * ustawiało, i obrazki nie wyświetlały się nigdzie.
+ */
+export const appAssetUrl = (path: string, origin: string = window.location.origin): string =>
+    new URL(path, origin).toString().replace(/\/+$/, '');
+
 export const SIGNATURE_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 /** Surowy plik przed zmniejszeniem - telefonowe zdjęcia bywają spore, serwer i tak dostaje mniej. */
 export const SIGNATURE_IMAGE_MAX_BYTES = 20 * 1024 * 1024;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cropGeometry, validateSignatureImageFile } from './signatureImage';
+import { appAssetUrl, cropGeometry, validateSignatureImageFile } from './signatureImage';
 
 describe('cropGeometry', () => {
     it('bez przesunięcia i powiększenia tnie środek krótszego boku', () => {
@@ -37,5 +37,14 @@ describe('validateSignatureImageFile', () => {
         expect(validateSignatureImageFile(new File(['x'], 'a.svg', { type: 'image/svg+xml' }))).not.toBeNull();
         const big = new File([new Uint8Array(21 * 1024 * 1024)], 'a.jpg', { type: 'image/jpeg' });
         expect(validateSignatureImageFile(big)).not.toBeNull();
+    });
+});
+
+describe('appAssetUrl', () => {
+    it('składa adres obrazka z domeny aplikacji', () => {
+        expect(appAssetUrl('/api/public/mail-signature/s/0123456789abcdef.jpg', 'https://app.studio.pl'))
+            .toBe('https://app.studio.pl/api/public/mail-signature/s/0123456789abcdef.jpg');
+        expect(appAssetUrl('/api/public/mail-signature/icons/v1', 'http://localhost:5173'))
+            .toBe('http://localhost:5173/api/public/mail-signature/icons/v1');
     });
 });

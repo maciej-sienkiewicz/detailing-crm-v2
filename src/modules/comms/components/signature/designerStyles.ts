@@ -154,21 +154,3 @@ export const Choice = styled.button<{ $active: boolean }>`
 
     img { width: 16px; height: 16px; display: block; }
 `;
-
-export const LinkButton = styled.button`
-    align-self: flex-start;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 0;
-    border: 0;
-    background: none;
-    font-size: 13px;
-    font-weight: ${p => p.theme.fontWeights.medium};
-    font-family: inherit;
-    color: var(--brand-primary);
-    cursor: pointer;
-
-    &:hover { text-decoration: underline; }
-    &:disabled { opacity: 0.5; cursor: default; text-decoration: none; }
-`;

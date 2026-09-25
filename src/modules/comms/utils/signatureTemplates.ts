@@ -426,6 +426,40 @@ export function renderSignature(design: SignatureDesign, iconsBaseUrl: string): 
         `${prop}:${Math.round(Number(px) * scale)}px`);
 }
 
+// Zastępcze zdjęcie i logo: pokazują MIEJSCE na obrazek w podglądzie i na miniaturach
+// motywów. Bez nich motyw „Ze zdjęciem" bez wgranego zdjęcia wyglądał jak „Klasyczna"
+// i nie było widać, gdzie zdjęcie trafi. Do zapisanej stopki nigdy nie trafiają.
+export const SIGNATURE_PHOTO_PLACEHOLDER = `data:image/svg+xml,${encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="92" height="92" viewBox="0 0 92 92"><rect width="92" height="92" fill="#dfe4ea"/>' +
+    '<circle cx="46" cy="36" r="17" fill="#b4bcc6"/><path d="M14 92c3-20 17-31 32-31s29 11 32 31z" fill="#b4bcc6"/></svg>'
+)}`;
+export const SIGNATURE_LOGO_PLACEHOLDER = `data:image/svg+xml,${encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40" viewBox="0 0 120 40"><rect x=".5" y=".5" width="119" height="39" rx="4" fill="#f1f4f7" stroke="#cfd6de" stroke-dasharray="4 3"/>' +
+    '<text x="60" y="25" font-family="Arial" font-size="12" font-weight="700" fill="#8a94a1" text-anchor="middle">LOGO</text></svg>'
+)}`;
+
+/**
+ * Projekt z zastępczymi obrazkami w pustych miejscach, które motyw przewiduje. Tylko do
+ * podglądu i miniatur - zapisywany HTML renderuje się z projektu bez zmian.
+ */
+export function withImagePlaceholders(design: SignatureDesign): SignatureDesign {
+    const template = getSignatureTemplate(design.template);
+    return {
+        ...design,
+        photoUrl: template.images.includes('photoUrl') && !clean(design.photoUrl) ? SIGNATURE_PHOTO_PLACEHOLDER : design.photoUrl,
+        logoUrl: template.images.includes('logoUrl') && !clean(design.logoUrl) ? SIGNATURE_LOGO_PLACEHOLDER : design.logoUrl,
+    };
+}
+
+/** Miejsca na obrazki, które motyw przewiduje, a projekt ich jeszcze nie ma. */
+export const missingImages = (design: SignatureDesign): SignatureImageKey[] => {
+    const template = getSignatureTemplate(design.template);
+    return template.images.filter(key => !clean(design[key]));
+};
+
+/** Czy podgląd pokazuje choć jedno zastępcze miejsce na obrazek. */
+export const hasImagePlaceholders = (design: SignatureDesign): boolean => missingImages(design).length > 0;
+
 /** Nowy projekt: dane z konta i studia, motyw i kolor startowy. */
 export function createSignatureDesign(
     defaults: Partial<Record<SignatureTextKey, string | null>>,

@@ -24,7 +24,7 @@ vi.mock('@/common/components/Toast', () => ({
     useToast: () => ({ showError: vi.fn(), showSuccess: vi.fn() }),
 }));
 
-const ICONS = 'https://api.example.pl/api/public/mail-signature/icons/v1';
+const ICONS_PATH = '/api/public/mail-signature/icons/v1';
 
 const defaults: MailSignature['defaults'] = {
     fullName: 'Jan Nowak',
@@ -48,7 +48,7 @@ const saveButton = () => screen.getByRole('button', { name: 'Zapisz stopkę' });
 describe('SignatureSettingsModal', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        signature = { bodyHtml: null, enabledByDefault: false, design: null, iconsBaseUrl: ICONS, defaults };
+        signature = { bodyHtml: null, enabledByDefault: false, design: null, iconsPath: ICONS_PATH, defaults };
     });
 
     it('pierwsze uruchomienie: kreator z danymi z konta, zapis wysyła HTML motywu i projekt', async () => {
@@ -75,6 +75,40 @@ describe('SignatureSettingsModal', () => {
         expect(preview.textContent).toContain('Studio Blask');
         expect(save.mock.calls[0][0].bodyHtml).toContain('Studio Blask');
         expect(save.mock.calls[0][0].design.template).toBe('firmowa');
+    });
+
+    it('podgląd pokazuje miejsce na zdjęcie, zapis go nie zawiera', async () => {
+        renderModal();
+
+        await userEvent.click(screen.getByRole('button', { name: /Ze zdjęciem/ }));
+        const preview = screen.getByLabelText('Podgląd wiadomości ze stopką');
+        expect(preview.querySelector('img[src^="data:image/svg+xml"]')).not.toBeNull();
+        expect(screen.getByText(/Szare koło to miejsce na zdjęcie/)).toBeInTheDocument();
+
+        await userEvent.click(saveButton());
+        expect(save.mock.calls[0][0].bodyHtml).not.toContain('data:image');
+    });
+
+    it('ikony idą z domeny aplikacji, a nie z konfiguracji backendu', async () => {
+        signature = {
+            ...signature,
+            bodyHtml: '<table></table>',
+            design: { template: 'klasyczna', fullName: 'Jan Nowak', linkedin: 'linkedin.com/in/jan', color: '#123abc', font: 'arial', size: 'm', iconStyle: 'mono' },
+        };
+        renderModal();
+
+        await userEvent.click(saveButton());
+        expect(save.mock.calls[0][0].bodyHtml).toContain(`src="${window.location.origin}${ICONS_PATH}/mono/linkedin.png"`);
+    });
+
+    it('przełącznik trybu zamienia kreator na stopkę tekstową i z powrotem', async () => {
+        renderModal();
+
+        await userEvent.click(screen.getByRole('radio', { name: /Zwykły tekst/ }));
+        expect(screen.getByRole('textbox', { name: 'Treść stopki' })).toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('radio', { name: /Motyw graficzny/ }));
+        expect(screen.getByRole('button', { name: /Dwa pasma/ })).toBeInTheDocument();
     });
 
     it('wybór motywu z logo raz podstawia logo studia z ustawień firmy', async () => {

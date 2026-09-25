@@ -6,7 +6,7 @@
 // przechowuje wyłącznie adresy, bo obrazek pobiera klient poczty odbiorcy, a nie my.
 import { useRef, useState } from 'react';
 import styled from 'styled-components';
-import { Building2, ImagePlus, Link2, Loader2, Trash2, User } from 'lucide-react';
+import { Building2, ImageOff, ImagePlus, Link2, Loader2, Trash2, User } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
 import { apiErrorMessage } from '@/modules/visits/api/apiError';
 import { useCopyCompanyLogoToSignature, useUploadSignatureImage } from '../../hooks/useComms';
@@ -14,13 +14,13 @@ import type { SignatureImageKind } from '../../types';
 import { shrinkLogo, validateSignatureImageFile } from '../../utils/signatureImage';
 import { IconButton } from '../shared';
 import { PhotoCropDialog } from './PhotoCropDialog';
-import { Field, FieldLabel, Help, Input, LinkButton, brandTint } from './designerStyles';
+import { Field, FieldLabel, Help, Input, brandTint } from './designerStyles';
 
+/** Miniatura zawsze obok przycisków - przy czterech przyciskach zawijają się one, nie cały wiersz. */
 const Row = styled.div`
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 14px;
-    flex-wrap: wrap;
 `;
 
 const Drop = styled.div<{ $round: boolean; $over: boolean }>`
@@ -44,6 +44,7 @@ const Drop = styled.div<{ $round: boolean; $over: boolean }>`
 `;
 
 const Actions = styled.div`
+    flex: 1;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -82,6 +83,10 @@ export function SignatureImageField({ kind, label, help, value, onChange, compan
     const [urlOpen, setUrlOpen] = useState(false);
     const [urlDraft, setUrlDraft] = useState('');
     const [over, setOver] = useState(false);
+    // Adres, pod którym obrazek się nie wczytał. Pamiętamy KTÓRY, a nie flagę - nowy adres
+    // (inny plik, inny link) dostaje czystą kartę bez resetowania stanu w efekcie.
+    const [brokenFor, setBrokenFor] = useState<string | null>(null);
+    const broken = Boolean(value) && brokenFor === value;
     const busy = upload.isPending || copyCompanyLogo.isPending;
 
     const send = (blob: Blob) =>
@@ -144,7 +149,15 @@ export function SignatureImageField({ kind, label, help, value, onChange, compan
                         void accept(event.dataTransfer.files[0]);
                     }}
                 >
-                    {busy ? <Loader2 className="spin" /> : value ? <img src={value} alt="" /> : <Placeholder />}
+                    {busy ? (
+                        <Loader2 className="spin" />
+                    ) : value && !broken ? (
+                        <img src={value} alt="" onError={() => setBrokenFor(value)} />
+                    ) : broken ? (
+                        <ImageOff />
+                    ) : (
+                        <Placeholder />
+                    )}
                 </Drop>
                 <Actions>
                     <Buttons>
@@ -156,18 +169,27 @@ export function SignatureImageField({ kind, label, help, value, onChange, compan
                                 <Building2 /> Użyj logo firmy
                             </IconButton>
                         )}
+                        <IconButton
+                            type="button"
+                            onClick={() => setUrlOpen(open => !open)}
+                            disabled={busy}
+                            aria-expanded={urlOpen}
+                            title="Obrazek, który masz już w internecie, np. na swojej stronie"
+                        >
+                            <Link2 /> Wklej link
+                        </IconButton>
                         {value && (
                             <IconButton type="button" onClick={() => onChange(null)} disabled={busy} aria-label={`Usuń: ${label}`}>
                                 <Trash2 />
                             </IconButton>
                         )}
                     </Buttons>
-                    <Help>{help}</Help>
-                    {!urlOpen && (
-                        <LinkButton type="button" onClick={() => setUrlOpen(true)} disabled={busy}>
-                            <Link2 size={12} />
-                            …lub wklej link do obrazka
-                        </LinkButton>
+                    {broken ? (
+                        <Help style={{ color: '#b45309' }}>
+                            Nie udało się wczytać obrazka spod tego adresu. Wgraj plik albo podaj inny link.
+                        </Help>
+                    ) : (
+                        <Help>{help}</Help>
                     )}
                 </Actions>
             </Row>

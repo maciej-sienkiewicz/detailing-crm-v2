@@ -6,6 +6,8 @@ import styled from 'styled-components';
 import { Check, ImageIcon, LayoutTemplate, Palette, Share2, UserRound } from 'lucide-react';
 import {
     SIGNATURE_FONTS,
+    SIGNATURE_LOGO_PLACEHOLDER,
+    SIGNATURE_PHOTO_PLACEHOLDER,
     SIGNATURE_ICON_STYLES,
     SIGNATURE_SIZES,
     SIGNATURE_SOCIAL_FIELDS,
@@ -31,7 +33,6 @@ import {
     GroupTitle,
     Help,
     Input,
-    LinkButton,
     Note,
     Segmented,
     StepHeader,
@@ -121,28 +122,19 @@ const Tick = styled.span`
     svg { width: 13px; height: 13px; }
 `;
 
-// Zastępcze obrazki tylko do miniatur: bez nich motyw ze zdjęciem wyglądałby na karcie
-// jak „Klasyczna", zanim użytkownik cokolwiek wgra. Do stopki nigdy nie trafiają.
-const PHOTO_PLACEHOLDER = `data:image/svg+xml,${encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 92 92"><rect width="92" height="92" fill="#dfe4ea"/>' +
-    '<circle cx="46" cy="36" r="17" fill="#b4bcc6"/><path d="M14 92c3-20 17-31 32-31s29 11 32 31z" fill="#b4bcc6"/></svg>'
-)}`;
-const LOGO_PLACEHOLDER = `data:image/svg+xml,${encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40"><rect x=".5" y=".5" width="119" height="39" rx="4" fill="#fff" stroke="#cfd6de"/>' +
-    '<text x="60" y="25" font-family="Arial" font-size="12" font-weight="700" fill="#8a94a1" text-anchor="middle">LOGO</text></svg>'
-)}`;
-
-export function TemplateStep({ design, iconsBaseUrl, onSelect, onTextMode }: {
+export function TemplateStep({ design, iconsBaseUrl, onSelect }: {
     design: SignatureDesign;
     iconsBaseUrl: string;
     onSelect: (id: SignatureTemplateId) => void;
-    onTextMode: () => void;
 }) {
+    // Miniatury ZAWSZE na zastępczych obrazkach, także gdy zdjęcie i logo są już wgrane.
+    // Miniatura pokazuje układ motywu; prawdziwy obrazek doczytuje się po chwili i zmienia
+    // wymiary karty, więc przy przeklikiwaniu motywów kafelki przeskakiwały.
     const sample: SignatureDesign = {
         ...design,
         fullName: design.fullName?.trim() || 'Anna Kowalska',
-        photoUrl: design.photoUrl || PHOTO_PLACEHOLDER,
-        logoUrl: design.logoUrl || LOGO_PLACEHOLDER,
+        photoUrl: SIGNATURE_PHOTO_PLACEHOLDER,
+        logoUrl: SIGNATURE_LOGO_PLACEHOLDER,
         disclaimer: null,
     };
     return (
@@ -173,9 +165,6 @@ export function TemplateStep({ design, iconsBaseUrl, onSelect, onTextMode }: {
                     );
                 })}
             </TemplateGrid>
-            <LinkButton type="button" onClick={onTextMode}>
-                Wolisz zwykłą stopkę tekstową, bez motywu?
-            </LinkButton>
         </Step>
     );
 }

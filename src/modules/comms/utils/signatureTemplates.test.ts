@@ -5,8 +5,13 @@ import {
     createSignatureDesign,
     getSignatureTemplate,
     isHexColor,
+    hasImagePlaceholders,
     isSignatureDesignComplete,
+    missingImages,
     renderSignature,
+    SIGNATURE_LOGO_PLACEHOLDER,
+    SIGNATURE_PHOTO_PLACEHOLDER,
+    withImagePlaceholders,
     toHref,
     type SignatureDesign,
 } from './signatureTemplates';
@@ -155,6 +160,32 @@ describe('renderSignature', () => {
         );
         // MAX_DESIGNED_LENGTH w UserMailSignatureService.
         expect(Math.max(...longest)).toBeLessThan(16_000);
+    });
+});
+
+describe('withImagePlaceholders', () => {
+    it('wstawia zastępczy obrazek tylko w puste miejsca, które motyw przewiduje', () => {
+        const empty = { ...full, photoUrl: null, logoUrl: '' };
+        expect(withImagePlaceholders({ ...empty, template: 'ze-zdjeciem' })).toMatchObject({
+            photoUrl: SIGNATURE_PHOTO_PLACEHOLDER,
+            logoUrl: '',
+        });
+        expect(withImagePlaceholders({ ...empty, template: 'dwa-pasma' })).toMatchObject({
+            photoUrl: SIGNATURE_PHOTO_PLACEHOLDER,
+            logoUrl: SIGNATURE_LOGO_PLACEHOLDER,
+        });
+        expect(withImagePlaceholders({ ...empty, template: 'klasyczna' }).photoUrl).toBeNull();
+        expect(hasImagePlaceholders({ ...empty, template: 'klasyczna' })).toBe(false);
+        expect(hasImagePlaceholders({ ...empty, template: 'firmowa' })).toBe(true);
+        expect(missingImages({ ...empty, template: 'dwa-pasma', logoUrl: 'https://x.pl/l.png' })).toEqual(['photoUrl']);
+    });
+
+    it('wgranego obrazka nie zastępuje', () => {
+        expect(withImagePlaceholders({ ...full, template: 'baner-okrag' })).toMatchObject({
+            photoUrl: full.photoUrl,
+            logoUrl: full.logoUrl,
+        });
+        expect(hasImagePlaceholders({ ...full, template: 'baner-okrag' })).toBe(false);
     });
 });
 

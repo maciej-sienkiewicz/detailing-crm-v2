@@ -12,7 +12,7 @@
 // ramek - i dla stopek zapisanych, zanim kreator powstał.
 import { useCallback, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
-import { ArrowLeft, ArrowRight, Copy, Loader2, Trash2, Type, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ImageIcon, LayoutTemplate, Loader2, Trash2, Type, X } from 'lucide-react';
 import { ModalFooter, ModalHeader, ModalShell, ModalSubtitle, ModalTitle, ModalTitleGroup } from '@/common/components/ModalKit';
 import { ModalCloseButton } from '@/common/styles';
 import { useToast } from '@/common/components/Toast';
@@ -31,14 +31,17 @@ import {
     getSignatureTemplate,
     isHexColor,
     isSignatureDesignComplete,
+    missingImages,
     renderSignature,
+    withImagePlaceholders,
     type SignatureDesign,
     type SignatureTemplateId,
 } from '../utils/signatureTemplates';
+import { appAssetUrl } from '../utils/signatureImage';
 import { SignaturePreview } from './signature/SignaturePreview';
 import { DetailsStep, ImagesStep, SocialStep, StyleStep, TemplateStep } from './signature/SignatureSteps';
 import { SIGNATURE_STEPS, type SignatureStepId } from './signature/designerSteps';
-import { StepHeader, StepHint, StepIcon, StepTitle, TextArea, LinkButton, brandTint } from './signature/designerStyles';
+import { StepHeader, StepHint, StepIcon, StepTitle, TextArea, brandTint } from './signature/designerStyles';
 
 // ── Układ okna ───────────────────────────────────────────────────────────────
 
@@ -70,6 +73,60 @@ const Panel = styled.div`
         border-right: 0;
         border-bottom: 1px solid ${p => p.theme.colors.border};
     }
+`;
+
+/**
+ * Tryb stopki: motyw graficzny albo zwykły tekst. Przełącznik segmentowy, a nie link -
+ * to równorzędny wybór, nie poboczna ścieżka. Aktywny segment to biała „karta" na
+ * szarym tle, bez wypełnienia kolorem (jedno wypełnienie na okno: „Zapisz stopkę").
+ */
+const ModeSwitch = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin: 16px 24px 4px;
+    padding: 4px;
+    border-radius: ${p => p.theme.radii.lg};
+    background: ${p => p.theme.colors.surfaceAlt};
+    border: 1px solid ${p => p.theme.colors.border};
+    flex-shrink: 0;
+`;
+
+const ModeOption = styled.button<{ $active: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: ${p => p.theme.radii.md};
+    white-space: nowrap;
+    background: ${p => (p.$active ? p.theme.colors.surface : 'transparent')};
+    box-shadow: ${p => (p.$active ? '0 1px 2px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.04)' : 'none')};
+    color: ${p => (p.$active ? p.theme.colors.text : p.theme.colors.textSecondary)};
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: ${p => (p.$active ? p.theme.fontWeights.semibold : p.theme.fontWeights.medium)};
+    cursor: pointer;
+    transition: background ${p => p.theme.transitions.fast}, color ${p => p.theme.transitions.fast};
+
+    svg { width: 15px; height: 15px; color: ${p => (p.$active ? 'var(--brand-primary)' : 'currentColor')}; }
+    &:hover { color: ${p => p.theme.colors.text}; }
+`;
+
+const PreviewHint = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: ${p => p.theme.radii.md};
+    border: 1px dashed ${p => p.theme.colors.border};
+    background: ${p => p.theme.colors.surface};
+    font-size: 13px;
+    color: ${p => p.theme.colors.textSecondary};
+
+    > svg { flex-shrink: 0; width: 16px; height: 16px; color: ${p => p.theme.colors.textMuted}; }
+    > span { flex: 1; }
 `;
 
 const Tabs = styled.nav`
@@ -274,10 +331,23 @@ function SignatureDesigner({ signature, onClose }: DesignerProps) {
         if ('fullName' in changes) setNameInvalid(false);
     }, []);
 
+    const iconsBaseUrl = useMemo(() => appAssetUrl(signature.iconsPath), [signature.iconsPath]);
+
+    // Zapisywany HTML i podgląd różnią się wyłącznie zastępczymi obrazkami: podgląd pokazuje
+    // miejsce na zdjęcie i logo, którego motyw jeszcze nie ma, zapis - nic w tym miejscu.
     const html = useMemo(
-        () => (isHexColor(design.color) ? renderSignature(design, signature.iconsBaseUrl) : null),
-        [design, signature.iconsBaseUrl]
+        () => (isHexColor(design.color) ? renderSignature(design, iconsBaseUrl) : null),
+        [design, iconsBaseUrl]
     );
+    const previewHtml = useMemo(
+        () => (isHexColor(design.color) ? renderSignature(withImagePlaceholders(design), iconsBaseUrl) : null),
+        [design, iconsBaseUrl]
+    );
+    const missing = missingImages(design);
+    const placeholderHint =
+        missing.length === 2 ? 'Szare pola to miejsca na zdjęcie i logo - bez nich stopka wyjdzie bez tych elementów.'
+            : missing[0] === 'photoUrl' ? 'Szare koło to miejsce na zdjęcie - bez niego stopka wyjdzie bez zdjęcia.'
+                : 'Szare pole to miejsce na logo - bez niego stopka wyjdzie bez logo.';
 
     /**
      * Pierwszy wybór motywu z logo podstawia logo studia z ustawień firmy - to samo, które
@@ -322,30 +392,6 @@ function SignatureDesigner({ signature, onClose }: DesignerProps) {
         saveSignature.mutate({ bodyHtml: html, enabledByDefault, design }, { onSuccess, onError });
     };
 
-    /**
-     * Ta sama stopka do wklejenia w Gmailu, Outlooku czy telefonie. Kopiujemy jako HTML:
-     * wklejona w ustawieniach podpisu zachowuje układ i obrazki (adresy są absolutne).
-     */
-    const copyToClipboard = async () => {
-        if (!html) return;
-        try {
-            if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
-                const plain = new DOMParser().parseFromString(html, 'text/html').body.innerText;
-                await navigator.clipboard.write([
-                    new ClipboardItem({
-                        'text/html': new Blob([html], { type: 'text/html' }),
-                        'text/plain': new Blob([plain], { type: 'text/plain' }),
-                    }),
-                ]);
-            } else {
-                await navigator.clipboard.writeText(html);
-            }
-            showSuccess('Stopka skopiowana', 'Wklej ją w ustawieniach podpisu w swojej poczcie');
-        } catch {
-            showError('Nie udało się skopiować', 'Przeglądarka zablokowała dostęp do schowka');
-        }
-    };
-
     const remove = () =>
         deleteSignature.mutate(undefined, {
             onSuccess: () => {
@@ -361,6 +407,26 @@ function SignatureDesigner({ signature, onClose }: DesignerProps) {
         <>
             <Layout>
                 <Panel>
+                    <ModeSwitch role="radiogroup" aria-label="Rodzaj stopki">
+                        <ModeOption
+                            type="button"
+                            role="radio"
+                            aria-checked={mode === 'design'}
+                            $active={mode === 'design'}
+                            onClick={() => setMode('design')}
+                        >
+                            <LayoutTemplate /> Motyw graficzny
+                        </ModeOption>
+                        <ModeOption
+                            type="button"
+                            role="radio"
+                            aria-checked={mode === 'text'}
+                            $active={mode === 'text'}
+                            onClick={() => setMode('text')}
+                        >
+                            <Type /> Zwykły tekst
+                        </ModeOption>
+                    </ModeSwitch>
                     {mode === 'design' ? (
                         <>
                             <Tabs aria-label="Kroki kreatora stopki">
@@ -381,9 +447,8 @@ function SignatureDesigner({ signature, onClose }: DesignerProps) {
                                 {step === 'template' && (
                                     <TemplateStep
                                         design={design}
-                                        iconsBaseUrl={signature.iconsBaseUrl}
+                                        iconsBaseUrl={iconsBaseUrl}
                                         onSelect={selectTemplate}
-                                        onTextMode={() => setMode('text')}
                                     />
                                 )}
                                 {step === 'details' && <DetailsStep design={design} onChange={patch} nameInvalid={nameInvalid} />}
@@ -392,7 +457,7 @@ function SignatureDesigner({ signature, onClose }: DesignerProps) {
                                         design={design}
                                         onChange={patch}
                                         brandColor={brandColor}
-                                        iconsBaseUrl={signature.iconsBaseUrl}
+                                        iconsBaseUrl={iconsBaseUrl}
                                     />
                                 )}
                                 {step === 'images' && (
@@ -436,9 +501,6 @@ function SignatureDesigner({ signature, onClose }: DesignerProps) {
                                     aria-label="Treść stopki"
                                     rows={8}
                                 />
-                                <LinkButton type="button" onClick={() => setMode('design')}>
-                                    ← Wybierz motyw graficzny
-                                </LinkButton>
                             </TextEditor>
                         </PanelBody>
                     )}
@@ -452,7 +514,18 @@ function SignatureDesigner({ signature, onClose }: DesignerProps) {
                             Ciemne tło
                         </Switch>
                     </StageHead>
-                    <SignaturePreview html={mode === 'design' ? html ?? '' : null} text={text} dark={dark} />
+                    <SignaturePreview html={mode === 'design' ? previewHtml ?? '' : null} text={text} dark={dark} />
+                    {mode === 'design' && missing.length > 0 && (
+                        <PreviewHint>
+                            <ImageIcon />
+                            <span>{placeholderHint}</span>
+                            {step !== 'images' && (
+                                <IconButton type="button" onClick={() => setStep('images')}>
+                                    {missing.length === 2 ? 'Dodaj zdjęcie i logo' : missing[0] === 'photoUrl' ? 'Dodaj zdjęcie' : 'Dodaj logo'}
+                                </IconButton>
+                            )}
+                        </PreviewHint>
+                    )}
                 </Stage>
             </Layout>
 
@@ -472,11 +545,6 @@ function SignatureDesigner({ signature, onClose }: DesignerProps) {
                         Dołączaj stopkę domyślnie
                     </DefaultRow>
                 </FooterStart>
-                {mode === 'design' && (
-                    <IconButton type="button" onClick={copyToClipboard} disabled={!html} title="Do wklejenia w Gmailu, Outlooku albo na telefonie">
-                        <Copy /> Kopiuj stopkę
-                    </IconButton>
-                )}
                 <PrimaryButton type="button" onClick={submit} disabled={saveSignature.isPending || !canSave}>
                     {saveSignature.isPending ? 'Zapisywanie…' : 'Zapisz stopkę'}
                 </PrimaryButton>

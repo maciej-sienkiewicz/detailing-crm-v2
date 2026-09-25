@@ -1,5 +1,6 @@
 // src/modules/comms/api/commsApi.ts
 import { apiClient } from '@/core/apiClient';
+import { appAssetUrl } from '../utils/signatureImage';
 import type {
     CommThread,
     CommThreadDetail,
@@ -85,7 +86,7 @@ export const commsApi = {
         return data;
     },
 
-    /** Zdjęcie albo logo do stopki; zwraca stały, publiczny adres absolutny obrazka. */
+    /** Zdjęcie albo logo do stopki; zwraca stały, publiczny adres obrazka na domenie aplikacji. */
     uploadSignatureImage: async (file: Blob, kind: SignatureImageKind): Promise<string> => {
         const form = new FormData();
         form.append('file', file, file instanceof File ? file.name : `${kind}.png`);
@@ -93,13 +94,13 @@ export const commsApi = {
             headers: { 'Content-Type': 'multipart/form-data' },
             skipErrorToast: true,
         });
-        return data.url;
+        return appAssetUrl(data.path);
     },
 
     /** Kopia logo studia (z ustawień firmy) jako logo stopki - adres nie zniknie po zmianie logo. */
     copyCompanyLogoToSignature: async (): Promise<string> => {
         const { data } = await apiClient.post('/v1/comms/signature/images/company-logo', undefined, { skipErrorToast: true });
-        return data.url;
+        return appAssetUrl(data.path);
     },
 
     deleteSignature: async (): Promise<void> => {

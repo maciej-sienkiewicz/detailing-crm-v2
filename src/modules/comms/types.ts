@@ -210,8 +210,8 @@ export interface MailSignature {
     enabledByDefault: boolean;
     /** Projekt z kreatora; `null` - stopka tekstowa albo brak stopki. */
     design: SignatureDesign | null;
-    /** Absolutny katalog ikon stopki na backendzie (trafia do HTML-a wysyłanych maili). */
-    iconsBaseUrl: string;
+    /** Ścieżka katalogu ikon stopki; adres absolutny składa appAssetUrl (domena aplikacji). */
+    iconsPath: string;
     defaults: MailSignatureDefaults;
 }
 
