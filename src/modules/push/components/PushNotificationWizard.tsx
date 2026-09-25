@@ -90,6 +90,9 @@ export function PushNotificationWizard({ push, onDismiss }: Props) {
 
             {stage === 'checking' && <Muted>Sprawdzam to urządzenie…</Muted>}
             {stage === 'install' && platform.kind === 'ios-install' && <InstallStage platform={platform} onDismiss={onDismiss} />}
+            {stage === 'open-installed' && platform.kind === 'ios-install' && (
+                <OpenInstalledStage platform={platform} onDismiss={onDismiss} />
+            )}
             {stage === 'open-in-browser' && platform.kind === 'open-in-browser' && <OpenInBrowserStage os={platform.os} />}
             {stage === 'update-os' && <UpdateOsStage />}
             {stage === 'unsupported' && (
@@ -162,11 +165,66 @@ function InstallStage({ platform, onDismiss }: {
                 </Step>
             </Steps>
 
+            {/* Safari nie wie, że ikona już jest - więc mówimy o tym zawsze, także bez
+                podpowiedzi z konta (np. aplikacja dodana, ale powiadomienia nigdy niewłączone). */}
+            <Muted>
+                Masz już CRM na ekranie początkowym? Otwórz go z ikony - Safari nie widzi tej
+                aplikacji i nie może jej otworzyć za Ciebie.
+            </Muted>
+
             {platform.browser !== 'safari' && (
                 <Muted>
                     Nie ma tej opcji w menu? <CopyLinkButton label="Skopiuj link" /> i otwórz go w Safari.
                 </Muted>
             )}
+            {onDismiss && <Footer><Button variant="ghost" onClick={onDismiss}>Nie teraz</Button></Footer>}
+        </>
+    );
+}
+
+// ─── Etap: aplikacja już jest na ekranie (iOS, podpowiedź z konta) ─────────────
+
+function OpenInstalledStage({ platform, onDismiss }: {
+    platform: Extract<PushPlatform, { kind: 'ios-install' }>;
+    onDismiss?: () => void;
+}) {
+    // Podpowiedź bywa chybiona (inny iPhone na tym samym koncie), więc instrukcja
+    // instalacji jest zawsze o jedno dotknięcie stąd.
+    const [showInstall, setShowInstall] = useState(false);
+    if (showInstall) return <InstallStage platform={platform} onDismiss={onDismiss} />;
+
+    const deviceName = platform.device === 'ipad' ? 'iPadzie' : 'iPhonie';
+    return (
+        <>
+            <Lead>
+                <Title>Otwórz CRM z ikony na ekranie początkowym</Title>
+                <Text>
+                    Na tym koncie powiadomienia działają już w aplikacji na {deviceName}. Tutaj,
+                    w przeglądarce, ich nie będzie - a przeglądarka nie potrafi tej aplikacji otworzyć.
+                </Text>
+            </Lead>
+
+            <Steps>
+                <Step>
+                    <StepNo>1</StepNo>
+                    <StepBody>Wyjdź na ekran początkowy.</StepBody>
+                </Step>
+                <Step>
+                    <StepNo>2</StepNo>
+                    <StepBody>
+                        Dotknij ikony z <strong>nazwą Twojego studia</strong> (albo „DetailBoost").
+                        <StepHint>
+                            Ikona nosi nazwę studia, bo tak nazywała się aplikacja w chwili dodania.
+                            Nie widzisz jej? Przeciągnij palcem w dół na ekranie początkowym i wpisz tę nazwę.
+                        </StepHint>
+                    </StepBody>
+                </Step>
+            </Steps>
+
+            <Muted>
+                Nie masz ikony na tym telefonie?{' '}
+                <InlineLink type="button" onClick={() => setShowInstall(true)}>Pokaż, jak ją dodać</InlineLink>
+            </Muted>
             {onDismiss && <Footer><Button variant="ghost" onClick={onDismiss}>Nie teraz</Button></Footer>}
         </>
     );

@@ -10,6 +10,14 @@ describe('wizardStage', () => {
         })).toBe('install');
     });
 
+    it('iPhone w Safari z aplikacją już na koncie: otwórz ikonę, zamiast dodawać drugi raz', () => {
+        const platform = { kind: 'ios-install', device: 'iphone', browser: 'safari' } as const;
+        const stage = wizardStage({ platform, support: 'unsupported', isSubscribedHere: false, appLikelyOnHomeScreen: true });
+        expect(stage).toBe('open-installed');
+        // Ten etap odsyła poza przeglądarkę - ścieżka „krok 1 z 3" nic by tu nie mówiła.
+        expect(wizardTrailIndex(stage, platform)).toBeNull();
+    });
+
     it('aplikacja z ikony na iPhonie wie, że pierwszy krok jest za nią', () => {
         const platform = { kind: 'ios-app' } as const;
         const stage = wizardStage({ platform, support: 'supported', isSubscribedHere: false });

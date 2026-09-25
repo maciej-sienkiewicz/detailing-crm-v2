@@ -25,6 +25,7 @@ const pushState = (over: Partial<PushDeviceState>): PushDeviceState => ({
     platform: { kind: 'android', installed: false },
     support: 'supported',
     isSubscribedHere: false,
+    appLikelyOnHomeScreen: false,
     devices: [],
     isLoadingDevices: false,
     serviceWorkerVersion: null,
@@ -51,6 +52,29 @@ describe('PushNotificationWizard', () => {
         // Logowanie w aplikacji z ikony zaskakiwało ludzi - kreator mówi o nim z góry.
         expect(screen.getByText(/zaloguj się jeszcze raz/)).toBeTruthy();
         expect(screen.queryByRole('button', { name: /Włącz powiadomienia/ })).toBeNull();
+    });
+
+    it('iPhone w Safari przypomina, że ikona już może być - Safari jej nie widzi', () => {
+        render(<PushNotificationWizard push={pushState({
+            platform: { kind: 'ios-install', device: 'iphone', browser: 'safari' },
+            support: 'unsupported',
+        })} />);
+        expect(screen.getByText(/Masz już CRM na ekranie początkowym\? Otwórz go z ikony/)).toBeTruthy();
+    });
+
+    it('konto z aplikacją na iPhonie: „otwórz z ikony" zamiast drugiej instalacji, instrukcja o dotknięcie dalej', () => {
+        render(<PushNotificationWizard push={pushState({
+            platform: { kind: 'ios-install', device: 'iphone', browser: 'safari' },
+            support: 'unsupported',
+            appLikelyOnHomeScreen: true,
+        })} />);
+
+        expect(screen.getByText('Otwórz CRM z ikony na ekranie początkowym')).toBeTruthy();
+        expect(screen.queryByText('Dodaj do ekranu początkowego')).toBeNull();
+
+        // Podpowiedź z konta bywa chybiona (inny iPhone) - droga do instalacji zostaje.
+        fireEvent.click(screen.getByRole('button', { name: 'Pokaż, jak ją dodać' }));
+        expect(screen.getByText('Dodaj do ekranu początkowego')).toBeTruthy();
     });
 
     it('przed monitem systemowym tłumaczy, co będzie przychodzić', () => {

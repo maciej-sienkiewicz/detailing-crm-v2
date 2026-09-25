@@ -49,8 +49,19 @@ export const usePushDevice = ({ withDevices = true }: Options = {}) => {
         queryKey: pushQueryKeys.devices,
         queryFn: pushApi.listDevices,
         staleTime: 30_000,
-        enabled: withDevices,
+        // iPhone w Safari potrzebuje listy zawsze - tylko z niej wiadomo, czy CRM
+        // nie stoi już na ekranie początkowym (appLikelyOnHomeScreen).
+        enabled: withDevices || platform.kind === 'ios-install',
     });
+
+    // Safari nie widzi aplikacji z ekranu początkowego - osobne ciasteczka, osobna
+    // pamięć, żadnego API do wykrycia ani otwarcia. Aktywne urządzenie iOS na tym
+    // koncie to najlepsza dostępna podpowiedź, że ikona już jest: bez niej kreator
+    // kazał ponownie „dodać do ekranu" komuś, kto zrobił to tydzień temu. Tylko
+    // podpowiedź (iOS ma zamrożony User-Agent, dwa iPhone'y wyglądają tak samo),
+    // dlatego kreator zawsze zostawia drogę do instrukcji instalacji.
+    const appLikelyOnHomeScreen = platform.kind === 'ios-install' &&
+        (devicesQuery.data ?? []).some(device => device.active && device.platform === 'IOS');
 
     // Which worker version serves this page - the answer to "has this phone got the fix yet?".
     const swVersionQuery = useQuery({
@@ -195,6 +206,7 @@ export const usePushDevice = ({ withDevices = true }: Options = {}) => {
         platform,
         support,
         isSubscribedHere,
+        appLikelyOnHomeScreen,
         devices: devicesQuery.data ?? [],
         isLoadingDevices: devicesQuery.isLoading,
         serviceWorkerVersion: swVersionQuery.data ?? null,

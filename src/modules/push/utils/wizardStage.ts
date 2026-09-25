@@ -15,6 +15,8 @@ export type WizardStage =
     | 'checking'
     /** iOS w karcie przeglądarki: najpierw „Dodaj do ekranu początkowego". */
     | 'install'
+    /** iOS w karcie przeglądarki, a konto ma już aplikację na iPhonie: otwórz ją z ikony. */
+    | 'open-installed'
     /** Przeglądarka wbudowana (Facebook, Gmail, WebView): otwórz w Safari/Chrome. */
     | 'open-in-browser'
     /** iOS bez Web Push. */
@@ -31,13 +33,15 @@ export interface WizardInput {
     platform: PushPlatform;
     support: PushSupportState;
     isSubscribedHere: boolean | null;
+    /** Konto ma aktywne urządzenie iOS - patrz usePushDevice. */
+    appLikelyOnHomeScreen?: boolean;
 }
 
-export const wizardStage = ({ platform, support, isSubscribedHere }: WizardInput): WizardStage => {
+export const wizardStage = ({ platform, support, isSubscribedHere, appLikelyOnHomeScreen }: WizardInput): WizardStage => {
     switch (platform.kind) {
         case 'ios-update': return 'update-os';
         case 'open-in-browser': return 'open-in-browser';
-        case 'ios-install': return 'install';
+        case 'ios-install': return appLikelyOnHomeScreen ? 'open-installed' : 'install';
         case 'unsupported': return 'unsupported';
         default: break;
     }
