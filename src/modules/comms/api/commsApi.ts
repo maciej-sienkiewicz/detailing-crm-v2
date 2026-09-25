@@ -17,6 +17,8 @@ import type {
     SaveMailSignaturePayload,
     SignatureImageKind,
     ProviderDetectResult,
+    ReplyDraft,
+    ReplyDraftPreferences,
     SendMailRequest,
     ThreadContactBadges,
     ThreadListFilters,
@@ -72,6 +74,33 @@ export const commsApi = {
     proofread: async (text: string, format: 'text' | 'html' = 'text'): Promise<string> => {
         const { data } = await apiClient.post('/v1/comms/proofread', { text, format }, { skipErrorToast: true });
         return data.text;
+    },
+
+    // ── Szkic odpowiedzi (asystent AI) ───────────────────────────────────────
+
+    getReplyDraftPreferences: async (): Promise<ReplyDraftPreferences> => {
+        const { data } = await apiClient.get('/v1/comms/reply-draft/preferences');
+        return data;
+    },
+
+    saveReplyDraftPreferences: async (useSentStyle: boolean): Promise<ReplyDraftPreferences> => {
+        const { data } = await apiClient.put('/v1/comms/reply-draft/preferences', { useSentStyle });
+        return data;
+    },
+
+    /**
+     * Szkic odpowiedzi w wątku. `useSentStyle` - flaga trybu: w stylu wysłanych
+     * wiadomości studia albo propozycja asystenta. `signatureAppended` mówi serwerowi,
+     * że stopkę doklei wysyłka - szkic nie ma jej wtedy powtarzać.
+     */
+    draftReply: async (
+        threadId: string,
+        payload: { useSentStyle: boolean; signatureAppended: boolean }
+    ): Promise<ReplyDraft> => {
+        const { data } = await apiClient.post(`/v1/comms/threads/${threadId}/reply-draft`, payload, {
+            skipErrorToast: true,
+        });
+        return data;
     },
 
     // ── Stopka nadawcy ───────────────────────────────────────────────────────
