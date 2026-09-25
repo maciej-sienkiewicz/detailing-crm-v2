@@ -68,3 +68,30 @@ export function buildServicesAsLineItems(input: ServicesAsLineItemsInput): Servi
         })
         .filter((item): item is ServiceLineItem => item !== null);
 }
+
+/**
+ * Nazwy pozycji spoza cennika po edycji w tabeli - kierunek odwrotny do
+ * `buildServicesAsLineItems`.
+ *
+ * Nazwa usługi tymczasowej nie mieszka w pozycji, tylko w `tempServices`: to stamtąd
+ * czyta ją zarówno tabela, jak i `buildAppointmentPayload`. „Edytuj pozycję" na takiej
+ * usłudze nie idzie do cennika (ServicesTable, `isCatalogServiceId`), więc jeśli ta
+ * funkcja nie przeniesie nowej nazwy z powrotem, zmiana znika przy następnym renderze.
+ *
+ * Zwraca TEN SAM obiekt, gdy nic się nie zmieniło - wywołujący porównuje referencje,
+ * żeby nie ustawiać stanu bez potrzeby.
+ */
+export function withRenamedTempServices(
+    tempServices: ServicesAsLineItemsInput['tempServices'],
+    items: Pick<ServiceLineItem, 'id' | 'serviceId' | 'serviceName'>[],
+): ServicesAsLineItemsInput['tempServices'] {
+    let next = tempServices;
+    for (const item of items) {
+        const catalogId = item.serviceId || item.id;
+        const temp = tempServices[catalogId];
+        if (!temp || temp.name === item.serviceName) continue;
+        if (next === tempServices) next = { ...tempServices };
+        next[catalogId] = { ...temp, name: item.serviceName };
+    }
+    return next;
+}

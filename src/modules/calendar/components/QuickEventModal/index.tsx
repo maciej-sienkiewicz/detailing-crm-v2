@@ -25,7 +25,7 @@ import { useQuickEventForm } from './useQuickEventForm';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { ServicesTable } from '@/common/components/ServicesTable';
 import type { ServiceLineItem, SaveServiceData } from '@/common/components/ServicesTable';
-import { buildServicesAsLineItems } from './servicesAsLineItems';
+import { buildServicesAsLineItems, withRenamedTempServices } from './servicesAsLineItems';
 import { formPricesFromLineItems } from './linePrices';
 import { netToGross } from '@/common/utils/priceAdjustment';
 import { servicesApi } from '@/modules/services/api/servicesApi';
@@ -490,6 +490,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         form.setServiceBasePrices(() => prices.serviceBasePrices);
         form.setServicePrices(() => prices.servicePrices);
         form.setServicePriceInputs(() => prices.servicePriceInputs);
+        // Nazwa usługi spoza cennika wraca do tempServices - stamtąd czyta ją i tabela,
+        // i payload rezerwacji. Bez tego zmiana nazwy w „Edytuj pozycję" przepadała.
+        form.setTempServices(prev => withRenamedTempServices(prev, newItems));
     }, [form]);
 
     const handleSaveService = useCallback(async (serviceId: string, data: SaveServiceData): Promise<string | null> => {

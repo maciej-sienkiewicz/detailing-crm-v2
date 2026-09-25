@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
+import { isCatalogServiceId } from '@/common/utils/catalogServiceId';
 import {
     applyAdjustment, distributeAdjustment, netToGross, resolveBaseGross, resolveBaseNet, withVatRate,
 } from '@/common/utils/priceAdjustment';
@@ -279,8 +280,12 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
                 ? true
                 : editPriceNet === service.basePriceNet && editPriceGross === currentGross);
 
+        // Pozycja spoza cennika (usługa założona w locie, `temp-…`) zmienia się tylko
+        // tutaj, na tej wycenie - w cenniku nie ma jej wersji do podmiany. Wcześniej jej
+        // identyfikator zastępczy szedł do `POST /services/update`, backend odrzucał go
+        // jako nie-UUID i ceny takiej pozycji nie dało się zmienić wcale.
         let newServiceId: string | null = null;
-        if (onSaveService && service.serviceId && !nothingChanged) {
+        if (onSaveService && isCatalogServiceId(service.serviceId) && !nothingChanged) {
             setEditSaving(true);
             try {
                 newServiceId = await onSaveService(service.serviceId, {

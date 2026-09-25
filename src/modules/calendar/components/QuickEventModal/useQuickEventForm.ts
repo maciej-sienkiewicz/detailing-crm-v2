@@ -1102,7 +1102,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         services,
         filteredServices,
         hasSearchQuery,
-        tempServices,
+        tempServices, setTempServices,
 
         // Colors
         appointmentColors,

@@ -11,7 +11,7 @@
 // miejscu wejścia (dodanie usługi, utworzenie nowej, ręczna cena, edycja pozycji) i CZYTANE
 // tu wprost, bez przeliczania jednej z drugiej - patrz komentarz w servicesAsLineItems.ts.
 import { describe, expect, it } from 'vitest';
-import { buildServicesAsLineItems, type ServicesAsLineItemsInput } from './servicesAsLineItems';
+import { buildServicesAsLineItems, withRenamedTempServices, type ServicesAsLineItemsInput } from './servicesAsLineItems';
 
 const baseInput = (overrides: Partial<ServicesAsLineItemsInput> = {}): ServicesAsLineItemsInput => ({
   selectedServiceIds: ['line-1'],
@@ -153,5 +153,37 @@ describe('buildServicesAsLineItems - obie ceny sa dokladne, zadna nie jest przel
     });
 
     expect(buildServicesAsLineItems(input)[0].basePriceNet).toBe(Math.round((1900 / 1.23) * 100));
+  });
+});
+
+describe('withRenamedTempServices - nazwa usługi spoza cennika po „Edytuj pozycję"', () => {
+  const temp = { 'temp-1790326470364': { name: 'powłoka na felgi', basePriceNet: 73_171, vatRate: 23 } };
+
+  it('nowa nazwa wraca do tempServices, reszta wpisu zostaje', () => {
+    const next = withRenamedTempServices(temp, [
+      { id: 'temp-1790326470364', serviceId: 'temp-1790326470364', serviceName: 'Powłoka na felgi 4 szt.' },
+    ]);
+
+    expect(next['temp-1790326470364']).toEqual({ name: 'Powłoka na felgi 4 szt.', basePriceNet: 73_171, vatRate: 23 });
+    // Stan wejściowy nietknięty - setter Reacta dostaje nowy obiekt.
+    expect(temp['temp-1790326470364'].name).toBe('powłoka na felgi');
+  });
+
+  it('bez zmiany nazwy zwraca ten sam obiekt (setState bez nowego renderu)', () => {
+    const next = withRenamedTempServices(temp, [
+      { id: 'temp-1790326470364', serviceId: 'temp-1790326470364', serviceName: 'powłoka na felgi' },
+      { id: 'line-2', serviceId: 'catalog-1', serviceName: 'Mycie' },
+    ]);
+
+    expect(next).toBe(temp);
+  });
+
+  it('pozycja z wyceny leada (lineId ≠ catalogId) trafia we własny wpis', () => {
+    const leadTemp = { 'temp-lead-x-0': { name: 'Stara', basePriceNet: 100, vatRate: 23 } };
+    const next = withRenamedTempServices(leadTemp, [
+      { id: 'lead-x-0', serviceId: 'temp-lead-x-0', serviceName: 'Nowa' },
+    ]);
+
+    expect(next['temp-lead-x-0'].name).toBe('Nowa');
   });
 });

@@ -177,3 +177,67 @@ describe('ServicesTable - „Edytuj pozycję"', () => {
         expect(lastLines(onChange)[0]).toMatchObject({ basePriceNet: NET, basePriceGross: GROSS });
     });
 });
+
+describe('ServicesTable - „Edytuj pozycję" na usłudze spoza cennika', () => {
+    // Stan z produkcji: szybka rezerwacja w kalendarzu, usługa założona w locie
+    // (QuickServiceModal bez zapisu do cennika) dostaje id `temp-<Date.now()>`, a pozycja
+    // - to samo id jako lineId i serviceId (useQuickEventForm.handleQuickServiceCreate).
+    const tempLine = (): ServiceLineItem => ({
+        id: 'temp-1790326470364',
+        serviceId: 'temp-1790326470364',
+        serviceName: 'powłoka na felgi',
+        basePriceNet: 73_171,
+        basePriceGross: 90_000,
+        vatRate: 23,
+        adjustment: { type: 'PERCENT', value: 0 },
+    });
+
+    it('nowa cena nie idzie do cennika - pozycja zmienia się lokalnie, bez błędu', async () => {
+        const onSaveService = vi.fn().mockRejectedValue(new Error('400 Invalid UUID string'));
+        const { onChange, user } = renderTable([tempLine()], onSaveService);
+
+        await user.click(screen.getByTitle('Edytuj pozycję'));
+        const grossField = screen.getByDisplayValue('900,00');
+        await user.clear(grossField);
+        await user.type(grossField, '1900');
+        await user.click(screen.getByRole('button', { name: 'Zapisz' }));
+
+        expect(onSaveService).not.toHaveBeenCalled();
+        expect(screen.queryByText('Nie udało się zapisać. Spróbuj ponownie.')).not.toBeInTheDocument();
+        // Okno się zamknęło, a pozycja niesie dokładną parę - 1900,00 zł brutto, nie 1900,01.
+        expect(screen.queryByText('Edytuj pozycję')).not.toBeInTheDocument();
+        expect(lastLines(onChange)[0]).toMatchObject({
+            id: 'temp-1790326470364',
+            serviceId: 'temp-1790326470364',
+            basePriceNet: NET,
+            basePriceGross: GROSS,
+        });
+    });
+
+    it('zmiana nazwy też zostaje na pozycji, bez wołania cennika', async () => {
+        const onSaveService = vi.fn();
+        const { onChange, user } = renderTable([tempLine()], onSaveService);
+
+        await user.click(screen.getByTitle('Edytuj pozycję'));
+        const nameField = screen.getByDisplayValue('powłoka na felgi');
+        await user.clear(nameField);
+        await user.type(nameField, 'Powłoka na felgi 4 szt.');
+        await user.click(screen.getByRole('button', { name: 'Zapisz' }));
+
+        expect(onSaveService).not.toHaveBeenCalled();
+        expect(lastLines(onChange)[0]).toMatchObject({ serviceName: 'Powłoka na felgi 4 szt.', basePriceGross: 90_000 });
+    });
+
+    it('pozycja z cennika nadal idzie do cennika', async () => {
+        const onSaveService = vi.fn().mockResolvedValue(null);
+        const { user } = renderTable([catalogLine()], onSaveService);
+
+        await user.click(screen.getByTitle('Edytuj pozycję'));
+        const grossField = screen.getByDisplayValue('123,00');
+        await user.clear(grossField);
+        await user.type(grossField, '1900');
+        await user.click(screen.getByRole('button', { name: 'Zapisz' }));
+
+        expect(onSaveService).toHaveBeenCalledTimes(1);
+    });
+});
