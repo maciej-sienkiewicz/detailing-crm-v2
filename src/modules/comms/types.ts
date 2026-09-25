@@ -878,3 +878,37 @@ export const LEAD_STATUS_COLORS: Record<LeadStatus, { bg: string; fg: string }> 
 
 /** Statusy, na które użytkownik może przełączyć leada ręcznie. */
 export const LEAD_STATUS_FLOW: LeadStatus[] = ['NEW', 'IN_PROGRESS', 'CONFIRMED', 'COMPLETED', 'LOST', 'NO_SHOW'];
+
+// ── Szkic odpowiedzi (asystent AI) ───────────────────────────────────────────
+
+/**
+ * Odpowiedź użytkownika na pytanie o styl szkicu. `useSentStyle: null` znaczy
+ * „jeszcze nie pytaliśmy" - pierwsze kliknięcie „Szkic AI" otwiera wtedy wybór.
+ */
+export interface ReplyDraftPreferences {
+    useSentStyle: boolean | null;
+    /** Ile wiadomości studio wysłało - z tego asystent uczy się stylu. */
+    sentMessageCount: number;
+}
+
+/** Wysłana odpowiedź studia, na której wzorował się szkic „w moim stylu". */
+export interface ReplyDraftExample {
+    threadId: string;
+    subject: string | null;
+    sentAt: string;
+    similarity: number;
+}
+
+export interface ReplyDraft {
+    /** Czysty tekst: akapity rozdzielone pustą linią, wyliczenia od „- ". */
+    bodyText: string;
+    useSentStyle: boolean;
+    /** Czy szkic naprawdę powstał na wysłanych odpowiedziach (false, gdy nie było z czego). */
+    styleApplied: boolean;
+    examples: ReplyDraftExample[];
+    /** Znaczniki do uzupełnienia przed wysłaniem, np. „[proponowany termin]". */
+    placeholders: string[];
+    /** Kwoty ze szkicu, których nie ma w wycenie leada - do sprawdzenia. */
+    unverifiedAmounts: string[];
+    notice: string | null;
+}

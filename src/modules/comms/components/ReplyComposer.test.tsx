@@ -30,6 +30,21 @@ vi.mock('./RichTextEditor', () => ({
     ),
 }));
 vi.mock('./SignatureSettingsModal', () => ({ SignatureSettingsModal: () => null }));
+// Przycisk szkicu ma własne testy (ReplyDraftButton.test.tsx) - tu oddaje gotowy szkic.
+const draftFixture = {
+    bodyText: 'Dzień dobry,\n\nzapraszamy na oględziny [proponowany termin].',
+    useSentStyle: true,
+    styleApplied: true,
+    examples: [{ threadId: 't-9', subject: 'Korekta lakieru', sentAt: '2026-09-01T10:00:00Z', similarity: 0.82 }],
+    placeholders: ['[proponowany termin]'],
+    unverifiedAmounts: ['350 zł'],
+    notice: null,
+};
+vi.mock('./ReplyDraftButton', () => ({
+    ReplyDraftButton: ({ onDraft }: { onDraft: (draft: typeof draftFixture) => void }) => (
+        <button type="button" onClick={() => onDraft(draftFixture)}>Szkic AI</button>
+    ),
+}));
 
 const renderComposer = (props: Parameters<typeof ReplyComposer>[0]) =>
     render(
@@ -83,5 +98,55 @@ describe('ReplyComposer - adresat odpowiedzi', () => {
         typeAndSend();
 
         expect(mutate.mock.calls[0][0]).toMatchObject({ leadId: 'lead-7', to: ['pw.riffey@gmail.com'] });
+    });
+});
+
+describe('ReplyComposer - szkic AI', () => {
+    beforeEach(() => mutate.mockReset());
+
+    it('szkic trafia do edytora, a znacznik do uzupełnienia blokuje wysyłkę', () => {
+        renderComposer({ threadId: 'thread-1', initialTo: 'klient@gmail.com' });
+
+        fireEvent.click(screen.getByRole('button', { name: 'Szkic AI' }));
+
+        const editor = screen.getByLabelText('Treść') as HTMLTextAreaElement;
+        expect(editor.value).toContain('zapraszamy na oględziny [proponowany termin].');
+        expect(screen.getByText(/na podstawie 1 wysłanej odpowiedzi/)).toBeTruthy();
+        expect(screen.getByText(/Uzupełnij przed wysłaniem: \[proponowany termin\]/)).toBeTruthy();
+        expect(screen.getByText(/Sprawdź kwoty, których nie ma w wycenie leada: 350 zł/)).toBeTruthy();
+
+        const send = screen.getByRole('button', { name: /Wyślij/ }) as HTMLButtonElement;
+        expect(send.disabled).toBe(true);
+        fireEvent.click(send);
+        expect(mutate).not.toHaveBeenCalled();
+        // Blokady nie da się obejść schowaniem informacji o szkicu.
+        expect(screen.queryByRole('button', { name: 'Ukryj informację o szkicu' })).toBeNull();
+    });
+
+    it('po uzupełnieniu znacznika wysyłka się odblokowuje', () => {
+        renderComposer({ threadId: 'thread-1', initialTo: 'klient@gmail.com' });
+        fireEvent.click(screen.getByRole('button', { name: 'Szkic AI' }));
+
+        const editor = screen.getByLabelText('Treść') as HTMLTextAreaElement;
+        fireEvent.change(editor, { target: { value: editor.value.replace('[proponowany termin]', 'we wtorek o 10:00') } });
+        fireEvent.click(screen.getByRole('button', { name: /Wyślij/ }));
+
+        expect(mutate).toHaveBeenCalledTimes(1);
+        expect(mutate.mock.calls[0][0].bodyHtml).toContain('we wtorek o 10:00');
+    });
+
+    it('szkic zastępujący napisaną treść można cofnąć', () => {
+        renderComposer({ threadId: 'thread-1', initialTo: 'klient@gmail.com' });
+        fireEvent.change(screen.getByLabelText('Treść'), { target: { value: '<div>Mój początek</div>' } });
+
+        fireEvent.click(screen.getByRole('button', { name: 'Szkic AI' }));
+        fireEvent.click(screen.getByRole('button', { name: /Cofnij/ }));
+
+        expect((screen.getByLabelText('Treść') as HTMLTextAreaElement).value).toBe('<div>Mój początek</div>');
+    });
+
+    it('nowa wiadomość bez wątku nie ma szkicu - nie ma na co odpowiadać', () => {
+        renderComposer({ accountId: 'account-1', initialTo: 'klient@gmail.com', requireSubject: true });
+        expect(screen.queryByRole('button', { name: 'Szkic AI' })).toBeNull();
     });
 });

@@ -11,6 +11,10 @@
 // to lustro OutgoingAttachmentPolicy z backendu) - błąd o 15 MB ma się pojawić w chwili
 // wyboru pliku, a nie po minucie wysyłania.
 //
+// Szkic AI (tylko w wątku): asystent pisze projekt odpowiedzi, który zastępuje treść
+// edytora - z „Cofnij", jak po korekcie. Znaczniki do uzupełnienia („[proponowany
+// termin]") blokują wysyłkę, dopóki stoją w treści: klient nie może dostać nawiasu.
+//
 // Odpowiadając w wątku nie powtarzamy adresu odbiorcy: rozmowa ma jednego
 // uczestnika, wypisanego już w nagłówku i w panelu klienta. Pole „Do" jest
 // schowane pod dyskretnym przełącznikiem - na wypadek, gdy ktoś chce je sprawdzić.
@@ -26,14 +30,22 @@ import {
     PenLine,
     Send,
     Settings2,
+    Sparkles,
     SpellCheck,
     Undo2,
     X,
 } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
 import { useMailSignature, useProofread, useSendMail } from '../hooks/useComms';
-import { OUTGOING_ATTACHMENT_LIMITS } from '../types';
-import { composerHtmlToText, isComposerHtmlEmpty, normalizeComposerHtml } from '../utils/composerHtml';
+import { OUTGOING_ATTACHMENT_LIMITS, type ReplyDraft } from '../types';
+import {
+    composerHtmlToText,
+    isComposerHtmlEmpty,
+    normalizeComposerHtml,
+    textToComposerHtml,
+} from '../utils/composerHtml';
+import { draftOriginLabel, pendingPlaceholders as findPendingPlaceholders } from '../utils/replyDraft';
+import { ReplyDraftButton } from './ReplyDraftButton';
 import { RichTextEditor } from './RichTextEditor';
 import { SignatureSettingsModal } from './SignatureSettingsModal';
 import { PrimaryButton } from './shared';
@@ -221,6 +233,8 @@ const ProofreadButton = styled.button`
 const SendGroup = styled.div`
     display: flex;
     align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
     gap: 8px;
 `;
 
@@ -305,6 +319,43 @@ const AttachmentTotal = styled.span<{ $warn: boolean }>`
     white-space: nowrap;
 `;
 
+/**
+ * Co wiadomo o szkicu: z czego powstał i co trzeba zrobić przed wysłaniem. Tło i obwódka
+ * zamiast wypełnienia - to informacja, nie akcja.
+ */
+const DraftNote = styled.div`
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    border: 1px solid ${p => p.theme.colors.border};
+    background: ${p => p.theme.colors.surfaceHover};
+    border-radius: ${p => p.theme.radii.md};
+    padding: 8px 10px 8px 12px;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: ${p => p.theme.colors.textSecondary};
+
+    > svg { flex-shrink: 0; margin-top: 2px; color: ${p => p.theme.colors.primary}; }
+
+    .lines { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .warn { color: ${p => p.theme.colors.warning}; }
+
+    button {
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        border: none;
+        border-radius: 50%;
+        background: transparent;
+        color: ${p => p.theme.colors.textMuted};
+        cursor: pointer;
+        &:hover { background: ${p => p.theme.colors.border}; color: ${p => p.theme.colors.text}; }
+    }
+`;
+
 const formatSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
@@ -364,8 +415,10 @@ export function ReplyComposer({
     // Ręczna decyzja użytkownika wygrywa z ustawieniem domyślnym stopki; dopóki jej
     // nie podjął, przełącznik pokazuje to, co sam skonfigurował w ustawieniach.
     const [signatureChoice, setSignatureChoice] = useState<boolean | null>(null);
-    // Treść sprzed korekty - dopóki użytkownik jej nie tknął, można wrócić jednym kliknięciem.
-    const [beforeProofread, setBeforeProofread] = useState<string | null>(null);
+    // Treść sprzed korekty albo szkicu - dopóki użytkownik jej nie tknął, można wrócić
+    // jednym kliknięciem.
+    const [undoSnapshot, setUndoSnapshot] = useState<{ body: string; title: string } | null>(null);
+    const [draft, setDraft] = useState<ReplyDraft | null>(null);
     const proofread = useProofread();
     const hasSignature = Boolean(signature?.bodyHtml);
     const appendSignature = hasSignature && (signatureChoice ?? signature?.enabledByDefault ?? false);
@@ -377,6 +430,7 @@ export function ReplyComposer({
     const recipientUnknown = Boolean(threadId) && !initialTo;
 
     const bodyEmpty = isComposerHtmlEmpty(body);
+    const pendingPlaceholders = findPendingPlaceholders(draft, draft ? composerHtmlToText(body) : '');
     const totalAttachmentBytes = attachments.reduce((sum, file) => sum + file.size, 0);
 
     /**
@@ -461,7 +515,7 @@ export function ReplyComposer({
                     showSuccess('Bez zmian', 'Nie znaleźliśmy błędów w tej treści');
                     return;
                 }
-                setBeforeProofread(body);
+                setUndoSnapshot({ body, title: 'Przywróć treść sprzed korekty' });
                 setBody(normalized);
                 showSuccess('Poprawiono', 'Przejrzyj zmiany przed wysłaniem');
             },
@@ -473,15 +527,21 @@ export function ReplyComposer({
         });
     };
 
-    const undoProofread = () => {
-        if (beforeProofread === null) return;
-        setBody(beforeProofread);
-        setBeforeProofread(null);
+    const undo = () => {
+        if (undoSnapshot === null) return;
+        setBody(undoSnapshot.body);
+        setUndoSnapshot(null);
+    };
+
+    const applyDraft = (next: ReplyDraft) => {
+        setUndoSnapshot(bodyEmpty ? null : { body, title: 'Przywróć treść sprzed szkicu' });
+        setBody(textToComposerHtml(next.bodyText));
+        setDraft(next);
     };
 
     const submit = () => {
         const bodyHtml = normalizeComposerHtml(body);
-        if (!bodyHtml || sendMail.isPending) return;
+        if (!bodyHtml || sendMail.isPending || pendingPlaceholders.length > 0) return;
         setUploadProgress(attachments.length > 0 ? 0 : null);
         sendMail.mutate(
             {
@@ -499,7 +559,8 @@ export function ReplyComposer({
                 onSuccess: (result) => {
                     setBody('');
                     setAttachments([]);
-                    setBeforeProofread(null);
+                    setUndoSnapshot(null);
+                    setDraft(null);
                     showSuccess('Wysłano', 'Wiadomość trafi też do folderu Wysłane na serwerze');
                     onSent?.(result.threadId);
                 },
@@ -560,7 +621,7 @@ export function ReplyComposer({
                 value={body}
                 onChange={(html) => {
                     setBody(html);
-                    setBeforeProofread(null);
+                    setUndoSnapshot(null);
                 }}
                 placeholder={threadId ? 'Napisz odpowiedź…' : 'Napisz wiadomość…'}
                 onSubmit={submit}
@@ -591,6 +652,33 @@ export function ReplyComposer({
                     event.target.value = '';
                 }}
             />
+
+            {draft && (
+                <DraftNote role="status">
+                    <Sparkles size={14} />
+                    <div className="lines">
+                        <span title={draft.examples.map((example) => example.subject ?? '(bez tematu)').join('\n') || undefined}>
+                            {draftOriginLabel(draft)}
+                        </span>
+                        {pendingPlaceholders.length > 0 && (
+                            <span className="warn">
+                                Uzupełnij przed wysłaniem: {pendingPlaceholders.join(', ')}
+                            </span>
+                        )}
+                        {draft.unverifiedAmounts.length > 0 && (
+                            <span className="warn">
+                                Sprawdź kwoty, których nie ma w wycenie leada: {draft.unverifiedAmounts.join(', ')}
+                            </span>
+                        )}
+                    </div>
+                    {/* Informację wolno schować dopiero po uzupełnieniu znaczników - to ona niesie blokadę wysyłki. */}
+                    {pendingPlaceholders.length === 0 && (
+                        <button type="button" onClick={() => setDraft(null)} aria-label="Ukryj informację o szkicu">
+                            <X size={12} />
+                        </button>
+                    )}
+                </DraftNote>
+            )}
 
             {attachments.length > 0 && (
                 <AttachmentList aria-label="Załączniki">
@@ -659,10 +747,18 @@ export function ReplyComposer({
                 </LeftActions>
 
                 <SendGroup>
-                    {beforeProofread !== null && (
-                        <ProofreadButton onClick={undoProofread} title="Przywróć treść sprzed korekty">
+                    {undoSnapshot !== null && (
+                        <ProofreadButton onClick={undo} title={undoSnapshot.title}>
                             <Undo2 size={14} /> Cofnij
                         </ProofreadButton>
+                    )}
+                    {threadId && (
+                        <ReplyDraftButton
+                            threadId={threadId}
+                            signatureAppended={appendSignature}
+                            disabled={sendMail.isPending}
+                            onDraft={applyDraft}
+                        />
                     )}
                     <ProofreadButton
                         onClick={runProofread}
@@ -673,7 +769,11 @@ export function ReplyComposer({
                             ? <><Loader2 size={14} className="spin" /> Poprawiam…</>
                             : <><SpellCheck size={14} /> Popraw błędy</>}
                     </ProofreadButton>
-                    <PrimaryButton onClick={submit} disabled={sendMail.isPending || bodyEmpty}>
+                    <PrimaryButton
+                        onClick={submit}
+                        disabled={sendMail.isPending || bodyEmpty || pendingPlaceholders.length > 0}
+                        title={pendingPlaceholders.length > 0 ? 'Uzupełnij znaczniki w nawiasach kwadratowych' : undefined}
+                    >
                         <Send size={14} />
                         {sendLabel}
                     </PrimaryButton>
