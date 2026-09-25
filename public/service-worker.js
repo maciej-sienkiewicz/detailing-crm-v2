@@ -10,7 +10,8 @@
  *   2. Web Push notifications, of two shapes:
  *
  *      a) CLICK_TO_CALL - the desktop asked this phone to ring a number.
- *      b) Informational (VISIT_COMPLETED, NEW_LEAD) - the backend supplies the
+ *      b) Informational (NEW_LEAD, RESERVATION_CREATED, VEHICLE_CHECKED_IN,
+ *         VISIT_COMPLETED, AREA_CAMPAIGN, TEST) - the backend supplies the
  *         finished title, body and target path; this worker only renders them
  *         and maps the icon key to a file. Copy stays server-side because a
  *         worker reaches phones slowly, while wording changes often.
@@ -50,7 +51,7 @@
 // Bump on every change to this file. Browsers compare bytes, so the bump is not
 // what triggers an update - it is what Settings → Urządzenia mobilne →
 // Powiadomienia shows, so "does this phone have the fix yet?" has an answer.
-const SW_VERSION = '2026-09-25.1';
+const SW_VERSION = '2026-09-25.2';
 
 const CACHE_VERSION = 'v1';
 const CACHE_NAME    = `car-logos-${CACHE_VERSION}`;
@@ -161,6 +162,9 @@ const ICONS = {
     EARNINGS: art('/icons/notification-earnings.png', '/icons/badge-earnings.png'),
     LEAD:     art('/icons/notification-lead.png',     '/icons/badge-lead.png'),
     CALL:     art('/icons/notification-call.png',     '/icons/badge-call.png'),
+    RESERVATION: art('/icons/notification-reservation.png', '/icons/badge-reservation.png'),
+    CHECKIN:  art('/icons/notification-checkin.png',  '/icons/badge-checkin.png'),
+    CAMPAIGN: art('/icons/notification-campaign.png', '/icons/badge-campaign.png'),
     APP:      art('/icons/icon-192.png',              '/icons/badge-app.png'),
 };
 

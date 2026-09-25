@@ -20,7 +20,7 @@ import { VisitCardView } from '@/modules/visit-card';
 // Lazy: pulls in pdf.js, which must not weigh down the main bundle
 const PublicSigningView = lazyWithRetry(() => import('@/modules/public-signing/views/PublicSigningView'));
 import { ConsentSettingsView } from "@/modules/consents";
-import { CalendarPageView } from "@/modules/calendar";
+import { CalendarPageView, CalendarReservationLink } from "@/modules/calendar";
 import { ProtocolRulesView, ProtocolDemoView } from "@/modules/protocols";
 import { BatchOrdersView } from "@/modules/batch-orders";
 import { ProductListView, ProductDetailView, MobileProductScanView } from "@/modules/products";
@@ -184,6 +184,11 @@ export const router = createBrowserRouter([
         {
             path: '/calendar',
             element: page(<CalendarPageView />, 'VISITS_VIEW'),
+        },
+        {
+            // Link z powiadomienia push „Nowa rezerwacja" - tłumaczony na stan kalendarza.
+            path: '/calendar/rezerwacja/:appointmentId',
+            element: page(<CalendarReservationLink />, 'VISITS_VIEW'),
         },
         {
             path: '/operations',

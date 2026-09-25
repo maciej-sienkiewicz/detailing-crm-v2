@@ -48,7 +48,7 @@ const SHOW_DELAY_AFTER_INSTALL_MS = 1_200;
 const CARD_COPY: Partial<Record<ReturnType<typeof wizardStage>, { title: string; text: string }>> = {
     install: {
         title: 'Powiadomienia na tym iPhonie',
-        text: 'Dwa kroki i telefon da znać o nowym zapytaniu czy zamkniętej wizycie.',
+        text: 'Dwa kroki i telefon da znać o nowym leadzie, rezerwacji czy wydanym aucie.',
     },
     // Konto ma już aplikację na iPhonie, a użytkownik jest w Safari - nie każemy mu
     // instalować drugi raz, tylko mówimy, gdzie są jego powiadomienia.
@@ -58,7 +58,7 @@ const CARD_COPY: Partial<Record<ReturnType<typeof wizardStage>, { title: string;
     },
     ask: {
         title: 'Włącz powiadomienia',
-        text: 'Telefon da znać o nowym zapytaniu, zamkniętej wizycie i połączeniu z komputera.',
+        text: 'Telefon da znać o nowym leadzie, rezerwacji, przyjętym i wydanym aucie.',
     },
 };
 
