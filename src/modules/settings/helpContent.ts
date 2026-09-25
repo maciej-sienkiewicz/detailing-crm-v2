@@ -221,7 +221,7 @@ export const DOCUMENTS_HELP: HelpContent = {
 };
 
 export const MESSAGE_TEMPLATES_HELP: HelpContent = {
-    title: 'Szablony wiadomości',
+    title: 'Wiadomości automatyczne',
     items: [
         {
             id: 'list',
@@ -340,7 +340,7 @@ export const CREDITS_HELP: HelpContent = {
 };
 
 export const INVOICES_HELP: HelpContent = {
-    title: 'Faktury i płatności',
+    title: 'KSeF',
     items: [
         {
             id: 'ksef',

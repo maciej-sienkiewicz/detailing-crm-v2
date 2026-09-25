@@ -7,10 +7,12 @@ export const ATTENDANCE_SHEETS_KEY = ['settings', 'attendance-sheets'] as const;
  * Rozliczenia (wygenerowane listy obecności). Ta sama lista zasila tabelę w zakładce
  * i licznik „do zatwierdzenia" na samej zakładce - jeden wpis w cache, jedno żądanie.
  */
-export const useAttendanceSheets = () => {
+export const useAttendanceSheets = (options?: { enabled?: boolean }) => {
     const { data, isLoading, isError, refetch } = useQuery({
         queryKey: ATTENDANCE_SHEETS_KEY,
         queryFn: () => attendanceApi.listAttendanceSheets(),
+        // Licznik w menu ustawień pyta o rozliczenia tylko tym, którzy widzą zespół.
+        enabled: options?.enabled ?? true,
     });
     return { sheets: data ?? [], isLoading, isError, refetch };
 };
