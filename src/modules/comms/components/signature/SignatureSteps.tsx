@@ -51,13 +51,13 @@ const Step = styled.div`
     gap: 18px;
 `;
 
-function Header({ icon, title, hint }: { icon: ReactNode; title: string; hint: string }) {
+function Header({ icon, title, hint }: { icon: ReactNode; title: string; hint?: string }) {
     return (
         <StepHeader>
             <StepIcon>{icon}</StepIcon>
             <div>
                 <StepTitle>{title}</StepTitle>
-                <StepHint>{hint}</StepHint>
+                {hint && <StepHint>{hint}</StepHint>}
             </div>
         </StepHeader>
     );
@@ -139,11 +139,7 @@ export function TemplateStep({ design, iconsBaseUrl, onSelect }: {
     };
     return (
         <Step>
-            <Header
-                icon={<LayoutTemplate />}
-                title="Wybierz motyw"
-                hint="Każdy działa w Gmailu, Outlooku i Apple Mail. Dane zostają przy zmianie motywu."
-            />
+            <Header icon={<LayoutTemplate />} title="Wybierz motyw" />
             <TemplateGrid>
                 {SIGNATURE_TEMPLATES.map(template => {
                     const active = template.id === design.template;
@@ -154,6 +150,10 @@ export function TemplateStep({ design, iconsBaseUrl, onSelect }: {
                             $active={active}
                             aria-pressed={active}
                             onClick={() => onSelect(template.id)}
+                            // Kliknięcie myszą nie przenosi fokusu na kafelek: przeglądarka
+                            // przewijała wtedy listę tak, żeby cały kafelek był widoczny,
+                            // i kolumna podskakiwała pod kursorem. Klawiatura (Tab) działa dalej.
+                            onMouseDown={event => event.preventDefault()}
                         >
                             <SignatureThumbnail html={renderSignature({ ...sample, template: template.id }, iconsBaseUrl)} />
                             <CardCaption $active={active}>
@@ -379,11 +379,7 @@ export function ImagesStep({ design, onChange, companyLogoAvailable }: {
     const template = getSignatureTemplate(design.template);
     return (
         <Step>
-            <Header
-                icon={<ImageIcon />}
-                title="Zdjęcie i logo"
-                hint="Wgraj plik z komputera albo wklej link do obrazka, który masz już w internecie."
-            />
+            <Header icon={<ImageIcon />} title="Zdjęcie i logo" />
             {template.images.length === 0 ? (
                 <Note>
                     Motyw „{template.name}" nie ma zdjęcia ani logo. Jeśli ich potrzebujesz, wybierz inny motyw
@@ -422,11 +418,7 @@ export function SocialStep({ design, onChange }: { design: SignatureDesign; onCh
     const template = getSignatureTemplate(design.template);
     return (
         <Step>
-            <Header
-                icon={<Share2 />}
-                title="Social media"
-                hint="Wklej adresy profili. Ikona pojawi się tylko przy wypełnionym polu."
-            />
+            <Header icon={<Share2 />} title="Social media" />
             {!template.social ? (
                 <Note>Motyw „{template.name}" nie wyświetla ikon social media.</Note>
             ) : (
