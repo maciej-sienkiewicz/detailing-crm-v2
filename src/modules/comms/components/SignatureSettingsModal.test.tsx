@@ -120,6 +120,20 @@ describe('SignatureSettingsModal', () => {
         expect(fireEvent.mouseDown(card)).toBe(false);
     });
 
+    it('suwak rozmiaru zmniejsza zapisaną stopkę', async () => {
+        renderModal();
+
+        await userEvent.click(screen.getByRole('button', { name: /Ze zdjęciem/ }));
+        await userEvent.click(screen.getByRole('button', { name: /Styl/ }));
+        fireEvent.change(screen.getByRole('slider', { name: 'Rozmiar stopki' }), { target: { value: '80' } });
+        expect(screen.getByText('80%')).toBeInTheDocument();
+        await userEvent.click(saveButton());
+
+        const [payload] = save.mock.calls[0];
+        expect(payload.design.scale).toBe(80);
+        expect(payload.bodyHtml).toContain('font-size:14px');
+    });
+
     it('przełącznik trybu zamienia kreator na stopkę tekstową i z powrotem', async () => {
         renderModal();
 
@@ -175,7 +189,8 @@ describe('SignatureSettingsModal', () => {
         await userEvent.click(saveButton());
 
         const [payload] = save.mock.calls[0];
-        expect(payload.design).toMatchObject({ template: 'dwa-pasma', fullName: 'Ewa Lis', color: '#123abc', font: 'georgia', size: 'l' });
+        // Dawna „Duża" wielkość tekstu wraca jako rozmiar 110% - tak wyglądała stopka.
+        expect(payload.design).toMatchObject({ template: 'dwa-pasma', fullName: 'Ewa Lis', color: '#123abc', font: 'georgia', scale: 110 });
         expect(payload.bodyHtml).toContain('Ewa Lis');
         expect(payload.bodyHtml).toContain('bgcolor="#1c1c1e"');
     });

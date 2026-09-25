@@ -36,7 +36,10 @@ export interface SignatureDesign extends Partial<Record<SignatureTextKey | Signa
     template: SignatureTemplateId;
     color: string;
     font: SignatureFontId;
+    /** Dawna „wielkość tekstu" - tylko dla projektów sprzed suwaka rozmiaru (patrz signatureScale). */
     size: SignatureSizeId;
+    /** Rozmiar całej stopki w procentach; brak = projekt sprzed suwaka. */
+    scale?: number | null;
     iconStyle: SignatureIconStyle;
 }
 
@@ -82,11 +85,14 @@ export const SIGNATURE_FONTS: { id: SignatureFontId; label: string; stack: strin
     { id: 'times', label: 'Times New Roman', stack: "'Times New Roman', Times, serif" },
 ];
 
-export const SIGNATURE_SIZES: { id: SignatureSizeId; label: string; scale: number }[] = [
-    { id: 's', label: 'Mała', scale: 0.9 },
-    { id: 'm', label: 'Średnia', scale: 1 },
-    { id: 'l', label: 'Duża', scale: 1.12 },
-];
+/** Zakres suwaka „Rozmiar stopki" - ten sam co MailSignatureDesign.MIN_SCALE/MAX_SCALE. */
+export const SIGNATURE_SCALE = { min: 70, max: 120, step: 5, default: 100 } as const;
+
+/** Projekty sprzed suwaka miały „wielkość tekstu" S/M/L; tłumaczymy ją na rozmiar całej stopki. */
+const LEGACY_SIZE_SCALE: Record<SignatureSizeId, number> = { s: 90, m: 100, l: 110 };
+
+export const signatureScale = (design: Pick<SignatureDesign, 'scale' | 'size'>): number =>
+    design.scale ?? LEGACY_SIZE_SCALE[design.size] ?? SIGNATURE_SCALE.default;
 
 export const SIGNATURE_ICON_STYLES: { id: SignatureIconStyle; label: string }[] = [
     { id: 'mono', label: 'Jednokolorowe' },
@@ -419,11 +425,42 @@ export function renderSignature(design: SignatureDesign, iconsBaseUrl: string): 
     if (!template.social) SIGNATURE_SOCIAL_KEYS.forEach(key => { visible[key] = null; });
 
     const html = template.render(visible, { font, iconsBaseUrl: iconsBaseUrl.replace(/\/+$/, '') });
-    const scale = SIGNATURE_SIZES.find(s => s.id === design.size)?.scale ?? 1;
-    if (scale === 1) return html;
-    // Skalujemy tekst, nie układ: szerokości kolumn i obrazków zostają, rośnie tylko pismo.
-    return html.replace(/(font-size|line-height):(\d+)px/g, (_, prop: string, px: string) =>
-        `${prop}:${Math.round(Number(px) * scale)}px`);
+    return scaleSignatureHtml(html, signatureScale(design) / 100);
+}
+
+/** Najmniejsze pismo po zmniejszeniu stopki - drobniejsze przestaje być czytelne w poczcie. */
+const MIN_FONT_PX = 9;
+
+const scalePx = (px: number, factor: number, isFont: boolean): number => {
+    if (px === 0) return 0;
+    // Ułamki (letter-spacing .5px) zachowują ułamek; resztę zaokrąglamy do piksela,
+    // ale nie do zera - linia 1 px zmniejszona o 30% ma zostać linią.
+    if (px < 1) return Math.round(px * factor * 10) / 10;
+    const scaled = Math.max(1, Math.round(px * factor));
+    return isFont ? Math.max(Math.min(px, MIN_FONT_PX), scaled) : scaled;
+};
+
+/**
+ * Rozmiar całej stopki, „wypalony" w HTML. Klienci poczty nie znają `zoom` ani
+ * `transform`, więc zmniejszona stopka musi mieć mniejsze LICZBY: każdy piksel w stylach
+ * (pismo, odstępy, szerokości, obramowania) i wymiary obrazków w atrybutach, z których
+ * korzysta Outlook. Procenty (width:100%, border-radius:50%) i em zostają bez zmian.
+ */
+export function scaleSignatureHtml(html: string, factor: number): string {
+    if (factor === 1) return html;
+    const scaleStyle = (style: string) =>
+        style.split(';').map(declaration => {
+            const colon = declaration.indexOf(':');
+            if (colon < 0) return declaration;
+            const isFont = declaration.slice(0, colon).trim().toLowerCase() === 'font-size';
+            const value = declaration.slice(colon + 1)
+                .replace(/(\d*\.?\d+)px/g, (_, px: string) => `${scalePx(Number(px), factor, isFont)}px`);
+            return declaration.slice(0, colon + 1) + value;
+        }).join(';');
+    return html
+        .replace(/ style="([^"]*)"/g, (_, style: string) => ` style="${scaleStyle(style)}"`)
+        .replace(/ (width|height)="(\d+)"/g, (_, attr: string, px: string) =>
+            ` ${attr}="${scalePx(Number(px), factor, false)}"`);
 }
 
 // Zastępcze zdjęcie i logo: pokazują MIEJSCE na obrazek w podglądzie i na miniaturach
@@ -477,6 +514,7 @@ export function createSignatureDesign(
         color,
         font: 'arial',
         size: 'm',
+        scale: SIGNATURE_SCALE.default,
         iconStyle: 'mono',
     };
 }
