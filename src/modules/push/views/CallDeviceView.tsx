@@ -6,8 +6,8 @@ import { PushDeviceList } from '../components/PushDeviceList';
 /**
  * „Powiadomienia na telefon" - strona otwierana NA TELEFONIE (trasa /call-device,
  * zwykle z kodu QR w ustawieniach na komputerze). Jedno dotknięcie włącza na tym
- * urządzeniu powiadomienia z CRM: prośby o połączenie, zakończone wizyty, nowe
- * zapytania. Niżej lista wszystkich urządzeń konta z możliwością odłączenia.
+ * urządzeniu powiadomienia z CRM: prośby o połączenie, nowe leady i rezerwacje,
+ * przyjęte i wydane auta, kampanie konkurencji w rejonie. Niżej lista wszystkich urządzeń konta z możliwością odłączenia.
  *
  * Kreator i lista urządzeń są tymi samymi komponentami, których używa panel
  * w Ustawieniach i zachęta na telefonie - jedna implementacja znaczy, że telefon
@@ -63,8 +63,8 @@ export const CallDeviceView = () => {
             <PageTitle>Powiadomienia na telefon</PageTitle>
             <PageSubtitle>
                 Włącz powiadomienia na tym telefonie: kliknięty na komputerze numer klienta
-                pojawi się tu z przyciskiem „Zadzwoń", a CRM da znać o zakończonej wizycie
-                i nowym zapytaniu.
+                pojawi się tu z przyciskiem „Zadzwoń", a CRM da znać o nowym leadzie,
+                rezerwacji, przyjętym i wydanym aucie oraz o kampanii konkurencji w Twoim rejonie.
             </PageSubtitle>
 
             <Card>

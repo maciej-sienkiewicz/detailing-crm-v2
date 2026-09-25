@@ -31,7 +31,7 @@ import type { PushDeviceState } from '../hooks/usePushDevice';
 import type { PushPlatform } from '../utils/pushPlatform';
 import { wizardStage, wizardTrail, wizardTrailIndex } from '../utils/wizardStage';
 import {
-    BellIcon, CheckIcon, InboxIcon, IosAddIcon, IosShareIcon, MoreIcon, PhoneIcon, SendIcon,
+    BellIcon, CheckIcon, InboxIcon, IosAddIcon, IosShareIcon, MegaphoneIcon, MoreIcon, PhoneIcon, SendIcon,
     WalletIcon, WarnIcon,
 } from './wizardIcons';
 
@@ -309,8 +309,9 @@ function BlockedStage({ platform }: { platform: PushPlatform }) {
 
 const BENEFITS = [
     { icon: <PhoneIcon />, title: 'Dzwonisz jednym dotknięciem', text: 'Klikasz numer klienta na komputerze, a telefon pokazuje przycisk „Zadzwoń".' },
-    { icon: <WalletIcon />, title: 'Wiesz o zamkniętej wizycie', text: 'Kwota przychodzi, gdy tylko ktoś wyda auto klientowi.' },
+    { icon: <WalletIcon />, title: 'Wiesz, co dzieje się w studiu', text: 'Nowa rezerwacja, przyjęte auto i wydane auto - to ostatnie razem z kwotą.' },
     { icon: <InboxIcon />, title: 'Nie przegapisz zapytania', text: 'Nowy lead trafia od razu na ekran blokady, zanim klient napisze do konkurencji.' },
+    { icon: <MegaphoneIcon />, title: 'Widzisz ruchy konkurencji', text: 'Gdy firma w śledzonym rejonie rusza z reklamą, dowiesz się tego samego dnia.' },
 ];
 
 function AskStage({ push, onDismiss }: { push: PushDeviceState; onDismiss?: () => void }) {
@@ -332,7 +333,10 @@ function AskStage({ push, onDismiss }: { push: PushDeviceState; onDismiss?: () =
         <>
             <Lead>
                 <Title>Niech CRM da znać, gdy coś się dzieje</Title>
-                <Text>Powiadomienia przychodzą także przy zamkniętej aplikacji.</Text>
+                <Text>
+                    Powiadomienia przychodzą także przy zamkniętej aplikacji. Każdy dostaje tylko
+                    te, do których ma uprawnienia w swojej roli.
+                </Text>
             </Lead>
 
             <Benefits>
