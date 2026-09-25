@@ -24,9 +24,8 @@ import { useContainerWidth } from '@/common/hooks';
 import { batchOrderApi } from '../api/batchOrderApi';
 import { useContractorEntries, useDeleteEntry, useReopenEntry } from '../hooks/useBatchOrders';
 import type { BatchContractor, BatchOrderEntry, EntryStatusFilter } from '../types';
-import { pluralPl } from '@/common/utils/plural';
-import { apiErrorMessage, carsLabel, formatMoney, grossForCars, vehicleName } from '../utils/format';
-import { formatDay, formatInstantDay, periodIn, type Period } from '../utils/period';
+import { apiErrorMessage, carsLabel, formatMoney, vehicleName } from '../utils/format';
+import { formatDay, periodIn, type Period } from '../utils/period';
 import { EntriesTable, type EntryFocus } from './EntriesTable';
 import { EntryDrawer } from './EntryDrawer';
 import { SettlementHistoryModal } from './SettlementHistoryModal';
@@ -60,10 +59,11 @@ const Head = styled.div`
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    padding: 20px 28px 0;
+    padding: 18px 28px 0;
 
-    @container detail (max-width: 760px) { flex-wrap: wrap; align-items: flex-start; }
-    @container detail (max-width: 560px) { padding: 16px 16px 0; flex-wrap: nowrap; }
+    /* Nagłówek się nie łamie: przy węższej karcie przyciski zwijają się do ikon,
+       zamiast spychać się do drugiej linii i dokładać wysokości nad listą. */
+    @container detail (max-width: 560px) { padding: 16px 16px 0; align-items: flex-start; }
 `;
 
 const Identity = styled.div`
@@ -159,58 +159,68 @@ const IconBtn = styled(GhostBtn)`
 
 // ─── Kwota ────────────────────────────────────────────────────────────────────
 
+/**
+ * Podsumowanie okresu jako smukły pasek, nie osobny blok z kwotą 32-40px: kwota jest
+ * ważna, ale na tym ekranie tematem jest lista aut pod nią. Pasek mówi „ile i za co"
+ * w jednej linii i oddaje miejsce tabeli.
+ */
 const Hero = styled.div`
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: space-between;
-    gap: 24px;
-    padding: 16px 28px 22px;
-    border-bottom: 1px solid #eef2f7;
+    gap: 16px 24px;
+    flex-wrap: wrap;
+    margin: 14px 28px 0;
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: ${p => p.theme.colors.surfaceHover};
+    border: 1px solid #eef2f7;
 
-    @container detail (max-width: 900px) { flex-direction: column; align-items: stretch; gap: 16px; }
-    @container detail (max-width: 560px) { padding: 12px 16px 16px; }
+    @container detail (max-width: 560px) { margin: 12px 16px 0; padding: 12px; }
 `;
 
 const HeroText = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 1px;
     min-width: 0;
 `;
 
+const HeroAmountLine = styled.div`
+    display: flex;
+    align-items: baseline;
+    gap: 4px 10px;
+    flex-wrap: wrap;
+`;
+
 const HeroLabel = styled.span`
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     color: ${p => p.theme.colors.textSecondary};
 `;
 
 const HeroAmount = styled.span`
-    font-size: 32px;
-    line-height: 1.15;
-    font-weight: 800;
-    letter-spacing: -0.02em;
+    font-size: 20px;
+    line-height: 1.25;
+    font-weight: 700;
+    letter-spacing: -0.01em;
     color: ${p => p.theme.colors.text};
     font-variant-numeric: tabular-nums;
-
-    @container detail (max-width: 560px) { font-size: 28px; }
 `;
 
 /* Kwota jeszcze się wczytuje: szary pasek w jej miejscu, nie „…" (CLAUDE.md §4)
    - trzy kropki w rozmiarze 32px wyglądały jak zepsuta liczba. */
 const AmountSkeleton = styled.span`
     display: block;
-    width: 200px;
-    max-width: 60%;
-    height: 34px;
-    margin: 2px 0;
-    border-radius: 8px;
+    width: 140px;
+    height: 24px;
+    margin: 1px 0;
+    border-radius: 6px;
     background: ${p => p.theme.colors.surfaceAlt};
 `;
 
-const HeroMeta = styled.p`
-    margin: 0;
-    font-size: 13px;
-    line-height: 1.5;
+const HeroMeta = styled.span`
+    font-size: 12.5px;
     color: #64748b;
 `;
 
@@ -225,45 +235,33 @@ const HeroDone = styled.span`
     svg { width: 14px; height: 14px; }
 `;
 
-const InlineLink = styled.button`
-    padding: 0;
-    border: none;
-    background: none;
-    font-family: inherit;
-    font-size: inherit;
-    font-weight: 600;
-    color: #0369a1;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-    cursor: pointer;
-`;
-
 const HeroActions = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
 
-    @container detail (max-width: 560px) { > * { flex: 1 1 0; min-width: 0; } }
+    @container detail (max-width: 560px) { flex: 1 1 100%; > * { flex: 1 1 0; min-width: 0; } }
 `;
 
 /* Jedna metryka dla obu przycisków: 40px (44px pod palcem), 14px, pigułka -
    ta sama co reszta przycisków w nagłówku karty. */
+/* Jedna metryka dla obu przycisków: 36px (44px pod palcem), 13.5px, pigułka. */
 const ActionBase = styled.button`
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 7px;
-    height: 40px;
-    padding: 0 16px;
+    height: 36px;
+    padding: 0 14px;
     border-radius: ${p => p.theme.radii.full};
     font-family: inherit;
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 600;
     white-space: nowrap;
     cursor: pointer;
 
-    svg { width: 16px; height: 16px; flex-shrink: 0; }
+    svg { width: 15px; height: 15px; flex-shrink: 0; }
     @media (hover: none) and (pointer: coarse) { height: 44px; }
 `;
 
@@ -446,12 +444,6 @@ const MenuItem = styled.button<{ $danger?: boolean }>`
     @media (hover: none) and (pointer: coarse) { min-height: 46px; }
 `;
 
-const MenuDivider = styled.div`
-    height: 1px;
-    margin: 4px 2px;
-    background: ${p => p.theme.colors.border};
-`;
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 type DrawerState = { entry: BatchOrderEntry | null; focus?: EntryFocus } | null;
@@ -475,8 +467,10 @@ function matches(entry: BatchOrderEntry, q: string): boolean {
 
 /** Od tej szerokości karty wpisy są tabelą, poniżej - listą jak na telefonie. */
 const TABLE_MIN_WIDTH = 640;
-/** Od tej szerokości „Historia" i „Zestawienie PDF" stoją w nagłówku, poniżej są w menu ⋯. */
-const HEAD_BUTTONS_MIN_WIDTH = 720;
+/** „Historia" i „PDF": z podpisami od tej szerokości karty… */
+const HEAD_LABELS_MIN_WIDTH = 900;
+/** …samymi ikonami od tej, a poniżej w menu ⋯ - trzy ikony ściskały nazwę na telefonie. */
+const HEAD_ICONS_MIN_WIDTH = 560;
 
 interface Props {
     contractor: BatchContractor;
@@ -491,7 +485,9 @@ export function ContractorDetail({ contractor, period, isDesktop, onEditContract
     const { showSuccess, showError } = useToast();
     const [cardRef, cardWidth] = useContainerWidth<HTMLElement>();
     const asTable = cardWidth === null ? isDesktop : cardWidth >= TABLE_MIN_WIDTH;
-    const headButtons = cardWidth === null ? isDesktop : cardWidth >= HEAD_BUTTONS_MIN_WIDTH;
+    const headMode: 'labels' | 'icons' | 'menu' = cardWidth === null
+        ? (isDesktop ? 'labels' : 'menu')
+        : cardWidth >= HEAD_LABELS_MIN_WIDTH ? 'labels' : cardWidth >= HEAD_ICONS_MIN_WIDTH ? 'icons' : 'menu';
     const [status, setStatus] = useState<EntryStatusFilter>('OPEN');
     const [query, setQuery] = useState('');
     const [drawer, setDrawer] = useState<DrawerState>(null);
@@ -587,7 +583,7 @@ export function ContractorDetail({ contractor, period, isDesktop, onEditContract
                     </NameBlock>
                 </Identity>
                 <HeadActions>
-                    {headButtons && (
+                    {headMode === 'labels' && (
                         <>
                             <GhostBtn type="button" onClick={() => setShowHistory(true)}>
                                 <Clock />Historia zestawień
@@ -595,6 +591,16 @@ export function ContractorDetail({ contractor, period, isDesktop, onEditContract
                             <GhostBtn type="button" onClick={handleDownload} disabled={downloading} title="Lista aut widocznych poniżej, bez tworzenia zestawienia">
                                 <Download />{downloading ? 'Generowanie…' : 'Pobierz listę PDF'}
                             </GhostBtn>
+                        </>
+                    )}
+                    {headMode === 'icons' && (
+                        <>
+                            <IconBtn type="button" onClick={() => setShowHistory(true)} aria-label="Historia zestawień" title="Historia zestawień">
+                                <Clock />
+                            </IconBtn>
+                            <IconBtn type="button" onClick={handleDownload} disabled={downloading} aria-label="Pobierz listę PDF" title="Pobierz listę PDF (bez tworzenia zestawienia)">
+                                <Download />
+                            </IconBtn>
                         </>
                     )}
                     <IconBtn
@@ -612,28 +618,20 @@ export function ContractorDetail({ contractor, period, isDesktop, onEditContract
             <Hero>
                 <HeroText>
                     <HeroLabel>Czeka na zestawienie {inPeriod}</HeroLabel>
-                    {isLoading && !data
-                        ? <AmountSkeleton aria-label="Wczytywanie kwoty" />
-                        : <HeroAmount>{formatMoney(open?.totalGrossCents ?? 0)}</HeroAmount>}
-                    {data && (openCount === 0 && settledCount > 0 ? (
+                    {isLoading && !data ? (
+                        <AmountSkeleton aria-label="Wczytywanie kwoty" />
+                    ) : data && openCount === 0 && settledCount > 0 ? (
                         <HeroDone><Check />Wszystkie auta z tego okresu są już w zestawieniu</HeroDone>
                     ) : (
-                        <>
+                        <HeroAmountLine>
+                            <HeroAmount>{formatMoney(open?.totalGrossCents ?? 0)}</HeroAmount>
+                            {/* Liczba aut już w zestawieniu stoi na przełączniku pod spodem
+                                („W zestawieniach 3") - tu byłaby drugi raz. */}
                             <HeroMeta>
-                                {openCount === 0
-                                    ? 'Brak aut czekających na zestawienie.'
-                                    : grossForCars(openCount, open?.totalNetCents ?? 0)}
+                                {openCount === 0 ? 'brak aut' : `${carsLabel(openCount)}, netto ${formatMoney(open?.totalNetCents ?? 0)}`}
                             </HeroMeta>
-                            {settledCount > 0 && (
-                                <HeroMeta>
-                                    {carsLabel(settledCount)} z tego okresu {pluralPl(settledCount, 'jest', 'są', 'jest')} już
-                                    {' '}w zestawieniu{data.lastSettledAt ? ` z ${formatInstantDay(data.lastSettledAt).slice(0, 5)}` : ''}
-                                    {' '}({formatMoney(settled?.totalGrossCents ?? 0)}).{' '}
-                                    {status !== 'SETTLED' && <InlineLink type="button" onClick={() => setStatus('SETTLED')}>Pokaż je</InlineLink>}
-                                </HeroMeta>
-                            )}
-                        </>
-                    ))}
+                        </HeroAmountLine>
+                    )}
                 </HeroText>
                 <HeroActions>
                     <SettleBtn
@@ -709,7 +707,7 @@ export function ContractorDetail({ contractor, period, isDesktop, onEditContract
 
             {menuPos && createPortal(
                 <Dropdown role="menu" style={menuPos} onClick={e => e.stopPropagation()}>
-                    {!headButtons && (
+                    {headMode === 'menu' && (
                         <>
                             <MenuItem role="menuitem" type="button" onClick={() => { setMenuPos(null); setShowHistory(true); }}>
                                 <Clock />Historia zestawień
@@ -717,7 +715,6 @@ export function ContractorDetail({ contractor, period, isDesktop, onEditContract
                             <MenuItem role="menuitem" type="button" disabled={downloading} onClick={() => { setMenuPos(null); handleDownload(); }}>
                                 <Download />Pobierz listę PDF
                             </MenuItem>
-                            <MenuDivider />
                         </>
                     )}
                     <MenuItem role="menuitem" type="button" onClick={() => { setMenuPos(null); onEditContractor(); }}>

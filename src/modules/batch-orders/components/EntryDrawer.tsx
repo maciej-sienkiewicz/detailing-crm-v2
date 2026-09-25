@@ -570,9 +570,6 @@ export function EntryDrawer({ contractorId, contractorName, entry: initialEntry,
                                 disabled={locked}
                                 firstGrossRef={firstGrossRef}
                             />
-                            {!locked && (
-                                <Hint>Wpisz netto albo brutto - drugą kwotę policzymy. Kwota, którą wpiszesz, zostaje dokładnie taka.</Hint>
-                            )}
                             <Totals aria-live="polite">
                                 <TotalsRow><span>Netto</span><span>{formatMoney(totals.netCents)}</span></TotalsRow>
                                 <TotalsRow><span>VAT{vat !== null ? ` ${vatLabel(vat)}` : ''}</span><span>{formatMoney(totals.vatCents)}</span></TotalsRow>

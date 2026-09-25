@@ -39,22 +39,22 @@ const Totals = styled.div`
 `;
 
 const TotalsLabel = styled.span`
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     color: ${p => p.theme.colors.textSecondary};
 `;
 
 const TotalsValue = styled.span`
-    font-size: 28px;
-    line-height: 1.2;
-    font-weight: 800;
-    letter-spacing: -0.02em;
+    font-size: 20px;
+    line-height: 1.25;
+    font-weight: 700;
+    letter-spacing: -0.01em;
     color: ${p => p.theme.colors.text};
     font-variant-numeric: tabular-nums;
 `;
 
 const TotalsMeta = styled.span`
-    font-size: 13px;
+    font-size: 12.5px;
     color: #64748b;
 `;
 
