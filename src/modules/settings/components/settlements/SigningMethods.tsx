@@ -194,7 +194,7 @@ export function AwaitingSignature({ request, tablets, phone, cancelling, onCance
             <WaitingText>{progress}</WaitingText>
             <WaitingText>Prośba jest ważna do {until}. Po podpisie lista zatwierdzi się sama.</WaitingText>
             <CancelBtn type="button" onClick={onCancel} disabled={cancelling}>
-                {cancelling ? 'Anuluję…' : 'Anuluj prośbę'}
+                {cancelling ? 'Anulowanie...' : 'Anuluj prośbę'}
             </CancelBtn>
         </Waiting>
     );
@@ -359,13 +359,12 @@ const Panel = styled.div`
     border-radius: 12px;
 `;
 
+/* Pytanie zdaniem, 13px półgrube - było 11px wersalikami w szarości (CLAUDE.md §2). */
 const PanelLabel = styled.p`
     margin: 0;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    color: #64748b;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
 `;
 
 const PanelText = styled.p`

@@ -118,21 +118,55 @@ export function toggleCode(selected: Set<string>, code: string, index: TreeIndex
     return next;
 }
 
-/** Module header click: all off when all are on, otherwise on for everything whose prerequisites are met. */
-export function toggleModuleCodes(selected: Set<string>, codes: string[], index: TreeIndex): Set<string> {
+/**
+ * Module header click: all off when all are on, otherwise on for everything whose
+ * prerequisites are met.
+ *
+ * `canSelect` is the same gate the rows use (a feature the studio has not bought).
+ * Without it the header switched on permissions whose rows were greyed out and
+ * unclickable: the role was saved with rights the studio cannot use, and the user
+ * could not take them back off one by one. "All on" is judged against what can be
+ * selected, otherwise a module with one locked row could never be switched off.
+ */
+export function toggleModuleCodes(
+    selected: Set<string>,
+    codes: string[],
+    index: TreeIndex,
+    canSelect: (code: string) => boolean = () => true,
+): Set<string> {
     const next = new Set(selected);
-    const allOn = codes.length > 0 && codes.every(c => next.has(c));
+    const selectable = codes.filter(canSelect);
+    const allOn = selectable.length > 0 && selectable.every(c => next.has(c));
     if (allOn) {
         codes.forEach(c => {
             next.delete(c);
             dependentsOf(c, index).forEach(d => next.delete(d));
         });
     } else {
-        codes.forEach(c => {
+        selectable.forEach(c => {
             if (getBlocker(c, next, index) === null) next.add(c);
         });
     }
     return next;
+}
+
+/**
+ * Codes of one module that a missing feature locks: the module's own feature, or the
+ * node's, or any ancestor's - the same inheritance the editor rows apply.
+ */
+export function featureLockedCodes(
+    module: PermissionModuleTree,
+    isFeatureEnabled: (featureKey: string | null) => boolean,
+): Set<string> {
+    const locked = new Set<string>();
+    const visit = (node: PermissionTreeNode, parentOk: boolean) => {
+        const ok = parentOk && isFeatureEnabled(node.featureKey);
+        if (!ok) locked.add(node.code);
+        node.children.forEach(child => visit(child, ok));
+    };
+    const moduleOk = isFeatureEnabled(module.featureKey);
+    module.nodes.forEach(root => visit(root, moduleOk));
+    return locked;
 }
 
 /** Groups sibling nodes by their section label, preserving declaration order. */

@@ -16,7 +16,7 @@ import {
     ModalFooter,
     CloseBtn,
 } from '@/common/components/ModalKit';
-import { SharedButton } from '@/common/styles';
+import { Button } from '@/common/components/ui';
 import { PdfPagesViewer } from '@/modules/public-signing/components/PdfPagesViewer';
 import { attendanceApi, readBlobErrorMessage, saveBlobAsFile, type AttendanceSheet } from '../../api/attendanceApi';
 import { employeesLabel, isApproved, periodLabel, sheetFileName } from './settlementFormat';
@@ -52,10 +52,10 @@ export function AttendanceSheetPreviewModal({ sheet, onClose, onApprove }: Props
         <ModalShell isOpen onClose={onClose} size="xl">
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>Lista obecności · {periodLabel(sheet.period)}</ModalTitle>
+                    <ModalTitle>Lista obecności: {periodLabel(sheet.period)}</ModalTitle>
                     <ModalSubtitle>
                         {employeesLabel(sheet.employeeCount)}
-                        {sheet.signed ? ' · podpisana' : ''}
+                        {sheet.signed ? ', lista podpisana' : ''}
                     </ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
@@ -67,24 +67,20 @@ export function AttendanceSheetPreviewModal({ sheet, onClose, onApprove }: Props
                         ? <Status role="alert">{error}</Status>
                         : pdf
                             ? <PdfPagesViewer data={pdf.bytes} />
-                            : <Status>Wczytuję podgląd…</Status>}
+                            : <Status>Wczytywanie podglądu...</Status>}
                 </Sheet>
             </ModalContent>
 
             <ModalFooter>
-                <SharedButton
-                    type="button"
-                    $variant="secondary"
-                    $size="sm"
+                <Button
+                    variant="outline"
                     onClick={() => pdf && saveBlobAsFile(pdf.blob, sheetFileName(sheet))}
                     disabled={!pdf}
                 >
                     Pobierz PDF
-                </SharedButton>
+                </Button>
                 {!isApproved(sheet) && (
-                    <SharedButton type="button" $variant="primary" $size="sm" onClick={onApprove}>
-                        Zatwierdź
-                    </SharedButton>
+                    <Button variant="primary" onClick={onApprove}>Zatwierdź</Button>
                 )}
             </ModalFooter>
         </ModalShell>

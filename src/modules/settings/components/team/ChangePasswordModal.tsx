@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import styled from 'styled-components';
 import {
-    Overlay, ModalCard, ModalHead, ModalTitle, ModalSubtitle, ModalCloseBtn,
-    ModalBody, ModalFooter, FormField, FieldLabel, FieldInput, ErrorMsg,
-    CancelBtn, SubmitBtn,
-} from '../rbacShared.styles';
+    ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle,
+    ModalContent, ModalFooter, CloseBtn,
+} from '@/common/components/ModalKit';
+import { Button } from '@/common/components/ui';
+import { FormField, FieldLabel, FieldInput, ErrorMsg } from '../rbacShared.styles';
 import type { ChangePasswordRequest } from '../../teamTypes';
 
 // Polityka: min. 8 znaków, min. 1 wielka, min. 1 mała, min. 1 cyfra.
@@ -42,62 +43,64 @@ export function ChangePasswordModal({ employeeName, isSaving, onClose, onSubmit 
     };
 
     return (
-        <Overlay onClick={e => e.target === e.currentTarget && onClose()}>
-            <ModalCard $maxWidth={440}>
-                <ModalHead>
-                    <div>
-                        <ModalTitle>Zmień hasło</ModalTitle>
-                        <ModalSubtitle>Ustaw nowe hasło dla konta: {employeeName}</ModalSubtitle>
-                    </div>
-                    <ModalCloseBtn onClick={onClose} aria-label="Zamknij">
-                        <CloseIcon />
-                    </ModalCloseBtn>
-                </ModalHead>
+        // Własna nakładka nie znała Escape ani blokady przewijania tła, a na telefonie
+        // stopka lądowała pod paskiem przeglądarki - ModalShell ma to wszystko w cenie.
+        <ModalShell isOpen onClose={onClose} size="sm">
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>Zmień hasło</ModalTitle>
+                    <ModalSubtitle>Ustaw nowe hasło dla konta: {employeeName}</ModalSubtitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={onClose} />
+            </ModalHeader>
 
-                <ModalBody>
-                    <FormField>
-                        <FieldLabel>Nowe hasło</FieldLabel>
-                        <FieldInput
-                            type="password"
-                            value={newPassword}
-                            onChange={e => { setNewPassword(e.target.value); setError(null); }}
-                            autoFocus
-                        />
-                    </FormField>
+            <ModalContent>
+                <FormField>
+                    <FieldLabel htmlFor="change-password-new">Nowe hasło</FieldLabel>
+                    <FieldInput
+                        id="change-password-new"
+                        autoComplete="new-password"
+                        type="password"
+                        value={newPassword}
+                        onChange={e => { setNewPassword(e.target.value); setError(null); }}
+                        autoFocus
+                    />
+                </FormField>
 
-                    <FormField>
-                        <FieldLabel>Powtórz hasło</FieldLabel>
-                        <FieldInput
-                            type="password"
-                            value={confirmPassword}
-                            onChange={e => { setConfirmPassword(e.target.value); setError(null); }}
-                            $error={confirmPassword !== '' && confirmPassword !== newPassword}
-                        />
-                    </FormField>
+                <FormField>
+                    <FieldLabel htmlFor="change-password-confirm">Powtórz hasło</FieldLabel>
+                    <FieldInput
+                        id="change-password-confirm"
+                        autoComplete="new-password"
+                        type="password"
+                        value={confirmPassword}
+                        onChange={e => { setConfirmPassword(e.target.value); setError(null); }}
+                        $error={confirmPassword !== '' && confirmPassword !== newPassword}
+                    />
+                </FormField>
 
-                    <Rules>
-                        {PASSWORD_RULES.map(rule => {
-                            const ok = rule.test(newPassword);
-                            return (
-                                <Rule key={rule.label} $ok={ok}>
-                                    <RuleDot $ok={ok}>{ok ? <TinyCheck /> : null}</RuleDot>
-                                    {rule.label}
-                                </Rule>
-                            );
-                        })}
-                    </Rules>
+                <Rules>
+                    {PASSWORD_RULES.map(rule => {
+                        const ok = rule.test(newPassword);
+                        return (
+                            <Rule key={rule.label} $ok={ok}>
+                                <RuleDot $ok={ok}>{ok ? <TinyCheck /> : null}</RuleDot>
+                                {rule.label}
+                            </Rule>
+                        );
+                    })}
+                </Rules>
 
-                    {error && <ErrorMsg>{error}</ErrorMsg>}
-                </ModalBody>
+                {error && <ErrorMsg role="alert">{error}</ErrorMsg>}
+            </ModalContent>
 
-                <ModalFooter>
-                    <CancelBtn onClick={onClose} disabled={isSaving}>Anuluj</CancelBtn>
-                    <SubmitBtn onClick={handleSubmit} disabled={isSaving}>
-                        {isSaving ? 'Zapisywanie...' : 'Zmień hasło'}
-                    </SubmitBtn>
-                </ModalFooter>
-            </ModalCard>
-        </Overlay>
+            <ModalFooter>
+                <Button variant="outline" onClick={onClose} disabled={isSaving}>Anuluj</Button>
+                <Button variant="primary" onClick={handleSubmit} disabled={isSaving}>
+                    {isSaving ? 'Zapisywanie...' : 'Zmień hasło'}
+                </Button>
+            </ModalFooter>
+        </ModalShell>
     );
 }
 
@@ -115,8 +118,8 @@ const Rule = styled.div<{ $ok: boolean }>`
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 12px;
-    color: ${p => (p.$ok ? '#059669' : '#64748b')};
+    font-size: 12.5px;
+    color: ${p => (p.$ok ? '#15803d' : '#64748b')};
 `;
 
 const RuleDot = styled.span<{ $ok: boolean }>`
@@ -130,12 +133,6 @@ const RuleDot = styled.span<{ $ok: boolean }>`
     color: white;
     background: ${p => (p.$ok ? '#10b981' : '#cbd5e1')};
 `;
-
-const CloseIcon = () => (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-);
 
 const TinyCheck = () => (
     <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">

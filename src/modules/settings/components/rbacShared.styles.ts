@@ -183,12 +183,14 @@ export const Card = styled.div`
     overflow: hidden;
 `;
 
+/**
+ * Nagłówek kolumny tabeli: zdaniem, 12.5px, półgruby. Był 11px wersalikami w szarości -
+ * etykieta, która była jedyną ramą listy (CLAUDE.md §2, wycofane).
+ */
 export const ColLabel = styled.span`
-    font-size: 11px;
+    font-size: 12.5px;
     font-weight: 600;
-    color: #94a3b8;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    color: #64748b;
 `;
 
 // ─── Badges ─────────────────────────────────────────────────────────────────
@@ -240,7 +242,7 @@ export const EmptyTitle = styled.p`
 
 export const EmptyDesc = styled.p`
     margin: 0;
-    font-size: 11px;
+    font-size: 12.5px;
     color: #94a3b8;
     line-height: 1.6;
     max-width: 360px;
@@ -267,8 +269,8 @@ export const Pager = styled.div`
 `;
 
 export const PagerInfo = styled.span`
-    font-size: 11px;
-    color: #94a3b8;
+    font-size: 12.5px;
+    color: #64748b;
 `;
 
 export const PagerControls = styled.div`
@@ -284,7 +286,7 @@ export const PagerBtn = styled.button<{ $active?: boolean }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 11px;
+    font-size: 12.5px;
     font-family: inherit;
     font-weight: ${p => (p.$active ? 700 : 500)};
     border-radius: 7px;
@@ -387,8 +389,11 @@ export const ModalFooter = styled.div`
 // ─── Form ───────────────────────────────────────────────────────────────────
 export const FormGrid = styled.div<{ $cols?: number }>`
     display: grid;
-    grid-template-columns: repeat(${p => p.$cols ?? 2}, 1fr);
+    grid-template-columns: repeat(${p => p.$cols ?? 2}, minmax(0, 1fr));
     gap: 14px;
+
+    /* Dwa pola obok siebie na telefonie to dwa pola po 150px, w których nie mieści się adres e-mail. */
+    @media (max-width: 640px) { grid-template-columns: minmax(0, 1fr); }
 `;
 
 export const FormField = styled.div`
@@ -475,13 +480,13 @@ export const FieldSelect = styled.select`
 `;
 
 export const ErrorMsg = styled.span`
-    font-size: 11px;
+    font-size: 12px;
     color: #ef4444;
 `;
 
 export const HintText = styled.span`
-    font-size: 11px;
-    color: #94a3b8;
+    font-size: 12px;
+    color: #64748b;
     line-height: 1.5;
 `;
 
@@ -566,14 +571,30 @@ export const DangerBtn = styled.button`
 `;
 
 // ─── Checkbox ───────────────────────────────────────────────────────────────
+/**
+ * Wiersz pola wyboru. Renderuj go jako `<CheckRow as="button" role="checkbox"
+ * aria-checked=…>`: jako `<div onClick>` nie dało się go zaznaczyć klawiaturą,
+ * a czytnik ekranu nie wiedział, że to pole wyboru. Reset stylów przycisku poniżej
+ * jest dla `div` obojętny.
+ */
 export const CheckRow = styled.div<{ $disabled?: boolean }>`
     display: flex;
     align-items: flex-start;
     gap: 10px;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-align: left;
     cursor: ${p => (p.$disabled ? 'not-allowed' : 'pointer')};
     user-select: none;
     opacity: ${p => (p.$disabled ? 0.6 : 1)};
     min-height: 20px;
+
+    &:focus-visible { outline: 2px solid #38bdf8; outline-offset: 3px; border-radius: 6px; }
 `;
 
 export const CheckBox = styled.span<{ $checked: boolean }>`

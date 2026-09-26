@@ -1,15 +1,19 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import styled from 'styled-components';
+import { MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
 import {
-    Container, Toolbar, AddButton, EmptyWrap, EmptyTitle,
-    EmptyDesc, SkeletonBox, Badge,
-} from './rbacShared.styles';
+    ActionMenu, Button, Card, IconButton, MenuDivider, MenuItem, Notice, StatusPill, useActionMenu,
+} from '@/common/components/ui';
+import { SkeletonBox } from './rbacShared.styles';
+import { SettingsHeaderActions } from './shared/SettingsHeaderActions';
 import {
     usePermissionCatalog, useRoles, useCreateRole, useUpdateRole, useDeleteRole,
 } from '../hooks/useRoles';
 import { RoleEditorModal } from './roles/RoleEditorModal';
 import { RoleDeletionModal } from './roles/RoleDeletionModal';
+import { reportMutationError } from './team/mutationError';
+import { employeesCount, peopleAccusative, permissionsLabel } from './team/teamPlural';
 import { useRolePreview, PreviewIcon } from '@/modules/role-preview';
 import type { Role, CreateRoleRequest } from '../rbacTypes';
 
@@ -19,30 +23,35 @@ interface RolesSectionProps {
 }
 
 export function RolesSection({ onGoToEmployees }: RolesSectionProps = {}) {
-    const { showSuccess } = useToast();
+    const { showSuccess, showError } = useToast();
     const { catalog, isLoading: catalogLoading } = usePermissionCatalog();
-    const { roles, isLoading } = useRoles();
+    const { roles, isLoading, isError, refetch } = useRoles();
 
     const createRole = useCreateRole();
     const updateRole = useUpdateRole();
     const deleteRole = useDeleteRole();
 
     const preview = useRolePreview();
+    const menu = useActionMenu<Role>();
 
     const [editor, setEditor] = useState<{ mode: 'add' | 'edit'; role: Role | null } | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<Role | null>(null);
 
     const isSaving = createRole.isPending || updateRole.isPending;
 
+    // Błąd zapisu zostawia edytor otwarty ze wszystkim, co zaznaczono. Wcześniej nie
+    // było `onError` wcale: przy 5xx przycisk wracał do „Zapisz rolę" bez słowa.
     const handleSubmit = (payload: CreateRoleRequest) => {
         if (!editor) return;
         if (editor.mode === 'add') {
             createRole.mutate(payload, {
-                onSuccess: () => { showSuccess('Rola utworzona'); setEditor(null); },
+                onSuccess: () => { showSuccess('Rola dodana'); setEditor(null); },
+                onError: error => reportMutationError(showError, 'Nie udało się dodać roli', error),
             });
         } else if (editor.role) {
             updateRole.mutate({ roleId: editor.role.id, payload }, {
-                onSuccess: () => { showSuccess('Rola zaktualizowana'); setEditor(null); },
+                onSuccess: () => { showSuccess('Rola zapisana'); setEditor(null); },
+                onError: error => reportMutationError(showError, 'Nie udało się zapisać roli', error),
             });
         }
     };
@@ -59,70 +68,102 @@ export function RolesSection({ onGoToEmployees }: RolesSectionProps = {}) {
                     if (moved === 0) {
                         showSuccess('Rola usunięta');
                     } else if (targetName) {
-                        showSuccess('Rola usunięta', `${moved} os. przeniesiono na rolę „${targetName}".`);
+                        showSuccess('Rola usunięta', `Przeniesiono ${peopleAccusative(moved)} na rolę „${targetName}".`);
                     } else {
-                        showSuccess('Rola usunięta', `${moved} os. została bez roli, przypisz im nową, aby odzyskały dostęp.`);
+                        showSuccess('Rola usunięta', `Bez roli zostało ${peopleAccusative(moved)}. Przypisz im nową, żeby odzyskały dostęp.`);
                     }
                     setDeleteTarget(null);
                 },
+                onError: error => reportMutationError(showError, 'Nie udało się usunąć roli', error),
             },
         );
     };
 
-    return (
-        <Container>
-            <Toolbar>
-                <Intro>
-                    Twórz role i przypisuj im uprawnienia w drzewie zależności: uprawnienie
-                    podrzędne wymaga nadrzędnego. Role nadajesz użytkownikom w profilu pracownika.
-                </Intro>
-                <AddButton onClick={() => setEditor({ mode: 'add', role: null })}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                        <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                    Dodaj rolę
-                </AddButton>
-            </Toolbar>
+    const menuRole = menu.menu?.item ?? null;
 
-            {isLoading ? (
-                <Grid>
-                    {Array.from({ length: 3 }).map((_, i) => (
-                        <RoleCard key={i}>
-                            <SkeletonBox $w="50%" />
-                            <SkeletonBox $w="80%" />
-                            <SkeletonBox $w="40%" />
-                        </RoleCard>
-                    ))}
-                </Grid>
-            ) : roles.length === 0 ? (
-                <EmptyCard>
-                    <EmptyWrap>
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e2e8f0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                        </svg>
-                        <EmptyTitle>Brak ról</EmptyTitle>
-                        <EmptyDesc>Utwórz pierwszą rolę, aby zarządzać uprawnieniami pracowników.</EmptyDesc>
-                    </EmptyWrap>
-                </EmptyCard>
+    return (
+        <>
+            <SettingsHeaderActions>
+                <Button variant="primary" size="lg" onClick={() => setEditor({ mode: 'add', role: null })}>
+                    <Plus aria-hidden="true" />
+                    Dodaj rolę
+                </Button>
+            </SettingsHeaderActions>
+
+            <Intro>
+                Rola mówi, co pracownik widzi i może zmieniać. Uprawnienie podrzędne wymaga
+                nadrzędnego. Rolę przypisujesz przy zaproszeniu albo w karcie pracownika.
+            </Intro>
+
+            {isError ? (
+                // Błąd wczytania to nie brak ról: „Utwórz pierwszą rolę" prowadziło do
+                // dublowania ról, które już istnieją.
+                <Notice
+                    tone="danger"
+                    role="alert"
+                    title="Nie udało się wczytać ról"
+                    action={<Button variant="ghost" size="sm" onClick={() => refetch()}>Spróbuj ponownie</Button>}
+                >
+                    Lista ról jest chwilowo niedostępna. Uprawnienia pracowników działają bez zmian.
+                </Notice>
             ) : (
-                <Grid>
-                    {roles.map(role => (
-                        <RoleCardItem
-                            key={role.id}
-                            role={role}
-                            onEdit={() => setEditor({ mode: 'edit', role })}
-                            onDelete={() => setDeleteTarget(role)}
-                            onPreview={preview.available ? () => preview.open({
-                                roleName: role.name,
-                                permissions: role.permissions.map(p => p.code),
-                                trackWorkTime: role.trackWorkTime,
-                            }) : undefined}
-                            previewOpening={preview.opening}
-                            onShowHolders={onGoToEmployees}
-                        />
-                    ))}
-                </Grid>
+                <ListCard>
+                    {isLoading ? (
+                        Array.from({ length: 3 }).map((_, i) => (
+                            <SkeletonRow key={i} aria-hidden="true">
+                                <SkeletonBox $w="40%" />
+                                <SkeletonBox $w="70%" />
+                            </SkeletonRow>
+                        ))
+                    ) : roles.length === 0 ? (
+                        <Empty>
+                            <strong>Nie ma jeszcze ról</strong>
+                            <span>Dodaj pierwszą rolę przyciskiem „Dodaj rolę" u góry albo wybierz gotową przy zapraszaniu pracownika.</span>
+                        </Empty>
+                    ) : (
+                        <ul>
+                            {roles.map(role => (
+                                <RoleRow
+                                    key={role.id}
+                                    role={role}
+                                    menuOpen={menu.isOpen(role.id)}
+                                    onEdit={() => setEditor({ mode: 'edit', role })}
+                                    onShowHolders={onGoToEmployees}
+                                    onMenu={e => menu.toggle(e, role, role.id)}
+                                />
+                            ))}
+                        </ul>
+                    )}
+                </ListCard>
             )}
+
+            <ActionMenu anchor={menu.menu?.anchor ?? null} onClose={menu.close} label="Akcje roli">
+                {menuRole && (
+                    <>
+                        <MenuItem icon={<Pencil />} onClick={() => setEditor({ mode: 'edit', role: menuRole })}>
+                            Edytuj rolę
+                        </MenuItem>
+                        {preview.available && (
+                            <MenuItem
+                                icon={<PreviewIcon />}
+                                disabled={preview.opening}
+                                title="CRM oczami pracownika z tą rolą, na danych przykładowych"
+                                onClick={() => preview.open({
+                                    roleName: menuRole.name,
+                                    permissions: menuRole.permissions.map(p => p.code),
+                                    trackWorkTime: menuRole.trackWorkTime,
+                                })}
+                            >
+                                Podgląd roli
+                            </MenuItem>
+                        )}
+                        <MenuDivider />
+                        <MenuItem icon={<Trash2 />} danger onClick={() => setDeleteTarget(menuRole)}>
+                            Usuń rolę
+                        </MenuItem>
+                    </>
+                )}
+            </ActionMenu>
 
             {editor && (
                 <RoleEditorModal
@@ -145,203 +186,189 @@ export function RolesSection({ onGoToEmployees }: RolesSectionProps = {}) {
                     onConfirm={handleDelete}
                 />
             )}
-        </Container>
+        </>
     );
 }
 
-// ─── Role card ──────────────────────────────────────────────────────────────────
-function RoleCardItem({ role, onEdit, onDelete, onShowHolders, onPreview, previewOpening }: {
+// ─── Wiersz roli ────────────────────────────────────────────────────────────────
+
+/**
+ * Jedna lista zamiast siatki kart: każda rola była osobną kartą z obwódką, więc
+ * trzy role to trzy równorzędne powierzchnie i żadna nie była tematem (CLAUDE.md §2).
+ * Wiersz otwiera edycję jak na liście pracowników - nazwa jest przyciskiem
+ * rozciągniętym na cały wiersz.
+ */
+function RoleRow({ role, menuOpen, onEdit, onShowHolders, onMenu }: {
     role: Role;
+    menuOpen: boolean;
     onEdit: () => void;
-    onDelete: () => void;
     onShowHolders?: () => void;
-    /** Absent when the role preview is not available (switched off or not configured). */
-    onPreview?: () => void;
-    previewOpening?: boolean;
+    onMenu: (e: ReactMouseEvent<HTMLElement>) => void;
 }) {
-    const moduleChips = useMemo(() => {
+    const modules = useMemo(() => {
         const seen = new Map<string, string>();
         role.permissions.forEach(p => { if (!seen.has(p.module)) seen.set(p.module, p.moduleDisplayName); });
         return Array.from(seen.values());
     }, [role.permissions]);
 
+    const usage = role.assignedUserCount === 0
+        ? 'Nikt jej nie używa'
+        : `Używa ${employeesCount(role.assignedUserCount)}`;
+
     return (
-        <RoleCard>
-            <RoleHead>
-                <div>
-                    <RoleName>{role.name}</RoleName>
-                    {role.description && <RoleDesc>{role.description}</RoleDesc>}
-                </div>
-                <Actions>
-                    {onPreview && (
-                        <IconBtn
-                            title="Przejdź do podglądu roli - CRM oczami pracownika z tą rolą, na danych przykładowych"
-                            aria-label={`Podgląd roli ${role.name}`}
-                            onClick={onPreview}
-                            disabled={previewOpening}
-                        >
-                            <PreviewIcon />
-                        </IconBtn>
+        <Row>
+            <Main>
+                <NameButton type="button" onClick={onEdit} aria-label={`Edytuj rolę: ${role.name}`}>
+                    {role.name}
+                </NameButton>
+                {role.description && <Desc>{role.description}</Desc>}
+                <Meta>
+                    <span>{permissionsLabel(role.permissions.length)}</span>
+                    {role.trackWorkTime && <span>Liczony czas pracy</span>}
+                    {role.assignedUserCount > 0 && onShowHolders ? (
+                        <UsageLink type="button" onClick={onShowHolders}>{usage}</UsageLink>
+                    ) : (
+                        <span>{usage}</span>
                     )}
-                    <IconBtn title="Edytuj" onClick={onEdit}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                        </svg>
-                    </IconBtn>
-                    <IconBtn $danger title="Usuń" onClick={onDelete}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                        </svg>
-                    </IconBtn>
-                </Actions>
-            </RoleHead>
-
-            <CardMeta>
-                <PermCount>{role.permissions.length} uprawnień</PermCount>
-                <MetaSep>·</MetaSep>
-                {role.assignedUserCount === 0 ? (
-                    <UsageText>nikt nie używa</UsageText>
-                ) : onShowHolders ? (
-                    <UsageLink type="button" onClick={onShowHolders}>
-                        {usageLabel(role.assignedUserCount)}
-                    </UsageLink>
-                ) : (
-                    <UsageText>{usageLabel(role.assignedUserCount)}</UsageText>
+                </Meta>
+                {modules.length > 0 && (
+                    <Chips aria-label="Moduły">
+                        {modules.map(m => <StatusPill key={m} $tone="neutral">{m}</StatusPill>)}
+                    </Chips>
                 )}
-            </CardMeta>
-
-            {moduleChips.length > 0 && (
-                <Chips>
-                    {moduleChips.map(m => <Badge key={m} $variant="blue">{m}</Badge>)}
-                </Chips>
-            )}
-        </RoleCard>
+            </Main>
+            <MenuCell>
+                <IconButton
+                    label={`Więcej akcji: ${role.name}`}
+                    variant="ghost"
+                    size="sm"
+                    shape="square"
+                    aria-haspopup="menu"
+                    active={menuOpen}
+                    onClick={onMenu}
+                >
+                    <MoreVertical />
+                </IconButton>
+            </MenuCell>
+        </Row>
     );
 }
 
 // ─── Styled ─────────────────────────────────────────────────────────────────────
 const Intro = styled.p`
-    flex: 1;
-    min-width: 220px;
     margin: 0;
-    font-size: 13px;
-    color: #64748b;
+    font-size: 13.5px;
+    color: #475569;
     line-height: 1.6;
+    max-width: 720px;
 `;
 
-const Grid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 14px;
+const ListCard = styled(Card)`
+    ul { list-style: none; margin: 0; padding: 0; }
 `;
 
-const RoleCard = styled.div`
+const SkeletonRow = styled.div`
     display: flex;
     flex-direction: column;
     gap: 10px;
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 16px 18px;
+    padding: 20px 24px;
+    border-bottom: 1px solid #f1f5f9;
+    &:last-child { border-bottom: none; }
 `;
 
-const EmptyCard = styled.div`
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-`;
-
-const RoleHead = styled.div`
+const Row = styled.li`
+    position: relative;
     display: flex;
     align-items: flex-start;
-    justify-content: space-between;
-    gap: 10px;
+    gap: 12px;
+    padding: 16px 24px;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 150ms;
+    &:last-child { border-bottom: none; }
+    &:hover { background: #f8fafc; }
+
+    @media (max-width: 640px) { padding: 14px 16px; }
 `;
 
-const RoleName = styled.div`
-    font-size: 14px;
+const Main = styled.div`
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+`;
+
+const NameButton = styled.button`
+    align-self: flex-start;
+    max-width: 100%;
+    padding: 0;
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: 15px;
     font-weight: 700;
     color: #0f172a;
+    text-align: left;
+    cursor: pointer;
+    overflow-wrap: anywhere;
+
+    &::after { content: ''; position: absolute; inset: 0; }
+    &:focus-visible { outline: none; }
+    &:focus-visible::after { outline: 2px solid #38bdf8; outline-offset: -2px; border-radius: 4px; }
 `;
 
-const RoleDesc = styled.div`
-    font-size: 12px;
-    color: #64748b;
-    margin-top: 3px;
+const Desc = styled.p`
+    margin: 0;
+    font-size: 13px;
+    color: #475569;
     line-height: 1.5;
 `;
 
-const Actions = styled.div`
+const Meta = styled.div`
     display: flex;
-    gap: 4px;
-    flex-shrink: 0;
-`;
-
-const IconBtn = styled.button<{ $danger?: boolean }>`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    border-radius: 7px;
-    border: 1px solid transparent;
-    background: transparent;
-    color: ${p => (p.$danger ? '#ef4444' : '#94a3b8')};
-    cursor: pointer;
-    transition: all 150ms;
-
-    &:hover:not(:disabled) {
-        background: ${p => (p.$danger ? 'rgba(239,68,68,0.08)' : '#f1f5f9')};
-        border-color: ${p => (p.$danger ? 'rgba(239,68,68,0.2)' : '#e2e8f0')};
-        color: ${p => (p.$danger ? '#ef4444' : '#334155')};
-    }
-
-    &:disabled { opacity: 0.5; cursor: wait; }
-`;
-
-const usageLabel = (n: number) =>
-    n === 1 ? 'używa 1 pracownik' : `używa ${n} pracowników`;
-
-const CardMeta = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 6px;
     flex-wrap: wrap;
-`;
-
-const PermCount = styled.span`
-    font-size: 11px;
-    font-weight: 600;
-    color: #0284c7;
-`;
-
-const MetaSep = styled.span`
-    font-size: 11px;
-    color: #cbd5e1;
-`;
-
-const UsageText = styled.span`
-    font-size: 11px;
-    font-weight: 600;
-    color: #94a3b8;
+    gap: 2px 12px;
+    font-size: 13px;
+    color: #64748b;
 `;
 
 const UsageLink = styled.button`
+    position: relative;
+    z-index: 1;
     border: none;
     background: none;
     padding: 0;
     font-family: inherit;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
-    color: #64748b;
+    color: #0369a1;
     cursor: pointer;
 
-    &:hover { color: #0284c7; text-decoration: underline; }
+    &:hover { text-decoration: underline; }
+    &:focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; border-radius: 4px; }
 `;
 
 const Chips = styled.div`
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+    margin-top: 4px;
+`;
+
+const MenuCell = styled.div`
+    position: relative;
+    z-index: 1;
+    flex-shrink: 0;
+`;
+
+const Empty = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 40px 24px;
+    text-align: center;
+
+    strong { font-size: 15px; font-weight: 700; color: #0f172a; }
+    span { max-width: 420px; font-size: 13px; line-height: 1.55; color: #64748b; }
 `;

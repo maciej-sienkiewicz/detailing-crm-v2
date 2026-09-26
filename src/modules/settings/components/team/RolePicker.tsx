@@ -6,6 +6,7 @@ import { useCreateRole } from '../../hooks/useRoles';
 import { ROLE_TEMPLATES, toCreateRoleRequest } from '../../roleTemplates';
 import type { RoleTemplate } from '../../roleTemplates';
 import type { Role } from '../../rbacTypes';
+import { permissionsLabel } from './teamPlural';
 
 /**
  * Role field that can produce the role it needs.
@@ -55,12 +56,20 @@ export function RolePicker({ roles, value, onChange, onOpenFullEditor, disabled,
             if (wrapRef.current?.contains(target) || menuRef.current?.contains(target)) return;
             setOpen(false);
         };
-        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+        // Escape zamyka samo menu. Nasłuch w fazie przechwytywania na `window` i zatrzymanie
+        // zdarzenia: okno formularza (ModalShell) słucha Escape na `document` i bez tego
+        // zamykało się razem z menu - z wpisanym pracownikiem w środku.
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key !== 'Escape') return;
+            e.stopPropagation();
+            setOpen(false);
+            triggerRef.current?.focus();
+        };
         document.addEventListener('mousedown', onDocClick);
-        document.addEventListener('keydown', onKey);
+        window.addEventListener('keydown', onKey, true);
         return () => {
             document.removeEventListener('mousedown', onDocClick);
-            document.removeEventListener('keydown', onKey);
+            window.removeEventListener('keydown', onKey, true);
         };
     }, [open]);
 
@@ -177,7 +186,7 @@ export function RolePicker({ roles, value, onChange, onOpenFullEditor, disabled,
                                         <RowName>{role.name}</RowName>
                                         {role.description && <RowDesc>{role.description}</RowDesc>}
                                     </RowMain>
-                                    <RowMeta>{role.permissions.length} uprawnień</RowMeta>
+                                    <RowMeta>{permissionsLabel(role.permissions.length)}</RowMeta>
                                 </MenuRow>
                             ))}
                         </MenuGroup>
@@ -228,7 +237,7 @@ export function RolePicker({ roles, value, onChange, onOpenFullEditor, disabled,
             {selected ? (
                 <Preview>
                     {moduleChips.length > 0
-                        ? <>Dostęp: {moduleChips.join(' · ')}</>
+                        ? <>Dostęp do modułów: {moduleChips.join(', ')}.</>
                         : <>Rola bez uprawnień, pracownik zaloguje się, ale nic nie zobaczy.</>}
                 </Preview>
             ) : (
@@ -282,7 +291,7 @@ const Caret = styled.span<{ $open: boolean }>`
 `;
 
 /* Pozycję (top/bottom/left/width/maxHeight) i widoczność nadaje positionMenu wprost
-   na elemencie, po zmierzeniu go; z-index ponad Overlay modalu (3000). */
+   na elemencie, po zmierzeniu go; z-index ponad oknami (ModalShell 1000, okno z okna 1400). */
 const Menu = styled.div`
     position: fixed;
     top: auto;
@@ -304,13 +313,12 @@ const MenuGroup = styled.div`
     & + & { border-top: 1px solid #f1f5f9; }
 `;
 
+/* Nagłówek grupy zdaniem - był 10px wersalikami w szarości (CLAUDE.md §2). */
 const GroupLabel = styled.div`
-    padding: 8px 14px 4px;
-    font-size: 10px;
-    font-weight: 700;
-    color: #94a3b8;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+    padding: 10px 14px 4px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
 `;
 
 const MenuRow = styled.button<{ $selected?: boolean; $create?: boolean }>`
@@ -345,16 +353,16 @@ const RowName = styled.span`
 `;
 
 const RowDesc = styled.span`
-    font-size: 11px;
+    font-size: 12px;
     color: #64748b;
     line-height: 1.45;
 `;
 
 const RowMeta = styled.span`
     flex-shrink: 0;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
-    color: #94a3b8;
+    color: #64748b;
     white-space: nowrap;
 `;
 
@@ -378,7 +386,7 @@ const LinkBtn = styled.button`
 `;
 
 const Preview = styled.span`
-    font-size: 11px;
+    font-size: 12.5px;
     color: #475569;
     line-height: 1.5;
 `;

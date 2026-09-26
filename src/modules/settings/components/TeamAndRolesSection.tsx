@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
-import { TabBar, type TabDefinition } from '@/common/components/TabBar';
+import { useEffect, useState } from 'react';
+import styled, { css, keyframes } from 'styled-components';
+import { Search } from 'lucide-react';
+import { Segmented, ui, type SegmentedOption } from '@/common/components/ui';
 import { Container } from './rbacShared.styles';
 import { TeamSection, TEAM_PAGE_SIZE } from './TeamSection';
 import { RolesSection } from './RolesSection';
 import { SettlementsSection } from './settlements/SettlementsSection';
+import { AttendanceSheetModal } from './team/AttendanceSheetModal';
 import { pendingCount } from './settlements/settlementFormat';
 import { useEmployees } from '../hooks/useTeam';
 import { useRoles } from '../hooks/useRoles';
@@ -20,28 +23,9 @@ import type { AttendanceSheet } from '../api/attendanceApi';
  * a person needs can be created without losing the form.
  *
  * Rozliczenia są trzecim widokiem tego samego tematu: lista obecności powstaje
- * z zaznaczonych pracowników i ląduje tutaj, zamiast znikać w folderze Pobrane.
+ * w oknie „Lista obecności" i ląduje tutaj, zamiast znikać w folderze Pobrane.
  */
 export type TeamSubView = 'employees' | 'roles' | 'settlements';
-
-const UsersIcon = () => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3M8 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3M2 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2M18 21v-2a4 4 0 0 0-3-3.87" />
-    </svg>
-);
-
-const ShieldIcon = () => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
-);
-
-const SettlementIcon = () => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14 2 14 8 20 8" /><polyline points="9 15 11 17 15 13" />
-    </svg>
-);
 
 interface TeamAndRolesSectionProps {
     subView: TeamSubView;
@@ -55,8 +39,11 @@ export function TeamAndRolesSection({ subView, onSubViewChange }: TeamAndRolesSe
     const { roles } = useRoles();
     const { sheets } = useAttendanceSheets();
 
-    // Świeżo wygenerowana lista: zakładka Rozliczenia mruga, a jej wiersz podświetla się
-    // po wejściu - administrator widzi, dokąd lista trafiła, zamiast szukać pliku.
+    const [search, setSearch] = useState('');
+    const [attendanceOpen, setAttendanceOpen] = useState(false);
+
+    // Świeżo wygenerowana lista: „Rozliczenia" w przełączniku mrugają, a wiersz podświetla
+    // się po wejściu - administrator widzi, dokąd lista trafiła, zamiast szukać pliku.
     const [settlementsFlash, setSettlementsFlash] = useState(0);
     const [newSheetId, setNewSheetId] = useState<string | null>(null);
 
@@ -65,38 +52,54 @@ export function TeamAndRolesSection({ subView, onSubViewChange }: TeamAndRolesSe
         setSettlementsFlash(n => n + 1);
     };
 
-    // Wiersz podświetla się przy pierwszym obejrzeniu, nie przy każdym powrocie do zakładki.
+    // Wiersz podświetla się przy pierwszym obejrzeniu, nie przy każdym powrocie do widoku.
     useEffect(() => {
         if (subView !== 'settlements' || !newSheetId) return;
         const timer = setTimeout(() => setNewSheetId(null), 3000);
         return () => clearTimeout(timer);
     }, [subView, newSheetId]);
 
-    const employeeCount = pagination?.totalItems;
-    const roleCount = roles.length;
-    // Licznik na zakładce to rozliczenia do zatwierdzenia - pusto, gdy nic nie czeka.
+    // Licznik przy „Rozliczeniach" to listy do zatwierdzenia - widać je bez wchodzenia
+    // w widok. Pusto, gdy nic nie czeka.
     const toApprove = pendingCount(sheets);
 
-    const tabs = useMemo<TabDefinition<TeamSubView>[]>(() => ([
-        { key: 'employees', label: 'Pracownicy', icon: <UsersIcon />, count: employeeCount },
-        { key: 'roles', label: 'Role i uprawnienia', icon: <ShieldIcon />, count: roleCount },
+    const options: SegmentedOption<TeamSubView>[] = [
+        { value: 'employees', label: 'Pracownicy', count: pagination?.totalItems ?? null },
+        { value: 'roles', label: 'Role', count: roles.length },
         {
-            key: 'settlements',
-            label: 'Rozliczenia',
-            icon: <SettlementIcon />,
-            count: toApprove > 0 ? toApprove : undefined,
-            flashKey: settlementsFlash,
+            value: 'settlements',
+            label: (
+                // Nowy klucz restartuje animację przy każdej kolejnej wygenerowanej liście.
+                <FlashLabel key={settlementsFlash} $flash={settlementsFlash > 0} data-flash={settlementsFlash > 0 || undefined}>
+                    Rozliczenia
+                    {toApprove > 0 && <Waiting>{toApprove} do zatwierdzenia</Waiting>}
+                </FlashLabel>
+            ),
         },
-    ]), [employeeCount, roleCount, toApprove, settlementsFlash]);
+    ];
 
     return (
         <Container>
-            <TabBar
-                tabs={tabs}
-                activeKey={subView}
-                onChange={onSubViewChange}
-                ariaLabel="Widok zespołu"
-            />
+            <Bar>
+                <Segmented
+                    label="Widok zespołu"
+                    options={options}
+                    value={subView}
+                    onChange={onSubViewChange}
+                />
+                {subView === 'employees' && (
+                    <SearchBox>
+                        <Search aria-hidden="true" />
+                        <input
+                            type="search"
+                            placeholder="Szukaj osoby"
+                            aria-label="Szukaj osoby po imieniu, nazwisku lub e-mailu"
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                        />
+                    </SearchBox>
+                )}
+            </Bar>
 
             {subView === 'roles' ? (
                 <RolesSection onGoToEmployees={() => onSubViewChange('employees')} />
@@ -104,13 +107,89 @@ export function TeamAndRolesSection({ subView, onSubViewChange }: TeamAndRolesSe
                 <SettlementsSection
                     highlightId={newSheetId}
                     onGoToEmployees={() => onSubViewChange('employees')}
+                    onCreateSheet={() => setAttendanceOpen(true)}
                 />
             ) : (
                 <TeamSection
+                    search={search}
                     onGoToRoles={() => onSubViewChange('roles')}
-                    onAttendanceSheetGenerated={handleSheetGenerated}
+                    onOpenAttendance={() => setAttendanceOpen(true)}
+                />
+            )}
+
+            {attendanceOpen && (
+                <AttendanceSheetModal
+                    onClose={() => setAttendanceOpen(false)}
+                    onGenerated={handleSheetGenerated}
                 />
             )}
         </Container>
     );
 }
+
+// ─── Styled ─────────────────────────────────────────────────────────────────────
+
+const Bar = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    min-width: 0;
+
+    /* Przełącznik z licznikiem „2 do zatwierdzenia" jest szerszy niż telefon -
+       przewija się w poziomie, zamiast rozpychać stronę. */
+    > [role='group'] { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+`;
+
+const SearchBox = styled.label`
+    flex: 1 1 220px;
+    max-width: 320px;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 14px;
+    background: ${ui.surface};
+    border: 1px solid ${ui.line};
+    border-radius: 12px;
+    color: ${ui.textFaint};
+    transition: border-color 150ms, box-shadow 150ms;
+
+    svg { width: 15px; height: 15px; flex-shrink: 0; }
+    input {
+        flex: 1;
+        min-width: 0;
+        border: none;
+        outline: none;
+        background: transparent;
+        font-family: inherit;
+        font-size: 14px;
+        color: ${ui.ink};
+        &::placeholder { color: ${ui.textFaint}; }
+    }
+    &:focus-within { border-color: ${ui.brand}; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14); }
+
+    @media (max-width: 767px) { max-width: none; margin-left: 0; flex-basis: 100%; }
+`;
+
+const flash = keyframes`
+    0%, 100% { background: transparent; }
+    30%, 70% { background: ${ui.okTintHover}; }
+`;
+
+const FlashLabel = styled.span<{ $flash: boolean }>`
+    /* Segmented stylizuje każdy <span> jak licznik - etykieta wraca do tekstu przycisku. */
+    && { font-size: inherit; font-weight: inherit; color: inherit; }
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: -3px -6px;
+    padding: 3px 6px;
+    border-radius: 6px;
+    ${p => p.$flash && css`animation: ${flash} 1.2s ease-in-out 2;`}
+`;
+
+const Waiting = styled.span`
+    && { font-size: 12px; font-weight: 700; color: ${ui.warnInk}; }
+`;

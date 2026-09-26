@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PermissionModuleTree, PermissionTreeNode } from '../../rbacTypes';
-import { buildTreeIndex, getBlocker, orderedCodes, toggleCode, toggleModuleCodes } from './permissionGraph';
+import { buildTreeIndex, featureLockedCodes, getBlocker, orderedCodes, toggleCode, toggleModuleCodes } from './permissionGraph';
 
 const node = (code: string, children: PermissionTreeNode[] = [], implies: string[] = []): PermissionTreeNode => ({
     code, displayName: code, description: null, section: null, featureKey: null, implies, children,
@@ -59,5 +59,27 @@ describe('graf zależności uprawnień', () => {
 
         const off = toggleModuleCodes(new Set([...on, 'VISITS_VIEW', 'VISITS_MANAGE']), codes, index);
         expect([...off]).toEqual(['VISITS_VIEW']);
+    });
+
+    it('nagłówek modułu nie włącza uprawnień zablokowanych brakiem wykupionego modułu', () => {
+        const gated: PermissionModuleTree = {
+            module: 'LEADS', displayName: 'Leady', featureKey: null,
+            nodes: [{ ...node('CUSTOMERS_VIEW', [{ ...node('CUSTOMERS_MANAGE'), featureKey: 'CRM_PRO' }]) }],
+        };
+        const locked = featureLockedCodes(gated, key => key !== 'CRM_PRO');
+        expect([...locked]).toEqual(['CUSTOMERS_MANAGE']);
+
+        const codes = index.moduleCodes.get('LEADS')!;
+        const on = toggleModuleCodes(new Set(), codes, index, c => !locked.has(c));
+        expect([...on]).toEqual(['CUSTOMERS_VIEW']);
+
+        // Komplet to komplet tego, co da się zaznaczyć - drugie kliknięcie wyłącza moduł.
+        const off = toggleModuleCodes(on, codes, index, c => !locked.has(c));
+        expect([...off]).toEqual([]);
+    });
+
+    it('brak modułu nadrzędnego blokuje całe jego drzewo', () => {
+        const gated: PermissionModuleTree = { ...catalog[0], featureKey: 'VISITS_PRO' };
+        expect(featureLockedCodes(gated, key => key !== 'VISITS_PRO').size).toBe(3);
     });
 });

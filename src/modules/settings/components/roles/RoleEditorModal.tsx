@@ -1,36 +1,47 @@
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
+import {
+    ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle,
+    ModalContent, ModalFooter, CloseBtn,
+} from '@/common/components/ModalKit';
+import { SUBMODAL_Z_INDEX } from '@/common/styles';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { Button } from '@/common/components/ui';
 import { useEntitlements } from '@/modules/subscription';
 import { useRolePreview, PreviewIcon } from '@/modules/role-preview';
 import {
-    Overlay, ModalCard, ModalHead, ModalTitle, ModalSubtitle, ModalCloseBtn,
-    ModalBody, ModalFooter, FormField, FieldLabel, FieldInput, FieldTextarea,
-    ErrorMsg, CancelBtn, SubmitBtn, SecondaryBtn,
+    FormField, FieldLabel, FieldInput, FieldTextarea, ErrorMsg,
 } from '../rbacShared.styles';
+import { useSettingsDirty } from '../shared/settingsChrome';
 import type { PermissionModuleTree, Role, CreateRoleRequest } from '../../rbacTypes';
 import { buildTreeIndex, orderedCodes } from './permissionGraph';
 import { PermissionTreeEditor, TrackWorkTimeToggle } from './PermissionTreeEditor';
+import { permissionsLabel } from '../team/teamPlural';
 
 // ─── Styled ─────────────────────────────────────────────────────────────────────
 const PermsHeader = styled.div`
     display: flex;
-    align-items: center;
+    align-items: baseline;
     justify-content: space-between;
+    gap: 12px;
     margin-top: 4px;
 `;
 
+const PermsTitle = styled.h3`
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+`;
+
 const SelectedCount = styled.span`
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
-    color: #0284c7;
+    color: #0369a1;
 `;
 
 /* Podgląd po lewej, zapis po prawej - to dwie różne decyzje. Na telefonie podgląd
    dostaje własny wiersz, żeby żaden przycisk nie łamał się na dwie linie. */
-const EditorFooter = styled(ModalFooter)`
-    flex-wrap: wrap;
-`;
-
 const PreviewSlot = styled.div`
     margin-right: auto;
 
@@ -38,16 +49,9 @@ const PreviewSlot = styled.div`
         flex-basis: 100%;
         margin-right: 0;
 
-        & > button { width: 100%; justify-content: center; }
+        & > button { width: 100%; }
     }
 `;
-
-// ─── Icons ───────────────────────────────────────────────────────────────────────
-const CloseIcon = () => (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-);
 
 // ─── Component ────────────────────────────────────────────────────────────────────
 export interface RoleEditorModalProps {
@@ -58,24 +62,53 @@ export interface RoleEditorModalProps {
     isSaving: boolean;
     onClose: () => void;
     onSubmit: (payload: CreateRoleRequest) => void;
+    /**
+     * Okno otwarte z innego okna (formularz pracownika): musi leżeć nad nim,
+     * inaczej otwiera się pod spodem i wygląda, jakby się nie otworzyło.
+     */
+    nested?: boolean;
 }
 
+const sameSet = (a: Set<string>, b: Set<string>) => a.size === b.size && [...a].every(c => b.has(c));
+
 export function RoleEditorModal({
-    mode, role, catalog, catalogLoading, isSaving, onClose, onSubmit,
+    mode, role, catalog, catalogLoading, isSaving, onClose, onSubmit, nested,
 }: RoleEditorModalProps) {
     const { data: entitlements } = useEntitlements();
 
+    const initialPermissions = useMemo(
+        () => new Set((role?.permissions ?? []).map(p => p.code)),
+        [role],
+    );
     const [name, setName] = useState(role?.name ?? '');
     const [description, setDescription] = useState(role?.description ?? '');
-    const [selected, setSelected] = useState<Set<string>>(
-        () => new Set((role?.permissions ?? []).map(p => p.code)),
-    );
+    const [selected, setSelected] = useState<Set<string>>(() => new Set(initialPermissions));
     const [trackWorkTime, setTrackWorkTime] = useState(role?.trackWorkTime ?? false);
     const [nameError, setNameError] = useState<string | null>(null);
+    const [confirmDiscard, setConfirmDiscard] = useState(false);
 
     const index = useMemo(() => buildTreeIndex(catalog), [catalog]);
     const allCodes = useMemo(() => orderedCodes(catalog, index), [catalog, index]);
     const preview = useRolePreview();
+
+    /**
+     * Czy w oknie jest coś do stracenia. Kliknięcie w tło albo Escape zamykało okno
+     * po cichu - razem z kilkudziesięcioma odhaczonymi uprawnieniami, bo drzewo jest
+     * długie i przewija się pod kursorem, a tło leży tuż obok.
+     */
+    const dirty = name !== (role?.name ?? '')
+        || description !== (role?.description ?? '')
+        || trackWorkTime !== (role?.trackWorkTime ?? false)
+        || !sameSet(selected, initialPermissions);
+
+    // Przejście do innej sekcji ustawień też pyta, zamiast wyrzucić edycję.
+    useSettingsDirty(dirty);
+
+    const requestClose = () => {
+        if (isSaving) return;
+        if (dirty) setConfirmDiscard(true);
+        else onClose();
+    };
 
     const isFeatureEnabled = (featureKey: string | null): boolean => {
         if (!featureKey) return true;
@@ -104,39 +137,47 @@ export function RoleEditorModal({
     };
 
     return (
-        <Overlay onClick={e => e.target === e.currentTarget && onClose()}>
-            <ModalCard $maxWidth={680}>
-                <ModalHead>
-                    <div>
+        <>
+            <ModalShell
+                isOpen
+                onClose={requestClose}
+                size="lg"
+                zIndex={nested ? SUBMODAL_Z_INDEX : undefined}
+                // Pytanie o porzucenie zmian ma własny Escape - okno pod nim nie może
+                // go przechwycić i zapytać drugi raz.
+                dismissible={!confirmDiscard}
+            >
+                <ModalHeader>
+                    <ModalTitleGroup>
                         <ModalTitle>{mode === 'add' ? 'Nowa rola' : 'Edytuj rolę'}</ModalTitle>
                         <ModalSubtitle>
                             {mode === 'edit'
-                                ? 'Zmiana uprawnień natychmiast dotyczy wszystkich użytkowników z tą rolą.'
-                                : 'Nadaj nazwę i zaznacz uprawnienia w drzewie: opcje wymagające innego uprawnienia są wyszarzone, dopóki uprawnienie nadrzędne nie jest zaznaczone.'}
+                                ? 'Zmiana uprawnień od razu dotyczy wszystkich osób z tą rolą.'
+                                : 'Nadaj nazwę i zaznacz uprawnienia. Uprawnienie, które wymaga innego, czeka wyszarzone, aż zaznaczysz nadrzędne.'}
                         </ModalSubtitle>
-                    </div>
-                    <ModalCloseBtn onClick={onClose} aria-label="Zamknij">
-                        <CloseIcon />
-                    </ModalCloseBtn>
-                </ModalHead>
+                    </ModalTitleGroup>
+                    <CloseBtn onClick={requestClose} />
+                </ModalHeader>
 
-                <ModalBody>
+                <ModalContent>
                     <FormField>
-                        <FieldLabel>Nazwa roli<span>*</span></FieldLabel>
+                        <FieldLabel htmlFor="role-editor-name">Nazwa roli<span>*</span></FieldLabel>
                         <FieldInput
-                            placeholder="np. Recepcjonista"
+                            id="role-editor-name"
+                            placeholder="np. Recepcja"
                             value={name}
                             onChange={e => { setName(e.target.value); setNameError(null); }}
                             $error={!!nameError}
                             autoFocus
                         />
-                        {nameError && <ErrorMsg>{nameError}</ErrorMsg>}
+                        {nameError && <ErrorMsg role="alert">{nameError}</ErrorMsg>}
                     </FormField>
 
                     <FormField>
-                        <FieldLabel>Opis</FieldLabel>
+                        <FieldLabel htmlFor="role-editor-description">Opis</FieldLabel>
                         <FieldTextarea
-                            placeholder="Krótki opis zakresu obowiązków roli"
+                            id="role-editor-description"
+                            placeholder="Krótki opis zakresu obowiązków"
                             value={description}
                             onChange={e => setDescription(e.target.value)}
                         />
@@ -145,8 +186,10 @@ export function RoleEditorModal({
                     <TrackWorkTimeToggle value={trackWorkTime} onChange={setTrackWorkTime} />
 
                     <PermsHeader>
-                        <FieldLabel>Uprawnienia</FieldLabel>
-                        <SelectedCount>{selected.size} zaznaczonych</SelectedCount>
+                        <PermsTitle>Uprawnienia</PermsTitle>
+                        <SelectedCount>
+                            {selected.size === 0 ? 'Nic nie zaznaczono' : `Zaznaczono ${permissionsLabel(selected.size)}`}
+                        </SelectedCount>
                     </PermsHeader>
 
                     <PermissionTreeEditor
@@ -156,28 +199,39 @@ export function RoleEditorModal({
                         onChange={setSelected}
                         isFeatureEnabled={isFeatureEnabled}
                     />
-                </ModalBody>
+                </ModalContent>
 
-                <EditorFooter>
+                <ModalFooter>
                     {preview.available && (
                         <PreviewSlot>
-                            <SecondaryBtn
-                                type="button"
+                            <Button
+                                variant="ghost"
                                 onClick={handlePreview}
                                 disabled={preview.opening || catalogLoading}
                                 title="Otwiera CRM w nowym oknie oczami pracownika z tymi uprawnieniami - na danych przykładowych, bez zapisywania roli"
                             >
                                 <PreviewIcon />
-                                {preview.opening ? 'Otwieranie podglądu...' : 'Przejdź do podglądu roli'}
-                            </SecondaryBtn>
+                                {preview.opening ? 'Otwieranie podglądu...' : 'Podgląd roli'}
+                            </Button>
                         </PreviewSlot>
                     )}
-                    <CancelBtn onClick={onClose} disabled={isSaving}>Anuluj</CancelBtn>
-                    <SubmitBtn onClick={handleSubmit} disabled={isSaving}>
-                        {isSaving ? 'Zapisywanie...' : mode === 'add' ? 'Utwórz rolę' : 'Zapisz rolę'}
-                    </SubmitBtn>
-                </EditorFooter>
-            </ModalCard>
-        </Overlay>
+                    <Button variant="outline" onClick={requestClose} disabled={isSaving}>Anuluj</Button>
+                    <Button variant="primary" onClick={handleSubmit} disabled={isSaving}>
+                        {isSaving ? 'Zapisywanie...' : mode === 'add' ? 'Dodaj rolę' : 'Zapisz rolę'}
+                    </Button>
+                </ModalFooter>
+            </ModalShell>
+
+            <ConfirmationModal
+                isOpen={confirmDiscard}
+                title="Odrzucić zmiany w roli?"
+                message="Zaznaczone uprawnienia i wpisane dane nie zostały zapisane. Po zamknięciu okna trzeba będzie zacząć od nowa."
+                variant="warning"
+                confirmText="Odrzuć zmiany"
+                cancelText="Wróć do edycji"
+                onConfirm={() => { setConfirmDiscard(false); onClose(); }}
+                onCancel={() => setConfirmDiscard(false)}
+            />
+        </>
     );
 }

@@ -25,6 +25,32 @@ vi.mock('../../api/attendanceApi', async importOriginal => {
     };
 });
 
+// Osoby wybiera się w oknie: na liście są tylko ci, których rola liczy czas pracy.
+vi.mock('../../hooks/useTeam', () => ({
+    useEmployees: () => ({
+        items: [
+            { id: 'e1', fullName: 'Anna Nowak', role: { id: 'detailer', name: 'Detailer' } },
+            { id: 'e2', fullName: 'Kamil Lis', role: { id: 'detailer', name: 'Detailer' } },
+            { id: 'e3', fullName: 'Ewa Biuro', role: { id: 'office', name: 'Biuro' } },
+            { id: 'e4', fullName: 'Piotr Bez Konta', role: null },
+        ],
+        isLoading: false,
+        isError: false,
+        refetch: vi.fn(),
+    }),
+}));
+vi.mock('../../hooks/useRoles', () => ({
+    useRoles: () => ({
+        roles: [
+            { id: 'detailer', name: 'Detailer', trackWorkTime: true },
+            { id: 'office', name: 'Biuro', trackWorkTime: false },
+        ],
+        isLoading: false,
+        isError: false,
+        refetch: vi.fn(),
+    }),
+}));
+
 const generated: AttendanceSheet = {
     id: 'sheet-1',
     period: '2026-09',
@@ -48,8 +74,6 @@ const renderModal = () => {
             <ThemeProvider theme={theme}>
                 <ToastProvider>
                     <AttendanceSheetModal
-                        employeeIds={['e1', 'e2']}
-                        employeeCount={2}
                         onClose={onClose}
                         onGenerated={onGenerated}
                     />
@@ -85,6 +109,31 @@ describe('AttendanceSheetModal - lista obecności trafia do Rozliczeń', () => {
         expect(saveBlobAsFile).not.toHaveBeenCalled();
         expect(onClose).toHaveBeenCalled();
         expect(await screen.findByText('Lista obecności w Rozliczeniach')).toBeTruthy();
+    });
+
+    it('na liście są tylko osoby z liczonym czasem pracy, domyślnie wszystkie', () => {
+        renderModal();
+
+        expect((screen.getByRole('checkbox', { name: /Anna Nowak/ }) as HTMLInputElement).checked).toBe(true);
+        expect((screen.getByRole('checkbox', { name: /Kamil Lis/ }) as HTMLInputElement).checked).toBe(true);
+        expect(screen.queryByText('Ewa Biuro')).toBeNull();
+        expect(screen.queryByText('Piotr Bez Konta')).toBeNull();
+    });
+
+    it('odznaczona osoba nie trafia do arkusza, a bez nikogo nie da się generować', async () => {
+        const { onGenerated } = renderModal();
+
+        fireEvent.click(screen.getByRole('checkbox', { name: /Kamil Lis/ }));
+        fireEvent.click(screen.getByRole('button', { name: 'Generuj listę (1 pracownik)' }));
+        await waitFor(() => expect(onGenerated).toHaveBeenCalled());
+        expect(vi.mocked(attendanceApi.generateAttendanceSheet).mock.calls[0][1]).toEqual(['e1']);
+    });
+
+    it('bez zaznaczonych osób przycisk generowania jest nieaktywny', () => {
+        renderModal();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Odznacz wszystkich' }));
+        expect((screen.getByRole('button', { name: 'Generuj listę' }) as HTMLButtonElement).disabled).toBe(true);
     });
 
     it('błąd generowania zostaje w oknie i niczego nie zgłasza', async () => {

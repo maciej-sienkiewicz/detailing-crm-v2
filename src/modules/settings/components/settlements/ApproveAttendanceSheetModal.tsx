@@ -18,7 +18,7 @@ import {
     ModalFooter,
     CloseBtn,
 } from '@/common/components/ModalKit';
-import { SharedButton } from '@/common/styles';
+import { Button } from '@/common/components/ui';
 import { useToast } from '@/common/components/Toast';
 import type { AttendanceSheet, AttendanceSignatureRequest } from '../../api/attendanceApi';
 import { ATTENDANCE_SHEETS_KEY, useApproveAttendanceSheet } from '../../hooks/useAttendanceSheets';
@@ -82,7 +82,7 @@ export function ApproveAttendanceSheetModal({ sheet, onClose }: Props) {
         void queryClient.invalidateQueries({ queryKey: ATTENDANCE_SHEETS_KEY });
         showSuccess(
             'Lista obecności podpisana i zatwierdzona',
-            `${month} · ${ended.channel === 'TABLET' ? 'podpis na tablecie' : 'podpis na telefonie'}`,
+            `${month}, podpis złożony ${ended.channel === 'TABLET' ? 'na tablecie' : 'na telefonie'}.`,
         );
         onClose();
     }, [ended, month, onClose, queryClient, showSuccess]);
@@ -122,7 +122,7 @@ export function ApproveAttendanceSheetModal({ sheet, onClose }: Props) {
             { sheetId: sheet.id, signatureImage },
             {
                 onSuccess: () => {
-                    showSuccess('Lista obecności zatwierdzona', signatureImage ? `${month} · z podpisem` : month);
+                    showSuccess('Lista obecności zatwierdzona', signatureImage ? `${month}, z Twoim podpisem.` : `${month}.`);
                     onClose();
                 },
                 // Komunikat (np. „już zatwierdzona") pokazuje globalny dymek; okno zamykamy
@@ -136,15 +136,15 @@ export function ApproveAttendanceSheetModal({ sheet, onClose }: Props) {
     };
 
     const primaryAction = sheet.signed
-        ? { label: approve.isPending ? 'Zatwierdzam…' : 'Zatwierdź', onClick: handleApprove, disabled: approve.isPending }
+        ? { label: approve.isPending ? 'Zatwierdzanie...' : 'Zatwierdź', onClick: handleApprove, disabled: approve.isPending }
         : method === 'DEVICE'
             ? {
-                label: approve.isPending ? 'Zatwierdzam…' : 'Podpisz i zatwierdź',
+                label: approve.isPending ? 'Zatwierdzanie...' : 'Podpisz i zatwierdź',
                 onClick: handleApprove,
                 disabled: !hasInk || approve.isPending,
             }
             : {
-                label: remote.send.isPending ? 'Wysyłam…' : method === 'TABLET' ? 'Wyślij na tablet' : 'Wyślij SMS',
+                label: remote.send.isPending ? 'Wysyłanie...' : method === 'TABLET' ? 'Wyślij na tablet' : 'Wyślij SMS',
                 onClick: handleSend,
                 disabled: remote.send.isPending || (method === 'TABLET' && tablet === null),
             };
@@ -154,7 +154,7 @@ export function ApproveAttendanceSheetModal({ sheet, onClose }: Props) {
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Zatwierdzić listę obecności?</ModalTitle>
-                    <ModalSubtitle>{month} · {employeesLabel(sheet.employeeCount)}</ModalSubtitle>
+                    <ModalSubtitle>{month}, {employeesLabel(sheet.employeeCount)}</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
@@ -222,23 +222,18 @@ export function ApproveAttendanceSheetModal({ sheet, onClose }: Props) {
                 {awaiting ? (
                     // Okno można zamknąć - prośba czeka dalej, a po ponownym otwarciu
                     // okno wraca do oczekiwania.
-                    <SharedButton type="button" $variant="secondary" $size="sm" onClick={onClose}>
-                        Zamknij
-                    </SharedButton>
+                    <Button variant="outline" onClick={onClose}>Zamknij</Button>
                 ) : (
                     <>
-                        <SharedButton type="button" $variant="secondary" $size="sm" onClick={onClose}>
-                            Anuluj
-                        </SharedButton>
-                        <SharedButton
-                            type="button"
-                            $variant="primary"
-                            $size="sm"
+                        <Button variant="outline" onClick={onClose}>Anuluj</Button>
+                        {/* Jedyne wypełnienie w oknie - „Zatwierdź" w wierszu Rozliczeń jest odcieniem. */}
+                        <Button
+                            variant="primary"
                             onClick={primaryAction.onClick}
                             disabled={primaryAction.disabled}
                         >
                             {primaryAction.label}
-                        </SharedButton>
+                        </Button>
                     </>
                 )}
             </ModalFooter>
@@ -278,13 +273,12 @@ const Signing = styled.div`
     gap: 12px;
 `;
 
+/* Pytanie zdaniem, 14px - było 11px wersalikami w szarości (CLAUDE.md §2). */
 const SectionLabel = styled.p`
     margin: 0;
-    font-size: 11px;
+    font-size: 14px;
     font-weight: 700;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    color: #64748b;
+    color: #0f172a;
 `;
 
 const PadBlock = styled.div`

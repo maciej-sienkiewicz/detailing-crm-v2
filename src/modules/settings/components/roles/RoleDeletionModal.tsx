@@ -1,11 +1,15 @@
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import {
-    Overlay, ModalCard, ModalHead, ModalTitle, ModalSubtitle, ModalCloseBtn,
-    ModalBody, ModalFooter, FormField, FieldLabel, FieldSelect,
-    CancelBtn, DangerBtn, Badge, SkeletonBox,
+    ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle,
+    ModalContent, ModalFooter, CloseBtn,
+} from '@/common/components/ModalKit';
+import { Button, StatusPill } from '@/common/components/ui';
+import {
+    FormField, FieldLabel, FieldSelect, DangerBtn, SkeletonBox,
 } from '../rbacShared.styles';
 import { useRoleUsers } from '../../hooks/useRoles';
+import { peopleAccusative, peopleGenitive } from '../team/teamPlural';
 import type { Role } from '../../rbacTypes';
 
 /**
@@ -51,132 +55,133 @@ export function RoleDeletionModal({ role, otherRoles, isDeleting, onCancel, onCo
     const confirmLabel = !hasHolders
         ? 'Usuń rolę'
         : target === NO_ROLE
-            ? `Usuń rolę i zostaw ${holderCount} ${peopleWord(holderCount)} bez dostępu`
-            : `Przenieś ${holderCount} ${peopleWord(holderCount)} i usuń rolę`;
+            ? `Usuń rolę i zostaw ${peopleAccusative(holderCount)} bez dostępu`
+            : `Przenieś ${peopleAccusative(holderCount)} i usuń rolę`;
+
+    // W trakcie usuwania okno nie znika od Escape ani kliknięcia obok: wynik
+    // operacji ma się pokazać w nim albo w dymku, a nie przepaść.
+    const close = () => { if (!isDeleting) onCancel(); };
 
     return (
-        <Overlay onClick={e => e.target === e.currentTarget && !isDeleting && onCancel()}>
-            <ModalCard $maxWidth={540}>
-                <ModalHead>
-                    <div>
-                        <ModalTitle>Usuń rolę „{role.name}"</ModalTitle>
-                        <ModalSubtitle>
-                            {hasHolders
-                                ? `Ta rola jest przypisana do ${holderCount} ${peopleWord(holderCount)}`
-                                : 'Nikt nie ma przypisanej tej roli'}
-                        </ModalSubtitle>
-                    </div>
-                    <ModalCloseBtn onClick={onCancel} aria-label="Zamknij" disabled={isDeleting}>
-                        <CloseIcon />
-                    </ModalCloseBtn>
-                </ModalHead>
+        <ModalShell isOpen onClose={close} size="md" dismissible={!isDeleting}>
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>Usuń rolę „{role.name}"</ModalTitle>
+                    <ModalSubtitle>
+                        {hasHolders
+                            ? `Ta rola jest przypisana do ${peopleGenitive(holderCount)}.`
+                            : 'Nikt nie ma przypisanej tej roli.'}
+                    </ModalSubtitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={close} />
+            </ModalHeader>
 
-                <ModalBody>
-                    {!hasHolders ? (
+            <ModalContent>
+                {!hasHolders ? (
+                    <Lede>
+                        Rola zostanie usunięta. Nikt nie straci dostępu, bo nikt jej obecnie nie używa.
+                    </Lede>
+                ) : (
+                    <>
                         <Lede>
-                            Rola zostanie usunięta. Nikt nie straci dostępu, bo nikt jej obecnie nie używa.
+                            Zanim usuniemy rolę, przenieś przypisane osoby, aby nie straciły dostępu do systemu.
                         </Lede>
-                    ) : (
-                        <>
-                            <Lede>
-                                Zanim usuniemy rolę, przenieś przypisane osoby, aby nie straciły dostępu do systemu.
-                            </Lede>
 
-                            <FormField>
-                                <FieldLabel>
-                                    {`Przenieś wszystkich (${holderCount}) do roli`}
-                                </FieldLabel>
-                                <FieldSelect
-                                    value={target}
-                                    onChange={e => setTarget(e.target.value)}
-                                    disabled={isDeleting}
-                                >
-                                    {otherRoles.map(r => (
-                                        <option key={r.id} value={r.id}>{r.name}</option>
-                                    ))}
-                                    <option value={NO_ROLE}>Bez roli, zablokuje dostęp</option>
-                                </FieldSelect>
-                            </FormField>
-
-                            {target === NO_ROLE ? (
-                                <Callout $tone="danger">
-                                    <CalloutTitle>Te osoby stracą dostęp do systemu</CalloutTitle>
-                                    Konta pozostaną aktywne, ale po zalogowaniu zobaczą komunikat o braku
-                                    uprawnień, dopóki nie przypiszesz im nowej roli.
-                                </Callout>
-                            ) : (
-                                <DiffGrid>
-                                    <DiffCol>
-                                        <DiffHead $tone="gain">Zyskają</DiffHead>
-                                        {diff.gained.length === 0
-                                            ? <DiffEmpty>nic nowego</DiffEmpty>
-                                            : <Chips>{diff.gained.slice(0, 6).map(p => (
-                                                <Badge key={p.code} $variant="green">{p.displayName}</Badge>
-                                            ))}{diff.gained.length > 6 && <More>+{diff.gained.length - 6}</More>}</Chips>}
-                                    </DiffCol>
-                                    <DiffCol>
-                                        <DiffHead $tone="loss">Stracą</DiffHead>
-                                        {diff.lost.length === 0
-                                            ? <DiffEmpty>nic, nowa rola obejmuje wszystko</DiffEmpty>
-                                            : <Chips>{diff.lost.slice(0, 6).map(p => (
-                                                <Badge key={p.code} $variant="amber">{p.displayName}</Badge>
-                                            ))}{diff.lost.length > 6 && <More>+{diff.lost.length - 6}</More>}</Chips>}
-                                    </DiffCol>
-                                </DiffGrid>
-                            )}
-
-                            <PeopleToggle
-                                type="button"
-                                onClick={() => setShowPeople(s => !s)}
-                                aria-expanded={showPeople}
+                        <FormField>
+                            <FieldLabel htmlFor="role-deletion-target">
+                                {`Przenieś wszystkich (${holderCount}) do roli`}
+                            </FieldLabel>
+                            <FieldSelect
+                                id="role-deletion-target"
+                                value={target}
+                                onChange={e => setTarget(e.target.value)}
+                                disabled={isDeleting}
                             >
-                                {showPeople ? 'Ukryj osoby' : `Przejrzyj osoby (${holderCount})`}
-                            </PeopleToggle>
+                                {otherRoles.map(r => (
+                                    <option key={r.id} value={r.id}>{r.name}</option>
+                                ))}
+                                <option value={NO_ROLE}>Bez roli, zablokuje dostęp</option>
+                            </FieldSelect>
+                        </FormField>
 
-                            {showPeople && (
-                                <PeopleList>
-                                    {usersLoading
-                                        ? Array.from({ length: Math.min(holderCount, 4) }).map((_, i) => (
-                                            <PersonRow key={i}><SkeletonBox $w="60%" /></PersonRow>
-                                        ))
-                                        : users.map(u => (
-                                            <PersonRow key={u.userId}>
-                                                <PersonName>{u.fullName}</PersonName>
-                                                <PersonMail>{u.email}</PersonMail>
-                                                {!u.isActive && <Badge $variant="gray">zablokowane</Badge>}
-                                            </PersonRow>
-                                        ))}
-                                    <PeopleHint>
-                                        Chcesz przypisać różne role różnym osobom? Zrób to w profilach
-                                        pracowników przed usunięciem roli.
-                                    </PeopleHint>
-                                </PeopleList>
-                            )}
-
-                            <Callout $tone="warn">
-                                <CalloutTitle>Zmiana zadziała natychmiast</CalloutTitle>
-                                Uprawnienia {holderCount} {peopleWord(holderCount)} zmienią się od razu po
-                                zatwierdzeniu. Operacji nie można cofnąć, ale role można przypisać ponownie.
+                        {target === NO_ROLE ? (
+                            <Callout $tone="danger">
+                                <CalloutTitle>Te osoby stracą dostęp do systemu</CalloutTitle>
+                                Konta pozostaną aktywne, ale po zalogowaniu zobaczą komunikat o braku
+                                uprawnień, dopóki nie przypiszesz im nowej roli.
                             </Callout>
-                        </>
-                    )}
-                </ModalBody>
+                        ) : (
+                            <DiffGrid>
+                                <DiffCol>
+                                    <DiffHead $tone="gain">Zyskają</DiffHead>
+                                    {diff.gained.length === 0
+                                        ? <DiffEmpty>nic nowego</DiffEmpty>
+                                        : <Chips>{diff.gained.slice(0, 6).map(p => (
+                                            <StatusPill key={p.code} $tone="ok">{p.displayName}</StatusPill>
+                                        ))}{diff.gained.length > 6 && <More>+{diff.gained.length - 6}</More>}</Chips>}
+                                </DiffCol>
+                                <DiffCol>
+                                    <DiffHead $tone="loss">Stracą</DiffHead>
+                                    {diff.lost.length === 0
+                                        ? <DiffEmpty>nic, nowa rola obejmuje wszystko</DiffEmpty>
+                                        : <Chips>{diff.lost.slice(0, 6).map(p => (
+                                            <StatusPill key={p.code} $tone="warn">{p.displayName}</StatusPill>
+                                        ))}{diff.lost.length > 6 && <More>+{diff.lost.length - 6}</More>}</Chips>}
+                                </DiffCol>
+                            </DiffGrid>
+                        )}
 
-                <ModalFooter>
-                    <CancelBtn onClick={onCancel} disabled={isDeleting}>Anuluj</CancelBtn>
-                    <DangerBtn
-                        onClick={() => onConfirm(hasHolders && target !== NO_ROLE ? target : null)}
-                        disabled={isDeleting}
-                    >
-                        {isDeleting ? 'Usuwanie...' : confirmLabel}
-                    </DangerBtn>
-                </ModalFooter>
-            </ModalCard>
-        </Overlay>
+                        <PeopleToggle
+                            type="button"
+                            onClick={() => setShowPeople(s => !s)}
+                            aria-expanded={showPeople}
+                        >
+                            {showPeople ? 'Ukryj osoby' : `Przejrzyj osoby (${holderCount})`}
+                        </PeopleToggle>
+
+                        {showPeople && (
+                            <PeopleList>
+                                {usersLoading
+                                    ? Array.from({ length: Math.min(holderCount, 4) }).map((_, i) => (
+                                        <PersonRow key={i}><SkeletonBox $w="60%" /></PersonRow>
+                                    ))
+                                    : users.map(u => (
+                                        <PersonRow key={u.userId}>
+                                            <PersonName>{u.fullName}</PersonName>
+                                            <PersonMail>{u.email}</PersonMail>
+                                            {!u.isActive && <StatusPill $tone="neutral">zablokowane</StatusPill>}
+                                        </PersonRow>
+                                    ))}
+                                <PeopleHint>
+                                    Chcesz przypisać różne role różnym osobom? Zrób to w profilach
+                                    pracowników przed usunięciem roli.
+                                </PeopleHint>
+                            </PeopleList>
+                        )}
+
+                        <Callout $tone="warn">
+                            <CalloutTitle>Zmiana zadziała natychmiast</CalloutTitle>
+                            Uprawnienia {peopleGenitive(holderCount)} zmienią się od razu po
+                            zatwierdzeniu. Operacji nie można cofnąć, ale role można przypisać ponownie.
+                        </Callout>
+                    </>
+                )}
+            </ModalContent>
+
+            <ModalFooter>
+                <Button variant="outline" onClick={close} disabled={isDeleting}>Anuluj</Button>
+                {/* Jedyne wypełnienie w oknie: czerwień, bo krok jest nieodwracalny. */}
+                <DangerBtn
+                    type="button"
+                    onClick={() => onConfirm(hasHolders && target !== NO_ROLE ? target : null)}
+                    disabled={isDeleting}
+                >
+                    {isDeleting ? 'Usuwanie...' : confirmLabel}
+                </DangerBtn>
+            </ModalFooter>
+        </ModalShell>
     );
 }
-
-const peopleWord = (n: number) => (n === 1 ? 'osobę' : 'osób');
 
 // ─── Styled ─────────────────────────────────────────────────────────────────────
 const Lede = styled.p`
@@ -222,15 +227,13 @@ const DiffCol = styled.div`
 `;
 
 const DiffHead = styled.span<{ $tone: 'gain' | 'loss' }>`
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
     color: ${p => (p.$tone === 'gain' ? '#059669' : '#d97706')};
 `;
 
 const DiffEmpty = styled.span`
-    font-size: 11px;
+    font-size: 12.5px;
     color: #94a3b8;
 `;
 
@@ -241,7 +244,7 @@ const Chips = styled.div`
 `;
 
 const More = styled.span`
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     color: #64748b;
     align-self: center;
@@ -298,13 +301,7 @@ const PeopleHint = styled.p`
     margin: 0;
     padding: 9px 13px;
     background: #fafbfc;
-    font-size: 11px;
+    font-size: 12px;
     color: #64748b;
     line-height: 1.5;
 `;
-
-const CloseIcon = () => (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-);

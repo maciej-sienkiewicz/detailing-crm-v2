@@ -158,6 +158,25 @@ describe('SettlementsSection - zakładka Rozliczenia', () => {
         await waitFor(() => expect(attendanceApi.deleteAttendanceSheet).toHaveBeenCalledWith('sheet-sep'));
     });
 
+    it('nieudane usunięcie pokazuje dymek, zamiast udawać, że nic się nie stało', async () => {
+        vi.mocked(attendanceApi.deleteAttendanceSheet).mockRejectedValue({ response: { status: 500, data: {} } });
+        renderSection();
+        fireEvent.click(within(await rowOf('Wrzesień 2026')).getByRole('button', { name: 'Usuń rozliczenie: Wrzesień 2026' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Usuń' }));
+
+        expect(await screen.findByText('Nie udało się usunąć rozliczenia')).toBeTruthy();
+    });
+
+    it('błąd wczytania rozliczeń to nie pusta lista', async () => {
+        vi.mocked(attendanceApi.listAttendanceSheets).mockRejectedValueOnce({ response: { status: 500, data: {} } });
+        renderSection();
+
+        expect(await screen.findByText('Nie udało się wczytać rozliczeń')).toBeTruthy();
+        expect(screen.queryByText('Brak rozliczeń')).toBeNull();
+        fireEvent.click(screen.getByRole('button', { name: 'Spróbuj ponownie' }));
+        expect(await rowOf('Wrzesień 2026')).toBeTruthy();
+    });
+
     it('podgląd wyświetla plik, a na dysk trafia dopiero po „Pobierz PDF"', async () => {
         vi.mocked(attendanceApi.downloadAttendanceSheet)
             .mockResolvedValue({ arrayBuffer: async () => new ArrayBuffer(8) } as unknown as Blob);

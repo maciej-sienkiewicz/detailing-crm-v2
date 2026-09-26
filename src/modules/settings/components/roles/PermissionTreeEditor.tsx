@@ -1,8 +1,11 @@
 import { useMemo } from 'react';
 import styled from 'styled-components';
-import { CheckRow, CheckBox, Badge, SkeletonBox } from '../rbacShared.styles';
+import { StatusPill } from '@/common/components/ui';
+import { CheckRow, CheckBox, SkeletonBox } from '../rbacShared.styles';
 import type { PermissionTreeNode, PermissionModuleTree } from '../../rbacTypes';
-import { buildTreeIndex, getBlocker, groupBySection, toggleCode, toggleModuleCodes } from './permissionGraph';
+import {
+    buildTreeIndex, featureLockedCodes, getBlocker, groupBySection, toggleCode, toggleModuleCodes,
+} from './permissionGraph';
 
 // ─── Drzewo uprawnień ─────────────────────────────────────────────────────────────
 // Wspólne dla edytora roli i panelu podglądu roli: ta sama reguła zależności, ten sam
@@ -49,11 +52,20 @@ export function PermissionTreeEditor({
                         : changes?.removed.has(node.code) ? 'removed' : null;
                     return (
                         <NodeBlock key={node.code}>
+                            {/* Prawdziwy przycisk z rolą pola wyboru: `div` z onClick nie
+                                przyjmował fokusu, więc uprawnień nie dało się nadać klawiaturą.
+                                Zablokowany zostaje w kolejności Tab (aria-disabled, nie disabled),
+                                żeby czytnik przeczytał, czego brakuje. */}
                             <CheckRow
+                                as="button"
+                                type="button"
+                                role="checkbox"
+                                aria-checked={checked}
+                                aria-disabled={disabled || undefined}
                                 $disabled={disabled}
                                 onClick={disabled ? undefined : () => onChange(toggleCode(selected, node.code, index))}
                             >
-                                <CheckBox $checked={checked}>{checked && <TinyCheck />}</CheckBox>
+                                <CheckBox $checked={checked} aria-hidden="true">{checked && <TinyCheck />}</CheckBox>
                                 <PermTexts>
                                     <PermLabel $dim={disabled}>{node.displayName}</PermLabel>
                                     {node.description && !blocker && <PermDesc>{node.description}</PermDesc>}
@@ -64,10 +76,10 @@ export function PermissionTreeEditor({
                                     )}
                                 </PermTexts>
                                 {!nodeFeatureOk && node.featureKey && (
-                                    <Badge $variant="amber">⚠ Wymaga modułu</Badge>
+                                    <StatusPill $tone="warn">Wymaga modułu</StatusPill>
                                 )}
-                                {change === 'added' && <Badge $variant="green">dodane</Badge>}
-                                {change === 'removed' && <Badge $variant="red">odebrane</Badge>}
+                                {change === 'added' && <StatusPill $tone="ok">dodane</StatusPill>}
+                                {change === 'removed' && <StatusPill $tone="danger">odebrane</StatusPill>}
                             </CheckRow>
                             {node.children.length > 0 && (
                                 <TreeChildren>
@@ -86,7 +98,7 @@ export function PermissionTreeEditor({
             <>
                 {Array.from({ length: 4 }).map((_, i) => (
                     <ModuleCard key={i}>
-                        <ModuleHead as="div" style={{ cursor: 'default' }}>
+                        <ModuleHead as="div" $disabled>
                             <SkeletonBox $w="140px" />
                         </ModuleHead>
                         <TreeWrap>
@@ -107,19 +119,38 @@ export function PermissionTreeEditor({
         <>
             {catalog.map(module => {
                 const codes = index.moduleCodes.get(module.module) ?? [];
+                const locked = featureLockedCodes(module, isFeatureEnabled);
+                const canSelect = (code: string) => !locked.has(code);
+                const selectable = codes.filter(canSelect);
                 const selectedInModule = codes.filter(c => selected.has(c)).length;
-                const allOn = selectedInModule === codes.length && codes.length > 0;
+                // Komplet liczymy wśród tego, co da się zaznaczyć - inaczej moduł z jednym
+                // zablokowanym wierszem nigdy nie byłby „cały" i nagłówek nie dałby się wyłączyć.
+                const allOn = selectable.length > 0 && selectable.every(c => selected.has(c));
+                const someOn = selectedInModule > 0;
                 const featureOk = isFeatureEnabled(module.featureKey);
+                // Nic do zaznaczenia i nic do odznaczenia - nagłówek nie ma czego zrobić.
+                const headDisabled = selectable.length === 0 && !someOn;
+                const moduleName = module.displayName || module.module;
 
                 return (
                     <ModuleCard key={module.module}>
-                        <ModuleHead onClick={() => onChange(toggleModuleCodes(selected, codes, index))}>
-                            <CheckBox $checked={allOn}>{allOn && <TinyCheck />}</CheckBox>
-                            <ModuleName>{module.displayName || module.module}</ModuleName>
+                        <ModuleHead
+                            type="button"
+                            role="checkbox"
+                            aria-checked={allOn ? true : someOn ? 'mixed' : false}
+                            aria-disabled={headDisabled || undefined}
+                            aria-label={`Wszystkie uprawnienia: ${moduleName}`}
+                            $disabled={headDisabled}
+                            onClick={headDisabled
+                                ? undefined
+                                : () => onChange(toggleModuleCodes(selected, codes, index, canSelect))}
+                        >
+                            <CheckBox $checked={allOn} aria-hidden="true">{allOn && <TinyCheck />}</CheckBox>
+                            <ModuleName>{moduleName}</ModuleName>
                             {!featureOk && module.featureKey && (
-                                <Badge $variant="amber">⚠ Wymaga modułu</Badge>
+                                <StatusPill $tone="warn">Wymaga modułu</StatusPill>
                             )}
-                            <ModuleCount>{selectedInModule}/{codes.length}</ModuleCount>
+                            <ModuleCount>{selectedInModule} z {codes.length}</ModuleCount>
                         </ModuleHead>
 
                         <TreeWrap>
@@ -133,50 +164,58 @@ export function PermissionTreeEditor({
 }
 
 // ─── Śledzenie czasu pracy ────────────────────────────────────────────────────────
+// Przełącznik jest przyciskiem z rolą `switch`: jako `div` nie przyjmował fokusu.
 export function TrackWorkTimeToggle({ value, onChange }: { value: boolean; onChange: (next: boolean) => void }) {
     return (
-        <ToggleRow onClick={() => onChange(!value)}>
+        <ToggleRow type="button" role="switch" aria-checked={value} onClick={() => onChange(!value)}>
             <ToggleLabel>
-                <ToggleName>Śledź czas pracy</ToggleName>
-                <ToggleDesc>Użytkownicy z tą rolą widzą moduł „Czas pracy" i mogą rejestrować godziny</ToggleDesc>
+                <ToggleName>Liczony czas pracy</ToggleName>
+                <ToggleDesc>Osoby z tą rolą widzą moduł „Czas pracy", rejestrują godziny i trafiają na listę obecności.</ToggleDesc>
             </ToggleLabel>
-            <ToggleSwitch $on={value} />
+            <ToggleSwitch $on={value} aria-hidden="true" />
         </ToggleRow>
     );
 }
 
 // ─── Styled ─────────────────────────────────────────────────────────────────────
-const ToggleRow = styled.div`
+const ToggleRow = styled.button`
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 12px;
+    width: 100%;
     padding: 12px 14px;
     background: #f8fafc;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
+    font: inherit;
+    color: inherit;
+    text-align: left;
     cursor: pointer;
     user-select: none;
+
+    &:focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
 `;
 
-const ToggleLabel = styled.div`
+const ToggleLabel = styled.span`
     display: flex;
     flex-direction: column;
     gap: 2px;
 `;
 
 const ToggleName = styled.span`
-    font-size: 13px;
+    font-size: 13.5px;
     font-weight: 600;
     color: #0f172a;
 `;
 
 const ToggleDesc = styled.span`
-    font-size: 11px;
+    font-size: 12.5px;
     color: #64748b;
     line-height: 1.4;
 `;
 
-const ToggleSwitch = styled.div<{ $on: boolean }>`
+const ToggleSwitch = styled.span<{ $on: boolean }>`
     position: relative;
     width: 40px;
     height: 22px;
@@ -210,28 +249,36 @@ const ModuleCard = styled.div`
     flex-shrink: 0;
 `;
 
-const ModuleHead = styled.div`
+const ModuleHead = styled.button<{ $disabled?: boolean }>`
     display: flex;
     align-items: center;
     gap: 10px;
+    width: 100%;
     padding: 11px 14px;
     background: #fafbfc;
+    border: none;
     border-bottom: 1px solid #f1f5f9;
-    cursor: pointer;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: ${p => (p.$disabled ? 'not-allowed' : 'pointer')};
     user-select: none;
+
+    &:focus-visible { outline: 2px solid #38bdf8; outline-offset: -2px; }
 `;
 
 const ModuleName = styled.span`
-    font-size: 13px;
+    font-size: 13.5px;
     font-weight: 700;
     color: #0f172a;
 `;
 
 const ModuleCount = styled.span`
     margin-left: auto;
-    font-size: 11px;
+    font-size: 12.5px;
     font-weight: 600;
-    color: #94a3b8;
+    color: #64748b;
+    font-variant-numeric: tabular-nums;
     flex-shrink: 0;
 `;
 
@@ -259,16 +306,15 @@ const NodeBlock = styled.div`
     gap: 8px;
 `;
 
+/* Nagłówek grupy zdaniem, 13px półgruby - był 10px wersalikami w szarości. */
 const SectionLabel = styled.div`
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
     margin-top: 4px;
 `;
 
-const PermTexts = styled.div`
+const PermTexts = styled.span`
     display: flex;
     flex-direction: column;
     gap: 1px;
@@ -282,8 +328,8 @@ const PermLabel = styled.span<{ $dim?: boolean }>`
 `;
 
 const PermDesc = styled.span`
-    font-size: 11px;
-    color: #94a3b8;
+    font-size: 12px;
+    color: #64748b;
     line-height: 1.4;
 `;
 

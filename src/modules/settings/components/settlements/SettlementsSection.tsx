@@ -6,10 +6,14 @@
 
 import { useState } from 'react';
 import styled, { css, keyframes } from 'styled-components';
+import { Check, Eye, PenLine, Plus, Trash2 } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { formatDateTime } from '@/common/utils';
-import { Container, Card, ColLabel, Badge, Dot, EmptyWrap, EmptyTitle, EmptyDesc, SkeletonBox } from '../rbacShared.styles';
+import { Button, Card, IconButton, Notice, StatusPill } from '@/common/components/ui';
+import { Container, ColLabel, EmptyWrap, EmptyTitle, EmptyDesc, SkeletonBox } from '../rbacShared.styles';
+import { SettingsHeaderActions } from '../shared/SettingsHeaderActions';
+import { reportMutationError } from '../team/mutationError';
 import type { AttendanceSheet } from '../../api/attendanceApi';
 import { useAttendanceSheets, useDeleteAttendanceSheet } from '../../hooks/useAttendanceSheets';
 import { AttendanceSheetPreviewModal } from './AttendanceSheetPreviewModal';
@@ -19,14 +23,16 @@ import { employeesLabel, isApproved, periodDays, periodLabel } from './settlemen
 interface SettlementsSectionProps {
     /** Świeżo wygenerowane rozliczenie: jego wiersz raz podświetla się na zielono. */
     highlightId?: string | null;
-    /** Przejście do listy pracowników - tam powstaje lista obecności. */
+    /** Przejście do listy pracowników - tam widać, komu liczy się czas pracy. */
     onGoToEmployees?: () => void;
+    /** Otwiera okno „Lista obecności"; bez niego sekcja nie ma akcji w nagłówku. */
+    onCreateSheet?: () => void;
 }
 
 const formatInstant = (epochMs: number) => formatDateTime(new Date(epochMs));
 
-export function SettlementsSection({ highlightId, onGoToEmployees }: SettlementsSectionProps = {}) {
-    const { showSuccess } = useToast();
+export function SettlementsSection({ highlightId, onGoToEmployees, onCreateSheet }: SettlementsSectionProps = {}) {
+    const { showSuccess, showError } = useToast();
     const { sheets, isLoading, isError, refetch } = useAttendanceSheets();
     const deleteSheet = useDeleteAttendanceSheet();
 
@@ -36,109 +42,136 @@ export function SettlementsSection({ highlightId, onGoToEmployees }: Settlements
 
     const handleDelete = (sheet: AttendanceSheet) => {
         deleteSheet.mutate(sheet.id, {
-            onSuccess: () => showSuccess('Rozliczenie usunięte', periodLabel(sheet.period)),
+            onSuccess: () => showSuccess('Rozliczenie usunięte', `Lista obecności za ${periodLabel(sheet.period).toLowerCase()} zniknęła z Rozliczeń.`),
+            // Bez tego błąd sieci albo serwera wyglądał jak sukces bez dymka - wiersz
+            // po prostu zostawał, a nikt nie wiedział dlaczego.
+            onError: error => reportMutationError(showError, 'Nie udało się usunąć rozliczenia', error),
         });
     };
 
     return (
         <Container>
+            {onCreateSheet && (
+                <SettingsHeaderActions>
+                    <Button variant="primary" size="lg" onClick={onCreateSheet}>
+                        <Plus aria-hidden="true" />
+                        Dodaj listę obecności
+                    </Button>
+                </SettingsHeaderActions>
+            )}
+
             <Intro>
-                Listy obecności wygenerowane w zakładce „Pracownicy". Każdy administrator widzi
-                tu, które są już sprawdzone i zatwierdzone.
+                Wygenerowane listy obecności. Każdy administrator widzi tu, które są już
+                sprawdzone i zatwierdzone.
             </Intro>
 
-            <TableCard>
-                <ListHeader>
-                    <ColLabel>Okres</ColLabel>
-                    <ColLabel>Wygenerowano</ColLabel>
-                    <ColLabel>Status</ColLabel>
-                    <ColLabel><VisuallyHidden>Akcje</VisuallyHidden></ColLabel>
-                </ListHeader>
+            {isError ? (
+                // Błąd wczytania to nie brak rozliczeń - pusta tabela kazałaby generować
+                // listy, które już czekają na zatwierdzenie.
+                <Notice
+                    tone="danger"
+                    role="alert"
+                    title="Nie udało się wczytać rozliczeń"
+                    action={<Button variant="ghost" size="sm" onClick={() => refetch()}>Spróbuj ponownie</Button>}
+                />
+            ) : (
+                <TableCard>
+                    <ListHeader>
+                        <ColLabel>Okres</ColLabel>
+                        <ColLabel>Wygenerowano</ColLabel>
+                        <ColLabel>Status</ColLabel>
+                        <ColLabel><VisuallyHidden>Akcje</VisuallyHidden></ColLabel>
+                    </ListHeader>
 
-                {isLoading ? (
-                    Array.from({ length: 3 }).map((_, i) => (
-                        <Row key={i} aria-hidden>
-                            <SkeletonBox $w="60%" />
-                            <SkeletonBox $w="70%" />
-                            <SkeletonBox $w="90px" />
-                            <SkeletonBox $w="120px" />
-                        </Row>
-                    ))
-                ) : isError ? (
-                    <EmptyWrap>
-                        <EmptyTitle>Nie udało się wczytać rozliczeń</EmptyTitle>
-                        <TextBtn type="button" onClick={() => refetch()}>Spróbuj ponownie</TextBtn>
-                    </EmptyWrap>
-                ) : sheets.length === 0 ? (
-                    <EmptyWrap>
-                        <EmptyIcon />
-                        <EmptyTitle>Brak rozliczeń</EmptyTitle>
-                        <EmptyDesc>
-                            Zaznacz pracowników w zakładce „Pracownicy" i kliknij „Wygeneruj listę
-                            obecności" - lista pojawi się tutaj i poczeka na zatwierdzenie.
-                        </EmptyDesc>
-                        {onGoToEmployees && (
-                            <TextBtn type="button" onClick={onGoToEmployees}>Przejdź do pracowników</TextBtn>
-                        )}
-                    </EmptyWrap>
-                ) : (
-                    sheets.map(sheet => {
-                        const approved = isApproved(sheet);
-                        const month = periodLabel(sheet.period);
-                        return (
-                            <Row key={sheet.id} $highlight={sheet.id === highlightId} data-testid="settlement-row">
-                                <Cell data-area="period">
-                                    <Primary>{month}</Primary>
-                                    <Secondary>
-                                        <Piece>{periodDays(sheet.period)}</Piece>
-                                        {' · '}
-                                        <Piece>{employeesLabel(sheet.employeeCount)}</Piece>
-                                    </Secondary>
-                                </Cell>
-                                <Cell data-area="generated">
-                                    <Plain>
-                                        <MobileLabel>Wygenerowano </MobileLabel>
-                                        {formatInstant(sheet.createdAt)}
-                                    </Plain>
-                                    <Secondary>{sheet.createdByName ?? '-'}</Secondary>
-                                </Cell>
-                                <Cell data-area="status">
-                                    {approved ? (
-                                        <Badge $variant="green"><Dot $color="#059669" />Zatwierdzona</Badge>
-                                    ) : (
-                                        <Badge $variant="amber"><Dot $color="#d97706" />Do zatwierdzenia</Badge>
-                                    )}
-                                    {approved && (
-                                        <Secondary>
-                                            <Piece>{sheet.approvedByName ?? '-'}</Piece>
-                                            {sheet.approvedAt && <>{' · '}<Piece>{formatInstant(sheet.approvedAt)}</Piece></>}
-                                            {sheet.signed && <>{' · '}<Piece>podpisana</Piece></>}
-                                        </Secondary>
-                                    )}
-                                </Cell>
-                                <Actions>
-                                    <ActionBtn type="button" onClick={() => setPreview(sheet)}>
-                                        <EyeIcon /> Podgląd
-                                    </ActionBtn>
-                                    {!approved && (
-                                        <ActionBtn type="button" $primary onClick={() => setApproving(sheet)}>
-                                            <CheckIcon /> Zatwierdź
-                                        </ActionBtn>
-                                    )}
-                                    <IconBtn
-                                        type="button"
-                                        onClick={() => setDeleting(sheet)}
-                                        aria-label={`Usuń rozliczenie: ${month}`}
-                                        title="Usuń"
-                                    >
-                                        <TrashIcon />
-                                    </IconBtn>
-                                </Actions>
+                    {isLoading ? (
+                        Array.from({ length: 3 }).map((_, i) => (
+                            <Row key={i} aria-hidden>
+                                <SkeletonBox $w="60%" />
+                                <SkeletonBox $w="70%" />
+                                <SkeletonBox $w="90px" />
+                                <SkeletonBox $w="120px" />
                             </Row>
-                        );
-                    })
-                )}
-            </TableCard>
+                        ))
+                    ) : sheets.length === 0 ? (
+                        <EmptyWrap>
+                            <EmptyIcon />
+                            <EmptyTitle>Brak rozliczeń</EmptyTitle>
+                            <EmptyDesc>
+                                Lista obecności pojawi się tutaj po kliknięciu „Lista obecności" przy
+                                pracownikach i poczeka na zatwierdzenie. Trafiają na nią osoby, których
+                                rola ma liczony czas pracy.
+                            </EmptyDesc>
+                            {onGoToEmployees && (
+                                <TextBtn type="button" onClick={onGoToEmployees}>Przejdź do pracowników</TextBtn>
+                            )}
+                        </EmptyWrap>
+                    ) : (
+                        sheets.map(sheet => {
+                            const approved = isApproved(sheet);
+                            const month = periodLabel(sheet.period);
+                            return (
+                                <Row key={sheet.id} $highlight={sheet.id === highlightId} data-testid="settlement-row">
+                                    <Cell data-area="period">
+                                        <Primary>{month}</Primary>
+                                        <Secondary>
+                                            <Piece>{periodDays(sheet.period)}</Piece>
+                                            {', '}
+                                            <Piece>{employeesLabel(sheet.employeeCount)}</Piece>
+                                        </Secondary>
+                                    </Cell>
+                                    <Cell data-area="generated">
+                                        <Plain>
+                                            <MobileLabel>Wygenerowano </MobileLabel>
+                                            {formatInstant(sheet.createdAt)}
+                                        </Plain>
+                                        <Secondary>{sheet.createdByName ?? '-'}</Secondary>
+                                    </Cell>
+                                    <Cell data-area="status">
+                                        <StatusLine>
+                                            {approved
+                                                ? <StatusPill $tone="ok">Zatwierdzona</StatusPill>
+                                                : <StatusPill $tone="warn">Do zatwierdzenia</StatusPill>}
+                                            {/* Podpis to osobny fakt, nie dopisek do nazwiska -
+                                                dostaje własny element z ikoną zamiast dopisku po kropce. */}
+                                            {approved && sheet.signed && (
+                                                <SignedMark><PenLine aria-hidden="true" /><span>podpisana</span></SignedMark>
+                                            )}
+                                        </StatusLine>
+                                        {approved && (
+                                            // Kto i kiedy: jedno zdanie z przecinkiem zamiast faktów sklejonych kropką.
+                                            <Secondary>
+                                                <Piece>{sheet.approvedByName ?? '-'}</Piece>
+                                                {sheet.approvedAt && <>{', '}<Piece>{formatInstant(sheet.approvedAt)}</Piece></>}
+                                            </Secondary>
+                                        )}
+                                    </Cell>
+                                    <Actions>
+                                        <Button variant="ghost" size="sm" onClick={() => setPreview(sheet)}>
+                                            <Eye aria-hidden="true" /> Podgląd
+                                        </Button>
+                                        {/* Odcień, nie wypełnienie: przy trzech listach do zatwierdzenia
+                                            byłyby trzy wypełnione przyciski w jednym oknie (CLAUDE.md §2).
+                                            Jedyne wypełnienie jest w oknie zatwierdzania - jego „Podpisz". */}
+                                        {!approved && (
+                                            <Button variant="tintedSuccess" size="sm" onClick={() => setApproving(sheet)}>
+                                                <Check aria-hidden="true" /> Zatwierdź
+                                            </Button>
+                                        )}
+                                        <IconButton
+                                            variant="danger"
+                                            size="sm"
+                                            label={`Usuń rozliczenie: ${month}`}
+                                            onClick={() => setDeleting(sheet)}
+                                        >
+                                            <Trash2 />
+                                        </IconButton>
+                                    </Actions>
+                                </Row>
+                            );
+                        })
+                    )}
+                </TableCard>
+            )}
 
             {preview && (
                 <AttendanceSheetPreviewModal
@@ -169,25 +202,6 @@ export function SettlementsSection({ highlightId, onGoToEmployees }: Settlements
 
 // ─── Ikony ───────────────────────────────────────────────────────────────────
 
-const EyeIcon = () => (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
-    </svg>
-);
-
-const CheckIcon = () => (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <polyline points="20 6 9 17 4 12" />
-    </svg>
-);
-
-const TrashIcon = () => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <polyline points="3 6 5 6 21 6" />
-        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-    </svg>
-);
-
 const EmptyIcon = () => (
     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e2e8f0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -210,7 +224,7 @@ const TableCard = styled(Card)`
  * Kolumna akcji ma stałą szerokość: każdy wiersz jest osobną siatką, więc przy `auto`
  * zatwierdzony wiersz (bez przycisku „Zatwierdź") przesuwał wszystkie kolumny obok.
  */
-const GRID = 'minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1.1fr) 260px';
+const GRID = 'minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1.1fr) 250px';
 
 /** Poniżej tej szerokości tabeli wiersz staje się kafelkiem. */
 const NARROW = '(max-width: 720px)';
@@ -273,38 +287,52 @@ const Cell = styled.div`
     }
 `;
 
-/** Kawałek podpisu, który nie łamie się w środku - wiersz łamie się na „ · ". */
+/** Kawałek podpisu, który nie łamie się w środku - wiersz łamie się na przecinku. */
 const Piece = styled.span`
     white-space: nowrap;
 `;
 
 const Primary = styled.strong`
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 15px;
+    font-weight: 700;
     color: #0f172a;
 `;
 
 const Plain = styled.span`
-    font-size: 12.5px;
+    font-size: 13px;
     color: #334155;
     font-variant-numeric: tabular-nums;
 `;
 
 const Secondary = styled.span`
-    font-size: 11.5px;
-    line-height: 1.4;
-    color: #94a3b8;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: #64748b;
 `;
 
+const StatusLine = styled.span`
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+`;
+
+const SignedMark = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12.5px;
+    color: #15803d;
+
+    svg { width: 13px; height: 13px; flex-shrink: 0; }
+`;
+
+/* W kafelku etykieta zdaniem, jak reszta tekstu - były tu 11px wersaliki (CLAUDE.md §2). */
 const MobileLabel = styled.span`
     display: none;
     @container settlements ${NARROW} {
         display: inline;
-        font-size: 11px;
-        font-weight: 600;
-        color: #94a3b8;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
+        color: #64748b;
     }
 `;
 
@@ -325,53 +353,9 @@ const Actions = styled.div`
     flex-wrap: wrap;
 `;
 
-const ActionBtn = styled.button<{ $primary?: boolean }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 11px;
-    font-family: inherit;
-    font-size: 12.5px;
-    font-weight: 600;
-    border-radius: 8px;
-    white-space: nowrap;
-    cursor: pointer;
-    transition: background 150ms, border-color 150ms, color 150ms;
-    ${p => (p.$primary
-        ? css`
-            color: #fff;
-            background: #0284c7;
-            border: 1px solid #0284c7;
-            &:hover { background: #0369a1; border-color: #0369a1; }
-        `
-        : css`
-            color: #0f172a;
-            background: #fff;
-            border: 1px solid #cbd5e1;
-            &:hover { background: #f8fafc; }
-        `)}
-`;
-
-const IconBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    border-radius: 8px;
-    border: 1px solid transparent;
-    background: transparent;
-    color: #94a3b8;
-    cursor: pointer;
-    transition: background 150ms, color 150ms, border-color 150ms;
-
-    &:hover { color: #dc2626; background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.25); }
-`;
-
 const Intro = styled.p`
     margin: 0;
-    font-size: 12.5px;
+    font-size: 13.5px;
     line-height: 1.55;
     color: #64748b;
 `;
