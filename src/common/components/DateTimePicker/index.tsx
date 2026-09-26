@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
+import { applyFloatingPlacement } from '@/common/utils/floatingPlacement';
 
 // ---- POLISH LOCALE ----
 const WEEK_DAYS = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'];
@@ -152,12 +153,13 @@ const Trigger = styled.button<{ $accentColor?: string; $hasError?: boolean; $has
     }
 `;
 
-/* Współrzędne i widoczność nadaje usePickerDropdown wprost na elemencie, po zmierzeniu go. */
+/* Współrzędne, limit wysokości, przewijanie i widoczność nadaje usePickerDropdown
+   (applyFloatingPlacement) wprost na elemencie, po zmierzeniu go. */
 const DropdownFixed = styled.div`
     position: fixed;
-    top: auto;
-    bottom: auto;
+    top: 0;
     left: 0;
+    box-sizing: border-box;
     z-index: 9999;
     background: ${props => props.theme.colors.surface};
     border: 1.5px solid #e2e8f0;
@@ -166,7 +168,8 @@ const DropdownFixed = styled.div`
         0 0 0 1px rgba(0,0,0,0.03),
         0 8px 24px -4px rgba(0,0,0,0.12);
     display: flex;
-    overflow: hidden;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
     visibility: hidden;
 `;
 
@@ -501,41 +504,35 @@ function usePickerDropdown(onFocus?: () => void, onBlur?: () => void) {
         }
     };
 
-    // Okno pod (albo nad) przyciskiem, docięte do portu widoku. Współrzędne idą
-    // wprost na element: montuje się ukryty i pokazuje dopiero po zmierzeniu, więc
-    // nie ma klatki w rogu ekranu ani dodatkowej rundy stanu.
+    // Okno pod albo nad przyciskiem, zawsze w ekranie (applyFloatingPlacement).
+    // Wcześniej odwracało się tylko wtedy, gdy nad przyciskiem było więcej miejsca niż
+    // pod nim, i nie miało limitu wysokości (`overflow: hidden`): wybór zakresu (400+ px)
+    // na telefonie w poziomie albo z klawiaturą był ucinany i „Gotowe" znikało za
+    // krawędzią. Teraz, gdy nie mieści się nigdzie, dostaje wysokość większej strony
+    // i przewija się w środku. Współrzędne idą wprost na element: montuje się ukryty
+    // i pokazuje dopiero po zmierzeniu, więc nie ma klatki w rogu ekranu.
     const updatePosition = useCallback(() => {
         const trigger = triggerRef.current;
         const drop = dropdownRef.current;
         if (!trigger || !drop) return;
-        const rect = trigger.getBoundingClientRect();
-        const vvHeight = window.visualViewport?.height ?? window.innerHeight;
-        let left = rect.left;
-        const maxLeft = window.innerWidth - drop.offsetWidth - 8;
-        if (left > maxLeft) left = Math.max(8, maxLeft);
-        const dropH = drop.offsetHeight || 320;
-        const spaceBelow = vvHeight - rect.bottom - 4;
-        const spaceAbove = rect.top - 4;
-        if (spaceBelow < dropH && spaceAbove > spaceBelow) {
-            drop.style.top = 'auto';
-            drop.style.bottom = `${vvHeight - rect.top + 4}px`;
-        } else {
-            drop.style.top = `${rect.bottom + 4}px`;
-            drop.style.bottom = 'auto';
-        }
-        drop.style.left = `${left}px`;
-        drop.style.visibility = 'visible';
+        applyFloatingPlacement(drop, trigger.getBoundingClientRect(), { align: 'left', offset: 4 });
     }, []);
 
     useLayoutEffect(() => {
         if (!isOpen) return;
+        // Przewijanie WEWNĄTRZ okna (niski ekran) nie przesuwa przycisku - przeliczenie
+        // zdjęłoby na chwilę limit wysokości i wyzerowało przewinięcie.
+        const onScroll = (e: Event) => {
+            if (dropdownRef.current?.contains(e.target as Node)) return;
+            updatePosition();
+        };
         updatePosition();
-        window.addEventListener('scroll', updatePosition, true);
+        window.addEventListener('scroll', onScroll, true);
         window.addEventListener('resize', updatePosition);
         window.visualViewport?.addEventListener('resize', updatePosition);
         window.visualViewport?.addEventListener('scroll', updatePosition);
         return () => {
-            window.removeEventListener('scroll', updatePosition, true);
+            window.removeEventListener('scroll', onScroll, true);
             window.removeEventListener('resize', updatePosition);
             window.visualViewport?.removeEventListener('resize', updatePosition);
             window.visualViewport?.removeEventListener('scroll', updatePosition);

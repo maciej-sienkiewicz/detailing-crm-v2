@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { Award, ChevronDown, Droplets, FileDown, Package, Plus, Search, Wrench, X } from 'lucide-react';
@@ -9,6 +9,7 @@ import {
 import { Button, ui } from '@/common/components/ui';
 import { InputShell, BareInput } from '@/common/components/Form';
 import { useDebounce } from '@/common/hooks/useDebounce';
+import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 import { useToast } from '@/common/components/Toast/ToastContainer';
 import { usePermissions } from '@/core/permissions';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -228,11 +229,18 @@ const Combo = styled.div` position: relative; `;
 const LeadIcon = styled.span` display: inline-flex; padding-left: 12px; color: ${st.textMuted}; flex-shrink: 0; `;
 // Lista podpowiedzi w PORTALU z pozycją `fixed`: treść okna się przewija i ma własne
 // przycięcie, więc `absolute` w środku ucinałby listę razem z kontenerem.
+// Pozycję i wysokość ustawia useFloatingPanel: z klawiaturą ekranową pod polem zostaje
+// mało miejsca, więc lista przechodzi nad pole albo przewija się w środku. Limit 260 px
+// siedzi na wewnętrznej liście - na panelu nadpisałby go limit z pomiaru i lista
+// otwarta nad polem rosłaby w dół, na pole.
 const Menu = styled.div`
     position: fixed; z-index: 1300;
+    top: 0; left: 0; visibility: hidden;
+    display: flex; flex-direction: column; box-sizing: border-box;
     background: ${st.bgCard}; border: 1px solid ${st.border}; border-radius: ${st.radiusSm};
-    box-shadow: ${st.shadowMd}; overflow: hidden; max-height: 260px; overflow-y: auto;
+    box-shadow: ${st.shadowMd}; overflow-x: hidden; overscroll-behavior: contain;
 `;
+const MenuList = styled.div` max-height: 260px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; `;
 const Option = styled.button`
     display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
     padding: 10px 12px; background: none; border: none; cursor: pointer;
@@ -285,7 +293,6 @@ function ProductPicker({ placeholder, catalog, onPick }: {
     );
     const wrapRef = useRef<HTMLDivElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
-    const [rect, setRect] = useState<{ top: number; left: number; width: number } | null>(null);
 
     const trimmed = search.trim();
     const visible = open && trimmed.length > 0;
@@ -300,20 +307,23 @@ function ProductPicker({ placeholder, catalog, onPick }: {
         return () => document.removeEventListener('mousedown', onDoc);
     }, []);
 
-    const measure = useCallback(() => {
-        const r = wrapRef.current?.getBoundingClientRect();
-        if (r) setRect({ top: r.bottom + 4, left: r.left, width: r.width });
-    }, []);
+    // Lista ma szerokość pola. Efekt stoi PRZED useFloatingPanel: pozycję liczy się
+    // z szerokości panelu, więc najpierw szerokość, potem pomiar (także przy resize -
+    // nasłuch zarejestrowany wcześniej odpala się wcześniej). Pomiar idzie wprost do
+    // stylu, nie do stanu - stan ustawiany w efekcie dawał drugi render przy każdym
+    // przewinięciu.
     useLayoutEffect(() => {
         if (!visible) return;
-        measure();
-        window.addEventListener('scroll', measure, true);
-        window.addEventListener('resize', measure);
-        return () => {
-            window.removeEventListener('scroll', measure, true);
-            window.removeEventListener('resize', measure);
+        const syncWidth = () => {
+            if (menuRef.current && wrapRef.current) menuRef.current.style.width = `${wrapRef.current.offsetWidth}px`;
         };
-    }, [visible, measure]);
+        syncWidth();
+        window.addEventListener('resize', syncWidth);
+        return () => window.removeEventListener('resize', syncWidth);
+    }, [visible]);
+    // Liczba wierszy zmienia się przy pisaniu - wtedy lista mierzy się od nowa.
+    const menuContentKey = `${catalog ? products.length : 0}-${isLoading}`;
+    useFloatingPanel(visible, wrapRef, menuRef, { align: 'left', offset: 4 }, menuContentKey);
 
     const take = (entry: Omit<ManualEntry, 'key'>) => {
         onPick({ ...entry, key: nextKey() });
@@ -332,31 +342,33 @@ function ProductPicker({ placeholder, catalog, onPick }: {
                     onFocus={() => setOpen(true)}
                 />
             </InputShell>
-            {visible && rect && createPortal(
-                <Menu ref={menuRef} style={{ top: rect.top, left: rect.left, width: rect.width }}>
-                    {catalog && products.map(p => (
-                        <Option
-                            key={p.id}
+            {visible && createPortal(
+                <Menu ref={menuRef}>
+                    <MenuList>
+                        {catalog && products.map(p => (
+                            <Option
+                                key={p.id}
+                                type="button"
+                                onClick={() => take({
+                                    productId: p.id,
+                                    name: p.name,
+                                    note: null,
+                                    meta: [p.brand, `${p.packageSizeValue} ${p.packageSizeUnit}`]
+                                        .filter((x): x is string => Boolean(x)),
+                                })}
+                            >
+                                <Package size={14} />
+                                {[p.brand, p.name].filter(Boolean).join(' ')}
+                            </Option>
+                        ))}
+                        {catalog && isLoading && products.length === 0 && <MenuHint>Szukam w katalogu…</MenuHint>}
+                        <FreeText
                             type="button"
-                            onClick={() => take({
-                                productId: p.id,
-                                name: p.name,
-                                note: null,
-                                meta: [p.brand, `${p.packageSizeValue} ${p.packageSizeUnit}`]
-                                    .filter((x): x is string => Boolean(x)),
-                            })}
+                            onClick={() => take({ productId: null, name: trimmed, note: null, meta: [] })}
                         >
-                            <Package size={14} />
-                            {[p.brand, p.name].filter(Boolean).join(' ')}
-                        </Option>
-                    ))}
-                    {catalog && isLoading && products.length === 0 && <MenuHint>Szukam w katalogu…</MenuHint>}
-                    <FreeText
-                        type="button"
-                        onClick={() => take({ productId: null, name: trimmed, note: null, meta: [] })}
-                    >
-                        <Plus size={14} /> Dopisz „{trimmed}" spoza katalogu
-                    </FreeText>
+                            <Plus size={14} /> Dopisz „{trimmed}" spoza katalogu
+                        </FreeText>
+                    </MenuList>
                 </Menu>,
                 document.body,
             )}

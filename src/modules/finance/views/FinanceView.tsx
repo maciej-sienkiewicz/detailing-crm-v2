@@ -2,6 +2,7 @@ import React, { useState, useCallback, useMemo, useRef, useEffect, useLayoutEffe
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
+import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 import type { FinanceTab, IncomeDocument, IncomeDocumentType } from '../types';
 
 /** Kolejność zakładek = kolejność skrótów 1-4; whitelist dla wartości z adresu. */
@@ -207,14 +208,23 @@ const SelectBackdrop = styled.div`
   z-index: 999;
 `;
 
+/* Pozycję, limit wysokości i przewijanie ustawia useFloatingPanel z realnego rozmiaru
+   panelu. Wcześniej przycinanie w poziomie zakładało 200 px (dłuższe etykiety wyjeżdżały
+   za ekran), a w pionie nie było limitu ani odwrócenia nad przycisk. Do pierwszego
+   pomiaru panel jest niewidoczny. */
 const SelectPanel = styled.div`
   position: fixed;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  box-sizing: border-box;
   min-width: 200px;
   background: ${(p) => p.theme.colors.surface};
   border-radius: ${st.radius};
   box-shadow: ${st.shadowLg};
   z-index: 1000;
-  overflow: hidden;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
   border: 1px solid ${(p) => p.theme.colors.border};
 `;
 
@@ -259,21 +269,13 @@ interface FilterSelectProps {
 
 const FilterSelect: React.FC<FilterSelectProps> = ({ value, onChange, options, placeholder }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [panelPos, setPanelPos] = useState<{ top: number; left: number } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  useFloatingPanel(isOpen, triggerRef, panelRef, { align: 'left', offset: 4 });
 
   const selectedLabel = options.find((o) => o.value === value)?.label ?? placeholder;
 
-  const handleToggle = () => {
-    if (!isOpen && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect();
-      const vw = window.innerWidth;
-      let left = rect.left;
-      if (left + 200 > vw - 8) left = vw - 208;
-      setPanelPos({ top: rect.bottom + 4, left });
-    }
-    setIsOpen((prev) => !prev);
-  };
+  const handleToggle = () => setIsOpen((prev) => !prev);
 
   return (
     <>
@@ -282,8 +284,8 @@ const FilterSelect: React.FC<FilterSelectProps> = ({ value, onChange, options, p
         {selectedLabel}
         <ChevronDownIcon />
       </SelectTrigger>
-      {isOpen && panelPos && createPortal(
-        <SelectPanel style={{ top: panelPos.top, left: panelPos.left }}>
+      {isOpen && createPortal(
+        <SelectPanel ref={panelRef}>
           <SelectPanelBody>
             <SelectPanelOption $active={value === ''} onClick={() => { onChange(''); setIsOpen(false); }}>
               {placeholder}
@@ -966,7 +968,7 @@ const HdrPickerTrigger = styled.button<{ $active: boolean }>`
   svg { width: 14px; height: 14px; flex-shrink: 0; }
 `;
 
-/* Pozycję (top/bottom/left/maxHeight) i widoczność nadaje positionPanel wprost na
+/* Pozycję (top/left/maxHeight) i widoczność nadaje useFloatingPanel wprost na
    elemencie, po zmierzeniu go. Szerokość ograniczona do widoku, żeby na telefonie
    panel nie wyszedł poza ekran; nadmiar treści przewija się w środku. */
 const HdrPickerPanel = styled.div`
@@ -1017,51 +1019,14 @@ const FinHeaderDatePicker: React.FC<FinHeaderDatePickerProps> = ({ preset, custo
     };
   }, [open]);
 
-  // Pozycję liczymy po zamontowaniu, z realnego rozmiaru panelu, i przycinamy do
-  // widoku. Wcześniej brano zakodowane 240 px sprzed renderu: gdy natywne pola
-  // type="date" rozpychały panel szerzej (telefon), lewa połowa uciekała za ekran.
-  const positionPanel = useCallback(() => {
-    const trigger = triggerRef.current;
-    const panel = panelRef.current;
-    if (!trigger || !panel) return;
-    const rect = trigger.getBoundingClientRect();
-    const vw = window.innerWidth;
-    const vh = window.visualViewport?.height ?? window.innerHeight;
-    const MARGIN = 8;
-    const panelW = panel.offsetWidth;
-    // Prawa krawędź panelu przy prawej krawędzi triggera, ale obie krawędzie w widoku.
-    const left = Math.max(MARGIN, Math.min(rect.right - panelW, vw - panelW - MARGIN));
-    const panelH = panel.offsetHeight;
-    const spaceBelow = vh - rect.bottom - MARGIN;
-    const spaceAbove = rect.top - MARGIN;
-    const openBelow = spaceBelow >= panelH || spaceBelow >= spaceAbove;
-    const avail = openBelow ? spaceBelow : spaceAbove;
-    panel.style.maxHeight = `${Math.max(200, Math.min(avail, 460))}px`;
-    if (openBelow) {
-      panel.style.top = `${rect.bottom + 6}px`;
-      panel.style.bottom = 'auto';
-    } else {
-      panel.style.top = 'auto';
-      panel.style.bottom = `${vh - rect.top + 6}px`;
-    }
-    panel.style.left = `${left}px`;
-    panel.style.visibility = 'visible';
-  }, []);
-
-  useLayoutEffect(() => {
-    if (!open) return;
-    positionPanel();
-    window.addEventListener('scroll', positionPanel, true);
-    window.addEventListener('resize', positionPanel);
-    window.visualViewport?.addEventListener('resize', positionPanel);
-    window.visualViewport?.addEventListener('scroll', positionPanel);
-    return () => {
-      window.removeEventListener('scroll', positionPanel, true);
-      window.removeEventListener('resize', positionPanel);
-      window.visualViewport?.removeEventListener('resize', positionPanel);
-      window.visualViewport?.removeEventListener('scroll', positionPanel);
-    };
-  }, [open, positionPanel]);
+  // Pozycję liczymy po zamontowaniu, z realnego rozmiaru panelu (useFloatingPanel):
+  // prawa krawędź panelu przy prawej krawędzi triggera, obie krawędzie w widoku, pod
+  // triggerem albo nad nim. Wcześniej brano zakodowane 240 px sprzed renderu: gdy
+  // natywne pola type="date" rozpychały panel szerzej (telefon), lewa połowa uciekała
+  // za ekran. Później limit wysokości miał podłogę 200 px, większą niż wolne miejsce
+  // przy klawiaturze ekranowej - panel znów wychodził za krawędź. Teraz limit to
+  // dokładnie wolne miejsce, a reszta przewija się w panelu.
+  useFloatingPanel(open, triggerRef, panelRef, { align: 'right', offset: 6 });
 
   const handleToggle = () => {
     if (!open) {

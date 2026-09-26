@@ -1,6 +1,6 @@
 // src/modules/calendar/components/QuickEventModal/index.tsx
 
-import React, { forwardRef, useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { forwardRef, useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef } from 'react';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import styled from 'styled-components';
 import { createPortal } from 'react-dom';
@@ -28,6 +28,7 @@ import type { ServiceLineItem, SaveServiceData } from '@/common/components/Servi
 import { buildServicesAsLineItems, withRenamedTempServices } from './servicesAsLineItems';
 import { formPricesFromLineItems } from './linePrices';
 import { netToGross } from '@/common/utils/priceAdjustment';
+import { mobileBottomReserve, placeFloating, visibleViewport } from '@/common/utils/floatingPlacement';
 import { servicesApi } from '@/modules/services/api/servicesApi';
 import type { VatRate, Service as CatalogService } from '@/modules/services/types';
 import {
@@ -41,6 +42,90 @@ import type { QuickEventModalProps, QuickEventModalRef, AppointmentColor, Servic
 
 export type { QuickEventFormData, QuickEventInitialData } from './types';
 export type { QuickEventModalRef };
+
+// Atrybuty klienta i pojazdu (telefon i e-mail, rocznik i tablica) jako osobne elementy
+// z odstępem, a nie ciąg sklejony kropką (CLAUDE.md §4) - na wąskim polu kropka
+// lądowała na początku linii.
+const MetaParts = styled.span`
+    display: inline-flex;
+    flex-wrap: wrap;
+    column-gap: 12px;
+`;
+
+/**
+ * Lista podpowiedzi doklejona do pola (desktop), która ZAWSZE mieści się w ekranie.
+ *
+ * Wcześniej lista stała zawsze pod polem z podłogą 100 px wysokości: przy polu nisko
+ * w oknie (niski ekran, przewinięty formularz) ta podłoga wypychała ją za dolną
+ * krawędź. Teraz placeFloating wybiera stronę z miejscem; własny limit wysokości listy
+ * (`cap`) jest wysokością, o którą prosi panel, więc przy dużym zapasie lista nie
+ * rozciąga się na cały ekran.
+ *
+ * Pod polem lista jest jego przedłużeniem (bez górnej krawędzi, zaokrąglona u dołu,
+ * z CSS). Nad polem takie doklejenie wyglądałoby jak urwane pole, więc lista dostaje
+ * pełną ramkę i pełne zaokrąglenie.
+ *
+ * Zwraca, czy lista stanęła nad polem.
+ */
+function placeAttachedList(panel: HTMLElement, anchor: HTMLElement, cap: number, offset: number): boolean {
+    const rect = anchor.getBoundingClientRect();
+    panel.style.width = `${rect.width}px`;
+    // scrollHeight to cała treść niezależnie od bieżącego limitu; ramki dokładamy osobno.
+    const chrome = panel.offsetHeight - panel.clientHeight;
+    const viewport = visibleViewport();
+    const placement = placeFloating(
+        rect,
+        { width: rect.width, height: Math.min(panel.scrollHeight + chrome, cap) },
+        viewport,
+        { align: 'left', offset, bottomReserve: mobileBottomReserve(viewport.width) },
+    );
+    panel.style.top = `${placement.top}px`;
+    panel.style.left = `${placement.left}px`;
+    panel.style.maxHeight = `${Math.min(placement.maxHeight, cap)}px`;
+    panel.style.borderTop = placement.above ? '1.5px solid #0ea5e9' : '';
+    panel.style.borderRadius = placement.above ? '12px' : '';
+    return placement.above;
+}
+
+/**
+ * Trzyma listę przy polu przy przewijaniu strony, zmianie rozmiaru i wysuwaniu
+ * klawiatury. Przewijanie WEWNĄTRZ listy jej nie przelicza - wyzerowałoby przewinięcie.
+ */
+function useAttachedList(
+    open: boolean,
+    anchorRef: React.RefObject<HTMLElement | null>,
+    panelRef: React.RefObject<HTMLElement | null>,
+    cap: number,
+    offset: number,
+    /** Zmiana liczby pozycji - lista mierzy się od nowa. */
+    contentKey: unknown,
+    onFlip?: (above: boolean) => void,
+): void {
+    useLayoutEffect(() => {
+        if (!open) return;
+        const place = () => {
+            const panel = panelRef.current;
+            const anchor = anchorRef.current;
+            if (panel && anchor) {
+                const above = placeAttachedList(panel, anchor, cap, offset);
+                onFlip?.(above);
+            }
+        };
+        const onScroll = (e: Event) => {
+            if (panelRef.current?.contains(e.target as Node)) return;
+            place();
+        };
+        place();
+        window.addEventListener('resize', place);
+        window.addEventListener('scroll', onScroll, true);
+        window.visualViewport?.addEventListener('resize', place);
+        return () => {
+            window.removeEventListener('resize', place);
+            window.removeEventListener('scroll', onScroll, true);
+            window.visualViewport?.removeEventListener('resize', place);
+        };
+    }, [open, anchorRef, panelRef, cap, offset, contentKey, onFlip]);
+}
 
 const SmsCheckList = styled.div`
     display: flex;
@@ -268,11 +353,12 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
        a przesunięcie zeruje media query w S.Overlay. */
     const sidebarWidth = isCollapsed ? 64 : 248;
 
-    const [serviceDropdownPos, setServiceDropdownPos] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
     const [highlightedServiceIdx, setHighlightedServiceIdx] = useState(-1);
     const serviceDropdownRef = useRef<HTMLDivElement>(null);
-    const [customerDropdownPos, setCustomerDropdownPos] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
     const customerDropdownContainerRef = useRef<HTMLDivElement>(null);
+    const customerDropdownRef = useRef<HTMLDivElement>(null);
+    // Lista klientów nad polem: pole nie może wtedy udawać, że lista wychodzi z jego dołu.
+    const [customerListAbove, setCustomerListAbove] = useState(false);
     const [autoOpenModel, setAutoOpenModel] = useState(false);
 
     // Mobile-specific UX state
@@ -359,7 +445,12 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                             </S.MobileCustomerSuggestionName>
                             <S.MobileCustomerSuggestionSub $warn={!hasContact}>
                                 {hasContact
-                                    ? [c.phone, c.email].filter(Boolean).join('  ·  ')
+                                    ? (
+                                        <MetaParts>
+                                            {c.phone && <span>{c.phone}</span>}
+                                            {c.email && <span>{c.email}</span>}
+                                        </MetaParts>
+                                    )
                                     : '⚠ Brak danych kontaktowych'}
                             </S.MobileCustomerSuggestionSub>
                         </S.MobileCustomerSuggestionItem>
@@ -603,23 +694,16 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     }, [isOpen, isMobile]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
-        if (!form.showServiceDropdown) { setServiceDropdownPos(null); setHighlightedServiceIdx(-1); return; }
-        const el = form.serviceInputRef.current;
-        if (!el) return;
-        const update = () => {
-            const r = el.getBoundingClientRect();
-            const spaceBelow = window.innerHeight - r.bottom - 8;
-            const maxHeight = Math.min(320, Math.max(100, spaceBelow));
-            setServiceDropdownPos({ top: r.bottom + 2, left: r.left, width: r.width, maxHeight });
-        };
-        update();
-        window.addEventListener('scroll', update, true);
-        window.addEventListener('resize', update);
-        return () => {
-            window.removeEventListener('scroll', update, true);
-            window.removeEventListener('resize', update);
-        };
+        if (!form.showServiceDropdown) setHighlightedServiceIdx(-1);
     }, [form.showServiceDropdown]);
+    useAttachedList(
+        !isMobile && form.showServiceDropdown,
+        form.serviceInputRef,
+        serviceDropdownRef,
+        320,
+        2,
+        `${form.filteredServices.length}-${form.serviceSearch.trim().length > 0}`,
+    );
 
     // Scroll highlighted service item into view when navigating with arrow keys
     useEffect(() => {
@@ -628,24 +712,15 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         items[highlightedServiceIdx]?.scrollIntoView({ block: 'nearest' });
     }, [highlightedServiceIdx]);
 
-    useEffect(() => {
-        if (!form.showCustomerDropdown || isMobile) { setCustomerDropdownPos(null); return; }
-        const el = customerDropdownContainerRef.current;
-        if (!el) return;
-        const update = () => {
-            const r = el.getBoundingClientRect();
-            const spaceBelow = window.innerHeight - r.bottom - 8;
-            const maxHeight = Math.min(280, Math.max(100, spaceBelow));
-            setCustomerDropdownPos({ top: r.bottom, left: r.left, width: r.width, maxHeight });
-        };
-        update();
-        window.addEventListener('scroll', update, true);
-        window.addEventListener('resize', update);
-        return () => {
-            window.removeEventListener('scroll', update, true);
-            window.removeEventListener('resize', update);
-        };
-    }, [form.showCustomerDropdown, isMobile]);
+    useAttachedList(
+        !isMobile && form.showCustomerDropdown,
+        customerDropdownContainerRef,
+        customerDropdownRef,
+        280,
+        0,
+        form.customerResults.length,
+        setCustomerListAbove,
+    );
 
     if (!eventData && !initialData) return null;
 
@@ -1142,12 +1217,12 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     {form.selectedCustomer.isNew && <S.NewBadge>Nowy</S.NewBadge>}
                                                 </S.ChipName>
                                                 {(form.selectedCustomer.phone || form.selectedCustomer.email) && (
-                                                    <>
-                                                        <S.ChipDot>·</S.ChipDot>
-                                                        <S.ChipMeta>
-                                                            {[form.selectedCustomer.phone, form.selectedCustomer.email].filter(Boolean).join('  ·  ')}
-                                                        </S.ChipMeta>
-                                                    </>
+                                                    <S.ChipMeta>
+                                                        <MetaParts>
+                                                            {form.selectedCustomer.phone && <span>{form.selectedCustomer.phone}</span>}
+                                                            {form.selectedCustomer.email && <span>{form.selectedCustomer.email}</span>}
+                                                        </MetaParts>
+                                                    </S.ChipMeta>
                                                 )}
                                             </S.ChipInfo>
                                             <S.ChipEdit
@@ -1186,7 +1261,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 <S.CustomerInputBlock
                                                     $focused={form.focusedField === 'customer'}
                                                     $hasError={!!(form.errors.customer || form.errors.customerFirstName || form.errors.customerLastName || form.errors.customerPhone || form.errors.customerEmail)}
-                                                    $dropdownOpen={!isMobile && form.showCustomerDropdown}
+                                                    $dropdownOpen={!isMobile && form.showCustomerDropdown && !customerListAbove}
                                                 >
                                                     <S.CustomerInputRow>
                                                         <S.CustomerFieldGroup $borderRight $hasError={!!form.errors.customerFirstName}>
@@ -1291,8 +1366,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 </S.CustomerInputBlock>
 
                                                 {/* Desktop portal dropdown */}
-                                                {!isMobile && form.showCustomerDropdown && customerDropdownPos && createPortal(
-                                                    <S.CustomerPortalDropdown style={{ top: customerDropdownPos.top, left: customerDropdownPos.left, width: customerDropdownPos.width, maxHeight: customerDropdownPos.maxHeight }}>
+                                                {!isMobile && form.showCustomerDropdown && createPortal(
+                                                    <S.CustomerPortalDropdown ref={customerDropdownRef}>
                                                         {form.customerResults.length > 0 && (
                                                             <S.DropdownSeparator>Istniejący klienci</S.DropdownSeparator>
                                                         )}
@@ -1323,7 +1398,12 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                     }
                                                                     <S.DropdownItemMeta $warning={!hasContact}>
                                                                         {hasContact
-                                                                            ? [c.phone, c.email].filter(Boolean).join('  ·  ')
+                                                                            ? (
+                                                                                <MetaParts>
+                                                                                    {c.phone && <span>{c.phone}</span>}
+                                                                                    {c.email && <span>{c.email}</span>}
+                                                                                </MetaParts>
+                                                                            )
                                                                             : '⚠ Brak danych kontaktowych, może to inna osoba?'
                                                                         }
                                                                     </S.DropdownItemMeta>
@@ -1475,10 +1555,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     {form.selectedVehicle.isNew && <S.NewBadge>Nowy</S.NewBadge>}
                                                 </S.ChipName>
                                                 {form.selectedVehicle.year && (
-                                                    <>
-                                                        <S.ChipDot>·</S.ChipDot>
-                                                        <S.ChipMeta>{form.selectedVehicle.year}</S.ChipMeta>
-                                                    </>
+                                                    <S.ChipMeta>{form.selectedVehicle.year}</S.ChipMeta>
                                                 )}
                                             </S.ChipInfo>
                                             <S.ChipClear
@@ -1524,7 +1601,10 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         >
                                                             <span>{v.brand} {v.model}</span>
                                                             <S.DropdownItemMeta>
-                                                                {[v.year, v.licensePlate].filter(Boolean).join('  ·  ')}
+                                                                <MetaParts>
+                                                                    {v.year && <span>{v.year}</span>}
+                                                                    {v.licensePlate && <span>{v.licensePlate}</span>}
+                                                                </MetaParts>
                                                             </S.DropdownItemMeta>
                                                         </S.DropdownItem>
                                                     ))}
@@ -1768,16 +1848,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         )}
 
                                         {/* Desktop portal dropdown */}
-                                        {!isMobile && form.showServiceDropdown && serviceDropdownPos && createPortal(
-                                            <S.ServicePortalDropdown
-                                                ref={serviceDropdownRef}
-                                                style={{
-                                                    top: serviceDropdownPos.top,
-                                                    left: serviceDropdownPos.left,
-                                                    width: serviceDropdownPos.width,
-                                                    maxHeight: serviceDropdownPos.maxHeight,
-                                                }}
-                                            >
+                                        {!isMobile && form.showServiceDropdown && createPortal(
+                                            <S.ServicePortalDropdown ref={serviceDropdownRef}>
                                                 {form.filteredServices.length === 0 && form.serviceSearch.trim() && (
                                                     <S.ServiceDropdownEmpty>
                                                         Brak usług pasujących do „{form.serviceSearch.trim()}"
