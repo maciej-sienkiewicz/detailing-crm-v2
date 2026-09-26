@@ -406,6 +406,21 @@ function ReadyStage({ push }: { push: PushDeviceState }) {
                         Powiadomienie powinno pojawić się w ciągu kilku sekund. Najpewniej zobaczysz je
                         po zablokowaniu ekranu.
                     </Text>
+                    {/* Chrome na Androidzie ocenia treść powiadomień lokalnym modelem i potrafi
+                        ukryć zwykłą wiadomość za „Możliwy spam". Nie ma listy zaufanych nadawców
+                        ani odwołania - jedyne trwałe wyjście to „Zawsze zezwalaj" u użytkownika,
+                        a próbne powiadomienie jest najlepszym momentem, żeby to zrobić raz. */}
+                    {onAndroid && (
+                        <Notice $tone="warn">
+                            <WarnIcon />
+                            <span>
+                                Chrome pokazał zamiast niego <strong>„Możliwy spam"</strong>? To jego
+                                automatyczny filtr, a nie problem z CRM. Dotknij{' '}
+                                <strong>Pokaż powiadomienie</strong>, a potem <strong>Zawsze zezwalaj</strong>.
+                                Ostrzeżenie nie wróci dla tej strony.
+                            </span>
+                        </Notice>
+                    )}
                     <Details>
                         <summary>Nie przyszło?</summary>
                         <ul>

@@ -100,6 +100,17 @@ describe('PushNotificationWizard', () => {
         expect(screen.queryByRole('button', { name: /Włącz powiadomienia/ })).toBeNull();
     });
 
+    it('po próbnym na Androidzie mówi, jak zdjąć ostrzeżenie „Możliwy spam" na stałe', async () => {
+        const push = pushState({ isSubscribedHere: true });
+        render(<PushNotificationWizard push={push} />);
+
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Wyślij powiadomienie próbne/ }));
+        });
+
+        expect(screen.getByText(/Zawsze zezwalaj/)).toBeTruthy();
+    });
+
     it('sparowane urządzenie proponuje powiadomienie próbne i mówi uczciwie o dźwięku', () => {
         render(<PushNotificationWizard push={pushState({ isSubscribedHere: true, serviceWorkerVersion: '2026-09-25.1' })} />);
         expect(screen.getByRole('button', { name: /Wyślij powiadomienie próbne/ })).toBeTruthy();

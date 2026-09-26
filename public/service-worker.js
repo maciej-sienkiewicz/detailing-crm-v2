@@ -51,7 +51,7 @@
 // Bump on every change to this file. Browsers compare bytes, so the bump is not
 // what triggers an update - it is what Settings → Urządzenia mobilne →
 // Powiadomienia shows, so "does this phone have the fix yet?" has an answer.
-const SW_VERSION = '2026-09-25.2';
+const SW_VERSION = '2026-09-26.1';
 
 const CACHE_VERSION = 'v1';
 const CACHE_NAME    = `car-logos-${CACHE_VERSION}`;
@@ -201,15 +201,20 @@ self.addEventListener('push', event => {
     }
 });
 
+// Wording matters for delivery, not only for reading. Chrome on Android runs an
+// on-device model over the title, body and action texts of every web notification
+// and hides the ones that look like scams behind "Możliwy spam" - no allowlist for
+// senders, no appeal. "Zadzwoń: +48 600 100 200" with a "📞 Zadzwoń" button that
+// never goes away by itself is exactly the call-this-number-now shape of phone
+// phishing. So the title REPORTS the request made at the desk, the number is a
+// labelled fact in the body, and the button is plain text.
 function showCallNotification(payload) {
     const title = payload.displayName
-        ? `Zadzwoń: ${payload.displayName}`
-        : `Zadzwoń: ${payload.phoneNumber}`;
+        ? `Połączenie z komputera: ${payload.displayName}`
+        : 'Połączenie z komputera';
 
     return self.registration.showNotification(title, {
-        body: payload.displayName
-            ? `Numer ${payload.phoneNumber}, zlecono z komputera.`
-            : 'Zlecono z komputera.',
+        body: `Numer: ${payload.phoneNumber}`,
         icon: ICONS.CALL.icon,
         badge: ICONS.CALL.badge,
         tag: 'click-to-call',       // a newer call replaces a stale one instead of stacking
@@ -217,7 +222,7 @@ function showCallNotification(payload) {
         requireInteraction: true,    // stays on screen until acted upon - it's a call to action
         vibrate: VIBRATE.CALL,
         actions: [
-            { action: 'call', title: '📞 Zadzwoń' },
+            { action: 'call', title: 'Zadzwoń' },
             { action: 'dismiss', title: 'Odrzuć' },
         ],
         data: { phoneNumber: payload.phoneNumber, displayName: payload.displayName },
