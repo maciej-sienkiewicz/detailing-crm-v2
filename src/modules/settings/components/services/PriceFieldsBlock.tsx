@@ -97,7 +97,6 @@ export const PriceFieldsBlock = forwardRef<HTMLInputElement, Props>(
                                 value={String(fields.vatRate)}
                                 onChange={v => onChange(changeVat(fields, Number(v) as VatRate))}
                             />
-                            <Hint>Wpisujesz jedną kwotę, druga liczy się sama. Zmiana stawki nie rusza kwoty wpisanej.</Hint>
                         </Field>
                     </>
                 )}

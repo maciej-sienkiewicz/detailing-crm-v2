@@ -97,7 +97,7 @@ const GROUPS: SectionGroup[] = [
             },
             {
                 id: 'services', label: 'Cennik usług', summary: 'Usługi, pakiety i instrukcje pielęgnacji', icon: <ListChecks />, help: SERVICES_HELP,
-                description: 'Cenę wpisujesz w brutto albo w netto, druga kwota liczy się sama.',
+                description: '',
                 keywords: 'ceny usługi pakiety vat instrukcje pielęgnacji',
             },
             {

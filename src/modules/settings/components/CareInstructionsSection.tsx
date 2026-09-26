@@ -82,12 +82,6 @@ export function CareInstructionsSection({ switcher }: Props) {
 
             {switcher && <Toolbar>{switcher}</Toolbar>}
 
-            <Intro>
-                Zdania, z których składa się sekcja „Jak utrzymać efekt" na certyfikacie jakości.
-                Zaznaczane zawsze dotyczą każdej realizacji. Pozostałe przypisz do usług (menu ⋮
-                przy usłudze) - zaznaczą się same, gdy usługa znajdzie się na certyfikacie.
-            </Intro>
-
             <Card aria-label="Instrukcje pielęgnacji">
                 {isError ? (
                     <Padded>
