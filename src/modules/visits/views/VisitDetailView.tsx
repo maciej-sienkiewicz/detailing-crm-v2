@@ -628,7 +628,6 @@ export const VisitDetailView = () => {
                     onCompleteVisit={handleCompleteVisit}
                     onIssueConsumerInvoice={() => setIsConsumerInvoiceOpen(true)}
                     onPreviewInvoice={() => setPreviewInvoiceId(visit.settlement?.revenueInvoiceId ?? null)}
-                    onCorrectSettlement={() => setIsSettlementCorrectionOpen(true)}
                     onCancelVisit={handleCancelVisit}
                     onGeneratePost={() => setIsGeneratePostOpen(true)}
                     onDoorToDoor={() => setIsDoorToDoorOpen(true)}
@@ -671,6 +670,11 @@ export const VisitDetailView = () => {
                                 visitId={visitId!}
                                 highlightPending={highlightPendingServices}
                                 settlement={visit.settlement}
+                                onCorrectSettlement={
+                                    visit.status === 'COMPLETED' && can('FINANCE_CORRECT_SETTLEMENT')
+                                        ? () => setIsSettlementCorrectionOpen(true)
+                                        : undefined
+                                }
                             />
                         </Slot>
 
