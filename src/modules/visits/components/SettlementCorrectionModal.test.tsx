@@ -94,6 +94,16 @@ describe('SettlementCorrectionModal', () => {
         expect(settlementApi.preview).not.toHaveBeenCalled();
     });
 
+    it('wizyta bez dokumentu - od razu mozna dopisac paragon', async () => {
+        vi.mocked(settlementApi.get).mockResolvedValue({ ...view, documentType: null, paymentMethod: null, documents: [] });
+        renderModal();
+
+        await waitFor(() => expect(settlementApi.preview).toHaveBeenCalledWith('v-1', expect.objectContaining({
+            services: [], documentType: 'RECEIPT',
+        })));
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Zatwierdź poprawkę' })).toBeEnabled());
+    });
+
     it('pokazuje obecne dokumenty rozliczenia', async () => {
         renderModal();
         const row = (await screen.findByText('PAR/2026/0007')).closest('li')!;
