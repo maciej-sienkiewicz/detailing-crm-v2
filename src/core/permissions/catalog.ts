@@ -18,6 +18,8 @@ export const PERMISSIONS = {
     // Finanse
     FINANCE_INVOICES: 'FINANCE_INVOICES',
     FINANCE_MANAGE_CASH_REGISTER: 'FINANCE_MANAGE_CASH_REGISTER',
+    // Poprawka rozliczenia wydanej wizyty (kwoty, VAT, płatność, rodzaj dokumentu).
+    FINANCE_CORRECT_SETTLEMENT: 'FINANCE_CORRECT_SETTLEMENT',
     FINANCE_VIEW_REPORTS: 'FINANCE_VIEW_REPORTS',
     // Powiadomienie push z kwotą po zamkniętej wizycie. Uprawnienie czysto
     // wysyłkowe - nie odblokowuje żadnego widoku, więc świadomie nie wchodzi
