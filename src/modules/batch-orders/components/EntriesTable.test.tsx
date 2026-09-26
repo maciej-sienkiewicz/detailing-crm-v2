@@ -58,6 +58,15 @@ describe('EntriesTable', () => {
         expect(onOpen).toHaveBeenCalledWith(e);
     });
 
+    it('aparat stoi tylko przy aucie ze zdjęciami', () => {
+        renderTable([
+            entry({ id: 'e-1', photoCount: 4 }),
+            entry({ id: 'e-2', vehicleMake: 'BMW', vehicleModel: 'X5', photoCount: 0 }),
+        ]);
+        expect(screen.getByTitle('4 zdjęcia')).toHaveTextContent('4');
+        expect(screen.queryByTitle('0 zdjęć')).toBeNull();
+    });
+
     it('kliknięcie w cenę otwiera edytor z kursorem w cenie, raz', () => {
         const e = entry();
         const { onOpen } = renderTable([e]);
