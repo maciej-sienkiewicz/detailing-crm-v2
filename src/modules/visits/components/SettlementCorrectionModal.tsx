@@ -1,9 +1,9 @@
 // src/modules/visits/components/SettlementCorrectionModal.tsx
 //
 // „Popraw rozliczenie" wizyty wydanej: ceny i stawki pozycji, rodzaj dokumentu,
-// nabywca, forma płatności, powód. Zanim cokolwiek się zmieni, serwer mówi zdaniami,
-// co się stanie (storna, nowe dokumenty, faktura KSeF, kasa, dopłata albo zwrot) -
-// podgląd liczy ten sam plan, który potem wykonuje, więc pokazane = zrobione.
+// nabywca, forma płatności, powód. Przed zapisem serwer sprawdza plan poprawki
+// (ten sam, który potem wykonuje) - okno pokazuje tylko, czy da się ją zrobić,
+// a jeśli nie, to dlaczego.
 //
 // Nic nie jest usuwane: stare dokumenty zostają w historii wizyty obok korekt.
 // Otwarty edytor przejmuje okno, więc „Zatwierdź poprawkę" jest jedynym wypełnieniem
@@ -150,17 +150,6 @@ const Totals = styled.p`
     color: ${ui.inkSoft};
 
     strong { color: ${ui.ink}; font-variant-numeric: tabular-nums; }
-`;
-
-const Steps = styled.ol`
-    margin: 0;
-    padding-left: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    font-size: 13.5px;
-    line-height: 1.5;
-    color: ${ui.ink};
 `;
 
 const History = styled.details`
@@ -397,30 +386,26 @@ function CorrectionForm({ view, visitId, onClose }: { view: SettlementView; visi
                     </Field>
                 </Section>
 
-                <Section aria-labelledby="settlement-effects" aria-live="polite">
-                    <SectionTitle id="settlement-effects" as="h3">Co się stanie</SectionTitle>
-                    {pristine ? (
-                        <Totals>
-                            Zmień cenę albo stawkę VAT usługi, rodzaj dokumentu albo formę płatności. Tu zobaczysz,
-                            co stanie się z dokumentami, fakturą i kasą, zanim cokolwiek zapiszesz.
-                        </Totals>
-                    ) : blockReason ? (
-                        <Notice tone="warn" title="Tej poprawki nie da się teraz wykonać">{blockReason}</Notice>
-                    ) : preview.isError ? (
-                        <Notice tone="danger" title="Nie udało się policzyć skutków">
-                            {apiErrorMessage(preview.error, 'Spróbuj ponownie za chwilę.')}
-                        </Notice>
-                    ) : preview.data ? (
-                        <Steps>{preview.data.steps.map(step => <li key={step}>{step}</li>)}</Steps>
-                    ) : (
-                        <Totals>Liczę skutki…</Totals>
-                    )}
-                    {correct.isError && (
-                        <Notice tone="danger" title="Poprawka nie została zapisana">
-                            {apiErrorMessage(correct.error, 'Spróbuj ponownie.')}
-                        </Notice>
-                    )}
-                </Section>
+                {/* Bez listy skutków (decyzja biznesu). Serwer nadal sprawdza plan przed
+                    zapisem, więc gdy poprawki nie da się wykonać, mówimy dlaczego —
+                    inaczej nieaktywny przycisk nie miałby wyjaśnienia. */}
+                {(blockReason && !pristine) || preview.isError || correct.isError ? (
+                    <Section aria-live="polite">
+                        {blockReason && !pristine && (
+                            <Notice tone="warn" title="Tej poprawki nie da się teraz wykonać">{blockReason}</Notice>
+                        )}
+                        {preview.isError && (
+                            <Notice tone="danger" title="Nie udało się sprawdzić poprawki">
+                                {apiErrorMessage(preview.error, 'Spróbuj ponownie za chwilę.')}
+                            </Notice>
+                        )}
+                        {correct.isError && (
+                            <Notice tone="danger" title="Poprawka nie została zapisana">
+                                {apiErrorMessage(correct.error, 'Spróbuj ponownie.')}
+                            </Notice>
+                        )}
+                    </Section>
+                ) : null}
 
                 {view.history.length > 0 && (
                     <Section>

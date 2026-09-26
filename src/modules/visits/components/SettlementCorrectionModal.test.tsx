@@ -58,10 +58,13 @@ describe('SettlementCorrectionModal', () => {
         const gross = await screen.findByLabelText('Brutto: Przygotowanie do sprzedaży');
         fireEvent.change(gross, { target: { value: '1700,00' } });
 
-        expect(await screen.findByText('Zwrot dla klienta: 200,00 zł.')).toBeInTheDocument();
         await waitFor(() => expect(settlementApi.preview).toHaveBeenLastCalledWith('v-1', expect.objectContaining({
             services: [{ serviceLineItemId: 's-1', netCents: 138_211, grossCents: 170_000, vatRate: 23 }],
         })));
+
+        // Sekcji „Co się stanie" nie ma (decyzja biznesu): kroki planu nie są pokazywane.
+        expect(screen.queryByText('Co się stanie')).toBeNull();
+        expect(screen.queryByText('Zwrot dla klienta: 200,00 zł.')).toBeNull();
 
         const submit = screen.getByRole('button', { name: 'Zatwierdź poprawkę' });
         await waitFor(() => expect(submit).toBeEnabled());
@@ -85,8 +88,9 @@ describe('SettlementCorrectionModal', () => {
 
     it('bez zmian nie pyta serwera i nie pozwala zatwierdzić', async () => {
         renderModal();
-        expect(await screen.findByText(/Tu zobaczysz, co stanie się z dokumentami/)).toBeInTheDocument();
+        expect(await screen.findByText('PAR/2026/0007')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Zatwierdź poprawkę' })).toBeDisabled();
+        expect(screen.queryByText('Tej poprawki nie da się teraz wykonać')).toBeNull();
         expect(settlementApi.preview).not.toHaveBeenCalled();
     });
 
