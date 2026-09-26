@@ -73,6 +73,7 @@ export const SidebarContainer = styled.aside<{ $isCollapsed: boolean; $isMobileO
 // ─── Header ───────────────────────────────────────────────────────────────────
 
 export const SidebarHeader = styled.div<{ $isCollapsed: boolean }>`
+    position: relative;
     padding: 20px 16px 18px;
     display: flex;
     align-items: center;
@@ -100,6 +101,9 @@ export const Logo = styled.div<{ $isCollapsed: boolean }>`
     min-width: 0;
 `;
 
+/* Kafelek z inicjałami to znak studia, nie przycisk: bez poświaty. Świecący niebieski
+   blok był najgłośniejszą rzeczą w całym menu, głośniejszą niż pozycja, na której
+   się jest — a to ona ma mówić „tu jesteś". */
 export const LogoIcon = styled.div`
     width: 36px;
     height: 36px;
@@ -113,7 +117,7 @@ export const LogoIcon = styled.div`
     font-weight: 800;
     letter-spacing: -0.5px;
     flex-shrink: 0;
-    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
 `;
 
 /**
@@ -146,9 +150,11 @@ export const LogoStack = styled.div<{ $isCollapsed: boolean }>`
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     flex: 1;
     min-width: 0;
+    /* Miejsce na przycisk w rogu: szeroki logotyp nie może na niego wjechać. */
+    padding: 0 26px;
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
         display: ${p => (p.$isCollapsed ? 'none' : 'flex')};
@@ -168,23 +174,29 @@ export const LogoWide = styled.img<{ $plate: boolean; $wide: boolean }>`
     width: auto;
     height: auto;
     object-fit: contain;
-    border-radius: 8px;
+    border-radius: 10px;
     background: ${p => (p.$plate ? '#ffffff' : 'transparent')};
-    padding: ${p => (!p.$plate ? '0' : p.$wide ? '4px 8px' : '4px')};
+    /* Podkładka z oddechem: przy 4 px logo z własną ramką stykało się z krawędzią
+       podkładki i wyglądało jak ramka w ramce. */
+    padding: ${p => (!p.$plate ? '0' : p.$wide ? '6px 10px' : '6px')};
 `;
 
-/** Nazwa firmy pod logo: jedna linia na środku, przycięta wielokropkiem. */
+/**
+ * Nazwa firmy pod logo: drobniej i ciszej niż logo (zwykle je powtarza), do dwóch linii
+ * na środku. Jedna linia z wielokropkiem ucinała nazwy z rejestru w pół słowa.
+ */
 export const LogoCaption = styled.span`
-    color: ${S.text};
-    font-size: 12.5px;
-    font-weight: 600;
-    letter-spacing: -0.1px;
-    line-height: 1.2;
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.3;
     text-align: center;
     max-width: 100%;
-    white-space: nowrap;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
 `;
 
 /** Kafelek widoczny tylko w zwiniętym menu na desktopie, w miejscu ukrytego logo. */
@@ -227,27 +239,29 @@ export const HeaderActions = styled.div`
 `;
 
 /**
- * Wiersz z nazwą firmy pod logo. Przycisk zwijania (na telefonie: zamykania) stoi na
- * jego końcu, a pusta kolumna po lewej ma szerokość przycisku - nazwa zostaje na osi
- * nagłówka, tej samej co logo.
+ * Przyciski zwijania (desktop) i zamykania (telefon) w nagłówku z logo: prawy górny róg,
+ * poza osią logo i nazwy.
  */
-export const LogoCaptionRow = styled.div`
-    display: grid;
-    grid-template-columns: 28px minmax(0, 1fr) 28px;
-    align-items: center;
-    column-gap: 8px;
-    width: 100%;
+export const LogoCornerActions = styled.div<{ $isCollapsed: boolean }>`
+    position: absolute;
+    top: 10px;
+    right: 10px;
 
-    & > ${LogoCaption} { grid-column: 2; }
-    & > ${HeaderActions} { grid-column: 3; }
+    @media (max-width: ${p => p.theme.breakpoints.md}) {
+        top: max(10px, env(safe-area-inset-top, 10px));
+    }
+
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
+        display: ${p => (p.$isCollapsed ? 'none' : 'block')};
+    }
 `;
 
 export const CollapseButton = styled.button<{ $isCollapsed: boolean }>`
     width: 28px;
     height: 28px;
     padding: 0;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid ${S.border};
+    background: transparent;
+    border: none;
     border-radius: 7px;
     color: ${S.sectionLabel};
     cursor: pointer;
@@ -404,13 +418,14 @@ export const MenuSection = styled.div`
     &:first-child { padding-top: 6px; }
 `;
 
+/* Zwykłe zdanie zamiast wersalików 10 px z rozstrzeleniem: pięć takich etykiet
+   (GŁÓWNE, BAZA KLIENTÓW, STUDIO, ADMINISTRACJA, PORTAL) robiło z menu formularz
+   urzędowy — to ten sam wzorzec, który CLAUDE.md §2 wycofał z treści. */
 export const MenuSectionTitle = styled.div<{ $isCollapsed: boolean }>`
-    padding: 0 12px 4px;
+    padding: 0 12px 5px;
     color: ${S.sectionLabel};
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
+    font-size: 11.5px;
+    font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
 
@@ -599,15 +614,18 @@ export const UserProfile = styled.div<{ $isCollapsed: boolean }>`
     }
 `;
 
+/* Neutralny krążek: zielono-niebieski gradient był drugą, INNĄ barwą marki na dole
+   menu i przeciągał wzrok z pozycji aktywnej na własne inicjały. */
 export const UserAvatar = styled.div`
     width: 34px;
     height: 34px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #10b981, #0ea5e9);
+    background: #1e293b;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #fff;
+    color: #cbd5e1;
     font-weight: 700;
     font-size: 12px;
     letter-spacing: -0.3px;
