@@ -80,6 +80,9 @@ const buttonBase = `
     transition: background 150ms, border-color 150ms, color 150ms;
 
     &:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Pod palcem 44 px - jak każdy przycisk z zestawu ui. */
+    @media (hover: none) and (pointer: coarse) { min-height: 44px; }
 `;
 
 /** Akcja dostępna: odcień w obwódce, bez wypełnienia. */
@@ -160,6 +163,8 @@ export const Select = styled.select`
     cursor: pointer;
 
     &:focus { outline: none; border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12); }
+
+    @media (hover: none) and (pointer: coarse) { min-height: 44px; }
 `;
 
 export const Input = styled.input<{ $error?: boolean }>`

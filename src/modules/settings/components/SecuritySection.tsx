@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { useAuth } from '@/core/context/AuthContext';
 import { useToast } from '@/common/components/Toast';
+import { usePermissions } from '@/core/permissions';
 import { authApi } from '@/modules/auth/api/authApi';
+import { toastUnhandledError } from '@/modules/subscription/utils/apiErrors';
 import { useIdleTimeoutSetting, useSetIdleTimeout } from '../hooks/useIdleTimeout';
 import { ClearAccountModal } from './account/ClearAccountModal';
 import { PinCard } from './security/PinCard';
@@ -41,6 +43,7 @@ const TIMEOUT_OPTIONS = [
 const IdleLockCard = () => {
     const { data, isLoading } = useIdleTimeoutSetting();
     const { mutate, isPending } = useSetIdleTimeout();
+    const { showError } = useToast();
     const [value, setValue] = useState<number | null>(null);
     const [saved, setSaved] = useState(false);
     const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -59,6 +62,18 @@ const IdleLockCard = () => {
                 setSaved(true);
                 if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
                 savedTimerRef.current = setTimeout(() => setSaved(false), 2500);
+            },
+            // Lista zostawała na wybranej wartości, choć zapis się nie udał - wyglądało
+            // to na ustawioną blokadę, której serwer nie znał. Wracamy do wartości
+            // z serwera i mówimy dlaczego.
+            onError: err => {
+                setValue(null);
+                toastUnhandledError(
+                    showError,
+                    err,
+                    'Nie udało się zmienić blokady ekranu',
+                    'Zostaje poprzednie ustawienie. Spróbuj ponownie za chwilę.',
+                );
             },
         });
     };
@@ -191,8 +206,8 @@ const ClearAccountCard = () => {
 };
 
 export const SecuritySection = () => {
-    const { user } = useAuth();
-    const isOwner = user?.role?.toLowerCase() === 'owner';
+    // To samo źródło właściciela co rama ustawień i reszta aplikacji.
+    const { isOwner } = usePermissions();
 
     // Bez tytułu sekcji: nagłówek strony niesie już ścieżkę „Konto / Bezpieczeństwo",
     // a na telefonie tę samą nazwę pokazuje przełącznik listy sekcji. Trzeci raz to samo

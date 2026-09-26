@@ -1,17 +1,18 @@
+// src/modules/subscription/components/PlanCard.tsx
+//
+// Plan do wyboru w „Zmień plan".
+//
+// Plan FULL był dotąd wypełniony gradientem marki z białym tekstem - na ekranie,
+// na którym i tak stał wypełniony przycisk „Przedłuż", dawało to dwa nasycone bloki,
+// a polecany plan wyglądał jak krok następny (CLAUDE.md §2). Teraz każdy plan to płaski
+// panel; bieżący i polecany niosą swój stan plakietką, nie wypełnieniem. Kliknięcie
+// działa na przycisku, a nie na całym divie - div nie był osiągalny z klawiatury.
+
+import { Check } from 'lucide-react';
+import { Button, StatusPill } from '@/common/components/ui';
 import type { FeaturePlan, PlanKey } from '../types';
-import { formatCents, featureLabel } from '../utils/formatters';
-import {
-    Card,
-    ActiveBadge,
-    PopularBadge,
-    PlanName,
-    PriceBlock,
-    PriceAmount,
-    PricePeriod,
-    FeatureList,
-    FeatureItem,
-    SelectBtn,
-} from './PlanCard.styles';
+import { formatCents, featureLabel, monthlyPriceSuffix } from '../utils/formatters';
+import { Panel, Head, Name, PriceBlock, PriceAmount, PriceSuffix, FeatureList, FeatureItem } from './PlanCard.styles';
 
 interface Props {
     plan: FeaturePlan;
@@ -20,50 +21,41 @@ interface Props {
     onSelect: (plan: FeaturePlan) => void;
 }
 
-const CheckIcon = ({ light }: { light: boolean }) => (
-    <svg width={14} height={14} viewBox="0 0 24 24" fill="none"
-        stroke={light ? 'rgba(255,255,255,0.8)' : '#10b981'}
-        strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20 6 9 17l-5-5" />
-    </svg>
-);
-
 export function PlanCard({ plan, currentPlanKey, disabled, onSelect }: Props) {
     const isActive = plan.key === currentPlanKey;
-    const isHighlighted = plan.key === 'FULL';
+    const isRecommended = plan.key === 'FULL';
+    const suffix = monthlyPriceSuffix(plan.monthlyPriceGrossCents);
 
     return (
-        <Card
-            $active={isActive}
-            $highlighted={isHighlighted}
-            onClick={() => !isActive && !disabled && onSelect(plan)}
-        >
-            {isActive && <ActiveBadge>Aktualny plan</ActiveBadge>}
-            {!isActive && isHighlighted && <PopularBadge>Polecany</PopularBadge>}
+        <Panel $current={isActive}>
+            <Head>
+                <Name>{plan.name}</Name>
+                {isActive
+                    ? <StatusPill $tone="ok">Twój plan</StatusPill>
+                    : isRecommended && <StatusPill $tone="info">Polecany</StatusPill>}
+            </Head>
 
-            <PlanName $light={isHighlighted}>{plan.name}</PlanName>
-
-            <PriceBlock $light={isHighlighted}>
+            <PriceBlock>
                 <PriceAmount>{formatCents(plan.monthlyPriceGrossCents)}</PriceAmount>
-                <PricePeriod $light={isHighlighted}>/mies.</PricePeriod>
+                {suffix && <PriceSuffix>{suffix}</PriceSuffix>}
             </PriceBlock>
 
-            <FeatureList $light={isHighlighted}>
-                {plan.features.map(f => (
-                    <FeatureItem key={f} $light={isHighlighted}>
-                        <CheckIcon light={isHighlighted} />
-                        {featureLabel(f)}
-                    </FeatureItem>
-                ))}
-            </FeatureList>
+            {plan.features.length > 0 && (
+                <FeatureList>
+                    {plan.features.map(f => (
+                        <FeatureItem key={f}>
+                            <Check aria-hidden="true" />
+                            {featureLabel(f)}
+                        </FeatureItem>
+                    ))}
+                </FeatureList>
+            )}
 
-            <SelectBtn
-                $light={isHighlighted}
-                $active={isActive}
-                disabled={isActive || disabled}
-            >
-                {isActive ? 'Obecny plan' : `Przejdź na ${plan.name}`}
-            </SelectBtn>
-        </Card>
+            {!isActive && (
+                <Button variant="outline" block disabled={disabled} onClick={() => onSelect(plan)}>
+                    Przejdź na {plan.name}
+                </Button>
+            )}
+        </Panel>
     );
 }

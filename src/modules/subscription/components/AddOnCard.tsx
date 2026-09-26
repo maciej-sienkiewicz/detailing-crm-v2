@@ -1,86 +1,54 @@
+// src/modules/subscription/components/AddOnCard.tsx
+//
+// Moduł do dokupienia. Aktywne moduły stoją w karcie „Twój plan" razem z przyciskiem
+// wyłączenia - wcześniej ten sam moduł miał „Dezaktywuj" dwa razy na jednym ekranie
+// (w liście aktywnych i tu), więc tu wyłączenie jest tylko wtedy, gdy wywołujący
+// o nie poprosi (`onDeactivate`).
+
+import { Button, StatusPill } from '@/common/components/ui';
 import type { AddOnDto, AddOnKey } from '../types';
-import { formatCents } from '../utils/formatters';
-import {
-    Card,
-    CardHeader,
-    CardTitle,
-    CardDesc,
-    PriceTag,
-    SoonBadge,
-    ActiveBadge,
-    CardFooter,
-    ActionBtn,
-} from './AddOnCard.styles';
+import { formatCents, monthlyPriceSuffix } from '../utils/formatters';
+import { Panel, Head, Name, Desc, Footer, Price } from './AddOnCard.styles';
 
 interface Props {
     addOn: AddOnDto;
     isActive: boolean;
     disabled?: boolean;
     onActivate: (key: AddOnKey) => void;
-    onDeactivate: (key: AddOnKey) => void;
+    onDeactivate?: (key: AddOnKey) => void;
 }
 
-const CheckIcon = () => (
-    <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20 6 9 17l-5-5" />
-    </svg>
-);
-
 export function AddOnCard({ addOn, isActive, disabled, onActivate, onDeactivate }: Props) {
-    const priceDisplay = addOn.monthlyPriceGrossCents != null
-        ? formatCents(addOn.monthlyPriceGrossCents)
-        : 'Cena do ustalenia';
+    const suffix = monthlyPriceSuffix(addOn.monthlyPriceGrossCents);
 
     return (
-        <Card $active={isActive} $unavailable={!addOn.isAvailable}>
-            <CardHeader>
-                <div>
-                    <CardTitle>{addOn.name}</CardTitle>
-                </div>
-                {isActive && (
-                    <ActiveBadge><CheckIcon /> Aktywny</ActiveBadge>
-                )}
-                {!addOn.isAvailable && !isActive && (
-                    <SoonBadge>Wkrótce</SoonBadge>
-                )}
-            </CardHeader>
+        <Panel $unavailable={!addOn.isAvailable && !isActive}>
+            <Head>
+                <Name>{addOn.name}</Name>
+                {isActive && <StatusPill $tone="ok">Aktywny</StatusPill>}
+                {!addOn.isAvailable && !isActive && <StatusPill>Wkrótce</StatusPill>}
+            </Head>
 
-            <CardDesc>{addOn.description}</CardDesc>
+            <Desc>{addOn.description}</Desc>
 
-            <CardFooter>
-                {addOn.monthlyPriceGrossCents != null ? (
-                    <PriceTag>
-                        {priceDisplay}<span>/mies.</span>
-                    </PriceTag>
-                ) : (
-                    <PriceTag style={{ fontSize: 13, fontWeight: 600 }}>
-                        Cena do ustalenia
-                    </PriceTag>
-                )}
+            <Footer>
+                <Price>
+                    <strong>{formatCents(addOn.monthlyPriceGrossCents)}</strong>
+                    {suffix && <span>{suffix}</span>}
+                </Price>
 
                 {isActive ? (
-                    <ActionBtn
-                        $variant="deactivate"
-                        disabled={disabled}
-                        onClick={() => onDeactivate(addOn.key)}
-                    >
-                        Dezaktywuj
-                    </ActionBtn>
-                ) : addOn.isAvailable ? (
-                    <ActionBtn
-                        $variant="activate"
-                        disabled={disabled}
-                        onClick={() => onActivate(addOn.key)}
-                    >
+                    onDeactivate && (
+                        <Button variant="danger" size="sm" disabled={disabled} onClick={() => onDeactivate(addOn.key)}>
+                            Dezaktywuj
+                        </Button>
+                    )
+                ) : addOn.isAvailable && (
+                    <Button variant="tinted" size="sm" disabled={disabled} onClick={() => onActivate(addOn.key)}>
                         Aktywuj
-                    </ActionBtn>
-                ) : (
-                    <ActionBtn $variant="disabled" disabled>
-                        Niedostępny
-                    </ActionBtn>
+                    </Button>
                 )}
-            </CardFooter>
-        </Card>
+            </Footer>
+        </Panel>
     );
 }

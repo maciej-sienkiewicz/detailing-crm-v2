@@ -15,17 +15,22 @@ export function useSmsCreditBalance(options?: { enabled?: boolean }) {
     });
 }
 
-export function useSmsCreditPackages() {
+// Pakiety i historia są na backendzie @RequiresOwner - poza właścicielem zapytanie
+// kończyłoby się 403, więc sekcja w ogóle go nie wysyła.
+export function useSmsCreditPackages(options?: { enabled?: boolean }) {
     return useQuery({
         queryKey: KEYS.packages,
         queryFn:  smsCreditApi.getPackages,
+        enabled:  options?.enabled ?? true,
     });
 }
 
-export function useSmsCreditTransactions(page: number, size: number) {
+export function useSmsCreditTransactions(page: number, size: number, options?: { enabled?: boolean }) {
     return useQuery({
         queryKey: KEYS.transactions(page, size),
         queryFn:  () => smsCreditApi.getTransactions(page, size),
+        enabled:  options?.enabled ?? true,
+        placeholderData: previous => previous,
     });
 }
 

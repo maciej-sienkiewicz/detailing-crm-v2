@@ -12,7 +12,9 @@ import { BareTextArea, FieldLabel, InputShellTextArea } from '@/common/component
 import { ModuleGateCard } from '@/modules/subscription/components/ModuleGate';
 import { AddOnActivationDialog } from '@/modules/subscription/components/PlanChangeDialog';
 import { useAddOnUnlock } from '@/modules/subscription/hooks/useAddOnUnlock';
-import { useSmsCreditPackages, usePurchaseCredits } from '@/modules/settings/hooks/useSmsCredits';
+import { useSmsCreditBalance, useSmsCreditPackages, usePurchaseCredits } from '@/modules/settings/hooks/useSmsCredits';
+import { PurchaseConfirmModal } from '@/modules/settings/components/SmsCreditSection';
+import { creditsLabel, formatCreditCount, formatGrossCents, packageGrossCents } from '@/modules/settings/components/smsCreditPricing';
 import { fetchAutomationConfig, updateAutomationConfig } from '@/modules/sms-campaigns/api/smsCampaignsApi';
 import { MESSAGES } from '@/modules/message-templates';
 import { STARTER_SMS } from '@/modules/message-templates/starters';
@@ -325,16 +327,22 @@ function TemplateStep({ templateKey, onDone }: { templateKey?: MessageKey; onDon
 function CreditsStep({ onDone }: { onDone: () => void }) {
     const { data: packages, isLoading } = useSmsCreditPackages();
     const purchase = usePurchaseCredits();
+    const { data: balance } = useSmsCreditBalance();
     const { showSuccess, showError } = useToast();
     const [selected, setSelected] = useState<string | null>(null);
+    // Zakup szedł od razu po kliknięciu „Kup i dokończ konfigurację" - bez powtórzenia
+    // ceny. Teraz przechodzi przez to samo okno potwierdzenia co w ustawieniach.
+    const [confirming, setConfirming] = useState(false);
 
     const chosen = selected ?? packages?.[Math.min(1, (packages?.length ?? 1) - 1)]?.id ?? null;
+    const chosenPkg = packages?.find(p => p.id === chosen) ?? null;
 
     const buy = () => {
         if (!chosen) return;
         purchase.mutate(chosen, {
             onSuccess: result => {
-                showSuccess('Kredyty doładowane', `Dostępne: ${result.availableCredits} szt.`);
+                setConfirming(false);
+                showSuccess('Kredyty doładowane', `Na koncie jest teraz ${formatCreditCount(result.availableCredits)} ${creditsLabel(result.availableCredits)}.`);
                 onDone();
             },
             onError: (err: unknown) => {
@@ -366,7 +374,7 @@ function CreditsStep({ onDone }: { onDone: () => void }) {
                                 <strong>{pkg.creditAmount} SMS</strong>
                                 <ChoiceSub>{pkg.name}</ChoiceSub>
                             </ChoiceText>
-                            <Price>{pkg.priceGross.toFixed(2).replace('.', ',')} {pkg.currency === 'PLN' ? 'zł' : pkg.currency}</Price>
+                            <Price>{formatGrossCents(packageGrossCents(pkg), pkg.currency)} brutto</Price>
                         </Choice>
                     ))}
                 </ChoiceList>
@@ -378,12 +386,24 @@ function CreditsStep({ onDone }: { onDone: () => void }) {
 
             <Button
                 variant="primary"
-                onClick={buy}
-                disabled={!chosen || purchase.isPending}
+                onClick={() => setConfirming(true)}
+                disabled={!chosenPkg || purchase.isPending}
                 style={{ alignSelf: 'flex-start' }}
             >
-                {purchase.isPending ? 'Doładowywanie...' : 'Kup i dokończ konfigurację'}
+                {chosenPkg
+                    ? `Kup ${formatCreditCount(chosenPkg.creditAmount)} ${creditsLabel(chosenPkg.creditAmount)} za ${formatGrossCents(packageGrossCents(chosenPkg), chosenPkg.currency)}`
+                    : 'Wybierz pakiet'}
             </Button>
+
+            {confirming && chosenPkg && (
+                <PurchaseConfirmModal
+                    pkg={chosenPkg}
+                    currentBalance={balance?.availableCredits}
+                    isPending={purchase.isPending}
+                    onConfirm={buy}
+                    onClose={() => setConfirming(false)}
+                />
+            )}
         </>
     );
 }

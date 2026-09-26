@@ -93,14 +93,6 @@ const ChevronDown = ({ open }: { open: boolean }) => (
     </svg>
 );
 
-const BtnSpinner = () => (
-    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="white"
-        strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"
-        style={{ animation: 'spin 0.7s linear infinite' }}>
-        <path d="M21 12a9 9 0 1 1-6.22-8.56" />
-    </svg>
-);
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function planFeatureSummary(plan: FeaturePlan): string {

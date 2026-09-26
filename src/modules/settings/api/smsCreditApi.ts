@@ -19,8 +19,14 @@ export const smsCreditApi = {
         return res.data;
     },
 
+    // `skipErrorToast`: powód odmowy (płatność odrzucona, pakiet wycofany) pokazuje
+    // sekcja kredytów toastem z tytułem - bez tego ten sam komunikat szedł dwa razy.
     purchaseCredits: async (packageId: string): Promise<PurchaseCreditsResponse> => {
-        const res = await apiClient.post<PurchaseCreditsResponse>(`${BASE_PATH}/purchase`, { packageId });
+        const res = await apiClient.post<PurchaseCreditsResponse>(
+            `${BASE_PATH}/purchase`,
+            { packageId },
+            { skipErrorToast: true },
+        );
         return res.data;
     },
 

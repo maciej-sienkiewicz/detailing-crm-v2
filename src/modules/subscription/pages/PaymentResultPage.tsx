@@ -125,11 +125,13 @@ export function PaymentResultPage() {
 
     const [state, setState] = useState<ViewState>(orderId ? 'polling' : 'missing');
     const [order, setOrder] = useState<PaymentOrder | null>(null);
-    const startedAt = useRef(Date.now());
+    // Start odliczania ustawia efekt, nie render - render ma być czysty (react-hooks/purity).
+    const startedAt = useRef(0);
 
     useEffect(() => {
         if (!orderId) return;
         let cancelled = false;
+        startedAt.current = Date.now();
 
         const poll = async () => {
             try {

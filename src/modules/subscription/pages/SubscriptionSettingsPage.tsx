@@ -1,107 +1,77 @@
+// src/modules/subscription/pages/SubscriptionSettingsPage.tsx
+//
+// Ustawienia → Abonament: bieżący plan, zmiana planu, moduły, historia płatności.
+//
+// Przed przebudową sekcja miała:
+//   - własny nadtytuł wersalikami i tytuł „Abonament" pod nagłówkiem ramy, który
+//     mówił już to samo;
+//   - DWA wypełnione przyciski przedłużenia naraz (czerwony w banerze „wygasło"
+//     i niebieski w panelu planu, z wymuszonym stylem inline), a do tego plan FULL
+//     wypełniony gradientem - trzy nasycone bloki bez zwycięzcy (CLAUDE.md §2);
+//   - baner „Problem z płatnością" bez żadnej akcji („zaktualizuj dane płatnicze" -
+//     nie ma gdzie); tymczasem opłacenie kolejnych 30 dni (RENEWAL) przywraca stan
+//     ACTIVE, więc to jest ta akcja;
+//   - nieudaną wycenę planu albo modułu kwitowaną cichym zamknięciem okna;
+//   - „Dezaktywuj" dwa razy dla tego samego modułu (lista aktywnych i siatka);
+//   - ceny bez słowa „brutto".
+//
+// Teraz: jedna wyniesiona karta („Twój plan") z kwotą jako nagłówkiem, reszta płasko;
+// dokładnie jeden przycisk przedłużenia - w nagłówku ramy, a przy zaległości albo
+// wygaśnięciu w komunikacie, który tłumaczy, po co go kliknąć.
+
 import { useState } from 'react';
-import { useAuth } from '@/core/context/AuthContext';
+import styled from 'styled-components';
+import {
+    Button, Card, Notice, SectionTitle, StatusPill, SummaryStrip, ui, type PillTone,
+} from '@/common/components/ui';
+import { useToast } from '@/common/components/Toast';
+import { usePermissions } from '@/core/permissions';
+import { SettingsHeaderActions } from '@/modules/settings/components/shared/SettingsHeaderActions';
 import {
     useMyPlan,
     useFeaturePlans,
     useAddOns,
     useCheckout,
 } from '../api/subscriptionQueries';
-import { useToast } from '@/common/components/Toast';
 import { newSubscriptionApi } from '../api/subscriptionApi';
 import { PlanChangeDialog, AddOnActivationDialog, AddOnDeactivationDialog } from '../components/PlanChangeDialog';
 import { PlanCard } from '../components/PlanCard';
 import { AddOnCard } from '../components/AddOnCard';
 import { PendingDowngradeBanner } from '../components/PendingDowngradeBanner';
 import { PaymentHistoryTable } from '../components/PaymentHistoryTable';
-import type { FeaturePlan, AddOnKey, AddOnDto, PlanChangePreview, AddOnPreview } from '../types';
-import { formatCents, formatDate } from '../utils/formatters';
+import type { FeaturePlan, AddOnKey, AddOnDto, PlanChangePreview, AddOnPreview, BillingStatus } from '../types';
+import { formatCents, formatDate, monthlyPriceSuffix } from '../utils/formatters';
+import { apiErrorMessage, toastUnhandledError } from '../utils/apiErrors';
 import {
     PageWrap,
-    SectionHead,
-    EyeLabel,
-    SectionTitle,
-    SectionDesc,
-    Panel,
-    PanelRow,
-    PlanIcon,
-    PlanMeta,
-    PlanMetaName,
-    PlanMetaSub,
-    StatusBadge,
-    InfoGrid,
-    InfoCell,
-    InfoLabel,
-    InfoValue,
-    InfoSub,
-    ExpiredBanner,
-    TrialBanner,
-    PastDueBanner,
-    BannerIconWrap,
-    BannerContent,
-    BannerTitle,
-    BannerText,
-    BannerCta,
-    SectionBlock,
-    BlockLabel,
+    CardBody,
+    PlanHead,
+    Block,
     PlansGrid,
     AddOnsGrid,
-    ActiveAddOnRow,
-    AddOnRowInfo,
-    AddOnRowName,
-    AddOnRowPrice,
-    DeactivateBtn,
-    Spinner,
-    LoadingWrap,
-    ErrorWrap,
-    RetryBtn,
-    AccessDeniedWrap,
+    AddOnList,
+    AddOnRow,
+    AddOnRowText,
+    Muted,
 } from './SubscriptionSettingsPage.styles';
 
-// ─── SVG Icons ────────────────────────────────────────────────────────────────
+// ─── Billing status ──────────────────────────────────────────────────────────
 
-const CrownIcon = () => (
-    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
-        <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z" />
-    </svg>
-);
+const STATUS: Record<BillingStatus, { label: string; tone: PillTone }> = {
+    TRIALING: { label: 'Okres próbny', tone: 'info' },
+    ACTIVE: { label: 'Aktywny', tone: 'ok' },
+    PAST_DUE: { label: 'Zaległa płatność', tone: 'warn' },
+    EXPIRED: { label: 'Wygasł', tone: 'danger' },
+};
 
-const AlertIcon = ({ color }: { color: string }) => (
-    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={color}
-        strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-        <path d="M12 9v4M12 17h.01" />
-    </svg>
-);
+const daysLabel = (n: number) => (n === 1 ? '1 dzień' : `${n} dni`);
 
-const ShieldIcon = () => (
-    <svg width={40} height={40} viewBox="0 0 24 24" fill="none" stroke="#cbd5e1"
-        strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
-);
-
-// ─── Billing status helpers ────────────────────────────────────────────────────
-
-function billingStatusColor(status: string): string {
-    switch (status) {
-        case 'TRIALING': return '#f59e0b';
-        case 'ACTIVE': return '#10b981';
-        case 'PAST_DUE': return '#f97316';
-        case 'EXPIRED': return '#ef4444';
-        default: return '#94a3b8';
-    }
-}
-
-function billingStatusLabel(status: string): string {
-    switch (status) {
-        case 'TRIALING': return 'Okres próbny';
-        case 'ACTIVE': return 'Aktywna';
-        case 'PAST_DUE': return 'Zaległość';
-        case 'EXPIRED': return 'Wygasła';
-        default: return status;
-    }
-}
+const Suffix = styled.span`
+    font-size: 13px;
+    font-weight: 500;
+    color: ${ui.textMuted};
+    margin-left: 6px;
+`;
 
 // ─── Dialog state ──────────────────────────────────────────────────────────────
 
@@ -114,45 +84,37 @@ type DialogState =
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function SubscriptionSettingsPage() {
-    const { user } = useAuth();
-    const isOwner = user?.role === 'OWNER';
+    // To samo źródło co rama ustawień (OWNER_ONLY) - wcześniej `user.role === 'OWNER'`
+    // rozjeżdżało się z nim przy kontach, których rola ma inną wielkość liter.
+    const { isOwner } = usePermissions();
 
     const { data: myPlan, isLoading: planLoading, isError: planError, refetch: refetchPlan } = useMyPlan();
-    const { data: featurePlans, isLoading: plansLoading } = useFeaturePlans();
-    const { data: addOns, isLoading: addOnsLoading } = useAddOns();
+    const featurePlans = useFeaturePlans();
+    const addOns = useAddOns();
     const checkout = useCheckout();
-    const { showSuccess, showError } = useToast();
+    const { showSuccess, showError, showInfo } = useToast();
 
     const [dialog, setDialog] = useState<DialogState>(null);
 
-    // ── Guard: only OWNER ─────────────────────────────────────────────────────
     if (!isOwner) {
         return (
-            <AccessDeniedWrap>
-                <ShieldIcon />
-                <div style={{ fontWeight: 700, fontSize: 16, color: '#0f172a' }}>Brak dostępu</div>
-                <div>Zarządzanie subskrypcją jest dostępne wyłącznie dla właściciela studia.</div>
-            </AccessDeniedWrap>
+            <Notice tone="warn" title="Brak dostępu">
+                Abonamentem zarządza wyłącznie właściciel studia.
+            </Notice>
         );
     }
 
-    // ── Loading state ─────────────────────────────────────────────────────────
     if (planLoading) {
-        return (
-            <LoadingWrap>
-                <Spinner />
-                Ładowanie danych subskrypcji...
-            </LoadingWrap>
-        );
+        return <Muted>Wczytywanie abonamentu…</Muted>;
     }
 
-    // ── Error state ───────────────────────────────────────────────────────────
     if (planError || !myPlan) {
         return (
-            <ErrorWrap>
-                <div>Nie udało się załadować danych subskrypcji.</div>
-                <RetryBtn onClick={() => refetchPlan()}>Spróbuj ponownie</RetryBtn>
-            </ErrorWrap>
+            <Notice
+                tone="danger"
+                title="Nie udało się wczytać abonamentu"
+                action={<Button variant="ghost" size="sm" onClick={() => refetchPlan()}>Spróbuj ponownie</Button>}
+            />
         );
     }
 
@@ -160,9 +122,12 @@ export function SubscriptionSettingsPage() {
     const isTrial = myPlan.billingStatus === 'TRIALING';
     const isPastDue = myPlan.billingStatus === 'PAST_DUE';
     const isFull = myPlan.plan.key === 'FULL';
-    const isUrgent = myPlan.daysRemaining <= 7;
+    const status = STATUS[myPlan.billingStatus] ?? { label: myPlan.billingStatus, tone: 'neutral' as PillTone };
 
-    // ── Renewal handler (Przelewy24) ───────────────────────────────────────────
+    const renewalCents = myPlan.monthlyCostCents;
+    const renewalAmount = renewalCents > 0 ? formatCents(renewalCents) : null;
+
+    // ── Przedłużenie (Przelewy24) ─────────────────────────────────────────────
     const handleRenew = async () => {
         if (checkout.isPending) return;
         try {
@@ -171,40 +136,49 @@ export function SubscriptionSettingsPage() {
                 window.location.assign(order.paymentUrl);
                 return;
             }
-            showSuccess('Subskrypcja przedłużona', 'Twoja subskrypcja została przedłużona o 30 dni.');
+            showSuccess('Abonament przedłużony', 'Twój plan działa przez kolejne 30 dni.');
         } catch (err: unknown) {
-            const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-            showError('Błąd przedłużenia', msg ?? 'Nie udało się rozpocząć płatności. Spróbuj ponownie.');
+            toastUnhandledError(showError, err, 'Nie udało się rozpocząć płatności', 'Spróbuj ponownie za chwilę.');
         }
     };
 
-    // ── Plan select handler ────────────────────────────────────────────────────
+    const renewButton = (label: string) => (
+        <Button variant="primary" size="lg" onClick={handleRenew} disabled={checkout.isPending}>
+            {checkout.isPending ? 'Przekierowywanie do płatności…' : label}
+        </Button>
+    );
+
+    // ── Wycena zmiany planu ───────────────────────────────────────────────────
     const handleSelectPlan = async (plan: FeaturePlan) => {
         if (isExpired) return;
         setDialog({ type: 'plan', plan, preview: null, loading: true });
 
         try {
-            const preview = await newSubscriptionApi.previewPlanChange(plan.key);
+            const preview = await newSubscriptionApi.previewPlanChange(plan.key, { skipErrorToast: true });
             if (preview.changeType === 'NO_CHANGE') {
                 setDialog(null);
+                showInfo('Bez zmian', `Plan ${plan.name} jest już Twoim planem.`);
                 return;
             }
             setDialog({ type: 'plan', plan, preview, loading: false });
-        } catch {
+        } catch (err) {
+            // Wcześniej okno po prostu znikało - wyglądało, jakby kliknięcie nie zadziałało.
             setDialog(null);
+            showError('Nie udało się pobrać wyceny', apiErrorMessage(err) ?? 'Spróbuj ponownie za chwilę.');
         }
     };
 
-    // ── Add-on handlers ────────────────────────────────────────────────────────
+    // ── Moduły ─────────────────────────────────────────────────────────────────
     const handleActivateAddOn = async (addOn: AddOnDto) => {
         if (isExpired) return;
         setDialog({ type: 'addon-activate', key: addOn.key, name: addOn.name, preview: null, loading: true });
 
         try {
-            const preview = await newSubscriptionApi.previewAddOn(addOn.key);
+            const preview = await newSubscriptionApi.previewAddOn(addOn.key, { skipErrorToast: true });
             setDialog({ type: 'addon-activate', key: addOn.key, name: addOn.name, preview, loading: false });
-        } catch {
+        } catch (err) {
             setDialog(null);
+            showError('Nie udało się pobrać wyceny modułu', apiErrorMessage(err) ?? 'Spróbuj ponownie za chwilę.');
         }
     };
 
@@ -213,199 +187,171 @@ export function SubscriptionSettingsPage() {
         setDialog({ type: 'addon-deactivate', key, name });
     };
 
+    const activeKeys = new Set(myPlan.activeAddOns.map(a => a.key));
+    const availableAddOns = (addOns.data ?? []).filter(a => !activeKeys.has(a.key));
+    const sortedPlans = [...(featurePlans.data ?? [])].sort((a, b) => a.displayOrder - b.displayOrder);
+    const monthlySuffix = monthlyPriceSuffix(myPlan.monthlyCostCents);
+
+    const periodDetails = isExpired
+        ? `wygasł ${formatDate(myPlan.periodEndsAt)}`
+        : isTrial && myPlan.trialEndsAt
+            ? `okres próbny do ${formatDate(myPlan.trialEndsAt)}, zostało ${daysLabel(myPlan.daysRemaining)}`
+            : `odnowienie ${formatDate(myPlan.periodEndsAt)}, za ${daysLabel(myPlan.daysRemaining)}`;
+
+    // Dokładnie jedno miejsce z przyciskiem przedłużenia: przy zaległości i wygaśnięciu
+    // stoi w komunikacie, który mówi, dlaczego trzeba go kliknąć; w pozostałych
+    // przypadkach w nagłówku ramy. W okresie próbnym przedłużać nie ma czego - tam
+    // krokiem jest wybór planu.
+    const renewInHeader = !isTrial && !isExpired && !isPastDue;
+
     return (
         <PageWrap>
-            {/* ── Page header ──────────────────────────────────────────────── */}
-            <SectionHead>
-                <EyeLabel>Konto i rozliczenia</EyeLabel>
-                <SectionTitle>Abonament</SectionTitle>
-                <SectionDesc>
-                    Zarządzaj pakietem i dodatkowymi modułami. Płatności obsługuje Przelewy24: upgrade i dokupienie modułu wchodzą w życie natychmiast po opłaceniu, downgrade na koniec okresu rozliczeniowego.
-                </SectionDesc>
-            </SectionHead>
-
-            {/* ── Billing status banners ───────────────────────────────────── */}
-            {isExpired && (
-                <ExpiredBanner>
-                    <BannerIconWrap $bg="#fee2e2" $color="#dc2626">
-                        <AlertIcon color="#dc2626" />
-                    </BannerIconWrap>
-                    <BannerContent>
-                        <BannerTitle $color="#991b1b">Dostęp wygasł</BannerTitle>
-                        <BannerText $color="#b91c1c">
-                            Twoja subskrypcja wygasła. Odnów plan, aby przywrócić pełny dostęp do systemu.
-                        </BannerText>
-                    </BannerContent>
-                    <BannerCta onClick={handleRenew} disabled={checkout.isPending}>
-                        {checkout.isPending ? 'Przekierowywanie...' : 'Odnów i zapłać (P24)'}
-                    </BannerCta>
-                </ExpiredBanner>
+            {renewInHeader && (
+                <SettingsHeaderActions>
+                    {renewButton(renewalAmount ? `Przedłuż o 30 dni za ${renewalAmount}` : 'Przedłuż o 30 dni')}
+                </SettingsHeaderActions>
             )}
 
-            {isTrial && myPlan.trialEndsAt && (
-                <TrialBanner>
-                    <BannerIconWrap $bg="#fef3c7" $color="#d97706">
-                        <AlertIcon color="#d97706" />
-                    </BannerIconWrap>
-                    <BannerContent>
-                        <BannerTitle $color="#92400e">Okres próbny</BannerTitle>
-                        <BannerText $color="#b45309">
-                            Korzystasz z okresu próbnego. Pozostało <strong>{myPlan.daysRemaining} dni</strong> (do {formatDate(myPlan.trialEndsAt)}).
-                            Wybierz plan, aby kontynuować korzystanie z systemu.
-                        </BannerText>
-                    </BannerContent>
-                </TrialBanner>
+            {isExpired && (
+                <Notice
+                    tone="danger"
+                    title="Abonament wygasł"
+                    role="alert"
+                    action={renewButton(renewalAmount ? `Odnów za ${renewalAmount}` : 'Odnów abonament')}
+                >
+                    Odnów plan, żeby wrócić do pełnego dostępu. Płatność przez Przelewy24 obejmuje
+                    kolejne 30 dni{renewalAmount ? `, ${renewalAmount} brutto` : ''}.
+                </Notice>
             )}
 
             {isPastDue && (
-                <PastDueBanner>
-                    <BannerIconWrap $bg="#fed7aa" $color="#c2410c">
-                        <AlertIcon color="#c2410c" />
-                    </BannerIconWrap>
-                    <BannerContent>
-                        <BannerTitle $color="#9a3412">Problem z płatnością</BannerTitle>
-                        <BannerText $color="#c2410c">
-                            Wystąpił problem z ostatnią płatnością. Zaktualizuj dane płatnicze, aby uniknąć utraty dostępu.
-                        </BannerText>
-                    </BannerContent>
-                </PastDueBanner>
+                <Notice
+                    tone="warn"
+                    title="Ostatnia płatność nie przeszła"
+                    action={renewButton(renewalAmount ? `Zapłać ${renewalAmount}` : 'Zapłać teraz')}
+                >
+                    Dostęp działa jeszcze przez {daysLabel(myPlan.daysRemaining)}. Opłać kolejne 30 dni
+                    przez Przelewy24{renewalAmount ? ` (${renewalAmount} brutto)` : ''}, żeby go nie stracić.
+                </Notice>
             )}
 
-            {/* ── Pending downgrade banner ─────────────────────────────────── */}
+            {isTrial && myPlan.trialEndsAt && (
+                <Notice tone="info" title="Okres próbny">
+                    Zostało {daysLabel(myPlan.daysRemaining)}, do {formatDate(myPlan.trialEndsAt)}.
+                    Wybierz plan poniżej, żeby korzystać z systemu dalej.
+                </Notice>
+            )}
+
             {myPlan.pendingDowngrade && (
                 <PendingDowngradeBanner pendingDowngrade={myPlan.pendingDowngrade} />
             )}
 
-            {/* ── Current plan panel ───────────────────────────────────────── */}
-            <Panel>
-                <PanelRow>
-                    <PlanIcon><CrownIcon /></PlanIcon>
-                    <PlanMeta>
-                        <PlanMetaName>{myPlan.plan.name}</PlanMetaName>
-                        <PlanMetaSub>{formatCents(myPlan.plan.monthlyPriceGrossCents)}/mies.</PlanMetaSub>
-                    </PlanMeta>
-                    <StatusBadge $color={billingStatusColor(myPlan.billingStatus)}>
-                        {billingStatusLabel(myPlan.billingStatus)}
-                    </StatusBadge>
-                </PanelRow>
+            {/* ── Twój plan: jedyna wyniesiona karta sekcji ───────────────────── */}
+            <Card>
+                <CardBody>
+                    <PlanHead>
+                        <SectionTitle size="lg">Plan {myPlan.plan.name}</SectionTitle>
+                        <StatusPill $tone={status.tone} $size="md">{status.label}</StatusPill>
+                    </PlanHead>
 
-                <InfoGrid>
-                    <InfoCell>
-                        <InfoLabel>Koszt miesięczny</InfoLabel>
-                        <InfoValue>{formatCents(myPlan.monthlyCostCents)}</InfoValue>
-                        <InfoSub>plan + moduły</InfoSub>
-                    </InfoCell>
+                    <SummaryStrip
+                        label={myPlan.activeAddOns.length > 0 && !isFull ? 'Miesięcznie, plan i moduły' : 'Miesięcznie'}
+                        amount={(
+                            <>
+                                {formatCents(myPlan.monthlyCostCents)}
+                                {monthlySuffix && <Suffix>brutto</Suffix>}
+                            </>
+                        )}
+                        details={periodDetails}
+                    />
 
-                    <InfoCell>
-                        <InfoLabel>Następne odnowienie</InfoLabel>
-                        <InfoValue>{formatCents(myPlan.nextRenewalCostCents)}</InfoValue>
-                        <InfoSub>{formatDate(myPlan.periodEndsAt)}</InfoSub>
-                    </InfoCell>
+                    {myPlan.activeAddOns.length > 0 && !isFull && (
+                        <Block>
+                            <SectionTitle as="h3" count={myPlan.activeAddOns.length}>Aktywne moduły</SectionTitle>
+                            <AddOnList>
+                                {myPlan.activeAddOns.map(addOn => (
+                                    <AddOnRow key={addOn.key}>
+                                        <AddOnRowText>
+                                            <strong>{addOn.name}</strong>
+                                            <span>
+                                                {formatCents(addOn.monthlyPriceGrossCents)}
+                                                {monthlyPriceSuffix(addOn.monthlyPriceGrossCents) ? ` ${monthlyPriceSuffix(addOn.monthlyPriceGrossCents)}` : ''}
+                                            </span>
+                                        </AddOnRowText>
+                                        <Button
+                                            variant="danger"
+                                            size="sm"
+                                            disabled={isExpired}
+                                            onClick={() => handleDeactivateAddOn(addOn.key, addOn.name)}
+                                        >
+                                            Dezaktywuj
+                                        </Button>
+                                    </AddOnRow>
+                                ))}
+                            </AddOnList>
+                        </Block>
+                    )}
+                </CardBody>
+            </Card>
 
-                    <InfoCell>
-                        <InfoLabel>Dni do końca okresu</InfoLabel>
-                        <InfoValue $urgent={isUrgent}>{myPlan.daysRemaining}</InfoValue>
-                        <InfoSub>{formatDate(myPlan.periodEndsAt)}</InfoSub>
-                    </InfoCell>
-                </InfoGrid>
-
-                {!isTrial && (
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 20px 16px' }}>
-                        <button
-                            onClick={handleRenew}
-                            disabled={checkout.isPending}
-                            style={{
-                                padding: '10px 18px', borderRadius: 10, border: 'none',
-                                background: '#0ea5e9', color: 'white', fontWeight: 700,
-                                fontSize: 13, cursor: checkout.isPending ? 'wait' : 'pointer',
-                                fontFamily: 'inherit',
-                            }}
-                        >
-                            {checkout.isPending
-                                ? 'Przekierowywanie do płatności...'
-                                : `Przedłuż o 30 dni: ${formatCents(myPlan.monthlyCostCents)}`}
-                        </button>
-                    </div>
-                )}
-            </Panel>
-
-            {/* ── Active add-ons ───────────────────────────────────────────── */}
-            {myPlan.activeAddOns.length > 0 && !isFull && (
-                <SectionBlock>
-                    <BlockLabel>Aktywne moduły dodatkowe</BlockLabel>
-                    {myPlan.activeAddOns.map(addOn => (
-                        <ActiveAddOnRow key={addOn.key}>
-                            <AddOnRowInfo>
-                                <AddOnRowName>{addOn.name}</AddOnRowName>
-                                <AddOnRowPrice>{formatCents(addOn.monthlyPriceGrossCents)}/mies.</AddOnRowPrice>
-                            </AddOnRowInfo>
-                            <DeactivateBtn
-                                disabled={isExpired}
-                                onClick={() => handleDeactivateAddOn(addOn.key, addOn.name)}
-                            >
-                                Dezaktywuj
-                            </DeactivateBtn>
-                        </ActiveAddOnRow>
-                    ))}
-                </SectionBlock>
-            )}
-
-            {/* ── Plan selection ────────────────────────────────────────────── */}
-            <SectionBlock>
-                <BlockLabel>Zmień plan</BlockLabel>
-                {plansLoading ? (
-                    <LoadingWrap style={{ minHeight: 100 }}>
-                        <Spinner />
-                    </LoadingWrap>
+            {/* ── Zmiana planu ──────────────────────────────────────────────────── */}
+            <Block>
+                <SectionTitle>Zmień plan</SectionTitle>
+                {featurePlans.isLoading ? (
+                    <Muted>Wczytywanie planów…</Muted>
+                ) : featurePlans.isError ? (
+                    <Notice
+                        tone="danger"
+                        title="Nie udało się wczytać planów"
+                        action={<Button variant="ghost" size="sm" onClick={() => featurePlans.refetch()}>Spróbuj ponownie</Button>}
+                    />
                 ) : (
                     <PlansGrid>
-                        {(featurePlans ?? [])
-                            .sort((a, b) => a.displayOrder - b.displayOrder)
-                            .map(plan => (
-                                <PlanCard
-                                    key={plan.key}
-                                    plan={plan}
-                                    currentPlanKey={myPlan.plan.key}
-                                    disabled={isExpired}
-                                    onSelect={handleSelectPlan}
-                                />
-                            ))}
+                        {sortedPlans.map(plan => (
+                            <PlanCard
+                                key={plan.key}
+                                plan={plan}
+                                currentPlanKey={myPlan.plan.key}
+                                disabled={isExpired}
+                                onSelect={handleSelectPlan}
+                            />
+                        ))}
                     </PlansGrid>
                 )}
-            </SectionBlock>
+                {isExpired && <Muted>Plan zmienisz po odnowieniu abonamentu.</Muted>}
+            </Block>
 
-            {/* ── Available add-ons (only for BASIC plan) ──────────────────── */}
-            {!isFull && (
-                <SectionBlock>
-                    <BlockLabel>Dostępne moduły dodatkowe</BlockLabel>
-                    {addOnsLoading ? (
-                        <LoadingWrap style={{ minHeight: 80 }}>
-                            <Spinner />
-                        </LoadingWrap>
+            {/* ── Moduły do dokupienia (plan FULL ma wszystkie) ───────────────── */}
+            {!isFull && (addOns.isLoading || addOns.isError || availableAddOns.length > 0) && (
+                <Block>
+                    <SectionTitle>Moduły do dokupienia</SectionTitle>
+                    {addOns.isLoading ? (
+                        <Muted>Wczytywanie modułów…</Muted>
+                    ) : addOns.isError ? (
+                        <Notice
+                            tone="danger"
+                            title="Nie udało się wczytać modułów"
+                            action={<Button variant="ghost" size="sm" onClick={() => addOns.refetch()}>Spróbuj ponownie</Button>}
+                        />
                     ) : (
                         <AddOnsGrid>
-                            {(addOns ?? []).map(addOn => {
-                                const isActive = myPlan.activeAddOns.some(a => a.key === addOn.key);
-                                return (
-                                    <AddOnCard
-                                        key={addOn.key}
-                                        addOn={addOn}
-                                        isActive={isActive}
-                                        disabled={isExpired}
-                                        onActivate={() => handleActivateAddOn(addOn)}
-                                        onDeactivate={() => handleDeactivateAddOn(addOn.key, addOn.name)}
-                                    />
-                                );
-                            })}
+                            {availableAddOns.map(addOn => (
+                                <AddOnCard
+                                    key={addOn.key}
+                                    addOn={addOn}
+                                    isActive={false}
+                                    disabled={isExpired}
+                                    onActivate={() => handleActivateAddOn(addOn)}
+                                />
+                            ))}
                         </AddOnsGrid>
                     )}
-                </SectionBlock>
+                </Block>
             )}
 
-            {/* ── Payment history ───────────────────────────────────────────── */}
             <PaymentHistoryTable />
 
-            {/* ── Dialogs ───────────────────────────────────────────────────── */}
+            {/* ── Okna ──────────────────────────────────────────────────────────── */}
             {dialog?.type === 'plan' && (
                 <PlanChangeDialog
                     newPlanKey={dialog.plan.key}

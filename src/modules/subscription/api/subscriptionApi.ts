@@ -49,13 +49,24 @@ export const newSubscriptionApi = {
     },
 
     // ── Previews ─────────────────────────────────────────────────────────────────
-    previewPlanChange: async (newPlanKey: PlanKey): Promise<PlanChangePreview> => {
-        const res = await apiClient.post<PlanChangePreview>(`${BASE}/preview-plan-change`, { newPlanKey });
+    // `options.skipErrorToast`: ekran, który sam mówi o nieudanej wycenie (toast
+    // z tytułem w Abonamencie), wyłącza toast interceptora - inaczej to samo
+    // zdanie pojawiało się dwa razy. Bez opcji zachowanie jest jak dawniej.
+    previewPlanChange: async (newPlanKey: PlanKey, options?: { skipErrorToast?: boolean }): Promise<PlanChangePreview> => {
+        const res = await apiClient.post<PlanChangePreview>(
+            `${BASE}/preview-plan-change`,
+            { newPlanKey },
+            { skipErrorToast: options?.skipErrorToast },
+        );
         return res.data;
     },
 
-    previewAddOn: async (addOnKey: AddOnKey): Promise<AddOnPreview> => {
-        const res = await apiClient.post<AddOnPreview>(`${BASE}/preview-add-on`, { addOnKey });
+    previewAddOn: async (addOnKey: AddOnKey, options?: { skipErrorToast?: boolean }): Promise<AddOnPreview> => {
+        const res = await apiClient.post<AddOnPreview>(
+            `${BASE}/preview-add-on`,
+            { addOnKey },
+            { skipErrorToast: options?.skipErrorToast },
+        );
         return res.data;
     },
 

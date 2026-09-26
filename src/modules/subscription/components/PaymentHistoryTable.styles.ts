@@ -1,163 +1,117 @@
 import styled from 'styled-components';
+import { Panel, touch, ui } from '@/common/components/ui';
 
-export const Wrap = styled.div`
-    background: white;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.lg};
-    overflow: hidden;
+export const Wrap = styled(Panel)`
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    @media (max-width: 640px) { padding: 14px 16px; }
 `;
 
-export const TableHeader = styled.div`
+export const Head = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
-    padding: 16px 20px;
-    border-bottom: 1px solid ${p => p.theme.colors.border};
+    gap: 12px;
 `;
 
-export const TableTitle = styled.div`
-    font-size: 13.5px;
-    font-weight: 700;
-    color: ${p => p.theme.colors.text};
+// Strona ma overflow-x: clip - tabela szersza od kolumny przewija się tutaj.
+export const TableScroll = styled.div`
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -4px;
+    padding: 0 4px;
 `;
 
 export const Table = styled.table`
     width: 100%;
+    min-width: 680px;
     border-collapse: collapse;
     font-size: 13px;
-`;
 
-export const THead = styled.thead`
-    background: #f8fafc;
-    border-bottom: 1px solid ${p => p.theme.colors.border};
-`;
+    th {
+        padding: 8px 10px;
+        text-align: left;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: ${ui.textMuted};
+        border-bottom: 1px solid ${ui.line};
+        white-space: nowrap;
+    }
 
-export const Th = styled.th`
-    padding: 10px 14px;
-    text-align: left;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: #94a3b8;
-    white-space: nowrap;
-`;
+    td {
+        padding: 10px;
+        color: ${ui.textSecondary};
+        border-bottom: 1px solid ${ui.lineFaint};
+        vertical-align: middle;
+    }
 
-export const TBody = styled.tbody``;
-
-export const Tr = styled.tr`
-    border-bottom: 1px solid #f1f5f9;
-    transition: background 120ms;
-
-    &:last-child { border-bottom: none; }
-    &:hover { background: #f8fafc; }
-`;
-
-export const Td = styled.td`
-    padding: 12px 14px;
-    color: ${p => p.theme.colors.textSecondary};
-    vertical-align: middle;
-`;
-
-export const EventBadge = styled.div<{ $type: string }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    color: ${p => {
-        switch (p.$type) {
-            case 'PLAN_UPGRADE':
-            case 'SUBSCRIPTION_PURCHASE': return '#0284c7';
-            case 'PLAN_DOWNGRADE': return '#d97706';
-            case 'ADD_ON_ACTIVATION': return '#16a34a';
-            case 'ADD_ON_DEACTIVATION': return '#dc2626';
-            default: return '#64748b';
-        }
-    }};
-`;
-
-export const AmountCell = styled.td<{ $zero: boolean }>`
-    padding: 12px 14px;
-    font-size: 13px;
-    font-weight: ${p => p.$zero ? 400 : 700};
-    color: ${p => p.$zero ? '#94a3b8' : p.theme.colors.text};
-    white-space: nowrap;
+    tr:last-child td { border-bottom: none; }
+    .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .amount { font-weight: 700; color: ${ui.ink}; }
+    .zero { color: ${ui.textFaint}; }
+    .date { color: ${ui.ink}; white-space: nowrap; }
 `;
 
 export const TransactionId = styled.code`
-    font-size: 11px;
-    background: #f1f5f9;
-    color: #64748b;
+    font-size: 11.5px;
+    background: ${ui.surfaceAlt};
+    color: ${ui.textMuted};
     padding: 2px 6px;
     border-radius: 4px;
-    font-family: 'Fira Code', 'Cascadia Code', monospace;
+    font-family: ${ui.mono};
 `;
 
-export const EmptyState = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 48px 24px;
-    gap: 10px;
-    color: #94a3b8;
-`;
-
-export const EmptyIcon = styled.div`
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: #f1f5f9;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-`;
-
-export const EmptyText = styled.div`
+export const Muted = styled.p`
+    margin: 0;
     font-size: 13px;
-    color: #94a3b8;
+    color: ${ui.textMuted};
 `;
 
 export const Pagination = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
-    padding: 12px 20px;
-    border-top: 1px solid ${p => p.theme.colors.border};
-    background: #f8fafc;
+    gap: 8px 16px;
+    flex-wrap: wrap;
 `;
 
 export const PaginationInfo = styled.div`
     font-size: 12.5px;
-    color: #64748b;
+    color: ${ui.textMuted};
 `;
 
-export const PaginationBtns = styled.div`
+export const PaginationBtns = styled.nav`
     display: flex;
-    gap: 6px;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
 `;
 
+/** Numer strony: bieżąca niesie odcień marki, nie wypełnienie (CLAUDE.md §2). */
 export const PageBtn = styled.button<{ $active?: boolean }>`
-    padding: 6px 12px;
-    border-radius: 6px;
-    border: 1.5px solid ${p => p.$active ? '#0ea5e9' : p.theme.colors.border};
-    background: ${p => p.$active ? '#0ea5e9' : 'white'};
-    color: ${p => p.$active ? 'white' : '#334155'};
-    font-size: 12px;
+    min-width: 30px;
+    height: 30px;
+    padding: 0 8px;
+    border-radius: ${ui.radiusControl};
+    border: 1px solid ${p => p.$active ? ui.brandLine : 'transparent'};
+    background: ${p => p.$active ? ui.brandTint : 'transparent'};
+    color: ${p => p.$active ? ui.brandInk : ui.inkSoft};
+    font-size: 13px;
     font-weight: 600;
     font-family: inherit;
+    font-variant-numeric: tabular-nums;
     cursor: pointer;
-    transition: all 150ms;
 
-    &:hover:not(:disabled) {
-        background: ${p => p.$active ? '#0284c7' : '#f1f5f9'};
-    }
+    &:hover { background: ${p => p.$active ? ui.brandTint : ui.surfaceAlt}; }
+    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: 2px; }
 
-    &:disabled {
-        opacity: 0.45;
-        cursor: not-allowed;
-    }
+    ${touch} { min-width: 44px; height: 44px; }
+`;
+
+export const Gap = styled.span`
+    padding: 0 4px;
+    color: ${ui.textFaint};
 `;

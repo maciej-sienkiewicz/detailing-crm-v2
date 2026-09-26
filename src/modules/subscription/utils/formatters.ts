@@ -56,3 +56,14 @@ const FEATURE_LABELS: Record<string, string> = {
 export function featureLabel(key: string): string {
     return FEATURE_LABELS[key] ?? key;
 }
+
+/**
+ * Dopisek przy cenie z cennika abonamentu. Ceny planów i modułów są w brutto
+ * (`monthlyPriceGrossCents`) - to ta kwota idzie do Przelewy24 - więc cena bez słowa
+ * „brutto" zostawiała właściciela z pytaniem, czy doliczyć VAT. Kwoty „Bezpłatnie"
+ * i „Cena do ustalenia" dopisku nie dostają, bo nie ma czego doprecyzować.
+ */
+export function monthlyPriceSuffix(cents: number | null | undefined): string | null {
+    if (cents == null || cents === 0) return null;
+    return 'brutto / mies.';
+}

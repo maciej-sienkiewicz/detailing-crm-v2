@@ -1,28 +1,18 @@
+import { Button, Notice } from '@/common/components/ui';
 import { useToast } from '@/common/components/Toast';
 import { useCancelPendingPlanChange } from '../api/subscriptionQueries';
 import type { PendingDowngrade } from '../types';
 import { formatDate } from '../utils/formatters';
-import {
-    Banner,
-    BannerIcon,
-    BannerBody,
-    BannerTitle,
-    BannerText,
-    BannerActions,
-    CancelBtn,
-} from './PendingDowngradeBanner.styles';
+import { toastUnhandledError } from '../utils/apiErrors';
 
 interface Props {
     pendingDowngrade: PendingDowngrade;
 }
 
-const ClockIcon = () => (
-    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" />
-        <path d="M12 6v6l4 2" />
-    </svg>
-);
-
+/**
+ * Zaplanowane obniżenie planu. Bursztyn = „przeczytaj": nic się jeszcze nie stało,
+ * ale stanie się samo. Odwołanie to akcja dostępna, nie krok następny, więc bez wypełnienia.
+ */
 export function PendingDowngradeBanner({ pendingDowngrade }: Props) {
     const { showSuccess, showError } = useToast();
     const cancel = useCancelPendingPlanChange();
@@ -30,33 +20,24 @@ export function PendingDowngradeBanner({ pendingDowngrade }: Props) {
     const handleCancel = async () => {
         try {
             await cancel.mutateAsync();
-            showSuccess('Zmiana anulowana', 'Zaplanowany downgrade został odwołany.');
-        } catch {
-            showError('Błąd', 'Nie udało się anulować zmiany planu. Spróbuj ponownie.');
+            showSuccess('Zmiana odwołana', 'Zostajesz przy obecnym planie.');
+        } catch (err) {
+            toastUnhandledError(showError, err, 'Nie udało się odwołać zmiany', 'Spróbuj ponownie za chwilę.');
         }
     };
 
     return (
-        <Banner>
-            <BannerIcon>
-                <ClockIcon />
-            </BannerIcon>
-            <BannerBody>
-                <BannerTitle>Zaplanowana zmiana planu</BannerTitle>
-                <BannerText>
-                    Twój plan zostanie zmieniony na <strong>{pendingDowngrade.toPlanName}</strong>{' '}
-                    dnia <strong>{formatDate(pendingDowngrade.effectiveAt)}</strong>.
-                    Do tego czasu masz pełny dostęp do obecnego planu.
-                </BannerText>
-            </BannerBody>
-            <BannerActions>
-                <CancelBtn
-                    onClick={handleCancel}
-                    disabled={cancel.isPending}
-                >
-                    {cancel.isPending ? 'Anulowanie...' : 'Anuluj zmianę'}
-                </CancelBtn>
-            </BannerActions>
-        </Banner>
+        <Notice
+            tone="warn"
+            title="Zaplanowana zmiana planu"
+            action={(
+                <Button size="sm" onClick={handleCancel} disabled={cancel.isPending}>
+                    {cancel.isPending ? 'Odwoływanie…' : 'Odwołaj zmianę'}
+                </Button>
+            )}
+        >
+            Od {formatDate(pendingDowngrade.effectiveAt)} plan zmieni się na {pendingDowngrade.toPlanName}.
+            Do tego dnia masz pełny dostęp do obecnego planu.
+        </Notice>
     );
 }

@@ -8,33 +8,27 @@ import {
     ModalFooter,
     CloseBtn,
 } from '@/common/components/ModalKit';
-import { SharedButton } from '@/common/styles';
+import { Button, FieldList, FieldRow, Notice } from '@/common/components/ui';
 import { useToast } from '@/common/components/Toast';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useChangePlan, useCheckout, useDeactivateAddOn as useDeactivateAddOnMutation } from '../api/subscriptionQueries';
 import type { PlanChangePreview, AddOnPreview, AddOnKey, PlanKey } from '../types';
 import { CommunicationModuleTour } from './CommunicationModuleTour';
 import { formatDate } from '../utils/formatters';
-import {
-    DialogBody,
-    LoadingRow,
-    Spinner,
-    InfoGrid,
-    InfoRow,
-    InfoLabel,
-    InfoValue,
-    Explanation,
-    DowngradeBadge,
-    BtnSpinner,
-} from './PlanChangeDialog.styles';
+import { toastUnhandledError } from '../utils/apiErrors';
+import { LoadingRow, Spinner, Explanation, Strong } from './PlanChangeDialog.styles';
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
-const WarnIcon = () => (
-    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#d97706"
-        strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-        <path d="M12 9v4M12 17h.01" />
-    </svg>
+/**
+ * Wycena się nie wczytała. Wcześniej okno kręciło spinnerem w nieskończoność
+ * („Ładowanie szczegółów…" przy `preview === null`), bo brak wyceny i jej ładowanie
+ * wyglądały tak samo - a jedyną drogą wyjścia był krzyżyk.
+ */
+const PreviewFailed = () => (
+    <Notice tone="danger" title="Nie udało się pobrać wyceny" role="alert">
+        Zamknij okno i spróbuj ponownie za chwilę. Nic nie zostało zmienione ani pobrane.
+    </Notice>
 );
 
 // ─── Plan change dialog ────────────────────────────────────────────────────────
@@ -79,15 +73,14 @@ export function PlanChangeDialog({
             showSuccess('Plan zmieniony', `Twój plan został zmieniony na ${newPlanName}.`);
             onClose();
         } catch (err: unknown) {
-            const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-            showError('Błąd zmiany planu', msg ?? 'Nie udało się zmienić planu. Spróbuj ponownie.');
+            toastUnhandledError(showError, err, 'Nie udało się zmienić planu', 'Spróbuj ponownie za chwilę.');
         }
     };
 
     const isPending = changePlan.isPending || checkout.isPending;
 
     return (
-        <ModalShell isOpen onClose={onClose} maxWidth="480px">
+        <ModalShell isOpen onClose={onClose} size="sm">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>
@@ -100,66 +93,60 @@ export function PlanChangeDialog({
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
 
-            <DialogBody>
-                {isLoadingPreview || !preview ? (
+            <ModalContent>
+                {isLoadingPreview ? (
                     <LoadingRow>
                         <Spinner />
-                        Ładowanie szczegółów...
+                        Wczytywanie wyceny…
                     </LoadingRow>
+                ) : !preview ? (
+                    <PreviewFailed />
                 ) : (
                     <>
                         {isDowngrade && (
-                            <DowngradeBadge>
-                                <WarnIcon />
+                            <Notice tone="warn">
                                 Obniżenie planu wejdzie w życie po zakończeniu bieżącego okresu rozliczeniowego.
                                 Do tego czasu zachowujesz pełny dostęp.
-                            </DowngradeBadge>
+                            </Notice>
                         )}
 
-                        <InfoGrid>
-                            <InfoRow>
-                                <InfoLabel>Nowy plan</InfoLabel>
-                                <InfoValue>{preview.newPlanName}</InfoValue>
-                            </InfoRow>
-                            <InfoRow>
-                                <InfoLabel>Termin wejścia w życie</InfoLabel>
-                                <InfoValue>
-                                    {isDowngrade ? formatDate(preview.effectiveAt) : 'Natychmiast'}
-                                </InfoValue>
-                            </InfoRow>
-                            <InfoRow>
-                                <InfoLabel>Kwota</InfoLabel>
-                                <InfoValue $highlight={!isDowngrade}>
+                        <FieldList>
+                            <FieldRow label="Nowy plan"><strong>{preview.newPlanName}</strong></FieldRow>
+                            <FieldRow label="Od kiedy">
+                                {isDowngrade ? formatDate(preview.effectiveAt) : 'Od razu po opłaceniu'}
+                            </FieldRow>
+                            <FieldRow label="Do zapłaty">
+                                <Strong $highlight={!isDowngrade}>
                                     {isDowngrade
                                         ? 'Bez opłaty'
-                                        : (preview.proratedAmountFormatted ?? 'Bezpłatnie w ramach trialu')}
-                                </InfoValue>
-                            </InfoRow>
-                            <InfoRow>
-                                <InfoLabel>Dni pozostałych w okresie</InfoLabel>
-                                <InfoValue>{preview.daysRemaining}</InfoValue>
-                            </InfoRow>
-                        </InfoGrid>
+                                        : preview.proratedAmountFormatted
+                                            ? `${preview.proratedAmountFormatted} brutto`
+                                            : 'Bezpłatnie w ramach okresu próbnego'}
+                                </Strong>
+                            </FieldRow>
+                            <FieldRow label="Dni do końca okresu">{preview.daysRemaining}</FieldRow>
+                        </FieldList>
 
                         <Explanation>{preview.explanation}</Explanation>
                     </>
                 )}
-            </DialogBody>
+            </ModalContent>
 
             <ModalFooter>
-                <SharedButton $variant="secondary" $size="sm" onClick={onClose} disabled={isPending}>
-                    Anuluj
-                </SharedButton>
-                <SharedButton
-                    $variant={isDowngrade ? 'ghost' : 'primary'}
-                    $size="sm"
-                    onClick={handleConfirm}
-                    disabled={isPending || isLoadingPreview || !preview}
-                    style={isDowngrade ? { background: '#f59e0b', color: 'white' } : undefined}
-                >
-                    {isPending && <BtnSpinner />}
-                    {isDowngrade ? 'Zaplanuj zmianę' : 'Przejdź do płatności'}
-                </SharedButton>
+                <Button onClick={onClose} disabled={isPending}>
+                    {!isLoadingPreview && !preview ? 'Zamknij' : 'Anuluj'}
+                </Button>
+                {(isLoadingPreview || preview) && (
+                    <Button
+                        variant="primary"
+                        onClick={handleConfirm}
+                        disabled={isPending || isLoadingPreview || !preview}
+                    >
+                        {isPending
+                            ? (isDowngrade ? 'Planowanie…' : 'Przekierowywanie…')
+                            : isDowngrade ? 'Zaplanuj zmianę' : 'Przejdź do płatności'}
+                    </Button>
+                )}
             </ModalFooter>
         </ModalShell>
     );
@@ -206,8 +193,7 @@ export function AddOnActivationDialog({
             showSuccess('Moduł aktywowany', `Moduł ${addOnName} został pomyślnie aktywowany.`);
             onClose();
         } catch (err: unknown) {
-            const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-            showError('Błąd aktywacji', msg ?? 'Nie udało się aktywować modułu. Spróbuj ponownie.');
+            toastUnhandledError(showError, err, 'Nie udało się aktywować modułu', 'Spróbuj ponownie za chwilę.');
         }
     };
 
@@ -223,7 +209,7 @@ export function AddOnActivationDialog({
     }
 
     return (
-        <ModalShell isOpen onClose={onClose} maxWidth="480px">
+        <ModalShell isOpen onClose={onClose} size="sm">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Aktywacja modułu: {addOnName}</ModalTitle>
@@ -231,55 +217,51 @@ export function AddOnActivationDialog({
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
 
-            <DialogBody>
-                {isLoadingPreview || !preview ? (
+            <ModalContent>
+                {isLoadingPreview ? (
                     <LoadingRow>
                         <Spinner />
-                        Ładowanie szczegółów...
+                        Wczytywanie wyceny…
                     </LoadingRow>
+                ) : !preview ? (
+                    <PreviewFailed />
                 ) : (
                     <>
-                        <InfoGrid>
-                            <InfoRow>
-                                <InfoLabel>Moduł</InfoLabel>
-                                <InfoValue>{preview.addOnName}</InfoValue>
-                            </InfoRow>
-                            <InfoRow>
-                                <InfoLabel>Kwota (proporcjonalnie)</InfoLabel>
-                                <InfoValue $highlight={!isTrial}>
+                        <FieldList>
+                            <FieldRow label="Moduł"><strong>{preview.addOnName}</strong></FieldRow>
+                            <FieldRow label="Do zapłaty za resztę okresu">
+                                <Strong $highlight={!isTrial}>
                                     {isTrial
-                                        ? 'Bezpłatnie w ramach trialu'
-                                        : (preview.proratedAmountFormatted ?? '-')}
-                                </InfoValue>
-                            </InfoRow>
-                            <InfoRow>
-                                <InfoLabel>Dni pozostałych w okresie</InfoLabel>
-                                <InfoValue>{preview.daysRemaining}</InfoValue>
-                            </InfoRow>
-                            <InfoRow>
-                                <InfoLabel>Koniec okresu</InfoLabel>
-                                <InfoValue>{formatDate(preview.periodEndsAt)}</InfoValue>
-                            </InfoRow>
-                        </InfoGrid>
+                                        ? 'Bezpłatnie w ramach okresu próbnego'
+                                        : preview.proratedAmountFormatted
+                                            ? `${preview.proratedAmountFormatted} brutto`
+                                            : '-'}
+                                </Strong>
+                            </FieldRow>
+                            <FieldRow label="Dni do końca okresu">{preview.daysRemaining}</FieldRow>
+                            <FieldRow label="Koniec okresu">{formatDate(preview.periodEndsAt)}</FieldRow>
+                        </FieldList>
 
                         <Explanation>{preview.explanation}</Explanation>
                     </>
                 )}
-            </DialogBody>
+            </ModalContent>
 
             <ModalFooter>
-                <SharedButton $variant="secondary" $size="sm" onClick={onClose} disabled={checkout.isPending}>
-                    Anuluj
-                </SharedButton>
-                <SharedButton
-                    $variant="primary"
-                    $size="sm"
-                    onClick={handleConfirm}
-                    disabled={checkout.isPending || isLoadingPreview || !preview}
-                >
-                    {checkout.isPending && <BtnSpinner />}
-                    {isTrial ? 'Aktywuj bezpłatnie' : 'Przejdź do płatności'}
-                </SharedButton>
+                <Button onClick={onClose} disabled={checkout.isPending}>
+                    {!isLoadingPreview && !preview ? 'Zamknij' : 'Anuluj'}
+                </Button>
+                {(isLoadingPreview || preview) && (
+                    <Button
+                        variant="primary"
+                        onClick={handleConfirm}
+                        disabled={checkout.isPending || isLoadingPreview || !preview}
+                    >
+                        {checkout.isPending
+                            ? 'Przekierowywanie…'
+                            : isTrial ? 'Aktywuj bezpłatnie' : 'Przejdź do płatności'}
+                    </Button>
+                )}
             </ModalFooter>
         </ModalShell>
     );
@@ -297,47 +279,26 @@ export function AddOnDeactivationDialog({ addOnKey, addOnName, onClose }: Deacti
     const { showSuccess, showError } = useToast();
     const deactivateAddOn = useDeactivateAddOnMutation();
 
-    const handleConfirm = async () => {
-        try {
-            await deactivateAddOn.mutateAsync(addOnKey);
-            showSuccess('Moduł dezaktywowany', `Moduł ${addOnName} został dezaktywowany.`);
-            onClose();
-        } catch (err: unknown) {
-            const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-            showError('Błąd dezaktywacji', msg ?? 'Nie udało się dezaktywować modułu.');
-        }
+    // Wyłączenie modułu odbiera dostęp od razu, więc idzie przez to samo okno
+    // potwierdzenia co każde usunięcie w ustawieniach. Okno zamyka się po kliknięciu,
+    // a wynik mówi toast - mutacja kończy się także po odmontowaniu okna.
+    const handleConfirm = () => {
+        deactivateAddOn.mutateAsync(addOnKey)
+            .then(() => showSuccess('Moduł wyłączony', `Moduł ${addOnName} nie jest już aktywny.`))
+            .catch((err: unknown) =>
+                toastUnhandledError(showError, err, 'Nie udało się wyłączyć modułu', 'Spróbuj ponownie za chwilę.'));
     };
 
     return (
-        <ModalShell isOpen onClose={onClose} maxWidth="480px">
-            <ModalHeader>
-                <ModalTitleGroup>
-                    <ModalTitle>Dezaktywacja modułu</ModalTitle>
-                </ModalTitleGroup>
-                <CloseBtn onClick={onClose} />
-            </ModalHeader>
-
-            <DialogBody>
-                <DowngradeBadge>
-                    <WarnIcon />
-                    Stracisz dostęp do modułu <strong>{addOnName}</strong> natychmiast po potwierdzeniu. Kontynuować?
-                </DowngradeBadge>
-            </DialogBody>
-
-            <ModalFooter>
-                <SharedButton $variant="secondary" $size="sm" onClick={onClose} disabled={deactivateAddOn.isPending}>
-                    Anuluj
-                </SharedButton>
-                <SharedButton
-                    $variant="danger"
-                    $size="sm"
-                    onClick={handleConfirm}
-                    disabled={deactivateAddOn.isPending}
-                >
-                    {deactivateAddOn.isPending && <BtnSpinner />}
-                    Dezaktywuj
-                </SharedButton>
-            </ModalFooter>
-        </ModalShell>
+        <ConfirmationModal
+            isOpen
+            variant="danger"
+            title={`Dezaktywować moduł ${addOnName}?`}
+            message="Stracisz dostęp do modułu od razu po potwierdzeniu. Możesz go później włączyć ponownie."
+            confirmText="Dezaktywuj"
+            cancelText="Anuluj"
+            onConfirm={handleConfirm}
+            onCancel={onClose}
+        />
     );
 }

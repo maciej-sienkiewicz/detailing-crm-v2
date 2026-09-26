@@ -1,169 +1,143 @@
+// src/modules/subscription/components/PaymentHistoryTable.tsx
+//
+// Historia płatności abonamentu. Płaski panel (jedyną wyniesioną kartą sekcji jest
+// „Twój plan"); tabela przewija się w swoim pudełku, bo strona ma overflow-x: clip
+// i sześć kolumn na telefonie było po prostu uciętych razem z kwotą.
+
 import { useState } from 'react';
+import { Button, Notice, SectionTitle, StatusPill, type PillTone } from '@/common/components/ui';
 import { usePaymentHistory } from '../api/subscriptionQueries';
 import type { PaymentEventType } from '../types';
 import { formatDateTime } from '../utils/formatters';
+import { pageWindow } from '../utils/pagination';
 import {
     Wrap,
-    TableHeader,
-    TableTitle,
+    Head,
+    TableScroll,
     Table,
-    THead,
-    Th,
-    TBody,
-    Tr,
-    Td,
-    EventBadge,
-    AmountCell,
     TransactionId,
-    EmptyState,
-    EmptyIcon,
-    EmptyText,
+    Muted,
     Pagination,
     PaginationInfo,
     PaginationBtns,
     PageBtn,
+    Gap,
 } from './PaymentHistoryTable.styles';
 
 const PAGE_SIZE = 20;
 
-function EventIcon({ type }: { type: PaymentEventType }) {
-    const color = (() => {
-        switch (type) {
-            case 'PLAN_UPGRADE':
-            case 'SUBSCRIPTION_PURCHASE': return '#0284c7';
-            case 'PLAN_DOWNGRADE': return '#d97706';
-            case 'ADD_ON_ACTIVATION': return '#16a34a';
-            case 'ADD_ON_DEACTIVATION': return '#dc2626';
-            default: return '#64748b';
-        }
-    })();
-
-    const d = (() => {
-        switch (type) {
-            case 'SUBSCRIPTION_PURCHASE': return 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM12 6v6l4 2';
-            case 'PLAN_UPGRADE': return 'M12 19V5M5 12l7-7 7 7';
-            case 'PLAN_DOWNGRADE': return 'M12 5v14M19 12l-7 7-7-7';
-            case 'ADD_ON_ACTIVATION': return 'M12 5v14M5 12h14';
-            case 'ADD_ON_DEACTIVATION': return 'M5 12h14';
-            default: return 'M12 2a10 10 0 1 0 0 20';
-        }
-    })();
-
-    return (
-        <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke={color}
-            strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-            <path d={d} />
-        </svg>
-    );
+function eventTone(type: PaymentEventType): PillTone {
+    switch (type) {
+        case 'PLAN_UPGRADE':
+        case 'SUBSCRIPTION_PURCHASE': return 'info';
+        case 'PLAN_DOWNGRADE': return 'warn';
+        case 'ADD_ON_ACTIVATION': return 'ok';
+        case 'ADD_ON_DEACTIVATION': return 'neutral';
+        default: return 'neutral';
+    }
 }
-
-const ReceiptIcon = () => (
-    <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#cbd5e1"
-        strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 2h16v20l-2-1-2 1-2-1-2 1-2-1-2 1-2-1V2zM8 10h8M8 14h4" />
-    </svg>
-);
 
 export function PaymentHistoryTable() {
     const [page, setPage] = useState(0);
-    const { data, isLoading, isError } = usePaymentHistory(page);
+    const { data, isLoading, isError, refetch } = usePaymentHistory(page);
 
-    const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0;
+    const entries = data?.entries ?? [];
+    const total = data?.total ?? 0;
+    const totalPages = Math.ceil(total / PAGE_SIZE);
     const from = page * PAGE_SIZE + 1;
-    const to = Math.min((page + 1) * PAGE_SIZE, data?.total ?? 0);
+    const to = Math.min((page + 1) * PAGE_SIZE, total);
 
     return (
         <Wrap>
-            <TableHeader>
-                <TableTitle>Historia płatności</TableTitle>
-            </TableHeader>
+            <Head>
+                <SectionTitle as="h3" count={total > 0 ? total : undefined}>Historia płatności</SectionTitle>
+            </Head>
 
-            {isLoading && (
-                <EmptyState>
-                    <EmptyText>Ładowanie historii...</EmptyText>
-                </EmptyState>
-            )}
-
-            {isError && (
-                <EmptyState>
-                    <EmptyText>Nie udało się załadować historii płatności.</EmptyText>
-                </EmptyState>
-            )}
-
-            {!isLoading && !isError && data?.entries.length === 0 && (
-                <EmptyState>
-                    <EmptyIcon><ReceiptIcon /></EmptyIcon>
-                    <EmptyText>Brak wpisów w historii płatności.</EmptyText>
-                </EmptyState>
-            )}
-
-            {!isLoading && !isError && (data?.entries.length ?? 0) > 0 && (
+            {isLoading ? (
+                <Muted>Wczytywanie historii…</Muted>
+            ) : isError ? (
+                <Notice
+                    tone="danger"
+                    title="Nie udało się wczytać historii płatności"
+                    action={<Button variant="ghost" size="sm" onClick={() => refetch()}>Spróbuj ponownie</Button>}
+                />
+            ) : entries.length === 0 ? (
+                <Muted>Nie ma jeszcze żadnych płatności.</Muted>
+            ) : (
                 <>
-                    <Table>
-                        <THead>
-                            <tr>
-                                <Th>Data</Th>
-                                <Th>Zdarzenie</Th>
-                                <Th>Plan</Th>
-                                <Th>Moduł</Th>
-                                <Th>Kwota</Th>
-                                <Th>ID transakcji</Th>
-                            </tr>
-                        </THead>
-                        <TBody>
-                            {data!.entries.map(entry => (
-                                <Tr key={entry.id}>
-                                    <Td style={{ color: '#0f172a', whiteSpace: 'nowrap' }}>
-                                        {formatDateTime(entry.date)}
-                                    </Td>
-                                    <Td>
-                                        <EventBadge $type={entry.eventType}>
-                                            <EventIcon type={entry.eventType} />
-                                            {entry.eventTypeDisplayName}
-                                        </EventBadge>
-                                    </Td>
-                                    <Td>{entry.plan?.name ?? '-'}</Td>
-                                    <Td>{entry.addOn?.name ?? '-'}</Td>
-                                    <AmountCell $zero={entry.amountCents === 0}>
-                                        {entry.amountCents === 0 ? '-' : entry.amountFormatted}
-                                    </AmountCell>
-                                    <Td>
-                                        {entry.transactionId
-                                            ? <TransactionId>{entry.transactionId}</TransactionId>
-                                            : '-'}
-                                    </Td>
-                                </Tr>
-                            ))}
-                        </TBody>
-                    </Table>
+                    <TableScroll>
+                        <Table>
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Zdarzenie</th>
+                                    <th>Plan</th>
+                                    <th>Moduł</th>
+                                    <th className="num">Kwota brutto</th>
+                                    <th>Numer transakcji</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {entries.map(entry => (
+                                    <tr key={entry.id}>
+                                        <td className="date">{formatDateTime(entry.date)}</td>
+                                        <td>
+                                            <StatusPill $tone={eventTone(entry.eventType)}>
+                                                {entry.eventTypeDisplayName}
+                                            </StatusPill>
+                                        </td>
+                                        <td>{entry.plan?.name ?? '-'}</td>
+                                        <td>{entry.addOn?.name ?? '-'}</td>
+                                        <td className={entry.amountCents === 0 ? 'num zero' : 'num amount'}>
+                                            {entry.amountCents === 0 ? '-' : entry.amountFormatted}
+                                        </td>
+                                        <td>
+                                            {entry.transactionId
+                                                ? <TransactionId>{entry.transactionId}</TransactionId>
+                                                : '-'}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </Table>
+                    </TableScroll>
 
                     {totalPages > 1 && (
                         <Pagination>
                             <PaginationInfo>
-                                {from}-{to} z {data!.total} wpisów
+                                {from}-{to} z {total}
                             </PaginationInfo>
-                            <PaginationBtns>
-                                <PageBtn
+                            <PaginationBtns aria-label="Strony historii płatności">
+                                <Button
+                                    size="sm"
                                     disabled={page === 0}
                                     onClick={() => setPage(p => p - 1)}
                                 >
                                     Poprzednia
-                                </PageBtn>
-                                {Array.from({ length: totalPages }, (_, i) => (
-                                    <PageBtn
-                                        key={i}
-                                        $active={i === page}
-                                        onClick={() => setPage(i)}
-                                    >
-                                        {i + 1}
-                                    </PageBtn>
-                                ))}
-                                <PageBtn
+                                </Button>
+                                {pageWindow(page, totalPages).map((item, i) =>
+                                    item === 'gap' ? (
+                                        <Gap key={`gap-${i}`} aria-hidden="true">…</Gap>
+                                    ) : (
+                                        <PageBtn
+                                            key={item}
+                                            type="button"
+                                            $active={item === page}
+                                            aria-current={item === page ? 'page' : undefined}
+                                            aria-label={`Strona ${item + 1}`}
+                                            onClick={() => setPage(item)}
+                                        >
+                                            {item + 1}
+                                        </PageBtn>
+                                    ),
+                                )}
+                                <Button
+                                    size="sm"
                                     disabled={page >= totalPages - 1}
                                     onClick={() => setPage(p => p + 1)}
                                 >
                                     Następna
-                                </PageBtn>
+                                </Button>
                             </PaginationBtns>
                         </Pagination>
                     )}

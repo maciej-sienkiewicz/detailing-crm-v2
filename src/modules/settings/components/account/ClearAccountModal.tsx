@@ -161,7 +161,8 @@ export const ClearAccountModal = ({ isOpen, onClose }: ClearAccountModalProps) =
             : null;
     const jobId = startedJobId ?? resumedJobId;
 
-    const { data: job } = useAccountResetStatus(jobId);
+    const statusQuery = useAccountResetStatus(jobId);
+    const job = statusQuery.data;
 
     useEffect(() => {
         if (job?.status === 'COMPLETED') {
@@ -186,6 +187,11 @@ export const ClearAccountModal = ({ isOpen, onClose }: ClearAccountModalProps) =
 
     const handleClose = () => {
         resetForm();
+        // Bez tego po FAILED okno otwierało się ponownie na tym samym, zakończonym jobie
+        // i nowego czyszczenia nie dało się zlecić bez odświeżania strony. Trwający job
+        // i tak odnajdzie się przy następnym otwarciu przez useLatestAccountReset.
+        setStartedJobId(null);
+        startReset.reset();
         onClose();
     };
 
@@ -207,8 +213,13 @@ export const ClearAccountModal = ({ isOpen, onClose }: ClearAccountModalProps) =
         );
     };
 
-    const inProgress = jobId !== null && job?.status !== 'FAILED';
     const failed = job?.status === 'FAILED';
+    // Odczyt stanu się nie udał (serwer, sieć). Wcześniej okno zostawało wtedy na
+    // „Rozpoczynanie czyszczenia…" bez krzyżyka i bez stopki - użytkownik był w nim
+    // zamknięty do odświeżenia strony. Job działa po stronie serwera niezależnie od
+    // okna, więc zamknięcie niczego nie psuje, a ponowne otwarcie wróci do postępu.
+    const statusUnknown = jobId !== null && statusQuery.isError && !failed;
+    const inProgress = jobId !== null && !failed && !statusUnknown;
     const progressPct = useMemo(() => {
         if (!job || job.totalSteps === 0) return 5;
         return Math.max(5, Math.round((job.currentStep / job.totalSteps) * 100));
@@ -222,7 +233,9 @@ export const ClearAccountModal = ({ isOpen, onClose }: ClearAccountModalProps) =
                     <ModalSubtitle>
                         {inProgress
                             ? 'Trwa czyszczenie konta. Nie zamykaj tego okna.'
-                            : 'Operacja jest nieodwracalna i obejmuje wszystkie dane studia.'}
+                            : statusUnknown
+                                ? 'Nie wiemy, na jakim etapie jest czyszczenie.'
+                                : 'Operacja jest nieodwracalna i obejmuje wszystkie dane studia.'}
                     </ModalSubtitle>
                 </ModalTitleGroup>
                 {!inProgress && <CloseBtn onClick={handleClose} />}
@@ -244,6 +257,15 @@ export const ClearAccountModal = ({ isOpen, onClose }: ClearAccountModalProps) =
                         <HintText>
                             Czyszczenie dokończy się po stronie serwera nawet w razie utraty połączenia.
                             Po zakończeniu aplikacja uruchomi się ponownie.
+                        </HintText>
+                    </ProgressWrap>
+                ) : statusUnknown ? (
+                    <ProgressWrap>
+                        <ErrorMsg role="alert">Nie udało się sprawdzić stanu czyszczenia konta.</ErrorMsg>
+                        <HintText>
+                            Czyszczenie mogło już ruszyć i w takim razie dokończy się po stronie serwera.
+                            Sprawdź stan ponownie albo zamknij okno: po ponownym otwarciu zobaczysz postęp
+                            trwającego czyszczenia. Identyfikator operacji: {jobId}.
                         </HintText>
                     </ProgressWrap>
                 ) : failed ? (
@@ -294,11 +316,13 @@ export const ClearAccountModal = ({ isOpen, onClose }: ClearAccountModalProps) =
                             <FieldLabel htmlFor="clear-account-name">
                                 {CONFIRMATION_NAME_LABEL}: <strong>{companyName || '…'}</strong>
                             </FieldLabel>
+                            {/* Podpowiedź z nazwą firmy w polu pozwalała przepisać ją bez czytania -
+                                a przepisanie ma być świadomym gestem. Nazwa stoi w etykiecie. */}
                             <FieldInput
                                 id="clear-account-name"
                                 value={confirmationName}
                                 onChange={e => setConfirmationName(e.target.value)}
-                                placeholder={companyName}
+                                placeholder="Nazwa firmy"
                                 autoComplete="off"
                             />
                         </FormField>
@@ -319,8 +343,13 @@ export const ClearAccountModal = ({ isOpen, onClose }: ClearAccountModalProps) =
 
             {!inProgress && (
                 <ModalFooter>
-                    <CancelBtn onClick={handleClose}>{failed ? 'Zamknij' : 'Anuluj'}</CancelBtn>
-                    {!failed && (
+                    <CancelBtn onClick={handleClose}>{failed || statusUnknown ? 'Zamknij' : 'Anuluj'}</CancelBtn>
+                    {statusUnknown && (
+                        <CancelBtn onClick={() => statusQuery.refetch()} disabled={statusQuery.isFetching}>
+                            {statusQuery.isFetching ? 'Sprawdzanie…' : 'Sprawdź ponownie'}
+                        </CancelBtn>
+                    )}
+                    {!failed && !statusUnknown && (
                         <DangerBtn onClick={handleSubmit} disabled={!canSubmit}>
                             {startReset.isPending ? 'Rozpoczynanie…' : 'Wyczyść konto bezpowrotnie'}
                         </DangerBtn>

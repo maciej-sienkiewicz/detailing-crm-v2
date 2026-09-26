@@ -191,4 +191,64 @@ describe('ClearAccountModal', () => {
         // Krzyżyk w nagłówku i „Zamknij" w stopce - obie drogi wyjścia wracają po porażce.
         expect(screen.getAllByRole('button', { name: /zamknij/i }).length).toBeGreaterThan(0);
     });
+
+    it('pole potwierdzenia nie podpowiada nazwy firmy - nazwa stoi w etykiecie', async () => {
+        renderModal();
+        await screen.findByText(/zostaną bezpowrotnie usunięte/i);
+
+        expect(nameInput()).not.toHaveAttribute('placeholder', COMPANY_NAME);
+        expect(await screen.findByText(COMPANY_NAME)).toBeInTheDocument();
+    });
+
+    it('nieudany odczyt stanu nie zamyka użytkownika w oknie: jest „Zamknij" i „Sprawdź ponownie"', async () => {
+        vi.mocked(accountResetApi.getLatest).mockResolvedValue(job());
+        vi.mocked(accountResetApi.getStatus).mockRejectedValue(new Error('Network Error'));
+        const { onClose } = renderModal();
+
+        expect(await screen.findByText(/nie udało się sprawdzić stanu/i)).toBeInTheDocument();
+        expect(screen.getByText(/job-1/)).toBeInTheDocument();
+
+        // Ponowne sprawdzenie pyta serwer jeszcze raz i po sukcesie wraca do postępu.
+        vi.mocked(accountResetApi.getStatus).mockResolvedValue(job());
+        const callsBefore = vi.mocked(accountResetApi.getStatus).mock.calls.length;
+        await userEvent.click(screen.getByRole('button', { name: /sprawdź ponownie/i }));
+        await waitFor(() =>
+            expect(vi.mocked(accountResetApi.getStatus).mock.calls.length).toBeGreaterThan(callsBefore)
+        );
+        expect(await screen.findByText(/trwa czyszczenie konta/i)).toBeInTheDocument();
+        expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it('przy nieudanym odczycie stanu da się zamknąć okno', async () => {
+        vi.mocked(accountResetApi.getLatest).mockResolvedValue(job());
+        vi.mocked(accountResetApi.getStatus).mockRejectedValue(new Error('Network Error'));
+        const { onClose } = renderModal();
+
+        await screen.findByText(/nie udało się sprawdzić stanu/i);
+        const closeButtons = screen.getAllByRole('button', { name: /zamknij/i });
+        await userEvent.click(closeButtons[closeButtons.length - 1]);
+        expect(onClose).toHaveBeenCalled();
+    });
+
+    it('po FAILED zamknięcie czyści zlecony job - można zlecić czyszczenie od nowa', async () => {
+        vi.mocked(accountResetApi.getStatus).mockResolvedValue(job({ status: 'FAILED', error: 'Błąd kroku' }));
+        const { onClose } = renderModal();
+        await screen.findByText(/zostaną bezpowrotnie usunięte/i);
+
+        await userEvent.type(nameInput(), COMPANY_NAME);
+        await userEvent.type(passwordInput(), 'moje-haslo');
+        await userEvent.click(dangerButton());
+        expect(await screen.findByText(/nie powiodło się/i)).toBeInTheDocument();
+
+        // Ostatni job to już FAILED - nie wznawiamy go, tylko pokazujemy formularz.
+        vi.mocked(accountResetApi.getLatest).mockResolvedValue(job({ status: 'FAILED' }));
+        const closeButtons = screen.getAllByRole('button', { name: /zamknij/i });
+        await userEvent.click(closeButtons[closeButtons.length - 1]);
+        expect(onClose).toHaveBeenCalled();
+
+        // Okno w teście zostaje zamontowane (isOpen), więc widać, dokąd wraca: do formularza.
+        expect(await screen.findByText(/zostaną bezpowrotnie usunięte/i)).toBeInTheDocument();
+        expect(nameInput()).toHaveValue('');
+        expect(dangerButton()).toBeInTheDocument();
+    });
 });
