@@ -25,6 +25,8 @@ import { usePushDevice } from '../hooks/usePushDevice';
 import { isMobileDevice } from '../utils/webPush';
 import { PushNotificationWizard } from './PushNotificationWizard';
 import { PushDeviceList } from './PushDeviceList';
+// Bezpośrednio z pliku, nie z indeksu modułu: indeks ciągnie widoki Statystyk z wykresami.
+import { ReportNotificationSetting } from '@/modules/statistics/components/ReportNotificationSetting';
 
 const PAIRING_URL_PATH = '/call-device';
 
@@ -61,6 +63,8 @@ export function PushNotificationsPanel() {
                     </DesktopNote>
                 )}
             </PairingBlock>
+
+            <ReportNotificationSetting />
 
             {/* Na telefonie nie da się zeskanować własnego ekranu - kod QR zostaje
                 dla komputera, jako sposób przeniesienia się na telefon. */}

@@ -80,7 +80,6 @@ export const SCOPED_SHORTCUTS: ScopedShortcutGroup[] = [
         shortcuts: [
             { key: '1', to: '/statistics', description: 'Przychody i sprzedaż' },
             { key: '2', to: '/statistics/costs', description: 'Koszta' },
-            { key: '3', to: '/statistics/report', description: 'Raport' },
         ],
     },
     {
