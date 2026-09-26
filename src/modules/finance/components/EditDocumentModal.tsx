@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { ChevronDown } from 'lucide-react';
-import { DocumentType, PaymentMethod, DocumentDirection, type FinancialDocument } from '../types';
+import { PaymentMethod, DocumentDirection, type FinancialDocument } from '../types';
 import { useUpdateDocument } from '../hooks/useFinance';
-import { groszToInputValue, inputValueToGrosze } from '../utils/formatters';
-import { documentVatForNet } from '../utils/amountInputs';
-import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
+import { documentAmountsFrom, documentAmountsToCents, type DocumentAmounts } from '../utils/amountInputs';
+import { apiErrorMessage } from '@/modules/visits/api/apiError';
+import { Notice } from '@/common/components/ui';
+import { DocumentAmountFields } from './DocumentAmountFields';
 import {
     ModalShell,
     ModalHeader,
@@ -50,6 +51,18 @@ const DirectionRow = styled.div`
     align-items: center;
     gap: 10px;
     margin-bottom: 4px;
+`;
+
+const ReadOnlyValue = styled.span`
+    display: block;
+    padding: 12px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #0f172a;
+`;
+
+const LockNote = styled.div`
+    margin-bottom: 20px;
 `;
 
 const DirectionHint = styled.p`
@@ -177,10 +190,8 @@ interface Props {
 }
 
 interface FormState {
-    documentType:     string;
     paymentMethod:    string;
-    totalNetDisplay:  string;
-    totalVatDisplay:  string;
+    amounts:          DocumentAmounts;
     issueDate:        string;
     dueDate:          string;
     description:      string;
@@ -190,10 +201,8 @@ interface FormState {
 
 function docToForm(doc: FinancialDocument): FormState {
     return {
-        documentType:     doc.documentType,
         paymentMethod:    doc.paymentMethod,
-        totalNetDisplay:  groszToInputValue(doc.totalNet),
-        totalVatDisplay:  groszToInputValue(doc.totalVat),
+        amounts:          documentAmountsFrom(doc.totalNet, doc.totalGross),
         issueDate:        doc.issueDate,
         dueDate:          doc.dueDate ?? '',
         description:      doc.description  ?? '',
@@ -202,31 +211,24 @@ function docToForm(doc: FinancialDocument): FormState {
     };
 }
 
-export const EditDocumentModal: React.FC<Props> = ({ document, onClose }) => {
+/*
+ * Formularz dostaje `key` dokumentu i stan początkowy z niego, zamiast przepisywać
+ * dokument do stanu w efekcie: inny dokument = nowy formularz, bez kaskady renderów.
+ */
+export const EditDocumentModal: React.FC<Props> = ({ document, onClose }) =>
+    document ? <EditDocumentForm key={document.id} document={document} onClose={onClose} /> : null;
+
+const EditDocumentForm: React.FC<{ document: FinancialDocument; onClose: () => void }> = ({ document, onClose }) => {
     const updateDoc = useUpdateDocument();
     const [error, setError] = useState<string | null>(null);
-    const [form, setForm] = useState<FormState | null>(null);
-
-    useEffect(() => {
-        if (document) {
-            setForm(docToForm(document));
-            setError(null);
-        }
-    }, [document]);
-
-    if (!document || !form) return null;
+    const [form, setForm] = useState<FormState>(() => docToForm(document));
 
     const isIncome = document.direction === DocumentDirection.INCOME;
-
-    // VAT w groszach (brutto − netto przy 23%), nie `(netto × 0,23).toFixed(2)`:
-    // zmiennoprzecinkowo 13,50 zł netto dawało 3,10 zł VAT zamiast 3,11 zł.
-    const handleNetChange = (value: string) => {
-        setForm(prev => prev && ({
-            ...prev,
-            totalNetDisplay: value,
-            totalVatDisplay: documentVatForNet(value),
-        }));
-    };
+    // Te same reguły pilnuje backend (UpdateFinancialDocumentHandler) - tu tylko po to,
+    // żeby nie dało się wpisać zmiany, którą serwer i tak odrzuci.
+    const isKsefInvoice = !!document.ksefInvoiceId;
+    const isFromVisit = document.source === 'VISIT';
+    const amountsLocked = isKsefInvoice || isFromVisit;
 
     const set = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
         setForm(prev => prev && ({ ...prev, [key]: e.target.value }));
@@ -246,12 +248,9 @@ export const EditDocumentModal: React.FC<Props> = ({ document, onClose }) => {
         e.preventDefault();
         setError(null);
 
-        const totalNet   = inputValueToGrosze(form.totalNetDisplay);
-        const totalVat   = inputValueToGrosze(form.totalVatDisplay);
-        const totalGross = totalNet + totalVat;
-
-        if (totalNet <= 0) {
-            setError('Kwota netto musi być większa od zera.');
+        const cents = documentAmountsToCents(form.amounts);
+        if (!cents || cents.totalGross <= 0) {
+            setError('Kwota brutto musi być większa od zera.');
             return;
         }
         if (form.paymentMethod === PaymentMethod.TRANSFER && !form.dueDate) {
@@ -263,11 +262,11 @@ export const EditDocumentModal: React.FC<Props> = ({ document, onClose }) => {
             await updateDoc.mutateAsync({
                 id: document.id,
                 data: {
-                    documentType:     form.documentType,
+                    // Typ się nie zmienia (numer należy do serii) - idzie, żeby serwer
+                    // odrzucił zapis, gdyby okno pokazywało nieaktualny dokument.
+                    documentType:     document.documentType,
                     paymentMethod:    form.paymentMethod,
-                    totalNet,
-                    totalVat,
-                    totalGross,
+                    ...cents,
                     issueDate:        form.issueDate,
                     dueDate:          form.dueDate || null,
                     description:      form.description      || null,
@@ -276,13 +275,13 @@ export const EditDocumentModal: React.FC<Props> = ({ document, onClose }) => {
                 },
             });
             onClose();
-        } catch {
-            setError('Nie udało się zapisać zmian. Spróbuj ponownie.');
+        } catch (e) {
+            setError(apiErrorMessage(e, 'Nie udało się zapisać zmian. Spróbuj ponownie.'));
         }
     };
 
     return (
-        <ModalShell isOpen={!!document} onClose={onClose} size="md">
+        <ModalShell isOpen onClose={onClose} size="md">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Edytuj dokument</ModalTitle>
@@ -302,73 +301,65 @@ export const EditDocumentModal: React.FC<Props> = ({ document, onClose }) => {
                 <DirectionHint>Kierunek dokumentu jest stały. Aby go zmienić, usuń i utwórz nowy.</DirectionHint>
 
                 <form id="edit-document-form" onSubmit={handleSubmit} autoComplete="off">
+                    {isKsefInvoice && (
+                        <LockNote>
+                            <Notice tone="info" title="Dokument faktury KSeF">
+                                Kwoty, płatność, daty i nabywcę faktury przyjętej w KSeF zmienia się fakturą
+                                korygującą. Tutaj możesz zmienić opis.
+                            </Notice>
+                        </LockNote>
+                    )}
+                    {!isKsefInvoice && isFromVisit && (
+                        <LockNote>
+                            <Notice tone="info" title="Dokument z wydania pojazdu">
+                                Kwota musi zgadzać się z kwotą wizyty. Możesz poprawić formę płatności, daty i opis.
+                            </Notice>
+                        </LockNote>
+                    )}
+
                     <ModalSectionTitle>Rodzaj dokumentu</ModalSectionTitle>
                     <FormGrid>
                         <FormField>
-                            <FieldLabel>Typ dokumentu</FieldLabel>
-                            <ModalSelect
-                                value={form.documentType}
-                                onChange={setField('documentType')}
-                                options={[
-                                    { value: DocumentType.INVOICE, label: 'Faktura' },
-                                    { value: DocumentType.RECEIPT, label: 'Paragon' },
-                                    { value: DocumentType.OTHER,   label: 'Inny' },
-                                ]}
-                            />
+                            <FieldLabel as="span">Typ dokumentu</FieldLabel>
+                            {/* Bez wyboru: numer {document.documentNumber} należy do serii tego typu. */}
+                            <ReadOnlyValue>{document.documentTypeLabel}</ReadOnlyValue>
                         </FormField>
 
                         <FormField>
                             <FieldLabel>Metoda płatności</FieldLabel>
-                            <ModalSelect
-                                value={form.paymentMethod}
-                                onChange={setField('paymentMethod')}
-                                options={[
-                                    { value: PaymentMethod.CASH,     label: 'Gotówka' },
-                                    { value: PaymentMethod.CARD,     label: 'Karta' },
-                                    { value: PaymentMethod.TRANSFER, label: 'Przelew' },
-                                    { value: PaymentMethod.OTHER,    label: 'Inne' },
-                                ]}
-                            />
+                            {isKsefInvoice ? (
+                                <ReadOnlyValue>{document.paymentMethodLabel}</ReadOnlyValue>
+                            ) : (
+                                <ModalSelect
+                                    value={form.paymentMethod}
+                                    onChange={setField('paymentMethod')}
+                                    options={[
+                                        { value: PaymentMethod.CASH,          label: 'Gotówka' },
+                                        { value: PaymentMethod.CARD,          label: 'Karta' },
+                                        { value: PaymentMethod.TRANSFER,      label: 'Przelew' },
+                                        { value: PaymentMethod.BLIK_NA_NUMER, label: 'BLIK na numer' },
+                                        { value: PaymentMethod.BLIK_TERMINAL, label: 'BLIK terminal' },
+                                        { value: PaymentMethod.OTHER,         label: 'Inne' },
+                                    ]}
+                                />
+                            )}
                         </FormField>
                     </FormGrid>
+                    {!isKsefInvoice && (form.paymentMethod === PaymentMethod.CASH) !== (document.paymentMethod === PaymentMethod.CASH) && (
+                        <DirectionHint>
+                            {form.paymentMethod === PaymentMethod.CASH
+                                ? 'Po zapisie kwota wpłynie do kasy jako korekta dokumentu.'
+                                : 'Po zapisie kwota wyjdzie z kasy jako korekta dokumentu.'}
+                        </DirectionHint>
+                    )}
 
                     <ModalSectionTitle>Kwoty</ModalSectionTitle>
-                    <FormGrid>
-                        <FormField>
-                            <FieldLabel htmlFor="ed-netAmount">Kwota netto (PLN)</FieldLabel>
-                            <InputShell>
-                                <BareInput
-                                    id="ed-netAmount"
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    placeholder="0.00"
-                                    value={form.totalNetDisplay}
-                                    onChange={e => handleNetChange(e.target.value)}
-                                    onKeyDown={handleZeroAwareKeyDown(form.totalNetDisplay, handleNetChange)}
-                                    required
-                                    autoComplete="new-password"
-                                />
-                            </InputShell>
-                        </FormField>
-
-                        <FormField>
-                            <FieldLabel htmlFor="ed-vatAmount">VAT (23%)</FieldLabel>
-                            <InputShell>
-                                <BareInput
-                                    id="ed-vatAmount"
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    placeholder="0.00"
-                                    value={form.totalVatDisplay}
-                                    onChange={set('totalVatDisplay')}
-                                    onKeyDown={handleZeroAwareKeyDown(form.totalVatDisplay, setField('totalVatDisplay'))}
-                                    autoComplete="new-password"
-                                />
-                            </InputShell>
-                        </FormField>
-                    </FormGrid>
+                    <DocumentAmountFields
+                        idPrefix="ed"
+                        value={form.amounts}
+                        onChange={amounts => setForm(prev => prev && ({ ...prev, amounts }))}
+                        disabled={amountsLocked}
+                    />
 
                     <ModalSectionTitle>Daty</ModalSectionTitle>
                     <FormGrid>
@@ -377,6 +368,7 @@ export const EditDocumentModal: React.FC<Props> = ({ document, onClose }) => {
                             <InputShell>
                                 <BareInput
                                     id="ed-issueDate"
+                                    disabled={isKsefInvoice}
                                     type="date"
                                     value={form.issueDate}
                                     onChange={set('issueDate')}
@@ -396,6 +388,7 @@ export const EditDocumentModal: React.FC<Props> = ({ document, onClose }) => {
                             <InputShell>
                                 <BareInput
                                     id="ed-dueDate"
+                                    disabled={isKsefInvoice}
                                     type="date"
                                     value={form.dueDate}
                                     onChange={set('dueDate')}
@@ -413,6 +406,7 @@ export const EditDocumentModal: React.FC<Props> = ({ document, onClose }) => {
                             <InputShell>
                                 <BareInput
                                     id="ed-counterpartyName"
+                                    disabled={isKsefInvoice}
                                     type="text"
                                     placeholder="Jan Kowalski / Firma Sp. z o.o."
                                     value={form.counterpartyName}
@@ -424,13 +418,17 @@ export const EditDocumentModal: React.FC<Props> = ({ document, onClose }) => {
 
                         <FormField $fullWidth>
                             <FieldLabel htmlFor="ed-counterpartyNip">NIP</FieldLabel>
-                            <NipInputWithGus
-                                id="ed-counterpartyNip"
-                                value={form.counterpartyNip}
-                                onChange={setField('counterpartyNip')}
-                                onFetch={handleGUSFetch}
-                                placeholder="1234567890"
-                            />
+                            {isKsefInvoice ? (
+                                <ReadOnlyValue id="ed-counterpartyNip">{form.counterpartyNip || 'Brak'}</ReadOnlyValue>
+                            ) : (
+                                <NipInputWithGus
+                                    id="ed-counterpartyNip"
+                                    value={form.counterpartyNip}
+                                    onChange={setField('counterpartyNip')}
+                                    onFetch={handleGUSFetch}
+                                    placeholder="1234567890"
+                                />
+                            )}
                         </FormField>
                     </FormGrid>
 

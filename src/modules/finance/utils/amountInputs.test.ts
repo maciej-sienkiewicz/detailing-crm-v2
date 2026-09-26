@@ -3,7 +3,14 @@ import { grossToNet, netToGross } from '@/common/utils/priceAdjustment';
 import { priceInputsForVatRate } from '@/common/utils/priceInputs';
 import {
     DOCUMENT_VAT_RATE,
+    EMPTY_DOCUMENT_AMOUNTS,
     EXPENSE_AMOUNT_INPUT,
+    documentAmountsFrom,
+    documentAmountsToCents,
+    inferDocumentVatRate,
+    withDocumentGross,
+    withDocumentNet,
+    withDocumentVatRate,
     documentVatForNet,
     expenseGrossForNet,
     expenseNetForGross,
@@ -128,5 +135,39 @@ describe('documentVatForNet', () => {
     it('inna stawka, gdy okno kiedyś ją dostanie', () => {
         expect(documentVatForNet('100', 8)).toBe('8.00');
         expect(documentVatForNet('100', -1)).toBe('0.00');
+    });
+});
+
+// ─── Dokument przychodowy: stawka, netto, brutto ─────────────────────────────
+
+describe('kwoty dokumentu przychodowego', () => {
+    it('rozpoznaje stawkę zapisanego dokumentu z jego kwot', () => {
+        expect(inferDocumentVatRate(154_472, 190_000)).toBe('23');   // brutto wpisane
+        expect(inferDocumentVatRate(100_000, 108_000)).toBe('8');
+        expect(inferDocumentVatRate(50_000, 50_000)).toBe('0');
+        expect(inferDocumentVatRate(0, 0)).toBe('23');
+    });
+
+    it('otwarty paragon 1900,00 zł brutto zapisuje się jako 1900,00, nie 1900,01', () => {
+        const amounts = documentAmountsFrom(154_472, 190_000);
+        expect(amounts.priceSide).toBe('gross');
+        expect(documentAmountsToCents(amounts)).toEqual({ totalNet: 154_472, totalVat: 35_528, totalGross: 190_000 });
+    });
+
+    it('zmiana stawki zostawia wpisane brutto i liczy netto od nowa', () => {
+        const typed = withDocumentGross(EMPTY_DOCUMENT_AMOUNTS, '1900');
+        const at8 = withDocumentVatRate(typed, '8');
+        expect(at8.gross).toBe('1900');
+        expect(at8.net).toBe('1759.26');
+        expect(documentAmountsToCents(withDocumentVatRate(at8, '23'))?.totalGross).toBe(190_000);
+    });
+
+    it('VAT to różnica brutto i netto', () => {
+        const amounts = withDocumentNet(EMPTY_DOCUMENT_AMOUNTS, '13.50');
+        expect(documentAmountsToCents(amounts)).toEqual({ totalNet: 1_350, totalVat: 311, totalGross: 1_661 });
+    });
+
+    it('niepełne pola: nic do zapisu', () => {
+        expect(documentAmountsToCents(EMPTY_DOCUMENT_AMOUNTS)).toBeNull();
     });
 });
