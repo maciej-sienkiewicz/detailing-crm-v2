@@ -1,9 +1,11 @@
 // src/modules/gallery/components/GalleryFilterBar.tsx
 
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import styled, { css } from 'styled-components';
 import { pageGutter } from '@/common/components/PageContainer';
 import { useMediaQuery } from '@/common/hooks';
+import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 
 // ─── outer shell ──────────────────────────────────────────────────────────────
@@ -330,23 +332,30 @@ const AddTagBtn = styled.button<{ $hasActive: boolean }>`
     }
 `;
 
-const DropdownPanel = styled.div<{ $open: boolean }>`
-    position: absolute;
-    top: calc(100% + 8px);
+/*
+ * Panel w portalu do <body>, w `position: fixed`, ustawiany przez useFloatingPanel.
+ * Wcześniej stał `absolute` z `left: 0` pod przyciskiem - a przycisk „Tagi" na
+ * telefonie jest drugi w rzędzie, więc 300-pikselowy panel wyjeżdżał za prawą
+ * krawędź ekranu (węższe 260 px przy 480 px tylko zmniejszało, o ile). Teraz
+ * szerokość przycina placement do ekranu, a panel przesuwa się, zanim krawędź dotknie.
+ */
+const DropdownPanel = styled.div`
+    position: fixed;
+    top: 0;
     left: 0;
-    z-index: 300;
+    z-index: 9000;
     width: 300px;
+    box-sizing: border-box;
     background: ${p => p.theme.colors.surface};
     border: 1px solid ${p => p.theme.colors.border};
     border-radius: ${p => p.theme.radii.lg};
     box-shadow: ${p => p.theme.shadows.lg};
-    display: ${p => p.$open ? 'flex' : 'none'};
+    display: flex;
     flex-direction: column;
     overflow: hidden;
-
-    @media (max-width: 480px) {
-        width: 260px;
-    }
+    /* Do pierwszego pomiaru niewidoczny, żeby nie mignął w lewym górnym rogu. */
+    visibility: hidden;
+    overscroll-behavior: contain;
 `;
 
 const DropdownHeader = styled.div`
@@ -498,30 +507,52 @@ export const GalleryFilterBar = ({
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [tagSearch, setTagSearch] = useState('');
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const panelRef = useRef<HTMLDivElement>(null);
     const tagSearchRef = useRef<HTMLInputElement>(null);
 
+    // Panel żyje w portalu, więc NIE jest już potomkiem dropdownRef - kliknięcie
+    // w tag liczymy jako „w środku" osobno, inaczej mousedown zamknąłby panel,
+    // zanim onClick tagu zdąży się wykonać.
     useEffect(() => {
+        if (!dropdownOpen) return;
         const handler = (e: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-                setDropdownOpen(false);
-            }
+            const target = e.target as Node;
+            if (dropdownRef.current?.contains(target) || panelRef.current?.contains(target)) return;
+            setDropdownOpen(false);
+        };
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setDropdownOpen(false);
         };
         document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-    }, []);
+        document.addEventListener('keydown', onKey);
+        return () => {
+            document.removeEventListener('mousedown', handler);
+            document.removeEventListener('keydown', onKey);
+        };
+    }, [dropdownOpen]);
 
+    // Wyszukiwanie zeruje samo otwarcie (toggleDropdown), efekt tylko przenosi fokus -
+    // setState w efekcie dawał dodatkowy render przy każdym otwarciu.
     useEffect(() => {
         if (dropdownOpen) {
-            setTagSearch('');
             setTimeout(() => tagSearchRef.current?.focus(), 0);
         }
     }, [dropdownOpen]);
+
+    const toggleDropdown = () => {
+        if (!dropdownOpen) setTagSearch('');
+        setDropdownOpen(o => !o);
+    };
 
     const filteredTags = useMemo(() => {
         const q = tagSearch.trim().toLowerCase();
         if (!q) return availableTags;
         return availableTags.filter(t => t.toLowerCase().includes(q));
     }, [availableTags, tagSearch]);
+
+    // Liczba pozycji zmienia wysokość panelu przy wyszukiwaniu - panel postawiony
+    // NAD przyciskiem musi się wtedy przemierzyć, inaczej odkleiłby się od niego.
+    useFloatingPanel(dropdownOpen, dropdownRef, panelRef, { align: 'left', offset: 8 }, filteredTags.length);
 
     const hasVehicleFilter = !!brand || !!model;
     const hasTagFilter = activeTags.length > 0;
@@ -596,7 +627,7 @@ export const GalleryFilterBar = ({
                     <AddTagWrap ref={dropdownRef}>
                         <AddTagBtn
                             $hasActive={hasTagFilter}
-                            onClick={() => setDropdownOpen(o => !o)}
+                            onClick={toggleDropdown}
                             type="button"
                         >
                             <IconPlus />
@@ -605,40 +636,43 @@ export const GalleryFilterBar = ({
                                 : (hasTagFilter ? 'Dodaj kolejny' : 'Wybierz tagi')}
                         </AddTagBtn>
 
-                        <DropdownPanel $open={dropdownOpen}>
-                            <DropdownHeader>
-                                <DropdownTitle>Filtruj po tagach</DropdownTitle>
-                                <DropdownLogicNote>
-                                    Zdjęcia muszą posiadać <strong>wszystkie</strong> zaznaczone tagi (AND).
-                                </DropdownLogicNote>
-                                <TagSearchInput
-                                    ref={tagSearchRef}
-                                    type="text"
-                                    placeholder="Szukaj tagu..."
-                                    value={tagSearch}
-                                    onChange={e => setTagSearch(e.target.value)}
-                                />
-                            </DropdownHeader>
-                            <TagListScroll>
-                                {filteredTags.length === 0 ? (
-                                    <NoTagsMsg>Brak pasujących tagów</NoTagsMsg>
-                                ) : (
-                                    <TagListInner>
-                                        {filteredTags.map(tag => (
-                                            <TagPill
-                                                key={tag}
-                                                $active={activeTags.includes(tag)}
-                                                onClick={() => onTagToggle(tag)}
-                                                type="button"
-                                            >
-                                                {activeTags.includes(tag) && <IconX size={8} />}
-                                                {tag}
-                                            </TagPill>
-                                        ))}
-                                    </TagListInner>
-                                )}
-                            </TagListScroll>
-                        </DropdownPanel>
+                        {dropdownOpen && createPortal(
+                            <DropdownPanel ref={panelRef}>
+                                <DropdownHeader>
+                                    <DropdownTitle>Filtruj po tagach</DropdownTitle>
+                                    <DropdownLogicNote>
+                                        Zdjęcia muszą posiadać <strong>wszystkie</strong> zaznaczone tagi (AND).
+                                    </DropdownLogicNote>
+                                    <TagSearchInput
+                                        ref={tagSearchRef}
+                                        type="text"
+                                        placeholder="Szukaj tagu..."
+                                        value={tagSearch}
+                                        onChange={e => setTagSearch(e.target.value)}
+                                    />
+                                </DropdownHeader>
+                                <TagListScroll>
+                                    {filteredTags.length === 0 ? (
+                                        <NoTagsMsg>Brak pasujących tagów</NoTagsMsg>
+                                    ) : (
+                                        <TagListInner>
+                                            {filteredTags.map(tag => (
+                                                <TagPill
+                                                    key={tag}
+                                                    $active={activeTags.includes(tag)}
+                                                    onClick={() => onTagToggle(tag)}
+                                                    type="button"
+                                                >
+                                                    {activeTags.includes(tag) && <IconX size={8} />}
+                                                    {tag}
+                                                </TagPill>
+                                            ))}
+                                        </TagListInner>
+                                    )}
+                                </TagListScroll>
+                            </DropdownPanel>,
+                            document.body,
+                        )}
                     </AddTagWrap>
                 </SectionControls>
             </FilterSection>

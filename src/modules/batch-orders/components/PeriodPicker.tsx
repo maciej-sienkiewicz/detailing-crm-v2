@@ -5,15 +5,16 @@
 // dowolny miesiąc z dwóch lat i zakres niestandardowy.
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 import {
     currentMonthPeriod, isWholeMonth, monthPeriod, parseIsoDate, periodTitle, shiftMonth,
     type Period,
 } from '../utils/period';
 
 const Wrap = styled.div`
-    position: relative;
     display: inline-flex;
     max-width: 100%;
 `;
@@ -75,13 +76,21 @@ const LabelBtn = styled.button<{ $open: boolean }>`
     &:hover { background: ${p => p.theme.colors.surfaceAlt}; }
 `;
 
+/*
+ * Panel w portalu do <body>, w `position: fixed`. Stojąc `absolute` w akcjach
+ * PageHeadera był na komputerze ucinany przez jego kartę z `overflow: hidden`,
+ * a `max-width: calc(100vw - 32px)` z `left: 0` pilnowało szerokości, ale nie
+ * pozycji - przełącznik przesunięty w prawo wypychał panel za krawędź. Szerokość
+ * i pozycję w ekranie trzyma teraz useFloatingPanel; do pomiaru panel jest niewidoczny.
+ */
 const Panel = styled.div`
-    position: absolute;
-    top: calc(100% + 6px);
+    position: fixed;
+    top: 0;
     left: 0;
-    z-index: 50;
+    z-index: 9000;
+    visibility: hidden;
+    overscroll-behavior: contain;
     width: 320px;
-    max-width: calc(100vw - 32px);
     box-sizing: border-box;
     padding: 12px;
     display: flex;
@@ -125,6 +134,7 @@ const FieldLabel = styled.label`
 `;
 
 const Control = styled.select`
+    min-width: 0;
     height: 38px;
     padding: 0 10px;
     border: 1px solid ${p => p.theme.colors.border};
@@ -209,11 +219,21 @@ export function PeriodPicker({ value, onChange }: Props) {
     const [customFrom, setCustomFrom] = useState(value.from);
     const [customTo, setCustomTo] = useState(value.to);
     const wrapRef = useRef<HTMLDivElement>(null);
+    const panelRef = useRef<HTMLDivElement>(null);
+
+    // Błąd zakresu dokłada wiersz - panel postawiony nad przełącznikiem musi się
+    // wtedy przemierzyć, żeby nie najechać na niego dołem.
+    const rangeInvalid = !!customFrom && !!customTo && customFrom > customTo;
+    useFloatingPanel(open, wrapRef, panelRef, { align: 'left', offset: 6 }, rangeInvalid);
 
     useEffect(() => {
         if (!open) return;
+        // Panel jest w portalu, poza wrapRef - kliknięcie w jego pola i skróty
+        // liczymy jako „w środku" osobno, inaczej mousedown zamykałby panel.
         const onDown = (e: MouseEvent) => {
-            if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+            const target = e.target as Node;
+            if (wrapRef.current?.contains(target) || panelRef.current?.contains(target)) return;
+            setOpen(false);
         };
         const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
         document.addEventListener('mousedown', onDown);
@@ -240,7 +260,6 @@ export function PeriodPicker({ value, onChange }: Props) {
     const selectedMonth = isWholeMonth(value)
         ? `${parseIsoDate(value.from).getFullYear()}-${parseIsoDate(value.from).getMonth()}`
         : '';
-    const rangeInvalid = !!customFrom && !!customTo && customFrom > customTo;
 
     function pick(period: Period) {
         onChange(period);
@@ -269,8 +288,8 @@ export function PeriodPicker({ value, onChange }: Props) {
                 </StepBtn>
             </Stepper>
 
-            {open && (
-                <Panel role="dialog" aria-label="Wybór okresu">
+            {open && createPortal(
+                <Panel ref={panelRef} role="dialog" aria-label="Wybór okresu">
                     <PresetRow>
                         <Chip type="button" $active={value.from === current.from && value.to === current.to} onClick={() => pick(current)}>
                             Bieżący miesiąc
@@ -314,7 +333,8 @@ export function PeriodPicker({ value, onChange }: Props) {
                     >
                         Pokaż zakres
                     </ApplyBtn>
-                </Panel>
+                </Panel>,
+                document.body,
             )}
         </Wrap>
     );
