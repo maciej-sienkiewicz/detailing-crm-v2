@@ -43,7 +43,15 @@ export const companyApi = {
         return response.data;
     },
 
-    updateCompanySettings: async (data: UpdateCompanySettingsRequest): Promise<CompanySettings> => {
+    /**
+     * `skipErrorToast` tylko na życzenie: CompanySection pokazuje powód odrzucenia we
+     * własnym dymku z tytułem, a SellerPrompt (wydanie pojazdu) nie ma własnego
+     * komunikatu i polega na globalnym.
+     */
+    updateCompanySettings: async (
+        data: UpdateCompanySettingsRequest,
+        options: { skipErrorToast?: boolean } = {},
+    ): Promise<CompanySettings> => {
         if (USE_MOCKS) {
             return new Promise(resolve =>
                 setTimeout(() => {
@@ -52,7 +60,9 @@ export const companyApi = {
                 }, 600)
             );
         }
-        const response = await apiClient.put<CompanySettings>(BASE_PATH, data);
+        const response = await apiClient.put<CompanySettings>(BASE_PATH, data, {
+            skipErrorToast: options.skipErrorToast,
+        });
         return response.data;
     },
 
@@ -85,7 +95,8 @@ export const companyApi = {
                 }, 400)
             );
         }
-        await apiClient.delete(`${BASE_PATH}/logo`);
+        // Jak przy uploadzie: komunikat pokazuje CompanySection, nie interceptor.
+        await apiClient.delete(`${BASE_PATH}/logo`, { skipErrorToast: true });
     },
 
     getVisitNumberingConfig: async (): Promise<VisitNumberingConfig> => {
@@ -94,7 +105,10 @@ export const companyApi = {
     },
 
     updateVisitNumberingConfig: async (data: UpdateVisitNumberingConfigRequest): Promise<VisitNumberingConfig> => {
-        const response = await apiClient.patch<VisitNumberingConfig>(`${BASE_PATH}/visit-numbering-config`, data);
+        // Odmowę (np. nieznany znacznik w formacie) pokazuje VisitNumberingSection.
+        const response = await apiClient.patch<VisitNumberingConfig>(`${BASE_PATH}/visit-numbering-config`, data, {
+            skipErrorToast: true,
+        });
         return response.data;
     },
 

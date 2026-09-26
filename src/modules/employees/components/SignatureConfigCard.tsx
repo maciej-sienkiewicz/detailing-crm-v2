@@ -1,84 +1,71 @@
-import { useRef, useState, useEffect } from 'react';
+// src/modules/employees/components/SignatureConfigCard.tsx
+//
+// „Twój podpis" w Ustawienia → Dokumenty i podpisy (jedyne miejsce użycia, przez
+// MySignatureSection). Podpis pracownika nakładany na protokoły przyjęcia.
+//
+// Po przebudowie ustawień:
+//  - karta leży płasko (Panel) - w kolumnie wyniesiona jest tylko karta dokumentów;
+//  - „Dodaj podpis" nie jest już wypełniony: w oknie jest nim tylko „Dodaj dokument"
+//    w nagłówku sekcji (CLAUDE.md §2). Wypełnione „Zapisz podpis" pojawia się dopiero
+//    w otwartym edytorze - edytor przejmuje okno;
+//  - „Usuń podpis" pyta przez ConfirmationModal (wcześniej usuwał od razu);
+//  - okno „Wyślij link na telefon" stoi na ModalShell zamiast własnej nakładki bez
+//    Escape i bez blokady przewijania (CLAUDE.md §3);
+//  - odpytywanie po wysłaniu linku restartowało się przy każdym renderze rodzica
+//    (nowa funkcja `onChanged` w zależnościach efektu), więc 5-minutowy limit nigdy
+//    nie mijał. Teraz efekt zależy tylko od chwili wysłania linku.
+
+import { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { Check, PenLine, Smartphone, Trash2, X } from 'lucide-react';
 import { SignaturePad, type SignaturePadHandle } from '@/modules/public-signing/components/SignaturePad';
 import { useToast } from '@/common/components/Toast';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import {
+    ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle, ModalContent, ModalFooter, CloseBtn,
+} from '@/common/components/ModalKit';
+import { FormField, FieldLabel, InputShell, BareInput } from '@/common/components/Form';
+import { Button, Notice, Panel, SectionTitle, StatusPill, ui } from '@/common/components/ui';
 
-// ─── Styled ──────────────────────────────────────────────────────────────────
+// ─── Wygląd ───────────────────────────────────────────────────────────────────
 
-const Card = styled.section`
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    box-shadow: ${st.shadowXs};
-    overflow: hidden;
+const Surface = styled(Panel)`
+    padding: 16px 20px 18px;
+
+    @media (max-width: 640px) { padding: 14px 16px 16px; }
 `;
 
-const Header = styled.div`
+const Head = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
-    border-bottom: 1px solid ${st.border};
-`;
-
-const Title = styled.h3`
-    margin: 0;
-    font-size: 13px;
-    font-weight: 700;
-    color: ${st.text};
-    display: flex;
-    align-items: center;
-    gap: 8px;
-`;
-
-const TitleIcon = styled.span`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 7px;
-    background: rgba(14, 165, 233, 0.1);
-    color: #0284c7;
-    svg { width: 14px; height: 14px; }
+    flex-wrap: wrap;
+    gap: 8px 12px;
 `;
 
 const Body = styled.div`
-    padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
+    margin-top: 10px;
 `;
 
-const StatusBadge = styled.div<{ $hasSignature: boolean }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    border-radius: 9999px;
-    font-size: 12px;
-    font-weight: 600;
-    background: ${({ $hasSignature }) => $hasSignature ? 'rgba(16, 185, 129, 0.1)' : 'rgba(148, 163, 184, 0.1)'};
-    color: ${({ $hasSignature }) => $hasSignature ? '#059669' : st.textMuted};
-`;
-
-const Dot = styled.span<{ $color: string }>`
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: ${({ $color }) => $color};
+const Description = styled.p`
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: ${ui.textSecondary};
 `;
 
 const SignaturePreview = styled.div`
-    border: 1px solid ${st.border};
-    border-radius: 10px;
-    overflow: hidden;
-    background: #f8fafc;
     display: flex;
     align-items: center;
     justify-content: center;
     min-height: 100px;
+    border: 1px solid ${ui.line};
+    border-radius: ${ui.radiusStrip};
+    background: ${ui.surfaceSoft};
+    overflow: hidden;
 `;
 
 const SignatureImage = styled.img`
@@ -88,214 +75,34 @@ const SignatureImage = styled.img`
     padding: 12px;
 `;
 
-const Description = styled.p`
-    margin: 0;
-    font-size: 12px;
-    color: ${st.textMuted};
-    line-height: 1.5;
-`;
-
 const ButtonRow = styled.div`
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
 `;
 
-const Btn = styled.button<{ $variant?: 'primary' | 'ghost' | 'danger' }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 14px;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 600;
-    font-family: inherit;
-    cursor: pointer;
-    transition: all 150ms;
-    white-space: nowrap;
-    border: 1px solid;
-
-    ${({ $variant = 'ghost' }) => {
-        if ($variant === 'primary') return `
-            background: #0ea5e9;
-            color: white;
-            border-color: #0ea5e9;
-            &:hover { background: #0284c7; border-color: #0284c7; }
-            &:disabled { opacity: 0.5; cursor: not-allowed; }
-        `;
-        if ($variant === 'danger') return `
-            background: transparent;
-            color: #ef4444;
-            border-color: #fecaca;
-            &:hover { background: #fef2f2; }
-            &:disabled { opacity: 0.5; cursor: not-allowed; }
-        `;
-        return `
-            background: transparent;
-            color: ${st.textSecondary};
-            border-color: ${st.border};
-            &:hover { background: ${st.bgCardAlt}; }
-            &:disabled { opacity: 0.5; cursor: not-allowed; }
-        `;
-    }}
-`;
-
 const PadSection = styled.div`
     display: flex;
     flex-direction: column;
     gap: 10px;
-    padding: 16px;
-    background: ${st.bgCardAlt};
-    border-radius: 10px;
-    border: 1px solid ${st.border};
+    padding: 14px;
+    border: 1px solid ${ui.line};
+    border-radius: ${ui.radiusStrip};
+    background: ${ui.surfaceSoft};
 `;
 
 const PadLabel = styled.p`
     margin: 0;
-    font-size: 12px;
-    font-weight: 600;
-    color: ${st.text};
-`;
-
-// ─── Modal ───────────────────────────────────────────────────────────────────
-
-const Overlay = styled.div`
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 16px;
-`;
-
-const ModalCard = styled.div`
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: 14px;
-    padding: 24px;
-    width: 100%;
-    max-width: 400px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
-`;
-
-const ModalTitle = styled.h3`
-    margin: 0;
-    font-size: 15px;
-    font-weight: 700;
-    color: ${st.text};
-`;
-
-const ModalDesc = styled.p`
-    margin: 0;
-    font-size: 12px;
-    color: ${st.textMuted};
-    line-height: 1.5;
-`;
-
-const ModalInput = styled.input`
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid ${st.border};
-    border-radius: 8px;
     font-size: 14px;
-    font-family: inherit;
-    color: ${st.text};
-    background: ${st.bgCardAlt};
-    box-sizing: border-box;
-    outline: none;
-    transition: border-color 150ms;
-    &:focus { border-color: #0ea5e9; }
-`;
-
-const ModalBtnRow = styled.div`
-    display: flex;
-    gap: 8px;
-    justify-content: flex-end;
-`;
-
-// ─────────────────────────────────────────────────────────────────────────────
-
-const LinkSentBanner = styled.div`
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 14px 16px;
-    background: rgba(14, 165, 233, 0.06);
-    border: 1px solid rgba(14, 165, 233, 0.25);
-    border-radius: 10px;
-`;
-
-const LinkSentIcon = styled.div`
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background: rgba(14, 165, 233, 0.12);
-    color: #0284c7;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    svg { width: 16px; height: 16px; }
-`;
-
-const LinkSentBody = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-`;
-
-const LinkSentTitle = styled.div`
-    font-size: 13px;
     font-weight: 600;
-    color: #0c4a6e;
+    color: ${ui.ink};
 `;
 
-const LinkSentDesc = styled.div`
-    font-size: 12px;
-    color: #0369a1;
-    line-height: 1.5;
-`;
+// ─── Komponent ────────────────────────────────────────────────────────────────
 
-// ─── Icons ───────────────────────────────────────────────────────────────────
-
-const SmartphoneIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-        <line x1="12" y1="18" x2="12.01" y2="18" />
-    </svg>
-);
-
-const PenIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-    </svg>
-);
-
-const TrashIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-        <path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-    </svg>
-);
-
-const CheckIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="20 6 9 17 4 12" />
-    </svg>
-);
-
-const XIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-);
-
-// ─── Component ───────────────────────────────────────────────────────────────
+/** Jak długo po wysłaniu linku odpytujemy, czy podpis już przyszedł. */
+const LINK_POLL_MS = 5000;
+const LINK_POLL_LIMIT_MS = 5 * 60 * 1000;
 
 export interface SignatureConfigCardProps {
     hasSignature: boolean;
@@ -320,44 +127,48 @@ export function SignatureConfigCard({
     const [mode, setMode] = useState<'view' | 'draw'>('view');
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [confirmDelete, setConfirmDelete] = useState(false);
     const [isSendingLink, setIsSendingLink] = useState(false);
-    const [linkSentAt, setLinkSentAt] = useState<Date | null>(null);
+    const [linkSentAt, setLinkSentAt] = useState<number | null>(null);
     const [hasStrokes, setHasStrokes] = useState(false);
-    const [previewUrl, setPreviewUrl] = useState<string | null>(initialPreviewUrl ?? null);
+    // Podgląd to podpisany link z czasem życia. Pamiętamy KTÓRY adres zawiódł, żeby
+    // świeży (po ponownym pobraniu) dostał szansę - bez kopiowania propsa do stanu.
+    const [failedPreviewUrl, setFailedPreviewUrl] = useState<string | null>(null);
     const [showPhoneModal, setShowPhoneModal] = useState(false);
     const [phoneNumber, setPhoneNumber] = useState('');
 
-    useEffect(() => {
-        setPreviewUrl(initialPreviewUrl ?? null);
-    }, [initialPreviewUrl]);
+    const previewUrl = initialPreviewUrl && initialPreviewUrl !== failedPreviewUrl ? initialPreviewUrl : null;
+
+    // Najświeższy `onChanged` bez wpisywania go w zależności efektu odpytywania.
+    const onChangedRef = useRef(onChanged);
+    useEffect(() => { onChangedRef.current = onChanged; }, [onChanged]);
 
     useEffect(() => {
-        if (!linkSentAt) return;
-        const id = setInterval(() => {
-            onChanged();
-        }, 5000);
-        const timeout = setTimeout(() => {
-            clearInterval(id);
+        if (linkSentAt === null) return;
+        const poll = setInterval(() => onChangedRef.current(), LINK_POLL_MS);
+        const stop = setTimeout(() => {
+            clearInterval(poll);
             setLinkSentAt(null);
-        }, 5 * 60 * 1000);
-        return () => { clearInterval(id); clearTimeout(timeout); };
-    }, [linkSentAt, onChanged]);
+        }, LINK_POLL_LIMIT_MS);
+        return () => { clearInterval(poll); clearTimeout(stop); };
+    }, [linkSentAt]);
 
     const handleSave = async () => {
         const base64 = padRef.current?.toPngBase64();
         if (!base64) {
-            showError('Podpis jest pusty', 'Narysuj podpis przed zapisaniem.');
+            showError('Podpis jest pusty', 'Narysuj podpis, zanim go zapiszesz.');
             return;
         }
         setIsSaving(true);
         try {
             await onSave(base64);
-            showSuccess('Podpis zapisany', 'Twój podpis został zaktualizowany.');
+            showSuccess('Podpis zapisany', 'Pojawi się na kolejnych protokołach przyjęcia.');
             setMode('view');
             padRef.current?.clear();
+            setHasStrokes(false);
             onChanged();
         } catch {
-            showError('Błąd', 'Nie udało się zapisać podpisu. Spróbuj ponownie.');
+            showError('Nie udało się zapisać podpisu', 'Spróbuj ponownie za chwilę.');
         } finally {
             setIsSaving(false);
         }
@@ -367,19 +178,13 @@ export function SignatureConfigCard({
         setIsDeleting(true);
         try {
             await onDelete();
-            showSuccess('Podpis usunięty');
-            setPreviewUrl(null);
+            showSuccess('Podpis usunięty', 'Nowe protokoły będą bez Twojego podpisu.');
             onChanged();
         } catch {
-            showError('Błąd', 'Nie udało się usunąć podpisu.');
+            showError('Nie udało się usunąć podpisu', 'Spróbuj ponownie za chwilę.');
         } finally {
             setIsDeleting(false);
         }
-    };
-
-    const handleOpenPhoneModal = () => {
-        setPhoneNumber('');
-        setShowPhoneModal(true);
     };
 
     const handleSendLink = async () => {
@@ -390,10 +195,10 @@ export function SignatureConfigCard({
         try {
             await onSendLink(trimmed);
             setShowPhoneModal(false);
-            setLinkSentAt(new Date());
+            setLinkSentAt(Date.now());
             showSuccess('Link wysłany', 'Otwórz SMS na telefonie i narysuj podpis.');
         } catch {
-            showError('Błąd', 'Nie udało się wysłać SMS. Sprawdź poprawność numeru telefonu.');
+            showError('Nie udało się wysłać SMS', 'Sprawdź numer telefonu i spróbuj ponownie.');
         } finally {
             setIsSendingLink(false);
         }
@@ -406,22 +211,18 @@ export function SignatureConfigCard({
     };
 
     return (
-        <Card>
-            <Header>
-                <Title>
-                    <TitleIcon><PenIcon /></TitleIcon>
-                    Twój podpis
-                </Title>
-                <StatusBadge $hasSignature={hasSignature}>
-                    <Dot $color={hasSignature ? '#10b981' : '#94a3b8'} />
-                    {hasSignature ? 'Skonfigurowany' : 'Brak podpisu'}
-                </StatusBadge>
-            </Header>
+        <Surface aria-labelledby="my-signature-title">
+            <Head>
+                <SectionTitle as="h3" id="my-signature-title">Twój podpis</SectionTitle>
+                <StatusPill $tone={hasSignature ? 'ok' : 'neutral'}>
+                    {hasSignature ? 'Podpis zapisany' : 'Brak podpisu'}
+                </StatusPill>
+            </Head>
 
             <Body>
                 <Description>
-                    Podpis nakładany jest na protokoły generowane podczas przyjęcia pojazdu.
-                    Narysuj podpis palcem lub rysikiem na poniższym polu.
+                    Nakładamy go na protokoły generowane przy przyjęciu pojazdu. Narysuj podpis myszką,
+                    palcem albo rysikiem, albo wyślij sobie link i podpisz się na telefonie.
                 </Description>
 
                 {mode === 'view' && (
@@ -432,50 +233,40 @@ export function SignatureConfigCard({
                                     <SignatureImage
                                         src={previewUrl}
                                         alt="Podgląd podpisu"
-                                        onError={() => setPreviewUrl(null)}
+                                        onError={() => setFailedPreviewUrl(previewUrl)}
                                     />
                                 ) : (
-                                    <Description>Nie można załadować podglądu.</Description>
+                                    <Description>Nie udało się wczytać podglądu podpisu.</Description>
                                 )}
                             </SignaturePreview>
                         )}
 
-                        {linkSentAt && (
-                            <LinkSentBanner>
-                                <LinkSentIcon><SmartphoneIcon /></LinkSentIcon>
-                                <LinkSentBody>
-                                    <LinkSentTitle>Link wysłany, oczekiwanie na podpis</LinkSentTitle>
-                                    <LinkSentDesc>
-                                        Otwórz SMS na swoim telefonie, narysuj podpis i wróć do tej strony.
-                                        Strona odświeży się automatycznie.
-                                    </LinkSentDesc>
-                                </LinkSentBody>
-                            </LinkSentBanner>
+                        {linkSentAt !== null && (
+                            <Notice tone="info" role="status" title="Link wysłany, czekamy na podpis">
+                                Otwórz SMS na telefonie i narysuj podpis. Ta strona odświeży się sama.
+                            </Notice>
                         )}
 
                         <ButtonRow>
-                            <Btn $variant="primary" onClick={() => setMode('draw')}>
-                                <PenIcon />
+                            <Button variant="tinted" size="sm" onClick={() => setMode('draw')}>
+                                <PenLine aria-hidden="true" />
                                 {hasSignature ? 'Zmień podpis' : 'Dodaj podpis'}
-                            </Btn>
+                            </Button>
                             {onSendLink && (
-                                <Btn
-                                    $variant="ghost"
-                                    onClick={handleOpenPhoneModal}
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => { setPhoneNumber(''); setShowPhoneModal(true); }}
                                 >
-                                    <SmartphoneIcon />
+                                    <Smartphone aria-hidden="true" />
                                     Wyślij link na telefon
-                                </Btn>
+                                </Button>
                             )}
                             {hasSignature && (
-                                <Btn
-                                    $variant="danger"
-                                    onClick={handleDelete}
-                                    disabled={isDeleting}
-                                >
-                                    <TrashIcon />
+                                <Button variant="danger" size="sm" onClick={() => setConfirmDelete(true)} disabled={isDeleting}>
+                                    <Trash2 aria-hidden="true" />
                                     {isDeleting ? 'Usuwanie...' : 'Usuń podpis'}
-                                </Btn>
+                                </Button>
                             )}
                         </ButtonRow>
                     </>
@@ -483,63 +274,76 @@ export function SignatureConfigCard({
 
                 {mode === 'draw' && (
                     <PadSection>
-                        <PadLabel>Narysuj podpis:</PadLabel>
+                        <PadLabel>Narysuj podpis</PadLabel>
                         <SignaturePad ref={padRef} onStrokeChange={setHasStrokes} />
                         <ButtonRow>
-                            <Btn
-                                $variant="primary"
-                                onClick={handleSave}
-                                disabled={isSaving || !hasStrokes}
-                            >
-                                <CheckIcon />
+                            <Button variant="primary" size="sm" onClick={handleSave} disabled={isSaving || !hasStrokes}>
+                                <Check aria-hidden="true" />
                                 {isSaving ? 'Zapisywanie...' : 'Zapisz podpis'}
-                            </Btn>
-                            <Btn $variant="ghost" onClick={handleCancel} disabled={isSaving}>
-                                <XIcon />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={handleCancel} disabled={isSaving}>
+                                <X aria-hidden="true" />
                                 Anuluj
-                            </Btn>
+                            </Button>
                         </ButtonRow>
                     </PadSection>
                 )}
             </Body>
 
-            {showPhoneModal && (
-                <Overlay onClick={() => !isSendingLink && setShowPhoneModal(false)}>
-                    <ModalCard onClick={(e) => e.stopPropagation()}>
-                        <div>
-                            <ModalTitle>Wyślij link na telefon</ModalTitle>
-                            <ModalDesc style={{ marginTop: 6 }}>
-                                Podaj numer telefonu, na który zostanie wysłany SMS z linkiem do rysowania podpisu.
-                            </ModalDesc>
-                        </div>
-                        <ModalInput
-                            type="tel"
-                            placeholder="np. 600 100 200"
-                            value={phoneNumber}
-                            onChange={(e) => setPhoneNumber(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSendLink()}
-                            autoFocus
-                            disabled={isSendingLink}
-                        />
-                        <ModalBtnRow>
-                            <Btn
-                                $variant="ghost"
-                                onClick={() => setShowPhoneModal(false)}
-                                disabled={isSendingLink}
-                            >
-                                Anuluj
-                            </Btn>
-                            <Btn
-                                $variant="primary"
-                                onClick={handleSendLink}
-                                disabled={isSendingLink || !phoneNumber.trim()}
-                            >
-                                {isSendingLink ? 'Wysyłanie...' : 'Wyślij SMS'}
-                            </Btn>
-                        </ModalBtnRow>
-                    </ModalCard>
-                </Overlay>
-            )}
-        </Card>
+            <ModalShell isOpen={showPhoneModal} onClose={() => { if (!isSendingLink) setShowPhoneModal(false); }} size="sm">
+                <ModalHeader>
+                    <ModalTitleGroup>
+                        <ModalTitle>Wyślij link na telefon</ModalTitle>
+                        <ModalSubtitle>Dostaniesz SMS z linkiem do rysowania podpisu.</ModalSubtitle>
+                    </ModalTitleGroup>
+                    <CloseBtn onClick={() => { if (!isSendingLink) setShowPhoneModal(false); }} />
+                </ModalHeader>
+                <ModalContent>
+                    <form
+                        id="signature-link-form"
+                        onSubmit={e => { e.preventDefault(); void handleSendLink(); }}
+                    >
+                        <FormField>
+                            <FieldLabel htmlFor="signature-link-phone">Numer telefonu</FieldLabel>
+                            <InputShell>
+                                <BareInput
+                                    id="signature-link-phone"
+                                    type="tel"
+                                    inputMode="tel"
+                                    autoComplete="tel"
+                                    placeholder="Np. 600 100 200"
+                                    value={phoneNumber}
+                                    onChange={e => setPhoneNumber(e.target.value)}
+                                    autoFocus
+                                    disabled={isSendingLink}
+                                />
+                            </InputShell>
+                        </FormField>
+                    </form>
+                </ModalContent>
+                <ModalFooter>
+                    <Button onClick={() => setShowPhoneModal(false)} disabled={isSendingLink}>Anuluj</Button>
+                    <Button
+                        type="submit"
+                        form="signature-link-form"
+                        variant="primary"
+                        disabled={isSendingLink || !phoneNumber.trim()}
+                    >
+                        {isSendingLink ? 'Wysyłanie...' : 'Wyślij SMS'}
+                    </Button>
+                </ModalFooter>
+            </ModalShell>
+
+            <ConfirmationModal
+                isOpen={confirmDelete}
+                title="Usunąć Twój podpis?"
+                message="Nowe protokoły przyjęcia będą generowane bez Twojego podpisu. Protokoły już wygenerowane zostają bez zmian."
+                variant="danger"
+                confirmText="Usuń podpis"
+                cancelText="Zostaw"
+                onConfirm={() => { void handleDelete(); }}
+                onCancel={() => setConfirmDelete(false)}
+            />
+        </Surface>
     );
 }

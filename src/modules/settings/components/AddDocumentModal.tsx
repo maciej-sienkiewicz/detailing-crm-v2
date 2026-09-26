@@ -1,16 +1,30 @@
-import React, { useState } from 'react';
+// src/modules/settings/components/AddDocumentModal.tsx
+//
+// „Dodaj dokument" - nowy protokół do podpisu przy przyjęciu albo wydaniu pojazdu.
+// Trzy kroki po stronie API: szablon (z uploadem i weryfikacją pól), potem reguła
+// przypinająca go do etapu. Gdy reguła się nie uda, szablon jest sprzątany - inaczej
+// każda ponowna próba zostawiała w bazie osierocony szablon.
+//
+// Co naprawiono:
+//  - etap wybrany przyciskiem przy „Wydaniu pojazdu" docierał do okna dopiero przy
+//    NASTĘPNYM otwarciu: okno było zawsze zamontowane, a `useState(initialStage)`
+//    czyta wartość początkową tylko raz. Teraz treść okna montuje się przy każdym
+//    otwarciu, więc stan startuje od aktualnego etapu (bez setState w efekcie);
+//  - rollback sprawdzał `createRule.isSuccess` z domknięcia - wartość sprzed
+//    wywołania, więc zawsze `false` i sprzątanie zależało od przypadku;
+//  - błąd pokazywał „Request failed with status code 400" zamiast zdania z backendu;
+//  - wybór etapu to ten sam Segmented co w oknie „Dodaj zgodę" (tam był <select>).
+
+import { useState, type FormEvent } from 'react';
 import styled from 'styled-components';
 import {
-    ModalShell,
-    ModalHeader,
-    ModalTitleGroup,
-    ModalTitle,
-    ModalContent,
-    ModalFooter,
-    CloseBtn,
+    ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle, ModalContent, ModalFooter, CloseBtn,
 } from '@/common/components/ModalKit';
-import { SharedButton } from '@/common/styles';
-import { ErrorMessage } from '@/common/components/Form';
+import {
+    FormField, FieldLabel, InputShell, BareInput, InputShellTextArea, BareTextArea, FormErrorMsg,
+} from '@/common/components/Form';
+import { useToast } from '@/common/components/Toast';
+import { Button, FileDrop, Notice, Segmented, ui } from '@/common/components/ui';
 import {
     useCreateProtocolTemplate,
     useDeleteProtocolTemplate,
@@ -22,194 +36,29 @@ import {
     detectFileFormat,
     validateTemplateFile,
 } from '@/modules/protocols/templateFileUtils';
-
-// ─── Styled components ───────────────────────────────────────────────────────
+import { readableError } from './studioErrors';
+import { STAGE_OPTIONS } from './documentsModel';
 
 const Form = styled.form`
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 18px;
 `;
 
-const Field = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+const Optional = styled.span`
+    font-weight: 400;
+    color: ${ui.textMuted};
 `;
 
-const Label = styled.label`
-    font-size: 13px;
-    font-weight: 600;
-    color: #334155;
+const Hint = styled.span`
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: ${ui.textMuted};
 `;
 
-const Input = styled.input`
-    height: 38px;
-    border-radius: 9px;
-    border: 1.5px solid #e2e8f0;
-    padding: 0 12px;
-    font-family: inherit;
-    font-size: 13px;
-    color: #0f172a;
-    background: #fff;
-    outline: none;
-    transition: all 180ms;
-    width: 100%;
-
-    &:focus { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14); }
-    &::placeholder { color: #94a3b8; }
+const Rejection = styled.div`
+    white-space: pre-line;
 `;
-
-const Textarea = styled.textarea`
-    min-height: 72px;
-    padding: 10px 12px;
-    border-radius: 9px;
-    border: 1.5px solid #e2e8f0;
-    font-family: inherit;
-    font-size: 13px;
-    line-height: 1.55;
-    color: #0f172a;
-    resize: vertical;
-    outline: none;
-    transition: all 180ms;
-    width: 100%;
-
-    &:focus { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14); }
-    &::placeholder { color: #94a3b8; }
-`;
-
-const HiddenInput = styled.input`display: none;`;
-
-const UploadArea = styled.div<{ $hasFile: boolean }>`
-    border: 2px dashed ${props => props.$hasFile ? '#0ea5e9' : '#cbd5e1'};
-    border-radius: 10px;
-    padding: 24px 16px;
-    text-align: center;
-    background: ${props => props.$hasFile ? 'rgba(14,165,233,0.04)' : '#f8fafc'};
-    cursor: pointer;
-    transition: all 180ms;
-
-    &:hover { border-color: #0ea5e9; background: rgba(14, 165, 233, 0.04); }
-`;
-
-const UploadIconWrap = styled.div`
-    width: 48px; height: 48px;
-    margin: 0 auto 12px;
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 50%;
-    background: rgba(14, 165, 233, 0.12);
-    color: #0284c7;
-    svg { width: 24px; height: 24px; }
-`;
-
-const UploadTitle = styled.div`
-    font-size: 14px; font-weight: 600; color: #334155; margin-bottom: 4px;
-`;
-
-const UploadHint = styled.div`
-    font-size: 12px; color: #94a3b8;
-`;
-
-const FilePreview = styled.div`
-    display: flex; align-items: center; gap: 12px;
-    padding: 12px; background: white;
-    border: 1px solid #e2e8f0; border-radius: 10px;
-`;
-
-const FileIconWrap = styled.div`
-    width: 40px; height: 40px;
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 8px; background: rgba(220, 38, 38, 0.1); color: #dc2626;
-    flex-shrink: 0;
-    svg { width: 20px; height: 20px; }
-`;
-
-const FileInfo = styled.div`flex: 1; min-width: 0;`;
-
-const FileName = styled.div`
-    font-size: 13px; font-weight: 500; color: #0f172a;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-`;
-
-const FileSize = styled.div`font-size: 12px; color: #64748b; margin-top: 2px;`;
-
-const RemoveBtn = styled.button`
-    padding: 6px; background: transparent; border: none;
-    color: #94a3b8; cursor: pointer; border-radius: 6px;
-    transition: all 150ms; display: flex; align-items: center;
-    &:hover { background: rgba(220, 38, 38, 0.08); color: #dc2626; }
-    svg { width: 16px; height: 16px; }
-`;
-
-const StageRow = styled.div`
-    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-`;
-
-const StageCard = styled.button<{ $selected: boolean }>`
-    display: flex; align-items: center; gap: 10px;
-    padding: 12px 14px; border-radius: 10px;
-    border: 1.5px solid ${props => props.$selected ? '#0ea5e9' : '#e2e8f0'};
-    background: ${props => props.$selected ? 'rgba(14,165,233,0.06)' : 'white'};
-    cursor: pointer; transition: all 180ms; text-align: left; font-family: inherit;
-
-    &:hover { border-color: #0ea5e9; background: rgba(14, 165, 233, 0.04); }
-`;
-
-const StageIconWrap = styled.div<{ $stage: ProtocolStage }>`
-    width: 32px; height: 32px; border-radius: 8px;
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    background: ${props => props.$stage === 'CHECK_IN' ? 'rgba(16,185,129,0.12)' : 'rgba(99,102,241,0.12)'};
-    color: ${props => props.$stage === 'CHECK_IN' ? '#059669' : '#6366f1'};
-    svg { width: 16px; height: 16px; }
-`;
-
-const StageText = styled.div`flex: 1; min-width: 0;`;
-
-const StageName = styled.div`font-size: 13px; font-weight: 600; color: #0f172a;`;
-
-// ─── Icons ───────────────────────────────────────────────────────────────────
-
-const UploadCloudIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="16 16 12 12 8 16" /><line x1="12" y1="12" x2="12" y2="21" />
-        <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
-    </svg>
-);
-
-const FilePdfIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14 2 14 8 20 8" />
-    </svg>
-);
-
-const XIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-);
-
-const ArrowDownIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <line x1="12" y1="5" x2="12" y2="19" /><polyline points="19 12 12 19 5 12" />
-    </svg>
-);
-
-const ArrowUpIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" />
-    </svg>
-);
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-const formatSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-};
-
-// ─── Props / component ───────────────────────────────────────────────────────
 
 interface AddDocumentModalProps {
     isOpen: boolean;
@@ -218,77 +67,74 @@ interface AddDocumentModalProps {
     onSuccess?: () => void;
 }
 
-export function AddDocumentModal({ isOpen, onClose, initialStage = 'CHECK_IN', onSuccess }: AddDocumentModalProps) {
+/** Treść okna żyje tylko, gdy okno jest otwarte - patrz komentarz na górze pliku. */
+export function AddDocumentModal(props: AddDocumentModalProps) {
+    if (!props.isOpen) return null;
+    return <AddDocumentModalBody {...props} />;
+}
+
+function AddDocumentModalBody({ onClose, initialStage = 'CHECK_IN', onSuccess }: AddDocumentModalProps) {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    const [file, setFile] = useState<File | undefined>();
+    const [file, setFile] = useState<File | null>(null);
     const [stage, setStage] = useState<ProtocolStage>(initialStage);
-    const [errors, setErrors] = useState<Record<string, string>>({});
-
-    const fileInputRef = React.useRef<HTMLInputElement>(null);
+    const [errors, setErrors] = useState<{ name?: string; file?: string }>({});
+    const [submitError, setSubmitError] = useState<{ title: string; text: string } | null>(null);
 
     const createTemplate = useCreateProtocolTemplate();
     const deleteTemplate = useDeleteProtocolTemplate();
     const createRule = useCreateProtocolRule();
+    const { showSuccess } = useToast();
 
-    const reset = () => {
-        setName('');
-        setDescription('');
-        setFile(undefined);
-        setStage(initialStage);
-        setErrors({});
-        if (fileInputRef.current) fileInputRef.current.value = '';
-    };
-
-    const handleClose = () => { reset(); onClose(); };
-
-    const acceptFile = (f: File | undefined) => {
-        if (!f) return;
-        const validationError = validateTemplateFile(f);
+    const pickFile = (picked: File | null) => {
+        if (!picked) {
+            setFile(null);
+            return;
+        }
+        const validationError = validateTemplateFile(picked);
         if (validationError) {
             setErrors(prev => ({ ...prev, file: validationError }));
             return;
         }
-        setFile(f);
-        setErrors(prev => { const { file: _, ...rest } = prev; return rest; });
-    };
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        acceptFile(e.target.files?.[0]);
-    };
-
-    const handleDrop = (e: React.DragEvent) => {
-        e.preventDefault();
-        acceptFile(e.dataTransfer.files?.[0]);
+        setFile(picked);
+        setErrors(prev => ({ ...prev, file: undefined }));
     };
 
     const validate = () => {
-        const errs: Record<string, string> = {};
-        if (!name.trim() || name.trim().length < 3) errs.name = 'Nazwa musi mieć co najmniej 3 znaki';
-        if (!file) errs.file = 'Plik szablonu (PDF lub HTML) jest wymagany';
-        setErrors(errs);
-        return Object.keys(errs).length === 0;
+        const next: { name?: string; file?: string } = {};
+        if (name.trim().length < 3) next.name = 'Nazwa musi mieć co najmniej 3 znaki.';
+        if (!file) next.file = 'Dodaj plik szablonu: PDF albo HTML.';
+        setErrors(next);
+        return !next.name && !next.file;
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    /** Szablon bez reguły nie jest nigdzie widoczny - sprzątamy go, żeby ponowna próba nie zostawiała duplikatów. */
+    const rollbackTemplate = async (templateId: string) => {
+        try { await deleteTemplate.mutateAsync(templateId); } catch { /* best-effort: ponowna próba i tak utworzy nowy */ }
+    };
+
+    const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
-        if (!validate()) return;
+        setSubmitError(null);
+        if (!validate() || !file) return;
 
         let templateId: string | undefined;
         try {
-            const fileFormat = file ? detectFileFormat(file) ?? 'PDF' : 'PDF';
             const result = await createTemplate.mutateAsync({
-                data: { name: name.trim(), description: description.trim() || undefined, fileFormat },
+                data: {
+                    name: name.trim(),
+                    description: description.trim() || undefined,
+                    fileFormat: detectFileFormat(file) ?? 'PDF',
+                },
                 file,
             });
             templateId = result.template.id;
 
-            // Plik nie zawiera wymaganych pól, więc sprzątamy szablon i pokazujemy
-            // dokładny raport braków, zostawiając formularz do poprawy.
-            if (result.verification && result.verification.verificationStatus === 'REJECTED') {
-                try { await deleteTemplate.mutateAsync(templateId); } catch { /* best-effort */ }
-                templateId = undefined;
-                setErrors(prev => ({ ...prev, submit: buildRejectionMessage(result.verification!) }));
+            // Plik nie zawiera wymaganych pól: sprzątamy szablon i pokazujemy dokładny
+            // raport braków, zostawiając formularz do poprawy.
+            if (result.verification?.verificationStatus === 'REJECTED') {
+                await rollbackTemplate(templateId);
+                setSubmitError({ title: 'W pliku brakuje wymaganych pól', text: buildRejectionMessage(result.verification) });
                 return;
             }
 
@@ -299,114 +145,104 @@ export function AddDocumentModal({ isOpen, onClose, initialStage = 'CHECK_IN', o
                 displayOrder: 999,
             });
 
-            reset();
+            showSuccess(
+                'Dokument dodany',
+                `„${name.trim()}" będzie podpisywany przy ${stage === 'CHECK_IN' ? 'przyjęciu' : 'wydaniu'} pojazdu.`,
+            );
             onSuccess?.();
             onClose();
         } catch (err) {
-            if (templateId && !createRule.isSuccess) {
-                try { await deleteTemplate.mutateAsync(templateId); } catch { /* best-effort */ }
-            }
-            const msg = err instanceof Error ? err.message : 'Wystąpił błąd podczas zapisywania';
-            setErrors(prev => ({ ...prev, submit: msg }));
+            // Reguła się nie utworzyła (albo upload padł po utworzeniu szablonu) - szablon
+            // bez reguły jest osierocony, więc go usuwamy.
+            if (templateId) await rollbackTemplate(templateId);
+            setSubmitError({
+                title: 'Nie udało się dodać dokumentu',
+                text: readableError(err, 'Spróbuj ponownie za chwilę. Niczego nie zapisaliśmy.'),
+            });
         }
     };
 
-    const isPending = createTemplate.isPending || createRule.isPending;
+    const isPending = createTemplate.isPending || createRule.isPending || deleteTemplate.isPending;
 
     return (
-        <ModalShell isOpen={isOpen} onClose={handleClose} maxWidth="520px">
+        <ModalShell isOpen onClose={onClose} size="md">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Dodaj dokument</ModalTitle>
+                    <ModalSubtitle>Protokół, który klient podpisze przy każdej wizycie na wybranym etapie.</ModalSubtitle>
                 </ModalTitleGroup>
-                <CloseBtn onClick={handleClose} />
+                <CloseBtn onClick={onClose} />
             </ModalHeader>
 
             <ModalContent>
-                <Form id="add-document-form" onSubmit={handleSubmit}>
-                    <Field>
-                        <Label>Plik szablonu (PDF lub HTML) *</Label>
-                        <HiddenInput
-                            ref={fileInputRef}
-                            type="file"
+                <Form id="add-document-form" onSubmit={handleSubmit} noValidate>
+                    <FormField>
+                        <FieldLabel as="span">Plik szablonu</FieldLabel>
+                        <FileDrop
+                            file={file}
+                            onChange={pickFile}
                             accept=".pdf,.html,.htm,application/pdf,text/html"
-                            onChange={handleFileChange}
+                            hint="PDF albo HTML, do 10 MB. Sprawdzimy, czy ma wszystkie wymagane pola."
+                            disabled={isPending}
                         />
-                        {file ? (
-                            <FilePreview>
-                                <FileIconWrap><FilePdfIcon /></FileIconWrap>
-                                <FileInfo>
-                                    <FileName>{file.name}</FileName>
-                                    <FileSize>{formatSize(file.size)}</FileSize>
-                                </FileInfo>
-                                <RemoveBtn
-                                    type="button"
-                                    onClick={() => { setFile(undefined); if (fileInputRef.current) fileInputRef.current.value = ''; }}
-                                >
-                                    <XIcon />
-                                </RemoveBtn>
-                            </FilePreview>
-                        ) : (
-                            <UploadArea
-                                $hasFile={false}
-                                onClick={() => fileInputRef.current?.click()}
-                                onDragOver={e => e.preventDefault()}
-                                onDrop={handleDrop}
-                            >
-                                <UploadIconWrap><UploadCloudIcon /></UploadIconWrap>
-                                <UploadTitle>Kliknij lub przeciągnij plik PDF lub HTML</UploadTitle>
-                                <UploadHint>Maksymalny rozmiar: 10 MB. Po wgraniu plik zostanie zweryfikowany pod kątem wymaganych pól.</UploadHint>
-                            </UploadArea>
-                        )}
-                        {errors.file && <ErrorMessage>{errors.file}</ErrorMessage>}
-                    </Field>
+                        {errors.file && <FormErrorMsg>{errors.file}</FormErrorMsg>}
+                    </FormField>
 
-                    <Field>
-                        <Label>Nazwa dokumentu *</Label>
-                        <Input
-                            type="text"
-                            placeholder="np. Protokół przyjęcia pojazdu"
-                            value={name}
-                            onChange={e => setName(e.target.value)}
+                    <FormField>
+                        <FieldLabel htmlFor="add-document-name">Nazwa dokumentu</FieldLabel>
+                        <InputShell $hasError={!!errors.name}>
+                            <BareInput
+                                id="add-document-name"
+                                type="text"
+                                placeholder="Np. Protokół przyjęcia pojazdu"
+                                value={name}
+                                aria-invalid={!!errors.name || undefined}
+                                onChange={e => { setName(e.target.value); setErrors(prev => ({ ...prev, name: undefined })); }}
+                            />
+                        </InputShell>
+                        {errors.name && <FormErrorMsg>{errors.name}</FormErrorMsg>}
+                    </FormField>
+
+                    <FormField>
+                        <FieldLabel htmlFor="add-document-description">
+                            Opis <Optional>(opcjonalnie)</Optional>
+                        </FieldLabel>
+                        <InputShellTextArea>
+                            <BareTextArea
+                                id="add-document-description"
+                                placeholder="Do czego służy ten dokument"
+                                value={description}
+                                rows={2}
+                                onChange={e => setDescription(e.target.value)}
+                            />
+                        </InputShellTextArea>
+                    </FormField>
+
+                    <FormField>
+                        <FieldLabel as="span">Kiedy klient go podpisuje</FieldLabel>
+                        <Segmented
+                            label="Etap wizyty"
+                            options={STAGE_OPTIONS}
+                            value={stage}
+                            onChange={setStage}
+                            block
                         />
-                        {errors.name && <ErrorMessage>{errors.name}</ErrorMessage>}
-                    </Field>
+                        <Hint>Dokument trafi na listę tego etapu i będzie podpisywany przy każdej wizycie.</Hint>
+                    </FormField>
 
-                    <Field>
-                        <Label>Opis <span style={{ fontWeight: 400, color: '#94a3b8' }}>(opcjonalnie)</span></Label>
-                        <Textarea
-                            placeholder="Krótki opis przeznaczenia dokumentu..."
-                            value={description}
-                            onChange={e => setDescription(e.target.value)}
-                            rows={2}
-                        />
-                    </Field>
-
-                    <Field>
-                        <Label>Przypisz do etapu *</Label>
-                        <StageRow>
-                            <StageCard type="button" $selected={stage === 'CHECK_IN'} onClick={() => setStage('CHECK_IN')}>
-                                <StageIconWrap $stage="CHECK_IN"><ArrowDownIcon /></StageIconWrap>
-                                <StageText><StageName>Przyjęcie pojazdu</StageName></StageText>
-                            </StageCard>
-                            <StageCard type="button" $selected={stage === 'CHECK_OUT'} onClick={() => setStage('CHECK_OUT')}>
-                                <StageIconWrap $stage="CHECK_OUT"><ArrowUpIcon /></StageIconWrap>
-                                <StageText><StageName>Wydanie pojazdu</StageName></StageText>
-                            </StageCard>
-                        </StageRow>
-                    </Field>
-
-                    {errors.submit && <ErrorMessage>{errors.submit}</ErrorMessage>}
+                    {submitError && (
+                        <Notice tone="danger" role="alert" title={submitError.title}>
+                            <Rejection>{submitError.text}</Rejection>
+                        </Notice>
+                    )}
                 </Form>
             </ModalContent>
 
             <ModalFooter>
-                <SharedButton type="button" $variant="secondary" $size="sm" onClick={handleClose}>
-                    Anuluj
-                </SharedButton>
-                <SharedButton type="submit" form="add-document-form" $variant="primary" $size="sm" disabled={isPending}>
-                    {isPending ? 'Zapisywanie...' : 'Dodaj dokument'}
-                </SharedButton>
+                <Button onClick={onClose}>Anuluj</Button>
+                <Button type="submit" form="add-document-form" variant="primary" disabled={isPending}>
+                    {isPending ? 'Dodawanie...' : 'Dodaj dokument'}
+                </Button>
             </ModalFooter>
         </ModalShell>
     );

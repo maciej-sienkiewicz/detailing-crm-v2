@@ -15,21 +15,24 @@
 //
 // Zapis natychmiast po kliknięciu (jak w Karcie Wizyty), bez przycisku „Zapisz";
 // błąd cofa stan przez ponowne pobranie konfiguracji.
+//
+// Karta leży płasko (Panel): w sekcji wyniesiona jest tylko lista dokumentów.
 
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { Toggle } from '@/common/components/Toggle';
 import { useToast } from '@/common/components/Toast';
 import { usePermissions } from '@/core/permissions';
+import { Panel } from '@/common/components/ui';
 import { useDocumentLogoConfig, useUpdateDocumentLogoConfig } from '../hooks/useCompany';
+import { shownByInterceptor } from './studioErrors';
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
 
-const Card = styled.div`
-    background: white;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.lg};
-    padding: 22px 26px;
+const Card = styled(Panel)`
+    padding: 16px 20px;
+
+    @media (max-width: 640px) { padding: 14px 16px; }
 `;
 
 // Kreska u góry rozdzielała wiersz od akapitu, który stał nad nim. Akapitu nie
@@ -87,7 +90,12 @@ export function DocumentLogoCard() {
     const handleChange = (value: boolean) => {
         updateMutation.mutate(
             { showLogoOnDocuments: value },
-            { onError: () => showError('Nie udało się zapisać ustawienia logo na dokumentach') },
+            {
+                // 4xx ogłosił już interceptor - drugi dymek byłby dublem.
+                onError: error => {
+                    if (!shownByInterceptor(error)) showError('Nie udało się zapisać ustawienia logo na dokumentach');
+                },
+            },
         );
     };
 

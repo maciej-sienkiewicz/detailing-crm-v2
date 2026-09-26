@@ -23,8 +23,9 @@ export const useUpdateCompanySettings = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
+        // Błąd pokazuje CompanySection we własnym dymku - bez tego były dwa.
         mutationFn: (data: UpdateCompanySettingsRequest) =>
-            companyApi.updateCompanySettings(data),
+            companyApi.updateCompanySettings(data, { skipErrorToast: true }),
         onSuccess: updated => {
             queryClient.setQueryData(QUERY_KEY, updated);
         },
@@ -62,12 +63,12 @@ export const useDeleteCompanyLogo = () => {
 };
 
 export const useVisitNumberingConfig = () => {
-    const { data, isLoading, isError } = useQuery({
+    const { data, isLoading, isError, refetch } = useQuery({
         queryKey: VISIT_NUMBERING_QUERY_KEY,
         queryFn: companyApi.getVisitNumberingConfig,
     });
 
-    return { config: data, isLoading, isError };
+    return { config: data, isLoading, isError, refetch };
 };
 
 export const useUpdateVisitNumberingConfig = () => {

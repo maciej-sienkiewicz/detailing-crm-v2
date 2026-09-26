@@ -82,19 +82,28 @@ export const addConsentVersion = async (
 
 /**
  * Upload PDF file to S3 using presigned URL.
+ *
+ * `fetch` nie rzuca przy odpowiedzi 4xx/5xx - bez sprawdzenia `response.ok`
+ * odrzucony upload (wygasły link, zły Content-Type) kończył się „sukcesem", a zgoda
+ * zostawała z wersją bez pliku. Rzucamy więc błąd ze zdaniem, które da się pokazać
+ * użytkownikowi, także przy braku sieci (wtedy fetch rzuca „Failed to fetch").
  */
-export const uploadFileToS3 = async (
-    uploadUrl: string,
-    file: File,
-    _onProgress?: (progress: number) => void
-): Promise<void> => {
-    await fetch(uploadUrl, {
-        method: 'PUT',
-        body: file,
-        headers: {
-            'Content-Type': 'application/pdf',
-        },
-    });
+export const uploadFileToS3 = async (uploadUrl: string, file: File): Promise<void> => {
+    let response: Response;
+    try {
+        response = await fetch(uploadUrl, {
+            method: 'PUT',
+            body: file,
+            headers: {
+                'Content-Type': 'application/pdf',
+            },
+        });
+    } catch {
+        throw new Error('Nie udało się wysłać pliku PDF. Sprawdź połączenie z internetem i spróbuj ponownie.');
+    }
+    if (!response.ok) {
+        throw new Error(`Serwer plików odrzucił PDF (błąd ${response.status}). Spróbuj ponownie.`);
+    }
 };
 
 // ===== Customer Operations =====

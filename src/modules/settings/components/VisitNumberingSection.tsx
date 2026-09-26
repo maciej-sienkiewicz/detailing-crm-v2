@@ -1,6 +1,6 @@
 // src/modules/settings/components/VisitNumberingSection.tsx
 //
-// Ustawienia → Dane firmy → Numeracja wizyt.
+// Ustawienia → Oznaczenia → Numeracja wizyt.
 //
 // UX model: the user picks a numbering STYLE from visual cards showing concrete
 // example numbers (yearly / monthly / continuous / random), not a template
@@ -9,12 +9,19 @@
 // shows the resulting number plus a plain-language caption of how it behaves
 // (when the counter resets, or that digits are random). Validation mirrors the
 // backend's NumberingTemplate; the backend re-validates on save regardless.
+//
+// Czego już nie ma: w trakcie wczytywania i po błędzie sekcja zwracała `null`
+// (pusta strona bez słowa), a „Zapisz zmiany" przy błędnym formacie nic nie robił -
+// pasek nie mówił dlaczego. Teraz pasek nazywa problem, a „Zapisz" i „Pokaż pole"
+// otwierają własny format i ustawiają kursor w polu.
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { useToast } from '@/common/components/Toast';
+import { Button, Card, Notice, ui } from '@/common/components/ui';
 import { useVisitNumberingConfig, useUpdateVisitNumberingConfig } from '../hooks/useCompany';
 import { UnsavedChangesBanner } from './shared/SettingsLayout';
+import { backendMessage, shownByInterceptor } from './studioErrors';
 
 // ─── Template logic (mirrors backend NumberingTemplate) ──────────────────────
 
@@ -85,26 +92,29 @@ const Wrapper = styled.div`
     display: flex;
     flex-direction: column;
     gap: 18px;
+    min-width: 0;
 `;
 
-const Panel = styled.div`
-    background: white;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.lg};
-    padding: 24px 28px;
+// Jedyna wyniesiona powierzchnia sekcji (CLAUDE.md §2).
+const Panel = styled(Card)`
+    padding: 22px 24px 24px;
+
+    @media (max-width: 640px) { padding: 18px 16px 20px; }
 `;
 
-const Title = styled.h3`
-    font-size: 15px;
-    font-weight: 700;
-    color: ${p => p.theme.colors.text};
-    margin: 0 0 4px;
+const Lead = styled.p`
+    font-size: 14px;
+    line-height: 1.55;
+    color: ${ui.textSecondary};
+    margin: 0 0 18px;
 `;
 
-const Subtitle = styled.p`
-    font-size: 12.5px;
-    color: ${p => p.theme.colors.textSecondary};
-    margin: 0 0 20px;
+const Loading = styled.p`
+    margin: 0;
+    padding: 28px 0;
+    font-size: 14px;
+    color: ${ui.textMuted};
+    text-align: center;
 `;
 
 // Hero preview: the single source of truth for "what will my numbers look like".
@@ -117,11 +127,9 @@ const Hero = styled.div<{ $invalid?: boolean }>`
 `;
 
 const HeroLabel = styled.div`
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: #94a3b8;
+    color: ${ui.textSecondary};
     margin-bottom: 6px;
 `;
 
@@ -147,11 +155,11 @@ const HeroError = styled.div`
     font-weight: 500;
 `;
 
-const GroupLabel = styled.div`
-    font-size: 12px;
+const GroupLabel = styled.h3`
+    margin: 0 0 10px;
+    font-size: 15px;
     font-weight: 600;
-    color: #334155;
-    margin-bottom: 8px;
+    color: ${ui.ink};
 `;
 
 // Style cards: radio-group semantics, concrete examples instead of syntax.
@@ -195,19 +203,26 @@ const CardName = styled.div<{ $selected: boolean }>`
     gap: 8px;
 `;
 
+// Radio: obwódka i kropka w odcieniu marki, bez wypełnionego koła - zaznaczenie
+// to stan, a nie krok następny (CLAUDE.md §2).
 const CardCheck = styled.span<{ $selected: boolean }>`
     width: 16px;
     height: 16px;
     border-radius: 50%;
     flex-shrink: 0;
-    border: 1.5px solid ${p => (p.$selected ? '#0ea5e9' : '#cbd5e1')};
-    background: ${p => (p.$selected ? '#0ea5e9' : 'white')};
+    border: 1.5px solid ${p => (p.$selected ? ui.brandStrong : '#cbd5e1')};
+    background: white;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: white;
-    font-size: 10px;
-    line-height: 1;
+
+    &::after {
+        content: '';
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: ${p => (p.$selected ? ui.brandStrong : 'transparent')};
+    }
 `;
 
 const CardExample = styled.div`
@@ -219,8 +234,8 @@ const CardExample = styled.div`
 `;
 
 const CardDesc = styled.div`
-    font-size: 11.5px;
-    color: #94a3b8;
+    font-size: 12.5px;
+    color: ${ui.textMuted};
 `;
 
 // Contextual settings row (digit stepper + custom format editor).
@@ -239,14 +254,15 @@ const Field = styled.div<{ $grow?: boolean }>`
 `;
 
 const Label = styled.label`
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
-    color: #334155;
+    color: ${ui.inkSoft};
 `;
 
 const FieldHint = styled.div`
-    font-size: 11.5px;
-    color: #94a3b8;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: ${ui.textMuted};
 `;
 
 // Stepper for digit counts: no free-text quirks, one obvious way to change it.
@@ -257,12 +273,12 @@ const Stepper = styled.div`
     border-radius: 9px;
     overflow: hidden;
     background: white;
-    height: 38px;
+    height: 44px;
     width: fit-content;
 `;
 
 const StepBtn = styled.button`
-    width: 38px;
+    width: 44px;
     border: none;
     background: #f8fafc;
     color: #334155;
@@ -290,12 +306,12 @@ const StepValue = styled.div`
 
 const Input = styled.input<{ $error?: boolean }>`
     width: 100%;
-    height: 38px;
-    padding: 0 12px;
-    border-radius: 9px;
+    height: 44px;
+    padding: 0 14px;
+    border-radius: 10px;
     border: 1.5px solid ${p => (p.$error ? '#ef4444' : '#e2e8f0')};
     font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 13px;
+    font-size: 14px;
     color: #0f172a;
     background: white;
     outline: none;
@@ -318,11 +334,11 @@ const TokenChip = styled.button`
     display: inline-flex;
     align-items: baseline;
     gap: 5px;
-    padding: 3px 9px;
+    padding: 4px 10px;
     border-radius: 999px;
     border: 1px solid #e2e8f0;
     background: #f8fafc;
-    font-size: 11.5px;
+    font-size: 12.5px;
     color: #64748b;
     cursor: pointer;
     transition: all 120ms;
@@ -377,9 +393,13 @@ const DigitStepper = ({
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const VisitNumberingSection = () => {
-    const { config, isLoading } = useVisitNumberingConfig();
+    const { config, isLoading, isError, refetch } = useVisitNumberingConfig();
     const updateMutation = useUpdateVisitNumberingConfig();
     const { showSuccess, showError } = useToast();
+    const formatInputRef = useRef<HTMLInputElement>(null);
+    // Prośba o pokazanie pola własnego formatu. Pole pojawia się dopiero po
+    // przełączeniu na „Własny format", więc fokus ustawiamy po renderze.
+    const [focusRequest, setFocusRequest] = useState(0);
 
     const [format, setFormat] = useState('');
     const [sequenceLength, setSequenceLength] = useState(5);
@@ -404,9 +424,10 @@ export const VisitNumberingSection = () => {
     const error = validateFormat(format);
     const preview = sampleNumber(format, sequenceLength, randomLength);
 
-    const dirty =
-        !!saved &&
-        (format !== saved.format || sequenceLength !== saved.sequenceLength || randomLength !== saved.randomLength);
+    const changedCount = saved
+        ? Number(format !== saved.format) + Number(sequenceLength !== saved.sequenceLength) + Number(randomLength !== saved.randomLength)
+        : 0;
+    const dirty = changedCount > 0;
 
     const pickStyle = (styleFormat: string) => {
         setFormat(styleFormat);
@@ -417,8 +438,25 @@ export const VisitNumberingSection = () => {
 
     const appendToken = (token: string) => setFormat(f => f + token);
 
+    useEffect(() => {
+        if (!focusRequest) return;
+        const el = formatInputRef.current;
+        if (!el) return;
+        el.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+        el.focus({ preventScroll: true });
+    }, [focusRequest]);
+
+    const showFormatField = () => {
+        setCustomSelected(true);
+        setFocusRequest(n => n + 1);
+    };
+
     const handleSave = async () => {
-        if (error) return;
+        if (error) {
+            // Wcześniej samo `return` - zapis z błędnym formatem był cichym no-opem.
+            showFormatField();
+            return;
+        }
         try {
             const result = await updateMutation.mutateAsync({ format: format.trim(), sequenceLength, randomLength });
             setFormat(result.format);
@@ -426,9 +464,11 @@ export const VisitNumberingSection = () => {
             setRandomLength(result.randomLength);
             setCustomSelected(!STYLES.some(s => s.format === result.format));
             setSaved({ format: result.format, sequenceLength: result.sequenceLength, randomLength: result.randomLength });
-            showSuccess('Zapisano', 'Format numeracji wizyt został zaktualizowany.');
-        } catch {
-            showError('Błąd', 'Nie udało się zapisać formatu numeracji. Spróbuj ponownie.');
+            showSuccess('Numeracja zapisana', 'Nowe wizyty dostaną numery w tym formacie.');
+        } catch (err) {
+            if (!shownByInterceptor(err)) {
+                showError('Nie udało się zapisać numeracji', backendMessage(err) ?? 'Spróbuj ponownie za chwilę.');
+            }
         }
     };
 
@@ -441,18 +481,34 @@ export const VisitNumberingSection = () => {
         }
     };
 
-    if (isLoading || !saved) return null;
+    if (isError && !config) {
+        return (
+            <Panel>
+                <Notice
+                    tone="danger"
+                    role="alert"
+                    title="Nie udało się wczytać numeracji wizyt"
+                    action={<Button variant="ghost" size="sm" onClick={() => refetch()}>Spróbuj ponownie</Button>}
+                >
+                    Sprawdź połączenie z internetem. Obecny format numerów działa bez zmian.
+                </Notice>
+            </Panel>
+        );
+    }
+
+    if (isLoading || !saved) {
+        return <Panel><Loading role="status">Wczytywanie numeracji wizyt...</Loading></Panel>;
+    }
 
     return (
         <Wrapper>
-            <Panel>
-                <Title>Numeracja wizyt</Title>
-                <Subtitle>Wybierz, jak mają wyglądać numery nowych wizyt. Istniejące numery pozostają bez zmian.</Subtitle>
+            <Panel aria-label="Numeracja wizyt">
+                <Lead>Wybierz, jak mają wyglądać numery nowych wizyt. Istniejące numery pozostają bez zmian.</Lead>
 
                 <Hero $invalid={!!error}>
                     <HeroLabel>Tak będzie wyglądał numer wizyty</HeroLabel>
                     <HeroNumber>{preview ?? '-'}</HeroNumber>
-                    {error ? <HeroError>{error}</HeroError> : <HeroCaption>{behaviorOf(format)}</HeroCaption>}
+                    {error ? <HeroError id="visit-numbering-error">{error}</HeroError> : <HeroCaption>{behaviorOf(format)}</HeroCaption>}
                 </Hero>
 
                 <GroupLabel>Styl numeracji</GroupLabel>
@@ -470,7 +526,7 @@ export const VisitNumberingSection = () => {
                             >
                                 <CardName $selected={selected}>
                                     {s.name}
-                                    <CardCheck $selected={selected}>{selected ? '✓' : ''}</CardCheck>
+                                    <CardCheck $selected={selected} aria-hidden="true" />
                                 </CardName>
                                 <CardExample>{sampleNumber(s.format, sequenceLength, randomLength)}</CardExample>
                                 <CardDesc>{s.desc}</CardDesc>
@@ -486,7 +542,7 @@ export const VisitNumberingSection = () => {
                     >
                         <CardName $selected={isCustom}>
                             Własny format
-                            <CardCheck $selected={isCustom}>{isCustom ? '✓' : ''}</CardCheck>
+                            <CardCheck $selected={isCustom} aria-hidden="true" />
                         </CardName>
                         <CardExample>{isCustom && preview ? preview : '...'}</CardExample>
                         <CardDesc>zbuduj z dostępnych znaczników</CardDesc>
@@ -496,8 +552,12 @@ export const VisitNumberingSection = () => {
                 <SettingsRow>
                     {isCustom && (
                         <Field $grow>
-                            <Label>Własny format</Label>
+                            <Label htmlFor="visit-numbering-format">Własny format</Label>
                             <Input
+                                id="visit-numbering-format"
+                                ref={formatInputRef}
+                                aria-invalid={!!error || undefined}
+                                aria-describedby={error ? 'visit-numbering-error' : undefined}
                                 $error={!!error}
                                 value={format}
                                 onChange={e => setFormat(e.target.value)}
@@ -542,7 +602,9 @@ export const VisitNumberingSection = () => {
                 onSave={handleSave}
                 onDiscard={handleDiscard}
                 isSaving={updateMutation.isPending}
-                sectionName="Numeracja wizyt"
+                changedCount={changedCount}
+                problem={error ? 'Format numeru wymaga poprawy' : undefined}
+                onShowProblem={error ? showFormatField : undefined}
             />
         </Wrapper>
     );

@@ -1,28 +1,51 @@
+// src/modules/settings/components/MySignatureSection.tsx
+//
+// „Twój podpis" w Ustawienia → Dokumenty i podpisy: dane profilu + SignatureConfigCard.
+//
+// Błąd wczytania wyglądał wcześniej jak „Brak podpisu" z przyciskiem „Dodaj podpis" -
+// ktoś, kto podpis ma, rysował go drugi raz. Teraz błąd to komunikat z ponowieniem.
+
+import { useCallback } from 'react';
+import styled from 'styled-components';
 import { useQuery } from '@tanstack/react-query';
 import { profileApi } from '@/modules/profile/api/profileApi';
 import { SignatureConfigCard } from '@/modules/employees/components/SignatureConfigCard';
-import styled from 'styled-components';
+import { Button, Notice, Panel, ui } from '@/common/components/ui';
 
-const Spinner = styled.div`
-    width: 32px;
-    height: 32px;
-    border: 3px solid #e2e8f0;
-    border-top-color: #0ea5e9;
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    margin: 32px auto;
+const Placeholder = styled(Panel)`
+    padding: 16px 20px;
 
-    @keyframes spin { to { transform: rotate(360deg); } }
+    p { margin: 0; font-size: 14px; color: ${ui.textMuted}; }
 `;
 
 export function MySignatureSection() {
-    const { data, isLoading, refetch } = useQuery({
+    const { data, isLoading, isError, refetch } = useQuery({
         queryKey: ['profile', 'signature'],
         queryFn: () => profileApi.getSignature(),
         staleTime: 30_000,
     });
 
-    if (isLoading) return <Spinner />;
+    // Stała referencja: karta odpytuje tym po wysłaniu linku SMS.
+    const reload = useCallback(() => { void refetch(); }, [refetch]);
+
+    if (isLoading) {
+        return <Placeholder aria-label="Twój podpis"><p role="status">Wczytywanie podpisu...</p></Placeholder>;
+    }
+
+    if (isError && !data) {
+        return (
+            <Placeholder aria-label="Twój podpis">
+                <Notice
+                    tone="danger"
+                    role="alert"
+                    title="Nie udało się wczytać Twojego podpisu"
+                    action={<Button variant="ghost" size="sm" onClick={reload}>Spróbuj ponownie</Button>}
+                >
+                    Sprawdź połączenie z internetem.
+                </Notice>
+            </Placeholder>
+        );
+    }
 
     return (
         <SignatureConfigCard
@@ -31,7 +54,7 @@ export function MySignatureSection() {
             onSave={(base64) => profileApi.saveSignature(base64)}
             onDelete={() => profileApi.deleteSignature()}
             onSendLink={(phoneNumber) => profileApi.sendSignatureLink(phoneNumber).then(() => {})}
-            onChanged={() => refetch()}
+            onChanged={reload}
         />
     );
 }

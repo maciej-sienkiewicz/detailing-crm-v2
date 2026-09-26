@@ -9,10 +9,24 @@
 // Dwie rzeczy, których poprzedni widok nie miał:
 //  - kolor domyślny (zaznaczany z góry przy nowej wizycie),
 //  - archiwizacja, czyli sposób na wycofanie koloru bez psucia historii.
+//
+// Po przebudowie ustawień:
+//  - „Dodaj kolor" stoi w nagłówku sekcji jako jej jedyna akcja główna; wcześniej
+//    był wypełnionym przyciskiem w karcie, obok czterech obrysowanych na wiersz;
+//  - wiersz ma jedną widoczną akcję („Edytuj"), reszta siedzi w menu ⋮ - cztery
+//    przyciski nie mieściły się w wierszu na telefonie;
+//  - usunięcie pyta przez ConfirmationModal zamiast własnej nakładki bez Escape
+//    i bez blokady przewijania;
+//  - błąd 4xx pokazywał dwa dymki (interceptor + własny) - patrz studioErrors.ts.
 
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
+import { Archive, ArchiveRestore, MoreVertical, Plus, Star, StarOff, Trash2 } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import {
+    ActionMenu, Button, Card, IconButton, MenuDivider, MenuItem, Notice, Panel, StatusPill, ui, useActionMenu,
+} from '@/common/components/ui';
 import { AppointmentColorFormModal } from '@/modules/appointment-colors';
 import {
     useAppointmentColors,
@@ -22,86 +36,66 @@ import {
     useClearDefaultAppointmentColor,
 } from '@/modules/appointment-colors/hooks/useAppointmentColors';
 import type { AppointmentColor } from '@/modules/appointment-colors';
+import { SettingsHeaderActions } from './shared/SettingsHeaderActions';
+import { backendMessage, shownByInterceptor } from './studioErrors';
 
-// ─── Styled ───────────────────────────────────────────────────────────────────
+// ─── Wygląd ───────────────────────────────────────────────────────────────────
 
 const Wrap = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 18px;
+    min-width: 0;
 `;
 
-const Card = styled.div`
-    background: white;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.lg};
-    padding: 22px 24px;
+const CardBody = styled.div`
+    padding: 20px 24px 12px;
+
+    @media (max-width: 640px) { padding: 16px 16px 8px; }
 `;
 
-const CardHead = styled.div`
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-    margin-bottom: 6px;
-`;
-
-const CardTitle = styled.h3`
-    margin: 0;
-    font-size: 15px;
-    font-weight: 700;
-    color: ${p => p.theme.colors.text};
-`;
-
-const CardHint = styled.p`
-    margin: 0 0 16px;
-    font-size: 13px;
+const Lead = styled.p`
+    margin: 0 0 8px;
+    font-size: 14px;
     line-height: 1.55;
-    color: ${p => p.theme.colors.textMuted};
-    max-width: 62ch;
+    color: ${ui.textSecondary};
+    max-width: 66ch;
 `;
 
-const AddButton = styled.button`
-    padding: 9px 16px;
-    background: var(--brand-primary);
-    color: white;
-    border: none;
-    border-radius: ${p => p.theme.radii.md};
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-
-    &:hover { opacity: 0.9; }
+const List = styled.ul`
+    margin: 0;
+    padding: 0;
+    list-style: none;
 `;
 
-const Row = styled.div<{ $muted?: boolean }>`
+const Row = styled.li<{ $muted?: boolean }>`
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 12px 0;
-    border-bottom: 1px solid ${p => p.theme.colors.border};
-    opacity: ${p => (p.$muted ? 0.65 : 1)};
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    padding: 14px 0;
+    border-top: 1px solid ${ui.lineFaint};
+    min-width: 0;
 
-    &:last-child { border-bottom: none; }
+    &:first-child { border-top: none; }
+    > :not(:last-child) { opacity: ${p => (p.$muted ? 0.7 : 1)}; }
 `;
 
 const Swatch = styled.span<{ $color: string }>`
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     flex-shrink: 0;
-    border-radius: 8px;
+    border-radius: 9px;
     background: ${p => p.$color};
     border: 1px solid rgba(15, 23, 42, 0.12);
 `;
 
 const RowText = styled.div`
-    flex: 1;
+    flex: 1 1 160px;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
 `;
 
 const RowName = styled.span`
@@ -109,119 +103,69 @@ const RowName = styled.span`
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
-    font-size: 14px;
+    font-size: 14.5px;
     font-weight: 600;
-    color: ${p => p.theme.colors.text};
-`;
-
-const DefaultBadge = styled.span`
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    color: #0369a1;
-    background: #e0f2fe;
-    padding: 2px 8px;
-    border-radius: 999px;
+    color: ${ui.ink};
+    overflow-wrap: anywhere;
 `;
 
 const RowHex = styled.span`
-    font-family: monospace;
-    font-size: 12px;
-    color: ${p => p.theme.colors.textMuted};
+    font-family: ${ui.mono};
+    font-size: 12.5px;
+    color: ${ui.textMuted};
 `;
 
 const RowActions = styled.div`
     display: flex;
     align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
+    gap: 4px;
+    flex-shrink: 0;
+    margin-left: auto;
 `;
 
-const LinkButton = styled.button<{ $danger?: boolean }>`
-    background: transparent;
-    border: 1px solid ${p => (p.$danger ? p.theme.colors.error : p.theme.colors.border)};
-    color: ${p => (p.$danger ? p.theme.colors.error : p.theme.colors.textSecondary)};
-    border-radius: ${p => p.theme.radii.md};
-    padding: 6px 11px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-
-    &:hover:not(:disabled) {
-        border-color: ${p => (p.$danger ? p.theme.colors.error : 'var(--brand-primary)')};
-        color: ${p => (p.$danger ? p.theme.colors.error : 'var(--brand-primary)')};
-    }
-
-    &:disabled { opacity: 0.5; cursor: default; }
-`;
-
-const Empty = styled.p`
+const Muted = styled.p`
     margin: 0;
-    padding: 18px 0;
-    font-size: 13px;
-    color: ${p => p.theme.colors.textMuted};
+    padding: 18px 0 22px;
+    font-size: 14px;
+    color: ${ui.textMuted};
 `;
 
-const ArchiveToggle = styled.button`
-    align-self: flex-start;
-    background: none;
-    border: none;
-    padding: 0;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--brand-primary);
-    cursor: pointer;
+const ArchivePanel = styled(Panel)`
+    padding: 14px 18px;
+
+    @media (max-width: 640px) { padding: 12px 16px; }
 `;
 
-const ConfirmOverlay = styled.div`
-    position: fixed;
-    inset: 0;
-    background: rgba(15, 23, 42, 0.45);
+const ArchiveHead = styled.div`
     display: flex;
     align-items: center;
-    justify-content: center;
-    z-index: 1200;
-    padding: 20px;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+
+    h3 { margin: 0; font-size: 15px; font-weight: 600; color: ${ui.ink}; }
 `;
 
-const ConfirmBox = styled.div`
-    background: white;
-    border-radius: ${p => p.theme.radii.lg};
-    padding: 24px;
-    max-width: 420px;
-    width: 100%;
-`;
-
-const ConfirmTitle = styled.h4`
-    margin: 0 0 8px;
-    font-size: 16px;
-    color: ${p => p.theme.colors.text};
-`;
-
-const ConfirmText = styled.p`
-    margin: 0 0 20px;
+const ArchiveHint = styled.p`
+    margin: 8px 0 4px;
     font-size: 13px;
-    line-height: 1.6;
-    color: ${p => p.theme.colors.textSecondary};
+    line-height: 1.5;
+    color: ${ui.textMuted};
 `;
 
-const ConfirmActions = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-`;
+/** 1 kolor, 2 kolory, 5 kolorów. */
+function colorsWord(n: number): string {
+    if (n === 1) return 'kolor';
+    const u = n % 10;
+    const t = n % 100;
+    return u >= 2 && u <= 4 && (t < 12 || t > 14) ? 'kolory' : 'kolorów';
+}
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
-/** Backendowy komunikat jest konkretny („używany przez 7 wizyt"), więc go pokazujemy. */
-const apiMessage = (error: unknown): string | undefined =>
-    (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+// ─── Sekcja ───────────────────────────────────────────────────────────────────
 
 export function AppointmentColorsSection() {
     const { showSuccess, showError } = useToast();
+    const menu = useActionMenu<AppointmentColor>();
 
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editing, setEditing] = useState<AppointmentColor | undefined>();
@@ -245,17 +189,26 @@ export function AppointmentColorsSection() {
     const busy =
         setDefault.isPending || clearDefault.isPending || setArchived.isPending || remove.isPending;
 
+    /**
+     * Odmowę 4xx („kolor jest używany przez 7 wizyt") pokazuje już interceptor
+     * dokładnie tym zdaniem; sami mówimy tylko o tym, co on przepuszcza (5xx, sieć).
+     */
+    const reportError = (title: string, error: unknown) => {
+        if (shownByInterceptor(error)) return;
+        showError(title, backendMessage(error) ?? 'Sprawdź połączenie i spróbuj ponownie.');
+    };
+
     const handleSetDefault = (color: AppointmentColor) => {
         setDefault.mutate(color.id, {
-            onSuccess: () => showSuccess('Kolor domyślny', `„${color.name}" będzie zaznaczany na nowych wizytach`),
-            onError: error => showError('Nie udało się ustawić domyślnego', apiMessage(error) ?? 'Spróbuj ponownie'),
+            onSuccess: () => showSuccess('Kolor domyślny ustawiony', `„${color.name}" będzie zaznaczany na nowych wizytach.`),
+            onError: error => reportError('Nie udało się ustawić koloru domyślnego', error),
         });
     };
 
     const handleClearDefault = () => {
         clearDefault.mutate(undefined, {
-            onSuccess: () => showSuccess('Zdjęto oznaczenie', 'Nowa wizyta startuje bez wybranego koloru'),
-            onError: error => showError('Nie udało się zdjąć oznaczenia', apiMessage(error) ?? 'Spróbuj ponownie'),
+            onSuccess: () => showSuccess('Zdjęto kolor domyślny', 'Nowa wizyta startuje bez wybranego koloru.'),
+            onError: error => reportError('Nie udało się zdjąć koloru domyślnego', error),
         });
     };
 
@@ -267,27 +220,21 @@ export function AppointmentColorsSection() {
                     showSuccess(
                         archive ? 'Kolor zarchiwizowany' : 'Kolor przywrócony',
                         archive
-                            ? 'Zniknął z list wyboru; wizyty, które go używają, zachowały oznaczenie'
-                            : `„${color.name}" znowu jest do wyboru`
+                            ? 'Zniknął z list wyboru. Wizyty, które go używają, zachowały oznaczenie.'
+                            : `„${color.name}" znowu jest do wyboru.`
                     ),
-                onError: error =>
-                    showError('Nie udało się zmienić statusu', apiMessage(error) ?? 'Spróbuj ponownie'),
+                onError: error => reportError('Nie udało się zmienić statusu koloru', error),
             }
         );
     };
 
-    const handleDelete = () => {
-        if (!deleting) return;
-        remove.mutate(deleting.id, {
-            onSuccess: () => {
-                showSuccess('Kolor usunięty', `„${deleting.name}" zniknął z listy`);
-                setDeleting(null);
-            },
-            onError: error => {
-                // 409 z backendu: kolor jest w użyciu i trzeba go zarchiwizować.
-                showError('Nie można usunąć koloru', apiMessage(error) ?? 'Spróbuj ponownie');
-                setDeleting(null);
-            },
+    // ConfirmationModal zamyka się sam zaraz po „Usuń" - kolor przekazujemy wprost,
+    // a nie przez stan, który w tej chwili jest już czyszczony.
+    const handleDelete = (color: AppointmentColor) => {
+        remove.mutate(color.id, {
+            onSuccess: () => showSuccess('Kolor usunięty', `„${color.name}" zniknął z listy.`),
+            // 409 z backendu: kolor jest w użyciu i trzeba go zarchiwizować.
+            onError: error => reportError('Nie udało się usunąć koloru', error),
         });
     };
 
@@ -296,77 +243,117 @@ export function AppointmentColorsSection() {
 
     const renderRow = (color: AppointmentColor) => (
         <Row key={color.id} $muted={!color.isActive}>
-            <Swatch $color={color.hexColor} />
+            <Swatch $color={color.hexColor} aria-hidden="true" />
             <RowText>
                 <RowName>
                     {color.name}
-                    {color.isDefault && <DefaultBadge>Domyślny</DefaultBadge>}
+                    {color.isDefault && <StatusPill $tone="info">Domyślny</StatusPill>}
                 </RowName>
                 <RowHex>{color.hexColor}</RowHex>
             </RowText>
             <RowActions>
-                {color.isActive && (
-                    color.isDefault ? (
-                        <LinkButton onClick={handleClearDefault} disabled={busy}>
-                            Zdejmij domyślny
-                        </LinkButton>
-                    ) : (
-                        <LinkButton onClick={() => handleSetDefault(color)} disabled={busy}>
-                            Ustaw domyślny
-                        </LinkButton>
-                    )
-                )}
-                <LinkButton onClick={() => openEdit(color)}>Edytuj</LinkButton>
-                <LinkButton onClick={() => handleArchive(color, color.isActive)} disabled={busy}>
-                    {color.isActive ? 'Archiwizuj' : 'Przywróć'}
-                </LinkButton>
-                <LinkButton $danger onClick={() => setDeleting(color)} disabled={busy}>
-                    Usuń
-                </LinkButton>
+                <Button variant="ghost" size="sm" onClick={() => openEdit(color)}>Edytuj</Button>
+                <IconButton
+                    label={`Więcej akcji: ${color.name}`}
+                    variant="ghost"
+                    size="sm"
+                    shape="square"
+                    disabled={busy}
+                    aria-haspopup="menu"
+                    active={menu.isOpen(color.id)}
+                    onClick={e => menu.toggle(e, color, color.id)}
+                >
+                    <MoreVertical />
+                </IconButton>
             </RowActions>
         </Row>
     );
 
+    const current = menu.menu?.item ?? null;
+
     return (
         <Wrap>
-            <Card>
-                <CardHead>
-                    <CardTitle>Kolory wizyt</CardTitle>
-                    <AddButton onClick={openAdd}>+ Dodaj kolor</AddButton>
-                </CardHead>
+            <SettingsHeaderActions>
+                <Button variant="primary" size="lg" onClick={openAdd}>
+                    <Plus aria-hidden="true" />
+                    Dodaj kolor
+                </Button>
+            </SettingsHeaderActions>
 
-                {isLoading && <Empty>Wczytywanie kolorów...</Empty>}
+            <Card aria-label="Kolory wizyt">
+                <CardBody>
+                    <Lead>
+                        Kolorem oznaczasz rezerwacje w kalendarzu. Kolor domyślny jest zaznaczany z góry
+                        przy każdej nowej wizycie.
+                    </Lead>
 
-                {isError && (
-                    <Empty>
-                        Nie udało się wczytać kolorów.{' '}
-                        <LinkButton onClick={() => refetch()}>Spróbuj ponownie</LinkButton>
-                    </Empty>
-                )}
-
-                {!isLoading && !isError && active.length === 0 && (
-                    <Empty>Brak kolorów. Dodaj pierwszy, żeby oznaczać wizyty w kalendarzu.</Empty>
-                )}
-
-                {!isLoading && !isError && active.map(renderRow)}
+                    {isLoading ? (
+                        <Muted role="status">Wczytywanie kolorów...</Muted>
+                    ) : isError ? (
+                        <Notice
+                            tone="danger"
+                            role="alert"
+                            title="Nie udało się wczytać kolorów"
+                            action={<Button variant="ghost" size="sm" onClick={() => refetch()}>Spróbuj ponownie</Button>}
+                        >
+                            Sprawdź połączenie z internetem.
+                        </Notice>
+                    ) : active.length === 0 ? (
+                        <Muted>Nie masz jeszcze kolorów. Dodaj pierwszy, żeby oznaczać wizyty w kalendarzu.</Muted>
+                    ) : (
+                        <List>{active.map(renderRow)}</List>
+                    )}
+                </CardBody>
             </Card>
 
-            {archived.length > 0 && (
-                <Card>
-                    <ArchiveToggle onClick={() => setShowArchived(open => !open)}>
-                        {showArchived ? 'Ukryj archiwalne' : `Pokaż archiwalne (${archived.length})`}
-                    </ArchiveToggle>
+            {!isError && archived.length > 0 && (
+                <ArchivePanel aria-label="Kolory archiwalne">
+                    <ArchiveHead>
+                        <h3>Archiwalne, {archived.length} {colorsWord(archived.length)}</h3>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            aria-expanded={showArchived}
+                            onClick={() => setShowArchived(open => !open)}
+                        >
+                            {showArchived ? 'Ukryj' : 'Pokaż'}
+                        </Button>
+                    </ArchiveHead>
                     {showArchived && (
                         <>
-                            <CardHint style={{ marginTop: 12, marginBottom: 0 }}>
+                            <ArchiveHint>
                                 Te kolory nie pojawiają się przy nowych wizytach, ale nadal opisują
                                 wizyty, na których zostały użyte.
-                            </CardHint>
-                            {archived.map(renderRow)}
+                            </ArchiveHint>
+                            <List>{archived.map(renderRow)}</List>
                         </>
                     )}
-                </Card>
+                </ArchivePanel>
             )}
+
+            <ActionMenu anchor={menu.menu?.anchor ?? null} onClose={menu.close} label="Akcje koloru">
+                {current?.isActive && (
+                    current.isDefault ? (
+                        <MenuItem icon={<StarOff />} onClick={handleClearDefault}>Zdejmij oznaczenie domyślnego</MenuItem>
+                    ) : (
+                        <MenuItem icon={<Star />} onClick={() => handleSetDefault(current)}>Ustaw jako domyślny</MenuItem>
+                    )
+                )}
+                {current && (
+                    <MenuItem
+                        icon={current.isActive ? <Archive /> : <ArchiveRestore />}
+                        onClick={() => handleArchive(current, current.isActive)}
+                    >
+                        {current.isActive ? 'Archiwizuj' : 'Przywróć'}
+                    </MenuItem>
+                )}
+                {current && (
+                    <>
+                        <MenuDivider />
+                        <MenuItem icon={<Trash2 />} danger onClick={() => setDeleting(current)}>Usuń kolor</MenuItem>
+                    </>
+                )}
+            </ActionMenu>
 
             <AppointmentColorFormModal
                 isOpen={isFormOpen}
@@ -374,23 +361,16 @@ export function AppointmentColorsSection() {
                 color={editing}
             />
 
-            {deleting && (
-                <ConfirmOverlay onClick={() => setDeleting(null)}>
-                    <ConfirmBox onClick={e => e.stopPropagation()}>
-                        <ConfirmTitle>Usunąć kolor „{deleting.name}"?</ConfirmTitle>
-                        <ConfirmText>
-                            Operacja jest nieodwracalna. Jeśli kolor jest używany przez wizyty lub
-                            rezerwacje, usunięcie się nie powiedzie. Zarchiwizuj go zamiast tego.
-                        </ConfirmText>
-                        <ConfirmActions>
-                            <LinkButton onClick={() => setDeleting(null)}>Anuluj</LinkButton>
-                            <LinkButton $danger onClick={handleDelete} disabled={remove.isPending}>
-                                {remove.isPending ? 'Usuwanie...' : 'Usuń kolor'}
-                            </LinkButton>
-                        </ConfirmActions>
-                    </ConfirmBox>
-                </ConfirmOverlay>
-            )}
+            <ConfirmationModal
+                isOpen={deleting !== null}
+                title={deleting ? `Usunąć kolor „${deleting.name}"?` : 'Usunąć kolor?'}
+                message="Tego nie da się cofnąć. Jeśli kolor oznacza jakąś wizytę albo rezerwację, usunięcie się nie powiedzie - wtedy go zarchiwizuj."
+                variant="danger"
+                confirmText="Usuń kolor"
+                cancelText="Zostaw"
+                onConfirm={() => { if (deleting) handleDelete(deleting); }}
+                onCancel={() => setDeleting(null)}
+            />
         </Wrap>
     );
 }
