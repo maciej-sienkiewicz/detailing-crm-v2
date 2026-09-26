@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { ChevronDown } from 'lucide-react';
 import { DocumentType, PaymentMethod, DocumentDirection } from '../types';
 import { useCreateDocument } from '../hooks/useFinance';
-import { inputValueToGrosze } from '../utils/formatters';
-import { documentVatForNet } from '../utils/amountInputs';
-import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
+import { EMPTY_DOCUMENT_AMOUNTS, documentAmountsToCents, type DocumentAmounts } from '../utils/amountInputs';
+import { DocumentAmountFields } from './DocumentAmountFields';
+import { apiErrorMessage } from '@/modules/visits/api/apiError';
 import {
     ModalShell,
     ModalHeader,
@@ -159,8 +159,7 @@ interface Props {
 interface FormState {
     documentType:     string;
     paymentMethod:    string;
-    totalNetDisplay:  string;
-    totalVatDisplay:  string;
+    amounts:          DocumentAmounts;
     currency:         string;
     issueDate:        string;
     dueDate:          string;
@@ -174,8 +173,7 @@ const today = new Date().toISOString().split('T')[0];
 const EMPTY_FORM: FormState = {
     documentType:     DocumentType.RECEIPT,
     paymentMethod:    PaymentMethod.TRANSFER,
-    totalNetDisplay:  '',
-    totalVatDisplay:  '',
+    amounts:          EMPTY_DOCUMENT_AMOUNTS,
     currency:         'PLN',
     issueDate:        today,
     dueDate:          '',
@@ -184,27 +182,19 @@ const EMPTY_FORM: FormState = {
     counterpartyNip:  '',
 };
 
-export const CreateDocumentModal: React.FC<Props> = ({ isOpen, onClose }) => {
+/*
+ * Formularz montuje się przy każdym otwarciu, więc zaczyna od pustego stanu i dzisiejszej
+ * daty - zamiast czyścić stan w efekcie po zamknięciu (kaskada renderów).
+ */
+export const CreateDocumentModal: React.FC<Props> = ({ isOpen, onClose }) =>
+    isOpen ? <CreateDocumentForm onClose={onClose} /> : null;
+
+const CreateDocumentForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const createDoc = useCreateDocument();
     const [error, setError] = useState<string | null>(null);
-    const [form, setForm] = useState<FormState>(EMPTY_FORM);
-
-    useEffect(() => {
-        if (!isOpen) {
-            setForm({ ...EMPTY_FORM, issueDate: new Date().toISOString().split('T')[0] });
-            setError(null);
-        }
-    }, [isOpen]);
-
-    // VAT w groszach (brutto − netto przy 23%), nie `(netto × 0,23).toFixed(2)`:
-    // zmiennoprzecinkowo 13,50 zł netto dawało 3,10 zł VAT zamiast 3,11 zł.
-    const handleNetChange = (value: string) => {
-        setForm(prev => ({
-            ...prev,
-            totalNetDisplay: value,
-            totalVatDisplay: documentVatForNet(value),
-        }));
-    };
+    const [form, setForm] = useState<FormState>(() => ({
+        ...EMPTY_FORM, issueDate: new Date().toISOString().split('T')[0],
+    }));
 
     const set = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
         setForm(prev => ({ ...prev, [key]: e.target.value }));
@@ -224,12 +214,9 @@ export const CreateDocumentModal: React.FC<Props> = ({ isOpen, onClose }) => {
         e.preventDefault();
         setError(null);
 
-        const totalNet   = inputValueToGrosze(form.totalNetDisplay);
-        const totalVat   = inputValueToGrosze(form.totalVatDisplay);
-        const totalGross = totalNet + totalVat;
-
-        if (totalNet <= 0) {
-            setError('Kwota netto musi być większa od zera.');
+        const cents = documentAmountsToCents(form.amounts);
+        if (!cents || cents.totalGross <= 0) {
+            setError('Kwota brutto musi być większa od zera.');
             return;
         }
         if (form.paymentMethod === PaymentMethod.TRANSFER && !form.dueDate) {
@@ -242,9 +229,7 @@ export const CreateDocumentModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 documentType:     form.documentType,
                 direction:        DocumentDirection.INCOME,
                 paymentMethod:    form.paymentMethod,
-                totalNet,
-                totalVat,
-                totalGross,
+                ...cents,
                 currency:         form.currency || 'PLN',
                 issueDate:        form.issueDate,
                 dueDate:          form.dueDate || null,
@@ -253,13 +238,13 @@ export const CreateDocumentModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 counterpartyNip:  form.counterpartyNip  || null,
             });
             onClose();
-        } catch {
-            setError('Nie udało się zapisać dokumentu. Spróbuj ponownie.');
+        } catch (e) {
+            setError(apiErrorMessage(e, 'Nie udało się zapisać dokumentu. Spróbuj ponownie.'));
         }
     };
 
     return (
-        <ModalShell isOpen={isOpen} onClose={onClose} size="md">
+        <ModalShell isOpen onClose={onClose} size="md">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Nowy dokument przychodowy</ModalTitle>
@@ -292,52 +277,23 @@ export const CreateDocumentModal: React.FC<Props> = ({ isOpen, onClose }) => {
                                 value={form.paymentMethod}
                                 onChange={setField('paymentMethod')}
                                 options={[
-                                    { value: PaymentMethod.CASH,     label: 'Gotówka' },
-                                    { value: PaymentMethod.CARD,     label: 'Karta' },
-                                    { value: PaymentMethod.TRANSFER, label: 'Przelew' },
-                                    { value: PaymentMethod.OTHER,    label: 'Inne' },
+                                    { value: PaymentMethod.CASH,          label: 'Gotówka' },
+                                    { value: PaymentMethod.CARD,          label: 'Karta' },
+                                    { value: PaymentMethod.TRANSFER,      label: 'Przelew' },
+                                    { value: PaymentMethod.BLIK_NA_NUMER, label: 'BLIK na numer' },
+                                    { value: PaymentMethod.BLIK_TERMINAL, label: 'BLIK terminal' },
+                                    { value: PaymentMethod.OTHER,         label: 'Inne' },
                                 ]}
                             />
                         </FormField>
                     </FormGrid>
 
                     <ModalSectionTitle>Kwoty</ModalSectionTitle>
-                    <FormGrid>
-                        <FormField>
-                            <FieldLabel htmlFor="cd-netAmount">Kwota netto (PLN)</FieldLabel>
-                            <InputShell>
-                                <BareInput
-                                    id="cd-netAmount"
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    placeholder="0.00"
-                                    value={form.totalNetDisplay}
-                                    onChange={e => handleNetChange(e.target.value)}
-                                    onKeyDown={handleZeroAwareKeyDown(form.totalNetDisplay, handleNetChange)}
-                                    required
-                                    autoComplete="new-password"
-                                />
-                            </InputShell>
-                        </FormField>
-
-                        <FormField>
-                            <FieldLabel htmlFor="cd-vatAmount">VAT (23%)</FieldLabel>
-                            <InputShell>
-                                <BareInput
-                                    id="cd-vatAmount"
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    placeholder="0.00"
-                                    value={form.totalVatDisplay}
-                                    onChange={set('totalVatDisplay')}
-                                    onKeyDown={handleZeroAwareKeyDown(form.totalVatDisplay, setField('totalVatDisplay'))}
-                                    autoComplete="new-password"
-                                />
-                            </InputShell>
-                        </FormField>
-                    </FormGrid>
+                    <DocumentAmountFields
+                        idPrefix="cd"
+                        value={form.amounts}
+                        onChange={amounts => setForm(prev => ({ ...prev, amounts }))}
+                    />
 
                     <ModalSectionTitle>Daty</ModalSectionTitle>
                     <FormGrid>

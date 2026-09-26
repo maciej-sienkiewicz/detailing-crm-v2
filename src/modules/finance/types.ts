@@ -22,10 +22,12 @@ export enum DocumentStatus {
 }
 
 export enum PaymentMethod {
-  CASH     = 'CASH',
-  CARD     = 'CARD',
-  TRANSFER = 'TRANSFER',
-  OTHER    = 'OTHER',
+  CASH          = 'CASH',
+  CARD          = 'CARD',
+  TRANSFER      = 'TRANSFER',
+  BLIK_NA_NUMER = 'BLIK_NA_NUMER',
+  BLIK_TERMINAL = 'BLIK_TERMINAL',
+  OTHER         = 'OTHER',
 }
 
 export enum DocumentSource {
@@ -65,6 +67,8 @@ export interface FinancialDocument {
   createdAt:           string;
   updatedAt:           string;
   deletedAt:           string | null;
+  /** Faktura KSeF, do której należy dokument - wtedy edycja obejmuje tylko opis. */
+  ksefInvoiceId?:      string | null;
 }
 
 export interface FinancialDocumentListResponse {
