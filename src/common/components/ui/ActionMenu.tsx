@@ -20,6 +20,7 @@ import styled from 'styled-components';
 import { touch, ui } from './tokens';
 
 import type { AnchorRect } from './useActionMenu';
+import { applyFloatingPlacement } from '@/common/utils/floatingPlacement';
 
 const Dropdown = styled.div`
     position: fixed;
@@ -94,18 +95,10 @@ export function ActionMenu({ anchor, onClose, label, children }: ActionMenuProps
     useLayoutEffect(() => {
         const panel = panelRef.current;
         if (!anchor || !panel) return;
-        const vpWidth = window.visualViewport?.width ?? window.innerWidth;
-        const vpHeight = window.visualViewport?.height ?? window.innerHeight;
-        const height = panel.offsetHeight;
-        const below = anchor.bottom + 4;
-        // Na telefonie dół ekranu zajmuje pasek nawigacji aplikacji - menu nie może pod nim lądować.
-        const bottomReserve = vpWidth < 768 ? 88 : 8;
-        const top = below + height > vpHeight - bottomReserve && anchor.top - 4 - height > 8
-            ? anchor.top - 4 - height
-            : below;
-        panel.style.top = `${top}px`;
-        panel.style.right = `${Math.max(8, vpWidth - anchor.right)}px`;
-        panel.style.visibility = 'visible';
+        // Wspólne układanie: panel mieści się w ekranie z obu stron, pod przyciskiem
+        // albo nad nim. Wcześniej pilnowało tylko prawej krawędzi - menu przycisku przy
+        // lewej krawędzi telefonu wyjeżdżało w lewo.
+        applyFloatingPlacement(panel, anchor, { align: 'right', offset: 4 });
     }, [anchor]);
 
     useEffect(() => {
