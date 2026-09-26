@@ -4,7 +4,7 @@ import { Check, Eye, EyeOff, FileText, Pencil, Trash2 } from 'lucide-react';
 import { useMediaQuery } from '@/common/hooks';
 import type { RowSelection } from '@/common/hooks';
 import { useToast } from '@/common/components/Toast';
-import type { IncomeDocument, IncomeDocumentType, KsefRevenueStatus } from '../types';
+import type { IncomeDocument, IncomeDocumentType, IncomeSettlementState, KsefRevenueStatus } from '../types';
 import { useExcludeIncomeDocument, useRestoreIncomeDocument, useDeleteIncomeNote } from '../hooks/useIncomeDocuments';
 import { ksefRevenueApi } from '../api/ksefRevenueApi';
 import { formatMoney, formatDate } from '../utils/formatters';
@@ -113,7 +113,7 @@ const PartyNip = styled.div`
 
 /* Kwota czyta się tak samo jak w tabeli kosztowej: brutto monospace’em, netto pod spodem
    drugim planem. Dwie tabele w jednym module nie mogą pokazywać pieniędzy dwoma krojami. */
-const AmountPrimary = styled.span<{ $negative?: boolean }>`
+const AmountPrimary = styled.span<{ $negative?: boolean; $void?: boolean }>`
   display: block;
   font-size: 13px;
   font-weight: 600;
@@ -121,6 +121,7 @@ const AmountPrimary = styled.span<{ $negative?: boolean }>`
   font-feature-settings: 'tnum';
   white-space: nowrap;
   color: ${(p) => (p.$negative ? '#dc2626' : p.theme.colors.text)};
+  text-decoration: ${(p) => (p.$void ? 'line-through' : 'none')};
 `;
 
 const AmountSecondary = styled.span`
@@ -328,21 +329,24 @@ const CardParty = styled.span`
   white-space: nowrap;
 `;
 
-const CardAmount = styled.span<{ $negative?: boolean }>`
+const CardAmount = styled.span<{ $negative?: boolean; $void?: boolean }>`
   font-size: 15px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   flex-shrink: 0;
   color: ${(p) => (p.$negative ? '#dc2626' : p.theme.colors.text)};
+  text-decoration: ${(p) => (p.$void ? 'line-through' : 'none')};
 `;
 
 const CardMeta = styled.div`
+  display: flex;
+  gap: 10px;
   font-size: 12px;
   color: ${(p) => p.theme.colors.textMuted};
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
+  & > span:first-child { overflow: hidden; text-overflow: ellipsis; }
 `;
 
 /* Na telefonie notatkę tylko pokazujemy (jak w kartach kosztów) — edycja siedzi na
@@ -396,6 +400,27 @@ const DOCUMENT_TYPE: Record<IncomeDocumentType, { label: string; variant: BadgeV
  * poza systemem) niesie już zdanie po najeżdżeniu — w kolumnie były siedmioma etykietami,
  * z których sześć znaczyło to samo.
  */
+/**
+ * Dokument, który przestał obowiązywać po poprawce rozliczenia wizyty. Bez tej etykiety
+ * stara faktura wyglądała jak żywa: pełna kwota i „Opłacona”, a jej storno jest z listy
+ * odfiltrowane (przypięte do tej samej faktury). Zgłoszenie z produkcji: „widzę starą
+ * fakturę i nowy dokument, nie widzę, żeby z fakturą było coś nie tak”.
+ */
+const SETTLEMENT_STATE: Record<IncomeSettlementState, { label: string; title: string }> = {
+  CANCELLED: {
+    label: 'Anulowana',
+    title: 'Anulowana w poprawce rozliczenia wizyty, zanim trafiła do KSeF. Nie liczy się do sprzedaży.',
+  },
+  ZEROED: {
+    label: 'Skorygowana do zera',
+    title: 'Wyzerowana fakturą korygującą w poprawce rozliczenia wizyty. Korekta jest osobną pozycją listy.',
+  },
+  SUPERSEDED: {
+    label: 'Zastąpiony',
+    title: 'Zastąpiony nowym dokumentem w poprawce rozliczenia wizyty. Nie liczy się do sprzedaży.',
+  },
+};
+
 const KSEF_MARK: Record<KsefRevenueStatus, { on: boolean; title: string }> = {
   CANCELLED: {
     on: false,
@@ -582,6 +607,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
               // Ptaszek tylko dla dokumentów, które w ogóle idą do KSeF: przy paragonie
               // szary znaczek sugerowałby zaległość, której nie ma.
               const ksefMark = doc.ksefStatus ? KSEF_MARK[doc.ksefStatus] : null;
+              const settled = doc.settlementState ? SETTLEMENT_STATE[doc.settlementState] : null;
 
               const rowKey = incomeRowKey(doc);
               const selected = selection?.isSelected(rowKey) ?? false;
@@ -599,16 +625,17 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                   )}
                   <Card
                     type="button"
-                    $muted={doc.excluded || doc.duplicateStatus === 'CONFIRMED_DUPLICATE' || doc.ksefStatus === 'REJECTED'}
+                    $muted={doc.excluded || doc.duplicateStatus === 'CONFIRMED_DUPLICATE' || doc.ksefStatus === 'REJECTED' || !!settled}
                     onClick={() => onSelect(doc)}
                   >
                     <CardTop>
                       <CardParty>{doc.counterpartyName ?? 'Konsument'}</CardParty>
-                      <CardAmount $negative={doc.totalGross < 0}>{formatMoney(doc.totalGross)}</CardAmount>
+                      <CardAmount $negative={doc.totalGross < 0} $void={!!settled}>{formatMoney(doc.totalGross)}</CardAmount>
                     </CardTop>
 
                     <CardMeta>
-                      {doc.documentNumber} · {formatDate(doc.issueDate)}
+                      <span>{doc.documentNumber}</span>
+                      <span>{formatDate(doc.issueDate)}</span>
                     </CardMeta>
 
                     {doc.note && <CardNote title={doc.note}>{doc.note}</CardNote>}
@@ -624,6 +651,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                       </TypeCell>
                       <Badge $variant={payment.variant}>{payment.label}</Badge>
                       {doc.ksefStatus === 'REJECTED' && <Badge $variant="red">Odrzucona</Badge>}
+                      {settled && <Badge $variant="slate" title={settled.title}>{settled.label}</Badge>}
                       {doc.duplicateStatus === 'SUSPECTED' && (
                         <Badge $variant="red">⚠ Duplikat?</Badge>
                       )}
@@ -702,6 +730,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                 // Ptaszek tylko dla dokumentów, które w ogóle idą do KSeF — paragon nie ma
                 // czego „jeszcze nie mieć" i szary znaczek mówiłby o zaległości, której nie ma.
                 const ksefMark = doc.ksefStatus ? KSEF_MARK[doc.ksefStatus] : null;
+                const settled = doc.settlementState ? SETTLEMENT_STATE[doc.settlementState] : null;
 
                 const rowKey = incomeRowKey(doc);
 
@@ -711,7 +740,8 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                     $muted={
                       doc.excluded ||
                       doc.duplicateStatus === 'CONFIRMED_DUPLICATE' ||
-                      doc.ksefStatus === 'REJECTED'
+                      doc.ksefStatus === 'REJECTED' ||
+                      !!settled
                     }
                     $selected={selection?.isSelected(rowKey) ?? false}
                     onClick={() => onSelect(doc)}
@@ -739,6 +769,9 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                           tylko „nie ma w KSeF", a odrzucenie i duplikat to praca do zrobienia. */}
                       {doc.ksefStatus === 'REJECTED' && (
                         <Badge $variant="red" style={{ marginTop: 4 }}>Odrzucona</Badge>
+                      )}
+                      {settled && (
+                        <Badge $variant="slate" style={{ marginTop: 4 }} title={settled.title}>{settled.label}</Badge>
                       )}
                       {doc.duplicateStatus === 'SUSPECTED' && (
                         <Badge
@@ -800,7 +833,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                       )}
                     </Td>
                     <Td $align="right">
-                      <AmountPrimary $negative={doc.totalGross < 0}>
+                      <AmountPrimary $negative={doc.totalGross < 0} $void={!!settled}>
                         {formatMoney(doc.totalGross)}
                       </AmountPrimary>
                       <AmountSecondary>{formatMoney(doc.totalNet)} netto</AmountSecondary>

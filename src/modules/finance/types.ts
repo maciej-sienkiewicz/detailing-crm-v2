@@ -513,7 +513,14 @@ export interface IncomeDocument {
   excluded:         boolean;
   /** Odręczna notatka operatora; null gdy nie dodano. Odpowiednik notatki na koszcie. */
   note:             string | null;
+  /**
+   * Dokument przestał obowiązywać po poprawce rozliczenia wizyty: faktura anulowana przed
+   * KSeF, faktura wyzerowana korektą albo dokument zastąpiony nowym. null = obowiązuje.
+   */
+  settlementState?: IncomeSettlementState | null;
 }
+
+export type IncomeSettlementState = 'CANCELLED' | 'ZEROED' | 'SUPERSEDED';
 
 export interface UpdateIncomeNoteRequest {
   note: string;
