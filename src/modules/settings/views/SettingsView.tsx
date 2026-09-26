@@ -433,7 +433,8 @@ const HeadText = styled.div`
     flex-direction: column;
     gap: 6px;
     min-width: 0;
-    flex: 1 1 360px;
+    /* Niska podstawa: akcje sekcji mają stać obok tytułu, a nie spadać pod opis. */
+    flex: 1 1 240px;
 
     h2 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.015em; color: ${ui.ink}; }
     p { margin: 0; max-width: 680px; font-size: 14px; line-height: 1.5; color: ${ui.textSecondary}; }

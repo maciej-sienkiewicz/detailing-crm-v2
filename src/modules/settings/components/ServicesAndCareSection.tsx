@@ -2,39 +2,24 @@
 //
 // Ustawienia → Cennik usług.
 //
-// Cennik i słownik instrukcji pielęgnacyjnych stoją w jednej zakładce, bo instrukcje
-// przypisuje się do pozycji cennika — rozdzielone na dwie pozycje nawigacji zmuszałyby
+// Cennik i słownik instrukcji pielęgnacyjnych stoją w jednej sekcji, bo instrukcje
+// przypisuje się do pozycji cennika - rozdzielone na dwie pozycje nawigacji zmuszałyby
 // do skakania tam i z powrotem przy każdej usłudze.
+//
+// Jeden przełącznik „Usługi N | Pakiety N | Instrukcje pielęgnacji N" zamiast paska
+// zakładek i drugiego filtra „Wszystkie / Usługi / Pakiety" pod nim. Instrukcje mają
+// własny adres (`subView` z ramy ustawień), podział usługi/pakiety żyje lokalnie.
+import { useState } from 'react';
 import styled from 'styled-components';
-import { TabBar, type TabDefinition } from '@/common/components/TabBar';
-import { ServicesSection } from './ServicesSection';
+import { Segmented } from '@/common/components/ui';
+import { useServices } from '@/modules/services/hooks/useServices';
+import { useCareInstructions } from '../hooks/useCareInstructions';
+import { ServicesSection, type CatalogKind } from './ServicesSection';
 import { CareInstructionsSection } from './CareInstructionsSection';
 
 export type ServicesSubView = 'pricing' | 'care';
 
-const Container = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-`;
-
-const PriceTagIcon = () => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20.6 13.4 12 22l-9-9V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z" />
-        <circle cx="7.5" cy="7.5" r="1.3" />
-    </svg>
-);
-
-const DropletIcon = () => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 2.7 6.9 8.4a7 7 0 1 0 10.2 0L12 2.7Z" />
-    </svg>
-);
-
-const TABS: TabDefinition<ServicesSubView>[] = [
-    { key: 'pricing', label: 'Usługi', icon: <PriceTagIcon /> },
-    { key: 'care', label: 'Instrukcje pielęgnacji', icon: <DropletIcon /> },
-];
+type SwitchValue = CatalogKind | 'care';
 
 interface Props {
     subView: ServicesSubView;
@@ -42,15 +27,55 @@ interface Props {
 }
 
 export function ServicesAndCareSection({ subView, onSubViewChange }: Props) {
-    return (
-        <Container>
-            <TabBar
-                tabs={TABS}
-                activeKey={subView}
-                onChange={onSubViewChange}
-                ariaLabel="Zakres ustawień cennika"
-            />
-            {subView === 'care' ? <CareInstructionsSection /> : <ServicesSection />}
-        </Container>
+    const [kind, setKind] = useState<CatalogKind>('services');
+
+    // Liczniki przy przełączniku: same aktywne, bez wyszukiwania. Zapytania po jednej
+    // pozycji - liczba przychodzi w `pagination`, a lista pobiera się osobno.
+    const servicesCount = useServices({ search: '', page: 1, limit: 1, showInactive: false, isPackage: false });
+    const packagesCount = useServices({ search: '', page: 1, limit: 1, showInactive: false, isPackage: true });
+    const { instructions } = useCareInstructions();
+
+    const value: SwitchValue = subView === 'care' ? 'care' : kind;
+
+    const change = (next: SwitchValue) => {
+        if (next === 'care') {
+            onSubViewChange('care');
+            return;
+        }
+        setKind(next);
+        if (subView === 'care') onSubViewChange('pricing');
+    };
+
+    const switcher = (
+        <Segmented<SwitchValue>
+            label="Zakres cennika"
+            value={value}
+            onChange={change}
+            options={[
+                { value: 'services', label: 'Usługi', count: servicesCount.pagination?.totalItems ?? null },
+                { value: 'packages', label: 'Pakiety', count: packagesCount.pagination?.totalItems ?? null },
+                {
+                    value: 'care',
+                    label: <><Wide>Instrukcje pielęgnacji</Wide><Narrow>Instrukcje</Narrow></>,
+                    count: instructions.length,
+                },
+            ]}
+        />
     );
+
+    return subView === 'care'
+        ? <CareInstructionsSection switcher={switcher} />
+        : <ServicesSection kind={kind} onKindChange={change} switcher={switcher} />;
 }
+
+// <em>, nie <span>: Segmented barwi każdy <span> w opcji jak licznik.
+const Wide = styled.em`
+    font-style: normal;
+    @media (max-width: 767px) { display: none; }
+`;
+
+const Narrow = styled.em`
+    display: none;
+    font-style: normal;
+    @media (max-width: 767px) { display: inline; }
+`;

@@ -1,1952 +1,523 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
+// src/modules/settings/components/ServicesSection.tsx
+//
+// Ustawienia → Cennik usług → Usługi / Pakiety.
+//
+// Jedna karta z listą (jedyne wyniesienie w kolumnie, CLAUDE.md §2), nad nią pasek:
+// przełącznik „Usługi | Pakiety | Instrukcje pielęgnacji" (podaje go rama sekcji),
+// wyszukiwarka, „Pokaż archiwalne (N)" i „Ceny: Brutto | Netto". Akcje sekcji
+// („Dodaj pakiet", „Dodaj usługę") stoją w nagłówku ramy, akcje wiersza w menu ⋮.
+//
+// Wcześniej stały tu obok siebie: pasek zakładek, drugi filtr „Wszystkie / Usługi /
+// Pakiety" i przycisk „+ Dodaj ▾" z menu - trzy przełączniki robiące prawie to samo.
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import styled, { keyframes } from 'styled-components';
+import { Archive, ChevronLeft, ChevronRight, Droplet, Pencil, Plus, Search } from 'lucide-react';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import {
-  useServices,
-  useCreateService,
-  useUpdateService,
-  useArchiveService,
-  useCreatePackage,
-  useUpdatePackage,
-  useSyncItemName,
-} from '@/modules/services/hooks/useServices';
+    ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, ModalFooter, CloseBtn,
+} from '@/common/components/ModalKit';
+import { InputShell, BareInput } from '@/common/components/Form';
 import {
-  calculateGrossFromNet,
-  calculateNetFromGross,
-  parseMoneyInput,
-} from '@/modules/services/utils/priceCalculator';
-import { priceInputsForVatRate, storedPriceSide, type PriceSide } from '@/common/utils/priceInputs';
-import type { Service, VatRate, AffectedPackage } from '@/modules/services/types';
+    ActionMenu, Button, Card, MenuDivider, MenuItem, Notice, Segmented, ui, useActionMenu,
+} from '@/common/components/ui';
+import { useToast } from '@/common/components/Toast';
+import { useArchiveService, useServices, useSyncItemName } from '@/modules/services/hooks/useServices';
+import type { AffectedPackage, Service } from '@/modules/services/types';
+import type { PriceSide } from '@/common/utils/priceInputs';
 import { useCareInstructions, useCareInstructionMutations } from '../hooks/useCareInstructions';
+import { SettingsHeaderActions } from './shared/SettingsHeaderActions';
 import { CareInstructionPickerModal } from './services/CareInstructionPickerModal';
 import { ServicesTableRow } from './services/ServicesTableRow';
-import { SERVICES_TABLE_GRID, SERVICES_TABLE_GRID_WITH_STATUS } from './services/servicesTable.helpers';
-import { formatDecimalInput, SERVICE_PRICE_INPUT } from './services/servicePriceForm.helpers';
-
-// ─── Animations ───────────────────────────────────────────────────────────────────────────────
-
-const shimmer = keyframes`
-  0%   { background-position: -200% 0; }
-  100% { background-position:  200% 0; }
-`;
-
-const expandDown = keyframes`
-  from { opacity: 0; transform: translateY(-8px); }
-  to   { opacity: 1; transform: translateY(0); }
-`;
-
-// ─── Layout ────────────────────────────────────────────────────────────────────────────────
-
-const Container = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-`;
-
-// ─── Toolbar ──────────────────────────────────────────────────────────────────────────────
-
-const Toolbar = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-`;
-
-const SearchWrap = styled.div`
-  position: relative;
-  flex: 1;
-  min-width: 180px;
-`;
-
-const SearchIconWrap = styled.div`
-  position: absolute;
-  left: 11px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #94a3b8;
-  display: flex;
-  pointer-events: none;
-`;
-
-const SearchInput = styled.input`
-  width: 100%;
-  box-sizing: border-box;
-  height: 38px;
-  padding: 0 12px 0 34px;
-  font-size: 13px;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 9px;
-  background: white;
-  color: #0f172a;
-  outline: none;
-  font-family: inherit;
-  transition: border-color 180ms, box-shadow 180ms;
-
-  &:focus {
-    border-color: #0ea5e9;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
-  }
-  &::placeholder { color: #94a3b8; }
-`;
-
-/**
- * „Pokaż archiwalne" jako link w linijce statystyk, nie przycisk w pasku narzędzi.
- *
- * Archiwalne ogląda się raz na kwartał, a przycisk zajmował w pasku ~175 px na stałe —
- * to przez niego „Utwórz pakiet" spadał do drugiej linii na typowym laptopie.
- */
-const ArchivedToggle = styled.button<{ $on: boolean }>`
-  background: none;
-  border: none;
-  padding: 0;
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 600;
-  color: ${p => p.$on ? '#0369a1' : '#64748b'};
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  cursor: pointer;
-
-  &:hover { color: #0369a1; }
-`;
-
-const TypeFilterGroup = styled.div`
-  display: flex;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 9px;
-  overflow: hidden;
-  flex-shrink: 0;
-`;
-
-const TypeFilterBtn = styled.button<{ $active: boolean }>`
-  display: inline-flex;
-  align-items: center;
-  height: 38px;
-  padding: 0 14px;
-  font-size: 13px;
-  font-weight: ${p => p.$active ? 600 : 500};
-  /* Aktywny segment nosi odcień marki, nie czerń. Wypełnienie na #0f172a było
-     mocniejsze niż akcja główna obok, więc w pasku remisowały trzy elementy
-     o pierwsze miejsce (CLAUDE.md §2). Teraz wypełniony jest tylko „Dodaj". */
-  background: ${p => p.$active ? '#f0f9ff' : 'white'};
-  color: ${p => p.$active ? '#0369a1' : '#475569'};
-  border: none;
-  border-right: 1.5px solid #e2e8f0;
-  box-shadow: ${p => p.$active ? 'inset 0 -2px 0 #0ea5e9' : 'none'};
-  cursor: pointer;
-  white-space: nowrap;
-  font-family: inherit;
-  transition: all 150ms;
-
-  &:last-child { border-right: none; }
-  &:hover:not(:disabled) { background: ${p => p.$active ? '#f0f9ff' : '#f8fafc'}; }
-`;
-
-const NewServiceBadge = styled.span`
-  font-size: 10px;
-  font-weight: 700;
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  padding: 1px 6px;
-  border-radius: 9999px;
-  flex-shrink: 0;
-`;
-
-/**
- * Jedyny wypełniony element w tym widoku (CLAUDE.md §2).
- *
- * Wcześniej stały tu DWA wypełnione przyciski — „Dodaj usługę" w błękicie marki i
- * „Utwórz pakiet" w innym niebieskim — plus wypełniony na czarno aktywny filtr. Trzy
- * elementy walczące o pierwsze miejsce znaczą tyle samo co żaden. Pakiet schodzi do
- * menu pod tym przyciskiem: zakłada się go rzadziej niż zwykłą usługę.
- */
-const AddButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  height: 38px;
-  padding: 0 16px;
-  font-size: 13px;
-  font-weight: 600;
-  background: #0ea5e9;
-  color: #fff;
-  border: none;
-  border-radius: 9px;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-  font-family: inherit;
-  transition: opacity 150ms, transform 100ms;
-
-  &:hover:not(:disabled) { opacity: 0.9; }
-  &:active { transform: scale(0.98); }
-  &:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-`;
-
-const AddWrap = styled.div`
-  position: relative;
-  flex-shrink: 0;
-`;
-
-const AddMenu = styled.div`
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 40;
-  min-width: 230px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12), 0 1px 3px rgba(15, 23, 42, 0.06);
-  overflow: hidden;
-  animation: ${expandDown} 140ms ease both;
-`;
-
-const AddMenuItem = styled.button`
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  width: 100%;
-  padding: 11px 14px;
-  background: none;
-  border: none;
-  text-align: left;
-  font-family: inherit;
-  cursor: pointer;
-  color: #0f172a;
-
-  & + & { border-top: 1px solid #f1f5f9; }
-  &:hover { background: #f8fafc; }
-
-  svg { flex-shrink: 0; margin-top: 2px; color: #0369a1; }
-`;
-
-const AddMenuTexts = styled.span`
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-`;
-
-const AddMenuTitle = styled.span`
-  font-size: 13px;
-  font-weight: 600;
-`;
-
-const AddMenuDesc = styled.span`
-  font-size: 11.5px;
-  color: #64748b;
-`;
-
-// ─── Stats ───────────────────────────────────────────────────────────────────────────────
-
-const StatsRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 18px;
-`;
-
-const StatText = styled.span`
-  font-size: 11px;
-  color: #94a3b8;
-
-  strong { color: #0f172a; font-weight: 700; }
-`;
-
-// ─── Form panel ───────────────────────────────────────────────────────────────────────────
-
-const FormPanel = styled.div`
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  animation: ${expandDown} 220ms ease both;
-`;
-
-const FormHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 15px 20px;
-  border-bottom: 1px solid #f1f5f9;
-  background: #fafbfc;
-  border-radius: 12px 12px 0 0;
-`;
-
-const FormTitle = styled.span`
-  font-size: 13px;
-  font-weight: 700;
-  color: #0f172a;
-`;
-
-const CloseBtn = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  background: white;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 7px;
-  cursor: pointer;
-  color: #94a3b8;
-  transition: all 150ms;
-
-  &:hover {
-    background: #f8fafc;
-    color: #0f172a;
-    border-color: #cbd5e1;
-  }
-`;
-
-const FormBody = styled.div`
-  padding: 20px 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-`;
-
-const FormRow = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr 100px;
-  gap: 12px;
-  align-items: flex-start;
-
-  @media (max-width: 900px) {
-    grid-template-columns: minmax(0, 1fr);
-  }
-`;
-
-const FormField = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-`;
-
-const FieldLabel = styled.label`
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  color: #334155;
-`;
-
-const FieldInput = styled.input<{ $error?: boolean }>`
-  width: 100%;
-  box-sizing: border-box;
-  height: 38px;
-  padding: 0 12px;
-  font-size: 13px;
-  font-family: inherit;
-  border: 1.5px solid ${p => p.$error ? '#ef4444' : '#e2e8f0'};
-  border-radius: 9px;
-  background: white;
-  color: #0f172a;
-  outline: none;
-  transition: border-color 180ms, box-shadow 180ms;
-
-  &:focus {
-    border-color: ${p => p.$error ? '#ef4444' : '#0ea5e9'};
-    box-shadow: 0 0 0 3px ${p => p.$error ? 'rgba(239,68,68,0.12)' : 'rgba(14,165,233,0.14)'};
-  }
-  &::placeholder { color: #94a3b8; }
-  &:disabled {
-    background: #f8fafc;
-    color: #94a3b8;
-    cursor: not-allowed;
-  }
-`;
-
-const FieldSelect = styled.select`
-  width: 100%;
-  box-sizing: border-box;
-  height: 38px;
-  padding: 0 12px;
-  font-size: 13px;
-  font-family: inherit;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 9px;
-  background: white;
-  color: #0f172a;
-  outline: none;
-  cursor: pointer;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  padding-right: 36px;
-  transition: border-color 180ms, box-shadow 180ms;
-
-  &:focus {
-    border-color: #0ea5e9;
-    box-shadow: 0 0 0 3px rgba(14,165,233,0.14);
-  }
-  &:disabled {
-    background-color: #f8fafc;
-    color: #94a3b8;
-    cursor: not-allowed;
-  }
-`;
-
-const ErrorMsg = styled.span`
-  font-size: 11px;
-  color: #ef4444;
-`;
-
-const ManualRow = styled.label`
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  cursor: pointer;
-  user-select: none;
-`;
-
-const ToggleTrack = styled.div<{ $on: boolean }>`
-  width: 44px;
-  height: 24px;
-  flex-shrink: 0;
-  margin-top: 2px;
-  background: ${p => p.$on ? '#0ea5e9' : '#f1f5f9'};
-  border: 1px solid ${p => p.$on ? '#0ea5e9' : '#e2e8f0'};
-  border-radius: 9999px;
-  position: relative;
-  transition: background 150ms, border-color 150ms;
-`;
-
-const ToggleThumb = styled.div<{ $on: boolean }>`
-  width: 18px;
-  height: 18px;
-  background: ${p => p.$on ? '#fff' : '#94a3b8'};
-  border-radius: 50%;
-  position: absolute;
-  top: 2px;
-  left: ${p => p.$on ? '22px' : '2px'};
-  transition: left 150ms, background 150ms;
-  box-shadow: 0 1px 3px rgba(15,23,42,0.12);
-`;
-
-const ManualTextWrap = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-`;
-
-const ManualLabel = styled.span`
-  font-size: 13px;
-  font-weight: 600;
-  color: #0f172a;
-`;
-
-const ManualDesc = styled.span`
-  font-size: 11px;
-  color: #94a3b8;
-  line-height: 1.5;
-`;
-
-const FormFooter = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 14px 22px;
-  border-top: 1px solid #f1f5f9;
-  background: #fafbfc;
-  border-radius: 0 0 12px 12px;
-`;
-
-const CancelBtn = styled.button`
-  display: inline-flex;
-  align-items: center;
-  padding: 8px 16px;
-  font-size: 13px;
-  font-weight: 500;
-  background: white;
-  color: #334155;
-  border: 1px solid #e2e8f0;
-  border-radius: 9px;
-  cursor: pointer;
-  font-family: inherit;
-  transition: background 150ms;
-
-  &:hover { background: #f8fafc; }
-`;
-
-const SubmitBtn = styled.button`
-  display: inline-flex;
-  align-items: center;
-  padding: 8px 18px;
-  font-size: 13px;
-  font-weight: 600;
-  background: #0ea5e9;
-  color: #fff;
-  border: none;
-  border-radius: 9px;
-  cursor: pointer;
-  font-family: inherit;
-  transition: opacity 150ms, transform 100ms;
-
-  &:hover:not(:disabled) { opacity: 0.9; }
-  &:active { transform: scale(0.98); }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-`;
-
-// ─── Service table ──────────────────────────────────────────────────────────────────────────
-
-const ServiceList = styled.div`
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  overflow: hidden;
-`;
-
-const ListHeader = styled.div<{ $withStatus: boolean }>`
-  display: grid;
-  grid-template-columns: ${p => (p.$withStatus ? SERVICES_TABLE_GRID_WITH_STATUS : SERVICES_TABLE_GRID)};
-  gap: 8px;
-  padding: 10px 20px;
-  border-bottom: 1px solid #f1f5f9;
-  background: #fafbfc;
-
-  /* Wiersze są na telefonie kafelkami, więc nagłówek kolumn nie ma czego opisywać. */
-  @media (max-width: 900px) { display: none; }
-`;
-
-const ColLabel = styled.span`
-  font-size: 11px;
-  font-weight: 600;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-`;
-
-// ─── Skeleton ─────────────────────────────────────────────────────────────────────────────
-
-const SkeletonBox = styled.div<{ $w?: string }>`
-  height: 13px;
-  width: ${p => p.$w ?? '100%'};
-  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: ${shimmer} 1.5s infinite;
-  border-radius: 4px;
-`;
-
-const SkeletonRow = styled.div<{ $withStatus: boolean }>`
-  display: grid;
-  grid-template-columns: ${p => (p.$withStatus ? SERVICES_TABLE_GRID_WITH_STATUS : SERVICES_TABLE_GRID)};
-  gap: 8px;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid #f1f5f9;
-
-  &:last-child { border-bottom: none; }
-
-  @media (max-width: 900px) {
-    grid-template-columns: minmax(0, 1fr) 72px;
-    padding: 14px;
-  }
-`;
-
-// ─── Empty state ───────────────────────────────────────────────────────────────────────────
-
-const EmptyWrap = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 48px 24px;
-  gap: 10px;
-  text-align: center;
-`;
-
-const EmptyTitle = styled.p`
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: #475569;
-`;
-
-const EmptyDesc = styled.p`
-  margin: 0;
-  font-size: 11px;
-  color: #94a3b8;
-  line-height: 1.6;
-`;
-
-// ─── Pagination ───────────────────────────────────────────────────────────────────────────
-
-const Pager = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px;
-  border-top: 1px solid #f1f5f9;
-  background: #fafbfc;
-`;
-
-const PagerInfo = styled.span`
-  font-size: 11px;
-  color: #94a3b8;
-`;
-
-const PagerControls = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-`;
-
-const PagerBtn = styled.button<{ $active?: boolean }>`
-  min-width: 30px;
-  height: 30px;
-  padding: 0 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-family: inherit;
-  font-weight: ${p => p.$active ? 700 : 500};
-  border-radius: 7px;
-  border: 1px solid ${p => p.$active ? 'rgba(14,165,233,0.3)' : '#e2e8f0'};
-  background: ${p => p.$active ? 'rgba(14,165,233,0.08)' : 'white'};
-  color: ${p => p.$active ? '#0ea5e9' : '#475569'};
-  cursor: pointer;
-  transition: all 150ms;
-
-  &:hover:not(:disabled) { background: #f8fafc; border-color: #cbd5e1; }
-  &:disabled { opacity: 0.4; cursor: not-allowed; }
-`;
-
-// ─── Archive dialog ─────────────────────────────────────────────────────────────────────────
-
-const Overlay = styled.div`
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.4);
-  z-index: 2000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-`;
-
-const Dialog = styled.div`
-  background: white;
-  border-radius: 14px;
-  padding: 28px;
-  max-width: 400px;
-  width: 100%;
-  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.18);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  animation: ${expandDown} 200ms ease both;
-`;
-
-const DialogTitle = styled.h3`
-  margin: 0;
-  font-size: 15px;
-  font-weight: 700;
-  color: #0f172a;
-`;
-
-const DialogText = styled.p`
-  margin: 0;
-  font-size: 13px;
-  color: #475569;
-  line-height: 1.65;
-`;
-
-const DialogActions = styled.div`
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-`;
-
-const DangerBtn = styled.button`
-  display: inline-flex;
-  align-items: center;
-  padding: 8px 20px;
-  font-size: 13px;
-  font-weight: 700;
-  background: #ef4444;
-  color: #fff;
-  border: none;
-  border-radius: 9px;
-  cursor: pointer;
-  font-family: inherit;
-  transition: opacity 150ms;
-
-  &:hover:not(:disabled) { opacity: 0.9; }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-`;
-
-// ─── Package-specific styles ────────────────────────────────────────────────────────────────
-
-const ServicePickerWrap = styled.div`
-  position: relative;
-`;
-
-const ServicePickerDropdown = styled.div`
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  background: white;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 9px;
-  box-shadow: 0 4px 16px rgba(15,23,42,0.10);
-  max-height: 180px;
-  overflow-y: auto;
-  z-index: 100;
-`;
-
-const ServicePickerOption = styled.div`
-  padding: 9px 14px;
-  font-size: 13px;
-  color: #0f172a;
-  cursor: pointer;
-  border-bottom: 1px solid #f1f5f9;
-
-  &:last-child { border-bottom: none; }
-  &:hover { background: #f8fafc; }
-`;
-
-const SelectedServicesList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 10px;
-`;
-
-const SelectedServiceItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: rgba(37,99,235,0.04);
-  border: 1px solid rgba(37,99,235,0.15);
-  border-radius: 8px;
-  font-size: 13px;
-`;
-
-const PositionDot = styled.span`
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #2563eb;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 700;
-  flex-shrink: 0;
-`;
-
-const SelectedServiceName = styled.span`
-  flex: 1;
-  color: #0f172a;
-`;
-
-const RemoveServiceBtn = styled.button`
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  font-size: 16px;
-  color: #94a3b8;
-  line-height: 1;
-  flex-shrink: 0;
-  transition: color 150ms;
-  &:hover { color: #ef4444; }
-`;
-
-const PackageInfoBox = styled.div`
-  padding: 10px 14px;
-  background: rgba(245,158,11,0.06);
-  border: 1px solid rgba(245,158,11,0.25);
-  border-radius: 8px;
-  font-size: 12px;
-  color: #92400e;
-  line-height: 1.55;
-`;
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────────────────
-
-// ── Instrukcje pielęgnacyjne przypięte do usługi ──────────────────────────────────────────
-//
-// W formularzu został sam podsumowujący wiersz, a wybór przeniósł się do osobnego okna
-// (CareInstructionPickerModal): przypisanie zmienia się raz przy zakładaniu usługi i
-// prawie nigdy później, a rozwinięta lista rozpychała formularz ceny, w którym ludzie
-// bywają codziennie.
-
-const CareBlock = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-top: 4px;
-`;
-
-const CareHint = styled.p`
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.5;
-  color: #64748b;
-`;
-
-const CareSummaryRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  background: #fff;
-
-  @media (max-width: 520px) {
-    flex-direction: column;
-    align-items: stretch;
-  }
-`;
-
-const CareSummaryText = styled.span`
-  font-size: 13px;
-  color: #0f172a;
-  min-width: 0;
-  overflow-wrap: anywhere;
-`;
-
-const CareSummaryMuted = styled.span`
-  font-size: 13px;
-  color: #94a3b8;
-`;
-
-// Akcja drugorzędna: odcień i obwódka, bez wypełnienia (CLAUDE.md §2) — wypełniony
-// w tym formularzu jest „Zapisz zmiany".
-const CarePickBtn = styled.button`
-  flex-shrink: 0;
-  padding: 8px 14px;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  color: #0369a1;
-  background: #fff;
-  border: 1px solid #7dd3fc;
-  border-radius: 8px;
-  cursor: pointer;
-
-  &:hover { border-color: #0ea5e9; background: #f0f9ff; }
-`;
-
-const VAT_OPTIONS: { value: VatRate; label: string }[] = [
-  { value: 23, label: '23%' },
-  { value: 8,  label: '8%'  },
-  { value: 5,  label: '5%'  },
-  { value: 0,  label: '0%'  },
-  { value: -1, label: 'zw.' },
-];
-
-const isValidPriceInput = (raw: string): boolean =>
-  raw === '' || /^\d*[,.]?\d{0,2}$/.test(raw);
-
-function buildPageNumbers(current: number, total: number): (number | '...')[] {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const pages: (number | '...')[] = [1];
-  if (current > 3) pages.push('...');
-  for (let p = Math.max(2, current - 1); p <= Math.min(total - 1, current + 1); p++) {
-    pages.push(p);
-  }
-  if (current < total - 2) pages.push('...');
-  pages.push(total);
-  return pages;
-}
-
-// ─── Form types ───────────────────────────────────────────────────────────────────────────
-
-interface FormValues {
-  name: string;
-  netInput: string;
-  grossInput: string;
-  vatRate: VatRate;
-  requireManualPrice: boolean;
-  /** Pole ceny wpisane ostatnio - przechodzi przez zmianę stawki VAT bez zmian. */
-  priceSide: PriceSide;
-}
-
-interface FormErrors {
-  name?: string;
-  netInput?: string;
-}
-
-const EMPTY_FORM: FormValues = {
-  name: '',
-  netInput: '',
-  grossInput: '',
-  vatRate: 23,
-  requireManualPrice: false,
-  priceSide: 'net',
-};
-
-function serviceToForm(s: Service): FormValues {
-  if (s.requireManualPrice) {
-    return { name: s.name, netInput: '', grossInput: '', vatRate: s.vatRate, requireManualPrice: true, priceSide: 'net' };
-  }
-  return {
-    name: s.name,
-    netInput: formatDecimalInput(s.basePriceNet),
-    grossInput: formatDecimalInput(s.basePriceGross ?? calculateGrossFromNet(s.basePriceNet, s.vatRate).priceGross),
-    vatRate: s.vatRate,
-    requireManualPrice: false,
-    // Nic jeszcze nie wpisano: brutto z katalogu, którego nie da się uzyskać z netta,
-    // wpisał człowiek - i to ono ma przetrwać zmianę stawki.
-    priceSide: storedPriceSide(s.basePriceNet, s.basePriceGross, s.vatRate),
-  };
-}
-
-function validateForm(v: FormValues): FormErrors {
-  const errors: FormErrors = {};
-  const name = v.name.trim();
-  if (!name) {
-    errors.name = 'Nazwa jest wymagana';
-  } else if (name.length < 3) {
-    errors.name = 'Nazwa musi mieć co najmniej 3 znaki';
-  } else if (name.length > 100) {
-    errors.name = 'Nazwa może mieć maksymalnie 100 znaków';
-  }
-  if (!v.requireManualPrice) {
-    const amount = parseMoneyInput(v.netInput);
-    if (isNaN(amount) || amount < 0) {
-      errors.netInput = 'Podaj poprawną cenę netto';
-    }
-  }
-  return errors;
-}
-
-interface PackageFormValues {
-  name: string;
-  netInput: string;
-  grossInput: string;
-  vatRate: VatRate;
-  requireManualPrice: boolean;
-  selectedServices: Service[];
-  /** Pole ceny wpisane ostatnio - przechodzi przez zmianę stawki VAT bez zmian. */
-  priceSide: PriceSide;
-}
-
-interface PackageFormErrors {
-  name?: string;
-  netInput?: string;
-  services?: string;
-}
-
-const EMPTY_PKG_FORM: PackageFormValues = {
-  name: '',
-  netInput: '',
-  grossInput: '',
-  vatRate: 23,
-  requireManualPrice: false,
-  selectedServices: [],
-  priceSide: 'net',
-};
-
-function packageToForm(pkg: Service): PackageFormValues {
-  const selectedServices: Service[] = (pkg.packageItems || []).map(item => ({
-    id: item.serviceId,
-    name: item.serviceName,
-    basePriceNet: 0,
-    vatRate: 23,
-    requireManualPrice: false,
-    isActive: true,
-    isPackage: false,
-    packageItems: null,
-    createdAt: '', updatedAt: '',
-    createdByFirstName: '', createdByLastName: '',
-    updatedBy: '', replacesServiceId: null,
-  }));
-  if (pkg.requireManualPrice) {
-    return { name: pkg.name, netInput: '', grossInput: '', vatRate: pkg.vatRate, requireManualPrice: true, selectedServices, priceSide: 'net' };
-  }
-  return {
-    name: pkg.name,
-    netInput: formatDecimalInput(pkg.basePriceNet),
-    grossInput: formatDecimalInput(pkg.basePriceGross ?? calculateGrossFromNet(pkg.basePriceNet, pkg.vatRate).priceGross),
-    vatRate: pkg.vatRate,
-    requireManualPrice: false,
-    selectedServices,
-    priceSide: storedPriceSide(pkg.basePriceNet, pkg.basePriceGross, pkg.vatRate),
-  };
-}
-
-function validatePackageForm(v: PackageFormValues): PackageFormErrors {
-  const errors: PackageFormErrors = {};
-  const name = v.name.trim();
-  if (!name) errors.name = 'Nazwa jest wymagana';
-  else if (name.length < 3) errors.name = 'Nazwa musi mieć co najmniej 3 znaki';
-  if (!v.requireManualPrice) {
-    const amount = parseMoneyInput(v.netInput);
-    if (isNaN(amount) || amount < 0) errors.netInput = 'Podaj poprawną cenę netto';
-  }
-  if (v.selectedServices.length < 2) errors.services = 'Pakiet musi zawierać co najmniej 2 usługi';
-  return errors;
-}
-
-// ─── Component ────────────────────────────────────────────────────────────────────────────
-
-type FormMode = 'add' | 'edit';
+import { ServiceEditorModal } from './services/ServiceEditorModal';
+import { PackageEditorModal } from './services/PackageEditorModal';
+import { SERVICES_TABLE_GRID } from './services/servicesTable.helpers';
+import { packagesToRename } from './services/servicePriceForm.helpers';
+import { usePriceSidePreference } from './services/usePriceSidePreference';
+import { reportMutationError } from './services/mutationFeedback';
+
+export type CatalogKind = 'services' | 'packages';
 
 const PAGE_SIZE = 15;
 
-export const ServicesSection: React.FC = () => {
-  const [search, setSearch]               = useState('');
-  const [debouncedSearch, setDebounced]   = useState('');
-  const [page, setPage]                   = useState(1);
-  const [showInactive, setShowInactive]   = useState(false);
-  const [typeFilter, setTypeFilter]       = useState<'all' | 'services' | 'packages'>('all');
+const PRICE_SIDE_OPTIONS: { value: PriceSide; label: string }[] = [
+    { value: 'gross', label: 'Brutto' },
+    { value: 'net', label: 'Netto' },
+];
 
-  const [formMode, setFormMode]           = useState<FormMode | null>(null);
-  const [editTarget, setEditTarget]       = useState<Service | null>(null);
-  const [formValues, setFormValues]       = useState<FormValues>(EMPTY_FORM);
-  const [formErrors, setFormErrors]       = useState<FormErrors>({});
+type Editor =
+    | { type: 'service'; target: Service | null }
+    | { type: 'package'; target: Service | null };
 
-  // Package form state
-  const [pkgFormMode, setPkgFormMode]           = useState<FormMode | null>(null);
-  const [pkgEditTarget, setPkgEditTarget]       = useState<Service | null>(null);
-  const [pkgFormValues, setPkgFormValues]       = useState<PackageFormValues>(EMPTY_PKG_FORM);
-  const [pkgFormErrors, setPkgFormErrors]       = useState<PackageFormErrors>({});
-  const [pkgServiceSearch, setPkgServiceSearch] = useState('');
-  const [pkgDropdownOpen, setPkgDropdownOpen]   = useState(false);
-  const pkgDropdownRef                          = useRef<HTMLDivElement>(null);
+interface Props {
+    kind: CatalogKind;
+    onKindChange: (kind: CatalogKind) => void;
+    /** Przełącznik „Usługi | Pakiety | Instrukcje pielęgnacji" - stoi pierwszy w pasku. */
+    switcher: ReactNode;
+}
 
-  // affectedPackages dialog after service update
-  const [affectedPackages, setAffectedPackages]       = useState<AffectedPackage[] | null>(null);
-  const [updatedServiceId, setUpdatedServiceId]       = useState<string | null>(null);
-  const [updatedServiceName, setUpdatedServiceName]   = useState('');
+export function ServicesSection({ kind, onKindChange, switcher }: Props) {
+    const { showSuccess, showError } = useToast();
+    const [search, setSearch] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const [showInactive, setShowInactive] = useState(false);
+    const [priceSide, setPriceSide] = usePriceSidePreference();
 
-  const [archiveTarget, setArchiveTarget] = useState<Service | null>(null);
+    const [editor, setEditor] = useState<Editor | null>(null);
+    const [archiveTarget, setArchiveTarget] = useState<Service | null>(null);
+    const [careTarget, setCareTarget] = useState<Service | null>(null);
+    const [rename, setRename] = useState<{ serviceId: string; name: string; packages: AffectedPackage[] } | null>(null);
+    const menu = useActionMenu<Service>();
 
-  // "Save custom service to DB?" dialog
-  const [pendingCustomName, setPendingCustomName]     = useState<string | null>(null);
+    useEffect(() => {
+        const t = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 350);
+        return () => clearTimeout(t);
+    }, [search]);
 
-  useEffect(() => {
-    const t = setTimeout(() => { setDebounced(search); setPage(1); }, 350);
-    return () => clearTimeout(t);
-  }, [search]);
+    // Zmiana „Usługi ↔ Pakiety" zaczyna listę od pierwszej strony.
+    useEffect(() => { setPage(1); }, [kind]);
 
-  // Service picker search for package form
-  const { services: pickerServices } = useServices({
-    search: pkgServiceSearch,
-    page: 1,
-    limit: 50,
-    showInactive: false,
-  });
-
-  const availablePickerServices = pickerServices.filter(
-    s => !s.isPackage && !pkgFormValues.selectedServices.some(sel => sel.id === s.id)
-  );
-
-  // Close package service picker on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (pkgDropdownRef.current && !pkgDropdownRef.current.contains(e.target as Node)) {
-        setPkgDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  const isPackageFilter = typeFilter === 'packages' ? true : typeFilter === 'services' ? false : undefined;
-  const filters = { search: debouncedSearch, page, limit: PAGE_SIZE, showInactive, isPackage: isPackageFilter };
-  const { services, pagination, isLoading } = useServices(filters);
-
-  const { instructions: careInstructions } = useCareInstructions();
-  const { setForService: setServiceCare } = useCareInstructionMutations();
-  const [formCareIds, setFormCareIds] = useState<string[]>([]);
-  const [carePickerOpen, setCarePickerOpen] = useState(false);
-  const [addMenuOpen, setAddMenuOpen] = useState(false);
-  const addMenuRef = useRef<HTMLDivElement>(null);
-
-  // Menu „Dodaj" zamyka klik poza nim i Escape — jak każde menu w tej aplikacji.
-  useEffect(() => {
-    if (!addMenuOpen) return;
-    const onDown = (e: MouseEvent) => {
-      if (!addMenuRef.current?.contains(e.target as Node)) setAddMenuOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setAddMenuOpen(false); };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [addMenuOpen]);
-
-  const createMutation  = useCreateService();
-  const updateMutation  = useUpdateService();
-  const archiveMutation = useArchiveService();
-  const createPkgMutation = useCreatePackage();
-  const updatePkgMutation = useUpdatePackage();
-  const syncItemName      = useSyncItemName();
-
-  const isSaving    = createMutation.isPending || updateMutation.isPending;
-  const isPkgSaving = createPkgMutation.isPending || updatePkgMutation.isPending;
-  const totalItems  = pagination?.totalItems ?? 0;
-  const totalPages  = pagination?.totalPages ?? 1;
-
-  const addCustomServiceToPkg = async (name: string, saveToDb: boolean) => {
-    if (saveToDb) {
-      const newService = await createMutation.mutateAsync({
-        name,
-        basePriceNet: 0,
-        basePriceGross: 0,
-        vatRate: 23,
-        requireManualPrice: true,
-      });
-      setPkgFormValues(prev => ({
-        ...prev,
-        selectedServices: [...prev.selectedServices, {
-          id: newService.id,
-          name: newService.name,
-          basePriceNet: 0,
-          basePriceGross: 0,
-          vatRate: 23 as const,
-          requireManualPrice: true,
-          isActive: true,
-          isPackage: false,
-          packageItems: null,
-          createdAt: '', updatedAt: '',
-          createdByFirstName: '', createdByLastName: '', updatedBy: '',
-          replacesServiceId: null,
-        }],
-      }));
-    } else {
-      setPkgFormValues(prev => ({
-        ...prev,
-        selectedServices: [...prev.selectedServices, {
-          id: `NEW::${name}`,
-          name,
-          basePriceNet: 0,
-          basePriceGross: 0,
-          vatRate: 23 as const,
-          requireManualPrice: true,
-          isActive: true,
-          isPackage: false,
-          packageItems: null,
-          createdAt: '', updatedAt: '',
-          createdByFirstName: '', createdByLastName: '', updatedBy: '',
-          replacesServiceId: null,
-        }],
-      }));
-    }
-    setPkgServiceSearch('');
-    setPkgFormErrors(prev => ({ ...prev, services: undefined }));
-  };
-
-  // ── Form handlers ──
-  const anyFormOpen = formMode !== null || pkgFormMode !== null;
-
-  const openAdd = () => {
-    setPkgFormMode(null);
-    setFormMode('add');
-    setEditTarget(null);
-    setFormValues(EMPTY_FORM);
-    setFormErrors({});
-    setFormCareIds([]);
-  };
-
-  const openEdit = (s: Service) => {
-    if (s.isPackage) {
-      setFormMode(null);
-      setPkgFormMode('edit');
-      setPkgEditTarget(s);
-      setPkgFormValues(packageToForm(s));
-      setPkgFormErrors({});
-      setPkgServiceSearch('');
-    } else {
-      setPkgFormMode(null);
-      setFormMode('edit');
-      setEditTarget(s);
-      setFormValues(serviceToForm(s));
-      setFormErrors({});
-      setFormCareIds(
-        careInstructions.filter(i => i.serviceIds.includes(s.id)).map(i => i.id)
-      );
-    }
-  };
-
-  const closeForm = () => { setFormMode(null); setEditTarget(null); setCarePickerOpen(false); };
-
-  // ── Package form handlers ──
-  const openAddPackage = () => {
-    setFormMode(null);
-    setPkgFormMode('add');
-    setPkgEditTarget(null);
-    setPkgFormValues(EMPTY_PKG_FORM);
-    setPkgFormErrors({});
-    setPkgServiceSearch('');
-  };
-
-  const closePkgForm = () => { setPkgFormMode(null); setPkgEditTarget(null); };
-
-  const setPkgField = <K extends keyof PackageFormValues>(key: K, value: PackageFormValues[K]) => {
-    setPkgFormValues(prev => ({ ...prev, [key]: value }));
-    if (key in pkgFormErrors) setPkgFormErrors(prev => ({ ...prev, [key]: undefined }));
-  };
-
-  const handlePkgNetChange = (raw: string) => {
-    if (!isValidPriceInput(raw)) return;
-    const net = parseMoneyInput(raw);
-    const grossStr = raw.trim() === '' || net <= 0
-      ? ''
-      : formatDecimalInput(calculateGrossFromNet(net, pkgFormValues.vatRate).priceGross);
-    setPkgFormValues(prev => ({ ...prev, netInput: raw, grossInput: grossStr, priceSide: 'net' }));
-    setPkgFormErrors(prev => ({ ...prev, netInput: undefined }));
-  };
-
-  const handlePkgGrossChange = (raw: string) => {
-    if (!isValidPriceInput(raw)) return;
-    const gross = parseMoneyInput(raw);
-    const netStr = raw.trim() === '' || gross <= 0
-      ? ''
-      : formatDecimalInput(calculateNetFromGross(gross, pkgFormValues.vatRate).priceNet);
-    setPkgFormValues(prev => ({ ...prev, grossInput: raw, netInput: netStr, priceSide: 'gross' }));
-    setPkgFormErrors(prev => ({ ...prev, netInput: undefined }));
-  };
-
-  // Jak w formularzu usługi: zmiana stawki zostawia pole wpisane, a drugie liczy od nowa.
-  const handlePkgVatChange = (vatRate: VatRate) => {
-    setPkgFormValues(prev => {
-      const { net, gross } = priceInputsForVatRate(
-        { net: prev.netInput, gross: prev.grossInput },
-        prev.vatRate, vatRate, prev.priceSide, SERVICE_PRICE_INPUT,
-      );
-      return { ...prev, vatRate, netInput: net, grossInput: gross };
+    const isPackage = kind === 'packages';
+    const list = useServices({
+        search: debouncedSearch, page, limit: PAGE_SIZE, showInactive, isPackage,
     });
-  };
+    // Liczba archiwalnych = wszystkie danego rodzaju minus aktywne. Dwa zapytania po
+    // jednej pozycji - odpowiedź niesie samą liczbę w `pagination`.
+    const activeCount = useServices({ search: '', page: 1, limit: 1, showInactive: false, isPackage });
+    const allCount = useServices({ search: '', page: 1, limit: 1, showInactive: true, isPackage });
+    const archivedCount = allCount.pagination && activeCount.pagination
+        ? Math.max(0, allCount.pagination.totalItems - activeCount.pagination.totalItems)
+        : 0;
 
-  const addServiceToPkg = (svc: Service) => {
-    setPkgFormValues(prev => ({ ...prev, selectedServices: [...prev.selectedServices, svc] }));
-    setPkgServiceSearch('');
-    setPkgDropdownOpen(false);
-    setPkgFormErrors(prev => ({ ...prev, services: undefined }));
-  };
+    const { instructions: careInstructions } = useCareInstructions();
+    const { setForService } = useCareInstructionMutations();
+    const archive = useArchiveService();
+    const syncItemName = useSyncItemName();
 
-  const removeServiceFromPkg = (id: string) => {
-    setPkgFormValues(prev => ({ ...prev, selectedServices: prev.selectedServices.filter(s => s.id !== id) }));
-  };
+    const careTitlesByService = useMemo(() => {
+        const map = new Map<string, string[]>();
+        careInstructions.forEach(i => i.serviceIds.forEach(id => {
+            map.set(id, [...(map.get(id) ?? []), i.title]);
+        }));
+        return map;
+    }, [careInstructions]);
 
-  const handlePkgSubmit = async () => {
-    const errors = validatePackageForm(pkgFormValues);
-    if (Object.keys(errors).length > 0) { setPkgFormErrors(errors); return; }
+    const totalItems = list.pagination?.totalItems ?? 0;
+    const totalPages = list.pagination?.totalPages ?? 1;
+    const actionsDisabled = editor !== null || archive.isPending;
 
-    const basePriceNet = pkgFormValues.requireManualPrice ? 0 : parseMoneyInput(pkgFormValues.netInput);
-    const basePriceGross = pkgFormValues.requireManualPrice ? 0 : parseMoneyInput(pkgFormValues.grossInput);
+    // Każda akcja z menu sprawdza blokadę jeszcze raz: menu otwarte przed otwarciem
+    // edytora nie może obejść `actionsDisabled` (tak dawało się archiwizować w trakcie
+    // edycji).
+    const guarded = (action: () => void) => () => { if (!actionsDisabled) action(); };
 
-    // Create any virtual services (id starts with NEW::) before submitting
-    const resolvedServices = [...pkgFormValues.selectedServices];
-    for (let i = 0; i < resolvedServices.length; i++) {
-      if (resolvedServices[i].id.startsWith('NEW::')) {
+    const confirmArchive = async () => {
+        const target = archiveTarget;
+        if (!target) return;
         try {
-          const created = await createMutation.mutateAsync({
-            name: resolvedServices[i].name,
-            basePriceNet: 0,
-            basePriceGross: 0,
-            vatRate: 23,
-            requireManualPrice: true,
-          });
-          resolvedServices[i] = { ...resolvedServices[i], id: created.id };
-        } catch {
-          return;
+            await archive.mutateAsync(target.id);
+            showSuccess(target.isPackage ? 'Pakiet zarchiwizowany' : 'Usługa zarchiwizowana',
+                `„${target.name}" nie pojawi się przy nowych zleceniach.`);
+        } catch (error) {
+            reportMutationError(showError, error, 'Nie udało się zarchiwizować');
+        } finally {
+            setArchiveTarget(null);
         }
-      }
-    }
+    };
 
-    const serviceIds = resolvedServices.map(s => s.id);
+    const saveCare = async (service: Service, ids: string[]) => {
+        setCareTarget(null);
+        try {
+            await setForService.mutateAsync({ serviceId: service.id, instructionIds: ids });
+            showSuccess('Instrukcje zapisane', ids.length === 0
+                ? `„${service.name}" nie ma już przypiętych instrukcji.`
+                : `Zaznaczą się na certyfikacie, gdy wizyta obejmie „${service.name}".`);
+        } catch (error) {
+            reportMutationError(showError, error, 'Nie udało się zapisać instrukcji');
+        }
+    };
 
-    if (pkgFormMode === 'add') {
-      await createPkgMutation.mutateAsync({
-        name: pkgFormValues.name.trim(),
-        basePriceNet,
-        basePriceGross,
-        vatRate: pkgFormValues.vatRate,
-        requireManualPrice: pkgFormValues.requireManualPrice,
-        serviceIds,
-      });
-    } else if (pkgEditTarget) {
-      await updatePkgMutation.mutateAsync({
-        originalPackageId: pkgEditTarget.id,
-        name: pkgFormValues.name.trim(),
-        basePriceNet,
-        basePriceGross,
-        vatRate: pkgFormValues.vatRate,
-        requireManualPrice: pkgFormValues.requireManualPrice,
-        serviceIds,
-      });
-    }
-    closePkgForm();
-  };
+    const syncNames = async () => {
+        if (!rename) return;
+        const { serviceId, name, packages } = rename;
+        setRename(null);
+        try {
+            await Promise.all(packages.map(pkg => syncItemName.mutateAsync({
+                packageId: pkg.packageId,
+                data: { serviceId, newName: name },
+            })));
+            showSuccess('Nazwy w pakietach zaktualizowane');
+        } catch (error) {
+            reportMutationError(showError, error, 'Nie udało się zaktualizować nazw w pakietach');
+        }
+    };
 
-  const setField = <K extends keyof FormValues>(key: K, value: FormValues[K]) => {
-    setFormValues(prev => ({ ...prev, [key]: value }));
-    if (key in formErrors) setFormErrors(prev => ({ ...prev, [key]: undefined }));
-  };
+    const labels = isPackage
+        ? { item: 'Pakiet', search: 'Szukaj pakietu', empty: 'Nie ma jeszcze pakietów', emptyHint: 'Pakiet to kilka usług sprzedawanych razem z jedną ceną. Dodasz go przyciskiem „Dodaj pakiet".' }
+        : { item: 'Usługa', search: 'Szukaj usługi', empty: 'Cennik jest pusty', emptyHint: 'Dodaj pierwszą usługę przyciskiem „Dodaj usługę".' };
 
-  const handleNetChange = (raw: string) => {
-    if (!isValidPriceInput(raw)) return;
-    const net = parseMoneyInput(raw);
-    const grossStr = raw.trim() === '' || net <= 0
-      ? ''
-      : formatDecimalInput(calculateGrossFromNet(net, formValues.vatRate).priceGross);
-    setFormValues(prev => ({ ...prev, netInput: raw, grossInput: grossStr, priceSide: 'net' }));
-    setFormErrors(prev => ({ ...prev, netInput: undefined }));
-  };
+    const current = menu.menu?.item ?? null;
 
-  const handleGrossChange = (raw: string) => {
-    if (!isValidPriceInput(raw)) return;
-    const gross = parseMoneyInput(raw);
-    const netStr = raw.trim() === '' || gross <= 0
-      ? ''
-      : formatDecimalInput(calculateNetFromGross(gross, formValues.vatRate).priceNet);
-    setFormValues(prev => ({ ...prev, grossInput: raw, netInput: netStr, priceSide: 'gross' }));
-    setFormErrors(prev => ({ ...prev, netInput: undefined }));
-  };
+    return (
+        <Wrap>
+            <SettingsHeaderActions>
+                <Button variant="outline" size="lg" onClick={() => setEditor({ type: 'package', target: null })}>
+                    <Plus /> Dodaj pakiet
+                </Button>
+                <Button variant="primary" size="lg" onClick={() => setEditor({ type: 'service', target: null })}>
+                    <Plus /> Dodaj usługę
+                </Button>
+            </SettingsHeaderActions>
 
-  // Zmiana stawki zostawia pole wpisane przez człowieka, a drugie liczy od nowa
-  // (CLAUDE.md §1). Brutto liczone zawsze z netta zamieniało wpisane 1900,00 zł
-  // w 1900,01 zł po 23% → 8% → 23% - i taka cena szła potem do katalogu.
-  const handleVatChange = (vatRate: VatRate) => {
-    setFormValues(prev => {
-      const { net, gross } = priceInputsForVatRate(
-        { net: prev.netInput, gross: prev.grossInput },
-        prev.vatRate, vatRate, prev.priceSide, SERVICE_PRICE_INPUT,
-      );
-      return { ...prev, vatRate, netInput: net, grossInput: gross };
-    });
-  };
-
-  const handleManualToggle = () => {
-    setFormValues(prev =>
-      prev.requireManualPrice
-        ? { ...prev, requireManualPrice: false }
-        : { ...prev, requireManualPrice: true, netInput: '', grossInput: '', vatRate: 23 }
-    );
-    setFormErrors(prev => ({ ...prev, netInput: undefined }));
-  };
-
-  /**
-   * Przypisania instrukcji zapisujemy PO zapisie usługi i nie przerywamy nimi zapisu:
-   * usługa zapisana bez instrukcji to drobiazg do poprawienia, a wywalony formularz po
-   * udanym zapisie ceny wygląda jak utrata danych.
-   */
-  const saveCareLinks = async (serviceId: string) => {
-    try {
-      await setServiceCare.mutateAsync({ serviceId, instructionIds: formCareIds });
-    } catch {
-      // Świadomie po cichu — użytkownik zobaczy stan w formularzu przy następnym wejściu.
-    }
-  };
-
-  const handleSubmit = async () => {
-    const errors = validateForm(formValues);
-    if (Object.keys(errors).length > 0) { setFormErrors(errors); return; }
-
-    const basePriceNet = formValues.requireManualPrice ? 0 : parseMoneyInput(formValues.netInput);
-    const basePriceGross = formValues.requireManualPrice ? 0 : parseMoneyInput(formValues.grossInput);
-
-    if (formMode === 'add') {
-      const created = await createMutation.mutateAsync({
-        name: formValues.name.trim(),
-        basePriceNet,
-        basePriceGross,
-        vatRate: formValues.vatRate,
-        requireManualPrice: formValues.requireManualPrice,
-      });
-      await saveCareLinks(created.id);
-      closeForm();
-    } else if (editTarget) {
-      const result = await updateMutation.mutateAsync({
-        originalServiceId: editTarget.id,
-        name: formValues.name.trim(),
-        basePriceNet,
-        basePriceGross,
-        vatRate: formValues.vatRate,
-        requireManualPrice: formValues.requireManualPrice,
-      });
-      // UWAGA: zapis ceny potrafi ZAŁOŻYĆ NOWY wiersz usługi i zarchiwizować stary
-      // (replacesServiceId), więc przypisania wieszamy na identyfikatorze ZWRÓCONYM
-      // przez zapis, nie na tym, który był w formularzu.
-      await saveCareLinks(result.id);
-      closeForm();
-      if (result.affectedPackages && result.affectedPackages.length > 0) {
-        setAffectedPackages(result.affectedPackages);
-        setUpdatedServiceId(result.id);
-        setUpdatedServiceName(result.name);
-      }
-    }
-  };
-
-  const handleSyncPackages = async (confirm: boolean) => {
-    if (confirm && affectedPackages && updatedServiceId) {
-      await Promise.all(
-        affectedPackages.map(pkg =>
-          syncItemName.mutateAsync({
-            packageId: pkg.packageId,
-            data: { serviceId: updatedServiceId, newName: updatedServiceName },
-          })
-        )
-      );
-    }
-    setAffectedPackages(null);
-    setUpdatedServiceId(null);
-    setUpdatedServiceName('');
-  };
-
-  const handleArchiveConfirm = async () => {
-    if (!archiveTarget) return;
-    await archiveMutation.mutateAsync(archiveTarget.id);
-    setArchiveTarget(null);
-  };
-
-  const pageNumbers = buildPageNumbers(page, totalPages);
-
-  return (
-    <Container>
-      {/* ── Toolbar ── */}
-      <Toolbar>
-        <SearchWrap>
-          <SearchIconWrap>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-          </SearchIconWrap>
-          <SearchInput
-            placeholder="Szukaj usługi..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </SearchWrap>
-
-        <TypeFilterGroup>
-          <TypeFilterBtn $active={typeFilter === 'all'} onClick={() => { setTypeFilter('all'); setPage(1); }}>
-            Wszystkie
-          </TypeFilterBtn>
-          <TypeFilterBtn $active={typeFilter === 'services'} onClick={() => { setTypeFilter('services'); setPage(1); }}>
-            Usługi
-          </TypeFilterBtn>
-          <TypeFilterBtn $active={typeFilter === 'packages'} onClick={() => { setTypeFilter('packages'); setPage(1); }}>
-            Pakiety
-          </TypeFilterBtn>
-        </TypeFilterGroup>
-
-        <AddWrap ref={addMenuRef}>
-          <AddButton onClick={() => setAddMenuOpen(v => !v)} disabled={anyFormOpen} aria-haspopup="menu" aria-expanded={addMenuOpen}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            Dodaj
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-          </AddButton>
-          {addMenuOpen && (
-            <AddMenu role="menu">
-              <AddMenuItem role="menuitem" onClick={() => { setAddMenuOpen(false); openAdd(); }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20.6 13.4 12 22l-9-9V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.3"/>
-                </svg>
-                <AddMenuTexts>
-                  <AddMenuTitle>Usługa</AddMenuTitle>
-                  <AddMenuDesc>Pojedyncza pozycja cennika</AddMenuDesc>
-                </AddMenuTexts>
-              </AddMenuItem>
-              <AddMenuItem role="menuitem" onClick={() => { setAddMenuOpen(false); openAddPackage(); }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                </svg>
-                <AddMenuTexts>
-                  <AddMenuTitle>Pakiet</AddMenuTitle>
-                  <AddMenuDesc>Kilka usług sprzedawanych razem</AddMenuDesc>
-                </AddMenuTexts>
-              </AddMenuItem>
-            </AddMenu>
-          )}
-        </AddWrap>
-      </Toolbar>
-
-      {/* ── Stats ── */}
-      <StatsRow>
-        {!isLoading && (
-          <StatText>
-            <strong>{totalItems}</strong>{' '}
-            {showInactive ? 'usług łącznie (w tym archiwalne)' : 'aktywnych usług'}
-          </StatText>
-        )}
-        {!isLoading && (
-          <>
-            <StatText>·</StatText>
-            <ArchivedToggle
-              $on={showInactive}
-              onClick={() => { setShowInactive(v => !v); setPage(1); }}
-            >
-              {showInactive ? 'ukryj archiwalne' : 'pokaż archiwalne'}
-            </ArchivedToggle>
-          </>
-        )}
-      </StatsRow>
-
-      {/* ── Form panel ── */}
-      {formMode !== null && (
-        <FormPanel>
-          <FormHeader>
-            <FormTitle>
-              {formMode === 'add' ? 'Nowa usługa' : `Edytuj: ${editTarget?.name}`}
-            </FormTitle>
-            <CloseBtn onClick={closeForm} aria-label="Zamknij">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-            </CloseBtn>
-          </FormHeader>
-
-          <FormBody>
-            {/* Nazwa */}
-            <FormField>
-              <FieldLabel>Nazwa usługi</FieldLabel>
-              <FieldInput
-                placeholder="np. Mycie ręczne premium"
-                value={formValues.name}
-                onChange={e => setField('name', capitalizeFirst(e.target.value))}
-                $error={!!formErrors.name}
-                autoFocus
-              />
-              {formErrors.name && <ErrorMsg>{formErrors.name}</ErrorMsg>}
-            </FormField>
-
-            {/* Cena netto / Cena brutto / VAT */}
-            <FormRow>
-              <FormField>
-                <FieldLabel>Cena netto</FieldLabel>
-                <FieldInput
-                  placeholder={formValues.requireManualPrice ? 'Wycena ręczna' : 'np. 150,00'}
-                  value={formValues.netInput}
-                  onChange={e => handleNetChange(e.target.value)}
-                  disabled={formValues.requireManualPrice}
-                  $error={!!formErrors.netInput}
-                />
-                {formErrors.netInput && <ErrorMsg>{formErrors.netInput}</ErrorMsg>}
-              </FormField>
-
-              <FormField>
-                <FieldLabel>Cena brutto</FieldLabel>
-                <FieldInput
-                  placeholder={formValues.requireManualPrice ? 'Wycena ręczna' : 'np. 184,50'}
-                  value={formValues.grossInput}
-                  onChange={e => handleGrossChange(e.target.value)}
-                  disabled={formValues.requireManualPrice}
-                />
-              </FormField>
-
-              <FormField>
-                <FieldLabel>Stawka VAT</FieldLabel>
-                <FieldSelect
-                  value={formValues.vatRate}
-                  onChange={e => handleVatChange(Number(e.target.value) as VatRate)}
-                  disabled={formValues.requireManualPrice}
-                >
-                  {VAT_OPTIONS.map(o => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </FieldSelect>
-              </FormField>
-            </FormRow>
-
-            {/* Wycena ręczna */}
-            <ManualRow onClick={handleManualToggle}>
-              <ToggleTrack $on={formValues.requireManualPrice}>
-                <ToggleThumb $on={formValues.requireManualPrice} />
-              </ToggleTrack>
-              <ManualTextWrap>
-                <ManualLabel>Wycena ręczna</ManualLabel>
-                <ManualDesc>
-                  Cena będzie ustalana indywidualnie podczas tworzenia zlecenia
-                </ManualDesc>
-              </ManualTextWrap>
-            </ManualRow>
-
-            {/* Instrukcje pielęgnacyjne na certyfikat jakości */}
-            {careInstructions.length > 0 && (
-              <CareBlock>
-                <FieldLabel>Instrukcje pielęgnacyjne na certyfikat</FieldLabel>
-                <CareHint>
-                  Zaznaczą się same, gdy ta usługa trafi na certyfikat jakości. Treści
-                  edytujesz w zakładce „Instrukcje pielęgnacji".
-                </CareHint>
-                <CareSummaryRow>
-                  {formCareIds.length === 0 ? (
-                    <CareSummaryMuted>Nie przypisano żadnej instrukcji</CareSummaryMuted>
-                  ) : (
-                    <CareSummaryText>
-                      {careInstructions
-                        .filter(i => formCareIds.includes(i.id))
-                        .map(i => i.title)
-                        .join(', ')}
-                    </CareSummaryText>
-                  )}
-                  <CarePickBtn type="button" onClick={() => setCarePickerOpen(true)}>
-                    {formCareIds.length === 0 ? 'Przypisz instrukcje' : 'Zmień'}
-                  </CarePickBtn>
-                </CareSummaryRow>
-              </CareBlock>
-            )}
-          </FormBody>
-
-          <FormFooter>
-            <CancelBtn onClick={closeForm}>Anuluj</CancelBtn>
-            <SubmitBtn onClick={handleSubmit} disabled={isSaving}>
-              {isSaving
-                ? (formMode === 'add' ? 'Dodawanie...' : 'Zapisywanie...')
-                : (formMode === 'add' ? 'Dodaj usługę' : 'Zapisz zmiany')}
-            </SubmitBtn>
-          </FormFooter>
-        </FormPanel>
-      )}
-
-      {carePickerOpen && (
-        <CareInstructionPickerModal
-          instructions={careInstructions}
-          selectedIds={formCareIds}
-          serviceName={formValues.name.trim()}
-          onCancel={() => setCarePickerOpen(false)}
-          onConfirm={ids => { setFormCareIds(ids); setCarePickerOpen(false); }}
-        />
-      )}
-
-      {/* ── Package form panel ── */}
-      {pkgFormMode !== null && (
-        <FormPanel>
-          <FormHeader>
-            <FormTitle>
-              {pkgFormMode === 'add' ? 'Nowy pakiet' : `Edytuj pakiet: ${pkgEditTarget?.name}`}
-            </FormTitle>
-            <CloseBtn onClick={closePkgForm} aria-label="Zamknij">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-            </CloseBtn>
-          </FormHeader>
-
-          <FormBody>
-            {/* Nazwa */}
-            <FormField>
-              <FieldLabel>Nazwa pakietu</FieldLabel>
-              <FieldInput
-                placeholder="np. Pakiet Premium"
-                value={pkgFormValues.name}
-                onChange={e => setPkgField('name', e.target.value)}
-                $error={!!pkgFormErrors.name}
-                autoFocus
-              />
-              {pkgFormErrors.name && <ErrorMsg>{pkgFormErrors.name}</ErrorMsg>}
-            </FormField>
-
-            {/* Cena / VAT */}
-            <FormRow>
-              <FormField>
-                <FieldLabel>Cena netto pakietu</FieldLabel>
-                <FieldInput
-                  placeholder={pkgFormValues.requireManualPrice ? 'Wycena ręczna' : 'np. 250,00'}
-                  value={pkgFormValues.netInput}
-                  onChange={e => handlePkgNetChange(e.target.value)}
-                  disabled={pkgFormValues.requireManualPrice}
-                  $error={!!pkgFormErrors.netInput}
-                />
-                {pkgFormErrors.netInput && <ErrorMsg>{pkgFormErrors.netInput}</ErrorMsg>}
-              </FormField>
-
-              <FormField>
-                <FieldLabel>Cena brutto</FieldLabel>
-                <FieldInput
-                  placeholder={pkgFormValues.requireManualPrice ? 'Wycena ręczna' : 'np. 307,50'}
-                  value={pkgFormValues.grossInput}
-                  onChange={e => handlePkgGrossChange(e.target.value)}
-                  disabled={pkgFormValues.requireManualPrice}
-                />
-              </FormField>
-
-              <FormField>
-                <FieldLabel>Stawka VAT</FieldLabel>
-                <FieldSelect
-                  value={pkgFormValues.vatRate}
-                  onChange={e => handlePkgVatChange(Number(e.target.value) as VatRate)}
-                  disabled={pkgFormValues.requireManualPrice}
-                >
-                  {VAT_OPTIONS.map(o => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </FieldSelect>
-              </FormField>
-            </FormRow>
-
-            {/* Wycena ręczna */}
-            <ManualRow onClick={() => {
-              setPkgFormValues(prev =>
-                prev.requireManualPrice
-                  ? { ...prev, requireManualPrice: false }
-                  : { ...prev, requireManualPrice: true, netInput: '', grossInput: '', vatRate: 23 }
-              );
-            }}>
-              <ToggleTrack $on={pkgFormValues.requireManualPrice}>
-                <ToggleThumb $on={pkgFormValues.requireManualPrice} />
-              </ToggleTrack>
-              <ManualTextWrap>
-                <ManualLabel>Wycena ręczna</ManualLabel>
-                <ManualDesc>Cena będzie ustalana indywidualnie podczas tworzenia zlecenia</ManualDesc>
-              </ManualTextWrap>
-            </ManualRow>
-
-            {/* Usługi w pakiecie */}
-            <div>
-              <FieldLabel style={{ marginBottom: 8 }}>Usługi wchodzące w skład pakietu</FieldLabel>
-              <PackageInfoBox>
-                Pakiet musi zawierać co najmniej 2 usługi. Cena pakietu jest ustawiana całościowo - składowe nie mają własnych cen w kontekcie pakietu.
-              </PackageInfoBox>
-
-              <FormField style={{ marginTop: 10 }}>
-                <FieldLabel>Dodaj usługę</FieldLabel>
-                <ServicePickerWrap ref={pkgDropdownRef}>
-                  <FieldInput
-                    placeholder="Wpisz nazwę usługi..."
-                    value={pkgServiceSearch}
-                    onChange={e => { setPkgServiceSearch(e.target.value); setPkgDropdownOpen(true); }}
-                    onFocus={() => setPkgDropdownOpen(true)}
-                    $error={!!pkgFormErrors.services && pkgFormValues.selectedServices.length === 0}
-                  />
-                  {pkgDropdownOpen && (availablePickerServices.length > 0 || pkgServiceSearch.trim().length >= 2) && (
-                    <ServicePickerDropdown>
-                      {availablePickerServices.map(svc => (
-                        <ServicePickerOption
-                          key={svc.id}
-                          onMouseDown={() => addServiceToPkg(svc)}
+            <Toolbar>
+                {switcher}
+                <SearchShell>
+                    <SearchIcon aria-hidden="true"><Search size={15} /></SearchIcon>
+                    <BareInput
+                        type="search"
+                        placeholder={labels.search}
+                        aria-label={labels.search}
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </SearchShell>
+                <ToolbarEnd>
+                    {(archivedCount > 0 || showInactive) && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            aria-pressed={showInactive}
+                            onClick={() => { setShowInactive(v => !v); setPage(1); }}
                         >
-                          {svc.name}
-                        </ServicePickerOption>
-                      ))}
-                      {pkgServiceSearch.trim().length >= 2 && (
-                        <ServicePickerOption
-                          onMouseDown={() => {
-                            const name = pkgServiceSearch.trim();
-                            setPendingCustomName(name);
-                            setPkgDropdownOpen(false);
-                            setPkgServiceSearch('');
-                          }}
-                          style={{
-                            color: '#2563eb',
-                            fontWeight: 600,
-                            borderTop: availablePickerServices.length > 0 ? '1px solid #e2e8f0' : undefined,
-                          }}
+                            {showInactive ? 'Ukryj archiwalne' : `Pokaż archiwalne (${archivedCount})`}
+                        </Button>
+                    )}
+                    <PriceSideControl>
+                        <span aria-hidden="true">Ceny</span>
+                        <Segmented
+                            label="Która cena jest główna"
+                            size="sm"
+                            options={PRICE_SIDE_OPTIONS}
+                            value={priceSide}
+                            onChange={setPriceSide}
+                        />
+                    </PriceSideControl>
+                </ToolbarEnd>
+            </Toolbar>
+
+            <Card aria-label={isPackage ? 'Pakiety' : 'Usługi'}>
+                <HeadRow>
+                    <span>{labels.item}</span>
+                    <span>{priceSide === 'gross' ? 'Cena dla klienta' : 'Cena netto'}</span>
+                    <span>{priceSide === 'gross' ? 'Netto i VAT' : 'Brutto i VAT'}</span>
+                    <span />
+                </HeadRow>
+
+                {list.isError ? (
+                    <Padded>
+                        <Notice
+                            tone="danger"
+                            role="alert"
+                            title="Nie udało się wczytać cennika"
+                            action={<Button variant="ghost" size="sm" onClick={() => void list.refetch()}>Spróbuj ponownie</Button>}
                         >
-                          ＋ Dodaj „{pkgServiceSearch.trim()}" jako nową pozycję
-                        </ServicePickerOption>
-                      )}
-                    </ServicePickerDropdown>
-                  )}
-                </ServicePickerWrap>
-                {pkgFormErrors.services && <ErrorMsg>{pkgFormErrors.services}</ErrorMsg>}
-              </FormField>
-
-              {pkgFormValues.selectedServices.length > 0 && (
-                <SelectedServicesList>
-                  {pkgFormValues.selectedServices.map((svc, index) => (
-                    <SelectedServiceItem key={svc.id}>
-                      <PositionDot>{index + 1}</PositionDot>
-                      <SelectedServiceName>{svc.name}</SelectedServiceName>
-                      {svc.id.startsWith('NEW::') && (
-                        <NewServiceBadge>Nowa</NewServiceBadge>
-                      )}
-                      <RemoveServiceBtn type="button" onClick={() => removeServiceFromPkg(svc.id)}>×</RemoveServiceBtn>
-                    </SelectedServiceItem>
-                  ))}
-                </SelectedServicesList>
-              )}
-            </div>
-          </FormBody>
-
-          <FormFooter>
-            <CancelBtn onClick={closePkgForm}>Anuluj</CancelBtn>
-            <SubmitBtn onClick={handlePkgSubmit} disabled={isPkgSaving} style={{ background: '#2563eb' }}>
-              {isPkgSaving
-                ? (pkgFormMode === 'add' ? 'Tworzenie...' : 'Zapisywanie...')
-                : (pkgFormMode === 'add' ? 'Utwórz pakiet' : 'Zapisz pakiet')}
-            </SubmitBtn>
-          </FormFooter>
-        </FormPanel>
-      )}
-
-      {/* ── List ── */}
-      <ServiceList>
-        <ListHeader $withStatus={showInactive}>
-          <ColLabel>Usługa</ColLabel>
-          <ColLabel style={{ textAlign: 'right' }}>Cena</ColLabel>
-          {showInactive && <ColLabel style={{ paddingLeft: '14px' }}>Status</ColLabel>}
-          <ColLabel />
-        </ListHeader>
-
-        {isLoading ? (
-          Array.from({ length: 6 }).map((_, i) => (
-            <SkeletonRow key={i} $withStatus={showInactive}>
-              <SkeletonBox $w={`${42 + (i % 4) * 10}%`} />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'flex-end' }}>
-                <SkeletonBox $w="90px" />
-                <SkeletonBox $w="70px" />
-              </div>
-              {showInactive && <SkeletonBox $w="56px" />}
-              <SkeletonBox $w="52px" />
-            </SkeletonRow>
-          ))
-        ) : services.length === 0 ? (
-          <EmptyWrap>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e2e8f0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-            </svg>
-            <EmptyTitle>Brak usług</EmptyTitle>
-            <EmptyDesc>
-              {debouncedSearch
-                ? 'Żadna usługa nie pasuje do wyszukiwania.'
-                : 'Dodaj pierwszą usługę klikając „Dodaj usługę".'}
-            </EmptyDesc>
-          </EmptyWrap>
-        ) : (
-          services.map(service => (
-            <ServicesTableRow
-              key={service.id}
-              service={service}
-              actionsDisabled={anyFormOpen}
-              showStatus={showInactive}
-              onEdit={openEdit}
-              onArchive={setArchiveTarget}
-            />
-          ))
-        )}
-
-        {/* ── Pagination ── */}
-        {!isLoading && totalPages > 1 && (
-          <Pager>
-            <PagerInfo>
-              {(page - 1) * PAGE_SIZE + 1}-{Math.min(page * PAGE_SIZE, totalItems)} z {totalItems}
-            </PagerInfo>
-            <PagerControls>
-              <PagerBtn
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                title="Poprzednia"
-              >
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <polyline points="15 18 9 12 15 6"/>
-                </svg>
-              </PagerBtn>
-              {pageNumbers.map((n, i) =>
-                n === '...' ? (
-                  <PagerBtn key={`e${i}`} disabled style={{ cursor: 'default' }}>...</PagerBtn>
+                            Lista jest pusta tylko na ekranie - usługi w cenniku są bezpieczne.
+                        </Notice>
+                    </Padded>
+                ) : list.isLoading ? (
+                    Array.from({ length: 5 }).map((_, i) => (
+                        <SkeletonRow key={i} aria-hidden="true">
+                            <Bone $w={`${40 + (i % 3) * 15}%`} />
+                            <Bone $w="90px" $right />
+                            <Bone $w="150px" $right />
+                            <span />
+                        </SkeletonRow>
+                    ))
+                ) : list.services.length === 0 ? (
+                    <Empty>
+                        <strong>{debouncedSearch ? 'Nic nie pasuje do wyszukiwania' : labels.empty}</strong>
+                        <span>{debouncedSearch ? `Brak pozycji ze słowem „${debouncedSearch}".` : labels.emptyHint}</span>
+                    </Empty>
                 ) : (
-                  <PagerBtn key={n} $active={n === page} onClick={() => setPage(n)}>
-                    {n}
-                  </PagerBtn>
-                )
-              )}
-              <PagerBtn
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                title="Następna"
-              >
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <polyline points="9 18 15 12 9 6"/>
-                </svg>
-              </PagerBtn>
-            </PagerControls>
-          </Pager>
-        )}
-      </ServiceList>
+                    list.services.map(service => (
+                        <ServicesTableRow
+                            key={service.id}
+                            service={service}
+                            priceSide={priceSide}
+                            careTitles={careTitlesByService.get(service.id)}
+                            actionsDisabled={actionsDisabled}
+                            menuOpen={menu.isOpen(service.id)}
+                            onOpenMenu={(e, s) => menu.toggle(e, s, s.id)}
+                        />
+                    ))
+                )}
 
-      {/* ── "Save custom service to DB?" dialog ── */}
-      {pendingCustomName && (
-        <Overlay onClick={e => e.target === e.currentTarget && setPendingCustomName(null)}>
-          <Dialog>
-            <DialogTitle>Zapamiętać usługę w bazie?</DialogTitle>
-            <DialogText>
-              Czy chcesz zapisać <strong>„{pendingCustomName}"</strong> jako osobną usługę
-              w katalogu?<br /><br />
-              Jeśli tak, usługa zostanie natychmiast dodana z flagą{' '}
-              <strong>wyceny ręcznej</strong> i będzie dostępna przy tworzeniu
-              przyszłych zleceń.<br />
-              Jeśli nie, pozycja zostanie dodana tylko do tego pakietu.
-            </DialogText>
-            <DialogActions>
-              <CancelBtn
-                onClick={() => {
-                  addCustomServiceToPkg(pendingCustomName, false);
-                  setPendingCustomName(null);
-                }}
-              >
-                Nie, tylko w tym pakiecie
-              </CancelBtn>
-              <SubmitBtn
-                onClick={async () => {
-                  await addCustomServiceToPkg(pendingCustomName, true);
-                  setPendingCustomName(null);
-                }}
-                disabled={createMutation.isPending}
-              >
-                {createMutation.isPending ? 'Zapisywanie...' : 'Tak, zapisz w katalogu'}
-              </SubmitBtn>
-            </DialogActions>
-          </Dialog>
-        </Overlay>
-      )}
+                {!list.isLoading && !list.isError && totalPages > 1 && (
+                    <Pager>
+                        <PagerInfo>
+                            {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, totalItems)} z {totalItems}
+                        </PagerInfo>
+                        <PagerControls>
+                            <Button size="sm" disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+                                <ChevronLeft /> Poprzednia
+                            </Button>
+                            <PagerCurrent>Strona {page} z {totalPages}</PagerCurrent>
+                            <Button size="sm" disabled={page === totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>
+                                Następna <ChevronRight />
+                            </Button>
+                        </PagerControls>
+                    </Pager>
+                )}
+            </Card>
 
-      {/* ── Affected packages dialog ── */}
-      {affectedPackages && affectedPackages.length > 0 && (
-        <Overlay onClick={e => e.target === e.currentTarget && handleSyncPackages(false)}>
-          <Dialog>
-            <DialogTitle>Zaktualizować nazwy w pakietach?</DialogTitle>
-            <DialogText>
-              Zmieniono nazwę na <strong>„{updatedServiceName}"</strong>.
-              Usługa ta wchodzi w skład{' '}
-              {affectedPackages.length === 1 ? 'pakietu' : 'pakietów'}:{' '}
-              <strong>{affectedPackages.map(p => p.packageName).join(', ')}</strong>.
-              Czy zaktualizować nazwę w{' '}
-              {affectedPackages.length === 1 ? 'tym pakiecie' : 'tych pakietach'}?
-            </DialogText>
-            <DialogActions>
-              <CancelBtn onClick={() => handleSyncPackages(false)}>Nie, zostaw stare nazwy</CancelBtn>
-              <SubmitBtn onClick={() => handleSyncPackages(true)}>Tak, zaktualizuj</SubmitBtn>
-            </DialogActions>
-          </Dialog>
-        </Overlay>
-      )}
+            <ActionMenu anchor={menu.menu?.anchor ?? null} onClose={menu.close} label="Akcje pozycji cennika">
+                {current && (
+                    <>
+                        <MenuItem
+                            icon={<Pencil />}
+                            disabled={actionsDisabled}
+                            onClick={guarded(() => setEditor({ type: current.isPackage ? 'package' : 'service', target: current }))}
+                        >
+                            {current.isPackage ? 'Edytuj pakiet' : 'Edytuj usługę'}
+                        </MenuItem>
+                        {!current.isPackage && (
+                            <MenuItem icon={<Droplet />} disabled={actionsDisabled} onClick={guarded(() => setCareTarget(current))}>
+                                Instrukcje pielęgnacji…
+                            </MenuItem>
+                        )}
+                        <MenuDivider />
+                        <MenuItem icon={<Archive />} danger disabled={actionsDisabled} onClick={guarded(() => setArchiveTarget(current))}>
+                            Archiwizuj
+                        </MenuItem>
+                    </>
+                )}
+            </ActionMenu>
 
-      {/* ── Archive dialog ── */}
-      {archiveTarget && (
-        <Overlay onClick={e => e.target === e.currentTarget && setArchiveTarget(null)}>
-          <Dialog>
-            <DialogTitle>Archiwizuj usługę</DialogTitle>
-            <DialogText>
-              Czy na pewno chcesz zarchiwizować usługę{' '}
-              <strong>„{archiveTarget.name}"</strong>?{' '}
-              Usługa nie będzie dostępna przy tworzeniu nowych zleceń, ale
-              historyczne wizyty pozostaną niezmienione.
-            </DialogText>
-            <DialogActions>
-              <CancelBtn onClick={() => setArchiveTarget(null)}>Anuluj</CancelBtn>
-              <DangerBtn
-                onClick={handleArchiveConfirm}
-                disabled={archiveMutation.isPending}
-              >
-                {archiveMutation.isPending ? 'Archiwizowanie...' : 'Archiwizuj'}
-              </DangerBtn>
-            </DialogActions>
-          </Dialog>
-        </Overlay>
-      )}
-    </Container>
-  );
-};
+            {editor?.type === 'service' && (
+                <ServiceEditorModal
+                    target={editor.target}
+                    careInstructions={careInstructions}
+                    onClose={() => setEditor(null)}
+                    onSaved={(saved, previousName) => {
+                        setEditor(null);
+                        const packages = packagesToRename(previousName, saved);
+                        if (packages.length > 0) setRename({ serviceId: saved.id, name: saved.name, packages });
+                    }}
+                />
+            )}
+
+            {editor?.type === 'package' && (
+                <PackageEditorModal
+                    target={editor.target}
+                    onClose={() => setEditor(null)}
+                    onSaved={() => {
+                        setEditor(null);
+                        // Nowy pakiet ląduje na liście pakietów - inaczej po zapisie „znikał".
+                        if (!isPackage) onKindChange('packages');
+                    }}
+                />
+            )}
+
+            {careTarget && (
+                <CareInstructionPickerModal
+                    instructions={careInstructions}
+                    selectedIds={careInstructions.filter(i => i.serviceIds.includes(careTarget.id)).map(i => i.id)}
+                    serviceName={careTarget.name}
+                    onCancel={() => setCareTarget(null)}
+                    onConfirm={ids => void saveCare(careTarget, ids)}
+                />
+            )}
+
+            <ConfirmationModal
+                isOpen={archiveTarget !== null}
+                title={archiveTarget?.isPackage ? 'Zarchiwizować pakiet?' : 'Zarchiwizować usługę?'}
+                message={archiveTarget
+                    ? `„${archiveTarget.name}" zniknie z wyboru przy nowych zleceniach. Wizyty, w których już jest, zostają bez zmian, a pozycję zobaczysz dalej pod „Pokaż archiwalne".`
+                    : ''}
+                variant="danger"
+                confirmText={archive.isPending ? 'Archiwizowanie...' : 'Archiwizuj'}
+                cancelText="Zostaw"
+                onConfirm={() => void confirmArchive()}
+                onCancel={() => setArchiveTarget(null)}
+            />
+
+            {rename && (
+                <ModalShell isOpen onClose={() => setRename(null)} size="sm">
+                    <ModalHeader>
+                        <ModalTitleGroup>
+                            <ModalTitle>Zaktualizować nazwę w pakietach?</ModalTitle>
+                        </ModalTitleGroup>
+                        <CloseBtn onClick={() => setRename(null)} />
+                    </ModalHeader>
+                    <ModalContent>
+                        <DialogText>
+                            Nowa nazwa to „{rename.name}". Usługa wchodzi w skład{' '}
+                            {rename.packages.length === 1 ? 'pakietu' : 'pakietów'}{' '}
+                            {rename.packages.map(p => `„${p.packageName}"`).join(', ')}, gdzie wciąż widnieje
+                            pod starą nazwą.
+                        </DialogText>
+                    </ModalContent>
+                    <ModalFooter>
+                        <Button onClick={() => setRename(null)}>Zostaw starą nazwę</Button>
+                        <Button variant="primary" onClick={() => void syncNames()}>
+                            {rename.packages.length === 1 ? 'Zaktualizuj w pakiecie' : 'Zaktualizuj w pakietach'}
+                        </Button>
+                    </ModalFooter>
+                </ModalShell>
+            )}
+        </Wrap>
+    );
+}
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
+const PHONE = '@media (max-width: 767px)';
+
+const shimmer = keyframes`
+    0%   { background-position: -200% 0; }
+    100% { background-position:  200% 0; }
+`;
+
+const Wrap = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+`;
+
+const Toolbar = styled.div`
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px 12px;
+    min-width: 0;
+`;
+
+const SearchShell = styled(InputShell)`
+    flex: 1 1 220px;
+    max-width: 360px;
+    margin-left: auto;
+
+    input { padding-left: 6px; }
+
+    ${PHONE} { flex-basis: 100%; max-width: none; margin-left: 0; input { min-height: 44px; } }
+`;
+
+const SearchIcon = styled.span`
+    display: inline-flex;
+    padding-left: 12px;
+    color: ${ui.textMuted};
+`;
+
+const ToolbarEnd = styled.div`
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+
+    ${PHONE} { width: 100%; justify-content: space-between; }
+`;
+
+const PriceSideControl = styled.div`
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+
+    > span { font-size: 13px; font-weight: 600; color: ${ui.textSecondary}; }
+`;
+
+const HeadRow = styled.div`
+    display: grid;
+    grid-template-columns: ${SERVICES_TABLE_GRID};
+    gap: 16px;
+    padding: 14px 24px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: ${ui.textSecondary};
+
+    > span:nth-child(2), > span:nth-child(3) { text-align: right; }
+
+    /* Na telefonie wiersz sam nazywa swoje kwoty - nagłówek kolumn nie ma czego opisywać. */
+    ${PHONE} { display: none; }
+`;
+
+const SkeletonRow = styled.div`
+    display: grid;
+    grid-template-columns: ${SERVICES_TABLE_GRID};
+    gap: 16px;
+    align-items: center;
+    padding: 18px 24px;
+    border-top: 1px solid ${ui.lineFaint};
+
+    ${PHONE} {
+        grid-template-columns: minmax(0, 1fr) auto;
+        padding: 16px;
+        > :nth-child(3), > :nth-child(4) { display: none; }
+    }
+`;
+
+const Bone = styled.span<{ $w: string; $right?: boolean }>`
+    display: block;
+    height: 13px;
+    width: ${p => p.$w};
+    justify-self: ${p => (p.$right ? 'end' : 'start')};
+    border-radius: 6px;
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: ${shimmer} 1.5s infinite;
+`;
+
+const Padded = styled.div`
+    padding: 16px 24px 20px;
+
+    ${PHONE} { padding: 14px 16px; }
+`;
+
+const Empty = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 40px 24px 44px;
+    text-align: center;
+    border-top: 1px solid ${ui.lineFaint};
+
+    strong { font-size: 15px; font-weight: 600; color: ${ui.ink}; }
+    span { max-width: 44ch; font-size: 13.5px; line-height: 1.5; color: ${ui.textMuted}; }
+`;
+
+const Pager = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 24px;
+    border-top: 1px solid ${ui.lineFaint};
+
+    ${PHONE} { padding: 12px 16px; }
+`;
+
+const PagerInfo = styled.span`
+    font-size: 13px;
+    color: ${ui.textMuted};
+`;
+
+const PagerControls = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+`;
+
+const PagerCurrent = styled.span`
+    font-size: 13px;
+    color: ${ui.textSecondary};
+    white-space: nowrap;
+`;
+
+const DialogText = styled.p`
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.55;
+    color: ${ui.textSecondary};
+`;

@@ -2,7 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { parseMoneyInput } from '@/modules/services/utils/priceCalculator';
 import { grossToNet } from '@/common/utils/priceAdjustment';
 import { priceInputsForVatRate, storedPriceSide } from '@/common/utils/priceInputs';
-import { formatDecimalInput, SERVICE_PRICE_INPUT } from './servicePriceForm.helpers';
+import {
+    formatDecimalInput, SERVICE_PRICE_INPUT,
+    changeVat, packagesToRename, priceError, priceFieldsFromCatalog, pricePayload, toggleManualPrice,
+    typeGross, typeNet, EMPTY_PRICE_FIELDS,
+} from './servicePriceForm.helpers';
 
 /*
  * Formularz usługi i pakietu w Ustawieniach → Usługi. Tak liczył się payload
@@ -82,5 +86,93 @@ describe('formularz cennika: zmiana stawki VAT', () => {
     it('zero albo puste pole wpisane czyści drugie, zamiast pokazywać 0,00', () => {
         expect(change({ net: '0', gross: '' }, 23, 8, 'net')).toEqual({ net: '0', gross: '' });
         expect(change({ net: '', gross: '' }, 23, 8, 'gross')).toEqual({ net: '', gross: '' });
+    });
+});
+
+// ─── Pola ceny otwieranej usługi (audyt: brutto „0" i `null`) ─────────────────
+
+describe('priceFieldsFromCatalog - brutto zapisane albo brak brutta', () => {
+    const service = { basePriceNet: 154472, vatRate: 23 as const, requireManualPrice: false };
+
+    it('1900,00 zł wpisane jako brutto: pole pokazuje 1900,00, strona brutto, zapis bez zmian daje 190000', () => {
+        const fields = priceFieldsFromCatalog({ ...service, basePriceGross: 190000 });
+        expect(fields.grossInput).toBe('1900,00');
+        expect(fields.priceSide).toBe('gross');
+        expect(pricePayload(fields)).toEqual({ basePriceNet: 154472, basePriceGross: 190000 });
+    });
+
+    it('brak brutta (null): brutto z netta, strona netto - zapis nie wysyła zera', () => {
+        const fields = priceFieldsFromCatalog({ ...service, basePriceGross: null });
+        expect(fields.priceSide).toBe('net');
+        expect(pricePayload(fields)).toEqual({ basePriceNet: 154472, basePriceGross: 190001 });
+    });
+
+    it('brutto 0 zł przy netto > 0 to brak brutta, nie cena', () => {
+        const fields = priceFieldsFromCatalog({ basePriceNet: 50000, basePriceGross: 0, vatRate: 23, requireManualPrice: false });
+        expect(fields.grossInput).toBe('615,00');
+        expect(fields.priceSide).toBe('net');
+        expect(pricePayload(fields).basePriceGross).toBe(61500);
+    });
+
+    it('wycena ręczna: puste pola, para 0/0', () => {
+        const fields = priceFieldsFromCatalog({ basePriceNet: 0, basePriceGross: 0, vatRate: 8, requireManualPrice: true });
+        expect(fields).toMatchObject({ netInput: '', grossInput: '', requireManualPrice: true, vatRate: 8 });
+        expect(pricePayload(fields)).toEqual({ basePriceNet: 0, basePriceGross: 0 });
+    });
+
+    it('brutto zapisane przeżywa 23% → 8% → 23% bez dotykania pól', () => {
+        const fields = priceFieldsFromCatalog({ ...service, basePriceGross: 190000 });
+        const back = changeVat(changeVat(fields, 8), 23);
+        expect(pricePayload(back)).toEqual({ basePriceNet: 154472, basePriceGross: 190000 });
+    });
+});
+
+describe('wpisywanie ceny', () => {
+    it('wpisane brutto 1900 zostaje 190000, netto pochodne', () => {
+        const fields = typeGross(EMPTY_PRICE_FIELDS, '1900');
+        expect(fields).not.toBeNull();
+        expect(pricePayload(fields!)).toEqual({ basePriceNet: 154472, basePriceGross: 190000 });
+    });
+
+    it('wpisane netto: brutto = netto × stawka', () => {
+        expect(pricePayload(typeNet(EMPTY_PRICE_FIELDS, '500')!)).toEqual({ basePriceNet: 50000, basePriceGross: 61500 });
+    });
+
+    it('znak spoza kwoty jest odrzucany', () => {
+        expect(typeGross(EMPTY_PRICE_FIELDS, '12a')).toBeNull();
+        expect(typeNet(EMPTY_PRICE_FIELDS, '1,234')).toBeNull();
+    });
+});
+
+describe('priceError - pusta cena to błąd, nie 0 zł', () => {
+    it('puste pola przy usłudze bez wyceny ręcznej', () => {
+        expect(priceError(EMPTY_PRICE_FIELDS)).toBeDefined();
+        expect(priceError({ ...EMPTY_PRICE_FIELDS, netInput: ',' })).toBeDefined();
+    });
+
+    it('wycena ręczna nie potrzebuje ceny', () => {
+        expect(priceError(toggleManualPrice(EMPTY_PRICE_FIELDS))).toBeUndefined();
+    });
+
+    it('kwota wpisana w którekolwiek pole wystarcza, także świadome 0', () => {
+        expect(priceError(typeGross(EMPTY_PRICE_FIELDS, '615')!)).toBeUndefined();
+        expect(priceError(typeNet(EMPTY_PRICE_FIELDS, '0')!)).toBeUndefined();
+    });
+});
+
+describe('packagesToRename - pytanie o nazwy w pakietach tylko po zmianie nazwy', () => {
+    const affected = [{ packageId: 'p1', packageName: 'Pakiet Nowy samochód' }];
+
+    it('sama zmiana ceny: nie pytamy', () => {
+        expect(packagesToRename('Mycie premium', { name: 'Mycie premium', affectedPackages: affected })).toEqual([]);
+        expect(packagesToRename('Mycie premium ', { name: 'Mycie premium', affectedPackages: affected })).toEqual([]);
+    });
+
+    it('zmiana nazwy: pakiety z odpowiedzi serwera', () => {
+        expect(packagesToRename('Mycie premium', { name: 'Mycie detailingowe', affectedPackages: affected })).toEqual(affected);
+    });
+
+    it('zmiana nazwy bez pakietów: nie pytamy', () => {
+        expect(packagesToRename('A', { name: 'B', affectedPackages: undefined })).toEqual([]);
     });
 });

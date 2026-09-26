@@ -1,8 +1,10 @@
 // src/modules/services/api/servicesApi.ts
 import { apiClient } from '@/core';
 import { isCatalogServiceId } from '@/common/utils/catalogServiceId';
+import { catalogGross } from '../utils/priceCalculator';
 import type {
     Service,
+    ServiceDto,
     ServiceListFilters,
     ServiceListResponse,
     CreateServiceRequest,
@@ -15,7 +17,22 @@ import type {
 const USE_MOCKS = false;
 const BASE_PATH = '/v1/services';
 
-const mockServices: Service[] = [
+/**
+ * Surowa pozycja cennika → {@link Service} z brutto zawsze ustalonym.
+ *
+ * Brutto zapisane przechodzi co do grosza (CLAUDE.md §1). Brak brutta - `null`,
+ * brak pola albo 0 zł przy netto > 0 - to „nikt go nie ustalił", więc dopiero wtedy
+ * liczy się z netta. Wcześniej każdy czytelnik łatał to sam przez
+ * `basePriceGross ?? policz(netto)`, co przepuszczało 0 zł: formularz edycji
+ * pokazywał brutto 0,00, a zapis bez dotykania ceny wysyłał parę, którą backend
+ * odrzuca.
+ */
+export const toService = (dto: ServiceDto): Service => ({
+    ...dto,
+    basePriceGross: catalogGross(dto),
+});
+
+const mockServices: ServiceDto[] = [
     {
         id: '1',
         name: 'Mycie ręczne premium',
@@ -117,10 +134,10 @@ const mockServices: Service[] = [
     },
 ];
 
-let mockServicesStore = [...mockServices];
+const mockServicesStore = [...mockServices];
 let mockIdCounter = 6;
 
-const mockGetServices = async (filters: ServiceListFilters): Promise<ServiceListResponse> => {
+const mockGetServices = async (filters: ServiceListFilters): Promise<{ services: ServiceDto[]; pagination: ServiceListResponse['pagination'] }> => {
     return new Promise((resolve) => {
         setTimeout(() => {
             let filteredServices = [...mockServicesStore];
@@ -162,13 +179,14 @@ const mockGetServices = async (filters: ServiceListFilters): Promise<ServiceList
     });
 };
 
-const mockCreateService = async (data: CreateServiceRequest): Promise<Service> => {
+const mockCreateService = async (data: CreateServiceRequest): Promise<ServiceDto> => {
     return new Promise((resolve) => {
         setTimeout(() => {
-            const newService: Service = {
+            const newService: ServiceDto = {
                 id: String(mockIdCounter++),
                 name: data.name,
                 basePriceNet: data.basePriceNet,
+                basePriceGross: data.basePriceGross,
                 vatRate: data.vatRate,
                 requireManualPrice: data.requireManualPrice,
                 isActive: true,
@@ -187,7 +205,7 @@ const mockCreateService = async (data: CreateServiceRequest): Promise<Service> =
     });
 };
 
-const mockUpdateService = async (data: UpdateServiceRequest): Promise<Service> => {
+const mockUpdateService = async (data: UpdateServiceRequest): Promise<ServiceDto> => {
     return new Promise((resolve) => {
         setTimeout(() => {
             const oldServiceIndex = mockServicesStore.findIndex(s => s.id === data.originalServiceId);
@@ -201,10 +219,11 @@ const mockUpdateService = async (data: UpdateServiceRequest): Promise<Service> =
                 .filter(s => s.isPackage && s.packageItems?.some(item => item.serviceId === data.originalServiceId))
                 .map(s => ({ packageId: s.id, packageName: s.name }));
 
-            const newService: Service = {
+            const newService: ServiceDto = {
                 id: String(mockIdCounter++),
                 name: data.name,
                 basePriceNet: data.basePriceNet,
+                basePriceGross: data.basePriceGross,
                 vatRate: data.vatRate,
                 requireManualPrice: data.requireManualPrice,
                 isActive: true,
@@ -224,17 +243,18 @@ const mockUpdateService = async (data: UpdateServiceRequest): Promise<Service> =
     });
 };
 
-const mockCreatePackage = async (data: CreatePackageRequest): Promise<Service> => {
+const mockCreatePackage = async (data: CreatePackageRequest): Promise<ServiceDto> => {
     return new Promise((resolve) => {
         setTimeout(() => {
             const packageItems = data.serviceIds.map((id, index) => {
                 const svc = mockServicesStore.find(s => s.id === id);
                 return { serviceId: id, serviceName: svc?.name || id, position: index };
             });
-            const newPkg: Service = {
+            const newPkg: ServiceDto = {
                 id: `pkg-${mockIdCounter++}`,
                 name: data.name,
                 basePriceNet: data.basePriceNet,
+                basePriceGross: data.basePriceGross,
                 vatRate: data.vatRate,
                 requireManualPrice: data.requireManualPrice,
                 isActive: true,
@@ -253,7 +273,7 @@ const mockCreatePackage = async (data: CreatePackageRequest): Promise<Service> =
     });
 };
 
-const mockUpdatePackage = async (data: UpdatePackageRequest): Promise<Service> => {
+const mockUpdatePackage = async (data: UpdatePackageRequest): Promise<ServiceDto> => {
     return new Promise((resolve) => {
         setTimeout(() => {
             const oldIdx = mockServicesStore.findIndex(s => s.id === data.originalPackageId);
@@ -262,10 +282,11 @@ const mockUpdatePackage = async (data: UpdatePackageRequest): Promise<Service> =
                 const svc = mockServicesStore.find(s => s.id === id);
                 return { serviceId: id, serviceName: svc?.name || id, position: index };
             });
-            const newPkg: Service = {
+            const newPkg: ServiceDto = {
                 id: `pkg-${mockIdCounter++}`,
                 name: data.name,
                 basePriceNet: data.basePriceNet,
+                basePriceGross: data.basePriceGross,
                 vatRate: data.vatRate,
                 requireManualPrice: data.requireManualPrice,
                 isActive: true,
@@ -287,7 +308,8 @@ const mockUpdatePackage = async (data: UpdatePackageRequest): Promise<Service> =
 export const servicesApi = {
     getServices: async (filters: ServiceListFilters): Promise<ServiceListResponse> => {
         if (USE_MOCKS) {
-            return mockGetServices(filters);
+            const mocked = await mockGetServices(filters);
+            return { ...mocked, services: mocked.services.map(toService) };
         }
         const params = new URLSearchParams({
             search: filters.search,
@@ -299,16 +321,16 @@ export const servicesApi = {
         if (filters.sortDirection) params.append('sortDirection', filters.sortDirection);
         if (filters.isPackage !== undefined) params.append('isPackage', String(filters.isPackage));
 
-        const response = await apiClient.get(`${BASE_PATH}?${params}`);
-        return response.data;
+        const response = await apiClient.get<{ services: ServiceDto[]; pagination: ServiceListResponse['pagination'] }>(`${BASE_PATH}?${params}`);
+        return { ...response.data, services: (response.data.services ?? []).map(toService) };
     },
 
     createService: async (data: CreateServiceRequest): Promise<Service> => {
         if (USE_MOCKS) {
-            return mockCreateService(data);
+            return toService(await mockCreateService(data));
         }
-        const response = await apiClient.post(BASE_PATH, data);
-        return response.data;
+        const response = await apiClient.post<ServiceDto>(BASE_PATH, data);
+        return toService(response.data);
     },
 
     updateService: async (data: UpdateServiceRequest): Promise<Service> => {
@@ -319,10 +341,10 @@ export const servicesApi = {
             throw new Error(`Usługa ${data.originalServiceId} nie jest zapisana w cenniku - nie można jej zaktualizować`);
         }
         if (USE_MOCKS) {
-            return mockUpdateService(data);
+            return toService(await mockUpdateService(data));
         }
-        const response = await apiClient.post(`${BASE_PATH}/update`, data);
-        return response.data;
+        const response = await apiClient.post<ServiceDto>(`${BASE_PATH}/update`, data);
+        return toService(response.data);
     },
 
     archiveService: async (serviceId: string): Promise<void> => {
@@ -331,18 +353,18 @@ export const servicesApi = {
 
     createPackage: async (data: CreatePackageRequest): Promise<Service> => {
         if (USE_MOCKS) {
-            return mockCreatePackage(data);
+            return toService(await mockCreatePackage(data));
         }
-        const response = await apiClient.post(`${BASE_PATH}/packages`, data);
-        return response.data;
+        const response = await apiClient.post<ServiceDto>(`${BASE_PATH}/packages`, data);
+        return toService(response.data);
     },
 
     updatePackage: async (data: UpdatePackageRequest): Promise<Service> => {
         if (USE_MOCKS) {
-            return mockUpdatePackage(data);
+            return toService(await mockUpdatePackage(data));
         }
-        const response = await apiClient.post(`${BASE_PATH}/packages/update`, data);
-        return response.data;
+        const response = await apiClient.post<ServiceDto>(`${BASE_PATH}/packages/update`, data);
+        return toService(response.data);
     },
 
     syncItemName: async (packageId: string, data: SyncItemNameRequest): Promise<void> => {

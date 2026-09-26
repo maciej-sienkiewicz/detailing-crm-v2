@@ -12,30 +12,29 @@ import {
     ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle,
     ModalContent, ModalFooter, CloseBtn,
 } from '@/common/components/ModalKit';
-import { SharedButton } from '@/common/styles';
+import { Button, ui } from '@/common/components/ui';
 import { InputShell, BareInput } from '@/common/components/Form';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { CareInstruction } from '../../api/careInstructionsApi';
 
 const Bar = styled.div` display: flex; flex-direction: column; gap: 10px; `;
-const LeadIcon = styled.span` display: inline-flex; padding-left: 12px; color: ${st.textMuted}; flex-shrink: 0; `;
-const Counter = styled.span` font-size: 12.5px; color: ${st.textMuted}; `;
+const LeadIcon = styled.span` display: inline-flex; padding-left: 12px; color: ${ui.textMuted}; flex-shrink: 0; `;
+const Counter = styled.span` font-size: 12.5px; color: ${ui.textMuted}; `;
 
 const List = styled.div` display: flex; flex-direction: column; gap: 8px; margin-top: 12px; `;
 const Item = styled.label<{ $on: boolean }>`
     display: flex; align-items: flex-start; gap: 10px; cursor: pointer;
-    padding: 10px 12px; border-radius: ${st.radiusSm};
-    border: 1px solid ${p => (p.$on ? st.accentBlue : st.border)};
-    background: ${p => (p.$on ? st.accentBlueDim : st.bgCard)};
+    padding: 10px 12px; border-radius: 12px;
+    border: 1px solid ${p => (p.$on ? ui.brand : ui.line)};
+    background: ${p => (p.$on ? ui.brandTint : ui.surface)};
     transition: border-color 150ms ease, background 150ms ease;
-    &:hover { border-color: ${p => (p.$on ? st.accentBlue : st.borderHover)}; }
+    &:hover { border-color: ${p => (p.$on ? ui.brand : ui.lineStrong)}; }
 `;
-const Check = styled.input` margin: 2px 0 0; width: 16px; height: 16px; flex-shrink: 0; accent-color: ${st.accentBlue}; `;
+const Check = styled.input` margin: 2px 0 0; width: 16px; height: 16px; flex-shrink: 0; accent-color: ${ui.brand}; `;
 const Texts = styled.span` display: flex; flex-direction: column; gap: 2px; min-width: 0; `;
-const ItemTitle = styled.span` font-size: 13.5px; font-weight: 600; color: ${st.text}; overflow-wrap: anywhere; `;
-const ItemContent = styled.span` font-size: 12.5px; line-height: 1.45; color: ${st.textSecondary}; overflow-wrap: anywhere; `;
-const Always = styled.span` font-size: 11.5px; font-weight: 600; color: ${st.accentBlue}; `;
-const Empty = styled.p` margin: 16px 0 0; font-size: 13px; color: ${st.textMuted}; `;
+const ItemTitle = styled.span` font-size: 13.5px; font-weight: 600; color: ${ui.ink}; overflow-wrap: anywhere; `;
+const ItemContent = styled.span` font-size: 12.5px; line-height: 1.45; color: ${ui.textSecondary}; overflow-wrap: anywhere; `;
+const Always = styled.span` font-size: 12.5px; font-weight: 600; color: ${ui.brandInk}; `;
+const Empty = styled.p` margin: 16px 0 0; font-size: 13px; color: ${ui.textMuted}; `;
 
 interface Props {
     instructions: CareInstruction[];
@@ -96,7 +95,7 @@ export function CareInstructionPickerModal({
 
                 {instructions.length === 0 && (
                     <Empty>
-                        Słownik instrukcji jest pusty. Uzupełnisz go w zakładce „Instrukcje pielęgnacji".
+                        Słownik instrukcji jest pusty. Uzupełnisz go w „Instrukcjach pielęgnacji" obok usług i pakietów.
                     </Empty>
                 )}
                 {instructions.length > 0 && visible.length === 0 && (
@@ -123,8 +122,8 @@ export function CareInstructionPickerModal({
             </ModalContent>
 
             <ModalFooter>
-                <SharedButton type="button" $variant="ghost" onClick={onCancel}>Anuluj</SharedButton>
-                <SharedButton type="button" onClick={() => onConfirm(ids)}>Gotowe</SharedButton>
+                <Button onClick={onCancel}>Anuluj</Button>
+                <Button variant="primary" onClick={() => onConfirm(ids)}>Gotowe</Button>
             </ModalFooter>
         </ModalShell>
     );
