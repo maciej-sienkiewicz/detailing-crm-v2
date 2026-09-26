@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
-import { Award, Droplets, Package, Plus, Search, Wrench, X } from 'lucide-react';
+import { Award, ChevronDown, Droplets, FileDown, Package, Plus, Search, Wrench, X } from 'lucide-react';
 import {
     ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle,
     ModalContent, ModalFooter, CloseBtn,
 } from '@/common/components/ModalKit';
-import { SharedButton } from '@/common/styles';
+import { Button, ui } from '@/common/components/ui';
 import { InputShell, BareInput } from '@/common/components/Form';
 import { useDebounce } from '@/common/hooks/useDebounce';
 import { useToast } from '@/common/components/Toast/ToastContainer';
@@ -22,61 +22,214 @@ import type { Visit } from '../types';
 // Certyfikat NIE jest odbiciem wizyty: kontekst biznesowy jest taki, że nie każda
 // wykonana usługa i nie każdy zużyty preparat mają trafić do dokumentu dla klienta,
 // a zalecenia nie wynikają z danych wizyty w ogóle — wpisuje je człowiek. Dlatego okno
-// pyta o wszystko trzy razy i niczego nie domyśla się po zapisaniu.
+// pozwala o wszystkim zdecydować i niczego nie domyśla się po zapisaniu.
 //
 // Zaznaczone z góry są usługi i produkty wizyty, bo to najczęstszy wybór — odznaczenie
 // jednej pozycji jest tańsze niż zaznaczenie dziesięciu.
 //
-// Okno jest otwartym edytorem, więc jego „Generuj certyfikat" wolno wypełnić kolorem
-// (wyjątek z CLAUDE.md §2); reszta przycisków nosi sam odcień.
+// Układ: certyfikat jest gotowy od pierwszej chwili, a okno ma to powiedzieć. Poprzednia
+// wersja rozkładała wszystko naraz — cztery sekcje z notką, każda zaznaczona pozycja jako
+// niebieski blok, pełne treści instrukcji, dwa pola wyszukiwania i pole uwag. Przy trzech
+// usługach i trzech instrukcjach dawało to ścianę jednakowo mocnych prostokątów, bez
+// jednej rzeczy, na którą patrzy się najpierw (CLAUDE.md §2), i zniechęcało do użycia.
+// Teraz sekcje są zwinięte do jednej linii z podsumowaniem („3 z 3"), szczegóły otwiera
+// się tylko po to, żeby coś ukryć albo dopisać, a jedynym wypełnieniem jest „Pobierz
+// certyfikat" w stopce — wolno mu, bo okno jest otwartym edytorem (wyjątek z §2).
 
-const Section = styled.section` display: flex; flex-direction: column; gap: 10px; `;
-const SectionHead = styled.h3`
-    margin: 0; display: flex; align-items: center; gap: 8px;
-    font-size: 15px; font-weight: 700; color: ${st.text};
+const Lead = styled.p`
+    margin: 0 0 14px;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: ${ui.textSecondary};
 `;
-const SectionNote = styled.p` margin: 0; font-size: 12.5px; color: ${st.textMuted}; `;
-const Divider = styled.hr` border: none; border-top: 1px solid ${st.border}; margin: 18px 0; `;
 
+const Sections = styled.div`
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid ${ui.line};
+`;
+
+const Block = styled.section`
+    border-bottom: 1px solid ${ui.line};
+`;
+
+const Toggle = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 60px;
+    padding: 10px 2px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    color: ${ui.ink};
+
+    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: 2px; border-radius: ${ui.radiusRow}; }
+    &:hover .chevron { color: ${ui.brandInk}; }
+`;
+
+const Glyph = styled.span`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: ${ui.brandTint};
+    color: ${ui.brandInk};
+    svg { width: 17px; height: 17px; }
+`;
+
+const ToggleText = styled.span`
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    flex: 1;
+    min-width: 0;
+`;
+const ToggleTitle = styled.span` font-size: 15px; font-weight: 700; `;
+const ToggleSummary = styled.span<{ $quiet?: boolean }>`
+    font-size: 12.5px;
+    color: ${p => (p.$quiet ? ui.textFaint : ui.textMuted)};
+`;
+const Chevron = styled(ChevronDown)<{ $open: boolean }>`
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    color: ${ui.textFaint};
+    transform: rotate(${p => (p.$open ? 180 : 0)}deg);
+    transition: transform 150ms ease, color 150ms ease;
+`;
+
+const Body = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 0 0 16px 46px;
+
+    @media (max-width: 480px) { padding-left: 0; }
+`;
+
+/* Zaznaczenie niesie ptaszek, nie tło: lista z ośmiu niebieskich bloków była właśnie tym,
+   co przytłaczało. Odznaczona pozycja szarzeje — widać, czego klient nie zobaczy. */
+const CheckList = styled.div` display: flex; flex-direction: column; `;
 const Row = styled.label<{ $on: boolean }>`
-    display: flex; align-items: flex-start; gap: 10px; cursor: pointer;
-    padding: 10px 12px; border-radius: ${st.radiusSm};
-    border: 1px solid ${p => (p.$on ? st.accentBlue : st.border)};
-    background: ${p => (p.$on ? st.accentBlueDim : st.bgCard)};
-    transition: border-color 150ms ease, background 150ms ease;
-    &:hover { border-color: ${p => (p.$on ? st.accentBlue : st.borderHover)}; }
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    cursor: pointer;
+    color: ${p => (p.$on ? ui.ink : ui.textFaint)};
+    & + & { border-top: 1px solid ${ui.lineFaint}; }
 `;
-const Check = styled.input` margin: 2px 0 0; width: 16px; height: 16px; flex-shrink: 0; accent-color: ${st.accentBlue}; `;
+const Check = styled.input`
+    margin: 2px 0 0;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    accent-color: ${ui.brand};
+    cursor: pointer;
+`;
 const RowMain = styled.div` flex: 1; min-width: 0; `;
-const RowTitle = styled.div` font-size: 13.5px; font-weight: 600; color: ${st.text}; overflow-wrap: anywhere; `;
-const RowSub = styled.div` font-size: 12px; color: ${st.textMuted}; overflow-wrap: anywhere; `;
+const RowTitle = styled.div` font-size: 13.5px; font-weight: 600; overflow-wrap: anywhere; `;
+const RowMeta = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    font-size: 12px;
+    color: ${ui.textMuted};
+    overflow-wrap: anywhere;
+`;
+/* Treść instrukcji bywa akapitem. W oknie wystarczy jej początek — całość i tak idzie na
+   certyfikat, a pełne akapity pod każdą pozycją robiły z sekcji ścianę tekstu. */
+const Excerpt = styled.div`
+    font-size: 12px;
+    line-height: 1.45;
+    color: ${ui.textMuted};
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+`;
+const RowHint = styled.div` margin-top: 2px; font-size: 11.5px; font-weight: 600; color: ${ui.brandInk}; `;
 
 const Manual = styled.div`
-    display: flex; flex-direction: column; gap: 8px;
-    padding: 10px 12px; border: 1px solid ${st.border}; border-radius: ${st.radiusSm};
-    background: ${st.bgCard};
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 0;
+    & + & { border-top: 1px solid ${ui.lineFaint}; }
 `;
 const ManualHead = styled.div` display: flex; align-items: flex-start; gap: 10px; `;
 const CareArea = styled.textarea`
-    width: 100%; min-height: 76px; resize: vertical;
-    padding: 10px 12px; font-family: inherit; font-size: 13px; line-height: 1.5;
-    color: ${st.text}; background: ${st.bgInput};
-    border: 1px solid ${st.border}; border-radius: ${st.radiusSm};
-    &:focus { outline: none; border-color: ${st.borderFocus}; box-shadow: ${st.shadowBlue}; }
+    width: 100%;
+    min-height: 72px;
+    resize: vertical;
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.5;
+    color: ${ui.ink};
+    background: ${ui.surface};
+    border: 1px solid ${ui.line};
+    border-radius: ${ui.radiusRow};
+    &:focus { outline: none; border-color: ${ui.focusRing}; box-shadow: 0 0 0 3px ${ui.brandTintHover}; }
 `;
-
 const NoteInput = styled.input`
-    width: 100%; padding: 8px 10px; font-family: inherit; font-size: 12.5px;
-    color: ${st.text}; background: ${st.bgInput};
-    border: 1px solid ${st.border}; border-radius: ${st.radiusSm};
-    &:focus { outline: none; border-color: ${st.borderFocus}; box-shadow: ${st.shadowBlue}; }
+    width: 100%;
+    padding: 7px 10px;
+    font-family: inherit;
+    font-size: 12.5px;
+    color: ${ui.ink};
+    background: ${ui.surface};
+    border: 1px solid ${ui.line};
+    border-radius: ${ui.radiusRow};
+    &:focus { outline: none; border-color: ${ui.focusRing}; box-shadow: 0 0 0 3px ${ui.brandTintHover}; }
 `;
 const RemoveBtn = styled.button`
-    background: none; border: none; color: ${st.textMuted}; cursor: pointer; padding: 2px;
-    &:hover { color: ${st.accentRed}; }
+    background: none; border: none; color: ${ui.textFaint}; cursor: pointer; padding: 2px;
+    &:hover { color: ${ui.dangerInk}; }
 `;
-const Empty = styled.p` margin: 0; font-size: 13px; color: ${st.textMuted}; `;
-const RowHint = styled.div` margin-top: 2px; font-size: 11.5px; font-weight: 600; color: ${st.accentBlue}; `;
+const Empty = styled.p` margin: 0; font-size: 13px; color: ${ui.textMuted}; `;
+const AddNote = styled.div` display: flex; `;
+
+/* Jedyny wypełniony element okna: dwie linie (co się stanie i co wejdzie do pliku),
+   kafelek ikony, gradient marki — wzorzec FooterPrimary z podglądu leada. */
+const Primary = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 11px;
+    min-height: 52px;
+    padding: 0 18px 0 12px;
+    border: none;
+    border-radius: 16px;
+    background: linear-gradient(135deg, ${ui.brand} 0%, ${ui.brandDeep} 100%);
+    color: #ffffff;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.16), 0 12px 24px -12px rgba(2, 132, 199, 0.75);
+    transition: transform 150ms ease, box-shadow 150ms ease;
+
+    .glyph {
+        display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+        width: 32px; height: 32px; border-radius: 10px; background: rgba(255, 255, 255, 0.18);
+        svg { width: 17px; height: 17px; }
+    }
+    .labels { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .title { font-size: 14.5px; font-weight: 600; line-height: 1.2; }
+    .sub { font-size: 11.5px; line-height: 1.2; color: rgba(255, 255, 255, 0.8); }
+
+    &:hover:not(:disabled) { transform: translateY(-1px); }
+    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: 3px; }
+    &:disabled { opacity: 0.55; cursor: default; box-shadow: none; }
+
+    @media (max-width: 640px) { flex: 1; }
+`;
 
 const Combo = styled.div` position: relative; `;
 const LeadIcon = styled.span` display: inline-flex; padding-left: 12px; color: ${st.textMuted}; flex-shrink: 0; `;
@@ -97,11 +250,21 @@ const Option = styled.button`
 const FreeText = styled(Option)` color: ${st.accentBlue}; font-weight: 600; `;
 const MenuHint = styled.div` padding: 10px 12px; font-size: 12.5px; color: ${st.textMuted}; `;
 
+/** 1 pozycja, 2 pozycje, 5 pozycji, 22 pozycje. */
+function plural(n: number, one: string, few: string, many: string): string {
+    if (n === 1) return one;
+    const tens = n % 100;
+    const units = n % 10;
+    return units >= 2 && units <= 4 && (tens < 12 || tens > 14) ? few : many;
+}
+
+type SectionKey = 'services' | 'products' | 'recommended' | 'care';
+
 /** Pozycja wpisana ręcznie. `key` istnieje tylko po to, żeby React nie gubił pól notatki. */
 interface ManualEntry extends CertificateProductEntry {
     key: string;
-    /** Podpis pod nazwą (opakowanie z katalogu) — na certyfikat i tak wchodzi z serwera. */
-    subtitle: string | null;
+    /** Marka i opakowanie z katalogu pod nazwą — na certyfikat i tak wchodzą z serwera. */
+    meta: string[];
 }
 
 let manualSeq = 0;
@@ -186,8 +349,8 @@ function ProductPicker({ placeholder, catalog, onPick }: {
                                 productId: p.id,
                                 name: p.name,
                                 note: null,
-                                subtitle: [p.brand, `${p.packageSizeValue} ${p.packageSizeUnit}`]
-                                    .filter(Boolean).join(' · ') || null,
+                                meta: [p.brand, `${p.packageSizeValue} ${p.packageSizeUnit}`]
+                                    .filter((x): x is string => Boolean(x)),
                             })}
                         >
                             <Package size={14} />
@@ -197,7 +360,7 @@ function ProductPicker({ placeholder, catalog, onPick }: {
                     {catalog && isLoading && products.length === 0 && <MenuHint>Szukam w katalogu…</MenuHint>}
                     <FreeText
                         type="button"
-                        onClick={() => take({ productId: null, name: trimmed, note: null, subtitle: null })}
+                        onClick={() => take({ productId: null, name: trimmed, note: null, meta: [] })}
                     >
                         <Plus size={14} /> Dopisz „{trimmed}" spoza katalogu
                     </FreeText>
@@ -330,6 +493,62 @@ export function QualityCertificateModal({ visit, onClose }: Props) {
         }
     };
 
+    const [open, setOpen] = useState<Set<SectionKey>>(new Set());
+    const toggleSection = (key: SectionKey) => setOpen(prev => {
+        const next = new Set(prev);
+        if (next.has(key)) next.delete(key); else next.add(key);
+        return next;
+    });
+    // Pole uwag jest rzadkie — schowane za przyciskiem, dopóki nikt nic nie wpisał.
+    const [noteOpen, setNoteOpen] = useState(false);
+
+    const productsTotal = links.length + extras.length;
+    const productsOn = linkIds.size + extras.length;
+    const itemsOnCertificate = serviceIds.size + productsOn + recommended.length + careSelected.size;
+
+    const summaries: Record<SectionKey, { text: string; quiet?: boolean }> = {
+        services: services.length === 0
+            ? { text: 'Wizyta nie ma usług', quiet: true }
+            : { text: `${serviceIds.size} z ${services.length} na certyfikacie` },
+        products: productsTotal === 0
+            ? { text: 'Brak, możesz dopisać', quiet: true }
+            : { text: `${productsOn} z ${productsTotal} na certyfikacie` },
+        recommended: recommended.length === 0
+            ? { text: 'Opcjonalnie', quiet: true }
+            : { text: `${recommended.length} ${plural(recommended.length, 'produkt', 'produkty', 'produktów')}` },
+        care: instructions.length === 0 && !careNote.trim()
+            ? { text: 'Brak instrukcji w ustawieniach', quiet: true }
+            : {
+                text: [
+                    `${careSelected.size} ${plural(careSelected.size, 'instrukcja', 'instrukcje', 'instrukcji')}`,
+                    careNote.trim() ? 'z uwagą' : null,
+                ].filter(Boolean).join(', '),
+            },
+    };
+
+    const section = (key: SectionKey, icon: ReactNode, title: string, body: ReactNode) => {
+        const isOpen = open.has(key);
+        const summary = summaries[key];
+        return (
+            <Block aria-labelledby={`cert-${key}-title`}>
+                <Toggle
+                    type="button"
+                    aria-expanded={isOpen}
+                    aria-controls={`cert-${key}-body`}
+                    onClick={() => toggleSection(key)}
+                >
+                    <Glyph aria-hidden>{icon}</Glyph>
+                    <ToggleText>
+                        <ToggleTitle id={`cert-${key}-title`}>{title}</ToggleTitle>
+                        <ToggleSummary $quiet={summary.quiet}>{summary.text}</ToggleSummary>
+                    </ToggleText>
+                    <Chevron className="chevron" $open={isOpen} aria-hidden />
+                </Toggle>
+                {isOpen && <Body id={`cert-${key}-body`}>{body}</Body>}
+            </Block>
+        );
+    };
+
     const manualList = (
         list: ManualEntry[],
         apply: (next: ManualEntry[]) => void,
@@ -339,17 +558,20 @@ export function QualityCertificateModal({ visit, onClose }: Props) {
             <ManualHead>
                 <RowMain>
                     <RowTitle>{entry.name}</RowTitle>
-                    {entry.subtitle && <RowSub>{entry.subtitle}</RowSub>}
+                    {entry.meta.length > 0 && (
+                        <RowMeta>{entry.meta.map(m => <span key={m}>{m}</span>)}</RowMeta>
+                    )}
                 </RowMain>
                 <RemoveBtn
                     type="button"
-                    aria-label="Usuń pozycję"
+                    aria-label={`Usuń ${entry.name}`}
                     onClick={() => apply(list.filter(e => e.key !== entry.key))}
                 >
                     <X size={16} />
                 </RemoveBtn>
             </ManualHead>
             <NoteInput
+                aria-label={`Notatka: ${entry.name}`}
                 placeholder={notePlaceholder}
                 value={entry.note ?? ''}
                 onChange={e => patchNote(list, apply, entry.key, e.target.value)}
@@ -357,136 +579,155 @@ export function QualityCertificateModal({ visit, onClose }: Props) {
         </Manual>
     ));
 
+    const customerName = [visit.customer?.firstName, visit.customer?.lastName].filter(Boolean).join(' ');
+    const vehicleName = [visit.vehicle?.brand, visit.vehicle?.model, visit.vehicle?.licensePlate].filter(Boolean).join(' ');
+
     return (
-        <ModalShell isOpen onClose={onClose} maxWidth="680px">
+        <ModalShell isOpen onClose={onClose} maxWidth="600px">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Certyfikat jakości</ModalTitle>
-                    <ModalSubtitle>Wybierz, co ma znaleźć się w dokumencie dla klienta</ModalSubtitle>
+                    <ModalSubtitle>
+                        {[customerName, vehicleName].filter(Boolean).join(', ') || 'Dokument dla klienta'}
+                    </ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
 
             <ModalContent>
-                <Section>
-                    <SectionHead><Wrench size={16} /> Wykonane usługi</SectionHead>
-                    <SectionNote>Odznacz te, których nie chcesz pokazywać klientowi.</SectionNote>
-                    {services.length === 0 && <Empty>Ta wizyta nie ma usług do wypisania.</Empty>}
-                    {services.map(s => (
-                        <Row key={s.id} $on={serviceIds.has(s.id)}>
-                            <Check
-                                type="checkbox"
-                                checked={serviceIds.has(s.id)}
-                                onChange={() => toggle(serviceIds, s.id, setServiceIds)}
-                            />
-                            <RowMain>
-                                <RowTitle>{s.serviceName}</RowTitle>
-                                {s.note && <RowSub>{s.note}</RowSub>}
-                            </RowMain>
-                        </Row>
+                <Lead>
+                    Usługi i produkty z wizyty są już zaznaczone. Rozwiń sekcję tylko wtedy, gdy
+                    chcesz coś ukryć przed klientem albo dopisać.
+                </Lead>
+
+                <Sections>
+                    {section('services', <Wrench />, 'Wykonane usługi', (
+                        services.length === 0 ? <Empty>Ta wizyta nie ma usług do wypisania.</Empty> : (
+                            <CheckList>
+                                {services.map(s => (
+                                    <Row key={s.id} $on={serviceIds.has(s.id)}>
+                                        <Check
+                                            type="checkbox"
+                                            checked={serviceIds.has(s.id)}
+                                            onChange={() => toggle(serviceIds, s.id, setServiceIds)}
+                                        />
+                                        <RowMain>
+                                            <RowTitle>{s.serviceName}</RowTitle>
+                                            {s.note && <RowMeta><span>{s.note}</span></RowMeta>}
+                                        </RowMain>
+                                    </Row>
+                                ))}
+                            </CheckList>
+                        )
                     ))}
-                </Section>
 
-                <Divider />
-
-                <Section>
-                    <SectionHead><Package size={16} /> Użyte produkty</SectionHead>
-                    <SectionNote>
-                        Zaznaczone pochodzą z karty wizyty. Możesz je ukryć albo dopisać preparat,
-                        którego przy wizycie nie odnotowano.
-                    </SectionNote>
-                    {links.length === 0 && extras.length === 0 && (
-                        <Empty>Do tej wizyty nie dopięto produktów — możesz dopisać je poniżej.</Empty>
-                    )}
-                    {links.map(l => (
-                        <Row key={l.id} $on={linkIds.has(l.id)}>
-                            <Check
-                                type="checkbox"
-                                checked={linkIds.has(l.id)}
-                                onChange={() => toggle(linkIds, l.id, setLinkIds)}
+                    {section('products', <Package />, 'Użyte produkty', (
+                        <>
+                            {links.length > 0 && (
+                                <CheckList>
+                                    {links.map(l => (
+                                        <Row key={l.id} $on={linkIds.has(l.id)}>
+                                            <Check
+                                                type="checkbox"
+                                                checked={linkIds.has(l.id)}
+                                                onChange={() => toggle(linkIds, l.id, setLinkIds)}
+                                            />
+                                            <RowMain>
+                                                <RowTitle>{[l.brand, l.productName].filter(Boolean).join(' ')}</RowTitle>
+                                                {(l.packageLabel || l.note) && (
+                                                    <RowMeta>
+                                                        {l.packageLabel && <span>{l.packageLabel}</span>}
+                                                        {l.note && <span>{l.note}</span>}
+                                                    </RowMeta>
+                                                )}
+                                            </RowMain>
+                                        </Row>
+                                    ))}
+                                </CheckList>
+                            )}
+                            {manualList(extras, setExtras, 'Notatka pod pozycją (opcjonalnie)')}
+                            <ProductPicker
+                                placeholder={canProducts
+                                    ? 'Dopisz użyty produkt z katalogu lub z ręki'
+                                    : 'Dopisz użyty produkt'}
+                                catalog={canProducts}
+                                onPick={entry => setExtras(prev => [...prev, entry])}
                             />
-                            <RowMain>
-                                <RowTitle>{[l.brand, l.productName].filter(Boolean).join(' ')}</RowTitle>
-                                <RowSub>{[l.packageLabel, l.note].filter(Boolean).join(' · ')}</RowSub>
-                            </RowMain>
-                        </Row>
+                        </>
                     ))}
-                    {manualList(extras, setExtras, 'Notatka pod pozycją (opcjonalnie)')}
-                    <ProductPicker
-                        placeholder={canProducts
-                            ? 'Dopisz użyty produkt — z katalogu lub z ręki…'
-                            : 'Dopisz użyty produkt…'}
-                        catalog={canProducts}
-                        onPick={entry => setExtras(prev => [...prev, entry])}
-                    />
-                </Section>
 
-                <Divider />
+                    {section('recommended', <Award />, 'Polecane do pielęgnacji', (
+                        <>
+                            {manualList(recommended, setRecommended, 'Np. co dwa tygodnie, metodą dwóch wiader')}
+                            <ProductPicker
+                                placeholder={canProducts
+                                    ? 'Poleć produkt z katalogu lub z ręki'
+                                    : 'Poleć produkt'}
+                                catalog={canProducts}
+                                onPick={entry => setRecommended(prev => [...prev, entry])}
+                            />
+                        </>
+                    ))}
 
-                <Section>
-                    <SectionHead><Award size={16} /> Zalecane do dalszej pielęgnacji</SectionHead>
-                    <SectionNote>
-                        Ta lista nie wynika z wizyty — dodaj ją ręcznie. Do każdej pozycji możesz
-                        dopisać notatkę, np. jak często stosować.
-                    </SectionNote>
-                    {recommended.length === 0 && (
-                        <Empty>Nic jeszcze nie polecono. Bez wpisów ta sekcja nie pojawi się na certyfikacie.</Empty>
-                    )}
-                    {manualList(recommended, setRecommended, 'Np. co dwa tygodnie, metodą dwóch wiader')}
-                    <ProductPicker
-                        placeholder={canProducts
-                            ? 'Poleć produkt — z katalogu lub z ręki…'
-                            : 'Poleć produkt…'}
-                        catalog={canProducts}
-                        onPick={entry => setRecommended(prev => [...prev, entry])}
-                    />
-                </Section>
-
-                <Divider />
-
-                <Section>
-                    <SectionHead><Droplets size={16} /> Jak utrzymać efekt</SectionHead>
-                    <SectionNote>
-                        Zaznaczone instrukcje trafią na certyfikat. Same zaznaczają się te oznaczone
-                        w ustawieniach jako stałe oraz przypisane do wybranych wyżej usług — możesz
-                        to zmienić.
-                    </SectionNote>
-                    {instructions.length === 0 && (
-                        <Empty>
-                            Słownik instrukcji jest pusty. Uzupełnisz go w Ustawieniach → Cennik usług →
-                            Instrukcje pielęgnacji.
-                        </Empty>
-                    )}
-                    {instructions.map(instruction => {
-                        const on = careSelected.has(instruction.id);
-                        const fromService = !instruction.isDefaultSelected
-                            && instruction.serviceIds.some(id => selectedCatalogServiceIds.has(id));
-                        return (
-                            <Row key={instruction.id} $on={on}>
-                                <Check type="checkbox" checked={on} onChange={() => toggleCare(instruction.id)} />
-                                <RowMain>
-                                    <RowTitle>{instruction.title}</RowTitle>
-                                    <RowSub>{instruction.content}</RowSub>
-                                    {fromService && <RowHint>zaznaczona przez wybraną usługę</RowHint>}
-                                </RowMain>
-                            </Row>
-                        );
-                    })}
-                    <CareArea
-                        value={careNote}
-                        onChange={e => setCareNote(e.target.value)}
-                        placeholder="Uwagi tylko do tego certyfikatu, np. auto odbierane w deszczu, przełóż pierwsze mycie."
-                    />
-                </Section>
+                    {section('care', <Droplets />, 'Jak utrzymać efekt', (
+                        <>
+                            {instructions.length === 0 ? (
+                                <Empty>
+                                    Słownik instrukcji jest pusty. Uzupełnisz go w Ustawieniach, w Cenniku
+                                    usług, w zakładce Instrukcje pielęgnacji.
+                                </Empty>
+                            ) : (
+                                <CheckList>
+                                    {instructions.map(instruction => {
+                                        const on = careSelected.has(instruction.id);
+                                        const fromService = !instruction.isDefaultSelected
+                                            && instruction.serviceIds.some(id => selectedCatalogServiceIds.has(id));
+                                        return (
+                                            <Row key={instruction.id} $on={on}>
+                                                <Check type="checkbox" checked={on} onChange={() => toggleCare(instruction.id)} />
+                                                <RowMain>
+                                                    <RowTitle>{instruction.title}</RowTitle>
+                                                    <Excerpt title={instruction.content}>{instruction.content}</Excerpt>
+                                                    {fromService && on && <RowHint>Dobrana do wybranej usługi</RowHint>}
+                                                </RowMain>
+                                            </Row>
+                                        );
+                                    })}
+                                </CheckList>
+                            )}
+                            {noteOpen || careNote ? (
+                                <CareArea
+                                    aria-label="Uwagi tylko do tego certyfikatu"
+                                    autoFocus={noteOpen && !careNote}
+                                    value={careNote}
+                                    onChange={e => setCareNote(e.target.value)}
+                                    placeholder="Np. auto odbierane w deszczu, przełóż pierwsze mycie."
+                                />
+                            ) : (
+                                <AddNote>
+                                    <Button variant="ghost" size="sm" onClick={() => setNoteOpen(true)}>
+                                        <Plus />Dodaj uwagę do tego certyfikatu
+                                    </Button>
+                                </AddNote>
+                            )}
+                        </>
+                    ))}
+                </Sections>
             </ModalContent>
 
             <ModalFooter>
-                <SharedButton type="button" $variant="ghost" onClick={onClose} disabled={busy}>
-                    Anuluj
-                </SharedButton>
-                <SharedButton type="button" onClick={generate} disabled={busy || nothingSelected}>
-                    {busy ? 'Generuję…' : 'Generuj certyfikat'}
-                </SharedButton>
+                <Button variant="ghost" onClick={onClose} disabled={busy}>Anuluj</Button>
+                <Primary type="button" onClick={generate} disabled={busy || nothingSelected}>
+                    <span className="glyph"><FileDown /></span>
+                    <span className="labels">
+                        <span className="title">{busy ? 'Generuję…' : 'Pobierz certyfikat'}</span>
+                        <span className="sub">
+                            {nothingSelected
+                                ? 'Zaznacz choć jedną pozycję'
+                                : `PDF, ${itemsOnCertificate} ${plural(itemsOnCertificate, 'pozycja', 'pozycje', 'pozycji')}`}
+                        </span>
+                    </span>
+                </Primary>
             </ModalFooter>
         </ModalShell>
     );
