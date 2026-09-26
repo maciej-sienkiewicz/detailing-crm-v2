@@ -9,7 +9,7 @@ import { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { Check, Plus, Search } from 'lucide-react';
 import type { ContractorOverview } from '../types';
-import { carsLabel, contractorsLabel, formatMoney } from '../utils/format';
+import { carsLabel, contractorsLabel, doneGrossCents, formatMoney } from '../utils/format';
 import { formatInstantDay } from '../utils/period';
 
 /**
@@ -210,13 +210,11 @@ interface Props {
     selectedId: string | null;
     onSelect: (contractorId: string) => void;
     onCreate: () => void;
-    /** Np. „we wrześniu 2026" - do podpisu sumy. */
-    periodIn: string;
     /** Własna powierzchnia pod listą - w bocznej kolumnie tak, w oknie wyboru nie. */
     framed?: boolean;
 }
 
-export function ContractorList({ items, selectedId, onSelect, onCreate, periodIn, framed = false }: Props) {
+export function ContractorList({ items, selectedId, onSelect, onCreate, framed = false }: Props) {
     const [query, setQuery] = useState('');
 
     const visible = useMemo(() => {
@@ -230,18 +228,20 @@ export function ContractorList({ items, selectedId, onSelect, onCreate, periodIn
         );
     }, [items, query]);
 
-    const totalOpenGross = items.reduce((sum, o) => sum + o.openGrossCents, 0);
-    const withOpen = items.filter(o => o.openCount > 0).length;
+    const totalGross = items.reduce((sum, o) => sum + doneGrossCents(o), 0);
+    const withCars = items.filter(o => o.openCount + o.settledCount > 0).length;
 
     return (
         <Wrap $framed={framed}>
             <Totals>
-                <TotalsLabel>Czeka na zestawienie {periodIn}</TotalsLabel>
-                <TotalsValue>{formatMoney(totalOpenGross)}</TotalsValue>
+                {/* Było „Czeka na zestawienie": czasownik brzmiał jak zaległość
+                    użytkownika, a to podsumowanie wykonanej pracy. */}
+                <TotalsLabel>W tym okresie wykonałeś usługi na kwotę</TotalsLabel>
+                <TotalsValue>{formatMoney(totalGross)}</TotalsValue>
                 <TotalsMeta>
-                    {withOpen > 0
-                        ? `Brutto, u ${withOpen} z ${contractorsLabel(items.length)}`
-                        : 'Wszystkie auta są już w zestawieniach'}
+                    {withCars > 0
+                        ? `Brutto, u ${withCars} z ${contractorsLabel(items.length)}`
+                        : 'Brak aut w tym okresie'}
                 </TotalsMeta>
             </Totals>
 

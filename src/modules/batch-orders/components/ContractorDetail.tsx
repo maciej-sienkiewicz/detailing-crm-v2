@@ -15,7 +15,7 @@
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import {
-    Building2, Check, Clock, Download, FileText, Info, MoreHorizontal, Pencil, Plus, Search, Trash2,
+    Building2, Clock, Download, FileText, Info, MoreHorizontal, Pencil, Plus, Search, Trash2,
 } from 'lucide-react';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useToast } from '@/common/components/Toast';
@@ -132,17 +132,6 @@ const Summary = styled(SummaryStrip)`
     margin: 14px 28px 0;
 
     @container detail (max-width: 560px) { margin: 12px 16px 0; }
-`;
-
-const HeroDone = styled.span`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #15803d;
-
-    svg { width: 14px; height: 14px; }
 `;
 
 // ─── Pasek nad listą ──────────────────────────────────────────────────────────
@@ -372,17 +361,17 @@ export function ContractorDetail({ contractor, period, isDesktop, onEditContract
                 </HeadActions>
             </Head>
 
+            {/* Było „Czeka na zestawienie": czasownik brzmiał jak zaległość
+                użytkownika, a to podsumowanie wykonanej pracy. Kwota obejmuje więc
+                wszystkie auta okresu, także te już w zestawieniach - ile czeka,
+                mówi przełącznik pod spodem („Czekają 8"). */}
             <Summary
-                label={`Czeka na zestawienie ${inPeriod}`}
+                label="W tym okresie wykonałeś usługi na kwotę"
                 loading={isLoading && !data}
-                amount={data && openCount === 0 && settledCount > 0
-                    ? <HeroDone><Check />Wszystkie auta z tego okresu są już w zestawieniu</HeroDone>
-                    : formatMoney(open?.totalGrossCents ?? 0)}
-                // Liczba aut już w zestawieniu stoi na przełączniku pod spodem
-                // („W zestawieniach 3") - tu byłaby drugi raz.
-                details={data && openCount === 0 && settledCount > 0
-                    ? undefined
-                    : openCount === 0 ? 'brak aut' : `${carsLabel(openCount)}, netto ${formatMoney(open?.totalNetCents ?? 0)}`}
+                amount={formatMoney((open?.totalGrossCents ?? 0) + (settled?.totalGrossCents ?? 0))}
+                details={openCount + settledCount === 0
+                    ? 'brak aut'
+                    : `${carsLabel(openCount + settledCount)}, netto ${formatMoney((open?.totalNetCents ?? 0) + (settled?.totalNetCents ?? 0))}`}
                 actions={(
                     <>
                         {/* Zieleń jako tło i obwódka: ważne, ale robione raz w miesiącu. */}

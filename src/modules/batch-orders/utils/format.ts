@@ -1,6 +1,7 @@
 // src/modules/batch-orders/utils/format.ts
 
 import { pluralPl } from '@/common/utils/plural';
+import type { ContractorOverview } from '../types';
 
 const money = new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' });
 
@@ -24,6 +25,14 @@ export const contractorsLabel = (count: number): string =>
 
 export const photosLabel = (count: number): string =>
     `${count} ${pluralPl(count, 'zdjęcie', 'zdjęcia', 'zdjęć')}`;
+
+/**
+ * Brutto wykonanych usług kontrahenta w okresie: nierozliczone i już w zestawieniach.
+ * Nagłówek mówi „wykonałeś usługi na kwotę" - gdyby liczył tylko nierozliczone,
+ * kwota malałaby po każdym zestawieniu, choć pracy nie ubyło.
+ */
+export const doneGrossCents = (o: ContractorOverview): number =>
+    o.openGrossCents + (o.settledGrossCents ?? 0);
 
 /** „Brutto za 8 aut. Netto 10 689,44 zł." - kwota główna jest brutto, netto to dopisek. */
 export const grossForCars = (count: number, netCents: number): string =>
