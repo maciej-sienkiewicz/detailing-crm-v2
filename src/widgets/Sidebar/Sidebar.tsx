@@ -38,7 +38,7 @@ import type { MenuItem } from './SidebarMenuItem';
 import { UserSwitcherPanel, useKnownProfiles } from '@/modules/pin-switcher';
 import { ReportProblemModal } from '@/modules/support/components/ReportProblemModal';
 import { useCompanySettings } from '@/modules/settings/hooks/useCompany';
-import { companyInitials } from './companyBadge';
+import { companyDisplayName, companyInitials } from './companyBadge';
 import { readCompanyHeader, writeCompanyHeader } from './companyHeaderCache';
 import { SidebarBrand } from './SidebarBrand';
 import {
@@ -75,54 +75,58 @@ const buildMenuSections = (
 ): MenuSection[] => {
     const canSeeDashboard = can(ANY_DASHBOARD);
     const sections: GuardedMenuSection[] = [
+        // Grupy mówią, CZYM się zajmuje dana część pracy. Wcześniej było ich pięć
+        // (Główne, Baza klientów, Studio, Administracja, Portal): „Studio" miało jedną
+        // pozycję, „Portal" nic nie znaczył, a w „Głównych" siedziało siedem rzeczy
+        // naraz, od kalendarza po pocztę. Tablica stoi nad grupami bez nagłówka,
+        // tak samo jak Ustawienia na dole.
         {
-            title: 'Główne',
             items: [
                 { path: '/dashboard',     label: 'Tablica',           icon: LayoutDashboard, requires: ANY_DASHBOARD },
                 // Task inbox replacing the dashboard's "Do zrobienia" for roles without Tablica.
                 { path: '/notifications', label: 'Powiadomienia',     icon: Bell, badge: unreadNotifications > 0 ? unreadNotifications : undefined, alert: unreadNotifications > 0, showWhen: !canSeeDashboard },
                 { path: '/worktime',      label: 'Czas pracy',        icon: Clock,          showWhen: trackWorkTime },
-                { path: '/operations',    label: 'Wizyty',            icon: CalendarCheck, requires: 'VISITS_VIEW' },
+            ],
+        },
+        {
+            title: 'Praca',
+            items: [
+                { path: '/operations',    label: 'Wizyty',            icon: CalendarCheck, requires: 'VISITS_VIEW',
+                    match: ['/visits', '/appointments', '/checkin', '/reservations'] },
                 { path: '/calendar',      label: 'Kalendarz',         icon: Calendar,      requires: 'VISITS_VIEW' },
                 { path: '/batch-orders',  label: 'Zlecenia zbiorcze', icon: Layers, requires: 'BATCH_ORDERS' },
                 { path: '/gallery',       label: 'Galeria',           icon: Images, requires: 'VISITS_VIEW' },
-                { path: '/communication', label: 'Poczta', icon: Mail, badge: unreadMailCount > 0 ? unreadMailCount : undefined, alert: unreadMailCount > 0, requires: 'LEADS_MANAGE' },
+            ],
+        },
+        {
+            title: 'Klienci i zapytania',
+            items: [
                 // Bez czerwonego alertu: leada tworzy świadome kliknięcie użytkownika,
                 // więc nie ma czego zgłaszać jako nowość. Licznik zostaje - mówi, ile
                 // zapytań czeka na ruch - ale nie krzyczy jak nieprzeczytana poczta.
                 { path: '/leads', label: 'Leady', icon: Inbox, badge: newLeadsCount > 0 ? newLeadsCount : undefined, requires: 'LEADS_MANAGE' },
-            ],
-        },
-        {
-            title: 'Baza klientów',
-            items: [
+                { path: '/communication', label: 'Poczta', icon: Mail, badge: unreadMailCount > 0 ? unreadMailCount : undefined, alert: unreadMailCount > 0, requires: 'LEADS_MANAGE' },
                 { path: '/customers', label: 'Klienci',   icon: Users, requires: 'CUSTOMERS_VIEW' },
                 { path: '/vehicles',  label: 'Samochody', icon: Car,   requires: 'CUSTOMERS_VIEW' },
             ],
         },
         {
-            title: 'Studio',
+            title: 'Firma',
             items: [
-                { path: '/products', label: 'Produkty', icon: Package, requires: 'PRODUCTS_VIEW' },
-            ],
-        },
-        {
-            title: 'Administracja',
-            items: [
-                { path: '/finances',   label: 'Finanse',    icon: FileText,   requires: ANY_FINANCE },
-                { path: '/statistics', label: 'Statystyki', icon: TrendingUp, requires: 'STATISTICS_VIEW' },
+                { path: '/finances',   label: 'Finanse',    icon: FileText,   requires: ANY_FINANCE, match: ['/finance'] },
+                { path: '/statistics', label: 'Statystyki', icon: TrendingUp, requires: 'STATISTICS_VIEW', match: ['/reports'] },
+                { path: '/products',   label: 'Produkty',   icon: Package,    requires: 'PRODUCTS_VIEW' },
                 { path: '/activity',   label: 'Aktywność',  icon: Activity,   requires: 'AUDIT_VIEW' }
             ],
         },
         {
             title: 'Marketing',
             items: [
-                { path: '/campaigns',      label: 'Kampanie',       icon: MessageSquare, requires: 'COMMUNICATION_SEND' },
+                { path: '/campaigns',      label: 'Kampanie',       icon: MessageSquare, requires: 'COMMUNICATION_SEND', match: ['/sms-campaigns'] },
                 { path: '/instagram',      label: 'Instagram',      icon: Camera, requires: 'MARKETING_MANAGE' }
             ],
         },
         {
-            title: 'Portal',
             // Przyklejona do dołu menu: Ustawienia i zgłoszenie problemu mają być
             // widoczne bez przewijania, niezależnie od liczby modułów wyżej.
             pinned: true,
@@ -290,7 +294,8 @@ export const Sidebar = () => {
                 <SidebarHeader $isCollapsed={isCollapsed}>
                     <SidebarBrand
                         isCollapsed={isCollapsed}
-                        companyName={companyName}
+                        companyName={companyDisplayName(companyName)}
+                        legalName={companyName}
                         initials={companyInitials(company?.name)}
                         logoUrl={showLogo ? logoUrl : null}
                         logoNeedsPlate={logoNeedsPlate}

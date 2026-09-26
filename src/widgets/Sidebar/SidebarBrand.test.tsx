@@ -24,24 +24,29 @@ const renderBrand = (props: Partial<Parameters<typeof SidebarBrand>[0]> = {}) =>
 );
 
 describe('SidebarBrand - logo studia w nagłówku menu', () => {
-    it('logo stoi nad nazwą, a przycisk zwijania schodzi do wiersza z nazwą', () => {
+    it('logo stoi nad nazwą, a przycisk zwijania siedzi poza osią logo i nazwy', () => {
         renderBrand();
         const logo = screen.getAllByAltText('Detal Studio')[0];
         const caption = screen.getByText('Detal Studio');
         const button = screen.getByRole('button', { name: 'Zwiń menu' });
 
         expect(logo.getAttribute('src')).toBe(LOGO);
-        // Przycisk w jednym wierszu z nazwą, a nie obok logo - tam spychałby logo z osi.
-        const captionRow = caption.parentElement!;
-        expect(button.parentElement).toBe(captionRow);
-        expect(logo.parentElement).toBe(captionRow.parentElement);
+        expect(caption.parentElement).toBe(logo.parentElement);
+        // W wierszu z nazwą obrysowany przycisk zabierał jej szerokość i nazwa z rejestru
+        // kończyła się wielokropkiem - teraz stoi w rogu nagłówka.
+        expect(logo.parentElement!.contains(button)).toBe(false);
     });
 
     it('sygnet idzie na środek tak samo jak poziomy logotyp, a w zwiniętym menu zostaje kafelkiem', () => {
         renderBrand({ isWideLogo: false });
         const images = screen.getAllByAltText('Detal Studio');
         expect(images.map(img => img.getAttribute('src'))).toEqual([LOGO, LOGO]);
-        expect(screen.getByText('Detal Studio').parentElement).toBe(screen.getByRole('button').parentElement);
+        expect(screen.getByText('Detal Studio').parentElement).toBe(images[0].parentElement);
+    });
+
+    it('pełna nazwa z rejestru zostaje w podpowiedzi', () => {
+        renderBrand({ legalName: 'DETAL STUDIO SP. Z O.O.' });
+        expect(screen.getByText('Detal Studio')).toHaveAttribute('title', 'DETAL STUDIO SP. Z O.O.');
     });
 
     it('poziomy logotyp w zwiniętym menu ustępuje inicjałom', () => {

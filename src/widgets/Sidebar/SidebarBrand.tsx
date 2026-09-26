@@ -3,7 +3,7 @@ import {
     Logo,
     CollapsedInitials,
     LogoCaption,
-    LogoCaptionRow,
+    LogoCornerActions,
     LogoIcon,
     LogoImage,
     LogoStack,
@@ -13,7 +13,10 @@ import {
 
 interface SidebarBrandProps {
     isCollapsed: boolean;
+    /** Nazwa do nagłówka, bez formy prawnej. */
     companyName: string;
+    /** Pełna nazwa z rejestru - w podpowiedzi i jako tekst alternatywny logo. */
+    legalName?: string;
     initials: string;
     /** Adres logo studia; null = studio nie ma logo albo logo się nie wczytało. */
     logoUrl: string | null;
@@ -29,10 +32,10 @@ interface SidebarBrandProps {
  * Nagłówek menu: logo i nazwa studia.
  *
  * Logo wgrane przez studio stoi na środku nagłówka, a nazwa firmy pod nim - także
- * wyśrodkowana. Przycisk zwijania schodzi do wiersza z nazwą: obok logo odbierałby mu
- * szerokość i spychał je z osi, a szeroki logotyp i tak zajmuje cały pasek. Dotyczy to
- * logo w każdym kształcie; wcześniej sygnet stał jako 36-pikselowy kafelek przy lewej
- * krawędzi, a poziomy logotyp był dosunięty do lewej.
+ * wyśrodkowana, drobniej i ciszej niż logo, bo zwykle je powtarza. Przycisk zwijania
+ * siedzi w prawym górnym rogu, bez ramki. Wcześniej stał w wierszu z nazwą: obrysowany
+ * kwadrat miał wagę samej nazwy, zabierał jej szerokość i nazwa z rejestru
+ * („LEATHER MASTER Hu…") kończyła się wielokropkiem w pół imienia właściciela.
  *
  * Bez logo zostaje dawny wiersz: kafelek z inicjałami, nazwa i przycisk po prawej.
  *
@@ -42,6 +45,7 @@ interface SidebarBrandProps {
 export const SidebarBrand = ({
     isCollapsed,
     companyName,
+    legalName = companyName,
     initials,
     logoUrl,
     logoNeedsPlate,
@@ -54,7 +58,7 @@ export const SidebarBrand = ({
             <>
                 <Logo $isCollapsed={isCollapsed}>
                     <LogoIcon>{initials}</LogoIcon>
-                    <LogoText $isCollapsed={isCollapsed} title={companyName}>
+                    <LogoText $isCollapsed={isCollapsed} title={legalName}>
                         {companyName}
                     </LogoText>
                 </Logo>
@@ -69,16 +73,14 @@ export const SidebarBrand = ({
                 <LogoWide
                     src={logoUrl}
                     alt={companyName}
-                    title={companyName}
+                    title={legalName}
                     $plate={logoNeedsPlate}
                     $wide={isWideLogo}
                     onError={onLogoError}
                 />
-                <LogoCaptionRow>
-                    <LogoCaption title={companyName}>{companyName}</LogoCaption>
-                    {actions}
-                </LogoCaptionRow>
+                <LogoCaption title={legalName}>{companyName}</LogoCaption>
             </LogoStack>
+            <LogoCornerActions $isCollapsed={isCollapsed}>{actions}</LogoCornerActions>
             <CollapsedInitials $isCollapsed={isCollapsed}>
                 {isWideLogo
                     ? <LogoIcon>{initials}</LogoIcon>
