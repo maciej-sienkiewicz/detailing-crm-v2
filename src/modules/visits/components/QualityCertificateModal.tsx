@@ -36,17 +36,10 @@ import type { Visit } from '../types';
 // się tylko po to, żeby coś ukryć albo dopisać, a jedynym wypełnieniem jest „Pobierz
 // certyfikat" w stopce — wolno mu, bo okno jest otwartym edytorem (wyjątek z §2).
 
-const Lead = styled.p`
-    margin: 0 0 14px;
-    font-size: 13.5px;
-    line-height: 1.5;
-    color: ${ui.textSecondary};
-`;
-
 const Sections = styled.div`
     display: flex;
     flex-direction: column;
-    border-top: 1px solid ${ui.line};
+    margin-top: -10px;
 `;
 
 const Block = styled.section`
@@ -595,11 +588,6 @@ export function QualityCertificateModal({ visit, onClose }: Props) {
             </ModalHeader>
 
             <ModalContent>
-                <Lead>
-                    Usługi i produkty z wizyty są już zaznaczone. Rozwiń sekcję tylko wtedy, gdy
-                    chcesz coś ukryć przed klientem albo dopisać.
-                </Lead>
-
                 <Sections>
                     {section('services', <Wrench />, 'Wykonane usługi', (
                         services.length === 0 ? <Empty>Ta wizyta nie ma usług do wypisania.</Empty> : (
