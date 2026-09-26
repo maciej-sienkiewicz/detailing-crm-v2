@@ -32,8 +32,8 @@ import { ContractorList } from '../components/ContractorList';
 import { BatchServicesModal } from '../components/BatchServicesModal';
 import { PeriodPicker } from '../components/PeriodPicker';
 import type { BatchContractor, ContractorRequest } from '../types';
-import { apiErrorMessage, formatMoney } from '../utils/format';
-import { currentMonthPeriod, periodIn, type Period } from '../utils/period';
+import { apiErrorMessage, doneGrossCents, formatMoney } from '../utils/format';
+import { currentMonthPeriod, type Period } from '../utils/period';
 import { HowItWorks } from '../components/HowItWorks';
 
 const ViewContainer = styled(PageContainer)`
@@ -212,7 +212,6 @@ export function BatchOrdersView() {
             selectedId={selected?.contractor.id ?? null}
             onSelect={select}
             onCreate={() => { setShowPicker(false); setShowCreate(true); }}
-            periodIn={periodIn(period)}
             framed={framed}
         />
     );
@@ -272,7 +271,7 @@ export function BatchOrdersView() {
         );
     }
 
-    const totalOpen = items.reduce((sum, o) => sum + o.openGrossCents, 0);
+    const totalDone = items.reduce((sum, o) => sum + doneGrossCents(o), 0);
 
     return (
         <ViewContainer ref={viewRef}>
@@ -301,7 +300,7 @@ export function BatchOrdersView() {
                     icon={<Layers />}
                     title="Zlecenia zbiorcze"
                     subtitle={overview
-                        ? <><MobilePageHeaderCountValue>{formatMoney(totalOpen)}</MobilePageHeaderCountValue> czeka na zestawienie</>
+                        ? <>Usługi w tym okresie: <MobilePageHeaderCountValue>{formatMoney(totalDone)}</MobilePageHeaderCountValue></>
                         : 'Wczytywanie…'}
                     actions={
                         <>

@@ -86,6 +86,9 @@ export interface ContractorOverview {
     openNetCents: number;
     openGrossCents: number;
     settledCount: number;
+    /** Sumy aut okresu już w zestawieniach. Brak u starszego serwera - wtedy 0. */
+    settledNetCents?: number;
+    settledGrossCents?: number;
     lastSettledAt: string | null;
 }
 
