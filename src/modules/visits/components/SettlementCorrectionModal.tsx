@@ -242,7 +242,9 @@ function CorrectionForm({ view, visitId, onClose }: { view: SettlementView; visi
     }, [request]);
     // Nic jeszcze nie zmieniono: zamiast pytać serwer i straszyć „nie da się",
     // okno mówi, co można tu zrobić.
-    const pristine = debounced.services.length === 0 &&
+    // Wizyta bez dokumentu: sam wybór rodzaju dokumentu jest zmianą (dopisuje brakujący).
+    const pristine = view.documentType !== null &&
+        debounced.services.length === 0 &&
         debounced.documentType === (view.documentType ?? 'RECEIPT') &&
         debounced.paymentMethod === (view.paymentMethod ?? 'CASH') &&
         debounced.buyer === null;
