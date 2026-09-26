@@ -242,7 +242,7 @@ const StagnationPanel = () => {
 
     return (
         <FlatPanel>
-            <SectionTitle as="h3">Kiedy sprawa stygnie</SectionTitle>
+            <SectionTitle as="h3">Kiedy przypominać o kontakcie</SectionTitle>
 
             {isError && !data ? (
                 <ThresholdRow>

@@ -307,13 +307,13 @@ function BlockedStage({ platform }: { platform: PushPlatform }) {
 
 // ─── Etap: dlaczego warto + zgoda ─────────────────────────────────────────────
 
-// Same tytuły, bez zdań objaśniających pod każdym: cztery akapity nad przyciskiem
-// przytłaczały go, a tytuł z ikoną mówi wystarczająco, co przyjdzie na telefon.
+// Jedno zdanie na korzyść, bez osobnego tytułu i opisu pod nim - dwie linie na
+// pozycję przytłaczały przycisk. Zdanie mówi wprost, co i kiedy przyjdzie.
 const BENEFITS = [
-    { icon: <PhoneIcon />, title: 'Dzwonisz jednym dotknięciem' },
-    { icon: <WalletIcon />, title: 'Rezerwacje, przyjęcia i wydania aut' },
-    { icon: <InboxIcon />, title: 'Nowe zapytania od razu' },
-    { icon: <MegaphoneIcon />, title: 'Ruchy konkurencji' },
+    { icon: <PhoneIcon />, text: 'Klikniesz numer klienta na komputerze, a telefon zapyta, czy do niego zadzwonić.' },
+    { icon: <WalletIcon />, text: 'Dowiesz się, kiedy ktoś utworzy rezerwację, przyjmie pojazd do salonu albo klient odbierze samochód.' },
+    { icon: <InboxIcon />, text: 'Dostaniesz powiadomienie, gdy przyjdzie wiadomość z zapytaniem o usługę.' },
+    { icon: <MegaphoneIcon />, text: 'Dowiesz się, kiedy konkurencja doda nową kampanię reklamową wycelowaną w Twoją okolicę.' },
 ];
 
 function AskStage({ push, onDismiss }: { push: PushDeviceState; onDismiss?: () => void }) {
@@ -340,9 +340,9 @@ function AskStage({ push, onDismiss }: { push: PushDeviceState; onDismiss?: () =
 
             <Benefits>
                 {BENEFITS.map(benefit => (
-                    <Benefit key={benefit.title}>
+                    <Benefit key={benefit.text}>
                         <BenefitTile>{benefit.icon}</BenefitTile>
-                        <BenefitTitle>{benefit.title}</BenefitTitle>
+                        <BenefitTitle>{benefit.text}</BenefitTitle>
                     </Benefit>
                 ))}
             </Benefits>
@@ -683,7 +683,8 @@ const BenefitTile = styled.span`
 
 const BenefitTitle = styled.div`
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
+    line-height: 1.45;
     color: ${ui.ink};
 `;
 
