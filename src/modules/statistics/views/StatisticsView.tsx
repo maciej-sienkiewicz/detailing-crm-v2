@@ -8,6 +8,7 @@ import { StatsChart } from '../components/StatsChart';
 import { CategoryFormModal } from '../components/CategoryFormModal';
 import { PeriodDetailDrawer } from '../components/PeriodDetailDrawer';
 import { StatsNav } from '../components/StatsNav';
+import { ReportButton } from '../components/ReportDialog';
 import { StatsMobileOverview } from '../components/StatsMobileOverview';
 import { useMediaQuery } from '@/common/hooks';
 import { useCategories, useDeleteCategory, useAssignService, useUnassignService } from '../hooks/useCategories';
@@ -326,6 +327,7 @@ export const StatisticsView = () => {
                             onGranularityChange={setGranularity}
                             granularity={granularity}
                         />
+                        <ReportButton />
                         <StatsNav />
                     </HdrBtns>
                 }

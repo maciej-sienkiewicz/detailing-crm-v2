@@ -15,6 +15,7 @@ import {
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
 import { StatsNav } from '../components/StatsNav';
+import { ReportButton } from '../components/ReportDialog';
 import { st } from '../components/StatisticsTheme';
 import {
     // layout
@@ -1596,6 +1597,7 @@ export const CostsView = () => {
                             onStartChange={setStartDate}
                             onEndChange={setEndDate}
                         />
+                        <ReportButton />
                         <StatsNav />
                     </HdrBtns>
                 }
