@@ -1417,6 +1417,12 @@ interface ServicesTableProps {
     highlightPending?: boolean;
     /** Czym wizytę rozliczono; brak = nierozliczona. */
     settlement?: VisitSettlement | null;
+    /**
+     * Poprawka rozliczenia po wydaniu pojazdu. Mieszka w menu wykazu usług, nie w nagłówku
+     * wizyty: poprawia się ceny i dokument tych usług, więc akcja stoi przy nich. Rodzic
+     * podaje ją tylko dla wizyty zakończonej i użytkownika z uprawnieniem.
+     */
+    onCorrectSettlement?: () => void;
 }
 
 const SETTLEMENT_LABEL: Record<NonNullable<VisitSettlement['documentType']>, string> = {
@@ -1452,7 +1458,7 @@ function discountPillLabel(adjustment: PriceAdjustment, label: string): string {
 
 const HEADER_MENU = '__header__';
 
-export const ServicesTable = ({ services, visitStatus, visitId, highlightPending, settlement }: ServicesTableProps) => {
+export const ServicesTable = ({ services, visitStatus, visitId, highlightPending, settlement, onCorrectSettlement }: ServicesTableProps) => {
     const { calculateServicePrice } = useServicePricing();
     const { print: printServicesList, isPrinting } = usePrintServicesList();
     const { saveServicesChanges, isSaving } = useSaveServicesChanges(visitId ?? '');
@@ -1919,6 +1925,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const hasPendingServices = services.some(s => (s.hasPendingChange ?? (s.status === 'PENDING')));
     const showActionsCol = canEdit || hasPendingServices;
     const canPrint = !!visitId && services.length > 0;
+    const canCorrectSettlement = !!onCorrectSettlement && !pricesHidden;
 
     // Wykaz drukuje stan zapisany na serwerze - bez cen i bez niezapisanych zmian z edycji.
     const handlePrint = () => {
@@ -2047,9 +2054,9 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         <ServicesCard ref={cardRef} aria-labelledby="visit-services-title">
             <CardHead>
                 <SectionTitle id="visit-services-title" size="lg" count={servicesSubtitle}>Usługi</SectionTitle>
-                {(canEdit || canPrint) && !isInEditMode && (
+                {(canEdit || canPrint || canCorrectSettlement) && !isInEditMode && (
                     <IconButton
-                        label={canEdit ? 'Rabat i VAT dla całej wizyty' : 'Więcej opcji wykazu'}
+                        label={canEdit ? 'Rabat i VAT dla całej wizyty' : 'Więcej opcji usług'}
                         aria-haspopup="menu"
                         aria-expanded={menu.isOpen(HEADER_MENU)}
                         active={menu.isOpen(HEADER_MENU)}
@@ -2270,6 +2277,9 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                 VAT dla wszystkich usług...
                             </MenuItem>
                         </>
+                    )}
+                    {canCorrectSettlement && (
+                        <MenuItem icon={<ReceiptText />} onClick={onCorrectSettlement}>Popraw rozliczenie</MenuItem>
                     )}
                     {canPrint && (
                         <MenuItem icon={<Printer />} disabled={isPrinting} onClick={handlePrint}>Drukuj wykaz</MenuItem>

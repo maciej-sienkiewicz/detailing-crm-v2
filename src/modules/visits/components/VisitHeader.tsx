@@ -18,7 +18,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import styled, { css, keyframes } from 'styled-components';
-import { CalendarDays, Check, FileText, FilePlus, MoreHorizontal, Pencil, Sparkles, Trash2, Truck, X, ReceiptText } from 'lucide-react';
+import { CalendarDays, Check, FileText, FilePlus, MoreHorizontal, Pencil, Sparkles, Trash2, Truck, X } from 'lucide-react';
 import type { Visit, VisitStatus } from '../types';
 import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, ModalFooter, CloseBtn } from '@/common/components/ModalKit';
 import { usePermissions } from '@/core/permissions';
@@ -347,7 +347,6 @@ interface VisitHeaderProps {
     /** Wizyta zakończona z fakturą: podgląd wystawionego dokumentu. */
     onPreviewInvoice?: () => void;
     /** Wizyta wydana: poprawka rozliczenia (kwoty, VAT, płatność, rodzaj dokumentu). */
-    onCorrectSettlement?: () => void;
     onCancelVisit: () => void;
     onGeneratePost: () => void;
     onDoorToDoor?: () => void;
@@ -364,7 +363,6 @@ export const VisitHeader = ({
     onCompleteVisit,
     onIssueConsumerInvoice,
     onPreviewInvoice,
-    onCorrectSettlement,
     onCancelVisit,
     onGeneratePost,
     onDoorToDoor,
@@ -581,9 +579,6 @@ export const VisitHeader = ({
             <ActionMenu anchor={menu.menu?.anchor ?? null} onClose={menu.close} label="Akcje wizyty">
                 {compact && canUseDoorToDoor && (
                     <MenuItem icon={<Truck />} onClick={onDoorToDoor}>Door to door</MenuItem>
-                )}
-                {visit.status === 'COMPLETED' && onCorrectSettlement && can('FINANCE_CORRECT_SETTLEMENT') && (
-                    <MenuItem icon={<ReceiptText />} onClick={onCorrectSettlement}>Popraw rozliczenie</MenuItem>
                 )}
                 <MenuItem icon={<Sparkles />} onClick={onGeneratePost}>Generuj post</MenuItem>
                 {can('VISITS_DELETE') && (
