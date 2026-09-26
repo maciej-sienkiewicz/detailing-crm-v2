@@ -13,7 +13,7 @@
 
 import styled from 'styled-components';
 import {
-    ActionMenu, IconButton, MenuDivider, MenuItem, PriceButton, StatusPill, useActionMenu,
+    ActionMenu, IconButton, MenuDivider, MenuItem, PriceButton, StatusPill, ui, useActionMenu,
 } from '@/common/components/ui';
 import { Camera, ChevronRight, Lock, MoreVertical, Pencil, RotateCcw, Trash2, Unlock } from 'lucide-react';
 import type { BatchOrderEntry } from '../types';
@@ -136,15 +136,24 @@ const IdentLine = styled.span`
     max-width: 100%;
 `;
 
-const Photos = styled.span<{ $empty: boolean }>`
+/* Aparat pokazujemy tylko przy autach ze zdjęciami. Szare „0" przy każdym aucie bez
+   zdjęć było szumem w każdym wierszu i zagłuszało te kilka aut, przy których
+   zdjęcia są - a właśnie o nie się pyta. Zieleń jest tłem z obwódką, nie
+   wypełnieniem: znaczy „jest", a nie „kliknij" (CLAUDE.md §2). */
+const Photos = styled.span`
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-size: 12.5px;
-    font-weight: 500;
-    color: ${p => p.$empty ? '#94a3b8' : p.theme.colors.textSecondary};
+    padding: 1px 7px 1px 6px;
+    border: 1px solid ${ui.okLine};
+    border-radius: 999px;
+    background: ${ui.okTint};
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.5;
+    color: ${ui.okInk};
 
-    svg { width: 14px; height: 14px; }
+    svg { width: 13px; height: 13px; }
 `;
 
 // ─── Mobile ───────────────────────────────────────────────────────────────────
@@ -326,9 +335,11 @@ export function EntriesTable({ entries, isDesktop, onOpen, onDelete, onReopen }:
                                             <Primary>{vehicleName(entry)}</Primary>
                                             <IdentLine>
                                                 {entry.vehicleLicensePlate && <Plate>{entry.vehicleLicensePlate}</Plate>}
-                                                <Photos $empty={entry.photoCount === 0} title={photosLabel(entry.photoCount)}>
-                                                    <Camera aria-hidden="true" />{entry.photoCount}
-                                                </Photos>
+                                                {entry.photoCount > 0 && (
+                                                    <Photos title={photosLabel(entry.photoCount)}>
+                                                        <Camera aria-hidden="true" />{entry.photoCount}
+                                                    </Photos>
+                                                )}
                                             </IdentLine>
                                         </Cell>
                                     </Td>
