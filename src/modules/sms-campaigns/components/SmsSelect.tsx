@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
+import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 
 // ─── Styled components (mirrors BrandModelSelectors visual language) ───────────
 
@@ -58,16 +59,34 @@ const Caret = styled.span`
   top: -2px;
 `;
 
+// Pozycję i wysokość ustawia useFloatingPanel: lista przechodzi nad pole, gdy pod nim
+// brakuje miejsca, i trzyma się ekranu z obu stron (wcześniej zawsze stała pod polem
+// i pilnowała tylko prawej krawędzi). Limit 300 px siedzi na wewnętrznej liście - na
+// panelu nadpisałby go limit z pomiaru i lista otwarta nad polem rosłaby w dół, na pole.
 const PortalMenu = styled.div`
   position: fixed;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  min-width: 200px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
   background: ${(p) => p.theme.colors.surface};
   border: 1px solid ${(p) => p.theme.colors.border};
   border-radius: ${(p) => p.theme.radii.lg};
   box-shadow: ${(p) => p.theme.shadows.lg};
-  padding: ${(p) => p.theme.spacing.xs} 0;
   z-index: 2001;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+`;
+
+const MenuList = styled.div`
+  padding: ${(p) => p.theme.spacing.xs} 0;
   max-height: 300px;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
 `;
 
 const MenuItem = styled.button<{ $selected?: boolean }>`
@@ -122,39 +141,31 @@ export const SmsSelect: React.FC<SmsSelectProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const [menuStyle, setMenuStyle] = useState<{ top: number; left: number; width: number } | null>(null);
 
   const selectedOption = options.find((o) => o.value === value);
   const hasValue = !!value;
 
-  const updatePosition = () => {
-    const el = triggerRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const menuWidth = Math.max(rect.width, 200);
-    // Prevent overflow on the right edge
-    const left = Math.min(rect.left, window.innerWidth - menuWidth - 8);
-    setMenuStyle({ top: rect.bottom + 4, left, width: menuWidth });
-  };
+  // Lista ma szerokość pola (co najmniej 200 px z CSS). Efekt stoi PRZED
+  // useFloatingPanel: pozycję liczy się z szerokości panelu, więc najpierw szerokość,
+  // potem pomiar (także przy resize - nasłuch zarejestrowany wcześniej odpala się wcześniej).
+  useLayoutEffect(() => {
+    if (!open) return;
+    const syncWidth = () => {
+      if (menuRef.current && triggerRef.current) menuRef.current.style.width = `${triggerRef.current.offsetWidth}px`;
+    };
+    syncWidth();
+    window.addEventListener('resize', syncWidth);
+    return () => window.removeEventListener('resize', syncWidth);
+  }, [open]);
+  useFloatingPanel(open, triggerRef, menuRef, { align: 'left', offset: 4 }, options.length);
 
   useEffect(() => {
     if (!open) return;
-    updatePosition();
-
-    const onScroll = () => updatePosition();
-    const onResize = () => updatePosition();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false);
     };
-
-    window.addEventListener('scroll', onScroll, true);
-    window.addEventListener('resize', onResize);
     window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('scroll', onScroll, true);
-      window.removeEventListener('resize', onResize);
-      window.removeEventListener('keydown', onKey);
-    };
+    return () => window.removeEventListener('keydown', onKey);
   }, [open]);
 
   // Close on outside click
@@ -194,33 +205,31 @@ export const SmsSelect: React.FC<SmsSelectProps> = ({
         <Caret />
       </Trigger>
 
-      {open && menuStyle &&
+      {open &&
         createPortal(
-          <PortalMenu
-            ref={menuRef}
-            role="listbox"
-            style={{ top: menuStyle.top, left: menuStyle.left, width: menuStyle.width }}
-          >
-            {nullable && (
-              <MenuItem
-                type="button"
-                $selected={!value}
-                onClick={() => handleSelect('')}
-              >
-                {placeholder}
-              </MenuItem>
-            )}
-            {options.map((opt) => (
-              <MenuItem
-                key={opt.value}
-                type="button"
-                $selected={opt.value === value}
-                onClick={() => handleSelect(opt.value)}
-              >
-                {opt.prefix}
-                {opt.label}
-              </MenuItem>
-            ))}
+          <PortalMenu ref={menuRef}>
+            <MenuList role="listbox">
+              {nullable && (
+                <MenuItem
+                  type="button"
+                  $selected={!value}
+                  onClick={() => handleSelect('')}
+                >
+                  {placeholder}
+                </MenuItem>
+              )}
+              {options.map((opt) => (
+                <MenuItem
+                  key={opt.value}
+                  type="button"
+                  $selected={opt.value === value}
+                  onClick={() => handleSelect(opt.value)}
+                >
+                  {opt.prefix}
+                  {opt.label}
+                </MenuItem>
+              ))}
+            </MenuList>
           </PortalMenu>,
           document.body
         )}

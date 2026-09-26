@@ -7,9 +7,10 @@
  * gdy czegoś nie widzi na kalendarzu.
  */
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { Toggle } from '@/common/components/Toggle';
+import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 
 const PANEL_WIDTH = 320;
 const GAP = 8;
@@ -69,10 +70,16 @@ const Backdrop = styled.div`
     }
 `;
 
-const Panel = styled.div<{ $top: number; $left: number }>`
+/* Na desktopie pozycję, limit wysokości i przewijanie ustawia useFloatingPanel: dymek
+   zawsze w ekranie, na niskim oknie nad przyciskiem albo z przewijaniem. Wcześniej
+   stał zawsze pod przyciskiem z `overflow: hidden` i bez limitu, więc na niskim
+   ekranie jego dół był ucinany. Do pierwszego pomiaru jest niewidoczny. */
+const Panel = styled.div`
     position: fixed;
-    top: ${p => p.$top}px;
-    left: ${p => p.$left}px;
+    top: 0;
+    left: 0;
+    visibility: hidden;
+    box-sizing: border-box;
     z-index: 1000;
     width: ${PANEL_WIDTH}px;
     max-width: calc(100vw - 24px);
@@ -80,20 +87,23 @@ const Panel = styled.div<{ $top: number; $left: number }>`
     border: 1px solid #e2e8f0;
     border-radius: 12px;
     box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12), 0 1px 3px rgba(15, 23, 42, 0.06);
-    overflow: hidden;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
 
     /* Na telefonie to samo, co robi pasek filtrów: dolny arkusz zamiast
-       dymka przyklejonego do krawędzi ekranu. */
+       dymka przyklejonego do krawędzi ekranu. Style inline od useFloatingPanel
+       (pozycja, limity, widoczność) przegrywają tu z !important - arkusz ma własne. */
     @media (max-width: 768px) {
         top: auto !important;
         bottom: 0 !important;
         left: 0 !important;
-        right: 0;
+        right: 0 !important;
         width: 100%;
-        max-width: 100%;
+        max-width: 100% !important;
         border-radius: 16px 16px 0 0;
-        max-height: 80vh;
-        overflow-y: auto;
+        max-height: 80vh !important;
+        overflow-y: auto !important;
+        visibility: visible !important;
     }
 `;
 
@@ -182,18 +192,11 @@ export const CalendarDisplaySettings = ({
     onReset,
 }: CalendarDisplaySettingsProps) => {
     const [open, setOpen] = useState(false);
-    const [pos, setPos] = useState({ top: 0, left: 0 });
     const btnRef = useRef<HTMLButtonElement>(null);
+    const panelRef = useRef<HTMLDivElement>(null);
 
-    /* useLayoutEffect, a nie useEffect: panel ma się pojawić już na swoim
-       miejscu, bez przeskoku z (0,0) w pierwszej klatce. */
-    useLayoutEffect(() => {
-        if (!open || !btnRef.current) return;
-        const r = btnRef.current.getBoundingClientRect();
-        // Wyrównanie do prawej krawędzi przycisku, ale nigdy poza ekran.
-        const left = Math.max(12, Math.min(r.right - PANEL_WIDTH, window.innerWidth - PANEL_WIDTH - 12));
-        setPos({ top: r.bottom + GAP, left });
-    }, [open]);
+    // Wyrównanie do prawej krawędzi przycisku, ale nigdy poza ekran.
+    useFloatingPanel(open, btnRef, panelRef, { align: 'right', offset: GAP, margin: 12 });
 
     useEffect(() => {
         if (!open) return;
@@ -225,7 +228,7 @@ export const CalendarDisplaySettings = ({
             {open && (
                 <>
                     <Backdrop onClick={() => setOpen(false)} />
-                    <Panel $top={pos.top} $left={pos.left} role="dialog" aria-label="Ustawienia widoku miesiąca">
+                    <Panel ref={panelRef} role="dialog" aria-label="Ustawienia widoku miesiąca">
                         <Row>
                             <RowText>
                                 <RowLabel htmlFor="cal-weekends">Weekendy</RowLabel>

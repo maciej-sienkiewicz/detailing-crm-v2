@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { createPortal } from 'react-dom';
+import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 import type { VehicleAdvancedFilters } from '../types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { BrandSelect, ModelSelect } from './BrandModelSelectors';
@@ -254,14 +255,24 @@ const ServiceCaret = styled.span<{ $open: boolean }>`
     transform: ${p => p.$open ? 'rotate(180deg)' : 'rotate(0deg)'};
 `;
 
+// Pozycję i wysokość ustawia useFloatingPanel. Wcześniej lista odwracała się nad pole
+// dopiero przy <160 px wolnego miejsca pod nim i nie sprawdzała, czy nad polem jest go
+// więcej - na telefonie z klawiaturą (wyszukiwarka w środku listy) wyjeżdżała za ekran.
+// Panel jest kolumną, a lista w nim może się skurczyć (min-height: 0), więc limit
+// wysokości z pomiaru przewija listę, a wyszukiwarka zostaje na wierzchu.
 const ServicePortalMenu = styled.div`
     position: fixed;
+    top: 0;
+    left: 0;
+    visibility: hidden;
+    box-sizing: border-box;
     background: #fff;
     border: 1.5px solid #e2e8f0;
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
     z-index: 500;
-    overflow: hidden;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
     display: flex;
     flex-direction: column;
 `;
@@ -294,6 +305,8 @@ const ServiceMenuSearchInput = styled.input`
 const ServiceMenuList = styled.div`
     overflow-y: auto;
     max-height: 240px;
+    min-height: 0;
+    overscroll-behavior: contain;
     padding: 4px 0;
 `;
 
@@ -376,8 +389,6 @@ const ApplyBtn = styled.button`
 
 // ─── ServiceMultiSelect ───────────────────────────────────────────────────────
 
-type MenuPos = { top?: number; bottom?: number; left: number; width: number };
-
 interface ServiceMultiSelectProps {
     selectedIds: string[];
     onChange: (ids: string[]) => void;
@@ -387,7 +398,6 @@ const ServiceMultiSelect = ({ selectedIds, onChange }: ServiceMultiSelectProps) 
     const { services, isLoading } = useServices({ search: '', page: 1, limit: 200, showInactive: false });
 
     const [open, setOpen]         = useState(false);
-    const [menuPos, setMenuPos]   = useState<MenuPos | null>(null);
     const [query, setQuery]       = useState('');
     const triggerRef  = useRef<HTMLButtonElement>(null);
     const menuRef     = useRef<HTMLDivElement>(null);
@@ -405,42 +415,34 @@ const ServiceMultiSelect = ({ selectedIds, onChange }: ServiceMultiSelectProps) 
         [services, selectedIds]
     );
 
-    const updatePos = () => {
-        const el = triggerRef.current;
-        if (!el) return;
-        const rect = el.getBoundingClientRect();
-        const spaceBelow = window.innerHeight - rect.bottom - 6;
-        if (spaceBelow < 160) {
-            setMenuPos({ bottom: window.innerHeight - rect.top + 6, left: rect.left, width: rect.width });
-        } else {
-            setMenuPos({ top: rect.bottom + 6, left: rect.left, width: rect.width });
-        }
-    };
+    // Lista ma szerokość pola. Efekt stoi PRZED useFloatingPanel: pozycję liczy się
+    // z szerokości panelu, więc najpierw szerokość, potem pomiar (także przy resize -
+    // nasłuch zarejestrowany wcześniej odpala się wcześniej).
+    useLayoutEffect(() => {
+        if (!open) return;
+        const syncWidth = () => {
+            if (menuRef.current && triggerRef.current) menuRef.current.style.width = `${triggerRef.current.offsetWidth}px`;
+        };
+        syncWidth();
+        window.addEventListener('resize', syncWidth);
+        return () => window.removeEventListener('resize', syncWidth);
+    }, [open]);
+    // Wyszukiwanie zmienia liczbę pozycji - wtedy lista mierzy się od nowa.
+    useFloatingPanel(open, triggerRef, menuRef, { align: 'left', offset: 6 }, filtered.length);
 
     useEffect(() => {
         if (!open) { didFocusRef.current = false; return; }
-        updatePos();
-        const onScroll = () => updatePos();
-        const onResize = () => updatePos();
-        const onKey    = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
-        window.addEventListener('scroll', onScroll, true);
-        window.addEventListener('resize', onResize);
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
         window.addEventListener('keydown', onKey);
-        return () => {
-            window.removeEventListener('scroll', onScroll, true);
-            window.removeEventListener('resize', onResize);
-            window.removeEventListener('keydown', onKey);
-        };
+        return () => window.removeEventListener('keydown', onKey);
     }, [open]);
 
     useEffect(() => {
-        if (!open || !menuPos || didFocusRef.current) return;
+        if (!open || didFocusRef.current) return;
         didFocusRef.current = true;
         const t = setTimeout(() => searchRef.current?.focus(), 0);
         return () => clearTimeout(t);
-    }, [open, menuPos]);
-
-    useEffect(() => { if (open) setQuery(''); }, [open]);
+    }, [open]);
 
     useEffect(() => {
         if (!open) return;
@@ -468,7 +470,13 @@ const ServiceMultiSelect = ({ selectedIds, onChange }: ServiceMultiSelectProps) 
                 ref={triggerRef}
                 type="button"
                 $open={open}
-                onClick={() => !isLoading && setOpen(v => !v)}
+                onClick={() => {
+                    if (isLoading) return;
+                    // Wyszukiwarka zaczyna pusta przy każdym otwarciu - zerowana tu, a nie
+                    // w efekcie po otwarciu (drugi render z pełną listą, potem z pustą).
+                    if (!open) setQuery('');
+                    setOpen(v => !v);
+                }}
                 aria-haspopup="listbox"
                 aria-expanded={open}
             >
@@ -479,12 +487,11 @@ const ServiceMultiSelect = ({ selectedIds, onChange }: ServiceMultiSelectProps) 
                 <ServiceCaret $open={open} />
             </ServiceTrigger>
 
-            {open && menuPos && createPortal(
+            {open && createPortal(
                 <ServicePortalMenu
                     ref={menuRef}
                     role="listbox"
                     aria-multiselectable="true"
-                    style={{ top: menuPos.top, bottom: menuPos.bottom, left: menuPos.left, width: menuPos.width }}
                 >
                     <ServiceMenuSearch>
                         <ServiceMenuSearchInput

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
+import { mobileBottomReserve, placeFloating, visibleViewport } from '@/common/utils/floatingPlacement';
 import { HintText, ErrorMsg } from '../rbacShared.styles';
 import { useCreateRole } from '../../hooks/useRoles';
 import { ROLE_TEMPLATES, toCreateRoleRequest } from '../../roleTemplates';
@@ -26,6 +27,9 @@ interface RolePickerProps {
     disabled?: boolean;
     error?: string;
 }
+
+/** Najwyższe menu ról; dłuższa lista przewija się w środku. */
+const MENU_MAX_HEIGHT = 320;
 
 export function RolePicker({ roles, value, onChange, onOpenFullEditor, disabled, error }: RolePickerProps) {
     const [open, setOpen] = useState(false);
@@ -78,39 +82,51 @@ export function RolePicker({ roles, value, onChange, onOpenFullEditor, disabled,
     // the earlier absolute menu was cut off and forced the user to scroll the modal.
     // Coordinates are written straight onto the node (measured, then revealed) to avoid
     // a flash in the corner and an extra render.
+    //
+    // Miejsce wybiera placeFloating (wspólne dla wszystkich paneli przy przycisku): pod
+    // albo nad przyciskiem, gdzie się mieści, a gdy nigdzie - większa strona i lista
+    // przewijana w środku. Limit wysokości to dokładnie wolne miejsce. Wcześniej miał
+    // podłogę 160 px, większą niż miejsce zostawione przez klawiaturę ekranową, więc menu
+    // wychodziło za krawędź; odwrócone menu liczyło też `bottom` od visualViewport,
+    // a `fixed` układa się względem layout viewportu - z klawiaturą lądowało obok.
+    // Teraz zawsze `top`.
     const positionMenu = useCallback(() => {
         const trigger = triggerRef.current;
         const menu = menuRef.current;
         if (!trigger || !menu) return;
         const rect = trigger.getBoundingClientRect();
-        const vh = window.visualViewport?.height ?? window.innerHeight;
-        const menuH = menu.offsetHeight || 320;
-        const spaceBelow = vh - rect.bottom - 8;
-        const spaceAbove = rect.top - 8;
-        const openBelow = spaceBelow >= menuH || spaceBelow >= spaceAbove;
-        const avail = openBelow ? spaceBelow : spaceAbove;
-        menu.style.maxHeight = `${Math.max(160, Math.min(320, avail))}px`;
-        if (openBelow) {
-            menu.style.top = `${rect.bottom + 4}px`;
-            menu.style.bottom = 'auto';
-        } else {
-            menu.style.top = 'auto';
-            menu.style.bottom = `${vh - rect.top + 4}px`;
-        }
-        menu.style.left = `${rect.left}px`;
         menu.style.width = `${rect.width}px`;
+        // Wysokość, o którą menu prosi: cała treść, najwyżej MENU_MAX_HEIGHT. scrollHeight
+        // nie zależy od bieżącego limitu; ramki dokładamy osobno.
+        const chrome = menu.offsetHeight - menu.clientHeight;
+        const viewport = visibleViewport();
+        const placement = placeFloating(
+            rect,
+            { width: rect.width, height: Math.min(menu.scrollHeight + chrome, MENU_MAX_HEIGHT) },
+            viewport,
+            { align: 'left', offset: 4, bottomReserve: mobileBottomReserve(viewport.width) },
+        );
+        menu.style.top = `${placement.top}px`;
+        menu.style.bottom = 'auto';
+        menu.style.left = `${placement.left}px`;
+        menu.style.maxHeight = `${Math.min(placement.maxHeight, MENU_MAX_HEIGHT)}px`;
         menu.style.visibility = 'visible';
     }, []);
 
     useLayoutEffect(() => {
         if (!open) return;
+        // Przewijanie WEWNĄTRZ menu nie przesuwa przycisku - przeliczanie niepotrzebne.
+        const onScroll = (e: Event) => {
+            if (menuRef.current?.contains(e.target as Node)) return;
+            positionMenu();
+        };
         positionMenu();
-        window.addEventListener('scroll', positionMenu, true);
+        window.addEventListener('scroll', onScroll, true);
         window.addEventListener('resize', positionMenu);
         window.visualViewport?.addEventListener('resize', positionMenu);
         window.visualViewport?.addEventListener('scroll', positionMenu);
         return () => {
-            window.removeEventListener('scroll', positionMenu, true);
+            window.removeEventListener('scroll', onScroll, true);
             window.removeEventListener('resize', positionMenu);
             window.visualViewport?.removeEventListener('resize', positionMenu);
             window.visualViewport?.removeEventListener('scroll', positionMenu);
@@ -290,15 +306,15 @@ const Caret = styled.span<{ $open: boolean }>`
     transform: rotate(${p => (p.$open ? '180deg' : '0deg')});
 `;
 
-/* Pozycję (top/bottom/left/width/maxHeight) i widoczność nadaje positionMenu wprost
+/* Pozycję (top/left/width/maxHeight) i widoczność nadaje positionMenu wprost
    na elemencie, po zmierzeniu go; z-index ponad oknami (ModalShell 1000, okno z okna 1400). */
 const Menu = styled.div`
     position: fixed;
-    top: auto;
-    bottom: auto;
+    top: 0;
     left: 0;
     z-index: 4000;
-    max-height: 320px;
+    max-height: ${MENU_MAX_HEIGHT}px;
+    overscroll-behavior: contain;
     overflow-y: auto;
     background: white;
     border: 1px solid #e2e8f0;

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { Package, X, Search, Camera, Plus, Loader2 } from 'lucide-react';
@@ -6,6 +6,7 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { InputShell, BareInput } from '@/common/components/Form';
 import { useVisitProducts, useProducts } from '../hooks/useProducts';
 import { useDebounce } from '@/common/hooks/useDebounce';
+import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 import { AddProductModal } from './AddProductModal';
 
 // Sekcja „Użyte produkty" osadzana w karcie wizyty. Czysto informacyjna: dopięcie
@@ -29,7 +30,7 @@ const Item = styled.div`
 const Thumb = styled.div` width: 32px; height: 32px; border-radius: ${st.radiusSm}; background: ${st.bgCardAlt}; display: flex; align-items: center; justify-content: center; color: ${st.textMuted}; flex-shrink: 0; `;
 const ItemMain = styled.div` flex: 1; min-width: 0; `;
 const ItemTitle = styled.div` font-size: 14px; font-weight: 600; color: ${st.text}; `;
-const ItemSub = styled.div` font-size: 12px; color: ${st.textMuted}; `;
+const ItemSub = styled.div` display: flex; flex-wrap: wrap; gap: 0 10px; font-size: 12px; color: ${st.textMuted}; `;
 const RemoveBtn = styled.button` background: none; border: none; color: ${st.textMuted}; cursor: pointer; padding: 4px; &:hover { color: ${st.accentRed}; } `;
 
 // Pole „wyszukaj lub dodaj" — kreska pod ikoną lupy po lewej, aparat wmontowany po prawej.
@@ -46,11 +47,21 @@ const CamBtn = styled.button`
 // Sekcja wizyty ma `overflow: hidden` (zaokrąglone rogi karty), więc zwykły `absolute`
 // wewnątrz niej ucinał listę razem z komponentem — żaden z-index tego nie obchodzi,
 // bo przycięcie robi rodzic, nie warstwa.
+//
+// Pozycję i wysokość ustawia useFloatingPanel: lista przechodzi nad pole, gdy pod nim
+// brakuje miejsca (klawiatura ekranowa na telefonie zjada dół ekranu), i przewija się,
+// gdy nie mieści się nigdzie. Własny limit 280 px siedzi na wewnętrznej liście - na
+// panelu zewnętrznym nadpisałby go limit z pomiaru i lista otwarta nad polem rosłaby
+// w dół, na pole.
 const Menu = styled.div`
     position: fixed; z-index: 1200;
+    top: 0; left: 0; visibility: hidden;
+    display: flex; flex-direction: column; box-sizing: border-box;
     background: ${st.bgCard}; border: 1px solid ${st.border}; border-radius: ${st.radiusSm};
-    box-shadow: ${st.shadowMd}; overflow: hidden; max-height: 280px; overflow-y: auto;
+    box-shadow: ${st.shadowMd}; overflow-x: hidden; overscroll-behavior: contain;
 `;
+const MenuList = styled.div` max-height: 280px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; `;
+const OptionBrand = styled.span` margin-left: 8px; color: ${st.textMuted}; `;
 const Option = styled.button`
     display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
     padding: 10px 12px; background: none; border: none; cursor: pointer;
@@ -83,7 +94,6 @@ export function VisitProductsSection({ visitId, canUsage, canManageProducts, can
     const { products, isLoading } = useProducts({ search: debounced, page: 1, limit: 8 });
     const wrapRef = useRef<HTMLDivElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
-    const [menuRect, setMenuRect] = useState<{ top: number; left: number; width: number } | null>(null);
 
     const linkedIds = new Set(links.map(l => l.productId));
     const suggestions = products.filter(p => !linkedIds.has(p.id)).slice(0, 8);
@@ -109,22 +119,21 @@ export function VisitProductsSection({ visitId, canUsage, canManageProducts, can
 
     const menuVisible = open && trimmed.length > 0;
 
-    // Pozycja listy = dolna krawędź pola w układzie okna. Mierzymy przy otwarciu i przy
-    // każdym przewinięciu/zmianie rozmiaru (capture: true łapie scroll w kontenerach).
-    const measure = useCallback(() => {
-        const r = wrapRef.current?.getBoundingClientRect();
-        if (r) setMenuRect({ top: r.bottom + 4, left: r.left, width: r.width });
-    }, []);
+    // Lista ma szerokość pola. Ten efekt stoi PRZED useFloatingPanel, bo pozycję liczy
+    // się z szerokości panelu - najpierw szerokość, potem pomiar (także przy resize:
+    // nasłuch zarejestrowany wcześniej odpala się wcześniej).
     useLayoutEffect(() => {
         if (!menuVisible) return;
-        measure();
-        window.addEventListener('scroll', measure, true);
-        window.addEventListener('resize', measure);
-        return () => {
-            window.removeEventListener('scroll', measure, true);
-            window.removeEventListener('resize', measure);
+        const syncWidth = () => {
+            if (menuRef.current && wrapRef.current) menuRef.current.style.width = `${wrapRef.current.offsetWidth}px`;
         };
-    }, [menuVisible, measure]);
+        syncWidth();
+        window.addEventListener('resize', syncWidth);
+        return () => window.removeEventListener('resize', syncWidth);
+    }, [menuVisible]);
+    // Liczba wierszy zmienia się przy pisaniu - wtedy lista mierzy się od nowa.
+    const menuContentKey = `${suggestions.length}-${showAddNew}-${isLoading}`;
+    useFloatingPanel(menuVisible, wrapRef, menuRef, { align: 'left', offset: 4 }, menuContentKey);
 
     return (
         <Wrap>
@@ -138,7 +147,10 @@ export function VisitProductsSection({ visitId, canUsage, canManageProducts, can
                             <Thumb><Package size={16} /></Thumb>
                             <ItemMain>
                                 <ItemTitle>{l.productName}</ItemTitle>
-                                <ItemSub>{[l.brand, l.packageLabel].filter(Boolean).join(' · ')}</ItemSub>
+                                <ItemSub>
+                                    {l.brand && <span>{l.brand}</span>}
+                                    {l.packageLabel && <span>{l.packageLabel}</span>}
+                                </ItemSub>
                             </ItemMain>
                             {canUsage && (
                                 <RemoveBtn type="button" onClick={() => unlink.mutate(l.id)} aria-label="Usuń powiązanie">
@@ -172,29 +184,31 @@ export function VisitProductsSection({ visitId, canUsage, canManageProducts, can
                         )}
                     </InputShell>
 
-                    {menuVisible && menuRect && createPortal(
-                        <Menu ref={menuRef} style={{ top: menuRect.top, left: menuRect.left, width: menuRect.width }}>
-                            {suggestions.map(p => (
-                                <Option key={p.id} type="button" onClick={() => linkProduct(p.id)}>
-                                    <Package size={14} color={st.textMuted} />
-                                    <span>{p.name} <span style={{ color: st.textMuted }}>· {p.brand}</span></span>
-                                </Option>
-                            ))}
-                            {isLoading && suggestions.length === 0 && (
-                                <MenuHint><Loader2 size={13} style={{ verticalAlign: '-2px' }} /> Szukam…</MenuHint>
-                            )}
-                            {showAddNew && (
-                                <AddNew type="button" onClick={() => { setAdding({ name: trimmed }); setOpen(false); }}>
-                                    <Plus size={14} /> Dodaj nowy produkt „{trimmed}"
-                                </AddNew>
-                            )}
-                            {!isLoading && suggestions.length === 0 && !showAddNew && (
-                                <MenuHint>
-                                    {canManageProducts
-                                        ? 'Brak produktów w katalogu.'
-                                        : 'Brak wyników — dodanie nowego produktu wymaga uprawnienia.'}
-                                </MenuHint>
-                            )}
+                    {menuVisible && createPortal(
+                        <Menu ref={menuRef}>
+                            <MenuList>
+                                {suggestions.map(p => (
+                                    <Option key={p.id} type="button" onClick={() => linkProduct(p.id)}>
+                                        <Package size={14} color={st.textMuted} />
+                                        <span>{p.name}{p.brand && <OptionBrand>{p.brand}</OptionBrand>}</span>
+                                    </Option>
+                                ))}
+                                {isLoading && suggestions.length === 0 && (
+                                    <MenuHint><Loader2 size={13} style={{ verticalAlign: '-2px' }} /> Szukam…</MenuHint>
+                                )}
+                                {showAddNew && (
+                                    <AddNew type="button" onClick={() => { setAdding({ name: trimmed }); setOpen(false); }}>
+                                        <Plus size={14} /> Dodaj nowy produkt „{trimmed}"
+                                    </AddNew>
+                                )}
+                                {!isLoading && suggestions.length === 0 && !showAddNew && (
+                                    <MenuHint>
+                                        {canManageProducts
+                                            ? 'Brak produktów w katalogu.'
+                                            : 'Brak wyników — dodanie nowego produktu wymaga uprawnienia.'}
+                                    </MenuHint>
+                                )}
+                            </MenuList>
                         </Menu>,
                         document.body,
                     )}

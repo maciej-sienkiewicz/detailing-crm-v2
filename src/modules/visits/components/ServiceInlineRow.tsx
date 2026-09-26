@@ -3,13 +3,14 @@
 // A single "new service" row rendered inline inside the ServicesTable.
 // Handles name autocomplete (catalog lookup) + bidirectional netto/brutto entry.
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
 import { useDebounce, useVisualViewportSheet } from '@/common/hooks';
+import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 import { formatCurrency } from '@/common/utils';
 import { grossToNet } from '@/common/utils/priceAdjustment';
 import type { AdjustmentType } from '@/common/utils/priceAdjustment';
@@ -106,20 +107,35 @@ const NameInput = styled.input`
     &::placeholder { color: ${st.textMuted}; }
 `;
 
-const Dropdown = styled.ul`
+// Pozycję i wysokość ustawia useFloatingPanel: lista przechodzi nad pole, gdy pod nim
+// brakuje miejsca (wiersz szkicu dopisuje się na dole długiej tabeli, więc pole często
+// stoi przy dolnej krawędzi), a gdy nie mieści się nigdzie, przewija się w środku.
+// Własny limit wysokości siedzi na wewnętrznej liście - na panelu nadpisałby go limit
+// z pomiaru i lista otwarta nad polem rosłaby w dół, na pole.
+const Dropdown = styled.div`
     position: fixed;
+    top: 0;
+    left: 0;
+    visibility: hidden;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
     min-width: min(240px, calc(100vw - 24px));
-    max-width: calc(100vw - 24px);
-    margin: 0;
-    padding: 0;
-    list-style: none;
     background: ${st.bgCard};
     border: 1px solid ${st.border};
     border-radius: 10px;
     box-shadow: ${st.shadowLg};
     z-index: 9999;
-    overflow: hidden;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+`;
+
+const DropdownList = styled.ul`
+    margin: 0;
+    padding: 0;
+    list-style: none;
     max-height: min(220px, 40dvh);
+    min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
 `;
@@ -321,7 +337,7 @@ const PriceGroup = styled.div`
     }
 `;
 
-/** Cena z cennika: jedna linia „Netto … · Brutto … · VAT …", bez pól. */
+/** Cena z cennika: jedna linia z osobnymi pozycjami netto, brutto i VAT, bez pól. */
 const PriceReadRow = styled.div`
     display: flex;
     align-items: baseline;
@@ -495,7 +511,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
     const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const nameWrapRef = useRef<HTMLDivElement>(null);
     const nameInputRef = useRef<HTMLInputElement>(null);
-    const [dropPos, setDropPos] = useState<{ top: number; left: number; width: number } | null>(null);
+    const dropRef = useRef<HTMLDivElement>(null);
     const sheetRef = useRef<HTMLDivElement>(null);
     const sheetEditableRef = useRef<HTMLDivElement>(null);
     const suppressBlurRef = useRef(false);
@@ -506,34 +522,6 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
     useEffect(() => {
         nameInputRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }, []);
-
-    const updateDropPos = useCallback(() => {
-        if (!nameWrapRef.current) return;
-        const r = nameWrapRef.current.getBoundingClientRect();
-        // Keep the panel inside the viewport even when the field sits near the
-        // right edge (narrow phones, landscape with safe-area insets).
-        const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
-        const width = Math.min(r.width, viewportWidth - 24);
-        const left = Math.max(12, Math.min(r.left, viewportWidth - width - 12));
-        setDropPos({ top: r.bottom + 4, left, width });
-    }, []);
-
-    useEffect(() => {
-        if (!open || isMobile) return;
-        updateDropPos();
-        window.addEventListener('scroll', updateDropPos, true);
-        window.addEventListener('resize', updateDropPos);
-        // The on-screen keyboard moves the visual viewport without ever firing a
-        // window resize on iOS, so without this the panel detaches from the field.
-        window.visualViewport?.addEventListener('resize', updateDropPos);
-        window.visualViewport?.addEventListener('scroll', updateDropPos);
-        return () => {
-            window.removeEventListener('scroll', updateDropPos, true);
-            window.removeEventListener('resize', updateDropPos);
-            window.visualViewport?.removeEventListener('resize', updateDropPos);
-            window.visualViewport?.removeEventListener('scroll', updateDropPos);
-        };
-    }, [open, updateDropPos, isMobile]);
 
     // Keep the sheet spanning the visible region: title and search field pinned
     // to the top of the screen, list ending at the keyboard edge.
@@ -607,6 +595,26 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
     });
 
     const suggestions: Service[] = data?.services ?? [];
+
+    // Lista na desktopie (na telefonie arkusz). Ma szerokość pola; efekt szerokości stoi
+    // PRZED useFloatingPanel, bo pozycję liczy się z szerokości panelu - najpierw
+    // szerokość, potem pomiar (także przy resize: nasłuch zarejestrowany wcześniej
+    // odpala się wcześniej). Wąski ekran zwęża listę sam placeFloating.
+    const dropVisible = open && !isMobile && (suggestions.length > 0 || query.trim().length > 0);
+    useLayoutEffect(() => {
+        if (!dropVisible) return;
+        const syncWidth = () => {
+            if (dropRef.current && nameWrapRef.current) dropRef.current.style.width = `${nameWrapRef.current.offsetWidth}px`;
+        };
+        syncWidth();
+        window.addEventListener('resize', syncWidth);
+        return () => window.removeEventListener('resize', syncWidth);
+    }, [dropVisible]);
+    // Liczba podpowiedzi zmienia się przy pisaniu - wtedy lista mierzy się od nowa.
+    useFloatingPanel(
+        dropVisible, nameWrapRef, dropRef, { align: 'left', offset: 4, margin: 12 },
+        `${suggestions.length}-${query.trim().length > 0}`,
+    );
 
     const handleQueryChange = (value: string) => {
         setQuery(value);
@@ -779,30 +787,29 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
                                 </MobileSheet>
                             </>,
                             document.body
-                        ) : (dropPos && createPortal(
-                            <Dropdown
-                                style={{ top: dropPos.top, left: dropPos.left, width: dropPos.width }}
-                                onMouseDown={handleMouseDown}
-                            >
-                                {suggestions.map(svc => (
-                                    <DropItem key={svc.id} onClick={() => handleSelect(svc)}>
-                                        <span>{svc.name}</span>
-                                        {svc.basePriceNet > 0 && (
-                                            <PriceHint>{formatCurrency(svc.basePriceNet / 100)}</PriceHint>
-                                        )}
-                                    </DropItem>
-                                ))}
-                                {query.trim() && (
-                                    <DropItem
-                                        $custom
-                                        onClick={() => { setOpen(false); onAddCustom(query.trim()); }}
-                                    >
-                                        + Dodaj „{query.trim()}" jako niestandardową
-                                    </DropItem>
-                                )}
+                        ) : createPortal(
+                            <Dropdown ref={dropRef} onMouseDown={handleMouseDown}>
+                                <DropdownList>
+                                    {suggestions.map(svc => (
+                                        <DropItem key={svc.id} onClick={() => handleSelect(svc)}>
+                                            <span>{svc.name}</span>
+                                            {svc.basePriceNet > 0 && (
+                                                <PriceHint>{formatCurrency(svc.basePriceNet / 100)}</PriceHint>
+                                            )}
+                                        </DropItem>
+                                    ))}
+                                    {query.trim() && (
+                                        <DropItem
+                                            $custom
+                                            onClick={() => { setOpen(false); onAddCustom(query.trim()); }}
+                                        >
+                                            + Dodaj „{query.trim()}" jako niestandardową
+                                        </DropItem>
+                                    )}
+                                </DropdownList>
                             </Dropdown>,
                             document.body
-                        ))
+                        )
                     )}
                 </NameWrap>
             </Cell>

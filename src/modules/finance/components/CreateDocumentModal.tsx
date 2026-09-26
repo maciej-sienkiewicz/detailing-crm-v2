@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { ChevronDown } from 'lucide-react';
+import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 import { DocumentType, PaymentMethod, DocumentDirection } from '../types';
 import { useCreateDocument } from '../hooks/useFinance';
 import { EMPTY_DOCUMENT_AMOUNTS, documentAmountsToCents, type DocumentAmounts } from '../utils/amountInputs';
@@ -74,8 +75,15 @@ const SelectPanel = styled.div`
     border-radius: 16px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.16);
     z-index: 1200;
-    overflow: hidden;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    box-sizing: border-box;
     border: 1px solid rgba(0, 0, 0, 0.08);
+    /* Pozycję, wysokość i przewijanie ustawia useFloatingPanel; do pierwszego pomiaru
+       panel jest niewidoczny, żeby nie mignął w lewym górnym rogu. */
+    top: 0;
+    left: 0;
+    visibility: hidden;
 `;
 
 const SelectBody = styled.div`
@@ -111,15 +119,19 @@ interface ModalSelectProps {
 
 const ModalSelect: React.FC<ModalSelectProps> = ({ value, onChange, options }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [panelPos, setPanelPos] = useState<{ top: number; left: number; width: number } | null>(null);
+    const [triggerWidth, setTriggerWidth] = useState(0);
     const triggerRef = useRef<HTMLButtonElement>(null);
+    const panelRef = useRef<HTMLDivElement>(null);
+    // Lista zawsze w ekranie: wcześniej stała pod przyciskiem bez limitu wysokości,
+    // więc przy polu nisko w oknie (telefon, niski ekran) metody płatności uciekały
+    // za dolną krawędź. Teraz przechodzi nad pole albo przewija się w środku.
+    useFloatingPanel(isOpen, triggerRef, panelRef, { align: 'left', offset: 4 });
 
     const selectedLabel = options.find(o => o.value === value)?.label ?? '';
 
     const handleToggle = () => {
         if (!isOpen && triggerRef.current) {
-            const rect = triggerRef.current.getBoundingClientRect();
-            setPanelPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+            setTriggerWidth(triggerRef.current.getBoundingClientRect().width);
         }
         setIsOpen(prev => !prev);
     };
@@ -133,8 +145,8 @@ const ModalSelect: React.FC<ModalSelectProps> = ({ value, onChange, options }) =
                 <span>{selectedLabel}</span>
                 <ChevronDown size={14} strokeWidth={2.5} style={{ flexShrink: 0 }} />
             </SelectTrigger>
-            {isOpen && panelPos && createPortal(
-                <SelectPanel style={{ top: panelPos.top, left: panelPos.left, minWidth: panelPos.width }}>
+            {isOpen && createPortal(
+                <SelectPanel ref={panelRef} style={{ minWidth: triggerWidth }}>
                     <SelectBody>
                         {options.map(opt => (
                             <SelectOption key={opt.value} $active={value === opt.value} onClick={() => handleSelect(opt.value)}>
