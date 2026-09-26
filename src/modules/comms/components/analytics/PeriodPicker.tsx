@@ -6,8 +6,10 @@
 // pod spodem. Postawiony niżej wyglądał jak jeszcze jedna sekcja do przeczytania
 // i odbierał pierwszy ruch wzroku kwocie, która ma go dostać.
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { CalendarRange, Check } from 'lucide-react';
+import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 import {
     buildPeriod,
     customPeriod,
@@ -17,7 +19,6 @@ import {
 } from './period';
 
 const Wrap = styled.div`
-    position: relative;
     display: inline-flex;
 `;
 
@@ -71,11 +72,21 @@ const Segment = styled.button<{ $active: boolean; $light?: boolean }>`
     svg { width: 14px; height: 14px; }
 `;
 
+/*
+ * Własny zakres w portalu do <body>, w `position: fixed`. Stojąc `absolute` w akcjach
+ * PageHeadera był ucinany przez jego kartę z `overflow: hidden` - na każdym ekranie,
+ * nie tylko na telefonie - a przyklejony prawą krawędzią wyjeżdżał na telefonie za
+ * lewą krawędź, gdy przełącznik zawijał się na lewo. Pozycję i limity ustawia
+ * useFloatingPanel, tak samo w nagłówku strony i w wariancie osadzonym w panelu.
+ */
 const Popover = styled.div`
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
-    z-index: 30;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 9000;
+    visibility: hidden;
+    box-sizing: border-box;
+    overscroll-behavior: contain;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -98,6 +109,11 @@ const Popover = styled.div`
     }
 
     input {
+        /* Pole daty ma własną szerokość minimalną - bez tego dwa pola obok siebie
+           rozpychały panel ponad szerokość, na jaką pozwala ekran. */
+        min-width: 0;
+        width: 100%;
+        box-sizing: border-box;
         font-family: inherit;
         font-size: 13px;
         color: ${p => p.theme.colors.text};
@@ -112,7 +128,7 @@ const Popover = styled.div`
 
 const Row = styled.div`
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
 `;
 
@@ -153,11 +169,20 @@ export function PeriodPicker({ value, onChange, variant = 'dark' }: PeriodPicker
     const [draftFrom, setDraftFrom] = useState(() => toInputValue(value.from));
     const [draftTo, setDraftTo] = useState(() => toInputValue(value.to));
     const wrapRef = useRef<HTMLDivElement | null>(null);
+    const popoverRef = useRef<HTMLDivElement | null>(null);
+
+    // Prawa krawędź przełącznika, jak wcześniej - placement przesuwa panel w ekran,
+    // gdy przełącznik stoi przy lewej krawędzi telefonu.
+    useFloatingPanel(open, wrapRef, popoverRef, { align: 'right', offset: 8 });
 
     useEffect(() => {
         if (!open) return;
+        // Panel jest w portalu, poza wrapRef - kliknięcie w pole daty albo w „Pokaż"
+        // liczymy jako „w środku" osobno, inaczej mousedown zamykałby panel.
         const onDocClick = (event: MouseEvent) => {
-            if (!wrapRef.current?.contains(event.target as Node)) setOpen(false);
+            const target = event.target as Node;
+            if (wrapRef.current?.contains(target) || popoverRef.current?.contains(target)) return;
+            setOpen(false);
         };
         const onEsc = (event: KeyboardEvent) => {
             if (event.key === 'Escape') setOpen(false);
@@ -211,8 +236,8 @@ export function PeriodPicker({ value, onChange, variant = 'dark' }: PeriodPicker
                 </Segment>
             </Segments>
 
-            {open && (
-                <Popover role="dialog" aria-label="Wybierz zakres dat">
+            {open && createPortal(
+                <Popover ref={popoverRef} role="dialog" aria-label="Wybierz zakres dat">
                     <Row>
                         <label>
                             Od
@@ -245,7 +270,8 @@ export function PeriodPicker({ value, onChange, variant = 'dark' }: PeriodPicker
                     >
                         <Check /> Pokaż ten zakres
                     </Apply>
-                </Popover>
+                </Popover>,
+                document.body,
             )}
         </Wrap>
     );

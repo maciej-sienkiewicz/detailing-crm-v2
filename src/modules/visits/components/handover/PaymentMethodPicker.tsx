@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { ChevronDown, MoreHorizontal } from 'lucide-react';
+import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { ui } from '@/common/components/ui';
 import { Pill, PillRow } from './HandoverKit';
@@ -8,15 +10,24 @@ import { primaryPaymentMethods, secondaryPaymentMethods } from './paymentOptions
 import type { PaymentMethod } from '../../types/stateTransitions';
 
 const Wrapper = styled.div`
-    position: relative;
     display: inline-flex;
 `;
 
+/*
+ * Menu w portalu do <body>, w `position: fixed`, ustawiane przez useFloatingPanel.
+ * Stojąc `absolute` pod przyciskiem „Inna metoda" wyjeżdżało na telefonie za prawą
+ * krawędź, a w korekcie rozliczenia ucinał je przewijany środek okna. z-index nad
+ * każdą warstwą okien (ModalShell 1000, okna podrzędne 1400), bo picker stoi
+ * w oknach. Do pierwszego pomiaru menu jest niewidoczne.
+ */
 const Menu = styled.div`
-    position: absolute;
-    top: calc(100% + 6px);
+    position: fixed;
+    top: 0;
     left: 0;
-    z-index: 20;
+    z-index: 9000;
+    visibility: hidden;
+    box-sizing: border-box;
+    overscroll-behavior: contain;
     min-width: 190px;
     display: flex;
     flex-direction: column;
@@ -63,13 +74,19 @@ interface PaymentMethodPickerProps {
 export const PaymentMethodPicker = ({ value, onChange }: PaymentMethodPickerProps) => {
     const [isOpen, setOpen] = useState(false);
     const wrapperRef = useRef<HTMLDivElement>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    useFloatingPanel(isOpen, wrapperRef, menuRef, { align: 'left', offset: 6 });
 
     useEffect(() => {
         if (!isOpen) return;
+        // Menu jest w portalu, więc nie leży w wrapperRef - kliknięcie w pozycję
+        // trzeba uznać za „w środku" osobno, inaczej mousedown zamknąłby menu,
+        // zanim onClick zdąży wybrać metodę.
         const handleClickOutside = (event: MouseEvent) => {
-            if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
-                setOpen(false);
-            }
+            const target = event.target as Node;
+            if (wrapperRef.current?.contains(target) || menuRef.current?.contains(target)) return;
+            setOpen(false);
         };
         const handleEscape = (event: KeyboardEvent) => {
             if (event.key === 'Escape') setOpen(false);
@@ -116,8 +133,8 @@ export const PaymentMethodPicker = ({ value, onChange }: PaymentMethodPickerProp
                     <ChevronDown size={13} />
                 </Pill>
 
-                {isOpen && (
-                    <Menu role="menu">
+                {isOpen && createPortal(
+                    <Menu ref={menuRef} role="menu">
                         {secondaryPaymentMethods.map(method => (
                             <MenuItem
                                 key={method.value}
@@ -130,7 +147,8 @@ export const PaymentMethodPicker = ({ value, onChange }: PaymentMethodPickerProp
                                 {method.label}
                             </MenuItem>
                         ))}
-                    </Menu>
+                    </Menu>,
+                    document.body,
                 )}
             </Wrapper>
         </PillRow>

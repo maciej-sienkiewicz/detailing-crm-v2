@@ -20,7 +20,8 @@
 // cofnięcie, wyczyszczenie po wysyłce), podmieniamy zawartość. Dopóki wartość
 // odpowiada temu, co jest w DOM, nie dotykamy go - inaczej kursor skakałby na
 // początek przy każdym naciśnięciu klawisza.
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import {
     Baseline,
@@ -35,6 +36,7 @@ import {
     Type,
     Underline,
 } from 'lucide-react';
+import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 import { normalizeComposerHtml, textToComposerHtml } from '../utils/composerHtml';
 
 const Frame = styled.div<{ $focused: boolean }>`
@@ -80,20 +82,28 @@ const ToolButton = styled.button<{ $active?: boolean }>`
 `;
 
 /**
- * Kontrolka z rozwijaną listą. Osobne opakowanie z `position: relative`, bo pasek
- * narzędzi zawija się na telefonie - menu ma spadać spod SWOJEGO przycisku, a nie
- * spod krawędzi paska.
+ * Kontrolka z rozwijaną listą. Osobne opakowanie, bo pasek narzędzi zawija się na
+ * telefonie - menu ma spadać spod SWOJEGO przycisku, a nie spod krawędzi paska.
+ * Opakowanie jest punktem zaczepienia dla useFloatingPanel.
  */
 const MenuWrap = styled.span`
-    position: relative;
     display: inline-flex;
 `;
 
+/*
+ * Menu w portalu do <body>, w `position: fixed`: stojąc `absolute` z `left: 0`
+ * pod przyciskiem koloru wyjeżdżało w kompozytorze odpowiedzi za prawą krawędź
+ * telefonu, a w oknie z `overflow: hidden` bywało ucinane. Pozycję i limity
+ * ustawia useFloatingPanel; do pierwszego pomiaru menu jest niewidoczne.
+ */
 const Menu = styled.div`
-    position: absolute;
-    top: calc(100% + 4px);
+    position: fixed;
+    top: 0;
     left: 0;
-    z-index: 20;
+    z-index: 9000;
+    visibility: hidden;
+    box-sizing: border-box;
+    overscroll-behavior: contain;
     min-width: 168px;
     padding: 4px;
     border: 1px solid ${p => p.theme.colors.border};
@@ -325,6 +335,15 @@ export function RichTextEditor({
     // Zaznaczenie znika, gdy fokus przechodzi do pola adresu - zapamiętujemy je,
     // żeby odnośnik trafił tam, gdzie użytkownik zaznaczył, a nie na koniec.
     const savedRange = useRef<Range | null>(null);
+    // Menu wyglądu stoi w portalu, więc przycisk i menu to dwa osobne drzewa DOM:
+    // opakowanie przycisku jest punktem zaczepienia, menu - tym, co ustawiamy.
+    const sizeWrapRef = useRef<HTMLSpanElement>(null);
+    const colorWrapRef = useRef<HTMLSpanElement>(null);
+    const highlightWrapRef = useRef<HTMLSpanElement>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
+    const menuAnchorRef =
+        openMenu === 'size' ? sizeWrapRef : openMenu === 'color' ? colorWrapRef : highlightWrapRef;
+    useFloatingPanel(openMenu !== null, menuAnchorRef, menuRef, { align: 'left', offset: 4 }, openMenu);
 
     // useLayoutEffect: zawartość ma być na miejscu przed pierwszym malowaniem,
     // inaczej placeholder mignąłby nad przywróconą treścią.
@@ -362,7 +381,13 @@ export function RichTextEditor({
      */
     useEffect(() => {
         if (openMenu === null) return;
-        const close = () => setOpenMenu(null);
+        // Menu nie jest już potomkiem paska (portal), więc kliknięcie w próbkę
+        // sprawdzamy wprost - bez tego mousedown zamknąłby menu przed onClick.
+        const close = (event: MouseEvent) => {
+            const target = event.target as Node;
+            if (menuRef.current?.contains(target) || menuAnchorRef.current?.contains(target)) return;
+            setOpenMenu(null);
+        };
         const onKey = (event: globalThis.KeyboardEvent) => {
             if (event.key === 'Escape') setOpenMenu(null);
         };
@@ -372,7 +397,7 @@ export function RichTextEditor({
             document.removeEventListener('mousedown', close);
             document.removeEventListener('keydown', onKey);
         };
-    }, [openMenu]);
+    }, [openMenu, menuAnchorRef]);
 
     const emit = useCallback(() => {
         const element = editableRef.current;
@@ -474,6 +499,16 @@ export function RichTextEditor({
         emit();
     };
 
+    /**
+     * Mousedown w menu wyglądu i na jego przycisku nie może zabrać fokusu edytorowi -
+     * kolor trafiłby w pustkę. Menu jest w portalu, więc dostaje ten sam handler
+     * wprost, zamiast polegać na tym, że zdarzenie Reacta przejdzie do opakowania.
+     */
+    const keepSelection = (event: ReactMouseEvent<HTMLElement>) => {
+        event.preventDefault();
+        event.stopPropagation();
+    };
+
     const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
         const meta = event.metaKey || event.ctrlKey;
         if (!meta) return;
@@ -545,10 +580,10 @@ export function RichTextEditor({
                 <Separator />
                 {/* Wygląd: rozmiar pisma i dwa kolory. Stoją za listami i przed
                     odnośnikiem, bo to nadal formatowanie tekstu, a nie wstawianie
-                    czegoś nowego. `onMouseDown` z preventDefault na całym menu
-                    trzyma zaznaczenie w edytorze - bez tego kliknięcie w próbkę
+                    czegoś nowego. `keepSelection` na przycisku i na menu trzyma
+                    zaznaczenie w edytorze - bez tego kliknięcie w próbkę
                     zabierałoby fokus i kolor trafiałby w pustkę. */}
-                <MenuWrap onMouseDown={(event) => { event.preventDefault(); event.stopPropagation(); }}>
+                <MenuWrap ref={sizeWrapRef} onMouseDown={keepSelection}>
                     <ToolButton
                         type="button"
                         $active={openMenu === 'size'}
@@ -560,8 +595,8 @@ export function RichTextEditor({
                     >
                         <Type />
                     </ToolButton>
-                    {openMenu === 'size' && (
-                        <Menu role="menu">
+                    {openMenu === 'size' && createPortal(
+                        <Menu ref={menuRef} role="menu" onMouseDown={keepSelection}>
                             {FONT_SIZES.map(({ label, px }) => (
                                 <SizeOption
                                     key={px}
@@ -573,11 +608,12 @@ export function RichTextEditor({
                                     {label}
                                 </SizeOption>
                             ))}
-                        </Menu>
+                        </Menu>,
+                        document.body,
                     )}
                 </MenuWrap>
 
-                <MenuWrap onMouseDown={(event) => { event.preventDefault(); event.stopPropagation(); }}>
+                <MenuWrap ref={colorWrapRef} onMouseDown={keepSelection}>
                     <ToolButton
                         type="button"
                         $active={openMenu === 'color'}
@@ -589,8 +625,8 @@ export function RichTextEditor({
                     >
                         <Baseline />
                     </ToolButton>
-                    {openMenu === 'color' && (
-                        <Menu role="menu">
+                    {openMenu === 'color' && createPortal(
+                        <Menu ref={menuRef} role="menu" onMouseDown={keepSelection}>
                             <MenuTitle>Kolor tekstu</MenuTitle>
                             <Swatches>
                                 {TEXT_COLORS.map((color) => (
@@ -605,11 +641,12 @@ export function RichTextEditor({
                                     />
                                 ))}
                             </Swatches>
-                        </Menu>
+                        </Menu>,
+                        document.body,
                     )}
                 </MenuWrap>
 
-                <MenuWrap onMouseDown={(event) => { event.preventDefault(); event.stopPropagation(); }}>
+                <MenuWrap ref={highlightWrapRef} onMouseDown={keepSelection}>
                     <ToolButton
                         type="button"
                         $active={openMenu === 'highlight'}
@@ -621,8 +658,8 @@ export function RichTextEditor({
                     >
                         <Highlighter />
                     </ToolButton>
-                    {openMenu === 'highlight' && (
-                        <Menu role="menu">
+                    {openMenu === 'highlight' && createPortal(
+                        <Menu ref={menuRef} role="menu" onMouseDown={keepSelection}>
                             <MenuTitle>Kolor tła</MenuTitle>
                             <Swatches>
                                 {HIGHLIGHT_COLORS.map((color) => (
@@ -647,7 +684,8 @@ export function RichTextEditor({
                             >
                                 Bez tła
                             </ClearOption>
-                        </Menu>
+                        </Menu>,
+                        document.body,
                     )}
                 </MenuWrap>
                 <Separator />
