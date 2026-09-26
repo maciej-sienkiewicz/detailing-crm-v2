@@ -30,6 +30,7 @@ import { useMediaQuery } from '@/common/hooks';
 import { useVisitDetail, useVisitDocuments, useVisitPhotos, visitDetailQueryKey, visitPhotosQueryKey } from '../hooks';
 import { useVisitDamageMap, useUpdateVisitDamageMap } from '../hooks';
 import { ConsumerInvoiceModal } from '../components/ConsumerInvoiceModal';
+import { SettlementCorrectionModal } from '../components/SettlementCorrectionModal';
 import { RevenueInvoiceDetailModal } from '@/modules/finance/components/RevenueInvoiceDetailModal';
 import { useUpdateVisit, useUpdateVisitTitle, useUpdateEstimatedCompletionDate, useUpdateArrivalState } from '../hooks';
 import { useUploadDocument, useUploadPhoto, useDeleteDocument, useDeletePhoto } from '../hooks';
@@ -316,6 +317,7 @@ export const VisitDetailView = () => {
     // podgląd już wystawionej.
     const [isConsumerInvoiceOpen, setIsConsumerInvoiceOpen] = useState(false);
     const [previewInvoiceId, setPreviewInvoiceId] = useState<string | null>(null);
+    const [isSettlementCorrectionOpen, setIsSettlementCorrectionOpen] = useState(false);
     const [isSmsReminderOpen, setIsSmsReminderOpen] = useState(false);
     const [isCertificateOpen, setIsCertificateOpen] = useState(false);
     const [smsReminderForEdit, setSmsReminderForEdit] = useState<SmsReminderResponse | null>(null);
@@ -626,6 +628,7 @@ export const VisitDetailView = () => {
                     onCompleteVisit={handleCompleteVisit}
                     onIssueConsumerInvoice={() => setIsConsumerInvoiceOpen(true)}
                     onPreviewInvoice={() => setPreviewInvoiceId(visit.settlement?.revenueInvoiceId ?? null)}
+                    onCorrectSettlement={() => setIsSettlementCorrectionOpen(true)}
                     onCancelVisit={handleCancelVisit}
                     onGeneratePost={() => setIsGeneratePostOpen(true)}
                     onDoorToDoor={() => setIsDoorToDoorOpen(true)}
@@ -955,6 +958,10 @@ export const VisitDetailView = () => {
                     onClose={() => setIsGeneratePostOpen(false)}
                     prefill={buildGeneratePostPrefill()}
                 />
+            )}
+
+            {isSettlementCorrectionOpen && visitId && (
+                <SettlementCorrectionModal visitId={visitId} onClose={() => setIsSettlementCorrectionOpen(false)} />
             )}
 
             {isConsumerInvoiceOpen && (

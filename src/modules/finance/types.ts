@@ -5,9 +5,11 @@ export type FinancialDocumentId = string;
 // ─── Finance: Dokumenty Przychodowe ───────────────────────────────────────────
 
 export enum DocumentType {
-  RECEIPT = 'RECEIPT',
-  INVOICE = 'INVOICE',
-  OTHER   = 'OTHER',
+  RECEIPT    = 'RECEIPT',
+  INVOICE    = 'INVOICE',
+  OTHER      = 'OTHER',
+  /** Storno z poprawki rozliczenia albo odbicie faktury korygującej KSeF. */
+  CORRECTION = 'CORRECTION',
 }
 
 export enum DocumentDirection {
@@ -69,6 +71,10 @@ export interface FinancialDocument {
   deletedAt:           string | null;
   /** Faktura KSeF, do której należy dokument - wtedy edycja obejmuje tylko opis. */
   ksefInvoiceId?:      string | null;
+  /** Korekta storno: dokument, który koryguje. */
+  correctsDocumentId?: string | null;
+  /** Dokument zastąpiony w poprawce rozliczenia wizyty - zostaje tylko do odczytu. */
+  supersededAt?:       string | null;
 }
 
 export interface FinancialDocumentListResponse {
@@ -579,7 +585,9 @@ export type KsefRevenueStatus =
   | 'REJECTED'
   | 'QUEUED_RETRY'
   /** Wystawiona świadomie bez wysyłki do KSeF; wysyłkę można uruchomić ręcznie. */
-  | 'NOT_SENT';
+  | 'NOT_SENT'
+  /** Anulowana w poprawce rozliczenia wizyty, zanim trafiła do KSeF. */
+  | 'CANCELLED';
 
 export type RevenueInvoiceType = 'VAT' | 'KOR';
 
