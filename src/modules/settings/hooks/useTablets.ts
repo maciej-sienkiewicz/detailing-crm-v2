@@ -3,12 +3,15 @@ import { tabletsApi } from '../api/tabletsApi';
 
 export const TABLETS_KEY = ['settings', 'tablets'] as const;
 
-export function useTablets() {
-    const { data, isLoading } = useQuery({
+export function useTablets(options: { enabled?: boolean } = {}) {
+    const { data, isLoading, isError, refetch } = useQuery({
         queryKey: [...TABLETS_KEY, 'list'],
         queryFn: tabletsApi.listTablets,
+        enabled: options.enabled ?? true,
     });
-    return { tablets: data ?? [], isLoading };
+    // `isError` i `refetch`: błąd wczytania listy wyglądał dotąd jak „Brak sparowanych
+    // tabletów" - zachęta do parowania tabletu, który może być sparowany.
+    return { tablets: data ?? [], isLoading, isError, refetch, loaded: data !== undefined };
 }
 
 export function useGeneratePairingCode() {

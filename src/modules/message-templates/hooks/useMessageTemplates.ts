@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
 import {
   fetchAutomationConfig,
@@ -89,6 +89,8 @@ export interface MessageTemplatesState {
   draft: TemplatesDraft | null;
   isLoading: boolean;
   isError: boolean;
+  /** Ponawia wczytanie obu konfiguracji po błędzie. */
+  refetch: () => void;
   dirty: boolean;
   isSaving: boolean;
   saveError: string | null;
@@ -122,12 +124,13 @@ export function useMessageTemplates(): MessageTemplatesState {
     [smsQuery.data, emailQuery.data]
   );
 
-  useEffect(() => {
-    if (!server || draft) return;
+  // Pierwsza odpowiedź serwera staje się szkicem ekranu. W trakcie renderu, a nie
+  // w efekcie: efekt dawał jeden render ze szkieletem po tym, jak dane już były.
+  if (server && !draft) {
     const initial = toDraft(server.sms, server.email);
     setDraft(initial);
     setSaved(initial);
-  }, [server, draft]);
+  }
 
   const patchChannel = useCallback(
     (key: MessageKey, channel: Channel, patch: Partial<ChannelDraft>) => {
@@ -181,6 +184,13 @@ export function useMessageTemplates(): MessageTemplatesState {
     }
   }, [draft, mutation]);
 
+  const refetchSms = smsQuery.refetch;
+  const refetchEmail = emailQuery.refetch;
+  const refetch = useCallback(() => {
+    void refetchSms();
+    void refetchEmail();
+  }, [refetchSms, refetchEmail]);
+
   const discard = useCallback(() => {
     setDraft(saved);
     setTouched(new Set());
@@ -191,6 +201,7 @@ export function useMessageTemplates(): MessageTemplatesState {
     draft,
     isLoading: smsQuery.isLoading || emailQuery.isLoading,
     isError: smsQuery.isError || emailQuery.isError,
+    refetch,
     dirty: touched.size > 0 && draft !== saved,
     isSaving: mutation.isPending,
     saveError,

@@ -2,7 +2,8 @@ import React, { useRef, useState } from 'react';
 import styled, { css } from 'styled-components';
 import { Check, Clock, FileDown, FileText, MessageSquare, PenLine, Upload } from 'lucide-react';
 import { FormField, FieldLabel, InputShell, BareInput } from '@/common/components/Form';
-import { SharedButton } from '@/common/styles';
+import { Button, Panel, StatusPill, ui, type PillTone } from '@/common/components/ui';
+import { useSettingsDirty } from '@/modules/settings/components/shared/settingsChrome';
 import { SignaturePad, type SignaturePadHandle } from '@/modules/public-signing/components/SignaturePad';
 import type { SmsSenderNameConfig } from '../types';
 import {
@@ -23,8 +24,11 @@ import {
  * otwarta i sama mówi, co trzeba zrobić; po zatwierdzeniu zwija się do jednej
  * linijki - konfiguracja kanału nie ma prawa zabierać uwagi codziennej pracy.
  *
- * Styl: wspólne pola formularza aplikacji (Form) i wspólny przycisk (SharedButton),
- * te same co w formularzach leadów, usług czy finansów.
+ * Styl: wspólne pola formularza aplikacji (Form) i klocki z `ui`. Karta leży płasko
+ * (Panel): w „Wiadomościach automatycznych" jedyną wyniesioną powierzchnią jest
+ * tabela szablonów, a jedynym wypełnionym przyciskiem - „Zapisz zmiany" w pasku
+ * zapisu (CLAUDE.md §2). Dlatego „Zapisz nazwę" i „Podpisz" niosą odcień marki
+ * bez wypełnienia - wcześniej dwa wypełnione przyciski stały tu jeden pod drugim.
  */
 
 type Status = 'confirmed' | 'pending' | 'awaiting_document' | 'none';
@@ -38,15 +42,9 @@ const MAX_LENGTH = 11;
  */
 const sanitize = (value: string) => value.replace(/[^A-Za-z0-9 .-]/g, '');
 
-const Card = styled.section<{ $attention: boolean }>`
-  border: 1px solid ${p => (p.$attention ? '#fcd34d' : p.theme.colors.border)};
-  border-radius: 14px;
-  background: ${p => p.theme.colors.surface};
+const Card = styled(Panel)<{ $attention: boolean }>`
   overflow: hidden;
-
-  ${p => p.$attention && css`
-    box-shadow: 0 1px 3px rgba(180, 83, 9, 0.08), 0 6px 20px rgba(180, 83, 9, 0.06);
-  `}
+  ${p => p.$attention && css`border-color: ${ui.warnLine};`}
 `;
 
 const Head = styled.header<{ $attention: boolean }>`
@@ -54,21 +52,23 @@ const Head = styled.header<{ $attention: boolean }>`
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  background: ${p => (p.$attention ? '#fffbeb' : p.theme.colors.surface)};
+  background: ${p => (p.$attention ? ui.warnTint : 'transparent')};
+
+  @media (max-width: 767px) { flex-wrap: wrap; }
 `;
 
 const IconWrap = styled.div<{ $attention: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
   border-radius: 10px;
-  background: ${p => (p.$attention ? 'rgba(217, 119, 6, 0.12)' : 'rgba(14, 165, 233, 0.1)')};
-  color: ${p => (p.$attention ? '#b45309' : p.theme.colors.primary)};
+  background: ${p => (p.$attention ? 'rgba(217, 119, 6, 0.12)' : ui.brandTint)};
+  color: ${p => (p.$attention ? '#b45309' : ui.brandInk)};
 
-  svg { width: 18px; height: 18px; }
+  svg { width: 17px; height: 17px; }
 `;
 
 const Titles = styled.div`
@@ -101,37 +101,7 @@ const SenderValue = styled.span`
   letter-spacing: 0.02em;
 `;
 
-const Badge = styled.span<{ $status: Status }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  flex-shrink: 0;
-  font-size: 11px;
-  font-weight: ${p => p.theme.fontWeights.semibold};
-  padding: 3px 9px;
-  border-radius: 999px;
-  border: 1px solid transparent;
-
-  svg { width: 12px; height: 12px; }
-
-  ${p => p.$status === 'confirmed' && css`
-    background: #ecfdf5;
-    border-color: rgba(16, 185, 129, 0.3);
-    color: #047857;
-  `}
-  ${p => p.$status === 'pending' && css`
-    background: #fffbeb;
-    border-color: rgba(245, 158, 11, 0.35);
-    color: #92400e;
-  `}
-  ${p => (p.$status === 'awaiting_document' || p.$status === 'none') && css`
-    background: #fef3c7;
-    border-color: rgba(217, 119, 6, 0.35);
-    color: #b45309;
-  `}
-`;
-
-const Panel = styled.div`
+const Body = styled.div`
   border-top: 1px solid ${p => p.theme.colors.border};
   padding: 16px;
   display: flex;
@@ -239,6 +209,13 @@ const statusOf = (cfg: SmsSenderNameConfig | null): Status => {
   return cfg.hasAuthDocument ? 'pending' : 'awaiting_document';
 };
 
+const STATUS_TONE: Record<Status, PillTone> = {
+  confirmed: 'ok',
+  pending: 'warn',
+  awaiting_document: 'warn',
+  none: 'warn',
+};
+
 const STATUS_LABEL: Record<Status, string> = {
   confirmed: 'Zatwierdzona',
   pending: 'Czeka na weryfikację',
@@ -281,6 +258,8 @@ export const SmsSenderNameCard: React.FC = () => {
 
   const dirty = name.trim() !== savedName;
   const tooLong = name.length > MAX_LENGTH;
+  // Poza ramą ustawień (bez kontekstu) hook nic nie robi.
+  useSettingsDirty(dirty);
 
   const flash = (error: boolean, msg: string) => {
     setFeedback({ error, msg });
@@ -355,10 +334,10 @@ export const SmsSenderNameCard: React.FC = () => {
             Nazwa nadawcy SMS
             {savedName && <SenderValue>{savedName}</SenderValue>}
             {!isLoading && (
-              <Badge $status={status}>
+              <StatusPill $tone={STATUS_TONE[status]}>
                 {STATUS_ICON[status]}
                 {STATUS_LABEL[status]}
-              </Badge>
+              </StatusPill>
             )}
           </h3>
           <p>
@@ -369,20 +348,19 @@ export const SmsSenderNameCard: React.FC = () => {
         </Titles>
 
         {!needsSetup && (
-          <SharedButton
-            type="button"
-            $variant="secondary"
-            $size="sm"
+          <Button
+            variant="outline"
+            size="sm"
             aria-expanded={expanded}
             onClick={() => setOpen(v => !v)}
           >
             {expanded ? 'Zwiń' : 'Zmień'}
-          </SharedButton>
+          </Button>
         )}
       </Head>
 
       {expanded && (
-        <Panel>
+        <Body>
           <NameRow>
             <NameField>
               <FieldLabel htmlFor="sms-sender-name">Nazwa nadawcy</FieldLabel>
@@ -401,15 +379,14 @@ export const SmsSenderNameCard: React.FC = () => {
               </InputShell>
             </NameField>
 
-            <SharedButton
-              type="button"
-              $variant="primary"
-              $size="sm"
+            <Button
+              variant="tinted"
+              size="md"
               disabled={!dirty || tooLong || !name.trim() || updateMutation.isPending}
               onClick={handleSave}
             >
               {updateMutation.isPending ? 'Zapisywanie…' : 'Zapisz nazwę'}
-            </SharedButton>
+            </Button>
           </NameRow>
 
           <HelperText>
@@ -423,10 +400,9 @@ export const SmsSenderNameCard: React.FC = () => {
                 i nazwy nadawcy, z dzisiejszą datą.
               </span>
               {!signing && (
-                <SharedButton
-                  type="button"
-                  $variant="primary"
-                  $size="sm"
+                <Button
+                  variant="tinted"
+                  size="sm"
                   disabled={!savedName || dirty}
                   title={
                     !savedName || dirty
@@ -435,8 +411,8 @@ export const SmsSenderNameCard: React.FC = () => {
                   }
                   onClick={() => setSigning(true)}
                 >
-                  <PenLine size={14} /> Podpisz na ekranie
-                </SharedButton>
+                  <PenLine aria-hidden="true" /> Podpisz na ekranie
+                </Button>
               )}
           </AuthRow>
 
@@ -444,42 +420,39 @@ export const SmsSenderNameCard: React.FC = () => {
             <SignArea>
               <SignaturePad ref={padRef} />
               <SignActions>
-                <SharedButton
-                  type="button"
-                  $variant="primary"
-                  $size="sm"
+                <Button
+                  variant="tinted"
+                  size="sm"
                   disabled={signMutation.isPending}
                   onClick={handleSign}
                 >
                   {signMutation.isPending ? 'Podpisywanie…' : 'Podpisz i zapisz'}
-                </SharedButton>
-                <SharedButton
-                  type="button"
-                  $variant="secondary"
-                  $size="sm"
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   disabled={signMutation.isPending}
                   onClick={() => { padRef.current?.clear(); setSigning(false); }}
                 >
                   Anuluj
-                </SharedButton>
+                </Button>
               </SignActions>
             </SignArea>
           )}
 
           <AltRow>
             Wolisz papierowo?
-            <SharedButton type="button" $variant="ghost" $size="sm" onClick={handleDownloadTemplate}>
-              <FileDown size={14} /> Pobierz wzór
-            </SharedButton>
-            <SharedButton
-              type="button"
-              $variant="ghost"
-              $size="sm"
+            <Button variant="ghost" size="sm" onClick={handleDownloadTemplate}>
+              <FileDown aria-hidden="true" /> Pobierz wzór
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               disabled={uploadMutation.isPending}
               onClick={() => fileRef.current?.click()}
             >
-              <Upload size={14} /> {uploadMutation.isPending ? 'Wysyłanie…' : 'Wgraj podpisany skan'}
-            </SharedButton>
+              <Upload aria-hidden="true" /> {uploadMutation.isPending ? 'Wysyłanie…' : 'Wgraj podpisany skan'}
+            </Button>
           </AltRow>
 
           {config?.hasAuthDocument && (
@@ -495,8 +468,8 @@ export const SmsSenderNameCard: React.FC = () => {
             onChange={handleFile}
           />
 
-          {feedback && <Feedback $error={feedback.error}>{feedback.msg}</Feedback>}
-        </Panel>
+          {feedback && <Feedback $error={feedback.error} role={feedback.error ? 'alert' : 'status'}>{feedback.msg}</Feedback>}
+        </Body>
       )}
     </Card>
   );

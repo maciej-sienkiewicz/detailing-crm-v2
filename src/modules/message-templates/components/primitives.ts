@@ -46,48 +46,19 @@ export const SearchInput = styled.input`
 
   &::placeholder { color: ${st.textMuted}; }
   &:focus { outline: none; border-color: ${st.borderFocus}; box-shadow: ${st.shadowBlue}; }
+
+  /* Poniżej 16 px iOS przybliża stronę przy każdym dotknięciu pola. */
+  @media (max-width: 767px) { font-size: 16px; min-height: 44px; }
 `;
 
-export const Segmented = styled.div`
-  display: inline-flex;
-  background: ${st.bgCardAlt};
-  border: 1px solid ${st.border};
-  border-radius: 9px;
-  padding: 2px;
-`;
-
-export const SegmentedButton = styled.button<{ $active: boolean }>`
-  border: 0;
-  background: transparent;
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 550;
-  color: ${st.textSecondary};
-  padding: 5px 11px;
-  border-radius: 7px;
-  cursor: pointer;
-  white-space: nowrap;
-
-  ${p => p.$active && css`
-    background: ${st.bgCard};
-    color: ${st.text};
-    box-shadow: ${st.shadowXs};
-  `}
-`;
-
-export const CountLabel = styled.span`
-  font-size: 12.5px;
-  color: ${st.textMuted};
-  font-variant-numeric: tabular-nums;
-  margin-left: auto;
-`;
-
+/**
+ * Przewijanie tabeli w poziomie na wąskim ekranie. Ramę, cień i promień daje jej
+ * `Card` z `ui` - jedyna wyniesiona powierzchnia sekcji (CLAUDE.md §2); przekierowanie
+ * i nazwa nadawcy nad nią leżą płasko.
+ */
 export const TableScroll = styled.div`
   overflow-x: auto;
-  border: 1px solid ${st.border};
-  border-radius: 12px;
-  background: ${st.bgCard};
-  box-shadow: ${st.shadowSm};
+  overscroll-behavior-x: contain;
 `;
 
 export const Table = styled.table`
@@ -115,19 +86,21 @@ export const STAGE_ACCENT: Record<string, { base: string; deep: string; tint: st
 
 export const stageAccent = (stageId: string) => STAGE_ACCENT[stageId] ?? STAGE_ACCENT.booking;
 
+/*
+ * Nagłówki kolumn zwykłym pismem na jasnym tle. Był tu granatowy pas z wersalikami
+ * 10,5 px - najciemniejsza plama na ekranie, która przyciągała wzrok mocniej niż
+ * treść wiadomości.
+ */
 export const Th = styled.th<{ $w?: string }>`
   text-align: left;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: #CBD5E1;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: ${st.textSecondary};
   padding: 11px 14px;
-  background: #1E293B;
+  background: ${st.bgCardAlt};
+  border-bottom: 1px solid ${st.border};
   white-space: nowrap;
 
-  &:first-child { border-top-left-radius: 11px; }
-  &:last-child { border-top-right-radius: 11px; }
   ${p => p.$w && css`width: ${p.$w};`}
 `;
 
@@ -142,14 +115,14 @@ export const StageRow = styled.tr<{ $accent?: string; $tint?: string; $deep?: st
   &:first-child td { border-top: 0; }
 `;
 
+/** Etap podróży klienta: nazwa zwykłym pismem, a obok jego doprecyzowanie. */
 export const StageLabel = styled.div<{ $deep?: string }>`
   display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: ${p => p.$deep ?? st.textSecondary};
 `;
 
@@ -165,13 +138,19 @@ export const StageIndex = styled.span<{ $accent?: string }>`
   font-weight: 700;
   color: #FFFFFF;
   letter-spacing: 0;
+  align-self: center;
 `;
 
 export const StageCaption = styled.span`
+  font-size: 12.5px;
   font-weight: 500;
-  text-transform: none;
-  letter-spacing: 0;
-  opacity: 0.75;
+  color: ${st.textSecondary};
+`;
+
+export const StageName = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 `;
 
 export const Empty = styled.div`
@@ -179,16 +158,4 @@ export const Empty = styled.div`
   text-align: center;
   color: ${st.textMuted};
   font-size: 13px;
-`;
-
-export const InlineError = styled.div`
-  display: flex;
-  gap: 9px;
-  align-items: flex-start;
-  padding: 10px 13px;
-  border-radius: 10px;
-  background: ${st.bgAccentRed};
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #991B1B;
-  font-size: 12.5px;
 `;

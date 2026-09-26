@@ -16,18 +16,29 @@
 //                           kopiujemy link i prosimy o wklejenie w Safari.
 //  3. Komputer            → kod QR z linkiem; aparat iPhone'a otwiera Safari
 //                           prosto w pobranie profilu.
+//
+// Przycisk konfiguracji stoi w nagłówku ramy ustawień (jedyne wypełnienie okna).
+// Odwołanie dostępu pytało wklejonym w wiersz „Potwierdź / Anuluj", a jego błąd
+// kończył się ciszą - teraz ConfirmationModal i dymek.
 
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { QRCodeSVG } from 'qrcode.react';
+import { useQuery } from '@tanstack/react-query';
+import { Smartphone } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { Button, Notice, Panel, SectionTitle, StatusPill, ui, type PillTone } from '@/common/components/ui';
 import {
-    Card, ColLabel, EmptyWrap, EmptyTitle, EmptyDesc, SkeletonBox, Badge,
-} from './rbacShared.styles';
-import {
-    useCarddavAccounts, useCreateProvisioning, useRevokeCarddavAccount,
+    carddavApi, CARDDAV_ACCOUNTS_KEY, useCreateProvisioning, useRevokeCarddavAccount,
 } from '@/modules/carddav';
-import type { CarddavProvisioningDto } from '@/modules/carddav';
+import type { CarddavAccountDto, CarddavProvisioningDto } from '@/modules/carddav';
+import { SettingsHeaderActions } from './shared/SettingsHeaderActions';
+import { serverMessage, toastedGlobally } from './errorToast';
+import {
+    DeviceMain, DeviceRow, DeviceSide, DeviceText, EmptyState, Intro, ListCard, ListHead, ListNotice,
+    PHONE, SkeletonLine, View, formatDate, phonesWord,
+} from './devicesLayout';
 
 type InstallPath = 'ios-safari' | 'ios-other' | 'desktop';
 
@@ -46,20 +57,23 @@ function detectInstallPath(): InstallPath {
     return isSafari ? 'ios-safari' : 'ios-other';
 }
 
-function formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
-
 /** Synchronizacja idzie z telefonu, więc jej świeżość mówi, czy profil żyje. */
-function syncLabel(lastSyncAt: string | null): { text: string; variant: 'green' | 'amber' | 'gray' } {
-    if (!lastSyncAt) return { text: 'Oczekuje na instalację', variant: 'gray' };
+function syncLabel(lastSyncAt: string | null): { text: string; tone: PillTone } {
+    if (!lastSyncAt) return { text: 'Oczekuje na instalację', tone: 'neutral' };
     const hours = (Date.now() - new Date(lastSyncAt).getTime()) / 3_600_000;
-    if (hours < 24) return { text: 'Synchronizuje się', variant: 'green' };
-    return { text: `Ostatnia synchronizacja ${formatDate(lastSyncAt)}`, variant: 'amber' };
+    if (hours < 24) return { text: 'Synchronizuje się', tone: 'ok' };
+    return { text: `Ostatnia synchronizacja ${formatDate(lastSyncAt)}`, tone: 'warn' };
 }
 
 export function ContactsSyncSection() {
-    const { accounts, isLoading } = useCarddavAccounts();
+    // Ten sam klucz co useCarddavAccounts; tutaj potrzebny jest też stan błędu -
+    // bez niego nieudane wczytanie wyglądało jak „żaden telefon nie synchronizuje".
+    const { data, isLoading, isError, refetch } = useQuery({
+        queryKey: CARDDAV_ACCOUNTS_KEY,
+        queryFn: carddavApi.listAccounts,
+        staleTime: 30_000,
+    });
+    const accounts = data ?? [];
     const createProvisioning = useCreateProvisioning();
     const revokeAccount = useRevokeCarddavAccount();
     const { showSuccess, showError } = useToast();
@@ -67,7 +81,7 @@ export function ContactsSyncSection() {
     const [installPath] = useState(detectInstallPath);
     const [provisioning, setProvisioning] = useState<CarddavProvisioningDto | null>(null);
     const [now, setNow] = useState(() => Date.now());
-    const [confirmRevokeId, setConfirmRevokeId] = useState<string | null>(null);
+    const [toRevoke, setToRevoke] = useState<CarddavAccountDto | null>(null);
 
     // Link niesie dane logowania, więc żyje krótko; odliczanie mówi wprost,
     // kiedy QR/link przestanie działać, zamiast zostawiać martwy kod na ekranie.
@@ -101,7 +115,10 @@ export function ContactsSyncSection() {
                     setProvisioning(result);
                 }
             },
-            onError: () => showError('Nie udało się przygotować profilu. Spróbuj ponownie.'),
+            onError: (error) => {
+                if (toastedGlobally(error)) return;
+                showError('Nie udało się przygotować profilu', serverMessage(error) ?? 'Spróbuj ponownie.');
+            },
         });
     };
 
@@ -115,38 +132,39 @@ export function ContactsSyncSection() {
         }
     };
 
-    const handleRevoke = (accountId: string) => {
-        revokeAccount.mutate(accountId, {
-            onSuccess: () => {
-                showSuccess('Dostęp odwołany', 'Telefon przestanie synchronizować kontakty studia.');
-                setConfirmRevokeId(null);
+    const handleRevoke = (account: CarddavAccountDto) => {
+        revokeAccount.mutate(account.accountId, {
+            onSuccess: () => showSuccess('Dostęp odwołany', 'Telefon przestanie synchronizować kontakty studia.'),
+            onError: (error) => {
+                if (toastedGlobally(error)) return;
+                showError('Nie udało się odwołać dostępu', serverMessage(error) ?? 'Spróbuj ponownie.');
             },
         });
     };
 
+    const setupLabel = createProvisioning.isPending
+        ? 'Przygotowuję…'
+        : installPath === 'ios-safari'
+            ? 'Skonfiguruj na tym iPhonie'
+            : installPath === 'ios-other'
+                ? 'Przygotuj profil dla iPhone’a'
+                : 'Skonfiguruj iPhone’a';
+
     return (
-        <Section>
-            <SectionHeader>
-                <div>
-                    <SectionTitle>Kontakty na telefonie</SectionTitle>
-                    <SectionDesc>
-                        Klienci studia w kontaktach iPhone'a - przy połączeniu od razu widać, kto dzwoni.
-                        Konfiguracja jest automatyczna: profil sam wpisuje serwer i dane logowania.
-                    </SectionDesc>
-                </div>
-                <SetupBtn onClick={startSetup} disabled={createProvisioning.isPending}>
-                    {createProvisioning.isPending
-                        ? 'Przygotowuję…'
-                        : installPath === 'ios-safari'
-                            ? 'Skonfiguruj na tym iPhonie'
-                            : installPath === 'ios-other'
-                                ? 'Przygotuj profil dla iPhone’a'
-                                : 'Skonfiguruj iPhone’a'}
-                </SetupBtn>
-            </SectionHeader>
+        <View>
+            <Intro>
+                Klienci studia w kontaktach iPhone'a: przy połączeniu od razu widać, kto dzwoni.
+                Konfiguracja jest automatyczna, profil sam wpisuje serwer i dane logowania.
+            </Intro>
+
+            <SettingsHeaderActions>
+                <Button variant="primary" size="lg" onClick={startSetup} disabled={createProvisioning.isPending}>
+                    <Smartphone aria-hidden="true" />{setupLabel}
+                </Button>
+            </SettingsHeaderActions>
 
             {provisioning && (
-                <InstallCard>
+                <InstallPanel aria-label="Instalacja profilu">
                     {installPath === 'desktop' && (
                         <QrWrap>
                             <QRCodeSVG value={provisioning.installUrl} size={148} level="M" />
@@ -154,7 +172,7 @@ export function ContactsSyncSection() {
                     )}
                     <InstallSteps>
                         {installPath === 'desktop' && (
-                            <Step><StepNo>1</StepNo>Zeskanuj kod aparatem iPhone'a - otworzy się Safari i pobierze profil.</Step>
+                            <Step><StepNo>1</StepNo><span>Zeskanuj kod aparatem iPhone'a: otworzy się Safari i pobierze profil.</span></Step>
                         )}
                         {installPath === 'ios-other' && (
                             <Step>
@@ -167,138 +185,109 @@ export function ContactsSyncSection() {
                             </Step>
                         )}
                         {installPath === 'ios-safari' && (
-                            <Step><StepNo>1</StepNo>Safari zapyta o zgodę na pobranie profilu - dotknij <strong>Pozwól</strong>, a potem <strong>Zamknij</strong>.</Step>
+                            <Step><StepNo>1</StepNo><span>Safari zapyta o zgodę na pobranie profilu. Dotknij <strong>Pozwól</strong>, a potem <strong>Zamknij</strong>.</span></Step>
                         )}
-                        <Step><StepNo>2</StepNo>Otwórz aplikację <strong>Ustawienia</strong> - na samej górze zobaczysz <strong>„Profil pobrany"</strong>. Dotknij tej pozycji.</Step>
-                        <Step><StepNo>3</StepNo>Dotknij <strong>Zainstaluj</strong>, podaj kod telefonu i potwierdź. Ostrzeżenie „Niezweryfikowany" jest w porządku - kontynuuj.</Step>
-                        <Step><StepNo>4</StepNo>Gotowe - klienci pojawią się w Kontaktach w ciągu kilku minut, a lista sama będzie się odświeżać.</Step>
+                        <Step><StepNo>2</StepNo><span>Otwórz aplikację <strong>Ustawienia</strong>: na samej górze zobaczysz <strong>„Profil pobrany"</strong>. Dotknij tej pozycji.</span></Step>
+                        <Step><StepNo>3</StepNo><span>Dotknij <strong>Zainstaluj</strong>, podaj kod telefonu i potwierdź. Ostrzeżenie „Niezweryfikowany" jest w porządku, kontynuuj.</span></Step>
+                        <Step><StepNo>4</StepNo><span>Gotowe. Klienci pojawią się w Kontaktach w ciągu kilku minut, a lista sama będzie się odświeżać.</span></Step>
                         {secondsLeft !== null && (
-                            <Expiry $urgent={secondsLeft < 60}>
-                                Link wygaśnie za {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')} - potem wygeneruj nowy.
+                            <Expiry $urgent={secondsLeft < 60} role="timer">
+                                Link wygaśnie za {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')}, potem wygeneruj nowy.
                             </Expiry>
                         )}
                     </InstallSteps>
-                </InstallCard>
+                </InstallPanel>
             )}
 
-            <Card>
-                <ListHeader>
-                    <ColLabel>Telefon</ColLabel>
-                    <ColLabel>Skonfigurowano</ColLabel>
-                    <ColLabel>Stan</ColLabel>
-                    <ColLabel />
-                </ListHeader>
+            <ListCard aria-label="Telefony z kontaktami">
+                <ListHead>
+                    <SectionTitle
+                        as="h3"
+                        count={data ? `${accounts.length} ${phonesWord(accounts.length)}` : undefined}
+                    >
+                        Telefony z kontaktami studia
+                    </SectionTitle>
+                </ListHead>
 
-                {isLoading ? (
+                {isError && !data ? (
+                    <ListNotice>
+                        <Notice
+                            tone="danger"
+                            role="alert"
+                            title="Nie udało się wczytać telefonów"
+                            action={<Button variant="ghost" size="sm" onClick={() => void refetch()}>Spróbuj ponownie</Button>}
+                        />
+                    </ListNotice>
+                ) : isLoading ? (
                     Array.from({ length: 2 }).map((_, i) => (
-                        <ListRow key={i}>
-                            <SkeletonBox $w={`${55 + (i % 2) * 15}%`} />
-                            <SkeletonBox $w="80px" />
-                            <SkeletonBox $w="110px" />
-                            <SkeletonBox $w="60px" />
-                        </ListRow>
+                        <DeviceRow key={i} aria-hidden="true">
+                            <DeviceMain><SkeletonLine $w={`${50 + i * 15}%`} /></DeviceMain>
+                            <DeviceSide><SkeletonLine $w="110px" /></DeviceSide>
+                        </DeviceRow>
                     ))
                 ) : accounts.length === 0 ? (
-                    <EmptyWrap>
-                        <EmptyTitle>Żaden telefon nie synchronizuje jeszcze kontaktów</EmptyTitle>
-                        <EmptyDesc>
-                            Skonfiguruj iPhone'a powyżej - zajmie to mniej niż minutę.
-                        </EmptyDesc>
-                    </EmptyWrap>
+                    <EmptyState>
+                        <strong>Żaden telefon nie synchronizuje jeszcze kontaktów</strong>
+                        <p>„{setupLabel}" w nagłówku przygotuje profil. Zajmie to mniej niż minutę.</p>
+                    </EmptyState>
                 ) : (
                     accounts.map(account => {
                         const sync = syncLabel(account.lastSyncAt);
-                        const isConfirming = confirmRevokeId === account.accountId;
-                        const isRevoking = revokeAccount.isPending && isConfirming;
+                        const revoking = revokeAccount.isPending && revokeAccount.variables === account.accountId;
                         return (
-                            <ListRow key={account.accountId}>
-                                <DeviceName>{account.deviceName}</DeviceName>
-                                <CellText>{formatDate(account.createdAt)}</CellText>
-                                <div><Badge $variant={sync.variant}>{sync.text}</Badge></div>
-                                <RowActions>
-                                    {isConfirming ? (
-                                        <>
-                                            <ConfirmBtn onClick={() => handleRevoke(account.accountId)} disabled={isRevoking}>
-                                                {isRevoking ? 'Odwołuję…' : 'Potwierdź'}
-                                            </ConfirmBtn>
-                                            <CancelBtn onClick={() => setConfirmRevokeId(null)}>Anuluj</CancelBtn>
-                                        </>
-                                    ) : (
-                                        <RevokeBtn onClick={() => setConfirmRevokeId(account.accountId)}>
-                                            Odwołaj
-                                        </RevokeBtn>
-                                    )}
-                                </RowActions>
-                            </ListRow>
+                            <DeviceRow key={account.accountId}>
+                                <DeviceMain>
+                                    <Smartphone aria-hidden="true" />
+                                    <DeviceText>
+                                        <strong>{account.deviceName}</strong>
+                                        <span>Skonfigurowano {formatDate(account.createdAt)}</span>
+                                    </DeviceText>
+                                </DeviceMain>
+                                <DeviceSide>
+                                    <StatusPill $tone={sync.tone}>{sync.text}</StatusPill>
+                                    <Button
+                                        variant="danger"
+                                        size="sm"
+                                        disabled={revoking}
+                                        onClick={() => setToRevoke(account)}
+                                    >
+                                        {revoking ? 'Odwołuję…' : 'Odwołaj'}
+                                    </Button>
+                                </DeviceSide>
+                            </DeviceRow>
                         );
                     })
                 )}
-            </Card>
-        </Section>
+            </ListCard>
+
+            <ConfirmationModal
+                isOpen={toRevoke !== null}
+                title="Odwołać dostęp do kontaktów?"
+                message={toRevoke
+                    ? `„${toRevoke.deviceName}” przestanie synchronizować kontakty studia. Żeby je przywrócić, trzeba od nowa zainstalować profil.`
+                    : ''}
+                variant="danger"
+                confirmText="Odwołaj dostęp"
+                cancelText="Anuluj"
+                onConfirm={() => { if (toRevoke) handleRevoke(toRevoke); }}
+                onCancel={() => setToRevoke(null)}
+            />
+        </View>
     );
 }
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
 
-const Section = styled.section`
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    margin-top: 32px;
-`;
-
-const SectionHeader = styled.div`
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-
-    @media (max-width: 639px) { flex-direction: column; }
-`;
-
-const SectionTitle = styled.h3`
-    margin: 0 0 4px;
-    font-size: 15px;
-    font-weight: 700;
-    color: #0f172a;
-`;
-
-const SectionDesc = styled.p`
-    margin: 0;
-    max-width: 560px;
-    font-size: 13px;
-    line-height: 1.5;
-    color: #64748b;
-`;
-
-const SetupBtn = styled.button`
-    flex-shrink: 0;
-    min-height: 40px;
-    padding: 0 16px;
-    border: none;
-    border-radius: 10px;
-    background: #0ea5e9;
-    font-family: inherit;
-    font-size: 13.5px;
-    font-weight: 600;
-    color: #fff;
-    cursor: pointer;
-
-    &:hover { background: #0284c7; }
-    &:disabled { opacity: 0.6; cursor: default; }
-
-    @media (max-width: 639px) { width: 100%; min-height: 46px; }
-`;
-
-const InstallCard = styled.div`
+/* Instrukcja instalacji: płaski panel z odcieniem marki - „przeczytaj i zrób",
+   nie osobna wyniesiona karta (wyniesiona jest lista telefonów). */
+const InstallPanel = styled(Panel)`
     display: flex;
     gap: 20px;
     padding: 16px;
-    background: rgba(14, 165, 233, 0.06);
-    border: 1px solid rgba(14, 165, 233, 0.25);
-    border-radius: 12px;
+    background: ${ui.brandTint};
+    border-color: ${ui.brandLineSoft};
 
-    @media (max-width: 639px) { flex-direction: column; align-items: center; }
+    @media ${PHONE} { flex-direction: column; align-items: center; }
 `;
 
 const QrWrap = styled.div`
@@ -320,9 +309,9 @@ const Step = styled.div`
     display: flex;
     gap: 10px;
     align-items: flex-start;
-    font-size: 13px;
+    font-size: 13.5px;
     line-height: 1.5;
-    color: #334155;
+    color: ${ui.inkSoft};
 `;
 
 const StepNo = styled.span`
@@ -330,12 +319,13 @@ const StepNo = styled.span`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
-    background: #0ea5e9;
-    color: #fff;
-    font-size: 11px;
+    border: 1px solid ${ui.brandLine};
+    background: ${ui.surface};
+    color: ${ui.brandInk};
+    font-size: 11.5px;
     font-weight: 700;
 `;
 
@@ -346,82 +336,14 @@ const CopyLinkBtn = styled.button`
     font-family: inherit;
     font-size: inherit;
     font-weight: 700;
-    color: #0284c7;
+    color: ${ui.brandInk};
     text-decoration: underline;
     cursor: pointer;
 `;
 
 const Expiry = styled.p<{ $urgent: boolean }>`
-    margin: 4px 0 0 30px;
-    font-size: 12px;
-    color: ${p => (p.$urgent ? '#b45309' : '#94a3b8')};
+    margin: 4px 0 0 32px;
+    font-size: 12.5px;
+    color: ${p => (p.$urgent ? '#b45309' : ui.textMuted)};
     font-variant-numeric: tabular-nums;
 `;
-
-const ListHeader = styled.div`
-    display: grid;
-    grid-template-columns: 1.4fr 0.8fr 1.2fr 130px;
-    gap: 12px;
-    padding: 10px 16px;
-    border-bottom: 1px solid #f1f5f9;
-
-    @media (max-width: 639px) { display: none; }
-`;
-
-const ListRow = styled.div`
-    display: grid;
-    grid-template-columns: 1.4fr 0.8fr 1.2fr 130px;
-    gap: 12px;
-    align-items: center;
-    padding: 12px 16px;
-    border-bottom: 1px solid #f8fafc;
-
-    &:last-child { border-bottom: none; }
-
-    @media (max-width: 639px) {
-        grid-template-columns: 1fr auto;
-        row-gap: 6px;
-    }
-`;
-
-const DeviceName = styled.span`
-    font-size: 13.5px;
-    font-weight: 600;
-    color: #0f172a;
-`;
-
-const CellText = styled.span`
-    font-size: 13px;
-    color: #64748b;
-
-    @media (max-width: 639px) { display: none; }
-`;
-
-const RowActions = styled.div`
-    display: flex;
-    gap: 8px;
-    justify-content: flex-end;
-`;
-
-const RevokeBtn = styled.button`
-    min-height: 32px;
-    padding: 0 12px;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    background: #fff;
-    font-family: inherit;
-    font-size: 12.5px;
-    font-weight: 600;
-    color: #64748b;
-    cursor: pointer;
-
-    &:hover { border-color: #fca5a5; color: #dc2626; }
-`;
-
-const ConfirmBtn = styled(RevokeBtn)`
-    border-color: #fca5a5;
-    background: #fef2f2;
-    color: #dc2626;
-`;
-
-const CancelBtn = styled(RevokeBtn)``;

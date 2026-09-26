@@ -1,20 +1,33 @@
+// src/modules/settings/components/TabletsSection.tsx
+//
+// Ustawienia → Tablety, telefon, kontakty → Tablety do podpisu.
+//
+// Co się zmieniło i dlaczego:
+//   - „Dodaj tablet" stał w pasku nad listą obok pustego licznika; akcja główna
+//     widoku idzie teraz do nagłówka ramy („Sparuj tablet") - jedyne wypełnienie.
+//   - Licznik pisał „2 tablety/ów" - teraz odmiana po polsku.
+//   - Usunięcie pytało wklejonym w wiersz „Na pewno? Usuń / Anuluj" (czerwone
+//     wypełnienie w liście), a błąd kończył się ciszą. Teraz ConfirmationModal
+//     i dymek przy błędzie.
+//   - Błąd wczytania listy wyglądał jak „Brak sparowanych tabletów".
+
 import { useState } from 'react';
-import styled from 'styled-components';
 import { useQueryClient } from '@tanstack/react-query';
+import { Plus, TabletSmartphone } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
-import { RequireCapability } from '@/modules/subscription';
-import {
-    Container, Toolbar, AddButton, StatsRow, StatText, Card, ColLabel,
-    Badge, Dot, EmptyWrap, EmptyTitle, EmptyDesc, SkeletonBox,
-} from './rbacShared.styles';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { Button, Notice, SectionTitle, StatusPill } from '@/common/components/ui';
+import { RequireCapability, useCapability } from '@/modules/subscription';
 import { useTablets, useDeleteTablet, TABLETS_KEY } from '../hooks/useTablets';
 import { useTabletsSocket } from '../hooks/useTabletsSocket';
 import { TabletPairingModal } from './tablets/TabletPairingModal';
-import type { TabletSocketEvent } from '../tabletTypes';
-
-function formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
+import { SettingsHeaderActions } from './shared/SettingsHeaderActions';
+import { serverMessage, toastedGlobally } from './errorToast';
+import {
+    DeviceMain, DeviceRow, DeviceSide, DeviceText, EmptyState, Intro, ListCard, ListHead, ListNotice,
+    SkeletonLine, View, formatDate, tabletsWord,
+} from './devicesLayout';
+import type { Tablet } from '../tabletTypes';
 
 /**
  * Parowanie nie wygasa - kończy je dopiero odłączenie urządzenia. Zamiast daty
@@ -31,342 +44,150 @@ function lastSeenLabel(lastSeenAt: string | null): { text: string; stale: boolea
     return { text: `Widziany ${formatDate(lastSeenAt)}`, stale: true };
 }
 
-/**
- * Ustawienia → Urządzenia mobilne → Tablety do podpisu.
- *
- * Telefony (powiadomienia) i kontakty mają własne zakładki - patrz
- * [MobileDevicesSection]. Trzy różne urządzenia i trzy różne konfiguracje nie
- * mieszczą się czytelnie na jednym przewijanym ekranie.
- */
 export function TabletsSection() {
+    const signatures = useCapability('SIGNATURE_LOCAL');
+    const [pairingOpen, setPairingOpen] = useState(false);
+
     return (
-        <Block>
-            <BlockTitle>Tablety do podpisu</BlockTitle>
-            <BlockHint>
+        <View>
+            <Intro>
                 Tablet, na którym klient podpisuje protokoły przyjęcia i wydania pojazdu.
-            </BlockHint>
-            <TabletPairingPanel />
-        </Block>
+                Parowanie nie wygasa: tablet działa, dopóki go nie odłączysz.
+            </Intro>
+
+            {/* Bez modułu podpisów panel niżej jest tylko zachętą do zakupu -
+                przycisk parowania w nagłówku obiecywałby coś, czego serwer odmówi (402). */}
+            {signatures.enabled && (
+                <SettingsHeaderActions>
+                    <Button variant="primary" size="lg" onClick={() => setPairingOpen(true)}>
+                        <Plus aria-hidden="true" />Sparuj tablet
+                    </Button>
+                </SettingsHeaderActions>
+            )}
+
+            <RequireCapability
+                capability="SIGNATURE_LOCAL"
+                mode="upsell"
+                message="Tablety do podpisu wymagają modułu Podpisy elektroniczne."
+            >
+                <TabletList
+                    pairingOpen={pairingOpen}
+                    onPairingClose={() => setPairingOpen(false)}
+                    enabled={signatures.enabled}
+                />
+            </RequireCapability>
+        </View>
     );
 }
 
-/**
- * Tablet pairing only makes sense with the e-signatures module: this part
- * becomes an upsell surface without it (backend rejects pairing with 402).
- */
-function TabletPairingPanel() {
-    const { tablets, isLoading } = useTablets();
+function TabletList({ pairingOpen, onPairingClose, enabled }: {
+    pairingOpen: boolean;
+    onPairingClose: () => void;
+    enabled: boolean;
+}) {
+    const { tablets, isLoading, isError, refetch, loaded } = useTablets({ enabled });
     const deleteTablet = useDeleteTablet();
     const queryClient = useQueryClient();
-    const { showSuccess } = useToast();
-
-    const [pairingOpen, setPairingOpen] = useState(false);
-    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+    const { showSuccess, showError } = useToast();
+    const [toDelete, setToDelete] = useState<Tablet | null>(null);
 
     useTabletsSocket({
-        onPaired: (_event: TabletSocketEvent) => {
-            setPairingOpen(false);
+        onPaired: () => {
+            onPairingClose();
             queryClient.invalidateQueries({ queryKey: TABLETS_KEY });
         },
-        onRevoked: (_event: TabletSocketEvent) => {
+        onRevoked: () => {
             queryClient.invalidateQueries({ queryKey: TABLETS_KEY });
         },
     });
 
-    const handleDelete = (tabletId: string) => {
-        deleteTablet.mutate(tabletId, {
-            onSuccess: () => {
-                showSuccess('Tablet usunięty', 'Urządzenie zostało odłączone i unieważnione.');
-                setConfirmDeleteId(null);
+    const handleDelete = (tablet: Tablet) => {
+        deleteTablet.mutate(tablet.tabletId, {
+            onSuccess: () => showSuccess('Tablet odłączony', `„${tablet.deviceName}” nie przyjmie już podpisów.`),
+            onError: (error) => {
+                if (toastedGlobally(error)) return;
+                showError('Nie udało się odłączyć tabletu', serverMessage(error) ?? 'Spróbuj ponownie.');
             },
         });
     };
 
     return (
-        <RequireCapability
-            capability="SIGNATURE_LOCAL"
-            mode="upsell"
-            message="Tablety do podpisu wymagają modułu Podpisy elektroniczne."
-        >
-        <Container>
-            <Toolbar>
-                <div style={{ flex: 1 }} />
-                <AddButton onClick={() => setPairingOpen(true)}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                        <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                    Dodaj tablet
-                </AddButton>
-            </Toolbar>
+        <>
+            <ListCard aria-label="Sparowane tablety">
+                <ListHead>
+                    <SectionTitle
+                        as="h3"
+                        count={loaded ? `${tablets.length} ${tabletsWord(tablets.length)}` : undefined}
+                    >
+                        Sparowane tablety
+                    </SectionTitle>
+                </ListHead>
 
-            <StatsRow>
-                {!isLoading && (
-                    <StatText>
-                        <strong>{tablets.length}</strong> {tablets.length === 1 ? 'tablet' : 'tablety/ów'}
-                    </StatText>
-                )}
-            </StatsRow>
-
-            <Card>
-                <ListHeader>
-                    <ColLabel>Urządzenie</ColLabel>
-                    <ColLabel>Sparowano</ColLabel>
-                    <ColLabel>Stan</ColLabel>
-                    <ColLabel />
-                </ListHeader>
-
-                {isLoading ? (
-                    Array.from({ length: 3 }).map((_, i) => (
-                        <SkeletonRow key={i}>
-                            <SkeletonBox $w={`${50 + (i % 2) * 20}%`} />
-                            <SkeletonBox $w="80px" />
-                            <SkeletonBox $w="80px" />
-                            <SkeletonBox $w="60px" />
-                        </SkeletonRow>
+                {isError && !loaded ? (
+                    <ListNotice>
+                        <Notice
+                            tone="danger"
+                            role="alert"
+                            title="Nie udało się wczytać tabletów"
+                            action={<Button variant="ghost" size="sm" onClick={() => void refetch()}>Spróbuj ponownie</Button>}
+                        />
+                    </ListNotice>
+                ) : isLoading ? (
+                    Array.from({ length: 2 }).map((_, i) => (
+                        <DeviceRow key={i} aria-hidden="true">
+                            <DeviceMain><SkeletonLine $w={`${45 + i * 15}%`} /></DeviceMain>
+                            <DeviceSide><SkeletonLine $w="90px" /></DeviceSide>
+                        </DeviceRow>
                     ))
                 ) : tablets.length === 0 ? (
-                    <EmptyWrap>
-                        <TabletEmptyIcon />
-                        <EmptyTitle>Brak sparowanych tabletów</EmptyTitle>
-                        <EmptyDesc>
-                            Kliknij „Dodaj tablet", aby wygenerować kod parowania i podłączyć urządzenie.
-                        </EmptyDesc>
-                    </EmptyWrap>
+                    <EmptyState>
+                        <strong>Brak sparowanych tabletów</strong>
+                        <p>„Sparuj tablet" w nagłówku da kod, który wpiszesz na tablecie.</p>
+                    </EmptyState>
                 ) : (
                     tablets.map(tablet => {
                         const lastSeen = lastSeenLabel(tablet.lastSeenAt);
-                        const isConfirming = confirmDeleteId === tablet.tabletId;
-                        const isDeleting = deleteTablet.isPending && confirmDeleteId === tablet.tabletId;
-
+                        const deleting = deleteTablet.isPending && deleteTablet.variables === tablet.tabletId;
                         return (
-                            <Row key={tablet.tabletId}>
-                                <NameCell>
-                                    <TabletIcon />
-                                    <strong>{tablet.deviceName}</strong>
-                                </NameCell>
-                                <DateCell>{formatDate(tablet.pairedAt)}</DateCell>
-                                <div>
-                                    {lastSeen.stale
-                                        ? <Badge $variant="amber"><Dot $color="#d97706" />{lastSeen.text}</Badge>
-                                        : <Badge $variant="green"><Dot $color="#059669" />{lastSeen.text}</Badge>
-                                    }
-                                </div>
-                                <ActionsCell>
-                                    {isConfirming ? (
-                                        <ConfirmRow>
-                                            <ConfirmText>Na pewno?</ConfirmText>
-                                            <DangerSmallBtn
-                                                onClick={() => handleDelete(tablet.tabletId)}
-                                                disabled={isDeleting}
-                                            >
-                                                {isDeleting ? '...' : 'Usuń'}
-                                            </DangerSmallBtn>
-                                            <CancelSmallBtn onClick={() => setConfirmDeleteId(null)}>
-                                                Anuluj
-                                            </CancelSmallBtn>
-                                        </ConfirmRow>
-                                    ) : (
-                                        <DeleteBtn
-                                            onClick={() => setConfirmDeleteId(tablet.tabletId)}
-                                            title="Usuń tablet"
-                                        >
-                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <polyline points="3 6 5 6 21 6" />
-                                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                                                <path d="M10 11v6M14 11v6" />
-                                                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                                            </svg>
-                                            Usuń
-                                        </DeleteBtn>
-                                    )}
-                                </ActionsCell>
-                            </Row>
+                            <DeviceRow key={tablet.tabletId}>
+                                <DeviceMain>
+                                    <TabletSmartphone aria-hidden="true" />
+                                    <DeviceText>
+                                        <strong>{tablet.deviceName}</strong>
+                                        <span>Sparowano {formatDate(tablet.pairedAt)}</span>
+                                    </DeviceText>
+                                </DeviceMain>
+                                <DeviceSide>
+                                    <StatusPill $tone={lastSeen.stale ? 'warn' : 'ok'}>{lastSeen.text}</StatusPill>
+                                    <Button
+                                        variant="danger"
+                                        size="sm"
+                                        disabled={deleting}
+                                        onClick={() => setToDelete(tablet)}
+                                    >
+                                        {deleting ? 'Odłączanie…' : 'Odłącz'}
+                                    </Button>
+                                </DeviceSide>
+                            </DeviceRow>
                         );
                     })
                 )}
-            </Card>
+            </ListCard>
 
-            {pairingOpen && (
-                <TabletPairingModal onClose={() => setPairingOpen(false)} />
-            )}
-        </Container>
-        </RequireCapability>
+            {pairingOpen && <TabletPairingModal onClose={onPairingClose} />}
+
+            <ConfirmationModal
+                isOpen={toDelete !== null}
+                title="Odłączyć tablet?"
+                message={toDelete
+                    ? `„${toDelete.deviceName}” przestanie przyjmować podpisy klientów. Żeby znowu go użyć, trzeba go sparować od nowa kodem.`
+                    : ''}
+                variant="danger"
+                confirmText="Odłącz tablet"
+                cancelText="Anuluj"
+                onConfirm={() => { if (toDelete) handleDelete(toDelete); }}
+                onCancel={() => setToDelete(null)}
+            />
+        </>
     );
 }
-
-// ─── Styled: układ sekcji ────────────────────────────────────────────────────
-
-const Block = styled.section`
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-`;
-
-const BlockTitle = styled.h3`
-    margin: 0;
-    font-size: 15px;
-    font-weight: 700;
-    color: #0f172a;
-`;
-
-const BlockHint = styled.p`
-    margin: 0 0 12px;
-    font-size: 13px;
-    line-height: 1.55;
-    color: #64748b;
-    max-width: 68ch;
-`;
-
-// ─── Icons ───────────────────────────────────────────────────────────────────
-
-function TabletIcon() {
-    return (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0284c7" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
-            <line x1="12" y1="18" x2="12.01" y2="18" />
-        </svg>
-    );
-}
-
-function TabletEmptyIcon() {
-    return (
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#e2e8f0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
-            <line x1="12" y1="18" x2="12.01" y2="18" />
-        </svg>
-    );
-}
-
-// ─── Styled ───────────────────────────────────────────────────────────────────
-
-const GRID = '1fr 130px 180px 160px';
-
-const ListHeader = styled.div`
-    display: grid;
-    grid-template-columns: ${GRID};
-    gap: 12px;
-    padding: 10px 20px;
-    border-bottom: 1px solid #f1f5f9;
-    background: #fafbfc;
-
-    /* Wiersze są na telefonie kafelkami - nagłówek kolumn nie ma czego opisywać. */
-    @media (max-width: 900px) { display: none; }
-`;
-
-const SkeletonRow = styled.div`
-    display: grid;
-    grid-template-columns: ${GRID};
-    gap: 12px;
-    align-items: center;
-    padding: 16px 20px;
-    border-bottom: 1px solid #f1f5f9;
-    &:last-child { border-bottom: none; }
-
-    @media (max-width: 900px) {
-        grid-template-columns: minmax(0, 1fr) 120px;
-        padding: 14px;
-    }
-`;
-
-const Row = styled.div`
-    display: grid;
-    grid-template-columns: ${GRID};
-    gap: 12px;
-    align-items: center;
-    padding: 12px 20px;
-    border-bottom: 1px solid #f1f5f9;
-    &:last-child { border-bottom: none; }
-
-    /* Na telefonie urządzenie czyta się jako kafelka: nazwa i status w pierwszym
-       rzędzie, data parowania niżej, akcje na końcu. */
-    @media (max-width: 900px) {
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 8px 10px;
-        padding: 12px 14px;
-        align-items: start;
-
-        > :nth-child(1) { grid-column: 1; grid-row: 1; }
-        > :nth-child(3) { grid-column: 2; grid-row: 1; justify-self: end; }
-        > :nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
-        > :nth-child(4) { grid-column: 1 / -1; grid-row: 3; justify-content: flex-start; }
-    }
-`;
-
-const NameCell = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-width: 0;
-    strong { font-size: 13px; font-weight: 600; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-`;
-
-const DateCell = styled.div`
-    font-size: 12px;
-    color: #475569;
-`;
-
-const ActionsCell = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-`;
-
-const DeleteBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 5px 11px;
-    font-size: 12px;
-    font-weight: 500;
-    background: white;
-    color: #64748b;
-    border: 1px solid #e2e8f0;
-    border-radius: 7px;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all 150ms;
-
-    &:hover { background: rgba(239,68,68,0.05); border-color: rgba(239,68,68,0.3); color: #dc2626; }
-`;
-
-const ConfirmRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-`;
-
-const ConfirmText = styled.span`
-    font-size: 11px;
-    font-weight: 600;
-    color: #64748b;
-    white-space: nowrap;
-`;
-
-const DangerSmallBtn = styled.button`
-    padding: 4px 10px;
-    font-size: 11px;
-    font-weight: 700;
-    background: #ef4444;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-family: inherit;
-    transition: opacity 150ms;
-    &:hover:not(:disabled) { opacity: 0.85; }
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
-`;
-
-const CancelSmallBtn = styled.button`
-    padding: 4px 10px;
-    font-size: 11px;
-    font-weight: 500;
-    background: white;
-    color: #334155;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    cursor: pointer;
-    font-family: inherit;
-    transition: background 150ms;
-    &:hover { background: #f8fafc; }
-`;

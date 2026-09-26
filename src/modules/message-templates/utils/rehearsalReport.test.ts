@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasContent, summarizeReport } from './rehearsalReport';
+import { hasContent, sendConfirmMessage, sendPlan, summarizeReport } from './rehearsalReport';
 import type { RehearsalItem, RehearsalReport } from '../types';
 
 const sms = (kind: string, over: Partial<RehearsalItem> = {}): RehearsalItem => ({
@@ -48,12 +48,12 @@ describe('summarizeReport', () => {
     expect(s.problems).toEqual([
       {
         key: 'SMS-SMS_PRE_VISIT',
-        label: 'SMS · Przypomnienie przed wizytą',
+        label: 'Przypomnienie przed wizytą (SMS)',
         detail: 'W treści są niesparowane nawiasy klamrowe („{{imie”) - sprawdź, czy każda zmienna wygląda dokładnie tak: {{nazwa}}.',
       },
       {
         key: 'EMAIL-EMAIL_VISIT_WELCOME',
-        label: 'E-mail · Potwierdzenie przyjęcia pojazdu',
+        label: 'Potwierdzenie przyjęcia pojazdu (E-mail)',
         detail: 'W treści jest fragment kodu HTML („<b>”), który klient zobaczyłby dosłownie - usuń go z szablonu.',
       },
     ]);
@@ -108,12 +108,32 @@ describe('summarizeReport', () => {
     expect(s.tone).toBe('warn');
     expect(s.headline).toContain('Wysłano 1 z 2 wiadomości');
     expect(s.problems).toEqual([
-      { key: 'SMS-SMS_UPSELL_CONSENT', label: 'SMS · Zgoda na dodanie usług', detail: 'Brak kredytów SMS' },
+      { key: 'SMS-SMS_UPSELL_CONSENT', label: 'Zgoda na dodanie usług (SMS)', detail: 'Brak kredytów SMS' },
     ]);
   });
 
   it('errors take precedence over a sent flag, so a stale report never reads as delivered', () => {
     const r = report([sms('A', { findings: [{ severity: 'ERROR', rule: 'x', detail: '' }] })], { sent: true });
     expect(summarizeReport(r).tone).toBe('error');
+  });
+});
+
+describe('sendConfirmMessage', () => {
+  it('names the real count per channel and both addresses', () => {
+    const r = report([
+      sms('SMS_PRE_VISIT'),
+      sms('SMS_UPSELL_CONSENT'),
+      sms('SMS_DELAYED_REMINDER', { segments: null, body: '' }),
+      email('EMAIL_VISIT_WELCOME'),
+    ]);
+    expect(sendPlan(r)).toEqual({ sms: 2, email: 1 });
+    expect(sendConfirmMessage(sendPlan(r), '+48500100200', 'owner@studio.pl')).toBe(
+      'To prawdziwa wysyłka: 3 wiadomości, 2 SMS-y na +48500100200 i 1 e-mail na owner@studio.pl. SMS-y zużyją kredyty jak zwykła wysyłka.'
+    );
+  });
+
+  it('uses Polish plurals and skips a channel with nothing to send', () => {
+    expect(sendConfirmMessage({ sms: 0, email: 5 }, 'x', 'a@b.pl')).toBe('To prawdziwa wysyłka: 5 wiadomości, 5 e-maili na a@b.pl.');
+    expect(sendConfirmMessage({ sms: 1, email: 0 }, '500', 'a@b.pl')).toContain('1 wiadomość, 1 SMS na 500.');
   });
 });

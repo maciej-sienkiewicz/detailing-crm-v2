@@ -3,9 +3,11 @@ import styled, { css } from 'styled-components';
 import { AlertTriangle, Send, ShieldCheck } from 'lucide-react';
 import { FormField, FieldLabel, InputShell, BareInput } from '@/common/components/Form';
 import { Toggle } from '@/common/components/Toggle';
-import { SharedButton } from '@/common/styles';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { useSettingsDirty } from '@/modules/settings/components/shared/settingsChrome';
+import { Button, Panel, ui } from '@/common/components/ui';
 import type { RehearsalReport } from '../types';
-import { summarizeReport } from '../utils/rehearsalReport';
+import { sendConfirmMessage, sendPlan, summarizeReport, type SendPlan } from '../utils/rehearsalReport';
 import {
   useCommunicationRedirect,
   usePlanRehearsal,
@@ -25,15 +27,14 @@ import {
  * z przykładowymi danymi na te same dane. Działa tylko przy włączonym przekierowaniu.
  */
 
-const Card = styled.section<{ $active: boolean }>`
-  border: 1px solid ${p => (p.$active ? '#fcd34d' : p.theme.colors.border)};
-  border-radius: 14px;
-  background: ${p => p.theme.colors.surface};
+/*
+ * Płaski panel, nie karta: jedyną wyniesioną powierzchnią tej sekcji jest tabela
+ * szablonów (CLAUDE.md §2, „wyniesienie"). Stan włączony niesie odcień - bursztynową
+ * obwódkę i tło nagłówka - bo odcień to znaczenie („przeczytaj"), a nie cień.
+ */
+const Card = styled(Panel)<{ $active: boolean }>`
   overflow: hidden;
-
-  ${p => p.$active && css`
-    box-shadow: 0 1px 3px rgba(180, 83, 9, 0.08), 0 6px 20px rgba(180, 83, 9, 0.06);
-  `}
+  ${p => p.$active && css`border-color: ${ui.warnLine};`}
 `;
 
 const Head = styled.header<{ $active: boolean }>`
@@ -41,21 +42,21 @@ const Head = styled.header<{ $active: boolean }>`
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  background: ${p => (p.$active ? '#fffbeb' : p.theme.colors.surface)};
+  background: ${p => (p.$active ? ui.warnTint : 'transparent')};
 `;
 
 const IconWrap = styled.div<{ $active: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
   border-radius: 10px;
-  background: ${p => (p.$active ? 'rgba(217, 119, 6, 0.12)' : 'rgba(14, 165, 233, 0.1)')};
-  color: ${p => (p.$active ? '#b45309' : p.theme.colors.primary)};
+  background: ${p => (p.$active ? 'rgba(217, 119, 6, 0.12)' : ui.brandTint)};
+  color: ${p => (p.$active ? '#b45309' : ui.brandInk)};
 
-  svg { width: 18px; height: 18px; }
+  svg { width: 17px; height: 17px; }
 `;
 
 const Titles = styled.div`
@@ -79,7 +80,7 @@ const Titles = styled.div`
   strong { color: #b45309; }
 `;
 
-const Panel = styled.div`
+const Body = styled.div`
   border-top: 1px solid ${p => p.theme.colors.border};
   padding: 16px;
   display: flex;
@@ -138,7 +139,7 @@ const Report = styled.div`
 `;
 
 /**
- * Nazwa wiadomości, do której odnosi się problem ("SMS · Podziękowanie po wizycie").
+ * Nazwa wiadomości, do której odnosi się problem („Podziękowanie po wizycie (SMS)").
  * To jest zwykła nazwa z ekranu szablonów, nie kod - stąd zwykły pogrubiony tekst
  * zamiast czcionki maszynowej, którą tu miał kiedyś surowy identyfikator backendu.
  */
@@ -182,12 +183,18 @@ export const RedirectCard: React.FC = () => {
   const [emailDraft, setEmailDraft] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ error: boolean; msg: string } | null>(null);
   const [report, setReport] = useState<RehearsalReport | null>(null);
+  // Pytanie przed próbą generalną: `plan` to wynik suchego przebiegu (ile naprawdę
+  // wyjdzie), null w `plan` = serwer nie powiedział, zdanie mówi wtedy ogólniej.
+  const [confirmRun, setConfirmRun] = useState<{ plan: SendPlan | null } | null>(null);
 
   const enabled = settings?.enabled ?? false;
   const phone = phoneDraft ?? settings?.phone ?? '';
   const email = emailDraft ?? settings?.email ?? '';
   const dirty = phone.trim() !== (settings?.phone ?? '') || email.trim() !== (settings?.email ?? '');
   const canEnable = phone.trim().length > 0 && email.trim().length > 0;
+  // Wpisany, niezapisany numer ginął bez słowa przy przejściu do innej sekcji -
+  // rama ustawień pyta teraz przed wyjściem.
+  useSettingsDirty(dirty);
 
   const flash = (error: boolean, msg: string) => {
     setFeedback({ error, msg });
@@ -231,6 +238,27 @@ export const RedirectCard: React.FC = () => {
     }
   };
 
+  /*
+   * „Wyślij wszystkie testowo" wysyłało od razu po kliknięciu: kilkanaście prawdziwych
+   * SMS-ów (z kredytów studia) i e-maili, bez odwrotu. Teraz najpierw suchy przebieg
+   * (ten sam, co „Sprawdź szablony"): przy błędach i tak nic by nie wyszło, więc
+   * pokazujemy raport zamiast pytać; bez błędów pytamy, podając liczbę i adresy.
+   */
+  const askRun = async () => {
+    let planned: RehearsalReport | undefined;
+    try {
+      planned = await planMutation.mutateAsync();
+    } catch (e) {
+      flash(true, errorMessage(e, 'Nie udało się sprawdzić szablonów.'));
+      return;
+    }
+    if (planned && planned.errorCount > 0) {
+      setReport(planned);
+      return;
+    }
+    setConfirmRun({ plan: planned ? sendPlan(planned) : null });
+  };
+
   const handleRun = async () => {
     try {
       setReport(await runMutation.mutateAsync());
@@ -270,7 +298,7 @@ export const RedirectCard: React.FC = () => {
         />
       </Head>
 
-      <Panel>
+      <Body>
         <Fields>
           <Field>
             <FieldLabel htmlFor="redirect-phone">Telefon na SMS-y</FieldLabel>
@@ -302,15 +330,16 @@ export const RedirectCard: React.FC = () => {
             </InputShell>
           </Field>
 
-          <SharedButton
-            type="button"
-            $variant="primary"
-            $size="sm"
+          {/* Odcień bez wypełnienia: jedynym wypełnionym przyciskiem sekcji jest
+              „Zapisz zmiany" w pasku szablonów (CLAUDE.md §2). */}
+          <Button
+            variant="tinted"
+            size="md"
             disabled={!dirty || busy || (enabled && !canEnable)}
             onClick={() => void save(enabled)}
           >
             {updateMutation.isPending ? 'Zapisywanie…' : 'Zapisz dane'}
-          </SharedButton>
+          </Button>
         </Fields>
 
         <HelperText>
@@ -325,24 +354,34 @@ export const RedirectCard: React.FC = () => {
             Próba generalna: wysyła wszystkie szablony z przykładowymi danymi (Jan Kowalski, Audi RS6, jutro 10:00)
             na powyższe dane. Wymaga włączonego przekierowania; jeśli którykolwiek szablon ma błąd, nie wychodzi nic.
           </span>
-          <SharedButton type="button" $variant="secondary" $size="sm" disabled={busy} onClick={handlePlan}>
-            {planMutation.isPending ? 'Sprawdzanie…' : 'Sprawdź szablony'}
-          </SharedButton>
-          <SharedButton
-            type="button"
-            $variant="primary"
-            $size="sm"
+          <Button variant="outline" size="sm" disabled={busy} onClick={handlePlan}>
+            {planMutation.isPending && !confirmRun ? 'Sprawdzanie…' : 'Sprawdź szablony'}
+          </Button>
+          <Button
+            variant="tinted"
+            size="sm"
             disabled={busy || !enabled}
             title={enabled ? undefined : 'Włącz najpierw przekierowanie'}
-            onClick={handleRun}
+            onClick={() => void askRun()}
           >
-            <Send size={14} aria-hidden="true" />
+            <Send aria-hidden="true" />
             {runMutation.isPending ? 'Wysyłanie…' : 'Wyślij wszystkie testowo'}
-          </SharedButton>
+          </Button>
         </RehearsalRow>
 
         {report && <Report role="status">{describeReport(report)}</Report>}
-      </Panel>
+      </Body>
+
+      <ConfirmationModal
+        isOpen={confirmRun !== null}
+        title="Wysłać wszystkie szablony testowo?"
+        message={sendConfirmMessage(confirmRun?.plan ?? null, settings?.phone ?? phone, settings?.email ?? email)}
+        variant="warning"
+        confirmText="Wyślij testowo"
+        cancelText="Anuluj"
+        onConfirm={() => void handleRun()}
+        onCancel={() => setConfirmRun(null)}
+      />
     </Card>
   );
 };

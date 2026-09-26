@@ -1,6 +1,6 @@
 // src/modules/push/components/PushNotificationsPanel.tsx
 //
-// „Powiadomienia" w Ustawieniach → Urządzenia mobilne.
+// „Powiadomienia" w Ustawieniach → Tablety, telefon, kontakty.
 //
 // Powiadomienie ma zabuczeć w kieszeni, więc włącza się je NA TYM urządzeniu,
 // które ma je pokazywać - przeglądarka pyta o zgodę tylko dla siebie.
@@ -11,11 +11,16 @@
 // którego nie da się zeskanować własnym ekranem - funkcja była nieosiągalna.
 // Teraz przycisk parowania jest ZAWSZE, gdy przeglądarka obsługuje push, a kod QR
 // pojawia się tylko tam, gdzie ma sens: na komputerze, jako droga na telefon.
+//
+// Części panelu nazywały etykiety 11 px wersalikami w szarości - jedyna rama
+// każdej części (CLAUDE.md §2, wycofane). Teraz: „To urządzenie" leży na jedynej
+// wyniesionej powierzchni (to tu się coś robi), kod QR i lista urządzeń płasko.
 
 import { useState } from 'react';
 import styled from 'styled-components';
 import { QRCodeSVG } from 'qrcode.react';
 import { useToast } from '@/common/components/Toast';
+import { Button, Card, Panel, SectionTitle, ui } from '@/common/components/ui';
 import { usePushDevice } from '../hooks/usePushDevice';
 import { isMobileDevice } from '../utils/webPush';
 import { PushNotificationWizard } from './PushNotificationWizard';
@@ -47,7 +52,7 @@ export function PushNotificationsPanel() {
     return (
         <Wrap>
             <PairingBlock>
-                <BlockLabel>To urządzenie</BlockLabel>
+                <SectionTitle as="h3">To urządzenie</SectionTitle>
                 <PushNotificationWizard push={push} />
                 {!onPhone && !push.isSubscribedHere && push.support === 'supported' && (
                     <DesktopNote>
@@ -61,7 +66,7 @@ export function PushNotificationsPanel() {
                 dla komputera, jako sposób przeniesienia się na telefon. */}
             {!onPhone && (
                 <PhoneBlock>
-                    <BlockLabel>Twój telefon</BlockLabel>
+                    <SectionTitle as="h3">Twój telefon</SectionTitle>
                     <Layout>
                         <QrPanel>
                             <QrBox>
@@ -87,13 +92,15 @@ export function PushNotificationsPanel() {
                                 <li>Dotknij <strong>„Włącz powiadomienia"</strong> i zezwól, gdy telefon zapyta.</li>
                                 <li>
                                     To samo zrobisz w aplikacji na telefonie:
-                                    {' '}<strong>Ustawienia → Urządzenia mobilne → Powiadomienia</strong>.
+                                    {' '}<strong>Ustawienia → Tablety, telefon, kontakty → Powiadomienia</strong>.
                                 </li>
                             </StepList>
 
-                            <CopyLinkBtn type="button" onClick={handleCopyLink}>
-                                {copied ? 'Skopiowano link' : 'Skopiuj link dla telefonu'}
-                            </CopyLinkBtn>
+                            <CopyRow>
+                                <Button variant="outline" size="sm" onClick={handleCopyLink}>
+                                    {copied ? 'Skopiowano link' : 'Skopiuj link dla telefonu'}
+                                </Button>
+                            </CopyRow>
                         </Steps>
                     </Layout>
                 </PhoneBlock>
@@ -101,7 +108,7 @@ export function PushNotificationsPanel() {
 
             {push.devices.length > 0 && (
                 <DevicesBlock>
-                    <BlockLabel>Sparowane urządzenia</BlockLabel>
+                    <SectionTitle as="h3" count={String(push.devices.length)}>Sparowane urządzenia</SectionTitle>
                     {/* Komunikat o odłączeniu pokazuje sama lista - inaczej byłyby dwa. */}
                     <PushDeviceList devices={push.devices} onRevoke={push.revokeDevice} />
                 </DevicesBlock>
@@ -115,44 +122,37 @@ export function PushNotificationsPanel() {
 const Wrap = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 16px;
 `;
 
-const PairingBlock = styled.section`
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-`;
-
-const PhoneBlock = styled.section`
+const PairingBlock = styled(Card)`
     display: flex;
     flex-direction: column;
     gap: 12px;
-    padding-top: 20px;
-    border-top: 1px solid #f1f5f9;
+    padding: 18px 20px 20px;
+
+    @media (max-width: 767px) { padding: 16px; }
+`;
+
+const PhoneBlock = styled(Panel)`
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 20px;
+
+    @media (max-width: 767px) { padding: 16px; }
 `;
 
 const DevicesBlock = styled.section`
     display: flex;
     flex-direction: column;
     gap: 10px;
-    padding-top: 20px;
-    border-top: 1px solid #f1f5f9;
-`;
-
-// Nazwa sekcji pismem tekstowym, nie 11 px wersalikami w szarości - te jako jedyna
-// rama sekcji są wycofane (CLAUDE.md §2).
-const BlockLabel = styled.h4`
-    margin: 0;
-    font-size: 14.5px;
-    font-weight: 700;
-    color: #0f172a;
 `;
 
 const DesktopNote = styled.p`
     margin: 0;
-    font-size: 12.5px;
-    color: #94a3b8;
+    font-size: 13px;
+    color: ${ui.textMuted};
     line-height: 1.55;
     max-width: 68ch;
 `;
@@ -187,7 +187,7 @@ const QrLabel = styled.span`
 
 const Steps = styled.div`
     flex: 1;
-    min-width: 260px;
+    min-width: min(260px, 100%);
 `;
 
 const StepList = styled.ol`
@@ -203,17 +203,6 @@ const StepList = styled.ol`
     strong { color: #0f172a; }
 `;
 
-const CopyLinkBtn = styled.button`
+const CopyRow = styled.div`
     margin-top: 14px;
-    padding: 8px 14px;
-    background: white;
-    color: #334155;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    font-family: inherit;
-    font-size: 12.5px;
-    font-weight: 600;
-    cursor: pointer;
-
-    &:hover { background: #f8fafc; }
 `;

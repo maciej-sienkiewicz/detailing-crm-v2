@@ -10,201 +10,137 @@
 // co dokładnie automat robi, czego NIE ruszy (poczta sprzed włączenia) i że jego
 // decyzja jest odwracalna jednym kliknięciem w skrzynce.
 
-import { useState } from 'react';
-import styled, { keyframes } from 'styled-components';
+import { useRef, useState } from 'react';
+import styled from 'styled-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/common/components/Toast';
+import { Button, Card, Notice, Panel, SectionTitle, ui } from '@/common/components/ui';
 import { leadsSettingsApi } from '../api/leadsSettingsApi';
 import type { AutoLeadConfig, LeadAlertConfig } from '../types';
+import { UnsavedChangesBanner } from './shared/SettingsLayout';
+import { SettingSwitchRow } from './SettingSwitchRow';
+import { serverMessage, toastedGlobally } from './errorToast';
+import { MAX_HOURS, MIN_HOURS, hoursInDays, normalizeHours, parseHours, sanitizeHours } from './leads/hoursField';
 
 const AUTO_LEAD_CONFIG_QUERY_KEY = ['settings', 'auto-lead-config'] as const;
 const LEAD_ALERT_CONFIG_QUERY_KEY = ['settings', 'lead-alert-config'] as const;
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
 
-const spin = keyframes`from { transform: rotate(0deg); } to { transform: rotate(360deg); }`;
-
-const Spinner = styled.div`
-    width: 20px;
-    height: 20px;
-    border: 2px solid #e2e8f0;
-    border-top-color: #0ea5e9;
-    border-radius: 50%;
-    animation: ${spin} 700ms linear infinite;
-    margin: 60px auto;
-`;
-
-/** Dwie karty jedna pod drugą - ten sam odstęp, co między sekcjami ustawień. */
 const Stack = styled.div`
     display: flex;
     flex-direction: column;
     gap: 20px;
 `;
 
-const Card = styled.div`
-    background: white;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.lg};
-    padding: 24px 28px;
+/* Automat to temat sekcji - jedyna wyniesiona powierzchnia (CLAUDE.md §2).
+   Progi leżą pod nim płasko. */
+const AutoCard = styled(Card)`
+    padding: 20px 24px;
+
+    @media (max-width: 767px) { padding: 16px; }
 `;
 
-const CardTitle = styled.h3`
-    font-size: 15px;
-    font-weight: 700;
-    color: ${p => p.theme.colors.text};
-    margin: 0 0 6px;
+const FlatPanel = styled(Panel)`
+    padding: 18px 24px 6px;
+
+    @media (max-width: 767px) { padding: 16px 16px 4px; }
 `;
 
-const CardDescription = styled.p`
-    font-size: 13px;
-    color: ${p => p.theme.colors.textSecondary};
-    margin: 0 0 20px;
-    line-height: 1.5;
-    max-width: 640px;
-`;
-
-const OptionRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 16px 0;
-    border-top: 1px solid ${p => p.theme.colors.border};
-`;
-
-const OptionTexts = styled.div`
-    flex: 1;
-    min-width: 0;
-`;
-
-const OptionLabel = styled.div`
-    font-size: 14px;
-    font-weight: 600;
-    color: ${p => p.theme.colors.text};
-`;
-
-const OptionHint = styled.div`
-    font-size: 12.5px;
-    color: ${p => p.theme.colors.textSecondary};
-    margin-top: 2px;
-    line-height: 1.45;
-`;
-
-const ToggleTrack = styled.button<{ $on: boolean }>`
-    position: relative;
-    width: 42px;
-    height: 24px;
-    flex-shrink: 0;
-    border: none;
-    border-radius: 9999px;
-    background: ${p => (p.$on ? '#0ea5e9' : '#cbd5e1')};
-    cursor: pointer;
-    transition: background 180ms ease;
-
-    &::after {
-        content: '';
-        position: absolute;
-        top: 3px;
-        left: ${p => (p.$on ? '21px' : '3px')};
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        background: white;
-        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.25);
-        transition: left 180ms ease;
-    }
-
-    &:disabled {
-        cursor: not-allowed;
-    }
+const Lead = styled.p`
+    margin: 6px 0 4px;
+    max-width: 68ch;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: ${ui.textSecondary};
 `;
 
 const Details = styled.div`
-    border-top: 1px solid ${p => p.theme.colors.border};
-    padding-top: 18px;
-    margin-top: 4px;
+    border-top: 1px solid ${ui.lineFaint};
+    padding-top: 16px;
 `;
 
-const DetailsTitle = styled.div`
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: ${p => p.theme.colors.textSecondary};
-    margin-bottom: 10px;
+const DetailsTitle = styled.h3`
+    margin: 0 0 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: ${ui.ink};
 `;
 
 const DetailsList = styled.ul`
     margin: 0;
     padding-left: 18px;
-    max-width: 640px;
+    max-width: 68ch;
 
     li {
-        font-size: 12.5px;
+        font-size: 13px;
         line-height: 1.6;
-        color: ${p => p.theme.colors.textSecondary};
+        color: ${ui.textSecondary};
 
-        & + li {
-            margin-top: 6px;
-        }
+        & + li { margin-top: 6px; }
     }
 `;
 
-/** Pole liczbowe z jednostką w środku - „24 godz." czyta się jak zdanie, nie jak formularz. */
-const HoursField = styled.label`
+const ActiveSince = styled.p`
+    margin: 14px 0 0;
+    font-size: 13px;
+    color: ${ui.textSecondary};
+`;
+
+const Loading = styled.p`
+    margin: 0;
+    padding: 18px 0;
+    font-size: 13px;
+    color: ${ui.textMuted};
+`;
+
+const ThresholdRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 0;
+    border-top: 1px solid ${ui.lineFaint};
+
+    @media (max-width: 767px) { flex-wrap: wrap; gap: 10px; }
+`;
+
+const ThresholdTexts = styled.div`
+    flex: 1;
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+
+    label { font-size: 14px; font-weight: 600; color: ${ui.ink}; }
+    p { margin: 0; font-size: 13px; line-height: 1.5; color: ${ui.textSecondary}; max-width: 68ch; }
+`;
+
+/** Pole liczbowe z jednostką obok - „24 godz." czyta się jak zdanie, nie jak formularz. */
+const HoursField = styled.div<{ $invalid: boolean }>`
     display: flex;
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
 
     input {
-        width: 68px;
-        padding: 7px 10px;
-        border: 1px solid ${p => p.theme.colors.border};
-        border-radius: ${p => p.theme.radii.md};
+        width: 76px;
+        height: 40px;
+        padding: 0 10px;
+        border: 1px solid ${p => (p.$invalid ? ui.dangerInk : ui.line)};
+        border-radius: 10px;
         font-family: inherit;
-        font-size: 14px;
+        font-size: 16px;
         text-align: right;
-        color: ${p => p.theme.colors.text};
-        background: ${p => p.theme.colors.surface};
+        color: ${ui.ink};
+        background: ${ui.surface};
         font-variant-numeric: tabular-nums;
 
-        &:focus { outline: none; border-color: ${p => p.theme.colors.primary}; }
+        &:focus { outline: none; border-color: ${ui.focusRing}; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12); }
         &:disabled { opacity: 0.6; }
+        @media (min-width: 768px) { font-size: 14px; }
     }
 
-    span {
-        font-size: 13px;
-        color: ${p => p.theme.colors.textSecondary};
-    }
-`;
-
-const SaveRow = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 12px;
-    padding-top: 16px;
-    border-top: 1px solid ${p => p.theme.colors.border};
-`;
-
-const SaveButton = styled.button`
-    padding: 9px 18px;
-    border: none;
-    border-radius: ${p => p.theme.radii.md};
-    background: ${p => p.theme.colors.primary};
-    color: #ffffff;
-    font-family: inherit;
-    font-size: 13.5px;
-    font-weight: ${p => p.theme.fontWeights.semibold};
-    cursor: pointer;
-
-    &:disabled { opacity: 0.5; cursor: default; }
-`;
-
-const ActiveSince = styled.div`
-    margin-top: 14px;
-    font-size: 12.5px;
-    color: ${p => p.theme.colors.textSecondary};
+    span { font-size: 13px; color: ${ui.textSecondary}; }
 `;
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -216,6 +152,28 @@ const formatMoment = (iso: string | null): string | null => {
         ? null
         : date.toLocaleString('pl-PL', { dateStyle: 'long', timeStyle: 'short' });
 };
+
+type ThresholdKey = keyof LeadAlertConfig;
+
+const THRESHOLDS: Array<{ key: ThresholdKey; label: string; hint: (days: string) => string }> = [
+    {
+        key: 'leadStagnantOurThresholdHours',
+        label: 'Po ilu godzinach brak odpowiedzi jest zaległością',
+        hint: days => `Po tym czasie wiek sprawy w sekcji „Czeka na nas” zapala się na czerwono. Teraz: ${days}.`,
+    },
+    {
+        key: 'leadStagnantClientThresholdHours',
+        label: 'Po ilu godzinach cisza klienta to rozmowa bez odzewu',
+        hint: days => `Po tym czasie sprawa przechodzi z „U klienta” do sekcji „Ucichło”. Teraz: ${days}.`,
+    },
+];
+
+type HoursDraft = Record<ThresholdKey, string>;
+
+const toDraft = (config: LeadAlertConfig): HoursDraft => ({
+    leadStagnantOurThresholdHours: String(config.leadStagnantOurThresholdHours),
+    leadStagnantClientThresholdHours: String(config.leadStagnantClientThresholdHours),
+});
 
 /**
  * Progi stygnięcia sprawy.
@@ -229,126 +187,143 @@ const formatMoment = (iso: string | null): string | null => {
  * Jednostką są godziny, także przy ciszy klienta - przeliczanie dni na godziny
  * przy zapisie i z powrotem przy odczycie dawałoby pole, które po zapisaniu „5 dni"
  * pokazuje „4,96". Podpowiedź pod polem tłumaczy liczbę na dni.
+ *
+ * Zapis idzie przez wspólny pasek niezapisanych zmian (jak w każdej sekcji z jawnym
+ * zapisem): własny wypełniony „Zapisz progi" był drugim wypełnionym przyciskiem
+ * na ekranie, a przejście do innej sekcji po cichu gubiło wpisane liczby.
  */
-const StagnationCard = () => {
+const StagnationPanel = () => {
     const { showSuccess, showError } = useToast();
     const queryClient = useQueryClient();
+    const inputs = useRef<Partial<Record<ThresholdKey, HTMLInputElement | null>>>({});
 
-    const { data, isPending } = useQuery({
+    const { data, isPending, isError, refetch } = useQuery({
         queryKey: LEAD_ALERT_CONFIG_QUERY_KEY,
         queryFn: leadsSettingsApi.getAlertConfig,
     });
 
-    const [draft, setDraft] = useState<LeadAlertConfig | null>(null);
-    const current = draft ?? data ?? null;
+    const [draft, setDraft] = useState<HoursDraft | null>(null);
 
     const save = useMutation({
         mutationFn: (config: LeadAlertConfig) => leadsSettingsApi.updateAlertConfig(config),
         onSuccess: (saved) => {
             queryClient.setQueryData(LEAD_ALERT_CONFIG_QUERY_KEY, saved);
             setDraft(null);
-            showSuccess('Progi zapisane');
+            showSuccess('Progi zapisane', 'Kolejka zapytań dzieli się już według nowych progów.');
         },
-        onError: () => showError('Nie udało się zapisać progów'),
+        onError: (error) => {
+            if (toastedGlobally(error)) return;
+            showError('Nie udało się zapisać progów', serverMessage(error) ?? 'Spróbuj ponownie. Wpisane liczby czekają w pasku zapisu.');
+        },
     });
 
-    /** Zakres pilnuje backend (1–720 h); tu tylko nie wypuszczamy wartości, których nie przyjmie. */
-    const clamp = (value: number) => Math.min(720, Math.max(1, Math.round(value) || 1));
-    const dirty = Boolean(draft && data &&
-        (draft.leadStagnantOurThresholdHours !== data.leadStagnantOurThresholdHours ||
-         draft.leadStagnantClientThresholdHours !== data.leadStagnantClientThresholdHours));
+    const current: HoursDraft | null = draft ?? (data ? toDraft(data) : null);
+    const invalid = current ? THRESHOLDS.filter(t => parseHours(current[t.key]) === null) : [];
+    const changed = current && data
+        ? THRESHOLDS.filter(t => current[t.key] !== String(data[t.key])).length
+        : 0;
+    const dirty = changed > 0;
 
-    const inDays = (hours: number) => {
-        const days = hours / 24;
-        if (days < 1) return `${hours} godz.`;
-        return Number.isInteger(days) ? `${days} dni` : `${days.toFixed(1)} dnia`;
+    const setField = (key: ThresholdKey, text: string) => {
+        if (!current) return;
+        setDraft({ ...current, [key]: sanitizeHours(text) });
+    };
+
+    const blurField = (key: ThresholdKey) => {
+        if (!current || !data) return;
+        const normalized = normalizeHours(current[key], data[key]);
+        if (normalized !== current[key]) setDraft({ ...current, [key]: normalized });
+    };
+
+    const submit = () => {
+        if (!current || invalid.length > 0) return;
+        save.mutate({
+            leadStagnantOurThresholdHours: parseHours(current.leadStagnantOurThresholdHours)!,
+            leadStagnantClientThresholdHours: parseHours(current.leadStagnantClientThresholdHours)!,
+        });
+    };
+
+    const showProblem = () => {
+        const first = invalid[0];
+        const el = first ? inputs.current[first.key] : null;
+        el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        el?.focus();
     };
 
     return (
-        <Card>
-            <CardTitle>Progi czasu w kolejce</CardTitle>
-            <CardDescription>
+        <FlatPanel>
+            <SectionTitle as="h3">Progi czasu w kolejce</SectionTitle>
+            <Lead>
                 Te dwie liczby dzielą kolejkę zapytań na sekcje i decydują o tym, kiedy wiek
                 sprawy zapala się na czerwono. Jednej dobrej wartości nie ma: inaczej wygląda
                 to przy myciu, inaczej przy powłoce ceramicznej.
-            </CardDescription>
+            </Lead>
 
-            {isPending || !current ? (
-                <Spinner />
+            {isError && !data ? (
+                <ThresholdRow>
+                    <Notice
+                        tone="danger"
+                        role="alert"
+                        title="Nie udało się wczytać progów"
+                        action={<Button variant="ghost" size="sm" onClick={() => void refetch()}>Spróbuj ponownie</Button>}
+                    />
+                </ThresholdRow>
+            ) : isPending || !current || !data ? (
+                <Loading role="status">Wczytywanie progów…</Loading>
             ) : (
-                <>
-                    <OptionRow>
-                        <OptionTexts>
-                            <OptionLabel>Po ilu godzinach brak odpowiedzi jest zaległością</OptionLabel>
-                            <OptionHint>
-                                Po tym czasie wiek sprawy w sekcji „Czeka na nas” zapala się na
-                                czerwono. Teraz: {inDays(current.leadStagnantOurThresholdHours)}.
-                            </OptionHint>
-                        </OptionTexts>
-                        <HoursField>
-                            <input
-                                type="number"
-                                min={1}
-                                max={720}
-                                value={current.leadStagnantOurThresholdHours}
-                                disabled={save.isPending}
-                                onChange={(event) =>
-                                    setDraft({
-                                        ...current,
-                                        leadStagnantOurThresholdHours: clamp(Number(event.target.value)),
-                                    })
-                                }
-                            />
-                            <span>godz.</span>
-                        </HoursField>
-                    </OptionRow>
-
-                    <OptionRow>
-                        <OptionTexts>
-                            <OptionLabel>Po ilu godzinach cisza klienta to rozmowa bez odzewu</OptionLabel>
-                            <OptionHint>
-                                Po tym czasie sprawa przechodzi z „U klienta” do sekcji „Ucichło”.
-                                Teraz: {inDays(current.leadStagnantClientThresholdHours)}.
-                            </OptionHint>
-                        </OptionTexts>
-                        <HoursField>
-                            <input
-                                type="number"
-                                min={1}
-                                max={720}
-                                value={current.leadStagnantClientThresholdHours}
-                                disabled={save.isPending}
-                                onChange={(event) =>
-                                    setDraft({
-                                        ...current,
-                                        leadStagnantClientThresholdHours: clamp(Number(event.target.value)),
-                                    })
-                                }
-                            />
-                            <span>godz.</span>
-                        </HoursField>
-                    </OptionRow>
-
-                    <SaveRow>
-                        <SaveButton
-                            type="button"
-                            disabled={!dirty || save.isPending}
-                            onClick={() => draft && save.mutate(draft)}
-                        >
-                            {save.isPending ? 'Zapisywanie…' : 'Zapisz progi'}
-                        </SaveButton>
-                    </SaveRow>
-                </>
+                THRESHOLDS.map(t => {
+                    const id = `lead-threshold-${t.key}`;
+                    const parsed = parseHours(current[t.key]);
+                    const isInvalid = parsed === null;
+                    return (
+                        <ThresholdRow key={t.key}>
+                            <ThresholdTexts>
+                                <label htmlFor={id}>{t.label}</label>
+                                <p id={`${id}-hint`}>
+                                    {isInvalid
+                                        ? `Wpisz od ${MIN_HOURS} do ${MAX_HOURS} godz. (30 dni).`
+                                        : t.hint(hoursInDays(parsed))}
+                                </p>
+                            </ThresholdTexts>
+                            <HoursField $invalid={isInvalid}>
+                                <input
+                                    ref={el => { inputs.current[t.key] = el; }}
+                                    id={id}
+                                    type="text"
+                                    inputMode="numeric"
+                                    autoComplete="off"
+                                    value={current[t.key]}
+                                    disabled={save.isPending}
+                                    aria-invalid={isInvalid || undefined}
+                                    aria-describedby={`${id}-hint`}
+                                    onChange={e => setField(t.key, e.target.value)}
+                                    onBlur={() => blurField(t.key)}
+                                />
+                                <span>godz.</span>
+                            </HoursField>
+                        </ThresholdRow>
+                    );
+                })
             )}
-        </Card>
+
+            <UnsavedChangesBanner
+                visible={dirty}
+                changedCount={changed}
+                problem={invalid.length > 0 ? 'Próg wymaga poprawy' : undefined}
+                onShowProblem={showProblem}
+                onSave={submit}
+                onDiscard={() => setDraft(null)}
+                isSaving={save.isPending}
+            />
+        </FlatPanel>
     );
 };
 
 export const LeadsSettingsSection = () => {
-    const { showError } = useToast();
+    const { showSuccess, showError } = useToast();
     const queryClient = useQueryClient();
 
-    const { data: config, isPending } = useQuery({
+    const { data: config, isPending, isError, refetch } = useQuery({
         queryKey: AUTO_LEAD_CONFIG_QUERY_KEY,
         queryFn: leadsSettingsApi.getAutoLeadConfig,
     });
@@ -357,84 +332,91 @@ export const LeadsSettingsSection = () => {
         mutationFn: (enabled: boolean) => leadsSettingsApi.updateAutoLeadConfig(enabled),
         onSuccess: (data: AutoLeadConfig) => {
             queryClient.setQueryData(AUTO_LEAD_CONFIG_QUERY_KEY, data);
+            showSuccess(
+                data.enabled ? 'Automat włączony' : 'Automat wyłączony',
+                data.enabled
+                    ? 'Nowe zapytania z poczty same staną się leadami.'
+                    : 'Leady powstają tylko po ręcznym oznaczeniu wiadomości.',
+            );
         },
-        onError: () => {
-            showError('Nie udało się zapisać ustawienia automatycznych leadów');
+        onError: (error) => {
+            if (!toastedGlobally(error)) {
+                showError('Nie udało się zapisać ustawienia automatycznych leadów', serverMessage(error) ?? 'Spróbuj ponownie.');
+            }
             queryClient.invalidateQueries({ queryKey: AUTO_LEAD_CONFIG_QUERY_KEY });
         },
     });
 
-    const enabled = config?.enabled ?? false;
     const saving = updateMutation.isPending;
     const activeSince = formatMoment(config?.enabledAt ?? null);
 
     return (
         <Stack>
-        <Card>
-            <CardTitle>Automatyczne tworzenie leadów</CardTitle>
-            <CardDescription>
-                Każda nowa wiadomość w skrzynce jest czytana i oceniana: czy to zapytanie
-                potencjalnego klienta o wycenę, termin albo zakres usługi. Jeśli tak — w module
-                Leady od razu pojawia się nowe zapytanie z kontaktem i treścią. Reszta poczty
-                (oferty od dostawców, faktury, newslettery, powiadomienia) zostaje nietknięta.
-            </CardDescription>
+            <AutoCard>
+                <SectionTitle as="h3">Automatyczne tworzenie leadów</SectionTitle>
+                <Lead>
+                    Każda nowa wiadomość w skrzynce jest czytana i oceniana: czy to zapytanie
+                    potencjalnego klienta o wycenę, termin albo zakres usługi. Jeśli tak, w module
+                    Leady od razu pojawia się nowe zapytanie z kontaktem i treścią. Reszta poczty
+                    (oferty od dostawców, faktury, newslettery, powiadomienia) zostaje nietknięta.
+                </Lead>
 
-            {isPending ? (
-                <Spinner />
-            ) : (
-                <>
-                    <OptionRow>
-                        <OptionTexts>
-                            <OptionLabel>Czy tworzyć leady automatycznie?</OptionLabel>
-                            <OptionHint>
-                                Po wyłączeniu skrzynka działa jak dotąd — leady powstają tylko wtedy,
-                                gdy ktoś oznaczy wiadomość ręcznie.
-                            </OptionHint>
-                        </OptionTexts>
-                        <ToggleTrack
-                            $on={enabled}
+                {isError && !config ? (
+                    <Notice
+                        tone="danger"
+                        role="alert"
+                        title="Nie udało się wczytać ustawienia automatu"
+                        action={<Button variant="ghost" size="sm" onClick={() => void refetch()}>Spróbuj ponownie</Button>}
+                    >
+                        Nie wiemy, czy automat jest teraz włączony, więc przełącznik pojawi się po wczytaniu.
+                    </Notice>
+                ) : isPending && !config ? (
+                    <Loading role="status">Wczytywanie ustawienia…</Loading>
+                ) : (
+                    <>
+                        <SettingSwitchRow
+                            label="Czy tworzyć leady automatycznie?"
+                            hint="Po wyłączeniu skrzynka działa jak dotąd: leady powstają tylko wtedy, gdy ktoś oznaczy wiadomość ręcznie."
+                            checked={config?.enabled}
                             disabled={saving}
-                            aria-label="Czy tworzyć leady automatycznie?"
-                            aria-pressed={enabled}
-                            onClick={() => updateMutation.mutate(!enabled)}
+                            onChange={next => updateMutation.mutate(next)}
                         />
-                    </OptionRow>
 
-                    <Details>
-                        <DetailsTitle>Warto wiedzieć</DetailsTitle>
-                        <DetailsList>
-                            <li>
-                                Automat obejmuje wyłącznie pocztę, która przyjdzie PO włączeniu.
-                                Wiadomości, które już leżą w skrzynce, zostają nietknięte — od nich
-                                jesteś Ty i przycisk „Oznacz jako lead".
-                            </li>
-                            <li>
-                                Lead powstaje z pierwszej wiadomości rozmowy. Dalsza korespondencja
-                                dokleja się do tego samego zapytania i nie tworzy kolejnych.
-                            </li>
-                            <li>
-                                Przy niejednoznacznej wiadomości automat nie robi nic — wolimy
-                                zostawić decyzję Tobie, niż zaśmiecić listę zapytań. Taka wiadomość
-                                czeka w skrzynce i możesz oznaczyć ją jednym kliknięciem.
-                            </li>
-                            <li>
-                                Newslettery, autorespondery i powiadomienia systemowe są odsiewane
-                                po nagłówkach, zanim w ogóle dojdzie do oceny treści.
-                            </li>
-                        </DetailsList>
+                        <Details>
+                            <DetailsTitle>Warto wiedzieć</DetailsTitle>
+                            <DetailsList>
+                                <li>
+                                    Automat obejmuje wyłącznie pocztę, która przyjdzie PO włączeniu.
+                                    Wiadomości, które już leżą w skrzynce, zostają nietknięte: od nich
+                                    jesteś Ty i przycisk „Oznacz jako lead".
+                                </li>
+                                <li>
+                                    Lead powstaje z pierwszej wiadomości rozmowy. Dalsza korespondencja
+                                    dokleja się do tego samego zapytania i nie tworzy kolejnych.
+                                </li>
+                                <li>
+                                    Przy niejednoznacznej wiadomości automat nie robi nic: wolimy
+                                    zostawić decyzję Tobie, niż zaśmiecić listę zapytań. Taka wiadomość
+                                    czeka w skrzynce i możesz oznaczyć ją jednym kliknięciem.
+                                </li>
+                                <li>
+                                    Newslettery, autorespondery i powiadomienia systemowe są odsiewane
+                                    po nagłówkach, zanim w ogóle dojdzie do oceny treści.
+                                </li>
+                            </DetailsList>
 
-                        {enabled && activeSince && (
-                            <ActiveSince>Automat działa od: {activeSince}</ActiveSince>
-                        )}
-                    </Details>
-                </>
-            )}
-        </Card>
+                            {config?.enabled && activeSince && (
+                                <ActiveSince>Automat działa od {activeSince}.</ActiveSince>
+                            )}
+                        </Details>
+                    </>
+                )}
+            </AutoCard>
 
-        {/* Progi stygnięcia stoją pod automatem, bo dotyczą tych samych leadów,
-            tyle że po ich powstaniu: pierwszy ustawia, CO wpada do kolejki,
-            drugi - kiedy kolejka zaczyna się dopominać. */}
-        <StagnationCard />
+            {/* Progi stygnięcia stoją pod automatem, bo dotyczą tych samych leadów,
+                tyle że po ich powstaniu: pierwszy ustawia, CO wpada do kolejki,
+                drugi - kiedy kolejka zaczyna się dopominać. */}
+            <StagnationPanel />
         </Stack>
     );
 };

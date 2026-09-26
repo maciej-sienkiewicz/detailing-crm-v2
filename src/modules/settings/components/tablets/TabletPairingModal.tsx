@@ -1,8 +1,17 @@
+// src/modules/settings/components/tablets/TabletPairingModal.tsx
+//
+// Kod parowania tabletu do podpisu.
+//
+// Okno stało na własnej nakładce z rbacShared.styles: bez Escape, bez blokady
+// przewijania tła i bez układu na telefon. Teraz jest na ModalShell (CLAUDE.md §3 -
+// blokada przewijania przez scrollLock, w cenie).
+
 import { useEffect, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import {
-    Overlay, ModalCard, ModalHead, ModalTitle, ModalSubtitle, ModalCloseBtn, ModalBody,
-} from '../rbacShared.styles';
+    ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle, ModalContent, CloseBtn,
+} from '@/common/components/ModalKit';
+import { Button, Notice } from '@/common/components/ui';
 import { useGeneratePairingCode } from '../../hooks/useTablets';
 
 interface Props {
@@ -51,80 +60,78 @@ export function TabletPairingModal({ onClose }: Props) {
     const codeRight = code ? code.slice(3)    : '';
 
     return (
-        <Overlay onClick={onClose}>
-            <ModalCard $maxWidth={420} onClick={e => e.stopPropagation()}>
-                <ModalHead>
-                    <div>
-                        <ModalTitle>Sparuj tablet</ModalTitle>
-                        <ModalSubtitle>Wpisz kod na stronie tablet.detailboost.pl</ModalSubtitle>
-                    </div>
-                    <ModalCloseBtn onClick={onClose} aria-label="Zamknij">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
-                    </ModalCloseBtn>
-                </ModalHead>
+        <ModalShell isOpen onClose={onClose} size="sm">
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>Sparuj tablet</ModalTitle>
+                    <ModalSubtitle>Wpisz kod na stronie tablet.detailboost.pl</ModalSubtitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={onClose} />
+            </ModalHeader>
 
-                <ModalBody>
-                    {generateCode.isPending && (
-                        <LoadingWrap>
-                            <Spinner />
-                            <LoadingText>Generowanie kodu...</LoadingText>
-                        </LoadingWrap>
-                    )}
+            <ModalContent>
+                {generateCode.isPending && (
+                    <LoadingWrap role="status">
+                        <Spinner aria-hidden="true" />
+                        <LoadingText>Generowanie kodu...</LoadingText>
+                    </LoadingWrap>
+                )}
 
-                    {generateCode.isError && !generateCode.isPending && (
-                        <ErrorWrap>
-                            <ErrorIcon />
-                            <ErrorMsg>Nie udało się wygenerować kodu.</ErrorMsg>
-                            <RetryBtn onClick={requestCode}>Spróbuj ponownie</RetryBtn>
-                        </ErrorWrap>
-                    )}
+                {generateCode.isError && !generateCode.isPending && (
+                    <Notice
+                        tone="danger"
+                        role="alert"
+                        title="Nie udało się wygenerować kodu"
+                        action={<Button variant="primary" size="sm" onClick={requestCode}>Spróbuj ponownie</Button>}
+                    >
+                        Sprawdź połączenie z internetem.
+                    </Notice>
+                )}
 
-                    {code && !generateCode.isPending && (
-                        <>
-                            {expired ? (
-                                <ExpiredWrap>
-                                    <ExpiredIcon />
-                                    <ExpiredTitle>Kod wygasł</ExpiredTitle>
-                                    <ExpiredDesc>Kod był ważny 5 minut. Wygeneruj nowy, aby kontynuować.</ExpiredDesc>
-                                    <RetryBtn onClick={requestCode}>Generuj nowy kod</RetryBtn>
-                                </ExpiredWrap>
-                            ) : (
-                                <CodeWrap>
-                                    <CodeRow>
-                                        <CodeGroup>{codeLeft}</CodeGroup>
-                                        <CodeSep />
-                                        <CodeGroup>{codeRight}</CodeGroup>
-                                    </CodeRow>
-                                    <TimerRow>
-                                        <TimerDot $urgent={secondsLeft < 60} />
-                                        <TimerText $urgent={secondsLeft < 60}>
-                                            Kod ważny przez {formatCountdown(secondsLeft)}
-                                        </TimerText>
-                                    </TimerRow>
-                                </CodeWrap>
-                            )}
+                {code && !generateCode.isPending && (
+                    <>
+                        {expired ? (
+                            <ExpiredWrap>
+                                <ExpiredIcon />
+                                <ExpiredTitle>Kod wygasł</ExpiredTitle>
+                                <ExpiredDesc>Kod był ważny 5 minut. Wygeneruj nowy, aby kontynuować.</ExpiredDesc>
+                                <Button variant="primary" size="md" onClick={requestCode}>Generuj nowy kod</Button>
+                            </ExpiredWrap>
+                        ) : (
+                            <CodeWrap>
+                                {/* Dwie grupy po trzy cyfry, żeby łatwiej przepisać; czytnik
+                                    ekranu dostaje kod w całości. */}
+                                <CodeRow aria-label={`Kod parowania ${code.split('').join(' ')}`}>
+                                    <CodeGroup aria-hidden="true">{codeLeft}</CodeGroup>
+                                    <CodeGroup aria-hidden="true">{codeRight}</CodeGroup>
+                                </CodeRow>
+                                <TimerRow>
+                                    <TimerDot $urgent={secondsLeft < 60} />
+                                    <TimerText $urgent={secondsLeft < 60}>
+                                        Kod ważny przez {formatCountdown(secondsLeft)}
+                                    </TimerText>
+                                </TimerRow>
+                            </CodeWrap>
+                        )}
 
-                            <Instructions>
-                                <InstructionStep>
-                                    <StepNum>1</StepNum>
-                                    <span>Otwórz <strong>tablet.detailboost.pl</strong> na tablecie</span>
-                                </InstructionStep>
-                                <InstructionStep>
-                                    <StepNum>2</StepNum>
-                                    <span>Wpisz powyższy kod parowania</span>
-                                </InstructionStep>
-                                <InstructionStep>
-                                    <StepNum>3</StepNum>
-                                    <span>To okno zamknie się automatycznie po sparowaniu</span>
-                                </InstructionStep>
-                            </Instructions>
-                        </>
-                    )}
-                </ModalBody>
-            </ModalCard>
-        </Overlay>
+                        <Instructions>
+                            <InstructionStep>
+                                <StepNum>1</StepNum>
+                                <span>Otwórz <strong>tablet.detailboost.pl</strong> na tablecie</span>
+                            </InstructionStep>
+                            <InstructionStep>
+                                <StepNum>2</StepNum>
+                                <span>Wpisz powyższy kod parowania</span>
+                            </InstructionStep>
+                            <InstructionStep>
+                                <StepNum>3</StepNum>
+                                <span>To okno zamknie się automatycznie po sparowaniu</span>
+                            </InstructionStep>
+                        </Instructions>
+                    </>
+                )}
+            </ModalContent>
+        </ModalShell>
     );
 }
 
@@ -163,45 +170,6 @@ const LoadingText = styled.span`
     color: #94a3b8;
 `;
 
-const ErrorWrap = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    padding: 32px 0;
-    text-align: center;
-`;
-
-const ErrorMsg = styled.span`
-    font-size: 13px;
-    color: #64748b;
-`;
-
-function ErrorIcon() {
-    return (
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
-        </svg>
-    );
-}
-
-const RetryBtn = styled.button`
-    margin-top: 4px;
-    padding: 8px 18px;
-    font-size: 13px;
-    font-weight: 600;
-    background: #0ea5e9;
-    color: #fff;
-    border: none;
-    border-radius: 9px;
-    cursor: pointer;
-    font-family: inherit;
-    transition: opacity 150ms;
-    &:hover { opacity: 0.9; }
-`;
-
 const CodeWrap = styled.div`
     display: flex;
     flex-direction: column;
@@ -210,14 +178,14 @@ const CodeWrap = styled.div`
     padding: 24px 0 8px;
 `;
 
-const CodeRow = styled.div`
+const CodeRow = styled.div.attrs({ role: 'img' })`
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 18px;
 `;
 
 const CodeGroup = styled.span`
-    font-size: 52px;
+    font-size: clamp(40px, 12vw, 52px);
     font-weight: 800;
     letter-spacing: 0.12em;
     color: #0ea5e9;
@@ -225,14 +193,6 @@ const CodeGroup = styled.span`
     line-height: 1;
 `;
 
-const CodeSep = styled.span`
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #cbd5e1;
-    flex-shrink: 0;
-    margin-bottom: 2px;
-`;
 
 const TimerRow = styled.div`
     display: flex;

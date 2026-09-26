@@ -5,6 +5,7 @@ import {
   StageCaption,
   StageIndex,
   StageLabel,
+  StageName,
   StageRow,
   Table,
   TableScroll,
@@ -58,10 +59,14 @@ export const TemplatesTable: React.FC<TemplatesTableProps> = ({
                 <React.Fragment key={stage.id}>
                   <StageRow $accent={accent.base} $tint={accent.tint}>
                     <td colSpan={4}>
+                      {/* Nazwa etapu i jego opis to dwa elementy obok siebie, nie „Etap · opis"
+                          (CLAUDE.md §4). */}
                       <StageLabel $deep={accent.deep}>
-                        <StageIndex $accent={accent.base}>{index + 1}</StageIndex>
-                        {stage.title}
-                        <StageCaption>· {stage.caption}</StageCaption>
+                        <StageName>
+                          <StageIndex $accent={accent.base}>{index + 1}</StageIndex>
+                          {stage.title}
+                        </StageName>
+                        <StageCaption>{stage.caption}</StageCaption>
                       </StageLabel>
                     </td>
                   </StageRow>

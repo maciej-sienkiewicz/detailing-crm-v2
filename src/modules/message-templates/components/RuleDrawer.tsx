@@ -2,12 +2,21 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { acquireScrollLock } from '@/common/utils/scrollLock';
 import styled from 'styled-components';
+import { X } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { IconButton, Segmented } from '@/common/components/ui';
 import { ChannelEditor } from './ChannelEditor';
 import { CHANNEL_LABEL, type MessageSpec } from '../catalog';
 import { channelStatus } from '../utils/template';
 import type { Channel, ChannelDraft } from '../types';
 
+/*
+ * Warstwy: pasek „Zapisz zmiany" (UnsavedChangesBanner) stoi na z-index 1100, bo
+ * jest `position: fixed` nad treścią sekcji. Wspólny SideDrawer z `ui` ma 1000, więc
+ * leżałby POD paskiem - dolna część edytora (podgląd, ostrzeżenie o zmiennych) byłaby
+ * zasłonięta właśnie wtedy, gdy są niezapisane zmiany. Dlatego własny panel na
+ * 1200/1201: nad paskiem, pod oknami potwierdzeń (4000) i dymkami (10000).
+ */
 const Scrim = styled.div`
   position: fixed;
   inset: 0;
@@ -51,50 +60,21 @@ const Title = styled.h2`
   color: ${st.text};
 `;
 
-const Close = styled.button`
-  margin-left: auto;
-  flex-shrink: 0;
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  border: 1px solid ${st.border};
-  border-radius: 8px;
-  background: ${st.bgCard};
-  color: ${st.textSecondary};
-  cursor: pointer;
-
-  &:hover { background: ${st.bgCardAlt}; }
-`;
-
-const Tabs = styled.div`
-  display: flex;
-  gap: 2px;
-  padding: 10px 22px 0;
+const Channels = styled.div`
+  padding: 12px 22px;
   border-bottom: 1px solid ${st.border};
 `;
 
-const Tab = styled.button<{ $active: boolean }>`
-  border: 0;
-  background: transparent;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  color: ${p => (p.$active ? st.accentBlue : st.textMuted)};
-  padding: 8px 12px;
-  cursor: pointer;
-  border-bottom: 2px solid ${p => (p.$active ? st.accentBlue : 'transparent')};
-  margin-bottom: -1px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-`;
-
-const Dot = styled.span<{ $on: boolean; $blank: boolean }>`
-  width: 6px;
-  height: 6px;
+const Dot = styled.i<{ $on: boolean; $blank: boolean }>`
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: ${p => (p.$blank ? st.accentAmber : p.$on ? st.accentGreen : st.borderHover)};
+`;
+
+const CloseSlot = styled.div`
+  margin-left: auto;
+  flex-shrink: 0;
 `;
 
 export interface RuleDrawerProps {
@@ -159,28 +139,31 @@ export const RuleDrawer: React.FC<RuleDrawerProps> = ({
       >
         <Head>
           <Title>{spec.name}</Title>
-          <Close type="button" onClick={onClose} aria-label="Zamknij">✕</Close>
+          <CloseSlot>
+            <IconButton label="Zamknij" variant="ghost" size="sm" onClick={onClose}><X /></IconButton>
+          </CloseSlot>
         </Head>
 
         {available.length > 1 && (
-          <Tabs role="tablist">
-            {available.map(c => {
-              const status = channelStatus(drafts[c], c === 'email');
-              return (
-                <Tab
-                  key={c}
-                  type="button"
-                  role="tab"
-                  aria-selected={channel === c}
-                  $active={channel === c}
-                  onClick={() => setChannel(c)}
-                >
-                  <Dot $on={status === 'on'} $blank={status === 'blank'} />
-                  {CHANNEL_LABEL[c]}
-                </Tab>
-              );
-            })}
-          </Tabs>
+          <Channels>
+            <Segmented
+              label="Kanał wiadomości"
+              value={channel}
+              onChange={setChannel}
+              options={available.map(c => {
+                const status = channelStatus(drafts[c], c === 'email');
+                return {
+                  value: c,
+                  label: (
+                    <>
+                      <Dot $on={status === 'on'} $blank={status === 'blank'} aria-hidden="true" />
+                      {CHANNEL_LABEL[c]}
+                    </>
+                  ),
+                };
+              })}
+            />
+          </Channels>
         )}
 
         {draft && (

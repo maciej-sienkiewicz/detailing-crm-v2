@@ -28,6 +28,10 @@ const emptyReport = (over: Partial<RehearsalReport> = {}): RehearsalReport => ({
   generatedAt: '', redirectPhone: null, redirectEmail: null, sent: false, errorCount: 0, warningCount: 0, items: [], ...over,
 });
 
+const smsItem: RehearsalReport['items'][number] = {
+  seq: 1, total: 1, kind: 'SMS_PRE_VISIT', channel: 'SMS', enabled: true, subject: null, body: 'x', segments: 1, findings: [], delivery: null,
+};
+
 const renderCard = () => render(
   <StyledThemeProvider theme={theme}>
     <RedirectCard />
@@ -119,13 +123,43 @@ describe('RedirectCard', () => {
 
   it('"Wyślij wszystkie testowo" shows the delivery summary', async () => {
     settings = on;
+    planMutate.mockResolvedValue(emptyReport({ items: [smsItem] }));
     runMutate.mockResolvedValue(emptyReport({
       sent: true, redirectPhone: '+48500100200', redirectEmail: 'owner@studio.pl',
-      items: [{ seq: 1, total: 1, kind: 'SMS_PRE_VISIT', channel: 'SMS', enabled: true, subject: null, body: 'x', segments: 1, findings: [], delivery: { success: true, providerId: 'p', error: null } }],
+      items: [{ ...smsItem, delivery: { success: true, providerId: 'p', error: null } }],
     }));
     renderCard();
     await userEvent.click(screen.getByRole('button', { name: /Wyślij wszystkie testowo/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Wyślij testowo' }));
     expect(await screen.findByText(/Wysłano 1 z 1 wiadomości na \+48500100200 i owner@studio\.pl/)).toBeInTheDocument();
+  });
+
+  // Jedno kliknięcie wysyłało kilkanaście prawdziwych SMS-ów z kredytów studia.
+  it('"Wyślij wszystkie testowo" asks first, naming the real count and addresses, and cancel sends nothing', async () => {
+    settings = on;
+    planMutate.mockResolvedValue(emptyReport({
+      items: [smsItem, { ...smsItem, kind: 'SMS_POST_VISIT' }, { ...smsItem, channel: 'EMAIL', kind: 'EMAIL_VISIT_WELCOME', subject: 'T', segments: null }],
+    }));
+    renderCard();
+    await userEvent.click(screen.getByRole('button', { name: /Wyślij wszystkie testowo/ }));
+    expect(await screen.findByText(
+      'To prawdziwa wysyłka: 3 wiadomości, 2 SMS-y na +48500100200 i 1 e-mail na owner@studio.pl. SMS-y zużyją kredyty jak zwykła wysyłka.'
+    )).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Anuluj' }));
+    expect(runMutate).not.toHaveBeenCalled();
+  });
+
+  it('a plan with errors is shown instead of the question, and nothing is sent', async () => {
+    settings = on;
+    planMutate.mockResolvedValue(emptyReport({
+      errorCount: 1,
+      items: [{ ...smsItem, segments: null, findings: [{ severity: 'ERROR', rule: 'orphan-braces', detail: '{{imie' }] }],
+    }));
+    renderCard();
+    await userEvent.click(screen.getByRole('button', { name: /Wyślij wszystkie testowo/ }));
+    expect(await screen.findByText(/Nic nie wysłano: 1 błąd/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Wyślij testowo' })).not.toBeInTheDocument();
+    expect(runMutate).not.toHaveBeenCalled();
   });
 
   it('a plan with errors lists the broken templates', async () => {
@@ -139,15 +173,17 @@ describe('RedirectCard', () => {
     expect(await screen.findByText(/Nic nie wysłano: 1 błąd/)).toBeInTheDocument();
     // Nazwa wiadomości i wyjaśnienie problemu po ludzku, nie techniczny kod reguły -
     // to właśnie to biznes czytał jako "SMS_PRE_VISIT orphan-braces ({{imie)".
-    expect(screen.getByText('SMS · Przypomnienie przed wizytą:')).toBeInTheDocument();
+    expect(screen.getByText('Przypomnienie przed wizytą (SMS):')).toBeInTheDocument();
     expect(screen.getByText(/niesparowane nawiasy klamrowe/)).toBeInTheDocument();
   });
 
   it('the backend refusal to run without a redirect is shown verbatim', async () => {
     settings = on;
+    planMutate.mockResolvedValue(emptyReport({ items: [smsItem] }));
     runMutate.mockRejectedValue({ response: { data: { message: 'Włącz najpierw przekierowanie wiadomości na swoje dane - bez niego wysyłka testowa nie ruszy' } } });
     renderCard();
     await userEvent.click(screen.getByRole('button', { name: /Wyślij wszystkie testowo/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Wyślij testowo' }));
     expect(await screen.findByText(/Włącz najpierw przekierowanie/)).toBeInTheDocument();
   });
 });

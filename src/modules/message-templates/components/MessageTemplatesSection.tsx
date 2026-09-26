@@ -2,32 +2,48 @@ import React, { useCallback, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { LockedSection } from '@/common/components/LockedSection';
+import { useToast } from '@/common/components/Toast';
+import { Button, Card, Notice, SectionTitle, Segmented, ui } from '@/common/components/ui';
+import { serverMessage, toastedGlobally } from '@/modules/settings/components/errorToast';
 import { useFeature } from '@/modules/subscription';
 import { UnsavedChangesBanner } from '@/modules/settings/components/shared/SettingsLayout';
 import { SmsSenderNameCard } from '@/modules/sms-campaigns/components/SmsSenderNameCard';
 import { RedirectCard } from './RedirectCard';
 import { TemplatesTable } from './TemplatesTable';
 import { RuleDrawer } from './RuleDrawer';
-import {
-  Container,
-  CountLabel,
-  InlineError,
-  SearchInput,
-  SearchWrap,
-  Segmented,
-  SegmentedButton,
-  TableScroll,
-  Toolbar,
-} from './primitives';
+import { Container, SearchInput, SearchWrap, Toolbar } from './primitives';
 import { MESSAGES, type MessageSpec } from '../catalog';
 import { channelStatus } from '../utils/template';
 import { useMessageTemplates } from '../hooks/useMessageTemplates';
 import type { Channel, ChannelDraft, MessageKey, TemplatesDraft } from '../types';
 
+/* Jedyna wyniesiona powierzchnia sekcji: lista wiadomości (CLAUDE.md §2). */
+const TemplatesCard = styled(Card)`
+  display: flex;
+  flex-direction: column;
+`;
+
+const CardHead = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px 14px;
+
+  @media (max-width: 767px) { padding: 14px 16px 12px; }
+`;
+
+const Matches = styled.span`
+  font-size: 12.5px;
+  color: ${ui.textMuted};
+  font-variant-numeric: tabular-nums;
+`;
+
 const Legend = styled.div`
   display: flex;
-  gap: 16px;
+  gap: 8px 16px;
   flex-wrap: wrap;
+  padding: 12px 18px 16px;
+  border-top: 1px solid ${ui.lineFaint};
   font-size: 12px;
   color: ${st.textSecondary};
 
@@ -37,7 +53,7 @@ const Legend = styled.div`
 
 const SkeletonRow = styled.div`
   height: 56px;
-  border-bottom: 1px solid ${st.border};
+  border-bottom: 1px solid ${ui.lineFaint};
   background: linear-gradient(90deg, #F1F5F9 25%, #E8EDF3 50%, #F1F5F9 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
@@ -78,8 +94,9 @@ function searchHaystack(spec: MessageSpec, drafts: Partial<Record<Channel, Chann
  */
 export const MessageTemplatesSection: React.FC = () => {
   const feature = useFeature('SMS_EMAIL');
-  const { draft, isLoading, isError, dirty, isSaving, saveError, patchChannel, save, discard } =
+  const { draft, isLoading, isError, refetch, dirty, isSaving, patchChannel, save, discard } =
     useMessageTemplates();
+  const { showSuccess, showError } = useToast();
 
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
@@ -103,6 +120,12 @@ export const MessageTemplatesSection: React.FC = () => {
     };
   }, [draft, filter, query]);
 
+  const counts: Record<Filter, number> = {
+    all: MESSAGES.length,
+    on: activeCount,
+    off: MESSAGES.length - activeCount,
+  };
+
   const visibleCount = useMemo(
     () => (draft ? MESSAGES.filter(matches).length : 0),
     [draft, matches]
@@ -110,24 +133,49 @@ export const MessageTemplatesSection: React.FC = () => {
 
   const openSpec = openKey ? MESSAGES.find(s => s.key === openKey) ?? null : null;
 
+  // Błąd wczytania to nie pusta lista - bez tego ekran stał na szkielecie w nieskończoność
+  // albo pokazywał zdanie „odśwież stronę" bez przycisku, który to robi.
   if (isError) {
     return (
-      <InlineError>
-        <span aria-hidden="true">△</span>
-        <span>Nie udało się wczytać szablonów wiadomości. Odśwież stronę i spróbuj ponownie.</span>
-      </InlineError>
+      <Notice
+        tone="danger"
+        role="alert"
+        title="Nie udało się wczytać wiadomości automatycznych"
+        action={<Button variant="ghost" size="sm" onClick={refetch}>Spróbuj ponownie</Button>}
+      >
+        Szablony SMS i e-maili są zapisane na serwerze, nic nie zginęło.
+      </Notice>
     );
   }
 
   if (isLoading || !draft) {
     return (
       <Container>
-        <TableScroll>
+        <TemplatesCard aria-busy="true" aria-label="Wczytywanie wiadomości">
           {Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)}
-        </TableScroll>
+        </TemplatesCard>
       </Container>
     );
   }
+
+  /*
+   * Błąd zapisu stał wcześniej czerwoną ramką NAD przekierowaniem i nazwą nadawcy -
+   * przy pasku zapisu na dole okna był poza ekranem, więc kliknięcie „Zapisz zmiany"
+   * wyglądało, jakby nic nie zrobiło. Teraz: dymek, a pasek zostaje, bo zmiany
+   * dalej są niezapisane. 4xx pokazuje już globalny interceptor (z powodem od serwera,
+   * np. nieznaną zmienną) - drugi dymek o tym samym tylko by hałasował.
+   */
+  const handleSave = () => {
+    save()
+      .then(() => showSuccess('Zapisano wiadomości', 'Zmiany obowiązują od następnej wysyłki.'))
+      .catch(err => {
+        if (toastedGlobally(err)) return;
+        showError(
+          'Nie zapisano zmian',
+          serverMessage(err) ?? 'Sprawdź połączenie i spróbuj ponownie. Zmiany czekają w pasku zapisu.'
+        );
+      });
+  };
 
   const toggle = (key: MessageKey, channel: Channel) => {
     const current = (draft as TemplatesDraft)[key]?.[channel];
@@ -144,59 +192,49 @@ export const MessageTemplatesSection: React.FC = () => {
         <RedirectCard />
         <SmsSenderNameCard />
 
-        {saveError && (
-          <InlineError>
-            <span aria-hidden="true">△</span>
-            <span>{saveError}</span>
-          </InlineError>
-        )}
+        <TemplatesCard aria-label="Lista wiadomości">
+          <CardHead>
+            <SectionTitle count={`aktywne: ${activeCount} z ${MESSAGES.length}`}>Wiadomości</SectionTitle>
+            <Toolbar>
+              <SearchWrap>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="M21 21l-4.3-4.3" />
+                </svg>
+                <SearchInput
+                  type="search"
+                  value={query}
+                  placeholder="Szukaj po nazwie lub treści wiadomości..."
+                  aria-label="Szukaj szablonu"
+                  onChange={e => setQuery(e.target.value)}
+                />
+              </SearchWrap>
 
-        <Toolbar>
-          <SearchWrap>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-              <circle cx="11" cy="11" r="7" />
-              <path d="M21 21l-4.3-4.3" />
-            </svg>
-            <SearchInput
-              type="text"
-              value={query}
-              placeholder="Szukaj po nazwie lub treści wiadomości..."
-              aria-label="Szukaj szablonu"
-              onChange={e => setQuery(e.target.value)}
-            />
-          </SearchWrap>
+              <Segmented
+                label="Filtr szablonów"
+                size="sm"
+                value={filter}
+                onChange={setFilter}
+                options={FILTERS.map(f => ({ value: f.id, label: f.label, count: counts[f.id] }))}
+              />
 
-          <Segmented role="group" aria-label="Filtr szablonów">
-            {FILTERS.map(f => (
-              <SegmentedButton
-                key={f.id}
-                type="button"
-                $active={filter === f.id}
-                aria-pressed={filter === f.id}
-                onClick={() => setFilter(f.id)}
-              >
-                {f.label}
-              </SegmentedButton>
-            ))}
-          </Segmented>
+              {query.trim() && <Matches aria-live="polite">Pasuje: {visibleCount}</Matches>}
+            </Toolbar>
+          </CardHead>
 
-          <CountLabel>
-            {visibleCount} z {MESSAGES.length} · {activeCount} aktywnych
-          </CountLabel>
-        </Toolbar>
+          <TemplatesTable
+            draft={draft}
+            matches={matches}
+            onOpen={setOpenKey}
+            onToggle={toggle}
+          />
 
-        <TemplatesTable
-          draft={draft}
-          matches={matches}
-          onOpen={setOpenKey}
-          onToggle={toggle}
-        />
-
-        <Legend>
-          <span><i style={{ background: st.accentGreen }} /> włączona: wychodzi do klienta</span>
-          <span><i style={{ background: st.accentAmber }} /> włączona, ale bez treści: nic nie wyjdzie</span>
-          <span><i style={{ background: st.borderHover }} /> wyłączona</span>
-        </Legend>
+          <Legend>
+            <span><i style={{ background: st.accentGreen }} /> włączona: wychodzi do klienta</span>
+            <span><i style={{ background: st.accentAmber }} /> włączona, ale bez treści: nic nie wyjdzie</span>
+            <span><i style={{ background: st.borderHover }} /> wyłączona</span>
+          </Legend>
+        </TemplatesCard>
       </Container>
 
       {openSpec && (
@@ -211,10 +249,9 @@ export const MessageTemplatesSection: React.FC = () => {
 
       <UnsavedChangesBanner
         visible={dirty}
-        onSave={() => { void save().catch(() => undefined); }}
+        onSave={handleSave}
         onDiscard={discard}
         isSaving={isSaving}
-        sectionName="Szablony wiadomości"
       />
     </LockedSection>
   );

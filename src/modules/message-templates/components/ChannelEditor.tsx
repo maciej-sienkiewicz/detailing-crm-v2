@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useId, useLayoutEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { Toggle } from '@/common/components/Toggle';
+import { insertToken } from '../utils/insertToken';
 import { TIMING_LABEL, type MessageSpec } from '../catalog';
 import {
   minutesToValue,
@@ -28,12 +30,15 @@ const Field = styled.div`
   gap: 7px;
 `;
 
-const Label = styled.span`
-  font-size: 11px;
-  font-weight: 650;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: ${st.textMuted};
+/*
+ * Etykieta pola zwykłym pismem 13 px. Były tu wersaliki 11 px w szarości - jedyna
+ * rama każdego pola, na tle której „Treść wiadomości" i „Podgląd" wyglądały tak samo
+ * jak drobny opis (CLAUDE.md §2, wycofane).
+ */
+const Label = styled.label`
+  font-size: 13px;
+  font-weight: 600;
+  color: ${st.text};
 `;
 
 const Switch = styled.div`
@@ -49,31 +54,6 @@ const Switch = styled.div`
 const SwitchText = styled.div`
   div:first-child { font-size: 13px; font-weight: 600; color: ${st.text}; }
   div:last-child  { font-size: 12px; color: ${st.textSecondary}; }
-`;
-
-const Track = styled.button<{ $on: boolean }>`
-  margin-left: auto;
-  position: relative;
-  width: 40px;
-  height: 22px;
-  border: 0;
-  border-radius: 999px;
-  background: ${p => (p.$on ? st.accentGreen : st.borderHover)};
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: ${st.transition};
-
-  span {
-    position: absolute;
-    top: 2px;
-    left: ${p => (p.$on ? '20px' : '2px')};
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: #fff;
-    box-shadow: ${st.shadowXs};
-    transition: ${st.transition};
-  }
 `;
 
 const TimingRow = styled.div`
@@ -227,10 +207,61 @@ export interface ChannelEditorProps {
   onPatch: (patch: Partial<ChannelDraft>) => void;
 }
 
+/**
+ * „Wyślij [N] godzin przed wizytą". Pole trzyma własny tekst: wcześniej każde
+ * naciśnięcie klawisza szło przez Math.max(1, …), więc skasowanie liczby, żeby
+ * wpisać nową, od razu wstawiało „1" i kursor lądował za nią.
+ */
+const OffsetInput: React.FC<{ value: number; onCommit: (n: number) => void }> = ({ value, onCommit }) => {
+  const [text, setText] = useState<string | null>(null);
+  return (
+    <NumberInput
+      type="number"
+      min={1}
+      inputMode="numeric"
+      value={text ?? String(value)}
+      aria-label="Ile"
+      onChange={e => {
+        setText(e.target.value);
+        const n = Math.round(Number(e.target.value));
+        if (e.target.value !== '' && Number.isFinite(n) && n >= 1) onCommit(n);
+      }}
+      onBlur={() => setText(null)}
+    />
+  );
+};
+
+type Target = 'subject' | 'body';
+
 export const ChannelEditor: React.FC<ChannelEditorProps> = ({ spec, channel, draft, onPatch }) => {
   const isSms = channel === 'sms';
   const placeholders = (isSms ? spec.sms : spec.email)?.placeholders ?? [];
   const subject = draft.subject ?? '';
+  const ids = useId();
+
+  const subjectRef = useRef<HTMLInputElement>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
+  // Kursor do ustawienia po wstawieniu zmiennej - treść jest stanem rodzica, więc
+  // pozycję da się przywrócić dopiero po tym, jak nowa wartość trafi do pola.
+  const pendingCaret = useRef<{ target: Target; caret: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const pending = pendingCaret.current;
+    if (!pending) return;
+    pendingCaret.current = null;
+    const el = pending.target === 'body' ? bodyRef.current : subjectRef.current;
+    if (!el) return;
+    el.focus();
+    el.setSelectionRange(pending.caret, pending.caret);
+  }, [draft.body, subject]);
+
+  const insertVar = (target: Target, name: string) => {
+    const el = target === 'body' ? bodyRef.current : subjectRef.current;
+    const current = target === 'body' ? draft.body : subject;
+    const { text, caret } = insertToken(current, `{{${name}}}`, el?.selectionStart, el?.selectionEnd);
+    pendingCaret.current = { target, caret };
+    onPatch(target === 'body' ? { body: text } : { subject: text });
+  };
 
   const unknown = unknownPlaceholders(
     isSms ? draft.body : `${subject} ${draft.body}`,
@@ -241,8 +272,6 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({ spec, channel, dra
   const segments = smsSegments(resolvedBody);
   const showTiming = Boolean(spec.timing) && isSms && draft.offsetMinutes !== undefined;
   const { value, unit } = minutesToValue(draft.offsetMinutes ?? 60);
-
-  const appendVar = (name: string) => onPatch({ body: `${draft.body}{{${name}}}` });
 
   return (
     <Body>
@@ -257,31 +286,23 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({ spec, channel, dra
               : 'Możesz edytować szablon, nic nie zostanie wysłane.'}
           </div>
         </SwitchText>
-        <Track
-          type="button"
-          role="switch"
-          aria-checked={draft.enabled}
-          aria-label={draft.enabled ? 'Wyłącz wiadomość' : 'Włącz wiadomość'}
-          $on={draft.enabled}
-          onClick={() => onPatch({ enabled: !draft.enabled })}
-        >
-          <span />
-        </Track>
+        <Toggle
+          size="sm"
+          checked={draft.enabled}
+          onChange={next => onPatch({ enabled: next })}
+          ariaLabel="Wysyłaj tę wiadomość"
+        />
       </Switch>
 
       {showTiming && (
         <Field>
-          <Label>Czas wysyłki</Label>
+          <Label as="span">Czas wysyłki</Label>
           <TimingRow>
             <span>Wyślij</span>
-            <NumberInput
-              type="number"
-              min={1}
+            <OffsetInput
+              key={`${spec.key}-${unit}`}
               value={value}
-              aria-label="Ile"
-              onChange={e =>
-                onPatch({ offsetMinutes: valueToMinutes(Math.max(1, Number(e.target.value)), unit) })
-              }
+              onCommit={n => onPatch({ offsetMinutes: valueToMinutes(n, unit) })}
             />
             <UnitSelect
               value={unit}
@@ -299,21 +320,26 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({ spec, channel, dra
 
       {!isSms && (
         <Field>
-          <Label>Temat wiadomości</Label>
+          <Label htmlFor={`${ids}-subject`}>Temat wiadomości</Label>
           <Vars>
-            <VarsLead>Wstaw:</VarsLead>
+            <VarsLead>Wstaw w miejscu kursora:</VarsLead>
             {placeholders.map(name => (
               <VarChip
                 key={`subject-${name}`}
                 type="button"
                 title={`{{${name}}}`}
-                onClick={() => onPatch({ subject: `${subject}{{${name}}}` })}
+                // mousedown nie może zabrać focusu z pola - inaczej pozycja kursora
+                // w chwili kliknięcia byłaby już nieznana na niektórych przeglądarkach.
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => insertVar('subject', name)}
               >
                 {VAR_LABELS[name] ?? name}
               </VarChip>
             ))}
           </Vars>
           <TextInput
+            ref={subjectRef}
+            id={`${ids}-subject`}
             type="text"
             value={subject}
             placeholder="Wpisz temat wiadomości..."
@@ -323,16 +349,24 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({ spec, channel, dra
       )}
 
       <Field>
-        <Label>Treść wiadomości</Label>
+        <Label htmlFor={`${ids}-body`}>Treść wiadomości</Label>
         <Vars>
-          <VarsLead>Wstaw:</VarsLead>
+          <VarsLead>Wstaw w miejscu kursora:</VarsLead>
           {placeholders.map(name => (
-            <VarChip key={name} type="button" title={`{{${name}}}`} onClick={() => appendVar(name)}>
+            <VarChip
+              key={name}
+              type="button"
+              title={`{{${name}}}`}
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => insertVar('body', name)}
+            >
               {VAR_LABELS[name] ?? name}
             </VarChip>
           ))}
         </Vars>
         <TextArea
+          ref={bodyRef}
+          id={`${ids}-body`}
           $over={isSms && segments > 2}
           value={draft.body}
           placeholder={isSms ? 'Wpisz treść wiadomości SMS...' : 'Wpisz treść wiadomości email...'}
@@ -345,7 +379,7 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({ spec, channel, dra
       </Field>
 
       {unknown.length > 0 && (
-        <Warn>
+        <Warn role="alert">
           <span aria-hidden="true">△</span>
           <span>
             Ta wiadomość nie zna zmiennych {unknown.map(v => `{{${v}}}`).join(', ')}: usuń je lub
@@ -355,7 +389,7 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({ spec, channel, dra
       )}
 
       <Preview>
-        <Label>Podgląd</Label>
+        <Label as="span">Podgląd</Label>
         <PreviewSurface>
           {!isSms && (
             <PreviewSubject>

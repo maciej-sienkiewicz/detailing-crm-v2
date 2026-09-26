@@ -9,97 +9,50 @@
 import { Fragment } from 'react';
 import styled from 'styled-components';
 import { ACTION_SHORTCUTS, GLOBAL_SHORTCUTS, SCOPED_SHORTCUTS, useShortcutsEnabled } from '@/common/shortcuts';
+import { Card, ui } from '@/common/components/ui';
+import { SettingSwitchRow } from './SettingSwitchRow';
 
-// ─── Styled (ten sam język co pozostałe sekcje ustawień) ─────────────────────
+// ─── Styled ──────────────────────────────────────────────────────────────────
 
-const Card = styled.div`
-    background: white;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.lg};
-    padding: 24px 28px;
+// Tytuł „Skróty klawiszowe" stoi w nagłówku ramy ustawień - karta go nie powtarza.
+const Body = styled(Card)`
+    padding: 20px 24px 12px;
+
+    @media (max-width: 767px) { padding: 16px 16px 8px; }
 `;
 
-const CardTitle = styled.h3`
-    font-size: 15px;
-    font-weight: 700;
-    color: ${p => p.theme.colors.text};
-    margin: 0 0 6px;
-`;
-
-const CardDescription = styled.p`
-    font-size: 13px;
-    color: ${p => p.theme.colors.textSecondary};
-    margin: 0 0 20px;
-    line-height: 1.5;
-    max-width: 640px;
-`;
-
-const OptionRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 16px 0;
-    border-top: 1px solid ${p => p.theme.colors.border};
-`;
-
-const OptionTexts = styled.div`
-    flex: 1;
-    min-width: 0;
-`;
-
-const OptionLabel = styled.div`
-    font-size: 14px;
-    font-weight: 600;
-    color: ${p => p.theme.colors.text};
-`;
-
-const OptionHint = styled.div`
-    font-size: 12.5px;
-    color: ${p => p.theme.colors.textSecondary};
-    margin-top: 2px;
-    line-height: 1.45;
-`;
-
-const ToggleTrack = styled.button<{ $on: boolean }>`
-    position: relative;
-    width: 42px;
-    height: 24px;
-    flex-shrink: 0;
-    border: none;
-    border-radius: 9999px;
-    background: ${p => (p.$on ? '#0ea5e9' : '#cbd5e1')};
-    cursor: pointer;
-    transition: background 180ms ease;
-
-    &::after {
-        content: '';
-        position: absolute;
-        top: 3px;
-        left: ${p => (p.$on ? '21px' : '3px')};
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        background: white;
-        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.25);
-        transition: left 180ms ease;
-    }
+const Intro = styled.p`
+    margin: 0 0 4px;
+    max-width: 68ch;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: ${ui.textSecondary};
 `;
 
 /** Ściąga gaśnie, gdy skróty są wyłączone - lista zostaje, żeby było co włączać. */
 const ShortcutRows = styled.div<{ $muted: boolean }>`
-    border-top: 1px solid ${p => p.theme.colors.border};
+    border-top: 1px solid ${ui.lineFaint};
     opacity: ${p => (p.$muted ? 0.45 : 1)};
     transition: opacity 180ms ease;
 `;
 
-/** Nagłówek grupy w ściądze - „Nawigacja", „Finanse", „Statystyki". */
-const GroupLabel = styled.div`
-    padding: 16px 0 6px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.6px;
-    text-transform: uppercase;
-    color: ${p => p.theme.colors.textSecondary};
+/**
+ * Nagłówek grupy w ściądze - „Nawigacja", „Finanse", „Statystyki". Zwykłym pismem:
+ * wersaliki 11 px w szarości były jedyną ramą grupy (CLAUDE.md §2, wycofane),
+ * a „gdzie działa" to doprecyzowanie obok nazwy, nie jej część.
+ */
+const GroupLabel = styled.h3`
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 2px 8px;
+    margin: 0;
+    padding: 18px 0 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: ${ui.ink};
+
+    span { font-size: 12.5px; font-weight: 500; color: ${ui.textMuted}; }
 `;
 
 const ShortcutRow = styled.div`
@@ -136,32 +89,22 @@ export function ShortcutsSection() {
     const [enabled, setEnabled] = useShortcutsEnabled();
 
     return (
-        <Card>
-            <CardTitle>Skróty klawiszowe</CardTitle>
-            <CardDescription>
+        <Body>
+            <Intro>
                 Litera przenosi do widoku, cyfra przełącza zakładkę w sekcji, w której
                 akurat jesteś. Skróty nie działają, gdy piszesz w polu tekstowym albo masz
                 otwarte okno dialogowe, i nie zjadają skrótów przeglądarki (Ctrl / Cmd).
-                Ustawienie dotyczy tej przeglądarki.
-            </CardDescription>
+            </Intro>
 
-            <OptionRow>
-                <OptionTexts>
-                    <OptionLabel>Włącz skróty klawiszowe</OptionLabel>
-                    <OptionHint>Po wyłączeniu klawisze z listy niżej przestają działać.</OptionHint>
-                </OptionTexts>
-                <ToggleTrack
-                    type="button"
-                    $on={enabled}
-                    role="switch"
-                    aria-checked={enabled}
-                    aria-label="Włącz skróty klawiszowe"
-                    onClick={() => setEnabled(!enabled)}
-                />
-            </OptionRow>
+            <SettingSwitchRow
+                label="Włącz skróty klawiszowe"
+                hint="Po wyłączeniu klawisze z listy niżej przestają działać. Ustawienie dotyczy tylko tej przeglądarki."
+                checked={enabled}
+                onChange={setEnabled}
+            />
 
             <ShortcutRows $muted={!enabled}>
-                <GroupLabel>Nawigacja - działa wszędzie</GroupLabel>
+                <GroupLabel>Nawigacja <span>działa wszędzie</span></GroupLabel>
                 {GLOBAL_SHORTCUTS.map((shortcut) => (
                     <ShortcutRow key={shortcut.key}>
                         <Kbd>{shortcut.key.toUpperCase()}</Kbd>
@@ -169,7 +112,7 @@ export function ShortcutsSection() {
                     </ShortcutRow>
                 ))}
 
-                <GroupLabel>Akcje - działa wszędzie</GroupLabel>
+                <GroupLabel>Akcje <span>działa wszędzie</span></GroupLabel>
                 {ACTION_SHORTCUTS.map((shortcut) => (
                     <ShortcutRow key={shortcut.key}>
                         <Kbd>{shortcut.key.toUpperCase()}</Kbd>
@@ -181,7 +124,7 @@ export function ShortcutsSection() {
                     pogrupowane - inaczej „1" w jednej liście byłoby nie do rozszyfrowania. */}
                 {SCOPED_SHORTCUTS.map((group) => (
                     <Fragment key={group.path}>
-                        <GroupLabel>{group.label} - tylko w tej sekcji</GroupLabel>
+                        <GroupLabel>{group.label} <span>tylko w tej sekcji</span></GroupLabel>
                         {group.shortcuts.map((shortcut) => (
                             <ShortcutRow key={`${group.path}-${shortcut.key}`}>
                                 <Kbd>{shortcut.key.toUpperCase()}</Kbd>
@@ -191,6 +134,6 @@ export function ShortcutsSection() {
                     </Fragment>
                 ))}
             </ShortcutRows>
-        </Card>
+        </Body>
     );
 }
