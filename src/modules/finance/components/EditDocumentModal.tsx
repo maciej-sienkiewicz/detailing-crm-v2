@@ -228,7 +228,10 @@ const EditDocumentForm: React.FC<{ document: FinancialDocument; onClose: () => v
     // żeby nie dało się wpisać zmiany, którą serwer i tak odrzuci.
     const isKsefInvoice = !!document.ksefInvoiceId;
     const isFromVisit = document.source === 'VISIT';
-    const amountsLocked = isKsefInvoice || isFromVisit;
+    // Korekta i dokument zastąpiony to para, która sumuje się do zera - zmienia się je
+    // tylko kolejną poprawką rozliczenia wizyty (backend odrzuci ręczną zmianę).
+    const isSettlementLocked = document.documentType === 'CORRECTION' || !!document.supersededAt;
+    const amountsLocked = isKsefInvoice || isFromVisit || isSettlementLocked;
 
     const set = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
         setForm(prev => prev && ({ ...prev, [key]: e.target.value }));
@@ -301,7 +304,15 @@ const EditDocumentForm: React.FC<{ document: FinancialDocument; onClose: () => v
                 <DirectionHint>Kierunek dokumentu jest stały. Aby go zmienić, usuń i utwórz nowy.</DirectionHint>
 
                 <form id="edit-document-form" onSubmit={handleSubmit} autoComplete="off">
-                    {isKsefInvoice && (
+                    {isSettlementLocked && (
+                        <LockNote>
+                            <Notice tone="info" title={document.documentType === 'CORRECTION' ? 'Korekta z poprawki rozliczenia' : 'Dokument zastąpiony'}>
+                                Ten dokument należy do poprawki rozliczenia wizyty i zostaje w historii bez zmian.
+                                Kolejną zmianę zrób przez „Popraw rozliczenie” w wizycie.
+                            </Notice>
+                        </LockNote>
+                    )}
+                    {!isSettlementLocked && isKsefInvoice && (
                         <LockNote>
                             <Notice tone="info" title="Dokument faktury KSeF">
                                 Kwoty, płatność, daty i nabywcę faktury przyjętej w KSeF zmienia się fakturą
@@ -456,7 +467,7 @@ const EditDocumentForm: React.FC<{ document: FinancialDocument; onClose: () => v
                     $variant="primary"
                     type="submit"
                     form="edit-document-form"
-                    disabled={updateDoc.isPending}
+                    disabled={updateDoc.isPending || isSettlementLocked}
                 >
                     {updateDoc.isPending ? 'Zapisywanie...' : 'Zapisz zmiany'}
                 </SharedButton>

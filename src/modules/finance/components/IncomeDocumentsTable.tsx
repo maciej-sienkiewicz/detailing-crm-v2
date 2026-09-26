@@ -397,6 +397,10 @@ const DOCUMENT_TYPE: Record<IncomeDocumentType, { label: string; variant: BadgeV
  * z których sześć znaczyło to samo.
  */
 const KSEF_MARK: Record<KsefRevenueStatus, { on: boolean; title: string }> = {
+  CANCELLED: {
+    on: false,
+    title: 'Anulowana w poprawce rozliczenia wizyty, zanim trafiła do KSeF. Nie liczy się do sprzedaży.',
+  },
   ACCEPTED: {
     on: true,
     title: 'Faktura jest w KSeF — Ministerstwo Finansów potwierdziło przyjęcie i nadało numer KSeF.',
