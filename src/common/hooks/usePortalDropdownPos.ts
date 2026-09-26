@@ -1,11 +1,13 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
+import { mobileBottomReserve, placeFloating, visibleViewport } from '@/common/utils/floatingPlacement';
 
 export type DropdownHAlign = 'right' | 'left';
 
 export interface PortalDropdownPos {
     top: number;
-    right?: number;
-    left?: number;
+    left: number;
+    maxWidth?: number;
+    maxHeight?: number;
     visible: boolean;
 }
 
@@ -38,10 +40,8 @@ export function usePortalDropdownPos() {
         optsRef.current = { align, offset, viewportMargin };
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
         anchorRectRef.current = rect;
-        const horiz = align === 'right'
-            ? { right: window.innerWidth - rect.right }
-            : { left: rect.left };
-        setPos({ top: rect.bottom + offset, ...horiz, visible: false });
+        // Pierwsze ustawienie jest niewidoczne - prawdziwe przychodzi po pomiarze menu.
+        setPos({ top: rect.bottom + offset, left: rect.left, visible: false });
     }, []);
 
     const close = useCallback(() => {
@@ -49,20 +49,27 @@ export function usePortalDropdownPos() {
         anchorRectRef.current = null;
     }, []);
 
-    // After the menu mounts at hidden position: measure its height and flip if needed.
+    // Po zamontowaniu (niewidoczne): pomiar menu i ustawienie przez placeFloating -
+    // w ekranie z obu stron, pod przyciskiem albo nad nim, z przewijaniem, gdy brak
+    // miejsca. Wcześniej hook pilnował tylko dołu, a w poziomie kleił się do jednej
+    // krawędzi przycisku, więc menu przy lewej krawędzi telefonu wyjeżdżało za ekran.
     useEffect(() => {
         if (!pos || pos.visible || !menuRef.current || !anchorRectRef.current) return;
-        const menuHeight = menuRef.current.offsetHeight;
-        if (menuHeight === 0) return;
-        const anchor = anchorRectRef.current;
+        const menu = menuRef.current;
+        if (menu.offsetHeight === 0) return;
         const { align, offset, viewportMargin } = optsRef.current;
-        const horiz = align === 'right'
-            ? { right: window.innerWidth - anchor.right }
-            : { left: anchor.left };
-        const fitsBelow = anchor.bottom + offset + menuHeight <= window.innerHeight - viewportMargin;
+        const viewport = visibleViewport();
+        const placement = placeFloating(
+            anchorRectRef.current,
+            { width: menu.offsetWidth, height: menu.offsetHeight },
+            viewport,
+            { align, offset, margin: viewportMargin, bottomReserve: mobileBottomReserve(viewport.width) },
+        );
         setPos({
-            top: fitsBelow ? anchor.bottom + offset : anchor.top - menuHeight - offset,
-            ...horiz,
+            top: placement.top,
+            left: placement.left,
+            maxWidth: placement.maxWidth,
+            maxHeight: placement.maxHeight,
             visible: true,
         });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -73,8 +80,11 @@ export function usePortalDropdownPos() {
     const style: React.CSSProperties | undefined = pos
         ? {
             top: pos.top,
-            ...(pos.right !== undefined ? { right: pos.right } : { left: pos.left }),
-            ...(pos.visible ? {} : { visibility: 'hidden' as const }),
+            left: pos.left,
+            right: 'auto',
+            ...(pos.visible
+                ? { maxWidth: pos.maxWidth, maxHeight: pos.maxHeight, overflowY: 'auto' as const }
+                : { visibility: 'hidden' as const }),
         }
         : undefined;
 

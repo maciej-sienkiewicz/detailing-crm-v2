@@ -1,9 +1,10 @@
 // src/modules/statistics/components/shared/HeaderDatePicker.tsx
 // Wspólny wybór zakresu dat w nagłówku strony (Przychody / Koszty).
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { st } from '../StatisticsTheme';
+import { applyFloatingPlacement } from '@/common/utils/floatingPlacement';
 import type { Granularity } from '../../types';
 import { today, spDaysAgo, spMonthsAgo, currentMonthStart, currentMonthName } from './format';
 
@@ -38,8 +39,15 @@ const PickerPanel = styled.div`
     border: 1px solid ${st.border};
     border-radius: ${st.radius};
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.14);
-    min-width: 250px;
+    width: 280px;
     padding: 8px;
+    /* Pozycję i limity ustawia applyFloatingPlacement; do pierwszego pomiaru panel
+       jest niewidoczny, żeby nie mignął w lewym górnym rogu. */
+    top: 0;
+    left: 0;
+    visibility: hidden;
+    overscroll-behavior: contain;
+    box-sizing: border-box;
 `;
 
 const PresetGroup = styled.div`
@@ -227,7 +235,6 @@ export const HeaderDatePicker = ({
     startDate, endDate, onStartChange, onEndChange, onGranularityChange, granularity,
 }: HeaderDatePickerProps) => {
     const [open, setOpen] = useState(false);
-    const [panelPos, setPanelPos] = useState<{ top: number; right: number } | null>(null);
     const [pendingFrom, setPendingFrom] = useState('');
     const [pendingTo, setPendingTo] = useState('');
     const triggerRef = useRef<HTMLButtonElement>(null);
@@ -259,10 +266,36 @@ export const HeaderDatePicker = ({
         return () => document.removeEventListener('mousedown', handler);
     }, [open]);
 
+    // Panel mieści się w ekranie zawsze (applyFloatingPlacement): wcześniej kleił się
+    // prawą krawędzią do przycisku i na telefonie, gdzie przycisk ląduje przy lewej
+    // krawędzi nagłówka, wyjeżdżał za ekran. Pozycja idzie za przyciskiem przy
+    // przewijaniu i przy zmianie rozmiaru, także gdy wysuwa się klawiatura przy datach.
+    useLayoutEffect(() => {
+        if (!open) return;
+        const place = () => {
+            const panel = panelRef.current;
+            const trigger = triggerRef.current;
+            if (panel && trigger) applyFloatingPlacement(panel, trigger.getBoundingClientRect(), { align: 'right', offset: 8 });
+        };
+        // Przewijanie wewnątrz panelu (niski ekran) nie przesuwa przycisku - przeliczenie
+        // zdjęłoby na chwilę limit wysokości i wyzerowało przewinięcie listy.
+        const onScroll = (e: Event) => {
+            if (panelRef.current?.contains(e.target as Node)) return;
+            place();
+        };
+        place();
+        window.addEventListener('resize', place);
+        window.addEventListener('scroll', onScroll, true);
+        window.visualViewport?.addEventListener('resize', place);
+        return () => {
+            window.removeEventListener('resize', place);
+            window.removeEventListener('scroll', onScroll, true);
+            window.visualViewport?.removeEventListener('resize', place);
+        };
+    }, [open, granularity]);
+
     const handleToggle = () => {
-        if (!open && triggerRef.current) {
-            const rect = triggerRef.current.getBoundingClientRect();
-            setPanelPos({ top: rect.bottom + 8, right: Math.max(0, window.innerWidth - rect.right) });
+        if (!open) {
             setPendingFrom(startDate);
             setPendingTo(endDate);
         }
@@ -292,8 +325,8 @@ export const HeaderDatePicker = ({
                 <ChevIcon />
             </PickerTrigger>
 
-            {open && panelPos && createPortal(
-                <PickerPanel ref={panelRef} style={{ top: panelPos.top, right: panelPos.right }}>
+            {open && createPortal(
+                <PickerPanel ref={panelRef}>
                     <PresetGroup>
                         {presets.map((p, idx) => (
                             <PresetBtn key={p.label} $active={idx === activeIdx} onClick={() => applyPreset(p)}>
