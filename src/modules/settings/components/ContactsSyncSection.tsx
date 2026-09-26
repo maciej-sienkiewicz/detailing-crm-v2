@@ -152,10 +152,7 @@ export function ContactsSyncSection() {
 
     return (
         <View>
-            <Intro>
-                Klienci studia w kontaktach iPhone'a: przy połączeniu od razu widać, kto dzwoni.
-                Konfiguracja jest automatyczna, profil sam wpisuje serwer i dane logowania.
-            </Intro>
+            <Intro>Klienci studia w kontaktach iPhone'a, żeby przy połączeniu było widać, kto dzwoni.</Intro>
 
             <SettingsHeaderActions>
                 <Button variant="primary" size="lg" onClick={startSetup} disabled={createProvisioning.isPending}>
@@ -172,7 +169,7 @@ export function ContactsSyncSection() {
                     )}
                     <InstallSteps>
                         {installPath === 'desktop' && (
-                            <Step><StepNo>1</StepNo><span>Zeskanuj kod aparatem iPhone'a: otworzy się Safari i pobierze profil.</span></Step>
+                            <Step><StepNo>1</StepNo><span>Zeskanuj kod aparatem iPhone'a.</span></Step>
                         )}
                         {installPath === 'ios-other' && (
                             <Step>
@@ -185,14 +182,14 @@ export function ContactsSyncSection() {
                             </Step>
                         )}
                         {installPath === 'ios-safari' && (
-                            <Step><StepNo>1</StepNo><span>Safari zapyta o zgodę na pobranie profilu. Dotknij <strong>Pozwól</strong>, a potem <strong>Zamknij</strong>.</span></Step>
+                            <Step><StepNo>1</StepNo><span>Dotknij <strong>Pozwól</strong>, a potem <strong>Zamknij</strong>.</span></Step>
                         )}
-                        <Step><StepNo>2</StepNo><span>Otwórz aplikację <strong>Ustawienia</strong>: na samej górze zobaczysz <strong>„Profil pobrany"</strong>. Dotknij tej pozycji.</span></Step>
-                        <Step><StepNo>3</StepNo><span>Dotknij <strong>Zainstaluj</strong>, podaj kod telefonu i potwierdź. Ostrzeżenie „Niezweryfikowany" jest w porządku, kontynuuj.</span></Step>
-                        <Step><StepNo>4</StepNo><span>Gotowe. Klienci pojawią się w Kontaktach w ciągu kilku minut, a lista sama będzie się odświeżać.</span></Step>
+                        <Step><StepNo>2</StepNo><span>W <strong>Ustawieniach</strong> dotknij <strong>„Profil pobrany"</strong> na samej górze.</span></Step>
+                        <Step><StepNo>3</StepNo><span>Dotknij <strong>Zainstaluj</strong> i podaj kod telefonu. Ostrzeżenie „Niezweryfikowany" jest w porządku.</span></Step>
+                        <Step><StepNo>4</StepNo><span>Gotowe. Klienci pojawią się w Kontaktach w ciągu kilku minut.</span></Step>
                         {secondsLeft !== null && (
                             <Expiry $urgent={secondsLeft < 60} role="timer">
-                                Link wygaśnie za {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')}, potem wygeneruj nowy.
+                                Link wygaśnie za {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')}.
                             </Expiry>
                         )}
                     </InstallSteps>
@@ -228,7 +225,7 @@ export function ContactsSyncSection() {
                 ) : accounts.length === 0 ? (
                     <EmptyState>
                         <strong>Żaden telefon nie synchronizuje jeszcze kontaktów</strong>
-                        <p>„{setupLabel}" w nagłówku przygotuje profil. Zajmie to mniej niż minutę.</p>
+                        <p>„{setupLabel}" w nagłówku przygotuje profil.</p>
                     </EmptyState>
                 ) : (
                     accounts.map(account => {

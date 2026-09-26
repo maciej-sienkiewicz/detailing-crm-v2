@@ -39,7 +39,7 @@ const renderSection = () => {
     );
 };
 
-const ourField = () => screen.getByLabelText('Po ilu godzinach brak odpowiedzi jest zaległością') as HTMLInputElement;
+const ourField = () => screen.getByLabelText('Nasza odpowiedź jest spóźniona po') as HTMLInputElement;
 
 beforeEach(() => {
     vi.mocked(leadsSettingsApi.getAutoLeadConfig).mockResolvedValue({ enabled: false, enabledAt: null });
@@ -96,7 +96,7 @@ describe('LeadsSettingsSection', () => {
     it('the auto-lead switch is an accessible switch that reflects the server state', async () => {
         vi.mocked(leadsSettingsApi.getAutoLeadConfig).mockResolvedValue({ enabled: true, enabledAt: null });
         renderSection();
-        const toggle = await screen.findByRole('switch', { name: 'Czy tworzyć leady automatycznie?' });
+        const toggle = await screen.findByRole('switch', { name: 'Twórz leady z poczty' });
         expect(toggle).toBeChecked();
     });
 
@@ -104,11 +104,11 @@ describe('LeadsSettingsSection', () => {
         vi.mocked(leadsSettingsApi.getAutoLeadConfig).mockRejectedValue(new Error('500'));
         renderSection();
         expect(await screen.findByText('Nie udało się wczytać ustawienia automatu')).toBeInTheDocument();
-        expect(screen.queryByRole('switch', { name: 'Czy tworzyć leady automatycznie?' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('switch', { name: 'Twórz leady z poczty' })).not.toBeInTheDocument();
 
         vi.mocked(leadsSettingsApi.getAutoLeadConfig).mockResolvedValue({ enabled: false, enabledAt: null });
         await userEvent.click(screen.getAllByRole('button', { name: 'Spróbuj ponownie' })[0]);
-        const toggle = await screen.findByRole('switch', { name: 'Czy tworzyć leady automatycznie?' });
+        const toggle = await screen.findByRole('switch', { name: 'Twórz leady z poczty' });
         expect(toggle).not.toBeChecked();
     });
 });

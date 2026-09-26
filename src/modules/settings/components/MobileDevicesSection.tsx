@@ -20,7 +20,7 @@ import { PushNotificationsPanel } from '@/modules/push/components/PushNotificati
 import { useTablets } from '../hooks/useTablets';
 import { TabletsSection } from './TabletsSection';
 import { ContactsSyncSection } from './ContactsSyncSection';
-import { Intro, View } from './devicesLayout';
+import { View } from './devicesLayout';
 
 export type MobileDevicesSubView = 'tablets' | 'notifications' | 'contacts';
 
@@ -61,13 +61,7 @@ export function MobileDevicesSection({ subView, onSubViewChange }: MobileDevices
 
             {subView === 'notifications' && (
                 <View>
-                    <Intro>
-                        Telefon dostaje powiadomienia z CRM: prośbę o połączenie klikniętą na
-                        komputerze (z przyciskiem „Zadzwoń"), nowe leady i rezerwacje, przyjęte
-                        i wydane auta (z kwotą) oraz kampanie konkurencji w śledzonym rejonie.
-                        Każdy włącza je na swoich urządzeniach i dostaje tylko to, do czego ma
-                        uprawnienia - o własnej rezerwacji czy przyjęciu nikt nie dostaje wiadomości.
-                    </Intro>
+                    {/* Bez wstępu: pięć linii wyliczanki powtarzało listę z kreatora poniżej. */}
                     <PushNotificationsPanel />
                 </View>
             )}

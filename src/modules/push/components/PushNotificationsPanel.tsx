@@ -56,8 +56,7 @@ export function PushNotificationsPanel() {
                 <PushNotificationWizard push={push} />
                 {!onPhone && !push.isSubscribedHere && push.support === 'supported' && (
                     <DesktopNote>
-                        Powiadomienia mają sens na telefonie, który nosisz przy sobie - na komputerze
-                        włącz je tylko wtedy, gdy pracujesz przy nim na co dzień.
+                        Najlepiej działają na telefonie, który nosisz przy sobie.
                     </DesktopNote>
                 )}
             </PairingBlock>
@@ -83,17 +82,8 @@ export function PushNotificationsPanel() {
 
                         <Steps>
                             <StepList>
-                                <li>Zeskanuj kod telefonem i <strong>zaloguj się</strong> do CRM, jeśli poprosi.</li>
-                                <li>
-                                    Telefon sam poprowadzi dalej. Na iPhonie pierwszym krokiem będzie
-                                    {' '}<strong>dodanie CRM do ekranu początkowego</strong> - bez tego iOS nie
-                                    pozwala na powiadomienia.
-                                </li>
-                                <li>Dotknij <strong>„Włącz powiadomienia"</strong> i zezwól, gdy telefon zapyta.</li>
-                                <li>
-                                    To samo zrobisz w aplikacji na telefonie:
-                                    {' '}<strong>Ustawienia → Tablety, telefon, kontakty → Powiadomienia</strong>.
-                                </li>
+                                <li>Zeskanuj kod telefonem i zaloguj się, jeśli poprosi.</li>
+                                <li>Telefon poprowadzi dalej. Na końcu zezwól na powiadomienia.</li>
                             </StepList>
 
                             <CopyRow>

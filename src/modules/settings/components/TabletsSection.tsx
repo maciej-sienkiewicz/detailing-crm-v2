@@ -24,7 +24,7 @@ import { TabletPairingModal } from './tablets/TabletPairingModal';
 import { SettingsHeaderActions } from './shared/SettingsHeaderActions';
 import { serverMessage, toastedGlobally } from './errorToast';
 import {
-    DeviceMain, DeviceRow, DeviceSide, DeviceText, EmptyState, Intro, ListCard, ListHead, ListNotice,
+    DeviceMain, DeviceRow, DeviceSide, DeviceText, EmptyState, ListCard, ListHead, ListNotice,
     SkeletonLine, View, formatDate, tabletsWord,
 } from './devicesLayout';
 import type { Tablet } from '../tabletTypes';
@@ -50,11 +50,8 @@ export function TabletsSection() {
 
     return (
         <View>
-            <Intro>
-                Tablet, na którym klient podpisuje protokoły przyjęcia i wydania pojazdu.
-                Parowanie nie wygasa: tablet działa, dopóki go nie odłączysz.
-            </Intro>
-
+            {/* Bez wstępu: nagłówek sekcji już mówi, do czego są tablety, a dwa zdania
+                o parowaniu przytłaczały listę, po którą się tu przychodzi. */}
             {/* Bez modułu podpisów panel niżej jest tylko zachętą do zakupu -
                 przycisk parowania w nagłówku obiecywałby coś, czego serwer odmówi (402). */}
             {signatures.enabled && (

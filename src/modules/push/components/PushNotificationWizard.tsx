@@ -307,11 +307,13 @@ function BlockedStage({ platform }: { platform: PushPlatform }) {
 
 // ─── Etap: dlaczego warto + zgoda ─────────────────────────────────────────────
 
+// Same tytuły, bez zdań objaśniających pod każdym: cztery akapity nad przyciskiem
+// przytłaczały go, a tytuł z ikoną mówi wystarczająco, co przyjdzie na telefon.
 const BENEFITS = [
-    { icon: <PhoneIcon />, title: 'Dzwonisz jednym dotknięciem', text: 'Klikasz numer klienta na komputerze, a telefon pokazuje przycisk „Zadzwoń".' },
-    { icon: <WalletIcon />, title: 'Wiesz, co dzieje się w studiu', text: 'Nowa rezerwacja, przyjęte auto i wydane auto - to ostatnie razem z kwotą.' },
-    { icon: <InboxIcon />, title: 'Nie przegapisz zapytania', text: 'Nowy lead trafia od razu na ekran blokady, zanim klient napisze do konkurencji.' },
-    { icon: <MegaphoneIcon />, title: 'Widzisz ruchy konkurencji', text: 'Gdy firma w śledzonym rejonie rusza z reklamą, dowiesz się tego samego dnia.' },
+    { icon: <PhoneIcon />, title: 'Dzwonisz jednym dotknięciem' },
+    { icon: <WalletIcon />, title: 'Rezerwacje, przyjęcia i wydania aut' },
+    { icon: <InboxIcon />, title: 'Nowe zapytania od razu' },
+    { icon: <MegaphoneIcon />, title: 'Ruchy konkurencji' },
 ];
 
 function AskStage({ push, onDismiss }: { push: PushDeviceState; onDismiss?: () => void }) {
@@ -333,20 +335,14 @@ function AskStage({ push, onDismiss }: { push: PushDeviceState; onDismiss?: () =
         <>
             <Lead>
                 <Title>Niech CRM da znać, gdy coś się dzieje</Title>
-                <Text>
-                    Powiadomienia przychodzą także przy zamkniętej aplikacji. Każdy dostaje tylko
-                    te, do których ma uprawnienia w swojej roli.
-                </Text>
+                <Text>Przychodzą także przy zamkniętej aplikacji.</Text>
             </Lead>
 
             <Benefits>
                 {BENEFITS.map(benefit => (
                     <Benefit key={benefit.title}>
                         <BenefitTile>{benefit.icon}</BenefitTile>
-                        <div>
-                            <BenefitTitle>{benefit.title}</BenefitTitle>
-                            <BenefitText>{benefit.text}</BenefitText>
-                        </div>
+                        <BenefitTitle>{benefit.title}</BenefitTitle>
                     </Benefit>
                 ))}
             </Benefits>
@@ -359,8 +355,7 @@ function AskStage({ push, onDismiss }: { push: PushDeviceState; onDismiss?: () =
                 {onDismiss && <Button variant="ghost" onClick={onDismiss}>Nie teraz</Button>}
             </Footer>
             <Muted>
-                Telefon zapyta o zgodę. Wybierz <strong>{allowLabel}</strong>, bo odmowy nie da się
-                cofnąć z poziomu aplikacji. Dostajesz tylko sprawy swojego studia.
+                Gdy telefon zapyta, wybierz <strong>{allowLabel}</strong>. Odmowy nie da się cofnąć z aplikacji.
             </Muted>
         </>
     );
@@ -668,7 +663,7 @@ const Benefits = styled.ul`
 const Benefit = styled.li`
     display: flex;
     gap: 12px;
-    align-items: flex-start;
+    align-items: center;
 `;
 
 const BenefitTile = styled.span`
@@ -688,14 +683,8 @@ const BenefitTile = styled.span`
 
 const BenefitTitle = styled.div`
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 600;
     color: ${ui.ink};
-`;
-
-const BenefitText = styled.div`
-    font-size: 13px;
-    line-height: 1.5;
-    color: ${ui.textMuted};
 `;
 
 const Footer = styled.div`

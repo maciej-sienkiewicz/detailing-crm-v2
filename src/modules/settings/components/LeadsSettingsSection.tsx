@@ -6,9 +6,10 @@
 // wiadomość przychodząca jest czytana przez model i — jeśli okaże się zapytaniem
 // klienta — sama zakłada leada.
 //
-// Ekran musi powiedzieć trzy rzeczy, bo bez nich przełącznik jest aktem wiary:
-// co dokładnie automat robi, czego NIE ruszy (poczta sprzed włączenia) i że jego
-// decyzja jest odwracalna jednym kliknięciem w skrzynce.
+// Ekran mówi jednym zdaniem, co robi przełącznik. Wcześniej stały tu dwa akapity
+// i cztery punkty „Warto wiedzieć" - nikt ich nie czytał, a przytłaczały sam
+// przełącznik. Szczegóły (czego automat nie rusza, co przy wątpliwościach) są
+// teraz trzema krótkimi punktami pod zwiniętym „Jak to działa".
 
 import { useRef, useState } from 'react';
 import styled from 'styled-components';
@@ -47,24 +48,18 @@ const FlatPanel = styled(Panel)`
     @media (max-width: 767px) { padding: 16px 16px 4px; }
 `;
 
-const Lead = styled.p`
-    margin: 6px 0 4px;
-    max-width: 68ch;
-    font-size: 13.5px;
-    line-height: 1.55;
-    color: ${ui.textSecondary};
-`;
-
-const Details = styled.div`
+const Details = styled.details`
     border-top: 1px solid ${ui.lineFaint};
-    padding-top: 16px;
-`;
+    padding-top: 12px;
 
-const DetailsTitle = styled.h3`
-    margin: 0 0 8px;
-    font-size: 14px;
-    font-weight: 600;
-    color: ${ui.ink};
+    summary {
+        width: fit-content;
+        font-size: 13.5px;
+        font-weight: 600;
+        color: ${ui.brandInk};
+        cursor: pointer;
+    }
+    &[open] summary { margin-bottom: 8px; }
 `;
 
 const DetailsList = styled.ul`
@@ -82,7 +77,7 @@ const DetailsList = styled.ul`
 `;
 
 const ActiveSince = styled.p`
-    margin: 14px 0 0;
+    margin: 0 0 12px;
     font-size: 13px;
     color: ${ui.textSecondary};
 `;
@@ -155,24 +150,19 @@ const formatMoment = (iso: string | null): string | null => {
 
 type ThresholdKey = keyof LeadAlertConfig;
 
-const THRESHOLDS: Array<{ key: ThresholdKey; label: string; hint: (days: string) => string }> = [
-    {
-        key: 'leadStagnantOurThresholdHours',
-        label: 'Po ilu godzinach brak odpowiedzi jest zaległością',
-        hint: days => `Po tym czasie wiek sprawy w sekcji „Czeka na nas” zapala się na czerwono. Teraz: ${days}.`,
-    },
-    {
-        key: 'leadStagnantClientThresholdHours',
-        label: 'Po ilu godzinach cisza klienta to rozmowa bez odzewu',
-        hint: days => `Po tym czasie sprawa przechodzi z „U klienta” do sekcji „Ucichło”. Teraz: ${days}.`,
-    },
+const THRESHOLDS: Array<{ key: ThresholdKey; label: string }> = [
+    { key: 'leadStagnantOurThresholdHours', label: 'Nasza odpowiedź jest spóźniona po' },
+    { key: 'leadStagnantClientThresholdHours', label: 'Klient ucichł po' },
 ];
 
 type HoursDraft = Record<ThresholdKey, string>;
 
+/** Brak wartości z serwera to puste pole, a nie napis „undefined" w polu. */
+const asText = (n: number | null | undefined) => (typeof n === 'number' ? String(n) : '');
+
 const toDraft = (config: LeadAlertConfig): HoursDraft => ({
-    leadStagnantOurThresholdHours: String(config.leadStagnantOurThresholdHours),
-    leadStagnantClientThresholdHours: String(config.leadStagnantClientThresholdHours),
+    leadStagnantOurThresholdHours: asText(config.leadStagnantOurThresholdHours),
+    leadStagnantClientThresholdHours: asText(config.leadStagnantClientThresholdHours),
 });
 
 /**
@@ -220,7 +210,7 @@ const StagnationPanel = () => {
     const current: HoursDraft | null = draft ?? (data ? toDraft(data) : null);
     const invalid = current ? THRESHOLDS.filter(t => parseHours(current[t.key]) === null) : [];
     const changed = current && data
-        ? THRESHOLDS.filter(t => current[t.key] !== String(data[t.key])).length
+        ? THRESHOLDS.filter(t => current[t.key] !== asText(data[t.key])).length
         : 0;
     const dirty = changed > 0;
 
@@ -252,12 +242,7 @@ const StagnationPanel = () => {
 
     return (
         <FlatPanel>
-            <SectionTitle as="h3">Progi czasu w kolejce</SectionTitle>
-            <Lead>
-                Te dwie liczby dzielą kolejkę zapytań na sekcje i decydują o tym, kiedy wiek
-                sprawy zapala się na czerwono. Jednej dobrej wartości nie ma: inaczej wygląda
-                to przy myciu, inaczej przy powłoce ceramicznej.
-            </Lead>
+            <SectionTitle as="h3">Kiedy sprawa stygnie</SectionTitle>
 
             {isError && !data ? (
                 <ThresholdRow>
@@ -281,8 +266,8 @@ const StagnationPanel = () => {
                                 <label htmlFor={id}>{t.label}</label>
                                 <p id={`${id}-hint`}>
                                     {isInvalid
-                                        ? `Wpisz od ${MIN_HOURS} do ${MAX_HOURS} godz. (30 dni).`
-                                        : t.hint(hoursInDays(parsed))}
+                                        ? `Od ${MIN_HOURS} do ${MAX_HOURS} godz.`
+                                        : `czyli ${hoursInDays(parsed)}`}
                                 </p>
                             </ThresholdTexts>
                             <HoursField $invalid={isInvalid}>
@@ -354,12 +339,6 @@ export const LeadsSettingsSection = () => {
         <Stack>
             <AutoCard>
                 <SectionTitle as="h3">Automatyczne tworzenie leadów</SectionTitle>
-                <Lead>
-                    Każda nowa wiadomość w skrzynce jest czytana i oceniana: czy to zapytanie
-                    potencjalnego klienta o wycenę, termin albo zakres usługi. Jeśli tak, w module
-                    Leady od razu pojawia się nowe zapytanie z kontaktem i treścią. Reszta poczty
-                    (oferty od dostawców, faktury, newslettery, powiadomienia) zostaje nietknięta.
-                </Lead>
 
                 {isError && !config ? (
                     <Notice
@@ -368,46 +347,30 @@ export const LeadsSettingsSection = () => {
                         title="Nie udało się wczytać ustawienia automatu"
                         action={<Button variant="ghost" size="sm" onClick={() => void refetch()}>Spróbuj ponownie</Button>}
                     >
-                        Nie wiemy, czy automat jest teraz włączony, więc przełącznik pojawi się po wczytaniu.
+                        Przełącznik pojawi się po wczytaniu.
                     </Notice>
                 ) : isPending && !config ? (
                     <Loading role="status">Wczytywanie ustawienia…</Loading>
                 ) : (
                     <>
                         <SettingSwitchRow
-                            label="Czy tworzyć leady automatycznie?"
-                            hint="Po wyłączeniu skrzynka działa jak dotąd: leady powstają tylko wtedy, gdy ktoś oznaczy wiadomość ręcznie."
+                            label="Twórz leady z poczty"
+                            hint="Zapytania o wycenę same trafią do Leadów. Reszta poczty zostaje nietknięta."
                             checked={config?.enabled}
                             disabled={saving}
                             onChange={next => updateMutation.mutate(next)}
                         />
 
+                        {config?.enabled && activeSince && (
+                            <ActiveSince>Działa od {activeSince}.</ActiveSince>
+                        )}
                         <Details>
-                            <DetailsTitle>Warto wiedzieć</DetailsTitle>
+                            <summary>Jak to działa</summary>
                             <DetailsList>
-                                <li>
-                                    Automat obejmuje wyłącznie pocztę, która przyjdzie PO włączeniu.
-                                    Wiadomości, które już leżą w skrzynce, zostają nietknięte: od nich
-                                    jesteś Ty i przycisk „Oznacz jako lead".
-                                </li>
-                                <li>
-                                    Lead powstaje z pierwszej wiadomości rozmowy. Dalsza korespondencja
-                                    dokleja się do tego samego zapytania i nie tworzy kolejnych.
-                                </li>
-                                <li>
-                                    Przy niejednoznacznej wiadomości automat nie robi nic: wolimy
-                                    zostawić decyzję Tobie, niż zaśmiecić listę zapytań. Taka wiadomość
-                                    czeka w skrzynce i możesz oznaczyć ją jednym kliknięciem.
-                                </li>
-                                <li>
-                                    Newslettery, autorespondery i powiadomienia systemowe są odsiewane
-                                    po nagłówkach, zanim w ogóle dojdzie do oceny treści.
-                                </li>
+                                <li>Czyta tylko pocztę, która przyjdzie po włączeniu.</li>
+                                <li>Kolejne wiadomości z rozmowy trafiają do tego samego leada.</li>
+                                <li>Gdy nie ma pewności, nic nie robi. Wiadomość oznaczysz ręcznie.</li>
                             </DetailsList>
-
-                            {config?.enabled && activeSince && (
-                                <ActiveSince>Automat działa od {activeSince}.</ActiveSince>
-                            )}
                         </Details>
                     </>
                 )}

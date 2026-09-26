@@ -80,7 +80,7 @@ describe('PushNotificationWizard', () => {
     it('przed monitem systemowym tłumaczy, co będzie przychodzić', () => {
         render(<PushNotificationWizard push={pushState({})} />);
         expect(screen.getByText('Dzwonisz jednym dotknięciem')).toBeTruthy();
-        expect(screen.getByText('Nie przegapisz zapytania')).toBeTruthy();
+        expect(screen.getByText('Nowe zapytania od razu')).toBeTruthy();
     });
 
     it('kliknięcie „Włącz" woła enable() synchronicznie, w obsłudze gestu', () => {
