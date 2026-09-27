@@ -19,10 +19,13 @@ const slideIn = keyframes`
     to { transform: translateX(0); opacity: 1; }
 `;
 
+// Warstwa jak w SideDrawer (1000). Przy 90/91 panel leżał POD dolną nawigacją
+// telefonu (BottomNav, 97), która zasłaniała jego dolne 88 px - ostatnie rozmowy
+// na liście nie dawały się ani zobaczyć, ani kliknąć.
 const Backdrop = styled.div`
     position: fixed;
     inset: 0;
-    z-index: 90;
+    z-index: 1000;
     background: rgba(15, 23, 42, 0.18);
 `;
 
@@ -31,7 +34,7 @@ const Panel = styled.aside`
     top: 0;
     right: 0;
     bottom: 0;
-    z-index: 91;
+    z-index: 1001;
     width: 380px;
     max-width: 100vw;
     background: ${p => p.theme.colors.surface};
@@ -152,6 +155,13 @@ const ThreadCard = styled.button`
         font-size: 11.5px;
         color: ${p => p.theme.colors.textMuted};
         display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        column-gap: 12px;
+        row-gap: 2px;
+    }
+    .meta .when {
+        display: inline-flex;
         align-items: center;
         gap: 6px;
     }
@@ -223,10 +233,12 @@ export function ThreadHistoryPanel({ threadId, email, onClose }: ThreadHistoryPa
                             </div>
                             {thread.lastSnippet && <div className="snippet">{thread.lastSnippet}</div>}
                             <div className="meta">
-                                <Mail size={11} />
-                                {formatDateTime(thread.lastMessageAt)}
-                                {thread.messageCount > 1 && <> · {thread.messageCount} wiadomości</>}
-                                {thread.archived && <> · zarchiwizowany</>}
+                                <span className="when">
+                                    <Mail size={11} />
+                                    {formatDateTime(thread.lastMessageAt)}
+                                </span>
+                                {thread.messageCount > 1 && <span>{thread.messageCount} wiadomości</span>}
+                                {thread.archived && <span>zarchiwizowany</span>}
                             </div>
                         </ThreadCard>
                     ))}

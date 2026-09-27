@@ -23,16 +23,23 @@ import { customerApi } from '@/modules/customers/api/customerApi';
 import { customerEditApi } from '@/modules/customers/api/customerEditApi';
 import { AddCustomerModal } from '@/modules/customers/components/AddCustomerModal';
 import { useToast } from '@/common/components/Toast';
+import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 import type { Customer } from '@/modules/customers/types';
 import { COMMS_CONTACT_CARD_KEY, COMMS_INSIGHTS_KEY, useContactCard } from '../hooks/useComms';
 import { VehiclePhotosPopover } from './VehiclePhotosPopover';
 import { formatGrosze } from './shared';
 
+// Pozycję, szerokość i wysokość nadaje useFloatingPanel po pomiarze. Dawniej chmurka
+// zakładała 360 px wysokości: z trzema autami, trzema wizytami i linkiem do profilu jest
+// wyższa, więc „pod plakietką" wyjeżdżała dołem, a odwrócona w górę przypinała się
+// do 12 px od góry ekranu i zasłaniała plakietkę, z której wyszła.
 const Card = styled.div<{ $z: number }>`
     position: fixed;
+    top: 0;
+    left: 0;
+    visibility: hidden;
     z-index: ${p => p.$z};
     width: 360px;
-    max-width: calc(100vw - 24px);
     background: ${p => p.theme.colors.surface};
     border: 1px solid ${p => p.theme.colors.border};
     border-radius: ${p => p.theme.radii.lg};
@@ -44,6 +51,7 @@ const Card = styled.div<{ $z: number }>`
 
 const Head = styled.div`
     display: flex;
+    flex-shrink: 0;
     align-items: flex-start;
     gap: 10px;
     padding: 12px 14px;
@@ -58,6 +66,9 @@ const Head = styled.div`
     }
     .sub {
         margin-top: 2px;
+        display: flex;
+        flex-wrap: wrap;
+        column-gap: 10px;
         font-size: 12px;
         color: ${p => p.theme.colors.textMuted};
         overflow-wrap: anywhere;
@@ -76,7 +87,11 @@ const Head = styled.div`
     }
 `;
 
+// Przy niskim ekranie przewija się środek - nagłówek z nazwiskiem i przyciski stopki
+// zostają widoczne.
 const Body = styled.div`
+    flex: 1 1 auto;
+    min-height: 0;
     max-height: 380px;
     overflow-y: auto;
     padding: 10px 14px 12px;
@@ -210,6 +225,7 @@ const Muted = styled.p`
 `;
 
 const Foot = styled.div`
+    flex-shrink: 0;
     border-top: 1px solid ${p => p.theme.colors.border};
     padding: 10px 14px;
     display: flex;
@@ -280,7 +296,13 @@ const Candidate = styled.button`
     &:hover { background: ${p => p.theme.colors.surfaceHover}; }
 
     .name { font-size: 13px; color: ${p => p.theme.colors.text}; }
-    .meta { font-size: 11.5px; color: ${p => p.theme.colors.textMuted}; }
+    .meta {
+        display: flex;
+        flex-wrap: wrap;
+        column-gap: 10px;
+        font-size: 11.5px;
+        color: ${p => p.theme.colors.textMuted};
+    }
 `;
 
 const ReplaceWarning = styled.div`
@@ -357,7 +379,6 @@ export function ContactCardPopover({
     onClose,
     zIndex = DEFAULT_Z_INDEX,
 }: ContactCardPopoverProps) {
-    const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
     const [linking, setLinking] = useState(false);
     const [query, setQuery] = useState('');
     const [candidates, setCandidates] = useState<Customer[]>([]);
@@ -376,23 +397,23 @@ export function ContactCardPopover({
     const queryClient = useQueryClient();
     const { showSuccess, showError } = useToast();
 
-    useEffect(() => {
-        const place = () => {
-            const rect = anchor.getBoundingClientRect();
-            const width = 360;
-            const left = Math.max(12, Math.min(rect.left, window.innerWidth - width - 12));
-            const below = window.innerHeight - rect.bottom;
-            const top = below > 360 ? rect.bottom + 6 : Math.max(12, rect.top - 366);
-            setPos({ top, left });
-        };
-        place();
-        window.addEventListener('resize', place);
-        window.addEventListener('scroll', place, true);
-        return () => {
-            window.removeEventListener('resize', place);
-            window.removeEventListener('scroll', place, true);
-        };
-    }, [anchor]);
+    // Plakietka przychodzi jako element, a useFloatingPanel bierze refy - stały obiekt
+    // na czas życia jednej plakietki.
+    const anchorRef = useMemo(() => ({ current: anchor }), [anchor]);
+    // Klucz jako napis: przeliczenie przy KAŻDYM renderze (np. przy wpisywaniu w pole
+    // wyszukiwania) zdejmowałoby na chwilę limit wysokości i zerowało przewinięcie.
+    const layoutKey = [
+        isLoading,
+        Boolean(data?.customer),
+        data?.vehicles?.length ?? 0,
+        data?.recentVisits?.length ?? 0,
+        linking,
+        searching,
+        candidates.length,
+        Boolean(replaceFor),
+        saving,
+    ].join('|');
+    useFloatingPanel(true, anchorRef, cardRef, { align: 'left', offset: 6, margin: 12 }, layoutKey);
 
     useEffect(() => {
         const onDocClick = (event: MouseEvent) => {
@@ -497,8 +518,6 @@ export function ContactCardPopover({
         return { firstName, lastName, email };
     }, [participantName, email]);
 
-    if (!pos) return null;
-
     const customer = data?.customer ?? null;
 
     return createPortal(
@@ -506,7 +525,6 @@ export function ContactCardPopover({
             <Card
                 ref={cardRef}
                 $z={zIndex}
-                style={{ top: pos.top, left: pos.left }}
                 role="dialog"
                 aria-label="Wizytówka klienta"
             >
@@ -514,8 +532,8 @@ export function ContactCardPopover({
                     <div className="who">
                         <div className="name">{customer?.fullName ?? participantName ?? email}</div>
                         <div className="sub">
-                            {email}
-                            {customer?.phone && ` · ${customer.phone}`}
+                            <span>{email}</span>
+                            {customer?.phone && <span>{customer.phone}</span>}
                         </div>
                     </div>
                     <button type="button" className="close" onClick={onClose} aria-label="Zamknij">
@@ -547,10 +565,12 @@ export function ContactCardPopover({
                                     <Muted>Brak aut w kartotece.</Muted>
                                 )}
                                 {(data?.vehicles ?? []).map((vehicle) => {
+                                    // Tytuł chmurki ze zdjęciami - jeden napis, więc
+                                    // tablica jako doprecyzowanie po przecinku.
                                     const label = [
                                         `${vehicle.brand} ${vehicle.model}`,
                                         vehicle.licensePlate,
-                                    ].filter(Boolean).join(' · ');
+                                    ].filter(Boolean).join(', ');
                                     return (
                                         <VehicleLine
                                             key={vehicle.id}
@@ -598,7 +618,7 @@ export function ContactCardPopover({
                                             <span className="title">{visit.title ?? 'Wizyta'}</span>
                                             <div className="meta">
                                                 {dateOnly(visit.date)}
-                                                {visit.vehicleLabel && ` · ${visit.vehicleLabel}`}
+                                                {visit.vehicleLabel && `, ${visit.vehicleLabel}`}
                                             </div>
                                         </span>
                                         <span className="amount">{formatGrosze(visit.totalGross)}</span>
@@ -646,8 +666,8 @@ export function ContactCardPopover({
                                             {[candidate.firstName, candidate.lastName].filter(Boolean).join(' ') || '(bez nazwiska)'}
                                         </div>
                                         <div className="meta">
-                                            {candidate.contact?.email ?? 'brak adresu'}
-                                            {candidate.contact?.phone && ` · ${candidate.contact.phone}`}
+                                            <span>{candidate.contact?.email ?? 'brak adresu'}</span>
+                                            {candidate.contact?.phone && <span>{candidate.contact.phone}</span>}
                                         </div>
                                     </Candidate>
                                 ))}

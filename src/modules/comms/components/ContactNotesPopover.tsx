@@ -9,7 +9,7 @@
 // do cudzego zdania i kasowania cudzych ustaleń. Każda ma autora i datę, a wszystkie
 // zmiany idą do dziennika: „kto to skreślił i kiedy" jest pytaniem, na które ta
 // funkcja ma odpowiadać.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { Check, History, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
@@ -20,14 +20,22 @@ import {
     useDeleteContactNote,
     useUpdateContactNote,
 } from '../hooks/useComms';
+import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 import type { ContactNoteAction } from '../types';
 import { formatDateTime } from './shared';
 
+// Pozycję, szerokość i wysokość nadaje useFloatingPanel po pomiarze. Dawniej chmurka
+// stała zawsze pod plakietką bez limitu wysokości - kilka notatek z polem „Dodaj"
+// to 450-500 px, więc na telefonie i niskim ekranie dół z przyciskiem „Zapisz" lądował
+// poza ekranem. Teraz odwraca się nad plakietkę, a gdy nie mieści się nigdzie, dostaje
+// wysokość większej strony i przewija środek (nagłówek i stopka zostają na miejscu).
 const Card = styled.div`
     position: fixed;
+    top: 0;
+    left: 0;
+    visibility: hidden;
     z-index: 120;
     width: 380px;
-    max-width: calc(100vw - 24px);
     background: ${p => p.theme.colors.surface};
     border: 1px solid ${p => p.theme.colors.border};
     border-radius: ${p => p.theme.radii.lg};
@@ -39,6 +47,7 @@ const Card = styled.div`
 
 const CardHead = styled.div`
     display: flex;
+    flex-shrink: 0;
     align-items: center;
     gap: 8px;
     padding: 10px 12px;
@@ -71,6 +80,8 @@ const CardHead = styled.div`
 `;
 
 const Scroll = styled.div`
+    flex: 1 1 auto;
+    min-height: 0;
     max-height: 320px;
     overflow-y: auto;
     padding: 8px 12px;
@@ -156,6 +167,7 @@ const SmallButton = styled.button<{ $primary?: boolean }>`
 `;
 
 const Foot = styled.div`
+    flex-shrink: 0;
     border-top: 1px solid ${p => p.theme.colors.border};
     padding: 9px 12px;
 `;
@@ -199,7 +211,6 @@ interface ContactNotesPopoverProps {
 }
 
 export function ContactNotesPopover({ email, anchor, onClose }: ContactNotesPopoverProps) {
-    const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
     const [draft, setDraft] = useState('');
     const [composing, setComposing] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -215,24 +226,22 @@ export function ContactNotesPopover({ email, anchor, onClose }: ContactNotesPopo
     const updateNote = useUpdateContactNote();
     const deleteNote = useDeleteContactNote();
 
-    useEffect(() => {
-        if (!anchor) return;
-        const place = () => {
-            const rect = anchor.getBoundingClientRect();
-            const width = 380;
-            // Chmurka nie ma prawa wyjść poza ekran ani przy wąskim oknie, ani przy
-            // plakietce stojącej blisko prawej krawędzi.
-            const left = Math.max(12, Math.min(rect.left, window.innerWidth - width - 12));
-            setPos({ top: rect.bottom + 6, left });
-        };
-        place();
-        window.addEventListener('resize', place);
-        window.addEventListener('scroll', place, true);
-        return () => {
-            window.removeEventListener('resize', place);
-            window.removeEventListener('scroll', place, true);
-        };
-    }, [anchor]);
+    // Plakietka przychodzi jako element, a useFloatingPanel bierze refy - stały obiekt
+    // na czas życia jednej plakietki, żeby efekt nie ruszał się przy każdym renderze.
+    const anchorRef = useMemo(() => ({ current: anchor }), [anchor]);
+    // Klucz jako napis, nie tablica: nowa tablica przy każdym renderze przeliczałaby
+    // pozycję bez przerwy, a każde przeliczenie zdejmuje limit wysokości na chwilę
+    // pomiaru i zeruje przewinięcie listy notatek.
+    const layoutKey = [
+        isLoading,
+        data?.notes.length ?? 0,
+        composing,
+        editingId,
+        historyShown,
+        historyLoading,
+        history?.length ?? 0,
+    ].join('|');
+    useFloatingPanel(Boolean(anchor), anchorRef, cardRef, { align: 'left', offset: 6, margin: 12 }, layoutKey);
 
     useEffect(() => {
         const onDocClick = (event: MouseEvent) => {
@@ -273,10 +282,10 @@ export function ContactNotesPopover({ email, anchor, onClose }: ContactNotesPopo
         updateNote.mutate({ email, noteId, body }, { onSuccess: () => setEditingId(null) });
     };
 
-    if (!pos) return null;
+    if (!anchor) return null;
 
     return createPortal(
-        <Card ref={cardRef} style={{ top: pos.top, left: pos.left }} role="dialog" aria-label="Notatki do klienta">
+        <Card ref={cardRef} role="dialog" aria-label="Notatki do klienta">
             <CardHead>
                 <span className="title">Notatki do klienta</span>
                 <button
@@ -301,7 +310,7 @@ export function ContactNotesPopover({ email, anchor, onClose }: ContactNotesPopo
                         )}
                         {(history ?? []).map((entry) => (
                             <HistoryLine key={entry.id}>
-                                <strong>{entry.actorName}</strong> {ACTION_LABELS[entry.action]} ·{' '}
+                                <strong>{entry.actorName}</strong> {ACTION_LABELS[entry.action]},{' '}
                                 {formatDateTime(entry.createdAt)}
                                 {entry.action === 'UPDATED' && entry.bodyBefore && (
                                     <span className="quote">było: {entry.bodyBefore}</span>
@@ -348,10 +357,9 @@ export function ContactNotesPopover({ email, anchor, onClose }: ContactNotesPopo
                                 <NoteCard key={note.id}>
                                     <div className="body">{note.body}</div>
                                     <div className="meta">
-                                        <span>
-                                            {note.createdByName} · {formatDateTime(note.createdAt)}
-                                            {note.edited && ' · edytowano'}
-                                        </span>
+                                        <span>{note.createdByName}</span>
+                                        <span>{formatDateTime(note.createdAt)}</span>
+                                        {note.edited && <span>edytowano</span>}
                                         <span className="spacer" />
                                         <button
                                             type="button"

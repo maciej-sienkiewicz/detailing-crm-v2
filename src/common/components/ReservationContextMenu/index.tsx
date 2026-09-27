@@ -1,14 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
+import { applyFloatingPlacement } from '@/common/utils/floatingPlacement';
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
 
-const Menu = styled.div<{ $x: number; $y: number; $visible: boolean }>`
+// Pozycję nadaje applyFloatingPlacement po pomiarze; do tego czasu menu jest ukryte.
+const Menu = styled.div`
   position: fixed;
-  top: ${p => p.$y}px;
-  left: ${p => p.$x}px;
+  top: 0;
+  left: 0;
   z-index: 1200;
   background: #fff;
   border: 1px solid #e2e8f0;
@@ -16,7 +18,7 @@ const Menu = styled.div<{ $x: number; $y: number; $visible: boolean }>`
   box-shadow: 0 4px 16px rgba(15,23,42,0.12), 0 1px 4px rgba(15,23,42,0.08);
   min-width: 160px;
   padding: 4px 0;
-  visibility: ${p => p.$visible ? 'visible' : 'hidden'};
+  visibility: hidden;
 `;
 
 const MenuItem = styled.button`
@@ -61,7 +63,6 @@ export interface ReservationContextMenuProps {
 export const ReservationContextMenu = ({ appointmentId, x, y, onClose, onShowInCalendar, visitOnly }: ReservationContextMenuProps) => {
   const navigate = useNavigate();
   const menuRef = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState({ x, y, visible: false });
 
   useEffect(() => {
     const handleMouseDown = (e: MouseEvent) => {
@@ -80,13 +81,18 @@ export const ReservationContextMenu = ({ appointmentId, x, y, onClose, onShowInC
     };
   }, [onClose]);
 
-  useEffect(() => {
+  // Menu przy kursorze: kotwica to punkt bez wymiarów. Dawniej odwrócenie w górę
+  // (`y - wysokość`) nie miało dolnej granicy - przy kliknięciu blisko góry niskiego
+  // ekranu menu wychodziło górą, a lewa krawędź nie była pilnowana wcale. Wspólne
+  // placeFloating trzyma obie krawędzie i dolny pasek nawigacji na telefonie.
+  useLayoutEffect(() => {
     if (!menuRef.current) return;
-    const { offsetWidth, offsetHeight } = menuRef.current;
-    const safeX = Math.min(x, window.innerWidth - offsetWidth - 4);
-    const safeY = y + offsetHeight > window.innerHeight ? y - offsetHeight : y;
-    setPos({ x: safeX, y: safeY, visible: true });
-  }, [x, y]);
+    applyFloatingPlacement(
+      menuRef.current,
+      { top: y, bottom: y, left: x, right: x },
+      { align: 'left', offset: 0 },
+    );
+  }, [x, y, visitOnly, onShowInCalendar]);
 
   const handleEdit = () => {
     onClose();
@@ -109,7 +115,7 @@ export const ReservationContextMenu = ({ appointmentId, x, y, onClose, onShowInC
   };
 
   return createPortal(
-    <Menu ref={menuRef} $x={pos.x} $y={pos.y} $visible={pos.visible} onMouseDown={e => e.stopPropagation()}>
+    <Menu ref={menuRef} onMouseDown={e => e.stopPropagation()}>
       {visitOnly ? (
         <MenuItem onClick={handleOpenVisit}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

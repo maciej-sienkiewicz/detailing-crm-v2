@@ -1,6 +1,6 @@
 // src/modules/calendar/components/CalendarView.tsx
 
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo } from 'react';
 import { PiiText } from '@/common/pii';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -40,6 +40,7 @@ import { useStudioCalendarEvents, useStudioCalendarEventMutations, toIsoDate } f
 import type { StudioCalendarEvent, StudioCalendarEventPayload } from '../types';
 import { CalendarSearchModal } from './CalendarSearchModal';
 import { attachMorePopoverPlacement } from '../utils/morePopoverPlacement';
+import { applyFloatingPlacement, type AnchorBox } from '@/common/utils/floatingPlacement';
 import { localDateKey, toFullCalendarEvent } from '../utils/calendarDates';
 import {
     D2D_DELIVERY_COLOR,
@@ -1476,9 +1477,13 @@ const StudioDayAddBtn = styled.button`
 
 /* ===================== LEAVE TOOLTIP ===================== */
 
+const BADGE_TOOLTIP_MAX_WIDTH = 260;
+
 const LeaveTooltipBox = styled.div`
     position: fixed;
-    transform: translateX(-50%);
+    top: 0;
+    left: 0;
+    visibility: hidden;
     z-index: 10000;
     pointer-events: none;
     background: #fff;
@@ -1487,7 +1492,7 @@ const LeaveTooltipBox = styled.div`
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.03), 0 12px 28px rgba(0, 0, 0, 0.12);
     padding: 10px 12px;
     min-width: 180px;
-    max-width: 260px;
+    max-width: ${BADGE_TOOLTIP_MAX_WIDTH}px;
 `;
 
 const LeaveTooltipTitle = styled.div`
@@ -1556,6 +1561,35 @@ const D2DTooltipAddress = styled.div`
     font-weight: 400;
     padding-left: 13px;
 `;
+
+/**
+ * Dymek przy znaczniku dnia (urlop, Door to Door, wydarzenia studia).
+ *
+ * Pozycję liczy wspólne applyFloatingPlacement PO wyrenderowaniu, z prawdziwej
+ * wysokości dymka. Dawniej zakładano 160 px: dzień z kilkoma wyjazdami i adresami
+ * jest wyższy, więc dymek wychodził dołem, a odwrócony w górę (`translateY(-100%)`)
+ * nie miał górnej granicy i wychodził górą przy pierwszym tygodniu miesiąca.
+ */
+const BadgeTooltip: React.FC<{ anchor: AnchorBox; children: React.ReactNode }> = ({ anchor, children }) => {
+    const ref = useRef<HTMLDivElement>(null);
+    useLayoutEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        el.style.maxWidth = '';
+        // Wyśrodkowany nad znacznikiem: kotwica o szerokości dymka, wyrównana do lewej.
+        const width = el.offsetWidth;
+        const cx = (anchor.left + anchor.right) / 2;
+        const placement = applyFloatingPlacement(
+            el,
+            { top: anchor.top, bottom: anchor.bottom, left: cx - width / 2, right: cx + width / 2 },
+            { align: 'left', offset: 6 },
+        );
+        // applyFloatingPlacement zdejmuje limit szerokości do szerokości ekranu - dymek
+        // bez niego rozlałby się szerzej, niż został zmierzony, i minął wyliczone miejsce.
+        el.style.maxWidth = `${Math.min(placement.maxWidth, BADGE_TOOLTIP_MAX_WIDTH)}px`;
+    });
+    return <LeaveTooltipBox ref={ref}>{children}</LeaveTooltipBox>;
+};
 
 export interface CalendarRangeSelection {
     start: Date;
@@ -2019,11 +2053,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const leaveDayMapRef = useRef(leaveDayMap);
     const leaveCellsRef = useRef<Map<string, HTMLElement>>(new Map());
     const [leaveTooltip, setLeaveTooltip] = useState<{
-        x: number;
-        y: number;
+        anchor: AnchorBox;
         date: string;
         employees: { id: string; fullName: string }[];
-        above: boolean;
     } | null>(null);
 
     const applyLeaveBadge = useCallback((iso: string, frame: HTMLElement) => {
@@ -2049,16 +2081,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             badge.addEventListener('mouseenter', () => {
                 const current = leaveDayMapRef.current.get(iso);
                 if (!current) return;
-                const rect = badge!.getBoundingClientRect();
-                const TH = 160, TW = 260, M = 8;
-                const above = rect.bottom + TH + M > window.innerHeight;
-                const x = Math.max(TW / 2 + M, Math.min(rect.left + rect.width / 2, window.innerWidth - TW / 2 - M));
+                const { top, bottom, left, right } = badge!.getBoundingClientRect();
                 setLeaveTooltip({
-                    x,
-                    y: above ? rect.top - 6 : rect.bottom + 6,
+                    anchor: { top, bottom, left, right },
                     date: iso,
                     employees: current.employees,
-                    above,
                 });
             });
             badge.addEventListener('mouseleave', () => {
@@ -2087,11 +2114,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     // .fc-daygrid-day-frame; hover otwiera tooltip z listą pojazdów.
     const d2dDayMapRef = useRef(d2dDayMap);
     const [d2dTooltip, setD2DTooltip] = useState<{
-        x: number;
-        y: number;
+        anchor: AnchorBox;
         date: string;
         entries: DoorToDoorCalendarEntry[];
-        above: boolean;
     } | null>(null);
 
     const applyD2DBadge = useCallback((iso: string, frame: HTMLElement) => {
@@ -2109,16 +2134,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             badge.addEventListener('mouseenter', () => {
                 const current = d2dDayMapRef.current.get(iso);
                 if (!current) return;
-                const rect = badge!.getBoundingClientRect();
-                const TH = 160, TW = 260, M = 8;
-                const above = rect.bottom + TH + M > window.innerHeight;
-                const x = Math.max(TW / 2 + M, Math.min(rect.left + rect.width / 2, window.innerWidth - TW / 2 - M));
+                const { top, bottom, left, right } = badge!.getBoundingClientRect();
                 setD2DTooltip({
-                    x,
-                    y: above ? rect.top - 6 : rect.bottom + 6,
+                    anchor: { top, bottom, left, right },
                     date: iso,
                     entries: current.entries,
-                    above,
                 });
             });
             badge.addEventListener('mouseleave', () => {
@@ -2146,11 +2166,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     /** Otwarta lista wydarzeń jednego dnia - wspólna dla dotyku i myszy. */
     const [studioEventDay, setStudioEventDay] = useState<{ date: string; entries: StudioCalendarEvent[] } | null>(null);
     const [studioEventTooltip, setStudioEventTooltip] = useState<{
-        x: number;
-        y: number;
+        anchor: AnchorBox;
         date: string;
         entries: StudioCalendarEvent[];
-        above: boolean;
     } | null>(null);
 
     const applyStudioEventBadge = useCallback((iso: string, frame: HTMLElement) => {
@@ -2177,16 +2195,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             badge.addEventListener('mouseenter', () => {
                 const current = studioEventDayMapRef.current.get(iso);
                 if (!current) return;
-                const rect = badge!.getBoundingClientRect();
-                const TH = 160, TW = 260, M = 8;
-                const above = rect.bottom + TH + M > window.innerHeight;
-                const x = Math.max(TW / 2 + M, Math.min(rect.left + rect.width / 2, window.innerWidth - TW / 2 - M));
+                const { top, bottom, left, right } = badge!.getBoundingClientRect();
                 setStudioEventTooltip({
-                    x,
-                    y: above ? rect.top - 6 : rect.bottom + 6,
+                    anchor: { top, bottom, left, right },
                     date: iso,
                     entries: current,
-                    above,
                 });
             });
             badge.addEventListener('mouseleave', () => {
@@ -3363,9 +3376,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             )}
 
             {d2dTooltip && (
-                <LeaveTooltipBox style={{ left: d2dTooltip.x, top: d2dTooltip.y, transform: d2dTooltip.above ? 'translateX(-50%) translateY(-100%)' : 'translateX(-50%)' }}>
+                <BadgeTooltip anchor={d2dTooltip.anchor}>
                     <LeaveTooltipTitle>
-                        Door to Door · {new Date(d2dTooltip.date + 'T00:00:00').toLocaleDateString('pl-PL', {
+                        Door to Door, {new Date(d2dTooltip.date + 'T00:00:00').toLocaleDateString('pl-PL', {
                             day: 'numeric', month: 'long',
                         })}
                     </LeaveTooltipTitle>
@@ -3380,7 +3393,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             {e.address && <D2DTooltipAddress>{e.address}</D2DTooltipAddress>}
                         </D2DTooltipRow>
                     ))}
-                </LeaveTooltipBox>
+                </BadgeTooltip>
             )}
 
             {studioEventDay && (
@@ -3450,9 +3463,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             )}
 
             {studioEventTooltip && !studioEventDay && (
-                <LeaveTooltipBox style={{ left: studioEventTooltip.x, top: studioEventTooltip.y, transform: studioEventTooltip.above ? 'translateX(-50%) translateY(-100%)' : 'translateX(-50%)' }}>
+                <BadgeTooltip anchor={studioEventTooltip.anchor}>
                     <LeaveTooltipTitle>
-                        Wydarzenia · {new Date(studioEventTooltip.date + 'T00:00:00').toLocaleDateString('pl-PL', {
+                        Wydarzenia, {new Date(studioEventTooltip.date + 'T00:00:00').toLocaleDateString('pl-PL', {
                             day: 'numeric', month: 'long',
                         })}
                     </LeaveTooltipTitle>
@@ -3462,20 +3475,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             {e.description && <D2DTooltipAddress>{e.description}</D2DTooltipAddress>}
                         </StudioEventTooltipRow>
                     ))}
-                </LeaveTooltipBox>
+                </BadgeTooltip>
             )}
 
             {leaveTooltip && (
-                <LeaveTooltipBox style={{ left: leaveTooltip.x, top: leaveTooltip.y, transform: leaveTooltip.above ? 'translateX(-50%) translateY(-100%)' : 'translateX(-50%)' }}>
+                <BadgeTooltip anchor={leaveTooltip.anchor}>
                     <LeaveTooltipTitle>
-                        Na urlopie · {new Date(leaveTooltip.date + 'T00:00:00').toLocaleDateString('pl-PL', {
+                        Na urlopie, {new Date(leaveTooltip.date + 'T00:00:00').toLocaleDateString('pl-PL', {
                             day: 'numeric', month: 'long',
                         })}
                     </LeaveTooltipTitle>
                     {leaveTooltip.employees.map(e => (
                         <LeaveTooltipRow key={e.id}>{e.fullName}</LeaveTooltipRow>
                     ))}
-                </LeaveTooltipBox>
+                </BadgeTooltip>
             )}
 
             {popoverOpen && popoverEvent && (

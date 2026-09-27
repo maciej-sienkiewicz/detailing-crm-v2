@@ -3,9 +3,9 @@ import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 import { formatCurrency } from '@/common/utils/formatters';
 import { useDashboardRevenue } from '../hooks/useDashboardRevenue';
-import type { DashboardRevenueSummary } from '../types';
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
 
@@ -74,10 +74,15 @@ const fadeIn = keyframes`
   to   { opacity: 1; transform: translateY(0); }
 `;
 
-const ChartPopover = styled.div<{ $top: number; $right: number }>`
+// Pozycję nadaje useFloatingPanel po pomiarze: dawniej panel stał zawsze pod kartą
+// i trzymał się jej prawej krawędzi (`right = innerWidth - rect.right`), więc na
+// telefonie, gdzie karta zaczyna się przy lewej krawędzi, 340 px wyjeżdżało za ekran,
+// a na niskim ekranie także dołem. Start z `visibility: hidden` - bez mignięcia w rogu.
+const ChartPopover = styled.div`
   position: fixed;
-  top: ${p => p.$top}px;
-  right: ${p => p.$right}px;
+  top: 0;
+  left: 0;
+  visibility: hidden;
   width: 340px;
   background: rgba(15, 23, 42, 0.97);
   border: 1px solid rgba(255,255,255,0.1);
@@ -126,8 +131,10 @@ const monthLabel = (monthStart: string): string => {
 export const RevenueKpiCard = () => {
   const { data } = useDashboardRevenue();
   const [hovered, setHovered] = useState(false);
-  const [pos, setPos] = useState({ top: 0, right: 0 });
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  // Przed wczesnym `return null` - hooki muszą iść w tej samej kolejności.
+  useFloatingPanel(hovered, wrapperRef, popoverRef, { align: 'right', offset: 10 });
 
   const chartData = useMemo(() => {
     if (!data) return [];
@@ -142,22 +149,14 @@ export const RevenueKpiCard = () => {
   const positive = data.deltaPercentage >= 0;
   const currency = data.currentMonth.currency;
 
-  const handleMouseEnter = () => {
-    if (wrapperRef.current) {
-      const rect = wrapperRef.current.getBoundingClientRect();
-      setPos({ top: rect.bottom + 10, right: window.innerWidth - rect.right });
-    }
-    setHovered(true);
-  };
-
   return (
     <Wrapper
       ref={wrapperRef}
-      onMouseEnter={handleMouseEnter}
+      onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       <Card>
-        <Eyebrow>Przychód · bieżący miesiąc</Eyebrow>
+        <Eyebrow>Przychód w tym miesiącu</Eyebrow>
         <Number>{formatCurrency(data.currentMonth.grossAmount / 100, currency)}</Number>
         <Delta $positive={positive}>
           {positive ? <TrendingUp /> : <TrendingDown />}
@@ -166,7 +165,7 @@ export const RevenueKpiCard = () => {
       </Card>
 
       {hovered && createPortal(
-        <ChartPopover $top={pos.top} $right={pos.right}>
+        <ChartPopover ref={popoverRef}>
           <ChartTitle>Ostatnie 12 miesięcy</ChartTitle>
           <ResponsiveContainer width="100%" height={110}>
             <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
