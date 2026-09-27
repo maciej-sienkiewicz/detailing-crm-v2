@@ -1,6 +1,13 @@
 // src/modules/statistics/components/shared/shareSlices.ts
 // Budowanie danych dla donuta udziału kategorii, wspólne dla Przychodów i Kosztów.
 
+import {
+    mobileBottomReserve,
+    placeFloating,
+    visibleViewport,
+    type AnchorBox,
+} from '@/common/utils/floatingPlacement';
+
 export const PIE_UNASSIGNED_COLOR = '#94A3B8';
 export const PIE_OTHER_COLOR = '#CBD5E1';
 const PIE_FALLBACK_COLOR = '#6B7280';
@@ -76,12 +83,25 @@ export function buildCategoryShareSlices(
 
 const CTX_MENU_WIDTH = 230;
 const CTX_MENU_HEIGHT = 240;
+export const CTX_MENU_OFFSET = 4;
 
-/** Pozycjonuje menu kontekstowe względem klikniętego elementu tak, aby mieściło się w oknie. */
-export function ctxMenuPosition(anchor: DOMRect): { x: number; y: number } {
-    const x = Math.max(8, Math.min(anchor.right - CTX_MENU_WIDTH, window.innerWidth - CTX_MENU_WIDTH - 8));
-    const y = anchor.bottom + 4 + CTX_MENU_HEIGHT > window.innerHeight
-        ? Math.max(8, anchor.top - CTX_MENU_HEIGHT - 4)
-        : anchor.bottom + 4;
-    return { x, y };
+/**
+ * Pozycja menu kontekstowego przy klikniętym elemencie.
+ *
+ * `x`/`y` to tylko pierwsze przybliżenie przy typowym rozmiarze menu. Prawdziwe
+ * menu ma 220-280 px szerokości, a wysokość zależy od liczby kategorii - dlatego
+ * zwracamy też `anchor` (prostokąt elementu), a CategoryAssignMenu po wyrenderowaniu
+ * mierzy się i ustawia od niego na nowo. Samo x/y ze stałych 230 × 240 wyjeżdżało
+ * dołem przy dłuższej liście kategorii i nie miało limitu wysokości.
+ */
+export function ctxMenuPosition(anchor: DOMRect): { x: number; y: number; anchor: AnchorBox } {
+    const box: AnchorBox = { top: anchor.top, bottom: anchor.bottom, left: anchor.left, right: anchor.right };
+    const viewport = visibleViewport();
+    const { left, top } = placeFloating(
+        box,
+        { width: CTX_MENU_WIDTH, height: CTX_MENU_HEIGHT },
+        viewport,
+        { align: 'right', offset: CTX_MENU_OFFSET, bottomReserve: mobileBottomReserve(viewport.width) },
+    );
+    return { x: left, y: top, anchor: box };
 }

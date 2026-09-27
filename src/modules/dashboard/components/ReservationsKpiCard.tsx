@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 import { useDashboardReservations } from '../hooks/useDashboardReservations';
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
@@ -72,10 +73,15 @@ const fadeIn = keyframes`
   to   { opacity: 1; transform: translateY(0); }
 `;
 
-const ChartPopover = styled.div<{ $top: number; $right: number }>`
+// Pozycję nadaje useFloatingPanel po pomiarze: dawniej panel stał zawsze pod kartą
+// i trzymał się jej prawej krawędzi (`right = innerWidth - rect.right`), więc na
+// telefonie, gdzie karta zaczyna się przy lewej krawędzi, 340 px wyjeżdżało za ekran,
+// a na niskim ekranie także dołem. Start z `visibility: hidden` - bez mignięcia w rogu.
+const ChartPopover = styled.div`
   position: fixed;
-  top: ${p => p.$top}px;
-  right: ${p => p.$right}px;
+  top: 0;
+  left: 0;
+  visibility: hidden;
   width: 340px;
   background: rgba(15, 23, 42, 0.97);
   border: 1px solid rgba(255,255,255,0.1);
@@ -126,8 +132,10 @@ const monthLabel = (monthStart: string): string => {
 export const ReservationsKpiCard = () => {
   const { data } = useDashboardReservations();
   const [hovered, setHovered] = useState(false);
-  const [pos, setPos] = useState({ top: 0, right: 0 });
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  // Przed wczesnym `return null` - hooki muszą iść w tej samej kolejności.
+  useFloatingPanel(hovered, wrapperRef, popoverRef, { align: 'right', offset: 10 });
 
   const chartData = useMemo(() => {
     if (!data) return [];
@@ -142,22 +150,14 @@ export const ReservationsKpiCard = () => {
   const positive = data.deltaPercentage >= 0;
   const lastIdx = chartData.length - 1;
 
-  const handleMouseEnter = () => {
-    if (wrapperRef.current) {
-      const rect = wrapperRef.current.getBoundingClientRect();
-      setPos({ top: rect.bottom + 10, right: window.innerWidth - rect.right });
-    }
-    setHovered(true);
-  };
-
   return (
     <Wrapper
       ref={wrapperRef}
-      onMouseEnter={handleMouseEnter}
+      onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       <Card>
-        <Eyebrow>Rezerwacje · bieżący miesiąc</Eyebrow>
+        <Eyebrow>Rezerwacje w tym miesiącu</Eyebrow>
         <Number>{data.currentMonth.count}</Number>
         <Delta $positive={positive}>
           {positive ? <TrendingUp /> : <TrendingDown />}
@@ -166,7 +166,7 @@ export const ReservationsKpiCard = () => {
       </Card>
 
       {hovered && createPortal(
-        <ChartPopover $top={pos.top} $right={pos.right}>
+        <ChartPopover ref={popoverRef}>
           <ChartTitle>Ostatnie 12 miesięcy</ChartTitle>
           <ResponsiveContainer width="100%" height={110}>
             <BarChart data={chartData} margin={{ top: 4, right: 4, left: -28, bottom: 0 }} barSize={14}>

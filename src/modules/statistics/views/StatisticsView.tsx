@@ -133,6 +133,8 @@ type ServiceCtxMenu = {
     categoryId: string | null;
     x: number;
     y: number;
+    /** Kliknięty element - menu mierzy się po wyrenderowaniu i staje od niego. */
+    anchor: ReturnType<typeof ctxMenuPosition>['anchor'];
 };
 
 export const StatisticsView = () => {
@@ -292,8 +294,8 @@ export const StatisticsView = () => {
 
     const openServiceMenu = (e: React.MouseEvent<HTMLButtonElement>, row: ServiceRow) => {
         e.stopPropagation();
-        const { x, y } = ctxMenuPosition(e.currentTarget.getBoundingClientRect());
-        setCtxMenu({ serviceId: row.id, categoryId: row.categoryId, x, y });
+        const { x, y, anchor } = ctxMenuPosition(e.currentTarget.getBoundingClientRect());
+        setCtxMenu({ serviceId: row.id, categoryId: row.categoryId, x, y, anchor });
     };
 
     const handleCtxAssign = (categoryId: string) => {
@@ -631,6 +633,7 @@ export const StatisticsView = () => {
                 <CategoryAssignMenu
                     x={ctxMenu.x}
                     y={ctxMenu.y}
+                    anchor={ctxMenu.anchor}
                     categories={categories}
                     onAssign={handleCtxAssign}
                     onUnassign={ctxMenu.categoryId ? handleCtxUnassign : undefined}

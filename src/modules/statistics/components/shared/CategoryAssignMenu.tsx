@@ -1,22 +1,29 @@
 // src/modules/statistics/components/shared/CategoryAssignMenu.tsx
 // Wspólne menu kontekstowe przypisywania kategorii (Przychody / Koszty).
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { X } from 'lucide-react';
+import { applyFloatingPlacement, type AnchorBox } from '@/common/utils/floatingPlacement';
 import { st } from '../StatisticsTheme';
+import { CTX_MENU_OFFSET } from './shareSlices';
 
+const CTX_PANEL_MAX_WIDTH = 280;
+
+// Pozycję, szerokość i wysokość nadaje applyFloatingPlacement po pomiarze - do tego
+// czasu panel stoi w x/y z przybliżenia, ale niewidoczny, więc nie miga.
 export const CtxPanel = styled.div`
     position: fixed;
+    visibility: hidden;
     z-index: 9100;
     background: ${st.bgCard};
     border: 1px solid ${st.border};
     border-radius: ${st.radius};
     box-shadow: 0 8px 32px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06);
     min-width: 220px;
-    max-width: 280px;
+    max-width: ${CTX_PANEL_MAX_WIDTH}px;
     padding: 4px;
-    overflow: hidden;
+    overflow-x: hidden;
 `;
 
 export const CtxItem = styled.button<{ $danger?: boolean }>`
@@ -69,8 +76,14 @@ export interface AssignMenuCategory {
 }
 
 interface CategoryAssignMenuProps {
+    /** Pierwsze przybliżenie pozycji (z `ctxMenuPosition`). */
     x: number;
     y: number;
+    /**
+     * Kliknięty element (`ctxMenuPosition(...).anchor`). Z nim menu po pomiarze staje
+     * pod elementem albo nad nim, dociśnięte do ekranu; bez niego kotwicą jest punkt x/y.
+     */
+    anchor?: AnchorBox;
     categories: AssignMenuCategory[];
     onAssign: (categoryId: string) => void;
     /** Gdy podane, renderuje pozycję „Usuń przypisanie" */
@@ -82,9 +95,35 @@ interface CategoryAssignMenuProps {
 }
 
 export const CategoryAssignMenu = ({
-    x, y, categories, onAssign, onUnassign, unassignLabel = 'Usuń przypisanie', onClose, children,
+    x, y, anchor, categories, onAssign, onUnassign, unassignLabel = 'Usuń przypisanie', onClose, children,
 }: CategoryAssignMenuProps) => {
     const ref = useRef<HTMLDivElement>(null);
+
+    // Stałe 230 × 240 z ctxMenuPosition nie znają długich nazw ani liczby kategorii -
+    // dopiero zmierzony panel mówi, czy mieści się pod elementem, nad nim, czy musi
+    // dostać limit wysokości i przewijać listę.
+    const anchorTop = anchor?.top ?? y;
+    const anchorBottom = anchor?.bottom ?? y;
+    const anchorLeft = anchor?.left ?? x;
+    const anchorRight = anchor?.right ?? x;
+    const hasAnchor = anchor !== undefined;
+    // Wartości logiczne zamiast samych `children`/`onUnassign`: to nowe obiekty przy
+    // każdym renderze rodzica, a każde przeliczenie zeruje przewinięcie listy.
+    const hasChildren = Boolean(children);
+    const hasUnassign = Boolean(onUnassign);
+    useLayoutEffect(() => {
+        const panel = ref.current;
+        if (!panel) return;
+        const placement = applyFloatingPlacement(
+            panel,
+            { top: anchorTop, bottom: anchorBottom, left: anchorLeft, right: anchorRight },
+            hasAnchor ? { align: 'right', offset: CTX_MENU_OFFSET } : { align: 'left', offset: 0 },
+        );
+        // applyFloatingPlacement nadpisuje limit szerokości szerokością ekranu - bez
+        // przywrócenia 280 px długa nazwa kategorii rozepchnęłaby panel szerzej, niż
+        // go zmierzono, i prawa krawędź minęłaby wyliczone miejsce.
+        panel.style.maxWidth = `${Math.min(placement.maxWidth, CTX_PANEL_MAX_WIDTH)}px`;
+    }, [anchorTop, anchorBottom, anchorLeft, anchorRight, hasAnchor, categories.length, hasChildren, hasUnassign]);
 
     useEffect(() => {
         const h = (e: MouseEvent) => {

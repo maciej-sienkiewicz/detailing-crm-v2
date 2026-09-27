@@ -11,18 +11,26 @@
 // Szybkość rozwiązana dwuetapowo: najpierw pokazujemy MINIATURĘ (jest w odpowiedzi
 // i waży tyle co nic), a pełny plik podmienia ją dopiero, gdy się doczyta. Dzięki
 // temu chmurka pojawia się natychmiast i nie zostaje rozmyta.
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { vehicleApi } from '@/modules/vehicles/api/vehicleApi';
+import { applyFloatingPlacement } from '@/common/utils/floatingPlacement';
 
+const CARD_WIDTH = 380;
+const SIDE_GAP = 8;
+
+// Pozycję, szerokość i wysokość nadaje applyFloatingPlacement po pomiarze. Start
+// z `visibility: hidden`, żeby chmurka nie mignęła w rogu ekranu przed ustawieniem.
 const Card = styled.div`
     position: fixed;
+    top: 0;
+    left: 0;
+    visibility: hidden;
     z-index: 121;
-    width: 380px;
-    max-width: calc(100vw - 24px);
+    width: ${CARD_WIDTH}px;
     background: ${p => p.theme.colors.surface};
     border: 1px solid ${p => p.theme.colors.border};
     border-radius: ${p => p.theme.radii.lg};
@@ -34,6 +42,7 @@ const Card = styled.div`
 
 const Head = styled.div`
     display: flex;
+    flex-shrink: 0;
     align-items: center;
     gap: 8px;
     padding: 10px 12px;
@@ -186,7 +195,6 @@ const PHOTO_LIMIT = 12;
 const MAX_DOTS = 10;
 
 export function VehiclePhotosPopover({ vehicleId, label, anchor, onClose }: VehiclePhotosPopoverProps) {
-    const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
     const [index, setIndex] = useState(0);
     // Pełne pliki, które już się doczytały - po nich poznajemy, czy podmienić podkład.
     const [loaded, setLoaded] = useState<Record<string, boolean>>({});
@@ -213,27 +221,50 @@ export function VehiclePhotosPopover({ vehicleId, label, anchor, onClose }: Vehi
         [photos.length]
     );
 
-    useEffect(() => {
+    // Chmurka staje OBOK wizytówki, na wysokości wiersza auta. Dawniej góra szła za
+    // wierszem z odgórnym założeniem 420 px wysokości i bez limitu - na niskim ekranie
+    // dół ze stopką „Pełny rozmiar" lądował pod krawędzią. Teraz liczy to wspólne
+    // placeFloating: poziom to bok wizytówki (prawy, a gdy tam brak miejsca - lewy,
+    // zawsze dociśnięty do ekranu), pion to wiersz auta. Pionowa „kotwica" jest
+    // odwrócona celowo: `bottom` = góra wiersza, `top` = dół wiersza, więc chmurka
+    // stoi równo z górą wiersza, a gdy się nie mieści - równo z jego dołem; gdy nie
+    // mieści się nigdzie, dostaje wysokość większej strony i przewija się.
+    const photosKey = `${isLoading}|${isError}|${photos.length}`;
+    useLayoutEffect(() => {
         const place = () => {
+            const panel = cardRef.current;
+            if (!panel) return;
             const rect = anchor.getBoundingClientRect();
-            const width = 380;
-            const gap = 8;
-            const card = anchor.closest('[role="dialog"]')?.getBoundingClientRect();
-            const rightEdge = (card?.right ?? rect.right) + gap;
-            const left = rightEdge + width < window.innerWidth
-                ? rightEdge
-                : Math.max(12, (card?.left ?? rect.left) - width - gap);
-            const top = Math.min(rect.top - 4, window.innerHeight - 420);
-            setPos({ top: Math.max(12, top), left });
+            const card = anchor.closest('[role="dialog"]')?.getBoundingClientRect() ?? rect;
+            const rightSide = card.right + SIDE_GAP;
+            const fitsRight = rightSide + CARD_WIDTH + 12 <= window.innerWidth;
+            applyFloatingPlacement(
+                panel,
+                {
+                    top: rect.bottom + 4,
+                    bottom: rect.top - 4,
+                    left: fitsRight ? rightSide : card.left - SIDE_GAP,
+                    right: fitsRight ? rightSide : card.left - SIDE_GAP,
+                },
+                { align: fitsRight ? 'left' : 'right', offset: 0, margin: 12 },
+            );
+        };
+        const onScroll = (event: Event) => {
+            // Przewijanie wewnątrz chmurki nie może jej przestawiać - zerowałoby
+            // przewinięcie. Przewinięcie listy w wizytówce - tak, bo wiersz się rusza.
+            if (cardRef.current?.contains(event.target as Node)) return;
+            place();
         };
         place();
         window.addEventListener('resize', place);
-        window.addEventListener('scroll', place, true);
+        window.addEventListener('scroll', onScroll, true);
+        window.visualViewport?.addEventListener('resize', place);
         return () => {
             window.removeEventListener('resize', place);
-            window.removeEventListener('scroll', place, true);
+            window.removeEventListener('scroll', onScroll, true);
+            window.visualViewport?.removeEventListener('resize', place);
         };
-    }, [anchor]);
+    }, [anchor, photosKey]);
 
     useEffect(() => {
         const onKey = (event: KeyboardEvent) => {
@@ -250,13 +281,10 @@ export function VehiclePhotosPopover({ vehicleId, label, anchor, onClose }: Vehi
         return () => document.removeEventListener('keydown', onKey, true);
     }, [onClose, go]);
 
-    if (!pos) return null;
-
     return createPortal(
         <Card
             ref={cardRef}
             data-vehicle-photos
-            style={{ top: pos.top, left: pos.left }}
             role="dialog"
             aria-label={`Zdjęcia - ${label}`}
         >
@@ -334,7 +362,7 @@ export function VehiclePhotosPopover({ vehicleId, label, anchor, onClose }: Vehi
                     <Foot>
                         <span className="caption">
                             {current.description || current.fileName}
-                            {current.visitNumber && ` · wizyta ${current.visitNumber}`}
+                            {current.visitNumber && `, wizyta ${current.visitNumber}`}
                         </span>
                         <a href={current.fullSizeUrl} target="_blank" rel="noreferrer">
                             Pełny rozmiar
