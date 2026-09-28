@@ -116,10 +116,8 @@ export const KsefSendingDefaultsPanel: React.FC = () => {
         <OptionTexts>
           <OptionLabel>Faktury wystawia księgowość</OptionLabel>
           <OptionHint>
-            Wybór „Faktura” przy wydaniu pojazdu nie tworzy faktury w CRM. Zostaje zapis
-            płatności z nabywcą i formą płatności, a fakturę wystawia księgowość. Przychód
-            w Finansach pokazuje faktura księgowości pobrana z KSeF, więc sprzedaż nie
-            liczy się dwa razy. Statystyki wizyt działają bez zmian.
+            Wybór „Faktura” przy wydaniu pojazdu nie tworzy pozycji w module 'Finanse' w CRM. W takiej sytuacji zakończona wizyta od razu zostanie wliczona w moduł statystyk,
+            natomiast pełna odpowiedzialność za spójność w module 'Finanse' leży po stronie użytkownika. Zachęcamy do wystawiania faktur przez CRM.
           </OptionHint>
           {external && (
             <OptionNote>
