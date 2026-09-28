@@ -150,7 +150,7 @@ const GROUPS: SectionGroup[] = [
             {
                 id: 'mobile-devices', label: 'Tablety, telefon, kontakty', summary: 'Podpis na tablecie, powiadomienia, kontakty', icon: <TabletSmartphone />,
                 description: 'Tablety do podpisu, powiadomienia na telefon i synchronizacja kontaktów.',
-                keywords: 'tablet parowanie powiadomienia push carddav kontakty telefon',
+                keywords: 'tablet parowanie powiadomienia push carddav kontakty telefon hala odhaczanie usług zrobione lista kontrolna',
             },
             {
                 id: 'shortcuts', label: 'Skróty klawiszowe', summary: 'Tylko w tej przeglądarce', icon: <Keyboard />,

@@ -19,6 +19,7 @@ import { carddavApi, CARDDAV_ACCOUNTS_KEY } from '@/modules/carddav';
 import { PushNotificationsPanel } from '@/modules/push/components/PushNotificationsPanel';
 import { useTablets } from '../hooks/useTablets';
 import { TabletsSection } from './TabletsSection';
+import { ServiceChecklistCard } from './ServiceChecklistCard';
 import { ContactsSyncSection } from './ContactsSyncSection';
 import { View } from './devicesLayout';
 
@@ -57,7 +58,13 @@ export function MobileDevicesSection({ subView, onSubViewChange }: MobileDevices
                 />
             </SwitchScroll>
 
-            {subView === 'tablets' && <TabletsSection />}
+            {subView === 'tablets' && (
+                <>
+                    <TabletsSection />
+                    {/* Scenariusz tabletu na hali: ten sam ekran wizyty, tylko z listą „zrobione”. */}
+                    <ServiceChecklistCard />
+                </>
+            )}
 
             {subView === 'notifications' && (
                 <View>

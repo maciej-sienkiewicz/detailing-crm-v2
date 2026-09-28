@@ -4,12 +4,14 @@ import type {
     UpdateCompanySettingsRequest,
     UpdateDocumentLogoConfigRequest,
     ProtocolContentConfig,
+    VisitViewConfig,
     UpdateVisitNumberingConfigRequest,
 } from '../types';
 
 const QUERY_KEY = ['settings', 'company'] as const;
 const VISIT_NUMBERING_QUERY_KEY = ['settings', 'visit-numbering-config'] as const;
 export const DOCUMENT_LOGO_CONFIG_QUERY_KEY = ['settings', 'document-logo-config'] as const;
+export const VISIT_VIEW_CONFIG_QUERY_KEY = ['settings', 'visit-view-config'] as const;
 export const PROTOCOL_CONTENT_CONFIG_QUERY_KEY = ['settings', 'protocol-content-config'] as const;
 
 export const useCompanySettings = () => {
@@ -129,6 +131,35 @@ export const useUpdateProtocolContentConfig = () => {
         },
         onError: () => {
             queryClient.invalidateQueries({ queryKey: PROTOCOL_CONTENT_CONFIG_QUERY_KEY });
+        },
+    });
+};
+
+/**
+ * Odhaczanie wykonanych usług na widoku wizyty - czyta je każdy widok wizyty, więc
+ * odpowiedź żyje dłużej: zmienia się raz na jakiś czas, w ustawieniach.
+ */
+export const useVisitViewConfig = (enabled = true) => {
+    const { data, isLoading } = useQuery({
+        queryKey: VISIT_VIEW_CONFIG_QUERY_KEY,
+        queryFn: companyApi.getVisitViewConfig,
+        staleTime: 5 * 60_000,
+        enabled,
+    });
+
+    return { config: data, isLoading };
+};
+
+export const useUpdateVisitViewConfig = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (data: VisitViewConfig) => companyApi.updateVisitViewConfig(data),
+        onSuccess: updated => {
+            queryClient.setQueryData(VISIT_VIEW_CONFIG_QUERY_KEY, updated);
+        },
+        onError: () => {
+            queryClient.invalidateQueries({ queryKey: VISIT_VIEW_CONFIG_QUERY_KEY });
         },
     });
 };
