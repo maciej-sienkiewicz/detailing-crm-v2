@@ -51,6 +51,11 @@ export interface UpdateDocumentLogoConfigRequest {
     showLogoOnDocuments: boolean;
 }
 
+/** Widok wizyty: odhaczanie wykonanych usług (np. tablet na hali); domyślnie wyłączone. */
+export interface VisitViewConfig {
+    serviceChecklistEnabled: boolean;
+}
+
 /** Treść protokołu przyjęcia: czy przy każdej usłudze pokazywać jej cenę (domyślnie nie). */
 export interface ProtocolContentConfig {
     showServicePrices: boolean;

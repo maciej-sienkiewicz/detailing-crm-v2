@@ -13,6 +13,8 @@ import type { EditedPrice } from '../utils/servicePriceEdits';
 import { formatCurrency, shouldAutoFocusInput } from '@/common/utils';
 import type { ServiceLineItem, VisitSettlement, VisitStatus } from '../types';
 import { usePrintServicesList } from '../hooks/usePrintServicesList';
+import { useServiceChecklist } from '../hooks/useServiceChecklist';
+import { ServiceCheckToggle } from './ServiceCheckToggle';
 import type { ServicesChangesPayload } from '../types';
 import { useApproveServiceChange, useRejectServiceChange, useSaveServicesChanges } from '../hooks';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -342,14 +344,43 @@ const EmptyServices = styled.p`
 
 /* ── Telefon: lista, pozycja to jeden duży przycisk ── */
 
+/* Kolumna pola „zrobione" - wąska, pole wyrównane do górnej linii nazwy usługi. */
+const CheckTd = styled.td`
+    padding: 8px 0 8px 14px;
+    vertical-align: middle;
+`;
+
+/* Kto i kiedy odhaczył - zieleń „domknięte", bez wypełnienia (CLAUDE.md §2). */
+const DoneMeta = styled.span`
+    font-size: 12px;
+    font-weight: 600;
+    color: ${ui.okInk};
+`;
+
+/** „Zrobione, Marek Nowak, 14:05" - dzień dopisujemy tylko, gdy to nie dziś. */
+function doneLabel(name: string | null, at: string): string {
+    const date = new Date(at);
+    const today = new Date().toDateString() === date.toDateString();
+    const time = date.toLocaleString('pl-PL', today
+        ? { hour: '2-digit', minute: '2-digit' }
+        : { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    return ['Zrobione', name, time].filter(Boolean).join(', ');
+}
+
 const MobileList = styled.ul`
     list-style: none;
     margin: 8px 0 0;
     padding: 0;
 `;
 
-const MobileItem = styled.li<{ $tone: RowTone; $highlight?: boolean; $struck?: boolean }>`
+const MobileItem = styled.li<{ $tone: RowTone; $highlight?: boolean; $struck?: boolean; $checklist?: boolean }>`
     border-top: 1px solid ${ui.lineFaint};
+    ${p => p.$checklist && css`
+        display: flex;
+        align-items: center;
+        padding-left: 6px;
+        > button:last-child { padding-left: 4px; }
+    `}
     box-shadow: ${p => p.$tone === 'DELETE' ? 'inset 3px 0 0 #ef4444'
         : p.$tone === 'EDIT' ? 'inset 3px 0 0 #f59e0b'
         : p.$tone === 'ADD' ? 'inset 3px 0 0 #10b981'
@@ -364,6 +395,8 @@ const MobileRow = styled.button`
     align-items: center;
     gap: 10px;
     width: 100%;
+    flex: 1;
+    min-width: 0;
     min-height: 60px;
     padding: 10px 12px 10px 16px;
     border: none;
@@ -1461,6 +1494,9 @@ const HEADER_MENU = '__header__';
 export const ServicesTable = ({ services, visitStatus, visitId, highlightPending, settlement, onCorrectSettlement }: ServicesTableProps) => {
     const { calculateServicePrice } = useServicePricing();
     const { print: printServicesList, isPrinting } = usePrintServicesList();
+    // Lista kontrolna „zrobione" (ustawienie studia, domyślnie wyłączone) - tylko znak
+    // dla ludzi na hali, bez wpływu na ceny, statusy i wydanie pojazdu.
+    const checklist = useServiceChecklist(visitId, visitStatus);
     const { saveServicesChanges, isSaving } = useSaveServicesChanges(visitId ?? '');
     const smsFeature = useFeature('SMS_EMAIL');
     const [upsellOpen, setUpsellOpen] = useState(false);
@@ -1959,9 +1995,11 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
             ? (effectiveService.adjustment ? discountPillLabel(effectiveService.adjustment, pricing.discountLabel) : pricing.discountLabel)
             : null;
 
+        const check = checklist.enabled ? checklist.checkOf(service.id) : undefined;
         const name = (
             <NameCell>
                 <ServiceName>{service.serviceName}</ServiceName>
+                {check && <DoneMeta>{doneLabel(check.checkedByName, check.checkedAt)}</DoneMeta>}
                 {(service.isPackage || isPendingRow || isMarkedForDelete || discountPill || (!isPendingRow && hasEditedPrice)) && (
                     <Pills>
                         {service.isPackage && <StatusPill $tone="neutral">Pakiet</StatusPill>}
@@ -2012,7 +2050,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
         return {
             service, pricing, isMarkedForDelete, isPendingRow, canDelete, canEditPrice, effectiveVat, tone,
-            discountPill, name, price,
+            discountPill, name, price, check,
             showRowMenu: showActionsCol && (isPendingRow || canEditPrice || canDelete || isMarkedForDelete),
         };
     });
@@ -2104,6 +2142,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
             {!asList ? (
                 <Grid>
                     <colgroup>
+                        {checklist.enabled && <col style={{ width: 52 }} />}
                         <col />
                         {!pricesHidden && <col style={{ width: 76 }} />}
                         {!pricesHidden && <col style={{ width: 210 }} />}
@@ -2112,6 +2151,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                     {(services.length > 0 || newRows.length > 0) && (
                         <thead>
                             <tr>
+                                {checklist.enabled && <Th><span className="sr-only">Zrobione</span></Th>}
                                 <Th>Usługa</Th>
                                 {!pricesHidden && <Th>VAT</Th>}
                                 {!pricesHidden && <Th $right>Kwota brutto</Th>}
@@ -2127,6 +2167,17 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                 $highlight={highlightPending && r.service.status === 'PENDING'}
                                 $struck={r.isMarkedForDelete}
                             >
+                                {checklist.enabled && (
+                                    <CheckTd>
+                                        {!r.isMarkedForDelete && (
+                                            <ServiceCheckToggle
+                                                checked={!!r.check}
+                                                serviceName={r.service.serviceName}
+                                                onChange={done => checklist.toggle(r.service.id, done)}
+                                            />
+                                        )}
+                                    </CheckTd>
+                                )}
                                 <Td>{r.name}</Td>
                                 {!pricesHidden && <Td>{fmtVat(r.effectiveVat)}</Td>}
                                 {!pricesHidden && <Td $right>{r.price}</Td>}
@@ -2153,7 +2204,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                             <ServiceInlineRow
                                 key={row.draftId}
                                 row={row}
-                                nameColSpan={pricesHidden ? 1 : 2}
+                                nameColSpan={(pricesHidden ? 1 : 2) + (checklist.enabled ? 1 : 0)}
                                 onUpdate={partial => updateRow(row.draftId, partial)}
                                 onRemove={() => removeRow(row.draftId)}
                                 onAddCustom={name => handleAddCustom(row.draftId, name)}
@@ -2174,7 +2225,15 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                     $tone={r.tone}
                                     $highlight={highlightPending && r.service.status === 'PENDING'}
                                     $struck={r.isMarkedForDelete}
+                                    $checklist={checklist.enabled}
                                 >
+                                    {checklist.enabled && !r.isMarkedForDelete && (
+                                        <ServiceCheckToggle
+                                            checked={!!r.check}
+                                            serviceName={r.service.serviceName}
+                                            onChange={done => checklist.toggle(r.service.id, done)}
+                                        />
+                                    )}
                                     {/* Na dotyku cała pozycja otwiera menu akcji usługi - cena,
                                         usunięcie, zatwierdzenie zmiany - zamiast małego ⋮ z boku. */}
                                     <MobileRow

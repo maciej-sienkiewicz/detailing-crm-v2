@@ -3,6 +3,7 @@ import type {
     CompanySettings,
     DocumentLogoConfig,
     ProtocolContentConfig,
+    VisitViewConfig,
     UpdateCompanySettingsRequest,
     UpdateDocumentLogoConfigRequest,
     UpdateVisitNumberingConfigRequest,
@@ -120,6 +121,16 @@ export const companyApi = {
 
     updateDocumentLogoConfig: async (data: UpdateDocumentLogoConfigRequest): Promise<DocumentLogoConfig> => {
         const response = await apiClient.patch<DocumentLogoConfig>(`${BASE_PATH}/document-logo-config`, data);
+        return response.data;
+    },
+
+    getVisitViewConfig: async (): Promise<VisitViewConfig> => {
+        const response = await apiClient.get<VisitViewConfig>(`${BASE_PATH}/visit-view-config`, { skipErrorToast: true });
+        return response.data;
+    },
+
+    updateVisitViewConfig: async (data: VisitViewConfig): Promise<VisitViewConfig> => {
+        const response = await apiClient.patch<VisitViewConfig>(`${BASE_PATH}/visit-view-config`, data);
         return response.data;
     },
 

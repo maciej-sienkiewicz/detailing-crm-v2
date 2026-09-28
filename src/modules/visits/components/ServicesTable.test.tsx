@@ -15,6 +15,9 @@ vi.mock('../hooks', () => ({
     useRejectServiceChange: () => ({ rejectServiceChange: vi.fn(), isRejecting: false }),
     useSaveServicesChanges: () => ({ saveServicesChanges: vi.fn(), isSaving: false }),
 }));
+vi.mock('../hooks/useServiceChecklist', () => ({
+    useServiceChecklist: () => ({ enabled: false, checkOf: () => undefined, toggle: vi.fn() }),
+}));
 vi.mock('../hooks/usePrintServicesList', () => ({
     usePrintServicesList: () => ({ print: vi.fn(), isPrinting: false }),
 }));
