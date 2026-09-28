@@ -6,13 +6,11 @@ import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 import type { FinanceTab, IncomeDocument, IncomeDocumentType } from '../types';
 
 /** Kolejność zakładek = kolejność skrótów 1-5; whitelist dla wartości z adresu. */
-const FINANCE_TABS: FinanceTab[] = ['income', 'expenses', 'cash', 'payment-summary', 'to-invoice'];
+const FINANCE_TABS: FinanceTab[] = ['income', 'expenses', 'cash', 'payment-summary'];
 import type { ExpenseSource, ExpensePaymentStatus } from '../types';
 import { useFinanceDocument } from '../hooks/useFinance';
 import { useKsefExpenses, useBulkUpdateExpensesPaymentStatus } from '../hooks/useKsef';
 import { useIncomeDocuments, useBulkUpdateIncomePaymentStatus } from '../hooks/useIncomeDocuments';
-import { useKsefAutomation } from '../hooks/useKsef';
-import { useExternalInvoicesPendingCount } from '../hooks/useExternalInvoices';
 import {
   FinanceSummaryCards,
   CreateDocumentModal,
@@ -26,7 +24,6 @@ import {
   IssueInvoiceModal,
   RevenueInvoiceDetailModal,
   BulkPaymentStatusBar,
-  ExternalInvoicesTab,
 } from '../components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { monthHint, resolveDateRange, type DatePreset } from '../utils/dateRange';
@@ -157,21 +154,6 @@ const TabItem = styled.button<{ $active: boolean }>`
     padding: 10px 14px;
     font-size: 12px;
   }
-`;
-
-/** Liczba czekających przy nazwie zakładki - odcień marki bez wypełnienia (CLAUDE.md §2). */
-const TabCount = styled.span`
-  display: inline-block;
-  margin-left: 6px;
-  padding: 0 7px;
-  border-radius: 999px;
-  border: 1px solid #bae6fd;
-  background: #f0f9ff;
-  color: #0369a1;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 18px;
-  font-variant-numeric: tabular-nums;
 `;
 
 // ─── Filters strip ────────────────────────────────────────────────────────────
@@ -1660,12 +1642,6 @@ export const FinanceView: React.FC = () => {
       return next;
     }, { replace: true });
   }, [setSearchParams]);
-  // „Do zafakturowania" jest zakładką trybu „Faktury wystawia księgowość". Zostaje widoczna
-  // także po jego wyłączeniu, dopóki coś czeka na księgowość - inaczej te sprzedaże
-  // zniknęłyby z oczu razem z przełącznikiem.
-  const ksef = useKsefAutomation();
-  const { data: pendingExternal } = useExternalInvoicesPendingCount();
-  const showToInvoice = ksef.invoicesIssuedExternally || (pendingExternal ?? 0) > 0 || activeTab === 'to-invoice';
   const [isIncomeModalOpen, setIncomeModalOpen] = useState(false);
   const [isExpenseModalOpen, setExpenseModalOpen] = useState(false);
   const [isIssueInvoiceModalOpen, setIssueInvoiceModalOpen] = useState(false);
@@ -1712,7 +1688,7 @@ export const FinanceView: React.FC = () => {
               * naraz pokazywały ten sam zakres w dwóch miejscach i kazały zgadywać,
               * który z nich rządzi - zostaje ten bliżej danych.
               */}
-            {activeTab !== 'payment-summary' && activeTab !== 'to-invoice' && (
+            {activeTab !== 'payment-summary' && (
               <FinHeaderDatePicker
                 preset={datePreset}
                 customFrom={customFrom}
@@ -1775,22 +1751,12 @@ export const FinanceView: React.FC = () => {
             <TabItem $active={activeTab === 'payment-summary'} onClick={() => setActiveTab('payment-summary')}>
               Podsumowanie płatności
             </TabItem>
-            {showToInvoice && (
-              <TabItem $active={activeTab === 'to-invoice'} onClick={() => setActiveTab('to-invoice')}>
-                Do zafakturowania{pendingExternal ? <TabCount>{pendingExternal}</TabCount> : null}
-              </TabItem>
-            )}
           </TabBar>
           <TabSelect value={activeTab} onChange={e => setActiveTab(e.target.value as FinanceTab)}>
             <option value="income">Dokumenty przychodowe</option>
             <option value="expenses">Dokumenty kosztowe</option>
             <option value="cash">Kasa</option>
             <option value="payment-summary">Podsumowanie płatności</option>
-            {showToInvoice && (
-              <option value="to-invoice">
-                Do zafakturowania{pendingExternal ? ` (${pendingExternal})` : ''}
-              </option>
-            )}
           </TabSelect>
 
           {activeTab === 'income' && (
@@ -1805,7 +1771,6 @@ export const FinanceView: React.FC = () => {
               dateTo={activeDateRange.dateTo}
             />
           )}
-          {activeTab === 'to-invoice' && <ExternalInvoicesTab />}
           {activeTab === 'payment-summary' && (
             <PaymentSummaryTab
               preset={datePreset}

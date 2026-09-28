@@ -302,11 +302,6 @@ function CorrectionForm({ view, visitId, onClose }: { view: SettlementView; visi
                                             {INVOICE_STATUS[row.ksefStatus]?.label ?? row.ksefStatus}
                                         </StatusPill>
                                     )}
-                                    {row.externalStatus && (
-                                        <StatusPill $tone={row.externalStatus === 'ISSUED' ? 'ok' : 'warn'}>
-                                            {row.externalStatus === 'ISSUED' ? 'Wystawiona przez księgowość' : 'Czeka na księgowość'}
-                                        </StatusPill>
-                                    )}
                                     <span className="amount">{pln(row.totalGross)}</span>
                                 </DocRow>
                             ))}
@@ -368,9 +363,8 @@ function CorrectionForm({ view, visitId, onClose }: { view: SettlementView; visi
                     {documentType === 'INVOICE' && <BuyerEditor buyer={buyer} onChange={setBuyer} />}
                     {documentType === 'INVOICE' && external && (
                         <Notice tone="info" title="Fakturę wystawia księgowość">
-                            CRM nie tworzy faktury. Po zapisaniu sprzedaż trafi na listę „Do zafakturowania”
-                            w Finansach. Jeśli księgowość wystawiła już fakturę do tej wizyty, korektę też
-                            wystawia ona: zgłoszenie korekty pojawi się na tej samej liście.
+                            CRM nie tworzy faktury. Jeśli księgowość wystawiła już fakturę do tej wizyty,
+                            korektę też wystawia ona: przekaż jej tę zmianę.
                         </Notice>
                     )}
                     {needsExemption && (

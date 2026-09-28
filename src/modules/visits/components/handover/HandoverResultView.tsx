@@ -108,7 +108,7 @@ const present = (result: CompleteVisitResponse, ksefMisconfigured: boolean): Pre
         return {
             tone: 'ok',
             title: 'Pojazd wydany',
-            lead: 'Fakturę wystawi księgowość. Sprzedaż czeka na liście „Do zafakturowania” w Finansach, gdzie odhaczysz ją po wystawieniu faktury.',
+            lead: 'Fakturę wystawi księgowość. CRM zapisał płatność, ale nie tworzy własnej faktury.',
         };
     }
     if (!result.ksefInvoiceNumber) {
