@@ -3,12 +3,14 @@ import { companyApi } from '../api/companyApi';
 import type {
     UpdateCompanySettingsRequest,
     UpdateDocumentLogoConfigRequest,
+    ProtocolContentConfig,
     UpdateVisitNumberingConfigRequest,
 } from '../types';
 
 const QUERY_KEY = ['settings', 'company'] as const;
 const VISIT_NUMBERING_QUERY_KEY = ['settings', 'visit-numbering-config'] as const;
 export const DOCUMENT_LOGO_CONFIG_QUERY_KEY = ['settings', 'document-logo-config'] as const;
+export const PROTOCOL_CONTENT_CONFIG_QUERY_KEY = ['settings', 'protocol-content-config'] as const;
 
 export const useCompanySettings = () => {
     const { data, isLoading, isError, refetch } = useQuery({
@@ -102,6 +104,31 @@ export const useUpdateDocumentLogoConfig = () => {
         },
         onError: () => {
             queryClient.invalidateQueries({ queryKey: DOCUMENT_LOGO_CONFIG_QUERY_KEY });
+        },
+    });
+};
+
+/** Ceny usług na protokole przyjęcia - domyślnie wyłączone, jak przed tym ustawieniem. */
+export const useProtocolContentConfig = () => {
+    const { data, isLoading, isError } = useQuery({
+        queryKey: PROTOCOL_CONTENT_CONFIG_QUERY_KEY,
+        queryFn: companyApi.getProtocolContentConfig,
+        staleTime: 60_000,
+    });
+
+    return { config: data, isLoading, isError };
+};
+
+export const useUpdateProtocolContentConfig = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (data: ProtocolContentConfig) => companyApi.updateProtocolContentConfig(data),
+        onSuccess: updated => {
+            queryClient.setQueryData(PROTOCOL_CONTENT_CONFIG_QUERY_KEY, updated);
+        },
+        onError: () => {
+            queryClient.invalidateQueries({ queryKey: PROTOCOL_CONTENT_CONFIG_QUERY_KEY });
         },
     });
 };

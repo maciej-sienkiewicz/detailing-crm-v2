@@ -37,6 +37,7 @@ import type { ProtocolRule, ProtocolStage, ProtocolTemplate } from '@/modules/pr
 import type { ConsentResponse } from '@/modules/consents/types';
 import { MySignatureSection } from './MySignatureSection';
 import { DocumentLogoCard } from './DocumentLogoCard';
+import { ProtocolServicePricesCard } from './ProtocolServicePricesCard';
 import { AddDocumentModal } from './AddDocumentModal';
 import { AddConsentDocumentModal } from './AddConsentDocumentModal';
 import { EditTemplateModal } from './EditTemplateModal';
@@ -433,6 +434,7 @@ export function DocumentsSection() {
             )}
 
             {canManage && <DocumentLogoCard />}
+            {canManage && <ProtocolServicePricesCard />}
 
             <MySignatureSection />
 

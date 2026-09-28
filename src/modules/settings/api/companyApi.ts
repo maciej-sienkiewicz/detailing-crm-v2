@@ -2,6 +2,7 @@ import { apiClient } from '@/core';
 import type {
     CompanySettings,
     DocumentLogoConfig,
+    ProtocolContentConfig,
     UpdateCompanySettingsRequest,
     UpdateDocumentLogoConfigRequest,
     UpdateVisitNumberingConfigRequest,
@@ -119,6 +120,16 @@ export const companyApi = {
 
     updateDocumentLogoConfig: async (data: UpdateDocumentLogoConfigRequest): Promise<DocumentLogoConfig> => {
         const response = await apiClient.patch<DocumentLogoConfig>(`${BASE_PATH}/document-logo-config`, data);
+        return response.data;
+    },
+
+    getProtocolContentConfig: async (): Promise<ProtocolContentConfig> => {
+        const response = await apiClient.get<ProtocolContentConfig>(`${BASE_PATH}/protocol-content-config`);
+        return response.data;
+    },
+
+    updateProtocolContentConfig: async (data: ProtocolContentConfig): Promise<ProtocolContentConfig> => {
+        const response = await apiClient.patch<ProtocolContentConfig>(`${BASE_PATH}/protocol-content-config`, data);
         return response.data;
     },
 };

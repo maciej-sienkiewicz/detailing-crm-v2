@@ -108,7 +108,7 @@ const GROUPS: SectionGroup[] = [
             {
                 id: 'documents', label: 'Dokumenty i podpisy', summary: 'Protokoły i zgody do podpisu', icon: <FileSignature />, help: DOCUMENTS_HELP,
                 description: 'Protokoły i zgody, które klient podpisuje przy przyjęciu i wydaniu pojazdu.',
-                keywords: 'protokół zgody rodo podpis logo dokumentu',
+                keywords: 'protokół zgody rodo podpis logo dokumentu ceny usług cena na protokole przyjęcia',
             },
         ],
     },
