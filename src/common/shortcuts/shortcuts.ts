@@ -72,6 +72,7 @@ export const SCOPED_SHORTCUTS: ScopedShortcutGroup[] = [
             { key: '2', param: { name: 'tab', value: 'expenses' }, description: 'Dokumenty kosztowe' },
             { key: '3', param: { name: 'tab', value: 'cash' }, description: 'Kasa' },
             { key: '4', param: { name: 'tab', value: 'payment-summary' }, description: 'Podsumowanie płatności' },
+            { key: '5', param: { name: 'tab', value: 'to-invoice' }, description: 'Do zafakturowania' },
         ],
     },
     {

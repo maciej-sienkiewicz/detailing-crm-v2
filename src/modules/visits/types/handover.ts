@@ -264,6 +264,12 @@ interface ValidateArgs {
     state: HandoverState;
     visitGross: number;
     sellerComplete: boolean;
+    /**
+     * „Faktury wystawia księgowość": CRM nie wystawia faktury, więc nie sprawdza
+     * danych sprzedawcy, pozycji ani bilansu - fakturę na kwotę wizyty układa księgowość.
+     * Zostaje nabywca, bo to jego dane trafiają na listę „Do zafakturowania".
+     */
+    invoicedExternally?: boolean;
 }
 
 /**
@@ -271,8 +277,14 @@ interface ValidateArgs {
  * Walidacja jest identyczna z backendową (CompleteVisitInvoiceOrchestrator),
  * żeby użytkownik nie dowiadywał się o problemie dopiero z odpowiedzi serwera.
  */
-export const validateHandover = ({ state, visitGross, sellerComplete }: ValidateArgs): HandoverProblem[] => {
+export const validateHandover = ({
+    state,
+    visitGross,
+    sellerComplete,
+    invoicedExternally = false,
+}: ValidateArgs): HandoverProblem[] => {
     if (state.documentType !== 'INVOICE') return [];
+    if (invoicedExternally) return buyerProblems(state);
 
     const problems: HandoverProblem[] = [];
 
@@ -301,16 +313,7 @@ export const validateHandover = ({ state, visitGross, sellerComplete }: Validate
         });
     }
 
-    const nip = normalizeNip(state.buyer.nip);
-    if (nip && nip.length !== 10) {
-        problems.push({ section: 'buyer', message: 'NIP nabywcy musi mieć 10 cyfr.' });
-    }
-    if (!nip && !state.buyer.name.trim()) {
-        problems.push({
-            section: 'buyer',
-            message: 'Faktura dla konsumenta wymaga imienia i nazwiska nabywcy.',
-        });
-    }
+    problems.push(...buyerProblems(state));
 
     const remainder = visitGross - invoiceGrossOf(state.items);
     if (remainder < 0) {
@@ -325,6 +328,21 @@ export const validateHandover = ({ state, visitGross, sellerComplete }: Validate
         });
     }
 
+    return problems;
+};
+
+const buyerProblems = (state: HandoverState): HandoverProblem[] => {
+    const problems: HandoverProblem[] = [];
+    const nip = normalizeNip(state.buyer.nip);
+    if (nip && nip.length !== 10) {
+        problems.push({ section: 'buyer', message: 'NIP nabywcy musi mieć 10 cyfr.' });
+    }
+    if (!nip && !state.buyer.name.trim()) {
+        problems.push({
+            section: 'buyer',
+            message: 'Faktura dla konsumenta wymaga imienia i nazwiska nabywcy.',
+        });
+    }
     return problems;
 };
 

@@ -32,6 +32,22 @@ export interface SettlementDocument {
     active: boolean;
     superseded: boolean;
     ksefInvoiceId: string | null;
+    /** Fakturę do tego dokumentu wystawia księgowość; sam dokument jest zapisem płatności. */
+    invoicedExternally?: boolean;
+}
+
+/** Zgłoszenie dla księgowości (tryb „Faktury wystawia księgowość"), także wycofane. */
+export interface SettlementExternalInvoice {
+    id: string;
+    documentId: string;
+    kind: 'INVOICE' | 'INVOICE_TO_RECEIPT' | 'CORRECTION';
+    kindLabel: string;
+    status: 'PENDING' | 'ISSUED' | 'WITHDRAWN';
+    statusLabel: string;
+    externalInvoiceNumber: string | null;
+    totalGross: number;
+    buyerNip: string | null;
+    buyerName: string | null;
 }
 
 export interface SettlementInvoice {
@@ -82,6 +98,10 @@ export interface SettlementView {
     services: SettlementService[];
     documents: SettlementDocument[];
     invoices: SettlementInvoice[];
+    /** Brak pola = starszy backend = brak zgłoszeń. */
+    externalInvoices?: SettlementExternalInvoice[];
+    /** Tryb studia: faktura w poprawce trafia do księgowości, CRM jej nie wystawia. */
+    invoicesIssuedExternally?: boolean;
     history: SettlementHistoryEntry[];
 }
 

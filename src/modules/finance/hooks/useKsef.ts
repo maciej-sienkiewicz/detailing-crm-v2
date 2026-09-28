@@ -10,6 +10,7 @@ import type {
   UpdateExpenseNoteRequest,
   SaveKsefCredentialsRequest,
   KsefSyncRangeRequest,
+  KsefInvoicingSettings,
 } from '../types';
 
 export const KSEF_CREDENTIALS_KEY = ['ksef', 'credentials'] as const;
@@ -70,6 +71,11 @@ export const useKsefAutomation = (options?: { enabled?: boolean }) => {
       !!data?.configured && !!data?.tokenChecked && !!data?.permissionsKnown && !data?.canIssueInvoices,
     /** Studio-wide default of the "send this invoice to KSeF" switch. */
     autoSendDefault: data?.autoSendDefault,
+    /**
+     * „Faktury wystawia księgowość": an invoice chosen at handover is not issued by the
+     * CRM at all - it goes to the accountant's to-invoice list instead.
+     */
+    invoicesIssuedExternally: data?.invoicesIssuedExternally === true,
     /** True while the answer is still unknown; do not render a warning yet. */
     isLoading: ksefModule.isLoading || (enabled && isLoading),
   };
@@ -78,12 +84,15 @@ export const useKsefAutomation = (options?: { enabled?: boolean }) => {
 /** Gotowość integracji z KSeF w formie, w jakiej czytają ją ekrany wystawiania faktur. */
 export type KsefAutomation = ReturnType<typeof useKsefAutomation>;
 
-/** Domyślna odpowiedź studia na pytanie „wysłać fakturę do KSeF?" (Ustawienia → Faktury). */
-export const useUpdateKsefAutoSendDefault = () => {
+/**
+ * Ustawienia fakturowania przy wydaniu pojazdu (Ustawienia → Faktury): domyślna odpowiedź
+ * na pytanie „wysłać fakturę do KSeF?" i tryb „Faktury wystawia księgowość".
+ */
+export const useUpdateKsefInvoicingSettings = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (autoSendDefault: boolean) => ksefApi.updateInvoicingSettings(autoSendDefault),
+    mutationFn: (settings: Partial<KsefInvoicingSettings>) => ksefApi.updateInvoicingSettings(settings),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: KSEF_INVOICING_STATUS_KEY });
     },
