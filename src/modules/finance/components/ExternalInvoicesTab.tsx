@@ -251,8 +251,12 @@ const ExternalInvoiceRow = ({ item }: { item: ExternalInvoice }) => {
           )}
         </Meta>
         <Meta>
-          {item.visitId && (
+          {item.visitId && !item.visitDeleted && (
             <Link to={`/visits/${item.visitId}`}>Wizyta {item.visitNumber ?? ''}</Link>
+          )}
+          {/* Link do usuniętej wizyty prowadziłby donikąd - mówimy, co się stało. */}
+          {item.visitDeleted && (
+            <StatusPill $tone="warn" $size="sm">Wizyta {item.visitNumber ?? ''} usunięta</StatusPill>
           )}
           {item.vehicleLabel && <span>{item.vehicleLabel}</span>}
           {item.licensePlate && <span>{item.licensePlate}</span>}
