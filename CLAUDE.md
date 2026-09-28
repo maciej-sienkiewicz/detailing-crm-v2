@@ -186,6 +186,9 @@ Te reguły są już zaszyte we wspólnych klockach `src/common/components/ui`
 `Card`/`Panel`, `SectionTitle`, `PriceButton`, `FieldRow`, `Segmented`,
 `SideDrawer`, `ActionMenu`). Widok wizyty i zlecenia zbiorcze stoją na
 nich (okna edycji wizyty jeszcze nie w pełni). Zanim zbudujesz lokalny `ActionBtn` czy `SidebarCard` - użyj ich.
+Wyjątek: karta kontrahenta zleceń zbiorczych na telefonie (`batch-orders/components/mobile`)
+ma świadomie dawny wygląd, na życzenie biznesu, na nowej logice. Nie przepinaj jej na te
+klocki bez nowej decyzji biznesu.
 
 ### Czego ta reguła NIE znaczy, część druga
 
