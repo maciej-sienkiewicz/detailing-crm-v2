@@ -211,6 +211,20 @@ function collectAllTags(photos: NormalisedPhoto[]): string[] {
     return Array.from(set).sort();
 }
 
+/**
+ * Co pobrać w tle, gdy otwarte jest zdjęcie [index]: sąsiedzi, do których prowadzi
+ * strzałka. Najpierw miniatury (małe, a siatka z loading="lazy" mogła ich jeszcze nie
+ * pobrać, gdy jest zwinięta), potem oryginały - następne przed poprzednim, bo
+ * przegląda się zwykle do przodu.
+ */
+function neighbourUrls(photos: NormalisedPhoto[], index: number | null): string[] {
+    if (index === null) return [];
+    const neighbours = [photos[index + 1], photos[index - 1]].filter(
+        (p): p is NormalisedPhoto => p !== undefined,
+    );
+    return [...neighbours.map(p => p.fileUrl), ...neighbours.map(p => p.fullSizeUrl)];
+}
+
 // Normalised shape used only inside this component
 interface NormalisedPhoto {
     id: string;
@@ -517,6 +531,11 @@ export const DocumentGallery = ({
                     hasPrev={selectedPhotoIndex !== null && selectedPhotoIndex > 0}
                     onNext={handleNextImage}
                     onPrev={handlePrevImage}
+                    previewUrl={selectedPhoto.fileUrl}
+                    preloadUrls={neighbourUrls(filteredPhotos, selectedPhotoIndex)}
+                    position={selectedPhotoIndex !== null
+                        ? { index: selectedPhotoIndex + 1, total: filteredPhotos.length }
+                        : undefined}
                 />
             )}
 
