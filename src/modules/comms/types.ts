@@ -906,6 +906,20 @@ export interface DraftReplyPayload {
     currentDraft?: string;
     /** Co poprawić. Wymagane przy `currentDraft`. */
     instructions?: string;
+    /** Oferta wybrana przy „Szkic AI" - szkic ma ją przedstawić. Brak = bez oferty. */
+    offer?: DraftOfferLine[];
+}
+
+/**
+ * Pozycja oferty w szkicu. Kwoty w groszach brutto, liczone applyAdjustment z dokładnym
+ * brutto (CLAUDE.md §1); `regularPriceGross` tylko przy rabacie.
+ */
+export interface DraftOfferLine {
+    name: string;
+    quantity: number;
+    priceGross: number;
+    regularPriceGross?: number;
+    note?: string;
 }
 
 export interface ReplyDraft {
@@ -920,4 +934,11 @@ export interface ReplyDraft {
     /** Kwoty ze szkicu, których nie ma w wycenie leada - do sprawdzenia. */
     unverifiedAmounts: string[];
     notice: string | null;
+    /** Szkic przedstawia ofertę. */
+    offerIncluded?: boolean;
+    /**
+     * Pozycje oferty, z którymi powstał szkic - tylko w przeglądarce, nie z serwera.
+     * „Popraw" wysyła je znowu, żeby poprawiony szkic miał tę samą ofertę z rabatami.
+     */
+    offer?: DraftOfferLine[];
 }

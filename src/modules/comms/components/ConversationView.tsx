@@ -1292,6 +1292,7 @@ function ConversationViewImpl({
                 <ReplyComposer
                     key={`${thread.id}:${replyTarget.email ?? ''}`}
                     threadId={thread.id}
+                    threadLeadId={thread.leadId}
                     initialTo={replyTarget.email ?? ''}
                     recipientLabel={replyTarget.name ?? replyTarget.email ?? undefined}
                     recipientHint={
