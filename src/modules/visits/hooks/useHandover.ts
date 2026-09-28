@@ -238,7 +238,10 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
      * ustawień zakładamy wysyłkę, bo tak działał system, zanim przełącznik powstał.
      * Wadliwy token wymusza „nie" niezależnie od wyboru i ustawień.
      */
+    const invoicedExternally = ksef.invoicesIssuedExternally;
+    // Faktury wystawia księgowość: CRM nie tworzy faktury, więc nie ma czego wysyłać.
     const sendToKsef =
+        !invoicedExternally &&
         !ksef.lacksIssuePermission &&
         (!ksef.moduleEnabled || ksef.isLoading || ksef.configured) &&
         (state.sendToKsef ?? ksef.autoSendDefault ?? true);
@@ -277,8 +280,8 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         () =>
             isFreeVisit || !canIssueDocuments
                 ? []
-                : validateHandover({ state, visitGross: totals.gross, sellerComplete }),
-        [state, totals.gross, sellerComplete, isFreeVisit, canIssueDocuments]
+                : validateHandover({ state, visitGross: totals.gross, sellerComplete, invoicedExternally }),
+        [state, totals.gross, sellerComplete, isFreeVisit, canIssueDocuments, invoicedExternally]
     );
 
     const problemsIn = useCallback(
@@ -354,7 +357,13 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         setSendToKsef,
         problems,
         problemsIn,
-        canSubmit: problems.length === 0 && !isSubmitting,
+        // Przy fakturze czekamy na ustawienia studia: dopiero one mówią, czy fakturę
+        // wystawia CRM, czy księgowość - a to zmienia, co w ogóle zostanie zapisane.
+        canSubmit:
+            problems.length === 0 &&
+            !isSubmitting &&
+            !(canIssueDocuments && !isFreeVisit && state.documentType === 'INVOICE' && ksef.isLoading),
+        invoicedExternally,
         canIssueDocuments,
         // zapis
         submit,

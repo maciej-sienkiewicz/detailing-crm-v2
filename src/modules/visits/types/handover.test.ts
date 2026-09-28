@@ -426,6 +426,20 @@ describe('validateHandover', () => {
         expect(validate({ items: [seeded] })).toEqual([]);
     });
 
+    it('faktura od księgowości: bez danych sprzedawcy, pozycji i bilansu, nabywca nadal wymagany', () => {
+        const external = (overrides: Partial<HandoverState>) =>
+            validateHandover({
+                state: state({ items: [item({ name: '', gross: '' })], ...overrides }),
+                visitGross: 190_000,
+                sellerComplete: false,
+                invoicedExternally: true,
+            });
+        const buyer = state().buyer;
+
+        expect(external({})).toEqual([]);
+        expect(external({ buyer: { ...buyer, nip: '', name: '' } }).map(p => p.section)).toEqual(['buyer']);
+    });
+
     it('dokument inny niż faktura nie jest walidowany', () => {
         expect(validate({ documentType: 'RECEIPT', items: [item({ name: '', gross: '' })] }, 190_000, false)).toEqual([]);
     });

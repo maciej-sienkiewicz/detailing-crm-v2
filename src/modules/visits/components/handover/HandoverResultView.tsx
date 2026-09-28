@@ -104,6 +104,13 @@ const isDuplicateRejection = (error?: string | null): boolean =>
  * miejscu komunikat sukcesu i odesłanie do innego modułu.
  */
 const present = (result: CompleteVisitResponse, ksefMisconfigured: boolean): Presentation => {
+    if (result.invoicedExternally) {
+        return {
+            tone: 'ok',
+            title: 'Pojazd wydany',
+            lead: 'Fakturę wystawi księgowość. Sprzedaż czeka na liście „Do zafakturowania” w Finansach, gdzie odhaczysz ją po wystawieniu faktury.',
+        };
+    }
     if (!result.ksefInvoiceNumber) {
         return {
             tone: 'ok',
@@ -143,7 +150,7 @@ const present = (result: CompleteVisitResponse, ksefMisconfigured: boolean): Pre
                 lead: 'KSeF jest chwilowo niedostępny, faktura zostanie dosłana automatycznie w trybie offline24.',
             };
         case 'REJECTED':
-            // Odrzucona faktura nie istnieje w KSeF i nie da się jej „dosłać":
+            // Odrzucona faktura nie istnieje w KSeF i nie da się jej „dosłać”:
             // jej numer jest spalony, a XML zamrożony w chwili wystawienia. Backend
             // świadomie odmawia ponowienia: jedyną drogą jest nowy dokument.
             // Duplikat (kod 440) wyróżniamy, bo tam dane są poprawne: zajęty jest
@@ -168,7 +175,7 @@ const present = (result: CompleteVisitResponse, ksefMisconfigured: boolean): Pre
     }
 };
 
-/** Termin podziękowania → „17.09, 16:30", w tym samym formacie co pole wyboru. */
+/** Termin podziękowania → „17.09, 16:30”, w tym samym formacie co pole wyboru. */
 const formatThankYouWhen = (date: Date): string =>
     date.toLocaleString('pl-PL', {
         day: '2-digit',
@@ -263,7 +270,15 @@ export const HandoverResultView = ({
                         <DocNumber>{result.ksefInvoiceNumber}</DocNumber>
                     </BoxRow>
                 )}
-                {result.financialDocumentNumber && !result.ksefInvoiceNumber && (
+                {result.invoicedExternally && (
+                    <BoxRow>
+                        <span style={{ fontSize: st.fontSm, color: st.textSecondary }}>Faktura</span>
+                        <DocNumber>wystawi księgowość</DocNumber>
+                    </BoxRow>
+                )}
+                {/* Numer zapisu płatności (FAK/…) przy fakturze księgowości nie jest numerem
+                    faktury i wyglądałby jak on - nie pokazujemy go tutaj. */}
+                {result.financialDocumentNumber && !result.ksefInvoiceNumber && !result.invoicedExternally && (
                     <BoxRow>
                         <span style={{ fontSize: st.fontSm, color: st.textSecondary }}>Dokument</span>
                         <DocNumber>{result.financialDocumentNumber}</DocNumber>

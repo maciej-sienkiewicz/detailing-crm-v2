@@ -80,6 +80,10 @@ podano w brutto.
   „przeliczenie na wszelki wypadek" kasuje dokładne brutto. Gdy strony nie da się
   ustalić (`typedPriceSide` zwraca `null`: brutto z cennika równe netto × stawka),
   ekran zachowuje swoje dotychczasowe zachowanie.
+- **Faktury wystawia księgowość** (Ustawienia → KSeF): „Faktura" przy wydaniu i w poprawce
+  rozliczenia nie tworzy faktury w CRM, tylko zapis płatności poza przychodem i zgłoszenie
+  na liście Finanse → „Do zafakturowania". Przychód niesie faktura księgowości z KSeF,
+  a numer `FAK/…` takiego zapisu nie jest numerem faktury — nie pokazuj go jako faktury.
 - **Dokładne brutto musi przejść przez każdą granicę**: katalog → pozycja
   wyceny → payload API → odczyt z API. Zgubione raz, nie odtworzy się już nigdy.
 - **Mapowania odpowiedzi API to miejsce, w którym ginie najczęściej.** Funkcja

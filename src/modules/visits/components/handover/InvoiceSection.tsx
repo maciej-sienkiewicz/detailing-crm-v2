@@ -16,7 +16,7 @@ import type { KsefAutomation } from '@/modules/finance/hooks';
 /**
  * Konfiguracja faktury leży na JEDNYM, zatopionym planie (reguła 2: „materiał -
  * dwa plany zamiast pięciu identycznych ram"). Wyniesiona, jasna karta jest w tym
- * oknie jedna - kwota „Do zapłaty". Wszystko, co dotyczy faktury (nabywca,
+ * oknie jedna - kwota „Do zapłaty”. Wszystko, co dotyczy faktury (nabywca,
  * pozycje, wysyłka do KSeF, bilans), grupuje się tu pod nią jako dowód i
  * ustawienia, a nie jako druga karta walcząca o uwagę.
  */
@@ -62,7 +62,7 @@ const BuyerMeta = styled.span`
     overflow-wrap: anywhere;
 `;
 
-// Wiersz kroju „etykieta po lewej, wartość/akcja po prawej" - wspólny dla
+// Wiersz kroju „etykieta po lewej, wartość/akcja po prawej” - wspólny dla
 // nabywcy, pozycji i wysyłki KSeF, żeby cała konfiguracja czytała się jednym
 // rytmem, a nie jako trzy różne języki wizualne.
 const RowLabel = styled.span`
@@ -170,18 +170,18 @@ export const InvoiceSection = ({
         .join(', ');
 
     // Ostrzegamy dopiero, gdy znamy odpowiedź: `configured` jest false także w trakcie
-    // ładowania, a to pokazałoby „brak tokenu" studiom, które token mają.
+    // ładowania, a to pokazałoby „brak tokenu” studiom, które token mają.
     const ksefAnswerKnown = !ksef.isLoading && ksef.moduleEnabled;
 
     /**
      * Jedna spokojna linia zamiast akapitu pod przełącznikiem: w happy-path (token
      * jest, wysyłamy) wystarczy zdanie, że faktura pójdzie do KSeF. Dodatkowe
      * wyjaśnienie pojawia się tylko wtedy, gdy niesie NOWĄ informację - świadome
-     * „nie wysyłam" albo blokada tokenu. Szczegóły blokady i drogę wyjścia niesie
+     * „nie wysyłam” albo blokada tokenu. Szczegóły blokady i drogę wyjścia niesie
      * baner niżej, więc tu wystarczy jedno zdanie.
      */
-    // Wadliwy token sprawdzany PRZED „!sendToKsef": przełącznik jest wtedy zgaszony
-    // przymusowo, a „wyślesz ją później" byłoby obietnicą bez pokrycia - wysyłka
+    // Wadliwy token sprawdzany PRZED „!sendToKsef”: przełącznik jest wtedy zgaszony
+    // przymusowo, a „wyślesz ją później” byłoby obietnicą bez pokrycia - wysyłka
     // wróci dopiero po naprawie tokenu.
     const ksefLine = ksef.isLoading
         ? 'Sprawdzamy konfigurację KSeF…'
@@ -200,12 +200,8 @@ export const InvoiceSection = ({
             ? 'Wyślesz ją później z dokumentów przychodowych.'
             : null;
 
-    return (
-        <Panel>
-            {!sellerComplete && <SellerPrompt company={company} />}
-            <SectionProblems problems={problemsIn('seller')} />
-
-            {/* ── Nabywca ─────────────────────────────────────────────────── */}
+    const buyerRow = (
+        <>
             <BoxRow>
                 <BuyerLine>
                     {isCompanyBuyer ? <Building2 /> : <User />}
@@ -230,6 +226,33 @@ export const InvoiceSection = ({
                 <BuyerEditor buyer={state.buyer} onChange={buyer => patch({ buyer })} />
             )}
             <SectionProblems problems={problemsIn('buyer')} />
+        </>
+    );
+
+    // Faktury wystawia księgowość (Ustawienia → Faktury): CRM nie tworzy faktury, więc
+    // pozycje, dane sprzedawcy, wysyłka do KSeF i bilans nie mają tu nic do roboty.
+    // Zostaje nabywca - jego dane idą na listę „Do zafakturowania” dla księgowości.
+    if (ksef.invoicesIssuedExternally) {
+        return (
+            <Panel>
+                {buyerRow}
+                <Divider />
+                <ExternalNote>
+                    <strong>Fakturę wystawi księgowość.</strong> Sprzedaż na {fmt(visitGross)} trafi
+                    na listę „Do zafakturowania” w Finansach, razem z nabywcą i formą płatności.
+                    CRM nie tworzy własnej faktury, więc nic nie policzy się dwa razy.
+                </ExternalNote>
+            </Panel>
+        );
+    }
+
+    return (
+        <Panel>
+            {!sellerComplete && <SellerPrompt company={company} />}
+            <SectionProblems problems={problemsIn('seller')} />
+
+            {/* ── Nabywca ─────────────────────────────────────────────────── */}
+            {buyerRow}
 
             <Divider />
 
@@ -378,6 +401,15 @@ export const InvoiceSection = ({
         </Panel>
     );
 };
+
+const ExternalNote = styled.p`
+    margin: 0;
+    font-size: ${st.fontSm};
+    line-height: 1.55;
+    color: ${st.textSecondary};
+
+    strong { color: ${st.text}; font-weight: 600; }
+`;
 
 const KsefNotice = styled.div`
     display: flex;

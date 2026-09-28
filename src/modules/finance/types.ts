@@ -299,6 +299,17 @@ export interface KsefInvoicingStatus {
   checkedAt: string | null;
   /** Domyślna pozycja przełącznika „Wyślij fakturę do KSeF" przy wydaniu pojazdu. */
   autoSendDefault: boolean;
+  /**
+   * „Faktury wystawia księgowość": wybór „Faktura" nie tworzy faktury w CRM, tylko
+   * zgłoszenie na liście „Do zafakturowania". Brak pola = starszy backend = wyłączone.
+   */
+  invoicesIssuedExternally?: boolean;
+}
+
+/** Ustawienia fakturowania przy wydaniu pojazdu (Ustawienia → Faktury). */
+export interface KsefInvoicingSettings {
+  autoSendDefault: boolean;
+  invoicesIssuedExternally: boolean;
 }
 
 export interface SaveKsefCredentialsRequest {
@@ -480,7 +491,7 @@ export interface KsefStatistics {
 
 // ─── View state ───────────────────────────────────────────────────────────────
 
-export type FinanceTab = 'income' | 'expenses' | 'cash' | 'payment-summary';
+export type FinanceTab = 'income' | 'expenses' | 'cash' | 'payment-summary' | 'to-invoice';
 
 // ─── Zunifikowana lista dokumentów przychodowych ──────────────────────────────
 
@@ -762,4 +773,57 @@ export interface RevenueStatistics {
   totals:           RevenueTotals;
   monthly:          RevenueMonthlyStats[];
   pendingKsefCount: number;
+}
+
+// ─── Do zafakturowania (tryb „Faktury wystawia księgowość") ───────────────────
+
+export type ExternalInvoiceKind = 'INVOICE' | 'INVOICE_TO_RECEIPT' | 'CORRECTION';
+export type ExternalInvoiceStatus = 'PENDING' | 'ISSUED';
+/** Filtr listy: czekające, odhaczone albo wszystkie (bez wycofanych). */
+export type ExternalInvoiceFilter = 'PENDING' | 'ISSUED' | 'ALL';
+
+/**
+ * Sprzedaż, do której fakturę wystawia księgowość. Kwoty w groszach; korekta ma kwoty
+ * ujemne faktury, którą koryguje. `documentNumber` to numer zapisu płatności w CRM,
+ * nie numer faktury - ten wpisuje człowiek przy odhaczeniu (opcjonalnie).
+ */
+export interface ExternalInvoice {
+  id: string;
+  kind: ExternalInvoiceKind;
+  kindLabel: string;
+  status: ExternalInvoiceStatus;
+  statusLabel: string;
+  visitId: string | null;
+  visitNumber: string | null;
+  vehicleLabel: string | null;
+  licensePlate: string | null;
+  documentId: string;
+  documentNumber: string | null;
+  paymentMethod: string | null;
+  paymentMethodLabel: string | null;
+  paymentStatus: 'PAID' | 'PENDING' | 'OVERDUE' | null;
+  paymentStatusLabel: string | null;
+  saleDate: string | null;
+  dueDate: string | null;
+  buyerNip: string | null;
+  buyerName: string | null;
+  buyerAddressLine1: string | null;
+  buyerAddressLine2: string | null;
+  buyerEmail: string | null;
+  totalNet: number;
+  totalVat: number;
+  totalGross: number;
+  externalInvoiceNumber: string | null;
+  issuedAt: string | null;
+  issuedByName: string | null;
+  /** Korekta: numer faktury księgowości, którą koryguje (jeśli go wpisano). */
+  correctsInvoiceNumber: string | null;
+  createdAt: string;
+}
+
+export interface ExternalInvoiceListResponse {
+  items: ExternalInvoice[];
+  total: number;
+  page: number;
+  pageSize: number;
 }

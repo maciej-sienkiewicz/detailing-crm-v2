@@ -2,6 +2,7 @@ import { apiClient } from '@/core';
 import type {
   KsefCredentials,
   KsefInvoicingStatus,
+  KsefInvoicingSettings,
   KsefTokenVerification,
   SaveKsefCredentialsRequest,
   KsefSyncStatus,
@@ -72,8 +73,11 @@ export const ksefApi = {
     return response.data;
   },
 
-  updateInvoicingSettings: async (autoSendDefault: boolean): Promise<{ autoSendDefault: boolean }> => {
-    const response = await apiClient.patch(`${BASE}/invoicing-settings`, { autoSendDefault });
+  /** Pole pominięte = bez zmiany: każdy przełącznik zapisuje się osobno. */
+  updateInvoicingSettings: async (
+    settings: Partial<KsefInvoicingSettings>,
+  ): Promise<KsefInvoicingSettings> => {
+    const response = await apiClient.patch(`${BASE}/invoicing-settings`, settings);
     return response.data;
   },
 

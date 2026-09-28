@@ -1,12 +1,12 @@
 // src/modules/visits/components/SettlementCorrectionModal.tsx
 //
-// „Popraw rozliczenie" wizyty wydanej: ceny i stawki pozycji, rodzaj dokumentu,
+// „Popraw rozliczenie” wizyty wydanej: ceny i stawki pozycji, rodzaj dokumentu,
 // nabywca, forma płatności, powód. Przed zapisem serwer sprawdza plan poprawki
 // (ten sam, który potem wykonuje) - okno pokazuje tylko, czy da się ją zrobić,
 // a jeśli nie, to dlaczego.
 //
 // Nic nie jest usuwane: stare dokumenty zostają w historii wizyty obok korekt.
-// Otwarty edytor przejmuje okno, więc „Zatwierdź poprawkę" jest jedynym wypełnieniem
+// Otwarty edytor przejmuje okno, więc „Zatwierdź poprawkę” jest jedynym wypełnieniem
 // (CLAUDE.md §2, wyjątek edytora).
 
 import { useEffect, useMemo, useState } from 'react';
@@ -224,7 +224,9 @@ function CorrectionForm({ view, visitId, onClose }: { view: SettlementView; visi
     const [exemption, setExemption] = useState('');
     const [reason, setReason] = useState('');
 
-    const needsExemption = documentType === 'INVOICE' && lines.some(l => l.vatRate === -1);
+    // Faktury wystawia księgowość: podstawę zwolnienia wpisuje ona na swojej fakturze.
+    const external = view.invoicesIssuedExternally === true;
+    const needsExemption = documentType === 'INVOICE' && !external && lines.some(l => l.vatRate === -1);
     const request = useMemo<SettlementCorrectionRequest>(() => ({
         services: changedServiceLines(lines),
         documentType,
@@ -241,7 +243,7 @@ function CorrectionForm({ view, visitId, onClose }: { view: SettlementView; visi
         const timer = window.setTimeout(() => setDebounced(request), 350);
         return () => window.clearTimeout(timer);
     }, [request]);
-    // Nic jeszcze nie zmieniono: zamiast pytać serwer i straszyć „nie da się",
+    // Nic jeszcze nie zmieniono: zamiast pytać serwer i straszyć „nie da się”,
     // okno mówi, co można tu zrobić.
     // Wizyta bez dokumentu: sam wybór rodzaju dokumentu jest zmianą (dopisuje brakujący).
     const pristine = view.documentType !== null &&
@@ -298,6 +300,11 @@ function CorrectionForm({ view, visitId, onClose }: { view: SettlementView; visi
                                     {row.ksefStatus && (
                                         <StatusPill $tone={INVOICE_STATUS[row.ksefStatus]?.tone ?? 'neutral'}>
                                             {INVOICE_STATUS[row.ksefStatus]?.label ?? row.ksefStatus}
+                                        </StatusPill>
+                                    )}
+                                    {row.externalStatus && (
+                                        <StatusPill $tone={row.externalStatus === 'ISSUED' ? 'ok' : 'warn'}>
+                                            {row.externalStatus === 'ISSUED' ? 'Wystawiona przez księgowość' : 'Czeka na księgowość'}
                                         </StatusPill>
                                     )}
                                     <span className="amount">{pln(row.totalGross)}</span>
@@ -359,6 +366,13 @@ function CorrectionForm({ view, visitId, onClose }: { view: SettlementView; visi
                         onChange={setDocumentType}
                     />
                     {documentType === 'INVOICE' && <BuyerEditor buyer={buyer} onChange={setBuyer} />}
+                    {documentType === 'INVOICE' && external && (
+                        <Notice tone="info" title="Fakturę wystawia księgowość">
+                            CRM nie tworzy faktury. Po zapisaniu sprzedaż trafi na listę „Do zafakturowania”
+                            w Finansach. Jeśli księgowość wystawiła już fakturę do tej wizyty, korektę też
+                            wystawia ona: zgłoszenie korekty pojawi się na tej samej liście.
+                        </Notice>
+                    )}
                     {needsExemption && (
                         <Field>
                             Podstawa zwolnienia z VAT

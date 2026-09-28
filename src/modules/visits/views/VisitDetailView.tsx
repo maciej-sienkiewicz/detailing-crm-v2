@@ -32,6 +32,7 @@ import { useVisitDamageMap, useUpdateVisitDamageMap } from '../hooks';
 import { ConsumerInvoiceModal } from '../components/ConsumerInvoiceModal';
 import { SettlementCorrectionModal } from '../components/SettlementCorrectionModal';
 import { RevenueInvoiceDetailModal } from '@/modules/finance/components/RevenueInvoiceDetailModal';
+import { useKsefAutomation } from '@/modules/finance/hooks/useKsef';
 import { useUpdateVisit, useUpdateVisitTitle, useUpdateEstimatedCompletionDate, useUpdateArrivalState } from '../hooks';
 import { useUploadDocument, useUploadPhoto, useDeleteDocument, useDeletePhoto } from '../hooks';
 import { useVisitComments, useVisitCommunication } from '../hooks';
@@ -364,6 +365,12 @@ export const VisitDetailView = () => {
 
     const queryClient = useQueryClient();
 
+    // „Faktury wystawia księgowość": faktury konsumenckiej z CRM nie wystawiamy - fakturę
+    // do paragonu zamawia się przez „Popraw rozliczenie", a wystawia ją księgowość.
+    const invoicesIssuedExternally = useKsefAutomation({
+        enabled: visitDetail?.visit.status === 'COMPLETED',
+    }).invoicesIssuedExternally;
+
     // Między usunięciem a przejściem na listę widok nie ma czego pokazać: dane wizyty
     // już nie przyjdą, a zwykła ścieżka renderu wyświetliłaby w tym miejscu „nie
     // znaleziono wizyty" - komunikat o błędzie po operacji, która się udała.
@@ -626,7 +633,7 @@ export const VisitDetailView = () => {
                 <VisitHeader
                     visit={visit}
                     onCompleteVisit={handleCompleteVisit}
-                    onIssueConsumerInvoice={() => setIsConsumerInvoiceOpen(true)}
+                    onIssueConsumerInvoice={invoicesIssuedExternally ? undefined : () => setIsConsumerInvoiceOpen(true)}
                     onPreviewInvoice={() => setPreviewInvoiceId(visit.settlement?.revenueInvoiceId ?? null)}
                     onCancelVisit={handleCancelVisit}
                     onGeneratePost={() => setIsGeneratePostOpen(true)}
