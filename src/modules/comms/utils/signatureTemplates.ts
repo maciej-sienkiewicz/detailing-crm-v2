@@ -12,6 +12,8 @@
 //  - style wyłącznie inline: Gmail wycina <style> z treści wiadomości,
 //  - kolor tła dwa razy (bgcolor + background): Outlook czyta atrybut, reszta CSS,
 //  - obrazki z width/height w atrybutach: bez nich Outlook rysuje je w naturalnym rozmiarze,
+//  - logo ma oba wymiary wyliczone z jego proporcji (logoSize) - stała szerokość z limitem
+//    wysokości spłaszczała każde logo bliższe kwadratowi niż ramka motywu,
 //  - zdjęcie jest kwadratem przyciętym po stronie serwera, bo object-fit nie działa
 //    w Outlooku, a border-radius:50% tylko je zaokrągla tam, gdzie to wspierane,
 //  - czcionki tylko systemowe: webfontów nie ładuje większość klientów,
@@ -25,7 +27,7 @@ export type SignatureSocialKey = 'linkedin' | 'facebook' | 'instagram' | 'youtub
 export type SignatureImageKey = 'photoUrl' | 'logoUrl';
 export type SignatureTextKey =
     | 'fullName' | 'position' | 'company'
-    | 'phone' | 'phone2' | 'phoneLand' | 'fax'
+    | 'phone' | 'phone2'
     | 'email' | 'website' | 'address' | 'disclaimer';
 
 /**
@@ -57,8 +59,6 @@ export const SIGNATURE_TEXT_FIELDS: Record<SignatureTextKey, SignatureFieldDef> 
     company: { label: 'Firma', type: 'text', placeholder: 'Studio Detailingu' },
     phone: { label: 'Telefon komórkowy', type: 'tel', placeholder: '+48 600 000 000', autoComplete: 'tel' },
     phone2: { label: 'Drugi telefon komórkowy', type: 'tel', placeholder: '+48 601 000 000' },
-    phoneLand: { label: 'Telefon stacjonarny', type: 'tel', placeholder: '+48 22 000 00 00' },
-    fax: { label: 'Fax', type: 'tel', placeholder: '+48 22 000 00 01' },
     email: { label: 'Adres e-mail', type: 'email', placeholder: 'anna@studio.pl', autoComplete: 'email' },
     website: { label: 'Strona WWW', type: 'url', placeholder: 'www.studio.pl' },
     address: { label: 'Adres firmy', type: 'text', placeholder: 'ul. Piękna 1, 00-001 Warszawa' },
@@ -141,43 +141,64 @@ const image = (src: string, width: number, height: number | null, alt: string, s
     `<img src="${esc(src)}" width="${width}"${height ? ` height="${height}"` : ''} alt="${esc(alt)}" ` +
     `style="display:block;border:0;outline:none;${style}">`;
 
+/**
+ * Wymiary logo w ramce motywu z zachowaniem proporcji: szerokie logo dotyka szerokości
+ * ramki, wysokie - jej wysokości. Nigdy nie powiększamy ponad naturalny rozmiar, bo małe
+ * logo rozciągnięte w górę się rozmywa.
+ */
+export function fitLogo(natural: SignatureLogoSize, box: SignatureLogoSize): SignatureLogoSize {
+    const scale = Math.min(1, box.width / natural.width, box.height / natural.height);
+    return {
+        width: Math.max(1, Math.round(natural.width * scale)),
+        height: Math.max(1, Math.round(natural.height * scale)),
+    };
+}
+
+/**
+ * Logo w stopce. Znane proporcje → oba wymiary wprost, w atrybutach i w stylu, tak samo
+ * w każdym kliencie poczty. Nieznane (logo jeszcze się mierzy) → przeglądarka dopasowuje
+ * je sama do ramki (width/height auto z limitami), a Outlook bierze szerokość z atrybutu.
+ * Wcześniej logo miało sztywną szerokość ramki i limit wysokości - logo bliższe kwadratowi
+ * dostawało ściętą wysokość przy pełnej szerokości, czyli było spłaszczone.
+ */
+const logoImage = (src: string, box: SignatureLogoSize, natural: SignatureLogoSize | null, alt: string): string => {
+    const size = natural ?? (src === SIGNATURE_LOGO_PLACEHOLDER ? LOGO_PLACEHOLDER_SIZE : null);
+    if (!size || size.width <= 0 || size.height <= 0) {
+        return image(src, box.width, null, alt,
+            `width:auto;height:auto;max-width:${box.width}px;max-height:${box.height}px;`);
+    }
+    const fit = fitLogo(size, box);
+    return image(src, fit.width, fit.height, alt, `width:${fit.width}px;height:${fit.height}px;`);
+};
+
 const TABLE = 'role="presentation" cellpadding="0" cellspacing="0" border="0"';
 
 /** Zewnętrzna rama każdej stopki - ogranicza szerokość w szerokich oknach poczty. */
 const frame = (inner: string, maxWidth = 520): string =>
     `<table ${TABLE} style="border-collapse:collapse;max-width:${maxWidth}px;"><tr><td style="padding:0;">${inner}</td></tr></table>`;
 
-interface PhoneLine { number: string; suffix: string; dial: boolean }
+interface PhoneLine { number: string; suffix: string }
 
 /**
- * Telefony w kolejności: komórka, druga komórka, stacjonarny, fax. Dopisek („kom.",
- * „stacj.", „fax") pojawia się dopiero, gdy numerów jest więcej niż jeden albo jedyny
- * jest faxem - pojedynczy numer komórki bez dopisku czyta się naturalniej.
+ * Telefony: komórka i druga komórka. Dopisek „kom." pojawia się dopiero przy dwóch
+ * numerach - pojedynczy numer bez dopisku czyta się naturalniej. Telefonu stacjonarnego
+ * i faxu stopka już nie ma (decyzja biznesu); wartości z dawnych projektów się pomija.
  */
 const phoneLines = (d: SignatureDesign): PhoneLine[] => {
-    const raw = [
-        { number: clean(d.phone), tag: 'kom.', dial: true },
-        { number: clean(d.phone2), tag: 'kom.', dial: true },
-        { number: clean(d.phoneLand), tag: 'stacj.', dial: true },
-        { number: clean(d.fax), tag: 'fax', dial: false },
-    ].filter(line => line.number);
-    const tagged = raw.length > 1 || (raw.length === 1 && !raw[0].dial);
-    return raw.map(line => ({
-        number: line.number,
-        dial: line.dial,
-        suffix: tagged ? `<span style="color:#999999;font-size:.85em;">&nbsp;${line.tag}</span>` : '',
+    const raw = [clean(d.phone), clean(d.phone2)].filter(Boolean);
+    return raw.map(number => ({
+        number,
+        suffix: raw.length > 1 ? '<span style="color:#999999;font-size:.85em;">&nbsp;kom.</span>' : '',
     }));
 };
 
 interface ContactStyle { font: string; accent: string; color: string; size: number; lh: number; labels: boolean }
 
-/** Kontakt jako linie tekstu, opcjonalnie z literą w kolorze motywu (T:, F:, E:, W:). */
+/** Kontakt jako linie tekstu, opcjonalnie z literą w kolorze motywu (T:, E:, W:). */
 const contactLines = (d: SignatureDesign, s: ContactStyle): string => {
     const lineStyle = `font-family:${s.font};font-size:${s.size}px;line-height:${s.lh}px;color:${s.color};`;
     const label = (letter: string) => (s.labels ? `<span style="color:${s.accent};">${letter}:</span> ` : '');
-    const lines: string[] = phoneLines(d).map(p =>
-        label(p.dial ? 'T' : 'F') + (p.dial ? link(telHref(p.number), p.number, s.color) : esc(p.number)) + p.suffix
-    );
+    const lines: string[] = phoneLines(d).map(p => label('T') + link(telHref(p.number), p.number, s.color) + p.suffix);
     const email = clean(d.email);
     if (email) lines.push(label('E') + link(`mailto:${email}`, email, s.color));
     if (clean(d.website)) lines.push(label('W') + link(toHref(d.website), displayUrl(d.website), s.color));
@@ -190,9 +211,7 @@ const contactIconLines = (d: SignatureDesign, font: string, iconsBaseUrl: string
     const icon = (name: string) =>
         `<img src="${esc(`${iconsBaseUrl}/contact/${name}.png`)}" width="14" height="14" alt="" ` +
         'style="display:inline-block;vertical-align:middle;border:0;width:14px;height:14px;margin-right:7px;">';
-    const lines: string[] = phoneLines(d).map(p =>
-        icon('phone') + (p.dial ? link(telHref(p.number), p.number, color) : esc(p.number)) + p.suffix
-    );
+    const lines: string[] = phoneLines(d).map(p => icon('phone') + link(telHref(p.number), p.number, color) + p.suffix);
     const email = clean(d.email);
     if (email) lines.push(icon('mail') + link(`mailto:${email}`, email, color));
     if (clean(d.website)) lines.push(icon('web') + link(toHref(d.website), displayUrl(d.website), color));
@@ -222,7 +241,10 @@ const disclaimer = (d: SignatureDesign, font: string, maxWidth = 480): string =>
 
 // ── Motywy ───────────────────────────────────────────────────────────────────
 
-interface RenderContext { font: string; iconsBaseUrl: string }
+/** Naturalne wymiary logo w pikselach - z nich liczymy jego wymiary w stopce. */
+export interface SignatureLogoSize { width: number; height: number }
+
+interface RenderContext { font: string; iconsBaseUrl: string; logoSize: SignatureLogoSize | null }
 
 export interface SignatureTemplate {
     id: SignatureTemplateId;
@@ -236,7 +258,7 @@ export interface SignatureTemplate {
     render: (d: SignatureDesign, ctx: RenderContext) => string;
 }
 
-const CONTACT_FIELDS: SignatureTextKey[] = ['phone', 'phone2', 'phoneLand', 'fax', 'email', 'website'];
+const CONTACT_FIELDS: SignatureTextKey[] = ['phone', 'phone2', 'email', 'website'];
 
 const classic: SignatureTemplate = {
     id: 'klasyczna',
@@ -294,13 +316,13 @@ const companyLogo: SignatureTemplate = {
     fields: ['fullName', 'position', 'company', ...CONTACT_FIELDS, 'address', 'disclaimer'],
     images: ['logoUrl'],
     social: true,
-    render: (d, { font, iconsBaseUrl }) => {
+    render: (d, { font, iconsBaseUrl, logoSize }) => {
         const accent = d.color;
         const logo = clean(d.logoUrl);
         const inner =
             `<table ${TABLE} style="border-collapse:collapse;"><tr>` +
             (logo
-                ? `<td valign="middle" style="padding:0 18px 0 0;border-right:1px solid #dddddd;">${image(logo, 120, null, clean(d.company), 'width:120px;height:auto;max-height:70px;')}</td>`
+                ? `<td valign="middle" style="padding:0 18px 0 0;border-right:1px solid #dddddd;">${logoImage(logo, { width: 120, height: 70 }, logoSize, clean(d.company))}</td>`
                 : '') +
             `<td valign="middle" style="padding:0 0 0 ${logo ? 18 : 0}px;">` +
             `<div style="font-family:${font};font-size:16px;line-height:22px;font-weight:bold;color:#222222;">${esc(clean(d.fullName))}</div>` +
@@ -324,7 +346,7 @@ const circleBanner: SignatureTemplate = {
     fields: ['fullName', 'position', 'company', ...CONTACT_FIELDS, 'address', 'disclaimer'],
     images: ['photoUrl', 'logoUrl'],
     social: false,
-    render: (d, { font, iconsBaseUrl }) => {
+    render: (d, { font, iconsBaseUrl, logoSize }) => {
         const accent = d.color;
         const photo = clean(d.photoUrl);
         const logo = clean(d.logoUrl);
@@ -335,7 +357,7 @@ const circleBanner: SignatureTemplate = {
               '</td>'
             : `<td bgcolor="${accent}" style="background:${accent};width:26px;font-size:0;line-height:0;">&nbsp;</td>`;
         const brand = logo
-            ? `<div style="margin-bottom:8px;">${image(logo, 96, null, clean(d.company), 'width:96px;height:auto;max-height:34px;')}</div>`
+            ? `<div style="margin-bottom:8px;">${logoImage(logo, { width: 96, height: 40 }, logoSize, clean(d.company))}</div>`
             : block(esc(clean(d.company)),
                 `font-family:${font};font-size:12px;line-height:17px;font-weight:bold;color:#222222;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;`);
         const inner =
@@ -359,7 +381,7 @@ const twoBands: SignatureTemplate = {
     fields: ['fullName', 'position', 'company', ...CONTACT_FIELDS, 'address', 'disclaimer'],
     images: ['photoUrl', 'logoUrl'],
     social: false,
-    render: (d, { font }) => {
+    render: (d, { font, logoSize }) => {
         const accent = d.color;
         const photo = clean(d.photoUrl);
         const logo = clean(d.logoUrl);
@@ -387,7 +409,7 @@ const twoBands: SignatureTemplate = {
                 ? '<td valign="middle" align="right" style="padding-left:16px;">' +
                   `<table ${TABLE} style="border-collapse:separate;"><tr>` +
                   '<td bgcolor="#ffffff" style="background:#ffffff;padding:6px 8px;border-radius:4px;">' +
-                  image(logo, 90, null, clean(d.company), 'width:90px;height:auto;max-height:40px;') +
+                  logoImage(logo, { width: 90, height: 44 }, logoSize, clean(d.company)) +
                   '</td></tr></table></td>'
                 : '') +
             '</tr></table>';
@@ -412,7 +434,12 @@ export const getSignatureTemplate = (id: string | null | undefined): SignatureTe
  * przełączanie motywów w kreatorze niczego nie kasuje, a stopka pokazuje tylko to,
  * co widać w podglądzie.
  */
-export function renderSignature(design: SignatureDesign, iconsBaseUrl: string): string {
+export function renderSignature(
+    design: SignatureDesign,
+    iconsBaseUrl: string,
+    /** Naturalne wymiary wgranego logo; null = nieznane (patrz logoImage). */
+    logoSize: SignatureLogoSize | null = null,
+): string {
     const template = getSignatureTemplate(design.template);
     const font = (SIGNATURE_FONTS.find(f => f.id === design.font) ?? SIGNATURE_FONTS[0]).stack;
     const visible: SignatureDesign = { ...design };
@@ -424,7 +451,7 @@ export function renderSignature(design: SignatureDesign, iconsBaseUrl: string): 
         .forEach(key => { visible[key] = null; });
     if (!template.social) SIGNATURE_SOCIAL_KEYS.forEach(key => { visible[key] = null; });
 
-    const html = template.render(visible, { font, iconsBaseUrl: iconsBaseUrl.replace(/\/+$/, '') });
+    const html = template.render(visible, { font, iconsBaseUrl: iconsBaseUrl.replace(/\/+$/, ''), logoSize });
     return scaleSignatureHtml(html, signatureScale(design) / 100);
 }
 
@@ -470,6 +497,7 @@ export const SIGNATURE_PHOTO_PLACEHOLDER = `data:image/svg+xml,${encodeURICompon
     '<svg xmlns="http://www.w3.org/2000/svg" width="92" height="92" viewBox="0 0 92 92"><rect width="92" height="92" fill="#dfe4ea"/>' +
     '<circle cx="46" cy="36" r="17" fill="#b4bcc6"/><path d="M14 92c3-20 17-31 32-31s29 11 32 31z" fill="#b4bcc6"/></svg>'
 )}`;
+const LOGO_PLACEHOLDER_SIZE: SignatureLogoSize = { width: 120, height: 40 };
 export const SIGNATURE_LOGO_PLACEHOLDER = `data:image/svg+xml,${encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40" viewBox="0 0 120 40"><rect x=".5" y=".5" width="119" height="39" rx="4" fill="#f1f4f7" stroke="#cfd6de" stroke-dasharray="4 3"/>' +
     '<text x="60" y="25" font-family="Arial" font-size="12" font-weight="700" fill="#8a94a1" text-anchor="middle">LOGO</text></svg>'

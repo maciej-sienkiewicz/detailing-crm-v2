@@ -12,7 +12,9 @@ import { acquireScrollLock } from '@/common/utils/scrollLock';
  *
  * Robi trzy rzeczy:
  *
- *  1. Escape zamyka okno.
+ *  1. Escape zamyka okno - tylko to na wierzchu. Okno otwarte nad innym (kadr zdjęcia
+ *     nad stopką, potwierdzenie nad formularzem) zamykało się razem z oknem pod spodem,
+ *     bo oba nasłuchują na dokumencie.
  *  2. Blokuje przewijanie tła — przez współdzielony `acquireScrollLock()`,
  *     nigdy własnym zapisem po stylach <body>/<html>. Okna piętrowe (modal +
  *     potwierdzenie) zwalniane w dowolnej kolejności zostawiały dokument
@@ -43,11 +45,17 @@ export const useModalViewport = (
     useEffect(() => {
         if (!isOpen || !onClose) return;
         const handleKey = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') onClose();
+            if (event.key !== 'Escape') return;
+            const own = overlayRef.current;
+            const dialogs = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
+            const top = dialogs[dialogs.length - 1];
+            // Portale dopinają się na końcu <body>, więc ostatnie okno modalne jest na wierzchu.
+            if (own && top && top !== own && !own.contains(top)) return;
+            onClose();
         };
         document.addEventListener('keydown', handleKey);
         return () => document.removeEventListener('keydown', handleKey);
-    }, [isOpen, onClose]);
+    }, [isOpen, onClose, overlayRef]);
 
     useHideMobileChrome(useId(), isOpen);
 
