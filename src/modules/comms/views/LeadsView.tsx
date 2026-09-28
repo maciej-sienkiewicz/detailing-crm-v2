@@ -38,7 +38,7 @@ import {
     X,
 } from 'lucide-react';
 import { ChoiceModal, ConfirmationModal } from '@/common/components/ConfirmationModal';
-import { useBreakpoint } from '@/common/hooks';
+import { useBreakpoint, useDebounce } from '@/common/hooks';
 import {
     CLOSED_LEAD_STATUSES,
     OPEN_LEAD_STATUSES,
@@ -596,9 +596,12 @@ export default function LeadsView() {
     const open = useLeadsByStatuses(OPEN_LEAD_STATUSES);
     // Archiwum pobiera się dopiero, gdy ktoś w nie wejdzie: pusta lista statusów
     // to zero zapytań, więc kolejka nie płaci za dane, których nie pokazuje.
+    // Szukanie w archiwum to jedno zapytanie na każdy zamknięty status - bez opóźnienia
+    // każdy wpisany znak był trzema żądaniami i szybkie pisanie zjadało limit żądań.
+    const archiveSearch = useDebounce(archiveQuery, 300);
     const archive = useLeadsByStatuses(
         inArchive ? (archiveStatus ? [archiveStatus] : CLOSED_LEAD_STATUSES) : [],
-        { query: archiveQuery, sortDirection: 'DESC' }
+        { query: archiveSearch, sortDirection: 'DESC' }
     );
 
     // Zmiany leadów przychodzą WebSocketem - karta aktualizuje się bez odświeżania.

@@ -15,7 +15,7 @@
 // (a nie tym, czy dane zdążyły dojść), nagłówek rozmowy renderuje się od razu z
 // danych z listy, a dociąga się wyłącznie treść korespondencji - w wydzielonym,
 // memoizowanym ConversationView. Dzięki temu nic nie „przeskakuje" pod kursorem.
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import {
@@ -30,6 +30,7 @@ import {
     Settings,
 } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
+import { useDebounce } from '@/common/hooks';
 import { BOTTOM_NAV_SPACE } from '@/widgets/BottomNav';
 import { commsApi } from '../api/commsApi';
 import {
@@ -59,6 +60,12 @@ import {
     SurfaceCard,
     formatRelativeTime,
 } from '../components/shared';
+
+/** Ile ms bez pisania, zanim szukanie odpyta serwer. */
+const SEARCH_DEBOUNCE_MS = 300;
+
+/** Najkrótszy odstęp między ręcznymi synchronizacjami skrzynki. */
+const MANUAL_SYNC_COOLDOWN_MS = 15_000;
 
 /** Foldery w adresie: ?folder=sent - odświeżenie strony ma zastać ten sam widok. */
 const FOLDER_PARAM: Record<MailFolder, string | null> = { INBOX: null, SENT: 'sent', REJECTED: 'rejected' };
@@ -421,15 +428,18 @@ export default function MailView() {
     const { data: accounts } = useMailAccounts();
     const mailboxSync = useMailboxSyncState();
     const prefetchThread = usePrefetchThread();
+    // Szukanie odpytuje serwer dopiero po chwili bez pisania - wcześniej każdy znak
+    // był osobnym żądaniem listy i szybkie wpisanie adresu zjadało limit żądań.
+    const searchQuery = useDebounce(query, SEARCH_DEBOUNCE_MS);
     const filters = useMemo(
         () => ({
             archived: false,
             folder,
-            query: query || undefined,
+            query: searchQuery || undefined,
             page,
             pageSize: 30,
         }),
-        [folder, query, page]
+        [folder, searchQuery, page]
     );
     const { data: threadPage } = useThreads(filters);
     // Adresy oznaczone jako formularze - jedna cache'owana lista na całą skrzynkę.
@@ -481,6 +491,7 @@ export default function MailView() {
         setThreadMenu({ x: event.clientX, y: event.clientY, thread });
     }, []);
     const syncAccount = useSyncAccount();
+    const lastManualSyncAt = useRef(0);
 
     // Otwarcie konwersacji oznacza ją jako przeczytaną - lokalnie od razu,
     // na serwerze pocztowym przez kolejkę w tle.
@@ -639,9 +650,9 @@ export default function MailView() {
                                 onContextMenu={(event) => openThreadMenu(event, thread)}
                                 // Zanim palec/kursor dojdzie do kliknięcia, wątek zdąży
                                 // trafić do cache - treść podmienia się wtedy bez migotania.
-                                onMouseEnter={() => prefetchThread(thread.id, thread.participantEmail)}
-                                onFocus={() => prefetchThread(thread.id, thread.participantEmail)}
-                                onTouchStart={() => prefetchThread(thread.id, thread.participantEmail)}
+                                onMouseEnter={() => prefetchThread(thread.id)}
+                                onFocus={() => prefetchThread(thread.id)}
+                                onTouchStart={() => prefetchThread(thread.id)}
                             >
                                 <div className="top">
                                     <span className="who">
@@ -713,6 +724,14 @@ export default function MailView() {
                         <IconButton
                             onClick={() => {
                                 if (!activeAccount) return;
+                                // Każde kliknięcie to synchronizacja na serwerze i fala zdarzeń
+                                // „nowa wiadomość" we wszystkich kartach - seria kliknięć niczego
+                                // nie przyspiesza, a potrafiła wywołać „Przekroczono limit żądań".
+                                if (syncAccount.isPending || Date.now() - lastManualSyncAt.current < MANUAL_SYNC_COOLDOWN_MS) {
+                                    showInfo('Synchronizacja już trwa', 'Nowe wiadomości pojawią się za chwilę');
+                                    return;
+                                }
+                                lastManualSyncAt.current = Date.now();
                                 syncAccount.mutate(activeAccount.id);
                                 showInfo('Synchronizuję…', 'Nowe wiadomości pojawią się za chwilę');
                             }}

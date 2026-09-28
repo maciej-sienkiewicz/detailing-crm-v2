@@ -1,11 +1,13 @@
 // src/modules/comms/hooks/useComms.ts
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { IMessage } from '@stomp/stompjs';
 import { onSocketConnect, subscribeToTopic } from '@/core/socketClient';
 import { useAuth } from '@/core';
 import { useToast } from '@/common/components/Toast';
 import { commsApi } from '../api/commsApi';
+import { createInvalidationBatcher } from '../utils/invalidationBatcher';
+import { isRateLimited, rateLimitRetryAfterMs } from '@/core/rateLimit';
 import type {
     CommMessageReadPayload,
     CommThreadDetail,
@@ -44,16 +46,27 @@ export const useMailAccounts = (options?: { enabled?: boolean }) =>
  * sekund - pasek postępu bez odświeżania byłby martwy; po zakończeniu odpytywanie
  * gaśnie samo.
  */
+/**
+ * Co ile odpytujemy konta w trakcie pierwszego importu. Wcześniej 4 s: pasek postępu
+ * i tak przesuwa się co kilka sekund, a każda otwarta karta (tablet na hali!) płaciła
+ * za to z tego samego limitu żądań co reszta biura.
+ */
+const SYNC_POLL_MS = 8_000;
+
 export const useMailboxSyncState = () => {
     const { data: accounts } = useQuery({
         queryKey: COMMS_ACCOUNTS_KEY,
         queryFn: commsApi.getAccounts,
-        refetchInterval: (query) =>
-            query.state.data?.some(
+        refetchInterval: (query) => {
+            const syncing = query.state.data?.some(
                 (account) => account.initialSyncInProgress && account.status === 'ACTIVE'
-            )
-                ? 4_000
-                : false,
+            );
+            if (!syncing) return false;
+            // Po „Przekroczono limit żądań" czekamy tyle, ile każe serwer, zamiast
+            // tykać dalej co 4 s w ten sam pełny licznik.
+            if (isRateLimited(query.state.error)) return rateLimitRetryAfterMs(query.state.error);
+            return SYNC_POLL_MS;
+        },
     });
 
     // Tylko konta ACTIVE: skrzynka z odrzuconym hasłem nigdy się nie zsynchronizuje
@@ -103,17 +116,12 @@ export const useThread = (threadId: string | null) =>
 export const usePrefetchThread = () => {
     const queryClient = useQueryClient();
     return useCallback(
-        (threadId: string, participantEmail?: string) => {
+        (threadId: string) => {
+            // Tylko sam wątek. Pasek klienta (insights: wizyty, rezerwacje, leady) jest
+            // ciężki i pobierany przy każdym najechaniu dawał ~60 żądań na jedno
+            // przesunięcie myszy po liście - to on dobijał limit żądań. Dociąga się po
+            // kliknięciu.
             queryClient.prefetchQuery(threadDetailQuery(threadId));
-            // Pasek klienta korzysta z tego samego cache - pobrany razem z wątkiem
-            // nie dosuwa treści w dół chwilę po jej pokazaniu.
-            if (participantEmail) {
-                queryClient.prefetchQuery({
-                    queryKey: [...COMMS_INSIGHTS_KEY, participantEmail, threadId],
-                    queryFn: () => commsApi.getInsights(participantEmail, threadId),
-                    staleTime: 30_000,
-                });
-            }
         },
         [queryClient]
     );
@@ -460,6 +468,9 @@ export const useDisconnectAccount = () => {
 
 // ── WebSocket: żywa skrzynka ─────────────────────────────────────────────────
 
+/** Okno zbierania zdarzeń poczty przed odświeżeniem danych (patrz invalidationBatcher). */
+const SOCKET_INVALIDATION_WINDOW_MS = 1_500;
+
 /** Najwyżej jedno powiadomienie „Nowa wiadomość" na tyle milisekund. */
 const NEW_MAIL_TOAST_THROTTLE_MS = 15_000;
 
@@ -477,6 +488,28 @@ export function useCommsSocket(): void {
     // niesie żadnej nowej informacji, tylko frustrację.
     const lastNewMailToastAt = useRef(0);
 
+    // Zdarzenia z jednego okna dają jedno odświeżenie każdej rzeczy - patrz
+    // invalidationBatcher. cancelRefetch: false, bo kolejne unieważnienie w trakcie
+    // pobierania przerywało je i zaczynało od nowa: N zdarzeń = N prawdziwych żądań.
+    const batcher = useMemo(
+        () => createInvalidationBatcher((batch) => {
+            const refetch = { cancelRefetch: false } as const;
+            if (batch.threadLists) {
+                queryClient.invalidateQueries({ queryKey: [...COMMS_THREADS_KEY, 'list'] }, refetch);
+            }
+            batch.threadIds.forEach((threadId) =>
+                queryClient.invalidateQueries({ queryKey: [...COMMS_THREADS_KEY, 'detail', threadId] }, refetch)
+            );
+            if (batch.leads) {
+                queryClient.invalidateQueries({ queryKey: ['leads', 'list'] }, refetch);
+                queryClient.invalidateQueries({ queryKey: ['leads', 'detail'] }, refetch);
+                queryClient.invalidateQueries({ queryKey: ['leads', 'history'] }, refetch);
+            }
+        }, SOCKET_INVALIDATION_WINDOW_MS),
+        [queryClient]
+    );
+    useEffect(() => () => batcher.dispose(), [batcher]);
+
     const handleMessage = useCallback(
         (message: IMessage) => {
             let event: DashboardSocketEvent;
@@ -489,10 +522,6 @@ export function useCommsSocket(): void {
             switch (event.type) {
                 case 'COMM_THREAD_UPDATED': {
                     const payload = event.payload as CommThreadUpdatedPayload;
-                    queryClient.invalidateQueries({ queryKey: [...COMMS_THREADS_KEY, 'list'] });
-                    queryClient.invalidateQueries({
-                        queryKey: [...COMMS_THREADS_KEY, 'detail', payload.threadId],
-                    });
                     /*
                      * Ruch w wątku to także ruch na leadzie: odpowiedź wysłana z Outlooka
                      * albo z telefonu wpada do nas importem poczty, zdejmuje z leada
@@ -505,9 +534,7 @@ export function useCommsSocket(): void {
                      * importuje `COMMS_THREADS_KEY` stąd i import w drugą stronę zamknąłby
                      * cykl między modułami.
                      */
-                    queryClient.invalidateQueries({ queryKey: ['leads', 'list'] });
-                    queryClient.invalidateQueries({ queryKey: ['leads', 'detail'] });
-                    queryClient.invalidateQueries({ queryKey: ['leads', 'history'] });
+                    batcher.add({ threadLists: true, leads: true, threadId: payload.threadId });
                     if (payload.newMessage && Date.now() - lastNewMailToastAt.current > NEW_MAIL_TOAST_THROTTLE_MS) {
                         lastNewMailToastAt.current = Date.now();
                         showInfo('Nowa wiadomość', 'Masz nową wiadomość w skrzynce');
@@ -516,17 +543,14 @@ export function useCommsSocket(): void {
                 }
                 case 'COMM_MESSAGE_READ': {
                     const payload = event.payload as CommMessageReadPayload;
-                    queryClient.invalidateQueries({ queryKey: [...COMMS_THREADS_KEY, 'list'] });
-                    queryClient.invalidateQueries({
-                        queryKey: [...COMMS_THREADS_KEY, 'detail', payload.threadId],
-                    });
+                    batcher.add({ threadLists: true, threadId: payload.threadId });
                     break;
                 }
                 default:
                     break;
             }
         },
-        [queryClient, showInfo]
+        [batcher, showInfo]
     );
 
     const handleMessageRef = useRef(handleMessage);
@@ -543,7 +567,7 @@ export function useCommsSocket(): void {
         );
         const removeConnectListener = onSocketConnect(({ isReconnect }) => {
             if (!isReconnect) return;
-            queryClient.invalidateQueries({ queryKey: COMMS_KEY });
+            queryClient.invalidateQueries({ queryKey: COMMS_KEY }, { cancelRefetch: false });
         });
 
         return () => {

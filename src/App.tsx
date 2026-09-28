@@ -15,9 +15,11 @@ const queryClient = new QueryClient({
         queries: {
             // Never retry auth/permission/paywall failures: a 401/402/403 is
             // deterministic and a retry would only double the denied request.
+            // 429 też nie: ponowienie po sekundzie trafia w ten sam pełny licznik
+            // i tylko przedłuża „Przekroczono limit żądań" (patrz core/rateLimit).
             retry: (failureCount, error) => {
                 const status = (error as { response?: { status?: number } })?.response?.status;
-                if (status === 401 || status === 402 || status === 403) return false;
+                if (status === 401 || status === 402 || status === 403 || status === 429) return false;
                 return failureCount < 1;
             },
             refetchOnWindowFocus: false,

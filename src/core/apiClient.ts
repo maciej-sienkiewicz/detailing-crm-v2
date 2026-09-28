@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { setPiiAccessFromHeader } from '@/common/pii';
+import { isRateLimited, shouldAnnounceRateLimit } from './rateLimit';
 
 /**
  * Per-request opt-out from the global error toast.
@@ -102,8 +103,10 @@ apiClient.interceptors.response.use(
         // without it the user saw the same sentence twice, once bare from here and
         // once with a title from the call site.
         const handledLocally = error.config?.skipErrorToast === true;
+        // 429: jeden komunikat na okno limitu, a nie po jednym na każde odrzucone żądanie.
+        const rateLimitRepeat = isRateLimited(error) && !shouldAnnounceRateLimit(error);
         if (
-            !handledLocally
+            !handledLocally && !rateLimitRepeat
             && status !== undefined && status >= 400 && status < 500
             && status !== 401 && status !== 403
         ) {
