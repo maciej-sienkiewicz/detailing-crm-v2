@@ -2,6 +2,7 @@
 export { StatisticsView } from './views/StatisticsView';
 export { CategoryDetailView } from './views/CategoryDetailView';
 export { CostsView } from './views/CostsView';
+export { ReportsView } from './views/ReportsView';
 
 export {
     useCategories,

@@ -21,7 +21,42 @@ export interface ReportPeriod {
     label: string; // „14.09–20.09.2026"
 }
 
+/**
+ * Wiersz tabeli raportów. Liczby są tymi z PDF-u za ten okres (wizyty wydane w okresie,
+ * brutto co do grosza), a napis zmiany (`salesGrossChange`) liczy backend tą samą funkcją
+ * co PDF - tabela i plik nie mogą się różnić o punkt procentowy.
+ */
+export interface ReportArchiveRow {
+    from: string;
+    to: string;
+    label: string;
+    /** Okres trwa: liczby „do dziś", bez porównania i bez PDF-u. */
+    inProgress: boolean;
+    /** Dzień, od którego raport za ten okres da się pobrać. */
+    availableOn: string;
+    closedVisits: number;
+    salesGrossCents: number;
+    baselineClosedVisits: number | null;
+    baselineSalesGrossCents: number | null;
+    closedVisitsChange: string | null;
+    salesGrossChange: string | null;
+}
+
+export interface ReportArchive {
+    length: ReportLength;
+    comparison: ReportComparison;
+    /** Dzień założenia konta - od niego zaczyna się tabela. */
+    since: string;
+    /** Od najnowszego; pierwszy wiersz to okres trwający. */
+    rows: ReportArchiveRow[];
+}
+
 export const ownerReportApi = {
+    getArchive: async (length: ReportLength, compare: ReportComparison): Promise<ReportArchive> => {
+        const response = await apiClient.get<ReportArchive>(`${BASE}/archive`, { params: { length, compare } });
+        return response.data;
+    },
+
     listPeriods: async (length: ReportLength): Promise<ReportPeriod[]> => {
         const response = await apiClient.get<ReportPeriod[]>(`${BASE}/periods`, { params: { length } });
         return response.data;
