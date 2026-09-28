@@ -99,4 +99,14 @@ describe('ExternalInvoicesTab', () => {
         expect(await screen.findByText('Korekta faktury FV 12/09/2026')).toBeTruthy();
         expect(document.body.textContent).toMatch(/-1900,00/);
     });
+
+    it('usunięta wizyta - bez linku, z informacją, że wizyty już nie ma', async () => {
+        vi.mocked(externalInvoicesApi.list).mockResolvedValue({
+            items: [sale({ visitDeleted: true })], total: 1, page: 1, pageSize: 20,
+        });
+        renderTab();
+
+        expect(await screen.findByText('Wizyta W/2026/0042 usunięta')).toBeTruthy();
+        expect(screen.queryByRole('link', { name: /W\/2026\/0042/ })).toBeNull();
+    });
 });

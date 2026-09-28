@@ -795,6 +795,11 @@ export interface ExternalInvoice {
   statusLabel: string;
   visitId: string | null;
   visitNumber: string | null;
+  /**
+   * Wizytę usunięto, sprzedaż została (usunięcie wizyty nie rusza Finansów). Czy fakturę
+   * wystawić, czy usunąć zapis płatności, decyduje człowiek. Brak pola = starszy backend.
+   */
+  visitDeleted?: boolean;
   vehicleLabel: string | null;
   licensePlate: string | null;
   documentId: string;
