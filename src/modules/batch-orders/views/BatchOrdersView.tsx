@@ -10,29 +10,35 @@
 // Teraz okres jest jeden dla całego ekranu, lista po lewej pokazuje kwoty do
 // rozliczenia, a po prawej jest jeden kontrahent. Na węższych ekranach lista
 // chowa się w przycisk wyboru kontrahenta nad szczegółami.
+//
+// Wyjątek: telefon. Biznes wolał tam dawny wygląd (stos kart kontrahentów, każda
+// z własnym okresem i listą aut), więc poniżej `md` wraca stary układ - ale na
+// nowej logice (MobileContractorSection): edytor auta, odblokowanie do korekty,
+// te same okna zestawienia, historii i PDF.
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
-import { ChevronDown, HelpCircle, Layers, ListChecks } from 'lucide-react';
+import { ChevronDown, Layers, Settings } from 'lucide-react';
 import { PageContainer } from '@/common/components/PageContainer';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader/PageHeader';
-import { MobilePageHeader, MobilePageHeaderIconButton, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
+import { MobilePageHeader, MobilePageHeaderButton, MobilePageHeaderIconButton, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, CloseBtn } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
 import { useToast } from '@/common/components/Toast';
 import { useBreakpoint, useContainerWidth } from '@/common/hooks';
 import {
-    useContractorsOverview, useCreateContractor, useDeleteContractor, useUpdateContractor,
+    useContractors, useContractorsOverview, useCreateContractor, useDeleteContractor, useUpdateContractor,
 } from '../hooks/useBatchOrders';
+import { MobileContractorSection } from '../components/mobile/MobileContractorSection';
 import { ContractorFormModal } from '../components/ContractorFormModal';
 import { ContractorDetail } from '../components/ContractorDetail';
 import { ContractorList } from '../components/ContractorList';
 import { BatchServicesModal } from '../components/BatchServicesModal';
 import { PeriodPicker } from '../components/PeriodPicker';
 import type { BatchContractor, ContractorRequest } from '../types';
-import { apiErrorMessage, doneGrossCents, formatMoney } from '../utils/format';
+import { apiErrorMessage } from '../utils/format';
 import { currentMonthPeriod, type Period } from '../utils/period';
 import { HowItWorks } from '../components/HowItWorks';
 
@@ -94,6 +100,12 @@ const SwitcherBtn = styled.button`
     svg { width: 18px; height: 18px; flex-shrink: 0; color: ${p => p.theme.colors.textSecondary}; }
 `;
 
+const MobileList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+`;
+
 const StateBox = styled.div<{ $error?: boolean }>`
     display: flex;
     flex-direction: column;
@@ -147,6 +159,8 @@ export function BatchOrdersView() {
     const [period, setPeriod] = useState<Period>(() => currentMonthPeriod());
 
     const { data: overview, isLoading, isError, refetch } = useContractorsOverview(period.from, period.to);
+    // Telefon: dawny stos kart - każdy kontrahent z własnym okresem, więc lista bez sum okresu.
+    const mobileContractors = useContractors();
     const createContractor = useCreateContractor();
     const updateContractor = useUpdateContractor();
     const deleteContractor = useDeleteContractor();
@@ -271,7 +285,36 @@ export function BatchOrdersView() {
         );
     }
 
-    const totalDone = items.reduce((sum, o) => sum + doneGrossCents(o), 0);
+    const contractors = mobileContractors.data ?? [];
+    const contractorCount = contractors.length;
+    const mobileContent = mobileContractors.isLoading ? (
+        <StateBox>Ładowanie kontrahentów...</StateBox>
+    ) : mobileContractors.isError ? (
+        <StateBox $error>
+            <strong>Nie udało się wczytać kontrahentów</strong>
+            <SharedButton $variant="secondary" type="button" onClick={() => mobileContractors.refetch()}>Spróbuj ponownie</SharedButton>
+        </StateBox>
+    ) : contractorCount === 0 ? (
+        <StateBox>
+            <strong>Brak kontrahentów</strong>
+            <p>
+                Dodaj pierwszego kontrahenta B2B, aby zacząć rejestrować zlecenia zbiorcze
+                i generować zestawienia do rozliczenia.
+            </p>
+            <SharedButton $variant="primary" type="button" onClick={() => setShowCreate(true)}>Dodaj kontrahenta</SharedButton>
+        </StateBox>
+    ) : (
+        <MobileList>
+            {contractors.map(contractor => (
+                <MobileContractorSection
+                    key={contractor.id}
+                    contractor={contractor}
+                    onEdit={() => setEditContractor(contractor)}
+                    onDelete={() => setConfirmDelete(contractor)}
+                />
+            ))}
+        </MobileList>
+    );
 
     return (
         <ViewContainer ref={viewRef}>
@@ -299,27 +342,26 @@ export function BatchOrdersView() {
                 <MobilePageHeader
                     icon={<Layers />}
                     title="Zlecenia zbiorcze"
-                    subtitle={overview
-                        ? <>Usługi w tym okresie: <MobilePageHeaderCountValue>{formatMoney(totalDone)}</MobilePageHeaderCountValue></>
+                    subtitle={!mobileContractors.isLoading
+                        ? <><MobilePageHeaderCountValue>{contractorCount}</MobilePageHeaderCountValue> {contractorCount === 1 ? 'kontrahent' : 'kontrahentów'}</>
                         : 'Wczytywanie…'}
                     actions={
                         <>
-                            {!showHowItWorks && (
-                                <MobilePageHeaderIconButton onClick={() => setHowItWorks(true)} title="Jak to działa?" aria-label="Jak to działa?">
-                                    <HelpCircle />
-                                </MobilePageHeaderIconButton>
-                            )}
                             <MobilePageHeaderIconButton onClick={() => setShowServices(true)} title="Cennik usług" aria-label="Cennik usług">
-                                <ListChecks />
+                                <Settings />
                             </MobilePageHeaderIconButton>
+                            <MobilePageHeaderButton onClick={() => setShowCreate(true)}>
+                                <span aria-hidden="true">+</span>
+                                Kontrahent
+                            </MobilePageHeaderButton>
                         </>
                     }
                 />
             )}
 
-            {showHowItWorks && <HowItWorks onClose={() => setHowItWorks(false)} />}
+            {isDesktop && showHowItWorks && <HowItWorks onClose={() => setHowItWorks(false)} />}
 
-            {content}
+            {isDesktop ? content : mobileContent}
 
             {showPicker && (
                 <ModalShell isOpen onClose={() => setShowPicker(false)} size="sm">
