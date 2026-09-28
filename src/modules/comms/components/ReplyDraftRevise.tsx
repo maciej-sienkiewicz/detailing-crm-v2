@@ -158,11 +158,12 @@ export function ReplyDraftRevise({ threadId, draft, currentText, signatureAppend
                 signatureAppended,
                 currentDraft: currentText,
                 instructions: trimmed,
+                offer: draft.offer,
             },
             {
                 onSuccess: (revised) => {
                     close();
-                    onDraft(revised);
+                    onDraft(draft.offer ? { ...revised, offer: draft.offer } : revised);
                 },
                 onError: (error) => {
                     const message =

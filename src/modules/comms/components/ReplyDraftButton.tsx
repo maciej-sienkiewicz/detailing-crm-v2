@@ -10,6 +10,10 @@
 //
 // Przycisk jest wtórny wobec „Wyślij" (obwódka, bez wypełnienia) - krokiem następnym
 // w kompozytorze pozostaje wysyłka, szkic to pomoc.
+//
+// Każde kliknięcie najpierw pyta, czy odpowiedź ma zawierać ofertę (listę usług z cenami).
+// „Z ofertą" otwiera wybór usług (ReplyDraftOfferModal): wycenę leada, jeśli jest, albo
+// pustą listę - wybrana lista zapisuje się na leadzie albo zakłada go z tej rozmowy.
 import { useState } from 'react';
 import styled from 'styled-components';
 import { Check, Loader2, SlidersHorizontal, Sparkles } from 'lucide-react';
@@ -25,7 +29,9 @@ import {
 } from '@/common/components/ModalKit';
 import { useToast } from '@/common/components/Toast';
 import { useDraftReply, useReplyDraftPreferences, useSaveReplyDraftPreferences } from '../hooks/useReplyDraft';
-import type { ReplyDraft } from '../types';
+import { useLead } from '../hooks/useLeads';
+import type { DraftOfferLine, Lead, ReplyDraft } from '../types';
+import { ReplyDraftOfferModal } from './ReplyDraftOfferModal';
 import { sentMaterialHint } from '../utils/replyDraft';
 import { PrimaryButton } from './shared';
 
@@ -215,30 +221,99 @@ export function ReplyDraftStyleDialog({ initialChoice, sentMessageCount, onConfi
     );
 }
 
+interface ReplyDraftOfferQuestionProps {
+    lead: Lead | null;
+    onChoose: (withOffer: boolean) => void;
+    onClose: () => void;
+}
+
+/** Pierwszy krok „Szkic AI": czy odpowiedź ma zawierać ofertę. */
+export function ReplyDraftOfferQuestion({ lead, onChoose, onClose }: ReplyDraftOfferQuestionProps) {
+    const [withOffer, setWithOffer] = useState<boolean | null>(null);
+    const quoteCount = (lead?.services ?? []).filter(item => item.status === 'ACCEPTED').length;
+    const offerDescription = quoteCount > 0
+        ? `Asystent wypisze usługi z wyceny leada z cenami. W następnym kroku możesz ją zmienić.`
+        : lead
+            ? 'Wybierzesz usługi i rabat. Lista zostanie wyceną leada.'
+            : 'Wybierzesz usługi i rabat. Rozmowa zostanie leadem z tą wyceną.';
+
+    const option = (value: boolean, title: string, description: string) => (
+        <Option
+            type="button"
+            $selected={withOffer === value}
+            aria-pressed={withOffer === value}
+            onClick={() => setWithOffer(value)}
+        >
+            <span className="mark">{withOffer === value && <Check size={12} strokeWidth={3} />}</span>
+            <span>
+                <span className="title">{title}</span>
+                <span className="description">{description}</span>
+            </span>
+        </Option>
+    );
+
+    return (
+        <ModalShell isOpen onClose={onClose} size="sm">
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>Dodać ofertę do odpowiedzi?</ModalTitle>
+                    <ModalSubtitle>Oferta to lista usług z cenami w treści wiadomości.</ModalSubtitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={onClose} />
+            </ModalHeader>
+            <ModalContent>
+                <Options role="radiogroup" aria-label="Oferta w odpowiedzi">
+                    {option(true, 'Z ofertą', offerDescription)}
+                    {option(false, 'Bez oferty', 'Asystent odpowie na wiadomość bez wypisywania usług i cen.')}
+                </Options>
+            </ModalContent>
+            <ModalFooter>
+                <PrimaryButton onClick={() => withOffer !== null && onChoose(withOffer)} disabled={withOffer === null}>
+                    Dalej
+                </PrimaryButton>
+            </ModalFooter>
+        </ModalShell>
+    );
+}
+
+/** Wybory zebrane po drodze do szkicu; `undefined` = jeszcze nie padło pytanie. */
+interface DraftFlow {
+    useSentStyle?: boolean;
+    offer?: DraftOfferLine[] | null;
+}
+
 interface ReplyDraftButtonProps {
     threadId: string;
     /** Czy wysyłka doklei stopkę - szkic nie ma jej wtedy powtarzać. */
     signatureAppended: boolean;
     disabled?: boolean;
+    /** Lead przypięty do rozmowy (thread.leadId); null = rozmowa nie jest leadem. */
+    leadId?: string | null;
     onDraft: (draft: ReplyDraft) => void;
 }
 
-export function ReplyDraftButton({ threadId, signatureAppended, disabled, onDraft }: ReplyDraftButtonProps) {
+export function ReplyDraftButton({ threadId, signatureAppended, disabled, leadId = null, onDraft }: ReplyDraftButtonProps) {
     const preferences = useReplyDraftPreferences();
     const savePreferences = useSaveReplyDraftPreferences();
     const draftReply = useDraftReply();
+    // Ten sam cache co nagłówek rozmowy - pytanie o ofertę nie kosztuje osobnego żądania.
+    const { data: lead } = useLead(leadId);
     const { showError } = useToast();
-    const [dialogOpen, setDialogOpen] = useState(false);
+    const [step, setStep] = useState<'offer-question' | 'offer' | 'style' | null>(null);
+    const [flow, setFlow] = useState<DraftFlow>({});
 
     const savedChoice = preferences.data?.useSentStyle ?? null;
     const busy = draftReply.isPending;
+    const threadLead = leadId ? lead ?? null : null;
 
-    const generate = (useSentStyle: boolean) => {
+    const generate = (useSentStyle: boolean, offer: DraftOfferLine[] | null) => {
         if (busy) return;
         draftReply.mutate(
-            { threadId, useSentStyle, signatureAppended },
+            { threadId, useSentStyle, signatureAppended, ...(offer ? { offer } : {}) },
             {
-                onSuccess: onDraft,
+                // Oferta zostaje przy szkicu - „Popraw" wyśle ją znowu (z rabatami, których
+                // wycena leada nie pamięta).
+                onSuccess: (draft) => onDraft(offer ? { ...draft, offer } : draft),
                 onError: (error) => {
                     const message =
                         (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -248,15 +323,27 @@ export function ReplyDraftButton({ threadId, signatureAppended, disabled, onDraf
         );
     };
 
-    const onMainClick = () => {
-        if (savedChoice === null) setDialogOpen(true);
-        else generate(savedChoice);
+    /** Następny brakujący krok albo - gdy wszystko wiadomo - sam szkic. */
+    const advance = (next: DraftFlow) => {
+        setFlow(next);
+        if (next.offer === undefined) return setStep('offer-question');
+        const useSentStyle = next.useSentStyle ?? savedChoice;
+        if (useSentStyle === null) return setStep('style');
+        setStep(null);
+        setFlow({});
+        generate(useSentStyle, next.offer);
     };
 
-    const onConfirm = (useSentStyle: boolean, remember: boolean) => {
-        setDialogOpen(false);
+    const onMainClick = () => advance({});
+
+    const onStyleConfirm = (useSentStyle: boolean, remember: boolean) => {
         if (remember && useSentStyle !== savedChoice) savePreferences.mutate(useSentStyle);
-        generate(useSentStyle);
+        advance({ ...flow, useSentStyle });
+    };
+
+    const close = () => {
+        setStep(null);
+        setFlow({});
     };
 
     const styleLabel =
@@ -277,7 +364,7 @@ export function ReplyDraftButton({ threadId, signatureAppended, disabled, onDraf
                 </DraftButton>
                 <StyleButton
                     type="button"
-                    onClick={() => setDialogOpen(true)}
+                    onClick={() => { setFlow({}); setStep('style'); }}
                     disabled={disabled || busy || preferences.isLoading}
                     aria-label={styleLabel}
                     title={styleLabel}
@@ -285,12 +372,27 @@ export function ReplyDraftButton({ threadId, signatureAppended, disabled, onDraf
                     <SlidersHorizontal size={13} />
                 </StyleButton>
             </Group>
-            {dialogOpen && (
+            {step === 'offer-question' && (
+                <ReplyDraftOfferQuestion
+                    lead={threadLead}
+                    onChoose={(withOffer) => (withOffer ? setStep('offer') : advance({ ...flow, offer: null }))}
+                    onClose={close}
+                />
+            )}
+            {step === 'offer' && (
+                <ReplyDraftOfferModal
+                    threadId={threadId}
+                    lead={threadLead}
+                    onClose={close}
+                    onReady={(offer) => advance({ ...flow, offer })}
+                />
+            )}
+            {step === 'style' && (
                 <ReplyDraftStyleDialog
                     initialChoice={savedChoice}
                     sentMessageCount={preferences.data?.sentMessageCount ?? 0}
-                    onConfirm={onConfirm}
-                    onClose={() => setDialogOpen(false)}
+                    onConfirm={onStyleConfirm}
+                    onClose={close}
                 />
             )}
         </>

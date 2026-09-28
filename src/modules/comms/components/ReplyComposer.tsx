@@ -386,6 +386,8 @@ interface ReplyComposerProps {
     recipientHint?: string;
     /** Pierwsza wiadomość z leada bez wątku - wątek z tej wysyłki przypnie się do leada. */
     leadId?: string;
+    /** Lead przypięty do wątku odpowiedzi - „Szkic AI" bierze z niego wycenę do oferty. */
+    threadLeadId?: string | null;
     requireSubject?: boolean;
     /** Wywołane po wysłaniu - z id wątku, w którym wylądowała wiadomość. */
     onSent?: (threadId: string) => void;
@@ -398,6 +400,7 @@ export function ReplyComposer({
     recipientLabel,
     recipientHint,
     leadId,
+    threadLeadId,
     requireSubject,
     onSent,
 }: ReplyComposerProps) {
@@ -769,6 +772,7 @@ export function ReplyComposer({
                             threadId={threadId}
                             signatureAppended={appendSignature}
                             disabled={sendMail.isPending}
+                            leadId={threadLeadId ?? null}
                             onDraft={applyDraft}
                         />
                     )}

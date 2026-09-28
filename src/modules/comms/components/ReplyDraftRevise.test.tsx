@@ -30,12 +30,12 @@ const draft: ReplyDraft = {
 
 const revised: ReplyDraft = { ...draft, bodyText: 'Dzień dobry, zapraszamy we wtorek o 10:00.', placeholders: [] };
 
-const renderRevise = (onDraft = vi.fn()) => {
+const renderRevise = (onDraft = vi.fn(), current: ReplyDraft = draft) => {
     render(
         <ThemeProvider theme={theme}>
             <ReplyDraftRevise
                 threadId="thread-1"
-                draft={draft}
+                draft={current}
                 currentText="Dzień dobry Panie Janie, zapraszamy [proponowany termin]."
                 signatureAppended={false}
                 onDraft={onDraft}
@@ -120,5 +120,19 @@ describe('ReplyDraftRevise', () => {
 
         expect(screen.queryByLabelText('Co poprawić w szkicu')).toBeNull();
         expect(mutate).not.toHaveBeenCalled();
+    });
+
+    it('szkic z ofertą: poprawka wysyła tę samą ofertę i zostawia ją przy wyniku', () => {
+        const offer = [{ name: 'Powłoka ceramiczna', quantity: 1, priceGross: 180_000, regularPriceGross: 200_000 }];
+        mutate.mockImplementation((_payload: unknown, options: { onSuccess: (result: ReplyDraft) => void }) =>
+            options.onSuccess(revised)
+        );
+        const onDraft = renderRevise(vi.fn(), { ...draft, offer });
+        open();
+        fireEvent.change(field(), { target: { value: 'krócej' } });
+        fireEvent.click(submitButton());
+
+        expect(mutate.mock.calls[0][0]).toMatchObject({ offer });
+        expect(onDraft).toHaveBeenCalledWith({ ...revised, offer });
     });
 });
