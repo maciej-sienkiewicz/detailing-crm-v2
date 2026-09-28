@@ -17,6 +17,7 @@ import type {
     VisitCardStatus,
     VisitCardUpsellSuggestion,
 } from '../types';
+import { formatScheduleDateTime } from '@/common/dateTime';
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 
@@ -854,7 +855,7 @@ export const VisitCardView = () => {
                     <KeyFacts>
                         <KeyFact>
                             <KeyFactLabel>Termin wizyty</KeyFactLabel>
-                            <KeyFactValue>{formatDateTime(card.reservation.scheduledDate)}</KeyFactValue>
+                            <KeyFactValue>{formatScheduleDateTime(card.reservation.scheduledDate)}</KeyFactValue>
                         </KeyFact>
                         {card.vehicle?.licensePlate && (
                             <KeyFact>

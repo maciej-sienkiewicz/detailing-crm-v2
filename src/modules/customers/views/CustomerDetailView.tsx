@@ -16,6 +16,7 @@
 //
 // Telefon: jedna kolumna i przypięte skróty do sekcji, jak w wizycie i pojeździe.
 
+import { formatClockTime } from '@/common/dateTime';
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
@@ -444,13 +445,16 @@ function daysAgo(iso: string): string {
 const pad = (n: number) => String(n).padStart(2, '0');
 const shortDate = (iso: string) => new Date(iso).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
+// Wizyta z rezerwacji całodniowej ma w terminie północ - to „cały dzień", a nie
+// umówiona godzina, więc pod datą nic nie stoi zamiast „00:00".
 function DateCell({ iso }: { iso: string }) {
     const d = new Date(iso);
     const sameYear = d.getFullYear() === new Date().getFullYear();
+    const sub = sameYear ? formatClockTime(d) : String(d.getFullYear());
     return (
         <DateCol>
             <strong>{pad(d.getDate())}.{pad(d.getMonth() + 1)}</strong>
-            <span>{sameYear ? `${pad(d.getHours())}:${pad(d.getMinutes())}` : d.getFullYear()}</span>
+            {sub && <span>{sub}</span>}
         </DateCol>
     );
 }

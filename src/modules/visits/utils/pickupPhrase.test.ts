@@ -28,4 +28,11 @@ describe('pickupPhrase', () => {
         expect(pickupPhrase('IN_PROGRESS', undefined, null, now).text).toBe('Termin odbioru nieustalony');
         expect(pickupPhrase('COMPLETED', at(22, 15), at(23, 16, 5), now)).toEqual({ text: 'Wydano 23.09 o 16:05', overdue: false });
     });
+
+    it('termin bez godziny - samym dniem, bez „o 23:59"', () => {
+        expect(pickupPhrase('IN_PROGRESS', new Date(2026, 8, 25, 23, 59, 59).toISOString(), null, now).text).toBe('Odbiór jutro');
+        expect(pickupPhrase('IN_PROGRESS', new Date(2026, 8, 26, 0, 0).toISOString(), null, now).text).toBe('Odbiór w sobotę, 26.09');
+        const late = pickupPhrase('READY_FOR_PICKUP', new Date(2026, 8, 22, 23, 59, 59).toISOString(), null, now);
+        expect(late).toEqual({ text: 'Odbiór miał być 22.09', overdue: true });
+    });
 });

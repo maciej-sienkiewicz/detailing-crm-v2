@@ -15,6 +15,7 @@
 //
 // Telefon: jedna kolumna i przypięte skróty do sekcji, jak w wizycie.
 
+import { formatClockTime } from '@/common/dateTime';
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
@@ -554,6 +555,8 @@ export const VehicleDetailView = () => {
                                                 const isDeleted = !!event.deletedAt;
                                                 const status = isDeleted ? { label: 'Usunięta', tone: 'danger' as const } : visitStatus(event.status);
                                                 const sameYear = d.getFullYear() === new Date().getFullYear();
+                                                // Północ w terminie to wizyta całodniowa - pod datą nic, zamiast „00:00".
+                                                const dateSub = sameYear ? formatClockTime(d) : String(d.getFullYear());
                                                 return (
                                                     <li key={`${event.type}-${event.id}`}>
                                                         <VisitRow
@@ -565,7 +568,7 @@ export const VehicleDetailView = () => {
                                                         >
                                                             <DateCol>
                                                                 <strong>{pad(d.getDate())}.{pad(d.getMonth() + 1)}</strong>
-                                                                <span>{sameYear ? `${pad(d.getHours())}:${pad(d.getMinutes())}` : d.getFullYear()}</span>
+                                                                {dateSub && <span>{dateSub}</span>}
                                                             </DateCol>
                                                             <VisitText>
                                                                 <strong>{event.title}</strong>

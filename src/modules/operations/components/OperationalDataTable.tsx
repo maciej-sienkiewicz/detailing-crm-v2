@@ -24,16 +24,9 @@ import { useCalendarNavigation } from '@/common/context/CalendarNavigationContex
 import { usePortalDropdownPos } from '@/common/hooks/usePortalDropdownPos';
 import { useContainerWidth } from '@/common/hooks';
 import { OPS_LIST_CONTAINER, isOpsCardLayout, opsCards } from './opsListLayout';
+import { formatClockTime } from '@/common/dateTime';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const formatTime = (iso: string): string => {
-    try {
-        return new Date(iso).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
-    } catch {
-        return '';
-    }
-};
 
 const smsStatusLabel = (status: SmsSendStatus | null | undefined): string => {
     if (status === 'SENT') return 'Wysłany';
@@ -1013,9 +1006,11 @@ export const OperationalDataTable = ({
                             const customerLabel = hasName
                                 ? (joinPiiName(op.customerFirstName, op.customerLastName) ?? 'Brak danych klienta')
                                 : 'Brak danych klienta';
-                            const phoneLabel = op.customerPhone ? ` · ${op.customerPhone}` : '';
                             const isReservationCreated = op.type === 'RESERVATION' && op.status === 'CREATED';
-                            const isMidnight = formatTime(op.endDateTime) == '00:00'
+                            // Godzina pod datą tylko wtedy, gdy ktoś ją ustalił: rezerwacja
+                            // całodniowa zaczyna się o północy i „00:00" wyglądało jak nocny termin.
+                            // (Wcześniej warunek patrzył na koniec terminu i gubił godzinę zwykłych rezerwacji.)
+                            const startTime = formatClockTime(op.startDateTime);
 
                             return (
                                 <DataRow
@@ -1169,7 +1164,7 @@ export const OperationalDataTable = ({
                                     {/* Date */}
                                     <DateCellWrap>
                                         <DateMain>{formatDate(op.startDateTime)}</DateMain>
-                                        {isMidnight && (<DateSub>{formatTime(op.startDateTime)}</DateSub>)}
+                                        {startTime && <DateSub>{startTime}</DateSub>}
                                     </DateCellWrap>
 
                                     {/* Amount */}

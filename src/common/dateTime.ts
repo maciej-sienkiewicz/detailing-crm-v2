@@ -53,3 +53,43 @@ export function addHoursAsInstant(start: string | Date, hours: number): string {
   d.setHours(d.getHours() + hours);
   return d.toISOString();
 }
+
+/**
+ * Czy termin niesie godzinę, którą ktoś ustalił - czy tylko dzień.
+ *
+ * Rezerwacja całodniowa i termin wybrany w DateTimePickerze „bez godziny" są
+ * zapisywane jako północ czasu lokalnego (początek) albo 23:59:59 (koniec dnia).
+ * Wizyta z takiej rezerwacji dziedziczy tę północ w `scheduledDate`, a flagi „cały
+ * dzień" nie ma - ma ją tylko rezerwacja. Pokazanie tej północy jako godziny dawało
+ * w historii klienta „00:00", jakby klient miał przyjechać w nocy.
+ *
+ * Sprawdzamy sekundy i milisekundy, a nie samą godzinę: znacznik czasu zapisany
+ * przez serwer (utworzenie, wysłanie) nie trafia dokładnie w 00:00:00.000, więc
+ * prawdziwa godzina nie znika przez przypadek.
+ */
+export function hasClockTime(value: string | Date | null | undefined): boolean {
+  if (!value) return false;
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return false;
+  const midnight = d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0 && d.getMilliseconds() === 0;
+  const endOfDay = d.getHours() === 23 && d.getMinutes() === 59 && d.getSeconds() === 59;
+  return !midnight && !endOfDay;
+}
+
+/** „14:30" albo pusty napis, gdy termin nie ma godziny ([hasClockTime]). */
+export function formatClockTime(value: string | Date | null | undefined): string {
+  if (!hasClockTime(value)) return '';
+  const d = new Date(value as string | Date);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+/** Termin do wyświetlenia: „23.09.2026, 14:30", a bez godziny - samo „23.09.2026". */
+export function formatScheduleDateTime(value: string | Date, options: Intl.DateTimeFormatOptions = {
+  day: '2-digit', month: '2-digit', year: 'numeric',
+}): string {
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return '';
+  const date = d.toLocaleDateString('pl-PL', options);
+  const time = formatClockTime(d);
+  return time ? `${date}, ${time}` : date;
+}

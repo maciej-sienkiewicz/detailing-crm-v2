@@ -12,6 +12,7 @@ import { usePermissions } from '@/core/permissions';
 import { useCapability } from '@/modules/subscription';
 import { HoverInfo } from '@/common/components/InfoTooltip';
 import { usePrintServicesList } from '@/modules/visits/hooks/usePrintServicesList';
+import { formatClockTime, hasClockTime } from '@/common/dateTime';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -1081,16 +1082,21 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
         const start = new Date(startIso);
         const end = new Date(endIso);
         const fmtDate = (d: Date) => d.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        const fmtTime = (d: Date) => d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
         const sameDay = start.toDateString() === end.toDateString();
 
-        if (isAllDay) {
+        // Wizyta z rezerwacji całodniowej nie ma flagi allDay, ale ma termin od północy
+        // do 23:59:59 - to ten sam „cały dzień", a nie wizyta w nocy.
+        if (isAllDay || (!hasClockTime(start) && !hasClockTime(end))) {
             return sameDay ? fmtDate(start) : `${fmtDate(start)}-${fmtDate(end)}`;
         }
+        const at = (d: Date) => (hasClockTime(d) ? `${fmtDate(d)}, ${formatClockTime(d)}` : fmtDate(d));
         if (sameDay) {
-            return `${fmtDate(start)}, ${fmtTime(start)}-${fmtTime(end)}`;
+            const from = formatClockTime(start);
+            const to = formatClockTime(end);
+            if (from && to) return `${fmtDate(start)}, ${from}-${to}`;
+            return `${fmtDate(start)}, ${from ? `od ${from}` : `do ${to}`}`;
         }
-        return `${fmtDate(start)}, ${fmtTime(start)}-${fmtDate(end)}, ${fmtTime(end)}`;
+        return `${at(start)}-${at(end)}`;
     };
 
     const canDeleteEvent = can('VISITS_DELETE') && !!(isAppointment ? onDeleteAppointmentClick : onDeleteVisitClick);

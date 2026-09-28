@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { isSameLocalDay } from './dateTime';
+import { formatClockTime, formatScheduleDateTime, hasClockTime, isSameLocalDay } from './dateTime';
 
 /*
  * Dzień liczy się w strefie przeglądarki, a różnicę względem UTC widać tylko poza UTC.
@@ -37,5 +37,31 @@ describe('isSameLocalDay - czy wizyta mieści się w jednym dniu', () => {
 
     it('nieprawidłowa data to nie jeden dzień', () => {
         expect(isSameLocalDay('nie-data', '2026-09-24T10:00')).toBe(false);
+    });
+});
+
+describe('hasClockTime - termin bez godziny', () => {
+    it('wizyta z rezerwacji całodniowej (północ czasu polskiego) nie ma godziny', () => {
+        // Zgłoszenie: historia wizyt klienta pokazywała „00:00".
+        expect(hasClockTime('2026-09-22T22:00:00Z')).toBe(false);
+        expect(formatClockTime('2026-09-22T22:00:00Z')).toBe('');
+        expect(formatScheduleDateTime('2026-09-22T22:00:00Z')).toBe('23.09.2026');
+    });
+
+    it('koniec dnia (23:59:59) też nie jest godziną', () => {
+        expect(hasClockTime('2026-09-23T21:59:59Z')).toBe(false);
+        expect(hasClockTime('2026-09-23T21:59:59.999Z')).toBe(false);
+    });
+
+    it('prawdziwa godzina zostaje - także tuż po północy', () => {
+        expect(formatClockTime('2026-09-22T23:24:00Z')).toBe('01:24');
+        expect(formatScheduleDateTime('2026-09-23T12:30:00Z')).toBe('23.09.2026, 14:30');
+        // Znacznik czasu z serwera nie trafia w pełną sekundę - nie znika.
+        expect(hasClockTime('2026-09-22T22:00:00.412Z')).toBe(true);
+    });
+
+    it('brak albo zła data to brak godziny', () => {
+        expect(hasClockTime(null)).toBe(false);
+        expect(hasClockTime('nie-data')).toBe(false);
     });
 });

@@ -8,6 +8,7 @@ import { PiiText } from '@/common/pii';
 import type { CalendarEvent, AppointmentEventData, VisitEventData } from '../types';
 import type { StudioCalendarEvent } from '../types';
 import type { PopoverAnchor } from './EventSummaryPopover';
+import { formatClockTime } from '@/common/dateTime';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -25,10 +26,10 @@ function parseLocalDate(isoStr: string): Date {
     return new Date(isoStr);
 }
 
+// Wizyta z rezerwacji całodniowej ma w kalendarzu flagę allDay=false (flagę ma tylko
+// rezerwacja), a w terminie północ i 23:59:59 - bez tego stało przy niej „00:00-23:59".
 function formatTime(isoStr: string | undefined): string {
-    if (!isoStr) return '';
-    const d = parseLocalDate(isoStr);
-    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    return formatClockTime(isoStr);
 }
 
 /** Build an array of Date objects covering [startIso, endIso) in the dateRange. */

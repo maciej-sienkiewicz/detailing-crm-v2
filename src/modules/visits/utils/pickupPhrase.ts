@@ -7,6 +7,7 @@
 // pada przy ladzie i przez telefon, brzmi „na kiedy?" - i to ono stoi teraz obok
 // postępu, z godziną.
 
+import { formatClockTime } from '@/common/dateTime';
 import type { VisitStatus } from '../types';
 
 /** Dzień tygodnia w bierniku z przyimkiem - „we wtorek", „w środę". */
@@ -51,8 +52,12 @@ export function pickupPhrase(
     if (!estimatedCompletionDate) return { text: 'Termin odbioru nieustalony', overdue: false };
     const d = new Date(estimatedCompletionDate);
     if (isNaN(d.getTime())) return { text: 'Termin odbioru nieustalony', overdue: false };
+    // Termin „do końca dnia" (23:59:59) nie ma godziny - „o 23:59" brzmiałoby jak
+    // umówiony odbiór w nocy.
+    const clock = formatClockTime(d);
+    const when = clock ? `${dayPhrase(d, now)} o ${clock}` : dayPhrase(d, now);
     if (d.getTime() < now.getTime() && (status === 'IN_PROGRESS' || status === 'READY_FOR_PICKUP')) {
-        return { text: `Odbiór miał być ${dayPhrase(d, now)} o ${time(d)}`, overdue: true };
+        return { text: `Odbiór miał być ${when}`, overdue: true };
     }
-    return { text: `Odbiór ${dayPhrase(d, now)} o ${time(d)}`, overdue: false };
+    return { text: `Odbiór ${when}`, overdue: false };
 }
