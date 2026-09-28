@@ -177,7 +177,7 @@ const GROUPS: SectionGroup[] = [
                 // Sekcja pokazuje tylko połączenie z KSeF; historia płatności jest w „Abonamencie".
                 id: 'invoices', label: 'KSeF', summary: 'Pobieranie faktur, kto je wystawia', icon: <Receipt />, help: INVOICES_HELP,
                 description: 'Połączenie z Krajowym Systemem e-Faktur i to, kto wystawia faktury przy wydaniu pojazdu.',
-                keywords: 'faktury e-faktury ksef księgowość księgowa biuro rachunkowe zafakturowania',
+                keywords: 'faktury e-faktury ksef księgowość księgowa biuro rachunkowe',
             },
             {
                 id: 'security', label: 'Bezpieczeństwo', summary: 'PIN, hasło, blokada ekranu', icon: <ShieldCheck />,

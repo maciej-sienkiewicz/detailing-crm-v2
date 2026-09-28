@@ -73,7 +73,7 @@ export const useKsefAutomation = (options?: { enabled?: boolean }) => {
     autoSendDefault: data?.autoSendDefault,
     /**
      * „Faktury wystawia księgowość": an invoice chosen at handover is not issued by the
-     * CRM at all - it goes to the accountant's to-invoice list instead.
+     * CRM at all - the accountant issues it; the CRM keeps only a payment record.
      */
     invoicesIssuedExternally: data?.invoicesIssuedExternally === true,
     /** True while the answer is still unknown; do not render a warning yet. */

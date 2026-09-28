@@ -111,8 +111,7 @@ export interface CompleteVisitResponse {
     /** Powód odrzucenia przez KSeF, obecny tylko przy ksefStatus === 'REJECTED'. */
     ksefError?: string | null;
     /**
-     * „Faktury wystawia księgowość": faktury w CRM nie ma, sprzedaż czeka na liście
-     * „Do zafakturowania" w Finansach.
+     * „Faktury wystawia księgowość": faktury w CRM nie ma, wystawi ją księgowość.
      */
     invoicedExternally?: boolean;
 }

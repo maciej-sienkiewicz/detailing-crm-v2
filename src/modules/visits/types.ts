@@ -201,12 +201,6 @@ export interface Visit {
 export interface VisitSettlement {
     documentType: 'INVOICE' | 'RECEIPT' | 'OTHER' | null;
     revenueInvoiceId: string | null;
-    /**
-     * Fakturę wystawia księgowość: PENDING (czeka) albo ISSUED (odhaczona na liście
-     * „Do zafakturowania"). Null = faktura z CRM albo brak faktury.
-     */
-    externalInvoiceStatus?: 'PENDING' | 'ISSUED' | null;
-    externalInvoiceNumber?: string | null;
 }
 
 export interface VisitDetailResponse {

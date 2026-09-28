@@ -267,7 +267,7 @@ interface ValidateArgs {
     /**
      * „Faktury wystawia księgowość": CRM nie wystawia faktury, więc nie sprawdza
      * danych sprzedawcy, pozycji ani bilansu - fakturę na kwotę wizyty układa księgowość.
-     * Zostaje nabywca, bo to jego dane trafiają na listę „Do zafakturowania".
+     * Zostaje nabywca, bo to jemu księgowość wystawi fakturę.
      */
     invoicedExternally?: boolean;
 }

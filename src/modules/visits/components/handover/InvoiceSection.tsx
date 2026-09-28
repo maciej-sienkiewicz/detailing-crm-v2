@@ -231,16 +231,15 @@ export const InvoiceSection = ({
 
     // Faktury wystawia księgowość (Ustawienia → Faktury): CRM nie tworzy faktury, więc
     // pozycje, dane sprzedawcy, wysyłka do KSeF i bilans nie mają tu nic do roboty.
-    // Zostaje nabywca - jego dane idą na listę „Do zafakturowania” dla księgowości.
+    // Zostaje nabywca - zapisuje się przy płatności, to jemu księgowość wystawi fakturę.
     if (ksef.invoicesIssuedExternally) {
         return (
             <Panel>
                 {buyerRow}
                 <Divider />
                 <ExternalNote>
-                    <strong>Fakturę wystawi księgowość.</strong> Sprzedaż na {fmt(visitGross)} trafi
-                    na listę „Do zafakturowania” w Finansach, razem z nabywcą i formą płatności.
-                    CRM nie tworzy własnej faktury, więc nic nie policzy się dwa razy.
+                    <strong>Fakturę wystawi księgowość.</strong> CRM zapisze płatność na {fmt(visitGross)}
+                    z tym nabywcą, ale nie tworzy własnej faktury, więc nic nie policzy się dwa razy.
                 </ExternalNote>
             </Panel>
         );

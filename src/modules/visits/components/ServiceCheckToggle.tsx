@@ -4,8 +4,9 @@
 //
 // Odhaczona usługa nosi odcień zieleni jako tło i obwódkę, bez wypełnienia (CLAUDE.md §2):
 // przy dziesięciu odhaczonych usługach byłoby dziesięć pełnych zielonych kwadratów, które
-// przegrywałyby z przyciskiem kroku następnego w nagłówku wizyty. Cel dotyku 44 px - na
-// hali stuka się palcem, często w rękawiczce.
+// przegrywałyby z przyciskiem kroku następnego w nagłówku wizyty. Samo pole jest drobne
+// (20 px), ale cel dotyku na ekranie dotykowym zostaje 44 px - na hali stuka się palcem,
+// często w rękawiczce.
 
 import styled from 'styled-components';
 import { Check } from 'lucide-react';
@@ -15,8 +16,8 @@ const Hit = styled.button`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     padding: 0;
     border: none;
     background: transparent;
@@ -33,15 +34,15 @@ const Box = styled.span<{ $checked: boolean }>`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 7px;
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
     border: 2px solid ${p => (p.$checked ? ui.okLine : ui.lineStrong)};
     background: ${p => (p.$checked ? ui.okTint : ui.surface)};
     color: ${ui.okInk};
     transition: background 120ms ease, border-color 120ms ease;
 
-    svg { width: 16px; height: 16px; stroke-width: 3; }
+    svg { width: 13px; height: 13px; stroke-width: 3; }
 
     ${Hit}:hover & { border-color: ${p => (p.$checked ? ui.okInk : ui.textMuted)}; }
 `;
