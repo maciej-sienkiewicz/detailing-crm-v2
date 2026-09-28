@@ -25,6 +25,7 @@ import { useToast } from '@/common/components/Toast';
 import { formatCurrency } from '@/common/utils';
 import { readBlobErrorMessage, saveBlobAsFile } from '@/common/utils/blobFile';
 import { StatsNav } from '../components/StatsNav';
+import { periodRange, shortDay } from '../utils/reportDates';
 import { ViewContainer, HdrBtns } from '../components/shared';
 import {
     ownerReportApi,
@@ -49,9 +50,6 @@ const COMPARISONS: { value: ReportComparison; label: string; param: string; word
 ];
 
 const pln = (grosz: number) => formatCurrency(grosz / 100, 'PLN');
-
-/** „2026-10-05" → „05.10.2026". */
-const day = (iso: string) => iso.split('-').reverse().join('.');
 
 /**
  * Odcień zmiany: wzrost zielony, spadek bursztynowy („przeczytaj"), a nie czerwony -
@@ -100,7 +98,7 @@ export const ReportsView = () => {
                         <div>
                             <Title id="reports-title">Raporty</Title>
                             {archive.data && (
-                                <Sub>Od {day(archive.data.since)}, dnia założenia konta</Sub>
+                                <Sub>Od {shortDay(archive.data.since)}, dnia założenia konta</Sub>
                             )}
                         </div>
                     </TitleRow>
@@ -163,7 +161,7 @@ export const ReportsView = () => {
                         {full.length === 0 && current && (
                             <Body>
                                 <Empty>
-                                    Pierwszy raport będzie gotowy {day(current.availableOn)}, kiedy skończy się
+                                    Pierwszy raport będzie gotowy {shortDay(current.availableOn)}, kiedy skończy się
                                     trwający okres. Raport powstaje zawsze za pełny okres.
                                 </Empty>
                             </Body>
@@ -187,8 +185,8 @@ function CurrentRow({ row }: { row: ReportArchiveRow }) {
         <Tr $current>
             <th scope="row" data-label="Okres">
                 <Period>
-                    <PeriodLabel>{row.label}</PeriodLabel>
-                    <StatusPill $tone="info" $size="sm">Trwa</StatusPill>
+                    <PeriodLabel>{periodRange(row.from, row.to)}</PeriodLabel>
+                    <StatusPill $tone="neutral" $size="sm">Trwa</StatusPill>
                 </Period>
             </th>
             <td data-label="Sprzedaż brutto">
@@ -200,9 +198,9 @@ function CurrentRow({ row }: { row: ReportArchiveRow }) {
                 <Muted>do dziś</Muted>
             </td>
             <ActionCell>
-                <Pending role="status" aria-label={`Okres trwa, raport będzie gotowy ${day(row.availableOn)}`}>
+                <Pending role="status" aria-label={`Okres trwa, raport będzie gotowy ${shortDay(row.availableOn)}`}>
                     <Ring aria-hidden="true" />
-                    <span>Gotowy {day(row.availableOn)}</span>
+                    <span>Gotowy {shortDay(row.availableOn)}</span>
                 </Pending>
             </ActionCell>
         </Tr>
@@ -235,7 +233,7 @@ function FullRow({ row, length, comparison, baselineWord }: FullRowProps) {
     return (
         <Tr>
             <th scope="row" data-label="Okres">
-                <Period><PeriodLabel>{row.label}</PeriodLabel></Period>
+                <Period><PeriodLabel>{periodRange(row.from, row.to)}</PeriodLabel></Period>
             </th>
             <td data-label="Sprzedaż brutto">
                 <Amount>{pln(row.salesGrossCents)}</Amount>
@@ -257,7 +255,7 @@ function FullRow({ row, length, comparison, baselineWord }: FullRowProps) {
                     variant="outline"
                     onClick={download}
                     disabled={downloading}
-                    aria-label={`Pobierz raport PDF za ${row.label}`}
+                    aria-label={`Pobierz raport PDF za ${periodRange(row.from, row.to)}`}
                 >
                     {downloading ? <Ring aria-hidden="true" /> : <Download aria-hidden="true" />}
                     {downloading ? 'Przygotowuję…' : 'PDF'}
@@ -442,8 +440,17 @@ const Table = styled.table`
     }
 `;
 
+/*
+ * Trwający okres jest na górze, ale to jeszcze nie raport: szare tło i przygaszone liczby,
+ * żeby wzrok zaczynał od pierwszego pełnego okresu. Wskaźnik zostaje wyraźny - to on
+ * mówi, że okres trwa.
+ */
 const Tr = styled.tr<{ $current?: boolean }>`
-    background: ${p => p.$current ? ui.brandTint : 'transparent'};
+    background: ${p => p.$current ? ui.surfaceSoft : 'transparent'};
+
+    ${p => p.$current && `
+        th, td:not(:last-child) { opacity: 0.55; }
+    `}
 `;
 
 const ActionCell = styled.td`
@@ -495,7 +502,7 @@ const Pending = styled.span`
     gap: 8px;
     font-size: 13px;
     font-weight: 600;
-    color: ${ui.brandInk};
+    color: ${ui.textMuted};
 `;
 
 const Empty = styled.p`
