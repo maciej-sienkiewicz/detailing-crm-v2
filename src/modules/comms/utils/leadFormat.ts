@@ -1,6 +1,7 @@
 // src/modules/comms/utils/leadFormat.ts
 // Drobiazgi, o których tabela leadów i okno szczegółów muszą mówić jednym głosem.
 import type { LeadStatus } from '../types';
+import { formatClockTime } from '@/common/dateTime';
 
 /** „Marka Model" albo null, gdy nie rozpoznano - jedno miejsce na tę składankę. */
 export const formatVehicle = (
@@ -37,8 +38,9 @@ const formatMoment = (iso: string): string => {
     const day = date.getDate();
     const month = MONTHS_GENITIVE[date.getMonth()];
     const year = date.getFullYear() === new Date().getFullYear() ? '' : ` ${date.getFullYear()}`;
-    const time = date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
-    return `${day} ${month}${year}, ${time}`;
+    // Rezerwacja całodniowa zaczyna się o północy - bez „, 00:00" na końcu zdania.
+    const time = formatClockTime(date);
+    return time ? `${day} ${month}${year}, ${time}` : `${day} ${month}${year}`;
 };
 
 /**

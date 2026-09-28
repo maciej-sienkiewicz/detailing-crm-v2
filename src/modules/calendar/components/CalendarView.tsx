@@ -59,6 +59,7 @@ import { usePermissions } from '@/core/permissions';
 import type { DateRange, CalendarView as CalendarViewType, EventCreationData, AppointmentEventData, VisitEventData, CalendarEvent, DoorToDoorCalendarEntry } from '../types';
 import type { Operation } from '@/modules/operations/types';
 import '../calendar.css';
+import { fromInstantToLocalInput } from '@/common/dateTime';
 
 const CalendarContainer = styled.div<{ $compact?: boolean }>`
     display: flex;
@@ -2404,9 +2405,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const handleEditEndDateClick = useCallback(() => {
         if (!popoverEvent || popoverEvent.type !== 'VISIT') return;
         const visit = popoverEvent as VisitEventData;
-        const current = (visit as any).estimatedCompletionDate
-            ? new Date((visit as any).estimatedCompletionDate).toISOString().slice(0, 16)
-            : '';
+        // Pole jest w czasie lokalnym - toISOString() wpisywało godzinę UTC.
+        const current = fromInstantToLocalInput((visit as any).estimatedCompletionDate);
         setEndDateDraft(current);
         setEndDateModalOpen(true);
     }, [popoverEvent]);

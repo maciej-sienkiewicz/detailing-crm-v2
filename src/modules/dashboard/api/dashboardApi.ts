@@ -9,6 +9,7 @@ import { vehicleLabel } from './vehicleLabel';
 import type { AppointmentResponse, VisitResponse } from '@/modules/calendar/types';
 import { apiClient } from '@/core';
 import { joinPiiName, PII_MASK } from '@/common/pii';
+import { hasClockTime } from '@/common/dateTime';
 
 const USE_MOCKS = false;
 
@@ -556,7 +557,8 @@ export const dashboardApi = {
         item: {
           id: v.id,
           type: 'VISIT' as const,
-          time: timeLabel(v.scheduledDate, false),
+          // Wizyta nie ma flagi „cały dzień" - północ w terminie ją zastępuje.
+          time: timeLabel(v.scheduledDate, !hasClockTime(v.scheduledDate)),
           dateLabel: dateLabel(v.scheduledDate),
           isoDate: toLocalDay(v.scheduledDate),
           serviceName: v.title || v.visitNumber,

@@ -27,6 +27,7 @@ import { CarLogoImage } from '@/modules/vehicles/components/CarLogoImage';
 import { ActionMenu, Button, IconButton, MenuItem, ui, useActionMenu } from '@/common/components/ui';
 import { useContainerWidth } from '@/common/hooks';
 import { pickupPhrase } from '../utils/pickupPhrase';
+import { fromInstantToLocalInput } from '@/common/dateTime';
 
 /** Poniżej tej szerokości nagłówka układ telefonu: akcja główna na całą szerokość pod spodem. */
 const COMPACT_MAX_WIDTH = 640;
@@ -408,9 +409,9 @@ export const VisitHeader = ({
     };
 
     const openDateModal = () => {
-        setDraftDate(visit.estimatedCompletionDate
-            ? new Date(visit.estimatedCompletionDate).toISOString().slice(0, 16)
-            : '');
+        // Pole jest w czasie lokalnym - toISOString() wpisywało tu godzinę UTC, więc
+        // samo otwarcie i zapis przesuwało termin o różnicę stref.
+        setDraftDate(fromInstantToLocalInput(visit.estimatedCompletionDate));
         setIsDateModalOpen(true);
     };
     const saveDateModal = async () => {
