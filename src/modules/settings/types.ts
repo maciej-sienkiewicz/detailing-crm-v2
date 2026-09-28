@@ -51,6 +51,11 @@ export interface UpdateDocumentLogoConfigRequest {
     showLogoOnDocuments: boolean;
 }
 
+/** Treść protokołu przyjęcia: czy przy każdej usłudze pokazywać jej cenę (domyślnie nie). */
+export interface ProtocolContentConfig {
+    showServicePrices: boolean;
+}
+
 // ─── Numeracja wizyt ──────────────────────────────────────────────────────────
 
 export interface VisitNumberingConfig {
