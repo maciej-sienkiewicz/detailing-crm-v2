@@ -35,6 +35,7 @@ import { PaymentMethodPicker } from './handover/PaymentMethodPicker';
 import type { HandoverBuyer } from '../types/handover';
 import type { PaymentMethod } from '../types/stateTransitions';
 import { visitDetailQueryKey } from '../hooks';
+import { settlementDocumentRows } from '../utils/settlementDocumentRows';
 
 const pln = (cents: number) => formatCurrency(cents / 100);
 
@@ -276,8 +277,7 @@ function CorrectionForm({ view, visitId, onClose }: { view: SettlementView; visi
     const updateLine = (id: string, change: (line: SettlementLineDraft) => SettlementLineDraft) =>
         setLines(prev => prev.map(line => (line.id === id ? change(line) : line)));
 
-    const activeDocuments = view.documents.filter(d => d.active);
-    const activeInvoices = view.invoices.filter(i => i.active);
+    const documentRows = settlementDocumentRows(view);
     const blockReason = preview.data?.blockReason ?? null;
     const canSubmit = !pristine && upToDate && !!preview.data && !blockReason && !correct.isPending;
 
@@ -286,26 +286,21 @@ function CorrectionForm({ view, visitId, onClose }: { view: SettlementView; visi
             <ModalContent>
                 <Section aria-labelledby="settlement-now">
                     <SectionTitle id="settlement-now" as="h3">Obecne rozliczenie</SectionTitle>
-                    {activeDocuments.length === 0 && activeInvoices.length === 0 ? (
+                    {documentRows.length === 0 ? (
                         <Totals>Wizyta nie ma dokumentu rozliczenia.</Totals>
                     ) : (
                         <DocList>
-                            {activeDocuments.map(doc => (
-                                <DocRow key={doc.id}>
-                                    <strong>{doc.number}</strong>
-                                    <span>{doc.typeLabel}</span>
-                                    <span>{doc.paymentMethodLabel}</span>
-                                    <span className="amount">{pln(doc.totalGross)}</span>
-                                </DocRow>
-                            ))}
-                            {activeInvoices.map(inv => (
-                                <DocRow key={inv.id}>
-                                    <strong>{inv.number}</strong>
-                                    <span>{inv.invoiceToReceipt ? 'Faktura do paragonu' : 'Faktura KSeF'}</span>
-                                    <StatusPill $tone={INVOICE_STATUS[inv.status]?.tone ?? 'neutral'}>
-                                        {INVOICE_STATUS[inv.status]?.label ?? inv.status}
-                                    </StatusPill>
-                                    <span className="amount">{pln(inv.totalGross)}</span>
+                            {documentRows.map(row => (
+                                <DocRow key={row.key}>
+                                    <strong>{row.number}</strong>
+                                    <span>{row.label}</span>
+                                    {row.paymentMethodLabel && <span>{row.paymentMethodLabel}</span>}
+                                    {row.ksefStatus && (
+                                        <StatusPill $tone={INVOICE_STATUS[row.ksefStatus]?.tone ?? 'neutral'}>
+                                            {INVOICE_STATUS[row.ksefStatus]?.label ?? row.ksefStatus}
+                                        </StatusPill>
+                                    )}
+                                    <span className="amount">{pln(row.totalGross)}</span>
                                 </DocRow>
                             ))}
                         </DocList>
