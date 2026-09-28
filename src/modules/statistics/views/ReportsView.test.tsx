@@ -18,6 +18,7 @@ import {
     type ReportLength,
 } from '../api/ownerReportApi';
 import { ReportsView, REPORTS_PAGE } from './ReportsView';
+import { periodRange, shortDay } from '../utils/reportDates';
 
 vi.mock('../api/ownerReportApi', async importOriginal => ({
     ...(await importOriginal<typeof import('../api/ownerReportApi')>()),
@@ -75,14 +76,30 @@ function renderView(url = '/statistics/reports') {
 }
 
 beforeEach(() => {
+    // Rok w etykiecie zależy od dzisiejszej daty - test nie może się zestarzeć w styczniu.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-28T10:00:00Z'));
     api.getArchive.mockImplementation(async (length, comparison) =>
         archive(length, comparison, [current, row({}), row({ from: '2026-09-14', to: '2026-09-20', label: '14.09–20.09.2026' })]));
     api.downloadPdf.mockResolvedValue(new Blob(['%PDF']));
 });
 
 afterEach(() => {
+    vi.useRealTimers();
     cleanup();
     vi.clearAllMocks();
+});
+
+describe('daty w tabeli raportów', () => {
+    it('dzień i skrót miesiąca, bez zera wiodącego i bez bieżącego roku', () => {
+        expect(periodRange('2026-09-14', '2026-09-20', 2026)).toBe('14 wrz – 20 wrz');
+        expect(shortDay('2026-10-05', 2026)).toBe('5 paź');
+    });
+
+    it('rok tylko przy dacie z innego roku, także na przełomie roku', () => {
+        expect(periodRange('2025-09-15', '2025-09-21', 2026)).toBe('15 wrz 2025 – 21 wrz 2025');
+        expect(periodRange('2025-12-29', '2026-01-04', 2026)).toBe('29 gru 2025 – 4 sty');
+    });
 });
 
 describe('ReportsView', () => {
@@ -91,14 +108,14 @@ describe('ReportsView', () => {
 
         const rows = await screen.findAllByRole('row');
         const top = rows[1];
-        expect(within(top).getByText('28.09–04.10.2026')).toBeTruthy();
+        expect(within(top).getByText('28 wrz – 4 paź')).toBeTruthy();
         expect(within(top).getByText('Trwa')).toBeTruthy();
-        expect(within(top).getByRole('status', { name: /Okres trwa, raport będzie gotowy 05\.10\.2026/ })).toBeTruthy();
+        expect(within(top).getByRole('status', { name: 'Okres trwa, raport będzie gotowy 5 paź' })).toBeTruthy();
         expect(within(top).queryByRole('button')).toBeNull();
         expect(within(top).getAllByText('do dziś')).toHaveLength(2);
 
-        expect(within(rows[2]).getByRole('button', { name: 'Pobierz raport PDF za 21.09–27.09.2026' })).toBeTruthy();
-        expect(screen.getByText('Od 03.09.2026, dnia założenia konta')).toBeTruthy();
+        expect(within(rows[2]).getByRole('button', { name: 'Pobierz raport PDF za 21 wrz – 27 wrz' })).toBeTruthy();
+        expect(screen.getByText('Od 3 wrz, dnia założenia konta')).toBeTruthy();
     });
 
     it('kwoty co do grosza i porównanie z napisem z backendu, bez kropek', async () => {
@@ -128,7 +145,7 @@ describe('ReportsView', () => {
     it('PDF za pełny okres z wybranym porównaniem', async () => {
         renderView('/statistics/reports?porownanie=mediana');
 
-        fireEvent.click(await screen.findByRole('button', { name: 'Pobierz raport PDF za 21.09–27.09.2026' }));
+        fireEvent.click(await screen.findByRole('button', { name: 'Pobierz raport PDF za 21 wrz – 27 wrz' }));
 
         await waitFor(() => expect(api.downloadPdf).toHaveBeenCalledWith('WEEK', '2026-09-21', 'MEDIAN'));
         await waitFor(() => expect(saveBlobAsFile).toHaveBeenCalledWith(expect.any(Blob), 'raport-tydzien-2026-09-21-2026-09-27.pdf'));
@@ -138,13 +155,16 @@ describe('ReportsView', () => {
         api.getArchive.mockResolvedValue(archive('WEEK', 'PREVIOUS', [current]));
         renderView();
 
-        expect(await screen.findByText(/Pierwszy raport będzie gotowy 05\.10\.2026/)).toBeTruthy();
+        expect(await screen.findByText(/Pierwszy raport będzie gotowy 5 paź,/)).toBeTruthy();
         expect(screen.queryByRole('button', { name: /Pobierz raport PDF/ })).toBeNull();
     });
 
     it('długa historia: starsze okresy po kliknięciu „Pokaż starsze”', async () => {
-        const many = Array.from({ length: REPORTS_PAGE + 4 }, (_, i) =>
-            row({ from: `2025-${String(i).padStart(4, '0')}`, label: `okres ${i}` }));
+        const many = Array.from({ length: REPORTS_PAGE + 4 }, (_, i) => {
+            const from = new Date(Date.UTC(2026, 8, 21 - 7 * i));
+            const to = new Date(from.getTime() + 6 * 86_400_000);
+            return row({ from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) });
+        });
         api.getArchive.mockResolvedValue(archive('WEEK', 'PREVIOUS', [current, ...many]));
         renderView();
 
