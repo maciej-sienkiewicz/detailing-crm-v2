@@ -116,14 +116,54 @@ describe('renderSignature', () => {
         expect(html).toContain('background:#123abc');
     });
 
-    it('dopisek przy numerze pojawia się dopiero przy kilku numerach albo samym faksie', () => {
+    it('dopisek „kom." pojawia się dopiero przy dwóch numerach', () => {
         expect(renderSignature(full, ICONS)).not.toContain('kom.');
-        const many = renderSignature({ ...full, phoneLand: '22 100 20 30' }, ICONS);
-        expect(many).toContain('kom.');
-        expect(many).toContain('stacj.');
-        const faxOnly = renderSignature({ ...full, phone: null, fax: '22 100 20 31' }, ICONS);
-        expect(faxOnly).toContain('fax');
-        expect(parse(faxOnly).querySelector('a[href^="tel:"]')).toBeNull();
+        expect(renderSignature({ ...full, phone2: '601 200 300' }, ICONS)).toContain('kom.');
+    });
+
+    it('telefon stacjonarny i fax z dawnego projektu nie trafiają do stopki', () => {
+        const legacy = { ...full, phoneLand: '22 100 20 30', fax: '22 100 20 31' } as SignatureDesign;
+        SIGNATURE_TEMPLATES.forEach(t => {
+            const html = renderSignature({ ...legacy, template: t.id }, ICONS);
+            expect(html).not.toContain('22 100 20 3');
+            expect(html).not.toContain('stacj.');
+        });
+        expect(SIGNATURE_TEMPLATES.flatMap(t => t.fields)).not.toContain('fax');
+    });
+
+    describe('logo nie rozciąga się', () => {
+        const logoOf = (html: string) => parse(html).querySelector(`img[src="${full.logoUrl}"]`)!;
+        const ratio = (img: Element) => Number(img.getAttribute('width')) / Number(img.getAttribute('height'));
+
+        it('kwadratowe logo w ramce 120×70 ma 70×70, a nie 120×70', () => {
+            const img = logoOf(renderSignature({ ...full, template: 'firmowa' }, ICONS, { width: 500, height: 500 }));
+            expect([img.getAttribute('width'), img.getAttribute('height')]).toEqual(['70', '70']);
+            expect(img.getAttribute('style')).toContain('width:70px;height:70px;');
+        });
+
+        it('w każdym motywie z logo proporcje zostają proporcjami pliku', () => {
+            ['firmowa', 'baner-okrag', 'dwa-pasma'].forEach(id => {
+                [{ width: 1200, height: 300 }, { width: 400, height: 400 }, { width: 300, height: 900 }].forEach(size => {
+                    const img = logoOf(renderSignature({ ...full, template: id as SignatureDesign['template'] }, ICONS, size));
+                    expect(ratio(img)).toBeCloseTo(size.width / size.height, 0);
+                });
+            });
+        });
+
+        it('małe logo nie jest powiększane ponad swój rozmiar', () => {
+            const img = logoOf(renderSignature({ ...full, template: 'firmowa' }, ICONS, { width: 60, height: 20 }));
+            expect([img.getAttribute('width'), img.getAttribute('height')]).toEqual(['60', '20']);
+        });
+
+        it('bez zmierzonych wymiarów przeglądarka dopasowuje logo sama, bez sztywnej szerokości', () => {
+            const style = logoOf(renderSignature({ ...full, template: 'firmowa' }, ICONS)).getAttribute('style');
+            expect(style).toContain('width:auto;height:auto;max-width:120px;max-height:70px;');
+        });
+
+        it('rozmiar stopki zmniejsza logo proporcjonalnie', () => {
+            const img = logoOf(renderSignature({ ...full, template: 'firmowa', scale: 80 }, ICONS, { width: 1200, height: 300 }));
+            expect([img.getAttribute('width'), img.getAttribute('height')]).toEqual(['96', '24']);
+        });
     });
 
     it('rozmiar stopki zmniejsza wszystko: pismo, odstępy, szerokości i obrazki', () => {
@@ -183,8 +223,6 @@ describe('renderSignature', () => {
                 template: t.id,
                 scale: 120,
                 phone2: '+48 601 000 000',
-                phoneLand: '+48 22 000 00 00',
-                fax: '+48 22 000 00 01',
                 facebook: 'facebook.com/blask',
                 youtube: 'youtube.com/@blask',
                 tiktok: 'tiktok.com/@blask',

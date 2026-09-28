@@ -76,3 +76,35 @@ describe('useModalViewport – blokada scrolla tła', () => {
         expect(document.documentElement.style.overflow).toBe('');
     });
 });
+
+describe('useModalViewport – Escape', () => {
+    const Dialog = ({ onClose, children }: { onClose: () => void; children?: ReactNode }) => {
+        const overlayRef = useRef<HTMLDivElement>(null);
+        useModalViewport(true, overlayRef, onClose);
+        return <div ref={overlayRef} role="dialog" aria-modal="true">{children}</div>;
+    };
+
+    it('okno otwarte nad innym zamyka się samo - to pod spodem zostaje', () => {
+        const closed: string[] = [];
+        // Portal nadrzędnego okna leży w DOM przed portalem okna nad nim - tak jak w aplikacji.
+        render(
+            <>
+                <Dialog onClose={() => closed.push('stopka')} />
+                <Dialog onClose={() => closed.push('kadr')} />
+            </>,
+        );
+
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+
+        expect(closed).toEqual(['kadr']);
+    });
+
+    it('pojedyncze okno zamyka się Escape\'em', () => {
+        const closed: string[] = [];
+        render(<Dialog onClose={() => closed.push('stopka')} />);
+
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+
+        expect(closed).toEqual(['stopka']);
+    });
+});

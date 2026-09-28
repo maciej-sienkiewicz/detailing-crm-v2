@@ -56,6 +56,11 @@ interface ModalShellProps {
      * o decyzję, zamiast wychodzić po cichu.
      */
     dismissible?: boolean;
+    /**
+     * Escape osobno od kliknięcia w tło; domyślnie tak jak [dismissible]. Dla okien, w których
+     * odruchowe kliknięcie obok kosztuje pracę, ale Escape jest świadomym „zamknij" (stopka e-mail).
+     */
+    closeOnEscape?: boolean;
     children: ReactNode;
 }
 
@@ -72,13 +77,13 @@ interface ModalShellProps {
  *     <ModalFooter>...</ModalFooter>
  *   </ModalShell>
  */
-export const ModalShell = ({ isOpen, onClose, size, maxWidth, zIndex, stableHeight, fillHeight, dismissible = true, children }: ModalShellProps) => {
+export const ModalShell = ({ isOpen, onClose, size, maxWidth, zIndex, stableHeight, fillHeight, dismissible = true, closeOnEscape = dismissible, children }: ModalShellProps) => {
     const resolvedWidth = size ? SIZE_MAP[size] : (maxWidth ?? '560px');
 
     // Escape, blokada tła i układ przy wysuniętej klawiaturze - wspólne dla
     // wszystkich okien w aplikacji, także tych na własnych nakładkach.
     const overlayRef = useRef<HTMLDivElement>(null);
-    useModalViewport(isOpen, overlayRef, dismissible ? onClose : undefined);
+    useModalViewport(isOpen, overlayRef, closeOnEscape ? onClose : undefined);
 
     if (!isOpen) return null;
 

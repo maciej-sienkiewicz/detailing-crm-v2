@@ -36,10 +36,10 @@ const defaults: MailSignature['defaults'] = {
     hasCompanyLogo: true,
 };
 
-const renderModal = () =>
+const renderModal = (onClose = vi.fn()) =>
     render(
         <StyledThemeProvider theme={theme}>
-            <SignatureSettingsModal isOpen onClose={vi.fn()} />
+            <SignatureSettingsModal isOpen onClose={onClose} />
         </StyledThemeProvider>,
     );
 
@@ -193,5 +193,41 @@ describe('SignatureSettingsModal', () => {
         expect(payload.design).toMatchObject({ template: 'dwa-pasma', fullName: 'Ewa Lis', color: '#123abc', font: 'georgia', scale: 110 });
         expect(payload.bodyHtml).toContain('Ewa Lis');
         expect(payload.bodyHtml).toContain('bgcolor="#1c1c1e"');
+    });
+
+    it('fax i telefon stacjonarny z dawnego projektu nie idą dalej przy zapisie', async () => {
+        signature = {
+            ...signature,
+            bodyHtml: '<table></table>',
+            design: {
+                template: 'klasyczna', fullName: 'Ewa Lis', color: '#123abc', font: 'arial', size: 'm', iconStyle: 'mono',
+                phoneLand: '22 100 20 30', fax: '22 100 20 31',
+            } as MailSignature['design'],
+        };
+        renderModal();
+
+        await userEvent.click(saveButton());
+
+        const [payload] = save.mock.calls[0];
+        expect(payload.design).not.toHaveProperty('fax');
+        expect(payload.design).not.toHaveProperty('phoneLand');
+        expect(payload.bodyHtml).not.toContain('22 100 20 3');
+    });
+
+    it('Escape zamyka okno stopki', () => {
+        const onClose = vi.fn();
+        renderModal(onClose);
+
+        fireEvent.keyDown(document, { key: 'Escape' });
+
+        expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('kreator nie pyta o telefon stacjonarny ani fax', () => {
+        renderModal();
+        fireEvent.click(screen.getByRole('button', { name: /Dane/ }));
+
+        expect(screen.queryByText('Telefon stacjonarny')).toBeNull();
+        expect(screen.queryByText('Fax')).toBeNull();
     });
 });

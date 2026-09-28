@@ -39,6 +39,7 @@ import {
     type SignatureTemplateId,
 } from '../utils/signatureTemplates';
 import { appAssetUrl } from '../utils/signatureImage';
+import { useSignatureLogoSize } from '../hooks/useSignatureLogoSize';
 import { SignaturePreview } from './signature/SignaturePreview';
 import { DetailsStep, ImagesStep, SocialStep, StyleStep, TemplateStep } from './signature/SignatureSteps';
 import { SIGNATURE_STEPS, type SignatureStepId } from './signature/designerSteps';
@@ -274,6 +275,17 @@ const readBrandColor = (): string | null => {
     return isHexColor(value) ? value : null;
 };
 
+/**
+ * Telefon stacjonarny i fax zniknęły z kreatora; dawny projekt mógł je mieć. Zdejmujemy je
+ * przy otwarciu, żeby kolejny zapis ich nie przenosił dalej (backend przyjmie brak pola jako pusto).
+ */
+const withoutRetiredFields = (design: SignatureDesign): SignatureDesign => {
+    const copy: SignatureDesign & { phoneLand?: unknown; fax?: unknown } = { ...design };
+    delete copy.phoneLand;
+    delete copy.fax;
+    return copy;
+};
+
 type Mode = 'design' | 'text';
 
 interface DesignerProps {
@@ -298,7 +310,7 @@ function SignatureDesigner({ signature, onClose }: DesignerProps) {
     // żeby suwak startował tam, gdzie stopka faktycznie jest.
     const [design, setDesign] = useState<SignatureDesign>(() =>
         signature.design
-            ? { ...signature.design, scale: signatureScale(signature.design), size: 'm' }
+            ? withoutRetiredFields({ ...signature.design, scale: signatureScale(signature.design), size: 'm' })
             : createSignatureDesign(signature.defaults, brandColor ?? undefined)
     );
     const [text, setText] = useState(() => (signature.design ? '' : signatureHtmlToText(signature.bodyHtml)));
@@ -317,13 +329,14 @@ function SignatureDesigner({ signature, onClose }: DesignerProps) {
 
     // Zapisywany HTML i podgląd różnią się wyłącznie zastępczymi obrazkami: podgląd pokazuje
     // miejsce na zdjęcie i logo, którego motyw jeszcze nie ma, zapis - nic w tym miejscu.
+    const logo = useSignatureLogoSize(design.logoUrl);
     const html = useMemo(
-        () => (isHexColor(design.color) ? renderSignature(design, iconsBaseUrl) : null),
-        [design, iconsBaseUrl]
+        () => (isHexColor(design.color) ? renderSignature(design, iconsBaseUrl, logo.size) : null),
+        [design, iconsBaseUrl, logo.size]
     );
     const previewHtml = useMemo(
-        () => (isHexColor(design.color) ? renderSignature(withImagePlaceholders(design), iconsBaseUrl) : null),
-        [design, iconsBaseUrl]
+        () => (isHexColor(design.color) ? renderSignature(withImagePlaceholders(design), iconsBaseUrl, logo.size) : null),
+        [design, iconsBaseUrl, logo.size]
     );
     const missing = missingImages(design);
     const placeholderHint =
@@ -383,7 +396,8 @@ function SignatureDesigner({ signature, onClose }: DesignerProps) {
         });
 
     const hasSaved = Boolean(signature.bodyHtml);
-    const canSave = mode === 'text' ? Boolean(text.trim()) : true;
+    // Zapis czeka ułamek sekundy na wymiary logo - inaczej stopka poszłaby bez nich.
+    const canSave = mode === 'text' ? Boolean(text.trim()) : !logo.measuring;
 
     return (
         <>
@@ -547,9 +561,10 @@ export function SignatureSettingsModal({ isOpen, onClose }: SignatureSettingsMod
     const { data: signature, isError } = useMailSignature();
 
     return (
-        // Zamknięcie Escape'em albo kliknięciem w tło zgubiłoby kilka minut konfiguracji,
-        // a Escape w oknie kadru zamykałby oba okna naraz - dlatego tylko krzyżyk.
-        <ModalShell isOpen={isOpen} onClose={onClose} size="full" fillHeight dismissible={false}>
+        // Escape zamyka jak krzyżyk. Kliknięcie w tło nie - odruchowe kliknięcie obok
+        // zgubiłoby kilka minut konfiguracji. Escape w oknie kadru zamyka tylko kadr
+        // (useModalViewport słucha wyłącznie okna na wierzchu).
+        <ModalShell isOpen={isOpen} onClose={onClose} size="full" fillHeight dismissible={false} closeOnEscape>
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Twoja stopka e-mail</ModalTitle>
