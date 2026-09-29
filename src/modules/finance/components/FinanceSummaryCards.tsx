@@ -7,9 +7,9 @@ import {
   Clock,
 } from 'lucide-react';
 import { StatTile, StatTileSkeleton } from '@/common/components/StatTile';
-import { pluralPl } from '@/common/utils';
 import { useFinanceSummary } from '../hooks/useFinance';
 import { formatMoney } from '../utils/formatters';
+import { outstandingTile, type OutstandingSide } from '../utils/outstandingTile';
 
 // ─── Tile configs ─────────────────────────────────────────────────────────────
 
@@ -70,17 +70,11 @@ const SubText = styled.span`
 interface Props {
   dateFrom?: string;
   dateTo?: string;
+  /** Należności nad przychodami, zobowiązania nad kosztami (utils/outstandingTile). */
+  outstandingSide?: OutstandingSide;
 }
 
-/**
- * `overdueReceivables` z API to LICZBA przeterminowanych dokumentów, nie kwota.
- * Kafel przepuszczał ją przez formatMoney, więc trzy zaległe faktury pokazywały
- * się jako „0,03 zł przeterminowane".
- */
-const overdueLabel = (count: number): string =>
-  `${count} ${pluralPl(count, 'dokument', 'dokumenty', 'dokumentów')} po terminie`;
-
-export const FinanceSummaryCards: React.FC<Props> = ({ dateFrom, dateTo }) => {
+export const FinanceSummaryCards: React.FC<Props> = ({ dateFrom, dateTo, outstandingSide = 'receivables' }) => {
   const { summary, isLoading } = useFinanceSummary(dateFrom, dateTo);
 
   if (isLoading) {
@@ -95,6 +89,8 @@ export const FinanceSummaryCards: React.FC<Props> = ({ dateFrom, dateTo }) => {
   }
 
   if (!summary) return null;
+
+  const outstanding = outstandingTile(summary, outstandingSide);
 
   return (
     <CardsGrid>
@@ -125,15 +121,9 @@ export const FinanceSummaryCards: React.FC<Props> = ({ dateFrom, dateTo }) => {
       <StatTile
         {...TILE_CONFIGS.receivables}
         compact
-        value={formatMoney(summary.pendingReceivables)}
-        label="Należności"
-        subContent={
-          <SubText>
-            {summary.overdueReceivables > 0
-              ? `netto, w tym ${overdueLabel(summary.overdueReceivables)}`
-              : 'netto, oczekujące płatności'}
-          </SubText>
-        }
+        value={formatMoney(outstanding.amountCents)}
+        label={outstanding.label}
+        subContent={<SubText>{outstanding.note}</SubText>}
       />
     </CardsGrid>
   );
