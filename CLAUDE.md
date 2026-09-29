@@ -194,7 +194,8 @@ nich (okna edycji wizyty jeszcze nie w pełni). Zanim zbudujesz lokalny `ActionB
 Wyjątek: widok zleceń zbiorczych (`batch-orders/views/BatchOrdersView.tsx`,
 `batch-orders/components/ContractorEntriesSection.tsx`) ma świadomie dawny wygląd - stos
 kart kontrahentów, na telefonie i na komputerze - na życzenie biznesu, na nowej logice
-(edytor wpisu `EntryDrawer`, odblokowanie do korekty, okna zestawienia i historii). Nie
+(dawne okno auta `EntryFormModal` z walidacją i dokładnym brutto, odblokowanie do
+korekty, okna zestawienia i historii). Nie
 przepinaj go na te klocki ani na układ „lista → kontrahent" bez nowej decyzji biznesu.
 
 ### Czego ta reguła NIE znaczy, część druga

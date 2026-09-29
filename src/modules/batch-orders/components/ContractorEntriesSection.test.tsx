@@ -29,8 +29,8 @@ vi.mock('../hooks/useBatchOrders', () => ({
     useDeleteEntry: () => ({ mutateAsync: vi.fn() }),
     useReopenEntry: () => ({ mutateAsync: vi.fn() }),
 }));
-vi.mock('./EntryDrawer', () => ({
-    EntryDrawer: ({ entry: e }: { entry: BatchOrderEntry | null }) => <div role="dialog">Edytor: {e ? e.vehicleModel : 'nowe auto'}</div>,
+vi.mock('./EntryFormModal', () => ({
+    EntryFormModal: ({ initial: e }: { initial: BatchOrderEntry | null }) => <div role="dialog">Edytor: {e ? e.vehicleModel : 'nowe auto'}</div>,
 }));
 vi.mock('./SettlementModal', () => ({ SettlementModal: () => null }));
 vi.mock('./SettlementHistoryModal', () => ({ SettlementHistoryModal: () => null }));
@@ -59,7 +59,7 @@ describe('ContractorEntriesSection - dawny wygląd, nowa logika', () => {
 
     it('„+ Dodaj wpis" otwiera edytor nowego auta', () => {
         renderCard();
-        // Dwa przyciski o tej samej treści: w nagłówku (640-767 px) i pod okresem (telefon).
+        // Dwa przyciski o tej samej treści: w nagłówku karty i pod okresem (telefon).
         fireEvent.click(screen.getAllByText('+ Dodaj wpis')[0]);
         expect(screen.getByRole('dialog')).toHaveTextContent('Edytor: nowe auto');
     });
@@ -77,5 +77,12 @@ describe('ContractorEntriesSection - dawny wygląd, nowa logika', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Opcje: Skoda Octavia' }));
         expect(screen.getByText('Edytuj wpis')).toBeInTheDocument();
         expect(screen.getByText('Usuń wpis')).toBeInTheDocument();
+    });
+
+    it('kliknięcie w rozliczone auto pyta o korektę zamiast otwierać edycję', () => {
+        renderCard();
+        fireEvent.click(screen.getByText('Kia Ceed'));
+        expect(screen.getByText('Odblokować wpis do korekty?')).toBeInTheDocument();
+        expect(screen.queryByText(/Edytor:/)).toBeNull();
     });
 });
