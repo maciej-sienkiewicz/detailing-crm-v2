@@ -20,7 +20,7 @@ describe('kafel należności / zobowiązań', () => {
 
     it('nad kosztami: ile studio jest winne, brutto', () => {
         expect(outstandingTile(summary(), 'payables')).toEqual({
-            label: 'Zobowiązania', amountCents: 24_600, note: 'brutto, jeszcze nie zapłaciłeś',
+            label: 'Należności', amountCents: 24_600, note: 'brutto, jeszcze nie zapłaciłeś',
         });
     });
 

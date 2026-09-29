@@ -70,7 +70,7 @@ const SubText = styled.span`
 interface Props {
   dateFrom?: string;
   dateTo?: string;
-  /** Należności nad przychodami, zobowiązania nad kosztami (utils/outstandingTile). */
+  /** Nad przychodami: ile klienci są winni; nad kosztami: ile Ty jesteś winien (utils/outstandingTile). */
   outstandingSide?: OutstandingSide;
 }
 
