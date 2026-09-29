@@ -1,8 +1,8 @@
-// src/modules/batch-orders/components/mobile/MobileContractorSection.tsx
+// src/modules/batch-orders/components/ContractorEntriesSection.tsx
 //
-// Karta kontrahenta w wyglądzie sprzed przebudowy z 25.09 - tylko na telefonie.
-// Biznes wolał dawny układ mobilny (stos kart, każda z własnym okresem i listą aut),
-// więc wraca WYGLĄD, a logika zostaje nowa:
+// Karta kontrahenta w wyglądzie sprzed przebudowy z 25.09 - na telefonie i na
+// komputerze. Biznes wolał dawny układ (stos kart, każda z własnym okresem i listą
+// aut), więc wraca WYGLĄD, a logika zostaje nowa:
 //   - kliknięcie w auto otwiera edytor (EntryDrawer) - dawniej wiersz nic nie robił,
 //     od czego zaczęło się zgłoszenie „nie da się edytować cen";
 //   - rozliczonego auta nie zmienia się wprost: menu proponuje „Odblokuj do korekty"
@@ -14,17 +14,17 @@ import styled from 'styled-components';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useToast } from '@/common/components/Toast';
 import { applyFloatingPlacement } from '@/common/utils/floatingPlacement';
-import { useContractorEntries, useDeleteEntry, useReopenEntry } from '../../hooks/useBatchOrders';
-import { EntryDrawer } from '../EntryDrawer';
-import type { EntryFocus } from '../EntriesTable';
-import { BatchOrderPhotoSection } from '../BatchOrderPhotoSection';
-import { SettlementModal } from '../SettlementModal';
-import { SettlementHistoryModal } from '../SettlementHistoryModal';
-import { DateRangeFilter } from './MobileDateRangeFilter';
-import { currentMonthPeriod } from '../../utils/period';
-import { batchOrderApi } from '../../api/batchOrderApi';
-import { apiErrorMessage } from '../../utils/format';
-import type { BatchContractor, BatchOrderEntry, EntryStatusFilter } from '../../types';
+import { useContractorEntries, useDeleteEntry, useReopenEntry } from '../hooks/useBatchOrders';
+import { EntryDrawer } from './EntryDrawer';
+import type { EntryFocus } from './EntriesTable';
+import { BatchOrderPhotoSection } from './BatchOrderPhotoSection';
+import { SettlementModal } from './SettlementModal';
+import { SettlementHistoryModal } from './SettlementHistoryModal';
+import { DateRangeFilter } from './DateRangeFilter';
+import { currentMonthPeriod } from '../utils/period';
+import { batchOrderApi } from '../api/batchOrderApi';
+import { apiErrorMessage } from '../utils/format';
+import type { BatchContractor, BatchOrderEntry, EntryStatusFilter } from '../types';
 
 const Section = styled.div`
     background: ${p => p.theme.colors.surface};
@@ -78,6 +78,55 @@ const ContractorTitleRow = styled.div`
     align-items: center;
     gap: 4px;
     min-width: 0;
+`;
+
+const TitleIconBtn = styled.button<{ $danger?: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: ${p => p.theme.colors.textMuted};
+    cursor: pointer;
+    transition: background 150ms ease, color 150ms ease;
+    -webkit-tap-highlight-color: transparent;
+
+    svg { width: 15px; height: 15px; }
+
+    &:hover {
+        background: ${p => p.$danger ? p.theme.colors.errorLight : p.theme.colors.surfaceAlt};
+        color: ${p => p.$danger ? p.theme.colors.error : p.theme.colors.text};
+    }
+
+    /* Na telefonie te dwie ikony schodzą do menu „⋯". Edycja i usunięcie
+       KONTRAHENTA to akcje rzadkie (raz przy zakładaniu, potem prawie nigdy),
+       a jako stale widoczne ikony zabierały cały wiersz nad tabelą - ten sam
+       wiersz, na którym miały stanąć kwoty. */
+    @media (max-width: 639px) {
+        display: none;
+    }
+`;
+
+/* NIP, osoba i telefon jako osobne elementy obok siebie, nie sklejone kropką
+   (CLAUDE.md §4). */
+const ContractorMeta = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    font-size: ${p => p.theme.fontSizes.xs};
+    color: ${p => p.theme.colors.textMuted};
+    margin-top: 2px;
+
+    &:empty { display: none; }
+
+    /* NIP i telefon to dane do faktury - potrzebne przy biurku, nie w hali.
+       Na telefonie ten wiersz oddaje miejsce podsumowaniu okresu. */
+    @media (max-width: 639px) { display: none; }
 `;
 
 
@@ -410,6 +459,27 @@ const Table = styled.table`
 `;
 
 
+
+const TableHead = styled.thead`
+    background: ${p => p.theme.colors.surfaceAlt};
+    border-bottom: 1px solid ${p => p.theme.colors.border};
+
+    /* Nagłówki kolumn zastępują etykiety przy polach w karcie. */
+    @media (max-width: 767px) {
+        display: none;
+    }
+`;
+
+const Th = styled.th<{ $align?: 'left' | 'right' | 'center' }>`
+    padding: 12px 20px;
+    text-align: ${p => p.$align ?? 'left'};
+    font-size: 11px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    color: ${p => p.theme.colors.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+`;
 
 const Tr = styled.tr<{ $closed?: boolean }>`
     /* Wiersz otwiera edytor wpisu - to samo, co „Edytuj" w menu ⋮, tylko bez
@@ -859,7 +929,7 @@ function vehicleName(entry: BatchOrderEntry): string {
     return [entry.vehicleMake, entry.vehicleModel].filter(Boolean).join(' ') || entry.vehicleLicensePlate || 'Auto';
 }
 
-export function MobileContractorSection({ contractor, onEdit, onDelete }: Props) {
+export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props) {
     const { showSuccess, showError } = useToast();
     const initial = currentMonthPeriod();
     const [filterFrom, setFilterFrom] = useState(initial.from);
@@ -952,7 +1022,25 @@ export function MobileContractorSection({ contractor, onEdit, onDelete }: Props)
                     <div>
                         <ContractorTitleRow>
                             <ContractorName>{contractor.name}</ContractorName>
+                            <TitleIconBtn onClick={onEdit} title="Edytuj kontrahenta" aria-label="Edytuj kontrahenta">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M12 20h9" />
+                                    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                                </svg>
+                            </TitleIconBtn>
+                            <TitleIconBtn $danger onClick={onDelete} title="Usuń kontrahenta" aria-label="Usuń kontrahenta">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M3 6h18" />
+                                    <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+                                    <path d="M19 6l-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6" />
+                                </svg>
+                            </TitleIconBtn>
                         </ContractorTitleRow>
+                        <ContractorMeta>
+                            {contractor.taxId && <span>NIP {contractor.taxId}</span>}
+                            {contractor.contactPersonName && <span>{contractor.contactPersonName}</span>}
+                            {contractor.phone && <span>{contractor.phone}</span>}
+                        </ContractorMeta>
                         <MobileMeta>
                             <MobileMetaTotal>{formatMoney(summary?.totalGrossCents ?? 0)}</MobileMetaTotal>
                             <span>
@@ -961,8 +1049,7 @@ export function MobileContractorSection({ contractor, onEdit, onDelete }: Props)
                         </MobileMeta>
                     </div>
                     <HeaderActions>
-                        {/* Od 640 px do granicy widoku komputerowego (768 px) akcje stoją
-                            w nagłówku karty, jak w dawnym widoku; poniżej chowają się pod „⋯". */}
+                        {/* Od 640 px w górę akcje stoją w nagłówku karty; poniżej chowają się pod „⋯". */}
                         <ActionBtn $mobileHide $variant="ghost" onClick={handleDownloadReport} disabled={downloading}>
                             {downloading ? 'Generowanie…' : (
                                 <>
@@ -1074,6 +1161,17 @@ export function MobileContractorSection({ contractor, onEdit, onDelete }: Props)
                     <>
                         <TableWrapper>
                             <Table>
+                                <TableHead>
+                                    <tr>
+                                        <Th>Data</Th>
+                                        <Th>Pojazd</Th>
+                                        <Th>Usługi</Th>
+                                        <Th $align="right">Netto</Th>
+                                        <Th $align="right">Brutto</Th>
+                                        <Th>Uwagi</Th>
+                                        <Th style={{ width: 40 }}></Th>
+                                    </tr>
+                                </TableHead>
                                 <tbody>
                                     {entries.map(entry => (
                                         <Fragment key={entry.id}>

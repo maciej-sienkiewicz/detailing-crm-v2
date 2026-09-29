@@ -1,13 +1,13 @@
-// src/modules/batch-orders/components/mobile/MobileDateRangeFilter.tsx
+// src/modules/batch-orders/components/DateRangeFilter.tsx
 //
-// Wybór okresu z dawnego widoku zleceń zbiorczych, przywrócony na telefonie na
-// prośbę biznesu (wygląd sprzed przebudowy z 25.09, logika nowa). Daty liczone
+// Wybór okresu z dawnego widoku zleceń zbiorczych, przywrócony na prośbę biznesu
+// (wygląd sprzed przebudowy z 25.09, logika nowa). Daty liczone
 // lokalnie - `new Date('2026-09-01')` to północ UTC, na zachód od Greenwich
 // już poprzedni dzień.
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import styled from 'styled-components';
-import { parseIsoDate } from '../../utils/period';
+import { parseIsoDate } from '../utils/period';
 
 interface Props {
     from: string;

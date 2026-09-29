@@ -1,14 +1,14 @@
 // @vitest-environment jsdom
 //
-// Na telefonie wraca dawny wygląd karty kontrahenta, ale logika zostaje nowa:
+// Wraca dawny wygląd karty kontrahenta (telefon i komputer), ale logika zostaje nowa:
 // kliknięcie w auto otwiera edytor (dawniej nic się nie działo - od tego zaczęło się
 // zgłoszenie), a rozliczonego auta nie zmienia się wprost - menu proponuje odblokowanie.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
-import { MobileContractorSection } from './MobileContractorSection';
-import type { BatchContractor, BatchOrderEntry } from '../../types';
+import { ContractorEntriesSection } from './ContractorEntriesSection';
+import type { BatchContractor, BatchOrderEntry } from '../types';
 
 const entry = (id: string, closed: boolean): BatchOrderEntry => ({
     id, serviceDate: '2026-09-24', vehicleMake: closed ? 'Kia' : 'Skoda', vehicleModel: closed ? 'Ceed' : 'Octavia',
@@ -21,7 +21,7 @@ const entry = (id: string, closed: boolean): BatchOrderEntry => ({
 const entries = [entry('e1', false), entry('e2', true)];
 const sum = { totalNetCents: 308_944, totalGrossCents: 380_000, entryCount: 2 };
 
-vi.mock('../../hooks/useBatchOrders', () => ({
+vi.mock('../hooks/useBatchOrders', () => ({
     useContractorEntries: () => ({
         data: { entries, settledCount: 1, summary: sum, openSummary: sum, settledSummary: sum, lastSettledAt: null },
         isLoading: false, isError: false,
@@ -29,12 +29,12 @@ vi.mock('../../hooks/useBatchOrders', () => ({
     useDeleteEntry: () => ({ mutateAsync: vi.fn() }),
     useReopenEntry: () => ({ mutateAsync: vi.fn() }),
 }));
-vi.mock('../EntryDrawer', () => ({
+vi.mock('./EntryDrawer', () => ({
     EntryDrawer: ({ entry: e }: { entry: BatchOrderEntry | null }) => <div role="dialog">Edytor: {e ? e.vehicleModel : 'nowe auto'}</div>,
 }));
-vi.mock('../SettlementModal', () => ({ SettlementModal: () => null }));
-vi.mock('../SettlementHistoryModal', () => ({ SettlementHistoryModal: () => null }));
-vi.mock('../BatchOrderPhotoSection', () => ({ BatchOrderPhotoSection: () => null }));
+vi.mock('./SettlementModal', () => ({ SettlementModal: () => null }));
+vi.mock('./SettlementHistoryModal', () => ({ SettlementHistoryModal: () => null }));
+vi.mock('./BatchOrderPhotoSection', () => ({ BatchOrderPhotoSection: () => null }));
 vi.mock('@/common/components/Toast', () => ({ useToast: () => ({ showSuccess: vi.fn(), showError: vi.fn() }) }));
 
 const contractor: BatchContractor = {
@@ -44,11 +44,11 @@ const contractor: BatchContractor = {
 
 const renderCard = () => render(
     <ThemeProvider theme={theme}>
-        <MobileContractorSection contractor={contractor} onEdit={vi.fn()} onDelete={vi.fn()} />
+        <ContractorEntriesSection contractor={contractor} onEdit={vi.fn()} onDelete={vi.fn()} />
     </ThemeProvider>,
 );
 
-describe('MobileContractorSection - dawny wygląd, nowa logika', () => {
+describe('ContractorEntriesSection - dawny wygląd, nowa logika', () => {
     afterEach(cleanup);
 
     it('kliknięcie w auto otwiera edytor', () => {
