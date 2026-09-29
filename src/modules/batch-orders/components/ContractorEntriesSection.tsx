@@ -758,12 +758,11 @@ const DotsBtn = styled.button<{ $open?: boolean }>`
     justify-content: center;
     font-size: 16px;
     line-height: 1;
-    opacity: ${p => p.$open ? 1 : 0};
-    transition: background 120ms ease, border-color 120ms ease, opacity 120ms ease, color 120ms ease;
+    /* Zawsze widoczne, także na komputerze: pojawiające się dopiero po najechaniu
+       na wiersz menu wyglądało, jakby wpisu nie dało się edytować ani usunąć. */
+    transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
     /* Expand tap target without changing visual size */
     position: relative;
-
-    ${Tr}:hover & { opacity: 1; }
 
     &:hover {
         background: ${p => p.theme.colors.surfaceAlt};
@@ -772,14 +771,12 @@ const DotsBtn = styled.button<{ $open?: boolean }>`
     }
 
     @media (hover: none) and (pointer: coarse) {
-        /* Always visible on touch; tap target 44px via padding */
-        opacity: 1;
+        /* Tap target 44px on touch */
         width: 44px;
         height: 44px;
     }
 
     @media (max-width: 767px) {
-        opacity: 1;
         width: 36px;
         height: 36px;
     }
