@@ -8,12 +8,18 @@ const GlobalStyles = createGlobalStyle`
     --brand-primary-light: #38bdf8;
   }
 
-  *,
-  *::before,
-  *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
+  /* Reset w warstwie base, nie luzem. Styl spoza warstwy zawsze wygrywa z warstwowym,
+     a Tailwind v4 trzyma swoje klasy w @layer utilities - luźne margin/padding: 0
+     kasowało więc każde p-5, mt-1 czy gap w całej aplikacji. Komponenty styled-components
+     też stoją poza warstwami, więc dla nich nic się nie zmienia. */
+  @layer base {
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
   }
 
   html {

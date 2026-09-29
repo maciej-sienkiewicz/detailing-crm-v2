@@ -47,6 +47,13 @@ export const formatDate = (dateStr: string | null | undefined): string => {
   }).format(new Date(dateStr));
 };
 
+/** 26-cyfrowy NRB w grupach: XX XXXX XXXX XXXX XXXX XXXX XXXX. Inny zapis zostaje bez zmian. */
+export const formatBankAccount = (account: string): string => {
+  const digits = account.replace(/\s/g, '');
+  if (!/^\d{26}$/.test(digits)) return account;
+  return `${digits.slice(0, 2)} ${digits.slice(2).replace(/(\d{4})(?=\d)/g, '$1 ')}`;
+};
+
 export const groszToInputValue = (grosz: number): string => (grosz / 100).toFixed(2);
 
 export const inputValueToGrosze = (value: string): number => {
