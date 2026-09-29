@@ -219,7 +219,7 @@ export interface FinanceSummary {
    * Brak u starszego serwera - wtedy kafel wraca do netto.
    */
   pendingReceivablesGross?: number;
-  /** Brutto, w groszach: ile studio jest winne dostawcom (kafel „Zobowiązania"). */
+  /** Brutto, w groszach: ile studio jest winne dostawcom (kafel „Należności" nad kosztami). */
   pendingPayablesGross?:    number;
   /** liczba dokumentów przychodowych po terminie */
   overdueReceivables:  number;

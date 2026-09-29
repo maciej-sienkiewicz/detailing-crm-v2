@@ -1,10 +1,11 @@
 // src/modules/finance/utils/outstandingTile.ts
 //
-// Czwarty kafel podsumowania finansów zależy od zakładki. Na „Dokumentach
-// przychodowych" mówi, ile klienci są winni studiu (należności), a na „Dokumentach
-// kosztowych" - ile studio jest winne dostawcom (zobowiązania). Wcześniej kafel
-// zawsze pokazywał należności, także nad listą kosztów, gdzie pytanie brzmi
-// „ile jeszcze muszę zapłacić".
+// Czwarty kafel podsumowania finansów, „Należności", zależy od zakładki. Na
+// „Dokumentach przychodowych" mówi, ile klienci są winni studiu, a na „Dokumentach
+// kosztowych" - ile studio jest winne dostawcom. Wcześniej kafel zawsze liczył
+// pieniądze od klientów, także nad listą kosztów, gdzie pytanie brzmi „ile jeszcze
+// muszę zapłacić". Nazwa zostaje ta sama na obu zakładkach (decyzja biznesu),
+// a kierunek mówi podpis pod kwotą.
 //
 // Kwota jest brutto: dług to to, co przejdzie przelewem, z VAT-em. Przychody,
 // koszty i zysk w sąsiednich kaflach zostają netto.
@@ -41,7 +42,7 @@ export function outstandingTile(summary: FinanceSummary, side: OutstandingSide):
     const who = receivables ? 'klienci jeszcze nie zapłacili' : 'jeszcze nie zapłaciłeś';
 
     return {
-        label: receivables ? 'Należności' : 'Zobowiązania',
+        label: 'Należności',
         amountCents,
         note: overdue > 0 ? `${basis}, w tym ${overdueLabel(overdue)}` : `${basis}, ${who}`,
     };
