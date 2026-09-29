@@ -1728,7 +1728,11 @@ export const FinanceView: React.FC = () => {
         </SectionLabel>
         {/* Kafle pokazują ten sam zakres co zakładka pod nimi - inaczej „Przychody"
             nad tabelą filtrowaną do jednego miesiąca dotyczyły czegoś innego niż tabela. */}
-        <FinanceSummaryCards dateFrom={activeDateRange.dateFrom} dateTo={activeDateRange.dateTo} />
+        <FinanceSummaryCards
+          dateFrom={activeDateRange.dateFrom}
+          dateTo={activeDateRange.dateTo}
+          outstandingSide={activeTab === 'expenses' ? 'payables' : 'receivables'}
+        />
       </div>
 
       <div>
