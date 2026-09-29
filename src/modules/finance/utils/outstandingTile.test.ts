@@ -11,28 +11,33 @@ const summary = (patch: Partial<FinanceSummary> = {}): FinanceSummary => ({
     ...patch,
 });
 
-describe('kafel należności / zobowiązań', () => {
-    it('nad przychodami: ile klienci są winni, brutto', () => {
-        expect(outstandingTile(summary(), 'receivables')).toEqual({
-            label: 'Należności', amountCents: 123_000, note: 'brutto, klienci jeszcze nie zapłacili',
+describe('kafel należności', () => {
+    it('domyślnie netto, jak sąsiednie kafle', () => {
+        expect(outstandingTile(summary(), 'receivables')).toMatchObject({
+            label: 'Należności', amountCents: 100_000, note: 'netto, klienci jeszcze nie zapłacili', basis: 'net',
         });
     });
 
-    it('nad kosztami: ile studio jest winne, brutto', () => {
-        expect(outstandingTile(summary(), 'payables')).toEqual({
+    it('nad przychodami: ile klienci są winni; nad kosztami: ile Ty jesteś winien', () => {
+        expect(outstandingTile(summary(), 'receivables', 'gross')).toMatchObject({
+            label: 'Należności', amountCents: 123_000, note: 'brutto, klienci jeszcze nie zapłacili',
+        });
+        expect(outstandingTile(summary(), 'payables', 'gross')).toMatchObject({
             label: 'Należności', amountCents: 24_600, note: 'brutto, jeszcze nie zapłaciłeś',
         });
+        expect(outstandingTile(summary(), 'payables')).toMatchObject({ amountCents: 20_000, note: 'netto, jeszcze nie zapłaciłeś' });
     });
 
     it('dokumenty po terminie to liczba, nie kwota - każda strona swoje', () => {
         const s = summary({ overdueReceivables: 3, overduePayables: 1 });
-        expect(outstandingTile(s, 'receivables').note).toBe('brutto, w tym 3 dokumenty po terminie');
-        expect(outstandingTile(s, 'payables').note).toBe('brutto, w tym 1 dokument po terminie');
+        expect(outstandingTile(s, 'receivables').note).toBe('netto, w tym 3 dokumenty po terminie');
+        expect(outstandingTile(s, 'payables', 'gross').note).toBe('brutto, w tym 1 dokument po terminie');
     });
 
-    it('starszy serwer bez brutto: netto, z takim podpisem', () => {
+    it('starszy serwer bez brutto: netto mimo wyboru brutto, bez przełącznika', () => {
         const s = summary({ pendingReceivablesGross: undefined, pendingPayablesGross: undefined });
-        expect(outstandingTile(s, 'receivables')).toMatchObject({ amountCents: 100_000, note: 'netto, klienci jeszcze nie zapłacili' });
-        expect(outstandingTile(s, 'payables')).toMatchObject({ amountCents: 20_000, note: 'netto, jeszcze nie zapłaciłeś' });
+        expect(outstandingTile(s, 'receivables', 'gross')).toMatchObject({
+            amountCents: 100_000, note: 'netto, klienci jeszcze nie zapłacili', basis: 'net', grossAvailable: false,
+        });
     });
 });

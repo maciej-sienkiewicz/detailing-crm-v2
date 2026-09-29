@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { StatTile, StatTileSkeleton } from '@/common/components/StatTile';
 import { useFinanceSummary } from '../hooks/useFinance';
+import { useOutstandingBasis } from '../hooks/useOutstandingBasis';
 import { formatMoney } from '../utils/formatters';
 import { outstandingTile, type OutstandingSide } from '../utils/outstandingTile';
 
@@ -65,6 +66,39 @@ const SubText = styled.span`
   font-weight: 500;
 `;
 
+const OutstandingSub = styled.span`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  width: 100%;
+`;
+
+/* Przełącznik netto/brutto: odcień bez wypełnienia (CLAUDE.md §2) - to ustawienie
+   widoku, a nie krok następny. */
+const BasisSwitch = styled.span`
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid ${p => p.theme.colors.border};
+  border-radius: 999px;
+  background: ${p => p.theme.colors.surface};
+`;
+
+const BasisOption = styled.button<{ $active: boolean }>`
+  padding: 2px 8px;
+  border: none;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: ${p => (p.$active ? 700 : 500)};
+  color: ${p => (p.$active ? '#b45309' : p.theme.colors.textMuted)};
+  background: ${p => (p.$active ? 'rgba(217, 119, 6, 0.12)' : 'transparent')};
+  cursor: pointer;
+
+  &:focus-visible { outline: 2px solid #d97706; outline-offset: 1px; }
+`;
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -76,6 +110,7 @@ interface Props {
 
 export const FinanceSummaryCards: React.FC<Props> = ({ dateFrom, dateTo, outstandingSide = 'receivables' }) => {
   const { summary, isLoading } = useFinanceSummary(dateFrom, dateTo);
+  const [basis, setBasis] = useOutstandingBasis();
 
   if (isLoading) {
     return (
@@ -90,7 +125,7 @@ export const FinanceSummaryCards: React.FC<Props> = ({ dateFrom, dateTo, outstan
 
   if (!summary) return null;
 
-  const outstanding = outstandingTile(summary, outstandingSide);
+  const outstanding = outstandingTile(summary, outstandingSide, basis);
 
   return (
     <CardsGrid>
@@ -123,7 +158,21 @@ export const FinanceSummaryCards: React.FC<Props> = ({ dateFrom, dateTo, outstan
         compact
         value={formatMoney(outstanding.amountCents)}
         label={outstanding.label}
-        subContent={<SubText>{outstanding.note}</SubText>}
+        subContent={
+          <OutstandingSub>
+            <SubText>{outstanding.note}</SubText>
+            {outstanding.grossAvailable && (
+              <BasisSwitch role="group" aria-label="Kwota należności">
+                <BasisOption type="button" $active={outstanding.basis === 'net'} aria-pressed={outstanding.basis === 'net'} onClick={() => setBasis('net')}>
+                  netto
+                </BasisOption>
+                <BasisOption type="button" $active={outstanding.basis === 'gross'} aria-pressed={outstanding.basis === 'gross'} onClick={() => setBasis('gross')}>
+                  brutto
+                </BasisOption>
+              </BasisSwitch>
+            )}
+          </OutstandingSub>
+        }
       />
     </CardsGrid>
   );

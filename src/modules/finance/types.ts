@@ -214,9 +214,9 @@ export interface FinanceSummary {
   /** netto, w groszach */
   pendingPayables:     number;
   /**
-   * Brutto, w groszach: ile klienci są winni studiu. Tę kwotę pokazuje kafel
-   * „Należności" - dług to to, co faktycznie przyjdzie przelewem, z VAT-em.
-   * Brak u starszego serwera - wtedy kafel wraca do netto.
+   * Brutto, w groszach: ile klienci są winni studiu. Kafel „Należności" pokazuje
+   * je po przełączeniu na brutto (domyślnie netto). Brak u starszego serwera -
+   * wtedy kafel zostaje przy netto i nie pokazuje przełącznika.
    */
   pendingReceivablesGross?: number;
   /** Brutto, w groszach: ile studio jest winne dostawcom (kafel „Należności" nad kosztami). */
