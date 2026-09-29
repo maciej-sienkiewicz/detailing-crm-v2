@@ -2204,7 +2204,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                             <ServiceInlineRow
                                 key={row.draftId}
                                 row={row}
-                                nameColSpan={(pricesHidden ? 1 : 2) + (checklist.enabled ? 1 : 0)}
+                                colSpan={1 + (pricesHidden ? 0 : 2) + (checklist.enabled ? 1 : 0) + (showActionsCol ? 1 : 0)}
                                 onUpdate={partial => updateRow(row.draftId, partial)}
                                 onRemove={() => removeRow(row.draftId)}
                                 onAddCustom={name => handleAddCustom(row.draftId, name)}

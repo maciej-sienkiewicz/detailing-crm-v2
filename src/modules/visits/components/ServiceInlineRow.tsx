@@ -46,38 +46,60 @@ export interface NewRow {
 const InlineRow = styled.tr`
     background: rgba(14, 165, 233, 0.04);
     border-bottom: 1px solid ${st.border};
+`;
 
-    @media (max-width: 767px) {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: flex-start;
-        gap: 0;
-        padding: 14px 16px;
+/*
+ * Jedna komórka na całą szerokość tabeli, a w niej własny układ. Dawniej wiersz
+ * miał trzy komórki pod kolumnami tabeli: cena trafiała pod „Kwotę brutto" (210 px),
+ * a trzy przyciski „Edytuj / Rabatuj / Usuń" pod kolumnę menu ⋮ (74 px). Przyciski
+ * wylewały się w lewo na pola cen i wszystko na siebie nachodziło - zgłoszenie
+ * „przy edycji ceny rozjeżdżają się wszystkie pola".
+ */
+const Cell = styled.td`
+    padding: 10px 10px 12px;
+    vertical-align: middle;
 
-        td:nth-child(1) {
-            flex: 0 0 100%;
-            padding: 0 0 12px;
-            border-bottom: 1px dashed ${st.border};
-            margin-bottom: 12px;
-        }
+    @media (max-width: 767px) { padding: 14px 16px; }
+`;
 
-        td:nth-child(2) {
-            flex: 0 0 100%;
-            padding: 0 0 10px;
-        }
+/* Nazwa na całą szerokość, pod nią ceny i akcje w jednej linii; gdy się nie
+   mieszczą, akcje schodzą niżej zamiast wchodzić na pola. */
+const RowLayout = styled.div`
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+        'name name'
+        'price actions';
+    align-items: center;
+    gap: 10px 16px;
 
-        td:nth-child(3) {
-            flex: 0 0 100%;
-            padding: 0;
-        }
+    @media (max-width: 900px) {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+            'name'
+            'price'
+            'actions';
     }
 `;
 
-const Cell = styled.td`
-    padding: 8px 10px;
-    vertical-align: middle;
+const NameArea = styled.div`
+    grid-area: name;
+    min-width: 0;
 
-    @media (max-width: 767px) { padding: 0; vertical-align: top; }
+    @media (max-width: 767px) {
+        padding-bottom: 12px;
+        border-bottom: 1px dashed ${st.border};
+    }
+`;
+
+const PriceArea = styled.div`
+    grid-area: price;
+    min-width: 0;
+`;
+
+const ActionsArea = styled.div`
+    grid-area: actions;
+    min-width: 0;
 `;
 
 const NameWrap = styled.div`
@@ -327,12 +349,11 @@ const PriceHint = styled.span`
 const PriceGroup = styled.div`
     display: flex;
     align-items: center;
-    justify-content: flex-end;
-    gap: 10px;
+    justify-content: flex-start;
+    gap: 10px 14px;
     flex-wrap: wrap;
 
     @media (max-width: 767px) {
-        justify-content: flex-start;
         flex-wrap: nowrap;
     }
 `;
@@ -341,12 +362,10 @@ const PriceGroup = styled.div`
 const PriceReadRow = styled.div`
     display: flex;
     align-items: baseline;
-    justify-content: flex-end;
+    justify-content: flex-start;
     flex-wrap: wrap;
-    gap: 4px 10px;
+    gap: 4px 14px;
     font-size: 13px;
-
-    @media (max-width: 767px) { justify-content: flex-start; }
 `;
 
 const PriceReadItem = styled.span`
@@ -471,8 +490,11 @@ const DiscountBtn = styled(ActionBtnBase)`
 
 const ActionBtns = styled.div`
     display: flex;
+    flex-wrap: wrap;
     gap: 6px;
     justify-content: flex-end;
+
+    @media (max-width: 900px) { justify-content: flex-start; }
 
     /* Stacked, these three pills ate a third of the phone screen - keep them in
        one row where they still read fine at 12px. */
@@ -497,11 +519,14 @@ interface Props {
     onAddCustom: (name: string) => void;
     onEdit?: () => void;
     onDiscount?: () => void;
-    /** Tabela wizyty ma osobną kolumnę VAT - nazwa nowej usługi zajmuje wtedy obie. */
-    nameColSpan?: number;
+    /** Ile kolumn ma tabela - wiersz nowej usługi zajmuje je wszystkie jedną komórką. */
+    colSpan?: number;
 }
 
-export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit, onDiscount, nameColSpan }: Props) => {
+/** Stawka „zwolniona" ma w danych kod -1 - na ekranie „zw.", nie „-1%". */
+const vatText = (rate: number) => (rate === -1 ? 'zw.' : `${rate}%`);
+
+export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit, onDiscount, colSpan }: Props) => {
     const [isMobile] = useState(() => window.innerWidth < 640);
     const [query, setQuery] = useState(row.serviceName);
     // On a phone the row is unusable until a service is picked, so the picker
@@ -712,8 +737,10 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
 
     return (
         <InlineRow>
+            <Cell colSpan={colSpan}>
+            <RowLayout>
             {/* Usługa */}
-            <Cell colSpan={nameColSpan}>
+            <NameArea>
                 <NameWrap ref={nameWrapRef}>
                     <NameInput
                         ref={nameInputRef}
@@ -812,10 +839,10 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
                         )
                     )}
                 </NameWrap>
-            </Cell>
+            </NameArea>
 
-            {/* Cena: netto + brutto + VAT in one right-aligned group */}
-            <Cell style={{ textAlign: 'right' }}>
+            {/* Cena: netto, brutto i VAT w jednej linii pod nazwą */}
+            <PriceArea>
                 {priceReadOnly ? (
                     <PriceReadRow>
                         <PriceReadItem>
@@ -824,7 +851,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
                         <PriceReadItem>
                             Brutto <PriceReadValue>{formatCurrency((parsePln(grossStr) ?? 0) / 100)}</PriceReadValue>
                         </PriceReadItem>
-                        <PriceReadItem>VAT {row.vatRate}%</PriceReadItem>
+                        <PriceReadItem>VAT {vatText(row.vatRate)}</PriceReadItem>
                     </PriceReadRow>
                 ) : (
                 <PriceGroup>
@@ -858,13 +885,13 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
                             }}
                         />
                     </PriceField>
-                    <VatCell>VAT {row.vatRate}%</VatCell>
+                    <VatCell>VAT {vatText(row.vatRate)}</VatCell>
                 </PriceGroup>
                 )}
-            </Cell>
+            </PriceArea>
 
             {/* Akcje */}
-            <Cell style={{ textAlign: 'right', verticalAlign: 'middle' }}>
+            <ActionsArea>
                 <ActionBtns>
                     {onEdit && (
                         <EditBtn onClick={onEdit} title="Edytuj pozycję">
@@ -897,6 +924,8 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
                         Usuń
                     </RemoveBtn>
                 </ActionBtns>
+            </ActionsArea>
+            </RowLayout>
             </Cell>
         </InlineRow>
     );
