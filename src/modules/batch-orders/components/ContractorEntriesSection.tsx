@@ -3,7 +3,7 @@
 // Karta kontrahenta w wyglądzie sprzed przebudowy z 25.09 - na telefonie i na
 // komputerze. Biznes wolał dawny układ (stos kart, każda z własnym okresem i listą
 // aut), więc wraca WYGLĄD, a logika zostaje nowa:
-//   - kliknięcie w auto otwiera edytor (EntryDrawer) - dawniej wiersz nic nie robił,
+//   - kliknięcie w auto otwiera okno edycji (dawne EntryFormModal) - dawniej wiersz nic nie robił,
 //     od czego zaczęło się zgłoszenie „nie da się edytować cen";
 //   - rozliczonego auta nie zmienia się wprost: menu proponuje „Odblokuj do korekty"
 //     (backend odrzuca zapis rozliczonego wpisu, żeby praca nie poszła drugi raz);
@@ -15,8 +15,7 @@ import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useToast } from '@/common/components/Toast';
 import { applyFloatingPlacement } from '@/common/utils/floatingPlacement';
 import { useContractorEntries, useDeleteEntry, useReopenEntry } from '../hooks/useBatchOrders';
-import { EntryDrawer } from './EntryDrawer';
-import type { EntryFocus } from './EntriesTable';
+import { EntryFormModal } from './EntryFormModal';
 import { BatchOrderPhotoSection } from './BatchOrderPhotoSection';
 import { SettlementModal } from './SettlementModal';
 import { SettlementHistoryModal } from './SettlementHistoryModal';
@@ -920,7 +919,7 @@ interface Props {
     onDelete: () => void;
 }
 
-type DrawerState = { entry: BatchOrderEntry | null; focus?: EntryFocus } | null;
+type DrawerState = { entry: BatchOrderEntry | null; focusPrice?: boolean } | null;
 
 function vehicleName(entry: BatchOrderEntry): string {
     return [entry.vehicleMake, entry.vehicleModel].filter(Boolean).join(' ') || entry.vehicleLicensePlate || 'Auto';
@@ -999,7 +998,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
         try {
             const reopened = await reopenEntry.mutateAsync(entry.id);
             showSuccess('Wpis odblokowany do korekty', 'Po zapisie trafi do następnego rozliczenia.');
-            setDrawer({ entry: reopened, focus: 'price' });
+            setDrawer({ entry: reopened, focusPrice: true });
         } catch (e) {
             showError('Nie udało się odblokować wpisu', apiErrorMessage(e, 'Spróbuj ponownie.'));
         }
@@ -1174,7 +1173,9 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                         <Fragment key={entry.id}>
                                             <Tr
                                                 $closed={entry.isClosed}
-                                                onClick={() => setDrawer({ entry })}
+                                                // Rozliczonego auta nie edytuje się wprost - najpierw decyzja
+                                                // o korekcie, inaczej praca trafia do kontrahenta drugi raz.
+                                                onClick={() => (entry.isClosed ? setConfirmReopen(entry) : setDrawer({ entry }))}
                                             >
                                                 <Td style={{ whiteSpace: 'nowrap' }} data-cell="date">
                                                     <RowSubText>
@@ -1346,12 +1347,12 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
             )}
 
             {drawer && (
-                <EntryDrawer
+                <EntryFormModal
                     key={drawer.entry?.id ?? 'new'}
                     contractorId={contractor.id}
                     contractorName={contractor.name}
-                    entry={drawer.entry}
-                    focus={drawer.focus}
+                    initial={drawer.entry}
+                    focusPrice={drawer.focusPrice}
                     onClose={() => setDrawer(null)}
                 />
             )}
