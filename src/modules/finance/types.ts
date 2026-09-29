@@ -391,6 +391,26 @@ export interface KsefExpensePayment {
   bankAccount: string | null;
 }
 
+/**
+ * Dane do przelewu za dokument kosztowy i kod QR w standardzie ZBP 2D
+ * (GET /ksef/expenses/{id}/transfer). Kod generuje nasz serwer - `qrPngBase64`
+ * to PNG do Data URI; null znaczy „bez kodu", powód w `qrUnavailableReason`.
+ */
+export interface KsefExpenseTransfer {
+  recipientName:       string | null;
+  recipientNip:        string | null;
+  /** 26 cyfr NRB, gdy numer jest poprawny; inaczej numer tak, jak stoi na fakturze. */
+  accountNumber:       string | null;
+  accountNumberValid:  boolean;
+  /** Brutto do zapłaty w złotych - to z faktury, nie przeliczone z netto. */
+  amount:              number | null;
+  currency:            string;
+  /** Tytuł dokładnie taki jak w kodzie QR. */
+  title:               string;
+  qrPngBase64:         string | null;
+  qrUnavailableReason: string | null;
+}
+
 /** Pozycja faktury (wiersz FaWiersz z KSeF). */
 export interface KsefExpenseItem {
   lineNumber:   number;

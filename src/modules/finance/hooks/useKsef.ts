@@ -209,6 +209,20 @@ export const useKsefExpenseDetail = (id: string | null) => {
   return { detail: data ?? null, isLoading, isError };
 };
 
+/**
+ * Dane do przelewu z kodem QR. Klucz pod KSEF_EXPENSES_KEY: oznaczenie faktury jako
+ * opłaconej unieważnia go razem z listą, więc karta płatności nie zostaje po zapłacie.
+ */
+export const useKsefExpenseTransfer = (id: string | null) => {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: [...KSEF_EXPENSES_KEY, 'transfer', id],
+    queryFn:  () => ksefApi.getExpenseTransfer(id!),
+    enabled:  id !== null,
+  });
+
+  return { transfer: data ?? null, isLoading, isError };
+};
+
 export const useCreateExpense = () => {
   const queryClient = useQueryClient();
 

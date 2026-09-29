@@ -10,6 +10,7 @@ import type {
   KsefSyncRangeResult,
   KsefExpense,
   KsefExpenseDetail,
+  KsefExpenseTransfer,
   KsefExpenseListResponse,
   KsefExpenseListFilters,
   CreateExpenseRequest,
@@ -113,6 +114,11 @@ export const ksefApi = {
 
   getExpenseDetail: async (id: string): Promise<KsefExpenseDetail> => {
     const response = await apiClient.get(`${BASE}/expenses/${id}`);
+    return response.data;
+  },
+
+  getExpenseTransfer: async (id: string): Promise<KsefExpenseTransfer> => {
+    const response = await apiClient.get(`${BASE}/expenses/${id}/transfer`);
     return response.data;
   },
 

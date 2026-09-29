@@ -2,7 +2,7 @@ import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import type { KsefExpenseDetail, KsefExpenseParty } from '../types';
 import { useKsefExpenseDetail } from '../hooks/useKsef';
-import { formatMoneyFloat, formatMoneyFloatCompact, formatDate } from '../utils/formatters';
+import { formatMoneyFloat, formatMoneyFloatCompact, formatDate, formatBankAccount } from '../utils/formatters';
 import {
   ModalShell,
   ModalHeader,
@@ -14,6 +14,8 @@ import {
   CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
+import { netToGross } from '@/common/utils/priceAdjustment';
+import { ExpensePaymentCard } from './ExpensePaymentCard';
 
 // ─── Animations ──────────────────────────────────────────────────────────────
 
@@ -345,13 +347,6 @@ const formatQuantity = (quantity: number | null): string => {
   return new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 4 }).format(quantity);
 };
 
-/** 26-cyfrowy NRB w grupach: XX XXXX XXXX XXXX XXXX XXXX XXXX. */
-const formatBankAccount = (account: string): string => {
-  const digits = account.replace(/\s/g, '');
-  if (!/^\d{26}$/.test(digits)) return account;
-  return `${digits.slice(0, 2)} ${digits.slice(2).replace(/(\d{4})(?=\d)/g, '$1 ')}`;
-};
-
 const partyAddress = (party: KsefExpenseParty): string[] => {
   const lines = [party.addressLine1, party.addressLine2].filter(Boolean) as string[];
   if (party.countryCode && party.countryCode !== 'PL') lines.push(party.countryCode);
@@ -383,13 +378,17 @@ interface Props {
 export const InvoicePreviewModal: React.FC<Props> = ({ expenseId, onClose }) => {
   const { detail, isLoading, isError } = useKsefExpenseDetail(expenseId);
 
-  /** Wartość brutto pozycji: z API jeśli dostarczona, w przeciwnym razie wyliczona z netto × (1 + VAT%). */
+  /**
+   * Wartość brutto pozycji: z faktury, gdy ją ma (CLAUDE.md §1 - brutto, które ktoś ustalił,
+   * jest brutto). Z netto liczona wyłącznie w ostateczności, i to na groszach przez
+   * netToGross - mnożenie złotówek dawało kwotę z ułamkiem grosza.
+   */
   const resolveGross = (item: { grossValue: number | null; netValue: number | null; vatRate: string | null }): number | null => {
     if (item.grossValue != null) return item.grossValue;
     if (item.netValue == null) return null;
     const rate = parseFloat(item.vatRate ?? '');
     if (isNaN(rate)) return null;
-    return item.netValue * (1 + rate / 100);
+    return netToGross(Math.round(item.netValue * 100), rate) / 100;
   };
 
   return (
@@ -565,6 +564,12 @@ export const InvoicePreviewModal: React.FC<Props> = ({ expenseId, onClose }) => 
                   </div>
                 )}
               </MetaGrid>
+
+              {/* Tylko faktura, którą jeszcze trzeba zapłacić i która ma rachunek - przy
+                  zapłaconej albo opłacanej gotówką karta byłaby szumem. */}
+              {detail.payment.status === 'PENDING' && detail.status !== 'CANCELLED' && detail.payment.bankAccount && (
+                <ExpensePaymentCard expenseId={detail.id} />
+              )}
 
               {detail.note && <NoteBox>{detail.note}</NoteBox>}
             </PaperBody>

@@ -24,7 +24,7 @@ import {
   useUpdateRevenuePaymentStatus,
 } from '../hooks/useKsefRevenue';
 import { useExcludeIncomeDocument, useRestoreIncomeDocument } from '../hooks/useIncomeDocuments';
-import { formatMoney, formatMoneyCompact, formatDate } from '../utils/formatters';
+import { formatMoney, formatMoneyCompact, formatDate, formatBankAccount } from '../utils/formatters';
 import { RevenueStatusBadge } from './RevenueStatusBadge';
 import type { RevenueInvoice, RevenueParty } from '../types';
 
@@ -496,13 +496,6 @@ const formatVatRate = (rate: string): string =>
 /** Ilość bez zbędnych zer: 2 → "2", 1.5 → "1,5". */
 const formatQuantity = (quantity: number): string =>
   new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 4 }).format(quantity);
-
-/** 26-cyfrowy NRB w grupach: XX XXXX XXXX XXXX XXXX XXXX XXXX. */
-const formatBankAccount = (account: string): string => {
-  const digits = account.replace(/\s/g, '');
-  if (!/^\d{26}$/.test(digits)) return account;
-  return `${digits.slice(0, 2)} ${digits.slice(2).replace(/(\d{4})(?=\d)/g, '$1 ')}`;
-};
 
 /**
  * Adres strony jako osobne wiersze. Kraj tylko wtedy, gdy nie jest polski -
