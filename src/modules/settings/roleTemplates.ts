@@ -40,11 +40,15 @@ export const ROLE_TEMPLATES: RoleTemplate[] = [
     {
         id: 'manager',
         name: 'Menedżer',
-        summary: 'Prowadzi studio: zespół, raporty i marketing',
+        // Szablonu „Kierownik zmiany" nie ma - najbliżej jest menedżer, więc to on
+        // rozpatruje urlopy od razu (EMPLOYEES_LEAVES_APPROVE jest osobnym korzeniem,
+        // nie wynika z EMPLOYEES_MANAGE).
+        summary: 'Prowadzi studio: zespół, urlopy, raporty i marketing',
         permissions: [
             'VISITS_VIEW', 'CUSTOMERS_VIEW', 'VISITS_CREATE', 'VISITS_SERVICE_PRICES_VIEW',
             'BATCH_ORDERS', 'COMMUNICATION_SEND', 'MARKETING_MANAGE',
-            'EMPLOYEES_MANAGE', 'FINANCE_VIEW_REPORTS', 'STATISTICS_VIEW', 'TASKS_MANAGE',
+            'EMPLOYEES_MANAGE', 'EMPLOYEES_LEAVES_APPROVE', 'FINANCE_VIEW_REPORTS', 'STATISTICS_VIEW',
+            'TASKS_MANAGE',
         ],
         trackWorkTime: false,
     },

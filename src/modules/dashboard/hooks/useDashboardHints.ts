@@ -10,7 +10,9 @@ export type DashboardHintKind =
     | 'AREA_NEW_ADS'
     | 'UNREAD_MAIL'
     | 'SELF_IG_SILENT'
-    | 'KSEF_UPSELL';
+    | 'KSEF_UPSELL'
+    /** Wnioski urlopowe czekają na decyzję bieżącego użytkownika (akcja „Rozpatrz"). */
+    | 'LEAVE_REQUESTS_PENDING';
 
 export type DashboardHintActionType = 'NAVIGATE' | 'EXTERNAL' | 'DISABLE_WORKTIME';
 

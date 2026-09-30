@@ -1,45 +1,24 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-    Bell,
-    LayoutDashboard,
-    Calendar,
-    CalendarCheck,
-    Users,
-    Car,
-    TrendingUp,
-    MessageSquare,
-    FileText,
     PanelLeftClose,
     PanelLeftOpen,
     X,
-    Camera,
-    Settings,
     LogOut,
-    Inbox,
-    Mail,
-    Layers,
-    Clock,
     UserRoundCog,
-    Images,
-    Activity,
-    CircleAlert,
-    Package,
-    IdCard,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from './context/SidebarContext';
 import { useAuth } from '@/core/context/AuthContext';
-import { usePermissions, ANY_FINANCE, ANY_DASHBOARD, ANY_EMPLOYEES } from '@/core/permissions';
-import type { PermissionRequirement } from '@/core/permissions';
+import { usePermissions, ANY_DASHBOARD } from '@/core/permissions';
 import { authApi } from '@/modules/auth/api/authApi';
 import { useNewLeadsCount, useUnreadMailCount, useCommsSocket } from '@/modules/comms';
 import { useMyTasksUnreadCount } from '@/modules/notifications';
-import { SidebarMenu, MenuSection } from './SidebarMenu';
-import type { MenuItem } from './SidebarMenuItem';
+import { SidebarMenu } from './SidebarMenu';
+import { buildMenuSections } from './menuSections';
 import { UserSwitcherPanel, useKnownProfiles } from '@/modules/pin-switcher';
 import { ReportProblemModal } from '@/modules/support/components/ReportProblemModal';
 import { useCompanySettings } from '@/modules/settings/hooks/useCompany';
-import { firstEmployeesTabPath } from '@/modules/employees/employeesTabs';
+import { usePendingLeaveRequestsCount } from '@/modules/employees/hooks/useLeaveRequests';
 import { companyDisplayName, companyInitials } from './companyBadge';
 import { readCompanyHeader, writeCompanyHeader } from './companyHeaderCache';
 import { SidebarBrand } from './SidebarBrand';
@@ -60,105 +39,6 @@ import {
     UserSwitchButton,
     UserActions,
 } from './SidebarStyles';
-
-// Each menu entry may declare a permission requirement (single code or ANY-OF
-// list). Entries the user cannot access are removed entirely: inaccessible
-// modules simply do not exist in the UI. Sections left empty are dropped.
-type GuardedMenuItem = MenuItem & { requires?: PermissionRequirement; showWhen?: boolean };
-type GuardedMenuSection = { title?: string; pinned?: boolean; items: GuardedMenuItem[] };
-
-const buildMenuSections = (
-    newLeadsCount: number,
-    unreadMailCount: number,
-    unreadNotifications: number,
-    can: (required: PermissionRequirement) => boolean,
-    trackWorkTime: boolean,
-    onReportProblem: () => void,
-): MenuSection[] => {
-    const canSeeDashboard = can(ANY_DASHBOARD);
-    const sections: GuardedMenuSection[] = [
-        // Grupy mówią, CZYM się zajmuje dana część pracy. Wcześniej było ich pięć
-        // (Główne, Baza klientów, Studio, Administracja, Portal): „Studio" miało jedną
-        // pozycję, „Portal" nic nie znaczył, a w „Głównych" siedziało siedem rzeczy
-        // naraz, od kalendarza po pocztę. Tablica stoi nad grupami bez nagłówka,
-        // tak samo jak Ustawienia na dole.
-        {
-            items: [
-                { path: '/dashboard',     label: 'Tablica',           icon: LayoutDashboard, requires: ANY_DASHBOARD },
-                // Task inbox replacing the dashboard's "Do zrobienia" for roles without Tablica.
-                { path: '/notifications', label: 'Powiadomienia',     icon: Bell, badge: unreadNotifications > 0 ? unreadNotifications : undefined, alert: unreadNotifications > 0, showWhen: !canSeeDashboard },
-                { path: '/worktime',      label: 'Czas pracy',        icon: Clock,          showWhen: trackWorkTime },
-            ],
-        },
-        {
-            title: 'Praca',
-            items: [
-                { path: '/operations',    label: 'Wizyty',            icon: CalendarCheck, requires: 'VISITS_VIEW',
-                    match: ['/visits', '/appointments', '/checkin', '/reservations'] },
-                { path: '/calendar',      label: 'Kalendarz',         icon: Calendar,      requires: 'VISITS_VIEW' },
-                { path: '/batch-orders',  label: 'Zlecenia zbiorcze', icon: Layers, requires: 'BATCH_ORDERS' },
-                { path: '/gallery',       label: 'Galeria',           icon: Images, requires: 'VISITS_VIEW' },
-            ],
-        },
-        {
-            title: 'Klienci i zapytania',
-            items: [
-                // Bez czerwonego alertu: leada tworzy świadome kliknięcie użytkownika,
-                // więc nie ma czego zgłaszać jako nowość. Licznik zostaje - mówi, ile
-                // zapytań czeka na ruch - ale nie krzyczy jak nieprzeczytana poczta.
-                { path: '/leads', label: 'Leady', icon: Inbox, badge: newLeadsCount > 0 ? newLeadsCount : undefined, requires: 'LEADS_MANAGE' },
-                { path: '/communication', label: 'Poczta', icon: Mail, badge: unreadMailCount > 0 ? unreadMailCount : undefined, alert: unreadMailCount > 0, requires: 'LEADS_MANAGE' },
-                { path: '/customers', label: 'Klienci',   icon: Users, requires: 'CUSTOMERS_VIEW' },
-                { path: '/vehicles',  label: 'Samochody', icon: Car,   requires: 'CUSTOMERS_VIEW' },
-            ],
-        },
-        {
-            title: 'Firma',
-            items: [
-                // Ścieżka to pierwsza zakładka, do której użytkownik ma dostęp - kierownik
-                // zmiany bez EMPLOYEES_MANAGE nie może trafić na /employees i przekierowanie.
-                // `Users` jest zajęte przez Klientów, stąd IdCard.
-                { path: firstEmployeesTabPath(can) ?? '/employees', label: 'Pracownicy', icon: IdCard,
-                    requires: ANY_EMPLOYEES, match: ['/employees'] },
-                { path: '/finances',   label: 'Finanse',    icon: FileText,   requires: ANY_FINANCE, match: ['/finance'] },
-                { path: '/statistics', label: 'Statystyki', icon: TrendingUp, requires: 'STATISTICS_VIEW', match: ['/reports'] },
-                { path: '/products',   label: 'Produkty',   icon: Package,    requires: 'PRODUCTS_VIEW' },
-                { path: '/activity',   label: 'Aktywność',  icon: Activity,   requires: 'AUDIT_VIEW' }
-            ],
-        },
-        {
-            title: 'Marketing',
-            items: [
-                { path: '/campaigns',      label: 'Kampanie',       icon: MessageSquare, requires: 'COMMUNICATION_SEND', match: ['/sms-campaigns'] },
-                { path: '/instagram',      label: 'Instagram',      icon: Camera, requires: 'MARKETING_MANAGE' }
-            ],
-        },
-        {
-            // Przyklejona do dołu menu: Ustawienia i zgłoszenie problemu mają być
-            // widoczne bez przewijania, niezależnie od liczby modułów wyżej.
-            pinned: true,
-            items: [
-                // Parowanie telefonu do Click-to-Call przeniosło się stąd do
-                // Ustawień → Urządzenia mobilne, obok tabletów do podpisu:
-                // jedno miejsce na wszystkie urządzenia zamiast pozycji w menu,
-                // którą klikało się raz w życiu.
-                { path: '/settings',   label: 'Ustawienia', icon: Settings },
-                { label: 'Zgłoś problem', icon: CircleAlert, onClick: onReportProblem },
-            ],
-        },
-    ];
-
-    return sections
-        .map(({ title, pinned, items }) => ({
-            title,
-            pinned,
-            items: items
-                .filter(({ requires, showWhen }) =>
-                    (showWhen ?? true) && (!requires || can(requires)))
-                .map(({ requires: _requires, showWhen: _showWhen, ...item }) => item),
-        }))
-        .filter(section => section.items.length > 0);
-};
 
 const getRoleLabel = (role: string): string => {
     const map: Record<string, string> = {
@@ -194,7 +74,18 @@ export const Sidebar = () => {
 
     // Persistent WebSocket connection for the entire CRM session
     useCommsSocket();
-    const menuSections = buildMenuSections(newLeadsCount, unreadMailCount, unreadNotifications, can, user?.trackWorkTime ?? false, () => setShowReportProblem(true));
+    // Licznik wniosków tylko dla tych, którzy je rozpatrują (właściciel zawsze).
+    const pendingLeaveRequests = usePendingLeaveRequestsCount(can('EMPLOYEES_LEAVES_APPROVE'));
+    const menuSections = buildMenuSections({
+        newLeadsCount,
+        unreadMailCount,
+        unreadNotifications,
+        pendingLeaveRequests,
+        can,
+        trackWorkTime: user?.trackWorkTime ?? false,
+        hasEmployeeRecord: Boolean(user?.employeeId),
+        onReportProblem: () => setShowReportProblem(true),
+    });
 
     // Register the current user in localStorage so the switcher can list them.
     // Runs whenever the logged-in user changes (login / PIN switch).

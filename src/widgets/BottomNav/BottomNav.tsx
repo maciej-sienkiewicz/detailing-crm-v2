@@ -1,9 +1,10 @@
-import { Calendar, Clock, FileText, Mail, Menu } from 'lucide-react';
+import { Calendar, CalendarOff, Clock, FileText, Mail, Menu } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { usePermissions, ANY_FINANCE } from '@/core/permissions';
+import { useAuth } from '@/core/context/AuthContext';
 import type { PermissionRequirement } from '@/core/permissions';
 import { useUnreadMailCount } from '@/modules/comms';
 import { usePiiAccess } from '@/common/pii';
@@ -121,6 +122,7 @@ export const BottomNav = () => {
     const { pathname } = useLocation();
     const navigate = useNavigate();
     const { can } = usePermissions();
+    const { user } = useAuth();
     const hasPiiAccess = usePiiAccess();
     // Edycja z własnym paskiem akcji (np. wykaz usług w wizycie) chowa pasek,
     // żeby przyciski zatwierdzenia nie konkurowały o dolną krawędź ekranu.
@@ -128,8 +130,9 @@ export const BottomNav = () => {
     const unreadMail = useUnreadMailCount({ enabled: can('LEADS_MANAGE') && hasPiiAccess });
 
     // Bez dostępu do danych osobowych poczta i finanse są dla użytkownika puste
-    // albo zamaskowane. Zostaje to, z czego naprawdę korzysta: grafik i raport
-    // czasu pracy.
+    // albo zamaskowane. Zostaje to, z czego naprawdę korzysta: grafik, raport
+    // czasu pracy i - gdy konto ma rekord pracownika - wniosek o urlop, który
+    // składa się z telefonu.
     const allShortcuts: Shortcut[] = hasPiiAccess
         ? [
             { path: '/calendar',      label: 'Kalendarz', icon: Calendar, requires: 'VISITS_VIEW' },
@@ -139,6 +142,7 @@ export const BottomNav = () => {
         : [
             { path: '/calendar', label: 'Kalendarz',  icon: Calendar, requires: 'VISITS_VIEW' },
             { path: '/worktime', label: 'Czas pracy', icon: Clock },
+            ...(user?.employeeId ? [{ path: '/me/leave', label: 'Urlop', icon: CalendarOff }] : []),
         ];
     const shortcuts = allShortcuts.filter(s => !s.requires || can(s.requires));
 

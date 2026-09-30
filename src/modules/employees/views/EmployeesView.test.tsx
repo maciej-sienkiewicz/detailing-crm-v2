@@ -47,6 +47,12 @@ vi.mock('../api/employeeApi', () => ({
         }),
     },
 }));
+vi.mock('../components/leave/LeaveRequestsTab', () => ({ LeaveRequestsTab: () => <p>kolejka wniosków</p> }));
+vi.mock('../components/leave/AbsencesTab', () => ({ AbsencesTab: () => <p>grafik nieobecności</p> }));
+vi.mock('../api/leaveRequestsApi', async importOriginal => ({
+    ...(await importOriginal<typeof import('../api/leaveRequestsApi')>()),
+    leaveRequestsApi: { list: vi.fn().mockResolvedValue({ items: [], pendingCount: 2 }) },
+}));
 vi.mock('../api/attendanceApi', async importOriginal => ({
     ...(await importOriginal<typeof import('../api/attendanceApi')>()),
     attendanceApi: {
@@ -61,6 +67,8 @@ const renderAt = (path: string) => {
     const router = createMemoryRouter([
         { path: '/employees', element: <EmployeesView tab="team" /> },
         { path: '/employees/worktime', element: <EmployeesView tab="worktime" /> },
+        { path: '/employees/leave-requests', element: <EmployeesView tab="leaves" /> },
+        { path: '/employees/absences', element: <EmployeesView tab="absences" /> },
         { path: '/settings', element: <p>ustawienia</p> },
     ], { initialEntries: [path] });
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -95,11 +103,29 @@ describe('EmployeesView - zakładki', () => {
         expect(router.state.location.pathname).toBe('/employees/worktime');
     });
 
-    it('bez EMPLOYEES_MANAGE zakładek kadrowych nie ma', () => {
-        auth.user = { permissions: ['EMPLOYEES_LEAVES_APPROVE'] };
+    it('właściciel widzi wszystkie cztery zakładki, a przy wnioskach liczbę oczekujących', async () => {
         renderAt('/employees');
+        expect(await screen.findByRole('tab', { name: /^Wnioski urlopowe\s*2$/ })).toBeTruthy();
+        expect(screen.getAllByRole('tab').map(t => t.textContent?.replace(/\d+$/, '')))
+            .toEqual(['Zespół', 'Wnioski urlopowe', 'Nieobecności', 'Czas pracy']);
+    });
+
+    it('kierownik zmiany (EMPLOYEES_LEAVES_APPROVE) widzi tylko wnioski i nieobecności', async () => {
+        auth.user = { permissions: ['EMPLOYEES_LEAVES_APPROVE'] };
+        renderAt('/employees/leave-requests');
+        expect(await screen.findByText('kolejka wniosków')).toBeTruthy();
+        expect(tab(/^Wnioski urlopowe/).getAttribute('aria-selected')).toBe('true');
+        expect(tab(/^Nieobecności/)).toBeTruthy();
         expect(screen.queryByRole('tab', { name: /^Zespół/ })).toBeNull();
         expect(screen.queryByRole('tab', { name: /^Czas pracy/ })).toBeNull();
+    });
+
+    it('sama kadrowa rola (EMPLOYEES_MANAGE) nie widzi kolejki wniosków', () => {
+        auth.user = { permissions: ['EMPLOYEES_MANAGE'] };
+        renderAt('/employees/absences');
+        expect(screen.getByText('grafik nieobecności')).toBeTruthy();
+        expect(screen.queryByRole('tab', { name: /^Wnioski urlopowe/ })).toBeNull();
+        expect(tab(/^Zespół/)).toBeTruthy();
     });
 
     it('po wygenerowaniu listy „Czas pracy" mruga, a wiersz podświetla się po wejściu', () => {

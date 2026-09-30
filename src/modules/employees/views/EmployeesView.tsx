@@ -1,7 +1,7 @@
 // src/modules/employees/views/EmployeesView.tsx
 //
-// Moduł „Pracownicy": zespół, czas pracy (dawne „Rozliczenia"), a od wniosków
-// urlopowych - kolejka decyzji i grafik nieobecności.
+// Moduł „Pracownicy": zespół, wnioski urlopowe (kolejka decyzji), grafik nieobecności
+// i czas pracy (dawne „Rozliczenia").
 //
 // Stał w Ustawieniach (`/settings?tab=team`) jako jedna sekcja z trzema podwidokami.
 // Zgłoszenie brzmiało „Pracownicy są za głęboko": lista ludzi to praca dzienna, a nie
@@ -28,6 +28,9 @@ import { AttendanceSheetModal } from '../components/worktime/AttendanceSheetModa
 import { pendingCount } from '../components/worktime/settlementFormat';
 import { useEmployees } from '../hooks/useEmployees';
 import { useAttendanceSheets } from '../hooks/useAttendanceSheets';
+import { useLeaveRequestQueue } from '../hooks/useLeaveRequests';
+import { LeaveRequestsTab } from '../components/leave/LeaveRequestsTab';
+import { AbsencesTab } from '../components/leave/AbsencesTab';
 import type { AttendanceSheet } from '../api/attendanceApi';
 import { EMPLOYEES_TABS, employeesTabPath, type EmployeesTab } from '../employeesTabs';
 
@@ -47,12 +50,16 @@ export function EmployeesView({ tab }: EmployeesViewProps) {
 
     const visibleTabs = useMemo(() => EMPLOYEES_TABS.filter(t => can(t.requires)), [can]);
     const canManage = can('EMPLOYEES_MANAGE');
+    const canApprove = can('EMPLOYEES_LEAVES_APPROVE');
 
     // Te same filtry, od których startuje lista zespołu: licznik przy zakładce czyta
     // ten sam wpis cache, zamiast wysyłać drugie żądanie.
     const { pagination } = useEmployees({ search: '', page: 1, limit: TEAM_PAGE_SIZE }, { enabled: canManage });
     const { sheets } = useAttendanceSheets({ enabled: canManage });
     const toApprove = pendingCount(sheets);
+    // Wszystkie oczekujące wnioski w studiu - ten sam wpis cache co domyślny widok kolejki.
+    const leaveQueue = useLeaveRequestQueue('PENDING', { enabled: canApprove });
+    const pendingLeaves = leaveQueue.data?.pendingCount ?? 0;
 
     const [search, setSearch] = useState('');
     const [attendanceOpen, setAttendanceOpen] = useState(false);
@@ -86,6 +93,7 @@ export function EmployeesView({ tab }: EmployeesViewProps) {
 
     const tabs: TabDefinition<EmployeesTab>[] = visibleTabs.map(t => {
         if (t.key === 'team') return { key: t.key, label: t.label, count: pagination?.totalItems };
+        if (t.key === 'leaves') return { key: t.key, label: t.label, count: pendingLeaves > 0 ? pendingLeaves : undefined };
         if (t.key === 'worktime') {
             // Licznik to listy do zatwierdzenia - pusto, gdy nic nie czeka.
             return { key: t.key, label: t.label, count: toApprove > 0 ? toApprove : undefined, flashKey: worktimeFlash };
@@ -96,7 +104,11 @@ export function EmployeesView({ tab }: EmployeesViewProps) {
     const [headerActions, setHeaderActions] = useState<HTMLElement | null>(null);
 
     let content;
-    if (tab === 'worktime') {
+    if (tab === 'leaves') {
+        content = <LeaveRequestsTab />;
+    } else if (tab === 'absences') {
+        content = <AbsencesTab />;
+    } else if (tab === 'worktime') {
         content = (
             <SettlementsSection
                 highlightId={newSheetId}
@@ -129,7 +141,7 @@ export function EmployeesView({ tab }: EmployeesViewProps) {
     return (
         <PageChromeProvider headerActions={headerActions}>
             <Page>
-                <PageHeader title="Pracownicy" subtitle="Zespół, jego konta i czas pracy" />
+                <PageHeader title="Pracownicy" subtitle="Zespół, urlopy i czas pracy" />
 
                 <Toolbar>
                     <TabBar tabs={tabs} activeKey={tab} onChange={goToTab} ariaLabel="Zakładki modułu Pracownicy" />

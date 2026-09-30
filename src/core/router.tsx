@@ -27,7 +27,7 @@ import { ProductListView, ProductDetailView, MobileProductScanView } from "@/mod
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ScrollLockRouteReset } from './components/ScrollLockRouteReset';
 import { RedirectWithParams } from './components/RedirectWithParams';
-import { RequirePermission, HomeRedirect, NoAccessView, ANY_FINANCE, ANY_DASHBOARD } from './permissions';
+import { RequirePermission, HomeRedirect, NoAccessView, ANY_FINANCE, ANY_DASHBOARD, ANY_EMPLOYEES } from './permissions';
 import { NotificationsView } from '@/modules/notifications';
 import type { PermissionRequirement } from './permissions';
 import {DashboardView} from "@/modules/dashboard";
@@ -47,7 +47,7 @@ const MailView = lazyWithRetry(() => import('@/modules/comms/views/MailView'));
 const MailboxConnectView = lazyWithRetry(() => import('@/modules/comms/views/MailboxConnectView'));
 const LeadsView = lazyWithRetry(() => import('@/modules/comms/views/LeadsView'));
 const LeadAnalyticsView = lazyWithRetry(() => import('@/modules/comms/views/LeadAnalyticsView'));
-import { EmployeeDetailView, EmployeesView } from '@/modules/employees';
+import { EmployeeDetailView, EmployeesView, MyLeaveView } from '@/modules/employees';
 import { WorkTimeView } from '@/modules/worktime';
 import { ActivityView } from '@/modules/activity';
 import { SettingsView } from '@/modules/settings';
@@ -398,6 +398,14 @@ export const router = createBrowserRouter([
             element: gatedPage(<ConsentSettingsView />, 'E_SIGNATURES', E_SIGNATURES_BENEFITS, 'CUSTOMERS_VIEW'),
         },
 
+        // ── Urlop (samoobsługa pracownika, bez uprawnienia) ──────────────────
+        // Pracownik jest ustalany z sesji, nie z adresu - konto bez rekordu pracownika
+        // dostaje ekran „nie jest powiązane", a nie cudze dane.
+        {
+            path: '/me/leave',
+            element: page(<MyLeaveView />),
+        },
+
         // ── Czas pracy (self-service dla pracowników z trackWorkTime) ────────
         {
             path: '/worktime',
@@ -416,6 +424,15 @@ export const router = createBrowserRouter([
         {
             path: '/employees',
             element: page(<EmployeesView tab="team" />, 'EMPLOYEES_MANAGE'),
+        },
+        {
+            // Głęboki link z powiadomienia push: `?request={id}` otwiera szufladę wniosku.
+            path: '/employees/leave-requests',
+            element: page(<EmployeesView tab="leaves" />, 'EMPLOYEES_LEAVES_APPROVE'),
+        },
+        {
+            path: '/employees/absences',
+            element: page(<EmployeesView tab="absences" />, ANY_EMPLOYEES),
         },
         {
             path: '/employees/worktime',

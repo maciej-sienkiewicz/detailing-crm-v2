@@ -11,6 +11,7 @@
 //   primary / success  - jedyne wypełnienie w oknie (krok następny); zielony
 //                         wyłącznie dla kroków domykających („Oznacz jako gotowe")
 //   tinted / tintedSuccess - główna akcja SEKCJI: odcień jako tło i obwódka
+//   tintedDanger       - odmowa obok kroku następnego („Odrzuć"): czerwień bez wypełnienia
 //   outline            - akcje drugorzędne
 //   ghost / danger     - w wierszach i obok treści, bez obwódki
 //   onDark             - tylko w ciemnym nagłówku strony
@@ -35,7 +36,8 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ({ variant = 'outline', size = 'md', block, type = 'button', ...rest }, ref) => (
-        <Base ref={ref} type={type} $variant={variant} $size={size} $block={block} {...rest} />
+        // data-variant: priorytet przycisku widoczny w DOM - testy liczą nim wypełnienia w oknie.
+        <Base ref={ref} type={type} $variant={variant} $size={size} $block={block} data-variant={variant} {...rest} />
     ),
 );
 Button.displayName = 'Button';
