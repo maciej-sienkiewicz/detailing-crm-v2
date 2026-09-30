@@ -1,0 +1,11 @@
+import { chromium } from 'playwright-core';
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, locale: 'pl-PL', timezoneId: 'Europe/Warsaw' });
+const p = await ctx.newPage();
+await p.goto('http://localhost:5173/vc/' + process.argv[2], { waitUntil: 'networkidle' }); await p.waitForTimeout(3000);
+await p.evaluate(async () => { for (let y = 0; y < document.body.scrollHeight; y += 500) { window.scrollTo(0, y); await new Promise(r => setTimeout(r, 250)); } window.scrollTo(0, 0); });
+await p.waitForTimeout(1500);
+await p.evaluate(() => { for (const el of document.querySelectorAll('body *')) { const cs = getComputedStyle(el); if (cs.position === 'fixed') { const r = el.getBoundingClientRect(); if (r.width < 90 && r.height < 90) el.style.display = 'none'; } } });
+await p.screenshot({ path: 'shots/vc_full.png', fullPage: true });
+console.log(await p.evaluate(() => [document.body.scrollHeight, document.body.innerText.slice(0, 1500)]));
+await browser.close();

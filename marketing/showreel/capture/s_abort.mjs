@@ -1,0 +1,12 @@
+import { open } from './lib.mjs';
+const { browser, page } = await open({ w: 1600, h: 1000 });
+await page.go('/reservations/46b72064-02c0-489c-bd47-5f93d176b5dc/checkin'); await page.getByText('Dalej').first().waitFor(); await page.waitForTimeout(800);
+await page.getByPlaceholder('np. 45230').fill('12780');
+await page.getByRole('button', { name: /Dalej/ }).click(); await page.waitForTimeout(1200);
+await page.getByRole('button', { name: /Utwórz wizytę/ }).click(); await page.waitForTimeout(2500);
+await page.getByRole('button', { name: 'Przerwij przyjęcie' }).click(); await page.waitForTimeout(1000);
+console.log(await page.evaluate(() => [...document.querySelectorAll('[role=dialog], [role=alertdialog]')].map(d => d.innerText).join('\n--\n').slice(0, 800)));
+const btns = await page.locator('[role=alertdialog] button, [role=dialog] button').allInnerTexts(); console.log(btns);
+await page.getByRole('button', { name: /^Anuluj wizytę/ }).click(); await page.waitForTimeout(800); const c2 = page.getByRole('button', { name: /Anuluj wizytę|Tak|Potwierdź/ }); console.log(await c2.allInnerTexts()); if (await page.getByText('Rezerwacja wraca').count() > 1 || (await c2.count()) > 0) { await c2.last().click().catch(()=>{}); } await page.waitForTimeout(2000);
+console.log(page.url());
+await browser.close();

@@ -1,0 +1,1062 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>DetailBoost Showreel 2</title>
+<style>
+@font-face { font-family: 'InterV'; src: url(a/inter-latin-ext-wght-normal.woff2) format('woff2'); font-weight: 100 900; unicode-range: U+0100-02AF, U+0304, U+0308, U+0329, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'InterV'; src: url(a/inter-latin-wght-normal.woff2) format('woff2'); font-weight: 100 900; unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+:root { --brand: #0ea5e9; --ink: #0f172a; --gold1: #f7efc4; --gold2: #e2b865; --gold3: #b98a36; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+body { font-family: 'InterV', system-ui, sans-serif; color: #fff; -webkit-font-smoothing: antialiased; font-feature-settings: 'cv11', 'ss01'; }
+#stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; background: #05070d; }
+#world { position: absolute; inset: 0; }
+.layer { position: absolute; inset: 0; visibility: hidden; opacity: 0; }
+.full { position: absolute; inset: 0; }
+.bgimg { position: absolute; inset: -60px; background-size: cover; background-position: center; }
+
+/* tło „premium” dla scen z ekranem */
+.darkbg { position: absolute; inset: 0; background:
+  radial-gradient(900px 600px at 78% 30%, rgba(14,165,233,.20), transparent 70%),
+  radial-gradient(800px 700px at 12% 90%, rgba(37,99,235,.16), transparent 70%),
+  radial-gradient(1400px 900px at 50% 50%, #0b1322 0%, #05070d 75%); }
+.gridfloor { position: absolute; left: -50%; right: -50%; top: 52%; height: 140%; transform-origin: 50% 0; transform: rotateX(72deg);
+  background-image: linear-gradient(rgba(56,189,248,.16) 1px, transparent 1px), linear-gradient(90deg, rgba(56,189,248,.16) 1px, transparent 1px);
+  background-size: 90px 90px; -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,.9), transparent 70%); mask-image: linear-gradient(to bottom, rgba(0,0,0,.9), transparent 70%); }
+.persp { position: absolute; inset: 0; perspective: 2000px; perspective-origin: 960px 540px; }
+.rig { position: absolute; inset: 0; transform-style: preserve-3d; transform-origin: 960px 540px; }
+.cam { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+
+/* okno przeglądarki */
+.win { position: relative; width: 1600px; height: 1044px; border-radius: 18px; overflow: hidden; background: #0b1220;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.10), 0 50px 120px rgba(0,0,0,.65), 0 20px 50px rgba(2,132,199,.18); }
+.chrome { height: 44px; background: linear-gradient(#131c2e, #0e1626); display: flex; align-items: center; gap: 9px; padding: 0 18px; border-bottom: 1px solid rgba(255,255,255,.06); }
+.chrome i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+.chrome i:nth-child(1) { background: #ff5f57; } .chrome i:nth-child(2) { background: #febc2e; } .chrome i:nth-child(3) { background: #28c840; }
+.url { margin-left: 22px; height: 28px; flex: 0 0 520px; border-radius: 8px; background: rgba(255,255,255,.07); color: #9fb1c9; font-size: 14px; display: flex; align-items: center; padding: 0 14px; gap: 8px; letter-spacing: .01em; }
+.url b { color: #e2e8f0; font-weight: 500; }
+.screen { position: absolute; left: 0; top: 44px; width: 1600px; height: 1000px; overflow: hidden; background: #eef2f7; }
+.screen img.shot, .tscreen img.shot { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+
+/* tablet */
+.tablet { position: relative; width: 1410px; height: 1068px; border-radius: 58px; background: linear-gradient(145deg, #2a2f3a, #0d1017 60%, #20242d);
+  box-shadow: 0 0 0 2px #3a404c, 0 60px 140px rgba(0,0,0,.7), inset 0 0 0 1px rgba(255,255,255,.08); }
+.tscreen { position: absolute; left: 22px; top: 22px; width: 1366px; height: 1024px; border-radius: 38px; overflow: hidden; background: #f1f3f6; }
+.tcam { position: absolute; left: 21px; top: 50%; width: 7px; height: 7px; margin-top: -3px; border-radius: 50%; background: #1c2230; box-shadow: inset 0 0 0 1.5px #0b0e14; }
+.glare { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(115deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,0) 32%, rgba(255,255,255,0) 70%, rgba(255,255,255,.05) 100%); }
+
+/* kursor i dotyk */
+.cursor { position: absolute; left: 0; top: 0; width: 34px; height: 34px; z-index: 50; visibility: hidden; filter: drop-shadow(0 3px 6px rgba(0,0,0,.35)); }
+.ring { position: absolute; left: 0; top: 0; width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%; border: 3px solid rgba(14,165,233,.9); z-index: 49; visibility: hidden; }
+.touch { position: absolute; left: 0; top: 0; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: rgba(255,255,255,.55); border: 2px solid rgba(255,255,255,.95); box-shadow: 0 6px 20px rgba(15,23,42,.35); z-index: 50; visibility: hidden; }
+.hl { position: absolute; border-radius: 12px; border: 3px solid #0ea5e9; box-shadow: 0 0 0 6px rgba(14,165,233,.18), 0 0 40px rgba(14,165,233,.55); visibility: hidden; z-index: 40; }
+.hl.green { border-color: #16a34a; box-shadow: 0 0 0 6px rgba(22,163,74,.18), 0 0 40px rgba(22,163,74,.5); }
+.pill { position: absolute; z-index: 45; visibility: hidden; padding: 10px 18px; border-radius: 999px; font-weight: 700; font-size: 20px; white-space: nowrap;
+  background: #0f172a; color: #fff; box-shadow: 0 12px 30px rgba(15,23,42,.35); }
+.pill.green { background: #f0fdf4; color: #15803d; border: 1.5px solid #86efac; }
+
+/* typografia kinetyczna */
+.big { position: absolute; left: 0; right: 0; top: 50%; text-align: center; font-weight: 800; letter-spacing: -0.055em; line-height: 1; white-space: nowrap; visibility: hidden; z-index: 90; }
+.big span { display: inline-block; will-change: transform; }
+.corner { position: absolute; left: 70px; top: 62px; z-index: 80; visibility: hidden; padding: 26px 34px 28px; border-radius: 22px;
+  background: rgba(6,10,20,.74); border: 1px solid rgba(255,255,255,.09); backdrop-filter: blur(18px); box-shadow: 0 24px 60px rgba(0,0,0,.4); }
+.corner .num { font-size: 20px; font-weight: 700; color: #38bdf8; letter-spacing: .02em; margin-bottom: 14px; display: flex; align-items: center; gap: 14px; }
+.corner .num::after { content: ''; display: block; width: 56px; height: 2px; background: linear-gradient(90deg, #38bdf8, transparent); }
+.corner .t { font-size: 64px; font-weight: 800; letter-spacing: -0.045em; line-height: 1.02; overflow: hidden; padding-bottom: 6px; }
+.corner .t > span { display: inline-block; }
+.corner .s { margin-top: 14px; font-size: 26px; font-weight: 500; color: #9fb0c8; letter-spacing: -0.01em; max-width: 470px; line-height: 1.35; overflow: hidden; }
+.corner .s > span { display: inline-block; }
+.gold { background: linear-gradient(100deg, #fff6d5 0%, #e9c77b 35%, #c9953f 60%, #f5e3a8 85%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.bluegrad { background: linear-gradient(100deg, #ffffff 0%, #bae6fd 40%, #38bdf8 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.caption { position: absolute; left: 0; right: 0; bottom: 92px; text-align: center; z-index: 85; visibility: hidden; }
+.caption > div { display: inline-block; padding: 18px 34px; border-radius: 20px; background: rgba(8,12,22,.72); border: 1px solid rgba(255,255,255,.10); backdrop-filter: blur(18px); font-size: 40px; font-weight: 700; letter-spacing: -0.03em; box-shadow: 0 20px 60px rgba(0,0,0,.45); }
+
+/* telefon */
+.phone { position: absolute; width: 430px; height: 900px; border-radius: 70px; background: linear-gradient(145deg, #3a3f4a, #0c0e13 40%, #2b303a);
+  box-shadow: 0 0 0 2px #4a505c, inset 0 0 0 1px rgba(255,255,255,.14), 0 80px 160px rgba(0,0,0,.75); }
+.pscreen { position: absolute; left: 14px; top: 14px; right: 14px; bottom: 14px; border-radius: 57px; overflow: hidden; }
+.island { position: absolute; left: 50%; top: 14px; width: 124px; height: 36px; margin-left: -62px; border-radius: 20px; background: #000; z-index: 20; }
+.lock-date { position: absolute; left: 0; right: 0; top: 96px; text-align: center; font-size: 23px; font-weight: 600; color: rgba(255,255,255,.92); letter-spacing: -0.01em; }
+.lock-time { position: absolute; left: 0; right: 0; top: 118px; text-align: center; font-size: 124px; font-weight: 700; letter-spacing: -0.04em; color: rgba(255,255,255,.95); line-height: 1.1; }
+.statusbar { position: absolute; left: 34px; right: 30px; top: 22px; display: flex; justify-content: space-between; font-size: 17px; font-weight: 600; z-index: 21; }
+.noti { position: absolute; left: 12px; right: 12px; border-radius: 26px; padding: 15px 16px 16px; display: grid; grid-template-columns: 44px 1fr; column-gap: 12px;
+  background: rgba(245,245,247,.78); backdrop-filter: blur(24px) saturate(1.6); color: #0b0b0f; box-shadow: 0 10px 30px rgba(0,0,0,.25); visibility: hidden; }
+.noti .ic { width: 44px; height: 44px; border-radius: 11px; overflow: hidden; }
+.noti .hd { display: flex; justify-content: space-between; align-items: baseline; }
+.noti .ttl { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+.noti .tm { font-size: 14px; color: rgba(60,60,67,.6); }
+.noti .bd { font-size: 16.5px; line-height: 1.32; margin-top: 2px; letter-spacing: -0.005em; color: #1c1c1e; }
+.noti .app { font-size: 12.5px; font-weight: 600; color: rgba(60,60,67,.62); letter-spacing: .02em; text-transform: uppercase; margin-bottom: 2px; }
+.mark { background-image: linear-gradient(transparent 62%, rgba(14,165,233,.35) 62%); background-repeat: no-repeat; background-size: 0% 100%; }
+
+/* ekran podpisu (styl PublicSigningView) */
+.sign { position: absolute; inset: 0; background: #f1f3f6; color: #101828; font-size: 17px; }
+.sign .col { position: absolute; left: 183px; width: 1000px; top: 40px; }
+.sign .card { background: #fff; border: 1px solid #e4e7ec; border-radius: 16px; padding: 24px 28px; margin-bottom: 18px; }
+.sign h1 { font-size: 27px; font-weight: 700; letter-spacing: -0.02em; }
+.sign .sub { font-size: 17px; color: #667085; margin-top: 6px; }
+.sign .exp { font-size: 15px; color: #98a2b3; margin-top: 4px; }
+.sign .ct { font-size: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #98a2b3; margin-bottom: 14px; }
+.sign .doc { height: 250px; border: 1px solid #e4e7ec; border-radius: 10px; background: #fafbfc; position: relative; overflow: hidden; padding: 22px 30px; font-size: 13px; color: #344054; }
+.sign .doc h3 { font-size: 17px; font-weight: 800; color: #101828; letter-spacing: -0.01em; }
+.sign .doc .row { display: flex; justify-content: space-between; border-bottom: 1px solid #eef0f3; padding: 7px 0; }
+.sign .doc .row b { color: #101828; font-weight: 600; }
+.sign .decl { display: flex; gap: 14px; align-items: flex-start; font-size: 17px; line-height: 1.45; }
+.sign .cb { flex: 0 0 26px; height: 26px; border-radius: 7px; border: 2px solid #d0d5dd; background: #fff; position: relative; margin-top: 1px; }
+.sign .cbf { position: absolute; inset: -2px; border-radius: 7px; background: #1d4ed8; opacity: 0; display: grid; place-items: center; }
+.sign .pad { margin-top: 18px; height: 250px; border: 1.5px dashed #d0d5dd; border-radius: 14px; background: #fff; position: relative; overflow: hidden; }
+.sign .pad .hint { position: absolute; left: 0; right: 0; bottom: 18px; text-align: center; color: #98a2b3; font-size: 16px; }
+.sign .pad .base { position: absolute; left: 60px; right: 60px; bottom: 58px; border-bottom: 1.5px solid #e4e7ec; }
+.sign .btns { display: flex; gap: 14px; margin-top: 20px; }
+.sign .pbtn { flex: 1; height: 58px; border-radius: 999px; background: #98a2b3; color: #fff; font-size: 19px; font-weight: 700; display: grid; place-items: center; position: relative; overflow: hidden; }
+.sign .pbtn .on { position: absolute; inset: 0; background: #1d4ed8; opacity: 0; display: grid; place-items: center; }
+.sign .sbtn { flex: 1; height: 58px; border-radius: 999px; border: 1.5px solid #e4e7ec; color: #667085; font-size: 18px; font-weight: 600; display: grid; place-items: center; background: #fff; }
+.sign .done { position: absolute; inset: 0; background: #f1f3f6; display: grid; place-items: center; opacity: 0; }
+.sign .done .box { width: 760px; background: #fff; border: 1px solid #e4e7ec; border-radius: 20px; padding: 64px 50px; text-align: center; }
+.sign .done .badge { width: 96px; height: 96px; border-radius: 50%; background: #ecfdf3; color: #067647; display: grid; place-items: center; margin: 0 auto 26px; }
+.sign .done .tt { font-size: 32px; font-weight: 700; letter-spacing: -0.02em; }
+.sign .done .tx { font-size: 19px; color: #667085; margin-top: 12px; line-height: 1.5; }
+.stylus { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; background: rgba(15,23,42,.18); border: 2px solid rgba(15,23,42,.55); visibility: hidden; }
+
+/* KSeF */
+.inv { position: absolute; width: 600px; height: 780px; left: 660px; top: 150px; background: #fff; border-radius: 22px; color: #0f172a; padding: 40px 44px; overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.1), 0 60px 120px rgba(0,0,0,.6); transform-origin: 50% 50%; }
+.inv .top { display: flex; justify-content: space-between; align-items: flex-start; }
+.inv .lbl { font-size: 14px; color: #64748b; font-weight: 600; }
+.inv .no { font-size: 34px; font-weight: 800; letter-spacing: -0.03em; margin-top: 4px; }
+.inv .logo { width: 64px; height: 64px; border-radius: 16px; background: linear-gradient(135deg, #0ea5e9, #2563eb); color: #fff; font-weight: 800; font-size: 24px; display: grid; place-items: center; }
+.inv .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; margin-top: 34px; font-size: 15px; line-height: 1.5; color: #334155; }
+.inv .parties b { display: block; color: #0f172a; font-size: 16px; }
+.inv table { width: 100%; border-collapse: collapse; margin-top: 34px; font-size: 15px; }
+.inv th { text-align: left; color: #64748b; font-weight: 600; font-size: 13px; padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
+.inv td { padding: 14px 0; border-bottom: 1px solid #f1f5f9; }
+.inv .r { text-align: right; }
+.inv .sum { margin-top: 26px; display: grid; grid-template-columns: 1fr auto; row-gap: 8px; font-size: 16px; color: #475569; }
+.inv .sum .tot { font-size: 36px; font-weight: 800; color: #0f172a; letter-spacing: -0.03em; }
+.inv .foot { position: absolute; left: 44px; right: 44px; bottom: 34px; display: flex; justify-content: space-between; font-size: 14px; color: #64748b; }
+.scanline { position: absolute; left: 0; right: 0; height: 90px; top: -90px; background: linear-gradient(to bottom, transparent, rgba(14,165,233,.28) 80%, rgba(56,189,248,.95) 98%, transparent); mix-blend-mode: multiply; }
+.node { position: absolute; left: 1330px; top: 330px; width: 380px; height: 380px; }
+.node .core { position: absolute; left: 70px; top: 70px; width: 240px; height: 240px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #1e3a5f, #0b1627 70%);
+  border: 1.5px solid rgba(56,189,248,.5); box-shadow: 0 0 80px rgba(14,165,233,.35), inset 0 0 40px rgba(14,165,233,.25); display: grid; place-items: center; text-align: center; }
+.node .core b { display: block; font-size: 64px; font-weight: 800; letter-spacing: -0.04em; }
+.node .core span { font-size: 16px; color: #93c5fd; font-weight: 500; }
+.node .orb { position: absolute; inset: 0; border-radius: 50%; border: 1.5px dashed rgba(56,189,248,.35); }
+.node .orb2 { position: absolute; inset: 30px; border-radius: 50%; border: 1px solid rgba(56,189,248,.22); }
+.pkt { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: #7dd3fc; box-shadow: 0 0 18px #38bdf8, 0 0 40px #0ea5e9; visibility: hidden; }
+.okbadge { position: absolute; left: 0; right: 0; top: 380px; text-align: center; visibility: hidden; z-index: 60; }
+.okbadge .b { display: inline-flex; align-items: center; gap: 22px; padding: 26px 46px 26px 30px; border-radius: 999px; background: linear-gradient(135deg, #22c55e, #15803d); font-size: 54px; font-weight: 800; letter-spacing: -0.035em;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.25) inset, 0 30px 90px rgba(22,163,74,.55); }
+.okbadge .b .ck { width: 74px; height: 74px; border-radius: 50%; background: #fff; display: grid; place-items: center; }
+.okbadge .kn { margin-top: 26px; font-size: 22px; color: #86efac; font-weight: 600; letter-spacing: .02em; }
+.okbadge .kn code { font-family: ui-monospace, 'DejaVu Sans Mono', monospace; color: #fff; font-size: 26px; margin-left: 12px; letter-spacing: .03em; }
+.bins { position: absolute; left: 240px; right: 240px; top: 760px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; visibility: hidden; }
+.bin { height: 190px; border-radius: 22px; background: rgba(255,255,255,.05); border: 1.5px solid rgba(255,255,255,.12); padding: 26px 28px; position: relative; }
+.bin .n { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; display: flex; align-items: center; gap: 12px; }
+.bin .n i { width: 14px; height: 14px; border-radius: 50%; display: block; }
+.bin .v { margin-top: 18px; font-size: 44px; font-weight: 800; letter-spacing: -0.035em; font-variant-numeric: tabular-nums; }
+.bin .c { margin-top: 6px; font-size: 18px; color: #94a3b8; }
+.bins-title { position: absolute; left: 240px; top: 700px; font-size: 24px; color: #94a3b8; font-weight: 600; visibility: hidden; }
+.chip { position: absolute; width: 330px; height: 88px; border-radius: 16px; background: #fff; color: #0f172a; padding: 14px 18px; visibility: hidden; box-shadow: 0 20px 50px rgba(0,0,0,.5); z-index: 30; }
+.chip b { display: block; font-size: 20px; font-weight: 800; } .chip span { font-size: 16px; color: #475569; }
+
+/* statystyki: nakładki na płytę */
+.ov { position: absolute; font-family: 'InterV'; color: #0f172a; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.kpi { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; line-height: 33px; }
+.legv { font-size: 11px; color: #94a3b8; line-height: 16.5px; }
+.legp { font-size: 13px; font-weight: 700; line-height: 19.5px; text-align: right; width: 48px; }
+.delta { position: absolute; padding: 4px 10px; border-radius: 999px; background: #f0fdf4; border: 1px solid #86efac; color: #15803d; font-weight: 700; font-size: 14px; visibility: hidden; white-space: nowrap; }
+
+/* biurko i finał */
+.desk { position: absolute; left: -400px; right: -400px; top: 420px; height: 1400px; transform-origin: 50% 0; transform: rotateX(62deg);
+  background: radial-gradient(900px 500px at 50% 30%, #1d2026 0%, #111316 55%, #08090b 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 22%); mask-image: linear-gradient(to bottom, transparent 0%, #000 22%); }
+.deskglow { position: absolute; left: 50%; top: 600px; width: 900px; height: 400px; margin-left: -450px; border-radius: 50%; background: radial-gradient(closest-side, rgba(14,165,233,.35), transparent); opacity: 0; filter: blur(20px); }
+.end-logo { position: absolute; left: 50%; top: 250px; width: 560px; margin-left: -280px; }
+.end-word { position: absolute; left: 0; right: 0; top: 610px; text-align: center; font-size: 112px; font-weight: 800; letter-spacing: -0.055em; }
+.end-tag { position: absolute; left: 0; right: 0; top: 760px; text-align: center; font-size: 40px; font-weight: 600; color: #cbd5e1; letter-spacing: -0.02em; }
+.end-url { position: absolute; left: 0; right: 0; top: 842px; text-align: center; font-size: 28px; font-weight: 600; color: #e9c77b; letter-spacing: .04em; }
+.sweep { position: absolute; inset: 0; background: linear-gradient(105deg, transparent 40%, rgba(255,245,210,.55) 50%, transparent 60%); mix-blend-mode: overlay; }
+
+/* efekty globalne */
+#flash { position: absolute; inset: 0; background: #fff; opacity: 0; z-index: 200; pointer-events: none; }
+#vignette { position: absolute; inset: 0; z-index: 190; pointer-events: none; background: radial-gradient(1300px 800px at 50% 50%, transparent 55%, rgba(0,0,0,.55) 100%); }
+#grain { position: absolute; inset: -50%; z-index: 195; pointer-events: none; opacity: .055; mix-blend-mode: overlay; }
+#black { position: absolute; inset: 0; background: #000; z-index: 210; opacity: 1; }
+.spark { position: absolute; width: 10px; height: 10px; border-radius: 2px; visibility: hidden; z-index: 60; }
+.shock { position: absolute; border-radius: 50%; border: 5px solid #22c55e; visibility: hidden; z-index: 59; }
+
+/* ── film 2 ─────────────────────────────────────────────────────────────────── */
+/* szablony dokumentów */
+.fan { position: absolute; inset: 0; perspective: 1800px; perspective-origin: 1100px 560px; }
+.page { position: absolute; width: 320px; height: 452px; border-radius: 10px; background: #fff; overflow: hidden; transform-origin: 50% 50%;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.14), 0 40px 90px rgba(0,0,0,.6); visibility: hidden; }
+.page img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.page .fill { position: absolute; inset: 0; clip-path: inset(0 0 100% 0); }
+.page .fill img { object-fit: cover; object-position: top; }
+.page .scanbar { position: absolute; left: -10px; right: -10px; height: 70px; top: -70px; background: linear-gradient(to bottom, transparent, rgba(56,189,248,.25) 70%, rgba(125,211,252,.95) 97%, transparent); visibility: hidden; }
+.plabel { position: absolute; width: 320px; text-align: center; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: #e2e8f0; visibility: hidden; }
+.plabel small { display: block; font-size: 16px; font-weight: 500; color: #7dd3fc; margin-top: 6px; letter-spacing: 0; }
+.fchip { position: absolute; z-index: 30; visibility: hidden; padding: 12px 18px; border-radius: 14px; font-size: 20px; font-weight: 700; white-space: nowrap; letter-spacing: -0.01em;
+  background: rgba(8,14,26,.86); border: 1px solid rgba(56,189,248,.45); color: #fff; box-shadow: 0 16px 40px rgba(0,0,0,.45); }
+.fchip span { display: block; font-size: 13px; font-weight: 600; color: #7dd3fc; letter-spacing: .02em; margin-bottom: 3px; }
+
+/* telefon: poczta, SMS, karta wizyty */
+.mail { position: absolute; inset: 0; background: #fff; color: #111827; opacity: 0; }
+.mail .sb { position: absolute; left: 34px; right: 30px; top: 22px; display: flex; justify-content: space-between; font-size: 17px; font-weight: 600; color: #111; z-index: 3; }
+.mail .nav { position: absolute; left: 0; right: 0; top: 60px; height: 44px; padding: 0 18px; display: flex; align-items: center; justify-content: space-between; color: #0a84ff; font-size: 17px; font-weight: 500; background: #fff; z-index: 2; border-bottom: 1px solid #f1f1f4; }
+.mail .body { position: absolute; left: 0; right: 0; top: 104px; padding: 18px 20px 40px; }
+.mail .subj { font-size: 21px; font-weight: 700; line-height: 1.25; letter-spacing: -0.02em; }
+.mail .from { display: flex; gap: 12px; align-items: center; margin-top: 16px; padding-bottom: 14px; border-bottom: 1px solid #eef0f3; }
+.mail .av { width: 42px; height: 42px; border-radius: 50%; background: #0f172a; display: grid; place-items: center; overflow: hidden; flex: 0 0 42px; }
+.mail .av img { width: 34px; }
+.mail .fn { font-size: 16px; font-weight: 700; }
+.mail .fa { font-size: 13.5px; color: #6b7280; margin-top: 1px; }
+.mail .tm { margin-left: auto; font-size: 13.5px; color: #6b7280; align-self: flex-start; margin-top: 3px; }
+.mail .txt { font-size: 15.5px; line-height: 1.5; color: #1f2937; margin-top: 16px; }
+.mail .txt p { margin-bottom: 11px; }
+.mail .foot { margin-top: 14px; padding: 14px; border-radius: 14px; background: linear-gradient(135deg, #0f172a, #1e293b); color: #e2e8f0; display: flex; gap: 12px; align-items: center; }
+.mail .foot img { width: 54px; }
+.mail .foot b { display: block; font-size: 15px; color: #f5e3a8; }
+.mail .foot span { font-size: 12.5px; color: #94a3b8; line-height: 1.4; display: block; }
+.mail .att-h { margin-top: 18px; font-size: 13px; font-weight: 700; color: #6b7280; letter-spacing: .04em; text-transform: uppercase; }
+.mail .att { display: flex; align-items: center; gap: 12px; margin-top: 10px; padding: 11px 12px; border: 1px solid #e5e7eb; border-radius: 12px; }
+.mail .att .fi { width: 36px; height: 42px; border-radius: 6px; display: grid; place-items: center; font-size: 11px; font-weight: 800; color: #fff; flex: 0 0 36px; }
+.mail .att b { font-size: 14.5px; font-weight: 600; display: block; }
+.mail .att span { font-size: 12.5px; color: #6b7280; }
+.mail .thumbs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-top: 10px; }
+.mail .thumbs img { width: 100%; height: 66px; object-fit: cover; border-radius: 9px; display: block; }
+.vcard { position: absolute; inset: 0; background: #f1f5f9; opacity: 0; overflow: hidden; }
+.vcard img { position: absolute; left: 0; top: 0; width: 100%; }
+.vcard .sbw { position: absolute; left: 0; right: 0; top: 0; height: 58px; background: linear-gradient(#f1f5f9 70%, rgba(241,245,249,0)); z-index: 2; }
+.vcard .sb { position: absolute; left: 34px; right: 30px; top: 22px; display: flex; justify-content: space-between; font-size: 17px; font-weight: 600; color: #111; z-index: 3; }
+.ptouch { position: absolute; left: 0; top: 0; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: rgba(15,23,42,.18); border: 2px solid rgba(15,23,42,.45); z-index: 30; visibility: hidden; }
+
+/* tablet pionowy */
+.ptab { position: relative; width: 748px; height: 1050px; border-radius: 50px; background: linear-gradient(145deg, #2a2f3a, #0d1017 60%, #20242d);
+  box-shadow: 0 0 0 2px #3a404c, 0 60px 140px rgba(0,0,0,.7), inset 0 0 0 1px rgba(255,255,255,.08); }
+.ptab .scr { position: absolute; left: 24px; top: 24px; width: 700px; height: 1002px; border-radius: 30px; overflow: hidden; background: #f1f3f6; }
+.ptab .scr img.shot { position: absolute; left: 0; top: 0; width: 700px; height: 1002px; }
+.ptab .tc { position: absolute; left: 50%; top: 10px; width: 7px; height: 7px; margin-left: -3px; border-radius: 50%; background: #1c2230; }
+
+/* plansza końcowa: przewijana lista możliwości */
+.brand { position: absolute; left: 130px; top: 0; width: 640px; }
+.brand img { position: absolute; left: 0; top: 330px; width: 320px; }
+.brand .w { position: absolute; left: 0; top: 520px; font-size: 96px; font-weight: 800; letter-spacing: -0.055em; white-space: nowrap; }
+.brand .g { position: absolute; left: 4px; top: 640px; font-size: 34px; font-weight: 600; color: #cbd5e1; letter-spacing: -0.02em; white-space: nowrap; }
+.brand .u { position: absolute; left: 4px; top: 706px; font-size: 26px; font-weight: 600; color: #e9c77b; letter-spacing: .04em; }
+.fwrap { position: absolute; left: 880px; top: 0; width: 900px; height: 1080px; overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 4%, #000 30%, #000 70%, transparent 96%); mask-image: linear-gradient(to bottom, transparent 4%, #000 30%, #000 70%, transparent 96%); }
+.flist { position: absolute; left: 30px; top: 0; width: 840px; }
+.fc { position: absolute; left: 0; width: 840px; height: 128px; border-radius: 26px; padding: 0 30px; display: flex; align-items: center; gap: 26px; transform-origin: 30% 50%;
+  background: linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.025)); border: 1.5px solid rgba(255,255,255,.1); }
+.fc .ic { width: 72px; height: 72px; border-radius: 20px; display: grid; place-items: center; flex: 0 0 72px; background: rgba(56,189,248,.12); border: 1px solid rgba(56,189,248,.35); color: #7dd3fc; }
+.fc .ic svg { width: 36px; height: 36px; }
+.fc .tt { font-size: 36px; font-weight: 800; letter-spacing: -0.035em; line-height: 1.1; }
+.fc .ds { font-size: 21px; color: #94a3b8; margin-top: 6px; letter-spacing: -0.01em; }
+.fc .th { margin-left: auto; width: 150px; height: 94px; border-radius: 12px; overflow: hidden; flex: 0 0 150px; border: 1px solid rgba(255,255,255,.14); }
+.fc .th img { width: 100%; height: 100%; object-fit: cover; object-position: 30% 20%; }
+.fc.more { background: none; border: 0; justify-content: flex-start; }
+.fc.more .tt { font-size: 92px; letter-spacing: -0.055em; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <filter id="mblur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur id="mblurStd" stdDeviation="0 0"/></filter>
+  <symbol id="arrow" viewBox="0 0 24 24"><path d="M4 2 L4 20 L9 15.5 L12.2 22.5 L15.3 21.1 L12.2 14.3 L19 14.3 Z" fill="#fff" stroke="#0f172a" stroke-width="1.4" stroke-linejoin="round"/></symbol>
+</svg>
+<div id="stage">
+ <div id="world">
+
+  <!-- 0: INTRO -->
+  <div class="layer" id="L0">
+    <div class="bgimg" id="introImg" style="background-image:url(a/p911garage.jpg)"></div>
+    <div class="full" style="background:radial-gradient(1200px 800px at 50% 55%, rgba(0,0,0,.35), rgba(0,0,0,.88))"></div>
+    <div class="full" id="introStreak" style="background:linear-gradient(100deg, transparent 42%, rgba(186,230,253,.22) 50%, transparent 58%); transform:translateX(-120%)"></div>
+  </div>
+
+  <div class="layer" id="LBG">
+    <div class="darkbg"></div>
+    <div class="persp"><div class="gridfloor" id="grid"></div></div>
+  </div>
+
+  <!-- 1: REZERWACJA -->
+  <div class="layer" id="L1">
+    <div class="persp"><div class="rig" id="rig1"><div class="cam" id="cam1">
+      <div class="win">
+        <div class="chrome"><i></i><i></i><i></i><div class="url">🔒 <b>detailboost.pl</b>/calendar</div></div>
+        <div class="screen">
+          <img class="shot" id="img1" src="a/cal2/000_calendar.jpg">
+          <div class="hl" id="hl1"></div>
+          <div class="ring" id="ring1"></div>
+          <svg class="cursor" id="cur1" viewBox="0 0 24 24"><use href="#arrow"/></svg>
+        </div>
+      </div>
+    </div></div></div>
+  </div>
+
+  <!-- 2: SZABLONY -->
+  <div class="layer" id="L2">
+    <div class="fan" id="fan">
+      <div class="page" id="pg0"><img src="a/tpl/protokol_przyjecia_pojazdu.jpg"><div class="fill" id="pgFill"><img src="a/tpl_filled.jpg"></div><div class="scanbar" id="pgScan"></div></div>
+      <div class="page" id="pg1"><img src="a/tpl/protokol_wydania_pojazdu.jpg"></div>
+      <div class="page" id="pg2"><img src="a/tpl/zgody_marketingowe.jpg"></div>
+      <div class="page" id="pg3"><img src="a/tpl/oswiadczenie_rodo.jpg"></div>
+    </div>
+    <div class="plabel" id="pl0">Protokół przyjęcia<small>przy każdej wizycie</small></div>
+    <div class="plabel" id="pl1">Protokół wydania<small>przy każdej wizycie</small></div>
+    <div class="plabel" id="pl2">Zgody marketingowe<small>raz na klienta</small></div>
+    <div class="plabel" id="pl3">Klauzula RODO<small>raz na klienta</small></div>
+    <div class="fchip" id="fc0"><span>Numer wizyty</span>VIS-2026-00002</div>
+    <div class="fchip" id="fc1"><span>Pojazd</span>Porsche 911 Carrera 4S, GD99999</div>
+    <div class="fchip" id="fc2"><span>Klient</span>Piotr Wiśniewski</div>
+    <div class="fchip" id="fc3"><span>Zakres usług</span>PPF, ceramika IGL, szyby</div>
+  </div>
+
+  <!-- 3: PRZYJĘCIE -->
+  <div class="layer" id="L3">
+    <div class="persp"><div class="rig" id="rig3"><div class="cam" id="cam3">
+      <div class="win">
+        <div class="chrome"><i></i><i></i><i></i><div class="url">🔒 <b>detailboost.pl</b>/reservations/46b72064…/checkin</div></div>
+        <div class="screen">
+          <img class="shot" id="img3" src="a/ci/003_photos.jpg">
+          <div class="hl" id="hl3"></div>
+          <div class="ring" id="ring3" style="border-color:rgba(220,38,38,.9)"></div>
+          <div class="ring" id="ring3b"></div>
+          <svg class="cursor" id="cur3" viewBox="0 0 24 24"><use href="#arrow"/></svg>
+        </div>
+      </div>
+    </div></div></div>
+  </div>
+
+  <!-- 4: TELEFON KLIENTA -->
+  <div class="layer" id="L4">
+    <div class="bgimg" id="phBg" style="background-image:url(a/carlight.jpg); filter: blur(14px) brightness(.4) saturate(1.2)"></div>
+    <div class="full" style="background:radial-gradient(900px 700px at 55% 50%, transparent, rgba(0,0,0,.72))"></div>
+    <div class="persp"><div class="rig" id="rig4">
+      <div class="phone" id="phone4" style="left:745px; top:90px">
+        <div class="pscreen" id="ps4" style="background: radial-gradient(500px 700px at 30% 20%, #1d4ed8 0%, #0b1a3d 45%, #05070d 100%)">
+          <div class="statusbar"><span>10:41</span><span>▮▮▮ 5G</span></div>
+          <div class="lock-date">środa, 30 września</div>
+          <div class="lock-time">10:41</div>
+          <div class="noti" id="nMail" style="top:330px">
+            <div class="ic" style="background:linear-gradient(#5ab0ff,#1a73e8); display:grid; place-items:center">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+            </div>
+            <div><div class="app">Poczta</div><div class="hd"><span class="ttl">Studio Połysk</span><span class="tm">teraz</span></div>
+              <div class="bd">Potwierdzenie przyjęcia pojazdu – Porsche 911 Carrera 4S (wizyta VIS-2026-00002)</div></div>
+          </div>
+          <div class="mail" id="mail">
+            <div class="sbw" style="position:absolute; left:0; right:0; top:0; height:60px; background:#fff; z-index:2"></div><div class="sb"><span>10:41</span><span>▮▮▮ 5G</span></div>
+            <div class="nav"><span>‹ Odebrane</span><span style="color:#6b7280; font-size:15px">1 z 12</span></div>
+            <div class="body" id="mailBody">
+              <div class="subj">Potwierdzenie przyjęcia pojazdu – Porsche 911 Carrera 4S (wizyta VIS-2026-00002)</div>
+              <div class="from"><div class="av"><img src="a/logo.png"></div><div><div class="fn">Studio Połysk</div><div class="fa">do: Piotr Wiśniewski</div></div><div class="tm">10:41</div></div>
+              <div class="txt">
+                <p>Szanowny/a Piotr Wiśniewski,</p>
+                <p>Dziękujemy za powierzenie nam Państwa pojazdu. Niniejszym potwierdzamy przyjęcie pojazdu Porsche 911 Carrera 4S GD99999 do naszego serwisu.</p>
+                <p>Numer wizyty: <b>VIS-2026-00002</b></p>
+                <p style="margin:0">Pozdrawiamy</p>
+              </div>
+              <div class="foot" id="mailFoot"><img src="a/logo.png"><div><b>Studio Połysk</b><span>ul. Grunwaldzka 212, 80-266 Gdańsk</span><span>+48 600 700 800, biuro@studiopolysk.pl</span></div></div>
+              <div class="att-h">6 załączników</div>
+              <div class="att" id="at0"><div class="fi" style="background:#dc2626">PDF</div><div><b>Protokół przyjęcia pojazdu</b><span>dokument wizyty</span></div></div>
+              <div class="att" id="at1"><div class="fi" style="background:#0ea5e9"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M5 16l2-6h10l2 6M4 16h16v3H4zM7 19v1M17 19v1"/></svg></div><div><b>Model uszkodzeń pojazdu</b><span>3 zaznaczone miejsca</span></div></div>
+              <div class="thumbs" id="thumbs"><img src="a/ph/p0.jpg"><img src="a/ph/p1.jpg"><img src="a/ph/p2.jpg"><img src="a/ph/p3.jpg"></div>
+            </div>
+          </div>
+          <div class="vcard" id="vcard"><div class="sbw"></div><div class="sb"><span>10:42</span><span>▮▮▮ 5G</span></div><img id="vcImg" src="a/vc_full.jpg"></div>
+          <div class="noti" id="nSms" style="top:52px; z-index:10">
+            <div class="ic" style="background:linear-gradient(#5df36f,#1fbf3a); display:grid; place-items:center">
+              <svg width="28" height="28" viewBox="0 0 24 24"><path d="M12 3C6.5 3 2 6.6 2 11c0 2.4 1.3 4.6 3.5 6.1L4.6 21l4.1-2.2c1 .3 2.1.4 3.3.4 5.5 0 10-3.6 10-8.1S17.5 3 12 3z" fill="#fff"/></svg>
+            </div>
+            <div><div class="app">Wiadomości</div><div class="hd"><span class="ttl">Polysk</span><span class="tm">teraz</span></div>
+              <div class="bd">Karta Twojej wizyty VIS-2026-00002 (Porsche 911 Carrera 4S GD99999) jest dostępna tutaj: <span style="color:#0a84ff">detailboost.pl/vc/BT3_lXM9…</span></div></div>
+          </div>
+          <div class="island"></div>
+          <div class="ptouch" id="touch4"></div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- 5: PODPIS NA TABLECIE -->
+  <div class="layer" id="L5">
+    <div class="persp"><div class="rig" id="rig5"><div class="cam" id="cam5">
+      <div class="ptab"><div class="scr">
+        <img class="shot" id="img5" src="a/sign/000_top.jpg">
+        <div class="ptouch" id="touch5"></div>
+        <div class="glare"></div>
+      </div><div class="tc"></div></div>
+    </div></div></div>
+  </div>
+
+  <!-- 6: ODHACZANIE USŁUG -->
+  <div class="layer" id="L6">
+    <div class="persp"><div class="rig" id="rig6"><div class="cam" id="cam6">
+      <div class="win">
+        <div class="chrome"><i></i><i></i><i></i><div class="url">🔒 <b>detailboost.pl</b>/visits/VIS-2026-00002</div></div>
+        <div class="screen">
+          <img class="shot" id="img6" src="a/v3/000_visit.jpg">
+          <div class="hl green" id="hl6"></div>
+          <div class="ring" id="ring6" style="border-color:rgba(34,197,94,.95)"></div>
+          <svg class="cursor" id="cur6" viewBox="0 0 24 24"><use href="#arrow"/></svg>
+        </div>
+      </div>
+    </div></div></div>
+  </div>
+
+  <!-- 7: WYDANIE -->
+  <div class="layer" id="L7">
+    <div class="persp"><div class="rig" id="rig7"><div class="cam" id="cam7">
+      <div class="win">
+        <div class="chrome"><i></i><i></i><i></i><div class="url">🔒 <b>detailboost.pl</b>/visits/VIS-2026-00002</div></div>
+        <div class="screen">
+          <img class="shot" id="img7b" src="a/v4/006_visit_done.jpg">
+          <img class="shot" id="img7" src="a/v4/000_ready_page.jpg">
+          <div class="hl green" id="hl7"></div>
+          <div class="pill green" id="pill7" style="font-size:18px">Faktura trafi do KSeF automatycznie</div>
+          <div class="ring" id="ring7" style="border-color:rgba(34,197,94,.95)"></div>
+          <svg class="cursor" id="cur7" viewBox="0 0 24 24"><use href="#arrow"/></svg>
+          <div id="press7" style="position:absolute; border-radius:999px; background:rgba(5,46,22,.35); visibility:hidden"></div>
+        </div>
+      </div>
+    </div></div></div>
+  </div>
+
+  <!-- 8: KSeF -->
+  <div class="layer" id="L8">
+    <div class="darkbg"></div>
+    <div class="persp"><div class="gridfloor" id="grid8"></div></div>
+    <svg class="full" id="beam" width="1920" height="1080" style="position:absolute; left:0; top:0">
+      <path id="beamPath" d="M 870 520 C 1020 360, 1200 380, 1335 520" stroke="rgba(56,189,248,.55)" stroke-width="3" fill="none" stroke-dasharray="6 10"/>
+    </svg>
+    <div class="node" id="node"><div class="orb" id="orb"></div><div class="orb2"></div><div class="core" id="core"><div><b>KSeF</b><span>Krajowy System e-Faktur</span></div></div></div>
+    <div class="inv" id="inv" style="padding:36px 40px">
+      <div class="top"><div><div class="lbl">Faktura VAT</div><div class="no">FV/2026/0002</div><div class="lbl" style="margin-top:6px; font-weight:500">Data wystawienia: 30.09.2026</div></div><div class="logo">SP</div></div>
+      <div class="parties" style="margin-top:26px">
+        <div><div class="lbl">Sprzedawca</div><b>Studio Połysk</b>ul. Grunwaldzka 212<br>80-266 Gdańsk<br>NIP 584-273-91-45</div>
+        <div><div class="lbl">Nabywca</div><b>Piotr Wiśniewski</b>Konsument</div>
+      </div>
+      <table style="margin-top:24px; font-size:14px"><tr><th>Usługa</th><th class="r">Netto</th><th class="r">VAT</th><th class="r">Brutto</th></tr>
+        <tr><td style="padding:11px 0"><b>Oklejanie PPF – pełny przód</b></td><td class="r">2845,53</td><td class="r">23%</td><td class="r"><b>3500,00</b></td></tr>
+        <tr><td style="padding:11px 0"><b>Powłoka ceramiczna IGL Eclipse</b></td><td class="r">2024,39</td><td class="r">23%</td><td class="r"><b>2490,00</b></td></tr>
+        <tr><td style="padding:11px 0"><b>Impregnacja szyb nano</b></td><td class="r">249,00</td><td class="r">23%</td><td class="r"><b>306,27</b></td></tr></table>
+      <div class="sum" style="margin-top:18px"><span>Netto</span><span class="r">5118,92 zł</span><span>VAT 23%</span><span class="r">1177,35 zł</span><span style="align-self:end; color:#0f172a; font-weight:700">Do zapłaty</span><span class="tot">6296,27 zł</span></div>
+      <div class="foot"><span>Zapłacono kartą</span><span id="invStatus">Wysyłanie do KSeF</span></div>
+      <div style="position:absolute; left:0; bottom:0; height:6px; width:100%; background:#e2e8f0"><div id="invBar" style="height:100%; width:0; background:linear-gradient(90deg,#0ea5e9,#22c55e)"></div></div>
+      <div class="scanline" id="scan"></div>
+    </div>
+    <div class="pkt" id="pk0"></div><div class="pkt" id="pk1"></div><div class="pkt" id="pk2"></div><div class="pkt" id="pk3"></div><div class="pkt" id="pk4"></div>
+    <div class="okbadge" id="ok"><div class="b"><div class="ck"><svg width="44" height="44" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#16a34a" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>Integracja KSeF – Sukces</div>
+      <div class="kn">Numer KSeF<code id="ksefNo">5842739145-20260930-3C8E51A07D92-1B</code></div></div>
+  </div>
+
+  <!-- 8b: FINANSE -->
+  <div class="layer" id="L8b">
+    <div class="persp"><div class="rig" id="rig8b"><div class="cam" id="cam8b">
+      <div class="win">
+        <div class="chrome"><i></i><i></i><i></i><div class="url">🔒 <b>detailboost.pl</b>/finance</div></div>
+        <div class="screen"><img class="shot" src="a/finance2.jpg"><div class="hl green" id="hl8b"></div></div>
+      </div>
+    </div></div></div>
+  </div>
+
+  <!-- END: przewijana lista możliwości -->
+  <div class="layer" id="LE" style="background:#03050a">
+    <div class="full" style="background:radial-gradient(900px 700px at 22% 45%, rgba(201,149,63,.16), transparent 70%), radial-gradient(900px 800px at 78% 50%, rgba(14,165,233,.12), transparent 70%)"></div>
+    <div class="brand" id="brand">
+      <img id="bLogo" src="a/logo.png">
+      <div class="w" id="bWord">DetailBoost</div>
+      <div class="g" id="bTag">Twoje studio. Na autopilocie.</div>
+      <div class="u" id="bUrl">detailboost.pl</div>
+    </div>
+    <div class="fwrap" id="fwrap"><div class="flist" id="flist"></div></div>
+  </div>
+
+  <div id="type"></div>
+  <div id="sparks"></div>
+ </div>
+ <canvas id="grain" width="1920" height="1080" style="width:3840px; height:2160px"></canvas>
+ <div id="vignette"></div>
+ <div id="flash"></div>
+ <div id="black"></div>
+</div>
+
+<script src="a/gsap.min.js"></script>
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// Deterministyczna oś czasu: render klatka po klatce woła window.seek(t).
+// Wszystkie czasy w sekundach, 120 BPM (takt = 2 s) — te same liczby są w music.py.
+// ─────────────────────────────────────────────────────────────────────────────
+gsap.ticker.lagSmoothing(0);
+const T = gsap.timeline({ paused: true, defaults: { ease: 'power3.out' } });
+const $ = s => document.querySelector(s);
+const cams = [];
+const appliers = [];
+let seed = 7; const rnd = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+
+// widoczność warstw
+function on(el, t0, t1, fin = 0, fout = 0) {
+  el = typeof el === 'string' ? $(el) : el;
+  if (fin) { T.set(el, { visibility: 'visible' }, t0); T.fromTo(el, { opacity: 0 }, { opacity: 1, duration: fin, ease: 'none', immediateRender: false }, t0); }
+  else T.set(el, { visibility: 'visible', opacity: 1 }, t0);
+  if (t1 != null) {
+    if (fout) T.to(el, { opacity: 0, duration: fout, ease: 'none' }, t1 - fout);
+    T.set(el, { visibility: 'hidden', opacity: 0 }, t1);
+  }
+}
+
+// kamera nad ekranem (okno lub tablet): patrzy na punkt (px,py) w układzie ekranu
+class Cam {
+  constructor(rig, cam, state) { this.rig = $(rig); this.cam = $(cam); this.s = Object.assign({ px: 800, py: 522, z: 1, rx: 0, ry: 0, rz: 0, ox: 0, oy: 0, shake: 0 }, state); cams.push(this); }
+  apply(t) {
+    const s = this.s;
+    const sx = s.shake ? Math.sin(t * 91) * s.shake + Math.sin(t * 57) * s.shake * .6 : 0;
+    const sy = s.shake ? Math.cos(t * 83) * s.shake * .8 : 0;
+    this.cam.style.transform = `translate(${960 + s.ox + sx - s.px * s.z}px, ${540 + s.oy + sy - s.py * s.z}px) scale(${s.z})`;
+    this.rig.style.transform = `rotateX(${s.rx}deg) rotateY(${s.ry}deg) rotateZ(${s.rz}deg)`;
+  }
+  to(t, dur, vars, ease = 'power3.inOut') { T.to(this.s, { ...vars, duration: dur, ease }, t); }
+  set(t, vars) { T.set(this.s, vars, t); }
+}
+const WIN_Y = 44; // pasek przeglądarki
+
+// podmiana klatek zrzutów (flipbook)
+function frames(img, list) { for (const [t, src] of list) T.set(img, { attr: { src } }, t); }
+
+// kursor: ruch i klik
+// współrzędne w układzie ekranu (zrzutu); czubek strzałki trafia w punkt
+const TIP = [5.7, 2.8];
+function cursorPath(cur, pts) {
+  cur = $(cur);
+  T.set(cur, { visibility: 'visible', x: pts[0][1] - TIP[0], y: pts[0][2] - TIP[1] }, pts[0][0]);
+  for (let i = 1; i < pts.length; i++) T.to(cur, { x: pts[i][1] - TIP[0], y: pts[i][2] - TIP[1], duration: pts[i][0] - pts[i - 1][0], ease: 'power2.inOut' }, pts[i - 1][0]);
+}
+function click(cur, ring, t, x, y) {
+  T.to(cur, { scale: .82, duration: .06, ease: 'power2.in', transformOrigin: '10% 5%' }, t - .06);
+  T.to(cur, { scale: 1, duration: .15 }, t);
+  const r = $(ring);
+  T.set(r, { visibility: 'visible', x, y, scale: .2, opacity: 1 }, t);
+  T.to(r, { scale: 1.6, opacity: 0, duration: .45, ease: 'power2.out' }, t);
+  T.set(r, { visibility: 'hidden' }, t + .46);
+}
+function tap(el, t, x, y) {
+  el = $(el);
+  T.to(el, { scale: .78, duration: .08, ease: 'power2.in' }, t - .08);
+  T.to(el, { scale: 1, duration: .2 }, t);
+}
+function hl(el, t0, t1, box) {
+  el = $(el);
+  T.set(el, { visibility: 'visible', left: box[0], top: box[1], width: box[2], height: box[3], opacity: 0, scale: 1.12 }, t0);
+  T.to(el, { opacity: 1, scale: 1, duration: .35, ease: 'back.out(2)' }, t0);
+  if (t1) { T.to(el, { opacity: 0, duration: .25 }, t1 - .25); T.set(el, { visibility: 'hidden' }, t1); }
+}
+
+// ─── typografia kinetyczna ───────────────────────────────────────────────────
+function splitSpans(text) { return [...text].map(c => c === ' ' ? '<span>&nbsp;</span>' : `<span>${c}</span>`).join(''); }
+function bigWord(text, t0, t1, opt = {}) {
+  const el = document.createElement('div');
+  el.className = 'big' + (opt.cls ? ' ' + opt.cls : '');
+  el.style.fontSize = (opt.size || 190) + 'px';
+  el.style.marginTop = -(opt.size || 190) * .55 + (opt.dy || 0) + 'px';
+  el.innerHTML = splitSpans(text);
+  if (opt.cls && /gold|bluegrad/.test(opt.cls)) { el.querySelectorAll('span').forEach(s => s.className = opt.cls); el.classList.remove('gold', 'bluegrad'); }
+  if (opt.band) {
+    const b = document.createElement('div');
+    b.style.cssText = `position:absolute; left:0; right:0; top:${540 + (opt.dy || 0) - (opt.size || 190) * 1.05}px; height:${(opt.size || 190) * 1.5}px; z-index:89; visibility:hidden;
+      background:linear-gradient(to bottom, transparent, rgba(4,7,14,.82) 28%, rgba(4,7,14,.82) 72%, transparent)`;
+    $('#type').appendChild(b);
+    T.set(b, { visibility: 'visible' }, t0); T.fromTo(b, { opacity: 0 }, { opacity: 1, duration: .2, immediateRender: false }, t0);
+    if (t1 != null) { T.to(b, { opacity: 0, duration: .28 }, t1 - .28); T.set(b, { visibility: 'hidden' }, t1); }
+  }
+  $('#type').appendChild(el);
+  const ch = el.querySelectorAll('span');
+  T.set(el, { visibility: 'visible', opacity: 1 }, t0);
+  if (opt.style === 'pop') {
+    T.fromTo(el, { scale: 1.35, filter: 'blur(18px)', opacity: 0 }, { scale: 1, filter: 'blur(0px)', opacity: 1, duration: .16, ease: 'power3.out', immediateRender: false }, t0);
+  } else {
+    T.fromTo(ch, { yPercent: 115, rotateX: -70, opacity: 0 }, { yPercent: 0, rotateX: 0, opacity: 1, duration: .55, stagger: .022, ease: 'expo.out', immediateRender: false }, t0);
+    T.fromTo(el, { scale: 1.12 }, { scale: 1, duration: 1.2, ease: 'power2.out', immediateRender: false }, t0);
+  }
+  if (t1 != null) {
+    if (opt.out === 'cut') T.set(el, { visibility: 'hidden' }, t1);
+    else { T.to(el, { scale: .86, opacity: 0, filter: 'blur(14px)', duration: .28, ease: 'power2.in' }, t1 - .28); T.set(el, { visibility: 'hidden' }, t1); }
+  }
+  return el;
+}
+function corner(num, title, sub, t0, t1) {
+  const el = document.createElement('div');
+  el.className = 'corner';
+  el.innerHTML = `<div class="num">${num}</div><div class="t"><span>${title}</span></div><div class="s"><span>${sub}</span></div>`;
+  $('#type').appendChild(el);
+  // stan początkowy WSZYSTKICH części w chwili pokazania — inaczej tytuł i podpis
+  // mignęłyby gotowe przez 3–9 klatek, zanim ruszy ich animacja wjazdu
+  const numEl = el.querySelector('.num'), tt = el.querySelector('.t > span'), ss = el.querySelector('.s > span');
+  T.set(el, { visibility: 'visible', opacity: 1, x: 0 }, t0);
+  T.set(numEl, { x: -40, opacity: 0 }, t0); T.set(tt, { yPercent: 110 }, t0); T.set(ss, { yPercent: 110, opacity: 0 }, t0);
+  T.fromTo(el, { clipPath: 'inset(0 100% 0 0 round 22px)' }, { clipPath: 'inset(0 0% 0 0 round 22px)', duration: .45, ease: 'expo.out', immediateRender: false }, t0);
+  T.to(numEl, { x: 0, opacity: 1, duration: .5, ease: 'expo.out' }, t0);
+  T.to(tt, { yPercent: 0, duration: .6, ease: 'expo.out' }, t0 + .05);
+  T.to(ss, { yPercent: 0, opacity: 1, duration: .6, ease: 'expo.out' }, t0 + .15);
+  if (t1 != null) { T.to(el, { opacity: 0, x: -30, duration: .3, ease: 'power2.in' }, t1 - .3); T.set(el, { visibility: 'hidden' }, t1); }
+  return el;
+}
+function caption(text, t0, t1) {
+  const el = document.createElement('div');
+  el.className = 'caption'; el.innerHTML = `<div>${text}</div>`;
+  $('#type').appendChild(el);
+  T.set(el, { visibility: 'visible' }, t0);
+  T.fromTo(el.firstChild, { y: 40, opacity: 0, scale: .96 }, { y: 0, opacity: 1, scale: 1, duration: .5, ease: 'expo.out', immediateRender: false }, t0);
+  T.to(el.firstChild, { y: 20, opacity: 0, duration: .25, ease: 'power2.in' }, t1 - .25);
+  T.set(el, { visibility: 'hidden' }, t1);
+}
+
+// ─── efekty ──────────────────────────────────────────────────────────────────
+const blurState = { v: 0 };
+function whip(t, dur = .42, peak = 70) {
+  T.to(blurState, { v: peak, duration: dur / 2, ease: 'power2.in' }, t - dur / 2);
+  T.to(blurState, { v: 0, duration: dur / 2, ease: 'power2.out' }, t);
+}
+function flash(t, peak = .85, dur = .35) {
+  T.set('#flash', { opacity: peak }, t);
+  T.to('#flash', { opacity: 0, duration: dur, ease: 'power2.out' }, t);
+}
+const shakeState = { v: 0 };
+function shake(t, amp = 14, dur = .45) { T.set(shakeState, { v: amp }, t); T.to(shakeState, { v: 0, duration: dur, ease: 'power2.out' }, t); }
+function burst(t, cx, cy, colors, n = 34, spread = 520) {
+  const box = $('#sparks');
+  for (let i = 0; i < n; i++) {
+    const s = document.createElement('div'); s.className = 'spark';
+    s.style.background = colors[i % colors.length];
+    const sz = 6 + rnd() * 12; s.style.width = s.style.height = sz + 'px';
+    box.appendChild(s);
+    const a = rnd() * Math.PI * 2, d = spread * (.35 + rnd() * .65);
+    T.set(s, { visibility: 'visible', left: cx, top: cy, x: 0, y: 0, rotation: 0, opacity: 1 }, t);
+    T.to(s, { x: Math.cos(a) * d, y: Math.sin(a) * d * .8 + 60, rotation: rnd() * 540, duration: .9 + rnd() * .4, ease: 'expo.out' }, t);
+    T.to(s, { opacity: 0, duration: .35 }, t + .8);
+    T.set(s, { visibility: 'hidden' }, t + 1.3);
+  }
+  for (let k = 0; k < 2; k++) {
+    const r = document.createElement('div'); r.className = 'shock'; box.appendChild(r);
+    T.set(r, { visibility: 'visible', left: cx - 50, top: cy - 50, width: 100, height: 100, scale: .2, opacity: 1, borderColor: colors[0] }, t + k * .08);
+    T.to(r, { scale: 9 + k * 3, opacity: 0, borderWidth: 1, duration: .8, ease: 'expo.out' }, t + k * .08);
+    T.set(r, { visibility: 'hidden' }, t + .9 + k * .08);
+  }
+}
+const fmt = (v, dec = 0) => { const s = v.toFixed(dec).replace('.', ','); const [i, d] = s.split(','); const ii = i.length > 4 ? i.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') : i; return d ? ii + ',' + d : ii; };
+
+// ═════════════════════════════════════════════════════════════════════════════
+// FILM 2: od rezerwacji do faktury w KSeF.
+// Sceny (s): intro 0–4, rezerwacja 4–12, szablony 12–16, przyjęcie 16–20,
+// e-mail i SMS 20–26, podpis 26–32, usługi 32–36, wydanie i KSeF 36–48,
+// plansza z możliwościami 48–60. Te same liczby są w music2.py.
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ─── INTRO (0–4) ────────────────────────────────────────────────────────────
+T.set('#black', { opacity: 1 }, 0);
+T.to('#black', { opacity: 0, duration: .45, ease: 'none' }, 0.05);
+on('#L0', 0, 4);
+T.fromTo('#introImg', { scale: 1.22, x: 40 }, { scale: 1.02, x: -30, duration: 4, ease: 'none', immediateRender: false }, 0);
+T.fromTo('#introStreak', { xPercent: -120 }, { xPercent: 130, duration: 1.3, ease: 'power2.inOut', immediateRender: false }, .15);
+['Rezerwacje.', 'Dokumenty.', 'E-mail i SMS.', 'Podpisy.', 'KSeF.'].forEach((w, i) => bigWord(w, .5 + i * .5, 1 + i * .5, { size: 170, style: 'pop', out: 'cut' }));
+bigWord('Od rezerwacji do faktury.', 3.0, 3.92, { size: 112, cls: 'gold' });
+T.to('#introImg', { filter: 'brightness(.55)', duration: .5 }, 3.0);
+
+// ─── 01 REZERWACJA (4–12) ───────────────────────────────────────────────────
+on('#LBG', 4, 48.05);
+T.fromTo('#grid', { backgroundPositionY: '0px' }, { backgroundPositionY: '800px', duration: 44, ease: 'none', immediateRender: false }, 4);
+flash(4.0, .9, .3); shake(4.0, 16, .4);
+on('#L1', 4, 12.05);
+const c1 = new Cam('#rig1', '#cam1', { px: 800, py: 522, z: .62, rx: 14, ry: -26, ox: 250, oy: 900 });
+c1.to(4.0, .95, { oy: 70, rx: 7, ry: -16 }, 'expo.out');
+bigWord('Rezerwacja.', 4.0, 4.85, { size: 200, cls: 'bluegrad' });
+corner('01', 'Rezerwacja', 'Termin, klient, auto i usługi w jednym oknie.', 4.75, 7.4);
+cursorPath('#cur1', [[4.7, 1080, 640], [5.42, 1402, 51]]);
+click('#cur1', '#ring1', 5.5, 1402, 51);
+c1.to(5.0, .5, { z: .78, ry: -9, rx: 4, oy: 40 });
+T.set('#cur1', { visibility: 'hidden' }, 5.62);
+frames('#img1', [[5.52, 'a/cal2/001_modal.jpg']]);
+c1.to(5.6, .55, { px: 880, py: 100 + WIN_Y, z: 1.55, ry: -3, rx: 1.5, ox: 0, oy: 0 }, 'expo.out');
+// pisanie tytułu „Pakiet ochronny Porsche 911”
+for (let i = 0; i < 27; i++) frames('#img1', [[6.1 + i * .048, `a/cal2/${String(2 + i).padStart(3, '0')}_t.jpg`]]);
+c1.to(7.4, .4, { px: 940, py: 226 + WIN_Y, z: 1.4 });
+frames('#img1', [[7.5, 'a/cal2/029_allday_off.jpg'], [7.68, 'a/cal2/030_picker.jpg'], [7.86, 'a/cal2/031_pick_start.jpg'], [8.02, 'a/cal2/032_pick_end.jpg'], [8.16, 'a/cal2/033_end_time.jpg'], [8.3, 'a/cal2/034_start_time.jpg'], [8.44, 'a/cal2/035_dates_done.jpg']]);
+c1.to(8.5, .35, { px: 940, py: 200 + WIN_Y, z: 1.35 });
+frames('#img1', [[8.58, 'a/cal2/036_client_t.jpg'], [8.66, 'a/cal2/037_client_t.jpg'], [8.74, 'a/cal2/038_client_t.jpg'], [8.84, 'a/cal2/039_client_list.jpg'], [8.94, 'a/cal2/040_client_selected.jpg'], [9.04, 'a/cal2/041_vehicle_selected.jpg']]);
+c1.to(9.08, .35, { px: 940, py: 430 + WIN_Y, z: 1.3 });
+for (let i = 0; i < 13; i++) frames('#img1', [[9.14 + i * .04, `a/cal2/${String(42 + i).padStart(3, '0')}_${[3, 7, 12].includes(i) ? 'svc_selected' : 'svc_t'}.jpg`]]);
+c1.to(9.62, .35, { px: 930, py: 640 + WIN_Y, z: 1.15 });
+frames('#img1', [[9.74, 'a/cal2/055_sms_checked.jpg'], [9.86, 'a/cal2/056_card_checked.jpg']]);
+hl('#hl1', 9.76, 10.28, [620, 750, 300, 54]);
+cursorPath('#cur1', [[9.9, 1320, 990], [10.3, 1181, 908]]);
+click('#cur1', '#ring1', 10.4, 1181, 908);
+T.set('#cur1', { visibility: 'hidden' }, 10.5);
+frames('#img1', [[10.42, 'a/cal2/057_saved.jpg']]);
+c1.set(10.42, { px: 1000, py: 700, z: 1.0 });
+c1.to(10.42, 1.3, { px: 1213, py: 773 + WIN_Y, z: 1.6, ry: -6, rx: 3 }, 'power2.inOut');
+hl('#hl1', 10.6, 11.9, [1020, 762, 388, 23]);
+T.to('#hl1', { boxShadow: '0 0 0 10px rgba(14,165,233,.25), 0 0 70px rgba(14,165,233,.8)', duration: .4, yoyo: true, repeat: 2, ease: 'sine.inOut' }, 10.9);
+caption('Rezerwacja w kalendarzu. <span style="color:#38bdf8">SMS przypomni klientowi.</span>', 10.6, 11.85);
+c1.to(11.6, .45, { ox: -2600 }, 'power3.in');
+whip(12.0);
+
+// ─── 02 GOTOWE SZABLONY (12–16) ─────────────────────────────────────────────
+on('#L2', 12, 16.05);
+bigWord('Dokumenty.', 12.0, 12.85, { size: 200, cls: 'bluegrad' });
+corner('02', 'Gotowe szablony', 'Protokoły, zgody i RODO gotowe od pierwszego dnia.', 12.75, 15.7);
+const pgX = [730, 1070, 1410, 1750];      // środki stron w wachlarzu
+[0, 1, 2, 3].forEach(i => {
+  const pg = '#pg' + i, t0 = 12.25 + i * .12;
+  T.set(pg, { visibility: 'visible', left: pgX[i] - 160, top: 330, x: 700, y: 120, z: -600, rotationY: -55, rotationZ: 6, opacity: 0 }, 12.0);
+  T.to(pg, { x: 0, y: 0, z: 0, rotationY: -14 + i * 4, rotationZ: (i - 1.5) * 1.2, opacity: 1, duration: .8, ease: 'expo.out' }, t0);
+  T.set('#pl' + i, { visibility: 'visible', left: pgX[i] - 160, top: 808, opacity: 0, y: 16 }, 12.0);
+  T.to('#pl' + i, { opacity: 1, y: 0, duration: .45, ease: 'expo.out' }, t0 + .3);
+  T.to(pg, { y: -10, duration: 1.2, ease: 'sine.inOut' }, 13.0);
+  if (i) { T.to(pg, { x: 400, opacity: 0, rotationY: -40, duration: .5, ease: 'power3.in' }, 13.6 + (3 - i) * .05); }
+  T.to('#pl' + i, { opacity: 0, y: 10, duration: .25 }, 13.55);
+});
+// protokół przyjęcia wychodzi na środek i wypełnia się danymi wizyty
+T.to('#pg0', { left: 1180 - 160, top: 314, rotationY: 0, rotationZ: 0, y: 0, scale: 1.72, duration: .75, ease: 'power3.inOut' }, 13.6);
+T.set('#pgScan', { visibility: 'visible', top: -70 }, 14.3);
+T.to('#pgScan', { top: 452, duration: .9, ease: 'power1.inOut' }, 14.3);
+T.to('#pgFill', { clipPath: 'inset(0 0 0% 0)', duration: .9, ease: 'power1.inOut' }, 14.3);
+T.set('#pgScan', { visibility: 'hidden' }, 15.22);
+const chipY = [350, 470, 590, 710];
+[0, 1, 2, 3].forEach(i => {
+  T.set('#fc' + i, { visibility: 'visible', left: 360, top: chipY[i], opacity: 0, x: -40 }, 14.4 + i * .18);
+  T.to('#fc' + i, { opacity: 1, x: 0, duration: .45, ease: 'expo.out' }, 14.4 + i * .18);
+  T.to('#fc' + i, { opacity: 0, duration: .2 }, 15.75);
+});
+caption('Dane wizyty <span style="color:#38bdf8">wpisują się same.</span>', 14.55, 15.85);
+T.to('#pg0', { x: -1500, rotationY: 30, duration: .45, ease: 'power3.in' }, 15.6);
+whip(16.0);
+
+// ─── 03 PRZYJĘCIE POJAZDU (16–20) ───────────────────────────────────────────
+on('#L3', 16, 20.05);
+const c3 = new Cam('#rig3', '#cam3', { px: 800, py: 522, z: .7, rx: 6, ry: -14, ox: 2400, oy: 30 });
+c3.to(16.0, .6, { ox: 240 }, 'expo.out');
+bigWord('Przyjęcie.', 16.0, 16.85, { size: 200, cls: 'bluegrad' });
+corner('03', 'Przyjęcie pojazdu', 'Zdjęcia, mapa uszkodzeń i dokumenty w kilka kliknięć.', 16.75, 19.4);
+c3.to(16.55, .8, { px: 924, py: 795 + WIN_Y, z: 1.25, ry: -4, rx: 2, ox: 160 }, 'power3.inOut');
+hl('#hl3', 16.95, 17.5, [392, 697, 1064, 198]);
+// mapa uszkodzeń: pierwszy punkt stawiany na oczach widza, potem wszystkie trzy z opisami
+frames('#img3', [[17.55, 'a/ci/004_schema.jpg']]);
+c3.set(17.55, { px: 900, py: 380 + WIN_Y, z: 1.05, ry: -8, rx: 3, ox: 180 });
+c3.to(17.55, .5, { z: 1.2, ry: -4 }, 'expo.out');
+cursorPath('#cur3', [[17.55, 1000, 520], [17.85, 1178, 256]]);
+click('#cur3', '#ring3', 17.9, 1178, 256);
+frames('#img3', [[17.92, 'a/ci/005_dmg_pt.jpg']]);
+T.set('#cur3', { visibility: 'hidden' }, 18.05);
+frames('#img3', [[18.28, 'a/ci/008_dmg_done.jpg']]);
+c3.set(18.28, { px: 920, py: 360 + WIN_Y, z: 1.18 });
+T.set('#ring3b', { borderColor: 'rgba(220,38,38,.9)' }, 18.28);
+[[18.3, 740, 373], [18.45, 1050, 461], [18.6, 1178, 174]].forEach(([t, x, y], k) => {
+  const r = k === 1 ? '#ring3b' : '#ring3';
+  T.set(r, { visibility: 'visible', x, y, scale: .2, opacity: 1 }, t);
+  T.to(r, { scale: 1.6, opacity: 0, duration: .45, ease: 'power2.out' }, t);
+  T.set(r, { visibility: 'hidden' }, t + .46);
+});
+c3.to(18.3, .5, { py: 700 + WIN_Y, z: 1.1 }, 'power2.inOut');
+// dokumenty i powiadomienia: zdjęcia do załącznika, SMS z kartą wizyty
+frames('#img3', [[18.8, 'a/ci/010_modal.jpg']]);
+c3.set(18.8, { px: 800, py: 560 + WIN_Y, z: .98, ry: -4, rx: 2, ox: 140 });
+c3.to(18.8, .55, { z: 1.12, py: 600 + WIN_Y }, 'expo.out');
+cursorPath('#cur3', [[18.8, 1180, 700], [19.05, 1008, 571]]);
+click('#cur3', '#ring3b', 19.1, 1008, 571);
+frames('#img3', [[19.12, 'a/ci/011_att_photos.jpg']]);
+cursorPath('#cur3', [[19.15, 1008, 571], [19.36, 1057, 779]]);
+click('#cur3', '#ring3b', 19.42, 1057, 779);
+frames('#img3', [[19.44, 'a/ci/013_sms_on.jpg']]);
+hl('#hl3', 19.2, 19.85, [506, 380, 588, 432]);
+T.set('#cur3', { visibility: 'hidden' }, 19.6);
+// dopchnięcie w ikonę e-maila: cięcie przez dopasowanie na telefon klienta
+c3.to(19.6, .42, { px: 540, py: 411 + WIN_Y, z: 3.2, ry: 0, rx: 0, ox: 0 }, 'power3.in');
+flash(20.0, .55, .3);
+
+// ─── 04 E-MAIL I SMS U KLIENTA (20–26) ──────────────────────────────────────
+on('#L4', 20, 26.05);
+T.fromTo('#phBg', { scale: 1.2 }, { scale: 1.05, duration: 6, ease: 'none', immediateRender: false }, 20);
+const ph4 = { x: 0, y: 0, rx: 6, ry: -16, rz: 3, s: .96, vib: 0, my: 0, vy: 0 };
+T.fromTo(ph4, { s: 1.6, ry: 0, rz: 0, y: 80 }, { s: .96, ry: -16, rz: 3, y: 0, duration: .7, ease: 'expo.out', immediateRender: false }, 20.0);
+corner('04', 'E-mail i SMS', 'Klient dostaje protokół, zdjęcia i Kartę Wizyty. Bez przepisywania.', 20.3, 23.4);
+T.set('#nMail', { visibility: 'visible', y: -120, opacity: 0, scale: .9 }, 20.2);
+T.to('#nMail', { y: 0, opacity: 1, scale: 1, duration: .45, ease: 'back.out(1.6)' }, 20.25);
+T.set(ph4, { vib: 5 }, 20.25); T.to(ph4, { vib: 0, duration: .45 }, 20.25);
+T.set('#touch4', { visibility: 'visible', x: 200, y: 470, opacity: 0, scale: 1 }, 20.6);
+T.to('#touch4', { y: 400, opacity: 1, duration: .25 }, 20.62);
+tap('#touch4', 20.95);
+T.to('#touch4', { opacity: 0, duration: .15 }, 21.02);
+T.to('#mail', { opacity: 1, duration: .3, ease: 'power2.out' }, 20.98);
+T.fromTo('#mail', { scale: .94 }, { scale: 1, duration: .45, ease: 'expo.out', immediateRender: false }, 20.98);
+T.to('#nMail', { opacity: 0, duration: .2 }, 20.98);
+T.to(ph4, { x: -120, s: 1.18, ry: -8, rz: 1, duration: 1.0, ease: 'power3.inOut' }, 21.2);
+T.to(ph4, { my: -300, duration: .9, ease: 'power2.inOut' }, 21.75);
+T.to(ph4, { s: 1.34, y: -150, x: -150, duration: .9, ease: 'power2.inOut' }, 21.75);
+['#at0', '#at1', '#thumbs'].forEach((s, i) => T.fromTo(s, { x: 30, opacity: 0 }, { x: 0, opacity: 1, duration: .4, ease: 'expo.out', immediateRender: false }, 21.95 + i * .14));
+T.set(['#at0', '#at1', '#thumbs'], { opacity: 0 }, 20.0);
+caption('E-mail z protokołem, <span style="color:#38bdf8">zdjęciami i mapą uszkodzeń.</span>', 21.3, 22.95);
+// SMS z linkiem do Karty Wizyty
+T.to(ph4, { s: 1.12, y: 0, x: -60, duration: .6, ease: 'power3.inOut' }, 22.85);
+T.set('#nSms', { visibility: 'visible', y: -120, opacity: 0, scale: .9 }, 23.0);
+T.to('#nSms', { y: 0, opacity: 1, scale: 1, duration: .45, ease: 'back.out(1.6)' }, 23.05);
+T.set(ph4, { vib: 5 }, 23.05); T.to(ph4, { vib: 0, duration: .45 }, 23.05);
+T.set('#touch4', { visibility: 'visible', x: 220, y: 200, opacity: 0, scale: 1 }, 23.45);
+T.to('#touch4', { y: 140, opacity: 1, duration: .25 }, 23.47);
+tap('#touch4', 23.8);
+T.to('#touch4', { opacity: 0, duration: .15 }, 23.87);
+T.to('#nSms', { opacity: 0, y: -40, duration: .25 }, 23.82);
+T.to('#vcard', { opacity: 1, duration: .3 }, 23.85);
+T.fromTo('#vcard', { yPercent: 8 }, { yPercent: 0, duration: .45, ease: 'expo.out', immediateRender: false }, 23.85);
+T.to(ph4, { vy: -610, duration: 1.7, ease: 'power2.inOut' }, 24.1);
+T.to(ph4, { s: 1.2, x: -80, duration: 1.8, ease: 'power1.inOut' }, 24.0);
+caption('Karta Wizyty w SMS: <span style="color:#38bdf8">usługi, dokumenty, galeria.</span>', 24.0, 25.7);
+T.to(ph4, { x: -2600, ry: 30, duration: .45, ease: 'power3.in' }, 25.6);
+whip(26.0);
+appliers.push(t => {
+  const v = ph4.vib ? Math.sin(t * 160) * ph4.vib : 0;
+  $('#rig4').style.transform = `translate(${ph4.x + v}px, ${ph4.y}px) rotateX(${ph4.rx}deg) rotateY(${ph4.ry}deg) rotateZ(${ph4.rz}deg)`;
+  $('#phone4').style.transform = `scale(${ph4.s})`;
+  $('#mailBody').style.transform = `translateY(${ph4.my}px)`;
+  $('#vcImg').style.transform = `translateY(${ph4.vy}px)`;
+});
+$('#phone4').style.transformOrigin = '215px 450px';
+
+// ─── 05 PODPIS NA TABLECIE (26–32) ──────────────────────────────────────────
+// prawdziwa strona podpisu (/sign/:token) w pionie; ekran tabletu = 700×1002, ramka 24 px
+on('#L5', 26, 32.05);
+flash(26.0, .25, .3);
+const c5 = new Cam('#rig5', '#cam5', { px: 374, py: 525, z: .62, rx: 50, ry: 0, rz: -8, ox: 330, oy: 500 });
+c5.to(26.0, 1.0, { rx: 8, rz: -2, oy: 10, ox: 290, z: .86 }, 'expo.out');
+bigWord('Podpis.', 26.0, 26.85, { size: 220, cls: 'bluegrad' });
+// tytuł zostaje ponad 3 s: ma dać się przeczytać, zanim podpis przejmie kadr
+corner('05', 'Podpis na tablecie', 'Klient czyta protokół i podpisuje palcem. PDF z podpisem od razu w wizycie.', 26.75, 30.5);
+frames('#img5', [[26.55, 'a/sign/001_doc.jpg'], [27.35, 'a/sign/002_decl.jpg']]);
+c5.to(26.9, .9, { py: 430, z: 1.0, rx: 4, rz: -1, ry: -5, ox: 300 }, 'power2.inOut');
+c5.to(27.35, .6, { py: 900, z: 1.1 }, 'power2.inOut');
+T.set('#touch5', { visibility: 'visible', x: 180, y: 1040, opacity: 0, scale: 1 }, 27.6);
+T.to('#touch5', { x: 106, y: 969, opacity: 1, duration: .3 }, 27.62);
+tap('#touch5', 27.95);
+frames('#img5', [[27.97, 'a/sign/003_decl_checked.jpg']]);
+T.to('#touch5', { opacity: 0, duration: .15 }, 28.05);
+// podpis: 20 klatek rysowania z prawdziwej strony
+frames('#img5', [[28.3, 'a/sign/004_sig.jpg']]);
+c5.set(28.3, { py: 640 });
+c5.to(28.3, .5, { py: 728 + 24, z: 1.3, ry: -3 }, 'expo.out');
+for (let i = 0; i < 20; i++) frames('#img5', [[28.38 + i * .075, `a/sign/${String(4 + i).padStart(3, '0')}_sig.jpg`]]);
+const sg5 = { p: 0 };
+T.set('#touch5', { visibility: 'visible', opacity: .8 }, 28.36);
+T.to(sg5, { p: 1, duration: 1.5, ease: 'none' }, 28.38);
+T.to('#touch5', { opacity: 0, duration: .15 }, 29.85);
+appliers.push(() => {
+  if (sg5.p <= 0 || sg5.p >= 1) return;
+  const p = sg5.p;
+  $('#touch5').style.transform = `translate(${190 + 330 * p}px, ${735 + 38 * Math.sin(p * Math.PI * 9) - 20 * Math.sin(p * Math.PI)}px)`;
+});
+frames('#img5', [[29.9, 'a/sign/024_sig_done.jpg']]);
+c5.to(29.9, .4, { py: 800, z: 1.15 }, 'power2.inOut');
+T.set('#touch5', { visibility: 'visible', x: 350, y: 930, opacity: 0, scale: 1 }, 30.0);
+T.to('#touch5', { y: 850, opacity: 1, duration: .25 }, 30.02);
+tap('#touch5', 30.35);
+T.to('#touch5', { opacity: 0, duration: .15 }, 30.42);
+frames('#img5', [[30.4, 'a/sign/025_signed.jpg']]);
+c5.to(30.4, .9, { py: 300, z: 1.25, ry: -6, ox: 60 }, 'expo.out');
+caption('Podpisane. <span style="color:#22c55e">PDF już w wizycie.</span>', 30.6, 31.8);
+c5.to(31.55, .45, { ox: -2600, ry: 20 }, 'power3.in');
+whip(32.0);
+
+// ─── 06 USŁUGI ODHACZONE (32–36) ────────────────────────────────────────────
+on('#L6', 32, 36.05);
+const c6 = new Cam('#rig6', '#cam6', { px: 800, py: 522, z: .7, rx: 6, ry: -14, ox: 2400, oy: 30 });
+c6.to(32.0, .6, { ox: 240 }, 'expo.out');
+bigWord('Zrobione.', 32.0, 32.85, { size: 200, cls: 'bluegrad' });
+corner('06', 'Usługi odhaczone', 'Zespół zaznacza, co skończone. Widać kto i kiedy.', 32.75, 35.5);
+c6.to(32.5, .8, { px: 700, py: 540 + WIN_Y, z: 1.4, ry: -4, rx: 2, ox: 200 }, 'power3.inOut');
+cursorPath('#cur6', [[32.8, 760, 760], [33.12, 326, 468]]);
+frames('#img6', [[33.1, 'a/v3/001_hover.jpg']]);
+click('#cur6', '#ring6', 33.25, 326, 468);
+frames('#img6', [[33.27, 'a/v3/002_tick.jpg']]);
+cursorPath('#cur6', [[33.32, 326, 468], [33.62, 326, 542]]);
+frames('#img6', [[33.6, 'a/v3/003_hover.jpg']]);
+click('#cur6', '#ring6', 33.72, 326, 542);
+frames('#img6', [[33.74, 'a/v3/004_tick.jpg']]);
+cursorPath('#cur6', [[33.79, 326, 542], [34.07, 326, 617]]);
+frames('#img6', [[34.05, 'a/v3/005_hover.jpg']]);
+click('#cur6', '#ring6', 34.17, 326, 617);
+frames('#img6', [[34.19, 'a/v3/006_tick.jpg']]);
+cursorPath('#cur6', [[34.25, 326, 617], [34.55, 640, 700]]);
+T.set('#cur6', { visibility: 'hidden' }, 34.56);
+frames('#img6', [[34.5, 'a/v3/007_all_done.jpg']]);
+hl('#hl6', 34.5, 35.8, [352, 470, 176, 22]);
+caption('Każda usługa: <span style="color:#22c55e">kto i kiedy ją skończył.</span>', 34.55, 35.8);
+c6.to(35.55, .45, { ox: -2600 }, 'power3.in');
+whip(36.0);
+
+// ─── 07 WYDANIE = FAKTURA W KSeF (36–48) ────────────────────────────────────
+on('#L7', 36, 43.3);
+const c7 = new Cam('#rig7', '#cam7', { px: 800, py: 522, z: .7, rx: 6, ry: -14, ox: 2400, oy: 30 });
+c7.to(36.0, .6, { ox: 260 }, 'expo.out');
+bigWord('Wydanie.', 36.0, 36.85, { size: 210, cls: 'bluegrad' });
+corner('07', 'Wydanie pojazdu', 'Jedno kliknięcie: auto wydane, faktura od razu w KSeF.', 36.75, 39.3);
+cursorPath('#cur7', [[36.6, 1180, 380], [37.12, 1446, 76]]);
+click('#cur7', '#ring7', 37.2, 1446, 76);
+frames('#img7', [[37.25, 'a/v4/003_pay_invoice.jpg']]);
+T.set('#cur7', { visibility: 'hidden' }, 37.35);
+c7.to(37.25, .7, { px: 800, py: 600, z: .92, ry: -5, rx: 2, ox: 200 }, 'expo.out');
+// przełącznik KSeF w oknie wydania
+c7.to(37.9, .8, { px: 800, py: 719 + WIN_Y, z: 1.55, ry: -2, rx: 1, ox: 0 }, 'power3.inOut');
+hl('#hl7', 38.4, 39.35, [502, 688, 598, 64]);
+T.set('#pill7', { visibility: 'visible', left: 560, top: 622, opacity: 0, y: 12 }, 38.55);
+T.to('#pill7', { opacity: 1, y: 0, duration: .35, ease: 'back.out(2)' }, 38.55);
+T.to('#pill7', { opacity: 0, duration: .2 }, 39.15);
+T.set('#pill7', { visibility: 'hidden' }, 39.35);
+// dojazd do „Wydaj pojazd” i kliknięcie na mocnej części taktu
+c7.to(39.1, .85, { px: 1015, py: 814 + WIN_Y, z: 1.9, ry: -1, rx: 0 }, 'power2.inOut');
+cursorPath('#cur7', [[39.1, 1150, 900], [39.8, 1030, 814]]);
+T.set('#press7', { visibility: 'visible', left: 939, top: 794, width: 153, height: 40, opacity: 0 }, 39.88);
+T.to('#press7', { opacity: 1, duration: .05 }, 39.88);
+click('#cur7', '#ring7', 39.95, 1030, 814);
+// okno znika spokojnie nad stroną wizyty, kamera odjeżdża do statusu
+flash(40.0, .12, .3);
+T.to(['#cur7', '#press7'], { opacity: 0, duration: .15 }, 40.05);
+T.to('#img7', { opacity: 0, duration: .5, ease: 'power2.out' }, 40.05);
+c7.to(40.0, 1.2, { px: 1180, py: 200, z: 1.22, ry: -3, rx: 1.5 }, 'power3.inOut');
+hl('#hl7', 41.0, 42.3, [1232, 166, 112, 30]);
+caption('Pojazd wydany. <span style="color:#22c55e">Wizyta zakończona.</span>', 40.9, 42.4);
+c7.to(42.3, 1.0, { px: 1438, py: 120, z: 2.6 }, 'power2.in');
+on('#L8', 42.9, 46.8, .35);
+T.fromTo('#grid8', { backgroundPositionY: '0px' }, { backgroundPositionY: '400px', duration: 4, ease: 'none', immediateRender: false }, 42.9);
+T.set('#inv', { scale: .15, x: 460, y: -420, opacity: 0 }, 42.9);
+T.to('#inv', { scale: 1, x: 0, y: 0, opacity: 1, duration: .8, ease: 'expo.out' }, 43.0);
+T.set(['#node', '#beam'], { opacity: 0 }, 42.9);
+T.set('#node', { scale: .6 }, 42.9);
+caption('Faktura <span style="color:#38bdf8">FV/2026/0002</span> wystawiona przy wydaniu.', 43.3, 44.85);
+T.to('#inv', { x: -390, rotateY: 14, duration: .75, ease: 'expo.inOut' }, 43.65);
+T.to('#node', { opacity: 1, scale: 1, duration: .6, ease: 'back.out(1.6)' }, 43.75);
+T.to('#orb', { rotation: 360, duration: 4, ease: 'none' }, 43.75);
+T.to('#beam', { opacity: 1, duration: .3 }, 43.9);
+T.to('#beamPath', { strokeDashoffset: -160, duration: 1.8, ease: 'none' }, 43.9);
+T.to('#invBar', { width: '100%', duration: 1.05, ease: 'power1.inOut' }, 43.95);
+const bp = $('#beamPath');
+const pk = [0, 1, 2, 3, 4].map(i => ({ p: 0, el: $('#pk' + i) }));
+pk.forEach((o, i) => { const s0 = 43.95 + i * .2; T.set(o.el, { visibility: 'visible' }, s0); T.fromTo(o, { p: 0 }, { p: 1, duration: .6, ease: 'power1.in', immediateRender: false }, s0); T.set(o.el, { visibility: 'hidden' }, s0 + .61); });
+appliers.push(() => { const L = bp.getTotalLength(); pk.forEach(o => { const q = bp.getPointAtLength(L * o.p); o.el.style.left = q.x + 'px'; o.el.style.top = q.y + 'px'; }); });
+T.set('#invStatus', { textContent: 'Przyjęta przez KSeF', color: '#15803d', fontWeight: 700 }, 45.0);
+T.to('#core', { borderColor: 'rgba(34,197,94,.9)', boxShadow: '0 0 120px rgba(34,197,94,.6), inset 0 0 50px rgba(34,197,94,.35)', duration: .3 }, 45.0);
+T.to(['#inv', '#node', '#beam'], { opacity: .2, duration: .3 }, 45.0);
+flash(45.0, .3, .3);
+T.set('#ok', { visibility: 'visible' }, 45.0);
+T.set('#ok .kn', { opacity: 0, y: 20 }, 45.0);
+T.fromTo('#ok .b', { scale: 1.6, opacity: 0, filter: 'blur(16px)' }, { scale: 1, opacity: 1, filter: 'blur(0px)', duration: .35, ease: 'expo.out', immediateRender: false }, 45.0);
+T.to('#ok .kn', { y: 0, opacity: 1, duration: .4 }, 45.15);
+burst(45.0, 960, 440, ['#22c55e', '#86efac', '#ffffff'], 22, 420);
+const ksefFinal = '5842739145-20260930-3C8E51A07D92-1B';
+const dec = { p: 0 };
+T.to(dec, { p: 1, duration: .8, ease: 'none' }, 45.15);
+appliers.push(t => {
+  const n = Math.floor(dec.p * ksefFinal.length); const chars = '0123456789ABCDEF';
+  let s = ''; for (let i = 0; i < ksefFinal.length; i++) s += i < n || ksefFinal[i] === '-' ? ksefFinal[i] : chars[(Math.floor(t * 40) * 7 + i * 13) % 16];
+  $('#ksefNo').textContent = s;
+});
+caption('Jedno kliknięcie. <span style="color:#22c55e">Faktura już w KSeF.</span>', 45.35, 46.75);
+whip(46.8, .3, 60);
+on('#L8b', 46.8, 48.05);
+const c8 = new Cam('#rig8b', '#cam8b', { px: 1000, py: 700, z: 1.0, rx: 4, ry: -10, ox: 0 });
+c8.to(46.8, 1.0, { px: 900, py: 618 + WIN_Y, z: 1.4, ry: -3 }, 'expo.out');
+hl('#hl8b', 47.0, 48.05, [298, 588, 1252, 62]);
+c8.to(47.6, .4, { ox: -2600 }, 'power3.in');
+whip(48.0);
+
+// ─── PLANSZA: A TO NIE WSZYSTKO (48–60) ─────────────────────────────────────
+// Lista przewija się skokami na ćwierćnutach, po jednej możliwości na takt „pół”.
+// Stany początkowe wszystkich napisów ustawione w chwili pokazania warstwy.
+const IC = {
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
+  foot: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 15h18"/><circle cx="7.5" cy="17.5" r="1"/><path d="M11 17.5h6"/>',
+  chart: '<path d="M4 20V11M10 20V5M16 20v-6M3 20h18"/>',
+  team: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5.2a3 3 0 010 5.6M21 20c0-2.6-1.6-4.8-4-5.6"/>',
+  pie: '<circle cx="12" cy="12" r="9"/><path d="M12 3v9h9"/>',
+  sms: '<path d="M21 12c0 4.4-4 8-9 8-1.3 0-2.6-.2-3.7-.7L3 21l1.5-4.2C3.6 15.4 3 13.8 3 12c0-4.4 4-8 9-8s9 3.6 9 8z"/><path d="M8 11h8M8 14h5"/>',
+  radar: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12l6.5-6.5"/>',
+  key: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
+};
+const FEAT = [
+  ['mail', 'Moduł poczty', 'Skrzynka studia w CRM, przy klientach i wizytach.'],
+  ['foot', 'Graficzna stopka w mailu', 'Logo i dane studia pod każdą wiadomością.'],
+  ['chart', 'Analityka leadów', 'Skąd przychodzą zapytania i ile z nich to wizyty.', 'a/leads_an.jpg'],
+  ['team', 'Moduł pracowników', 'Zespół, role i przypisania do wizyt.'],
+  ['pie', 'Kategoryzacja przychodów i kosztów', 'Faktury z KSeF od razu w swoich kategoriach.'],
+  ['sms', 'Kampanie SMS', 'Promocje i przypomnienia do wybranych klientów.'],
+  ['radar', 'Automatyczne śledzenie konkurencji', 'Alert, gdy konkurencja rusza z nową kampanią.'],
+  ['key', 'Dostępy dla pracowników', 'Każdy widzi tylko to, czego potrzebuje.'],
+  ['clock', 'Rozliczanie czasu pracy', 'Godziny zespołu policzone bez arkuszy.'],
+];
+const STEP = 150, CARD_H = 128;
+const flist = $('#flist');
+FEAT.forEach(([ic, tt, ds, th], k) => {
+  flist.insertAdjacentHTML('beforeend', `<div class="fc" style="top:${k * STEP}px"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${IC[ic]}</svg></div><div><div class="tt">${tt}</div><div class="ds">${ds}</div></div>${th ? `<div class="th"><img src="${th}"></div>` : ''}</div>`);
+});
+flist.insertAdjacentHTML('beforeend', `<div class="fc more" style="top:${FEAT.length * STEP}px"><div class="tt gold">i więcej!</div></div>`);
+const cards = [...flist.children];
+on('#LE', 48, 60.1);
+bigWord('A to nie wszystko.', 48.0, 49.5, { size: 150, cls: 'gold' });
+const fs = { pos: 0, vis: 0 };
+T.set(fs, { pos: 0, vis: 0 }, 48.0);
+T.set(['#bLogo', '#bWord', '#bTag', '#bUrl'], { opacity: 0, y: 30 }, 48.0);
+T.set('#fwrap', { opacity: 0 }, 48.0);
+T.to('#bLogo', { opacity: 1, y: 0, duration: .8, ease: 'expo.out' }, 49.35);
+T.to('#bWord', { opacity: 1, y: 0, duration: .7, ease: 'expo.out' }, 49.5);
+T.to('#bTag', { opacity: 1, y: 0, duration: .7, ease: 'expo.out' }, 49.65);
+T.to('#bUrl', { opacity: 1, y: 0, duration: .7, ease: 'expo.out' }, 49.8);
+T.to('#fwrap', { opacity: 1, duration: .4 }, 49.35);
+T.fromTo(fs, { vis: 0 }, { vis: 1, duration: .6, ease: 'expo.out', immediateRender: false }, 49.35);
+const stepAt = k => 49.6 + (k - 1) * .95;       // k = 1..9, ostatni skok na „i więcej!”
+for (let k = 1; k <= FEAT.length; k++) T.to(fs, { pos: k, duration: .5, ease: 'power3.inOut' }, stepAt(k));
+T.to('#bLogo', { scale: 1.04, duration: 10, ease: 'none' }, 50.0);
+T.to('#black', { opacity: 1, duration: .8, ease: 'none' }, 59.2);
+T.set({}, {}, 60);
+appliers.push(() => {
+  if ($('#LE').style.visibility !== 'visible') return;
+  flist.style.transform = `translateY(${540 - CARD_H / 2 - fs.pos * STEP + (1 - fs.vis) * 120}px)`;
+  cards.forEach((c, k) => {
+    const d = Math.abs(k - fs.pos), a = Math.max(0, 1 - d);
+    c.style.opacity = (1 - Math.min(.72, d * .36)).toFixed(3);
+    c.style.transform = `scale(${(1 + .05 * a).toFixed(4)})`;
+    if (!c.classList.contains('more')) {
+      c.style.borderColor = `rgba(233,199,123,${(.1 + .55 * a).toFixed(3)})`;
+      c.style.boxShadow = `0 20px 60px rgba(0,0,0,${(.35 * a).toFixed(3)}), 0 0 50px rgba(233,199,123,${(.12 * a).toFixed(3)})`;
+    }
+  });
+});
+
+// ─── ziarno ──────────────────────────────────────────────────────────────────
+const gc = $('#grain'), gx = gc.getContext('2d'); const gi = gx.createImageData(1920, 1080);
+for (let i = 0; i < gi.data.length; i += 4) { const v = rnd() * 255; gi.data[i] = gi.data[i + 1] = gi.data[i + 2] = v; gi.data[i + 3] = 255; }
+gx.putImageData(gi, 0, 0);
+
+// ─── render API ──────────────────────────────────────────────────────────────
+function applyAll(t) {
+  for (const c of cams) c.apply(t);
+  for (const f of appliers) f(t);
+  $('#mblurStd').setAttribute('stdDeviation', `${blurState.v.toFixed(2)} ${(blurState.v * .06).toFixed(2)}`);
+  $('#world').style.filter = blurState.v > .3 ? 'url(#mblur)' : 'none';
+  const sv = shakeState.v;
+  $('#world').style.transform = sv ? `translate(${Math.sin(t * 97) * sv}px, ${Math.cos(t * 71) * sv * .7}px)` : 'none';
+  const f = Math.floor(t * 30);
+  gc.style.transform = `translate(${-((f * 373) % 900)}px, ${-((f * 587) % 500)}px)`;
+}
+window.seek = async (t) => {
+  T.seek(t, false);
+  applyAll(t);
+  const imgs = [...document.images].filter(i => i.offsetParent !== null || i.closest('.layer')?.style.visibility === 'visible');
+  await Promise.all(imgs.map(i => (i.complete && i.naturalWidth) ? i.decode().catch(() => {}) : new Promise(r => { i.onload = i.onerror = () => r(); })));
+};
+window.ready = (async () => {
+  await document.fonts.ready;
+  await Promise.all([...document.images].map(i => i.decode().catch(() => {})));
+  return true;
+})();
+</script>
+</body>
+</html>

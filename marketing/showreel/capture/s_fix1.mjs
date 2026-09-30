@@ -1,0 +1,10 @@
+import { open } from './lib.mjs';
+const { browser, page } = await open({ w: 1600, h: 1000 });
+await page.go('/visits/06fa7bfa-cf67-4dca-8f26-9f21bfd395cc');
+await page.waitForFunction(() => { const i = [...document.images].find(i => /porsche/i.test(i.src) || i.alt === 'Porsche'); return i && i.complete && getComputedStyle(i).opacity === '1'; }, null, { timeout: 15000 }).catch(() => console.log('timeout'));
+await page.waitForTimeout(600);
+const box = await page.evaluate(() => { const i = [...document.images].find(i => i.alt === 'Porsche'); let el = i; for (let k = 0; k < 4; k++) { const r = el.getBoundingClientRect(); if (r.width >= 60) return r.toJSON(); el = el.parentElement; } return i.parentElement.parentElement.getBoundingClientRect().toJSON(); });
+console.log(box);
+await page.screenshot({ path: 'shots/tile.png', clip: { x: 322, y: 64, width: 64, height: 64 } });
+await page.screenshot({ path: 'shots/hdr_new.png', clip: { x: 300, y: 30, width: 700, height: 150 } });
+await browser.close();

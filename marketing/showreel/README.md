@@ -32,6 +32,12 @@ z aplikacji:
   Treść SMS pochodzi z domyślnego szablonu „Przypominamy o wizycie dnia {{data}}
   o godz. {{godzina}}. Do zobaczenia, {{imie}}!”.
 
+Logo marki w nagłówku wizyty ładuje się z CDN (`car-logos-dataset`). Przeglądarka nagrania
+nie ma internetu, więc `capture/lib.mjs` pobiera logo curl-em i podaje je stronie przez
+`route.fulfill`. Trzy klatki filmu 1 (`a/fin/10_ready.jpg`, `a/fin/13_pay_invoice.jpg`,
+`a/visit_done.jpg`) nagrano wcześniej z zastępczą ikoną auta. Wklejono w nie kafelek
+z logo Porsche z nowego zrzutu (`capture/s_fix1.mjs`).
+
 Zdjęcia samochodów pochodzą z Unsplash (licencja Unsplash).
 
 ## Pliki
@@ -65,6 +71,40 @@ ffmpeg -f concat -safe 0 -i list.txt -i music.wav -map 0:v -map 1:a -c:v copy -c
 ```
 
 Render 60 fps trwa ok. 11 minut na 4 rdzeniach (4 odcinki równolegle).
+
+## Film 2: od rezerwacji do faktury (60 s)
+
+Pliki `index2.html`, `music2.py` i `render2.mjs` (klatki do `stills2/`). Render i montaż
+jak wyżej, z `render2.mjs` i `music2.wav`.
+
+Sceny (s): intro 0–4, rezerwacja 4–12, gotowe szablony dokumentów 12–16, przyjęcie
+pojazdu 16–20, e-mail i SMS u klienta 20–26, podpis na tablecie 26–32, odhaczanie usług
+32–36, wydanie pojazdu z fakturą w KSeF 36–48 (kliknięcie „Wydaj pojazd” na 40,0 s),
+plansza z przewijaną listą pozostałych możliwości 48–60.
+
+Scenariusz przeszedł w aplikacji naprawdę:
+
+- rezerwacja „Pakiet ochronny Porsche 911” na 02.10, 09:00–03.10, 16:00 z trzema usługami
+  (3500,00 + 2490,00 + 306,27 = 6296,27 zł brutto, netto 5118,92 zł, VAT 1177,35 zł),
+- przyjęcie VIS-2026-00002: 4 zdjęcia, 3 punkty na mapie uszkodzeń, e-mail z załącznikami
+  i SMS z Kartą Wizyty,
+- podpis protokołu na publicznej stronie `/sign/:token` w widoku tabletu w pionie,
+- odhaczenie trzech usług i wydanie pojazdu z fakturą FV/2026/0002.
+
+Co zbudowano w HTML i dlaczego:
+
+- **strony szablonów** (`a/tpl/`) to wydruki szablonów HTML z backendu, a wypełniony
+  protokół (`a/tpl_filled.jpg`) to wycinek z prawdziwej strony podpisu.
+- **telefon klienta**: e-mail i SMS nie wyszły naprawdę (SMSAPI i poczta wyłączone,
+  backend tylko je zalogował). Temat, treść i liczba załączników pochodzą z domyślnego
+  szablonu i z logu wysyłki. Karta Wizyty to zrzut prawdziwej strony `/vc/:token`.
+- **sukces KSeF**: jak w filmie 1, status „przyjęta” i numer KSeF ustawiono w bazie.
+- **plansza końcowa** to lista w HTML. W koncie demo moduły poczty, pracowników czy
+  kampanii są puste, więc zrzuty nic by nie pokazały. Wyjątkiem jest miniatura analityki
+  leadów (`a/leads_an.jpg`).
+
+Okno wydania pojazdu po stubie KSeF pokazuje komunikat o trybie offline24, więc film go
+pomija i przenika od razu do strony zakończonej wizyty.
 
 ## Ponowne nagranie zrzutów
 
