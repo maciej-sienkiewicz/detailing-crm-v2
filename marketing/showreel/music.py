@@ -177,9 +177,9 @@ for b in range(bars):
     t0 = b * 4 * BEAT
     root, chord = prog[b % 4]
     intro = t0 < 4
-    brk = 32 <= t0 < 34            # przed „Zakończ wizytę”: napięcie
+    brk = 30 <= t0 < 32            # przed „Wydaj pojazd”: napięcie
     outro = t0 >= 56
-    finale = 52 <= t0 < 56
+    finale = 48 <= t0 < 56
     # pad zawsze (poza ciszą przed dropem)
     add(pad(tuple(chord), 4 * BEAT + 0.3), t0, 0.55 if not intro else 0.35)
     if outro:
@@ -215,11 +215,11 @@ for b in range(bars):
 
 # ---------- przejścia i akcenty (sekundy) ----------
 add(riser(3.8), 0.2, 0.55)
-for t in (4.0, 34.0, 56.0):
+for t in (4.0, 32.0, 56.0):
     add(impact(), t, 0.9)
-for t in (12, 18, 26, 32, 36, 44, 52):
+for t in (12, 18, 26, 35.1, 38.8, 40, 48):
     add(whoosh(0.8), t - 0.45, 0.9)
-add(riser(1.9), 30.1, 0.6)
+add(riser(1.9), 28.1, 0.6)
 add(riser(1.9), 54.1, 0.35)
 # intro: uderzenia słów (co ćwierćnutę)
 for t in (0.5, 1.0, 1.5, 2.0, 2.5):
@@ -234,47 +234,38 @@ for t in (7.6, 7.82, 8.02, 8.5, 8.92, 9.02, 9.42, 9.52):
 add(pop(), 10.0, 0.6)
 add(ding(84, 0.8), 10.05, 0.5)
 # scena 2: SMS
-add(ding(93), 14.0, 0.8); add(ding(88), 14.12, 0.5)
 def buzz(dur=0.35):
     n = int(SR * dur); t = np.arange(n) / SR
     return np.sin(2 * np.pi * 150 * t) * (0.5 + 0.5 * np.sign(np.sin(2 * np.pi * 22 * t))) * np.minimum(1, (dur - t) / 0.05) * 0.35
+add(ding(93), 14.0, 0.8); add(ding(88), 14.12, 0.5)
 add(buzz(), 14.0, 0.6)
-# scena 3: cennik
-for t in (20.0, 21.0, 24.0):
-    add(pop(), t, 0.5)
-for t in (22.6, 22.8, 23.0, 23.2):
-    add(tick(), t, 0.6)
-add(ding(88, 0.7), 23.5, 0.35)
-# scena 4: podpis
-add(pop(), 27.0, 0.45)
-add(scribble(1.85), 27.4, 0.7)
-add(pop(), 29.6, 0.5)
-add(ding(86, 0.9), 29.65, 0.5)
-# scena 5: „Wydaj pojazd”
-add(pop(), 32.5, 0.5)
-add(pop(), 33.95, 0.9)
-# scena 6: KSeF
-for i in range(9):
-    add(tick(), 36.95 + i * 0.1, 0.35)
+# scena 3: podpis
+add(pop(), 20.0, 0.45)
+add(scribble(1.85), 20.4, 0.7)
+add(pop(), 22.6, 0.5)
+add(ding(86, 0.9), 22.65, 0.5)
+# scena 4: wydanie pojazdu i KSeF
+add(pop(), 27.8, 0.5)
+add(ding(88, 0.6), 29.6, 0.35)
+add(pop(), 31.95, 0.9)
 for i in range(5):
-    add(pluck(76 + 2 * i, 0.15), 38.35 + i * 0.25 + 0.7, 0.18)
-add(ding(91), 40.0, 0.7); add(ding(95), 40.12, 0.5); add(ding(98), 40.24, 0.4)
-add(pop(), 42.0, 0.5)
-# scena 7: dashboard — narastające „pip” przy słupkach
+    add(pluck(76 + 2 * i, 0.15), 35.95 + i * 0.2 + 0.6, 0.18)
+add(ding(91), 37.0, 0.7); add(ding(95), 37.12, 0.5); add(ding(98), 37.24, 0.4)
+# scena 5: statystyki — narastające „pip” przy słupkach
 for i in range(8):
-    add(pluck(81 + [0, 2, 4, 5, 7, 9, 11, 12][i], 0.2), 45.0 + i * 0.125, 0.25)
-add(whoosh(0.4), 47.3, 0.4)
-add(ding(96, 1.0), 48.0, 0.55)
-# scena 8: push
-add(buzz(0.45), 53.0, 0.7); add(ding(90, 1.4), 53.0, 0.9); add(ding(95, 1.4), 53.1, 0.6)
-add(buzz(0.45), 54.5, 0.7); add(ding(86, 1.4), 54.5, 0.9); add(ding(91, 1.4), 54.6, 0.6)
+    add(pluck(81 + [0, 2, 4, 5, 7, 9, 11, 12][i], 0.2), 41.0 + i * 0.125, 0.25)
+add(whoosh(0.4), 43.3, 0.4)
+add(ding(96, 1.0), 44.0, 0.55)
+# scena 6: push
+add(buzz(0.45), 50.0, 0.7); add(ding(90, 1.4), 50.0, 0.9); add(ding(95, 1.4), 50.1, 0.6)
+add(buzz(0.45), 52.0, 0.7); add(ding(86, 1.4), 52.0, 0.9); add(ding(91, 1.4), 52.1, 0.6)
 
 # ---------- master ----------
 # prosta pompa sidechain od stopy
 pump = np.ones(N)
 for b in range(int(DUR / BEAT)):
     tb = b * BEAT
-    if tb < 4 or 32 <= tb < 34 or tb >= 56: continue
+    if tb < 4 or 30 <= tb < 32 or tb >= 56: continue
     i = int(tb * SR); n = int(0.3 * SR)
     tt = np.arange(n) / SR
     pump[i:i + n] = np.minimum(pump[i:i + n], 0.55 + 0.45 * np.minimum(1, tt / 0.3) ** 0.6)

@@ -59,7 +59,8 @@ body { font-family: 'InterV', system-ui, sans-serif; color: #fff; -webkit-font-s
 /* typografia kinetyczna */
 .big { position: absolute; left: 0; right: 0; top: 50%; text-align: center; font-weight: 800; letter-spacing: -0.055em; line-height: 1; white-space: nowrap; visibility: hidden; z-index: 90; }
 .big span { display: inline-block; will-change: transform; }
-.corner { position: absolute; left: 96px; top: 84px; z-index: 80; visibility: hidden; }
+.corner { position: absolute; left: 70px; top: 62px; z-index: 80; visibility: hidden; padding: 26px 34px 28px; border-radius: 22px;
+  background: rgba(6,10,20,.74); border: 1px solid rgba(255,255,255,.09); backdrop-filter: blur(18px); box-shadow: 0 24px 60px rgba(0,0,0,.4); }
 .corner .num { font-size: 20px; font-weight: 700; color: #38bdf8; letter-spacing: .02em; margin-bottom: 14px; display: flex; align-items: center; gap: 14px; }
 .corner .num::after { content: ''; display: block; width: 56px; height: 2px; background: linear-gradient(90deg, #38bdf8, transparent); }
 .corner .t { font-size: 64px; font-weight: 800; letter-spacing: -0.045em; line-height: 1.02; overflow: hidden; padding-bottom: 6px; }
@@ -252,10 +253,7 @@ body { font-family: 'InterV', system-ui, sans-serif; color: #fff; -webkit-font-s
     <div class="persp"><div class="rig" id="rig3"><div class="cam" id="cam3">
       <div class="tablet">
         <div class="tscreen" id="tscr">
-          <img class="shot" id="img3" src="a/svc/00_list.jpg">
-          <div class="hl" id="hl3"></div>
-          <div class="pill green" id="pill3">Netto liczy się samo</div>
-          <div class="sign" id="sign" style="visibility:hidden">
+          <div class="sign" id="sign">
             <div class="col">
               <div class="card"><h1>Protokół przyjęcia pojazdu</h1><div class="sub">Do podpisu przez: Piotr Wiśniewski</div><div class="exp">Link ważny do 01.10.2026, 12:00</div></div>
               <div class="card"><div class="ct">Dokument</div>
@@ -305,8 +303,10 @@ body { font-family: 'InterV', system-ui, sans-serif; color: #fff; -webkit-font-s
       <div class="win">
         <div class="chrome"><i></i><i></i><i></i><div class="url">🔒 <b>detailboost.pl</b>/visits/VIS-2026-00001</div></div>
         <div class="screen" id="scr5">
+          <img class="shot" id="img5b" src="a/visit_done.jpg">
           <img class="shot" id="img5" src="a/fin/10_ready.jpg">
           <div class="hl green" id="hl5"></div>
+          <div class="pill green" id="pill5" style="font-size:18px">Faktura trafi do KSeF automatycznie</div>
           <div class="ring" id="ring5" style="border-color:rgba(34,197,94,.95)"></div>
           <svg class="cursor" id="cur5" viewBox="0 0 24 24"><path d="M4 2 L4 20 L9 15.5 L12.2 22.5 L15.3 21.1 L12.2 14.3 L19 14.3 Z" fill="#fff" stroke="#0f172a" stroke-width="1.4" stroke-linejoin="round"/></svg>
           <div id="press5" style="position:absolute; border-radius:999px; background:rgba(5,46,22,.35); visibility:hidden"></div>
@@ -339,13 +339,6 @@ body { font-family: 'InterV', system-ui, sans-serif; color: #fff; -webkit-font-s
     <div class="pkt" id="pk0"></div><div class="pkt" id="pk1"></div><div class="pkt" id="pk2"></div><div class="pkt" id="pk3"></div><div class="pkt" id="pk4"></div>
     <div class="okbadge" id="ok"><div class="b"><div class="ck"><svg width="44" height="44" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#16a34a" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>Integracja KSeF – Sukces</div>
       <div class="kn">Numer KSeF<code id="ksefNo">5842739145-20260930-7A1F3C9E2B40-5D</code></div></div>
-    <div class="bins-title" id="binsT">Faktura przypisana do kategorii automatycznie</div>
-    <div class="bins" id="bins">
-      <div class="bin" id="bin0"><div class="n"><i style="background:#2563eb"></i>Pielęgnacja lakieru</div><div class="v" id="bin0v">21 997,32 zł</div><div class="c" id="bin0c">12 zleceń</div></div>
-      <div class="bin"><div class="n"><i style="background:#16a34a"></i>Detailing wnętrza</div><div class="v">4846,20 zł</div><div class="c">6 zleceń</div></div>
-      <div class="bin"><div class="n"><i style="background:#f97316"></i>Usługi podstawowe</div><div class="v">4023,33 zł</div><div class="c">4 zlecenia</div></div>
-    </div>
-    <div class="chip" id="chip"><b>FV/2026/0001</b><span>Oklejanie PPF, 3500,00 zł</span></div>
   </div>
 
   <!-- 6b: FINANSE -->
@@ -542,10 +535,15 @@ function corner(num, title, sub, t0, t1) {
   el.className = 'corner';
   el.innerHTML = `<div class="num">${num}</div><div class="t"><span>${title}</span></div><div class="s"><span>${sub}</span></div>`;
   $('#type').appendChild(el);
-  T.set(el, { visibility: 'visible', opacity: 1 }, t0);
-  T.fromTo(el.querySelector('.num'), { x: -40, opacity: 0 }, { x: 0, opacity: 1, duration: .5, ease: 'expo.out', immediateRender: false }, t0);
-  T.fromTo(el.querySelector('.t > span'), { yPercent: 110 }, { yPercent: 0, duration: .6, ease: 'expo.out', immediateRender: false }, t0 + .05);
-  T.fromTo(el.querySelector('.s > span'), { yPercent: 110, opacity: 0 }, { yPercent: 0, opacity: 1, duration: .6, ease: 'expo.out', immediateRender: false }, t0 + .15);
+  // stan początkowy WSZYSTKICH części w chwili pokazania — inaczej tytuł i podpis
+  // mignęłyby gotowe przez 3–9 klatek, zanim ruszy ich animacja wjazdu
+  const numEl = el.querySelector('.num'), tt = el.querySelector('.t > span'), ss = el.querySelector('.s > span');
+  T.set(el, { visibility: 'visible', opacity: 1, x: 0 }, t0);
+  T.set(numEl, { x: -40, opacity: 0 }, t0); T.set(tt, { yPercent: 110 }, t0); T.set(ss, { yPercent: 110, opacity: 0 }, t0);
+  T.fromTo(el, { clipPath: 'inset(0 100% 0 0 round 22px)' }, { clipPath: 'inset(0 0% 0 0 round 22px)', duration: .45, ease: 'expo.out', immediateRender: false }, t0);
+  T.to(numEl, { x: 0, opacity: 1, duration: .5, ease: 'expo.out' }, t0);
+  T.to(tt, { yPercent: 0, duration: .6, ease: 'expo.out' }, t0 + .05);
+  T.to(ss, { yPercent: 0, opacity: 1, duration: .6, ease: 'expo.out' }, t0 + .15);
   if (t1 != null) { T.to(el, { opacity: 0, x: -30, duration: .3, ease: 'power2.in' }, t1 - .3); T.set(el, { visibility: 'hidden' }, t1); }
   return el;
 }
@@ -609,8 +607,8 @@ T.to('#introImg', { filter: 'brightness(.55)', duration: .5 }, 3.0);
 // ═════════════════════════════════════════════════════════════════════════════
 // SCENA 1 — REZERWACJA (4–12)
 // ═════════════════════════════════════════════════════════════════════════════
-on('#LBG', 4, 52);
-T.fromTo('#grid', { backgroundPositionY: '0px' }, { backgroundPositionY: '900px', duration: 48, ease: 'none', immediateRender: false }, 4);
+on('#LBG', 4, 48.05);
+T.fromTo('#grid', { backgroundPositionY: '0px' }, { backgroundPositionY: '800px', duration: 44, ease: 'none', immediateRender: false }, 4);
 flash(4.0, .9, .3); shake(4.0, 16, .4);
 on('#L1', 4, 12.05);
 const c1 = new Cam('#rig1', '#cam1', { px: 800, py: 522, z: .62, rx: 14, ry: -26, rz: 0, ox: 250, oy: 900 });
@@ -673,182 +671,134 @@ appliers.push(t => {
 $('#phone2').style.transformOrigin = '215px 380px';
 
 // ═════════════════════════════════════════════════════════════════════════════
-// SCENA 3 — CENNIK NA TABLECIE (18–26)
+// SCENA 3 — PODPIS NA TABLECIE (18–26)
 // ═════════════════════════════════════════════════════════════════════════════
-on('#L3', 18, 32.05);
-flash(18.0, .35, .3);
-const c3 = new Cam('#rig3', '#cam3', { px: 705, py: 534, z: .62, rx: 58, ry: 0, rz: -10, ox: 150, oy: 420 });
-c3.to(18.0, 1.0, { rx: 12, rz: -3, oy: 40, ox: 170 }, 'expo.out');
-bigWord('Cennik.', 18.0, 18.85, { size: 220, cls: 'bluegrad' });
-corner('03', 'Cennik usług', 'Brutto, które wpiszesz, zostaje brutto. Netto liczy się samo.', 18.75, 19.75);
-const T3 = (x, y) => [x + 22, y + 22]; // ekran tabletu → układ tabletu
-c3.to(19.2, .8, { px: T3(1060, 0)[0], py: T3(0, 780)[1], z: 1.05, rx: 4, rz: -1, ox: 120, oy: 0 });
-T.set('#touch3', { visibility: 'visible', x: 1100, y: 1000, opacity: 0 }, 19.3);
-T.to('#touch3', { x: 1279, y: 811, opacity: 1, duration: .6, ease: 'power2.inOut' }, 19.35);
-tap('#touch3', 20.0);
-frames('#img3', [[20.02, 'a/svc/01_menu.jpg']]);
-T.to('#touch3', { x: 1168, y: 854, duration: .5, ease: 'power2.inOut' }, 20.35);
-tap('#touch3', 21.0);
-frames('#img3', [[21.02, 'a/svc/02_modal.jpg']]);
-T.to('#touch3', { opacity: 0, duration: .2 }, 21.1);
-c3.to(21.05, .5, { px: T3(700, 0)[0], py: T3(0, 520)[1], z: 1.45, rx: 2, rz: 0, ox: 0 }, 'expo.out');
-frames('#img3', [[21.55, 'a/svc/03_clear.jpg'], [22.6, 'a/svc/04_type.jpg'], [22.8, 'a/svc/05_type.jpg'], [23.0, 'a/svc/06_type.jpg'], [23.2, 'a/svc/07_type.jpg'], [23.45, 'a/svc/08_blur.jpg']]);
-hl('#hl3', 23.5, 24.0, [684, 486, 238, 58]);
-T.set('#pill3', { visibility: 'visible', left: 640, top: 405, opacity: 0, y: 10 }, 23.5);
-T.to('#pill3', { opacity: 1, y: 0, duration: .3, ease: 'back.out(2)' }, 23.5);
-T.to('#pill3', { opacity: 0, duration: .15 }, 23.95);
-T.set('#touch3', { x: 1000, y: 900, opacity: 0 }, 23.55);
-T.to('#touch3', { x: 872, y: 843, opacity: 1, duration: .35, ease: 'power2.inOut' }, 23.6);
-tap('#touch3', 24.0);
-T.to('#touch3', { opacity: 0, duration: .2 }, 24.1);
-frames('#img3', [[24.02, 'a/svc/09_saved.jpg']]);
-c3.to(24.02, .7, { px: T3(1000, 0)[0], py: T3(0, 780)[1], z: 1.05, rx: 5, ox: 60 }, 'expo.out');
-hl('#hl3', 24.3, 25.5, [598, 758, 740, 92]);
-caption('Nowa cena <span style="color:#38bdf8">2490,00 zł brutto</span>. Bez groszowych różnic.', 24.35, 25.55);
-// match cut: obrót tabletu i nowa zawartość
-c3.to(25.35, .45, { ry: 90, z: .7, px: 705, py: 534, rx: 6, ox: 0 }, 'power2.in');
-T.set('#img3', { visibility: 'hidden' }, 25.8);
-T.set('#sign', { visibility: 'visible' }, 25.8);
-c3.set(25.8, { ry: -90 });
-c3.to(25.8, .55, { ry: -6, z: .64, ox: 190, rx: 8 }, 'expo.out');
-
-// ═════════════════════════════════════════════════════════════════════════════
-// SCENA 4 — PODPIS (26–32)
-// ═════════════════════════════════════════════════════════════════════════════
-bigWord('Podpis.', 26.0, 26.85, { size: 220, cls: 'bluegrad' });
-corner('04', 'Podpis elektroniczny', 'Protokół podpisany na tablecie. Bez papieru i skanowania.', 26.75, 27.75);
-c3.to(26.5, .9, { px: 22 + 683, py: 22 + 740, z: 1.02, ry: -2, rx: 3, ox: 150 });
-T.to('#cbf', { opacity: 1, duration: .12 }, 27.0);
-T.fromTo('#cbf', { scale: .5 }, { scale: 1, duration: .3, ease: 'back.out(3)', immediateRender: false }, 27.0);
+on('#L3', 18, 26.05);
+flash(18.0, .3, .3);
+const c3 = new Cam('#rig3', '#cam3', { px: 705, py: 534, z: .6, rx: 58, ry: 0, rz: -10, ox: 330, oy: 420 });
+c3.to(18.0, 1.0, { rx: 10, rz: -3, oy: 30 }, 'expo.out');
+bigWord('Podpis.', 18.0, 18.85, { size: 220, cls: 'bluegrad' });
+// tytuł zostaje ponad 3 s — ma dać się przeczytać, zanim tablet przejmie kadr
+corner('03', 'Podpis elektroniczny', 'Klient podpisuje protokół na tablecie. Bez papieru i skanowania.', 18.75, 22.3);
+c3.to(19.1, 1.0, { z: .74, rx: 5, rz: -1.5, ry: -6 }, 'power2.inOut');
+T.to('#cbf', { opacity: 1, duration: .12 }, 20.0);
+T.fromTo('#cbf', { scale: .5 }, { scale: 1, duration: .3, ease: 'back.out(3)', immediateRender: false }, 20.0);
+c3.to(20.2, 2.0, { px: 22 + 683, py: 22 + 740, z: 1.0, ry: -2, rx: 3, rz: 0, ox: 220 }, 'power2.inOut');
 const sig = $('#sig'); const sigLen = sig.getTotalLength();
 sig.style.strokeDasharray = sigLen; sig.style.strokeDashoffset = sigLen;
 const sg = { p: 0 };
-T.to('#padHint', { opacity: 0, duration: .2 }, 27.3);
-T.set('#stylus', { visibility: 'visible' }, 27.35);
-T.to(sg, { p: 1, duration: 1.85, ease: 'power1.inOut' }, 27.4);
-T.set('#stylus', { visibility: 'hidden' }, 29.3);
+T.to('#padHint', { opacity: 0, duration: .2 }, 20.3);
+T.set('#stylus', { visibility: 'visible' }, 20.35);
+T.to(sg, { p: 1, duration: 1.85, ease: 'power1.inOut' }, 20.4);
+T.set('#stylus', { visibility: 'hidden' }, 22.3);
 appliers.push(() => {
   sig.style.strokeDashoffset = sigLen * (1 - sg.p);
   const pt = sig.getPointAtLength(sigLen * sg.p);
   const st = $('#stylus'); st.style.left = pt.x + 'px'; st.style.top = pt.y + 'px';
 });
-T.to('#pbtnOn', { opacity: 1, duration: .2 }, 29.25);
-T.set('#touch3', { x: 500, y: 980, opacity: 0, scale: 1 }, 29.1);
-T.set('#touch3', { visibility: 'visible' }, 29.1);
-T.to('#touch3', { x: 440, y: 948, opacity: 1, duration: .35 }, 29.15);
-tap('#touch3', 29.6);
-T.to('#touch3', { opacity: 0, duration: .2 }, 29.7);
-T.to('#done', { opacity: 1, duration: .25 }, 29.62);
-T.fromTo('#done .badge', { scale: .3 }, { scale: 1, duration: .6, ease: 'back.out(2.4)', immediateRender: false }, 29.62);
-c3.to(29.6, .8, { px: 705, py: 534, z: .72, ry: -8, ox: 170 }, 'expo.out');
-caption('Podpisane. Zapisane. <span style="color:#22c55e">Gotowe.</span>', 29.9, 31.4);
-c3.to(31.5, .5, { ox: -2600, ry: 20 }, 'power3.in');
-whip(32.0);
+T.to('#pbtnOn', { opacity: 1, duration: .2 }, 22.25);
+T.set('#touch3', { visibility: 'visible', x: 440, y: 1010, opacity: 0, scale: 1 }, 22.05);
+T.to('#touch3', { y: 948, opacity: 1, duration: .35 }, 22.1);
+tap('#touch3', 22.6);
+T.to('#touch3', { opacity: 0, duration: .2 }, 22.7);
+T.to('#done', { opacity: 1, duration: .25 }, 22.62);
+T.fromTo('#done .badge', { scale: .3 }, { scale: 1, duration: .6, ease: 'back.out(2.4)', immediateRender: false }, 22.62);
+c3.to(22.6, .9, { px: 705, py: 534, z: .72, ry: -8, rx: 5, ox: 170 }, 'expo.out');
+caption('Podpisane. Zapisane. <span style="color:#22c55e">Gotowe.</span>', 22.9, 25.3);
+c3.to(25.5, .5, { ox: -2600, ry: 20 }, 'power3.in');
+whip(26.0);
 
 // ═════════════════════════════════════════════════════════════════════════════
-// SCENA 5 — WYDANIE / ZAKOŃCZENIE (32–36)
+// SCENA 4 — WYDANIE POJAZDU = FAKTURA W KSeF (26–40)
+// Jedna myśl: przełącznik „Wyślij fakturę do KSeF” jest w oknie wydania, więc
+// jedno kliknięcie „Wydaj pojazd” kończy wizytę I wysyła fakturę.
 // ═════════════════════════════════════════════════════════════════════════════
-on('#L5', 32, 36.05);
+on('#L5', 26, 35.3);
 const c5 = new Cam('#rig5', '#cam5', { px: 800, py: 522, z: .7, rx: 6, ry: -14, ox: 2400, oy: 30 });
-c5.to(32.0, .5, { ox: 120 }, 'expo.out');
-corner('05', 'Wydanie pojazdu', 'Płatność, faktura i koniec wizyty jednym kliknięciem.', 32.2, 33.0);
-cursorPath('#cur5', [[32.1, 1180, 380], [32.45, 1446, 76]]);
-click('#cur5', '#ring5', 32.5, 1446, 76);
-frames('#img5', [[32.55, 'a/fin/13_pay_invoice.jpg']]);
-c5.to(32.55, .55, { px: 800, py: 640, z: .95, ry: -5, rx: 2, ox: 60 }, 'expo.out');
-cursorPath('#cur5', [[32.6, 1100, 700], [33.8, 1030, 814]]);
-c5.to(33.1, .85, { px: 1015, py: 814 + WIN_Y, z: 2.0, ry: -1, rx: 0, ox: 0 }, 'power2.in');
-T.to(c5.s, { shake: 2.5, duration: .8, ease: 'power1.in' }, 33.15);
-T.set('#press5', { visibility: 'visible', left: 939, top: 794 + 0, width: 153, height: 40, opacity: 0 }, 33.9);
-T.to('#press5', { opacity: 1, duration: .05 }, 33.9);
-click('#cur5', '#ring5', 33.95, 1030, 814);
-T.set(c5.s, { shake: 0 }, 34.0);
-flash(34.0, 1, .45); shake(34.0, 26, .55);
-burst(34.0, 960, 540, ['#22c55e', '#86efac', '#38bdf8', '#ffffff', '#e9c77b'], 44, 640);
-T.set(['#cur5', '#press5'], { visibility: 'hidden' }, 34.0);
-frames('#img5', [[34.0, 'a/visit_done.jpg']]);
-c5.set(34.0, { px: 1180, py: 230, z: 1.55, ry: -4, rx: 2 });
-c5.to(34.0, 1.2, { px: 1100, py: 300, z: 1.2 }, 'expo.out');
-hl('#hl5', 34.15, 35.6, [1226, 162, 128, 38]);
-bigWord('Wizyta zakończona.', 34.1, 35.55, { size: 150, dy: 250, band: true });
-// zoom w „Podgląd faktury” → faktura (match cut)
-c5.to(35.5, .5, { px: 1448, py: 76 + WIN_Y, z: 7, ry: 0, rx: 0 }, 'power3.in');
-T.to('#L5', { filter: 'blur(20px)', duration: .3, ease: 'power2.in' }, 35.72);
-T.set('#L5', { filter: 'blur(0px)' }, 36.05);
-flash(36.0, .6, .35);
-
-// ═════════════════════════════════════════════════════════════════════════════
-// SCENA 6 — KSeF (36–44)
-// ═════════════════════════════════════════════════════════════════════════════
-on('#L6', 36, 42.55);
-T.fromTo('#grid6', { backgroundPositionY: '0px' }, { backgroundPositionY: '600px', duration: 6.5, ease: 'none', immediateRender: false }, 36);
-T.fromTo('#inv', { scale: .06, rotateX: 30, opacity: 0 }, { scale: 1, rotateX: 0, opacity: 1, duration: .75, ease: 'expo.out', immediateRender: false }, 36.0);
-T.set('#node', { opacity: 0, scale: .6 }, 36);
-T.set('#beam', { opacity: 0 }, 36);
-corner('06', 'Faktura w KSeF', 'Wystawiona przy wydaniu i wysłana automatycznie.', 36.3, 37.9);
-T.fromTo('#scan', { top: -90 }, { top: 800, duration: .95, ease: 'power1.inOut', immediateRender: false }, 36.95);
-T.to('#inv', { x: -390, rotateY: 14, duration: .8, ease: 'expo.inOut' }, 37.85);
-T.to('#node', { opacity: 1, scale: 1, duration: .6, ease: 'back.out(1.6)' }, 38.0);
-T.to('#orb', { rotation: 360, duration: 6, ease: 'none' }, 38.0);
-T.to('#beam', { opacity: 1, duration: .3 }, 38.3);
-T.to('#beamPath', { strokeDashoffset: -160, duration: 2, ease: 'none' }, 38.3);
-T.set('#beamPath', { attr: { d: 'M 870 520 C 1020 360, 1200 380, 1335 520' } }, 38.3);
-T.to('#invBar', { width: '100%', duration: 1.6, ease: 'power1.inOut' }, 38.35);
+c5.to(26.0, .6, { ox: 260 }, 'expo.out');
+bigWord('Wydanie.', 26.0, 26.85, { size: 210, cls: 'bluegrad' });
+corner('04', 'Wydanie pojazdu', 'Jedno kliknięcie: auto wydane, faktura od razu w KSeF.', 26.75, 29.3);
+cursorPath('#cur5', [[26.6, 1180, 380], [27.7, 1446, 76]]);
+click('#cur5', '#ring5', 27.8, 1446, 76);
+frames('#img5', [[27.85, 'a/fin/13_pay_invoice.jpg']]);
+T.set('#cur5', { visibility: 'hidden' }, 27.95);
+c5.to(27.85, .8, { px: 800, py: 600, z: .92, ry: -5, rx: 2, ox: 200 }, 'expo.out');
+// przełącznik KSeF w oknie wydania
+c5.to(28.9, .9, { px: 800, py: 719 + WIN_Y, z: 1.55, ry: -2, rx: 1, ox: 0 }, 'power3.inOut');
+hl('#hl5', 29.6, 31.0, [502, 688, 598, 64]);
+T.set('#pill5', { visibility: 'visible', left: 560, top: 622, opacity: 0, y: 12 }, 29.75);
+T.to('#pill5', { opacity: 1, y: 0, duration: .35, ease: 'back.out(2)' }, 29.75);
+T.to('#pill5', { opacity: 0, duration: .2 }, 30.8);
+T.set('#pill5', { visibility: 'hidden' }, 31.0);
+// dojazd do „Wydaj pojazd”
+c5.to(30.9, 1.05, { px: 1015, py: 814 + WIN_Y, z: 1.9, ry: -1, rx: 0 }, 'power2.inOut');
+cursorPath('#cur5', [[30.9, 1150, 900], [31.8, 1030, 814]]);
+T.set('#press5', { visibility: 'visible', left: 939, top: 794, width: 153, height: 40, opacity: 0 }, 31.88);
+T.to('#press5', { opacity: 1, duration: .05 }, 31.88);
+click('#cur5', '#ring5', 31.95, 1030, 814);
+// okno zamyka się spokojnie: znika nad stroną wizyty, kamera odjeżdża do statusu
+flash(32.0, .12, .3);
+T.to(['#cur5', '#press5'], { opacity: 0, duration: .15 }, 32.05);
+T.to('#img5', { opacity: 0, duration: .5, ease: 'power2.out' }, 32.05);
+c5.to(32.0, 1.2, { px: 1150, py: 240, z: 1.22, ry: -3, rx: 1.5 }, 'power3.inOut');
+hl('#hl5', 33.0, 34.4, [1226, 162, 128, 38]);
+caption('Pojazd wydany. <span style="color:#22c55e">Wizyta zakończona.</span>', 32.9, 34.5);
+// przejście do KSeF: zbliżenie na „Podgląd faktury” i przenikanie
+c5.to(34.3, 1.0, { px: 1448, py: 120, z: 2.6 }, 'power2.in');
+on('#L6', 34.9, 38.8, .35);
+T.fromTo('#grid6', { backgroundPositionY: '0px' }, { backgroundPositionY: '400px', duration: 4, ease: 'none', immediateRender: false }, 34.9);
+T.set('#inv', { scale: .15, x: 460, y: -420, opacity: 0 }, 34.9);
+T.to('#inv', { scale: 1, x: 0, y: 0, opacity: 1, duration: .8, ease: 'expo.out' }, 35.0);
+T.set(['#node', '#beam'], { opacity: 0 }, 34.9);
+T.set('#node', { scale: .6 }, 34.9);
+caption('Faktura <span style="color:#38bdf8">FV/2026/0001</span> wystawiona przy wydaniu.', 35.3, 36.85);
+T.to('#inv', { x: -390, rotateY: 14, duration: .75, ease: 'expo.inOut' }, 35.65);
+T.to('#node', { opacity: 1, scale: 1, duration: .6, ease: 'back.out(1.6)' }, 35.75);
+T.to('#orb', { rotation: 360, duration: 4, ease: 'none' }, 35.75);
+T.set('#beamPath', { attr: { d: 'M 870 520 C 1020 360, 1200 380, 1335 520' } }, 35.9);
+T.to('#beam', { opacity: 1, duration: .3 }, 35.9);
+T.to('#beamPath', { strokeDashoffset: -160, duration: 1.8, ease: 'none' }, 35.9);
+T.to('#invBar', { width: '100%', duration: 1.05, ease: 'power1.inOut' }, 35.95);
 const bp = $('#beamPath');
 const pk = [0, 1, 2, 3, 4].map(i => ({ p: 0, el: $('#pk' + i) }));
-pk.forEach((o, i) => { T.set(o.el, { visibility: 'visible' }, 38.35 + i * .25); T.fromTo(o, { p: 0 }, { p: 1, duration: .75, ease: 'power1.in', immediateRender: false }, 38.35 + i * .25); T.set(o.el, { visibility: 'hidden' }, 38.35 + i * .25 + .76); });
+pk.forEach((o, i) => { const s0 = 35.95 + i * .2; T.set(o.el, { visibility: 'visible' }, s0); T.fromTo(o, { p: 0 }, { p: 1, duration: .6, ease: 'power1.in', immediateRender: false }, s0); T.set(o.el, { visibility: 'hidden' }, s0 + .61); });
 appliers.push(() => { const L = bp.getTotalLength(); pk.forEach(o => { const q = bp.getPointAtLength(L * o.p); o.el.style.left = q.x + 'px'; o.el.style.top = q.y + 'px'; }); });
 // sukces
-T.set('#invStatus', { textContent: 'Przyjęta przez KSeF', color: '#15803d', fontWeight: 700 }, 40.0);
-T.to('#core', { borderColor: 'rgba(34,197,94,.9)', boxShadow: '0 0 120px rgba(34,197,94,.6), inset 0 0 50px rgba(34,197,94,.35)', duration: .3 }, 40.0);
-flash(40.0, .45, .3); shake(40.0, 10, .35);
-T.to(['#inv', '#node'], { opacity: .22, duration: .25 }, 40.0);
-T.set('#ok', { visibility: 'visible' }, 40.0);
-T.fromTo('#ok .b', { scale: 1.8, opacity: 0, filter: 'blur(16px)' }, { scale: 1, opacity: 1, filter: 'blur(0px)', duration: .35, ease: 'expo.out', immediateRender: false }, 40.0);
-T.fromTo('#ok .kn', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: .4, immediateRender: false }, 40.15);
-burst(40.0, 960, 440, ['#22c55e', '#86efac', '#ffffff'], 26, 480);
+T.set('#invStatus', { textContent: 'Przyjęta przez KSeF', color: '#15803d', fontWeight: 700 }, 37.0);
+T.to('#core', { borderColor: 'rgba(34,197,94,.9)', boxShadow: '0 0 120px rgba(34,197,94,.6), inset 0 0 50px rgba(34,197,94,.35)', duration: .3 }, 37.0);
+T.to(['#inv', '#node', '#beam'], { opacity: .2, duration: .3 }, 37.0);
+flash(37.0, .3, .3);
+T.set('#ok', { visibility: 'visible' }, 37.0);
+T.set('#ok .kn', { opacity: 0, y: 20 }, 37.0);
+T.fromTo('#ok .b', { scale: 1.6, opacity: 0, filter: 'blur(16px)' }, { scale: 1, opacity: 1, filter: 'blur(0px)', duration: .35, ease: 'expo.out', immediateRender: false }, 37.0);
+T.to('#ok .kn', { y: 0, opacity: 1, duration: .4 }, 37.15);
+burst(37.0, 960, 440, ['#22c55e', '#86efac', '#ffffff'], 22, 420);
 const ksefFinal = '5842739145-20260930-7A1F3C9E2B40-5D';
 const dec = { p: 0 };
-T.to(dec, { p: 1, duration: .8, ease: 'none' }, 40.15);
+T.to(dec, { p: 1, duration: .8, ease: 'none' }, 37.15);
 appliers.push(t => {
   const n = Math.floor(dec.p * ksefFinal.length); const chars = '0123456789ABCDEF';
   let s = ''; for (let i = 0; i < ksefFinal.length; i++) s += i < n || ksefFinal[i] === '-' ? ksefFinal[i] : chars[(Math.floor(t * 40) * 7 + i * 13) % 16];
   $('#ksefNo').textContent = s;
 });
-// sortowanie do kategorii
-T.to('#ok', { y: -250, scale: .62, duration: .6, ease: 'expo.inOut' }, 40.95);
-T.to(['#inv', '#node', '#beam'], { opacity: 0, duration: .35, ease: 'power2.in' }, 40.9);
-T.set('#bins', { visibility: 'visible' }, 41.1);
-T.fromTo('#bins .bin', { y: 80, opacity: 0 }, { y: 0, opacity: 1, duration: .5, stagger: .07, ease: 'expo.out', immediateRender: false }, 41.1);
-T.set('#binsT', { visibility: 'visible' }, 41.15);
-T.fromTo('#binsT', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: .4, immediateRender: false }, 41.15);
-T.set('#chip', { visibility: 'visible', left: 795, top: 420, scale: 1.2, opacity: 0 }, 41.2);
-T.to('#chip', { opacity: 1, scale: 1, duration: .25 }, 41.2);
-T.to('#chip', { left: 300, top: 850, scale: .7, duration: .55, ease: 'power3.in' }, 41.45);
-T.to('#chip', { opacity: 0, duration: .08 }, 41.98);
-T.to('#bin0', { borderColor: 'rgba(37,99,235,1)', background: 'rgba(37,99,235,.22)', boxShadow: '0 0 60px rgba(37,99,235,.55)', duration: .2 }, 42.0);
-T.fromTo('#bin0', { scale: 1.08 }, { scale: 1, duration: .5, ease: 'back.out(3)', immediateRender: false }, 42.0);
-const b0 = { v: 21997.32, c: 12 };
-T.to(b0, { v: 25497.32, duration: .5, ease: 'power2.out' }, 42.0);
-T.set(b0, { c: 13 }, 42.0);
-appliers.push(() => { $('#bin0v').textContent = fmt(b0.v, 2) + ' zł'; $('#bin0c').textContent = b0.c + ' zleceń'; });
-whip(42.55, .3, 60);
-on('#L6b', 42.55, 44.05);
+caption('Jedno kliknięcie. <span style="color:#22c55e">Faktura już w KSeF.</span>', 37.35, 38.75);
+whip(38.8, .3, 60);
+on('#L6b', 38.8, 40.05);
 const c6 = new Cam('#rig6', '#cam6', { px: 1000, py: 700, z: 1.0, rx: 4, ry: -10, ox: 0 });
-c6.to(42.55, 1.3, { px: 1000, py: 618 + WIN_Y, z: 1.4, ry: -3 }, 'expo.out');
-hl('#hl6', 42.85, 44.05, [298, 588, 1252, 62]);
-c6.to(43.6, .45, { ox: -2600 }, 'power3.in');
-whip(44.0);
+c6.to(38.8, 1.0, { px: 900, py: 618 + WIN_Y, z: 1.4, ry: -3 }, 'expo.out');
+hl('#hl6', 39.0, 40.05, [298, 588, 1252, 62]);
+c6.to(39.6, .4, { ox: -2600 }, 'power3.in');
+whip(40.0);
 
 // ═════════════════════════════════════════════════════════════════════════════
-// SCENA 7 — STATYSTYKI (44–52)
+// SCENA 5 — STATYSTYKI (40–48)
 // ═════════════════════════════════════════════════════════════════════════════
-on('#L7', 44, 52.05);
+on('#L7', 40, 48.05);
 const c7 = new Cam('#rig7', '#cam7', { px: 800, py: 522, z: .66, rx: 10, ry: -20, ox: 2400, oy: 40 });
-c7.to(44.0, .6, { ox: 160 }, 'expo.out');
-c7.to(44.6, 1.6, { ry: -9, rx: 5 }, 'power2.out');
-bigWord('Statystyki.', 44.0, 44.85, { size: 200, cls: 'bluegrad' });
-corner('07', 'Statystyki', 'Każda zakończona wizyta od razu w wynikach.', 44.75, 46.45);
+c7.to(40, .6, { ox: 160 }, 'expo.out');
+c7.to(40.6, 1.6, { ry: -9, rx: 5 }, 'power2.out');
+bigWord('Statystyki.', 40, 40.85, { size: 200, cls: 'bluegrad' });
+corner('05', 'Statystyki', 'Każda zakończona wizyta od razu w wynikach.', 40.75, 42.75);
 // dane (odczytane z prawdziwego wykresu)
 const BASE = 663.8, K = 256.6 / 8000;
 const barsX = [887.2, 929.2, 971.2, 1013.2, 1055.2, 1097.2, 1139.2, 1181.2, 1223.2, 1265.2, 1307.2, 1349.2, 1391.2, 1433.2];
@@ -856,26 +806,26 @@ const barsH = [52.2, 5.6, 100.6, 116.7, 19.7, 15.6, 100.6, 32.9, 19.7, 21.2, 42.
 const W40_BEFORE = 162.44 - 3500 * K;
 const orders = [1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 3, 5, 3];
 const st7 = { grow: 0, line: 0, w40: 0, o40: 0, kpi: 0, k1: 30867, k2: 22, k3: 1403, donut: 0, mix: 0, legv0: 21997.32 };
-T.to(st7, { kpi: 1, duration: 1.2, ease: 'expo.out' }, 44.6);
-T.to(st7, { donut: 1, duration: 1.1, ease: 'expo.out' }, 44.7);
-T.to(st7, { grow: 1, duration: 1.1, ease: 'expo.out' }, 45.0);
-T.to(st7, { line: 1, duration: .9, ease: 'power2.inOut' }, 45.5);
-c7.to(46.3, 1.5, { px: 1180, py: 560 + WIN_Y, z: 1.4, ry: -4, rx: 2, ox: 0, oy: 0 }, 'power3.inOut');
-T.set('#chip7', { visibility: 'visible', left: 1640, top: 330, opacity: 0, scale: .9 }, 47.3);
-T.to('#chip7', { left: 1290, opacity: 1, scale: 1, duration: .4, ease: 'expo.out' }, 47.3);
-T.to('#chip7', { left: 1300, top: 470, scale: .4, opacity: 0, duration: .3, ease: 'power3.in' }, 47.75);
-T.to(st7, { w40: 1, o40: 1, duration: .8, ease: 'elastic.out(1, .55)' }, 48.0);
-flash(48.0, .18, .25);
-T.set('#pill7', { visibility: 'visible', left: 1402, top: 450, opacity: 0, y: 14, scale: .7 }, 48.05);
-T.to('#pill7', { opacity: 1, y: 0, scale: 1, duration: .4, ease: 'back.out(2.5)' }, 48.05);
-c7.to(48.5, 1.3, { px: 820, py: 470, z: .98, ry: -6, rx: 3, ox: 100 }, 'power3.inOut');
-T.to(st7, { k1: 34367, k2: 23, k3: 1494, mix: 1, legv0: 25497.32, duration: 1.0, ease: 'power2.out' }, 49.0);
-T.set(['#d1', '#d2'], { visibility: 'visible', opacity: 0, y: 8 }, 49.05);
-T.to(['#d1', '#d2'], { opacity: 1, y: 0, duration: .35, stagger: .08, ease: 'back.out(2)' }, 49.05);
-caption('Przychód <span style="color:#22c55e">+3500 zł</span>. Od razu w statystykach.', 49.4, 51.5);
-c7.to(50.2, 1.4, { z: 1.04, ry: -3 }, 'none');
-c7.to(51.55, .45, { oy: 1600, rx: 30 }, 'power3.in');
-whip(52.0, .4, 50);
+T.to(st7, { kpi: 1, duration: 1.2, ease: 'expo.out' }, 40.6);
+T.to(st7, { donut: 1, duration: 1.1, ease: 'expo.out' }, 40.7);
+T.to(st7, { grow: 1, duration: 1.1, ease: 'expo.out' }, 41);
+T.to(st7, { line: 1, duration: .9, ease: 'power2.inOut' }, 41.5);
+c7.to(42.5, 1.4, { px: 1180, py: 560 + WIN_Y, z: 1.4, ry: -4, rx: 2, ox: 0, oy: 0 }, 'power3.inOut');
+T.set('#chip7', { visibility: 'visible', left: 1640, top: 330, opacity: 0, scale: .9 }, 43.3);
+T.to('#chip7', { left: 1290, opacity: 1, scale: 1, duration: .4, ease: 'expo.out' }, 43.3);
+T.to('#chip7', { left: 1300, top: 470, scale: .4, opacity: 0, duration: .3, ease: 'power3.in' }, 43.75);
+T.to(st7, { w40: 1, o40: 1, duration: .8, ease: 'elastic.out(1, .55)' }, 44);
+flash(44, .18, .25);
+T.set('#pill7', { visibility: 'visible', left: 1402, top: 450, opacity: 0, y: 14, scale: .7 }, 44.05);
+T.to('#pill7', { opacity: 1, y: 0, scale: 1, duration: .4, ease: 'back.out(2.5)' }, 44.05);
+c7.to(44.5, 1.3, { px: 820, py: 470, z: .98, ry: -6, rx: 3, ox: 100 }, 'power3.inOut');
+T.to(st7, { k1: 34367, k2: 23, k3: 1494, mix: 1, legv0: 25497.32, duration: 1.0, ease: 'power2.out' }, 45);
+T.set(['#d1', '#d2'], { visibility: 'visible', opacity: 0, y: 8 }, 45.05);
+T.to(['#d1', '#d2'], { opacity: 1, y: 0, duration: .35, stagger: .08, ease: 'back.out(2)' }, 45.05);
+caption('Przychód <span style="color:#22c55e">+3500 zł</span>. Od razu w statystykach.', 45.4, 47.5);
+c7.to(46.2, 1.4, { z: 1.04, ry: -3 }, 'none');
+c7.to(47.55, .45, { oy: 1600, rx: 30 }, 'power3.in');
+whip(48, .4, 50);
 // rysowanie nakładek
 const donutEl = $('#donut'), chartEl = $('#chart');
 const arc = (a0, a1, R = 104, r = 66, cx = 110, cy = 110) => {
@@ -930,24 +880,24 @@ appliers.push(() => {
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
-// SCENA 8 — PUSH (52–56)
+// SCENA 6 — PUSH (48–56)
 // ═════════════════════════════════════════════════════════════════════════════
-on('#L8', 52, 56.05);
-T.fromTo('#pushBg', { scale: 1.15 }, { scale: 1.02, duration: 4, ease: 'none', immediateRender: false }, 52);
-const ph8 = { rx: 44, rz: -12, s: .86, y: 120, vib: 0, bright: 0 };
-T.fromTo(ph8, { y: 700, rx: 60 }, { y: 120, rx: 44, duration: .7, ease: 'expo.out', immediateRender: false }, 52.0);
-corner('08', 'Powiadomienia push', 'Wiesz, co dzieje się w studiu, zanim ktoś zadzwoni.', 52.3, 55.8);
-T.to('#wall8', { opacity: 1, duration: .35 }, 52.75);
-T.to('#deskglow', { opacity: .9, duration: .4 }, 52.75);
-T.set('#push1', { visibility: 'visible', y: -140, opacity: 0, scale: .85 }, 52.95);
-T.to('#push1', { y: 0, opacity: 1, scale: 1, duration: .45, ease: 'back.out(1.8)' }, 53.0);
-T.set(ph8, { vib: 6 }, 53.0); T.to(ph8, { vib: 0, duration: .5 }, 53.0);
-T.to('#push1', { y: 138, duration: .4, ease: 'expo.out' }, 54.5);
-T.set('#push2', { visibility: 'visible', y: -140, opacity: 0, scale: .85 }, 54.45);
-T.to('#push2', { y: 0, opacity: 1, scale: 1, duration: .45, ease: 'back.out(1.8)' }, 54.5);
-T.set(ph8, { vib: 6 }, 54.5); T.to(ph8, { vib: 0, duration: .5 }, 54.5);
-T.to(ph8, { rx: 16, rz: -4, s: 1.42, y: 260, duration: 2.6, ease: 'power2.inOut' }, 53.2);
-T.to('#deskglow', { background: 'radial-gradient(closest-side, rgba(233,199,123,.45), transparent)', duration: .4 }, 54.5);
+on('#L8', 48, 56.05);
+T.fromTo('#pushBg', { scale: 1.18 }, { scale: 1.02, duration: 8, ease: 'none', immediateRender: false }, 48);
+const ph8 = { rx: 44, rz: -12, s: .86, y: 120, vib: 0 };
+T.fromTo(ph8, { y: 700, rx: 60 }, { y: 120, rx: 44, duration: .9, ease: 'expo.out', immediateRender: false }, 48.0);
+corner('06', 'Powiadomienia push', 'Wiesz, co dzieje się w studiu, zanim ktoś zadzwoni.', 48.3, 51.9);
+T.to('#wall8', { opacity: 1, duration: .4 }, 49.4);
+T.to('#deskglow', { opacity: .9, duration: .5 }, 49.4);
+T.set('#push1', { visibility: 'visible', y: -140, opacity: 0, scale: .85 }, 49.95);
+T.to('#push1', { y: 0, opacity: 1, scale: 1, duration: .45, ease: 'back.out(1.8)' }, 50.0);
+T.set(ph8, { vib: 6 }, 50.0); T.to(ph8, { vib: 0, duration: .5 }, 50.0);
+T.to('#push1', { y: 138, duration: .4, ease: 'expo.out' }, 52.0);
+T.set('#push2', { visibility: 'visible', y: -140, opacity: 0, scale: .85 }, 51.95);
+T.to('#push2', { y: 0, opacity: 1, scale: 1, duration: .45, ease: 'back.out(1.8)' }, 52.0);
+T.set(ph8, { vib: 6 }, 52.0); T.to(ph8, { vib: 0, duration: .5 }, 52.0);
+T.to(ph8, { rx: 16, rz: -4, s: 1.42, y: 260, duration: 5.2, ease: 'power2.inOut' }, 50.3);
+T.to('#deskglow', { background: 'radial-gradient(closest-side, rgba(233,199,123,.45), transparent)', duration: .4 }, 52.0);
 appliers.push(t => {
   const hx = Math.sin(t * 1.3) * 10 + Math.sin(t * 3.1) * 3, hy = Math.cos(t * 1.1) * 8, hr = Math.sin(t * .9) * .6;
   const v = ph8.vib ? Math.sin(t * 170) * ph8.vib : 0;
@@ -958,15 +908,22 @@ $('#phone8').style.transformOrigin = '215px 330px';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // FINAŁ (56–60)
+// Napisy mają stan początkowy od chwili pokazania warstwy — bez tego były widoczne
+// przez pół sekundy, znikały i wjeżdżały drugi raz. Warstwa nie jest skalowana:
+// powolne skalowanie tekstu daje drganie liter przy rasteryzacji klatek.
 // ═════════════════════════════════════════════════════════════════════════════
 on('#LE', 56, 60.1);
-flash(56.0, 1, .6); shake(56.0, 18, .5);
+flash(56.0, 1, .6);
+T.set('#endWord', { y: 40, opacity: 0 }, 56.0);
+T.set('#endTag', { y: 30, opacity: 0 }, 56.0);
+T.set('#endUrl', { y: 20, opacity: 0 }, 56.0);
+T.set('#endSweep', { xPercent: -100 }, 56.0);
 T.fromTo('#endLogo', { scale: 1.25, opacity: 0, filter: 'blur(20px)' }, { scale: 1, opacity: 1, filter: 'blur(0px)', duration: 1.0, ease: 'expo.out', immediateRender: false }, 56.0);
-T.fromTo('#endSweep', { xPercent: -100 }, { xPercent: 100, duration: 1.4, ease: 'power2.inOut', immediateRender: false }, 56.4);
-T.fromTo('#endWord', { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: .7, ease: 'expo.out', immediateRender: false }, 56.5);
-T.fromTo('#endTag', { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: .7, ease: 'expo.out', immediateRender: false }, 57.0);
-T.fromTo('#endUrl', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: .7, ease: 'expo.out', immediateRender: false }, 57.4);
-T.fromTo('#LE', { scale: 1 }, { scale: 1.04, duration: 4, ease: 'none', immediateRender: false }, 56);
+T.to('#endLogo', { scale: 1.035, duration: 3, ease: 'none' }, 57.0);
+T.to('#endSweep', { xPercent: 100, duration: 1.4, ease: 'power2.inOut' }, 56.4);
+T.to('#endWord', { y: 0, opacity: 1, duration: .7, ease: 'expo.out' }, 56.5);
+T.to('#endTag', { y: 0, opacity: 1, duration: .7, ease: 'expo.out' }, 57.0);
+T.to('#endUrl', { y: 0, opacity: 1, duration: .7, ease: 'expo.out' }, 57.4);
 T.to('#black', { opacity: 1, duration: .8, ease: 'none' }, 59.2);
 T.set({}, {}, 60);
 

@@ -1,7 +1,7 @@
 # Showreel DetailBoost (60 s)
 
-Minutowa reklama produktowa: rezerwacja, przypomnienie SMS, cennik, podpis na tablecie,
-wydanie pojazdu, faktura w KSeF, statystyki i powiadomienia push. Wszystkie teksty są
+Minutowa reklama produktowa: rezerwacja, przypomnienie SMS, podpis na tablecie,
+wydanie pojazdu z fakturą wysłaną do KSeF jednym kliknięciem, statystyki i powiadomienia push. Wszystkie teksty są
 po polsku.
 
 Wideo to strona HTML z osią czasu GSAP, renderowana klatka po klatce w Chromium
@@ -14,7 +14,6 @@ Widoki aplikacji są prawdziwymi zrzutami z działającego frontu i backendu (ko
 
 - usługa „Oklejanie PPF – pełny przód” za 3500,00 zł brutto (netto 2845,53 zł),
 - rezerwacja „Oklejanie PPF Porsche 911” na 01.10, 09:00–02.10, 17:00 z przypomnieniem SMS,
-- zmiana ceny „Powłoka ceramiczna IGL Eclipse” na 2490,00 zł brutto,
 - przyjęcie pojazdu, „Oznacz jako gotowe”, „Wydaj pojazd” z fakturą VAT FV/2026/0001,
 - statystyki przed wizytą i po niej (30 867 zł → 34 367 zł, 22 → 23 zlecenia).
 
@@ -45,8 +44,9 @@ Zdjęcia samochodów pochodzą z Unsplash (licencja Unsplash).
 | `capture/` | skrypty Playwright, którymi nagrano zrzuty z aplikacji |
 | `a/` | zrzuty (JPEG), zdjęcia, logo, GSAP, font Inter |
 
-Czasy scen (s): intro 0–4, rezerwacja 4–12, SMS 12–18, cennik 18–26, podpis 26–32,
-wydanie 32–36, KSeF 36–44, statystyki 44–52, push 52–56, plansza końcowa 56–60.
+Czasy scen (s): intro 0–4, rezerwacja 4–12, SMS 12–18, podpis 18–26, wydanie pojazdu
+i faktura w KSeF 26–40 (kliknięcie „Wydaj pojazd” na 32,0 s), statystyki 40–48,
+push 48–56, plansza końcowa 56–60.
 Te same liczby są w `music.py`. Zmieniając jedno, zmień drugie.
 
 ## Render
@@ -72,4 +72,8 @@ Skrypty z `capture/` zakładają backend na `:8080` (`./gradlew bootRun -PksefSt
 i front na `http://localhost:5173`. Musi to być `localhost`, bo CORS backendu nie
 wpuszcza `127.0.0.1`. Zakładają też plik `state.json` z sesją konta demo. Tego pliku
 nie commitujemy, bo zawiera ciasteczka sesji. Zrzuty trafiają do `shots/`, a do `a/`
-przechodzą po zmniejszeniu do JPEG 2560 px (tablet: 2048 px).
+przechodzą po zmniejszeniu do JPEG 2560 px.
+
+Animacje wjazdu napisów muszą mieć stan początkowy ustawiony w chwili pokazania
+elementu (`T.set` w tym samym czasie co `visibility`). Inaczej napis przez kilka
+klatek widać gotowy, potem znika i wjeżdża drugi raz.
