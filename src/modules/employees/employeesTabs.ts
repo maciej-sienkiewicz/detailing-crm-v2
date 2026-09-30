@@ -7,9 +7,9 @@
 // Jedna lista zasila trzy miejsca naraz - pasek zakładek, pozycję w panelu bocznym
 // i trasy - więc kolejność i wymagania nie mogą się między nimi rozjechać.
 
-import type { PermissionRequirement } from '@/core/permissions/catalog';
+import { ANY_EMPLOYEES, type PermissionRequirement } from '@/core/permissions/catalog';
 
-export type EmployeesTab = 'team' | 'worktime';
+export type EmployeesTab = 'team' | 'leaves' | 'absences' | 'worktime';
 
 export interface EmployeesTabDef {
     key: EmployeesTab;
@@ -20,6 +20,8 @@ export interface EmployeesTabDef {
 
 export const EMPLOYEES_TABS: readonly EmployeesTabDef[] = [
     { key: 'team', label: 'Zespół', path: '/employees', requires: 'EMPLOYEES_MANAGE' },
+    { key: 'leaves', label: 'Wnioski urlopowe', path: '/employees/leave-requests', requires: 'EMPLOYEES_LEAVES_APPROVE' },
+    { key: 'absences', label: 'Nieobecności', path: '/employees/absences', requires: ANY_EMPLOYEES },
     { key: 'worktime', label: 'Czas pracy', path: '/employees/worktime', requires: 'EMPLOYEES_MANAGE' },
 ];
 

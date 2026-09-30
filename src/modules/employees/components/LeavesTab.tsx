@@ -537,6 +537,10 @@ export const LeavesTab = ({ employeeId }: Props) => {
         try {
             await deleteMutation.mutateAsync(pendingDelete.id);
             showSuccess('Urlop usunięty');
+        } catch {
+            // Odmowę pokazuje globalny dymek z komunikatem serwera - np. wpis utworzony
+            // z zatwierdzonego wniosku urlopowego nie da się usunąć (400), zdejmuje go
+            // dopiero „Odwołaj urlop" przy wniosku. Tu tylko nie zostawiamy odrzuconej obietnicy.
         } finally {
             setPendingDelete(null);
         }
@@ -548,7 +552,7 @@ export const LeavesTab = ({ employeeId }: Props) => {
         <Wrap>
             <StatsRow>
                 <StatTile>
-                    <StatLabel>Dni urlopu · {currentYear}</StatLabel>
+                    <StatLabel>Dni urlopu w {currentYear}</StatLabel>
                     <StatValue>{stats.daysThisYear}</StatValue>
                     <StatHint>łącznie dni kalendarzowych</StatHint>
                 </StatTile>
@@ -654,7 +658,7 @@ export const LeavesTab = ({ employeeId }: Props) => {
                                         <LeaveRange>{fmtRange(l.startDate, l.endDate)}</LeaveRange>
                                         <LeaveMeta>
                                             {LEAVE_TYPE_LABELS[l.leaveType]}
-                                            {l.note ? ` · ${l.note}` : ''}
+                                            {l.note ? `, ${l.note}` : ''}
                                         </LeaveMeta>
                                     </LeaveInfo>
                                     <DaysChip>{daysLabel(l.daysCount)}</DaysChip>

@@ -404,3 +404,115 @@ export interface CreateBonusPayload {
     amountCents: number;
     notes?: string | null;
 }
+
+// ─── Wnioski urlopowe (kontrakt: docs/api-leave-requests.md) ──────────────────
+
+/** Rodzaj wniosku: zwolnienie lekarskie (SICK) nie jest wnioskiem, wpisuje je menedżer. */
+export type LeaveRequestType = Exclude<LeaveType, 'SICK'>;
+export type LeaveRequestStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'WITHDRAWN' | 'CANCELLED' | 'EXPIRED';
+export type LeaveSignatureMethod = 'DEVICE_DRAWN' | 'SAVED_SIGNATURE';
+export type LeaveApprovalBasis = 'OWNER' | 'PERMISSION';
+
+export interface LeaveRequestSummary {
+    id: string;
+    /** „WU/2026/0012" */
+    number: string;
+    employeeId: string;
+    employeeName: string;
+    leaveType: LeaveRequestType;
+    /** Tylko przy ANNUAL. */
+    onDemand: boolean;
+    startDate: string;
+    endDate: string;
+    workingDays: number;
+    status: LeaveRequestStatus;
+    reason: string | null;
+    substituteEmployeeId: string | null;
+    substituteName: string | null;
+    createdAt: string;
+    employeeSignedAt: string | null;
+    decidedAt: string | null;
+    decidedByName: string | null;
+    /** Uzasadnienie decyzji (wymagane przy odmowie). */
+    decisionNote: string | null;
+    cancelReason: string | null;
+}
+
+export interface OverlappingAbsence {
+    employeeId: string;
+    employeeName: string;
+    startDate: string;
+    endDate: string;
+    /** LEAVE = wpis w employee_leaves (w tym L4), PENDING_REQUEST = wniosek oczekujący. */
+    kind: 'LEAVE' | 'PENDING_REQUEST';
+}
+
+export interface LeaveRequestDetail extends LeaveRequestSummary {
+    employeeSignatureMethod: LeaveSignatureMethod | null;
+    decisionSignatureMethod: LeaveSignatureMethod | null;
+    decidedByBasis: LeaveApprovalBasis | null;
+    decidedByRoleName: string | null;
+    /** Inne osoby nieobecne w tym terminie. */
+    overlappingAbsences: OverlappingAbsence[];
+    /** Czy bieżący użytkownik może rozpatrzyć wniosek. */
+    canDecide: boolean;
+    decisionBlockedReason: string | null;
+    /** APPROVED, przed startDate, bieżący może rozpatrywać. */
+    canCancel: boolean;
+}
+
+export interface SigningSession {
+    documentSha256: string;
+    challenge: string;
+}
+
+export interface MyLeaveRequestsResponse {
+    /** Bez szkiców, najnowsze pierwsze. */
+    requests: LeaveRequestSummary[];
+    summary: { year: number; usedWorkingDays: number; pendingCount: number };
+}
+
+export interface LeaveRequestPreview {
+    workingDays: number;
+    /** Tylko święta w dni powszednie zakresu - te, które faktycznie skróciły urlop. */
+    holidays: { date: string; name: string }[];
+}
+
+export interface CreateLeaveRequestPayload {
+    leaveType: LeaveRequestType;
+    onDemand: boolean;
+    startDate: string;
+    endDate: string;
+    reason?: string;
+    substituteEmployeeId?: string;
+}
+
+export interface CreateLeaveRequestResponse {
+    request: LeaveRequestDetail;
+    session: SigningSession;
+}
+
+export interface SubmitLeaveRequestPayload {
+    /** PNG base64 BEZ prefiksu `data:`. */
+    signatureImageBase64: string;
+    documentSha256: string;
+    challenge: string;
+    declarationAccepted: true;
+}
+
+export interface LeaveDecisionPayload {
+    signatureImageBase64?: string;
+    useSavedSignature: boolean;
+    documentSha256: string;
+    challenge: string;
+    note?: string;
+}
+
+/** DECIDED = APPROVED, REJECTED, CANCELLED, EXPIRED, WITHDRAWN. */
+export type LeaveRequestQueueStatus = 'PENDING' | 'DECIDED' | 'ALL';
+
+export interface LeaveRequestQueueResponse {
+    items: LeaveRequestSummary[];
+    /** Wszystkie oczekujące w studiu (licznik zakładki). */
+    pendingCount: number;
+}

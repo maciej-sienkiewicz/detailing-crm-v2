@@ -7,7 +7,7 @@ import { css } from 'styled-components';
 import { touch, ui } from './tokens';
 
 export type ButtonVariant =
-    | 'primary' | 'success' | 'tinted' | 'tintedSuccess' | 'outline' | 'ghost' | 'danger' | 'onDark';
+    | 'primary' | 'success' | 'tinted' | 'tintedSuccess' | 'tintedDanger' | 'outline' | 'ghost' | 'danger' | 'onDark';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 export interface ButtonStyleProps {
@@ -49,6 +49,14 @@ const VARIANTS: Record<ButtonVariant, ReturnType<typeof css>> = {
         background: ${ui.okTint};
         color: ${ui.okInk};
         &:hover:not(:disabled) { background: ${ui.okTintHover}; border-color: #4ade80; }
+    `,
+    // Odmowa obok kroku następnego („Odrzuć" przy „Zatwierdź"): czerwień niesie
+    // znaczenie „nie", ale bez wypełnienia - wypełniony jest tylko krok następny.
+    tintedDanger: css`
+        border-color: ${ui.dangerLine};
+        background: ${ui.dangerTint};
+        color: ${ui.dangerInk};
+        &:hover:not(:disabled) { background: #fee2e2; border-color: #fca5a5; }
     `,
     outline: css`
         border-color: ${ui.line};
