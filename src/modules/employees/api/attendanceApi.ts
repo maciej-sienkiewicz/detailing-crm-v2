@@ -1,4 +1,4 @@
-// src/modules/settings/api/attendanceApi.ts
+// src/modules/employees/api/attendanceApi.ts
 //
 // Lista obecności jako rozliczenie: wygeneruj → podejrzyj → zatwierdź (opcjonalnie
 // z podpisem) albo usuń.

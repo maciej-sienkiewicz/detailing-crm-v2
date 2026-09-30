@@ -5,8 +5,8 @@ import {
     ModalContent, ModalFooter, CloseBtn,
 } from '@/common/components/ModalKit';
 import { Button } from '@/common/components/ui';
-import { FormField, FieldLabel, FieldInput, ErrorMsg } from '../rbacShared.styles';
-import type { ChangePasswordRequest } from '../../teamTypes';
+import { FormField, FieldLabel, FieldInput, ErrorMsg } from '@/modules/settings/components/rbacShared.styles';
+import type { ChangePasswordRequest } from '../../types';
 
 // Polityka: min. 8 znaków, min. 1 wielka, min. 1 mała, min. 1 cyfra.
 const PASSWORD_RULES = [

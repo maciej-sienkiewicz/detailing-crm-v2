@@ -1,4 +1,4 @@
-// src/modules/settings/components/settlements/SettlementsSection.tsx
+// src/modules/employees/components/worktime/SettlementsSection.tsx
 //
 // Rozliczenia: wygenerowane listy obecności razem ze stanem. Dotąd lista trafiała do
 // folderu Pobrane jednej osoby i system o niej zapominał - przy kilku administratorach
@@ -11,9 +11,9 @@ import { useToast } from '@/common/components/Toast';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { formatDateTime } from '@/common/utils';
 import { Button, Card, IconButton, Notice, StatusPill } from '@/common/components/ui';
-import { Container, ColLabel, EmptyWrap, EmptyTitle, EmptyDesc, SkeletonBox } from '../rbacShared.styles';
-import { SettingsHeaderActions } from '../shared/SettingsHeaderActions';
-import { reportMutationError } from '../team/mutationError';
+import { Container, ColLabel, EmptyWrap, EmptyTitle, EmptyDesc, SkeletonBox } from '@/modules/settings/components/rbacShared.styles';
+import { PageHeaderActions } from '@/common/components/PageChrome';
+import { reportMutationError } from '@/modules/settings/components/team/mutationError';
 import type { AttendanceSheet } from '../../api/attendanceApi';
 import { useAttendanceSheets, useDeleteAttendanceSheet } from '../../hooks/useAttendanceSheets';
 import { AttendanceSheetPreviewModal } from './AttendanceSheetPreviewModal';
@@ -52,12 +52,12 @@ export function SettlementsSection({ highlightId, onGoToEmployees, onCreateSheet
     return (
         <Container>
             {onCreateSheet && (
-                <SettingsHeaderActions>
+                <PageHeaderActions>
                     <Button variant="primary" size="lg" onClick={onCreateSheet}>
                         <Plus aria-hidden="true" />
                         Dodaj listę obecności
                     </Button>
-                </SettingsHeaderActions>
+                </PageHeaderActions>
             )}
 
             <Intro>

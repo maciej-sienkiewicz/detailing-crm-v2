@@ -107,7 +107,7 @@ export const AddEmployeeModal = ({ isOpen, onClose, onSuccess, employee }: Props
     const [error, setError] = useState('');
 
     const createMutation = useCreateEmployee();
-    const updateMutation = useUpdateEmployee(employee?.id ?? '');
+    const updateMutation = useUpdateEmployee();
     const { roles } = useRoles();
 
     const set = (key: keyof CreateEmployeePayload, value: string | boolean | null) =>
@@ -132,8 +132,8 @@ export const AddEmployeeModal = ({ isOpen, onClose, onSuccess, employee }: Props
         };
 
         try {
-            if (isEdit) {
-                await updateMutation.mutateAsync(payload);
+            if (isEdit && employee) {
+                await updateMutation.mutateAsync({ employeeId: employee.id, payload });
             } else {
                 await createMutation.mutateAsync(payload);
             }

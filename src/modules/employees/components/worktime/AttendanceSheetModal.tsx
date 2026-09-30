@@ -1,4 +1,4 @@
-// src/modules/settings/components/team/AttendanceSheetModal.tsx
+// src/modules/employees/components/worktime/AttendanceSheetModal.tsx
 //
 // Wybór miesiąca i osób → lista obecności ląduje w zakładce Rozliczenia.
 //
@@ -27,10 +27,10 @@ import { useToast } from '@/common/components/Toast';
 import { Button, Notice } from '@/common/components/ui';
 import { readBlobErrorMessage, type AttendanceSheet } from '../../api/attendanceApi';
 import { useGenerateAttendanceSheet } from '../../hooks/useAttendanceSheets';
-import { useEmployees } from '../../hooks/useTeam';
-import { useRoles } from '../../hooks/useRoles';
-import { periodLabel } from '../settlements/settlementFormat';
-import { employeesCount } from './teamPlural';
+import { useEmployees } from '../../hooks/useEmployees';
+import { useRoles } from '@/modules/settings/hooks/useRoles';
+import { periodLabel } from './settlementFormat';
+import { employeesCount } from '@/modules/settings/components/team/teamPlural';
 
 const MONTHS = [
     'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
@@ -70,8 +70,8 @@ export function AttendanceSheetModal({ onClose, onGenerated }: Props) {
      */
     const candidates = useMemo(() => {
         const workTimeRoles = new Set(roles.filter(r => r.trackWorkTime).map(r => r.id));
-        return employees.items.filter(e => !!e.role && workTimeRoles.has(e.role.id));
-    }, [employees.items, roles]);
+        return employees.employees.filter(e => !!e.role && workTimeRoles.has(e.role.id));
+    }, [employees.employees, roles]);
 
     // Domyślnie wszyscy: najczęstsza lista to „cały zespół za zeszły miesiąc".
     const [picked, setPicked] = useState<Set<string> | null>(null);

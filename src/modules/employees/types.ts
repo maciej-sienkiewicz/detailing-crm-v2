@@ -11,6 +11,12 @@ export type EtatFraction = 'FULL' | 'HALF' | 'QUARTER';
 
 // ─── Employee ─────────────────────────────────────────────────────────────────
 
+/** The account's role as the employee list reports it. */
+export interface EmployeeRoleRef {
+    id: string;
+    name: string;
+}
+
 export interface EmployeeListItem {
     id: string;
     firstName: string;
@@ -19,6 +25,17 @@ export interface EmployeeListItem {
     email: string | null;
     phone: string | null;
     hasAccount: boolean;
+    /**
+     * The account exists but the employee has not activated it from the invitation yet.
+     * Like `role`, only reported to callers who manage the team.
+     */
+    accountPending?: boolean;
+    /**
+     * Null means three different things; read it together with `hasAccount`: no
+     * account, an account with no role (signed in but locked out), or a caller
+     * without permission to see roles.
+     */
+    role?: EmployeeRoleRef | null;
 }
 
 export interface EmployeePaginationInfo {
@@ -88,6 +105,35 @@ export interface UpdateEmployeePayload {
     lastName: string;
     phone?: string | null;
     email?: string | null;
+}
+
+export interface CreateAccountRequest {
+    email: string;
+}
+
+export interface CreateAccountResponse {
+    userId: string;
+}
+
+/** A fresh invitation link: when it went out and until when it works. */
+export interface ResendInvitationResponse {
+    sentAt: string;
+    expiresAt: string;
+}
+
+/** Data collected by the "add employee" form: maps to a single create call. */
+export interface CreateEmployeeFormOutput {
+    firstName: string;
+    lastName: string;
+    phone: string | null;
+    email: string | null;
+    createAccount: boolean;
+    roleId: string | null;
+}
+
+export interface ChangePasswordRequest {
+    newPassword: string;
+    confirmPassword: string;
 }
 
 export interface TerminateEmployeePayload {

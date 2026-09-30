@@ -28,6 +28,10 @@ export const PERMISSIONS = {
     // Pracownicy
     EMPLOYEES_MANAGE: 'EMPLOYEES_MANAGE',
     EMPLOYEES_PAYROLL: 'EMPLOYEES_PAYROLL',
+    // Rozpatrywanie wniosków urlopowych zespołu. Osobny korzeń, a nie dziecko
+    // EMPLOYEES_MANAGE: kierownik zmiany rozpatruje urlopy, ale nie zakłada kont
+    // i nie czyta danych kadrowych.
+    EMPLOYEES_LEAVES_APPROVE: 'EMPLOYEES_LEAVES_APPROVE',
     // Komunikacja
     COMMUNICATION_SEND: 'COMMUNICATION_SEND',
     // Marketing
@@ -77,6 +81,12 @@ export const ANY_FINANCE: PermissionCode[] = [
     'FINANCE_MANAGE_CASH_REGISTER',
     'FINANCE_VIEW_REPORTS',
 ];
+
+/**
+ * ANY-OF shorthand: moduł „Pracownicy" (/employees) w jakiejkolwiek roli - kadry
+ * albo samo rozpatrywanie urlopów. Zakładki modułu są filtrowane pojedynczo.
+ */
+export const ANY_EMPLOYEES: PermissionCode[] = ['EMPLOYEES_MANAGE', 'EMPLOYEES_LEAVES_APPROVE'];
 
 /**
  * ANY-OF shorthand: the Settings view. A user sees Settings when at least one

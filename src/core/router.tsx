@@ -26,6 +26,7 @@ import { BatchOrdersView } from "@/modules/batch-orders";
 import { ProductListView, ProductDetailView, MobileProductScanView } from "@/modules/products";
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ScrollLockRouteReset } from './components/ScrollLockRouteReset';
+import { RedirectWithParams } from './components/RedirectWithParams';
 import { RequirePermission, HomeRedirect, NoAccessView, ANY_FINANCE, ANY_DASHBOARD } from './permissions';
 import { NotificationsView } from '@/modules/notifications';
 import type { PermissionRequirement } from './permissions';
@@ -46,7 +47,7 @@ const MailView = lazyWithRetry(() => import('@/modules/comms/views/MailView'));
 const MailboxConnectView = lazyWithRetry(() => import('@/modules/comms/views/MailboxConnectView'));
 const LeadsView = lazyWithRetry(() => import('@/modules/comms/views/LeadsView'));
 const LeadAnalyticsView = lazyWithRetry(() => import('@/modules/comms/views/LeadAnalyticsView'));
-import { EmployeeDetailView } from '@/modules/employees';
+import { EmployeeDetailView, EmployeesView } from '@/modules/employees';
 import { WorkTimeView } from '@/modules/worktime';
 import { ActivityView } from '@/modules/activity';
 import { SettingsView } from '@/modules/settings';
@@ -409,13 +410,25 @@ export const router = createBrowserRouter([
             element: page(<ActivityView />, 'AUDIT_VIEW'),
         },
 
-        // ── Zespół ───────────────────────────────────────────────────────────
-        // Lista pracowników stoi w Ustawieniach (`/settings?tab=team`); osobna
-        // trasa `/team` była jej drugą, równoległą wersją i została usunięta.
-        // Karta pojedynczego pracownika zostaje - Ustawienia do niej prowadzą.
+        // ── Pracownicy ───────────────────────────────────────────────────────
+        // Moduł wyszedł z Ustawień (`/settings?tab=team` przekierowuje tutaj).
+        // Zakładki to osobne trasy z własnym uprawnieniem - lista w employeesTabs.ts.
         {
-            path: '/team/:employeeId',
+            path: '/employees',
+            element: page(<EmployeesView tab="team" />, 'EMPLOYEES_MANAGE'),
+        },
+        {
+            path: '/employees/worktime',
+            element: page(<EmployeesView tab="worktime" />, 'EMPLOYEES_MANAGE'),
+        },
+        {
+            path: '/employees/:employeeId',
             element: page(<EmployeeDetailView />, 'EMPLOYEES_MANAGE'),
+        },
+        {
+            // Dawny adres karty pracownika - krąży w zakładkach przeglądarki.
+            path: '/team/:employeeId',
+            element: <RedirectWithParams to="/employees/:employeeId" />,
         },
 
         // ── Ustawienia (dodatkowo zakładki filtrowane wewnątrz widoku) ───────

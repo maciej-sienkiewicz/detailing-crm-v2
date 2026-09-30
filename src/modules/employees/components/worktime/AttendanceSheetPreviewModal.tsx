@@ -1,4 +1,4 @@
-// src/modules/settings/components/settlements/AttendanceSheetPreviewModal.tsx
+// src/modules/employees/components/worktime/AttendanceSheetPreviewModal.tsx
 //
 // Podgląd listy obecności przed zatwierdzeniem. Strony rysuje pdf.js na kanwie, a nie
 // <iframe>: przeglądarki na telefonie (Android Chrome) zamiast pokazać PDF w ramce

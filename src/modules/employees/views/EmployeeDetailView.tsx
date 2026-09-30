@@ -46,10 +46,6 @@ const SubtitleLink = styled.button`
     svg { width: 13px; height: 13px; }
 `;
 
-const SubtitleSep = styled.span`
-    color: #334155;
-`;
-
 // ─── Content grid ────────────────────────────────────────────────────────────
 
 const ContentGrid = styled.div`
@@ -227,13 +223,12 @@ const PencilIcon = () => (
 // ─── Komponent ───────────────────────────────────────────────────────────────
 
 /**
- * Lista pracowników mieszka w Ustawieniach, w zakładce „Pracownicy i role" -
- * i to jedyne miejsce, z którego da się tu wejść. Strzałka powrotu prowadziła
- * pod `/team`, czyli do drugiej, równoległej listy, więc użytkownik wracał
- * gdzie indziej niż wyszedł. Adres w jednym miejscu, bo korzystają z niego dwie
- * ścieżki wyjścia: strzałka i usunięcie pracownika.
+ * Lista pracowników to zakładka „Zespół" modułu Pracownicy. Wcześniej stała
+ * w Ustawieniach, więc wejście na kartę i powrót z niej dwa razy zmieniały
+ * kontekst (Ustawienia → karta → Ustawienia). Adres w jednym miejscu, bo korzystają
+ * z niego dwie ścieżki wyjścia: strzałka i usunięcie pracownika.
  */
-const EMPLOYEES_LIST_PATH = '/settings?tab=team&view=employees';
+const EMPLOYEES_LIST_PATH = '/employees';
 
 export const EmployeeDetailView = () => {
     const { employeeId } = useParams<{ employeeId: string }>();
@@ -273,18 +268,10 @@ export const EmployeeDetailView = () => {
                         <SubtitleLink onClick={() => navigate(EMPLOYEES_LIST_PATH)}>
                             <ArrowLeftIcon /> Pracownicy
                         </SubtitleLink>
-                        {employee.email && (
-                            <>
-                                <SubtitleSep>·</SubtitleSep>
-                                <span>{employee.email}</span>
-                            </>
-                        )}
-                        {employee.phone && (
-                            <>
-                                <SubtitleSep>·</SubtitleSep>
-                                <span>{employee.phone}</span>
-                            </>
-                        )}
+                        {/* Kontakty jako osobne elementy - podtytuł rozdziela je odstępem
+                            (gap), bez kropki-kleju (CLAUDE.md §4). */}
+                        {employee.email && <span>{employee.email}</span>}
+                        {employee.phone && <span>{employee.phone}</span>}
                     </>
                 }
                 actions={
@@ -329,7 +316,6 @@ export const EmployeeDetailView = () => {
 
                     <AccountManagementCard
                         employee={employee}
-                        onChanged={() => refetch()}
                         onEmployeeDeleted={() => navigate(EMPLOYEES_LIST_PATH)}
                     />
                 </SideCard>

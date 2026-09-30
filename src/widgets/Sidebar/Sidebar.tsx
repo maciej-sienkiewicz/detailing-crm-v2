@@ -24,11 +24,12 @@ import {
     Activity,
     CircleAlert,
     Package,
+    IdCard,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from './context/SidebarContext';
 import { useAuth } from '@/core/context/AuthContext';
-import { usePermissions, ANY_FINANCE, ANY_DASHBOARD } from '@/core/permissions';
+import { usePermissions, ANY_FINANCE, ANY_DASHBOARD, ANY_EMPLOYEES } from '@/core/permissions';
 import type { PermissionRequirement } from '@/core/permissions';
 import { authApi } from '@/modules/auth/api/authApi';
 import { useNewLeadsCount, useUnreadMailCount, useCommsSocket } from '@/modules/comms';
@@ -38,6 +39,7 @@ import type { MenuItem } from './SidebarMenuItem';
 import { UserSwitcherPanel, useKnownProfiles } from '@/modules/pin-switcher';
 import { ReportProblemModal } from '@/modules/support/components/ReportProblemModal';
 import { useCompanySettings } from '@/modules/settings/hooks/useCompany';
+import { firstEmployeesTabPath } from '@/modules/employees/employeesTabs';
 import { companyDisplayName, companyInitials } from './companyBadge';
 import { readCompanyHeader, writeCompanyHeader } from './companyHeaderCache';
 import { SidebarBrand } from './SidebarBrand';
@@ -113,6 +115,11 @@ const buildMenuSections = (
         {
             title: 'Firma',
             items: [
+                // Ścieżka to pierwsza zakładka, do której użytkownik ma dostęp - kierownik
+                // zmiany bez EMPLOYEES_MANAGE nie może trafić na /employees i przekierowanie.
+                // `Users` jest zajęte przez Klientów, stąd IdCard.
+                { path: firstEmployeesTabPath(can) ?? '/employees', label: 'Pracownicy', icon: IdCard,
+                    requires: ANY_EMPLOYEES, match: ['/employees'] },
                 { path: '/finances',   label: 'Finanse',    icon: FileText,   requires: ANY_FINANCE, match: ['/finance'] },
                 { path: '/statistics', label: 'Statystyki', icon: TrendingUp, requires: 'STATISTICS_VIEW', match: ['/reports'] },
                 { path: '/products',   label: 'Produkty',   icon: Package,    requires: 'PRODUCTS_VIEW' },
