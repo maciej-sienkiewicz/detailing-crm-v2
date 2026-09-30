@@ -1,0 +1,1002 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>DetailBoost Showreel</title>
+<style>
+@font-face { font-family: 'InterV'; src: url(a/inter-latin-ext-wght-normal.woff2) format('woff2'); font-weight: 100 900; unicode-range: U+0100-02AF, U+0304, U+0308, U+0329, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'InterV'; src: url(a/inter-latin-wght-normal.woff2) format('woff2'); font-weight: 100 900; unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+:root { --brand: #0ea5e9; --ink: #0f172a; --gold1: #f7efc4; --gold2: #e2b865; --gold3: #b98a36; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+body { font-family: 'InterV', system-ui, sans-serif; color: #fff; -webkit-font-smoothing: antialiased; font-feature-settings: 'cv11', 'ss01'; }
+#stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; background: #05070d; }
+#world { position: absolute; inset: 0; }
+.layer { position: absolute; inset: 0; visibility: hidden; opacity: 0; }
+.full { position: absolute; inset: 0; }
+.bgimg { position: absolute; inset: -60px; background-size: cover; background-position: center; }
+
+/* tło „premium” dla scen z ekranem */
+.darkbg { position: absolute; inset: 0; background:
+  radial-gradient(900px 600px at 78% 30%, rgba(14,165,233,.20), transparent 70%),
+  radial-gradient(800px 700px at 12% 90%, rgba(37,99,235,.16), transparent 70%),
+  radial-gradient(1400px 900px at 50% 50%, #0b1322 0%, #05070d 75%); }
+.gridfloor { position: absolute; left: -50%; right: -50%; top: 52%; height: 140%; transform-origin: 50% 0; transform: rotateX(72deg);
+  background-image: linear-gradient(rgba(56,189,248,.16) 1px, transparent 1px), linear-gradient(90deg, rgba(56,189,248,.16) 1px, transparent 1px);
+  background-size: 90px 90px; -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,.9), transparent 70%); mask-image: linear-gradient(to bottom, rgba(0,0,0,.9), transparent 70%); }
+.persp { position: absolute; inset: 0; perspective: 2000px; perspective-origin: 960px 540px; }
+.rig { position: absolute; inset: 0; transform-style: preserve-3d; transform-origin: 960px 540px; }
+.cam { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+
+/* okno przeglądarki */
+.win { position: relative; width: 1600px; height: 1044px; border-radius: 18px; overflow: hidden; background: #0b1220;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.10), 0 50px 120px rgba(0,0,0,.65), 0 20px 50px rgba(2,132,199,.18); }
+.chrome { height: 44px; background: linear-gradient(#131c2e, #0e1626); display: flex; align-items: center; gap: 9px; padding: 0 18px; border-bottom: 1px solid rgba(255,255,255,.06); }
+.chrome i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+.chrome i:nth-child(1) { background: #ff5f57; } .chrome i:nth-child(2) { background: #febc2e; } .chrome i:nth-child(3) { background: #28c840; }
+.url { margin-left: 22px; height: 28px; flex: 0 0 520px; border-radius: 8px; background: rgba(255,255,255,.07); color: #9fb1c9; font-size: 14px; display: flex; align-items: center; padding: 0 14px; gap: 8px; letter-spacing: .01em; }
+.url b { color: #e2e8f0; font-weight: 500; }
+.screen { position: absolute; left: 0; top: 44px; width: 1600px; height: 1000px; overflow: hidden; background: #eef2f7; }
+.screen img.shot, .tscreen img.shot { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+
+/* tablet */
+.tablet { position: relative; width: 1410px; height: 1068px; border-radius: 58px; background: linear-gradient(145deg, #2a2f3a, #0d1017 60%, #20242d);
+  box-shadow: 0 0 0 2px #3a404c, 0 60px 140px rgba(0,0,0,.7), inset 0 0 0 1px rgba(255,255,255,.08); }
+.tscreen { position: absolute; left: 22px; top: 22px; width: 1366px; height: 1024px; border-radius: 38px; overflow: hidden; background: #f1f3f6; }
+.tcam { position: absolute; left: 21px; top: 50%; width: 7px; height: 7px; margin-top: -3px; border-radius: 50%; background: #1c2230; box-shadow: inset 0 0 0 1.5px #0b0e14; }
+.glare { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(115deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,0) 32%, rgba(255,255,255,0) 70%, rgba(255,255,255,.05) 100%); }
+
+/* kursor i dotyk */
+.cursor { position: absolute; left: 0; top: 0; width: 34px; height: 34px; z-index: 50; visibility: hidden; filter: drop-shadow(0 3px 6px rgba(0,0,0,.35)); }
+.ring { position: absolute; left: 0; top: 0; width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%; border: 3px solid rgba(14,165,233,.9); z-index: 49; visibility: hidden; }
+.touch { position: absolute; left: 0; top: 0; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: rgba(255,255,255,.55); border: 2px solid rgba(255,255,255,.95); box-shadow: 0 6px 20px rgba(15,23,42,.35); z-index: 50; visibility: hidden; }
+.hl { position: absolute; border-radius: 12px; border: 3px solid #0ea5e9; box-shadow: 0 0 0 6px rgba(14,165,233,.18), 0 0 40px rgba(14,165,233,.55); visibility: hidden; z-index: 40; }
+.hl.green { border-color: #16a34a; box-shadow: 0 0 0 6px rgba(22,163,74,.18), 0 0 40px rgba(22,163,74,.5); }
+.pill { position: absolute; z-index: 45; visibility: hidden; padding: 10px 18px; border-radius: 999px; font-weight: 700; font-size: 20px; white-space: nowrap;
+  background: #0f172a; color: #fff; box-shadow: 0 12px 30px rgba(15,23,42,.35); }
+.pill.green { background: #f0fdf4; color: #15803d; border: 1.5px solid #86efac; }
+
+/* typografia kinetyczna */
+.big { position: absolute; left: 0; right: 0; top: 50%; text-align: center; font-weight: 800; letter-spacing: -0.055em; line-height: 1; white-space: nowrap; visibility: hidden; z-index: 90; }
+.big span { display: inline-block; will-change: transform; }
+.corner { position: absolute; left: 96px; top: 84px; z-index: 80; visibility: hidden; }
+.corner .num { font-size: 20px; font-weight: 700; color: #38bdf8; letter-spacing: .02em; margin-bottom: 14px; display: flex; align-items: center; gap: 14px; }
+.corner .num::after { content: ''; display: block; width: 56px; height: 2px; background: linear-gradient(90deg, #38bdf8, transparent); }
+.corner .t { font-size: 64px; font-weight: 800; letter-spacing: -0.045em; line-height: 1.02; overflow: hidden; padding-bottom: 6px; }
+.corner .t > span { display: inline-block; }
+.corner .s { margin-top: 14px; font-size: 26px; font-weight: 500; color: #9fb0c8; letter-spacing: -0.01em; max-width: 470px; line-height: 1.35; overflow: hidden; }
+.corner .s > span { display: inline-block; }
+.gold { background: linear-gradient(100deg, #fff6d5 0%, #e9c77b 35%, #c9953f 60%, #f5e3a8 85%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.bluegrad { background: linear-gradient(100deg, #ffffff 0%, #bae6fd 40%, #38bdf8 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.caption { position: absolute; left: 0; right: 0; bottom: 92px; text-align: center; z-index: 85; visibility: hidden; }
+.caption > div { display: inline-block; padding: 18px 34px; border-radius: 20px; background: rgba(8,12,22,.72); border: 1px solid rgba(255,255,255,.10); backdrop-filter: blur(18px); font-size: 40px; font-weight: 700; letter-spacing: -0.03em; box-shadow: 0 20px 60px rgba(0,0,0,.45); }
+
+/* telefon */
+.phone { position: absolute; width: 430px; height: 900px; border-radius: 70px; background: linear-gradient(145deg, #3a3f4a, #0c0e13 40%, #2b303a);
+  box-shadow: 0 0 0 2px #4a505c, inset 0 0 0 1px rgba(255,255,255,.14), 0 80px 160px rgba(0,0,0,.75); }
+.pscreen { position: absolute; left: 14px; top: 14px; right: 14px; bottom: 14px; border-radius: 57px; overflow: hidden; }
+.island { position: absolute; left: 50%; top: 14px; width: 124px; height: 36px; margin-left: -62px; border-radius: 20px; background: #000; z-index: 20; }
+.lock-date { position: absolute; left: 0; right: 0; top: 96px; text-align: center; font-size: 23px; font-weight: 600; color: rgba(255,255,255,.92); letter-spacing: -0.01em; }
+.lock-time { position: absolute; left: 0; right: 0; top: 118px; text-align: center; font-size: 124px; font-weight: 700; letter-spacing: -0.04em; color: rgba(255,255,255,.95); line-height: 1.1; }
+.statusbar { position: absolute; left: 34px; right: 30px; top: 22px; display: flex; justify-content: space-between; font-size: 17px; font-weight: 600; z-index: 21; }
+.noti { position: absolute; left: 12px; right: 12px; border-radius: 26px; padding: 15px 16px 16px; display: grid; grid-template-columns: 44px 1fr; column-gap: 12px;
+  background: rgba(245,245,247,.78); backdrop-filter: blur(24px) saturate(1.6); color: #0b0b0f; box-shadow: 0 10px 30px rgba(0,0,0,.25); visibility: hidden; }
+.noti .ic { width: 44px; height: 44px; border-radius: 11px; overflow: hidden; }
+.noti .hd { display: flex; justify-content: space-between; align-items: baseline; }
+.noti .ttl { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+.noti .tm { font-size: 14px; color: rgba(60,60,67,.6); }
+.noti .bd { font-size: 16.5px; line-height: 1.32; margin-top: 2px; letter-spacing: -0.005em; color: #1c1c1e; }
+.noti .app { font-size: 12.5px; font-weight: 600; color: rgba(60,60,67,.62); letter-spacing: .02em; text-transform: uppercase; margin-bottom: 2px; }
+.mark { background-image: linear-gradient(transparent 62%, rgba(14,165,233,.35) 62%); background-repeat: no-repeat; background-size: 0% 100%; }
+
+/* ekran podpisu (styl PublicSigningView) */
+.sign { position: absolute; inset: 0; background: #f1f3f6; color: #101828; font-size: 17px; }
+.sign .col { position: absolute; left: 183px; width: 1000px; top: 40px; }
+.sign .card { background: #fff; border: 1px solid #e4e7ec; border-radius: 16px; padding: 24px 28px; margin-bottom: 18px; }
+.sign h1 { font-size: 27px; font-weight: 700; letter-spacing: -0.02em; }
+.sign .sub { font-size: 17px; color: #667085; margin-top: 6px; }
+.sign .exp { font-size: 15px; color: #98a2b3; margin-top: 4px; }
+.sign .ct { font-size: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #98a2b3; margin-bottom: 14px; }
+.sign .doc { height: 250px; border: 1px solid #e4e7ec; border-radius: 10px; background: #fafbfc; position: relative; overflow: hidden; padding: 22px 30px; font-size: 13px; color: #344054; }
+.sign .doc h3 { font-size: 17px; font-weight: 800; color: #101828; letter-spacing: -0.01em; }
+.sign .doc .row { display: flex; justify-content: space-between; border-bottom: 1px solid #eef0f3; padding: 7px 0; }
+.sign .doc .row b { color: #101828; font-weight: 600; }
+.sign .decl { display: flex; gap: 14px; align-items: flex-start; font-size: 17px; line-height: 1.45; }
+.sign .cb { flex: 0 0 26px; height: 26px; border-radius: 7px; border: 2px solid #d0d5dd; background: #fff; position: relative; margin-top: 1px; }
+.sign .cbf { position: absolute; inset: -2px; border-radius: 7px; background: #1d4ed8; opacity: 0; display: grid; place-items: center; }
+.sign .pad { margin-top: 18px; height: 250px; border: 1.5px dashed #d0d5dd; border-radius: 14px; background: #fff; position: relative; overflow: hidden; }
+.sign .pad .hint { position: absolute; left: 0; right: 0; bottom: 18px; text-align: center; color: #98a2b3; font-size: 16px; }
+.sign .pad .base { position: absolute; left: 60px; right: 60px; bottom: 58px; border-bottom: 1.5px solid #e4e7ec; }
+.sign .btns { display: flex; gap: 14px; margin-top: 20px; }
+.sign .pbtn { flex: 1; height: 58px; border-radius: 999px; background: #98a2b3; color: #fff; font-size: 19px; font-weight: 700; display: grid; place-items: center; position: relative; overflow: hidden; }
+.sign .pbtn .on { position: absolute; inset: 0; background: #1d4ed8; opacity: 0; display: grid; place-items: center; }
+.sign .sbtn { flex: 1; height: 58px; border-radius: 999px; border: 1.5px solid #e4e7ec; color: #667085; font-size: 18px; font-weight: 600; display: grid; place-items: center; background: #fff; }
+.sign .done { position: absolute; inset: 0; background: #f1f3f6; display: grid; place-items: center; opacity: 0; }
+.sign .done .box { width: 760px; background: #fff; border: 1px solid #e4e7ec; border-radius: 20px; padding: 64px 50px; text-align: center; }
+.sign .done .badge { width: 96px; height: 96px; border-radius: 50%; background: #ecfdf3; color: #067647; display: grid; place-items: center; margin: 0 auto 26px; }
+.sign .done .tt { font-size: 32px; font-weight: 700; letter-spacing: -0.02em; }
+.sign .done .tx { font-size: 19px; color: #667085; margin-top: 12px; line-height: 1.5; }
+.stylus { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; background: rgba(15,23,42,.18); border: 2px solid rgba(15,23,42,.55); visibility: hidden; }
+
+/* KSeF */
+.inv { position: absolute; width: 600px; height: 780px; left: 660px; top: 150px; background: #fff; border-radius: 22px; color: #0f172a; padding: 40px 44px; overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.1), 0 60px 120px rgba(0,0,0,.6); transform-origin: 50% 50%; }
+.inv .top { display: flex; justify-content: space-between; align-items: flex-start; }
+.inv .lbl { font-size: 14px; color: #64748b; font-weight: 600; }
+.inv .no { font-size: 34px; font-weight: 800; letter-spacing: -0.03em; margin-top: 4px; }
+.inv .logo { width: 64px; height: 64px; border-radius: 16px; background: linear-gradient(135deg, #0ea5e9, #2563eb); color: #fff; font-weight: 800; font-size: 24px; display: grid; place-items: center; }
+.inv .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; margin-top: 34px; font-size: 15px; line-height: 1.5; color: #334155; }
+.inv .parties b { display: block; color: #0f172a; font-size: 16px; }
+.inv table { width: 100%; border-collapse: collapse; margin-top: 34px; font-size: 15px; }
+.inv th { text-align: left; color: #64748b; font-weight: 600; font-size: 13px; padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
+.inv td { padding: 14px 0; border-bottom: 1px solid #f1f5f9; }
+.inv .r { text-align: right; }
+.inv .sum { margin-top: 26px; display: grid; grid-template-columns: 1fr auto; row-gap: 8px; font-size: 16px; color: #475569; }
+.inv .sum .tot { font-size: 36px; font-weight: 800; color: #0f172a; letter-spacing: -0.03em; }
+.inv .foot { position: absolute; left: 44px; right: 44px; bottom: 34px; display: flex; justify-content: space-between; font-size: 14px; color: #64748b; }
+.scanline { position: absolute; left: 0; right: 0; height: 90px; top: -90px; background: linear-gradient(to bottom, transparent, rgba(14,165,233,.28) 80%, rgba(56,189,248,.95) 98%, transparent); mix-blend-mode: multiply; }
+.node { position: absolute; left: 1330px; top: 330px; width: 380px; height: 380px; }
+.node .core { position: absolute; left: 70px; top: 70px; width: 240px; height: 240px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #1e3a5f, #0b1627 70%);
+  border: 1.5px solid rgba(56,189,248,.5); box-shadow: 0 0 80px rgba(14,165,233,.35), inset 0 0 40px rgba(14,165,233,.25); display: grid; place-items: center; text-align: center; }
+.node .core b { display: block; font-size: 64px; font-weight: 800; letter-spacing: -0.04em; }
+.node .core span { font-size: 16px; color: #93c5fd; font-weight: 500; }
+.node .orb { position: absolute; inset: 0; border-radius: 50%; border: 1.5px dashed rgba(56,189,248,.35); }
+.node .orb2 { position: absolute; inset: 30px; border-radius: 50%; border: 1px solid rgba(56,189,248,.22); }
+.pkt { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: #7dd3fc; box-shadow: 0 0 18px #38bdf8, 0 0 40px #0ea5e9; visibility: hidden; }
+.okbadge { position: absolute; left: 0; right: 0; top: 380px; text-align: center; visibility: hidden; z-index: 60; }
+.okbadge .b { display: inline-flex; align-items: center; gap: 22px; padding: 26px 46px 26px 30px; border-radius: 999px; background: linear-gradient(135deg, #22c55e, #15803d); font-size: 54px; font-weight: 800; letter-spacing: -0.035em;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.25) inset, 0 30px 90px rgba(22,163,74,.55); }
+.okbadge .b .ck { width: 74px; height: 74px; border-radius: 50%; background: #fff; display: grid; place-items: center; }
+.okbadge .kn { margin-top: 26px; font-size: 22px; color: #86efac; font-weight: 600; letter-spacing: .02em; }
+.okbadge .kn code { font-family: ui-monospace, 'DejaVu Sans Mono', monospace; color: #fff; font-size: 26px; margin-left: 12px; letter-spacing: .03em; }
+.bins { position: absolute; left: 240px; right: 240px; top: 760px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; visibility: hidden; }
+.bin { height: 190px; border-radius: 22px; background: rgba(255,255,255,.05); border: 1.5px solid rgba(255,255,255,.12); padding: 26px 28px; position: relative; }
+.bin .n { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; display: flex; align-items: center; gap: 12px; }
+.bin .n i { width: 14px; height: 14px; border-radius: 50%; display: block; }
+.bin .v { margin-top: 18px; font-size: 44px; font-weight: 800; letter-spacing: -0.035em; font-variant-numeric: tabular-nums; }
+.bin .c { margin-top: 6px; font-size: 18px; color: #94a3b8; }
+.bins-title { position: absolute; left: 240px; top: 700px; font-size: 24px; color: #94a3b8; font-weight: 600; visibility: hidden; }
+.chip { position: absolute; width: 330px; height: 88px; border-radius: 16px; background: #fff; color: #0f172a; padding: 14px 18px; visibility: hidden; box-shadow: 0 20px 50px rgba(0,0,0,.5); z-index: 30; }
+.chip b { display: block; font-size: 20px; font-weight: 800; } .chip span { font-size: 16px; color: #475569; }
+
+/* statystyki: nakładki na płytę */
+.ov { position: absolute; font-family: 'InterV'; color: #0f172a; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.kpi { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; line-height: 33px; }
+.legv { font-size: 11px; color: #94a3b8; line-height: 16.5px; }
+.legp { font-size: 13px; font-weight: 700; line-height: 19.5px; text-align: right; width: 48px; }
+.delta { position: absolute; padding: 4px 10px; border-radius: 999px; background: #f0fdf4; border: 1px solid #86efac; color: #15803d; font-weight: 700; font-size: 14px; visibility: hidden; white-space: nowrap; }
+
+/* biurko i finał */
+.desk { position: absolute; left: -400px; right: -400px; top: 420px; height: 1400px; transform-origin: 50% 0; transform: rotateX(62deg);
+  background: radial-gradient(900px 500px at 50% 30%, #1d2026 0%, #111316 55%, #08090b 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 22%); mask-image: linear-gradient(to bottom, transparent 0%, #000 22%); }
+.deskglow { position: absolute; left: 50%; top: 600px; width: 900px; height: 400px; margin-left: -450px; border-radius: 50%; background: radial-gradient(closest-side, rgba(14,165,233,.35), transparent); opacity: 0; filter: blur(20px); }
+.end-logo { position: absolute; left: 50%; top: 250px; width: 560px; margin-left: -280px; }
+.end-word { position: absolute; left: 0; right: 0; top: 610px; text-align: center; font-size: 112px; font-weight: 800; letter-spacing: -0.055em; }
+.end-tag { position: absolute; left: 0; right: 0; top: 760px; text-align: center; font-size: 40px; font-weight: 600; color: #cbd5e1; letter-spacing: -0.02em; }
+.end-url { position: absolute; left: 0; right: 0; top: 842px; text-align: center; font-size: 28px; font-weight: 600; color: #e9c77b; letter-spacing: .04em; }
+.sweep { position: absolute; inset: 0; background: linear-gradient(105deg, transparent 40%, rgba(255,245,210,.55) 50%, transparent 60%); mix-blend-mode: overlay; }
+
+/* efekty globalne */
+#flash { position: absolute; inset: 0; background: #fff; opacity: 0; z-index: 200; pointer-events: none; }
+#vignette { position: absolute; inset: 0; z-index: 190; pointer-events: none; background: radial-gradient(1300px 800px at 50% 50%, transparent 55%, rgba(0,0,0,.55) 100%); }
+#grain { position: absolute; inset: -50%; z-index: 195; pointer-events: none; opacity: .055; mix-blend-mode: overlay; }
+#black { position: absolute; inset: 0; background: #000; z-index: 210; opacity: 1; }
+.spark { position: absolute; width: 10px; height: 10px; border-radius: 2px; visibility: hidden; z-index: 60; }
+.shock { position: absolute; border-radius: 50%; border: 5px solid #22c55e; visibility: hidden; z-index: 59; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <filter id="mblur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur id="mblurStd" stdDeviation="0 0"/></filter>
+</svg>
+<div id="stage">
+ <div id="world">
+
+  <!-- 0: INTRO -->
+  <div class="layer" id="L0">
+    <div class="bgimg" id="introImg" style="background-image:url(a/p911dark.jpg)"></div>
+    <div class="full" style="background:radial-gradient(1200px 800px at 50% 55%, rgba(0,0,0,.25), rgba(0,0,0,.85))"></div>
+    <div class="full" id="introStreak" style="background:linear-gradient(100deg, transparent 42%, rgba(186,230,253,.22) 50%, transparent 58%); transform:translateX(-120%)"></div>
+  </div>
+
+  <!-- tło wspólne dla scen z ekranami -->
+  <div class="layer" id="LBG">
+    <div class="darkbg"></div>
+    <div class="persp"><div class="gridfloor" id="grid"></div></div>
+  </div>
+
+  <!-- 1: KALENDARZ -->
+  <div class="layer" id="L1">
+    <div class="persp"><div class="rig" id="rig1"><div class="cam" id="cam1">
+      <div class="win">
+        <div class="chrome"><i></i><i></i><i></i><div class="url">🔒 <b>detailboost.pl</b>/calendar</div></div>
+        <div class="screen" id="scr1">
+          <img class="shot" id="img1" src="a/cal/000_calendar.jpg">
+          <div class="hl" id="hl1"></div>
+          <div class="ring" id="ring1"></div>
+          <svg class="cursor" id="cur1" viewBox="0 0 24 24"><path d="M4 2 L4 20 L9 15.5 L12.2 22.5 L15.3 21.1 L12.2 14.3 L19 14.3 Z" fill="#fff" stroke="#0f172a" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+    </div></div></div>
+  </div>
+
+  <!-- 2: SMS -->
+  <div class="layer" id="L2">
+    <div class="bgimg" id="smsBg" style="background-image:url(a/wheel.jpg); filter: blur(10px) brightness(.45) saturate(1.2)"></div>
+    <div class="full" style="background:radial-gradient(900px 700px at 60% 50%, transparent, rgba(0,0,0,.7))"></div>
+    <div class="persp"><div class="rig" id="rig2">
+      <div class="phone" id="phone2" style="left:1150px; top:90px">
+        <div class="pscreen" style="background: radial-gradient(500px 700px at 30% 20%, #1d4ed8 0%, #0b1a3d 45%, #05070d 100%)">
+          <div class="statusbar"><span>8:00</span><span>▮▮▮ 5G</span></div>
+          <div class="island"></div>
+          <div class="lock-date">czwartek, 1 października</div>
+          <div class="lock-time">8:00</div>
+          <div class="noti" id="sms" style="top:330px">
+            <div class="ic" style="background:linear-gradient(#5df36f,#1fbf3a); display:grid; place-items:center">
+              <svg width="28" height="28" viewBox="0 0 24 24"><path d="M12 3C6.5 3 2 6.6 2 11c0 2.4 1.3 4.6 3.5 6.1L4.6 21l4.1-2.2c1 .3 2.1.4 3.3.4 5.5 0 10-3.6 10-8.1S17.5 3 12 3z" fill="#fff"/></svg>
+            </div>
+            <div>
+              <div class="app">Wiadomości</div>
+              <div class="hd"><span class="ttl">Polysk</span><span class="tm">teraz</span></div>
+              <div class="bd">Przypominamy o wizycie dnia <span class="mark" id="mk1">01.10.2026</span> o godz. <span class="mark" id="mk2">09:00</span>. Do zobaczenia, Piotr!</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- 3/4: TABLET -->
+  <div class="layer" id="L3">
+    <div class="persp"><div class="rig" id="rig3"><div class="cam" id="cam3">
+      <div class="tablet">
+        <div class="tscreen" id="tscr">
+          <img class="shot" id="img3" src="a/svc/00_list.jpg">
+          <div class="hl" id="hl3"></div>
+          <div class="pill green" id="pill3">Netto liczy się samo</div>
+          <div class="sign" id="sign" style="visibility:hidden">
+            <div class="col">
+              <div class="card"><h1>Protokół przyjęcia pojazdu</h1><div class="sub">Do podpisu przez: Piotr Wiśniewski</div><div class="exp">Link ważny do 01.10.2026, 12:00</div></div>
+              <div class="card"><div class="ct">Dokument</div>
+                <div class="doc">
+                  <div style="display:flex; justify-content:space-between"><h3>Protokół przyjęcia pojazdu</h3><span style="color:#667085">Studio Połysk, Gdańsk</span></div>
+                  <div style="margin-top:10px">
+                    <div class="row"><span>Klient</span><b>Piotr Wiśniewski</b></div>
+                    <div class="row"><span>Pojazd</span><b>Porsche 911 Carrera 4S, GD99999</b></div>
+                    <div class="row"><span>Przebieg</span><b>12 450 km</b></div>
+                    <div class="row"><span>Usługa</span><b>Oklejanie PPF – pełny przód</b></div>
+                    <div class="row"><span>Termin odbioru</span><b>02.10.2026, 17:00</b></div>
+                    <div class="row" style="border:0"><span>Kwota</span><b>3500,00 zł brutto</b></div>
+                  </div>
+                </div>
+              </div>
+              <div class="card"><div class="ct">Oświadczenie i podpis</div>
+                <div class="decl"><div class="cb"><div class="cbf" id="cbf"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" stroke-width="3.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+                  <span>Potwierdzam stan pojazdu opisany w protokole i akceptuję zakres usługi.</span></div>
+                <div class="pad" id="pad">
+                  <div class="base"></div><div class="hint" id="padHint">Podpisz się palcem lub rysikiem</div>
+                  <svg id="sigsvg" width="932" height="250" viewBox="0 0 932 250" style="position:absolute; left:0; top:0">
+                    <path id="sig" fill="none" stroke="#101828" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"
+                      d="M190 170 C 186 120, 196 70, 214 52 C 236 32, 276 44, 268 78 C 260 110, 214 118, 196 112 C 222 116, 238 130, 236 160 C 234 186, 222 196, 214 184 C 208 170, 236 138, 262 132 C 280 128, 286 150, 300 150 C 314 150, 318 118, 330 118 C 344 118, 334 156, 350 156 C 368 156, 372 120, 388 116 C 402 112, 400 150, 416 150 C 430 150, 436 124, 452 118 C 470 112, 468 158, 488 156 C 506 154, 514 96, 530 70 C 540 56, 548 78, 540 110 C 532 140, 522 168, 536 166 C 552 164, 560 128, 578 126 C 596 124, 590 158, 608 158 C 626 158, 632 120, 652 118 C 672 116, 664 162, 690 156 C 716 150, 730 120, 750 118 M 230 204 C 360 188, 560 186, 742 176"/>
+                  </svg>
+                  <div class="stylus" id="stylus"></div>
+                </div>
+                <div class="btns"><div class="pbtn">Podpisz dokument<div class="on" id="pbtnOn">Podpisz dokument</div></div><div class="sbtn">Odmawiam podpisania</div></div>
+              </div>
+            </div>
+            <div class="done" id="done"><div class="box">
+              <div class="badge"><svg width="52" height="52" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#067647" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="tt">Dziękujemy, dokument został podpisany</div>
+              <div class="tx">Podpisany egzemplarz został bezpiecznie zapisany. Możesz zamknąć tę stronę.</div>
+            </div></div>
+          </div>
+          <div class="touch" id="touch3"></div>
+          <div class="glare"></div>
+        </div>
+        <div class="tcam"></div>
+      </div>
+    </div></div></div>
+  </div>
+
+  <!-- 5: WYDANIE -->
+  <div class="layer" id="L5">
+    <div class="persp"><div class="rig" id="rig5"><div class="cam" id="cam5">
+      <div class="win">
+        <div class="chrome"><i></i><i></i><i></i><div class="url">🔒 <b>detailboost.pl</b>/visits/VIS-2026-00001</div></div>
+        <div class="screen" id="scr5">
+          <img class="shot" id="img5" src="a/fin/10_ready.jpg">
+          <div class="hl green" id="hl5"></div>
+          <div class="ring" id="ring5" style="border-color:rgba(34,197,94,.95)"></div>
+          <svg class="cursor" id="cur5" viewBox="0 0 24 24"><path d="M4 2 L4 20 L9 15.5 L12.2 22.5 L15.3 21.1 L12.2 14.3 L19 14.3 Z" fill="#fff" stroke="#0f172a" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          <div id="press5" style="position:absolute; border-radius:999px; background:rgba(5,46,22,.35); visibility:hidden"></div>
+        </div>
+      </div>
+    </div></div></div>
+  </div>
+
+  <!-- 6: KSeF -->
+  <div class="layer" id="L6">
+    <div class="darkbg"></div>
+    <div class="persp"><div class="gridfloor" id="grid6"></div></div>
+    <svg class="full" id="beam" width="1920" height="1080" style="position:absolute; left:0; top:0">
+      <path id="beamPath" d="M 1260 520 C 1290 420, 1360 470, 1520 520" stroke="rgba(56,189,248,.55)" stroke-width="3" fill="none" stroke-dasharray="6 10"/>
+    </svg>
+    <div class="node" id="node"><div class="orb" id="orb"></div><div class="orb2"></div><div class="core" id="core"><div><b>KSeF</b><span>Krajowy System e-Faktur</span></div></div></div>
+    <div class="inv" id="inv">
+      <div class="top"><div><div class="lbl">Faktura VAT</div><div class="no">FV/2026/0001</div><div class="lbl" style="margin-top:6px; font-weight:500">Data wystawienia: 30.09.2026</div></div><div class="logo">SP</div></div>
+      <div class="parties">
+        <div><div class="lbl">Sprzedawca</div><b>Studio Połysk</b>ul. Grunwaldzka 212<br>80-266 Gdańsk<br>NIP 584-273-91-45</div>
+        <div><div class="lbl">Nabywca</div><b>Piotr Wiśniewski</b>ul. Długa 22<br>80-001 Gdańsk<br>Konsument</div>
+      </div>
+      <table><tr><th>Usługa</th><th class="r">Netto</th><th class="r">VAT</th><th class="r">Brutto</th></tr>
+        <tr><td><b>Oklejanie PPF – pełny przód</b></td><td class="r">2845,53</td><td class="r">23%</td><td class="r"><b>3500,00</b></td></tr></table>
+      <div class="sum"><span>Netto</span><span class="r">2845,53 zł</span><span>VAT 23%</span><span class="r">654,47 zł</span><span style="align-self:end; color:#0f172a; font-weight:700">Do zapłaty</span><span class="tot">3500,00 zł</span></div>
+      <div class="foot"><span>Zapłacono kartą</span><span id="invStatus">Wysyłanie do KSeF</span></div>
+      <div style="position:absolute; left:0; bottom:0; height:6px; width:100%; background:#e2e8f0"><div id="invBar" style="height:100%; width:0; background:linear-gradient(90deg,#0ea5e9,#22c55e)"></div></div>
+      <div class="scanline" id="scan"></div>
+    </div>
+    <div class="pkt" id="pk0"></div><div class="pkt" id="pk1"></div><div class="pkt" id="pk2"></div><div class="pkt" id="pk3"></div><div class="pkt" id="pk4"></div>
+    <div class="okbadge" id="ok"><div class="b"><div class="ck"><svg width="44" height="44" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#16a34a" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>Integracja KSeF – Sukces</div>
+      <div class="kn">Numer KSeF<code id="ksefNo">5842739145-20260930-7A1F3C9E2B40-5D</code></div></div>
+    <div class="bins-title" id="binsT">Faktura przypisana do kategorii automatycznie</div>
+    <div class="bins" id="bins">
+      <div class="bin" id="bin0"><div class="n"><i style="background:#2563eb"></i>Pielęgnacja lakieru</div><div class="v" id="bin0v">21 997,32 zł</div><div class="c" id="bin0c">12 zleceń</div></div>
+      <div class="bin"><div class="n"><i style="background:#16a34a"></i>Detailing wnętrza</div><div class="v">4846,20 zł</div><div class="c">6 zleceń</div></div>
+      <div class="bin"><div class="n"><i style="background:#f97316"></i>Usługi podstawowe</div><div class="v">4023,33 zł</div><div class="c">4 zlecenia</div></div>
+    </div>
+    <div class="chip" id="chip"><b>FV/2026/0001</b><span>Oklejanie PPF, 3500,00 zł</span></div>
+  </div>
+
+  <!-- 6b: FINANSE -->
+  <div class="layer" id="L6b">
+    <div class="persp"><div class="rig" id="rig6"><div class="cam" id="cam6">
+      <div class="win">
+        <div class="chrome"><i></i><i></i><i></i><div class="url">🔒 <b>detailboost.pl</b>/finance</div></div>
+        <div class="screen"><img class="shot" src="a/finance_after.jpg"><div class="hl green" id="hl6"></div></div>
+      </div>
+    </div></div></div>
+  </div>
+
+  <!-- 7: STATYSTYKI -->
+  <div class="layer" id="L7">
+    <div class="persp"><div class="rig" id="rig7"><div class="cam" id="cam7">
+      <div class="win">
+        <div class="chrome"><i></i><i></i><i></i><div class="url">🔒 <b>detailboost.pl</b>/statistics</div></div>
+        <div class="screen" id="scr7">
+          <img class="shot" src="a/stats_plate.jpg">
+          <div class="ov kpi" id="k1" style="left:317px; top:270.4px"></div>
+          <div class="ov kpi" id="k2" style="left:741px; top:270.4px"></div>
+          <div class="ov kpi" id="k3" style="left:1165px; top:270.4px"></div>
+          <div class="delta" id="d1" style="left:470px; top:276px">+3500 zł</div>
+          <div class="delta" id="d2" style="left:780px; top:276px">+1</div>
+          <svg class="ov" id="donut" width="220" height="220" viewBox="0 0 220 220" style="left:317px; top:389.9px"></svg>
+          <div class="ov legv" id="lv0" style="left:583px; top:453.4px"></div>
+          <div class="ov legv" id="lv1" style="left:583px; top:501.4px"></div>
+          <div class="ov legv" id="lv2" style="left:583px; top:549.4px"></div>
+          <div class="ov legp" id="lp0" style="left:715px; top:442.1px"></div>
+          <div class="ov legp" id="lp1" style="left:715px; top:490.1px"></div>
+          <div class="ov legp" id="lp2" style="left:715px; top:538.1px"></div>
+          <svg class="ov" id="chart" width="1600" height="1000" viewBox="0 0 1600 1000" style="left:0; top:0"></svg>
+          <div class="pill green" id="pill7" style="font-size:18px; padding:8px 14px">+3500 zł</div>
+          <div class="chip" id="chip7" style="width:300px; height:76px; padding:12px 16px"><b style="font-size:17px">Oklejanie PPF Porsche 911</b><span style="font-size:14px">Wizyta zakończona, +3500 zł</span></div>
+        </div>
+      </div>
+    </div></div></div>
+  </div>
+
+  <!-- 8: PUSH -->
+  <div class="layer" id="L8">
+    <div class="bgimg" id="pushBg" style="background-image:url(a/gt3.jpg); filter: blur(22px) brightness(.32) saturate(1.1)"></div>
+    <div class="persp" style="perspective:1600px"><div class="desk"></div></div>
+    <div class="deskglow" id="deskglow"></div>
+    <div class="persp" style="perspective:1700px"><div class="rig" id="rig8">
+      <div class="phone" id="phone8" style="left:745px; top:90px">
+        <div class="pscreen" style="background:#000">
+          <div class="full" id="wall8" style="opacity:0; background: radial-gradient(420px 520px at 50% 105%, rgba(233,199,123,.55), transparent 70%), radial-gradient(500px 600px at 20% 0%, #1f2a44, transparent 70%), linear-gradient(#0b0f19, #05070d)">
+            <img src="a/logo.png" style="position:absolute; left:50%; bottom:120px; width:230px; margin-left:-115px; opacity:.35">
+            <div class="statusbar"><span>8:38</span><span>▮▮▮ 5G</span></div>
+            <div class="lock-date">środa, 30 września</div>
+            <div class="lock-time">8:38</div>
+          </div>
+          <div class="island"></div>
+          <div class="noti" id="push1" style="top:330px">
+            <div class="ic"><img src="a/icon-192.png" style="width:100%; height:100%"></div>
+            <div><div class="app">DetailBoost</div><div class="hd"><span class="ttl">Wizyta zakończona</span><span class="tm">teraz</span></div>
+              <div class="bd">Przychód: <b style="color:#15803d">+3500 PLN</b>. Oklejanie PPF Porsche 911.</div></div>
+          </div>
+          <div class="noti" id="push2" style="top:330px">
+            <div class="ic"><img src="a/icon-192.png" style="width:100%; height:100%"></div>
+            <div><div class="app">DetailBoost</div><div class="hd"><span class="ttl">Alert rynkowy</span><span class="tm">teraz</span></div>
+              <div class="bd">Konkurencja uruchomiła nową kampanię Ads.</div></div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- END -->
+  <div class="layer" id="LE" style="background:#000">
+    <div class="full" style="background:radial-gradient(900px 600px at 50% 40%, rgba(201,149,63,.18), transparent 70%)"></div>
+    <img class="end-logo" id="endLogo" src="a/logo.png">
+    <div class="sweep" id="endSweep" style="transform:translateX(-100%)"></div>
+    <div class="end-word" id="endWord">DetailBoost</div>
+    <div class="end-tag" id="endTag">Twoje studio. Na autopilocie.</div>
+    <div class="end-url" id="endUrl">detailboost.pl</div>
+  </div>
+
+  <!-- typografia (warstwa ekranowa) -->
+  <div id="type"></div>
+  <div id="sparks"></div>
+ </div>
+ <canvas id="grain" width="1920" height="1080" style="width:3840px; height:2160px"></canvas>
+ <div id="vignette"></div>
+ <div id="flash"></div>
+ <div id="black"></div>
+</div>
+
+<script src="a/gsap.min.js"></script>
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// Deterministyczna oś czasu: render klatka po klatce woła window.seek(t).
+// Wszystkie czasy w sekundach, 120 BPM (takt = 2 s) — te same liczby są w music.py.
+// ─────────────────────────────────────────────────────────────────────────────
+gsap.ticker.lagSmoothing(0);
+const T = gsap.timeline({ paused: true, defaults: { ease: 'power3.out' } });
+const $ = s => document.querySelector(s);
+const cams = [];
+const appliers = [];
+let seed = 7; const rnd = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+
+// widoczność warstw
+function on(el, t0, t1, fin = 0, fout = 0) {
+  el = typeof el === 'string' ? $(el) : el;
+  if (fin) { T.set(el, { visibility: 'visible' }, t0); T.fromTo(el, { opacity: 0 }, { opacity: 1, duration: fin, ease: 'none', immediateRender: false }, t0); }
+  else T.set(el, { visibility: 'visible', opacity: 1 }, t0);
+  if (t1 != null) {
+    if (fout) T.to(el, { opacity: 0, duration: fout, ease: 'none' }, t1 - fout);
+    T.set(el, { visibility: 'hidden', opacity: 0 }, t1);
+  }
+}
+
+// kamera nad ekranem (okno lub tablet): patrzy na punkt (px,py) w układzie ekranu
+class Cam {
+  constructor(rig, cam, state) { this.rig = $(rig); this.cam = $(cam); this.s = Object.assign({ px: 800, py: 522, z: 1, rx: 0, ry: 0, rz: 0, ox: 0, oy: 0, shake: 0 }, state); cams.push(this); }
+  apply(t) {
+    const s = this.s;
+    const sx = s.shake ? Math.sin(t * 91) * s.shake + Math.sin(t * 57) * s.shake * .6 : 0;
+    const sy = s.shake ? Math.cos(t * 83) * s.shake * .8 : 0;
+    this.cam.style.transform = `translate(${960 + s.ox + sx - s.px * s.z}px, ${540 + s.oy + sy - s.py * s.z}px) scale(${s.z})`;
+    this.rig.style.transform = `rotateX(${s.rx}deg) rotateY(${s.ry}deg) rotateZ(${s.rz}deg)`;
+  }
+  to(t, dur, vars, ease = 'power3.inOut') { T.to(this.s, { ...vars, duration: dur, ease }, t); }
+  set(t, vars) { T.set(this.s, vars, t); }
+}
+const WIN_Y = 44; // pasek przeglądarki
+
+// podmiana klatek zrzutów (flipbook)
+function frames(img, list) { for (const [t, src] of list) T.set(img, { attr: { src } }, t); }
+
+// kursor: ruch i klik
+// współrzędne w układzie ekranu (zrzutu); czubek strzałki trafia w punkt
+const TIP = [5.7, 2.8];
+function cursorPath(cur, pts) {
+  cur = $(cur);
+  T.set(cur, { visibility: 'visible', x: pts[0][1] - TIP[0], y: pts[0][2] - TIP[1] }, pts[0][0]);
+  for (let i = 1; i < pts.length; i++) T.to(cur, { x: pts[i][1] - TIP[0], y: pts[i][2] - TIP[1], duration: pts[i][0] - pts[i - 1][0], ease: 'power2.inOut' }, pts[i - 1][0]);
+}
+function click(cur, ring, t, x, y) {
+  T.to(cur, { scale: .82, duration: .06, ease: 'power2.in', transformOrigin: '10% 5%' }, t - .06);
+  T.to(cur, { scale: 1, duration: .15 }, t);
+  const r = $(ring);
+  T.set(r, { visibility: 'visible', x, y, scale: .2, opacity: 1 }, t);
+  T.to(r, { scale: 1.6, opacity: 0, duration: .45, ease: 'power2.out' }, t);
+  T.set(r, { visibility: 'hidden' }, t + .46);
+}
+function tap(el, t, x, y) {
+  el = $(el);
+  T.to(el, { scale: .78, duration: .08, ease: 'power2.in' }, t - .08);
+  T.to(el, { scale: 1, duration: .2 }, t);
+}
+function hl(el, t0, t1, box) {
+  el = $(el);
+  T.set(el, { visibility: 'visible', left: box[0], top: box[1], width: box[2], height: box[3], opacity: 0, scale: 1.12 }, t0);
+  T.to(el, { opacity: 1, scale: 1, duration: .35, ease: 'back.out(2)' }, t0);
+  if (t1) { T.to(el, { opacity: 0, duration: .25 }, t1 - .25); T.set(el, { visibility: 'hidden' }, t1); }
+}
+
+// ─── typografia kinetyczna ───────────────────────────────────────────────────
+function splitSpans(text) { return [...text].map(c => c === ' ' ? '<span>&nbsp;</span>' : `<span>${c}</span>`).join(''); }
+function bigWord(text, t0, t1, opt = {}) {
+  const el = document.createElement('div');
+  el.className = 'big' + (opt.cls ? ' ' + opt.cls : '');
+  el.style.fontSize = (opt.size || 190) + 'px';
+  el.style.marginTop = -(opt.size || 190) * .55 + (opt.dy || 0) + 'px';
+  el.innerHTML = splitSpans(text);
+  if (opt.cls && /gold|bluegrad/.test(opt.cls)) { el.querySelectorAll('span').forEach(s => s.className = opt.cls); el.classList.remove('gold', 'bluegrad'); }
+  if (opt.band) {
+    const b = document.createElement('div');
+    b.style.cssText = `position:absolute; left:0; right:0; top:${540 + (opt.dy || 0) - (opt.size || 190) * 1.05}px; height:${(opt.size || 190) * 1.5}px; z-index:89; visibility:hidden;
+      background:linear-gradient(to bottom, transparent, rgba(4,7,14,.82) 28%, rgba(4,7,14,.82) 72%, transparent)`;
+    $('#type').appendChild(b);
+    T.set(b, { visibility: 'visible' }, t0); T.fromTo(b, { opacity: 0 }, { opacity: 1, duration: .2, immediateRender: false }, t0);
+    if (t1 != null) { T.to(b, { opacity: 0, duration: .28 }, t1 - .28); T.set(b, { visibility: 'hidden' }, t1); }
+  }
+  $('#type').appendChild(el);
+  const ch = el.querySelectorAll('span');
+  T.set(el, { visibility: 'visible', opacity: 1 }, t0);
+  if (opt.style === 'pop') {
+    T.fromTo(el, { scale: 1.35, filter: 'blur(18px)', opacity: 0 }, { scale: 1, filter: 'blur(0px)', opacity: 1, duration: .16, ease: 'power3.out', immediateRender: false }, t0);
+  } else {
+    T.fromTo(ch, { yPercent: 115, rotateX: -70, opacity: 0 }, { yPercent: 0, rotateX: 0, opacity: 1, duration: .55, stagger: .022, ease: 'expo.out', immediateRender: false }, t0);
+    T.fromTo(el, { scale: 1.12 }, { scale: 1, duration: 1.2, ease: 'power2.out', immediateRender: false }, t0);
+  }
+  if (t1 != null) {
+    if (opt.out === 'cut') T.set(el, { visibility: 'hidden' }, t1);
+    else { T.to(el, { scale: .86, opacity: 0, filter: 'blur(14px)', duration: .28, ease: 'power2.in' }, t1 - .28); T.set(el, { visibility: 'hidden' }, t1); }
+  }
+  return el;
+}
+function corner(num, title, sub, t0, t1) {
+  const el = document.createElement('div');
+  el.className = 'corner';
+  el.innerHTML = `<div class="num">${num}</div><div class="t"><span>${title}</span></div><div class="s"><span>${sub}</span></div>`;
+  $('#type').appendChild(el);
+  T.set(el, { visibility: 'visible', opacity: 1 }, t0);
+  T.fromTo(el.querySelector('.num'), { x: -40, opacity: 0 }, { x: 0, opacity: 1, duration: .5, ease: 'expo.out', immediateRender: false }, t0);
+  T.fromTo(el.querySelector('.t > span'), { yPercent: 110 }, { yPercent: 0, duration: .6, ease: 'expo.out', immediateRender: false }, t0 + .05);
+  T.fromTo(el.querySelector('.s > span'), { yPercent: 110, opacity: 0 }, { yPercent: 0, opacity: 1, duration: .6, ease: 'expo.out', immediateRender: false }, t0 + .15);
+  if (t1 != null) { T.to(el, { opacity: 0, x: -30, duration: .3, ease: 'power2.in' }, t1 - .3); T.set(el, { visibility: 'hidden' }, t1); }
+  return el;
+}
+function caption(text, t0, t1) {
+  const el = document.createElement('div');
+  el.className = 'caption'; el.innerHTML = `<div>${text}</div>`;
+  $('#type').appendChild(el);
+  T.set(el, { visibility: 'visible' }, t0);
+  T.fromTo(el.firstChild, { y: 40, opacity: 0, scale: .96 }, { y: 0, opacity: 1, scale: 1, duration: .5, ease: 'expo.out', immediateRender: false }, t0);
+  T.to(el.firstChild, { y: 20, opacity: 0, duration: .25, ease: 'power2.in' }, t1 - .25);
+  T.set(el, { visibility: 'hidden' }, t1);
+}
+
+// ─── efekty ──────────────────────────────────────────────────────────────────
+const blurState = { v: 0 };
+function whip(t, dur = .42, peak = 70) {
+  T.to(blurState, { v: peak, duration: dur / 2, ease: 'power2.in' }, t - dur / 2);
+  T.to(blurState, { v: 0, duration: dur / 2, ease: 'power2.out' }, t);
+}
+function flash(t, peak = .85, dur = .35) {
+  T.set('#flash', { opacity: peak }, t);
+  T.to('#flash', { opacity: 0, duration: dur, ease: 'power2.out' }, t);
+}
+const shakeState = { v: 0 };
+function shake(t, amp = 14, dur = .45) { T.set(shakeState, { v: amp }, t); T.to(shakeState, { v: 0, duration: dur, ease: 'power2.out' }, t); }
+function burst(t, cx, cy, colors, n = 34, spread = 520) {
+  const box = $('#sparks');
+  for (let i = 0; i < n; i++) {
+    const s = document.createElement('div'); s.className = 'spark';
+    s.style.background = colors[i % colors.length];
+    const sz = 6 + rnd() * 12; s.style.width = s.style.height = sz + 'px';
+    box.appendChild(s);
+    const a = rnd() * Math.PI * 2, d = spread * (.35 + rnd() * .65);
+    T.set(s, { visibility: 'visible', left: cx, top: cy, x: 0, y: 0, rotation: 0, opacity: 1 }, t);
+    T.to(s, { x: Math.cos(a) * d, y: Math.sin(a) * d * .8 + 60, rotation: rnd() * 540, duration: .9 + rnd() * .4, ease: 'expo.out' }, t);
+    T.to(s, { opacity: 0, duration: .35 }, t + .8);
+    T.set(s, { visibility: 'hidden' }, t + 1.3);
+  }
+  for (let k = 0; k < 2; k++) {
+    const r = document.createElement('div'); r.className = 'shock'; box.appendChild(r);
+    T.set(r, { visibility: 'visible', left: cx - 50, top: cy - 50, width: 100, height: 100, scale: .2, opacity: 1, borderColor: colors[0] }, t + k * .08);
+    T.to(r, { scale: 9 + k * 3, opacity: 0, borderWidth: 1, duration: .8, ease: 'expo.out' }, t + k * .08);
+    T.set(r, { visibility: 'hidden' }, t + .9 + k * .08);
+  }
+}
+const fmt = (v, dec = 0) => { const s = v.toFixed(dec).replace('.', ','); const [i, d] = s.split(','); const ii = i.length > 4 ? i.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') : i; return d ? ii + ',' + d : ii; };
+
+// ═════════════════════════════════════════════════════════════════════════════
+// SCENA 0 — INTRO (0–4)
+// ═════════════════════════════════════════════════════════════════════════════
+T.set('#black', { opacity: 1 }, 0);
+T.to('#black', { opacity: 0, duration: .45, ease: 'none' }, 0.05);
+on('#L0', 0, 4);
+T.fromTo('#introImg', { scale: 1.22, x: 40 }, { scale: 1.02, x: -30, duration: 4, ease: 'none', immediateRender: false }, 0);
+T.fromTo('#introStreak', { xPercent: -120 }, { xPercent: 130, duration: 1.3, ease: 'power2.inOut', immediateRender: false }, .15);
+const introWords = ['Rezerwacje.', 'Przypomnienia.', 'Podpisy.', 'KSeF.', 'Statystyki.'];
+introWords.forEach((w, i) => bigWord(w, .5 + i * .5, 1 + i * .5, { size: 170, style: 'pop', out: 'cut' }));
+bigWord('Wszystko w jednym miejscu.', 3.0, 3.92, { size: 118, cls: 'gold' });
+T.to('#introImg', { filter: 'brightness(.55)', duration: .5 }, 3.0);
+
+// ═════════════════════════════════════════════════════════════════════════════
+// SCENA 1 — REZERWACJA (4–12)
+// ═════════════════════════════════════════════════════════════════════════════
+on('#LBG', 4, 52);
+T.fromTo('#grid', { backgroundPositionY: '0px' }, { backgroundPositionY: '900px', duration: 48, ease: 'none', immediateRender: false }, 4);
+flash(4.0, .9, .3); shake(4.0, 16, .4);
+on('#L1', 4, 12.05);
+const c1 = new Cam('#rig1', '#cam1', { px: 800, py: 522, z: .62, rx: 14, ry: -26, rz: 0, ox: 250, oy: 900 });
+c1.to(4.0, .95, { oy: 70, rx: 7, ry: -16 }, 'expo.out');
+bigWord('Rezerwacja.', 4.0, 4.85, { size: 200, cls: 'bluegrad' });
+corner('01', 'Rezerwacja', 'Klient, auto, usługa i przypomnienie SMS w jednym oknie.', 4.75, 5.95);
+// kursor → „+ Rezerwacja”
+cursorPath('#cur1', [[4.7, 1080, 640], [5.42, 1402, 58]]);
+click('#cur1', '#ring1', 5.5, 1402, 58);
+c1.to(5.0, .5, { z: .78, ry: -9, rx: 4, oy: 40 });
+T.set('#cur1', { visibility: 'hidden' }, 5.62);
+frames('#img1', [[5.52, 'a/cal/001_modal.jpg']]);
+c1.to(5.6, .55, { px: 930, py: 130, z: 1.55, ry: -3, rx: 1.5, ox: 0, oy: 0 }, 'expo.out');
+// pisanie tytułu: 25 klatek
+for (let i = 0; i < 25; i++) frames('#img1', [[6.1 + i * .05, `a/cal/${String(2 + i).padStart(3, '0')}_t.jpg`]]);
+frames('#img1', [[7.36, 'a/cal/027_allday_off.jpg'], [7.6, 'a/cal/028_picker.jpg'], [7.82, 'a/cal/029_pick_start.jpg'], [8.02, 'a/cal/030_pick_end.jpg'], [8.18, 'a/cal/031_end_time.jpg'], [8.34, 'a/cal/032_start_time.jpg'], [8.5, 'a/cal/033_dates_done.jpg']]);
+c1.to(7.25, .45, { px: 1010, py: 400, z: 1.3 });
+c1.to(8.45, .4, { px: 1060, py: 480, z: 1.4 });
+frames('#img1', [[8.58, 'a/cal/034_client_t.jpg'], [8.66, 'a/cal/035_client_t.jpg'], [8.74, 'a/cal/036_client_t.jpg'], [8.82, 'a/cal/037_client_list.jpg'], [8.92, 'a/cal/038_client_selected.jpg'], [9.02, 'a/cal/039_vehicle_selected.jpg']]);
+c1.to(8.95, .35, { px: 1080, py: 640, z: 1.35 });
+frames('#img1', [[9.1, 'a/cal/040_svc_open.jpg'], [9.18, 'a/cal/041_svc_t.jpg'], [9.26, 'a/cal/042_svc_t.jpg'], [9.34, 'a/cal/043_svc_t.jpg'], [9.42, 'a/cal/044_svc_selected.jpg'], [9.52, 'a/cal/045_sms_checked.jpg']]);
+hl('#hl1', 9.5, 9.95, [620, 778, 312, 42]);
+c1.to(9.5, .4, { px: 1000, py: 760, z: 1.12 });
+cursorPath('#cur1', [[9.55, 1230, 990], [9.95, 1182, 908]]);
+click('#cur1', '#ring1', 10.0, 1182, 908);
+T.set('#cur1', { visibility: 'hidden' }, 10.1);
+frames('#img1', [[10.02, 'a/cal/046_saved.jpg']]);
+c1.set(10.02, { px: 1000, py: 700, z: 1.0 });
+c1.to(10.02, 1.5, { px: 1020, py: 757 + WIN_Y, z: 1.65, ry: -6, rx: 3 }, 'power2.inOut');
+hl('#hl1', 10.25, 11.9, [826, 745, 392, 26]);
+T.to('#hl1', { boxShadow: '0 0 0 10px rgba(14,165,233,.25), 0 0 70px rgba(14,165,233,.8)', duration: .4, yoyo: true, repeat: 2, ease: 'sine.inOut' }, 10.6);
+caption('Rezerwacja w kalendarzu. <span style="color:#38bdf8">Kilka sekund.</span>', 10.3, 11.8);
+c1.to(11.6, .45, { ox: -2600 }, 'power3.in');
+whip(12.0);
+
+// ═════════════════════════════════════════════════════════════════════════════
+// SCENA 2 — SMS (12–18)
+// ═════════════════════════════════════════════════════════════════════════════
+on('#L2', 12, 18.05);
+T.fromTo('#smsBg', { scale: 1.2 }, { scale: 1.05, duration: 6, ease: 'none', immediateRender: false }, 12);
+const ph2 = { x: 1500, rx: 6, ry: -30, rz: 6, s: .92, vib: 0 };
+T.to(ph2, { x: 0, ry: -16, rz: 3, duration: .7, ease: 'expo.out' }, 12.0);
+bigWord('Przypomnienie.', 12.0, 12.85, { size: 180, cls: 'bluegrad' });
+corner('02', 'Przypomnienie SMS', 'Wychodzi samo, godzinę przed wizytą.', 12.75, 17.6);
+T.set('#sms', { visibility: 'visible', y: -120, opacity: 0, scale: .9 }, 13.9);
+T.to('#sms', { y: 0, opacity: 1, scale: 1, duration: .5, ease: 'back.out(1.6)' }, 13.95);
+T.set(ph2, { vib: 5 }, 14.0); T.to(ph2, { vib: 0, duration: .45 }, 14.0);
+T.to(ph2, { s: 1.5, ry: -5, rz: 1, x: -380, duration: 1.6, ease: 'power3.inOut' }, 14.5);
+T.to('#mk1', { backgroundSize: '100% 100%', duration: .35, ease: 'power2.out' }, 15.4);
+T.to('#mk2', { backgroundSize: '100% 100%', duration: .3, ease: 'power2.out' }, 15.75);
+T.to(ph2, { s: 1.62, duration: 1.3, ease: 'none' }, 16.1);
+T.to(ph2, { s: 5.2, x: -900, duration: .5, ease: 'power3.in' }, 17.5);
+T.to('#L2', { filter: 'blur(26px)', duration: .45, ease: 'power2.in' }, 17.55);
+T.set('#L2', { filter: 'blur(0px)' }, 18.05);
+appliers.push(t => {
+  const vx = ph2.vib ? Math.sin(t * 160) * ph2.vib : 0;
+  $('#rig2').style.transform = `translateX(${ph2.x + vx}px) rotateX(${ph2.rx}deg) rotateY(${ph2.ry}deg) rotateZ(${ph2.rz}deg)`;
+  $('#phone2').style.transform = `scale(${ph2.s})`;
+});
+$('#phone2').style.transformOrigin = '215px 380px';
+
+// ═════════════════════════════════════════════════════════════════════════════
+// SCENA 3 — CENNIK NA TABLECIE (18–26)
+// ═════════════════════════════════════════════════════════════════════════════
+on('#L3', 18, 32.05);
+flash(18.0, .35, .3);
+const c3 = new Cam('#rig3', '#cam3', { px: 705, py: 534, z: .62, rx: 58, ry: 0, rz: -10, ox: 150, oy: 420 });
+c3.to(18.0, 1.0, { rx: 12, rz: -3, oy: 40, ox: 170 }, 'expo.out');
+bigWord('Cennik.', 18.0, 18.85, { size: 220, cls: 'bluegrad' });
+corner('03', 'Cennik usług', 'Brutto, które wpiszesz, zostaje brutto. Netto liczy się samo.', 18.75, 19.75);
+const T3 = (x, y) => [x + 22, y + 22]; // ekran tabletu → układ tabletu
+c3.to(19.2, .8, { px: T3(1060, 0)[0], py: T3(0, 780)[1], z: 1.05, rx: 4, rz: -1, ox: 120, oy: 0 });
+T.set('#touch3', { visibility: 'visible', x: 1100, y: 1000, opacity: 0 }, 19.3);
+T.to('#touch3', { x: 1279, y: 811, opacity: 1, duration: .6, ease: 'power2.inOut' }, 19.35);
+tap('#touch3', 20.0);
+frames('#img3', [[20.02, 'a/svc/01_menu.jpg']]);
+T.to('#touch3', { x: 1168, y: 854, duration: .5, ease: 'power2.inOut' }, 20.35);
+tap('#touch3', 21.0);
+frames('#img3', [[21.02, 'a/svc/02_modal.jpg']]);
+T.to('#touch3', { opacity: 0, duration: .2 }, 21.1);
+c3.to(21.05, .5, { px: T3(700, 0)[0], py: T3(0, 520)[1], z: 1.45, rx: 2, rz: 0, ox: 0 }, 'expo.out');
+frames('#img3', [[21.55, 'a/svc/03_clear.jpg'], [22.6, 'a/svc/04_type.jpg'], [22.8, 'a/svc/05_type.jpg'], [23.0, 'a/svc/06_type.jpg'], [23.2, 'a/svc/07_type.jpg'], [23.45, 'a/svc/08_blur.jpg']]);
+hl('#hl3', 23.5, 24.0, [684, 486, 238, 58]);
+T.set('#pill3', { visibility: 'visible', left: 640, top: 405, opacity: 0, y: 10 }, 23.5);
+T.to('#pill3', { opacity: 1, y: 0, duration: .3, ease: 'back.out(2)' }, 23.5);
+T.to('#pill3', { opacity: 0, duration: .15 }, 23.95);
+T.set('#touch3', { x: 1000, y: 900, opacity: 0 }, 23.55);
+T.to('#touch3', { x: 872, y: 843, opacity: 1, duration: .35, ease: 'power2.inOut' }, 23.6);
+tap('#touch3', 24.0);
+T.to('#touch3', { opacity: 0, duration: .2 }, 24.1);
+frames('#img3', [[24.02, 'a/svc/09_saved.jpg']]);
+c3.to(24.02, .7, { px: T3(1000, 0)[0], py: T3(0, 780)[1], z: 1.05, rx: 5, ox: 60 }, 'expo.out');
+hl('#hl3', 24.3, 25.5, [598, 758, 740, 92]);
+caption('Nowa cena <span style="color:#38bdf8">2490,00 zł brutto</span>. Bez groszowych różnic.', 24.35, 25.55);
+// match cut: obrót tabletu i nowa zawartość
+c3.to(25.35, .45, { ry: 90, z: .7, px: 705, py: 534, rx: 6, ox: 0 }, 'power2.in');
+T.set('#img3', { visibility: 'hidden' }, 25.8);
+T.set('#sign', { visibility: 'visible' }, 25.8);
+c3.set(25.8, { ry: -90 });
+c3.to(25.8, .55, { ry: -6, z: .64, ox: 190, rx: 8 }, 'expo.out');
+
+// ═════════════════════════════════════════════════════════════════════════════
+// SCENA 4 — PODPIS (26–32)
+// ═════════════════════════════════════════════════════════════════════════════
+bigWord('Podpis.', 26.0, 26.85, { size: 220, cls: 'bluegrad' });
+corner('04', 'Podpis elektroniczny', 'Protokół podpisany na tablecie. Bez papieru i skanowania.', 26.75, 27.75);
+c3.to(26.5, .9, { px: 22 + 683, py: 22 + 740, z: 1.02, ry: -2, rx: 3, ox: 150 });
+T.to('#cbf', { opacity: 1, duration: .12 }, 27.0);
+T.fromTo('#cbf', { scale: .5 }, { scale: 1, duration: .3, ease: 'back.out(3)', immediateRender: false }, 27.0);
+const sig = $('#sig'); const sigLen = sig.getTotalLength();
+sig.style.strokeDasharray = sigLen; sig.style.strokeDashoffset = sigLen;
+const sg = { p: 0 };
+T.to('#padHint', { opacity: 0, duration: .2 }, 27.3);
+T.set('#stylus', { visibility: 'visible' }, 27.35);
+T.to(sg, { p: 1, duration: 1.85, ease: 'power1.inOut' }, 27.4);
+T.set('#stylus', { visibility: 'hidden' }, 29.3);
+appliers.push(() => {
+  sig.style.strokeDashoffset = sigLen * (1 - sg.p);
+  const pt = sig.getPointAtLength(sigLen * sg.p);
+  const st = $('#stylus'); st.style.left = pt.x + 'px'; st.style.top = pt.y + 'px';
+});
+T.to('#pbtnOn', { opacity: 1, duration: .2 }, 29.25);
+T.set('#touch3', { x: 500, y: 980, opacity: 0, scale: 1 }, 29.1);
+T.set('#touch3', { visibility: 'visible' }, 29.1);
+T.to('#touch3', { x: 440, y: 948, opacity: 1, duration: .35 }, 29.15);
+tap('#touch3', 29.6);
+T.to('#touch3', { opacity: 0, duration: .2 }, 29.7);
+T.to('#done', { opacity: 1, duration: .25 }, 29.62);
+T.fromTo('#done .badge', { scale: .3 }, { scale: 1, duration: .6, ease: 'back.out(2.4)', immediateRender: false }, 29.62);
+c3.to(29.6, .8, { px: 705, py: 534, z: .72, ry: -8, ox: 170 }, 'expo.out');
+caption('Podpisane. Zapisane. <span style="color:#22c55e">Gotowe.</span>', 29.9, 31.4);
+c3.to(31.5, .5, { ox: -2600, ry: 20 }, 'power3.in');
+whip(32.0);
+
+// ═════════════════════════════════════════════════════════════════════════════
+// SCENA 5 — WYDANIE / ZAKOŃCZENIE (32–36)
+// ═════════════════════════════════════════════════════════════════════════════
+on('#L5', 32, 36.05);
+const c5 = new Cam('#rig5', '#cam5', { px: 800, py: 522, z: .7, rx: 6, ry: -14, ox: 2400, oy: 30 });
+c5.to(32.0, .5, { ox: 120 }, 'expo.out');
+corner('05', 'Wydanie pojazdu', 'Płatność, faktura i koniec wizyty jednym kliknięciem.', 32.2, 33.0);
+cursorPath('#cur5', [[32.1, 1180, 380], [32.45, 1446, 76]]);
+click('#cur5', '#ring5', 32.5, 1446, 76);
+frames('#img5', [[32.55, 'a/fin/13_pay_invoice.jpg']]);
+c5.to(32.55, .55, { px: 800, py: 640, z: .95, ry: -5, rx: 2, ox: 60 }, 'expo.out');
+cursorPath('#cur5', [[32.6, 1100, 700], [33.8, 1030, 814]]);
+c5.to(33.1, .85, { px: 1015, py: 814 + WIN_Y, z: 2.0, ry: -1, rx: 0, ox: 0 }, 'power2.in');
+T.to(c5.s, { shake: 2.5, duration: .8, ease: 'power1.in' }, 33.15);
+T.set('#press5', { visibility: 'visible', left: 939, top: 794 + 0, width: 153, height: 40, opacity: 0 }, 33.9);
+T.to('#press5', { opacity: 1, duration: .05 }, 33.9);
+click('#cur5', '#ring5', 33.95, 1030, 814);
+T.set(c5.s, { shake: 0 }, 34.0);
+flash(34.0, 1, .45); shake(34.0, 26, .55);
+burst(34.0, 960, 540, ['#22c55e', '#86efac', '#38bdf8', '#ffffff', '#e9c77b'], 44, 640);
+T.set(['#cur5', '#press5'], { visibility: 'hidden' }, 34.0);
+frames('#img5', [[34.0, 'a/visit_done.jpg']]);
+c5.set(34.0, { px: 1180, py: 230, z: 1.55, ry: -4, rx: 2 });
+c5.to(34.0, 1.2, { px: 1100, py: 300, z: 1.2 }, 'expo.out');
+hl('#hl5', 34.15, 35.6, [1226, 162, 128, 38]);
+bigWord('Wizyta zakończona.', 34.1, 35.55, { size: 150, dy: 250, band: true });
+// zoom w „Podgląd faktury” → faktura (match cut)
+c5.to(35.5, .5, { px: 1448, py: 76 + WIN_Y, z: 7, ry: 0, rx: 0 }, 'power3.in');
+T.to('#L5', { filter: 'blur(20px)', duration: .3, ease: 'power2.in' }, 35.72);
+T.set('#L5', { filter: 'blur(0px)' }, 36.05);
+flash(36.0, .6, .35);
+
+// ═════════════════════════════════════════════════════════════════════════════
+// SCENA 6 — KSeF (36–44)
+// ═════════════════════════════════════════════════════════════════════════════
+on('#L6', 36, 42.55);
+T.fromTo('#grid6', { backgroundPositionY: '0px' }, { backgroundPositionY: '600px', duration: 6.5, ease: 'none', immediateRender: false }, 36);
+T.fromTo('#inv', { scale: .06, rotateX: 30, opacity: 0 }, { scale: 1, rotateX: 0, opacity: 1, duration: .75, ease: 'expo.out', immediateRender: false }, 36.0);
+T.set('#node', { opacity: 0, scale: .6 }, 36);
+T.set('#beam', { opacity: 0 }, 36);
+corner('06', 'Faktura w KSeF', 'Wystawiona przy wydaniu i wysłana automatycznie.', 36.3, 37.9);
+T.fromTo('#scan', { top: -90 }, { top: 800, duration: .95, ease: 'power1.inOut', immediateRender: false }, 36.95);
+T.to('#inv', { x: -390, rotateY: 14, duration: .8, ease: 'expo.inOut' }, 37.85);
+T.to('#node', { opacity: 1, scale: 1, duration: .6, ease: 'back.out(1.6)' }, 38.0);
+T.to('#orb', { rotation: 360, duration: 6, ease: 'none' }, 38.0);
+T.to('#beam', { opacity: 1, duration: .3 }, 38.3);
+T.to('#beamPath', { strokeDashoffset: -160, duration: 2, ease: 'none' }, 38.3);
+T.set('#beamPath', { attr: { d: 'M 870 520 C 1020 360, 1200 380, 1335 520' } }, 38.3);
+T.to('#invBar', { width: '100%', duration: 1.6, ease: 'power1.inOut' }, 38.35);
+const bp = $('#beamPath');
+const pk = [0, 1, 2, 3, 4].map(i => ({ p: 0, el: $('#pk' + i) }));
+pk.forEach((o, i) => { T.set(o.el, { visibility: 'visible' }, 38.35 + i * .25); T.fromTo(o, { p: 0 }, { p: 1, duration: .75, ease: 'power1.in', immediateRender: false }, 38.35 + i * .25); T.set(o.el, { visibility: 'hidden' }, 38.35 + i * .25 + .76); });
+appliers.push(() => { const L = bp.getTotalLength(); pk.forEach(o => { const q = bp.getPointAtLength(L * o.p); o.el.style.left = q.x + 'px'; o.el.style.top = q.y + 'px'; }); });
+// sukces
+T.set('#invStatus', { textContent: 'Przyjęta przez KSeF', color: '#15803d', fontWeight: 700 }, 40.0);
+T.to('#core', { borderColor: 'rgba(34,197,94,.9)', boxShadow: '0 0 120px rgba(34,197,94,.6), inset 0 0 50px rgba(34,197,94,.35)', duration: .3 }, 40.0);
+flash(40.0, .45, .3); shake(40.0, 10, .35);
+T.to(['#inv', '#node'], { opacity: .22, duration: .25 }, 40.0);
+T.set('#ok', { visibility: 'visible' }, 40.0);
+T.fromTo('#ok .b', { scale: 1.8, opacity: 0, filter: 'blur(16px)' }, { scale: 1, opacity: 1, filter: 'blur(0px)', duration: .35, ease: 'expo.out', immediateRender: false }, 40.0);
+T.fromTo('#ok .kn', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: .4, immediateRender: false }, 40.15);
+burst(40.0, 960, 440, ['#22c55e', '#86efac', '#ffffff'], 26, 480);
+const ksefFinal = '5842739145-20260930-7A1F3C9E2B40-5D';
+const dec = { p: 0 };
+T.to(dec, { p: 1, duration: .8, ease: 'none' }, 40.15);
+appliers.push(t => {
+  const n = Math.floor(dec.p * ksefFinal.length); const chars = '0123456789ABCDEF';
+  let s = ''; for (let i = 0; i < ksefFinal.length; i++) s += i < n || ksefFinal[i] === '-' ? ksefFinal[i] : chars[(Math.floor(t * 40) * 7 + i * 13) % 16];
+  $('#ksefNo').textContent = s;
+});
+// sortowanie do kategorii
+T.to('#ok', { y: -250, scale: .62, duration: .6, ease: 'expo.inOut' }, 40.95);
+T.to(['#inv', '#node', '#beam'], { opacity: 0, duration: .35, ease: 'power2.in' }, 40.9);
+T.set('#bins', { visibility: 'visible' }, 41.1);
+T.fromTo('#bins .bin', { y: 80, opacity: 0 }, { y: 0, opacity: 1, duration: .5, stagger: .07, ease: 'expo.out', immediateRender: false }, 41.1);
+T.set('#binsT', { visibility: 'visible' }, 41.15);
+T.fromTo('#binsT', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: .4, immediateRender: false }, 41.15);
+T.set('#chip', { visibility: 'visible', left: 795, top: 420, scale: 1.2, opacity: 0 }, 41.2);
+T.to('#chip', { opacity: 1, scale: 1, duration: .25 }, 41.2);
+T.to('#chip', { left: 300, top: 850, scale: .7, duration: .55, ease: 'power3.in' }, 41.45);
+T.to('#chip', { opacity: 0, duration: .08 }, 41.98);
+T.to('#bin0', { borderColor: 'rgba(37,99,235,1)', background: 'rgba(37,99,235,.22)', boxShadow: '0 0 60px rgba(37,99,235,.55)', duration: .2 }, 42.0);
+T.fromTo('#bin0', { scale: 1.08 }, { scale: 1, duration: .5, ease: 'back.out(3)', immediateRender: false }, 42.0);
+const b0 = { v: 21997.32, c: 12 };
+T.to(b0, { v: 25497.32, duration: .5, ease: 'power2.out' }, 42.0);
+T.set(b0, { c: 13 }, 42.0);
+appliers.push(() => { $('#bin0v').textContent = fmt(b0.v, 2) + ' zł'; $('#bin0c').textContent = b0.c + ' zleceń'; });
+whip(42.55, .3, 60);
+on('#L6b', 42.55, 44.05);
+const c6 = new Cam('#rig6', '#cam6', { px: 1000, py: 700, z: 1.0, rx: 4, ry: -10, ox: 0 });
+c6.to(42.55, 1.3, { px: 1000, py: 618 + WIN_Y, z: 1.4, ry: -3 }, 'expo.out');
+hl('#hl6', 42.85, 44.05, [298, 588, 1252, 62]);
+c6.to(43.6, .45, { ox: -2600 }, 'power3.in');
+whip(44.0);
+
+// ═════════════════════════════════════════════════════════════════════════════
+// SCENA 7 — STATYSTYKI (44–52)
+// ═════════════════════════════════════════════════════════════════════════════
+on('#L7', 44, 52.05);
+const c7 = new Cam('#rig7', '#cam7', { px: 800, py: 522, z: .66, rx: 10, ry: -20, ox: 2400, oy: 40 });
+c7.to(44.0, .6, { ox: 160 }, 'expo.out');
+c7.to(44.6, 1.6, { ry: -9, rx: 5 }, 'power2.out');
+bigWord('Statystyki.', 44.0, 44.85, { size: 200, cls: 'bluegrad' });
+corner('07', 'Statystyki', 'Każda zakończona wizyta od razu w wynikach.', 44.75, 46.45);
+// dane (odczytane z prawdziwego wykresu)
+const BASE = 663.8, K = 256.6 / 8000;
+const barsX = [887.2, 929.2, 971.2, 1013.2, 1055.2, 1097.2, 1139.2, 1181.2, 1223.2, 1265.2, 1307.2, 1349.2, 1391.2, 1433.2];
+const barsH = [52.2, 5.6, 100.6, 116.7, 19.7, 15.6, 100.6, 32.9, 19.7, 21.2, 42.2, 253.1, 182.8, 162.44];
+const W40_BEFORE = 162.44 - 3500 * K;
+const orders = [1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 3, 5, 3];
+const st7 = { grow: 0, line: 0, w40: 0, o40: 0, kpi: 0, k1: 30867, k2: 22, k3: 1403, donut: 0, mix: 0, legv0: 21997.32 };
+T.to(st7, { kpi: 1, duration: 1.2, ease: 'expo.out' }, 44.6);
+T.to(st7, { donut: 1, duration: 1.1, ease: 'expo.out' }, 44.7);
+T.to(st7, { grow: 1, duration: 1.1, ease: 'expo.out' }, 45.0);
+T.to(st7, { line: 1, duration: .9, ease: 'power2.inOut' }, 45.5);
+c7.to(46.3, 1.5, { px: 1180, py: 560 + WIN_Y, z: 1.4, ry: -4, rx: 2, ox: 0, oy: 0 }, 'power3.inOut');
+T.set('#chip7', { visibility: 'visible', left: 1640, top: 330, opacity: 0, scale: .9 }, 47.3);
+T.to('#chip7', { left: 1290, opacity: 1, scale: 1, duration: .4, ease: 'expo.out' }, 47.3);
+T.to('#chip7', { left: 1300, top: 470, scale: .4, opacity: 0, duration: .3, ease: 'power3.in' }, 47.75);
+T.to(st7, { w40: 1, o40: 1, duration: .8, ease: 'elastic.out(1, .55)' }, 48.0);
+flash(48.0, .18, .25);
+T.set('#pill7', { visibility: 'visible', left: 1402, top: 450, opacity: 0, y: 14, scale: .7 }, 48.05);
+T.to('#pill7', { opacity: 1, y: 0, scale: 1, duration: .4, ease: 'back.out(2.5)' }, 48.05);
+c7.to(48.5, 1.3, { px: 820, py: 470, z: .98, ry: -6, rx: 3, ox: 100 }, 'power3.inOut');
+T.to(st7, { k1: 34367, k2: 23, k3: 1494, mix: 1, legv0: 25497.32, duration: 1.0, ease: 'power2.out' }, 49.0);
+T.set(['#d1', '#d2'], { visibility: 'visible', opacity: 0, y: 8 }, 49.05);
+T.to(['#d1', '#d2'], { opacity: 1, y: 0, duration: .35, stagger: .08, ease: 'back.out(2)' }, 49.05);
+caption('Przychód <span style="color:#22c55e">+3500 zł</span>. Od razu w statystykach.', 49.4, 51.5);
+c7.to(50.2, 1.4, { z: 1.04, ry: -3 }, 'none');
+c7.to(51.55, .45, { oy: 1600, rx: 30 }, 'power3.in');
+whip(52.0, .4, 50);
+// rysowanie nakładek
+const donutEl = $('#donut'), chartEl = $('#chart');
+const arc = (a0, a1, R = 104, r = 66, cx = 110, cy = 110) => {
+  const p = (a, rr) => [cx + rr * Math.sin(a), cy - rr * Math.cos(a)];
+  const large = a1 - a0 > Math.PI ? 1 : 0;
+  const [x0, y0] = p(a0, R), [x1, y1] = p(a1, R), [x2, y2] = p(a1, r), [x3, y3] = p(a0, r);
+  return `M ${x0} ${y0} A ${R} ${R} 0 ${large} 1 ${x1} ${y1} L ${x2} ${y2} A ${r} ${r} 0 ${large} 0 ${x3} ${y3} Z`;
+};
+function monotone(pts) {
+  const n = pts.length; if (n < 2) return '';
+  const dx = [], m = [], t = [];
+  for (let i = 0; i < n - 1; i++) { dx[i] = pts[i + 1][0] - pts[i][0]; m[i] = (pts[i + 1][1] - pts[i][1]) / dx[i]; }
+  t[0] = m[0]; t[n - 1] = m[n - 2];
+  for (let i = 1; i < n - 1; i++) t[i] = m[i - 1] * m[i] <= 0 ? 0 : 3 * (dx[i - 1] + dx[i]) / ((2 * dx[i] + dx[i - 1]) / m[i - 1] + (dx[i] + 2 * dx[i - 1]) / m[i]);
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 0; i < n - 1; i++) { const h = dx[i] / 3; d += `C${pts[i][0] + h},${pts[i][1] + h * t[i]},${pts[i + 1][0] - h},${pts[i + 1][1] - h * t[i + 1]},${pts[i + 1][0]},${pts[i + 1][1]}`; }
+  return d;
+}
+chartEl.innerHTML = `<g id="bars"></g><path id="ln" fill="none" stroke="#3B82F6" stroke-width="2.5"/><g id="dots"></g>`;
+const barsG = chartEl.querySelector('#bars'), dotsG = chartEl.querySelector('#dots'), ln = chartEl.querySelector('#ln');
+barsX.forEach(() => { barsG.insertAdjacentHTML('beforeend', '<rect width="33" fill="#10B981"/>'); dotsG.insertAdjacentHTML('beforeend', '<circle r="4" fill="#3B82F6" stroke="#fff" stroke-width="2"/>'); });
+donutEl.innerHTML = `<path fill="#2563EB" stroke="#fff" stroke-width="2"/><path fill="#16A34A" stroke="#fff" stroke-width="2"/><path fill="#F97316" stroke="#fff" stroke-width="2"/>
+  <text x="110" y="102" text-anchor="middle" style="font-size:17px; font-weight:800; fill:#0f172a; font-family:InterV; font-variant-numeric:tabular-nums"></text>
+  <text x="110" y="124" text-anchor="middle" style="font-size:11px; font-weight:600; fill:#94a3b8; font-family:InterV">Łącznie brutto</text>`;
+const dPaths = donutEl.querySelectorAll('path'), dTxt = donutEl.querySelector('text');
+appliers.push(() => {
+  const s = st7; if ($('#L7').style.visibility !== 'visible') return;
+  const rects = barsG.children, dots = dotsG.children;
+  const pts = [];
+  for (let i = 0; i < 14; i++) {
+    const g = Math.min(1, Math.max(0, s.grow * 1.6 - i * .045));
+    let h = (i === 13 ? W40_BEFORE + (barsH[13] - W40_BEFORE) * s.w40 : barsH[i]) * g;
+    rects[i].setAttribute('x', barsX[i]); rects[i].setAttribute('y', BASE - h); rects[i].setAttribute('height', Math.max(0, h));
+    const ord = i === 13 ? 2 + s.o40 : orders[i];
+    const cx = 833 + 71 + 42 * i, cy = 397.9 + 266 - 32.75 * ord;
+    pts.push([cx, cy]);
+    const vis = s.line * 14 > i;
+    dots[i].setAttribute('cx', cx); dots[i].setAttribute('cy', cy); dots[i].setAttribute('opacity', vis ? 1 : 0);
+  }
+  const d = monotone(pts); ln.setAttribute('d', d);
+  const L = ln.getTotalLength(); ln.style.strokeDasharray = L; ln.style.strokeDashoffset = L * (1 - s.line);
+  $('#pill7').style.left = (1433.2 + 16.5 - 50) + 'px'; $('#pill7').style.top = (BASE - (W40_BEFORE + (barsH[13] - W40_BEFORE) * s.w40) - 52) + 'px';
+  const k = s.kpi;
+  $('#k1').textContent = fmt(s.k1 * k) + ' zł'; $('#k2').textContent = fmt(s.k2 * k); $('#k3').textContent = fmt(s.k3 * k) + ' zł';
+  const before = [71.3, 15.7, 13.0], after = [74.2, 14.1, 11.7];
+  const pct = before.map((b, i) => b + (after[i] - b) * s.mix);
+  let a = 0; const tot = 2 * Math.PI * s.donut;
+  pct.forEach((p, i) => { const span = tot * p / 100; dPaths[i].setAttribute('d', span > .001 ? arc(a, a + span) : ''); a += span; });
+  dTxt.textContent = fmt(s.k1 * k) + ' zł';
+  const vals = [s.legv0, 4846.20, 4023.33];
+  vals.forEach((v, i) => { $('#lv' + i).textContent = fmt(v * k, 2) + ' zł'; $('#lp' + i).textContent = (pct[i] * Math.min(1, k * 1.2)).toFixed(1).replace('.', ',').replace(',0', '') + '%'; });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// SCENA 8 — PUSH (52–56)
+// ═════════════════════════════════════════════════════════════════════════════
+on('#L8', 52, 56.05);
+T.fromTo('#pushBg', { scale: 1.15 }, { scale: 1.02, duration: 4, ease: 'none', immediateRender: false }, 52);
+const ph8 = { rx: 44, rz: -12, s: .86, y: 120, vib: 0, bright: 0 };
+T.fromTo(ph8, { y: 700, rx: 60 }, { y: 120, rx: 44, duration: .7, ease: 'expo.out', immediateRender: false }, 52.0);
+corner('08', 'Powiadomienia push', 'Wiesz, co dzieje się w studiu, zanim ktoś zadzwoni.', 52.3, 55.8);
+T.to('#wall8', { opacity: 1, duration: .35 }, 52.75);
+T.to('#deskglow', { opacity: .9, duration: .4 }, 52.75);
+T.set('#push1', { visibility: 'visible', y: -140, opacity: 0, scale: .85 }, 52.95);
+T.to('#push1', { y: 0, opacity: 1, scale: 1, duration: .45, ease: 'back.out(1.8)' }, 53.0);
+T.set(ph8, { vib: 6 }, 53.0); T.to(ph8, { vib: 0, duration: .5 }, 53.0);
+T.to('#push1', { y: 138, duration: .4, ease: 'expo.out' }, 54.5);
+T.set('#push2', { visibility: 'visible', y: -140, opacity: 0, scale: .85 }, 54.45);
+T.to('#push2', { y: 0, opacity: 1, scale: 1, duration: .45, ease: 'back.out(1.8)' }, 54.5);
+T.set(ph8, { vib: 6 }, 54.5); T.to(ph8, { vib: 0, duration: .5 }, 54.5);
+T.to(ph8, { rx: 16, rz: -4, s: 1.42, y: 260, duration: 2.6, ease: 'power2.inOut' }, 53.2);
+T.to('#deskglow', { background: 'radial-gradient(closest-side, rgba(233,199,123,.45), transparent)', duration: .4 }, 54.5);
+appliers.push(t => {
+  const hx = Math.sin(t * 1.3) * 10 + Math.sin(t * 3.1) * 3, hy = Math.cos(t * 1.1) * 8, hr = Math.sin(t * .9) * .6;
+  const v = ph8.vib ? Math.sin(t * 170) * ph8.vib : 0;
+  $('#rig8').style.transform = `translate(${hx + v}px, ${ph8.y + hy - 120}px) rotateX(${ph8.rx}deg) rotateZ(${ph8.rz + hr}deg)`;
+  $('#phone8').style.transform = `scale(${ph8.s})`;
+});
+$('#phone8').style.transformOrigin = '215px 330px';
+
+// ═════════════════════════════════════════════════════════════════════════════
+// FINAŁ (56–60)
+// ═════════════════════════════════════════════════════════════════════════════
+on('#LE', 56, 60.1);
+flash(56.0, 1, .6); shake(56.0, 18, .5);
+T.fromTo('#endLogo', { scale: 1.25, opacity: 0, filter: 'blur(20px)' }, { scale: 1, opacity: 1, filter: 'blur(0px)', duration: 1.0, ease: 'expo.out', immediateRender: false }, 56.0);
+T.fromTo('#endSweep', { xPercent: -100 }, { xPercent: 100, duration: 1.4, ease: 'power2.inOut', immediateRender: false }, 56.4);
+T.fromTo('#endWord', { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: .7, ease: 'expo.out', immediateRender: false }, 56.5);
+T.fromTo('#endTag', { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: .7, ease: 'expo.out', immediateRender: false }, 57.0);
+T.fromTo('#endUrl', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: .7, ease: 'expo.out', immediateRender: false }, 57.4);
+T.fromTo('#LE', { scale: 1 }, { scale: 1.04, duration: 4, ease: 'none', immediateRender: false }, 56);
+T.to('#black', { opacity: 1, duration: .8, ease: 'none' }, 59.2);
+T.set({}, {}, 60);
+
+// ─── ziarno ──────────────────────────────────────────────────────────────────
+const gc = $('#grain'), gx = gc.getContext('2d'); const gi = gx.createImageData(1920, 1080);
+for (let i = 0; i < gi.data.length; i += 4) { const v = rnd() * 255; gi.data[i] = gi.data[i + 1] = gi.data[i + 2] = v; gi.data[i + 3] = 255; }
+gx.putImageData(gi, 0, 0);
+
+// ─── render API ──────────────────────────────────────────────────────────────
+function applyAll(t) {
+  for (const c of cams) c.apply(t);
+  for (const f of appliers) f(t);
+  $('#mblurStd').setAttribute('stdDeviation', `${blurState.v.toFixed(2)} ${(blurState.v * .06).toFixed(2)}`);
+  $('#world').style.filter = blurState.v > .3 ? 'url(#mblur)' : 'none';
+  const sv = shakeState.v;
+  $('#world').style.transform = sv ? `translate(${Math.sin(t * 97) * sv}px, ${Math.cos(t * 71) * sv * .7}px)` : 'none';
+  const f = Math.floor(t * 30);
+  gc.style.transform = `translate(${-((f * 373) % 900)}px, ${-((f * 587) % 500)}px)`;
+}
+window.seek = async (t) => {
+  T.seek(t, false);
+  applyAll(t);
+  const imgs = [...document.images].filter(i => i.offsetParent !== null || i.closest('.layer')?.style.visibility === 'visible');
+  await Promise.all(imgs.map(i => (i.complete && i.naturalWidth) ? i.decode().catch(() => {}) : new Promise(r => { i.onload = i.onerror = () => r(); })));
+};
+window.ready = (async () => {
+  await document.fonts.ready;
+  await Promise.all([...document.images].map(i => i.decode().catch(() => {})));
+  return true;
+})();
+</script>
+</body>
+</html>
