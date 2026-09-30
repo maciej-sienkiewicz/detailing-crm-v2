@@ -239,25 +239,23 @@ body { font-family: 'InterV', system-ui, sans-serif; color: #fff; -webkit-font-s
 .ptab .scr img.shot { position: absolute; left: 0; top: 0; width: 700px; height: 1002px; }
 .ptab .tc { position: absolute; left: 50%; top: 10px; width: 7px; height: 7px; margin-left: -3px; border-radius: 50%; background: #1c2230; }
 
-/* plansza końcowa: przewijana lista możliwości */
-.brand { position: absolute; left: 130px; top: 0; width: 640px; }
-.brand img { position: absolute; left: 0; top: 330px; width: 320px; }
-.brand .w { position: absolute; left: 0; top: 520px; font-size: 96px; font-weight: 800; letter-spacing: -0.055em; white-space: nowrap; }
-.brand .g { position: absolute; left: 4px; top: 640px; font-size: 34px; font-weight: 600; color: #cbd5e1; letter-spacing: -0.02em; white-space: nowrap; }
-.brand .u { position: absolute; left: 4px; top: 706px; font-size: 26px; font-weight: 600; color: #e9c77b; letter-spacing: .04em; }
-.fwrap { position: absolute; left: 880px; top: 0; width: 900px; height: 1080px; overflow: hidden;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 4%, #000 30%, #000 70%, transparent 96%); mask-image: linear-gradient(to bottom, transparent 4%, #000 30%, #000 70%, transparent 96%); }
-.flist { position: absolute; left: 30px; top: 0; width: 840px; }
-.fc { position: absolute; left: 0; width: 840px; height: 128px; border-radius: 26px; padding: 0 30px; display: flex; align-items: center; gap: 26px; transform-origin: 30% 50%;
-  background: linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.025)); border: 1.5px solid rgba(255,255,255,.1); }
-.fc .ic { width: 72px; height: 72px; border-radius: 20px; display: grid; place-items: center; flex: 0 0 72px; background: rgba(56,189,248,.12); border: 1px solid rgba(56,189,248,.35); color: #7dd3fc; }
-.fc .ic svg { width: 36px; height: 36px; }
-.fc .tt { font-size: 36px; font-weight: 800; letter-spacing: -0.035em; line-height: 1.1; }
-.fc .ds { font-size: 21px; color: #94a3b8; margin-top: 6px; letter-spacing: -0.01em; }
-.fc .th { margin-left: auto; width: 150px; height: 94px; border-radius: 12px; overflow: hidden; flex: 0 0 150px; border: 1px solid rgba(255,255,255,.14); }
-.fc .th img { width: 100%; height: 100%; object-fit: cover; object-position: 30% 20%; }
-.fc.more { background: none; border: 0; justify-content: flex-start; }
-.fc.more .tt { font-size: 92px; letter-spacing: -0.055em; }
+/* przyjęcie: kroki */
+.stepper { position: absolute; left: 0; right: 0; bottom: 64px; display: flex; justify-content: center; gap: 14px; z-index: 85; visibility: hidden; }
+.stp { display: flex; align-items: center; gap: 12px; padding: 12px 26px 12px 12px; border-radius: 999px; background: rgba(8,12,22,.74); border: 1.5px solid rgba(255,255,255,.12);
+  backdrop-filter: blur(18px); font-size: 24px; font-weight: 700; letter-spacing: -0.02em; color: #7c8aa0; box-shadow: 0 16px 40px rgba(0,0,0,.4); }
+.stp i { font-style: normal; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-size: 17px; background: rgba(255,255,255,.08); color: #94a3b8; }
+.stp.on { color: #fff; border-color: rgba(56,189,248,.75); }
+.stp.on i { background: rgba(14,165,233,.25); color: #7dd3fc; }
+.stp.ok { color: #cbd5e1; }
+.stp.ok i { background: rgba(34,197,94,.2); color: #86efac; }
+
+/* plansza końcowa: bęben nazw */
+#wheel { position: absolute; inset: 0; perspective: 1400px; perspective-origin: 50% 50%; }
+.wi { position: absolute; left: 0; right: 0; top: 540px; height: 110px; margin-top: -55px; text-align: center; font-size: 92px; font-weight: 700; letter-spacing: -0.05em; line-height: 110px; white-space: nowrap; transform-origin: 50% 50%; backface-visibility: hidden; }
+.lens { position: absolute; left: 50%; top: 540px; width: 1560px; height: 136px; margin: -68px 0 0 -780px; border-radius: 34px; visibility: hidden;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.05) 20%, rgba(255,255,255,.05) 80%, transparent);
+  border-top: 1px solid rgba(255,255,255,.07); border-bottom: 1px solid rgba(255,255,255,.07); }
+.more { position: absolute; left: 0; right: 0; top: 540px; margin-top: -100px; text-align: center; font-size: 180px; font-weight: 800; letter-spacing: -0.055em; line-height: 200px; visibility: hidden; }
 </style>
 </head>
 <body>
@@ -286,6 +284,7 @@ body { font-family: 'InterV', system-ui, sans-serif; color: #fff; -webkit-font-s
       <div class="win">
         <div class="chrome"><i></i><i></i><i></i><div class="url">🔒 <b>detailboost.pl</b>/calendar</div></div>
         <div class="screen">
+          <img class="shot" id="img1b" src="a/cal2/057_saved.jpg">
           <img class="shot" id="img1" src="a/cal2/000_calendar.jpg">
           <div class="hl" id="hl1"></div>
           <div class="ring" id="ring1"></div>
@@ -319,6 +318,7 @@ body { font-family: 'InterV', system-ui, sans-serif; color: #fff; -webkit-font-s
       <div class="win">
         <div class="chrome"><i></i><i></i><i></i><div class="url">🔒 <b>detailboost.pl</b>/reservations/46b72064…/checkin</div></div>
         <div class="screen">
+          <img class="shot" id="img3b" src="a/ci/004_schema.jpg">
           <img class="shot" id="img3" src="a/ci/003_photos.jpg">
           <div class="hl" id="hl3"></div>
           <div class="ring" id="ring3" style="border-color:rgba(220,38,38,.9)"></div>
@@ -452,26 +452,20 @@ body { font-family: 'InterV', system-ui, sans-serif; color: #fff; -webkit-font-s
       <div class="kn">Numer KSeF<code id="ksefNo">5842739145-20260930-3C8E51A07D92-1B</code></div></div>
   </div>
 
-  <!-- 8b: FINANSE -->
-  <div class="layer" id="L8b">
-    <div class="persp"><div class="rig" id="rig8b"><div class="cam" id="cam8b">
-      <div class="win">
-        <div class="chrome"><i></i><i></i><i></i><div class="url">🔒 <b>detailboost.pl</b>/finance</div></div>
-        <div class="screen"><img class="shot" src="a/finance2.jpg"><div class="hl green" id="hl8b"></div></div>
-      </div>
-    </div></div></div>
-  </div>
-
-  <!-- END: przewijana lista możliwości -->
-  <div class="layer" id="LE" style="background:#03050a">
-    <div class="full" style="background:radial-gradient(900px 700px at 22% 45%, rgba(201,149,63,.16), transparent 70%), radial-gradient(900px 800px at 78% 50%, rgba(14,165,233,.12), transparent 70%)"></div>
-    <div class="brand" id="brand">
-      <img id="bLogo" src="a/logo.png">
-      <div class="w" id="bWord">DetailBoost</div>
-      <div class="g" id="bTag">Twoje studio. Na autopilocie.</div>
-      <div class="u" id="bUrl">detailboost.pl</div>
+  <!-- END: bęben z nazwami możliwości, potem znak marki -->
+  <div class="layer" id="LE" style="background:#000">
+    <div class="full" id="endGlow" style="background:radial-gradient(1000px 520px at 50% 50%, rgba(56,189,248,.10), transparent 70%)"></div>
+    <div class="lens" id="lens"></div>
+    <div id="wheel"></div>
+    <div class="more gold" id="more">i więcej!</div>
+    <div class="full" id="lock">
+      <div class="full" style="background:radial-gradient(900px 600px at 50% 40%, rgba(201,149,63,.18), transparent 70%)"></div>
+      <img class="end-logo" id="endLogo" src="a/logo.png">
+      <div class="sweep" id="endSweep" style="transform:translateX(-100%)"></div>
+      <div class="end-word" id="endWord">DetailBoost</div>
+      <div class="end-tag" id="endTag">Od rezerwacji do faktury. W jednym miejscu.</div>
+      <div class="end-url" id="endUrl">detailboost.pl</div>
     </div>
-    <div class="fwrap" id="fwrap"><div class="flist" id="flist"></div></div>
   </div>
 
   <div id="type"></div>
@@ -647,10 +641,10 @@ function burst(t, cx, cy, colors, n = 34, spread = 520) {
 const fmt = (v, dec = 0) => { const s = v.toFixed(dec).replace('.', ','); const [i, d] = s.split(','); const ii = i.length > 4 ? i.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') : i; return d ? ii + ',' + d : ii; };
 
 // ═════════════════════════════════════════════════════════════════════════════
-// FILM 2: od rezerwacji do faktury w KSeF.
-// Sceny (s): intro 0–4, rezerwacja 4–12, szablony 12–16, przyjęcie 16–20,
-// e-mail i SMS 20–26, podpis 26–32, usługi 32–36, wydanie i KSeF 36–48,
-// plansza z możliwościami 48–60. Te same liczby są w music2.py.
+// FILM 2: od rezerwacji do faktury w KSeF (67 s).
+// Sceny (s): intro 0–4, rezerwacja 4–12, szablony 12–16, przyjęcie 16–24,
+// e-mail i SMS 24–34, podpis 34–40, usługi 40–44, wydanie i KSeF 44–56,
+// plansza z możliwościami 56–67. Te same liczby są w music2.py.
 // ═════════════════════════════════════════════════════════════════════════════
 
 // ─── INTRO (0–4) ────────────────────────────────────────────────────────────
@@ -664,8 +658,8 @@ bigWord('Od rezerwacji do faktury.', 3.0, 3.92, { size: 112, cls: 'gold' });
 T.to('#introImg', { filter: 'brightness(.55)', duration: .5 }, 3.0);
 
 // ─── 01 REZERWACJA (4–12) ───────────────────────────────────────────────────
-on('#LBG', 4, 48.05);
-T.fromTo('#grid', { backgroundPositionY: '0px' }, { backgroundPositionY: '800px', duration: 44, ease: 'none', immediateRender: false }, 4);
+on('#LBG', 4, 56.05);
+T.fromTo('#grid', { backgroundPositionY: '0px' }, { backgroundPositionY: '900px', duration: 52, ease: 'none', immediateRender: false }, 4);
 flash(4.0, .9, .3); shake(4.0, 16, .4);
 on('#L1', 4, 12.05);
 const c1 = new Cam('#rig1', '#cam1', { px: 800, py: 522, z: .62, rx: 14, ry: -26, ox: 250, oy: 900 });
@@ -677,27 +671,26 @@ click('#cur1', '#ring1', 5.5, 1402, 51);
 c1.to(5.0, .5, { z: .78, ry: -9, rx: 4, oy: 40 });
 T.set('#cur1', { visibility: 'hidden' }, 5.62);
 frames('#img1', [[5.52, 'a/cal2/001_modal.jpg']]);
-c1.to(5.6, .55, { px: 880, py: 100 + WIN_Y, z: 1.55, ry: -3, rx: 1.5, ox: 0, oy: 0 }, 'expo.out');
+// całe okno rezerwacji w kadrze przez cały czas wypełniania; kamera tylko lekko dryfuje
+c1.to(5.6, .7, { px: 924, py: 500 + WIN_Y, z: 1.1, ry: -4, rx: 2, ox: 150, oy: 0 }, 'expo.out');
+c1.to(6.3, 3.7, { z: 1.15, ry: -2, rx: 1 }, 'none');
 // pisanie tytułu „Pakiet ochronny Porsche 911”
 for (let i = 0; i < 27; i++) frames('#img1', [[6.1 + i * .048, `a/cal2/${String(2 + i).padStart(3, '0')}_t.jpg`]]);
-c1.to(7.4, .4, { px: 940, py: 226 + WIN_Y, z: 1.4 });
 frames('#img1', [[7.5, 'a/cal2/029_allday_off.jpg'], [7.68, 'a/cal2/030_picker.jpg'], [7.86, 'a/cal2/031_pick_start.jpg'], [8.02, 'a/cal2/032_pick_end.jpg'], [8.16, 'a/cal2/033_end_time.jpg'], [8.3, 'a/cal2/034_start_time.jpg'], [8.44, 'a/cal2/035_dates_done.jpg']]);
-c1.to(8.5, .35, { px: 940, py: 200 + WIN_Y, z: 1.35 });
 frames('#img1', [[8.58, 'a/cal2/036_client_t.jpg'], [8.66, 'a/cal2/037_client_t.jpg'], [8.74, 'a/cal2/038_client_t.jpg'], [8.84, 'a/cal2/039_client_list.jpg'], [8.94, 'a/cal2/040_client_selected.jpg'], [9.04, 'a/cal2/041_vehicle_selected.jpg']]);
-c1.to(9.08, .35, { px: 940, py: 430 + WIN_Y, z: 1.3 });
 for (let i = 0; i < 13; i++) frames('#img1', [[9.14 + i * .04, `a/cal2/${String(42 + i).padStart(3, '0')}_${[3, 7, 12].includes(i) ? 'svc_selected' : 'svc_t'}.jpg`]]);
-c1.to(9.62, .35, { px: 930, py: 640 + WIN_Y, z: 1.15 });
-frames('#img1', [[9.74, 'a/cal2/055_sms_checked.jpg'], [9.86, 'a/cal2/056_card_checked.jpg']]);
-hl('#hl1', 9.76, 10.28, [620, 750, 300, 54]);
-cursorPath('#cur1', [[9.9, 1320, 990], [10.3, 1181, 908]]);
-click('#cur1', '#ring1', 10.4, 1181, 908);
-T.set('#cur1', { visibility: 'hidden' }, 10.5);
-frames('#img1', [[10.42, 'a/cal2/057_saved.jpg']]);
-c1.set(10.42, { px: 1000, py: 700, z: 1.0 });
-c1.to(10.42, 1.3, { px: 1213, py: 773 + WIN_Y, z: 1.6, ry: -6, rx: 3 }, 'power2.inOut');
-hl('#hl1', 10.6, 11.9, [1020, 762, 388, 23]);
-T.to('#hl1', { boxShadow: '0 0 0 10px rgba(14,165,233,.25), 0 0 70px rgba(14,165,233,.8)', duration: .4, yoyo: true, repeat: 2, ease: 'sine.inOut' }, 10.9);
-caption('Rezerwacja w kalendarzu. <span style="color:#38bdf8">SMS przypomni klientowi.</span>', 10.6, 11.85);
+frames('#img1', [[9.7, 'a/cal2/055_sms_checked.jpg'], [9.8, 'a/cal2/056_card_checked.jpg']]);
+hl('#hl1', 9.72, 10.12, [620, 750, 300, 54]);
+cursorPath('#cur1', [[9.6, 1320, 990], [10.05, 1181, 908]]);
+click('#cur1', '#ring1', 10.15, 1181, 908);
+// zapis: okno znika nad kalendarzem (pod spodem czeka klatka po zapisie),
+// a kamera płynnie jedzie do nowej rezerwacji. Bez cięcia i bez zmiany kadru.
+T.to('#cur1', { opacity: 0, duration: .2 }, 10.25);
+T.to('#img1', { opacity: 0, duration: .45, ease: 'power2.out' }, 10.2);
+c1.to(10.25, 1.05, { px: 1213, py: 773 + WIN_Y, z: 1.55, ry: -6, rx: 3, ox: 0 }, 'power2.inOut');
+hl('#hl1', 10.7, 11.9, [1020, 762, 388, 23]);
+T.to('#hl1', { boxShadow: '0 0 0 10px rgba(14,165,233,.25), 0 0 70px rgba(14,165,233,.8)', duration: .4, yoyo: true, repeat: 1, ease: 'sine.inOut' }, 11.0);
+caption('Rezerwacja w kalendarzu. <span style="color:#38bdf8">SMS przypomni klientowi.</span>', 10.65, 11.85);
 c1.to(11.6, .45, { ox: -2600 }, 'power3.in');
 whip(12.0);
 
@@ -732,87 +725,120 @@ caption('Dane wizyty <span style="color:#38bdf8">wpisują się same.</span>', 14
 T.to('#pg0', { x: -1500, rotationY: 30, duration: .45, ease: 'power3.in' }, 15.6);
 whip(16.0);
 
-// ─── 03 PRZYJĘCIE POJAZDU (16–20) ───────────────────────────────────────────
-on('#L3', 16, 20.05);
+// ─── 03 PRZYJĘCIE POJAZDU (16–24) ───────────────────────────────────────────
+// Trzy kroki po kolei, każdy z własnym kadrem i pauzą: zdjęcia, uszkodzenia,
+// wysyłka do klienta. Pasek kroków na dole mówi, gdzie jesteśmy. Zmiany widoku
+// przenikają (dwie warstwy zrzutu) przy nieruchomej kamerze, a dopiero potem
+// kamera jedzie do nowego kadru: nigdy obie rzeczy naraz.
+on('#L3', 16, 24.05);
 const c3 = new Cam('#rig3', '#cam3', { px: 800, py: 522, z: .7, rx: 6, ry: -14, ox: 2400, oy: 30 });
 c3.to(16.0, .6, { ox: 240 }, 'expo.out');
 bigWord('Przyjęcie.', 16.0, 16.85, { size: 200, cls: 'bluegrad' });
-corner('03', 'Przyjęcie pojazdu', 'Zdjęcia, mapa uszkodzeń i dokumenty w kilka kliknięć.', 16.75, 19.4);
-c3.to(16.55, .8, { px: 924, py: 795 + WIN_Y, z: 1.25, ry: -4, rx: 2, ox: 160 }, 'power3.inOut');
-hl('#hl3', 16.95, 17.5, [392, 697, 1064, 198]);
-// mapa uszkodzeń: pierwszy punkt stawiany na oczach widza, potem wszystkie trzy z opisami
-frames('#img3', [[17.55, 'a/ci/004_schema.jpg']]);
-c3.set(17.55, { px: 900, py: 380 + WIN_Y, z: 1.05, ry: -8, rx: 3, ox: 180 });
-c3.to(17.55, .5, { z: 1.2, ry: -4 }, 'expo.out');
-cursorPath('#cur3', [[17.55, 1000, 520], [17.85, 1178, 256]]);
-click('#cur3', '#ring3', 17.9, 1178, 256);
-frames('#img3', [[17.92, 'a/ci/005_dmg_pt.jpg']]);
-T.set('#cur3', { visibility: 'hidden' }, 18.05);
-frames('#img3', [[18.28, 'a/ci/008_dmg_done.jpg']]);
-c3.set(18.28, { px: 920, py: 360 + WIN_Y, z: 1.18 });
-T.set('#ring3b', { borderColor: 'rgba(220,38,38,.9)' }, 18.28);
-[[18.3, 740, 373], [18.45, 1050, 461], [18.6, 1178, 174]].forEach(([t, x, y], k) => {
-  const r = k === 1 ? '#ring3b' : '#ring3';
-  T.set(r, { visibility: 'visible', x, y, scale: .2, opacity: 1 }, t);
-  T.to(r, { scale: 1.6, opacity: 0, duration: .45, ease: 'power2.out' }, t);
-  T.set(r, { visibility: 'hidden' }, t + .46);
-});
-c3.to(18.3, .5, { py: 700 + WIN_Y, z: 1.1 }, 'power2.inOut');
-// dokumenty i powiadomienia: zdjęcia do załącznika, SMS z kartą wizyty
-frames('#img3', [[18.8, 'a/ci/010_modal.jpg']]);
-c3.set(18.8, { px: 800, py: 560 + WIN_Y, z: .98, ry: -4, rx: 2, ox: 140 });
-c3.to(18.8, .55, { z: 1.12, py: 600 + WIN_Y }, 'expo.out');
-cursorPath('#cur3', [[18.8, 1180, 700], [19.05, 1008, 571]]);
-click('#cur3', '#ring3b', 19.1, 1008, 571);
-frames('#img3', [[19.12, 'a/ci/011_att_photos.jpg']]);
-cursorPath('#cur3', [[19.15, 1008, 571], [19.36, 1057, 779]]);
-click('#cur3', '#ring3b', 19.42, 1057, 779);
-frames('#img3', [[19.44, 'a/ci/013_sms_on.jpg']]);
-hl('#hl3', 19.2, 19.85, [506, 380, 588, 432]);
-T.set('#cur3', { visibility: 'hidden' }, 19.6);
+corner('03', 'Przyjęcie pojazdu', 'Zdjęcia, mapa uszkodzeń i dokumenty dla klienta.', 16.75, 19.2);
+// podmiana zrzutu: przenikanie albo cięcie na widocznej warstwie
+const x3 = { top: true };
+function xf3(t, src, dur = .4) {
+  if (x3.top) { T.set('#img3b', { attr: { src } }, t - .02); T.to('#img3', { opacity: 0, duration: dur, ease: 'power1.inOut' }, t); }
+  else { T.set('#img3', { attr: { src } }, t - .02); T.to('#img3', { opacity: 1, duration: dur, ease: 'power1.inOut' }, t); }
+  x3.top = !x3.top;
+}
+const cut3 = (t, src) => T.set(x3.top ? '#img3' : '#img3b', { attr: { src } }, t);
+// pasek kroków
+const stepper = document.createElement('div'); stepper.className = 'stepper';
+stepper.innerHTML = ['Zdjęcia', 'Uszkodzenia', 'Wysyłka do klienta'].map((s, i) => `<div class="stp" id="stp${i}"><i>${i + 1}</i>${s}</div>`).join('');
+$('#type').appendChild(stepper);
+T.set(stepper, { visibility: 'visible' }, 16.9);
+T.fromTo(stepper, { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: .5, ease: 'expo.out', immediateRender: false }, 16.9);
+T.to(stepper, { y: 20, opacity: 0, duration: .25 }, 23.45);
+T.set(stepper, { visibility: 'hidden' }, 23.7);
+const stp = (i, cls, t) => T.set('#stp' + i, { attr: { class: 'stp' + (cls ? ' ' + cls : '') } }, t);
+stp(0, 'on', 16.9); stp(1, '', 16.9); stp(2, '', 16.9);
+stp(0, 'ok', 18.6); stp(1, 'on', 18.6);
+stp(1, 'ok', 21.3); stp(2, 'on', 21.3);
+T.set('#stp0 i', { textContent: '1' }, 16.9); T.set('#stp1 i', { textContent: '2' }, 16.9);
+T.set('#stp0 i', { textContent: '✓' }, 18.6); T.set('#stp1 i', { textContent: '✓' }, 21.3);
+// krok 1: zdjęcia
+c3.to(16.6, .9, { px: 924, py: 795 + WIN_Y, z: 1.2, ry: -4, rx: 2, ox: 160 }, 'power3.inOut');
+hl('#hl3', 17.3, 18.45, [392, 697, 1064, 198]);
+// krok 2: mapa uszkodzeń
+xf3(18.6, 'a/ci/004_schema.jpg', .35);
+c3.to(18.95, .8, { px: 924, py: 470 + WIN_Y, z: 1.05, ry: -3, rx: 1.5, ox: 160 }, 'power2.inOut');
+cursorPath('#cur3', [[19.2, 1020, 560], [19.55, 1178, 256]]);
+click('#cur3', '#ring3', 19.6, 1178, 256);
+cut3(19.62, 'a/ci/005_dmg_pt.jpg');
+cursorPath('#cur3', [[19.7, 1178, 256], [20.05, 740, 455]]);
+click('#cur3', '#ring3b', 20.1, 740, 455);
+// zrzut po trzech punktach jest przewinięty o 82 px: kamera przesuwa się o tyle samo
+// w tej samej klatce, więc rysunek auta stoi w miejscu i dochodzą tylko punkty
+cut3(20.12, 'a/ci/008_dmg_done.jpg');
+T.set('#cur3', { y: '-=82' }, 20.12);
+c3.set(20.12, { py: 470 + WIN_Y - 82 });
+T.set('#ring3b', { borderColor: 'rgba(220,38,38,.9)' }, 16);
+cursorPath('#cur3', [[20.2, 740, 373], [20.5, 1050, 461]]);
+click('#cur3', '#ring3', 20.55, 1050, 461);
+T.to('#cur3', { opacity: 0, duration: .2 }, 20.7);
+T.set('#cur3', { visibility: 'hidden', opacity: 1 }, 20.95);
+c3.to(20.6, .7, { py: 600 + WIN_Y, z: 1.08 }, 'power2.inOut');
+// krok 3: dokumenty i powiadomienia dla klienta
+xf3(21.3, 'a/ci/010_modal.jpg', .35);
+c3.to(21.65, .8, { px: 800, py: 560 + WIN_Y, z: 1.05, ry: -3, rx: 1.5, ox: 140 }, 'power2.inOut');
+cursorPath('#cur3', [[21.8, 1180, 700], [22.1, 1008, 571]]);
+click('#cur3', '#ring3b', 22.15, 1008, 571);
+T.set('#ring3b', { borderColor: 'rgba(14,165,233,.9)' }, 22.1);
+cut3(22.17, 'a/ci/011_att_photos.jpg');
+hl('#hl3', 22.3, 23.2, [506, 480, 588, 256]);
+cursorPath('#cur3', [[22.3, 1008, 571], [22.8, 1057, 779]]);
+click('#cur3', '#ring3b', 22.85, 1057, 779);
+cut3(22.87, 'a/ci/013_sms_on.jpg');
+T.set('#cur3', { visibility: 'hidden' }, 23.25);
 // dopchnięcie w ikonę e-maila: cięcie przez dopasowanie na telefon klienta
-c3.to(19.6, .42, { px: 540, py: 411 + WIN_Y, z: 3.2, ry: 0, rx: 0, ox: 0 }, 'power3.in');
-flash(20.0, .55, .3);
+c3.to(23.55, .45, { px: 540, py: 411 + WIN_Y, z: 3.2, ry: 0, rx: 0, ox: 0 }, 'power3.in');
+flash(24.0, .55, .3);
 
-// ─── 04 E-MAIL I SMS U KLIENTA (20–26) ──────────────────────────────────────
-on('#L4', 20, 26.05);
-T.fromTo('#phBg', { scale: 1.2 }, { scale: 1.05, duration: 6, ease: 'none', immediateRender: false }, 20);
+// ─── 04 E-MAIL I SMS U KLIENTA (24–34) ──────────────────────────────────────
+// Każda wiadomość ma czas na przeczytanie: przyjście, pauza, otwarcie, pauza.
+on('#L4', 24, 34.05);
+T.fromTo('#phBg', { scale: 1.2 }, { scale: 1.05, duration: 10, ease: 'none', immediateRender: false }, 24);
 const ph4 = { x: 0, y: 0, rx: 6, ry: -16, rz: 3, s: .96, vib: 0, my: 0, vy: 0 };
-T.fromTo(ph4, { s: 1.6, ry: 0, rz: 0, y: 80 }, { s: .96, ry: -16, rz: 3, y: 0, duration: .7, ease: 'expo.out', immediateRender: false }, 20.0);
-corner('04', 'E-mail i SMS', 'Klient dostaje protokół, zdjęcia i Kartę Wizyty. Bez przepisywania.', 20.3, 23.4);
-T.set('#nMail', { visibility: 'visible', y: -120, opacity: 0, scale: .9 }, 20.2);
-T.to('#nMail', { y: 0, opacity: 1, scale: 1, duration: .45, ease: 'back.out(1.6)' }, 20.25);
-T.set(ph4, { vib: 5 }, 20.25); T.to(ph4, { vib: 0, duration: .45 }, 20.25);
-T.set('#touch4', { visibility: 'visible', x: 200, y: 470, opacity: 0, scale: 1 }, 20.6);
-T.to('#touch4', { y: 400, opacity: 1, duration: .25 }, 20.62);
-tap('#touch4', 20.95);
-T.to('#touch4', { opacity: 0, duration: .15 }, 21.02);
-T.to('#mail', { opacity: 1, duration: .3, ease: 'power2.out' }, 20.98);
-T.fromTo('#mail', { scale: .94 }, { scale: 1, duration: .45, ease: 'expo.out', immediateRender: false }, 20.98);
-T.to('#nMail', { opacity: 0, duration: .2 }, 20.98);
-T.to(ph4, { x: -120, s: 1.18, ry: -8, rz: 1, duration: 1.0, ease: 'power3.inOut' }, 21.2);
-T.to(ph4, { my: -300, duration: .9, ease: 'power2.inOut' }, 21.75);
-T.to(ph4, { s: 1.34, y: -150, x: -150, duration: .9, ease: 'power2.inOut' }, 21.75);
-['#at0', '#at1', '#thumbs'].forEach((s, i) => T.fromTo(s, { x: 30, opacity: 0 }, { x: 0, opacity: 1, duration: .4, ease: 'expo.out', immediateRender: false }, 21.95 + i * .14));
-T.set(['#at0', '#at1', '#thumbs'], { opacity: 0 }, 20.0);
-caption('E-mail z protokołem, <span style="color:#38bdf8">zdjęciami i mapą uszkodzeń.</span>', 21.3, 22.95);
+T.fromTo(ph4, { s: 1.6, ry: 0, rz: 0, y: 80 }, { s: .96, ry: -16, rz: 3, y: 0, duration: .8, ease: 'expo.out', immediateRender: false }, 24.0);
+corner('04', 'E-mail i SMS', 'Klient dostaje protokół, zdjęcia i Kartę Wizyty. Bez przepisywania.', 24.3, 28.4);
+T.set('#nMail', { visibility: 'visible', y: -120, opacity: 0, scale: .9 }, 24.4);
+T.to('#nMail', { y: 0, opacity: 1, scale: 1, duration: .45, ease: 'back.out(1.6)' }, 24.45);
+T.set(ph4, { vib: 5 }, 24.45); T.to(ph4, { vib: 0, duration: .45 }, 24.45);
+T.to(ph4, { s: 1.12, ry: -10, rz: 2, x: -40, duration: 1.0, ease: 'power2.inOut' }, 24.6);
+T.set('#touch4', { visibility: 'visible', x: 200, y: 470, opacity: 0, scale: 1 }, 25.3);
+T.to('#touch4', { y: 400, opacity: 1, duration: .25 }, 25.32);
+tap('#touch4', 25.65);
+T.to('#touch4', { opacity: 0, duration: .15 }, 25.72);
+T.to('#mail', { opacity: 1, duration: .35, ease: 'power2.out' }, 25.68);
+T.fromTo('#mail', { scale: .94 }, { scale: 1, duration: .5, ease: 'expo.out', immediateRender: false }, 25.68);
+T.to('#nMail', { opacity: 0, duration: .2 }, 25.68);
+// czytanie: temat i treść
+T.to(ph4, { x: -140, s: 1.26, ry: -6, rz: 1, y: 40, duration: 1.2, ease: 'power2.inOut' }, 25.9);
+// załączniki: powolne przewinięcie i pauza
+T.set(['#at0', '#at1', '#thumbs'], { opacity: 0 }, 24.0);
+T.to(ph4, { my: -300, duration: 1.3, ease: 'power2.inOut' }, 27.1);
+T.to(ph4, { s: 1.4, y: -170, x: -160, duration: 1.3, ease: 'power2.inOut' }, 27.1);
+['#at0', '#at1', '#thumbs'].forEach((s, i) => T.fromTo(s, { x: 30, opacity: 0 }, { x: 0, opacity: 1, duration: .5, ease: 'expo.out', immediateRender: false }, 27.7 + i * .25));
+caption('E-mail z protokołem, <span style="color:#38bdf8">zdjęciami i mapą uszkodzeń.</span>', 27.6, 29.6);
 // SMS z linkiem do Karty Wizyty
-T.to(ph4, { s: 1.12, y: 0, x: -60, duration: .6, ease: 'power3.inOut' }, 22.85);
-T.set('#nSms', { visibility: 'visible', y: -120, opacity: 0, scale: .9 }, 23.0);
-T.to('#nSms', { y: 0, opacity: 1, scale: 1, duration: .45, ease: 'back.out(1.6)' }, 23.05);
-T.set(ph4, { vib: 5 }, 23.05); T.to(ph4, { vib: 0, duration: .45 }, 23.05);
-T.set('#touch4', { visibility: 'visible', x: 220, y: 200, opacity: 0, scale: 1 }, 23.45);
-T.to('#touch4', { y: 140, opacity: 1, duration: .25 }, 23.47);
-tap('#touch4', 23.8);
-T.to('#touch4', { opacity: 0, duration: .15 }, 23.87);
-T.to('#nSms', { opacity: 0, y: -40, duration: .25 }, 23.82);
-T.to('#vcard', { opacity: 1, duration: .3 }, 23.85);
-T.fromTo('#vcard', { yPercent: 8 }, { yPercent: 0, duration: .45, ease: 'expo.out', immediateRender: false }, 23.85);
-T.to(ph4, { vy: -610, duration: 1.7, ease: 'power2.inOut' }, 24.1);
-T.to(ph4, { s: 1.2, x: -80, duration: 1.8, ease: 'power1.inOut' }, 24.0);
-caption('Karta Wizyty w SMS: <span style="color:#38bdf8">usługi, dokumenty, galeria.</span>', 24.0, 25.7);
-T.to(ph4, { x: -2600, ry: 30, duration: .45, ease: 'power3.in' }, 25.6);
-whip(26.0);
+T.to(ph4, { s: 1.14, y: 0, x: -60, duration: .8, ease: 'power3.inOut' }, 29.5);
+T.set('#nSms', { visibility: 'visible', y: -120, opacity: 0, scale: .9 }, 30.0);
+T.to('#nSms', { y: 0, opacity: 1, scale: 1, duration: .45, ease: 'back.out(1.6)' }, 30.05);
+T.set(ph4, { vib: 5 }, 30.05); T.to(ph4, { vib: 0, duration: .45 }, 30.05);
+caption('SMS z linkiem do <span style="color:#38bdf8">Karty Wizyty.</span>', 30.3, 31.3);
+T.set('#touch4', { visibility: 'visible', x: 220, y: 200, opacity: 0, scale: 1 }, 30.95);
+T.to('#touch4', { y: 140, opacity: 1, duration: .25 }, 30.97);
+tap('#touch4', 31.3);
+T.to('#touch4', { opacity: 0, duration: .15 }, 31.37);
+T.to('#nSms', { opacity: 0, y: -40, duration: .25 }, 31.32);
+T.to('#vcard', { opacity: 1, duration: .35 }, 31.35);
+T.fromTo('#vcard', { yPercent: 8 }, { yPercent: 0, duration: .5, ease: 'expo.out', immediateRender: false }, 31.35);
+T.to(ph4, { vy: -610, duration: 2.0, ease: 'power2.inOut' }, 31.6);
+T.to(ph4, { s: 1.22, x: -80, duration: 2.0, ease: 'power1.inOut' }, 31.5);
+caption('Karta Wizyty: <span style="color:#38bdf8">usługi, dokumenty, galeria.</span>', 31.5, 33.6);
+T.to(ph4, { x: -2600, ry: 30, duration: .45, ease: 'power3.in' }, 33.6);
+whip(34.0);
 appliers.push(t => {
   const v = ph4.vib ? Math.sin(t * 160) * ph4.vib : 0;
   $('#rig4').style.transform = `translate(${ph4.x + v}px, ${ph4.y}px) rotateX(${ph4.rx}deg) rotateY(${ph4.ry}deg) rotateZ(${ph4.rz}deg)`;
@@ -822,211 +848,196 @@ appliers.push(t => {
 });
 $('#phone4').style.transformOrigin = '215px 450px';
 
-// ─── 05 PODPIS NA TABLECIE (26–32) ──────────────────────────────────────────
+// ─── 05 PODPIS NA TABLECIE (34–40) ──────────────────────────────────────────
 // prawdziwa strona podpisu (/sign/:token) w pionie; ekran tabletu = 700×1002, ramka 24 px
-on('#L5', 26, 32.05);
-flash(26.0, .25, .3);
+on('#L5', 34, 40.05);
+flash(34, .25, .3);
 const c5 = new Cam('#rig5', '#cam5', { px: 374, py: 525, z: .62, rx: 50, ry: 0, rz: -8, ox: 330, oy: 500 });
-c5.to(26.0, 1.0, { rx: 8, rz: -2, oy: 10, ox: 290, z: .86 }, 'expo.out');
-bigWord('Podpis.', 26.0, 26.85, { size: 220, cls: 'bluegrad' });
+c5.to(34, 1.0, { rx: 8, rz: -2, oy: 10, ox: 290, z: .86 }, 'expo.out');
+bigWord('Podpis.', 34, 34.85, { size: 220, cls: 'bluegrad' });
 // tytuł zostaje ponad 3 s: ma dać się przeczytać, zanim podpis przejmie kadr
-corner('05', 'Podpis na tablecie', 'Klient czyta protokół i podpisuje palcem. PDF z podpisem od razu w wizycie.', 26.75, 30.5);
-frames('#img5', [[26.55, 'a/sign/001_doc.jpg'], [27.35, 'a/sign/002_decl.jpg']]);
-c5.to(26.9, .9, { py: 430, z: 1.0, rx: 4, rz: -1, ry: -5, ox: 300 }, 'power2.inOut');
-c5.to(27.35, .6, { py: 900, z: 1.1 }, 'power2.inOut');
-T.set('#touch5', { visibility: 'visible', x: 180, y: 1040, opacity: 0, scale: 1 }, 27.6);
-T.to('#touch5', { x: 106, y: 969, opacity: 1, duration: .3 }, 27.62);
-tap('#touch5', 27.95);
-frames('#img5', [[27.97, 'a/sign/003_decl_checked.jpg']]);
-T.to('#touch5', { opacity: 0, duration: .15 }, 28.05);
+corner('05', 'Podpis na tablecie', 'Klient czyta protokół i podpisuje palcem. PDF z podpisem od razu w wizycie.', 34.75, 38.5);
+frames('#img5', [[34.55, 'a/sign/001_doc.jpg'], [35.35, 'a/sign/002_decl.jpg']]);
+c5.to(34.9, .9, { py: 430, z: 1.0, rx: 4, rz: -1, ry: -5, ox: 300 }, 'power2.inOut');
+c5.to(35.35, .6, { py: 900, z: 1.1 }, 'power2.inOut');
+T.set('#touch5', { visibility: 'visible', x: 180, y: 1040, opacity: 0, scale: 1 }, 35.6);
+T.to('#touch5', { x: 106, y: 969, opacity: 1, duration: .3 }, 35.62);
+tap('#touch5', 35.95);
+frames('#img5', [[35.97, 'a/sign/003_decl_checked.jpg']]);
+T.to('#touch5', { opacity: 0, duration: .15 }, 36.05);
 // podpis: 20 klatek rysowania z prawdziwej strony
-frames('#img5', [[28.3, 'a/sign/004_sig.jpg']]);
-c5.set(28.3, { py: 640 });
-c5.to(28.3, .5, { py: 728 + 24, z: 1.3, ry: -3 }, 'expo.out');
-for (let i = 0; i < 20; i++) frames('#img5', [[28.38 + i * .075, `a/sign/${String(4 + i).padStart(3, '0')}_sig.jpg`]]);
+frames('#img5', [[36.3, 'a/sign/004_sig.jpg']]);
+c5.set(36.3, { py: 640 });
+c5.to(36.3, .5, { py: 728 + 24, z: 1.3, ry: -3 }, 'expo.out');
+for (let i = 0; i < 20; i++) frames('#img5', [[36.38 + i * .075, `a/sign/${String(4 + i).padStart(3, '0')}_sig.jpg`]]);
 const sg5 = { p: 0 };
-T.set('#touch5', { visibility: 'visible', opacity: .8 }, 28.36);
-T.to(sg5, { p: 1, duration: 1.5, ease: 'none' }, 28.38);
-T.to('#touch5', { opacity: 0, duration: .15 }, 29.85);
+T.set('#touch5', { visibility: 'visible', opacity: .8 }, 36.36);
+T.to(sg5, { p: 1, duration: 1.5, ease: 'none' }, 36.38);
+T.to('#touch5', { opacity: 0, duration: .15 }, 37.85);
 appliers.push(() => {
   if (sg5.p <= 0 || sg5.p >= 1) return;
   const p = sg5.p;
   $('#touch5').style.transform = `translate(${190 + 330 * p}px, ${735 + 38 * Math.sin(p * Math.PI * 9) - 20 * Math.sin(p * Math.PI)}px)`;
 });
-frames('#img5', [[29.9, 'a/sign/024_sig_done.jpg']]);
-c5.to(29.9, .4, { py: 800, z: 1.15 }, 'power2.inOut');
-T.set('#touch5', { visibility: 'visible', x: 350, y: 930, opacity: 0, scale: 1 }, 30.0);
-T.to('#touch5', { y: 850, opacity: 1, duration: .25 }, 30.02);
-tap('#touch5', 30.35);
-T.to('#touch5', { opacity: 0, duration: .15 }, 30.42);
-frames('#img5', [[30.4, 'a/sign/025_signed.jpg']]);
-c5.to(30.4, .9, { py: 300, z: 1.25, ry: -6, ox: 60 }, 'expo.out');
-caption('Podpisane. <span style="color:#22c55e">PDF już w wizycie.</span>', 30.6, 31.8);
-c5.to(31.55, .45, { ox: -2600, ry: 20 }, 'power3.in');
-whip(32.0);
+frames('#img5', [[37.9, 'a/sign/024_sig_done.jpg']]);
+c5.to(37.9, .4, { py: 800, z: 1.15 }, 'power2.inOut');
+T.set('#touch5', { visibility: 'visible', x: 350, y: 930, opacity: 0, scale: 1 }, 38);
+T.to('#touch5', { y: 850, opacity: 1, duration: .25 }, 38.02);
+tap('#touch5', 38.35);
+T.to('#touch5', { opacity: 0, duration: .15 }, 38.42);
+frames('#img5', [[38.4, 'a/sign/025_signed.jpg']]);
+c5.to(38.4, .9, { py: 300, z: 1.25, ry: -6, ox: 60 }, 'expo.out');
+caption('Podpisane. <span style="color:#22c55e">PDF już w wizycie.</span>', 38.6, 39.8);
+c5.to(39.55, .45, { ox: -2600, ry: 20 }, 'power3.in');
+whip(40);
 
-// ─── 06 USŁUGI ODHACZONE (32–36) ────────────────────────────────────────────
-on('#L6', 32, 36.05);
+// ─── 06 USŁUGI ODHACZONE (40–44) ────────────────────────────────────────────
+on('#L6', 40, 44.05);
 const c6 = new Cam('#rig6', '#cam6', { px: 800, py: 522, z: .7, rx: 6, ry: -14, ox: 2400, oy: 30 });
-c6.to(32.0, .6, { ox: 240 }, 'expo.out');
-bigWord('Zrobione.', 32.0, 32.85, { size: 200, cls: 'bluegrad' });
-corner('06', 'Usługi odhaczone', 'Zespół zaznacza, co skończone. Widać kto i kiedy.', 32.75, 35.5);
-c6.to(32.5, .8, { px: 700, py: 540 + WIN_Y, z: 1.4, ry: -4, rx: 2, ox: 200 }, 'power3.inOut');
-cursorPath('#cur6', [[32.8, 760, 760], [33.12, 326, 468]]);
-frames('#img6', [[33.1, 'a/v3/001_hover.jpg']]);
-click('#cur6', '#ring6', 33.25, 326, 468);
-frames('#img6', [[33.27, 'a/v3/002_tick.jpg']]);
-cursorPath('#cur6', [[33.32, 326, 468], [33.62, 326, 542]]);
-frames('#img6', [[33.6, 'a/v3/003_hover.jpg']]);
-click('#cur6', '#ring6', 33.72, 326, 542);
-frames('#img6', [[33.74, 'a/v3/004_tick.jpg']]);
-cursorPath('#cur6', [[33.79, 326, 542], [34.07, 326, 617]]);
-frames('#img6', [[34.05, 'a/v3/005_hover.jpg']]);
-click('#cur6', '#ring6', 34.17, 326, 617);
-frames('#img6', [[34.19, 'a/v3/006_tick.jpg']]);
-cursorPath('#cur6', [[34.25, 326, 617], [34.55, 640, 700]]);
-T.set('#cur6', { visibility: 'hidden' }, 34.56);
-frames('#img6', [[34.5, 'a/v3/007_all_done.jpg']]);
-hl('#hl6', 34.5, 35.8, [352, 470, 176, 22]);
-caption('Każda usługa: <span style="color:#22c55e">kto i kiedy ją skończył.</span>', 34.55, 35.8);
-c6.to(35.55, .45, { ox: -2600 }, 'power3.in');
-whip(36.0);
+c6.to(40, .6, { ox: 240 }, 'expo.out');
+bigWord('Zrobione.', 40, 40.85, { size: 200, cls: 'bluegrad' });
+corner('06', 'Usługi odhaczone', 'Zespół zaznacza, co skończone. Widać kto i kiedy.', 40.75, 43.5);
+c6.to(40.5, .8, { px: 700, py: 540 + WIN_Y, z: 1.4, ry: -4, rx: 2, ox: 200 }, 'power3.inOut');
+cursorPath('#cur6', [[40.8, 760, 760], [41.12, 326, 468]]);
+frames('#img6', [[41.1, 'a/v3/001_hover.jpg']]);
+click('#cur6', '#ring6', 41.25, 326, 468);
+frames('#img6', [[41.27, 'a/v3/002_tick.jpg']]);
+cursorPath('#cur6', [[41.32, 326, 468], [41.62, 326, 542]]);
+frames('#img6', [[41.6, 'a/v3/003_hover.jpg']]);
+click('#cur6', '#ring6', 41.72, 326, 542);
+frames('#img6', [[41.74, 'a/v3/004_tick.jpg']]);
+cursorPath('#cur6', [[41.79, 326, 542], [42.07, 326, 617]]);
+frames('#img6', [[42.05, 'a/v3/005_hover.jpg']]);
+click('#cur6', '#ring6', 42.17, 326, 617);
+frames('#img6', [[42.19, 'a/v3/006_tick.jpg']]);
+cursorPath('#cur6', [[42.25, 326, 617], [42.55, 640, 700]]);
+T.set('#cur6', { visibility: 'hidden' }, 42.56);
+frames('#img6', [[42.5, 'a/v3/007_all_done.jpg']]);
+hl('#hl6', 42.5, 43.8, [352, 470, 176, 22]);
+caption('Każda usługa: <span style="color:#22c55e">kto i kiedy ją skończył.</span>', 42.55, 43.8);
+c6.to(43.55, .45, { ox: -2600 }, 'power3.in');
+whip(44);
 
-// ─── 07 WYDANIE = FAKTURA W KSeF (36–48) ────────────────────────────────────
-on('#L7', 36, 43.3);
+// ─── 07 WYDANIE = FAKTURA W KSeF (44–56) ────────────────────────────────────
+on('#L7', 44, 51.3);
 const c7 = new Cam('#rig7', '#cam7', { px: 800, py: 522, z: .7, rx: 6, ry: -14, ox: 2400, oy: 30 });
-c7.to(36.0, .6, { ox: 260 }, 'expo.out');
-bigWord('Wydanie.', 36.0, 36.85, { size: 210, cls: 'bluegrad' });
-corner('07', 'Wydanie pojazdu', 'Jedno kliknięcie: auto wydane, faktura od razu w KSeF.', 36.75, 39.3);
-cursorPath('#cur7', [[36.6, 1180, 380], [37.12, 1446, 76]]);
-click('#cur7', '#ring7', 37.2, 1446, 76);
-frames('#img7', [[37.25, 'a/v4/003_pay_invoice.jpg']]);
-T.set('#cur7', { visibility: 'hidden' }, 37.35);
-c7.to(37.25, .7, { px: 800, py: 600, z: .92, ry: -5, rx: 2, ox: 200 }, 'expo.out');
+c7.to(44, .6, { ox: 260 }, 'expo.out');
+bigWord('Wydanie.', 44, 44.85, { size: 210, cls: 'bluegrad' });
+corner('07', 'Wydanie pojazdu', 'Jedno kliknięcie: auto wydane, faktura od razu w KSeF.', 44.75, 47.3);
+cursorPath('#cur7', [[44.6, 1180, 380], [45.12, 1446, 76]]);
+click('#cur7', '#ring7', 45.2, 1446, 76);
+frames('#img7', [[45.25, 'a/v4/003_pay_invoice.jpg']]);
+T.set('#cur7', { visibility: 'hidden' }, 45.35);
+c7.to(45.25, .7, { px: 800, py: 600, z: .92, ry: -5, rx: 2, ox: 200 }, 'expo.out');
 // przełącznik KSeF w oknie wydania
-c7.to(37.9, .8, { px: 800, py: 719 + WIN_Y, z: 1.55, ry: -2, rx: 1, ox: 0 }, 'power3.inOut');
-hl('#hl7', 38.4, 39.35, [502, 688, 598, 64]);
-T.set('#pill7', { visibility: 'visible', left: 560, top: 622, opacity: 0, y: 12 }, 38.55);
-T.to('#pill7', { opacity: 1, y: 0, duration: .35, ease: 'back.out(2)' }, 38.55);
-T.to('#pill7', { opacity: 0, duration: .2 }, 39.15);
-T.set('#pill7', { visibility: 'hidden' }, 39.35);
+c7.to(45.9, .8, { px: 800, py: 719 + WIN_Y, z: 1.55, ry: -2, rx: 1, ox: 0 }, 'power3.inOut');
+hl('#hl7', 46.4, 47.35, [502, 688, 598, 64]);
+T.set('#pill7', { visibility: 'visible', left: 560, top: 622, opacity: 0, y: 12 }, 46.55);
+T.to('#pill7', { opacity: 1, y: 0, duration: .35, ease: 'back.out(2)' }, 46.55);
+T.to('#pill7', { opacity: 0, duration: .2 }, 47.15);
+T.set('#pill7', { visibility: 'hidden' }, 47.35);
 // dojazd do „Wydaj pojazd” i kliknięcie na mocnej części taktu
-c7.to(39.1, .85, { px: 1015, py: 814 + WIN_Y, z: 1.9, ry: -1, rx: 0 }, 'power2.inOut');
-cursorPath('#cur7', [[39.1, 1150, 900], [39.8, 1030, 814]]);
-T.set('#press7', { visibility: 'visible', left: 939, top: 794, width: 153, height: 40, opacity: 0 }, 39.88);
-T.to('#press7', { opacity: 1, duration: .05 }, 39.88);
-click('#cur7', '#ring7', 39.95, 1030, 814);
+c7.to(47.1, .85, { px: 1015, py: 814 + WIN_Y, z: 1.9, ry: -1, rx: 0 }, 'power2.inOut');
+cursorPath('#cur7', [[47.1, 1150, 900], [47.8, 1030, 814]]);
+T.set('#press7', { visibility: 'visible', left: 939, top: 794, width: 153, height: 40, opacity: 0 }, 47.88);
+T.to('#press7', { opacity: 1, duration: .05 }, 47.88);
+click('#cur7', '#ring7', 47.95, 1030, 814);
 // okno znika spokojnie nad stroną wizyty, kamera odjeżdża do statusu
-flash(40.0, .12, .3);
-T.to(['#cur7', '#press7'], { opacity: 0, duration: .15 }, 40.05);
-T.to('#img7', { opacity: 0, duration: .5, ease: 'power2.out' }, 40.05);
-c7.to(40.0, 1.2, { px: 1180, py: 200, z: 1.22, ry: -3, rx: 1.5 }, 'power3.inOut');
-hl('#hl7', 41.0, 42.3, [1232, 166, 112, 30]);
-caption('Pojazd wydany. <span style="color:#22c55e">Wizyta zakończona.</span>', 40.9, 42.4);
-c7.to(42.3, 1.0, { px: 1438, py: 120, z: 2.6 }, 'power2.in');
-on('#L8', 42.9, 46.8, .35);
-T.fromTo('#grid8', { backgroundPositionY: '0px' }, { backgroundPositionY: '400px', duration: 4, ease: 'none', immediateRender: false }, 42.9);
-T.set('#inv', { scale: .15, x: 460, y: -420, opacity: 0 }, 42.9);
-T.to('#inv', { scale: 1, x: 0, y: 0, opacity: 1, duration: .8, ease: 'expo.out' }, 43.0);
-T.set(['#node', '#beam'], { opacity: 0 }, 42.9);
-T.set('#node', { scale: .6 }, 42.9);
-caption('Faktura <span style="color:#38bdf8">FV/2026/0002</span> wystawiona przy wydaniu.', 43.3, 44.85);
-T.to('#inv', { x: -390, rotateY: 14, duration: .75, ease: 'expo.inOut' }, 43.65);
-T.to('#node', { opacity: 1, scale: 1, duration: .6, ease: 'back.out(1.6)' }, 43.75);
-T.to('#orb', { rotation: 360, duration: 4, ease: 'none' }, 43.75);
-T.to('#beam', { opacity: 1, duration: .3 }, 43.9);
-T.to('#beamPath', { strokeDashoffset: -160, duration: 1.8, ease: 'none' }, 43.9);
-T.to('#invBar', { width: '100%', duration: 1.05, ease: 'power1.inOut' }, 43.95);
+flash(48, .12, .3);
+T.to(['#cur7', '#press7'], { opacity: 0, duration: .15 }, 48.05);
+T.to('#img7', { opacity: 0, duration: .5, ease: 'power2.out' }, 48.05);
+c7.to(48, 1.2, { px: 1180, py: 200, z: 1.22, ry: -3, rx: 1.5 }, 'power3.inOut');
+hl('#hl7', 49, 50.3, [1232, 166, 112, 30]);
+caption('Pojazd wydany. <span style="color:#22c55e">Wizyta zakończona.</span>', 48.9, 50.4);
+c7.to(50.3, 1.0, { px: 1438, py: 120, z: 2.6 }, 'power2.in');
+on('#L8', 50.9, 56.05, .35);
+T.fromTo('#grid8', { backgroundPositionY: '0px' }, { backgroundPositionY: '500px', duration: 5.2, ease: 'none', immediateRender: false }, 50.9);
+T.set('#inv', { scale: .15, x: 460, y: -420, opacity: 0 }, 50.9);
+T.to('#inv', { scale: 1, x: 0, y: 0, opacity: 1, duration: .8, ease: 'expo.out' }, 51);
+T.set(['#node', '#beam'], { opacity: 0 }, 50.9);
+T.set('#node', { scale: .6 }, 50.9);
+caption('Faktura <span style="color:#38bdf8">FV/2026/0002</span> wystawiona przy wydaniu.', 51.3, 52.85);
+T.to('#inv', { x: -390, rotateY: 14, duration: .75, ease: 'expo.inOut' }, 51.65);
+T.to('#node', { opacity: 1, scale: 1, duration: .6, ease: 'back.out(1.6)' }, 51.75);
+T.to('#orb', { rotation: 450, duration: 5, ease: 'none' }, 51.75);
+T.to('#beam', { opacity: 1, duration: .3 }, 51.9);
+T.to('#beamPath', { strokeDashoffset: -160, duration: 1.8, ease: 'none' }, 51.9);
+T.to('#invBar', { width: '100%', duration: 1.05, ease: 'power1.inOut' }, 51.95);
 const bp = $('#beamPath');
 const pk = [0, 1, 2, 3, 4].map(i => ({ p: 0, el: $('#pk' + i) }));
-pk.forEach((o, i) => { const s0 = 43.95 + i * .2; T.set(o.el, { visibility: 'visible' }, s0); T.fromTo(o, { p: 0 }, { p: 1, duration: .6, ease: 'power1.in', immediateRender: false }, s0); T.set(o.el, { visibility: 'hidden' }, s0 + .61); });
+pk.forEach((o, i) => { const s0 = 51.95 + i * .2; T.set(o.el, { visibility: 'visible' }, s0); T.fromTo(o, { p: 0 }, { p: 1, duration: .6, ease: 'power1.in', immediateRender: false }, s0); T.set(o.el, { visibility: 'hidden' }, s0 + .61); });
 appliers.push(() => { const L = bp.getTotalLength(); pk.forEach(o => { const q = bp.getPointAtLength(L * o.p); o.el.style.left = q.x + 'px'; o.el.style.top = q.y + 'px'; }); });
-T.set('#invStatus', { textContent: 'Przyjęta przez KSeF', color: '#15803d', fontWeight: 700 }, 45.0);
-T.to('#core', { borderColor: 'rgba(34,197,94,.9)', boxShadow: '0 0 120px rgba(34,197,94,.6), inset 0 0 50px rgba(34,197,94,.35)', duration: .3 }, 45.0);
-T.to(['#inv', '#node', '#beam'], { opacity: .2, duration: .3 }, 45.0);
-flash(45.0, .3, .3);
-T.set('#ok', { visibility: 'visible' }, 45.0);
-T.set('#ok .kn', { opacity: 0, y: 20 }, 45.0);
-T.fromTo('#ok .b', { scale: 1.6, opacity: 0, filter: 'blur(16px)' }, { scale: 1, opacity: 1, filter: 'blur(0px)', duration: .35, ease: 'expo.out', immediateRender: false }, 45.0);
-T.to('#ok .kn', { y: 0, opacity: 1, duration: .4 }, 45.15);
-burst(45.0, 960, 440, ['#22c55e', '#86efac', '#ffffff'], 22, 420);
+T.set('#invStatus', { textContent: 'Przyjęta przez KSeF', color: '#15803d', fontWeight: 700 }, 53);
+T.to('#core', { borderColor: 'rgba(34,197,94,.9)', boxShadow: '0 0 120px rgba(34,197,94,.6), inset 0 0 50px rgba(34,197,94,.35)', duration: .3 }, 53);
+T.to(['#inv', '#node', '#beam'], { opacity: .2, duration: .3 }, 53);
+flash(53, .3, .3);
+T.set('#ok', { visibility: 'visible' }, 53);
+T.set('#ok .kn', { opacity: 0, y: 20 }, 53);
+T.fromTo('#ok .b', { scale: 1.6, opacity: 0, filter: 'blur(16px)' }, { scale: 1, opacity: 1, filter: 'blur(0px)', duration: .35, ease: 'expo.out', immediateRender: false }, 53);
+T.to('#ok .kn', { y: 0, opacity: 1, duration: .4 }, 53.15);
+burst(53, 960, 440, ['#22c55e', '#86efac', '#ffffff'], 22, 420);
 const ksefFinal = '5842739145-20260930-3C8E51A07D92-1B';
 const dec = { p: 0 };
-T.to(dec, { p: 1, duration: .8, ease: 'none' }, 45.15);
+T.to(dec, { p: 1, duration: .8, ease: 'none' }, 53.15);
 appliers.push(t => {
   const n = Math.floor(dec.p * ksefFinal.length); const chars = '0123456789ABCDEF';
   let s = ''; for (let i = 0; i < ksefFinal.length; i++) s += i < n || ksefFinal[i] === '-' ? ksefFinal[i] : chars[(Math.floor(t * 40) * 7 + i * 13) % 16];
   $('#ksefNo').textContent = s;
 });
-caption('Jedno kliknięcie. <span style="color:#22c55e">Faktura już w KSeF.</span>', 45.35, 46.75);
-whip(46.8, .3, 60);
-on('#L8b', 46.8, 48.05);
-const c8 = new Cam('#rig8b', '#cam8b', { px: 1000, py: 700, z: 1.0, rx: 4, ry: -10, ox: 0 });
-c8.to(46.8, 1.0, { px: 900, py: 618 + WIN_Y, z: 1.4, ry: -3 }, 'expo.out');
-hl('#hl8b', 47.0, 48.05, [298, 588, 1252, 62]);
-c8.to(47.6, .4, { ox: -2600 }, 'power3.in');
-whip(48.0);
+caption('Jedno kliknięcie. <span style="color:#22c55e">Faktura już w KSeF.</span>', 53.35, 55.6);
+whip(56.0, .3, 50);
+T.to('#ok', { scale: 1.04, duration: 2.6, ease: 'none' }, 53.3);
 
-// ─── PLANSZA: A TO NIE WSZYSTKO (48–60) ─────────────────────────────────────
-// Lista przewija się skokami na ćwierćnutach, po jednej możliwości na takt „pół”.
+// ─── PLANSZA: A TO NIE WSZYSTKO (56–67) ─────────────────────────────────────
+// Bęben z samymi nazwami, jak w reklamach Apple: aktywna nazwa biała w środku,
+// sąsiednie przygaszone i zakrzywione w głąb. Bez ikon i bez zrzutów, żeby żadna
+// pozycja nie wyglądała na ważniejszą. Potem „i więcej!” i znak marki.
 // Stany początkowe wszystkich napisów ustawione w chwili pokazania warstwy.
-const IC = {
-  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
-  foot: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 15h18"/><circle cx="7.5" cy="17.5" r="1"/><path d="M11 17.5h6"/>',
-  chart: '<path d="M4 20V11M10 20V5M16 20v-6M3 20h18"/>',
-  team: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5.2a3 3 0 010 5.6M21 20c0-2.6-1.6-4.8-4-5.6"/>',
-  pie: '<circle cx="12" cy="12" r="9"/><path d="M12 3v9h9"/>',
-  sms: '<path d="M21 12c0 4.4-4 8-9 8-1.3 0-2.6-.2-3.7-.7L3 21l1.5-4.2C3.6 15.4 3 13.8 3 12c0-4.4 4-8 9-8s9 3.6 9 8z"/><path d="M8 11h8M8 14h5"/>',
-  radar: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12l6.5-6.5"/>',
-  key: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
-  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
-};
-const FEAT = [
-  ['mail', 'Moduł poczty', 'Skrzynka studia w CRM, przy klientach i wizytach.'],
-  ['foot', 'Graficzna stopka w mailu', 'Logo i dane studia pod każdą wiadomością.'],
-  ['chart', 'Analityka leadów', 'Skąd przychodzą zapytania i ile z nich to wizyty.', 'a/leads_an.jpg'],
-  ['team', 'Moduł pracowników', 'Zespół, role i przypisania do wizyt.'],
-  ['pie', 'Kategoryzacja przychodów i kosztów', 'Faktury z KSeF od razu w swoich kategoriach.'],
-  ['sms', 'Kampanie SMS', 'Promocje i przypomnienia do wybranych klientów.'],
-  ['radar', 'Automatyczne śledzenie konkurencji', 'Alert, gdy konkurencja rusza z nową kampanią.'],
-  ['key', 'Dostępy dla pracowników', 'Każdy widzi tylko to, czego potrzebuje.'],
-  ['clock', 'Rozliczanie czasu pracy', 'Godziny zespołu policzone bez arkuszy.'],
-];
-const STEP = 150, CARD_H = 128;
-const flist = $('#flist');
-FEAT.forEach(([ic, tt, ds, th], k) => {
-  flist.insertAdjacentHTML('beforeend', `<div class="fc" style="top:${k * STEP}px"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${IC[ic]}</svg></div><div><div class="tt">${tt}</div><div class="ds">${ds}</div></div>${th ? `<div class="th"><img src="${th}"></div>` : ''}</div>`);
-});
-flist.insertAdjacentHTML('beforeend', `<div class="fc more" style="top:${FEAT.length * STEP}px"><div class="tt gold">i więcej!</div></div>`);
-const cards = [...flist.children];
-on('#LE', 48, 60.1);
-bigWord('A to nie wszystko.', 48.0, 49.5, { size: 150, cls: 'gold' });
-const fs = { pos: 0, vis: 0 };
-T.set(fs, { pos: 0, vis: 0 }, 48.0);
-T.set(['#bLogo', '#bWord', '#bTag', '#bUrl'], { opacity: 0, y: 30 }, 48.0);
-T.set('#fwrap', { opacity: 0 }, 48.0);
-T.to('#bLogo', { opacity: 1, y: 0, duration: .8, ease: 'expo.out' }, 49.35);
-T.to('#bWord', { opacity: 1, y: 0, duration: .7, ease: 'expo.out' }, 49.5);
-T.to('#bTag', { opacity: 1, y: 0, duration: .7, ease: 'expo.out' }, 49.65);
-T.to('#bUrl', { opacity: 1, y: 0, duration: .7, ease: 'expo.out' }, 49.8);
-T.to('#fwrap', { opacity: 1, duration: .4 }, 49.35);
-T.fromTo(fs, { vis: 0 }, { vis: 1, duration: .6, ease: 'expo.out', immediateRender: false }, 49.35);
-const stepAt = k => 49.6 + (k - 1) * .95;       // k = 1..9, ostatni skok na „i więcej!”
-for (let k = 1; k <= FEAT.length; k++) T.to(fs, { pos: k, duration: .5, ease: 'power3.inOut' }, stepAt(k));
-T.to('#bLogo', { scale: 1.04, duration: 10, ease: 'none' }, 50.0);
-T.to('#black', { opacity: 1, duration: .8, ease: 'none' }, 59.2);
-T.set({}, {}, 60);
+on('#LE', 56, 67.1);
+flash(56.0, .5, .4);
+bigWord('A to nie wszystko.', 56.0, 57.5, { size: 150, cls: 'gold' });
+const FEAT = ['Moduł poczty', 'Graficzna stopka w mailu', 'Analityka leadów', 'Moduł pracowników', 'Kategoryzacja przychodów i kosztów',
+  'Kampanie SMS', 'Automatyczne śledzenie konkurencji', 'Dostępy dla pracowników', 'Rozliczanie czasu pracy'];
+const wheel = $('#wheel');
+FEAT.forEach(f => wheel.insertAdjacentHTML('beforeend', `<div class="wi">${f}</div>`));
+const wis = [...wheel.children];
+const wh = { pos: -1.2, vis: 0 };
+T.set(wh, { pos: -1.2, vis: 0 }, 56.0);
+T.set(['#more', '#lens'], { visibility: 'hidden', opacity: 0 }, 56.0);
+T.set('#lock', { opacity: 0, visibility: 'hidden' }, 56.0);
+T.set(['#endWord', '#endTag', '#endUrl'], { y: 30, opacity: 0 }, 56.0);
+T.set('#endLogo', { opacity: 0 }, 56.0);
+T.set('#endSweep', { xPercent: -100 }, 56.0);
+T.to(wh, { vis: 1, pos: 0, duration: .7, ease: 'expo.out' }, 57.45);
+T.set('#lens', { visibility: 'visible' }, 57.45);
+T.to('#lens', { opacity: 1, duration: .5 }, 57.45);
+const wStep = k => 58.0 + (k - 1) * .62;            // k = 1..8, skok na ćwierćnutach
+for (let k = 1; k < FEAT.length; k++) T.to(wh, { pos: k, duration: .42, ease: 'power3.inOut' }, wStep(k));
+// bęben odjeżdża w górę, zostaje „i więcej!”
+T.to(wh, { pos: FEAT.length + 1.5, vis: 0, duration: .55, ease: 'power3.in' }, 62.9);
+T.to('#lens', { opacity: 0, duration: .3 }, 62.95);
+T.set('#more', { visibility: 'visible' }, 63.3);
+T.fromTo('#more', { opacity: 0, scale: 1.3, filter: 'blur(16px)' }, { opacity: 1, scale: 1, filter: 'blur(0px)', duration: .45, ease: 'expo.out', immediateRender: false }, 63.3);
+T.to('#more', { opacity: 0, scale: .92, filter: 'blur(10px)', duration: .35, ease: 'power2.in' }, 64.25);
+T.set('#more', { visibility: 'hidden' }, 64.6);
+// znak marki
+T.set('#lock', { visibility: 'visible', opacity: 1 }, 64.55);
+T.fromTo('#endLogo', { scale: 1.2, opacity: 0, filter: 'blur(18px)' }, { scale: 1, opacity: 1, filter: 'blur(0px)', duration: .9, ease: 'expo.out', immediateRender: false }, 64.55);
+T.to('#endSweep', { xPercent: 100, duration: 1.3, ease: 'power2.inOut' }, 64.8);
+T.to('#endWord', { y: 0, opacity: 1, duration: .7, ease: 'expo.out' }, 64.9);
+T.to('#endTag', { y: 0, opacity: 1, duration: .7, ease: 'expo.out' }, 65.15);
+T.to('#endUrl', { y: 0, opacity: 1, duration: .7, ease: 'expo.out' }, 65.35);
+T.to('#black', { opacity: 1, duration: .7, ease: 'none' }, 66.3);
+T.set({}, {}, 67);
 appliers.push(() => {
   if ($('#LE').style.visibility !== 'visible') return;
-  flist.style.transform = `translateY(${540 - CARD_H / 2 - fs.pos * STEP + (1 - fs.vis) * 120}px)`;
-  cards.forEach((c, k) => {
-    const d = Math.abs(k - fs.pos), a = Math.max(0, 1 - d);
-    c.style.opacity = (1 - Math.min(.72, d * .36)).toFixed(3);
-    c.style.transform = `scale(${(1 + .05 * a).toFixed(4)})`;
-    if (!c.classList.contains('more')) {
-      c.style.borderColor = `rgba(233,199,123,${(.1 + .55 * a).toFixed(3)})`;
-      c.style.boxShadow = `0 20px 60px rgba(0,0,0,${(.35 * a).toFixed(3)}), 0 0 50px rgba(233,199,123,${(.12 * a).toFixed(3)})`;
-    }
+  wis.forEach((el, k) => {
+    const d = k - wh.pos, a = Math.max(-80, Math.min(80, d * 21)) * Math.PI / 180;
+    const R = 360, w = Math.max(0, 1 - Math.abs(d));
+    const c = Math.round(92 + 163 * w);
+    el.style.transform = `translateY(${(Math.sin(a) * R).toFixed(2)}px) translateZ(${((Math.cos(a) - 1) * R).toFixed(2)}px) rotateX(${(-a * 180 / Math.PI).toFixed(2)}deg)`;
+    el.style.opacity = (Math.max(0, Math.cos(a)) ** 2.2 * wh.vis).toFixed(3);
+    el.style.color = `rgb(${c},${c},${Math.round(c + (255 - c) * .08)})`;
   });
 });
 

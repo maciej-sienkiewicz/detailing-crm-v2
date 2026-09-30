@@ -72,15 +72,26 @@ ffmpeg -f concat -safe 0 -i list.txt -i music.wav -map 0:v -map 1:a -c:v copy -c
 
 Render 60 fps trwa ok. 11 minut na 4 rdzeniach (4 odcinki równolegle).
 
-## Film 2: od rezerwacji do faktury (60 s)
+## Film 2: od rezerwacji do faktury (67 s)
 
 Pliki `index2.html`, `music2.py` i `render2.mjs` (klatki do `stills2/`). Render i montaż
-jak wyżej, z `render2.mjs` i `music2.wav`.
+jak wyżej, z `render2.mjs` i `music2.wav`. Odcinki równoległe: 0–16,75, 16,75–33,5,
+33,5–50,25 i 50,25–67 s.
 
 Sceny (s): intro 0–4, rezerwacja 4–12, gotowe szablony dokumentów 12–16, przyjęcie
-pojazdu 16–20, e-mail i SMS u klienta 20–26, podpis na tablecie 26–32, odhaczanie usług
-32–36, wydanie pojazdu z fakturą w KSeF 36–48 (kliknięcie „Wydaj pojazd” na 40,0 s),
-plansza z przewijaną listą pozostałych możliwości 48–60.
+pojazdu w trzech krokach (zdjęcia, uszkodzenia, wysyłka do klienta) 16–24, e-mail i SMS
+u klienta 24–34, podpis na tablecie 34–40, odhaczanie usług 40–44, wydanie pojazdu
+z fakturą w KSeF 44–56 (kliknięcie „Wydaj pojazd” na 48,0 s), plansza 56–67: bęben
+z nazwami pozostałych możliwości, „i więcej!” i znak marki.
+
+Zasady montażu tego filmu:
+
+- okno rezerwacji jest w kadrze w całości przez cały czas wypełniania,
+- po zapisie okno znika nad kalendarzem, a kamera płynnie dojeżdża do rezerwacji,
+- zmiana zrzutu to przenikanie przy nieruchomej kamerze, potem ruch kamery, nigdy oba
+  naraz,
+- każda wiadomość na telefonie ma pauzę na przeczytanie,
+- na planszy wszystkie możliwości mają tę samą formę: sama nazwa, bez ikon i zrzutów.
 
 Scenariusz przeszedł w aplikacji naprawdę:
 
@@ -99,9 +110,6 @@ Co zbudowano w HTML i dlaczego:
   backend tylko je zalogował). Temat, treść i liczba załączników pochodzą z domyślnego
   szablonu i z logu wysyłki. Karta Wizyty to zrzut prawdziwej strony `/vc/:token`.
 - **sukces KSeF**: jak w filmie 1, status „przyjęta” i numer KSeF ustawiono w bazie.
-- **plansza końcowa** to lista w HTML. W koncie demo moduły poczty, pracowników czy
-  kampanii są puste, więc zrzuty nic by nie pokazały. Wyjątkiem jest miniatura analityki
-  leadów (`a/leads_an.jpg`).
 
 Okno wydania pojazdu po stubie KSeF pokazuje komunikat o trybie offline24, więc film go
 pomija i przenika od razu do strony zakończonej wizyty.

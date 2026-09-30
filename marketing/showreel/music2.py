@@ -1,9 +1,9 @@
 """Podkład filmu 2 (60 s, 120 BPM, takt = 2 s). Cięcia na granicach taktów, akcenty
-na ćwierćnutach; timeline w index2.html używa tych samych liczb."""
+na ćwierćnutach, 67 s; timeline w index2.html używa tych samych liczb."""
 import numpy as np, wave, json, sys
 
 SR = 48000
-DUR = 60.0
+DUR = 67.0
 BPM = 120
 BEAT = 60 / BPM
 N = int(SR * DUR)
@@ -172,14 +172,14 @@ def scribble(dur):
 prog = [(50, [62, 65, 69]), (46, [62, 65, 70]), (53, [60, 65, 69]), (48, [60, 64, 67])]
 arp_pat = [0, 12, 7, 12, 3, 12, 7, 19]
 
-bars = int(DUR / (4 * BEAT))
+bars = int(np.ceil(DUR / (4 * BEAT)))
 for b in range(bars):
     t0 = b * 4 * BEAT
     root, chord = prog[b % 4]
     intro = t0 < 4
-    brk = 38 <= t0 < 40            # przed „Wydaj pojazd”: napięcie
-    finale = t0 >= 48              # plansza z możliwościami: bez klaśnięć, lżej
-    outro = t0 >= 58
+    brk = 46 <= t0 < 48            # przed „Wydaj pojazd”: napięcie
+    finale = t0 >= 56              # plansza z możliwościami: bez klaśnięć, lżej
+    outro = t0 >= 64
     add(pad(tuple(chord), 4 * BEAT + 0.3), t0, 0.55 if not intro else 0.35)
     if outro:
         continue
@@ -211,13 +211,14 @@ for b in range(bars):
 
 # ---------- przejścia i akcenty (sekundy) ----------
 add(riser(3.8), 0.2, 0.55)
-for t in (4.0, 40.0, 48.0):
+for t in (4.0, 48.0, 56.0):
     add(impact(), t, 0.9)
-for t in (12, 16, 20, 26, 32, 36, 46.8):
+for t in (12, 16, 34, 40, 44, 56):
     add(whoosh(0.8), t - 0.45, 0.9)
-add(whoosh(0.6), 42.9 - 0.3, 0.45)
-add(riser(1.9), 38.1, 0.6)
-add(riser(1.4), 46.6, 0.35)
+add(whoosh(0.6), 24.0 - 0.35, 0.6)
+add(whoosh(0.6), 50.9 - 0.3, 0.45)
+add(riser(1.9), 46.1, 0.6)
+add(riser(1.4), 54.6, 0.35)
 def buzz(dur=0.35):
     n = int(SR * dur); t = np.arange(n) / SR
     return np.sin(2 * np.pi * 150 * t) * (0.5 + 0.5 * np.sign(np.sin(2 * np.pi * 22 * t))) * np.minimum(1, (dur - t) / 0.05) * 0.35
@@ -229,54 +230,58 @@ add(ding(81, 0.9), 3.0, 0.35)
 add(pop(), 5.5, 0.55)
 for i in range(27):
     add(tick(), 6.1 + i * 0.048, 0.55, pan=0.2)
-for t in (7.68, 7.86, 8.02, 8.44, 8.94, 9.04, 9.26, 9.42, 9.62, 9.74, 9.86):
+for t in (7.68, 7.86, 8.02, 8.44, 8.94, 9.04, 9.26, 9.42, 9.62, 9.7, 9.8):
     add(tick(), t, 0.7)
-add(pop(), 10.4, 0.6)
-add(ding(84, 0.8), 10.45, 0.5)
+add(pop(), 10.15, 0.6)
+add(ding(84, 0.8), 10.2, 0.5)
 # 02 szablony: strony wlatują, skan wypełnia protokół
 for i in range(4):
     add(whoosh(0.35), 12.25 + i * 0.12, 0.3, pan=-0.4 + i * 0.27)
 add(riser(0.9), 14.3, 0.35)
 for i in range(4):
     add(pluck(74 + [0, 3, 7, 10][i], 0.2), 14.4 + i * 0.18, 0.3)
-# 03 przyjęcie: punkt uszkodzenia, zaznaczenia, przełącznik
-add(pop(), 17.9, 0.55)
-for t in (18.3, 18.45, 18.6):
-    add(pop(), t, 0.35)
-add(tick(), 19.1, 0.8); add(tick(), 19.42, 0.8)
+# 03 przyjęcie: kroki, punkty uszkodzeń, zaznaczenia
+for t in (16.9, 18.6, 21.3):
+    add(ding(86, 0.6), t, 0.3)
+for t in (19.6, 20.1, 20.55):
+    add(pop(), t, 0.45)
+add(tick(), 22.15, 0.8); add(tick(), 22.85, 0.8)
 # 04 telefon: e-mail, stuknięcie, SMS, stuknięcie
-add(ding(88), 20.25, 0.7); add(buzz(), 20.25, 0.55)
-add(pop(), 20.95, 0.45)
-add(ding(93), 23.05, 0.8); add(ding(88), 23.17, 0.5); add(buzz(), 23.05, 0.6)
-add(pop(), 23.8, 0.45)
+add(ding(88), 24.45, 0.7); add(buzz(), 24.45, 0.55)
+add(pop(), 25.65, 0.45)
+add(ding(93), 30.05, 0.8); add(ding(88), 30.17, 0.5); add(buzz(), 30.05, 0.6)
+add(pop(), 31.3, 0.45)
 # 05 podpis
-add(pop(), 27.95, 0.45)
-add(scribble(1.5), 28.38, 0.7)
-add(pop(), 30.35, 0.5)
-add(ding(86, 0.9), 30.4, 0.5)
+add(pop(), 35.95, 0.45)
+add(scribble(1.5), 36.38, 0.7)
+add(pop(), 38.35, 0.5)
+add(ding(86, 0.9), 38.4, 0.5)
 # 06 odhaczanie: rosnące „pip” przy każdym ptaszku
-for i, t in enumerate((33.25, 33.72, 34.17)):
+for i, t in enumerate((41.25, 41.72, 42.17)):
     add(pop(), t, 0.4); add(pluck(81 + 4 * i, 0.25), t, 0.35)
-add(ding(93, 0.9), 34.5, 0.45)
+add(ding(93, 0.9), 42.5, 0.45)
 # 07 wydanie i KSeF
-add(pop(), 37.2, 0.5)
-add(ding(88, 0.6), 38.4, 0.35)
-add(pop(), 39.95, 0.9)
+add(pop(), 45.2, 0.5)
+add(ding(88, 0.6), 46.4, 0.35)
+add(pop(), 47.95, 0.9)
 for i in range(5):
-    add(pluck(76 + 2 * i, 0.15), 43.95 + i * 0.2 + 0.6, 0.18)
-add(ding(91), 45.0, 0.7); add(ding(95), 45.12, 0.5); add(ding(98), 45.24, 0.4)
-# plansza: każdy skok listy na ćwierćnucie
-for k in range(1, 10):
-    t = 49.6 + (k - 1) * 0.95
-    add(tick(), t, 0.5); add(pluck(69 + [0, 2, 3, 5, 7, 8, 10, 12, 15][k - 1], 0.3), t + 0.2, 0.22)
-add(ding(93, 1.4), 57.7, 0.6); add(ding(98, 1.4), 57.82, 0.4)
+    add(pluck(76 + 2 * i, 0.15), 51.95 + i * 0.2 + 0.6, 0.18)
+add(ding(91), 53.0, 0.7); add(ding(95), 53.12, 0.5); add(ding(98), 53.24, 0.4)
+# plansza: każdy obrót bębna na ćwierćnucie, „i więcej!”, znak marki
+add(whoosh(0.5), 57.2, 0.4)
+for k in range(1, 9):
+    t = 58.0 + (k - 1) * 0.62
+    add(tick(), t, 0.45); add(pluck(69 + [0, 2, 3, 5, 7, 8, 10, 12][k - 1], 0.3), t + 0.15, 0.2)
+add(whoosh(0.6), 62.7, 0.45)
+add(ding(93, 1.4), 63.3, 0.6); add(ding(98, 1.4), 63.42, 0.4)
+add(impact(), 64.55, 0.45)
 
 # ---------- master ----------
 # prosta pompa sidechain od stopy
 pump = np.ones(N)
 for b in range(int(DUR / BEAT)):
     tb = b * BEAT
-    if tb < 4 or 38 <= tb < 40 or tb >= 58: continue
+    if tb < 4 or 46 <= tb < 48 or tb >= 64: continue
     i = int(tb * SR); n = int(0.3 * SR)
     tt = np.arange(n) / SR
     pump[i:i + n] = np.minimum(pump[i:i + n], 0.55 + 0.45 * np.minimum(1, tt / 0.3) ** 0.6)
