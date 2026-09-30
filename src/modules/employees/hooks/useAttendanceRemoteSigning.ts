@@ -15,7 +15,7 @@ export const isAwaitingSignature = (request: AttendanceSignatureRequest | null |
 const FALLBACK_POLL_MS = 5_000;
 
 export const attendanceSignatureKey = (sheetId: string) =>
-    ['settings', 'attendance-sheets', sheetId, 'remote-signature'] as const;
+    ['employees', 'attendance-sheets', sheetId, 'remote-signature'] as const;
 
 /** Dlaczego podpisu na tablecie / telefonie nie da się teraz zlecić; null - da się. */
 export interface RemoteSigningBlockers {
@@ -37,7 +37,7 @@ export function useAttendanceRemoteSigning(sheetId: string) {
     const key = attendanceSignatureKey(sheetId);
 
     const options = useQuery({
-        queryKey: ['settings', 'attendance-signing-options'],
+        queryKey: ['employees', 'attendance-signing-options'],
         queryFn: attendanceApi.getSigningOptions,
         staleTime: 30_000,
     });

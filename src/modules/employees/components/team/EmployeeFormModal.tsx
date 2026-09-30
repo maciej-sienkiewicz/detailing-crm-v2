@@ -10,14 +10,14 @@ import { useToast } from '@/common/components/Toast';
 import { Button } from '@/common/components/ui';
 import {
     FormGrid, FormField, FieldLabel, FieldInput, ErrorMsg, HintText, CheckRow, CheckBox,
-} from '../rbacShared.styles';
-import { useSettingsDirty } from '../shared/settingsChrome';
-import { RolePicker } from './RolePicker';
-import { RoleEditorModal } from '../roles/RoleEditorModal';
-import { usePermissionCatalog, useCreateRole } from '../../hooks/useRoles';
-import { reportMutationError } from './mutationError';
-import type { UpdateEmployeeRequest, CreateEmployeeFormOutput } from '../../teamTypes';
-import type { Role, CreateRoleRequest } from '../../rbacTypes';
+} from '@/modules/settings/components/rbacShared.styles';
+import { usePageDirty } from '@/common/components/PageChrome';
+import { RolePicker } from '@/modules/settings/components/team/RolePicker';
+import { RoleEditorModal } from '@/modules/settings/components/roles/RoleEditorModal';
+import { usePermissionCatalog, useCreateRole } from '@/modules/settings/hooks/useRoles';
+import { reportMutationError } from '@/modules/settings/components/team/mutationError';
+import type { Role, CreateRoleRequest } from '@/modules/settings/rbacTypes';
+import type { UpdateEmployeePayload, CreateEmployeeFormOutput } from '../../types';
 
 const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
@@ -72,7 +72,7 @@ export type EmployeeFormModalProps = CommonProps & (
          * `payload` jest null, gdy dane osobowe się nie zmieniły (samo zaproszenie);
          * `invite` - gdy osoba bez konta ma je dostać.
          */
-        onSubmitUpdate: (payload: UpdateEmployeeRequest | null, invite: AccountInvite | null) => void;
+        onSubmitUpdate: (payload: UpdateEmployeePayload | null, invite: AccountInvite | null) => void;
         /** Otwarte z „Zaproś do systemu": część o koncie od razu zaznaczona i na wierzchu. */
         focusAccount?: boolean;
     }
@@ -109,7 +109,7 @@ export function EmployeeFormModal(props: EmployeeFormModalProps) {
     const dirty = personalChanged || values.createAccount !== initial.createAccount || values.roleId !== '';
 
     // Przejście do innej sekcji ustawień pyta, zamiast wyrzucić wpisanego pracownika.
-    useSettingsDirty(dirty);
+    usePageDirty(dirty);
 
     useEffect(() => {
         if (!focusAccount) return;

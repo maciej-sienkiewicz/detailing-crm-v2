@@ -40,7 +40,7 @@ vi.mock('@/modules/public-signing/components/PdfPagesViewer', () => ({
     PdfPagesViewer: () => <div data-testid="pdf-viewer" />,
 }));
 
-vi.mock('../team/SignaturePad', () => ({
+vi.mock('@/common/components/SignaturePad', () => ({
     SignaturePad: forwardRef<unknown, { onInkChange?: (ink: boolean) => void }>(function FakePad({ onInkChange }, ref) {
         useImperativeHandle(ref, () => ({ clear: () => onInkChange?.(false), toDataUrl: () => 'data:image/png;base64,PODPIS' }));
         return <button type="button" onClick={() => onInkChange?.(true)}>atrapa: złóż podpis</button>;

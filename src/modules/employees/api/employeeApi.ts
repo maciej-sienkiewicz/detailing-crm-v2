@@ -6,6 +6,10 @@ import type {
     CreateEmployeePayload,
     UpdateEmployeePayload,
     TerminateEmployeePayload,
+    CreateAccountRequest,
+    CreateAccountResponse,
+    ChangePasswordRequest,
+    ResendInvitationResponse,
     EmploymentContract,
     CreateContractPayload,
     EndContractPayload,
@@ -30,6 +34,9 @@ import type {
 
 const BASE = '/v1/employees';
 
+// Jedyny klient `/v1/employees` na froncie. Był drugi (settings/api/teamApi) pod
+// innym kluczem cache, więc zapis w jednym miejscu nie odświeżał drugiego i karta
+// pracownika musiała unieważniać oba klucze naraz.
 export const employeeApi = {
     // ─── Employees ───────────────────────────────────────────────────────────
 
@@ -38,7 +45,7 @@ export const employeeApi = {
             page: filters.page.toString(),
             limit: filters.limit.toString(),
         });
-        if (filters.search) params.append('search', filters.search);
+        if (filters.search.trim()) params.append('search', filters.search.trim());
         const res = await apiClient.get<EmployeeListResponse>(`${BASE}?${params}`);
         return res.data;
     },
@@ -60,6 +67,35 @@ export const employeeApi = {
 
     terminateEmployee: async (employeeId: string, payload: TerminateEmployeePayload): Promise<void> => {
         await apiClient.post(`${BASE}/${employeeId}/terminate`, payload);
+    },
+
+    deleteEmployee: async (employeeId: string): Promise<void> => {
+        await apiClient.delete(`${BASE}/${employeeId}`);
+    },
+
+    // ─── Accounts ────────────────────────────────────────────────────────────
+
+    createAccount: async (employeeId: string, payload: CreateAccountRequest): Promise<CreateAccountResponse> => {
+        const res = await apiClient.post<CreateAccountResponse>(`${BASE}/${employeeId}/account`, payload);
+        return res.data;
+    },
+
+    setAccountBlocked: async (employeeId: string, block: boolean): Promise<void> => {
+        await apiClient.patch(`${BASE}/${employeeId}/account/block`, { block });
+    },
+
+    deleteAccount: async (employeeId: string): Promise<void> => {
+        await apiClient.delete(`${BASE}/${employeeId}/account`);
+    },
+
+    changePassword: async (employeeId: string, payload: ChangePasswordRequest): Promise<void> => {
+        await apiClient.post(`${BASE}/${employeeId}/account/change-password`, payload);
+    },
+
+    /** Only for an account the employee has not activated yet; the backend refuses the rest. */
+    resendInvitation: async (employeeId: string): Promise<ResendInvitationResponse> => {
+        const res = await apiClient.post<ResendInvitationResponse>(`${BASE}/${employeeId}/account/resend-invitation`);
+        return res.data;
     },
 
     // ─── Contracts ───────────────────────────────────────────────────────────

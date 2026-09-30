@@ -8,22 +8,23 @@ import { formatDateTime } from '@/common/utils';
 import {
     ActionMenu, Button, Card, IconButton, MenuItem, Notice, StatusPill, useActionMenu,
 } from '@/common/components/ui';
+import { PageHeaderActions } from '@/common/components/PageChrome';
 import {
     ColLabel, SkeletonBox, Pager, PagerInfo, PagerControls, PagerBtn,
-} from './rbacShared.styles';
-import { SettingsHeaderActions } from './shared/SettingsHeaderActions';
+} from '@/modules/settings/components/rbacShared.styles';
+import { useRoles } from '@/modules/settings/hooks/useRoles';
+import { rolesApi } from '@/modules/settings/api/rolesApi';
+import { reportMutationError } from '@/modules/settings/components/team/mutationError';
 import {
     useEmployees, useCreateEmployee, useUpdateEmployee, useCreateAccount, useResendInvitation,
-} from '../hooks/useTeam';
-import { useRoles } from '../hooks/useRoles';
-import { rolesApi } from '../api/rolesApi';
-import { EmployeeFormModal, type AccountInvite } from './team/EmployeeFormModal';
-import { reportMutationError } from './team/mutationError';
+    useInvalidateEmployees,
+} from '../../hooks/useEmployees';
+import { EmployeeFormModal, type AccountInvite } from './EmployeeFormModal';
 import type {
-    CreateEmployeeFormOutput, TeamEmployeeListItem, UpdateEmployeeRequest,
-} from '../teamTypes';
+    CreateEmployeeFormOutput, EmployeeListItem, UpdateEmployeePayload,
+} from '../../types';
 
-/** Also the page size the merged tab reads to label its segment. */
+/** Also the page size the module view reads to count the team on its tab. */
 export const TEAM_PAGE_SIZE = 20;
 
 const PAGE_SIZE = TEAM_PAGE_SIZE;
@@ -38,18 +39,18 @@ function buildPageNumbers(current: number, total: number): (number | '...')[] {
     return pages;
 }
 
-interface TeamSectionProps {
+interface TeamListProps {
     /** Fraza z pola „Szukaj osoby" nad listą (stoi obok przełącznika widoków). */
     search?: string;
-    /** Jumps to the roles view of the merged tab; absent when rendered standalone. */
+    /** Przejście do „Role i uprawnienia” w Ustawieniach; bez niego Notice nie ma akcji. */
     onGoToRoles?: () => void;
-    /** Otwiera okno listy obecności - to samo co w Rozliczeniach. */
+    /** Otwiera okno listy obecności - to samo co w zakładce „Czas pracy”. */
     onOpenAttendance?: () => void;
 }
 
-type Editing = { employee: TeamEmployeeListItem; focusAccount: boolean };
+type Editing = { employee: EmployeeListItem; focusAccount: boolean };
 
-export function TeamSection({ search = '', onGoToRoles, onOpenAttendance }: TeamSectionProps = {}) {
+export function TeamList({ search = '', onGoToRoles, onOpenAttendance }: TeamListProps = {}) {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { showSuccess, showError } = useToast();
@@ -60,7 +61,7 @@ export function TeamSection({ search = '', onGoToRoles, onOpenAttendance }: Team
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [editing, setEditing] = useState<Editing | null>(null);
     const [savingEdit, setSavingEdit] = useState(false);
-    const menu = useActionMenu<TeamEmployeeListItem>();
+    const menu = useActionMenu<EmployeeListItem>();
 
     useEffect(() => {
         const t = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 350);
@@ -68,7 +69,8 @@ export function TeamSection({ search = '', onGoToRoles, onOpenAttendance }: Team
     }, [search]);
 
     const filters = { search: debouncedSearch, page, limit: PAGE_SIZE };
-    const { items, pagination, isLoading, isError, refetch } = useEmployees(filters);
+    const { employees: items, pagination, isLoading, isError, refetch } = useEmployees(filters);
+    const invalidateEmployees = useInvalidateEmployees();
 
     const createEmployee = useCreateEmployee();
     const updateEmployee = useUpdateEmployee();
@@ -134,7 +136,7 @@ export function TeamSection({ search = '', onGoToRoles, onOpenAttendance }: Team
      * To trzy kroki (dane, konto, rola), bo backend zakłada konto osobnym wywołaniem;
      * każdy krok zgłasza własny błąd, żeby było wiadomo, na którym stanęło.
      */
-    const handleUpdate = async (payload: UpdateEmployeeRequest | null, invite: AccountInvite | null) => {
+    const handleUpdate = async (payload: UpdateEmployeePayload | null, invite: AccountInvite | null) => {
         if (!editing) return;
         const employeeId = editing.employee.id;
         setSavingEdit(true);
@@ -170,7 +172,7 @@ export function TeamSection({ search = '', onGoToRoles, onOpenAttendance }: Team
                 }
             }
             // Przypisanie roli zmienia i listę, i licznik „używa N pracowników" przy roli.
-            void queryClient.invalidateQueries({ queryKey: ['settings', 'team'] });
+            invalidateEmployees(employeeId);
             void queryClient.invalidateQueries({ queryKey: ['settings', 'roles'] });
             showSuccess('Zaproszenie wysłane', `Link do ustawienia hasła trafił na ${invite.email}.`);
             setEditing(null);
@@ -179,7 +181,7 @@ export function TeamSection({ search = '', onGoToRoles, onOpenAttendance }: Team
         }
     };
 
-    const handleResend = (employee: TeamEmployeeListItem) => {
+    const handleResend = (employee: EmployeeListItem) => {
         resendInvitation.mutate(employee.id, {
             onSuccess: ({ expiresAt }) => showSuccess(
                 'Zaproszenie wysłane ponownie',
@@ -189,7 +191,7 @@ export function TeamSection({ search = '', onGoToRoles, onOpenAttendance }: Team
         });
     };
 
-    const openEdit = (employee: TeamEmployeeListItem, focusAccount = false) =>
+    const openEdit = (employee: EmployeeListItem, focusAccount = false) =>
         setEditing({ employee, focusAccount });
 
     const pageNumbers = buildPageNumbers(page, totalPages);
@@ -197,7 +199,7 @@ export function TeamSection({ search = '', onGoToRoles, onOpenAttendance }: Team
 
     return (
         <>
-            <SettingsHeaderActions>
+            <PageHeaderActions>
                 {onOpenAttendance && (
                     <Button variant="outline" size="lg" onClick={onOpenAttendance}>Lista obecności</Button>
                 )}
@@ -205,7 +207,7 @@ export function TeamSection({ search = '', onGoToRoles, onOpenAttendance }: Team
                     <Plus aria-hidden="true" />
                     Dodaj pracownika
                 </Button>
-            </SettingsHeaderActions>
+            </PageHeaderActions>
 
             {lockedOut.length > 0 && (
                 <Notice
@@ -303,7 +305,7 @@ export function TeamSection({ search = '', onGoToRoles, onOpenAttendance }: Team
                 {menuEmployee && (
                     <>
                         <MenuItem icon={<Pencil />} onClick={() => openEdit(menuEmployee)}>Edytuj dane</MenuItem>
-                        <MenuItem icon={<ExternalLink />} onClick={() => navigate(`/team/${menuEmployee.id}`)}>
+                        <MenuItem icon={<ExternalLink />} onClick={() => navigate(`/employees/${menuEmployee.id}`)}>
                             Karta pracownika
                         </MenuItem>
                         {menuEmployee.accountPending && (
@@ -354,7 +356,7 @@ export function TeamSection({ search = '', onGoToRoles, onOpenAttendance }: Team
 // ─── Wiersz ─────────────────────────────────────────────────────────────────────
 
 interface EmployeeRowProps {
-    employee: TeamEmployeeListItem;
+    employee: EmployeeListItem;
     tracksWorkTime: boolean;
     menuOpen: boolean;
     onEdit: () => void;

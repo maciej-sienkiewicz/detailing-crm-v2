@@ -18,7 +18,7 @@
 import { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { Check, PenLine, Smartphone, Trash2, X } from 'lucide-react';
-import { SignaturePad, type SignaturePadHandle } from '@/modules/public-signing/components/SignaturePad';
+import { SignaturePad, type SignaturePadHandle } from '@/common/components/SignaturePad';
 import { useToast } from '@/common/components/Toast';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import {
@@ -275,7 +275,7 @@ export function SignatureConfigCard({
                 {mode === 'draw' && (
                     <PadSection>
                         <PadLabel>Narysuj podpis</PadLabel>
-                        <SignaturePad ref={padRef} onStrokeChange={setHasStrokes} />
+                        <SignaturePad ref={padRef} onInkChange={setHasStrokes} height={200} clearable placeholder="Podpisz się palcem lub rysikiem" />
                         <ButtonRow>
                             <Button variant="primary" size="sm" onClick={handleSave} disabled={isSaving || !hasStrokes}>
                                 <Check aria-hidden="true" />

@@ -9,22 +9,28 @@
 //
 // Teraz:
 //   - tytuł strony i wyszukiwarka stoją nad menu, grupy zwykłym pismem, a liczniki
-//     mówią, gdzie coś czeka (listy obecności do zatwierdzenia, saldo kredytów);
+//     mówią, gdzie coś czeka (saldo kredytów);
 //   - każda sekcja ma nagłówek z tytułem, jednym zdaniem „do czego to służy",
 //     „Jak to działa" i swoją akcją główną (SettingsHeaderActions);
 //   - niezapisane zmiany sekcji (useSettingsDirty) blokują wyjście z sekcji
-//     i z ustawień oknem potwierdzenia, a zamknięcie karty - pytaniem przeglądarki;
+//     i z ustawień oknem potwierdzenia, a zamknięcie karty - pytaniem przeglądarki
+//     (wspólny PageChromeProvider, ten sam co w module Pracownicy);
 //   - telefon otwiera spis sekcji, a sekcja ma „‹ Ustawienia" do powrotu.
+//
+// Lista zespołu, karta pracownika i rozliczenia (listy obecności) wyszły stąd do
+// modułu „Pracownicy" (/employees). Zostały „Role i uprawnienia" - to konfiguracja
+// systemu, a nie praca dzienna. Stare adresy (`?tab=team`, `&view=settlements`)
+// przekierowują, bo krążą w mailach, powiadomieniach i zakładkach przeglądarki.
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { useBlocker, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, type Location } from 'react-router-dom';
 import styled from 'styled-components';
 import {
     Building2, ChevronLeft, ChevronRight, Crown, FileSignature, Filter, HelpCircle, IdCard, Keyboard,
-    ListChecks, MessageSquare, Receipt, Search, ShieldCheck, TabletSmartphone, Tag, Users, Wallet,
+    ListChecks, MessageSquare, Receipt, Search, ShieldCheck, TabletSmartphone, Tag, UserCog, Wallet,
 } from 'lucide-react';
 import { PageContainer } from '@/common/components/PageContainer';
-import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { PageChromeProvider } from '@/common/components/PageChrome';
 import { Button, ui } from '@/common/components/ui';
 import { useMediaQuery } from '@/common/hooks';
 import { usePermissions } from '@/core/permissions';
@@ -33,8 +39,8 @@ import { CompanySection } from '../components/CompanySection';
 import { LabelsSection, type LabelsSubView } from '../components/LabelsSection';
 import { ServicesAndCareSection, type ServicesSubView } from '../components/ServicesAndCareSection';
 import { DocumentsSection } from '../components/DocumentsSection';
-import { TeamAndRolesSection } from '../components/TeamAndRolesSection';
-import type { TeamSubView } from '../components/TeamAndRolesSection';
+import { RolesSection } from '../components/RolesSection';
+import { legacyTeamRedirect } from './legacyTeamRedirect';
 import { SubscriptionSettingsPage } from '@/modules/subscription';
 import { MessageTemplatesSection } from '@/modules/message-templates';
 import { SmsCreditSection } from '../components/SmsCreditSection';
@@ -46,9 +52,6 @@ import { ShortcutsSection } from '../components/ShortcutsSection';
 import { SecuritySection } from '../components/SecuritySection';
 import { HelpModal } from '../components/shared/SettingsLayout';
 import type { HelpContent } from '../components/shared/SettingsLayout';
-import { SettingsChromeContext, type SettingsChromeValue } from '../components/shared/settingsChrome';
-import { pendingCount } from '../components/settlements/settlementFormat';
-import { useAttendanceSheets } from '../hooks/useAttendanceSheets';
 import { useSmsCreditBalance } from '../hooks/useSmsCredits';
 import {
     COMPANY_HELP,
@@ -62,7 +65,7 @@ import {
 // ─── Sekcje ──────────────────────────────────────────────────────────────────
 
 type SectionId =
-    | 'company' | 'labels' | 'services' | 'team'
+    | 'company' | 'labels' | 'services' | 'roles'
     | 'templates' | 'documents'
     | 'mobile-devices' | 'visit-card' | 'leads'
     | 'shortcuts'
@@ -113,14 +116,14 @@ const GROUPS: SectionGroup[] = [
         ],
     },
     {
-        // Pracownicy i role były osobnymi zakładkami; każda sprawa dotykająca jednych
-        // wymagała drugich, więc to jedna sekcja z trzema widokami.
+        // Sami pracownicy (lista, karta, listy obecności) są modułem /employees. Tu
+        // zostaje definicja ról: co kto może w systemie i czy liczymy mu czas pracy.
         group: 'Zespół',
         items: [
             {
-                id: 'team', label: 'Pracownicy i role', summary: 'Dostęp, role i czas pracy', icon: <Users />,
-                description: 'Kto ma dostęp do systemu, co może w nim robić i czy liczymy mu czas pracy.',
-                keywords: 'pracownik rola uprawnienia konto lista obecności rozliczenia czas pracy',
+                id: 'roles', label: 'Role i uprawnienia', summary: 'Co kto może w systemie', icon: <UserCog />,
+                description: 'Role, ich uprawnienia i to, czy osobom z daną rolą liczymy czas pracy.',
+                keywords: 'rola uprawnienia dostęp szablon kierownik czas pracy pracownik',
             },
         ],
     },
@@ -198,7 +201,6 @@ const VALID_SECTIONS = new Set<SectionId>(ALL_SECTIONS.map(s => s.id));
  */
 const SECTION_ALIASES: Record<string, { section: SectionId; view?: SubView }> = {
     'email-templates': { section: 'templates' },
-    'roles': { section: 'team', view: 'roles' },
     'sms-credits': { section: 'credits' },
     // Numeracja wizyt przestała być osobną sekcją i jest widokiem „Oznaczeń".
     'visit-numbering': { section: 'labels', view: 'numbering' },
@@ -206,10 +208,18 @@ const SECTION_ALIASES: Record<string, { section: SectionId; view?: SubView }> = 
 };
 
 /** Sekcje z widokami wewnętrznymi trzymają je w tym samym parametrze URL. */
-type SubView = TeamSubView | LabelsSubView | MobileDevicesSubView | ServicesSubView;
+type SubView = LabelsSubView | MobileDevicesSubView | ServicesSubView;
 
 const VIEW_PARAM = 'view';
-const SECTIONS_WITH_SUBVIEWS = new Set<SectionId>(['team', 'labels', 'mobile-devices', 'services']);
+const SECTIONS_WITH_SUBVIEWS = new Set<SectionId>(['labels', 'mobile-devices', 'services']);
+
+/** Wyjście z sekcji to w ustawieniach także zmiana `?tab=` albo `?view=` na tej samej ścieżce. */
+const leavesSettingsSection = (current: Location, next: Location): boolean => {
+    if (current.pathname !== next.pathname) return true;
+    const cur = new URLSearchParams(current.search);
+    const nxt = new URLSearchParams(next.search);
+    return cur.get('tab') !== nxt.get('tab') || cur.get(VIEW_PARAM) !== nxt.get(VIEW_PARAM);
+};
 
 // Wymagania dostępu per sekcja. Sekcje bez wpisu widzi każdy. Ukryte znikają z menu
 // i nie da się do nich wejść przez ?tab= - widok spada na pierwszą widoczną.
@@ -220,7 +230,9 @@ const SECTION_REQUIREMENTS: Partial<Record<SectionId, AccessRequirement>> = {
     // numeracja zostaje decyzją właściciela i chowa się w środku sekcji.
     labels: 'VISITS_CREATE',
     services: 'VISITS_CREATE',
-    team: 'EMPLOYEES_MANAGE',
+    // Tak jak dotąd: rolami zarządza, kto zarządza zespołem. Zaostrzenie do OWNER_ONLY
+    // zmieniłoby działające role u klientów - to decyzja biznesu, nie tej zmiany.
+    roles: 'EMPLOYEES_MANAGE',
     templates: 'COMMUNICATION_SEND',
     documents: 'VISITS_CREATE',
     'mobile-devices': 'VISITS_CREATE',
@@ -472,18 +484,17 @@ const Empty = styled.p`
 
 const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l');
 
-function sheetsWord(n: number): string {
-    if (n === 1) return '1 lista obecności do zatwierdzenia';
-    const u = n % 10;
-    const t = n % 100;
-    return `${n} ${u >= 2 && u <= 4 && (t < 12 || t > 14) ? 'listy obecności' : 'list obecności'} do zatwierdzenia`;
-}
-
 // ─── Widok ───────────────────────────────────────────────────────────────────
 
 export function SettingsView() {
     const [searchParams, setSearchParams] = useSearchParams();
+    const navigate = useNavigate();
     const { can, isOwner } = usePermissions();
+
+    const legacyTarget = legacyTeamRedirect(searchParams);
+    useEffect(() => {
+        if (legacyTarget) navigate(legacyTarget, { replace: true });
+    }, [legacyTarget, navigate]);
     const isPhone = useMediaQuery(PHONE_QUERY);
 
     const canSee = useCallback((id: SectionId) => {
@@ -515,19 +526,15 @@ export function SettingsView() {
     const showIndex = isPhone && !hasSection;
 
     const viewParam = alias?.view ?? searchParams.get(VIEW_PARAM);
-    const teamSubView: TeamSubView = viewParam === 'roles' || viewParam === 'settlements' ? viewParam : 'employees';
     const labelsSubView: LabelsSubView = viewParam === 'colors' ? 'colors' : 'numbering';
     const servicesSubView: ServicesSubView = viewParam === 'care' ? 'care' : 'pricing';
     const mobileDevicesSubView: MobileDevicesSubView =
         viewParam === 'notifications' || viewParam === 'contacts' ? viewParam : 'tablets';
 
     // ── Liczniki w menu: tylko dla tych, którzy widzą daną sekcję ──
-    const { sheets } = useAttendanceSheets({ enabled: canSee('team') });
-    const toApprove = pendingCount(sheets);
     const { data: balance } = useSmsCreditBalance({ enabled: canSee('credits') });
 
     const counterFor = (id: SectionId): { text: string; warn?: boolean; long?: string } | null => {
-        if (id === 'team' && toApprove > 0) return { text: String(toApprove), warn: true, long: sheetsWord(toApprove) };
         if (id === 'credits' && typeof balance?.availableCredits === 'number') {
             const n = balance.availableCredits.toLocaleString('pl-PL');
             return { text: n, long: `${n} na koncie` };
@@ -535,38 +542,10 @@ export function SettingsView() {
         return null;
     };
 
-    // ── Niezapisane zmiany ──
-    const [dirtyIds, setDirtyIds] = useState<ReadonlySet<string>>(() => new Set());
-    const setDirty = useCallback((id: string, dirty: boolean) => {
-        setDirtyIds(prev => {
-            if (prev.has(id) === dirty) return prev;
-            const next = new Set(prev);
-            if (dirty) next.add(id); else next.delete(id);
-            return next;
-        });
-    }, [setDirtyIds]);
-    const isDirty = dirtyIds.size > 0;
-
-    // Wyjście z sekcji (inna sekcja, inny widok, inna strona aplikacji) przy niezapisanych
-    // zmianach czeka na decyzję. Zmiana samego `?view=` w tej samej sekcji też, bo
-    // odmontowuje widok z edycją.
-    const blocker = useBlocker(({ currentLocation, nextLocation }) => {
-        if (!isDirty) return false;
-        if (currentLocation.pathname !== nextLocation.pathname) return true;
-        const cur = new URLSearchParams(currentLocation.search);
-        const next = new URLSearchParams(nextLocation.search);
-        return cur.get('tab') !== next.get('tab') || cur.get(VIEW_PARAM) !== next.get(VIEW_PARAM);
-    });
-
-    useEffect(() => {
-        if (!isDirty) return;
-        const onBeforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); };
-        window.addEventListener('beforeunload', onBeforeUnload);
-        return () => window.removeEventListener('beforeunload', onBeforeUnload);
-    }, [isDirty]);
-
+    // Niezapisane zmiany: wyjście z sekcji (inna sekcja, inny widok, inna strona
+    // aplikacji) czeka na decyzję - pilnuje tego PageChromeProvider niżej. Zmiana samego
+    // `?view=` w tej samej sekcji też, bo odmontowuje widok z edycją.
     const [headerActions, setHeaderActions] = useState<HTMLElement | null>(null);
-    const chrome = useMemo<SettingsChromeValue>(() => ({ setDirty, headerActions }), [setDirty, headerActions]);
 
     const [helpOpen, setHelpOpen] = useState(false);
     const [query, setQuery] = useState('');
@@ -619,13 +598,8 @@ export function SettingsView() {
                 onSubViewChange={view => goToSection('services', view)}
             />
         );
-    } else if (section === 'team') {
-        content = (
-            <TeamAndRolesSection
-                subView={teamSubView}
-                onSubViewChange={view => goToSection('team', view)}
-            />
-        );
+    } else if (section === 'roles') {
+        content = <RolesSection onGoToEmployees={() => navigate('/employees')} />;
     } else if (section === 'plan') {
         content = <SubscriptionSettingsPage />;
     } else if (section === 'credits') {
@@ -664,6 +638,9 @@ export function SettingsView() {
         </SearchBox>
     );
 
+    // Dawny adres zespołu: efekt wyżej właśnie przenosi dalej, nie ma czego rysować.
+    if (legacyTarget) return null;
+
     // ── Telefon: spis sekcji ──
     if (showIndex) {
         return (
@@ -700,7 +677,7 @@ export function SettingsView() {
     }
 
     return (
-        <SettingsChromeContext.Provider value={chrome}>
+        <PageChromeProvider headerActions={headerActions} leavesSection={leavesSettingsSection}>
             <Page as="div">
                 {!isPhone && (
                     <Nav aria-label="Sekcje ustawień">
@@ -754,20 +731,6 @@ export function SettingsView() {
             </Page>
 
             {helpOpen && active.help && <HelpModal content={active.help} onClose={() => setHelpOpen(false)} />}
-
-            <ConfirmationModal
-                isOpen={blocker.state === 'blocked'}
-                title="Porzucić niezapisane zmiany?"
-                message="W tej sekcji są zmiany, których nie zapisano. Jeśli teraz wyjdziesz, przepadną."
-                variant="danger"
-                confirmText="Porzuć zmiany"
-                cancelText="Wróć do edycji"
-                onConfirm={() => {
-                    setDirtyIds(new Set());
-                    blocker.proceed?.();
-                }}
-                onCancel={() => blocker.reset?.()}
-            />
-        </SettingsChromeContext.Provider>
+        </PageChromeProvider>
     );
 }

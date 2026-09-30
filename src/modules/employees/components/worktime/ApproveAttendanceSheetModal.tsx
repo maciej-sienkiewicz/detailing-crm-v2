@@ -1,4 +1,4 @@
-// src/modules/settings/components/settlements/ApproveAttendanceSheetModal.tsx
+// src/modules/employees/components/worktime/ApproveAttendanceSheetModal.tsx
 //
 // Zatwierdzenie rozliczenia. Bez podpisu nie ma zatwierdzenia: zatwierdzający to zarazem
 // „osoba potwierdzająca" ze stopki arkusza. Trzy sposoby podpisu są widoczne od razu - na
@@ -23,7 +23,7 @@ import { useToast } from '@/common/components/Toast';
 import type { AttendanceSheet, AttendanceSignatureRequest } from '../../api/attendanceApi';
 import { ATTENDANCE_SHEETS_KEY, useApproveAttendanceSheet } from '../../hooks/useAttendanceSheets';
 import { isAwaitingSignature, useAttendanceRemoteSigning } from '../../hooks/useAttendanceRemoteSigning';
-import { SignaturePad, type SignaturePadHandle } from '../team/SignaturePad';
+import { SignaturePad, type SignaturePadHandle } from '@/common/components/SignaturePad';
 import {
     AwaitingSignature,
     PhonePanel,

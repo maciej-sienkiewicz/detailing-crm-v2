@@ -1,4 +1,4 @@
-// src/modules/settings/components/settlements/SigningMethods.tsx
+// src/modules/employees/components/worktime/SigningMethods.tsx
 //
 // Trzy sposoby podpisu listy obecności, zawsze widoczne obok siebie: na tym urządzeniu
 // (kanwa w oknie zatwierdzania), na tablecie studia albo na własnym telefonie (link SMS-em

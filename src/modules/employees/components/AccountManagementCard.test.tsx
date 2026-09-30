@@ -10,13 +10,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
 import { ToastProvider } from '@/common/components/Toast';
-import { teamApi } from '@/modules/settings/api/teamApi';
+import { employeeApi as teamApi } from '../api/employeeApi';
 import { rolesApi } from '@/modules/settings/api/rolesApi';
 import { AccountManagementCard } from './AccountManagementCard';
 import type { EmployeeAccountInfo, EmployeeDetail } from '../types';
 
-vi.mock('@/modules/settings/api/teamApi', () => ({
-    teamApi: { resendInvitation: vi.fn() },
+vi.mock('../api/employeeApi', () => ({
+    employeeApi: { resendInvitation: vi.fn() },
 }));
 
 vi.mock('@/modules/settings/api/rolesApi', () => ({

@@ -21,7 +21,7 @@ import {
     type PublicSigningSession,
 } from '../api/publicSigningApi';
 import { PdfPagesViewer } from '../components/PdfPagesViewer';
-import { SignaturePad, type SignaturePadHandle } from '../components/SignaturePad';
+import { SignaturePad, type SignaturePadHandle } from '@/common/components/SignaturePad';
 
 // ─── Palette (aligned with VisitCardView) ─────────────────────────────────────
 
@@ -559,7 +559,7 @@ export const PublicSigningView = () => {
 
                     <div style={{ height: 16 }} />
 
-                    <SignaturePad ref={padRef} onStrokeChange={setHasStrokes} />
+                    <SignaturePad ref={padRef} onInkChange={setHasStrokes} height={200} clearable placeholder="Podpisz się palcem lub rysikiem" />
 
                     {submitError && <ErrorNote>{submitError}</ErrorNote>}
 

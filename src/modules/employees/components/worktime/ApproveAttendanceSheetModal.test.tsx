@@ -55,7 +55,7 @@ vi.mock('@/modules/subscription', () => ({
 // Kanwa nie działa w jsdom. Atrapa trzyma kontrakt prawdziwego pola: zaraz po zamontowaniu
 // zgłasza „pusto", a podpis „składa się" przyciskiem.
 const pad = vi.hoisted(() => ({ mounts: 0 }));
-vi.mock('../team/SignaturePad', () => ({
+vi.mock('@/common/components/SignaturePad', () => ({
     SignaturePad: forwardRef<unknown, { onInkChange?: (ink: boolean) => void }>(function FakePad({ onInkChange }, ref) {
         const ink = useRef(false);
         useImperativeHandle(ref, () => ({

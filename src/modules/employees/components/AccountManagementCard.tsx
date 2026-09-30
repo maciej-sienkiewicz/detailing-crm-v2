@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import styled from 'styled-components';
-import { useQueryClient } from '@tanstack/react-query';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useToast } from '@/common/components/Toast';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { formatDateTime } from '@/common/utils';
+import { useRoles } from '@/modules/settings/hooks/useRoles';
+import { rolesApi } from '@/modules/settings/api/rolesApi';
 import {
     useCreateAccount,
     useSetAccountBlocked,
@@ -12,11 +13,9 @@ import {
     useChangePassword,
     useDeleteEmployee,
     useResendInvitation,
-} from '@/modules/settings/hooks/useTeam';
-import { useRoles } from '@/modules/settings/hooks/useRoles';
-import { rolesApi } from '@/modules/settings/api/rolesApi';
-import { ChangePasswordModal } from '@/modules/settings/components/team/ChangePasswordModal';
-import { EMPLOYEES_KEY } from '../hooks/useEmployees';
+    useInvalidateEmployees,
+} from '../hooks/useEmployees';
+import { ChangePasswordModal } from './team/ChangePasswordModal';
 import { ACCOUNT_STATUS_LABEL, accountStatusOf, invitationSummary, type AccountStatus } from '../utils/accountStatus';
 import type { EmployeeDetail } from '../types';
 
@@ -236,15 +235,17 @@ const PinStatusBadge = styled.div<{ $configured: boolean }>`
 
 interface Props {
     employee: EmployeeDetail;
-    /** Wywoływane po każdej zmianie konta: widok powinien odświeżyć dane pracownika. */
-    onChanged: () => void;
+    /**
+     * Powiadomienie po każdej zmianie konta. Odświeżać nie trzeba: mutacje same
+     * unieważniają kartę pracownika (klucz ['employees', 'detail', id]).
+     */
+    onChanged?: () => void;
     /** Wywoływane po usunięciu pracownika (nawigacja poza profil). */
     onEmployeeDeleted: () => void;
 }
 
 export const AccountManagementCard = ({ employee, onChanged, onEmployeeDeleted }: Props) => {
     const { showSuccess } = useToast();
-    const queryClient = useQueryClient();
     const { roles } = useRoles();
 
     const createAccount = useCreateAccount();
@@ -264,12 +265,11 @@ export const AccountManagementCard = ({ employee, onChanged, onEmployeeDeleted }
     const account = employee.account;
     const status = accountStatusOf(account);
 
-    // Hooki z ustawień unieważniają klucze ['settings','team'], a profil żyje na
-    // kluczach modułu employees, więc dokładamy własną inwalidację + refetch.
-    const refreshProfile = () => {
-        queryClient.invalidateQueries({ queryKey: EMPLOYEES_KEY });
-        onChanged();
-    };
+    // Mutacje konta same unieważniają listę i tę kartę (jeden klucz ['employees']).
+    // Ręcznie odświeżamy tylko po wywołaniach spoza hooków - przypisaniu roli, które
+    // idzie przez API ról i o karcie pracownika nic nie wie.
+    const invalidateEmployees = useInvalidateEmployees();
+    const refreshAfterRoleChange = () => invalidateEmployees(employee.id);
 
     const handleCreateAccount = () => {
         if (!accountEmail.trim()) { setEmailError('Adres e-mail jest wymagany'); return; }
@@ -280,11 +280,12 @@ export const AccountManagementCard = ({ employee, onChanged, onEmployeeDeleted }
                 onSuccess: async ({ userId }) => {
                     if (selectedRoleId) {
                         await rolesApi.assignRole(userId, selectedRoleId).catch(() => {});
+                        refreshAfterRoleChange();
                     }
                     showSuccess('Konto utworzone', 'Zaproszenie zostało wysłane na podany adres e-mail.');
                     setShowCreateForm(false);
                     setSelectedRoleId('');
-                    refreshProfile();
+                    onChanged?.();
                 },
             },
         );
@@ -296,7 +297,8 @@ export const AccountManagementCard = ({ employee, onChanged, onEmployeeDeleted }
         rolesApi.assignRole(account.userId, value)
             .then(() => {
                 showSuccess(value ? 'Rola przypisana' : 'Rola usunięta');
-                refreshProfile();
+                refreshAfterRoleChange();
+                onChanged?.();
             })
             .catch(() => { /* globalny handler pokazuje toast błędu */ });
     };
@@ -307,7 +309,7 @@ export const AccountManagementCard = ({ employee, onChanged, onEmployeeDeleted }
             {
                 onSuccess: () => {
                     showSuccess(block ? 'Konto zablokowane' : 'Konto odblokowane');
-                    refreshProfile();
+                    onChanged?.();
                 },
             },
         );
@@ -317,7 +319,7 @@ export const AccountManagementCard = ({ employee, onChanged, onEmployeeDeleted }
         deleteAccount.mutate(employee.id, {
             onSuccess: () => {
                 showSuccess('Konto usunięte', 'Pracownik pozostaje w systemie.');
-                refreshProfile();
+                onChanged?.();
             },
         });
     };
@@ -326,7 +328,6 @@ export const AccountManagementCard = ({ employee, onChanged, onEmployeeDeleted }
         deleteEmployee.mutate(employee.id, {
             onSuccess: () => {
                 showSuccess('Pracownik usunięty');
-                queryClient.invalidateQueries({ queryKey: EMPLOYEES_KEY });
                 onEmployeeDeleted();
             },
         });
@@ -337,7 +338,7 @@ export const AccountManagementCard = ({ employee, onChanged, onEmployeeDeleted }
         resendInvitation.mutate(employee.id, {
             onSuccess: ({ expiresAt }) => {
                 showSuccess('Zaproszenie wysłane ponownie', `Nowy link działa do ${formatDateTime(expiresAt)}.`);
-                refreshProfile();
+                onChanged?.();
             },
         });
     };

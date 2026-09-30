@@ -4,7 +4,7 @@ import { Check, Clock, FileDown, FileText, MessageSquare, PenLine, Upload } from
 import { FormField, FieldLabel, InputShell, BareInput } from '@/common/components/Form';
 import { Button, Panel, StatusPill, ui, type PillTone } from '@/common/components/ui';
 import { useSettingsDirty } from '@/modules/settings/components/shared/settingsChrome';
-import { SignaturePad, type SignaturePadHandle } from '@/modules/public-signing/components/SignaturePad';
+import { SignaturePad, type SignaturePadHandle } from '@/common/components/SignaturePad';
 import type { SmsSenderNameConfig } from '../types';
 import {
   useSenderNameConfig,
@@ -418,7 +418,7 @@ export const SmsSenderNameCard: React.FC = () => {
 
           {signing && (
             <SignArea>
-              <SignaturePad ref={padRef} />
+              <SignaturePad ref={padRef} height={200} clearable placeholder="Podpisz się palcem lub rysikiem" />
               <SignActions>
                 <Button
                   variant="tinted"

@@ -1,6 +1,10 @@
-// src/modules/settings/components/team/SignaturePad.tsx
+// src/common/components/SignaturePad/SignaturePad.tsx
 //
-// Kanwa do złożenia podpisu myszą, rysikiem albo palcem.
+// Kanwa do złożenia podpisu myszą, rysikiem albo palcem. Jedna dla całej aplikacji:
+// wcześniej były dwie (listy obecności w ustawieniach i podpis zdalny z linku SMS),
+// z różnym zachowaniem - tylko jedna odtwarzała podpis po obrocie telefonu. Stąd
+// dwa wyjścia: toDataUrl() dla API, które przyjmuje `data:` (listy obecności),
+// i toPngBase64() bez prefiksu dla modułu podpisu (public-signing, wnioski urlopowe).
 //
 // Tło zostaje PRZEZROCZYSTE: podpis wtapia się w gotowy PDF, więc biały prostokąt
 // pod pociągnięciami zasłoniłby linię podpisu w dokumencie. Backend i tak wymusza
@@ -15,8 +19,12 @@ const STROKE_WIDTH = 2.2;
 
 export interface SignaturePadHandle {
     clear: () => void;
+    /** Nic nie narysowano. */
+    isEmpty: () => boolean;
     /** `data:image/png;base64,...` albo null, gdy nic nie narysowano. */
     toDataUrl: () => string | null;
+    /** PNG z kanałem alfa, base64 BEZ prefiksu `data:`; null, gdy nic nie narysowano. */
+    toPngBase64: () => string | null;
 }
 
 interface Props {
@@ -27,11 +35,21 @@ interface Props {
     onInkChange?: (hasInk: boolean) => void;
     /** Wysokość pola: liczba w px albo wyrażenie CSS, np. `clamp(150px, 26vh, 220px)`. */
     height?: number | string;
+    /**
+     * Własny przycisk „Wyczyść" w rogu pola, widoczny po pierwszym pociągnięciu. Dla
+     * ekranów bez własnego miejsca na tę akcję (podpis z linku SMS, profil).
+     */
+    clearable?: boolean;
+    /** Podpowiedź na pustym polu. */
+    placeholder?: string;
 }
 
 interface Point { x: number; y: number }
 
-export const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad({ onInkChange, height = 180 }, ref) {
+export const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad(
+    { onInkChange, height = 180, clearable = false, placeholder = 'Podpisz w tym polu' },
+    ref,
+) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     /** Stan steruje podpowiedzią na kanwie; ref niesie tę samą wiedzę do metod imperatywnych. */
     const [hasInk, setHasInk] = useState(false);
@@ -55,18 +73,25 @@ export const SignaturePad = forwardRef<SignaturePadHandle, Props>(function Signa
         onInkChangeRef.current?.(value);
     }, []);
 
-    useImperativeHandle(ref, () => ({
-        clear() {
-            strokesRef.current = [];
-            repaintRef.current();
-            reportInk(false);
-        },
-        toDataUrl() {
+    const clear = useCallback(() => {
+        strokesRef.current = [];
+        repaintRef.current();
+        reportInk(false);
+    }, [reportInk]);
+
+    useImperativeHandle(ref, () => {
+        const toDataUrl = () => {
             const canvas = canvasRef.current;
             if (!canvas || !hasInkRef.current) return null;
             return canvas.toDataURL('image/png');
-        },
-    }));
+        };
+        return {
+            clear,
+            isEmpty: () => !hasInkRef.current,
+            toDataUrl,
+            toPngBase64: () => toDataUrl()?.replace(/^data:image\/png;base64,/, '') ?? null,
+        };
+    });
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -192,8 +217,9 @@ export const SignaturePad = forwardRef<SignaturePadHandle, Props>(function Signa
         <PadWrap $height={typeof height === 'number' ? `${height}px` : height}>
             {/* touch-action: none - bez tego przeciągnięcie palcem przewija stronę zamiast rysować. */}
             <Canvas ref={canvasRef} aria-label="Pole podpisu" />
-            {!hasInk && <Placeholder>Podpisz w tym polu</Placeholder>}
+            {!hasInk && <Placeholder>{placeholder}</Placeholder>}
             <BaselineHint />
+            {clearable && hasInk && <ClearBtn type="button" onClick={clear}>Wyczyść</ClearBtn>}
         </PadWrap>
     );
 });
@@ -235,4 +261,21 @@ const BaselineHint = styled.div`
     bottom: 38px;
     border-bottom: 1px solid #e2e8f0;
     pointer-events: none;
+`;
+
+const ClearBtn = styled.button`
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 4px 10px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    color: #667085;
+    background: #ffffff;
+    border: 1px solid #e4e7ec;
+    border-radius: 9999px;
+    cursor: pointer;
+
+    &:active { background: #f1f3f6; }
 `;

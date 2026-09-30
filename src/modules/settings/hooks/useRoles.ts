@@ -1,10 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { rolesApi } from '../api/rolesApi';
+import { EMPLOYEE_LISTS_KEY } from '@/modules/employees/hooks/useEmployees';
 import type { CreateRoleRequest, UpdateRoleRequest, DeleteRoleOptions } from '../rbacTypes';
 
 const ROLES_KEY = ['settings', 'roles'] as const;
 const PERMISSIONS_KEY = ['settings', 'roles', 'permissions'] as const;
-const TEAM_KEY = ['settings', 'team'] as const;
 
 const roleUsersKey = (roleId: string) => [...ROLES_KEY, 'users', roleId] as const;
 
@@ -68,7 +68,7 @@ export const useDeleteRole = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ROLES_KEY });
             // A hand-over rewrites employees' roles, so the team list is stale too.
-            queryClient.invalidateQueries({ queryKey: TEAM_KEY });
+            queryClient.invalidateQueries({ queryKey: EMPLOYEE_LISTS_KEY });
         },
     });
 };

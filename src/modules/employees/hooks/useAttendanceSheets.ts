@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { attendanceApi } from '../api/attendanceApi';
 
-export const ATTENDANCE_SHEETS_KEY = ['settings', 'attendance-sheets'] as const;
+export const ATTENDANCE_SHEETS_KEY = ['employees', 'attendance-sheets'] as const;
 
 /**
  * Rozliczenia (wygenerowane listy obecności). Ta sama lista zasila tabelę w zakładce
@@ -11,7 +11,7 @@ export const useAttendanceSheets = (options?: { enabled?: boolean }) => {
     const { data, isLoading, isError, refetch } = useQuery({
         queryKey: ATTENDANCE_SHEETS_KEY,
         queryFn: () => attendanceApi.listAttendanceSheets(),
-        // Licznik w menu ustawień pyta o rozliczenia tylko tym, którzy widzą zespół.
+        // Licznik przy zakładce „Czas pracy" pyta o rozliczenia tylko tym, którzy ją widzą.
         enabled: options?.enabled ?? true,
     });
     return { sheets: data ?? [], isLoading, isError, refetch };

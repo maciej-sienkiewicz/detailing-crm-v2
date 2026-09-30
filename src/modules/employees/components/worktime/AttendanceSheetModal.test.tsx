@@ -26,9 +26,9 @@ vi.mock('../../api/attendanceApi', async importOriginal => {
 });
 
 // Osoby wybiera się w oknie: na liście są tylko ci, których rola liczy czas pracy.
-vi.mock('../../hooks/useTeam', () => ({
+vi.mock('../../hooks/useEmployees', () => ({
     useEmployees: () => ({
-        items: [
+        employees: [
             { id: 'e1', fullName: 'Anna Nowak', role: { id: 'detailer', name: 'Detailer' } },
             { id: 'e2', fullName: 'Kamil Lis', role: { id: 'detailer', name: 'Detailer' } },
             { id: 'e3', fullName: 'Ewa Biuro', role: { id: 'office', name: 'Biuro' } },
@@ -39,7 +39,7 @@ vi.mock('../../hooks/useTeam', () => ({
         refetch: vi.fn(),
     }),
 }));
-vi.mock('../../hooks/useRoles', () => ({
+vi.mock('@/modules/settings/hooks/useRoles', () => ({
     useRoles: () => ({
         roles: [
             { id: 'detailer', name: 'Detailer', trackWorkTime: true },

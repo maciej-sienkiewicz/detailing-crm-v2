@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// Lista pracowników w Ustawieniach: wiersz otwiera edycję (klawiaturą też), osoba bez
+// Lista zespołu (zakładka „Zespół” modułu Pracownicy): wiersz otwiera edycję (klawiaturą też), osoba bez
 // konta dostaje „Zaproś do systemu", a błąd - zapisu albo wczytania - jest widoczny,
 // zamiast udawać pustą listę albo wracać do przycisku bez słowa.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -10,14 +10,14 @@ import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
 import { ToastProvider } from '@/common/components/Toast';
-import { teamApi } from '../api/teamApi';
-import { rolesApi } from '../api/rolesApi';
-import type { TeamEmployeeListItem } from '../teamTypes';
-import type { Role } from '../rbacTypes';
-import { TeamSection } from './TeamSection';
+import { employeeApi as teamApi } from '../../api/employeeApi';
+import { rolesApi } from '@/modules/settings/api/rolesApi';
+import type { EmployeeListItem } from '../../types';
+import type { Role } from '@/modules/settings/rbacTypes';
+import { TeamList } from './TeamList';
 
-vi.mock('../api/teamApi', () => ({
-    teamApi: {
+vi.mock('../../api/employeeApi', () => ({
+    employeeApi: {
         listEmployees: vi.fn(),
         createEmployee: vi.fn(),
         updateEmployee: vi.fn(),
@@ -25,7 +25,7 @@ vi.mock('../api/teamApi', () => ({
         resendInvitation: vi.fn(),
     },
 }));
-vi.mock('../api/rolesApi', () => ({
+vi.mock('@/modules/settings/api/rolesApi', () => ({
     rolesApi: {
         listRoles: vi.fn(),
         getPermissionCatalog: vi.fn(async () => []),
@@ -39,7 +39,7 @@ vi.mock('@/modules/role-preview', () => ({
 }));
 vi.mock('@/modules/subscription', () => ({ useEntitlements: () => ({ data: undefined }) }));
 
-const person = (overrides: Partial<TeamEmployeeListItem>): TeamEmployeeListItem => ({
+const person = (overrides: Partial<EmployeeListItem>): EmployeeListItem => ({
     id: 'e1',
     firstName: 'Marta',
     lastName: 'Kowalczyk',
@@ -67,7 +67,7 @@ const roles = [
     { id: 'detailer', name: 'Detailer', description: null, permissions: [], trackWorkTime: true, assignedUserCount: 1 },
 ] as unknown as Role[];
 
-const listOf = (items: TeamEmployeeListItem[]) => ({
+const listOf = (items: EmployeeListItem[]) => ({
     items,
     pagination: { currentPage: 1, totalPages: 1, totalItems: items.length, itemsPerPage: 20 },
 });
@@ -79,7 +79,7 @@ const renderSection = () => {
             <MemoryRouter>
                 <ThemeProvider theme={theme}>
                     <ToastProvider>
-                        <TeamSection />
+                        <TeamList />
                     </ToastProvider>
                 </ThemeProvider>
             </MemoryRouter>
@@ -99,7 +99,7 @@ afterEach(() => {
     vi.clearAllMocks();
 });
 
-describe('TeamSection - lista pracowników', () => {
+describe('TeamList - lista pracowników', () => {
     it('bez kolumny pól wyboru; stan konta mówi, co dalej', async () => {
         renderSection();
 
