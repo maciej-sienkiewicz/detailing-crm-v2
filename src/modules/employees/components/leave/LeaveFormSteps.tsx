@@ -20,7 +20,7 @@ import {
 } from '../../utils/leaveRequestFormat';
 import { LEAVE_KINDS, type LeaveKind, type LeaveKindKey } from './leaveKinds';
 import {
-    CharCounter, Check, Field, FieldError, FieldRowPair, Hint, Label, LabelRow, Textarea,
+    CharCounter, Check, Field, FieldError, Hint, Label, LabelRow, Textarea,
 } from './leaveForm.styles';
 
 export type FieldErrors = Partial<Record<string, string>>;
@@ -121,7 +121,7 @@ export function LeaveTermStep({
             <StepHeading>{kind.title}: kiedy?</StepHeading>
             <Hint>Na kalendarzu kliknij pierwszy dzień urlopu, a potem ostatni.</Hint>
 
-            <FieldRowPair>
+            <DatePair>
                 <Field>
                     <Label id="leave-start-label" htmlFor="leave-start">Od</Label>
                     {picker('start')}
@@ -132,7 +132,7 @@ export function LeaveTermStep({
                     {picker('end')}
                     {endError && <FieldError role="alert">{endError}</FieldError>}
                 </Field>
-            </FieldRowPair>
+            </DatePair>
 
             {rangeValid && (
                 <Tally aria-live="polite">
@@ -268,6 +268,16 @@ export const Lead = styled.p`
     font-size: 14px;
     line-height: 1.5;
     color: ${ui.textSecondary};
+`;
+
+/**
+ * „Od" i „Do" obok siebie także na telefonie: data mieści się w połowie szerokości,
+ * a jeden wiersz pól zamiast dwóch zostawia kalendarzowi więcej ekranu pod polem.
+ */
+const DatePair = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
 `;
 
 const Tally = styled.div`

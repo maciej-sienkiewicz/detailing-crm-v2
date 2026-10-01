@@ -12,7 +12,7 @@ import { useState, type RefObject } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
 import { Check, Eye, X } from 'lucide-react';
-import { Button, ChoiceCard, ChoiceList, Notice, ui } from '@/common/components/ui';
+import { Button, ChoiceCard, ChoiceList, Notice } from '@/common/components/ui';
 import { SignaturePad, type SignaturePadHandle } from '@/common/components/SignaturePad';
 import { leaveRequestsApi } from '../../api/leaveRequestsApi';
 import { LEAVE_REQUESTS_KEY } from '../../hooks/useLeaveRequests';
@@ -116,7 +116,6 @@ export function DecisionSignature({ requestId, signing, padRef }: SignatureProps
             )}
 
             <DocRow>
-                <Hint>Podpisujesz wersję wniosku z podpisem pracownika.</Hint>
                 <Button
                     variant="ghost"
                     size="sm"
@@ -124,8 +123,9 @@ export function DecisionSignature({ requestId, signing, padRef }: SignatureProps
                     disabled={!signing.session}
                     aria-expanded={docOpen}
                 >
-                    <Eye aria-hidden="true" />{docOpen ? 'Ukryj dokument' : 'Pokaż dokument'}
+                    <Eye aria-hidden="true" />{docOpen ? 'Ukryj dokument' : 'Pokaż dokument do podpisu'}
                 </Button>
+                <Hint>wersja z podpisem pracownika</Hint>
             </DocRow>
             {docOpen && (
                 <LeavePdf
@@ -159,11 +159,7 @@ export function DecisionSignature({ requestId, signing, padRef }: SignatureProps
 const DocRow = styled.div`
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+    gap: 4px 10px;
     flex-wrap: wrap;
-    padding: 8px 12px;
-    border-radius: ${ui.radiusStrip};
-    background: ${ui.surfaceSoft};
-    border: 1px solid ${ui.lineSoft};
+    margin-left: -11px;
 `;

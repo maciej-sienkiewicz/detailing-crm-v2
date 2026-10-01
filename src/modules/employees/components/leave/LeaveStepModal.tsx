@@ -13,7 +13,7 @@
 // Na telefonie pastylki kroków nie mieszczą się w jednej linii i zawijały się
 // w dwie albo trzy, więc tam stoi zwięzłe „Krok 2 z 4: Termin" z paskiem postępu.
 
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import styled from 'styled-components';
 import {
     CloseBtn, ModalContent, ModalFooter, ModalHeader, ModalShell, ModalSubtitle, ModalTitle, ModalTitleGroup,
@@ -57,6 +57,12 @@ export function LeaveStepModal({
     closeOnEscape = true, overlays, children,
 }: Props) {
     const active = steps?.[current];
+    // Treść przewija się w jednym elemencie przez wszystkie kroki - bez tego nowy krok
+    // otwierał się przewinięty tam, gdzie skończył się poprzedni (np. w połowie pola podpisu).
+    const contentRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        contentRef.current?.scrollTo?.({ top: 0 });
+    }, [current]);
     return (
         <>
             {/* dismissible={false}: odruchowe stuknięcie obok okna na telefonie nie może
@@ -93,7 +99,7 @@ export function LeaveStepModal({
                     </StepsBar>
                 )}
 
-                <ModalContent>{children}</ModalContent>
+                <ModalContent ref={contentRef}>{children}</ModalContent>
 
                 {footer && (
                     <ModalFooter>
