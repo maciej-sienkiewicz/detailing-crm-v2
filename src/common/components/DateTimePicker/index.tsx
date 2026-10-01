@@ -274,11 +274,17 @@ const DayCell = styled.button<{
             : props.theme.fontWeights.normal};
     transition: background ${props => props.theme.transitions.fast};
 
-    &:hover {
+    &:hover:not(:disabled) {
         background: ${props =>
             props.$isSelected
                 ? props.$accentColor || props.theme.colors.primary
                 : props.theme.colors.surfaceAlt};
+    }
+
+    /* Dzień przed [minDate]: widoczny, żeby siatka tygodnia się nie rozsypała, ale nieklikalny. */
+    &:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
     }
 `;
 
@@ -575,12 +581,14 @@ interface CalendarMonthProps {
     /** Pas zakresu między końcami, włącznie; tylko gdy oba końce są znane i początek jest przed końcem. */
     rangeStartKey?: string | null;
     rangeEndKey?: string | null;
+    /** Najwcześniejszy dzień do wyboru (`YYYY-MM-DD`); wcześniejsze są wyłączone. */
+    minKey?: string | null;
     onDayClick: (year: number, month: number, day: number) => void;
 }
 
 const CalendarMonth: React.FC<CalendarMonthProps> = ({
     viewYear, viewMonth, onPrevMonth, onNextMonth, accentColor,
-    selectedKeys, rangeStartKey, rangeEndKey, onDayClick,
+    selectedKeys, rangeStartKey, rangeEndKey, minKey, onDayClick,
 }) => {
     const today = new Date();
     const todayKey = toDateKey(today.getFullYear(), today.getMonth(), today.getDate());
@@ -636,6 +644,7 @@ const CalendarMonth: React.FC<CalendarMonthProps> = ({
                                 $isToday={key === todayKey}
                                 $accentColor={accentColor}
                                 aria-pressed={selectedKeys.includes(key)}
+                                disabled={!!minKey && key < minKey}
                                 onClick={() => onDayClick(year, month, cell.day)}
                             >
                                 {cell.day}
@@ -831,6 +840,18 @@ export interface DateRangePickerProps {
     containerRef?: React.RefObject<HTMLDivElement | null>;
     onFocus?: () => void;
     onBlur?: () => void;
+    /**
+     * Najwcześniejszy dzień do wyboru (`YYYY-MM-DD`). Wcześniejsze dni są w siatce
+     * wyłączone - np. wniosek urlopowy nie może zaczynać się w przeszłości.
+     */
+    minDate?: string;
+    /** `id` przycisku pola - dla `<label htmlFor>` i `aria-labelledby`. */
+    id?: string;
+    /**
+     * `id` etykiety pola. Nazwą przycisku staje się wtedy „etykieta + wartość”
+     * („Od 07.10.2026”), a nie sama data, z której nie wiadomo, który to koniec.
+     */
+    labelledBy?: string;
 }
 
 /**
@@ -859,6 +880,9 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     containerRef: externalContainerRef,
     onFocus,
     onBlur,
+    minDate,
+    id,
+    labelledBy,
 }) => {
     const startHasTime = showTime;
     const endHasTime = endHasTimeProp ?? showTime;
@@ -868,7 +892,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     const [active, setActive] = useState<DateRangeRole>(role);
 
     const today = new Date();
-    const anchor = parseValue(role === 'end' && end ? end : (start || end));
+    const anchor = parseValue(role === 'end' && end ? end : (start || end || minDate || ''));
     const [viewYear, setViewYear] = useState(() => anchor.year ?? today.getFullYear());
     const [viewMonth, setViewMonth] = useState(() => anchor.month ?? today.getMonth());
 
@@ -913,6 +937,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
         setViewYear(year);
         setViewMonth(month);
         const key = toDateKey(year, month, day);
+        if (minDate && key < minDate) return;
 
         if (active === 'start') {
             changeStart(valueFor(key, 'start'));
@@ -962,7 +987,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     const handleTriggerClick = () => {
         if (!isOpen) {
             setActive(role);
-            const p = parseValue(role === 'end' && end ? end : (start || end));
+            const p = parseValue(role === 'end' && end ? end : (start || end || minDate || ''));
             if (p.year !== null && p.month !== null) {
                 setViewYear(p.year);
                 setViewMonth(p.month);
@@ -986,7 +1011,12 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
         <div ref={wrapperRef as React.RefObject<HTMLDivElement>} style={{ position: 'relative', width: '100%' }}>
             <Trigger
                 ref={triggerRef}
+                id={id}
                 type="button"
+                aria-labelledby={labelledBy ? [labelledBy, id].filter(Boolean).join(' ') : undefined}
+                aria-haspopup="dialog"
+                aria-expanded={isOpen}
+                aria-invalid={hasError || undefined}
                 $accentColor={accentColor}
                 $hasError={hasError}
                 $hasValue={!!displayValue}
@@ -1036,6 +1066,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
                                 selectedKeys={[startKey, endKey].filter((k): k is string => !!k)}
                                 rangeStartKey={startKey}
                                 rangeEndKey={endKey}
+                                minKey={minDate ?? null}
                                 onDayClick={handleDayClick}
                             />
 

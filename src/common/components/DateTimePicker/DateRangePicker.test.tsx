@@ -133,4 +133,41 @@ describe('DateRangePicker', () => {
         await user.click(day(16));
         expect(onEndChange).toHaveBeenCalledWith('2026-09-16');
     });
+
+    it('bez godzin oddaje same daty: pierwsze klikniecie poczatek, drugie koniec (wniosek urlopowy)', async () => {
+        const user = userEvent.setup();
+        const { onStartChange, onEndChange } = renderPicker({
+            start: '', end: '', showTime: false, endHasTime: false, minDate: '2026-09-08',
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Wybierz datę' }));
+        expect(screen.queryByText(/Godzina/)).toBeNull();
+        await user.click(day(14));
+        expect(onStartChange).toHaveBeenCalledWith('2026-09-14');
+    });
+
+    it('dni przed minDate sa wylaczone i nie zmieniaja zakresu', async () => {
+        const user = userEvent.setup();
+        const { onStartChange } = renderPicker({ start: '2026-09-10', end: '2026-09-11', showTime: false, minDate: '2026-09-08' });
+
+        await user.click(screen.getByRole('button', { name: '10.09.2026' }));
+        expect(day(7)).toBeDisabled();
+        expect(day(8)).not.toBeDisabled();
+        await user.click(day(7));
+        expect(onStartChange).not.toHaveBeenCalled();
+    });
+
+    it('etykieta pola wchodzi do nazwy przycisku razem z wartoscia', () => {
+        render(
+            <StyledThemeProvider theme={theme}>
+                <span id="lbl">Od</span>
+                <DateRangePicker
+                    role="start" id="pole" labelledBy="lbl" start="2026-09-10" end="2026-09-11"
+                    showTime={false} onStartChange={vi.fn()} onEndChange={vi.fn()} hasError
+                />
+            </StyledThemeProvider>,
+        );
+        const trigger = screen.getByRole('button', { name: 'Od 10.09.2026' });
+        expect(trigger).toHaveAttribute('aria-invalid', 'true');
+    });
 });
