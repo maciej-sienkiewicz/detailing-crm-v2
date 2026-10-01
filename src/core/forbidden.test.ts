@@ -44,6 +44,24 @@ describe('forbiddenReaction', () => {
         });
     });
 
+    it('wywołanie z skipErrorToast mówi o błędzie samo: bez toastu, uprawnienia i tak odświeżone', () => {
+        // Zamówienie, wyłączenie modułu, odwołanie obniżenia - każde pokazuje 403
+        // z tytułem; goły toast stąd był drugim egzemplarzem tego samego zdania.
+        const err = {
+            response: { status: 403, data: { message: 'Tylko właściciel studia może kupić abonament' } },
+            config: { method: 'post', skipErrorToast: true },
+        };
+        expect(forbiddenReaction(err)).toEqual({ event: PERMISSIONS_STALE_EVENT, toastMessage: null });
+    });
+
+    it('skipErrorToast nie zmienia reakcji na wygasły abonament', () => {
+        const err = {
+            response: { status: 403, data: { code: 'SUBSCRIPTION_INACTIVE' } },
+            config: { method: 'post', skipErrorToast: true },
+        };
+        expect(forbiddenReaction(err)).toEqual({ event: SUBSCRIPTION_INACTIVE_EVENT, toastMessage: null });
+    });
+
     it('kod abonamentu przy innym statusie niż 403 nie jest wygaśnięciem', () => {
         expect(isSubscriptionInactive({ response: { status: 402, data: { code: 'SUBSCRIPTION_INACTIVE' } } })).toBe(false);
         expect(isSubscriptionInactive(null)).toBe(false);

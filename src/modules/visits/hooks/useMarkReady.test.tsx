@@ -135,4 +135,30 @@ describe('useMarkReady — konflikt stanu wizyty', () => {
         expect(showError.mock.calls[0][0]).toBe('Błąd');
         expect(showInfo).not.toHaveBeenCalled();
     });
+
+    it('403 SUBSCRIPTION_INACTIVE: bez „Nie udało się zmienić statusu" - powód tłumaczy bramka abonamentu', async () => {
+        markReadyApi.mockRejectedValue({
+            response: { status: 403, data: { code: 'SUBSCRIPTION_INACTIVE', message: 'Subskrypcja studia nie jest aktywna' } },
+        });
+        const { result, onSuccess } = setup();
+
+        result.current.markReady({ sms: true, email: false });
+
+        await waitFor(() => expect(markReadyApi).toHaveBeenCalled());
+        await new Promise(resolve => setTimeout(resolve, 0));
+        expect(showError).not.toHaveBeenCalled();
+        expect(onSuccess).not.toHaveBeenCalled();
+    });
+
+    it('403 z braku uprawnień: powód z backendu (interceptor przy skipErrorToast już go nie pokazuje)', async () => {
+        markReadyApi.mockRejectedValue({
+            response: { status: 403, data: { message: 'Brak uprawnień do zmiany statusu wizyty' } },
+        });
+        const { result } = setup();
+
+        result.current.markReady({ sms: false, email: false });
+
+        await waitFor(() => expect(showError).toHaveBeenCalled());
+        expect(showError.mock.calls[0]).toEqual(['Błąd', 'Brak uprawnień do zmiany statusu wizyty']);
+    });
 });

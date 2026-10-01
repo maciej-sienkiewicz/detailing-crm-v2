@@ -5,14 +5,16 @@ import { useAuth } from '../context/AuthContext';
 import { usePermissions } from '../permissions/usePermissions';
 import { SUBSCRIPTION_INACTIVE_EVENT } from '../forbidden';
 import { useToast } from '@/common/components/Toast';
-import { Button, SummaryStrip } from '@/common/components/ui';
+import { Button, Notice, SummaryStrip } from '@/common/components/ui';
 import { acquireScrollLock } from '@/common/utils/scrollLock';
 import { SUBSCRIPTION_QUERY_KEY, useSubscriptionStatus } from '@/modules/settings/hooks/useSubscription';
-import type { SubscriptionStatusResponse } from '@/modules/settings/api/subscriptionApi';
+import { subscriptionApi, type SubscriptionStatusResponse } from '@/modules/settings/api/subscriptionApi';
 import { invalidateSubscriptionData, useCheckout, useMyPlan } from '@/modules/subscription/api/subscriptionQueries';
 import { FirstLoginModal } from '@/modules/subscription/components/FirstLoginModal';
-import { formatCents } from '@/modules/subscription/utils/formatters';
-import { checkoutOutcome, describeCheckoutError, UNEXPECTED_CHECKOUT } from '@/modules/subscription/utils/checkout';
+import { formatCents, formatDate } from '@/modules/subscription/utils/formatters';
+import { checkoutOutcome, describeCheckoutError } from '@/modules/subscription/utils/checkout';
+import { renewalCoverage } from '@/modules/subscription/utils/renewal';
+import { useLogout } from '@/modules/auth';
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
 
@@ -25,6 +27,13 @@ const GateSpinner = styled.div`
     border-top-color: #0ea5e9;
     border-radius: 50%;
     animation: ${spin} 0.7s linear infinite;
+`;
+
+const GraceNote = styled.p`
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #64748b;
 `;
 
 // Full-screen loading used while subscription status is being fetched.
@@ -101,14 +110,6 @@ const Subtitle = styled.p`
     max-width: 460px;
 `;
 
-const OwnerNote = styled.div`
-    text-align: center;
-    font-size: 12px;
-    color: #94a3b8;
-    padding: 12px 0 0;
-    border-top: 1px solid #f1f5f9;
-`;
-
 // ─── ExpiredModal ─────────────────────────────────────────────────────────────
 
 /**
@@ -117,16 +118,26 @@ const OwnerNote = styled.div`
  * Wcześniej miało DWA wypełnione bloki: kartę pakietu w gradiencie marki (wyłączony
  * przycisk udający krok następny) i przycisk płatności - wzrok nie wiedział, co
  * kliknąć (CLAUDE.md §2). Teraz kwota leży płasko w pasku podsumowania, a jedynym
- * wypełnieniem jest „Odnów i zapłać". Kwota to cena KOLEJNEGO okresu
+ * wypełnieniem jest „Odnów abonament i zapłać". Kwota to cena KOLEJNEGO okresu
  * (`nextRenewalCostCents`), bo tyle pobierze przedłużenie - bez modułów, których
  * wyłączenie było zaplanowane.
+ *
+ * Pracownik zapłacić nie może, więc nie dostaje wyłączonego przycisku płatności
+ * (to był ten sam „wyłączony przycisk udający krok następny"), tylko informację, że
+ * kolejny krok należy do właściciela. Okno bez wypełnienia jest w porządku - zakazany
+ * jest remis, nie brak zwycięzcy.
+ *
+ * Najczęstsze wygaśnięcie to koniec okresu próbnego (TRIALING → EXPIRED): takie
+ * studio nigdy nie miało opłaconego okresu ani karencji, więc nie mówimy mu, że
+ * „opłacony okres i czas na przedłużenie minęły".
  */
-function ExpiredModal() {
+function ExpiredModal({ trialOnly }: { trialOnly: boolean }) {
     // To samo źródło co ustawienia abonamentu - `user.role === 'OWNER'` rozjeżdżało
     // się z nim przy kontach, których rola ma inną wielkość liter.
     const { isOwner } = usePermissions();
     const { showError, showSuccess } = useToast();
-    const { data: myPlan } = useMyPlan();
+    // my-plan jest tylko dla właściciela - pracownik dostawał 403 przy każdym otwarciu okna.
+    const { data: myPlan } = useMyPlan({ enabled: isOwner });
     const checkout = useCheckout();
 
     // Własna nakładka poza ModalShell: blokadę scrolla tła zakłada sama, przez
@@ -134,6 +145,15 @@ function ExpiredModal() {
     useEffect(() => acquireScrollLock(), []);
 
     const renewalCents = myPlan ? (myPlan.nextRenewalCostCents ?? myPlan.monthlyCostCents) : null;
+    // „plan i moduły" tylko wtedy, gdy moduł naprawdę wchodzi do odnowienia: FULL
+    // ma wszystkie w cenie, a moduł z zaplanowanym wyłączeniem do niego nie wchodzi.
+    // Słowa jak w Ustawieniach → Abonament („Plan Basic", „plan i moduły") - okno
+    // mieszało „subskrypcję", „pakiet" i „abonament" dla jednej rzeczy.
+    const renewsAddOns = !!myPlan && myPlan.plan.key !== 'FULL' && myPlan.activeAddOns.some(a => !a.cancelAt);
+    // Co da zapłata teraz - datę liczy backend. Po wygaśnięciu tuż po karencji to mniej niż
+    // 30 dni od dziś: okres obejmuje dni karencji wykorzystane po końcu poprzedniego.
+    const coverage = myPlan ? renewalCoverage(myPlan) : null;
+    const logout = useLogout();
 
     const handleRenew = async () => {
         if (!isOwner || checkout.isPending) return;
@@ -146,10 +166,12 @@ function ExpiredModal() {
             }
             if (outcome.kind === 'fulfilled') {
                 // useCheckout odświeża status - bramka sama zdejmie to okno.
-                showSuccess('Abonament odnowiony', 'Twój plan działa przez kolejne 30 dni.');
+                showSuccess('Abonament odnowiony', coverage
+                    ? `Twój plan działa do ${formatDate(coverage.endsAt)}.`
+                    : 'Twój plan działa przez kolejne 30 dni.');
                 return;
             }
-            showError(UNEXPECTED_CHECKOUT.title, UNEXPECTED_CHECKOUT.message);
+            showError(outcome.copy.title, outcome.copy.message);
         } catch (err: unknown) {
             // Checkout idzie bez toastu interceptora - to jedyny komunikat o błędzie.
             const copy = describeCheckoutError(err);
@@ -168,36 +190,58 @@ function ExpiredModal() {
                             <line x1="12" y1="17" x2="12.01" y2="17" />
                         </svg>
                     </IconWrap>
-                    <Title id="subscription-expired-title">Twoja subskrypcja wygasła</Title>
+                    <Title id="subscription-expired-title">
+                        {trialOnly ? 'Okres próbny się skończył' : 'Abonament wygasł'}
+                    </Title>
                     <Subtitle>
-                        Opłacony okres i czas na jego przedłużenie minęły. Odnów pakiet, żeby
-                        wrócić do pracy. Płatność obsługuje Przelewy24, a wszystkie Twoje dane są bezpieczne.
+                        {trialOnly
+                            ? 'Opłać abonament, żeby wrócić do pracy.'
+                            : 'Opłacony okres i czas na jego przedłużenie minęły. Odnów abonament, żeby wrócić do pracy.'}
+                        {' '}Płatność obsługuje Przelewy24, a wszystkie Twoje dane są bezpieczne.
                     </Subtitle>
                 </Head>
 
                 {myPlan && renewalCents != null && (
                     <SummaryStrip
-                        label={`Pakiet ${myPlan.plan.name}`}
+                        label={`Plan ${myPlan.plan.name}`}
                         amount={formatCents(renewalCents)}
-                        details="brutto za 30 dni, pakiet i moduły"
+                        details={[
+                            coverage ? `brutto, dostęp do ${formatDate(coverage.endsAt)}` : 'brutto za 30 dni',
+                            renewsAddOns ? 'plan i moduły' : null,
+                        ].filter(Boolean).join(', ')}
                     />
                 )}
-
-                <Button
-                    variant="primary"
-                    size="lg"
-                    block
-                    onClick={handleRenew}
-                    disabled={!isOwner || checkout.isPending}
-                >
-                    {checkout.isPending ? 'Przekierowywanie do Przelewy24…' : 'Odnów subskrypcję i zapłać'}
-                </Button>
-
-                {!isOwner && (
-                    <OwnerNote>
-                        Odnowienie subskrypcji jest możliwe wyłącznie przez właściciela studia. Skontaktuj się z właścicielem, aby odblokować dostęp.
-                    </OwnerNote>
+                {coverage?.includesUsedGrace && (
+                    <GraceNote>
+                        Okres obejmuje dni karencji wykorzystane po końcu poprzedniego okresu, dlatego od dziś
+                        zostaje mniej niż 30 dni.
+                    </GraceNote>
                 )}
+
+                {isOwner ? (
+                    <Button
+                        variant="primary"
+                        size="lg"
+                        block
+                        onClick={handleRenew}
+                        disabled={checkout.isPending}
+                    >
+                        {checkout.isPending
+                            ? 'Przekierowywanie do Przelewy24…'
+                            : trialOnly ? 'Opłać abonament' : 'Odnów abonament i zapłać'}
+                    </Button>
+                ) : (
+                    <Notice tone="info" title={trialOnly ? 'Opłacić może tylko właściciel studia' : 'Odnowić może tylko właściciel studia'}>
+                        {trialOnly
+                            ? 'Poproś właściciela o opłacenie abonamentu.'
+                            : 'Poproś właściciela o odnowienie abonamentu.'}
+                    </Notice>
+                )}
+                {/* Okno zasłania całą aplikację, razem z menu i jego „Wyloguj" - wyjście musi
+                    być tutaj. Bez wypełnienia: krokiem następnym jest zapłata. */}
+                <Button variant="ghost" size="sm" block onClick={() => logout.mutate()} disabled={logout.isPending}>
+                    Wyloguj
+                </Button>
             </Card>
         </Overlay>
     );
@@ -217,22 +261,49 @@ interface SubscriptionGateProps {
  *
  * Seria odrzuconych zapytań z jednego widoku to jedno odświeżenie, a gdy okno już
  * stoi, nie ma czego odświeżać.
+ *
+ * Odświeżony status bywa jeszcze „dostępny" (uprawnienia z pamięci podręcznej
+ * serwera dochodzą chwilę później niż status) - wtedy okna nie ma, interceptor
+ * milczy, a wywołujący też, bo 4xx uznaje za obsłużone. Kliknięcie nie może skończyć
+ * się niczym, więc mówimy jednym toastem, co się stało.
  */
 function useSubscriptionInactiveListener() {
     const queryClient = useQueryClient();
+    const { showInfo } = useToast();
     useEffect(() => {
         let quietUntil = 0;
-        const handler = () => {
+        let disposed = false;
+        const handler = async () => {
             const current = queryClient.getQueryData<SubscriptionStatusResponse>(SUBSCRIPTION_QUERY_KEY);
             if (current && !current.isAccessible) return;
             const now = Date.now();
             if (now < quietUntil) return;
             quietUntil = now + 5000;
             invalidateSubscriptionData(queryClient);
+            let stillAccessible = true;
+            try {
+                // Dołącza do odświeżenia, które invalidate właśnie uruchomiło - bez drugiego zapytania.
+                const fresh = await queryClient.fetchQuery({
+                    queryKey: SUBSCRIPTION_QUERY_KEY,
+                    queryFn: subscriptionApi.getStatus,
+                });
+                stillAccessible = fresh.isAccessible;
+            } catch {
+                // Statusu nie da się teraz odczytać - akcja i tak została odrzucona.
+            }
+            if (!disposed && stillAccessible) {
+                showInfo(
+                    'Abonament nie jest aktywny',
+                    'Serwer odrzucił tę akcję, bo abonament studia nie jest aktywny. Odśwież stronę za chwilę.',
+                );
+            }
         };
         window.addEventListener(SUBSCRIPTION_INACTIVE_EVENT, handler);
-        return () => window.removeEventListener(SUBSCRIPTION_INACTIVE_EVENT, handler);
-    }, [queryClient]);
+        return () => {
+            disposed = true;
+            window.removeEventListener(SUBSCRIPTION_INACTIVE_EVENT, handler);
+        };
+    }, [queryClient, showInfo]);
 }
 
 export function SubscriptionGate({ children }: SubscriptionGateProps) {
@@ -265,10 +336,12 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
 
     // Expired / blocked: show renewal overlay on top of the (blurred) app shell
     // so users still see their data context while being prompted to renew.
+    // Status przychodzi od bramki, a nie z drugiej subskrypcji zapytania: ta przy
+    // montowaniu okna odpytywała serwer jeszcze raz (dane były już „nieświeże").
     return (
         <>
             {children}
-            <ExpiredModal />
+            <ExpiredModal trialOnly={status.subscriptionEndsAt == null} />
         </>
     );
 }

@@ -25,6 +25,12 @@ interface Props {
     locked: boolean;
     message: string;
     upgradeHint?: string;
+    /**
+     * Nazwa przycisku z kłódką (title i aria-label). Przycisk bywa jedyną widoczną
+     * podpowiedzią - `upgradeHint` mieści się dopiero w sekcji od ~98 px wysokości - więc
+     * dla funkcji wyłączonej przez nieaktywny abonament nie może mówić „Kup dostęp".
+     */
+    badgeLabel?: string;
     settingsTab?: string;
     /**
      * Called when the lock badge/message is clicked, instead of navigating to
@@ -39,6 +45,7 @@ export function LockedSection({
     locked,
     message,
     upgradeHint = 'Rozszerz abonament',
+    badgeLabel = 'Kup dostęp do tej funkcji',
     settingsTab = 'plan',
     onLockedClick,
     children,
@@ -67,7 +74,8 @@ export function LockedSection({
                 <LockBadge
                     type="button"
                     onClick={() => onLockedClick ? onLockedClick() : navigate(`/settings?tab=${settingsTab}`)}
-                    title="Kup dostęp do tej funkcji"
+                    title={badgeLabel}
+                    aria-label={badgeLabel}
                 >
                     <IconClosed><ClosedLockIcon /></IconClosed>
                     <IconOpen><OpenLockIcon /></IconOpen>

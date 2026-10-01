@@ -131,8 +131,19 @@ export interface EntitlementsResponse {
 export const PAYWALL_CODE_MODULE_REQUIRED = 'MODULE_REQUIRED';
 export const PAYWALL_CODE_INSUFFICIENT_CREDITS = 'INSUFFICIENT_CREDITS';
 
-/** 409 przy odwołaniu obniżenia: kolejny okres opłacono już w cenie niższego planu. */
+/**
+ * 409 przy odwołaniu obniżenia, a także przy ponownym zaplanowaniu innego obniżenia
+ * (POST change-plan): kolejny okres opłacono już w cenie niższego planu.
+ */
 export const DOWNGRADE_ALREADY_PAID_CODE = 'DOWNGRADE_ALREADY_PAID';
+
+/** 409 przy „Przywróć" moduł: kolejny okres opłacono już bez tego modułu. */
+export const ADD_ON_RENEWAL_ALREADY_PAID_CODE = 'ADD_ON_RENEWAL_ALREADY_PAID';
+
+/** 409 przy zamówieniu: pierwsze kliknięcie właśnie rejestruje płatność w Przelewy24. */
+export const CHECKOUT_IN_PROGRESS_CODE = 'CHECKOUT_IN_PROGRESS';
+/** 409: szkic zamówienia „za darmo w okresie próbnym", a próba właśnie się skończyła - cena się zmieniła. */
+export const PRICE_CHANGED_CODE = 'PRICE_CHANGED';
 
 export interface PaywallErrorResponse {
     code: string;
@@ -162,6 +173,13 @@ export interface ActiveAddOn {
      * „Przywróć" (POST /add-ons/{key}/resume) kasuje plan wyłączenia bez opłaty.
      */
     cancelAt: string | null;
+    /**
+     * Czy zaplanowane wyłączenie da się jeszcze cofnąć. False, gdy kolejny okres
+     * opłacono już bez tego modułu - „Przywróć" skończyłoby się 409
+     * ADD_ON_RENEWAL_ALREADY_PAID, a moduł można dokupić dopiero od `cancelAt`.
+     * Bez `cancelAt` zawsze false.
+     */
+    resumable: boolean;
 }
 
 export interface PendingDowngrade {
@@ -180,11 +198,24 @@ export interface MyPlanResponse {
     plan: PlanRef;
     activeAddOns: ActiveAddOn[];
     pendingDowngrade: PendingDowngrade | null;
-    periodEndsAt: string;
+    /**
+     * Koniec opłaconego okresu. Null, gdy studio nigdy nie płaciło (wygasły okres
+     * próbny) - takiego studia nie wolno pytać „opłacony okres minął".
+     */
+    periodEndsAt: string | null;
+    /**
+     * Koniec okresu próbnego. Bywa ustawiony także przy ACTIVE: pakiet kupiony
+     * w trakcie próby zaczyna opłacony okres dopiero z jej końcem. Status, nie ta
+     * data, decyduje, czy pokazać okres próbny.
+     */
     trialEndsAt: string | null;
     /** Koniec karencji (PAST_DUE): do tej daty studio ma jeszcze pełny dostęp. */
     graceEndsAt: string | null;
-    /** W karencji: dni do `graceEndsAt`. */
+    /**
+     * Dni do końca DOSTĘPU, nie okresu: przy ACTIVE liczy się z karencją po końcu
+     * okresu, w karencji do `graceEndsAt`, w okresie próbnym do jego końca. Obok
+     * daty końca opłaconego okresu nie pasuje - patrz SubscriptionSettingsPage.
+     */
     daysRemaining: number | null;
     /** Bieżący plan i wszystkie dziś aktywne moduły. */
     monthlyCostCents: number;
@@ -198,6 +229,13 @@ export interface MyPlanResponse {
      * False po końcu opłaconego okresu (karencja, wygaśnięcie): najpierw przedłużenie.
      */
     canPurchaseMidPeriod: boolean;
+    /**
+     * Do kiedy sięgnie okres opłacony przedłużeniem zapłaconym TERAZ - liczy backend tą samą
+     * funkcją co przy realizacji. Zwykle koniec okresu + 30 dni albo dziś + 30 dni; tuż po
+     * karencji mniej, bo okres obejmuje wykorzystane dni karencji. Null bez planu; brak pola
+     * w starszych odpowiedziach.
+     */
+    renewalPeriodEndsAt?: string | null;
 }
 
 // ─── Feature Plans & Add-Ons ──────────────────────────────────────────────────
@@ -256,6 +294,12 @@ export interface PlanChangePreview {
     daysRemaining: number;
     periodEndsAt: string;
     explanation: string;
+    /**
+     * False, gdy tej zmiany nie da się teraz kupić (okres minął - najpierw
+     * przedłużenie). `proratedAmountCents` jest wtedy null, ale to NIE jest okres
+     * próbny. Opcjonalne tylko dla starszych odpowiedzi.
+     */
+    allowed?: boolean;
 }
 
 // ─── Add-On Preview ───────────────────────────────────────────────────────────
@@ -268,6 +312,12 @@ export interface AddOnPreview {
     daysRemaining: number;
     periodEndsAt: string;
     explanation: string;
+    /**
+     * False, gdy modułu nie da się teraz aktywować (okres minął albo moduł jest
+     * jeszcze w przygotowaniu). `proratedAmountCents` jest wtedy null, ale to NIE
+     * jest okres próbny. Opcjonalne tylko dla starszych odpowiedzi.
+     */
+    allowed?: boolean;
 }
 
 // ─── Checkout (Przelewy24) ────────────────────────────────────────────────────
@@ -300,9 +350,14 @@ export interface CheckoutRequest {
 /**
  * paymentUrl: Przelewy24 payment page to redirect the buyer to (status PENDING).
  * The backend may hand back an EXISTING open order for the same product (same
- * orderId and paymentUrl) - its amount can differ from a preview shown earlier.
+ * orderId and paymentUrl) - only at the same price, or up to 1 grosz above a
+ * fresh pro-rata recalculation for the same period. The amount is priced when the
+ * order is created, not when the preview was shown, so it can still differ from
+ * the preview by the time that passed in between.
  * Null together with status FULFILLED: settled immediately (zero amount). Null
- * with any other status is an error, never a success - see utils/checkout.
+ * with any other status is an error, never a success: CANCELLED = a free order
+ * that could not be applied (nothing charged), REFUND_REQUIRED = settled without
+ * the gateway but not applicable - see utils/checkout.
  */
 export interface CheckoutResponse {
     orderId: string;

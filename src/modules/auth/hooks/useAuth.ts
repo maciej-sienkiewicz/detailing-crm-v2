@@ -47,7 +47,16 @@ export const useLogout = () => {
     const { setAuthenticated } = useAuthContext();
 
     return useMutation({
-        mutationFn: () => authApi.logout(),
+        // Błąd wylogowania na serwerze (sieć, wygasła już sesja) nie może zostawić kogoś
+        // zamkniętego w aplikacji - zwłaszcza za oknem wygasłego abonamentu, które zasłania
+        // całe menu. Lokalne wylogowanie następuje zawsze.
+        mutationFn: async () => {
+            try {
+                await authApi.logout();
+            } catch {
+                /* sesja kończy się i tak - po stronie przeglądarki */
+            }
+        },
         onSuccess: () => {
             sessionStorage.removeItem('crm_session_locked');
             setAuthenticated(false);

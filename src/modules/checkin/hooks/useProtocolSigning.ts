@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/common/components/Toast';
+import { isSubscriptionInactive } from '@/core/forbidden';
 import { tabletApi } from '../api/tabletApi';
 import { useSignatureRequestsSocket } from './useSignatureRequestsSocket';
 import type { SignatureRequestSocketEvent } from './useSignatureRequestsSocket';
@@ -74,7 +75,9 @@ export const useProtocolSigning = ({
         } catch (error) {
             const errorMessage = extractApiErrorMessage(error);
             setState(protocolId, { phase: 'failed', errorMessage, channel: 'tablet' });
-            showError('Coś poszło nie tak. Spróbuj jeszcze raz.', errorMessage);
+            // Wygasły abonament: wiersz dokumentu pokazuje powód, a resztę mówi bramka
+            // abonamentu - „spróbuj jeszcze raz" by tu nie pomogło.
+            if (!isSubscriptionInactive(error)) showError('Coś poszło nie tak. Spróbuj jeszcze raz.', errorMessage);
         }
     };
 
@@ -88,7 +91,7 @@ export const useProtocolSigning = ({
         } catch (error) {
             const errorMessage = extractApiErrorMessage(error);
             setState(protocolId, { phase: 'failed', errorMessage, channel: 'sms' });
-            showError('Nie udało się wysłać SMS z linkiem do podpisu.', errorMessage);
+            if (!isSubscriptionInactive(error)) showError('Nie udało się wysłać SMS z linkiem do podpisu.', errorMessage);
         }
     };
 

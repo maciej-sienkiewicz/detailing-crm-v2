@@ -7,6 +7,7 @@ import { useDamageMapNotifyAvailability } from './useDamageMapNotifyAvailability
 const capability = {
     enabled: true,
     isLoading: false,
+    lockedBySubscription: false,
     missingFeatures: [] as { displayName: string }[],
 };
 const balance = {
@@ -33,6 +34,7 @@ describe('useDamageMapNotifyAvailability', () => {
     beforeEach(() => {
         capability.enabled = true;
         capability.isLoading = false;
+        capability.lockedBySubscription = false;
         capability.missingFeatures = [];
         balance.data = { availableCredits: 25 };
         balance.isLoading = false;
@@ -52,6 +54,18 @@ describe('useDamageMapNotifyAvailability', () => {
         expect(result.canNotify).toBe(false);
         expect(result.channel).toBeNull();
         expect(result.blockedReason).toContain('Komunikacja');
+    });
+
+    it('nieaktywny abonament: powód to abonament, nie „moduł nie jest aktywny"', () => {
+        // useCapability celowo czyści wtedy missingFeatures - studio może mieć moduł w planie.
+        capability.enabled = false;
+        capability.lockedBySubscription = true;
+
+        const result = render('jan@example.com', '534920205');
+
+        expect(result.canNotify).toBe(false);
+        expect(result.blockedReason).toBe('abonament studia nie jest aktywny');
+        expect(result.blockedReason).not.toMatch(/moduł/);
     });
 
     it('mail wygrywa, bo mapa jest załącznikiem', () => {

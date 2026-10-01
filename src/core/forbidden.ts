@@ -26,7 +26,7 @@ const DEFAULT_FORBIDDEN_MESSAGE = 'Nie masz uprawnień do wykonania tej operacji
 
 interface ForbiddenErrorLike {
     response?: { status?: number; data?: { code?: unknown; message?: unknown } };
-    config?: { method?: string };
+    config?: { method?: string; skipErrorToast?: boolean };
 }
 
 export interface ForbiddenReaction {
@@ -45,6 +45,11 @@ export function isSubscriptionInactive(error: unknown): boolean {
  * po prostu nic nie pokazuje). Przy wygasłym abonamencie milczą też mutacje - okno
  * odnowienia, które bramka pokaże po odświeżeniu statusu, mówi, co się stało
  * i co z tym zrobić, a toast pod nim byłby tylko szumem.
+ *
+ * Wywołanie z `skipErrorToast` mówi o błędzie samo (toast z tytułem, komunikat
+ * w oknie) - tak jak przy każdym innym 4xx. Bez tego 403 z takiego wywołania
+ * (np. „tylko właściciel" przy zamówieniu) pokazywało to samo zdanie dwa razy:
+ * gołe stąd i z tytułem od wywołującego. Uprawnienia odświeżamy mimo to.
  */
 export function forbiddenReaction(error: unknown): ForbiddenReaction {
     if (isSubscriptionInactive(error)) {
@@ -53,9 +58,12 @@ export function forbiddenReaction(error: unknown): ForbiddenReaction {
     const e = error as ForbiddenErrorLike | null;
     const method = (e?.config?.method ?? 'get').toLowerCase();
     const isRead = method === 'get' || method === 'head';
+    const handledByCaller = e?.config?.skipErrorToast === true;
     const message = e?.response?.data?.message;
     return {
         event: PERMISSIONS_STALE_EVENT,
-        toastMessage: isRead ? null : (typeof message === 'string' && message ? message : DEFAULT_FORBIDDEN_MESSAGE),
+        toastMessage: isRead || handledByCaller
+            ? null
+            : (typeof message === 'string' && message ? message : DEFAULT_FORBIDDEN_MESSAGE),
     };
 }

@@ -90,9 +90,13 @@ export const newSubscriptionApi = {
     },
 
     // ── Free mutations (no payment) ──────────────────────────────────────────────
-    /** Schedules a downgrade at period end. Upgrades must go through checkout. */
+    /**
+     * Schedules a downgrade at period end. Upgrades must go through checkout.
+     * Okno zmiany planu mówi o błędzie samo - także o 409 DOWNGRADE_ALREADY_PAID
+     * (obniżenie zamrożone opłaconym okresem), którego goły toast nie tłumaczył.
+     */
     changePlan: async (planKey: PlanKey): Promise<EntitlementsResponse> => {
-        const res = await apiClient.post<EntitlementsResponse>(`${BASE}/change-plan`, { planKey });
+        const res = await apiClient.post<EntitlementsResponse>(`${BASE}/change-plan`, { planKey }, { skipErrorToast: true });
         return res.data;
     },
 

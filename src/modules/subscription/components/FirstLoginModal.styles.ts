@@ -141,18 +141,6 @@ export const TrialDesc = styled.div`
     line-height: 1.45;
 `;
 
-export const FreeBadge = styled.div`
-    flex-shrink: 0;
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    padding: 4px 10px;
-    border-radius: 9999px;
-    background: #0ea5e9;
-    color: white;
-`;
-
 // ─── Divider ──────────────────────────────────────────────────────────────────
 
 export const Divider = styled.div`
@@ -185,11 +173,11 @@ export const PlansGrid = styled.div`
     }
 `;
 
+// Plan polecany: obwódka marki na białym tle, bez wypełnienia - jedynym wypełnionym
+// elementem okna jest krok następny (CLAUDE.md §2).
 export const PlanBtn = styled.button<{ $highlighted: boolean; $disabled: boolean }>`
     position: relative;
-    background: ${p => p.$highlighted
-        ? 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)'
-        : '#f8fafc'};
+    background: ${p => p.$highlighted ? '#ffffff' : '#f8fafc'};
     border: 2px solid ${p => p.$highlighted ? '#0ea5e9' : '#e2e8f0'};
     border-radius: 14px;
     padding: 20px;
@@ -205,49 +193,43 @@ export const PlanBtn = styled.button<{ $highlighted: boolean; $disabled: boolean
 
     &:hover:not(:disabled) {
         transform: translateY(-2px);
+        border-color: ${p => p.$highlighted ? '#0284c7' : '#cbd5e1'};
         box-shadow: 0 8px 24px ${p =>
-            p.$highlighted ? 'rgba(14,165,233,0.28)' : 'rgba(15,23,42,0.09)'};
+            p.$highlighted ? 'rgba(14,165,233,0.18)' : 'rgba(15,23,42,0.09)'};
     }
 `;
 
-export const RecommendedBadge = styled.div`
-    position: absolute;
-    top: -1px;
-    right: 14px;
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    background: #f59e0b;
-    color: white;
-    padding: 3px 9px;
-    border-radius: 0 0 8px 8px;
+export const PlanBtnHead = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
 `;
 
-export const PlanBtnName = styled.div<{ $light: boolean }>`
+export const PlanBtnName = styled.div`
     font-size: 12px;
     font-weight: 700;
-    color: ${p => p.$light ? 'rgba(255,255,255,0.8)' : '#64748b'};
+    color: #64748b;
     text-transform: uppercase;
     letter-spacing: 0.06em;
 `;
 
-export const PlanBtnPrice = styled.div<{ $light: boolean }>`
+export const PlanBtnPrice = styled.div`
     font-size: 26px;
     font-weight: 800;
     letter-spacing: -0.8px;
-    color: ${p => p.$light ? 'white' : '#0f172a'};
+    color: #0f172a;
     line-height: 1;
 `;
 
-export const PlanBtnPer = styled.div<{ $light: boolean }>`
+export const PlanBtnPer = styled.div`
     font-size: 12px;
-    color: ${p => p.$light ? 'rgba(255,255,255,0.65)' : '#94a3b8'};
+    color: #94a3b8;
 `;
 
-export const PlanBtnFeatures = styled.div<{ $light: boolean }>`
+export const PlanBtnFeatures = styled.div`
     font-size: 11.5px;
-    color: ${p => p.$light ? 'rgba(255,255,255,0.7)' : '#64748b'};
+    color: #64748b;
     margin-top: 4px;
     line-height: 1.6;
 `;
@@ -273,20 +255,6 @@ export const Spinner = styled.div`
     border-top-color: #0ea5e9;
     border-radius: 50%;
     animation: ${spin} 0.7s linear infinite;
-`;
-
-// ─── Error state ──────────────────────────────────────────────────────────────
-
-export const ErrorNote = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 16px;
-    background: #fef2f2;
-    border: 1px solid #fca5a5;
-    border-radius: 10px;
-    font-size: 13px;
-    color: #dc2626;
 `;
 
 // ─── Custom plan builder ──────────────────────────────────────────────────────
@@ -427,26 +395,6 @@ export const SummaryAmount = styled.div`
     color: #0f172a;
 `;
 
-export const CustomConfirmBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 11px 22px;
-    border-radius: 10px;
-    border: none;
-    background: #0ea5e9;
-    color: white;
-    font-size: 13.5px;
-    font-weight: 700;
-    font-family: inherit;
-    cursor: pointer;
-    transition: background 150ms;
-    white-space: nowrap;
-
-    &:hover:not(:disabled) { background: #0284c7; }
-    &:disabled { opacity: 0.6; cursor: not-allowed; }
-`;
-
 // ─── Base plan line ───────────────────────────────────────────────────────────
 
 export const BasePlanRow = styled.div`
@@ -480,4 +428,10 @@ export const CardFooter = styled.div`
     border-top: 1px solid #f1f5f9;
     background: #fafafa;
     line-height: 1.6;
+`;
+
+export const LogoutRow = styled.div`
+    display: flex;
+    justify-content: center;
+    margin-top: 8px;
 `;

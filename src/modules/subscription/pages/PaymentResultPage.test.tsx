@@ -170,4 +170,33 @@ describe('PaymentResultPage', () => {
         expect(screen.getByText('Brak identyfikatora zamówienia')).toBeTruthy();
         expect(newSubscriptionApi.getOrder).not.toHaveBeenCalled();
     });
+
+    it('wynik jest ogłaszany: porażka i zwrot jako alert, oczekiwanie jako status', async () => {
+        // Strona przechodzi od spinnera do wyniku bez udziału użytkownika - bez regionu
+        // na żywo czytnik ekranu nie mówił, że płatność się nie udała albo że pieniądze wrócą.
+        vi.mocked(newSubscriptionApi.getOrder)
+            .mockResolvedValueOnce(order('PENDING'))
+            .mockResolvedValue(order('REFUND_REQUIRED', { failureReason: 'Moduł był już aktywny' }));
+        renderPage();
+        await advance(0);
+
+        expect(screen.getByRole('status').textContent).toMatch(/Czekamy na potwierdzenie płatności/);
+        expect(screen.queryByRole('alert')).toBeNull();
+
+        await advance(2500);
+        const alert = screen.getByRole('alert');
+        expect(alert.textContent).toMatch(/zakupu nie udało się wprowadzić/);
+        expect(alert.textContent).toMatch(/Zwrócimy pieniądze/);
+        expect(alert.textContent).toMatch(/Powód: Moduł był już aktywny/);
+    });
+
+    it('FAILED ogłaszany jako alert razem z informacją, że nic nie pobrano', async () => {
+        vi.mocked(newSubscriptionApi.getOrder).mockResolvedValue(order('FAILED'));
+        renderPage();
+        await advance(0);
+
+        const alert = screen.getByRole('alert');
+        expect(alert.textContent).toMatch(/Płatność nie powiodła się/);
+        expect(alert.textContent).toMatch(/Żadna kwota nie została pobrana/);
+    });
 });

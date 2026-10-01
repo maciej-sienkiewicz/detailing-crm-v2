@@ -27,7 +27,12 @@
 //   - wyższy plan i moduły (dopłata za resztę okresu) da się kupić tylko w trakcie
 //     okresu - decyduje backendowe `canPurchaseMidPeriod`, nie zgadujemy po statusie;
 //   - „Dezaktywuj" moduł planuje jego wyłączenie na koniec opłaconego okresu, a
-//     „Przywróć" to odwołuje; przedłużenie kosztuje `nextRenewalCostCents`.
+//     „Przywróć" to odwołuje - ale tylko dopóki kolejny okres nie jest opłacony
+//     (`resumable`); przedłużenie kosztuje `nextRenewalCostCents`;
+//   - nic się samo nie odnawia: przy aktywnym planie data to koniec OPŁACONEGO
+//     okresu, a nie dzień, w którym coś zostanie pobrane;
+//   - pakiet kupiony w trakcie okresu próbnego daje ACTIVE z `trialEndsAt` w przyszłości:
+//     opłacony okres zaczyna się z końcem próby i tak go opisujemy.
 
 import { useState } from 'react';
 import styled from 'styled-components';
@@ -50,10 +55,12 @@ import { PlanCard } from '../components/PlanCard';
 import { AddOnCard } from '../components/AddOnCard';
 import { PendingDowngradeBanner } from '../components/PendingDowngradeBanner';
 import { PaymentHistoryTable } from '../components/PaymentHistoryTable';
+import { ADD_ON_RENEWAL_ALREADY_PAID_CODE } from '../types';
 import type { FeaturePlan, AddOnKey, AddOnDto, PlanChangePreview, AddOnPreview, BillingStatus } from '../types';
 import { formatCents, formatDate, monthlyPriceSuffix } from '../utils/formatters';
-import { apiErrorMessage, toastUnhandledError } from '../utils/apiErrors';
-import { checkoutOutcome, describeCheckoutError, UNEXPECTED_CHECKOUT } from '../utils/checkout';
+import { renewalCoverage } from '../utils/renewal';
+import { apiErrorCode, apiErrorMessage, toastUnhandledError } from '../utils/apiErrors';
+import { checkoutOutcome, describeCheckoutError } from '../utils/checkout';
 import {
     PageWrap,
     CardBody,
@@ -80,8 +87,24 @@ const STATUS: Record<BillingStatus, { label: string; tone: PillTone }> = {
 
 const daysLabel = (n: number) => (n === 1 ? '1 dzień' : `${n} dni`);
 
-/** „, zostało 5 dni" - albo nic, gdy backend liczby nie podał. */
+/** „, zostało 5 dni" - albo nic, gdy liczby nie ma. */
 const daysSuffix = (prefix: string, n: number | null) => (n == null ? '' : `, ${prefix} ${daysLabel(n)}`);
+
+const DAY_MS = 86_400_000;
+
+/**
+ * Rozpoczęte dni do końca opłaconego okresu - tak samo liczy je dopłata za resztę
+ * okresu, więc „zostało 19 dni" tutaj i w wycenie modułu to ta sama liczba.
+ *
+ * Nie `daysRemaining` z backendu: przy ACTIVE liczy ono do końca DOSTĘPU, czyli
+ * razem z karencją po końcu okresu. Obok daty końca okresu dawało dwie sprzeczne
+ * liczby („do 20 października, zostało 26 dni" przy 19 dniach okresu).
+ */
+const startedDaysUntil = (iso: string | null, now: number): number | null => {
+    if (!iso) return null;
+    const ms = Date.parse(iso) - now;
+    return Number.isFinite(ms) && ms > 0 ? Math.ceil(ms / DAY_MS) : null;
+};
 
 const Suffix = styled.span`
     font-size: 13px;
@@ -110,9 +133,12 @@ export function SubscriptionSettingsPage() {
     const addOns = useAddOns();
     const checkout = useCheckout();
     const resumeAddOn = useResumeAddOn();
-    const { showSuccess, showError, showInfo } = useToast();
+    const { showSuccess, showError, showInfo, showWarning } = useToast();
 
     const [dialog, setDialog] = useState<DialogState>(null);
+    // Chwila wejścia na stronę: render ma być czysty (react-hooks/purity), a do
+    // opisu okresu dzień w tę czy tamtą nie gra roli.
+    const [now] = useState(() => Date.now());
 
     if (!isOwner) {
         return (
@@ -137,10 +163,22 @@ export function SubscriptionSettingsPage() {
     }
 
     const isExpired = myPlan.billingStatus === 'EXPIRED';
+    // Co da przedłużenie zapłacone teraz - datę liczy backend (po karencji mniej niż 30 dni od dziś).
+    const coverage = renewalCoverage(myPlan);
+    // Wygasł sam okres próbny: studio nigdy nie płaciło, więc nie ma czego „odnawiać".
+    const expiredTrialOnly = isExpired && myPlan.periodEndsAt == null;
     const isTrial = myPlan.billingStatus === 'TRIALING';
-    const isPastDue = myPlan.billingStatus === 'PAST_DUE';
+    // Karencja to także ACTIVE, którego okres właśnie minął, zanim zadanie w tle
+    // przestawi status: backend już wtedy podaje `graceEndsAt` i odmawia zakupów
+    // w trakcie okresu, a baner karencji chowa się na tej stronie, bo liczy na jej
+    // komunikat. Traktowane jako „aktywny" pokazywało „odnowienie" z datą z przeszłości
+    // i liczbą dni do końca karencji - dwie sprzeczne liczby i żadnego wyjaśnienia.
+    const isPastDue = myPlan.billingStatus === 'PAST_DUE'
+        || (myPlan.billingStatus === 'ACTIVE' && myPlan.graceEndsAt != null);
     const isFull = myPlan.plan.key === 'FULL';
-    const status = STATUS[myPlan.billingStatus] ?? { label: myPlan.billingStatus, tone: 'neutral' as PillTone };
+    const status = isPastDue
+        ? STATUS.PAST_DUE
+        : STATUS[myPlan.billingStatus] ?? { label: myPlan.billingStatus, tone: 'neutral' as PillTone };
 
     // Wyższy plan i moduły: tylko w trakcie okresu (próbnego albo opłaconego).
     // Po jego końcu backend odrzuca zakup - najpierw przedłużenie.
@@ -166,10 +204,12 @@ export function SubscriptionSettingsPage() {
                 return;
             }
             if (outcome.kind === 'fulfilled') {
-                showSuccess('Abonament przedłużony', 'Twój plan działa przez kolejne 30 dni.');
+                showSuccess('Abonament przedłużony', coverage
+                    ? `Twój plan działa do ${formatDate(coverage.endsAt)}.`
+                    : 'Twój plan działa przez kolejne 30 dni.');
                 return;
             }
-            showError(UNEXPECTED_CHECKOUT.title, UNEXPECTED_CHECKOUT.message);
+            showError(outcome.copy.title, outcome.copy.message);
         } catch (err: unknown) {
             const copy = describeCheckoutError(err);
             showError(copy.title, copy.message);
@@ -232,6 +272,16 @@ export function SubscriptionSettingsPage() {
             await resumeAddOn.mutateAsync(key);
             showSuccess('Moduł zostaje', `${name} nie wyłączy się z końcem okresu i wejdzie do kolejnej płatności.`);
         } catch (err: unknown) {
+            // Kolejny okres opłacono bez modułu w międzyczasie (np. w drugiej karcie):
+            // to nie awaria, tylko stan, który trzeba wytłumaczyć. Wiersz odświeża
+            // `onSettled` i sam pokaże, od kiedy moduł da się dokupić.
+            if (apiErrorCode(err) === ADD_ON_RENEWAL_ALREADY_PAID_CODE) {
+                showWarning(
+                    'Nie da się już przywrócić modułu',
+                    apiErrorMessage(err) ?? `Kolejny okres opłacono już bez modułu ${name}.`,
+                );
+                return;
+            }
             toastUnhandledError(showError, err, 'Nie udało się przywrócić modułu', 'Spróbuj ponownie za chwilę.');
         }
     };
@@ -243,13 +293,25 @@ export function SubscriptionSettingsPage() {
     const sortedPlans = [...(featurePlans.data ?? [])].sort((a, b) => a.displayOrder - b.displayOrder);
     const monthlySuffix = monthlyPriceSuffix(myPlan.monthlyCostCents);
 
+    // Pakiet kupiony w trakcie próby: płatny okres biegnie dopiero od jej końca. Status
+    // jest ACTIVE, więc żadnego „okresu próbnego" w plakietce - tylko uczciwe daty.
+    const paidPeriodStartsAt = !isTrial && !isPastDue && !isExpired && myPlan.trialEndsAt
+        && Date.parse(myPlan.trialEndsAt) > now
+        ? myPlan.trialEndsAt
+        : null;
+
     const periodDetails = isExpired
-        ? `wygasł ${formatDate(myPlan.periodEndsAt)}`
+        ? myPlan.periodEndsAt
+            ? `wygasł ${formatDate(myPlan.periodEndsAt)}`
+            : myPlan.trialEndsAt ? `okres próbny skończył się ${formatDate(myPlan.trialEndsAt)}` : 'wygasł'
         : isPastDue
             ? `okres minął ${formatDate(myPlan.periodEndsAt)}${myPlan.graceEndsAt ? `, dostęp do ${formatDate(myPlan.graceEndsAt)}` : ''}`
             : isTrial && myPlan.trialEndsAt
                 ? `okres próbny do ${formatDate(myPlan.trialEndsAt)}${daysSuffix('zostało', myPlan.daysRemaining)}`
-                : `odnowienie ${formatDate(myPlan.periodEndsAt)}${daysSuffix('za', myPlan.daysRemaining)}`;
+                : paidPeriodStartsAt
+                    ? `opłacony od ${formatDate(paidPeriodStartsAt)} do ${formatDate(myPlan.periodEndsAt)}`
+                    // Nie „odnowienie": nic nie pobiera się samo, data to koniec opłaconego okresu.
+                    : `opłacony do ${formatDate(myPlan.periodEndsAt)}${daysSuffix('zostało', startedDaysUntil(myPlan.periodEndsAt, now))}`;
 
     // Kolejny okres kosztuje inaczej niż bieżący (czeka obniżenie planu albo moduł
     // się wyłączy) - mówimy to przy kwocie, żeby przycisk przedłużenia nie zaskoczył.
@@ -275,12 +337,19 @@ export function SubscriptionSettingsPage() {
             {isExpired && (
                 <Notice
                     tone="danger"
-                    title="Abonament wygasł"
+                    title={expiredTrialOnly ? 'Okres próbny się skończył' : 'Abonament wygasł'}
                     role="alert"
-                    action={renewButton(renewalAmount ? `Odnów za ${renewalAmount}` : 'Odnów abonament')}
+                    action={expiredTrialOnly
+                        ? renewButton(renewalAmount ? `Opłać za ${renewalAmount}` : 'Opłać abonament')
+                        : renewButton(renewalAmount ? `Odnów za ${renewalAmount}` : 'Odnów abonament')}
                 >
-                    Odnów plan, żeby wrócić do pełnego dostępu. Płatność przez Przelewy24 obejmuje
-                    kolejne 30 dni{renewalAmount ? `, ${renewalAmount} brutto` : ''}.
+                    {expiredTrialOnly ? 'Opłać plan' : 'Odnów plan'}, żeby wrócić do pełnego dostępu.
+                    {coverage
+                        ? <> Płatność przez Przelewy24{renewalAmount ? ` (${renewalAmount} brutto)` : ''} daje dostęp do {formatDate(coverage.endsAt)}.</>
+                        : <> Płatność przez Przelewy24 obejmuje kolejne 30 dni{renewalAmount ? `, ${renewalAmount} brutto` : ''}.</>}
+                    {coverage?.includesUsedGrace && (
+                        <> Okres obejmuje dni karencji wykorzystane po {formatDate(myPlan.periodEndsAt)}, dlatego od dziś zostaje mniej niż 30 dni.</>
+                    )}
                 </Notice>
             )}
 
@@ -347,20 +416,35 @@ export function SubscriptionSettingsPage() {
                                                 {formatCents(addOn.monthlyPriceGrossCents)}
                                                 {monthlyPriceSuffix(addOn.monthlyPriceGrossCents) ? ` ${monthlyPriceSuffix(addOn.monthlyPriceGrossCents)}` : ''}
                                             </span>
+                                            {addOn.cancelAt && (addOn.resumable ? (
+                                                // Przedłużenie opłacone bez modułu zamyka drogę powrotu -
+                                                // przycisk przedłużenia w nagłówku o tym nie mówi, więc wiersz tak.
+                                                <span>Przywrócisz go, dopóki nie opłacisz kolejnego okresu.</span>
+                                            ) : (
+                                                // Bez tego zdania wiersz wyglądałby jak błąd: plakietka
+                                                // jest, a drogi powrotu nie ma.
+                                                <span>
+                                                    Kolejny okres opłacono już bez tego modułu, od {formatDate(addOn.cancelAt)} dokupisz go ponownie.
+                                                </span>
+                                            ))}
                                         </AddOnRowText>
                                         {addOn.cancelAt ? (
                                             // Wyłączenie zaplanowane: data jako plakietka obok, nie
                                             // doklejona kropką do ceny; cofnięcie bez wypełnienia.
+                                            // „Przywróć" tylko, gdy backend je przyjmie: po opłaceniu
+                                            // kolejnego okresu bez modułu kończyło się zawsze 409.
                                             <AddOnRowSide>
                                                 <StatusPill $tone="warn">Wyłączy się {formatDate(addOn.cancelAt)}</StatusPill>
-                                                <Button
-                                                    variant="tinted"
-                                                    size="sm"
-                                                    disabled={isExpired || resumeAddOn.isPending}
-                                                    onClick={() => handleResumeAddOn(addOn.key, addOn.name)}
-                                                >
-                                                    Przywróć
-                                                </Button>
+                                                {addOn.resumable && (
+                                                    <Button
+                                                        variant="tinted"
+                                                        size="sm"
+                                                        disabled={isExpired || resumeAddOn.isPending}
+                                                        onClick={() => handleResumeAddOn(addOn.key, addOn.name)}
+                                                    >
+                                                        Przywróć
+                                                    </Button>
+                                                )}
                                             </AddOnRowSide>
                                         ) : (
                                             // Wyłączenie da się cofnąć do końca okresu, więc bez

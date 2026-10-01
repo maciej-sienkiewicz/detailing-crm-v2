@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useToast } from '@/common/components/Toast';
+import { Button, Notice, StatusPill } from '@/common/components/ui';
 import { acquireScrollLock } from '@/common/utils/scrollLock';
 import { useFeaturePlans, useAddOns, useStartTrial, useCheckout } from '../api/subscriptionQueries';
 import { newSubscriptionApi } from '../api/subscriptionApi';
 import type { FeaturePlan, AddOnDto, AddOnKey, PlanKey, CalculatePriceResponse, CheckoutRequest } from '../types';
 import { formatCents, featureLabel } from '../utils/formatters';
-import { checkoutOutcome, describeCheckoutError, UNEXPECTED_CHECKOUT } from '../utils/checkout';
+import { checkoutOutcome, describeCheckoutError } from '../utils/checkout';
+import { useLogout } from '@/modules/auth';
 import {
     Overlay,
     Card,
@@ -22,19 +24,18 @@ import {
     TrialInfo,
     TrialTitle,
     TrialDesc,
-    FreeBadge,
     Divider,
     PlansGrid,
     PlanBtn,
-    RecommendedBadge,
+    PlanBtnHead,
     PlanBtnName,
     PlanBtnPrice,
     PlanBtnPer,
     PlanBtnFeatures,
     LoadingOverlay,
     Spinner,
-    ErrorNote,
     CardFooter,
+    LogoutRow,
     CustomToggle,
     CustomPanel,
     CustomPanelHeader,
@@ -51,7 +52,6 @@ import {
     SummaryPrice,
     SummaryLabel,
     SummaryAmount,
-    CustomConfirmBtn,
 } from './FirstLoginModal.styles';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -68,15 +68,6 @@ const GiftIcon = () => (
         strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="8" width="18" height="13" rx="2" />
         <path d="M12 8V21M19 8A4 4 0 0 0 11 5a4 4 0 0 0-8 3" />
-    </svg>
-);
-
-const AlertIcon = () => (
-    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" />
-        <line x1="12" y1="8" x2="12" y2="12" />
-        <line x1="12" y1="16" x2="12.01" y2="16" />
     </svg>
 );
 
@@ -123,6 +114,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
     const [error, setError] = useState<string | null>(null);
 
     const [customOpen, setCustomOpen] = useState(false);
+    const logout = useLogout();
     const [selectedAddOns, setSelectedAddOns] = useState<Set<AddOnKey>>(new Set());
     const [customPrice, setCustomPrice] = useState<CalculatePriceResponse | null>(null);
     const [priceLoading, setPriceLoading] = useState(false);
@@ -188,8 +180,8 @@ export function FirstLoginModal({ trialUsed }: Props) {
                 return;
             }
             if (outcome.kind === 'fulfilled') return;
-            setError(UNEXPECTED_CHECKOUT.message);
-            showError(UNEXPECTED_CHECKOUT.title, UNEXPECTED_CHECKOUT.message);
+            setError(outcome.copy.message);
+            showError(outcome.copy.title, outcome.copy.message);
             setPhase('idle');
         } catch (err: unknown) {
             const copy = describeCheckoutError(err, 'Nie udało się aktywować planu');
@@ -252,12 +244,10 @@ export function FirstLoginModal({ trialUsed }: Props) {
 
                     {!isPending && !plansLoading && (
                         <CardBody>
-                            {error && (
-                                <ErrorNote>
-                                    <AlertIcon />
-                                    {error}
-                                </ErrorNote>
-                            )}
+                            {/* role="alert": błąd pojawia się tuż po zniknięciu spinnera, kiedy
+                                fokus przepadł razem z klikniętym przyciskiem - bez ogłoszenia
+                                czytnik ekranu nie mówi nic. */}
+                            {error && <Notice tone="danger" role="alert">{error}</Notice>}
 
                             {!trialUsed && (
                                 <TrialSection>
@@ -270,7 +260,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
                                                 Pełny dostęp do wszystkich funkcji. Bez karty kredytowej, bez zobowiązań.
                                             </TrialDesc>
                                         </TrialInfo>
-                                        <FreeBadge>Gratis</FreeBadge>
+                                        <StatusPill $tone="ok">Gratis</StatusPill>
                                     </TrialCard>
                                 </TrialSection>
                             )}
@@ -284,25 +274,31 @@ export function FirstLoginModal({ trialUsed }: Props) {
                                     <SectionLabel>
                                         {trialUsed ? 'Wybierz plan' : 'Gotowe pakiety'}
                                     </SectionLabel>
+                                    {/* Plan polecany wyróżnia obwódka marki i plakietka, nie
+                                        wypełnienie: wypełniony gradient był drugim (a przy otwartym
+                                        własnym pakiecie trzecim) nasyconym blokiem w oknie i udawał,
+                                        że krokiem następnym jest zakup FULL - choć obok stoi
+                                        bezpłatny okres próbny (CLAUDE.md §2). */}
                                     <PlansGrid>
                                         {sortedPlans.map(plan => {
                                             const isHighlighted = plan.key === 'FULL';
                                             return (
                                                 <PlanBtn
                                                     key={plan.key}
+                                                    type="button"
                                                     $highlighted={isHighlighted}
                                                     $disabled={false}
                                                     onClick={() => handleSelectPlan(plan.key)}
                                                 >
-                                                    {isHighlighted && (
-                                                        <RecommendedBadge>Polecany</RecommendedBadge>
-                                                    )}
-                                                    <PlanBtnName $light={isHighlighted}>{plan.name}</PlanBtnName>
-                                                    <PlanBtnPrice $light={isHighlighted}>
+                                                    <PlanBtnHead>
+                                                        <PlanBtnName>{plan.name}</PlanBtnName>
+                                                        {isHighlighted && <StatusPill $tone="info">Polecany</StatusPill>}
+                                                    </PlanBtnHead>
+                                                    <PlanBtnPrice>
                                                         {formatCents(plan.monthlyPriceGrossCents)}
                                                     </PlanBtnPrice>
-                                                    <PlanBtnPer $light={isHighlighted}>/ miesiąc</PlanBtnPer>
-                                                    <PlanBtnFeatures $light={isHighlighted}>
+                                                    <PlanBtnPer>/ miesiąc</PlanBtnPer>
+                                                    <PlanBtnFeatures>
                                                         {planFeatureSummary(plan)}
                                                     </PlanBtnFeatures>
                                                 </PlanBtn>
@@ -383,12 +379,16 @@ export function FirstLoginModal({ trialUsed }: Props) {
                                                                 : 'Cena do ustalenia'}
                                                     </SummaryAmount>
                                                 </SummaryPrice>
-                                                <CustomConfirmBtn
+                                                {/* Otwarty panel własnego pakietu przejmuje okno: jego
+                                                    „Przejdź do płatności" jest wtedy krokiem następnym
+                                                    i jedynym wypełnieniem. */}
+                                                <Button
+                                                    variant="primary"
                                                     onClick={handleCustomConfirm}
                                                     disabled={priceLoading}
                                                 >
                                                     Przejdź do płatności
-                                                </CustomConfirmBtn>
+                                                </Button>
                                             </CustomSummary>
                                         </CustomPanel>
                                     )}
@@ -401,6 +401,13 @@ export function FirstLoginModal({ trialUsed }: Props) {
                         Bezpieczne płatności online obsługuje Przelewy24. Możliwość anulowania w dowolnym momencie.
                         <br />
                         Masz pytania? Napisz do nas: <strong>pomoc@detailboost.pl</strong>
+                        {/* Okno zasłania całą aplikację, razem z menu i jego „Wyloguj". Bez
+                            wypełnienia - nie konkuruje z wyborem planu. */}
+                        <LogoutRow>
+                            <Button variant="ghost" size="sm" onClick={() => logout.mutate()} disabled={logout.isPending}>
+                                Wyloguj
+                            </Button>
+                        </LogoutRow>
                     </CardFooter>
                 </Card>
             </Overlay>

@@ -80,6 +80,20 @@ const IconCircle = styled.div<{ $bg: string }>`
     justify-content: center;
 `;
 
+/**
+ * Tytuł i opis stanu jako jeden komunikat dla czytnika ekranu. Strona przechodzi
+ * od spinnera do wyniku bez udziału użytkownika - bez regionu na żywo osoba
+ * niewidoma nie dowiadywała się ani o porażce, ani o tym, że pieniądze pobrano
+ * i wrócą. Porażka i zwrot to `alert`, oczekiwanie to `status`.
+ */
+const Message = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+`;
+
 const Title = styled.h2`
     margin: 0;
     font-size: 20px;
@@ -226,10 +240,12 @@ export function PaymentResultPage() {
                 {state === 'polling' && (
                     <>
                         <Spinner />
-                        <Title>Czekamy na potwierdzenie płatności</Title>
-                        <Text>
-                            Przelewy24 potwierdza wpłatę zwykle w kilka sekund. Nie zamykaj tej strony.
-                        </Text>
+                        <Message role="status">
+                            <Title>Czekamy na potwierdzenie płatności</Title>
+                            <Text>
+                                Przelewy24 potwierdza wpłatę zwykle w kilka sekund. Nie zamykaj tej strony.
+                            </Text>
+                        </Message>
                         {order && <Amount>{order.description}: {formatCents(order.amountCents)}</Amount>}
                     </>
                 )}
@@ -237,10 +253,12 @@ export function PaymentResultPage() {
                 {state === 'activating' && (
                     <>
                         <Spinner />
-                        <Title>Płatność przyjęta, aktywujemy zmiany</Title>
-                        <Text>
-                            Wpłata dotarła. Wprowadzamy zakup na Twoje konto, to potrwa jeszcze chwilę.
-                        </Text>
+                        <Message role="status">
+                            <Title>Płatność przyjęta, aktywujemy zmiany</Title>
+                            <Text>
+                                Wpłata dotarła. Wprowadzamy zakup na Twoje konto, to potrwa jeszcze chwilę.
+                            </Text>
+                        </Message>
                         {order && <Amount>{order.description}: {formatCents(order.amountCents)}</Amount>}
                     </>
                 )}
@@ -248,11 +266,13 @@ export function PaymentResultPage() {
                 {state === 'fulfilled' && (
                     <>
                         <IconCircle $bg="#d1fae5"><CheckIcon /></IconCircle>
-                        <Title>Płatność zakończona, zmiany są aktywne</Title>
-                        <Text>
-                            {order?.typeDisplayName}: {order?.description}. Twoje konto zostało
-                            zaktualizowane, możesz wrócić do pracy.
-                        </Text>
+                        <Message role="status">
+                            <Title>Płatność zakończona, zmiany są aktywne</Title>
+                            <Text>
+                                {order?.typeDisplayName}: {order?.description}. Twoje konto zostało
+                                zaktualizowane, możesz wrócić do pracy.
+                            </Text>
+                        </Message>
                         {order && <Amount>{formatCents(order.amountCents)}</Amount>}
                         <Actions>
                             <Button variant="primary" size="lg" block onClick={goToApp}>Przejdź do aplikacji</Button>
@@ -263,9 +283,11 @@ export function PaymentResultPage() {
                 {state === 'failed' && (
                     <>
                         <IconCircle $bg="#fee2e2"><CrossIcon /></IconCircle>
-                        <Title>Płatność nie powiodła się</Title>
-                        <Text>{order?.failureReason ?? 'Transakcja została odrzucona lub anulowana.'}</Text>
-                        <Text>Żadna kwota nie została pobrana, możesz spróbować ponownie.</Text>
+                        <Message role="alert">
+                            <Title>Płatność nie powiodła się</Title>
+                            <Text>{order?.failureReason ?? 'Transakcja została odrzucona lub anulowana.'}</Text>
+                            <Text>Żadna kwota nie została pobrana, możesz spróbować ponownie.</Text>
+                        </Message>
                         <Actions>
                             <Button variant="primary" size="lg" block onClick={goToApp}>Wróć do ustawień</Button>
                         </Actions>
@@ -275,13 +297,15 @@ export function PaymentResultPage() {
                 {state === 'refund' && (
                     <>
                         <IconCircle $bg="#fef3c7"><AlertIcon /></IconCircle>
-                        <Title>Płatność przyjęta, ale zakupu nie udało się wprowadzić</Title>
-                        <Text>
-                            Pobraliśmy {order ? formatCents(order.amountCents) : 'kwotę'}, ale tego zakupu nie dało się
-                            dodać do Twojego konta. Zwrócimy pieniądze, nie musisz nic robić. W razie pytań napisz
-                            do nas: pomoc@detailboost.pl, podając numer zamówienia {order?.orderId ?? orderId}.
-                        </Text>
-                        {order?.failureReason && <Reason>Powód: {order.failureReason}</Reason>}
+                        <Message role="alert">
+                            <Title>Płatność przyjęta, ale zakupu nie udało się wprowadzić</Title>
+                            <Text>
+                                Pobraliśmy {order ? formatCents(order.amountCents) : 'kwotę'}, ale tego zakupu nie dało się
+                                dodać do Twojego konta. Zwrócimy pieniądze, nie musisz nic robić. W razie pytań napisz
+                                do nas: pomoc@detailboost.pl, podając numer zamówienia {order?.orderId ?? orderId}.
+                            </Text>
+                            {order?.failureReason && <Reason>Powód: {order.failureReason}</Reason>}
+                        </Message>
                         <Actions>
                             <Button variant="primary" size="lg" block onClick={goToApp}>Wróć do ustawień</Button>
                         </Actions>
@@ -291,11 +315,13 @@ export function PaymentResultPage() {
                 {state === 'timeout' && (
                     <>
                         <IconCircle $bg="#fef3c7"><Spinner /></IconCircle>
-                        <Title>Płatność wciąż jest przetwarzana</Title>
-                        <Text>
-                            Nie otrzymaliśmy jeszcze potwierdzenia z Przelewy24. Jeśli środki zostały
-                            pobrane, dostęp zostanie aktywowany automatycznie w ciągu kilku minut.
-                        </Text>
+                        <Message role="status">
+                            <Title>Płatność wciąż jest przetwarzana</Title>
+                            <Text>
+                                Nie otrzymaliśmy jeszcze potwierdzenia z Przelewy24. Jeśli środki zostały
+                                pobrane, dostęp zostanie aktywowany automatycznie w ciągu kilku minut.
+                            </Text>
+                        </Message>
                         <Actions>
                             <Button variant="primary" size="lg" block onClick={goToApp}>Wróć do aplikacji</Button>
                         </Actions>
@@ -305,11 +331,13 @@ export function PaymentResultPage() {
                 {state === 'activation-timeout' && (
                     <>
                         <IconCircle $bg="#fef3c7"><Spinner /></IconCircle>
-                        <Title>Płatność przyjęta, aktywacja trwa dłużej niż zwykle</Title>
-                        <Text>
-                            Wpłata jest potwierdzona, nie płać drugi raz. Zmiany pojawią się na koncie
-                            automatycznie. Odśwież tę stronę za chwilę, żeby sprawdzić stan zamówienia.
-                        </Text>
+                        <Message role="status">
+                            <Title>Płatność przyjęta, aktywacja trwa dłużej niż zwykle</Title>
+                            <Text>
+                                Wpłata jest potwierdzona, nie płać drugi raz. Zmiany pojawią się na koncie
+                                automatycznie. Odśwież tę stronę za chwilę, żeby sprawdzić stan zamówienia.
+                            </Text>
+                        </Message>
                         {order && <Amount>{order.description}: {formatCents(order.amountCents)}</Amount>}
                         <Actions>
                             <Button variant="primary" size="lg" block onClick={reload}>Odśwież stan zamówienia</Button>
@@ -321,8 +349,10 @@ export function PaymentResultPage() {
                 {state === 'missing' && (
                     <>
                         <IconCircle $bg="#fee2e2"><CrossIcon /></IconCircle>
-                        <Title>Brak identyfikatora zamówienia</Title>
-                        <Text>Ten adres jest niekompletny. Wróć do aplikacji i spróbuj ponownie.</Text>
+                        <Message role="alert">
+                            <Title>Brak identyfikatora zamówienia</Title>
+                            <Text>Ten adres jest niekompletny. Wróć do aplikacji i spróbuj ponownie.</Text>
+                        </Message>
                         <Actions>
                             <Button variant="primary" size="lg" block onClick={goToApp}>Wróć do aplikacji</Button>
                         </Actions>

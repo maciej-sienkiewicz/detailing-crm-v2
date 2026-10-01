@@ -20,10 +20,12 @@ export const useEntitlements = () => {
     });
 };
 
-export const useMyPlan = () => {
+/** `enabled: false` dla pracownika: my-plan jest tylko dla właściciela (403). */
+export const useMyPlan = (options: { enabled?: boolean } = {}) => {
     return useQuery({
         queryKey: MY_PLAN_KEY,
         queryFn: newSubscriptionApi.getMyPlan,
+        enabled: options.enabled ?? true,
     });
 };
 
@@ -90,7 +92,9 @@ export const useChangePlan = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (planKey: PlanKey) => newSubscriptionApi.changePlan(planKey),
-        onSuccess: () => invalidateSubscriptionData(queryClient),
+        // Także po 409 DOWNGRADE_ALREADY_PAID: zamrożone obniżenie ma się pokazać
+        // takim, jakie jest, a nie takim, jakie było przed kliknięciem.
+        onSettled: () => invalidateSubscriptionData(queryClient),
     });
 };
 

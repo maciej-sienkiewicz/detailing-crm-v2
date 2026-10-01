@@ -4,6 +4,7 @@ import { apiErrorMessage, apiErrorStatus } from '../api/apiError';
 import { visitDetailQueryKey } from './index';
 import { useVisitStateConflict } from './useVisitStateConflict';
 import { useToast } from '@/common/components/Toast';
+import { isSubscriptionInactive } from '@/core/forbidden';
 import type { NotificationChannels } from '../types/stateTransitions';
 
 /**
@@ -45,6 +46,10 @@ export const useMarkReady = (visitId: string, onSuccess?: () => void) => {
                 onSuccess?.();
                 return;
             }
+            // Abonament wygasł w trakcie pracy: bramka abonamentu pokaże okno odnowienia
+            // (albo jeden toast, gdy status jeszcze się nie zmienił) - „Nie udało się
+            // zmienić statusu" pod nim mówiłoby co innego niż prawdziwy powód.
+            if (isSubscriptionInactive(error)) return;
             if (apiErrorStatus(error) === 402) {
                 // The dialog now pre-checks credits, so this is the narrow race where the
                 // balance ran out between opening it and confirming. Name the exact place
@@ -53,6 +58,10 @@ export const useMarkReady = (visitId: string, onSuccess?: () => void) => {
                     'Brak kredytów SMS',
                     apiErrorMessage(error, 'Status zmieniony bez SMS-a. Doładuj kredyty w Ustawienia → Kredyty SMS i AI.')
                 );
+            } else if (apiErrorStatus(error) === 403) {
+                // Wywołanie idzie z `skipErrorToast`, więc 403 nie ma już gołego toastu
+                // z interceptora - powód z backendu („brak uprawnień…") pokazujemy tutaj.
+                showError('Błąd', apiErrorMessage(error, 'Nie udało się zmienić statusu wizyty.'));
             } else {
                 showError('Błąd', 'Nie udało się zmienić statusu wizyty.');
             }

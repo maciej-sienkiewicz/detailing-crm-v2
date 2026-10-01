@@ -46,7 +46,7 @@ vi.mock('@/modules/settings/api/subscriptionApi', () => ({
 const plan = (overrides: Partial<MyPlanResponse> = {}): MyPlanResponse => ({
     billingStatus: 'ACTIVE',
     plan: { key: 'BASIC', name: 'Basic', monthlyPriceGrossCents: 12300 },
-    activeAddOns: [{ key: 'CLIENT_COMMUNICATION', name: 'Komunikacja', monthlyPriceGrossCents: 4900, cancelAt: null }],
+    activeAddOns: [{ key: 'CLIENT_COMMUNICATION', name: 'Komunikacja', monthlyPriceGrossCents: 4900, cancelAt: null, resumable: false }],
     pendingDowngrade: null,
     periodEndsAt: '2026-10-20T10:00:00Z',
     trialEndsAt: null,
@@ -132,11 +132,39 @@ describe('SubscriptionSettingsPage', () => {
         await screen.findByText('Plan Basic');
         expect(renewButtons()).toHaveLength(1);
         expect(renewButtons()[0].textContent?.replace(/\s/g, ' ')).toMatch(/Przedłuż o 30 dni za 172,00 zł/);
+        // Nic nie odnawia się samo: data to koniec opłaconego okresu, nie dzień pobrania.
+        expect(screen.getByText(/opłacony do 20 października 2026/)).toBeTruthy();
+        expect(screen.queryByText(/odnowienie/i)).toBeNull();
+    });
+
+    it('dni do końca okresu liczone od jego daty, nie z daysRemaining (to liczy też karencję)', async () => {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(new Date('2026-10-01T10:00:00Z'));
+        try {
+            // daysRemaining 26 = 19 dni okresu + 7 dni karencji: obok daty końca okresu kłamie.
+            vi.mocked(newSubscriptionApi.getMyPlan).mockResolvedValue(plan({ daysRemaining: 26 }));
+            renderPage();
+            expect(await screen.findByText(/opłacony do 20 października 2026, zostało 19 dni/)).toBeTruthy();
+            expect(screen.queryByText(/26 dni/)).toBeNull();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('pakiet kupiony w trakcie próby (ACTIVE z przyszłym trialEndsAt): bez okresu próbnego, opłacony okres od końca próby', async () => {
+        vi.mocked(newSubscriptionApi.getMyPlan).mockResolvedValue(plan({
+            trialEndsAt: '2099-01-10T10:00:00Z',
+            periodEndsAt: '2099-02-09T10:00:00Z',
+        }));
+        renderPage();
+        expect(await screen.findByText(/opłacony od 10 stycznia 2099 do 9 lutego 2099/)).toBeTruthy();
+        expect(screen.getByText('Aktywny')).toBeTruthy();
+        expect(screen.queryByText(/okres próbny/i)).toBeNull();
     });
 
     it('kwota przedłużenia to cena KOLEJNEGO okresu, nie dzisiejsza suma', async () => {
         vi.mocked(newSubscriptionApi.getMyPlan).mockResolvedValue(plan({
-            activeAddOns: [{ key: 'CLIENT_COMMUNICATION', name: 'Komunikacja', monthlyPriceGrossCents: 4900, cancelAt: '2026-10-20T10:00:00Z' }],
+            activeAddOns: [{ key: 'CLIENT_COMMUNICATION', name: 'Komunikacja', monthlyPriceGrossCents: 4900, cancelAt: '2026-10-20T10:00:00Z', resumable: true }],
             nextRenewalCostCents: 12300,
         }));
         renderPage();
@@ -174,6 +202,26 @@ describe('SubscriptionSettingsPage', () => {
         expect(assign).toHaveBeenCalledWith('https://sandbox.przelewy24.pl/trnRequest/abc');
     });
 
+    it('ACTIVE tuż po końcu okresu (graceEndsAt już jest): karencja, nie „aktywny"', async () => {
+        // Zadanie w tle jeszcze nie przestawiło statusu, a baner karencji chowa się na
+        // tej stronie - bez tego nikt nie mówił, że okres minął.
+        vi.mocked(newSubscriptionApi.getMyPlan).mockResolvedValue(plan({
+            billingStatus: 'ACTIVE',
+            periodEndsAt: '2026-09-28T10:00:00Z',
+            graceEndsAt: '2026-10-05T10:00:00Z',
+            daysRemaining: 4,
+            canPurchaseMidPeriod: false,
+        }));
+        renderPage();
+
+        expect(await screen.findByText('Opłacony okres minął 28 września 2026')).toBeTruthy();
+        expect(screen.getByText(/Pełny dostęp działa jeszcze do 5 października 2026/)).toBeTruthy();
+        expect(screen.getByText('Do przedłużenia')).toBeTruthy();
+        expect(screen.queryByText('Aktywny')).toBeNull();
+        expect(renewButtons()).toHaveLength(1);
+        expect(screen.queryByRole('button', { name: /Przedłuż o 30 dni/ })).toBeNull();
+    });
+
     it('bez trwającego okresu: wyższy plan i moduły czekają na przedłużenie', async () => {
         vi.mocked(newSubscriptionApi.getMyPlan).mockResolvedValue(plan({
             billingStatus: 'PAST_DUE',
@@ -195,6 +243,20 @@ describe('SubscriptionSettingsPage', () => {
         renderPage();
         expect(await screen.findByText('Abonament wygasł')).toBeTruthy();
         expect(renewButtons()).toHaveLength(1);
+    });
+
+    it('wygasł sam okres próbny: bez „wygasł -" i bez odnawiania czegoś, czego nie było', async () => {
+        vi.mocked(newSubscriptionApi.getMyPlan).mockResolvedValue(plan({
+            billingStatus: 'EXPIRED', periodEndsAt: null, trialEndsAt: '2026-09-25T10:00:00Z',
+            daysRemaining: null, canPurchaseMidPeriod: false,
+        }));
+        renderPage();
+        expect(await screen.findByText('Okres próbny się skończył')).toBeTruthy();
+        expect(screen.getByText(/okres próbny skończył się 25 września 2026/)).toBeTruthy();
+        expect(screen.queryByText(/wygasł -/)).toBeNull();
+        // Jedyny przycisk płatności: „Opłać", nie „Odnów"/„Przedłuż" czegoś, czego nie było.
+        expect(screen.getAllByRole('button', { name: /Opłać za 172,00/ })).toHaveLength(1);
+        expect(renewButtons()).toHaveLength(0);
     });
 
     it('przedłużenie FULFILLED bez adresu płatności: sukces bez przekierowania', async () => {
@@ -226,6 +288,19 @@ describe('SubscriptionSettingsPage', () => {
 
         expect(await screen.findByText('Płatności są chwilowo niedostępne')).toBeTruthy();
         expect(screen.queryByText('Payment gateway not configured')).toBeNull();
+    });
+
+    it('409 CHECKOUT_IN_PROGRESS przy przedłużeniu: zdanie backendu, nie „nie udało się"', async () => {
+        vi.mocked(newSubscriptionApi.checkout).mockRejectedValue({
+            response: { status: 409, data: { code: 'CHECKOUT_IN_PROGRESS', message: 'Płatność za ten zakup jest właśnie przygotowywana. Spróbuj ponownie za chwilę.' } },
+            config: { skipErrorToast: true },
+        });
+        renderPage();
+        await userEvent.click(await screen.findByRole('button', { name: /Przedłuż o 30 dni/ }));
+
+        expect(await screen.findByText('Płatność jest już przygotowywana')).toBeTruthy();
+        expect(screen.getByText('Płatność za ten zakup jest właśnie przygotowywana. Spróbuj ponownie za chwilę.')).toBeTruthy();
+        expect(screen.queryByText('Nie udało się rozpocząć płatności')).toBeNull();
     });
 
     it('nieudana wycena planu: toast zamiast cichego zamknięcia okna', async () => {
@@ -312,7 +387,11 @@ describe('SubscriptionSettingsPage', () => {
 
         expect(newSubscriptionApi.deactivateAddOn).not.toHaveBeenCalled();
         expect(await screen.findByText('Wyłączyć moduł Komunikacja z końcem okresu?')).toBeTruthy();
-        expect(screen.getByText(/do 20 października 2026/)).toBeTruthy();
+        // Treść okna, nie pasek „opłacony do 20 października 2026" za nim.
+        expect(screen.getByText(/Moduł działa do końca opłaconego okresu, do 20 października 2026/)).toBeTruthy();
+        // Cofnąć da się do opłacenia kolejnego okresu, nie „do tego dnia".
+        expect(screen.getByText(/dopóki nie opłacisz kolejnego okresu/)).toBeTruthy();
+        expect(screen.queryByText(/Do tego dnia możesz to cofnąć/)).toBeNull();
         await userEvent.click(screen.getByRole('button', { name: 'Wyłącz z końcem okresu' }));
         await waitFor(() => expect(newSubscriptionApi.deactivateAddOn).toHaveBeenCalledWith('CLIENT_COMMUNICATION'));
         expect(await screen.findByText('Moduł wyłączy się 20 października 2026')).toBeTruthy();
@@ -332,7 +411,7 @@ describe('SubscriptionSettingsPage', () => {
 
     it('moduł z zaplanowanym wyłączeniem: data w plakietce i „Przywróć" zamiast „Dezaktywuj"', async () => {
         vi.mocked(newSubscriptionApi.getMyPlan).mockResolvedValue(plan({
-            activeAddOns: [{ key: 'CLIENT_COMMUNICATION', name: 'Komunikacja', monthlyPriceGrossCents: 4900, cancelAt: '2026-10-20T10:00:00Z' }],
+            activeAddOns: [{ key: 'CLIENT_COMMUNICATION', name: 'Komunikacja', monthlyPriceGrossCents: 4900, cancelAt: '2026-10-20T10:00:00Z', resumable: true }],
             nextRenewalCostCents: 12300,
         }));
         vi.mocked(newSubscriptionApi.resumeAddOn).mockResolvedValue({} as never);
@@ -340,6 +419,8 @@ describe('SubscriptionSettingsPage', () => {
 
         expect(await screen.findByText('Wyłączy się 20 października 2026')).toBeTruthy();
         expect(screen.queryByRole('button', { name: 'Dezaktywuj' })).toBeNull();
+        // Przedłużenie bez modułu zamyka drogę powrotu - wiersz mówi to przed kliknięciem.
+        expect(screen.getByText(/dopóki nie opłacisz kolejnego okresu/)).toBeTruthy();
         const resume = screen.getByRole('button', { name: 'Przywróć' });
         expect(resume.getAttribute('data-variant')).not.toBe('primary');
 
@@ -348,6 +429,41 @@ describe('SubscriptionSettingsPage', () => {
         expect(await screen.findByText('Moduł zostaje')).toBeTruthy();
         // Moduł nadal aktywny - nie wraca na listę do dokupienia.
         expect(screen.getAllByRole('button', { name: 'Aktywuj' })).toHaveLength(1);
+    });
+
+    it('wyłączenia nie da się już cofnąć (resumable: false): bez „Przywróć", z wyjaśnieniem', async () => {
+        vi.mocked(newSubscriptionApi.getMyPlan).mockResolvedValue(plan({
+            activeAddOns: [{ key: 'CLIENT_COMMUNICATION', name: 'Komunikacja', monthlyPriceGrossCents: 4900, cancelAt: '2026-10-20T10:00:00Z', resumable: false }],
+            nextRenewalCostCents: 12300,
+        }));
+        renderPage();
+
+        expect(await screen.findByText('Wyłączy się 20 października 2026')).toBeTruthy();
+        expect(screen.queryByRole('button', { name: 'Przywróć' })).toBeNull();
+        expect(screen.getByText(/Kolejny okres opłacono już bez tego modułu, od 20 października 2026 dokupisz go ponownie/)).toBeTruthy();
+        expect(screen.getByText(/Kolejny okres opłacono już bez tego modułu/).textContent).not.toMatch(/[·•]/);
+    });
+
+    it('cofnięcie wyłączenia, gdy kolejny okres zdążył się opłacić (409): ostrzeżenie z powodem z backendu', async () => {
+        vi.mocked(newSubscriptionApi.getMyPlan)
+            .mockResolvedValueOnce(plan({
+                activeAddOns: [{ key: 'CLIENT_COMMUNICATION', name: 'Komunikacja', monthlyPriceGrossCents: 4900, cancelAt: '2026-10-20T10:00:00Z', resumable: true }],
+            }))
+            .mockResolvedValue(plan({
+                activeAddOns: [{ key: 'CLIENT_COMMUNICATION', name: 'Komunikacja', monthlyPriceGrossCents: 4900, cancelAt: '2026-10-20T10:00:00Z', resumable: false }],
+            }));
+        vi.mocked(newSubscriptionApi.resumeAddOn).mockRejectedValue({
+            response: { status: 409, data: { code: 'ADD_ON_RENEWAL_ALREADY_PAID', message: 'Kolejny okres jest już opłacony bez tego modułu.' } },
+            config: { skipErrorToast: true },
+        });
+        renderPage();
+
+        await userEvent.click(await screen.findByRole('button', { name: 'Przywróć' }));
+        expect(await screen.findByText('Nie da się już przywrócić modułu')).toBeTruthy();
+        expect(screen.getByText('Kolejny okres jest już opłacony bez tego modułu.')).toBeTruthy();
+        expect(screen.queryByText('Nie udało się przywrócić modułu')).toBeNull();
+        // Po odświeżeniu wiersz już nie proponuje cofnięcia.
+        await waitFor(() => expect(screen.queryByRole('button', { name: 'Przywróć' })).toBeNull());
     });
 
     it('odwołanie obniżenia po opłaceniu kolejnego okresu (409): toast i baner znika po odświeżeniu', async () => {

@@ -85,6 +85,11 @@ export function useSmsReadiness({
 }: UseSmsReadinessOptions = {}): SmsReadiness {
     const comms = useCapability('COMM_SEND_TRANSACTIONAL');
     const moduleEnabled = comms.enabled;
+    // Wyłączone przez nieaktywny abonament, nie przez brak modułu: kreator nie może
+    // wtedy prowadzić do zakupu modułu, który studio ma, a którego i tak nie da się
+    // teraz kupić - to wymaga odnowienia, którego kreator nie zrobi.
+    const lockedBySubscription = comms.lockedBySubscription;
+    const notCheckedYet = lockedBySubscription ? 'sprawdzimy po odnowieniu abonamentu' : 'sprawdzimy po aktywacji modułu';
 
     const balanceQuery = useSmsCreditBalance({ enabled: enabled && moduleEnabled });
 
@@ -110,19 +115,21 @@ export function useSmsReadiness({
         // ── Module ────────────────────────────────────────────────────────────
         const moduleName = comms.missingFeatures.map(f => f.displayName).join(', ');
         const modulePrice = comms.upsell.find(u => u.monthlyPriceGrossCents != null)?.monthlyPriceGrossCents;
-        requirements.push({
-            id: 'module',
-            status: moduleEnabled ? 'ok' : 'missing',
-            label: moduleEnabled
-                ? 'Moduł wysyłki wiadomości'
-                : `Moduł ${moduleName || 'wysyłki wiadomości'}`,
-            detail: moduleEnabled
-                ? 'aktywny'
-                : modulePrice != null
-                    ? `${(modulePrice / 100).toFixed(2).replace('.', ',')} zł/mies.`
-                    : 'wymagany',
-            fixable: true,
-        });
+        requirements.push(lockedBySubscription
+            ? { id: 'module', status: 'missing', label: 'Abonament', detail: 'wymaga odnowienia', fixable: false }
+            : {
+                id: 'module',
+                status: moduleEnabled ? 'ok' : 'missing',
+                label: moduleEnabled
+                    ? 'Moduł wysyłki wiadomości'
+                    : `Moduł ${moduleName || 'wysyłki wiadomości'}`,
+                detail: moduleEnabled
+                    ? 'aktywny'
+                    : modulePrice != null
+                        ? `${(modulePrice / 100).toFixed(2).replace('.', ',')} zł/mies.`
+                        : 'wymagany',
+                fixable: true,
+            });
 
         // ── Template ──────────────────────────────────────────────────────────
         if (templateKey && templateSpec?.sms) {
@@ -134,7 +141,7 @@ export function useSmsReadiness({
                 status: !moduleEnabled ? 'unknown' : sendable ? 'ok' : 'missing',
                 label: `Szablon „${templateSpec.name}"`,
                 detail: !moduleEnabled
-                    ? 'sprawdzimy po aktywacji modułu'
+                    ? notCheckedYet
                     : sendable ? 'włączony'
                     : rule?.enabled ? 'włączony, ale pusty: nic nie wyśle'
                     : 'wyłączony',
@@ -152,7 +159,7 @@ export function useSmsReadiness({
                 : credits <= LOW_CREDIT_THRESHOLD ? 'warning'
                 : 'ok',
             label: 'Kredyty SMS',
-            detail: !moduleEnabled ? 'sprawdzimy po aktywacji modułu'
+            detail: !moduleEnabled ? notCheckedYet
                 : credits === null ? '-'
                 : `${credits} szt.`,
             fixable: true,
@@ -188,7 +195,7 @@ export function useSmsReadiness({
         };
     }, [
         comms.isLoading, comms.missingFeatures, comms.upsell, comms.displayName,
-        moduleEnabled, balanceQuery.isLoading, balanceQuery.data,
+        moduleEnabled, lockedBySubscription, notCheckedYet, balanceQuery.isLoading, balanceQuery.data,
         templatesQuery.isLoading, templatesQuery.data,
         templateKey, templateSpec, customerPhone,
     ]);

@@ -65,6 +65,7 @@ export function RequireCapability({ capability, mode, message, children }: Props
                         locked
                         message="Abonament nieaktywny. Odnów go, żeby korzystać z tej funkcji."
                         upgradeHint="Odnów abonament"
+                        badgeLabel="Odnów abonament"
                         settingsTab="plan"
                     >
                         {children}

@@ -66,6 +66,17 @@ export const useDamageMapNotifyAvailability = ({
             return { isLoading: true, canNotify: false, blockedReason: null, channel: null };
         }
 
+        // Nieaktywny abonament wyłącza wysyłkę tak samo jak brak modułu, ale „moduł…
+        // nie jest aktywny" byłoby nieprawdą - studio może go mieć w planie.
+        if (comms.lockedBySubscription) {
+            return {
+                isLoading: false,
+                canNotify: false,
+                blockedReason: 'abonament studia nie jest aktywny',
+                channel: null,
+            };
+        }
+
         if (!moduleEnabled) {
             const moduleName = comms.missingFeatures.map(f => f.displayName).join(', ');
             return {
@@ -106,7 +117,7 @@ export const useDamageMapNotifyAvailability = ({
 
         return { isLoading: false, canNotify: true, blockedReason: null, channel: 'SMS' };
     }, [
-        comms.isLoading, comms.missingFeatures, moduleEnabled,
+        comms.isLoading, comms.missingFeatures, comms.lockedBySubscription, moduleEnabled,
         creditsMatter, balanceQuery.isLoading, balanceQuery.data,
         email, phone,
     ]);

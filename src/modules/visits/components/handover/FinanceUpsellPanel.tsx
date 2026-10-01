@@ -1,9 +1,11 @@
 import styled from 'styled-components';
+import { Button, ButtonLink } from '@/common/components/ui';
 import { usePermissions } from '@/core/permissions/usePermissions';
 import { useCapability } from '@/modules/subscription';
 import { useAddOnUnlock } from '@/modules/subscription/hooks/useAddOnUnlock';
 import { AddOnActivationDialog } from '@/modules/subscription/components/PlanChangeDialog';
 import { formatCents } from '@/modules/subscription/utils/formatters';
+import { PLAN_SETTINGS_PATH } from '@/modules/subscription/utils/subscriptionLock';
 import type { AddOnKey } from '@/modules/subscription/types';
 
 /**
@@ -11,6 +13,13 @@ import type { AddOnKey } from '@/modules/subscription/types';
  * the finance module would save them work. Shown INSTEAD of the settlement
  * section when the module is missing; the visit can still be closed without a
  * document (core BASIC operation; blocking it would create churn, not revenue).
+ *
+ * Zakup jest tu akcją drugorzędną: krokiem następnym okna jest wydanie pojazdu
+ * w stopce, więc „Wykup dostęp" ma odcień bez wypełnienia (CLAUDE.md §2).
+ *
+ * Gdy rozliczenia wyłączył nieaktywny abonament, a nie brak modułu, panel nie
+ * może mówić „wymaga modułu" ani sprzedawać modułu, który studio może mieć -
+ * prowadzi do odnowienia abonamentu.
  */
 interface Props {
     /** Gross amount of the visit: makes the benefit concrete, not abstract. */
@@ -25,16 +34,28 @@ export function FinanceUpsellPanel({ grossAmount, currency }: Props) {
 
     const option = finance.upsell[0];
 
+    if (finance.lockedBySubscription) {
+        return (
+            <Panel>
+                <LockIcon />
+                <Title>Abonament studia nie jest aktywny</Title>
+                <Text>Rozliczenia i faktury wrócą po odnowieniu abonamentu. Twoje dane są bezpieczne.</Text>
+                {isOwner ? (
+                    // Zwykły odnośnik: ten sam adres, co w pozostałych miejscach „odnów abonament".
+                    <ButtonLink href={PLAN_SETTINGS_PATH} $variant="tinted" $size="md" data-variant="tinted">
+                        Przejdź do abonamentu
+                    </ButtonLink>
+                ) : (
+                    <EmployeeHint>Abonament może odnowić wyłącznie właściciel studia.</EmployeeHint>
+                )}
+            </Panel>
+        );
+    }
+
     return (
         <>
             <Panel>
-                <LockBadge>
-                    <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="11" width="18" height="11" rx="2" />
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                    </svg>
-                </LockBadge>
+                <LockIcon />
 
                 <Title>Rozliczenia i faktury wymagają modułu „Kontrola nad finansami"</Title>
 
@@ -48,14 +69,14 @@ export function FinanceUpsellPanel({ grossAmount, currency }: Props) {
                 </BenefitList>
 
                 {isOwner && option?.isAvailable ? (
-                    <BuyBtn
-                        type="button"
+                    <BuyButton
+                        variant="tinted"
                         onClick={() => unlock.openUnlockDialog(option.addOnKey as AddOnKey, option.addOnName)}
                     >
                         Wykup dostęp
                         {option.monthlyPriceGrossCents != null &&
                             ` - ${formatCents(option.monthlyPriceGrossCents)}/mies.`}
-                    </BuyBtn>
+                    </BuyButton>
                 ) : (
                     <EmployeeHint>
                         Aktywacja modułu wymaga uprawnień właściciela studia.
@@ -80,6 +101,16 @@ export function FinanceUpsellPanel({ grossAmount, currency }: Props) {
         </>
     );
 }
+
+const LockIcon = () => (
+    <LockBadge>
+        <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="3" y="11" width="18" height="11" rx="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+    </LockBadge>
+);
 
 const Panel = styled.div`
     display: flex;
@@ -131,18 +162,14 @@ const Benefit = styled.li`
     }
 `;
 
-const BuyBtn = styled.button`
-    margin-top: 4px;
-    padding: 10px 18px;
-    border: none;
-    border-radius: 9px;
-    background: #0284c7;
-    color: #fff;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
+const Text = styled.div`
+    font-size: 13.5px;
+    color: #475569;
+    line-height: 1.5;
+`;
 
-    &:hover { background: #0369a1; }
+const BuyButton = styled(Button)`
+    margin-top: 4px;
 `;
 
 const EmployeeHint = styled.div`

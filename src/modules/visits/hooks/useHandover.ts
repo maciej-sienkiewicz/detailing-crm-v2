@@ -10,6 +10,7 @@ import { companyApi } from '@/modules/settings/api/companyApi';
 import { useServicePricing } from '@/modules/appointments/hooks/useServicePricing';
 import { useToast } from '@/common/components/Toast';
 import { isPiiMasked } from '@/common/pii';
+import { isSubscriptionInactive } from '@/core/forbidden';
 import { useThankYouSmsAvailability } from './useThankYouSmsAvailability';
 import { buildThankYouSmsPayload } from '../components/handover/thankYouSms';
 import type { ServiceLineItem, Visit } from '../types';
@@ -333,6 +334,9 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         },
         onError: (error: unknown) => {
             if (handleStateConflict(error)) return;
+            // Wygasły abonament tłumaczy bramka abonamentu (okno odnowienia) - toast
+            // „Nie udało się wydać pojazdu" pod nim wyglądałby na osobną awarię.
+            if (isSubscriptionInactive(error)) return;
             showError('Nie udało się wydać pojazdu', apiErrorMessage(error, 'Spróbuj ponownie.'));
         },
     });
