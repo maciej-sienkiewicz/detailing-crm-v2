@@ -2,18 +2,31 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { useQueryClient } from '@tanstack/react-query';
+import { Button } from '@/common/components/ui';
 import { newSubscriptionApi } from '../api/subscriptionApi';
 import { invalidateSubscriptionData } from '../api/subscriptionQueries';
 import { formatCents } from '../utils/formatters';
-import type { PaymentOrder } from '../types';
+import type { PaymentOrder, PaymentOrderStatus } from '../types';
 
 /**
  * Landing page the buyer returns to from Przelewy24
  * (urlReturn = /payments/result?orderId={id}).
  *
  * The P24 webhook settles the order server-side, so this page only polls the
- * order status until it flips from PENDING to PAID/FAILED. It must be reachable
- * for EXPIRED studios: the route is registered without the SubscriptionGate.
+ * order status. It must be reachable for EXPIRED studios: the route is
+ * registered without the SubscriptionGate.
+ *
+ * Stany zamówienia, a nie „zapłacone albo nie":
+ *  - PENDING, EXPIRED - czekamy dalej. EXPIRED nie jest końcem: spóźniona wpłata
+ *    wciąż przenosi zamówienie do PAID. Dawniej każdy stan inny niż PENDING kończył
+ *    odpytywanie, więc kupujący, który zapłacił po czasie, widział porażkę;
+ *  - PAID - pieniądze są, aktywacja trwa. To jeszcze NIE sukces: odświeżenie danych
+ *    abonamentu w tym momencie wczytywało stare uprawnienia i stary status, a strona
+ *    ogłaszała „konto zaktualizowane", zanim cokolwiek się zmieniło;
+ *  - FULFILLED - jedyny sukces i jedyny moment na odświeżenie danych;
+ *  - FAILED, CANCELLED - koniec, nic nie zostało pobrane;
+ *  - REFUND_REQUIRED - koniec, ale pieniądze POBRANO: zakupu nie dało się wprowadzić,
+ *    wsparcie zwróci środki. Tu nigdy nie wolno napisać „nic nie zostało pobrane".
  */
 
 const POLL_INTERVAL_MS = 2500;
@@ -29,7 +42,7 @@ const Wrap = styled.div`
     align-items: center;
     justify-content: center;
     background: #eef2f7;
-    padding: 24px;
+    padding: 24px 16px;
 `;
 
 const Card = styled.div`
@@ -44,6 +57,8 @@ const Card = styled.div`
     align-items: center;
     gap: 18px;
     text-align: center;
+
+    @media (max-width: 480px) { padding: 28px 20px; }
 `;
 
 const Spinner = styled.div`
@@ -79,24 +94,29 @@ const Text = styled.p`
     line-height: 1.6;
 `;
 
+const Reason = styled.p`
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid #fcd34d;
+    background: #fffbeb;
+    color: #78350f;
+    font-size: 13px;
+    line-height: 1.5;
+    width: 100%;
+`;
+
 const Amount = styled.div`
     font-size: 15px;
     font-weight: 700;
     color: #0f172a;
 `;
 
-const PrimaryBtn = styled.button`
-    padding: 12px 24px;
-    border-radius: 10px;
-    border: none;
-    background: #0ea5e9;
-    color: white;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    font-family: inherit;
-
-    &:hover { background: #0284c7; }
+const Actions = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
 `;
 
 const CheckIcon = () => (
@@ -113,9 +133,36 @@ const CrossIcon = () => (
     </svg>
 );
 
+const AlertIcon = () => (
+    <svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke="#d97706"
+        strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 9v4M12 17h.01" />
+        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+    </svg>
+);
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
-type ViewState = 'polling' | 'paid' | 'failed' | 'timeout' | 'missing';
+type ViewState =
+    | 'polling'             // PENDING / EXPIRED / jeszcze bez odpowiedzi
+    | 'activating'          // PAID: pieniądze są, aktywacja trwa
+    | 'fulfilled'           // FULFILLED: sukces
+    | 'failed'              // FAILED / CANCELLED: nic nie pobrano
+    | 'refund'              // REFUND_REQUIRED: pobrano, zwrot przez wsparcie
+    | 'timeout'             // limit czasu bez potwierdzenia wpłaty
+    | 'activation-timeout'  // limit czasu w PAID: wpłata POTWIERDZONA, aktywacja się przeciąga
+    | 'missing';
+
+/** Stan widoku dla statusu zamówienia albo null, gdy trzeba pytać dalej. */
+function terminalView(status: PaymentOrderStatus): ViewState | null {
+    switch (status) {
+        case 'FULFILLED': return 'fulfilled';
+        case 'FAILED':
+        case 'CANCELLED': return 'failed';
+        case 'REFUND_REQUIRED': return 'refund';
+        default: return null;
+    }
+}
 
 export function PaymentResultPage() {
     const [searchParams] = useSearchParams();
@@ -131,6 +178,8 @@ export function PaymentResultPage() {
     useEffect(() => {
         if (!orderId) return;
         let cancelled = false;
+        let timer: ReturnType<typeof setTimeout> | null = null;
+        let lastStatus: PaymentOrderStatus | null = null;
         startedAt.current = Date.now();
 
         const poll = async () => {
@@ -138,32 +187,38 @@ export function PaymentResultPage() {
                 const result = await newSubscriptionApi.getOrder(orderId);
                 if (cancelled) return;
                 setOrder(result);
+                lastStatus = result.status;
 
-                if (result.status === 'PAID') {
-                    invalidateSubscriptionData(queryClient);
-                    setState('paid');
+                const terminal = terminalView(result.status);
+                if (terminal) {
+                    // Dane abonamentu odświeżamy dopiero przy FULFILLED - wcześniej
+                    // backend oddałby jeszcze stare uprawnienia i stary status.
+                    if (terminal === 'fulfilled') invalidateSubscriptionData(queryClient);
+                    setState(terminal);
                     return;
                 }
-                if (result.status === 'FAILED' || result.status === 'CANCELLED') {
-                    setState('failed');
-                    return;
-                }
+                setState(result.status === 'PAID' ? 'activating' : 'polling');
             } catch {
                 // transient error, keep polling until timeout
             }
+            if (cancelled) return;
 
             if (Date.now() - startedAt.current > POLL_TIMEOUT_MS) {
-                setState('timeout');
+                setState(lastStatus === 'PAID' ? 'activation-timeout' : 'timeout');
                 return;
             }
-            setTimeout(poll, POLL_INTERVAL_MS);
+            timer = setTimeout(poll, POLL_INTERVAL_MS);
         };
 
         poll();
-        return () => { cancelled = true; };
+        return () => {
+            cancelled = true;
+            if (timer) clearTimeout(timer);
+        };
     }, [orderId, queryClient]);
 
     const goToApp = () => navigate('/settings', { replace: true });
+    const reload = () => window.location.reload();
 
     return (
         <Wrap>
@@ -171,25 +226,37 @@ export function PaymentResultPage() {
                 {state === 'polling' && (
                     <>
                         <Spinner />
-                        <Title>Przetwarzamy Twoją płatność...</Title>
+                        <Title>Czekamy na potwierdzenie płatności</Title>
                         <Text>
-                            Czekamy na potwierdzenie z Przelewy24. Zwykle trwa to kilka sekund,
-                            nie zamykaj tej strony.
+                            Przelewy24 potwierdza wpłatę zwykle w kilka sekund. Nie zamykaj tej strony.
                         </Text>
                         {order && <Amount>{order.description}: {formatCents(order.amountCents)}</Amount>}
                     </>
                 )}
 
-                {state === 'paid' && (
+                {state === 'activating' && (
+                    <>
+                        <Spinner />
+                        <Title>Płatność przyjęta, aktywujemy zmiany</Title>
+                        <Text>
+                            Wpłata dotarła. Wprowadzamy zakup na Twoje konto, to potrwa jeszcze chwilę.
+                        </Text>
+                        {order && <Amount>{order.description}: {formatCents(order.amountCents)}</Amount>}
+                    </>
+                )}
+
+                {state === 'fulfilled' && (
                     <>
                         <IconCircle $bg="#d1fae5"><CheckIcon /></IconCircle>
-                        <Title>Płatność zakończona pomyślnie</Title>
+                        <Title>Płatność zakończona, zmiany są aktywne</Title>
                         <Text>
                             {order?.typeDisplayName}: {order?.description}. Twoje konto zostało
                             zaktualizowane, możesz wrócić do pracy.
                         </Text>
                         {order && <Amount>{formatCents(order.amountCents)}</Amount>}
-                        <PrimaryBtn onClick={goToApp}>Przejdź do aplikacji</PrimaryBtn>
+                        <Actions>
+                            <Button variant="primary" size="lg" block onClick={goToApp}>Przejdź do aplikacji</Button>
+                        </Actions>
                     </>
                 )}
 
@@ -197,10 +264,27 @@ export function PaymentResultPage() {
                     <>
                         <IconCircle $bg="#fee2e2"><CrossIcon /></IconCircle>
                         <Title>Płatność nie powiodła się</Title>
+                        <Text>{order?.failureReason ?? 'Transakcja została odrzucona lub anulowana.'}</Text>
+                        <Text>Żadna kwota nie została pobrana, możesz spróbować ponownie.</Text>
+                        <Actions>
+                            <Button variant="primary" size="lg" block onClick={goToApp}>Wróć do ustawień</Button>
+                        </Actions>
+                    </>
+                )}
+
+                {state === 'refund' && (
+                    <>
+                        <IconCircle $bg="#fef3c7"><AlertIcon /></IconCircle>
+                        <Title>Płatność przyjęta, ale zakupu nie udało się wprowadzić</Title>
                         <Text>
-                            {order?.failureReason ?? 'Transakcja została odrzucona lub anulowana. Żadna kwota nie została pobrana, możesz spróbować ponownie.'}
+                            Pobraliśmy {order ? formatCents(order.amountCents) : 'kwotę'}, ale tego zakupu nie dało się
+                            dodać do Twojego konta. Zwrócimy pieniądze, nie musisz nic robić. W razie pytań napisz
+                            do nas: pomoc@detailboost.pl, podając numer zamówienia {order?.orderId ?? orderId}.
                         </Text>
-                        <PrimaryBtn onClick={goToApp}>Wróć do ustawień</PrimaryBtn>
+                        {order?.failureReason && <Reason>Powód: {order.failureReason}</Reason>}
+                        <Actions>
+                            <Button variant="primary" size="lg" block onClick={goToApp}>Wróć do ustawień</Button>
+                        </Actions>
                     </>
                 )}
 
@@ -212,7 +296,25 @@ export function PaymentResultPage() {
                             Nie otrzymaliśmy jeszcze potwierdzenia z Przelewy24. Jeśli środki zostały
                             pobrane, dostęp zostanie aktywowany automatycznie w ciągu kilku minut.
                         </Text>
-                        <PrimaryBtn onClick={goToApp}>Wróć do aplikacji</PrimaryBtn>
+                        <Actions>
+                            <Button variant="primary" size="lg" block onClick={goToApp}>Wróć do aplikacji</Button>
+                        </Actions>
+                    </>
+                )}
+
+                {state === 'activation-timeout' && (
+                    <>
+                        <IconCircle $bg="#fef3c7"><Spinner /></IconCircle>
+                        <Title>Płatność przyjęta, aktywacja trwa dłużej niż zwykle</Title>
+                        <Text>
+                            Wpłata jest potwierdzona, nie płać drugi raz. Zmiany pojawią się na koncie
+                            automatycznie. Odśwież tę stronę za chwilę, żeby sprawdzić stan zamówienia.
+                        </Text>
+                        {order && <Amount>{order.description}: {formatCents(order.amountCents)}</Amount>}
+                        <Actions>
+                            <Button variant="primary" size="lg" block onClick={reload}>Odśwież stan zamówienia</Button>
+                            <Button variant="ghost" size="md" block onClick={goToApp}>Wróć do aplikacji</Button>
+                        </Actions>
                     </>
                 )}
 
@@ -221,7 +323,9 @@ export function PaymentResultPage() {
                         <IconCircle $bg="#fee2e2"><CrossIcon /></IconCircle>
                         <Title>Brak identyfikatora zamówienia</Title>
                         <Text>Ten adres jest niekompletny. Wróć do aplikacji i spróbuj ponownie.</Text>
-                        <PrimaryBtn onClick={goToApp}>Wróć do aplikacji</PrimaryBtn>
+                        <Actions>
+                            <Button variant="primary" size="lg" block onClick={goToApp}>Wróć do aplikacji</Button>
+                        </Actions>
                     </>
                 )}
             </Card>

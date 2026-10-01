@@ -1,5 +1,6 @@
 import { useEntitlements } from '../api/subscriptionQueries';
 import type { CapabilityKey, CapabilityStatus } from '../types';
+import { SUBSCRIPTION_LOCK_REASON } from '../utils/subscriptionLock';
 
 export interface UseCapabilityResult extends CapabilityStatus {
     /**
@@ -10,6 +11,13 @@ export interface UseCapabilityResult extends CapabilityStatus {
     isLoading: boolean;
     /** "Wymaga modułu: X", ready-made reason line for tooltips and disabled hints. */
     lockReason: string | null;
+    /**
+     * Disabled because the subscription is not active, not because a module is
+     * missing. `missingFeatures` and `upsell` are then empty on purpose: offering
+     * to buy a module the studio may already have, while what it lacks is a
+     * renewal, sent owners into a second purchase. Point to the plan settings.
+     */
+    lockedBySubscription: boolean;
 }
 
 const FALLBACK: CapabilityStatus = {
@@ -32,9 +40,23 @@ export const useCapability = (capability: CapabilityKey): UseCapabilityResult =>
     const { data, isLoading } = useEntitlements();
 
     const status = data?.capabilities?.[capability] ?? FALLBACK;
+    const lockedBySubscription = !status.enabled
+        && (status.lockedBy === 'SUBSCRIPTION' || data?.subscriptionActive === false);
+
+    if (lockedBySubscription) {
+        return {
+            ...status,
+            missingFeatures: [],
+            upsell: [],
+            isLoading,
+            lockReason: SUBSCRIPTION_LOCK_REASON,
+            lockedBySubscription,
+        };
+    }
+
     const lockReason = status.enabled || status.missingFeatures.length === 0
         ? null
         : `Wymaga modułu: ${status.missingFeatures.map((f) => f.displayName).join(', ')}`;
 
-    return { ...status, isLoading, lockReason };
+    return { ...status, isLoading, lockReason, lockedBySubscription };
 };

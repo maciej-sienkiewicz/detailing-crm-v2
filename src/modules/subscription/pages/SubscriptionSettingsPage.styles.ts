@@ -83,6 +83,16 @@ export const AddOnRowText = styled.div`
     }
 `;
 
+/** Plakietka „Wyłączy się …" i „Przywróć" obok siebie; na wąskim ekranie łamią się pod sobą. */
+export const AddOnRowSide = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+    flex-shrink: 0;
+`;
+
 export const Muted = styled.p`
     margin: 0;
     font-size: 13px;

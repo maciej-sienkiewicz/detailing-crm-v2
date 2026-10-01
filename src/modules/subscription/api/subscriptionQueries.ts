@@ -62,16 +62,17 @@ export const invalidateSubscriptionData = (queryClient: ReturnType<typeof useQue
 
 /**
  * Creates a payment order. When the response carries a paymentUrl the caller
- * must redirect the browser to Przelewy24 (`window.location.assign(paymentUrl)`);
- * when paymentUrl is null the order was fulfilled instantly (zero amount) and
- * subscription data is refreshed here.
+ * must redirect the browser to Przelewy24 (`window.location.assign(paymentUrl)`).
+ * Only status FULFILLED means the purchase is already in place - subscription
+ * data is refreshed here then. A missing paymentUrl with any other status is an
+ * error (see utils/checkout `checkoutOutcome`), not a free success.
  */
 export const useCheckout = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (body: CheckoutRequest) => newSubscriptionApi.checkout(body),
         onSuccess: (response: CheckoutResponse) => {
-            if (!response.paymentUrl) invalidateSubscriptionData(queryClient);
+            if (response.status === 'FULFILLED') invalidateSubscriptionData(queryClient);
         },
     });
 };
@@ -93,6 +94,7 @@ export const useChangePlan = () => {
     });
 };
 
+/** Schedules the add-on to switch off at the end of the paid period (see the api). */
 export const useDeactivateAddOn = () => {
     const queryClient = useQueryClient();
     return useMutation({
@@ -101,10 +103,24 @@ export const useDeactivateAddOn = () => {
     });
 };
 
+/** Clears a scheduled add-on cancellation; my-plan then shows `cancelAt: null`. */
+export const useResumeAddOn = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (addOnKey: AddOnKey) => newSubscriptionApi.resumeAddOn(addOnKey),
+        // Także po błędzie: 404 znaczy, że moduł już zniknął - wiersz z „Przywróć"
+        // nie może zostać na ekranie i kłamać.
+        onSettled: () => invalidateSubscriptionData(queryClient),
+    });
+};
+
 export const useCancelPendingPlanChange = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: () => newSubscriptionApi.cancelPendingPlanChange(),
-        onSuccess: () => invalidateSubscriptionData(queryClient),
+        // onSettled, nie onSuccess: po 404 (zmiana już weszła) i 409 (kolejny okres
+        // opłacony po niższej cenie) baner zostawał z nieaktualnym stanem, a jego
+        // przycisk kończył się błędem przy każdym kliknięciu.
+        onSettled: () => invalidateSubscriptionData(queryClient),
     });
 };

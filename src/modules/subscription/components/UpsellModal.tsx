@@ -1,11 +1,14 @@
+import { useEffect } from 'react';
 import styled from 'styled-components';
 import { SUBMODAL_Z_INDEX } from '@/common/styles';
+import { acquireScrollLock } from '@/common/utils/scrollLock';
 import { usePermissions } from '@/core/permissions/usePermissions';
 import { useCapability } from '../hooks/useCapability';
 import { useFeature } from '../hooks/useFeature';
+import { useSubscriptionLocked } from '../hooks/useSubscriptionLocked';
 import { useAddOnUnlock } from '../hooks/useAddOnUnlock';
 import { AddOnActivationDialog } from './PlanChangeDialog';
-import { ModuleGateCard } from './ModuleGate';
+import { ModuleGateCard, SubscriptionLockedCard } from './ModuleGate';
 import type { AddOnKey, CapabilityKey, FeatureKey } from '../types';
 
 type UpsellModalProps = { onClose: () => void } & (
@@ -28,6 +31,17 @@ export function UpsellModal({ onClose, ...props }: UpsellModalProps) {
 
     const capabilityStatus = useCapability(props.capability ?? 'COMM_SEND_TRANSACTIONAL');
     const featureStatus = useFeature(props.feature ?? 'SMS_EMAIL');
+    const subscriptionLocked = useSubscriptionLocked();
+
+    // Własna nakładka poza ModalShell: blokada scrolla tła przez jedynego jej
+    // właściciela (CLAUDE.md §3). Okno żyje tylko, gdy jest otwarte, więc wystarczy montowanie.
+    useEffect(() => acquireScrollLock(), []);
+
+    // Wyłączone przez nieaktywny abonament, nie przez brak modułu - wtedy żadnej
+    // oferty modułu, tylko droga do odnowienia.
+    const lockedBySubscription = props.capability
+        ? capabilityStatus.lockedBySubscription
+        : subscriptionLocked && !featureStatus.enabled;
 
     const option = props.capability
         ? capabilityStatus.upsell.find(o => o.isAvailable) ?? capabilityStatus.upsell[0] ?? null
@@ -44,25 +58,32 @@ export function UpsellModal({ onClose, ...props }: UpsellModalProps) {
         <>
             <Backdrop onClick={onClose}>
                 <CardWrap onClick={event => event.stopPropagation()}>
-                    <ModuleGateCard
-                        title={title}
-                        subtitle={
-                            missingNames.length > 0 ? (
-                                <>
-                                    Ta funkcja jest częścią modułu{missingNames.length > 1 ? 'ów' : ''}{' '}
-                                    <strong>{missingNames.join(', ')}</strong>, który nie jest aktywny
-                                    w Twoim pakiecie.
-                                </>
-                            ) : (
-                                'Ta funkcja nie jest dostępna w Twoim pakiecie.'
-                            )
-                        }
-                        addOnKey={(option?.addOnKey as AddOnKey) ?? null}
-                        priceCents={option?.monthlyPriceGrossCents ?? null}
-                        isAvailable={option?.isAvailable ?? false}
-                        isOwner={isOwner}
-                        onUnlock={handleUnlock}
-                    />
+                    {lockedBySubscription ? (
+                        <SubscriptionLockedCard
+                            title={(props.capability ? capabilityStatus.displayName : '') || 'Funkcja wyłączona'}
+                            isOwner={isOwner}
+                        />
+                    ) : (
+                        <ModuleGateCard
+                            title={title}
+                            subtitle={
+                                missingNames.length > 0 ? (
+                                    <>
+                                        Ta funkcja jest częścią modułu{missingNames.length > 1 ? 'ów' : ''}{' '}
+                                        <strong>{missingNames.join(', ')}</strong>, który nie jest aktywny
+                                        w Twoim pakiecie.
+                                    </>
+                                ) : (
+                                    'Ta funkcja nie jest dostępna w Twoim pakiecie.'
+                                )
+                            }
+                            addOnKey={(option?.addOnKey as AddOnKey) ?? null}
+                            priceCents={option?.monthlyPriceGrossCents ?? null}
+                            isAvailable={option?.isAvailable ?? false}
+                            isOwner={isOwner}
+                            onUnlock={handleUnlock}
+                        />
+                    )}
                     <DismissLink type="button" onClick={onClose}>
                         Nie teraz
                     </DismissLink>
@@ -75,6 +96,7 @@ export function UpsellModal({ onClose, ...props }: UpsellModalProps) {
                     addOnName={unlock.pendingName}
                     preview={unlock.preview}
                     isLoadingPreview={unlock.loadingPreview}
+                    previewError={unlock.previewError}
                     onClose={() => { unlock.closeDialog(); onClose(); }}
                 />
             )}

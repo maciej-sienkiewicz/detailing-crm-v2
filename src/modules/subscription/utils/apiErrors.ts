@@ -7,10 +7,21 @@
 // bez słowa: przycisk po prostu „nic nie robi". Stąd jedna reguła w jednym miejscu.
 
 type ApiErrorLike = {
-    response?: { status?: number; data?: { message?: string } };
+    response?: { status?: number; data?: { message?: string; code?: unknown } };
     config?: { skipErrorToast?: boolean };
     message?: string;
 };
+
+/** Status HTTP odpowiedzi; undefined, gdy odpowiedzi nie było (zerwane połączenie). */
+export function apiErrorStatus(error: unknown): number | undefined {
+    return (error as ApiErrorLike | null)?.response?.status;
+}
+
+/** Maszynowy kod błędu z backendu (`code`) - rozgałęziamy po nim, nigdy po treści. */
+export function apiErrorCode(error: unknown): string | undefined {
+    const code = (error as ApiErrorLike | null)?.response?.data?.code;
+    return typeof code === 'string' && code ? code : undefined;
+}
 
 /** Komunikat z backendu, jeśli go przysłał. */
 export function apiErrorMessage(error: unknown): string | undefined {

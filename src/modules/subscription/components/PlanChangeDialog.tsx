@@ -8,14 +8,22 @@ import {
     ModalFooter,
     CloseBtn,
 } from '@/common/components/ModalKit';
-import { Button, FieldList, FieldRow, Notice } from '@/common/components/ui';
+import { Button, ButtonLink, FieldList, FieldRow, Notice } from '@/common/components/ui';
 import { useToast } from '@/common/components/Toast';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { useSubscriptionStatus } from '@/modules/settings/hooks/useSubscription';
 import { useChangePlan, useCheckout, useDeactivateAddOn as useDeactivateAddOnMutation } from '../api/subscriptionQueries';
-import type { PlanChangePreview, AddOnPreview, AddOnKey, PlanKey } from '../types';
+import type { PlanChangePreview, AddOnPreview, AddOnKey, PlanKey, CheckoutRequest } from '../types';
 import { CommunicationModuleTour } from './CommunicationModuleTour';
-import { formatDate } from '../utils/formatters';
+import { formatCents, formatDate } from '../utils/formatters';
 import { toastUnhandledError } from '../utils/apiErrors';
+import {
+    checkoutOutcome,
+    describeCheckoutError,
+    UNEXPECTED_CHECKOUT,
+    type CheckoutErrorCopy,
+} from '../utils/checkout';
+import { PLAN_SETTINGS_PATH } from '../utils/subscriptionLock';
 import { LoadingRow, Spinner, Explanation, Strong } from './PlanChangeDialog.styles';
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
@@ -25,10 +33,108 @@ import { LoadingRow, Spinner, Explanation, Strong } from './PlanChangeDialog.sty
  * („Ładowanie szczegółów…" przy `preview === null`), bo brak wyceny i jej ładowanie
  * wyglądały tak samo - a jedyną drogą wyjścia był krzyżyk.
  */
-const PreviewFailed = () => (
+const PreviewFailed = ({ reason }: { reason?: string | null }) => (
     <Notice tone="danger" title="Nie udało się pobrać wyceny" role="alert">
-        Zamknij okno i spróbuj ponownie za chwilę. Nic nie zostało zmienione ani pobrane.
+        {reason && <span>{reason}</span>}
+        <span>Zamknij okno i spróbuj ponownie za chwilę. Nic nie zostało zmienione ani pobrane.</span>
     </Notice>
+);
+
+/**
+ * Czy trwa opłacony okres, w którym wolno dopłacić za resztę okresu.
+ *
+ * Okna zakupu otwiera też paywall i upsell - ekrany, które o abonamencie nic nie
+ * wiedzą. Po końcu opłaconego okresu (karencja, wygaśnięcie) backend odrzuca
+ * zakup modułu i wyższego planu, więc „Przejdź do płatności" kończyło się błędem.
+ * Status jest w pamięci podręcznej od bramki abonamentu - nie kosztuje zapytania.
+ */
+function useBillingPeriod() {
+    const { status } = useSubscriptionStatus();
+    const value = status?.status;
+    const periodEnded = value === 'PAST_DUE' || value === 'EXPIRED' || status?.inGrace === true;
+    return {
+        /** Zakup w trakcie okresu niemożliwy - najpierw przedłużenie. */
+        renewalRequired: periodEnded,
+        /** Brak trwającego opłaconego okresu: obniżenie planu wchodzi od razu. */
+        noPaidPeriod: periodEnded || value === 'TRIALING',
+    };
+}
+
+const RenewFirstNotice = () => (
+    <Notice tone="warn" title="Najpierw opłać przedłużenie">
+        Opłacony okres abonamentu minął. Moduły i wyższy plan dokupisz po przedłużeniu
+        abonamentu w Ustawieniach, w zakładce Abonament.
+    </Notice>
+);
+
+/** Krok następny, gdy zakup czeka na przedłużenie: zwykły odnośnik, bo okno bywa poza routerem (paywall). */
+const GoToPlanSettings = () => (
+    <ButtonLink href={PLAN_SETTINGS_PATH} $variant="primary" $size="md" data-variant="primary">
+        Przejdź do abonamentu
+    </ButtonLink>
+);
+
+/** Płatność gotowa, ale na inną kwotę niż z wyceny - nie przekierowujemy po cichu. */
+interface AmountChanged {
+    url: string;
+    amountCents: number;
+    previewCents: number;
+}
+
+const AmountChangedNotice = ({ change }: { change: AmountChanged }) => (
+    <Notice tone="warn" title="Kwota do zapłaty się zmieniła" role="alert">
+        Do zapłaty jest {formatCents(change.amountCents)} brutto, a wycena pokazywała {formatCents(change.previewCents)}.
+        To kwota płatności za ten zakup rozpoczętej już wcześniej. Sprawdź ją przed przejściem do Przelewy24.
+    </Notice>
+);
+
+/**
+ * Zamówienie z oknem zakupu: błąd zostaje W OKNIE (dawniej goły toast interceptora,
+ * a okno dalej stało na „Przejdź do płatności"), sukces tylko przy FULFILLED,
+ * a inna kwota niż w wycenie czeka na potwierdzenie.
+ *
+ * Backend może zwrócić istniejące, otwarte zamówienie na ten sam zakup - z kwotą
+ * policzoną wcześniej. Przekierowanie bez słowa kazałoby zapłacić inną kwotę niż ta,
+ * którą użytkownik właśnie przeczytał.
+ */
+function useDialogCheckout(previewCents: number | null | undefined, onFulfilled: () => void) {
+    const checkout = useCheckout();
+    const [error, setError] = useState<CheckoutErrorCopy | null>(null);
+    const [amountChanged, setAmountChanged] = useState<AmountChanged | null>(null);
+
+    const start = async (body: CheckoutRequest, errorTitle: string) => {
+        setError(null);
+        try {
+            const order = await checkout.mutateAsync(body);
+            const outcome = checkoutOutcome(order);
+            if (outcome.kind === 'redirect') {
+                const expected = previewCents ?? 0;
+                if (order.amountCents !== expected) {
+                    setAmountChanged({ url: outcome.url, amountCents: order.amountCents, previewCents: expected });
+                    return;
+                }
+                window.location.assign(outcome.url);
+                return;
+            }
+            if (outcome.kind === 'fulfilled') {
+                onFulfilled();
+                return;
+            }
+            setError(UNEXPECTED_CHECKOUT);
+        } catch (err: unknown) {
+            setError(describeCheckoutError(err, errorTitle));
+        }
+    };
+
+    const confirmChangedAmount = () => {
+        if (amountChanged) window.location.assign(amountChanged.url);
+    };
+
+    return { start, error, amountChanged, confirmChangedAmount, isPending: checkout.isPending };
+}
+
+const CheckoutErrorNotice = ({ error }: { error: CheckoutErrorCopy }) => (
+    <Notice tone="warn" title={error.title} role="alert">{error.message}</Notice>
 );
 
 // ─── Plan change dialog ────────────────────────────────────────────────────────
@@ -52,32 +158,50 @@ export function PlanChangeDialog({
 }: PlanDialogProps) {
     const { showSuccess, showError } = useToast();
     const changePlan = useChangePlan();
-    const checkout = useCheckout();
+    const { renewalRequired, noPaidPeriod } = useBillingPeriod();
+    const purchase = useDialogCheckout(preview?.proratedAmountCents, () => {
+        showSuccess('Plan zmieniony', `Twój plan został zmieniony na ${newPlanName}.`);
+        onClose();
+    });
 
     const isDowngrade = preview?.changeType === 'DOWNGRADE';
+    // Obniżenie bez trwającego opłaconego okresu (próba, karencja) backend wprowadza
+    // od razu - zapowiedź „na koniec okresu" byłaby nieprawdą.
+    const downgradeNow = isDowngrade && noPaidPeriod;
+    const upgradeBlocked = !!preview && !isDowngrade && renewalRequired;
 
     const handleConfirm = async () => {
-        try {
-            if (isDowngrade) {
+        if (isDowngrade) {
+            try {
                 await changePlan.mutateAsync(newPlanKey);
-                showSuccess('Zmiana zaplanowana', `Plan zostanie zmieniony na ${newPlanName} na koniec okresu rozliczeniowego.`);
+                if (downgradeNow) {
+                    showSuccess('Plan zmieniony', `Twój plan to teraz ${newPlanName}.`);
+                } else {
+                    showSuccess('Zmiana zaplanowana', `Plan zostanie zmieniony na ${newPlanName} na koniec okresu rozliczeniowego.`);
+                }
                 onClose();
-                return;
+            } catch (err: unknown) {
+                toastUnhandledError(showError, err, 'Nie udało się zmienić planu', 'Spróbuj ponownie za chwilę.');
             }
-            // Upgrade: paid operation, goes through Przelewy24.
-            const order = await checkout.mutateAsync({ type: 'PLAN_UPGRADE', planKey: newPlanKey });
-            if (order.paymentUrl) {
-                window.location.assign(order.paymentUrl);
-                return;
-            }
-            showSuccess('Plan zmieniony', `Twój plan został zmieniony na ${newPlanName}.`);
-            onClose();
-        } catch (err: unknown) {
-            toastUnhandledError(showError, err, 'Nie udało się zmienić planu', 'Spróbuj ponownie za chwilę.');
+            return;
         }
+        if (purchase.amountChanged) {
+            purchase.confirmChangedAmount();
+            return;
+        }
+        // Upgrade: paid operation, goes through Przelewy24.
+        await purchase.start({ type: 'PLAN_UPGRADE', planKey: newPlanKey }, 'Nie udało się zmienić planu');
     };
 
-    const isPending = changePlan.isPending || checkout.isPending;
+    const isPending = changePlan.isPending || purchase.isPending;
+
+    const confirmLabel = isPending
+        ? (isDowngrade ? 'Zapisywanie…' : 'Przekierowywanie…')
+        : isDowngrade
+            ? (downgradeNow ? 'Zmień plan' : 'Zaplanuj zmianę')
+            : purchase.amountChanged
+                ? `Zapłać ${formatCents(purchase.amountChanged.amountCents)}`
+                : 'Przejdź do płatności';
 
     return (
         <ModalShell isOpen onClose={onClose} size="sm">
@@ -101,19 +225,27 @@ export function PlanChangeDialog({
                     </LoadingRow>
                 ) : !preview ? (
                     <PreviewFailed />
+                ) : upgradeBlocked ? (
+                    <RenewFirstNotice />
                 ) : (
                     <>
                         {isDowngrade && (
                             <Notice tone="warn">
-                                Obniżenie planu wejdzie w życie po zakończeniu bieżącego okresu rozliczeniowego.
-                                Do tego czasu zachowujesz pełny dostęp.
+                                {downgradeNow
+                                    ? 'Nie trwa opłacony okres, więc niższy plan wejdzie w życie od razu po potwierdzeniu.'
+                                    : 'Obniżenie planu wejdzie w życie po zakończeniu bieżącego okresu rozliczeniowego. Do tego czasu zachowujesz pełny dostęp.'}
                             </Notice>
                         )}
+
+                        {purchase.error && <CheckoutErrorNotice error={purchase.error} />}
+                        {purchase.amountChanged && <AmountChangedNotice change={purchase.amountChanged} />}
 
                         <FieldList>
                             <FieldRow label="Nowy plan"><strong>{preview.newPlanName}</strong></FieldRow>
                             <FieldRow label="Od kiedy">
-                                {isDowngrade ? formatDate(preview.effectiveAt) : 'Od razu po opłaceniu'}
+                                {isDowngrade
+                                    ? (downgradeNow ? 'Od razu' : formatDate(preview.effectiveAt))
+                                    : 'Od razu po opłaceniu'}
                             </FieldRow>
                             <FieldRow label="Do zapłaty">
                                 <Strong $highlight={!isDowngrade}>
@@ -136,15 +268,15 @@ export function PlanChangeDialog({
                 <Button onClick={onClose} disabled={isPending}>
                     {!isLoadingPreview && !preview ? 'Zamknij' : 'Anuluj'}
                 </Button>
-                {(isLoadingPreview || preview) && (
+                {upgradeBlocked ? (
+                    <GoToPlanSettings />
+                ) : (isLoadingPreview || preview) && (
                     <Button
                         variant="primary"
                         onClick={handleConfirm}
                         disabled={isPending || isLoadingPreview || !preview}
                     >
-                        {isPending
-                            ? (isDowngrade ? 'Planowanie…' : 'Przekierowywanie…')
-                            : isDowngrade ? 'Zaplanuj zmianę' : 'Przejdź do płatności'}
+                        {confirmLabel}
                     </Button>
                 )}
             </ModalFooter>
@@ -159,6 +291,8 @@ interface AddOnDialogProps {
     addOnName: string;
     preview: AddOnPreview | null;
     isLoadingPreview: boolean;
+    /** Powód nieudanej wyceny z backendu, jeśli go podał. */
+    previewError?: string | null;
     onClose: () => void;
 }
 
@@ -173,33 +307,33 @@ export function AddOnActivationDialog({
     addOnName,
     preview,
     isLoadingPreview,
+    previewError,
     onClose,
 }: AddOnDialogProps) {
-    const { showSuccess, showError } = useToast();
-    const checkout = useCheckout();
+    const { showSuccess } = useToast();
+    const { renewalRequired } = useBillingPeriod();
+    const purchase = useDialogCheckout(preview?.proratedAmountCents, () => {
+        showSuccess('Moduł aktywowany', `Moduł ${addOnName} został pomyślnie aktywowany.`);
+        onClose();
+    });
 
     // The communication module is the one add-on whose price is not the whole
     // commitment: it needs message texts and it needs credits. Explaining that here
     // covers every entry point at once: module gate, paywall, settings, the visit.
+    // Po końcu opłaconego okresu przewodnik nie ma sensu - zakupu i tak nie będzie.
     const [guideDone, setGuideDone] = useState(!ADD_ONS_WITH_GUIDE.has(addOnKey));
 
     const handleConfirm = async () => {
-        try {
-            const order = await checkout.mutateAsync({ type: 'ADD_ON_PURCHASE', addOnKeys: [addOnKey] });
-            if (order.paymentUrl) {
-                window.location.assign(order.paymentUrl);
-                return;
-            }
-            showSuccess('Moduł aktywowany', `Moduł ${addOnName} został pomyślnie aktywowany.`);
-            onClose();
-        } catch (err: unknown) {
-            toastUnhandledError(showError, err, 'Nie udało się aktywować modułu', 'Spróbuj ponownie za chwilę.');
+        if (purchase.amountChanged) {
+            purchase.confirmChangedAmount();
+            return;
         }
+        await purchase.start({ type: 'ADD_ON_PURCHASE', addOnKeys: [addOnKey] }, 'Nie udało się aktywować modułu');
     };
 
     const isTrial = preview?.proratedAmountCents === null;
 
-    if (!guideDone) {
+    if (!guideDone && !renewalRequired) {
         return (
             <CommunicationModuleTour
                 onClose={onClose}
@@ -207,6 +341,12 @@ export function AddOnActivationDialog({
             />
         );
     }
+
+    const confirmLabel = purchase.isPending
+        ? 'Przekierowywanie…'
+        : purchase.amountChanged
+            ? `Zapłać ${formatCents(purchase.amountChanged.amountCents)}`
+            : isTrial ? 'Aktywuj bezpłatnie' : 'Przejdź do płatności';
 
     return (
         <ModalShell isOpen onClose={onClose} size="sm">
@@ -218,15 +358,20 @@ export function AddOnActivationDialog({
             </ModalHeader>
 
             <ModalContent>
-                {isLoadingPreview ? (
+                {renewalRequired ? (
+                    <RenewFirstNotice />
+                ) : isLoadingPreview ? (
                     <LoadingRow>
                         <Spinner />
                         Wczytywanie wyceny…
                     </LoadingRow>
                 ) : !preview ? (
-                    <PreviewFailed />
+                    <PreviewFailed reason={previewError} />
                 ) : (
                     <>
+                        {purchase.error && <CheckoutErrorNotice error={purchase.error} />}
+                        {purchase.amountChanged && <AmountChangedNotice change={purchase.amountChanged} />}
+
                         <FieldList>
                             <FieldRow label="Moduł"><strong>{preview.addOnName}</strong></FieldRow>
                             <FieldRow label="Do zapłaty za resztę okresu">
@@ -248,18 +393,18 @@ export function AddOnActivationDialog({
             </ModalContent>
 
             <ModalFooter>
-                <Button onClick={onClose} disabled={checkout.isPending}>
-                    {!isLoadingPreview && !preview ? 'Zamknij' : 'Anuluj'}
+                <Button onClick={onClose} disabled={purchase.isPending}>
+                    {renewalRequired || (!isLoadingPreview && !preview) ? 'Zamknij' : 'Anuluj'}
                 </Button>
-                {(isLoadingPreview || preview) && (
+                {renewalRequired ? (
+                    <GoToPlanSettings />
+                ) : (isLoadingPreview || preview) && (
                     <Button
                         variant="primary"
                         onClick={handleConfirm}
-                        disabled={checkout.isPending || isLoadingPreview || !preview}
+                        disabled={purchase.isPending || isLoadingPreview || !preview}
                     >
-                        {checkout.isPending
-                            ? 'Przekierowywanie…'
-                            : isTrial ? 'Aktywuj bezpłatnie' : 'Przejdź do płatności'}
+                        {confirmLabel}
                     </Button>
                 )}
             </ModalFooter>
@@ -272,19 +417,37 @@ export function AddOnActivationDialog({
 interface DeactivateDialogProps {
     addOnKey: AddOnKey;
     addOnName: string;
+    /**
+     * Koniec trwającego OPŁACONEGO okresu - do tego dnia moduł działa. Null, gdy
+     * opłacony okres nie trwa (okres próbny, karencja): wtedy moduł znika od razu.
+     */
+    paidPeriodEndsAt: string | null;
     onClose: () => void;
 }
 
-export function AddOnDeactivationDialog({ addOnKey, addOnName, onClose }: DeactivateDialogProps) {
+export function AddOnDeactivationDialog({ addOnKey, addOnName, paidPeriodEndsAt, onClose }: DeactivateDialogProps) {
     const { showSuccess, showError } = useToast();
     const deactivateAddOn = useDeactivateAddOnMutation();
 
-    // Wyłączenie modułu odbiera dostęp od razu, więc idzie przez to samo okno
-    // potwierdzenia co każde usunięcie w ustawieniach. Okno zamyka się po kliknięciu,
-    // a wynik mówi toast - mutacja kończy się także po odmontowaniu okna.
+    // Wyłączenie nie odbiera już dostępu od razu: za opłacony okres moduł działa do
+    // jego końca, potem znika i nie wchodzi do ceny przedłużenia - a do tego dnia da
+    // się je cofnąć („Przywróć"). Stąd bursztyn, nie czerwień: to nie jest
+    // nieodwracalne. Bez trwającego opłaconego okresu nie ma czego „dożyć", więc
+    // moduł znika od razu - i okno mówi to wprost.
+    // Okno zamyka się po kliknięciu, a wynik mówi toast - mutacja kończy się także
+    // po odmontowaniu okna.
+    const atPeriodEnd = paidPeriodEndsAt !== null;
+    const endDate = formatDate(paidPeriodEndsAt);
+
     const handleConfirm = () => {
         deactivateAddOn.mutateAsync(addOnKey)
-            .then(() => showSuccess('Moduł wyłączony', `Moduł ${addOnName} nie jest już aktywny.`))
+            .then(() => {
+                if (atPeriodEnd) {
+                    showSuccess(`Moduł wyłączy się ${endDate}`, `Do tego dnia ${addOnName} działa bez zmian. Możesz to cofnąć przyciskiem „Przywróć".`);
+                } else {
+                    showSuccess('Moduł wyłączony', `Moduł ${addOnName} nie jest już aktywny.`);
+                }
+            })
             .catch((err: unknown) =>
                 toastUnhandledError(showError, err, 'Nie udało się wyłączyć modułu', 'Spróbuj ponownie za chwilę.'));
     };
@@ -292,10 +455,12 @@ export function AddOnDeactivationDialog({ addOnKey, addOnName, onClose }: Deacti
     return (
         <ConfirmationModal
             isOpen
-            variant="danger"
-            title={`Dezaktywować moduł ${addOnName}?`}
-            message="Stracisz dostęp do modułu od razu po potwierdzeniu. Możesz go później włączyć ponownie."
-            confirmText="Dezaktywuj"
+            variant="warning"
+            title={atPeriodEnd ? `Wyłączyć moduł ${addOnName} z końcem okresu?` : `Wyłączyć moduł ${addOnName}?`}
+            message={atPeriodEnd
+                ? `Moduł działa do końca opłaconego okresu, do ${endDate}, a potem się wyłączy i nie wejdzie do kolejnej płatności. Do tego dnia możesz to cofnąć.`
+                : 'Nie trwa opłacony okres (na przykład okres próbny), więc moduł wyłączy się od razu. Możesz go później włączyć ponownie.'}
+            confirmText={atPeriodEnd ? 'Wyłącz z końcem okresu' : 'Wyłącz moduł'}
             cancelText="Anuluj"
             onConfirm={handleConfirm}
             onCancel={onClose}

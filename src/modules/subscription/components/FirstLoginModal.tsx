@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useToast } from '@/common/components/Toast';
+import { acquireScrollLock } from '@/common/utils/scrollLock';
 import { useFeaturePlans, useAddOns, useStartTrial, useCheckout } from '../api/subscriptionQueries';
 import { newSubscriptionApi } from '../api/subscriptionApi';
-import type { FeaturePlan, AddOnDto, AddOnKey, PlanKey, CalculatePriceResponse } from '../types';
+import type { FeaturePlan, AddOnDto, AddOnKey, PlanKey, CalculatePriceResponse, CheckoutRequest } from '../types';
 import { formatCents, featureLabel } from '../utils/formatters';
+import { checkoutOutcome, describeCheckoutError, UNEXPECTED_CHECKOUT } from '../utils/checkout';
 import {
     Overlay,
     Card,
@@ -153,6 +155,10 @@ export function FirstLoginModal({ trialUsed }: Props) {
         }
     }, [customOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // Pełnoekranowa nakładka poza ModalShell: tło nie może przewijać się pod nią.
+    // Blokada przez jedynego jej właściciela (CLAUDE.md §3); okno żyje, dopóki jest pokazane.
+    useEffect(() => acquireScrollLock(), []);
+
     const handleStartTrial = async () => {
         if (isPending) return;
         setError(null);
@@ -167,47 +173,41 @@ export function FirstLoginModal({ trialUsed }: Props) {
         }
     };
 
-    const handleSelectPlan = async (planKey: string) => {
+    // Pierwszy zakup. Przy FULFILLED (zakup bez kwoty) useCheckout odświeża status,
+    // a bramka sama zdejmuje to okno - spinner zostaje do tego momentu. Brak adresu
+    // płatności przy innym statusie to błąd: dawniej okno zostawało wtedy na zawsze
+    // w „Przekierowywanie do płatności…".
+    const purchase = async (body: CheckoutRequest, nextPhase: Phase) => {
         if (isPending) return;
         setError(null);
-        setPhase('pending-plan');
+        setPhase(nextPhase);
         try {
-            const order = await checkout.mutateAsync({
-                type: 'INITIAL_PURCHASE',
-                planKey: planKey as PlanKey,
-                addOnKeys: [],
-            });
-            if (order.paymentUrl) {
-                window.location.assign(order.paymentUrl);
+            const outcome = checkoutOutcome(await checkout.mutateAsync(body));
+            if (outcome.kind === 'redirect') {
+                window.location.assign(outcome.url);
+                return;
             }
+            if (outcome.kind === 'fulfilled') return;
+            setError(UNEXPECTED_CHECKOUT.message);
+            showError(UNEXPECTED_CHECKOUT.title, UNEXPECTED_CHECKOUT.message);
+            setPhase('idle');
         } catch (err: unknown) {
-            const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-            setError(msg ?? 'Nie udało się aktywować planu. Spróbuj ponownie.');
-            showError('Błąd aktywacji planu', msg ?? 'Spróbuj ponownie.');
+            const copy = describeCheckoutError(err, 'Nie udało się aktywować planu');
+            setError(copy.message);
+            showError(copy.title, copy.message);
             setPhase('idle');
         }
     };
 
-    const handleCustomConfirm = async () => {
-        if (isPending) return;
-        setError(null);
-        setPhase('pending-custom');
-        try {
-            const order = await checkout.mutateAsync({
-                type: 'INITIAL_PURCHASE',
-                planKey: 'BASIC',
-                addOnKeys: Array.from(selectedAddOns),
-            });
-            if (order.paymentUrl) {
-                window.location.assign(order.paymentUrl);
-            }
-        } catch (err: unknown) {
-            const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-            setError(msg ?? 'Nie udało się aktywować planu. Spróbuj ponownie.');
-            showError('Błąd aktywacji', msg ?? 'Spróbuj ponownie.');
-            setPhase('idle');
-        }
-    };
+    const handleSelectPlan = (planKey: string) => purchase(
+        { type: 'INITIAL_PURCHASE', planKey: planKey as PlanKey, addOnKeys: [] },
+        'pending-plan',
+    );
+
+    const handleCustomConfirm = () => purchase(
+        { type: 'INITIAL_PURCHASE', planKey: 'BASIC', addOnKeys: Array.from(selectedAddOns) },
+        'pending-custom',
+    );
 
     const toggleAddOn = (key: AddOnKey) => {
         setSelectedAddOns(prev => {

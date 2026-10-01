@@ -12,6 +12,7 @@ import { GlobalShortcuts } from '@/common/shortcuts';
 import { QuickNoteProvider } from '@/modules/dashboard/components/QuickNoteProvider';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { PushOnboardingPrompt } from '@/modules/push/components/PushOnboardingPrompt';
+import { PastDueBanner } from '@/modules/subscription/components/PastDueBanner';
 
 const LayoutContainer = styled.div`
     display: flex;
@@ -87,6 +88,9 @@ export const Layout = ({ children }: LayoutProps) => {
                     <LayoutContainer>
                         <Sidebar />
                         <ContentWrapper $isCollapsed={isCollapsed}>
+                            {/* Karencja po końcu opłaconego okresu - widoczna nad każdym
+                                widokiem, a nie tylko w Ustawieniach → Abonament. */}
+                            <PastDueBanner />
                             {children}
                             {/*
                               * Przebitka gra przy WEJŚCIU NA INNY WIDOK i tylko wtedy —

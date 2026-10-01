@@ -1,9 +1,11 @@
-import { useAuth } from '@/core/context/AuthContext';
+import { usePermissions } from '@/core/permissions/usePermissions';
 import { useFeature } from '../hooks/useFeature';
+import { useSubscriptionLocked } from '../hooks/useSubscriptionLocked';
 import { useAddOnUnlock } from '../hooks/useAddOnUnlock';
 import { useAddOns, useEntitlements } from '../api/subscriptionQueries';
 import { AddOnActivationDialog } from './PlanChangeDialog';
 import { formatCents } from '../utils/formatters';
+import { PLAN_SETTINGS_PATH } from '../utils/subscriptionLock';
 import type { AddOnKey, FeatureKey } from '../types';
 import {
     GatePage,
@@ -124,6 +126,46 @@ export function ModuleGateCard({
     );
 }
 
+// ─── Subscription lock card ───────────────────────────────────────────────────
+
+export interface SubscriptionLockedCardProps {
+    /** Module or capability name the user tried to reach. */
+    title: string;
+    isOwner: boolean;
+}
+
+/**
+ * The same card, for a feature switched off by an INACTIVE SUBSCRIPTION rather
+ * than a missing module. Selling the module here was wrong twice over: the studio
+ * often already has it in its plan, and the purchase is refused anyway until the
+ * subscription is renewed. So: no price, no "Odblokuj moduł" - one way out, to the
+ * plan settings. A plain link (not router navigation) because the global 402
+ * dialog lives outside the router.
+ */
+export function SubscriptionLockedCard({ title, isOwner }: SubscriptionLockedCardProps) {
+    return (
+        <GateCard>
+            <LockBadge><LockSvg /></LockBadge>
+            <GateEyebrow>Abonament nieaktywny</GateEyebrow>
+            <GateTitle>{title}</GateTitle>
+            <GateSubtitle>
+                Abonament studia nie jest aktywny, więc ta funkcja jest wyłączona. Odnów go,
+                żeby wrócić do pracy. Twoje dane są bezpieczne.
+            </GateSubtitle>
+            {isOwner ? (
+                <UnlockButton as="a" href={PLAN_SETTINGS_PATH}>
+                    Przejdź do abonamentu
+                </UnlockButton>
+            ) : (
+                <OwnerOnlyNote>
+                    Abonament może odnowić wyłącznie właściciel studia.
+                    Poproś właściciela o odnowienie.
+                </OwnerOnlyNote>
+            )}
+        </GateCard>
+    );
+}
+
 // ─── Full-page gate ───────────────────────────────────────────────────────────
 
 interface Props {
@@ -148,17 +190,18 @@ interface Props {
  * primarily the owner's sales surface.
  */
 export function ModuleGate({ featureKey, benefits, title, children }: Props) {
-    const { user } = useAuth();
+    // To samo źródło co ustawienia abonamentu - `user.role === 'OWNER'` rozjeżdżało
+    // się z nim przy kontach, których rola ma inną wielkość liter.
+    const { isOwner } = usePermissions();
     const feature = useFeature(featureKey);
     const { isLoading } = useEntitlements();
+    const subscriptionLocked = useSubscriptionLocked();
     const { data: addOns } = useAddOns();
     const unlock = useAddOnUnlock();
 
     if (feature.enabled || isLoading) {
         return <>{children}</>;
     }
-
-    const isOwner = user?.role === 'OWNER';
 
     // Prefer the entitlements upsell (already mapped server-side); fall back to
     // the add-on catalog in case the upsell payload is missing.
@@ -172,6 +215,19 @@ export function ModuleGate({ featureKey, benefits, title, children }: Props) {
         if (!addOnKey || !isAvailable) return;
         unlock.openUnlockDialog(addOnKey, addOnName);
     };
+
+    if (subscriptionLocked) {
+        return (
+            <GatePage>
+                <DemoLayer aria-hidden="true">
+                    {children}
+                </DemoLayer>
+                <GateOverlay>
+                    <SubscriptionLockedCard title={title ?? (addOnName || 'Funkcja wyłączona')} isOwner={isOwner} />
+                </GateOverlay>
+            </GatePage>
+        );
+    }
 
     return (
         <GatePage>
@@ -203,6 +259,7 @@ export function ModuleGate({ featureKey, benefits, title, children }: Props) {
                     addOnName={unlock.pendingName}
                     preview={unlock.preview}
                     isLoadingPreview={unlock.loadingPreview}
+                    previewError={unlock.previewError}
                     onClose={unlock.closeDialog}
                 />
             )}

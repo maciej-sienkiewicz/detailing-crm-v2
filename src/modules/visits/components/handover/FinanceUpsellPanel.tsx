@@ -73,6 +73,7 @@ export function FinanceUpsellPanel({ grossAmount, currency }: Props) {
                     addOnName={unlock.pendingName}
                     preview={unlock.preview}
                     isLoadingPreview={unlock.loadingPreview}
+                    previewError={unlock.previewError}
                     onClose={unlock.closeDialog}
                 />
             )}

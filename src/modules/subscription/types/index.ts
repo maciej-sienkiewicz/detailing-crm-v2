@@ -1,4 +1,10 @@
-export type BillingStatus = 'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'EXPIRED';
+/**
+ * PAST_DUE = okres karencji: opłacony okres minął, ale studio ma jeszcze pełny
+ * dostęp do `graceEndsAt`. Nie ma automatycznego obciążenia karty - przedłużenie
+ * opłaca właściciel ręcznie, więc w tekstach nie piszemy „płatność nie przeszła",
+ * tylko że okres minął i trzeba go przedłużyć.
+ */
+export type BillingStatus = 'NO_PLAN' | 'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'EXPIRED';
 
 export type PlanKey = 'BASIC' | 'FULL';
 
@@ -84,6 +90,13 @@ export interface CapabilityUpsellOption {
     isAvailable: boolean;
 }
 
+/**
+ * Why a capability is disabled. 'SUBSCRIPTION' = the studio's subscription is not
+ * active (expired): the module may well be in the plan, so the UI must point to
+ * renewing the subscription, never to buying a module.
+ */
+export type CapabilityLockedBy = 'MODULE' | 'SUBSCRIPTION';
+
 export interface CapabilityStatus {
     enabled: boolean;
     displayName: string;
@@ -91,6 +104,8 @@ export interface CapabilityStatus {
     missingFeatures: CapabilityMissingFeature[];
     /** Purchasable add-ons that provide the missing features. */
     upsell: CapabilityUpsellOption[];
+    /** Null when enabled. Optional only for older payloads and test fixtures. */
+    lockedBy?: CapabilityLockedBy | null;
 }
 
 export interface EntitlementsResponse {
@@ -102,6 +117,12 @@ export interface EntitlementsResponse {
     features: Record<FeatureKey, FeatureStatus>;
     capabilities: Record<CapabilityKey, CapabilityStatus>;
     activeAddOns: AddOnKey[];
+    billingStatus?: BillingStatus;
+    /**
+     * False → every feature and capability is disabled because the subscription
+     * is not active (lockedBy = 'SUBSCRIPTION'), not because a module is missing.
+     */
+    subscriptionActive?: boolean;
 }
 
 // ─── Paywall (HTTP 402 contract) ──────────────────────────────────────────────
@@ -109,6 +130,9 @@ export interface EntitlementsResponse {
 /** Machine-readable codes carried by every HTTP 402 body. Branch on code, never on message. */
 export const PAYWALL_CODE_MODULE_REQUIRED = 'MODULE_REQUIRED';
 export const PAYWALL_CODE_INSUFFICIENT_CREDITS = 'INSUFFICIENT_CREDITS';
+
+/** 409 przy odwołaniu obniżenia: kolejny okres opłacono już w cenie niższego planu. */
+export const DOWNGRADE_ALREADY_PAID_CODE = 'DOWNGRADE_ALREADY_PAID';
 
 export interface PaywallErrorResponse {
     code: string;
@@ -131,13 +155,24 @@ export interface PlanRef {
 export interface ActiveAddOn {
     key: AddOnKey;
     name: string;
-    monthlyPriceGrossCents: number;
+    monthlyPriceGrossCents: number | null;
+    /**
+     * Wyłączenie zaplanowane na koniec opłaconego okresu: moduł działa do tej daty,
+     * potem znika i nie wchodzi do ceny przedłużenia. Null = moduł zostaje.
+     * „Przywróć" (POST /add-ons/{key}/resume) kasuje plan wyłączenia bez opłaty.
+     */
+    cancelAt: string | null;
 }
 
 export interface PendingDowngrade {
     toPlanKey: PlanKey;
     toPlanName: string;
     effectiveAt: string;
+    /**
+     * False, gdy kolejny okres jest już opłacony w cenie niższego planu - odwołanie
+     * zwróciłoby 409 DOWNGRADE_ALREADY_PAID, więc go nie proponujemy.
+     */
+    cancellable: boolean;
 }
 
 export interface MyPlanResponse {
@@ -147,9 +182,22 @@ export interface MyPlanResponse {
     pendingDowngrade: PendingDowngrade | null;
     periodEndsAt: string;
     trialEndsAt: string | null;
-    daysRemaining: number;
+    /** Koniec karencji (PAST_DUE): do tej daty studio ma jeszcze pełny dostęp. */
+    graceEndsAt: string | null;
+    /** W karencji: dni do `graceEndsAt`. */
+    daysRemaining: number | null;
+    /** Bieżący plan i wszystkie dziś aktywne moduły. */
     monthlyCostCents: number;
-    nextRenewalCostCents: number;
+    /**
+     * Cena KOLEJNEGO okresu - tyle pobierze przedłużenie: plan docelowy, gdy czeka
+     * obniżenie, bez modułów z `cancelAt`. Null tylko bez planu (NO_PLAN).
+     */
+    nextRenewalCostCents: number | null;
+    /**
+     * Czy wolno teraz kupić wyższy plan albo moduł (dopłata za resztę okresu).
+     * False po końcu opłaconego okresu (karencja, wygaśnięcie): najpierw przedłużenie.
+     */
+    canPurchaseMidPeriod: boolean;
 }
 
 // ─── Feature Plans & Add-Ons ──────────────────────────────────────────────────
@@ -226,7 +274,22 @@ export interface AddOnPreview {
 
 export type CheckoutType = 'INITIAL_PURCHASE' | 'RENEWAL' | 'PLAN_UPGRADE' | 'ADD_ON_PURCHASE';
 
-export type PaymentOrderStatus = 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED';
+/**
+ * PENDING          czeka na płatność
+ * PAID             pieniądze przyszły i są zweryfikowane, aktywacja w toku - jeszcze NIE sukces
+ * FULFILLED        zakup wprowadzony: jedyny stan sukcesu
+ * EXPIRED          porzucone u nas, ale spóźniona wpłata wciąż może je przenieść do PAID
+ * FAILED/CANCELLED nic nie zostało pobrane
+ * REFUND_REQUIRED  pieniądze POBRANE, zakupu nie dało się wprowadzić - wsparcie zwróci środki
+ */
+export type PaymentOrderStatus =
+    | 'PENDING'
+    | 'PAID'
+    | 'FULFILLED'
+    | 'EXPIRED'
+    | 'FAILED'
+    | 'CANCELLED'
+    | 'REFUND_REQUIRED';
 
 export interface CheckoutRequest {
     type: CheckoutType;
@@ -235,9 +298,11 @@ export interface CheckoutRequest {
 }
 
 /**
- * paymentUrl: Przelewy24 payment page to redirect the buyer to.
- * Null when the order needed no payment (trial / zero amount) and was fulfilled
- * immediately; in that case status is already PAID.
+ * paymentUrl: Przelewy24 payment page to redirect the buyer to (status PENDING).
+ * The backend may hand back an EXISTING open order for the same product (same
+ * orderId and paymentUrl) - its amount can differ from a preview shown earlier.
+ * Null together with status FULFILLED: settled immediately (zero amount). Null
+ * with any other status is an error, never a success - see utils/checkout.
  */
 export interface CheckoutResponse {
     orderId: string;
@@ -258,6 +323,7 @@ export interface PaymentOrder {
     description: string;
     createdAt: string;
     paidAt: string | null;
+    /** Powód porażki albo zwrotu - pokazywany przy FAILED i REFUND_REQUIRED. */
     failureReason: string | null;
 }
 

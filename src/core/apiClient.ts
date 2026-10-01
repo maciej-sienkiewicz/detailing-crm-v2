@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { setPiiAccessFromHeader } from '@/common/pii';
 import { isRateLimited, shouldAnnounceRateLimit } from './rateLimit';
+import { forbiddenReaction } from './forbidden';
 
 /**
  * Per-request opt-out from the global error toast.
@@ -120,14 +121,14 @@ apiClient.interceptors.response.use(
             // nothing (permissions hide capabilities, they don't announce errors).
             // Only a deliberate action (mutation) gets a toast, because the user
             // clicked something and needs to know why nothing happened.
-            // Either way, re-sync the permission set so the UI hides the capability.
-            const method = (error.config?.method ?? 'get').toLowerCase();
-            if (method !== 'get' && method !== 'head') {
-                const message: string =
-                    error.response?.data?.message ?? 'Nie masz uprawnień do wykonania tej operacji';
-                window.dispatchEvent(new CustomEvent('api:error', { detail: { message } }));
+            // A permission 403 re-syncs the permission set so the UI hides the
+            // capability; SUBSCRIPTION_INACTIVE instead tells the subscription gate to
+            // re-read the status and show the renewal window (see core/forbidden).
+            const reaction = forbiddenReaction(error);
+            if (reaction.toastMessage) {
+                window.dispatchEvent(new CustomEvent('api:error', { detail: { message: reaction.toastMessage } }));
             }
-            window.dispatchEvent(new CustomEvent('auth:permissions-stale'));
+            window.dispatchEvent(new CustomEvent(reaction.event));
         }
 
         return Promise.reject(error);

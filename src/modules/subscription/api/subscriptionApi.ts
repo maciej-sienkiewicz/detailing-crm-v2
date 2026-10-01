@@ -74,9 +74,13 @@ export const newSubscriptionApi = {
     // Every paid operation (first purchase, renewal, upgrade, module purchase)
     // creates a payment order. When paymentUrl is returned, redirect the browser
     // there; the webhook fulfils the order and the /payments/result page picks
-    // the buyer up on return.
+    // the buyer up on return. Read the response through utils/checkout.
+    //
+    // Zawsze `skipErrorToast`: każdy ekran zamówienia mówi o błędzie sam (okno
+    // w dialogu, toast z tytułem, komunikat przy planach) - interceptor dokładał
+    // do tego gołe zdanie z backendu, a 503 „płatności niedostępne" i tak pomijał.
     checkout: async (body: CheckoutRequest): Promise<CheckoutResponse> => {
-        const res = await apiClient.post<CheckoutResponse>(`${BASE}/checkout`, body);
+        const res = await apiClient.post<CheckoutResponse>(`${BASE}/checkout`, body, { skipErrorToast: true });
         return res.data;
     },
 
@@ -92,8 +96,19 @@ export const newSubscriptionApi = {
         return res.data;
     },
 
+    /**
+     * Wyłączenie modułu z końcem opłaconego okresu: moduł działa do `cancelAt`
+     * (widać je w my-plan po odświeżeniu) i nie wchodzi do ceny przedłużenia.
+     * Bez trwającego opłaconego okresu (okres próbny, karencja) znika od razu.
+     */
     deactivateAddOn: async (addOnKey: AddOnKey): Promise<EntitlementsResponse> => {
-        const res = await apiClient.delete<EntitlementsResponse>(`${BASE}/add-ons/${addOnKey}`);
+        const res = await apiClient.delete<EntitlementsResponse>(`${BASE}/add-ons/${addOnKey}`, { skipErrorToast: true });
+        return res.data;
+    },
+
+    /** Odwołuje zaplanowane wyłączenie modułu, bez opłaty. 404 = moduł nie jest już aktywny. */
+    resumeAddOn: async (addOnKey: AddOnKey): Promise<EntitlementsResponse> => {
+        const res = await apiClient.post<EntitlementsResponse>(`${BASE}/add-ons/${addOnKey}/resume`, undefined, { skipErrorToast: true });
         return res.data;
     },
 
@@ -101,8 +116,10 @@ export const newSubscriptionApi = {
         await apiClient.post(`${BASE}/start-trial`);
     },
 
+    // 404 (nic już nie czeka) i 409 DOWNGRADE_ALREADY_PAID tłumaczy baner zmiany
+    // planu własnym toastem z tytułem - interceptor dawał tylko gołe zdanie.
     cancelPendingPlanChange: async (): Promise<void> => {
-        await apiClient.delete(`${BASE}/pending-plan-change`);
+        await apiClient.delete(`${BASE}/pending-plan-change`, { skipErrorToast: true });
     },
 
     // ── Payment history ──────────────────────────────────────────────────────────

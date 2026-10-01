@@ -56,6 +56,21 @@ export function RequireCapability({ capability, mode, message, children }: Props
                 </span>
             );
         case 'upsell':
+            // Wyłączone przez nieaktywny abonament: żadnego „wymaga dodatkowego modułu"
+            // (także z `message` wywołującego, który zakłada brak modułu) - kierujemy
+            // do odnowienia, bo moduł studio może mieć.
+            if (cap.lockedBySubscription) {
+                return (
+                    <LockedSection
+                        locked
+                        message="Abonament nieaktywny. Odnów go, żeby korzystać z tej funkcji."
+                        upgradeHint="Odnów abonament"
+                        settingsTab="plan"
+                    >
+                        {children}
+                    </LockedSection>
+                );
+            }
             return (
                 <LockedSection
                     locked

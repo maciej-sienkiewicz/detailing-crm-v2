@@ -117,6 +117,7 @@ export async function stubVisitDetailApi(
                 return json(route, {
                     status: 'ACTIVE', isAccessible: true, daysRemaining: 30,
                     subscriptionEndsAt: iso(30), trialEndsAt: null, trialUsed: true,
+                    graceEndsAt: null, inGrace: false,
                 });
             }
             if (path === '/v1/subscription/my-plan') {
@@ -124,12 +125,12 @@ export async function stubVisitDetailApi(
                     billingStatus: 'ACTIVE',
                     plan: { key: 'FULL', name: 'Pełny', monthlyPriceGrossCents: 29900 },
                     activeAddOns: [], pendingDowngrade: null,
-                    periodEndsAt: iso(30), trialEndsAt: null, daysRemaining: 30,
-                    monthlyCostCents: 29900, nextRenewalCostCents: 29900,
+                    periodEndsAt: iso(30), trialEndsAt: null, graceEndsAt: null, daysRemaining: 30,
+                    monthlyCostCents: 29900, nextRenewalCostCents: 29900, canPurchaseMidPeriod: true,
                 });
             }
             if (path === '/v1/me/entitlements') {
-                return json(route, { features: [], addOns: [], billingStatus: 'ACTIVE' });
+                return json(route, { features: [], addOns: [], billingStatus: 'ACTIVE', subscriptionActive: true });
             }
 
             // `visitApi` woła `/visits/...` (bez `/v1`), reszta modułów `/v1/...` -

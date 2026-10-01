@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
+import { acquireScrollLock } from '@/common/utils/scrollLock';
 import { usePermissions } from '@/core/permissions/usePermissions';
 import { useAddOnUnlock } from '../hooks/useAddOnUnlock';
 import { AddOnActivationDialog } from './PlanChangeDialog';
@@ -28,6 +29,14 @@ export function PaywallListener() {
         window.addEventListener('api:paywall', handler);
         return () => window.removeEventListener('api:paywall', handler);
     }, []);
+
+    // Własna nakładka poza ModalShell, więc blokadę scrolla tła zakłada sama - przez
+    // jedynego właściciela blokady (CLAUDE.md §3), w efekcie zależnym tylko od otwarcia.
+    const isOpen = payload !== null;
+    useEffect(() => {
+        if (!isOpen) return;
+        return acquireScrollLock();
+    }, [isOpen]);
 
     if (!payload) return null;
 
@@ -79,6 +88,7 @@ export function PaywallListener() {
                     addOnName={unlock.pendingName}
                     preview={unlock.preview}
                     isLoadingPreview={unlock.loadingPreview}
+                    previewError={unlock.previewError}
                     onClose={() => { unlock.closeDialog(); close(); }}
                 />
             )}

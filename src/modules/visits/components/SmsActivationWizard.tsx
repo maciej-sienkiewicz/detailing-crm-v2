@@ -229,6 +229,7 @@ function ModuleStep({ readiness }: { readiness: SmsReadiness }) {
                     addOnName={unlock.pendingName}
                     preview={unlock.preview}
                     isLoadingPreview={unlock.loadingPreview}
+                    previewError={unlock.previewError}
                     onClose={unlock.closeDialog}
                 />
             )}

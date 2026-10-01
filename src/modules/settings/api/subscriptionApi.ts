@@ -9,6 +9,10 @@ export interface SubscriptionStatusResponse {
     subscriptionEndsAt: string | null;
     trialEndsAt: string | null;
     trialUsed: boolean;
+    /** Koniec karencji: ustawiony w PAST_DUE (albo tuż po końcu opłaconego okresu). */
+    graceEndsAt: string | null;
+    /** Opłacony okres minął, dostęp trwa do `graceEndsAt`. W karencji `daysRemaining` liczy do niej. */
+    inGrace: boolean;
 }
 
 const BASE = '/v1/subscription';

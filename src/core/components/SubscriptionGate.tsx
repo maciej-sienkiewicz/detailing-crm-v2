@@ -1,11 +1,18 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
+import { usePermissions } from '../permissions/usePermissions';
+import { SUBSCRIPTION_INACTIVE_EVENT } from '../forbidden';
 import { useToast } from '@/common/components/Toast';
-import { useSubscriptionStatus } from '@/modules/settings/hooks/useSubscription';
-import { useCheckout, useMyPlan } from '@/modules/subscription/api/subscriptionQueries';
+import { Button, SummaryStrip } from '@/common/components/ui';
+import { acquireScrollLock } from '@/common/utils/scrollLock';
+import { SUBSCRIPTION_QUERY_KEY, useSubscriptionStatus } from '@/modules/settings/hooks/useSubscription';
+import type { SubscriptionStatusResponse } from '@/modules/settings/api/subscriptionApi';
+import { invalidateSubscriptionData, useCheckout, useMyPlan } from '@/modules/subscription/api/subscriptionQueries';
 import { FirstLoginModal } from '@/modules/subscription/components/FirstLoginModal';
 import { formatCents } from '@/modules/subscription/utils/formatters';
+import { checkoutOutcome, describeCheckoutError, UNEXPECTED_CHECKOUT } from '@/modules/subscription/utils/checkout';
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
 
@@ -41,19 +48,23 @@ const Overlay = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 24px;
+    padding: 24px 16px;
+    overflow-y: auto;
 `;
 
 const Card = styled.div`
     background: white;
     border-radius: 20px;
     padding: 40px;
-    max-width: 640px;
+    max-width: 560px;
     width: 100%;
+    margin: auto;
     box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
     display: flex;
     flex-direction: column;
-    gap: 28px;
+    gap: 24px;
+
+    @media (max-width: 480px) { padding: 28px 20px; }
 `;
 
 const Head = styled.div`
@@ -90,78 +101,6 @@ const Subtitle = styled.p`
     max-width: 460px;
 `;
 
-const PlansGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-
-    @media (max-width: 500px) {
-        grid-template-columns: 1fr;
-    }
-`;
-
-const PlanCard = styled.button<{ $highlighted: boolean; $disabled: boolean }>`
-    position: relative;
-    background: ${p => p.$highlighted ? 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)' : '#f8fafc'};
-    border: 2px solid ${p => p.$highlighted ? '#0ea5e9' : '#e2e8f0'};
-    border-radius: 14px;
-    padding: 20px;
-    text-align: left;
-    cursor: ${p => p.$disabled ? 'not-allowed' : 'pointer'};
-    opacity: ${p => p.$disabled ? 0.6 : 1};
-    transition: all 160ms;
-    font-family: inherit;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-
-    &:hover:not(:disabled) {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 24px ${p => p.$highlighted ? 'rgba(14,165,233,0.3)' : 'rgba(15,23,42,0.1)'};
-    }
-`;
-
-const PlanName = styled.div<{ $light: boolean }>`
-    font-size: 13px;
-    font-weight: 700;
-    color: ${p => p.$light ? 'rgba(255,255,255,0.85)' : '#64748b'};
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-`;
-
-const PlanAmount = styled.div<{ $light: boolean }>`
-    font-size: 26px;
-    font-weight: 800;
-    letter-spacing: -0.8px;
-    color: ${p => p.$light ? 'white' : '#0f172a'};
-    line-height: 1;
-`;
-
-const PlanPer = styled.div<{ $light: boolean }>`
-    font-size: 12px;
-    color: ${p => p.$light ? 'rgba(255,255,255,0.65)' : '#94a3b8'};
-`;
-
-const PurchaseBtn = styled.button`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 13px 20px;
-    border-radius: 10px;
-    border: none;
-    background: #0ea5e9;
-    color: white;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    font-family: inherit;
-    transition: background 150ms;
-
-    &:hover { background: #0284c7; }
-    &:disabled { opacity: 0.6; cursor: not-allowed; }
-`;
-
 const OwnerNote = styled.div`
     text-align: center;
     font-size: 12px;
@@ -170,39 +109,56 @@ const OwnerNote = styled.div`
     border-top: 1px solid #f1f5f9;
 `;
 
-const BtnSpinner = styled.div`
-    width: 14px;
-    height: 14px;
-    border: 2px solid rgba(255,255,255,0.4);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: ${spin} 0.7s linear infinite;
-`;
-
 // ─── ExpiredModal ─────────────────────────────────────────────────────────────
 
+/**
+ * Okno odnowienia wygasłego abonamentu.
+ *
+ * Wcześniej miało DWA wypełnione bloki: kartę pakietu w gradiencie marki (wyłączony
+ * przycisk udający krok następny) i przycisk płatności - wzrok nie wiedział, co
+ * kliknąć (CLAUDE.md §2). Teraz kwota leży płasko w pasku podsumowania, a jedynym
+ * wypełnieniem jest „Odnów i zapłać". Kwota to cena KOLEJNEGO okresu
+ * (`nextRenewalCostCents`), bo tyle pobierze przedłużenie - bez modułów, których
+ * wyłączenie było zaplanowane.
+ */
 function ExpiredModal() {
-    const { user } = useAuth();
-    const { showError } = useToast();
+    // To samo źródło co ustawienia abonamentu - `user.role === 'OWNER'` rozjeżdżało
+    // się z nim przy kontach, których rola ma inną wielkość liter.
+    const { isOwner } = usePermissions();
+    const { showError, showSuccess } = useToast();
     const { data: myPlan } = useMyPlan();
     const checkout = useCheckout();
 
-    const isOwner = user?.role === 'OWNER';
+    // Własna nakładka poza ModalShell: blokadę scrolla tła zakłada sama, przez
+    // jedynego jej właściciela (CLAUDE.md §3). Okno żyje tylko, gdy jest pokazane.
+    useEffect(() => acquireScrollLock(), []);
+
+    const renewalCents = myPlan ? (myPlan.nextRenewalCostCents ?? myPlan.monthlyCostCents) : null;
 
     const handleRenew = async () => {
         if (!isOwner || checkout.isPending) return;
         try {
             const order = await checkout.mutateAsync({ type: 'RENEWAL' });
-            if (order.paymentUrl) {
-                window.location.assign(order.paymentUrl);
+            const outcome = checkoutOutcome(order);
+            if (outcome.kind === 'redirect') {
+                window.location.assign(outcome.url);
+                return;
             }
-        } catch {
-            showError('Błąd płatności', 'Nie udało się rozpocząć płatności. Spróbuj ponownie.');
+            if (outcome.kind === 'fulfilled') {
+                // useCheckout odświeża status - bramka sama zdejmie to okno.
+                showSuccess('Abonament odnowiony', 'Twój plan działa przez kolejne 30 dni.');
+                return;
+            }
+            showError(UNEXPECTED_CHECKOUT.title, UNEXPECTED_CHECKOUT.message);
+        } catch (err: unknown) {
+            // Checkout idzie bez toastu interceptora - to jedyny komunikat o błędzie.
+            const copy = describeCheckoutError(err);
+            showError(copy.title, copy.message);
         }
     };
 
     return (
-        <Overlay>
+        <Overlay role="dialog" aria-modal="true" aria-labelledby="subscription-expired-title">
             <Card>
                 <Head>
                     <IconWrap>
@@ -212,27 +168,30 @@ function ExpiredModal() {
                             <line x1="12" y1="17" x2="12.01" y2="17" />
                         </svg>
                     </IconWrap>
-                    <Title>Twoja subskrypcja wygasła</Title>
+                    <Title id="subscription-expired-title">Twoja subskrypcja wygasła</Title>
                     <Subtitle>
-                        Aby kontynuować korzystanie z systemu, przedłuż swój pakiet. Płatność
-                        obsługuje Przelewy24. Wszystkie Twoje dane są bezpieczne.
+                        Opłacony okres i czas na jego przedłużenie minęły. Odnów pakiet, żeby
+                        wrócić do pracy. Płatność obsługuje Przelewy24, a wszystkie Twoje dane są bezpieczne.
                     </Subtitle>
                 </Head>
 
-                {myPlan && (
-                    <PlansGrid style={{ gridTemplateColumns: '1fr' }}>
-                        <PlanCard $highlighted={true} $disabled={true} disabled>
-                            <PlanName $light={true}>Pakiet {myPlan.plan.name}</PlanName>
-                            <PlanAmount $light={true}>{formatCents(myPlan.monthlyCostCents)}</PlanAmount>
-                            <PlanPer $light={true}>/ 30 dni (pakiet + aktywne moduły)</PlanPer>
-                        </PlanCard>
-                    </PlansGrid>
+                {myPlan && renewalCents != null && (
+                    <SummaryStrip
+                        label={`Pakiet ${myPlan.plan.name}`}
+                        amount={formatCents(renewalCents)}
+                        details="brutto za 30 dni, pakiet i moduły"
+                    />
                 )}
 
-                <PurchaseBtn onClick={handleRenew} disabled={!isOwner || checkout.isPending}>
-                    {checkout.isPending && <BtnSpinner />}
-                    {checkout.isPending ? 'Przekierowywanie do Przelewy24...' : 'Odnów subskrypcję i zapłać'}
-                </PurchaseBtn>
+                <Button
+                    variant="primary"
+                    size="lg"
+                    block
+                    onClick={handleRenew}
+                    disabled={!isOwner || checkout.isPending}
+                >
+                    {checkout.isPending ? 'Przekierowywanie do Przelewy24…' : 'Odnów subskrypcję i zapłać'}
+                </Button>
 
                 {!isOwner && (
                     <OwnerNote>
@@ -250,9 +209,36 @@ interface SubscriptionGateProps {
     children: ReactNode;
 }
 
+/**
+ * Abonament wygasł w trakcie sesji: backend odpowiada 403 SUBSCRIPTION_INACTIVE
+ * (patrz core/forbidden), a status bramka czyta tylko przy montowaniu - bez tego
+ * studio klikało w martwe przyciski aż do przeładowania strony. Odświeżamy dane
+ * abonamentu, a bramka sama pokazuje okno odnowienia.
+ *
+ * Seria odrzuconych zapytań z jednego widoku to jedno odświeżenie, a gdy okno już
+ * stoi, nie ma czego odświeżać.
+ */
+function useSubscriptionInactiveListener() {
+    const queryClient = useQueryClient();
+    useEffect(() => {
+        let quietUntil = 0;
+        const handler = () => {
+            const current = queryClient.getQueryData<SubscriptionStatusResponse>(SUBSCRIPTION_QUERY_KEY);
+            if (current && !current.isAccessible) return;
+            const now = Date.now();
+            if (now < quietUntil) return;
+            quietUntil = now + 5000;
+            invalidateSubscriptionData(queryClient);
+        };
+        window.addEventListener(SUBSCRIPTION_INACTIVE_EVENT, handler);
+        return () => window.removeEventListener(SUBSCRIPTION_INACTIVE_EVENT, handler);
+    }, [queryClient]);
+}
+
 export function SubscriptionGate({ children }: SubscriptionGateProps) {
     const { isLoading: authLoading } = useAuth();
     const { status, isLoading: statusLoading } = useSubscriptionStatus();
+    useSubscriptionInactiveListener();
 
     // While auth or subscription status is loading, block rendering children.
     // Rendering children here would cause every mounted component to fire its

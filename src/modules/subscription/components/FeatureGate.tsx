@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { useFeature } from '../hooks/useFeature';
+import { useSubscriptionLocked } from '../hooks/useSubscriptionLocked';
 import { newSubscriptionApi } from '../api/subscriptionApi';
 import { AddOnActivationDialog } from './PlanChangeDialog';
 import type { FeatureKey, AddOnKey, AddOnPreview } from '../types';
 import { formatCents } from '../utils/formatters';
+import { apiErrorMessage } from '../utils/apiErrors';
+import { PLAN_SETTINGS_PATH } from '../utils/subscriptionLock';
 import {
     GateWrap,
     DemoContent,
@@ -11,6 +14,7 @@ import {
     OverlayCard,
     LockIcon,
     OverlayTitle,
+    OverlaySubtitle,
     PriceHint,
     UnlockBtn,
     WaitlistBtn,
@@ -41,8 +45,10 @@ const ZapIcon = () => (
 
 export function FeatureGate({ featureKey, children, demoContent }: Props) {
     const feature = useFeature(featureKey);
+    const subscriptionLocked = useSubscriptionLocked();
 
     const [addOnPreview, setAddOnPreview] = useState<AddOnPreview | null>(null);
+    const [previewError, setPreviewError] = useState<string | null>(null);
     const [loadingPreview, setLoadingPreview] = useState(false);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [pendingAddOnKey, setPendingAddOnKey] = useState<AddOnKey | null>(null);
@@ -50,6 +56,25 @@ export function FeatureGate({ featureKey, children, demoContent }: Props) {
 
     if (feature.enabled) {
         return <>{children}</>;
+    }
+
+    // Wyłączone przez nieaktywny abonament: bez oferty modułu, tylko droga do odnowienia.
+    if (subscriptionLocked) {
+        return (
+            <GateWrap>
+                <DemoContent>
+                    {demoContent ?? children}
+                </DemoContent>
+                <Overlay>
+                    <OverlayCard>
+                        <LockIcon><LockSvg /></LockIcon>
+                        <OverlayTitle>Abonament nieaktywny</OverlayTitle>
+                        <OverlaySubtitle>Odnów abonament, żeby korzystać z tej funkcji.</OverlaySubtitle>
+                        <UnlockBtn as="a" href={PLAN_SETTINGS_PATH}>Przejdź do abonamentu</UnlockBtn>
+                    </OverlayCard>
+                </Overlay>
+            </GateWrap>
+        );
     }
 
     const upsell = feature.upsell;
@@ -60,14 +85,16 @@ export function FeatureGate({ featureKey, children, demoContent }: Props) {
         const key = upsell.addOnKey as AddOnKey;
         setPendingAddOnKey(key);
         setPendingAddOnName(upsell.addOnName ?? '');
+        setPreviewError(null);
         setLoadingPreview(true);
         setDialogOpen(true);
 
         try {
-            const preview = await newSubscriptionApi.previewAddOn(key);
+            const preview = await newSubscriptionApi.previewAddOn(key, { skipErrorToast: true });
             setAddOnPreview(preview);
-        } catch {
+        } catch (err) {
             setAddOnPreview(null);
+            setPreviewError(apiErrorMessage(err) ?? null);
         } finally {
             setLoadingPreview(false);
         }
@@ -136,6 +163,7 @@ export function FeatureGate({ featureKey, children, demoContent }: Props) {
                     addOnName={pendingAddOnName}
                     preview={addOnPreview}
                     isLoadingPreview={loadingPreview}
+                    previewError={previewError}
                     onClose={handleCloseDialog}
                 />
             )}
