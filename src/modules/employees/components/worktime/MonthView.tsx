@@ -295,7 +295,19 @@ export function MonthView({ onGoToTeam }: Props) {
                         </Head>
 
                         <Progress>
-                            <StepPills steps={steps} label="Etap miesiąca" />
+                            <WideSteps>
+                                <StepPills steps={steps} label="Etap miesiąca" />
+                            </WideSteps>
+                            <NarrowSteps aria-hidden="true">
+                                <span>
+                                    {stage >= STAGES.length
+                                        ? <strong>Miesiąc zamknięty</strong>
+                                        : <>Etap {stage + 1} z {STAGES.length}: <strong>{STAGES[stage].label}</strong></>}
+                                </span>
+                                <Segments>
+                                    {STAGES.map((s, i) => <Segment key={s.key} $state={steps[i].state} />)}
+                                </Segments>
+                            </NarrowSteps>
                         </Progress>
 
                         {data.stage === 'REVIEWING' && awaiting.length === 0 && (
@@ -401,15 +413,17 @@ function MonthRow({ row, onOpen }: { row: MonthCardRow; onOpen: () => void }) {
                 <Cell data-area="status">
                     <StatusPill $tone={status.tone}>{status.label}</StatusPill>
                 </Cell>
-                <Cell data-area="hours">
-                    <Hours>{hoursVsNorm(row.totalMinutes, row.expectedMinutes)}</Hours>
-                    {row.missingWorkingDays > 0 && <Missing>brak {daysLabel(row.missingWorkingDays)}</Missing>}
-                </Cell>
-                <Cell data-area="overtime">
-                    {row.overtimeMinutes > 0
-                        ? <Overtime>+{hoursText(row.overtimeMinutes)}<NarrowOnly> nadgodzin</NarrowOnly></Overtime>
-                        : <Faint aria-hidden="true">-</Faint>}
-                </Cell>
+                <Nums>
+                    <Cell data-area="hours">
+                        <Hours>{hoursVsNorm(row.totalMinutes, row.expectedMinutes)}</Hours>
+                        {row.missingWorkingDays > 0 && <Missing>brak {daysLabel(row.missingWorkingDays)}</Missing>}
+                    </Cell>
+                    <Cell data-area="overtime">
+                        {row.overtimeMinutes > 0
+                            ? <Overtime>+{hoursText(row.overtimeMinutes)}<NarrowOnly> nadgodzin</NarrowOnly></Overtime>
+                            : <Faint aria-hidden="true">-</Faint>}
+                    </Cell>
+                </Nums>
                 <Chevron aria-hidden="true"><ChevronRight /></Chevron>
             </RowButton>
         </li>
@@ -495,11 +509,11 @@ function SheetBlock({ month, downloading, signingPending, onDownload, onSignInco
                 {/* Miesiąc trzeba zamknąć także wtedy, gdy ktoś karty nie złoży (długie L4,
                     odejście) - to świadomy wyjątek, więc akcja jest w tle, nie wypełniona. */}
                 {collecting && !sheet && counts.approved > 0 && (
-                    <div>
+                    <GhostRow>
                         <Button variant="ghost" size="sm" onClick={onSignIncomplete} disabled={signingPending}>
                             Podpisz listę bez brakujących kart
                         </Button>
-                    </div>
+                    </GhostRow>
                 )}
                 {sheetHistory.length > 0 && (
                     <History>
@@ -631,6 +645,36 @@ const Progress = styled.div`
     @container month ${NARROW} { padding: 0 16px 14px; }
 `;
 
+const WideSteps = styled.div`
+    @container month ${NARROW} { display: none; }
+`;
+
+/* Na telefonie trzy pastylki z łącznikami nie mieszczą się w linii i łamały się na dwie -
+   tam stoi zwięzłe „Etap 2 z 3: Zatwierdzanie" z paskiem, jak w oknach urlopowych. */
+const NarrowSteps = styled.div`
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 13px;
+    color: ${ui.textMuted};
+
+    strong { font-weight: 700; color: ${ui.ink}; }
+    @container month ${NARROW} { display: flex; }
+`;
+
+const Segments = styled.div`
+    display: flex;
+    gap: 4px;
+`;
+
+/** Odcień, nie wypełnienie - pasek postępu nie konkuruje z krokiem następnym. */
+const Segment = styled.span<{ $state: StepState }>`
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: ${p => p.$state === 'done' ? ui.okLine : p.$state === 'active' ? ui.brandLine : ui.line};
+`;
+
 const HeadNote = styled.p`
     margin: 0;
     padding: 0 24px 14px;
@@ -695,19 +739,36 @@ const RowButton = styled.button`
 
     /* Telefon: dwie linie - kto i w jakim stanie, a pod spodem liczby obok siebie. */
     @container month ${NARROW} {
-        grid-template-columns: auto minmax(0, 1fr) auto 16px;
+        grid-template-columns: minmax(0, 1fr) auto 16px;
         grid-template-areas:
-            'who who status chevron'
-            'hours overtime overtime chevron';
+            'who status chevron'
+            'nums nums chevron';
         gap: 6px 12px;
         padding: 12px 16px;
 
         > :nth-child(1) { grid-area: who; }
         > [data-area='status'] { grid-area: status; }
-        > [data-area='hours'] { grid-area: hours; }
-        > [data-area='overtime'] { grid-area: overtime; }
-        > [data-area='overtime'] > [aria-hidden='true'] { display: none; }
         > :last-child { grid-area: chevron; }
+    }
+`;
+
+/**
+ * Godziny i nadgodziny: na komputerze dwie kolumny tabeli (`display: contents` - dzieci są
+ * komórkami siatki wiersza), na telefonie jedna linia pod nazwiskiem. Osobne obszary siatki
+ * łamały się tam w trzy kawałki z nadgodzinami odklejonymi na prawo.
+ */
+const Nums = styled.span`
+    display: contents;
+
+    @container month ${NARROW} {
+        grid-area: nums;
+        display: flex;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 4px 12px;
+        min-width: 0;
+
+        > [data-area='overtime'] > [aria-hidden='true'] { display: none; }
     }
 `;
 
@@ -831,6 +892,11 @@ const History = styled.details`
     }
     ul { margin: 6px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
     li { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+`;
+
+/* Przycisk-duch ma własny odstęp wewnętrzny - cofnięty, żeby tekst stał w linii z akapitem. */
+const GhostRow = styled.div`
+    margin-left: -11px;
 `;
 
 const EmptyAction = styled.div`
