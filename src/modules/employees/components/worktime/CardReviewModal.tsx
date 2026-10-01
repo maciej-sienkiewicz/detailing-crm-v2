@@ -11,6 +11,9 @@
 // następny (CLAUDE.md §2): „Zatwierdź kartę"; „Zwróć do poprawy" niesie czerwień jako
 // odcień. Zwrot i odblokowanie przełączają stopkę w edytor notatki (stan przejściowy -
 // wtedy wypełnione jest jego „Zwróć kartę"). Blokadę przewijania tła daje ModalShell.
+//
+// Okno ma pełną wysokość (`fillHeight`): przy seryjnym przeglądzie przyciski stoją
+// w tym samym miejscu dla każdej karty, a na telefonie lista dni dostaje cały ekran.
 
 import { useEffect, useId, useRef, useState } from 'react';
 import styled from 'styled-components';
@@ -172,7 +175,7 @@ export function CardReviewModal({ period, userId, mode = 'month', onNavigate, on
         const returnedNow = decided.size - approvedNow;
         const waiting = rows.filter(r => isNotSubmitted(r.status) && !decided.has(r.userId)).length;
         return (
-            <ModalShell isOpen onClose={onClose} size="lg" stableHeight labelledBy={titleId}>
+            <ModalShell isOpen onClose={onClose} size="lg" fillHeight labelledBy={titleId}>
                 <ModalHeader>
                     <ModalTitleGroup>
                         <ModalTitle id={titleId}>Przegląd zakończony</ModalTitle>
@@ -258,7 +261,7 @@ export function CardReviewModal({ period, userId, mode = 'month', onNavigate, on
                     rows={3}
                     aria-invalid={noteError ? true : undefined}
                     aria-describedby={noteError ? `${noteId}-error` : undefined}
-                    placeholder={activeEditor === 'unlock' ? 'Np. trzeba dopisać nadgodziny z 12.09' : 'Np. brakuje wpisów 15 i 16 września'}
+                    placeholder={activeEditor === 'unlock' ? 'Np. trzeba dopisać nadgodziny' : 'Np. brakuje wpisów z dwóch dni'}
                     onChange={e => { setNote(e.target.value); setNoteError(null); }}
                 />
                 {noteError && <NoteError id={`${noteId}-error`} role="alert">{noteError}</NoteError>}
@@ -282,7 +285,10 @@ export function CardReviewModal({ period, userId, mode = 'month', onNavigate, on
                     onClick={() => setEditor({ kind: 'return', for: userId })}
                     disabled={pending}
                 >
-                    <Undo2 aria-hidden="true" />Zwróć do poprawy
+                    <Undo2 aria-hidden="true" />
+                    {/* Jeden element tekstu: przycisk to flex z odstępem, więc osobny kawałek
+                        „ do poprawy" dostawał podwójną spację. */}
+                    <span>Zwróć{' '}<WideOnly>do poprawy</WideOnly></span>
                 </Button>
                 <FooterPrimary>
                     <Button variant="success" size="lg" onClick={handleApprove} disabled={pending}>
@@ -332,7 +338,7 @@ export function CardReviewModal({ period, userId, mode = 'month', onNavigate, on
     }
 
     return (
-        <ModalShell isOpen onClose={onClose} size="lg" stableHeight labelledBy={titleId}>
+        <ModalShell isOpen onClose={onClose} size="lg" fillHeight labelledBy={titleId}>
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle id={titleId}>{name || 'Karta czasu pracy'}</ModalTitle>
@@ -370,8 +376,12 @@ export function CardReviewModal({ period, userId, mode = 'month', onNavigate, on
             <ModalContent ref={contentRef}>
                 {showAdvance && (
                     <Notice tone="ok" role="status">
-                        {advance.decision === 'approved' ? 'Zatwierdzono kartę' : 'Zwrócono kartę'}: {advance.name}.
-                        {' '}Następna: <strong>{name}</strong>{queue && position > 0 ? `, ${position} z ${queue.length}` : ''}.
+                        {/* Jeden <span>: treść Notice to kolumna, więc luźne kawałki zdania
+                            rozjeżdżały się na osobne linie. */}
+                        <span>
+                            {advance.decision === 'approved' ? 'Zatwierdzono kartę' : 'Zwrócono kartę'}: {advance.name}.
+                            {' '}Następna: <strong>{name}</strong>{queue && position > 0 ? `, ${position} z ${queue.length}` : ''}.
+                        </span>
                     </Notice>
                 )}
 
@@ -571,6 +581,19 @@ const FooterPrimary = styled.div`
     @media ${NARROW} {
         flex: 1 1 auto;
         > button { width: 100%; }
+    }
+`;
+
+/* Na telefonie „Zwróć do poprawy" obok „Zatwierdź kartę" łamało oba przyciski na dwie
+   linie - zostaje samo „Zwróć", a czytnik ekranu i tak dostaje pełną nazwę z tekstu. */
+const WideOnly = styled.span`
+    @media ${NARROW} {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
     }
 `;
 
