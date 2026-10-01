@@ -131,14 +131,6 @@ export const worktimeMonthsApi = {
         return response.data;
     },
 
-    approveMany: async (period: string, userIds: string[]): Promise<BulkResult & { approved: string[] }> => {
-        const response = await apiClient.post<BulkResult & { approved: string[] }>(
-            `${BASE}/months/${period}/approve`,
-            { userIds },
-        );
-        return response.data;
-    },
-
     remind: async (period: string, userIds: string[]): Promise<BulkResult & { reminded: string[] }> => {
         const response = await apiClient.post<BulkResult & { reminded: string[] }>(
             `${BASE}/months/${period}/remind`,

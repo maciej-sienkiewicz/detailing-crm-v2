@@ -1,11 +1,10 @@
 // src/modules/employees/components/worktime/monthFormat.ts
 //
 // Czyste funkcje list miesięcznych: nazwy miesięcy, godziny, status karty, który miesiąc
-// otworzyć domyślnie i która karta jest następna w przeglądzie. Bez Reacta - testowane
-// osobno, bo od nich zależy, co menedżer zobaczy jako „krok następny".
+// otworzyć domyślnie, adresy widoków i czy listę obecności da się podpisać bez tworzenia
+// nowej. Bez Reacta - testowane osobno.
 
-import type { PillTone } from '@/common/components/ui';
-import type { CardStatus, MonthCardRow, MonthOverview, MonthSheet, MonthStage } from '../../api/worktimeMonthsApi';
+import type { CardStatus, MonthCardRow, MonthOverview, MonthSheet } from '../../api/worktimeMonthsApi';
 
 const MONTHS = [
     'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
@@ -67,9 +66,12 @@ export function hoursText(minutes: number): string {
     return `${sign}${m === 0 ? h : `${h}:${pad(m)}`} h`;
 }
 
-/** „152 / 168 h": przepracowane wobec normy. */
-export function hoursVsNorm(totalMinutes: number, expectedMinutes: number): string {
-    return `${hoursText(totalMinutes).replace(/ h$/, '')} / ${hoursText(expectedMinutes)}`;
+/**
+ * „137:30 z 152 h": przepracowane wobec normy. Słowem, nie ukośnikiem - „152 / 168 h"
+ * czytało się jak ułamek albo dwie osobne liczby.
+ */
+export function hoursOfNorm(totalMinutes: number, expectedMinutes: number): string {
+    return `${hoursText(totalMinutes).replace(/ h$/, '')} z ${hoursText(expectedMinutes)}`;
 }
 
 export function daysLabel(count: number): string {
@@ -77,9 +79,38 @@ export function daysLabel(count: number): string {
     return `${count} dni`;
 }
 
-export const CARD_STATUS: Record<CardStatus, { label: string; tone: PillTone }> = {
-    NOT_STARTED: { label: 'Brak wpisów', tone: 'neutral' },
-    DRAFT: { label: 'W trakcie', tone: 'neutral' },
+/** „brak 1 dnia", „brak 2 dni" - dopisek w wierszu osoby. */
+export function missingDaysText(count: number): string {
+    return `brak ${count === 1 ? '1 dnia' : `${count} dni`}`;
+}
+
+/** „4 z 7 kart zatwierdzonych" - jedyne podsumowanie miesiąca. */
+export function approvedSummary(approved: number, total: number): string {
+    return `${approved} z ${total} ${total === 1 ? 'karty zatwierdzonej' : 'kart zatwierdzonych'}`;
+}
+
+/**
+ * Jedno zdanie pod liczbą godzin na karcie: braki, nadgodziny, urlop. Zera są pomijane -
+ * „Nadgodziny: brak" przy każdej karcie to szum, który trzeba przeczytać, żeby go odrzucić.
+ */
+export function cardFactsSentence(card: Pick<MonthCardRow, 'missingWorkingDays' | 'overtimeMinutes' | 'leaveWorkingDays'>): string {
+    const parts: string[] = [];
+    if (card.missingWorkingDays > 0) {
+        parts.push(card.missingWorkingDays === 1
+            ? 'Brakuje 1 dnia roboczego.'
+            : `Brakuje ${card.missingWorkingDays} dni roboczych.`);
+    }
+    if (card.overtimeMinutes > 0) parts.push(`Nadgodziny ${hoursText(card.overtimeMinutes)}.`);
+    if (card.leaveWorkingDays > 0) parts.push(`Urlop i L4: ${daysLabel(card.leaveWorkingDays)}.`);
+    return parts.join(' ');
+}
+
+/** Odcień tekstu statusu. Status jest TEKSTEM, nie pastylką - nie da się w niego kliknąć. */
+export type StatusTone = 'warn' | 'ok' | 'danger' | 'muted';
+
+export const CARD_STATUS: Record<CardStatus, { label: string; tone: StatusTone }> = {
+    NOT_STARTED: { label: 'Brak wpisów', tone: 'muted' },
+    DRAFT: { label: 'W trakcie', tone: 'muted' },
     SUBMITTED: { label: 'Do zatwierdzenia', tone: 'warn' },
     RETURNED: { label: 'Zwrócona', tone: 'danger' },
     APPROVED: { label: 'Zatwierdzona', tone: 'ok' },
@@ -97,52 +128,12 @@ export function remindedRecently(remindedAt: string | null, now: number = Date.n
     return now - Date.parse(remindedAt) < REMIND_COOLDOWN_MS;
 }
 
-/**
- * Komu można teraz wysłać przypomnienie. Nie patrzy na `canDecide` - to pole mówi tylko
- * o kartach złożonych i zatwierdzonych (przy niezłożonych backend zawsze daje false);
- * własną kartę odsiewa `selfUserId`.
- */
-export function remindable(rows: MonthCardRow[], now: number = Date.now(), selfUserId?: string | null): MonthCardRow[] {
-    return rows.filter(r => isNotSubmitted(r.status) && r.userId !== selfUserId && !remindedRecently(r.remindedAt, now));
-}
+/** Widok miesiąca (zakładka) - tam wraca karta po decyzji. */
+export const monthPath = (period: string) => `/employees/worktime?period=${period}`;
 
-/** Karty, które ten użytkownik może teraz zatwierdzić albo zwrócić. */
-export const awaitingDecision = (rows: MonthCardRow[]) =>
-    rows.filter(r => r.status === 'SUBMITTED' && r.canDecide);
-
-/** „Zatwierdź złożone bez braków": tylko złożone, bez brakujących dni roboczych. */
-export const approvableInBulk = (rows: MonthCardRow[]) =>
-    awaitingDecision(rows).filter(r => r.missingWorkingDays === 0);
-
-/**
- * Następna karta do decyzji po `currentUserId`: idzie dalej w kolejności listy i zawija
- * na początek, pomija bieżącą i te, o których już zdecydowano w tym przeglądzie
- * (odświeżony przegląd miesiąca może jeszcze nie zdążyć tego pokazać).
- */
-export function nextAwaiting(
-    rows: MonthCardRow[],
-    currentUserId: string,
-    decided: ReadonlySet<string> = new Set(),
-): MonthCardRow | null {
-    const start = rows.findIndex(r => r.userId === currentUserId);
-    for (let step = 1; step <= rows.length; step++) {
-        const row = rows[(Math.max(start, 0) + step) % rows.length];
-        if (row.userId === currentUserId || decided.has(row.userId)) continue;
-        if (row.status === 'SUBMITTED' && row.canDecide) return row;
-    }
-    return null;
-}
-
-/** Etap miesiąca jako indeks pastylek „Karty → Zatwierdzanie → Podpis listy"; 3 = wszystko zrobione. */
-export function stageStep(stage: MonthStage): number {
-    switch (stage) {
-        case 'COLLECTING': return 0;
-        case 'REVIEWING': return 1;
-        case 'READY_TO_SIGN':
-        case 'NEEDS_RESIGN': return 2;
-        case 'SIGNED': return 3;
-    }
-}
+/** Karta czasu pracy osoby - osobna strona, nie okno nad listą. */
+export const cardPath = (period: string, userId: string) =>
+    `/employees/worktime/${period}/${encodeURIComponent(userId)}`;
 
 /** Lista podpisana: status APPROVED (zatwierdzenie listy wymaga podpisu). */
 export const isSigned = (sheet: Pick<MonthSheet, 'status'>) => sheet.status === 'APPROVED';

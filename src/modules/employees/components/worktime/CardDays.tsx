@@ -1,12 +1,14 @@
 // src/modules/employees/components/worktime/CardDays.tsx
 //
-// Miesiąc z karty czasu pracy jako lista dni - w oknie przeglądu karty. Przełożony
-// ma zobaczyć to, co jest do sprawdzenia, bez liczenia: święta i urlop/L4 są podpisane
-// (to nie są braki), brakujący dzień roboczy jest bursztynowy, weekend przygaszony,
+// Miesiąc z karty czasu pracy jako lista dni - na stronie karty. Przełożony ma zobaczyć
+// to, co jest do sprawdzenia, bez liczenia: święta i urlop/L4 są podpisane (to nie są
+// braki), brakujący dzień roboczy mówi „brak wpisu" bursztynem, weekend jest przygaszony,
 // a notatka pracownika stoi pod dniem, którego dotyczy.
 //
+// Podpisy są zwykłym tekstem, nie plakietkami: plakietka wygląda na coś do kliknięcia,
+// a tu nie ma czego klikać (uwaga właściciela: „badge, które są tylko informacyjne").
 // Lista, a nie siatka kalendarza: na telefonie siedem kolumn po 40 px nie pomieści
-// ani godzin, ani etykiety „L4", ani notatki - a okno jest mobile-first.
+// ani godzin, ani etykiety „L4", ani notatki.
 
 import styled, { css } from 'styled-components';
 import { ui } from '@/common/components/ui';
@@ -45,11 +47,13 @@ export function CardDays({ days }: Props) {
                             <Date_>{dayMonth(date)}</Date_>
                         </When>
                         <What>
-                            <Tags>
-                                {day.holidayName && <Tag $tone="holiday">{day.holidayName}</Tag>}
-                                {day.leave && <Tag $tone="leave">{day.leave.label}</Tag>}
-                                {day.missing && <Tag $tone="missing">brak wpisu</Tag>}
-                            </Tags>
+                            {(day.holidayName || day.leave || day.missing) && (
+                                <Labels>
+                                    {day.holidayName && <Label $tone="holiday">{day.holidayName}</Label>}
+                                    {day.leave && <Label $tone="leave">{day.leave.label}</Label>}
+                                    {day.missing && <Label $tone="missing">brak wpisu</Label>}
+                                </Labels>
+                            )}
                             {day.note && <Note>{day.note}</Note>}
                         </What>
                         <Hours $empty={day.minutes === null}>
@@ -78,24 +82,17 @@ const Row = styled.li<{ $kind: Kind }>`
     grid-template-columns: 64px minmax(0, 1fr) auto;
     align-items: center;
     gap: 10px;
-    min-height: 38px;
-    padding: 6px 12px;
+    min-height: 40px;
+    padding: 7px 14px;
     border-bottom: 1px solid ${ui.lineFaint};
     font-size: 13.5px;
     color: ${ui.inkSoft};
 
     &:last-child { border-bottom: none; }
 
-    ${p => p.$kind === 'weekend' && css`
+    ${p => (p.$kind === 'weekend' || p.$kind === 'holiday') && css`
         background: ${ui.surfaceSoft};
         color: ${ui.textFaint};
-    `}
-    ${p => p.$kind === 'holiday' && css`background: ${ui.surfaceSoft};`}
-    /* Brak to jedyna rzecz w tej liście, którą trzeba przeczytać - dostaje bursztyn
-       na całym wierszu, a nie tylko w etykiecie. */
-    ${p => p.$kind === 'missing' && css`
-        background: ${ui.warnTint};
-        box-shadow: inset 3px 0 0 #f59e0b;
     `}
 `;
 
@@ -123,35 +120,23 @@ const What = styled.span`
     min-width: 0;
 `;
 
-const Tags = styled.span`
+const Labels = styled.span`
     display: flex;
     flex-wrap: wrap;
-    gap: 4px 6px;
-
-    &:empty { display: none; }
+    gap: 2px 12px;
 `;
 
-const TAG_TONES = {
-    holiday: { bg: ui.surfaceAlt, ink: ui.textSecondary, line: ui.line },
-    leave: { bg: ui.brandTint, ink: ui.brandDeep, line: ui.brandLineSoft },
-    missing: { bg: '#fef3c7', ink: ui.warnInk, line: ui.warnLine },
+const LABEL_INK = {
+    holiday: ui.textSecondary,
+    leave: ui.brandDeep,
+    missing: ui.warnInk,
 } as const;
 
-const Tag = styled.span<{ $tone: keyof typeof TAG_TONES }>`
-    display: inline-flex;
-    align-items: center;
-    padding: 1px 8px;
-    border-radius: ${ui.radiusControl};
-    border: 1px solid ${p => TAG_TONES[p.$tone].line};
-    background: ${p => TAG_TONES[p.$tone].bg};
-    color: ${p => TAG_TONES[p.$tone].ink};
-    font-size: 12px;
+const Label = styled.span<{ $tone: keyof typeof LABEL_INK }>`
+    font-size: 13px;
     font-weight: 600;
-    line-height: 1.5;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    color: ${p => LABEL_INK[p.$tone]};
+    overflow-wrap: anywhere;
 `;
 
 const Note = styled.span`
