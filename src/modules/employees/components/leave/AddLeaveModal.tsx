@@ -306,9 +306,10 @@ export function AddLeaveModal({ onClose }: Props) {
     } else if (blocked) {
         footer = <Button variant="outline" onClick={onClose}>Zamknij</Button>;
     } else {
+        // Bez „Wstecz": podpis pracownika już jest. Odłożenie decyzji to krzyżyk w nagłówku,
+        // który pyta i mówi, że wniosek zostanie w kolejce - tu krok następny ma cały wiersz.
         footer = (
             <>
-                <Button variant="ghost" onClick={requestClose} disabled={signing.isPending}>Rozpatrzę później</Button>
                 <FooterPrimary>
                     <PrimaryAction
                         icon={isReject ? <X /> : <Check />}

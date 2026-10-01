@@ -88,4 +88,13 @@ const Btn = styled.button<{ $block?: boolean }>`
     &:active:not(:disabled) { transform: translateY(0); }
     &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: 3px; }
     &:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+    /* Wąski telefon w stopce obok „Wstecz": strzałka oddaje miejsce tytułowi, żeby
+       „Podpisz i wyślij wniosek" nie łamał się na dwie linie. */
+    @media (max-width: 420px) {
+        gap: 9px;
+        padding-right: 12px;
+        .arrow { display: none; }
+        .title { font-size: 14px; }
+    }
 `;
