@@ -12,7 +12,13 @@ export type DashboardHintKind =
     | 'SELF_IG_SILENT'
     | 'KSEF_UPSELL'
     /** Wnioski urlopowe czekają na decyzję bieżącego użytkownika (akcja „Rozpatrz"). */
-    | 'LEAVE_REQUESTS_PENDING';
+    | 'LEAVE_REQUESTS_PENDING'
+    /**
+     * Karty czasu pracy czekają na zatwierdzenie (właściciel i EMPLOYEES_MANAGE). Akcja
+     * NAVIGATE „Przejrzyj" prowadzi do najstarszego miesiąca z kartą do decyzji
+     * (`/employees/worktime?period=YYYY-MM`) - tak samo jak „Rozpatrz" przy wnioskach.
+     */
+    | 'WORKTIME_CARDS_PENDING';
 
 export type DashboardHintActionType = 'NAVIGATE' | 'EXTERNAL' | 'DISABLE_WORKTIME';
 

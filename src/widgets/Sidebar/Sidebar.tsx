@@ -19,6 +19,7 @@ import { UserSwitcherPanel, useKnownProfiles } from '@/modules/pin-switcher';
 import { ReportProblemModal } from '@/modules/support/components/ReportProblemModal';
 import { useCompanySettings } from '@/modules/settings/hooks/useCompany';
 import { usePendingLeaveRequestsCount } from '@/modules/employees/hooks/useLeaveRequests';
+import { usePendingWorkTimeCount } from '@/modules/employees/hooks/useWorktimeMonths';
 import { companyDisplayName, companyInitials } from './companyBadge';
 import { readCompanyHeader, writeCompanyHeader } from './companyHeaderCache';
 import { SidebarBrand } from './SidebarBrand';
@@ -76,11 +77,14 @@ export const Sidebar = () => {
     useCommsSocket();
     // Licznik wniosków tylko dla tych, którzy je rozpatrują (właściciel zawsze).
     const pendingLeaveRequests = usePendingLeaveRequestsCount(can('EMPLOYEES_LEAVES_APPROVE'));
+    // Karty czasu pracy i listy obecności - tylko dla kadr (EMPLOYEES_MANAGE).
+    const pendingWorkTime = usePendingWorkTimeCount(can('EMPLOYEES_MANAGE'));
     const menuSections = buildMenuSections({
         newLeadsCount,
         unreadMailCount,
         unreadNotifications,
         pendingLeaveRequests,
+        pendingWorkTime,
         can,
         trackWorkTime: user?.trackWorkTime ?? false,
         hasEmployeeRecord: Boolean(user?.employeeId),
