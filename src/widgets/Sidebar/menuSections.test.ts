@@ -51,6 +51,12 @@ describe('menu - Pracownicy', () => {
         expect(item(build({ pendingLeaveRequests: 3 }), 'Pracownicy')?.badge).toBe(3);
         expect(item(build({ pendingLeaveRequests: 0 }), 'Pracownicy')?.badge).toBeUndefined();
     });
+
+    it('licznik sumuje wnioski urlopowe i sprawy czasu pracy (karty do decyzji, listy do podpisu)', () => {
+        expect(item(build({ pendingLeaveRequests: 2, pendingWorkTime: 3 }), 'Pracownicy')?.badge).toBe(5);
+        expect(item(build({ pendingLeaveRequests: 0, pendingWorkTime: 4 }), 'Pracownicy')?.badge).toBe(4);
+        expect(item(build({ pendingLeaveRequests: 0, pendingWorkTime: 0 }), 'Pracownicy')?.badge).toBeUndefined();
+    });
 });
 
 describe('menu - Urlop', () => {

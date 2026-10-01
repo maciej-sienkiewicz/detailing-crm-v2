@@ -52,6 +52,12 @@ export interface MenuSectionsInput {
     unreadNotifications: number;
     /** Wnioski urlopowe, które bieżący użytkownik może rozpatrzyć (licznik przy „Pracownicy"). */
     pendingLeaveRequests: number;
+    /**
+     * Karty czasu pracy czekające na decyzję plus listy obecności do podpisu (tylko
+     * EMPLOYEES_MANAGE). Dodawane do wniosków: „Pracownicy" ma jeden licznik spraw
+     * czekających na tę osobę, bez względu na to, w której zakładce leżą.
+     */
+    pendingWorkTime?: number;
     can: (required: PermissionRequirement) => boolean;
     trackWorkTime: boolean;
     /** Konto ma rekord pracownika (`/auth/me.employeeId`) - tylko wtedy jest „Urlop". */
@@ -64,6 +70,7 @@ export const buildMenuSections = ({
     unreadMailCount,
     unreadNotifications,
     pendingLeaveRequests,
+    pendingWorkTime = 0,
     can,
     trackWorkTime,
     hasEmployeeRecord,
@@ -117,7 +124,7 @@ export const buildMenuSections = ({
                 // `Users` jest zajęte przez Klientów, stąd IdCard.
                 { path: firstEmployeesTabPath(can) ?? '/employees', label: 'Pracownicy', icon: IdCard,
                     requires: ANY_EMPLOYEES, match: ['/employees'],
-                    badge: pendingLeaveRequests > 0 ? pendingLeaveRequests : undefined },
+                    badge: pendingLeaveRequests + pendingWorkTime > 0 ? pendingLeaveRequests + pendingWorkTime : undefined },
                 { path: '/finances',   label: 'Finanse',    icon: FileText,   requires: ANY_FINANCE, match: ['/finance'] },
                 { path: '/statistics', label: 'Statystyki', icon: TrendingUp, requires: 'STATISTICS_VIEW', match: ['/reports'] },
                 { path: '/products',   label: 'Produkty',   icon: Package,    requires: 'PRODUCTS_VIEW' },
