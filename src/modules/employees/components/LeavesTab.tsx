@@ -3,19 +3,12 @@ import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useToast } from '@/common/components/Toast';
+import { DateRangePicker } from '@/common/components/DateTimePicker';
 import { useLeaves, useAddLeave, useDeleteLeave } from '../hooks/useLeaves';
 import type { LeaveType, AddLeavePayload, EmployeeLeave } from '../types';
+import { LEAVE_TYPE_LABELS } from '../utils/leaveTypeLabels';
 
 // ─── Typy urlopów: etykiety + kolory ─────────────────────────────────────────
-
-export const LEAVE_TYPE_LABELS: Record<LeaveType, string> = {
-    ANNUAL: 'Urlop wypoczynkowy',
-    SICK: 'Zwolnienie lekarskie',
-    UNPAID: 'Urlop bezpłatny',
-    SPECIAL: 'Urlop okolicznościowy',
-    PARENTAL: 'Urlop rodzicielski',
-    CARE: 'Opieka nad dzieckiem',
-};
 
 const LEAVE_TYPE_COLORS: Record<LeaveType, string> = {
     ANNUAL: '#10B981',
@@ -593,24 +586,27 @@ export const LeavesTab = ({ employeeId }: Props) => {
                                     ))}
                                 </Select>
                             </Field>
-                            <Field>
-                                <Label>Od *</Label>
-                                <Input
-                                    type="date"
-                                    value={form.startDate}
-                                    max={form.endDate || undefined}
-                                    onChange={e => setForm(p => ({ ...p, startDate: e.target.value }))}
-                                />
-                            </Field>
-                            <Field>
-                                <Label>Do *</Label>
-                                <Input
-                                    type="date"
-                                    value={form.endDate}
-                                    min={form.startDate || undefined}
-                                    onChange={e => setForm(p => ({ ...p, endDate: e.target.value }))}
-                                />
-                            </Field>
+                            {/* Kalendarz zakresu jak przy rezerwacji i wniosku urlopowym: pierwsze
+                                kliknięcie to pierwszy dzień, drugie - ostatni. */}
+                            {(['start', 'end'] as const).map(role => (
+                                <Field key={role}>
+                                    <Label id={`card-leave-${role}-label`} htmlFor={`card-leave-${role}`}>
+                                        {role === 'start' ? 'Od *' : 'Do *'}
+                                    </Label>
+                                    <DateRangePicker
+                                        role={role}
+                                        id={`card-leave-${role}`}
+                                        labelledBy={`card-leave-${role}-label`}
+                                        start={form.startDate}
+                                        end={form.endDate}
+                                        onStartChange={v => setForm(p => ({ ...p, startDate: v }))}
+                                        onEndChange={v => setForm(p => ({ ...p, endDate: v }))}
+                                        showTime={false}
+                                        endHasTime={false}
+                                        placeholder={role === 'start' ? 'Pierwszy dzień' : 'Ostatni dzień'}
+                                    />
+                                </Field>
+                            ))}
                         </ComposerGrid>
                         <Field>
                             <Label>Notatka (opcjonalnie)</Label>

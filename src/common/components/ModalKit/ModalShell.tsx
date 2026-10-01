@@ -21,7 +21,7 @@ const SIZE_MAP: Record<ModalSize, string> = {
 interface ModalShellProps {
     isOpen: boolean;
     onClose: () => void;
-    /** Preferred: sm=480px · md=560px · lg=640px · xl=800px · full=prawie cały ekran */
+    /** Preferred: sm=480px, md=560px, lg=640px, xl=800px, full=prawie cały ekran */
     size?: ModalSize;
     /** @deprecated Use size instead */
     maxWidth?: string;

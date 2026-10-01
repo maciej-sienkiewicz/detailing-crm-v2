@@ -3,12 +3,17 @@
 // Zwolnienie lekarskie (L4) wpisywane przez menedżera. L4 nie jest wnioskiem: pochodzi
 // z e-ZLA, a nie z prośby pracownika, więc trafia wprost do rejestru urlopów
 // (POST /employees/{id}/leaves, typ SICK) - tą samą drogą co z karty pracownika.
+//
+// Termin wybiera się kalendarzem zakresu (jak przy wniosku urlopowym i rezerwacji):
+// pierwsze kliknięcie to pierwszy dzień, drugie - ostatni. Bez dolnej granicy: L4
+// wpisuje się zwykle z opóźnieniem, za dni, które już minęły.
 
 import { useState } from 'react';
 import {
     ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle, ModalContent, ModalFooter, CloseBtn,
 } from '@/common/components/ModalKit';
 import { Button } from '@/common/components/ui';
+import { DateRangePicker } from '@/common/components/DateTimePicker';
 import { useToast } from '@/common/components/Toast';
 import { useAddLeave } from '../../hooks/useLeaves';
 import type { EmployeeListItem } from '../../types';
@@ -27,6 +32,7 @@ export function AddSickLeaveModal({ employees, onClose }: Props) {
     const [endDate, setEndDate] = useState(todayIso());
     const [note, setNote] = useState('');
     const [error, setError] = useState<string | null>(null);
+    const [pickerOpen, setPickerOpen] = useState(false);
     const addLeave = useAddLeave(employeeId);
 
     const submit = () => {
@@ -48,7 +54,8 @@ export function AddSickLeaveModal({ employees, onClose }: Props) {
     };
 
     return (
-        <ModalShell isOpen onClose={onClose} size="sm">
+        // Otwarty kalendarz przejmuje Escape - zamyka się on, a nie całe okno.
+        <ModalShell isOpen onClose={onClose} size="sm" closeOnEscape={!pickerOpen}>
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Dodaj nieobecność (L4)</ModalTitle>
@@ -65,22 +72,25 @@ export function AddSickLeaveModal({ employees, onClose }: Props) {
                     </Select>
                 </Field>
                 <FieldRowPair style={{ marginTop: 12 }}>
-                    <Field>
-                        <Label htmlFor="sick-start">Od</Label>
-                        <Input
-                            id="sick-start"
-                            type="date"
-                            value={startDate}
-                            onChange={e => {
-                                setStartDate(e.target.value);
-                                if (endDate < e.target.value) setEndDate(e.target.value);
-                            }}
-                        />
-                    </Field>
-                    <Field>
-                        <Label htmlFor="sick-end">Do</Label>
-                        <Input id="sick-end" type="date" value={endDate} min={startDate} onChange={e => setEndDate(e.target.value)} />
-                    </Field>
+                    {(['start', 'end'] as const).map(role => (
+                        <Field key={role}>
+                            <Label id={`sick-${role}-label`} htmlFor={`sick-${role}`}>{role === 'start' ? 'Od' : 'Do'}</Label>
+                            <DateRangePicker
+                                role={role}
+                                id={`sick-${role}`}
+                                labelledBy={`sick-${role}-label`}
+                                start={startDate}
+                                end={endDate}
+                                onStartChange={setStartDate}
+                                onEndChange={setEndDate}
+                                showTime={false}
+                                endHasTime={false}
+                                placeholder={role === 'start' ? 'Pierwszy dzień' : 'Ostatni dzień'}
+                                onFocus={() => setPickerOpen(true)}
+                                onBlur={() => setPickerOpen(false)}
+                            />
+                        </Field>
+                    ))}
                 </FieldRowPair>
                 <Field style={{ marginTop: 12 }}>
                     <Label htmlFor="sick-note">Notatka (opcjonalnie)</Label>
