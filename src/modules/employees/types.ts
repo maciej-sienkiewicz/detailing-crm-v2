@@ -291,17 +291,6 @@ export interface TeamPeriodSummary {
     returnNote: string | null;
 }
 
-export interface TeamPeriodEntry {
-    date: string;
-    minutes: number;
-    hours: string;
-    note: string | null;
-}
-
-export interface TeamPeriodDetail extends TeamPeriodSummary {
-    entries: TeamPeriodEntry[];
-}
-
 // ─── Leaves ───────────────────────────────────────────────────────────────────
 
 export interface EmployeeLeave {

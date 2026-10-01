@@ -18,7 +18,6 @@ import type {
     CompensationConfig,
     SetCompensationPayload,
     TeamPeriodSummary,
-    TeamPeriodDetail,
     EmployeeLeave,
     AddLeavePayload,
     LeaveCalendarDay,
@@ -155,19 +154,6 @@ export const employeeApi = {
     getTeamWorkTimePeriods: async (userId: string): Promise<TeamPeriodSummary[]> => {
         const res = await apiClient.get<TeamPeriodSummary[]>(`/v1/worktime/team/${userId}/periods`);
         return res.data;
-    },
-
-    getTeamWorkTimePeriod: async (userId: string, period: string): Promise<TeamPeriodDetail> => {
-        const res = await apiClient.get<TeamPeriodDetail>(`/v1/worktime/team/${userId}/periods/${period}`);
-        return res.data;
-    },
-
-    approveTeamPeriod: async (userId: string, period: string): Promise<void> => {
-        await apiClient.post(`/v1/worktime/team/${userId}/periods/${period}/approve`);
-    },
-
-    returnTeamPeriod: async (userId: string, period: string, note?: string): Promise<void> => {
-        await apiClient.post(`/v1/worktime/team/${userId}/periods/${period}/return`, { note: note ?? null });
     },
 
     // ─── Leaves ───────────────────────────────────────────────────────────────
