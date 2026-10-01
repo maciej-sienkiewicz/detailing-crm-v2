@@ -6,7 +6,7 @@
 
 import { pluralPl } from '@/common/utils/plural';
 import type { PillTone } from '@/common/components/ui';
-import { LEAVE_TYPE_LABELS } from '../components/LeavesTab';
+import { LEAVE_TYPE_LABELS } from './leaveTypeLabels';
 import type { LeaveRequestStatus, LeaveRequestType, OverlappingAbsence } from '../types';
 
 export const LEAVE_REQUEST_STATUS: Record<LeaveRequestStatus, { label: string; tone: PillTone }> = {

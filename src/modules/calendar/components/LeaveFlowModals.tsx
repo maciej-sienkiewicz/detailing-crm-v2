@@ -16,7 +16,7 @@ import { SharedButton } from '@/common/styles';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useEmployees } from '@/modules/employees/hooks/useEmployees';
 import { useAddLeave } from '@/modules/employees/hooks/useLeaves';
-import { LEAVE_TYPE_LABELS } from '@/modules/employees/components/LeavesTab';
+import { LEAVE_TYPE_LABELS } from '@/modules/employees/utils/leaveTypeLabels';
 import type { LeaveType } from '@/modules/employees/types';
 
 /**
