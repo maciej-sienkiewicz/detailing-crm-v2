@@ -1,7 +1,7 @@
 // src/modules/employees/components/worktime/ApproveAttendanceSheetModal.tsx
 //
-// Zatwierdzenie rozliczenia. Bez podpisu nie ma zatwierdzenia: zatwierdzający to zarazem
-// „osoba potwierdzająca" ze stopki arkusza. Trzy sposoby podpisu są widoczne od razu - na
+// Podpis listy obecności za miesiąc (krok „Podpis listy" w widoku miesiąca). Bez podpisu
+// nie ma zatwierdzenia: zatwierdzający to zarazem „osoba potwierdzająca" ze stopki arkusza. Trzy sposoby podpisu są widoczne od razu - na
 // tym urządzeniu, na tablecie studia albo na własnym telefonie. Podpis z tabletu lub telefonu
 // sam zatwierdza listę. Bez nowego podpisu zatwierdza się tylko arkusz podpisany już wcześniej.
 
@@ -22,6 +22,7 @@ import { Button } from '@/common/components/ui';
 import { useToast } from '@/common/components/Toast';
 import type { AttendanceSheet, AttendanceSignatureRequest } from '../../api/attendanceApi';
 import { ATTENDANCE_SHEETS_KEY, useApproveAttendanceSheet } from '../../hooks/useAttendanceSheets';
+import { invalidateWorktimeTeam } from '../../hooks/useWorktimeMonths';
 import { isAwaitingSignature, useAttendanceRemoteSigning } from '../../hooks/useAttendanceRemoteSigning';
 import { SignaturePad, type SignaturePadHandle } from '@/common/components/SignaturePad';
 import {
@@ -32,10 +33,18 @@ import {
     TabletPanel,
     type SigningMethod,
 } from './SigningMethods';
-import { employeesLabel, periodLabel } from './settlementFormat';
+import { employeesLabel, periodLabel } from './monthFormat';
+
+/**
+ * Tyle wystarczy do podpisu. Lista z widoku miesiąca (MonthSheet) nie zna liczby osób
+ * ani podpisującego - świeżo utworzona jest zawsze niepodpisana.
+ */
+export type SheetToSign = Pick<AttendanceSheet, 'id' | 'period' | 'signed' | 'signerName'> & {
+    employeeCount?: number;
+};
 
 interface Props {
-    sheet: AttendanceSheet;
+    sheet: SheetToSign;
     onClose: () => void;
 }
 
@@ -80,6 +89,8 @@ export function ApproveAttendanceSheetModal({ sheet, onClose }: Props) {
         if (ended?.status !== 'COMPLETED' || completedRef.current === ended.id) return;
         completedRef.current = ended.id;
         void queryClient.invalidateQueries({ queryKey: ATTENDANCE_SHEETS_KEY });
+        // Podpis z tabletu albo telefonu zmienia etap miesiąca i licznik „do podpisu".
+        invalidateWorktimeTeam(queryClient);
         showSuccess(
             'Lista obecności podpisana i zatwierdzona',
             `${month}, podpis złożony ${ended.channel === 'TABLET' ? 'na tablecie' : 'na telefonie'}.`,
@@ -154,7 +165,9 @@ export function ApproveAttendanceSheetModal({ sheet, onClose }: Props) {
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Zatwierdzić listę obecności?</ModalTitle>
-                    <ModalSubtitle>{month}, {employeesLabel(sheet.employeeCount)}</ModalSubtitle>
+                    <ModalSubtitle>
+                        {sheet.employeeCount !== undefined ? `${month}, ${employeesLabel(sheet.employeeCount)}` : month}
+                    </ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
@@ -162,7 +175,7 @@ export function ApproveAttendanceSheetModal({ sheet, onClose }: Props) {
             <ModalContent>
                 <Lead>
                     Zatwierdzona lista jest sprawdzona i gotowa dla księgowości - każdy
-                    administrator zobaczy w Rozliczeniach, kto i kiedy ją zatwierdził.
+                    administrator zobaczy w Listach miesięcznych, kto i kiedy ją zatwierdził.
                     {!sheet.signed && ' Zatwierdzenie wymaga Twojego podpisu.'}
                 </Lead>
 
@@ -226,7 +239,7 @@ export function ApproveAttendanceSheetModal({ sheet, onClose }: Props) {
                 ) : (
                     <>
                         <Button variant="outline" onClick={onClose}>Anuluj</Button>
-                        {/* Jedyne wypełnienie w oknie - „Zatwierdź" w wierszu Rozliczeń jest odcieniem. */}
+                        {/* Jedyne wypełnienie w tym oknie - krok następny. */}
                         <Button
                             variant="primary"
                             onClick={primaryAction.onClick}
