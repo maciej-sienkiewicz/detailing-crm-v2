@@ -74,14 +74,6 @@ export const useReturnCard = () => {
     });
 };
 
-export const useApproveMany = (period: string) => {
-    const invalidate = useInvalidate();
-    return useMutation({
-        mutationFn: (userIds: string[]) => worktimeMonthsApi.approveMany(period, userIds),
-        onSettled: () => invalidate(),
-    });
-};
-
 export const useRemind = (period: string) => {
     const invalidate = useInvalidate();
     return useMutation({

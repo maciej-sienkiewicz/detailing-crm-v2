@@ -1,58 +1,46 @@
 // src/modules/employees/components/worktime/MonthView.tsx
 //
-// Zakładka „Listy miesięczne": jeden przepływ na miesiąc - karty zbierane → karty
-// zatwierdzane → lista obecności podpisana (docs/api-worktime-months.md).
+// Zakładka „Listy miesięczne": podsumowanie miesiąca - kto ma kartę w jakim stanie i czy
+// lista obecności jest podpisana (docs/api-worktime-months.md).
 //
-// Zastąpiła „Rozliczenia" (tabelę wygenerowanych list obecności). Ten sam miesiąc miał
-// wtedy dwa niezależne zatwierdzenia: kartę na karcie pracownika i listę generowaną osobno
-// z dowolnych osób - menedżer nie miał miejsca, w którym widać, kto złożył, kto nie i co
-// czeka na niego. Teraz liczba w nagłówku mówi, ile kart jest zatwierdzonych, pastylki -
-// na jakim etapie jest miesiąc, a jedyny wypełniony przycisk - co zrobić teraz
-// (CLAUDE.md §2). Nic do zrobienia (zbieranie kart, lista podpisana) = nic wypełnionego.
+// Uproszczona po uwagach właściciela: „za dużo labelek, za dużo przycisków, wiele
+// ścieżek, które prowadzą do tego samego modalu, badge tylko informacyjne". Wcześniej
+// ten widok miał pastylki etapów („Karty → Zatwierdzanie → Podpis listy"), „Przejrzyj
+// karty (N)", zatwierdzanie i przypominanie zbiorcze, okno karty otwierane z trzech
+// miejsc i historię wersji listy. Teraz:
+//   - jedno zdanie podsumowania („4 z 7 kart zatwierdzonych"),
+//   - lista osób, w której wiersz jest JEDYNĄ drogą do karty - i jest zwykłym linkiem do
+//     osobnej strony karty (WorkTimeCardView), a nie oknem nad listą,
+//   - na dole jedno zdanie o liście obecności i najwyżej jedna akcja.
+// Status karty jest tekstem w kolorze, nie pastylką: nie da się w niego kliknąć, więc nie
+// może wyglądać jak coś do kliknięcia.
 //
-// Miesiąc i otwarta karta są w adresie (`?period=2026-09&card={userId}`): na ten adres
-// linkuje push „karta złożona" i podpowiedź na Tablicy, a „wstecz" na telefonie zamyka
-// okno karty zamiast wychodzić z modułu.
+// Miesiąc jest w adresie (`?period=2026-09`): tam linkuje push „karta złożona"
+// i podpowiedź na Tablicy, a strona karty wraca tu z tym samym miesiącem.
 
 import { useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import styled, { css } from 'styled-components';
-import {
-    BellRing, CheckCheck, ChevronLeft, ChevronRight, ClipboardCheck, Download, FileSignature, PenLine, Users,
-} from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import styled from 'styled-components';
+import { ChevronLeft, ChevronRight, Users } from 'lucide-react';
 import { EmptyState } from '@/common/components/EmptyState';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useToast } from '@/common/components/Toast';
-import { useAuth } from '@/core/context/AuthContext';
-import {
-    Button, Card, IconButton, Notice, Panel, SectionTitle, StatusPill, StepPills, ui, type StepState,
-} from '@/common/components/ui';
-import { formatDate, formatDateTime } from '@/common/utils';
+import { Button, Card, IconButton, Notice, ui } from '@/common/components/ui';
+import { formatDate } from '@/common/utils';
 import { readBlobErrorMessage, saveBlobAsFile } from '@/common/utils/blobFile';
 import { attendanceApi } from '../../api/attendanceApi';
 import {
     incompleteSheetNames, type MonthCardRow, type MonthOverview, type MonthSheet,
 } from '../../api/worktimeMonthsApi';
-import {
-    useApproveMany, useCreateSheet, useMonthOverview, useRemind,
-} from '../../hooks/useWorktimeMonths';
-import { PrimaryAction } from '../leave/PrimaryAction';
+import { useCreateSheet, useMonthOverview } from '../../hooks/useWorktimeMonths';
 import { ApproveAttendanceSheetModal, type SheetToSign } from './ApproveAttendanceSheetModal';
-import { CardReviewModal } from './CardReviewModal';
+import { StatusText } from './StatusText';
 import {
-    CARD_STATUS, addMonths, approvableInBulk, awaitingDecision, daysLabel, defaultPeriod, hoursText, hoursVsNorm,
-    isPeriod, isSigned, monthOptions, periodInSentence, periodLabel, periodOf, remindable, reusableSheet,
-    sheetFileName, stageStep,
+    addMonths, approvedSummary, cardPath, defaultPeriod, hoursOfNorm, isPeriod, isSigned, missingDaysText,
+    monthOptions, periodLabel, periodOf, reusableSheet, sheetFileName,
 } from './monthFormat';
 
 const PERIOD_PARAM = 'period';
-const CARD_PARAM = 'card';
-
-const STAGES = [
-    { key: 'cards', label: 'Karty' },
-    { key: 'review', label: 'Zatwierdzanie' },
-    { key: 'sign', label: 'Podpis listy' },
-];
 
 interface Props {
     /** Przejście do zespołu - tam widać, której roli liczy się czas pracy. */
@@ -60,60 +48,29 @@ interface Props {
 }
 
 export function MonthView({ onGoToTeam }: Props) {
-    const { showSuccess, showError } = useToast();
-    const { user } = useAuth();
+    const { showError } = useToast();
     const [searchParams, setSearchParams] = useSearchParams();
 
     // Miesiąc z adresu, o ile jest prawdziwy i nie z przyszłości - inaczej domyślny.
     const current = periodOf(new Date());
     const requested = searchParams.get(PERIOD_PARAM);
     const period = isPeriod(requested) && requested <= current ? requested : defaultPeriod();
-    const openCard = searchParams.get(CARD_PARAM);
 
     const month = useMonthOverview(period);
     const data = month.data?.period === period ? month.data : undefined;
     const rows = data?.employees ?? [];
 
-    const approveMany = useApproveMany(period);
-    const remind = useRemind(period);
     const createSheet = useCreateSheet(period);
-
-    const [bulkConfirm, setBulkConfirm] = useState<MonthCardRow[] | null>(null);
+    /** Nazwiska osób, których nie będzie na liście - pytanie przed podpisem niepełnej listy. */
     const [incomplete, setIncomplete] = useState<string[] | null>(null);
     const [signing, setSigning] = useState<SheetToSign | null>(null);
-    const [downloading, setDownloading] = useState<string | null>(null);
+    const [downloading, setDownloading] = useState(false);
 
     const setPeriod = (next: string) => setSearchParams(prev => {
         const params = new URLSearchParams(prev);
         params.set(PERIOD_PARAM, next);
-        params.delete(CARD_PARAM);
         return params;
     });
-    const openReview = (userId: string) => setSearchParams(prev => {
-        const params = new URLSearchParams(prev);
-        params.set(PERIOD_PARAM, period);
-        params.set(CARD_PARAM, userId);
-        return params;
-    });
-    // Przejście między kartami w oknie nie odkłada się w historii: „wstecz" ma zamknąć
-    // okno, a nie cofać po kolei przez wszystkie przejrzane osoby.
-    const navigateReview = (userId: string) => setSearchParams(prev => {
-        const params = new URLSearchParams(prev);
-        params.set(CARD_PARAM, userId);
-        return params;
-    }, { replace: true });
-    const closeReview = () => setSearchParams(prev => {
-        const params = new URLSearchParams(prev);
-        params.delete(CARD_PARAM);
-        return params;
-    }, { replace: true });
-
-    const awaiting = awaitingDecision(rows);
-    const bulk = approvableInBulk(rows);
-    const toRemind = remindable(rows, Date.now(), user?.userId);
-    // `counts.notSubmitted` to NOT_STARTED + DRAFT; zwrócone liczą się osobno, a przypomnienie
-    // należy się także im.
-    const notSubmitted = data ? data.counts.notSubmitted + data.counts.returned : 0;
 
     // ── Podpis listy ────────────────────────────────────────────────────────────
     const toSign = (sheet: MonthSheet, overview: MonthOverview): SheetToSign => ({
@@ -124,8 +81,10 @@ export function MonthView({ onGoToTeam }: Props) {
         employeeCount: Math.max(overview.counts.total - sheet.excludedNames.length, 0),
     });
 
-    const startSign = (allowIncomplete = false) => {
+    const createAndSign = (allowIncomplete: boolean) => {
         if (!data) return;
+        // Niepodpisana, aktualna lista jest podpisywana zamiast tworzenia nowej - nowa
+        // zastąpiłaby ją razem z prośbą o podpis wysłaną już na tablet albo telefon.
         const reuse = allowIncomplete ? null : reusableSheet(data);
         if (reuse) {
             setSigning(toSign(reuse, data));
@@ -134,6 +93,8 @@ export function MonthView({ onGoToTeam }: Props) {
         createSheet.mutate(allowIncomplete, {
             onSuccess: sheet => setSigning(toSign(sheet, data)),
             onError: async error => {
+                // Ktoś zmienił kartę między wczytaniem widoku a kliknięciem - backend podaje
+                // aktualne nazwiska, a pytanie jest to samo.
                 const names = incompleteSheetNames(error);
                 if (names) {
                     setIncomplete(names);
@@ -144,92 +105,25 @@ export function MonthView({ onGoToTeam }: Props) {
         });
     };
 
+    const handleSign = () => {
+        const missing = rows.filter(r => r.status !== 'APPROVED').map(r => r.name);
+        if (missing.length > 0) {
+            setIncomplete(missing);
+            return;
+        }
+        createAndSign(false);
+    };
+
     const handleDownload = async (sheet: MonthSheet) => {
-        setDownloading(sheet.id);
+        setDownloading(true);
         try {
             saveBlobAsFile(await attendanceApi.downloadAttendanceSheet(sheet.id), sheetFileName(period, isSigned(sheet)));
         } catch (error) {
             showError('Nie udało się pobrać listy', (await readBlobErrorMessage(error)) ?? 'Spróbuj ponownie za chwilę.');
         } finally {
-            setDownloading(null);
+            setDownloading(false);
         }
     };
-
-    const handleBulkApprove = (targets: MonthCardRow[]) => {
-        approveMany.mutate(targets.map(r => r.userId), {
-            onSuccess: result => {
-                if (result.approved.length > 0) {
-                    showSuccess(
-                        result.approved.length === 1 ? 'Karta zatwierdzona' : `Zatwierdzono karty: ${result.approved.length}`,
-                        periodLabel(period),
-                    );
-                }
-                if (result.skipped.length > 0) {
-                    // `reason` to gotowe zdanie z backendu („Karta jest zwrócona do poprawy.").
-                    const lines = result.skipped.map(s => {
-                        const name = rows.find(r => r.userId === s.userId)?.name;
-                        return name ? `${name}: ${s.reason}` : s.reason;
-                    });
-                    showError('Części kart nie zatwierdzono', lines.join(' '));
-                }
-            },
-        });
-    };
-
-    const handleRemindAll = () => {
-        remind.mutate(toRemind.map(r => r.userId), {
-            onSuccess: result => {
-                if (result.reminded.length > 0) {
-                    showSuccess(
-                        'Przypomnienia wysłane',
-                        result.reminded.length === 1
-                            ? '1 osoba dostanie powiadomienie o karcie.'
-                            : `${result.reminded.length} osoby dostaną powiadomienie o karcie.`,
-                    );
-                } else {
-                    showError('Nie wysłano przypomnień', result.skipped[0]?.reason);
-                }
-            },
-        });
-    };
-
-    // ── Krok następny: jedyny wypełniony element widoku ────────────────────────
-    let nextStep = null;
-    if (data?.stage === 'REVIEWING' && awaiting.length > 0) {
-        nextStep = (
-            <PrimaryAction
-                icon={<ClipboardCheck />}
-                title={`Przejrzyj karty (${awaiting.length})`}
-                sub="zatwierdź albo zwróć do poprawy"
-                onClick={() => openReview(awaiting[0].userId)}
-            />
-        );
-    } else if (data?.stage === 'READY_TO_SIGN' || data?.stage === 'NEEDS_RESIGN') {
-        nextStep = (
-            <PrimaryAction
-                icon={<FileSignature />}
-                title={data.stage === 'NEEDS_RESIGN'
-                    ? 'Podpisz listę ponownie'
-                    : `Podpisz listę obecności za ${periodInSentence(period)}`}
-                sub={createSheet.isPending ? 'przygotowuję listę…' : 'na tym urządzeniu, tablecie albo telefonie'}
-                disabled={createSheet.isPending}
-                onClick={() => startSign()}
-            />
-        );
-    } else if (data?.stage === 'SIGNED' && data.sheet) {
-        const sheet = data.sheet;
-        nextStep = (
-            <Button variant="outline" size="lg" onClick={() => handleDownload(sheet)} disabled={downloading === sheet.id}>
-                <Download aria-hidden="true" />Pobierz podpisaną listę
-            </Button>
-        );
-    }
-
-    const stage = data ? stageStep(data.stage) : 0;
-    const steps = STAGES.map((s, i) => ({
-        ...s,
-        state: (i < stage ? 'done' : i === stage ? 'active' : 'todo') as StepState,
-    }));
 
     const options = useMemo(() => {
         const list = monthOptions();
@@ -266,10 +160,12 @@ export function MonthView({ onGoToTeam }: Props) {
                     action={<Button variant="ghost" size="sm" onClick={() => month.refetch()}>Spróbuj ponownie</Button>}
                 />
             ) : !data ? (
-                <MonthCard aria-busy="true" aria-label="Wczytuję miesiąc">
-                    <Head><SkeletonBar $w="220px" $h="30px" /></Head>
-                    {Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i}><SkeletonBar $w={`${40 + (i % 2) * 20}%`} /></SkeletonRow>)}
-                </MonthCard>
+                <Card aria-busy="true" aria-label="Wczytuję miesiąc">
+                    <Summary><SkeletonBar $w="200px" /></Summary>
+                    {Array.from({ length: 4 }).map((_, i) => (
+                        <SkeletonRow key={i}><SkeletonBar $w={`${40 + (i % 2) * 20}%`} /></SkeletonRow>
+                    ))}
+                </Card>
             ) : data.counts.total === 0 ? (
                 <EmptyState
                     icon={<Users />}
@@ -280,270 +176,118 @@ export function MonthView({ onGoToTeam }: Props) {
                 </EmptyState>
             ) : (
                 <>
-                    <MonthCard>
-                        <Head>
-                            <HeadText>
-                                <Headline>
-                                    <HeadlineNumber>{data.counts.approved} z {data.counts.total}</HeadlineNumber>
-                                    <HeadlineWords>
-                                        {data.counts.total === 1 ? 'karty zatwierdzonej' : 'kart zatwierdzonych'}
-                                    </HeadlineWords>
-                                </Headline>
-                                <HeadSub>{data.label}, {daysLabel(data.workingDays)} roboczych</HeadSub>
-                            </HeadText>
-                            {nextStep && <NextStep>{nextStep}</NextStep>}
-                        </Head>
-
-                        <Progress>
-                            <WideSteps>
-                                <StepPills steps={steps} label="Etap miesiąca" />
-                            </WideSteps>
-                            <NarrowSteps aria-hidden="true">
-                                <span>
-                                    {stage >= STAGES.length
-                                        ? <strong>Miesiąc zamknięty</strong>
-                                        : <>Etap {stage + 1} z {STAGES.length}: <strong>{STAGES[stage].label}</strong></>}
-                                </span>
-                                <Segments>
-                                    {STAGES.map((s, i) => <Segment key={s.key} $state={steps[i].state} />)}
-                                </Segments>
-                            </NarrowSteps>
-                        </Progress>
-
-                        {data.stage === 'REVIEWING' && awaiting.length === 0 && (
-                            <HeadNote>Złożona karta czeka na decyzję innej osoby - własnej karty nie zatwierdzasz.</HeadNote>
-                        )}
-
-                        {(bulk.length > 0 || notSubmitted > 0) && (
-                            <Bulk>
-                                {bulk.length > 0 && (
-                                    <Button variant="tintedSuccess" onClick={() => setBulkConfirm(bulk)} disabled={approveMany.isPending}>
-                                        <CheckCheck aria-hidden="true" />Zatwierdź złożone bez braków ({bulk.length})
-                                    </Button>
-                                )}
-                                {notSubmitted > 0 && (
-                                    <Button
-                                        variant="outline"
-                                        onClick={handleRemindAll}
-                                        disabled={toRemind.length === 0 || remind.isPending}
-                                        title={toRemind.length === 0 ? 'Wszyscy dostali przypomnienie w ciągu ostatnich 12 godzin' : undefined}
-                                    >
-                                        <BellRing aria-hidden="true" />Przypomnij niezłożonym ({toRemind.length})
-                                    </Button>
-                                )}
-                            </Bulk>
-                        )}
-
-                        <Table>
-                            <TableHead aria-hidden="true">
-                                <span>Pracownik</span>
-                                <span>Karta</span>
-                                <span>Godziny</span>
-                                <span>Nadgodziny</span>
-                                <span />
-                            </TableHead>
-                            <ul>
-                                {rows.map(row => <MonthRow key={row.userId} row={row} onOpen={() => openReview(row.userId)} />)}
-                            </ul>
-                        </Table>
-                    </MonthCard>
+                    <Card>
+                        <Summary as="h2">{approvedSummary(data.counts.approved, data.counts.total)}</Summary>
+                        <Rows aria-label={`Karty czasu pracy, ${periodLabel(period)}`}>
+                            {rows.map(row => <MonthRow key={row.userId} row={row} period={period} />)}
+                        </Rows>
+                    </Card>
 
                     <SheetBlock
                         month={data}
                         downloading={downloading}
                         signingPending={createSheet.isPending}
                         onDownload={handleDownload}
-                        onSignIncomplete={() => startSign()}
+                        onSign={handleSign}
                     />
                 </>
-            )}
-
-            {openCard && (
-                <CardReviewModal
-                    key={period}
-                    period={period}
-                    userId={openCard}
-                    onNavigate={navigateReview}
-                    onClose={closeReview}
-                    onSign={() => { closeReview(); startSign(); }}
-                />
             )}
 
             {signing && <ApproveAttendanceSheetModal sheet={signing} onClose={() => setSigning(null)} />}
 
             <ConfirmationModal
-                isOpen={bulkConfirm !== null}
-                title={bulkConfirm?.length === 1 ? 'Zatwierdzić kartę?' : `Zatwierdzić ${bulkConfirm?.length ?? 0} karty?`}
-                message={`${bulkConfirm?.map(r => r.name).join(', ') ?? ''}. Każda z tych kart jest złożona i nie ma brakujących dni roboczych.`}
-                variant="info"
-                confirmText="Zatwierdź"
-                onConfirm={() => { if (bulkConfirm) handleBulkApprove(bulkConfirm); }}
-                onCancel={() => setBulkConfirm(null)}
-            />
-
-            <ConfirmationModal
                 isOpen={incomplete !== null}
                 title="Podpisać listę bez wszystkich kart?"
-                message={`Podpisać bez: ${incomplete?.join(', ') ?? ''}? Ich karty nie są zatwierdzone. Na liście nie będzie ich kolumn, a nazwiska trafią do stopki dokumentu.`}
+                message={`Na liście nie będzie: ${incomplete?.join(', ') ?? ''} (karty niezatwierdzone). Podpisać mimo to?`}
                 variant="warning"
-                confirmText="Podpisz bez nich"
-                onConfirm={() => startSign(true)}
+                confirmText="Podpisz mimo to"
+                onConfirm={() => { setIncomplete(null); createAndSign(true); }}
                 onCancel={() => setIncomplete(null)}
             />
         </Wrap>
     );
 }
 
-// ─── Wiersz pracownika ──────────────────────────────────────────────────────────
+// ─── Wiersz osoby ───────────────────────────────────────────────────────────────
 
-function MonthRow({ row, onOpen }: { row: MonthCardRow; onOpen: () => void }) {
-    const status = CARD_STATUS[row.status];
+function MonthRow({ row, period }: { row: MonthCardRow; period: string }) {
     return (
         <li>
-            <RowButton
-                type="button"
-                onClick={onOpen}
-                aria-label={`Otwórz kartę: ${row.name}, ${status.label}`}
-                data-testid="month-row"
-            >
+            <RowLink to={cardPath(period, row.userId)} data-testid="month-row">
                 <Who>
                     <Name>{row.name}</Name>
-                    {row.remindedAt && <Meta>przypomniano {formatDate(row.remindedAt, 'pl-PL', { day: '2-digit', month: '2-digit' })}</Meta>}
+                    <Hours>
+                        {hoursOfNorm(row.totalMinutes, row.expectedMinutes)}
+                        {row.missingWorkingDays > 0 && `, ${missingDaysText(row.missingWorkingDays)}`}
+                    </Hours>
                 </Who>
-                <Cell data-area="status">
-                    <StatusPill $tone={status.tone}>{status.label}</StatusPill>
-                </Cell>
-                <Nums>
-                    <Cell data-area="hours">
-                        <Hours>{hoursVsNorm(row.totalMinutes, row.expectedMinutes)}</Hours>
-                        {row.missingWorkingDays > 0 && <Missing>brak {daysLabel(row.missingWorkingDays)}</Missing>}
-                    </Cell>
-                    <Cell data-area="overtime">
-                        {row.overtimeMinutes > 0
-                            ? <Overtime>+{hoursText(row.overtimeMinutes)}<NarrowOnly> nadgodzin</NarrowOnly></Overtime>
-                            : <Faint aria-hidden="true">-</Faint>}
-                    </Cell>
-                </Nums>
+                <StatusText status={row.status} />
                 <Chevron aria-hidden="true"><ChevronRight /></Chevron>
-            </RowButton>
+            </RowLink>
         </li>
     );
 }
 
-// ─── Lista obecności ────────────────────────────────────────────────────────────
+// ─── Lista obecności: jedno zdanie, najwyżej jedna akcja ────────────────────────
 
 interface SheetBlockProps {
     month: MonthOverview;
-    downloading: string | null;
+    downloading: boolean;
     signingPending: boolean;
     onDownload: (sheet: MonthSheet) => void;
-    onSignIncomplete: () => void;
+    onSign: () => void;
 }
 
-function SheetBlock({ month, downloading, signingPending, onDownload, onSignIncomplete }: SheetBlockProps) {
-    const { sheet, sheetHistory, stage, counts } = month;
-    const collecting = stage === 'COLLECTING' || stage === 'REVIEWING';
+function SheetBlock({ month, downloading, signingPending, onDownload, onSign }: SheetBlockProps) {
+    const { sheet, counts } = month;
+    const signedCurrent = !!sheet && isSigned(sheet) && !sheet.outdated;
 
-    let status = null;
-    if (!sheet) {
-        status = (
-            <SheetText>
-                {collecting
-                    ? 'Lista powstanie z zatwierdzonych kart. Gdy wszystkie będą zatwierdzone, podpiszesz ją tutaj.'
-                    : 'Wszystkie karty są zatwierdzone - lista czeka na podpis.'}
-            </SheetText>
-        );
-    } else if (isSigned(sheet)) {
-        status = (
-            <>
-                <SheetLine>
-                    <StatusPill $tone="ok"><PenLine aria-hidden="true" />Podpisana</StatusPill>
-                    {sheet.outdated && <StatusPill $tone="warn">Nieaktualna</StatusPill>}
-                    <SheetText as="span">
-                        {[sheet.approvedByName, sheet.approvedAt && formatDateTime(sheet.approvedAt)].filter(Boolean).join(', ')}
-                    </SheetText>
-                </SheetLine>
-                {sheet.outdated && (
-                    <SheetText>Po podpisie zmieniła się karta na tej liście - trzeba podpisać ją ponownie.</SheetText>
-                )}
-            </>
-        );
-    } else if (sheet.outdated) {
-        // Niepodpisana lista też się dezaktualizuje (karta odblokowana albo zatwierdzona po
-        // jej wygenerowaniu) - backend nie przyjmie już jej podpisu. Krok następny zostaje
-        // zwykłym „Podpisz listę": przy podpisie powstaje nowa.
-        status = (
-            <>
-                <SheetLine>
-                    <StatusPill $tone="warn">Nieaktualna</StatusPill>
-                    <SheetText as="span">przygotowana {formatDateTime(sheet.generatedAt)}</SheetText>
-                </SheetLine>
-                <SheetText>Karta zmieniła się po przygotowaniu tej listy. Przy podpisie powstanie nowa.</SheetText>
-            </>
-        );
-    } else {
-        status = (
-            <SheetLine>
-                <StatusPill $tone="warn">Czeka na podpis</StatusPill>
-                <SheetText as="span">przygotowana {formatDateTime(sheet.generatedAt)}</SheetText>
-            </SheetLine>
+    if (signedCurrent) {
+        return (
+            <SheetRow aria-label="Lista obecności">
+                <SheetText>
+                    Lista obecności podpisana
+                    {sheet.approvedAt ? ` ${formatDate(sheet.approvedAt)}` : ''}
+                    {sheet.approvedByName ? `, ${sheet.approvedByName}` : ''}.
+                </SheetText>
+                <LinkButton type="button" onClick={() => onDownload(sheet)} disabled={downloading}>
+                    {downloading ? 'Pobieram…' : 'Pobierz PDF'}
+                </LinkButton>
+            </SheetRow>
         );
     }
 
+    if (counts.approved === 0) {
+        return (
+            <SheetRow aria-label="Lista obecności">
+                <SheetText>Listę obecności podpiszesz, gdy zatwierdzisz pierwszą kartę.</SheetText>
+            </SheetRow>
+        );
+    }
+
+    // Podpisana, ale nieaktualna: karta odblokowana albo zatwierdzona po podpisie.
+    const needsResign = !!sheet && isSigned(sheet) && sheet.outdated;
     return (
-        <SheetPanel aria-labelledby="month-sheet-title">
-            <SheetHead>
-                <SectionTitle id="month-sheet-title" as="h3">Lista obecności za {periodInSentence(month.period)}</SectionTitle>
-                {/* Przy podpisanej, aktualnej liście pobranie stoi już w nagłówku miesiąca. */}
-                {sheet && stage !== 'SIGNED' && (
-                    <Button variant="ghost" size="sm" onClick={() => onDownload(sheet)} disabled={downloading === sheet.id}>
-                        <Download aria-hidden="true" />Pobierz PDF
-                    </Button>
-                )}
-            </SheetHead>
-            <SheetBody>
-                {status}
-                {sheet && sheet.excludedNames.length > 0 && (
-                    <SheetText>Bez zatwierdzonej karty: {sheet.excludedNames.join(', ')}.</SheetText>
-                )}
-                {/* Miesiąc trzeba zamknąć także wtedy, gdy ktoś karty nie złoży (długie L4,
-                    odejście) - to świadomy wyjątek, więc akcja jest w tle, nie wypełniona. */}
-                {collecting && !sheet && counts.approved > 0 && (
-                    <GhostRow>
-                        <Button variant="ghost" size="sm" onClick={onSignIncomplete} disabled={signingPending}>
-                            Podpisz listę bez brakujących kart
-                        </Button>
-                    </GhostRow>
-                )}
-                {sheetHistory.length > 0 && (
-                    <History>
-                        <summary>Wcześniejsze wersje ({sheetHistory.length})</summary>
-                        <ul>
-                            {sheetHistory.map(old => (
-                                <li key={old.id}>
-                                    <span>
-                                        {isSigned(old) ? 'Podpisana' : 'Przygotowana'}{' '}
-                                        {formatDateTime(old.approvedAt ?? old.generatedAt)}
-                                        {old.approvedByName ? `, ${old.approvedByName}` : ''}
-                                    </span>
-                                    <Button variant="ghost" size="sm" onClick={() => onDownload(old)} disabled={downloading === old.id}>
-                                        <Download aria-hidden="true" />PDF
-                                    </Button>
-                                </li>
-                            ))}
-                        </ul>
-                    </History>
-                )}
-            </SheetBody>
-        </SheetPanel>
+        <SheetRow aria-label="Lista obecności">
+            <SheetText>
+                {needsResign
+                    ? 'Lista wymaga ponownego podpisu, bo zmieniła się karta.'
+                    : counts.approved === counts.total
+                        ? 'Wszystkie karty są zatwierdzone. Lista obecności czeka na podpis.'
+                        : 'Lista obecności obejmie tylko zatwierdzone karty.'}
+            </SheetText>
+            <SignAction>
+                <Button variant="primary" size="lg" onClick={onSign} disabled={signingPending}>
+                    {signingPending ? 'Przygotowuję listę…' : 'Podpisz listę obecności'}
+                </Button>
+            </SignAction>
+        </SheetRow>
     );
 }
 
 // ─── Styled ─────────────────────────────────────────────────────────────────────
 
-/** Poniżej tej szerokości karty wiersz pracownika ma dwie linie zamiast kolumn. */
-const NARROW = '(max-width: 680px)';
-const GRID = 'minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 0.8fr) 20px';
+const PHONE = '(max-width: 640px)';
 
 const Wrap = styled.div`
     display: flex;
@@ -576,200 +320,42 @@ const MonthSelect = styled.select`
     @media (hover: none) and (pointer: coarse) { height: 44px; flex: 1; }
 `;
 
-const MonthCard = styled(Card)`
-    container-type: inline-size;
-    container-name: month;
-`;
-
-const Head = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 14px 20px;
-    padding: 22px 24px 14px;
-
-    @container month ${NARROW} { padding: 18px 16px 12px; }
-`;
-
-const HeadText = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 0;
-`;
-
-const Headline = styled.h2`
-    display: flex;
-    align-items: baseline;
-    flex-wrap: wrap;
-    gap: 2px 10px;
+const Summary = styled.div`
     margin: 0;
-`;
-
-const HeadlineNumber = styled.span`
-    font-size: 30px;
-    line-height: 1.1;
-    font-weight: 750;
-    letter-spacing: -0.02em;
+    padding: 18px 24px 14px;
+    font-size: 17px;
+    font-weight: 700;
     color: ${ui.ink};
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
+    border-bottom: 1px solid ${ui.lineFaint};
+
+    @media ${PHONE} { padding: 16px 16px 12px; font-size: 16px; }
 `;
 
-const HeadlineWords = styled.span`
-    font-size: 16px;
-    font-weight: 600;
-    color: ${ui.inkSoft};
-`;
-
-const HeadSub = styled.span`
-    font-size: 13.5px;
-    color: ${ui.textMuted};
-`;
-
-const NextStep = styled.div`
-    display: flex;
-    min-width: 0;
-
-    @container month ${NARROW} {
-        width: 100%;
-        > button { width: 100%; }
-    }
-`;
-
-const Progress = styled.div`
-    padding: 0 24px 16px;
-    overflow-x: auto;
-
-    @container month ${NARROW} { padding: 0 16px 14px; }
-`;
-
-const WideSteps = styled.div`
-    @container month ${NARROW} { display: none; }
-`;
-
-/* Na telefonie trzy pastylki z łącznikami nie mieszczą się w linii i łamały się na dwie -
-   tam stoi zwięzłe „Etap 2 z 3: Zatwierdzanie" z paskiem, jak w oknach urlopowych. */
-const NarrowSteps = styled.div`
-    display: none;
-    flex-direction: column;
-    gap: 8px;
-    font-size: 13px;
-    color: ${ui.textMuted};
-
-    strong { font-weight: 700; color: ${ui.ink}; }
-    @container month ${NARROW} { display: flex; }
-`;
-
-const Segments = styled.div`
-    display: flex;
-    gap: 4px;
-`;
-
-/** Odcień, nie wypełnienie - pasek postępu nie konkuruje z krokiem następnym. */
-const Segment = styled.span<{ $state: StepState }>`
-    flex: 1;
-    height: 4px;
-    border-radius: 2px;
-    background: ${p => p.$state === 'done' ? ui.okLine : p.$state === 'active' ? ui.brandLine : ui.line};
-`;
-
-const HeadNote = styled.p`
+const Rows = styled.ul`
     margin: 0;
-    padding: 0 24px 14px;
-    font-size: 13px;
-    color: ${ui.textMuted};
+    padding: 0;
+    list-style: none;
 
-    @container month ${NARROW} { padding: 0 16px 12px; }
-`;
-
-const Bulk = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 0 24px 16px;
-
-    @container month ${NARROW} {
-        padding: 0 16px 14px;
-        > button { flex: 1 1 100%; }
-    }
-`;
-
-const Table = styled.div`
-    border-top: 1px solid ${ui.lineFaint};
-
-    ul { margin: 0; padding: 0; list-style: none; }
     li { border-bottom: 1px solid ${ui.lineFaint}; }
     li:last-child { border-bottom: none; }
 `;
 
-const TableHead = styled.div`
+const RowLink = styled(Link)`
     display: grid;
-    grid-template-columns: ${GRID};
-    gap: 14px;
-    padding: 10px 24px;
-    background: ${ui.surfaceSoft};
-    border-bottom: 1px solid ${ui.lineFaint};
-    font-size: 12.5px;
-    font-weight: 600;
-    color: ${ui.textMuted};
-
-    @container month ${NARROW} { display: none; }
-`;
-
-const RowButton = styled.button`
-    display: grid;
-    grid-template-columns: ${GRID};
-    gap: 14px;
+    grid-template-columns: minmax(0, 1fr) auto 16px;
     align-items: center;
-    width: 100%;
-    min-height: 56px;
+    gap: 12px;
+    min-height: 60px;
     padding: 10px 24px;
-    border: none;
-    background: transparent;
-    font-family: inherit;
-    text-align: left;
-    cursor: pointer;
+    color: inherit;
+    text-decoration: none;
     transition: background 120ms ease;
     -webkit-tap-highlight-color: transparent;
 
     &:hover { background: ${ui.surfaceSoft}; }
     &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: -2px; }
 
-    /* Telefon: dwie linie - kto i w jakim stanie, a pod spodem liczby obok siebie. */
-    @container month ${NARROW} {
-        grid-template-columns: minmax(0, 1fr) auto 16px;
-        grid-template-areas:
-            'who status chevron'
-            'nums nums chevron';
-        gap: 6px 12px;
-        padding: 12px 16px;
-
-        > :nth-child(1) { grid-area: who; }
-        > [data-area='status'] { grid-area: status; }
-        > :last-child { grid-area: chevron; }
-    }
-`;
-
-/**
- * Godziny i nadgodziny: na komputerze dwie kolumny tabeli (`display: contents` - dzieci są
- * komórkami siatki wiersza), na telefonie jedna linia pod nazwiskiem. Osobne obszary siatki
- * łamały się tam w trzy kawałki z nadgodzinami odklejonymi na prawo.
- */
-const Nums = styled.span`
-    display: contents;
-
-    @container month ${NARROW} {
-        grid-area: nums;
-        display: flex;
-        align-items: baseline;
-        flex-wrap: wrap;
-        gap: 4px 12px;
-        min-width: 0;
-
-        > [data-area='overtime'] > [aria-hidden='true'] { display: none; }
-    }
+    @media ${PHONE} { padding: 10px 16px; gap: 10px; }
 `;
 
 const Who = styled.span`
@@ -780,61 +366,18 @@ const Who = styled.span`
 `;
 
 const Name = styled.span`
-    font-size: 14.5px;
-    font-weight: 650;
+    font-size: 15px;
+    font-weight: 700;
     color: ${ui.ink};
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 `;
 
-const Meta = styled.span`
-    font-size: 12px;
-    color: ${ui.textMuted};
-`;
-
-const Cell = styled.span`
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 4px 10px;
-    min-width: 0;
-`;
-
 const Hours = styled.span`
-    font-size: 13.5px;
-    font-weight: 600;
-    color: ${ui.inkSoft};
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-`;
-
-const amber = css`
-    color: ${ui.warnInk};
-    font-weight: 600;
-`;
-
-const Missing = styled.span`
-    ${amber}
-    font-size: 12.5px;
-    white-space: nowrap;
-`;
-
-const Overtime = styled.span`
     font-size: 13px;
-    color: ${ui.inkSoft};
+    color: ${ui.textMuted};
     font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-`;
-
-/* W kolumnie „Nadgodziny" wystarczy liczba; w dwóch liniach na telefonie - z podpisem. */
-const NarrowOnly = styled.span`
-    display: none;
-    @container month ${NARROW} { display: inline; }
-`;
-
-const Faint = styled.span`
-    color: ${ui.textFaint};
 `;
 
 const Chevron = styled.span`
@@ -843,60 +386,51 @@ const Chevron = styled.span`
     svg { width: 16px; height: 16px; }
 `;
 
-const SheetPanel = styled(Panel)`
-    padding: 16px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-
-    @media (max-width: 640px) { padding: 14px 16px; }
-`;
-
-const SheetHead = styled.div`
+/* Płasko na tle: wyniesiona jest lista osób (CLAUDE.md §2, jedna karta w kolumnie). */
+const SheetRow = styled.section`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px 12px;
     flex-wrap: wrap;
-`;
+    gap: 12px 20px;
+    padding: 4px 4px 0;
 
-const SheetBody = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-`;
-
-const SheetLine = styled.div`
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 6px 10px;
+    @media ${PHONE} { padding: 2px 2px 0; }
 `;
 
 const SheetText = styled.p`
     margin: 0;
-    font-size: 13px;
+    flex: 1 1 260px;
+    font-size: 14px;
     line-height: 1.5;
     color: ${ui.textSecondary};
 `;
 
-const History = styled.details`
-    font-size: 13px;
-    color: ${ui.textSecondary};
+const SignAction = styled.div`
+    display: flex;
 
-    summary {
-        cursor: pointer;
-        font-weight: 600;
-        color: ${ui.textSecondary};
-        padding: 4px 0;
+    @media ${PHONE} {
+        width: 100%;
+        > button { width: 100%; }
     }
-    ul { margin: 6px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
-    li { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 `;
 
-/* Przycisk-duch ma własny odstęp wewnętrzny - cofnięty, żeby tekst stał w linii z akapitem. */
-const GhostRow = styled.div`
-    margin-left: -11px;
+/** Pobranie PDF jako link w zdaniu - to nie jest krok do zrobienia, tylko dostęp do pliku. */
+const LinkButton = styled.button`
+    padding: 0;
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    color: ${ui.brandInk};
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+
+    &:hover:not(:disabled) { color: ${ui.brandDeep}; }
+    &:disabled { color: ${ui.textFaint}; cursor: default; }
+    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: 2px; border-radius: 4px; }
 `;
 
 const EmptyAction = styled.div`
@@ -904,14 +438,14 @@ const EmptyAction = styled.div`
 `;
 
 const SkeletonRow = styled.div`
-    padding: 16px 24px;
+    padding: 20px 24px;
     border-top: 1px solid ${ui.lineFaint};
 `;
 
-const SkeletonBar = styled.span<{ $w: string; $h?: string }>`
+const SkeletonBar = styled.span<{ $w: string }>`
     display: block;
     width: ${p => p.$w};
-    height: ${p => p.$h ?? '16px'};
+    height: 16px;
     border-radius: 6px;
     background: ${ui.surfaceAlt};
 `;

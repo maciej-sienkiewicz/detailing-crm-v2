@@ -1,21 +1,21 @@
 // src/modules/employees/components/EmployeeWorkTimeSection.tsx
 //
-// Karty czasu pracy na karcie pracownika: lista miesięcy, a wiersz otwiera to samo okno
-// przeglądu karty co w „Listach miesięcznych". Decyzja o karcie zapada w jednym miejscu.
+// Karty czasu pracy na karcie pracownika: lista miesięcy, a wiersz to zwykły link do
+// strony karty (`/employees/worktime/{miesiąc}/{osoba}`) - tej samej, do której prowadzi
+// lista miesiąca. Decyzja o karcie zapada w jednym miejscu.
 //
-// Wcześniej wiersz miał własne „✓" (zatwierdź jednym kliknięciem, bez obejrzenia dni)
-// i „↶" (zwrot z nakładką bez blokady przewijania i z opcjonalną notatką), a lista
-// obecności o takiej decyzji nie wiedziała. Teraz okno pokazuje miesiąc dzień po dniu,
-// wymaga notatki przy zwrocie i ostrzega, gdy odblokowanie unieważni podpisaną listę.
+// Wcześniej wiersz miał własne „✓" i „↶", potem otwierał okno przeglądu karty. Okno
+// z własnym przewijaniem nie dawało na telefonie obejrzeć całego miesiąca, a do tej samej
+// karty prowadziły trzy różne drogi - została jedna strona i linki do niej.
 
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { StatusPill } from '@/common/components/ui';
 import { useTeamWorkTimePeriods } from '../hooks/useWorkTime';
-import { CardReviewModal } from './worktime/CardReviewModal';
-import { CARD_STATUS, hoursText } from './worktime/monthFormat';
+import { StatusText } from './worktime/StatusText';
+import { cardPath, hoursText } from './worktime/monthFormat';
 
 const PAGE_SIZE = 6;
 
@@ -26,7 +26,6 @@ interface Props {
 export const EmployeeWorkTimeSection = ({ userId }: Props) => {
     const { periods, isLoading } = useTeamWorkTimePeriods(userId);
     const [page, setPage] = useState(0);
-    const [openPeriod, setOpenPeriod] = useState<string | null>(null);
 
     const totalPages = Math.ceil(periods.length / PAGE_SIZE);
     const pagePeriods = periods.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
@@ -49,27 +48,20 @@ export const EmployeeWorkTimeSection = ({ userId }: Props) => {
 
                 {!isLoading && pagePeriods.length > 0 && (
                     <ul>
-                        {pagePeriods.map(p => {
-                            const status = CARD_STATUS[p.status];
-                            return (
-                                <li key={p.period}>
-                                    <PeriodRow
-                                        type="button"
-                                        onClick={() => setOpenPeriod(p.period)}
-                                        aria-label={`Otwórz kartę: ${p.label}, ${status.label}`}
-                                    >
-                                        <PeriodInfo>
-                                            <PeriodLabel>{p.label}</PeriodLabel>
-                                            <PeriodMeta>
-                                                {p.entryCount} {p.entryCount === 1 ? 'dzień' : 'dni'}, {hoursText(p.totalMinutes)}
-                                            </PeriodMeta>
-                                        </PeriodInfo>
-                                        <StatusPill $tone={status.tone}>{status.label}</StatusPill>
-                                        <Chevron aria-hidden="true"><ChevronRight /></Chevron>
-                                    </PeriodRow>
-                                </li>
-                            );
-                        })}
+                        {pagePeriods.map(p => (
+                            <li key={p.period}>
+                                <PeriodRow to={cardPath(p.period, userId)}>
+                                    <PeriodInfo>
+                                        <PeriodLabel>{p.label}</PeriodLabel>
+                                        <PeriodMeta>
+                                            {p.entryCount} {p.entryCount === 1 ? 'dzień' : 'dni'}, {hoursText(p.totalMinutes)}
+                                        </PeriodMeta>
+                                    </PeriodInfo>
+                                    <StatusText status={p.status} />
+                                    <Chevron aria-hidden="true"><ChevronRight /></Chevron>
+                                </PeriodRow>
+                            </li>
+                        ))}
                     </ul>
                 )}
 
@@ -88,15 +80,6 @@ export const EmployeeWorkTimeSection = ({ userId }: Props) => {
                     </PaginationBar>
                 )}
             </Card>
-
-            {openPeriod && (
-                <CardReviewModal
-                    period={openPeriod}
-                    userId={userId}
-                    mode="single"
-                    onClose={() => setOpenPeriod(null)}
-                />
-            )}
         </Wrap>
     );
 };
@@ -138,17 +121,15 @@ const CardTitle = styled.h3`
     color: ${st.text};
 `;
 
-const PeriodRow = styled.button`
+const PeriodRow = styled(Link)`
     display: flex;
     align-items: center;
     gap: 12px;
     width: 100%;
+    box-sizing: border-box;
     padding: 13px 20px;
-    border: none;
-    background: transparent;
-    font-family: inherit;
-    text-align: left;
-    cursor: pointer;
+    color: inherit;
+    text-decoration: none;
     transition: background ${st.transition};
 
     &:hover { background: #FAFBFD; }

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { MonthCardRow, MonthOverview } from '../../api/worktimeMonthsApi';
 import {
-    addMonths, approvableInBulk, defaultPeriod, employeesLabel, hoursText, hoursVsNorm, isPeriod, monthOptions,
-    nextAwaiting, periodLabel, remindable, reusableSheet, sheetFileName, signedSheetIncludes, stageStep,
+    addMonths, approvedSummary, cardFactsSentence, cardPath, defaultPeriod, employeesLabel, hoursOfNorm, hoursText,
+    isPeriod, missingDaysText, monthOptions, monthPath, periodLabel, remindedRecently, reusableSheet, sheetFileName,
+    signedSheetIncludes,
 } from './monthFormat';
 
 const row = (userId: string, overrides: Partial<MonthCardRow> = {}): MonthCardRow => ({
@@ -56,43 +57,36 @@ describe('monthFormat - który miesiąc i jak go opisać', () => {
     it('godziny: pełne bez minut, niepełne jak w karcie pracownika', () => {
         expect(hoursText(9120)).toBe('152 h');
         expect(hoursText(9135)).toBe('152:15 h');
-        expect(hoursVsNorm(9120, 10080)).toBe('152 / 168 h');
+        expect(hoursOfNorm(8250, 9120)).toBe('137:30 z 152 h');
+    });
+
+    it('podsumowanie miesiąca i braki w wierszu po polsku', () => {
+        expect(approvedSummary(4, 7)).toBe('4 z 7 kart zatwierdzonych');
+        expect(approvedSummary(0, 1)).toBe('0 z 1 karty zatwierdzonej');
+        expect(missingDaysText(1)).toBe('brak 1 dnia');
+        expect(missingDaysText(2)).toBe('brak 2 dni');
+    });
+
+    it('zdanie pod godzinami karty pomija zera', () => {
+        expect(cardFactsSentence({ missingWorkingDays: 2, overtimeMinutes: 90, leaveWorkingDays: 2 }))
+            .toBe('Brakuje 2 dni roboczych. Nadgodziny 1:30 h. Urlop i L4: 2 dni.');
+        expect(cardFactsSentence({ missingWorkingDays: 1, overtimeMinutes: 0, leaveWorkingDays: 1 }))
+            .toBe('Brakuje 1 dnia roboczego. Urlop i L4: 1 dzień.');
+        expect(cardFactsSentence({ missingWorkingDays: 0, overtimeMinutes: 0, leaveWorkingDays: 0 })).toBe('');
+    });
+
+    it('adresy: miesiąc to zakładka z `?period`, karta to osobna strona', () => {
+        expect(monthPath('2026-09')).toBe('/employees/worktime?period=2026-09');
+        expect(cardPath('2026-09', 'u-1')).toBe('/employees/worktime/2026-09/u-1');
     });
 });
 
-describe('monthFormat - kolejka decyzji', () => {
-    it('następna karta idzie dalej w kolejności listy i zawija, pomijając rozpatrzone', () => {
-        const rows = [row('a'), row('b', { status: 'APPROVED' }), row('c'), row('d', { canDecide: false })];
-        expect(nextAwaiting(rows, 'a')?.userId).toBe('c');
-        expect(nextAwaiting(rows, 'c')?.userId).toBe('a');
-        expect(nextAwaiting(rows, 'c', new Set(['a']))).toBeNull();
-    });
-
-    it('zbiorczo zatwierdza się tylko złożone bez braków, na które można zdecydować', () => {
-        const rows = [row('a'), row('b', { missingWorkingDays: 2 }), row('c', { canDecide: false }), row('d', { status: 'DRAFT' })];
-        expect(approvableInBulk(rows).map(r => r.userId)).toEqual(['a']);
-    });
-
-    it('przypomnienie idzie do niezłożonych, ale nie częściej niż raz na 12 h', () => {
+describe('monthFormat - przypomnienie', () => {
+    it('backend przypomina najwyżej raz na 12 h - przycisk wie to wcześniej', () => {
         const now = Date.parse('2026-10-01T12:00:00Z');
-        const rows = [
-            // Przy niezłożonych kartach backend zawsze daje canDecide=false - to nie blokuje przypomnienia.
-            row('a', { status: 'NOT_STARTED', canDecide: false }),
-            row('b', { status: 'DRAFT', remindedAt: '2026-10-01T06:00:00Z' }),
-            row('c', { status: 'RETURNED', remindedAt: '2026-09-30T20:00:00Z' }),
-            row('d'),
-        ];
-        expect(remindable(rows, now).map(r => r.userId)).toEqual(['a', 'c']);
-        // Własnej karty się sobie nie przypomina.
-        expect(remindable(rows, now, 'a').map(r => r.userId)).toEqual(['c']);
-    });
-
-    it('etap miesiąca wskazuje pastylkę postępu', () => {
-        expect(stageStep('COLLECTING')).toBe(0);
-        expect(stageStep('REVIEWING')).toBe(1);
-        expect(stageStep('READY_TO_SIGN')).toBe(2);
-        expect(stageStep('NEEDS_RESIGN')).toBe(2);
-        expect(stageStep('SIGNED')).toBe(3);
+        expect(remindedRecently(null, now)).toBe(false);
+        expect(remindedRecently('2026-10-01T06:00:00Z', now)).toBe(true);
+        expect(remindedRecently('2026-09-30T20:00:00Z', now)).toBe(false);
     });
 });
 

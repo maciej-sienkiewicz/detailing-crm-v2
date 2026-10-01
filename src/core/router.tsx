@@ -47,7 +47,7 @@ const MailView = lazyWithRetry(() => import('@/modules/comms/views/MailView'));
 const MailboxConnectView = lazyWithRetry(() => import('@/modules/comms/views/MailboxConnectView'));
 const LeadsView = lazyWithRetry(() => import('@/modules/comms/views/LeadsView'));
 const LeadAnalyticsView = lazyWithRetry(() => import('@/modules/comms/views/LeadAnalyticsView'));
-import { EmployeeDetailView, EmployeesView, MyLeaveView } from '@/modules/employees';
+import { EmployeeDetailView, EmployeesView, MyLeaveView, WorkTimeCardView } from '@/modules/employees';
 import { employeesTabRoutes } from '@/modules/employees/employeesRoutes';
 import { WorkTimeView } from '@/modules/worktime';
 import { ActivityView } from '@/modules/activity';
@@ -432,6 +432,13 @@ export const router = createBrowserRouter([
         {
             path: '/employees/:employeeId',
             element: page(<EmployeeDetailView />, 'EMPLOYEES_MANAGE'),
+        },
+        {
+            // Karta czasu pracy osoby za miesiąc - osobna strona, nie okno nad listą
+            // miesiąca (WorkTimeCardView). Cztery segmenty: nie koliduje ani z zakładką
+            // `/employees/worktime`, ani z kartą pracownika `/employees/:employeeId`.
+            path: '/employees/worktime/:period/:userId',
+            element: page(<WorkTimeCardView />, 'EMPLOYEES_MANAGE'),
         },
         {
             // Dawny adres karty pracownika - krąży w zakładkach przeglądarki.
