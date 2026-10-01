@@ -2,17 +2,21 @@
 //
 // Zakładka „Wnioski urlopowe": kolejka decyzji. Oczekujące są domyślnym widokiem, bo
 // po to się tu przychodzi (push, podpowiedź na Tablicy, licznik przy „Pracownicy").
-// `?request={id}` otwiera szufladę wniosku - tak linkuje powiadomienie push.
+// `?request={id}` otwiera okno decyzji - tak linkuje powiadomienie push.
 //
 // Wiersz jest chudy: osoba, rodzaj, termin, dni, data złożenia. Kolizje z innymi
-// nieobecnościami lista nie zna - szuflada pokazuje je z pełnymi danymi, zamiast
+// nieobecnościami lista nie zna - okno wniosku pokazuje je z pełnymi danymi, zamiast
 // dociągać szczegóły każdego wiersza.
+//
+// „Dodaj urlop" w nagłówku: urlop wprowadzany przez administratora za pracownika
+// (kontrakt v2, ON_BEHALF) - z podpisem pracownika na tym urządzeniu i decyzją.
 
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
-import { ChevronRight, Inbox } from 'lucide-react';
+import { CalendarPlus, ChevronRight, Inbox } from 'lucide-react';
 import { EmptyState } from '@/common/components/EmptyState';
+import { PageHeaderActions } from '@/common/components/PageChrome';
 import { Button, Card, Notice, Segmented, StatusPill, ui, type SegmentedOption } from '@/common/components/ui';
 import { formatDateTime } from '@/common/utils';
 import { useLeaveCalendar } from '../../hooks/useLeaves';
@@ -21,7 +25,8 @@ import type { LeaveRequestQueueStatus } from '../../types';
 import {
     LEAVE_REQUEST_STATUS, addDaysIso, formatLeaveRange, leaveRequestTypeLabel, todayIso, workingDaysLabel,
 } from '../../utils/leaveRequestFormat';
-import { LeaveRequestDrawer } from './LeaveRequestDrawer';
+import { LeaveDecisionModal } from './LeaveDecisionModal';
+import { AddLeaveModal } from './AddLeaveModal';
 
 /** Głęboki link z powiadomienia push: `/employees/leave-requests?request={id}`. */
 const REQUEST_PARAM = 'request';
@@ -32,6 +37,7 @@ const UPCOMING_DAYS = 14;
 export function LeaveRequestsTab() {
     const [searchParams, setSearchParams] = useSearchParams();
     const [status, setStatus] = useState<LeaveRequestQueueStatus>('PENDING');
+    const [addOpen, setAddOpen] = useState(false);
     const queue = useLeaveRequestQueue(status);
     // Licznik przy „Oczekujących" stoi też w innych widokach. Kolejka oczekujących jest
     // i tak domyślnym widokiem, więc to ten sam wpis cache, a nie drugie żądanie.
@@ -60,6 +66,14 @@ export function LeaveRequestsTab() {
 
     return (
         <Wrap>
+            {/* Zakładka stoi za EMPLOYEES_LEAVES_APPROVE (właściciel zawsze) - kto ją widzi,
+                ten może dodać urlop za pracownika. */}
+            <PageHeaderActions>
+                <Button variant="primary" size="lg" onClick={() => setAddOpen(true)}>
+                    <CalendarPlus aria-hidden="true" />Dodaj urlop
+                </Button>
+            </PageHeaderActions>
+
             <Bar>
                 <Segmented label="Które wnioski" options={options} value={status} onChange={setStatus} />
             </Bar>
@@ -72,7 +86,20 @@ export function LeaveRequestsTab() {
                     action={<Button variant="ghost" size="sm" onClick={() => queue.refetch()}>Spróbuj ponownie</Button>}
                 />
             ) : queue.isLoading ? (
-                <Muted>Wczytuję wnioski…</Muted>
+                // Szkielet w kształcie wierszy: przy pierwszym wejściu na zakładkę treść nie
+                // skacze z jednej linii tekstu do listy.
+                <ListCard aria-busy="true" aria-label="Wczytuję wnioski">
+                    <ul>
+                        {Array.from({ length: 3 }).map((_, i) => (
+                            <Row key={i} aria-hidden="true">
+                                <SkeletonRow>
+                                    <SkeletonBar $w={`${45 + (i % 2) * 15}%`} />
+                                    <SkeletonBar $w="30%" />
+                                </SkeletonRow>
+                            </Row>
+                        ))}
+                    </ul>
+                </ListCard>
             ) : items.length === 0 ? (
                 status === 'PENDING' ? <EmptyQueue /> : (
                     <EmptyState icon={<Inbox />} title="Nie ma tu jeszcze wniosków" />
@@ -108,7 +135,8 @@ export function LeaveRequestsTab() {
                 </ListCard>
             )}
 
-            {openId && <LeaveRequestDrawer key={openId} requestId={openId} onClose={closeRequest} />}
+            {openId && <LeaveDecisionModal key={openId} requestId={openId} onClose={closeRequest} />}
+            {addOpen && <AddLeaveModal onClose={() => setAddOpen(false)} />}
         </Wrap>
     );
 }
@@ -171,10 +199,19 @@ const Bar = styled.div`
     > [role='group'] { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
 `;
 
-const Muted = styled.p`
-    margin: 0;
-    font-size: 13.5px;
-    color: ${ui.textMuted};
+const SkeletonRow = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 20px;
+`;
+
+const SkeletonBar = styled.span<{ $w: string }>`
+    display: block;
+    width: ${p => p.$w};
+    height: 12px;
+    border-radius: 6px;
+    background: ${ui.surfaceAlt};
 `;
 
 const ListCard = styled(Card)`

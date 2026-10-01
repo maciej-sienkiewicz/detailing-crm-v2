@@ -7,10 +7,13 @@
 // Zatwierdzenie i odwołanie zmieniają urlop jako FAKT (employee_leaves), więc po nich
 // nieaktualny jest też kalendarz urlopów i historia urlopów na karcie pracownika.
 
+import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { leaveRequestsApi, myLeaveRequestsApi } from '../api/leaveRequestsApi';
+import { useLeaveCalendar } from './useLeaves';
 import type {
     CreateLeaveRequestPayload,
+    EmployeeSignaturePayload,
     LeaveDecisionPayload,
     LeaveRequestQueueStatus,
     SubmitLeaveRequestPayload,
@@ -36,16 +39,46 @@ export const useMyLeaveRequests = () => {
     });
 };
 
-/** Licznik dni roboczych na żywo w kreatorze; bez obu dat nie pyta. */
-export const useLeaveRequestPreview = (startDate: string, endDate: string) => {
-    const enabled = !!startDate && !!endDate && endDate >= startDate;
+/**
+ * Licznik dni roboczych na żywo w kreatorze; bez obu dat nie pyta. Z `employeeId`
+ * liczy dla wskazanej osoby (urlop dodawany przez administratora) - inny endpoint
+ * i inny wpis cache, bo dni robocze zależą od pracownika, a nie od zalogowanego.
+ */
+export const useLeaveRequestPreview = (startDate: string, endDate: string, employeeId?: string | null) => {
+    const enabled = !!startDate && !!endDate && endDate >= startDate && employeeId !== null;
     return useQuery({
-        queryKey: [...MY_LEAVE_REQUESTS_KEY, 'preview', startDate, endDate],
-        queryFn: () => myLeaveRequestsApi.preview(startDate, endDate),
+        queryKey: employeeId
+            ? [...LEAVE_REQUESTS_KEY, 'preview', employeeId, startDate, endDate]
+            : [...MY_LEAVE_REQUESTS_KEY, 'preview', startDate, endDate],
+        queryFn: () => employeeId
+            ? leaveRequestsApi.preview(employeeId, startDate, endDate)
+            : myLeaveRequestsApi.preview(startDate, endDate),
         enabled,
         staleTime: 5 * 60_000,
         retry: false,
     });
+};
+
+/**
+ * Kto jeszcze jest nieobecny w wybranym terminie - z kalendarza urlopów, bez osoby,
+ * której dotyczy wniosek. Kalendarz to widok kadrowo-warsztatowy: kto go nie ma
+ * (`enabled: false`), nie dostaje tej informacji, zamiast pytać API o 403.
+ */
+export const useAbsentColleagues = (startDate: string, endDate: string, excludeId: string | null, enabled: boolean) => {
+    const rangeValid = !!startDate && !!endDate && endDate >= startDate;
+    const { leaveDayMap } = useLeaveCalendar(
+        enabled && rangeValid ? startDate : null,
+        enabled && rangeValid ? endDate : null,
+    );
+    return useMemo(() => {
+        if (!enabled || !rangeValid) return [];
+        const names = new Map<string, string>();
+        leaveDayMap.forEach(day => {
+            if (day.date < startDate || day.date > endDate) return;
+            day.employees.forEach(e => { if (e.id !== excludeId) names.set(e.id, e.fullName); });
+        });
+        return [...names.values()];
+    }, [leaveDayMap, excludeId, enabled, rangeValid, startDate, endDate]);
 };
 
 const useInvalidateMine = () => {
@@ -130,6 +163,22 @@ export const useDecideLeaveRequest = () => {
         mutationFn: ({ id, decision, payload }: { id: string; decision: 'approve' | 'reject'; payload: LeaveDecisionPayload }) =>
             decision === 'approve' ? leaveRequestsApi.approve(id, payload) : leaveRequestsApi.reject(id, payload),
         onSettled: () => invalidate(),
+    });
+};
+
+// ─── Urlop dodany przez administratora (ON_BEHALF) ───────────────────────────
+
+/**
+ * Podpis pracownika na urządzeniu studia zamienia szkic w zwykły PENDING - od tej
+ * chwili wniosek stoi w kolejce (i w liczniku), nawet jeśli administrator nie
+ * dokończy decyzji.
+ */
+export const useEmployeeSignature = () => {
+    const invalidate = useInvalidateLeaveRequests();
+    return useMutation({
+        mutationFn: ({ id, payload }: { id: string; payload: EmployeeSignaturePayload }) =>
+            leaveRequestsApi.employeeSignature(id, payload),
+        onSuccess: () => invalidate(),
     });
 };
 

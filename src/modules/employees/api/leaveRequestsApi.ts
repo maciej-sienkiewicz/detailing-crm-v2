@@ -6,6 +6,9 @@
 //   - samoobsługa pracownika (`/v1/my/leave-requests`) - pracownik ustalany z sesji,
 //     w ścieżce nie ma employeeId, więc nie da się złożyć wniosku za kogoś;
 //   - rozpatrywanie (`/v1/leave-requests`) - właściciel albo EMPLOYEES_LEAVES_APPROVE.
+//     Tu mieszka też urlop dodany przez administratora (v2, `origin: ON_BEHALF`):
+//     szkic tworzy rozpatrujący, a pracownik podpisuje go osobiście na urządzeniu
+//     studia - wnioskodawcą nadal jest pracownik, więc decyzja idzie zwykłą drogą.
 //
 // `skipErrorToast` stoi wszędzie tam, gdzie błąd pokazuje ekran, przy którym stoi
 // użytkownik: 400 z `field` trafia do pola formularza, 409 przy podpisie odświeża
@@ -16,6 +19,8 @@ import { apiClient } from '@/core/apiClient';
 import type {
     CreateLeaveRequestPayload,
     CreateLeaveRequestResponse,
+    CreateOnBehalfLeaveRequestPayload,
+    EmployeeSignaturePayload,
     LeaveDecisionPayload,
     LeaveRequestDetail,
     LeaveRequestPreview,
@@ -144,6 +149,43 @@ export const leaveRequestsApi = {
     },
 
     file: (id: string): Promise<Blob> => fetchFile(`${QUEUE}/${id}/file`),
+
+    // ── Urlop dodany przez administratora (ON_BEHALF) ──
+
+    /** Szkic ON_BEHALF z PDF bez podpisów i jednorazową sesją podpisu PRACOWNIKA (201). */
+    create: async (payload: CreateOnBehalfLeaveRequestPayload): Promise<CreateLeaveRequestResponse> => {
+        const res = await apiClient.post<CreateLeaveRequestResponse>(QUEUE, payload, { skipErrorToast: true });
+        return res.data;
+    },
+
+    /** Dni robocze i święta w terminie - jak samoobsługowe `/preview`, dla wskazanego pracownika. */
+    preview: async (employeeId: string, startDate: string, endDate: string): Promise<LeaveRequestPreview> => {
+        const res = await apiClient.get<LeaveRequestPreview>(`${QUEUE}/preview`, {
+            params: { employeeId, startDate, endDate },
+            skipErrorToast: true,
+        });
+        return res.data;
+    },
+
+    /** Nowy challenge podpisu pracownika dla szkicu ON_BEHALF - po 409. */
+    employeeSigningSession: async (id: string): Promise<SigningSession> => {
+        const res = await apiClient.post<SigningSession>(`${QUEUE}/${id}/employee-signing-session`, undefined, { skipErrorToast: true });
+        return res.data;
+    },
+
+    /** Podpis pracownika złożony osobiście (IN_PERSON) - szkic staje się zwykłym PENDING. */
+    employeeSignature: async (id: string, payload: EmployeeSignaturePayload): Promise<LeaveRequestDetail> => {
+        const res = await apiClient.post<LeaveRequestDetail>(`${QUEUE}/${id}/employee-signature`, payload, { skipErrorToast: true });
+        return res.data;
+    },
+
+    /**
+     * Porzucenie szkicu ON_BEHALF (204, status WITHDRAWN). Błąd zgłasza wywołujący:
+     * okno porzuca szkice w tle i nie ma o czym mówić - backend i tak sprząta je po 24 h.
+     */
+    discard: async (id: string): Promise<void> => {
+        await apiClient.post(`${QUEUE}/${id}/discard`, undefined, { skipErrorToast: true });
+    },
 };
 
 // ─── Błędy ───────────────────────────────────────────────────────────────────

@@ -60,7 +60,7 @@ beforeEach(() => {
         items: [{
             id: 'r1', number: 'WU/2026/0001', employeeId: 'a', employeeName: 'Anna Nowak', leaveType: 'ANNUAL',
             onDemand: false, startDate: day(5), endDate: day(6), workingDays: 2, status: 'PENDING', reason: null,
-            substituteEmployeeId: null, substituteName: null, createdAt: '', employeeSignedAt: null, decidedAt: null,
+            origin: 'SELF_SERVICE', createdByName: 'Anna Nowak', createdAt: '', employeeSignedAt: null, decidedAt: null,
             decidedByName: null, decisionNote: null, cancelReason: null,
         }],
         pendingCount: 1,

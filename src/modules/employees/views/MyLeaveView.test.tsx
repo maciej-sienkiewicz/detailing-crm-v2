@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 //
 // „Urlop" pracownika: liczba jest nagłówkiem, jedyne wypełnienie to „Złóż wniosek",
-// a kreator nie ma ścieżki z jednym podpisem - „Podpisz i wyślij wniosek" budzi się
-// dopiero po podpisie i oświadczeniu. Wysyłka niesie skrót dokumentu, challenge i PNG
-// bez prefiksu; 409 (dokument albo challenge się zmienił) odświeża dokument i czyści pad.
+// a okno wniosku idzie krok po kroku (Rodzaj, Termin, Sprawdź, Podpis) i w każdym
+// kroku ma jedno wypełnienie. Termin wybiera się kalendarzem zakresu (dwa kliknięcia).
+// Okno nie ma ścieżki z jednym podpisem - „Podpisz i wyślij wniosek" budzi się dopiero
+// po podpisie i oświadczeniu. Wysyłka niesie skrót dokumentu, challenge i PNG bez
+// prefiksu; 409 (dokument albo challenge się zmienił) odświeża dokument i czyści pad.
 import { forwardRef, useImperativeHandle } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -14,7 +16,7 @@ import { theme } from '@/common/theme';
 import { ToastProvider } from '@/common/components/Toast';
 import { myLeaveRequestsApi } from '../api/leaveRequestsApi';
 import type { LeaveRequestDetail, LeaveRequestSummary } from '../types';
-import { addDaysIso, todayIso } from '../utils/leaveRequestFormat';
+import { filledIn, pickRange } from '../components/leave/leaveTestHelpers';
 import { MyLeaveView } from './MyLeaveView';
 
 vi.mock('@/core/context/AuthContext', () => ({
@@ -66,8 +68,8 @@ const summary = (overrides: Partial<LeaveRequestSummary>): LeaveRequestSummary =
     workingDays: 5,
     status: 'PENDING',
     reason: null,
-    substituteEmployeeId: null,
-    substituteName: null,
+    origin: 'SELF_SERVICE',
+    createdByName: 'Anna Nowak',
     createdAt: '2026-09-29T18:42:00+02:00',
     employeeSignedAt: '2026-09-29T18:42:00+02:00',
     decidedAt: null,
@@ -81,8 +83,6 @@ const detailOf = (s: LeaveRequestSummary): LeaveRequestDetail => ({
     ...s,
     employeeSignatureMethod: null,
     decisionSignatureMethod: null,
-    decidedByBasis: null,
-    decidedByRoleName: null,
     overlappingAbsences: [],
     canDecide: false,
     decisionBlockedReason: null,
@@ -104,11 +104,15 @@ const renderView = () => {
     );
 };
 
-const start = addDaysIso(todayIso(), 7);
-const end = addDaysIso(todayIso(), 9);
+// Dzień „dziś" jest stały: kalendarz otwiera się na październiku 2026, a 7 i 9 są w nim
+// jednoznaczne (wrzesień i listopad z siatki to 28-30 i 1).
+const start = '2026-10-07';
+const end = '2026-10-09';
 const draftSession = { documentSha256: 'a'.repeat(64), challenge: 'challenge-1' };
 
 beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-01T10:00:00'));
     api.list.mockResolvedValue({
         requests: [
             summary({}),
@@ -129,23 +133,37 @@ beforeEach(() => {
 afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+    vi.useRealTimers();
 });
 
-const openWizardToSigning = async () => {
+const openWizard = async () => {
     fireEvent.click(await screen.findByRole('button', { name: /Złóż wniosek o urlop/ }));
-    const drawer = await screen.findByRole('dialog', { name: 'Wniosek o urlop' });
-    fireEvent.click(within(drawer).getByRole('radio', { name: /Wypoczynkowy/ }));
-    fireEvent.click(within(drawer).getByRole('button', { name: 'Dalej' }));
-    fireEvent.change(within(drawer).getByLabelText('Od'), { target: { value: start } });
-    fireEvent.change(within(drawer).getByLabelText('Do'), { target: { value: end } });
-    expect(await within(drawer).findByText(/3 dni robocze,/)).toBeTruthy();
-    fireEvent.click(within(drawer).getByRole('button', { name: 'Dalej' }));
-    await within(drawer).findByTestId('pdf-viewer');
-    return drawer;
+    return screen.findByRole('dialog', { name: 'Wniosek o urlop' });
 };
 
-const submitButton = (drawer: HTMLElement) =>
-    within(drawer).getByRole('button', { name: /Podpisz i wyślij wniosek/ }) as HTMLButtonElement;
+const next = (modal: HTMLElement) => within(modal).getByRole('button', { name: /^Dalej/ });
+
+/** Rodzaj → Termin (kalendarz) → „Dalej" tworzy szkic → Sprawdź. */
+const openWizardToReview = async () => {
+    const modal = await openWizard();
+    fireEvent.click(within(modal).getByRole('radio', { name: /Wypoczynkowy/ }));
+    fireEvent.click(next(modal));
+    await pickRange(modal, 7, 9);
+    expect(await within(modal).findByText('3 dni robocze')).toBeTruthy();
+    fireEvent.click(next(modal));
+    await within(modal).findByTestId('pdf-viewer');
+    return modal;
+};
+
+const openWizardToSigning = async () => {
+    const modal = await openWizardToReview();
+    fireEvent.click(within(modal).getByRole('button', { name: /Wszystko się zgadza/ }));
+    await within(modal).findByRole('checkbox', { name: /Znam treść wniosku/ });
+    return modal;
+};
+
+const submitButton = (modal: HTMLElement) =>
+    within(modal).getByRole('button', { name: /Podpisz i wyślij wniosek/ }) as HTMLButtonElement;
 
 describe('MyLeaveView - lista i nagłówek', () => {
     it('liczba jest nagłówkiem, pod nią oczekujące; odrzucony wniosek pokazuje uzasadnienie', async () => {
@@ -161,7 +179,7 @@ describe('MyLeaveView - lista i nagłówek', () => {
     it('na ekranie jest dokładnie jedno wypełnienie - „Złóż wniosek o urlop"', async () => {
         renderView();
         await screen.findByText('9');
-        const filled = document.body.querySelectorAll('[data-variant="primary"], [data-variant="success"]');
+        const filled = filledIn(document.body);
         expect(filled).toHaveLength(1);
         expect(filled[0].textContent).toMatch(/Złóż wniosek o urlop/);
     });
@@ -181,36 +199,93 @@ describe('MyLeaveView - lista i nagłówek', () => {
     });
 });
 
-describe('Kreator wniosku - podpis', () => {
+describe('Okno wniosku - kroki', () => {
+    it('każdy krok ma dokładnie jedno wypełnienie - krok następny w stopce', async () => {
+        renderView();
+        const modal = await openWizard();
+        expect(filledIn(modal)).toHaveLength(1);
+        expect(within(modal).getByRole('list', { name: 'Kroki wniosku' })).toBeTruthy();
+
+        fireEvent.click(within(modal).getByRole('radio', { name: /Wypoczynkowy/ }));
+        fireEvent.click(next(modal));
+        expect(filledIn(modal)).toHaveLength(1);
+
+        await pickRange(modal, 7, 9);
+        await within(modal).findByText('3 dni robocze');
+        expect(filledIn(modal)).toHaveLength(1);
+
+        fireEvent.click(next(modal));
+        await within(modal).findByTestId('pdf-viewer');
+        expect(filledIn(modal)).toHaveLength(1);
+
+        fireEvent.click(within(modal).getByRole('button', { name: /Wszystko się zgadza/ }));
+        await within(modal).findByRole('checkbox', { name: /Znam treść wniosku/ });
+        const filled = filledIn(modal);
+        expect(filled).toHaveLength(1);
+        expect(filled[0].textContent).toMatch(/Podpisz i wyślij wniosek/);
+    });
+
+    it('termin z kalendarza zakresu: dwa kliknięcia ustawiają oba końce, licznik pyta o dni robocze', async () => {
+        renderView();
+        const modal = await openWizard();
+        fireEvent.click(within(modal).getByRole('radio', { name: /Wypoczynkowy/ }));
+        fireEvent.click(next(modal));
+        await pickRange(modal, 7, 9);
+
+        expect(within(modal).getByRole('button', { name: 'Od 07.10.2026' })).toBeTruthy();
+        expect(within(modal).getByRole('button', { name: 'Do 09.10.2026' })).toBeTruthy();
+        await waitFor(() => expect(api.preview).toHaveBeenCalledWith(start, end));
+    });
+
+    it('przy wyborze terminu nie ma osoby zastępującej', async () => {
+        renderView();
+        const modal = await openWizard();
+        fireEvent.click(within(modal).getByRole('radio', { name: /Wypoczynkowy/ }));
+        fireEvent.click(next(modal));
+        await pickRange(modal, 7, 9);
+        await within(modal).findByText('3 dni robocze');
+        expect(within(modal).queryByText(/zastęp/i)).toBeNull();
+        expect(within(modal).queryByRole('combobox')).toBeNull();
+    });
+
+    it('„Sprawdź" mówi zwykłymi słowami, o co wniosek prosi, i pokazuje PDF', async () => {
+        renderView();
+        const modal = await openWizardToReview();
+        expect(within(modal).getByText('Prosisz o urlop wypoczynkowy')).toBeTruthy();
+        expect(within(modal).getByText('od środy 7 października do piątku 9 października 2026')).toBeTruthy();
+    });
+});
+
+describe('Okno wniosku - podpis', () => {
     it('„Dalej" z terminu tworzy szkic z wybranymi danymi', async () => {
         renderView();
-        await openWizardToSigning();
+        await openWizardToReview();
         expect(api.create).toHaveBeenCalledWith({ leaveType: 'ANNUAL', onDemand: false, startDate: start, endDate: end });
         expect(api.document).toHaveBeenCalledWith('draft-1');
     });
 
     it('bez podpisu albo bez oświadczenia nie da się wysłać', async () => {
         renderView();
-        const drawer = await openWizardToSigning();
-        expect(submitButton(drawer).disabled).toBe(true);
+        const modal = await openWizardToSigning();
+        expect(submitButton(modal).disabled).toBe(true);
 
-        fireEvent.click(within(drawer).getByRole('checkbox', { name: /Znam treść wniosku i podpisuję go/ }));
-        expect(submitButton(drawer).disabled).toBe(true);
+        fireEvent.click(within(modal).getByRole('checkbox', { name: /Znam treść wniosku i podpisuję go/ }));
+        expect(submitButton(modal).disabled).toBe(true);
 
-        fireEvent.click(within(drawer).getByRole('checkbox', { name: /Znam treść wniosku/ }));
-        fireEvent.click(within(drawer).getByRole('button', { name: 'atrapa: złóż podpis' }));
-        expect(submitButton(drawer).disabled).toBe(true);
+        fireEvent.click(within(modal).getByRole('checkbox', { name: /Znam treść wniosku/ }));
+        fireEvent.click(within(modal).getByRole('button', { name: 'atrapa: złóż podpis' }));
+        expect(submitButton(modal).disabled).toBe(true);
 
-        fireEvent.click(within(drawer).getByRole('checkbox', { name: /Znam treść wniosku/ }));
-        expect(submitButton(drawer).disabled).toBe(false);
+        fireEvent.click(within(modal).getByRole('checkbox', { name: /Znam treść wniosku/ }));
+        expect(submitButton(modal).disabled).toBe(false);
     });
 
     it('wysyłka niesie skrót dokumentu, challenge i PNG bez prefiksu; potem dymek i zamknięcie', async () => {
         renderView();
-        const drawer = await openWizardToSigning();
-        fireEvent.click(within(drawer).getByRole('checkbox', { name: /Znam treść wniosku/ }));
-        fireEvent.click(within(drawer).getByRole('button', { name: 'atrapa: złóż podpis' }));
-        fireEvent.click(submitButton(drawer));
+        const modal = await openWizardToSigning();
+        fireEvent.click(within(modal).getByRole('checkbox', { name: /Znam treść wniosku/ }));
+        fireEvent.click(within(modal).getByRole('button', { name: 'atrapa: złóż podpis' }));
+        fireEvent.click(submitButton(modal));
 
         await waitFor(() => expect(api.submit).toHaveBeenCalledWith('draft-1', {
             signatureImageBase64: 'PODPIS',
@@ -225,28 +300,31 @@ describe('Kreator wniosku - podpis', () => {
         expect(api.withdraw).not.toHaveBeenCalled();
     });
 
-    it('409: nowa sesja, odświeżony dokument, czysty pad i komunikat', async () => {
+    it('409: nowa sesja, odświeżony dokument do obejrzenia, czysty pad i komunikat', async () => {
         api.submit.mockRejectedValueOnce({ response: { status: 409, data: { message: 'Dokument został odświeżony. Sprawdź go i podpisz ponownie.' } } });
         api.signingSession.mockResolvedValue({ documentSha256: 'b'.repeat(64), challenge: 'challenge-2' });
         renderView();
-        const drawer = await openWizardToSigning();
-        fireEvent.click(within(drawer).getByRole('checkbox', { name: /Znam treść wniosku/ }));
-        fireEvent.click(within(drawer).getByRole('button', { name: 'atrapa: złóż podpis' }));
-        fireEvent.click(submitButton(drawer));
+        const modal = await openWizardToSigning();
+        fireEvent.click(within(modal).getByRole('checkbox', { name: /Znam treść wniosku/ }));
+        fireEvent.click(within(modal).getByRole('button', { name: 'atrapa: złóż podpis' }));
+        fireEvent.click(submitButton(modal));
 
-        expect(await within(drawer).findByText('Dokument został odświeżony. Sprawdź go i podpisz ponownie.')).toBeTruthy();
+        expect(await within(modal).findByText('Dokument został odświeżony. Sprawdź go i podpisz ponownie.')).toBeTruthy();
         expect(api.signingSession).toHaveBeenCalledWith('draft-1');
         expect(pad.clear).toHaveBeenCalled();
+        // Nowe bajty trzeba obejrzeć: okno wraca do „Sprawdź" z nowym dokumentem.
         await waitFor(() => expect(api.document).toHaveBeenCalledTimes(2));
+        fireEvent.click(within(modal).getByRole('button', { name: /Wszystko się zgadza/ }));
+
         // Oświadczenie trzeba potwierdzić jeszcze raz - dokument jest nowy.
-        expect((within(drawer).getByRole('checkbox', { name: /Znam treść wniosku/ }) as HTMLInputElement).checked).toBe(false);
-        expect(submitButton(drawer).disabled).toBe(true);
+        expect((within(modal).getByRole('checkbox', { name: /Znam treść wniosku/ }) as HTMLInputElement).checked).toBe(false);
+        expect(submitButton(modal).disabled).toBe(true);
 
         // Drugie podejście idzie z nowym challenge.
-        fireEvent.click(within(drawer).getByRole('checkbox', { name: /Znam treść wniosku/ }));
-        fireEvent.click(within(drawer).getByRole('button', { name: 'atrapa: złóż podpis' }));
-        await waitFor(() => expect(submitButton(drawer).disabled).toBe(false));
-        fireEvent.click(submitButton(drawer));
+        fireEvent.click(within(modal).getByRole('checkbox', { name: /Znam treść wniosku/ }));
+        fireEvent.click(within(modal).getByRole('button', { name: 'atrapa: złóż podpis' }));
+        await waitFor(() => expect(submitButton(modal).disabled).toBe(false));
+        fireEvent.click(submitButton(modal));
         await waitFor(() => expect(api.submit).toHaveBeenLastCalledWith('draft-1', expect.objectContaining({
             documentSha256: 'b'.repeat(64),
             challenge: 'challenge-2',
@@ -258,37 +336,33 @@ describe('Kreator wniosku - podpis', () => {
             response: { status: 400, data: { message: 'Ten termin nakłada się z Twoim wnioskiem', field: 'startDate' } },
         });
         renderView();
-        fireEvent.click(await screen.findByRole('button', { name: /Złóż wniosek o urlop/ }));
-        const drawer = await screen.findByRole('dialog', { name: 'Wniosek o urlop' });
-        fireEvent.click(within(drawer).getByRole('radio', { name: /Wypoczynkowy/ }));
-        fireEvent.click(within(drawer).getByRole('button', { name: 'Dalej' }));
-        fireEvent.change(within(drawer).getByLabelText('Od'), { target: { value: start } });
-        fireEvent.change(within(drawer).getByLabelText('Do'), { target: { value: end } });
-        fireEvent.click(within(drawer).getByRole('button', { name: 'Dalej' }));
+        const modal = await openWizard();
+        fireEvent.click(within(modal).getByRole('radio', { name: /Wypoczynkowy/ }));
+        fireEvent.click(next(modal));
+        await pickRange(modal, 7, 9);
+        fireEvent.click(next(modal));
 
-        expect(await within(drawer).findByText('Ten termin nakłada się z Twoim wnioskiem')).toBeTruthy();
-        expect(within(drawer).getByLabelText('Od').getAttribute('aria-invalid')).toBe('true');
+        expect(await within(modal).findByText('Ten termin nakłada się z Twoim wnioskiem')).toBeTruthy();
+        expect(within(modal).getByRole('button', { name: /^Od\b/ }).getAttribute('aria-invalid')).toBe('true');
     });
 
     it('okolicznościowy wymaga powodu, zanim powstanie szkic', async () => {
         renderView();
-        fireEvent.click(await screen.findByRole('button', { name: /Złóż wniosek o urlop/ }));
-        const drawer = await screen.findByRole('dialog', { name: 'Wniosek o urlop' });
-        fireEvent.click(within(drawer).getByRole('radio', { name: /Okolicznościowy/ }));
-        fireEvent.click(within(drawer).getByRole('button', { name: 'Dalej' }));
-        fireEvent.change(within(drawer).getByLabelText('Od'), { target: { value: start } });
-        fireEvent.change(within(drawer).getByLabelText('Do'), { target: { value: end } });
-        fireEvent.click(within(drawer).getByRole('button', { name: 'Dalej' }));
+        const modal = await openWizard();
+        fireEvent.click(within(modal).getByRole('radio', { name: /Okolicznościowy/ }));
+        fireEvent.click(next(modal));
+        await pickRange(modal, 7, 9);
+        fireEvent.click(next(modal));
 
-        expect(await within(drawer).findByText('Przy urlopie okolicznościowym podaj powód.')).toBeTruthy();
+        expect(await within(modal).findByText('Przy urlopie okolicznościowym podaj powód.')).toBeTruthy();
         expect(api.create).not.toHaveBeenCalled();
-        expect((within(drawer).getByLabelText('Powód') as HTMLTextAreaElement).maxLength).toBe(250);
+        expect((within(modal).getByLabelText('Powód') as HTMLTextAreaElement).maxLength).toBe(250);
     });
 
-    it('zamknięcie kreatora bez wysłania wycofuje szkic', async () => {
+    it('zamknięcie okna bez wysłania wycofuje szkic', async () => {
         renderView();
-        const drawer = await openWizardToSigning();
-        fireEvent.click(within(drawer).getByRole('button', { name: 'Zamknij' }));
+        const modal = await openWizardToSigning();
+        fireEvent.click(within(modal).getByRole('button', { name: 'Zamknij' }));
         await waitFor(() => expect(api.withdraw).toHaveBeenCalledWith('draft-1'));
     });
 });

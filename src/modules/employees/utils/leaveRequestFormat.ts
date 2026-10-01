@@ -57,6 +57,33 @@ export function formatLeaveRange(startDate: string, endDate: string): string {
     return `${pad(a.d)}.${pad(a.m)}–${pad(b.d)}.${pad(b.m)}.${b.y}`;
 }
 
+const MONTHS_GENITIVE = [
+    'stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca',
+    'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia',
+];
+/** Dzień tygodnia po „od" / „do" (dopełniacz) i po „w" (biernik); indeks jak getDay(). */
+const WEEKDAY_GENITIVE = ['niedzieli', 'poniedziałku', 'wtorku', 'środy', 'czwartku', 'piątku', 'soboty'];
+const WEEKDAY_ACCUSATIVE = ['niedzielę', 'poniedziałek', 'wtorek', 'środę', 'czwartek', 'piątek', 'sobotę'];
+
+const weekday = (iso: string) => {
+    const { y, m, d } = parts(iso);
+    return new Date(y, m - 1, d).getDay();
+};
+
+/**
+ * Termin zdaniem, do podsumowania przed podpisem: „od środy 7 października do piątku
+ * 9 października 2026", jeden dzień: „w środę 7 października 2026". Dzień tygodnia
+ * jest po to, żeby pomyłkę o tydzień było widać od razu - same cyfry jej nie zdradzą.
+ */
+export function formatLeaveRangeLong(startDate: string, endDate: string): string {
+    const a = parts(startDate);
+    const b = parts(endDate);
+    const day = (p: { m: number; d: number }) => `${p.d} ${MONTHS_GENITIVE[p.m - 1]}`;
+    if (startDate === endDate) return `w ${WEEKDAY_ACCUSATIVE[weekday(startDate)]} ${day(a)} ${a.y}`;
+    const from = `${WEEKDAY_GENITIVE[weekday(startDate)]} ${day(a)}${a.y !== b.y ? ` ${a.y}` : ''}`;
+    return `od ${from} do ${WEEKDAY_GENITIVE[weekday(endDate)]} ${day(b)} ${b.y}`;
+}
+
 /** Liczba różnych osób nieobecnych w terminie wniosku - „kolizja: 2 os.". */
 export const collisionCount = (absences: OverlappingAbsence[]): number =>
     new Set(absences.map(a => a.employeeId)).size;
