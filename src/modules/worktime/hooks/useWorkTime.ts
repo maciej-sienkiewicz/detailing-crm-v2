@@ -7,18 +7,20 @@ export const workTimeKeys = {
     period: (period: string) => ['worktime', 'period', period] as const,
 };
 
-export function usePeriods() {
+/** `enabled: false` - konto bez liczonego czasu pracy nie pyta API o 403. */
+export function usePeriods(options?: { enabled?: boolean }) {
     return useQuery({
         queryKey: workTimeKeys.periods(),
         queryFn: workTimeApi.listPeriods,
+        enabled: options?.enabled ?? true,
     });
 }
 
-export function usePeriodDetail(period: string) {
+export function usePeriodDetail(period: string, options?: { enabled?: boolean }) {
     return useQuery({
         queryKey: workTimeKeys.period(period),
         queryFn: () => workTimeApi.getPeriod(period),
-        enabled: !!period,
+        enabled: !!period && (options?.enabled ?? true),
     });
 }
 

@@ -1,6 +1,7 @@
 import styled from 'styled-components';
 import { Check, Clock, Loader2 } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
+import { useAuth } from '@/core/context/AuthContext';
 import { usePeriodDetail, useStandardToday } from '../hooks/useWorkTime';
 
 // Zgłoszenie standardowego dnia pracy jednym dotknięciem. Dla pracownika bez
@@ -74,12 +75,19 @@ const Spinner = styled(Loader2)`
 
 export const ReportWorkdayButton = () => {
   const { showSuccess, showError } = useToast();
+  const { user } = useAuth();
   const today = new Date();
   const period = localPeriod(today);
   const todayKey = localDate(today);
+  const tracks = !!user?.trackWorkTime;
 
-  const { data: periodDetail, isLoading } = usePeriodDetail(period);
+  const { data: periodDetail, isLoading } = usePeriodDetail(period, { enabled: tracks });
   const standardToday = useStandardToday(period);
+
+  // Konto bez liczonego czasu pracy nie ma czego raportować. Złożona albo zatwierdzona
+  // karta bieżącego miesiąca jest zamknięta - backend odrzuciłby wpis (409/403), więc
+  // przycisk, który zawsze kończy się błędem, znika zamiast kusić.
+  if (!tracks || periodDetail?.status === 'SUBMITTED' || periodDetail?.status === 'APPROVED') return null;
 
   const alreadyReported = !!periodDetail?.entries.some(
     entry => entry.date === todayKey && entry.minutes > 0,
@@ -88,7 +96,10 @@ export const ReportWorkdayButton = () => {
   const handleClick = () => {
     standardToday.mutate(undefined, {
       onSuccess: () => showSuccess('Dzień zaraportowany', 'Zapisano 8 godzin pracy na dziś.'),
-      onError: () => showError('Nie udało się zapisać', 'Spróbuj ponownie za chwilę.'),
+      onError: (error: unknown) => showError(
+        'Nie udało się zapisać',
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Spróbuj ponownie za chwilę.',
+      ),
     });
   };
 
