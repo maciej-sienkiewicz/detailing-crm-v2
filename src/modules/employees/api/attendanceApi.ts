@@ -1,10 +1,9 @@
 // src/modules/employees/api/attendanceApi.ts
 //
-// Lista obecności jako rozliczenie: wygeneruj → podejrzyj → zatwierdź (opcjonalnie
-// z podpisem) albo usuń.
-//
-// Generowanie zwraca OPIS dokumentu, a nie plik: arkusz zostaje w systemie, w zakładce
-// Rozliczenia, gdzie każdy administrator widzi, czy ktoś go już zatwierdził.
+// Podpis i plik listy obecności. Listę tworzy widok miesiąca (worktimeMonthsApi.createSheet,
+// tylko z zatwierdzonych kart) - dawne „wygeneruj z dowolnych pracowników" (POST
+// /attendance-sheet) zostało w backendzie dla zgodności, ale front go już nie używa:
+// lista mogła powstać z niezłożonych kart i nie wiedziała, gdy karta się zmieniła.
 
 import { apiClient } from '@/core/apiClient';
 
@@ -60,28 +59,6 @@ export interface AttendanceSignatureRequest {
 }
 
 export const attendanceApi = {
-    /** Rozliczenia studia, od najnowszych. */
-    listAttendanceSheets: async (limit = 100): Promise<AttendanceSheet[]> => {
-        const response = await apiClient.get<AttendanceSheet[]>(`${BASE}/attendance-sheets`, {
-            params: { limit },
-        });
-        return response.data;
-    },
-
-    /**
-     * `skipErrorToast`: backend odpowiada błędem walidacji, gdy żaden z zaznaczonych
-     * pracowników nie ma modułu Czasu pracy - komunikat pokazuje modal, przy którym
-     * użytkownik stoi, a nie globalny dymek nad całą aplikacją.
-     */
-    generateAttendanceSheet: async (period: string, employeeIds: string[]): Promise<AttendanceSheet> => {
-        const response = await apiClient.post<AttendanceSheet>(
-            `${BASE}/attendance-sheet`,
-            { period, employeeIds },
-            { skipErrorToast: true },
-        );
-        return response.data;
-    },
-
     /**
      * Zatwierdzenie, opcjonalnie z podpisem z kanwy (`data:image/png;base64,...`).
      * Kto zatwierdza, backend bierze z sesji. Konflikt (ktoś zatwierdził chwilę wcześniej)
@@ -129,10 +106,6 @@ export const attendanceApi = {
 
     cancelRemoteSignature: async (sheetId: string): Promise<void> => {
         await apiClient.delete(`${BASE}/attendance-sheet/${sheetId}/signature-request`);
-    },
-
-    deleteAttendanceSheet: async (sheetId: string): Promise<void> => {
-        await apiClient.delete(`${BASE}/attendance-sheet/${sheetId}`);
     },
 
     /** Plik arkusza - podpisany, jeśli podpis już złożono. */

@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 //
 // Moduł „Pracownicy" po wyjściu z Ustawień: zakładki widzi tylko ten, kto ma do nich
-// prawo, zakładka „Listy miesięczne" mówi, ile list czeka, i mruga po wygenerowaniu nowej
-// (jedyny sygnał, że lista nie pobrała się na dysk, tylko czeka na zatwierdzenie).
+// prawo, a zakładka „Listy miesięczne" mówi, ile czeka na menedżera: karty do decyzji
+// plus listy obecności do podpisu (GET /worktime/team/pending-count).
 // Zakładki są trasami-dziećmi jednej ramy: zmiana zakładki nie montuje nagłówka od nowa.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -11,32 +11,19 @@ import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
 import { ToastProvider } from '@/common/components/Toast';
-import type { AttendanceSheet } from '../api/attendanceApi';
 import { EmployeesView } from './EmployeesView';
 import { employeesTabRoutes } from '../employeesRoutes';
 
 const auth = vi.hoisted(() => ({ user: { permissions: null as string[] | null } }));
 vi.mock('@/core/context/AuthContext', () => ({ useAuth: () => auth }));
 
-const generated = { id: 'new-sheet', period: '2026-09', status: 'GENERATED' } as AttendanceSheet;
-
-// Lista zespołu i rozliczenia nie są tu tematem - atrapa listy umie tylko otworzyć okno
-// listy obecności, a atrapa okna - „wygenerować" listę.
+// Lista zespołu i widok miesiąca nie są tu tematem - same atrapy.
 vi.mock('../components/team/TeamList', () => ({
     TEAM_PAGE_SIZE: 20,
-    TeamList: ({ onOpenAttendance }: { onOpenAttendance?: () => void }) => (
-        <button type="button" onClick={() => onOpenAttendance?.()}>atrapa: lista obecności</button>
-    ),
+    TeamList: () => <p>atrapa: zespół</p>,
 }));
-vi.mock('../components/worktime/AttendanceSheetModal', () => ({
-    AttendanceSheetModal: ({ onGenerated, onClose }: { onGenerated?: (sheet: AttendanceSheet) => void; onClose: () => void }) => (
-        <button type="button" onClick={() => { onGenerated?.(generated); onClose(); }}>atrapa: wygeneruj listę</button>
-    ),
-}));
-vi.mock('../components/worktime/SettlementsSection', () => ({
-    SettlementsSection: ({ highlightId }: { highlightId?: string | null }) => (
-        <output data-testid="settlements">{highlightId ?? 'brak'}</output>
-    ),
+vi.mock('../components/worktime/MonthView', () => ({
+    MonthView: () => <output data-testid="month-view">listy miesięczne</output>,
 }));
 vi.mock('../api/employeeApi', () => ({
     employeeApi: {
@@ -52,13 +39,10 @@ vi.mock('../api/leaveRequestsApi', async importOriginal => ({
     ...(await importOriginal<typeof import('../api/leaveRequestsApi')>()),
     leaveRequestsApi: { list: vi.fn().mockResolvedValue({ items: [], pendingCount: 2 }) },
 }));
-vi.mock('../api/attendanceApi', async importOriginal => ({
-    ...(await importOriginal<typeof import('../api/attendanceApi')>()),
-    attendanceApi: {
-        listAttendanceSheets: vi.fn().mockResolvedValue([
-            { id: 'a', period: '2026-08', status: 'GENERATED' },
-            { id: 'b', period: '2026-07', status: 'APPROVED' },
-        ]),
+vi.mock('../api/worktimeMonthsApi', async importOriginal => ({
+    ...(await importOriginal<typeof import('../api/worktimeMonthsApi')>()),
+    worktimeMonthsApi: {
+        pendingCount: vi.fn().mockResolvedValue({ submittedCards: 2, sheetsToSign: 1 }),
     },
 }));
 
@@ -89,11 +73,20 @@ beforeEach(() => { auth.user = { permissions: null }; });
 afterEach(() => cleanup());
 
 describe('EmployeesView - zakładki', () => {
-    it('właściciel widzi zespół z licznikiem i czas pracy z liczbą list do zatwierdzenia', async () => {
+    it('właściciel widzi zespół z licznikiem, a przy listach miesięcznych karty do decyzji plus listy do podpisu', async () => {
         renderAt('/employees');
         expect(await screen.findByRole('tab', { name: /^Zespół\s*4$/ })).toBeTruthy();
         expect(tab(/^Zespół/).getAttribute('aria-selected')).toBe('true');
-        expect(await screen.findByRole('tab', { name: /^Listy miesięczne\s*1$/ })).toBeTruthy();
+        expect(await screen.findByRole('tab', { name: /^Listy miesięczne\s*3$/ })).toBeTruthy();
+    });
+
+    it('bez prawa do kadr licznik list miesięcznych nie jest pobierany', async () => {
+        auth.user = { permissions: ['EMPLOYEES_LEAVES_APPROVE'] };
+        const { worktimeMonthsApi } = await import('../api/worktimeMonthsApi');
+        vi.mocked(worktimeMonthsApi.pendingCount).mockClear();
+        renderAt('/employees/absences');
+        expect(await screen.findByText('grafik nieobecności')).toBeTruthy();
+        expect(worktimeMonthsApi.pendingCount).not.toHaveBeenCalled();
     });
 
     it('kliknięcie w zakładkę zmienia trasę', () => {
@@ -127,26 +120,9 @@ describe('EmployeesView - zakładki', () => {
         expect(tab(/^Zespół/)).toBeTruthy();
     });
 
-    it('po wygenerowaniu listy „Listy miesięczne" mruga, a wiersz podświetla się po wejściu', () => {
-        const router = renderAt('/employees');
-        expect(tab(/^Listy miesięczne/).hasAttribute('data-flash')).toBe(false);
-
-        fireEvent.click(screen.getByRole('button', { name: 'atrapa: lista obecności' }));
-        fireEvent.click(screen.getByRole('button', { name: 'atrapa: wygeneruj listę' }));
-
-        expect(tab(/^Listy miesięczne/).getAttribute('data-flash')).toBe('true');
-        expect(tab(/^Zespół/).hasAttribute('data-flash')).toBe(false);
-        // Okno zamknęło się po wygenerowaniu.
-        expect(screen.queryByRole('button', { name: 'atrapa: wygeneruj listę' })).toBeNull();
-
-        fireEvent.click(tab(/^Listy miesięczne/));
-        expect(router.state.location.pathname).toBe('/employees/worktime');
-        expect(screen.getByTestId('settlements').textContent).toBe('new-sheet');
-    });
-
     it('w zakładce „Zespół" nie ma wyszukiwarki', () => {
         renderAt('/employees');
-        expect(screen.getByRole('button', { name: 'atrapa: lista obecności' })).toBeTruthy();
+        expect(screen.getByText('atrapa: zespół')).toBeTruthy();
         expect(screen.queryByRole('searchbox')).toBeNull();
         expect(screen.queryByPlaceholderText(/Szukaj/)).toBeNull();
     });
@@ -167,7 +143,7 @@ describe('EmployeesView - zakładki', () => {
         expect(heading.isConnected).toBe(true);
 
         fireEvent.click(tab(/^Listy miesięczne/));
-        expect(screen.getByTestId('settlements')).toBeTruthy();
+        expect(screen.getByTestId('month-view')).toBeTruthy();
         expect(screen.getByRole('heading', { name: 'Pracownicy' })).toBe(heading);
     });
 

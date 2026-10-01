@@ -1,33 +1,28 @@
 // src/modules/employees/views/EmployeesTabViews.tsx
 //
-// Treść zakładek, które potrzebują czegoś od ramy modułu (EmployeesView): zespół
-// i listy miesięczne otwierają okno listy obecności, a listy podświetlają świeżo
-// wygenerowany wiersz. Wnioski i nieobecności niczego od ramy nie chcą - ich trasy
-// renderują komponenty wprost.
+// Treść zakładek, które potrzebują czegoś od ramy modułu (EmployeesView): listy
+// miesięczne przechodzą do zespołu przez ramę. Wnioski i nieobecności niczego od ramy
+// nie chcą - ich trasy renderują komponenty wprost.
+//
+// Zespół nie otwiera już okna „Lista obecności": lista powstaje w widoku miesiąca,
+// z zatwierdzonych kart, a nie z dowolnie zaznaczonych osób.
 
 import { Navigate, useNavigate } from 'react-router-dom';
 import { usePermissions } from '@/core/permissions';
 import { TeamList } from '../components/team/TeamList';
-import { SettlementsSection } from '../components/worktime/SettlementsSection';
+import { MonthView } from '../components/worktime/MonthView';
 import { firstEmployeesTabPath } from '../employeesTabs';
 import { useEmployeesOutlet } from './employeesOutlet';
 
 export function TeamTabView() {
     const navigate = useNavigate();
-    const { openAttendance } = useEmployeesOutlet();
-    return <TeamList onGoToRoles={() => navigate('/settings?tab=roles')} onOpenAttendance={openAttendance} />;
+    return <TeamList onGoToRoles={() => navigate('/settings?tab=roles')} />;
 }
 
 export function WorktimeTabView() {
     const { can } = usePermissions();
-    const { newSheetId, openAttendance, goToTab } = useEmployeesOutlet();
-    return (
-        <SettlementsSection
-            highlightId={newSheetId}
-            onGoToEmployees={can('EMPLOYEES_MANAGE') ? () => goToTab('team') : undefined}
-            onCreateSheet={openAttendance}
-        />
-    );
+    const { goToTab } = useEmployeesOutlet();
+    return <MonthView onGoToTeam={can('EMPLOYEES_MANAGE') ? () => goToTab('team') : undefined} />;
 }
 
 /**

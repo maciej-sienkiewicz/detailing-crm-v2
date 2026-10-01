@@ -42,8 +42,6 @@ function buildPageNumbers(current: number, total: number): (number | '...')[] {
 interface TeamListProps {
     /** Przejście do „Role i uprawnienia” w Ustawieniach; bez niego Notice nie ma akcji. */
     onGoToRoles?: () => void;
-    /** Otwiera okno listy obecności - to samo co w zakładce „Listy miesięczne”. */
-    onOpenAttendance?: () => void;
 }
 
 type Editing = { employee: EmployeeListItem; focusAccount: boolean };
@@ -53,7 +51,7 @@ type Editing = { employee: EmployeeListItem; focusAccount: boolean };
  * Zespół studia to kilka-kilkanaście osób na jednej stronie; pole szukania zajmowało
  * miejsce w nagłówku i nie miało czego przesiewać.
  */
-export function TeamList({ onGoToRoles, onOpenAttendance }: TeamListProps = {}) {
+export function TeamList({ onGoToRoles }: TeamListProps = {}) {
     const queryClient = useQueryClient();
     const { showSuccess, showError } = useToast();
 
@@ -196,9 +194,6 @@ export function TeamList({ onGoToRoles, onOpenAttendance }: TeamListProps = {}) 
     return (
         <>
             <PageHeaderActions>
-                {onOpenAttendance && (
-                    <Button variant="outline" size="lg" onClick={onOpenAttendance}>Lista obecności</Button>
-                )}
                 <Button variant="primary" size="lg" onClick={() => setIsAddOpen(true)}>
                     <Plus aria-hidden="true" />
                     Dodaj pracownika
