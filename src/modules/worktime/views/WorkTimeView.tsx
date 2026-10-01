@@ -1,12 +1,25 @@
+// src/modules/worktime/views/WorkTimeView.tsx
+//
+// Karta czasu pracy pracownika (/worktime). Miesiąc jest w adresie (`?period=YYYY-MM`):
+// tak linkują pushe „karta zwrócona / zatwierdzona / przypomnienie", a „wstecz" wraca do
+// poprzednio oglądanego miesiąca.
+//
+// Złożona karta jest tylko do odczytu - czeka na decyzję przełożonego, a backend
+// odrzuca wtedy zmiany (409). Dni bierzemy z `days[]` serwera: święta i urlop/L4 są
+// podpisane, a brakujący dzień roboczy jest bursztynowy - pracownik widzi braki, zanim
+// złoży kartę, zamiast dowiadywać się o nich ze zwrotu.
+
 import { useState, useRef } from 'react';
 import styled, { css, keyframes } from 'styled-components';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/core/context/AuthContext';
 import { useToast } from '@/common/components/Toast';
 import { useVisualViewportSheet } from '@/common/hooks';
 import { BOTTOM_NAV_SPACE } from '@/widgets/BottomNav';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { Button, Notice } from '@/common/components/ui';
 import {
+    usePeriods,
     usePeriodDetail,
     useFillMonth,
     useStandardToday,
@@ -14,7 +27,7 @@ import {
     useUpsertEntry,
     useDeleteEntry,
 } from '../hooks/useWorkTime';
-import type { PeriodStatus, WorkTimeEntry } from '../types';
+import type { CardDay, PeriodStatus, WorkTimeEntry } from '../types';
 
 // ─── utils ───────────────────────────────────────────────────────────────────
 
@@ -58,6 +71,19 @@ function formatDate(d: Date): string {
 function periodLabel(period: string): string {
     const [y, m] = period.split('-').map(Number);
     return `${MONTHS_PL[m - 1]} ${y}`;
+}
+
+/** Do zdania: „za wrzesień 2026". */
+const periodInSentence = (period: string) => periodLabel(period).toLowerCase();
+
+const isPeriod = (value: string | null): value is string => !!value && /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
+
+/** Komunikat serwera (np. 409 „Karta za wrzesień 2026 czeka na decyzję przełożonego…"). */
+const messageOf = (error: unknown): string | undefined =>
+    (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+
+function missingDaysLabel(count: number): string {
+    return count === 1 ? '1 dniu roboczym' : `${count} dniach roboczych`;
 }
 
 /** Parse input like "8", "8:30", "3:50", "0:45" → minutes. Returns null if invalid. */
@@ -120,11 +146,17 @@ const STATUS_BG: Record<PeriodStatus, string> = {
 
 export function WorkTimeView() {
     const { user } = useAuth();
-    const navigate = useNavigate();
     const { showSuccess, showError } = useToast();
+    const [searchParams, setSearchParams] = useSearchParams();
 
-    const [period, setPeriod] = useState(currentPeriod);
+    // Miesiąc z adresu, o ile jest prawdziwy i nie z przyszłości - inaczej bieżący.
+    const requested = searchParams.get('period');
+    const period = isPeriod(requested) && requested <= currentPeriod() ? requested : currentPeriod();
+    // Każdy miesiąc to osobny wpis w historii: „wstecz" wraca do poprzedniego.
+    const setPeriod = (next: string) => setSearchParams({ period: next });
+
     const [showFillConfirm, setShowFillConfirm] = useState(false);
+    const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
     const [editDay, setEditDay] = useState<{ date: string; dateObj: Date } | null>(null);
     const [editValue, setEditValue] = useState('');
     const [editError, setEditError] = useState<string | null>(null);
@@ -137,31 +169,38 @@ export function WorkTimeView() {
     const sheetRef = useRef<HTMLDivElement>(null);
     useVisualViewportSheet(editDay !== null, sheetRef, { keyboard: 'lift' });
 
-    // Guard: redirect if user doesn't have time tracking
-    if (user && !user.trackWorkTime) {
-        navigate('/dashboard', { replace: true });
-        return null;
-    }
-
-    const { data: detail, isLoading } = usePeriodDetail(period);
+    // Hooki przed strażnikiem: wcześniej przekierowanie stało nad nimi, więc kolejność
+    // hooków zależała od konta (rules-of-hooks), a nawigacja szła w trakcie renderu.
+    const tracks = !user || !!user.trackWorkTime;
+    const { data: detail, isLoading } = usePeriodDetail(period, { enabled: tracks });
+    const { data: periods } = usePeriods({ enabled: tracks });
     const fillMonth = useFillMonth(period);
     const standardToday = useStandardToday(period);
     const submitPeriod = useSubmitPeriod(period);
     const upsertEntry = useUpsertEntry(period);
     const deleteEntry = useDeleteEntry(period);
 
+    if (!tracks) return <Navigate to="/dashboard" replace />;
+
     const isApproved = detail?.status === 'APPROVED';
     const isSubmitted = detail?.status === 'SUBMITTED';
+    // Złożona karta czeka na decyzję - zmiany odrzuciłby backend, więc ich nie proponujemy.
+    const readOnly = isApproved || isSubmitted;
 
     const entryMap = new Map<string, WorkTimeEntry>(
         (detail?.entries ?? []).map(e => [e.date, e])
     );
+    const dayInfo = new Map<string, CardDay>((detail?.days ?? []).map(d => [d.date, d]));
+    const missingCount = detail?.missingWorkingDays
+        ?? (detail?.days ?? []).filter(d => d.missing).length;
+    // Zwrócone karty z innych miesięcy - pracownik ma je zobaczyć, gdziekolwiek jest.
+    const returnedElsewhere = (periods ?? []).filter(p => p.status === 'RETURNED' && p.period !== period);
 
     const days = periodToDays(period);
     const today = toDateStr(new Date());
 
     const openEdit = (d: Date) => {
-        if (isApproved) return;
+        if (readOnly) return;
         savedScrollY.current = window.scrollY;
         const dateStr = toDateStr(d);
         const existing = entryMap.get(dateStr);
@@ -185,7 +224,7 @@ export function WorkTimeView() {
         if (!editValue.trim()) {
             deleteEntry.mutate(editDay.date, {
                 onSuccess: () => { showSuccess('Wpis usunięty'); closeEdit(); },
-                onError: () => showError('Nie udało się usunąć wpisu'),
+                onError: error => showError('Nie udało się usunąć wpisu', messageOf(error)),
             });
             return;
         }
@@ -196,33 +235,43 @@ export function WorkTimeView() {
         }
         upsertEntry.mutate({ date: editDay.date, payload: { minutes } }, {
             onSuccess: () => { showSuccess('Zapisano'); closeEdit(); },
-            onError: () => showError('Nie udało się zapisać'),
+            onError: error => showError('Nie udało się zapisać', messageOf(error)),
         });
     };
 
     const handleFillMonth = () => {
         setShowFillConfirm(false);
         fillMonth.mutate(undefined, {
-            onSuccess: () => showSuccess('Uzupełniono dni robocze (8h)'),
-            onError: () => showError('Nie udało się uzupełnić miesiąca'),
+            onSuccess: () => showSuccess('Uzupełniono dni robocze (8h)', 'Święta oraz dni urlopu i L4 zostały pominięte.'),
+            onError: error => showError('Nie udało się uzupełnić miesiąca', messageOf(error)),
         });
     };
 
     const handleStandardToday = () => {
         standardToday.mutate(undefined, {
             onSuccess: () => showSuccess('Dodano 8h na dzisiaj'),
-            onError: () => showError('Nie udało się dodać wpisu'),
+            onError: error => showError('Nie udało się dodać wpisu', messageOf(error)),
         });
     };
 
-    const handleSubmit = () => {
+    const submit = () => {
         submitPeriod.mutate(undefined, {
             onSuccess: () => showSuccess('Karta złożona do zatwierdzenia'),
-            onError: () => showError('Nie udało się złożyć karty'),
+            onError: error => showError('Nie udało się złożyć karty', messageOf(error)),
         });
     };
 
-    const canSubmit = !isApproved && !isSubmitted && (detail?.entryCount ?? 0) > 0;
+    // Braki nie blokują złożenia (kontrakt), ale pracownik ma o nich wiedzieć, zanim karta
+    // trafi do przełożonego - inaczej dowiaduje się o nich dopiero ze zwrotu.
+    const handleSubmit = () => {
+        if (missingCount > 0) {
+            setShowSubmitConfirm(true);
+            return;
+        }
+        submit();
+    };
+
+    const canSubmit = !readOnly && (detail?.entryCount ?? 0) > 0;
 
     return (
         <Page>
@@ -235,20 +284,51 @@ export function WorkTimeView() {
                 {/* Month navigation */}
                 <MonthNav>
                     <NavBtn
-                        onClick={() => setPeriod(p => addMonth(p, -1))}
+                        onClick={() => setPeriod(addMonth(period, -1))}
                         aria-label="Poprzedni miesiąc"
                     >
                         <ChevronIcon dir="left" />
                     </NavBtn>
                     <MonthLabel>{periodLabel(period)}</MonthLabel>
                     <NavBtn
-                        onClick={() => setPeriod(p => addMonth(p, 1))}
+                        onClick={() => setPeriod(addMonth(period, 1))}
                         aria-label="Następny miesiąc"
                         disabled={period >= currentPeriod()}
                     >
                         <ChevronIcon dir="right" />
                     </NavBtn>
                 </MonthNav>
+
+                {returnedElsewhere.length > 0 && (
+                    <Banner>
+                        {returnedElsewhere.map(p => (
+                            <Notice
+                                key={p.period}
+                                tone="danger"
+                                title={`Masz zwróconą kartę za ${periodInSentence(p.period)}`}
+                                action={<Button variant="outline" size="sm" onClick={() => setPeriod(p.period)}>Otwórz kartę</Button>}
+                            >
+                                {p.returnNote ?? undefined}
+                            </Notice>
+                        ))}
+                    </Banner>
+                )}
+
+                {isSubmitted && (
+                    <Banner>
+                        <Notice tone="info" title="Karta złożona, czeka na decyzję przełożonego.">
+                            Jeśli trzeba coś poprawić, poproś o zwrot.
+                        </Notice>
+                    </Banner>
+                )}
+
+                {detail?.status === 'RETURNED' && (
+                    <Banner>
+                        <Notice tone="danger" title="Karta zwrócona do poprawy">
+                            {detail.returnNote ?? 'Popraw wpisy i złóż kartę ponownie.'}
+                        </Notice>
+                    </Banner>
+                )}
 
                 {/* Status + summary card */}
                 {isLoading ? (
@@ -269,7 +349,11 @@ export function WorkTimeView() {
                             <SummaryRow>
                                 <SummaryItem>
                                     <SummaryValue>{detail.totalHours}</SummaryValue>
-                                    <SummaryLabel>łącznie</SummaryLabel>
+                                    <SummaryLabel>
+                                        {detail.expectedMinutes !== undefined
+                                            ? `z ${minutesToDisplay(detail.expectedMinutes)} normy`
+                                            : 'łącznie'}
+                                    </SummaryLabel>
                                 </SummaryItem>
                                 <SummaryDivider />
                                 <SummaryItem>
@@ -284,17 +368,17 @@ export function WorkTimeView() {
                                     <SummaryLabel>nadgodziny</SummaryLabel>
                                 </SummaryItem>
                             </SummaryRow>
-                            {detail.returnNote && (
-                                <ReturnNote>
-                                    <strong>Uwaga przełożonego:</strong> {detail.returnNote}
-                                </ReturnNote>
+                            {missingCount > 0 && !isApproved && (
+                                <MissingNote>
+                                    Brak wpisu w {missingDaysLabel(missingCount)} (bez świąt, urlopu i L4).
+                                </MissingNote>
                             )}
                         </SummaryCard>
                     );
                 })() : null}
 
                 {/* Quick actions */}
-                {!isApproved && !isSubmitted && (
+                {!readOnly && (
                     <QuickActions>
                         <QuickBtn
                             onClick={handleStandardToday}
@@ -307,7 +391,7 @@ export function WorkTimeView() {
                         <QuickBtn
                             onClick={() => setShowFillConfirm(true)}
                             disabled={fillMonth.isPending}
-                            title="Uzupełnij każdy pn-pt w miesiącu po 8h (tylko puste dni)"
+                            title="Uzupełnij puste dni robocze po 8h (pomija święta, urlop i L4)"
                         >
                             <CalendarIcon />
                             Uzupełnij miesiąc
@@ -322,22 +406,29 @@ export function WorkTimeView() {
                         : days.map(d => {
                             const dateStr = toDateStr(d);
                             const entry = entryMap.get(dateStr);
+                            const info = dayInfo.get(dateStr);
                             const isToday = dateStr === today;
-                            const weekend = isWeekend(d);
+                            // Święto to dzień wolny jak weekend - przygaszony, z nazwą.
+                            const weekend = info ? !info.isWorkingDay : isWeekend(d);
+                            const missing = !readOnly && !!info?.missing;
+                            const tags = [info?.holidayName, info?.leave?.label].filter((t): t is string => !!t);
                             return (
                                 <DayRow
                                     key={dateStr}
                                     $weekend={weekend}
                                     $today={isToday}
-                                    $approved={isApproved}
+                                    $missing={missing}
+                                    $approved={readOnly}
                                     onClick={() => openEdit(d)}
-                                    tabIndex={isApproved ? -1 : 0}
+                                    tabIndex={readOnly ? -1 : 0}
                                     onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && openEdit(d)}
-                                    aria-label={`${DAYS_FULL[d.getDay()]} ${formatDate(d)}: ${entry ? entry.hours : 'brak wpisu'}`}
+                                    aria-label={`${DAYS_FULL[d.getDay()]} ${formatDate(d)}: ${entry ? entry.hours : 'brak wpisu'}${tags.length ? `, ${tags.join(', ')}` : ''}`}
                                 >
                                     <DayLeft>
                                         <DayShort $weekend={weekend}>{DAYS_PL[d.getDay()]}</DayShort>
                                         <DayDate $today={isToday}>{formatDate(d)}</DayDate>
+                                        {tags.map(tag => <DayTag key={tag} $leave={tag === info?.leave?.label}>{tag}</DayTag>)}
+                                        {missing && <DayTag $missing>brak wpisu</DayTag>}
                                     </DayLeft>
                                     <DayRight>
                                         {entry ? (
@@ -345,7 +436,7 @@ export function WorkTimeView() {
                                         ) : (
                                             <HoursChip $filled={false}>-</HoursChip>
                                         )}
-                                        {!isApproved && <ChevronIcon dir="right" small />}
+                                        {!readOnly && <ChevronIcon dir="right" small />}
                                     </DayRight>
                                 </DayRow>
                             );
@@ -368,11 +459,22 @@ export function WorkTimeView() {
             <ConfirmationModal
                 isOpen={showFillConfirm}
                 title="Uzupełnić miesiąc?"
-                message={`Wszystkie puste dni robocze (pn-pt) w ${periodLabel(period)} zostaną uzupełnione po 8 godzin. Dni z wpisem pozostaną bez zmian.`}
+                message={`Puste dni robocze w miesiącu ${periodInSentence(period)} zostaną uzupełnione po 8 godzin. Święta oraz dni urlopu i L4 zostaną pominięte, a dni z wpisem pozostaną bez zmian.`}
                 variant="info"
                 confirmText="Uzupełnij"
                 onConfirm={handleFillMonth}
                 onCancel={() => setShowFillConfirm(false)}
+            />
+
+            <ConfirmationModal
+                isOpen={showSubmitConfirm}
+                title="Złożyć kartę z brakami?"
+                message={`W karcie za ${periodInSentence(period)} brakuje wpisu w ${missingDaysLabel(missingCount)} (bez świąt, urlopu i L4). Przełożony zobaczy te braki przy zatwierdzaniu i może zwrócić kartę do poprawy.`}
+                variant="warning"
+                confirmText="Złóż mimo braków"
+                cancelText="Uzupełnię"
+                onConfirm={submit}
+                onCancel={() => setShowSubmitConfirm(false)}
             />
 
             {/* Edit bottom sheet: nakładka i arkusz to dwie osobne warstwy (patrz BottomSheet) */}
@@ -618,14 +720,23 @@ const SummaryDivider = styled.div`
     background: #e2e8f0;
 `;
 
-const ReturnNote = styled.div`
+const MissingNote = styled.p`
+    margin: 0;
     font-size: 13px;
-    color: #991b1b;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    border-radius: 8px;
-    padding: 10px 12px;
-    line-height: 1.5;
+    font-weight: 600;
+    color: #92400e;
+    text-align: center;
+`;
+
+const Banner = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 12px 16px 0;
+
+    @media (min-width: 640px) {
+        margin: 0 0 12px;
+    }
 `;
 
 const QuickActions = styled.div`
@@ -680,14 +791,16 @@ const DayList = styled.div`
     }
 `;
 
-const DayRow = styled.div<{ $weekend: boolean; $today: boolean; $approved: boolean }>`
+const DayRow = styled.div<{ $weekend: boolean; $today: boolean; $missing?: boolean; $approved: boolean }>`
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 10px;
     padding: 13px 16px;
     border-bottom: 1px solid #f1f5f9;
     cursor: ${p => p.$approved ? 'default' : 'pointer'};
-    background: ${p => p.$today ? '#f0f9ff' : p.$weekend ? '#fafafa' : 'transparent'};
+    background: ${p => p.$missing ? '#fffbeb' : p.$today ? '#f0f9ff' : p.$weekend ? '#fafafa' : 'transparent'};
+    ${p => p.$missing && css`box-shadow: inset 3px 0 0 #f59e0b;`}
     transition: background 120ms;
 
     &:last-child {
@@ -707,7 +820,22 @@ const DayRow = styled.div<{ $weekend: boolean; $today: boolean; $approved: boole
 const DayLeft = styled.div`
     display: flex;
     align-items: center;
-    gap: 10px;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    min-width: 0;
+`;
+
+/** Święto, urlop/L4 albo brak - podpis dnia, nie kolejna liczba. */
+const DayTag = styled.span<{ $leave?: boolean; $missing?: boolean }>`
+    padding: 1px 8px;
+    border-radius: 999px;
+    border: 1px solid ${p => p.$missing ? '#fcd34d' : p.$leave ? '#bae6fd' : '#e2e8f0'};
+    background: ${p => p.$missing ? '#fef3c7' : p.$leave ? '#f0f9ff' : '#f1f5f9'};
+    color: ${p => p.$missing ? '#92400e' : p.$leave ? '#075985' : '#475569'};
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: nowrap;
 `;
 
 const DayShort = styled.span<{ $weekend: boolean }>`
