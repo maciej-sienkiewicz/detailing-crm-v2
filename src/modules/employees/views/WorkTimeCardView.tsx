@@ -137,7 +137,7 @@ function CardPage({ period, userId }: { period: string; userId: string }) {
     const facts = data ? cardFactsSentence(data) : '';
 
     return (
-        <Page $width="narrow">
+        <Page $width="narrow" $hasActions={!!actions}>
             <BackLink to={back}>
                 <ArrowLeft aria-hidden="true" />
                 Listy miesięczne, {monthName}
@@ -200,14 +200,16 @@ function CardPage({ period, userId }: { period: string; userId: string }) {
 
 const PHONE = '(max-width: 767px)';
 
-const Page = styled(PageContainer)`
+const Page = styled(PageContainer)<{ $hasActions: boolean }>`
     display: flex;
     flex-direction: column;
     gap: 16px;
     min-width: 0;
     padding-block-end: 48px;
 
-    @media ${PHONE} { gap: 14px; padding-block-end: 24px; }
+    /* Miejsce pod przyklejonym paskiem akcji (ActionBar), żeby ostatni dzień nie
+       chował się pod nim. Z notatką nad przyciskami pasek ma ok. 120 px. */
+    @media ${PHONE} { gap: 14px; padding-block-end: ${p => (p.$hasActions ? '140px' : '24px')}; }
 `;
 
 const BackLink = styled(Link)`
@@ -297,24 +299,33 @@ const Days = styled.div`
 `;
 
 /**
- * Akcje przyklejone do dołu ekranu: przy 30 dniach decyzja nie może wymagać przewinięcia
- * całego miesiąca z powrotem. Na telefonie stoją nad dolnym paskiem nawigacji.
+ * Akcje na dole strony. Na telefonie przyklejone nad dolnym paskiem nawigacji: przy
+ * 30 dniach decyzja nie może wymagać przewinięcia całego miesiąca z powrotem.
+ *
+ * `position: fixed`, a nie `sticky`: LayoutContainer ma `overflow-x: hidden`, przez co
+ * jest kontenerem przewijania dla potomków i `sticky` nigdy się nie przykleja (pierwsza
+ * wersja tej strony tak stała - pasek pojawiał się dopiero po dojechaniu do końca).
+ * Ten sam wzorzec co StickyFormFooter i pasek złożenia karty w WorkTimeView.
+ * Miejsce pod paskiem rezerwuje `padding-block-end` strony.
  */
 const ActionBar = styled.div`
-    position: sticky;
-    bottom: 0;
-    z-index: 5;
     display: flex;
     align-items: center;
     justify-content: flex-end;
     flex-wrap: wrap;
     gap: 10px 12px;
-    margin-inline: -8px;
-    padding: 12px 8px;
-    background: linear-gradient(to bottom, rgba(238, 242, 247, 0), ${ui.bg} 30%);
 
     @media ${PHONE} {
+        position: fixed;
+        left: 0;
+        right: 0;
         bottom: ${BOTTOM_NAV_SPACE};
+        z-index: 50;
+        padding: 12px 16px;
+        background: ${ui.surface};
+        border-top: 1px solid ${ui.line};
+        box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.08);
+
         > button { flex: 1 1 0; min-width: 0; }
     }
 `;
