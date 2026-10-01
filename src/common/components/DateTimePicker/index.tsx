@@ -1013,7 +1013,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
                 ref={triggerRef}
                 id={id}
                 type="button"
-                aria-labelledby={labelledBy ? [labelledBy, id].filter(Boolean).join(' ') : undefined}
+                aria-labelledby={labelledBy ? [labelledBy, id && `${id}-value`].filter(Boolean).join(' ') : undefined}
                 aria-haspopup="dialog"
                 aria-expanded={isOpen}
                 aria-invalid={hasError || undefined}
@@ -1022,7 +1022,9 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
                 $hasValue={!!displayValue}
                 onClick={handleTriggerClick}
             >
-                {displayValue || placeholder}
+                {/* Osobny węzeł z id: etykieta `<label for>` ma pierwszeństwo przed treścią
+                    przycisku, więc samo `aria-labelledby="etykieta przycisk"` dawało „Od Od". */}
+                <span id={id ? `${id}-value` : undefined}>{displayValue || placeholder}</span>
             </Trigger>
 
             {isOpen && createPortal(

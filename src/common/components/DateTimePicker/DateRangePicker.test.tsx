@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -136,14 +137,32 @@ describe('DateRangePicker', () => {
 
     it('bez godzin oddaje same daty: pierwsze klikniecie poczatek, drugie koniec (wniosek urlopowy)', async () => {
         const user = userEvent.setup();
-        const { onStartChange, onEndChange } = renderPicker({
-            start: '', end: '', showTime: false, endHasTime: false, minDate: '2026-09-08',
-        });
+        const onStartChange = vi.fn();
+        const onEndChange = vi.fn();
+        // Kontrolowane jak w oknie wniosku: wartość wraca do pola po każdym kliknięciu.
+        function Controlled() {
+            const [start, setStart] = useState('');
+            const [end, setEnd] = useState('');
+            return (
+                <DateRangePicker
+                    role="start" start={start} end={end} showTime={false} endHasTime={false} minDate="2026-09-08"
+                    onStartChange={v => { onStartChange(v); setStart(v); }}
+                    onEndChange={v => { onEndChange(v); setEnd(v); }}
+                />
+            );
+        }
+        render(<StyledThemeProvider theme={theme}><Controlled /></StyledThemeProvider>);
 
         await user.click(screen.getByRole('button', { name: 'Wybierz datę' }));
         expect(screen.queryByText(/Godzina/)).toBeNull();
+        await user.click(screen.getByRole('button', { name: 'Następny miesiąc' }));
+        await user.click(screen.getByRole('button', { name: 'Poprzedni miesiąc' }));
         await user.click(day(14));
         expect(onStartChange).toHaveBeenCalledWith('2026-09-14');
+        expect(screen.getByText('Teraz wybierz dzień zakończenia')).toBeInTheDocument();
+        await user.click(day(16));
+        expect(onEndChange).toHaveBeenCalledWith('2026-09-16');
+        expect(day(15).parentElement?.getAttribute('data-range')).toBe('middle');
     });
 
     it('dni przed minDate sa wylaczone i nie zmieniaja zakresu', async () => {

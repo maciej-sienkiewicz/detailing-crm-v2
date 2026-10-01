@@ -410,8 +410,10 @@ export interface CreateBonusPayload {
 /** Rodzaj wniosku: zwolnienie lekarskie (SICK) nie jest wnioskiem, wpisuje je menedżer. */
 export type LeaveRequestType = Exclude<LeaveType, 'SICK'>;
 export type LeaveRequestStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'WITHDRAWN' | 'CANCELLED' | 'EXPIRED';
-export type LeaveSignatureMethod = 'DEVICE_DRAWN' | 'SAVED_SIGNATURE';
-export type LeaveApprovalBasis = 'OWNER' | 'PERMISSION';
+/** IN_PERSON: pracownik podpisał osobiście na urządzeniu studia (wniosek ON_BEHALF). */
+export type LeaveSignatureMethod = 'DEVICE_DRAWN' | 'SAVED_SIGNATURE' | 'IN_PERSON';
+/** ON_BEHALF: urlop wprowadził administrator, pracownik podpisał na miejscu. */
+export type LeaveRequestOrigin = 'SELF_SERVICE' | 'ON_BEHALF';
 
 export interface LeaveRequestSummary {
     id: string;
@@ -427,8 +429,9 @@ export interface LeaveRequestSummary {
     workingDays: number;
     status: LeaveRequestStatus;
     reason: string | null;
-    substituteEmployeeId: string | null;
-    substituteName: string | null;
+    origin: LeaveRequestOrigin;
+    /** Kto wprowadził wniosek (przy ON_BEHALF: administrator). */
+    createdByName: string | null;
     createdAt: string;
     employeeSignedAt: string | null;
     decidedAt: string | null;
@@ -450,8 +453,6 @@ export interface OverlappingAbsence {
 export interface LeaveRequestDetail extends LeaveRequestSummary {
     employeeSignatureMethod: LeaveSignatureMethod | null;
     decisionSignatureMethod: LeaveSignatureMethod | null;
-    decidedByBasis: LeaveApprovalBasis | null;
-    decidedByRoleName: string | null;
     /** Inne osoby nieobecne w tym terminie. */
     overlappingAbsences: OverlappingAbsence[];
     /** Czy bieżący użytkownik może rozpatrzyć wniosek. */
@@ -484,7 +485,11 @@ export interface CreateLeaveRequestPayload {
     startDate: string;
     endDate: string;
     reason?: string;
-    substituteEmployeeId?: string;
+}
+
+/** Urlop dodany przez administratora (v2): te same pola plus pracownik, którego dotyczy. */
+export interface CreateOnBehalfLeaveRequestPayload extends CreateLeaveRequestPayload {
+    employeeId: string;
 }
 
 export interface CreateLeaveRequestResponse {
@@ -499,6 +504,9 @@ export interface SubmitLeaveRequestPayload {
     challenge: string;
     declarationAccepted: true;
 }
+
+/** Podpis pracownika złożony osobiście na urządzeniu studia - to samo ciało co `submit`. */
+export type EmployeeSignaturePayload = SubmitLeaveRequestPayload;
 
 export interface LeaveDecisionPayload {
     signatureImageBase64?: string;
