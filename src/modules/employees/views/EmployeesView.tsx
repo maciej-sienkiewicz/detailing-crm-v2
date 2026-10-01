@@ -1,52 +1,46 @@
 // src/modules/employees/views/EmployeesView.tsx
 //
 // Moduł „Pracownicy": zespół, wnioski urlopowe (kolejka decyzji), grafik nieobecności
-// i czas pracy (dawne „Rozliczenia").
+// i listy miesięczne (lista obecności i rozliczenia, dawny „Czas pracy").
 //
 // Stał w Ustawieniach (`/settings?tab=team`) jako jedna sekcja z trzema podwidokami.
 // Zgłoszenie brzmiało „Pracownicy są za głęboko": lista ludzi to praca dzienna, a nie
 // konfiguracja, a karta pracownika odsyłała strzałką z powrotem do Ustawień. Teraz
 // to moduł w sekcji „Firma" panelu, a w Ustawieniach zostały tylko role i uprawnienia.
 //
-// Zakładki są trasami (employeesTabs.ts). Rama dostarcza PageChrome, więc lista
-// zespołu i rozliczenia wstawiają akcje do nagłówka i pilnują niezapisanych zmian
-// tak samo jak w Ustawieniach - komponenty nie wiedzą, w którym module stoją.
+// Ten widok jest RAMĄ: nagłówek, pasek zakładek i `<Outlet />`. Zakładki są trasami-
+// dziećmi `/employees` (employeesRoutes.tsx). Wcześniej każda zakładka była osobną trasą
+// najwyższego poziomu z własnym `page(<EmployeesView tab=… />)`, więc zmiana zakładki
+// montowała od nowa cały Layout - nagłówek mrugał („zmiana zakładki nie powinna
+// odświeżać całego widoku, tylko samego contentu"). Teraz zmienia się tylko Outlet.
+//
+// Rama dostarcza PageChrome, więc lista zespołu i rozliczenia wstawiają akcje do
+// nagłówka i pilnują niezapisanych zmian tak samo jak w Ustawieniach - komponenty
+// nie wiedzą, w którym module stoją.
 
 import { useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { Search } from 'lucide-react';
 import { PageContainer } from '@/common/components/PageContainer';
 import { PageHeader } from '@/common/components/PageHeader';
 import { PageChromeProvider } from '@/common/components/PageChrome';
 import { TabBar, type TabDefinition } from '@/common/components/TabBar/TabBar';
-import { ui } from '@/common/components/ui';
 import { usePermissions } from '@/core/permissions';
-import { TeamList, TEAM_PAGE_SIZE } from '../components/team/TeamList';
-import { SettlementsSection } from '../components/worktime/SettlementsSection';
+import { TEAM_PAGE_SIZE } from '../components/team/TeamList';
 import { AttendanceSheetModal } from '../components/worktime/AttendanceSheetModal';
 import { pendingCount } from '../components/worktime/settlementFormat';
 import { useEmployees } from '../hooks/useEmployees';
 import { useAttendanceSheets } from '../hooks/useAttendanceSheets';
 import { useLeaveRequestQueue } from '../hooks/useLeaveRequests';
-import { LeaveRequestsTab } from '../components/leave/LeaveRequestsTab';
-import { AbsencesTab } from '../components/leave/AbsencesTab';
 import type { AttendanceSheet } from '../api/attendanceApi';
-import { EMPLOYEES_TABS, employeesTabPath, type EmployeesTab } from '../employeesTabs';
+import { EMPLOYEES_TABS, employeesTabFromPath, employeesTabPath, type EmployeesTab } from '../employeesTabs';
+import type { EmployeesOutletContext } from './employeesOutlet';
 
-/** Stan przejścia do „Czasu pracy" tuż po wygenerowaniu listy: ten wiersz mruga. */
-interface WorktimeNavState {
-    highlightSheetId?: string;
-}
-
-interface EmployeesViewProps {
-    tab: EmployeesTab;
-}
-
-export function EmployeesView({ tab }: EmployeesViewProps) {
+export function EmployeesView() {
     const navigate = useNavigate();
     const location = useLocation();
     const { can } = usePermissions();
+    const tab = employeesTabFromPath(location.pathname);
 
     const visibleTabs = useMemo(() => EMPLOYEES_TABS.filter(t => can(t.requires)), [can]);
     const canManage = can('EMPLOYEES_MANAGE');
@@ -61,16 +55,13 @@ export function EmployeesView({ tab }: EmployeesViewProps) {
     const leaveQueue = useLeaveRequestQueue('PENDING', { enabled: canApprove });
     const pendingLeaves = leaveQueue.data?.pendingCount ?? 0;
 
-    const [search, setSearch] = useState('');
     const [attendanceOpen, setAttendanceOpen] = useState(false);
 
-    // Świeżo wygenerowana lista: „Czas pracy" w pasku mruga, a wiersz podświetla się
-    // po wejściu - administrator widzi, dokąd lista trafiła, zamiast szukać pliku.
-    // Zakładki są trasami, więc identyfikator jedzie też w stanie nawigacji.
+    // Świeżo wygenerowana lista: „Listy miesięczne" w pasku mrugają, a wiersz podświetla
+    // się po wejściu - administrator widzi, dokąd lista trafiła, zamiast szukać pliku.
+    // Rama zostaje zamontowana między zakładkami, więc identyfikator żyje tutaj.
     const [worktimeFlash, setWorktimeFlash] = useState(0);
-    const [newSheetId, setNewSheetId] = useState<string | null>(
-        () => (location.state as WorktimeNavState | null)?.highlightSheetId ?? null,
-    );
+    const [newSheetId, setNewSheetId] = useState<string | null>(null);
 
     const handleSheetGenerated = (sheet: AttendanceSheet) => {
         setNewSheetId(sheet.id);
@@ -86,9 +77,7 @@ export function EmployeesView({ tab }: EmployeesViewProps) {
 
     const goToTab = (key: EmployeesTab) => {
         if (key === tab) return;
-        const state: WorktimeNavState | undefined =
-            key === 'worktime' && newSheetId ? { highlightSheetId: newSheetId } : undefined;
-        navigate(employeesTabPath(key), { state });
+        navigate(employeesTabPath(key));
     };
 
     const tabs: TabDefinition<EmployeesTab>[] = visibleTabs.map(t => {
@@ -103,52 +92,25 @@ export function EmployeesView({ tab }: EmployeesViewProps) {
 
     const [headerActions, setHeaderActions] = useState<HTMLElement | null>(null);
 
-    let content;
-    if (tab === 'leaves') {
-        content = <LeaveRequestsTab />;
-    } else if (tab === 'absences') {
-        content = <AbsencesTab />;
-    } else if (tab === 'worktime') {
-        content = (
-            <SettlementsSection
-                highlightId={newSheetId}
-                onGoToEmployees={canManage ? () => goToTab('team') : undefined}
-                onCreateSheet={() => setAttendanceOpen(true)}
-            />
-        );
-    } else {
-        content = (
-            <>
-                <SearchBox>
-                    <Search aria-hidden="true" />
-                    <input
-                        type="search"
-                        placeholder="Szukaj osoby"
-                        aria-label="Szukaj osoby po imieniu, nazwisku lub e-mailu"
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                    />
-                </SearchBox>
-                <TeamList
-                    search={search}
-                    onGoToRoles={() => navigate('/settings?tab=roles')}
-                    onOpenAttendance={() => setAttendanceOpen(true)}
-                />
-            </>
-        );
-    }
+    const outletContext: EmployeesOutletContext = {
+        newSheetId,
+        openAttendance: () => setAttendanceOpen(true),
+        goToTab,
+    };
 
     return (
         <PageChromeProvider headerActions={headerActions}>
             <Page>
-                <PageHeader title="Pracownicy" subtitle="Zespół, urlopy i czas pracy" />
+                <PageHeader title="Pracownicy" subtitle="Zespół, urlopy i listy miesięczne" />
 
                 <Toolbar>
                     <TabBar tabs={tabs} activeKey={tab} onChange={goToTab} ariaLabel="Zakładki modułu Pracownicy" />
                     <HeadActions ref={setHeaderActions} />
                 </Toolbar>
 
-                <Content>{content}</Content>
+                <Content>
+                    <Outlet context={outletContext} />
+                </Content>
 
                 {attendanceOpen && (
                     <AttendanceSheetModal
@@ -200,36 +162,4 @@ const Content = styled.div`
     flex-direction: column;
     gap: 16px;
     min-width: 0;
-`;
-
-const SearchBox = styled.label`
-    align-self: flex-end;
-    width: min(320px, 100%);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    height: 40px;
-    padding: 0 14px;
-    background: ${ui.surface};
-    border: 1px solid ${ui.line};
-    border-radius: 12px;
-    color: ${ui.textFaint};
-    transition: border-color 150ms, box-shadow 150ms;
-
-    svg { width: 15px; height: 15px; flex-shrink: 0; }
-    input {
-        flex: 1;
-        min-width: 0;
-        border: none;
-        outline: none;
-        background: transparent;
-        font-family: inherit;
-        font-size: 16px;
-        color: ${ui.ink};
-        &::placeholder { color: ${ui.textFaint}; }
-    }
-    @media (min-width: 768px) { input { font-size: 14px; } }
-    &:focus-within { border-color: ${ui.brand}; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14); }
-
-    @media (max-width: 767px) { width: 100%; }
 `;

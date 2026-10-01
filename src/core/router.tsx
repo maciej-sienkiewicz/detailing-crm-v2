@@ -48,6 +48,7 @@ const MailboxConnectView = lazyWithRetry(() => import('@/modules/comms/views/Mai
 const LeadsView = lazyWithRetry(() => import('@/modules/comms/views/LeadsView'));
 const LeadAnalyticsView = lazyWithRetry(() => import('@/modules/comms/views/LeadAnalyticsView'));
 import { EmployeeDetailView, EmployeesView, MyLeaveView } from '@/modules/employees';
+import { employeesTabRoutes } from '@/modules/employees/employeesRoutes';
 import { WorkTimeView } from '@/modules/worktime';
 import { ActivityView } from '@/modules/activity';
 import { SettingsView } from '@/modules/settings';
@@ -420,23 +421,13 @@ export const router = createBrowserRouter([
 
         // ── Pracownicy ───────────────────────────────────────────────────────
         // Moduł wyszedł z Ustawień (`/settings?tab=team` przekierowuje tutaj).
-        // Zakładki to osobne trasy z własnym uprawnieniem - lista w employeesTabs.ts.
+        // JEDNA trasa-rama z zakładkami jako dziećmi (employeesRoutes.tsx): każda zakładka
+        // jako osobne `page(...)` montowała przy przełączeniu cały Layout i nagłówek mrugał.
+        // Dzieci pilnują własnych uprawnień, rama - tylko dostępu do modułu.
         {
             path: '/employees',
-            element: page(<EmployeesView tab="team" />, 'EMPLOYEES_MANAGE'),
-        },
-        {
-            // Głęboki link z powiadomienia push: `?request={id}` otwiera szufladę wniosku.
-            path: '/employees/leave-requests',
-            element: page(<EmployeesView tab="leaves" />, 'EMPLOYEES_LEAVES_APPROVE'),
-        },
-        {
-            path: '/employees/absences',
-            element: page(<EmployeesView tab="absences" />, ANY_EMPLOYEES),
-        },
-        {
-            path: '/employees/worktime',
-            element: page(<EmployeesView tab="worktime" />, 'EMPLOYEES_MANAGE'),
+            element: page(<EmployeesView />, ANY_EMPLOYEES),
+            children: employeesTabRoutes,
         },
         {
             path: '/employees/:employeeId',
