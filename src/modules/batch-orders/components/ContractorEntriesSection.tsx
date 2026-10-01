@@ -7,7 +7,10 @@
 //     od czego zaczęło się zgłoszenie „nie da się edytować cen";
 //   - rozliczonego auta nie zmienia się wprost: menu proponuje „Odblokuj do korekty"
 //     (backend odrzuca zapis rozliczonego wpisu, żeby praca nie poszła drugi raz);
-//   - zestawienie, historia i PDF to te same okna co w nowym widoku.
+//   - zestawienie, historia i PDF to te same okna co w nowym widoku;
+//   - rozliczone auta są zawsze na liście (pod nierozliczonymi, z zieloną poświatą
+//     i ikoną z wyjaśnieniem pod dotknięciem) - przełącznik „Pokaż rozliczone” chował
+//     je domyślnie i na telefonie nikt nie wiedział, gdzie zniknęły auta z okresu.
 import { Fragment, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
@@ -20,10 +23,11 @@ import { BatchOrderPhotoSection } from './BatchOrderPhotoSection';
 import { SettlementModal } from './SettlementModal';
 import { SettlementHistoryModal } from './SettlementHistoryModal';
 import { DateRangeFilter } from './DateRangeFilter';
+import { TapInfo } from '@/common/components/InfoTooltip';
 import { currentMonthPeriod } from '../utils/period';
 import { batchOrderApi } from '../api/batchOrderApi';
 import { apiErrorMessage } from '../utils/format';
-import type { BatchContractor, BatchOrderEntry, EntryStatusFilter } from '../types';
+import type { BatchContractor, BatchOrderEntry } from '../types';
 
 const Section = styled.div`
     background: ${p => p.theme.colors.surface};
@@ -186,8 +190,8 @@ const FilterRow = styled.div`
     background: ${p => p.theme.colors.surfaceAlt};
     flex-wrap: wrap;
 
-    /* Na telefonie to JEDYNY wiersz sterowania nad tabelą: chip okresu po lewej
-       (z „Pokaż rozliczone" schowanym w jego panelu), „+ Dodaj wpis" po prawej. */
+    /* Na telefonie to JEDYNY wiersz sterowania nad tabelą: chip okresu po lewej,
+       „+ Dodaj wpis" po prawej. */
     @media (max-width: 639px) {
         padding: 10px 14px;
         flex-wrap: nowrap;
@@ -205,69 +209,6 @@ const MobileAddEntry = styled.div`
         margin-left: auto;
         flex-shrink: 0;
     }
-`;
-
-/**
- * "Pokaż rozliczone" sits in the filter row rather than the header: it narrows what
- * the list shows, exactly like the date range next to it, and grouping it with the
- * buttons that *act* on the list would suggest it does something to the entries.
- */
-const SettledToggle = styled.label`
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    font-size: ${p => p.theme.fontSizes.xs};
-    color: ${p => p.theme.colors.textSecondary};
-    cursor: pointer;
-    user-select: none;
-    white-space: nowrap;
-    margin-left: auto;
-
-    @media (max-width: 639px) {
-        margin-left: 0;
-        width: 100%;
-    }
-
-    input {
-        width: 16px;
-        height: 16px;
-        accent-color: ${p => p.theme.colors.primary};
-        cursor: pointer;
-        flex-shrink: 0;
-
-        @media (hover: none) and (pointer: coarse) {
-            width: 20px;
-            height: 20px;
-        }
-    }
-`;
-
-const SettledCount = styled.span`
-    font-variant-numeric: tabular-nums;
-    color: ${p => p.theme.colors.textMuted};
-`;
-
-const SettledBadge = styled.span`
-    display: inline-block;
-    margin-left: 6px;
-    padding: 1px 7px;
-    border-radius: 9999px;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    color: #15803d;
-    background: rgba(34, 197, 94, 0.13);
-    border: 1px solid rgba(34, 197, 94, 0.28);
-    white-space: nowrap;
-`;
-
-/* Auto odblokowane do korekty: wraca do najbliższego rozliczenia i do tego czasu
-   nosi oznaczenie, żeby nikt nie wziął go za zwykły nowy wpis. Bursztyn = „przeczytaj". */
-const CorrectionBadge = styled(SettledBadge)`
-    color: #92400e;
-    background: #fffbeb;
-    border-color: #fcd34d;
 `;
 
 /**
@@ -558,6 +499,40 @@ const Td = styled.td<{ $align?: 'left' | 'right' | 'center' }>`
         &[data-label]::before { content: none; }
     }
 `;
+
+/* Status auta: ikona zamiast plakietki. „ROZLICZONE” zajmowało na telefonie pół
+   linii, a „KOREKTA” w kolumnie daty o stałej szerokości wjeżdżała na nazwę usługi.
+   Rozliczone niesie już zielona poświata wiersza - ikona tylko je nazywa, a słowo
+   jest pod dotknięciem. Korekta (auto rozliczone i odblokowane, wraca do najbliższego
+   rozliczenia) ma bursztyn = „przeczytaj”, żeby nikt nie wziął jej za zwykły nowy wpis.
+   Stoi PRZED nazwą auta, bo wzrok zaczyna wiersz od auta. Pole dotyku 28 px
+   (32 px pod palcem), choć sam znak ma 16 px. */
+const StatusMark = styled.span<{ $tone: 'settled' | 'correction' }>`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin: -6px 0 -6px -6px;
+    color: ${p => p.$tone === 'settled' ? '#16a34a' : '#d97706'};
+    vertical-align: middle;
+
+    svg { width: 16px; height: 16px; }
+
+    @media (hover: none) and (pointer: coarse) {
+        width: 32px;
+        height: 32px;
+        margin: -8px -2px -8px -8px;
+    }
+`;
+
+const SETTLED_EXPLANATION =
+    'Rozliczone: to auto jest już w zestawieniu dla kontrahenta i nie trafi do kolejnego rozliczenia. ' +
+    'Żeby coś w nim zmienić, dotknij wiersza i odblokuj je do korekty.';
+
+const CORRECTION_EXPLANATION =
+    'Korekta: to auto było już rozliczone i zostało odblokowane do poprawki. ' +
+    'Trafi do najbliższego rozliczenia jako korekta, a wcześniejsze zestawienie zostaje bez zmian.';
 
 /* ── Vehicle cell ── */
 const VehicleCell = styled.div`
@@ -936,10 +911,6 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
     const [downloading, setDownloading] = useState(false);
     const [expandedPhotoEntryId, setExpandedPhotoEntryId] = useState<string | null>(null);
     const [showSettlement, setShowSettlement] = useState(false);
-    // Domyślnie wyłączone: rozliczone auto to zamknięta sprawa, a miesiące zamkniętej
-    // pracy nad dwoma autami, które czekają, były powodem, dla którego lista przestała
-    // się nadawać do pracy.
-    const [showSettled, setShowSettled] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
     const [openMenuEntryId, setOpenMenuEntryId] = useState<string | null>(null);
     const [menuAnchor, setMenuAnchor] = useState<DOMRect | null>(null);
@@ -958,8 +929,10 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
         if (menuEl && menuAnchor) applyFloatingPlacement(menuEl, menuAnchor, { align: 'right', offset: 4 });
     }, [menuEl, menuAnchor]);
 
-    const status: EntryStatusFilter = showSettled ? 'ALL' : 'OPEN';
-    const { data, isLoading, isError } = useContractorEntries(contractor.id, filterFrom, filterTo, status);
+    // Lista bierze wszystkie wpisy okresu: rozliczone nie znikają (patrz nagłówek pliku),
+    // tylko schodzą pod nierozliczone. Sumy „do rozliczenia" idą z `openSummary`, które
+    // serwer liczy niezależnie od filtra.
+    const { data, isLoading, isError } = useContractorEntries(contractor.id, filterFrom, filterTo, 'ALL');
     const deleteEntry = useDeleteEntry(contractor.id);
     const reopenEntry = useReopenEntry(contractor.id);
 
@@ -977,7 +950,9 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
     async function handleDownloadReport() {
         setDownloading(true);
         try {
-            await batchOrderApi.downloadReport(contractor.id, contractor.name, filterFrom, filterTo, status);
+            // PDF zostaje zestawieniem tego, co czeka na rozliczenie - tak jak dotąd przy
+            // domyślnym widoku. Rozliczone okresy mają swoje PDF-y w „Historii rozliczeń".
+            await batchOrderApi.downloadReport(contractor.id, contractor.name, filterFrom, filterTo, 'OPEN');
         } catch {
             showError('Nie udało się pobrać zestawienia', 'Spróbuj ponownie za chwilę.');
         } finally {
@@ -1004,12 +979,13 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
         }
     }
 
-    const entries = data?.entries ?? [];
-    const summary = data?.summary;
+    // Nierozliczone (także odblokowane do korekty) zawsze na górze: to z nimi jest
+    // jeszcze robota. W obrębie grupy zostaje kolejność z serwera - sort jest stabilny.
+    const entries = [...(data?.entries ?? [])].sort((a, b) => Number(a.isClosed) - Number(b.isClosed));
+    // Nagłówek i stopka mówią, ile czeka na rozliczenie. Lista pokazuje też auta już
+    // rozliczone, więc suma listy byłaby inną liczbą pod tym samym podpisem.
+    const summary = data?.openSummary ?? data?.summary;
     const openEntry = entries.find(e => e.id === openMenuEntryId) ?? null;
-    // Liczone po stronie serwera za cały okres, więc zgadza się także wtedy, gdy lista
-    // chowa te wpisy, które liczy.
-    const settledCount = data?.settledCount ?? 0;
 
     return (
         <>
@@ -1040,7 +1016,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                         <MobileMeta>
                             <MobileMetaTotal>{formatMoney(summary?.totalGrossCents ?? 0)}</MobileMetaTotal>
                             <span>
-                                {summary?.entryCount ?? 0} {entryCountLabel(summary?.entryCount ?? 0)}
+                                do rozliczenia, {summary?.entryCount ?? 0} {entryCountLabel(summary?.entryCount ?? 0)}
                             </span>
                         </MobileMeta>
                     </div>
@@ -1124,17 +1100,6 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                         from={filterFrom}
                         to={filterTo}
                         onChange={(f, t) => { setFilterFrom(f); setFilterTo(t); }}
-                        extra={
-                            <SettledToggle>
-                                <input
-                                    type="checkbox"
-                                    checked={showSettled}
-                                    onChange={e => setShowSettled(e.target.checked)}
-                                />
-                                Pokaż rozliczone
-                                {settledCount > 0 && <SettledCount>({settledCount})</SettledCount>}
-                            </SettledToggle>
-                        }
                     />
                     <MobileAddEntry>
                         <ActionBtn $variant="primary" onClick={() => setDrawer({ entry: null })}>
@@ -1148,11 +1113,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                 ) : isError ? (
                     <EmptyRow>Błąd ładowania danych</EmptyRow>
                 ) : entries.length === 0 ? (
-                    <EmptyRow>
-                        {settledCount > 0 && !showSettled
-                            ? `Wszystkie wpisy z tego okresu są już rozliczone (${settledCount}). Zaznacz „Pokaż rozliczone", aby je zobaczyć.`
-                            : 'Brak wpisów dla wybranego okresu. Dodaj pierwszy wpis używając przycisku powyżej.'}
-                    </EmptyRow>
+                    <EmptyRow>Brak wpisów dla wybranego okresu. Dodaj pierwszy wpis używając przycisku powyżej.</EmptyRow>
                 ) : (
                     <>
                         <TableWrapper>
@@ -1181,11 +1142,28 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                                     <RowSubText>
                                                         {new Date(entry.serviceDate).toLocaleDateString('pl-PL')}
                                                     </RowSubText>
-                                                    {entry.isClosed && <SettledBadge>Rozliczone</SettledBadge>}
-                                                    {!entry.isClosed && entry.isCorrection && <CorrectionBadge>Korekta</CorrectionBadge>}
                                                 </Td>
                                                 <Td data-cell="vehicle">
                                                     <VehicleCell>
+                                                        {entry.isClosed ? (
+                                                            <TapInfo text={SETTLED_EXPLANATION} label="Rozliczone - co to znaczy?">
+                                                                <StatusMark $tone="settled">
+                                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                                                        <circle cx="12" cy="12" r="10" />
+                                                                        <path d="m8 12 3 3 5-6" />
+                                                                    </svg>
+                                                                </StatusMark>
+                                                            </TapInfo>
+                                                        ) : entry.isCorrection && (
+                                                            <TapInfo text={CORRECTION_EXPLANATION} label="Korekta - co to znaczy?">
+                                                                <StatusMark $tone="correction">
+                                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                                                        <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+                                                                        <path d="M3 3v5h5" />
+                                                                    </svg>
+                                                                </StatusMark>
+                                                            </TapInfo>
+                                                        )}
                                                         {[entry.vehicleMake, entry.vehicleModel].filter(Boolean).join(' ') || '-'}
                                                     </VehicleCell>
                                                     {(entry.vehicleLicensePlate || entry.vehicleVin) && (
@@ -1256,7 +1234,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                         {summary && (
                             <SummaryBar>
                                 <SummaryItem>
-                                    <SummaryLabel>Wpisów</SummaryLabel>
+                                    <SummaryLabel>Do rozliczenia</SummaryLabel>
                                     <SummaryValue>{summary.entryCount}</SummaryValue>
                                 </SummaryItem>
                                 <SummaryItem>
