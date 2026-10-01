@@ -6,7 +6,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
 import { ToastProvider } from '@/common/components/Toast';
@@ -76,10 +76,13 @@ const renderSection = () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
     return render(
         <QueryClientProvider client={queryClient}>
-            <MemoryRouter>
+            <MemoryRouter initialEntries={['/employees']}>
                 <ThemeProvider theme={theme}>
                     <ToastProvider>
-                        <TeamList />
+                        <Routes>
+                            <Route path="/employees" element={<TeamList />} />
+                            <Route path="/employees/:employeeId" element={<p>karta pracownika</p>} />
+                        </Routes>
                     </ToastProvider>
                 </ThemeProvider>
             </MemoryRouter>
@@ -112,13 +115,22 @@ describe('TeamList - lista pracowników', () => {
         expect(await screen.findByText('Liczony czas pracy')).toBeTruthy();
     });
 
-    it('wiersz jest przyciskiem: otwiera edycję, a zapis wysyła zmiany do serwera', async () => {
+    it('wiersz jest przyciskiem i otwiera kartę pracownika', async () => {
+        renderSection();
+
+        const row = await screen.findByRole('button', { name: 'Karta pracownika: Marta Kowalczyk' });
+        expect(row.tagName).toBe('BUTTON');
+        fireEvent.click(row);
+
+        expect(await screen.findByText('karta pracownika')).toBeTruthy();
+    });
+
+    it('„Edytuj dane" z menu wiersza wysyła zmiany do serwera', async () => {
         vi.mocked(teamApi.updateEmployee).mockResolvedValue({} as never);
         renderSection();
 
-        const edit = await screen.findByRole('button', { name: 'Edytuj: Marta Kowalczyk' });
-        expect(edit.tagName).toBe('BUTTON');
-        fireEvent.click(edit);
+        fireEvent.click(await screen.findByRole('button', { name: 'Więcej akcji: Marta Kowalczyk' }));
+        fireEvent.click(await screen.findByRole('menuitem', { name: /Edytuj dane/ }));
 
         const dialog = await screen.findByRole('dialog');
         fireEvent.change(within(dialog).getByLabelText('Telefon'), { target: { value: '+48 700 000 000' } });

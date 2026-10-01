@@ -4,6 +4,9 @@
 // po to się tu przychodzi (push, podpowiedź na Tablicy, licznik przy „Pracownicy").
 // `?request={id}` otwiera okno wniosku - tak linkuje powiadomienie push.
 //
+// Administrator (EMPLOYEES_MANAGE) dodaje tu także urlop bez wniosku - „Dodaj urlop"
+// w nagłówku wpisuje go wprost do grafiku (AddLeaveModal).
+//
 // Wiersz jest chudy: osoba, rodzaj, termin, dni, data złożenia. Kolizje z innymi
 // nieobecnościami lista nie zna - okno wniosku pokazuje je z pełnymi danymi, zamiast
 // dociągać szczegóły każdego wiersza.
@@ -11,10 +14,13 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
-import { ChevronRight, Inbox } from 'lucide-react';
+import { ChevronRight, Inbox, Plus } from 'lucide-react';
 import { EmptyState } from '@/common/components/EmptyState';
 import { Button, Card, Notice, Segmented, StatusPill, ui, type SegmentedOption } from '@/common/components/ui';
 import { formatDateTime } from '@/common/utils';
+import { PageHeaderActions } from '@/common/components/PageChrome';
+import { usePermissions } from '@/core/permissions';
+import { useEmployees } from '../../hooks/useEmployees';
 import { useLeaveCalendar } from '../../hooks/useLeaves';
 import { useLeaveRequestQueue } from '../../hooks/useLeaveRequests';
 import type { LeaveRequestQueueStatus } from '../../types';
@@ -22,6 +28,7 @@ import {
     LEAVE_REQUEST_STATUS, addDaysIso, formatLeaveRange, leaveRequestTypeLabel, todayIso, workingDaysLabel,
 } from '../../utils/leaveRequestFormat';
 import { LeaveRequestModal } from './LeaveRequestModal';
+import { AddLeaveModal } from './AddLeaveModal';
 
 /** Głęboki link z powiadomienia push: `/employees/leave-requests?request={id}`. */
 const REQUEST_PARAM = 'request';
@@ -30,6 +37,11 @@ const REQUEST_PARAM = 'request';
 const UPCOMING_DAYS = 14;
 
 export function LeaveRequestsTab() {
+    const { can } = usePermissions();
+    // Wpis do rejestru urlopów to uprawnienie kadrowe - samo rozpatrywanie wniosków go nie daje.
+    const canManage = can('EMPLOYEES_MANAGE');
+    const [addOpen, setAddOpen] = useState(false);
+    const { employees } = useEmployees({ search: '', page: 1, limit: 100 }, { enabled: canManage });
     const [searchParams, setSearchParams] = useSearchParams();
     const [status, setStatus] = useState<LeaveRequestQueueStatus>('PENDING');
     const queue = useLeaveRequestQueue(status);
@@ -60,6 +72,13 @@ export function LeaveRequestsTab() {
 
     return (
         <Wrap>
+            {canManage && (
+                <PageHeaderActions>
+                    <Button variant="primary" size="lg" onClick={() => setAddOpen(true)}>
+                        <Plus aria-hidden="true" />Dodaj urlop
+                    </Button>
+                </PageHeaderActions>
+            )}
             <Bar>
                 <Segmented label="Które wnioski" options={options} value={status} onChange={setStatus} />
             </Bar>
@@ -109,6 +128,7 @@ export function LeaveRequestsTab() {
             )}
 
             {openId && <LeaveRequestModal key={openId} requestId={openId} onClose={closeRequest} />}
+            {addOpen && <AddLeaveModal employees={employees} onClose={() => setAddOpen(false)} />}
         </Wrap>
     );
 }

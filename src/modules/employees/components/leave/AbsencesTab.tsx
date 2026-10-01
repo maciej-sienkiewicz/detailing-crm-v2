@@ -19,7 +19,7 @@ import { useLeaveCalendar } from '../../hooks/useLeaves';
 import { useLeaveRequestQueue } from '../../hooks/useLeaveRequests';
 import { getPolishHolidays, isWeekend } from '../../utils/polishHolidays';
 import { todayIso } from '../../utils/leaveRequestFormat';
-import { AddSickLeaveModal } from './AddSickLeaveModal';
+import { AddLeaveModal } from './AddLeaveModal';
 
 const MONTHS = [
     'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
@@ -153,7 +153,7 @@ export function AbsencesTab() {
                 {!isLoading && !anyAbsence && <Empty>W tym miesiącu nikt nie ma zaplanowanej nieobecności.</Empty>}
             </GridScroll>
 
-            {sickOpen && <AddSickLeaveModal employees={employees} onClose={() => setSickOpen(false)} />}
+            {sickOpen && <AddLeaveModal employees={employees} initialType="SICK" onClose={() => setSickOpen(false)} />}
         </Wrap>
     );
 }

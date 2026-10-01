@@ -1,8 +1,8 @@
-import { useEffect, useState, type MouseEvent as ReactMouseEvent } from 'react';
+import { useState, type MouseEvent as ReactMouseEvent } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { ExternalLink, Mail, MoreVertical, Pencil, Plus, UserPlus } from 'lucide-react';
+import { Mail, MoreVertical, Pencil, Plus, UserPlus } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
 import { formatDateTime } from '@/common/utils';
 import {
@@ -40,22 +40,19 @@ function buildPageNumbers(current: number, total: number): (number | '...')[] {
 }
 
 interface TeamListProps {
-    /** Fraza z pola „Szukaj osoby" nad listą (stoi obok przełącznika widoków). */
-    search?: string;
     /** Przejście do „Role i uprawnienia” w Ustawieniach; bez niego Notice nie ma akcji. */
     onGoToRoles?: () => void;
-    /** Otwiera okno listy obecności - to samo co w zakładce „Czas pracy”. */
+    /** Otwiera okno listy obecności - to samo co w zakładce „Listy miesięczne”. */
     onOpenAttendance?: () => void;
 }
 
 type Editing = { employee: EmployeeListItem; focusAccount: boolean };
 
-export function TeamList({ search = '', onGoToRoles, onOpenAttendance }: TeamListProps = {}) {
+export function TeamList({ onGoToRoles, onOpenAttendance }: TeamListProps = {}) {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { showSuccess, showError } = useToast();
 
-    const [debouncedSearch, setDebouncedSearch] = useState(search);
     const [page, setPage] = useState(1);
 
     const [isAddOpen, setIsAddOpen] = useState(false);
@@ -63,12 +60,8 @@ export function TeamList({ search = '', onGoToRoles, onOpenAttendance }: TeamLis
     const [savingEdit, setSavingEdit] = useState(false);
     const menu = useActionMenu<EmployeeListItem>();
 
-    useEffect(() => {
-        const t = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 350);
-        return () => clearTimeout(t);
-    }, [search]);
-
-    const filters = { search: debouncedSearch, page, limit: PAGE_SIZE };
+    // Bez wyszukiwarki: studio ma kilka, kilkanaście osób, cała lista mieści się na ekranie.
+    const filters = { search: '', page, limit: PAGE_SIZE };
     const { employees: items, pagination, isLoading, isError, refetch } = useEmployees(filters);
     const invalidateEmployees = useInvalidateEmployees();
 
@@ -255,12 +248,8 @@ export function TeamList({ search = '', onGoToRoles, onOpenAttendance }: TeamLis
                         ))
                     ) : items.length === 0 ? (
                         <Empty>
-                            <strong>{debouncedSearch ? 'Nikt nie pasuje do wyszukiwania' : 'Nie ma jeszcze pracowników'}</strong>
-                            <span>
-                                {debouncedSearch
-                                    ? `Sprawdź pisownię albo szukaj po nazwisku lub adresie e-mail zamiast „${debouncedSearch}".`
-                                    : 'Dodaj pierwszą osobę przyciskiem „Dodaj pracownika" u góry.'}
-                            </span>
+                            <strong>Nie ma jeszcze pracowników</strong>
+                            <span>Dodaj pierwszą osobę przyciskiem „Dodaj pracownika" u góry.</span>
                         </Empty>
                     ) : (
                         <ul>
@@ -270,7 +259,7 @@ export function TeamList({ search = '', onGoToRoles, onOpenAttendance }: TeamLis
                                     employee={emp}
                                     tracksWorkTime={hasWorkTime(emp.role?.id)}
                                     menuOpen={menu.isOpen(emp.id)}
-                                    onEdit={() => openEdit(emp)}
+                                    onOpen={() => navigate(`/employees/${emp.id}`)}
                                     onInvite={() => openEdit(emp, true)}
                                     onMenu={e => menu.toggle(e, emp, emp.id)}
                                 />
@@ -305,9 +294,6 @@ export function TeamList({ search = '', onGoToRoles, onOpenAttendance }: TeamLis
                 {menuEmployee && (
                     <>
                         <MenuItem icon={<Pencil />} onClick={() => openEdit(menuEmployee)}>Edytuj dane</MenuItem>
-                        <MenuItem icon={<ExternalLink />} onClick={() => navigate(`/employees/${menuEmployee.id}`)}>
-                            Karta pracownika
-                        </MenuItem>
                         {menuEmployee.accountPending && (
                             <MenuItem
                                 icon={<Mail />}
@@ -359,23 +345,24 @@ interface EmployeeRowProps {
     employee: EmployeeListItem;
     tracksWorkTime: boolean;
     menuOpen: boolean;
-    onEdit: () => void;
+    /** Karta pracownika - tam są urlopy, umowa i czas pracy tej osoby. */
+    onOpen: () => void;
     onInvite: () => void;
     onMenu: (e: ReactMouseEvent<HTMLElement>) => void;
 }
 
 /**
- * Cały wiersz otwiera edycję, ale nie jest `div`-em z onClick: nazwisko jest
+ * Cały wiersz otwiera kartę pracownika (edycja danych jest w menu ⋮), ale nie jest `div`-em z onClick: nazwisko jest
  * przyciskiem, a jego `::after` rozciąga się na wiersz. Dzięki temu wiersz osiąga
  * się Tabem i Enterem, a przyciski w środku (⋮, „Zaproś do systemu") pozostają
  * osobnymi celami - przycisk w przycisku byłby niepoprawnym HTML-em.
  */
-function EmployeeRow({ employee: emp, tracksWorkTime, menuOpen, onEdit, onInvite, onMenu }: EmployeeRowProps) {
+function EmployeeRow({ employee: emp, tracksWorkTime, menuOpen, onOpen, onInvite, onMenu }: EmployeeRowProps) {
     const contact = [emp.email, emp.phone].filter((v): v is string => !!v);
     return (
         <Row>
             <NameCell>
-                <NameButton type="button" onClick={onEdit} aria-label={`Edytuj: ${emp.fullName}`}>
+                <NameButton type="button" onClick={onOpen} aria-label={`Karta pracownika: ${emp.fullName}`}>
                     {emp.fullName}
                 </NameButton>
                 <Meta>

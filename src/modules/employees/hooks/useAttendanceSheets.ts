@@ -11,7 +11,7 @@ export const useAttendanceSheets = (options?: { enabled?: boolean }) => {
     const { data, isLoading, isError, refetch } = useQuery({
         queryKey: ATTENDANCE_SHEETS_KEY,
         queryFn: () => attendanceApi.listAttendanceSheets(),
-        // Licznik przy zakładce „Czas pracy" pyta o rozliczenia tylko tym, którzy ją widzą.
+        // Licznik przy zakładce „Listy miesięczne" pyta o rozliczenia tylko tym, którzy ją widzą.
         enabled: options?.enabled ?? true,
     });
     return { sheets: data ?? [], isLoading, isError, refetch };

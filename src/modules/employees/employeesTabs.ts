@@ -22,7 +22,7 @@ export const EMPLOYEES_TABS: readonly EmployeesTabDef[] = [
     { key: 'team', label: 'Zespół', path: '/employees', requires: 'EMPLOYEES_MANAGE' },
     { key: 'leaves', label: 'Wnioski urlopowe', path: '/employees/leave-requests', requires: 'EMPLOYEES_LEAVES_APPROVE' },
     { key: 'absences', label: 'Nieobecności', path: '/employees/absences', requires: ANY_EMPLOYEES },
-    { key: 'worktime', label: 'Czas pracy', path: '/employees/worktime', requires: 'EMPLOYEES_MANAGE' },
+    { key: 'worktime', label: 'Listy miesięczne', path: '/employees/worktime', requires: 'EMPLOYEES_MANAGE' },
 ];
 
 export const employeesTabPath = (key: EmployeesTab): string =>
