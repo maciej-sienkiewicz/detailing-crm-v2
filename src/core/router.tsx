@@ -426,7 +426,7 @@ export const router = createBrowserRouter([
             element: page(<EmployeesView tab="team" />, 'EMPLOYEES_MANAGE'),
         },
         {
-            // Głęboki link z powiadomienia push: `?request={id}` otwiera szufladę wniosku.
+            // Głęboki link z powiadomienia push: `?request={id}` otwiera okno wniosku.
             path: '/employees/leave-requests',
             element: page(<EmployeesView tab="leaves" />, 'EMPLOYEES_LEAVES_APPROVE'),
         },

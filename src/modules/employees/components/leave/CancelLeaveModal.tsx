@@ -2,7 +2,7 @@
 //
 // Odwołanie zatwierdzonego urlopu (przed jego początkiem). Powód jest wymagany, bo
 // trafia do pracownika w powiadomieniu i do historii wniosku - jak przy każdej
-// decyzji pracodawcy, która cofa wcześniejszą zgodę. Okno stoi nad szufladą wniosku.
+// decyzji pracodawcy, która cofa wcześniejszą zgodę. Okno stoi nad oknem wniosku.
 
 import { useState } from 'react';
 import {

@@ -12,6 +12,7 @@ import { GlobalShortcuts } from '@/common/shortcuts';
 import { QuickNoteProvider } from '@/modules/dashboard/components/QuickNoteProvider';
 import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { PushOnboardingPrompt } from '@/modules/push/components/PushOnboardingPrompt';
+import { viewKeyOf } from './viewKey';
 
 const LayoutContainer = styled.div`
     display: flex;
@@ -64,15 +65,17 @@ interface LayoutProps {
 export const Layout = ({ children }: LayoutProps) => {
     const { isCollapsed } = useSidebar();
     const { pathname } = useLocation();
+    // Zakładki-trasy jednego widoku (Pracownicy) dzielą klucz - patrz viewKey.ts.
+    const viewKey = viewKeyOf(pathname);
 
     // Wejście na inny widok zaczyna się od jego góry. Bez tego przeglądarka
     // zostawia pozycję przewinięcia z poprzedniej strony i np. karta klienta
     // otwierała się w połowie - użytkownik musiał najpierw scrollować w górę,
-    // żeby zobaczyć, na co w ogóle patrzy. Zależność tylko od ścieżki, więc
-    // zmiana parametrów (zakładki, wątek poczty) niczego nie przewija.
+    // żeby zobaczyć, na co w ogóle patrzy. Zależność tylko od widoku, więc
+    // zmiana parametrów i zakładek (wątek poczty, Nieobecności) niczego nie przewija.
     useEffect(() => {
         window.scrollTo(0, 0);
-    }, [pathname]);
+    }, [viewKey]);
 
     return (
         <IdleTimeoutProvider>
@@ -90,7 +93,7 @@ export const Layout = ({ children }: LayoutProps) => {
                             {children}
                             {/*
                               * Przebitka gra przy WEJŚCIU NA INNY WIDOK i tylko wtedy —
-                              * stąd klucz z samej ścieżki. Wcześniej stał w nim licznik
+                              * stąd klucz widoku (ścieżka, a dla zakładek-tras ich wspólny widok). Wcześniej stał w nim licznik
                               * podbijany w trakcie renderu, więc nakładka dostawała nowy
                               * klucz przy KAŻDYM renderze Layoutu i odgrywała się od nowa:
                               * otwarcie leada (zmiana parametru `?lead=` w adresie) gasiło
@@ -98,7 +101,7 @@ export const Layout = ({ children }: LayoutProps) => {
                               * Podbijanie refa w renderze było przy okazji efektem ubocznym
                               * w miejscu, w którym React go nie dopuszcza.
                               */}
-                            <RouteFlash key={pathname} />
+                            <RouteFlash key={viewKey} />
                         </ContentWrapper>
                     </LayoutContainer>
                     </QuickNoteProvider>

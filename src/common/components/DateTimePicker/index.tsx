@@ -274,11 +274,18 @@ const DayCell = styled.button<{
             : props.theme.fontWeights.normal};
     transition: background ${props => props.theme.transitions.fast};
 
-    &:hover {
+    &:hover:not(:disabled) {
         background: ${props =>
             props.$isSelected
                 ? props.$accentColor || props.theme.colors.primary
                 : props.theme.colors.surfaceAlt};
+    }
+
+    /* Dzień spoza dozwolonego zakresu ([minKey]): widać go w siatce, ale nie da się go wybrać. */
+    &:disabled {
+        cursor: not-allowed;
+        opacity: 0.35;
+        text-decoration: line-through;
     }
 `;
 
@@ -575,12 +582,14 @@ interface CalendarMonthProps {
     /** Pas zakresu między końcami, włącznie; tylko gdy oba końce są znane i początek jest przed końcem. */
     rangeStartKey?: string | null;
     rangeEndKey?: string | null;
+    /** Najwcześniejszy dzień do wyboru (`YYYY-MM-DD`); wcześniejsze są wyłączone. */
+    minKey?: string | null;
     onDayClick: (year: number, month: number, day: number) => void;
 }
 
 const CalendarMonth: React.FC<CalendarMonthProps> = ({
     viewYear, viewMonth, onPrevMonth, onNextMonth, accentColor,
-    selectedKeys, rangeStartKey, rangeEndKey, onDayClick,
+    selectedKeys, rangeStartKey, rangeEndKey, minKey, onDayClick,
 }) => {
     const today = new Date();
     const todayKey = toDateKey(today.getFullYear(), today.getMonth(), today.getDate());
@@ -622,6 +631,7 @@ const CalendarMonth: React.FC<CalendarMonthProps> = ({
                     const { year, month } = shiftMonth(viewYear, viewMonth, cell.monthOffset);
                     const key = toDateKey(year, month, cell.day);
                     const band = bandFor(key);
+                    const disabled = !!minKey && key < minKey;
                     return (
                         <DayWrap
                             key={idx}
@@ -636,6 +646,7 @@ const CalendarMonth: React.FC<CalendarMonthProps> = ({
                                 $isToday={key === todayKey}
                                 $accentColor={accentColor}
                                 aria-pressed={selectedKeys.includes(key)}
+                                disabled={disabled}
                                 onClick={() => onDayClick(year, month, cell.day)}
                             >
                                 {cell.day}
@@ -828,6 +839,11 @@ export interface DateRangePickerProps {
     placeholder?: string;
     accentColor?: string;
     hasError?: boolean;
+    /**
+     * Najwcześniejszy dzień do wyboru (`YYYY-MM-DD`). Wcześniejsze dni są w siatce
+     * wyłączone - np. wniosek urlopowy, który zwykle składa się najpóźniej dzień wcześniej.
+     */
+    minDate?: string;
     containerRef?: React.RefObject<HTMLDivElement | null>;
     onFocus?: () => void;
     onBlur?: () => void;
@@ -856,6 +872,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     placeholder = 'Wybierz datę',
     accentColor,
     hasError,
+    minDate,
     containerRef: externalContainerRef,
     onFocus,
     onBlur,
@@ -1036,6 +1053,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
                                 selectedKeys={[startKey, endKey].filter((k): k is string => !!k)}
                                 rangeStartKey={startKey}
                                 rangeEndKey={endKey}
+                                minKey={minDate}
                                 onDayClick={handleDayClick}
                             />
 

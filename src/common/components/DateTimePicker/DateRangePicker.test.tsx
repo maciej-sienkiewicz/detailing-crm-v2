@@ -133,4 +133,19 @@ describe('DateRangePicker', () => {
         await user.click(day(16));
         expect(onEndChange).toHaveBeenCalledWith('2026-09-16');
     });
+
+    it('dni przed minDate są wyłączone i nie zmieniają zakresu', async () => {
+        const user = userEvent.setup();
+        const { onStartChange } = renderPicker({ start: '2026-09-20', end: '', showTime: false, minDate: '2026-09-15' });
+
+        await user.click(screen.getByRole('button', { name: '20.09.2026' }));
+        expect(day(14)).toBeDisabled();
+        expect(day(15)).not.toBeDisabled();
+
+        await user.click(day(14));
+        expect(onStartChange).not.toHaveBeenCalled();
+
+        await user.click(day(15));
+        expect(onStartChange).toHaveBeenCalledWith('2026-09-15');
+    });
 });

@@ -61,6 +61,8 @@ interface ModalShellProps {
      * odruchowe kliknięcie obok kosztuje pracę, ale Escape jest świadomym „zamknij" (stopka e-mail).
      */
     closeOnEscape?: boolean;
+    /** Id tytułu okna - nazwa dialogu dla czytnika ekranu (`aria-labelledby`). */
+    labelledBy?: string;
     children: ReactNode;
 }
 
@@ -77,7 +79,7 @@ interface ModalShellProps {
  *     <ModalFooter>...</ModalFooter>
  *   </ModalShell>
  */
-export const ModalShell = ({ isOpen, onClose, size, maxWidth, zIndex, stableHeight, fillHeight, dismissible = true, closeOnEscape = dismissible, children }: ModalShellProps) => {
+export const ModalShell = ({ isOpen, onClose, size, maxWidth, zIndex, stableHeight, fillHeight, dismissible = true, closeOnEscape = dismissible, labelledBy, children }: ModalShellProps) => {
     const resolvedWidth = size ? SIZE_MAP[size] : (maxWidth ?? '560px');
 
     // Escape, blokada tła i układ przy wysuniętej klawiaturze - wspólne dla
@@ -95,6 +97,7 @@ export const ModalShell = ({ isOpen, onClose, size, maxWidth, zIndex, stableHeig
             onMouseDown={(e) => dismissible && e.target === e.currentTarget && onClose()}
             role="dialog"
             aria-modal="true"
+            aria-labelledby={labelledBy}
         >
             <ModalBox
                 $isOpen={isOpen}

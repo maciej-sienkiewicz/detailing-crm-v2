@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 //
-// Szuflada decyzji: w stopce dokładnie jedno wypełnienie („Zatwierdź i podpisz"),
-// „Odrzuć" ma odcień bez wypełnienia; odmowa bez uzasadnienia się nie podpisze; własny
-// wniosek (albo odebrane uprawnienie) pokazuje powód zamiast przycisków; 409 - ktoś
-// rozpatrzył pierwszy - kończy się dymkiem i odświeżeniem, a nie drugą decyzją.
+// Okno decyzji: w kroku „Wniosek" dokładnie jedno wypełnienie („Zatwierdź i podpisz"),
+// „Odrzuć" ma odcień bez wypełnienia; podpis decyzji to osobny krok; odmowa bez
+// uzasadnienia się nie podpisze; własny wniosek (albo odebrane uprawnienie) pokazuje
+// powód zamiast przycisków; 409 - ktoś rozpatrzył pierwszy - kończy się dymkiem
+// i odświeżeniem, a nie drugą decyzją. Zastępcy ani podstawy uprawnienia nie ma.
 import { forwardRef, useImperativeHandle } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -14,7 +15,7 @@ import { ToastProvider } from '@/common/components/Toast';
 import { profileApi } from '@/modules/profile/api/profileApi';
 import { leaveRequestsApi } from '../../api/leaveRequestsApi';
 import type { LeaveRequestDetail } from '../../types';
-import { LeaveRequestDrawer } from './LeaveRequestDrawer';
+import { LeaveRequestModal } from './LeaveRequestModal';
 
 vi.mock('../../api/leaveRequestsApi', async importOriginal => ({
     ...(await importOriginal<typeof import('../../api/leaveRequestsApi')>()),
@@ -60,8 +61,6 @@ const detail = (overrides: Partial<LeaveRequestDetail> = {}): LeaveRequestDetail
     workingDays: 5,
     status: 'PENDING',
     reason: 'wyjazd rodzinny',
-    substituteEmployeeId: 'emp-tomasz',
-    substituteName: 'Tomasz Wiśniewski',
     createdAt: '2026-09-29T18:42:00+02:00',
     employeeSignedAt: '2026-09-29T18:42:00+02:00',
     decidedAt: null,
@@ -70,8 +69,6 @@ const detail = (overrides: Partial<LeaveRequestDetail> = {}): LeaveRequestDetail
     cancelReason: null,
     employeeSignatureMethod: 'DEVICE_DRAWN',
     decisionSignatureMethod: null,
-    decidedByBasis: null,
-    decidedByRoleName: null,
     overlappingAbsences: [
         { employeeId: 'emp-piotr', employeeName: 'Piotr Lis', startDate: '2026-11-04', endDate: '2026-11-05', kind: 'LEAVE' },
         { employeeId: 'emp-marek', employeeName: 'Marek Wójcik', startDate: '2026-11-06', endDate: '2026-11-06', kind: 'PENDING_REQUEST' },
@@ -84,14 +81,14 @@ const detail = (overrides: Partial<LeaveRequestDetail> = {}): LeaveRequestDetail
 
 const session = { documentSha256: 'c'.repeat(64), challenge: 'dec-1' };
 
-const renderDrawer = () => {
+const renderModal = () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
     const onClose = vi.fn();
     render(
         <QueryClientProvider client={queryClient}>
             <ThemeProvider theme={theme}>
                 <ToastProvider>
-                    <LeaveRequestDrawer requestId="r1" onClose={onClose} />
+                    <LeaveRequestModal requestId="r1" onClose={onClose} />
                 </ToastProvider>
             </ThemeProvider>
         </QueryClientProvider>,
@@ -100,7 +97,6 @@ const renderDrawer = () => {
 };
 
 const dialog = () => screen.getByRole('dialog', { name: 'Anna Nowak' });
-const footer = () => dialog().querySelector('footer') as HTMLElement;
 const filledIn = (root: HTMLElement) =>
     root.querySelectorAll('[data-variant="primary"], [data-variant="success"]');
 
@@ -115,41 +111,52 @@ afterEach(() => {
     vi.clearAllMocks();
 });
 
-describe('LeaveRequestDrawer - treść', () => {
+describe('LeaveRequestModal - treść', () => {
     it('liczba dni jest nagłówkiem, obsada pokazuje oczekujące osobno, a kolizję liczy w osobach', async () => {
-        renderDrawer();
+        renderModal();
         expect(await screen.findByRole('heading', { name: '5 dni roboczych' })).toBeTruthy();
         expect(screen.getByText('kolizja: 2 os.')).toBeTruthy();
         expect(screen.getByText('Piotr Lis')).toBeTruthy();
         expect(screen.getByText('wniosek oczekuje')).toBeTruthy();
-        expect(screen.getByText('Tomasz Wiśniewski')).toBeTruthy();
         expect(screen.getByText('wyjazd rodzinny')).toBeTruthy();
+        // Zastępstw ani podstawy uprawnienia nie prowadzimy.
+        expect(screen.queryByText(/zastęp/i)).toBeNull();
+        expect(screen.queryByText(/Podstawa/)).toBeNull();
+    });
+
+    it('decyzja to osobny krok: po „Zatwierdź i podpisz" znikają szczegóły, jest pasek kroków i powrót', async () => {
+        renderModal();
+        fireEvent.click(await screen.findByRole('button', { name: /Zatwierdź i podpisz/ }));
+        expect(await screen.findByRole('heading', { name: 'Zatwierdzenie wniosku' })).toBeTruthy();
+        expect(screen.queryByRole('heading', { name: 'Obsada w tych dniach' })).toBeNull();
+        expect(within(dialog()).getByRole('list', { name: 'Kroki decyzji' })).toBeTruthy();
+
+        fireEvent.click(within(dialog()).getByRole('button', { name: 'Wstecz' }));
+        expect(await screen.findByRole('heading', { name: 'Obsada w tych dniach' })).toBeTruthy();
     });
 });
 
-describe('LeaveRequestDrawer - stopka', () => {
-    it('dokładnie jedno wypełnienie: „Zatwierdź i podpisz"; „Odrzuć" ma odcień, bez wypełnienia', async () => {
-        renderDrawer();
+describe('LeaveRequestModal - decyzja', () => {
+    it('w całym oknie jedno wypełnienie: „Zatwierdź i podpisz"; „Odrzuć" ma odcień, bez wypełnienia', async () => {
+        renderModal();
         await screen.findByRole('heading', { name: '5 dni roboczych' });
-        const filled = filledIn(footer());
+        const filled = filledIn(dialog());
         expect(filled).toHaveLength(1);
         expect(filled[0].textContent).toMatch(/Zatwierdź i podpisz/);
-        expect(within(footer()).getByRole('button', { name: /Odrzuć/ }).getAttribute('data-variant')).toBe('tintedDanger');
-        // W całym oknie też tylko jedno.
-        expect(filledIn(dialog())).toHaveLength(1);
+        expect(within(dialog()).getByRole('button', { name: /Odrzuć/ }).getAttribute('data-variant')).toBe('tintedDanger');
     });
 
     it('odmowa bez uzasadnienia się nie podpisze', async () => {
         api.reject.mockResolvedValue(detail({ status: 'REJECTED' }));
-        renderDrawer();
+        renderModal();
         fireEvent.click(await screen.findByRole('button', { name: /Odrzuć/ }));
         await waitFor(() => expect(api.decisionSession).toHaveBeenCalledWith('r1'));
-        fireEvent.click(within(footer()).getByRole('button', { name: 'atrapa: złóż podpis' }));
+        fireEvent.click(within(dialog()).getByRole('button', { name: 'atrapa: złóż podpis' }));
 
-        const sign = within(footer()).getByRole('button', { name: 'Podpisz odmowę' }) as HTMLButtonElement;
+        const sign = within(dialog()).getByRole('button', { name: 'Podpisz odmowę' }) as HTMLButtonElement;
         expect(sign.disabled).toBe(true);
 
-        fireEvent.change(within(footer()).getByLabelText('Uzasadnienie odmowy'), { target: { value: 'Szczyt sezonu' } });
+        fireEvent.change(within(dialog()).getByLabelText('Uzasadnienie odmowy'), { target: { value: 'Szczyt sezonu' } });
         expect(sign.disabled).toBe(false);
         fireEvent.click(sign);
 
@@ -166,10 +173,10 @@ describe('LeaveRequestDrawer - stopka', () => {
     it('zatwierdzenie zapisanym podpisem nie wysyła obrazu', async () => {
         vi.mocked(profileApi.getSignature).mockResolvedValue({ hasSignature: true, url: 'https://x/sig.png' });
         api.approve.mockResolvedValue(detail({ status: 'APPROVED' }));
-        renderDrawer();
+        renderModal();
         fireEvent.click(await screen.findByRole('button', { name: /Zatwierdź i podpisz/ }));
-        fireEvent.click(await within(footer()).findByRole('checkbox', { name: 'Użyj mojego zapisanego podpisu' }));
-        const sign = within(footer()).getByRole('button', { name: 'Podpisz zatwierdzenie' }) as HTMLButtonElement;
+        fireEvent.click(await within(dialog()).findByRole('checkbox', { name: 'Użyj mojego zapisanego podpisu' }));
+        const sign = within(dialog()).getByRole('button', { name: 'Podpisz zatwierdzenie' }) as HTMLButtonElement;
         await waitFor(() => expect(sign.disabled).toBe(false));
         fireEvent.click(sign);
 
@@ -185,7 +192,7 @@ describe('LeaveRequestDrawer - stopka', () => {
             canDecide: false,
             decisionBlockedReason: 'Własnego wniosku urlopowego nie można rozpatrzyć',
         }));
-        renderDrawer();
+        renderModal();
         expect(await screen.findByText('Własnego wniosku urlopowego nie można rozpatrzyć')).toBeTruthy();
         expect(screen.queryByRole('button', { name: /Zatwierdź i podpisz/ })).toBeNull();
         expect(screen.queryByRole('button', { name: /Odrzuć/ })).toBeNull();
@@ -195,13 +202,13 @@ describe('LeaveRequestDrawer - stopka', () => {
         api.approve.mockRejectedValue({
             response: { status: 409, data: { message: 'Wniosek został już rozpatrzony (Jan Kowalski)' } },
         });
-        renderDrawer();
+        renderModal();
         fireEvent.click(await screen.findByRole('button', { name: /Zatwierdź i podpisz/ }));
         await waitFor(() => expect(api.decisionSession).toHaveBeenCalled());
-        fireEvent.click(within(footer()).getByRole('button', { name: 'atrapa: złóż podpis' }));
+        fireEvent.click(within(dialog()).getByRole('button', { name: 'atrapa: złóż podpis' }));
 
         api.get.mockResolvedValue(detail({ status: 'APPROVED', canDecide: false, decidedByName: 'Jan Kowalski', decidedAt: '2026-09-30T08:00:00+02:00' }));
-        fireEvent.click(within(footer()).getByRole('button', { name: 'Podpisz zatwierdzenie' }));
+        fireEvent.click(within(dialog()).getByRole('button', { name: 'Podpisz zatwierdzenie' }));
 
         expect(await screen.findByText('Wniosek został już rozpatrzony')).toBeTruthy();
         expect(screen.getByText('Wniosek został już rozpatrzony (Jan Kowalski)')).toBeTruthy();
@@ -212,11 +219,11 @@ describe('LeaveRequestDrawer - stopka', () => {
 
     it('403 w chwili decyzji: stopka znika, zostaje wyjaśnienie', async () => {
         api.approve.mockRejectedValue({ response: { status: 403, data: { message: 'Brak uprawnienia: Akceptacja wniosków urlopowych' } } });
-        renderDrawer();
+        renderModal();
         fireEvent.click(await screen.findByRole('button', { name: /Zatwierdź i podpisz/ }));
         await waitFor(() => expect(api.decisionSession).toHaveBeenCalled());
-        fireEvent.click(within(footer()).getByRole('button', { name: 'atrapa: złóż podpis' }));
-        fireEvent.click(within(footer()).getByRole('button', { name: 'Podpisz zatwierdzenie' }));
+        fireEvent.click(within(dialog()).getByRole('button', { name: 'atrapa: złóż podpis' }));
+        fireEvent.click(within(dialog()).getByRole('button', { name: 'Podpisz zatwierdzenie' }));
 
         expect(await screen.findByText('Brak uprawnienia: Akceptacja wniosków urlopowych')).toBeTruthy();
         expect(screen.queryByRole('button', { name: /Zatwierdź i podpisz/ })).toBeNull();

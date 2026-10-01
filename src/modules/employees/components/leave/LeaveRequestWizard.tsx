@@ -1,9 +1,15 @@
 // src/modules/employees/components/leave/LeaveRequestWizard.tsx
 //
-// Kreator wniosku urlopowego w szufladzie: 1 Rodzaj, 2 Termin, 3 Podpis.
+// Kreator wniosku urlopowego w oknie, krok po kroku: 1 Rodzaj, 2 Termin, 3 Dokument,
+// 4 Podpis. Każdy krok zadaje jedno pytanie. Był bocznym panelem z całym formularzem
+// naraz i ze zbędnymi polami (zastępca) - zgłoszenie: mało czytelne, nie wiadomo,
+// od czego zacząć.
+//
+// Termin wybiera się na tym samym kalendarzu co przy rezerwacji (DateRangePicker):
+// pierwsze kliknięcie to pierwszy dzień urlopu, drugie - ostatni, bez zamykania okna.
 //
 // „Dalej" z kroku terminu tworzy SZKIC na serwerze (DRAFT z gotowym PDF), bo krok
-// podpisu pokazuje dokładnie ten dokument, który powstanie - podpis dotyczy bajtów,
+// dokumentu pokazuje dokładnie ten dokument, który powstanie - podpis dotyczy bajtów,
 // których skrót dał backend (WYSIWYS). Szkic bez podpisu nie jest wnioskiem: nie
 // trafia do kolejki ani do kalendarza, a porzucony backend usuwa po 24 h. Mimo to
 // kreator nie zostawia po sobie więcej niż jednego szkicu: powrót i zmiana danych
@@ -19,15 +25,17 @@ import {
     Baby, CalendarHeart, CalendarX2, PenLine, Sun, Timer, Users,
 } from 'lucide-react';
 import {
-    Button, ChoiceCard, ChoiceList, DrawerBody, DrawerFooterSpacer, Notice, SideDrawer, StepPills, ui,
-    type StepState,
+    ModalShell, ModalHeader, ModalTitle, ModalContent, ModalFooter, CloseBtn,
+} from '@/common/components/ModalKit';
+import {
+    Button, ChoiceCard, ChoiceList, Notice, StepPills, ui, type StepState,
 } from '@/common/components/ui';
+import { DateRangePicker } from '@/common/components/DateTimePicker';
 import { useToast } from '@/common/components/Toast';
 import { SignaturePad, type SignaturePadHandle } from '@/common/components/SignaturePad';
 import { useAuth } from '@/core/context/AuthContext';
 import { usePermissions, ANY_EMPLOYEES } from '@/core/permissions';
 import { leaveApiError, myLeaveRequestsApi } from '../../api/leaveRequestsApi';
-import { useEmployees } from '../../hooks/useEmployees';
 import { useLeaveCalendar } from '../../hooks/useLeaves';
 import {
     MY_LEAVE_REQUESTS_KEY, useCreateLeaveRequest, useLeaveRequestPreview, useSubmitLeaveRequest,
@@ -39,8 +47,9 @@ import {
 import { PrimaryAction } from './PrimaryAction';
 import { LeavePdf } from './LeavePdf';
 import {
-    CharCounter, Check, Field, FieldError, FieldRowPair, Hint, Input, Label, LabelRow, Select, Textarea,
+    CharCounter, Check, Field, FieldError, FieldRowPair, Hint, Label, LabelRow, Textarea,
 } from './leaveForm.styles';
+import { FooterSpacer, HeadStack, StepBody, StepHead } from './leaveModal.styles';
 
 // ─── Rodzaje ─────────────────────────────────────────────────────────────────
 
@@ -64,11 +73,13 @@ const KINDS: KindDef[] = [
     { key: 'PARENTAL', leaveType: 'PARENTAL', onDemand: false, title: 'Rodzicielski / wychowawczy', detail: 'Dłuższa nieobecność po narodzinach dziecka', icon: <Baby /> },
 ];
 
-type Step = 1 | 2 | 3;
+type Step = 1 | 2 | 3 | 4;
 type FieldErrors = Partial<Record<string, string>>;
 
+const STEP_LABELS: Record<Step, string> = { 1: 'Rodzaj', 2: 'Termin', 3: 'Dokument', 4: 'Podpis' };
+
 /** Pola kroku 2 - błąd z `field` spoza tej listy (leaveType, onDemand) cofa do kroku 1. */
-const TERM_FIELDS = new Set(['startDate', 'endDate', 'reason', 'substituteEmployeeId']);
+const TERM_FIELDS = new Set(['startDate', 'endDate', 'reason']);
 
 interface Draft {
     request: LeaveRequestDetail;
@@ -78,6 +89,7 @@ interface Draft {
 }
 
 const REFRESHED_MESSAGE = 'Dokument został odświeżony. Sprawdź go i podpisz ponownie.';
+const TITLE_ID = 'leave-request-wizard-title';
 
 /** Wycofanie szkicu „w tle": nieudane nic nie psuje, backend i tak sprząta szkice po 24 h. */
 function discardDraft(target: Draft | null) {
@@ -99,7 +111,6 @@ export function LeaveRequestWizard({ onClose }: Props) {
     const [kind, setKind] = useState<KindKey | null>(null);
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
-    const [substituteId, setSubstituteId] = useState('');
     const [reason, setReason] = useState('');
     const [errors, setErrors] = useState<FieldErrors>({});
 
@@ -111,14 +122,15 @@ export function LeaveRequestWizard({ onClose }: Props) {
     const kindDef = KINDS.find(k => k.key === kind) ?? null;
     const today = todayIso();
     // Zwykły wniosek najwcześniej od jutra; „na żądanie" - także na dziś (kontrakt).
-    const minStart = kindDef?.onDemand ? today : addDaysIso(today, 1);
+    const minStartFor = (def: KindDef | null) => (def?.onDemand ? today : addDaysIso(today, 1));
+    const minStart = minStartFor(kindDef);
 
     // ── Krok 2: licznik na żywo, święta, kto jeszcze jest wtedy nieobecny ──
     const preview = useLeaveRequestPreview(startDate, endDate);
     const previewError = preview.isError ? leaveApiError(preview.error) : null;
 
-    // Kalendarz urlopów i lista osób to widoki kadrowe/warsztatowe - kto ich nie ma,
-    // nie dostaje bursztynowej informacji ani wyboru zastępcy, zamiast pytać API o 403.
+    // Kalendarz urlopów to widok kadrowy/warsztatowy - kto go nie ma, nie dostaje
+    // bursztynowej informacji, zamiast pytać API o 403.
     const canSeeTeam = can('VISITS_VIEW') || can(ANY_EMPLOYEES);
     const rangeValid = !!startDate && !!endDate && endDate >= startDate;
     const { leaveDayMap } = useLeaveCalendar(
@@ -133,14 +145,11 @@ export function LeaveRequestWizard({ onClose }: Props) {
         return [...names.values()];
     }, [leaveDayMap, selfEmployeeId]);
 
-    const { employees } = useEmployees({ search: '', page: 1, limit: 100 }, { enabled: canSeeTeam });
-    const substitutes = employees.filter(e => e.id !== selfEmployeeId);
-
-    // ── Krok 3: dokument i podpis ──
+    // ── Kroki 3-4: dokument i podpis ──
     const documentQuery = useQuery({
         queryKey: [...MY_LEAVE_REQUESTS_KEY, 'document', draft?.request.id ?? '', draft?.session.challenge ?? ''],
         queryFn: () => myLeaveRequestsApi.document(draft!.request.id),
-        enabled: step === 3 && !!draft,
+        enabled: step >= 3 && !!draft,
         retry: false,
         staleTime: Infinity,
         gcTime: 0,
@@ -159,6 +168,17 @@ export function LeaveRequestWizard({ onClose }: Props) {
         if (!submittedRef.current) discardDraft(draftRef.current);
     }, []);
 
+    const chooseKind = (next: KindDef) => {
+        setKind(next.key);
+        setErrors({});
+        // Zmiana z „na żądanie" na zwykły urlop przesuwa najwcześniejszy dzień na jutro:
+        // termin od dziś nie przejdzie, więc nie ma go co zostawiać w polach.
+        if (startDate && startDate < minStartFor(next)) {
+            setStartDate('');
+            setEndDate('');
+        }
+    };
+
     const payload = (): CreateLeaveRequestPayload | null => {
         if (!kindDef) return null;
         const trimmedReason = reason.trim();
@@ -168,21 +188,20 @@ export function LeaveRequestWizard({ onClose }: Props) {
             startDate,
             endDate,
             ...(trimmedReason ? { reason: trimmedReason } : {}),
-            ...(substituteId ? { substituteEmployeeId: substituteId } : {}),
         };
     };
 
     const validateTerm = (): FieldErrors => {
         const next: FieldErrors = {};
-        if (!startDate) next.startDate = 'Podaj pierwszy dzień urlopu.';
-        if (!endDate) next.endDate = 'Podaj ostatni dzień urlopu.';
+        if (!startDate) next.startDate = 'Wybierz w kalendarzu pierwszy dzień urlopu.';
+        if (!endDate) next.endDate = 'Wybierz w kalendarzu ostatni dzień urlopu.';
         if (startDate && endDate && endDate < startDate) next.endDate = 'Koniec nie może być przed początkiem.';
         if (kindDef?.leaveType === 'SPECIAL' && !reason.trim()) next.reason = 'Przy urlopie okolicznościowym podaj powód.';
         if (reason.trim().length > LEAVE_REASON_MAX) next.reason = `Najwyżej ${LEAVE_REASON_MAX} znaków.`;
         return next;
     };
 
-    const goToSigning = () => {
+    const goToDocument = () => {
         const body = payload();
         if (!body) return;
         const local = validateTerm();
@@ -227,6 +246,8 @@ export function LeaveRequestWizard({ onClose }: Props) {
         padRef.current?.clear();
         setDeclared(false);
         setSignNotice(message);
+        // Odświeżony dokument trzeba najpierw zobaczyć - podpis dotyczy nowych bajtów.
+        setStep(3);
     };
 
     const handleSubmit = () => {
@@ -263,13 +284,10 @@ export function LeaveRequestWizard({ onClose }: Props) {
         if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }));
     };
 
-    const steps: { key: string; label: string; state: StepState }[] = [
-        { key: 'kind', label: 'Rodzaj', state: step === 1 ? 'active' : 'done' },
-        { key: 'term', label: 'Termin', state: step === 2 ? 'active' : step > 2 ? 'done' : 'todo' },
-        { key: 'sign', label: 'Podpis', state: step === 3 ? 'active' : 'todo' },
-    ];
+    const stepState = (n: Step): StepState => (step === n ? 'active' : step > n ? 'done' : 'todo');
+    const steps = ([1, 2, 3, 4] as Step[]).map(n => ({ key: String(n), label: STEP_LABELS[n], state: stepState(n) }));
 
-    const canSubmit = step === 3 && !!draft && hasInk && declared && !submit.isPending && !refreshing
+    const canSubmit = step === 4 && !!draft && hasInk && declared && !submit.isPending && !refreshing
         && !!documentQuery.data;
 
     // ── Stopka: jedno wypełnienie - krok następny ──
@@ -278,7 +296,7 @@ export function LeaveRequestWizard({ onClose }: Props) {
         footer = (
             <>
                 <Button variant="ghost" onClick={onClose}>Anuluj</Button>
-                <DrawerFooterSpacer />
+                <FooterSpacer />
                 <Button variant="primary" size="lg" disabled={!kind} onClick={() => setStep(2)}>Dalej</Button>
             </>
         );
@@ -286,16 +304,31 @@ export function LeaveRequestWizard({ onClose }: Props) {
         footer = (
             <>
                 <Button variant="outline" onClick={() => setStep(1)}>Wstecz</Button>
-                <DrawerFooterSpacer />
-                <Button variant="primary" size="lg" disabled={createDraft.isPending} onClick={goToSigning}>
-                    {createDraft.isPending ? 'Przygotowuję dokument…' : 'Dalej'}
+                <FooterSpacer />
+                <Button variant="primary" size="lg" disabled={createDraft.isPending} onClick={goToDocument}>
+                    {createDraft.isPending ? 'Przygotowuję wniosek…' : 'Dalej'}
+                </Button>
+            </>
+        );
+    } else if (step === 3) {
+        footer = (
+            <>
+                <Button variant="outline" onClick={() => setStep(2)}>Wstecz</Button>
+                <FooterSpacer />
+                <Button
+                    variant="primary"
+                    size="lg"
+                    disabled={!documentQuery.data || refreshing}
+                    onClick={() => setStep(4)}
+                >
+                    Wszystko się zgadza
                 </Button>
             </>
         );
     } else {
         footer = (
             <>
-                <Button variant="outline" onClick={() => setStep(2)} disabled={submit.isPending}>Wstecz</Button>
+                <Button variant="outline" onClick={() => setStep(3)} disabled={submit.isPending}>Wstecz</Button>
                 <SubmitSlot>
                     <PrimaryAction
                         block
@@ -313,18 +346,22 @@ export function LeaveRequestWizard({ onClose }: Props) {
     const pendingPreview = preview.isFetching && !preview.data;
 
     return (
-        <SideDrawer
-            onClose={onClose}
-            title="Wniosek o urlop"
-            titleId="leave-request-wizard-title"
-            status={<StepPills steps={steps} label="Kroki wniosku" />}
-            footer={footer}
-            width={520}
-        >
-            <DrawerBody>
+        <ModalShell isOpen onClose={onClose} size="lg" labelledBy={TITLE_ID}>
+            <ModalHeader>
+                <HeadStack>
+                    <ModalTitle id={TITLE_ID}>Wniosek o urlop</ModalTitle>
+                    <StepPills steps={steps} label="Kroki wniosku" />
+                </HeadStack>
+                <CloseBtn onClick={onClose} />
+            </ModalHeader>
+
+            <ModalContent>
                 {step === 1 && (
-                    <Section>
-                        <SectionHeading>Rodzaj urlopu</SectionHeading>
+                    <StepBody>
+                        <StepHead>
+                            <h3>Jaki to urlop?</h3>
+                            <p>Wybierz rodzaj. W następnym kroku wskażesz termin.</p>
+                        </StepHead>
                         {errors.leaveType && <FieldError role="alert">{errors.leaveType}</FieldError>}
                         {errors.onDemand && <FieldError role="alert">{errors.onDemand}</FieldError>}
                         <ChoiceList role="radiogroup" aria-label="Rodzaj urlopu">
@@ -334,51 +371,55 @@ export function LeaveRequestWizard({ onClose }: Props) {
                                     type="radio"
                                     name="leave-kind"
                                     checked={kind === k.key}
-                                    onChange={() => {
-                                        setKind(k.key);
-                                        setErrors({});
-                                    }}
+                                    onChange={() => chooseKind(k)}
                                     title={k.title}
                                     detail={k.detail}
                                     icon={k.icon}
                                 />
                             ))}
                         </ChoiceList>
-                    </Section>
+                    </StepBody>
                 )}
 
                 {step === 2 && kindDef && (
-                    <Section>
-                        <SectionHeading>{kindDef.title}: termin</SectionHeading>
+                    <StepBody>
+                        <StepHead>
+                            <h3>Kiedy?</h3>
+                            <p>
+                                {kindDef.title}. Kliknij w kalendarzu pierwszy dzień urlopu, a zaraz potem ostatni.
+                            </p>
+                        </StepHead>
+
                         <FieldRowPair>
                             <Field>
-                                <Label htmlFor="leave-start">Od</Label>
-                                <Input
-                                    id="leave-start"
-                                    type="date"
-                                    value={startDate}
-                                    min={minStart}
-                                    $invalid={!!errors.startDate}
-                                    aria-invalid={!!errors.startDate || undefined}
-                                    onChange={e => setField('startDate', () => {
-                                        setStartDate(e.target.value);
-                                        if (!endDate || endDate < e.target.value) setEndDate(e.target.value);
-                                    })}
+                                <Label as="span">Pierwszy dzień</Label>
+                                <DateRangePicker
+                                    role="start"
+                                    start={startDate}
+                                    end={endDate}
+                                    onStartChange={value => setField('startDate', () => setStartDate(value))}
+                                    onEndChange={value => setField('endDate', () => setEndDate(value))}
+                                    showTime={false}
+                                    minDate={minStart}
+                                    placeholder="Wybierz dzień"
+                                    hasError={!!errors.startDate}
                                 />
                                 {(errors.startDate || previewError?.field === 'startDate') && (
                                     <FieldError role="alert">{errors.startDate ?? previewError?.message}</FieldError>
                                 )}
                             </Field>
                             <Field>
-                                <Label htmlFor="leave-end">Do</Label>
-                                <Input
-                                    id="leave-end"
-                                    type="date"
-                                    value={endDate}
-                                    min={startDate || minStart}
-                                    $invalid={!!errors.endDate}
-                                    aria-invalid={!!errors.endDate || undefined}
-                                    onChange={e => setField('endDate', () => setEndDate(e.target.value))}
+                                <Label as="span">Ostatni dzień</Label>
+                                <DateRangePicker
+                                    role="end"
+                                    start={startDate}
+                                    end={endDate}
+                                    onStartChange={value => setField('startDate', () => setStartDate(value))}
+                                    onEndChange={value => setField('endDate', () => setEndDate(value))}
+                                    showTime={false}
+                                    minDate={minStart}
+                                    placeholder="Wybierz dzień"
+                                    hasError={!!errors.endDate}
                                 />
                                 {(errors.endDate || previewError?.field === 'endDate') && (
                                     <FieldError role="alert">{errors.endDate ?? previewError?.message}</FieldError>
@@ -416,22 +457,6 @@ export function LeaveRequestWizard({ onClose }: Props) {
                             </Notice>
                         )}
 
-                        {canSeeTeam && substitutes.length > 0 && (
-                            <Field>
-                                <Label htmlFor="leave-substitute">Osoba zastępująca (opcjonalnie)</Label>
-                                <Select
-                                    id="leave-substitute"
-                                    value={substituteId}
-                                    $invalid={!!errors.substituteEmployeeId}
-                                    onChange={e => setField('substituteEmployeeId', () => setSubstituteId(e.target.value))}
-                                >
-                                    <option value="">Bez zastępstwa</option>
-                                    {substitutes.map(e => <option key={e.id} value={e.id}>{e.fullName}</option>)}
-                                </Select>
-                                {errors.substituteEmployeeId && <FieldError role="alert">{errors.substituteEmployeeId}</FieldError>}
-                            </Field>
-                        )}
-
                         <Field>
                             <LabelRow>
                                 <Label htmlFor="leave-reason">
@@ -454,11 +479,15 @@ export function LeaveRequestWizard({ onClose }: Props) {
                             {errors.reason && <FieldError role="alert">{errors.reason}</FieldError>}
                             <Hint>Powód trafi na wniosek, więc jest krótki - mieści się w polu dokumentu.</Hint>
                         </Field>
-                    </Section>
+                    </StepBody>
                 )}
 
-                {step === 3 && draft && kindDef && (
-                    <Section>
+                {step === 3 && draft && (
+                    <StepBody>
+                        <StepHead>
+                            <h3>Sprawdź wniosek</h3>
+                            <p>Tak wygląda dokument, który podpiszesz. Jeśli coś się nie zgadza, wróć i popraw.</p>
+                        </StepHead>
                         <Summary>
                             <strong>{leaveRequestTypeLabel(draft.request.leaveType, draft.request.onDemand)}</strong>
                             <span>
@@ -466,13 +495,22 @@ export function LeaveRequestWizard({ onClose }: Props) {
                                 {workingDaysLabel(draft.request.workingDays)}
                             </span>
                         </Summary>
-
+                        {signNotice && <Notice tone="warn" role="alert">{signNotice}</Notice>}
                         <LeavePdf
                             bytes={documentQuery.data?.bytes}
                             isLoading={documentQuery.isLoading || refreshing}
                             isError={documentQuery.isError}
                             onRetry={() => { void documentQuery.refetch(); }}
                         />
+                    </StepBody>
+                )}
+
+                {step === 4 && draft && (
+                    <StepBody>
+                        <StepHead>
+                            <h3>Podpisz</h3>
+                            <p>Podpis trafi tylko na ten wniosek. Po wysłaniu kierownik dostanie powiadomienie.</p>
+                        </StepHead>
 
                         {signNotice && <Notice tone="warn" role="alert">{signNotice}</Notice>}
 
@@ -486,35 +524,24 @@ export function LeaveRequestWizard({ onClose }: Props) {
                         </Check>
 
                         <PadBlock>
-                            <SignaturePad ref={padRef} onInkChange={setHasInk} height={170} placeholder="Podpisz palcem w tym polu" />
+                            <SignaturePad ref={padRef} onInkChange={setHasInk} height={190} placeholder="Podpisz palcem w tym polu" />
                             <PadActions>
-                                <Hint>Podpis trafi tylko na ten wniosek.</Hint>
+                                <Hint>{formatLeaveRange(draft.request.startDate, draft.request.endDate)}, {workingDaysLabel(draft.request.workingDays)}</Hint>
                                 <Button variant="ghost" size="sm" disabled={!hasInk} onClick={() => padRef.current?.clear()}>
                                     Wyczyść
                                 </Button>
                             </PadActions>
                         </PadBlock>
-                    </Section>
+                    </StepBody>
                 )}
-            </DrawerBody>
-        </SideDrawer>
+            </ModalContent>
+
+            <ModalFooter>{footer}</ModalFooter>
+        </ModalShell>
     );
 }
 
 // ─── Styled ─────────────────────────────────────────────────────────────────────
-
-const Section = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-`;
-
-const SectionHeading = styled.h3`
-    margin: 0;
-    font-size: 16px;
-    font-weight: 700;
-    color: ${ui.ink};
-`;
 
 const Tally = styled.div`
     display: flex;

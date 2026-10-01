@@ -66,8 +66,6 @@ const summary = (overrides: Partial<LeaveRequestSummary>): LeaveRequestSummary =
     workingDays: 5,
     status: 'PENDING',
     reason: null,
-    substituteEmployeeId: null,
-    substituteName: null,
     createdAt: '2026-09-29T18:42:00+02:00',
     employeeSignedAt: '2026-09-29T18:42:00+02:00',
     decidedAt: null,
@@ -81,8 +79,6 @@ const detailOf = (s: LeaveRequestSummary): LeaveRequestDetail => ({
     ...s,
     employeeSignatureMethod: null,
     decisionSignatureMethod: null,
-    decidedByBasis: null,
-    decidedByRoleName: null,
     overlappingAbsences: [],
     canDecide: false,
     decisionBlockedReason: null,
@@ -104,8 +100,37 @@ const renderView = () => {
     );
 };
 
-const start = addDaysIso(todayIso(), 7);
-const end = addDaysIso(todayIso(), 9);
+/**
+ * Termin w połowie miesiąca (14.-22.): siatka kalendarza pokazuje też końcówkę
+ * poprzedniego miesiąca (dni 23+) i początek następnego (1-13), więc dzień z tego
+ * przedziału jest w niej jednoznaczny.
+ */
+const firstMidMonthDay = (from: string): string => {
+    let iso = from;
+    while (Number(iso.slice(8, 10)) < 14 || Number(iso.slice(8, 10)) > 20) iso = addDaysIso(iso, 1);
+    return iso;
+};
+const start = firstMidMonthDay(addDaysIso(todayIso(), 2));
+const end = addDaysIso(start, 2);
+
+const MONTHS = ['Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
+    'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'];
+
+/** Wybór terminu tak jak użytkownik: kalendarz z rezerwacji, klik w początek, klik w koniec, „Gotowe". */
+const pickRange = async (dialog: HTMLElement, from: string, to: string) => {
+    fireEvent.click(within(dialog).getAllByRole('button', { name: 'Wybierz dzień' })[0]);
+    const picker = await screen.findByRole('dialog', { name: 'Wybór zakresu dat' });
+    const pickDay = (iso: string) => {
+        const label = `${MONTHS[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`;
+        for (let i = 0; i < 24 && !within(picker).queryByText(label); i++) {
+            fireEvent.click(within(picker).getByRole('button', { name: 'Następny miesiąc' }));
+        }
+        fireEvent.click(within(picker).getByRole('button', { name: String(Number(iso.slice(8, 10))) }));
+    };
+    pickDay(from);
+    pickDay(to);
+    fireEvent.click(within(picker).getByRole('button', { name: 'Gotowe' }));
+};
 const draftSession = { documentSha256: 'a'.repeat(64), challenge: 'challenge-1' };
 
 beforeEach(() => {
@@ -136,11 +161,12 @@ const openWizardToSigning = async () => {
     const drawer = await screen.findByRole('dialog', { name: 'Wniosek o urlop' });
     fireEvent.click(within(drawer).getByRole('radio', { name: /Wypoczynkowy/ }));
     fireEvent.click(within(drawer).getByRole('button', { name: 'Dalej' }));
-    fireEvent.change(within(drawer).getByLabelText('Od'), { target: { value: start } });
-    fireEvent.change(within(drawer).getByLabelText('Do'), { target: { value: end } });
+    await pickRange(drawer, start, end);
     expect(await within(drawer).findByText(/3 dni robocze,/)).toBeTruthy();
     fireEvent.click(within(drawer).getByRole('button', { name: 'Dalej' }));
+    // Krok „Dokument": dokładnie ten PDF, który się podpisze, potem dopiero podpis.
     await within(drawer).findByTestId('pdf-viewer');
+    fireEvent.click(within(drawer).getByRole('button', { name: 'Wszystko się zgadza' }));
     return drawer;
 };
 
@@ -238,6 +264,9 @@ describe('Kreator wniosku - podpis', () => {
         expect(api.signingSession).toHaveBeenCalledWith('draft-1');
         expect(pad.clear).toHaveBeenCalled();
         await waitFor(() => expect(api.document).toHaveBeenCalledTimes(2));
+        // Nowy dokument trzeba najpierw obejrzeć: kreator wraca do kroku „Dokument".
+        expect(within(drawer).getByRole('heading', { name: 'Sprawdź wniosek' })).toBeTruthy();
+        fireEvent.click(within(drawer).getByRole('button', { name: 'Wszystko się zgadza' }));
         // Oświadczenie trzeba potwierdzić jeszcze raz - dokument jest nowy.
         expect((within(drawer).getByRole('checkbox', { name: /Znam treść wniosku/ }) as HTMLInputElement).checked).toBe(false);
         expect(submitButton(drawer).disabled).toBe(true);
@@ -262,12 +291,14 @@ describe('Kreator wniosku - podpis', () => {
         const drawer = await screen.findByRole('dialog', { name: 'Wniosek o urlop' });
         fireEvent.click(within(drawer).getByRole('radio', { name: /Wypoczynkowy/ }));
         fireEvent.click(within(drawer).getByRole('button', { name: 'Dalej' }));
-        fireEvent.change(within(drawer).getByLabelText('Od'), { target: { value: start } });
-        fireEvent.change(within(drawer).getByLabelText('Do'), { target: { value: end } });
+        await pickRange(drawer, start, end);
         fireEvent.click(within(drawer).getByRole('button', { name: 'Dalej' }));
 
-        expect(await within(drawer).findByText('Ten termin nakłada się z Twoim wnioskiem')).toBeTruthy();
-        expect(within(drawer).getByLabelText('Od').getAttribute('aria-invalid')).toBe('true');
+        // Błąd stoi przy polu „Pierwszy dzień", w tym samym kroku - nie w dymku.
+        const error = await within(drawer).findByText('Ten termin nakłada się z Twoim wnioskiem');
+        expect(error.getAttribute('role')).toBe('alert');
+        expect(error.parentElement?.textContent).toMatch(/Pierwszy dzień/);
+        expect(within(drawer).queryByRole('heading', { name: 'Kiedy?' })).toBeTruthy();
     });
 
     it('okolicznościowy wymaga powodu, zanim powstanie szkic', async () => {
@@ -276,13 +307,27 @@ describe('Kreator wniosku - podpis', () => {
         const drawer = await screen.findByRole('dialog', { name: 'Wniosek o urlop' });
         fireEvent.click(within(drawer).getByRole('radio', { name: /Okolicznościowy/ }));
         fireEvent.click(within(drawer).getByRole('button', { name: 'Dalej' }));
-        fireEvent.change(within(drawer).getByLabelText('Od'), { target: { value: start } });
-        fireEvent.change(within(drawer).getByLabelText('Do'), { target: { value: end } });
+        await pickRange(drawer, start, end);
         fireEvent.click(within(drawer).getByRole('button', { name: 'Dalej' }));
 
         expect(await within(drawer).findByText('Przy urlopie okolicznościowym podaj powód.')).toBeTruthy();
         expect(api.create).not.toHaveBeenCalled();
         expect((within(drawer).getByLabelText('Powód') as HTMLTextAreaElement).maxLength).toBe(250);
+    });
+
+    it('kreator idzie krok po kroku i nie ma pola osoby zastępującej', async () => {
+        renderView();
+        fireEvent.click(await screen.findByRole('button', { name: /Złóż wniosek o urlop/ }));
+        const drawer = await screen.findByRole('dialog', { name: 'Wniosek o urlop' });
+        const steps = within(drawer).getByRole('list', { name: 'Kroki wniosku' });
+        expect(within(steps).getAllByRole('listitem').map(li => li.textContent).filter(Boolean))
+            .toEqual(['1Rodzaj', '2Termin', '3Dokument', '4Podpis']);
+        expect(within(drawer).getByRole('heading', { name: 'Jaki to urlop?' })).toBeTruthy();
+
+        fireEvent.click(within(drawer).getByRole('radio', { name: /Wypoczynkowy/ }));
+        fireEvent.click(within(drawer).getByRole('button', { name: 'Dalej' }));
+        expect(within(drawer).getByRole('heading', { name: 'Kiedy?' })).toBeTruthy();
+        expect(within(drawer).queryByText(/zastęp/i)).toBeNull();
     });
 
     it('zamknięcie kreatora bez wysłania wycofuje szkic', async () => {

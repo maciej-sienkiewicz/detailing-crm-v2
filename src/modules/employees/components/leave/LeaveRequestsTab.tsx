@@ -2,10 +2,10 @@
 //
 // Zakładka „Wnioski urlopowe": kolejka decyzji. Oczekujące są domyślnym widokiem, bo
 // po to się tu przychodzi (push, podpowiedź na Tablicy, licznik przy „Pracownicy").
-// `?request={id}` otwiera szufladę wniosku - tak linkuje powiadomienie push.
+// `?request={id}` otwiera okno wniosku - tak linkuje powiadomienie push.
 //
 // Wiersz jest chudy: osoba, rodzaj, termin, dni, data złożenia. Kolizje z innymi
-// nieobecnościami lista nie zna - szuflada pokazuje je z pełnymi danymi, zamiast
+// nieobecnościami lista nie zna - okno wniosku pokazuje je z pełnymi danymi, zamiast
 // dociągać szczegóły każdego wiersza.
 
 import { useMemo, useState } from 'react';
@@ -21,7 +21,7 @@ import type { LeaveRequestQueueStatus } from '../../types';
 import {
     LEAVE_REQUEST_STATUS, addDaysIso, formatLeaveRange, leaveRequestTypeLabel, todayIso, workingDaysLabel,
 } from '../../utils/leaveRequestFormat';
-import { LeaveRequestDrawer } from './LeaveRequestDrawer';
+import { LeaveRequestModal } from './LeaveRequestModal';
 
 /** Głęboki link z powiadomienia push: `/employees/leave-requests?request={id}`. */
 const REQUEST_PARAM = 'request';
@@ -108,7 +108,7 @@ export function LeaveRequestsTab() {
                 </ListCard>
             )}
 
-            {openId && <LeaveRequestDrawer key={openId} requestId={openId} onClose={closeRequest} />}
+            {openId && <LeaveRequestModal key={openId} requestId={openId} onClose={closeRequest} />}
         </Wrap>
     );
 }
