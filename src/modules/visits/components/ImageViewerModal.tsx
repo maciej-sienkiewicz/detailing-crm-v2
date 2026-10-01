@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import styled, { keyframes } from 'styled-components';
+import styled from 'styled-components';
 import { acquireScrollLock } from '@/common/utils/scrollLock';
+import { ProgressiveImage, preloadImage } from '@/common/components/ProgressiveImage';
 
 // ImageViewerModal is a fullscreen lightbox with a very dark overlay.
 // It intentionally keeps its own custom overlay and does NOT use ModalShell,
@@ -82,85 +83,6 @@ const ImageContainer = styled.div`
         width: calc(100vw - 24px);
         height: calc(100dvh - 160px);
     }
-`;
-
-const StageImage = styled.img`
-    position: absolute;
-    inset: 0;
-    display: block;
-    width: 100%;
-    height: 100%;
-    /* contain: nic nie jest przycinane, proporcje zostają. */
-    object-fit: contain;
-`;
-
-// Miniatura rozciągnięta na cały ekran jest miękka - lekkie rozmycie mówi „to
-// jeszcze nie to zdjęcie", zamiast udawać pełną jakość.
-// Chowa się dopiero, gdy pełna jakość skończy się nakładać - zniknięcie od razu
-// dawałoby czarne mignięcie pod zdjęciem, które dopiero nabiera krycia.
-const PreviewImage = styled(StageImage)<{ $hidden: boolean }>`
-    filter: blur(3px);
-    opacity: ${p => (p.$hidden ? 0 : 1)};
-    ${p => (p.$hidden ? 'transition: opacity 0s linear 0.25s;' : '')}
-`;
-
-const FullImage = styled(StageImage)<{ $loaded: boolean }>`
-    opacity: ${p => (p.$loaded ? 1 : 0)};
-    transition: opacity 0.2s ease;
-`;
-
-const spin = keyframes`
-    to { transform: rotate(360deg); }
-`;
-
-const appear = keyframes`
-    from { opacity: 0; }
-    to { opacity: 1; }
-`;
-
-// Wskaźnik pojawia się z opóźnieniem: zdjęcie pobrane wcześniej w tle wczytuje się
-// w ułamku sekundy i mignięcie kółka byłoby tylko szumem.
-const Loading = styled.div`
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    padding: 14px 18px;
-    border-radius: ${props => props.theme.radii.lg};
-    background: rgba(0, 0, 0, 0.45);
-    color: rgba(255, 255, 255, 0.9);
-    font-size: ${props => props.theme.fontSizes.xs};
-    pointer-events: none;
-    opacity: 0;
-    animation: ${appear} 0.2s ease 0.15s forwards;
-
-    &::before {
-        content: '';
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        border: 3px solid rgba(255, 255, 255, 0.25);
-        border-top-color: #fff;
-        animation: ${spin} 0.8s linear infinite;
-    }
-`;
-
-const LoadError = styled.div`
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    max-width: calc(100% - 32px);
-    padding: 10px 14px;
-    border-radius: ${props => props.theme.radii.md};
-    background: rgba(0, 0, 0, 0.6);
-    color: #fff;
-    font-size: ${props => props.theme.fontSizes.sm};
-    text-align: center;
 `;
 
 const ImageInfo = styled.div`
@@ -330,24 +252,6 @@ interface ImageViewerModalProps {
     position?: { index: number; total: number };
 }
 
-// Przeglądarka nie gwarantuje dokończenia pobierania obrazka, do którego nic już
-// nie trzyma referencji - dlatego obiekty Image żyją w module, a nie w efekcie.
-// Mapa jest ograniczona, żeby długie przeglądanie nie trzymało setek zdjęć.
-const PRELOAD_LIMIT = 12;
-const preloaded = new Map<string, HTMLImageElement>();
-
-function preload(url: string) {
-    if (preloaded.has(url)) return;
-    const img = new Image();
-    img.decoding = 'async';
-    img.src = url;
-    preloaded.set(url, img);
-    if (preloaded.size > PRELOAD_LIMIT) {
-        const oldest = preloaded.keys().next().value;
-        if (oldest !== undefined) preloaded.delete(oldest);
-    }
-}
-
 export const ImageViewerModal = ({
     imageUrl,
     imageName,
@@ -362,21 +266,11 @@ export const ImageViewerModal = ({
     preloadUrls,
     position,
 }: ImageViewerModalProps) => {
-    // Które zdjęcie w pełnej jakości już doszło (albo się wysypało). Porównanie z
-    // bieżącym adresem zamiast flagi resetowanej w efekcie: po strzałce stan
-    // „wczytane" dotyczy jeszcze poprzedniego zdjęcia i sam przestaje pasować, bez
-    // jednej klatki, w której nowe zdjęcie udawałoby gotowe.
-    const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
-    const [failedUrl, setFailedUrl] = useState<string | null>(null);
-    const loaded = loadedUrl === imageUrl;
-    const failed = failedUrl === imageUrl;
-    const showPreview = !!previewUrl && previewUrl !== imageUrl;
-
     // Klucz tekstowy zamiast tablicy: rodzic buduje ją na nowo przy każdym renderze.
     const preloadKey = (preloadUrls ?? []).join('\n');
     useEffect(() => {
         if (!isOpen || !preloadKey) return;
-        preloadKey.split('\n').forEach(preload);
+        preloadKey.split('\n').forEach(preloadImage);
     }, [isOpen, preloadKey]);
 
     useEffect(() => {
@@ -442,33 +336,9 @@ export const ImageViewerModal = ({
                 )}
 
                 <ImageContainer>
-                    {/* Po strzałce od razu widać NASTĘPNE zdjęcie - miniaturę, którą
-                        przeglądarka ma już z siatki - a nie poprzednie, które wisiało
-                        do czasu pobrania oryginału i dawało wrażenie, że klik nie
-                        zadziałał. */}
-                    {showPreview && (
-                        <PreviewImage
-                            key={`p:${previewUrl}`}
-                            src={previewUrl}
-                            alt=""
-                            aria-hidden="true"
-                            $hidden={loaded}
-                        />
-                    )}
-                    <FullImage
-                        key={imageUrl}
-                        src={imageUrl}
-                        alt={imageName}
-                        $loaded={loaded}
-                        onLoad={() => setLoadedUrl(imageUrl)}
-                        onError={() => setFailedUrl(imageUrl)}
-                    />
-                    {!loaded && !failed && (
-                        <Loading key={`l:${imageUrl}`} role="status">Wczytywanie zdjęcia</Loading>
-                    )}
-                    {failed && (
-                        <LoadError role="alert">Nie udało się wczytać zdjęcia w pełnej jakości.</LoadError>
-                    )}
+                    {/* Po strzałce od razu widać NASTĘPNE zdjęcie - miniaturę z siatki -
+                        a nie poprzednie, które wisiało do czasu pobrania oryginału. */}
+                    <ProgressiveImage src={imageUrl} alt={imageName} previewSrc={previewUrl} />
                     <ImageInfo>
                         <ImageMeta>
                             <ImageName>{imageName}</ImageName>
