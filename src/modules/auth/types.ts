@@ -41,6 +41,12 @@ export interface User {
     permissions?: string[] | null;
     /** True when the user's role has time tracking enabled; shows Czas pracy in sidebar. */
     trackWorkTime?: boolean;
+    /**
+     * Rekord pracownika powiązany z kontem; null, gdy konto go nie ma (np. właściciel
+     * bez rekordu). Tylko wtedy panel pokazuje „Urlop" - samoobsługa ustala pracownika
+     * z sesji, więc bez rekordu nie ma kogo w nim pokazać.
+     */
+    employeeId?: string | null;
     /** Seconds of inactivity before client-side lock screen fires. 0 = disabled. */
     idleTimeoutSeconds?: number;
 }

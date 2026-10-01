@@ -1,8 +1,9 @@
 // src/modules/gallery/components/GalleryLightbox.tsx
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { acquireScrollLock } from '@/common/utils/scrollLock';
+import { ProgressiveImage, preloadImage } from '@/common/components/ProgressiveImage';
 import { PiiValue } from '@/common/pii';
 import { useNavigate } from 'react-router-dom';
 import { TagChip } from '@/modules/photos/components/TagChip';
@@ -34,12 +35,14 @@ const Backdrop = styled.div`
 
 // ─── modal shell ──────────────────────────────────────────────────────────────
 
+// Okno ma STAŁĄ wysokość, a nie „do 90vh": inaczej zdjęcie pionowe rozciągało je w górę,
+// poziome ściągało w dół, i każda strzałka przesuwała okno razem z przyciskami.
 const Modal = styled.div`
     position: relative;
     display: flex;
     width: 100%;
     max-width: 1100px;
-    max-height: 90vh;
+    height: min(90vh, 820px);
     background: ${p => p.theme.colors.surface};
     border-radius: ${p => p.theme.radii.xl};
     overflow: hidden;
@@ -48,6 +51,7 @@ const Modal = styled.div`
 
     @media (max-width: 768px) {
         flex-direction: column;
+        height: auto;
         max-height: 95vh;
         border-radius: ${p => p.theme.radii.xl} ${p => p.theme.radii.xl} 0 0;
     }
@@ -69,16 +73,6 @@ const ImageArea = styled.div`
         height: 240px;
         flex: none;
     }
-`;
-
-// Fills the whole image area regardless of the file's intrinsic size, so
-// swapping the src from thumbnail to full-size never changes the rendered
-// geometry: the photo only sharpens in place instead of jumping.
-const MainImage = styled.img`
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    display: block;
 `;
 
 const FullResBtn = styled.a`
@@ -257,12 +251,6 @@ const SectionLabel = styled.span`
     color: ${p => p.theme.colors.textMuted};
 `;
 
-const SectionValue = styled.span`
-    font-size: ${p => p.theme.fontSizes.sm};
-    color: ${p => p.theme.colors.text};
-    word-break: break-word;
-`;
-
 const MetaRow = styled.div`
     display: flex;
     align-items: flex-start;
@@ -397,19 +385,6 @@ interface GalleryLightboxProps {
 export const GalleryLightbox = ({ photo, onClose, onPrev, onNext, position, preload }: GalleryLightboxProps) => {
     const navigate = useNavigate();
 
-    // Show the thumbnail instantly, then swap the same <img> to the full-size
-    // source once it has finished downloading in the background, using a single
-    // element, so the layout never changes.
-    const [mainSrc, setMainSrc] = useState(photo.thumbnailUrl);
-    useEffect(() => {
-        setMainSrc(photo.thumbnailUrl);
-        let cancelled = false;
-        const loader = new Image();
-        loader.onload = () => { if (!cancelled) setMainSrc(photo.fullSizeUrl); };
-        loader.src = photo.fullSizeUrl;
-        return () => { cancelled = true; };
-    }, [photo.thumbnailUrl, photo.fullSizeUrl]);
-
     // Escape zamyka, strzałki ← → przechodzą do poprzedniego / następnego zdjęcia.
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
@@ -425,7 +400,7 @@ export const GalleryLightbox = ({ photo, onClose, onPrev, onNext, position, prel
     const preloadKey = (preload ?? []).join('\n');
     useEffect(() => {
         if (!preloadKey) return;
-        preloadKey.split('\n').forEach(url => { new Image().src = url; });
+        preloadKey.split('\n').forEach(preloadImage);
     }, [preloadKey]);
 
     // Lock body scroll — through the shared, ref-counted lock: a hardcoded
@@ -434,7 +409,6 @@ export const GalleryLightbox = ({ photo, onClose, onPrev, onNext, position, prel
     useEffect(() => acquireScrollLock(), []);
 
     const vehicleLabel = [photo.vehicleBrand, photo.vehicleModel].filter(Boolean).join(' ');
-    const vehicleSubLabel = [photo.vehicleLicensePlate, photo.vehicleYear].filter(Boolean).join(' · ');
 
     return (
         <Backdrop onClick={onClose}>
@@ -442,15 +416,18 @@ export const GalleryLightbox = ({ photo, onClose, onPrev, onNext, position, prel
 
                 {/* ── Image side ── */}
                 <ImageArea>
+                    {/* Od razu miniatura z siatki, rozmyta, ze wskaźnikiem - pełna jakość nakłada
+                        się na nią po pobraniu. Wcześniej ten sam <img> podmieniał źródło, bez
+                        żadnego sygnału, że coś się jeszcze wczytuje. */}
+                    <ProgressiveImage
+                        src={photo.fullSizeUrl}
+                        previewSrc={photo.thumbnailUrl}
+                        alt={photo.description ?? photo.fileName}
+                    />
+
                     <SourceBadgeImg $source={photo.source}>
                         {photo.source === 'VISIT' ? 'Wizyta' : photo.source === 'BATCH_ORDER' ? 'Zbiorcze' : 'Pojazd'}
                     </SourceBadgeImg>
-
-                    <MainImage
-                        src={mainSrc}
-                        alt={photo.description ?? photo.fileName}
-                        decoding="async"
-                    />
 
                     {position && position.total > 1 && (
                         <>
@@ -584,8 +561,12 @@ export const GalleryLightbox = ({ photo, onClose, onPrev, onNext, position, prel
                                         <strong style={{ display: 'block', lineHeight: 1.3 }}>
                                             {vehicleLabel || 'Pojazd'}
                                         </strong>
-                                        {vehicleSubLabel && (
-                                            <span style={{ fontSize: '11px', opacity: 0.6 }}>{vehicleSubLabel}</span>
+                                        {(photo.vehicleLicensePlate || photo.vehicleYear) && (
+                                            // Tablica i rocznik jako dwa elementy obok siebie, nie sklejone kropką (CLAUDE.md §4).
+                                            <span style={{ display: 'flex', gap: '8px', fontSize: '11px', opacity: 0.6 }}>
+                                                {photo.vehicleLicensePlate && <span style={{ flex: 'none' }}>{photo.vehicleLicensePlate}</span>}
+                                                {photo.vehicleYear && <span style={{ flex: 'none' }}>{photo.vehicleYear}</span>}
+                                            </span>
                                         )}
                                     </span>
                                     <svg className="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

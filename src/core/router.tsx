@@ -26,7 +26,8 @@ import { BatchOrdersView } from "@/modules/batch-orders";
 import { ProductListView, ProductDetailView, MobileProductScanView } from "@/modules/products";
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ScrollLockRouteReset } from './components/ScrollLockRouteReset';
-import { RequirePermission, HomeRedirect, NoAccessView, ANY_FINANCE, ANY_DASHBOARD } from './permissions';
+import { RedirectWithParams } from './components/RedirectWithParams';
+import { RequirePermission, HomeRedirect, NoAccessView, ANY_FINANCE, ANY_DASHBOARD, ANY_EMPLOYEES } from './permissions';
 import { NotificationsView } from '@/modules/notifications';
 import type { PermissionRequirement } from './permissions';
 import {DashboardView} from "@/modules/dashboard";
@@ -46,7 +47,7 @@ const MailView = lazyWithRetry(() => import('@/modules/comms/views/MailView'));
 const MailboxConnectView = lazyWithRetry(() => import('@/modules/comms/views/MailboxConnectView'));
 const LeadsView = lazyWithRetry(() => import('@/modules/comms/views/LeadsView'));
 const LeadAnalyticsView = lazyWithRetry(() => import('@/modules/comms/views/LeadAnalyticsView'));
-import { EmployeeDetailView } from '@/modules/employees';
+import { EmployeeDetailView, EmployeesView, MyLeaveView } from '@/modules/employees';
 import { WorkTimeView } from '@/modules/worktime';
 import { ActivityView } from '@/modules/activity';
 import { SettingsView } from '@/modules/settings';
@@ -397,6 +398,14 @@ export const router = createBrowserRouter([
             element: gatedPage(<ConsentSettingsView />, 'E_SIGNATURES', E_SIGNATURES_BENEFITS, 'CUSTOMERS_VIEW'),
         },
 
+        // ── Urlop (samoobsługa pracownika, bez uprawnienia) ──────────────────
+        // Pracownik jest ustalany z sesji, nie z adresu - konto bez rekordu pracownika
+        // dostaje ekran „nie jest powiązane", a nie cudze dane.
+        {
+            path: '/me/leave',
+            element: page(<MyLeaveView />),
+        },
+
         // ── Czas pracy (self-service dla pracowników z trackWorkTime) ────────
         {
             path: '/worktime',
@@ -409,13 +418,34 @@ export const router = createBrowserRouter([
             element: page(<ActivityView />, 'AUDIT_VIEW'),
         },
 
-        // ── Zespół ───────────────────────────────────────────────────────────
-        // Lista pracowników stoi w Ustawieniach (`/settings?tab=team`); osobna
-        // trasa `/team` była jej drugą, równoległą wersją i została usunięta.
-        // Karta pojedynczego pracownika zostaje - Ustawienia do niej prowadzą.
+        // ── Pracownicy ───────────────────────────────────────────────────────
+        // Moduł wyszedł z Ustawień (`/settings?tab=team` przekierowuje tutaj).
+        // Zakładki to osobne trasy z własnym uprawnieniem - lista w employeesTabs.ts.
         {
-            path: '/team/:employeeId',
+            path: '/employees',
+            element: page(<EmployeesView tab="team" />, 'EMPLOYEES_MANAGE'),
+        },
+        {
+            // Głęboki link z powiadomienia push: `?request={id}` otwiera szufladę wniosku.
+            path: '/employees/leave-requests',
+            element: page(<EmployeesView tab="leaves" />, 'EMPLOYEES_LEAVES_APPROVE'),
+        },
+        {
+            path: '/employees/absences',
+            element: page(<EmployeesView tab="absences" />, ANY_EMPLOYEES),
+        },
+        {
+            path: '/employees/worktime',
+            element: page(<EmployeesView tab="worktime" />, 'EMPLOYEES_MANAGE'),
+        },
+        {
+            path: '/employees/:employeeId',
             element: page(<EmployeeDetailView />, 'EMPLOYEES_MANAGE'),
+        },
+        {
+            // Dawny adres karty pracownika - krąży w zakładkach przeglądarki.
+            path: '/team/:employeeId',
+            element: <RedirectWithParams to="/employees/:employeeId" />,
         },
 
         // ── Ustawienia (dodatkowo zakładki filtrowane wewnątrz widoku) ───────

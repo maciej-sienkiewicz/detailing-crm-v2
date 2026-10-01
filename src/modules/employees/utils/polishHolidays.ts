@@ -75,6 +75,8 @@ export function getPolishHolidays(year: number): Set<string> {
         toDateStr(addDays(easter, 1)),   // Poniedziałek Wielkanocny
         toDateStr(addDays(easter, 49)),  // Zielone Świątki
         toDateStr(addDays(easter, 60)),  // Boże Ciało
+        // Wigilia jest dniem wolnym od pracy od 2025 r.
+        ...(year >= 2025 ? [`${year}-12-24`] : []),
     ]);
 }
 
@@ -87,6 +89,7 @@ export const POLISH_HOLIDAY_NAMES: Record<string, string> = {
     '08-15': 'Wniebowzięcie NMP',
     '11-01': 'Wszystkich Świętych',
     '11-11': 'Święto Niepodległości',
+    '12-24': 'Wigilia',
     '12-25': 'Boże Narodzenie',
     '12-26': 'Boże Narodzenie (2.)',
 };

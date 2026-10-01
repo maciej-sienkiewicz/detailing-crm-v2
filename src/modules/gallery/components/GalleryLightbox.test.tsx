@@ -50,3 +50,43 @@ describe('GalleryLightbox - przechodzenie między zdjęciami', () => {
         expect(screen.getByText('Krzysztof Niemier')).toBeTruthy();
     });
 });
+
+describe('GalleryLightbox - wczytywanie zdjęcia', () => {
+    const previewImg = () => document.querySelector('img[aria-hidden="true"]') as HTMLImageElement | null;
+    const withProviders = (photo: GalleryPhoto) => (
+        <MemoryRouter>
+            <ThemeProvider theme={theme}>
+                <GalleryLightbox photo={photo} onClose={() => {}} />
+            </ThemeProvider>
+        </MemoryRouter>
+    );
+
+    it('od razu miniatura i wskaźnik wczytywania, pełna jakość je zastępuje', () => {
+        renderLightbox();
+
+        expect(previewImg()?.getAttribute('src')).toBe('t/p1');
+        expect(screen.getByRole('status')).toHaveTextContent('Wczytywanie zdjęcia');
+
+        fireEvent.load(screen.getByAltText('przod.jpg'));
+        expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
+
+    it('po przejściu do następnego zdjęcia widać JEGO miniaturę i znów wskaźnik', () => {
+        const view = render(withProviders(PHOTO));
+        fireEvent.load(screen.getByAltText('przod.jpg'));
+
+        view.rerender(withProviders({ ...PHOTO, id: 'p2', fileName: 'tyl.jpg', thumbnailUrl: 't/p2', fullSizeUrl: 'f/p2' }));
+
+        expect(previewImg()?.getAttribute('src')).toBe('t/p2');
+        expect(screen.getByAltText('tyl.jpg').getAttribute('src')).toBe('f/p2');
+        expect(screen.getByRole('status')).toBeInTheDocument();
+    });
+
+    it('gdy pełna jakość się nie wczyta, zostaje miniatura i komunikat', () => {
+        renderLightbox();
+        fireEvent.error(screen.getByAltText('przod.jpg'));
+
+        expect(screen.getByRole('alert')).toHaveTextContent('Nie udało się wczytać zdjęcia w pełnej jakości.');
+        expect(previewImg()).not.toBeNull();
+    });
+});

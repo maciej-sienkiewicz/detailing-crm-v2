@@ -4,7 +4,6 @@
 // (wygląd sprzed przebudowy z 25.09, logika nowa). Daty liczone
 // lokalnie - `new Date('2026-09-01')` to północ UTC, na zachód od Greenwich
 // już poprzedni dzień.
-import type { ReactNode } from 'react';
 import { useState } from 'react';
 import styled from 'styled-components';
 import { parseIsoDate } from '../utils/period';
@@ -13,12 +12,6 @@ interface Props {
     from: string;
     to: string;
     onChange: (from: string, to: string) => void;
-    /**
-     * Dodatkowe filtry doklejane do tego samego panelu (dziś: „Pokaż rozliczone").
-     * Stoją tu, a nie obok, bo zawężają tę samą listę co okres - a na telefonie
-     * każdy filtr trzymany osobno kosztował własny wiersz nad tabelą.
-     */
-    extra?: ReactNode;
 }
 
 type ActivePreset = 'current' | 'previous' | 'pick-month' | 'custom';
@@ -150,21 +143,6 @@ const Chip = styled.button<{ $active?: boolean }>`
     @media (hover: none) and (pointer: coarse) { min-height: 40px; }
 `;
 
-/* Na desktopie dosuwa się do prawej krawędzi rzędu chipów - czyli tam, gdzie
-   „Pokaż rozliczone" stało dotąd, tylko bez zajmowania osobnego wiersza.
-   Na telefonie schodzi pod chipy, wewnątrz rozwijanego panelu. */
-const ExtraSlot = styled.div`
-    margin-left: auto;
-    display: flex;
-    align-items: center;
-
-    @media (max-width: 639px) {
-        margin-left: 0;
-        flex-basis: 100%;
-        padding-top: 4px;
-    }
-`;
-
 const MonthSelect = styled.select`
     padding: 5px 10px;
     border: 1px solid ${p => p.theme.colors.primary};
@@ -214,7 +192,7 @@ const ApplyBtn = styled.button`
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function DateRangeFilter({ onChange, extra }: Props) {
+export function DateRangeFilter({ onChange }: Props) {
     const [activePreset, setActivePreset] = useState<ActivePreset>('current');
     const [selectedMonth, setSelectedMonth] = useState(() => {
         const now = new Date();
@@ -347,7 +325,6 @@ export function DateRangeFilter({ onChange, extra }: Props) {
                     </>
                 )}
 
-                {extra && <ExtraSlot>{extra}</ExtraSlot>}
             </FilterOptions>
         </Wrapper>
     );

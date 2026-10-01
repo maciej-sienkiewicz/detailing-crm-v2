@@ -3,8 +3,9 @@
 // Wraca dawny wygląd karty kontrahenta (telefon i komputer), ale logika zostaje nowa:
 // kliknięcie w auto otwiera edytor (dawniej nic się nie działo - od tego zaczęło się
 // zgłoszenie), a rozliczonego auta nie zmienia się wprost - menu proponuje odblokowanie.
+// Rozliczone auta są zawsze na liście, pod nierozliczonymi, z ikoną zamiast plakietki.
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
 import { ContractorEntriesSection } from './ContractorEntriesSection';
@@ -18,14 +19,19 @@ const entry = (id: string, closed: boolean): BatchOrderEntry => ({
     closeHistoryId: closed ? 'h1' : null, photoCount: 0, createdAt: '2026-09-24T10:00:00Z', updatedAt: '2026-09-24T10:00:00Z',
 });
 
-const entries = [entry('e1', false), entry('e2', true)];
+// Serwer oddaje rozliczone auto PIERWSZE - lista ma je zepchnąć pod nierozliczone.
+const entries = [entry('e2', true), entry('e1', false)];
 const sum = { totalNetCents: 308_944, totalGrossCents: 380_000, entryCount: 2 };
+const openSum = { totalNetCents: 154_472, totalGrossCents: 190_000, entryCount: 1 };
+
+const entriesResult = () => ({
+    data: { entries, settledCount: 1, summary: sum, openSummary: openSum, settledSummary: openSum, lastSettledAt: null },
+    isLoading: false, isError: false,
+});
+const useContractorEntries = vi.fn<(...args: unknown[]) => ReturnType<typeof entriesResult>>(entriesResult);
 
 vi.mock('../hooks/useBatchOrders', () => ({
-    useContractorEntries: () => ({
-        data: { entries, settledCount: 1, summary: sum, openSummary: sum, settledSummary: sum, lastSettledAt: null },
-        isLoading: false, isError: false,
-    }),
+    useContractorEntries: (...args: unknown[]) => useContractorEntries(...args),
     useDeleteEntry: () => ({ mutateAsync: vi.fn() }),
     useReopenEntry: () => ({ mutateAsync: vi.fn() }),
 }));
@@ -84,5 +90,54 @@ describe('ContractorEntriesSection - dawny wygląd, nowa logika', () => {
         fireEvent.click(screen.getByText('Kia Ceed'));
         expect(screen.getByText('Odblokować wpis do korekty?')).toBeInTheDocument();
         expect(screen.queryByText(/Edytor:/)).toBeNull();
+    });
+
+    it('rozliczone auta są zawsze na liście, pod nierozliczonymi', () => {
+        renderCard();
+        expect(useContractorEntries).toHaveBeenLastCalledWith('c1', expect.any(String), expect.any(String), 'ALL');
+        expect(screen.queryByText('Pokaż rozliczone')).toBeNull();
+        const rows = screen.getAllByRole('row').slice(1); // bez wiersza nagłówka
+        expect(rows.map(r => within(r).queryByText(/Octavia|Ceed/)?.textContent)).toEqual(['Skoda Octavia', 'Kia Ceed']);
+    });
+
+    it('zamiast plakietki „Rozliczone" ikona, a jej dotknięcie wyjaśnia i nie otwiera wiersza', () => {
+        renderCard();
+        expect(screen.queryByText(/^Rozliczone$/i)).toBeNull();
+        const icons = screen.getAllByRole('button', { name: 'Rozliczone - co to znaczy?' });
+        expect(icons).toHaveLength(1); // tylko przy rozliczonym aucie
+
+        fireEvent.click(icons[0]);
+        expect(screen.getByRole('tooltip')).toHaveTextContent('jest już w zestawieniu');
+        expect(screen.queryByText('Odblokować wpis do korekty?')).toBeNull();
+
+        fireEvent.click(icons[0]);
+        expect(screen.queryByRole('tooltip')).toBeNull();
+    });
+
+    it('dymek zamyka dotknięcie gdziekolwiek indziej', () => {
+        renderCard();
+        fireEvent.click(screen.getByRole('button', { name: 'Rozliczone - co to znaczy?' }));
+        expect(screen.getByRole('tooltip')).toBeInTheDocument();
+        fireEvent.pointerDown(document.body);
+        expect(screen.queryByRole('tooltip')).toBeNull();
+    });
+
+    it('sumy mówią, ile czeka na rozliczenie, a nie ile jest na liście', () => {
+        renderCard();
+        expect(screen.getByText('Do rozliczenia')).toBeInTheDocument();
+        expect(screen.getByText(/do rozliczenia, 1 wpis/)).toBeInTheDocument();
+    });
+
+    it('korekta: bursztynowa ikona z wyjaśnieniem zamiast plakietki', () => {
+        const correction = { ...entry('e3', false), vehicleMake: 'BMW', vehicleModel: 'X5', isCorrection: true };
+        useContractorEntries.mockReturnValueOnce({
+            data: { entries: [...entries, correction], settledCount: 1, summary: sum, openSummary: openSum, settledSummary: openSum, lastSettledAt: null },
+            isLoading: false, isError: false,
+        });
+        renderCard();
+        expect(screen.queryByText(/^Korekta$/i)).toBeNull();
+        fireEvent.click(screen.getByRole('button', { name: 'Korekta - co to znaczy?' }));
+        expect(screen.getByRole('tooltip')).toHaveTextContent('odblokowane do poprawki');
+        expect(screen.queryByRole('dialog')).toBeNull(); // dotknięcie ikony nie otwiera edytora
     });
 });
