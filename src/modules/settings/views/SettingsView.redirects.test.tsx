@@ -22,7 +22,7 @@ const renderAt = (path: string) => {
     const router = createMemoryRouter([
         { path: '/settings', element: <SettingsView /> },
         { path: '/employees', element: <p>moduł pracownicy</p> },
-        { path: '/employees/worktime', element: <p>czas pracy</p> },
+        { path: '/employees/worktime', element: <p>listy miesięczne</p> },
         { path: '/employees/:employeeId', element: <p>karta pracownika</p> },
         { path: '/team/:employeeId', element: <RedirectWithParams to="/employees/:employeeId" /> },
     ], { initialEntries: [path] });
@@ -47,7 +47,7 @@ describe('legacyTeamRedirect', () => {
         expect(target('tab=team&view=employees')).toBe('/employees');
     });
 
-    it('rozliczenia prowadzą do zakładki „Czas pracy"', () => {
+    it('rozliczenia prowadzą do zakładki „Listy miesięczne"', () => {
         expect(target('tab=team&view=settlements')).toBe('/employees/worktime');
     });
 

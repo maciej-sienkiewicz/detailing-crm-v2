@@ -2,10 +2,17 @@
 //
 // Zakładki modułu „Pracownicy". Każda ma własną ścieżkę (jak /statistics
 // i /statistics/costs), a nie `?tab=`: push i podpowiedź na Tablicy linkują wprost
-// do zakładki, a uprawnienie pilnuje trasy, nie tylko przycisku.
+// do zakładki, a uprawnienie pilnuje trasy, nie tylko przycisku. Ścieżki są dziećmi
+// jednej trasy `/employees` (employeesRoutes.tsx) - rama z nagłówkiem zostaje
+// zamontowana, zmienia się tylko treść zakładki.
 //
 // Jedna lista zasila trzy miejsca naraz - pasek zakładek, pozycję w panelu bocznym
 // i trasy - więc kolejność i wymagania nie mogą się między nimi rozjechać.
+//
+// „Listy miesięczne" (dawniej „Czas pracy") zostały pod `/employees/worktime`:
+// na tę ścieżkę linkuje podpowiedź WORKTIME_MISSING na Tablicy. Nazwę zmieniono, bo
+// „Czas pracy" to też samoobsługowy moduł pracownika (/worktime) - dwie pozycje
+// o tej samej nazwie prowadziły w dwa różne miejsca.
 
 import { ANY_EMPLOYEES, type PermissionRequirement } from '@/core/permissions/catalog';
 
@@ -22,11 +29,17 @@ export const EMPLOYEES_TABS: readonly EmployeesTabDef[] = [
     { key: 'team', label: 'Zespół', path: '/employees', requires: 'EMPLOYEES_MANAGE' },
     { key: 'leaves', label: 'Wnioski urlopowe', path: '/employees/leave-requests', requires: 'EMPLOYEES_LEAVES_APPROVE' },
     { key: 'absences', label: 'Nieobecności', path: '/employees/absences', requires: ANY_EMPLOYEES },
-    { key: 'worktime', label: 'Czas pracy', path: '/employees/worktime', requires: 'EMPLOYEES_MANAGE' },
+    { key: 'worktime', label: 'Listy miesięczne', path: '/employees/worktime', requires: 'EMPLOYEES_MANAGE' },
 ];
 
 export const employeesTabPath = (key: EmployeesTab): string =>
     EMPLOYEES_TABS.find(t => t.key === key)!.path;
+
+/** Zakładka z adresu; `/employees` (indeks) to „Zespół". */
+export function employeesTabFromPath(pathname: string): EmployeesTab {
+    const path = pathname.replace(/\/+$/, '');
+    return EMPLOYEES_TABS.find(t => t.path === path)?.key ?? 'team';
+}
 
 /**
  * Pierwsza zakładka, do której użytkownik ma dostęp. Z niej startuje pozycja

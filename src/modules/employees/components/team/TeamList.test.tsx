@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 //
-// Lista zespołu (zakładka „Zespół” modułu Pracownicy): wiersz otwiera edycję (klawiaturą też), osoba bez
+// Lista zespołu (zakładka „Zespół” modułu Pracownicy): wiersz prowadzi na kartę pracownika
+// (klawiaturą też), edycja danych jest w menu ⋮, osoba bez
 // konta dostaje „Zaproś do systemu", a błąd - zapisu albo wczytania - jest widoczny,
 // zamiast udawać pustą listę albo wracać do przycisku bez słowa.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
+import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
 import { ToastProvider } from '@/common/components/Toast';
@@ -74,17 +75,20 @@ const listOf = (items: EmployeeListItem[]) => ({
 
 const renderSection = () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-    return render(
+    const router = createMemoryRouter([
+        { path: '/employees', element: <TeamList /> },
+        { path: '/employees/:employeeId', element: <p>karta pracownika</p> },
+    ], { initialEntries: ['/employees'] });
+    render(
         <QueryClientProvider client={queryClient}>
-            <MemoryRouter>
-                <ThemeProvider theme={theme}>
-                    <ToastProvider>
-                        <TeamList />
-                    </ToastProvider>
-                </ThemeProvider>
-            </MemoryRouter>
+            <ThemeProvider theme={theme}>
+                <ToastProvider>
+                    <RouterProvider router={router} />
+                </ToastProvider>
+            </ThemeProvider>
         </QueryClientProvider>,
     );
+    return router;
 };
 
 const serverDown = { response: { status: 503, data: {} } };
@@ -112,13 +116,36 @@ describe('TeamList - lista pracowników', () => {
         expect(await screen.findByText('Liczony czas pracy')).toBeTruthy();
     });
 
-    it('wiersz jest przyciskiem: otwiera edycję, a zapis wysyła zmiany do serwera', async () => {
+    it('kliknięcie w pracownika prowadzi na jego kartę; wiersz jest linkiem (Tab i Enter)', async () => {
+        const router = renderSection();
+        const row = await screen.findByRole('link', { name: 'Karta pracownika: Marta Kowalczyk' });
+        expect(row.getAttribute('href')).toBe('/employees/e1');
+        fireEvent.click(row);
+        expect(await screen.findByText('karta pracownika')).toBeTruthy();
+        expect(router.state.location.pathname).toBe('/employees/e1');
+    });
+
+    it('menu ⋮ i „Zaproś do systemu" nie przenoszą na kartę', async () => {
+        const router = renderSection();
+        fireEvent.click(await screen.findByRole('button', { name: 'Więcej akcji: Marta Kowalczyk' }));
+        expect(await screen.findByRole('menuitem', { name: /Edytuj dane/ })).toBeTruthy();
+        fireEvent.click(screen.getByRole('button', { name: 'Zaproś do systemu' }));
+        expect(router.state.location.pathname).toBe('/employees');
+    });
+
+    it('bez wyszukiwarki nad listą', async () => {
+        renderSection();
+        await screen.findByText('Marta Kowalczyk');
+        expect(screen.queryByRole('searchbox')).toBeNull();
+        expect(screen.queryByPlaceholderText(/Szukaj/)).toBeNull();
+    });
+
+    it('edycja z menu ⋮: zapis wysyła zmiany do serwera', async () => {
         vi.mocked(teamApi.updateEmployee).mockResolvedValue({} as never);
         renderSection();
 
-        const edit = await screen.findByRole('button', { name: 'Edytuj: Marta Kowalczyk' });
-        expect(edit.tagName).toBe('BUTTON');
-        fireEvent.click(edit);
+        fireEvent.click(await screen.findByRole('button', { name: 'Więcej akcji: Marta Kowalczyk' }));
+        fireEvent.click(await screen.findByRole('menuitem', { name: /Edytuj dane/ }));
 
         const dialog = await screen.findByRole('dialog');
         fireEvent.change(within(dialog).getByLabelText('Telefon'), { target: { value: '+48 700 000 000' } });

@@ -1,8 +1,8 @@
-import { useEffect, useState, type MouseEvent as ReactMouseEvent } from 'react';
+import { useState, type MouseEvent as ReactMouseEvent } from 'react';
 import styled from 'styled-components';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { ExternalLink, Mail, MoreVertical, Pencil, Plus, UserPlus } from 'lucide-react';
+import { Mail, MoreVertical, Pencil, Plus, UserPlus } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
 import { formatDateTime } from '@/common/utils';
 import {
@@ -40,22 +40,23 @@ function buildPageNumbers(current: number, total: number): (number | '...')[] {
 }
 
 interface TeamListProps {
-    /** Fraza z pola „Szukaj osoby" nad listą (stoi obok przełącznika widoków). */
-    search?: string;
     /** Przejście do „Role i uprawnienia” w Ustawieniach; bez niego Notice nie ma akcji. */
     onGoToRoles?: () => void;
-    /** Otwiera okno listy obecności - to samo co w zakładce „Czas pracy”. */
+    /** Otwiera okno listy obecności - to samo co w zakładce „Listy miesięczne”. */
     onOpenAttendance?: () => void;
 }
 
 type Editing = { employee: EmployeeListItem; focusAccount: boolean };
 
-export function TeamList({ search = '', onGoToRoles, onOpenAttendance }: TeamListProps = {}) {
-    const navigate = useNavigate();
+/**
+ * Bez wyszukiwarki - zgłoszenie: „usuń komponent odpowiedzialny za szukanie pracownika".
+ * Zespół studia to kilka-kilkanaście osób na jednej stronie; pole szukania zajmowało
+ * miejsce w nagłówku i nie miało czego przesiewać.
+ */
+export function TeamList({ onGoToRoles, onOpenAttendance }: TeamListProps = {}) {
     const queryClient = useQueryClient();
     const { showSuccess, showError } = useToast();
 
-    const [debouncedSearch, setDebouncedSearch] = useState(search);
     const [page, setPage] = useState(1);
 
     const [isAddOpen, setIsAddOpen] = useState(false);
@@ -63,12 +64,7 @@ export function TeamList({ search = '', onGoToRoles, onOpenAttendance }: TeamLis
     const [savingEdit, setSavingEdit] = useState(false);
     const menu = useActionMenu<EmployeeListItem>();
 
-    useEffect(() => {
-        const t = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 350);
-        return () => clearTimeout(t);
-    }, [search]);
-
-    const filters = { search: debouncedSearch, page, limit: PAGE_SIZE };
+    const filters = { search: '', page, limit: PAGE_SIZE };
     const { employees: items, pagination, isLoading, isError, refetch } = useEmployees(filters);
     const invalidateEmployees = useInvalidateEmployees();
 
@@ -255,12 +251,8 @@ export function TeamList({ search = '', onGoToRoles, onOpenAttendance }: TeamLis
                         ))
                     ) : items.length === 0 ? (
                         <Empty>
-                            <strong>{debouncedSearch ? 'Nikt nie pasuje do wyszukiwania' : 'Nie ma jeszcze pracowników'}</strong>
-                            <span>
-                                {debouncedSearch
-                                    ? `Sprawdź pisownię albo szukaj po nazwisku lub adresie e-mail zamiast „${debouncedSearch}".`
-                                    : 'Dodaj pierwszą osobę przyciskiem „Dodaj pracownika" u góry.'}
-                            </span>
+                            <strong>Nie ma jeszcze pracowników</strong>
+                            <span>Dodaj pierwszą osobę przyciskiem „Dodaj pracownika" u góry.</span>
                         </Empty>
                     ) : (
                         <ul>
@@ -270,7 +262,6 @@ export function TeamList({ search = '', onGoToRoles, onOpenAttendance }: TeamLis
                                     employee={emp}
                                     tracksWorkTime={hasWorkTime(emp.role?.id)}
                                     menuOpen={menu.isOpen(emp.id)}
-                                    onEdit={() => openEdit(emp)}
                                     onInvite={() => openEdit(emp, true)}
                                     onMenu={e => menu.toggle(e, emp, emp.id)}
                                 />
@@ -305,9 +296,6 @@ export function TeamList({ search = '', onGoToRoles, onOpenAttendance }: TeamLis
                 {menuEmployee && (
                     <>
                         <MenuItem icon={<Pencil />} onClick={() => openEdit(menuEmployee)}>Edytuj dane</MenuItem>
-                        <MenuItem icon={<ExternalLink />} onClick={() => navigate(`/employees/${menuEmployee.id}`)}>
-                            Karta pracownika
-                        </MenuItem>
                         {menuEmployee.accountPending && (
                             <MenuItem
                                 icon={<Mail />}
@@ -359,25 +347,26 @@ interface EmployeeRowProps {
     employee: EmployeeListItem;
     tracksWorkTime: boolean;
     menuOpen: boolean;
-    onEdit: () => void;
     onInvite: () => void;
     onMenu: (e: ReactMouseEvent<HTMLElement>) => void;
 }
 
 /**
- * Cały wiersz otwiera edycję, ale nie jest `div`-em z onClick: nazwisko jest
- * przyciskiem, a jego `::after` rozciąga się na wiersz. Dzięki temu wiersz osiąga
- * się Tabem i Enterem, a przyciski w środku (⋮, „Zaproś do systemu") pozostają
- * osobnymi celami - przycisk w przycisku byłby niepoprawnym HTML-em.
+ * Cały wiersz prowadzi na kartę pracownika („jak klikamy w pracownika, to powinniśmy
+ * zostać przekierowani na kartę pracownika") - edycja danych i zaproszenie są w menu ⋮.
+ * Wiersz nie jest `div`-em z onClick: nazwisko jest linkiem, a jego `::after` rozciąga
+ * się na wiersz. Dzięki temu wiersz osiąga się Tabem i Enterem, da się go otworzyć
+ * w nowej karcie, a przyciski w środku (⋮, „Zaproś do systemu") leżą nad linkiem jako
+ * osobne cele - kliknięcie w nie nie przechodzi na kartę.
  */
-function EmployeeRow({ employee: emp, tracksWorkTime, menuOpen, onEdit, onInvite, onMenu }: EmployeeRowProps) {
+function EmployeeRow({ employee: emp, tracksWorkTime, menuOpen, onInvite, onMenu }: EmployeeRowProps) {
     const contact = [emp.email, emp.phone].filter((v): v is string => !!v);
     return (
         <Row>
             <NameCell>
-                <NameButton type="button" onClick={onEdit} aria-label={`Edytuj: ${emp.fullName}`}>
+                <NameLink to={`/employees/${emp.id}`} aria-label={`Karta pracownika: ${emp.fullName}`}>
                     {emp.fullName}
-                </NameButton>
+                </NameLink>
                 <Meta>
                     {contact.map(c => <span key={c}>{c}</span>)}
                     {contact.length === 0 && <span>Brak kontaktu</span>}
@@ -475,7 +464,7 @@ const Row = styled.li`
     transition: background 150ms;
     &:last-child { border-bottom: none; }
     &:hover { background: #f8fafc; }
-    &:has(button:first-of-type:focus-visible) { background: #f0f9ff; }
+    &:has(a:focus-visible) { background: #f0f9ff; }
 
     /* Wąska lista: nazwisko i ⋮ w pierwszej linii, pod nimi kontakt, a na dole
        rola i stan konta obok siebie. Cztery kolumny się tu nie mieszczą. */
@@ -498,13 +487,11 @@ const NameCell = styled.div`
     min-width: 0;
 `;
 
-const NameButton = styled.button`
+const NameLink = styled(Link)`
     align-self: flex-start;
     max-width: 100%;
-    padding: 0;
-    border: none;
-    background: none;
     font-family: inherit;
+    text-decoration: none;
     font-size: 15px;
     font-weight: 700;
     color: #0f172a;
@@ -514,7 +501,7 @@ const NameButton = styled.button`
     text-overflow: ellipsis;
     white-space: nowrap;
 
-    /* Rozciągnięty cel kliknięcia: cały wiersz otwiera edycję. */
+    /* Rozciągnięty cel kliknięcia: cały wiersz prowadzi na kartę. */
     &::after { content: ''; position: absolute; inset: 0; }
     &:focus-visible { outline: none; }
     &:focus-visible::after { outline: 2px solid #38bdf8; outline-offset: -2px; border-radius: 4px; }
@@ -546,7 +533,7 @@ const AccountCell = styled.div`
     min-width: 0;
 `;
 
-/** Wszystko, co klikalne, leży nad rozciągniętym celem nazwiska - reszta wiersza otwiera edycję. */
+/** Wszystko, co klikalne, leży nad rozciągniętym celem nazwiska - reszta wiersza prowadzi na kartę. */
 const RaisedButton = styled(Button)`
     position: relative;
     z-index: 1;
