@@ -1,32 +1,30 @@
 // @vitest-environment jsdom
 //
-// Strona karty czasu pracy (zamiast okna, w którym na telefonie nie dało się przewinąć
-// całego miesiąca). Cały miesiąc dzień po dniu, a na dole tylko akcje pasujące do statusu:
+// Okno karty czasu pracy (zakładka „Czas pracy" i karta pracownika). Cały miesiąc dzień
+// po dniu w przewijanej treści okna, a w stopce tylko akcje pasujące do statusu:
 // złożona - zatwierdź (jedyne wypełnienie) albo zwróć z notatką; zatwierdzona - odblokuj;
 // niezłożona - przypomnij; własna - jedno zdanie, bez przycisków.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
 import { ToastProvider } from '@/common/components/Toast';
 import {
     worktimeMonthsApi, type CardDay, type CardDetail, type MonthOverview, type MonthSheet,
-} from '../api/worktimeMonthsApi';
-import { filledIn } from '../components/leave/leaveTestHelpers';
-import { WorkTimeCardView } from './WorkTimeCardView';
+} from '../../api/worktimeMonthsApi';
+import { filledIn } from '../leave/leaveTestHelpers';
+import { WorkTimeCardModal } from './WorkTimeCardModal';
 
 vi.mock('@/core/context/AuthContext', () => ({ useAuth: () => ({ user: { userId: 'me', permissions: null } }) }));
-vi.mock('../api/worktimeMonthsApi', async importOriginal => ({
-    ...(await importOriginal<typeof import('../api/worktimeMonthsApi')>()),
+vi.mock('../../api/worktimeMonthsApi', async importOriginal => ({
+    ...(await importOriginal<typeof import('../../api/worktimeMonthsApi')>()),
     worktimeMonthsApi: {
         getMonth: vi.fn(),
         getCard: vi.fn(),
         approveCard: vi.fn(),
         returnCard: vi.fn(),
         remind: vi.fn(),
-        createSheet: vi.fn(),
         pendingCount: vi.fn(),
     },
 }));
@@ -87,21 +85,18 @@ const month = (sheet: MonthSheet | null = null): MonthOverview => ({
 const renderCard = (detail: CardDetail, overview: MonthOverview = month()) => {
     api.getCard.mockResolvedValue(detail);
     api.getMonth.mockResolvedValue(overview);
-    const router = createMemoryRouter([
-        { path: '/employees/worktime', element: <p>widok miesiąca</p> },
-        { path: '/employees/worktime/:period/:userId', element: <WorkTimeCardView /> },
-    ], { initialEntries: [`/employees/worktime/2026-09/${detail.userId}`] });
+    const onClose = vi.fn();
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
     render(
         <QueryClientProvider client={queryClient}>
             <ThemeProvider theme={theme}>
                 <ToastProvider>
-                    <RouterProvider router={router} />
+                    <WorkTimeCardModal period="2026-09" userId={detail.userId} onClose={onClose} />
                 </ToastProvider>
             </ThemeProvider>
         </QueryClientProvider>,
     );
-    return router;
+    return { onClose };
 };
 
 const actionBar = () => screen.getByLabelText('Decyzja o karcie');
@@ -116,17 +111,20 @@ afterEach(() => {
     vi.useRealTimers();
 });
 
-describe('Strona karty czasu pracy - treść', () => {
-    it('nagłówek, jedno zdanie podsumowania i wszystkie dni miesiąca', async () => {
+describe('Okno karty czasu pracy - treść', () => {
+    it('okno z nazwiskiem, jedno zdanie podsumowania i wszystkie dni miesiąca w przewijanej treści', async () => {
         renderCard(card());
-        expect(await screen.findByRole('heading', { level: 1, name: 'Anna Nowak' })).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: /Listy miesięczne, wrzesień 2026/ }))
-            .toHaveAttribute('href', '/employees/worktime?period=2026-09');
-        expect(screen.getByText('Karta czasu pracy, wrzesień 2026')).toBeInTheDocument();
+        const dialog = await screen.findByRole('dialog', { name: 'Anna Nowak' });
+        expect(within(dialog).getByText('Karta czasu pracy, wrzesień 2026')).toBeInTheDocument();
         expect(screen.getByText('Do zatwierdzenia')).toBeInTheDocument();
         expect(screen.getByText('Brakuje 2 dni roboczych. Nadgodziny 1:30 h. Urlop i L4: 2 dni.')).toBeInTheDocument();
 
-        const days = within(screen.getByRole('list', { name: 'Dni miesiąca' })).getAllByRole('listitem');
+        const list = screen.getByRole('list', { name: 'Dni miesiąca' });
+        // Lista dni leży w obszarze przewijania okna (ModalContent) i nie może się w nim
+        // kurczyć - inaczej obcina dni zamiast pozwolić je przewinąć (zgłoszenie właściciela).
+        expect(screen.getByTestId('card-modal-content')).toContainElement(list);
+        expect(getComputedStyle(list).flexShrink).toBe('0');
+        const days = within(list).getAllByRole('listitem');
         expect(days).toHaveLength(30);
         expect(within(days[0]).getByText('Mycie floty')).toBeInTheDocument();
         expect(within(days[1]).getByText('L4')).toBeInTheDocument();
@@ -138,7 +136,7 @@ describe('Strona karty czasu pracy - treść', () => {
     });
 });
 
-describe('Strona karty czasu pracy - akcje zależne od statusu', () => {
+describe('Okno karty czasu pracy - akcje zależne od statusu', () => {
     it('złożona: „Zatwierdź kartę" (jedyne wypełnienie) i „Zwróć do poprawy" w obwódce', async () => {
         renderCard(card());
         const approve = await screen.findByRole('button', { name: 'Zatwierdź kartę' });
@@ -148,19 +146,18 @@ describe('Strona karty czasu pracy - akcje zależne od statusu', () => {
         expect(within(actionBar()).getAllByRole('button')).toHaveLength(2);
     });
 
-    it('zatwierdzenie wraca do widoku miesiąca z komunikatem', async () => {
+    it('zatwierdzenie zamyka okno z komunikatem', async () => {
         api.approveCard.mockResolvedValue(card({ status: 'APPROVED' }));
-        const router = renderCard(card());
+        const { onClose } = renderCard(card());
         fireEvent.click(await screen.findByRole('button', { name: 'Zatwierdź kartę' }));
-        await waitFor(() => expect(router.state.location.pathname).toBe('/employees/worktime'));
-        expect(router.state.location.search).toBe('?period=2026-09');
+        await waitFor(() => expect(onClose).toHaveBeenCalled());
         expect(api.approveCard).toHaveBeenCalledWith('anna', '2026-09');
         expect(await screen.findByText('Karta zatwierdzona')).toBeInTheDocument();
     });
 
-    it('zwrot do poprawy wymaga notatki, potem wraca do widoku miesiąca', async () => {
+    it('zwrot do poprawy wymaga notatki, potem zamyka okno', async () => {
         api.returnCard.mockResolvedValue(card({ status: 'RETURNED' }));
-        const router = renderCard(card());
+        const { onClose } = renderCard(card());
         fireEvent.click(await screen.findByRole('button', { name: 'Zwróć do poprawy' }));
         const dialog = await screen.findByRole('dialog', { name: 'Zwróć do poprawy' });
 
@@ -171,7 +168,7 @@ describe('Strona karty czasu pracy - akcje zależne od statusu', () => {
         fireEvent.change(within(dialog).getByLabelText('Co trzeba poprawić?'), { target: { value: '  Brakuje 30.09  ' } });
         fireEvent.click(within(dialog).getByRole('button', { name: 'Zwróć kartę' }));
         await waitFor(() => expect(api.returnCard).toHaveBeenCalledWith('anna', '2026-09', 'Brakuje 30.09'));
-        await waitFor(() => expect(router.state.location.pathname).toBe('/employees/worktime'));
+        await waitFor(() => expect(onClose).toHaveBeenCalled());
         expect(await screen.findByText('Karta zwrócona do poprawy')).toBeInTheDocument();
     });
 
@@ -225,7 +222,7 @@ describe('Strona karty czasu pracy - akcje zależne od statusu', () => {
 
     it('własna niezłożona karta: nie przypomina się samemu sobie', async () => {
         renderCard(card({ userId: 'me', name: 'Maciej Sienkiewicz', status: 'DRAFT', canDecide: false }));
-        await screen.findByRole('heading', { level: 1, name: 'Maciej Sienkiewicz' });
+        await screen.findByRole('dialog', { name: 'Maciej Sienkiewicz' });
         expect(screen.queryByRole('button', { name: 'Przypomnij' })).toBeNull();
     });
 });

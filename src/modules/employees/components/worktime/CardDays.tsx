@@ -75,6 +75,11 @@ const List = styled.ol`
     border: 1px solid ${ui.line};
     border-radius: ${ui.radiusStrip};
     overflow: hidden;
+    /* Nie kurczyć się w kolumnie flex (ModalContent okna karty). Element flex z
+       overflow innym niż visible ma minimalną wysokość 0, więc lista ściskała się
+       do wysokości okna i obcinała dni - a skoro nic nie wystawało, ModalContent nie
+       miał czego przewijać. Tak wyglądało zgłoszenie „lista się nie scrolluje". */
+    flex-shrink: 0;
 `;
 
 const Row = styled.li<{ $kind: Kind }>`

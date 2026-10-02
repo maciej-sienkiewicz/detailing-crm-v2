@@ -28,7 +28,8 @@ import { TabBar, type TabDefinition } from '@/common/components/TabBar/TabBar';
 import { usePermissions } from '@/core/permissions';
 import { TEAM_PAGE_SIZE } from '../components/team/TeamList';
 import { useEmployees } from '../hooks/useEmployees';
-import { usePendingWorkTimeCount } from '../hooks/useWorktimeMonths';
+import { usePendingCardsCount } from '../hooks/useWorktimeMonths';
+import { usePendingSheetsCount } from '../hooks/useAttendanceSheets';
 import { useLeaveRequestQueue } from '../hooks/useLeaveRequests';
 import { EMPLOYEES_TABS, employeesTabFromPath, employeesTabPath, type EmployeesTab } from '../employeesTabs';
 import type { EmployeesOutletContext } from './employeesOutlet';
@@ -46,8 +47,9 @@ export function EmployeesView() {
     // Te same filtry, od których startuje lista zespołu: licznik przy zakładce czyta
     // ten sam wpis cache, zamiast wysyłać drugie żądanie.
     const { pagination } = useEmployees({ search: '', page: 1, limit: TEAM_PAGE_SIZE }, { enabled: canManage });
-    // Karty czekające na decyzję plus listy do podpisu - ten sam licznik co w panelu bocznym.
-    const worktimePending = usePendingWorkTimeCount(canManage);
+    // Karty czekające na decyzję i niezatwierdzone listy - te same liczby co w panelu bocznym.
+    const pendingCards = usePendingCardsCount(canManage);
+    const pendingSheets = usePendingSheetsCount(canManage);
     // Wszystkie oczekujące wnioski w studiu - ten sam wpis cache co domyślny widok kolejki.
     const leaveQueue = useLeaveRequestQueue('PENDING', { enabled: canApprove });
     const pendingLeaves = leaveQueue.data?.pendingCount ?? 0;
@@ -60,10 +62,9 @@ export function EmployeesView() {
     const tabs: TabDefinition<EmployeesTab>[] = visibleTabs.map(t => {
         if (t.key === 'team') return { key: t.key, label: t.label, count: pagination?.totalItems };
         if (t.key === 'leaves') return { key: t.key, label: t.label, count: pendingLeaves > 0 ? pendingLeaves : undefined };
-        if (t.key === 'worktime') {
-            // Licznik to karty do decyzji i listy do podpisu - pusto, gdy nic nie czeka.
-            return { key: t.key, label: t.label, count: worktimePending > 0 ? worktimePending : undefined };
-        }
+        // Liczniki pokazują tylko to, co czeka na decyzję - pusto, gdy nic nie czeka.
+        if (t.key === 'worktime') return { key: t.key, label: t.label, count: pendingCards > 0 ? pendingCards : undefined };
+        if (t.key === 'attendance') return { key: t.key, label: t.label, count: pendingSheets > 0 ? pendingSheets : undefined };
         return { key: t.key, label: t.label };
     });
 
@@ -74,7 +75,7 @@ export function EmployeesView() {
     return (
         <PageChromeProvider headerActions={headerActions}>
             <Page>
-                <PageHeader title="Pracownicy" subtitle="Zespół, urlopy i listy miesięczne" />
+                <PageHeader title="Pracownicy" subtitle="Zespół, urlopy, czas pracy i listy obecności" />
 
                 <Toolbar>
                     <TabBar tabs={tabs} activeKey={tab} onChange={goToTab} ariaLabel="Zakładki modułu Pracownicy" />

@@ -1,21 +1,17 @@
 // src/modules/employees/components/EmployeeWorkTimeSection.tsx
 //
-// Karty czasu pracy na karcie pracownika: lista miesięcy, a wiersz to zwykły link do
-// strony karty (`/employees/worktime/{miesiąc}/{osoba}`) - tej samej, do której prowadzi
-// lista miesiąca. Decyzja o karcie zapada w jednym miejscu.
-//
-// Wcześniej wiersz miał własne „✓" i „↶", potem otwierał okno przeglądu karty. Okno
-// z własnym przewijaniem nie dawało na telefonie obejrzeć całego miesiąca, a do tej samej
-// karty prowadziły trzy różne drogi - została jedna strona i linki do niej.
+// Karty czasu pracy na karcie pracownika: lista miesięcy, a wiersz otwiera to samo okno
+// karty (WorkTimeCardModal), które otwiera wiersz w zakładce „Czas pracy". Decyzja
+// o karcie wygląda i działa wszędzie tak samo.
 
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useTeamWorkTimePeriods } from '../hooks/useWorkTime';
 import { StatusText } from './worktime/StatusText';
-import { cardPath, hoursText } from './worktime/monthFormat';
+import { hoursText } from './worktime/monthFormat';
+import { WorkTimeCardModal } from './worktime/WorkTimeCardModal';
 
 const PAGE_SIZE = 6;
 
@@ -26,6 +22,7 @@ interface Props {
 export const EmployeeWorkTimeSection = ({ userId }: Props) => {
     const { periods, isLoading } = useTeamWorkTimePeriods(userId);
     const [page, setPage] = useState(0);
+    const [openPeriod, setOpenPeriod] = useState<string | null>(null);
 
     const totalPages = Math.ceil(periods.length / PAGE_SIZE);
     const pagePeriods = periods.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
@@ -50,7 +47,7 @@ export const EmployeeWorkTimeSection = ({ userId }: Props) => {
                     <ul>
                         {pagePeriods.map(p => (
                             <li key={p.period}>
-                                <PeriodRow to={cardPath(p.period, userId)}>
+                                <PeriodRow type="button" onClick={() => setOpenPeriod(p.period)}>
                                     <PeriodInfo>
                                         <PeriodLabel>{p.label}</PeriodLabel>
                                         <PeriodMeta>
@@ -80,6 +77,9 @@ export const EmployeeWorkTimeSection = ({ userId }: Props) => {
                     </PaginationBar>
                 )}
             </Card>
+            {openPeriod && (
+                <WorkTimeCardModal period={openPeriod} userId={userId} onClose={() => setOpenPeriod(null)} />
+            )}
         </Wrap>
     );
 };
@@ -121,15 +121,19 @@ const CardTitle = styled.h3`
     color: ${st.text};
 `;
 
-const PeriodRow = styled(Link)`
+const PeriodRow = styled.button`
     display: flex;
     align-items: center;
     gap: 12px;
     width: 100%;
     box-sizing: border-box;
     padding: 13px 20px;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    text-align: left;
     color: inherit;
-    text-decoration: none;
+    cursor: pointer;
     transition: background ${st.transition};
 
     &:hover { background: #FAFBFD; }

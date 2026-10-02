@@ -19,7 +19,8 @@ import { UserSwitcherPanel, useKnownProfiles } from '@/modules/pin-switcher';
 import { ReportProblemModal } from '@/modules/support/components/ReportProblemModal';
 import { useCompanySettings } from '@/modules/settings/hooks/useCompany';
 import { usePendingLeaveRequestsCount } from '@/modules/employees/hooks/useLeaveRequests';
-import { usePendingWorkTimeCount } from '@/modules/employees/hooks/useWorktimeMonths';
+import { usePendingCardsCount } from '@/modules/employees/hooks/useWorktimeMonths';
+import { usePendingSheetsCount } from '@/modules/employees/hooks/useAttendanceSheets';
 import { companyDisplayName, companyInitials } from './companyBadge';
 import { readCompanyHeader, writeCompanyHeader } from './companyHeaderCache';
 import { SidebarBrand } from './SidebarBrand';
@@ -77,8 +78,10 @@ export const Sidebar = () => {
     useCommsSocket();
     // Licznik wniosków tylko dla tych, którzy je rozpatrują (właściciel zawsze).
     const pendingLeaveRequests = usePendingLeaveRequestsCount(can('EMPLOYEES_LEAVES_APPROVE'));
-    // Karty czasu pracy i listy obecności - tylko dla kadr (EMPLOYEES_MANAGE).
-    const pendingWorkTime = usePendingWorkTimeCount(can('EMPLOYEES_MANAGE'));
+    // Karty czasu pracy do decyzji i niezatwierdzone listy obecności - tylko dla kadr
+    // (EMPLOYEES_MANAGE). Te same liczby stoją przy zakładkach „Czas pracy" i „Listy obecności".
+    const canManageEmployees = can('EMPLOYEES_MANAGE');
+    const pendingWorkTime = usePendingCardsCount(canManageEmployees) + usePendingSheetsCount(canManageEmployees);
     const menuSections = buildMenuSections({
         newLeadsCount,
         unreadMailCount,

@@ -1,15 +1,17 @@
 // @vitest-environment jsdom
 //
-// Karta pracownika: wiersz miesiąca to zwykły link do strony karty czasu pracy - tej
-// samej, do której prowadzi lista miesiąca. Bez okna i bez przycisków w wierszu.
+// Karta pracownika: wiersz miesiąca otwiera to samo okno karty czasu pracy, które otwiera
+// wiersz w zakładce „Czas pracy". Bez przycisków decyzji w samym wierszu.
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
+import { ToastProvider } from '@/common/components/Toast';
+import { worktimeMonthsApi, type CardDetail } from '../api/worktimeMonthsApi';
 import { EmployeeWorkTimeSection } from './EmployeeWorkTimeSection';
 
+vi.mock('@/core/context/AuthContext', () => ({ useAuth: () => ({ user: { userId: 'me', permissions: null } }) }));
 vi.mock('../api/employeeApi', () => ({
     employeeApi: {
         getTeamWorkTimePeriods: vi.fn().mockResolvedValue([
@@ -24,26 +26,41 @@ vi.mock('../api/employeeApi', () => ({
         ]),
     },
 }));
+vi.mock('../api/worktimeMonthsApi', async importOriginal => ({
+    ...(await importOriginal<typeof import('../api/worktimeMonthsApi')>()),
+    worktimeMonthsApi: { getCard: vi.fn(), getMonth: vi.fn().mockResolvedValue(null) },
+}));
+
+const card: CardDetail = {
+    userId: 'u-1', employeeId: 'e-1', name: 'Anna Nowak', status: 'SUBMITTED',
+    totalMinutes: 9600, expectedMinutes: 9600, missingWorkingDays: 0, overtimeMinutes: 0, leaveWorkingDays: 0,
+    submittedAt: '2026-09-30T10:00:00Z', approvedAt: null, approvedByName: null, returnNote: null,
+    canDecide: true, remindedAt: null, period: '2026-09', label: 'Wrzesień 2026', days: [],
+    returnedAt: null, returnedByName: null,
+};
 
 afterEach(() => cleanup());
 
 describe('EmployeeWorkTimeSection', () => {
-    it('wiersz miesiąca jest linkiem do strony karty, bez akcji i bez okna', async () => {
+    it('wiersz miesiąca otwiera okno karty tego miesiąca', async () => {
+        vi.mocked(worktimeMonthsApi.getCard).mockResolvedValue(card);
         render(
             <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
                 <ThemeProvider theme={theme}>
-                    <MemoryRouter>
+                    <ToastProvider>
                         <EmployeeWorkTimeSection userId="u-1" />
-                    </MemoryRouter>
+                    </ToastProvider>
                 </ThemeProvider>
             </QueryClientProvider>,
         );
 
-        const september = await screen.findByRole('link', { name: /Wrzesień 2026/ });
-        expect(september).toHaveAttribute('href', '/employees/worktime/2026-09/u-1');
+        const september = await screen.findByRole('button', { name: /Wrzesień 2026/ });
         expect(within(september).getByText('Do zatwierdzenia')).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: /Sierpień 2026/ })).toHaveAttribute('href', '/employees/worktime/2026-08/u-1');
-        expect(screen.queryByRole('button')).toBeNull();
+        expect(screen.getByRole('button', { name: /Sierpień 2026/ })).toBeInTheDocument();
         expect(screen.queryByRole('dialog')).toBeNull();
+
+        fireEvent.click(september);
+        expect(await screen.findByRole('dialog', { name: 'Anna Nowak' })).toBeInTheDocument();
+        expect(worktimeMonthsApi.getCard).toHaveBeenCalledWith('2026-09', 'u-1');
     });
 });

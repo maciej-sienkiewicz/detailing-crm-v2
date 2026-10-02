@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 //
 // Moduł „Pracownicy" po wyjściu z Ustawień: zakładki widzi tylko ten, kto ma do nich
-// prawo, a zakładka „Listy miesięczne" mówi, ile czeka na menedżera: karty do decyzji
-// plus listy obecności do podpisu (GET /worktime/team/pending-count).
+// prawo. „Czas pracy" liczy karty czekające na decyzję (GET /worktime/team/pending-count),
+// a „Listy obecności" - wygenerowane listy, których nikt jeszcze nie zatwierdził.
 // Zakładki są trasami-dziećmi jednej ramy: zmiana zakładki nie montuje nagłówka od nowa.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -39,6 +39,25 @@ vi.mock('../api/leaveRequestsApi', async importOriginal => ({
     ...(await importOriginal<typeof import('../api/leaveRequestsApi')>()),
     leaveRequestsApi: { list: vi.fn().mockResolvedValue({ items: [], pendingCount: 2 }) },
 }));
+vi.mock('../components/worktime/SettlementsSection', () => ({
+    SettlementsSection: ({ onCreateSheet }: { onCreateSheet?: () => void }) => (
+        <div>
+            <output data-testid="attendance-sheets">listy obecności</output>
+            {onCreateSheet && <button type="button" onClick={onCreateSheet}>Wygeneruj listę</button>}
+        </div>
+    ),
+}));
+vi.mock('../components/worktime/AttendanceSheetModal', () => ({
+    AttendanceSheetModal: () => <div role="dialog" aria-label="Wygeneruj listę obecności" />,
+}));
+vi.mock('../api/attendanceApi', async importOriginal => ({
+    ...(await importOriginal<typeof import('../api/attendanceApi')>()),
+    attendanceApi: {
+        listAttendanceSheets: vi.fn().mockResolvedValue([
+            { id: 's1', status: 'GENERATED' }, { id: 's2', status: 'APPROVED' }, { id: 's3', status: 'GENERATED' },
+        ]),
+    },
+}));
 vi.mock('../api/worktimeMonthsApi', async importOriginal => ({
     ...(await importOriginal<typeof import('../api/worktimeMonthsApi')>()),
     worktimeMonthsApi: {
@@ -73,33 +92,37 @@ beforeEach(() => { auth.user = { permissions: null }; });
 afterEach(() => cleanup());
 
 describe('EmployeesView - zakładki', () => {
-    it('właściciel widzi zespół z licznikiem, a przy listach miesięcznych karty do decyzji plus listy do podpisu', async () => {
+    it('właściciel widzi liczniki: zespół, karty do decyzji przy „Czas pracy", niezatwierdzone listy przy „Listy obecności"', async () => {
         renderAt('/employees');
         expect(await screen.findByRole('tab', { name: /^Zespół\s*4$/ })).toBeTruthy();
         expect(tab(/^Zespół/).getAttribute('aria-selected')).toBe('true');
-        expect(await screen.findByRole('tab', { name: /^Listy miesięczne\s*3$/ })).toBeTruthy();
+        expect(await screen.findByRole('tab', { name: /^Czas pracy\s*2$/ })).toBeTruthy();
+        expect(await screen.findByRole('tab', { name: /^Listy obecności\s*2$/ })).toBeTruthy();
     });
 
-    it('bez prawa do kadr licznik list miesięcznych nie jest pobierany', async () => {
+    it('bez prawa do kadr liczniki czasu pracy i list obecności nie są pobierane', async () => {
         auth.user = { permissions: ['EMPLOYEES_LEAVES_APPROVE'] };
         const { worktimeMonthsApi } = await import('../api/worktimeMonthsApi');
         vi.mocked(worktimeMonthsApi.pendingCount).mockClear();
+        const { attendanceApi } = await import('../api/attendanceApi');
+        vi.mocked(attendanceApi.listAttendanceSheets).mockClear();
         renderAt('/employees/leave-requests');
         expect(await screen.findByText('grafik nieobecności')).toBeTruthy();
         expect(worktimeMonthsApi.pendingCount).not.toHaveBeenCalled();
+        expect(attendanceApi.listAttendanceSheets).not.toHaveBeenCalled();
     });
 
     it('kliknięcie w zakładkę zmienia trasę', () => {
         const router = renderAt('/employees');
-        fireEvent.click(tab(/^Listy miesięczne/));
+        fireEvent.click(tab(/^Czas pracy/));
         expect(router.state.location.pathname).toBe('/employees/worktime');
     });
 
-    it('właściciel widzi trzy zakładki, a przy wnioskach liczbę oczekujących', async () => {
+    it('właściciel widzi cztery zakładki, a przy wnioskach liczbę oczekujących', async () => {
         renderAt('/employees');
         expect(await screen.findByRole('tab', { name: /^Wnioski urlopowe\s*2$/ })).toBeTruthy();
         expect(screen.getAllByRole('tab').map(t => t.textContent?.replace(/\d+$/, '')))
-            .toEqual(['Zespół', 'Wnioski urlopowe', 'Listy miesięczne']);
+            .toEqual(['Zespół', 'Wnioski urlopowe', 'Czas pracy', 'Listy obecności']);
     });
 
     it('„Wnioski urlopowe": kolejka wniosków, a pod nią grafik nieobecności', async () => {
@@ -123,7 +146,8 @@ describe('EmployeesView - zakładki', () => {
         expect(screen.getByText('grafik nieobecności')).toBeTruthy();
         expect(tab(/^Wnioski urlopowe/).getAttribute('aria-selected')).toBe('true');
         expect(screen.queryByRole('tab', { name: /^Zespół/ })).toBeNull();
-        expect(screen.queryByRole('tab', { name: /^Listy miesięczne/ })).toBeNull();
+        expect(screen.queryByRole('tab', { name: /^Czas pracy/ })).toBeNull();
+        expect(screen.queryByRole('tab', { name: /^Listy obecności/ })).toBeNull();
     });
 
     it('sama kadrowa rola (EMPLOYEES_MANAGE) widzi grafik nieobecności bez kolejki wniosków', () => {
@@ -157,15 +181,25 @@ describe('EmployeesView - zakładki', () => {
         expect(screen.getByRole('tablist')).toBe(tabList);
         expect(heading.isConnected).toBe(true);
 
-        fireEvent.click(tab(/^Listy miesięczne/));
+        fireEvent.click(tab(/^Czas pracy/));
         expect(screen.getByTestId('month-view')).toBeTruthy();
         expect(screen.getByRole('heading', { name: 'Pracownicy' })).toBe(heading);
     });
 
-    it('zakładka „Listy miesięczne" zostaje pod /employees/worktime', () => {
+    it('„Czas pracy" zostaje pod /employees/worktime, „Listy obecności" pod /employees/attendance-sheets', async () => {
         const router = renderAt('/employees');
-        fireEvent.click(tab(/^Listy miesięczne/));
+        fireEvent.click(tab(/^Czas pracy/));
         expect(router.state.location.pathname).toBe('/employees/worktime');
+        fireEvent.click(tab(/^Listy obecności/));
+        expect(router.state.location.pathname).toBe('/employees/attendance-sheets');
+        expect(await screen.findByTestId('attendance-sheets')).toBeTruthy();
+    });
+
+    it('„Listy obecności": „Wygeneruj listę" otwiera okno z wyborem pracowników', async () => {
+        renderAt('/employees/attendance-sheets');
+        expect(screen.queryByRole('dialog')).toBeNull();
+        fireEvent.click(await screen.findByRole('button', { name: 'Wygeneruj listę' }));
+        expect(screen.getByRole('dialog', { name: 'Wygeneruj listę obecności' })).toBeTruthy();
     });
 
     it('/employees bez prawa do zespołu przekierowuje na pierwszą dostępną zakładkę', async () => {

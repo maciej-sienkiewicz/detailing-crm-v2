@@ -26,9 +26,11 @@ interface Props {
     pending: boolean;
     onSubmit: (note: string) => void;
     onClose: () => void;
+    /** Warstwa okna - SUBMODAL_Z_INDEX, gdy otwiera się nad oknem karty. */
+    zIndex?: number;
 }
 
-export function CardNoteModal({ kind, name, resignWarning, pending, onSubmit, onClose }: Props) {
+export function CardNoteModal({ kind, name, resignWarning, pending, onSubmit, onClose, zIndex }: Props) {
     const titleId = useId();
     const noteId = useId();
     const [note, setNote] = useState('');
@@ -45,7 +47,7 @@ export function CardNoteModal({ kind, name, resignWarning, pending, onSubmit, on
     };
 
     return (
-        <ModalShell isOpen onClose={onClose} size="sm" labelledBy={titleId} dismissible={!pending}>
+        <ModalShell isOpen onClose={onClose} size="sm" labelledBy={titleId} dismissible={!pending} zIndex={zIndex}>
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle id={titleId}>{unlock ? 'Odblokuj kartę' : 'Zwróć do poprawy'}</ModalTitle>

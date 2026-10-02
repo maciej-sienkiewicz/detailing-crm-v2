@@ -42,7 +42,13 @@ export const useCardDetail = (period: string, userId: string | null) => useQuery
  * Licznik przy „Listach miesięcznych" i przy „Pracownicy" w panelu: karty czekające na
  * decyzję wywołującego plus miesiące z listą do podpisu. Tylko dla EMPLOYEES_MANAGE.
  */
-export const usePendingWorkTimeCount = (enabled: boolean) => {
+/**
+ * Karty czasu pracy czekające na decyzję wywołującego - licznik zakładki „Czas pracy".
+ * `sheetsToSign` z tej samej odpowiedzi celowo pomijamy: liczy miesiące gotowe do listy,
+ * także te, dla których nikt jej jeszcze nie wygenerował. Listy obecności generuje się
+ * teraz ręcznie w osobnej zakładce, a jej licznik to listy wygenerowane i niezatwierdzone.
+ */
+export const usePendingCardsCount = (enabled: boolean) => {
     const { data } = useQuery({
         queryKey: pendingKey,
         queryFn: worktimeMonthsApi.pendingCount,
@@ -50,7 +56,7 @@ export const usePendingWorkTimeCount = (enabled: boolean) => {
         staleTime: 60_000,
         refetchInterval: enabled ? 5 * 60_000 : false,
     });
-    return data ? data.submittedCards + data.sheetsToSign : 0;
+    return data?.submittedCards ?? 0;
 };
 
 // Po błędzie też odświeżamy: najczęstszy błąd to „ktoś zdecydował przed chwilą", a wtedy
@@ -82,10 +88,3 @@ export const useRemind = (period: string) => {
     });
 };
 
-export const useCreateSheet = (period: string) => {
-    const invalidate = useInvalidate();
-    return useMutation({
-        mutationFn: (allowIncomplete: boolean) => worktimeMonthsApi.createSheet(period, allowIncomplete),
-        onSettled: () => invalidate(),
-    });
-};
