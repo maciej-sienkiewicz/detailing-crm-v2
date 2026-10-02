@@ -1,8 +1,9 @@
-// src/modules/employees/components/leave/AbsencesTab.tsx
+// src/modules/employees/components/leave/AbsencesSection.tsx
 //
-// Zakładka „Nieobecności": osoby × dni miesiąca. Odpowiada na pytanie, które właściciel
-// zadaje najczęściej - „kto jutro jest w pracy?" - z danych, które już są (rejestr
-// urlopów i L4), bez domeny zmian i obsady, której system jeszcze nie ma.
+// Sekcja „Nieobecności" pod kolejką wniosków (zakładka „Wnioski urlopowe"): osoby × dni
+// miesiąca. Odpowiada na pytanie, które właściciel zadaje najczęściej - „kto jutro jest
+// w pracy?" - z danych, które już są (rejestr urlopów i L4), bez domeny zmian i obsady,
+// której system jeszcze nie ma.
 //
 // Pełna komórka = nieobecność pewna (urlop zatwierdzony, L4). Kreskowana = wniosek
 // oczekujący, czyli nieobecność jeszcze niepewna - widzi ją tylko ten, kto rozpatruje.
@@ -11,8 +12,7 @@
 import { useMemo, useState } from 'react';
 import styled, { css } from 'styled-components';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-import { PageHeaderActions } from '@/common/components/PageChrome';
-import { Button, IconButton, ui } from '@/common/components/ui';
+import { Button, IconButton, SectionTitle, ui } from '@/common/components/ui';
 import { usePermissions } from '@/core/permissions';
 import { useEmployees } from '../../hooks/useEmployees';
 import { useLeaveCalendar } from '../../hooks/useLeaves';
@@ -50,7 +50,7 @@ interface PersonRow {
     days: Map<string, CellState>;
 }
 
-export function AbsencesTab() {
+export function AbsencesSection() {
     const { can } = usePermissions();
     const canApprove = can('EMPLOYEES_LEAVES_APPROVE');
     const canManage = can('EMPLOYEES_MANAGE');
@@ -92,14 +92,18 @@ export function AbsencesTab() {
     const [y, m] = month.split('-').map(Number);
 
     return (
-        <Wrap>
-            {canManage && (
-                <PageHeaderActions>
-                    <Button variant="primary" size="lg" onClick={() => setSickOpen(true)}>
+        <Wrap aria-labelledby="absences-title">
+            {/* L4 przy grafiku, nie w nagłówku strony: tam stoi już wypełnione „Dodaj urlop"
+                kolejki wniosków, a dwa wypełnione przyciski w jednym oknie to remis
+                (CLAUDE.md §2). Wpis L4 dotyczy grafiku, więc stoi przy nim, jako kontur. */}
+            <SectionHead>
+                <SectionTitle id="absences-title">Nieobecności</SectionTitle>
+                {canManage && (
+                    <Button variant="outline" size="sm" onClick={() => setSickOpen(true)}>
                         <Plus aria-hidden="true" />Dodaj nieobecność (L4)
                     </Button>
-                </PageHeaderActions>
-            )}
+                )}
+            </SectionHead>
 
             <MonthBar>
                 <IconButton label="Poprzedni miesiąc" variant="ghost" onClick={() => setMonth(p => shiftMonth(p, -1))}>
@@ -160,11 +164,19 @@ export function AbsencesTab() {
 
 // ─── Styled ─────────────────────────────────────────────────────────────────────
 
-const Wrap = styled.div`
+const Wrap = styled.section`
     display: flex;
     flex-direction: column;
     gap: 12px;
     min-width: 0;
+`;
+
+const SectionHead = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
 `;
 
 const MonthBar = styled.div`

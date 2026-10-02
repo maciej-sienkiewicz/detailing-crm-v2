@@ -3,7 +3,7 @@ import { viewKeyOf } from './viewKey';
 
 describe('viewKeyOf - zakładki jednego widoku nie odgrywają przebitki', () => {
     it('wszystkie zakładki „Pracowników" mają ten sam klucz', () => {
-        const keys = ['/employees', '/employees/leave-requests', '/employees/absences', '/employees/worktime', '/employees/absences/']
+        const keys = ['/employees', '/employees/leave-requests', '/employees/worktime', '/employees/worktime/']
             .map(viewKeyOf);
         expect(new Set(keys)).toEqual(new Set(['/employees']));
     });

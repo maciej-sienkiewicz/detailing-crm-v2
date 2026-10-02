@@ -11,7 +11,7 @@
 // „Dodaj urlop" w nagłówku: urlop wprowadzany przez administratora za pracownika
 // (kontrakt v2, ON_BEHALF) - z podpisem pracownika na tym urządzeniu i decyzją.
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { CalendarPlus, ChevronRight, Inbox } from 'lucide-react';
@@ -19,20 +19,16 @@ import { EmptyState } from '@/common/components/EmptyState';
 import { PageHeaderActions } from '@/common/components/PageChrome';
 import { Button, Card, Notice, Segmented, StatusPill, ui, type SegmentedOption } from '@/common/components/ui';
 import { formatDateTime } from '@/common/utils';
-import { useLeaveCalendar } from '../../hooks/useLeaves';
 import { useLeaveRequestQueue } from '../../hooks/useLeaveRequests';
 import type { LeaveRequestQueueStatus } from '../../types';
 import {
-    LEAVE_REQUEST_STATUS, addDaysIso, formatLeaveRange, leaveRequestTypeLabel, todayIso, workingDaysLabel,
+    LEAVE_REQUEST_STATUS, formatLeaveRange, leaveRequestTypeLabel, workingDaysLabel,
 } from '../../utils/leaveRequestFormat';
 import { LeaveDecisionModal } from './LeaveDecisionModal';
 import { AddLeaveModal } from './AddLeaveModal';
 
 /** Głęboki link z powiadomienia push: `/employees/leave-requests?request={id}`. */
 const REQUEST_PARAM = 'request';
-
-/** Ile dni do przodu pokazujemy „najbliższe nieobecności" przy pustej kolejce. */
-const UPCOMING_DAYS = 14;
 
 export function LeaveRequestsTab() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -142,42 +138,12 @@ export function LeaveRequestsTab() {
 }
 
 /**
- * Pusta kolejka to dobra wiadomość - a kolejne pytanie menedżera brzmi „to kto
- * w najbliższych dniach nie przyjdzie?". Odpowiedź z kalendarza urlopów.
+ * Pusta kolejka to dobra wiadomość. Kto w najbliższych dniach nie przyjdzie, pokazuje
+ * grafik nieobecności tuż pod spodem (AbsencesSection) - nie powtarzamy go tutaj.
  */
 function EmptyQueue() {
-    const from = todayIso();
-    const to = addDaysIso(from, UPCOMING_DAYS - 1);
-    const { leaveDayMap } = useLeaveCalendar(from, to);
-
-    const upcoming = useMemo(() => {
-        const byPerson = new Map<string, { name: string; first: string; last: string }>();
-        [...leaveDayMap.values()]
-            .sort((a, b) => a.date.localeCompare(b.date))
-            .forEach(day => day.employees.forEach(e => {
-                const entry = byPerson.get(e.id);
-                if (entry) entry.last = day.date;
-                else byPerson.set(e.id, { name: e.fullName, first: day.date, last: day.date });
-            }));
-        return [...byPerson.values()];
-    }, [leaveDayMap]);
-
     return (
-        <EmptyState icon={<Inbox />} title="Nie ma wniosków do rozpatrzenia" description="Nowy wniosek pojawi się tutaj i w powiadomieniu.">
-            {upcoming.length > 0 && (
-                <Upcoming>
-                    <strong>Najbliższe nieobecności</strong>
-                    <ul>
-                        {upcoming.map(u => (
-                            <li key={`${u.name}-${u.first}`}>
-                                <span>{u.name}</span>
-                                <span>{formatLeaveRange(u.first, u.last)}</span>
-                            </li>
-                        ))}
-                    </ul>
-                </Upcoming>
-            )}
-        </EmptyState>
+        <EmptyState icon={<Inbox />} title="Nie ma wniosków do rozpatrzenia" description="Nowy wniosek pojawi się tutaj i w powiadomieniu." />
     );
 }
 
@@ -274,14 +240,4 @@ const Submitted = styled.span`
     white-space: nowrap;
 
     @container leave-queue (max-width: 620px) { grid-column: 1; }
-`;
-
-const Upcoming = styled.div`
-    margin: 16px auto 0;
-    max-width: 360px;
-    text-align: left;
-
-    strong { display: block; margin-bottom: 6px; font-size: 13.5px; color: ${ui.ink}; }
-    ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
-    li { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: ${ui.inkSoft}; }
 `;

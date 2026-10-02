@@ -4,7 +4,7 @@
 //
 // Layout przy wejściu na inny widok odgrywa przebitkę (RouteFlash: nakładka w kolorze
 // tła, gaśnie w 240 ms) i przewija stronę na górę. Klucz był ścieżką, a zakładki
-// „Pracowników" to osobne ścieżki (/employees/absences, /employees/worktime…), żeby
+// „Pracowników" to osobne ścieżki (/employees/leave-requests, /employees/worktime…), żeby
 // push i Tablica mogły linkować wprost do zakładki. Każda zmiana zakładki odgrywała
 // więc przebitkę na całej treści i nagłówek „mrugał", choć rama z nagłówkiem nie była
 // przemontowywana (trasy-dzieci jednej ramy, employeesRoutes.tsx). Zakładka to nie
