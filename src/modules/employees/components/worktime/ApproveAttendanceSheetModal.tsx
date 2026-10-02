@@ -1,7 +1,8 @@
 // src/modules/employees/components/worktime/ApproveAttendanceSheetModal.tsx
 //
-// Podpis listy obecności za miesiąc (krok „Podpis listy" w widoku miesiąca). Bez podpisu
-// nie ma zatwierdzenia: zatwierdzający to zarazem „osoba potwierdzająca" ze stopki arkusza. Trzy sposoby podpisu są widoczne od razu - na
+// Zatwierdzenie listy obecności (zakładka „Listy obecności"). Bez podpisu nie ma
+// zatwierdzenia: zatwierdzający to zarazem „osoba potwierdzająca" ze stopki arkusza.
+// Trzy sposoby podpisu są widoczne od razu - na
 // tym urządzeniu, na tablecie studia albo na własnym telefonie. Podpis z tabletu lub telefonu
 // sam zatwierdza listę. Bez nowego podpisu zatwierdza się tylko arkusz podpisany już wcześniej.
 
@@ -35,16 +36,8 @@ import {
 } from './SigningMethods';
 import { employeesLabel, periodLabel } from './monthFormat';
 
-/**
- * Tyle wystarczy do podpisu. Lista z widoku miesiąca (MonthSheet) nie zna liczby osób
- * ani podpisującego - świeżo utworzona jest zawsze niepodpisana.
- */
-export type SheetToSign = Pick<AttendanceSheet, 'id' | 'period' | 'signed' | 'signerName'> & {
-    employeeCount?: number;
-};
-
 interface Props {
-    sheet: SheetToSign;
+    sheet: AttendanceSheet;
     onClose: () => void;
 }
 
@@ -165,9 +158,7 @@ export function ApproveAttendanceSheetModal({ sheet, onClose }: Props) {
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Zatwierdzić listę obecności?</ModalTitle>
-                    <ModalSubtitle>
-                        {sheet.employeeCount !== undefined ? `${month}, ${employeesLabel(sheet.employeeCount)}` : month}
-                    </ModalSubtitle>
+                    <ModalSubtitle>{month}, {employeesLabel(sheet.employeeCount)}</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
@@ -175,7 +166,7 @@ export function ApproveAttendanceSheetModal({ sheet, onClose }: Props) {
             <ModalContent>
                 <Lead>
                     Zatwierdzona lista jest sprawdzona i gotowa dla księgowości - każdy
-                    administrator zobaczy w Listach miesięcznych, kto i kiedy ją zatwierdził.
+                    administrator zobaczy w Listach obecności, kto i kiedy ją zatwierdził.
                     {!sheet.signed && ' Zatwierdzenie wymaga Twojego podpisu.'}
                 </Lead>
 

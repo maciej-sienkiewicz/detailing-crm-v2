@@ -4,16 +4,19 @@
 // miesięczne przechodzą do zespołu przez ramę. Zakładka wniosków składa dwie sekcje:
 // kolejkę wniosków i pod nią grafik nieobecności.
 //
-// Zespół nie otwiera już okna „Lista obecności": lista powstaje w widoku miesiąca,
-// z zatwierdzonych kart, a nie z dowolnie zaznaczonych osób.
+// Listy obecności mają własną zakładkę: „Wygeneruj listę" otwiera okno z miesiącem
+// i zaznaczeniem pracowników, a lista pod spodem pokazuje, co czeka na zatwierdzenie.
 
-import { Navigate, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { usePermissions } from '@/core/permissions';
 import { TeamList } from '../components/team/TeamList';
 import { LeaveRequestsTab } from '../components/leave/LeaveRequestsTab';
 import { AbsencesSection } from '../components/leave/AbsencesSection';
 import { MonthView } from '../components/worktime/MonthView';
+import { SettlementsSection } from '../components/worktime/SettlementsSection';
+import { AttendanceSheetModal } from '../components/worktime/AttendanceSheetModal';
 import { firstEmployeesTabPath } from '../employeesTabs';
 import { useEmployeesOutlet } from './employeesOutlet';
 
@@ -60,4 +63,39 @@ export function EmployeesIndexView() {
     const { can } = usePermissions();
     if (can('EMPLOYEES_MANAGE')) return <TeamTabView />;
     return <Navigate to={firstEmployeesTabPath(can) ?? '/'} replace />;
+}
+
+/**
+ * „Listy obecności": przycisk „Wygeneruj listę" otwiera okno z miesiącem i zaznaczeniem
+ * pracowników. Świeżo zapisana lista jest podświetlona, żeby było widać, gdzie wylądowała.
+ */
+export function AttendanceTabView() {
+    const { goToTab } = useEmployeesOutlet();
+    const [creating, setCreating] = useState(false);
+    const [highlightId, setHighlightId] = useState<string | null>(null);
+    return (
+        <>
+            <SettlementsSection
+                highlightId={highlightId}
+                onCreateSheet={() => setCreating(true)}
+                onGoToEmployees={() => goToTab('team')}
+            />
+            {creating && (
+                <AttendanceSheetModal
+                    onClose={() => setCreating(false)}
+                    onGenerated={sheet => setHighlightId(sheet.id)}
+                />
+            )}
+        </>
+    );
+}
+
+/**
+ * Dawny adres strony karty czasu pracy (`/employees/worktime/:period/:userId`) - karta
+ * jest znowu oknem nad listą „Czas pracy", otwieranym parametrem `?card=`.
+ */
+export function LegacyWorkTimeCardRedirect() {
+    const { period = '', userId = '' } = useParams<{ period: string; userId: string }>();
+    const params = new URLSearchParams({ period, card: userId });
+    return <Navigate to={`/employees/worktime?${params}`} replace />;
 }

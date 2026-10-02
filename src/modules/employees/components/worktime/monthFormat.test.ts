@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { MonthCardRow, MonthOverview } from '../../api/worktimeMonthsApi';
 import {
-    addMonths, approvedSummary, cardFactsSentence, cardPath, defaultPeriod, employeesLabel, hoursOfNorm, hoursText,
-    isPeriod, missingDaysText, monthOptions, monthPath, periodLabel, remindedRecently, reusableSheet, sheetFileName,
-    signedSheetIncludes,
+    addMonths, approvedSummary, cardFactsSentence, defaultPeriod, employeesLabel, hoursOfNorm, hoursText,
+    isPeriod, missingDaysText, monthOptions, periodLabel, remindedRecently, signedSheetIncludes,
 } from './monthFormat';
 
 const row = (userId: string, overrides: Partial<MonthCardRow> = {}): MonthCardRow => ({
@@ -51,7 +50,6 @@ describe('monthFormat - który miesiąc i jak go opisać', () => {
         expect(periodLabel('bzdura')).toBe('bzdura');
         expect(employeesLabel(1)).toBe('1 pracownik');
         expect(employeesLabel(12)).toBe('12 pracowników');
-        expect(sheetFileName('2026-09', true)).toBe('lista-obecnosci-2026-09-podpisana.pdf');
     });
 
     it('godziny: pełne bez minut, niepełne jak w karcie pracownika', () => {
@@ -73,11 +71,6 @@ describe('monthFormat - który miesiąc i jak go opisać', () => {
         expect(cardFactsSentence({ missingWorkingDays: 1, overtimeMinutes: 0, leaveWorkingDays: 1 }))
             .toBe('Brakuje 1 dnia roboczego. Urlop i L4: 1 dzień.');
         expect(cardFactsSentence({ missingWorkingDays: 0, overtimeMinutes: 0, leaveWorkingDays: 0 })).toBe('');
-    });
-
-    it('adresy: miesiąc to zakładka z `?period`, karta to osobna strona', () => {
-        expect(monthPath('2026-09')).toBe('/employees/worktime?period=2026-09');
-        expect(cardPath('2026-09', 'u-1')).toBe('/employees/worktime/2026-09/u-1');
     });
 });
 
@@ -104,19 +97,6 @@ describe('monthFormat - lista obecności', () => {
         },
         sheetHistory: [],
         ...overrides,
-    });
-
-    it('niepodpisaną, aktualną listę podpisuje się bez tworzenia nowej', () => {
-        expect(reusableSheet(month())?.id).toBe('s1');
-    });
-
-    it('lista sprzed zatwierdzenia którejś karty albo z pominiętymi powstaje od nowa', () => {
-        expect(reusableSheet(month({
-            employees: [row('a', { status: 'APPROVED', approvedAt: '2026-10-01T10:00:00Z' })],
-        }))).toBeNull();
-        const base = month();
-        expect(reusableSheet({ ...base, sheet: { ...base.sheet!, excludedNames: ['Jan Nowak'] } })).toBeNull();
-        expect(reusableSheet({ ...base, sheet: { ...base.sheet!, status: 'APPROVED' } })).toBeNull();
     });
 
     it('podpisana lista obejmuje osobę, chyba że jest wśród pominiętych', () => {

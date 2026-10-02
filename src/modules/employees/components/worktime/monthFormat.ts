@@ -52,11 +52,6 @@ export function employeesLabel(count: number): string {
     return count === 1 ? '1 pracownik' : `${count} pracowników`;
 }
 
-/** Nazwa pliku przy pobraniu: `lista-obecnosci-2026-09.pdf`, podpisana z dopiskiem. */
-export function sheetFileName(period: string, signed: boolean): string {
-    return `lista-obecnosci-${period}${signed ? '-podpisana' : ''}.pdf`;
-}
-
 /** 9120 → „152 h", 9135 → „152:15 h". Ten sam zapis co w karcie pracownika („8:30"). */
 export function hoursText(minutes: number): string {
     const sign = minutes < 0 ? '−' : '';
@@ -128,31 +123,8 @@ export function remindedRecently(remindedAt: string | null, now: number = Date.n
     return now - Date.parse(remindedAt) < REMIND_COOLDOWN_MS;
 }
 
-/** Widok miesiąca (zakładka) - tam wraca karta po decyzji. */
-export const monthPath = (period: string) => `/employees/worktime?period=${period}`;
-
-/** Karta czasu pracy osoby - osobna strona, nie okno nad listą. */
-export const cardPath = (period: string, userId: string) =>
-    `/employees/worktime/${period}/${encodeURIComponent(userId)}`;
-
 /** Lista podpisana: status APPROVED (zatwierdzenie listy wymaga podpisu). */
 export const isSigned = (sheet: Pick<MonthSheet, 'status'>) => sheet.status === 'APPROVED';
-
-/**
- * Niepodpisana lista, którą można podpisać bez tworzenia nowej. Nowa lista zastępuje
- * niepodpisaną - a razem z nią przepadłaby prośba o podpis wysłana już na tablet albo
- * SMS-em. Starą bierzemy jednak tylko wtedy, gdy na pewno jest aktualna: wszyscy na niej
- * są i żadna karta nie została zatwierdzona po jej wygenerowaniu (odblokowana
- * i zatwierdzona ponownie karta mogła zmienić godziny).
- */
-export function reusableSheet(month: MonthOverview): MonthSheet | null {
-    const sheet = month.sheet;
-    if (!sheet || sheet.status !== 'GENERATED' || sheet.outdated) return null;
-    if (month.stage !== 'READY_TO_SIGN' || sheet.excludedNames.length > 0) return null;
-    const generated = Date.parse(sheet.generatedAt);
-    const approvedAfter = month.employees.some(r => r.approvedAt && Date.parse(r.approvedAt) > generated);
-    return approvedAfter ? null : sheet;
-}
 
 /** Czy podpisana lista obejmuje tę osobę (pominięci są w stopce, nie w tabeli). */
 export function signedSheetIncludes(month: Pick<MonthOverview, 'sheet'> | null | undefined, name: string): boolean {

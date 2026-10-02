@@ -12,7 +12,7 @@
 import { Navigate, type RouteObject } from 'react-router-dom';
 import { RequirePermission } from '@/core/permissions';
 import { EMPLOYEES_TABS, type EmployeesTab } from './employeesTabs';
-import { EmployeesIndexView, LeavesTabView, WorktimeTabView } from './views/EmployeesTabViews';
+import { AttendanceTabView, EmployeesIndexView, LeavesTabView, WorktimeTabView } from './views/EmployeesTabViews';
 
 const requires = (key: EmployeesTab) => EMPLOYEES_TABS.find(t => t.key === key)!.requires;
 
@@ -33,5 +33,9 @@ export const employeesTabRoutes: RouteObject[] = [
     {
         path: 'worktime',
         element: <RequirePermission anyOf={requires('worktime')}><WorktimeTabView /></RequirePermission>,
+    },
+    {
+        path: 'attendance-sheets',
+        element: <RequirePermission anyOf={requires('attendance')}><AttendanceTabView /></RequirePermission>,
     },
 ];

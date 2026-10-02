@@ -92,20 +92,6 @@ export interface PendingWorkTimeCount {
     sheetsToSign: number;
 }
 
-/** Odpowiedź 409 przy liście z niezatwierdzonymi kartami i `allowIncomplete=false`. */
-export interface IncompleteSheetError {
-    message: string;
-    field: null;
-    names: string[];
-}
-
-/** Nazwiska z 409 „są niezatwierdzone karty"; null, gdy błąd jest inny. */
-export function incompleteSheetNames(error: unknown): string[] | null {
-    const response = (error as { response?: { status?: number; data?: Partial<IncompleteSheetError> } })?.response;
-    if (response?.status !== 409 || !Array.isArray(response.data?.names)) return null;
-    return response.data.names;
-}
-
 export const worktimeMonthsApi = {
     getMonth: async (period: string): Promise<MonthOverview> => {
         const response = await apiClient.get<MonthOverview>(`${BASE}/months/${period}`);
@@ -135,19 +121,6 @@ export const worktimeMonthsApi = {
         const response = await apiClient.post<BulkResult & { reminded: string[] }>(
             `${BASE}/months/${period}/remind`,
             { userIds },
-        );
-        return response.data;
-    },
-
-    /**
-     * `skipErrorToast`: 409 z nazwiskami niezatwierdzonych to pytanie do użytkownika
-     * („Podpisać bez: X, Y?"), a nie awaria - obsługuje je widok, który o listę poprosił.
-     */
-    createSheet: async (period: string, allowIncomplete: boolean): Promise<MonthSheet> => {
-        const response = await apiClient.post<MonthSheet>(
-            `${BASE}/months/${period}/sheet`,
-            { allowIncomplete },
-            { skipErrorToast: true },
         );
         return response.data;
     },

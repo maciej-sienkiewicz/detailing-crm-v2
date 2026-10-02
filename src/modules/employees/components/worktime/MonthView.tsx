@@ -1,46 +1,37 @@
 // src/modules/employees/components/worktime/MonthView.tsx
 //
-// Zakładka „Listy miesięczne": podsumowanie miesiąca - kto ma kartę w jakim stanie i czy
-// lista obecności jest podpisana (docs/api-worktime-months.md).
+// Zakładka „Czas pracy": kto ma kartę czasu pracy za miesiąc w jakim stanie
+// (docs/api-worktime-months.md). Listy obecności mają własną zakładkę.
 //
 // Uproszczona po uwagach właściciela: „za dużo labelek, za dużo przycisków, wiele
-// ścieżek, które prowadzą do tego samego modalu, badge tylko informacyjne". Wcześniej
-// ten widok miał pastylki etapów („Karty → Zatwierdzanie → Podpis listy"), „Przejrzyj
-// karty (N)", zatwierdzanie i przypominanie zbiorcze, okno karty otwierane z trzech
-// miejsc i historię wersji listy. Teraz:
+// ścieżek, które prowadzą do tego samego modalu, badge tylko informacyjne". Teraz:
 //   - jedno zdanie podsumowania („4 z 7 kart zatwierdzonych"),
-//   - lista osób, w której wiersz jest JEDYNĄ drogą do karty - i jest zwykłym linkiem do
-//     osobnej strony karty (WorkTimeCardView), a nie oknem nad listą,
-//   - na dole jedno zdanie o liście obecności i najwyżej jedna akcja.
+//   - lista osób, w której wiersz jest JEDYNĄ drogą do karty - otwiera ją w oknie
+//     (WorkTimeCardModal), z miesiącem przewijanym w środku okna.
 // Status karty jest tekstem w kolorze, nie pastylką: nie da się w niego kliknąć, więc nie
 // może wyglądać jak coś do kliknięcia.
 //
-// Miesiąc jest w adresie (`?period=2026-09`): tam linkuje push „karta złożona"
-// i podpowiedź na Tablicy, a strona karty wraca tu z tym samym miesiącem.
+// Miesiąc i otwarta karta są w adresie (`?period=2026-09&card={userId}`): tam linkuje push
+// „karta złożona" i podpowiedź na Tablicy, a odświeżenie strony zostawia okno otwarte.
 
-import { useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { ChevronLeft, ChevronRight, Users } from 'lucide-react';
 import { EmptyState } from '@/common/components/EmptyState';
-import { ConfirmationModal } from '@/common/components/ConfirmationModal';
-import { useToast } from '@/common/components/Toast';
 import { Button, Card, IconButton, Notice, ui } from '@/common/components/ui';
-import { formatDate } from '@/common/utils';
-import { readBlobErrorMessage, saveBlobAsFile } from '@/common/utils/blobFile';
-import { attendanceApi } from '../../api/attendanceApi';
-import {
-    incompleteSheetNames, type MonthCardRow, type MonthOverview, type MonthSheet,
-} from '../../api/worktimeMonthsApi';
-import { useCreateSheet, useMonthOverview } from '../../hooks/useWorktimeMonths';
-import { ApproveAttendanceSheetModal, type SheetToSign } from './ApproveAttendanceSheetModal';
+import type { MonthCardRow } from '../../api/worktimeMonthsApi';
+import { useMonthOverview } from '../../hooks/useWorktimeMonths';
 import { StatusText } from './StatusText';
+import { WorkTimeCardModal } from './WorkTimeCardModal';
 import {
-    addMonths, approvedSummary, cardPath, defaultPeriod, hoursOfNorm, isPeriod, isSigned, missingDaysText,
-    monthOptions, periodLabel, periodOf, reusableSheet, sheetFileName,
+    addMonths, approvedSummary, defaultPeriod, hoursOfNorm, isPeriod, missingDaysText,
+    monthOptions, periodLabel, periodOf,
 } from './monthFormat';
 
 const PERIOD_PARAM = 'period';
+/** Otwarta karta: `?card={userId}` - z tym linkiem okno otwiera się po wejściu i po odświeżeniu. */
+const CARD_PARAM = 'card';
 
 interface Props {
     /** Przejście do zespołu - tam widać, której roli liczy się czas pracy. */
@@ -48,7 +39,6 @@ interface Props {
 }
 
 export function MonthView({ onGoToTeam }: Props) {
-    const { showError } = useToast();
     const [searchParams, setSearchParams] = useSearchParams();
 
     // Miesiąc z adresu, o ile jest prawdziwy i nie z przyszłości - inaczej domyślny.
@@ -60,70 +50,21 @@ export function MonthView({ onGoToTeam }: Props) {
     const data = month.data?.period === period ? month.data : undefined;
     const rows = data?.employees ?? [];
 
-    const createSheet = useCreateSheet(period);
-    /** Nazwiska osób, których nie będzie na liście - pytanie przed podpisem niepełnej listy. */
-    const [incomplete, setIncomplete] = useState<string[] | null>(null);
-    const [signing, setSigning] = useState<SheetToSign | null>(null);
-    const [downloading, setDownloading] = useState(false);
+    const openCard = searchParams.get(CARD_PARAM);
+    const setCard = (userId: string | null) => setSearchParams(prev => {
+        const params = new URLSearchParams(prev);
+        if (userId) params.set(CARD_PARAM, userId);
+        else params.delete(CARD_PARAM);
+        return params;
+    }, { replace: !userId });
 
     const setPeriod = (next: string) => setSearchParams(prev => {
         const params = new URLSearchParams(prev);
         params.set(PERIOD_PARAM, next);
+        // Karta należała do poprzedniego miesiąca.
+        params.delete(CARD_PARAM);
         return params;
     });
-
-    // ── Podpis listy ────────────────────────────────────────────────────────────
-    const toSign = (sheet: MonthSheet, overview: MonthOverview): SheetToSign => ({
-        id: sheet.id,
-        period,
-        signed: isSigned(sheet),
-        signerName: sheet.approvedByName,
-        employeeCount: Math.max(overview.counts.total - sheet.excludedNames.length, 0),
-    });
-
-    const createAndSign = (allowIncomplete: boolean) => {
-        if (!data) return;
-        // Niepodpisana, aktualna lista jest podpisywana zamiast tworzenia nowej - nowa
-        // zastąpiłaby ją razem z prośbą o podpis wysłaną już na tablet albo telefon.
-        const reuse = allowIncomplete ? null : reusableSheet(data);
-        if (reuse) {
-            setSigning(toSign(reuse, data));
-            return;
-        }
-        createSheet.mutate(allowIncomplete, {
-            onSuccess: sheet => setSigning(toSign(sheet, data)),
-            onError: async error => {
-                // Ktoś zmienił kartę między wczytaniem widoku a kliknięciem - backend podaje
-                // aktualne nazwiska, a pytanie jest to samo.
-                const names = incompleteSheetNames(error);
-                if (names) {
-                    setIncomplete(names);
-                    return;
-                }
-                showError('Nie udało się utworzyć listy obecności', (await readBlobErrorMessage(error)) ?? 'Spróbuj ponownie za chwilę.');
-            },
-        });
-    };
-
-    const handleSign = () => {
-        const missing = rows.filter(r => r.status !== 'APPROVED').map(r => r.name);
-        if (missing.length > 0) {
-            setIncomplete(missing);
-            return;
-        }
-        createAndSign(false);
-    };
-
-    const handleDownload = async (sheet: MonthSheet) => {
-        setDownloading(true);
-        try {
-            saveBlobAsFile(await attendanceApi.downloadAttendanceSheet(sheet.id), sheetFileName(period, isSigned(sheet)));
-        } catch (error) {
-            showError('Nie udało się pobrać listy', (await readBlobErrorMessage(error)) ?? 'Spróbuj ponownie za chwilę.');
-        } finally {
-            setDownloading(false);
-        }
-    };
 
     const options = useMemo(() => {
         const list = monthOptions();
@@ -175,45 +116,27 @@ export function MonthView({ onGoToTeam }: Props) {
                     {onGoToTeam && <EmptyAction><Button variant="outline" onClick={onGoToTeam}>Przejdź do zespołu</Button></EmptyAction>}
                 </EmptyState>
             ) : (
-                <>
-                    <Card>
-                        <Summary as="h2">{approvedSummary(data.counts.approved, data.counts.total)}</Summary>
-                        <Rows aria-label={`Karty czasu pracy, ${periodLabel(period)}`}>
-                            {rows.map(row => <MonthRow key={row.userId} row={row} period={period} />)}
-                        </Rows>
-                    </Card>
-
-                    <SheetBlock
-                        month={data}
-                        downloading={downloading}
-                        signingPending={createSheet.isPending}
-                        onDownload={handleDownload}
-                        onSign={handleSign}
-                    />
-                </>
+                <Card>
+                    <Summary as="h2">{approvedSummary(data.counts.approved, data.counts.total)}</Summary>
+                    <Rows aria-label={`Karty czasu pracy, ${periodLabel(period)}`}>
+                        {rows.map(row => <MonthRow key={row.userId} row={row} onOpen={() => setCard(row.userId)} />)}
+                    </Rows>
+                </Card>
             )}
 
-            {signing && <ApproveAttendanceSheetModal sheet={signing} onClose={() => setSigning(null)} />}
-
-            <ConfirmationModal
-                isOpen={incomplete !== null}
-                title="Podpisać listę bez wszystkich kart?"
-                message={`Na liście nie będzie: ${incomplete?.join(', ') ?? ''} (karty niezatwierdzone). Podpisać mimo to?`}
-                variant="warning"
-                confirmText="Podpisz mimo to"
-                onConfirm={() => { setIncomplete(null); createAndSign(true); }}
-                onCancel={() => setIncomplete(null)}
-            />
+            {openCard && (
+                <WorkTimeCardModal key={`${period}/${openCard}`} period={period} userId={openCard} onClose={() => setCard(null)} />
+            )}
         </Wrap>
     );
 }
 
 // ─── Wiersz osoby ───────────────────────────────────────────────────────────────
 
-function MonthRow({ row, period }: { row: MonthCardRow; period: string }) {
+function MonthRow({ row, onOpen }: { row: MonthCardRow; onOpen: () => void }) {
     return (
         <li>
-            <RowLink to={cardPath(period, row.userId)} data-testid="month-row">
+            <RowButton type="button" onClick={onOpen} data-testid="month-row">
                 <Who>
                     <Name>{row.name}</Name>
                     <Hours>
@@ -223,65 +146,8 @@ function MonthRow({ row, period }: { row: MonthCardRow; period: string }) {
                 </Who>
                 <StatusText status={row.status} />
                 <Chevron aria-hidden="true"><ChevronRight /></Chevron>
-            </RowLink>
+            </RowButton>
         </li>
-    );
-}
-
-// ─── Lista obecności: jedno zdanie, najwyżej jedna akcja ────────────────────────
-
-interface SheetBlockProps {
-    month: MonthOverview;
-    downloading: boolean;
-    signingPending: boolean;
-    onDownload: (sheet: MonthSheet) => void;
-    onSign: () => void;
-}
-
-function SheetBlock({ month, downloading, signingPending, onDownload, onSign }: SheetBlockProps) {
-    const { sheet, counts } = month;
-    const signedCurrent = !!sheet && isSigned(sheet) && !sheet.outdated;
-
-    if (signedCurrent) {
-        return (
-            <SheetRow aria-label="Lista obecności">
-                <SheetText>
-                    Lista obecności podpisana
-                    {sheet.approvedAt ? ` ${formatDate(sheet.approvedAt)}` : ''}
-                    {sheet.approvedByName ? `, ${sheet.approvedByName}` : ''}.
-                </SheetText>
-                <LinkButton type="button" onClick={() => onDownload(sheet)} disabled={downloading}>
-                    {downloading ? 'Pobieram…' : 'Pobierz PDF'}
-                </LinkButton>
-            </SheetRow>
-        );
-    }
-
-    if (counts.approved === 0) {
-        return (
-            <SheetRow aria-label="Lista obecności">
-                <SheetText>Listę obecności podpiszesz, gdy zatwierdzisz pierwszą kartę.</SheetText>
-            </SheetRow>
-        );
-    }
-
-    // Podpisana, ale nieaktualna: karta odblokowana albo zatwierdzona po podpisie.
-    const needsResign = !!sheet && isSigned(sheet) && sheet.outdated;
-    return (
-        <SheetRow aria-label="Lista obecności">
-            <SheetText>
-                {needsResign
-                    ? 'Lista wymaga ponownego podpisu, bo zmieniła się karta.'
-                    : counts.approved === counts.total
-                        ? 'Wszystkie karty są zatwierdzone. Lista obecności czeka na podpis.'
-                        : 'Lista obecności obejmie tylko zatwierdzone karty.'}
-            </SheetText>
-            <SignAction>
-                <Button variant="primary" size="lg" onClick={onSign} disabled={signingPending}>
-                    {signingPending ? 'Przygotowuję listę…' : 'Podpisz listę obecności'}
-                </Button>
-            </SignAction>
-        </SheetRow>
     );
 }
 
@@ -340,15 +206,20 @@ const Rows = styled.ul`
     li:last-child { border-bottom: none; }
 `;
 
-const RowLink = styled(Link)`
+const RowButton = styled.button`
+    width: 100%;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto 16px;
     align-items: center;
     gap: 12px;
     min-height: 60px;
     padding: 10px 24px;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    text-align: left;
     color: inherit;
-    text-decoration: none;
+    cursor: pointer;
     transition: background 120ms ease;
     -webkit-tap-highlight-color: transparent;
 
@@ -385,54 +256,7 @@ const Chevron = styled.span`
     color: ${ui.textFaint};
     svg { width: 16px; height: 16px; }
 `;
-
-/* Płasko na tle: wyniesiona jest lista osób (CLAUDE.md §2, jedna karta w kolumnie). */
-const SheetRow = styled.section`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px 20px;
-    padding: 4px 4px 0;
-
-    @media ${PHONE} { padding: 2px 2px 0; }
-`;
-
-const SheetText = styled.p`
-    margin: 0;
-    flex: 1 1 260px;
-    font-size: 14px;
-    line-height: 1.5;
-    color: ${ui.textSecondary};
-`;
-
-const SignAction = styled.div`
-    display: flex;
-
-    @media ${PHONE} {
-        width: 100%;
-        > button { width: 100%; }
-    }
-`;
-
 /** Pobranie PDF jako link w zdaniu - to nie jest krok do zrobienia, tylko dostęp do pliku. */
-const LinkButton = styled.button`
-    padding: 0;
-    border: none;
-    background: none;
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 600;
-    color: ${ui.brandInk};
-    text-decoration: underline;
-    text-underline-offset: 3px;
-    cursor: pointer;
-
-    &:hover:not(:disabled) { color: ${ui.brandDeep}; }
-    &:disabled { color: ${ui.textFaint}; cursor: default; }
-    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: 2px; border-radius: 4px; }
-`;
-
 const EmptyAction = styled.div`
     margin-top: 14px;
 `;

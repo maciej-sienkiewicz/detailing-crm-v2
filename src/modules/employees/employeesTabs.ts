@@ -9,14 +9,14 @@
 // Jedna lista zasila trzy miejsca naraz - pasek zakładek, pozycję w panelu bocznym
 // i trasy - więc kolejność i wymagania nie mogą się między nimi rozjechać.
 //
-// „Listy miesięczne" (dawniej „Czas pracy") zostały pod `/employees/worktime`:
-// na tę ścieżkę linkuje podpowiedź WORKTIME_MISSING na Tablicy. Nazwę zmieniono, bo
-// „Czas pracy" to też samoobsługowy moduł pracownika (/worktime) - dwie pozycje
-// o tej samej nazwie prowadziły w dwa różne miejsca.
+// „Czas pracy" (karty czasu pracy zespołu do akceptacji) jest pod `/employees/worktime`:
+// na tę ścieżkę linkują push „karta złożona" i podpowiedzi na Tablicy. „Listy obecności"
+// (generowanie listy dla zaznaczonych pracowników i jej podpis) to osobna zakładka -
+// tak zdecydował właściciel po wersji, w której oba tematy stały w jednym widoku.
 
 import { ANY_EMPLOYEES, type PermissionRequirement } from '@/core/permissions/catalog';
 
-export type EmployeesTab = 'team' | 'leaves' | 'worktime';
+export type EmployeesTab = 'team' | 'leaves' | 'worktime' | 'attendance';
 
 export interface EmployeesTabDef {
     key: EmployeesTab;
@@ -31,7 +31,8 @@ export const EMPLOYEES_TABS: readonly EmployeesTabDef[] = [
     // (EMPLOYEES_LEAVES_APPROVE), grafik - każdy z ANY_EMPLOYEES. Stąd wymaganie zakładki
     // jest szersze niż kolejki; sekcje pilnują się same (LeavesTabView).
     { key: 'leaves', label: 'Wnioski urlopowe', path: '/employees/leave-requests', requires: ANY_EMPLOYEES },
-    { key: 'worktime', label: 'Listy miesięczne', path: '/employees/worktime', requires: 'EMPLOYEES_MANAGE' },
+    { key: 'worktime', label: 'Czas pracy', path: '/employees/worktime', requires: 'EMPLOYEES_MANAGE' },
+    { key: 'attendance', label: 'Listy obecności', path: '/employees/attendance-sheets', requires: 'EMPLOYEES_MANAGE' },
 ];
 
 export const employeesTabPath = (key: EmployeesTab): string =>
