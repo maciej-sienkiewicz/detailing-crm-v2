@@ -8,8 +8,8 @@ import type {
     TerminateEmployeePayload,
     CreateAccountRequest,
     CreateAccountResponse,
-    ChangePasswordRequest,
     ResendInvitationResponse,
+    PasswordResetSentResponse,
     EmploymentContract,
     CreateContractPayload,
     EndContractPayload,
@@ -87,13 +87,19 @@ export const employeeApi = {
         await apiClient.delete(`${BASE}/${employeeId}/account`);
     },
 
-    changePassword: async (employeeId: string, payload: ChangePasswordRequest): Promise<void> => {
-        await apiClient.post(`${BASE}/${employeeId}/account/change-password`, payload);
-    },
-
     /** Only for an account the employee has not activated yet; the backend refuses the rest. */
     resendInvitation: async (employeeId: string): Promise<ResendInvitationResponse> => {
         const res = await apiClient.post<ResendInvitationResponse>(`${BASE}/${employeeId}/account/resend-invitation`);
+        return res.data;
+    },
+
+    /**
+     * „Resetuj hasło": pracownik dostaje e-mail z linkiem do ustawienia nowego hasła.
+     * Błąd (konto czeka na aktywację, blokada minutowa) zgłasza wywołujący - komunikat
+     * serwera mówi, co zrobić, więc globalny dymek jest tu w sam raz.
+     */
+    sendPasswordReset: async (employeeId: string): Promise<PasswordResetSentResponse> => {
+        const res = await apiClient.post<PasswordResetSentResponse>(`${BASE}/${employeeId}/account/password-reset`);
         return res.data;
     },
 

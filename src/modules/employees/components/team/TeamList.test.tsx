@@ -116,13 +116,13 @@ describe('TeamList - lista pracowników', () => {
         expect(await screen.findByText('Liczony czas pracy')).toBeTruthy();
     });
 
-    it('kliknięcie w pracownika prowadzi na jego kartę; wiersz jest linkiem (Tab i Enter)', async () => {
+    it('kliknięcie w pracownika otwiera jego okno nad listą; wiersz jest linkiem (Tab i Enter)', async () => {
         const router = renderSection();
-        const row = await screen.findByRole('link', { name: 'Karta pracownika: Marta Kowalczyk' });
-        expect(row.getAttribute('href')).toBe('/employees/e1');
+        const row = await screen.findByRole('link', { name: 'Okno pracownika: Marta Kowalczyk' });
+        expect(row.getAttribute('href')).toBe('/employees?person=e1');
         fireEvent.click(row);
-        expect(await screen.findByText('karta pracownika')).toBeTruthy();
-        expect(router.state.location.pathname).toBe('/employees/e1');
+        expect(router.state.location.pathname).toBe('/employees');
+        expect(router.state.location.search).toBe('?person=e1');
     });
 
     it('menu ⋮ i „Zaproś do systemu" nie przenoszą na kartę', async () => {

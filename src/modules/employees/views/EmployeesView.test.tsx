@@ -13,6 +13,7 @@ import { theme } from '@/common/theme';
 import { ToastProvider } from '@/common/components/Toast';
 import { EmployeesView } from './EmployeesView';
 import { employeesTabRoutes } from '../employeesRoutes';
+import { LegacyEmployeeRedirect } from './EmployeesTabViews';
 
 const auth = vi.hoisted(() => ({ user: { permissions: null as string[] | null } }));
 vi.mock('@/core/context/AuthContext', () => ({ useAuth: () => auth }));
@@ -47,6 +48,13 @@ vi.mock('../components/worktime/SettlementsSection', () => ({
         </div>
     ),
 }));
+vi.mock('../components/employee-modal/EmployeeModal', () => ({
+    EmployeeModal: ({ employeeId, onClose }: { employeeId: string; onClose: () => void }) => (
+        <div role="dialog" aria-label={`okno pracownika ${employeeId}`}>
+            <button type="button" onClick={onClose}>zamknij okno</button>
+        </div>
+    ),
+}));
 vi.mock('../components/worktime/AttendanceSheetModal', () => ({
     AttendanceSheetModal: () => <div role="dialog" aria-label="Wygeneruj listę obecności" />,
 }));
@@ -69,7 +77,7 @@ const renderAt = (path: string) => {
     // Ta sama konfiguracja tras co w aplikacji: rama z zakładkami jako dziećmi.
     const router = createMemoryRouter([
         { path: '/employees', element: <EmployeesView />, children: employeesTabRoutes },
-        { path: '/employees/:employeeId', element: <p>karta pracownika</p> },
+        { path: '/employees/:employeeId', element: <LegacyEmployeeRedirect /> },
         { path: '/settings', element: <p>ustawienia</p> },
         { path: '*', element: <p>strona startowa</p> },
     ], { initialEntries: [path] });
@@ -209,12 +217,22 @@ describe('EmployeesView - zakładki', () => {
         expect(router.state.location.pathname).toBe('/employees/leave-requests');
     });
 
-    it('karta pracownika /employees/:id nie wpada w zakładki, a zakładki - w kartę', async () => {
+    it('?person= otwiera okno pracownika nad listą „Zespół", a zamknięcie zdejmuje parametr', async () => {
+        const router = renderAt('/employees?person=emp-1');
+        expect(await screen.findByRole('dialog', { name: 'okno pracownika emp-1' })).toBeTruthy();
+        expect(screen.getByText('atrapa: zespół')).toBeTruthy();
+        fireEvent.click(screen.getByRole('button', { name: 'zamknij okno' }));
+        expect(screen.queryByRole('dialog')).toBeNull();
+        expect(router.state.location.search).toBe('');
+    });
+
+    it('dawny adres strony pracownika /employees/:id otwiera jego okno', async () => {
         const router = renderAt('/employees/emp-1');
-        expect(screen.getByText('karta pracownika')).toBeTruthy();
-        expect(screen.queryByRole('tablist')).toBeNull();
+        expect(await screen.findByRole('dialog', { name: 'okno pracownika emp-1' })).toBeTruthy();
+        expect(router.state.location.pathname).toBe('/employees');
+        expect(router.state.location.search).toBe('?person=emp-1');
+        // Statyczne zakładki nie wpadają w dawną trasę z parametrem.
         await act(() => router.navigate('/employees/leave-requests'));
-        expect(screen.queryByText('karta pracownika')).toBeNull();
         expect(screen.getByText('grafik nieobecności')).toBeTruthy();
     });
 });

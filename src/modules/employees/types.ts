@@ -36,6 +36,8 @@ export interface EmployeeListItem {
      * without permission to see roles.
      */
     role?: EmployeeRoleRef | null;
+    /** Ostatnia aktywność w aplikacji (ISO, z dokładnością do godziny); tylko dla zarządzających zespołem. */
+    lastSeenAt?: string | null;
 }
 
 export interface EmployeePaginationInfo {
@@ -64,6 +66,17 @@ export interface EmployeeAccountInfo {
     invitationSentAt?: string | null;
     /** Do kiedy działa link z ostatniego zaproszenia. */
     invitationExpiresAt?: string | null;
+    /** Ostatnie udane logowanie hasłem albo PIN-em; null, gdy nie logował się od wdrożenia (V174). */
+    lastLoginAt?: string | null;
+    /** Ostatnia aktywność w aplikacji, z dokładnością do godziny. */
+    lastSeenAt?: string | null;
+}
+
+/** Odpowiedź na „Resetuj hasło": dokąd poszedł link i do kiedy działa. */
+export interface PasswordResetSentResponse {
+    email: string;
+    sentAt: string;
+    expiresAt: string;
 }
 
 export interface EmployeeDetail {

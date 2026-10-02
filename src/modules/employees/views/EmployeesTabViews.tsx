@@ -8,7 +8,7 @@
 // i zaznaczeniem pracowników, a lista pod spodem pokazuje, co czeka na zatwierdzenie.
 
 import { useState } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { usePermissions } from '@/core/permissions';
 import { TeamList } from '../components/team/TeamList';
@@ -17,12 +17,32 @@ import { AbsencesSection } from '../components/leave/AbsencesSection';
 import { MonthView } from '../components/worktime/MonthView';
 import { SettlementsSection } from '../components/worktime/SettlementsSection';
 import { AttendanceSheetModal } from '../components/worktime/AttendanceSheetModal';
+import { EmployeeModal } from '../components/employee-modal/EmployeeModal';
 import { firstEmployeesTabPath } from '../employeesTabs';
 import { useEmployeesOutlet } from './employeesOutlet';
 
+/** Parametr okna pracownika nad listą: `/employees?person={employeeId}`. */
+export const PERSON_PARAM = 'person';
+
+/**
+ * „Zespół": lista, a nad nią okno pracownika (`?person=`). Adres z parametrem da się
+ * podesłać, a „wstecz" zamyka okno zamiast wychodzić z modułu.
+ */
 export function TeamTabView() {
     const navigate = useNavigate();
-    return <TeamList onGoToRoles={() => navigate('/settings?tab=roles')} />;
+    const [searchParams, setSearchParams] = useSearchParams();
+    const person = searchParams.get(PERSON_PARAM);
+    const close = () => setSearchParams(prev => {
+        const next = new URLSearchParams(prev);
+        next.delete(PERSON_PARAM);
+        return next;
+    }, { replace: true });
+    return (
+        <>
+            <TeamList onGoToRoles={() => navigate('/settings?tab=roles')} />
+            {person && <EmployeeModal key={person} employeeId={person} onClose={close} />}
+        </>
+    );
 }
 
 /**
@@ -88,6 +108,15 @@ export function AttendanceTabView() {
             )}
         </>
     );
+}
+
+/**
+ * Dawny adres strony pracownika (`/employees/:employeeId`) - pracownik jest teraz oknem
+ * nad listą „Zespół". Adres krąży w zakładkach przeglądarki i w powiadomieniach.
+ */
+export function LegacyEmployeeRedirect() {
+    const { employeeId = '' } = useParams<{ employeeId: string }>();
+    return <Navigate to={`/employees?${new URLSearchParams({ [PERSON_PARAM]: employeeId })}`} replace />;
 }
 
 /**

@@ -64,15 +64,20 @@ const ON_BEHALF_DRAFT: LeaveDraftEndpoints<CreateOnBehalfLeaveRequestPayload> = 
 
 interface Props {
     onClose: () => void;
+    /**
+     * Otwarte z okna pracownika: osoba jest już wybrana, okno zaczyna od rodzaju urlopu.
+     * Krok „Pracownik" zostaje pod „Wstecz", gdyby trzeba było ją zmienić.
+     */
+    employeeId?: string;
 }
 
-export function AddLeaveModal({ onClose }: Props) {
+export function AddLeaveModal({ onClose, employeeId: presetEmployeeId }: Props) {
     const { user } = useAuth();
     const { showSuccess, showError } = useToast();
     const selfEmployeeId = user?.employeeId ?? null;
 
-    const [step, setStep] = useState(EMPLOYEE);
-    const [employeeId, setEmployeeId] = useState<string | null>(null);
+    const [step, setStep] = useState(presetEmployeeId ? KIND : EMPLOYEE);
+    const [employeeId, setEmployeeId] = useState<string | null>(presetEmployeeId ?? null);
     const [kind, setKind] = useState<LeaveKindKey | null>(null);
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
