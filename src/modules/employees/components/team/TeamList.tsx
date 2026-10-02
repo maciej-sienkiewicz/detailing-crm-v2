@@ -23,6 +23,7 @@ import { EmployeeFormModal, type AccountInvite } from './EmployeeFormModal';
 import type {
     CreateEmployeeFormOutput, EmployeeListItem, UpdateEmployeePayload,
 } from '../../types';
+import { lastSeenShort } from '../../utils/presence';
 
 /** Also the page size the module view reads to count the team on its tab. */
 export const TEAM_PAGE_SIZE = 20;
@@ -347,7 +348,7 @@ interface EmployeeRowProps {
 }
 
 /**
- * Cały wiersz prowadzi na kartę pracownika („jak klikamy w pracownika, to powinniśmy
+ * Cały wiersz otwiera okno pracownika (`?person=`) nad listą („jak klikamy w pracownika, to powinniśmy
  * zostać przekierowani na kartę pracownika") - edycja danych i zaproszenie są w menu ⋮.
  * Wiersz nie jest `div`-em z onClick: nazwisko jest linkiem, a jego `::after` rozciąga
  * się na wiersz. Dzięki temu wiersz osiąga się Tabem i Enterem, da się go otworzyć
@@ -359,7 +360,7 @@ function EmployeeRow({ employee: emp, tracksWorkTime, menuOpen, onInvite, onMenu
     return (
         <Row>
             <NameCell>
-                <NameLink to={`/employees/${emp.id}`} aria-label={`Karta pracownika: ${emp.fullName}`}>
+                <NameLink to={`/employees?person=${emp.id}`} aria-label={`Okno pracownika: ${emp.fullName}`}>
                     {emp.fullName}
                 </NameLink>
                 <Meta>
@@ -389,6 +390,10 @@ function EmployeeRow({ employee: emp, tracksWorkTime, menuOpen, onInvite, onMenu
                         // Odcień, nie wypełnienie: przy kilku osobach bez konta byłoby kilka
                         // wypełnionych przycisków przeciw jednemu „Dodaj pracownika" (CLAUDE.md §2).
                         : <RaisedButton variant="tinted" size="sm" onClick={onInvite}>Zaproś do systemu</RaisedButton>}
+                {/* Pod stanem konta, a nie w osobnej kolumnie: w wąskiej liście też się mieści. */}
+                {emp.hasAccount && !emp.accountPending && emp.lastSeenAt && (
+                    <MutedText>Ostatnio {lastSeenShort(emp.lastSeenAt)}</MutedText>
+                )}
             </AccountCell>
 
             <MenuCell>
@@ -496,7 +501,7 @@ const NameLink = styled(Link)`
     text-overflow: ellipsis;
     white-space: nowrap;
 
-    /* Rozciągnięty cel kliknięcia: cały wiersz prowadzi na kartę. */
+    /* Rozciągnięty cel kliknięcia: cały wiersz otwiera okno pracownika. */
     &::after { content: ''; position: absolute; inset: 0; }
     &:focus-visible { outline: none; }
     &:focus-visible::after { outline: 2px solid #38bdf8; outline-offset: -2px; border-radius: 4px; }

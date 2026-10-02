@@ -6,7 +6,6 @@ import type {
     UpdateEmployeePayload,
     TerminateEmployeePayload,
     CreateAccountRequest,
-    ChangePasswordRequest,
 } from '../types';
 
 // Jeden korzeń cache dla całego modułu. Lista zespołu żyła wcześniej pod
@@ -118,12 +117,8 @@ export const useDeleteAccount = () => {
     });
 };
 
-export const useChangePassword = () => {
-    return useMutation({
-        mutationFn: ({ employeeId, payload }: { employeeId: string; payload: ChangePasswordRequest }) =>
-            employeeApi.changePassword(employeeId, payload),
-    });
-};
+export const useSendPasswordReset = () =>
+    useMutation({ mutationFn: (employeeId: string) => employeeApi.sendPasswordReset(employeeId) });
 
 export const useResendInvitation = () => {
     const invalidate = useInvalidateEmployees();

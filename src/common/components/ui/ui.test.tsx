@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { ModalShell } from '../ModalKit';
 import {
     ActionMenu, Button, ChoiceCard, FileDrop, IconButton, MenuItem, Notice, PriceButton, Segmented, StepPills, SummaryStrip, useActionMenu,
 } from '.';
@@ -61,6 +62,25 @@ describe('ui', () => {
         fireEvent.click(trigger);
         fireEvent.click(trigger);
         expect(screen.queryByRole('menu')).toBeNull();
+    });
+
+    it('Escape w menu otwartym w oknie zamyka samo menu, a nie okno pod nim', () => {
+        const onCloseModal = vi.fn();
+        render(
+            <ModalShell isOpen onClose={onCloseModal}>
+                <MenuHarness onEdit={vi.fn()} />
+            </ModalShell>,
+        );
+        fireEvent.click(screen.getByRole('button', { name: 'Więcej akcji' }));
+        expect(screen.getByRole('menu', { name: 'Akcje usługi' })).toBeInTheDocument();
+
+        fireEvent.keyDown(screen.getByRole('button', { name: 'Więcej akcji' }), { key: 'Escape' });
+        expect(screen.queryByRole('menu')).toBeNull();
+        expect(onCloseModal).not.toHaveBeenCalled();
+
+        // Następny Escape, już bez menu, zamyka okno jak zawsze.
+        fireEvent.keyDown(screen.getByRole('button', { name: 'Więcej akcji' }), { key: 'Escape' });
+        expect(onCloseModal).toHaveBeenCalledTimes(1);
     });
 
     it('cena jest przyciskiem z ołówkiem; tylko do odczytu - bez przycisku', () => {

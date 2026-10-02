@@ -47,8 +47,8 @@ const MailView = lazyWithRetry(() => import('@/modules/comms/views/MailView'));
 const MailboxConnectView = lazyWithRetry(() => import('@/modules/comms/views/MailboxConnectView'));
 const LeadsView = lazyWithRetry(() => import('@/modules/comms/views/LeadsView'));
 const LeadAnalyticsView = lazyWithRetry(() => import('@/modules/comms/views/LeadAnalyticsView'));
-import { EmployeeDetailView, EmployeesView, MyLeaveView } from '@/modules/employees';
-import { LegacyWorkTimeCardRedirect } from '@/modules/employees/views/EmployeesTabViews';
+import { EmployeesView, MyLeaveView } from '@/modules/employees';
+import { LegacyEmployeeRedirect, LegacyWorkTimeCardRedirect } from '@/modules/employees/views/EmployeesTabViews';
 import { employeesTabRoutes } from '@/modules/employees/employeesRoutes';
 import { WorkTimeView } from '@/modules/worktime';
 import { ActivityView } from '@/modules/activity';
@@ -431,8 +431,9 @@ export const router = createBrowserRouter([
             children: employeesTabRoutes,
         },
         {
+            // Dawny adres strony pracownika - pracownik jest oknem nad „Zespołem" (`?person=…`).
             path: '/employees/:employeeId',
-            element: page(<EmployeeDetailView />, 'EMPLOYEES_MANAGE'),
+            element: <LegacyEmployeeRedirect />,
         },
         {
             // Dawny adres strony karty czasu pracy - karta jest znowu oknem nad zakładką

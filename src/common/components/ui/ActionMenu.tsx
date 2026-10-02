@@ -107,7 +107,14 @@ export function ActionMenu({ anchor, onClose, label, children }: ActionMenuProps
             if (panelRef.current?.contains(e.target as Node)) return;
             onClose();
         };
-        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+        // Escape zamyka samo menu. Nasłuch w fazie przechwytywania i zatrzymanie zdarzenia:
+        // okno modalne pod menu też słucha Escape na dokumencie i zarejestrowało się
+        // wcześniej, więc bez tego jedno naciśnięcie zamykało menu RAZEM z oknem.
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key !== 'Escape') return;
+            e.stopPropagation();
+            onClose();
+        };
         // Menu stoi w `position: fixed` - przy przewinięciu odjechałoby od przycisku.
         const onScroll = (e: Event) => {
             if (panelRef.current?.contains(e.target as Node)) return;
@@ -116,12 +123,12 @@ export function ActionMenu({ anchor, onClose, label, children }: ActionMenuProps
         // `click`, nie `mousedown`: przycisk, który otworzył menu, sam je przełącza
         // i zatrzymuje propagację - mousedown zamknąłby menu przed jego kliknięciem.
         document.addEventListener('click', onDown);
-        document.addEventListener('keydown', onKey);
+        document.addEventListener('keydown', onKey, true);
         window.addEventListener('scroll', onScroll, true);
         window.addEventListener('resize', onClose);
         return () => {
             document.removeEventListener('click', onDown);
-            document.removeEventListener('keydown', onKey);
+            document.removeEventListener('keydown', onKey, true);
             window.removeEventListener('scroll', onScroll, true);
             window.removeEventListener('resize', onClose);
         };
