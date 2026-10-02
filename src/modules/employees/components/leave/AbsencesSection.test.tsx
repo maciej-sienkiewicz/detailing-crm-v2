@@ -11,7 +11,7 @@ import { ToastProvider } from '@/common/components/Toast';
 import { employeeApi } from '../../api/employeeApi';
 import { leaveRequestsApi } from '../../api/leaveRequestsApi';
 import { todayIso } from '../../utils/leaveRequestFormat';
-import { AbsencesTab } from './AbsencesTab';
+import { AbsencesSection } from './AbsencesSection';
 
 const auth = vi.hoisted(() => ({ user: { permissions: null as string[] | null } }));
 vi.mock('@/core/context/AuthContext', () => ({ useAuth: () => auth }));
@@ -37,7 +37,7 @@ const renderTab = () => {
         <QueryClientProvider client={queryClient}>
             <ThemeProvider theme={theme}>
                 <ToastProvider>
-                    <AbsencesTab />
+                    <AbsencesSection />
                 </ToastProvider>
             </ThemeProvider>
         </QueryClientProvider>,
@@ -72,7 +72,7 @@ afterEach(() => {
     vi.clearAllMocks();
 });
 
-describe('AbsencesTab', () => {
+describe('AbsencesSection', () => {
     it('nieobecność pewna i wniosek oczekujący mają osobne komórki', async () => {
         renderTab();
         expect(await screen.findByLabelText(`Piotr Lis, ${day(3)}: nieobecność`)).toBeTruthy();

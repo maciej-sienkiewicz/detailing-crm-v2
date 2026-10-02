@@ -34,7 +34,7 @@ vi.mock('../api/employeeApi', () => ({
     },
 }));
 vi.mock('../components/leave/LeaveRequestsTab', () => ({ LeaveRequestsTab: () => <p>kolejka wniosków</p> }));
-vi.mock('../components/leave/AbsencesTab', () => ({ AbsencesTab: () => <p>grafik nieobecności</p> }));
+vi.mock('../components/leave/AbsencesSection', () => ({ AbsencesSection: () => <p>grafik nieobecności</p> }));
 vi.mock('../api/leaveRequestsApi', async importOriginal => ({
     ...(await importOriginal<typeof import('../api/leaveRequestsApi')>()),
     leaveRequestsApi: { list: vi.fn().mockResolvedValue({ items: [], pendingCount: 2 }) },
@@ -84,7 +84,7 @@ describe('EmployeesView - zakładki', () => {
         auth.user = { permissions: ['EMPLOYEES_LEAVES_APPROVE'] };
         const { worktimeMonthsApi } = await import('../api/worktimeMonthsApi');
         vi.mocked(worktimeMonthsApi.pendingCount).mockClear();
-        renderAt('/employees/absences');
+        renderAt('/employees/leave-requests');
         expect(await screen.findByText('grafik nieobecności')).toBeTruthy();
         expect(worktimeMonthsApi.pendingCount).not.toHaveBeenCalled();
     });
@@ -95,28 +95,43 @@ describe('EmployeesView - zakładki', () => {
         expect(router.state.location.pathname).toBe('/employees/worktime');
     });
 
-    it('właściciel widzi wszystkie cztery zakładki, a przy wnioskach liczbę oczekujących', async () => {
+    it('właściciel widzi trzy zakładki, a przy wnioskach liczbę oczekujących', async () => {
         renderAt('/employees');
         expect(await screen.findByRole('tab', { name: /^Wnioski urlopowe\s*2$/ })).toBeTruthy();
         expect(screen.getAllByRole('tab').map(t => t.textContent?.replace(/\d+$/, '')))
-            .toEqual(['Zespół', 'Wnioski urlopowe', 'Nieobecności', 'Listy miesięczne']);
+            .toEqual(['Zespół', 'Wnioski urlopowe', 'Listy miesięczne']);
     });
 
-    it('kierownik zmiany (EMPLOYEES_LEAVES_APPROVE) widzi tylko wnioski i nieobecności', async () => {
+    it('„Wnioski urlopowe": kolejka wniosków, a pod nią grafik nieobecności', async () => {
+        renderAt('/employees/leave-requests');
+        const queue = await screen.findByText('kolejka wniosków');
+        const grid = screen.getByText('grafik nieobecności');
+        // Grafik stoi POD kolejką.
+        expect(queue.compareDocumentPosition(grid) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it('dawny adres zakładki „Nieobecności" prowadzi do wniosków', async () => {
+        const router = renderAt('/employees/absences');
+        expect(await screen.findByText('grafik nieobecności')).toBeTruthy();
+        expect(router.state.location.pathname).toBe('/employees/leave-requests');
+    });
+
+    it('kierownik zmiany (EMPLOYEES_LEAVES_APPROVE) widzi tylko wnioski, z kolejką i grafikiem', async () => {
         auth.user = { permissions: ['EMPLOYEES_LEAVES_APPROVE'] };
         renderAt('/employees/leave-requests');
         expect(await screen.findByText('kolejka wniosków')).toBeTruthy();
+        expect(screen.getByText('grafik nieobecności')).toBeTruthy();
         expect(tab(/^Wnioski urlopowe/).getAttribute('aria-selected')).toBe('true');
-        expect(tab(/^Nieobecności/)).toBeTruthy();
         expect(screen.queryByRole('tab', { name: /^Zespół/ })).toBeNull();
         expect(screen.queryByRole('tab', { name: /^Listy miesięczne/ })).toBeNull();
     });
 
-    it('sama kadrowa rola (EMPLOYEES_MANAGE) nie widzi kolejki wniosków', () => {
+    it('sama kadrowa rola (EMPLOYEES_MANAGE) widzi grafik nieobecności bez kolejki wniosków', () => {
         auth.user = { permissions: ['EMPLOYEES_MANAGE'] };
-        renderAt('/employees/absences');
+        renderAt('/employees/leave-requests');
         expect(screen.getByText('grafik nieobecności')).toBeTruthy();
-        expect(screen.queryByRole('tab', { name: /^Wnioski urlopowe/ })).toBeNull();
+        expect(screen.queryByText('kolejka wniosków')).toBeNull();
+        expect(tab(/^Wnioski urlopowe/)).toBeTruthy();
         expect(tab(/^Zespół/)).toBeTruthy();
     });
 
@@ -128,15 +143,15 @@ describe('EmployeesView - zakładki', () => {
     });
 
     it('zmiana zakładki wymienia tylko treść - nagłówek i pasek zostają tymi samymi węzłami', async () => {
-        const router = renderAt('/employees/absences');
-        expect(await screen.findByText('grafik nieobecności')).toBeTruthy();
+        const router = renderAt('/employees/leave-requests');
+        expect(await screen.findByText('kolejka wniosków')).toBeTruthy();
         const heading = screen.getByRole('heading', { name: 'Pracownicy' });
         const tabList = screen.getByRole('tablist');
 
-        fireEvent.click(tab(/^Wnioski urlopowe/));
-        expect(router.state.location.pathname).toBe('/employees/leave-requests');
-        expect(await screen.findByText('kolejka wniosków')).toBeTruthy();
-        expect(screen.queryByText('grafik nieobecności')).toBeNull();
+        fireEvent.click(tab(/^Zespół/));
+        expect(router.state.location.pathname).toBe('/employees');
+        expect(await screen.findByText('atrapa: zespół')).toBeTruthy();
+        expect(screen.queryByText('kolejka wniosków')).toBeNull();
         // Ten sam węzeł, nie kopia: rama nie została odmontowana.
         expect(screen.getByRole('heading', { name: 'Pracownicy' })).toBe(heading);
         expect(screen.getByRole('tablist')).toBe(tabList);
@@ -164,7 +179,7 @@ describe('EmployeesView - zakładki', () => {
         const router = renderAt('/employees/emp-1');
         expect(screen.getByText('karta pracownika')).toBeTruthy();
         expect(screen.queryByRole('tablist')).toBeNull();
-        await act(() => router.navigate('/employees/absences'));
+        await act(() => router.navigate('/employees/leave-requests'));
         expect(screen.queryByText('karta pracownika')).toBeNull();
         expect(screen.getByText('grafik nieobecności')).toBeTruthy();
     });

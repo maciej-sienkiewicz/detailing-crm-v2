@@ -16,7 +16,7 @@
 
 import { ANY_EMPLOYEES, type PermissionRequirement } from '@/core/permissions/catalog';
 
-export type EmployeesTab = 'team' | 'leaves' | 'absences' | 'worktime';
+export type EmployeesTab = 'team' | 'leaves' | 'worktime';
 
 export interface EmployeesTabDef {
     key: EmployeesTab;
@@ -27,8 +27,10 @@ export interface EmployeesTabDef {
 
 export const EMPLOYEES_TABS: readonly EmployeesTabDef[] = [
     { key: 'team', label: 'Zespół', path: '/employees', requires: 'EMPLOYEES_MANAGE' },
-    { key: 'leaves', label: 'Wnioski urlopowe', path: '/employees/leave-requests', requires: 'EMPLOYEES_LEAVES_APPROVE' },
-    { key: 'absences', label: 'Nieobecności', path: '/employees/absences', requires: ANY_EMPLOYEES },
+    // Wnioski i grafik nieobecności na jednej zakładce: kolejkę widzi tylko rozpatrujący
+    // (EMPLOYEES_LEAVES_APPROVE), grafik - każdy z ANY_EMPLOYEES. Stąd wymaganie zakładki
+    // jest szersze niż kolejki; sekcje pilnują się same (LeavesTabView).
+    { key: 'leaves', label: 'Wnioski urlopowe', path: '/employees/leave-requests', requires: ANY_EMPLOYEES },
     { key: 'worktime', label: 'Listy miesięczne', path: '/employees/worktime', requires: 'EMPLOYEES_MANAGE' },
 ];
 
