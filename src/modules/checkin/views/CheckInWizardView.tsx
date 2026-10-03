@@ -428,7 +428,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                             {formData.customerData.firstName && (
                                 <PageSubtitle>
                                     {formData.customerData.firstName} {formData.customerData.lastName}
-                                    {formData.vehicleData && ` · ${formData.vehicleData.brand} ${formData.vehicleData.model}`}
+                                    {formData.vehicleData && `, ${formData.vehicleData.brand} ${formData.vehicleData.model}`}
                                 </PageSubtitle>
                             )}
                         </TitleBlock>
@@ -544,8 +544,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                         ) : (
                             <FooterStepHint>
                                 <FooterStepDot />
-                                Krok {steps.findIndex(s => s.id === currentStep) + 1} z {steps.length}
-                                {' · '}
+                                Krok {steps.findIndex(s => s.id === currentStep) + 1} z {steps.length}:{' '}
                                 {steps.find(s => s.id === currentStep)?.label}
                             </FooterStepHint>
                         )}

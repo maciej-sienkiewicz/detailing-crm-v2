@@ -101,23 +101,24 @@ export const Logo = styled.div<{ $isCollapsed: boolean }>`
     min-width: 0;
 `;
 
-/* Kafelek z inicjałami to znak studia, nie przycisk: bez poświaty. Świecący niebieski
-   blok był najgłośniejszą rzeczą w całym menu, głośniejszą niż pozycja, na której
-   się jest — a to ona ma mówić „tu jesteś". */
+/* Kafelek z inicjałami to znak studia, nie przycisk: bez poświaty i bez błękitu.
+   Błękitny gradient był najgłośniejszą rzeczą w całym menu, głośniejszą niż pozycja,
+   na której się jest — a to ona ma mówić „tu jesteś". Grafit odróżnia kafelek od
+   tła paska i nie konkuruje z kolorem aktywnej pozycji. */
 export const LogoIcon = styled.div`
     width: 36px;
     height: 36px;
-    background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);
+    background: #1e293b;
     border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: #e2e8f0;
     font-size: 15px;
     font-weight: 800;
     letter-spacing: -0.5px;
     flex-shrink: 0;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 `;
 
 /**
