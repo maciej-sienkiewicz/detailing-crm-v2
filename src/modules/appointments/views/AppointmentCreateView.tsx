@@ -1,7 +1,6 @@
 // src/modules/appointments/views/AppointmentCreateView.tsx
 import styled from 'styled-components';
 import { PageContainer } from '@/common/components/PageContainer';
-import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { useAppointmentCreation } from '../hooks/useAppointmentCreation';
 import { AppointmentHeader } from '../components/AppointmentHeader';
 import { ReservationDetailsSection } from '../components/ReservationDetailsSection';
@@ -21,7 +20,6 @@ import { RecurrenceSection } from '../components/RecurrenceSection';
 const Container = styled.div`
     min-height: 100vh;
     background-color: ${props => props.theme.colors.background};
-    ${hexBackdrop}
 `;
 
 const ContentWrapper = styled(PageContainer)``;

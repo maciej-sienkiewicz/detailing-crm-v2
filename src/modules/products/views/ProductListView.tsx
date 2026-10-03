@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Package } from 'lucide-react';
-import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { PageContainer } from '@/common/components/PageContainer';
 import {
@@ -23,8 +22,7 @@ import { AddProductModal } from '../components/AddProductModal';
 
 const ViewContainer = styled.div`
     min-height: 100vh;
-    background: ${st.bg};
-    ${hexBackdrop}
+    background: ${p => p.theme.colors.background};
 `;
 const PageBody = styled(PageContainer)` display: flex; flex-direction: column; gap: 20px; `;
 // Licznik stoi przy podtytule, po LEWEJ — tak samo jak na liście pojazdów.

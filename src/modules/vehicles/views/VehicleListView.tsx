@@ -1,7 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { useVehicles } from '../hooks/useVehicles';
 import { useVehicleSearch } from '../hooks/useVehicleSearch';
 import { useVehiclePagination } from '../hooks/useVehiclePagination';
@@ -21,12 +20,11 @@ import { PageHeader, PageHeaderPrimaryButton, MobilePageHeader, MobilePageHeader
 import { PageContainer } from '@/common/components/PageContainer';
 import type { VehicleAdvancedFilters } from '../types';
 
-// Tło i hexBackdrop na pełnej szerokości (wrapper prezentacyjny, div).
+// Tło na pełnej szerokości (wrapper prezentacyjny, div).
 // Landmarkiem <main> i nośnikiem szerokości jest PageBody poniżej.
 const ViewContainer = styled.div`
     min-height: 100vh;
-    background: ${st.bg};
-    ${hexBackdrop}
+    background: ${p => p.theme.colors.background};
 `;
 
 const PageBody = styled(PageContainer)`

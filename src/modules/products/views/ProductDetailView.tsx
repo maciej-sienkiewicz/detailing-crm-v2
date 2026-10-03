@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Package, ArrowLeft, Star, Lock, Flag } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { PageContainer } from '@/common/components/PageContainer';
 import { usePermissions } from '@/core/permissions';
 import { useProductDetail, useProductRating } from '../hooks/useProducts';
@@ -14,7 +13,7 @@ import { ReportProductIssueModal } from '../components/ReportProductIssueModal';
 import { formatPackage, formatPrice } from '../utils/productFormat';
 import { UNIT_LABELS } from '../types';
 
-const View = styled.div` min-height: 100vh; background: ${st.bg}; ${hexBackdrop} `;
+const View = styled.div` min-height: 100vh; background: ${p => p.theme.colors.background}; `;
 const Body = styled(PageContainer)` display: flex; flex-direction: column; gap: 18px; `;
 const Back = styled.button`
     display: inline-flex; align-items: center; gap: 6px; align-self: flex-start;
