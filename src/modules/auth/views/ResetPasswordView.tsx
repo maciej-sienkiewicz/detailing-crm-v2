@@ -12,7 +12,8 @@ import { authApi } from '../api/authApi';
 import { t } from '@/common/i18n';
 import { Label, FieldGroup, ErrorMessage } from '@/common/components/Form';
 import { Button } from '@/common/components/Button';
-import { AuthContainer, authCardShadow } from '../components/AuthBackdrop';
+import { AuthContainer } from '../components/AuthBackdrop';
+import { authCard, authLinkHover, authLogo } from '../components/authStyles';
 
 // Tło jak na stronie detailboost.pl - wspólne dla ekranów logowania i rejestracji.
 const Container = AuthContainer;
@@ -22,7 +23,7 @@ const Card = styled.div`
     max-width: 440px;
     background-color: ${props => props.theme.colors.surface};
     border-radius: ${props => props.theme.radii.xl};
-    box-shadow: ${authCardShadow};
+    ${authCard}
     padding: ${props => props.theme.spacing.xl};
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
@@ -39,15 +40,13 @@ const Logo = styled.div`
     width: 64px;
     height: 64px;
     margin: 0 auto ${props => props.theme.spacing.md};
-    background: linear-gradient(135deg, ${props => props.theme.colors.primary} 0%, #0284c7 100%);
     border-radius: ${props => props.theme.radii.lg};
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 32px;
     font-weight: ${props => props.theme.fontWeights.bold};
-    color: white;
-    box-shadow: ${props => props.theme.shadows.lg};
+    ${authLogo}
 `;
 
 const Title = styled.h1`
@@ -102,7 +101,7 @@ const FooterLink = styled(Link)`
     transition: color ${props => props.theme.transitions.fast};
 
     &:hover {
-        color: #0284c7;
+        color: ${authLinkHover};
     }
 `;
 

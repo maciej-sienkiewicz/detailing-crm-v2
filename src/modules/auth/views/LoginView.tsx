@@ -12,7 +12,8 @@ import { SuccessAlert } from '../components/SuccessAlert';
 import { t } from '@/common/i18n';
 import { Label, FieldGroup, ErrorMessage } from '@/common/components/Form';
 import { Button } from '@/common/components/Button';
-import { AuthContainer, authCardShadow } from '../components/AuthBackdrop';
+import { AuthContainer } from '../components/AuthBackdrop';
+import { authCard, authLinkHover, authLogo } from '../components/authStyles';
 
 // Tło jak na stronie detailboost.pl - wspólne dla ekranów logowania i rejestracji.
 const Container = AuthContainer;
@@ -22,7 +23,7 @@ const Card = styled.div`
     max-width: 440px;
     background-color: ${props => props.theme.colors.surface};
     border-radius: ${props => props.theme.radii.xl};
-    box-shadow: ${authCardShadow};
+    ${authCard}
     padding: ${props => props.theme.spacing.xl};
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
@@ -39,15 +40,13 @@ const Logo = styled.div`
     width: 64px;
     height: 64px;
     margin: 0 auto ${props => props.theme.spacing.md};
-    background: linear-gradient(135deg, ${props => props.theme.colors.primary} 0%, #0284c7 100%);
     border-radius: ${props => props.theme.radii.lg};
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 32px;
     font-weight: ${props => props.theme.fontWeights.bold};
-    color: white;
-    box-shadow: ${props => props.theme.shadows.lg};
+    ${authLogo}
 `;
 
 const Title = styled.h1`
@@ -85,7 +84,7 @@ const ForgotLink = styled(Link)`
     transition: color ${props => props.theme.transitions.fast};
 
     &:hover {
-        color: #0284c7;
+        color: ${authLinkHover};
     }
 `;
 
@@ -122,10 +121,11 @@ const DemoButton = styled.button<{ disabled?: boolean }>`
     font-weight: ${props => props.theme.fontWeights.semibold};
     cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
     transition: all ${props => props.theme.transitions.normal};
-    border: none;
-    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-    color: white;
-    box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35);
+    /* Druga droga, nie konkurencja dla „Zaloguj się": przygaszona szyba jak drugi
+       przycisk na stronie, zamiast pomarańczowego gradientu. */
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.88);
     opacity: ${props => props.disabled ? 0.6 : 1};
     display: flex;
     align-items: center;
@@ -133,8 +133,9 @@ const DemoButton = styled.button<{ disabled?: boolean }>`
     gap: ${props => props.theme.spacing.sm};
 
     &:hover:not(:disabled) {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(217, 119, 6, 0.45);
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(220, 174, 92, 0.5);
+        color: #ffffff;
     }
 
     &:active:not(:disabled) {
@@ -168,7 +169,7 @@ const FooterLink = styled(Link)`
     transition: color ${props => props.theme.transitions.fast};
 
     &:hover {
-        color: #0284c7;
+        color: ${authLinkHover};
     }
 `;
 

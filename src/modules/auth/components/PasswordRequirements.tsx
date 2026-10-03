@@ -42,7 +42,7 @@ const Item = styled.li<{ $met: boolean }>`
     align-items: center;
     gap: 6px;
     font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.$met ? '#15803d' : props.theme.colors.textMuted};
+    color: ${props => props.$met ? props.theme.colors.success : props.theme.colors.textMuted};
     transition: color ${props => props.theme.transitions.fast};
 `;
 
@@ -54,9 +54,9 @@ const Marker = styled.span<{ $met: boolean }>`
     width: 16px;
     height: 16px;
     border-radius: ${props => props.theme.radii.full};
-    border: 1.5px solid ${props => props.$met ? '#86efac' : props.theme.colors.border};
+    border: 1.5px solid ${props => props.$met ? props.theme.colors.success : props.theme.colors.border};
     background: ${props => props.$met ? props.theme.colors.successLight : 'transparent'};
-    color: #15803d;
+    color: ${props => props.theme.colors.success};
     transition: all ${props => props.theme.transitions.fast};
 
     svg {
