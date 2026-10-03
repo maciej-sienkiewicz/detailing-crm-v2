@@ -28,6 +28,7 @@ import type { Customer } from '@/modules/customers/types';
 import { COMMS_CONTACT_CARD_KEY, COMMS_INSIGHTS_KEY, useContactCard } from '../hooks/useComms';
 import { VehiclePhotosPopover } from './VehiclePhotosPopover';
 import { formatGrosze } from './shared';
+import { PiiValue } from '@/common/pii';
 
 // Pozycję, szerokość i wysokość nadaje useFloatingPanel po pomiarze. Dawniej chmurka
 // zakładała 360 px wysokości: z trzema autami, trzema wizytami i linkiem do profilu jest
@@ -533,7 +534,7 @@ export function ContactCardPopover({
                         <div className="name">{customer?.fullName ?? participantName ?? email}</div>
                         <div className="sub">
                             <span>{email}</span>
-                            {customer?.phone && <span>{customer.phone}</span>}
+                            {customer?.phone && <span><PiiValue value={customer.phone} kind="phone" /></span>}
                         </div>
                     </div>
                     <button type="button" className="close" onClick={onClose} aria-label="Zamknij">
@@ -667,7 +668,7 @@ export function ContactCardPopover({
                                         </div>
                                         <div className="meta">
                                             <span>{candidate.contact?.email ?? 'brak adresu'}</span>
-                                            {candidate.contact?.phone && <span>{candidate.contact.phone}</span>}
+                                            {candidate.contact?.phone && <span><PiiValue value={candidate.contact.phone} kind="phone" /></span>}
                                         </div>
                                     </Candidate>
                                 ))}

@@ -39,6 +39,7 @@ import { useFeature, UpsellModal } from '@/modules/subscription';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { RecurrenceSidePanel, SidePanelWrapper, SidePanelInner } from './RecurrenceSidePanel';
 import type { QuickEventModalProps, QuickEventModalRef, AppointmentColor, Service, ServiceAdjustment } from './types';
+import { PiiValue } from '@/common/pii';
 
 export type { QuickEventFormData, QuickEventInitialData } from './types';
 export type { QuickEventModalRef };
@@ -447,7 +448,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 {hasContact
                                     ? (
                                         <MetaParts>
-                                            {c.phone && <span>{c.phone}</span>}
+                                            {c.phone && <span><PiiValue value={c.phone} kind="phone" /></span>}
                                             {c.email && <span>{c.email}</span>}
                                         </MetaParts>
                                     )
@@ -1219,7 +1220,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 {(form.selectedCustomer.phone || form.selectedCustomer.email) && (
                                                     <S.ChipMeta>
                                                         <MetaParts>
-                                                            {form.selectedCustomer.phone && <span>{form.selectedCustomer.phone}</span>}
+                                                            {form.selectedCustomer.phone && <span><PiiValue value={form.selectedCustomer.phone} kind="phone" /></span>}
                                                             {form.selectedCustomer.email && <span>{form.selectedCustomer.email}</span>}
                                                         </MetaParts>
                                                     </S.ChipMeta>
@@ -1400,7 +1401,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                         {hasContact
                                                                             ? (
                                                                                 <MetaParts>
-                                                                                    {c.phone && <span>{c.phone}</span>}
+                                                                                    {c.phone && <span><PiiValue value={c.phone} kind="phone" /></span>}
                                                                                     {c.email && <span>{c.email}</span>}
                                                                                 </MetaParts>
                                                                             )

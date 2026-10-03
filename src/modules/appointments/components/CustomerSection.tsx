@@ -5,6 +5,7 @@ import { Button } from '@/common/components/Button';
 import { Badge } from '@/common/components/Badge';
 import { t } from '@/common/i18n';
 import type { SelectedCustomer } from '../types';
+import { PiiValue } from '@/common/pii';
 
 const SelectButton = styled(Button)`
     width: 100%;
@@ -180,7 +181,7 @@ export const CustomerSection = ({ selectedCustomer, onOpenModal }: CustomerSecti
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                                 </svg>
-                                {selectedCustomer.phone}
+                                <PiiValue value={selectedCustomer.phone} kind="phone" />
                             </DetailValue>
                         </DetailItem>
                     </SelectedDetails>

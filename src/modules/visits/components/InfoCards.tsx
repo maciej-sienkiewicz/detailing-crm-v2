@@ -113,11 +113,12 @@ export const CustomerInfoCard = ({ customer, visitId, onViewDetails, compact, ch
        uzupełniać. Edycja wymaga dostępu do kartoteki klientów. */
     const canEditContact = can('CUSTOMERS_VIEW') && !masked;
     const phoneUsable = !!customer.phone && !isPiiMasked(customer.phone);
-    /* Bez groszy: w sumie życiowej klienta „,00" nie niesie informacji. */
+    /* Z groszami, jak każda inna kwota na tym ekranie - zaokrąglona suma (3565 zł
+       przy 3564,54 zł) wyglądała jak inna liczba niż w karcie klienta. */
     const totalSpentLabel = new Intl.NumberFormat('pl-PL', {
         style: 'currency',
         currency: customer.stats.totalSpent.currency || 'PLN',
-        maximumFractionDigits: 0,
+        minimumFractionDigits: 2,
     }).format(customer.stats.totalSpent.grossAmount / 100);
     const visitsLabel = `${customer.stats.totalVisits} ${customer.stats.totalVisits === 1 ? 'wizyta' : 'wizyty'}`;
 
