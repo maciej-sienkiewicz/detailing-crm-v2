@@ -34,7 +34,7 @@ const HeroHeader = styled.header`
         right: 80px;
         width: 380px;
         height: 380px;
-        background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 65%);
+        background: radial-gradient(circle, rgba(14, 165, 233, 0.08) 0%, transparent 65%);
         pointer-events: none;
     }
 `;
@@ -125,7 +125,7 @@ const AvatarBadge = styled.div`
     font-size: 12px;
     font-weight: 700;
     color: white;
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.35);
 `;
 
 const CustomerTitle = styled.h1`
@@ -215,10 +215,10 @@ const ActionButton = styled.button<{ $primary?: boolean }>`
         background: ${st.accentBlue};
         color: white;
         border-color: ${st.accentBlue};
-        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
         &:hover {
-            background: #2563EB;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+            background: #0284C7;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
             transform: translateY(-1px);
         }
     ` : `

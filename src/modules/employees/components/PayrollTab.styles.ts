@@ -79,7 +79,7 @@ export const StatusBadge = styled.span<{ $status: PayrollStatus }>`
     white-space: nowrap;
     ${({ $status }) => {
         if ($status === 'PAID') return `background: ${st.accentGreenDim}; color: #059669;`;
-        if ($status === 'CONFIRMED') return `background: ${st.accentBlueDim}; color: #2563EB;`;
+        if ($status === 'CONFIRMED') return `background: ${st.accentBlueDim}; color: #0284C7;`;
         return `background: ${st.accentAmberDim}; color: #D97706;`;
     }}
 `;

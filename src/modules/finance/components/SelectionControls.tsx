@@ -48,18 +48,18 @@ const CheckboxLabel = styled.label<{ $onDark?: boolean }>`
     `}
 
     &:hover ${Box} {
-        border-color: #60a5fa;
+        border-color: #38bdf8;
     }
 
     input:focus-visible + ${Box} {
-        outline: 2px solid #3b82f6;
+        outline: 2px solid #0ea5e9;
         outline-offset: 2px;
     }
 
     input:checked + ${Box},
     input:indeterminate + ${Box} {
-        background: #3b82f6;
-        border-color: #3b82f6;
+        background: #0ea5e9;
+        border-color: #0ea5e9;
         color: #ffffff;
     }
 `;
@@ -135,8 +135,8 @@ const Bar = styled.div`
     flex-wrap: wrap;
     gap: 10px;
     padding: 10px 16px;
-    background: #eff6ff;
-    border-bottom: 1px solid #bfdbfe;
+    background: #f0f9ff;
+    border-bottom: 1px solid #bae6fd;
 
     @media (max-width: 639px) {
         padding: 10px 12px;
@@ -147,7 +147,7 @@ const Bar = styled.div`
 const Count = styled.span`
     font-size: 13px;
     font-weight: 600;
-    color: #1e3a8a;
+    color: #0c4a6e;
     margin-right: auto;
 
     @media (max-width: 639px) {
@@ -194,11 +194,11 @@ const ClearBtn = styled.button`
     font-family: inherit;
     font-size: 13px;
     font-weight: 500;
-    color: #1d4ed8;
+    color: #0369a1;
     cursor: pointer;
     border-radius: 8px;
 
-    &:hover:not(:disabled) { background: #dbeafe; }
+    &:hover:not(:disabled) { background: #e0f2fe; }
     &:disabled { opacity: 0.55; cursor: not-allowed; }
 `;
 

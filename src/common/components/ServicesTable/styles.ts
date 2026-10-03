@@ -641,7 +641,7 @@ export const PackageBadgeInline = styled.span`
     align-items: center;
     padding: 2px 7px;
     background: rgba(37, 99, 235, 0.08);
-    color: #2563eb;
+    color: #0284c7;
     border: 1px solid rgba(37, 99, 235, 0.18);
     border-radius: 6px;
     font-size: 10px;

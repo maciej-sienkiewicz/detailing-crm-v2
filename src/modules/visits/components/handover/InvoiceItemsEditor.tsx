@@ -72,13 +72,13 @@ const AddBtn = styled.button`
     padding: 7px 12px;
     font-size: ${st.fontSm};
     font-weight: 600;
-    color: #1d4ed8;
-    background: #eff6ff;
-    border: 1px dashed #93c5fd;
+    color: #0369a1;
+    background: #f0f9ff;
+    border: 1px dashed #7dd3fc;
     border-radius: ${st.radiusSm};
     cursor: pointer;
 
-    &:hover { background: #dbeafe; }
+    &:hover { background: #e0f2fe; }
 `;
 
 interface InvoiceItemsEditorProps {

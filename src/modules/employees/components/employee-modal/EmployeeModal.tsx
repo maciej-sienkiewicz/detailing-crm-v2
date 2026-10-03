@@ -336,16 +336,16 @@ const Tab = styled.button<{ $active: boolean; $future: boolean }>`
     margin-bottom: -1px;
     padding: 10px 14px;
     border: 0;
-    border-bottom: 2px solid ${p => p.$active ? '#3b82f6' : 'transparent'};
+    border-bottom: 2px solid ${p => p.$active ? '#0ea5e9' : 'transparent'};
     background: transparent;
     font: inherit;
     font-size: 15px;
     font-weight: ${p => p.$active ? 700 : 500};
-    color: ${p => p.$active ? '#3b82f6' : p.$future ? ui.textFaint : ui.textSecondary};
+    color: ${p => p.$active ? '#0ea5e9' : p.$future ? ui.textFaint : ui.textSecondary};
     white-space: nowrap;
     cursor: pointer;
 
-    &:hover { color: ${p => p.$active ? '#3b82f6' : ui.ink}; }
+    &:hover { color: ${p => p.$active ? '#0ea5e9' : ui.ink}; }
 `;
 
 const TabCount = styled.span<{ $active: boolean }>`
@@ -355,8 +355,8 @@ const TabCount = styled.span<{ $active: boolean }>`
     font-size: 11px;
     font-weight: 700;
     text-align: center;
-    background: ${p => p.$active ? 'rgba(59, 130, 246, 0.12)' : '#f1f5f9'};
-    color: ${p => p.$active ? '#3b82f6' : '#94a3b8'};
+    background: ${p => p.$active ? 'rgba(14, 165, 233, 0.12)' : '#f1f5f9'};
+    color: ${p => p.$active ? '#0ea5e9' : '#94a3b8'};
 `;
 
 const ErrorBox = styled.div`

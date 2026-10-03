@@ -201,7 +201,7 @@ export default function MailboxConnectView() {
                 </Field>
 
                 {oauthProvider && (
-                    <ErrorText style={{ background: '#eff6ff', color: '#1e40af' }}>
+                    <ErrorText style={{ background: '#f0f9ff', color: '#075985' }}>
                         Ta skrzynka ({detection?.providerType === 'GOOGLE_API' ? 'Gmail' : 'Microsoft 365'})
                         wymaga logowania u dostawcy. Ta metoda będzie dostępna wkrótce - na razie
                         możesz podłączyć skrzynkę z klasycznego hostingu.

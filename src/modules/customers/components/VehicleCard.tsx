@@ -153,7 +153,7 @@ const ServiceIcon = styled.div<{ $variant: 'inspection' | 'service' }>`
 
     ${props => props.$variant === 'inspection'
             ? 'background: #fef3c7; color: #92400e;'
-            : 'background: #dbeafe; color: #1e40af;'
+            : 'background: #e0f2fe; color: #075985;'
     }
 
     svg {

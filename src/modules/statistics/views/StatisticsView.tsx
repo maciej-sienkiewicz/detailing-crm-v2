@@ -385,7 +385,7 @@ export const StatisticsView = () => {
                                 <KpiLabel>Łączny przychód brutto</KpiLabel>
                                 <KpiValue>{fmtPLNFromGrosz(displayData.totals.totalRevenueGross)}</KpiValue>
                             </KpiCard>
-                            <KpiCard $accent="#3B82F6">
+                            <KpiCard $accent="#0EA5E9">
                                 <KpiLabel>Liczba zleceń</KpiLabel>
                                 <KpiValue>{displayData.totals.orderCount.toLocaleString('pl-PL')}</KpiValue>
                             </KpiCard>

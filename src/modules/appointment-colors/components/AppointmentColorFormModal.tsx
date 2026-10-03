@@ -83,7 +83,7 @@ export const AppointmentColorFormModal = ({
     onSuccess,
 }: AppointmentColorFormModalProps) => {
     const [name, setName] = useState('');
-    const [hexColor, setHexColor] = useState('#3b82f6');
+    const [hexColor, setHexColor] = useState('#0ea5e9');
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [showToast, setShowToast] = useState(false);
 
@@ -97,7 +97,7 @@ export const AppointmentColorFormModal = ({
                 setHexColor(color.hexColor);
             } else {
                 setName('');
-                setHexColor('#3b82f6');
+                setHexColor('#0ea5e9');
             }
             setErrors({});
         }
@@ -112,7 +112,7 @@ export const AppointmentColorFormModal = ({
 
         const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
         if (!hexRegex.test(hexColor)) {
-            newErrors.hexColor = 'Nieprawidłowy format koloru HEX (np. #3b82f6)';
+            newErrors.hexColor = 'Nieprawidłowy format koloru HEX (np. #0ea5e9)';
         }
 
         setErrors(newErrors);
@@ -188,7 +188,7 @@ export const AppointmentColorFormModal = ({
                                     type="text"
                                     value={hexColor}
                                     onChange={(e) => handleColorChange(e.target.value)}
-                                    placeholder="#3b82f6"
+                                    placeholder="#0ea5e9"
                                 />
                             </ColorPickerWrapper>
                             {errors.hexColor && <ErrorMessage>{errors.hexColor}</ErrorMessage>}

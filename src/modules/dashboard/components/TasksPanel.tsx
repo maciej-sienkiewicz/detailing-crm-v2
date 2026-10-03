@@ -179,7 +179,7 @@ const VisibilityBadge = styled.div<{ $type: 'USERS' | 'ROLE' }>`
   width: fit-content;
 
   ${p => p.$type === 'USERS' ? `
-    background: #eff6ff;
+    background: #f0f9ff;
     border: 1px solid #bae6fd;
     color: #0284c7;
   ` : `

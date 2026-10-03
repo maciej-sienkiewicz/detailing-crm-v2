@@ -172,7 +172,7 @@ const ExpandBtn = styled.button`
     cursor: pointer;
     transition: all ${st.transition};
     flex-shrink: 0;
-    &:hover { background: ${st.accentBlueDim}; border-color: #93c5fd; color: ${st.accentBlue}; }
+    &:hover { background: ${st.accentBlueDim}; border-color: #7dd3fc; color: ${st.accentBlue}; }
 `;
 
 const SubItemsContainer = styled.div`

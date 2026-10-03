@@ -503,7 +503,7 @@ export const AddButton = styled.button`
     box-shadow: ${st.shadowXs};
     transition: all ${st.transition};
     svg { width: 14px; height: 14px; }
-    &:hover { background: #2563EB; box-shadow: ${st.shadowSm}; transform: translateY(-1px); }
+    &:hover { background: #0284C7; box-shadow: ${st.shadowSm}; transform: translateY(-1px); }
     &:active { transform: translateY(0); }
 `;
 

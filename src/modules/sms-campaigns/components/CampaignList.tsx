@@ -132,7 +132,7 @@ const MessagePreview = styled.span`
   display: block;
   cursor: pointer;
   transition: color 120ms;
-  &:hover { color: #3B82F6; text-decoration: underline; }
+  &:hover { color: #0EA5E9; text-decoration: underline; }
 `;
 
 // ─── Meta ──────────────────────────────────────────────────────────────────────
@@ -150,7 +150,7 @@ const MetaChip = styled.span<{ $clickable?: boolean }>`
   padding: ${p => p.$clickable ? '2px 6px' : '0'};
   margin: ${p => p.$clickable ? '-2px -6px' : '0'};
   transition: ${p => p.$clickable ? 'background 120ms, color 120ms' : 'none'};
-  &:hover { background: ${p => p.$clickable ? '#EFF6FF' : 'transparent'}; color: ${p => p.$clickable ? '#2563EB' : '#475569'}; }
+  &:hover { background: ${p => p.$clickable ? '#F0F9FF' : 'transparent'}; color: ${p => p.$clickable ? '#0284C7' : '#475569'}; }
 `;
 
 const DateText = styled.span`
@@ -183,10 +183,10 @@ const btnBase = css`
 const SendBtn = styled.button`
   ${btnBase}
   padding: 6px 12px;
-  background: #EFF6FF;
-  color: #2563EB;
-  border-color: #BFDBFE;
-  &:hover:not(:disabled) { background: #DBEAFE; border-color: #93C5FD; }
+  background: #F0F9FF;
+  color: #0284C7;
+  border-color: #BAE6FD;
+  &:hover:not(:disabled) { background: #E0F2FE; border-color: #7DD3FC; }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 

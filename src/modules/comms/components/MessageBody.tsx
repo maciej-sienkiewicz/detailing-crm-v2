@@ -196,7 +196,7 @@ const FRAME_STYLES = `
         }
         img { max-width: 100%; height: auto; }
         table { max-width: 100%; }
-        a { color: #2563eb; }
+        a { color: #0284c7; }
         blockquote { border-left: 3px solid #e5e7eb; margin-left: 0; padding-left: 12px; color: #6b7280; }
         .crm-quoted { margin-top: 16px; border-top: 1px solid #e5e7eb; padding-top: 12px; }
     </style>

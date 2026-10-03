@@ -7,7 +7,7 @@ interface TagColor {
 }
 
 const TAG_PALETTE: TagColor[] = [
-    { bg: 'rgba(59,130,246,0.10)',  text: '#1D4ED8', border: 'rgba(59,130,246,0.22)'  }, // blue
+    { bg: 'rgba(14,165,233,0.10)',  text: '#0369A1', border: 'rgba(14,165,233,0.22)'  }, // blue
     { bg: 'rgba(16,185,129,0.10)',  text: '#047857', border: 'rgba(16,185,129,0.22)'  }, // emerald
     { bg: 'rgba(168,85,247,0.10)',  text: '#7C3AED', border: 'rgba(168,85,247,0.22)'  }, // violet
     { bg: 'rgba(245,158,11,0.10)',  text: '#B45309', border: 'rgba(245,158,11,0.22)'  }, // amber

@@ -62,7 +62,7 @@ const PresetBtn = styled.button<{ $active: boolean }>`
     justify-content: space-between;
     width: 100%;
     padding: 8px 12px;
-    background: ${p => p.$active ? '#eff6ff' : 'transparent'};
+    background: ${p => p.$active ? '#f0f9ff' : 'transparent'};
     color: ${p => p.$active ? st.accentBlue : st.text};
     border: none;
     border-radius: 6px;
@@ -72,7 +72,7 @@ const PresetBtn = styled.button<{ $active: boolean }>`
     text-align: left;
     cursor: pointer;
     transition: background ${st.transition}, color ${st.transition};
-    &:hover { background: ${p => p.$active ? '#dbeafe' : st.bg}; }
+    &:hover { background: ${p => p.$active ? '#e0f2fe' : st.bg}; }
     span.hint { font-size: 11px; color: ${p => p.$active ? '#7dd3fc' : st.textMuted}; font-weight: 400; }
 `;
 
@@ -126,7 +126,7 @@ const ApplyBtn = styled.button`
     font-weight: 600;
     cursor: pointer;
     transition: background ${st.transition};
-    &:hover { background: #2563eb; }
+    &:hover { background: #0284c7; }
     &:disabled { background: #94a3b8; cursor: not-allowed; }
 `;
 

@@ -312,7 +312,7 @@ const AttachmentCheckbox = ({ icon, label, suffix, checked, disabled, onChange, 
                 <CheckIcon />
             </Checkbox>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
-                <span style={{ width: 15, height: 15, display: 'flex', alignItems: 'center', color: checked ? '#3B82F6' : '#94A3B8', flexShrink: 0 }}>
+                <span style={{ width: 15, height: 15, display: 'flex', alignItems: 'center', color: checked ? '#0EA5E9' : '#94A3B8', flexShrink: 0 }}>
                     {icon}
                 </span>
                 <AttachmentText $checked={checked}>{label}</AttachmentText>

@@ -83,9 +83,9 @@ const Tr = styled.tr<{ $excluded?: boolean; $selected?: boolean }>`
   ${(p) =>
     p.$selected
       ? `
-    background: #eff6ff;
+    background: #f0f9ff;
     opacity: ${p.$excluded ? 0.55 : 1};
-    &:hover { background: #dbeafe; }
+    &:hover { background: #e0f2fe; }
   `
       : p.$excluded
       ? `
@@ -485,12 +485,12 @@ const Card = styled.div<{ $muted?: boolean; $selected?: boolean }>`
   gap: 7px;
   padding: 14px 16px;
   border-bottom: 1px solid #e5e7eb;
-  background: ${(p) => (p.$selected ? '#eff6ff' : 'transparent')};
+  background: ${(p) => (p.$selected ? '#f0f9ff' : 'transparent')};
   cursor: pointer;
   opacity: ${(p) => (p.$muted ? 0.6 : 1)};
 
   &:last-child { border-bottom: none; }
-  &:active { background: ${(p) => (p.$selected ? '#dbeafe' : '#f8fafc')}; }
+  &:active { background: ${(p) => (p.$selected ? '#e0f2fe' : '#f8fafc')}; }
 `;
 
 const CardTop = styled.div`

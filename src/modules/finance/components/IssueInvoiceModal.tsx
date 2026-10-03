@@ -46,9 +46,9 @@ const BuyerTypeBtn = styled.button<{ $active: boolean }>`
   padding: 7px 14px;
   font-size: 13px;
   font-weight: ${(p) => (p.$active ? 600 : 400)};
-  color: ${(p) => (p.$active ? '#1d4ed8' : p.theme.colors.textSecondary)};
-  background: ${(p) => (p.$active ? '#eff6ff' : p.theme.colors.surface)};
-  border: 1.5px solid ${(p) => (p.$active ? '#93c5fd' : p.theme.colors.border)};
+  color: ${(p) => (p.$active ? '#0369a1' : p.theme.colors.textSecondary)};
+  background: ${(p) => (p.$active ? '#f0f9ff' : p.theme.colors.surface)};
+  border: 1.5px solid ${(p) => (p.$active ? '#7dd3fc' : p.theme.colors.border)};
   border-radius: 9999px;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -107,13 +107,13 @@ const AddItemBtn = styled.button`
   padding: 7px 12px;
   font-size: 13px;
   font-weight: 600;
-  color: #1d4ed8;
-  background: #eff6ff;
-  border: 1px dashed #93c5fd;
+  color: #0369a1;
+  background: #f0f9ff;
+  border: 1px dashed #7dd3fc;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s ease;
-  &:hover { background: #dbeafe; }
+  &:hover { background: #e0f2fe; }
 `;
 
 const SummaryBox = styled.div`

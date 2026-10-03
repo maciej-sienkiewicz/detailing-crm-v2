@@ -301,7 +301,7 @@ export const RowHeaderTitleRow = styled.div`
     flex: 1;
 `;
 
-/** SectionNum z /checkin/new: numeryczna pigułka w kolorze marki (st.accentBlue = #3B82F6). */
+/** SectionNum z /checkin/new: numeryczna pigułka w kolorze marki (st.accentBlue = #0EA5E9). */
 export const RowHeaderNum = styled.span`
     display: inline-flex;
     align-items: center;
@@ -309,7 +309,7 @@ export const RowHeaderNum = styled.span`
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: #3B82F6;
+    background: #0EA5E9;
     color: #fff;
     font-size: 11px;
     font-weight: 700;
@@ -335,8 +335,8 @@ export const RowHeaderStatus = styled.span`
     display: inline-flex;
     align-items: center;
     padding: 2px 9px;
-    background: rgba(59, 130, 246, 0.12);
-    color: #3B82F6;
+    background: rgba(14, 165, 233, 0.12);
+    color: #0EA5E9;
     border-radius: 9999px;
     font-size: 11px;
     font-weight: 600;
@@ -426,16 +426,16 @@ export const RowHeaderActions = styled.div`
 `;
 
 /** ActionBtn z /checkin/new: 1:1 te same tokeny (border 1.5px, radius 8px,
-    font 12px semibold, primary = accentBlueDim + #3B82F6). */
+    font 12px semibold, primary = accentBlueDim + #0EA5E9). */
 export const RowHeaderActionBtn = styled.button<{ $primary?: boolean }>`
     display: inline-flex;
     align-items: center;
     gap: 5px;
     padding: 6px 13px;
-    border: 1.5px solid ${p => p.$primary ? '#3B82F6' : '#E2E8F0'};
+    border: 1.5px solid ${p => p.$primary ? '#0EA5E9' : '#E2E8F0'};
     border-radius: 8px;
-    background: ${p => p.$primary ? 'rgba(59, 130, 246, 0.12)' : '#FFFFFF'};
-    color: ${p => p.$primary ? '#3B82F6' : '#475569'};
+    background: ${p => p.$primary ? 'rgba(14, 165, 233, 0.12)' : '#FFFFFF'};
+    color: ${p => p.$primary ? '#0EA5E9' : '#475569'};
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
@@ -444,9 +444,9 @@ export const RowHeaderActionBtn = styled.button<{ $primary?: boolean }>`
     font-family: inherit;
 
     &:hover:not(:disabled) {
-        border-color: #3B82F6;
-        color: #3B82F6;
-        background: rgba(59, 130, 246, 0.12);
+        border-color: #0EA5E9;
+        color: #0EA5E9;
+        background: rgba(14, 165, 233, 0.12);
     }
 
     &:disabled {

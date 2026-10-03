@@ -77,7 +77,7 @@ type StatusIcon = () => JSX.Element;
 const statusConfig: Record<OperationStatus, { label: string; color: string; bg: string; Icon: StatusIcon }> = {
     ABANDONED:        { label: 'Porzucono',         color: '#DC2626', bg: 'rgba(220, 38, 38, 0.10)',   Icon: IconX        },
     CANCELLED:        { label: 'Anulowano',          color: '#64748B', bg: '#F1F5F9',                  Icon: IconTrash    },
-    IN_PROGRESS:      { label: 'W realizacji',       color: '#2563EB', bg: 'rgba(37, 99, 235, 0.10)',  Icon: IconWrench   },
+    IN_PROGRESS:      { label: 'W realizacji',       color: '#0284C7', bg: 'rgba(37, 99, 235, 0.10)',  Icon: IconWrench   },
     READY_FOR_PICKUP: { label: 'Do odbioru',         color: '#D97706', bg: 'rgba(217, 119, 6, 0.10)',  Icon: IconKey      },
     COMPLETED:        { label: 'Zakończona',          color: '#059669', bg: 'rgba(5, 150, 105, 0.10)', Icon: IconDollar   },
     CREATED:          { label: 'Zaplanowano',         color: '#7C3AED', bg: 'rgba(124, 58, 237, 0.10)',Icon: IconCalendar },

@@ -65,7 +65,7 @@ export const CloseButton = styled.button`
 const iconPalette: Record<ConfirmationVariant, { bg: string; color: string }> = {
     danger:  { bg: '#fee2e2', color: '#dc2626' },
     warning: { bg: '#fef3c7', color: '#d97706' },
-    info:    { bg: '#dbeafe', color: '#3b82f6' },
+    info:    { bg: '#e0f2fe', color: '#0ea5e9' },
 };
 
 /**

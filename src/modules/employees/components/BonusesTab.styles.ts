@@ -68,7 +68,7 @@ export const StatusBadge = styled.span<{ $status: BonusStatus }>`
     ${({ $status }) =>
         $status === 'PENDING'
             ? `background: ${st.accentAmberDim}; color: #D97706;`
-            : `background: ${st.accentBlueDim}; color: #2563EB;`}
+            : `background: ${st.accentBlueDim}; color: #0284C7;`}
 `;
 
 export const DeleteBtn = styled.button`

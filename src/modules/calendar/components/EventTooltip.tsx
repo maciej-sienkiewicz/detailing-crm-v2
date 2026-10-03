@@ -72,7 +72,7 @@ const StatusBadge = styled.span<{ $status: string }>`
             case 'READY_FOR_PICKUP':
                 return '#d1fae5';
             case 'COMPLETED':
-                return '#dbeafe';
+                return '#e0f2fe';
             case 'REJECTED':
                 return '#fee2e2';
             case 'ARCHIVED':
@@ -88,7 +88,7 @@ const StatusBadge = styled.span<{ $status: string }>`
             case 'READY_FOR_PICKUP':
                 return '#065f46';
             case 'COMPLETED':
-                return '#1e40af';
+                return '#075985';
             case 'REJECTED':
                 return '#991b1b';
             case 'ARCHIVED':
