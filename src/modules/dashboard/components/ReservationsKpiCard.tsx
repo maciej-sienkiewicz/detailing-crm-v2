@@ -5,6 +5,7 @@ import { TrendingUp, TrendingDown } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 import { useDashboardReservations } from '../hooks/useDashboardReservations';
+import { comparisonLabel } from '../utils/comparisonLabel';
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
 
@@ -161,7 +162,7 @@ export const ReservationsKpiCard = () => {
         <Number>{data.currentMonth.count}</Number>
         <Delta $positive={positive}>
           {positive ? <TrendingUp /> : <TrendingDown />}
-          {positive ? '+' : ''}{data.deltaPercentage.toFixed(1)}% vs. poprzedni miesiąc
+          {positive ? '+' : ''}{data.deltaPercentage.toFixed(1)}% {comparisonLabel(!!data.previousMonthToDate)}
         </Delta>
       </Card>
 

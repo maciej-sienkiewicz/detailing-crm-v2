@@ -24,9 +24,11 @@ const slideIn = keyframes`
   to   { opacity: 1; transform: translateY(0); }
 `;
 
-// Czerwień rezerwujemy dla wagi CRITICAL - zaległości, która kosztuje pieniądze
-// teraz (lead czeka na naszą odpowiedź). Reszta zostaje w spokojnym błękicie,
-// żeby czerwień nie spowszedniała i wciąż znaczyła „zrób to najpierw".
+// Waga CRITICAL - zaległość, która kosztuje pieniądze teraz (lead czeka na naszą
+// odpowiedź) - dostaje bursztyn: „przeczytaj" (CLAUDE.md §2). Czerwień znaczy
+// „nieodwracalne", a niedokończona rozmowa to szansa, nie szkoda. Przycisk akcji
+// jest obrysowany, nie wypełniony: na pulpicie wypełniona jest już „Nowa wizyta".
+// Reszta podpowiedzi zostaje w spokojnym błękicie.
 const Bar = styled.div<{ $critical: boolean }>`
     display: none;
 
@@ -35,9 +37,9 @@ const Bar = styled.div<{ $critical: boolean }>`
         align-items: center;
         gap: 14px;
         padding: 12px 18px;
-        background: ${p => (p.$critical ? p.theme.colors.errorLight : p.theme.colors.surface)};
-        border: 1px solid ${p => (p.$critical ? p.theme.colors.error : p.theme.colors.border)};
-        border-left: 3px solid ${p => (p.$critical ? p.theme.colors.error : '#0ea5e9')};
+        background: ${p => (p.$critical ? '#fffbeb' : p.theme.colors.surface)};
+        border: 1px solid ${p => (p.$critical ? '#fcd34d' : p.theme.colors.border)};
+        border-left: 3px solid ${p => (p.$critical ? '#d97706' : '#0ea5e9')};
         border-radius: ${p => p.theme.radii.lg};
         animation: ${slideIn} 220ms ease both;
     }
@@ -51,8 +53,8 @@ const HintIcon = styled.span<{ $critical: boolean }>`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: ${p => (p.$critical ? '#fee2e2' : '#e0f2fe')};
-    color: ${p => (p.$critical ? p.theme.colors.error : '#0369a1')};
+    background: ${p => (p.$critical ? '#fef3c7' : '#e0f2fe')};
+    color: ${p => (p.$critical ? '#b45309' : '#0369a1')};
 
     svg { width: 16px; height: 16px; }
 `;
@@ -69,20 +71,20 @@ const HintText = styled.p`
 const ActionBtn = styled.button<{ $critical: boolean }>`
     flex-shrink: 0;
     padding: 7px 14px;
-    background: ${p => (p.$critical ? p.theme.colors.error : 'transparent')};
-    border: 1px solid ${p => (p.$critical ? p.theme.colors.error : p.theme.colors.border)};
+    background: ${p => (p.$critical ? '#ffffff' : 'transparent')};
+    border: 1px solid ${p => (p.$critical ? '#fcd34d' : p.theme.colors.border)};
     border-radius: 9999px;
     font-family: inherit;
     font-size: 12px;
     font-weight: 600;
-    color: ${p => (p.$critical ? '#ffffff' : '#0369a1')};
+    color: ${p => (p.$critical ? '#92400e' : '#0369a1')};
     cursor: pointer;
     white-space: nowrap;
     transition: all 150ms ease;
 
     &:hover:not(:disabled) {
-        border-color: ${p => (p.$critical ? '#b91c1c' : '#0ea5e9')};
-        background: ${p => (p.$critical ? '#b91c1c' : '#f0f9ff')};
+        border-color: ${p => (p.$critical ? '#d97706' : '#0ea5e9')};
+        background: ${p => (p.$critical ? '#fef3c7' : '#f0f9ff')};
     }
     &:disabled { opacity: 0.6; cursor: default; }
 `;

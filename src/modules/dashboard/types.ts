@@ -65,6 +65,8 @@ export interface DashboardRevenueBucket {
 export interface DashboardRevenueSummary {
   currentMonth: { grossAmount: number; currency: string };
   previousMonth: { grossAmount: number; currency: string };
+  /** Poprzedni miesiąc do tego samego dnia - baza deltaPercentage (brak w starszym backendzie). */
+  previousMonthToDate?: { grossAmount: number; currency: string };
   deltaPercentage: number;
   buckets: DashboardRevenueBucket[];
 }
@@ -81,6 +83,8 @@ export interface DashboardReservationBucket {
 export interface DashboardReservationSummary {
   currentMonth: { count: number };
   previousMonth: { count: number };
+  /** Poprzedni miesiąc do tego samego dnia - baza deltaPercentage (brak w starszym backendzie). */
+  previousMonthToDate?: { count: number };
   deltaPercentage: number;
   buckets: DashboardReservationBucket[];
 }

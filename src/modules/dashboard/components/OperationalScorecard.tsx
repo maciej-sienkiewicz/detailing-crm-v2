@@ -114,11 +114,12 @@ const tileSurface = `
   border-radius: 14px;
 `;
 
-/* Kolor wchodzi górną krawędzią - tak jak w pierwotnej wersji kafelka.
-   Zmienia się tylko to, że jest JEDEN dla wszystkich czterech: wcześniej
-   cztery nasycone akcenty udawały kategorie, tutaj to wspólna listwa, po
-   której poznaje się kafelek stanu. Cała reszta powierzchni zostaje biała,
-   więc listwa jest jedynym kolorem, jaki kafelek zużywa. */
+/* Bez kolorowej listwy u góry: cztery identyczne paski marki robiły z
+   czterech równorzędnych liczb cztery „wyniesione" karty (CLAUDE.md §2), a
+   błękit marki ma zostać dla kroku następnego. Kolor wchodzi tylko jako stan:
+   otwarta szuflada (obwódka i poświata) i fokus.
+   Kafelek z zerem nie jest klikalny i nie ma strzałki - pusta szuflada nic
+   by nie pokazała, a strzałka obiecywałaby treść. */
 const StatButton = styled.button<{ $clickable: boolean; $isActive: boolean }>`
   ${tileSurface}
   container-type: inline-size;
@@ -131,7 +132,6 @@ const StatButton = styled.button<{ $clickable: boolean; $isActive: boolean }>`
   width: 100%;
   padding: 10px 12px 11px;
   border: 1px solid ${p => p.$isActive ? ACCENT : p.theme.colors.border};
-  border-top: 3px solid ${ACCENT};
   box-shadow: ${p => p.$isActive
     ? `0 1px 2px rgba(15, 23, 42, 0.05), 0 0 0 3px color-mix(in srgb, ${ACCENT} 14%, transparent)`
     : '0 1px 2px rgba(15, 23, 42, 0.05)'};
@@ -149,7 +149,6 @@ const StatButton = styled.button<{ $clickable: boolean; $isActive: boolean }>`
   ${p => p.$clickable && `
     &:hover {
       border-color: #cbd5e1;
-      border-top-color: ${ACCENT};
       box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 4px 12px rgba(15, 23, 42, 0.06);
     }
     &:active { background: #f8fafc; }
@@ -806,7 +805,7 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
       case 'incomingToday':
         return { variant: 'incomingToday', label: t.dashboard.stats.arrivals, subtitle: 'Lista wizyt', visits: stats.incomingTodayDetails ?? [], onRowClick: (id, scheduledDate, rect) => { const v = stats.incomingTodayDetails?.find(x => x.id === id); if (v) navigateToVisitOrCalendar(v, 'incomingToday', rect); } };
       case 'abandoned':
-        return { variant: 'abandoned', label: t.dashboard.stats.abandoned, subtitle: 'Ostatnie 30 dni · Porzucone i Anulowane', visits: stats.abandonedDetails ?? [], onRowClick: (id, scheduledDate, rect) => { const v = stats.abandonedDetails?.find(x => x.id === id); if (v) navigateToVisitOrCalendar(v, 'abandoned', rect); }, footerLabel: 'Pokaż rezerwacje', footerPath: '/appointments' };
+        return { variant: 'abandoned', label: t.dashboard.stats.abandoned, subtitle: 'Ostatnie 30 dni, porzucone i anulowane', visits: stats.abandonedDetails ?? [], onRowClick: (id, scheduledDate, rect) => { const v = stats.abandonedDetails?.find(x => x.id === id); if (v) navigateToVisitOrCalendar(v, 'abandoned', rect); }, footerLabel: 'Pokaż rezerwacje', footerPath: '/appointments' };
       default:
         return null;
     }
@@ -822,7 +821,7 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
             labelFull={t.dashboard.stats.inProgress}
             labelShort={SHORT_LABEL.inProgress}
             value={stats.inProgress}
-            hasDetails={!!stats.inProgressDetails}
+            hasDetails={stats.inProgress > 0 && !!stats.inProgressDetails}
             isActive={activeKey === 'inProgress'}
             onToggle={() => toggle('inProgress')}
             meta={stats.overdue
@@ -836,7 +835,7 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
             labelFull={t.dashboard.stats.readyForPickup}
             labelShort={SHORT_LABEL.readyForPickup}
             value={stats.readyForPickup}
-            hasDetails={!!stats.readyForPickupDetails}
+            hasDetails={stats.readyForPickup > 0 && !!stats.readyForPickupDetails}
             isActive={activeKey === 'readyForPickup'}
             onToggle={() => toggle('readyForPickup')}
           />
@@ -847,7 +846,7 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
             labelFull={t.dashboard.stats.arrivals}
             labelShort={SHORT_LABEL.incomingToday}
             value={stats.incomingToday}
-            hasDetails={!!stats.incomingTodayDetails}
+            hasDetails={stats.incomingToday > 0 && !!stats.incomingTodayDetails}
             isActive={activeKey === 'incomingToday'}
             onToggle={() => toggle('incomingToday')}
           />
