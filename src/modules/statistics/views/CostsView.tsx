@@ -67,6 +67,20 @@ import type {
     CostViewMode,
     SupplierAutoRule,
 } from '../costTypes';
+import { COST_DOCUMENT_KIND_LABEL, costDocumentKindOf } from '@/modules/finance/utils/costDocumentKinds';
+
+/**
+ * Nagłówek dokumentu w statystykach: „Faktura FV/12", „Paragon: Paliwo".
+ * Statystyki liczą każdy dokument kosztowy, nie tylko faktury - paragon zwykle nie ma
+ * numeru, więc zamiast „bez numeru" mówi, czego dotyczy.
+ */
+function documentTitle(kind: string | null | undefined, number: string | null, firstItemName?: string | null): string {
+    const resolved = costDocumentKindOf(kind);
+    const label = COST_DOCUMENT_KIND_LABEL[resolved];
+    if (number) return `${label} ${number}`;
+    if (resolved !== 'INVOICE' && firstItemName) return `${label}: ${firstItemName}`;
+    return `${label} bez numeru`;
+}
 
 // ─── Stats-exclusion eye toggle ───────────────────────────────────────────────
 
@@ -783,6 +797,7 @@ function groupByInvoice(items: CostExpenseItem[]): CostInvoiceGroup[] {
             map.set(item.invoiceId, {
                 invoiceId:     item.invoiceId,
                 invoiceNumber: item.invoiceNumber,
+                documentKind:  item.documentKind,
                 sellerName:    item.sellerName,
                 saleDate:      item.saleDate,
                 itemCount:     0,
@@ -843,7 +858,7 @@ const InvoicePreviewModal = ({ invoiceId, allItems, onClose }: InvoicePreviewMod
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>
-                        {head?.invoiceNumber ? `Faktura ${head.invoiceNumber}` : `Faktura (ID ...${invoiceId.slice(-8)})`}
+                        {head ? documentTitle(head.documentKind, head.invoiceNumber, head.name) : `Dokument (ID ...${invoiceId.slice(-8)})`}
                     </ModalTitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
@@ -999,7 +1014,7 @@ const AutoRuleFormModal = ({
                             Przypisano {lastApplied} {lastApplied === 1 ? 'pozycję' : lastApplied < 5 ? 'pozycje' : 'pozycji'}
                         </div>
                         <div style={{ fontSize: st.fontSm, color: st.textMuted }}>
-                            Istniejące faktury od tego dostawcy zostały automatycznie skategoryzowane.
+                            Istniejące dokumenty od tego dostawcy zostały automatycznie skategoryzowane.
                         </div>
                     </div>
                 </ModalContent>
@@ -1099,7 +1114,7 @@ const AutoRuleFormModal = ({
                                     onChange={e => setApplyNow(e.target.checked)}
                                     disabled={isPending}
                                 />
-                                Zastosuj teraz do już istniejących faktur od tego dostawcy
+                                Zastosuj teraz do już istniejących dokumentów od tego dostawcy
                             </ApplyNowToggle>
                         )}
                     </RuleFormGrid>
@@ -1160,7 +1175,7 @@ const PeriodExpensesModal = ({ period, granularity, allItems, onClose }: PeriodE
         <ModalShell isOpen onClose={onClose} maxWidth="820px">
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>Wydatki · {label}</ModalTitle>
+                    <ModalTitle>Wydatki: {label}</ModalTitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
@@ -1189,7 +1204,7 @@ const PeriodExpensesModal = ({ period, granularity, allItems, onClose }: PeriodE
                         <PeriodInvHead>
                             <div style={{ minWidth: 0 }}>
                                 <PeriodInvTitle>
-                                    {grp.invoiceNumber ? `Faktura ${grp.invoiceNumber}` : 'Brak numeru faktury'}
+                                    {documentTitle(grp.documentKind, grp.invoiceNumber, grp.items[0]?.name)}
                                 </PeriodInvTitle>
                                 {grp.sellerName && <PeriodInvMeta>{grp.sellerName}</PeriodInvMeta>}
                             </div>
@@ -1670,7 +1685,7 @@ export const CostsView = () => {
                     <RulesCardHeader onClick={() => setRulesOpen(o => !o)}>
                         <RulesCardTitle>
                             <Zap />
-                            Automatyczne przypisywanie faktur wg dostawcy
+                            Automatyczne przypisywanie dokumentów wg dostawcy
                         </RulesCardTitle>
                         <RulesCardMeta>
                             {rules.length > 0 && <RulesCount>{rules.length}</RulesCount>}
@@ -1684,7 +1699,7 @@ export const CostsView = () => {
                             {rulesLoading && <RulesEmptyRow><Spinner /></RulesEmptyRow>}
                             {!rulesLoading && rules.length === 0 && (
                                 <RulesEmptyRow>
-                                    Brak reguł. Dodaj pierwszą, aby faktury od danego dostawcy były przypisywane automatycznie.
+                                    Brak reguł. Dodaj pierwszą, aby dokumenty od danego dostawcy były przypisywane automatycznie.
                                 </RulesEmptyRow>
                             )}
                             {!rulesLoading && rules.map(rule => (
@@ -1765,7 +1780,7 @@ export const CostsView = () => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                             <ViewModeBar>
                                 <ViewModeBtn $active={viewMode === 'INVOICE'} onClick={() => setViewMode('INVOICE')}>
-                                    <ReceiptText />Faktury
+                                    <ReceiptText />Dokumenty
                                 </ViewModeBtn>
                                 <ViewModeBtn $active={viewMode === 'NAME'} onClick={() => setViewMode('NAME')}>
                                     <Tag />Grupy nazw
@@ -1858,14 +1873,14 @@ export const CostsView = () => {
                                 <>
                                     <InvoiceItemsHeaderGrid>
                                         <span />
-                                        <span>Faktura / sprzedawca</span>
+                                        <span>Dokument / sprzedawca</span>
                                         <span>Brutto</span>
                                         <span>Kategoria</span>
                                         <span />
                                         <span />
                                     </InvoiceItemsHeaderGrid>
                                     {invoiceGroups.length === 0 && (
-                                        <TableEmpty>Brak faktur dla wybranego okresu</TableEmpty>
+                                        <TableEmpty>Brak dokumentów kosztowych w wybranym okresie</TableEmpty>
                                     )}
                                     {invoiceGroups.map(grp => {
                                         const catColor = grp.costCategoryId
@@ -1895,7 +1910,7 @@ export const CostsView = () => {
                                                             : <ChevronDown style={{ width: 12, height: 12 }} />}
                                                     </ExpandBtn>
                                                     <div style={{ minWidth: 0 }}>
-                                                        <ItemName title={grp.invoiceNumber ?? undefined}>{grp.invoiceNumber ?? '(bez numeru)'}</ItemName>
+                                                        <ItemName title={grp.invoiceNumber ?? undefined}>{documentTitle(grp.documentKind, grp.invoiceNumber, grp.items[0]?.name)}</ItemName>
                                                         {grp.sellerName && (
                                                             <div style={{ fontSize: st.fontXs, color: st.textMuted, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                                 {grp.sellerName}
@@ -1916,7 +1931,7 @@ export const CostsView = () => {
                                                         <span style={{ fontSize: st.fontXs, color: st.textMuted }}>-</span>
                                                     )}
                                                     <IconBtn
-                                                        title="Podgląd faktury"
+                                                        title="Podgląd dokumentu"
                                                         onClick={e => { e.stopPropagation(); setPreviewInvoiceId(grp.invoiceId); }}
                                                     >
                                                         <FileText style={{ width: 14, height: 14 }} />
@@ -2003,8 +2018,9 @@ export const CostsView = () => {
                                                 <div style={{ minWidth: 0 }}>
                                                     <ItemName title={item.name ?? undefined}>{item.name ?? '(brak nazwy)'}</ItemName>
                                                     {item.sellerName && (
-                                                        <div style={{ fontSize: st.fontXs, color: st.textMuted, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                            {item.sellerName} · {item.saleDate ?? ''}
+                                                        <div style={{ fontSize: st.fontXs, color: st.textMuted, marginTop: 2, display: 'flex', gap: 10, minWidth: 0 }}>
+                                                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.sellerName}</span>
+                                                            {item.saleDate && <span style={{ flexShrink: 0 }}>{item.saleDate}</span>}
                                                         </div>
                                                     )}
                                                 </div>
@@ -2139,7 +2155,7 @@ export const CostsView = () => {
                     {ctxMenu.invoiceId && (
                         <CtxItem onClick={handleCtxPreview}>
                             <FileText />
-                            Podgląd faktury
+                            Podgląd dokumentu
                         </CtxItem>
                     )}
                 </CategoryAssignMenu>

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { grossToNet, netToGross } from '@/common/utils/priceAdjustment';
 import { priceInputsForVatRate } from '@/common/utils/priceInputs';
 import {
+    expenseAmountsPayload,
     DOCUMENT_VAT_RATE,
     EMPTY_DOCUMENT_AMOUNTS,
     EXPENSE_AMOUNT_INPUT,
@@ -169,5 +170,22 @@ describe('kwoty dokumentu przychodowego', () => {
 
     it('niepełne pola: nic do zapisu', () => {
         expect(documentAmountsToCents(EMPTY_DOCUMENT_AMOUNTS)).toBeNull();
+    });
+});
+
+describe('expenseAmountsPayload - dokument kosztowy do API', () => {
+    it('brutto wpisane 1900.00 idzie w groszach ze stroną GROSS i stawką', () => {
+        expect(expenseAmountsPayload('1544.72', '1900.00', '23', 'gross')).toEqual({
+            netCents: 154472, grossCents: 190000, vatRate: '23', priceSide: 'GROSS',
+        });
+    });
+
+    it('netto wpisane idzie ze stroną NET', () => {
+        expect(expenseAmountsPayload('100', '123.00', '23', 'net')?.priceSide).toBe('NET');
+    });
+
+    it('bez wpisanej kwoty albo z zerem nie ma czego wysłać', () => {
+        expect(expenseAmountsPayload('', '', '23', 'gross')).toBeNull();
+        expect(expenseAmountsPayload('0', '0', 'zw', 'net')).toBeNull();
     });
 });

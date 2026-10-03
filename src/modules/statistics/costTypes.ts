@@ -28,6 +28,8 @@ export interface CostExpenseItem {
     id: string;
     invoiceId: string;
     invoiceNumber: string | null;
+    /** Rodzaj dokumentu kosztowego: faktura, paragon, rachunek albo inny; starszy backend - brak (faktura). */
+    documentKind?: 'INVOICE' | 'RECEIPT' | 'BILL' | 'OTHER';
     sellerNip: string | null;
     sellerName: string | null;
     saleDate: string | null;
@@ -109,6 +111,7 @@ export interface UpdateAutoRuleRequest {
 export interface CostInvoiceGroup {
     invoiceId: string;
     invoiceNumber: string | null;
+    documentKind?: 'INVOICE' | 'RECEIPT' | 'BILL' | 'OTHER';
     sellerName: string | null;
     saleDate: string | null;
     itemCount: number;

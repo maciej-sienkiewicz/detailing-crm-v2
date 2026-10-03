@@ -16,6 +16,7 @@ import {
 import { SharedButton } from '@/common/styles';
 import { netToGross } from '@/common/utils/priceAdjustment';
 import { ExpensePaymentCard } from './ExpensePaymentCard';
+import { COST_DOCUMENT_KIND_LABEL, costDocumentKindOf } from '../utils/costDocumentKinds';
 
 // ─── Animations ──────────────────────────────────────────────────────────────
 
@@ -355,7 +356,7 @@ const partyAddress = (party: KsefExpenseParty): string[] => {
 
 const docTypeLabel = (detail: KsefExpenseDetail): string => {
   if (detail.isCorrection) return 'Faktura korygująca';
-  return detail.source === 'KSEF' ? 'Faktura' : 'Dokument kosztowy';
+  return COST_DOCUMENT_KIND_LABEL[costDocumentKindOf(detail.documentKind)];
 };
 
 const statusBadge = (detail: KsefExpenseDetail): { tone: 'green' | 'amber' | 'red' | 'slate'; label: string } | null => {
