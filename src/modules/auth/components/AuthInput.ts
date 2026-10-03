@@ -26,19 +26,20 @@ export const authFieldStyles = css<{ $hasError?: boolean }>`
     width: 100%;
     min-width: 0;
     box-sizing: border-box;
-    padding: ${props => props.theme.spacing.md};
-    border: 2px solid ${props => props.$hasError ? props.theme.colors.error : props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
+    height: 44px;
+    padding: 0 14px;
+    border: 1px solid ${props => props.$hasError ? props.theme.colors.error : '#cfd6df'};
+    border-radius: ${props => props.theme.radii.md};
     font-family: inherit;
-    font-size: ${props => props.theme.fontSizes.md};
+    font-size: 15px;
     color: ${props => props.theme.colors.text};
-    background-color: ${props => props.theme.colors.surfaceHover};
-    transition: all ${props => props.theme.transitions.fast};
+    background-color: ${props => props.theme.colors.surface};
+    transition: border-color ${props => props.theme.transitions.fast}, box-shadow ${props => props.theme.transitions.fast};
 
     &:focus {
         outline: none;
-        border-color: ${props => props.$hasError ? props.theme.colors.error : props.theme.colors.primary};
-        box-shadow: 0 0 0 3px ${props => props.$hasError ? 'rgba(248, 113, 113, 0.18)' : 'rgba(220, 174, 92, 0.2)'};
+        border-color: ${props => props.$hasError ? props.theme.colors.error : '#0f172a'};
+        box-shadow: 0 0 0 3px ${props => props.$hasError ? 'rgba(220, 38, 38, 0.1)' : 'rgba(15, 23, 42, 0.08)'};
     }
 
     &::placeholder {
@@ -48,7 +49,6 @@ export const authFieldStyles = css<{ $hasError?: boolean }>`
     &:disabled {
         background-color: ${props => props.theme.colors.surfaceAlt};
         cursor: not-allowed;
-        opacity: 0.6;
     }
 `;
 

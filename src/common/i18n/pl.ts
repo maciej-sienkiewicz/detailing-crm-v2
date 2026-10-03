@@ -634,6 +634,18 @@ export const pl: TranslationKeys = {
         }
     },
     auth: {
+        gate: {
+            login: 'Wracasz do studia',
+            signup: 'Pierwsze 3 miesiące za darmo',
+            signupPoints: [
+                'Bez karty i bez umowy terminowej',
+                'W okresie próbnym włączasz plan FULL bez opłat',
+                'Po okresie próbnym sam wybierasz plan',
+            ],
+            forgotPassword: 'Odzyskaj dostęp do studia',
+            resetPassword: 'Bezpieczny dostęp do studia',
+            confirmPassword: 'Witaj w zespole',
+        },
         login: {
             title: 'Zaloguj się',
             subtitle: 'Witaj ponownie w DetailBoost',
@@ -648,13 +660,13 @@ export const pl: TranslationKeys = {
             noAccount: 'Nie masz konta?',
             signupLink: 'Zarejestruj swoje studio',
             demoSeparator: 'lub',
-            demoButton: 'Przetestuj na koncie DEMO',
+            demoButton: 'Konto demo bez rejestracji',
             demoSubmitting: 'Tworzenie konta DEMO...',
-            demoInfo: 'Konto testowe z przykładowymi danymi studia detailingu. Ważne przez 2 godziny.',
+            demoInfo: 'Przykładowe studio z danymi, ważne przez 2 godziny.',
         },
         signup: {
             title: 'Załóż konto',
-            subtitle: 'Pierwsze 3 miesiące za darmo, bez karty',
+            subtitle: 'Konto właściciela studia. Pracowników dodasz w aplikacji.',
             firstNameLabel: 'Imię',
             firstNamePlaceholder: 'Jan',
             lastNameLabel: 'Nazwisko',

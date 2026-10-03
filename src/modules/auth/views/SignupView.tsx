@@ -1,7 +1,6 @@
 
 // src/modules/auth/views/SignupView.tsx
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { useSignup } from '../hooks/useAuth';
 import { signupSchema, type SignupFormData } from '../utils/validators';
@@ -12,90 +11,21 @@ import { Checkbox } from '../components/Checkbox';
 import { ErrorAlert } from '../components/ErrorAlert';
 import { t } from '@/common/i18n';
 import { Label, FieldGroup, ErrorMessage, FormGrid } from '@/common/components/Form';
-import { Button } from '@/common/components/Button';
-import { AuthContainer } from '../components/AuthBackdrop';
-import { authCard, authLinkHover, authLogo } from '../components/authStyles';
+import { AuthLayout } from '../components/AuthLayout';
+import { AuthAside, AuthForm, AuthHeading, AuthLink, AuthMeta, AuthPrimaryButton } from '../components/AuthUi';
 
-// Tło jak na stronie detailboost.pl - wspólne dla ekranów logowania i rejestracji.
-const Container = AuthContainer;
-
-const Card = styled.div`
-    width: 100%;
-    max-width: 540px;
-    background-color: ${props => props.theme.colors.surface};
-    border-radius: ${props => props.theme.radii.xl};
-    ${authCard}
-    padding: ${props => props.theme.spacing.xl};
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: ${props => props.theme.spacing.xxl};
-    }
-`;
-
-const LogoContainer = styled.div`
-    text-align: center;
-    margin-bottom: ${props => props.theme.spacing.xl};
-`;
-
-const Logo = styled.div`
-    width: 64px;
-    height: 64px;
-    margin: 0 auto ${props => props.theme.spacing.md};
-    border-radius: ${props => props.theme.radii.lg};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 32px;
-    font-weight: ${props => props.theme.fontWeights.bold};
-    ${authLogo}
-`;
-
-const Title = styled.h1`
-    font-size: ${props => props.theme.fontSizes.xxl};
-    font-weight: ${props => props.theme.fontWeights.bold};
-    color: ${props => props.theme.colors.text};
-    margin: 0 0 ${props => props.theme.spacing.xs} 0;
-`;
-
-const Subtitle = styled.p`
-    font-size: ${props => props.theme.fontSizes.md};
-    color: ${props => props.theme.colors.textMuted};
-    margin: 0;
-`;
-
-const Form = styled.form`
-    margin-top: ${props => props.theme.spacing.xl};
-    display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.lg};
-`;
-
+// Linki do regulaminu i polityki w treści zgody - jak pozostałe linki bramy.
 const TermsLabel = styled.span`
     a {
-        color: ${props => props.theme.colors.primary};
-        font-weight: ${props => props.theme.fontWeights.semibold};
-        transition: color ${props => props.theme.transitions.fast};
+        color: #0f172a;
+        font-weight: 600;
+        text-decoration: underline;
+        text-decoration-color: rgba(15, 23, 42, 0.25);
+        text-underline-offset: 3px;
 
         &:hover {
-            color: ${authLinkHover};
+            text-decoration-color: currentColor;
         }
-    }
-`;
-
-const Footer = styled.div`
-    margin-top: ${props => props.theme.spacing.xl};
-    text-align: center;
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textSecondary};
-`;
-
-const FooterLink = styled(Link)`
-    color: ${props => props.theme.colors.primary};
-    font-weight: ${props => props.theme.fontWeights.semibold};
-    transition: color ${props => props.theme.transitions.fast};
-
-    &:hover {
-        color: ${authLinkHover};
     }
 `;
 
@@ -148,122 +78,114 @@ export const SignupView = () => {
     };
 
     return (
-        <Container>
-            <Card>
-                <LogoContainer>
-                    <Logo>D</Logo>
-                    <Title>{t.auth.signup.title}</Title>
-                    <Subtitle>{t.auth.signup.subtitle}</Subtitle>
-                </LogoContainer>
+        <AuthLayout statement={t.auth.gate.signup} points={t.auth.gate.signupPoints}>
+            <AuthHeading>
+                <h1>{t.auth.signup.title}</h1>
+                <p>{t.auth.signup.subtitle}</p>
+            </AuthHeading>
 
-                {apiError && <ErrorAlert message={apiError} />}
+            {apiError && <ErrorAlert message={apiError} />}
 
-                <Form onSubmit={handleSubmit}>
-                    <FormGrid $columns={2}>
-                        <FieldGroup>
-                            <Label htmlFor="firstName">{t.auth.signup.firstNameLabel}</Label>
-                            <AuthInput
-                                type="text"
-                                id="firstName"
-                                name="given-name"
-                                autoComplete="given-name"
-                                placeholder={t.auth.signup.firstNamePlaceholder}
-                                value={formData.firstName}
-                                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                                $hasError={!!errors.firstName}
-                            />
-                            {errors.firstName && <ErrorMessage>{errors.firstName}</ErrorMessage>}
-                        </FieldGroup>
-
-                        <FieldGroup>
-                            <Label htmlFor="lastName">{t.auth.signup.lastNameLabel}</Label>
-                            <AuthInput
-                                type="text"
-                                id="lastName"
-                                name="family-name"
-                                autoComplete="family-name"
-                                placeholder={t.auth.signup.lastNamePlaceholder}
-                                value={formData.lastName}
-                                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                                $hasError={!!errors.lastName}
-                            />
-                            {errors.lastName && <ErrorMessage>{errors.lastName}</ErrorMessage>}
-                        </FieldGroup>
-                    </FormGrid>
-
+            <AuthForm onSubmit={handleSubmit}>
+                <FormGrid $columns={2}>
                     <FieldGroup>
-                        <Label htmlFor="email">{t.auth.signup.emailLabel}</Label>
+                        <Label htmlFor="firstName">{t.auth.signup.firstNameLabel}</Label>
                         <AuthInput
-                            type="email"
-                            id="email"
-                            name="email"
-                            autoComplete="email"
-                            placeholder={t.auth.signup.emailPlaceholder}
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            $hasError={!!errors.email}
+                            type="text"
+                            id="firstName"
+                            name="given-name"
+                            autoComplete="given-name"
+                            placeholder={t.auth.signup.firstNamePlaceholder}
+                            value={formData.firstName}
+                            onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                            $hasError={!!errors.firstName}
                         />
-                        {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
+                        {errors.firstName && <ErrorMessage>{errors.firstName}</ErrorMessage>}
                     </FieldGroup>
 
                     <FieldGroup>
-                        <Label htmlFor="password">{t.auth.signup.passwordLabel}</Label>
-                        <PasswordInput
-                            id="password"
-                            name="password"
-                            value={formData.password}
-                            onChange={(value) => setFormData({ ...formData, password: value })}
-                            placeholder={t.auth.signup.passwordPlaceholder}
-                            hasError={!!errors.password}
-                            autoComplete="new-password"
-                            onFocus={() => setPasswordFocused(true)}
-                            onBlur={() => setPasswordFocused(false)}
+                        <Label htmlFor="lastName">{t.auth.signup.lastNameLabel}</Label>
+                        <AuthInput
+                            type="text"
+                            id="lastName"
+                            name="family-name"
+                            autoComplete="family-name"
+                            placeholder={t.auth.signup.lastNamePlaceholder}
+                            value={formData.lastName}
+                            onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                            $hasError={!!errors.lastName}
                         />
-                        <PasswordRequirements
-                            password={formData.password}
-                            visible={passwordFocused || formData.password.length > 0}
-                        />
-                        {errors.password && <ErrorMessage>{errors.password}</ErrorMessage>}
+                        {errors.lastName && <ErrorMessage>{errors.lastName}</ErrorMessage>}
                     </FieldGroup>
+                </FormGrid>
 
-                    <FieldGroup>
-                        <Checkbox
-                            id="acceptTerms"
-                            checked={formData.acceptTerms}
-                            onChange={(checked) => setFormData({ ...formData, acceptTerms: checked })}
-                            hasError={!!errors.acceptTerms}
-                            label={
-                                <TermsLabel>
-                                    {t.auth.signup.acceptTerms}{' '}
-                                    <a href="/terms" target="_blank" rel="noopener noreferrer">
-                                        {t.auth.signup.termsLink}
-                                    </a>{' '}
-                                    {t.auth.signup.and}{' '}
-                                    <a href="/privacy" target="_blank" rel="noopener noreferrer">
-                                        {t.auth.signup.privacyLink}
-                                    </a>
-                                </TermsLabel>
-                            }
-                        />
-                        {errors.acceptTerms && <ErrorMessage>{errors.acceptTerms}</ErrorMessage>}
-                    </FieldGroup>
+                <FieldGroup>
+                    <Label htmlFor="email">{t.auth.signup.emailLabel}</Label>
+                    <AuthInput
+                        type="email"
+                        id="email"
+                        name="email"
+                        autoComplete="email"
+                        placeholder={t.auth.signup.emailPlaceholder}
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        $hasError={!!errors.email}
+                    />
+                    {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
+                </FieldGroup>
 
-                    <Button
-                        type="submit"
-                        $variant="primary"
-                        $fullWidth
-                        $size="lg"
-                        disabled={signupMutation.isPending}
-                    >
-                        {signupMutation.isPending ? t.auth.signup.submitting : t.auth.signup.submitButton}
-                    </Button>
-                </Form>
+                <FieldGroup>
+                    <Label htmlFor="password">{t.auth.signup.passwordLabel}</Label>
+                    <PasswordInput
+                        id="password"
+                        name="password"
+                        value={formData.password}
+                        onChange={(value) => setFormData({ ...formData, password: value })}
+                        placeholder={t.auth.signup.passwordPlaceholder}
+                        hasError={!!errors.password}
+                        autoComplete="new-password"
+                        onFocus={() => setPasswordFocused(true)}
+                        onBlur={() => setPasswordFocused(false)}
+                    />
+                    <PasswordRequirements
+                        password={formData.password}
+                        visible={passwordFocused || formData.password.length > 0}
+                    />
+                    {errors.password && <ErrorMessage>{errors.password}</ErrorMessage>}
+                </FieldGroup>
 
-                <Footer>
-                    {t.auth.signup.hasAccount}{' '}
-                    <FooterLink to="/login">{t.auth.signup.loginLink}</FooterLink>
-                </Footer>
-            </Card>
-        </Container>
+                <FieldGroup>
+                    <Checkbox
+                        id="acceptTerms"
+                        checked={formData.acceptTerms}
+                        onChange={(checked) => setFormData({ ...formData, acceptTerms: checked })}
+                        hasError={!!errors.acceptTerms}
+                        label={
+                            <TermsLabel>
+                                {t.auth.signup.acceptTerms}{' '}
+                                <a href="/terms" target="_blank" rel="noopener noreferrer">
+                                    {t.auth.signup.termsLink}
+                                </a>{' '}
+                                {t.auth.signup.and}{' '}
+                                <a href="/privacy" target="_blank" rel="noopener noreferrer">
+                                    {t.auth.signup.privacyLink}
+                                </a>
+                            </TermsLabel>
+                        }
+                    />
+                    {errors.acceptTerms && <ErrorMessage>{errors.acceptTerms}</ErrorMessage>}
+                </FieldGroup>
+
+                <AuthPrimaryButton type="submit" disabled={signupMutation.isPending}>
+                    {signupMutation.isPending ? t.auth.signup.submitting : t.auth.signup.submitButton}
+                </AuthPrimaryButton>
+            </AuthForm>
+
+            <AuthAside>
+                <AuthMeta>
+                    {t.auth.signup.hasAccount} <AuthLink to="/login">{t.auth.signup.loginLink}</AuthLink>
+                </AuthMeta>
+            </AuthAside>
+        </AuthLayout>
     );
 };
