@@ -578,12 +578,19 @@ export const visitApi = {
      * działało. `/cancel` sprawdza status DRAFT, kasuje protokoły, dokumenty i pliki i
      * zostawia rezerwację gotową do ponownego przyjęcia.
      */
-    cancelDraftVisit: async (visitId: string): Promise<void> => {
+    /**
+     * `reservationKept: false` - szkic był walk-inem („Wizyta" w kalendarzu) i jego
+     * rezerwacja-cień zniknęła razem z nim; przy przyjęciu z rezerwacji zostaje ona
+     * w kalendarzu. Starszy backend odpowiadał 204 bez treści - wtedy jak dawniej.
+     */
+    cancelDraftVisit: async (visitId: string): Promise<{ reservationKept: boolean }> => {
         if (USE_MOCKS) {
             await new Promise(resolve => setTimeout(resolve, 500));
-            return;
+            return { reservationKept: true };
         }
-        await apiClient.delete(`${BASE_PATH}/${visitId}/cancel`);
+        const response = await apiClient.delete<{ reservationKept?: boolean } | ''>(`${BASE_PATH}/${visitId}/cancel`);
+        const data = response.data;
+        return { reservationKept: typeof data === 'object' && data !== null ? data.reservationKept !== false : true };
     },
 
     /**

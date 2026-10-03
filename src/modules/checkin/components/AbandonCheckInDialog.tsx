@@ -6,6 +6,7 @@ import {
     ModalTitleGroup,
     ModalTitle,
     ModalContent,
+    CloseBtn,
 } from '@/common/components/ModalKit';
 import { SUBMODAL_Z_INDEX } from '@/common/styles';
 
@@ -16,8 +17,13 @@ import { SUBMODAL_Z_INDEX } from '@/common/styles';
  * zdjęciami - ale jeszcze się nie rozpoczęła. Odruchowy Escape zostawiał ją w tym
  * stanie na zawsze: nie było jej na żadnej liście, nie dało się jej ani prowadzić, ani
  * anulować, a jedyne, co po niej zostawało, to wpis w Aktywności obiecujący wizytę,
- * której nie ma. Dlatego zamiast cichego wyjścia użytkownik dostaje trzy jawne wyjścia
+ * której nie ma. Dlatego zamiast cichego wyjścia użytkownik dostaje jawne wyjścia
  * i musi jedno wybrać.
+ *
+ * W kreatorze pierwszym wyjściem jest „Wróć do formularza" (zgłoszenie biznesu z 03.10):
+ * przy podpisie klient mówi „dorzućmy jeszcze renowację kierownicy" i trzeba dodać
+ * usługę. Dawne „Wróć do dokumentów" niczego tu nie załatwiało - zostało krzyżykiem
+ * w nagłówku, dla kogoś, kto kliknął „Przerwij przyjęcie" przez pomyłkę.
  */
 
 const Body = styled.div`
@@ -125,7 +131,18 @@ interface AbandonCheckInDialogProps {
     isCancelling: boolean;
     /** Wróć do dokumentów - nic się nie zmienia. */
     onBack: () => void;
-    /** Anuluj wizytę - szkic i jego dokumenty znikają, rezerwacja wraca do kalendarza. */
+    /**
+     * Wróć do formularza - szkic zostaje (z numerem i zdjęciami), a po poprawieniu
+     * usług dokumenty przyjęcia generują się od nowa. Tylko w kreatorze przyjęcia.
+     */
+    onBackToForm?: () => void;
+    /**
+     * Skąd jest przyjęcie: z rezerwacji (anulowanie oddaje ją kalendarzowi) albo walk-in
+     * z „Wizyta" w kalendarzu (anulowanie nie zostawia w kalendarzu nic). Nieznane -
+     * przy dokańczaniu z listy - zdanie obejmuje oba przypadki.
+     */
+    fromReservation?: boolean;
+    /** Anuluj wizytę - szkic i jego dokumenty znikają. */
     onCancelVisit: () => void;
     /**
      * Wyjście bez zmian - pokazywane TYLKO tam, gdzie odłożenie przyjęcia niczego nie
@@ -145,6 +162,8 @@ export const AbandonCheckInDialog = ({
     visitNumber,
     isCancelling,
     onBack,
+    onBackToForm,
+    fromReservation,
     onCancelVisit,
     onLeaveForLater,
 }: AbandonCheckInDialogProps) => (
@@ -155,6 +174,8 @@ export const AbandonCheckInDialog = ({
             <ModalTitleGroup>
                 <ModalTitle>Przerwać przyjęcie pojazdu?</ModalTitle>
             </ModalTitleGroup>
+            {/* Krzyżyk = z powrotem do dokumentów, nic się nie zmienia. */}
+            {onBackToForm && <CloseBtn onClick={() => { if (!isCancelling) onBack(); }} />}
         </ModalHeader>
 
         <ModalContent>
@@ -171,18 +192,32 @@ export const AbandonCheckInDialog = ({
                 </Description>
 
                 <Options>
-                    <OptionBtn $variant="primary" onClick={onBack} disabled={isCancelling}>
-                        <OptionTitle $variant="primary">Wróć do dokumentów</OptionTitle>
-                        <OptionDesc>Dokończ podpisy i zatwierdź wizytę teraz.</OptionDesc>
-                    </OptionBtn>
+                    {onBackToForm ? (
+                        <OptionBtn $variant="primary" onClick={onBackToForm} disabled={isCancelling}>
+                            <OptionTitle $variant="primary">Wróć do formularza</OptionTitle>
+                            <OptionDesc>
+                                Dodaj albo zmień usługi i utwórz wizytę ponownie. Dokumenty wygenerują się
+                                od nowa, zdjęcia zostają.
+                            </OptionDesc>
+                        </OptionBtn>
+                    ) : (
+                        <OptionBtn $variant="primary" onClick={onBack} disabled={isCancelling}>
+                            <OptionTitle $variant="primary">Wróć do dokumentów</OptionTitle>
+                            <OptionDesc>Dokończ podpisy i zatwierdź wizytę teraz.</OptionDesc>
+                        </OptionBtn>
+                    )}
 
                     <OptionBtn $variant="danger" onClick={onCancelVisit} disabled={isCancelling}>
                         <OptionTitle $variant="danger">
                             {isCancelling ? 'Anulowanie...' : 'Anuluj wizytę'}
                         </OptionTitle>
                         <OptionDesc>
-                            Usuwa przyjęcie razem z wygenerowanymi dokumentami. Rezerwacja wraca
-                            do kalendarza i można przyjąć auto od nowa.
+                            Usuwa przyjęcie razem z wygenerowanymi dokumentami.{' '}
+                            {fromReservation === true
+                                ? 'Rezerwacja wraca do kalendarza i można przyjąć auto od nowa.'
+                                : fromReservation === false
+                                    ? 'W kalendarzu nic po nim nie zostaje.'
+                                    : 'Jeśli auto przyjęto z rezerwacji, rezerwacja wraca do kalendarza.'}
                         </OptionDesc>
                     </OptionBtn>
 

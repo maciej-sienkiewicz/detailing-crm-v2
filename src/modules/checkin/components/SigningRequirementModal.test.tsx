@@ -15,7 +15,7 @@ import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
 
 const api = vi.hoisted(() => ({
-    cancelDraftVisit: vi.fn(async () => undefined),
+    cancelDraftVisit: vi.fn(async () => ({ reservationKept: true })),
     confirmDraftVisit: vi.fn(async () => ({})),
 }));
 const toast = vi.hoisted(() => ({ showSuccess: vi.fn(), showError: vi.fn() }));
@@ -42,7 +42,7 @@ vi.mock('./NotificationSection', () => ({
 
 import { SigningRequirementModal } from './SigningRequirementModal';
 
-const renderModal = () => {
+const renderModal = (extra: { onBackToForm?: () => void; fromReservation?: boolean } = {}) => {
     const onCancel = vi.fn();
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
@@ -57,6 +57,7 @@ const renderModal = () => {
                     visitNumber="1054/26"
                     customerName="Czekaj"
                     protocols={[]}
+                    {...extra}
                 />
             </ThemeProvider>
         </QueryClientProvider>,
@@ -104,5 +105,50 @@ describe('SigningRequirementModal - przerwanie przyjęcia', () => {
         expect(api.cancelDraftVisit).not.toHaveBeenCalled();
         expect(onCancel).not.toHaveBeenCalled();
         expect(screen.queryByText('Przerwać przyjęcie pojazdu?')).toBeNull();
+    });
+
+    // Zgłoszenie biznesu z 03.10: „Wizyta" w kalendarzu → „Utwórz wizytę" → „Przerwij
+    // przyjęcie" → „Anuluj wizytę", a rezerwacja zostawała w kalendarzu. Backend usuwa
+    // już rezerwację-cień walk-inu; okno nie może obiecywać, że rezerwacja „została".
+    it('anulowany walk-in nie mówi o rezerwacji, której nie ma', async () => {
+        api.cancelDraftVisit.mockResolvedValueOnce({ reservationKept: false });
+        renderModal({ onBackToForm: vi.fn(), fromReservation: false });
+
+        fireEvent.click(screen.getAllByRole('button', { name: 'Zamknij' })[0]);
+        expect(screen.getByText(/W kalendarzu nic po nim nie zostaje/)).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: /Anuluj wizytę/ }));
+
+        await waitFor(() => expect(toast.showSuccess).toHaveBeenCalledWith(
+            'Wizyta została anulowana',
+            'Przyjęcie usunięte, w kalendarzu nic po nim nie zostało.',
+        ));
+    });
+
+    // Zgłoszenie biznesu z 03.10: klient przy podpisie mówi „dorzućmy renowację
+    // kierownicy" - z okna dokumentów trzeba wrócić do formularza, a nie do dokumentów.
+    it('w kreatorze „Wróć do formularza" wraca do formularza i niczego nie usuwa', () => {
+        const onBackToForm = vi.fn();
+        const { onCancel } = renderModal({ onBackToForm, fromReservation: true });
+
+        fireEvent.click(screen.getAllByRole('button', { name: 'Zamknij' })[0]);
+        expect(screen.queryByRole('button', { name: /Wróć do dokumentów/ })).toBeNull();
+        fireEvent.click(screen.getByRole('button', { name: /Wróć do formularza/ }));
+
+        expect(onBackToForm).toHaveBeenCalledTimes(1);
+        expect(api.cancelDraftVisit).not.toHaveBeenCalled();
+        expect(onCancel).not.toHaveBeenCalled();
+    });
+
+    it('krzyżyk w pytaniu wraca do dokumentów, gdy „Przerwij" kliknięto przez pomyłkę', () => {
+        const onBackToForm = vi.fn();
+        renderModal({ onBackToForm });
+
+        fireEvent.click(screen.getAllByRole('button', { name: 'Zamknij' })[0]);
+        const closeButtons = screen.getAllByRole('button', { name: 'Zamknij' });
+        fireEvent.click(closeButtons[closeButtons.length - 1]);
+
+        expect(screen.queryByText('Przerwać przyjęcie pojazdu?')).toBeNull();
+        expect(onBackToForm).not.toHaveBeenCalled();
+        expect(api.cancelDraftVisit).not.toHaveBeenCalled();
     });
 });
