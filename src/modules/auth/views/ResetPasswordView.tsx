@@ -12,22 +12,17 @@ import { authApi } from '../api/authApi';
 import { t } from '@/common/i18n';
 import { Label, FieldGroup, ErrorMessage } from '@/common/components/Form';
 import { Button } from '@/common/components/Button';
+import { AuthContainer, authCardShadow } from '../components/AuthBackdrop';
 
-const Container = styled.div`
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: ${props => props.theme.spacing.lg};
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-`;
+// Tło jak na stronie detailboost.pl - wspólne dla ekranów logowania i rejestracji.
+const Container = AuthContainer;
 
 const Card = styled.div`
     width: 100%;
     max-width: 440px;
     background-color: ${props => props.theme.colors.surface};
     border-radius: ${props => props.theme.radii.xl};
-    box-shadow: ${props => props.theme.shadows.xl};
+    box-shadow: ${authCardShadow};
     padding: ${props => props.theme.spacing.xl};
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {

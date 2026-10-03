@@ -636,7 +636,7 @@ export const pl: TranslationKeys = {
     auth: {
         login: {
             title: 'Zaloguj się',
-            subtitle: 'Witaj ponownie w DetailingPro',
+            subtitle: 'Witaj ponownie w DetailBoost',
             emailLabel: 'Adres email',
             emailPlaceholder: 'twoj@email.com',
             passwordLabel: 'Hasło',
@@ -654,7 +654,7 @@ export const pl: TranslationKeys = {
         },
         signup: {
             title: 'Załóż konto',
-            subtitle: 'Rozpocznij 14-dniowy bezpłatny okres próbny',
+            subtitle: 'Pierwsze 3 miesiące za darmo, bez karty',
             firstNameLabel: 'Imię',
             firstNamePlaceholder: 'Jan',
             lastNameLabel: 'Nazwisko',
