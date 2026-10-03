@@ -16,6 +16,7 @@ import { visitApi } from '@/modules/visits/api/visitApi';
 import type { OpenDraftVisit } from '@/modules/visits/types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { t } from '@/common/i18n';
+import { Notice } from '@/common/components/ui';
 import type { CheckInFormData, ProtocolResponse } from '../types';
 import type { AppointmentColor } from '@/modules/appointments/types';
 
@@ -171,6 +172,10 @@ const ContentWrap = styled.div`
     animation: ${fadeSlide} 220ms ease both;
 `;
 
+const RevisingNotice = styled.div`
+    margin-bottom: 16px;
+`;
+
 // ─── Sticky footer ────────────────────────────────────────────────────────────
 // Sama stopka i przyciski akcji żyją w @/common/components/StickyFormFooter -
 // ten sam komponent obsługuje stopkę edycji rezerwacji, żeby te same akcje
@@ -267,7 +272,9 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
         updateFormData,
         nextStep,
         previousStep,
+        goToStep,
         submitCheckIn,
+        reviseDraftServices,
         isSubmitting,
         submitError,
     } = useCheckInWizard(reservationId, initialData, qrCheckinId);
@@ -329,6 +336,14 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
         hasDamageMap: false,
     });
 
+    /**
+     * „Wróć do formularza" z okna dokumentów: szkic wizyty już istnieje (z numerem
+     * i zdjęciami), a użytkownik dopisuje usługę, o którą klient poprosił przy podpisie.
+     * Ponowne „Utwórz wizytę" nie zakłada drugiej wizyty, tylko podmienia usługi tego
+     * szkicu i generuje dokumenty od nowa (PUT /checkin/drafts/{id}/services).
+     */
+    const [revisingVisit, setRevisingVisit] = useState<{ visitId: string; visitNumber: string } | null>(null);
+
     /** Wznawiane przyjęcie z bramki 409 - patrz [handleSubmit]. */
     const [resumeDraft, setResumeDraft] = useState<OpenDraftVisit | null>(null);
 
@@ -350,6 +365,26 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
         }
 
         setSigningModalState({ isOpen: true, isCreating: true, visitId: null, visitNumber: null, protocols: [], hasPhotos: false, hasDamageMap: false });
+
+        if (revisingVisit) {
+            try {
+                const result = await reviseDraftServices(revisingVisit.visitId);
+                setSigningModalState({
+                    isOpen: true,
+                    isCreating: false,
+                    visitId: result.visitId,
+                    visitNumber: revisingVisit.visitNumber,
+                    protocols: result.protocols || [],
+                    hasPhotos: (formData.photos?.length ?? 0) > 0,
+                    hasDamageMap: (formData.damagePoints?.length ?? 0) > 0,
+                });
+                setRevisingVisit(null);
+            } catch {
+                // Komunikat serwera pokazuje stopka (submitError); szkic zostaje do poprawy.
+                setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [], hasPhotos: false, hasDamageMap: false });
+            }
+            return;
+        }
 
         try {
             const result = await submitCheckIn();
@@ -404,12 +439,24 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
         navigate('/calendar');
     };
 
+    /** Okno dokumentów zamknięte, szkic zostaje - formularz z usługami na wierzchu. */
+    const handleBackToForm = () => {
+        const { visitId, visitNumber } = signingModalState;
+        if (!visitId) return;
+        setRevisingVisit({ visitId, visitNumber: visitNumber ?? '' });
+        setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [], hasPhotos: false, hasDamageMap: false });
+        setShowValidationErrors(false);
+        goToStep('verification');
+    };
+
     const handleServicesChange = (services: CheckInFormData['services']) => {
         updateFormData({ services });
     };
 
     const isFirstStep = currentStep === 'verification';
     const isLastStep = currentStep === 'photos';
+    // Przy poprawianiu szkicu zdjęcia już są w wizycie - zapis idzie od razu z formularza.
+    const showSubmit = isLastStep || !!revisingVisit;
     const visibleErrors = showValidationErrors ? errors : {};
     const hasErrors = showValidationErrors && Object.keys(errors).length > 0;
 
@@ -430,7 +477,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                             {formData.customerData.firstName && (
                                 <PageSubtitle>
                                     {formData.customerData.firstName} {formData.customerData.lastName}
-                                    {formData.vehicleData && ` · ${formData.vehicleData.brand} ${formData.vehicleData.model}`}
+                                    {formData.vehicleData && `, ${formData.vehicleData.brand} ${formData.vehicleData.model}`}
                                 </PageSubtitle>
                             )}
                         </TitleBlock>
@@ -452,6 +499,15 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                 {/* ── Main content ───────────────────────────────────────── */}
                 <ScrollArea>
                     <ContentWrap key={currentStep} ref={contentRef}>
+                        {revisingVisit && (
+                            <RevisingNotice>
+                                <Notice tone="info" title="Poprawiasz założone przyjęcie" role="status">
+                                    Dodaj albo zmień usługi i zapisz - dokumenty przyjęcia wygenerują się od nowa
+                                    i trzeba je będzie podpisać ponownie. Dane klienta i pojazdu oraz zdjęcia
+                                    zostają takie, jak przy zakładaniu wizyty.
+                                </Notice>
+                            </RevisingNotice>
+                        )}
                         {currentStep === 'verification' && (
                             <VerificationStep
                                 formData={formData}
@@ -492,7 +548,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                                 </FooterSecondaryButton>
                             )}
 
-                            {!isLastStep ? (
+                            {!showSubmit ? (
                                 <FooterPrimaryButton onClick={handleNext} disabled={false} $disabled={false}>
                                     {t.checkin.actions.nextStep}
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -507,6 +563,8 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                                 >
                                     {isSubmitting ? (
                                         <>{t.checkin.summary.creating}...</>
+                                    ) : revisingVisit ? (
+                                        <>Zapisz usługi i wróć do dokumentów</>
                                     ) : (
                                         <>{t.checkin.summary.createVisit}</>
                                     )}
@@ -546,8 +604,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                         ) : (
                             <FooterStepHint>
                                 <FooterStepDot />
-                                Krok {steps.findIndex(s => s.id === currentStep) + 1} z {steps.length}
-                                {' · '}
+                                Krok {steps.findIndex(s => s.id === currentStep) + 1} z {steps.length}:{' '}
                                 {steps.find(s => s.id === currentStep)?.label}
                             </FooterStepHint>
                         )}
@@ -560,6 +617,8 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                     isOpen={signingModalState.isOpen}
                     isCreating={signingModalState.isCreating}
                     onCancel={handleSigningModalCancel}
+                    onBackToForm={handleBackToForm}
+                    fromReservation={!!reservationId}
                     visitId={signingModalState.visitId}
                     visitNumber={signingModalState.visitNumber || ''}
                     customerName={`${formData.customerData.firstName} ${formData.customerData.lastName}`}

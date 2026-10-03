@@ -137,6 +137,25 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
         setCurrentStep(stepId);
     };
 
+    /**
+     * Usługi w kształcie API: tymczasowe identyfikatory (usługa spoza katalogu) jako null,
+     * cena ręczna zwinięta do SET_NET, dokładne brutto przechodzi dalej (CLAUDE.md §1).
+     */
+    const apiServices = () => formData.services.map(service => {
+        const isTemporary = !service.serviceId ||
+                            service.serviceId.startsWith('temp_') ||
+                            service.serviceId === 'null';
+        return toApiServiceLineItem({
+            ...service,
+            serviceId: isTemporary ? null : service.serviceId,
+        });
+    });
+
+    /** Ponowne „Utwórz wizytę" po „Wróć do formularza": nowe usługi dla istniejącego szkicu. */
+    const reviseDraftServicesMutation = useMutation({
+        mutationFn: (visitId: string) => checkinApi.reviseDraftServices(visitId, apiServices()),
+    });
+
     const submitCheckIn = async () => {
         // Walidacja - musi być pojazd
         if (!formData.vehicleData) {
@@ -224,17 +243,7 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
             };
         })();
 
-        // Transform services: convert temporary serviceIds to null,
-        // and collapse requireManualPrice services to SET_NET for the server.
-        const transformedServices = formData.services.map(service => {
-            const isTemporary = !service.serviceId ||
-                                service.serviceId.startsWith('temp_') ||
-                                service.serviceId === 'null';
-            return toApiServiceLineItem({
-                ...service,
-                serviceId: isTemporary ? null : service.serviceId,
-            });
-        });
+        const transformedServices = apiServices();
 
         const sharedPayload = {
             title: formData.title || undefined,
@@ -274,8 +283,9 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
         return createVisitMutation.mutateAsync(payload);
     };
 
-    const isSubmitting = createVisitMutation.isPending || createWalkInMutation.isPending;
-    const submitError = createVisitMutation.error ?? createWalkInMutation.error;
+    const isSubmitting = createVisitMutation.isPending || createWalkInMutation.isPending
+        || reviseDraftServicesMutation.isPending;
+    const submitError = createVisitMutation.error ?? createWalkInMutation.error ?? reviseDraftServicesMutation.error;
 
     return {
         currentStep,
@@ -287,6 +297,7 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
         previousStep,
         goToStep,
         submitCheckIn,
+        reviseDraftServices: reviseDraftServicesMutation.mutateAsync,
         saveDraft,
         isSubmitting,
         submitError,

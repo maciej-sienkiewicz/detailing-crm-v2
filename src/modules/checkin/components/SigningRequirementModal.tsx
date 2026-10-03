@@ -117,6 +117,13 @@ interface SigningRequirementModalProps {
     onLeaveForLater?: () => void;
     /** Wizyta anulowana - szkic i jego dokumenty zostały usunięte. */
     onCancel: () => void;
+    /**
+     * „Wróć do formularza" (tylko kreator przyjęcia): szkic zostaje, okno się zamyka,
+     * a kreator pokazuje formularz, żeby dodać albo zmienić usługi.
+     */
+    onBackToForm?: () => void;
+    /** Przyjęcie z rezerwacji (true) albo walk-in (false) - zmienia opis anulowania. */
+    fromReservation?: boolean;
     visitId: string | null;
     visitNumber: string;
     customerName: string;
@@ -150,6 +157,8 @@ export const SigningRequirementModal = ({
     isCreating,
     onLeaveForLater,
     onCancel,
+    onBackToForm,
+    fromReservation,
     visitId,
     visitNumber,
     customerName,
@@ -198,9 +207,14 @@ export const SigningRequirementModal = ({
             if (!visitId) throw new Error('No visit to cancel');
             return visitApi.cancelDraftVisit(visitId);
         },
-        onSuccess: () => {
+        onSuccess: ({ reservationKept }) => {
             setExitPromptOpen(false);
-            showSuccess('Wizyta została anulowana', 'Rezerwacja pozostała w kalendarzu - auto można przyjąć od nowa.');
+            showSuccess(
+                'Wizyta została anulowana',
+                reservationKept
+                    ? 'Rezerwacja pozostała w kalendarzu - auto można przyjąć od nowa.'
+                    : 'Przyjęcie usunięte, w kalendarzu nic po nim nie zostało.',
+            );
             onCancel();
         },
         onError: (error: unknown) => {
@@ -654,6 +668,8 @@ export const SigningRequirementModal = ({
                     visitNumber={visitNumber}
                     isCancelling={cancelVisitMutation.isPending}
                     onBack={() => setExitPromptOpen(false)}
+                    onBackToForm={onBackToForm && (() => { setExitPromptOpen(false); onBackToForm(); })}
+                    fromReservation={fromReservation}
                     onCancelVisit={() => cancelVisitMutation.mutate()}
                     onLeaveForLater={onLeaveForLater && handleLeaveForLater}
                 />

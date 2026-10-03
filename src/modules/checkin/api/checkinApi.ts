@@ -160,6 +160,19 @@ export const checkinApi = {
     },
 
     /**
+     * „Wróć do formularza" → poprawione usługi: ten sam szkic wizyty (z numerem
+     * i zdjęciami) dostaje nowe usługi i nowe dokumenty przyjęcia - stare znikają
+     * razem z podpisami, bo wypisywały poprzednią listę usług.
+     */
+    reviseDraftServices: async (
+        visitId: string,
+        services: WalkInVisitPayload['services'],
+    ): Promise<CreateVisitFromReservationResponse> => {
+        const response = await apiClient.put(`${BASE_PATH}/drafts/${visitId}/services`, { services });
+        return response.data;
+    },
+
+    /**
      * Step 1: Create upload session with appointmentId
      * Returns sessionId + token for subsequent operations
      */
