@@ -15,7 +15,7 @@ const HiddenCheckbox = styled.input.attrs({ type: 'checkbox' })`
     height: 0;
 
     &:focus + div {
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        box-shadow: 0 0 0 3px rgba(220, 174, 92, 0.2);
     }
 `;
 

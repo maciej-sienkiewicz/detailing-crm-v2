@@ -32,13 +32,13 @@ export const authFieldStyles = css<{ $hasError?: boolean }>`
     font-family: inherit;
     font-size: ${props => props.theme.fontSizes.md};
     color: ${props => props.theme.colors.text};
-    background-color: ${props => props.theme.colors.surface};
+    background-color: ${props => props.theme.colors.surfaceHover};
     transition: all ${props => props.theme.transitions.fast};
 
     &:focus {
         outline: none;
         border-color: ${props => props.$hasError ? props.theme.colors.error : props.theme.colors.primary};
-        box-shadow: 0 0 0 3px ${props => props.$hasError ? 'rgba(220, 38, 38, 0.1)' : 'rgba(14, 165, 233, 0.1)'};
+        box-shadow: 0 0 0 3px ${props => props.$hasError ? 'rgba(248, 113, 113, 0.18)' : 'rgba(220, 174, 92, 0.2)'};
     }
 
     &::placeholder {

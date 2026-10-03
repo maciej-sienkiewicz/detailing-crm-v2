@@ -3,8 +3,8 @@ import styled from 'styled-components';
 
 const AlertContainer = styled.div`
     padding: ${props => props.theme.spacing.md};
-    background-color: rgb(240, 253, 244); // green-50
-    border: 1px solid rgb(34, 197, 94); // green-500
+    background-color: ${props => props.theme.colors.successLight};
+    border: 1px solid ${props => props.theme.colors.success};
     border-radius: ${props => props.theme.radii.md};
     display: flex;
     align-items: flex-start;
@@ -24,7 +24,7 @@ const AlertContainer = styled.div`
 `;
 
 const IconWrapper = styled.div`
-    color: rgb(34, 197, 94); // green-500
+    color: ${props => props.theme.colors.success};
     display: flex;
     align-items: center;
     margin-top: 2px;
@@ -33,7 +33,7 @@ const IconWrapper = styled.div`
 const Message = styled.div`
     flex: 1;
     font-size: ${props => props.theme.fontSizes.sm};
-    color: rgb(21, 128, 61); // green-700
+    color: ${props => props.theme.colors.success};
     font-weight: ${props => props.theme.fontWeights.medium};
 `;
 
