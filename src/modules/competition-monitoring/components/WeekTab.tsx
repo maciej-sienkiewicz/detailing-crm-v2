@@ -226,7 +226,7 @@ const HiddenNote = styled.p`
 
 const RecommendationCard = styled(Card)`
     background: ${st.gradientCardBlue};
-    border-color: rgba(59, 130, 246, 0.25);
+    border-color: rgba(14, 165, 233, 0.25);
 `;
 
 const RecoHeader = styled.div`

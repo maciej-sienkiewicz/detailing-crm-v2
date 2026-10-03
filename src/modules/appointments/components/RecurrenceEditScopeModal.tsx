@@ -32,7 +32,7 @@ const OptionRow = styled.label<{ $disabled?: boolean }>`
     transition: background 140ms ease;
 
     &:hover {
-        background: ${p => p.$disabled ? 'transparent' : 'rgba(59,130,246,0.06)'};
+        background: ${p => p.$disabled ? 'transparent' : 'rgba(14,165,233,0.06)'};
     }
 `;
 
@@ -40,7 +40,7 @@ const RadioInput = styled.input.attrs({ type: 'radio' })`
     width: 16px;
     height: 16px;
     margin-top: 2px;
-    accent-color: #3B82F6;
+    accent-color: #0EA5E9;
     cursor: pointer;
     flex-shrink: 0;
 `;

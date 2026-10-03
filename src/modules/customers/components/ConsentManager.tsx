@@ -59,7 +59,7 @@ const ConsentItem = styled.label<{ $isGranted: boolean }>`
     &:last-child { border-bottom: none; }
 
     &:hover {
-        background: ${props => props.$isGranted ? 'rgba(59,130,246,0.08)' : st.bgCardAlt};
+        background: ${props => props.$isGranted ? 'rgba(14,165,233,0.08)' : st.bgCardAlt};
     }
 `;
 

@@ -103,8 +103,8 @@ const ModeBadge = styled.span<{ $mode: EmploymentMode }>`
     border-radius: ${st.radiusSm};
     font-size: ${st.fontXs};
     font-weight: 700;
-    background: ${p => p.$mode === 'SALARY' ? '#EFF6FF' : '#F0FDF4'};
-    color: ${p => p.$mode === 'SALARY' ? '#1D4ED8' : '#16A34A'};
+    background: ${p => p.$mode === 'SALARY' ? '#F0F9FF' : '#F0FDF4'};
+    color: ${p => p.$mode === 'SALARY' ? '#0369A1' : '#16A34A'};
 `;
 
 const EtatLabel = styled.span`

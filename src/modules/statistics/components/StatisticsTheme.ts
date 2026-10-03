@@ -10,7 +10,7 @@ export const st = {
   bgCard: '#FFFFFF',
   bgCardAlt: '#F1F5F9',
   bgInput: '#FFFFFF',
-  bgAccentBlue: 'rgba(59, 130, 246, 0.05)',
+  bgAccentBlue: 'rgba(14, 165, 233, 0.05)',
   bgAccentGreen: 'rgba(16, 185, 129, 0.05)',
   bgAccentAmber: 'rgba(245, 158, 11, 0.05)',
   bgAccentRed: 'rgba(239, 68, 68, 0.05)',
@@ -19,7 +19,7 @@ export const st = {
   // Borders
   border: '#E2E8F0',
   borderHover: '#CBD5E1',
-  borderFocus: '#3B82F6',
+  borderFocus: '#0EA5E9',
 
   // Text
   text: '#0F172A',
@@ -27,8 +27,8 @@ export const st = {
   textMuted: '#94A3B8',
 
   // Accent colors (brand palette)
-  accentBlue: '#3B82F6',
-  accentBlueDim: 'rgba(59, 130, 246, 0.12)',
+  accentBlue: '#0EA5E9',
+  accentBlueDim: 'rgba(14, 165, 233, 0.12)',
   accentGreen: '#10B981',
   accentGreenDim: 'rgba(16, 185, 129, 0.12)',
   accentAmber: '#F59E0B',
@@ -37,9 +37,9 @@ export const st = {
   accentRedDim: 'rgba(239, 68, 68, 0.12)',
 
   // Gradients
-  gradientBlue: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
+  gradientBlue: 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)',
   gradientGreen: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-  gradientCardBlue: 'linear-gradient(160deg, #FFFFFF 0%, rgba(59,130,246,0.04) 100%)',
+  gradientCardBlue: 'linear-gradient(160deg, #FFFFFF 0%, rgba(14,165,233,0.04) 100%)',
   gradientCardGreen: 'linear-gradient(160deg, #FFFFFF 0%, rgba(16,185,129,0.04) 100%)',
 
   // Shadows (elevation system)
@@ -47,7 +47,7 @@ export const st = {
   shadowSm: '0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04)',
   shadowMd: '0 4px 12px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(15, 23, 42, 0.04)',
   shadowLg: '0 10px 24px rgba(15, 23, 42, 0.10), 0 4px 8px rgba(15, 23, 42, 0.06)',
-  shadowBlue: '0 0 0 3px rgba(59, 130, 246, 0.15)',
+  shadowBlue: '0 0 0 3px rgba(14, 165, 233, 0.15)',
 
   // Radii
   radius: '14px',

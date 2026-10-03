@@ -23,7 +23,7 @@ const UploadBtn = styled.button`
     color: #fff;
     cursor: pointer;
     &:disabled { opacity: 0.6; cursor: not-allowed; }
-    &:hover:not(:disabled) { background: #1D4ED8; }
+    &:hover:not(:disabled) { background: #0369A1; }
 `;
 
 const ActionBtn = styled.button`

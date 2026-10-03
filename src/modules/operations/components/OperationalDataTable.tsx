@@ -245,7 +245,7 @@ const TitleInput = styled.input`
     font-weight: 700;
     color: ${st.text};
     background: ${st.bgCardAlt};
-    border: 1.5px solid rgba(59, 130, 246, 0.45);
+    border: 1.5px solid rgba(14, 165, 233, 0.45);
     border-radius: 5px;
     padding: 2px 6px;
     outline: none;
@@ -253,7 +253,7 @@ const TitleInput = styled.input`
     width: 180px;
     max-width: 100%;
 
-    &:focus { border-color: rgba(59, 130, 246, 0.8); }
+    &:focus { border-color: rgba(14, 165, 233, 0.8); }
 `;
 
 const TitleActionBtn = styled.button`
@@ -320,10 +320,10 @@ const VehicleNavBlock = styled.div<{ $clickable?: boolean }>`
         cursor: pointer;
         &:hover ${LicensePlate} {
             background: #1e3a5f;
-            color: #93c5fd;
+            color: #7dd3fc;
         }
         &:hover ${VehicleSubInfo} {
-            color: #93c5fd;
+            color: #7dd3fc;
         }
     `}
 `;
@@ -347,7 +347,7 @@ const LicensePlate = styled.span`
 const TypeTag = styled.span<{ $isVisit: boolean }>`
     font-size: 11px;
     font-weight: 600;
-    color: ${props => props.$isVisit ? '#059669' : '#2563EB'};
+    color: ${props => props.$isVisit ? '#059669' : '#0284C7'};
     letter-spacing: 0.2px;
 `;
 

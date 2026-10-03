@@ -140,12 +140,12 @@ const AddNewButton = styled.div`
     transition: background ${props => props.theme.transitions.fast};
     border-top: 1px solid #f1f5f9;
     background-color: #f8faff;
-    color: #2563eb;
+    color: #0284c7;
     font-size: 13px;
     font-weight: 500;
 
     &:hover {
-        background-color: #eff6ff;
+        background-color: #f0f9ff;
     }
 
     svg {

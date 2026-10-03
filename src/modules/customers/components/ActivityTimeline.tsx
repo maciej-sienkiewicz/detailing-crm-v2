@@ -160,9 +160,9 @@ const MetaBadge = styled.span<{ $variant?: string }>`
             completed: 'background: #dcfce7; color: #166534;',
             scheduled: 'background: #fef3c7; color: #92400e;',
             cancelled: 'background: #f3f4f6; color: #6b7280;',
-            inbound: 'background: #dbeafe; color: #1e40af;',
+            inbound: 'background: #e0f2fe; color: #075985;',
             outbound: 'background: #dcfce7; color: #166534;',
-            'in-progress': 'background: #dbeafe; color: #1e40af;',
+            'in-progress': 'background: #e0f2fe; color: #075985;',
         };
         return variants[props.$variant || 'completed'];
     }}

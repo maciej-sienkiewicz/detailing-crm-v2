@@ -271,7 +271,7 @@ const HeatCell = styled.td<{ $intensity: number; $best: boolean }>`
     min-width: 34px;
     border-radius: 6px;
     background: ${p =>
-        p.$intensity === 0 ? st.bgCardAlt : `rgba(59, 130, 246, ${0.12 + p.$intensity * 0.55})`};
+        p.$intensity === 0 ? st.bgCardAlt : `rgba(14, 165, 233, ${0.12 + p.$intensity * 0.55})`};
     outline: ${p => (p.$best ? `2px solid ${st.accentAmber}` : 'none')};
     text-align: center;
     font-size: ${st.fontXs};

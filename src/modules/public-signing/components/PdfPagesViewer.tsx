@@ -28,9 +28,9 @@ const RetryBtn = styled.button`
     font-size: 14px;
     font-weight: 600;
     font-family: inherit;
-    color: #1d4ed8;
+    color: #0369a1;
     background: #ffffff;
-    border: 1.5px solid #1d4ed8;
+    border: 1.5px solid #0369a1;
     border-radius: 9999px;
     cursor: pointer;
 `;

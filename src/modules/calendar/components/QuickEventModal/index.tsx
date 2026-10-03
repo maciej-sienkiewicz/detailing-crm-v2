@@ -156,8 +156,8 @@ const SmsCheckbox = styled.input.attrs({ type: 'checkbox' })`
     position: relative;
 
     &:checked {
-        background: #3b82f6;
-        border-color: #3b82f6;
+        background: #0ea5e9;
+        border-color: #0ea5e9;
     }
 
     &:checked::after {

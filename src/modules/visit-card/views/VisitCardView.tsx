@@ -27,8 +27,8 @@ const BORDER = '#e4e7ec';
 const INK = '#101828';
 const MUTED = '#667085';
 const FAINT = '#98a2b3';
-const ACCENT = '#1d4ed8';        // single functional blue: links & primary action
-const ACCENT_DARK = '#1e40af';
+const ACCENT = '#0369a1';        // single functional blue: links & primary action
+const ACCENT_DARK = '#075985';
 const OK = '#067647';            // done states
 const OK_BG = '#ecfdf3';
 

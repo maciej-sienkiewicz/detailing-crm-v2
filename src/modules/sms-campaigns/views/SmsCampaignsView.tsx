@@ -188,13 +188,13 @@ const ConfirmBtn = styled.button<{ $danger?: boolean }>`
   padding: 7px 16px;
   font-size: 13px;
   font-weight: 700;
-  background: ${p => p.$danger ? '#EF4444' : '#3B82F6'};
+  background: ${p => p.$danger ? '#EF4444' : '#0EA5E9'};
   color: #fff;
   border: none;
   border-radius: 7px;
   cursor: pointer;
   transition: all 150ms;
-  &:hover { background: ${p => p.$danger ? '#DC2626' : '#2563EB'}; }
+  &:hover { background: ${p => p.$danger ? '#DC2626' : '#0284C7'}; }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 

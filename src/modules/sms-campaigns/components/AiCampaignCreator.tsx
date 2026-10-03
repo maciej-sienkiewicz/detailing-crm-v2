@@ -45,12 +45,12 @@ const SparkIcon = styled.div`
   width: 48px;
   height: 48px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #3B82F6 0%, #6366F1 100%);
+  background: linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
-  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 14px rgba(14, 165, 233, 0.3);
   margin-bottom: 2px;
 `;
 
@@ -79,8 +79,8 @@ const PromptBox = styled.div`
   box-shadow: 0 1px 3px rgba(15,23,42,0.04);
 
   &:focus-within {
-    border-color: #3B82F6;
-    box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+    border-color: #0EA5E9;
+    box-shadow: 0 0 0 3px rgba(14,165,233,0.12);
   }
 `;
 
@@ -122,17 +122,17 @@ const SearchBtn = styled.button<{ $active: boolean }>`
   padding: 8px 18px;
   font-size: 13px;
   font-weight: 600;
-  background: ${p => p.$active ? 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)' : '#F1F5F9'};
+  background: ${p => p.$active ? 'linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%)' : '#F1F5F9'};
   color: ${p => p.$active ? '#fff' : '#94A3B8'};
   border: none;
   border-radius: 8px;
   cursor: ${p => p.$active ? 'pointer' : 'not-allowed'};
   transition: all 150ms ease;
-  box-shadow: ${p => p.$active ? '0 2px 8px rgba(59,130,246,0.28)' : 'none'};
+  box-shadow: ${p => p.$active ? '0 2px 8px rgba(14,165,233,0.28)' : 'none'};
 
   &:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(59,130,246,0.36);
+    box-shadow: 0 4px 12px rgba(14,165,233,0.36);
   }
 `;
 
@@ -157,9 +157,9 @@ const Chip = styled.button`
   text-align: left;
 
   &:hover {
-    background: #EFF6FF;
-    color: #2563EB;
-    border-color: #BFDBFE;
+    background: #F0F9FF;
+    color: #0284C7;
+    border-color: #BAE6FD;
   }
 `;
 
@@ -184,7 +184,7 @@ const Dot = styled.span<{ $delay: string }>`
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #3B82F6;
+  background: #0EA5E9;
   animation: ${dotBounce} 1.1s ease-in-out infinite;
   animation-delay: ${p => p.$delay};
 `;
@@ -321,7 +321,7 @@ const Checkbox = styled.input`
   width: 15px;
   height: 15px;
   cursor: pointer;
-  accent-color: #3B82F6;
+  accent-color: #0EA5E9;
 `;
 
 const VehiclePill = styled.span`
@@ -343,10 +343,10 @@ const DateCell = styled.span`
 
 const ConfigCard = styled.div`
   background: #fff;
-  border: 1.5px solid #BFDBFE;
+  border: 1.5px solid #BAE6FD;
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 1px 4px rgba(59,130,246,0.06);
+  box-shadow: 0 1px 4px rgba(14,165,233,0.06);
 `;
 
 const ConfigTitle = styled.h3`
@@ -389,7 +389,7 @@ const Input = styled.input`
   outline: none;
   transition: border-color 150ms, box-shadow 150ms;
 
-  &:focus { border-color: #3B82F6; box-shadow: 0 0 0 3px rgba(59,130,246,0.12); }
+  &:focus { border-color: #0EA5E9; box-shadow: 0 0 0 3px rgba(14,165,233,0.12); }
   &::placeholder { color: #CBD5E1; }
 `;
 
@@ -418,17 +418,17 @@ const CreateBtn = styled.button<{ $disabled: boolean }>`
   padding: 9px 22px;
   font-size: 13px;
   font-weight: 700;
-  background: ${p => p.$disabled ? '#F1F5F9' : 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)'};
+  background: ${p => p.$disabled ? '#F1F5F9' : 'linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%)'};
   color: ${p => p.$disabled ? '#94A3B8' : '#fff'};
   border: none;
   border-radius: 8px;
   cursor: ${p => p.$disabled ? 'not-allowed' : 'pointer'};
   transition: all 150ms ease;
-  box-shadow: ${p => p.$disabled ? 'none' : '0 2px 8px rgba(59,130,246,0.28)'};
+  box-shadow: ${p => p.$disabled ? 'none' : '0 2px 8px rgba(14,165,233,0.28)'};
 
   &:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(59,130,246,0.36);
+    box-shadow: 0 4px 12px rgba(14,165,233,0.36);
   }
 `;
 
@@ -478,13 +478,13 @@ const RestartBtn = styled.button`
   font-size: 13px;
   font-weight: 600;
   background: transparent;
-  color: #3B82F6;
-  border: 1.5px solid #3B82F6;
+  color: #0EA5E9;
+  border: 1.5px solid #0EA5E9;
   border-radius: 8px;
   cursor: pointer;
   transition: all 150ms ease;
   margin-top: 4px;
-  &:hover { background: #EFF6FF; }
+  &:hover { background: #F0F9FF; }
 `;
 
 // ─── Example prompts ──────────────────────────────────────────────────────────
@@ -681,7 +681,7 @@ export const AiCampaignCreator: React.FC<Props> = ({ onClose, onSuccess }) => {
     <ResultsWrap>
       <ResultsTopBar>
         <ResultsSummary>
-          <Users size={15} strokeWidth={2} color="#3B82F6" />
+          <Users size={15} strokeWidth={2} color="#0EA5E9" />
           <span>
             Znaleziono <strong>{customers.length}</strong> klientów
             {result?.generatedFiltersDescription && (

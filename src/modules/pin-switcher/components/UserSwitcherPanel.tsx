@@ -194,16 +194,16 @@ const UnlockBtn = styled.span`
     margin-top: 6px;
     padding: 4px 10px;
     border-radius: 999px;
-    background: #eff6ff;
-    color: #2563eb;
+    background: #f0f9ff;
+    color: #0284c7;
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
     user-select: none;
     transition: background 150ms;
 
-    &:hover { background: #dbeafe; }
-    &:focus-visible { outline: 2px solid #93c5fd; outline-offset: 1px; }
+    &:hover { background: #e0f2fe; }
+    &:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 1px; }
 `;
 
 // ─── PIN entry view ───────────────────────────────────────────────────────────

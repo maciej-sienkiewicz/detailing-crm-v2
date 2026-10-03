@@ -22,7 +22,7 @@ function parseChip(isoDate: string): { day: string; month: string } {
 // ─── Badge config ─────────────────────────────────────────────────────────────
 
 const BADGE_CONFIG: Record<VisitStatusKind, { bg: string; color: string }> = {
-  info:    { bg: 'rgba(59,130,246,0.12)',  color: '#1d4ed8' },
+  info:    { bg: 'rgba(14,165,233,0.12)',  color: '#0369a1' },
   warn:    { bg: 'rgba(245,158,11,0.12)',  color: '#d97706' },
   neutral: { bg: '#f1f5f9',               color: '#475569' },
   success: { bg: 'rgba(16,185,129,0.12)', color: '#059669' },
@@ -207,14 +207,14 @@ const TitleInput = styled.input`
   font-weight: 600;
   color: #0f172a;
   background: #f8fafc;
-  border: 1.5px solid rgba(59,130,246,0.45);
+  border: 1.5px solid rgba(14,165,233,0.45);
   border-radius: 5px;
   padding: 2px 6px;
   outline: none;
   min-width: 0;
   width: 160px;
   max-width: 100%;
-  &:focus { border-color: rgba(59,130,246,0.8); }
+  &:focus { border-color: rgba(14,165,233,0.8); }
 `;
 
 const TitleIconBtn = styled.button`
@@ -505,7 +505,7 @@ const VisitRowItem = ({
 
 // accent colours matching BADGE_CONFIG for the animation card
 const KIND_ACCENT: Record<VisitStatusKind, string> = {
-  info:    '#1d4ed8',
+  info:    '#0369a1',
   warn:    '#d97706',
   neutral: '#475569',
   success: '#059669',

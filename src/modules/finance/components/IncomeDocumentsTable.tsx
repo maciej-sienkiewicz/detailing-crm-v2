@@ -58,9 +58,9 @@ const Tr = styled.tr<{ $muted?: boolean; $selected?: boolean }>`
   animation: ${fadeIn} 0.18s ease-out;
   cursor: pointer;
   opacity: ${(p) => (p.$muted ? 0.55 : 1)};
-  background: ${(p) => (p.$selected ? '#eff6ff' : 'transparent')};
+  background: ${(p) => (p.$selected ? '#f0f9ff' : 'transparent')};
   &:last-child { border-bottom: none; }
-  &:hover { background: ${(p) => (p.$selected ? '#dbeafe' : p.theme.colors.surfaceHover)}; }
+  &:hover { background: ${(p) => (p.$selected ? '#e0f2fe' : p.theme.colors.surfaceHover)}; }
 `;
 
 /* Kolumna zaznaczenia: wąska i cicha, bo nie jest treścią wiersza - jest tylko
@@ -284,7 +284,7 @@ const CardRow = styled.div<{ $selected?: boolean }>`
   align-items: flex-start;
   gap: 10px;
   padding-left: 12px;
-  background: ${(p) => (p.$selected ? '#eff6ff' : 'transparent')};
+  background: ${(p) => (p.$selected ? '#f0f9ff' : 'transparent')};
   border-bottom: 1px solid ${(p) => p.theme.colors.border};
 
   &:last-child { border-bottom: none; }

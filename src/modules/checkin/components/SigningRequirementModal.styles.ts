@@ -193,7 +193,7 @@ export const ConfirmBtn = styled.button`
     box-shadow: 0 1px 4px rgba(37, 99, 235, 0.25);
 
     &:hover:not(:disabled) {
-        background: #1D4ED8;
+        background: #0369A1;
         transform: translateY(-1px);
         box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
     }

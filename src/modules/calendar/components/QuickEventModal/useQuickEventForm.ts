@@ -252,7 +252,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
 
     // ─── Computed values ───────────────────────────────────────────────────────
     const selectedColor = appointmentColors.find((c: AppointmentColor) => c.id === selectedColorId);
-    const accentColor = selectedColor?.hexColor || '#3b82f6';
+    const accentColor = selectedColor?.hexColor || '#0ea5e9';
 
     const filteredServices = services.filter((s: Service) =>
         serviceSearch.length === 0 ||

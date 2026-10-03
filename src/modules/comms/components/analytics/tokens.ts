@@ -10,7 +10,7 @@
 // Kolor i tak nie niesie tu sam znaczenia: każdy segment ma podpis obok.
 
 /** Wygrane. Chłodny biegun pary rozbieżnej. */
-export const WON = '#2563eb';
+export const WON = '#0284c7';
 
 /** Przegrane i niedoszłe. Ciepły biegun - czerwień jest już tokenem błędu w aplikacji. */
 export const LOST = '#dc2626';
@@ -31,7 +31,7 @@ export const OPEN = '#cbd5e1';
 export const SILENT = '#94a3b8';
 
 /** Jedna seria wielkości (ile zapytań, ile z którego kanału). */
-export const MAGNITUDE = '#2563eb';
+export const MAGNITUDE = '#0284c7';
 
 /** Tło toru, po którym biegnie słupek. */
 export const TRACK = '#eef2f7';

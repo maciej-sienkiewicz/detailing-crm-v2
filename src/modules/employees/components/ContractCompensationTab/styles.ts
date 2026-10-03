@@ -212,8 +212,8 @@ export const ModeBadge = styled.span<{ $mode: EmploymentMode }>`
     border-radius: ${st.radiusSm};
     font-size: 10px;
     font-weight: 700;
-    background: ${p => (p.$mode === 'SALARY' ? '#EFF6FF' : '#F0FDF4')};
-    color: ${p => (p.$mode === 'SALARY' ? '#1D4ED8' : '#16A34A')};
+    background: ${p => (p.$mode === 'SALARY' ? '#F0F9FF' : '#F0FDF4')};
+    color: ${p => (p.$mode === 'SALARY' ? '#0369A1' : '#16A34A')};
 `;
 
 // ─── Components Section (right column) ───────────────────────────────────────
@@ -576,7 +576,7 @@ export const ModeButton = styled.button<{ $active: boolean }>`
     cursor: pointer;
     transition: background ${st.transition}, color ${st.transition};
     &:hover {
-        background: ${p => (p.$active ? '#1D4ED8' : st.bgCardAlt)};
+        background: ${p => (p.$active ? '#0369A1' : st.bgCardAlt)};
     }
 `;
 
@@ -629,7 +629,7 @@ export const SaveBtn = styled.button`
     color: #fff;
     cursor: pointer;
     &:disabled { opacity: 0.6; cursor: not-allowed; }
-    &:hover:not(:disabled) { background: #1D4ED8; }
+    &:hover:not(:disabled) { background: #0369A1; }
 `;
 
 export const DangerSaveBtn = styled(SaveBtn)`
@@ -674,7 +674,7 @@ export const AddContractBtn = styled.button`
     color: #fff;
     cursor: pointer;
     transition: background ${st.transition};
-    &:hover { background: #1D4ED8; }
+    &:hover { background: #0369A1; }
 `;
 
 export const EmptyState = styled.div`

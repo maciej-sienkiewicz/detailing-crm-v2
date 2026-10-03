@@ -14,7 +14,7 @@ export const ge = {
   // Borders
   border: '#E2E8F0',
   borderHover: '#CBD5E1',
-  borderFocus: '#3B82F6',
+  borderFocus: '#0EA5E9',
 
   // Text
   text: '#0F172A',
@@ -22,8 +22,8 @@ export const ge = {
   textMuted: '#94A3B8',
 
   // Accent colors
-  accentBlue: '#3B82F6',
-  accentBlueDim: 'rgba(59, 130, 246, 0.10)',
+  accentBlue: '#0EA5E9',
+  accentBlueDim: 'rgba(14, 165, 233, 0.10)',
   accentGreen: '#10B981',
   accentGreenDim: 'rgba(16, 185, 129, 0.10)',
   accentAmber: '#F59E0B',
@@ -33,14 +33,14 @@ export const ge = {
   accentPurple: '#8B5CF6',
 
   // Gradients
-  gradientBlue: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
+  gradientBlue: 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)',
   gradientGreen: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
 
   // Shadows
   shadowSm: '0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04)',
   shadowMd: '0 4px 12px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(15, 23, 42, 0.04)',
   shadowLg: '0 10px 24px rgba(15, 23, 42, 0.10), 0 4px 8px rgba(15, 23, 42, 0.06)',
-  shadowBlue: '0 0 0 3px rgba(59, 130, 246, 0.15)',
+  shadowBlue: '0 0 0 3px rgba(14, 165, 233, 0.15)',
 
   // Radii
   radius: '14px',

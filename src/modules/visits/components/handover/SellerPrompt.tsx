@@ -12,12 +12,12 @@ const Box = styled.div`
     flex-direction: column;
     gap: 12px;
     padding: 14px;
-    background: #eff6ff;
-    border: 1px solid #bfdbfe;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
     border-radius: ${st.radiusSm};
 
-    h4 { margin: 0; font-size: ${st.fontMd}; color: #1e3a8a; }
-    p  { margin: 0; font-size: ${st.fontSm}; color: #1e40af; line-height: 1.5; }
+    h4 { margin: 0; font-size: ${st.fontMd}; color: #0c4a6e; }
+    p  { margin: 0; font-size: ${st.fontSm}; color: #075985; line-height: 1.5; }
 `;
 
 interface CompanyDraft {

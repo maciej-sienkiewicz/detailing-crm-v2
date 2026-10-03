@@ -226,8 +226,8 @@ const ActionButton = styled.button<{ $primary?: boolean }>`
         background: ${st.accentBlue};
         color: white;
         border-color: ${st.accentBlue};
-        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
-        &:hover { background: #2563EB; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4); transform: translateY(-1px); }
+        box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+        &:hover { background: #0284C7; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4); transform: translateY(-1px); }
     ` : `
         background: rgba(255, 255, 255, 0.05);
         color: rgba(241, 245, 249, 0.6);

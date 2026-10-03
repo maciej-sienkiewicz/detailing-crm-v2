@@ -98,7 +98,7 @@ const IconWrap = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  background: #eff6ff;
+  background: #f0f9ff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -194,10 +194,10 @@ const PickerItem = styled.label<{ $selected: boolean }>`
   border-radius: 8px;
   cursor: pointer;
   transition: background 100ms ease;
-  background: ${p => p.$selected ? '#eff6ff' : 'transparent'};
+  background: ${p => p.$selected ? '#f0f9ff' : 'transparent'};
   border: 1.5px solid ${p => p.$selected ? '#bae6fd' : 'transparent'};
 
-  &:hover { background: ${p => p.$selected ? '#eff6ff' : '#f8fafc'}; }
+  &:hover { background: ${p => p.$selected ? '#f0f9ff' : '#f8fafc'}; }
 
   input[type="checkbox"], input[type="radio"] {
     accent-color: #0ea5e9;

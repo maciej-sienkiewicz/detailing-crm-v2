@@ -13,7 +13,7 @@ import type { HandoverProblem } from '../../types/handover';
  *
  * Język jest ten sam co na karcie wizyty (common/components/ui): nagłówek sekcji
  * zwykłym pismem 15px zamiast szarych wersalików 11px, wybór odcieniem marki
- * zamiast drugiego niebieskiego (#3B82F6), kwoty w cyfrach tabelarycznych.
+ * zamiast drugiego niebieskiego (#0EA5E9), kwoty w cyfrach tabelarycznych.
  */
 
 export const Section = styled.section`

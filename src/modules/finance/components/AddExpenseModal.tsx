@@ -38,11 +38,11 @@ import {
 
 const InfoBox = styled.div`
     padding: 10px 14px;
-    background: #eff6ff;
-    border: 1px solid #bfdbfe;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
     border-radius: 10px;
     font-size: 12px;
-    color: #1e40af;
+    color: #075985;
     line-height: 1.5;
     margin-bottom: 4px;
 `;

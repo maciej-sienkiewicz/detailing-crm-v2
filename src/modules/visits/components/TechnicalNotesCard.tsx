@@ -2,7 +2,7 @@
 //
 // Notatka techniczna wizyty - panel w szynie bocznej.
 //
-// „Edytuj" było tu wypełnionym niebieskim przyciskiem #3B82F6 - drugim niebieskim
+// „Edytuj" było tu wypełnionym niebieskim przyciskiem #0EA5E9 - drugim niebieskim
 // na ekranie i jednym z czterech stale wypełnionych przycisków w oknie wizyty.
 // Teraz jest obrysowane (CLAUDE.md §2): notatkę poprawia się rzadko, a wypełnienie
 // należy do kroku następnego w nagłówku.

@@ -112,7 +112,7 @@ const ExtraToggle = styled.button`
     background: none;
     font-size: 12.5px;
     font-weight: 600;
-    color: #2563eb;
+    color: #0284c7;
     cursor: pointer;
 
     &:hover { text-decoration: underline; }

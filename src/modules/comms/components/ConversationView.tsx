@@ -298,7 +298,7 @@ const MessagesScroll = styled.div`
 const Article = styled.article<{ $outbound: boolean }>`
     flex-shrink: 0;
     background: ${({ $outbound, theme }) => ($outbound ? '#f7fbff' : theme.colors.surface)};
-    border: 1px solid ${({ $outbound, theme }) => ($outbound ? '#dbeafe' : theme.colors.border)};
+    border: 1px solid ${({ $outbound, theme }) => ($outbound ? '#e0f2fe' : theme.colors.border)};
     border-left: 3px solid ${({ $outbound, theme }) => ($outbound ? theme.colors.primary : 'transparent')};
     border-radius: ${p => p.theme.radii.lg};
     box-shadow: ${p => p.theme.shadows.sm};
@@ -318,7 +318,7 @@ const CollapsedRow = styled.button<{ $outbound: boolean }>`
     font-family: inherit;
     cursor: pointer;
     background: ${({ $outbound, theme }) => ($outbound ? '#f7fbff' : theme.colors.surface)};
-    border: 1px solid ${({ $outbound, theme }) => ($outbound ? '#dbeafe' : theme.colors.border)};
+    border: 1px solid ${({ $outbound, theme }) => ($outbound ? '#e0f2fe' : theme.colors.border)};
     border-left: 3px solid ${({ $outbound, theme }) => ($outbound ? theme.colors.primary : 'transparent')};
     border-radius: ${p => p.theme.radii.lg};
     padding: 9px 16px;

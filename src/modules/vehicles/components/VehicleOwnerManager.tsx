@@ -73,7 +73,7 @@ const OwnerRole = styled.span<{ $role: string; theme: DefaultTheme }>`
 
     ${props => {
         if (props.$role === 'PRIMARY') return 'background: #dcfce7; color: #166534;';
-        if (props.$role === 'COMPANY') return 'background: #dbeafe; color: #1e40af;';
+        if (props.$role === 'COMPANY') return 'background: #e0f2fe; color: #075985;';
         return 'background: #f3f4f6; color: #6b7280;';
     }}
 `;

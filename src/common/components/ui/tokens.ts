@@ -3,7 +3,7 @@
 // Jedno źródło kolorów dla wspólnych komponentów (Button, StatusPill, Card…).
 //
 // Wcześniej każdy plik widoku wizyty definiował sobie `const BRAND = '#0ea5e9'`
-// i do tego sięgał po drugi niebieski (#3B82F6) z motywu statystyk - na jednym
+// i do tego sięgał po drugi niebieski (#0EA5E9) z motywu statystyk - na jednym
 // ekranie stały obok siebie dwa różne „brandowe" niebieskie. Tu jest jeden.
 //
 // Odcień niesie ZNACZENIE (CLAUDE.md §2): sky = marka / informacja, zielony =

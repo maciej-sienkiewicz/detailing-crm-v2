@@ -113,7 +113,7 @@ const AddBtn = styled.button`
     color: #fff;
     cursor: pointer;
     transition: background ${st.transition};
-    &:hover { background: #1D4ED8; }
+    &:hover { background: #0369A1; }
 `;
 
 const Card = styled.div`
@@ -186,8 +186,8 @@ const CompModeBadge = styled.span<{ $mode: EmploymentMode }>`
     border-radius: ${st.radiusSm};
     font-size: 11px;
     font-weight: 700;
-    background: ${p => p.$mode === 'SALARY' ? '#EFF6FF' : '#F0FDF4'};
-    color: ${p => p.$mode === 'SALARY' ? '#1D4ED8' : '#16A34A'};
+    background: ${p => p.$mode === 'SALARY' ? '#F0F9FF' : '#F0FDF4'};
+    color: ${p => p.$mode === 'SALARY' ? '#0369A1' : '#16A34A'};
 `;
 
 const CompAmount = styled.span`
@@ -367,7 +367,7 @@ const ModeButton = styled.button<{ $active: boolean }>`
     font-weight: 600;
     cursor: pointer;
     transition: background ${st.transition}, color ${st.transition};
-    &:hover { background: ${p => p.$active ? '#1D4ED8' : st.bgCard}; }
+    &:hover { background: ${p => p.$active ? '#0369A1' : st.bgCard}; }
 `;
 
 const CalcPreview = styled.div`

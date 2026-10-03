@@ -189,8 +189,8 @@ const PrimaryUploadBtn = styled(UploadBtn)`
     border-color: ${st.accentBlue};
 
     &:hover:not(:disabled) {
-        background: #1D4ED8;
-        border-color: #1D4ED8;
+        background: #0369A1;
+        border-color: #0369A1;
         color: #fff;
     }
 `;

@@ -33,13 +33,13 @@ const RecurrenceBanner = styled.div<{ $detached?: boolean }>`
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    background: ${p => p.$detached ? 'rgba(234, 179, 8, 0.07)' : 'rgba(59, 130, 246, 0.07)'};
-    border: 1px solid ${p => p.$detached ? 'rgba(234, 179, 8, 0.3)' : 'rgba(59, 130, 246, 0.25)'};
+    background: ${p => p.$detached ? 'rgba(234, 179, 8, 0.07)' : 'rgba(14, 165, 233, 0.07)'};
+    border: 1px solid ${p => p.$detached ? 'rgba(234, 179, 8, 0.3)' : 'rgba(14, 165, 233, 0.25)'};
     border-radius: 10px;
     padding: 12px 16px;
     margin-bottom: 20px;
     font-size: 13px;
-    color: ${p => p.$detached ? '#92400E' : '#1E40AF'};
+    color: ${p => p.$detached ? '#92400E' : '#075985'};
     line-height: 1.5;
 `;
 
