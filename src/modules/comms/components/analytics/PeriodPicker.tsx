@@ -24,8 +24,9 @@ const Wrap = styled.div`
 
 /**
  * Przełącznik segmentowy. Dwa warianty tego samego wyboru:
- *  - dark (domyślny) na ciemnym PageHeaderze pełnoekranowego widoku,
- *  - light w panelu analityki na jasnym tle (osobne pigułki, jak zakładki niżej).
+ *  - light (domyślny) na jasnym tle - w nagłówku strony i w panelu analityki
+ *    (osobne pigułki, jak zakładki niżej),
+ *  - dark na ciemne tło.
  * Trzy stany widoczne naraz, bo są trzy - rozwijana lista chowałaby wybór za
  * kliknięciem i kazała pamiętać, co jest ustawione.
  */
@@ -159,11 +160,11 @@ const Hint = styled.span`
 interface PeriodPickerProps {
     value: Period;
     onChange: (period: Period) => void;
-    /** 'light' dla jasnego tła (panel analityki); 'dark' (domyślnie) dla ciemnego PageHeadera. */
+    /** 'light' (domyślnie) dla jasnego tła - nagłówek strony i panel analityki; 'dark' na ciemne tło. */
     variant?: 'dark' | 'light';
 }
 
-export function PeriodPicker({ value, onChange, variant = 'dark' }: PeriodPickerProps) {
+export function PeriodPicker({ value, onChange, variant = 'light' }: PeriodPickerProps) {
     const light = variant === 'light';
     const [open, setOpen] = useState(false);
     const [draftFrom, setDraftFrom] = useState(() => toInputValue(value.from));

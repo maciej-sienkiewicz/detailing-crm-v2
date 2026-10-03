@@ -15,63 +15,47 @@ export interface PageHeaderProps {
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
+//
+// Tytuł strony leży na tle, bez ciemnej karty. Granatowy baner z poświatą stał
+// na każdej liście obok granatowego paska bocznego - dwie ciężkie masy na
+// ekranie, a tytuł mówił głośniej niż dane. Kalendarz i Leady miały już jasny
+// nagłówek; teraz cała aplikacja mówi tym samym językiem. Ciemne nagłówki
+// zostają tam, gdzie niosą treść: powitanie na pulpicie i karty wizyty,
+// klienta i pojazdu.
 
 const HeroCard = styled.div`
-  position: relative;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 65%, #0c1f35 100%);
-  border-radius: ${(p) => p.theme.radii.xl};
-  padding: 28px 32px;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 8px 32px rgba(0, 0, 0, 0.16);
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px 16px;
   flex-wrap: wrap;
-  overflow: hidden;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: -80px;
-    right: -60px;
-    width: 320px;
-    height: 320px;
-    background: radial-gradient(circle, rgba(14, 165, 233, 0.14) 0%, transparent 65%);
-    pointer-events: none;
-  }
-
-  @media (max-width: ${(p) => p.theme.breakpoints.sm}) {
-    padding: 22px 20px;
-  }
+  padding: 4px 0 2px;
 `;
 
 const HeroText = styled.div`
-  position: relative;
-  z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  min-width: 0;
 `;
 
 const HeroHeading = styled.h1`
   margin: 0;
-  font-size: 30px;
+  font-size: 24px;
   font-weight: 700;
-  color: #f1f5f9;
-  letter-spacing: -0.5px;
-  line-height: 1.1;
+  color: #0f172a;
+  letter-spacing: -0.4px;
+  line-height: 1.15;
 
   @media (min-width: ${(p) => p.theme.breakpoints.md}) {
-    font-size: 34px;
+    font-size: 28px;
   }
 `;
 
 const HeroSubtitle = styled.div`
   margin: 0;
   font-size: 14px;
-  /* slate-400, nie slate-600: na granatowym tle nagłówka ciemniejszy odcień dawał
-     kontrast ~2:1 i podtytuł był praktycznie niewidoczny. Teraz ~5:1. */
-  color: #94a3b8;
+  color: #64748b;
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -80,8 +64,6 @@ const HeroSubtitle = styled.div`
 `;
 
 const HeroActions = styled.div`
-  position: relative;
-  z-index: 1;
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
@@ -106,14 +88,13 @@ export const PageHeaderPrimaryButton = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
+  box-shadow: 0 1px 2px rgba(14, 165, 233, 0.24);
   transition: all 180ms ease;
   font-family: inherit;
 
   &:hover {
     background: #0284c7;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(14, 165, 233, 0.36);
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
   }
 
   &:active {
@@ -137,10 +118,9 @@ export const PageHeaderPrimaryButton = styled.button`
 `;
 
 export const PageHeaderGhostButton = styled.button`
-  background: rgba(255, 255, 255, 0.08);
-  color: #f1f5f9;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(4px);
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
   cursor: pointer;
   padding: 10px 20px;
   border-radius: 9999px;
@@ -153,7 +133,8 @@ export const PageHeaderGhostButton = styled.button`
   font-family: inherit;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.14);
+    border-color: #cbd5e1;
+    background: #f8fafc;
   }
 
   svg {

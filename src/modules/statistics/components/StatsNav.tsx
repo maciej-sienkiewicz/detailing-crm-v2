@@ -7,8 +7,8 @@ import { st } from './StatisticsTheme';
 const Nav = styled.nav`
     display: flex;
     gap: 2px;
-    background: rgba(255, 255, 255, 0.07);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(15, 23, 42, 0.05);
+    border: 1px solid ${st.border};
     border-radius: 9999px;
     padding: 4px;
     width: fit-content;
@@ -26,7 +26,7 @@ const Tab = styled(NavLink)`
     border-radius: 9999px;
     font-size: ${st.fontSm};
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.5);
+    color: ${st.textSecondary};
     text-decoration: none;
     transition: all 180ms ease;
     white-space: nowrap;
@@ -46,14 +46,14 @@ const Tab = styled(NavLink)`
     }
 
     &:hover {
-        color: rgba(255, 255, 255, 0.8);
-        background: rgba(255, 255, 255, 0.08);
+        color: ${st.text};
+        background: rgba(15, 23, 42, 0.04);
     }
 
     &.active {
-        color: #f1f5f9;
-        background: rgba(255, 255, 255, 0.14);
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+        color: ${st.text};
+        background: #ffffff;
+        box-shadow: ${st.shadowXs};
     }
 `;
 
