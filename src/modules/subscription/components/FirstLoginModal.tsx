@@ -265,7 +265,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
                                     <TrialCard $disabled={false} onClick={handleStartTrial}>
                                         <TrialIconWrap><GiftIcon /></TrialIconWrap>
                                         <TrialInfo>
-                                            <TrialTitle>Wypróbuj przez 60 dni, bezpłatnie</TrialTitle>
+                                            <TrialTitle>Wypróbuj przez 3 miesiące, bezpłatnie</TrialTitle>
                                             <TrialDesc>
                                                 Pełny dostęp do wszystkich funkcji. Bez karty kredytowej, bez zobowiązań.
                                             </TrialDesc>
