@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
-import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { useToast } from '@/common/components/Toast';
 import { StickyFormFooter, FooterPrimaryButton, FooterSecondaryButton } from '@/common/components/StickyFormFooter';
 import { useCheckInWizard } from '../hooks/useCheckInWizard';
@@ -30,8 +29,7 @@ const fadeSlide = keyframes`
 
 const PageWrap = styled.div`
     min-height: 100vh;
-    background: ${st.bg};
-    ${hexBackdrop}
+    background: ${p => p.theme.colors.background};
     display: flex;
     flex-direction: column;
 `;

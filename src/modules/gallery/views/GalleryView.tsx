@@ -4,7 +4,6 @@ import { memo, useState, useCallback, useMemo } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { Images } from 'lucide-react';
 import { PiiValue } from '@/common/pii';
-import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { useBreakpoint } from '@/common/hooks';
 import { MobilePageHeader, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
 import { PAGE_MAX_WIDTH, pageColumn } from '@/common/components/PageContainer';
@@ -34,7 +33,6 @@ const Page = styled.div`
     flex-direction: column;
     height: 100%;
     background: ${p => p.theme.colors.background};
-    ${hexBackdrop}
 `;
 
 // Galeria jest pełnej wysokości (własne przewijanie siatki), ale poszczególne

@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { CalendarCheck } from 'lucide-react';
-import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useOperations } from '../hooks/useOperations';
 import { useOperationSearch } from '../hooks/useOperationSearch';
@@ -19,12 +18,11 @@ import { UnfinishedCheckInsPanel } from '@/modules/checkin';
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
-// Tło i hexBackdrop na pełnej szerokości (wrapper prezentacyjny, div).
+// Tło na pełnej szerokości (wrapper prezentacyjny, div).
 // Landmarkiem <main> i nośnikiem szerokości jest PageBody poniżej.
 const ViewContainer = styled.div`
     min-height: 100vh;
-    background: ${st.bg};
-    ${hexBackdrop}
+    background: ${p => p.theme.colors.background};
 `;
 
 const PageBody = styled(PageContainer)`

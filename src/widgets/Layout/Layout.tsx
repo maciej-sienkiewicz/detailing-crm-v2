@@ -10,7 +10,6 @@ import { CalendarNavigationOverlay } from '@/common/components/CalendarNavigatio
 import { IdleTimeoutProvider } from '@/core/context/IdleTimeoutProvider';
 import { GlobalShortcuts } from '@/common/shortcuts';
 import { QuickNoteProvider } from '@/modules/dashboard/components/QuickNoteProvider';
-import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { PushOnboardingPrompt } from '@/modules/push/components/PushOnboardingPrompt';
 import { viewKeyOf } from './viewKey';
 
@@ -27,7 +26,6 @@ const ContentWrapper = styled.div<{ $isCollapsed: boolean }>`
     min-height: 100vh;
     min-height: 100dvh;
     position: relative;
-    ${hexBackdrop}
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         margin-left: ${props => props.$isCollapsed ? '64px' : '248px'};

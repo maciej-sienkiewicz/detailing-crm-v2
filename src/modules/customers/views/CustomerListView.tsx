@@ -1,6 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
-import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { useCustomers } from '../hooks/useCustomers';
 import { useDeleteCustomer } from '../hooks/useDeleteCustomer';
 import { useCustomerSearch } from '../hooks/useCustomerSearch';
@@ -23,13 +22,12 @@ import { Users } from 'lucide-react';
 import { PageHeader, PageHeaderPrimaryButton, MobilePageHeader, MobilePageHeaderButton, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
 import { PageContainer } from '@/common/components/PageContainer';
 
-// Tło i hexBackdrop sięgają od krawędzi do krawędzi (pełna szerokość obszaru
+// Tło sięga od krawędzi do krawędzi (pełna szerokość obszaru
 // treści); o szerokość i wyśrodkowanie samej treści dba PageContainer poniżej.
 // To wrapper prezentacyjny (div) - landmarkiem <main> jest PageBody.
 const ViewContainer = styled.div`
     min-height: 100vh;
-    background: ${st.bg};
-    ${hexBackdrop}
+    background: ${p => p.theme.colors.background};
 `;
 
 const PageBody = styled(PageContainer)`

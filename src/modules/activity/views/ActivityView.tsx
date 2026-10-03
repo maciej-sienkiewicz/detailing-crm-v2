@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Activity, AlertCircle, Inbox, Loader2 } from 'lucide-react';
-import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { useBreakpoint } from '@/common/hooks';
 import { MobilePageHeader, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
 import { PageContainer } from '@/common/components/PageContainer';
@@ -39,7 +38,6 @@ const Page = styled.div`
     flex-direction: column;
     min-height: 100%;
     background: ${p => p.theme.colors.background};
-    ${hexBackdrop}
 `;
 
 const Content = styled(PageContainer)`

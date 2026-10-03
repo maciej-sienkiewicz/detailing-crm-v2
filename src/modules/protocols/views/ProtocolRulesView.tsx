@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import styled from 'styled-components';
-import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { useProtocolRules, useProtocolTemplates } from '../api/useProtocols';
 import { ProtocolRuleCard } from '../components/ProtocolRuleCard';
 import { ProtocolTemplateModal } from '../components/ProtocolTemplateModal';
@@ -13,8 +12,7 @@ const ViewContainer = styled(PageContainer)`
     display: flex;
     flex-direction: column;
     gap: ${props => props.theme.spacing.lg};
-    background: rgb(248, 250, 252); // bg-slate-50
-    ${hexBackdrop}
+    background: ${props => props.theme.colors.background};
 `;
 
 const ViewHeader = styled.header`

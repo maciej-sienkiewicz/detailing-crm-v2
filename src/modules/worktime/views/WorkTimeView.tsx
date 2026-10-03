@@ -576,7 +576,7 @@ function CalendarIcon() {
 
 const Page = styled.div`
     min-height: 100%;
-    background: #f8fafc;
+    background: ${p => p.theme.colors.background};
     /* Czas pracy ma tylko jasny wygląd, jak reszta aplikacji - telefon w trybie
        ciemnym malował go wcześniej na ciemno. „only light" nie pozwala też
        przeglądarce przyciemnić widoku ani pól na własną rękę. */
