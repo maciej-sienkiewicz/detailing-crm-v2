@@ -135,21 +135,23 @@ const CalChipWrap = styled.div<{ $today: boolean }>`
   width: 44px;
 `;
 
+// Dzisiejsza data w odcieniu marki, nie w czerwieni - termin to informacja,
+// a czerwień w tym interfejsie znaczy „nieodwracalne" (CLAUDE.md §2).
 const CalChipCard = styled.div<{ $today: boolean }>`
   width: 44px;
   border-radius: 8px;
-  border: 1px solid ${p => p.$today ? '#fca5a5' : '#e2e8f0'};
+  border: 1px solid ${p => p.$today ? '#7dd3fc' : '#e2e8f0'};
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(15,23,42,0.07);
 `;
 
 const CalChipHeader = styled.div<{ $today: boolean }>`
-  background: ${p => p.$today ? '#ef4444' : '#334155'};
+  background: ${p => p.$today ? '#0ea5e9' : '#334155'};
   height: 7px;
 `;
 
 const CalChipBody = styled.div<{ $today: boolean }>`
-  background: ${p => p.$today ? '#fff5f5' : '#ffffff'};
+  background: ${p => p.$today ? '#f0f9ff' : '#ffffff'};
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -161,7 +163,7 @@ const CalChipDay = styled.span<{ $today: boolean }>`
   font-size: 18px;
   font-weight: 800;
   line-height: 1;
-  color: ${p => p.$today ? '#ef4444' : '#1e293b'};
+  color: ${p => p.$today ? '#0369a1' : '#1e293b'};
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.5px;
 `;
@@ -171,7 +173,7 @@ const CalChipMonth = styled.span<{ $today: boolean }>`
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: ${p => p.$today ? '#ef4444' : '#64748b'};
+  color: ${p => p.$today ? '#0369a1' : '#64748b'};
 `;
 
 const CalChipTime = styled.div`

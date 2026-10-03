@@ -74,14 +74,16 @@ const ArchiveButton = styled.button`
   }
 `;
 
+// Odcień marki bez wypełnienia (CLAUDE.md §2): na pulpicie wypełniona jest
+// tylko „Nowa wizyta" w powitaniu - dodanie zadania jest dostępne, nie pilne.
 const AddButton = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 6px 12px;
-  background: #0ea5e9;
-  color: #fff;
-  border: none;
+  padding: 5px 11px;
+  background: #f0f9ff;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
   border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
@@ -90,8 +92,8 @@ const AddButton = styled.button`
   transition: background 150ms ease, transform 150ms ease;
 
   &:hover {
-    background: #0284c7;
-    transform: translateY(-1px);
+    background: #e0f2fe;
+    border-color: #7dd3fc;
   }
 
   svg { width: 13px; height: 13px; stroke-width: 2.5; }
