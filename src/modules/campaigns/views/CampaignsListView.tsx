@@ -108,20 +108,19 @@ const AlertStrip = styled.button<{ $tone: 'due' | 'stale' }>`
     }
 `;
 
-/** Liczby z nagłówka: fakt obok faktu, jednym zdaniem, bez czterech kolorowych kafli. */
+/** Liczby z nagłówka: fakt obok faktu, z odstępem zamiast kropek (CLAUDE.md §4), bez czterech kolorowych kafli. */
 const HeaderStats = styled.span`
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px 18px;
     flex-wrap: wrap;
-    color: #94a3b8;
+    color: #64748b;
 
     strong {
-        color: #e2e8f0;
+        color: #0f172a;
         font-weight: ${p => p.theme.fontWeights.semibold};
         font-variant-numeric: tabular-nums;
     }
-    .sep { color: #334155; }
 `;
 
 const FiltersRow = styled.div`
@@ -374,11 +373,8 @@ export function CampaignsListView() {
                     stats ? (
                         <HeaderStats>
                             <span><strong>{stats.active}</strong> działa</span>
-                            <span className="sep">·</span>
                             <span><strong>{stats.scheduled}</strong> zaplanowanych</span>
-                            <span className="sep">·</span>
                             <span><strong>{stats.messagesSentLast30Days}</strong> wiadomości w 30 dni</span>
-                            <span className="sep">·</span>
                             <span><strong>{credits}</strong> kredytów SMS</span>
                         </HeaderStats>
                     ) : (

@@ -194,7 +194,7 @@ const NameInput = styled.input<{ $invalid?: boolean }>`
   max-width: 560px;
   border: none;
   border-bottom: 1px ${(p) => (p.$invalid ? 'solid' : 'dashed')}
-    ${(p) => (p.$invalid ? '#fca5a5' : 'rgba(241, 245, 249, 0.28)')};
+    ${(p) => (p.$invalid ? '#dc2626' : '#cbd5e1')};
   background: transparent;
   padding: 0 0 5px;
   margin: 0;
@@ -203,19 +203,19 @@ const NameInput = styled.input<{ $invalid?: boolean }>`
   font-weight: ${(p) => p.theme.fontWeights.bold};
   letter-spacing: -0.5px;
   line-height: 1.15;
-  color: #f1f5f9;
+  color: #0f172a;
   outline: none;
   transition: border-color ${(p) => p.theme.transitions.fast};
 
-  &::placeholder { color: rgba(241, 245, 249, 0.4); }
-  &:hover { border-bottom-color: rgba(241, 245, 249, 0.5); }
+  &::placeholder { color: #94a3b8; }
+  &:hover { border-bottom-color: #94a3b8; }
   &:focus { border-bottom-color: ${(p) => p.theme.colors.primary}; }
 
-  @media (min-width: ${(p) => p.theme.breakpoints.md}) { font-size: 32px; }
+  @media (min-width: ${(p) => p.theme.breakpoints.md}) { font-size: 28px; }
 `;
 
 /**
- * Komunikat o brakującej nazwie - pod polem, na ciemnym tle nagłówka.
+ * Komunikat o brakującej nazwie - pod polem w nagłówku.
  * Element wierszowy, bo mieszka wewnątrz nagłówka strony (h1), gdzie akapit
  * jest niepoprawny.
  */
@@ -225,7 +225,7 @@ const NameError = styled.span`
   font-size: 12.5px;
   font-weight: ${(p) => p.theme.fontWeights.normal};
   letter-spacing: 0;
-  color: #fca5a5;
+  color: #dc2626;
 `;
 
 /**
@@ -233,23 +233,22 @@ const NameError = styled.span`
  *
  * Podtytuł „Do kogo ma trafić?" powtarzał nazwę kroku, którą widać w Stepperze
  * dwadzieścia pikseli niżej - czyli nie niósł nic. Postęp i decyzje podjęte do
- * tej pory niosą: „Krok 2 z 4 · Jednorazowa · 412 odbiorców" mówi, ile zostało
- * i co się właśnie buduje.
+ * tej pory niosą: krok, rodzaj i liczba odbiorców mówią, ile zostało i co się
+ * właśnie buduje. Fakty stoją obok siebie z odstępem, bez kropek (CLAUDE.md §4).
  */
 const HeaderFacts = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px 18px;
   flex-wrap: wrap;
-  color: #94a3b8;
+  color: #64748b;
   font-size: 13.5px;
 
   strong {
-    color: #e2e8f0;
+    color: #0f172a;
     font-weight: ${(p) => p.theme.fontWeights.semibold};
     font-variant-numeric: tabular-nums;
   }
-  .sep { color: #334155; }
 `;
 
 /**
@@ -635,13 +634,11 @@ export function CampaignWizardView() {
             </span>
             {step !== 'scenario' && (
               <>
-                <span className="sep">·</span>
                 <span>{kind === 'AUTOMATIC' ? 'Automatyczna' : 'Jednorazowa'}</span>
               </>
             )}
             {(step === 'content' || step === 'summary') && (
               <>
-                <span className="sep">·</span>
                 <span>
                   {content.channel === 'BOTH' ? 'SMS i e-mail' : content.channel === 'SMS' ? 'SMS' : 'E-mail'}
                 </span>
@@ -649,7 +646,6 @@ export function CampaignWizardView() {
             )}
             {step !== 'scenario' && estimate && !awaitingTrigger && (
               <>
-                <span className="sep">·</span>
                 <span><strong>{estimate.eligible}</strong> odbiorców</span>
               </>
             )}

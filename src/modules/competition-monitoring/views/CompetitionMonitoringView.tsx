@@ -53,39 +53,31 @@ const ViewContainer = styled(PageContainer)`
     animation: ${fadeUp} 300ms ease both;
 `;
 
-const WeeksBar = styled.div<{ $onLight?: boolean }>`
+// Jedna wersja na jasne tło: nagłówek strony nie jest już ciemnym banerem.
+const WeeksBar = styled.div`
     display: inline-flex;
-    background: ${p => (p.$onLight ? 'rgba(15, 23, 42, 0.06)' : 'rgba(255, 255, 255, 0.06)')};
-    border: 1px solid ${p => (p.$onLight ? st.border : 'rgba(255, 255, 255, 0.1)')};
+    background: rgba(15, 23, 42, 0.06);
+    border: 1px solid ${st.border};
     border-radius: ${st.radiusFull};
     padding: 3px;
     gap: 2px;
 `;
 
-const WeeksBtn = styled.button<{ $active: boolean; $onLight?: boolean }>`
+const WeeksBtn = styled.button<{ $active: boolean }>`
     padding: 5px 14px;
     border-radius: ${st.radiusFull};
     border: none;
     font-family: inherit;
     font-size: ${st.fontSm};
     font-weight: ${p => (p.$active ? 700 : 500)};
-    background: ${p => {
-        if (p.$active) return p.$onLight ? '#fff' : 'rgba(255,255,255,0.14)';
-        return 'transparent';
-    }};
-    color: ${p => {
-        if (p.$onLight) return p.$active ? st.text : st.textSecondary;
-        return p.$active ? '#f1f5f9' : '#64748b';
-    }};
-    box-shadow: ${p => (p.$active && p.$onLight ? st.shadowXs : 'none')};
+    background: ${p => (p.$active ? '#fff' : 'transparent')};
+    color: ${p => (p.$active ? st.text : st.textSecondary)};
+    box-shadow: ${p => (p.$active ? st.shadowXs : 'none')};
     cursor: pointer;
     transition: all ${st.transition};
     white-space: nowrap;
 
-    &:hover { color: ${p => {
-        if (p.$onLight) return p.$active ? st.text : st.text;
-        return p.$active ? '#f1f5f9' : '#94a3b8';
-    }}; }
+    &:hover { color: ${st.text}; }
 `;
 
 const PendingBadge = styled.span`
@@ -391,14 +383,13 @@ export const CompetitionMonitoringView = () => {
                 </MenuWrap>
             </ToolbarRow1>
             <ToolbarRow2>
-                <WeeksBar $onLight>
+                <WeeksBar>
                     {tab === 'reklamy'
                         ? Array.from({ length: AD_YEARS }, (_, index) => currentYear - AD_YEARS + 1 + index)
                             .map(option => (
                                 <WeeksBtn
                                     key={option}
                                     $active={year === option}
-                                    $onLight
                                     onClick={() => setUrlState({ year: option })}
                                 >
                                     {option}
@@ -408,7 +399,6 @@ export const CompetitionMonitoringView = () => {
                             <WeeksBtn
                                 key={option.value}
                                 $active={weeks === option.value}
-                                $onLight
                                 onClick={() => setUrlState({ weeks: option.value })}
                             >
                                 {option.label}

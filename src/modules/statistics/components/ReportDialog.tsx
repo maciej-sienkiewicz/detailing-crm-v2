@@ -64,7 +64,7 @@ export function ReportButton() {
 
     return (
         <>
-            <Button variant="onDark" onClick={() => setManual({ length: 'WEEK', from: null })}>
+            <Button variant="outline" onClick={() => setManual({ length: 'WEEK', from: null })}>
                 <FileText aria-hidden="true" />
                 Raport PDF
             </Button>
