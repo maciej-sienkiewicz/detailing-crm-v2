@@ -51,18 +51,15 @@ export const signupSchema = z.object({
         .string()
         .min(1, t.auth.validation.emailRequired)
         .email(t.auth.validation.emailInvalid),
+    // Bez „Powtórz hasło": pole hasła ma przełącznik podglądu, więc literówkę widać
+    // od razu, a każde pole mniej to mniej porzuconych rejestracji. API wciąż przyjmuje
+    // confirmPassword - SignupView dosyła tam to samo hasło.
     password: newPasswordSchema,
-    confirmPassword: z
-        .string()
-        .min(1, t.auth.validation.passwordRequired),
     acceptTerms: z
         .boolean()
         .refine((val) => val === true, {
             message: t.auth.validation.termsRequired,
         }),
-}).refine((data) => data.password === data.confirmPassword, {
-    message: t.auth.validation.passwordMismatch,
-    path: ['confirmPassword'],
 });
 
 export const forgotPasswordSchema = z.object({

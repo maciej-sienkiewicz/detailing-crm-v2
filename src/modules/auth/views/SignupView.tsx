@@ -111,7 +111,6 @@ export const SignupView = () => {
         lastName: '',
         email: '',
         password: '',
-        confirmPassword: '',
         acceptTerms: false,
     });
     const [errors, setErrors] = useState<Partial<Record<keyof SignupFormData, string>>>({});
@@ -147,7 +146,7 @@ export const SignupView = () => {
         }
 
         try {
-            await signupMutation.mutateAsync(formData);
+            await signupMutation.mutateAsync({ ...formData, confirmPassword: formData.password });
         } catch (error: any) {
             const message = error?.response?.data?.message || t.auth.errors.serverError;
             setApiError(message);
@@ -231,20 +230,6 @@ export const SignupView = () => {
                             visible={passwordFocused || formData.password.length > 0}
                         />
                         {errors.password && <ErrorMessage>{errors.password}</ErrorMessage>}
-                    </FieldGroup>
-
-                    <FieldGroup>
-                        <Label htmlFor="confirmPassword">{t.auth.signup.confirmPasswordLabel}</Label>
-                        <PasswordInput
-                            id="confirmPassword"
-                            name="confirmPassword"
-                            value={formData.confirmPassword}
-                            onChange={(value) => setFormData({ ...formData, confirmPassword: value })}
-                            placeholder={t.auth.signup.confirmPasswordPlaceholder}
-                            hasError={!!errors.confirmPassword}
-                            autoComplete="new-password"
-                        />
-                        {errors.confirmPassword && <ErrorMessage>{errors.confirmPassword}</ErrorMessage>}
                     </FieldGroup>
 
                     <FieldGroup>

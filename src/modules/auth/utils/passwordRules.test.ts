@@ -26,7 +26,6 @@ const parseSignupPassword = (password: string) =>
         lastName: 'Kowalski',
         email: 'jan@example.com',
         password,
-        confirmPassword: password,
         acceptTerms: true,
     }).success;
 
@@ -66,7 +65,6 @@ describe('PASSWORD_RULES', () => {
             lastName: 'Kowalski',
             email: 'jan@example.com',
             password: '',
-            confirmPassword: '',
             acceptTerms: true,
         });
         const passwordIssues = result.success
