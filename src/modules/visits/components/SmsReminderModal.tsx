@@ -15,6 +15,7 @@ import {
 import { SharedButton } from '@/common/styles';
 import { useSmsReadiness } from '../hooks/useSmsReadiness';
 import { SmsActivationWizard } from './SmsActivationWizard';
+import { PiiValue } from '@/common/pii';
 
 // ── Inner components ──────────────────────────────────────────────────────────
 
@@ -528,7 +529,7 @@ export const SmsReminderModal = ({ isOpen, visitId, customer, existingReminder, 
                     </CustomerAvatar>
                     <CustomerDetails>
                         <CustomerName>{customer.firstName} {customer.lastName}</CustomerName>
-                        <CustomerPhone>{customer.phone}</CustomerPhone>
+                        <CustomerPhone><PiiValue value={customer.phone} kind="phone" /></CustomerPhone>
                     </CustomerDetails>
                 </CustomerRow>
 

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { isPiiMasked, PII_MASK } from './piiAccess';
 import { generatePiiFake, type PiiKind } from './piiFake';
+import { formatPhoneNumber } from '@/common/utils/formatters';
 
 // Presentational blur for personal data the backend already masked ("***").
 // Instead of rendering the bare mask, we render a blurred random fake so the
@@ -29,7 +30,8 @@ export interface PiiValueProps {
     kind?: PiiKind;
     /** Rendered when the value is null/undefined/empty. */
     emptyFallback?: React.ReactNode;
-    /** Formatter applied ONLY to real (unmasked) values, e.g. phone formatting. */
+    /** Formatter applied ONLY to real (unmasked) values. Phones are formatted by
+        default (`+48 698 654 789`), so every screen writes them the same way. */
     format?: (value: string) => string;
 }
 
@@ -50,7 +52,8 @@ export const PiiValue: React.FC<PiiValueProps> = ({ value, kind = 'text', emptyF
             </span>
         );
     }
-    return <>{format ? format(value) : value}</>;
+    const fmt = format ?? (kind === 'phone' ? formatPhoneNumber : undefined);
+    return <>{fmt ? fmt(value) : value}</>;
 };
 
 export interface PiiTextProps {

@@ -94,75 +94,12 @@ const SearchInput = styled.input`
     }
 `;
 
-// Desktop: klasyczne pole daty w rzędzie akcji.
-// Mobile: znika stąd - dostaje własny chip w rzędzie filtrów (patrz DateChip),
-// żeby nie było różnicy wysokości między <input type="date"> a resztą pigułek.
-const DateWrap = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-shrink: 0;
-
-    ${opsCards} {
-        display: none;
-    }
-`;
-
-const DateLabel = styled.label`
-    font-size: 13px;
-    font-weight: 500;
-    color: ${st.textSecondary};
-    white-space: nowrap;
-`;
-
-const DateInput = styled.input`
-    padding: 9px 12px;
-    background: ${st.bgCardAlt};
-    border: 1.5px solid ${st.border};
-    border-radius: 10px;
-    font-size: 13px;
-    color: ${st.text};
-    transition: all ${st.transition};
-    cursor: pointer;
-
-    &:focus {
-        outline: none;
-        border-color: ${st.accentBlue};
-        background: #fff;
-        box-shadow: ${st.shadowBlue};
-    }
-`;
-
-const ClearDateBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 26px;
-    height: 26px;
-    border: none;
-    border-radius: 50%;
-    background: ${st.bgCardAlt};
-    color: ${st.textMuted};
-    cursor: pointer;
-    transition: all ${st.transition};
-    flex-shrink: 0;
-
-    &:hover {
-        background: rgba(220, 38, 38, 0.1);
-        color: #DC2626;
-    }
-
-    svg {
-        width: 14px;
-        height: 14px;
-    }
-`;
-
 // Chip daty w rzędzie filtrów - wygląda jak reszta chipów statusu, ma tę samą
 // wysokość, kolor akcentu przy aktywnym stanie i wbudowany krzyżyk do
 // wyczyszczenia. Natywny picker daty otwiera się przez niewidzialny
-// <input type="date"> na jego wierzchu (pointer-events zabiera tap i wywołuje
-// natywne UI systemu). Widoczny tylko na telefonie.
+// <input type="date"> na jego wierzchu. Chip sam pisze datę po polsku („12 lis"),
+// więc nie zależy od języka przeglądarki - gołe pole daty w przeglądarce
+// ustawionej na angielski pokazywało „mm/dd/yyyy".
 const DateChipWrap = styled.div<{ $active: boolean }>`
     position: relative;
     display: inline-flex;
@@ -188,10 +125,6 @@ const DateChipWrap = styled.div<{ $active: boolean }>`
     }
 
     svg { width: 12px; height: 12px; stroke-width: 2; flex-shrink: 0; }
-
-    ${opsTable} {
-        display: none;
-    }
 `;
 
 /** Niewidoczny <input type="date"> na wierzchu chipa - tap wywołuje natywny
@@ -446,24 +379,6 @@ export const OperationFilterBar = ({
                     />
                 </SearchWrapper>
 
-                <DateWrap>
-                    <DateLabel htmlFor="op-date-filter">Data:</DateLabel>
-                    <DateInput
-                        id="op-date-filter"
-                        type="date"
-                        value={selectedDate ?? ''}
-                        onChange={e => onDateChange(e.target.value || undefined)}
-                    />
-                    {selectedDate && (
-                        <ClearDateBtn onClick={() => onDateChange(undefined)} title="Wyczyść datę">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                <line x1="18" y1="6" x2="6" y2="18" />
-                                <line x1="6" y1="6" x2="18" y2="18" />
-                            </svg>
-                        </ClearDateBtn>
-                    )}
-                </DateWrap>
-
                 {onOpenAdvancedFilters && (
                     <FilterBtn
                         $active={activeAdvancedFilterCount > 0}
@@ -483,10 +398,9 @@ export const OperationFilterBar = ({
             </TopRow>
 
             <FiltersRow>
-                {/* Chip daty tylko na mobile - w rzędzie z chipami statusu.
-                    Native picker uruchamia niewidzialny <input type="date"> nakryty
-                    na chip; krzyżyk zwija się w ten sam layout, więc zamiast dwóch
-                    rzędów kontrolek mamy jeden, spójny wizualnie. */}
+                {/* Chip daty w rzędzie z chipami statusu. Native picker uruchamia
+                    niewidzialny <input type="date"> nakryty na chip; krzyżyk zwija się
+                    w ten sam layout, więc zamiast dwóch rzędów kontrolek mamy jeden. */}
                 <DateChipWrap $active={!!selectedDate}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -515,6 +429,9 @@ export const OperationFilterBar = ({
                             type="date"
                             aria-label="Wybierz datę"
                             value={selectedDate ?? ''}
+                            // Na komputerze klik w pole daty tylko je fokusuje - kalendarz
+                            // otwiera dopiero showPicker(); telefon robi to sam.
+                            onClick={e => { try { e.currentTarget.showPicker?.(); } catch { /* bez gestu - zostaje fokus */ } }}
                             onChange={e => onDateChange(e.target.value || undefined)}
                         />
                     )}
