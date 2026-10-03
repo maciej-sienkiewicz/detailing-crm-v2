@@ -8,7 +8,7 @@ import styled, { keyframes } from 'styled-components';
 import { useOperations } from '../hooks/useOperations';
 import { useDeleteOperation } from '../hooks/useDeleteOperation';
 import { useUpdateReservationDate, useCancelReservation, useUpdateOperationTitle } from '../hooks/useReservationActions';
-import { OperationStatusBadge, getStatusAccentColor, getStatusIcon } from './OperationStatusBadge';
+import { OperationStatusBadge, getStatusAccentColor } from './OperationStatusBadge';
 import { DeleteOperationModal } from './DeleteOperationModal';
 import { DeleteRecurringModal } from './DeleteRecurringModal';
 import { ChangeDateModal } from './ChangeDateModal';
@@ -178,29 +178,14 @@ const DataRow = styled.div<{ $accentColor: string; $clickable?: boolean; $menuOp
     }
 `;
 
-// Main cell (vehicle + customer)
+// Main cell (vehicle + customer). Bez kafelka z ikoną statusu: status niosą już
+// pasek przy lewej krawędzi i pigułka pod tytułem - trzeci raz to samo w tej
+// samej komórce był tylko szumem.
 const MainCell = styled.div`
     display: flex;
     align-items: center;
     gap: 12px;
     min-width: 0;
-`;
-
-const TypeBubble = styled.div<{ $color: string }>`
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
-    background: ${props => props.$color}18;
-    color: ${props => props.$color};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-
-    svg {
-        width: 18px;
-        height: 18px;
-    }
 `;
 
 const VehicleBlock = styled.div`
@@ -478,15 +463,17 @@ const MenuBtn = styled.button`
     justify-content: center;
     width: 32px;
     height: 32px;
-    border: 1.5px solid ${st.border};
+    /* Bez ramki w spoczynku - obramowany kwadrat w każdym wierszu dawał kolumnę
+       identycznych pudełek. Ramka i tło pojawiają się pod kursorem. */
+    border: 1px solid transparent;
     border-radius: 8px;
-    background: ${st.bgCard};
+    background: transparent;
     color: ${st.textMuted};
     cursor: pointer;
     transition: all ${st.transition};
 
     &:hover {
-        border-color: ${st.borderHover};
+        border-color: ${st.border};
         color: ${st.text};
         background: ${st.bgCardAlt};
     }
@@ -1023,10 +1010,6 @@ export const OperationalDataTable = ({
                                 >
                                     {/* Title */}
                                     <MainCell onClick={e => editingTitleId === op.id && e.stopPropagation()}>
-                                        <TypeBubble $color={accentColor}>
-                                            {(() => { const Icon = getStatusIcon(op.status); return <Icon />; })()}
-                                        </TypeBubble>
-
                                         <VehicleBlock>
                                             {editingTitleId === op.id ? (
                                                 <TitleEditRow>

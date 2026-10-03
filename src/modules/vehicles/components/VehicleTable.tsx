@@ -158,18 +158,11 @@ const DateMain = styled.div`
 
 // ─── Visit badge ──────────────────────────────────────────────────────────────
 
+// Sama liczba, bez szarej pigułki - kolumna i tak mówi, co to jest.
 const VisitBadge = styled.span`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 28px;
-    height: 24px;
-    padding: 0 8px;
-    background: #f1f5f9;
-    color: #475569;
-    font-size: 11px;
-    font-weight: 700;
-    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 600;
+    color: ${st.text};
     font-variant-numeric: tabular-nums;
 `;
 
@@ -241,7 +234,9 @@ const MenuBtn = styled.button`
     justify-content: center;
     width: 28px;
     height: 28px;
-    border: 1.5px solid ${st.border};
+    /* Bez ramki w spoczynku: obramowany kwadrat w każdym wierszu to dziesięć
+       identycznych pudełek w kolumnie. Ramka i tło pojawiają się pod kursorem. */
+    border: 1px solid transparent;
     border-radius: 7px;
     background: transparent;
     color: ${st.textMuted};
@@ -249,7 +244,7 @@ const MenuBtn = styled.button`
     transition: all ${st.transition};
 
     &:hover {
-        border-color: ${st.borderHover};
+        border-color: ${st.border};
         color: ${st.text};
         background: #f1f5f9;
     }

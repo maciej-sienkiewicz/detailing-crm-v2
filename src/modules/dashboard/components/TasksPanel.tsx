@@ -404,7 +404,7 @@ export const TasksPanel = () => {
                   {(task.createdByUserName || task.createdAt) && (
                     <TaskCreator>
                       {task.createdByUserName ? `Dodał: ${task.createdByUserName}` : 'Dodano'}
-                      {task.createdAt && ` · ${formatTaskDate(task.createdAt)}`}
+                      {task.createdAt && `, ${formatTaskDate(task.createdAt)}`}
                     </TaskCreator>
                   )}
                   {task.visibilityType === 'USERS' && (

@@ -99,33 +99,20 @@ const TdActions = styled(Td)`
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
 
-const GRADIENTS = [
-    'linear-gradient(135deg,#0ea5e9,#6366f1)',
-    'linear-gr 9adient(135deg,#10b981,#0ea5e9)',
-    'linear-gradient(135deg,#6366f1,#8b5cf6)',
-    'linear-gradient(135deg,#f59e0b,#ef4444)',
-    'linear-gradient(135deg,#0ea5e9,#10b981)',
-    'linear-gradient(135deg,#3b82f6,#10b981)',
-    'linear-gradient(135deg,#8b5cf6,#0ea5e9)',
-];
-
-const pickGradient = (id: string) => {
-    let h = 0;
-    for (const c of id) h = (h * 31 + c.charCodeAt(0)) & 0xff;
-    return "#a11f1f";
-};
-
 const getInitials = (first: string | null, last: string | null) => {
     if (isPiiMasked(first) || isPiiMasked(last)) return '•';
     return ((first?.[0] ?? '') + (last?.[0] ?? '')).toUpperCase() || '?';
 };
 
-const Avatar = styled.div<{ $bg: string }>`
+// Inicjały na neutralnym tle. Kolor w tabeli niesie znaczenie (CLAUDE.md §2),
+// a awatar nie mówi nic poza „to jest osoba" - wcześniej każdy był ciemnoczerwony
+// (zaszyty #a11f1f), czyli w kolorze alarmu przy każdym kliencie.
+const Avatar = styled.div`
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: ${p => p.$bg};
-    color: #fff;
+    background: #e2e8f0;
+    color: #334155;
     font-weight: 700;
     font-size: 13px;
     letter-spacing: -0.3px;
@@ -350,7 +337,7 @@ export const CustomerTable = ({ customers, sortBy, sortDirection = 'asc', onSort
                         return (
                             <Tr key={customer.id} onClick={() => navigate(`/customers/${customer.id}`)}>
                                 <TdAva>
-                                    <Avatar $bg={pickGradient(customer.id)}>
+                                    <Avatar>
                                         {getInitials(customer.firstName, customer.lastName)}
                                     </Avatar>
                                 </TdAva>

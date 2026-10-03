@@ -51,12 +51,16 @@ const Img = styled.img<{ $h: number; $maxW: number; $visible: boolean }>`
     transition: opacity 0.2s;
 `;
 
+// Zastępnik, gdy marki nie ma w zbiorze logo albo CDN nie odpowiada. Neutralny:
+// kolorowa bańka przy każdym aucie bez logo powtarzała się w całej tabeli i nic
+// nie mówiła, a odciągała wzrok od marki i tablicy.
 const FallbackBubble = styled.div<{ $h: number }>`
     height: ${p => p.$h}px;
     width: ${p => p.$h}px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #10b981, #0ea5e9);
-    color: #fff;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #94a3b8;
     display: flex;
     align-items: center;
     justify-content: center;
