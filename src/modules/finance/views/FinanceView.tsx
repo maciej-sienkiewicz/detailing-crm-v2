@@ -7,7 +7,8 @@ import type { FinanceTab, IncomeDocument, IncomeDocumentType } from '../types';
 
 /** Kolejność zakładek = kolejność skrótów 1-5; whitelist dla wartości z adresu. */
 const FINANCE_TABS: FinanceTab[] = ['income', 'expenses', 'cash', 'payment-summary'];
-import type { ExpenseSource, ExpensePaymentStatus } from '../types';
+import type { CostDocumentKind, ExpenseSource, ExpensePaymentStatus } from '../types';
+import { COST_DOCUMENT_KINDS, COST_DOCUMENT_KIND_LABEL } from '../utils/costDocumentKinds';
 import { useFinanceDocument } from '../hooks/useFinance';
 import { useKsefExpenses, useBulkUpdateExpensesPaymentStatus } from '../hooks/useKsef';
 import { useIncomeDocuments, useBulkUpdateIncomePaymentStatus } from '../hooks/useIncomeDocuments';
@@ -1469,12 +1470,13 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
 interface ExpenseFilters {
   source:        string;
   paymentStatus: string;
+  documentKind:  string;
   search:        string;
   page:          number;
 }
 
 const EMPTY_EXPENSE_FILTERS: ExpenseFilters = {
-  source: '', paymentStatus: '', search: '', page: 1,
+  source: '', paymentStatus: '', documentKind: '', search: '', page: 1,
 };
 
 interface ExpensesTabContentProps {
@@ -1489,6 +1491,7 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
   const { expenses, total, isLoading, isError, refetch } = useKsefExpenses({
     source:          (filters.source        as ExpenseSource)        || undefined,
     paymentStatus:   (filters.paymentStatus as ExpensePaymentStatus) || undefined,
+    documentKind:    (filters.documentKind  as CostDocumentKind)     || undefined,
     dateFrom:        activeDateRange.dateFrom,
     dateTo:          activeDateRange.dateTo,
     ...hiddenParams(hiddenFilter),
@@ -1498,7 +1501,7 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
   });
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
-  const hasFilters = !!(filters.source || filters.paymentStatus || filters.search);
+  const hasFilters = !!(filters.source || filters.paymentStatus || filters.documentKind || filters.search);
   const setFilter  = <K extends keyof ExpenseFilters>(key: K, value: ExpenseFilters[K]) =>
     setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
 
@@ -1528,9 +1531,15 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
           onChange={(val) => setFilter('source', val)}
           options={[
             { value: 'KSEF',   label: 'Z KSeF' },
-            { value: 'MANUAL', label: 'Ręczna' },
+            { value: 'MANUAL', label: 'Dodane ręcznie' },
           ]}
           placeholder="Wszystkie źródła"
+        />
+        <FilterSelect
+          value={filters.documentKind}
+          onChange={(val) => setFilter('documentKind', val)}
+          options={COST_DOCUMENT_KINDS.map((k) => ({ value: k, label: COST_DOCUMENT_KIND_LABEL[k] }))}
+          placeholder="Wszystkie rodzaje"
         />
         <FilterSelect
           value={filters.paymentStatus}
@@ -1711,9 +1720,9 @@ export const FinanceView: React.FC = () => {
               </>
             )}
             {activeTab === 'expenses' && (
-              <PageHeaderPrimaryButton onClick={openExpenseModal} title="Dodaj fakturę ręcznie">
+              <PageHeaderPrimaryButton onClick={openExpenseModal} title="Dodaj dokument kosztowy">
                 <PlusIcon />
-                <FullLabel>Dodaj fakturę ręcznie</FullLabel>
+                <FullLabel>Dodaj dokument kosztowy</FullLabel>
                 <ShortLabel>Koszt</ShortLabel>
               </PageHeaderPrimaryButton>
             )}

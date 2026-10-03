@@ -42,6 +42,29 @@ export const expenseNetForGross = (grossRaw: string, vatRate: number): string =>
     return gross === null ? '' : groszToInputValue(grossToNet(gross, vatRate));
 };
 
+/**
+ * Kwoty dokumentu kosztowego do API: grosze, stawka i strona wpisana przez człowieka.
+ * Wysyłamy obie kwoty, ale serwer zapisuje dokładnie tylko tę ze strony `priceSide`
+ * i drugą liczy sam (CLAUDE.md §1). `null`, gdy wpisanej kwoty nie ma albo jest zerowa.
+ */
+export const expenseAmountsPayload = (
+    netRaw: string,
+    grossRaw: string,
+    vatRate: string,
+    side: PriceSide,
+): { netCents?: number; grossCents?: number; vatRate: string; priceSide: 'NET' | 'GROSS' } | null => {
+    const net = amountInputToGrosze(netRaw);
+    const gross = amountInputToGrosze(grossRaw);
+    const typed = side === 'gross' ? gross : net;
+    if (typed === null || typed <= 0) return null;
+    return {
+        netCents: net ?? undefined,
+        grossCents: gross ?? undefined,
+        vatRate,
+        priceSide: side === 'gross' ? 'GROSS' : 'NET',
+    };
+};
+
 // ─── Dokument przychodowy (CreateDocumentModal, EditDocumentModal) ───────────
 
 /** Stawka domyślna nowego dokumentu. Okna dokumentu mają wybór stawki (DocumentAmounts). */

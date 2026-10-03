@@ -13,6 +13,8 @@ import type {
   KsefInvoicingSettings,
 } from '../types';
 
+import { COST_BREAKDOWN_KEY, COST_ITEMS_KEY } from '@/modules/statistics/hooks/useCostCategories';
+
 export const KSEF_CREDENTIALS_KEY = ['ksef', 'credentials'] as const;
 export const KSEF_INVOICING_STATUS_KEY = ['ksef', 'invoicing-status'] as const;
 export const KSEF_SYNC_STATUS_KEY = ['ksef', 'sync', 'status'] as const;
@@ -231,6 +233,10 @@ export const useCreateExpense = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: KSEF_EXPENSES_KEY });
       queryClient.invalidateQueries({ queryKey: KSEF_STATISTICS_KEY });
+      // Nowy dokument to nowa pozycja w statystykach „Pozycje kosztowe" (klucze z
+      // statistics/hooks/useCostCategories) - bez tego wchodziła dopiero po odświeżeniu.
+      queryClient.invalidateQueries({ queryKey: [COST_ITEMS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [COST_BREAKDOWN_KEY] });
     },
   });
 };

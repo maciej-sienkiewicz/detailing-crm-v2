@@ -13,6 +13,7 @@ import {
 import { ExpenseNoteModal } from './ExpenseNoteModal';
 import { InvoicePreviewModal } from './InvoicePreviewModal';
 import { formatMoneyFloat, formatDate } from '../utils/formatters';
+import { COST_DOCUMENT_KIND_LABEL, costDocumentKindOf } from '../utils/costDocumentKinds';
 import { useMediaQuery } from '@/common/hooks';
 import type { RowSelection } from '@/common/hooks';
 import { RowCheckbox } from './SelectionControls';
@@ -520,11 +521,14 @@ const CardAmount = styled.span`
 `;
 
 const CardMeta = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
   font-size: 12px;
   color: #94a3b8;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
+
+  span { overflow-wrap: anywhere; }
 `;
 
 const CardNote = styled.div`
@@ -709,8 +713,11 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
               <CardAmount>{formatMoneyFloat(exp.grossAmount)}</CardAmount>
             </CardTop>
 
+            {/* Rodzaj, numer i data jako osobne elementy - bez kropki-kleju (CLAUDE.md §4). */}
             <CardMeta>
-              {exp.documentNumber ?? 'Brak numeru'} · {formatDate(exp.saleDate)}
+              <span>{COST_DOCUMENT_KIND_LABEL[costDocumentKindOf(exp.documentKind)]}</span>
+              <span>{exp.documentNumber ?? 'Brak numeru'}</span>
+              <span>{formatDate(exp.saleDate)}</span>
             </CardMeta>
 
             {exp.note && <CardNote title={exp.note}>{exp.note}</CardNote>}
@@ -816,6 +823,9 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
                       ? <CellPrimary>{exp.documentNumber}</CellPrimary>
                       : <EmDash>-</EmDash>
                     }
+                    <CellSecondary style={{ marginTop: 4 }}>
+                      {COST_DOCUMENT_KIND_LABEL[costDocumentKindOf(exp.documentKind)]}
+                    </CellSecondary>
                     {exp.isCorrection && (
                       <Badge $variant="amber" style={{ marginTop: 4 }}>Korekta</Badge>
                     )}
@@ -884,7 +894,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
                   {/* Źródło */}
                   <Td>
                     <Badge $variant={exp.source === 'KSEF' ? 'purple' : 'blue'}>
-                      {exp.source === 'KSEF' ? 'KSeF' : 'Ręczna'}
+                      {exp.source === 'KSEF' ? 'KSeF' : 'Ręcznie'}
                     </Badge>
                   </Td>
 

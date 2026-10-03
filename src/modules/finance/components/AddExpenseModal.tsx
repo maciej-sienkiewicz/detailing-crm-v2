@@ -1,4 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
+// src/modules/finance/components/AddExpenseModal.tsx
+//
+// „Dodaj dokument kosztowy" w zakładce „Dokumenty kosztowe": faktura spoza KSeF,
+// paragon, rachunek albo inny koszt (opłata bankowa, mandat, abonament).
+//
+// Wcześniej dało się dodać tylko fakturę, a i ona nie trafiała do statystyk: serwer
+// zapisywał sam nagłówek, a „Pozycje kosztowe" liczą się z pozycji. Teraz każdy dokument
+// dostaje pozycję o nazwie z pola „Czego dotyczy" - po niej koszt grupuje się
+// i kategoryzuje w statystykach.
+//
+// Kwoty idą w groszach razem ze stawką i stroną wpisaną przez człowieka - wpisane
+// brutto zostaje brutto (CLAUDE.md §1).
+
+import React, { useState, useEffect, useRef, useId } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { ChevronDown } from 'lucide-react';
@@ -14,10 +27,18 @@ import {
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
+import { Segmented } from '@/common/components/ui';
+import type { CostDocumentKind } from '../types';
+import {
+    COST_DESCRIPTION_PLACEHOLDER,
+    COST_DOCUMENT_KINDS,
+    COST_DOCUMENT_KIND_LABEL,
+} from '../utils/costDocumentKinds';
 import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import { priceInputsForVatRate, type PriceSide } from '@/common/utils/priceInputs';
 import {
     EXPENSE_AMOUNT_INPUT,
+    expenseAmountsPayload,
     expenseGrossForNet,
     expenseNetForGross,
     expenseVatRate,
@@ -234,14 +255,25 @@ const VAT_RATES = [
 
 const MAX_2_DECIMALS = /^\d*\.?\d{0,2}$/;
 
-const parseAmount = (s: string): number | null => {
-    const n = parseFloat(s.replace(',', '.'));
-    return isFinite(n) ? n : null;
-};
+const FieldError = styled.p`
+    margin: 4px 0 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #b91c1c;
+`;
+
+const KindRow = styled.div`
+    margin-bottom: 14px;
+`;
+
+type FieldErrors = Partial<Record<'saleDate' | 'documentNumber' | 'description' | 'amount', string>>;
+
+/** Dzień dokumentu jako chwila w południe czasu lokalnego - bez przesunięcia daty o strefę i zmianę czasu. */
+const dayToInstant = (day: string): string => new Date(`${day}T12:00:00`).toISOString();
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-type TabId = 'invoice' | 'seller';
+type TabId = 'document' | 'seller';
 
 interface Props {
     isOpen: boolean;
@@ -249,6 +281,8 @@ interface Props {
 }
 
 interface FormState {
+    documentKind:   CostDocumentKind;
+    description:    string;
     saleDate:       string;
     documentNumber: string;
     sellerName:     string;
@@ -264,6 +298,8 @@ interface FormState {
 const today = new Date().toISOString().split('T')[0];
 
 const EMPTY_FORM: FormState = {
+    documentKind:   'INVOICE',
+    description:    '',
     saleDate:       today,
     documentNumber: '',
     sellerName:     '',
@@ -277,15 +313,18 @@ const EMPTY_FORM: FormState = {
 
 export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
     const createExpense = useCreateExpense();
-    const [activeTab, setActiveTab] = useState<TabId>('invoice');
+    const titleId = useId();
+    const [activeTab, setActiveTab] = useState<TabId>('document');
     const [error, setError] = useState<string | null>(null);
+    const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
     const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
     useEffect(() => {
         if (!isOpen) {
             setForm({ ...EMPTY_FORM, saleDate: new Date().toISOString().split('T')[0] });
             setError(null);
-            setActiveTab('invoice');
+            setFieldErrors({});
+            setActiveTab('document');
         }
     }, [isOpen]);
 
@@ -324,94 +363,142 @@ export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
         });
     };
 
+    const isInvoice = form.documentKind === 'INVOICE';
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
 
-        const grossAmount = form.grossAmount ? parseAmount(form.grossAmount) ?? undefined : undefined;
-        const netAmount   = form.netAmount   ? parseAmount(form.netAmount)   ?? undefined : undefined;
-
-        if (grossAmount !== undefined && grossAmount < 0) {
-            setError('Kwota brutto nie może być ujemna.');
+        const amounts = expenseAmountsPayload(form.netAmount, form.grossAmount, form.vatRate, form.priceSide);
+        const errors: FieldErrors = {};
+        if (!form.saleDate) errors.saleDate = 'Podaj datę dokumentu.';
+        if (isInvoice && !form.documentNumber.trim()) errors.documentNumber = 'Podaj numer faktury.';
+        if (!isInvoice && !form.description.trim()) errors.description = 'Napisz, czego dotyczy koszt.';
+        if (!amounts) errors.amount = 'Podaj kwotę netto albo brutto.';
+        setFieldErrors(errors);
+        if (Object.keys(errors).length > 0 || !amounts) {
+            // Błędy są na pierwszej karcie - pokaż ją, gdy ktoś kliknął „Zapisz" na „Sprzedawcy".
+            setActiveTab('document');
             return;
         }
 
         try {
             await createExpense.mutateAsync({
-                saleDate:       form.saleDate ? `${form.saleDate}T00:00:00+01:00` : undefined,
-                documentNumber: form.documentNumber || undefined,
-                sellerName:     form.sellerName     || undefined,
-                sellerNip:      form.sellerNip      || undefined,
-                netAmount,
-                grossAmount,
-                paymentMethod:  form.paymentMethod  || undefined,
+                documentKind:   form.documentKind,
+                saleDate:       dayToInstant(form.saleDate),
+                documentNumber: form.documentNumber.trim() || undefined,
+                description:    form.description.trim() || undefined,
+                sellerName:     form.sellerName.trim()  || undefined,
+                sellerNip:      form.sellerNip.trim()   || undefined,
+                ...amounts,
+                paymentMethod:  form.paymentMethod      || undefined,
             });
             onClose();
-        } catch {
-            setError('Nie udało się zapisać faktury. Spróbuj ponownie.');
+        } catch (err: unknown) {
+            const message = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message;
+            setError(typeof message === 'string' && message.trim()
+                ? message
+                : 'Nie udało się zapisać dokumentu. Spróbuj ponownie.');
         }
     };
 
     return (
-        <ModalShell isOpen={isOpen} onClose={onClose} size="md">
+        <ModalShell isOpen={isOpen} onClose={onClose} size="md" labelledBy={titleId}>
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>Dodaj fakturę kosztową ręcznie</ModalTitle>
-                    <ModalSubtitle>Dla dostawców spoza systemu KSeF</ModalSubtitle>
+                    <ModalTitle id={titleId}>Dodaj dokument kosztowy</ModalTitle>
+                    <ModalSubtitle>Faktura spoza KSeF, paragon, rachunek albo inny koszt</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
 
             <ModalContent style={{ paddingTop: '8px' }}>
                 <InfoBox>
-                    Użyj tego formularza dla dostawców, którzy <strong>nie wystawiają faktur w KSeF</strong> (np. małe firmy,
-                    zagraniczne usługi, faktury gotówkowe). Faktury z KSeF są pobierane automatycznie.
+                    Każdy dokument trafia do statystyk w <strong>Pozycjach kosztowych</strong>, gdzie przypiszesz mu
+                    kategorię. Faktury z KSeF pobierają się same - tu dodajesz resztę kosztów.
                 </InfoBox>
 
                 {error && <FormAlertBanner>{error}</FormAlertBanner>}
 
-                <form id="expense-form" onSubmit={handleSubmit} autoComplete="off">
+                <form id="expense-form" onSubmit={handleSubmit} autoComplete="off" noValidate>
+                    <KindRow>
+                        <Segmented<CostDocumentKind>
+                            label="Rodzaj dokumentu"
+                            block
+                            options={COST_DOCUMENT_KINDS.map(k => ({ value: k, label: COST_DOCUMENT_KIND_LABEL[k] }))}
+                            value={form.documentKind}
+                            onChange={documentKind => {
+                                setForm(prev => ({ ...prev, documentKind }));
+                                setFieldErrors({});
+                            }}
+                        />
+                    </KindRow>
+
                     <FormTabBar>
-                        <FormTabBtn type="button" $active={activeTab === 'invoice'} onClick={() => setActiveTab('invoice')}>
-                            Faktura
+                        <FormTabBtn type="button" $active={activeTab === 'document'} onClick={() => setActiveTab('document')}>
+                            {COST_DOCUMENT_KIND_LABEL[form.documentKind]}
                         </FormTabBtn>
                         <FormTabBtn type="button" $active={activeTab === 'seller'} onClick={() => setActiveTab('seller')}>
                             Sprzedawca
                         </FormTabBtn>
                     </FormTabBar>
 
-                    {/* ── Faktura ── */}
-                    <FormTabPanel $active={activeTab === 'invoice'}>
+                    {/* ── Dokument ── */}
+                    <FormTabPanel $active={activeTab === 'document'}>
                         <FormGrid>
-                            <FormField>
-                                <FieldLabel htmlFor="ae-saleDate">
-                                    Data sprzedaży<OptionalTag>opcjonalne</OptionalTag>
+                            <FormField $fullWidth>
+                                <FieldLabel htmlFor="ae-description">
+                                    Czego dotyczy{isInvoice && <OptionalTag>opcjonalne</OptionalTag>}
                                 </FieldLabel>
+                                <InputShell>
+                                    <BareInput
+                                        id="ae-description"
+                                        type="text"
+                                        placeholder={COST_DESCRIPTION_PLACEHOLDER[form.documentKind]}
+                                        value={form.description}
+                                        onChange={set('description')}
+                                        maxLength={1000}
+                                        aria-invalid={!!fieldErrors.description}
+                                        autoComplete="new-password"
+                                    />
+                                </InputShell>
+                                {fieldErrors.description
+                                    ? <FieldError role="alert">{fieldErrors.description}</FieldError>
+                                    : <HelpText>Pod tą nazwą koszt pojawi się w statystykach i dostanie kategorię.</HelpText>}
+                            </FormField>
+
+                            <FormField>
+                                <FieldLabel htmlFor="ae-saleDate">Data dokumentu</FieldLabel>
                                 <InputShell>
                                     <BareInput
                                         id="ae-saleDate"
                                         type="date"
                                         value={form.saleDate}
                                         onChange={set('saleDate')}
+                                        aria-invalid={!!fieldErrors.saleDate}
                                         autoComplete="new-password"
                                     />
                                 </InputShell>
+                                {fieldErrors.saleDate && <FieldError role="alert">{fieldErrors.saleDate}</FieldError>}
                             </FormField>
 
                             <FormField>
                                 <FieldLabel htmlFor="ae-docNumber">
-                                    Numer dokumentu<OptionalTag>opcjonalne</OptionalTag>
+                                    {isInvoice ? 'Numer faktury' : 'Numer dokumentu'}
+                                    {!isInvoice && <OptionalTag>opcjonalne</OptionalTag>}
                                 </FieldLabel>
                                 <InputShell>
                                     <BareInput
                                         id="ae-docNumber"
                                         type="text"
-                                        placeholder="FV/2024/0001"
+                                        placeholder={isInvoice ? 'FV/2026/0001' : ''}
                                         value={form.documentNumber}
                                         onChange={set('documentNumber')}
+                                        aria-invalid={!!fieldErrors.documentNumber}
                                         autoComplete="new-password"
                                     />
                                 </InputShell>
+                                {fieldErrors.documentNumber && <FieldError role="alert">{fieldErrors.documentNumber}</FieldError>}
                             </FormField>
 
                             <FormField>
@@ -436,9 +523,7 @@ export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
                             </FormField>
 
                             <FormField>
-                                <FieldLabel htmlFor="ae-netAmount">
-                                    Kwota netto<OptionalTag>opcjonalne</OptionalTag>
-                                </FieldLabel>
+                                <FieldLabel htmlFor="ae-netAmount">Kwota netto</FieldLabel>
                                 <InputShell>
                                     <BareInput
                                         id="ae-netAmount"
@@ -453,13 +538,13 @@ export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
                                         autoComplete="new-password"
                                     />
                                 </InputShell>
-                                <HelpText>Zmiana przelicza brutto automatycznie.</HelpText>
+                                {fieldErrors.amount
+                                    ? <FieldError role="alert">{fieldErrors.amount}</FieldError>
+                                    : <HelpText>Zmiana przelicza brutto automatycznie.</HelpText>}
                             </FormField>
 
                             <FormField>
-                                <FieldLabel htmlFor="ae-grossAmount">
-                                    Kwota brutto<OptionalTag>opcjonalne</OptionalTag>
-                                </FieldLabel>
+                                <FieldLabel htmlFor="ae-grossAmount">Kwota brutto</FieldLabel>
                                 <InputShell>
                                     <BareInput
                                         id="ae-grossAmount"
@@ -474,7 +559,11 @@ export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
                                         autoComplete="new-password"
                                     />
                                 </InputShell>
-                                <HelpText>Zmiana przelicza netto automatycznie.</HelpText>
+                                <HelpText>
+                                    {form.documentKind === 'RECEIPT'
+                                        ? 'Z paragonu wpisz kwotę do zapłaty. Bez VAT do odliczenia wybierz stawkę „zw.".'
+                                        : 'Zmiana przelicza netto automatycznie.'}
+                                </HelpText>
                             </FormField>
                         </FormGrid>
                     </FormTabPanel>
@@ -527,7 +616,7 @@ export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
                     form="expense-form"
                     disabled={createExpense.isPending}
                 >
-                    {createExpense.isPending ? 'Zapisywanie...' : 'Zapisz fakturę'}
+                    {createExpense.isPending ? 'Zapisywanie...' : 'Zapisz dokument'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

@@ -103,6 +103,7 @@ export const ksefApi = {
     });
     if (filters.source)          params.append('source',          filters.source);
     if (filters.paymentStatus)   params.append('paymentStatus',   filters.paymentStatus);
+    if (filters.documentKind)    params.append('documentKind',    filters.documentKind);
     if (filters.dateFrom)        params.append('dateFrom',        filters.dateFrom);
     if (filters.dateTo)          params.append('dateTo',          filters.dateTo);
     if (filters.includeExcluded) params.append('includeExcluded', 'true');

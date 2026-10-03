@@ -349,6 +349,8 @@ export interface KsefSyncRangeResult {
 // ─── KSeF: Dokumenty Kosztowe ─────────────────────────────────────────────────
 
 export type ExpenseSource = 'KSEF' | 'MANUAL';
+/** Rodzaj dokumentu kosztowego; z KSeF zawsze INVOICE. */
+export type CostDocumentKind = 'INVOICE' | 'RECEIPT' | 'BILL' | 'OTHER';
 export type ExpenseStatus = 'ACTIVE' | 'CORRECTED' | 'CANCELLED' | 'EXCLUDED';
 export type ExpensePaymentStatus = 'PAID' | 'PENDING';
 
@@ -371,6 +373,8 @@ export interface KsefExpense {
   isCorrection:      boolean;
   fetchedAt:         string;
   note:              string | null;
+  /** Rodzaj dokumentu; starszy backend go nie zwracał (wtedy faktura). */
+  documentKind?:     CostDocumentKind;
 }
 
 /** Strona faktury (sprzedawca / nabywca) z danymi adresowymi. */
@@ -445,6 +449,8 @@ export interface KsefExpenseDetail {
   originalKsefNumber: string | null;
   fetchedAt:          string;
   note:               string | null;
+  /** Rodzaj dokumentu; starszy backend go nie zwracał (wtedy faktura). */
+  documentKind?:       CostDocumentKind;
 }
 
 export interface KsefExpenseListResponse {
@@ -459,6 +465,7 @@ export interface KsefExpenseListFilters {
   pageSize:         number;
   source?:          ExpenseSource;
   paymentStatus?:   ExpensePaymentStatus;
+  documentKind?:    CostDocumentKind;
   dateFrom?:        string;
   dateTo?:          string;
   includeExcluded?: boolean;
@@ -472,14 +479,24 @@ export interface KsefExpenseListFilters {
   search?:          string;
 }
 
+/**
+ * Ręczny dokument kosztowy. Kwoty w groszach razem ze stawką i stroną wpisaną przez
+ * człowieka - serwer zapisuje ją dokładnie, a drugą liczy (CLAUDE.md §1). Każdy dokument
+ * dostaje pozycję w „Pozycjach kosztowych" o nazwie z `description`.
+ */
 export interface CreateExpenseRequest {
-  saleDate?:      string;
+  documentKind:    CostDocumentKind;
+  saleDate:        string;
   documentNumber?: string;
-  sellerName?:    string;
-  sellerNip?:     string;
-  netAmount?:     number;
-  grossAmount?:   number;
-  paymentMethod?: string;
+  /** Czego dotyczy koszt; wymagane poza fakturą. */
+  description?:    string;
+  sellerName?:     string;
+  sellerNip?:      string;
+  netCents?:       number;
+  grossCents?:     number;
+  vatRate:         string;
+  priceSide:       'NET' | 'GROSS';
+  paymentMethod?:  string;
 }
 
 export interface UpdateExpensePaymentStatusRequest {
