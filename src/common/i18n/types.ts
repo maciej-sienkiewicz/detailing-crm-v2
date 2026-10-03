@@ -25,6 +25,15 @@ export interface TranslationKeys {
         updatedBy: string;
     };
     auth: {
+        /** Zdanie na ciemnym pasie bramy (AuthLayout) - bez kropki, kropkę stawia layout. */
+        gate: {
+            login: string;
+            signup: string;
+            signupPoints: readonly string[];
+            forgotPassword: string;
+            resetPassword: string;
+            confirmPassword: string;
+        };
         login: {
             title: string;
             subtitle: string;

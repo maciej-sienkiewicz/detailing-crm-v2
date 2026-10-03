@@ -11,12 +11,12 @@ const InputWrapper = styled.div`
 const StyledInput = styled.input<{ $hasError?: boolean }>`
     ${authFieldStyles}
     /* Jedyna różnica wobec pozostałych pól auth: miejsce na przycisk podglądu. */
-    padding-right: ${props => props.theme.spacing.xl};
+    padding-right: 44px;
 `;
 
 const ToggleButton = styled.button`
     position: absolute;
-    right: ${props => props.theme.spacing.md};
+    right: 8px;
     top: 50%;
     transform: translateY(-50%);
     background: none;

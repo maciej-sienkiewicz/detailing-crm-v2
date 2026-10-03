@@ -1,7 +1,5 @@
 // src/modules/auth/views/ForgotPasswordView.tsx
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import styled from 'styled-components';
 import { useForgotPassword } from '../hooks/useAuth';
 import { forgotPasswordSchema, type ForgotPasswordFormData } from '../utils/validators';
 import { AuthInput } from '../components/AuthInput';
@@ -9,80 +7,8 @@ import { ErrorAlert } from '../components/ErrorAlert';
 import { SuccessAlert } from '../components/SuccessAlert';
 import { t } from '@/common/i18n';
 import { Label, FieldGroup, ErrorMessage } from '@/common/components/Form';
-import { Button } from '@/common/components/Button';
-import { AuthContainer } from '../components/AuthBackdrop';
-import { authCard, authLinkHover, authLogo } from '../components/authStyles';
-
-// Tło jak na stronie detailboost.pl - wspólne dla ekranów logowania i rejestracji.
-const Container = AuthContainer;
-
-const Card = styled.div`
-    width: 100%;
-    max-width: 440px;
-    background-color: ${props => props.theme.colors.surface};
-    border-radius: ${props => props.theme.radii.xl};
-    ${authCard}
-    padding: ${props => props.theme.spacing.xl};
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: ${props => props.theme.spacing.xxl};
-    }
-`;
-
-const LogoContainer = styled.div`
-    text-align: center;
-    margin-bottom: ${props => props.theme.spacing.xl};
-`;
-
-const Logo = styled.div`
-    width: 64px;
-    height: 64px;
-    margin: 0 auto ${props => props.theme.spacing.md};
-    border-radius: ${props => props.theme.radii.lg};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 32px;
-    font-weight: ${props => props.theme.fontWeights.bold};
-    ${authLogo}
-`;
-
-const Title = styled.h1`
-    font-size: ${props => props.theme.fontSizes.xxl};
-    font-weight: ${props => props.theme.fontWeights.bold};
-    color: ${props => props.theme.colors.text};
-    margin: 0 0 ${props => props.theme.spacing.xs} 0;
-`;
-
-const Subtitle = styled.p`
-    font-size: ${props => props.theme.fontSizes.md};
-    color: ${props => props.theme.colors.textMuted};
-    margin: 0;
-`;
-
-const Form = styled.form`
-    margin-top: ${props => props.theme.spacing.xl};
-    display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.lg};
-`;
-
-const Footer = styled.div`
-    margin-top: ${props => props.theme.spacing.xl};
-    text-align: center;
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textSecondary};
-`;
-
-const FooterLink = styled(Link)`
-    color: ${props => props.theme.colors.primary};
-    font-weight: ${props => props.theme.fontWeights.semibold};
-    transition: color ${props => props.theme.transitions.fast};
-
-    &:hover {
-        color: ${authLinkHover};
-    }
-`;
+import { AuthLayout } from '../components/AuthLayout';
+import { AuthAside, AuthForm, AuthHeading, AuthLink, AuthMeta, AuthPrimaryButton } from '../components/AuthUi';
 
 export const ForgotPasswordView = () => {
     const [formData, setFormData] = useState<ForgotPasswordFormData>({ email: '' });
@@ -124,52 +50,45 @@ export const ForgotPasswordView = () => {
     };
 
     return (
-        <Container>
-            <Card>
-                <LogoContainer>
-                    <Logo>D</Logo>
-                    <Title>{t.auth.forgotPassword.title}</Title>
-                    <Subtitle>{t.auth.forgotPassword.subtitle}</Subtitle>
-                </LogoContainer>
+        <AuthLayout statement={t.auth.gate.forgotPassword}>
+            <AuthHeading>
+                <h1>{t.auth.forgotPassword.title}</h1>
+                <p>{t.auth.forgotPassword.subtitle}</p>
+            </AuthHeading>
 
-                {apiError && <ErrorAlert message={apiError} />}
-                {submitted && <SuccessAlert message={t.auth.forgotPassword.successMessage} />}
+            {apiError && <ErrorAlert message={apiError} />}
+            {submitted && <SuccessAlert message={t.auth.forgotPassword.successMessage} />}
 
-                {!submitted && (
-                    <Form onSubmit={handleSubmit}>
-                        <FieldGroup>
-                            <Label htmlFor="email">{t.auth.forgotPassword.emailLabel}</Label>
-                            <AuthInput
-                                type="email"
-                                id="email"
-                                name="email"
-                                autoComplete="email"
-                                placeholder={t.auth.forgotPassword.emailPlaceholder}
-                                value={formData.email}
-                                onChange={(e) => setFormData({ email: e.target.value })}
-                                $hasError={!!errors.email}
-                            />
-                            {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
-                        </FieldGroup>
+            {!submitted && (
+                <AuthForm onSubmit={handleSubmit}>
+                    <FieldGroup>
+                        <Label htmlFor="email">{t.auth.forgotPassword.emailLabel}</Label>
+                        <AuthInput
+                            type="email"
+                            id="email"
+                            name="email"
+                            autoComplete="email"
+                            placeholder={t.auth.forgotPassword.emailPlaceholder}
+                            value={formData.email}
+                            onChange={(e) => setFormData({ email: e.target.value })}
+                            $hasError={!!errors.email}
+                        />
+                        {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
+                    </FieldGroup>
 
-                        <Button
-                            type="submit"
-                            $variant="primary"
-                            $fullWidth
-                            $size="lg"
-                            disabled={forgotPasswordMutation.isPending}
-                        >
-                            {forgotPasswordMutation.isPending
-                                ? t.auth.forgotPassword.submitting
-                                : t.auth.forgotPassword.submitButton}
-                        </Button>
-                    </Form>
-                )}
+                    <AuthPrimaryButton type="submit" disabled={forgotPasswordMutation.isPending}>
+                        {forgotPasswordMutation.isPending
+                            ? t.auth.forgotPassword.submitting
+                            : t.auth.forgotPassword.submitButton}
+                    </AuthPrimaryButton>
+                </AuthForm>
+            )}
 
-                <Footer>
-                    <FooterLink to="/login">{t.auth.forgotPassword.backToLogin}</FooterLink>
-                </Footer>
-            </Card>
-        </Container>
+            <AuthAside>
+                <AuthMeta>
+                    <AuthLink to="/login">{t.auth.forgotPassword.backToLogin}</AuthLink>
+                </AuthMeta>
+            </AuthAside>
+        </AuthLayout>
     );
 };

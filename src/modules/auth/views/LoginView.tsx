@@ -1,6 +1,6 @@
 // src/modules/auth/views/LoginView.tsx
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { useLogin, useDemoAccount } from '../hooks/useAuth';
 import { loginSchema, type LoginFormData } from '../utils/validators';
@@ -9,168 +9,26 @@ import { AuthInput } from '../components/AuthInput';
 import { Checkbox } from '../components/Checkbox';
 import { ErrorAlert } from '../components/ErrorAlert';
 import { SuccessAlert } from '../components/SuccessAlert';
+import { AuthLayout } from '../components/AuthLayout';
+import {
+    AuthAside,
+    AuthForm,
+    AuthHeading,
+    AuthLink,
+    AuthMeta,
+    AuthPrimaryButton,
+    AuthSecondaryButton,
+} from '../components/AuthUi';
 import { t } from '@/common/i18n';
 import { Label, FieldGroup, ErrorMessage } from '@/common/components/Form';
-import { Button } from '@/common/components/Button';
-import { AuthContainer } from '../components/AuthBackdrop';
-import { authCard, authLinkHover, authLogo } from '../components/authStyles';
-
-// Tło jak na stronie detailboost.pl - wspólne dla ekranów logowania i rejestracji.
-const Container = AuthContainer;
-
-const Card = styled.div`
-    width: 100%;
-    max-width: 440px;
-    background-color: ${props => props.theme.colors.surface};
-    border-radius: ${props => props.theme.radii.xl};
-    ${authCard}
-    padding: ${props => props.theme.spacing.xl};
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: ${props => props.theme.spacing.xxl};
-    }
-`;
-
-const LogoContainer = styled.div`
-    text-align: center;
-    margin-bottom: ${props => props.theme.spacing.xl};
-`;
-
-const Logo = styled.div`
-    width: 64px;
-    height: 64px;
-    margin: 0 auto ${props => props.theme.spacing.md};
-    border-radius: ${props => props.theme.radii.lg};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 32px;
-    font-weight: ${props => props.theme.fontWeights.bold};
-    ${authLogo}
-`;
-
-const Title = styled.h1`
-    font-size: ${props => props.theme.fontSizes.xxl};
-    font-weight: ${props => props.theme.fontWeights.bold};
-    color: ${props => props.theme.colors.text};
-    margin: 0 0 ${props => props.theme.spacing.xs} 0;
-`;
-
-const Subtitle = styled.p`
-    font-size: ${props => props.theme.fontSizes.md};
-    color: ${props => props.theme.colors.textMuted};
-    margin: 0;
-`;
-
-const Form = styled.form`
-    margin-top: ${props => props.theme.spacing.xl};
-    display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.lg};
-`;
 
 const RememberMeRow = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: ${props => props.theme.spacing.md};
-`;
-
-const ForgotLink = styled(Link)`
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.primary};
-    font-weight: ${props => props.theme.fontWeights.medium};
-    transition: color ${props => props.theme.transitions.fast};
-
-    &:hover {
-        color: ${authLinkHover};
-    }
-`;
-
-const DemoSection = styled.div`
-    margin-top: ${props => props.theme.spacing.xl};
-`;
-
-const DemoSeparator = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${props => props.theme.spacing.md};
-    margin-bottom: ${props => props.theme.spacing.lg};
-
-    &::before,
-    &::after {
-        content: '';
-        flex: 1;
-        height: 1px;
-        background-color: ${props => props.theme.colors.border};
-    }
-
-    span {
-        font-size: ${props => props.theme.fontSizes.sm};
-        color: ${props => props.theme.colors.textMuted};
-        white-space: nowrap;
-    }
-`;
-
-const DemoButton = styled.button<{ disabled?: boolean }>`
-    width: 100%;
-    padding: ${props => props.theme.spacing.lg} ${props => props.theme.spacing.xl};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.lg};
-    font-weight: ${props => props.theme.fontWeights.semibold};
-    cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
-    transition: all ${props => props.theme.transitions.normal};
-    /* Druga droga, nie konkurencja dla „Zaloguj się": przygaszona szyba jak drugi
-       przycisk na stronie, zamiast pomarańczowego gradientu. */
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(255, 255, 255, 0.04);
-    color: rgba(255, 255, 255, 0.88);
-    opacity: ${props => props.disabled ? 0.6 : 1};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: ${props => props.theme.spacing.sm};
-
-    &:hover:not(:disabled) {
-        background: rgba(255, 255, 255, 0.08);
-        border-color: rgba(220, 174, 92, 0.5);
-        color: #ffffff;
-    }
-
-    &:active:not(:disabled) {
-        transform: translateY(0);
-    }
-`;
-
-const DemoIcon = styled.span`
-    font-size: 20px;
-    line-height: 1;
-`;
-
-const DemoInfo = styled.p`
-    margin: ${props => props.theme.spacing.md} 0 0;
-    text-align: center;
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
-    line-height: 1.4;
-`;
-
-const Footer = styled.div`
-    margin-top: ${props => props.theme.spacing.xl};
-    text-align: center;
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textSecondary};
-`;
-
-const FooterLink = styled(Link)`
-    color: ${props => props.theme.colors.primary};
-    font-weight: ${props => props.theme.fontWeights.semibold};
-    transition: color ${props => props.theme.transitions.fast};
-
-    &:hover {
-        color: ${authLinkHover};
-    }
+    gap: 12px;
+    font-size: 14px;
 `;
 
 // 502 during login means the app is being redeployed behind the reverse proxy;
@@ -239,90 +97,69 @@ export const LoginView = () => {
     };
 
     return (
-        <Container>
-            <Card>
-                <LogoContainer>
-                    <Logo>D</Logo>
-                    <Title>{t.auth.login.title}</Title>
-                    <Subtitle>{t.auth.login.subtitle}</Subtitle>
-                </LogoContainer>
+        <AuthLayout statement={t.auth.gate.login}>
+            <AuthHeading>
+                <h1>{t.auth.login.title}</h1>
+                <p>{t.auth.login.subtitle}</p>
+            </AuthHeading>
 
-                {successMessage && <SuccessAlert message={successMessage} />}
-                {apiError && <ErrorAlert message={apiError} />}
+            {successMessage && <SuccessAlert message={successMessage} />}
+            {apiError && <ErrorAlert message={apiError} />}
 
-                <Form onSubmit={handleSubmit}>
-                    <FieldGroup>
-                        <Label htmlFor="email">{t.auth.login.emailLabel}</Label>
-                        <AuthInput
-                            type="email"
-                            id="email"
-                            name="email"
-                            autoComplete="email"
-                            placeholder={t.auth.login.emailPlaceholder}
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            $hasError={!!errors.email}
-                        />
-                        {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
-                    </FieldGroup>
+            <AuthForm onSubmit={handleSubmit}>
+                <FieldGroup>
+                    <Label htmlFor="email">{t.auth.login.emailLabel}</Label>
+                    <AuthInput
+                        type="email"
+                        id="email"
+                        name="email"
+                        autoComplete="email"
+                        placeholder={t.auth.login.emailPlaceholder}
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        $hasError={!!errors.email}
+                    />
+                    {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
+                </FieldGroup>
 
-                    <FieldGroup>
-                        <Label htmlFor="password">{t.auth.login.passwordLabel}</Label>
-                        <PasswordInput
-                            id="password"
-                            name="password"
-                            value={formData.password}
-                            onChange={(value) => setFormData({ ...formData, password: value })}
-                            placeholder={t.auth.login.passwordPlaceholder}
-                            hasError={!!errors.password}
-                            autoComplete="current-password"
-                        />
-                        {errors.password && <ErrorMessage>{errors.password}</ErrorMessage>}
-                    </FieldGroup>
+                <FieldGroup>
+                    <Label htmlFor="password">{t.auth.login.passwordLabel}</Label>
+                    <PasswordInput
+                        id="password"
+                        name="password"
+                        value={formData.password}
+                        onChange={(value) => setFormData({ ...formData, password: value })}
+                        placeholder={t.auth.login.passwordPlaceholder}
+                        hasError={!!errors.password}
+                        autoComplete="current-password"
+                    />
+                    {errors.password && <ErrorMessage>{errors.password}</ErrorMessage>}
+                </FieldGroup>
 
-                    <RememberMeRow>
-                        <Checkbox
-                            id="rememberMe"
-                            checked={formData.rememberMe}
-                            onChange={(checked) => setFormData({ ...formData, rememberMe: checked })}
-                            label={t.auth.login.rememberMe}
-                        />
-                        <ForgotLink to="/forgot-password">
-                            {t.auth.login.forgotPassword}
-                        </ForgotLink>
-                    </RememberMeRow>
+                <RememberMeRow>
+                    <Checkbox
+                        id="rememberMe"
+                        checked={formData.rememberMe}
+                        onChange={(checked) => setFormData({ ...formData, rememberMe: checked })}
+                        label={t.auth.login.rememberMe}
+                    />
+                    <AuthLink to="/forgot-password">{t.auth.login.forgotPassword}</AuthLink>
+                </RememberMeRow>
 
-                    <Button
-                        type="submit"
-                        $variant="primary"
-                        $fullWidth
-                        $size="lg"
-                        disabled={isAnyPending}
-                    >
-                        {loginMutation.isPending ? t.auth.login.submitting : t.auth.login.submitButton}
-                    </Button>
-                </Form>
+                <AuthPrimaryButton type="submit" disabled={isAnyPending}>
+                    {loginMutation.isPending ? t.auth.login.submitting : t.auth.login.submitButton}
+                </AuthPrimaryButton>
+            </AuthForm>
 
-                <DemoSection>
-                    <DemoSeparator>
-                        <span>{t.auth.login.demoSeparator}</span>
-                    </DemoSeparator>
-                    <DemoButton
-                        type="button"
-                        onClick={handleDemoLogin}
-                        disabled={isAnyPending}
-                    >
-                        <DemoIcon>▶</DemoIcon>
-                        {demoMutation.isPending ? t.auth.login.demoSubmitting : t.auth.login.demoButton}
-                    </DemoButton>
-                    <DemoInfo>{t.auth.login.demoInfo}</DemoInfo>
-                </DemoSection>
-
-                <Footer>
-                    {t.auth.login.noAccount}{' '}
-                    <FooterLink to="/signup">{t.auth.login.signupLink}</FooterLink>
-                </Footer>
-            </Card>
-        </Container>
+            <AuthAside>
+                <AuthSecondaryButton type="button" onClick={handleDemoLogin} disabled={isAnyPending}>
+                    {demoMutation.isPending ? t.auth.login.demoSubmitting : t.auth.login.demoButton}
+                </AuthSecondaryButton>
+                <AuthMeta>{t.auth.login.demoInfo}</AuthMeta>
+                <AuthMeta>
+                    {t.auth.login.noAccount} <AuthLink to="/signup">{t.auth.login.signupLink}</AuthLink>
+                </AuthMeta>
+            </AuthAside>
+        </AuthLayout>
     );
 };

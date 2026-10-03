@@ -15,7 +15,7 @@ const HiddenCheckbox = styled.input.attrs({ type: 'checkbox' })`
     height: 0;
 
     &:focus + div {
-        box-shadow: 0 0 0 3px rgba(220, 174, 92, 0.2);
+        box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
     }
 `;
 
@@ -23,9 +23,9 @@ const StyledCheckbox = styled.div<{ $checked: boolean; $hasError?: boolean }>`
     width: 20px;
     height: 20px;
     min-width: 20px;
-    border: 2px solid ${props => props.$hasError ? props.theme.colors.error : props.$checked ? props.theme.colors.primary : props.theme.colors.border};
+    border: 2px solid ${props => props.$hasError ? props.theme.colors.error : props.$checked ? '#0f172a' : '#cfd6df'};
     border-radius: ${props => props.theme.radii.sm};
-    background-color: ${props => props.$checked ? props.theme.colors.primary : props.theme.colors.surface};
+    background-color: ${props => props.$checked ? '#0f172a' : props.theme.colors.surface};
     display: flex;
     align-items: center;
     justify-content: center;

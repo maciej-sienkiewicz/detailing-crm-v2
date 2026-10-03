@@ -1,109 +1,17 @@
 // src/modules/auth/views/ResetPasswordView.tsx
 import { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import styled from 'styled-components';
+import { useSearchParams } from 'react-router-dom';
 import { useResetPassword } from '../hooks/useAuth';
 import { resetPasswordSchema, type ResetPasswordFormData } from '../utils/validators';
 import { PasswordInput } from '../components/PasswordInput';
 import { PasswordRequirements } from '../components/PasswordRequirements';
 import { ErrorAlert } from '../components/ErrorAlert';
 import { SuccessAlert } from '../components/SuccessAlert';
+import { AuthLayout } from '../components/AuthLayout';
+import { AuthAside, AuthForm, AuthHeading, AuthLink, AuthMeta, AuthPrimaryButton } from '../components/AuthUi';
 import { authApi } from '../api/authApi';
 import { t } from '@/common/i18n';
 import { Label, FieldGroup, ErrorMessage } from '@/common/components/Form';
-import { Button } from '@/common/components/Button';
-import { AuthContainer } from '../components/AuthBackdrop';
-import { authCard, authLinkHover, authLogo } from '../components/authStyles';
-
-// Tło jak na stronie detailboost.pl - wspólne dla ekranów logowania i rejestracji.
-const Container = AuthContainer;
-
-const Card = styled.div`
-    width: 100%;
-    max-width: 440px;
-    background-color: ${props => props.theme.colors.surface};
-    border-radius: ${props => props.theme.radii.xl};
-    ${authCard}
-    padding: ${props => props.theme.spacing.xl};
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: ${props => props.theme.spacing.xxl};
-    }
-`;
-
-const LogoContainer = styled.div`
-    text-align: center;
-    margin-bottom: ${props => props.theme.spacing.xl};
-`;
-
-const Logo = styled.div`
-    width: 64px;
-    height: 64px;
-    margin: 0 auto ${props => props.theme.spacing.md};
-    border-radius: ${props => props.theme.radii.lg};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 32px;
-    font-weight: ${props => props.theme.fontWeights.bold};
-    ${authLogo}
-`;
-
-const Title = styled.h1`
-    font-size: ${props => props.theme.fontSizes.xxl};
-    font-weight: ${props => props.theme.fontWeights.bold};
-    color: ${props => props.theme.colors.text};
-    margin: 0 0 ${props => props.theme.spacing.xs} 0;
-`;
-
-const Subtitle = styled.p`
-    font-size: ${props => props.theme.fontSizes.md};
-    color: ${props => props.theme.colors.textMuted};
-    margin: 0;
-`;
-
-const Form = styled.form`
-    margin-top: ${props => props.theme.spacing.xl};
-    display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.lg};
-`;
-
-const ExpiredContainer = styled.div`
-    margin-top: ${props => props.theme.spacing.xl};
-    text-align: center;
-`;
-
-const ExpiredTitle = styled.h2`
-    font-size: ${props => props.theme.fontSizes.xl};
-    font-weight: ${props => props.theme.fontWeights.bold};
-    color: ${props => props.theme.colors.text};
-    margin: 0 0 ${props => props.theme.spacing.md} 0;
-`;
-
-const ExpiredMessage = styled.p`
-    font-size: ${props => props.theme.fontSizes.md};
-    color: ${props => props.theme.colors.textMuted};
-    margin: 0 0 ${props => props.theme.spacing.xl} 0;
-    line-height: 1.6;
-`;
-
-const Footer = styled.div`
-    margin-top: ${props => props.theme.spacing.xl};
-    text-align: center;
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textSecondary};
-`;
-
-const FooterLink = styled(Link)`
-    color: ${props => props.theme.colors.primary};
-    font-weight: ${props => props.theme.fontWeights.semibold};
-    transition: color ${props => props.theme.transitions.fast};
-
-    &:hover {
-        color: ${authLinkHover};
-    }
-`;
 
 type TokenState = 'loading' | 'valid' | 'invalid';
 type ViewMode = 'reset' | 'setup';
@@ -114,6 +22,7 @@ interface ResetPasswordViewProps {
 
 export const ResetPasswordView = ({ mode = 'reset' }: ResetPasswordViewProps) => {
     const copy = mode === 'setup' ? t.auth.confirmPassword : t.auth.resetPassword;
+    const statement = mode === 'setup' ? t.auth.gate.confirmPassword : t.auth.gate.resetPassword;
     const [searchParams] = useSearchParams();
     const token = searchParams.get('token') ?? '';
 
@@ -172,111 +81,89 @@ export const ResetPasswordView = ({ mode = 'reset' }: ResetPasswordViewProps) =>
 
     if (tokenState === 'loading') {
         return (
-            <Container>
-                <Card>
-                    <LogoContainer>
-                        <Logo>D</Logo>
-                        <Title>{copy.title}</Title>
-                    </LogoContainer>
-                    <p style={{ textAlign: 'center', color: 'var(--color-text-muted)' }}>
-                        {t.common.loading}
-                    </p>
-                </Card>
-            </Container>
+            <AuthLayout statement={statement}>
+                <AuthHeading>
+                    <h1>{copy.title}</h1>
+                    <p>{t.common.loading}</p>
+                </AuthHeading>
+            </AuthLayout>
         );
     }
 
     if (tokenState === 'invalid') {
         return (
-            <Container>
-                <Card>
-                    <LogoContainer>
-                        <Logo>D</Logo>
-                    </LogoContainer>
-                    <ExpiredContainer>
-                        <ExpiredTitle>{copy.expiredTitle}</ExpiredTitle>
-                        <ExpiredMessage>{copy.expiredMessage}</ExpiredMessage>
-                        <Button
-                            type="button"
-                            $variant="primary"
-                            $fullWidth
-                            $size="lg"
-                            onClick={() => window.location.href = mode === 'setup' ? '/login' : '/forgot-password'}
-                        >
-                            {copy.expiredAction}
-                        </Button>
-                    </ExpiredContainer>
-                </Card>
-            </Container>
+            <AuthLayout statement={statement}>
+                <AuthHeading>
+                    <h1>{copy.expiredTitle}</h1>
+                    <p>{copy.expiredMessage}</p>
+                </AuthHeading>
+                <AuthPrimaryButton
+                    type="button"
+                    onClick={() => window.location.href = mode === 'setup' ? '/login' : '/forgot-password'}
+                >
+                    {copy.expiredAction}
+                </AuthPrimaryButton>
+            </AuthLayout>
         );
     }
 
     return (
-        <Container>
-            <Card>
-                <LogoContainer>
-                    <Logo>D</Logo>
-                    <Title>{copy.title}</Title>
-                    <Subtitle>{copy.subtitle}</Subtitle>
-                </LogoContainer>
+        <AuthLayout statement={statement}>
+            <AuthHeading>
+                <h1>{copy.title}</h1>
+                <p>{copy.subtitle}</p>
+            </AuthHeading>
 
-                {apiError && <ErrorAlert message={apiError} />}
-                {success && <SuccessAlert message={copy.successMessage} />}
+            {apiError && <ErrorAlert message={apiError} />}
+            {success && <SuccessAlert message={copy.successMessage} />}
 
-                {success ? (
-                    <Footer>
-                        <FooterLink to="/login">{copy.successAction}</FooterLink>
-                    </Footer>
-                ) : (
-                    <Form onSubmit={handleSubmit}>
-                        <FieldGroup>
-                            <Label htmlFor="password">{copy.passwordLabel}</Label>
-                            <PasswordInput
-                                id="password"
-                                name="password"
-                                value={formData.password}
-                                onChange={(value) => setFormData({ ...formData, password: value })}
-                                placeholder={copy.passwordPlaceholder}
-                                hasError={!!errors.password}
-                                autoComplete="new-password"
-                                onFocus={() => setPasswordFocused(true)}
-                                onBlur={() => setPasswordFocused(false)}
-                            />
-                            <PasswordRequirements
-                                password={formData.password}
-                                visible={passwordFocused || formData.password.length > 0}
-                            />
-                            {errors.password && <ErrorMessage>{errors.password}</ErrorMessage>}
-                        </FieldGroup>
+            {success ? (
+                <AuthAside>
+                    <AuthMeta>
+                        <AuthLink to="/login">{copy.successAction}</AuthLink>
+                    </AuthMeta>
+                </AuthAside>
+            ) : (
+                <AuthForm onSubmit={handleSubmit}>
+                    <FieldGroup>
+                        <Label htmlFor="password">{copy.passwordLabel}</Label>
+                        <PasswordInput
+                            id="password"
+                            name="password"
+                            value={formData.password}
+                            onChange={(value) => setFormData({ ...formData, password: value })}
+                            placeholder={copy.passwordPlaceholder}
+                            hasError={!!errors.password}
+                            autoComplete="new-password"
+                            onFocus={() => setPasswordFocused(true)}
+                            onBlur={() => setPasswordFocused(false)}
+                        />
+                        <PasswordRequirements
+                            password={formData.password}
+                            visible={passwordFocused || formData.password.length > 0}
+                        />
+                        {errors.password && <ErrorMessage>{errors.password}</ErrorMessage>}
+                    </FieldGroup>
 
-                        <FieldGroup>
-                            <Label htmlFor="confirmPassword">{copy.confirmPasswordLabel}</Label>
-                            <PasswordInput
-                                id="confirmPassword"
-                                name="confirmPassword"
-                                value={formData.confirmPassword}
-                                onChange={(value) => setFormData({ ...formData, confirmPassword: value })}
-                                placeholder={copy.confirmPasswordPlaceholder}
-                                hasError={!!errors.confirmPassword}
-                                autoComplete="new-password"
-                            />
-                            {errors.confirmPassword && <ErrorMessage>{errors.confirmPassword}</ErrorMessage>}
-                        </FieldGroup>
+                    <FieldGroup>
+                        <Label htmlFor="confirmPassword">{copy.confirmPasswordLabel}</Label>
+                        <PasswordInput
+                            id="confirmPassword"
+                            name="confirmPassword"
+                            value={formData.confirmPassword}
+                            onChange={(value) => setFormData({ ...formData, confirmPassword: value })}
+                            placeholder={copy.confirmPasswordPlaceholder}
+                            hasError={!!errors.confirmPassword}
+                            autoComplete="new-password"
+                        />
+                        {errors.confirmPassword && <ErrorMessage>{errors.confirmPassword}</ErrorMessage>}
+                    </FieldGroup>
 
-                        <Button
-                            type="submit"
-                            $variant="primary"
-                            $fullWidth
-                            $size="lg"
-                            disabled={resetPasswordMutation.isPending}
-                        >
-                            {resetPasswordMutation.isPending
-                                ? copy.submitting
-                                : copy.submitButton}
-                        </Button>
-                    </Form>
-                )}
-            </Card>
-        </Container>
+                    <AuthPrimaryButton type="submit" disabled={resetPasswordMutation.isPending}>
+                        {resetPasswordMutation.isPending ? copy.submitting : copy.submitButton}
+                    </AuthPrimaryButton>
+                </AuthForm>
+            )}
+        </AuthLayout>
     );
 };
