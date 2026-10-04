@@ -20,7 +20,7 @@ const SMS_KEY = ['sms-automation'] as const;
 const EMAIL_KEY = ['email-automation'] as const;
 
 export interface MessageDefaults {
-    /** undefined = ustawienia jeszcze się wczytują albo są niedostępne (brak uprawnień, modułu). */
+    /** undefined = ustawienia jeszcze się wczytują albo są niedostępne (brak uprawnień, modułu, starszy backend). */
     sms: (key: SmsRuleKey) => boolean | undefined;
     email: (key: EmailRuleKey) => boolean | undefined;
 }
@@ -31,14 +31,10 @@ export function useMessageDefaults(): MessageDefaults {
     const { data: sms } = useQuery({ queryKey: SMS_KEY, queryFn: fetchAutomationConfig, retry: false, staleTime: 60_000 });
     const { data: email } = useQuery({ queryKey: EMAIL_KEY, queryFn: fetchEmailAutomationConfig, retry: false, staleTime: 60_000 });
 
-    const smsDefault = useCallback(
-        (key: SmsRuleKey) => (sms ? sms[key]?.checkedByDefault ?? false : undefined),
-        [sms]
-    );
-    const emailDefault = useCallback(
-        (key: EmailRuleKey) => (email ? email[key]?.checkedByDefault ?? false : undefined),
-        [email]
-    );
+    // Brak pola (backend sprzed tej zmiany) to „nie wiadomo", nie „odznaczone" - okno
+    // wraca wtedy do swojego dotychczasowego stanu, zamiast po cichu go zmienić.
+    const smsDefault = useCallback((key: SmsRuleKey) => sms?.[key]?.checkedByDefault, [sms]);
+    const emailDefault = useCallback((key: EmailRuleKey) => email?.[key]?.checkedByDefault, [email]);
     return { sms: smsDefault, email: emailDefault };
 }
 
