@@ -19,9 +19,10 @@
 // Odpowiadając w wątku nie powtarzamy adresu odbiorcy: rozmowa ma jednego
 // uczestnika, wypisanego już w nagłówku i w panelu klienta. Pole „Do" jest
 // schowane pod dyskretnym przełącznikiem - na wypadek, gdy ktoś chce je sprawdzić.
-import { useRef, useState, type ClipboardEvent, type DragEvent } from 'react';
+import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent, type ReactNode } from 'react';
 import styled from 'styled-components';
 import {
+    ArrowLeft,
     AtSign,
     FileImage,
     FileText,
@@ -37,6 +38,7 @@ import {
     X,
 } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
+import { acquireScrollLock } from '@/common/utils/scrollLock';
 import { useMailSignature, useProofread, useSendMail } from '../hooks/useComms';
 import { OUTGOING_ATTACHMENT_LIMITS, type ReplyDraft } from '../types';
 import {
@@ -54,7 +56,7 @@ import { RichTextEditor } from './RichTextEditor';
 import { SignatureSettingsModal } from './SignatureSettingsModal';
 import { PrimaryButton } from './shared';
 
-const Composer = styled.div<{ $dragging: boolean }>`
+const Composer = styled.div<{ $dragging: boolean; $sheet?: boolean }>`
     position: relative;
     border-top: 1px solid #e5e7eb;
     background: #ffffff;
@@ -62,6 +64,20 @@ const Composer = styled.div<{ $dragging: boolean }>`
     display: flex;
     flex-direction: column;
     gap: 8px;
+
+    /* Telefon: odpowiedź na cały ekran, nad dolną nawigacją aplikacji. Pisze się
+       na całej wysokości, a wiadomość, na którą się odpowiada, wraca po „Wróć". */
+    ${({ $sheet }) =>
+        $sheet &&
+        `
+        position: fixed;
+        inset: 0;
+        z-index: 1100;
+        border-top: none;
+        overflow-y: auto;
+        padding: 0 14px calc(14px + env(safe-area-inset-bottom, 0px));
+        > * { flex-shrink: 0; }
+        `}
 
     /* Cały kompozytor jest strefą zrzutu - nie trzeba celować w edytor. */
     ${({ $dragging, theme }) =>
@@ -271,6 +287,81 @@ const AttachButton = styled.button<{ $active: boolean }>`
  * Lista dołączonych plików. Każdy chip pokazuje nazwę i wagę - waga jest tu
  * ważniejsza niż zwykle, bo limit dotyczy sumy i użytkownik ma widzieć, ile zostało.
  */
+/** Górny pasek odpowiedzi na pełnym ekranie: „Wróć" do wiadomości i do kogo piszemy. */
+const SheetTop = styled.div`
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 -14px;
+    padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 10px;
+    background: #ffffff;
+    border-bottom: 1px solid ${p => p.theme.colors.border};
+
+    button {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        border: none;
+        background: none;
+        padding: 6px 4px;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 500;
+        color: ${p => p.theme.colors.textSecondary};
+        cursor: pointer;
+        svg { width: 18px; height: 18px; }
+    }
+    .who {
+        flex: 1;
+        min-width: 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: ${p => p.theme.colors.text};
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+`;
+
+/**
+ * Telefon, odpowiedź zwinięta: jeden przycisk zamiast stale rozłożonego edytora.
+ * Edytor z paskiem narzędzi zajmował ponad połowę ekranu, nawet gdy nikt nie
+ * odpisywał - na samą wiadomość zostawało pięć linijek w małym okienku.
+ */
+const ReplyBar = styled.div`
+    border-top: 1px solid #e5e7eb;
+    background: #ffffff;
+    padding: 8px 12px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .chips {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        &::-webkit-scrollbar { display: none; }
+    }
+    .chips button {
+        flex-shrink: 0;
+        border: 1px solid ${p => p.theme.colors.border};
+        background: ${p => p.theme.colors.surface};
+        color: ${p => p.theme.colors.textSecondary};
+        border-radius: 999px;
+        padding: 5px 11px;
+        font: inherit;
+        font-size: 12.5px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+    .row { display: flex; gap: 8px; align-items: center; }
+    .row > :first-child { flex: 1; justify-content: center; }
+`;
+
 /** Gotowe odpowiedzi - tylko przy pustym edytorze, ciche jak podpowiedź, nie jak akcja. */
 const QuickReplies = styled.div`
     display: flex;
@@ -417,6 +508,13 @@ interface ReplyComposerProps {
     requireSubject?: boolean;
     /** Wywołane po wysłaniu - z id wątku, w którym wylądowała wiadomość. */
     onSent?: (threadId: string) => void;
+    /**
+     * Telefon: zamiast stale rozłożonego edytora pasek „Odpowiedz", a edytor otwiera
+     * się na cały ekran dopiero po kliknięciu. Treść czeka, gdy się wróci do wiadomości.
+     */
+    collapsible?: boolean;
+    /** Dodatkowa akcja w zwiniętym pasku (np. „Stwórz rezerwację" z nagłówka). */
+    barExtra?: ReactNode;
 }
 
 export function ReplyComposer({
@@ -429,7 +527,13 @@ export function ReplyComposer({
     threadLeadId,
     requireSubject,
     onSent,
+    collapsible = false,
+    barExtra,
 }: ReplyComposerProps) {
+    const [expanded, setExpanded] = useState(false);
+    const sheet = collapsible && expanded;
+    // Pod kompozytorem na cały ekran wątek nie może się przewijać razem z palcem (CLAUDE.md §3).
+    useEffect(() => (sheet ? acquireScrollLock() : undefined), [sheet]);
     const [to, setTo] = useState(initialTo ?? '');
     const [subject, setSubject] = useState('');
     // Surowy innerHTML edytora - normalizacja dopiero przy wysyłce i korekcie.
@@ -572,6 +676,7 @@ export function ReplyComposer({
         setBody(textToComposerHtml(reply.text));
         setUndoSnapshot(null);
         setCloseReason(reply.closesWithReason ?? null);
+        setExpanded(true);
     };
 
     const applyDraft = (next: ReplyDraft) => {
@@ -614,6 +719,7 @@ export function ReplyComposer({
                         showSuccess('Wysłano', 'Wiadomość trafi też do folderu Wysłane na serwerze');
                     }
                     setCloseReason(null);
+                    setExpanded(false);
                     onSent?.(result.threadId);
                 },
                 onError: (error) => {
@@ -632,8 +738,32 @@ export function ReplyComposer({
             : 'Wysyłanie…'
         : 'Wyślij';
 
+    if (collapsible && !expanded) {
+        return (
+            <ReplyBar>
+                {contextLeadId && bodyEmpty && (
+                    <div className="chips" aria-label="Gotowe odpowiedzi">
+                        {QUICK_REPLIES.map((reply) => (
+                            <button key={reply.id} type="button" onClick={() => applyQuickReply(reply)}>
+                                {reply.label}
+                            </button>
+                        ))}
+                    </div>
+                )}
+                <div className="row">
+                    <PrimaryButton type="button" onClick={() => setExpanded(true)}>
+                        <Send size={14} />
+                        {bodyEmpty ? 'Odpowiedz' : 'Wróć do odpowiedzi'}
+                    </PrimaryButton>
+                    {barExtra}
+                </div>
+            </ReplyBar>
+        );
+    }
+
     return (
         <Composer
+            $sheet={sheet}
             $dragging={dragging}
             onDragEnter={onDragEnter}
             onDragOver={(event) => { if (event.dataTransfer.types.includes('Files')) event.preventDefault(); }}
@@ -641,6 +771,14 @@ export function ReplyComposer({
             onDrop={onDrop}
             onPaste={onPasteFiles}
         >
+            {sheet && (
+                <SheetTop>
+                    <button type="button" onClick={() => setExpanded(false)} aria-label="Wróć do wiadomości">
+                        <ArrowLeft /> Wróć
+                    </button>
+                    <span className="who">{recipientLabel ?? initialTo ?? 'Nowa wiadomość'}</span>
+                </SheetTop>
+            )}
             {recipientShown && (
                 <MetaRow>
                     Do:
@@ -677,6 +815,7 @@ export function ReplyComposer({
                     if (isComposerHtmlEmpty(html)) setCloseReason(null);
                 }}
                 placeholder={threadId ? 'Napisz odpowiedź…' : 'Napisz wiadomość…'}
+                tall={sheet}
                 onSubmit={submit}
                 disabled={sendMail.isPending}
                 toolbarExtra={

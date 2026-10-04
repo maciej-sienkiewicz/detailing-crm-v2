@@ -515,3 +515,39 @@ export function trimEmptyEdges(html: string): string {
 
     return body.innerHTML;
 }
+
+const INDENT_BLOCKS = new Set(['BODY', 'DIV', 'P', 'LI', 'TD', 'BLOCKQUOTE']);
+
+/**
+ * Zdejmuje wcięcia z twardych spacji na początku wiersza („&nbsp; &nbsp;mam Alfę…").
+ * Programy pocztowe tak „akapitują" tekst, a w wąskiej kolumnie telefonu każdy wiersz
+ * zaczyna się wtedy od dziury, jakby treść się rozsypała. Wcięcie zdejmujemy tylko
+ * tam, gdzie za nim stoi tekst - samotne &nbsp; bywa celową pustą linijką.
+ */
+export function dropLeadingIndent(html: string): string {
+    if (!html || !/&nbsp;|&#160;|\u00a0/.test(html) || typeof DOMParser === 'undefined') return html;
+
+    let document: Document;
+    try {
+        document = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
+    } catch {
+        return html;
+    }
+
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    const starts: Text[] = [];
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        const text = node as Text;
+        const previous = text.previousSibling;
+        const startsLine = previous === null || (previous.nodeType === Node.ELEMENT_NODE && (previous as Element).tagName === 'BR');
+        if (startsLine && text.parentElement && INDENT_BLOCKS.has(text.parentElement.tagName)) starts.push(text);
+    }
+
+    starts.forEach((text) => {
+        const value = text.nodeValue ?? '';
+        const stripped = value.replace(/^[\s\u00a0]+/, '');
+        if (stripped.length > 0 && stripped.length !== value.length) text.nodeValue = stripped;
+    });
+
+    return document.body.innerHTML;
+}

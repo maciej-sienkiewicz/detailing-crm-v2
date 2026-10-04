@@ -22,7 +22,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import DOMPurify from 'dompurify';
 import { ChevronUp, Image as ImageIcon, Maximize2 } from 'lucide-react';
-import { describeHtml, isRichHtml, splitQuotedHistory, trimEmptyEdges } from '../utils/emailHtml';
+import { describeHtml, dropLeadingIndent, isRichHtml, splitQuotedHistory, trimEmptyEdges } from '../utils/emailHtml';
 
 const Root = styled.div`
     display: flex;
@@ -199,6 +199,22 @@ const FRAME_STYLES = `
         a { color: #0284c7; }
         blockquote { border-left: 3px solid #e5e7eb; margin-left: 0; padding-left: 12px; color: #6b7280; }
         .crm-quoted { margin-top: 16px; border-top: 1px solid #e5e7eb; padding-top: 12px; }
+
+        /* Wąska ramka (telefon): mail projektowany na 600-700 px ma się zmieścić
+           w kolumnie, a nie dać się przeczytać do połowy wiersza. Sztywne szerokości
+           tabel i komórek (atrybut width) puszczamy, obrazki skalujemy, a długie
+           linki łamiemy w dowolnym miejscu. Media query liczy się względem ramki,
+           więc na desktopie układ newslettera zostaje nietknięty. */
+        @media (max-width: 600px) {
+            body { overflow-wrap: anywhere; }
+            /* table-layout: fixed - w układzie automatycznym obrazek width="600"
+               rozpycha tabelę do swojej szerokości mimo max-width. */
+            table { width: 100% !important; max-width: 100% !important; height: auto !important; table-layout: fixed; }
+            td, th { width: auto !important; min-width: 0 !important; }
+            img { max-width: 100% !important; height: auto !important; }
+            pre { white-space: pre-wrap; }
+            a { word-break: break-word; }
+        }
     </style>
 `;
 
@@ -415,12 +431,12 @@ export function MessageBody({
     if (!rich) {
         return (
             <Root>
-                <Prose dangerouslySetInnerHTML={{ __html: sanitize(mainHtml) }} />
+                <Prose dangerouslySetInnerHTML={{ __html: sanitize(dropLeadingIndent(mainHtml)) }} />
                 {quotedHtml && (
                     <>
                         <Footer>{quoteToggle}</Footer>
                         {quotedShown && (
-                            <QuotedProse dangerouslySetInnerHTML={{ __html: sanitize(quotedHtml) }} />
+                            <QuotedProse dangerouslySetInnerHTML={{ __html: sanitize(dropLeadingIndent(quotedHtml)) }} />
                         )}
                     </>
                 )}

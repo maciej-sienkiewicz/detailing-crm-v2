@@ -49,6 +49,7 @@ import {
     Wallet,
 } from 'lucide-react';
 import type { CommAttachment, CommMessage, CommThread } from '../types';
+import { useMediaQuery } from '@/common/hooks';
 import { MessageBody } from './MessageBody';
 import { ReplyComposer } from './ReplyComposer';
 import { MarkAsLeadModal } from './MarkAsLeadModal';
@@ -95,6 +96,23 @@ const Header = styled.div`
         text-overflow: ellipsis;
         white-space: nowrap;
     }
+
+    /* Telefon: temat w dwóch linijkach zamiast uciętego w pół słowa, a adres e-mail
+       znika - nadawca stoi w karcie wiadomości tuż pod spodem. Nagłówek zabierał
+       trzy rzędy (temat, adres, guziki), czyli ponad sto pikseli z 844. */
+    @media (max-width: calc(${p => p.theme.breakpoints.md} - 1px)) {
+        padding: 8px 8px 6px;
+        row-gap: 4px;
+        .titles { min-width: 0; }
+        h3 {
+            white-space: normal;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            line-height: 1.3;
+        }
+        .email { display: none; }
+    }
     .sub {
         font-size: 12px;
         color: ${p => p.theme.colors.textSecondary};
@@ -114,7 +132,7 @@ const Header = styled.div`
     }
 `;
 
-const HeaderActions = styled.div`
+const HeaderActions = styled.div<{ $phone?: boolean }>`
     display: flex;
     align-items: center;
     gap: 6px;
@@ -122,6 +140,16 @@ const HeaderActions = styled.div`
     /* Na wąskim ekranie pasek schodzi pod temat, a nie wyjeżdża za krawędź. */
     flex-wrap: wrap;
     justify-content: flex-end;
+
+    /* Telefon: same ikony stanu w jednym rzędzie pod tematem, wyrównane do tytułu.
+       Krok następny schodzi do dolnego paska obok „Odpowiedz", menu - obok tematu. */
+    ${({ $phone }) =>
+        $phone &&
+        `
+        width: 100%;
+        justify-content: flex-start;
+        padding-left: 38px;
+        `}
 `;
 
 /**
@@ -459,13 +487,30 @@ const AttachmentChip = styled.button`
     color: ${p => p.theme.colors.textSecondary};
     border-radius: ${p => p.theme.radii.full};
     padding: 4px 10px;
+    max-width: 100%;
     font-size: 12px;
     cursor: pointer;
     font-family: inherit;
 
     &:hover { background: ${p => p.theme.colors.surfaceHover}; }
 
-    span { color: ${p => p.theme.colors.textMuted}; }
+    .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .size { color: ${p => p.theme.colors.textMuted}; flex-shrink: 0; }
+
+    /* Na telefonie załącznik to pełny kafel pod kciuk, nie pigułka na 24 px. */
+    @media (max-width: calc(${p => p.theme.breakpoints.md} - 1px)) {
+        width: 100%;
+        max-width: 100%;
+        min-height: 44px;
+        padding: 10px 12px;
+        border-radius: ${p => p.theme.radii.md};
+        font-size: 13.5px;
+        color: ${p => p.theme.colors.text};
+        text-align: left;
+
+        .name { flex: 1; }
+        svg { flex-shrink: 0; }
+    }
 `;
 
 /**
@@ -645,6 +690,8 @@ function ConversationViewImpl({
     onOpenFullMessage,
     onDownloadAttachment,
 }: ConversationViewProps) {
+    // Telefon: zwinięta odpowiedź, nagłówek w jednym rzędzie, krok następny na dole.
+    const isPhone = useMediaQuery('(max-width: 767px)');
     // Popover trzyma id wątku, w którym go otwarto - zmiana rozmowy zamyka go
     // sama z siebie, bez efektu synchronizującego stan.
     const [leadPopoverThreadId, setLeadPopoverThreadId] = useState<string | null>(null);
@@ -871,15 +918,24 @@ function ConversationViewImpl({
                                     : thread.participantEmail
                             }
                         >
-                            {thread.participantName
-                                ? `${thread.participantName} · ${thread.participantEmail}`
-                                : thread.participantEmail}
-                            {thread.kind === 'FORM' && ' · z formularza'}
+                            {/* Bez kropki środkowej (CLAUDE.md §4): nazwa i adres to dwa
+                                elementy obok siebie, a adres znika na telefonie. */}
+                            {thread.participantName ? (
+                                <>
+                                    {thread.participantName}{' '}
+                                    <span className="email">({thread.participantEmail})</span>
+                                </>
+                            ) : (
+                                thread.participantEmail
+                            )}
+                            {thread.kind === 'FORM' && ', z formularza'}
                         </span>
                     </div>
                 </div>
 
-                <HeaderActions>
+                {isPhone && <ThreadActionsMenu actions={menuActions} />}
+
+                <HeaderActions $phone={isPhone}>
                     {/* GRUPA 1 - kim jest ten klient.
 
                         „Ludzik" świeci się, gdy nadawca jest w kartotece, i jest szary,
@@ -977,14 +1033,18 @@ function ConversationViewImpl({
                     {/* GRUPA 3 - co zrobić. Jedyne miejsce w nagłówku, w którym
                         został NAPIS: krok następny musi dać się przeczytać, bo to on
                         odpowiada na „co mam teraz kliknąć". Reszta jest w menu. */}
-                    <ActionDivider />
-                    {primaryAction && (
-                        <PrimaryButton type="button" onClick={primaryAction.onSelect}>
-                            {primaryAction.icon}
-                            {primaryAction.label}
-                        </PrimaryButton>
+                    {!isPhone && (
+                        <>
+                            <ActionDivider />
+                            {primaryAction && (
+                                <PrimaryButton type="button" onClick={primaryAction.onSelect}>
+                                    {primaryAction.icon}
+                                    {primaryAction.label}
+                                </PrimaryButton>
+                            )}
+                            <ThreadActionsMenu actions={menuActions} />
+                        </>
                     )}
-                    <ThreadActionsMenu actions={menuActions} />
                 </HeaderActions>
                 {contactAnchor && (
                     <ContactCardPopover
@@ -1217,7 +1277,7 @@ function ConversationViewImpl({
                                     </div>
                                     <div className="meta">
                                         {formatDateTime(message.sentAt)}
-                                        {readElsewhere && <span>· przeczytano w innym kliencie</span>}
+                                        {readElsewhere && <span>, przeczytano w innym kliencie</span>}
                                     </div>
                                 </button>
                                 {message.bodyHtml && (
@@ -1251,8 +1311,8 @@ function ConversationViewImpl({
                                             onClick={() => onDownloadAttachment(attachment.id, attachment.fileName)}
                                         >
                                             <Download size={12} />
-                                            {attachment.fileName}
-                                            <span>{(attachment.sizeBytes / 1024).toFixed(0)} KB</span>
+                                            <span className="name">{attachment.fileName}</span>
+                                            <span className="size">{(attachment.sizeBytes / 1024).toFixed(0)} KB</span>
                                         </AttachmentChip>
                                     ))}
                                 </AttachmentRow>
@@ -1291,6 +1351,15 @@ function ConversationViewImpl({
             {replyTarget && thread.kind !== 'SYSTEM' && (
                 <ReplyComposer
                     key={`${thread.id}:${replyTarget.email ?? ''}`}
+                    collapsible={isPhone}
+                    // Na telefonie krok następny z nagłówka stoi obok „Odpowiedz" - wypełniony
+                    // jest „Odpowiedz", ten zostaje obrysowany (CLAUDE.md §2).
+                    barExtra={isPhone && primaryAction ? (
+                        <IconButton type="button" onClick={primaryAction.onSelect}>
+                            {primaryAction.icon}
+                            {primaryAction.label}
+                        </IconButton>
+                    ) : undefined}
                     threadId={thread.id}
                     threadLeadId={thread.leadId}
                     initialTo={replyTarget.email ?? ''}
