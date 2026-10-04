@@ -2,6 +2,8 @@ import { useState, useCallback, useRef, useLayoutEffect } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { RevenueKpiCard } from './RevenueKpiCard';
 import { ReservationsKpiCard } from './ReservationsKpiCard';
+import { LeadsWonKpiCard } from './LeadsWonKpiCard';
+import { useLeadOverview } from '@/modules/comms/hooks/useLeads';
 import { usePermissions } from '@/core/permissions';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
@@ -97,7 +99,17 @@ const ALL_SLIDES = [
 
 export const KpiSlider = () => {
   const { can } = usePermissions();
-  const SLIDES = ALL_SLIDES.filter(s => !s.requires || can([...s.requires]));
+  // Pieniądze z zapytań: slajd tylko dla obsługujących zapytania i tylko, gdy od
+  // poniedziałku coś trafiło do kalendarza - zero to nie pokwitowanie, tylko wyrzut.
+  const canLeads = can(['LEADS_MANAGE']);
+  const { data: leadOverview } = useLeadOverview(undefined, { enabled: canLeads });
+  const wonThisWeek = canLeads ? leadOverview?.confirmedValueThisWeek ?? 0 : 0;
+  const SLIDES = [
+    ...ALL_SLIDES.filter(s => !s.requires || can([...s.requires])),
+    ...(wonThisWeek > 0
+      ? [{ key: 'leads-won', color: '#10b981', component: <LeadsWonKpiCard valueCents={wonThisWeek} />, requires: null }]
+      : []),
+  ];
   const [active, setActive]       = useState(0);
   const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
   const [animKey, setAnimKey]     = useState(0);
@@ -124,7 +136,8 @@ export const KpiSlider = () => {
     goTo((active + 1) % SLIDES.length);
   }, [active, goTo]);
 
-  const slide = SLIDES[active];
+  // Slajd wygranych może zniknąć po odświeżeniu danych - indeks nie może wyjść poza listę.
+  const slide = SLIDES[Math.min(active, SLIDES.length - 1)];
 
   return (
     <Wrapper>

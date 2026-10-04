@@ -46,6 +46,8 @@ import {
     textToComposerHtml,
 } from '../utils/composerHtml';
 import { draftOriginLabel, pendingPlaceholders as findPendingPlaceholders } from '../utils/replyDraft';
+import { QUICK_REPLIES, type QuickReply } from '../utils/quickReplies';
+import { useChangeLeadStatus } from '../hooks/useLeads';
 import { ReplyDraftButton } from './ReplyDraftButton';
 import { ReplyDraftRevise } from './ReplyDraftRevise';
 import { RichTextEditor } from './RichTextEditor';
@@ -269,6 +271,30 @@ const AttachButton = styled.button<{ $active: boolean }>`
  * Lista dołączonych plików. Każdy chip pokazuje nazwę i wagę - waga jest tu
  * ważniejsza niż zwykle, bo limit dotyczy sumy i użytkownik ma widzieć, ile zostało.
  */
+/** Gotowe odpowiedzi - tylko przy pustym edytorze, ciche jak podpowiedź, nie jak akcja. */
+const QuickReplies = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: ${p => p.theme.colors.textMuted};
+
+    button {
+        border: 1px solid ${p => p.theme.colors.border};
+        background: ${p => p.theme.colors.surface};
+        color: ${p => p.theme.colors.textSecondary};
+        border-radius: 999px;
+        padding: 4px 11px;
+        font: inherit;
+        font-weight: 500;
+        cursor: pointer;
+        transition: border-color 150ms ease, color 150ms ease;
+
+        &:hover { border-color: #cbd5e1; color: ${p => p.theme.colors.text}; }
+    }
+`;
+
 const AttachmentList = styled.div`
     display: flex;
     flex-wrap: wrap;
@@ -424,6 +450,10 @@ export function ReplyComposer({
     // jednym kliknięciem.
     const [undoSnapshot, setUndoSnapshot] = useState<{ body: string; title: string } | null>(null);
     const [draft, setDraft] = useState<ReplyDraft | null>(null);
+    // Gotowa odmowa zamyka zapytanie po wysłaniu - dopóki użytkownik tego nie odwoła.
+    const [closeReason, setCloseReason] = useState<string | null>(null);
+    const changeLeadStatus = useChangeLeadStatus();
+    const contextLeadId = leadId ?? threadLeadId ?? null;
     const proofread = useProofread();
     const hasSignature = Boolean(signature?.bodyHtml);
     const appendSignature = hasSignature && (signatureChoice ?? signature?.enabledByDefault ?? false);
@@ -538,6 +568,12 @@ export function ReplyComposer({
         setUndoSnapshot(null);
     };
 
+    const applyQuickReply = (reply: QuickReply) => {
+        setBody(textToComposerHtml(reply.text));
+        setUndoSnapshot(null);
+        setCloseReason(reply.closesWithReason ?? null);
+    };
+
     const applyDraft = (next: ReplyDraft) => {
         setUndoSnapshot(bodyEmpty ? null : { body, title: 'Przywróć treść sprzed szkicu' });
         setBody(textToComposerHtml(next.bodyText));
@@ -566,7 +602,18 @@ export function ReplyComposer({
                     setAttachments([]);
                     setUndoSnapshot(null);
                     setDraft(null);
-                    showSuccess('Wysłano', 'Wiadomość trafi też do folderu Wysłane na serwerze');
+                    if (closeReason && contextLeadId) {
+                        changeLeadStatus.mutate(
+                            { leadId: contextLeadId, status: 'LOST', lostReasonCode: closeReason },
+                            {
+                                onSuccess: () => showSuccess('Wysłano i zamknięto', 'Zapytanie trafiło do archiwum jako „Poza zakresem usług"'),
+                                onError: () => showError('Wysłano, ale nie zamknięto zapytania', 'Zamknij je ręcznie w podglądzie leada'),
+                            }
+                        );
+                    } else {
+                        showSuccess('Wysłano', 'Wiadomość trafi też do folderu Wysłane na serwerze');
+                    }
+                    setCloseReason(null);
                     onSent?.(result.threadId);
                 },
                 onError: (error) => {
@@ -627,6 +674,7 @@ export function ReplyComposer({
                 onChange={(html) => {
                     setBody(html);
                     setUndoSnapshot(null);
+                    if (isComposerHtmlEmpty(html)) setCloseReason(null);
                 }}
                 placeholder={threadId ? 'Napisz odpowiedź…' : 'Napisz wiadomość…'}
                 onSubmit={submit}
@@ -657,6 +705,28 @@ export function ReplyComposer({
                     event.target.value = '';
                 }}
             />
+
+            {contextLeadId && bodyEmpty && !sendMail.isPending && (
+                <QuickReplies aria-label="Gotowe odpowiedzi">
+                    Szybka odpowiedź:
+                    {QUICK_REPLIES.map((reply) => (
+                        <button key={reply.id} type="button" onClick={() => applyQuickReply(reply)}>
+                            {reply.label}
+                        </button>
+                    ))}
+                </QuickReplies>
+            )}
+
+            {closeReason && !bodyEmpty && (
+                <DraftNote role="status">
+                    <div className="lines">
+                        <span>Po wysłaniu zapytanie zamknie się jako „Poza zakresem usług" - nie liczy się jako strata.</span>
+                    </div>
+                    <button type="button" className="close" onClick={() => setCloseReason(null)} aria-label="Nie zamykaj zapytania po wysłaniu">
+                        <X size={12} />
+                    </button>
+                </DraftNote>
+            )}
 
             {draft && (
                 <DraftNote role="status">
