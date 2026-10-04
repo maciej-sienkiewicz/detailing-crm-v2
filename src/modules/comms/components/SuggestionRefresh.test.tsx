@@ -6,9 +6,11 @@ import { theme } from '@/common/theme/theme';
 import { SuggestionRefresh } from './SuggestionRefresh';
 import type { SuggestionActions } from './SuggestedServiceRows';
 
-const idle = { isPending: false, isError: false, data: undefined, mutate: vi.fn() };
+const idle: { isPending: boolean; isError: boolean; data: unknown; mutate: () => void } = {
+    isPending: false, isError: false, data: undefined, mutate: vi.fn(),
+};
 
-const actions = (refresh: Partial<typeof idle> & { data?: unknown }) =>
+const actions = (refresh: Partial<typeof idle>) =>
     ({ accept: idle, reject: idle, refresh: { ...idle, ...refresh } }) as unknown as SuggestionActions;
 
 const renderPanel = (a: SuggestionActions) =>
