@@ -942,3 +942,29 @@ export interface ReplyDraft {
      */
     offer?: DraftOfferLine[];
 }
+
+// ── Diagnoza doboru sugestii („Odśwież") ─────────────────────────────────────
+
+export interface SuggestionCandidate {
+    serviceName: string;
+    stage: string;
+    /** Po polsku: na czym pozycja się zatrzymała. */
+    stageLabel: string;
+    shown: boolean;
+    /** Cytat z zapytania, którym model uzasadnił pozycję. */
+    quote: string | null;
+}
+
+export interface SuggestionDiagnostics {
+    ranAt: string;
+    /** Jedno zdanie: co wyszło z przeliczenia i dlaczego. */
+    outcome: string;
+    intentStatus: string | null;
+    reasoning: string | null;
+    candidates: SuggestionCandidate[];
+}
+
+export interface SuggestionRefreshResult {
+    lead: Lead;
+    diagnostics: SuggestionDiagnostics;
+}

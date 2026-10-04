@@ -17,6 +17,7 @@ import type {
     LeadOverview,
     SimilarVisits,
     MarkThreadAsLeadRequest,
+    SuggestionRefreshResult,
 } from '../types';
 
 export const leadsApi = {
@@ -217,8 +218,8 @@ export const leadsApi = {
         return data;
     },
 
-    /** „Sprawdź ponownie" dla sugestii — przepytuje model od nowa. */
-    refreshSuggestions: async (leadId: string): Promise<Lead> => {
+    /** „Odśwież" dla sugestii — przepytuje model od nowa i zwraca diagnozę przebiegu. */
+    refreshSuggestions: async (leadId: string): Promise<SuggestionRefreshResult> => {
         const { data } = await apiClient.post(`/v1/leads/${leadId}/services/suggestions/refresh`, {});
         return data;
     },
