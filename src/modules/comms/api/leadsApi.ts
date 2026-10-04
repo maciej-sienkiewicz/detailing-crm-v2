@@ -2,6 +2,7 @@
 import { apiClient } from '@/core/apiClient';
 import type {
     BulkDeleteResult,
+    BulkStatusResult,
     Lead,
     LeadAlertConfig,
     LeadAnalytics,
@@ -276,6 +277,25 @@ export const leadsApi = {
         const { data } = await apiClient.post(
             '/v1/leads/bulk-delete',
             { ids, deleteAppointments },
+            { skipErrorToast: true }
+        );
+        return data;
+    },
+
+    /**
+     * Ten sam status dla zaznaczonych spraw jednym żądaniem. Każda sprawa idzie po
+     * stronie serwera osobno; odpowiedź mówi, ile się zmieniło i czego nie dało się
+     * zmienić - pominięcie pojedynczej sprawy nie jest błędem całości.
+     */
+    bulkChangeStatus: async (
+        ids: string[],
+        status: LeadStatus,
+        lostReasonCode?: string,
+        lostNote?: string
+    ): Promise<BulkStatusResult> => {
+        const { data } = await apiClient.post(
+            '/v1/leads/bulk-status',
+            { ids, status, lostReasonCode, lostNote },
             { skipErrorToast: true }
         );
         return data;

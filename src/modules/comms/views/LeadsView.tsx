@@ -33,6 +33,7 @@ import {
     CheckSquare,
     ChevronDown,
     ChevronUp,
+    CircleDot,
     Search,
     Trash2,
     X,
@@ -42,6 +43,7 @@ import { useBreakpoint, useDebounce } from '@/common/hooks';
 import {
     CLOSED_LEAD_STATUSES,
     OPEN_LEAD_STATUSES,
+    useBulkChangeLeadStatus,
     useBulkDeleteLeads,
     useLeadsByStatuses,
     useLeadsSocket,
@@ -52,6 +54,8 @@ import { MailboxSyncPanel } from '../components/MailboxSyncPanel';
 import { LeadArchive } from '../components/LeadArchive';
 import { LeadDetailModal, LeadDetailPane } from '../components/LeadDetailModal';
 import { LeadQueueCard } from '../components/LeadQueueCard';
+import { LeadStatusPicker } from '../components/LeadStatusPicker';
+import { LeadLostReasonDialog } from '../components/LeadLostReasonDialog';
 import { WorklistPanel } from '../components/WorklistPanel';
 import { buildWorklist } from '../utils/leadWorklist';
 import type { LeadStatus } from '../types';
@@ -434,12 +438,45 @@ const BulkBar = styled.div`
         color: ${p => p.theme.colors.text};
         font-variant-numeric: tabular-nums;
     }
+
+    /* Telefon: licznik, „Zmień status", „Usuń" i zamknięcie nie mieszczą się w jednym
+       rzędzie - licznik idzie piętro wyżej, przyciski zostają razem pod kciukiem. */
+    @media (max-width: 480px) {
+        flex-wrap: wrap;
+        row-gap: 8px;
+
+        .count { flex-basis: 100%; }
+    }
 `;
 
 /**
  * Usuwanie w pasku wygląda groźnie, bo takie jest: to jedyna operacja w tym module,
  * której nie da się cofnąć. Reszta paska zostaje cicha.
  */
+/** Zwykła operacja zbiorcza - obok czerwonego „Usuń", ale bez jego wagi. */
+const BulkAction = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 14px;
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: ${p => p.theme.radii.full};
+    background: ${p => p.theme.colors.surface};
+    color: ${p => p.theme.colors.text};
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    cursor: pointer;
+    transition: all ${p => p.theme.transitions.fast};
+
+    &:hover:not(:disabled) { background: ${p => p.theme.colors.surfaceHover}; }
+    &:focus-visible { outline: 2px solid ${p => p.theme.colors.primary}; outline-offset: 2px; }
+    &:disabled { opacity: 0.6; cursor: default; }
+
+    svg { width: 15px; height: 15px; }
+`;
+
 const BulkDanger = styled.button`
     display: inline-flex;
     align-items: center;
@@ -561,6 +598,9 @@ export default function LeadsView() {
     const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
     const [bulkAppointmentsOpen, setBulkAppointmentsOpen] = useState(false);
     const bulkDelete = useBulkDeleteLeads();
+    const bulkStatus = useBulkChangeLeadStatus();
+    /** Okno powodu przegranej dla zaznaczenia - „Przegrany" bez powodu nie przejdzie. */
+    const [bulkLostOpen, setBulkLostOpen] = useState(false);
 
     /** Zwinięcie najspokojniejszej sekcji - studio z osiemdziesięcioma sprawami zwinie ją raz. */
     const [quietFolded, setQuietFolded] = useState(() => {
@@ -727,6 +767,35 @@ export default function LeadsView() {
             );
         },
         [bulkDelete, selectedInOrder, leaveSelection]
+    );
+
+    /*
+     * Zbiorcza zmiana statusu. Zaznaczenie znika po każdej próbie z tego samego powodu,
+     * co przy usuwaniu: część spraw mogła się zmienić, więc drugie kliknięcie znaczyłoby
+     * już co innego niż pierwsze.
+     */
+    const runBulkStatus = useCallback(
+        (status: LeadStatus, lostReasonCode?: string, lostNote?: string) => {
+            if (selectedInOrder.length === 0) return;
+            bulkStatus.mutate(
+                { ids: selectedInOrder, status, lostReasonCode, lostNote },
+                {
+                    onSettled: () => {
+                        setBulkLostOpen(false);
+                        leaveSelection();
+                    },
+                }
+            );
+        },
+        [bulkStatus, selectedInOrder, leaveSelection]
+    );
+
+    const askBulkStatus = useCallback(
+        (status: LeadStatus) => {
+            if (status === 'LOST') setBulkLostOpen(true);
+            else runBulkStatus(status);
+        },
+        [runBulkStatus]
     );
 
     const askBulkDelete = useCallback(() => {
@@ -1040,6 +1109,21 @@ export default function LeadsView() {
                                 ? 'Zaznacz sprawy'
                                 : `Zaznaczono ${selectedIds.size}`}
                         </span>
+                        <LeadStatusPicker
+                            onChange={askBulkStatus}
+                            disabled={selectedIds.size === 0 || bulkStatus.isPending}
+                            renderTrigger={({ open, toggle, disabled }) => (
+                                <BulkAction
+                                    type="button"
+                                    disabled={disabled}
+                                    aria-haspopup="listbox"
+                                    aria-expanded={open}
+                                    onClick={toggle}
+                                >
+                                    <CircleDot /> {bulkStatus.isPending ? 'Zmieniam…' : 'Zmień status'}
+                                </BulkAction>
+                            )}
+                        />
                         <BulkDanger
                             type="button"
                             disabled={selectedIds.size === 0 || bulkDelete.isPending}
@@ -1135,6 +1219,17 @@ export default function LeadsView() {
                 onConfirm={() => runBulkDelete(false)}
                 onCancel={() => setBulkConfirmOpen(false)}
             />
+
+            {bulkLostOpen && (
+                <LeadLostReasonDialog
+                    bulk={{
+                        count: selectedInOrder.length,
+                        pending: bulkStatus.isPending,
+                        onSubmit: (reason, note) => runBulkStatus('LOST', reason, note),
+                    }}
+                    onClose={() => setBulkLostOpen(false)}
+                />
+            )}
 
             <ChoiceModal
                 isOpen={bulkAppointmentsOpen}

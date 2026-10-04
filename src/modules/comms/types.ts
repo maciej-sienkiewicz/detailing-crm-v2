@@ -395,6 +395,14 @@ export interface BulkDeleteResult {
     skipped: { leadId: string; reason: string }[];
 }
 
+export interface BulkStatusResult {
+    /** Ile spraw wskazał użytkownik, po odsianiu duplikatów. */
+    requested: number;
+    /** Ile spraw ma teraz docelowy status (także te, które już go miały). */
+    changed: number;
+    skipped: { leadId: string; reason: string }[];
+}
+
 export interface LeadPage {
     items: Lead[];
     total: number;
