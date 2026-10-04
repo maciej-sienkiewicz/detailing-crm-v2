@@ -4,7 +4,7 @@
 // przyciskiem „wiadomość graficzna").
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
-import { describeHtml, isRichHtml, plainPreview, splitQuotedHistory, trimEmptyEdges } from './emailHtml';
+import { describeHtml, dropLeadingIndent, isRichHtml, plainPreview, splitQuotedHistory, trimEmptyEdges } from './emailHtml';
 
 const textOf = (html: string): string =>
     (new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html').body.textContent ?? '')
@@ -301,5 +301,25 @@ describe('splitQuotedHistory - klienci spoza listy fraz', () => {
         expect(quotedHtml).toBeNull();
         expect(mainHtml).toContain('proszę o wycenę na:');
         expect(mainHtml).toContain('polerowanie maski');
+    });
+});
+
+describe('dropLeadingIndent', () => {
+    it('zdejmuje wcięcie z twardych spacji na początku akapitu', () => {
+        const html = '<div>&nbsp; &nbsp; mam Alfę Romeo MiTo</div><div><br></div><div>&nbsp; Chciałbym naprawić</div>';
+        expect(dropLeadingIndent(html)).toBe('<div>mam Alfę Romeo MiTo</div><div><br></div><div>Chciałbym naprawić</div>');
+    });
+
+    it('zdejmuje wcięcie także po <br>', () => {
+        expect(dropLeadingIndent('<p>Pozdrawiam<br>&nbsp;&nbsp;Jan</p>')).toBe('<p>Pozdrawiam<br>Jan</p>');
+    });
+
+    it('zostawia samotne &nbsp; - to celowa pusta linijka', () => {
+        expect(dropLeadingIndent('<div>Raz</div><div>&nbsp;</div><div>Dwa</div>')).toBe('<div>Raz</div><div>&nbsp;</div><div>Dwa</div>');
+    });
+
+    it('nie rusza twardych spacji w środku zdania', () => {
+        const html = '<div>koszty przygotowania&nbsp; takiego auta</div>';
+        expect(dropLeadingIndent(html)).toBe(html);
     });
 });

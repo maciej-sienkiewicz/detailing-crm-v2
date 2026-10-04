@@ -183,9 +183,9 @@ const Separator = styled.span`
     background: ${p => p.theme.colors.border};
 `;
 
-const Editable = styled.div`
-    min-height: 96px;
-    max-height: 45vh;
+const Editable = styled.div<{ $tall?: boolean }>`
+    min-height: ${({ $tall }) => ($tall ? '38vh' : '96px')};
+    max-height: ${({ $tall }) => ($tall ? 'none' : '45vh')};
     overflow-y: auto;
     padding: 10px 12px;
     font-size: 14px;
@@ -314,6 +314,8 @@ interface RichTextEditorProps {
     toolbarExtra?: ReactNode;
     /** Pliki upuszczone na obszar edytora - obsługuje rodzic (kompozytor). */
     onDropFiles?: (files: File[]) => void;
+    /** Kompozytor na cały ekran telefonu: pole pisze się na dużej wysokości i rośnie z treścią. */
+    tall?: boolean;
 }
 
 export function RichTextEditor({
@@ -324,6 +326,7 @@ export function RichTextEditor({
     disabled,
     toolbarExtra,
     onDropFiles,
+    tall = false,
 }: RichTextEditorProps) {
     const editableRef = useRef<HTMLDivElement>(null);
     const [focused, setFocused] = useState(false);
@@ -730,6 +733,7 @@ export function RichTextEditor({
                 )}
             </Toolbar>
             <Editable
+                $tall={tall}
                 ref={editableRef}
                 contentEditable={!disabled}
                 suppressContentEditableWarning
