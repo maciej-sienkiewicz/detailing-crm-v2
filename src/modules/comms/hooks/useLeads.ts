@@ -9,6 +9,7 @@ import { apiClient } from '@/core/apiClient';
 import { useToast } from '@/common/components/Toast';
 import { hasMaskedPii, mergeMaskedPii } from '@/common/pii';
 import { leadsApi } from '../api/leadsApi';
+import { LEAD_STATUS_LABELS } from '../types';
 import { COMMS_THREADS_KEY } from './useComms';
 import { DEFAULT_STAGNATION, type StagnationThresholds } from '../utils/leadUrgency';
 import type {
@@ -535,6 +536,56 @@ export const useBulkDeleteLeads = () => {
             const message =
                 (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
             showError('Nie udało się usunąć zaznaczonych spraw', message ?? 'Spróbuj ponownie');
+        },
+    });
+};
+
+/**
+ * Ten sam status dla wielu spraw naraz („te pięć zamykam jako przegrane").
+ *
+ * Bez optymistycznej podmiany w cache: status przestawia sprawy między sekcjami
+ * kolejki i do archiwum, a tę układankę zna serwer. Po odpowiedzi unieważniamy listy
+ * i szczegóły zmienionych spraw. Komunikat - jak przy usuwaniu - osobno o powodzeniu
+ * i o pominięciach, z powodem pierwszego z nich.
+ */
+export const useBulkChangeLeadStatus = () => {
+    const queryClient = useQueryClient();
+    const invalidate = useLeadInvalidation();
+    const { showSuccess, showError, showInfo } = useToast();
+    return useMutation({
+        mutationFn: ({
+            ids,
+            status,
+            lostReasonCode,
+            lostNote,
+        }: {
+            ids: string[];
+            status: LeadStatus;
+            lostReasonCode?: string;
+            lostNote?: string;
+        }) => leadsApi.bulkChangeStatus(ids, status, lostReasonCode, lostNote),
+        onSuccess: (result, { ids, status }) => {
+            ids.forEach((id) => queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'detail', id] }));
+            invalidate();
+            if (result.changed > 0) {
+                showSuccess(
+                    result.changed === 1 ? 'Status zmieniony' : `Zmieniono status ${result.changed} spraw`,
+                    `Nowy status: ${LEAD_STATUS_LABELS[status]}`
+                );
+            }
+            if (result.skipped.length > 0) {
+                showInfo(
+                    result.skipped.length === 1
+                        ? 'Jednej sprawy nie zmieniono'
+                        : `${result.skipped.length} spraw nie zmieniono`,
+                    result.skipped[0].reason
+                );
+            }
+        },
+        onError: (error) => {
+            const message =
+                (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            showError('Nie udało się zmienić statusu zaznaczonych spraw', message ?? 'Spróbuj ponownie');
         },
     });
 };

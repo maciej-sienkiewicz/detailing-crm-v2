@@ -66,7 +66,13 @@ const ReasonOption = styled.button<{ $active: boolean }>`
 `;
 
 interface LeadLostReasonDialogProps {
-    leadId: string;
+    /** Jedna sprawa - okno samo zmienia jej status. */
+    leadId?: string;
+    /**
+     * Wiele spraw naraz (zaznaczenie w kolejce): okno tylko zbiera powód, a zmianę
+     * robi wywołujący. Pytanie i słownik powodów są te same co przy jednej sprawie.
+     */
+    bulk?: { count: number; pending: boolean; onSubmit: (reason: string, note?: string) => void };
     onClose: () => void;
 }
 
@@ -74,7 +80,7 @@ interface LeadLostReasonDialogProps {
  * Okno jest otwarte dokładnie wtedy, gdy jest zamontowane - wybrany powód żyje
  * więc tyle, co jedno otwarcie, i nie trzeba go kasować efektem przy następnym.
  */
-export function LeadLostReasonDialog({ leadId, onClose }: LeadLostReasonDialogProps) {
+export function LeadLostReasonDialog({ leadId, bulk, onClose }: LeadLostReasonDialogProps) {
     const [reason, setReason] = useState<string | null>(null);
     const [note, setNote] = useState('');
     const { data: dictionaries } = useLeadDictionaries();
@@ -83,6 +89,11 @@ export function LeadLostReasonDialog({ leadId, onClose }: LeadLostReasonDialogPr
 
     const confirm = () => {
         if (!reason) return;
+        if (bulk) {
+            bulk.onSubmit(reason, note || undefined);
+            return;
+        }
+        if (!leadId) return;
         changeStatus.mutate(
             { leadId, status: 'LOST', lostReasonCode: reason, lostNote: note || undefined },
             {
@@ -99,7 +110,11 @@ export function LeadLostReasonDialog({ leadId, onClose }: LeadLostReasonDialogPr
     return (
         <Backdrop onClick={onClose}>
             <Card onClick={(event) => event.stopPropagation()}>
-                <h4>Dlaczego przegraliśmy to zapytanie?</h4>
+                <h4>
+                    {bulk && bulk.count > 1
+                        ? `Dlaczego przegraliśmy te zapytania (${bulk.count})?`
+                        : 'Dlaczego przegraliśmy to zapytanie?'}
+                </h4>
                 {(dictionaries?.lostReasons ?? []).map((option) => (
                     <ReasonOption
                         key={option.code}
@@ -116,7 +131,7 @@ export function LeadLostReasonDialog({ leadId, onClose }: LeadLostReasonDialogPr
                 />
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                     <IconButton onClick={onClose}>Anuluj</IconButton>
-                    <PrimaryButton disabled={!reason || changeStatus.isPending} onClick={confirm}>
+                    <PrimaryButton disabled={!reason || changeStatus.isPending || bulk?.pending} onClick={confirm}>
                         Zamknij jako przegrany
                     </PrimaryButton>
                 </div>

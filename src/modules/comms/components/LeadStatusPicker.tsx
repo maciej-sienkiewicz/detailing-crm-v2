@@ -109,7 +109,8 @@ export interface StatusTriggerApi {
 }
 
 interface LeadStatusPickerProps {
-    status: LeadStatus;
+    /** Bieżący status; brak przy zmianie zbiorczej - zaznaczone sprawy mają różne. */
+    status?: LeadStatus;
     onChange: (status: LeadStatus) => void;
     disabled?: boolean;
     renderTrigger?: (api: StatusTriggerApi) => ReactNode;
@@ -166,8 +167,8 @@ export function LeadStatusPicker({ status, onChange, disabled, renderTrigger }: 
                     aria-expanded={open}
                     onClick={toggle}
                 >
-                    <Dot $color={LEAD_STATUS_COLORS[status].fg} />
-                    {LEAD_STATUS_LABELS[status]}
+                    {status && <Dot $color={LEAD_STATUS_COLORS[status].fg} />}
+                    {status ? LEAD_STATUS_LABELS[status] : 'Zmień status'}
                     <ChevronDown />
                 </Trigger>
             )}
