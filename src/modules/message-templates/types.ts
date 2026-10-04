@@ -32,6 +32,8 @@ export interface ChannelDraft {
   offsetMinutes?: number;
   subject?: string;
   body: string;
+  /** „Domyślnie zaznacz" - stan początkowy pola „wyślij" w oknach aplikacji. */
+  checkedByDefault?: boolean;
 }
 
 /** The whole screen's editable state: message → channel → draft. */

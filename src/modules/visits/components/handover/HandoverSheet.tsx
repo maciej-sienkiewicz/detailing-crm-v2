@@ -131,7 +131,7 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
     // decyzja zapada w kroku 1. Tu odtwarzamy termin tą samą regułą, którą backend
     // zastosuje u siebie, żeby na wyniku pokazać, kiedy podziękowanie wyjdzie.
     const thankYouAt =
-        handover.thankYouSms.available && handover.state.thankYouSms
+        handover.thankYouSms.available && handover.thankYouSmsChecked
             ? defaultThankYouSendAt()
             : null;
 
@@ -186,7 +186,7 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                     nie zobaczy tu nic: nie ma czego zaplanować. */}
                                 {handover.thankYouSms.available && (
                                     <ThankYouSmsSection
-                                        enabled={handover.state.thankYouSms}
+                                        enabled={handover.thankYouSmsChecked}
                                         onEnabledChange={value => handover.patch({ thankYouSms: value })}
                                     />
                                 )}

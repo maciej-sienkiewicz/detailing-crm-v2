@@ -236,6 +236,8 @@ type Target = 'subject' | 'body';
 export const ChannelEditor: React.FC<ChannelEditorProps> = ({ spec, channel, draft, onPatch }) => {
   const isSms = channel === 'sms';
   const placeholders = (isSms ? spec.sms : spec.email)?.placeholders ?? [];
+  // Gdzie pracownik zaznacza „wyślij" - tylko te kanały mają stan domyślny do ustawienia.
+  const choice = (isSms ? spec.sms : spec.email)?.choice;
   const subject = draft.subject ?? '';
   const ids = useId();
 
@@ -293,6 +295,25 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({ spec, channel, dra
           ariaLabel="Wysyłaj tę wiadomość"
         />
       </Switch>
+
+      {choice && (
+        <Switch>
+          <SwitchText>
+            <div>Domyślnie zaznacz</div>
+            <div>
+              {draft.checkedByDefault
+                ? `${choice} startuje zaznaczone. Pracownik może je odznaczyć.`
+                : `${choice} startuje puste. Pracownik zaznacza je, gdy chce wysłać.`}
+            </div>
+          </SwitchText>
+          <Toggle
+            size="sm"
+            checked={draft.checkedByDefault ?? false}
+            onChange={next => onPatch({ checkedByDefault: next })}
+            ariaLabel="Domyślnie zaznacz"
+          />
+        </Switch>
+      )}
 
       {showTiming && (
         <Field>

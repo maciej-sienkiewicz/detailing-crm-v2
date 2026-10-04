@@ -46,4 +46,29 @@ describe('ChannelEditor', () => {
         expect(screen.getByText('Treść wiadomości')).toBeInTheDocument();
         expect(screen.getByRole('switch', { name: 'Wysyłaj tę wiadomość' })).not.toBeChecked();
     });
+
+    it('„Domyślnie zaznacz" jest przy wiadomościach, które pracownik zaznacza w oknie', async () => {
+        const onPatch = vi.fn();
+        const booking = MESSAGES.find(m => m.key === 'bookingConfirmation')!;
+        render(
+            <ThemeProvider theme={theme}>
+                <ChannelEditor spec={booking} channel="sms" draft={{ enabled: true, body: 'x' }} onPatch={onPatch} />
+            </ThemeProvider>
+        );
+        const toggle = screen.getByRole('switch', { name: 'Domyślnie zaznacz' });
+        expect(toggle).not.toBeChecked();
+        expect(screen.getByText(/w oknie nowej rezerwacji startuje puste/)).toBeInTheDocument();
+        await userEvent.click(toggle);
+        expect(onPatch).toHaveBeenCalledWith({ checkedByDefault: true });
+    });
+
+    it('wiadomość wysyłana wyłącznie automatycznie nie ma „Domyślnie zaznacz"', () => {
+        const reminder = MESSAGES.find(m => m.key === 'delayedReminder')!;
+        render(
+            <ThemeProvider theme={theme}>
+                <ChannelEditor spec={reminder} channel="sms" draft={{ enabled: true, body: 'x', offsetMinutes: 60 }} onPatch={vi.fn()} />
+            </ThemeProvider>
+        );
+        expect(screen.queryByRole('switch', { name: 'Domyślnie zaznacz' })).toBeNull();
+    });
 });

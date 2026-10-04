@@ -17,6 +17,7 @@ import type { SignatureRequestSocketEvent } from '../hooks/useSignatureRequestsS
 import { DocumentPreview } from './DocumentPreview';
 import { AbandonCheckInDialog } from './AbandonCheckInDialog';
 import { NotificationSection, defaultNotificationOptions, toConfirmVisitOptions } from './NotificationSection';
+import { useMessageDefaults } from '@/modules/message-templates/hooks/useMessageDefaults';
 import { useVisitCardSettings } from '@/modules/visit-card/hooks/useVisitCardSettings';
 import type { NotificationOptions } from './NotificationSection';
 import type { ProtocolResponse } from '../types';
@@ -183,8 +184,21 @@ export const SigningRequirementModal = ({
 
     const { sendByDefault: visitCardSendByDefault } = useVisitCardSettings();
 
+    // „Domyślnie zaznacz" przy wiadomościach (Ustawienia → Wiadomości do klientów).
+    // Bez dostępu do ustawień - jak dotąd: e-mail zaznaczony, gdy wiadomość jest
+    // włączona, a Karta według ustawienia Karty Wizyty. Kartę wysyłamy kanałem studia
+    // (SMS, e-mail albo oba), więc wystarczy, że zaznaczony jest którykolwiek z nich.
+    const messageDefaults = useMessageDefaults();
+    const welcomeDefault = messageDefaults.email('visitWelcome');
+    const sendEmailByDefault = visitWelcomeEnabled && (welcomeDefault ?? true);
+    const cardSms = messageDefaults.sms('visitCardLink');
+    const cardEmail = messageDefaults.email('visitCardLink');
+    const sendVisitCardByDefault = cardSms === undefined && cardEmail === undefined
+        ? visitCardSendByDefault
+        : Boolean(cardSms || cardEmail);
+
     const [notifOptions, setNotifOptions] = useState<NotificationOptions>(
-        () => defaultNotificationOptions(true, visitWelcomeEnabled, hasPhotos, hasDamageMap, visitCardSendByDefault),
+        () => defaultNotificationOptions(true, sendEmailByDefault, hasPhotos, hasDamageMap, sendVisitCardByDefault),
     );
 
     /**
@@ -257,9 +271,9 @@ export const SigningRequirementModal = ({
             setSigningByProtocol(Object.fromEntries(
                 signedKey.split(',').filter(Boolean).map(id => [id, { phase: 'signed', requestId: '' } as SigningState])
             ));
-            setNotifOptions(defaultNotificationOptions(hasProtocol, visitWelcomeEnabled, hasPhotos, hasDamageMap, visitCardSendByDefault));
+            setNotifOptions(defaultNotificationOptions(hasProtocol, sendEmailByDefault, hasPhotos, hasDamageMap, sendVisitCardByDefault));
         }
-    }, [isOpen, hasProtocol, visitWelcomeEnabled, hasPhotos, hasDamageMap, visitCardSendByDefault, signedKey]);
+    }, [isOpen, hasProtocol, sendEmailByDefault, hasPhotos, hasDamageMap, sendVisitCardByDefault, signedKey]);
 
     // Close tablet picker when clicking outside
     useEffect(() => {

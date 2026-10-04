@@ -65,15 +65,19 @@ export interface NotificationOptions {
     };
 }
 
+/**
+ * Stan początkowy sekcji. `sendEmailByDefault` i `sendVisitCardByDefault` liczy rodzic
+ * z „Domyślnie zaznacz" przy wiadomościach (Ustawienia → Wiadomości do klientów).
+ */
 export const defaultNotificationOptions = (
     hasProtocol = true,
-    visitWelcomeEnabled = true,
+    sendEmailByDefault = true,
     hasPhotos = false,
     hasDamageMap = false,
-    visitCardSendByDefault = false,
+    sendVisitCardByDefault = false,
 ): NotificationOptions => ({
-    sendEmail: visitWelcomeEnabled,
-    sendVisitCard: visitCardSendByDefault,
+    sendEmail: sendEmailByDefault,
+    sendVisitCard: sendVisitCardByDefault,
     emailOptions: {
         attachProtocol: hasProtocol,
         attachPhotos: hasPhotos,

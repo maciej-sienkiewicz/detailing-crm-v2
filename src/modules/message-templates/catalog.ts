@@ -31,6 +31,12 @@ export interface ChannelSpec {
   ruleKey: string;
   /** Placeholders this message can fill. Mirrors MessageTemplateKind on the backend. */
   placeholders: string[];
+  /**
+   * Gdzie pracownik decyduje, czy ta wiadomość wyjdzie - pole „wyślij" w oknie aplikacji.
+   * Tylko takie kanały dostają przełącznik „Domyślnie zaznacz"; wiadomości wysyłane
+   * wyłącznie automatycznie albo jednym przyciskiem nie mają czego zaznaczać.
+   */
+  choice?: string;
 }
 
 export interface MessageSpec {
@@ -60,7 +66,11 @@ export const MESSAGES: MessageSpec[] = [
     description:
       'Wychodzi natychmiast po zapisaniu rezerwacji. Operator może wysłać ją także ręcznie z formularza rezerwacji: wtedy przełącznik jest pomijany, ale treść nadal pochodzi z tego szablonu.',
     trigger: 'Natychmiast po rezerwacji',
-    sms: { ruleKey: 'bookingConfirmation', placeholders: [...CUSTOMER, ...SCHEDULE] },
+    sms: {
+      ruleKey: 'bookingConfirmation',
+      placeholders: [...CUSTOMER, ...SCHEDULE],
+      choice: 'Pole „Wyślij SMS z potwierdzeniem rezerwacji” w oknie nowej rezerwacji',
+    },
   },
   {
     key: 'rescheduleConfirmation',
@@ -78,7 +88,11 @@ export const MESSAGES: MessageSpec[] = [
     description:
       'Strona rezerwacji ze szczegółami terminu i zakresem usług z wyceną, wysyłana zanim pojazd trafi do serwisu. Wstaw zmienną link, żeby dodać adres strony. Pojazd bywa jeszcze nieznany na tym etapie - wtedy {{pojazd}} i {{rejestracja}} zostają puste. Numeru wizyty tu nie ma: wizyta powstaje dopiero przy przyjęciu pojazdu.',
     trigger: 'Przy wysyłce Karty Rezerwacji',
-    sms: { ruleKey: 'reservationCardLink', placeholders: [...CUSTOMER, ...VEHICLE, ...SCHEDULE, 'link'] },
+    sms: {
+      ruleKey: 'reservationCardLink',
+      placeholders: [...CUSTOMER, ...VEHICLE, ...SCHEDULE, 'link'],
+      choice: 'Pole „Wyślij SMS z linkiem do Karty Wizyty” w oknie nowej rezerwacji',
+    },
     email: { ruleKey: 'reservationCardLink', placeholders: [...CUSTOMER_FULL, ...VEHICLE, ...SCHEDULE, 'link'] },
   },
   {
@@ -89,7 +103,11 @@ export const MESSAGES: MessageSpec[] = [
       'Przypomnienie na kilka godzin lub dni przed zaplanowaną wizytą. Pomijamy rezerwacje odwołane, porzucone oraz takie, przy których pojazd już do nas trafił.',
     trigger: 'Przed wizytą',
     timing: 'beforeVisit',
-    sms: { ruleKey: 'preVisit', placeholders: [...CUSTOMER, ...SCHEDULE] },
+    sms: {
+      ruleKey: 'preVisit',
+      placeholders: [...CUSTOMER, ...SCHEDULE],
+      choice: 'Pole „Wyślij SMS przypominający przed wizytą” w oknie nowej rezerwacji',
+    },
   },
 
   {
@@ -102,6 +120,7 @@ export const MESSAGES: MessageSpec[] = [
     email: {
       ruleKey: 'visitWelcome',
       placeholders: [...CUSTOMER_FULL, ...VEHICLE, ...VISIT, ...SCHEDULE],
+      choice: 'Pole „Wyślij e-mail potwierdzający” przy przyjęciu pojazdu',
     },
   },
   {
@@ -114,10 +133,12 @@ export const MESSAGES: MessageSpec[] = [
     sms: {
       ruleKey: 'visitCardLink',
       placeholders: [...CUSTOMER, ...VEHICLE, ...VISIT, ...SCHEDULE, 'link'],
+      choice: 'Pole „Wyślij link do Karty Wizyty” przy przyjęciu pojazdu',
     },
     email: {
       ruleKey: 'visitCardLink',
       placeholders: [...CUSTOMER_FULL, ...VEHICLE, ...VISIT, ...SCHEDULE, 'link'],
+      choice: 'Pole „Wyślij link do Karty Wizyty” przy przyjęciu pojazdu',
     },
   },
 
@@ -137,7 +158,11 @@ export const MESSAGES: MessageSpec[] = [
     description:
       'Upselling: pracownik dodał na Karcie Wizyty propozycję dodatkowych usług i zaznaczył „powiadom klienta”. Klient dostaje informację z linkiem do karty — bez „odpisz TAK”; zgodę potwierdza dopiero wtedy, gdy sam wybierze usługę na karcie. Poza godzinami 12:00–18:00 SMS czeka w kolejce.',
     trigger: 'Gdy pracownik doda propozycję z powiadomieniem',
-    sms: { ruleKey: 'upsellSuggestion', placeholders: [...CUSTOMER, 'uslugi', 'link'] },
+    sms: {
+      ruleKey: 'upsellSuggestion',
+      placeholders: [...CUSTOMER, 'uslugi', 'link'],
+      choice: 'Pole „Czy powiadomić klienta o dodanych usługach?” na Karcie Wizyty',
+    },
   },
   {
     key: 'signatureRequest',
@@ -156,10 +181,15 @@ export const MESSAGES: MessageSpec[] = [
     description:
       'Wysyłane jednym kliknięciem z widoku wizyty, gdy prace zostały zakończone i auto czeka na klienta.',
     trigger: 'Po oznaczeniu gotowości',
-    sms: { ruleKey: 'visitReadyForPickup', placeholders: [...CUSTOMER, ...VEHICLE, ...VISIT] },
+    sms: {
+      ruleKey: 'visitReadyForPickup',
+      placeholders: [...CUSTOMER, ...VEHICLE, ...VISIT],
+      choice: 'Wybór „SMS” w oknie „Pojazd gotowy do odbioru”',
+    },
     email: {
       ruleKey: 'visitReadyForPickup',
       placeholders: [...CUSTOMER_FULL, ...VEHICLE, ...VISIT, ...SCHEDULE],
+      choice: 'Wybór „E-mail” w oknie „Pojazd gotowy do odbioru”',
     },
   },
 
@@ -171,7 +201,11 @@ export const MESSAGES: MessageSpec[] = [
       'Wysyłane tylko po wizytach faktycznie zakończonych. Godzinę wybiera pracownik przy wydaniu pojazdu (12:00-18:00), a poniższe opóźnienie obowiązuje tylko wtedy, gdy przy wydaniu nikt jej nie ustawił. Rezerwacja, na którą klient się nie stawił, nie dostanie tej wiadomości.',
     trigger: 'Po odbiorze pojazdu',
     timing: 'afterPickup',
-    sms: { ruleKey: 'postVisit', placeholders: [...CUSTOMER, ...SCHEDULE] },
+    sms: {
+      ruleKey: 'postVisit',
+      placeholders: [...CUSTOMER, ...SCHEDULE],
+      choice: 'Pole „Podziękowanie SMS” przy wydaniu pojazdu',
+    },
   },
   {
     key: 'delayedReminder',
@@ -194,6 +228,7 @@ export const MESSAGES: MessageSpec[] = [
     email: {
       ruleKey: 'batchOrderClose',
       placeholders: ['kontrahent', 'okres', 'kwota_brutto', 'liczba_wpisow'],
+      choice: 'Pole „Wyślij zestawienie kontrahentowi e-mailem” przy zamknięciu miesiąca',
     },
   },
 ];

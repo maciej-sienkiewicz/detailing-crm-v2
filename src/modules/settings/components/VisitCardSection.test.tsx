@@ -50,17 +50,18 @@ afterEach(() => {
 });
 
 describe('VisitCardSection', () => {
-    it('renders both settings as accessible switches with the server state', async () => {
+    it('renders the setting as an accessible switch with the server state', async () => {
         renderSection();
         expect(await screen.findByRole('switch', { name: 'Czy korzystać z Karty Wizyty?' })).toBeChecked();
-        expect(screen.getByRole('switch', { name: 'Czy domyślnie wysyłać Kartę Wizyty?' })).not.toBeChecked();
+        // Stan początkowy wysyłki ustawia „Domyślnie zaznacz" przy wiadomościach - tu już nie ma drugiego przełącznika.
+        expect(screen.queryByRole('switch', { name: 'Czy domyślnie wysyłać Kartę Wizyty?' })).toBeNull();
     });
 
     it('saves a switch and confirms it with a toast', async () => {
         renderSection();
-        await userEvent.click(await screen.findByRole('switch', { name: 'Czy domyślnie wysyłać Kartę Wizyty?' }));
-        await waitFor(() => expect(visitCardApi.updateSettings).toHaveBeenCalledWith({ sendByDefault: true }));
-        expect(await screen.findByText('Zapisano')).toBeInTheDocument();
+        await userEvent.click(await screen.findByRole('switch', { name: 'Czy korzystać z Karty Wizyty?' }));
+        await waitFor(() => expect(visitCardApi.updateSettings).toHaveBeenCalledWith({ enabled: false }));
+        expect(await screen.findByText('Karta wizyty wyłączona')).toBeInTheDocument();
     });
 
     it('a failed load shows a retry notice and no switches', async () => {
