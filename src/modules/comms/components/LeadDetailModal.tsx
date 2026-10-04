@@ -110,6 +110,7 @@ import { LeadStatusPicker } from './LeadStatusPicker';
 import { LeadTimeline } from './LeadTimeline';
 import { SimilarVisitsSection } from './SimilarVisitsSection';
 import { SuggestedServiceRows } from './SuggestedServiceRows';
+import { SuggestionRefresh } from './SuggestionRefresh';
 import { RecordCallbackDialog } from './RecordCallbackDialog';
 import { IconButton, PrimaryButton, formatDateTime, formatMoney } from './shared';
 
@@ -2027,6 +2028,9 @@ export function LeadDetailModal({
                                                     actions={suggestionActions}
                                                 />
                                             )}
+                                            {/* Także bez sugestii: pusta lista to właśnie przypadek,
+                                                w którym chce się zobaczyć, czemu dobór nic nie dał. */}
+                                            <SuggestionRefresh actions={suggestionActions} />
                                         </>
                                     )}
                                     {editingServices !== null && (
