@@ -67,6 +67,11 @@ export interface SmsAutomationRule {
    * address: those are known when the template is written, so they go in as plain text.
    */
   messageTemplate: string;
+  /**
+   * „Domyślnie zaznacz": czy pole „wyślij" przy tej wiadomości w oknach aplikacji
+   * (rezerwacja, przyjęcie, wydanie…) startuje zaznaczone. Samo niczego nie wysyła.
+   */
+  checkedByDefault?: boolean;
 }
 
 /** Every SMS whose text the studio owns. The backend rejects a template using any other token. */

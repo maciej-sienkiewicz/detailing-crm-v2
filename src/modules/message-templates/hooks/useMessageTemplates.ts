@@ -28,6 +28,7 @@ function toDraft(sms: SmsAutomationConfig, email: EmailAutomationConfig): Templa
       entry.sms = {
         enabled: rule?.enabled ?? false,
         body: rule?.messageTemplate ?? '',
+        checkedByDefault: rule?.checkedByDefault ?? false,
         offsetMinutes: spec.timing
           ? rule?.offsetMinutes ?? DEFAULT_OFFSET_MINUTES[spec.key] ?? 60
           : undefined,
@@ -40,6 +41,7 @@ function toDraft(sms: SmsAutomationConfig, email: EmailAutomationConfig): Templa
         enabled: rule?.enabled ?? false,
         subject: rule?.subjectTemplate ?? '',
         body: rule?.bodyTemplate ?? '',
+        checkedByDefault: rule?.checkedByDefault ?? false,
       };
     }
 
@@ -63,6 +65,7 @@ function toSmsConfig(base: SmsAutomationConfig, draft: TemplatesDraft): SmsAutom
       ...base[key],
       enabled: d.enabled,
       messageTemplate: d.body,
+      checkedByDefault: d.checkedByDefault ?? false,
       ...(d.offsetMinutes !== undefined ? { offsetMinutes: d.offsetMinutes } : {}),
     };
   });
@@ -80,6 +83,7 @@ function toEmailConfig(base: EmailAutomationConfig, draft: TemplatesDraft): Emai
       enabled: d.enabled,
       subjectTemplate: d.subject ?? '',
       bodyTemplate: d.body,
+      checkedByDefault: d.checkedByDefault ?? false,
     };
   });
   return next;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import styled from 'styled-components';
 import { MessageSquare, Mail } from 'lucide-react';
 import {
@@ -17,6 +17,7 @@ import { useCapability, UpsellModal } from '@/modules/subscription';
 import { Button, ChoiceCard, ChoiceList, Notice, SectionTitle } from '@/common/components/ui';
 import { useMarkReady } from '../../hooks/useMarkReady';
 import { useSmsReadiness } from '../../hooks/useSmsReadiness';
+import { useDefaultChoice, useMessageDefaults } from '@/modules/message-templates/hooks/useMessageDefaults';
 import { SmsActivationWizard } from '../SmsActivationWizard';
 import type { Visit } from '../../types';
 import type { NotificationChannels } from '../../types/stateTransitions';
@@ -62,21 +63,18 @@ export const MarkReadyDialog = ({ visit, isOpen, onClose, onSuccess }: MarkReady
     const comms = useCapability('COMM_SEND_TRANSACTIONAL');
     const hasEmail = !!visit.customer.email;
 
-    // Okno jest montowane dopiero przy otwarciu i odmontowywane po zamknięciu,
-    // więc stan startowy wystarczy ustawić raz. Bez modułu komunikacji kanały
-    // startują wyłączone: blur na sekcji nie zeruje stanu, więc domyślne
-    // sms:true poszłoby do API mimo blokady (backend odrzuciłby je z 402).
-    const [channels, setChannels] = useState<NotificationChannels>(() => ({
-        sms: false,
-        email: false,
-    }));
-    useEffect(() => {
-        if (!comms.isLoading) {
-            setChannels({ sms: comms.enabled, email: comms.enabled && hasEmail });
-        }
-        // Ustawiamy raz, po rozstrzygnięciu entitlementów dla świeżo otwartego okna.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [comms.isLoading]);
+    // Stan początkowy kanałów z „Domyślnie zaznacz" przy wiadomości „Pojazd gotowy do
+    // odbioru" (Ustawienia → Wiadomości do klientów); bez dostępu do ustawień - jak dotąd,
+    // oba zaznaczone. Bez modułu komunikacji albo bez adresu e-mail kanał jest pusty
+    // niezależnie od wyboru: blur na sekcji nie zeruje stanu, a zaznaczone pole poszłoby
+    // do API mimo blokady (backend odrzuciłby je z 402).
+    const messageDefaults = useMessageDefaults();
+    const [smsChoice, setSmsChoice] = useDefaultChoice(messageDefaults.sms('visitReadyForPickup'), true);
+    const [emailChoice, setEmailChoice] = useDefaultChoice(messageDefaults.email('visitReadyForPickup'), true);
+    const channels: NotificationChannels = {
+        sms: !comms.isLoading && comms.enabled && smsChoice,
+        email: !comms.isLoading && comms.enabled && hasEmail && emailChoice,
+    };
 
     const { markReady, isMarkingReady } = useMarkReady(visit.id, () => {
         onSuccess?.();
@@ -100,7 +98,8 @@ export const MarkReadyDialog = ({ visit, isOpen, onClose, onSuccess }: MarkReady
 
     const toggle = (channel: keyof NotificationChannels) => {
         if (!comms.enabled) return;
-        setChannels(prev => ({ ...prev, [channel]: !prev[channel] }));
+        if (channel === 'sms') setSmsChoice(!channels.sms);
+        else setEmailChoice(!channels.email);
     };
 
     const willNotify = channels.sms || channels.email;

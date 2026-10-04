@@ -7,6 +7,7 @@ import type { SelectedCustomer, SelectedVehicle, ServiceLineItem, RecurrenceRule
 import { isSameLocalDay, toInstant, fromInstantToLocalInput } from '@/common/dateTime';
 import { pickInitialColorId } from '@/modules/appointment-colors';
 import { appointmentApi } from '../api/appointmentApi';
+import { useDefaultChoice, useMessageDefaults } from '@/modules/message-templates/hooks/useMessageDefaults';
 
 export const useAppointmentCreation = () => {
     const navigate = useNavigate();
@@ -54,8 +55,10 @@ export const useAppointmentCreation = () => {
     const [appointmentTitle, setAppointmentTitle] = useState('');
     const [selectedColorId, setSelectedColorId] = useState('');
 
-    const [sendConfirmationSms, setSendConfirmationSms] = useState(false);
-    const [sendReminderSms, setSendReminderSms] = useState(false);
+    // Stan początkowy z „Domyślnie zaznacz" w Ustawieniach → Wiadomości do klientów.
+    const messageDefaults = useMessageDefaults();
+    const [sendConfirmationSms, setSendConfirmationSms] = useDefaultChoice(messageDefaults.sms('bookingConfirmation'), false);
+    const [sendReminderSms, setSendReminderSms] = useDefaultChoice(messageDefaults.sms('preVisit'), false);
 
     const [isRecurring, setIsRecurring] = useState(false);
     const [recurrenceRule, setRecurrenceRule] = useState<RecurrenceRuleRequest | null>(null);

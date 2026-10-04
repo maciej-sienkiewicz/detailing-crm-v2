@@ -55,11 +55,12 @@ export interface HandoverState {
      */
     sendToKsef: boolean | null;
     /**
-     * Czy przy wydaniu wysłać klientowi podziękowanie. Domyślnie tak - studio, które
-     * takich SMS-ów nie wysyła, w ogóle nie zobaczy tego wyboru (patrz
-     * useThankYouSmsAvailability), więc „true" nie oznacza tu wysyłki na siłę.
+     * Czy przy wydaniu wysłać klientowi podziękowanie. null = pracownik jeszcze nie
+     * wybierał i obowiązuje „Domyślnie zaznacz" przy wiadomości „Podziękowanie po
+     * wizycie" (patrz useHandover). Studio, które takich SMS-ów nie wysyła, w ogóle nie
+     * zobaczy tego wyboru (patrz useThankYouSmsAvailability).
      */
-    thankYouSms: boolean;
+    thankYouSms: boolean | null;
 }
 
 // ─── Draft ekranu wydania ─────────────────────────────────────────────────────

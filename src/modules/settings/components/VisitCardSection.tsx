@@ -2,10 +2,12 @@
 //
 // Ustawienia → Komunikacja z klientem → Karta wizyty.
 //
-// Dwa przełączniki studia:
-//  - „Czy korzystać z Karty Wizyty?"       (główny)
-//  - „Czy domyślnie wysyłać Kartę Wizyty?" (domyślne zaznaczenie wysyłki przy
-//    rezerwacji i przyjęciu; ma sens tylko przy włączonej karcie)
+// Przełącznik „Czy korzystać z Karty Wizyty?". Stan początkowy pola „wyślij link"
+// przy rezerwacji i przyjęciu ustawia się teraz tak jak przy każdej innej wiadomości:
+// „Domyślnie zaznacz" przy „Linku do Karty Rezerwacji" i „Linku do Karty Wizyty"
+// w Wiadomościach do klientów. Dawny przełącznik „Czy domyślnie wysyłać Kartę
+// Wizyty?" zniknął stąd, żeby nie było dwóch miejsc na to samo; jego wartość
+// migracja przepisała do obu wiadomości.
 //
 // Karta wymaga modułu SMS: bez niego sekcja jest zablokowana z propozycją zakupu.
 //
@@ -64,18 +66,12 @@ export const VisitCardSection = () => {
         mutationFn: (payload: UpdateVisitCardSettingsPayload) => visitCardApi.updateSettings(payload),
         onSuccess: (data, payload) => {
             queryClient.setQueryData(VISIT_CARD_SETTINGS_QUERY_KEY, data);
-            if (payload.enabled !== undefined) {
-                showSuccess(
-                    payload.enabled ? 'Karta wizyty włączona' : 'Karta wizyty wyłączona',
-                    payload.enabled
-                        ? 'Opcja wysyłki linku wraca do rezerwacji i przyjęcia pojazdu.'
-                        : 'Linki do karty nie będą wysyłane.',
-                );
-            } else {
-                showSuccess('Zapisano', payload.sendByDefault
-                    ? 'Wysyłka karty będzie domyślnie zaznaczona.'
-                    : 'Wysyłka karty będzie domyślnie odznaczona.');
-            }
+            showSuccess(
+                payload.enabled ? 'Karta wizyty włączona' : 'Karta wizyty wyłączona',
+                payload.enabled
+                    ? 'Opcja wysyłki linku wraca do rezerwacji i przyjęcia pojazdu.'
+                    : 'Linki do karty nie będą wysyłane.',
+            );
         },
         onError: (error) => {
             if (!toastedGlobally(error)) {
@@ -88,7 +84,6 @@ export const VisitCardSection = () => {
     const saving = updateMutation.isPending;
     const known = settings !== undefined;
     const enabled = settings?.enabled ?? true;
-    const sendByDefault = settings?.sendByDefault ?? false;
 
     return (
         <LockedSection
@@ -122,14 +117,11 @@ export const VisitCardSection = () => {
                                 disabled={saving}
                                 onChange={next => updateMutation.mutate({ enabled: next })}
                             />
-                            <SettingSwitchRow
-                                label="Czy domyślnie wysyłać Kartę Wizyty?"
-                                hint="Steruje domyślnym zaznaczeniem opcji „Wyślij SMS z linkiem do Karty Wizyty” przy tworzeniu rezerwacji i przyjęciu pojazdu."
-                                checked={enabled && sendByDefault}
-                                disabled={saving || !enabled}
-                                inactive={!enabled}
-                                onChange={next => updateMutation.mutate({ sendByDefault: next })}
-                            />
+                            <Intro>
+                                Czy pole „Wyślij link do Karty Wizyty” startuje zaznaczone, ustawisz przełącznikiem
+                                „Domyślnie zaznacz” przy wiadomościach „Link do Karty Rezerwacji” i „Link do Karty
+                                Wizyty” w sekcji Wiadomości do klientów.
+                            </Intro>
                         </>
                     )}
                 </Body>

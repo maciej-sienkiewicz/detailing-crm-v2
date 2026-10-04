@@ -11,6 +11,7 @@ import { useServicePricing } from '@/modules/appointments/hooks/useServicePricin
 import { useToast } from '@/common/components/Toast';
 import { isPiiMasked } from '@/common/pii';
 import { useThankYouSmsAvailability } from './useThankYouSmsAvailability';
+import { useMessageDefaults } from '@/modules/message-templates/hooks/useMessageDefaults';
 import { buildThankYouSmsPayload } from '../components/handover/thankYouSms';
 import type { ServiceLineItem, Visit } from '../types';
 import type { CompleteVisitResponse, PaymentMethod } from '../types/stateTransitions';
@@ -173,9 +174,9 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
             exemptionBasis: '',
             protocolSigned: false,
             sendToKsef: null,
-            // Zaznaczone domyślnie: podziękowanie jest tym, co studio chce wysłać -
-            // problemem była zawsze pora, a nie sama wiadomość.
-            thankYouSms: true,
+            // Stan początkowy z „Domyślnie zaznacz" (thankYouSmsChecked niżej) -
+            // ustawienie dociera z sieci, więc tu tylko „pracownik jeszcze nie wybrał".
+            thankYouSms: null,
         };
     }, [visit, priceOf, totals.gross]);
 
@@ -213,6 +214,11 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         enabled: isOpen,
         customerPhone: visit.customer.phone,
     });
+    // „Domyślnie zaznacz" przy „Podziękowaniu po wizycie"; bez dostępu do ustawień -
+    // jak dotąd zaznaczone: podziękowanie jest tym, co studio chce wysłać, problemem
+    // była zawsze pora, a nie sama wiadomość.
+    const messageDefaults = useMessageDefaults();
+    const thankYouSmsChecked = state.thankYouSms ?? messageDefaults.sms('postVisit') ?? true;
 
     // Stan integracji z KSeF (token, jego uprawnienia, domyślna odpowiedź studia).
     // Pytamy tylko wtedy, gdy faktura w ogóle wchodzi w grę - wizyta bezpłatna ani
@@ -311,7 +317,7 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
                         : undefined,
                 thankYouSms: buildThankYouSmsPayload({
                     available: thankYouSms.available,
-                    send: state.thankYouSms,
+                    send: thankYouSmsChecked,
                 }),
             });
         },
@@ -351,6 +357,8 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         state,
         patch,
         thankYouSms,
+        /** Czy pole „Podziękowanie SMS" jest zaznaczone - wybór pracownika albo stan domyślny. */
+        thankYouSmsChecked,
         ksef,
         sendToKsef,
         canChooseSendToKsef,

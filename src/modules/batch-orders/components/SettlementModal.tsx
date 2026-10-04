@@ -25,6 +25,7 @@ import {
 import { SharedButton } from '@/common/styles';
 import { pluralPl } from '@/common/utils/plural';
 import { useContractorEntries, useSettle, useSettlementHistory } from '../hooks/useBatchOrders';
+import { useMessageDefaults } from '@/modules/message-templates/hooks/useMessageDefaults';
 import type { BatchContractor, SettlementMode } from '../types';
 import { apiErrorMessage, carsLabel, formatMoney, grossForCars, vehicleName } from '../utils/format';
 import { formatDayShort, formatInstantDay, periodPhrase, type Period } from '../utils/period';
@@ -206,7 +207,10 @@ export function SettlementModal({ contractor, period, onClose }: Props) {
     // Liczone przy renderze, bo uprawnienia potrafią doczytać się już po otwarciu okna -
     // stan startowy z `useState(() => comms.enabled…)` zostawał wtedy na zawsze `false`.
     const [emailChoice, setSendEmail] = useState<boolean | null>(null);
-    const sendEmail = emailChoice ?? !!contractor.email;
+    // Bez adresu kontrahenta nie ma dokąd wysłać; z adresem - „Domyślnie zaznacz" przy
+    // „Zestawieniu zbiorczym miesiąca" (bez dostępu do ustawień: zaznaczone, jak dotąd).
+    const messageDefaults = useMessageDefaults();
+    const sendEmail = emailChoice ?? (!!contractor.email && (messageDefaults.email('batchOrderClose') ?? true));
     const [email, setEmail] = useState(contractor.email ?? '');
     const [error, setError] = useState('');
 

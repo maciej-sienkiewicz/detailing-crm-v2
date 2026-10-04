@@ -20,6 +20,7 @@ import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import { QuickServiceModal } from '@/modules/calendar/components/QuickServiceModal';
 import { ServiceAutocomplete } from '@/modules/checkin/components/ServiceAutocomplete';
 import { useUpsellNotificationAvailability } from '../hooks/useUpsellNotificationAvailability';
+import { useDefaultChoice, useMessageDefaults } from '@/modules/message-templates/hooks/useMessageDefaults';
 import { upsellPricePreview } from './upsellPricePreview';
 import type { Service, VatRate } from '@/modules/services/types';
 import { visitCardApi, type UpsellTarget } from '../api/visitCardApi';
@@ -555,7 +556,9 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
     const notify = useUpsellNotificationAvailability(active);
     const [suggestions, setSuggestions] = useState<UpsellSuggestion[]>([]);
     const [staged, setStaged] = useState<StagedSuggestion[]>([]);
-    const [notifyCustomer, setNotifyCustomer] = useState(false);
+    // „Domyślnie zaznacz" przy „Propozycji dodatkowych usług" (Ustawienia → Wiadomości do klientów).
+    const messageDefaults = useMessageDefaults();
+    const [notifyCustomer, setNotifyCustomer] = useDefaultChoice(messageDefaults.sms('upsellSuggestion'), false);
     const [notification, setNotification] = useState<UpsellNotificationResult | null>(null);
     const [selectedService, setSelectedService] = useState<Service | null>(null);
     /** Discount fields stay hidden until the employee explicitly opts in. */

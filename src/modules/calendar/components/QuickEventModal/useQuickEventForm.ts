@@ -9,6 +9,7 @@ import type { SelectedCustomer, SelectedVehicle, RecurrenceRuleRequest } from '@
 import { pickInitialColorId } from '@/modules/appointment-colors';
 import { appointmentColorApi } from '@/modules/appointment-colors/api/appointmentColorApi';
 import { useDebounce } from '@/common/hooks';
+import { useDefaultChoice, useMessageDefaults } from '@/modules/message-templates/hooks/useMessageDefaults';
 import { formatDateTimeLocal, formatDate } from './helpers';
 import { catalogLinePrices, manualLinePrices } from './linePrices';
 import { grossToNet } from '@/common/utils/priceAdjustment';
@@ -141,11 +142,6 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     // ─── Vehicle edit mode ─────────────────────────────────────────────────────
     const [vehicleEditMode, setVehicleEditMode] = useState(false);
 
-    // ─── SMS state ─────────────────────────────────────────────────────────────
-    const [sendConfirmationSms, setSendConfirmationSms] = useState(false);
-    const [sendReminderSms, setSendReminderSms] = useState(false);
-    const [sendVisitCard, setSendVisitCard] = useState(false);
-
     const [isRecurring, setIsRecurring] = useState(false);
     const [recurrenceRule, setRecurrenceRule] = useState<RecurrenceRuleRequest>({
         type: 'WEEKLY',
@@ -245,10 +241,18 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     const visitCardEnabled = (visitCardSettings?.enabled ?? false) && smsCapability.enabled;
     const visitCardSendByDefault = visitCardSettings?.sendByDefault ?? false;
 
-    // Settings drive the checkbox default ("Czy domyślnie wysyłać Kartę Wizyty?")
-    useEffect(() => {
-        setSendVisitCard(visitCardSendByDefault);
-    }, [visitCardSendByDefault]);
+    // ─── SMS state ─────────────────────────────────────────────────────────────
+    // Stan początkowy każdego pola z „Domyślnie zaznacz" przy tej wiadomości
+    // (Ustawienia → Wiadomości do klientów). Gdy ustawień nie da się wczytać, okno
+    // zachowuje się jak dotąd: potwierdzenie i przypomnienie puste, karta według
+    // ustawienia Karty Wizyty.
+    const messageDefaults = useMessageDefaults();
+    const [sendConfirmationSms, setSendConfirmationSms, resetConfirmationSms] =
+        useDefaultChoice(messageDefaults.sms('bookingConfirmation'), false);
+    const [sendReminderSms, setSendReminderSms, resetReminderSms] =
+        useDefaultChoice(messageDefaults.sms('preVisit'), false);
+    const [sendVisitCard, setSendVisitCard, resetVisitCard] =
+        useDefaultChoice(messageDefaults.sms('reservationCardLink'), visitCardSendByDefault);
 
     // ─── Computed values ───────────────────────────────────────────────────────
     const selectedColor = appointmentColors.find((c: AppointmentColor) => c.id === selectedColorId);
@@ -394,8 +398,9 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         setNotes('');
         setDoorToDoor({ ...EMPTY_DOOR_TO_DOOR });
         setTempServices({});
-        setSendConfirmationSms(false);
-        setSendReminderSms(false);
+        resetConfirmationSms();
+        resetReminderSms();
+        resetVisitCard();
         setIsRecurring(false);
         setRecurrenceRule({ type: 'WEEKLY', intervalWeeks: 1, daysOfWeek: ['MONDAY'], endType: 'COUNT', maxOccurrences: 12 });
     };
