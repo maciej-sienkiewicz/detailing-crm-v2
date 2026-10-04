@@ -742,8 +742,9 @@ export const useSuggestionActions = (leadId: string) => {
     });
     const refresh = useMutation({
         mutationFn: () => leadsApi.refreshSuggestions(leadId),
-        // Diagnoza zostaje w `refresh.data` - pokazuje ją panel pod sugestiami.
-        onSuccess: (result) => settle(result.lead),
+        // Diagnoza zostaje w `refresh.data` - pokazuje ją panel pod sugestiami. Starszy
+        // backend zwraca samego leada (bez diagnozy) - obsługujemy oba kształty.
+        onSuccess: (result) => settle('diagnostics' in result ? result.lead : (result as unknown as Lead)),
     });
     return { accept, reject, refresh };
 };

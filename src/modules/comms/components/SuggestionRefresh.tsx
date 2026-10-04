@@ -77,7 +77,8 @@ const Candidates = styled.ul`
 export function SuggestionRefresh({ actions }: { actions: SuggestionActions }) {
     const { refresh, accept, reject } = actions;
     const busy = refresh.isPending || accept.isPending || reject.isPending;
-    const diagnostics = refresh.data?.diagnostics;
+    // Starszy backend nie zwraca diagnozy - wtedy panel po prostu się nie pokazuje.
+    const diagnostics = refresh.data && 'diagnostics' in refresh.data ? refresh.data.diagnostics : undefined;
 
     return (
         <Wrap>
