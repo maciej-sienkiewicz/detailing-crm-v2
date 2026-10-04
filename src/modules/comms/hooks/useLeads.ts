@@ -181,12 +181,13 @@ export const useStagnationThresholds = (): StagnationThresholds => {
  * czternastu dni i czas odpowiedzi, a te rzeczy zmieniają się w trakcie dnia pracy.
  * Wciąż na tyle długo, żeby trzydzieści wejść w moduł nie było trzydziestoma zapytaniami.
  */
-export const useLeadOverview = (year?: number) =>
+export const useLeadOverview = (year?: number, options: { enabled?: boolean } = {}) =>
     useQuery({
         queryKey: [...LEAD_OVERVIEW_KEY, year ?? 'current'],
         queryFn: () => leadsApi.getOverview(year),
         staleTime: 15 * 60_000,
         retry: false,
+        enabled: options.enabled ?? true,
     });
 
 export const useLead = (leadId: string | null) =>

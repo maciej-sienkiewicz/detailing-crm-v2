@@ -18,6 +18,10 @@ const mutate = vi.fn();
 vi.mock('@/common/components/Toast', () => ({
     useToast: () => ({ showSuccess: vi.fn(), showError: vi.fn(), showInfo: vi.fn() }),
 }));
+const changeStatus = vi.fn();
+vi.mock('../hooks/useLeads', () => ({
+    useChangeLeadStatus: () => ({ mutate: changeStatus, isPending: false }),
+}));
 vi.mock('../hooks/useComms', () => ({
     useMailSignature: () => ({ data: null }),
     useProofread: () => ({ mutate: vi.fn(), isPending: false }),
@@ -181,5 +185,59 @@ describe('ReplyComposer - szkic AI', () => {
     it('nowa wiadomość bez wątku nie ma szkicu - nie ma na co odpowiadać', () => {
         renderComposer({ accountId: 'account-1', initialTo: 'klient@gmail.com', requireSubject: true });
         expect(screen.queryByRole('button', { name: 'Szkic AI' })).toBeNull();
+    });
+});
+
+describe('ReplyComposer - szybkie odpowiedzi', () => {
+    beforeEach(() => {
+        mutate.mockReset();
+        changeStatus.mockReset();
+    });
+
+    it('przy pustej odpowiedzi w leadzie podsuwa gotowe szkice, a poza leadem nie', () => {
+        const { unmount } = renderComposer({ threadId: 'thread-1', initialTo: 'klient@example.com', threadLeadId: 'lead-1' });
+        expect(screen.getByRole('button', { name: 'Poproś o zdjęcia' })).toBeTruthy();
+        expect(screen.getByRole('button', { name: 'Nie robimy tego' })).toBeTruthy();
+        unmount();
+
+        renderComposer({ threadId: 'thread-2', initialTo: 'klient@example.com' });
+        expect(screen.queryByRole('button', { name: 'Poproś o zdjęcia' })).toBeNull();
+    });
+
+    it('szkic trafia do edytora, a szybkie odpowiedzi znikają przy niepustej treści', () => {
+        renderComposer({ threadId: 'thread-1', initialTo: 'klient@example.com', threadLeadId: 'lead-1' });
+        fireEvent.click(screen.getByRole('button', { name: 'Poproś o zdjęcia' }));
+
+        expect((screen.getByLabelText('Treść') as HTMLTextAreaElement).value).toContain('kilka zdjęć auta');
+        expect(screen.queryByRole('button', { name: 'Poproś o zdjęcia' })).toBeNull();
+    });
+
+    it('wysłana odmowa zamyka zapytanie jako poza zakresem usług', () => {
+        mutate.mockImplementation((_vars: unknown, options: { onSuccess: (r: { threadId: string }) => void }) =>
+            options.onSuccess({ threadId: 'thread-1' })
+        );
+        renderComposer({ threadId: 'thread-1', initialTo: 'klient@example.com', threadLeadId: 'lead-1' });
+        fireEvent.click(screen.getByRole('button', { name: 'Nie robimy tego' }));
+        expect(screen.getByText(/zamknie się jako „Poza zakresem usług"/)).toBeTruthy();
+
+        fireEvent.click(screen.getByRole('button', { name: /Wyślij/ }));
+
+        expect(changeStatus).toHaveBeenCalledWith(
+            { leadId: 'lead-1', status: 'LOST', lostReasonCode: 'OUT_OF_SCOPE' },
+            expect.anything()
+        );
+    });
+
+    it('odwołana odmowa wysyła odpowiedź bez zamykania zapytania', () => {
+        mutate.mockImplementation((_vars: unknown, options: { onSuccess: (r: { threadId: string }) => void }) =>
+            options.onSuccess({ threadId: 'thread-1' })
+        );
+        renderComposer({ threadId: 'thread-1', initialTo: 'klient@example.com', threadLeadId: 'lead-1' });
+        fireEvent.click(screen.getByRole('button', { name: 'Nie robimy tego' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Nie zamykaj zapytania po wysłaniu' }));
+        fireEvent.click(screen.getByRole('button', { name: /Wyślij/ }));
+
+        expect(mutate).toHaveBeenCalled();
+        expect(changeStatus).not.toHaveBeenCalled();
     });
 });
