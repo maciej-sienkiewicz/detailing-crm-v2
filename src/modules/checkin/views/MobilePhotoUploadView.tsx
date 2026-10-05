@@ -47,7 +47,8 @@ export const MobilePhotoUploadView = ({ token }: Props) => {
     const damageLogic = useMobileDamageLogic(
         token,
         photoLogic.isOnline,
-        photoLogic.sessionState === 'active',
+        // Sesja plików wizyty nie ma mapy uszkodzeń - nie pytamy o nią serwera.
+        photoLogic.sessionState === 'active' && photoLogic.context?.purpose !== 'VISIT_FILES',
     );
 
     // ─── Loading ──────────────────────────────────────────────────────────────
@@ -151,7 +152,13 @@ export const MobilePhotoUploadView = ({ token }: Props) => {
      * przyjęcie — czyli zachowanie dotychczasowe.
      */
     const damageOnly = context?.purpose === 'DAMAGE_MAP';
-    const currentTab: ActiveTab = damageOnly ? 'damage' : activeTab;
+    /*
+     * Kod z „Dodaj plik" na otwartej wizycie: wyłącznie zdjęcia, które od razu trafiają
+     * do galerii wizyty. Mapa uszkodzeń ma tam własny kod QR i własne okno.
+     */
+    const photosOnly = context?.purpose === 'VISIT_FILES';
+    const currentTab: ActiveTab = damageOnly ? 'damage' : photosOnly ? 'photos' : activeTab;
+    const title = damageOnly ? 'Mapa uszkodzeń' : photosOnly ? 'Zdjęcia do wizyty' : 'Dokumentacja pojazdu';
 
     return (
         <MobileContainer>
@@ -161,16 +168,16 @@ export const MobilePhotoUploadView = ({ token }: Props) => {
                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                         <circle cx="12" cy="13" r="4" />
                     </svg>
-                    {damageOnly ? 'Mapa uszkodzeń' : 'Dokumentacja pojazdu'}
+                    {title}
                 </Logo>
-                <Title>{damageOnly ? 'Mapa uszkodzeń' : 'Dokumentacja pojazdu'}</Title>
+                <Title>{title}</Title>
                 {context && (
                     <Subtitle>Sesja: {context.checkinId.slice(0, 8)}...</Subtitle>
                 )}
             </Header>
 
             {/* Tab navigation */}
-            {!damageOnly && <TabBar>
+            {!damageOnly && !photosOnly && <TabBar>
                 <Tab $active={activeTab === 'photos'} onClick={() => setActiveTab('photos')}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />

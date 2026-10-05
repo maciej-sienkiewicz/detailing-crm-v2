@@ -377,7 +377,9 @@ export type UploadSessionPurpose =
     /** Przyjęcie pojazdu: zdjęcia dokumentacji ORAZ mapa uszkodzeń. */
     | 'CHECKIN'
     /** Aktualizacja mapy otwartej wizyty: wyłącznie uszkodzenia. */
-    | 'DAMAGE_MAP';
+    | 'DAMAGE_MAP'
+    /** Pliki otwartej wizyty („Dodaj plik" → kod QR): wyłącznie zdjęcia, od razu w galerii wizyty. */
+    | 'VISIT_FILES';
 
 export interface MobileCheckinContext {
     checkinId: string;
