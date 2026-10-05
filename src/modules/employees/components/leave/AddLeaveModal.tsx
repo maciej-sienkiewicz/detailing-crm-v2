@@ -29,7 +29,7 @@ import {
 import { useLeaveDraft, type LeaveDraftEndpoints } from '../../hooks/useLeaveDraft';
 import { useDecisionSigning, type LeaveDecision } from '../../hooks/useDecisionSigning';
 import type { CreateOnBehalfLeaveRequestPayload, EmployeeListItem, LeaveRequestDetail } from '../../types';
-import { LEAVE_REASON_MAX, addDaysIso, formatLeaveRange, todayIso, workingDaysLabel } from '../../utils/leaveRequestFormat';
+import { LEAVE_REASON_MAX, formatLeaveRange, workingDaysLabel } from '../../utils/leaveRequestFormat';
 import { PrimaryAction } from './PrimaryAction';
 import { LeavePdf } from './LeavePdf';
 import { FooterPrimary, LeaveStepModal, type LeaveStep } from './LeaveStepModal';
@@ -96,8 +96,9 @@ export function AddLeaveModal({ onClose, employeeId: presetEmployeeId }: Props) 
 
     // ── Krok 2-3: rodzaj i termin ──
     const kindDef = LEAVE_KINDS.find(k => k.key === kind) ?? null;
-    const today = todayIso();
-    const minStart = kindDef?.onDemand ? today : addDaysIso(today, 1);
+    // Bez dolnej granicy daty: administrator dokumentuje także urlop, który już się
+    // odbył (uzgodniony ustnie, papier po fakcie). „Najpóźniej dzień wcześniej" dotyczy
+    // tylko wniosku, który pracownik składa sam (LeaveRequestWizard).
     const preview = useLeaveRequestPreview(startDate, endDate, employeeId);
     const previewError = preview.isError ? leaveApiError(preview.error) : null;
     const absentNames = useAbsentColleagues(startDate, endDate, employeeId, true);
@@ -408,7 +409,6 @@ export function AddLeaveModal({ onClose, employeeId: presetEmployeeId }: Props) 
                         endDate={endDate}
                         onStartChange={v => { setStartDate(v); clearError('startDate'); }}
                         onEndChange={v => { setEndDate(v); clearError('endDate'); }}
-                        minStart={minStart}
                         reason={reason}
                         onReasonChange={v => { setReason(v); clearError('reason'); }}
                         errors={errors}

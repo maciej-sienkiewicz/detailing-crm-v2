@@ -74,8 +74,11 @@ interface TermStepProps {
     endDate: string;
     onStartChange: (value: string) => void;
     onEndChange: (value: string) => void;
-    /** Najwcześniejszy dzień: jutro, a przy „na żądanie" - dziś (kontrakt). */
-    minStart: string;
+    /**
+     * Najwcześniejszy dzień: we własnym wniosku jutro, a przy „na żądanie" - dziś (kontrakt).
+     * Brak = bez ograniczenia: administrator wpisuje też urlop, który już się odbył.
+     */
+    minStart?: string;
     reason: string;
     onReasonChange: (value: string) => void;
     errors: FieldErrors;
