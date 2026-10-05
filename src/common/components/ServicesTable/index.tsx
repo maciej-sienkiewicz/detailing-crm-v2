@@ -391,7 +391,7 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
                                                 <span>
                                                     {service.newerVersion.requireManualPrice
                                                         ? 'Usługa zmieniła się w cenniku: cena jest teraz ustalana ręcznie'
-                                                        : `Cena usługi uległa zmianie, nowa cena: ${formatVersionPrice(service.newerVersion.basePriceGross)}`}
+                                                        : `Cena usługi uległa zmianie, nowa cena: ${formatVersionPrice(service.newerVersion.basePriceNet)} netto / ${formatVersionPrice(service.newerVersion.basePriceGross)} brutto`}
                                                 </span>
                                                 <S.PriceChangedAction
                                                     type="button"
