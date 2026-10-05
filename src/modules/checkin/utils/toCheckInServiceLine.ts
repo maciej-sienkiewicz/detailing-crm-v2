@@ -34,6 +34,8 @@ export interface ReservationServiceResponse {
     note?: string | null;
     isPackage?: boolean | null;
     packageItems?: ServiceLineItem['packageItems'];
+    /** Aktualna wersja usługi, gdy pozycja stoi na wersji wygaszonej w cenniku. */
+    newerVersion?: ServiceLineItem['newerVersion'];
 }
 
 const NO_ADJUSTMENT: PriceAdjustment = { type: 'PERCENT', value: 0 };
@@ -62,5 +64,6 @@ export const toCheckInServiceLine = (service: ReservationServiceResponse): Servi
         note: service.note ?? undefined,
         isPackage: service.isPackage ?? false,
         packageItems: service.packageItems ?? null,
+        newerVersion: service.newerVersion ?? null,
     };
 };

@@ -1,4 +1,5 @@
 // src/modules/checkin/types.ts
+import type { ServiceVersion } from '@/common/components/ServicesTable/serviceVersion';
 
 export type AdjustmentType = 'PERCENT' | 'FIXED_NET' | 'FIXED_GROSS' | 'SET_NET' | 'SET_GROSS';
 
@@ -92,6 +93,8 @@ export interface ServiceLineItem {
     requireManualPrice?: boolean;
     isPackage?: boolean;
     packageItems?: PackageItemSnapshot[] | null;
+    /** Aktualna wersja usługi w cenniku, gdy pozycja stoi na wygaszonej. */
+    newerVersion?: ServiceVersion | null;
 }
 
 export type VehicleOwnershipAction = 'ADD_CO_OWNER' | 'TRANSFER_PRIMARY';

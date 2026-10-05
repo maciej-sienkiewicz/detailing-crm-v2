@@ -103,6 +103,36 @@ export const ServiceNoteInline = styled.span`
     text-overflow: ellipsis;
 `;
 
+/**
+ * „Cena usługi uległa zmianie" - informacja, nie błąd: rezerwacja może zostać przy
+ * starej cenie. Bursztyn tekstem, bez wypełnienia (CLAUDE.md §2: w oknie jest już
+ * jeden wypełniony przycisk - „Zapisz").
+ */
+export const PriceChangedNotice = styled.span`
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 8px;
+    margin-top: 2px;
+    font-size: 11.5px;
+    line-height: 1.4;
+    color: #b45309;
+`;
+
+export const PriceChangedAction = styled.button`
+    border: none;
+    background: none;
+    padding: 0;
+    font: inherit;
+    font-weight: 600;
+    color: #b45309;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+
+    &:hover { color: #92400e; }
+`;
+
 export const PriceDisplay = styled.div`
     display: flex;
     flex-direction: column;
