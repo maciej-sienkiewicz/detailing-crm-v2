@@ -21,7 +21,7 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
-import { Award, CarFront, ChevronDown, MessageSquare, Pencil, Plus, Truck } from 'lucide-react';
+import { Award, CarFront, ChevronDown, MessageSquare, Pencil, Plus, QrCode, Truck } from 'lucide-react';
 import { PageContainer } from '@/common/components/PageContainer';
 import {
     Button, ButtonLabel, Panel, PanelActions, PanelBody, PanelHead, SectionChips, SectionTitle, StatusPill, ui,
@@ -58,6 +58,8 @@ import { visitApi } from '../api/visitApi';
 import { DeleteOperationModal } from '@/modules/operations/components/DeleteOperationModal';
 import { DoorToDoorModal } from '../components/DoorToDoorModal';
 import { DamageMapUpdateModal } from '../components/DamageMapUpdateModal';
+import { VisitFilesQrModal } from '../components/VisitFilesQrModal';
+import { useVisitFilesMobileSession } from '../hooks/useVisitFilesMobileSession';
 import { EntityActivityTimeline } from '@/modules/activity';
 import { VisitProductsSection, useVisitProducts } from '@/modules/products';
 import { useFeature } from '@/modules/subscription/hooks/useFeature';
@@ -324,6 +326,10 @@ export const VisitDetailView = () => {
     const [smsReminderForEdit, setSmsReminderForEdit] = useState<SmsReminderResponse | null>(null);
     const [highlightPendingServices, setHighlightPendingServices] = useState(false);
     const [isDamageMapOpen, setIsDamageMapOpen] = useState(false);
+    // Zdjęcia z telefonu przez kod QR. Sesja żyje w widoku, nie w oknie z kodem:
+    // po zamknięciu okna zdjęcia z telefonu mają dalej wpadać do galerii.
+    const [isFilesQrOpen, setIsFilesQrOpen] = useState(false);
+    const visitFilesSession = useVisitFilesMobileSession(visitId);
     const [isAuditOpen, setIsAuditOpen] = useState(false);
     // Telefon: jedna kolumna, skróty do sekcji zamiast zakładek, klient razem z przyjęciem.
     const isPhone = useMediaQuery('(max-width: 767px)');
@@ -725,6 +731,18 @@ export const VisitDetailView = () => {
                                                 <CarFront />Mapa uszkodzeń
                                             </Button>
                                         )}
+                                        {/* Zdjęcia z telefonu, także niezalogowanego - jak przy przyjęciu
+                                            pojazdu. Na telefonie zbędne: „Dodaj" otwiera tam aparat. */}
+                                        {can('VISITS_CREATE') && visit.status !== 'COMPLETED'
+                                            && visit.status !== 'REJECTED' && visit.status !== 'ARCHIVED' && !isPhone && (
+                                            <Button
+                                                size="sm"
+                                                onClick={() => setIsFilesQrOpen(true)}
+                                                title="Kod QR: zrób albo wybierz zdjęcia telefonem, także niezalogowanym"
+                                            >
+                                                <QrCode />Z telefonu
+                                            </Button>
+                                        )}
                                         <ButtonLabel
                                             $variant="tinted"
                                             $size="sm"
@@ -936,6 +954,12 @@ export const VisitDetailView = () => {
                     }
                 }}
             />}
+
+            <VisitFilesQrModal
+                isOpen={isFilesQrOpen}
+                onClose={() => setIsFilesQrOpen(false)}
+                session={visitFilesSession}
+            />
 
             {/* Montowany warunkowo: okno pyta o punkty uszkodzeń dopiero przy
                 otwarciu, a jego stan (wybrany tryb, dorysowane punkty) ma zaczynać

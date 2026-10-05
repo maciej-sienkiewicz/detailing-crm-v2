@@ -772,4 +772,18 @@ export const visitApi = {
         );
         return response.data;
     },
+
+    /**
+     * Kod QR „zdjęcia do wizyty z telefonu". Zdjęcia trafiają do galerii wizyty po
+     * stronie serwera, przy wgraniu - okno nie musi ich odbierać, tylko odświeżyć listę.
+     * `rotate` unieważnia poprzedni kod.
+     */
+    startVisitFilesMobileSession: async (visitId: string, rotate: boolean): Promise<DamageMapMobileTokenResponse> => {
+        const response = await apiClient.post<DamageMapMobileTokenResponse>(
+            `${BASE_PATH}/${visitId}/files/qr-token`,
+            null,
+            { params: { rotate } }
+        );
+        return response.data;
+    },
 };
