@@ -9,6 +9,7 @@ import { ServiceDiscountModal } from '@/common/components/ServiceDiscountModal';
 import type { AdjustmentType, PriceAdjustment } from '@/common/utils/priceAdjustment';
 import { discountBases, editedPricePair, withAdjustment } from './servicesTablePricing';
 import * as S from './styles';
+import { applyNewerVersion, formatVersionPrice, type ServiceVersion } from './serviceVersion';
 
 export interface PackageItemSnapshot {
     serviceId: string;
@@ -30,6 +31,8 @@ export interface ServiceLineItem {
     requireManualPrice?: boolean;
     isPackage?: boolean;
     packageItems?: PackageItemSnapshot[] | null;
+    /** Aktualna wersja usługi w cenniku, gdy pozycja stoi na wygaszonej (patrz serviceVersion.ts). */
+    newerVersion?: ServiceVersion | null;
 }
 
 export interface SaveServiceData {
@@ -380,6 +383,24 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
                                             {service.isPackage && <S.PackageBadgeInline>Pakiet</S.PackageBadgeInline>}
                                         </div>
                                         {hasNote && <S.ServiceNoteInline title={service.note}>{service.note}</S.ServiceNoteInline>}
+                                        {service.newerVersion && (
+                                            <S.PriceChangedNotice
+                                                role="status"
+                                                title="Bez odświeżenia pozycja zostaje przy dotychczasowej cenie"
+                                            >
+                                                <span>
+                                                    {service.newerVersion.requireManualPrice
+                                                        ? 'Usługa zmieniła się w cenniku: cena jest teraz ustalana ręcznie'
+                                                        : `Cena usługi uległa zmianie, nowa cena: ${formatVersionPrice(service.newerVersion.basePriceGross)}`}
+                                                </span>
+                                                <S.PriceChangedAction
+                                                    type="button"
+                                                    onClick={() => onChange(services.map(s => (s.id === service.id ? applyNewerVersion(s) : s)))}
+                                                >
+                                                    Odśwież cenę
+                                                </S.PriceChangedAction>
+                                            </S.PriceChangedNotice>
+                                        )}
                                     </S.ServiceNameWrap>
 
                                     <S.PriceDisplay>
