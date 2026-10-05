@@ -383,6 +383,15 @@ export interface AgendaListViewProps {
      * nagłówkiem, bez guzika i bez plusika obiecującego akcję, której nie ma.
      */
     onDayAddClick?: (date: Date) => void;
+    /**
+     * Dzień, na który lista ma wrócić przy montażu (powrót z wizyty) - zamiast dziś.
+     * Używany raz: późniejsza nawigacja miesiącami działa jak dotąd.
+     */
+    initialTopDay?: string;
+    /** Dzień na górze listy po przewinięciu - do zapamiętania pozycji kalendarza. */
+    onTopDayChange?: (dayKey: string) => void;
+    /** Zmiana wartości = przewiń do dziś („Dziś" bez zmiany miesiąca nie zmienia zakresu). */
+    scrollToTodayToken?: number;
 }
 
 export const AgendaListView: React.FC<AgendaListViewProps> = ({
@@ -394,9 +403,26 @@ export const AgendaListView: React.FC<AgendaListViewProps> = ({
     studioEventsByDay,
     onStudioEventClick,
     onDayAddClick,
+    initialTopDay,
+    onTopDayChange,
+    scrollToTodayToken = 0,
 }) => {
     const scrollRef = useRef<HTMLDivElement>(null);
     const todayKey = toDateKey(new Date());
+    /*
+     * Klucz dnia, nie surowy ISO: rodzic podaje `new Date().toISOString()`, który przy
+     * każdym przerysowaniu jest inny - efekt przewijania odpalał się wtedy przy każdym
+     * odświeżeniu danych i szarpał listę z powrotem na dziś w trakcie przewijania.
+     */
+    const focusKey = focusDate ? toDateKey(new Date(focusDate)) : todayKey;
+    /*
+     * Dzień do odtworzenia obowiązuje, dopóki lista pokazuje zakres z chwili montażu
+     * (zapamiętany miesiąc). Nie jest „zużywany" przy pierwszym przebiegu efektu:
+     * StrictMode odpala efekt dwa razy i drugi przebieg przewijał z powrotem na dziś.
+     */
+    const pendingRestore = useRef(initialTopDay);
+    const restoreRange = useRef(rangeStart);
+    const lastTodayToken = useRef(scrollToTodayToken);
 
     const days = buildDays(rangeStart, rangeEnd);
     const byDay = groupEventsByDay(events, days);
@@ -406,19 +432,56 @@ export const AgendaListView: React.FC<AgendaListViewProps> = ({
     // scrollIntoView: ten przewija KAŻDEGO przewijalnego przodka, więc razem
     // z listą przesuwał całą stronę i chował nad ekranem pasek zakładek.
     useEffect(() => {
-        const target = focusDate ? toDateKey(new Date(focusDate)) : todayKey;
+        // „Dziś" wygrywa z odtwarzaniem pozycji - to świadomy powrót do dzisiaj.
+        if (lastTodayToken.current !== scrollToTodayToken) {
+            lastTodayToken.current = scrollToTodayToken;
+            pendingRestore.current = undefined;
+        }
+        if (rangeStart !== restoreRange.current) pendingRestore.current = undefined;
+        const target = pendingRestore.current ?? focusKey;
         const el = document.getElementById(`agenda-day-${target}`);
         const container = scrollRef.current;
-        if (!el || !container) return;
-        const offset = el.getBoundingClientRect().top
-            - container.getBoundingClientRect().top
-            + container.scrollTop;
-        container.scrollTop = Math.max(0, offset);
-    }, [rangeStart, rangeEnd, focusDate, todayKey]);
+        if (el && container) {
+            const offset = el.getBoundingClientRect().top
+                - container.getBoundingClientRect().top
+                + container.scrollTop;
+            container.scrollTop = Math.max(0, offset);
+        }
+        // Zgłoś dzień na górze także wtedy, gdy nic się nie przewinęło (inny miesiąc) -
+        // inaczej zapamiętany zostałby dzień z poprzednio oglądanego miesiąca.
+        reportTopDay();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [rangeStart, rangeEnd, focusKey, todayKey, scrollToTodayToken]);
+
+    /* Dzień na górze listy - raz na klatkę, nie przy każdym zdarzeniu przewijania. */
+    const frame = useRef<number | null>(null);
+    function reportTopDay() {
+        if (!onTopDayChange) return;
+        const container = scrollRef.current;
+        if (!container) return;
+        const top = container.getBoundingClientRect().top;
+        const sections = container.querySelectorAll<HTMLElement>('[id^="agenda-day-"]');
+        for (const section of sections) {
+            if (section.getBoundingClientRect().bottom > top + 1) {
+                onTopDayChange(section.id.slice('agenda-day-'.length));
+                return;
+            }
+        }
+    }
+    const handleScroll = () => {
+        if (!onTopDayChange || frame.current !== null) return;
+        frame.current = requestAnimationFrame(() => {
+            frame.current = null;
+            reportTopDay();
+        });
+    };
+    useEffect(() => () => {
+        if (frame.current !== null) cancelAnimationFrame(frame.current);
+    }, []);
 
     return (
         <Root>
-            <ScrollArea ref={scrollRef}>
+            <ScrollArea ref={scrollRef} onScroll={handleScroll}>
                 {days.map(day => {
                     const key = toDateKey(day);
                     const slots = byDay.get(key) ?? [];

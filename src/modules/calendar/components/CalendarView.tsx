@@ -55,6 +55,7 @@ import {
 import { WeekKanbanView } from './WeekKanbanView';
 import { DayTimelineView } from './DayTimeline';
 import { AgendaListView } from './AgendaListView';
+import { readCalendarPosition, saveCalendarPosition, toDayKey } from '../utils/calendarPosition';
 import { usePermissions } from '@/core/permissions';
 import type { DateRange, CalendarView as CalendarViewType, EventCreationData, AppointmentEventData, VisitEventData, CalendarEvent, DoorToDoorCalendarEntry } from '../types';
 import type { Operation } from '@/modules/operations/types';
@@ -929,6 +930,16 @@ const MobileNavBtn = styled.button`
     svg { width: 14px; height: 14px; }
 `;
 
+/* „Dziś" na telefonie. Kalendarz pamięta teraz miejsce sprzed wejścia w wizytę,
+   więc powrót do dzisiaj musi być jednym dotknięciem, jak na komputerze. */
+const MobileTodayBtn = styled(MobileNavBtn)`
+    width: auto;
+    padding: 0 10px;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+`;
+
 const MobileNavTitle = styled.div`
     flex: 1;
     text-align: center;
@@ -1691,7 +1702,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     } = useCalendarFilters();
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [calendarTitle, setCalendarTitle] = useState('');
-    const [currentView, setCurrentView] = useState<CalendarViewType>('dayGridMonth');
+    /*
+     * Powrót do miejsca, w którym użytkownik był w kalendarzu (patrz calendarPosition.ts):
+     * wejście w wizytę i powrót nie wyrzuca już na „dziś". Nie przy wejściu z celem -
+     * „Pokaż w kalendarzu" z Tablicy i „nowa rezerwacja" mają własne miejsce docelowe.
+     */
+    const [restoredPosition] = useState(() => {
+        const navState = location.state as { highlightEventId?: string; openQuickEvent?: boolean } | null;
+        return navState?.highlightEventId || navState?.openQuickEvent ? null : readCalendarPosition();
+    });
+    const [currentView, setCurrentView] = useState<CalendarViewType>(restoredPosition?.view ?? 'dayGridMonth');
 
     /* Ustawienia siatki miesiąca, zapamiętywane per urządzenie. */
     const {
@@ -1708,8 +1728,27 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     // od razu w Miesiącu unika przełączania widoku po drodze i sklejenia animacji.
     const _incomingHighlight = (location.state as { highlightEventId?: string } | null)?.highlightEventId;
     const [agendaListActive, setAgendaListActive] = useState(
-        () => !_incomingHighlight && window.innerWidth < 768,
+        () => restoredPosition ? restoredPosition.agendaList : !_incomingHighlight && window.innerWidth < 768,
     );
+    // handleDatesSet zapisuje pozycję razem z trybem listy, a jest memoizowany - ref
+    // zamiast zależności, żeby nie przepinać callbacku FullCalendar przy każdej zmianie.
+    const agendaListActiveRef = useRef(agendaListActive);
+    useEffect(() => {
+        agendaListActiveRef.current = agendaListActive;
+        saveCalendarPosition({ agendaList: agendaListActive });
+    }, [agendaListActive]);
+
+    /*
+     * „Dziś": FullCalendar wraca do bieżącego miesiąca, a lista dostaje sygnał, żeby
+     * przewinąć do dzisiaj także wtedy, gdy miesiąc się nie zmienił (zakres ten sam,
+     * więc sama nawigacja niczego by nie przewinęła).
+     */
+    const [todayToken, setTodayToken] = useState(0);
+    const goToday = useCallback(() => {
+        calendarRef.current?.getApi().today();
+        setTodayToken(token => token + 1);
+        saveCalendarPosition({ agendaTopDay: undefined });
+    }, []);
 
     /* Licznik na mobilnej pigułce filtra. Ukryte kolory liczą się tak samo jak
        ukryte statusy: schowanie koloru też sprawia, że kalendarz czegoś nie
@@ -2255,6 +2294,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
         setCalendarTitle(arg.view.title);
         setCurrentView(arg.view.type as CalendarViewType);
+        saveCalendarPosition({
+            view: arg.view.type as CalendarViewType,
+            agendaList: agendaListActiveRef.current,
+            date: toDayKey(arg.view.calendar.getDate()),
+        });
 
         // If we have a pending dashboard highlight, navigate to its month if not in view.
         // IMPORTANT: use arg.view.calendar (not calendarRef), the ref is not yet set
@@ -2628,6 +2672,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         </svg>
                     </MobileNavBtn>
                     <MobileNavTitle>{calendarTitle}</MobileNavTitle>
+                    <MobileTodayBtn type="button" onClick={goToday}>Dziś</MobileTodayBtn>
                     <MobileNavBtn onClick={() => calendarRef.current?.getApi().next()} aria-label="Następny">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -2772,7 +2817,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                     <polyline points="15 18 9 12 15 6" />
                                 </svg>
                             </NavIconBtn>
-                            <TodayNavBtn onClick={() => calendarRef.current?.getApi().today()}>
+                            <TodayNavBtn onClick={goToday}>
                                 Dziś
                             </TodayNavBtn>
                             <NavIconBtn
@@ -2950,6 +2995,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         rangeStart={dateRange.start}
                         rangeEnd={dateRange.end}
                         focusDate={new Date().toISOString()}
+                        initialTopDay={restoredPosition?.agendaTopDay}
+                        onTopDayChange={(day) => saveCalendarPosition({ agendaTopDay: day })}
+                        scrollToTodayToken={todayToken}
                         onEventClick={(eventData, anchor) => {
                             setPopoverEvent(eventData);
                             setPopoverAnchor(anchor);
@@ -2976,7 +3024,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         onDayAddClick={(date) => openQuickEvent({ start: date, end: date, allDay: true })}
                         onPrev={() => calendarRef.current?.getApi().prev()}
                         onNext={() => calendarRef.current?.getApi().next()}
-                        onToday={() => calendarRef.current?.getApi().today()}
+                        onToday={goToday}
                         onViewChange={(view) => calendarRef.current?.getApi().changeView(view)}
                     />
                 )}
@@ -3006,7 +3054,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         }}
                         onPrev={() => calendarRef.current?.getApi().prev()}
                         onNext={() => calendarRef.current?.getApi().next()}
-                        onToday={() => calendarRef.current?.getApi().today()}
+                        onToday={goToday}
                         onViewChange={(view) => calendarRef.current?.getApi().changeView(view)}
                     />
                 )}
@@ -3027,8 +3075,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 ref={calendarRef}
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
 
-                // Initial view
-                initialView="dayGridMonth"
+                // Initial view - albo tam, gdzie użytkownik był przed wejściem w wizytę
+                initialView={restoredPosition?.view ?? 'dayGridMonth'}
+                initialDate={restoredPosition?.date}
 
                 // Header configuration
                 headerToolbar={{
