@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
+import { usePermissions } from '@/core/permissions';
 import styled, { keyframes } from 'styled-components';
 import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 import type { FinanceTab, IncomeDocument, IncomeDocumentType } from '../types';
@@ -1642,8 +1643,19 @@ export const FinanceView: React.FC = () => {
    * pierwszą zakładkę zamiast pustego panelu.
    */
   const [searchParams, setSearchParams] = useSearchParams();
+  /*
+   * „Kasa" tylko dla osób z uprawnieniem do kasy. Bez niego serwer odmawia odczytu
+   * stanu, a panel pokazywał wtedy „0 zł" - wyglądało to jak pusta kasa, a nie jak
+   * brak dostępu. Adres ?tab=cash bez uprawnienia spada na pierwszą zakładkę.
+   */
+  const { can } = usePermissions();
+  const canSeeCash = can('FINANCE_MANAGE_CASH_REGISTER');
+  const availableTabs = useMemo(
+    () => FINANCE_TABS.filter(tab => tab !== 'cash' || canSeeCash),
+    [canSeeCash],
+  );
   const tabParam = searchParams.get('tab') as FinanceTab | null;
-  const activeTab: FinanceTab = tabParam && FINANCE_TABS.includes(tabParam) ? tabParam : 'income';
+  const activeTab: FinanceTab = tabParam && availableTabs.includes(tabParam) ? tabParam : 'income';
   const setActiveTab = useCallback((tab: FinanceTab) => {
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
@@ -1758,9 +1770,11 @@ export const FinanceView: React.FC = () => {
             <TabItem $active={activeTab === 'expenses'} onClick={() => setActiveTab('expenses')}>
               Dokumenty kosztowe
             </TabItem>
-            <TabItem $active={activeTab === 'cash'} onClick={() => setActiveTab('cash')}>
-              Kasa
-            </TabItem>
+            {canSeeCash && (
+              <TabItem $active={activeTab === 'cash'} onClick={() => setActiveTab('cash')}>
+                Kasa
+              </TabItem>
+            )}
             <TabItem $active={activeTab === 'payment-summary'} onClick={() => setActiveTab('payment-summary')}>
               Podsumowanie płatności
             </TabItem>
@@ -1768,7 +1782,7 @@ export const FinanceView: React.FC = () => {
           <TabSelect value={activeTab} onChange={e => setActiveTab(e.target.value as FinanceTab)}>
             <option value="income">Dokumenty przychodowe</option>
             <option value="expenses">Dokumenty kosztowe</option>
-            <option value="cash">Kasa</option>
+            {canSeeCash && <option value="cash">Kasa</option>}
             <option value="payment-summary">Podsumowanie płatności</option>
           </TabSelect>
 
