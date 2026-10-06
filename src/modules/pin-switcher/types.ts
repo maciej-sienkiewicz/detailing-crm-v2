@@ -3,6 +3,8 @@ export interface StudioProfile {
     firstName: string;
     lastName: string;
     isOwner: boolean;
+    /** Nazwa przypisanej roli („Recepcja"); null = właściciel albo konto bez roli. */
+    roleName?: string | null;
     hasPinConfigured: boolean;
     pinLocked: boolean;
 }

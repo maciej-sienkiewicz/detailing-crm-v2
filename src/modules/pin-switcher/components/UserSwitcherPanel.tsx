@@ -6,6 +6,7 @@ import { useStudioProfiles, useResetPinLock } from '../hooks/usePinStatus';
 import { useAuth } from '@/core/context/AuthContext';
 import { useKnownProfiles } from '../hooks/useKnownProfiles';
 import type { StudioProfile } from '../types';
+import { profileRoleLabel } from '../roleLabel';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -343,9 +344,6 @@ const BackBtn = styled.button`
 const getInitials = (firstName: string, lastName: string) =>
     (firstName[0] ?? '').toUpperCase() + (lastName[0] ?? '').toUpperCase();
 
-const getRoleLabel = (profile: StudioProfile) =>
-    profile.isOwner ? 'Właściciel' : 'Pracownik';
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 interface Props {
@@ -549,7 +547,7 @@ export const UserSwitcherPanel = ({ onClose, lockMode = false }: Props) => {
                                 )}
                             </Avatar>
                             <ProfileName>{profile.firstName} {profile.lastName}</ProfileName>
-                            <ProfileRole>{getRoleLabel(profile)}</ProfileRole>
+                            <ProfileRole>{profileRoleLabel(profile)}</ProfileRole>
                             {profile.pinLocked && <ProfileLockHint>PIN zablokowany</ProfileLockHint>}
                             {profile.pinLocked && isOwner && (
                                 <UnlockBtn
