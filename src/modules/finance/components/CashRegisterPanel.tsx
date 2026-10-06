@@ -515,7 +515,9 @@ export const CashRegisterPanel: React.FC<CashRegisterPanelProps> = ({ dateFrom, 
         ) : (
           <BalanceCard>
             <BalanceLabel>Saldo kasy</BalanceLabel>
-            <BalanceAmount>{formatMoney(cashRegister?.balance ?? 0)}</BalanceAmount>
+            {/* Bez odczytu stanu (błąd, brak dostępu) - kreska, nie „0 zł": zero wyglądało
+                jak pusta kasa, a znaczyło „nie wiemy". */}
+            <BalanceAmount>{cashRegister ? formatMoney(cashRegister.balance) : '—'}</BalanceAmount>
             <BalanceSub>
               Ostatnia aktualizacja: {cashRegister ? formatDate(cashRegister.updatedAt) : '-'}
             </BalanceSub>
