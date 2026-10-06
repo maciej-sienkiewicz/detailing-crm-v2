@@ -236,7 +236,8 @@ export const Sidebar = () => {
                     </UserAvatar>
                     <UserInfo $isCollapsed={isCollapsed}>
                         <UserName>{displayName}</UserName>
-                        <UserRole>{user ? getRoleLabel(user.role) : ''}</UserRole>
+                        {/* Rola nadana przez studio („Recepcja"), a bez niej rodzaj konta. */}
+                        <UserRole>{user ? user.roleName || getRoleLabel(user.role) : ''}</UserRole>
                     </UserInfo>
                     <UserActions $isCollapsed={isCollapsed}>
                         {hasMultipleProfiles && (

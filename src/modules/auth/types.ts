@@ -34,6 +34,8 @@ export interface User {
     firstName?: string;
     lastName?: string;
     role: string;
+    /** Nazwa przypisanej roli („Recepcja"); null = właściciel albo konto bez roli. */
+    roleName?: string | null;
     subscriptionStatus: string;
     trialDaysRemaining: number;
     mobileToken?: string | null;
@@ -103,6 +105,7 @@ export interface DemoAccountResponse {
             firstName: string;
             lastName: string;
             role: string;
+            roleName?: string | null;
             subscriptionStatus: string;
             daysRemaining: number | null;
             mobileToken: string | null;
