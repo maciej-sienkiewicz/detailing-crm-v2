@@ -41,16 +41,7 @@ import {
     UserSwitchButton,
     UserActions,
 } from './SidebarStyles';
-
-const getRoleLabel = (role: string): string => {
-    const map: Record<string, string> = {
-        owner:    'Właściciel',
-        admin:    'Administrator',
-        employee: 'Pracownik',
-        manager:  'Menedżer',
-    };
-    return map[role.toLowerCase()] ?? role;
-};
+import { getRoleLabel } from './roleLabel';
 
 const getInitials = (firstName?: string, lastName?: string): string => {
     const f = firstName?.[0] ?? '';
