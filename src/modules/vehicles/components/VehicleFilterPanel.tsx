@@ -1,4 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { usePermissions } from '@/core/permissions';
 import styled, { keyframes } from 'styled-components';
 import { createPortal } from 'react-dom';
 import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
@@ -541,6 +542,8 @@ export const VehicleFilterPanel = ({
     onApply,
     onClose,
 }: VehicleFilterPanelProps) => {
+    // Bez prawa do cen serwer nie wysyła obrotów i ignoruje filtr po nich - pole znika.
+    const showRevenue = usePermissions().can('VISITS_SERVICE_PRICES_VIEW');
     const [brand, setBrand]                       = useState(initialFilters.brand ?? '');
     const [model, setModel]                       = useState(initialFilters.model ?? '');
     const [yearFrom, setYearFrom]                 = useState(initialFilters.yearFrom?.toString() ?? '');
@@ -657,6 +660,7 @@ export const VehicleFilterPanel = ({
                     </FilterSection>
 
                     {/* Przychód */}
+                    {showRevenue && (
                     <FilterSection>
                         <SectionLabel>Przychód brutto (PLN)</SectionLabel>
                         <RangeRow>
@@ -671,6 +675,7 @@ export const VehicleFilterPanel = ({
                             />
                         </RangeRow>
                     </FilterSection>
+                    )}
 
                     {/* Wykonana usługa */}
                     <FilterSection>

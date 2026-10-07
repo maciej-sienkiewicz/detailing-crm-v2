@@ -13,6 +13,7 @@ import {
 } from '@/common/components/ModalKit';
 import { Button, StepPills } from '@/common/components/ui';
 import { isPiiMasked, joinPiiName } from '@/common/pii';
+import { usePermissions } from '@/core/permissions';
 import { useHandover } from '../../hooks/useHandover';
 import { useVisitComments } from '../../hooks';
 import { CustomerNotesSection } from './CustomerNotesSection';
@@ -47,6 +48,13 @@ const StepPane = styled.div<{ $active: boolean }>`
 
 
 
+
+const ProtocolNote = styled.p`
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: ${p => p.theme.colors.textSecondary};
+`;
 
 const HandoverFooter = styled(ModalFooter)`
     justify-content: space-between;
@@ -124,6 +132,9 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
     );
 
     const isSignatureStep = step === 'signature';
+    // Protokoły wydania (pobranie, wygenerowanie, wysyłka do podpisu) to edycja wizyty -
+    // VISITS_CREATE. Bez niego sekcja sama generowała protokół i od razu dostawała odmowę.
+    const canHandleProtocols = usePermissions().can('VISITS_CREATE');
     const signatureDone = allProtocolsSigned(signatureStatus);
 
     // Potwierdzenie na ekranie „Pojazd wydany": SMS-a z podziękowaniem NIE da się
@@ -170,13 +181,20 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                         <StepPane $active={isSignatureStep}>
                             <Body>
                                 <CustomerNotesSection comments={customerComments} />
-                                <ProtocolSection
-                                    visitId={visit.id}
-                                    signerName={signerName}
-                                    customerPhone={visit.customer.phone}
-                                    isOpen={isOpen}
-                                    onStatusChange={handleSignatureStatus}
-                                />
+                                {canHandleProtocols ? (
+                                    <ProtocolSection
+                                        visitId={visit.id}
+                                        signerName={signerName}
+                                        customerPhone={visit.customer.phone}
+                                        isOpen={isOpen}
+                                        onStatusChange={handleSignatureStatus}
+                                    />
+                                ) : (
+                                    <ProtocolNote>
+                                        Protokół wydania przygotowuje i wysyła do podpisu osoba z prawem do edycji wizyt.
+                                        Wydanie możesz zakończyć bez niego.
+                                    </ProtocolNote>
+                                )}
                                 {/* Podziękowanie to kontakt z klientem, nie rozliczenie: stoi
                                     przy kliencie (krok 1), a nie w środku pieniędzy. Decyzja
                                     musi zapaść przed „Wydaj pojazd", bo termin jedzie w

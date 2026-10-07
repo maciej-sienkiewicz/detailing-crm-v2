@@ -6,6 +6,7 @@
 // w localStorage tej przeglądarki - skrót to nawyk dłoni przy konkretnej
 // klawiaturze, a nie polityka studia, więc nie ma powodu wozić go przez backend
 // ani narzucać całemu zespołowi.
+import { usePermissions } from '@/core/permissions';
 import { Fragment } from 'react';
 import styled from 'styled-components';
 import { ACTION_SHORTCUTS, GLOBAL_SHORTCUTS, SCOPED_SHORTCUTS, useShortcutsEnabled } from '@/common/shortcuts';
@@ -86,6 +87,7 @@ const Kbd = styled.kbd`
 `;
 
 export function ShortcutsSection() {
+    const { can } = usePermissions();
     const [enabled, setEnabled] = useShortcutsEnabled();
 
     return (
@@ -113,7 +115,7 @@ export function ShortcutsSection() {
                 ))}
 
                 <GroupLabel>Akcje <span>działa wszędzie</span></GroupLabel>
-                {ACTION_SHORTCUTS.map((shortcut) => (
+                {ACTION_SHORTCUTS.filter((shortcut) => !shortcut.requires || can(shortcut.requires)).map((shortcut) => (
                     <ShortcutRow key={shortcut.key}>
                         <Kbd>{shortcut.key.toUpperCase()}</Kbd>
                         <span>{shortcut.description}</span>

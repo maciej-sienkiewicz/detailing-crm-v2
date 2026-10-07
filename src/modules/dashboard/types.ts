@@ -15,7 +15,8 @@ export interface VisitDetail {
   /** Vehicle model */
   model: string;
   /** Visit value in PLN */
-  amount: number;
+  /** null bez prawa do cen (VISITS_SERVICE_PRICES_VIEW). */
+  amount: number | null;
   /** Customer first name */
   customerFirstName: string;
   /** Customer last name */

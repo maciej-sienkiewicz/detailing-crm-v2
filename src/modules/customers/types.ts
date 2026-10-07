@@ -53,7 +53,8 @@ export interface Customer {
     lastVisitDate: string | null;
     totalVisits: number;
     vehicleCount: number;
-    totalRevenue: CustomerRevenue;
+    /** null bez prawa do cen (VISITS_SERVICE_PRICES_VIEW) - serwer nie wysyła kwot. */
+    totalRevenue: CustomerRevenue | null;
     createdAt: string;
     updatedAt: string;
 }
@@ -156,11 +157,12 @@ export interface Visit {
     description: string;
     type?: string;
     technician?: string;
+    /** null bez prawa do cen (VISITS_SERVICE_PRICES_VIEW) - serwer nie wysyła kwot. */
     totalCost: {
         netAmount: number;
         grossAmount: number;
         currency: string;
-    };
+    } | null;
     status: 'completed' | 'in-progress' | 'ready-for-pickup' | 'scheduled' | 'cancelled';
     createdBy: string;
     notes: string;
@@ -175,11 +177,12 @@ export interface Reservation {
     vehicleName: string;
     licensePlate?: string;
     status: ReservationStatus;
+    /** null bez prawa do cen (VISITS_SERVICE_PRICES_VIEW) - serwer nie wysyła kwot. */
     totalCost: {
         netAmount: number;
         grossAmount: number;
         currency: string;
-    };
+    } | null;
 }
 
 export interface CustomerReservationsResponse {
@@ -207,11 +210,12 @@ export interface CustomerDetailData {
     customer: Customer;
     marketingConsents: MarketingConsent[];
     loyaltyTier: 'bronze' | 'silver' | 'gold' | 'platinum';
+    /** null bez prawa do cen (VISITS_SERVICE_PRICES_VIEW) - serwer nie wysyła kwot. */
     lifetimeValue: {
         netAmount: number;
         grossAmount: number;
         currency: string;
-    };
+    } | null;
     lastContactDate: string | null;
 }
 

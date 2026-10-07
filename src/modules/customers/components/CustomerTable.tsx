@@ -1,4 +1,5 @@
 import { PiiValue, joinPiiName, isPiiMasked } from '@/common/pii';
+import { usePermissions } from '@/core/permissions';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
@@ -277,6 +278,8 @@ interface CustomerTableProps {
 
 export const CustomerTable = ({ customers, sortBy, sortDirection = 'asc', onSort, onDelete }: CustomerTableProps) => {
     const navigate = useNavigate();
+    // Kolumna przychodu tylko z prawem do cen - bez niego serwer nie wysyła kwot.
+    const showRevenue = usePermissions().can('VISITS_SERVICE_PRICES_VIEW');
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const { menuRef: dropdownMenuRef, pos: menuPos, style: menuStyle, open: openDropdownPos, close: closeDropdownPos } = usePortalDropdownPos();
 
@@ -318,16 +321,18 @@ export const CustomerTable = ({ customers, sortBy, sortDirection = 'asc', onSort
                                 {sortBy === 'totalVisits' && <SortIcon direction={sortDirection} />}
                             </span>
                         </ThSortable>
-                        <ThSortable
-                            $active={sortBy === 'totalRevenue'}
-                            onClick={() => onSort?.('totalRevenue')}
-                            title="Sortuj po przychodach"
-                        >
-                            <span>
-                                Przychód
-                                {sortBy === 'totalRevenue' && <SortIcon direction={sortDirection} />}
-                            </span>
-                        </ThSortable>
+                        {showRevenue && (
+                            <ThSortable
+                                $active={sortBy === 'totalRevenue'}
+                                onClick={() => onSort?.('totalRevenue')}
+                                title="Sortuj po przychodach"
+                            >
+                                <span>
+                                    Przychód
+                                    {sortBy === 'totalRevenue' && <SortIcon direction={sortDirection} />}
+                                </span>
+                            </ThSortable>
+                        )}
                         <ThActions />
                     </tr>
                 </thead>
@@ -383,15 +388,21 @@ export const CustomerTable = ({ customers, sortBy, sortDirection = 'asc', onSort
                                     </CellSub>
                                 </Td>
 
-                                <Td>
-                                    <Revenue>
-                                        {formatCurrency(
-                                            customer.totalRevenue.grossAmount,
-                                            customer.totalRevenue.currency
+                                {showRevenue && (
+                                    <Td>
+                                        {customer.totalRevenue && (
+                                            <>
+                                                <Revenue>
+                                                    {formatCurrency(
+                                                        customer.totalRevenue.grossAmount,
+                                                        customer.totalRevenue.currency
+                                                    )}
+                                                </Revenue>
+                                                <CellSub>brutto</CellSub>
+                                            </>
                                         )}
-                                    </Revenue>
-                                    <CellSub>brutto</CellSub>
-                                </Td>
+                                    </Td>
+                                )}
 
                                 <TdActions onClick={e => e.stopPropagation()}>
                                     <IconBtn
@@ -419,17 +430,19 @@ export const CustomerTable = ({ customers, sortBy, sortDirection = 'asc', onSort
                                                 </svg>
                                                 Zobacz profil
                                             </DropdownItem>
-                                            <DropdownItem
-                                                $danger
-                                                onClick={e => { e.stopPropagation(); setOpenMenuId(null); onDelete?.(customer.id); }}
-                                            >
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <polyline points="3 6 5 6 21 6"/>
-                                                    <path d="M19 6l-1 14H6L5 6"/>
-                                                    <path d="M9 6V4h6v2"/>
-                                                </svg>
-                                                Usuń klienta
-                                            </DropdownItem>
+                                            {onDelete && (
+                                                <DropdownItem
+                                                    $danger
+                                                    onClick={e => { e.stopPropagation(); setOpenMenuId(null); onDelete(customer.id); }}
+                                                >
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <polyline points="3 6 5 6 21 6"/>
+                                                        <path d="M19 6l-1 14H6L5 6"/>
+                                                        <path d="M9 6V4h6v2"/>
+                                                    </svg>
+                                                    Usuń klienta
+                                                </DropdownItem>
+                                            )}
                                         </DropdownMenu>,
                                         document.body
                                     )}

@@ -1,12 +1,23 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
+import { usePermissions, type PermissionCode } from '@/core/permissions';
 import styled, { keyframes } from 'styled-components';
 import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 import type { FinanceTab, IncomeDocument, IncomeDocumentType } from '../types';
 
 /** Kolejność zakładek = kolejność skrótów 1-5; whitelist dla wartości z adresu. */
-const FINANCE_TABS: FinanceTab[] = ['income', 'expenses', 'cash', 'payment-summary'];
+/*
+ * Każda zakładka pokazuje dane jednego uprawnienia - bez niego serwer odmawia odczytu,
+ * a zakładka pokazywała „0 zł" albo błąd wczytywania, który nigdy nie zniknie. Do modułu
+ * wpuszcza dowolne uprawnienie finansowe, więc zakładki filtrujemy pojedynczo.
+ */
+const FINANCE_TABS: { tab: FinanceTab; label: string; requires: PermissionCode }[] = [
+  { tab: 'income', label: 'Dokumenty przychodowe', requires: 'FINANCE_INVOICES' },
+  { tab: 'expenses', label: 'Dokumenty kosztowe', requires: 'FINANCE_INVOICES' },
+  { tab: 'cash', label: 'Kasa', requires: 'FINANCE_MANAGE_CASH_REGISTER' },
+  { tab: 'payment-summary', label: 'Podsumowanie płatności', requires: 'FINANCE_VIEW_REPORTS' },
+];
 import type { CostDocumentKind, ExpenseSource, ExpensePaymentStatus } from '../types';
 import { COST_DOCUMENT_KINDS, COST_DOCUMENT_KIND_LABEL } from '../utils/costDocumentKinds';
 import { useFinanceDocument } from '../hooks/useFinance';
@@ -1642,8 +1653,13 @@ export const FinanceView: React.FC = () => {
    * pierwszą zakładkę zamiast pustego panelu.
    */
   const [searchParams, setSearchParams] = useSearchParams();
+  // Adres ?tab=… do zakładki bez uprawnienia spada na pierwszą dostępną.
+  const { can } = usePermissions();
+  const availableTabs = useMemo(() => FINANCE_TABS.filter(t => can(t.requires)), [can]);
+  const canManageDocuments = can('FINANCE_INVOICES');
+  const canSeeReports = can('FINANCE_VIEW_REPORTS');
   const tabParam = searchParams.get('tab') as FinanceTab | null;
-  const activeTab: FinanceTab = tabParam && FINANCE_TABS.includes(tabParam) ? tabParam : 'income';
+  const activeTab: FinanceTab = availableTabs.find(t => t.tab === tabParam)?.tab ?? availableTabs[0]?.tab ?? 'income';
   const setActiveTab = useCallback((tab: FinanceTab) => {
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
@@ -1705,7 +1721,7 @@ export const FinanceView: React.FC = () => {
                 onChange={handleDateChange}
               />
             )}
-            {activeTab === 'income' && (
+            {activeTab === 'income' && canManageDocuments && (
               <>
                 <PageHeaderGhostButton onClick={openIncomeModal} title="Dodaj paragon">
                   <PlusIcon />
@@ -1719,7 +1735,7 @@ export const FinanceView: React.FC = () => {
                 </PageHeaderPrimaryButton>
               </>
             )}
-            {activeTab === 'expenses' && (
+            {activeTab === 'expenses' && canManageDocuments && (
               <PageHeaderPrimaryButton onClick={openExpenseModal} title="Dodaj dokument kosztowy">
                 <PlusIcon />
                 <FullLabel>Dodaj dokument kosztowy</FullLabel>
@@ -1730,6 +1746,8 @@ export const FinanceView: React.FC = () => {
         }
       />
 
+      {/* Kafle to raport (/finance/summary) - bez prawa do raportów zostawał sam nagłówek. */}
+      {canSeeReports && (
       <div>
         <SectionLabel>
           <SectionLabelText>Podsumowanie finansowe</SectionLabelText>
@@ -1743,6 +1761,7 @@ export const FinanceView: React.FC = () => {
           outstandingSide={activeTab === 'expenses' ? 'payables' : 'receivables'}
         />
       </div>
+      )}
 
       <div>
         <SectionLabel>
@@ -1752,24 +1771,14 @@ export const FinanceView: React.FC = () => {
 
         <PanelCard>
           <TabBar>
-            <TabItem $active={activeTab === 'income'} onClick={() => setActiveTab('income')}>
-              Dokumenty przychodowe
-            </TabItem>
-            <TabItem $active={activeTab === 'expenses'} onClick={() => setActiveTab('expenses')}>
-              Dokumenty kosztowe
-            </TabItem>
-            <TabItem $active={activeTab === 'cash'} onClick={() => setActiveTab('cash')}>
-              Kasa
-            </TabItem>
-            <TabItem $active={activeTab === 'payment-summary'} onClick={() => setActiveTab('payment-summary')}>
-              Podsumowanie płatności
-            </TabItem>
+            {availableTabs.map(t => (
+              <TabItem key={t.tab} $active={activeTab === t.tab} onClick={() => setActiveTab(t.tab)}>
+                {t.label}
+              </TabItem>
+            ))}
           </TabBar>
           <TabSelect value={activeTab} onChange={e => setActiveTab(e.target.value as FinanceTab)}>
-            <option value="income">Dokumenty przychodowe</option>
-            <option value="expenses">Dokumenty kosztowe</option>
-            <option value="cash">Kasa</option>
-            <option value="payment-summary">Podsumowanie płatności</option>
+            {availableTabs.map(t => <option key={t.tab} value={t.tab}>{t.label}</option>)}
           </TabSelect>
 
           {activeTab === 'income' && (

@@ -29,6 +29,7 @@ import { EntityActivityTimeline } from '@/modules/activity';
 import { CarLogoImage } from '@/modules/vehicles/components/CarLogoImage';
 import { useClickToCall } from '@/modules/push';
 import { useMediaQuery } from '@/common/hooks';
+import { usePermissions } from '@/core/permissions';
 import { t } from '@/common/i18n';
 import {
     Button, Card, FieldList, FieldRow, Notice, Panel, PanelBody, PanelHead, SectionChips, SectionTitle,
@@ -478,6 +479,17 @@ export const CustomerDetailView = () => {
     const [showAllVisits, setShowAllVisits] = useState(false);
     const [showDeletedVisits, setShowDeletedVisits] = useState(false);
     const [showDeletedVehicles, setShowDeletedVehicles] = useState(false);
+    /*
+     * Kwoty (przychód od klienta, ceny wizyt, wykres 12 miesięcy) to ceny z cennika - bez
+     * prawa do nich serwer ich nie wysyła i sekcje znikają, zamiast pokazywać „0 zł"
+     * albo „NaN zł". Historia zmian to dziennik aktywności (osobne uprawnienie).
+     */
+    const { can } = usePermissions();
+    const canSeePrices = can('VISITS_SERVICE_PRICES_VIEW');
+    const canSeeHistory = can('AUDIT_VIEW');
+    // Zmiany w kartotece (dane, firma, pojazd, nowa wizyta) to VISITS_CREATE; SMS i usunięcie
+    // mają własne uprawnienia. Bez nich przyciski kończyły się odmową serwera.
+    const canEditCustomer = can('VISITS_CREATE');
 
     const deleteCustomer = useDeleteCustomer();
     const { requestCall, isRequesting: isRequestingCall } = useClickToCall();
@@ -486,7 +498,7 @@ export const CustomerDetailView = () => {
     const { visits: regularVisits, reservations } = useCustomerActiveData(customerId!);
     const { visits: deletedVisits } = useCustomerDeletedVisits(customerId!, showDeletedVisits);
     const { entries: commEntries } = useCustomerCommunication(customerId!);
-    const { data: revenueSummary } = useCustomerRevenue(customerId!);
+    const { data: revenueSummary } = useCustomerRevenue(customerId!, 12, canSeePrices);
 
     const visits: VisitRowData[] = useMemo(() => {
         const withPlate = (v: Visit, deleted: boolean) => ({
@@ -541,7 +553,7 @@ export const CustomerDetailView = () => {
     const fullName = joinPiiName(customer.firstName, customer.lastName) ?? 'Nieznany klient';
     const phone = customer.contact.phone;
     const phoneUsable = !!phone && !isPiiMasked(phone);
-    const currency = lifetimeValue.currency;
+    const currency = lifetimeValue?.currency ?? 'PLN';
 
     const shownVisits = showAllVisits ? visits : visits.slice(0, VISITS_COLLAPSED);
     const monthly = revenueSummary?.buckets ?? [];
@@ -589,7 +601,9 @@ export const CustomerDetailView = () => {
                     fullName={fullName}
                     companyName={customer.company?.name}
                     createdAt={customer.createdAt}
-                    canSms={phoneUsable}
+                    canSms={phoneUsable && can('COMMUNICATION_SEND')}
+                    canEdit={canEditCustomer}
+                    canDelete={can('CUSTOMERS_DELETE')}
                     onNewVisit={startVisit}
                     onEdit={() => openEdit()}
                     onSms={() => setIsSmsOpen(true)}
@@ -639,13 +653,15 @@ export const CustomerDetailView = () => {
                                         </Button>
                                     </CardHead>
 
-                                    <Strip
-                                        label="Łączny przychód od klienta"
-                                        amount={formatCurrency(lifetimeValue.grossAmount, currency)}
-                                        details={customer.totalVisits > 0
-                                            ? `${customer.totalVisits} ${visitsWord(customer.totalVisits)}, średnio ${formatCurrency(lifetimeValue.grossAmount / customer.totalVisits, currency)}`
-                                            : 'klient nie ma jeszcze zakończonej wizyty'}
-                                    />
+                                    {lifetimeValue && (
+                                        <Strip
+                                            label="Łączny przychód od klienta"
+                                            amount={formatCurrency(lifetimeValue.grossAmount, currency)}
+                                            details={customer.totalVisits > 0
+                                                ? `${customer.totalVisits} ${visitsWord(customer.totalVisits)}, średnio ${formatCurrency(lifetimeValue.grossAmount / customer.totalVisits, currency)}`
+                                                : 'klient nie ma jeszcze zakończonej wizyty'}
+                                        />
+                                    )}
 
                                     {shownVisits.length === 0 ? (
                                         <EmptyCard>Ten klient nie ma jeszcze wizyt.</EmptyCard>
@@ -670,7 +686,7 @@ export const CustomerDetailView = () => {
                                                                 </span>
                                                             </EventText>
                                                             <StatusPill className="pill" $tone={status.tone}>{status.label}</StatusPill>
-                                                            <Amount>{formatCurrency(visit.totalCost.grossAmount, visit.totalCost.currency)}</Amount>
+                                                            {visit.totalCost && <Amount>{formatCurrency(visit.totalCost.grossAmount, visit.totalCost.currency)}</Amount>}
                                                             <ChevronRight aria-hidden="true" />
                                                         </EventRow>
                                                     </li>
@@ -717,7 +733,7 @@ export const CustomerDetailView = () => {
                                                                     </span>
                                                                 </EventText>
                                                                 <StatusPill className="pill" $tone={status.tone}>{status.label}</StatusPill>
-                                                                <Amount>{formatCurrency(r.totalCost.grossAmount, r.totalCost.currency)}</Amount>
+                                                                {r.totalCost && <Amount>{formatCurrency(r.totalCost.grossAmount, r.totalCost.currency)}</Amount>}
                                                                 <ChevronRight aria-hidden="true" />
                                                             </FlatRow>
                                                         </li>
@@ -738,6 +754,7 @@ export const CustomerDetailView = () => {
                             </Slot>
 
                             {/* Suma za 12 miesięcy jest nagłówkiem, słupki są dowodem pod nią. */}
+                            {canSeePrices && (
                             <Slot $order={9}>
                                 <Panel aria-labelledby="customer-revenue-title">
                                     <PanelHead>
@@ -767,7 +784,9 @@ export const CustomerDetailView = () => {
                                     </PanelBody>
                                 </Panel>
                             </Slot>
+                            )}
 
+                            {canSeeHistory && (
                             <Slot id="customer-history" $order={10}>
                                 <Panel>
                                     <HistoryToggle
@@ -786,6 +805,7 @@ export const CustomerDetailView = () => {
                                     )}
                                 </Panel>
                             </Slot>
+                            )}
                         </MainColumn>
 
                         <Rail>
@@ -793,7 +813,7 @@ export const CustomerDetailView = () => {
                                 <RailPanel id="customer-data" aria-labelledby="customer-data-title">
                                     <RailHead>
                                         <SectionTitle id="customer-data-title">Dane klienta</SectionTitle>
-                                        <Button variant="ghost" size="sm" onClick={() => openEdit()}><Pencil />Edytuj</Button>
+                                        {canEditCustomer && <Button variant="ghost" size="sm" onClick={() => openEdit()}><Pencil />Edytuj</Button>}
                                     </RailHead>
                                     <FieldList style={{ marginTop: 10 }}>
                                         <FieldRow label="Telefon">
@@ -839,7 +859,7 @@ export const CustomerDetailView = () => {
                                     <RailPanel aria-labelledby="customer-company-title">
                                         <RailHead>
                                             <SectionTitle id="customer-company-title">Dane firmy</SectionTitle>
-                                            <Button variant="ghost" size="sm" onClick={() => openEdit('company')}><Pencil />Edytuj</Button>
+                                            {canEditCustomer && <Button variant="ghost" size="sm" onClick={() => openEdit('company')}><Pencil />Edytuj</Button>}
                                         </RailHead>
                                         <FieldList style={{ marginTop: 10 }}>
                                             <FieldRow label="Nazwa"><span style={{ textAlign: 'right' }}>{customer.company.name}</span></FieldRow>
@@ -871,7 +891,7 @@ export const CustomerDetailView = () => {
                                             >
                                                 {showDeletedVehicles ? 'Ukryj usunięte' : 'Usunięte'}
                                             </Button>
-                                            <Button size="sm" onClick={() => setIsAddVehicleOpen(true)}><Plus />Dodaj</Button>
+                                            {canEditCustomer && <Button size="sm" onClick={() => setIsAddVehicleOpen(true)}><Plus />Dodaj</Button>}
                                         </RailActions>
                                     </RailHead>
                                     {vehiclesLoading ? (

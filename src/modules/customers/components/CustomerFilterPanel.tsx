@@ -1,4 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { usePermissions } from '@/core/permissions';
 import styled, { keyframes } from 'styled-components';
 import { createPortal } from 'react-dom';
 import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
@@ -597,6 +598,8 @@ export const CustomerFilterPanel = ({
     onApply,
     onClose,
 }: CustomerFilterPanelProps) => {
+    // Bez prawa do cen serwer nie wysyła obrotów i ignoruje filtr po nich - pole znika.
+    const showRevenue = usePermissions().can('VISITS_SERVICE_PRICES_VIEW');
     const [customerType, setCustomerType] = useState<CustomerTypeFilter>(
         initialFilters.customerType ?? 'all'
     );
@@ -743,6 +746,7 @@ export const CustomerFilterPanel = ({
                     </FilterSection>
 
                     {/* Przychód */}
+                    {showRevenue && (
                     <FilterSection>
                         <SectionLabel>Przychód brutto (PLN)</SectionLabel>
                         <RevenueRow>
@@ -763,6 +767,7 @@ export const CustomerFilterPanel = ({
                             />
                         </RevenueRow>
                     </FilterSection>
+                    )}
 
                     {/* Liczba wizyt */}
                     <FilterSection>

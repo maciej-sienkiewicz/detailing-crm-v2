@@ -246,6 +246,8 @@ interface DocumentGalleryProps {
     onDelete: (documentId: string) => void;
     onDeletePhoto: (photoId: string) => void;
     onUpdatePhotoTags?: (photoId: string, tags: string[]) => void;
+    /** Rola bez dostępu do dokumentów wizyty - pusty stan mówi wtedy tylko o zdjęciach. */
+    documentsHidden?: boolean;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -257,6 +259,7 @@ export const DocumentGallery = ({
     onDelete,
     onDeletePhoto,
     onUpdatePhotoTags,
+    documentsHidden = false,
 }: DocumentGalleryProps) => {
     // Destructive actions are separate capabilities: documents ride on VISITS_DELETE,
     // photos on VISITS_MEDIA_DELETE (backend enforces the same split).
@@ -505,7 +508,8 @@ export const DocumentGallery = ({
                     <EmptyState>
                         {activeTagFilter
                             ? `Brak zdjęć z tagiem „${activeTagFilter}"`
-                            : isLoadingPhotos ? 'Wczytywanie zdjęć...' : 'Nie ma jeszcze zdjęć ani dokumentów.'}
+                            : isLoadingPhotos ? 'Wczytywanie zdjęć...'
+                            : documentsHidden ? 'Nie ma jeszcze zdjęć.' : 'Nie ma jeszcze zdjęć ani dokumentów.'}
                     </EmptyState>
                 )}
             </Wrap>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePermissions } from '@/core/permissions';
 import styled from 'styled-components';
 import { Check, Pencil, Trash2, Plus, ClipboardList, Archive, Users, ShieldCheck } from 'lucide-react';
 import { useBreakpoint } from '@/common/hooks';
@@ -323,6 +324,9 @@ export const TasksPanel = () => {
   const [archiveOpen, setArchiveOpen] = useState(false);
   const isDesktop = useBreakpoint('md');
   const [editingTask, setEditingTask] = useState<DashboardTask | null>(null);
+  // Samo TASKS_VIEW to przeglądanie i odhaczanie; dodawanie, edycja i usuwanie
+  // wymagają TASKS_MANAGE - bez niego te przyciski kończyły się odmową serwera.
+  const canManage = usePermissions().can('TASKS_MANAGE');
 
   const openCreate = () => {
     setEditingTask(null);
@@ -359,13 +363,15 @@ export const TasksPanel = () => {
             {/* Dyktowanie tylko na telefonie: na komputerze nikt nie mówi do
                 laptopa nad klawiaturą, a przycisk zawężał miejsce na pozostałe
                 akcje. Wpisanie zadania jest tam szybsze niż nagranie. */}
-            {!isDesktop && (
+            {canManage && !isDesktop && (
                 <TaskVoiceButton onRecorded={createTaskFromVoice} isSending={isTranscribing} />
             )}
-            <AddButton onClick={openCreate}>
-              <Plus />
-              Dodaj
-            </AddButton>
+            {canManage && (
+              <AddButton onClick={openCreate}>
+                <Plus />
+                Dodaj
+              </AddButton>
+            )}
           </HeadActions>
         </PanelHead>
 
@@ -384,7 +390,7 @@ export const TasksPanel = () => {
         ) : tasks.length === 0 ? (
           <EmptyState>
             <EmptyIcon><ClipboardList /></EmptyIcon>
-            <EmptyText>Brak zadań. Dodaj pierwsze!</EmptyText>
+            <EmptyText>{canManage ? 'Brak zadań. Dodaj pierwsze!' : 'Brak zadań.'}</EmptyText>
           </EmptyState>
         ) : (
           <TaskList>
@@ -420,6 +426,7 @@ export const TasksPanel = () => {
                     </VisibilityBadge>
                   )}
                 </TaskContent>
+                {canManage && (
                 <TaskActions className="task-actions">
                   <ActionBtn onClick={() => openEdit(task)} title="Edytuj">
                     <Pencil />
@@ -433,6 +440,7 @@ export const TasksPanel = () => {
                     <Trash2 />
                   </ActionBtn>
                 </TaskActions>
+                )}
               </TaskItem>
             ))}
           </TaskList>

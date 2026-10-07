@@ -439,18 +439,26 @@ export const VisitHeader = ({
         : visit.settlement?.documentType && visit.settlement.documentType !== 'INVOICE' && onIssueConsumerInvoice ? 'issue'
         : null;
 
-    const primary = settlementAction === 'preview' && can('VISITS_VIEW') ? (
+    // Podgląd faktury czyta ją z KSeF (FINANCE_INVOICES) - bez tego okno zostawało puste.
+    const primary = settlementAction === 'preview' && can('FINANCE_INVOICES') ? (
         <PrimaryAction variant="success" onClick={onPreviewInvoice}><FileText />Podgląd faktury</PrimaryAction>
     ) : settlementAction === 'issue' && can('VISITS_CREATE') ? (
         <PrimaryAction variant="success" onClick={onIssueConsumerInvoice}><FilePlus />Wystaw fakturę konsumencką</PrimaryAction>
-    ) : settlementAction === null && can('VISITS_VIEW') && !isTerminal ? (
+    ) : settlementAction === null && can('VISITS_VIEW') && !isTerminal
+        // „Wydaj pojazd" to rozliczenie z kwotami usług - bez prawa do cen serwer ich nie
+        // wysyła, a ekran wydania nie miałby czego pokazać ani wpisać na paragon.
+        && (visit.status !== 'READY_FOR_PICKUP' || can('VISITS_SERVICE_PRICES_VIEW')) ? (
         <PrimaryAction variant="success" onClick={onCompleteVisit}>
             <Check />{COMPLETE_LABEL[visit.status] ?? 'Zakończ wizytę'}
         </PrimaryAction>
     ) : null;
 
     const canUseDoorToDoor = Boolean(onDoorToDoor) && can('VISITS_CREATE');
-    const moreButton = can('VISITS_CREATE') && (
+    // Generowanie posta to moduł marketingu - bez MARKETING_MANAGE serwer odrzuca każde
+    // wywołanie. Menu bez żadnej pozycji nie dostaje przycisku wcale.
+    const canGeneratePost = can('MARKETING_MANAGE');
+    const hasMenuItems = (compact && canUseDoorToDoor) || canGeneratePost || can('VISITS_DELETE');
+    const moreButton = can('VISITS_CREATE') && hasMenuItems && (
         <IconButton
             label="Więcej akcji wizyty"
             variant="onDark"
@@ -581,7 +589,9 @@ export const VisitHeader = ({
                 {compact && canUseDoorToDoor && (
                     <MenuItem icon={<Truck />} onClick={onDoorToDoor}>Door to door</MenuItem>
                 )}
-                <MenuItem icon={<Sparkles />} onClick={onGeneratePost}>Generuj post</MenuItem>
+                {canGeneratePost && (
+                    <MenuItem icon={<Sparkles />} onClick={onGeneratePost}>Generuj post</MenuItem>
+                )}
                 {can('VISITS_DELETE') && (
                     <MenuItem icon={<Trash2 />} danger disabled={isTerminal} onClick={onCancelVisit}>Usuń wizytę</MenuItem>
                 )}

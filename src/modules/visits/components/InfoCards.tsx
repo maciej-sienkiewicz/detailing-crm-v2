@@ -115,11 +115,13 @@ export const CustomerInfoCard = ({ customer, visitId, onViewDetails, compact, ch
     const phoneUsable = !!customer.phone && !isPiiMasked(customer.phone);
     /* Z groszami, jak każda inna kwota na tym ekranie - zaokrąglona suma (3565 zł
        przy 3564,54 zł) wyglądała jak inna liczba niż w karcie klienta. */
-    const totalSpentLabel = new Intl.NumberFormat('pl-PL', {
+    // null bez prawa do cen - serwer nie wysyła wtedy obrotów klienta.
+    const totalSpent = customer.stats.totalSpent;
+    const totalSpentLabel = totalSpent ? new Intl.NumberFormat('pl-PL', {
         style: 'currency',
-        currency: customer.stats.totalSpent.currency || 'PLN',
+        currency: totalSpent.currency || 'PLN',
         minimumFractionDigits: 2,
-    }).format(customer.stats.totalSpent.grossAmount / 100);
+    }).format(totalSpent.grossAmount / 100) : null;
     const visitsLabel = `${customer.stats.totalVisits} ${customer.stats.totalVisits === 1 ? 'wizyta' : 'wizyty'}`;
 
     const phoneValue = customer.phone ? (
@@ -141,7 +143,7 @@ export const CustomerInfoCard = ({ customer, visitId, onViewDetails, compact, ch
     ) : <Missing>Brak adresu</Missing>;
 
     const sub = compact
-        ? [visitsLabel, can('VISITS_SERVICE_PRICES_VIEW') ? `${totalSpentLabel} łącznie` : null].filter(Boolean).join(', ')
+        ? [visitsLabel, totalSpentLabel ? `${totalSpentLabel} łącznie` : null].filter(Boolean).join(', ')
         : customer.companyName;
 
     return (
@@ -182,7 +184,7 @@ export const CustomerInfoCard = ({ customer, visitId, onViewDetails, compact, ch
                     <FieldRow label="Telefon">{phoneValue}</FieldRow>
                     <FieldRow label="E-mail">{emailValue}</FieldRow>
                     <FieldRow label="Wizyty"><strong>{customer.stats.totalVisits}</strong></FieldRow>
-                    {can('VISITS_SERVICE_PRICES_VIEW') && (
+                    {totalSpentLabel && (
                         <FieldRow label="Łącznie"><strong>{totalSpentLabel}</strong></FieldRow>
                     )}
                     {customer.stats.vehiclesCount > 0 && (

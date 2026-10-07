@@ -412,11 +412,10 @@ export const customerDetailApi = {
             `${CUSTOMERS_BASE_PATH}/${customerId}/detail`
         );
         const raw = response.data;
+        // lifetimeValue = null bez prawa do cen (serwer nie wysyła obrotów).
         return {
             ...raw,
-            lifetimeValue: {
-                ...raw.lifetimeValue,
-            },
+            lifetimeValue: raw.lifetimeValue ? { ...raw.lifetimeValue } : null,
         };
     },
 

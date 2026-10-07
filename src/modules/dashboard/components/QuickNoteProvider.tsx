@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { QUICK_NOTE_EVENT } from '@/common/shortcuts';
+import { usePermissions } from '@/core/permissions';
 import { tasksApi } from '../api/tasksApi';
 import { TASKS_QUERY_KEY } from '../hooks/useTasks';
 import type { CreateTaskPayload } from '../types';
@@ -22,6 +23,9 @@ import { TaskModal } from './TaskModal';
 export function QuickNoteProvider({ children }: { children: React.ReactNode }) {
     const [isOpen, setIsOpen] = useState(false);
     const queryClient = useQueryClient();
+    // Notatka to nowe zadanie (TASKS_MANAGE) - bez uprawnienia skrót nic nie otwiera,
+    // zamiast okna, którego zapis serwer i tak odrzuci.
+    const canCreate = usePermissions().can('TASKS_MANAGE');
 
     const createTask = useMutation({
         mutationFn: (payload: CreateTaskPayload) => tasksApi.create(payload),
@@ -29,10 +33,11 @@ export function QuickNoteProvider({ children }: { children: React.ReactNode }) {
     });
 
     useEffect(() => {
+        if (!canCreate) return;
         const open = () => setIsOpen(true);
         window.addEventListener(QUICK_NOTE_EVENT, open);
         return () => window.removeEventListener(QUICK_NOTE_EVENT, open);
-    }, []);
+    }, [canCreate]);
 
     const handleSave = useCallback(
         async (payload: CreateTaskPayload) => {

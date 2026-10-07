@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { usePermissions } from '@/core/permissions';
 import { createPortal } from 'react-dom';
 import { PiiValue } from '@/common/pii';
 import styled, { keyframes } from 'styled-components';
@@ -322,6 +323,8 @@ interface VehicleTableProps {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTableProps) => {
+    // Kolumna przychodu tylko z prawem do cen - bez niego serwer nie wysyła kwot.
+    const showRevenue = usePermissions().can('VISITS_SERVICE_PRICES_VIEW');
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const { menuRef: dropdownMenuRef, pos: menuPos, style: menuStyle, open: openDropdownPos, close: closeDropdownPos } = usePortalDropdownPos();
 
@@ -360,7 +363,7 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
                         <Th>{t.vehicles.table.owners}</Th>
                         <Th>{t.vehicles.table.lastVisit}</Th>
                         <Th>{t.vehicles.table.visits}</Th>
-                        <Th>{t.vehicles.table.totalRevenue}</Th>
+                        {showRevenue && <Th>{t.vehicles.table.totalRevenue}</Th>}
                         <Th>{t.vehicles.table.actions}</Th>
                     </tr>
                 </TableHead>
@@ -418,29 +421,38 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
                                     <VisitBadge>{vehicle.stats.totalVisits}</VisitBadge>
                                 </Td>
 
-                                <Td>
-                                    <GrossAmt>
-                                        {formatCurrency(
-                                            vehicle.stats.totalSpent.grossAmount,
-                                            vehicle.stats.totalSpent.currency
+                                {showRevenue && (
+                                    <Td>
+                                        {vehicle.stats.totalSpent && (
+                                            <>
+                                                <GrossAmt>
+                                                    {formatCurrency(
+                                                        vehicle.stats.totalSpent.grossAmount,
+                                                        vehicle.stats.totalSpent.currency
+                                                    )}
+                                                </GrossAmt>
+                                                <NetAmt>
+                                                    {formatCurrency(
+                                                        vehicle.stats.totalSpent.netAmount,
+                                                        vehicle.stats.totalSpent.currency
+                                                    )} netto
+                                                </NetAmt>
+                                            </>
                                         )}
-                                    </GrossAmt>
-                                    <NetAmt>
-                                        {formatCurrency(
-                                            vehicle.stats.totalSpent.netAmount,
-                                            vehicle.stats.totalSpent.currency
-                                        )} netto
-                                    </NetAmt>
-                                </Td>
+                                    </Td>
+                                )}
 
                                 <ActionsCell onClick={e => e.stopPropagation()}>
                                     <ActionsCellWrap>
-                                        <MenuBtn
-                                            onClick={e => toggleMenu(vehicle.id, e)}
-                                            title="Akcje"
-                                        >
-                                            <DotsIcon />
-                                        </MenuBtn>
+                                        {/* Jedyna akcja to usunięcie - bez niego menu nie ma czego pokazać. */}
+                                        {onDelete && (
+                                            <MenuBtn
+                                                onClick={e => toggleMenu(vehicle.id, e)}
+                                                title="Akcje"
+                                            >
+                                                <DotsIcon />
+                                            </MenuBtn>
+                                        )}
 
                                         {openMenuId === vehicle.id && menuPos && createPortal(
                                             <DropdownMenu ref={dropdownMenuRef} style={menuStyle}>

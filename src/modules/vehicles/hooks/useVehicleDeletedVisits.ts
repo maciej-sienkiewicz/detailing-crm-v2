@@ -16,7 +16,7 @@ export const useVehicleDeletedVisits = (vehicleId: string, enabled: boolean) => 
         title: v.title || v.description || 'Wizyta',
         customerName: v.customerName,
         status: v.status,
-        grossAmount: (v.totalCost?.grossAmount ?? 0) / 100,
+        grossAmount: v.totalCost ? v.totalCost.grossAmount / 100 : null,
         currency: v.totalCost?.currency ?? 'PLN',
         deletedAt: v.deletedAt ?? v.date,
     }));

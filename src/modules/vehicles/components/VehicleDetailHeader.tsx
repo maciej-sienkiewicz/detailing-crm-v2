@@ -145,6 +145,10 @@ const PrimaryAction = styled(Button)`
 interface Props {
     vehicle: Vehicle;
     isArchived: boolean;
+    /** Edycja, właściciele i nowa wizyta (VISITS_CREATE). */
+    canEdit: boolean;
+    /** Usunięcie pojazdu (CUSTOMERS_DELETE). */
+    canDelete: boolean;
     onNewVisit: () => void;
     onEdit: () => void;
     onOwners: () => void;
@@ -152,7 +156,7 @@ interface Props {
     isDeleting?: boolean;
 }
 
-export function VehicleDetailHeader({ vehicle, isArchived, onNewVisit, onEdit, onOwners, onDelete, isDeleting }: Props) {
+export function VehicleDetailHeader({ vehicle, isArchived, canEdit, canDelete, onNewVisit, onEdit, onOwners, onDelete, isDeleting }: Props) {
     const [heroRef, heroWidth] = useContainerWidth<HTMLElement>();
     const compact = heroWidth === null
         ? typeof window !== 'undefined' && window.innerWidth <= COMPACT_MAX_WIDTH
@@ -167,7 +171,7 @@ export function VehicleDetailHeader({ vehicle, isArchived, onNewVisit, onEdit, o
         vehicle.color || null,
     ].filter(Boolean).join(', ');
 
-    const primary = (
+    const primary = canEdit && (
         <PrimaryAction variant="primary" onClick={onNewVisit} disabled={isArchived}>
             <CalendarPlus />Nowa wizyta
         </PrimaryAction>
@@ -193,10 +197,10 @@ export function VehicleDetailHeader({ vehicle, isArchived, onNewVisit, onEdit, o
                         </IdentText>
                     </Identity>
                     <Actions>
-                        {!compact && !isArchived && (
+                        {!compact && !isArchived && canEdit && (
                             <Button variant="onDark" size="lg" onClick={onEdit}><Pencil />Edytuj dane</Button>
                         )}
-                        {!isArchived && (
+                        {!isArchived && (canEdit || canDelete) && (
                             <IconButton
                                 label="Więcej akcji pojazdu"
                                 variant="onDark"
@@ -216,9 +220,9 @@ export function VehicleDetailHeader({ vehicle, isArchived, onNewVisit, onEdit, o
             </Inner>
 
             <ActionMenu anchor={menu.menu?.anchor ?? null} onClose={menu.close} label="Akcje pojazdu">
-                {compact && <MenuItem icon={<Pencil />} onClick={onEdit}>Edytuj dane</MenuItem>}
-                <MenuItem icon={<Users />} onClick={onOwners}>Właściciele</MenuItem>
-                <MenuItem icon={<Trash2 />} danger disabled={isDeleting} onClick={onDelete}>Usuń pojazd</MenuItem>
+                {compact && canEdit && <MenuItem icon={<Pencil />} onClick={onEdit}>Edytuj dane</MenuItem>}
+                {canEdit && <MenuItem icon={<Users />} onClick={onOwners}>Właściciele</MenuItem>}
+                {canDelete && <MenuItem icon={<Trash2 />} danger disabled={isDeleting} onClick={onDelete}>Usuń pojazd</MenuItem>}
             </ActionMenu>
         </Hero>
     );

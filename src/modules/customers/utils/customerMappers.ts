@@ -31,11 +31,12 @@ interface BackendVisit {
     vehicleId: string;
     vehicleName: string;
     description: string;
+    /** null bez prawa do cen. */
     totalCost: {
         netAmount: number;
         grossAmount: number;
         currency: string;
-    };
+    } | null;
     status: string;
     createdBy?: string;
     notes: string;
@@ -170,7 +171,7 @@ export const mapBackendVisitToVisit = (backendVisit: BackendVisit): Visit => {
         vehicleId: backendVisit.vehicleId,
         vehicleName: backendVisit.vehicleName,
         description: backendVisit.description,
-        totalCost: {
+        totalCost: backendVisit.totalCost && {
             netAmount: backendVisit.totalCost.netAmount,
             grossAmount: backendVisit.totalCost.grossAmount,
             currency: backendVisit.totalCost.currency,
@@ -194,8 +195,9 @@ export const mapBackendReservationToReservation = (appointment: BackendAppointme
         vehicleName,
         licensePlate: appointment.vehicle?.licensePlate,
         status: appointment.status.toUpperCase() as Reservation['status'],
-        totalCost: {
-            netAmount: appointment.totalNet / 100,
+        // Bez prawa do cen kalendarz nie wysyła kwot - null, a nie NaN zł.
+        totalCost: appointment.totalGross == null ? null : {
+            netAmount: (appointment.totalNet ?? 0) / 100,
             grossAmount: appointment.totalGross / 100,
             currency: 'PLN',
         },
@@ -231,8 +233,8 @@ export const mapCalendarVisitToVisit = (v: VisitResponse): Visit => {
         vehicleName: `${v.vehicle.brand} ${v.vehicle.model}`.trim(),
         licensePlate: v.vehicle.licensePlate ?? undefined,
         description: v.description ?? v.title ?? '',
-        totalCost: {
-            netAmount: v.totalNet / 100,
+        totalCost: v.totalGross == null ? null : {
+            netAmount: (v.totalNet ?? 0) / 100,
             grossAmount: v.totalGross / 100,
             currency: v.currency,
         },
