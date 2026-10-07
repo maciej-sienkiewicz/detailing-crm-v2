@@ -6,6 +6,12 @@
 // i nazwy (`PackageMember`). Wcześniej udawała pełne usługi z cennika z ceną 0 zł,
 // co psuło typy (brakujące `basePriceGross`) i zapraszało, żeby ktoś kiedyś tę
 // „cenę" odczytał.
+//
+// Okno ma stałą wysokość (`stableHeight`). Lista podpowiedzi leży w przepływie
+// formularza, a okno było wyśrodkowane i rosło z treścią - każdy znak w wyszukiwarce
+// zmieniał wysokość listy (a przy każdym nowym zapytaniu lista na moment znikała), więc
+// skakało całe okno. Teraz rama stoi, przewija się tylko treść, a lista trzyma
+// poprzednie wyniki do czasu nowych.
 import { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { Plus, X } from 'lucide-react';
@@ -16,6 +22,7 @@ import { FieldLabel, FormErrorMsg, InputShell, BareInput } from '@/common/compon
 import { Button, IconButton, Notice, StatusPill, ui } from '@/common/components/ui';
 import { useToast } from '@/common/components/Toast';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
+import { useDebounce } from '@/common/hooks';
 import {
     useCreatePackage, useCreateService, useServices, useUpdatePackage,
 } from '@/modules/services/hooks/useServices';
@@ -37,6 +44,9 @@ interface PackageMember {
 }
 
 const NEW_PREFIX = 'NEW::';
+
+/** Zapytanie do cennika dopiero po krótkiej pauzie w pisaniu, nie przy każdym znaku. */
+const SEARCH_DEBOUNCE_MS = 250;
 
 interface Props {
     /** Edytowany pakiet albo `null` przy dodawaniu. */
@@ -72,8 +82,9 @@ export function PackageEditorModal({ target, onClose, onSaved }: Props) {
     const grossRef = useRef<HTMLInputElement>(null);
     const searchRef = useRef<HTMLInputElement>(null);
 
+    const searchTerm = useDebounce(query.trim(), SEARCH_DEBOUNCE_MS);
     const { services: pickerServices } = useServices({
-        search: query, page: 1, limit: 50, showInactive: false, isPackage: false,
+        search: searchTerm, page: 1, limit: 50, showInactive: false, isPackage: false, keepPrevious: true,
     });
     const available = pickerServices.filter(s => !s.isPackage && !members.some(m => m.id === s.id));
 
@@ -165,7 +176,7 @@ export function PackageEditorModal({ target, onClose, onSaved }: Props) {
 
     return (
         <>
-            <ModalShell isOpen onClose={onClose} size="md" dismissible={!dirty && pendingCustomName === null}>
+            <ModalShell isOpen onClose={onClose} size="md" stableHeight dismissible={!dirty && pendingCustomName === null}>
                 <ModalHeader>
                     <ModalTitleGroup>
                         <ModalTitle>{target ? 'Edytuj pakiet' : 'Nowy pakiet'}</ModalTitle>
