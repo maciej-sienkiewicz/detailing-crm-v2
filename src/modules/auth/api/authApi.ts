@@ -81,6 +81,16 @@ export const authApi = {
         await apiClient.post(`${BASE_PATH}/logout`);
     },
 
+    /**
+     * „Sesja zablokowana": od tej chwili serwer nie wydaje danych tej sesji w żadnej
+     * karcie, dopóki ktoś nie wpisze PIN-u albo nie zaloguje się hasłem. Wołane w tle
+     * przez licznik bezczynności - bez dymka i bez wyrzucania na /login.
+     */
+    lockSession: async (): Promise<void> => {
+        if (USE_MOCKS) return;
+        await apiClient.post(`${BASE_PATH}/session-lock`, undefined, { skipErrorToast: true, skipAuthRedirect: true });
+    },
+
     checkAuth: async (): Promise<{ isAuthenticated: boolean; user: import('../types').User | null }> => {
         if (USE_MOCKS) {
             return mockCheckAuth();

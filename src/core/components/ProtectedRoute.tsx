@@ -2,6 +2,7 @@ import { ReactNode, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../context/AuthContext';
 import { SubscriptionGate } from './SubscriptionGate';
+import { SessionLockedScreen } from './SessionLockedScreen';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -13,7 +14,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, withSubscriptionGate = true }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -37,6 +38,12 @@ export function ProtectedRoute({ children, withSubscriptionGate = true }: Protec
 
   if (!isAuthenticated) {
     return null;
+  }
+
+  // Blokada sesji na serwerze (sessionLock.ts): przed strażnikami uprawnień, które przy
+  // pustej liście uprawnień zablokowanej sesji przekierowałyby na inną stronę.
+  if (user?.sessionLocked) {
+    return <SessionLockedScreen />;
   }
 
   if (!withSubscriptionGate) {
