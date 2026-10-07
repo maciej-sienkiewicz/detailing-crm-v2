@@ -11,6 +11,7 @@
 // Osobno od komponentu nasłuchu (GlobalShortcuts.tsx), bo z tych definicji
 // korzysta też ściąga w Ustawieniach - a plik eksportujący komponent nie może
 // eksportować stałych bez psucia Fast Refresh.
+import type { PermissionCode } from '@/core/permissions';
 import { useEffect, useState } from 'react';
 
 export interface GlobalShortcut {
@@ -103,10 +104,12 @@ export interface ActionShortcut {
     /** Nazwa zdarzenia rozgłaszanego na window. */
     event: string;
     description: string;
+    /** Uprawnienie, bez którego akcja nie ma sensu - ściąga go wtedy nie pokazuje. */
+    requires?: PermissionCode;
 }
 
 export const ACTION_SHORTCUTS: ActionShortcut[] = [
-    { key: 'z', event: QUICK_NOTE_EVENT, description: 'Nowa notatka - z każdego widoku' },
+    { key: 'z', event: QUICK_NOTE_EVENT, description: 'Nowa notatka - z każdego widoku', requires: 'TASKS_MANAGE' },
 ];
 
 /** Skróty aktywne dla danej ścieżki: sekcyjne tej sekcji (jeśli jakaś pasuje). */

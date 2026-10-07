@@ -2,6 +2,7 @@
  * Dashboard View: Command Center
  */
 
+import { usePermissions } from '@/core/permissions';
 import { useMemo, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { AlertCircle, CalendarPlus, ChevronDown, LineChart, Sparkles } from 'lucide-react';
@@ -235,9 +236,9 @@ const StatsToggle = styled.button<{ $open: boolean }>`
 
 // ─── Two-column panels grid ───────────────────────────────────────────────────
 
-const TwoColGrid = styled.div`
+const TwoColGrid = styled.div<{ $single?: boolean }>`
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: ${p => (p.$single ? '1fr' : '2fr 1fr')};
   gap: 20px;
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
@@ -338,6 +339,13 @@ const RetryBtn = styled.button`
 export const DashboardView = () => {
   useDashboardSocket();
   const navigate = useNavigate();
+  /*
+   * Pulpit otwiera każde uprawnienie z ANY_DASHBOARD, więc każdy element pilnuje swojego:
+   * bez prawa do zadań lista „Do zrobienia" była pusta („Brak zadań"), choć zadania są,
+   * a przyciski prowadziły na ekran braku dostępu albo kończyły się odmową serwera.
+   */
+  const { can } = usePermissions();
+  const canSeeTasks = can('TASKS_VIEW');
   const { user } = useAuth();
   const [instagramModalOpen, setInstagramModalOpen] = useState(false);
   const isDesktop = useBreakpoint('md');
@@ -385,14 +393,18 @@ export const DashboardView = () => {
           <HeroLeft>
               <HeroGreeting>{greeting}{user?.firstName ? `, ${user.firstName}` : ''}!</HeroGreeting>
               <HeroActions>
-              <HeroBtnPrimary onClick={() => navigate('/checkin/new')}>
-                <CalendarPlus />
-                Nowa wizyta
-              </HeroBtnPrimary>
-              <HeroBtnGhost onClick={() => setInstagramModalOpen(true)}>
-                <Sparkles />
-                Generuj post
-              </HeroBtnGhost>
+              {can('VISITS_CREATE') && (
+                <HeroBtnPrimary onClick={() => navigate('/checkin/new')}>
+                  <CalendarPlus />
+                  Nowa wizyta
+                </HeroBtnPrimary>
+              )}
+              {can('MARKETING_MANAGE') && (
+                <HeroBtnGhost onClick={() => setInstagramModalOpen(true)}>
+                  <Sparkles />
+                  Generuj post
+                </HeroBtnGhost>
+              )}
             </HeroActions>
           </HeroLeft>
           {isDesktop ? (
@@ -439,13 +451,15 @@ export const DashboardView = () => {
         <OperationalScorecard stats={stats} />
       </div>
 
-      <TwoColGrid>
+      <TwoColGrid $single={!canSeeTasks}>
         <VisitsSlot>
           <UpcomingVisitsPanel />
         </VisitsSlot>
-        <TasksSlot>
-          <TasksPanel />
-        </TasksSlot>
+        {canSeeTasks && (
+          <TasksSlot>
+            <TasksPanel />
+          </TasksSlot>
+        )}
       </TwoColGrid>
 
     </ViewContainer>

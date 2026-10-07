@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
+import { usePermissions } from '@/core/permissions';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { useVehicles } from '../hooks/useVehicles';
@@ -300,6 +301,10 @@ const countActiveFilters = (f: VehicleAdvancedFilters): number => {
 };
 
 export const VehicleListView = () => {
+    // Dodawanie to VISITS_CREATE, usuwanie - CUSTOMERS_DELETE; bez nich przyciski kończyły się odmową.
+    const { can } = usePermissions();
+    const canCreate = can('VISITS_CREATE');
+    const canDelete = can('CUSTOMERS_DELETE');
     const navigate = useNavigate();
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
@@ -401,7 +406,7 @@ export const VehicleListView = () => {
                     <VehicleTable
                         vehicles={vehicles}
                         onRowClick={handleRowClick}
-                        onDelete={handleDelete}
+                        onDelete={canDelete ? handleDelete : undefined}
                     />
                 ) : (
                     <VehicleGrid vehicles={vehicles} onCardClick={handleRowClick} />
@@ -424,7 +429,7 @@ export const VehicleListView = () => {
                             )}
                         </>
                     }
-                    actions={
+                    actions={canCreate &&
                         <PageHeaderPrimaryButton onClick={handleAddVehicle}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                 <line x1="12" y1="5" x2="12" y2="19" />
@@ -441,7 +446,7 @@ export const VehicleListView = () => {
                     subtitle={pagination
                         ? <><MobilePageHeaderCountValue>{pagination.totalItems}</MobilePageHeaderCountValue> rekordów</>
                         : 'Wczytywanie…'}
-                    actions={
+                    actions={canCreate &&
                         <MobilePageHeaderButton onClick={handleAddVehicle}>
                             <span aria-hidden="true">+</span>
                             Pojazd

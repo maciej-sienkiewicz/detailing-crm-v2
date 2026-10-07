@@ -307,7 +307,7 @@ export const VehicleHeader = ({ vehicle, onEditVehicle, onEditOwners }: VehicleH
     ].filter(Boolean) as string[];
 
     const { stats } = vehicle;
-    const totalSpent  = stats?.totalSpent  ?? { grossAmount: 0, currency: 'PLN' };
+    const totalSpent  = stats?.totalSpent  ?? null; // null bez prawa do cen
     const totalVisits = stats?.totalVisits ?? 0;
     const lastVisit   = stats?.lastVisitDate ?? null;
 
@@ -371,12 +371,14 @@ export const VehicleHeader = ({ vehicle, onEditVehicle, onEditOwners }: VehicleH
             </HeaderContent>
 
             <StatsStrip>
-                <StatItem>
-                    <StatLabel>Przychód</StatLabel>
-                    <StatValue $accent>
-                        {formatCurrency(totalSpent.grossAmount, totalSpent.currency)}
-                    </StatValue>
-                </StatItem>
+                {totalSpent && (
+                    <StatItem>
+                        <StatLabel>Przychód</StatLabel>
+                        <StatValue $accent>
+                            {formatCurrency(totalSpent.grossAmount, totalSpent.currency)}
+                        </StatValue>
+                    </StatItem>
+                )}
                 <StatItem>
                     <StatLabel>Wizyty</StatLabel>
                     <StatValue>{totalVisits}</StatValue>

@@ -435,7 +435,7 @@ const sortCustomers = (
                 comparison = a.totalVisits - b.totalVisits;
                 break;
             case 'totalRevenue':
-                comparison = a.totalRevenue.grossAmount - b.totalRevenue.grossAmount;
+                comparison = (a.totalRevenue?.grossAmount ?? 0) - (b.totalRevenue?.grossAmount ?? 0);
                 break;
             case 'vehicleCount':
                 comparison = a.vehicleCount - b.vehicleCount;
@@ -511,11 +511,11 @@ const mockGetCustomers = async (filters: CustomerFilters): Promise<CustomerListR
     }
 
     if (filters.minRevenue != null) {
-        filteredCustomers = filteredCustomers.filter(c => c.totalRevenue.grossAmount >= filters.minRevenue!);
+        filteredCustomers = filteredCustomers.filter(c => (c.totalRevenue?.grossAmount ?? 0) >= filters.minRevenue!);
     }
 
     if (filters.maxRevenue != null) {
-        filteredCustomers = filteredCustomers.filter(c => c.totalRevenue.grossAmount <= filters.maxRevenue!);
+        filteredCustomers = filteredCustomers.filter(c => (c.totalRevenue?.grossAmount ?? 0) <= filters.maxRevenue!);
     }
 
     if (filters.minVisits != null) {

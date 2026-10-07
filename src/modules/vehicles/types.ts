@@ -32,17 +32,19 @@ export interface VehicleOwner {
 
 export interface VehicleFinancialStats {
     totalVisits: number;
+    /** null bez prawa do cen (VISITS_SERVICE_PRICES_VIEW) - serwer nie wysyła kwot. */
     totalSpent: {
         netAmount: number;
         grossAmount: number;
         currency: string;
-    };
+    } | null;
     lastVisitDate: string | null;
-    averageVisitCost: {
+    /** Serwer jej nie wysyła - widok liczy średnią z totalSpent. */
+    averageVisitCost?: {
         netAmount: number;
         grossAmount: number;
         currency: string;
-    };
+    } | null;
 }
 
 export interface Vehicle {
@@ -217,11 +219,12 @@ export interface VehicleVisitSummary {
     date: string;
     description: string;
     status: string;
+    /** null bez prawa do cen (VISITS_SERVICE_PRICES_VIEW) - serwer nie wysyła kwot. */
     totalCost: {
         netAmount: number;
         grossAmount: number;
         currency: string;
-    };
+    } | null;
     createdBy: string;
 }
 
@@ -232,11 +235,12 @@ export interface VehicleVisit {
     customerName: string;
     title?: string;
     description: string;
+    /** null bez prawa do cen (VISITS_SERVICE_PRICES_VIEW) - serwer nie wysyła kwot. */
     totalCost: {
         netAmount: number;
         grossAmount: number;
         currency: string;
-    };
+    } | null;
     status: string;
     createdBy: string;
     notes: string;
@@ -258,11 +262,12 @@ export interface VehicleAppointment {
     endDateTime: string;
     isAllDay: boolean;
     status: VehicleAppointmentStatus;
+    /** null bez prawa do cen (VISITS_SERVICE_PRICES_VIEW) - serwer nie wysyła kwot. */
     totalCost: {
         netAmount: number;
         grossAmount: number;
         currency: string;
-    };
+    } | null;
     note: string;
     createdAt: string;
 }

@@ -248,7 +248,7 @@ export const ActivityTimeline = ({ visits, communications }: ActivityTimelinePro
                                             <MetaBadge $variant={activity.status}>
                                                 {t.customers.detail.timeline.visitStatus[activity.status === 'in-progress' ? 'inProgress' : activity.status]}
                                             </MetaBadge>
-                                            {activity.totalCost.grossAmount > 0 && (
+                                            {activity.totalCost && activity.totalCost.grossAmount > 0 && (
                                                 <MetaText>
                                                     {formatCurrency(activity.totalCost.grossAmount, activity.totalCost.currency)}
                                                 </MetaText>

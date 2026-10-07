@@ -18,6 +18,7 @@
 //   czego brakuje, i przewija do tego pola;
 // · podgląd przed wysłaniem - treść widać tak, jak zobaczy ją klient, w trakcie
 //   pisania, a nie dopiero po zapisaniu kampanii.
+import { usePermissions } from '@/core/permissions';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
@@ -339,6 +340,8 @@ function appliedFilterSignature(appliedKey: string): string | null {
 
 export function CampaignWizardView() {
   const navigate = useNavigate();
+  // Doładowanie to sekcja tylko dla właściciela - pozostali dostają samą informację.
+  const { isOwner } = usePermissions();
   const { id: editId } = useParams<{ id: string }>();
   const isEdit = !!editId;
 
@@ -862,9 +865,13 @@ export function CampaignWizardView() {
                 wiadomości nie wyjdzie.
               </span>
               <span className="spacer" />
-              <QuietLink type="button" onClick={() => navigate('/settings?tab=credits')}>
-                Doładuj
-              </QuietLink>
+              {isOwner ? (
+                <QuietLink type="button" onClick={() => navigate('/settings?tab=credits')}>
+                  Doładuj
+                </QuietLink>
+              ) : (
+                <span>Doładowanie: właściciel studia</span>
+              )}
             </Note>
           )}
 

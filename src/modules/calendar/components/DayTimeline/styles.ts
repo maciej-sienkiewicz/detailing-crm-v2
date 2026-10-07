@@ -27,7 +27,8 @@ export const StatsBar = styled.div`
        w przewijanie poziome, w którym ostatnia kolumna była zawsze ucięta. */
     @media (max-width: 767px) {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-auto-flow: column;
+        grid-auto-columns: 1fr;
         padding: 0 10px;
         overflow-x: visible;
     }

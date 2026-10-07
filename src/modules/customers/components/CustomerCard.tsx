@@ -183,12 +183,15 @@ export const CustomerCard = ({ customer }: CustomerCardProps) => {
                     <StatLabel>{t.customers.card.lastVisit}</StatLabel>
                     <StatValue>{formatDate(customer.lastVisitDate)}</StatValue>
                 </StatItem>
-                <StatItem>
-                    <StatLabelRight>Przychód (brutto)</StatLabelRight>
-                    <StatValueRight>
-                        {formatCurrency(customer.totalRevenue.grossAmount, customer.totalRevenue.currency)}
-                    </StatValueRight>
-                </StatItem>
+                {/* null bez prawa do cen - serwer nie wysyła obrotów. */}
+                {customer.totalRevenue && (
+                    <StatItem>
+                        <StatLabelRight>Przychód (brutto)</StatLabelRight>
+                        <StatValueRight>
+                            {formatCurrency(customer.totalRevenue.grossAmount, customer.totalRevenue.currency)}
+                        </StatValueRight>
+                    </StatItem>
+                )}
             </StatsGrid>
         </Card>
     );

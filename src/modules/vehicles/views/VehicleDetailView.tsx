@@ -15,6 +15,7 @@
 //
 // Telefon: jedna kolumna i przypięte skróty do sekcji, jak w wizycie.
 
+import { usePermissions } from '@/core/permissions';
 import { formatClockTime } from '@/common/dateTime';
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -368,6 +369,7 @@ export const VehicleDetailView = () => {
     const { vehicleId } = useParams<{ vehicleId: string }>();
     const navigate = useNavigate();
     const isPhone = useMediaQuery('(max-width: 767px)');
+    const { can } = usePermissions();
 
     const [isAuditOpen, setIsAuditOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -415,15 +417,29 @@ export const VehicleDetailView = () => {
         ? new Date(vehicle.deletedAt).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' })
         : null;
 
-    const totalSpent = vehicle.stats?.totalSpent ?? { grossAmount: 0, currency: 'PLN' };
+    // null bez prawa do cen: pasek z kwotami znika zamiast pokazywać „0 zł".
+    const totalSpent = vehicle.stats?.totalSpent ?? null;
     const totalVisits = vehicle.stats?.totalVisits ?? 0;
     const lastVisit = vehicle.stats?.lastVisitDate ?? null;
-    const avgCost = vehicle.stats?.averageVisitCost ?? { grossAmount: 0, currency: 'PLN' };
+    // Serwer nie wysyła średniej - liczona tutaj, inaczej zawsze wychodziło „średnio 0 zł".
+    const avgCost = vehicle.stats?.averageVisitCost
+        ?? (totalSpent && totalVisits > 0
+            ? { grossAmount: totalSpent.grossAmount / totalVisits, currency: totalSpent.currency }
+            : null);
 
     const allEvents = showDeletedVisits
         ? [...historyEvents, ...deletedVisitEvents].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         : historyEvents;
     const shownEvents = showAllVisits ? allEvents : allEvents.slice(0, VISITS_COLLAPSED);
+
+    /*
+     * Dokumenty pojazdu i jego edycja to VISITS_CREATE, usunięcie - CUSTOMERS_DELETE,
+     * historia zmian - AUDIT_VIEW. Bez nich sekcje kończyły się „Nie udało się wczytać…",
+     * a przyciski odmową serwera.
+     */
+    const canEditVehicle = can('VISITS_CREATE');
+    const canSeeDocuments = can('VISITS_CREATE');
+    const canSeeHistory = can('AUDIT_VIEW');
 
     const startVisit = () => {
         const singleOwner = vehicle.owners.length === 1 ? vehicle.owners[0] : null;
@@ -499,6 +515,8 @@ export const VehicleDetailView = () => {
                 <VehicleDetailHeader
                     vehicle={vehicle}
                     isArchived={isArchived}
+                    canEdit={canEditVehicle}
+                    canDelete={can('CUSTOMERS_DELETE')}
                     onNewVisit={startVisit}
                     onEdit={() => setIsEditModalOpen(true)}
                     onOwners={() => setIsEditOwnersModalOpen(true)}
@@ -538,13 +556,15 @@ export const VehicleDetailView = () => {
                                         </Button>
                                     </CardHead>
 
-                                    <Strip
-                                        label="Łącznie wydano na ten pojazd"
-                                        amount={formatCurrency(totalSpent.grossAmount, totalSpent.currency)}
-                                        details={totalVisits > 0
-                                            ? `${totalVisits} ${totalVisits === 1 ? 'zakończona wizyta' : 'zakończone wizyty'}, średnio ${formatCurrency(avgCost.grossAmount, avgCost.currency)}`
-                                            : 'żadna wizyta nie jest jeszcze zakończona'}
-                                    />
+                                    {totalSpent && (
+                                        <Strip
+                                            label="Łącznie wydano na ten pojazd"
+                                            amount={formatCurrency(totalSpent.grossAmount, totalSpent.currency)}
+                                            details={totalVisits > 0 && avgCost
+                                                ? `${totalVisits} ${totalVisits === 1 ? 'zakończona wizyta' : 'zakończone wizyty'}, średnio ${formatCurrency(avgCost.grossAmount, avgCost.currency)}`
+                                                : 'żadna wizyta nie jest jeszcze zakończona'}
+                                        />
+                                    )}
 
                                     {shownEvents.length === 0 ? (
                                         <EmptyVisits>Ten pojazd nie ma jeszcze wizyt ani rezerwacji.</EmptyVisits>
@@ -578,7 +598,7 @@ export const VehicleDetailView = () => {
                                                                 </span>
                                                             </VisitText>
                                                             <StatusPill className="pill" $tone={status.tone}>{status.label}</StatusPill>
-                                                            <Amount>{formatCurrency(event.grossAmount, event.currency)}</Amount>
+                                                            {event.grossAmount != null && <Amount>{formatCurrency(event.grossAmount, event.currency)}</Amount>}
                                                             <ChevronRight aria-hidden="true" />
                                                         </VisitRow>
                                                     </li>
@@ -602,14 +622,17 @@ export const VehicleDetailView = () => {
                                 <VehiclePhotoGallery id="vehicle-photos" vehicleId={vehicleId!} readOnly={isArchived} />
                             </Slot>
 
-                            <Slot $order={3}>
-                                <VehicleDocuments id="vehicle-docs" vehicleId={vehicleId!} readOnly={isArchived} />
-                            </Slot>
+                            {canSeeDocuments && (
+                                <Slot $order={3}>
+                                    <VehicleDocuments id="vehicle-docs" vehicleId={vehicleId!} readOnly={isArchived} />
+                                </Slot>
+                            )}
 
                             <Slot $order={7}>
                                 <VehicleComments id="vehicle-comments" vehicleId={vehicleId!} />
                             </Slot>
 
+                            {canSeeHistory && (
                             <Slot id="vehicle-history" $order={8}>
                                 <Panel>
                                     <HistoryToggle
@@ -628,6 +651,7 @@ export const VehicleDetailView = () => {
                                     )}
                                 </Panel>
                             </Slot>
+                            )}
                         </MainColumn>
 
                         <Rail>
@@ -666,7 +690,7 @@ export const VehicleDetailView = () => {
                                 <RailPanel aria-labelledby="vehicle-data-title">
                                     <RailHead>
                                         <SectionTitle id="vehicle-data-title">Dane pojazdu</SectionTitle>
-                                        {!isArchived && (
+                                        {!isArchived && canEditVehicle && (
                                             <Button variant="ghost" size="sm" onClick={() => setIsEditModalOpen(true)}><Pencil />Edytuj</Button>
                                         )}
                                     </RailHead>

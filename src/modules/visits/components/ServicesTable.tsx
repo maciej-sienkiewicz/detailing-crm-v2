@@ -13,6 +13,7 @@ import type { EditedPrice } from '../utils/servicePriceEdits';
 import { formatCurrency, shouldAutoFocusInput } from '@/common/utils';
 import type { ServiceLineItem, VisitSettlement, VisitStatus } from '../types';
 import { usePrintServicesList } from '../hooks/usePrintServicesList';
+import { usePermissions } from '@/core/permissions';
 import { useServiceChecklist } from '../hooks/useServiceChecklist';
 import { ServiceCheckToggle } from './ServiceCheckToggle';
 import type { ServicesChangesPayload } from '../types';
@@ -1957,9 +1958,12 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const { approveServiceChange, isApproving } = useApproveServiceChange(visitId || '');
     const { rejectServiceChange, isRejecting } = useRejectServiceChange(visitId || '');
 
-    const canEdit = !pricesHidden && (visitStatus === 'IN_PROGRESS' || visitStatus === 'READY_FOR_PICKUP');
+    // Zmiana usług (dodanie, cena, rabat, zatwierdzenie oczekującej zmiany) to edycja
+    // wizyty - VISITS_CREATE. Sam podgląd cen nie wystarczy: serwer odrzucał zapis.
+    const canEditServices = usePermissions().can('VISITS_CREATE');
+    const canEdit = canEditServices && !pricesHidden && (visitStatus === 'IN_PROGRESS' || visitStatus === 'READY_FOR_PICKUP');
     const hasPendingServices = services.some(s => (s.hasPendingChange ?? (s.status === 'PENDING')));
-    const showActionsCol = canEdit || hasPendingServices;
+    const showActionsCol = canEdit || (canEditServices && hasPendingServices);
     const canPrint = !!visitId && services.length > 0;
     const canCorrectSettlement = !!onCorrectSettlement && !pricesHidden;
 

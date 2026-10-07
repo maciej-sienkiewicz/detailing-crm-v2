@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { usePermissions } from '@/core/permissions';
 import styled, { keyframes } from 'styled-components';
 import { CalendarDays, User, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -403,7 +404,8 @@ const Placeholder = styled.div`
 interface VisitRowItemProps {
   visit: UpcomingVisit;
   onRowClick: (visit: UpcomingVisit, e: React.MouseEvent) => void;
-  onStartEdit: (visit: UpcomingVisit, e: React.MouseEvent) => void;
+  /** Brak = bez ołówka (zmiana tytułu wymaga VISITS_CREATE). */
+  onStartEdit?: (visit: UpcomingVisit, e: React.MouseEvent) => void;
   isEditing: boolean;
   draftTitle: string;
   onDraftChange: (val: string) => void;
@@ -472,16 +474,18 @@ const VisitRowItem = ({
       ) : (
         <TitleEditRow>
           <VisitTitle>{visit.serviceName}</VisitTitle>
-          <PencilBtn
-            data-pencil
-            onClick={e => onStartEdit(visit, e)}
-            title="Edytuj tytuł"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-            </svg>
-          </PencilBtn>
+          {onStartEdit && (
+            <PencilBtn
+              data-pencil
+              onClick={e => onStartEdit(visit, e)}
+              title="Edytuj tytuł"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </PencilBtn>
+          )}
         </TitleEditRow>
       )}
       <VisitMeta>
@@ -524,6 +528,7 @@ interface ContextMenuState {
 const VISIBLE_LIMIT = 5;
 
 export const UpcomingVisitsPanel = () => {
+  const canEditTitle = usePermissions().can('VISITS_CREATE');
   const navigate = useNavigate();
   const { data: visits = [], isLoading, isError } = useUpcomingVisits();
   const { updateOperationTitle, isUpdatingTitle, updatingId } = useUpdateOperationTitle();
@@ -619,7 +624,7 @@ export const UpcomingVisitsPanel = () => {
           key={v.id}
           visit={v}
           onRowClick={handleRowClick}
-          onStartEdit={handleStartEdit}
+          onStartEdit={canEditTitle ? handleStartEdit : undefined}
           isEditing={editingId === v.id}
           draftTitle={draftTitle}
           onDraftChange={setDraftTitle}

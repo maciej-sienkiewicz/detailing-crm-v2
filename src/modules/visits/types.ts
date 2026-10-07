@@ -135,7 +135,8 @@ export interface CustomerInfo {
     companyAddress?: CustomerCompanyAddress | null;
     stats: {
         totalVisits: number;
-        totalSpent: MoneyAmount;
+        /** null bez prawa do cen (VISITS_SERVICE_PRICES_VIEW). */
+        totalSpent: MoneyAmount | null;
         vehiclesCount: number;
     };
 }

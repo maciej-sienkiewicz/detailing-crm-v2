@@ -339,8 +339,15 @@ export const VisitDetailView = () => {
     // dostają nadal `visitId`, bo działają na konkretnym rekordzie sprzed usunięcia.
     const { deleteVisit, isDeleting, isDeleted, activeVisitId } = useDeleteVisit(visitId!);
 
+    const { can } = usePermissions();
+    /*
+     * Dokumenty wizyty (protokoły, PDF-y) i przypomnienie SMS to dane VISITS_CREATE - bez
+     * niego serwer odmawia, a karta pokazywała „nie ma dokumentów" i „Zaplanuj SMS", choć
+     * jedno i drugie istniało. Wtedy nie pytamy wcale i sekcje mówią tylko o tym, co widać.
+     */
+    const canSeeVisitDocuments = can('VISITS_CREATE');
     const { visitDetail, isLoading, isError, notStarted, refetch } = useVisitDetail(activeVisitId);
-    const { documents } = useVisitDocuments(activeVisitId);
+    const { documents } = useVisitDocuments(canSeeVisitDocuments ? activeVisitId : '');
     const { photos: visitPhotos, isLoading: isLoadingPhotos } = useVisitPhotos(activeVisitId);
     const { updateVisit } = useUpdateVisit(visitId!);
     const { updateArrivalState } = useUpdateArrivalState(visitId!);
@@ -357,9 +364,8 @@ export const VisitDetailView = () => {
     const { damageMap, isLoading: isLoadingDamageMap } = useVisitDamageMap(activeVisitId, isDamageMapOpen);
     const { updateDamageMap, isUpdating: isUpdatingDamageMap } = useUpdateVisitDamageMap(visitId!);
     const { showWarning, showSuccess, showError } = useToast();
-    const { pendingReminder } = useSmsReminder(activeVisitId);
+    const { pendingReminder } = useSmsReminder(canSeeVisitDocuments ? activeVisitId : '');
 
-    const { can } = usePermissions();
     // Sekcja produktów pojawia się tylko, gdy studio ma wykupiony moduł — inaczej
     // API zwróciłoby 402 i sekcja pokazywałaby błąd zamiast treści.
     const productsFeatureEnabled = useFeature('PRODUCTS').enabled;
@@ -595,7 +601,8 @@ export const VisitDetailView = () => {
     const canSeeCustomer = can('CUSTOMERS_VIEW');
     const canSeeProducts = productsFeatureEnabled && can('PRODUCTS_VIEW');
     const canSeeCommunication = can('COMMUNICATION_SEND');
-    const canSeeHistory = can('VISITS_CREATE');
+    // Historia zmian to dziennik aktywności (/audit/feed) - osobne uprawnienie AUDIT_VIEW.
+    const canSeeHistory = can('AUDIT_VIEW');
     const visibleCommentCount = comments.filter(c => !c.isDeleted).length;
     const failedMessages = communicationEntries.filter(e => e.status === 'FAILED').length;
 
@@ -753,7 +760,7 @@ export const VisitDetailView = () => {
                                             <input
                                                 ref={docFileInputRef}
                                                 type="file"
-                                                accept="image/*,.pdf"
+                                                accept={canSeeVisitDocuments ? 'image/*,.pdf' : 'image/*'}
                                                 onChange={handleDocFileSelect}
                                                 disabled={isUploading || isUploadingPhoto}
                                             />
@@ -762,6 +769,7 @@ export const VisitDetailView = () => {
                                 </PanelHead>
                                 <DocumentGallery
                                     documents={documents}
+                                    documentsHidden={!canSeeVisitDocuments}
                                     visitPhotos={visitPhotos}
                                     isLoadingPhotos={isLoadingPhotos}
                                     onDelete={handleDeleteDocument}
@@ -843,7 +851,7 @@ export const VisitDetailView = () => {
                             <Slot $order={4}>
                                 <AfterCare>
                                     <Button block onClick={() => setIsCertificateOpen(true)}><Award />Certyfikat jakości</Button>
-                                    {!pendingReminder && (
+                                    {!pendingReminder && canSeeVisitDocuments && (
                                         <>
                                             {/* Przycisk zawsze coś otwiera - brak numeru wyjaśnia i naprawia okno. */}
                                             <Button block onClick={() => { setSmsReminderForEdit(null); setIsSmsReminderOpen(true); }}>
@@ -907,7 +915,7 @@ export const VisitDetailView = () => {
                 <QualityCertificateModal visit={visit} onClose={() => setIsCertificateOpen(false)} />
             )}
 
-            {transitionType === 'ready_to_completed' && (
+            {transitionType === 'ready_to_completed' && can('VISITS_SERVICE_PRICES_VIEW') && (
                 <HandoverSheet
                     visit={visit}
                     isOpen={isTransitionWizardOpen}

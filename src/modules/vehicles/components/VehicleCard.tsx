@@ -159,15 +159,18 @@ export const VehicleCard = ({ vehicle, onCardClick }: VehicleCardProps) => (
                     {vehicle.stats.lastVisitDate ? formatDate(vehicle.stats.lastVisitDate) : '-'}
                 </StatValue>
             </StatItem>
-            <StatItem>
-                <StatLabel $right>Przychód (brutto)</StatLabel>
-                <StatValue $right>
-                    {formatCurrency(
-                        vehicle.stats.totalSpent.grossAmount,
-                        vehicle.stats.totalSpent.currency
-                    )}
-                </StatValue>
-            </StatItem>
+            {/* null bez prawa do cen - serwer nie wysyła obrotów. */}
+            {vehicle.stats.totalSpent && (
+                <StatItem>
+                    <StatLabel $right>Przychód (brutto)</StatLabel>
+                    <StatValue $right>
+                        {formatCurrency(
+                            vehicle.stats.totalSpent.grossAmount,
+                            vehicle.stats.totalSpent.currency
+                        )}
+                    </StatValue>
+                </StatItem>
+            )}
         </StatsGrid>
     </Card>
 );

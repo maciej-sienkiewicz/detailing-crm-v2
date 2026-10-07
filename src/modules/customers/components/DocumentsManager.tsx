@@ -126,6 +126,7 @@ export const DocumentsManager = ({ customerId, id }: DocumentsManagerProps) => {
     const current = viewerIndex !== null ? viewable[viewerIndex] : null;
     // Usuwanie dokumentów było i zostaje za tym samym uprawnieniem co wcześniej w karcie dokumentu.
     const canDelete = can('VISITS_DELETE');
+    const canUpload = can('VISITS_CREATE');
 
     const open = (doc: CustomerDocument) => {
         const idx = viewable.findIndex(d => d.id === doc.id);
@@ -137,11 +138,14 @@ export const DocumentsManager = ({ customerId, id }: DocumentsManagerProps) => {
         <Panel id={id} aria-labelledby="customer-docs-title">
             <PanelHead>
                 <SectionTitle id="customer-docs-title" count={documents.length || undefined}>Dokumenty</SectionTitle>
-                <PanelActions>
-                    <Button variant="tinted" size="sm" onClick={() => setIsUploadOpen(true)}>
-                        <Upload />Dodaj dokument
-                    </Button>
-                </PanelActions>
+                {/* Dodanie dokumentu to zmiana kartoteki (VISITS_CREATE) - bez niego serwer odmawiał. */}
+                {canUpload && (
+                    <PanelActions>
+                        <Button variant="tinted" size="sm" onClick={() => setIsUploadOpen(true)}>
+                            <Upload />Dodaj dokument
+                        </Button>
+                    </PanelActions>
+                )}
             </PanelHead>
             <PanelBody>
                 {documents.length >= SEARCH_FROM && (
