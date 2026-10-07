@@ -49,6 +49,12 @@ export interface User {
     employeeId?: string | null;
     /** Seconds of inactivity before client-side lock screen fires. 0 = disabled. */
     idleTimeoutSeconds?: number;
+    /**
+     * Sesja zablokowana po bezczynności (blokada na serwerze, wspólna dla kart). Wtedy
+     * /auth/me oddaje tylko tyle, ile potrzebuje ekran „Sesja zablokowana" - bez
+     * uprawnień i tokenu mobilnego - a aplikacja pokazuje sam ten ekran.
+     */
+    sessionLocked?: boolean;
 }
 
 export interface CheckAuthResponse {

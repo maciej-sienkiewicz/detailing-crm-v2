@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { pinApi } from '../api/pinApi';
 import { useStudioProfiles, useResetPinLock } from '../hooks/usePinStatus';
 import { useAuth } from '@/core/context/AuthContext';
+import { announceUnlock } from '@/core/sessionLock';
+import { authApi } from '@/modules/auth/api/authApi';
 import { useKnownProfiles } from '../hooks/useKnownProfiles';
 import type { StudioProfile } from '../types';
 
@@ -368,7 +370,9 @@ export const UserSwitcherPanel = ({ onClose, lockMode = false }: Props) => {
     const resetLock = useResetPinLock();
     const [unlockingId, setUnlockingId] = useState<string | null>(null);
     // Odblokowanie PIN to akcja tylko dla właściciela (backend: reset-lock owner-only).
-    const isOwner = user?.role === 'OWNER';
+    // Nie na ekranie blokady: ktokolwiek siedzi przed zablokowanym ekranem, nie jest
+    // jeszcze właścicielem (serwer i tak odmówi zablokowanej sesji).
+    const isOwner = user?.role === 'OWNER' && !lockMode;
 
     useEffect(() => {
         const handleKey = (e: KeyboardEvent) => {
@@ -415,6 +419,9 @@ export const UserSwitcherPanel = ({ onClose, lockMode = false }: Props) => {
                 });
                 setUser(result.user);
                 setAuthenticated(true);
+                // Serwer zdjął blokadę sesji i mógł zmienić osobę - inne karty muszą
+                // się o tym dowiedzieć (sessionLock.ts).
+                announceUnlock();
                 onClose();
                 if (!lockMode) navigate('/dashboard');
             }
@@ -427,7 +434,19 @@ export const UserSwitcherPanel = ({ onClose, lockMode = false }: Props) => {
         }
     };
 
-    const handlePasswordLogin = () => { onClose(); navigate('/login'); };
+    // Na ekranie blokady „Zaloguj hasłem" NIE może odblokować sesji, zanim ktoś poda
+    // hasło - dawniej zdejmowało nakładkę i dopiero szło na /login. Kończymy sesję,
+    // więc blokada znika razem z nią, a dalej wpuszcza tylko poprawne hasło.
+    const handlePasswordLogin = async () => {
+        if (!lockMode) { onClose(); navigate('/login'); return; }
+        try {
+            await authApi.logout();
+        } catch {
+            /* sesja i tak wygaśnie; na /login trzeba podać hasło */
+        }
+        setAuthenticated(false);
+        navigate('/login');
+    };
 
     const handleUnlock = (userId: string) => {
         if (resetLock.isPending) return;
