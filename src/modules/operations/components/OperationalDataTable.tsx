@@ -878,13 +878,13 @@ export const OperationalDataTable = ({
             id: op.id,
             label: op.vehicle?.licensePlate ?? op.title ?? op.id,
             customer: customerName,
-            amount: formatCurrency(op.financials.grossAmount, op.financials.currency),
+            amount: can('VISITS_SERVICE_PRICES_VIEW') ? formatCurrency(op.financials.grossAmount, op.financials.currency) : '',
             accentColor: getStatusAccentColor(op.status),
             sourceRect,
             scheduledDate: isoDate,
         };
         startNavAnim(snap, () => navigate('/calendar', { state: { highlightEventId: op.id, highlightDate: isoDate } }));
-    }, [navigate, startNavAnim]);
+    }, [navigate, startNavAnim, can]);
 
     const isRowClickable = (op: Operation) =>
         !op.deletedAt && (op.type === 'VISIT' || (op.type === 'RESERVATION' && op.status === 'CREATED'));

@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
+import { usePermissions } from '@/core/permissions';
 import styled from 'styled-components';
 import { useCustomers } from '../hooks/useCustomers';
 import { useDeleteCustomer } from '../hooks/useDeleteCustomer';
@@ -252,6 +253,10 @@ const countActiveFilters = (f: CustomerAdvancedFilters): number => {
 };
 
 export const CustomerListView = () => {
+    // Dodawanie to VISITS_CREATE, usuwanie - CUSTOMERS_DELETE; bez nich przyciski kończyły się odmową.
+    const { can } = usePermissions();
+    const canCreate = can('VISITS_CREATE');
+    const canDelete = can('CUSTOMERS_DELETE');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -343,7 +348,7 @@ export const CustomerListView = () => {
                         sortBy={sortBy}
                         sortDirection={sortDirection}
                         onSort={handleSort}
-                        onDelete={id => setPendingDeleteId(id)}
+                        onDelete={canDelete ? id => setPendingDeleteId(id) : undefined}
                     />
                 ) : (
                     <CustomerGrid customers={customers} />
@@ -366,7 +371,7 @@ export const CustomerListView = () => {
                             )}
                         </>
                     }
-                    actions={
+                    actions={canCreate &&
                         <PageHeaderPrimaryButton onClick={handleOpenModal}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                 <line x1="12" y1="5" x2="12" y2="19" />
@@ -383,7 +388,7 @@ export const CustomerListView = () => {
                     subtitle={pagination
                         ? <><MobilePageHeaderCountValue>{pagination.totalItems}</MobilePageHeaderCountValue> rekordów</>
                         : 'Wczytywanie…'}
-                    actions={
+                    actions={canCreate &&
                         <MobilePageHeaderButton onClick={handleOpenModal}>
                             <span aria-hidden="true">+</span>
                             Klient

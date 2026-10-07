@@ -21,6 +21,7 @@
 //
 // Ciemny „hero" pustego stanu. Drugi czarny prostokąt z gradientem, tuż pod
 // nagłówkiem strony, który jest czarnym prostokątem z gradientem.
+import { usePermissions } from '@/core/permissions';
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
@@ -81,7 +82,9 @@ const AlertStrip = styled.button<{ $tone: 'due' | 'stale' }>`
     padding: 12px 16px;
     transition: background ${p => p.theme.transitions.fast};
 
-    &:hover { background: ${p => p.theme.colors.surfaceHover}; }
+    &:hover:not(:disabled) { background: ${p => p.theme.colors.surfaceHover}; }
+    /* Sama informacja (bez dokąd przejść) - nie udaje przycisku. */
+    &:disabled { cursor: default; color: inherit; opacity: 1; }
 
     .amount {
         font-size: 20px;
@@ -325,6 +328,9 @@ function whenLabel(c: Campaign): string {
 
 export function CampaignsListView() {
     const navigate = useNavigate();
+    // Doładowanie kredytów to sekcja tylko dla właściciela - inny pracownik lądował
+    // po kliknięciu w zupełnie innej części ustawień.
+    const { isOwner } = usePermissions();
     const [searchParams, setSearchParams] = useSearchParams();
     const { campaigns, isLoading } = useCampaignsList();
     const { stats } = useCampaignStats();
@@ -416,13 +422,15 @@ export function CampaignsListView() {
                 <AlertStrip
                     $tone="stale"
                     type="button"
-                    title="Przejdź do doładowania kredytów"
-                    onClick={() => navigate('/settings?tab=credits')}
+                    title={isOwner ? 'Przejdź do doładowania kredytów' : undefined}
+                    disabled={!isOwner}
+                    onClick={isOwner ? () => navigate('/settings?tab=credits') : undefined}
                 >
                     <span className="amount">{credits}</span>
                     <span className="text">
-                        kredytów SMS zostało na koncie - <strong>doładuj</strong>, zanim ruszy
-                        kolejna wysyłka
+                        {isOwner
+                            ? <>kredytów SMS zostało na koncie - <strong>doładuj</strong>, zanim ruszy kolejna wysyłka</>
+                            : <>kredytów SMS zostało na koncie - poproś właściciela o <strong>doładowanie</strong>, zanim ruszy kolejna wysyłka</>}
                     </span>
                     <Coins />
                 </AlertStrip>

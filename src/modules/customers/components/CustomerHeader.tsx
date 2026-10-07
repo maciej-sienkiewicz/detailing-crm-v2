@@ -405,12 +405,14 @@ export const CustomerHeader = ({ data, onEditCustomer, onEditCompany }: Customer
 
             {/* ─── Stats strip ──────────────────────────── */}
             <StatsStrip>
-                <StatItem>
-                    <StatLabel>Przychód</StatLabel>
-                    <StatValue $accent>
-                        {formatCurrency(lifetimeValue.grossAmount, lifetimeValue.currency)}
-                    </StatValue>
-                </StatItem>
+                {lifetimeValue && (
+                    <StatItem>
+                        <StatLabel>Przychód</StatLabel>
+                        <StatValue $accent>
+                            {formatCurrency(lifetimeValue.grossAmount, lifetimeValue.currency)}
+                        </StatValue>
+                    </StatItem>
+                )}
                 {customer.lastVisitDate && (
                     <StatItem>
                         <StatLabel>Ostatnia wizyta</StatLabel>

@@ -116,13 +116,17 @@ interface Props {
     companyName?: string | null;
     createdAt: string;
     canSms: boolean;
+    /** Edycja danych i nowa wizyta (VISITS_CREATE). */
+    canEdit: boolean;
+    /** Usunięcie danych klienta (CUSTOMERS_DELETE). */
+    canDelete: boolean;
     onNewVisit: () => void;
     onEdit: () => void;
     onSms: () => void;
     onDelete: () => void;
 }
 
-export function CustomerDetailHeader({ fullName, companyName, createdAt, canSms, onNewVisit, onEdit, onSms, onDelete }: Props) {
+export function CustomerDetailHeader({ fullName, companyName, createdAt, canSms, canEdit, canDelete, onNewVisit, onEdit, onSms, onDelete }: Props) {
     const [heroRef, heroWidth] = useContainerWidth<HTMLElement>();
     const compact = heroWidth === null
         ? typeof window !== 'undefined' && window.innerWidth <= COMPACT_MAX_WIDTH
@@ -130,11 +134,13 @@ export function CustomerDetailHeader({ fullName, companyName, createdAt, canSms,
     const menu = useActionMenu();
     const since = new Date(createdAt).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-    const primary = (
+    const primary = canEdit && (
         <PrimaryAction variant="primary" onClick={onNewVisit}>
             <CalendarPlus />Nowa wizyta
         </PrimaryAction>
     );
+    // Menu bez żadnej pozycji nie dostaje przycisku.
+    const hasMenuItems = (compact && canEdit) || canSms || canDelete;
 
     return (
         <Hero ref={heroRef}>
@@ -150,19 +156,21 @@ export function CustomerDetailHeader({ fullName, companyName, createdAt, canSms,
                         </IdentText>
                     </Identity>
                     <Actions>
-                        {!compact && (
+                        {!compact && canEdit && (
                             <Button variant="onDark" size="lg" onClick={onEdit}><Pencil />Edytuj dane</Button>
                         )}
-                        <IconButton
-                            label="Więcej akcji klienta"
-                            variant="onDark"
-                            size={compact ? 'md' : 'lg'}
-                            aria-haspopup="menu"
-                            aria-expanded={menu.isOpen()}
-                            onClick={e => menu.toggle(e, null)}
-                        >
-                            <MoreHorizontal />
-                        </IconButton>
+                        {hasMenuItems && (
+                            <IconButton
+                                label="Więcej akcji klienta"
+                                variant="onDark"
+                                size={compact ? 'md' : 'lg'}
+                                aria-haspopup="menu"
+                                aria-expanded={menu.isOpen()}
+                                onClick={e => menu.toggle(e, null)}
+                            >
+                                <MoreHorizontal />
+                            </IconButton>
+                        )}
                         {!compact && primary}
                     </Actions>
                 </Top>
@@ -171,10 +179,10 @@ export function CustomerDetailHeader({ fullName, companyName, createdAt, canSms,
             </Inner>
 
             <ActionMenu anchor={menu.menu?.anchor ?? null} onClose={menu.close} label="Akcje klienta">
-                {compact && <MenuItem icon={<Pencil />} onClick={onEdit}>Edytuj dane</MenuItem>}
+                {compact && canEdit && <MenuItem icon={<Pencil />} onClick={onEdit}>Edytuj dane</MenuItem>}
                 {canSms && <MenuItem icon={<MessageSquare />} onClick={onSms}>Wyślij SMS</MenuItem>}
-                <MenuDivider />
-                <MenuItem icon={<Trash2 />} danger onClick={onDelete}>Usuń dane klienta</MenuItem>
+                {canDelete && ((compact && canEdit) || canSms) && <MenuDivider />}
+                {canDelete && <MenuItem icon={<Trash2 />} danger onClick={onDelete}>Usuń dane klienta</MenuItem>}
             </ActionMenu>
         </Hero>
     );

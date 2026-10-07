@@ -22,6 +22,11 @@ vi.mock('../hooks/usePrintServicesList', () => ({
     usePrintServicesList: () => ({ print: vi.fn(), isPrinting: false }),
 }));
 vi.mock('@/modules/calendar/components/QuickServiceModal', () => ({ QuickServiceModal: () => null }));
+// Tabela pyta o prawo do edycji usług (VISITS_CREATE) - tu właściciel z pełnym dostępem.
+vi.mock('@/core/permissions', async importOriginal => ({
+    ...(await importOriginal<typeof import('@/core/permissions')>()),
+    usePermissions: () => ({ isOwner: true, can: () => true, defaultRoute: '/' }),
+}));
 vi.mock('@/modules/subscription', () => ({
     useFeature: () => ({ enabled: true }),
     UpsellModal: () => null,

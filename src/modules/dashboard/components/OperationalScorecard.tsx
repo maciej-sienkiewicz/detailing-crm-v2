@@ -581,7 +581,8 @@ const VisitRow = ({
       <VisitBody>
         <VisitMainRow>
           <VehicleName>{visit.name}</VehicleName>
-          <VisitAmount>{formatCurrency(visit.amount)}</VisitAmount>
+          {/* null bez prawa do cen */}
+          {visit.amount != null && <VisitAmount>{formatCurrency(visit.amount)}</VisitAmount>}
         </VisitMainRow>
 
         <VisitSecondRow>
@@ -785,7 +786,7 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
       id: visit.id,
       label: `${visit.brand} ${visit.model ?? ''}`.trim() || visit.name,
       customer: joinPiiName(visit.customerFirstName, visit.customerLastName) ?? '',
-      amount: formatCurrency(visit.amount),
+      amount: visit.amount != null ? formatCurrency(visit.amount) : '',
       accentColor: ACCENT,
       sourceRect: rect ?? new DOMRect(window.innerWidth / 2 - 150, window.innerHeight / 2 - 34, 300, 68),
       scheduledDate: dateBox.value || undefined,

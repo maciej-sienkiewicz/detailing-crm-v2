@@ -9,9 +9,14 @@ export interface VehicleHistoryEvent {
     title: string;
     customerName: string;
     status: string;
-    grossAmount: number;
+    /** null bez prawa do cen - kalendarz nie wysyła wtedy kwot (nie „0 zł"). */
+    grossAmount: number | null;
     currency: string;
 }
+
+// Bez prawa do danych osobowych kalendarz nie wysyła klienta wcale (customer = null).
+const nameOf = (c: { firstName?: string | null; lastName?: string | null } | null | undefined): string =>
+    c ? [c.firstName, c.lastName].filter(Boolean).join(' ') : '';
 
 function mapAppointment(a: AppointmentResponse): VehicleHistoryEvent {
     return {
@@ -19,9 +24,9 @@ function mapAppointment(a: AppointmentResponse): VehicleHistoryEvent {
         type: 'APPOINTMENT',
         date: a.schedule.startDateTime,
         title: a.appointmentTitle || a.services.map(s => s.serviceName).join(', ') || 'Rezerwacja',
-        customerName: `${a.customer.firstName} ${a.customer.lastName}`,
+        customerName: nameOf(a.customer),
         status: a.status,
-        grossAmount: (a.totalGross ?? 0) / 100,
+        grossAmount: a.totalGross == null ? null : a.totalGross / 100,
         currency: 'PLN',
     };
 }
@@ -32,9 +37,9 @@ function mapVisit(v: VisitResponse): VehicleHistoryEvent {
         type: 'VISIT',
         date: v.scheduledDate,
         title: v.title || v.visitNumber,
-        customerName: `${v.customer.firstName} ${v.customer.lastName}`,
+        customerName: nameOf(v.customer),
         status: v.status,
-        grossAmount: (v.totalGross ?? 0) / 100,
+        grossAmount: v.totalGross == null ? null : v.totalGross / 100,
         currency: 'PLN',
     };
 }
