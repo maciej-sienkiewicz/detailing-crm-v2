@@ -55,6 +55,7 @@ import type {
     QuickEventInitialData,
     ServiceAdjustment,
 } from './types';
+import { firstSubmitErrorKey, submitErrorMessage } from './submitErrors';
 
 interface UseQuickEventFormOptions {
     isOpen: boolean;
@@ -601,8 +602,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     };
 
     const focusFirstError = (errs: { [key: string]: string }) => {
-        const order = ['startDateTime', 'endDateTime', 'customer', 'services', 'servicePrices', 'color'];
-        const firstKey = order.find(k => errs[k]);
+        const firstKey = firstSubmitErrorKey(errs);
         if (!firstKey) return;
         const map: Record<string, React.RefObject<HTMLElement>> = {
             startDateTime: startInputRef as React.RefObject<HTMLElement>,
@@ -627,7 +627,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         const customerToSubmit = resolveCustomerForSubmit();
         const errs = validateForm(customerToSubmit);
         if (Object.keys(errs).length > 0) {
-            showError('Nie można zapisać wizyty', 'Sprawdź zaznaczone pola formularza.');
+            showError('Nie można zapisać wizyty', submitErrorMessage(errs));
             focusFirstError(errs);
             return;
         }
