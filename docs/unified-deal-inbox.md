@@ -188,30 +188,34 @@ To dwie osie i żadnej nie wolno wcisnąć w drugą. Ten rozdział już istnieje
 (komentarz w `LeadReplyState.kt:7-15`) i jest dobry. Nowy model go doprowadza do końca.
 
 ```
-       klient pisze: mail / formularz / telefon / „To zapytanie” w Pozostałej poczcie
-                                     │  system zakłada sprawę
-                                     ▼
-                     ┌───────────────────────────────┐   odpowiedź BEZ ceny („proszę o zdjęcia”):
-                     │  1. NOWE ZAPYTANIE      (NEW) │◀─┐ etap bez zmian, zmienia się tylko
-                     └───────────────┬───────────────┘──┘ „czyj ruch”
-   wysłano wiadomość z blokiem       │                      ┐
-   wyceny ALBO „Podałem cenę”        │                      │ „Umów” bez wyceny (klient
-   przy odnotowaniu telefonu         ▼                      │ dzwoni i od razu się umawia)
-                     ┌───────────────────────────────┐      │
-                     │  2. WYCENA WYSŁANA   (QUOTED) │◀─────┼───────────────┐
-                     └───────────────┬───────────────┘      │               │ termin odwołany,
-   założono termin z tej sprawy      │                      │               │ usunięty albo
-   („Umów na …”)                     ▼                      │               │ klient nie przyjechał
-                     ┌───────────────────────────────┐      │               │ → ruch po naszej stronie
-                     │  3. UMÓWIONE         (BOOKED) │◀─────┘               │
-                     └───────────────┬───────────────┘──────────────────────┘
-   auto przyjęte na halę             │
-   (protokół podpisany)              ▼
-                          sprawa schodzi z listy: archiwum „Wygrane”
-                          (wynik, kwota i termin czyta się z wizyty)
+   klient pisze: mail, formularz, telefon albo „To zapytanie” w Pozostałej poczcie
+                                  │  system zakłada sprawę
+                                  ▼
+                  ┌───────────────────────────────┐
+  odpowiedź bez   │  1. NOWE ZAPYTANIE      (NEW) │───────┐  „Umów” bez wyceny
+  ceny: etap      └───────────────┬───────────────┘       │  (klient dzwoni i od
+  stoi, zmienia                   │                       │  razu się umawia)
+  się czyj ruch                   │ wiadomość z blokiem   │
+                                  │ wyceny albo „Podałem  │
+                                  │ cenę” przy telefonie  │
+                                  ▼                       │
+                  ┌───────────────────────────────┐       │
+                  │  2. WYCENA WYSŁANA   (QUOTED) │◀──────┼─────────┐  termin odwołany,
+                  └───────────────┬───────────────┘       │         │  usunięty albo
+                                  │ „Umów na …”: termin   │         │  klient nie przyjechał;
+                                  │ z tej sprawy          │         │  ruch po naszej stronie
+                                  ▼                       │         │
+                  ┌───────────────────────────────┐       │         │
+                  │  3. UMÓWIONE         (BOOKED) │◀──────┘         │
+                  └───────────────┬───────────────┘─────────────────┘
+                                  │ auto przyjęte na halę
+                                  │ (protokół podpisany)
+                                  ▼
+                  sprawa schodzi z listy: archiwum „Wygrane”
+                  (wynik, kwota i termin czyta się z wizyty)
 
-   z 1, 2 lub 3:  „Zamknij” + powód jednym kliknięciem ──▶  4. ZAMKNIĘTE (LOST)
-   z 4:           klient pisze ponownie               ──▶  wraca do 1 albo 2, ruch po naszej stronie
+   z 1, 2 lub 3:  „Zamknij” + powód jednym kliknięciem  ──▶  4. ZAMKNIĘTE (LOST)
+   z 4:           klient pisze ponownie                 ──▶  wraca do 1 albo 2, ruch po naszej stronie
 ```
 
 **Niezmienniki**, które pilnuje backend, a nie użytkownik:
