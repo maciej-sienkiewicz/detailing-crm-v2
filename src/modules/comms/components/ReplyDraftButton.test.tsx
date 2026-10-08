@@ -75,7 +75,7 @@ describe('ReplyDraftButton - flaga stylu szkicu', () => {
         preferences = { useSentStyle: null, sentMessageCount: 42 };
         renderButton();
 
-        fireEvent.click(screen.getByRole('button', { name: /Szkic AI/ }));
+        fireEvent.click(screen.getByRole('button', { name: /Napisz z AI/ }));
         skipOffer();
 
         expect(draftMutate).not.toHaveBeenCalled();
@@ -89,7 +89,7 @@ describe('ReplyDraftButton - flaga stylu szkicu', () => {
         preferences = { useSentStyle: null, sentMessageCount: 42 };
         renderButton();
 
-        fireEvent.click(screen.getByRole('button', { name: /Szkic AI/ }));
+        fireEvent.click(screen.getByRole('button', { name: /Napisz z AI/ }));
         skipOffer();
         fireEvent.click(screen.getByRole('button', { name: /W moim stylu/ }));
         fireEvent.click(screen.getByRole('button', { name: /Napisz szkic/ }));
@@ -106,7 +106,7 @@ describe('ReplyDraftButton - flaga stylu szkicu', () => {
         preferences = { useSentStyle: null, sentMessageCount: 0 };
         renderButton();
 
-        fireEvent.click(screen.getByRole('button', { name: /Szkic AI/ }));
+        fireEvent.click(screen.getByRole('button', { name: /Napisz z AI/ }));
         skipOffer();
         fireEvent.click(screen.getByRole('button', { name: /Propozycja asystenta/ }));
         fireEvent.click(screen.getByRole('checkbox'));
@@ -120,7 +120,7 @@ describe('ReplyDraftButton - flaga stylu szkicu', () => {
         preferences = { useSentStyle: false, sentMessageCount: 10 };
         renderButton();
 
-        fireEvent.click(screen.getByRole('button', { name: /Szkic AI/ }));
+        fireEvent.click(screen.getByRole('button', { name: /Napisz z AI/ }));
         expect(draftMutate).not.toHaveBeenCalled();
         skipOffer();
 
@@ -145,7 +145,7 @@ describe('ReplyDraftButton - flaga stylu szkicu', () => {
         preferences = { useSentStyle: false, sentMessageCount: 10 };
         renderButton();
 
-        fireEvent.click(screen.getByRole('button', { name: /Szkic AI/ }));
+        fireEvent.click(screen.getByRole('button', { name: /Napisz z AI/ }));
         skipOffer();
 
         expect(draftMutate.mock.calls[0][0]).not.toHaveProperty('offer');
@@ -163,7 +163,7 @@ describe('ReplyDraftButton - oferta w odpowiedzi', () => {
         lead = { id: 'lead-7', services: [{ status: 'ACCEPTED' } as Lead['services'][number]] };
         renderButton('lead-7');
 
-        fireEvent.click(screen.getByRole('button', { name: /Szkic AI/ }));
+        fireEvent.click(screen.getByRole('button', { name: /Napisz z AI/ }));
         expect(screen.getByText(/usługi z wyceny leada/)).toBeTruthy();
         fireEvent.click(screen.getByRole('button', { name: /Z ofertą/ }));
         fireEvent.click(screen.getByRole('button', { name: 'Dalej' }));
@@ -175,7 +175,7 @@ describe('ReplyDraftButton - oferta w odpowiedzi', () => {
     it('rozmowa bez leada: pytanie zapowiada założenie leada', () => {
         renderButton(null);
 
-        fireEvent.click(screen.getByRole('button', { name: /Szkic AI/ }));
+        fireEvent.click(screen.getByRole('button', { name: /Napisz z AI/ }));
 
         expect(screen.getByText(/Rozmowa zostanie leadem/)).toBeTruthy();
     });
@@ -185,7 +185,7 @@ describe('ReplyDraftButton - oferta w odpowiedzi', () => {
         draftMutate.mockImplementation((_payload, { onSuccess }) => onSuccess({ bodyText: 'Szkic' }));
         renderButton(null, onDraft);
 
-        fireEvent.click(screen.getByRole('button', { name: /Szkic AI/ }));
+        fireEvent.click(screen.getByRole('button', { name: /Napisz z AI/ }));
         fireEvent.click(screen.getByRole('button', { name: /Z ofertą/ }));
         fireEvent.click(screen.getByRole('button', { name: 'Dalej' }));
         fireEvent.click(screen.getByRole('button', { name: 'Napisz szkic z ofertą' }));

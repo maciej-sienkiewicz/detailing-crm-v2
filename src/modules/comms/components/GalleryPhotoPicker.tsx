@@ -1,5 +1,6 @@
 // src/modules/comms/components/GalleryPhotoPicker.tsx
-// Wybór zdjęć z galerii studia do odpowiedzi mailowej.
+// Wybór zdjęć z galerii studia do odpowiedzi mailowej - okienko nad kompozytorem
+// (makieta „Poczta: formatowanie wysunięte i zdjęcia z galerii").
 //
 // Najczęstszy załącznik w rozmowie z klientem to zdjęcie JEGO auta: „tak wyglądał
 // lakier po korekcie", „to ta rysa". Do tej pory trzeba było je ściągnąć z galerii
@@ -7,114 +8,133 @@
 // je kliknięciem, a pliki dokłada serwer (GalleryPhotoAttachmentLoader), więc nic
 // nie przechodzi przez urządzenie pracownika.
 //
-// Zakres zaczyna się od najwęższego, jaki znamy: „Ten klient" (jego wizyty i auta),
-// potem „To auto" (marka i model - zdjęcia tej samej realizacji na innym egzemplarzu
-// to dobry przykład dla klienta, który dopiero pyta), na końcu cała galeria.
-// Zakładek, dla których nie ma danych, nie pokazujemy - pusta zakładka to pytanie
-// „czemu tu nic nie ma", na które użytkownik nie ma odpowiedzi.
-import { useMemo, useState } from 'react';
+// Zakładki zaczynają od najwęższego zakresu, jaki znamy: zdjęcia tego klienta (albo
+// auta tej marki i modelu, gdy klienta nie ma w kartotece), potem cała galeria
+// studia. Trzecia zakładka, „Z komputera", nie jest zakresem - otwiera zwykły wybór
+// pliku, bo to ta sama decyzja: skąd wziąć zdjęcie.
+//
+// Okienko, a nie okno modalne: rozmowa i pisana odpowiedź zostają widoczne, a wybór
+// zdjęć to dopisek do odpowiedzi, nie osobne zadanie.
+import { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
-import { Check, ChevronLeft, ChevronRight, ImageOff, Monitor } from 'lucide-react';
-import {
-    CloseBtn,
-    ModalContent,
-    ModalFooter,
-    ModalHeader,
-    ModalShell,
-    ModalSubtitle,
-    ModalTitle,
-    ModalTitleGroup,
-} from '@/common/components/ModalKit';
-import { SUBMODAL_Z_INDEX } from '@/common/styles';
-import { Button, Segmented, touch, ui } from '@/common/components/ui';
+import { Check, ImageOff, X } from 'lucide-react';
 import { useGallery } from '@/modules/gallery/hooks/useGallery';
 import type { GalleryFilters, GalleryPhoto } from '@/modules/gallery/types';
 import { galleryPhotoKey } from '../utils/galleryPhotoKey';
+import { TintBtn, ToolBtn } from '../inbox/primitives';
+import { ix } from '../inbox/tokens';
 
 /** Co wiemy o rozmowie - z tego biorą się zakładki zakresu. */
 export interface GalleryPickerContext {
     customerId?: string | null;
     vehicleBrand?: string | null;
     vehicleModel?: string | null;
+    /** Nazwa pierwszej zakładki, gdy wiadomo coś lepszego niż „Ten klient" (np. „Wizyta BMW X3"). */
+    label?: string | null;
 }
 
 type Scope = 'customer' | 'vehicle' | 'all';
 
-const PAGE_SIZE = 24;
+const PAGE_STEP = 12;
 
-const ScopeRow = styled.div`
-    margin-bottom: 14px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    &::-webkit-scrollbar { display: none; }
+const Panel = styled.section`
+    box-sizing: border-box;
+    width: 100%;
+    max-height: min(560px, 70vh);
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    border: 1px solid ${ix.line};
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.18);
+
+    .head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+    }
+    h3 { margin: 0; font-size: 15px; font-weight: 600; color: ${ix.ink}; }
 `;
 
-/**
- * Siatka miniatur: tyle kolumn, ile się zmieści, nie mniej niż 110 px na zdjęcie.
- * Na telefonie wychodzą dwie-trzy kolumny, na komputerze pięć - bez osobnych progów.
- */
+const Segs = styled.div`
+    display: flex;
+    gap: 2px;
+    margin-bottom: 12px;
+    padding: 3px;
+    border-radius: 999px;
+    background: ${ix.surfaceAlt};
+`;
+
+const Seg = styled.button<{ $on: boolean }>`
+    flex: 1;
+    min-width: 0;
+    height: 32px;
+    padding: 0 8px;
+    border: none;
+    border-radius: 999px;
+    background: ${p => (p.$on ? '#ffffff' : 'transparent')};
+    box-shadow: ${p => (p.$on ? '0 1px 2px rgba(15, 23, 42, 0.1)' : 'none')};
+    color: ${p => (p.$on ? ix.ink : ix.text2)};
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: ${p => (p.$on ? 600 : 500)};
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+
+    &:focus-visible { outline: 2px solid ${ix.accent}; outline-offset: 2px; }
+`;
+
+const Scroll = styled.div`
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+`;
+
 const Grid = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
 `;
 
-const Thumb = styled.button<{ $selected: boolean }>`
+const Photo = styled.button<{ $on: boolean }>`
     position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+    display: block;
+    aspect-ratio: 4 / 3;
     padding: 0;
-    border: none;
-    background: none;
-    font-family: inherit;
-    text-align: left;
+    overflow: hidden;
+    border: 2px solid ${p => (p.$on ? ix.accent : 'transparent')};
+    border-radius: 10px;
+    background: linear-gradient(135deg, #cbd5e1, #94a3b8);
     cursor: pointer;
 
-    .frame {
-        position: relative;
-        aspect-ratio: 4 / 3;
-        border-radius: 10px;
-        overflow: hidden;
-        background: ${ui.surfaceAlt};
-        outline: ${p => (p.$selected ? `3px solid ${ui.brand}` : `1px solid ${ui.line}`)};
-        outline-offset: ${p => (p.$selected ? '-3px' : '-1px')};
-    }
-    img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-        opacity: ${p => (p.$selected ? 0.85 : 1)};
-        transition: opacity 120ms ease;
-    }
-    .mark {
+    img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .check {
         position: absolute;
         top: 6px;
         right: 6px;
-        width: 22px;
-        height: 22px;
-        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        border: 2px solid #ffffff;
-        background: ${p => (p.$selected ? ui.brand : 'rgba(15, 23, 42, 0.28)')};
-        color: #ffffff;
-        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.3);
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        background: #ffffff;
+        color: ${ix.accentInk};
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
     }
-    .caption {
-        font-size: 11.5px;
-        line-height: 1.3;
-        color: ${ui.textMuted};
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
+    &:disabled { opacity: 0.45; cursor: default; }
+    &:focus-visible { outline: 2px solid ${ix.accent}; outline-offset: 2px; }
+`;
 
-    &:hover .frame { outline-color: ${p => (p.$selected ? ui.brand : ui.lineStrong)}; }
-    &:focus-visible { outline: none; }
-    &:focus-visible .frame { outline: 3px solid ${ui.focusRing}; outline-offset: -3px; }
+const Skeleton = styled.div`
+    aspect-ratio: 4 / 3;
+    border-radius: 10px;
+    background: ${ix.surfaceAlt};
 `;
 
 const Empty = styled.div`
@@ -122,44 +142,23 @@ const Empty = styled.div`
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    padding: 40px 16px;
+    padding: 28px 12px;
     text-align: center;
     font-size: 13.5px;
-    color: ${ui.textMuted};
+    color: ${ix.muted};
 `;
 
-const Pager = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    margin-top: 14px;
-    font-size: 12.5px;
-    color: ${ui.textMuted};
-    font-variant-numeric: tabular-nums;
-`;
-
-const FooterRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-
-    .spacer { flex: 1; }
-    .count { font-size: 12.5px; color: ${ui.textMuted}; }
-
-    /* Telefon: „Z komputera" zostaje ikoną z podpisem w title, licznik spada. */
-    @media (max-width: 480px) {
-        .count { display: none; }
-        .fromDevice span { display: none; }
-    }
-    ${touch} { button { min-height: 44px; } }
-`;
-
-const Skeleton = styled.div`
-    aspect-ratio: 4 / 3;
-    border-radius: 10px;
-    background: ${ui.surfaceAlt};
+const More = styled.button`
+    display: block;
+    margin: 10px auto 0;
+    padding: 6px 14px;
+    border: 1px solid ${ix.line};
+    border-radius: 999px;
+    background: #ffffff;
+    color: ${ix.inkSoft};
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
 `;
 
 interface GalleryPhotoPickerProps {
@@ -170,15 +169,12 @@ interface GalleryPhotoPickerProps {
     /** Ile zdjęć zmieści się jeszcze w wiadomości (limit plików liczy też pliki z dysku). */
     maxSelectable: number;
     onConfirm: (photos: GalleryPhoto[]) => void;
-    /** „Z komputera" - zamyka okno i otwiera systemowy wybór pliku. */
+    /** „Z komputera" - zamyka okienko i otwiera systemowy wybór pliku. */
     onPickFromDevice: () => void;
 }
 
-const photoCaption = (photo: GalleryPhoto): string =>
-    [photo.vehicleBrand, photo.vehicleModel].filter(Boolean).join(' ') ||
-    photo.vehicleLicensePlate ||
-    photo.contractorName ||
-    photo.fileName;
+const photoWord = (n: number): string =>
+    n === 1 ? 'zdjęcie' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'zdjęcia' : 'zdjęć';
 
 export function GalleryPhotoPicker({
     onClose,
@@ -188,22 +184,43 @@ export function GalleryPhotoPicker({
     onConfirm,
     onPickFromDevice,
 }: GalleryPhotoPickerProps) {
-    const scopes = useMemo(() => {
-        const list: { value: Scope; label: string }[] = [];
-        if (context?.customerId) list.push({ value: 'customer', label: 'Ten klient' });
-        if (context?.vehicleBrand) list.push({ value: 'vehicle', label: 'To auto' });
-        list.push({ value: 'all', label: 'Cała galeria' });
-        return list;
-    }, [context?.customerId, context?.vehicleBrand]);
+    const vehicleLabel = [context?.vehicleBrand, context?.vehicleModel].filter(Boolean).join(' ');
+    const scopes: { value: Scope; label: string }[] = [];
+    if (context?.customerId) scopes.push({ value: 'customer', label: context.label ?? (vehicleLabel ? `Wizyty ${vehicleLabel}` : 'Ten klient') });
+    else if (context?.vehicleBrand) scopes.push({ value: 'vehicle', label: vehicleLabel });
+    scopes.push({ value: 'all', label: 'Galeria studia' });
 
     const [scope, setScope] = useState<Scope>(scopes[0].value);
-    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(PAGE_STEP);
     const [selected, setSelected] = useState<GalleryPhoto[]>(initialSelection);
+    const panelRef = useRef<HTMLElement>(null);
 
-    // Inny zakres to inna lista - zaczynamy od jej pierwszej strony.
+    // Escape i kliknięcie obok zamykają okienko - jak każde menu, a nie jak okno modalne.
+    useEffect(() => {
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                event.stopPropagation();
+                onClose();
+            }
+        };
+        const onDown = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (panelRef.current?.contains(target)) return;
+            // Przycisk, który otworzył okienko, sam je przełącza.
+            if (target.closest('[aria-label="Dodaj zdjęcie z galerii"]')) return;
+            onClose();
+        };
+        document.addEventListener('keydown', onKey, true);
+        document.addEventListener('mousedown', onDown);
+        return () => {
+            document.removeEventListener('keydown', onKey, true);
+            document.removeEventListener('mousedown', onDown);
+        };
+    }, [onClose]);
+
     const changeScope = (next: Scope) => {
         setScope(next);
-        setPage(1);
+        setPageSize(PAGE_STEP);
     };
 
     const filters: GalleryFilters = {
@@ -211,11 +228,11 @@ export function GalleryPhotoPicker({
         brand: scope === 'vehicle' ? context?.vehicleBrand ?? '' : '',
         model: scope === 'vehicle' ? context?.vehicleModel ?? '' : '',
         customerId: scope === 'customer' ? context?.customerId ?? undefined : undefined,
-        page,
-        pageSize: PAGE_SIZE,
+        page: 1,
+        pageSize,
     };
     const { photos, pagination, isLoading, error } = useGallery(filters);
-    const totalPages = pagination?.totalPages ?? 1;
+    const total = pagination?.total ?? photos.length;
 
     const selectedKeys = new Set(selected.map(galleryPhotoKey));
     const limitReached = selected.length >= maxSelectable;
@@ -231,101 +248,89 @@ export function GalleryPhotoPicker({
         );
     };
 
-    const added = selected.filter((photo) => !initialSelection.some((item) => galleryPhotoKey(item) === galleryPhotoKey(photo))).length;
-    const changed = added > 0 || selected.length !== initialSelection.length;
-    const confirmLabel =
-        selected.length === 0
-            ? 'Bez zdjęć'
-            : `Dołącz ${selected.length} ${selected.length === 1 ? 'zdjęcie' : selected.length < 5 ? 'zdjęcia' : 'zdjęć'}`;
+    const changed =
+        selected.length !== initialSelection.length ||
+        selected.some((photo) => !initialSelection.some((item) => galleryPhotoKey(item) === galleryPhotoKey(photo)));
 
     return (
-        <ModalShell isOpen onClose={onClose} size="xl" stableHeight zIndex={SUBMODAL_Z_INDEX} labelledBy="gallery-picker-title">
-            <ModalHeader>
-                <ModalTitleGroup>
-                    <ModalTitle id="gallery-picker-title">Zdjęcia z galerii</ModalTitle>
-                    <ModalSubtitle>Kliknij zdjęcia, które mają pójść w tej wiadomości.</ModalSubtitle>
-                </ModalTitleGroup>
-                <CloseBtn onClick={onClose} />
-            </ModalHeader>
-            <ModalContent>
-                {scopes.length > 1 && (
-                    <ScopeRow>
-                        <Segmented options={scopes} value={scope} onChange={changeScope} label="Zakres zdjęć" size="sm" />
-                    </ScopeRow>
-                )}
+        <Panel ref={panelRef} role="dialog" aria-labelledby="gallery-picker-title">
+            <div className="head">
+                <h3 id="gallery-picker-title">Dodaj zdjęcia</h3>
+                <ToolBtn aria-label="Zamknij" onClick={onClose}><X /></ToolBtn>
+            </div>
+            <Segs role="tablist" aria-label="Skąd zdjęcia">
+                {scopes.map((option) => (
+                    <Seg
+                        key={option.value}
+                        type="button"
+                        role="tab"
+                        aria-selected={scope === option.value}
+                        $on={scope === option.value}
+                        title={option.label}
+                        onClick={() => changeScope(option.value)}
+                    >
+                        {option.label}
+                    </Seg>
+                ))}
+                <Seg type="button" role="tab" aria-selected={false} $on={false} onClick={onPickFromDevice}>
+                    Z komputera
+                </Seg>
+            </Segs>
 
+            <Scroll>
                 {isLoading ? (
-                    <Grid aria-busy="true">
-                        {Array.from({ length: 10 }, (_, index) => <Skeleton key={index} />)}
-                    </Grid>
+                    <Grid aria-busy="true">{Array.from({ length: 6 }, (_, index) => <Skeleton key={index} />)}</Grid>
                 ) : error ? (
-                    <Empty role="alert">
-                        <ImageOff size={28} />
-                        Nie udało się wczytać galerii. Spróbuj ponownie za chwilę.
-                    </Empty>
+                    <Empty role="alert"><ImageOff size={26} />Nie udało się wczytać galerii. Spróbuj ponownie za chwilę.</Empty>
                 ) : photos.length === 0 ? (
                     <Empty>
-                        <ImageOff size={28} />
-                        {scope === 'customer'
-                            ? 'Ten klient nie ma jeszcze zdjęć w galerii.'
-                            : scope === 'vehicle'
-                              ? 'Brak zdjęć aut tej marki i modelu.'
-                              : 'Galeria jest pusta.'}
+                        <ImageOff size={26} />
+                        {scope === 'all' ? 'Galeria studia jest pusta.' : 'Tu nie ma jeszcze zdjęć - zajrzyj do galerii studia.'}
                     </Empty>
                 ) : (
                     <Grid role="group" aria-label="Zdjęcia">
-                        {photos.map((photo) => {
-                            const isSelected = selectedKeys.has(galleryPhotoKey(photo));
+                        {photos.map((photo, index) => {
+                            const on = selectedKeys.has(galleryPhotoKey(photo));
+                            const name = photo.description || photo.fileName || `Zdjęcie ${index + 1}`;
                             return (
-                                <Thumb
+                                <Photo
                                     key={galleryPhotoKey(photo)}
                                     type="button"
-                                    $selected={isSelected}
-                                    aria-pressed={isSelected}
-                                    disabled={!isSelected && limitReached}
-                                    title={photo.description || photo.fileName}
+                                    $on={on}
+                                    aria-pressed={on}
+                                    aria-label={on ? `${name}, wybrane` : name}
+                                    title={name}
+                                    disabled={!on && limitReached}
                                     onClick={() => toggle(photo)}
                                 >
-                                    <span className="frame">
-                                        <img src={photo.thumbnailUrl} alt={photo.description || photo.fileName} loading="lazy" />
-                                        <span className="mark" aria-hidden="true">{isSelected && <Check size={13} strokeWidth={3} />}</span>
-                                    </span>
-                                    <span className="caption">{photoCaption(photo)}</span>
-                                </Thumb>
+                                    <img src={photo.thumbnailUrl} alt="" loading="lazy" />
+                                    {on && <span className="check" aria-hidden="true"><Check size={14} strokeWidth={3} /></span>}
+                                </Photo>
                             );
                         })}
                     </Grid>
                 )}
-
-                {totalPages > 1 && (
-                    <Pager>
-                        <Button variant="ghost" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} aria-label="Poprzednia strona">
-                            <ChevronLeft size={16} />
-                        </Button>
-                        Strona {page} z {totalPages}
-                        <Button variant="ghost" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages} aria-label="Następna strona">
-                            <ChevronRight size={16} />
-                        </Button>
-                    </Pager>
+                {photos.length < total && (
+                    <More type="button" onClick={() => setPageSize((size) => size + PAGE_STEP)}>Pokaż więcej</More>
                 )}
-            </ModalContent>
-            <ModalFooter>
-                <FooterRow>
-                    <Button
-                        variant="outline"
-                        className="fromDevice"
-                        onClick={onPickFromDevice}
-                        title="Dołącz plik z tego urządzenia"
-                    >
-                        <Monitor size={15} /> <span>Z urządzenia</span>
-                    </Button>
-                    <span className="spacer" />
-                    {limitReached && <span className="count">Limit plików w wiadomości</span>}
-                    <Button variant="primary" onClick={() => onConfirm(selected)} disabled={!changed}>
-                        {confirmLabel}
-                    </Button>
-                </FooterRow>
-            </ModalFooter>
-        </ModalShell>
+            </Scroll>
+
+            <TintBtn
+                $block
+                $h={44}
+                style={{ marginTop: 14 }}
+                disabled={!changed}
+                onClick={() => onConfirm(selected)}
+            >
+                {selected.length === 0
+                    ? initialSelection.length > 0 ? 'Usuń zdjęcia z wiadomości' : 'Wybierz zdjęcia'
+                    : `Dodaj ${selected.length} ${photoWord(selected.length)}`}
+            </TintBtn>
+            {limitReached && (
+                <span style={{ marginTop: 8, fontSize: 12, color: ix.muted, textAlign: 'center' }}>
+                    Więcej plików nie zmieści się w jednej wiadomości.
+                </span>
+            )}
+        </Panel>
     );
 }

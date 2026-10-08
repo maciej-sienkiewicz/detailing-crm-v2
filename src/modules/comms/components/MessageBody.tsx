@@ -33,10 +33,11 @@ const Root = styled.div`
 `;
 
 /** Kolumna czytelnicza: długość wiersza, przy której oko nie gubi linijek. */
-const Prose = styled.div`
-    max-width: 68ch;
-    font-size: 14.5px;
-    line-height: 1.65;
+const Prose = styled.div<{ $size?: 'reader' | 'bubble' }>`
+    max-width: ${p => (p.$size === 'bubble' ? 'none' : '68ch')};
+    /* Skrzynka „Zapytania": 15/24 w czytniku poczty, 15/22 w dymku rozmowy (makiety). */
+    font-size: ${p => (p.$size ? '15px' : '14.5px')};
+    line-height: ${p => (p.$size === 'bubble' ? '22px' : p.$size === 'reader' ? '24px' : 1.65)};
     color: ${p => p.theme.colors.text};
     overflow-wrap: anywhere;
 
@@ -275,6 +276,8 @@ interface MessageBodyProps {
     collapseQuoted?: boolean;
     /** Podmiana wiadomości graficznej na przycisk (tylko w wątku, nie w pełnym podglądzie). */
     compactGraphical?: boolean;
+    /** Skala pisma skrzynki „Zapytania": czytnik poczty albo dymek rozmowy. */
+    size?: 'reader' | 'bubble';
 }
 
 export function MessageBody({
@@ -284,6 +287,7 @@ export function MessageBody({
     onOpenFull,
     collapseQuoted = true,
     compactGraphical = false,
+    size,
 }: MessageBodyProps) {
     const frameRef = useRef<HTMLIFrameElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -431,7 +435,7 @@ export function MessageBody({
     if (!rich) {
         return (
             <Root>
-                <Prose dangerouslySetInnerHTML={{ __html: sanitize(dropLeadingIndent(mainHtml)) }} />
+                <Prose $size={size} dangerouslySetInnerHTML={{ __html: sanitize(dropLeadingIndent(mainHtml)) }} />
                 {quotedHtml && (
                     <>
                         <Footer>{quoteToggle}</Footer>
