@@ -1,5 +1,5 @@
 // src/modules/services/hooks/useServices.ts
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { servicesApi } from '../api/servicesApi';
 import type {
     ServiceListFilters,
@@ -10,15 +10,20 @@ import type {
     SyncItemNameRequest,
 } from '../types';
 
-export const useServices = (filters: ServiceListFilters & { enabled?: boolean }) => {
+export const useServices = (filters: ServiceListFilters & { enabled?: boolean; keepPrevious?: boolean }) => {
     // `enabled` pozwala odłożyć pobranie cennika do momentu, w którym ekran naprawdę
     // go potrzebuje (np. sekcja usług schowana za przyciskiem). Domyślnie włączone,
     // więc dotychczasowe wywołania działają bez zmian.
-    const { enabled = true, ...listFilters } = filters;
+    //
+    // `keepPrevious` - dla wyszukiwarek: przy nowej frazie zostają wyniki poprzedniej,
+    // dopóki nie przyjdą nowe. Bez tego lista pod polem znikała przy każdym znaku
+    // i wracała po chwili, a okno, w którym stoi, skakało razem z nią.
+    const { enabled = true, keepPrevious = false, ...listFilters } = filters;
     const { data, isLoading, isError, refetch } = useQuery({
         queryKey: ['services', listFilters],
         queryFn: () => servicesApi.getServices(listFilters),
         enabled,
+        placeholderData: keepPrevious ? keepPreviousData : undefined,
     });
 
     return {

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useCallback, useContext, useState, useEffect, ReactNode } from 'react';
 import { authApi } from '@/modules/auth/api/authApi';
 import { disconnectStompClient } from '@/core/socketClient';
 import type { User } from '@/modules/auth/types';
@@ -10,6 +10,12 @@ interface AuthContextType {
   checkAuth: () => Promise<void>;
   setAuthenticated: (value: boolean) => void;
   setUser: (user: User | null) => void;
+  /**
+   * Ponowny odczyt /auth/me BEZ ekranu „Ładowanie…" (checkAuth go pokazuje i odmontowuje
+   * całą aplikację). Np. po odblokowaniu sesji PIN-em w innej karcie - mogła się w niej
+   * zalogować inna osoba.
+   */
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,6 +43,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setIsLoading(false);
     }
   };
+
+  const refreshUser = useCallback(async () => {
+    try {
+      const result = await authApi.checkAuth();
+      setIsAuthenticated(result.isAuthenticated);
+      setUser(result.user ?? null);
+    } catch {
+      /* 401 obsługuje interceptor (redirect na /login) */
+    }
+  }, []);
 
   const setAuthenticated = (value: boolean) => {
     setIsAuthenticated(value);
@@ -84,6 +100,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         checkAuth,
         setAuthenticated,
         setUser,
+        refreshUser,
       }}
     >
       {children}

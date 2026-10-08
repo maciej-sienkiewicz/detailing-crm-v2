@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { setPiiAccessFromHeader } from '@/common/pii';
 import { isRateLimited, shouldAnnounceRateLimit } from './rateLimit';
+import { SESSION_LOCKED_EVENT, isSessionLockedResponse } from './sessionLock';
 
 /**
  * Per-request opt-out from the global error toast.
@@ -77,6 +78,13 @@ apiClient.interceptors.response.use(
             if (!isPublicPath && !isPinEndpoint && !isBackgroundCall) {
                 window.location.href = '/login';
             }
+        }
+
+        // „Sesja zablokowana" (sessionLock.ts): serwer odmawia danych, dopóki ktoś nie
+        // wpisze PIN-u. To nie błąd do pokazania dymkiem - karta ma pokazać ekran blokady.
+        if (isSessionLockedResponse(status, error.response?.data)) {
+            window.dispatchEvent(new CustomEvent(SESSION_LOCKED_EVENT));
+            return Promise.reject(error);
         }
 
         if (status === 402) {
