@@ -1,12 +1,13 @@
 // src/modules/comms/components/ReplyDraftButton.tsx
-// „Szkic AI" w kompozytorze odpowiedzi: asystent pisze projekt odpowiedzi na maila klienta.
+// „Napisz z AI" w kompozytorze odpowiedzi: asystent pisze projekt odpowiedzi na maila klienta.
 //
 // Styl szkicu steruje jedna flaga (`useSentStyle`), o którą pytamy użytkownika, zamiast
 // zgadywać za niego:
 //  • w moim stylu - asystent czyta wysłane odpowiedzi studia na podobne pytania i pisze
 //    tak, jak pisze studio (powitanie, ton, długość, sposób podania ceny),
 //  • propozycja asystenta - własna, uprzejma i konkretna odpowiedź.
-// Pierwsze kliknięcie otwiera wybór; zapamiętany wybór zmienia się ikoną obok przycisku.
+// Pierwsze kliknięcie otwiera wybór; zapamiętany wybór zmienia się w ustawieniach
+// skrzynki (koło zębate → „Styl szkiców AI") albo ikoną obok przycisku, gdy stoi.
 //
 // Przycisk jest wtórny wobec „Wyślij" (obwódka, bez wypełnienia) - krokiem następnym
 // w kompozytorze pozostaje wysyłka, szkic to pomoc.
@@ -16,7 +17,7 @@
 // pustą listę - wybrana lista zapisuje się na leadzie albo zakłada go z tej rozmowy.
 import { useState } from 'react';
 import styled from 'styled-components';
-import { Check, Loader2, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { Check, Loader2, SlidersHorizontal, Sparkle, Sparkles } from 'lucide-react';
 import {
     ModalShell,
     ModalHeader,
@@ -40,28 +41,32 @@ const Group = styled.div`
     align-items: stretch;
 `;
 
-const DraftButton = styled.button`
+/* „Napisz z AI" z makiety skrzynki: biała pigułka z obwódką, gwiazdka w kolorze
+   marki. Wtórny wobec „Wyślij" - szkic to pomoc, nie krok następny. */
+const DraftButton = styled.button<{ $joined: boolean; $h: number; $iconOnly: boolean }>`
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-right: none;
-    background: ${p => p.theme.colors.surface};
-    color: ${p => p.theme.colors.textSecondary};
-    border-radius: ${p => p.theme.radii.full} 0 0 ${p => p.theme.radii.full};
-    padding: 7px 12px 7px 14px;
-    font-size: 13px;
-    font-weight: ${p => p.theme.fontWeights.medium};
+    flex: none;
+    height: ${p => p.$h}px;
+    ${p => (p.$iconOnly ? `width: ${p.$h}px; padding: 0;` : `padding: 0 ${p.$h >= 44 ? 16 : 14}px;`)}
+    border: 1px solid #e2e8f0;
+    ${p => p.$joined && 'border-right: none;'}
+    background: #ffffff;
+    color: #334155;
+    border-radius: ${p => (p.$joined ? '999px 0 0 999px' : '999px')};
+    font-size: 14px;
+    font-weight: 500;
     font-family: inherit;
     cursor: pointer;
     white-space: nowrap;
-    transition: all ${p => p.theme.transitions.fast};
+    transition: background 150ms;
 
-    &:hover:not(:disabled) {
-        background: ${p => p.theme.colors.surfaceHover};
-        color: ${p => p.theme.colors.text};
-    }
+    svg { width: 16px; height: 16px; color: #0e6fa0; }
+    &:hover:not(:disabled) { background: #f8fafc; }
     &:disabled { opacity: 0.55; cursor: default; }
+    &:focus-visible { outline: 2px solid #0ea5e9; outline-offset: 2px; }
 
     .spin { animation: draftSpin 900ms linear infinite; }
     @keyframes draftSpin { to { transform: rotate(360deg); } }
@@ -209,7 +214,7 @@ export function ReplyDraftStyleDialog({ initialChoice, sentMessageCount, onConfi
                 </Options>
                 <Remember>
                     <input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} />
-                    Zapamiętaj wybór. Zmienisz go ikoną obok przycisku „Szkic AI".
+                    Zapamiętaj wybór. Zmienisz go w ustawieniach skrzynki („Styl szkiców AI").
                 </Remember>
             </ModalContent>
             <ModalFooter>
@@ -290,9 +295,27 @@ interface ReplyDraftButtonProps {
     /** Lead przypięty do rozmowy (thread.leadId); null = rozmowa nie jest leadem. */
     leadId?: string | null;
     onDraft: (draft: ReplyDraft) => void;
+    /** Wysokość pigułki - 40 px w karcie edytora, 44 w zwiniętym rzędzie, 48 na telefonie. */
+    height?: number;
+    /** Sama gwiazdka (telefon) - podpis idzie do aria-label. */
+    iconOnly?: boolean;
+    /**
+     * Ikona stylu obok przycisku. Skrzynka „Zapytania" jej nie pokazuje - styl
+     * zmienia się tam w ustawieniach (ReplyDraftStyleSettings).
+     */
+    showStyleButton?: boolean;
 }
 
-export function ReplyDraftButton({ threadId, signatureAppended, disabled, leadId = null, onDraft }: ReplyDraftButtonProps) {
+export function ReplyDraftButton({
+    threadId,
+    signatureAppended,
+    disabled,
+    leadId = null,
+    onDraft,
+    height = 40,
+    iconOnly = false,
+    showStyleButton = true,
+}: ReplyDraftButtonProps) {
     const preferences = useReplyDraftPreferences();
     const savePreferences = useSaveReplyDraftPreferences();
     const draftReply = useDraftReply();
@@ -354,14 +377,19 @@ export function ReplyDraftButton({ threadId, signatureAppended, disabled, leadId
             <Group>
                 <DraftButton
                     type="button"
+                    $joined={showStyleButton}
+                    $h={height}
+                    $iconOnly={iconOnly}
                     onClick={onMainClick}
                     disabled={disabled || busy || preferences.isLoading}
+                    aria-label={iconOnly ? (busy ? 'Piszę szkic…' : 'Napisz odpowiedź z AI') : undefined}
                     title="Asystent przygotuje szkic odpowiedzi na ostatnią wiadomość klienta"
                 >
                     {busy
-                        ? <><Loader2 size={14} className="spin" /> Piszę szkic…</>
-                        : <><Sparkles size={14} /> Szkic AI</>}
+                        ? <><Loader2 className="spin" />{!iconOnly && ' Piszę szkic…'}</>
+                        : <><Sparkle />{!iconOnly && ' Napisz z AI'}</>}
                 </DraftButton>
+                {showStyleButton && (
                 <StyleButton
                     type="button"
                     onClick={() => { setFlow({}); setStep('style'); }}
@@ -371,6 +399,7 @@ export function ReplyDraftButton({ threadId, signatureAppended, disabled, leadId
                 >
                     <SlidersHorizontal size={13} />
                 </StyleButton>
+                )}
             </Group>
             {step === 'offer-question' && (
                 <ReplyDraftOfferQuestion
@@ -396,5 +425,26 @@ export function ReplyDraftButton({ threadId, signatureAppended, disabled, leadId
                 />
             )}
         </>
+    );
+}
+
+/**
+ * „Styl szkiców AI" z ustawień skrzynki: ten sam wybór co przy pierwszym szkicu,
+ * bez pisania szkicu - zapisuje się jako domyślny.
+ */
+export function ReplyDraftStyleSettings({ onClose }: { onClose: () => void }) {
+    const preferences = useReplyDraftPreferences();
+    const savePreferences = useSaveReplyDraftPreferences();
+    if (preferences.isLoading) return null;
+    return (
+        <ReplyDraftStyleDialog
+            initialChoice={preferences.data?.useSentStyle ?? null}
+            sentMessageCount={preferences.data?.sentMessageCount ?? 0}
+            onConfirm={(useSentStyle) => {
+                savePreferences.mutate(useSentStyle);
+                onClose();
+            }}
+            onClose={onClose}
+        />
     );
 }

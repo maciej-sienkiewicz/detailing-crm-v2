@@ -17,8 +17,8 @@ const MAX_REVISION_INSTRUCTIONS = 1000;
 
 const QUICK_INSTRUCTIONS = ['Krócej', 'Bardziej formalnie', 'Cieplej w tonie', 'Zaproponuj oględziny auta'];
 
-const Toggle = styled.button`
-    align-self: flex-start;
+const Toggle = styled.button<{ $plain?: boolean }>`
+    align-self: ${p => (p.$plain ? 'center' : 'flex-start')};
     display: inline-flex;
     align-items: center;
     gap: 5px;
@@ -27,9 +27,9 @@ const Toggle = styled.button`
     background: none;
     padding: 0;
     font-family: inherit;
-    font-size: 12.5px;
+    font-size: ${p => (p.$plain ? '13px' : '12.5px')};
     font-weight: ${p => p.theme.fontWeights.medium};
-    color: ${p => p.theme.colors.primary};
+    color: ${p => (p.$plain ? '#0e6fa0' : p.theme.colors.primary)};
     cursor: pointer;
 
     &:hover { text-decoration: underline; }
@@ -132,9 +132,14 @@ interface ReplyDraftReviseProps {
     signatureAppended: boolean;
     disabled?: boolean;
     onDraft: (draft: ReplyDraft) => void;
+    /**
+     * Podpis odnośnika otwierającego poprawkę. Skrzynka „Zapytania" mówi „Napisz
+     * inaczej" (makieta) - wtedy bez ikony, jak zwykły odnośnik w linii szkicu.
+     */
+    label?: string;
 }
 
-export function ReplyDraftRevise({ threadId, draft, currentText, signatureAppended, disabled, onDraft }: ReplyDraftReviseProps) {
+export function ReplyDraftRevise({ threadId, draft, currentText, signatureAppended, disabled, onDraft, label }: ReplyDraftReviseProps) {
     const [open, setOpen] = useState(false);
     const [instructions, setInstructions] = useState('');
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -196,8 +201,8 @@ export function ReplyDraftRevise({ threadId, draft, currentText, signatureAppend
 
     if (!open) {
         return (
-            <Toggle type="button" onClick={() => setOpen(true)} disabled={disabled}>
-                <Wand2 size={13} /> Popraw szkic
+            <Toggle type="button" onClick={() => setOpen(true)} disabled={disabled} $plain={Boolean(label)}>
+                {label ?? <><Wand2 size={13} /> Popraw szkic</>}
             </Toggle>
         );
     }

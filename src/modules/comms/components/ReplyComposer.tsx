@@ -1,33 +1,35 @@
 // src/modules/comms/components/ReplyComposer.tsx
-// Odpowiedź w wątku lub nowa wiadomość.
+// Odpowiedź w wątku lub nowa wiadomość - wygląd z makiet skrzynki „Zapytania".
 //
-// Treść pisze się w uproszczonym edytorze (RichTextEditor): pogrubienie, kursywa,
-// podkreślenie, listy, odnośniki. HTML z edytora jest sprowadzany do ustalonego
-// dialektu (normalizeComposerHtml) przed wysyłką i przed korektą - backend i tak
-// sanityzuje, ale ma dostać coś już czystego.
+// Trzy postacie tej samej odpowiedzi:
+//  - KARTA (poczta): edytor w karcie z obwódką, pod treścią podgląd stopki, w dolnym
+//    rzędzie „Aa", zdjęcie z galerii i spinacz, a po prawej „Napisz z AI" i „Wyślij";
+//  - ZWINIĘTA (sprawa): pole „Odpowiedz…", „Napisz z AI" i „Wyślij" w jednym rzędzie -
+//    gdy krokiem następnym jest rezerwacja, odpowiedź nie zabiera rozmowie miejsca;
+//    kliknięcie w pole rozwija kartę;
+//  - TELEFON: rząd z polem i dwoma okrągłymi przyciskami, a pisanie na cały ekran.
 //
-// Załączniki: spinacz w pasku edytora, upuszczenie pliku na kompozytor albo
+// Treść pisze się w uproszczonym edytorze (RichTextEditor). HTML z edytora jest
+// sprowadzany do ustalonego dialektu (normalizeComposerHtml) przed wysyłką i przed
+// korektą - backend i tak sanityzuje, ale ma dostać coś już czystego.
+//
+// Załączniki: spinacz w dolnym rzędzie, upuszczenie pliku na kompozytor albo
 // wklejenie. Limity są sprawdzane tu, zanim plik poleci na serwer (OUTGOING_ATTACHMENT_LIMITS
 // to lustro OutgoingAttachmentPolicy z backendu) - błąd o 15 MB ma się pojawić w chwili
-// wyboru pliku, a nie po minucie wysyłania.
+// wyboru pliku, a nie po minucie wysyłania. Zdjęcia z galerii wybiera się w okienku
+// nad kompozytorem (GalleryPhotoPicker), a do serwera idą same wskazania - pliki
+// dokłada backend. Liczą się do tego samego limitu plików co załączniki z dysku.
 //
 // Szkic AI (tylko w wątku): asystent pisze projekt odpowiedzi, który zastępuje treść
 // edytora - z „Cofnij", jak po korekcie. Znaczniki do uzupełnienia („[proponowany
 // termin]") blokują wysyłkę, dopóki stoją w treści: klient nie może dostać nawiasu.
-// „Popraw szkic" oddaje asystentowi bieżącą treść edytora razem z uwagami pracownika.
-//
-// Zdjęcia z galerii (przycisk ze zdjęciem obok spinacza): wybiera się je w oknie
-// GalleryPhotoPicker, a do serwera idą same wskazania - pliki dokłada backend.
-// Liczą się do tego samego limitu plików co załączniki z dysku.
-//
-// Formatowanie jest schowane pod „Aa" (collapsibleToolbar): większość odpowiedzi to
-// dwa zdania bez formatowania, a stały pasek dwunastu ikon zabierał miejsce wątkowi.
+// „Napisz inaczej" oddaje asystentowi bieżącą treść edytora razem z uwagami pracownika.
 //
 // Odpowiadając w wątku nie powtarzamy adresu odbiorcy: rozmowa ma jednego
-// uczestnika, wypisanego już w nagłówku i w panelu klienta. Pole „Do" jest
-// schowane pod dyskretnym przełącznikiem - na wypadek, gdy ktoś chce je sprawdzić.
+// uczestnika, wypisanego już w nagłówku. Adres pokazujemy tylko wtedy, gdy jest
+// o nim coś do powiedzenia (formularz, nieznany klient).
 import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent, type ReactNode } from 'react';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import {
     ArrowLeft,
     AtSign,
@@ -37,17 +39,14 @@ import {
     ImagePlus,
     Loader2,
     Paperclip,
-    PenLine,
     Send,
-    Settings2,
-    Sparkles,
+    Sparkle,
     SpellCheck,
     Undo2,
     X,
 } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
 import { acquireScrollLock } from '@/common/utils/scrollLock';
-import { Button } from '@/common/components/ui';
 import type { GalleryPhoto } from '@/modules/gallery/types';
 import { useMailSignature, useProofread, useSendMail } from '../hooks/useComms';
 import { OUTGOING_ATTACHMENT_LIMITS, type ReplyDraft } from '../types';
@@ -59,6 +58,7 @@ import {
 } from '../utils/composerHtml';
 import { draftOriginLabel, pendingPlaceholders as findPendingPlaceholders } from '../utils/replyDraft';
 import { QUICK_REPLIES, type QuickReply } from '../utils/quickReplies';
+import { signatureHtmlToText } from '../utils/signatureText';
 import { useChangeLeadStatus } from '../hooks/useLeads';
 import { ReplyDraftButton } from './ReplyDraftButton';
 import { ReplyDraftRevise } from './ReplyDraftRevise';
@@ -66,22 +66,27 @@ import { RichTextEditor } from './RichTextEditor';
 import { GalleryPhotoPicker, type GalleryPickerContext } from './GalleryPhotoPicker';
 import { galleryPhotoKey } from '../utils/galleryPhotoKey';
 import { SignatureSettingsModal } from './SignatureSettingsModal';
-import { PrimaryButton } from './shared';
+import { FooterPrimary, PillPrimary, TintBtn, ToolBtn } from '../inbox/primitives';
+import { ix } from '../inbox/tokens';
 
-const Composer = styled.div<{ $dragging: boolean; $sheet?: boolean }>`
+const Composer = styled.div<{ $dragging: boolean; $sheet?: boolean; $divider: boolean; $phone: boolean }>`
     position: relative;
-    border-top: 1px solid #e5e7eb;
-    background: #ffffff;
-    padding: 12px 16px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
+    flex-shrink: 0;
+    padding: ${p => (p.$phone ? '12px 16px 16px' : p.$divider ? '16px 28px 24px' : '0 28px 24px')};
+    ${p => p.$divider && css`border-top: 1px solid ${ix.lineSoft};`}
+    background: #ffffff;
 
-    /* Telefon: odpowiedź na cały ekran, nad dolną nawigacją aplikacji. Pisze się
-       na całej wysokości, a wiadomość, na którą się odpowiada, wraca po „Wróć". */
+    .spin { animation: composerSpin 900ms linear infinite; }
+    @keyframes composerSpin { to { transform: rotate(360deg); } }
+
+    /* Telefon: odpowiedź na cały ekran. Pisze się na całej wysokości, a wiadomość,
+       na którą się odpowiada, wraca po „Wróć". */
     ${({ $sheet }) =>
         $sheet &&
-        `
+        css`
         position: fixed;
         inset: 0;
         z-index: 1100;
@@ -92,9 +97,9 @@ const Composer = styled.div<{ $dragging: boolean; $sheet?: boolean }>`
         `}
 
     /* Cały kompozytor jest strefą zrzutu - nie trzeba celować w edytor. */
-    ${({ $dragging, theme }) =>
+    ${({ $dragging }) =>
         $dragging &&
-        `
+        css`
         &::after {
             content: 'Upuść, żeby dołączyć plik';
             position: absolute;
@@ -102,108 +107,78 @@ const Composer = styled.div<{ $dragging: boolean; $sheet?: boolean }>`
             display: flex;
             align-items: center;
             justify-content: center;
-            border: 2px dashed ${theme.colors.primary};
-            border-radius: ${theme.radii.md};
+            border: 2px dashed ${ix.accent};
+            border-radius: 16px;
             background: rgba(255, 255, 255, 0.92);
-            color: ${theme.colors.primary};
+            color: ${ix.accentInk};
             font-size: 14px;
-            font-weight: ${theme.fontWeights.medium};
+            font-weight: 600;
             pointer-events: none;
             z-index: 1;
         }
     `}
 `;
 
+/** Zwinięta odpowiedź: pole „Odpowiedz…" i przyciski w jednym rzędzie. */
+const CompactRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+`;
+
+/** Pole, które tylko wygląda jak pole - kliknięcie rozwija kartę z prawdziwym edytorem. */
+const FakeInput = styled.button<{ $h: number }>`
+    flex: 1;
+    min-width: 0;
+    height: ${p => p.$h}px;
+    padding: 0 18px;
+    border: 1px solid ${ix.line};
+    border-radius: 999px;
+    background: #ffffff;
+    color: ${ix.muted};
+    font-family: inherit;
+    font-size: ${p => (p.$h >= 48 ? 16 : 14)}px;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: text;
+
+    &:hover { border-color: #cbd5e1; }
+    &:focus-visible { outline: 2px solid ${ix.accent}; outline-offset: 2px; }
+`;
+
+/** Okrągły „Wyślij" na telefonie - odcień, nie wypełnienie (wypełniony jest krok następny). */
+const RoundSend = styled(TintBtn)`
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    svg { width: 18px; height: 18px; }
+`;
+
 const MetaRow = styled.div`
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
     font-size: 13px;
-    color: #6b7280;
+    color: ${ix.muted};
 
     input {
         flex: 1;
-        border: 1px solid #e5e7eb;
-        border-radius: 6px;
-        padding: 6px 10px;
-        font-size: 13px;
+        min-width: 180px;
+        height: 36px;
+        border: 1px solid ${ix.line};
+        border-radius: 10px;
+        padding: 0 12px;
+        font-size: 14px;
         outline: none;
         font-family: inherit;
+        color: ${ix.ink};
 
-        &:focus { border-color: #9ca3af; }
+        &:focus { border-color: ${ix.faint}; }
+        &:disabled { background: ${ix.surfaceSoft}; color: ${ix.text2}; }
     }
-`;
-
-const Actions = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    flex-wrap: wrap;
-`;
-
-const LeftActions = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-`;
-
-/**
- * Przełącznik stopki. Stan „włączony/wyłączony" musi być widoczny bez klikania -
- * decyzja o tym, co dokleimy do cudzej skrzynki, nie może wymagać sprawdzania.
- */
-const SignatureToggle = styled.button<{ $on: boolean }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    border: 1px solid ${({ $on, theme }) => ($on ? theme.colors.primary : theme.colors.border)};
-    background: ${({ $on, theme }) => ($on ? '#f0f9ff' : theme.colors.surface)};
-    color: ${({ $on, theme }) => ($on ? theme.colors.primary : theme.colors.textSecondary)};
-    border-radius: ${p => p.theme.radii.full};
-    padding: 6px 12px 6px 8px;
-    font-size: 12px;
-    font-weight: ${p => p.theme.fontWeights.medium};
-    font-family: inherit;
-    cursor: pointer;
-    transition: all ${p => p.theme.transitions.fast};
-
-    &:hover { border-color: ${p => p.theme.colors.primary}; }
-
-    .track {
-        position: relative;
-        width: 26px;
-        height: 15px;
-        flex-shrink: 0;
-        border-radius: 999px;
-        background: ${({ $on, theme }) => ($on ? theme.colors.primary : '#cbd5e1')};
-        transition: background ${p => p.theme.transitions.fast};
-    }
-    .knob {
-        position: absolute;
-        top: 2px;
-        left: ${({ $on }) => ($on ? '13px' : '2px')};
-        width: 11px;
-        height: 11px;
-        border-radius: 50%;
-        background: #ffffff;
-        transition: left ${p => p.theme.transitions.fast};
-    }
-`;
-
-const ConfigureButton = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    border: none;
-    background: none;
-    padding: 0;
-    font-family: inherit;
-    font-size: 12px;
-    color: ${p => p.theme.colors.textMuted};
-    cursor: pointer;
-
-    &:hover { color: ${p => p.theme.colors.textSecondary}; }
 `;
 
 const RecipientToggle = styled.button`
@@ -214,11 +189,11 @@ const RecipientToggle = styled.button`
     background: none;
     padding: 0;
     font-family: inherit;
-    font-size: 12px;
-    color: #9ca3af;
+    font-size: 13px;
+    color: ${ix.muted};
     cursor: pointer;
 
-    &:hover { color: #4b5563; }
+    &:hover { color: ${ix.inkSoft}; }
 `;
 
 /**
@@ -227,78 +202,15 @@ const RecipientToggle = styled.button`
  * (czyli do studia), a nikt tego nie widział, bo „wysłało się".
  */
 const RecipientHint = styled.span<{ $warn?: boolean }>`
-    font-size: 12px;
-    color: ${p => (p.$warn ? p.theme.colors.warning : p.theme.colors.textMuted)};
-`;
-
-/** Przycisk korekty - obok „Wyślij", ale wizualnie wtórny wobec niego. */
-const ProofreadButton = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    border: 1px solid ${p => p.theme.colors.border};
-    background: ${p => p.theme.colors.surface};
-    color: ${p => p.theme.colors.textSecondary};
-    border-radius: ${p => p.theme.radii.full};
-    padding: 7px 14px;
     font-size: 13px;
-    font-weight: ${p => p.theme.fontWeights.medium};
-    font-family: inherit;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all ${p => p.theme.transitions.fast};
-
-    &:hover:not(:disabled) {
-        background: ${p => p.theme.colors.surfaceHover};
-        border-color: ${p => p.theme.colors.textMuted};
-    }
-    &:disabled { opacity: 0.55; cursor: default; }
-
-    .spin {
-        animation: proofreadSpin 900ms linear infinite;
-    }
-    @keyframes proofreadSpin {
-        to { transform: rotate(360deg); }
-    }
+    color: ${p => (p.$warn ? '#b45309' : ix.muted)};
 `;
 
-const SendGroup = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    flex-wrap: wrap;
-    gap: 8px;
+/** Przycisk w pasku edytora (spinacz, zdjęcie) - z licznikiem, gdy coś dołączono. */
+const AttachButton = styled(ToolBtn)`
+    span { font-size: 12px; font-weight: 600; }
 `;
 
-/** Spinacz w pasku edytora - tam, gdzie reszta narzędzi treści. */
-const AttachButton = styled.button<{ $active: boolean }>`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    height: 32px;
-    min-width: 32px;
-    padding: 0 8px;
-    border: none;
-    border-radius: ${p => p.theme.radii.sm};
-    background: transparent;
-    color: ${({ $active, theme }) => ($active ? theme.colors.primary : theme.colors.textSecondary)};
-    font-size: 12px;
-    font-weight: ${p => p.theme.fontWeights.medium};
-    font-family: inherit;
-    cursor: pointer;
-    transition: background ${p => p.theme.transitions.fast}, color ${p => p.theme.transitions.fast};
-
-    &:hover { background: ${p => p.theme.colors.surfaceAlt}; color: ${p => p.theme.colors.text}; }
-    &:disabled { opacity: 0.4; cursor: default; }
-
-    svg { width: 16px; height: 16px; }
-`;
-
-/**
- * Lista dołączonych plików. Każdy chip pokazuje nazwę i wagę - waga jest tu
- * ważniejsza niż zwykle, bo limit dotyczy sumy i użytkownik ma widzieć, ile zostało.
- */
 /** Górny pasek odpowiedzi na pełnym ekranie: „Wróć" do wiadomości i do kogo piszemy. */
 const SheetTop = styled.div`
     position: sticky;
@@ -310,68 +222,33 @@ const SheetTop = styled.div`
     margin: 0 -14px;
     padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 10px;
     background: #ffffff;
-    border-bottom: 1px solid ${p => p.theme.colors.border};
+    border-bottom: 1px solid ${ix.lineSoft};
 
     button {
         display: inline-flex;
         align-items: center;
         gap: 4px;
+        min-height: 44px;
         border: none;
         background: none;
-        padding: 6px 4px;
+        padding: 0 4px;
         font: inherit;
-        font-size: 14px;
+        font-size: 15px;
         font-weight: 500;
-        color: ${p => p.theme.colors.textSecondary};
+        color: ${ix.inkSoft};
         cursor: pointer;
-        svg { width: 18px; height: 18px; }
+        svg { width: 20px; height: 20px; }
     }
     .who {
         flex: 1;
         min-width: 0;
-        font-size: 14px;
+        font-size: 15px;
         font-weight: 600;
-        color: ${p => p.theme.colors.text};
+        color: ${ix.ink};
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
-`;
-
-/**
- * Telefon, odpowiedź zwinięta: jeden przycisk zamiast stale rozłożonego edytora.
- * Edytor z paskiem narzędzi zajmował ponad połowę ekranu, nawet gdy nikt nie
- * odpisywał - na samą wiadomość zostawało pięć linijek w małym okienku.
- */
-const ReplyBar = styled.div`
-    border-top: 1px solid #e5e7eb;
-    background: #ffffff;
-    padding: 8px 12px 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-
-    .chips {
-        display: flex;
-        gap: 6px;
-        overflow-x: auto;
-        scrollbar-width: none;
-        &::-webkit-scrollbar { display: none; }
-    }
-    .chips button {
-        flex-shrink: 0;
-        border: 1px solid ${p => p.theme.colors.border};
-        background: ${p => p.theme.colors.surface};
-        color: ${p => p.theme.colors.textSecondary};
-        border-radius: 999px;
-        padding: 5px 11px;
-        font: inherit;
-        font-size: 12.5px;
-        font-weight: 500;
-        cursor: pointer;
-    }
-    .row { display: flex; gap: 8px; align-items: center; }
-    .row > :first-child { flex: 1; justify-content: center; }
 `;
 
 /** Gotowe odpowiedzi - tylko przy pustym edytorze, ciche jak podpowiedź, nie jak akcja. */
@@ -380,21 +257,55 @@ const QuickReplies = styled.div`
     flex-wrap: wrap;
     align-items: center;
     gap: 6px;
-    font-size: 12.5px;
-    color: ${p => p.theme.colors.textMuted};
+    font-size: 13px;
+    color: ${ix.muted};
 
     button {
-        border: 1px solid ${p => p.theme.colors.border};
-        background: ${p => p.theme.colors.surface};
-        color: ${p => p.theme.colors.textSecondary};
+        border: 1px solid ${ix.line};
+        background: #ffffff;
+        color: ${ix.text2};
         border-radius: 999px;
-        padding: 4px 11px;
+        padding: 5px 12px;
         font: inherit;
         font-weight: 500;
         cursor: pointer;
         transition: border-color 150ms ease, color 150ms ease;
 
-        &:hover { border-color: #cbd5e1; color: ${p => p.theme.colors.text}; }
+        &:hover { border-color: #cbd5e1; color: ${ix.ink}; }
+    }
+`;
+
+/** Podgląd stopki pod treścią - szary, jak w makiecie („Twoja stopka"). */
+const SignatureLine = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 8px 18px 0;
+    font-size: 15px;
+    line-height: 23px;
+    color: ${ix.muted};
+
+    .text {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    button {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 6px;
+        border: none;
+        border-radius: 6px;
+        background: none;
+        font-family: inherit;
+        font-size: 12.5px;
+        font-weight: 500;
+        color: ${ix.muted};
+        cursor: pointer;
+        &:hover { background: ${ix.surfaceAlt}; color: ${ix.ink}; }
     }
 `;
 
@@ -403,6 +314,7 @@ const AttachmentList = styled.div`
     flex-wrap: wrap;
     align-items: center;
     gap: 6px;
+    margin: 8px 18px 0;
 `;
 
 const AttachmentChip = styled.div`
@@ -410,10 +322,10 @@ const AttachmentChip = styled.div`
     align-items: center;
     gap: 6px;
     max-width: 100%;
-    border: 1px solid ${p => p.theme.colors.border};
-    background: ${p => p.theme.colors.surfaceAlt};
-    color: ${p => p.theme.colors.textSecondary};
-    border-radius: ${p => p.theme.radii.full};
+    border: 1px solid ${ix.line};
+    background: ${ix.surfaceSoft};
+    color: ${ix.text2};
+    border-radius: 999px;
     padding: 4px 6px 4px 10px;
     font-size: 12px;
 
@@ -424,9 +336,9 @@ const AttachmentChip = styled.div`
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        color: ${p => p.theme.colors.text};
+        color: ${ix.ink};
     }
-    .size { color: ${p => p.theme.colors.textMuted}; white-space: nowrap; }
+    .size { color: ${ix.muted}; white-space: nowrap; }
 
     button {
         display: inline-flex;
@@ -437,9 +349,9 @@ const AttachmentChip = styled.div`
         border: none;
         border-radius: 50%;
         background: transparent;
-        color: ${p => p.theme.colors.textMuted};
+        color: ${ix.muted};
         cursor: pointer;
-        &:hover { background: ${p => p.theme.colors.border}; color: ${p => p.theme.colors.text}; }
+        &:hover { background: ${ix.line}; color: ${ix.ink}; }
         svg { width: 12px; height: 12px; }
     }
 `;
@@ -459,45 +371,50 @@ const GalleryChip = styled(AttachmentChip)`
 
 const AttachmentTotal = styled.span<{ $warn: boolean }>`
     font-size: 11px;
-    color: ${({ $warn, theme }) => ($warn ? theme.colors.warning : theme.colors.textMuted)};
+    color: ${({ $warn }) => ($warn ? '#b45309' : ix.muted)};
     white-space: nowrap;
 `;
 
 /**
- * Co wiadomo o szkicu: z czego powstał i co trzeba zrobić przed wysłaniem. Tło i obwódka
- * zamiast wypełnienia - to informacja, nie akcja.
+ * Linia nad szkicem z makiety: „✦ Szkic napisany przez AI. Popraw go, jeśli trzeba."
+ * i „Napisz inaczej" po prawej. Ostrzeżenia (znaczniki, kwoty spoza wyceny) stoją pod
+ * spodem - to one niosą blokadę wysyłki.
  */
 const DraftNote = styled.div`
     display: flex;
     align-items: flex-start;
-    gap: 10px;
-    border: 1px solid ${p => p.theme.colors.border};
-    background: ${p => p.theme.colors.surfaceHover};
-    border-radius: ${p => p.theme.radii.md};
-    padding: 8px 10px 8px 12px;
-    font-size: 12.5px;
-    line-height: 1.45;
-    color: ${p => p.theme.colors.textSecondary};
+    gap: 8px;
+    font-size: 13px;
+    line-height: 20px;
+    color: ${ix.text2};
 
-    > svg { flex-shrink: 0; margin-top: 2px; color: ${p => p.theme.colors.primary}; }
+    > svg { flex-shrink: 0; width: 16px; height: 16px; margin-top: 2px; color: ${ix.accentInk}; }
+    .lines { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .warn { color: #b45309; }
+    .side { flex: none; display: inline-flex; align-items: center; gap: 4px; }
 
-    .lines { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-    .warn { color: ${p => p.theme.colors.warning}; }
-
-    > button.close {
-        flex-shrink: 0;
+    button.close {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 20px;
-        height: 20px;
+        width: 22px;
+        height: 22px;
         border: none;
         border-radius: 50%;
         background: transparent;
-        color: ${p => p.theme.colors.textMuted};
+        color: ${ix.muted};
         cursor: pointer;
-        &:hover { background: ${p => p.theme.colors.border}; color: ${p => p.theme.colors.text}; }
+        &:hover { background: ${ix.line}; color: ${ix.ink}; }
     }
+`;
+
+/** Okienko wyboru zdjęć stoi nad kompozytorem, przy przycisku zdjęcia (makieta). */
+const PickerAnchor = styled.div<{ $phone: boolean }>`
+    position: absolute;
+    z-index: 30;
+    ${p => (p.$phone
+        ? css`left: 12px; right: 12px; bottom: calc(100% + 8px);`
+        : css`left: 28px; bottom: calc(100% + 8px); width: min(440px, calc(100% - 56px));`)}
 `;
 
 const formatSize = (bytes: number): string => {
@@ -528,30 +445,35 @@ interface ReplyComposerProps {
     recipientHint?: string;
     /** Pierwsza wiadomość z leada bez wątku - wątek z tej wysyłki przypnie się do leada. */
     leadId?: string;
-    /** Lead przypięty do wątku odpowiedzi - „Szkic AI" bierze z niego wycenę do oferty. */
+    /** Lead przypięty do wątku odpowiedzi - „Napisz z AI" bierze z niego wycenę do oferty. */
     threadLeadId?: string | null;
     requireSubject?: boolean;
     /** Wywołane po wysłaniu - z id wątku, w którym wylądowała wiadomość. */
     onSent?: (threadId: string) => void;
     /**
-     * Telefon: zamiast stale rozłożonego edytora pasek „Odpowiedz", a edytor otwiera
-     * się na cały ekran dopiero po kliknięciu. Treść czeka, gdy się wróci do wiadomości.
+     * Telefon: zamiast stale rozłożonego edytora rząd „Odpowiedz…", a edytor otwiera
+     * się na cały ekran dopiero po dotknięciu. Treść czeka, gdy się wróci do wiadomości.
      */
     collapsible?: boolean;
-    /** Dodatkowa akcja w zwiniętym pasku (np. „Stwórz rezerwację" z nagłówka). */
+    /** Krok następny nad zwiniętym rzędem na telefonie (np. „Umów wizytę"). */
     barExtra?: ReactNode;
     /**
      * Zdjęcia z galerii: co wiemy o kliencie i aucie (z tego biorą się zakładki
-     * okna wyboru). Brak = przycisk galerii się nie pokazuje - rodzic przekazuje to
+     * okienka wyboru). Brak = przycisk galerii się nie pokazuje - rodzic przekazuje to
      * tylko użytkownikom z dostępem do galerii, bo serwer i tak odrzuci wysyłkę.
      */
     galleryContext?: GalleryPickerContext;
     /**
-     * „quiet": „Wyślij" z tłem i obwódką zamiast wypełnienia. Skrzynka „Zapytania"
-     * używa tego, gdy krokiem następnym sprawy nie jest odpowiedź (np. „Umów wizytę"
-     * w panelu obok) - w oknie wolno wypełnić tylko jedną rzecz (CLAUDE.md §2).
+     * Wygląd „Wyślij" (CLAUDE.md §2 - jedno wypełnienie w oknie):
+     *  - 'pill'  - wypełniona pigułka (poczta: wysyłka jest krokiem następnym),
+     *  - 'tint'  - odcień z obwódką (krokiem jest coś innego, np. rezerwacja obok),
+     *  - { title, hint } - duży przycisk kroku następnego pod kartą („Wyślij wycenę").
      */
-    sendEmphasis?: 'primary' | 'quiet';
+    sendAppearance?: 'pill' | 'tint' | { title: string; hint: string };
+    /** 'compact' - zwinięty rząd „Odpowiedz…" na komputerze, karta po kliknięciu. */
+    layout?: 'card' | 'compact';
+    /** Kreska nad kompozytorem - w poczcie oddziela odpowiedź od czytanej wiadomości. */
+    divider?: boolean;
 }
 
 export function ReplyComposer({
@@ -567,7 +489,9 @@ export function ReplyComposer({
     collapsible = false,
     barExtra,
     galleryContext,
-    sendEmphasis = 'primary',
+    sendAppearance = 'pill',
+    layout = 'card',
+    divider = false,
 }: ReplyComposerProps) {
     const [expanded, setExpanded] = useState(false);
     const sheet = collapsible && expanded;
@@ -783,33 +707,88 @@ export function ReplyComposer({
             : 'Wysyłanie…'
         : 'Wyślij';
 
+    // Zwinięty rząd rozwija się w kartę na żądanie i sam, gdy jest już co pokazać.
+    const compactCollapsed = layout === 'compact' && !collapsible && !expanded && bodyEmpty
+        && !draft && attachments.length === 0 && galleryPhotos.length === 0 && !sendMail.isPending;
+    const [focusOnOpen, setFocusOnOpen] = useState(false);
+    const open = () => {
+        setFocusOnOpen(true);
+        setExpanded(true);
+    };
+
+    const draftButton = (height: number, iconOnly = false) =>
+        threadId ? (
+            <ReplyDraftButton
+                threadId={threadId}
+                signatureAppended={appendSignature}
+                disabled={sendMail.isPending}
+                leadId={threadLeadId ?? null}
+                onDraft={(next) => { applyDraft(next); setExpanded(true); }}
+                height={height}
+                iconOnly={iconOnly}
+                showStyleButton={false}
+            />
+        ) : null;
+
+    const sendDisabled = sendMail.isPending || bodyEmpty || pendingPlaceholders.length > 0;
+    const sendTitle = pendingPlaceholders.length > 0 ? 'Uzupełnij znaczniki w nawiasach kwadratowych' : undefined;
+
     if (collapsible && !expanded) {
         return (
-            <ReplyBar>
-                {contextLeadId && bodyEmpty && (
-                    <div className="chips" aria-label="Gotowe odpowiedzi">
-                        {QUICK_REPLIES.map((reply) => (
-                            <button key={reply.id} type="button" onClick={() => applyQuickReply(reply)}>
-                                {reply.label}
-                            </button>
-                        ))}
-                    </div>
-                )}
-                <div className="row">
-                    <PrimaryButton type="button" onClick={() => setExpanded(true)}>
-                        <Send size={14} />
-                        {bodyEmpty ? 'Odpowiedz' : 'Wróć do odpowiedzi'}
-                    </PrimaryButton>
-                    {barExtra}
-                </div>
-            </ReplyBar>
+            <Composer $dragging={false} $divider $phone>
+                {barExtra}
+                <CompactRow>
+                    <FakeInput type="button" $h={48} onClick={open}>
+                        {bodyEmpty ? 'Odpowiedz…' : composerHtmlToText(body)}
+                    </FakeInput>
+                    {draftButton(48, true)}
+                    <RoundSend
+                        aria-label={bodyEmpty ? 'Napisz odpowiedź' : 'Wróć do odpowiedzi'}
+                        onClick={open}
+                    >
+                        <Send />
+                    </RoundSend>
+                </CompactRow>
+            </Composer>
         );
     }
+
+    if (compactCollapsed) {
+        return (
+            <Composer $dragging={false} $divider={divider} $phone={false} style={{ paddingTop: 16 }}>
+                <CompactRow>
+                    <FakeInput type="button" $h={44} onClick={open}>Odpowiedz…</FakeInput>
+                    {draftButton(44)}
+                    {sendAppearance === 'pill' ? (
+                        <PillPrimary style={{ height: 44 }} onClick={open}><Send /> Wyślij</PillPrimary>
+                    ) : (
+                        <TintBtn $h={44} onClick={open}>Wyślij</TintBtn>
+                    )}
+                </CompactRow>
+                {signatureSettingsOpen && <SignatureSettingsModal isOpen onClose={() => setSignatureSettingsOpen(false)} />}
+            </Composer>
+        );
+    }
+
+    const sendButton =
+        typeof sendAppearance === 'object' ? null : sendAppearance === 'tint' ? (
+            <TintBtn $h={40} onClick={submit} disabled={sendDisabled} title={sendTitle}>
+                <Send /> {sendLabel}
+            </TintBtn>
+        ) : (
+            <PillPrimary onClick={submit} disabled={sendDisabled} title={sendTitle}>
+                <Send /> {sendLabel}
+            </PillPrimary>
+        );
+
+    const signatureText = hasSignature ? signatureHtmlToText(signature?.bodyHtml ?? null).split('\n').find((line) => line.trim()) ?? 'Twoja stopka' : '';
 
     return (
         <Composer
             $sheet={sheet}
             $dragging={dragging}
+            $divider={divider}
+            $phone={collapsible}
             onDragEnter={onDragEnter}
             onDragOver={(event) => { if (event.dataTransfer.types.includes('Files')) event.preventDefault(); }}
             onDragLeave={onDragLeave}
@@ -824,15 +803,78 @@ export function ReplyComposer({
                     <span className="who">{recipientLabel ?? initialTo ?? 'Nowa wiadomość'}</span>
                 </SheetTop>
             )}
-            {recipientShown && (
+
+            {draft && (
+                <DraftNote role="status">
+                    <Sparkle />
+                    <div className="lines">
+                        <span title={draft.examples.map((example) => example.subject ?? '(bez tematu)').join('\n') || undefined}>
+                            {draftOriginLabel(draft)}
+                        </span>
+                        {pendingPlaceholders.length > 0 && (
+                            <span className="warn">
+                                Uzupełnij przed wysłaniem: {pendingPlaceholders.join(', ')}
+                            </span>
+                        )}
+                        {draft.unverifiedAmounts.length > 0 && (
+                            <span className="warn">
+                                Sprawdź kwoty, których nie ma w wycenie leada: {draft.unverifiedAmounts.join(', ')}
+                            </span>
+                        )}
+                    </div>
+                    <span className="side">
+                        {threadId && (
+                            <ReplyDraftRevise
+                                threadId={threadId}
+                                draft={draft}
+                                currentText={composerHtmlToText(body)}
+                                signatureAppended={appendSignature}
+                                disabled={sendMail.isPending}
+                                onDraft={applyDraft}
+                                label="Napisz inaczej"
+                            />
+                        )}
+                        {/* Informację wolno schować dopiero po uzupełnieniu znaczników - to ona niesie blokadę wysyłki. */}
+                        {pendingPlaceholders.length === 0 && (
+                            <button type="button" className="close" onClick={() => setDraft(null)} aria-label="Ukryj informację o szkicu">
+                                <X size={12} />
+                            </button>
+                        )}
+                    </span>
+                </DraftNote>
+            )}
+
+            {closeReason && !bodyEmpty && (
+                <DraftNote role="status">
+                    <div className="lines">
+                        <span>Po wysłaniu zapytanie zamknie się jako „Poza zakresem usług" - nie liczy się jako strata.</span>
+                    </div>
+                    <span className="side">
+                        <button type="button" className="close" onClick={() => setCloseReason(null)} aria-label="Nie zamykaj zapytania po wysłaniu">
+                            <X size={12} />
+                        </button>
+                    </span>
+                </DraftNote>
+            )}
+
+            {(recipientShown || (replyInThread && recipientHint)) && (
                 <MetaRow>
-                    Do:
-                    <input
-                        value={to}
-                        onChange={(event) => setTo(event.target.value)}
-                        placeholder="adres@klienta.pl"
-                        disabled={replyInThread}
-                    />
+                    {recipientShown ? (
+                        <>
+                            Do:
+                            <input
+                                value={to}
+                                onChange={(event) => setTo(event.target.value)}
+                                placeholder="adres@klienta.pl"
+                                disabled={replyInThread}
+                            />
+                        </>
+                    ) : (
+                        <RecipientToggle type="button" onClick={() => setRecipientShown(true)} title="Pokaż pełny adres odbiorcy">
+                            <AtSign size={12} /> Do: {recipientLabel ?? initialTo}
+                        </RecipientToggle>
+                    )}
+                    {replyInThread && recipientHint && <RecipientHint>{recipientHint}</RecipientHint>}
                 </MetaRow>
             )}
             {recipientUnknown && (
@@ -864,34 +906,114 @@ export function ReplyComposer({
                 onSubmit={submit}
                 disabled={sendMail.isPending}
                 collapsibleToolbar
+                autoFocus={focusOnOpen}
+                afterContent={
+                    <>
+                        {(attachments.length > 0 || galleryPhotos.length > 0) && (
+                            <AttachmentList aria-label="Załączniki">
+                                {galleryPhotos.map((photo) => (
+                                    <GalleryChip key={galleryPhotoKey(photo)} title={photo.description || photo.fileName}>
+                                        <img src={photo.thumbnailUrl} alt="" />
+                                        <span className="name">{photo.fileName}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setGalleryPhotos((current) => current.filter((item) => galleryPhotoKey(item) !== galleryPhotoKey(photo)))}
+                                            aria-label={`Usuń zdjęcie ${photo.fileName}`}
+                                            disabled={sendMail.isPending}
+                                        >
+                                            <X />
+                                        </button>
+                                    </GalleryChip>
+                                ))}
+                                {attachments.map((file, index) => (
+                                    <AttachmentChip key={`${file.name}-${file.size}-${file.lastModified}`} title={file.name}>
+                                        {fileIcon(file)}
+                                        <span className="name">{file.name}</span>
+                                        <span className="size">{formatSize(file.size)}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => removeFile(index)}
+                                            aria-label={`Usuń załącznik ${file.name}`}
+                                            disabled={sendMail.isPending}
+                                        >
+                                            <X />
+                                        </button>
+                                    </AttachmentChip>
+                                ))}
+                                {/* Wagi zdjęć z galerii nie znamy przed wysyłką - limit sumy sprawdzi serwer. */}
+                                {attachments.length > 0 && (
+                                    <AttachmentTotal $warn={totalAttachmentBytes > OUTGOING_ATTACHMENT_LIMITS.maxTotalBytes * 0.8}>
+                                        {formatSize(totalAttachmentBytes)} z {formatSize(OUTGOING_ATTACHMENT_LIMITS.maxTotalBytes)}
+                                    </AttachmentTotal>
+                                )}
+                            </AttachmentList>
+                        )}
+                        {/* Stopka: podgląd tego, co doklei się na końcu. Wyłączenie i ustawienia
+                            obok - decyzja o tym, co trafi do cudzej skrzynki, ma być widoczna. */}
+                        <SignatureLine>
+                            {hasSignature && appendSignature ? (
+                                <>
+                                    <span className="text" title={signatureHtmlToText(signature?.bodyHtml ?? null)}>{signatureText}</span>
+                                    <button type="button" onClick={() => setSignatureChoice(false)} aria-label="Wyślij bez stopki" title="Wyślij bez stopki">
+                                        <X size={12} />
+                                    </button>
+                                </>
+                            ) : hasSignature ? (
+                                <button type="button" onClick={() => setSignatureChoice(true)}>+ Dodaj stopkę</button>
+                            ) : (
+                                <button type="button" onClick={() => setSignatureSettingsOpen(true)}>+ Ustaw stopkę</button>
+                            )}
+                        </SignatureLine>
+                    </>
+                }
                 toolbarExtra={
                     <>
-                    {galleryContext && (
+                        {galleryContext && (
+                            <AttachButton
+                                $on={galleryOpen}
+                                aria-expanded={galleryOpen}
+                                onMouseDown={(event) => event.preventDefault()}
+                                onClick={() => setGalleryOpen((value) => !value)}
+                                disabled={sendMail.isPending}
+                                aria-label="Dodaj zdjęcie z galerii"
+                                title="Dodaj zdjęcie z galerii studia"
+                            >
+                                <ImagePlus />
+                                {galleryPhotos.length > 0 && <span>{galleryPhotos.length}</span>}
+                            </AttachButton>
+                        )}
                         <AttachButton
-                            type="button"
-                            $active={galleryPhotos.length > 0}
                             onMouseDown={(event) => event.preventDefault()}
-                            onClick={() => setGalleryOpen(true)}
+                            onClick={() => fileInputRef.current?.click()}
                             disabled={sendMail.isPending}
-                            aria-label="Dodaj zdjęcia z galerii"
-                            title="Dodaj zdjęcia z galerii studia"
+                            aria-label="Dodaj plik"
+                            title={`Dodaj plik (do ${OUTGOING_ATTACHMENT_LIMITS.maxFiles} plików, łącznie ${formatSize(OUTGOING_ATTACHMENT_LIMITS.maxTotalBytes)})`}
                         >
-                            <ImagePlus />
-                            {galleryPhotos.length > 0 && <span>{galleryPhotos.length}</span>}
+                            <Paperclip />
+                            {attachments.length > 0 && <span>{attachments.length}</span>}
                         </AttachButton>
-                    )}
-                    <AttachButton
-                        type="button"
-                        $active={attachments.length > 0}
+                    </>
+                }
+                toolbarAppend={
+                    <ToolBtn
                         onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={sendMail.isPending}
-                        aria-label="Dodaj załącznik"
-                        title={`Dodaj załącznik (do ${OUTGOING_ATTACHMENT_LIMITS.maxFiles} plików, łącznie ${formatSize(OUTGOING_ATTACHMENT_LIMITS.maxTotalBytes)})`}
+                        onClick={runProofread}
+                        disabled={proofread.isPending || bodyEmpty}
+                        aria-label="Popraw błędy"
+                        title="Popraw literówki, interpunkcję i odmianę - bez zmiany treści"
                     >
-                        <Paperclip />
-                        {attachments.length > 0 && <span>{attachments.length}</span>}
-                    </AttachButton>
+                        {proofread.isPending ? <Loader2 className="spin" /> : <SpellCheck />}
+                    </ToolBtn>
+                }
+                actions={
+                    <>
+                        {undoSnapshot !== null && (
+                            <ToolBtn onClick={undo} title={undoSnapshot.title} aria-label="Cofnij">
+                                <Undo2 /> Cofnij
+                            </ToolBtn>
+                        )}
+                        {draftButton(40)}
+                        {sendButton}
                     </>
                 }
             />
@@ -918,200 +1040,34 @@ export function ReplyComposer({
                 </QuickReplies>
             )}
 
-            {closeReason && !bodyEmpty && (
-                <DraftNote role="status">
-                    <div className="lines">
-                        <span>Po wysłaniu zapytanie zamknie się jako „Poza zakresem usług" - nie liczy się jako strata.</span>
-                    </div>
-                    <button type="button" className="close" onClick={() => setCloseReason(null)} aria-label="Nie zamykaj zapytania po wysłaniu">
-                        <X size={12} />
-                    </button>
-                </DraftNote>
+            {typeof sendAppearance === 'object' && (
+                <FooterPrimary
+                    icon={<Send />}
+                    title={sendMail.isPending ? sendLabel : sendAppearance.title}
+                    hint={sendAppearance.hint}
+                    onClick={submit}
+                    disabled={sendDisabled}
+                    aria-label={sendMail.isPending ? sendLabel : `Wyślij: ${sendAppearance.title}`}
+                />
             )}
-
-            {draft && (
-                <DraftNote role="status">
-                    <Sparkles size={14} />
-                    <div className="lines">
-                        <span title={draft.examples.map((example) => example.subject ?? '(bez tematu)').join('\n') || undefined}>
-                            {draftOriginLabel(draft)}
-                        </span>
-                        {pendingPlaceholders.length > 0 && (
-                            <span className="warn">
-                                Uzupełnij przed wysłaniem: {pendingPlaceholders.join(', ')}
-                            </span>
-                        )}
-                        {draft.unverifiedAmounts.length > 0 && (
-                            <span className="warn">
-                                Sprawdź kwoty, których nie ma w wycenie leada: {draft.unverifiedAmounts.join(', ')}
-                            </span>
-                        )}
-                        {threadId && (
-                            <ReplyDraftRevise
-                                threadId={threadId}
-                                draft={draft}
-                                currentText={composerHtmlToText(body)}
-                                signatureAppended={appendSignature}
-                                disabled={sendMail.isPending}
-                                onDraft={applyDraft}
-                            />
-                        )}
-                    </div>
-                    {/* Informację wolno schować dopiero po uzupełnieniu znaczników - to ona niesie blokadę wysyłki. */}
-                    {pendingPlaceholders.length === 0 && (
-                        <button type="button" className="close" onClick={() => setDraft(null)} aria-label="Ukryj informację o szkicu">
-                            <X size={12} />
-                        </button>
-                    )}
-                </DraftNote>
-            )}
-
-            {(attachments.length > 0 || galleryPhotos.length > 0) && (
-                <AttachmentList aria-label="Załączniki">
-                    {galleryPhotos.map((photo) => (
-                        <GalleryChip key={galleryPhotoKey(photo)} title={photo.description || photo.fileName}>
-                            <img src={photo.thumbnailUrl} alt="" />
-                            <span className="name">{photo.fileName}</span>
-                            <button
-                                type="button"
-                                onClick={() => setGalleryPhotos((current) => current.filter((item) => galleryPhotoKey(item) !== galleryPhotoKey(photo)))}
-                                aria-label={`Usuń zdjęcie ${photo.fileName}`}
-                                disabled={sendMail.isPending}
-                            >
-                                <X />
-                            </button>
-                        </GalleryChip>
-                    ))}
-                    {attachments.map((file, index) => (
-                        <AttachmentChip key={`${file.name}-${file.size}-${file.lastModified}`} title={file.name}>
-                            {fileIcon(file)}
-                            <span className="name">{file.name}</span>
-                            <span className="size">{formatSize(file.size)}</span>
-                            <button
-                                type="button"
-                                onClick={() => removeFile(index)}
-                                aria-label={`Usuń załącznik ${file.name}`}
-                                disabled={sendMail.isPending}
-                            >
-                                <X />
-                            </button>
-                        </AttachmentChip>
-                    ))}
-                    {/* Wagi zdjęć z galerii nie znamy przed wysyłką - limit sumy sprawdzi serwer. */}
-                    {attachments.length > 0 && (
-                        <AttachmentTotal $warn={totalAttachmentBytes > OUTGOING_ATTACHMENT_LIMITS.maxTotalBytes * 0.8}>
-                            {formatSize(totalAttachmentBytes)} z {formatSize(OUTGOING_ATTACHMENT_LIMITS.maxTotalBytes)}
-                        </AttachmentTotal>
-                    )}
-                </AttachmentList>
-            )}
-
-            <Actions>
-                <LeftActions>
-                    {replyInThread && !recipientShown && (
-                        <RecipientToggle
-                            onClick={() => setRecipientShown(true)}
-                            title="Pokaż pełny adres odbiorcy"
-                        >
-                            <AtSign size={11} /> Do: {recipientLabel ?? initialTo}
-                        </RecipientToggle>
-                    )}
-                    {replyInThread && recipientHint && <RecipientHint>{recipientHint}</RecipientHint>}
-
-                    {hasSignature ? (
-                        <SignatureToggle
-                            $on={appendSignature}
-                            onClick={() => setSignatureChoice(!appendSignature)}
-                            role="switch"
-                            aria-checked={appendSignature}
-                            title={
-                                appendSignature
-                                    ? 'Stopka zostanie dołączona do tej wiadomości'
-                                    : 'Wyślij bez stopki'
-                            }
-                        >
-                            <span className="track"><span className="knob" /></span>
-                            Dodaj stopkę
-                        </SignatureToggle>
-                    ) : (
-                        <ConfigureButton onClick={() => setSignatureSettingsOpen(true)}>
-                            <PenLine size={12} /> Ustaw stopkę
-                        </ConfigureButton>
-                    )}
-
-                    {hasSignature && (
-                        <ConfigureButton
-                            onClick={() => setSignatureSettingsOpen(true)}
-                            title="Zmień treść stopki"
-                        >
-                            <Settings2 size={12} /> Zmień
-                        </ConfigureButton>
-                    )}
-                </LeftActions>
-
-                <SendGroup>
-                    {undoSnapshot !== null && (
-                        <ProofreadButton onClick={undo} title={undoSnapshot.title}>
-                            <Undo2 size={14} /> Cofnij
-                        </ProofreadButton>
-                    )}
-                    {threadId && (
-                        <ReplyDraftButton
-                            threadId={threadId}
-                            signatureAppended={appendSignature}
-                            disabled={sendMail.isPending}
-                            leadId={threadLeadId ?? null}
-                            onDraft={applyDraft}
-                        />
-                    )}
-                    <ProofreadButton
-                        onClick={runProofread}
-                        disabled={proofread.isPending || bodyEmpty}
-                        title="Popraw literówki, interpunkcję i odmianę - bez zmiany treści"
-                    >
-                        {proofread.isPending
-                            ? <><Loader2 size={14} className="spin" /> Poprawiam…</>
-                            : <><SpellCheck size={14} /> Popraw błędy</>}
-                    </ProofreadButton>
-                    {sendEmphasis === 'quiet' ? (
-                        <Button
-                            variant="tinted"
-                            size="sm"
-                            onClick={submit}
-                            disabled={sendMail.isPending || bodyEmpty || pendingPlaceholders.length > 0}
-                            title={pendingPlaceholders.length > 0 ? 'Uzupełnij znaczniki w nawiasach kwadratowych' : undefined}
-                        >
-                            <Send size={14} />
-                            {sendLabel}
-                        </Button>
-                    ) : (
-                        <PrimaryButton
-                            onClick={submit}
-                            disabled={sendMail.isPending || bodyEmpty || pendingPlaceholders.length > 0}
-                            title={pendingPlaceholders.length > 0 ? 'Uzupełnij znaczniki w nawiasach kwadratowych' : undefined}
-                        >
-                            <Send size={14} />
-                            {sendLabel}
-                        </PrimaryButton>
-                    )}
-                </SendGroup>
-            </Actions>
 
             {galleryOpen && galleryContext && (
-                <GalleryPhotoPicker
-                    onClose={() => setGalleryOpen(false)}
-                    context={galleryContext}
-                    initialSelection={galleryPhotos}
-                    maxSelectable={Math.max(0, OUTGOING_ATTACHMENT_LIMITS.maxFiles - attachments.length)}
-                    onConfirm={(photos) => {
-                        setGalleryPhotos(photos);
-                        setGalleryOpen(false);
-                    }}
-                    onPickFromDevice={() => {
-                        setGalleryOpen(false);
-                        fileInputRef.current?.click();
-                    }}
-                />
+                <PickerAnchor $phone={collapsible}>
+                    <GalleryPhotoPicker
+                        onClose={() => setGalleryOpen(false)}
+                        context={galleryContext}
+                        initialSelection={galleryPhotos}
+                        maxSelectable={Math.max(0, OUTGOING_ATTACHMENT_LIMITS.maxFiles - attachments.length)}
+                        onConfirm={(photos) => {
+                            setGalleryPhotos(photos);
+                            setGalleryOpen(false);
+                        }}
+                        onPickFromDevice={() => {
+                            setGalleryOpen(false);
+                            fileInputRef.current?.click();
+                        }}
+                    />
+                </PickerAnchor>
             )}
 
             {signatureSettingsOpen && (

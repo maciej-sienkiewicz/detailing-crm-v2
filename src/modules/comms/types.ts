@@ -85,6 +85,11 @@ export interface CommThread {
      * (starszy backend) i wątek stoi na liście normalnie.
      */
     automated?: boolean;
+    /**
+     * Uczestnik wątku jest w kartotece klientów - plakietka „Klient" na liście poczty.
+     * Brak pola = starszy backend, plakietki nie ma.
+     */
+    knownCustomer?: boolean;
 }
 
 export type CommThreadKind = 'DIRECT' | 'FORM' | 'SYSTEM';

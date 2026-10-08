@@ -28,9 +28,24 @@ vi.mock('../hooks/useComms', () => ({
     useSendMail: () => ({ mutate, isPending: false }),
 }));
 // Edytor to contenteditable z własną logiką - tu wystarczy pole, które oddaje HTML.
+// Dodatki edytora (stopka, spinacz, „Napisz z AI", „Wyślij") renderujemy obok pola,
+// bo w prawdziwym edytorze stoją w jego dolnym rzędzie.
 vi.mock('./RichTextEditor', () => ({
-    RichTextEditor: ({ value, onChange }: { value: string; onChange: (html: string) => void }) => (
-        <textarea aria-label="Treść" value={value} onChange={(event) => onChange(event.target.value)} />
+    RichTextEditor: ({ value, onChange, afterContent, toolbarExtra, toolbarAppend, actions }: {
+        value: string;
+        onChange: (html: string) => void;
+        afterContent?: React.ReactNode;
+        toolbarExtra?: React.ReactNode;
+        toolbarAppend?: React.ReactNode;
+        actions?: React.ReactNode;
+    }) => (
+        <div>
+            <textarea aria-label="Treść" value={value} onChange={(event) => onChange(event.target.value)} />
+            {afterContent}
+            {toolbarExtra}
+            {toolbarAppend}
+            {actions}
+        </div>
     ),
 }));
 vi.mock('./SignatureSettingsModal', () => ({ SignatureSettingsModal: () => null }));

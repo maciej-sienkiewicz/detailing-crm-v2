@@ -1,9 +1,10 @@
 // src/modules/comms/components/RichTextEditor.tsx
 // Uproszczony edytor treści wiadomości: pogrubienie, kursywa, podkreślenie,
-// przekreślenie, listy, odnośniki, wyrównanie akapitu oraz rozmiar i krój pisma
-// i kolory - tekstu i tła.
+// listy, odnośniki, wyrównanie akapitu oraz rozmiar i krój pisma i kolory - tekstu
+// i tła. Układ karty (pasek u góry, treść, rząd „Aa" z akcjami) jest z makiety
+// skrzynki „Zapytania".
 //
-// Wygląd jest tu podawany ZESTAWAMI, nie suwakami: cztery rozmiary i dwie krótkie
+// Wygląd jest tu podawany ZESTAWAMI, nie suwakami: pięć rozmiarów i dwie krótkie
 // palety zamiast pola z dowolnym kolorem i dowolną liczbą pikseli. Powód jest
 // praktyczny: mail ma wyjść czytelnie w cudzym programie pocztowym, którego motywu
 // nie znamy, a jasnoszary tekst 7 px wybrany suwakiem wygląda dobrze wyłącznie
@@ -35,28 +36,26 @@ import {
     TextAlignJustify as AlignJustify,
     TextAlignStart as AlignLeft,
     TextAlignEnd as AlignRight,
-    Baseline,
     Bold,
-    CaseSensitive,
     Highlighter,
     Italic,
     Link as LinkIcon,
     List,
     ListOrdered,
     RemoveFormatting,
-    Strikethrough,
-    Type,
     Underline,
 } from 'lucide-react';
 import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 import { MAIL_FONTS, normalizeComposerHtml, textToComposerHtml } from '../utils/composerHtml';
 
+/* Karta edytora z makiety „Poczta": obwódka 16 px promienia, w środku pasek
+   formatowania (gdy wysunięty), treść i dolny rząd z „Aa" i akcjami. */
 const Frame = styled.div<{ $focused: boolean }>`
     display: flex;
     flex-direction: column;
-    border: 1px solid ${({ $focused, theme }) => ($focused ? '#9ca3af' : theme.colors.border)};
-    border-radius: ${p => p.theme.radii.md};
-    background: ${p => p.theme.colors.surface};
+    border: 1px solid ${({ $focused }) => ($focused ? '#cbd5e1' : '#e2e8f0')};
+    border-radius: 16px;
+    background: #ffffff;
     transition: border-color ${p => p.theme.transitions.fast};
 `;
 
@@ -70,25 +69,57 @@ const Toolbar = styled.div`
     align-items: center;
     flex-wrap: wrap;
     gap: 2px;
-    padding: 4px 6px;
-    border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
+    padding: 8px 10px;
+    border-bottom: 1px solid #eef2f7;
+    border-radius: 16px 16px 0 0;
+    background: #f8fafc;
+`;
+
+/* Krój i rozmiar jako zwykłe listy wyboru - nazwa kroju i liczba pikseli czytają
+   się od razu, bez otwierania menu. */
+const Select = styled.select`
+    height: 34px;
+    padding: 0 26px 0 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background-color: #ffffff;
+    font-family: inherit;
+    font-size: 13px;
+    color: #0f172a;
+    cursor: pointer;
+
+    &:disabled { opacity: 0.5; cursor: default; }
+    &:focus-visible { outline: 2px solid #0ea5e9; outline-offset: 2px; }
+`;
+
+/* „A" z paskiem w ostatnio użytym kolorze - jak w edytorach biurowych. */
+const ColorGlyph = styled.span`
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+
+    .a { font-size: 14px; font-weight: 700; line-height: 14px; color: #0f172a; }
+    .bar { width: 16px; height: 3px; border-radius: 2px; }
 `;
 
 const ToolButton = styled.button<{ $active?: boolean }>`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
+    flex: none;
     border: none;
-    border-radius: ${p => p.theme.radii.sm};
-    background: ${({ $active, theme }) => ($active ? theme.colors.surfaceAlt : 'transparent')};
-    color: ${({ $active, theme }) => ($active ? theme.colors.text : theme.colors.textSecondary)};
+    border-radius: 8px;
+    background: ${({ $active }) => ($active ? '#e2e8f0' : 'transparent')};
+    color: ${({ $active }) => ($active ? '#0f172a' : '#475569')};
     cursor: pointer;
     transition: background ${p => p.theme.transitions.fast}, color ${p => p.theme.transitions.fast};
 
-    &:hover { background: ${p => p.theme.colors.surfaceAlt}; color: ${p => p.theme.colors.text}; }
+    &:hover { background: ${({ $active }) => ($active ? '#e2e8f0' : '#f1f5f9')}; color: #0f172a; }
     &:disabled { opacity: 0.4; cursor: default; }
+    &:focus-visible { outline: 2px solid #0ea5e9; outline-offset: 2px; }
 
     svg { width: 16px; height: 16px; }
 `;
@@ -133,25 +164,6 @@ const MenuTitle = styled.div`
     color: ${p => p.theme.colors.textMuted};
 `;
 
-const SizeOption = styled.button<{ $px: number }>`
-    display: block;
-    width: 100%;
-    padding: 6px 8px;
-    border: none;
-    border-radius: ${p => p.theme.radii.sm};
-    background: none;
-    color: ${p => p.theme.colors.text};
-    font-family: inherit;
-    /* Pozycja pokazuje swój rozmiar sobą - nazwa „Duża" nic nie znaczy, dopóki
-       nie widać, o ile duża. */
-    font-size: ${p => p.$px}px;
-    line-height: 1.3;
-    text-align: left;
-    cursor: pointer;
-
-    &:hover { background: ${p => p.theme.colors.surfaceAlt}; }
-`;
-
 const Swatches = styled.div`
     display: grid;
     grid-template-columns: repeat(6, 22px);
@@ -190,19 +202,29 @@ const ClearOption = styled.button`
 
 const Separator = styled.span`
     width: 1px;
-    height: 18px;
+    height: 20px;
     margin: 0 4px;
-    background: ${p => p.theme.colors.border};
+    background: #e2e8f0;
+`;
+
+/* Treść i podgląd stopki razem trzymają wysokość z makiety: 92 px przy schowanym
+   pasku formatowania, 108 px przy wysuniętym - pole nie skacze przy pierwszej literze. */
+const ContentArea = styled.div<{ $tall?: boolean; $roomy?: boolean }>`
+    display: flex;
+    flex-direction: column;
+    min-height: ${({ $tall, $roomy }) => ($tall ? '38vh' : $roomy ? '108px' : '92px')};
+    padding-bottom: 6px;
+    box-sizing: border-box;
 `;
 
 const Editable = styled.div<{ $tall?: boolean }>`
-    min-height: ${({ $tall }) => ($tall ? '38vh' : '96px')};
-    max-height: ${({ $tall }) => ($tall ? 'none' : '45vh')};
+    min-height: 23px;
+    max-height: ${({ $tall }) => ($tall ? 'none' : '40vh')};
     overflow-y: auto;
-    padding: 10px 12px;
-    font-size: 14px;
+    padding: 14px 18px 0;
+    font-size: 15px;
     font-family: inherit;
-    line-height: 1.5;
+    line-height: 23px;
     color: ${p => p.theme.colors.text};
     outline: none;
     overflow-wrap: anywhere;
@@ -270,11 +292,14 @@ const LinkPopover = styled.form`
 const BottomBar = styled.div`
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 2px;
-    padding: 4px 6px;
-    border-top: 1px solid ${p => p.theme.colors.surfaceAlt};
+    padding: 6px 8px 8px;
 
     > button { min-width: 36px; height: 36px; }
+    svg { width: 18px; height: 18px; }
+    .spacer { flex: 1; }
+    .actions { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
 `;
 
 const FormatToggle = styled(ToolButton)`
@@ -282,33 +307,15 @@ const FormatToggle = styled(ToolButton)`
     padding: 0 8px;
     font-family: inherit;
     font-size: 14px;
-    font-weight: ${p => p.theme.fontWeights.bold};
-    letter-spacing: -0.01em;
+    font-weight: 700;
 `;
 
-const FontOption = styled.button<{ $stack: string }>`
-    display: block;
-    width: 100%;
-    padding: 6px 8px;
-    border: none;
-    border-radius: ${p => p.theme.radii.sm};
-    background: none;
-    color: ${p => p.theme.colors.text};
-    font-family: ${p => p.$stack};
-    font-size: 14px;
-    text-align: left;
-    cursor: pointer;
-
-    &:hover { background: ${p => p.theme.colors.surfaceAlt}; }
-`;
-
-type Command = 'bold' | 'italic' | 'underline' | 'strikeThrough' | 'insertUnorderedList' | 'insertOrderedList';
+type Command = 'bold' | 'italic' | 'underline' | 'insertUnorderedList' | 'insertOrderedList';
 
 const COMMANDS: { command: Command; label: string; shortcut?: string; Icon: typeof Bold }[] = [
     { command: 'bold', label: 'Pogrubienie', shortcut: 'Ctrl+B', Icon: Bold },
     { command: 'italic', label: 'Kursywa', shortcut: 'Ctrl+I', Icon: Italic },
     { command: 'underline', label: 'Podkreślenie', shortcut: 'Ctrl+U', Icon: Underline },
-    { command: 'strikeThrough', label: 'Przekreślenie', Icon: Strikethrough },
 ];
 
 type AlignCommand = 'justifyLeft' | 'justifyCenter' | 'justifyRight' | 'justifyFull';
@@ -335,12 +342,7 @@ const LIST_COMMANDS: { command: Command; label: string; Icon: typeof Bold }[] = 
  * przeczytania na telefonie, albo nagłówek udający akapit. 14 px odpowiada temu,
  * czym pisze się domyślnie, więc wybranie go zdejmuje wcześniejszy rozmiar.
  */
-const FONT_SIZES: { label: string; px: number }[] = [
-    { label: 'Mała', px: 12 },
-    { label: 'Normalna', px: 14 },
-    { label: 'Duża', px: 18 },
-    { label: 'Bardzo duża', px: 24 },
-];
+const FONT_SIZES: { px: number }[] = [{ px: 12 }, { px: 14 }, { px: 16 }, { px: 18 }, { px: 24 }];
 
 /**
  * Kolory tekstu. Ciemne i nasycone, bo tło skrzynki odbiorcy bywa białe i bywa
@@ -386,6 +388,14 @@ interface RichTextEditorProps {
      * trafiają dodatki z [toolbarExtra]. Bez tej flagi pasek stoi stale nad treścią.
      */
     collapsibleToolbar?: boolean;
+    /** Pod treścią, w karcie edytora - np. podgląd stopki („Twoja stopka"). */
+    afterContent?: ReactNode;
+    /** Prawa strona dolnego rzędu: „Napisz z AI" i „Wyślij". */
+    actions?: ReactNode;
+    /** Na końcu wysuniętego paska formatowania (np. „Popraw błędy"). */
+    toolbarAppend?: ReactNode;
+    /** Fokus w treści od razu po zamontowaniu - kompozytor rozwinięty kliknięciem. */
+    autoFocus?: boolean;
 }
 
 export function RichTextEditor({
@@ -398,36 +408,36 @@ export function RichTextEditor({
     onDropFiles,
     tall = false,
     collapsibleToolbar = false,
+    afterContent,
+    actions,
+    toolbarAppend,
+    autoFocus = false,
 }: RichTextEditorProps) {
     const formatToolbarId = useId();
     const [toolbarOpen, setToolbarOpen] = useState(!collapsibleToolbar);
     const toolbarShown = !collapsibleToolbar || toolbarOpen;
     const [activeAlign, setActiveAlign] = useState<AlignCommand | null>(null);
+    // Krój i rozmiar pod kursorem - listy wyboru pokazują to, czym się właśnie pisze.
+    const [currentFont, setCurrentFont] = useState<string>(MAIL_FONTS[0].label);
+    const [currentSize, setCurrentSize] = useState<number>(14);
+    // Pasek pod „A" - ostatnio użyty kolor tekstu.
+    const [lastColor, setLastColor] = useState<string>(TEXT_COLORS[1]);
     const editableRef = useRef<HTMLDivElement>(null);
     const [focused, setFocused] = useState(false);
     const [activeCommands, setActiveCommands] = useState<Set<Command>>(new Set());
     const [linkDraft, setLinkDraft] = useState<string | null>(null);
     // Które z trzech menu wyglądu jest otwarte. Jedno naraz - dwie palety obok
     // siebie zasłaniałyby tekst, na którym właśnie się pracuje.
-    const [openMenu, setOpenMenu] = useState<'size' | 'font' | 'color' | 'highlight' | null>(null);
+    const [openMenu, setOpenMenu] = useState<'color' | 'highlight' | null>(null);
     // Zaznaczenie znika, gdy fokus przechodzi do pola adresu - zapamiętujemy je,
     // żeby odnośnik trafił tam, gdzie użytkownik zaznaczył, a nie na koniec.
     const savedRange = useRef<Range | null>(null);
     // Menu wyglądu stoi w portalu, więc przycisk i menu to dwa osobne drzewa DOM:
     // opakowanie przycisku jest punktem zaczepienia, menu - tym, co ustawiamy.
-    const sizeWrapRef = useRef<HTMLSpanElement>(null);
-    const fontWrapRef = useRef<HTMLSpanElement>(null);
     const colorWrapRef = useRef<HTMLSpanElement>(null);
     const highlightWrapRef = useRef<HTMLSpanElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
-    const menuAnchorRef =
-        openMenu === 'size'
-            ? sizeWrapRef
-            : openMenu === 'font'
-              ? fontWrapRef
-              : openMenu === 'color'
-                ? colorWrapRef
-                : highlightWrapRef;
+    const menuAnchorRef = openMenu === 'color' ? colorWrapRef : highlightWrapRef;
     useFloatingPanel(openMenu !== null, menuAnchorRef, menuRef, { align: 'left', offset: 4 }, openMenu);
 
     // useLayoutEffect: zawartość ma być na miejscu przed pierwszym malowaniem,
@@ -457,7 +467,43 @@ export function RichTextEditor({
             }
         }
         setActiveAlign(align);
+        const selection = window.getSelection();
+        const node = selection?.anchorNode;
+        const element = node ? (node.nodeType === 1 ? (node as HTMLElement) : node.parentElement) : null;
+        if (element && editableRef.current?.contains(element)) {
+            const style = window.getComputedStyle(element);
+            const px = Math.round(Number.parseFloat(style.fontSize));
+            if (Number.isFinite(px)) setCurrentSize(px);
+            const family = style.fontFamily.split(',')[0]?.replace(/["']/g, '').trim().toLowerCase();
+            const known = MAIL_FONTS.find((font) => font.label.toLowerCase() === family);
+            setCurrentFont(known ? known.label : MAIL_FONTS[0].label);
+        }
     }, []);
+
+    useLayoutEffect(() => {
+        if (autoFocus) editableRef.current?.focus();
+        // Tylko przy zamontowaniu - kompozytor rozwinięty kliknięciem w pole „Odpowiedz…".
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    /**
+     * Lista wyboru zabiera fokus z treści, a z nim zaznaczenie. Zapamiętujemy je
+     * przy naciśnięciu listy i przywracamy przed zmianą kroju albo rozmiaru.
+     */
+    const rememberSelection = () => {
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0 && editableRef.current?.contains(selection.anchorNode)) {
+            savedRange.current = selection.getRangeAt(0).cloneRange();
+        }
+    };
+    const restoreSelection = () => {
+        const range = savedRange.current;
+        editableRef.current?.focus();
+        if (!range) return;
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+    };
 
     useEffect(() => {
         if (!focused) return;
@@ -668,124 +714,63 @@ export function RichTextEditor({
         emit();
     };
 
+    const tool = (key: string, label: string, active: boolean, onClick: () => void, icon: ReactNode, title?: string) => (
+        <ToolButton
+            key={key}
+            type="button"
+            $active={active}
+            aria-pressed={active}
+            aria-label={label}
+            title={title ?? label}
+            disabled={disabled}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={onClick}
+        >
+            {icon}
+        </ToolButton>
+    );
+
     return (
         <Frame $focused={focused}>
             {toolbarShown && (
-            <Toolbar role="toolbar" aria-label="Formatowanie" id={collapsibleToolbar ? formatToolbarId : undefined}>
-                {COMMANDS.map(({ command, label, shortcut, Icon }) => (
-                    <ToolButton
-                        key={command}
-                        type="button"
-                        $active={activeCommands.has(command)}
-                        aria-pressed={activeCommands.has(command)}
-                        aria-label={label}
-                        title={shortcut ? `${label} (${shortcut})` : label}
-                        disabled={disabled}
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => exec(command)}
-                    >
-                        <Icon />
-                    </ToolButton>
-                ))}
-                <Separator />
-                {LIST_COMMANDS.map(({ command, label, Icon }) => (
-                    <ToolButton
-                        key={command}
-                        type="button"
-                        $active={activeCommands.has(command)}
-                        aria-pressed={activeCommands.has(command)}
-                        aria-label={label}
-                        title={label}
-                        disabled={disabled}
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => exec(command)}
-                    >
-                        <Icon />
-                    </ToolButton>
-                ))}
-                <Separator />
-                {ALIGN_COMMANDS.map(({ command, label, Icon }) => (
-                    <ToolButton
-                        key={command}
-                        type="button"
-                        $active={activeAlign === command}
-                        aria-pressed={activeAlign === command}
-                        aria-label={label}
-                        title={label}
-                        disabled={disabled}
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => applyAlign(command)}
-                    >
-                        <Icon />
-                    </ToolButton>
-                ))}
-                <Separator />
-                {/* Wygląd: rozmiar pisma i dwa kolory. Stoją za listami i przed
-                    odnośnikiem, bo to nadal formatowanie tekstu, a nie wstawianie
-                    czegoś nowego. `keepSelection` na przycisku i na menu trzyma
-                    zaznaczenie w edytorze - bez tego kliknięcie w próbkę
-                    zabierałoby fokus i kolor trafiałby w pustkę. */}
-                <MenuWrap ref={sizeWrapRef} onMouseDown={keepSelection}>
-                    <ToolButton
-                        type="button"
-                        $active={openMenu === 'size'}
-                        aria-label="Rozmiar pisma"
-                        aria-expanded={openMenu === 'size'}
-                        title="Rozmiar pisma"
-                        disabled={disabled}
-                        onClick={() => setOpenMenu(openMenu === 'size' ? null : 'size')}
-                    >
-                        <Type />
-                    </ToolButton>
-                    {openMenu === 'size' && createPortal(
-                        <Menu ref={menuRef} role="menu" onMouseDown={keepSelection}>
-                            {FONT_SIZES.map(({ label, px }) => (
-                                <SizeOption
-                                    key={px}
-                                    type="button"
-                                    role="menuitem"
-                                    $px={px}
-                                    onClick={() => { applyFontSize(px); setOpenMenu(null); }}
-                                >
-                                    {label}
-                                </SizeOption>
-                            ))}
-                        </Menu>,
-                        document.body,
-                    )}
-                </MenuWrap>
-
-                <MenuWrap ref={fontWrapRef} onMouseDown={keepSelection}>
-                    <ToolButton
-                        type="button"
-                        $active={openMenu === 'font'}
-                        aria-label="Krój pisma"
-                        aria-expanded={openMenu === 'font'}
-                        title="Krój pisma"
-                        disabled={disabled}
-                        onClick={() => setOpenMenu(openMenu === 'font' ? null : 'font')}
-                    >
-                        <CaseSensitive />
-                    </ToolButton>
-                    {openMenu === 'font' && createPortal(
-                        <Menu ref={menuRef} role="menu" onMouseDown={keepSelection}>
-                            <MenuTitle>Krój pisma</MenuTitle>
-                            {MAIL_FONTS.map(({ label, stack }) => (
-                                <FontOption
-                                    key={label}
-                                    type="button"
-                                    role="menuitem"
-                                    $stack={stack}
-                                    onClick={() => { applyFont(stack); setOpenMenu(null); }}
-                                >
-                                    {label}
-                                </FontOption>
-                            ))}
-                        </Menu>,
-                        document.body,
-                    )}
-                </MenuWrap>
-
+            <Toolbar role="toolbar" aria-label="Formatowanie tekstu" id={collapsibleToolbar ? formatToolbarId : undefined}>
+                {/* Kolejność z makiety: krój i rozmiar, styl znaku i kolor, wyrównanie,
+                    listy i odnośnik. Krój i rozmiar są listami wyboru - nazwa kroju
+                    i liczba pikseli czytają się bez otwierania menu. */}
+                <Select
+                    aria-label="Czcionka"
+                    value={currentFont}
+                    disabled={disabled}
+                    onMouseDown={rememberSelection}
+                    onChange={(event) => {
+                        const font = MAIL_FONTS.find((item) => item.label === event.target.value);
+                        if (!font) return;
+                        setCurrentFont(font.label);
+                        restoreSelection();
+                        applyFont(font.stack);
+                    }}
+                >
+                    {MAIL_FONTS.map((font) => <option key={font.label} value={font.label}>{font.label}</option>)}
+                </Select>
+                <Select
+                    aria-label="Rozmiar"
+                    style={{ marginLeft: 4 }}
+                    value={String(FONT_SIZES.some((size) => size.px === currentSize) ? currentSize : 14)}
+                    disabled={disabled}
+                    onMouseDown={rememberSelection}
+                    onChange={(event) => {
+                        const px = Number(event.target.value);
+                        setCurrentSize(px);
+                        restoreSelection();
+                        applyFontSize(px);
+                    }}
+                >
+                    {FONT_SIZES.map((size) => <option key={size.px} value={size.px}>{size.px}</option>)}
+                </Select>
+                <Separator aria-hidden="true" />
+                {COMMANDS.map(({ command, label, shortcut, Icon }) =>
+                    tool(command, label, activeCommands.has(command), () => exec(command), <Icon />, shortcut ? `${label} (${shortcut})` : label)
+                )}
                 <MenuWrap ref={colorWrapRef} onMouseDown={keepSelection}>
                     <ToolButton
                         type="button"
@@ -796,7 +781,10 @@ export function RichTextEditor({
                         disabled={disabled}
                         onClick={() => setOpenMenu(openMenu === 'color' ? null : 'color')}
                     >
-                        <Baseline />
+                        <ColorGlyph aria-hidden="true">
+                            <span className="a">A</span>
+                            <span className="bar" style={{ background: lastColor }} />
+                        </ColorGlyph>
                     </ToolButton>
                     {openMenu === 'color' && createPortal(
                         <Menu ref={menuRef} role="menu" onMouseDown={keepSelection}>
@@ -810,7 +798,7 @@ export function RichTextEditor({
                                         $color={color}
                                         aria-label={`Kolor tekstu ${color}`}
                                         title={color}
-                                        onClick={() => { applyColor('foreColor', color); setOpenMenu(null); }}
+                                        onClick={() => { applyColor('foreColor', color); setLastColor(color); setOpenMenu(null); }}
                                     />
                                 ))}
                             </Swatches>
@@ -818,7 +806,6 @@ export function RichTextEditor({
                         document.body,
                     )}
                 </MenuWrap>
-
                 <MenuWrap ref={highlightWrapRef} onMouseDown={keepSelection}>
                     <ToolButton
                         type="button"
@@ -861,28 +848,17 @@ export function RichTextEditor({
                         document.body,
                     )}
                 </MenuWrap>
-                <Separator />
-                <ToolButton
-                    type="button"
-                    $active={linkDraft !== null}
-                    aria-label="Odnośnik"
-                    title="Wstaw odnośnik (Ctrl+K)"
-                    disabled={disabled}
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => (linkDraft === null ? openLink() : setLinkDraft(null))}
-                >
-                    <LinkIcon />
-                </ToolButton>
-                <ToolButton
-                    type="button"
-                    aria-label="Usuń formatowanie"
-                    title="Usuń formatowanie z zaznaczenia"
-                    disabled={disabled}
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => { exec('removeFormat'); exec('unlink'); }}
-                >
-                    <RemoveFormatting />
-                </ToolButton>
+                <Separator aria-hidden="true" />
+                {ALIGN_COMMANDS.map(({ command, label, Icon }) =>
+                    tool(command, label, activeAlign === command, () => applyAlign(command), <Icon />)
+                )}
+                <Separator aria-hidden="true" />
+                {LIST_COMMANDS.map(({ command, label, Icon }) =>
+                    tool(command, label, activeCommands.has(command), () => exec(command), <Icon />)
+                )}
+                {tool('link', 'Wstaw link', linkDraft !== null, () => (linkDraft === null ? openLink() : setLinkDraft(null)), <LinkIcon />, 'Wstaw link (Ctrl+K)')}
+                {tool('clear', 'Usuń formatowanie', false, () => { exec('removeFormat'); exec('unlink'); }, <RemoveFormatting />, 'Usuń formatowanie z zaznaczenia')}
+                {toolbarAppend}
                 {toolbarExtra && !collapsibleToolbar && (
                     <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 2 }}>{toolbarExtra}</span>
                 )}
@@ -905,6 +881,7 @@ export function RichTextEditor({
                 )}
             </Toolbar>
             )}
+            <ContentArea $tall={tall} $roomy={toolbarShown}>
             <Editable
                 $tall={tall}
                 ref={editableRef}
@@ -930,22 +907,28 @@ export function RichTextEditor({
                     onDropFiles(Array.from(event.dataTransfer.files));
                 }}
             />
-            {collapsibleToolbar && (
+            {afterContent}
+            </ContentArea>
+            {(collapsibleToolbar || actions) && (
                 <BottomBar>
-                    <FormatToggle
-                        type="button"
-                        $active={toolbarOpen}
-                        aria-expanded={toolbarOpen}
-                        aria-controls={formatToolbarId}
-                        aria-label={toolbarOpen ? 'Schowaj formatowanie tekstu' : 'Pokaż formatowanie tekstu'}
-                        title={toolbarOpen ? 'Schowaj formatowanie tekstu' : 'Formatowanie tekstu'}
-                        disabled={disabled}
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => { setToolbarOpen((open) => !open); setOpenMenu(null); }}
-                    >
-                        Aa
-                    </FormatToggle>
-                    {toolbarExtra}
+                    {collapsibleToolbar && (
+                        <FormatToggle
+                            type="button"
+                            $active={toolbarOpen}
+                            aria-expanded={toolbarOpen}
+                            aria-controls={formatToolbarId}
+                            aria-label={toolbarOpen ? 'Ukryj formatowanie tekstu' : 'Pokaż formatowanie tekstu'}
+                            title={toolbarOpen ? 'Ukryj formatowanie tekstu' : 'Formatowanie tekstu'}
+                            disabled={disabled}
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => { setToolbarOpen((open) => !open); setOpenMenu(null); }}
+                        >
+                            Aa
+                        </FormatToggle>
+                    )}
+                    {collapsibleToolbar && toolbarExtra}
+                    <span className="spacer" />
+                    {actions && <span className="actions">{actions}</span>}
                 </BottomBar>
             )}
         </Frame>
