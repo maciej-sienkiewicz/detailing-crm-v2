@@ -79,6 +79,12 @@ export interface CommThread {
     /** Automat uznał zgłoszenie za spam albo test ze studia - zakładka „Odrzucone". */
     screening?: CommThreadScreening | null;
     screeningReason?: string | null;
+    /**
+     * W wątku pisał wyłącznie automat (newsletter, powiadomienie). Skrzynka zwija
+     * takie wątki w jeden wiersz „Powiadomienia i reklamy". Brak pola = nie wiadomo
+     * (starszy backend) i wątek stoi na liście normalnie.
+     */
+    automated?: boolean;
 }
 
 export type CommThreadKind = 'DIRECT' | 'FORM' | 'SYSTEM';
@@ -179,6 +185,17 @@ export interface SendMailRequest {
      * formularza, telefon). Wątek powstały z wysyłki zostaje przypięty do leada.
      */
     leadId?: string;
+    /**
+     * Zdjęcia z galerii studia wybrane w kompozytorze. Pliki dokłada serwer - liczą
+     * się do tych samych limitów co załączniki z dysku.
+     */
+    galleryPhotos?: GalleryPhotoRef[];
+}
+
+/** Zdjęcie z galerii wskazane do wysłania: źródło i id - jak w odpowiedzi /gallery. */
+export interface GalleryPhotoRef {
+    source: 'VISIT' | 'VEHICLE' | 'BATCH_ORDER';
+    id: string;
 }
 
 /** Limity załączników wychodzących - lustro OutgoingAttachmentPolicy na backendzie. */

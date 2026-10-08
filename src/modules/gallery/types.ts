@@ -30,6 +30,8 @@ export interface GalleryFilters {
     tags: string[];
     brand: string;
     model: string;
+    /** Tylko zdjęcia tego klienta (jego wizyty i auta) - wybór zdjęć w odpowiedzi mailowej. */
+    customerId?: string;
     page: number;
     pageSize: number;
 }

@@ -5,9 +5,10 @@
 // stosowne: <span style="font-weight:700"> zamiast <b>, <div> zagnieżdżone w <div>,
 // wklejone z Worda klasy i style. Do serwera (i do skrzynki klienta) ma trafić jeden
 // ustalony, ubogi dialekt: pogrubienie, kursywa, podkreślenie, przekreślenie, listy,
-// odnośniki, podziały wierszy oraz TRZY cechy wyglądu - rozmiar pisma, kolor tekstu
-// i kolor tła. Backend sanityzuje jeszcze raz, ale to on ma dostać coś już czystego,
-// a nie zgadywać, co edytor miał na myśli.
+// odnośniki, podziały wierszy oraz cechy wyglądu - rozmiar pisma, kolor tekstu,
+// kolor tła, krój pisma z krótkiej listy i wyrównanie akapitu. Backend sanityzuje
+// jeszcze raz, ale to on ma dostać coś już czystego, a nie zgadywać, co edytor miał
+// na myśli.
 //
 // Kolory i rozmiary przechodzą PRZEZ FILTR WARTOŚCI, nie tylko przez filtr nazw
 // właściwości. Powód jest podwójny. Bezpieczeństwo: `style` przyjmuje `url()`,
@@ -45,6 +46,41 @@ const LEGACY_FONT_SIZES: Record<string, number> = {
     '1': 10, '2': 13, '3': 14, '4': 18, '5': 24, '6': 32, '7': 40,
 };
 
+/**
+ * Kroje pisma, które wolno wysłać - i pełny zapis każdego z nich.
+ *
+ * Tylko kroje obecne w każdym systemie i każdym programie pocztowym. Dowolna
+ * czcionka wygląda dobrze wyłącznie u nadawcy: u klienta Outlook czy Gmail podmienia
+ * ją po cichu na coś innego i mail wychodzi inaczej, niż go napisano. Klucz to nazwa
+ * pierwszego kroju małymi literami - tak przeglądarka podaje ją po `fontName`.
+ */
+export const MAIL_FONTS: { label: string; stack: string }[] = [
+    { label: 'Arial', stack: 'Arial, Helvetica, sans-serif' },
+    { label: 'Verdana', stack: 'Verdana, Geneva, sans-serif' },
+    { label: 'Tahoma', stack: 'Tahoma, Verdana, sans-serif' },
+    { label: 'Georgia', stack: 'Georgia, serif' },
+    { label: 'Times New Roman', stack: "'Times New Roman', Times, serif" },
+];
+
+const FONT_STACK_BY_NAME = new Map(MAIL_FONTS.map(({ label, stack }) => [label.toLowerCase(), stack]));
+
+/** Pełny zapis dozwolonego kroju albo null - pierwsza nazwa z listy decyduje. */
+const toMailFont = (raw: string): string | null => {
+    const first = raw.split(',')[0]?.trim().replace(/^['"]|['"]$/g, '').toLowerCase();
+    return first ? FONT_STACK_BY_NAME.get(first) ?? null : null;
+};
+
+/** Wyrównanie wolno ustawić tylko na akapicie - na kawałku zdania nic by nie znaczyło. */
+const ALIGNABLE_TAGS = new Set(['div', 'p', 'li', 'blockquote']);
+const TEXT_ALIGNS = new Set(['left', 'center', 'right', 'justify']);
+
+const toTextAlign = (raw: string): string | null => {
+    const value = raw.trim().toLowerCase();
+    if (value === 'start') return 'left';
+    if (value === 'end') return 'right';
+    return TEXT_ALIGNS.has(value) ? value : null;
+};
+
 const HEX_COLOR = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 const RGB_COLOR = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*[\d.]+\s*)?\)$/i;
 
@@ -75,11 +111,23 @@ const toHexColor = (raw: string): string | null => {
 /**
  * Dozwolony fragment `style` danego elementu - pusty ciąg, gdy nie ma czego zachować.
  *
- * Białą listą są NAZWY właściwości i osobno ich WARTOŚCI; nic spoza tej trójki nie
+ * Białą listą są NAZWY właściwości i osobno ich WARTOŚCI; nic spoza listy nie
  * przechodzi, także wtedy, gdy stoi w tym samym atrybucie co coś dozwolonego.
  */
-const allowedStyle = (element: HTMLElement): string => {
+const allowedStyle = (element: HTMLElement, keepFonts: boolean): string => {
     const declarations: string[] = [];
+
+    // Wyrównanie przed resztą: na akapicie stoi zwykle samo, a `align="center"` to
+    // zapis, który przeglądarka wystawia po `justifyCenter` bez styleWithCSS.
+    if (ALIGNABLE_TAGS.has(element.tagName.toLowerCase())) {
+        const align = toTextAlign(element.style.textAlign || element.getAttribute('align') || '');
+        if (align && align !== 'left') declarations.push(`text-align: ${align}`);
+    }
+
+    if (keepFonts) {
+        const fontFamily = toMailFont(element.style.fontFamily);
+        if (fontFamily) declarations.push(`font-family: ${fontFamily}`);
+    }
 
     const fontSize = element.style.fontSize;
     if (fontSize.endsWith('px')) {
@@ -133,7 +181,7 @@ const unwrap = (element: Element) => {
     parent.removeChild(element);
 };
 
-function cleanNode(node: Node, document: Document): void {
+function cleanNode(node: Node, document: Document, keepFonts: boolean): void {
     // Kopia listy: w pętli podmieniamy węzły, a NodeList jest żywy.
     for (const child of Array.from(node.childNodes)) {
         if (child.nodeType === Node.COMMENT_NODE) {
@@ -150,11 +198,11 @@ function cleanNode(node: Node, document: Document): void {
             continue;
         }
 
-        cleanNode(element, document);
+        cleanNode(element, document, keepFonts);
         adoptLegacyFontAttributes(element);
 
         // Liczone PRZED zdjęciem atrybutów - potem nie ma już czego czytać.
-        const style = allowedStyle(element);
+        const style = allowedStyle(element, keepFonts);
 
         if (KEEP_TAGS.has(tag)) {
             const href = tag === 'a' ? element.getAttribute('href') ?? '' : null;
@@ -215,12 +263,16 @@ const isBlankBlock = (node: Node): boolean => {
  * Doprowadza HTML z edytora do ustalonego dialektu i ucina puste wiersze z obu
  * końców (kilka Enterów przed kliknięciem „Wyślij" nie ma zostawiać dziury
  * w skrzynce odbiorcy). Zwraca pusty ciąg, gdy nie ma żadnej treści.
+ *
+ * [options.keepFonts] = false przy wklejaniu: krój przyniesiony z Worda czy cudzego
+ * maila nie jest wyborem piszącego, tylko śladem po źródle - odpada, nawet jeśli
+ * stoi na liście. Krój ustawiony w edytorze przechodzi do wysyłki.
  */
-export function normalizeComposerHtml(html: string): string {
+export function normalizeComposerHtml(html: string, options: { keepFonts?: boolean } = {}): string {
     if (!html || typeof DOMParser === 'undefined') return html ?? '';
     const document = parse(html);
     const body = document.body;
-    cleanNode(body, document);
+    cleanNode(body, document, options.keepFonts ?? true);
 
     // Puste listy i puste elementy listy to śmieci po Backspace w edytorze.
     body.querySelectorAll('li').forEach((item) => {

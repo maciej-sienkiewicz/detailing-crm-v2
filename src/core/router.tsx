@@ -43,9 +43,10 @@ const GalleryView = lazyNamedWithRetry(
     'GalleryView',
 );
 // Lazy - moduł komunikacji (webmail) i leadów
-const MailView = lazyWithRetry(() => import('@/modules/comms/views/MailView'));
+// „Leady" i „Poczta" to jedna skrzynka „Zapytania" - stare adresy przekierowują.
+const InboxView = lazyWithRetry(() => import('@/modules/comms/views/InboxView'));
 const MailboxConnectView = lazyWithRetry(() => import('@/modules/comms/views/MailboxConnectView'));
-const LeadsView = lazyWithRetry(() => import('@/modules/comms/views/LeadsView'));
+import { LegacyLeadsRedirect, LegacyMailRedirect } from '@/modules/comms/views/InboxRedirects';
 const LeadAnalyticsView = lazyWithRetry(() => import('@/modules/comms/views/LeadAnalyticsView'));
 import { EmployeesView, MyLeaveView } from '@/modules/employees';
 import { LegacyEmployeeRedirect, LegacyWorkTimeCardRedirect } from '@/modules/employees/views/EmployeesTabViews';
@@ -293,15 +294,19 @@ export const router = createBrowserRouter([
             element: page(<CallDeviceView />),
         },
 
-        // ── Leady ────────────────────────────────────────────────────────────
+        // ── Zapytania: sprawy (dawne Leady) i poczta w jednej skrzynce ─────────
         {
-            path: '/leads',
+            path: '/zapytania',
             element: page(
                 <Suspense fallback={null}>
-                    <LeadsView />
+                    <InboxView />
                 </Suspense>,
                 'LEADS_MANAGE'
             ),
+        },
+        {
+            path: '/leads',
+            element: page(<LegacyLeadsRedirect />, 'LEADS_MANAGE'),
         },
         {
             path: '/leads/analytics',
@@ -313,15 +318,10 @@ export const router = createBrowserRouter([
             ),
         },
 
-        // ── Komunikacja: skrzynka pocztowa ───────────────────────────────────
+        // ── Komunikacja: dawny adres poczty i ustawienia skrzynek ─────────────
         {
             path: '/communication',
-            element: page(
-                <Suspense fallback={null}>
-                    <MailView />
-                </Suspense>,
-                'LEADS_MANAGE'
-            ),
+            element: page(<LegacyMailRedirect />, 'LEADS_MANAGE'),
         },
         {
             path: '/communication/mailboxes',

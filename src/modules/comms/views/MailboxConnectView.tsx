@@ -175,7 +175,7 @@ export default function MailboxConnectView() {
                 title="Skrzynki pocztowe"
                 subtitle="Podłącz pocztę firmową - wykrywamy serwer automatycznie"
                 actions={
-                    <Link to="/communication">
+                    <Link to="/zapytania?view=poczta">
                         <PageHeaderGhostButton as="span">
                             <ArrowLeft /> Wróć do skrzynki
                         </PageHeaderGhostButton>

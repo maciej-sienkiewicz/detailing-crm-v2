@@ -16,7 +16,6 @@ import {
     FileText,
     Settings,
     Inbox,
-    Mail,
     Layers,
     Clock,
     Images,
@@ -107,11 +106,13 @@ export const buildMenuSections = ({
         {
             title: 'Klienci i zapytania',
             items: [
-                // Bez czerwonego alertu: leada tworzy świadome kliknięcie użytkownika,
-                // więc nie ma czego zgłaszać jako nowość. Licznik zostaje - mówi, ile
-                // zapytań czeka na ruch - ale nie krzyczy jak nieprzeczytana poczta.
-                { path: '/leads', label: 'Leady', icon: Inbox, badge: newLeadsCount > 0 ? newLeadsCount : undefined, requires: 'LEADS_MANAGE' },
-                { path: '/communication', label: 'Poczta', icon: Mail, badge: unreadMailCount > 0 ? unreadMailCount : undefined, alert: unreadMailCount > 0, requires: 'LEADS_MANAGE' },
+                // „Leady" i „Poczta" to jedna skrzynka „Zapytania" (sprawy, poczta,
+                // wysłane). Licznik mówi, ile spraw czeka na nasz ruch; nieprzeczytana
+                // poczta zapala alert - to nowość, a nie zaległość. Stare adresy są
+                // w `match`, żeby pozycja świeciła także w trakcie przekierowania.
+                { path: '/zapytania', label: 'Zapytania', icon: Inbox,
+                    badge: newLeadsCount > 0 ? newLeadsCount : unreadMailCount > 0 ? unreadMailCount : undefined,
+                    alert: unreadMailCount > 0, requires: 'LEADS_MANAGE', match: ['/leads', '/communication'] },
                 { path: '/customers', label: 'Klienci',   icon: Users, requires: 'CUSTOMERS_VIEW' },
                 { path: '/vehicles',  label: 'Samochody', icon: Car,   requires: 'CUSTOMERS_VIEW' },
             ],

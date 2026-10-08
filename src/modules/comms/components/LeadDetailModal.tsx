@@ -1584,7 +1584,8 @@ export function LeadDetailModal({
     const canCompose = showThreadLink && !lead.threadId && contactEmail !== null;
     const openCompose = () =>
         navigate(
-            `/communication?compose=1&to=${encodeURIComponent(contactEmail ?? '')}&lead=${encodeURIComponent(lead.id)}`
+            // Sprawa w skrzynce „Zapytania" ma pierwszą wiadomość tuż pod zgłoszeniem.
+            `/zapytania?lead=${encodeURIComponent(lead.id)}`
         );
     /*
      * Wiersz tożsamości niesie SAMO NAZWISKO.
@@ -1602,7 +1603,8 @@ export function LeadDetailModal({
      * stałby pusty, z samym „ludzikiem" i bez odpowiedzi na pytanie „kto to jest".
      */
     const identityName = lead.customerName?.trim() || lead.contactIdentifier;
-    const openThread = () => navigate(`/communication?thread=${lead.threadId}`);
+    // Rozmowa sprawy stoi w skrzynce „Zapytania" obok panelu sprawy.
+    const openThread = () => navigate(`/zapytania?lead=${encodeURIComponent(lead.id)}`);
     /** Dokąd prowadzi „Odpisz klientowi": do rozmowy, a bez niej - do nowej wiadomości. */
     const writeToClient = canWrite ? openThread : canCompose ? openCompose : null;
     /**
@@ -1763,7 +1765,7 @@ export function LeadDetailModal({
                                         aria-expanded={open}
                                         title={
                                             reply
-                                                ? `${reply.title} · Etap: ${LEAD_STATUS_LABELS[lead.status]} — kliknij, żeby zmienić`
+                                                ? `${reply.title}. Etap: ${LEAD_STATUS_LABELS[lead.status]}, kliknij, żeby zmienić`
                                                 : `Etap: ${LEAD_STATUS_LABELS[lead.status]} — kliknij, żeby zmienić`
                                         }
                                         onClick={toggle}
@@ -1997,7 +1999,7 @@ export function LeadDetailModal({
                                                                 {quoteRows.length}
                                                                 {' '}
                                                                 {plural(quoteRows.length, 'pozycja', 'pozycje', 'pozycji')}
-                                                                {' · kwota brutto'}
+                                                                {', kwota brutto'}
                                                             </div>
                                                         </div>
                                                     )}

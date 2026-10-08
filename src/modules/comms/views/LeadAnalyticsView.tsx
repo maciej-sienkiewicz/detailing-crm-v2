@@ -504,7 +504,7 @@ export default function LeadAnalyticsView({
                 actions={
                     <>
                         <PeriodPicker value={period} onChange={setPeriod} />
-                        <Link to="/leads">
+                        <Link to="/zapytania">
                             <PageHeaderGhostButton as="span">
                                 <ArrowLeft /> Leady
                             </PageHeaderGhostButton>
@@ -534,9 +534,9 @@ function Report({
 }) {
     const navigate = useNavigate();
 
-    const goQueue = () => (embedded ? onOpenQueue?.() : navigate('/leads'));
-    const goSilent = () => (embedded ? onOpenQueue?.() : navigate('/leads?awaiting=1'));
-    const goLost = () => (embedded ? onOpenArchive?.('LOST') : navigate('/leads?status=LOST'));
+    const goQueue = () => (embedded ? onOpenQueue?.() : navigate('/zapytania'));
+    const goSilent = () => (embedded ? onOpenQueue?.() : navigate('/zapytania'));
+    const goLost = () => (embedded ? onOpenArchive?.('LOST') : navigate('/zapytania?status=LOST'));
 
     const [deepOpen, setDeepOpen] = useState(() => {
         try { return localStorage.getItem(DEEP_OPEN_KEY) === '1'; } catch { return false; }
@@ -692,7 +692,7 @@ function SourceCard({ data }: { data: LeadAnalytics }) {
                     // Skuteczność tylko przy stabilnej próbie: przy pięciu rozstrzygniętych
                     // rozmowach jedna wygrana to 20 punktów - taki procent kłamie.
                     meta: entry.closed >= MIN_CLOSED_FOR_SOURCE_RATE
-                        ? `${leadCount(entry.count)} · skuteczność ${percent(entry.winRate)}`
+                        ? `${leadCount(entry.count)}, skuteczność ${percent(entry.winRate)}`
                         : leadCount(entry.count),
                 }))}
             />

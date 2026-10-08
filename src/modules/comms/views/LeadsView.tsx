@@ -23,7 +23,7 @@
 //  4. SZCZEGÓŁY OBOK, NIE ZAMIAST. Na szerokim ekranie panel stoi przy kolejce,
 //     więc przeskakiwanie między sprawami nie zamyka i nie otwiera okna. Na
 //     telefonie miejsca na to nie ma i szczegóły wracają jako okno pełnoekranowe.
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styled, { css } from 'styled-components';
 import {
@@ -39,6 +39,7 @@ import {
     X,
 } from 'lucide-react';
 import { ChoiceModal, ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { acquireScrollLock } from '@/common/utils/scrollLock';
 import { useBreakpoint, useDebounce } from '@/common/hooks';
 import {
     CLOSED_LEAD_STATUSES,
@@ -57,6 +58,7 @@ import { LeadQueueCard } from '../components/LeadQueueCard';
 import { LeadStatusPicker } from '../components/LeadStatusPicker';
 import { LeadLostReasonDialog } from '../components/LeadLostReasonDialog';
 import { WorklistPanel } from '../components/WorklistPanel';
+import { CaseWorkspace } from '../components/CaseWorkspace';
 import { buildWorklist } from '../utils/leadWorklist';
 import type { LeadStatus } from '../types';
 import { EmptyHint, SurfaceCard, formatMoney } from '../components/shared';
@@ -530,13 +532,47 @@ const MobilePanel = styled.div`
     margin: 0 12px 24px 12px;
 `;
 
+/**
+ * Sprawa otwarta na telefonie i tablecie (skrzynka „Zapytania"): cały ekran nad
+ * kolejką i dolną nawigacją, poniżej okien modalnych (1000) - z niej otwierają się
+ * rezerwacja, szczegóły leada i powód zamknięcia.
+ */
+const CaseOverlay = styled.div`
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+    display: flex;
+    flex-direction: column;
+    background: ${p => p.theme.colors.surface};
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+`;
+
+/** Pełny ekran sprawy z blokadą przewijania tła (CLAUDE.md §3). */
+function FullScreenCase({ children }: { children: ReactNode }) {
+    useEffect(() => acquireScrollLock(), []);
+    return <CaseOverlay role="dialog" aria-modal="true" aria-label="Sprawa">{children}</CaseOverlay>;
+}
+
+interface LeadsViewProps {
+    /**
+     * Nagłówek skrzynki „Zapytania" (nazwa, zakładki, ustawienia) nad kolejką.
+     * Dostaje wejście do zamkniętych spraw, bo przełącza ono tryb tego widoku.
+     */
+    renderInboxNav?: (options: { onOpenArchive: () => void }) => ReactNode;
+    /**
+     * Skrzynka „Zapytania": otwarta sprawa to rozmowa z panelem sprawy obok
+     * (CaseWorkspace), a nie samo okno leada. Bez tej flagi widok działa jak dawne „Leady".
+     */
+    caseMode?: boolean;
+}
+
 /** Statusy zamknięte - do rozpoznania deep-linku z analityki. */
 const CLOSED_SET = new Set<LeadStatus>(CLOSED_LEAD_STATUSES);
 
 /** Zwinięcie sekcji „U klienta" - per przeglądarka, przeżywa odświeżenie. */
 const QUIET_FOLDED_KEY = 'leadsQueue.quietFolded';
 
-export default function LeadsView() {
+export default function LeadsView({ renderInboxNav, caseMode = false }: LeadsViewProps) {
     const [searchParams, setSearchParams] = useSearchParams();
     /*
      * Podział na dwie kolumny od 1280 px w górę - to pierwsza szerokość, przy
@@ -557,6 +593,8 @@ export default function LeadsView() {
      * i archiwum różnią się tak, jak w Poczcie różnią się foldery.
      */
     const [inArchive, setInArchive] = useState(() => {
+        // `?archive=1` - „Zamknięte sprawy" z menu skrzynki otwartego w zakładce Poczta.
+        if (searchParams.get('archive') === '1') return true;
         const status = searchParams.get('status') as LeadStatus | null;
         return Boolean(status && CLOSED_SET.has(status));
     });
@@ -631,6 +669,19 @@ export default function LeadsView() {
      * się z zapamiętanym.
      */
     const [queueExpandedFor, setQueueExpandedFor] = useState<string | null>(null);
+
+    /**
+     * Po wysłaniu odpowiedzi: następna sprawa, która czeka na nas - najstarsza
+     * z „Czeka na nas" poza tą, na którą właśnie odpisano (WebSocket przeniesie ją
+     * do „U klienta" chwilę później). Gdy nikt więcej nie czeka, wracamy do listy.
+     */
+    const advanceFrom = useCallback(
+        (leadId: string, ours: { lead: { id: string } }[]) => {
+            const next = ours.find((entry) => entry.lead.id !== leadId);
+            selectLead(next ? next.lead.id : null);
+        },
+        [selectLead]
+    );
 
     const thresholds = useStagnationThresholds();
     const open = useLeadsByStatuses(OPEN_LEAD_STATUSES);
@@ -914,6 +965,7 @@ export default function LeadsView() {
             <ViewShell>
                 <AppCard>
                 <QueueColumn $split={false} $collapsed={false}>
+                    {renderInboxNav?.({ onOpenArchive: () => undefined })}
                     <QueueHeader>
                         <div>
                             <h1>Zapytania</h1>
@@ -936,6 +988,7 @@ export default function LeadsView() {
                 $split={isSplit && !inArchive}
                 $collapsed={queueCollapsed}
             >
+                {renderInboxNav?.({ onOpenArchive: () => changeMode(true) })}
                 <QueueHeader>
                     <SearchRow>
                         <SearchInput>
@@ -968,7 +1021,7 @@ export default function LeadsView() {
                         {/* Archiwum to osobny tryb, więc i wejście do niego jest jedno:
                             tutaj. Nie ma go w rzędzie sekcji, bo sprawa rozstrzygnięta
                             nie jest trzecim rodzajem ruchu. */}
-                        {!inArchive && !selecting && (
+                        {!inArchive && !selecting && !renderInboxNav && (
                             isWide ? (
                                 <GhostAction
                                     as="button"
@@ -993,7 +1046,7 @@ export default function LeadsView() {
 
                         {/* Poniżej progu podziału panelu nie ma, więc podsumowanie
                             miesiąca zostaje osobnym ekranem pod tym przyciskiem. */}
-                        {!isSplit && !inArchive && (
+                        {!isSplit && !inArchive && !renderInboxNav && (
                             <Link to="/leads/analytics" aria-label="Podsumowanie miesiąca">
                                 <IconAction title="Podsumowanie miesiąca"><BarChart3 /></IconAction>
                             </Link>
@@ -1171,7 +1224,16 @@ export default function LeadsView() {
                       * wchodzi się do modułu. Pytanie brzmi „co mam teraz zrobić",
                       * a nie „ile zamknąłem w tym miesiącu".
                       */}
-                    {selectedLeadId ? (
+                    {selectedLeadId && caseMode ? (
+                        <CaseWorkspace
+                            key={selectedLeadId}
+                            leadId={selectedLeadId}
+                            queueCollapsed={queueCollapsed}
+                            onToggleQueue={canCollapseQueue ? toggleQueue : undefined}
+                            onAdvance={() => advanceFrom(selectedLeadId, worklist.ours.entries)}
+                            onClosed={() => selectLead(null)}
+                        />
+                    ) : selectedLeadId ? (
                         <LeadDetailPane
                             key={selectedLeadId}
                             leadId={selectedLeadId}
@@ -1247,8 +1309,21 @@ export default function LeadsView() {
                 onDismiss={() => setBulkAppointmentsOpen(false)}
             />
 
+            {/* Skrzynka „Zapytania" na wąskim ekranie: sprawa z rozmową na cały ekran. */}
+            {caseMode && !isSplit && !inArchive && selectedLeadId && (
+                <FullScreenCase>
+                    <CaseWorkspace
+                        key={selectedLeadId}
+                        leadId={selectedLeadId}
+                        onBack={() => selectLead(null)}
+                        onAdvance={() => advanceFrom(selectedLeadId, worklist.ours.entries)}
+                        onClosed={() => selectLead(null)}
+                    />
+                </FullScreenCase>
+            )}
+
             {/* Wąski ekran (albo archiwum): szczegóły jako okno pełnoekranowe. */}
-            {(!isSplit || inArchive) && selectedLeadId && (
+            {(!isSplit || inArchive) && selectedLeadId && !(caseMode && !inArchive) && (
                 <LeadDetailModal
                     // Remount na każdą sprawę: stan edycji (wycena, pojazd, tagi)
                     // należy do jednego otwarcia i nie ma prawa przejść na następną.

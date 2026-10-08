@@ -50,6 +50,7 @@ import {
 } from 'lucide-react';
 import type { CommAttachment, CommMessage, CommThread } from '../types';
 import { useMediaQuery } from '@/common/hooks';
+import { usePermissions } from '@/core/permissions';
 import { MessageBody } from './MessageBody';
 import { ReplyComposer } from './ReplyComposer';
 import { MarkAsLeadModal } from './MarkAsLeadModal';
@@ -676,6 +677,16 @@ interface ConversationViewProps {
     onToggleArchived: (thread: CommThread) => void;
     onOpenFullMessage: (messageId: string) => void;
     onDownloadAttachment: (attachmentId: string, fileName: string) => void;
+    /**
+     * Skrzynka „Zapytania" stawia krok następny sprawy w panelu obok rozmowy - drugi
+     * taki sam przycisk w nagłówku byłby remisem o pierwsze miejsce (CLAUDE.md §2).
+     * Akcje zostają w menu „⋯".
+     */
+    hidePrimaryAction?: boolean;
+    /** Przekazywane do kompozytora odpowiedzi - patrz ReplyComposer. */
+    sendEmphasis?: 'primary' | 'quiet';
+    /** Po wysłaniu odpowiedzi - skrzynka przechodzi wtedy do następnej sprawy. */
+    onReplySent?: (threadId: string) => void;
 }
 
 function ConversationViewImpl({
@@ -689,7 +700,13 @@ function ConversationViewImpl({
     onToggleArchived,
     onOpenFullMessage,
     onDownloadAttachment,
+    hidePrimaryAction = false,
+    sendEmphasis,
+    onReplySent,
 }: ConversationViewProps) {
+    // Zdjęcia z galerii w odpowiedzi - tylko z dostępem do galerii (serwer i tak by odmówił).
+    const { can } = usePermissions();
+    const canAttachGallery = can('VISITS_VIEW');
     // Telefon: zwinięta odpowiedź, nagłówek w jednym rzędzie, krok następny na dole.
     const isPhone = useMediaQuery('(max-width: 767px)');
     // Popover trzyma id wątku, w którym go otwarto - zmiana rozmowy zamyka go
@@ -781,8 +798,11 @@ function ConversationViewImpl({
     // Menu zbiera resztę: porządki i akcje, które akurat nie są krokiem następnym.
     // Rezerwację da się założyć także bez leada i także drugą - schowana, ale nigdy
     // niedostępna tylko dlatego, że nie stoi teraz na wierzchu.
+    const shownPrimary = hidePrimaryAction ? null : primaryAction;
     const menuActions: ThreadAction[] = [
-        ...(activeFormSource || primaryAction === bookAction ? [] : [bookAction]),
+        ...(activeFormSource || shownPrimary === bookAction ? [] : [bookAction]),
+        // Schowany krok „Oznacz jako lead" nie może zniknąć - trafia do menu.
+        ...(hidePrimaryAction && primaryAction && primaryAction !== bookAction ? [primaryAction] : []),
         // Mail od robota formularzy: klient jest w treści, nie w polu nadawcy -
         // dlatego to osobna akcja, a nie zwykłe „Oznacz jako lead" (tamto wzięłoby
         // adres robota za kontakt klienta).
@@ -1036,10 +1056,10 @@ function ConversationViewImpl({
                     {!isPhone && (
                         <>
                             <ActionDivider />
-                            {primaryAction && (
-                                <PrimaryButton type="button" onClick={primaryAction.onSelect}>
-                                    {primaryAction.icon}
-                                    {primaryAction.label}
+                            {shownPrimary && (
+                                <PrimaryButton type="button" onClick={shownPrimary.onSelect}>
+                                    {shownPrimary.icon}
+                                    {shownPrimary.label}
                                 </PrimaryButton>
                             )}
                             <ThreadActionsMenu actions={menuActions} />
@@ -1354,12 +1374,23 @@ function ConversationViewImpl({
                     collapsible={isPhone}
                     // Na telefonie krok następny z nagłówka stoi obok „Odpowiedz" - wypełniony
                     // jest „Odpowiedz", ten zostaje obrysowany (CLAUDE.md §2).
-                    barExtra={isPhone && primaryAction ? (
-                        <IconButton type="button" onClick={primaryAction.onSelect}>
-                            {primaryAction.icon}
-                            {primaryAction.label}
+                    barExtra={isPhone && shownPrimary ? (
+                        <IconButton type="button" onClick={shownPrimary.onSelect}>
+                            {shownPrimary.icon}
+                            {shownPrimary.label}
                         </IconButton>
                     ) : undefined}
+                    sendEmphasis={sendEmphasis}
+                    onSent={onReplySent}
+                    galleryContext={
+                        canAttachGallery
+                            ? {
+                                customerId: threadLead?.customerId ?? null,
+                                vehicleBrand: threadLead?.vehicleBrand ?? null,
+                                vehicleModel: threadLead?.vehicleModel ?? null,
+                            }
+                            : undefined
+                    }
                     threadId={thread.id}
                     threadLeadId={thread.leadId}
                     initialTo={replyTarget.email ?? ''}

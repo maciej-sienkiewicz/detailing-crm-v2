@@ -12,6 +12,7 @@ import styled from 'styled-components';
 import { ArrowLeft, PenSquare, X } from 'lucide-react';
 import { useMailAccounts } from '../hooks/useComms';
 import { ReplyComposer } from './ReplyComposer';
+import type { GalleryPickerContext } from './GalleryPhotoPicker';
 import { EmptyHint, IconButton } from './shared';
 
 const Pane = styled.div<{ $hiddenOnMobile: boolean }>`
@@ -83,9 +84,25 @@ interface ComposePaneProps {
     onClose: () => void;
     /** Wiadomość poszła - rodzic pokazuje nowy wątek (w folderze Wysłane). */
     onSent: (threadId: string) => void;
+    /** Zdjęcia z galerii w wiadomości - tylko dla użytkowników z dostępem do galerii. */
+    galleryContext?: GalleryPickerContext;
+    /**
+     * Kto zamyka: w skrzynce „Zapytania" pierwsza wiadomość do leada bez wątku stoi
+     * na miejscu rozmowy i nie ma czego zamykać - zostaje tylko „Wróć" na telefonie.
+     */
+    closable?: boolean;
 }
 
-export function ComposePane({ hiddenOnMobile, isDesktop, initialTo, leadId, onClose, onSent }: ComposePaneProps) {
+export function ComposePane({
+    hiddenOnMobile,
+    isDesktop,
+    initialTo,
+    leadId,
+    onClose,
+    onSent,
+    galleryContext,
+    closable = true,
+}: ComposePaneProps) {
     const { data: accounts } = useMailAccounts();
     const activeAccount = accounts?.find((account) => account.status !== 'DISABLED');
 
@@ -101,7 +118,7 @@ export function ComposePane({ hiddenOnMobile, isDesktop, initialTo, leadId, onCl
                     <h3><PenSquare /> Nowa wiadomość</h3>
                     {activeAccount && <div className="sub">Wyślemy z {activeAccount.emailAddress}</div>}
                 </div>
-                {isDesktop && (
+                {isDesktop && closable && (
                     <IconButton onClick={onClose} aria-label="Zamknij" title="Zamknij" style={{ padding: 7 }}>
                         <X />
                     </IconButton>
@@ -116,6 +133,7 @@ export function ComposePane({ hiddenOnMobile, isDesktop, initialTo, leadId, onCl
                         leadId={leadId}
                         requireSubject
                         onSent={onSent}
+                        galleryContext={galleryContext}
                     />
                     <Hint>
                         {leadId

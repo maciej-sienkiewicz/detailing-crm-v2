@@ -16,6 +16,13 @@
 // termin]") blokują wysyłkę, dopóki stoją w treści: klient nie może dostać nawiasu.
 // „Popraw szkic" oddaje asystentowi bieżącą treść edytora razem z uwagami pracownika.
 //
+// Zdjęcia z galerii (przycisk ze zdjęciem obok spinacza): wybiera się je w oknie
+// GalleryPhotoPicker, a do serwera idą same wskazania - pliki dokłada backend.
+// Liczą się do tego samego limitu plików co załączniki z dysku.
+//
+// Formatowanie jest schowane pod „Aa" (collapsibleToolbar): większość odpowiedzi to
+// dwa zdania bez formatowania, a stały pasek dwunastu ikon zabierał miejsce wątkowi.
+//
 // Odpowiadając w wątku nie powtarzamy adresu odbiorcy: rozmowa ma jednego
 // uczestnika, wypisanego już w nagłówku i w panelu klienta. Pole „Do" jest
 // schowane pod dyskretnym przełącznikiem - na wypadek, gdy ktoś chce je sprawdzić.
@@ -27,6 +34,7 @@ import {
     FileImage,
     FileText,
     File as FileIcon,
+    ImagePlus,
     Loader2,
     Paperclip,
     PenLine,
@@ -39,6 +47,8 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
 import { acquireScrollLock } from '@/common/utils/scrollLock';
+import { Button } from '@/common/components/ui';
+import type { GalleryPhoto } from '@/modules/gallery/types';
 import { useMailSignature, useProofread, useSendMail } from '../hooks/useComms';
 import { OUTGOING_ATTACHMENT_LIMITS, type ReplyDraft } from '../types';
 import {
@@ -53,6 +63,8 @@ import { useChangeLeadStatus } from '../hooks/useLeads';
 import { ReplyDraftButton } from './ReplyDraftButton';
 import { ReplyDraftRevise } from './ReplyDraftRevise';
 import { RichTextEditor } from './RichTextEditor';
+import { GalleryPhotoPicker, type GalleryPickerContext } from './GalleryPhotoPicker';
+import { galleryPhotoKey } from '../utils/galleryPhotoKey';
 import { SignatureSettingsModal } from './SignatureSettingsModal';
 import { PrimaryButton } from './shared';
 
@@ -432,6 +444,19 @@ const AttachmentChip = styled.div`
     }
 `;
 
+/** Zdjęcie z galerii na liście załączników - miniatura zamiast ikony pliku. */
+const GalleryChip = styled(AttachmentChip)`
+    padding: 3px 6px 3px 3px;
+
+    img {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+`;
+
 const AttachmentTotal = styled.span<{ $warn: boolean }>`
     font-size: 11px;
     color: ${({ $warn, theme }) => ($warn ? theme.colors.warning : theme.colors.textMuted)};
@@ -515,6 +540,18 @@ interface ReplyComposerProps {
     collapsible?: boolean;
     /** Dodatkowa akcja w zwiniętym pasku (np. „Stwórz rezerwację" z nagłówka). */
     barExtra?: ReactNode;
+    /**
+     * Zdjęcia z galerii: co wiemy o kliencie i aucie (z tego biorą się zakładki
+     * okna wyboru). Brak = przycisk galerii się nie pokazuje - rodzic przekazuje to
+     * tylko użytkownikom z dostępem do galerii, bo serwer i tak odrzuci wysyłkę.
+     */
+    galleryContext?: GalleryPickerContext;
+    /**
+     * „quiet": „Wyślij" z tłem i obwódką zamiast wypełnienia. Skrzynka „Zapytania"
+     * używa tego, gdy krokiem następnym sprawy nie jest odpowiedź (np. „Umów wizytę"
+     * w panelu obok) - w oknie wolno wypełnić tylko jedną rzecz (CLAUDE.md §2).
+     */
+    sendEmphasis?: 'primary' | 'quiet';
 }
 
 export function ReplyComposer({
@@ -529,6 +566,8 @@ export function ReplyComposer({
     onSent,
     collapsible = false,
     barExtra,
+    galleryContext,
+    sendEmphasis = 'primary',
 }: ReplyComposerProps) {
     const [expanded, setExpanded] = useState(false);
     const sheet = collapsible && expanded;
@@ -539,6 +578,8 @@ export function ReplyComposer({
     // Surowy innerHTML edytora - normalizacja dopiero przy wysyłce i korekcie.
     const [body, setBody] = useState('');
     const [attachments, setAttachments] = useState<File[]>([]);
+    const [galleryPhotos, setGalleryPhotos] = useState<GalleryPhoto[]>([]);
+    const [galleryOpen, setGalleryOpen] = useState(false);
     const [dragging, setDragging] = useState(false);
     const [uploadProgress, setUploadProgress] = useState<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -579,7 +620,9 @@ export function ReplyComposer({
      */
     const addFiles = (incoming: File[]) => {
         if (incoming.length === 0) return;
-        const { maxFiles, maxFileBytes, maxTotalBytes, blockedExtensions } = OUTGOING_ATTACHMENT_LIMITS;
+        const { maxFileBytes, maxTotalBytes, blockedExtensions } = OUTGOING_ATTACHMENT_LIMITS;
+        // Zdjęcia z galerii zajmują miejsca w tym samym limicie plików.
+        const maxFiles = OUTGOING_ATTACHMENT_LIMITS.maxFiles - galleryPhotos.length;
         setAttachments((current) => {
             const accepted: File[] = [...current];
             let total = current.reduce((sum, file) => sum + file.size, 0);
@@ -599,7 +642,7 @@ export function ReplyComposer({
                     continue;
                 }
                 if (accepted.length >= maxFiles) {
-                    showError('Za dużo załączników', `Do jednej wiadomości można dołączyć najwyżej ${maxFiles} plików`);
+                    showError('Za dużo załączników', `Do jednej wiadomości można dołączyć najwyżej ${OUTGOING_ATTACHMENT_LIMITS.maxFiles} plików`);
                     break;
                 }
                 if (total + file.size > maxTotalBytes) {
@@ -699,12 +742,14 @@ export function ReplyComposer({
                 bodyHtml,
                 appendSignature,
                 attachments,
+                galleryPhotos: galleryPhotos.map((photo) => ({ source: photo.source, id: photo.id })),
                 onUploadProgress: (fraction) => setUploadProgress(fraction),
             },
             {
                 onSuccess: (result) => {
                     setBody('');
                     setAttachments([]);
+                    setGalleryPhotos([]);
                     setUndoSnapshot(null);
                     setDraft(null);
                     if (closeReason && contextLeadId) {
@@ -818,7 +863,23 @@ export function ReplyComposer({
                 tall={sheet}
                 onSubmit={submit}
                 disabled={sendMail.isPending}
+                collapsibleToolbar
                 toolbarExtra={
+                    <>
+                    {galleryContext && (
+                        <AttachButton
+                            type="button"
+                            $active={galleryPhotos.length > 0}
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => setGalleryOpen(true)}
+                            disabled={sendMail.isPending}
+                            aria-label="Dodaj zdjęcia z galerii"
+                            title="Dodaj zdjęcia z galerii studia"
+                        >
+                            <ImagePlus />
+                            {galleryPhotos.length > 0 && <span>{galleryPhotos.length}</span>}
+                        </AttachButton>
+                    )}
                     <AttachButton
                         type="button"
                         $active={attachments.length > 0}
@@ -831,6 +892,7 @@ export function ReplyComposer({
                         <Paperclip />
                         {attachments.length > 0 && <span>{attachments.length}</span>}
                     </AttachButton>
+                    </>
                 }
             />
             <input
@@ -904,8 +966,22 @@ export function ReplyComposer({
                 </DraftNote>
             )}
 
-            {attachments.length > 0 && (
+            {(attachments.length > 0 || galleryPhotos.length > 0) && (
                 <AttachmentList aria-label="Załączniki">
+                    {galleryPhotos.map((photo) => (
+                        <GalleryChip key={galleryPhotoKey(photo)} title={photo.description || photo.fileName}>
+                            <img src={photo.thumbnailUrl} alt="" />
+                            <span className="name">{photo.fileName}</span>
+                            <button
+                                type="button"
+                                onClick={() => setGalleryPhotos((current) => current.filter((item) => galleryPhotoKey(item) !== galleryPhotoKey(photo)))}
+                                aria-label={`Usuń zdjęcie ${photo.fileName}`}
+                                disabled={sendMail.isPending}
+                            >
+                                <X />
+                            </button>
+                        </GalleryChip>
+                    ))}
                     {attachments.map((file, index) => (
                         <AttachmentChip key={`${file.name}-${file.size}-${file.lastModified}`} title={file.name}>
                             {fileIcon(file)}
@@ -921,9 +997,12 @@ export function ReplyComposer({
                             </button>
                         </AttachmentChip>
                     ))}
-                    <AttachmentTotal $warn={totalAttachmentBytes > OUTGOING_ATTACHMENT_LIMITS.maxTotalBytes * 0.8}>
-                        {formatSize(totalAttachmentBytes)} z {formatSize(OUTGOING_ATTACHMENT_LIMITS.maxTotalBytes)}
-                    </AttachmentTotal>
+                    {/* Wagi zdjęć z galerii nie znamy przed wysyłką - limit sumy sprawdzi serwer. */}
+                    {attachments.length > 0 && (
+                        <AttachmentTotal $warn={totalAttachmentBytes > OUTGOING_ATTACHMENT_LIMITS.maxTotalBytes * 0.8}>
+                            {formatSize(totalAttachmentBytes)} z {formatSize(OUTGOING_ATTACHMENT_LIMITS.maxTotalBytes)}
+                        </AttachmentTotal>
+                    )}
                 </AttachmentList>
             )}
 
@@ -994,16 +1073,46 @@ export function ReplyComposer({
                             ? <><Loader2 size={14} className="spin" /> Poprawiam…</>
                             : <><SpellCheck size={14} /> Popraw błędy</>}
                     </ProofreadButton>
-                    <PrimaryButton
-                        onClick={submit}
-                        disabled={sendMail.isPending || bodyEmpty || pendingPlaceholders.length > 0}
-                        title={pendingPlaceholders.length > 0 ? 'Uzupełnij znaczniki w nawiasach kwadratowych' : undefined}
-                    >
-                        <Send size={14} />
-                        {sendLabel}
-                    </PrimaryButton>
+                    {sendEmphasis === 'quiet' ? (
+                        <Button
+                            variant="tinted"
+                            size="sm"
+                            onClick={submit}
+                            disabled={sendMail.isPending || bodyEmpty || pendingPlaceholders.length > 0}
+                            title={pendingPlaceholders.length > 0 ? 'Uzupełnij znaczniki w nawiasach kwadratowych' : undefined}
+                        >
+                            <Send size={14} />
+                            {sendLabel}
+                        </Button>
+                    ) : (
+                        <PrimaryButton
+                            onClick={submit}
+                            disabled={sendMail.isPending || bodyEmpty || pendingPlaceholders.length > 0}
+                            title={pendingPlaceholders.length > 0 ? 'Uzupełnij znaczniki w nawiasach kwadratowych' : undefined}
+                        >
+                            <Send size={14} />
+                            {sendLabel}
+                        </PrimaryButton>
+                    )}
                 </SendGroup>
             </Actions>
+
+            {galleryOpen && galleryContext && (
+                <GalleryPhotoPicker
+                    onClose={() => setGalleryOpen(false)}
+                    context={galleryContext}
+                    initialSelection={galleryPhotos}
+                    maxSelectable={Math.max(0, OUTGOING_ATTACHMENT_LIMITS.maxFiles - attachments.length)}
+                    onConfirm={(photos) => {
+                        setGalleryPhotos(photos);
+                        setGalleryOpen(false);
+                    }}
+                    onPickFromDevice={() => {
+                        setGalleryOpen(false);
+                        fileInputRef.current?.click();
+                    }}
+                />
+            )}
 
             {signatureSettingsOpen && (
                 <SignatureSettingsModal
