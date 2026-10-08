@@ -147,3 +147,39 @@ describe('wygląd: rozmiar pisma i kolory', () => {
         expect(out).toContain('background-color: transparent');
     });
 });
+
+describe('wygląd: krój pisma i wyrównanie', () => {
+    it('zachowuje krój z listy bezpiecznych i zapisuje go pełnym stosem', () => {
+        expect(normalizeComposerHtml('<div><span style="font-family: Georgia">x</span></div>'))
+            .toBe('<div><span style="font-family: Georgia, serif">x</span></div>');
+        expect(normalizeComposerHtml('<div><span style="font-family: &quot;Times New Roman&quot;">x</span></div>'))
+            .toContain("font-family: 'Times New Roman', Times, serif");
+    });
+
+    it('odrzuca krój spoza listy, bo u odbiorcy i tak zostałby podmieniony', () => {
+        const out = normalizeComposerHtml('<div><span style="font-family: Inter, sans-serif">x</span></div>');
+        expect(out).not.toContain('font-family');
+        expect(out).toBe('<div>x</div>');
+    });
+
+    it('przy wklejaniu odrzuca krój także z listy - to ślad po źródle, nie wybór piszącego', () => {
+        expect(normalizeComposerHtml('<div><span style="font-family: Arial">x</span></div>', { keepFonts: false }))
+            .toBe('<div>x</div>');
+    });
+
+    it('zachowuje wyrównanie akapitu, także z atrybutu align', () => {
+        expect(normalizeComposerHtml('<div style="text-align: justify">x</div>'))
+            .toBe('<div style="text-align: justify">x</div>');
+        expect(normalizeComposerHtml('<div align="center">x</div>'))
+            .toBe('<div style="text-align: center">x</div>');
+    });
+
+    it('nie zapisuje wyrównania do lewej - to i tak domyślne', () => {
+        expect(normalizeComposerHtml('<p style="text-align: left">x</p>')).toBe('<p>x</p>');
+    });
+
+    it('nie przenosi wyrównania na fragment zdania ani nie przyjmuje obcych wartości', () => {
+        expect(normalizeComposerHtml('<div><span style="text-align: center">x</span></div>')).toBe('<div>x</div>');
+        expect(normalizeComposerHtml('<div style="text-align: -webkit-center">x</div>')).toBe('<div>x</div>');
+    });
+});

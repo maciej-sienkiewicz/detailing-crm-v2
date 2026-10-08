@@ -42,7 +42,7 @@ export function getDefaultRoute(user: User | null): string {
     const candidates: Array<{ path: string; requires: PermissionRequirement }> = [
         { path: '/calendar', requires: 'VISITS_VIEW' },
         { path: '/customers', requires: 'CUSTOMERS_VIEW' },
-        { path: '/leads', requires: 'LEADS_MANAGE' },
+        { path: '/zapytania', requires: 'LEADS_MANAGE' },
         { path: '/finances', requires: ['FINANCE_INVOICES', 'FINANCE_MANAGE_CASH_REGISTER', 'FINANCE_VIEW_REPORTS'] },
         { path: '/statistics', requires: 'STATISTICS_VIEW' },
         { path: '/batch-orders', requires: 'BATCH_ORDERS' },

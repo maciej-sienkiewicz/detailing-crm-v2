@@ -1,4 +1,4 @@
-import { Calendar, CalendarOff, Clock, FileText, Mail, Menu } from 'lucide-react';
+import { Calendar, CalendarOff, Clock, FileText, Inbox, Menu } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
@@ -6,7 +6,7 @@ import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { usePermissions, ANY_FINANCE } from '@/core/permissions';
 import { useAuth } from '@/core/context/AuthContext';
 import type { PermissionRequirement } from '@/core/permissions';
-import { useUnreadMailCount } from '@/modules/comms';
+import { useNewLeadsCount, useUnreadMailCount } from '@/modules/comms';
 import { usePiiAccess } from '@/common/pii';
 import { useMobileChromeHidden } from '@/common/context/MobileChromeContext';
 import { BOTTOM_NAV_HEIGHT } from './constants';
@@ -128,6 +128,7 @@ export const BottomNav = () => {
     // żeby przyciski zatwierdzenia nie konkurowały o dolną krawędź ekranu.
     const chromeHidden = useMobileChromeHidden();
     const unreadMail = useUnreadMailCount({ enabled: can('LEADS_MANAGE') && hasPiiAccess });
+    const casesWaiting = useNewLeadsCount({ enabled: can('LEADS_MANAGE') && hasPiiAccess });
 
     // Bez dostępu do danych osobowych poczta i finanse są dla użytkownika puste
     // albo zamaskowane. Zostaje to, z czego naprawdę korzysta: grafik, raport
@@ -136,7 +137,9 @@ export const BottomNav = () => {
     const allShortcuts: Shortcut[] = hasPiiAccess
         ? [
             { path: '/calendar',      label: 'Kalendarz', icon: Calendar, requires: 'VISITS_VIEW' },
-            { path: '/communication', label: 'Poczta',    icon: Mail,     requires: 'LEADS_MANAGE', badge: unreadMail },
+            // Skrzynka „Zapytania" (sprawy i poczta): licznik spraw czekających na nas,
+            // a gdy żadna nie czeka - nieprzeczytanej poczty.
+            { path: '/zapytania',     label: 'Zapytania', icon: Inbox,    requires: 'LEADS_MANAGE', badge: casesWaiting > 0 ? casesWaiting : unreadMail },
             { path: '/finances',      label: 'Finanse',   icon: FileText, requires: ANY_FINANCE },
         ]
         : [

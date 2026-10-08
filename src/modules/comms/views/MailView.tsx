@@ -15,10 +15,12 @@
 // (a nie tym, czy dane zdążyły dojść), nagłówek rozmowy renderuje się od razu z
 // danych z listy, a dociąga się wyłącznie treść korespondencji - w wydzielonym,
 // memoizowanym ConversationView. Dzięki temu nic nie „przeskakuje" pod kursorem.
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import {
+    BellOff,
+    ChevronDown,
     ChevronLeft,
     ChevronRight,
     Mail,
@@ -32,6 +34,8 @@ import {
 import { useToast } from '@/common/components/Toast';
 import { useDebounce } from '@/common/hooks';
 import { BOTTOM_NAV_SPACE } from '@/widgets/BottomNav';
+import { usePermissions } from '@/core/permissions';
+import { buildMailListRows } from '../utils/mailListRows';
 import { commsApi } from '../api/commsApi';
 import {
     useContactInsights,
@@ -247,6 +251,68 @@ const ComposeButton = styled.button`
     svg { width: 15px; height: 15px; }
 `;
 
+/** Granica dnia na liście - oko szuka granicy zamiast porównywać godziny. */
+const DayHeader = styled.div`
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 10px 12px 4px;
+    font-size: 12.5px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    color: ${p => p.theme.colors.textSecondary};
+    background: ${p => p.theme.colors.surface};
+`;
+
+/**
+ * Jeden wiersz za wszystkie automaty (newslettery, powiadomienia). Tło zamiast
+ * wypełnienia - to stan listy, nie akcja (CLAUDE.md §2).
+ */
+const BundleRow = styled.button<{ $open: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
+    border-left: 3px solid transparent;
+    background: ${p => p.theme.colors.surfaceHover};
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover { background: ${p => p.theme.colors.surfaceAlt}; }
+
+    > svg:first-child { flex-shrink: 0; color: ${p => p.theme.colors.textMuted}; }
+    .texts { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+    .title { font-size: 13px; font-weight: ${p => p.theme.fontWeights.medium}; color: ${p => p.theme.colors.text}; }
+    .senders {
+        font-size: 12px;
+        color: ${p => p.theme.colors.textMuted};
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .count {
+        flex-shrink: 0;
+        min-width: 22px;
+        padding: 1px 7px;
+        border-radius: 999px;
+        background: ${p => p.theme.colors.surface};
+        border: 1px solid ${p => p.theme.colors.border};
+        font-size: 11.5px;
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        color: ${p => p.theme.colors.textSecondary};
+        text-align: center;
+    }
+    .chevron {
+        flex-shrink: 0;
+        color: ${p => p.theme.colors.textMuted};
+        transform: rotate(${p => (p.$open ? '180deg' : '0deg')});
+        transition: transform 150ms ease;
+    }
+`;
+
 const ThreadListScroll = styled.div`
     flex: 1;
     overflow-y: auto;
@@ -354,7 +420,20 @@ const EmptyStateWrap = styled.div`
 
 // ── Widok ────────────────────────────────────────────────────────────────────
 
-export default function MailView() {
+interface MailViewProps {
+    /** Nagłówek skrzynki „Zapytania" (nazwa, zakładki, ustawienia) nad listą wątków. */
+    renderInboxNav?: () => ReactNode;
+    /**
+     * Folder ustalony przez zakładkę skrzynki „Zapytania": INBOX (Poczta, z chipem
+     * „Odrzucone") albo SENT (Wysłane). Bez niego widok ma własne chipy folderów.
+     */
+    lockedFolder?: 'INBOX' | 'SENT';
+}
+
+/** Zakładka skrzynki „Zapytania", w której mieszka folder. */
+const INBOX_VIEW_OF: Record<MailFolder, string> = { INBOX: 'poczta', REJECTED: 'poczta', SENT: 'wyslane' };
+
+export default function MailView({ renderInboxNav, lockedFolder }: MailViewProps) {
     // Zdarzenia WebSocket obsługuje globalna subskrypcja w Sidebarze (useCommsSocket);
     // tu wystarczą unieważnienia cache, które ona wykonuje.
     const [searchParams, setSearchParams] = useSearchParams();
@@ -370,17 +449,30 @@ export default function MailView() {
     const [composeOpen, setComposeOpen] = useState(() => searchParams.get('compose') === '1');
     const { showInfo } = useToast();
 
-    const folder = folderFromParam(searchParams.get('folder'));
+    const paramFolder = folderFromParam(searchParams.get('folder'));
+    const folder: MailFolder =
+        lockedFolder === 'SENT' ? 'SENT' : lockedFolder === 'INBOX' ? (paramFolder === 'REJECTED' ? 'REJECTED' : 'INBOX') : paramFolder;
     const selectedThreadId = searchParams.get('thread');
+    const inInbox = lockedFolder !== undefined;
+    const [bundleOpen, setBundleOpen] = useState(false);
+    const { can } = usePermissions();
 
-    /** Parametry adresu z folderem i wątkiem - jedyne, które przeżywają nawigację. */
+    /**
+     * Parametry adresu z folderem i wątkiem - jedyne, które przeżywają nawigację.
+     * W skrzynce „Zapytania" folder Wysłane to osobna zakładka (`view=wyslane`).
+     */
     const paramsFor = useCallback((nextFolder: MailFolder, threadId: string | null) => {
         const params: Record<string, string> = {};
-        const folderParam = FOLDER_PARAM[nextFolder];
-        if (folderParam) params.folder = folderParam;
+        if (inInbox) {
+            params.view = INBOX_VIEW_OF[nextFolder];
+            if (nextFolder === 'REJECTED') params.folder = FOLDER_PARAM.REJECTED!;
+        } else {
+            const folderParam = FOLDER_PARAM[nextFolder];
+            if (folderParam) params.folder = folderParam;
+        }
         if (threadId) params.thread = threadId;
         return params;
-    }, []);
+    }, [inInbox]);
 
     const selectThread = useCallback(
         (threadId: string | null) => {
@@ -442,6 +534,21 @@ export default function MailView() {
         [folder, searchQuery, page]
     );
     const { data: threadPage } = useThreads(filters);
+    /*
+     * Dni i automaty tylko w skrzynce „Zapytania". Automaty zwijamy wyłącznie
+     * w Odebranych i bez wyszukiwania: kto szuka „faktura Allegro", ma ją dostać
+     * wprost, a nie w zwiniętym wierszu.
+     */
+    const listRows = useMemo(
+        () =>
+            inInbox
+                ? buildMailListRows(threadPage?.items ?? [], {
+                    bundleAutomated: folder === 'INBOX' && !searchQuery,
+                    bundleOpen,
+                })
+                : (threadPage?.items ?? []).map((thread) => ({ kind: 'thread' as const, key: thread.id, thread, nested: false })),
+        [inInbox, threadPage, folder, searchQuery, bundleOpen]
+    );
     // Adresy oznaczone jako formularze - jedna cache'owana lista na całą skrzynkę.
     // Plakietka przy wątku mówi, że to zgłoszenia z formularza, zanim się go otworzy.
     const { data: formSources } = useFormMailSources();
@@ -579,6 +686,7 @@ export default function MailView() {
         <Screen>
             <AppCard>
                 <ListPane $hiddenOnMobile={rightPaneOpen}>
+                    {renderInboxNav?.()}
                     <ListHeader>
                         <SearchRow>
                             <SearchInput>
@@ -598,6 +706,7 @@ export default function MailView() {
                                 <PenSquare />
                             </ComposeButton>
                         </SearchRow>
+                        {lockedFolder !== 'SENT' && (
                         <FolderRow role="tablist" aria-label="Folder">
                             <FilterChip
                                 type="button"
@@ -608,15 +717,18 @@ export default function MailView() {
                             >
                                 Odebrane
                             </FilterChip>
-                            <FilterChip
-                                type="button"
-                                role="tab"
-                                aria-selected={folder === 'SENT'}
-                                $active={folder === 'SENT'}
-                                onClick={() => selectFolder('SENT')}
-                            >
-                                Wysłane
-                            </FilterChip>
+                            {/* W skrzynce „Zapytania" Wysłane to zakładka nad listą. */}
+                            {!inInbox && (
+                                <FilterChip
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={folder === 'SENT'}
+                                    $active={folder === 'SENT'}
+                                    onClick={() => selectFolder('SENT')}
+                                >
+                                    Wysłane
+                                </FilterChip>
+                            )}
                             <FilterChip
                                 type="button"
                                 role="tab"
@@ -628,6 +740,7 @@ export default function MailView() {
                                 Odrzucone
                             </FilterChip>
                         </FolderRow>
+                        )}
                     </ListHeader>
                     <ThreadListScroll>
                         {threadPage && threadPage.items.length === 0 && (
@@ -641,9 +754,34 @@ export default function MailView() {
                                             : 'Brak odebranych wiadomości'}
                             </EmptyHint>
                         )}
-                        {(threadPage?.items ?? []).map((thread: CommThread) => (
+                        {listRows.map((row) => {
+                            if (row.kind === 'day') return <DayHeader key={row.key}>{row.label}</DayHeader>;
+                            if (row.kind === 'bundle') {
+                                return (
+                                    <BundleRow
+                                        key={row.key}
+                                        type="button"
+                                        $open={bundleOpen}
+                                        aria-expanded={bundleOpen}
+                                        onClick={() => setBundleOpen((open) => !open)}
+                                    >
+                                        <BellOff size={16} />
+                                        <span className="texts">
+                                            <span className="title">Powiadomienia i reklamy</span>
+                                            <span className="senders">{row.senders}</span>
+                                        </span>
+                                        <span className="count" title={row.unread > 0 ? `Nieprzeczytane: ${row.unread}` : undefined}>
+                                            {row.threads.length}
+                                        </span>
+                                        <ChevronDown size={16} className="chevron" />
+                                    </BundleRow>
+                                );
+                            }
+                            const thread = row.thread;
+                            return (
                             <ThreadItem
                                 key={thread.id}
+                                style={row.nested ? { paddingLeft: 28 } : undefined}
                                 $active={thread.id === selectedThreadId}
                                 $unread={thread.unreadCount > 0}
                                 onClick={() => selectThread(thread.id)}
@@ -682,7 +820,11 @@ export default function MailView() {
                                             {SCREENING_LABEL[thread.screening]}
                                         </Pill>
                                     )}
-                                    {thread.leadId && <Pill $bg="#f0fdf4" $fg="#15803d">Lead</Pill>}
+                                    {thread.leadId && (
+                                        <Pill $bg="#f0fdf4" $fg="#15803d" title={inInbox ? 'Ten wątek jest sprawą - zobaczysz go też w zakładce Sprawy' : undefined}>
+                                            {inInbox ? 'Sprawa' : 'Lead'}
+                                        </Pill>
+                                    )}
                                     {folder === 'SENT' && thread.inboundCount === 0 && (
                                         <Pill $bg="#f8fafc" $fg="#64748b" title="Klient jeszcze nie odpisał">
                                             Bez odpowiedzi
@@ -692,7 +834,8 @@ export default function MailView() {
                                     {thread.lastSnippet ?? ''}
                                 </div>
                             </ThreadItem>
-                        ))}
+                            );
+                        })}
                     </ThreadListScroll>
                     {totalPages > 1 && (
                         <Pager>
@@ -757,6 +900,7 @@ export default function MailView() {
                         leadId={composeLeadId ?? undefined}
                         onClose={closeCompose}
                         onSent={openSentThread}
+                        galleryContext={can('VISITS_VIEW') ? {} : undefined}
                     />
                 )}
 

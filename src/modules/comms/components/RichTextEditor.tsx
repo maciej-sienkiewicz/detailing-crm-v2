@@ -1,13 +1,20 @@
 // src/modules/comms/components/RichTextEditor.tsx
 // Uproszczony edytor treści wiadomości: pogrubienie, kursywa, podkreślenie,
-// przekreślenie, listy, odnośniki oraz rozmiar pisma i kolory - tekstu i tła.
+// przekreślenie, listy, odnośniki, wyrównanie akapitu oraz rozmiar i krój pisma
+// i kolory - tekstu i tła.
 //
 // Wygląd jest tu podawany ZESTAWAMI, nie suwakami: cztery rozmiary i dwie krótkie
 // palety zamiast pola z dowolnym kolorem i dowolną liczbą pikseli. Powód jest
 // praktyczny: mail ma wyjść czytelnie w cudzym programie pocztowym, którego motywu
 // nie znamy, a jasnoszary tekst 7 px wybrany suwakiem wygląda dobrze wyłącznie
-// w tym oknie. Reszty formatowania (tabele, własne kroje pisma) nadal nie ma -
-// zamienia mail w ulotkę i psuje się w co drugim kliencie.
+// w tym oknie. Krojów pisma jest pięć i tylko takich, które ma każdy program
+// pocztowy (MAIL_FONTS) - dowolny krój u odbiorcy podmienia się na inny. Reszty
+// formatowania (tabele) nadal nie ma - zamienia mail w ulotkę i psuje się w co
+// drugim kliencie.
+//
+// Pasek formatowania może być schowany (`collapsibleToolbar`): w skrzynce
+// „Zapytania" większość odpowiedzi to dwa zdania bez formatowania, więc pasek
+// wysuwa się dopiero przyciskiem „Aa" pod treścią i nie zabiera miejsca na wątek.
 //
 // Pod spodem jest zwykły contentEditable i document.execCommand. Ta para jest
 // „przestarzała" od lat, ale każda przeglądarka ją wspiera, a alternatywą byłby
@@ -20,12 +27,17 @@
 // cofnięcie, wyczyszczenie po wysyłce), podmieniamy zawartość. Dopóki wartość
 // odpowiada temu, co jest w DOM, nie dotykamy go - inaczej kursor skakałby na
 // początek przy każdym naciśnięciu klawisza.
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import {
+    TextAlignCenter as AlignCenter,
+    TextAlignJustify as AlignJustify,
+    TextAlignStart as AlignLeft,
+    TextAlignEnd as AlignRight,
     Baseline,
     Bold,
+    CaseSensitive,
     Highlighter,
     Italic,
     Link as LinkIcon,
@@ -37,7 +49,7 @@ import {
     Underline,
 } from 'lucide-react';
 import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
-import { normalizeComposerHtml, textToComposerHtml } from '../utils/composerHtml';
+import { MAIL_FONTS, normalizeComposerHtml, textToComposerHtml } from '../utils/composerHtml';
 
 const Frame = styled.div<{ $focused: boolean }>`
     display: flex;
@@ -250,6 +262,46 @@ const LinkPopover = styled.form`
     }
 `;
 
+/**
+ * Pasek pod treścią w trybie schowanego formatowania: przełącznik „Aa" i dodatki
+ * rodzica (zdjęcie z galerii, spinacz). Przyciski 36 px - na telefonie trafia się
+ * w nie kciukiem.
+ */
+const BottomBar = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 6px;
+    border-top: 1px solid ${p => p.theme.colors.surfaceAlt};
+
+    > button { min-width: 36px; height: 36px; }
+`;
+
+const FormatToggle = styled(ToolButton)`
+    width: auto;
+    padding: 0 8px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: ${p => p.theme.fontWeights.bold};
+    letter-spacing: -0.01em;
+`;
+
+const FontOption = styled.button<{ $stack: string }>`
+    display: block;
+    width: 100%;
+    padding: 6px 8px;
+    border: none;
+    border-radius: ${p => p.theme.radii.sm};
+    background: none;
+    color: ${p => p.theme.colors.text};
+    font-family: ${p => p.$stack};
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover { background: ${p => p.theme.colors.surfaceAlt}; }
+`;
+
 type Command = 'bold' | 'italic' | 'underline' | 'strikeThrough' | 'insertUnorderedList' | 'insertOrderedList';
 
 const COMMANDS: { command: Command; label: string; shortcut?: string; Icon: typeof Bold }[] = [
@@ -257,6 +309,19 @@ const COMMANDS: { command: Command; label: string; shortcut?: string; Icon: type
     { command: 'italic', label: 'Kursywa', shortcut: 'Ctrl+I', Icon: Italic },
     { command: 'underline', label: 'Podkreślenie', shortcut: 'Ctrl+U', Icon: Underline },
     { command: 'strikeThrough', label: 'Przekreślenie', Icon: Strikethrough },
+];
+
+type AlignCommand = 'justifyLeft' | 'justifyCenter' | 'justifyRight' | 'justifyFull';
+
+/**
+ * Wyrównanie akapitu. Wykonywane z `styleWithCSS`, żeby przeglądarka zapisała
+ * `text-align` w stylu akapitu, który przechodzi przez normalizację treści.
+ */
+const ALIGN_COMMANDS: { command: AlignCommand; label: string; Icon: typeof Bold }[] = [
+    { command: 'justifyLeft', label: 'Wyrównaj do lewej', Icon: AlignLeft },
+    { command: 'justifyCenter', label: 'Wyśrodkuj', Icon: AlignCenter },
+    { command: 'justifyRight', label: 'Wyrównaj do prawej', Icon: AlignRight },
+    { command: 'justifyFull', label: 'Wyjustuj', Icon: AlignJustify },
 ];
 
 const LIST_COMMANDS: { command: Command; label: string; Icon: typeof Bold }[] = [
@@ -316,6 +381,11 @@ interface RichTextEditorProps {
     onDropFiles?: (files: File[]) => void;
     /** Kompozytor na cały ekran telefonu: pole pisze się na dużej wysokości i rośnie z treścią. */
     tall?: boolean;
+    /**
+     * Pasek formatowania schowany pod przyciskiem „Aa" w pasku pod treścią; tam też
+     * trafiają dodatki z [toolbarExtra]. Bez tej flagi pasek stoi stale nad treścią.
+     */
+    collapsibleToolbar?: boolean;
 }
 
 export function RichTextEditor({
@@ -327,25 +397,37 @@ export function RichTextEditor({
     toolbarExtra,
     onDropFiles,
     tall = false,
+    collapsibleToolbar = false,
 }: RichTextEditorProps) {
+    const formatToolbarId = useId();
+    const [toolbarOpen, setToolbarOpen] = useState(!collapsibleToolbar);
+    const toolbarShown = !collapsibleToolbar || toolbarOpen;
+    const [activeAlign, setActiveAlign] = useState<AlignCommand | null>(null);
     const editableRef = useRef<HTMLDivElement>(null);
     const [focused, setFocused] = useState(false);
     const [activeCommands, setActiveCommands] = useState<Set<Command>>(new Set());
     const [linkDraft, setLinkDraft] = useState<string | null>(null);
     // Które z trzech menu wyglądu jest otwarte. Jedno naraz - dwie palety obok
     // siebie zasłaniałyby tekst, na którym właśnie się pracuje.
-    const [openMenu, setOpenMenu] = useState<'size' | 'color' | 'highlight' | null>(null);
+    const [openMenu, setOpenMenu] = useState<'size' | 'font' | 'color' | 'highlight' | null>(null);
     // Zaznaczenie znika, gdy fokus przechodzi do pola adresu - zapamiętujemy je,
     // żeby odnośnik trafił tam, gdzie użytkownik zaznaczył, a nie na koniec.
     const savedRange = useRef<Range | null>(null);
     // Menu wyglądu stoi w portalu, więc przycisk i menu to dwa osobne drzewa DOM:
     // opakowanie przycisku jest punktem zaczepienia, menu - tym, co ustawiamy.
     const sizeWrapRef = useRef<HTMLSpanElement>(null);
+    const fontWrapRef = useRef<HTMLSpanElement>(null);
     const colorWrapRef = useRef<HTMLSpanElement>(null);
     const highlightWrapRef = useRef<HTMLSpanElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
     const menuAnchorRef =
-        openMenu === 'size' ? sizeWrapRef : openMenu === 'color' ? colorWrapRef : highlightWrapRef;
+        openMenu === 'size'
+            ? sizeWrapRef
+            : openMenu === 'font'
+              ? fontWrapRef
+              : openMenu === 'color'
+                ? colorWrapRef
+                : highlightWrapRef;
     useFloatingPanel(openMenu !== null, menuAnchorRef, menuRef, { align: 'left', offset: 4 }, openMenu);
 
     // useLayoutEffect: zawartość ma być na miejscu przed pierwszym malowaniem,
@@ -366,6 +448,15 @@ export function RichTextEditor({
             }
         });
         setActiveCommands(next);
+        let align: AlignCommand | null = null;
+        for (const { command } of ALIGN_COMMANDS) {
+            try {
+                if (document.queryCommandState(command)) { align = command; break; }
+            } catch {
+                /* jw. */
+            }
+        }
+        setActiveAlign(align);
     }, []);
 
     useEffect(() => {
@@ -473,6 +564,37 @@ export function RichTextEditor({
         [emit]
     );
 
+    /**
+     * Krój pisma na zaznaczeniu. `fontName` ze `styleWithCSS` daje `<span style=
+     * "font-family: …">`, a normalizacja zamienia nazwę na pełny, bezpieczny zapis.
+     */
+    const applyFont = useCallback(
+        (stack: string) => {
+            const element = editableRef.current;
+            if (!element) return;
+            element.focus();
+            document.execCommand('styleWithCSS', false, 'true');
+            document.execCommand('fontName', false, stack);
+            document.execCommand('styleWithCSS', false, 'false');
+            emit();
+        },
+        [emit]
+    );
+
+    const applyAlign = useCallback(
+        (command: AlignCommand) => {
+            const element = editableRef.current;
+            if (!element) return;
+            element.focus();
+            document.execCommand('styleWithCSS', false, 'true');
+            document.execCommand(command, false);
+            document.execCommand('styleWithCSS', false, 'false');
+            emit();
+            refreshActive();
+        },
+        [emit, refreshActive]
+    );
+
     const openLink = () => {
         const selection = window.getSelection();
         savedRange.current = selection && selection.rangeCount > 0 ? selection.getRangeAt(0).cloneRange() : null;
@@ -541,14 +663,15 @@ export function RichTextEditor({
         const text = event.clipboardData.getData('text/plain');
         if (!html && !text) return;
         event.preventDefault();
-        const fragment = html ? normalizeComposerHtml(html) : textToComposerHtml(text);
+        const fragment = html ? normalizeComposerHtml(html, { keepFonts: false }) : textToComposerHtml(text);
         document.execCommand('insertHTML', false, fragment || textToComposerHtml(text));
         emit();
     };
 
     return (
         <Frame $focused={focused}>
-            <Toolbar role="toolbar" aria-label="Formatowanie">
+            {toolbarShown && (
+            <Toolbar role="toolbar" aria-label="Formatowanie" id={collapsibleToolbar ? formatToolbarId : undefined}>
                 {COMMANDS.map(({ command, label, shortcut, Icon }) => (
                     <ToolButton
                         key={command}
@@ -576,6 +699,22 @@ export function RichTextEditor({
                         disabled={disabled}
                         onMouseDown={(event) => event.preventDefault()}
                         onClick={() => exec(command)}
+                    >
+                        <Icon />
+                    </ToolButton>
+                ))}
+                <Separator />
+                {ALIGN_COMMANDS.map(({ command, label, Icon }) => (
+                    <ToolButton
+                        key={command}
+                        type="button"
+                        $active={activeAlign === command}
+                        aria-pressed={activeAlign === command}
+                        aria-label={label}
+                        title={label}
+                        disabled={disabled}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => applyAlign(command)}
                     >
                         <Icon />
                     </ToolButton>
@@ -610,6 +749,37 @@ export function RichTextEditor({
                                 >
                                     {label}
                                 </SizeOption>
+                            ))}
+                        </Menu>,
+                        document.body,
+                    )}
+                </MenuWrap>
+
+                <MenuWrap ref={fontWrapRef} onMouseDown={keepSelection}>
+                    <ToolButton
+                        type="button"
+                        $active={openMenu === 'font'}
+                        aria-label="Krój pisma"
+                        aria-expanded={openMenu === 'font'}
+                        title="Krój pisma"
+                        disabled={disabled}
+                        onClick={() => setOpenMenu(openMenu === 'font' ? null : 'font')}
+                    >
+                        <CaseSensitive />
+                    </ToolButton>
+                    {openMenu === 'font' && createPortal(
+                        <Menu ref={menuRef} role="menu" onMouseDown={keepSelection}>
+                            <MenuTitle>Krój pisma</MenuTitle>
+                            {MAIL_FONTS.map(({ label, stack }) => (
+                                <FontOption
+                                    key={label}
+                                    type="button"
+                                    role="menuitem"
+                                    $stack={stack}
+                                    onClick={() => { applyFont(stack); setOpenMenu(null); }}
+                                >
+                                    {label}
+                                </FontOption>
                             ))}
                         </Menu>,
                         document.body,
@@ -713,7 +883,9 @@ export function RichTextEditor({
                 >
                     <RemoveFormatting />
                 </ToolButton>
-                {toolbarExtra && <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 2 }}>{toolbarExtra}</span>}
+                {toolbarExtra && !collapsibleToolbar && (
+                    <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 2 }}>{toolbarExtra}</span>
+                )}
 
                 {linkDraft !== null && (
                     <LinkPopover
@@ -732,6 +904,7 @@ export function RichTextEditor({
                     </LinkPopover>
                 )}
             </Toolbar>
+            )}
             <Editable
                 $tall={tall}
                 ref={editableRef}
@@ -757,6 +930,24 @@ export function RichTextEditor({
                     onDropFiles(Array.from(event.dataTransfer.files));
                 }}
             />
+            {collapsibleToolbar && (
+                <BottomBar>
+                    <FormatToggle
+                        type="button"
+                        $active={toolbarOpen}
+                        aria-expanded={toolbarOpen}
+                        aria-controls={formatToolbarId}
+                        aria-label={toolbarOpen ? 'Schowaj formatowanie tekstu' : 'Pokaż formatowanie tekstu'}
+                        title={toolbarOpen ? 'Schowaj formatowanie tekstu' : 'Formatowanie tekstu'}
+                        disabled={disabled}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => { setToolbarOpen((open) => !open); setOpenMenu(null); }}
+                    >
+                        Aa
+                    </FormatToggle>
+                    {toolbarExtra}
+                </BottomBar>
+            )}
         </Frame>
     );
 }
