@@ -169,6 +169,17 @@ const TaskCreator = styled.div`
   margin-top: 2px;
 `;
 
+const ArchiveHint = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  font-size: 11px;
+  color: #94a3b8;
+
+  svg { width: 11px; height: 11px; }
+`;
+
 const VisibilityBadge = styled.div<{ $type: 'USERS' | 'ROLE' }>`
   display: inline-flex;
   align-items: center;
@@ -307,6 +318,18 @@ const formatVisibilityLabel = (task: DashboardTask): string => {
   return '';
 };
 
+/**
+ * Wykonane zadanie, którego statusu nikt nie ruszy przez tyle godzin, serwer sam
+ * odkłada do archiwum (TaskAutoArchiveJob, crm.tasks.auto-archive.hours). Podpis mówi
+ * kiedy - inaczej znikające zadanie wyglądałoby na błąd albo czyjeś usunięcie.
+ */
+const AUTO_ARCHIVE_HOURS = 48;
+
+const formatArchiveAt = (completedAt: string): string => {
+  const d = new Date(new Date(completedAt).getTime() + AUTO_ARCHIVE_HOURS * 3_600_000);
+  return `${d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' })} o ${d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}`;
+};
+
 const formatTaskDate = (iso: string): string => {
   const d = new Date(iso);
   const now = new Date();
@@ -412,6 +435,12 @@ export const TasksPanel = () => {
                       {task.createdByUserName ? `Dodał: ${task.createdByUserName}` : 'Dodano'}
                       {task.createdAt && `, ${formatTaskDate(task.createdAt)}`}
                     </TaskCreator>
+                  )}
+                  {task.done && task.completedAt && (
+                    <ArchiveHint title="Odznacz, jeśli to pomyłka - odliczanie zacznie się od nowa po ponownym odhaczeniu">
+                      <Archive aria-hidden="true" />
+                      Do archiwum {formatArchiveAt(task.completedAt)}
+                    </ArchiveHint>
                   )}
                   {task.visibilityType === 'USERS' && (
                     <VisibilityBadge $type="USERS">

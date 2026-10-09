@@ -210,6 +210,8 @@ export interface DashboardTask {
   done: boolean;
   createdAt?: string;
   createdByUserName?: string;
+  /** Kiedy oznaczono jako wykonane; po 48 h bez zmiany statusu zadanie trafia do archiwum. */
+  completedAt?: string | null;
   visibilityType?: 'ALL' | 'USERS' | 'ROLE';
   visibleToUserIds?: string[];
   visibleToUserNames?: string[];
@@ -261,7 +263,9 @@ export interface ArchivedTask {
   completedAt: string | null;
   completedByUserName: string | null;
   deletedAt: string;
-  deletedByUserName: string;
+  deletedByUserName: string | null;
+  /** Do archiwum odłożył je system: wykonane, a statusu nikt nie ruszył przez 48 h. */
+  archivedAutomatically?: boolean;
 }
 
 export interface TaskArchivePage {
