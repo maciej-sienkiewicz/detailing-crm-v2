@@ -10,6 +10,20 @@ import type { SaveStatus } from './MobilePhotoUpload.styles';
 const DEBOUNCE_MS = 1_800;
 const LS_KEY = (token: string) => `mobile-damage-${token}`;
 
+/**
+ * Zapisane na serwerze oznaczenia plus te dodane na telefonie, zanim odpowiedź doszła.
+ * Oba zbiory liczyły od 1, więc lokalny punkt o zajętym id dostaje następny wolny.
+ * Wolne id zostaje bez zmian: wysyłka zdjęcia do tego punktu szuka go po id.
+ */
+export function mergeLocalPoints(server: DamagePoint[], local: DamagePoint[]): DamagePoint[] {
+    const taken = new Set(server.map(p => p.id));
+    let nextId = Math.max(0, ...server.map(p => p.id), ...local.map(p => p.id));
+    return [
+        ...server,
+        ...local.map(p => (taken.has(p.id) ? { ...p, id: ++nextId } : p)),
+    ];
+}
+
 export interface MobileDamageLogic {
     damagePoints: DamagePoint[];
     vehicleType: string;
@@ -36,11 +50,27 @@ export function useMobileDamageLogic(
     const isSavingRef = useRef(false);
     const pendingSaveRef = useRef<DamagePoint[] | null>(null);
 
-    // Always-current points: photo upload callbacks resolve after state changes
+    /*
+     * Zawsze aktualna lista. Ustawiana SYNCHRONICZNIE w updatePoints, a nie przy
+     * renderze: kilka zmian w jednym zdarzeniu (pętla po zdjęciach w attachPhotos)
+     * czytało listę sprzed pierwszej zmiany i gubiło wszystkie oprócz ostatniej.
+     */
     const pointsRef = useRef<DamagePoint[]>([]);
-    pointsRef.current = damagePoints;
     const vehicleTypeRef = useRef(vehicleType);
     vehicleTypeRef.current = vehicleType;
+
+    /*
+     * Mapa jest dotykalna od razu, a zapisane oznaczenia przychodzą z serwera chwilę
+     * później. Dotknięcie w tej chwili dawniej znikało: odpowiedź nadpisywała listę,
+     * a odroczony zapis wysyłał punkt z chwili dotknięcia - „Zapisano" bez znacznika,
+     * a przy sesji z zapisanymi już oznaczeniami zapis kasował je na serwerze.
+     * Dlatego do czasu odpowiedzi pamiętamy, że użytkownik coś zmienił, i łączymy.
+     */
+    const loadedRef = useRef(false);
+    const editedBeforeLoadRef = useRef(false);
+    const typeChosenBeforeLoadRef = useRef(false);
+    // Wczytanie (efekt niżej) zapisuje połączoną listę tą samą drogą co dotknięcie.
+    const updatePointsRef = useRef<(points: DamagePoint[]) => void>(() => {});
 
     // ─── Load from backend (fallback: localStorage) on session start ──────────
 
@@ -51,8 +81,19 @@ export function useMobileDamageLogic(
             // Try backend first
             try {
                 const res = await checkinApi.getMobileDamagePoints(token);
+                loadedRef.current = true;
+                if (res.vehicleType && !typeChosenBeforeLoadRef.current) {
+                    setVehicleTypeState(res.vehicleType);
+                    vehicleTypeRef.current = res.vehicleType;
+                }
+                if (editedBeforeLoadRef.current) {
+                    // Zapis listy połączonej - inaczej serwer zostałby z tym, co wysłał
+                    // odroczony zapis sprzed odpowiedzi.
+                    updatePointsRef.current(mergeLocalPoints(res.damagePoints, pointsRef.current));
+                    return;
+                }
+                pointsRef.current = res.damagePoints;
                 setDamagePoints(res.damagePoints);
-                if (res.vehicleType) setVehicleTypeState(res.vehicleType);
                 // Persist locally as backup
                 localStorage.setItem(LS_KEY(token), JSON.stringify({
                     damagePoints: res.damagePoints,
@@ -62,6 +103,10 @@ export function useMobileDamageLogic(
             } catch {
                 // Fall through to localStorage
             }
+            loadedRef.current = true;
+            // Zmiany sprzed odpowiedzi są już w localStorage (updatePoints zapisuje tam od
+            // razu) i na ekranie - kopia lokalna nie ma czego do nich dołożyć.
+            if (editedBeforeLoadRef.current) return;
 
             // Offline fallback (drop dead blob: preview URLs and unfinished uploads)
             const stored = localStorage.getItem(LS_KEY(token));
@@ -71,7 +116,7 @@ export function useMobileDamageLogic(
                     // Backward compat: older versions stored a bare points array
                     const parsed: DamagePoint[] = Array.isArray(raw) ? raw : (raw.damagePoints ?? []);
                     if (!Array.isArray(raw) && raw.vehicleType) setVehicleTypeState(raw.vehicleType);
-                    setDamagePoints(parsed.map(p => ({
+                    const restored = parsed.map(p => ({
                         ...p,
                         photos: (p.photos ?? [])
                             .filter(ph => ph.status !== 'uploading' && ph.status !== 'failed')
@@ -79,7 +124,9 @@ export function useMobileDamageLogic(
                                 ...ph,
                                 thumbnailUrl: ph.thumbnailUrl?.startsWith('blob:') ? undefined : ph.thumbnailUrl,
                             })),
-                    })));
+                    }));
+                    pointsRef.current = restored;
+                    setDamagePoints(restored);
                 } catch { /* corrupt */ }
             }
         };
@@ -118,6 +165,8 @@ export function useMobileDamageLogic(
     // ─── Debounced update ─────────────────────────────────────────────────────
 
     const updatePoints = useCallback((points: DamagePoint[]) => {
+        if (!loadedRef.current) editedBeforeLoadRef.current = true;
+        pointsRef.current = points;
         setDamagePoints(points);
         // Always persist locally immediately
         localStorage.setItem(LS_KEY(token), JSON.stringify({
@@ -131,16 +180,19 @@ export function useMobileDamageLogic(
         }
 
         if (debounceRef.current) clearTimeout(debounceRef.current);
+        // Zapis tego, co jest na ekranie w chwili zapisu, a nie listy z chwili zmiany.
         debounceRef.current = setTimeout(() => {
-            saveToBackend(points);
+            saveToBackend(pointsRef.current);
         }, DEBOUNCE_MS);
     }, [token, isOnline, saveToBackend]);
+    updatePointsRef.current = updatePoints;
 
     // ─── Vehicle type ─────────────────────────────────────────────────────────
 
     /** Changing the body type re-persists the whole damage state, so the backend
      *  always knows which schematic the coordinates refer to. */
     const setVehicleType = useCallback((type: string) => {
+        if (!loadedRef.current) typeChosenBeforeLoadRef.current = true;
         setVehicleTypeState(type);
         vehicleTypeRef.current = type;
         updatePoints(pointsRef.current);
