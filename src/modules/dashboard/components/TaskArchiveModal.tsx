@@ -268,14 +268,27 @@ const ArchiveCard = ({ item }: { item: ArchivedTask }) => (
         </TimelineStep>
       )}
 
-      <TimelineStep>
-        <StepLabel $color="#f97316">
-          <Trash2 />
-          Usunięte
-        </StepLabel>
-        <StepDate>{fmtDate(item.deletedAt)}, {fmtTime(item.deletedAt)}</StepDate>
-        <StepUser>{item.deletedByUserName}</StepUser>
-      </TimelineStep>
+      {item.archivedAutomatically ? (
+        /* Porządek zrobiony przez system, nie czyjaś decyzja - bez „Usunięte" i bez
+           pustego miejsca na nazwisko. */
+        <TimelineStep>
+          <StepLabel $color="#64748b">
+            <Archive />
+            Zarchiwizowane automatycznie
+          </StepLabel>
+          <StepDate>{fmtDate(item.deletedAt)}, {fmtTime(item.deletedAt)}</StepDate>
+          <StepUser>48 h po wykonaniu</StepUser>
+        </TimelineStep>
+      ) : (
+        <TimelineStep>
+          <StepLabel $color="#f97316">
+            <Trash2 />
+            Usunięte
+          </StepLabel>
+          <StepDate>{fmtDate(item.deletedAt)}, {fmtTime(item.deletedAt)}</StepDate>
+          {item.deletedByUserName && <StepUser>{item.deletedByUserName}</StepUser>}
+        </TimelineStep>
+      )}
     </Timeline>
   </Card>
 );
