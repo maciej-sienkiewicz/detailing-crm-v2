@@ -10,7 +10,7 @@ import styled from 'styled-components';
 import { ArrowLeft, ChevronLeft, Paperclip } from 'lucide-react';
 import type { CommAttachment, CommMessage } from '../types';
 import { MessageBody } from '../components/MessageBody';
-import { messageMoment } from './messageFormat';
+import { isPreviewableAttachment, messageMoment } from './messageFormat';
 import { ix } from './tokens';
 
 const Header = styled.header<{ $phone: boolean }>`
@@ -185,9 +185,7 @@ const kindLabel = (attachment: CommAttachment): string | null => {
     return null;
 };
 
-/** PDF i obrazek da się obejrzeć w przeglądarce - reszta się pobiera. */
-const previewable = (attachment: CommAttachment): boolean =>
-    attachment.contentType === 'application/pdf' || attachment.contentType.startsWith('image/');
+const previewable = isPreviewableAttachment;
 
 export function AttachmentCards({
     attachments,
