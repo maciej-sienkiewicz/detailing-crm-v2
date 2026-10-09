@@ -5,7 +5,7 @@
 //
 // Szybkie podpowiedzi dopisują gotowe polecenie do pola, ale nie wysyłają go same -
 // „krócej" zwykle idzie w parze z czymś jeszcze („krócej i zaproponuj wtorek").
-import { useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import styled from 'styled-components';
 import { Loader2, Wand2 } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
@@ -36,11 +36,36 @@ const Toggle = styled.button<{ $plain?: boolean }>`
     &:disabled { opacity: 0.55; cursor: default; text-decoration: none; }
 `;
 
+/** Odnośnik i dymek - dymek liczy pozycję od odnośnika. */
+const Anchor = styled.span`
+    position: relative;
+    display: inline-flex;
+`;
+
+/*
+ * Dymek nad odnośnikiem, wyrównany do jego prawej krawędzi. Dawniej formularz stawał
+ * w miejscu odnośnika - w wąskiej kolumnie obok notki o szkicu, bez własnego tła - i
+ * zgniatał jej tekst do kilku słów w wierszu. Nad: pod spodem jest edytor z treścią,
+ * którą właśnie się poprawia, więc nie wolno go zasłonić.
+ */
 const Form = styled.div`
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 8px);
+    z-index: 40;
+    width: min(420px, calc(100vw - 32px));
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    margin-top: 6px;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14), 0 1px 3px rgba(15, 23, 42, 0.06);
+    text-align: left;
+
+    .title { margin: 0; font-size: 13px; font-weight: ${p => p.theme.fontWeights.semibold}; color: ${p => p.theme.colors.text}; }
 
     textarea {
         width: 100%;
@@ -154,6 +179,20 @@ export function ReplyDraftRevise({ threadId, draft, currentText, signatureAppend
         setInstructions('');
     };
 
+    // Klik poza dymkiem zamyka go bez zmian - jak każdy dymek; w trakcie poprawiania nie.
+    const anchorRef = useRef<HTMLSpanElement>(null);
+    useEffect(() => {
+        if (!open || busy) return;
+        const onDown = (event: MouseEvent) => {
+            if (anchorRef.current && !anchorRef.current.contains(event.target as Node)) {
+                setOpen(false);
+                setInstructions('');
+            }
+        };
+        document.addEventListener('mousedown', onDown);
+        return () => document.removeEventListener('mousedown', onDown);
+    }, [open, busy]);
+
     const submit = () => {
         if (!canSubmit) return;
         draftReply.mutate(
@@ -199,16 +238,21 @@ export function ReplyDraftRevise({ threadId, draft, currentText, signatureAppend
         }
     };
 
-    if (!open) {
-        return (
-            <Toggle type="button" onClick={() => setOpen(true)} disabled={disabled} $plain={Boolean(label)}>
+    return (
+        <Anchor ref={anchorRef}>
+            <Toggle
+                type="button"
+                onClick={() => (open ? close() : setOpen(true))}
+                disabled={disabled}
+                $plain={Boolean(label)}
+                aria-expanded={open}
+                aria-haspopup="dialog"
+            >
                 {label ?? <><Wand2 size={13} /> Popraw szkic</>}
             </Toggle>
-        );
-    }
-
-    return (
-        <Form>
+            {open && (
+        <Form role="dialog" aria-label="Poprawka szkicu">
+            <p className="title">Co zmienić w szkicu?</p>
             <textarea
                 ref={textareaRef}
                 autoFocus
@@ -238,5 +282,7 @@ export function ReplyDraftRevise({ threadId, draft, currentText, signatureAppend
                 </SubmitButton>
             </FormActions>
         </Form>
+            )}
+        </Anchor>
     );
 }
