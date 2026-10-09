@@ -56,12 +56,6 @@ const Panel = styled.div`
     color: ${p => p.theme.colors.textSecondary};
 
     .outcome { color: ${p => p.theme.colors.text}; font-weight: 600; }
-
-    /* Surowe uzasadnienie asystenta mówi językiem implementacji (nazwy z kodu) - dla
-       wsparcia technicznego, schowane. Na wierzchu tylko zdanie i powody przy pozycjach. */
-    details { font-size: 12px; color: ${p => p.theme.colors.textMuted}; }
-    summary { cursor: pointer; width: max-content; }
-    details p { margin: 6px 0 0; font-style: italic; }
 `;
 
 const Candidates = styled.ul`
@@ -117,12 +111,6 @@ export function SuggestionRefresh({ actions }: { actions: SuggestionActions }) {
                                 </li>
                             ))}
                         </Candidates>
-                    )}
-                    {diagnostics.reasoning && (
-                        <details>
-                            <summary>Szczegóły techniczne</summary>
-                            <p>„{diagnostics.reasoning}”</p>
-                        </details>
                     )}
                 </Panel>
             )}

@@ -28,7 +28,7 @@ describe('SuggestionRefresh', () => {
         expect(mutate).toHaveBeenCalled();
     });
 
-    it('po przeliczeniu: zdanie dla człowieka, powód przy każdej pozycji, uzasadnienie techniczne schowane', () => {
+    it('po przeliczeniu: zdanie dla człowieka, powód przy każdej pozycji, bez szczegółów technicznych', () => {
         renderPanel(actions({
             data: {
                 lead: {},
@@ -36,7 +36,6 @@ describe('SuggestionRefresh', () => {
                     ranAt: '2026-10-04T10:00:00Z',
                     outcome: 'Dobrano z cennika 1 pozycję. Pozostałe nie pasowały - powody niżej.',
                     intentStatus: 'MATCHED',
-                    reasoning: 'Operacja PROTECT na części WINDSHIELD, zakres FULL.',
                     candidates: [
                         { serviceName: 'Oklejenie szyby czołowej folią PPF', stage: 'SHOWN', stageLabel: 'Zaproponowana w wycenie', shown: true, quote: 'oklejanie szyby folią ochronną' },
                         { serviceName: 'Korekta lakieru', stage: 'FAMILY_MISMATCH', stageLabel: 'Pominięta - to inny rodzaj usługi niż ten, o który pyta klient', shown: false, quote: null },
@@ -49,10 +48,11 @@ describe('SuggestionRefresh', () => {
         expect(screen.getByText('Oklejenie szyby czołowej folią PPF')).toBeTruthy();
         expect(screen.getByText('Pominięta - to inny rodzaj usługi niż ten, o który pyta klient')).toBeTruthy();
         expect(screen.getByText('Klient pisze: „oklejanie szyby folią ochronną”')).toBeTruthy();
-        // Uzasadnienie z nazwami z kodu - tylko pod „Szczegóły techniczne", zwinięte.
-        const details = screen.getByText('Szczegóły techniczne').closest('details')!;
-        expect(details.open).toBe(false);
-        expect(details.textContent).toContain('WINDSHIELD');
+        // Uzasadnienie asystenta z nazwami z kodu trafia tylko do logu serwera - na
+        // ekranie nie ma po nim śladu, także zwiniętego.
+        expect(screen.queryByText(/Szczegóły techniczne/)).toBeNull();
+        expect(document.querySelector('details')).toBeNull();
+        expect(document.body.textContent).not.toMatch(/MATCHED|FAMILY_MISMATCH|SHOWN/);
     });
 
     it('w trakcie przeliczania mówi, że to chwilę trwa', () => {

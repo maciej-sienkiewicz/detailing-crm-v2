@@ -990,7 +990,6 @@ export interface SuggestionDiagnostics {
     /** Jedno zdanie: co wyszło z przeliczenia i dlaczego. */
     outcome: string;
     intentStatus: string | null;
-    reasoning: string | null;
     candidates: SuggestionCandidate[];
 }
 
