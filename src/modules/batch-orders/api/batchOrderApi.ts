@@ -17,6 +17,8 @@ import type {
     SettlementRequest,
     SettlementResult,
     VehicleSuggestion,
+    VinScanResult,
+    VinScanSession,
 } from '../types';
 
 const BASE = '/batch-orders';
@@ -124,6 +126,18 @@ export const batchOrderApi = {
 
     deleteEntryPhoto: async (entryId: string, photoId: string): Promise<void> => {
         await apiClient.delete(`${BASE}/entries/${entryId}/photos/${photoId}`);
+    },
+
+    /** Kod QR „VIN telefonem"; `rotate` unieważnia poprzedni kod. */
+    startVinScanSession: async (rotate = false): Promise<VinScanSession> => {
+        const response = await apiClient.post<VinScanSession>(`${BASE}/vin/qr-token`, null, { params: { rotate } });
+        return response.data;
+    },
+
+    /** Ostatni VIN z telefonu albo null, dopóki telefon niczego nie przysłał (204). */
+    getVinScanResult: async (): Promise<VinScanResult | null> => {
+        const response = await apiClient.get<VinScanResult | ''>(`${BASE}/vin/qr-result`);
+        return response.status === 204 || !response.data ? null : response.data;
     },
 
     extractVin: async (file: File): Promise<string | null> => {

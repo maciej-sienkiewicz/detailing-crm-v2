@@ -379,7 +379,9 @@ export type UploadSessionPurpose =
     /** Aktualizacja mapy otwartej wizyty: wyłącznie uszkodzenia. */
     | 'DAMAGE_MAP'
     /** Pliki otwartej wizyty („Dodaj plik" → kod QR): wyłącznie zdjęcia, od razu w galerii wizyty. */
-    | 'VISIT_FILES';
+    | 'VISIT_FILES'
+    /** VIN do wpisu zlecenia zbiorczego: jedno zdjęcie, serwer odczytuje numer, zdjęcie nie zostaje. */
+    | 'VIN_SCAN';
 
 export interface MobileCheckinContext {
     checkinId: string;

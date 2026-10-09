@@ -15,7 +15,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import styled from 'styled-components';
-import { Camera, Plus, Trash2 } from 'lucide-react';
+import { Camera, ImageUp, Plus, QrCode, Trash2 } from 'lucide-react';
 import { BrandSelect, ModelSelect } from '../../vehicles/components/BrandModelSelectors';
 import {
     ModalShell, ModalHeader, ModalTitleGroup, ModalTitle,
@@ -32,7 +32,8 @@ import { netToGross, grossToNet } from '@/common/utils/priceAdjustment';
 import { priceInputsForVatRate, storedPriceSide } from '@/common/utils/priceInputs';
 import { formatCurrency } from '@/common/utils';
 import { batchOrderApi } from '../api/batchOrderApi';
-import { useVisualViewportSheet } from '@/common/hooks';
+import { useMediaQuery, useVisualViewportSheet } from '@/common/hooks';
+import { ActionMenu, MenuItem, useActionMenu } from '@/common/components/ui';
 import { useBatchServices, useCreateEntry, useUpdateEntry } from '../hooks/useBatchOrders';
 import type { BatchOrderEntry, BatchService, EntryRequest, VehicleSuggestion } from '../types';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
@@ -40,6 +41,7 @@ import { useToast } from '@/common/components/Toast';
 import { emptyService, serviceToForm, toServiceItems, validateServices, type ServiceFormItem } from '../utils/entryForm';
 import { apiErrorMessage, formatMoney } from '../utils/format';
 import { todayIso } from '../utils/period';
+import { VinQrModal } from './VinQrModal';
 
 // ─── Service card ─────────────────────────────────────────────────────────────
 
@@ -469,6 +471,11 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
 
     const [vinUploading, setVinUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    // Na komputerze aparat przy VIN pyta, skąd zdjęcie: plik z dysku albo telefon przez
+    // kod QR (jak przy przyjęciu pojazdu). Na telefonie od razu otwiera aparat.
+    const isPhone = useMediaQuery('(max-width: 767px)');
+    const vinMenu = useActionMenu();
+    const [vinQrOpen, setVinQrOpen] = useState(false);
 
     // The module's own service catalog, fetched once and filtered locally: it is a short
     // per-studio list, and a request per keystroke would lag behind the typing it is
@@ -857,9 +864,12 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
                                     />
                                     <CameraInlineBtn
                                         type="button"
-                                        title="Zeskanuj VIN ze zdjęcia"
+                                        title="Odczytaj VIN ze zdjęcia"
+                                        aria-label="Odczytaj VIN ze zdjęcia"
+                                        aria-haspopup={isPhone ? undefined : 'menu'}
+                                        aria-expanded={isPhone ? undefined : vinMenu.isOpen()}
                                         disabled={vinUploading}
-                                        onClick={() => fileInputRef.current?.click()}
+                                        onClick={e => (isPhone ? fileInputRef.current?.click() : vinMenu.toggle(e, null))}
                                     >
                                         <Camera size={15} />
                                     </CameraInlineBtn>
@@ -883,6 +893,25 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
                                 style={{ display: 'none' }}
                                 onChange={handleVinFileChange}
                             />
+                            <ActionMenu anchor={vinMenu.menu?.anchor ?? null} onClose={vinMenu.close} label="Skąd zdjęcie VIN">
+                                <MenuItem icon={<QrCode />} onClick={() => { vinMenu.close(); setVinQrOpen(true); }}>
+                                    Telefonem (kod QR)
+                                </MenuItem>
+                                <MenuItem icon={<ImageUp />} onClick={() => { vinMenu.close(); fileInputRef.current?.click(); }}>
+                                    Zdjęcie z komputera
+                                </MenuItem>
+                            </ActionMenu>
+                            {vinQrOpen && (
+                                <VinQrModal
+                                    onClose={() => setVinQrOpen(false)}
+                                    onVin={vin => {
+                                        setVinQrOpen(false);
+                                        setVehicleVin(vin);
+                                        setError('');
+                                        showSuccess('Odczytano VIN', vin);
+                                    }}
+                                />
+                            )}
                         </FormField>
                     </FormGrid>
                 </div>
