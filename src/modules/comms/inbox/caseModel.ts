@@ -95,10 +95,10 @@ export interface CaseStep {
  * odpowiedzią. Gdy to jest krok, „Wyślij" w kompozytorze traci wypełnienie
  * (CLAUDE.md §2), ale zostaje pod ręką.
  *
- * [advances] - czy po kroku otworzy się następna sprawa (kolejka obok).
+ * Podpis „potem otworzy się następna sprawa" wycofany: przejście do następnej sprawy
+ * widać po fakcie, a zapowiedź tylko wydłużała przycisk.
  */
-export function caseNextStep(lead: Lead, urgency: LeadUrgency, advances: boolean): CaseStep {
-    const after = advances ? 'Potem otworzy się następna sprawa' : 'Klient dostanie potwierdzenie';
+export function caseNextStep(lead: Lead, urgency: LeadUrgency): CaseStep {
     if (CLOSED_STATUSES.has(lead.status)) return { kind: 'NONE', title: '', hint: '' };
     if (lead.appointmentId) return { kind: 'APPOINTMENT', title: 'Zobacz termin', hint: 'Rezerwacja stoi w kalendarzu' };
     const phone = leadPhoneNumber(lead);
@@ -106,9 +106,9 @@ export function caseNextStep(lead: Lead, urgency: LeadUrgency, advances: boolean
         return { kind: 'CALL', title: 'Zadzwoń', hint: phone, href: `tel:${phone.replace(/\s/g, '')}` };
     }
     if (urgency.turn === 'OURS' && !(weReplied(lead) && hasQuote(lead))) {
-        return { kind: 'REPLY', title: hasQuote(lead) ? 'Wyślij wycenę' : 'Wyślij', hint: after };
+        return { kind: 'REPLY', title: hasQuote(lead) ? 'Wyślij wycenę' : 'Wyślij', hint: '' };
     }
-    return { kind: 'BOOK', title: 'Umów wizytę', hint: after };
+    return { kind: 'BOOK', title: 'Umów wizytę', hint: 'Klient dostanie potwierdzenie' };
 }
 
 /** Odmiana „wizyta / wizyty / wizyt". */

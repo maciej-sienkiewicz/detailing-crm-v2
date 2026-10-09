@@ -29,13 +29,14 @@
 // uczestnika, wypisanego już w nagłówku. Adres pokazujemy tylko wtedy, gdy jest
 // o nim coś do powiedzenia (formularz, nieznany klient).
 import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent, type ReactNode } from 'react';
-import styled, { css } from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 import {
     ArrowLeft,
     AtSign,
     FileImage,
     FileText,
     File as FileIcon,
+    Reply,
     ImagePlus,
     Loader2,
     Paperclip,
@@ -66,11 +67,31 @@ import { RichTextEditor } from './RichTextEditor';
 import { GalleryPhotoPicker, type GalleryPickerContext } from './GalleryPhotoPicker';
 import { galleryPhotoKey } from '../utils/galleryPhotoKey';
 import { SignatureSettingsModal } from './SignatureSettingsModal';
-import { FooterPrimary, PillPrimary, TintBtn, ToolBtn } from '../inbox/primitives';
+import { PillPrimary, TintBtn, ToolBtn } from '../inbox/primitives';
 import { ix } from '../inbox/tokens';
 
-const Composer = styled.div<{ $dragging: boolean; $sheet?: boolean; $divider: boolean; $phone: boolean }>`
+/*
+ * Rozsunięcie z przycisku „Odpisz": karta odsłania się od prawego dolnego rogu,
+ * tam gdzie stał przycisk - oko widzi, skąd się wzięła. Przycinanie, a nie zmiana
+ * wymiarów: układ rozmowy nad kompozytorem nie skacze w trakcie animacji.
+ */
+const grow = keyframes`
+    from {
+        opacity: 0.4;
+        clip-path: inset(calc(100% - 64px) 28px 20px calc(100% - 180px) round 999px);
+    }
+    to {
+        opacity: 1;
+        clip-path: inset(0 0 0 0 round 0);
+    }
+`;
+
+const Composer = styled.div<{ $dragging: boolean; $sheet?: boolean; $divider: boolean; $phone: boolean; $grow?: boolean }>`
     position: relative;
+    ${p => p.$grow && css`
+        animation: ${grow} 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+        @media (prefers-reduced-motion: reduce) { animation: none; }
+    `}
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -120,9 +141,10 @@ const Composer = styled.div<{ $dragging: boolean; $sheet?: boolean; $divider: bo
 `;
 
 /** Zwinięta odpowiedź: pole „Odpowiedz…" i przyciski w jednym rzędzie. */
-const CompactRow = styled.div`
+const CompactRow = styled.div<{ $end?: boolean }>`
     display: flex;
     align-items: center;
+    justify-content: ${p => (p.$end ? 'flex-end' : 'flex-start')};
     gap: 8px;
 `;
 
@@ -465,13 +487,16 @@ interface ReplyComposerProps {
     galleryContext?: GalleryPickerContext;
     /**
      * Wygląd „Wyślij" (CLAUDE.md §2 - jedno wypełnienie w oknie):
-     *  - 'pill'  - wypełniona pigułka (poczta: wysyłka jest krokiem następnym),
-     *  - 'tint'  - odcień z obwódką (krokiem jest coś innego, np. rezerwacja obok),
-     *  - { title, hint } - duży przycisk kroku następnego pod kartą („Wyślij wycenę").
+     *  - 'pill' - wypełniona pigułka (odpowiedź jest krokiem następnym),
+     *  - 'tint' - odcień z obwódką (krokiem jest coś innego, np. rezerwacja obok).
      */
-    sendAppearance?: 'pill' | 'tint' | { title: string; hint: string };
-    /** 'compact' - zwinięty rząd „Odpowiedz…" na komputerze, karta po kliknięciu. */
-    layout?: 'card' | 'compact';
+    sendAppearance?: 'pill' | 'tint';
+    /**
+     * 'collapsed' - na komputerze najpierw sam wąski przycisk „Odpisz", a karta
+     * z edytorem rozsuwa się dopiero po kliknięciu. Rozłożony edytor zabierał
+     * rozmowie pół ekranu także wtedy, gdy nikt nie odpisywał.
+     */
+    layout?: 'card' | 'collapsed';
     /** Kreska nad kompozytorem - w poczcie oddziela odpowiedź od czytanej wiadomości. */
     divider?: boolean;
 }
@@ -707,14 +732,16 @@ export function ReplyComposer({
             : 'Wysyłanie…'
         : 'Wyślij';
 
-    // Zwinięty rząd rozwija się w kartę na żądanie i sam, gdy jest już co pokazać.
-    const compactCollapsed = layout === 'compact' && !collapsible && !expanded && bodyEmpty
-        && !draft && attachments.length === 0 && galleryPhotos.length === 0 && !sendMail.isPending;
+    // Zwinięty przycisk rozsuwa się w kartę na żądanie i sam, gdy jest już co pokazać.
+    const nothingWritten = bodyEmpty && !draft && attachments.length === 0 && galleryPhotos.length === 0 && !sendMail.isPending;
+    const compactCollapsed = layout === 'collapsed' && !collapsible && !expanded && nothingWritten;
     const [focusOnOpen, setFocusOnOpen] = useState(false);
     const open = () => {
         setFocusOnOpen(true);
         setExpanded(true);
     };
+    // Rozsunięta, a wciąż pusta karta da się zwinąć z powrotem do „Odpisz".
+    const canFold = layout === 'collapsed' && !collapsible && expanded && nothingWritten;
 
     const draftButton = (height: number, iconOnly = false) =>
         threadId ? (
@@ -756,22 +783,19 @@ export function ReplyComposer({
     if (compactCollapsed) {
         return (
             <Composer $dragging={false} $divider={divider} $phone={false} style={{ paddingTop: 16 }}>
-                <CompactRow>
-                    <FakeInput type="button" $h={44} onClick={open}>Odpowiedz…</FakeInput>
-                    {draftButton(44)}
+                <CompactRow $end>
                     {sendAppearance === 'pill' ? (
-                        <PillPrimary style={{ height: 44 }} onClick={open}><Send /> Wyślij</PillPrimary>
+                        <PillPrimary onClick={open}><Reply /> Odpisz</PillPrimary>
                     ) : (
-                        <TintBtn $h={44} onClick={open}>Wyślij</TintBtn>
+                        <TintBtn $h={40} onClick={open}><Reply /> Odpisz</TintBtn>
                     )}
                 </CompactRow>
-                {signatureSettingsOpen && <SignatureSettingsModal isOpen onClose={() => setSignatureSettingsOpen(false)} />}
             </Composer>
         );
     }
 
     const sendButton =
-        typeof sendAppearance === 'object' ? null : sendAppearance === 'tint' ? (
+        sendAppearance === 'tint' ? (
             <TintBtn $h={40} onClick={submit} disabled={sendDisabled} title={sendTitle}>
                 <Send /> {sendLabel}
             </TintBtn>
@@ -789,6 +813,7 @@ export function ReplyComposer({
             $dragging={dragging}
             $divider={divider}
             $phone={collapsible}
+            $grow={layout === 'collapsed' && !collapsible && focusOnOpen}
             onDragEnter={onDragEnter}
             onDragOver={(event) => { if (event.dataTransfer.types.includes('Files')) event.preventDefault(); }}
             onDragLeave={onDragLeave}
@@ -1007,6 +1032,11 @@ export function ReplyComposer({
                 }
                 actions={
                     <>
+                        {canFold && (
+                            <ToolBtn onClick={() => { setExpanded(false); setFocusOnOpen(false); }} aria-label="Zwiń odpowiedź" title="Zwiń odpowiedź">
+                                Anuluj
+                            </ToolBtn>
+                        )}
                         {undoSnapshot !== null && (
                             <ToolBtn onClick={undo} title={undoSnapshot.title} aria-label="Cofnij">
                                 <Undo2 /> Cofnij
@@ -1038,17 +1068,6 @@ export function ReplyComposer({
                         </button>
                     ))}
                 </QuickReplies>
-            )}
-
-            {typeof sendAppearance === 'object' && (
-                <FooterPrimary
-                    icon={<Send />}
-                    title={sendMail.isPending ? sendLabel : sendAppearance.title}
-                    hint={sendAppearance.hint}
-                    onClick={submit}
-                    disabled={sendDisabled}
-                    aria-label={sendMail.isPending ? sendLabel : `Wyślij: ${sendAppearance.title}`}
-                />
             )}
 
             {galleryOpen && galleryContext && (

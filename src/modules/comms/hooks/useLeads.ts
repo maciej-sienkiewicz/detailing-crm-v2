@@ -831,6 +831,23 @@ export const useUpdateLead = () => {
     });
 };
 
+/**
+ * Przypięcie sprawy do klienta z kartoteki - po dodaniu nowego klienta z panelu
+ * sprawy. Unieważnia też wizytówkę kontaktu, bo „Nowy klient" właśnie przestał nim być.
+ */
+export const useAssignLeadCustomer = () => {
+    const invalidate = useLeadInvalidation();
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ leadId, customerId }: { leadId: string; customerId: string }) =>
+            leadsApi.assignCustomer(leadId, customerId),
+        onSuccess: (_lead, { leadId }) => {
+            invalidate(leadId);
+            queryClient.invalidateQueries({ queryKey: ['comms', 'contact-card'] });
+        },
+    });
+};
+
 export const useCreateLead = () => {
     const invalidate = useLeadInvalidation();
     return useMutation({
