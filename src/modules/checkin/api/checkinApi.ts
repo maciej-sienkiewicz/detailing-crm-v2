@@ -305,6 +305,19 @@ export const checkinApi = {
     },
 
     /**
+     * Zdjęcie VIN z telefonu (sesja VIN_SCAN): serwer odczytuje numer i oddaje go
+     * oknu wpisu na komputerze. `null` - na zdjęciu nie dało się odczytać VIN.
+     */
+    scanMobileVin: async (file: File, token: string): Promise<string | null> => {
+        const formData = new FormData();
+        formData.append('photo', file, file.name);
+        const response = await apiClient.post<{ vin: string | null }>(`${MOBILE_BASE_PATH}/vin`, formData, {
+            headers: { 'X-Upload-Token': token },
+        });
+        return response.data.vin;
+    },
+
+    /**
      * Delete a QR-uploaded photo by photoId (desktop side).
      */
     deleteCheckinPhoto: async (checkinId: string, photoId: string): Promise<void> => {

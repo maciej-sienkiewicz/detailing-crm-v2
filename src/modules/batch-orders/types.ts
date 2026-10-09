@@ -217,3 +217,16 @@ export interface SettlementHistoryRecord {
     emailRecipient: string | null;
     closedByUserName: string | null;
 }
+
+/** Sesja „VIN telefonem" (kod QR) - token otwiera na telefonie stronę `/m/upload`. */
+export interface VinScanSession {
+    token: string;
+    sessionId: string;
+    expiresAt: string;
+}
+
+/** Wynik zdjęcia z telefonu; `vin = null` - na zdjęciu nie dało się odczytać VIN. */
+export interface VinScanResult {
+    vin: string | null;
+    scannedAt: string;
+}
