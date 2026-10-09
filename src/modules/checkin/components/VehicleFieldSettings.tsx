@@ -13,6 +13,7 @@
 // Dymek jak „Ustawienia widoku miesiąca" w kalendarzu - ten sam wzorzec ustawienia
 // wyglądu, nie danych.
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { Settings2 } from 'lucide-react';
 import { Toggle } from '@/common/components/Toggle';
@@ -157,7 +158,10 @@ export function VehicleFieldSettings() {
                 <Settings2 aria-hidden="true" />
                 Ustawienia pól
             </Trigger>
-            {open && (
+            {/* Portal do <body>: w miejscu wywołania dymek siedział w karcie sekcji, która
+                tworzy własny kontekst nakładania - i chował się pod przyklejoną stopką
+                formularza mimo wyższego z-index. */}
+            {open && createPortal(
                 <>
                     <Backdrop onClick={() => setOpen(false)} />
                     <Panel ref={panelRef} role="dialog" aria-label="Ustawienia pól pojazdu">
@@ -187,7 +191,8 @@ export function VehicleFieldSettings() {
                         ))}
                         <Fixed>Marka i model są zawsze - bez nich nie ma pojazdu.</Fixed>
                     </Panel>
-                </>
+                </>,
+                document.body,
             )}
         </>
     );

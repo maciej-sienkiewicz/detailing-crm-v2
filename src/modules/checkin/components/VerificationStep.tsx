@@ -28,7 +28,8 @@ import {
 import { SharedButton } from '@/common/styles';
 import { PhoneInput } from '@/common/components/PhoneInput';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
-import { VinInput } from '@/modules/vehicles/components/vin/VinInput';
+import { VinCameraButton } from '@/modules/vehicles/components/vin/VinCameraButton';
+import { cleanVin, VIN_MAX_LENGTH } from '@/modules/vehicles/components/vin/vinFormat';
 import { vehicleApi } from '@/modules/vehicles/api/vehicleApi';
 import { vehicleDetailQueryKey } from '@/modules/vehicles/hooks/useVehicleDetail';
 import { useVehicleFormConfig } from '@/modules/settings/hooks/useCompany';
@@ -615,6 +616,47 @@ const CheckRow = styled.label`
  * kolejności DOM - czyli w kolejności pól na formularzu, a nie w kolejności
  * komunikatów na liście w stopce.
  */
+/*
+ * Pole VIN w stylu TEGO formularza: to samo `Input` co marka, tablica i kolor (szare tło,
+ * cienka obwódka, poświata przy fokusie), a aparat siedzi w środku pola przy prawej
+ * krawędzi. Wspólne pole VIN (VinInput) ma wygląd nowych formularzy - tutaj
+ * odstawałoby od sąsiadów wysokością, tłem i obwódką.
+ */
+const VinFieldWrap = styled.div`
+    position: relative;
+
+    input {
+        padding-right: 44px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        font-variant-numeric: tabular-nums;
+    }
+`;
+
+const VinCamera = styled(VinCameraButton)`
+    && {
+        position: absolute;
+        top: 1px;
+        right: 1px;
+        bottom: 1px;
+        min-width: 0;
+        min-height: 0;
+        width: 38px;
+        padding: 0;
+        border: none;
+        border-radius: 0 calc(${st.radiusSm} - 1px) calc(${st.radiusSm} - 1px) 0;
+        background: transparent;
+        color: ${st.textMuted};
+    }
+
+    &&:hover:not(:disabled) {
+        background: transparent;
+        color: ${st.accentBlue};
+    }
+
+    && svg { width: 16px; height: 16px; }
+`;
+
 const FieldError = ({ children }: { children: ReactNode }) => (
     <ErrorMessage data-error-anchor="">{children}</ErrorMessage>
 );
@@ -1890,15 +1932,26 @@ export const VerificationStep = ({
                         {showVin && (
                             <FieldGroup>
                                 <Label htmlFor="checkin-vin">VIN</Label>
-                                <VinInput
-                                    id="checkin-vin"
-                                    compact
-                                    value={pendingVehicleUpdates?.vin ?? knownVin}
-                                    onChange={(vin) => { setVinScanError(null); handleVehicleFieldChange({ vin }); }}
-                                    onBlur={handleVehicleFieldBlur}
-                                    onScanned={handleVinScanned}
-                                    onScanError={setVinScanError}
-                                />
+                                <VinFieldWrap>
+                                    <Input
+                                        id="checkin-vin"
+                                        value={pendingVehicleUpdates?.vin ?? knownVin}
+                                        onChange={(e) => {
+                                            setVinScanError(null);
+                                            handleVehicleFieldChange({ vin: cleanVin(e.target.value) });
+                                        }}
+                                        onBlur={handleVehicleFieldBlur}
+                                        placeholder="np. WBA3A5G59DNP26082"
+                                        maxLength={VIN_MAX_LENGTH + 4}
+                                        autoComplete="off"
+                                        spellCheck={false}
+                                        $hasError={!!vinScanError}
+                                    />
+                                    <VinCamera
+                                        onVin={(vin) => { setVinScanError(null); handleVinScanned(cleanVin(vin)); }}
+                                        onError={setVinScanError}
+                                    />
+                                </VinFieldWrap>
                                 {vinScanError && <FieldError>{vinScanError}</FieldError>}
                             </FieldGroup>
                         )}
