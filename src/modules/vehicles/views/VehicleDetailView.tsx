@@ -33,6 +33,9 @@ import { VehicleNotes } from '../components/VehicleNotes';
 import { VehicleComments } from '../components/VehicleComments';
 import { VehicleDetailHeader } from '../components/VehicleDetailHeader';
 import { EditVehicleModal } from '../components/EditVehicleModal';
+import { VinEditModal } from '../components/vin/VinEditModal';
+import { useUpdateVehicle } from '../hooks/useUpdateVehicle';
+import { useToast } from '@/common/components/Toast';
 import { EditOwnersModal } from '../components/EditOwnersModal';
 import { EntityActivityTimeline } from '@/modules/activity';
 import { PageContainer } from '@/common/components/PageContainer';
@@ -40,7 +43,7 @@ import { formatCurrency } from '@/common/utils';
 import { t } from '@/common/i18n';
 import { useMediaQuery } from '@/common/hooks';
 import {
-    Button, Card, FieldList, FieldRow, Notice, Panel, PanelBody, SectionChips, SectionTitle,
+    Button, Card, FieldList, FieldRow, IconButton, Notice, Panel, PanelBody, SectionChips, SectionTitle,
     StatusPill, SummaryStrip, ui, type PillTone,
 } from '@/common/components/ui';
 import type { VehicleOwner } from '../types';
@@ -351,6 +354,17 @@ function visitStatus(status: string): { label: string; tone: PillTone } {
 const pad = (n: number) => String(n).padStart(2, '0');
 
 
+/** VIN czyta się znak po znaku (przepisuje z tabliczki) - stała szerokość znaków. */
+const VinText = styled.span`
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.04em;
+    overflow-wrap: anywhere;
+`;
+
+const VinMissing = styled.span`
+    color: ${ui.textMuted};
+`;
+
 const LastVisitAgo = styled.span`
     color: ${ui.textMuted};
     font-weight: 400;
@@ -373,6 +387,9 @@ export const VehicleDetailView = () => {
 
     const [isAuditOpen, setIsAuditOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isVinModalOpen, setIsVinModalOpen] = useState(false);
+    const { updateVehicle, isUpdating } = useUpdateVehicle(vehicleId ?? '');
+    const { showSuccess, showError } = useToast();
     const [isEditOwnersModalOpen, setIsEditOwnersModalOpen] = useState(false);
     const [showDeletedVisits, setShowDeletedVisits] = useState(false);
     const [showAllVisits, setShowAllVisits] = useState(false);
@@ -453,6 +470,7 @@ export const VehicleDetailView = () => {
                     yearOfProduction: vehicle.yearOfProduction,
                     licensePlate: vehicle.licensePlate,
                     color: vehicle.color ?? undefined,
+                    vin: vehicle.vin ?? undefined,
                 },
                 ...(singleOwner ? {
                     prefillCustomer: {
@@ -698,6 +716,21 @@ export const VehicleDetailView = () => {
                                         <FieldRow label="Marka">{vehicle.brand || '-'}</FieldRow>
                                         <FieldRow label="Model">{vehicle.model || '-'}</FieldRow>
                                         {vehicle.licensePlate && <FieldRow label="Tablica">{vehicle.licensePlate}</FieldRow>}
+                                        <FieldRow label="VIN">
+                                            {vehicle.vin
+                                                ? <VinText>{vehicle.vin}</VinText>
+                                                : <VinMissing>Nie podano</VinMissing>}
+                                            {!isArchived && canEditVehicle && (
+                                                <IconButton
+                                                    label={vehicle.vin ? 'Popraw VIN' : 'Dodaj VIN'}
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setIsVinModalOpen(true)}
+                                                >
+                                                    <Pencil />
+                                                </IconButton>
+                                            )}
+                                        </FieldRow>
                                         {vehicle.yearOfProduction && <FieldRow label="Rocznik">{vehicle.yearOfProduction}</FieldRow>}
                                         {vehicle.color && <FieldRow label="Kolor">{vehicle.color}</FieldRow>}
                                         {vehicle.currentMileage ? (
@@ -727,11 +760,31 @@ export const VehicleDetailView = () => {
                 </Layout>
             </ContentArea>
 
-            <EditVehicleModal
-                isOpen={isEditModalOpen}
-                onClose={() => setIsEditModalOpen(false)}
-                vehicle={vehicle}
-            />
+            {/* Montowane dopiero przy otwarciu: formularz bierze wartości startowe raz,
+                więc okno zamontowane na stałe pokazywało dane sprzed zmian zrobionych gdzie
+                indziej (np. VIN dodany obok) - a zapis przywracał te stare. */}
+            {isEditModalOpen && (
+                <EditVehicleModal
+                    isOpen
+                    onClose={() => setIsEditModalOpen(false)}
+                    vehicle={vehicle}
+                />
+            )}
+            {isVinModalOpen && (
+                <VinEditModal
+                    vin={vehicle.vin}
+                    subtitle={[vehicle.brand, vehicle.model, vehicle.licensePlate].filter(Boolean).join(' ')}
+                    saving={isUpdating}
+                    onClose={() => setIsVinModalOpen(false)}
+                    onSave={(vin) => updateVehicle({ vin }, {
+                        onSuccess: () => {
+                            setIsVinModalOpen(false);
+                            showSuccess(vin ? 'VIN zapisany' : 'VIN usunięty', vin || 'Karta pojazdu nie ma już numeru VIN.');
+                        },
+                        onError: () => showError('Nie udało się zapisać VIN', 'Sprawdź numer i spróbuj ponownie.'),
+                    })}
+                />
+            )}
             <EditOwnersModal
                 isOpen={isEditOwnersModalOpen}
                 onClose={() => setIsEditOwnersModalOpen(false)}

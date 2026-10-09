@@ -51,6 +51,17 @@ export interface UpdateDocumentLogoConfigRequest {
     showLogoOnDocuments: boolean;
 }
 
+/**
+ * Pola sekcji „Dane pojazdu" UKRYTE na formularzu wizyty („Ustawienia pól").
+ * Pusta lista - wszystko widać; tak startuje każde studio.
+ */
+export interface VehicleFormConfig {
+    hiddenFields: VehicleFormFieldKey[];
+}
+
+/** Marki i modelu nie da się ukryć: bez nich nie ma pojazdu. */
+export type VehicleFormFieldKey = 'yearOfProduction' | 'licensePlate' | 'mileage' | 'color' | 'vin';
+
 /** Widok wizyty: odhaczanie wykonanych usług (np. tablet na hali); domyślnie wyłączone. */
 export interface VisitViewConfig {
     serviceChecklistEnabled: boolean;

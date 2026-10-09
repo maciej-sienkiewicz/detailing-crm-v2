@@ -4,6 +4,7 @@ import type {
     DocumentLogoConfig,
     ProtocolContentConfig,
     VisitViewConfig,
+    VehicleFormConfig,
     UpdateCompanySettingsRequest,
     UpdateDocumentLogoConfigRequest,
     UpdateVisitNumberingConfigRequest,
@@ -121,6 +122,16 @@ export const companyApi = {
 
     updateDocumentLogoConfig: async (data: UpdateDocumentLogoConfigRequest): Promise<DocumentLogoConfig> => {
         const response = await apiClient.patch<DocumentLogoConfig>(`${BASE_PATH}/document-logo-config`, data);
+        return response.data;
+    },
+
+    getVehicleFormConfig: async (): Promise<VehicleFormConfig> => {
+        const response = await apiClient.get<VehicleFormConfig>(`${BASE_PATH}/vehicle-form-config`, { skipErrorToast: true });
+        return response.data;
+    },
+
+    updateVehicleFormConfig: async (data: VehicleFormConfig): Promise<VehicleFormConfig> => {
+        const response = await apiClient.patch<VehicleFormConfig>(`${BASE_PATH}/vehicle-form-config`, data);
         return response.data;
     },
 

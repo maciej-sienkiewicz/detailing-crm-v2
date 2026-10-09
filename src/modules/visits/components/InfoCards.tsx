@@ -14,6 +14,7 @@ import styled from 'styled-components';
 import { ArrowUpRight, Check, IdCard, MessageSquare, Pencil, Phone, TriangleAlert } from 'lucide-react';
 import { CustomerContactModal } from './CustomerContactModal';
 import { MileageModal } from './MileageModal';
+import { VinEditModal } from '@/modules/vehicles/components/vin/VinEditModal';
 import { PiiValue, joinPiiName, isPiiMasked } from '@/common/pii';
 import type { VehicleInfo, CustomerInfo } from '../types';
 import { VisitCardLinkModal } from '@/modules/visit-card';
@@ -57,6 +58,13 @@ const LinkLike = styled.button`
 
 const Missing = styled.span`
     color: ${ui.textFaint};
+`;
+
+/** VIN czyta się znak po znaku (przepisuje z tabliczki) - stała szerokość znaków. */
+const VinText = styled.span`
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.04em;
+    overflow-wrap: anywhere;
 `;
 
 // ─── Klient ───────────────────────────────────────────────────────────────────
@@ -256,6 +264,8 @@ interface VehicleInfoCardProps {
         };
     };
     onMileageChange: (mileage: number) => void;
+    /** VIN wpisany albo poprawiony przy wizycie - idzie też do karty pojazdu. */
+    onVinChange?: (vin: string) => void;
     /** Uprawnienie do edycji stanu przy przyjęciu (VISITS_CREATE). Domyślnie tak. */
     canEdit?: boolean;
     onKeysToggle: (checked: boolean) => void;
@@ -276,11 +286,13 @@ const shortDay = (iso?: string) => {
 };
 
 export const VehicleInfoCard = ({
+    vehicle,
     mileageAtArrival,
     keysHandedOver,
     documentsHandedOver,
     vehicleHandoff,
     onMileageChange,
+    onVinChange,
     canEdit = true,
     onViewDetails,
     acceptedByName,
@@ -291,6 +303,8 @@ export const VehicleInfoCard = ({
     /* Przebieg spisany przy ladzie bywa z literówką (12 400 zamiast 124 000).
        Poprawka idzie oknem - tak samo jak uzupełnienie kontaktu klienta obok. */
     const [mileageModalOpen, setMileageModalOpen] = useState(false);
+    const [vinModalOpen, setVinModalOpen] = useState(false);
+    const vin = vehicle?.vin ?? null;
     const accepted = [acceptedByName, shortDay(acceptedAt)].filter(Boolean).join(', ');
 
     /* Nieprzekazanie kluczyków czy dokumentów to normalny wynik, nie błąd:
@@ -307,6 +321,21 @@ export const VehicleInfoCard = ({
                         variant="ghost"
                         size="sm"
                         onClick={() => setMileageModalOpen(true)}
+                    >
+                        <Pencil />
+                    </IconButton>
+                )}
+            </FieldRow>
+            <FieldRow label="VIN">
+                {vin
+                    ? <VinText>{vin}</VinText>
+                    : <Missing>Nie podano</Missing>}
+                {canEdit && onVinChange && (
+                    <IconButton
+                        label={vin ? 'Popraw VIN' : 'Dodaj VIN'}
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setVinModalOpen(true)}
                     >
                         <Pencil />
                     </IconButton>
@@ -341,13 +370,25 @@ export const VehicleInfoCard = ({
         </Handoff>
     );
 
-    const modal = mileageModalOpen && (
-        <MileageModal
-            isOpen
-            mileage={mileageAtArrival}
-            onSave={onMileageChange}
-            onClose={() => setMileageModalOpen(false)}
-        />
+    const modal = (
+        <>
+            {mileageModalOpen && (
+                <MileageModal
+                    isOpen
+                    mileage={mileageAtArrival}
+                    onSave={onMileageChange}
+                    onClose={() => setMileageModalOpen(false)}
+                />
+            )}
+            {vinModalOpen && onVinChange && (
+                <VinEditModal
+                    vin={vin}
+                    subtitle={[vehicle?.brand, vehicle?.model, vehicle?.licensePlate].filter(Boolean).join(' ')}
+                    onClose={() => setVinModalOpen(false)}
+                    onSave={(next) => { setVinModalOpen(false); onVinChange(next); }}
+                />
+            )}
+        </>
     );
 
     if (embedded) {

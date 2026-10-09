@@ -91,8 +91,10 @@ export const useUpdateArrivalState = (visitId: string) => {
 
     const { mutate, mutateAsync, isPending } = useMutation({
         mutationFn: (payload: UpdateArrivalStatePayload) => visitApi.updateArrivalState(visitId, payload),
-        onSuccess: () => {
+        onSuccess: (_data, payload) => {
             queryClient.invalidateQueries({ queryKey: visitDetailQueryKey(visitId) });
+            // VIN należy do pojazdu - karta pojazdu i listy mają pokazać nowy numer.
+            if (payload.vin !== undefined) queryClient.invalidateQueries({ queryKey: ['vehicles'] });
             showSuccess('Stan przy przyjęciu zaktualizowany');
         },
         onError: () => {

@@ -63,6 +63,14 @@ export const updateVehicleSchema = z.object({
 
     currentMileage: z.preprocess(nullToUndefinedNum, z.number().optional()),
 
+    // Pusty napis zostaje pustym napisem (nie undefined): tak serwer odróżnia
+    // „usuń VIN" od „bez zmian".
+    vin: z
+        .string()
+        .max(17, 'VIN ma najwyżej 17 znaków')
+        .regex(/^[A-Z0-9]*$/, 'VIN może zawierać tylko litery i cyfry')
+        .optional(),
+
     status: z
         .enum(['active', 'sold', 'archived'])
         .optional(),

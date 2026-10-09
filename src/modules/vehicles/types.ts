@@ -55,6 +55,8 @@ export interface Vehicle {
     yearOfProduction: number;
     color: string;
     currentMileage: number | null;
+    /** null - VIN nieznany (pojazdy sprzed V181 i te, przy których nikt go nie wpisał). */
+    vin?: string | null;
     status: VehicleStatus;
     technicalNotes: string;
     owners: VehicleOwner[];
@@ -143,11 +145,14 @@ export interface CreateVehiclePayload {
     color: string;
     currentMileage?: number;
     technicalNotes?: string;
+    vin?: string;
     ownerIds: string[];
 }
 
 export interface UpdateVehiclePayload {
     licensePlate?: string;
+    /** Pominięty - bez zmian; pusty napis - usunięcie VIN. */
+    vin?: string;
     color?: string;
     currentMileage?: number;
     technicalNotes?: string;
