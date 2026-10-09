@@ -28,14 +28,46 @@ export async function downloadAttachmentFile(
 }
 
 /**
+ * Typy, które wolno pokazać w nowej karcie. Wyłącznie zamknięta lista: PDF i obrazy
+ * RASTROWE. Nie „image/*" - SVG to dokument ze skryptami, a karta z adresem blob:
+ * dziedziczy pochodzenie CRM-a, więc SVG z cudzej poczty uruchamiał kod nadawcy w sesji
+ * osoby, która kliknęła „Otwórz podgląd". Wszystko spoza listy się pobiera.
+ */
+const PREVIEWABLE_TYPES = new Set([
+    'application/pdf',
+    'image/png',
+    'image/jpeg',
+    'image/gif',
+    'image/webp',
+    'image/avif',
+    'image/bmp',
+]);
+
+const baseType = (contentType: string): string => contentType.split(';')[0].trim().toLowerCase();
+
+/** PDF i obrazek rastrowy da się obejrzeć w przeglądarce - reszta się pobiera. */
+export function isPreviewableAttachment(attachment: CommAttachment): boolean {
+    return PREVIEWABLE_TYPES.has(baseType(attachment.contentType));
+}
+
+/**
  * Podgląd załącznika w nowej karcie. Karta otwiera się od razu (w geście kliknięcia),
  * a adres dostaje po pobraniu - inaczej blokada wyskakujących okien ją zatrzyma.
+ *
+ * Typ bloba ustawiamy sami z listy wyżej, nie bierzemy go z odpowiedzi ani z nazwy
+ * pliku: o tym, jak przeglądarka zinterpretuje bajty, decyduje sprawdzony typ.
  */
 export async function previewAttachmentFile(load: (id: string) => Promise<Blob>, attachment: CommAttachment): Promise<void> {
+    if (!isPreviewableAttachment(attachment)) {
+        await downloadAttachmentFile(load, attachment.id, attachment.fileName);
+        return;
+    }
     const tab = window.open('', '_blank');
+    // Karta podglądu nie dostaje uchwytu do okna CRM-a.
+    if (tab) tab.opener = null;
     try {
         const blob = await load(attachment.id);
-        const typed = blob.type ? blob : new Blob([blob], { type: attachment.contentType });
+        const typed = new Blob([blob], { type: baseType(attachment.contentType) });
         const url = URL.createObjectURL(typed);
         if (tab) tab.location.href = url;
         else window.open(url, '_blank');
