@@ -16,6 +16,7 @@ import {
     ArchiveRestore,
     CalendarPlus,
     Car,
+    ChevronUp,
     FileInput,
     History,
     Mail,
@@ -126,9 +127,33 @@ const Message = styled.article<{ $multi: boolean }>`
     ${p => p.$multi && `padding-bottom: 20px; border-bottom: 1px solid ${ix.lineSoft};`}
     &:last-of-type { border-bottom: none; padding-bottom: 0; }
 
-    .meta { display: flex; align-items: baseline; gap: 10px; font-size: 13px; color: ${ix.muted}; }
-    .meta strong { font-size: 14px; font-weight: 600; color: ${ix.ink}; }
-    .meta .when { margin-left: auto; white-space: nowrap; }
+`;
+
+/**
+ * Nagłówek rozwiniętej wiadomości - zwija ją z powrotem. Dawniej był zwykłym tekstem:
+ * raz rozsuniętej wiadomości nie dało się już schować i długi wątek tylko rósł.
+ */
+const MessageHead = styled.button.attrs({ type: 'button' })`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 32px;
+    padding: 0;
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: 13px;
+    text-align: left;
+    color: ${ix.muted};
+    cursor: pointer;
+
+    strong { font-size: 14px; font-weight: 600; color: ${ix.ink}; }
+    .when { margin-left: auto; white-space: nowrap; }
+    svg { flex: none; width: 16px; height: 16px; color: ${ix.muted}; }
+    &:hover svg, &:hover .when { color: ${ix.text2}; }
+    &:focus-visible { outline: 2px solid ${ix.accent}; outline-offset: 2px; border-radius: 6px; }
+    @media (hover: none) and (pointer: coarse) { min-height: 44px; }
 `;
 
 const Collapsed = styled.button`
@@ -303,10 +328,15 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
                     isOpen(message, index) ? (
                         <Message key={message.id} $multi={multi}>
                             {multi && (
-                                <div className="meta">
+                                <MessageHead
+                                    aria-expanded="true"
+                                    aria-label={`Zwiń wiadomość: ${sender(message)}, ${messageMoment(message.sentAt)}`}
+                                    onClick={() => setExpanded((current) => ({ ...current, [message.id]: false }))}
+                                >
                                     <strong>{sender(message)}</strong>
                                     <span className="when">{messageMoment(message.sentAt)}</span>
-                                </div>
+                                    <ChevronUp aria-hidden="true" />
+                                </MessageHead>
                             )}
                             <MessageBody
                                 html={message.bodyHtml ?? ''}
@@ -322,7 +352,7 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
                             />
                         </Message>
                     ) : (
-                        <Collapsed key={message.id} type="button" onClick={() => setExpanded((current) => ({ ...current, [message.id]: true }))}>
+                        <Collapsed key={message.id} type="button" aria-expanded="false" onClick={() => setExpanded((current) => ({ ...current, [message.id]: true }))}>
                             <strong>{sender(message)}</strong>
                             <span className="snippet">{plainPreview(splitQuotedHistory(message.bodyHtml ?? '').mainHtml)}</span>
                             <span className="when">{messageMoment(message.sentAt)}</span>
@@ -342,6 +372,7 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
                     recipientHint={thread.kind === 'FORM' ? 'zgłoszenie z formularza - odpowiedź trafi prosto do klienta' : undefined}
                     collapsible={phone}
                     divider
+                    layout="collapsed"
                     galleryContext={can('VISITS_VIEW') ? { customerId: contactCard?.customer?.id ?? null, label: visit ? `Wizyta ${visit.vehicleLabel}` : null } : undefined}
                 />
             )}

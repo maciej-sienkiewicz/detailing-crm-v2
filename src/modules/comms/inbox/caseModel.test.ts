@@ -47,24 +47,24 @@ describe('zdanie i krok następny sprawy', () => {
         const l = lead({ services: [service(780000)], estimatedValue: 780000 });
         expect(caseSentence(l, urgencyOf(l))).toEqual({ text: 'Nowe zapytanie', hot: false });
         expect(caseStatusChip(l).label).toBe('Nowe zapytanie');
-        expect(caseNextStep(l, urgencyOf(l), true)).toMatchObject({ kind: 'REPLY', title: 'Wyślij wycenę', hint: 'Potem otworzy się następna sprawa' });
+        expect(caseNextStep(l, urgencyOf(l))).toMatchObject({ kind: 'REPLY', title: 'Wyślij wycenę' });
     });
 
     it('klient odpisał na wysłaną wycenę: zdanie w kolorze, krok - umówienie wizyty', () => {
         const l = lead({ ...replied, services: [service(420000)], estimatedValue: 420000 });
         expect(caseSentence(l, urgencyOf(l))).toEqual({ text: 'Odpisał na wycenę', hot: true });
         expect(caseStatusChip(l)).toEqual({ label: 'Wycena wysłana', tone: 'accent' });
-        expect(caseNextStep(l, urgencyOf(l), false)).toMatchObject({ kind: 'BOOK', hint: 'Klient dostanie potwierdzenie' });
+        expect(caseNextStep(l, urgencyOf(l))).toMatchObject({ kind: 'BOOK', hint: 'Klient dostanie potwierdzenie' });
     });
 
     it('zapytanie z telefonu bez maila: krok - zadzwoń', () => {
         const l = lead({ source: 'PHONE', contactIdentifier: '600 100 200', threadId: null });
-        expect(caseNextStep(l, urgencyOf(l), true)).toMatchObject({ kind: 'CALL', href: 'tel:600100200' });
+        expect(caseNextStep(l, urgencyOf(l))).toMatchObject({ kind: 'CALL', href: 'tel:600100200' });
     });
 
     it('termin w kalendarzu: krok - zobacz termin', () => {
         const l = lead({ ...replied, appointmentId: 'a1' });
-        expect(caseNextStep(l, urgencyOf(l), true).kind).toBe('APPOINTMENT');
+        expect(caseNextStep(l, urgencyOf(l)).kind).toBe('APPOINTMENT');
     });
 });
 

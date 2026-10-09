@@ -4,15 +4,17 @@
 //
 // Rozmowa na środku, sprawa obok. Krok następny jest jeden i to on jest jedynym
 // wypełnionym elementem okna (CLAUDE.md §2):
-//  - nowe zapytanie → „Wyślij wycenę" pod odpowiedzią (kompozytor rozwinięty),
-//  - klient odpisał na wysłaną wycenę → „Umów wizytę" w panelu sprawy, a odpowiedź
-//    zwija się do rzędu „Odpowiedz…" z „Wyślij" w odcieniu,
+//  - czeka na naszą odpowiedź → wypełnione „Odpisz" (po rozwinięciu „Wyślij"),
+//  - klient odpisał na wysłaną wycenę → „Umów wizytę" w panelu sprawy, a „Odpisz"
+//    zostaje w odcieniu,
 //  - zapytanie z telefonu bez maila → „Zadzwoń".
 // Po wysłaniu albo umówieniu otwiera się następna sprawa z kolejki.
 //
-// Reszta (pełne okno leada z sugestiami i notatkami, kontakt poza pocztą, zamknięcie,
-// usunięcie, notatki o kliencie, wcześniejsze rozmowy) jest w menu „⋯" - nie
-// zniknęła, przestała zasłaniać rozmowę.
+// Panel sprawy niesie to, co dotyczy samej sprawy: ołówki przy wycenie i kliencie,
+// status i usunięcie. Reszta (pełne okno leada, kontakt poza pocztą, notatki
+// o kliencie, wcześniejsze rozmowy) jest w menu „⋯" - nie zniknęła, przestała
+// zasłaniać rozmowę. Odpowiedź czeka zwinięta do wąskiego „Odpisz" i rozsuwa się
+// dopiero na kliknięcie - rozwinięty edytor zabierał pół rozmowy.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
@@ -21,7 +23,6 @@ import {
     CalendarCheck,
     CalendarPlus,
     ChevronRight,
-    FileText,
     History,
     Info,
     MoreHorizontal,
@@ -29,9 +30,7 @@ import {
     PhoneCall,
     Send,
     StickyNote,
-    Trash2,
     UserRound,
-    XCircle,
 } from 'lucide-react';
 import { ConfirmationModal, ChoiceModal } from '@/common/components/ConfirmationModal';
 import { useToast } from '@/common/components/Toast';
@@ -54,14 +53,14 @@ import {
     useLeadTimeline,
     useStagnationThresholds,
 } from '../hooks/useLeads';
-import type { Lead } from '../types';
+import type { Lead, LeadStatus } from '../types';
 import { leadToBookingPrefill } from '../utils/bookingPrefill';
 import { leadPhoneNumber } from '../utils/leadPrimaryAction';
 import { describeLeadUrgency } from '../utils/leadUrgency';
 import { ReplyComposer } from '../components/ReplyComposer';
 import type { GalleryPickerContext } from '../components/GalleryPhotoPicker';
 import { LeadDetailModal } from '../components/LeadDetailModal';
-import { LeadLostReasonDialog } from '../components/LeadLostReasonDialog';
+import { useLeadStatusChange } from '../hooks/useLeadStatusChange';
 import { LeadTimeline } from '../components/LeadTimeline';
 import { MessageReaderOverlay } from '../components/MessageReaderOverlay';
 import { RecordCallbackDialog } from '../components/RecordCallbackDialog';
@@ -69,7 +68,8 @@ import { ContactNotesPopover } from '../components/ContactNotesPopover';
 import { ContactCardPopover } from '../components/ContactCardPopover';
 import { ThreadHistoryPanel } from '../components/ThreadHistoryPanel';
 import { caseNextStep, caseStatusChip, caseSubtitle, caseTitle, formatAmount, type CaseStep } from './caseModel';
-import { CaseRail, RailSheet } from './CaseRail';
+import { CaseRail, RailSheet, type CaseActions } from './CaseRail';
+import { ClientEditor } from './ClientEditor';
 import { Bubbles, ConversationHeader, ConversationScroll } from './Conversation';
 import { downloadAttachmentFile } from './messageFormat';
 import { FooterPrimary, IconBtn, StatusChip } from './primitives';
@@ -187,17 +187,19 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
     const [fullMessageId, setFullMessageId] = useState<string | null>(null);
     const [detailsOpen, setDetailsOpen] = useState<null | 'details' | 'services'>(null);
     const [booking, setBooking] = useState(false);
-    const [lostOpen, setLostOpen] = useState(false);
     const [callbackOpen, setCallbackOpen] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
     const [notesAnchor, setNotesAnchor] = useState<HTMLElement | null>(null);
     const [contactAnchor, setContactAnchor] = useState<HTMLElement | null>(null);
     const [deleteStep, setDeleteStep] = useState<null | 'confirm' | 'appointment'>(null);
+    const [clientAnchor, setClientAnchor] = useState<HTMLElement | null>(null);
+    const amountRef = useRef<HTMLButtonElement>(null);
 
     const markRead = useMarkThreadRead();
     const setArchived = useSetThreadArchived();
     const acceptAllSuggestions = useAcceptAllSuggestions(leadId);
     const deleteLead = useDeleteLead();
+    const status = useLeadStatusChange();
 
     // Otwarcie sprawy czyta jej rozmowę - tak jak otwarcie wątku w poczcie.
     useEffect(() => {
@@ -211,8 +213,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
     );
 
     const urgency = useMemo(() => (lead ? describeLeadUrgency(lead, thresholds) : null), [lead, thresholds]);
-    // Na telefonie po kroku wraca się do listy, więc podpis mówi o kliencie (makieta telefonu).
-    const step: CaseStep | null = lead && urgency ? caseNextStep(lead, urgency, Boolean(onAdvance) && !phone) : null;
+    const step: CaseStep | null = lead && urgency ? caseNextStep(lead, urgency) : null;
 
     const galleryContext: GalleryPickerContext | undefined = can('VISITS_VIEW')
         ? {
@@ -297,17 +298,22 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
             />
         );
 
-    const railProps = {
-        lead,
-        contactCard,
-        phone: phoneNumber,
+    const actions: CaseActions = {
         onEditQuote: () => { setSheetOpen(false); setDetailsOpen('services'); },
+        onEditClient: (anchor) => {
+            // Z arkusza ołówek znika razem z nim - wizytówka przypina się wtedy do kwoty w nagłówku.
+            setSheetOpen(false);
+            setClientAnchor(sheetOpen ? amountRef.current ?? anchor : anchor);
+        },
+        onChangeStatus: (next: LeadStatus) => status.requestStatus(lead.id, next),
+        statusPending: status.isPending,
+        onDelete: () => { setSheetOpen(false); setDeleteStep('confirm'); },
     };
 
     const header = (
         <ConversationHeader title={caseTitle(lead)} subtitle={phone ? lead.customerName ?? undefined : caseSubtitle(lead)} phone={phone} onBack={onBack} titleId="case-title">
             {!railBeside ? (
-                <AmountChip type="button" onClick={() => setSheetOpen(true)} aria-label={lead.estimatedValue > 0 ? `Wycena: ${formatAmount(lead.estimatedValue)}` : 'Wycena i klient'}>
+                <AmountChip ref={amountRef} type="button" onClick={() => setSheetOpen(true)} aria-label={lead.estimatedValue > 0 ? `Wycena: ${formatAmount(lead.estimatedValue)}` : 'Wycena i klient'}>
                     {lead.estimatedValue > 0 ? formatAmount(lead.estimatedValue) : 'Wycena'}
                     <ChevronRight aria-hidden="true" />
                 </AmountChip>
@@ -317,7 +323,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
             {!phone && (
                 <IconBtn
                     ref={menuButtonRef}
-                    aria-label="Więcej: szczegóły sprawy, kontakt poza pocztą, zamknięcie"
+                    aria-label="Więcej: szczegóły sprawy, kontakt poza pocztą, notatki o kliencie"
                     aria-haspopup="menu"
                     aria-expanded={menu.isOpen()}
                     onClick={(event) => menu.toggle(event, null)}
@@ -339,8 +345,8 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                 recipientHint={thread.kind === 'FORM' ? 'zgłoszenie z formularza - odpowiedź trafi prosto do klienta' : undefined}
                 collapsible={phone}
                 barExtra={phone ? cta : undefined}
-                layout={replyStep ? 'card' : 'compact'}
-                sendAppearance={replyStep ? { title: step.title, hint: step.hint } : 'tint'}
+                layout="collapsed"
+                sendAppearance={replyStep ? 'pill' : 'tint'}
                 galleryContext={galleryContext}
                 onSent={() => onAdvance?.()}
             />
@@ -370,7 +376,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                         phone={phone}
                         onDownload={download}
                         onOpenFull={setFullMessageId}
-                        alignBottom={!replyStep || phone}
+                        alignBottom
                     />
                 ) : (
                     <NoThreadBody lead={lead} phone={phone} />
@@ -387,11 +393,14 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                 })()}
             </Column>
 
-            {railBeside && <CaseRail lead={lead} contactCard={contactCard} phone={phoneNumber} cta={cta} />}
+            {railBeside && <CaseRail lead={lead} contactCard={contactCard} phone={phoneNumber} cta={cta} {...actions} />}
 
             {sheetOpen && (
                 <RailSheet
-                    {...railProps}
+                    lead={lead}
+                    contactCard={contactCard}
+                    phone={phoneNumber}
+                    {...actions}
                     side={!phone}
                     onClose={() => setSheetOpen(false)}
                     onDetails={() => { setSheetOpen(false); setDetailsOpen('details'); }}
@@ -401,9 +410,6 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
 
             <ActionMenu anchor={menu.menu?.anchor ?? null} onClose={menu.close} label="Akcje sprawy">
                 <MenuItem icon={<Info />} onClick={() => { menu.close(); setDetailsOpen('details'); }}>Szczegóły sprawy</MenuItem>
-                <MenuItem icon={<FileText />} onClick={() => { menu.close(); setDetailsOpen('services'); }}>
-                    {lead.services.length > 0 ? 'Zmień wycenę' : 'Dodaj wycenę'}
-                </MenuItem>
                 {step.kind !== 'BOOK' && !lead.appointmentId && (
                     <MenuItem icon={<CalendarPlus />} onClick={() => { menu.close(); openBooking(); }}>Umów wizytę</MenuItem>
                 )}
@@ -418,14 +424,12 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                         )}
                     </>
                 )}
-                <MenuDivider />
+                {thread && <MenuDivider />}
                 {thread && (
                     <MenuItem icon={<Archive />} onClick={() => { menu.close(); setArchived.mutate({ threadId: thread.id, archived: !thread.archived }); }}>
                         {thread.archived ? 'Przywróć rozmowę ze schowka' : 'Archiwizuj rozmowę'}
                     </MenuItem>
                 )}
-                <MenuItem icon={<XCircle />} onClick={() => { menu.close(); setLostOpen(true); }}>Zamknij sprawę</MenuItem>
-                <MenuItem icon={<Trash2 />} danger onClick={() => { menu.close(); setDeleteStep('confirm'); }}>Usuń sprawę</MenuItem>
             </ActionMenu>
 
             {contactAnchor && cardEmail && (
@@ -465,7 +469,16 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                     }}
                 />
             )}
-            {lostOpen && <LeadLostReasonDialog leadId={lead.id} onClose={() => setLostOpen(false)} />}
+            {clientAnchor && (
+                <ClientEditor
+                    lead={lead}
+                    customerId={lead.customerId ?? contactCard?.customer?.id ?? null}
+                    email={cardEmail}
+                    anchor={clientAnchor}
+                    onClose={() => setClientAnchor(null)}
+                />
+            )}
+            {status.lostDialog}
             {callbackOpen && <RecordCallbackDialog leadId={lead.id} onClose={() => setCallbackOpen(false)} />}
             <ConfirmationModal
                 isOpen={deleteStep === 'confirm'}
@@ -534,7 +547,8 @@ function FirstMessage({ lead, to, phone, step, galleryContext, onSent, barExtra 
             requireSubject
             collapsible={phone}
             barExtra={barExtra}
-            sendAppearance={step.kind === 'REPLY' ? { title: step.title, hint: step.hint } : 'tint'}
+            layout="collapsed"
+            sendAppearance={step.kind === 'REPLY' ? 'pill' : 'tint'}
             galleryContext={galleryContext}
             onSent={onSent}
         />
