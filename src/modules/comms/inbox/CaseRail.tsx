@@ -15,6 +15,7 @@ import { acquireScrollLock } from '@/common/utils/scrollLock';
 import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, type ContactCard, type Lead, type LeadStatus } from '../types';
 import { LeadStatusPicker } from '../components/LeadStatusPicker';
 import { toQuoteRows } from '../utils/leadServiceLines';
+import { LeadSuggestions } from '../components/LeadSuggestions';
 import { clientLine, formatAmount, quoteHeading } from './caseModel';
 import { IconBtn } from './primitives';
 import { ix } from './tokens';
@@ -140,6 +141,12 @@ const DeleteBtn = styled.button.attrs({ type: 'button' })`
     @media (hover: none) and (pointer: coarse) { min-height: 44px; }
 `;
 
+const SuggestionsSlot = styled.div`
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid ${ix.lineSoft};
+`;
+
 const Client = styled.section`
     display: flex;
     align-items: center;
@@ -205,6 +212,11 @@ export function QuoteAndClient({ lead, contactCard, phone, onEditQuote, onEditCl
                 ) : (
                     <p className="empty">Sprawa nie ma jeszcze wyceny.</p>
                 )}
+                {/* Propozycje asystenta pod przyjętymi pozycjami: „Razem" liczy tylko
+                    przyjęte, a to są propozycje czekające na decyzję. */}
+                <SuggestionsSlot>
+                    <LeadSuggestions lead={lead} />
+                </SuggestionsSlot>
             </QuoteCard>
             <Client aria-label="Klient">
                 <div className="who">
@@ -411,6 +423,7 @@ export function RailSheet({ lead, contactCard, phone, side, onClose, onEditQuote
                         ))}
                     </div>
                 )}
+                <LeadSuggestions lead={lead} />
                 <div className="client">
                     <div className="who">
                         <p className="name">{name}</p>

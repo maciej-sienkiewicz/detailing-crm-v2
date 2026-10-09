@@ -1,6 +1,6 @@
 // src/modules/comms/components/SuggestionRefresh.tsx
 //
-// „Odśwież sugestie": przelicza dobór usług od nowa i pokazuje, co z tego wyszło.
+// „Znajdź ponownie": przelicza dobór usług od nowa i pokazuje, co z tego wyszło.
 //
 // Pusta lista sugestii ma kilka zupełnie różnych przyczyn - model nie odpowiedział,
 // uznał, że usługi nie ma w cenniku, wskazał pozycję, którą odsiała bramka, albo
@@ -90,7 +90,7 @@ export function SuggestionRefresh({ actions }: { actions: SuggestionActions }) {
                 title="Przelicz dobór usług z cennika od nowa i pokaż, co z tego wyszło"
             >
                 <RefreshCw />
-                {refresh.isPending ? 'Przeliczam sugestie, to trwa kilkanaście sekund…' : 'Odśwież sugestie'}
+                {refresh.isPending ? 'Szukam usług od nowa, to trwa kilkanaście sekund…' : 'Znajdź ponownie'}
             </RefreshButton>
 
             {refresh.isError && !refresh.isPending && (

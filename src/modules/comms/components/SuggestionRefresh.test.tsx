@@ -24,7 +24,7 @@ describe('SuggestionRefresh', () => {
     it('przycisk przelicza dobór od nowa', () => {
         const mutate = vi.fn();
         renderPanel(actions({ mutate }));
-        fireEvent.click(screen.getByRole('button', { name: /Odśwież sugestie/ }));
+        fireEvent.click(screen.getByRole('button', { name: /Znajdź ponownie/ }));
         expect(mutate).toHaveBeenCalled();
     });
 
@@ -53,6 +53,6 @@ describe('SuggestionRefresh', () => {
 
     it('w trakcie przeliczania mówi, że to chwilę trwa', () => {
         renderPanel(actions({ isPending: true }));
-        expect(screen.getByRole('button', { name: /Przeliczam sugestie/ })).toHaveProperty('disabled', true);
+        expect(screen.getByRole('button', { name: /Szukam usług od nowa/ })).toHaveProperty('disabled', true);
     });
 });

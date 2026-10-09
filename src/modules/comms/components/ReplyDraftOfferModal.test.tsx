@@ -4,7 +4,7 @@
 // z rozmowy), a do szkicu idą pozycje z ceną po rabacie i ceną regularną.
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme/theme';
 import type { ServiceLineItem } from '@/common/components/ServicesTable';
@@ -16,9 +16,15 @@ const markAsLead = vi.fn();
 const showError = vi.fn();
 
 vi.mock('@/common/components/Toast', () => ({ useToast: () => ({ showError, showSuccess: vi.fn() }) }));
+const stubMutation = () => ({ mutate: vi.fn(), isPending: false, isError: false, data: undefined });
+let suggestionOptions: { onAccepted?: (lead: Lead) => void } = {};
 vi.mock('../hooks/useLeads', () => ({
     useUpdateLeadServices: () => ({ mutateAsync: updateServices, isPending: false }),
     useMarkThreadAsLead: () => ({ mutateAsync: markAsLead, isPending: false }),
+    useSuggestionActions: (_leadId: string, options: typeof suggestionOptions = {}) => {
+        suggestionOptions = options;
+        return { accept: stubMutation(), reject: stubMutation(), refresh: stubMutation() };
+    },
 }));
 const CERAMIC: ServiceLineItem = {
     id: 'new', serviceId: 's-1', serviceName: 'Powłoka ceramiczna', basePriceNet: 162_602, basePriceGross: 200_000,
@@ -111,6 +117,22 @@ describe('ReplyDraftOfferModal', () => {
         await waitFor(() => expect(onReady).toHaveBeenCalled());
         expect(updateServices.mock.calls[0][0].leadId).toBe('lead-7');
         expect(markAsLead).not.toHaveBeenCalled();
+    });
+
+    it('sugestie asystenta są w ofercie, a przyjęta trafia od razu na listę', async () => {
+        const suggested = { ...quoted, id: 'i-2', name: 'Powłoka na felgi', priceGross: 40_000, priceNet: 32_520, status: 'SUGGESTED' } as LeadServiceItem;
+        const onReady = renderModal({ id: 'lead-7', services: [quoted, suggested] });
+
+        expect(screen.getByText('Powłoka na felgi')).toBeTruthy();
+        expect(screen.getByRole('button', { name: /Znajdź ponownie/ })).toBeTruthy();
+
+        // Serwer przyjął sugestię - edytor dopisuje ją do swojej listy.
+        act(() => suggestionOptions.onAccepted?.({ id: 'lead-7', services: [quoted, { ...suggested, status: 'ACCEPTED' }] } as Lead));
+        expect(screen.getByText('2 pozycji')).toBeTruthy();
+
+        confirm();
+        await waitFor(() => expect(onReady).toHaveBeenCalled());
+        expect(onReady.mock.calls[0][0].map((line: { name: string }) => line.name)).toEqual(['Mycie', 'Powłoka na felgi']);
     });
 
     it('błąd zapisu: szkic nie powstaje, użytkownik widzi powód', async () => {
