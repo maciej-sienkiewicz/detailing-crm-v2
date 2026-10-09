@@ -56,7 +56,12 @@ const Panel = styled.div`
     color: ${p => p.theme.colors.textSecondary};
 
     .outcome { color: ${p => p.theme.colors.text}; font-weight: 600; }
-    .reasoning { font-style: italic; }
+
+    /* Surowe uzasadnienie asystenta mówi językiem implementacji (nazwy z kodu) - dla
+       wsparcia technicznego, schowane. Na wierzchu tylko zdanie i powody przy pozycjach. */
+    details { font-size: 12px; color: ${p => p.theme.colors.textMuted}; }
+    summary { cursor: pointer; width: max-content; }
+    details p { margin: 6px 0 0; font-style: italic; }
 `;
 
 const Candidates = styled.ul`
@@ -102,17 +107,22 @@ export function SuggestionRefresh({ actions }: { actions: SuggestionActions }) {
             {diagnostics && !refresh.isPending && (
                 <Panel role="status" aria-label="Wynik odświeżenia sugestii">
                     <span className="outcome">{diagnostics.outcome}</span>
-                    {diagnostics.reasoning && <span className="reasoning">„{diagnostics.reasoning}”</span>}
                     {diagnostics.candidates.length > 0 && (
                         <Candidates>
                             {diagnostics.candidates.map((candidate, index) => (
                                 <li key={`${candidate.serviceName}-${index}`}>
                                     <span className="name">{candidate.serviceName}</span>
                                     <span className="stage" data-shown={candidate.shown}>{candidate.stageLabel}</span>
-                                    {candidate.quote && <span className="quote">Cytat: „{candidate.quote}”</span>}
+                                    {candidate.quote && <span className="quote">Klient pisze: „{candidate.quote}”</span>}
                                 </li>
                             ))}
                         </Candidates>
+                    )}
+                    {diagnostics.reasoning && (
+                        <details>
+                            <summary>Szczegóły techniczne</summary>
+                            <p>„{diagnostics.reasoning}”</p>
+                        </details>
                     )}
                 </Panel>
             )}
