@@ -28,27 +28,31 @@ describe('SuggestionRefresh', () => {
         expect(mutate).toHaveBeenCalled();
     });
 
-    it('po przeliczeniu pokazuje przyczynę i etap każdego kandydata', () => {
+    it('po przeliczeniu: zdanie dla człowieka, powód przy każdej pozycji, uzasadnienie techniczne schowane', () => {
         renderPanel(actions({
             data: {
                 lead: {},
                 diagnostics: {
                     ranAt: '2026-10-04T10:00:00Z',
-                    outcome: 'Kandydaci z cennika: 2, pokazanych: 1.',
+                    outcome: 'Dobrano z cennika 1 pozycję. Pozostałe nie pasowały - powody niżej.',
                     intentStatus: 'MATCHED',
-                    reasoning: 'Klient pyta o folię na szybę czołową.',
+                    reasoning: 'Operacja PROTECT na części WINDSHIELD, zakres FULL.',
                     candidates: [
-                        { serviceName: 'Oklejenie szyby czołowej folią PPF', stage: 'SHOWN', stageLabel: 'Pokazana jako sugestia', shown: true, quote: 'oklejanie szyby folią ochronną' },
-                        { serviceName: 'Korekta lakieru', stage: 'FAMILY_MISMATCH', stageLabel: 'Inny rodzaj usługi niż w zapytaniu', shown: false, quote: null },
+                        { serviceName: 'Oklejenie szyby czołowej folią PPF', stage: 'SHOWN', stageLabel: 'Zaproponowana w wycenie', shown: true, quote: 'oklejanie szyby folią ochronną' },
+                        { serviceName: 'Korekta lakieru', stage: 'FAMILY_MISMATCH', stageLabel: 'Pominięta - to inny rodzaj usługi niż ten, o który pyta klient', shown: false, quote: null },
                     ],
                 },
             },
         }));
 
-        expect(screen.getByText('Kandydaci z cennika: 2, pokazanych: 1.')).toBeTruthy();
+        expect(screen.getByText(/Dobrano z cennika 1 pozycję/)).toBeTruthy();
         expect(screen.getByText('Oklejenie szyby czołowej folią PPF')).toBeTruthy();
-        expect(screen.getByText('Inny rodzaj usługi niż w zapytaniu')).toBeTruthy();
-        expect(screen.getByText(/oklejanie szyby folią ochronną/)).toBeTruthy();
+        expect(screen.getByText('Pominięta - to inny rodzaj usługi niż ten, o który pyta klient')).toBeTruthy();
+        expect(screen.getByText('Klient pisze: „oklejanie szyby folią ochronną”')).toBeTruthy();
+        // Uzasadnienie z nazwami z kodu - tylko pod „Szczegóły techniczne", zwinięte.
+        const details = screen.getByText('Szczegóły techniczne').closest('details')!;
+        expect(details.open).toBe(false);
+        expect(details.textContent).toContain('WINDSHIELD');
     });
 
     it('w trakcie przeliczania mówi, że to chwilę trwa', () => {
