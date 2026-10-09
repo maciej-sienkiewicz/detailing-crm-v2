@@ -1,6 +1,6 @@
 // src/modules/vehicles/components/EditVehicleModal.tsx
 //
-// Edycja danych pojazdu. Sześć pól mieści się na jednym ekranie, więc okno nie ma
+// Edycja danych pojazdu. Siedem pól mieści się na jednym ekranie, więc okno nie ma
 // już zakładek „Dane identyfikacyjne / Wygląd i stan": druga zakładka miała dwa
 // pola, a błąd walidacji w ukrytej zakładce blokował zapis bez słowa - użytkownik
 // widział tylko, że „Zapisz" nic nie robi. Teraz obie grupy stoją jedna pod drugą,
@@ -21,6 +21,7 @@ import { useUpdateVehicle } from '../hooks/useUpdateVehicle';
 import { updateVehicleSchema, type UpdateVehicleFormData } from '../utils/vehicleValidation';
 import type { Vehicle } from '../types';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
+import { VinInput } from './vin/VinInput';
 
 const Form = styled.form`
     display: flex;
@@ -73,6 +74,7 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
             yearOfProduction: vehicle.yearOfProduction,
             color: vehicle.color,
             currentMileage: vehicle.currentMileage || 0,
+            vin: vehicle.vin ?? '',
         },
     });
 
@@ -169,6 +171,27 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
                                 </InputShell>
                                 {errors.yearOfProduction && (
                                     <FormErrorMsg>{errors.yearOfProduction.message}</FormErrorMsg>
+                                )}
+                            </FormField>
+
+                            <FormField>
+                                <FieldLabel htmlFor="ev-vin">VIN</FieldLabel>
+                                <Controller
+                                    name="vin"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <VinInput
+                                            id="ev-vin"
+                                            value={field.value ?? ''}
+                                            onChange={field.onChange}
+                                            onBlur={field.onBlur}
+                                            onScanError={(message) => showError('Nie odczytano VIN', message)}
+                                            hasError={!!errors.vin}
+                                        />
+                                    )}
+                                />
+                                {errors.vin && (
+                                    <FormErrorMsg>{errors.vin.message}</FormErrorMsg>
                                 )}
                             </FormField>
                         </FormGrid>

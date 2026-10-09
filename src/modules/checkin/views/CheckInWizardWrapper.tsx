@@ -116,6 +116,7 @@ interface ReservationResponse {
         yearOfProduction: number;
         licensePlate: string;
         color?: string;
+        vin?: string;
     } | null;
     services: ServiceLineItem[];
     status: string;
@@ -199,6 +200,7 @@ export const CheckInWizardWrapper = () => {
             yearOfProduction: vehicleDetailData.vehicle.yearOfProduction,
             licensePlate: vehicleDetailData.vehicle.licensePlate,
             color: vehicleDetailData.vehicle.color,
+            vin: vehicleDetailData.vehicle.vin ?? undefined,
         } : (reservationData.vehicle ? {
             id: reservationData.vehicleId,
             brand: reservationData.vehicle.brand,
@@ -355,6 +357,7 @@ export const CheckInWizardWrapper = () => {
             yearOfProduction: reservation.vehicle.yearOfProduction,
             licensePlate: reservation.vehicle.licensePlate,
             color: reservation.vehicle.color,
+            vin: reservation.vehicle.vin,
         } : null,
         isNewVehicle: false, // Dane z rezerwacji - pojazd już istnieje
         homeAddress: reservation.customer?.homeAddress || null,

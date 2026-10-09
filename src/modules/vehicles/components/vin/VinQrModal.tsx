@@ -1,6 +1,6 @@
-// src/modules/batch-orders/components/VinQrModal.tsx
+// src/modules/vehicles/components/vin/VinQrModal.tsx
 //
-// „VIN telefonem" przy polu VIN w oknie wpisu: kod QR otwiera na telefonie tę samą
+// „VIN telefonem" przy polu VIN (wpis zlecenia zbiorczego, pojazd): kod QR otwiera na telefonie tę samą
 // stronę co przy przyjęciu pojazdu i plikach wizyty (`/m/upload?t=…`), w trybie samego
 // zdjęcia VIN. Telefon nie musi być zalogowany. Serwer odczytuje VIN ze zdjęcia,
 // a to okno odbiera wynik i wpisuje go w pole.
@@ -8,7 +8,7 @@
 // Wynik odpytujemy co 2 s zamiast słuchać WebSocketu: okno jest otwarte tylko na
 // czas jednego zdjęcia, a odczyt przez AI i tak trwa kilka sekund.
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { QRCodeSVG } from 'qrcode.react';
 import { X } from 'lucide-react';
@@ -24,8 +24,7 @@ import {
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
 import { SUBMODAL_Z_INDEX } from '@/common/styles/sharedModalStyles';
-import { batchOrderApi } from '../api/batchOrderApi';
-import type { VinScanSession } from '../types';
+import type { VinApi, VinScanSession } from './vinApi';
 
 const POLL_MS = 2000;
 
@@ -73,32 +72,34 @@ const Status = styled.p<{ $tone: 'wait' | 'error' }>`
 `;
 
 interface Props {
+    api: VinApi;
     onVin: (vin: string) => void;
     onClose: () => void;
 }
 
-export const VinQrModal = ({ onVin, onClose }: Props) => {
+export const VinQrModal = ({ api, onVin, onClose }: Props) => {
     const [session, setSession] = useState<VinScanSession | null>(null);
     const [starting, setStarting] = useState(false);
     const [startError, setStartError] = useState(false);
     const [unreadable, setUnreadable] = useState(false);
     const [expired, setExpired] = useState(false);
     const onVinRef = useRef(onVin);
-    useEffect(() => { onVinRef.current = onVin; });
+    const apiRef = useRef(api);
+    useEffect(() => { onVinRef.current = onVin; apiRef.current = api; });
 
-    const start = async (rotate: boolean) => {
+    const start = useCallback(async (rotate: boolean) => {
         setStarting(true);
         setStartError(false);
         setUnreadable(false);
         setExpired(false);
         try {
-            setSession(await batchOrderApi.startVinScanSession(rotate));
+            setSession(await apiRef.current.startVinScanSession(rotate));
         } catch {
             setStartError(true);
         } finally {
             setStarting(false);
         }
-    };
+    }, []);
 
     /*
      * Kod przy otwarciu okna, bez rotacji: telefon, który zeskanował go przy poprzednim
@@ -110,7 +111,7 @@ export const VinQrModal = ({ onVin, onClose }: Props) => {
         if (requested.current) return;
         requested.current = true;
         void start(false);
-    }, []);
+    }, [start]);
 
     useEffect(() => {
         if (!session) return;
@@ -123,7 +124,7 @@ export const VinQrModal = ({ onVin, onClose }: Props) => {
                 return;
             }
             try {
-                const result = await batchOrderApi.getVinScanResult();
+                const result = await apiRef.current.getVinScanResult();
                 if (!result || result.scannedAt === lastSeen) return;
                 lastSeen = result.scannedAt;
                 if (result.vin) {

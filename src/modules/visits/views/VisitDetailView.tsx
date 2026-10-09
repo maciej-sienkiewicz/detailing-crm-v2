@@ -532,6 +532,7 @@ export const VisitDetailView = () => {
     const handleConfirmDelete = () => deleteVisit();
 
     const handleMileageChange = (mileage: number) => { updateArrivalState({ mileageAtArrival: mileage }); };
+    const handleVinChange = (vin: string) => { updateArrivalState({ vin }); };
     const handleKeysToggle = (checked: boolean) => { updateArrivalState({ keysHandedOver: checked }); };
     const handleDocumentsToggle = (checked: boolean) => { updateArrivalState({ documentsHandedOver: checked }); };
 
@@ -620,6 +621,7 @@ export const VisitDetailView = () => {
             documentsHandedOver={visit.documentsHandedOver}
             vehicleHandoff={visit.vehicleHandoff}
             onMileageChange={handleMileageChange}
+            onVinChange={handleVinChange}
             canEdit={can('VISITS_CREATE')}
             onKeysToggle={handleKeysToggle}
             onDocumentsToggle={handleDocumentsToggle}

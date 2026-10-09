@@ -1,28 +1,25 @@
 // @vitest-environment jsdom
 //
-// „VIN telefonem" w oknie wpisu: kod bez unieważniania poprzedniego (telefon przy kolejnym
+// „VIN telefonem" przy polu VIN: kod bez unieważniania poprzedniego (telefon przy kolejnym
 // aucie nie skanuje od nowa), nieczytelne zdjęcie mówi, że trzeba powtórzyć, a odczytany
 // VIN trafia do pola.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
-import { batchOrderApi } from '../api/batchOrderApi';
 import { VinQrModal } from './VinQrModal';
+import type { VinApi } from './vinApi';
 
-vi.mock('../api/batchOrderApi', () => ({
-    batchOrderApi: {
-        startVinScanSession: vi.fn(),
-        getVinScanResult: vi.fn(),
-    },
-}));
-
-const api = vi.mocked(batchOrderApi);
+const api = {
+    extractVin: vi.fn<VinApi['extractVin']>(),
+    startVinScanSession: vi.fn<VinApi['startVinScanSession']>(),
+    getVinScanResult: vi.fn<VinApi['getVinScanResult']>(),
+};
 
 const renderModal = (onVin = vi.fn()) => {
     render(
         <ThemeProvider theme={theme}>
-            <VinQrModal onVin={onVin} onClose={vi.fn()} />
+            <VinQrModal api={api} onVin={onVin} onClose={vi.fn()} />
         </ThemeProvider>
     );
     return onVin;

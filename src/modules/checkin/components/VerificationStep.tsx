@@ -28,6 +28,12 @@ import {
 import { SharedButton } from '@/common/styles';
 import { PhoneInput } from '@/common/components/PhoneInput';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
+import { VinInput } from '@/modules/vehicles/components/vin/VinInput';
+import { vehicleApi } from '@/modules/vehicles/api/vehicleApi';
+import { vehicleDetailQueryKey } from '@/modules/vehicles/hooks/useVehicleDetail';
+import { useVehicleFormConfig } from '@/modules/settings/hooks/useCompany';
+import { isVehicleFieldVisible } from '../utils/vehicleFormFields';
+import { VehicleFieldSettings } from './VehicleFieldSettings';
 import { customerDetailApi } from '@/modules/customers/api/customerDetailApi';
 import { gusApi } from '@/modules/gus/api/gusApi';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -851,10 +857,40 @@ export const VerificationStep = ({
     const [vehicleChoiceMade, setVehicleChoiceMade] = useState(false);
     const [pendingVehicleUpdates, setPendingVehicleUpdates] = useState<Partial<NonNullable<CheckInFormData['vehicleData']>> | null>(null);
     const [vehiclePromptScheduled, setVehiclePromptScheduled] = useState(false);
+    const [vinScanError, setVinScanError] = useState<string | null>(null);
     // Track whether the vehicle was already pre-selected on mount to skip the
     // "edit existing vs. add new" prompt, without touching vehicleChoiceMade,
     // so the badge is not shown until the user explicitly interacts.
     const vehicleWasPreSelected = useRef(!!formData.vehicleData?.id && !formData.isNewVehicle);
+
+    /*
+     * „Ustawienia pól": pola, których studio nie używa, znikają z formularza. Do
+     * odpowiedzi serwera widać wszystkie - pole za dużo jest lepsze niż ukryte, którego
+     * ktoś szuka. Ukrycie z ustawień składa się z ukryciem wymuszonym przez rodzica
+     * (edycja rezerwacji nie ma np. przebiegu).
+     */
+    const { config: vehicleFormConfig } = useVehicleFormConfig();
+    const hiddenVehicleFields = vehicleFormConfig?.hiddenFields;
+    const showYear = isVehicleFieldVisible(hiddenVehicleFields, 'yearOfProduction');
+    const showLicensePlate = !hideLicensePlate && isVehicleFieldVisible(hiddenVehicleFields, 'licensePlate');
+    const showMileage = !hideMileage && isVehicleFieldVisible(hiddenVehicleFields, 'mileage');
+    const showColor = !hideVehicleColorAndPaint && isVehicleFieldVisible(hiddenVehicleFields, 'color');
+    const showVin = isVehicleFieldVisible(hiddenVehicleFields, 'vin');
+
+    /*
+     * VIN pojazdu wybranego z listy: wybór (wyszukiwarka, auta klienta) niesie markę,
+     * model i tablicę, ale nie VIN - dociągamy go z karty pojazdu. `vin === undefined`
+     * w formularzu znaczy „operator nie ruszał pola", więc serwer zostawia VIN bez zmian;
+     * pusty napis znaczy „usuń".
+     */
+    const selectedVehicleId = !formData.isNewVehicle ? formData.vehicleData?.id || null : null;
+    const { data: selectedVehicleDetail } = useQuery({
+        queryKey: vehicleDetailQueryKey(selectedVehicleId ?? ''),
+        queryFn: () => vehicleApi.getVehicleDetail(selectedVehicleId!),
+        enabled: showVin && !!selectedVehicleId && formData.vehicleData?.vin === undefined,
+        staleTime: 60_000,
+    });
+    const knownVin = formData.vehicleData?.vin ?? selectedVehicleDetail?.vehicle.vin ?? '';
 
     // "Aktualizujesz dane" is only true while the record is the one we started from. Once a
     // different customer or car is picked, saying that is plainly wrong - the operator swapped
@@ -947,7 +983,8 @@ export const VerificationStep = ({
             initialVehicleData.model === formData.vehicleData.model &&
             initialVehicleData.yearOfProduction === formData.vehicleData.yearOfProduction &&
             (initialVehicleData.licensePlate || '') === (formData.vehicleData.licensePlate || '') &&
-            (initialVehicleData.color || '') === (formData.vehicleData.color || '')
+            (initialVehicleData.color || '') === (formData.vehicleData.color || '') &&
+            (initialVehicleData.vin ?? '') === (formData.vehicleData.vin ?? '')
         )
     );
     const vehicleIsNewEqual = initialIsNewVehicle === undefined ? true : (initialIsNewVehicle === formData.isNewVehicle);
@@ -1064,7 +1101,8 @@ export const VerificationStep = ({
         if (!vehicleChoiceMade && !vehicleWasPreSelected.current && formData.vehicleData?.id) {
             const hasExistingValue = Object.keys(updates).some(key => {
                 const fieldKey = key as keyof NonNullable<CheckInFormData['vehicleData']>;
-                const currentValue = formData.vehicleData?.[fieldKey];
+                // VIN wybranego auta siedzi w karcie pojazdu, nie w formularzu (patrz knownVin).
+                const currentValue = fieldKey === 'vin' ? knownVin : formData.vehicleData?.[fieldKey];
                 return currentValue && String(currentValue).trim().length > 0;
             });
             if (hasExistingValue) {
@@ -1089,6 +1127,22 @@ export const VerificationStep = ({
             setVehiclePromptScheduled(false);
             if (!vehicleChoiceMade) setVehicleChoiceMade(true);
         }
+    };
+
+    /**
+     * VIN odczytany ze zdjęcia. Przy wpisywaniu pytanie „edytować to auto czy dodać
+     * nowe?" pada przy wyjściu z pola - przy zdjęciu z pola się nie wychodzi, więc pada
+     * od razu. Zmieniony VIN zwykle znaczy inne auto, dlatego pytanie jest tu ważne.
+     */
+    const handleVinScanned = (vin: string) => {
+        if (!vehicleChoiceMade && !vehicleWasPreSelected.current && formData.vehicleData?.id && knownVin && knownVin !== vin) {
+            setPendingVehicleUpdates(prev => ({ ...(prev || {}), vin }));
+            setVehiclePromptScheduled(false);
+            setShowVehicleChoice(true);
+            return;
+        }
+        applyVehicleUpdates({ vin });
+        if (!vehicleChoiceMade) setVehicleChoiceMade(true);
     };
 
     const confirmVehicleEditExisting = () => {
@@ -1712,6 +1766,7 @@ export const VerificationStep = ({
                         </SectionLabel>
                     </SectionTitleRow>
                     <SectionActions>
+                        <VehicleFieldSettings />
                         <ActionBtn onClick={handleResetVehicle} disabled={!hasVehicleChanges}>
                             Wycofaj zmiany
                         </ActionBtn>
@@ -1785,17 +1840,19 @@ export const VerificationStep = ({
                                 onBlur={handleVehicleFieldBlur}
                             />
                         </FieldGroup>
-                        <FieldGroup>
-                            <Label>Rok produkcji</Label>
-                            <Input
-                                type="number"
-                                value={(pendingVehicleUpdates?.yearOfProduction ?? formData.vehicleData?.yearOfProduction) ?? ''}
-                                onChange={(e) => handleVehicleFieldChange({ yearOfProduction: parseInt(e.target.value) || undefined })}
-                                onBlur={handleVehicleFieldBlur}
-                            />
-                        </FieldGroup>
+                        {showYear && (
+                            <FieldGroup>
+                                <Label>Rok produkcji</Label>
+                                <Input
+                                    type="number"
+                                    value={(pendingVehicleUpdates?.yearOfProduction ?? formData.vehicleData?.yearOfProduction) ?? ''}
+                                    onChange={(e) => handleVehicleFieldChange({ yearOfProduction: parseInt(e.target.value) || undefined })}
+                                    onBlur={handleVehicleFieldBlur}
+                                />
+                            </FieldGroup>
+                        )}
 
-                        {!hideLicensePlate && (
+                        {showLicensePlate && (
                             <FieldGroup>
                                 <Label>{t.checkin.verification.licensePlate}</Label>
                                 <Input
@@ -1806,7 +1863,7 @@ export const VerificationStep = ({
                             </FieldGroup>
                         )}
 
-                        {!hideMileage && (
+                        {showMileage && (
                             <FieldGroup>
                                 <Label>{t.checkin.technical.mileage}</Label>
                                 <Input
@@ -1819,7 +1876,7 @@ export const VerificationStep = ({
                             </FieldGroup>
                         )}
 
-                        {!hideVehicleColorAndPaint && (
+                        {showColor && (
                             <FieldGroup>
                                 <Label>Kolor</Label>
                                 <Input
@@ -1827,6 +1884,22 @@ export const VerificationStep = ({
                                     onChange={(e) => handleVehicleFieldChange({ color: e.target.value })}
                                     onBlur={handleVehicleFieldBlur}
                                 />
+                            </FieldGroup>
+                        )}
+
+                        {showVin && (
+                            <FieldGroup>
+                                <Label htmlFor="checkin-vin">VIN</Label>
+                                <VinInput
+                                    id="checkin-vin"
+                                    compact
+                                    value={pendingVehicleUpdates?.vin ?? knownVin}
+                                    onChange={(vin) => { setVinScanError(null); handleVehicleFieldChange({ vin }); }}
+                                    onBlur={handleVehicleFieldBlur}
+                                    onScanned={handleVinScanned}
+                                    onScanError={setVinScanError}
+                                />
+                                {vinScanError && <FieldError>{vinScanError}</FieldError>}
                             </FieldGroup>
                         )}
                     </FormGrid>

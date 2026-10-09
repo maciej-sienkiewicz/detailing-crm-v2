@@ -15,7 +15,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import styled from 'styled-components';
-import { Camera, ImageUp, Plus, QrCode, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { BrandSelect, ModelSelect } from '../../vehicles/components/BrandModelSelectors';
 import {
     ModalShell, ModalHeader, ModalTitleGroup, ModalTitle,
@@ -32,8 +32,7 @@ import { netToGross, grossToNet } from '@/common/utils/priceAdjustment';
 import { priceInputsForVatRate, storedPriceSide } from '@/common/utils/priceInputs';
 import { formatCurrency } from '@/common/utils';
 import { batchOrderApi } from '../api/batchOrderApi';
-import { useMediaQuery, useVisualViewportSheet } from '@/common/hooks';
-import { ActionMenu, MenuItem, useActionMenu } from '@/common/components/ui';
+import { useVisualViewportSheet } from '@/common/hooks';
 import { useBatchServices, useCreateEntry, useUpdateEntry } from '../hooks/useBatchOrders';
 import type { BatchOrderEntry, BatchService, EntryRequest, VehicleSuggestion } from '../types';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
@@ -41,7 +40,12 @@ import { useToast } from '@/common/components/Toast';
 import { emptyService, serviceToForm, toServiceItems, validateServices, type ServiceFormItem } from '../utils/entryForm';
 import { apiErrorMessage, formatMoney } from '../utils/format';
 import { todayIso } from '../utils/period';
-import { VinQrModal } from './VinQrModal';
+import { VinCameraButton } from '../../vehicles/components/vin/VinCameraButton';
+import { vinApiAt } from '../../vehicles/components/vin/vinApi';
+
+// Odczyt VIN pod uprawnieniem zleceń zbiorczych - kto rozlicza kontrahentów, nie musi
+// mieć prawa edycji pojazdów.
+const batchVinApi = vinApiAt('/batch-orders/vin');
 
 // ─── Service card ─────────────────────────────────────────────────────────────
 
@@ -396,27 +400,6 @@ const SheetCreateTag = styled.span`
     color: var(--brand-primary);
 `;
 
-// ─── VIN camera inline button ─────────────────────────────────────────────────
-
-const CameraInlineBtn = styled.button`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 12px;
-    height: 100%;
-    border: none;
-    border-left: 1px solid #e2e8f0;
-    background: none;
-    color: var(--brand-primary);
-    cursor: pointer;
-    border-radius: 0 10px 10px 0;
-    transition: background 0.15s ease;
-    flex-shrink: 0;
-
-    &:hover:not(:disabled) { background: #f0f9ff; }
-    &:disabled { color: #94a3b8; cursor: not-allowed; }
-`;
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const VAT_OPTIONS = [
@@ -469,13 +452,6 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
     const plateRef = useRef<HTMLDivElement>(null);
     const vinRef = useRef<HTMLDivElement>(null);
 
-    const [vinUploading, setVinUploading] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    // Na komputerze aparat przy VIN pyta, skąd zdjęcie: plik z dysku albo telefon przez
-    // kod QR (jak przy przyjęciu pojazdu). Na telefonie od razu otwiera aparat.
-    const isPhone = useMediaQuery('(max-width: 767px)');
-    const vinMenu = useActionMenu();
-    const [vinQrOpen, setVinQrOpen] = useState(false);
 
     // The module's own service catalog, fetched once and filtered locally: it is a short
     // per-studio list, and a request per keystroke would lag behind the typing it is
@@ -651,25 +627,6 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
         if (!vehicleMake && s.brand) setVehicleMake(s.brand);
         if (!vehicleModel && s.model) setVehicleModel(s.model);
         setShowVinSuggestions(false);
-    }
-
-    async function handleVinFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        e.target.value = '';
-        setVinUploading(true);
-        try {
-            const vin = await batchOrderApi.extractVin(file);
-            if (vin) {
-                setVehicleVin(vin);
-            } else {
-                setError('Nie udało się odczytać VIN ze zdjęcia. Spróbuj ponownie lub wpisz ręcznie.');
-            }
-        } catch {
-            setError('Błąd podczas analizy zdjęcia. Spróbuj ponownie.');
-        } finally {
-            setVinUploading(false);
-        }
     }
 
     function updateService(idx: number, patch: Partial<ServiceFormItem>) {
@@ -862,17 +819,11 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
                                         autoComplete="off"
                                         style={{ fontFamily: 'monospace', letterSpacing: '0.05em' }}
                                     />
-                                    <CameraInlineBtn
-                                        type="button"
-                                        title="Odczytaj VIN ze zdjęcia"
-                                        aria-label="Odczytaj VIN ze zdjęcia"
-                                        aria-haspopup={isPhone ? undefined : 'menu'}
-                                        aria-expanded={isPhone ? undefined : vinMenu.isOpen()}
-                                        disabled={vinUploading}
-                                        onClick={e => (isPhone ? fileInputRef.current?.click() : vinMenu.toggle(e, null))}
-                                    >
-                                        <Camera size={15} />
-                                    </CameraInlineBtn>
+                                    <VinCameraButton
+                                        api={batchVinApi}
+                                        onVin={vin => { setVehicleVin(vin); setError(''); }}
+                                        onError={setError}
+                                    />
                                 </InputShell>
                                 {showVinSuggestions && (
                                     <SuggestionList>
@@ -885,33 +836,6 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
                                     </SuggestionList>
                                 )}
                             </AutocompleteWrapper>
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept="image/*"
-                                capture="environment"
-                                style={{ display: 'none' }}
-                                onChange={handleVinFileChange}
-                            />
-                            <ActionMenu anchor={vinMenu.menu?.anchor ?? null} onClose={vinMenu.close} label="Skąd zdjęcie VIN">
-                                <MenuItem icon={<QrCode />} onClick={() => { vinMenu.close(); setVinQrOpen(true); }}>
-                                    Telefonem (kod QR)
-                                </MenuItem>
-                                <MenuItem icon={<ImageUp />} onClick={() => { vinMenu.close(); fileInputRef.current?.click(); }}>
-                                    Zdjęcie z komputera
-                                </MenuItem>
-                            </ActionMenu>
-                            {vinQrOpen && (
-                                <VinQrModal
-                                    onClose={() => setVinQrOpen(false)}
-                                    onVin={vin => {
-                                        setVinQrOpen(false);
-                                        setVehicleVin(vin);
-                                        setError('');
-                                        showSuccess('Odczytano VIN', vin);
-                                    }}
-                                />
-                            )}
                         </FormField>
                     </FormGrid>
                 </div>

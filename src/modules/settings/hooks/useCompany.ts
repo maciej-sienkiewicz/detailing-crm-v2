@@ -5,6 +5,7 @@ import type {
     UpdateDocumentLogoConfigRequest,
     ProtocolContentConfig,
     VisitViewConfig,
+    VehicleFormConfig,
     UpdateVisitNumberingConfigRequest,
 } from '../types';
 
@@ -12,6 +13,7 @@ const QUERY_KEY = ['settings', 'company'] as const;
 const VISIT_NUMBERING_QUERY_KEY = ['settings', 'visit-numbering-config'] as const;
 export const DOCUMENT_LOGO_CONFIG_QUERY_KEY = ['settings', 'document-logo-config'] as const;
 export const VISIT_VIEW_CONFIG_QUERY_KEY = ['settings', 'visit-view-config'] as const;
+export const VEHICLE_FORM_CONFIG_QUERY_KEY = ['settings', 'vehicle-form-config'] as const;
 export const PROTOCOL_CONTENT_CONFIG_QUERY_KEY = ['settings', 'protocol-content-config'] as const;
 
 export const useCompanySettings = () => {
@@ -131,6 +133,43 @@ export const useUpdateProtocolContentConfig = () => {
         },
         onError: () => {
             queryClient.invalidateQueries({ queryKey: PROTOCOL_CONTENT_CONFIG_QUERY_KEY });
+        },
+    });
+};
+
+/**
+ * „Ustawienia pól" sekcji „Dane pojazdu" - czyta każdy formularz wizyty. Do odpowiedzi
+ * (i przy błędzie) formularz pokazuje wszystkie pola: lepiej pole za dużo niż ukryte,
+ * którego ktoś szuka.
+ */
+export const useVehicleFormConfig = () => {
+    const { data, isLoading } = useQuery({
+        queryKey: VEHICLE_FORM_CONFIG_QUERY_KEY,
+        queryFn: companyApi.getVehicleFormConfig,
+        staleTime: 5 * 60_000,
+    });
+
+    return { config: data, isLoading };
+};
+
+export const useUpdateVehicleFormConfig = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (data: VehicleFormConfig) => companyApi.updateVehicleFormConfig(data),
+        // Przełącznik reaguje od razu; serwer potwierdza albo stan wraca.
+        onMutate: async next => {
+            await queryClient.cancelQueries({ queryKey: VEHICLE_FORM_CONFIG_QUERY_KEY });
+            const previous = queryClient.getQueryData<VehicleFormConfig>(VEHICLE_FORM_CONFIG_QUERY_KEY);
+            queryClient.setQueryData(VEHICLE_FORM_CONFIG_QUERY_KEY, next);
+            return { previous };
+        },
+        onSuccess: updated => {
+            queryClient.setQueryData(VEHICLE_FORM_CONFIG_QUERY_KEY, updated);
+        },
+        onError: (_error, _next, context) => {
+            if (context?.previous) queryClient.setQueryData(VEHICLE_FORM_CONFIG_QUERY_KEY, context.previous);
+            queryClient.invalidateQueries({ queryKey: VEHICLE_FORM_CONFIG_QUERY_KEY });
         },
     });
 };

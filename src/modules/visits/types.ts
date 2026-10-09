@@ -114,6 +114,8 @@ export interface VehicleInfo {
     yearOfProduction: number;
     color: string;
     currentMileage?: number;
+    /** VIN z karty pojazdu; null - nieznany. */
+    vin?: string | null;
 }
 
 export interface CustomerCompanyAddress {
@@ -214,6 +216,8 @@ export interface UpdateArrivalStatePayload {
     mileageAtArrival?: number;
     keysHandedOver?: boolean;
     documentsHandedOver?: boolean;
+    /** Poprawia kopię na wizycie i kartę pojazdu; pusty napis - usunięcie VIN. */
+    vin?: string;
 }
 
 export interface UpdateVisitPayload {
