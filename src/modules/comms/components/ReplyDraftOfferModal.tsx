@@ -33,12 +33,17 @@ import { toLeadInputs, toServiceLines, totalGrossOf } from '../utils/leadService
 import { toDraftOffer } from '../utils/draftOffer';
 import type { DraftOfferLine, Lead } from '../types';
 import { PrimaryButton, formatGrosze } from './shared';
+import { LeadSuggestions } from './LeadSuggestions';
 
 const Intro = styled.p`
     margin: 0 0 12px;
     font-size: 13px;
     line-height: 1.5;
     color: ${p => p.theme.colors.textSecondary};
+`;
+
+const SuggestionsBox = styled.div`
+    margin-bottom: 14px;
 `;
 
 const Total = styled.div`
@@ -113,6 +118,16 @@ export function ReplyDraftOfferModal({ threadId, lead, onClose, onReady }: Reply
                             : 'Lead nie ma jeszcze wyceny. Wybrane usługi zostaną jego wyceną.'
                         : 'Ta rozmowa nie jest jeszcze leadem. Po zatwierdzeniu powstanie lead z tą wyceną.'}
                 </Intro>
+                {/* Sugestie asystenta i „Znajdź ponownie" - ta sama wycena co w panelu sprawy,
+                    więc i te same propozycje. Przyjęta trafia od razu na listę oferty. */}
+                {lead && (
+                    <SuggestionsBox>
+                        <LeadSuggestions
+                            lead={lead}
+                            onAccepted={(accepted) => setLines((current) => [...current, ...accepted])}
+                        />
+                    </SuggestionsBox>
+                )}
                 <EditableServicesTable services={lines} onChange={setLines} />
             </ModalContent>
             <ModalFooter>

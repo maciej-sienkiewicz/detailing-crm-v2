@@ -60,6 +60,7 @@ import { describeLeadUrgency } from '../utils/leadUrgency';
 import { ReplyComposer } from '../components/ReplyComposer';
 import type { GalleryPickerContext } from '../components/GalleryPhotoPicker';
 import { LeadDetailModal } from '../components/LeadDetailModal';
+import { LeadQuoteEditor } from '../components/LeadQuoteEditor';
 import { useLeadStatusChange } from '../hooks/useLeadStatusChange';
 import { LeadTimeline } from '../components/LeadTimeline';
 import { MessageReaderOverlay } from '../components/MessageReaderOverlay';
@@ -446,13 +447,22 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
             {historyOpen && thread && (
                 <ThreadHistoryPanel threadId={thread.id} email={thread.participantEmail} onClose={() => setHistoryOpen(false)} />
             )}
-            {detailsOpen && (
+            {/* Wycena to jedna czynność - samo okno wyboru usług z sugestiami, bez drugiego
+                podglądu leada, który skrzynka i tak pokazuje obok. */}
+            {detailsOpen === 'services' && (
+                <LeadQuoteEditor
+                    key={lead.id}
+                    lead={lead}
+                    subtitle={[caseTitle(lead), lead.customerName].filter(Boolean).join(', ')}
+                    onClose={() => setDetailsOpen(null)}
+                />
+            )}
+            {detailsOpen === 'details' && (
                 <LeadDetailModal
                     key={lead.id}
                     leadId={lead.id}
                     // Rozmowa stoi obok - odnośnik do niej prowadziłby tu, gdzie jesteśmy.
                     showThreadLink={false}
-                    openServicesEditor={detailsOpen === 'services'}
                     onClose={() => setDetailsOpen(null)}
                     onDeleted={onClosed}
                 />

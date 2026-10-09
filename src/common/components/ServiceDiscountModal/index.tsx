@@ -8,6 +8,7 @@
 // Wartości pieniężne przychodzą i wychodzą w GROSZACH.
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { applyAdjustment, netToGross } from '@/common/utils/priceAdjustment';
 import type { AdjustmentType, PriceAdjustment } from '@/common/utils/priceAdjustment';
 import { MAX_2_DECIMALS, handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
@@ -102,7 +103,9 @@ export const ServiceDiscountModal = ({
         onApply({ type, value: storeValue });
     };
 
-    return (
+    // Portal do <body>: tabela usług bywa w innym oknie (np. „Oferta w odpowiedzi"), którego
+    // karta ma przekształcenie i obcięcie - bez portalu to okno było ucięte jej krawędziami.
+    return createPortal(
         <S.Overlay ref={overlayRef} onClick={onClose} role="dialog" aria-modal="true" aria-label="Rabat dla usługi">
             <S.Card onClick={e => e.stopPropagation()}>
                 <S.Header>
@@ -203,6 +206,7 @@ export const ServiceDiscountModal = ({
                     <S.ApplyBtn type="button" onClick={submit} disabled={!isValid}>Zastosuj</S.ApplyBtn>
                 </S.Footer>
             </S.Card>
-        </S.Overlay>
+        </S.Overlay>,
+        document.body,
     );
 };

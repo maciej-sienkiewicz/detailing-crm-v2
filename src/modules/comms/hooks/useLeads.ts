@@ -772,7 +772,12 @@ export const useUpdateLeadServices = () => {
  * przy rezerwacji. Każdy endpoint zwraca świeżego leada, więc podmieniamy szczegół
  * w miejscu i unieważniamy listę, analitykę oraz kalendarz (wycena = lista rezerwacji).
  */
-export const useSuggestionActions = (leadId: string) => {
+/**
+ * [onAccepted] - dla edytorów, które trzymają wycenę lokalnie (okno wyceny, oferta
+ * w odpowiedzi): przyjęta sugestia ląduje na serwerze w wycenie, a edytor musi ją
+ * dopisać do swojej listy - inaczej „Zapisz" nadpisałby ją listą sprzed przyjęcia.
+ */
+export const useSuggestionActions = (leadId: string, options: { onAccepted?: (lead: Lead) => void } = {}) => {
     const queryClient = useQueryClient();
     const invalidate = useLeadInvalidation();
     const settle = (lead: Lead) => {
@@ -785,7 +790,10 @@ export const useSuggestionActions = (leadId: string) => {
     const accept = useMutation({
         mutationFn: ({ itemId, priceGross }: { itemId: string; priceGross?: number }) =>
             leadsApi.acceptSuggestion(leadId, itemId, priceGross),
-        onSuccess: settle,
+        onSuccess: (lead) => {
+            settle(lead);
+            options.onAccepted?.(lead);
+        },
     });
     const reject = useMutation({
         mutationFn: (itemId: string) => leadsApi.rejectSuggestion(leadId, itemId),

@@ -1,3 +1,5 @@
+import { createElement, type ComponentProps } from 'react';
+import { createPortal } from 'react-dom';
 import styled, { css, keyframes } from 'styled-components';
 
 export const ServicesTableHeader = styled.div`
@@ -463,7 +465,7 @@ export const SummaryValue = styled.span<{ $isTotal?: boolean }>`
     white-space: nowrap;
 `;
 
-export const BulkDiscountOverlay = styled.div`
+const BulkDiscountOverlayBase = styled.div`
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.35);
@@ -472,6 +474,15 @@ export const BulkDiscountOverlay = styled.div`
     justify-content: center;
     z-index: 9999;
 `;
+
+/**
+ * Okna tabeli usług (VAT zbiorczy, rabat zbiorczy, edycja pozycji) - przez portal do
+ * <body>. Tabela bywa wewnątrz innego okna (np. „Oferta w odpowiedzi"), którego karta
+ * ma przekształcenie i obcięcie treści: `position: fixed` liczyło się wtedy od tej
+ * karty, a nie od ekranu, i okno było ucięte jej krawędziami.
+ */
+export const BulkDiscountOverlay = (props: ComponentProps<typeof BulkDiscountOverlayBase>) =>
+    createPortal(createElement(BulkDiscountOverlayBase, props), document.body);
 
 export const BulkDiscountCard = styled.div`
     width: min(400px, calc(100vw - 32px));
