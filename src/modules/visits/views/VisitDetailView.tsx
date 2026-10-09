@@ -741,9 +741,13 @@ export const VisitDetailView = () => {
                                             </Button>
                                         )}
                                         {/* Zdjęcia z telefonu, także niezalogowanego - jak przy przyjęciu
-                                            pojazdu. Na telefonie zbędne: „Dodaj" otwiera tam aparat. */}
-                                        {can('VISITS_CREATE') && visit.status !== 'COMPLETED'
-                                            && visit.status !== 'REJECTED' && visit.status !== 'ARCHIVED' && !isPhone && (
+                                            pojazdu. Na telefonie zbędne: „Dodaj" otwiera tam aparat.
+                                            Także na ZAKOŃCZONEJ wizycie: „Dodaj plik" obok działa na niej
+                                            z komputera (zdjęcia z wydania, skan protokołu), a to tylko inna
+                                            droga do tej samej galerii. Nie po odrzuceniu ani archiwizacji -
+                                            tam serwer kodu QR nie wyda. */}
+                                        {can('VISITS_CREATE') && visit.status !== 'REJECTED'
+                                            && visit.status !== 'ARCHIVED' && !isPhone && (
                                             <Button
                                                 size="sm"
                                                 onClick={() => setIsFilesQrOpen(true)}
