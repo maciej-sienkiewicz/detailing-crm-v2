@@ -54,6 +54,10 @@ function recPlan(meta, steps, speed, tail) {
   return { holds, filmAt, recAt, dur };
 }
 
+// Podpis łamie się na dwie linie - jednoliterowe „z”, „i”, „w”, „a” nie mogą zostać na
+// końcu linii (zasada polskiego składu), więc wiążemy je twardą spacją z następnym słowem.
+const sierotki = t => t.replace(/(^|\s)([aiouwzAIOUWZ])\s/g, '$1$2\u00a0');
+
 function recScene({ id, title, eyebrow, num, lines, sub, rec = id, speed = 1, steps = {}, tail = 1.4, maxZoom = 1.3 }) {
   scene({
     id, title, rec, speed,
@@ -119,8 +123,8 @@ function recScene({ id, title, eyebrow, num, lines, sub, rec = id, speed = 1, st
         }
         if (st?.text) {
           const right = f && f.x + f.w / 2 < 50;
-          const cap = c.add(`<div class="cap" style="${right ? `right:${1920 - RW.x - RW.w + 44}px` : `left:${RW.x + 44}px`};bottom:${1080 - RW.y - RW.h + 44}px;top:auto">
-            <div class="k"><span>${st.step}</span><i></i></div><div class="x">${st.text}</div></div>`);
+          const cap = c.add(`<div class="cap rc" style="${right ? `right:${1920 - RW.x - RW.w + 44}px` : `left:${RW.x + 44}px`};bottom:${1080 - RW.y - RW.h + 44}px;top:auto">
+            <div class="k"><span>${st.step}</span><i></i></div><div class="x">${sierotki(st.text)}</div></div>`);
           const cEnd = Math.min(next - .1, endT);
           tl.fromTo(cap, { opacity: 0, y: 14, filter: 'blur(6px)' }, { opacity: 1, y: 0, filter: 'blur(0px)', duration: .55, ease: 'expo.out', immediateRender: false }, t0 + .15);
           tl.to(cap, { opacity: 0, y: -8, filter: 'blur(4px)', duration: .35, ease: 'power2.in' }, cEnd);

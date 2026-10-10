@@ -170,3 +170,7 @@ body.render #frame { position: absolute; left: 0; top: 0; }
 #ctl input[type=range] { width: 360px; accent-color: #dcae5c; }
 #ctl .tc { font-variant-numeric: tabular-nums; min-width: 120px; text-align: center; }
 body.render #ctl { display: none; }
+/* Podpisy scen z nagrań bywają dłuższe niż jedna linia: łamią się (równo, na dwie linie)
+   w ramce zamiast wychodzić poza nią - przy nowrap tekst wystawał za okno nagrania. */
+.cap.rc { max-width: 640px; }
+.cap.rc .x { white-space: normal; text-wrap: balance; }
