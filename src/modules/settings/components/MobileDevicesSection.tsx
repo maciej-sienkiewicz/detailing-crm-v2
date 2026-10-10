@@ -22,6 +22,7 @@ import { TabletsSection } from './TabletsSection';
 import { ServiceChecklistCard } from './ServiceChecklistCard';
 import { ContactsSyncSection } from './ContactsSyncSection';
 import { View } from './devicesLayout';
+import { usePermissions } from '@/core/permissions';
 
 export type MobileDevicesSubView = 'tablets' | 'notifications' | 'contacts';
 
@@ -34,17 +35,25 @@ export function MobileDevicesSection({ subView, onSubViewChange }: MobileDevices
     // Liczniki z tej samej pamięci podręcznej, z której czytają widoki - bez
     // osobnych zapytań. Brak danych (wczytywanie, błąd, brak modułu) = brak liczby.
     const signatures = useCapability('SIGNATURE_LOCAL');
+    // Sparowany telefon dostaje pełną książkę klientów bez maskowania - backend wymaga do
+    // tego CUSTOMERS_VIEW, więc kto go nie ma, nie widzi zakładki, zamiast dostać odmowę.
+    const { can } = usePermissions();
+    const canSyncContacts = can('CUSTOMERS_VIEW');
+    const view: MobileDevicesSubView = subView === 'contacts' && !canSyncContacts ? 'tablets' : subView;
     const { tablets, loaded: tabletsLoaded } = useTablets({ enabled: signatures.enabled });
     const { data: phones } = useQuery({
         queryKey: CARDDAV_ACCOUNTS_KEY,
         queryFn: carddavApi.listAccounts,
         staleTime: 30_000,
+        enabled: canSyncContacts,
     });
 
     const options: SegmentedOption<MobileDevicesSubView>[] = [
         { value: 'tablets', label: 'Tablety', count: tabletsLoaded ? tablets.length : null },
         { value: 'notifications', label: 'Powiadomienia' },
-        { value: 'contacts', label: 'Kontakty', count: phones ? phones.length : null },
+        ...(canSyncContacts
+            ? [{ value: 'contacts' as const, label: 'Kontakty', count: phones ? phones.length : null }]
+            : []),
     ];
 
     return (
@@ -53,12 +62,12 @@ export function MobileDevicesSection({ subView, onSubViewChange }: MobileDevices
                 <Segmented
                     label="Rodzaj urządzenia"
                     options={options}
-                    value={subView}
+                    value={view}
                     onChange={onSubViewChange}
                 />
             </SwitchScroll>
 
-            {subView === 'tablets' && (
+            {view === 'tablets' && (
                 <>
                     <TabletsSection />
                     {/* Scenariusz tabletu na hali: ten sam ekran wizyty, tylko z listą „zrobione”. */}
@@ -66,14 +75,14 @@ export function MobileDevicesSection({ subView, onSubViewChange }: MobileDevices
                 </>
             )}
 
-            {subView === 'notifications' && (
+            {view === 'notifications' && (
                 <View>
                     {/* Bez wstępu: pięć linii wyliczanki powtarzało listę z kreatora poniżej. */}
                     <PushNotificationsPanel />
                 </View>
             )}
 
-            {subView === 'contacts' && <ContactsSyncSection />}
+            {view === 'contacts' && <ContactsSyncSection />}
         </View>
     );
 }
