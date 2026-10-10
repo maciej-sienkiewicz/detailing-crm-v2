@@ -28,7 +28,7 @@ recScene({
 // ── 5.2 ZAPYTANIA I OFERTA Z AI ──────────────────────────────────────────────
 recScene({
   id: 'lead', title: 'Zapytania i oferta', eyebrow: 'Poczta', num: '02', lines: ['Zapytanie,', 'wycena, oferta'],
-  sub: 'Od maila klienta do oferty w kilka kliknięć.', speed: 1.2,
+  sub: 'Od maila klienta do oferty.', speed: 1.2,
   steps: {
     sprawy: { step: 'Czeka na nas', text: 'Każde zapytanie to sprawa, z czasem oczekiwania na odpowiedź.' },
     mail: { step: 'Mail klienta', text: 'Klient pyta o korektę lakieru i powłokę na konkretny termin.' },

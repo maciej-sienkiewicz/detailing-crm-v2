@@ -3,7 +3,7 @@
 // Konto właściciela w demo nazywa się „Demo User” z numerem +48000000000 - stopka bierze
 // dane z konta, więc w przygotowaniu dostaje imię i kontakt jak w prawdziwym studiu.
 import { BASE, beat, click, moveTo, release, showCursorAt, type, wait } from './lib.mjs';
-import { seedStudio } from './seed.mjs';
+import { seedReturningCustomerLead, seedStudio } from './seed.mjs';
 import { sql, q } from './db.mjs';
 import { TITLE_HOLD, go, panel } from './common.mjs';
 
@@ -19,6 +19,7 @@ async function field(page, id, text) {
 export default {
     async prepare({ page, studioId }) {
         await seedStudio(page, BASE, studioId, { costs: false, team: false, history: false });
+        seedReturningCustomerLead(studioId);   // mail z adresem - na nim widać stopkę w odpowiedzi
         sql(`update users set email = id || '@poprzednie-nagranie.invalid' where email='adam.lis@studiopolysk.pl'`);
         sql(`update users set first_name='Adam', last_name='Lis', email='adam.lis@studiopolysk.pl', phone_number='+48 600 120 340'
              where studio_id=${q(studioId)} and is_owner`);
@@ -37,7 +38,10 @@ export default {
         await click(page, page.getByRole('button', { name: 'Dalej' }).last(), { ms: 800, settle: 800, end: true });
 
         await beat(page, rec, 'dane', await panel(page, 'Twoja stopka e-mail', 900, 500));
+        await field(page, 'signature-fullName', 'Adam Lis');
         await field(page, 'signature-position', 'Właściciel');
+        await field(page, 'signature-phone', '+48 600 120 340');
+        await field(page, 'signature-email', 'adam.lis@studiopolysk.pl');
         await field(page, 'signature-website', 'www.studiopolysk.pl');
         await wait(page, 1200);
         await click(page, page.getByRole('button', { name: 'Dalej' }).last(), { ms: 800, settle: 800 });
@@ -56,8 +60,8 @@ export default {
         await wait(page, 4600);
         await click(page, page.getByRole('button', { name: 'Zapisz stopkę' }), { ms: 800, settle: 1600, end: true });
         release();
-        await click(page, page.getByText('Tesla Model 3').first(), { ms: 800, settle: 1200 });
-        await click(page, page.getByRole('button', { name: 'Odpisz' }).first().or(page.getByRole('textbox', { name: /Napisz odpowiedź/ })).first(), { ms: 800, settle: 1400 });
+        await click(page, page.getByText('Porsche 911 Carrera 4S').first(), { ms: 800, settle: 1400 });
+        await click(page, page.getByRole('button', { name: 'Odpisz' }).first(), { ms: 800, settle: 1600 });
         await beat(page, rec, 'w-mailu', page.locator('[contenteditable=true]').first().locator('xpath=ancestor::*[2]'));
         await wait(page, 4000);
     },

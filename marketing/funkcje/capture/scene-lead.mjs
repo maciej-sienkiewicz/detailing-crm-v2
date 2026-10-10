@@ -76,9 +76,13 @@ export default {
         await moveTo(page, page.getByText(/Łącznie .* brutto/).first(), 900);
         await wait(page, 5200);
         await click(page, page.getByRole('button', { name: 'Wyślij', exact: true }), { ms: 800, settle: 2200, end: true });
-        await page.getByText('U klienta').first().waitFor({ timeout: 20000 });
-        await click(page, page.getByText(LEAD).first(), { ms: 900, settle: 1400 });
-        await beat(page, rec, 'wyslane', page.getByText('U klienta').first().locator('xpath=..').locator('xpath=..'));
+        // Wysłana sprawa przechodzi do zwiniętej grupy „U klienta” - rozwijamy ją i otwieramy.
+        const grupa = page.getByRole('button', { name: /^U klienta/ }).first();
+        await grupa.waitFor({ timeout: 20000 });
+        await click(page, grupa, { ms: 900, settle: 900 });
+        await click(page, page.getByText(LEAD).first(), { ms: 800, settle: 1600 });
+        await beat(page, rec, 'wyslane', page.getByText(LEAD).first().locator('xpath=ancestor::*[2]'));
+        await moveTo(page, page.getByText(/Łącznie .* brutto/).last(), 900);
         await wait(page, 4000);
     },
 };

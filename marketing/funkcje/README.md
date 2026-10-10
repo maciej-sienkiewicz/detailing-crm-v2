@@ -43,7 +43,10 @@ podręcznej, `waitForLogo` czeka, aż się narysuje).
 ### Nagrywanie (`capture/`)
 
 ```sh
-# Postgres, Redis, lokalny S3 (moto), SMTP na :1025, backend :8080 (-PksefStub), vite :5173
+# Postgres, Redis, lokalny S3 (moto), SMTP na :1025, backend :8080 (-PksefStub), vite :5173.
+# Backend z --ksef.sync.interval-ms=86400000 --ksef.sync.initial-delay-ms=86400000:
+# harmonogram synchronizacji KSeF na atrapie SDK kończy się błędem i Finanse pokazują
+# czerwony baner „Synchronizacja z KSeF nie powiodła się” - w nagraniu nie może go być.
 cd capture && npm ci
 node run.mjs grupy            # jedna scena → ../rec/grupy/
 node shots-final.mjs          # zrzuty Tablicy do finału → ../rec/final/

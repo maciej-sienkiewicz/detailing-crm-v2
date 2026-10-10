@@ -13,169 +13,229 @@ Czasy w filmie `detailboost_funkcje.mp4` (od – do: tekst stoi w pełni widoczn
 - 0:14.9–0:21.0  Zarządzaj firmą prościej. Kontroluj więcej.
 - 0:15.2–0:21.0  Grupy usług Sezonowość Koszty i przychody
 
-## Grupy usług — 0:21.1–0:40.1
+## Grupy usług — 0:21.1–0:59.8
 
-- 0:22.8–0:39.5  Grupy usług
-- 0:23.1–0:39.5  Ile zleceń zrealizowałeś w każdej grupie i ile na nich zarobiłeś.
-- 0:26.0–0:31.3  Liczba zleceń i przychód w każdej grupie.
-- 0:34.0–0:39.3  Każda usługa osobno, z liczbą zleceń i przychodem.
+- 0:22.7–0:27.5  Grupy usług
+- 0:23.0–0:27.5  Ile zleceń i za ile.
+- 0:29.0–0:34.9  Udział każdej grupy usług w przychodzie z 12 miesięcy.
+- 0:35.6–0:45.1  Każda usługa z liczbą zleceń i przychodem.
+- 0:45.8–0:52.1  Kliknięta grupa: jej przychód, liczba zleceń i średnia.
+- 0:52.9–0:58.9  Lista zawęża się do usług z tej grupy.
 
-## Sezonowość — 0:39.4–0:56.4
+## Sezonowość — 0:59.1–1:35.6
 
-- 0:41.1–0:55.8  Sezonowość biznesu
-- 0:41.4–0:55.8  Zobacz, kiedy masz szczyt sezonu, a kiedy warto zaplanować kampanię.
-- 0:47.2–0:55.8  Szczyt sezonu
-- 0:48.8–0:55.8  Spokojniejsze miesiące
-- 0:49.9–0:55.7  Najlepszy miesiąc to maj: 46 900 zł brutto.
+- 1:00.7–1:05.5  Sezonowość
+- 1:01.0–1:05.5  Kiedy studio zarabia najwięcej, a kiedy stoi.
+- 1:07.0–1:12.3  Przychód i liczba wizyt tydzień po tygodniu.
+- 1:13.0–1:17.0  Ostatnie 12 miesięcy jednym kliknięciem.
+- 1:17.8–1:23.2  Miesiące obok siebie: widać, kiedy zaczyna się sezon.
+- 1:24.0–1:29.2  Najlepszy miesiąc: przychód i liczba wizyt.
+- 1:30.0–1:34.7  Zima: dobry moment na promocję albo urlopy.
 
-## Koszty i przychody — 0:55.7–1:12.7
+## Koszty i przychody — 1:34.9–2:18.1
 
-- 0:57.4–1:12.1  Koszty i przychody
-- 0:57.7–1:12.1  Przychody, koszty i zysk w jednym miejscu, bez arkuszy kalkulacyjnych.
-- 0:59.8–1:04.5  Przychody minus koszty, liczone na bieżąco.
-- 1:05.6–1:12.0  Widzisz, na co idzie najwięcej pieniędzy.
+- 1:36.5–1:41.3  Koszty i przychody
+- 1:36.8–1:41.3  Koszty prosto z faktur pobranych z KSeF.
+- 1:42.8–1:59.6  Przychody, koszty i zysk netto w jednym miejscu.
+- 2:00.3–2:05.7  Koszty z 12 miesięcy podzielone na kategorie.
+- 2:06.5–2:11.7  Miesiąc po miesiącu: widać każdy skok kosztów.
+- 2:12.5–2:17.2  Każda kategoria z kwotą i liczbą faktur.
 
-## Finanse — 1:12.0–1:21.0
+## Finanse — 2:17.4–2:28.2
 
-- 1:14.1–1:20.2  Mniej chaosu. Więcej kontroli nad biznesem.
-- 1:14.5–1:20.2  Faktury z KSeF Dokumenty kosztowe Stan kasy Faktura przy wydaniu
+- 2:19.6–2:27.4  Mniej chaosu. Więcej kontroli nad biznesem.
+- 2:20.0–2:27.4  Faktury z KSeF Ukryj ze statystyk Dokumenty spoza KSeF Stan kasy Faktura przy wydaniu
 
-## Faktury z KSeF — 1:20.3–1:37.3
+## Faktury z KSeF — 2:27.5–2:58.6
 
-- 1:22.0–1:36.7  Faktury kosztowe z KSeF
-- 1:22.3–1:36.7  Faktury od dostawców pojawiają się same, na bieżąco. Jednym kliknięciem oznaczasz je jako opłacone.
-- 1:24.2–1:29.1  Nowe faktury kosztowe pobierają się same.
-- 1:32.4–1:36.6  Jedno kliknięcie i faktura jest opłacona.
+- 2:29.1–2:33.9  Faktury kosztowe z KSeF
+- 2:29.4–2:33.9  Same trafiają do CRM, na bieżąco.
+- 2:35.4–2:43.3  Faktury od dostawców pobrane z KSeF, z kategorią i statusem płatności.
+- 2:44.0–2:51.8  Synchronizacja dokłada nowe faktury bez przepisywania.
+- 2:52.5–2:57.7  Jedno kliknięcie i faktura jest oznaczona jako opłacona.
 
-## Ukryj ze statystyk — 1:36.6–1:54.6
+## Ukryj ze statystyk — 2:57.9–3:42.8
 
-- 1:38.3–1:54.0  Ukryj fakturę ze statystyk
-- 1:38.6–1:54.0  Jednorazowy wydatek nie zaburzy wyników. Faktura zostaje w dokumentach, ale nie liczy się do statystyk.
-- 1:40.0–1:44.2  Wykup auta zawyża koszty całego miesiąca.
-- 1:47.9–1:53.9  Faktura zostaje, wyniki wracają do normy.
+- 2:59.5–3:04.3  Ukryj ze statystyk
+- 2:59.8–3:04.3  Jednorazowy wydatek nie psuje wykresów.
+- 3:05.8–3:15.8  Wykup auta po leasingu wywindował koszty miesiąca.
+- 3:16.6–3:24.6  W Finansach: faktura za wykup dostaje „Ukryj ze statystyk”.
+- 3:25.3–3:35.1  Faktura zostaje w dokumentach, ale nie liczy się do statystyk.
+- 3:35.8–3:41.9  Koszty miesiąca wracają do normalnego poziomu.
 
-## Dokumenty spoza KSeF — 1:53.9–2:13.4
+## Dokumenty spoza KSeF — 3:42.1–4:29.3
 
-- 1:55.6–2:12.8  Dokumenty spoza KSeF
-- 1:55.9–2:12.8  Paragony, rachunki i faktury spoza KSeF dodasz ręcznie. Wszystkie koszty w jednym miejscu.
-- 2:02.3–2:06.5  Wpisujesz brutto, netto liczy się samo.
-- 2:07.4–2:12.6  Paragon stoi na liście obok faktur z KSeF.
+- 3:43.7–3:48.5  Paragony i dokumenty
+- 3:44.0–3:48.5  Wszystko, czego nie ma w KSeF.
+- 3:51.2–4:06.0  Paragon ze sklepu: rodzaj, czego dotyczy i sprzedawca.
+- 4:06.7–4:21.0  Wpisujesz brutto z paragonu, netto liczy się samo.
+- 4:21.8–4:28.4  Paragon stoi obok faktur z KSeF i liczy się do kosztów.
 
-## Stan kasy — 2:12.7–2:30.3
+## Stan kasy — 4:28.6–5:02.9
 
-- 2:14.4–2:29.7  Stan kasy
-- 2:14.7–2:29.7  Saldo gotówki zawsze aktualne. Każda wpłata i wypłata zostaje w historii.
-- 2:17.2–2:22.3  Zapłata gotówką za wizytę sama trafia do kasy.
-- 2:24.4–2:29.7  Każda operacja zostaje w historii kasy.
+- 4:30.2–4:35.0  Stan kasy
+- 4:30.5–4:35.0  Gotówka w szufladzie zawsze się zgadza.
+- 4:36.5–4:41.3  Ile gotówki powinno być teraz w kasie.
+- 4:42.1–4:55.2  Wpłaty za wizyty zapisują się same przy wydaniu auta.
+- 4:56.0–5:02.0  Wypłata z kasy z opisem: saldo od razu się zmienia.
 
-## Faktura do KSeF — 2:29.6–2:51.6
+## Faktura do KSeF — 5:02.2–6:17.9
 
-- 2:31.3–2:51.0  Wydajesz auto, faktura idzie do KSeF
-- 2:31.6–2:51.0  Fakturę wystawiasz przy wydaniu pojazdu. Wysyłka do KSeF dzieje się sama.
-- 2:34.9–2:39.5  Faktura VAT od razu przy wydaniu auta.
-- 2:44.1–2:50.9  Przyjęta w KSeF numer
+- 5:03.8–5:08.6  Faktura przy wydaniu
+- 5:04.1–5:08.6  Zamykasz wizytę, faktura idzie do KSeF.
+- 5:09.2–5:13.8  Wizyta oznaczona jako gotowa do odbioru.
+- 5:14.6–5:23.3  Klient dostaje SMS, że może odebrać auto.
+- 5:24.1–5:36.2  Protokół wydania idzie do podpisu na telefon klienta.
+- 5:36.9–5:42.0  Klient czyta protokół u siebie, bez papieru.
+- 5:42.7–5:46.5  Oświadczenie i podpis palcem.
+- 5:47.3–5:57.0  Wydanie od razu widzi podpisany protokół.
+- 5:57.7–6:06.4  Faktura z pozycji wizyty, z wysyłką do KSeF.
+- 6:07.1–6:12.2  Faktura w Finansach ze statusem „W KSeF”.
+- 6:12.9–6:17.0  Kod weryfikacyjny KSeF na fakturze.
 
-## Pracownicy — 2:50.9–2:59.9
+## Pracownicy — 6:17.2–6:26.2
 
-- 2:53.1–2:59.1  Klienci, realizacje, finanse i zespół. Jeden system.
-- 2:53.5–2:59.1  Role i dostęp Kod PIN Do zrobienia Urlopy Czas pracy
+- 6:19.4–6:25.4  Klienci, realizacje, finanse i zespół. Jeden system.
+- 6:19.8–6:25.4  Role i dostęp Kod PIN Do zrobienia Urlopy Czas pracy
 
-## Role i dostęp — 2:59.2–3:18.2
+## Role i dostęp — 6:25.5–7:05.0
 
-- 3:00.9–3:17.6  Profile pracowników
-- 3:01.2–3:17.6  Każdy ma własne konto i widzi tylko to, do czego dasz mu dostęp.
-- 3:02.7–3:08.2  Odznaczasz to, czego pracownik nie zobaczy.
-- 3:09.1–3:14.8  Detailer widzi wizyty, ale bez cen i finansów.
+- 6:27.1–6:31.9  Role i dostęp
+- 6:27.4–6:31.9  Każdy widzi tylko to, czego potrzebuje.
+- 6:33.5–6:41.3  Rola mówi, co pracownik widzi i co może zmieniać.
+- 6:42.0–6:49.1  Uprawnienia w grupach: wizyty, klienci, ceny.
+- 6:49.8–6:58.2  Detailer nie widzi finansów ani cen usług.
+- 6:59.0–7:04.1  Zmiana od razu obejmuje wszystkich z tą rolą.
 
-## Kod PIN — 3:17.5–3:33.5
+## Kod PIN — 7:04.3–7:38.7
 
-- 3:19.2–3:32.9  Jeden tablet, wielu ludzi
-- 3:19.5–3:32.9  Każdy loguje się swoim kodem PIN i pracuje na swoim profilu.
-- 3:20.8–3:25.9  Wybierasz profil i wpisujesz swój PIN.
-- 3:26.8–3:32.8  Kamil widzi swój dzień, bez finansów.
+- 7:05.9–7:10.7  Jedno urządzenie, wiele osób
+- 7:06.2–7:10.7  Przełączenie użytkownika kodem PIN.
+- 7:14.8–7:20.8  Na wspólnym tablecie każdy wybiera swój profil.
+- 7:21.6–7:31.7  Cztery cyfry zamiast hasła.
+- 7:32.4–7:37.8  Detailer widzi swoje menu: bez finansów i ustawień.
 
-## Do zrobienia — 3:32.8–3:52.8
+## Do zrobienia — 7:38.0–8:28.4
 
-- 3:34.5–3:52.2  Listy do zrobienia
-- 3:34.8–3:52.2  Zadania dla zespołu, osoby albo roli. Wykonane same trafiają do archiwum.
-- 3:42.2–3:46.4  Zadanie widzi tylko wybrana osoba.
-- 3:47.2–3:52.2  Wykonane trafiają do archiwum po 48 godzinach.
+- 7:39.6–7:44.4  Do zrobienia
+- 7:39.9–7:44.4  Lista zadań zespołu na Tablicy.
+- 7:45.8–7:52.2  Zadania zespołu na Tablicy, z kontekstem i autorem.
+- 7:53.0–8:04.7  Tytuł i krótki kontekst.
+- 8:05.5–8:14.5  Zadanie widzi tylko wybrana osoba.
+- 8:15.2–8:21.7  Na liście z imieniem osoby, która ma je zrobić.
+- 8:22.4–8:27.5  Odhaczone zadanie samo trafi do archiwum.
 
-## Urlopy — 3:52.1–4:12.1
+## Urlopy — 8:27.7–10:00.8
 
-- 3:53.8–4:11.5  Urlopy
-- 3:54.1–4:11.5  Wniosek z telefonu, akceptacja podpisem i grafik nieobecności dla całego zespołu.
-- 4:01.8–4:06.3  Wniosek trafia do kierownika do akceptacji.
-- 4:07.0–4:11.5  Grafik nieobecności widzi cały zespół.
+- 8:29.3–8:34.1  Urlopy
+- 8:29.6–8:34.1  Wniosek z telefonu, decyzja jednym podpisem.
+- 8:34.5–8:39.1  Pracownik składa wniosek ze swojego telefonu.
+- 8:39.8–8:44.5  Wypoczynkowy, na żądanie, okolicznościowy i inne.
+- 8:45.3–8:52.8  Pierwszy i ostatni dzień w kalendarzu.
+- 8:53.6–8:58.4  Dni robocze policzone same, z gotowym wnioskiem.
+- 8:59.2–9:05.3  Podpis palcem na wniosku.
+- 9:06.0–9:12.6  Wniosek czeka na decyzję kierownika.
+- 9:13.4–9:18.6  Nowy wniosek czeka w Pracownicy, w Wnioskach urlopowych.
+- 9:19.4–9:24.9  Termin, powód i kto jeszcze jest wtedy nieobecny.
+- 9:25.7–9:30.8  Zatwierdź albo odrzuć z uzasadnieniem.
+- 9:31.6–9:45.8  Decyzja podpisana na tym samym dokumencie.
+- 9:46.5–9:54.4  Urlop od razu stoi w kalendarzu nieobecności.
+- 9:55.2–9:59.9  Pracownik widzi zatwierdzony urlop u siebie.
 
-## Czas pracy — 4:11.4–4:30.4
+## Czas pracy — 10:00.1–11:00.9
 
-- 4:13.1–4:29.8  Czas pracy i lista obecności
-- 4:13.4–4:29.8  Pracownik raportuje godziny, Ty zatwierdzasz karty i generujesz listę obecności.
-- 4:15.3–4:20.0  Jedno kliknięcie zapisuje dzień pracy.
-- 4:21.5–4:29.8  Lista obecności powstaje z zatwierdzonych kart.
+- 10:01.7–10:06.5  Czas pracy i obecność
+- 10:02.0–10:06.5  Godziny z telefonu, lista obecności z PDF.
+- 10:07.4–10:12.5  Pracownik widzi miesiąc i dni bez wpisu.
+- 10:13.2–10:20.5  Dzień i liczba godzin, nic więcej.
+- 10:21.3–10:25.3  Godziny dnia na karcie miesiąca.
+- 10:26.0–10:30.7  Właściciel widzi karty wszystkich za miesiąc.
+- 10:31.4–10:36.7  Dzień po dniu, z nadgodzinami.
+- 10:37.5–10:43.3  Karta zatwierdzona jednym kliknięciem.
+- 10:44.1–10:54.5  Miesiąc i osoby: lista składa się z kart pracy.
+- 10:55.3–11:00.0  Gotowa lista obecności do pobrania i podpisu.
 
-## Kampanie SMS — 4:29.7–4:38.7
+## Kampanie SMS — 11:00.2–11:09.2
 
-- 4:31.8–4:37.9  Cyfrowa obsługa klienta, bez papierologii.
-- 4:32.1–4:37.9  Wiadomości automatyczne Kampanie automatyczne Telefon klienta
+- 11:02.3–11:08.4  Cyfrowa obsługa klienta, bez papierologii.
+- 11:02.6–11:08.4  Wiadomości automatyczne Kampanie automatyczne Telefon klienta
 
-## Wiadomości automatyczne — 4:38.0–4:57.0
+## Wiadomości automatyczne — 11:08.5–11:57.6
 
-- 4:39.7–4:56.4  Kampanie SMS pracują same
-- 4:40.0–4:56.4  Podziękowanie po wizycie, prośba o opinię i przypomnienie o serwisie powłoki.
-- 4:41.9–4:47.2  Wiadomość wychodzi sama, we właściwym momencie.
-- 4:49.1–4:56.4  Pomija klientów, którzy wrócili w międzyczasie.
+- 11:10.1–11:14.9  Podziękowanie i prośba o opinię
+- 11:10.4–11:14.9  SMS wychodzi sam po odbiorze auta.
+- 11:16.4–11:22.4  Wiadomości ułożone według etapów wizyty.
+- 11:23.2–11:28.5  Podziękowanie wychodzi samo, 30 minut po odbiorze auta.
+- 11:29.2–11:39.7  Własna treść z imieniem klienta i prośbą o opinię.
+- 11:40.4–11:45.6  Tak SMS zobaczy klient.
+- 11:46.3–11:50.3  Zmiany obowiązują od następnej wysyłki.
+- 11:51.1–11:56.7  Na liście: włączona, kanał SMS, 30 minut po odbiorze.
 
-## Telefon klienta — 4:56.3–5:17.3
+## Kampania automatyczna — 11:56.9–12:55.1
 
-- 4:58.0–5:16.7  Klient o Tobie pamięta
-- 4:58.3–5:16.7  Każda wiadomość wychodzi we właściwym momencie, podpisana nazwą Twojego studia.
-- 4:59.2–5:16.7  Dziękujemy za wizytę, Piotr! Mamy nadzieję, że efekt się podoba.
-- 4:59.2–5:16.7  30 min po odbiorze Podziękowanie po wizycie
-- 5:04.0–5:16.7  Piotr, jak sprawuje się powłoka? Będziemy wdzięczni za opinię: g.page/studio-polysk
-- 5:04.0–5:16.7  3 dni później Prośba o opinię
-- 5:08.8–5:16.7  Dzień dobry, Piotr. Czas na odświeżenie powłoki? Chętnie zaproponujemy termin.
-- 5:08.8–5:16.7  180 dni później Serwis powłoki
+- 11:58.5–12:03.3  Serwis powłoki po 180 dniach
+- 11:58.8–12:03.3  Kampania, która działa sama, codziennie.
+- 12:06.1–12:14.1  Kampania automatyczna: wysyła, gdy klient spełni warunek.
+- 12:14.8–12:20.9  Po usłudze Powłoka ceramiczna, po 180 dniach, o 10:00.
+- 12:21.6–12:27.5  Klienci policzeni z historii wizyt, ze zgodą marketingową.
+- 12:28.2–12:36.9  Imię i marka auta wstawiają się same.
+- 12:37.7–12:42.5  Gotowy SMS z liczbą znaków i kosztem.
+- 12:43.3–12:48.8  Odbiorcy, koszt w kredytach i warunek wysyłki.
+- 12:49.5–12:54.2  Pomija klientów, którzy wrócili w międzyczasie.
 
-## Poczta — 5:16.6–5:25.6
+## Telefon klienta — 12:54.4–13:15.4
 
-- 5:18.7–5:24.8  Twój biznes uporządkowany w jednym miejscu.
-- 5:19.1–5:24.8  Szablony stopek Zapytania i leady Filtr AI Oferta z AI
+- 12:56.1–13:14.8  Klient o Tobie pamięta
+- 12:56.4–13:14.8  Każda wiadomość wychodzi we właściwym momencie, podpisana nazwą Twojego studia.
+- 12:57.3–13:14.8  Drogi/a Piotr, Twój pojazd Porsche 911 Carrera 4S jest gotowy do odbioru. Zapraszamy!
+- 12:57.3–13:14.8  Gotowe do odbioru Auto gotowe
+- 13:01.3–13:14.8  Dziękujemy za wizytę, Piotr! Jeśli jesteś zadowolony, zostaw nam opinię: g.page/r/studio-polysk
+- 13:01.3–13:14.8  30 min po odbiorze Podziękowanie i opinia
+- 13:05.3–13:14.8  Cześć Piotr! Pół roku temu nałożyliśmy powłokę ceramiczną na Twój Porsche. Zapraszamy na przegląd powłoki: 22 100 20 30
+- 13:05.3–13:14.8  180 dni później Serwis powłoki
 
-## Szablony stopek — 5:24.9–5:42.9
+## Poczta — 13:14.7–13:23.7
 
-- 5:26.6–5:42.3  Szablony stopek
-- 5:26.9–5:42.3  Wybierasz motyw, wpisujesz dane i każdy mail wychodzi z firmową stopką.
-- 5:29.2–5:34.1  Podgląd na żywo pokazuje stopkę od razu.
-- 5:37.8–5:42.3  Stopka dołącza się jednym przełącznikiem.
+- 13:16.9–13:22.9  Twój biznes uporządkowany w jednym miejscu.
+- 13:17.1–13:22.9  Szablony stopek Zapytania i oferta z AI Filtr poczty
 
-## Zapytania i leady — 5:42.2–6:02.2
+## Szablony stopek — 13:23.0–14:32.3
 
-- 5:43.9–6:01.6  Zapytania pod kontrolą
-- 5:44.2–6:01.6  Każdy mail od klienta staje się sprawą. Widzisz, kto czeka na odpowiedź.
-- 5:45.6–5:50.8  Mail od klienta od razu staje się sprawą.
-- 5:51.6–5:56.4  Najważniejsze fakty są wypisane z maila.
-- 5:57.2–6:01.6  Zawsze wiesz, jaki jest następny krok.
+- 13:24.6–13:29.4  Szablony stopek
+- 13:24.9–13:29.4  Firmowa stopka pod każdym mailem.
+- 13:34.1–13:43.4  Gotowe motywy stopki: klasyczna, ze zdjęciem, z logo.
+- 13:44.1–14:01.3  Imię, stanowisko i kontakt, podgląd zmienia się na żywo.
+- 14:02.1–14:13.0  Kolor marki i krój pisma.
+- 14:13.7–14:25.7  Logo studia i gotowa stopka w podglądzie maila.
+- 14:26.5–14:31.4  Stopka dokleja się sama do każdej odpowiedzi.
 
-## Filtr AI — 6:01.5–6:20.5
+## Zapytania i oferta — 14:31.6–15:48.4
 
-- 6:03.2–6:19.9  Filtr AI
-- 6:03.5–6:19.9  Z dziesiątek maili wyłapuje realne zapytania klientów. Reklamy i spam nie zabierają Ci czasu.
-- 6:05.2–6:10.1  Każdy mail oceniony, zanim go otworzysz.
-- 6:10.9–6:15.1  Do Ciebie trafiają tylko prawdziwe zapytania.
-- 6:15.8–6:20.0  Pomyłkę cofasz przyciskiem „To jednak lead”.
+- 14:33.2–14:38.0  Zapytanie, wycena, oferta
+- 14:33.5–14:38.0  Od maila klienta do oferty.
+- 14:38.7–14:44.8  Każde zapytanie to sprawa, z czasem oczekiwania na odpowiedź.
+- 14:45.5–14:51.8  Klient pyta o korektę lakieru i powłokę na konkretny termin.
+- 14:52.6–14:58.1  CRM rozpoznaje klienta i pokazuje jego historię wizyt.
+- 14:58.8–15:03.8  Usługi z cennika wyczytane z treści maila.
+- 15:04.6–15:10.7  Zaakceptowane sugestie składają się w wycenę sprawy.
+- 15:11.5–15:16.9  Asystent pisze odpowiedź, z ofertą albo bez.
+- 15:17.6–15:28.9  Do szkicu idą usługi i ceny z wyceny.
+- 15:29.7–15:41.0  Gotowa odpowiedź z cenami i terminem, do przeczytania i poprawy.
+- 15:41.7–15:47.5  Wysłana z poczty CRM: sprawa czeka teraz na klienta.
 
-## Oferta z AI — 6:19.8–6:43.3
+## Filtr poczty — 15:47.7–16:48.2
 
-- 6:21.5–6:42.7  Oferta z pomocą AI
-- 6:21.8–6:42.7  Asystent dobiera usługi z cennika, podaje ceny z historii i pisze odpowiedź w Twoim stylu.
-- 6:22.9–6:28.2  Usługi dobrane do pytania klienta, ceny z historii.
-- 6:31.1–6:36.4  Odpowiedź w Twoim stylu, gotowa do wysłania.
-- 6:38.5–6:42.7  Klient dostaje ofertę w kilka minut.
+- 15:49.3–15:54.1  Filtr poczty
+- 15:49.6–15:54.1  Reklamy osobno, zapytania na wierzchu.
+- 15:55.6–16:04.1  Zapytania oznaczone jako sprawa, reszta zwykłej poczty pod nimi.
+- 16:04.8–16:12.1  Newslettery i powiadomienia zwinięte w jeden wiersz.
+- 16:12.8–16:18.6  Spam z formularza nie zaśmieca spraw.
+- 16:19.4–16:25.9  Każde odrzucenie ma powód, który da się sprawdzić.
+- 16:26.7–16:41.6  Jedno kliknięcie i zgłoszenie wraca jako sprawa z usługą.
+- 16:42.3–16:47.3  Zapytanie z wyceną na liście spraw.
 
-## Finał — 6:42.6–7:04.1
+## Finał — 16:47.5–17:09.0
 
-- 6:44.8–6:50.6  Pełna kontrola nad firmą. Z każdego miejsca.
-- 6:54.1–6:58.2  Jedno miejsce. Wszystkie procesy. Pełna kontrola.
-- 7:00.4–7:03.6  DetailBoost detailboost.pl
+- 16:49.7–16:55.5  Pełna kontrola nad firmą. Z każdego miejsca.
+- 16:59.0–17:03.1  Jedno miejsce. Wszystkie procesy. Pełna kontrola.
+- 17:05.3–17:08.5  DetailBoost detailboost.pl
