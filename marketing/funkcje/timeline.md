@@ -2,27 +2,24 @@
 |---|---|---|---|---|
 | 01 | Intro (`intro`) | 0:00.0 | 0:13.5 | 13.5 s |
 | 02 | Statystyki (`r1`) | 0:12.8 | 0:21.8 | 9.0 s |
-| 03 | Grupy usług (`grupy`) | 0:21.1 | 0:40.1 | 19.0 s |
-| 04 | Sezonowość (`sezon`) | 0:39.4 | 0:56.4 | 17.0 s |
-| 05 | Koszty i przychody (`koszty`) | 0:55.7 | 1:12.7 | 17.0 s |
-| 06 | Finanse (`r2`) | 1:12.0 | 1:21.0 | 9.0 s |
-| 07 | Faktury z KSeF (`ksef`) | 1:20.3 | 1:37.3 | 17.0 s |
-| 08 | Ukryj ze statystyk (`ukryj`) | 1:36.6 | 1:54.6 | 18.0 s |
-| 09 | Dokumenty spoza KSeF (`reczne`) | 1:53.9 | 2:13.4 | 19.5 s |
-| 10 | Stan kasy (`kasa`) | 2:12.7 | 2:30.3 | 17.6 s |
-| 11 | Faktura do KSeF (`faktura`) | 2:29.6 | 2:51.6 | 22.0 s |
-| 12 | Pracownicy (`r3`) | 2:50.9 | 2:59.9 | 9.0 s |
-| 13 | Role i dostęp (`role`) | 2:59.2 | 3:18.2 | 19.0 s |
-| 14 | Kod PIN (`pin`) | 3:17.5 | 3:33.5 | 16.0 s |
-| 15 | Do zrobienia (`todo`) | 3:32.8 | 3:52.8 | 20.0 s |
-| 16 | Urlopy (`urlopy`) | 3:52.1 | 4:12.1 | 20.0 s |
-| 17 | Czas pracy (`obecnosc`) | 4:11.4 | 4:30.4 | 19.0 s |
-| 18 | Kampanie SMS (`r4`) | 4:29.7 | 4:38.7 | 9.0 s |
-| 19 | Wiadomości automatyczne (`sms-auto`) | 4:38.0 | 4:57.0 | 19.0 s |
-| 20 | Telefon klienta (`sms-tel`) | 4:56.3 | 5:17.3 | 21.0 s |
-| 21 | Poczta (`r5`) | 5:16.6 | 5:25.6 | 9.0 s |
-| 22 | Szablony stopek (`stopka`) | 5:24.9 | 5:42.9 | 18.0 s |
-| 23 | Zapytania i leady (`leady`) | 5:42.2 | 6:02.2 | 20.0 s |
-| 24 | Filtr AI (`filtr`) | 6:01.5 | 6:20.5 | 19.0 s |
-| 25 | Oferta z AI (`oferta`) | 6:19.8 | 6:43.3 | 23.5 s |
-| 26 | Finał (`final`) | 6:42.6 | 7:04.1 | 21.5 s |
+| 03 | Grupy usług (`grupy`) | 0:21.1 | 0:59.8 | 38.7 s |
+| 04 | Sezonowość (`sezon`) | 0:59.1 | 1:35.6 | 36.5 s |
+| 05 | Koszty i przychody (`koszty`) | 1:34.9 | 2:13.3 | 38.4 s |
+| 06 | Finanse (`r2`) | 2:12.6 | 2:23.4 | 10.8 s |
+| 07 | Faktury z KSeF (`ksef`) | 2:22.7 | 2:53.7 | 31.0 s |
+| 08 | Ukryj ze statystyk (`ukryj`) | 2:53.0 | 3:37.9 | 44.9 s |
+| 09 | Dokumenty spoza KSeF (`reczne`) | 3:37.2 | 4:23.9 | 46.7 s |
+| 10 | Stan kasy (`kasa`) | 4:23.2 | 4:57.5 | 34.3 s |
+| 11 | Faktura do KSeF (`faktura`) | 4:56.8 | 6:12.5 | 75.7 s |
+| 12 | Pracownicy (`r3`) | 6:11.8 | 6:20.8 | 9.0 s |
+| 13 | Role i dostęp (`role`) | 6:20.1 | 6:59.6 | 39.5 s |
+| 14 | Kod PIN (`pin`) | 6:58.9 | 7:33.3 | 34.4 s |
+| 15 | Do zrobienia (`todo`) | 7:32.6 | 8:23.0 | 50.5 s |
+| 16 | Urlopy (`urlop`) | 8:22.3 | 9:55.4 | 93.1 s |
+| 17 | Czas pracy (`obecnosc`) | 9:54.7 | 10:55.5 | 60.8 s |
+| 18 | Kampanie SMS (`r4`) | 10:54.8 | 11:03.8 | 9.0 s |
+| 19 | Wiadomości automatyczne (`sms`) | 11:03.1 | 11:52.1 | 49.0 s |
+| 20 | Kampania automatyczna (`kampania`) | 11:51.5 | 12:49.7 | 58.3 s |
+| 21 | Telefon klienta (`sms-tel`) | 12:49.0 | 13:10.0 | 21.0 s |
+| 22 | Poczta (`r5`) | 13:09.3 | 13:18.3 | 9.0 s |
+| 23 | Finał (`final`) | 13:17.6 | 13:39.1 | 21.5 s |

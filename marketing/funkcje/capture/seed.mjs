@@ -1,0 +1,907 @@
+// capture/seed.mjs
+// Przeniesione z detailboost-webpage/capture (to samo nagrywanie co na stronie), dostosowane do samouczka.
+// Dosiewki do nagrań. Każda funkcja dotyczy JEDNEGO, świeżo założonego konta demo
+// (POST /api/v1/demo zakłada osobne studio, kasowane po 2 h) i niczego poza nim.
+import { execFileSync } from 'node:child_process';
+import { sql, rows, q } from './db.mjs';
+
+/**
+ * Zapytanie od klienta z historią (Piotr Wiśniewski: wizyty i dwa auta w danych demo),
+ * prowadzone mailem. Na start jest tylko jego pierwszy mail; naszą odpowiedź wysyła
+ * w nagraniu prawdziwy formularz CRM, a jego zgodę dopisuje `insertCustomerReply`.
+ *
+ * Wątek pocztowy lokalnie nie przyjdzie z IMAP, więc pierwszą wiadomość zapisujemy tam,
+ * gdzie zapisałaby ją synchronizacja skrzynki. Skrzynka jest ACTIVE i wysyła przez
+ * lokalny serwer SMTP (aiosmtpd na localhost:1025) - odpowiedź z nagrania to prawdziwa
+ * wysyłka przez SendMailHandler, zapisana przez CRM w wątku. Synchronizacja IMAP do
+ * localhost:1143 się nie łączy i tylko odnotowuje błąd; `last_sync_at` mówi CRM, że pierwsza
+ * synchronizacja już była (inaczej zamiast leadów stoi ekran „Trwa synchronizacja").
+ *
+ * Dwie porzucone rezerwacje sprzed miesięcy: CRM liczy je w kartotece kontaktu
+ * i pokazuje na leadzie ostrzeżenie „2 odwołane rezerwacje w historii tego kontaktu".
+ *
+ * Sugestie usług w produkcji dobiera model językowy z treści maila, wybierając
+ * POZYCJE CENNIKA (LeadServiceSuggestionService). Lokalnie modelu nie ma, więc
+ * wpisujemy dokładnie to, co ta usługa zapisałaby dla tego maila. Sekcję „Klient"
+ * (wizyty, obrót, ostatnia wizyta) liczy backend z prawdziwych wizyt.
+ */
+export function seedReturningCustomerLead(studio) {
+    const [[customerId, email, first, last]] = rows(
+        `select id, email, first_name, last_name from customers where studio_id=${q(studio)} and first_name='Piotr' and last_name='Wiśniewski'`,
+    );
+    const name = `${first} ${last}`;
+    const leadId = sql('select gen_random_uuid()');
+    const inbound =
+        'Dzień dobry, po zimie chciałbym odświeżyć 911-kę: korekta lakieru i nowa powłoka ceramiczna. ' +
+        'Czy znajdzie się termin 14–15 października? Auto mogę podstawić rano. Pozdrawiam, Piotr Wiśniewski';
+    sql(`insert into leads (id, contact_identifier, created_at, customer_id, customer_name, estimated_value,
+            initial_message, requires_verification, source, status, studio_id, updated_at, vehicle_brand,
+            vehicle_model, vehicle_detection_status)
+         values (${q(leadId)}, ${q(email)}, now() - interval '35 minutes', ${q(customerId)}, ${q(name)}, 0,
+            ${q(inbound)}, false, 'EMAIL', 'NEW', ${q(studio)}, now() - interval '35 minutes', 'Porsche',
+            '911 Carrera 4S', 'DONE')`);
+
+    // Dwie porzucone rezerwacje (klient nie przyjechał) - wiosną i latem.
+    sql(`insert into appointments (id, studio_id, customer_id, vehicle_id, appointment_title, appointment_color_id,
+            is_all_day, start_date_time, end_date_time, status, send_reminder_sms, created_by, updated_by,
+            created_at, updated_at, is_detached)
+         select gen_random_uuid(), a.studio_id, a.customer_id, a.vehicle_id, t.title, a.appointment_color_id, false,
+            t.ts, t.ts + interval '4 hours', 'ABANDONED', false, a.created_by, a.created_by,
+            t.ts - interval '7 days', t.ts, false
+         from (select * from appointments where studio_id=${q(studio)} and customer_id=${q(customerId)}
+               and deleted_at is null order by created_at desc limit 1) a
+         cross join (values ('Korekta lakieru Porsche 911', timestamptz '2026-04-14 09:00+02'),
+                            ('Mycie detailingowe Porsche 911', timestamptz '2026-06-09 10:00+02')) t(title, ts)`);
+
+    const services = [
+        ['Korekta lakieru 2-etapowa', 'korekta lakieru'],
+        ['Powłoka ceramiczna IGL Eclipse', 'nowa powłoka ceramiczna'],
+    ];
+    let total = 0;
+    for (const [service, quote] of services) {
+        const [[serviceId, net, gross, vat]] = rows(
+            `select id, base_price_net, base_price_gross, vat_rate from services where studio_id=${q(studio)} and name=${q(service)}`,
+        );
+        total += Number(gross);
+        sql(`insert into lead_service_items (id, created_at, evidence_quote, lead_id, name, price_gross, price_net,
+                price_source, quantity, service_id, source, status, studio_id, vat_rate)
+             values (gen_random_uuid(), now() - interval '35 minutes', ${q(quote)}, ${q(leadId)}, ${q(service)}, ${gross}, ${net},
+                'CATALOG', 1, ${q(serviceId)}, 'AI', 'SUGGESTED', ${q(studio)}, ${vat})`);
+    }
+    sql(`update leads set estimated_value=${total} where id=${q(leadId)}`);
+    // Brutto wyceny w mailu = suma brutto pozycji z cennika (bez przeliczania z netto).
+    const totalPln = (total / 100).toLocaleString('pl-PL', { minimumFractionDigits: 2 });
+
+    const mailbox = 'kontakt@studiopolysk.pl';
+    sql(`insert into mail_accounts (id, studio_id, email_address, provider_type, auth_type, status, smtp_host, smtp_port,
+            imap_host, imap_port, encrypted_password, last_sync_at, created_at, updated_at)
+         values (gen_random_uuid(), ${q(studio)}, ${q(mailbox)}, 'IMAP_SMTP', 'PASSWORD', 'ACTIVE', 'localhost', 1025,
+            'localhost', 1143, 'x', now() - interval '2 minutes', now(), now())
+         on conflict (studio_id, email_address) do nothing`);
+    const account = sql(`select id from mail_accounts where studio_id=${q(studio)} and email_address=${q(mailbox)}`);
+    const thread = sql('select gen_random_uuid()');
+    const subject = 'Korekta i powłoka ceramiczna - Porsche 911';
+    sql(`insert into comm_threads (id, studio_id, account_id, subject_norm, subject, participant_email, participant_name,
+            last_message_at, last_direction, last_snippet, message_count, unread_count, inbound_count, outbound_count,
+            has_attachments, lead_id, archived, created_at, kind, automated)
+         values (${q(thread)}, ${q(studio)}, ${q(account)}, ${q(subject.toLowerCase())}, ${q(subject)}, ${q(email)}, ${q(name)},
+            now() - interval '35 minutes', 'INBOUND', ${q(inbound.slice(0, 120))}, 1, 1, 1, 0, false, ${q(leadId)}, false,
+            now() - interval '35 minutes', 'DIRECT', false)`);
+    const ctx = { studio, leadId, customerId, account, thread, email, name, mailbox, subject, totalPln };
+    insertMessage(ctx, 'in1', 'INBOUND', '35 minutes', subject, inbound, null);
+    sql(`update leads set thread_id=${q(thread)} where id=${q(leadId)}`);
+    return ctx;
+}
+
+function insertMessage({ studio, account, thread, leadId, email, name, mailbox }, id, dir, ago, subj, body, inReplyTo) {
+    const inbound = dir === 'INBOUND';
+    // Poczta CRM pokazuje treść z wersji HTML (body_html_safe), lead - z tekstowej.
+    const html = `<p>${body.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</p>`;
+    sql(`insert into comm_messages (id, studio_id, account_id, thread_id, direction, folder_kind, message_id_hdr,
+            in_reply_to, from_email, from_name, to_emails, subject, sent_at, body_text, body_text_clean, body_html_safe,
+            has_attachments, is_read, read_source, read_at, send_status, created_at)
+         values (gen_random_uuid(), ${q(studio)}, ${q(account)}, ${q(thread)}, '${dir}', '${inbound ? 'INBOX' : 'SENT'}',
+            ${q(`<${id}.${leadId}@seed>`)}, ${inReplyTo ? q(`<${inReplyTo}.${leadId}@seed>`) : 'null'},
+            ${q(inbound ? email : mailbox)}, ${q(inbound ? name : 'Studio Połysk')}, ${q(inbound ? mailbox : email)}, ${q(subj)},
+            now() - interval '${ago}', ${q(body)}, ${q(body)}, ${q(html)}, false, ${inbound ? 'false' : 'true'}, null, null,
+            '${inbound ? 'RECEIVED' : 'SENT'}', now() - interval '${ago}')`);
+}
+
+/**
+ * Klient odpisuje: zgoda na termin i wycenę. Jak przy pierwszym mailu - w miejscu,
+ * w które zapisałaby ją synchronizacja skrzynki.
+ */
+export function insertCustomerReply(ctx) {
+    const body = `Tak, potwierdzam termin 14–15.10 i wycenę ${ctx.totalPln} zł. Zgadzam się na wykonanie obu usług. ` +
+        'Podstawię auto o 9:00. Piotr Wiśniewski';
+    // Czas „teraz", nie „minutę temu": naszą odpowiedź wysyła w nagraniu prawdziwa poczta
+    // CRM kilka sekund wcześniej, więc odpowiedź klienta cofnięta o minutę stawała w
+    // historii PRZED naszą (odpisaliśmy → klient odpisał → pierwszy kontakt).
+    insertMessage(ctx, 'in2', 'INBOUND', '0 seconds', `Re: ${ctx.subject}`, body, null);
+    sql(`update comm_threads set last_message_at=now(), last_direction='INBOUND',
+            message_count=message_count+1, inbound_count=inbound_count+1, last_snippet=${q(body.slice(0, 120))}
+         where id=${q(ctx.thread)}`);
+    // Ostatnie słowo należy do klienta, ale po jego zgodzie ruch jest po stronie studia
+    // w kalendarzu, nie w poczcie - first_response_at po zgodzie trzyma „Stwórz
+    // rezerwację" jako krok następny (leadUrgency.ts) zamiast „Odpisz klientowi".
+    sql(`update leads set first_response_at = now(), updated_at = now() where id=${q(ctx.leadId)}`);
+}
+
+/**
+ * Konto demo dostaje plan BASIC z kilkoma dodatkami - bez powiadomień SMS, przez co
+ * formularz rezerwacji pokazuje kłódkę „Twój abonament nie obsługuje powiadomień SMS".
+ * Strona sprzedaje pełny produkt, więc nagrywamy na planie FULL. Uprawnienia są
+ * w Redisie (studio-entitlements::{id}, TTL 5 min) - bez skasowania klucza zmiana
+ * planu dotarłaby do interfejsu dopiero po kilku minutach.
+ */
+export function enableFullPlan(studio) {
+    // Studio demo nie ma wiersza planu wcale (backend schodzi wtedy do BASIC).
+    sql(`delete from studio_subscription_plans where studio_id=${q(studio)}`);
+    sql(`insert into studio_subscription_plans (id, activated_at, created_at, studio_id, plan_id)
+         select gen_random_uuid(), now(), now(), ${q(studio)}, id from subscription_plans where plan_key='FULL'`);
+    const keys = execFileSync('redis-cli', ['--scan', '--pattern', `*entitlements*${studio}*`], { encoding: 'utf8' })
+        .split('\n').filter(Boolean);
+    if (keys.length) execFileSync('redis-cli', ['DEL', ...keys]);
+}
+
+/**
+ * Reguły SMS włączone tak, jak włączyłby je właściciel w Ustawieniach → SMS:
+ * potwierdzenie rezerwacji, przypomnienie 24 h przed wizytą, „pojazd gotowy"
+ * i link do podpisu dokumentu (bez niego wydanie auta nie wyśle protokołu do podpisu).
+ * Fabrycznie każda reguła jest wyłączona, a formularz rezerwacji pokazuje wtedy
+ * „Wyłączone globalnie w konfiguracji SMS". Przez API, nie SQL - ta sama ścieżka
+ * co ekran ustawień, z jego walidacją.
+ */
+export async function enableSmsAutomation(page, base, studio) {
+    // Pakiet kredytów, jak po zakupie w Ustawieniach → SMS. Bez niego okno „Pojazd
+    // gotowy do odbioru" ostrzega „SMS nie wyjdzie. Kredyty SMS: 0 szt.".
+    sql(`delete from sms_credit_balances where studio_id=${q(studio)}`);
+    sql(`insert into sms_credit_balances (id, available_credits, created_at, studio_id, total_purchased, total_used, updated_at, version)
+         values (gen_random_uuid(), 500, now(), ${q(studio)}, 500, 0, now(), 0)`);
+    const url = `${base}/api/v1/sms-campaigns/automation`;
+    const config = await (await page.request.get(url)).json();
+    config.bookingConfirmation.enabled = true;
+    config.preVisit.enabled = true;
+    config.preVisit.offsetMinutes = 24 * 60;
+    config.visitReadyForPickup.enabled = true;
+    config.signatureRequest.enabled = true;
+    // Karta Wizyty: SMS z prośbą o „TAK" przy usługach dodatkowych i SMS z linkiem do karty.
+    if (config.upsellConsent) config.upsellConsent.enabled = true;
+    if (config.visitCardLink) config.visitCardLink.enabled = true;
+    const res = await page.request.put(url, { data: config });
+    if (!res.ok()) throw new Error(`PUT automation: ${res.status()} ${await res.text()}`);
+}
+
+/**
+ * Dane firmy i token KSeF - to, co właściciel wpisuje raz w Ustawieniach.
+ * Bez nich przełącznik „Wyślij fakturę do KSeF" jest wyłączony, a wydanie pojazdu
+ * prosi o uzupełnienie danych firmy. Przez API, tą samą ścieżką co ekran ustawień.
+ */
+export async function setupInvoicing(page, base) {
+    const nip = '5213870274';
+    const company = await page.request.put(`${base}/api/v1/company`, {
+        data: {
+            name: 'Studio Połysk Sp. z o.o.', taxId: nip, regon: '146501234',
+            street: 'ul. Puławska 145', postalCode: '02-715', city: 'Warszawa',
+            phone: '+48 600 100 200', email: 'biuro@studiopolysk.pl', bankAccount: '61 1090 1014 0000 0712 1981 2874',
+        },
+    });
+    if (!company.ok()) throw new Error(`PUT company: ${company.status()} ${await company.text()}`);
+    const ksef = await page.request.post(`${base}/api/v1/ksef/credentials`, {
+        data: { nip, ksefToken: 'demo-token' },
+    });
+    if (!ksef.ok()) throw new Error(`POST ksef/credentials: ${ksef.status()} ${await ksef.text()}`);
+}
+
+/**
+ * Stan synchronizacji faktur z KSeF po udanym przebiegu. Zaślepka KSeF niczego nie
+ * pobiera, więc Finanse pokazują „Nie pobrano jeszcze faktur z KSeF" - u studia
+ * z prawdziwym tokenem ten pasek znika po pierwszej synchronizacji (co 15 min).
+ */
+export function markKsefSynced(studio) {
+    sql(`delete from ksef_sync_cursor where studio_id=${q(studio)}`);
+    sql(`insert into ksef_sync_cursor (studio_id, last_error, last_expense_sync, last_revenue_sync, sync_status, updated_at)
+         values (${q(studio)}, null, now() - interval '4 minutes', now() - interval '4 minutes', 'SUCCESS', now())`);
+}
+
+export function visitIdByTitle(studio, title) {
+    return sql(`select id from visits where studio_id=${q(studio)} and title=${q(title)} limit 1`);
+}
+
+/**
+ * Lokalny backend ma SDK KSeF zastąpione zaślepką (-PksefStub), która nie łączy się
+ * z Ministerstwem - faktura ląduje w kolejce offline24. W produkcji KSeF ją przyjmuje
+ * i nadaje numer; tu wpisujemy ten stan wprost: status ACCEPTED i numer w formacie
+ * KSeF (NIP-RRRRMMDD-12 hex-2 hex). Wszystko, co potem widać w Finansach, rysuje
+ * już prawdziwy interfejs z tych danych.
+ */
+export function markInvoiceAccepted(studio) {
+    sql(`update ksef_revenue_invoices
+         set ksef_status='ACCEPTED',
+             ksef_number = seller_nip || '-' || to_char(issue_date,'YYYYMMDD') || '-'
+                 || upper(substr(md5(id::text),1,12)) || '-' || upper(substr(md5(id::text),13,2)),
+             sent_at = coalesce(sent_at, now()), accepted_at = now(), last_send_error = null,
+             first_queued_at = null, upo_xml = '<?xml version="1.0" encoding="UTF-8"?><Potwierdzenie/>',
+             updated_at = now()
+         where studio_id=${q(studio)} and source='CRM' and ksef_status <> 'ACCEPTED'`);
+}
+
+const AREA_PHRASES = [
+    'powłoka ceramiczna', 'ceramika samochodowa', 'powłoka kwarcowa', 'powłoka grafenowa', 'powłoka hydrofobowa',
+    'zabezpieczenie lakieru', 'ochrona lakieru', 'folia ppf', 'folia ochronna na lakier', 'bezbarwna folia ochronna',
+    'zmiana koloru auta', 'oklejanie samochodu', 'car wrapping', 'folia na auto', 'przyciemnianie szyb',
+    'folia przyciemniająca', 'przyciemnianie lamp', 'korekta lakieru', 'polerowanie lakieru', 'usuwanie rys z lakieru',
+    'renowacja lakieru', 'dekontaminacja lakieru', 'polerowanie reflektorów', 'renowacja reflektorów', 'detailing wnętrza',
+    'pranie tapicerki', 'czyszczenie tapicerki samochodowej', 'renowacja skóry w samochodzie', 'czyszczenie podsufitki',
+    'ozonowanie', 'ozonowanie samochodu', 'odgrzybianie klimatyzacji', 'czyszczenie klimatyzacji samochodowej',
+    'mycie detailingowe', 'myjnia ręczna', 'mycie ręczne samochodu', 'myjnia bezdotykowa', 'pielęgnacja samochodu',
+    'czyszczenie felg', 'zabezpieczenie felg', 'konserwacja podwozia', 'detailing samochodowy', 'studio detailingu',
+    'auto detailing', 'kosmetyka samochodowa', 'auto spa',
+];
+
+/**
+ * Konkurent, który w tym tygodniu ogłosił promocję i puścił płatną kampanię.
+ *
+ * W produkcji te dane przychodzą z dwóch źródeł: posty z Instagrama (scraper przez
+ * RapidAPI, co tydzień i codziennie) i reklamy z Biblioteki Reklam Meta (co dzień
+ * dla obserwowanych profili, co 10 min dla okolicy). Lokalnie żadnego klucza nie ma,
+ * więc wpisujemy wiersze, które te synchronizacje by zapisały. Klasyfikacja posta
+ * jako promocji (regex „promocj…", rabat z „-30%") i wniosek „ogłasza promocję"
+ * odpowiadają temu, co liczy TopicClassificationService / InsightEngine.
+ *
+ * Profile i reklamy z okolicy są w bazie wspólne dla wszystkich studiów (to dane
+ * publiczne), stąd „wstaw albo użyj istniejącego".
+ */
+export function seedCompetitorCampaign(studio, userId) {
+    const page = '100200300400';
+    sql(`insert into instagram_profiles (id, username, follower_count, following_count, media_count, biography,
+            has_contact_data, is_verified, is_business, has_highlight_reels, total_clips_count, is_private, api_error,
+            facebook_page_id, facebook_page_name, facebook_page_linked_at, details_last_synced_at, created_at, updated_at,
+            category, external_url)
+         select gen_random_uuid(), 'shinestudio_waw', 18400, 312, 428, 'Detailing i powłoki ceramiczne. Warszawa, Mokotów.',
+            true, false, true, true, 84, false, false, ${q(page)}, 'Shine Studio Warszawa', now() - interval '90 days',
+            now() - interval '2 hours', now() - interval '120 days', now(), 'Car detailing', 'https://shinestudio.pl'
+         where not exists (select 1 from instagram_profiles where username='shinestudio_waw')`);
+    sql(`update instagram_profiles set details_last_synced_at = now() - interval '2 hours', api_error=false
+         where username='shinestudio_waw'`);
+    const profile = sql(`select id from instagram_profiles where username='shinestudio_waw'`);
+
+    sql(`delete from studio_instagram_profiles where studio_id=${q(studio)} and profile_id=${q(profile)}`);
+    sql(`insert into studio_instagram_profiles (id, studio_id, profile_id, status, added_by_user_id, is_self, created_at, updated_at)
+         values (gen_random_uuid(), ${q(studio)}, ${q(profile)}, 'ACTIVE', ${q(userId)}, false, now() - interval '120 days', now())`);
+
+    // Posty: osiem zwykłych z ostatnich tygodni (to z nich liczy się „norma" profilu)
+    // i jeden z wczoraj - promocja, z zaangażowaniem kilka razy ponad normę.
+    sql(`delete from instagram_post_topics where post_id in (select id from instagram_post_snapshots where profile_id=${q(profile)})`);
+    sql(`delete from instagram_post_snapshots where profile_id=${q(profile)}`);
+    const captions = [
+        'Porsche Taycan po pełnej korekcie i ceramice. Efekt lustra 🪞 #detailing',
+        'Wnętrze Range Rovera po praniu i zabezpieczeniu skór.',
+        'BMW M3 - folia PPF na cały przód. Kamienie już nie straszne.',
+        'Mycie detailingowe + dekontaminacja. Zobaczcie różnicę na masce.',
+        'Audi RS6: korekta jednoetapowa, nowy blask w 1 dzień.',
+        'Mercedes GLE po ozonowaniu i czyszczeniu klimatyzacji.',
+        'Felgi Volvo XC90 - czyszczenie i zabezpieczenie ceramiką.',
+        'Tesla Model Y - przyciemnianie szyb i ochrona lakieru.',
+    ];
+    captions.forEach((caption, i) => {
+        sql(`insert into instagram_post_snapshots (id, profile_id, post_pk, post_code, like_count, comment_count, view_count,
+                caption, taken_at, scraped_at, product_type, carousel_media_count, hashtags)
+             values (gen_random_uuid(), ${q(profile)}, 'shine_pk_${i}', 'ShInE${i}code', ${190 + i * 13}, ${11 + i}, null,
+                ${q(caption)}, now() - interval '${7 * (i + 1) + 3} days', now(), ${i % 3 === 0 ? "'clips'" : 'null'}, null, 'detailing')`);
+    });
+    const promo = sql('select gen_random_uuid()');
+    sql(`insert into instagram_post_snapshots (id, profile_id, post_pk, post_code, like_count, comment_count, view_count,
+            caption, taken_at, scraped_at, product_type, carousel_media_count, hashtags)
+         values (${q(promo)}, ${q(profile)}, 'shine_pk_promo', 'ShInEpromo', 1460, 164, 32800,
+            'JESIENNA PROMOCJA! Powłoka ceramiczna -30% tylko do końca października. Zapisy w DM 📩',
+            now() - interval '1 day', now(), 'clips', null, 'promocja,ceramika')`);
+    sql(`insert into instagram_post_topics (id, post_id, topic, is_promo, is_contest, discount_pct, method, classified_at)
+         values (gen_random_uuid(), ${q(promo)}, 'PROMOCJA', true, false, 30, 'REGEX', now())`);
+    sql(`delete from instagram_insights where studio_id=${q(studio)} and profile_id=${q(profile)}`);
+    sql(`insert into instagram_insights (id, studio_id, type, severity, title, body, action_text, profile_id, post_id,
+            probable_cause, dedup_key, status, week_start, created_at, updated_at)
+         values (gen_random_uuid(), ${q(studio)}, 'PROMO_DETECTED', 'HIGH', '@shinestudio_waw ogłasza promocję (−30%)',
+            'W poście z wczoraj pojawiła się oferta promocyjna. Klienci z Twojej okolicy właśnie ją widzą.',
+            'Zajrzyj do posta i zdecyduj, czy odpowiadasz własną ofertą.', ${q(profile)}, ${q(promo)}, null,
+            'PROMO:shine_pk_promo', 'NEW', date_trunc('week', (now() at time zone 'UTC'))::date, now(), now())`);
+
+    // Płatna kampania obserwowanego profilu (Biblioteka Reklam Meta).
+    // Numer reklamy w Bibliotece Reklam jest unikalny w całej bazie - z poprzedniego nagrania
+    // może wisieć przy innym profilu, więc kasujemy po numerze, nie po profilu.
+    sql(`delete from meta_ad_snapshots where profile_id=${q(profile)} or ad_archive_id='900000000000001'`);
+    sql(`insert into meta_ad_snapshots (id, ad_archive_id, page_id, profile_id, title, delivery_start, delivery_stop,
+            reach_eu, reach_pl, platforms, target_ages, target_gender, target_locations, payer, beneficiary, reach_breakdown,
+            creative_body, link_description, link_caption, first_seen_at, last_seen_at, created_at, updated_at)
+         values (gen_random_uuid(), '900000000000001', ${q(page)}, ${q(profile)}, 'Jesienna promocja: ceramika -30%',
+            current_date - 1, null, 15200, 12400, 'FACEBOOK,INSTAGRAM', '25-54', 'All', 'Warszawa, Polska;city;0',
+            'Shine Studio Sp. z o.o.', 'Shine Studio Sp. z o.o.', '25-34;3900;1450;0|35-44;3100;1200;0|45-54;2100;900;0',
+            'Zabezpiecz lakier przed zimą. Powłoka ceramiczna -30% do końca października. Termin w 7 dni.',
+            'Powłoka ceramiczna z gwarancją 3 lata', 'shinestudio.pl', now(), now(), now(), now())`);
+
+    // Okolica: nowa kampania firmy, której studio wcześniej nie widziało w reklamach.
+    sql(`insert into meta_ad_area_settings (studio_id, locations, match_mode, excluded_phrase_ids, created_at, updated_at)
+         values (${q(studio)}, 'Warszawa', 'INCLUDE_BROADER', '', now(), now())
+         on conflict (studio_id) do update set locations='Warszawa', novelty_acked_through=null`);
+    sql(`delete from meta_ad_discovery_ads where ad_archive_id in ('900000000000002', '900000000000003')`);
+    sql(`insert into meta_ad_discovery_ads (id, phrase, ad_archive_id, page_id, page_name, delivery_start, delivery_stop,
+            reach_eu, target_locations, link_caption, fetched_at)
+         values (gen_random_uuid(), 'powłoka ceramiczna', '900000000000002', ${q(page)}, 'Shine Studio Warszawa',
+                 current_date - 1, null, 15200, 'Warszawa, Polska;city;0', 'shinestudio.pl', now()),
+                (gen_random_uuid(), 'folia ppf', '900000000000003', '555666777', 'Auto Spa Mokotów',
+                 current_date - 2, null, 8200, 'Warszawa, Polska;city;0', null, now())`);
+    sql(`insert into meta_ad_discovery_advertisers (page_id, page_name, first_delivery_start, first_seen_at, last_seen_at)
+         values (${q(page)}, 'Shine Studio Warszawa', date '2026-03-01', now() - interval '200 days', now()),
+                ('555666777', 'Auto Spa Mokotów', current_date - 2, now(), now())
+         on conflict (page_id) do update set last_seen_at = now()`);
+    // Wszystkie frazy „świeże" - inaczej wejście w zakładkę Reklamy odpytuje Metę.
+    for (const phrase of AREA_PHRASES) {
+        sql(`insert into meta_ad_discovery_phrases (id, phrase, last_fetched_at, last_status, ad_count, truncated, created_at, updated_at)
+             select gen_random_uuid(), ${q(phrase)}, now(), 'OK', 1, false, now(), now()
+             where not exists (select 1 from meta_ad_discovery_phrases where phrase=${q(phrase)})`);
+    }
+    sql(`update meta_ad_discovery_phrases set last_fetched_at = now(), last_status='OK'`);
+    sql(`delete from instagram_reports where studio_id=${q(studio)}`);
+    return { profile };
+}
+
+/**
+ * Historia kampanii, żeby kalendarz reklam nie był pusty poza jedną kreską: po dwie,
+ * trzy wcześniejsze kampanie obserwowanych profili i powiązanie profili demo ze
+ * stronami na Facebooku (bez tego każdy profil wisi nad kalendarzem jako żółte
+ * „profil nie jest połączony ze stroną na Facebooku").
+ */
+export function seedCampaignHistory(studio) {
+    const profiles = rows(`select p.id, p.username from instagram_profiles p
+        join studio_instagram_profiles s on s.profile_id = p.id
+        where s.studio_id=${q(studio)} and s.status='ACTIVE' order by p.username`);
+    const history = {
+        shinestudio_waw: [['2026-03-02', '2026-03-22', 'Wiosenne mycie detailingowe'], ['2026-06-01', '2026-06-21', 'Folia PPF na wakacje']],
+        autopodrobku: [['2026-04-06', '2026-04-30', 'Korekta lakieru w 1 dzień'], ['2026-08-17', '2026-09-06', 'Pranie tapicerki -20%']],
+        carspa_gdansk: [['2026-05-11', '2026-06-07', 'Ceramika z gwarancją 5 lat']],
+        detailingmasterspl: [['2026-02-09', '2026-03-01', 'Zimowa pielęgnacja'], ['2026-07-06', '2026-07-26', 'Przyciemnianie szyb']],
+    };
+    profiles.forEach(([id, username], i) => {
+        const pageId = `7000000000${String(i).padStart(2, '0')}`;
+        if (username !== 'shinestudio_waw') {
+            sql(`update instagram_profiles set facebook_page_id=coalesce(facebook_page_id, ${q(pageId)}),
+                    facebook_page_name=coalesce(facebook_page_name, ${q(username)}),
+                    facebook_page_linked_at=coalesce(facebook_page_linked_at, now() - interval '60 days')
+                 where id=${q(id)}`);
+        }
+        const fb = sql(`select facebook_page_id from instagram_profiles where id=${q(id)}`);
+        (history[username] ?? []).forEach(([from, to, title], j) => {
+            const archive = `91${String(i).padStart(2, '0')}${String(j).padStart(2, '0')}00000000`;
+            sql(`delete from meta_ad_snapshots where ad_archive_id=${q(archive)}`);
+            sql(`insert into meta_ad_snapshots (id, ad_archive_id, page_id, profile_id, title, delivery_start, delivery_stop,
+                    reach_eu, reach_pl, platforms, target_ages, target_gender, target_locations, payer, beneficiary,
+                    reach_breakdown, creative_body, link_description, link_caption, first_seen_at, last_seen_at,
+                    ended_detected_at, created_at, updated_at)
+                 values (gen_random_uuid(), ${q(archive)}, ${q(fb)}, ${q(id)}, ${q(title)}, date ${q(from)}, date ${q(to)},
+                    ${6000 + j * 2500}, ${5200 + j * 2100}, 'FACEBOOK,INSTAGRAM', '25-54', 'All', 'Polska;country;0',
+                    ${q(username)}, ${q(username)}, '25-34;2000;900;0|35-44;1800;800;0', ${q(title)}, null, null,
+                    date ${q(from)}, date ${q(to)}, date ${q(to)}, now(), now())`);
+        });
+    });
+}
+
+/**
+ * Lista „Do zrobienia" na Tablicy - zwykłe notatki zespołu, przez API zadań.
+ * Konto demo ma ją pustą, przez co Tablica jest za krótka, żeby przewinąć nagłówek
+ * z kartą „przychód / rezerwacje m/m" (2 października wypada tam −40…−90%).
+ */
+export async function seedTasks(page, base) {
+    const tasks = [
+        ['Zamówić pady polerskie 3D (średnie i wykańczające)', 'Hurtownia, do piątku'],
+        ['Oddzwonić do p. Kamińskiej - termin odbioru Camry', null],
+        ['Wymienić filtr w ozonatorze', 'Stanowisko 2'],
+        ['Zdjęcia Porsche 911 po korekcie na Instagram', 'Przed i po'],
+        ['Przegląd myjki ciśnieniowej', 'Serwis Kärcher, wt.'],
+        ['Faktura za chemię IGL - sprawdzić w KSeF', null],
+        ['Grafik na listopad', 'Urlopy: Michał 12–14.11'],
+        ['Kupić ręczniki z mikrofibry 40×40', '50 szt.'],
+        ['Potwierdzić flotę AutoCars na 9.10', 'Toyota + VW, 2 auta'],
+    ];
+    for (const [title, meta] of tasks) {
+        const res = await page.request.post(`${base}/api/v1/tasks`, { data: { title, ...(meta ? { meta } : {}) } });
+        if (!res.ok()) throw new Error(`POST tasks: ${res.status()} ${await res.text()}`);
+    }
+}
+
+/**
+ * Seeder demo ma dwie wizyty z tytułem niezgodnym z autem (DemoDataInitializer.kt:526
+ * „…Porsche Cayenne" na Toyocie Camry, :680 „…Kia" na Mercedesie A250). Na Tablicy
+ * widać to od razu, więc w nagraniu tytuł mówi o aucie, które naprawdę stoi w wizycie.
+ */
+export function fixDemoTitles(studio) {
+    sql(`update visits set title='2-etap + ceramika Toyota Camry'
+         where studio_id=${q(studio)} and title='2-etap + ceramika Porsche Cayenne'`);
+}
+
+/** NIP z poprawną cyfrą kontrolną (wagi 6,5,7,2,3,4,5,6,7) dla fikcyjnych firm. */
+function nip(prefix9) {
+    const w = [6, 5, 7, 2, 3, 4, 5, 6, 7];
+    for (let k = 0; k < 1000; k++) {
+        const base = String((Number(prefix9) + k) % 1e9).padStart(9, '0');
+        const sum = [...base].reduce((acc, d, i) => acc + Number(d) * w[i], 0) % 11;
+        if (sum !== 10) return base + sum;
+    }
+    throw new Error('nip');
+}
+
+/*
+ * Dostawcy są FIKCYJNI, z NIP-ami przechodzącymi tylko test sumy kontrolnej. Strona jest
+ * publiczna, a faktury są zmyślone - nie przypisujemy ich prawdziwym firmom. Wyjątek to
+ * paliwo: scena opowiada o tankowaniu na stacji ORLEN (prośba biznesu), więc tu stoi
+ * nazwa i publiczny NIP ORLEN S.A.; numery faktur i numery KSeF są zmyślone.
+ */
+export const SUPPLIERS = {
+    chemia: { name: 'Detailing Chemie Hurt Sp. z o.o.', nip: nip('598412736'), category: 'Chemia detailingowa', color: '#3B82F6', about: 'Szampony, pre-washe, woski, mikrofibry' },
+    paliwo: { name: 'ORLEN S.A.', nip: '7740001454', category: 'Paliwo', color: '#F97316', about: 'Auto serwisowe i odbiór door-to-door' },
+    ppf: { name: 'PPF Protect Dystrybucja Sp. z o.o.', nip: nip('712506384'), category: 'Folie PPF', color: '#8B5CF6', about: 'Rolki folii ochronnej i akcesoria montażowe' },
+    leasing: { name: 'AutoLease Finanse Sp. z o.o.', nip: nip('846210397'), category: 'Leasing', color: '#64748B', about: 'Raty leasingowe auta serwisowego i sprzętu' },
+    media: { name: 'Energia Miasto Sp. z o.o.', nip: nip('935874120'), category: 'Media', color: '#EAB308', about: 'Prąd, woda, ogrzewanie' },
+    narzedzia: { name: 'Narzędziownia Profi Sp. z o.o.', nip: nip('578203916'), category: 'Narzędzia i sprzęt', color: '#14B8A6', about: 'Polerki, narzędzia, materiały warsztatowe' },
+};
+
+/**
+ * Faktura z tankowania, która „przychodzi" z KSeF w nagraniu - ta sama, którą drukuje
+ * terminal w capture/anim/fuel.html. Na stacji cenę ustala dystrybutor w brutto
+ * (6,29 zł/l × 64,38 l = 404,95 zł), więc brutto pozycji jest podane wprost, a netto
+ * wyliczone z niego (40495 / 1,23 → 32923 gr). VAT to różnica: 7572 gr.
+ */
+export const NEW_FUEL_INVOICE = {
+    supplier: 'paliwo',
+    number: 'F/4412/26/183577',
+    items: [['ON EFECTA DIESEL', 'l', 64.38, 5.11, { net: 32923, gross: 40495 }]],
+};
+
+function insertCostInvoice(studio, buyer, { supplier, number, daysAgo, payForm, items, minutesAgo, ksefNumber }) {
+    const s = SUPPLIERS[supplier];
+    const lines = items.map(([name, unit, qty, unitNet, exact], i) => {
+        // Pozycja podana w brutto (paliwo z dystrybutora) zostaje w brutto - netto jest
+        // z niego wyliczone, nie odwrotnie.
+        if (exact) return { i: i + 1, name, unit, qty, unitNet: Math.round(unitNet * 100), net: exact.net, gross: exact.gross };
+        const net = Math.round(qty * unitNet * 100);
+        // Brutto pozycji z faktury dostawcy: netto × stawka, zaokrąglone raz na pozycję.
+        return { i: i + 1, name, unit, qty, unitNet: Math.round(unitNet * 100), net, gross: Math.round(net * 1.23) };
+    });
+    const net = lines.reduce((a, l) => a + l.net, 0);
+    const gross = lines.reduce((a, l) => a + l.gross, 0);
+    const when = minutesAgo != null ? `now() - interval '${minutesAgo} minutes'` : `((current_date - ${daysAgo})::timestamp + time '09:40') at time zone 'Europe/Warsaw'`;
+    const issue = minutesAgo != null ? 'current_date' : `current_date - ${daysAgo}`;
+    const hash = sql(`select upper(substr(md5(${q(number + studio)}), 1, 14))`);
+    const ksef = ksefNumber ?? `${s.nip}-${sql(`select to_char(${issue}, 'YYYYMMDD')`)}-${hash.slice(0, 12)}-${hash.slice(12, 14)}`;
+    const id = sql('select gen_random_uuid()');
+    const paid = payForm === 'KARTA' || (daysAgo ?? 0) > 20;
+    sql(`insert into ksef_invoices (id, studio_id, source, ksef_number, invoice_number, invoicing_date, issue_date,
+            seller_nip, seller_name, buyer_name, net_amount, gross_amount, vat_amount, currency, invoice_type,
+            fetched_at, direction, is_correction, status, payment_status, payment_form, payment_due_date, details_synced)
+         values (${q(id)}, ${q(studio)}, 'KSEF', ${q(ksef)}, ${q(number)}, ${when}, ${issue}, ${q(s.nip)}, ${q(s.name)},
+            ${q(buyer)}, ${net}, ${gross}, ${gross - net}, 'PLN', 'FA', ${minutesAgo != null ? 'now()' : `${when} + interval '15 minutes'`},
+            'EXPENSE', false, 'ACTIVE', '${paid ? 'PAID' : 'PENDING'}', '${payForm}',
+            ${payForm === 'PRZELEW' ? `${issue} + 14` : 'null'}, true)`);
+    for (const l of lines) {
+        sql(`insert into ksef_invoice_items (id, invoice_id, line_number, name, unit, quantity, unit_price_net, net_value, gross_value, vat_rate)
+             values (gen_random_uuid(), ${q(id)}, ${l.i}, ${q(l.name)}, ${q(l.unit)}, ${l.qty}, ${l.unitNet}, ${l.net}, ${l.gross}, '23')`);
+    }
+    return { id, net, gross, ksef };
+}
+
+/**
+ * Kategorie kosztów, reguła na każdego dostawcę (dopasowanie po NIP sprzedawcy -
+ * tak działa SupplierAutoRuleService) i pół roku faktur kosztowych.
+ *
+ * Faktury kosztowe w produkcji pobiera z KSeF synchronizacja co 15 minut; lokalnie SDK
+ * KSeF jest zaślepką, więc wpisujemy je tam, gdzie zapisałaby je synchronizacja.
+ * Kategoryzację robi PRAWDZIWY silnik reguł: wołamy jego endpoint
+ * („Zastosuj wszystkie reguły teraz") - historię przed nagraniem, nową fakturę na nim.
+ */
+export async function seedCostData(page, base, studio, { without = [] } = {}) {
+    const [[owner, buyer]] = rows(`select u.id, coalesce(ss.name, s.name) from studios s
+        join users u on u.studio_id = s.id left join studio_settings ss on ss.studio_id = s.id
+        where s.id=${q(studio)} order by u.created_at limit 1`);
+    // `without`: kategorie, które w nagraniu zakłada właściciel (ich faktury czekają
+    // jako nieprzypisane, aż reguła je zbierze).
+    for (const [key, s] of Object.entries(SUPPLIERS)) {
+        if (without.includes(key)) continue;
+        const cat = sql('select gen_random_uuid()');
+        sql(`insert into cost_categories (id, studio_id, name, description, color, is_active, exclude_from_stats, created_by, created_at, updated_at)
+             values (${q(cat)}, ${q(studio)}, ${q(s.category)}, ${q(s.about)}, ${q(s.color)}, true, false, ${q(owner)},
+                now() - interval '200 days', now() - interval '200 days')`);
+        sql(`insert into supplier_auto_rules (id, studio_id, seller_nip, seller_name, category_id, created_at, updated_at)
+             values (gen_random_uuid(), ${q(studio)}, ${q(s.nip)}, ${q(s.name)}, ${q(cat)}, now() - interval '200 days', now() - interval '200 days')`);
+    }
+    const history = [];
+    [170, 140, 110, 79, 48, 18].forEach((d, i) => history.push({ supplier: 'leasing', number: `AL/2026/${118734 + i * 3411}`, daysAgo: d, payForm: 'PRZELEW',
+        items: [[`Rata leasingowa ${9 + i}/48, umowa AL/25/01187 (auto serwisowe)`, 'szt.', 1, 2450]] }));
+    [[165, 92, 5.37], [133, 104, 5.41], [101, 88, 5.29], [70, 97, 5.33], [39, 110, 5.45], [9, 95, 5.49]].forEach(([d, l, p], i) =>
+        history.push({ supplier: 'paliwo', number: `F/4412/26/${118455 + i * 9731}`, daysAgo: d, payForm: 'KARTA',
+            items: [['Olej napędowy', 'l', l, p], ...(i === 2 ? [['AdBlue 10 l', 'szt.', 1, 39]] : [])] }));
+    [[150, 1840], [89, 1610], [28, 1725]].forEach(([d, kwh], i) => history.push({ supplier: 'media', number: `P/23518840/000${3 + i}/26`, daysAgo: d,
+        payForm: 'PRZELEW', items: [['Energia elektryczna, taryfa C12a', 'kWh', kwh, 0.62], ['Opłata handlowa', 'mies.', 2, 22.5]] }));
+    [[158, [['Szampon pH neutralny 5 l', 'szt.', 2, 119], ['Pre-wash alkaliczny 5 l', 'szt.', 2, 129], ['Wosk w sprayu 1 l', 'szt.', 4, 59]]],
+     [120, [['Środek do felg 5 l', 'szt.', 2, 145], ['Mikrofibra 40×40 cm', 'szt.', 20, 9.5]]],
+     [95, [['Szampon pH neutralny 5 l', 'szt.', 2, 119], ['Usuwacz smoły i kleju 1 l', 'szt.', 3, 49]]],
+     [75, [['Pre-wash alkaliczny 5 l', 'szt.', 3, 129], ['Wosk twardy 500 ml', 'szt.', 2, 89]]],
+     [33, [['Środek do felg 5 l', 'szt.', 2, 145], ['Wosk w sprayu 1 l', 'szt.', 6, 59]]]].forEach(([d, items], i) =>
+        history.push({ supplier: 'chemia', number: `FV/2026/0${4 + i}/0${412 + i * 137}`, daysAgo: d, payForm: 'PRZELEW', items }));
+    [[145, [['Folia PPF bezbarwna 152 cm × 15,24 m', 'rolka', 1, 6890], ['Płyn montażowy do folii 1 l', 'szt.', 2, 89]]],
+     [96, [['Folia PPF matowa 152 cm × 15,24 m', 'rolka', 1, 7420]]],
+     [41, [['Folia PPF bezbarwna 152 cm × 15,24 m', 'rolka', 1, 6890], ['Folia PPF bezbarwna 61 cm × 15,24 m', 'rolka', 1, 2790]]]].forEach(([d, items], i) =>
+        history.push({ supplier: 'ppf', number: `FV/PP/2026/0${388 + i * 133}`, daysAgo: d, payForm: 'PRZELEW', items }));
+    [[128, [['Polerka rotacyjna 1500 W', 'szt.', 1, 1290], ['Rękawice nitrylowe, op. 100 szt.', 'op.', 5, 34.9]]],
+     [55, [['Komplet nasadek 1/2", 24 elem.', 'kpl.', 1, 389], ['Taśma maskująca 48 mm', 'szt.', 12, 11.2]]]].forEach(([d, items], i) =>
+        history.push({ supplier: 'narzedzia', number: `NP/26/00${45118 + i * 16259}`, daysAgo: d, payForm: 'PRZELEW', items }));
+    // Ostatnie 30 dni muszą być gęste: nagranie pokazuje ten okres i ani tabela, ani
+    // wykres dzienny nie może w nim świecić pustką.
+    [[30, 58.2, 6.19], [23, 61.7, 6.24], [16, 55.4, 6.27], [2, 47.9, 6.31]].forEach(([d, l, p], i) => {
+        const gross = Math.round(l * p * 100);
+        history.push({ supplier: 'paliwo', number: `F/4412/26/${(171204 + i * 3217)}`, daysAgo: d, payForm: 'KARTA',
+            items: [['ON EFECTA DIESEL', 'l', l, Math.round((p / 1.23) * 100) / 100, { net: Math.round(gross / 1.23), gross }]] });
+    });
+    [[25, [['Szampon pH neutralny 5 l', 'szt.', 2, 119], ['Mikrofibra 40×40 cm', 'szt.', 30, 9.5]]],
+     [12, [['Pre-wash alkaliczny 5 l', 'szt.', 2, 129], ['Usuwacz smoły i kleju 1 l', 'szt.', 2, 49]]],
+     [1, [['Powłoka ceramiczna 50 ml', 'szt.', 3, 189], ['Wosk w sprayu 1 l', 'szt.', 4, 59]]]].forEach(([d, items], i) =>
+        history.push({ supplier: 'chemia', number: `FV/2026/0${9 + i}/0${1104 + i * 61}`, daysAgo: d, payForm: 'PRZELEW', items }));
+    history.push({ supplier: 'ppf', number: 'FV/PP/2026/0915', daysAgo: 20, payForm: 'PRZELEW',
+        items: [['Folia PPF bezbarwna 152 cm × 15,24 m', 'rolka', 1, 6890], ['Płyn montażowy do folii 1 l', 'szt.', 2, 89]] });
+    history.push({ supplier: 'narzedzia', number: 'NP/26/0078841', daysAgo: 6, payForm: 'PRZELEW',
+        items: [['Pady polerskie 150 mm, komplet', 'kpl.', 2, 149], ['Lampa inspekcyjna LED', 'szt.', 1, 459]] });
+    for (const inv of history) insertCostInvoice(studio, buyer, inv);
+    const res = await page.request.post(`${base}/api/v1/cost-categories/auto-rules/apply`, { data: {} });
+    if (!res.ok()) throw new Error(`apply rules: ${res.status()} ${await res.text()}`);
+    return { buyer, assigned: await res.json() };
+}
+
+/** Faktura „przychodzi" z KSeF - wiersz w miejscu, w które zapisuje go synchronizacja. */
+export function insertNewFuelInvoice(studio, buyer) {
+    return insertCostInvoice(studio, buyer, { ...NEW_FUEL_INVOICE, payForm: 'KARTA', minutesAgo: 6,
+        ksefNumber: '7740001454-20261002-3F9A1C7E52B0-4D' });
+}
+
+/*
+ * Zespół studia: role i trzech pracowników z kontami, założonych prawdziwym API
+ * (te same wywołania co „Dodaj rolę" i „Dodaj pracownika"). Wrzesień mają wypełniony
+ * - w produkcji wpisują go sami w „Czasie pracy" i składają kartę do zatwierdzenia.
+ * Konta cofamy w czasie na sierpień, bo karta miesiąca liczy tylko osoby, które
+ * miały konto przed jego końcem.
+ */
+export const TEAM = [
+    { firstName: 'Marek', lastName: 'Zając', phone: '+48 600 410 221', email: 'marek.zajac@studio-polysk.pl', role: 'Detailer', status: 'SUBMITTED' },
+    { firstName: 'Paweł', lastName: 'Kamiński', phone: '+48 600 410 338', email: 'pawel.kaminski@studio-polysk.pl', role: 'Detailer', status: 'SUBMITTED' },
+    { firstName: 'Aleksandra', lastName: 'Wójcik', phone: '+48 600 410 517', email: 'ola.wojcik@studio-polysk.pl', role: 'Recepcja', status: 'APPROVED' },
+];
+
+export async function seedTeam(page, base, studio) {
+    const post = async (path, data) => {
+        const res = await page.request.post(`${base}${path}`, { data });
+        if (!res.ok()) throw new Error(`${path}: ${res.status()} ${await res.text()}`);
+        return res.json();
+    };
+    const roles = {
+        Detailer: await post('/api/v1/roles', { name: 'Detailer', description: 'Wizyty, klienci i zadania. Liczony czas pracy.',
+            permissions: ['VISITS_VIEW', 'CUSTOMERS_VIEW', 'VISITS_CREATE', 'TASKS_VIEW'], trackWorkTime: true }),
+        Recepcja: await post('/api/v1/roles', { name: 'Recepcja', description: 'Kalendarz, klienci, leady i komunikacja.',
+            permissions: ['VISITS_VIEW', 'CUSTOMERS_VIEW', 'VISITS_CREATE', 'TASKS_VIEW', 'LEADS_MANAGE', 'COMMUNICATION_SEND'], trackWorkTime: true }),
+    };
+    const roleId = (name) => Object.values(roles[name]).find((v) => /^[0-9a-f-]{36}$/.test(v));
+    const owner = sql(`select id from users where studio_id=${q(studio)} and is_owner order by created_at limit 1`);
+    // Login jest unikalny w całym CRM: konta z poprzednich nagrań (inne studia demo)
+    // dostają adres zastępczy, żeby te same osoby mogły dostać konto w nowym studiu.
+    const emails = [...TEAM.map((m) => m.email), 'kacper.lewandowski@studio-polysk.pl'].map(q).join(',');
+    sql(`update users set email = id || '@poprzednie-nagranie.invalid' where email in (${emails})`);
+    for (const [k, m] of TEAM.entries()) {
+        await post('/api/v1/employees', { firstName: m.firstName, lastName: m.lastName, phone: m.phone, email: m.email,
+            createAccount: true, roleId: roleId(m.role) });
+        const user = sql(`select id from users where studio_id=${q(studio)} and email=${q(m.email)}`);
+        // Zaproszenie przyjęte w sierpniu: konto aktywne, hasło ustawione.
+        sql(`update users set is_active=true, invitation_pending=false, created_at=now() - interval '${60 + k} days' where id=${q(user)}`);
+        sql(`update employees set created_at=now() - interval '${60 + k} days' where user_id=${q(user)}`);
+        // Wrzesień: dni robocze, 8 h z drobnymi odchyleniami, jak wpisuje człowiek.
+        // Sierpień jest już rozliczony (lista obecności za sierpień leży w tabeli).
+        sql(`insert into work_time_entries (id, user_id, studio_id, date, minutes, note, created_at, updated_at)
+             select gen_random_uuid(), ${q(user)}, ${q(studio)}, d::date,
+                    case when extract(day from d)::int % ${5 + k} = 0 then 540 when extract(day from d)::int % ${7 + k} = 0 then 450 else 480 end,
+                    null, d + interval '17 hours', d + interval '17 hours'
+             from generate_series(date '2026-08-01', date '2026-09-30', interval '1 day') d
+             where extract(isodow from d) < 6 ${k === 1 ? "and d::date not between date '2026-09-15' and date '2026-09-16'" : ''}`);
+        sql(`insert into work_time_periods (id, user_id, studio_id, period, status, submitted_at, approved_at, approved_by, created_at, updated_at)
+             values (gen_random_uuid(), ${q(user)}, ${q(studio)}, '2026-08', 'APPROVED', date '2026-09-01' + interval '9 hours',
+                date '2026-09-02' + interval '10 hours', ${q(owner)}, date '2026-09-01', date '2026-09-02')`);
+        sql(`insert into work_time_periods (id, user_id, studio_id, period, status, submitted_at, approved_at, approved_by, created_at, updated_at)
+             values (gen_random_uuid(), ${q(user)}, ${q(studio)}, '2026-09', ${q(m.status)}, now() - interval '${20 - k * 5} hours',
+                ${m.status === 'APPROVED' ? 'now() - interval \'3 hours\'' : 'null'}, ${m.status === 'APPROVED' ? q(owner) : 'null'}, now() - interval '2 days', now())`);
+    }
+    // Lista obecności za sierpień - wygenerowana tym samym endpointem co „Wygeneruj listę".
+    const employeeIds = rows(`select id from employees where studio_id=${q(studio)} order by last_name`).map(([id]) => id);
+    await post('/api/v1/worktime/team/attendance-sheet', { period: '2026-08', employeeIds });
+    sql(`update attendance_sheets set created_at = date '2026-09-02' + interval '10 hours' where studio_id=${q(studio)}`);
+    return roles;
+}
+
+/** Plik do lokalnego S3 (moto), tam gdzie CRM trzyma zdjęcia i protokoły. */
+function s3put(key, file, contentType) {
+    execFileSync('python3', ['-c', `
+import boto3, sys
+s3 = boto3.client('s3', endpoint_url='http://localhost:9000', aws_access_key_id='x', aws_secret_access_key='x', region_name='eu-central-1')
+s3.upload_file(sys.argv[1], 'detailboost-crm', sys.argv[2], ExtraArgs={'ContentType': sys.argv[3]})`, file, key, contentType]);
+}
+
+/*
+ * Wizyta do Karty Wizyty: Mercedes klasy S w realizacji, przyjęty trzy dni temu.
+ * W produkcji zdjęcia i podpisany protokół przyjęcia powstają przy przyjęciu pojazdu
+ * (scena „checkin" pokazuje to na tablecie); tutaj wpisujemy ich wynik: pliki w S3
+ * i wiersze tam, gdzie zapisuje je przyjęcie.
+ */
+export function seedVisitCardVisit(studio) {
+    const [[visit, created]] = rows(`select id, to_char(created_at, 'YYYY-MM-DD HH24:MI:SSOF') from visits
+        where studio_id=${q(studio)} and title like 'Korekta lakieru Mercedes%'`);
+    const dir = new URL('./fixtures/', import.meta.url).pathname;
+    [['ms-front.jpg', 'Przód, stan przy przyjęciu'], ['ms-side.jpg', 'Bok, lakier przed korektą'], ['ms-star.jpg', 'Gwiazda na masce, mikrorysy']]
+        .forEach(([file, description], i) => {
+            const key = `visits/${visit}/photos/${file}`;
+            s3put(key, dir + file, 'image/jpeg');
+            sql(`insert into visit_photos (id, description, file_id, file_name, thumbnail_file_id, uploaded_at, uploaded_by_name, visit_id)
+                 values (gen_random_uuid(), ${q(description)}, ${q(key)}, ${q(file)}, null,
+                    timestamptz ${q(created)} + interval '${8 + i * 3} minutes', 'Marek Zając', ${q(visit)})`);
+        });
+    const template = sql(`select id from protocol_templates where studio_id=${q(studio)} and name='Protokół przyjęcia pojazdu' limit 1`);
+    const [[first, last]] = rows(`select c.first_name, c.last_name from visits v join customers c on c.id=v.customer_id where v.id=${q(visit)}`);
+    sql(`insert into visit_protocols (id, condition_match, created_at, filled_pdf_s3_key, signed_at, signed_by, signed_pdf_s3_key,
+            stage, status, studio_id, template_id, updated_at, version, visit_id)
+         values (gen_random_uuid(), true, timestamptz ${q(created)} + interval '5 minutes', ${q(`protocols/${visit}/przyjecie.pdf`)},
+            timestamptz ${q(created)} + interval '19 minutes', ${q(`${first} ${last}`)}, ${q(`protocols/${visit}/przyjecie-podpisany.pdf`)},
+            'CHECK_IN', 'SIGNED', ${q(studio)}, ${template ? q(template) : 'null'}, now(), 1, ${q(visit)})`);
+    return visit;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Dosiewki samouczka funkcji (marketing/funkcje). Konto demo ma 35 zamkniętych
+// wizyt z ostatnich ~6 miesięcy, rozłożonych równo i bez dokumentów sprzedaży.
+// Studio z historią ma rok wizyt z sezonem i paragon albo fakturę przy każdej.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/*
+ * Rok wizyt z sezonem: kopie prawdziwych wizyt demo (te same usługi, klienci i auta)
+ * przesunięte na inne miesiące. Statystyki liczą przychód z `visit_service_items`
+ * zamkniętych wizyt po `actual_completion_date` (StatsRepository) — tam lądują kopie.
+ * Cel miesięczny w zł brutto: szczyt wiosna–lato, dołek zimą.
+ */
+export const SEASON = [['2025-10', 14000], ['2025-11', 9000], ['2025-12', 7000], ['2026-01', 6000], ['2026-02', 8000], ['2026-03', 15000],
+    ['2026-04', 26000], ['2026-05', 34000], ['2026-06', 32000], ['2026-07', 27000], ['2026-08', 22000], ['2026-09', 18000]];
+
+export function seedSeasonalHistory(studio) {
+    const src = rows(`select v.id, extract(epoch from v.actual_completion_date)::bigint,
+            (select coalesce(sum(final_price_gross),0) from visit_service_items where visit_id=v.id and status in ('CONFIRMED','APPROVED'))
+        from visits v where v.studio_id=${q(studio)} and v.status='COMPLETED' and v.deleted_at is null order by v.actual_completion_date`);
+    const vCols = rows(`select column_name from information_schema.columns where table_name='visits' and data_type like 'timestamp%'`).map((r) => r[0]);
+    const iCols = rows(`select column_name from information_schema.columns where table_name='visit_service_items' and data_type like 'timestamp%'`).map((r) => r[0]);
+    let seq = 1, rnd = 7;
+    const rand = () => { rnd = (rnd * 1103515245 + 12345) % 2147483648; return rnd / 2147483648; };
+    for (const [month, target] of SEASON) {
+        let have = Number(sql(`select coalesce(sum(i.final_price_gross),0) from visits v join visit_service_items i on i.visit_id=v.id and i.status in ('CONFIRMED','APPROVED')
+            where v.studio_id=${q(studio)} and v.status='COMPLETED' and v.deleted_at is null
+            and to_char(v.actual_completion_date at time zone 'Europe/Warsaw','YYYY-MM')=${q(month)}`)) / 100;
+        while (have < target) {
+            const [id, epoch, gross] = src[Math.floor(rand() * src.length)];
+            const [y, m] = month.split('-').map(Number);
+            const days = new Date(y, m, 0).getDate();
+            const day = 1 + Math.floor(rand() * days);
+            const when = `${month}-${String(day).padStart(2, '0')} ${String(13 + Math.floor(rand() * 5)).padStart(2, '0')}:30:00+02`;
+            const nid = sql('select gen_random_uuid()');
+            const shift = `(timestamptz ${q(when)} - to_timestamp(${epoch}))`;
+            sql(`create temp table tv as select * from visits where id=${q(id)};
+                 update tv set id=${q(nid)}, visit_number=${q(`VIS-H-${String(seq).padStart(5, '0')}`)}, ${vCols.map((c) => `${c} = ${c} + ${shift}`).join(', ')};
+                 insert into visits select * from tv;
+                 create temp table ti as select * from visit_service_items where visit_id=${q(id)};
+                 update ti set id=gen_random_uuid(), visit_id=${q(nid)}${iCols.length ? ', ' + iCols.map((c) => `${c} = ${c} + ${shift}`).join(', ') : ''};
+                 insert into visit_service_items select * from ti;`);
+            seq++;
+            have += Number(gross) / 100;
+        }
+    }
+    return seq - 1;
+}
+
+/*
+ * Dokument sprzedaży przy każdej zamkniętej wizycie, tak jak zapisuje go wydanie pojazdu
+ * (CompleteVisitHandler → CreateFinancialDocumentHandler): paragon albo faktura, opłacony,
+ * z datą zamknięcia. Kwoty to sumy pozycji wizyty — brutto i netto pozycji, VAT jako różnica.
+ * Płatności gotówką z ostatnich 30 dni przechodzą przez kasę (cash_operations).
+ */
+export function seedVisitDocuments(studio) {
+    const owner = sql(`select id from users where studio_id=${q(studio)} and is_owner order by created_at limit 1`);
+    const list = rows(`select v.id, to_char(v.actual_completion_date at time zone 'Europe/Warsaw','YYYY-MM-DD'), to_char(v.actual_completion_date,'YYYY-MM-DD HH24:MI:SSOF'),
+            sum(i.final_price_gross), sum(i.final_price_net), c.first_name, c.last_name, coalesce(ve.brand,''), coalesce(ve.model,''),
+            (v.actual_completion_date > now() - interval '30 days')
+        from visits v join visit_service_items i on i.visit_id=v.id and i.status in ('CONFIRMED','APPROVED')
+        left join customers c on c.id=v.customer_id left join vehicles ve on ve.id=v.vehicle_id
+        where v.studio_id=${q(studio)} and v.status='COMPLETED' and v.deleted_at is null
+          and not exists (select 1 from financial_documents d where d.visit_id=v.id)
+        group by v.id, c.first_name, c.last_name, ve.brand, ve.model order by v.actual_completion_date`);
+    const methods = ['CARD', 'CARD', 'CASH', 'CARD', 'TRANSFER', 'CASH', 'CARD', 'BLIK_NA_NUMER', 'CARD', 'CASH'];
+    const counter = {};
+    const cash = [];
+    list.forEach(([visit, day, at, gross, net, first, last, brand, model, recent], k) => {
+        const invoice = k % 4 === 1;
+        const ym = day.slice(0, 7).replace('-', '/');
+        counter[ym + invoice] = (counter[ym + invoice] ?? 0) + 1;
+        const number = `${invoice ? 'FV' : 'PAR'}/${ym}/${String(counter[ym + invoice]).padStart(4, '0')}`;
+        const method = invoice ? (k % 8 === 1 ? 'TRANSFER' : 'CARD') : methods[k % methods.length];
+        const id = sql('select gen_random_uuid()');
+        sql(`insert into financial_documents (id, studio_id, source, visit_id, document_number, document_type, direction, status, payment_method,
+                total_net, total_vat, total_gross, currency, issue_date, paid_at, counterparty_name, customer_first_name, customer_last_name, vehicle_brand, vehicle_model,
+                created_by, updated_by, created_at, updated_at, invoiced_externally)
+             values (${q(id)}, ${q(studio)}, 'VISIT', ${q(visit)}, ${q(number)}, '${invoice ? 'INVOICE' : 'RECEIPT'}', 'INCOME', 'PAID', '${method}',
+                ${net}, ${Number(gross) - Number(net)}, ${gross}, 'PLN', date ${q(day)}, timestamptz ${q(at)}, ${q(`${first ?? ''} ${last ?? ''}`.trim())}, ${q(first ?? '')}, ${q(last ?? '')},
+                ${q(brand)}, ${q(model)}, ${q(owner)}, ${q(owner)}, timestamptz ${q(at)}, timestamptz ${q(at)}, false)`);
+        if (method === 'CASH' && recent === 't') cash.push({ id, gross: Number(gross), at, label: `${brand} ${model}`.trim(), number });
+    });
+    // Kasa: saldo otwarcia sprzed miesiąca, potem wpłaty z wizyt i jedna wypłata na zakupy.
+    sql(`delete from cash_operations where studio_id=${q(studio)}; delete from cash_registers where studio_id=${q(studio)};`);
+    const reg = sql('select gen_random_uuid()');
+    let bal = 0;
+    const ops = [{ amount: 150000, type: 'MANUAL_ADJUSTMENT', comment: 'Saldo otwarcia kasy', at: sql(`select to_char(now() - interval '31 days','YYYY-MM-DD HH24:MI:SSOF')`) },
+        ...cash.map((c) => ({ amount: c.gross, type: 'PAYMENT_IN', comment: `Wizyta: ${c.label}, ${c.number}`, at: c.at, doc: c.id })),
+        { amount: -9000, type: 'PAYMENT_OUT', comment: 'Kawa i woda dla klientów', at: sql(`select to_char(now() - interval '6 days','YYYY-MM-DD HH24:MI:SSOF')`) }]
+        .sort((a, b) => (a.at < b.at ? -1 : 1));
+    sql(`insert into cash_registers (id, studio_id, balance, currency, updated_at) values (${q(reg)}, ${q(studio)}, 0, 'PLN', now())`);
+    for (const o of ops) {
+        sql(`insert into cash_operations (id, studio_id, cash_register_id, amount, balance_before, balance_after, operation_type, comment, financial_document_id, created_by, created_at)
+             values (gen_random_uuid(), ${q(studio)}, ${q(reg)}, ${o.amount}, ${bal}, ${bal + o.amount}, '${o.type}', ${q(o.comment)}, ${o.doc ? q(o.doc) : 'null'}, ${q(owner)}, timestamptz ${q(o.at)})`);
+        bal += o.amount;
+    }
+    sql(`update cash_registers set balance=${bal}, updated_at=now() where id=${q(reg)}`);
+    return { documents: list.length, cashOps: ops.length, balance: bal };
+}
+
+/** Wspólne przygotowanie studia dla każdej sceny samouczka (poza nagraniem). */
+export async function seedStudio(page, base, studio, { costs = true, team = true, history = true } = {}) {
+    enableFullPlan(studio);
+    fixDemoTitles(studio);
+    await setupInvoicing(page, base);
+    markKsefSynced(studio);
+    const out = {};
+    if (costs) out.costs = await seedCostData(page, base, studio);
+    if (team) out.team = await seedTeam(page, base, studio);
+    await seedTasks(page, base);
+    if (history) { out.history = seedSeasonalHistory(studio); out.documents = seedVisitDocuments(studio); }
+    return out;
+}
+
+/** Nowe faktury z KSeF w trakcie nagrania — tam, gdzie zapisuje je synchronizacja (co 15 min). */
+export function insertIncomingInvoices(studio, buyer) {
+    return [
+        insertCostInvoice(studio, buyer, { supplier: 'chemia', number: 'FV/2026/10/01318', payForm: 'PRZELEW', minutesAgo: 4,
+            items: [['Powłoka ceramiczna 50 ml', 'szt.', 4, 189], ['Mikrofibra 40×40 cm', 'szt.', 20, 9.5]] }),
+        insertCostInvoice(studio, buyer, { supplier: 'paliwo', number: 'F/4412/26/184102', payForm: 'KARTA', minutesAgo: 9,
+            items: [['ON EFECTA DIESEL', 'l', 52.1, 5.13, { net: 26700, gross: 32841 }]] }),
+    ];
+}
+
+/** Wykup auta serwisowego po leasingu: jednorazowy, duży koszt, który zawyża miesiąc. */
+export function insertLeaseBuyout(studio, buyer) {
+    return insertCostInvoice(studio, buyer, { supplier: 'leasing', number: 'AL/2026/WYKUP/0012', payForm: 'PRZELEW', daysAgo: 2,
+        items: [['Wykup auta serwisowego po leasingu, umowa AL/25/01187', 'szt.', 1, 50000]] });
+}
+
+/**
+ * Kody PIN pracowników (1234) — w produkcji każdy ustawia swój w profilu („Ustaw PIN”,
+ * SetPinHandler zapisuje hash BCrypt w users.pin_hash). Zwraca profile do zapamiętania
+ * w przeglądarce: przełącznik użytkownika pokazuje się, gdy na urządzeniu logowały się
+ * co najmniej dwie osoby (useKnownProfiles, localStorage).
+ */
+export function seedPins(studio, pin = '1234') {
+    const hash = execFileSync('python3', ['-c', 'import bcrypt,sys; print(bcrypt.hashpw(sys.argv[1].encode(), bcrypt.gensalt(12)).decode())', pin], { encoding: 'utf8' }).trim();
+    sql(`update users set pin_hash=${q(hash)}, pin_locked=false, pin_failed_attempts=0 where studio_id=${q(studio)}`);
+    return rows(`select id, first_name, last_name, case when is_owner then 'OWNER' else 'EMPLOYEE' end from users where studio_id=${q(studio)} and is_active order by is_owner desc, last_name`)
+        .map(([userId, firstName, lastName, role]) => ({ userId, studioId: studio, firstName, lastName, role }));
+}
+
+/**
+ * Hasło pracownika (w produkcji ustawia je sam z linku zaproszenia) i logowanie nim
+ * w osobnym kontekście przeglądarki: pracownik na swoim telefonie, właściciel przy biurku.
+ */
+export async function loginEmployee(ctx, base, studio, email, password = 'Nagranie-2026!') {
+    const hash = execFileSync('python3', ['-c', 'import bcrypt,sys; print(bcrypt.hashpw(sys.argv[1].encode(), bcrypt.gensalt(12)).decode())', password], { encoding: 'utf8' }).trim();
+    sql(`update users set password_hash=${q(hash)}, is_active=true where studio_id=${q(studio)} and email=${q(email)}`);
+    const res = await ctx.request.post(`${base}/api/v1/auth/login`, { data: { email, password } });
+    if (!res.ok()) throw new Error(`login ${email}: ${res.status()} ${await res.text()}`);
+    return res.json();
+}
+
+/*
+ * Klienci po powłoce ceramicznej sprzed 5-6 miesięcy, którzy jeszcze nie wrócili - to
+ * do nich odzywa się kampania „180 dni po powłoce". Historia sezonowa klonuje wizyty
+ * kilkunastu klientów demo, więc każdy z nich ma późniejszą wizytę i warunek „Klient
+ * wrócił w międzyczasie → pomiń" (AudienceQueryService.findTriggeredVisits) słusznie
+ * odrzucał wszystkich. Kilka sklonowanych wizyt z powłoką dostaje własnych klientów.
+ */
+export const COATING_CUSTOMERS = [
+    ['Krzysztof', 'Nowicki', '+48 601 220 114'], ['Anna', 'Kowalczyk', '+48 602 318 447'], ['Tomasz', 'Mazur', '+48 603 551 902'],
+    ['Joanna', 'Krawczyk', '+48 604 774 215'], ['Michał', 'Pawlak', '+48 605 903 668'], ['Ewa', 'Dąbrowska', '+48 606 135 780'],
+    ['Rafał', 'Zieliński', '+48 607 442 391'], ['Karolina', 'Szymczak', '+48 608 267 534'],
+];
+
+export function seedCoatingCustomers(studio) {
+    const visits = rows(`select v.id from visits v where v.studio_id=${q(studio)} and v.visit_number like 'VIS-H-%' and v.status='COMPLETED'
+        and v.pickup_date between now() - interval '182 days' and now() - interval '120 days'
+        and exists (select 1 from visit_service_items i where i.visit_id=v.id and i.status in ('APPROVED','CONFIRMED') and i.service_name ilike 'Powłoka ceramiczna%')
+        order by v.pickup_date limit ${COATING_CUSTOMERS.length}`).map(([id]) => id);
+    const owner = sql(`select id from users where studio_id=${q(studio)} and is_owner order by created_at limit 1`);
+    visits.forEach((visit, k) => {
+        const [first, last, phone] = COATING_CUSTOMERS[k];
+        const mail = `${first}.${last}`.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l') + '@gmail.com';
+        const id = sql(`insert into customers (id, studio_id, first_name, last_name, phone, phone_e164, email, is_active, created_at, updated_at, created_by, updated_by)
+            select gen_random_uuid(), ${q(studio)}, ${q(first)}, ${q(last)}, ${q(phone)}, ${q(phone.replace(/ /g, ''))}, ${q(mail)}, true,
+                   v.scheduled_date - interval '3 days', v.scheduled_date, ${q(owner)}, ${q(owner)} from visits v where v.id=${q(visit)} returning id`).split('\n')[0];
+        sql(`update visits set customer_id=${q(id)} where id=${q(visit)}`);
+        // Zgoda marketingowa podpisana przy przyjęciu auta (bez niej kampania nikogo nie obejmie).
+        sql(`insert into customer_consents (id, customer_id, studio_id, template_id, signed_at, witnessed_by)
+             select gen_random_uuid(), ${q(id)}, ${q(studio)}, ct.id, v.scheduled_date, ${q(owner)}
+             from consent_templates ct join consent_definitions cd on cd.id=ct.definition_id and cd.is_active
+             join visits v on v.id=${q(visit)}
+             where cd.studio_id=${q(studio)} and ct.is_active
+               and exists (select 1 from consent_definition_marketing_channels ch where ch.definition_id=cd.id)`);
+    });
+    return visits.length;
+}
+
+/*
+ * Skrzynka po kilku dniach pracy: obok zapytań leżą powiadomienia i newslettery
+ * (automated - lista zwija je w jeden wiersz „Powiadomienia i reklamy”), zwykła
+ * korespondencja z hurtownią i dwa zgłoszenia z formularza, które automat odrzucił
+ * (screening SPAM): oferta pozycjonowania - słusznie - i zapytanie klienta bez numeru
+ * telefonu - to jest lead, który ratuje „To jednak lead”. Wiersze tam, gdzie zapisuje
+ * je synchronizacja skrzynki (comm_threads, comm_messages).
+ */
+const MAILS = [
+    { name: 'InPost', email: 'powiadomienia@inpost.pl', subject: 'Twoja paczka jest w drodze', ago: '25 minutes', automated: true,
+        body: 'Paczka od Hurtownia Detailingowa Pro jest w drodze. Odbierzesz ją jutro w paczkomacie WAW118M.' },
+    { name: 'Koch-Chemie Polska', email: 'newsletter@koch-chemie.pl', subject: 'Nowość: Fine Cut F6.01 w promocji -15%', ago: '70 minutes', automated: true,
+        body: 'Tylko do końca miesiąca pasta Fine Cut F6.01 taniej o 15%. Sprawdź ofertę dla studiów detailingowych.' },
+    { name: 'Google Business Profile', email: 'businessprofile-noreply@google.com', subject: 'Twoja wizytówka: 412 wyświetleń w tym tygodniu', ago: '1 day 2 hours', automated: true,
+        body: 'Klienci znaleźli Studio Połysk 412 razy. 18 osób kliknęło „Wyznacz trasę”.' },
+    { name: 'Meta for Business', email: 'advertise-noreply@support.facebook.com', subject: 'Twoja reklama zakończyła się', ago: '1 day', automated: true,
+        body: 'Kampania „Powłoka ceramiczna - jesień” dotarła do 9 820 osób.' },
+    { name: 'Hurtownia Detailingowa Pro', email: 'zamowienia@detailingpro.pl', subject: 'Potwierdzenie zamówienia ZAM/2026/10/0412', ago: '95 minutes', automated: false,
+        body: 'Dziękujemy za zamówienie. Pady polerskie 3D (6 szt.) i mikrofibry 40×40 (50 szt.) wysyłamy dziś.' },
+    { name: 'Formularz strony', email: 'formularz@studiopolysk.pl', subject: 'Nowe zgłoszenie ze strony', title: 'Pozycjonowanie strony', ago: '1 day 5 hours', automated: false,
+        kind: 'FORM', screening: 'SPAM', reason: 'oferta usług marketingowych, nie zapytanie o detailing',
+        body: 'Dzień dobry, wypozycjonujemy Państwa stronę w Google na 1. miejsce w 30 dni. Gwarancja efektu, płatność po wynikach.' },
+    { name: 'Formularz strony', email: 'formularz@studiopolysk.pl', subject: 'Nowe zgłoszenie ze strony', title: 'Ceramika na Audi Q5', ago: '50 minutes', automated: false,
+        kind: 'FORM', screening: 'SPAM', reason: 'brak numeru telefonu i nazwiska', replyTo: 'k.zalewska@wp.pl', replyName: 'Kasia',
+        body: 'Hej, ile kosztuje powłoka ceramiczna na Audi Q5 z 2023? Auto jest prawie nowe, garażowane. Może być mail: k.zalewska@wp.pl' },
+];
+
+export function seedMailbox(studio) {
+    const mailbox = 'kontakt@studiopolysk.pl';
+    sql(`insert into mail_accounts (id, studio_id, email_address, provider_type, auth_type, status, smtp_host, smtp_port,
+            imap_host, imap_port, encrypted_password, last_sync_at, created_at, updated_at)
+         values (gen_random_uuid(), ${q(studio)}, ${q(mailbox)}, 'IMAP_SMTP', 'PASSWORD', 'ACTIVE', 'localhost', 1025,
+            'localhost', 1143, 'x', now() - interval '2 minutes', now(), now())
+         on conflict (studio_id, email_address) do nothing`);
+    const account = sql(`select id from mail_accounts where studio_id=${q(studio)} and email_address=${q(mailbox)}`);
+    for (const [k, m] of MAILS.entries()) {
+        const thread = sql('select gen_random_uuid()');
+        const kind = m.kind ?? 'DIRECT';
+        const participant = m.replyTo ?? m.email;
+        sql(`insert into comm_threads (id, studio_id, account_id, subject_norm, subject, participant_email, participant_name,
+                last_message_at, last_direction, last_snippet, message_count, unread_count, inbound_count, outbound_count,
+                has_attachments, archived, created_at, kind, automated, relay_email, title, screening, screening_reason)
+             values (${q(thread)}, ${q(studio)}, ${q(account)}, ${q(m.subject.toLowerCase())}, ${q(m.subject)}, ${q(participant)},
+                ${q(m.replyName ?? m.name)}, now() - interval '${m.ago}', 'INBOUND', ${q(m.body.slice(0, 120))}, 1, 1, 1, 0, false, false,
+                now() - interval '${m.ago}', ${q(kind)}, ${m.automated}, ${kind === 'FORM' ? q(m.email) : 'null'}, ${m.title ? q(m.title) : 'null'},
+                ${m.screening ? q(m.screening) : 'null'}, ${m.reason ? q(m.reason) : 'null'})`);
+        const html = `<p>${m.body.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</p>`;
+        sql(`insert into comm_messages (id, studio_id, account_id, thread_id, direction, folder_kind, message_id_hdr,
+                in_reply_to, from_email, from_name, to_emails, subject, sent_at, body_text, body_text_clean, body_html_safe,
+                has_attachments, is_read, read_source, read_at, send_status, created_at, reply_to_email, reply_to_name)
+             values (gen_random_uuid(), ${q(studio)}, ${q(account)}, ${q(thread)}, 'INBOUND', 'INBOX', ${q(`<mail${k}.${thread}@seed>`)},
+                null, ${q(m.email)}, ${q(m.name)}, ${q(mailbox)}, ${q(m.subject)}, now() - interval '${m.ago}', ${q(m.body)}, ${q(m.body)},
+                ${q(html)}, false, false, null, null, 'RECEIVED', now() - interval '${m.ago}',
+                ${m.replyTo ? q(m.replyTo) : 'null'}, ${m.replyName ? q(m.replyName) : 'null'})`);
+    }
+    return account;
+}

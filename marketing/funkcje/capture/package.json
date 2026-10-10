@@ -1,0 +1,10 @@
+{
+  "name": "funkcje-capture",
+  "private": true,
+  "type": "module",
+  "description": "Nagrania prawdziwego CRM do samouczka funkcji (patrz ../README.md).",
+  "dependencies": {
+    "playwright-core": "1.56.1",
+    "sharp": "0.34.4"
+  }
+}

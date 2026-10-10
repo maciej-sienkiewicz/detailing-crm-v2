@@ -17,6 +17,8 @@ gsap.defaults({ ease: 'expo.out', duration: 1 });
 
 const W = 1920, H = 1080, OVER = 0.7;
 const SCENES = [];
+// obietnice dekodowania klatek nagrań w bieżącym seek (render czeka, aż obraz jest gotowy)
+const PENDING = [];
 const scene = def => SCENES.push(def);
 
 // czas na przeczytanie: 1,4 s na „złapanie” wzroku + 0,42 s na słowo, min. 3 s
@@ -332,6 +334,7 @@ function seek(T) {
   document.getElementById('frame').style.setProperty('--sheen', sh + '%');
   const gi = Math.floor(T * 24) % grainFrames.length;
   if (grainFrames[gi]) grainCanvas().getContext('2d').putImageData(grainFrames[gi], 0, 0);
+  return Promise.all(PENDING.splice(0));
 }
 
 // audyt czytelności: tekst musi stać w pełni widoczny co najmniej readNeed(tekst)
@@ -354,6 +357,12 @@ window.ready = (async () => {
   await document.fonts.ready;
   await Promise.all([...document.images].map(i => i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; })));
   makeGrain();
+  // sceny z nagrań: długość wynika z nagrania; bez nagrania scena wypada z filmu
+  for (const def of [...SCENES]) {
+    if (!def.rec) continue;
+    try { def.meta = await (await fetch(`rec/${def.rec}/meta.json`)).json(); def.dur = +def.durFrom(def.meta).toFixed(2); }
+    catch { console.warn('brak nagrania', def.rec); SCENES.splice(SCENES.indexOf(def), 1); }
+  }
   buildFilm(q.get('scene') ? q.get('scene').split(',') : null);
   window.seek = seek;
   window.duration = film.total;
