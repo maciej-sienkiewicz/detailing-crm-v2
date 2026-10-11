@@ -18,6 +18,7 @@ import {
 } from '../utils/lightboxNavigation';
 import { useGallery } from '../hooks/useGallery';
 import type { GalleryPhoto } from '../types';
+import { pluralPl } from '@/common/utils/plural';
 
 // ─── animations ───────────────────────────────────────────────────────────────
 
@@ -609,7 +610,7 @@ export const GalleryView = () => {
                         icon={<Images />}
                         title="Galeria"
                         subtitle={pagination
-                            ? <><MobilePageHeaderCountValue>{pagination.total}</MobilePageHeaderCountValue> zdjęć</>
+                            ? <><MobilePageHeaderCountValue>{pagination.total}</MobilePageHeaderCountValue> {pluralPl(pagination.total, 'zdjęcie', 'zdjęcia', 'zdjęć')}</>
                             : 'Wczytywanie…'}
                     />
                 </HeaderWrap>
@@ -684,7 +685,7 @@ export const GalleryView = () => {
 
                         {pageNumbers.map((p, idx) =>
                             p === '...' ? (
-                                <Ellipsis key={`ell-${idx}`}>...</Ellipsis>
+                                <Ellipsis key={`ell-${idx}`}>…</Ellipsis>
                             ) : (
                                 <PageBtn
                                     key={p}
@@ -704,10 +705,9 @@ export const GalleryView = () => {
                             →
                         </PageBtn>
 
+                        <PageInfo>Strona {page} z {pagination.totalPages}</PageInfo>
                         <PageInfo>
-                            Strona {page} z {pagination.totalPages}
-                            {' · '}
-                            {pagination.total} zdjęć
+                            {pagination.total} {pluralPl(pagination.total, 'zdjęcie', 'zdjęcia', 'zdjęć')}
                         </PageInfo>
                     </PaginationBar>
                 )}

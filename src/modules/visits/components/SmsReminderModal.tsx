@@ -16,6 +16,13 @@ import { SharedButton } from '@/common/styles';
 import { useSmsReadiness } from '../hooks/useSmsReadiness';
 import { SmsActivationWizard } from './SmsActivationWizard';
 import { PiiValue } from '@/common/pii';
+import { pluralPl } from '@/common/utils/plural';
+
+/* Czasownik odmienia się razem z liczebnikiem: „został 1 kredyt", „zostały 2 kredyty",
+   „zostało 5 kredytów". Wcześniej szło tu `detail` z jednostką („5 szt."), więc ekran
+   pokazywał „Zostało 5 szt. kredytów SMS". */
+const creditsLeftPhrase = (n: number): string =>
+    pluralPl(n, `Został ${n} kredyt SMS`, `Zostały ${n} kredyty SMS`, `Zostało ${n} kredytów SMS`);
 
 // ── Inner components ──────────────────────────────────────────────────────────
 
@@ -478,7 +485,7 @@ export const SmsReminderModal = ({ isOpen, visitId, customer, existingReminder, 
                 <ModalTitleGroup>
                     <ModalTitle>{isEditMode ? 'Edytuj zaplanowany SMS' : 'Zaplanuj SMS przypominający'}</ModalTitle>
                     <ModalSubtitle>
-                        {isEditMode ? 'Zmień treść lub termin wysyłki' : 'Wybierz za ile dni wysłać przypomnienie'}
+                        {isEditMode ? 'Zmień treść lub termin wysyłki' : 'Wybierz, za ile dni wysłać przypomnienie'}
                     </ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
@@ -499,21 +506,21 @@ export const SmsReminderModal = ({ isOpen, visitId, customer, existingReminder, 
                         <SetupHint>
                             {readiness.blocking.every(r => r.fixable)
                                 ? 'Możemy to ustawić teraz, bez opuszczania tej wizyty.'
-                                : 'Część z tego uzupełnisz w kartotece klienta, resztę ustawimy tutaj.'}
+                                : 'Część z tego uzupełnisz w karcie klienta, resztę ustawimy tutaj.'}
                         </SetupHint>
                         <SharedButton
                             $variant="primary"
                             onClick={() => setWizardOpen(true)}
                             disabled={!readiness.blocking.some(r => r.fixable)}
                         >
-                            Skonfiguruj wysyłkę SMS
+                            Ustaw wysyłkę SMS
                         </SharedButton>
                     </SetupPanel>
                 ) : (
                 <>
                 {readiness.warnings.map(warn => (
                     <LowBalance key={warn.id}>
-                        <strong>Zostało {warn.detail} kredytów SMS</strong>, ta wiadomość zużyje 1.
+                        <strong>{creditsLeftPhrase(readiness.availableCredits ?? 0)}</strong>, ta wiadomość zużyje 1.
                         Możesz dokończyć wysyłkę i doładować później.
                         <LowBalanceAction type="button" onClick={() => setWizardOpen(true)}>
                             Doładuj teraz
@@ -543,7 +550,7 @@ export const SmsReminderModal = ({ isOpen, visitId, customer, existingReminder, 
                     <Textarea
                         value={message}
                         onChange={e => setMessage(e.target.value)}
-                        placeholder="Wpisz treść SMS lub wygeneruj automatycznie..."
+                        placeholder="Wpisz treść SMS-a lub wygeneruj automatycznie…"
                         disabled={isBusy}
                     />
                     <GenerateBtn
@@ -557,7 +564,7 @@ export const SmsReminderModal = ({ isOpen, visitId, customer, existingReminder, 
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 0.8s linear infinite' }}>
                                     <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
                                 </svg>
-                                Generowanie...
+                                Generowanie…
                             </>
                         ) : (
                             <>
@@ -629,20 +636,20 @@ export const SmsReminderModal = ({ isOpen, visitId, customer, existingReminder, 
                                 <line x1="15" y1="9" x2="9" y2="15"/>
                                 <line x1="9" y1="9" x2="15" y2="15"/>
                             </svg>
-                            Anuluj zaplanowanie
+                            Nie wysyłaj tego SMS-a
                         </CancelScheduleBtn>
                     </FooterLeft>
                 )}
                 <FooterRight>
                     <SharedButton $variant="secondary" onClick={onClose} disabled={isBusy}>
-                        Pomiń
+                        Anuluj
                     </SharedButton>
                     <SharedButton
                         $variant="primary"
                         onClick={handleSubmit}
                         disabled={!message.trim() || isBusy || readiness.blocking.length > 0}
                     >
-                        {(isScheduling || isUpdating) ? 'Zapisywanie...' : isEditMode ? 'Zapisz zmiany' : 'Zaplanuj SMS'}
+                        {(isScheduling || isUpdating) ? 'Zapisywanie…' : isEditMode ? 'Zapisz zmiany' : 'Zaplanuj SMS'}
                     </SharedButton>
                 </FooterRight>
             </ModalFooter>

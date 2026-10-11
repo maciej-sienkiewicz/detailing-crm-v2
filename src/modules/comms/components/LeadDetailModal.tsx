@@ -37,6 +37,7 @@
 // podkreślenie, tylko szum.
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { pluralPl } from '@/common/utils/plural';
 import styled, { css, keyframes } from 'styled-components';
 import {
     AlertTriangle,
@@ -613,19 +614,6 @@ const TimelineLabel = styled.h4`
     color: ${p => p.theme.colors.text};
 `;
 
-/**
- * Polska liczba mnoga: 1 wizyta, 2-4 wizyty, 5+ wizyt - z wyjątkiem nastek
- * (12-14 idą jak 5+). Trzeci wariant jest tu obowiązkowy: „4 zrealizowanych
- * wizyt" to zdanie, którego nikt nie napisałby ręcznie.
- */
-function plural(count: number, one: string, few: string, many: string): string {
-    const mod10 = count % 10;
-    const mod100 = count % 100;
-    if (count === 1) return one;
-    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
-    return many;
-}
-
 /** „14 marca" - rok tylko wtedy, gdy wizyta jest z innego. */
 function formatDayMonth(iso: string): string {
     const date = new Date(iso);
@@ -841,7 +829,7 @@ const FooterButton = styled(IconButton)`${footerControl}`;
  * zlecenia, a mimo to stał w środku treści, między informacjami. Stopka jest
  * miejscem, w którym w tym oknie się DZIAŁA, więc kasacja należy do niej - tylko
  * po przeciwnej stronie niż akcja główna i bez napisu, bo napis czynił z niej
- * ofertę równorzędną z „Stwórz rezerwację".
+ * ofertę równorzędną z „Umów wizytę".
  *
  * Domyślnie szary, czerwony pod kursorem: ma dać się znaleźć, a nie zapraszać.
  */
@@ -879,7 +867,7 @@ const FooterDanger = styled.button`
  * Akcja główna stopki - jedyne miejsce w tym oknie, w którym sprawa RUSZA DALEJ.
  *
  * Do tej pory była to [PrimaryButton]: ta sama pastylka, którą w tym samym pliku
- * podpisano „Zapisz" przy tagach, pojeździe i notatce. „Stwórz rezerwację"
+ * podpisano „Zapisz" przy tagach, pojeździe i notatce. „Umów wizytę"
  * znaczy „zamień zapytanie w pieniądze" i nie ma prawa wyglądać jak zatwierdzenie
  * formularza - a wyglądała identycznie, bo była tym samym komponentem.
  *
@@ -1298,24 +1286,12 @@ const NoteList = styled.div`
 `;
 
 /** „1 odwołana rezerwacja", „2 odwołane rezerwacje", „5 odwołanych rezerwacji". */
-const bookingWord = (count: number): string => {
-    if (count === 1) return 'odwołana rezerwacja';
-    const rest = count % 10;
-    const teens = count % 100;
-    return rest >= 2 && rest <= 4 && (teens < 12 || teens > 14)
-        ? 'odwołane rezerwacje'
-        : 'odwołanych rezerwacji';
-};
+const bookingWord = (count: number): string =>
+    pluralPl(count, 'odwołana rezerwacja', 'odwołane rezerwacje', 'odwołanych rezerwacji');
 
 /** „1 porzucone zapytanie", „2 porzucone zapytania", „5 porzuconych zapytań". */
-const leadWord = (count: number): string => {
-    if (count === 1) return 'porzucone zapytanie';
-    const rest = count % 10;
-    const teens = count % 100;
-    return rest >= 2 && rest <= 4 && (teens < 12 || teens > 14)
-        ? 'porzucone zapytania'
-        : 'porzuconych zapytań';
-};
+const leadWord = (count: number): string =>
+    pluralPl(count, 'porzucone zapytanie', 'porzucone zapytania', 'porzuconych zapytań');
 
 export interface LeadDetailModalProps {
     leadId: string;
@@ -1433,13 +1409,13 @@ export function LeadDetailModal({
     /** Sugestie AI czekające na decyzję — wiersze w tabeli wyceny, pod pozycjami przyjętymi. */
     const suggestedServices = (lead?.services ?? []).filter((s) => s.status === 'SUGGESTED');
     // Jedna instancja mutacji na okno: przycisk odświeżania stoi w nagłówku sekcji,
-    // a przyciski „Akceptuj"/„Odrzuć" w jej wierszach. Dwie osobne instancje nie
+    // a przyciski „Dodaj do wyceny"/„Odrzuć" w jej wierszach. Dwie osobne instancje nie
     // wiedziałyby o sobie i dałoby się przyjąć pozycję w trakcie przeliczania,
     // czyli dopisać do wyceny sugestię, którą serwer właśnie podmienia.
     const suggestionActions = useSuggestionActions(leadId);
 
     /**
-     * „Stwórz rezerwację" traktuje nieodrzucone sugestie jak zaakceptowane: przenosi
+     * „Umów wizytę" traktuje nieodrzucone sugestie jak zaakceptowane: przenosi
      * je serwerowo PRZED otwarciem formularza. Gdy któraś czeka na kwotę, serwer
      * odmawia (409) i wtedy wymuszamy uzupełnienie zamiast wpuścić pozycję bez ceny.
      */
@@ -1729,14 +1705,14 @@ export function LeadDetailModal({
                                         $known={Boolean(customerFacts)}
                                         aria-label={
                                             unknownContact
-                                                ? 'Tego kontaktu nie ma w bazie klientów — połącz albo załóż profil'
-                                                : 'Profil klienta'
+                                                ? 'Nie ma karty klienta – połącz albo dodaj klienta'
+                                                : 'Karta klienta'
                                         }
                                         title={
                                             unknownContact
-                                                ? 'Tego kontaktu nie ma jeszcze w bazie klientów — kliknij, żeby połączyć albo założyć profil'
+                                                ? 'Nie ma karty klienta – kliknij, żeby połączyć albo dodać'
                                                 : customerFacts
-                                                  ? `${lead.customerName ?? lead.contactIdentifier} jest w kartotece — zobacz profil`
+                                                  ? `${lead.customerName ?? lead.contactIdentifier} ma kartę klienta – zobacz ją`
                                                   : 'Zobacz, kto to jest'
                                         }
                                         onClick={(event) => setContactAnchor(event.currentTarget)}
@@ -1765,8 +1741,8 @@ export function LeadDetailModal({
                                         aria-expanded={open}
                                         title={
                                             reply
-                                                ? `${reply.title}. Etap: ${LEAD_STATUS_LABELS[lead.status]}, kliknij, żeby zmienić`
-                                                : `Etap: ${LEAD_STATUS_LABELS[lead.status]} — kliknij, żeby zmienić`
+                                                ? `${reply.title}. Status: ${LEAD_STATUS_LABELS[lead.status]}, kliknij, żeby zmienić`
+                                                : `Status: ${LEAD_STATUS_LABELS[lead.status]} – kliknij, żeby zmienić`
                                         }
                                         onClick={toggle}
                                     >
@@ -1998,7 +1974,7 @@ export function LeadDetailModal({
                                                             <div className="caption">
                                                                 {quoteRows.length}
                                                                 {' '}
-                                                                {plural(quoteRows.length, 'pozycja', 'pozycje', 'pozycji')}
+                                                                {pluralPl(quoteRows.length, 'pozycja', 'pozycje', 'pozycji')}
                                                                 {', kwota brutto'}
                                                             </div>
                                                         </div>
@@ -2086,7 +2062,7 @@ export function LeadDetailModal({
                                             <div className="cell">
                                                 <div className="value">{customerFacts.completedVisitCount}</div>
                                                 <div className="label">
-                                                    {plural(
+                                                    {pluralPl(
                                                         customerFacts.completedVisitCount,
                                                         'wizyta',
                                                         'wizyty',
@@ -2096,7 +2072,7 @@ export function LeadDetailModal({
                                             </div>
                                             <div className="cell">
                                                 <div className="value">{formatMoney(customerFacts.totalSpentGross)}</div>
-                                                <div className="label">obrotu</div>
+                                                <div className="label">wydane u nas</div>
                                             </div>
                                             {customerFacts.lastVisitAt && (
                                                 <div className="cell">
@@ -2224,7 +2200,7 @@ export function LeadDetailModal({
                         Zapis wyceny jest na ten moment krokiem następnym, a krok następny
                         w tym oknie stoi w stopce - więc „Zapisz" idzie tutaj, zamiast
                         zostawać przyciskiem pod tabelą. Gdyby został, okno miałoby DWA
-                        wypełnione przyciski naraz: zapis edytora i „Stwórz rezerwację"
+                        wypełnione przyciski naraz: zapis edytora i „Umów wizytę"
                         obok niego. Dokładnie ten remis zakazuje CLAUDE.md §2 i dokładnie
                         z jego powodu użytkownik pyta, na co ma najpierw patrzeć.
                         
@@ -2255,7 +2231,7 @@ export function LeadDetailModal({
                                     <span className="sub">
                                         {editingServices.length}
                                         {' '}
-                                        {plural(editingServices.length, 'pozycja', 'pozycje', 'pozycji')}
+                                        {pluralPl(editingServices.length, 'pozycja', 'pozycje', 'pozycji')}
                                     </span>
                                 </span>
                             </FooterPrimary>
@@ -2288,11 +2264,11 @@ export function LeadDetailModal({
                         3. lead zamknięty → „Napisz wiadomość". Zrealizowanego ani
                            przegranego nie umawia się ponownie jednym kliknięciem, ale
                            odezwać się do klienta zawsze wolno.
-                        4. w pozostałych → „Stwórz rezerwację", czyli po co ten moduł jest.
+                        4. w pozostałych → „Umów wizytę", czyli po co ten moduł jest.
 
                         Obok akcji głównej stopka niesie najwyżej dwa przyciski drugorzędne:
                         stały „Kontakt poza pocztą" i — gdy umówienie terminu nie jest akcją
-                        główną — „Stwórz rezerwację". Zwykłe przejście do korespondencji nie
+                        główną — „Umów wizytę". Zwykłe przejście do korespondencji nie
                         ma tu własnego przycisku ani ikony w nagłówku: prowadzi do niego
                         adres w wierszu tożsamości, bo to droga do WIADOMOŚCI OD TEGO
                         KONTAKTU, a nie osobna czynność.
@@ -2327,7 +2303,7 @@ export function LeadDetailModal({
                                     <span className="glyph"><Send /></span>
                                     <span className="labels">
                                         <span className="title">Napisz wiadomość</span>
-                                        <span className="sub">Sprawa zamknięta, kontakt nadal możliwy</span>
+                                        <span className="sub">Sprawa zamknięta, ale możesz napisać</span>
                                     </span>
                                     <ArrowRight className="arrow" />
                                 </FooterPrimary>
@@ -2337,7 +2313,7 @@ export function LeadDetailModal({
                             return (
                                 <>
                                     <FooterButton type="button" onClick={openBooking}>
-                                        <CalendarPlus size={17} /> Stwórz rezerwację
+                                        <CalendarPlus size={17} /> Umów wizytę
                                     </FooterButton>
                                     <FooterPrimary type="button" onClick={writeToClient}>
                                         <span className="glyph"><Reply /></span>
@@ -2354,7 +2330,7 @@ export function LeadDetailModal({
                             <FooterPrimary type="button" onClick={openBooking}>
                                 <span className="glyph"><CalendarPlus /></span>
                                 <span className="labels">
-                                    <span className="title">Stwórz rezerwację</span>
+                                    <span className="title">Umów wizytę</span>
                                     <span className="sub">Termin, usługi, zaliczka</span>
                                 </span>
                                 <ArrowRight className="arrow" />
@@ -2413,7 +2389,7 @@ export function LeadDetailModal({
             <ConfirmationModal
                 isOpen={deleteDialogOpen}
                 title="Usunąć ten lead?"
-                message="Tej operacji nie da się cofnąć. Wiadomości w skrzynce zostają nietknięte."
+                message="Tego nie da się cofnąć. Maile zostaną w skrzynce."
                 variant="danger"
                 confirmText="Usuń"
                 onConfirm={confirmDelete}
@@ -2425,12 +2401,12 @@ export function LeadDetailModal({
                 rezygnacją z całego usuwania, po której nie dzieje się nic. */}
             <ChoiceModal
                 isOpen={deleteAppointmentDialogOpen}
-                title="Czy usunąć również rezerwację?"
+                title="Co zrobić z rezerwacją?"
                 message="Ten lead ma rezerwację w kalendarzu. Możesz usunąć ją razem z leadem albo zostawić jako samodzielny termin."
                 variant="danger"
-                primaryText="Tak, usuń rezerwację"
+                primaryText="Usuń też rezerwację"
                 onPrimary={() => performDelete(true)}
-                secondaryText="Nie, zostaw termin"
+                secondaryText="Zostaw termin"
                 onSecondary={() => performDelete(false)}
                 onDismiss={() => setDeleteAppointmentDialogOpen(false)}
             />

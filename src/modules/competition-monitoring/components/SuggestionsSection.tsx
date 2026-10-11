@@ -61,6 +61,15 @@ const Names = styled.div`
     }
 `;
 
+/** Atrybuty sugestii jako osobne elementy z odstępem, bez kropek jako kleju. */
+const Meta = styled.div`
+    display: flex;
+    gap: 8px;
+    min-width: 0;
+
+    span { min-width: 0; }
+`;
+
 const AddBtn = styled.button`
     margin-left: auto;
     display: inline-flex;
@@ -104,20 +113,25 @@ export const SuggestionsSection: React.FC<{ compact?: boolean }> = ({ compact = 
                             @{suggestion.username}
                             {suggestion.isVerified && <BadgeCheck />}
                         </strong>
-                        <span>
-                            {suggestion.fullName ? `${suggestion.fullName} · ` : ''}
-                            {suggestion.followerCount != null
-                                ? `${new Intl.NumberFormat('pl-PL', { notation: 'compact', maximumFractionDigits: 1 }).format(suggestion.followerCount)} obs. · `
-                                : ''}
-                            {suggestion.recommendedByCount > 1
-                                ? `podobny do ${suggestion.recommendedByCount} obserwowanych profili`
-                                : `podobny do @${suggestion.similarTo}`}
-                        </span>
+                        <Meta>
+                            {suggestion.fullName && <span>{suggestion.fullName}</span>}
+                            {suggestion.followerCount != null && (
+                                <span>
+                                    {new Intl.NumberFormat('pl-PL', { notation: 'compact', maximumFractionDigits: 1 }).format(suggestion.followerCount)}{' '}
+                                    obserwujących
+                                </span>
+                            )}
+                            <span>
+                                {suggestion.recommendedByCount > 1
+                                    ? `podobny do ${suggestion.recommendedByCount} obserwowanych profili`
+                                    : `podobny do @${suggestion.similarTo}`}
+                            </span>
+                        </Meta>
                     </Names>
                     <AddBtn
                         disabled={isAdding}
                         onClick={() => addProfile(suggestion.username)}
-                        title="Profil trafi do oczekujących na akceptację"
+                        title="Profil pojawi się po zatwierdzeniu"
                     >
                         <UserPlus /> Dodaj
                     </AddBtn>

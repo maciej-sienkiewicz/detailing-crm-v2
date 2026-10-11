@@ -216,7 +216,7 @@ describe('Okno karty czasu pracy - akcje zależne od statusu', () => {
 
     it('własna złożona karta: jedno zdanie, bez przycisków', async () => {
         renderCard(card({ userId: 'me', name: 'Maciej Sienkiewicz', canDecide: false }));
-        expect(await screen.findByText('Własnej karty nie zatwierdzasz.')).toBeInTheDocument();
+        expect(await screen.findByText('Swojej karty nie możesz zatwierdzić.')).toBeInTheDocument();
         expect(within(actionBar()).queryByRole('button')).toBeNull();
     });
 

@@ -38,7 +38,7 @@ const renderCard = () => render(
   </StyledThemeProvider>
 );
 
-const toggle = () => screen.getByRole('switch', { name: /Przekieruj każdą wiadomość/ });
+const toggle = () => screen.getByRole('switch', { name: /Wysyłaj wszystkie SMS-y i e-maile do mnie/ });
 
 beforeEach(() => {
   vi.clearAllMocks();

@@ -49,32 +49,9 @@ export const formatDate = (date: Date): string => {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
 
-import { applyAdjustment as _applyAdjustment } from '@/common/utils/priceAdjustment';
-
 export const roundTo2 = (v: number): number =>
     Math.round((v + Number.EPSILON) * 100) / 100;
 
 // Re-export from shared utility for convenient single-import by callers.
 export { applyAdjustment, distributeAdjustment } from '@/common/utils/priceAdjustment';
 export type { AdjustmentType, PriceAdjustment } from '@/common/utils/priceAdjustment';
-
-// PLN-level wrapper around the cent-based shared applyAdjustment.
-// Base gross is in PLN; adjustment.value is in cents for FIXED_*/SET_*, signed percent for PERCENT.
-export const calculateFinalPrice = (
-    baseGross: number,
-    vatRate: number,
-    adjustment: { type: string; value: number },
-) => {
-    const baseNet = roundTo2(baseGross / (1 + vatRate / 100));
-    const baseNetCents = Math.round(baseNet * 100);
-
-    const result = _applyAdjustment(baseNetCents, vatRate, adjustment as { type: any; value: number });
-
-    return {
-        finalNet: roundTo2(result.finalNetCents / 100),
-        finalGross: roundTo2(result.finalGrossCents / 100),
-        baseNet,
-        baseGross,
-        hasDiscount: result.hasDiscount,
-    };
-};

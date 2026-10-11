@@ -3,7 +3,7 @@
 // Nagłówek wizyty: CO to za auto, NA KIEDY i CO ZROBIĆ DALEJ - w jednym ciemnym bloku.
 //
 // Wcześniej były to dwa osobne ciemne bloki jeden pod drugim: nagłówek z tytułem
-// i akcjami, a pod nim pasek postępu „W realizacji - Do odbioru - Zakończona".
+// i akcjami, a pod nim pasek postępu „W trakcie - Do odbioru - Zakończona".
 // Dwa ciemne prostokąty zabierały ~250px nad wykazem usług, a termin odbioru
 // (pytanie, które pada przy ladzie) był zakresem dat bez godziny w szarej linijce.
 // Teraz postęp i termin stoją w jednym rzędzie pod tytułem.
@@ -38,7 +38,7 @@ const COMPLETE_LABEL: Partial<Record<VisitStatus, string>> = {
 };
 
 const STEPS: { status: VisitStatus; label: string }[] = [
-    { status: 'IN_PROGRESS', label: 'W realizacji' },
+    { status: 'IN_PROGRESS', label: 'W trakcie' },
     { status: 'READY_FOR_PICKUP', label: 'Do odbioru' },
     { status: 'COMPLETED', label: 'Zakończona' },
 ];
@@ -496,7 +496,7 @@ export const VisitHeader = ({
                                     <>
                                         <TitleInput
                                             ref={titleInputRef}
-                                            aria-label="Tytuł wizyty"
+                                            aria-label="Nazwa wizyty"
                                             value={draftTitle}
                                             onChange={e => setDraftTitle(e.target.value)}
                                             onKeyDown={e => {
@@ -505,7 +505,7 @@ export const VisitHeader = ({
                                             }}
                                             disabled={isSavingTitle}
                                         />
-                                        <IconButton label="Zapisz tytuł" variant="onDark" size="sm" onClick={saveTitle} disabled={isSavingTitle}>
+                                        <IconButton label="Zapisz nazwę" variant="onDark" size="sm" onClick={saveTitle} disabled={isSavingTitle}>
                                             <Check />
                                         </IconButton>
                                         <IconButton label="Anuluj" variant="onDark" size="sm" onClick={cancelEditTitle}>
@@ -616,7 +616,7 @@ export const VisitHeader = ({
                 <ModalFooter>
                     <Button onClick={() => setIsDateModalOpen(false)}>Anuluj</Button>
                     <Button variant="primary" onClick={saveDateModal} disabled={!draftDate || isSavingDate}>
-                        {isSavingDate ? 'Zapisywanie...' : 'Zapisz termin'}
+                        {isSavingDate ? 'Zapisywanie…' : 'Zapisz termin'}
                     </Button>
                 </ModalFooter>
             </ModalShell>

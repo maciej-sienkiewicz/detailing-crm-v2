@@ -11,6 +11,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { formatCurrency, shouldAutoFocusInput, smsSegments, smsWord } from '@/common/utils';
+import { pluralPl } from '@/common/utils/plural';
 import { useModalViewport } from '@/common/hooks';
 import {
     CONSENT_CALL_TO_ACTION,
@@ -422,7 +423,7 @@ export const ServiceChangeSmsModal = ({
                             <ToggleTitle>Polskie znaki</ToggleTitle>
                             <ToggleHint>
                                 {usePolish
-                                    ? 'Wiadomość idzie w UCS-2 - 70 znaków na SMS'
+                                    ? 'Drożej: 70 znaków na SMS zamiast 160'
                                     : 'Taniej: 160 znaków na SMS zamiast 70'}
                             </ToggleHint>
                         </ToggleTexts>
@@ -437,11 +438,11 @@ export const ServiceChangeSmsModal = ({
                     <HintRow>
                         <span>
                             {suffix
-                                ? 'Fraza z prośbą o odpowiedź jest doklejana automatycznie.'
+                                ? 'Prośbę o odpowiedź TAK dopiszemy sami.'
                                 : 'Klient nie musi potwierdzać - SMS jest informacyjny.'}
                         </span>
                         <Counter $warn={segments > 2}>
-                            <span>{fullLength} znaków</span>
+                            <span>{fullLength} {pluralPl(fullLength, 'znak', 'znaki', 'znaków')}</span>
                             <span>{segments} {smsWord(segments)}</span>
                         </Counter>
                     </HintRow>
@@ -450,7 +451,7 @@ export const ServiceChangeSmsModal = ({
                 <Footer>
                     <CancelBtn type="button" onClick={onCancel} disabled={isSaving}>Anuluj</CancelBtn>
                     <SendBtn type="button" onClick={() => onConfirm(trimmed, usePolish)} disabled={!canSend}>
-                        {isSaving ? 'Zapisywanie…' : 'Wyślij i zapisz'}
+                        {isSaving ? 'Zapisywanie…' : 'Zapisz i wyślij'}
                     </SendBtn>
                 </Footer>
             </Card>

@@ -322,7 +322,7 @@ export function BatchServicesModal({ onClose }: Props) {
                     Anuluj
                 </SharedButton>
                 <SharedButton $variant="primary" $size="sm" type="button" onClick={handleSave} disabled={saving}>
-                    {saving ? 'Zapisywanie...' : 'Zapisz'}
+                    {saving ? 'Zapisywanie…' : 'Zapisz'}
                 </SharedButton>
             </PanelActions>
         </EditPanel>
@@ -333,8 +333,8 @@ export function BatchServicesModal({ onClose }: Props) {
             <ModalShell isOpen onClose={onClose} size="lg">
                 <ModalHeader>
                     <ModalTitleGroup>
-                        <ModalTitle>Zarządzaj usługami</ModalTitle>
-                        <ModalSubtitle>Pozycje podpowiadane przy dodawaniu wpisu</ModalSubtitle>
+                        <ModalTitle>Cennik usług</ModalTitle>
+                        <ModalSubtitle>Pozycje podpowiadane przy dodawaniu auta</ModalSubtitle>
                     </ModalTitleGroup>
                     <CloseBtn onClick={onClose} />
                 </ModalHeader>
@@ -346,7 +346,7 @@ export function BatchServicesModal({ onClose }: Props) {
                                 $compact
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
-                                placeholder="Szukaj usługi..."
+                                placeholder="Szukaj usługi…"
                                 aria-label="Szukaj usługi"
                             />
                         </InputShell>
@@ -375,14 +375,14 @@ export function BatchServicesModal({ onClose }: Props) {
                                 <S.ServiceItem>{editor}</S.ServiceItem>
                             )}
 
-                            {isLoading && <EmptyMsg>Ładowanie...</EmptyMsg>}
+                            {isLoading && <EmptyMsg>Wczytywanie…</EmptyMsg>}
                             {isError && <EmptyMsg>Nie udało się wczytać usług.</EmptyMsg>}
 
                             {!isLoading && !isError && visible.length === 0 && editingId !== '' && (
                                 <EmptyMsg>
                                     {search.trim()
                                         ? 'Brak usług pasujących do wyszukiwania.'
-                                        : 'Brak zapisanych usług. Pozycja wpisana we wpisie zapisze się tu automatycznie.'}
+                                        : 'Brak zapisanych usług. Usługa dodana przy aucie zapisze się tu sama.'}
                                 </EmptyMsg>
                             )}
 
@@ -429,9 +429,7 @@ export function BatchServicesModal({ onClose }: Props) {
                     </S.ServicesBlock>
 
                     <HistoryNote>
-                        Cennik to tylko podpowiedzi przy dodawaniu kolejnych aut. Auta już
-                        zapisane, także te w zestawieniach, mają własną kopię nazwy i kwot, więc
-                        edycja ani usunięcie pozycji ich nie zmieni.
+                        Zmiany w cenniku nie ruszają aut już zapisanych, dotyczą tylko kolejnych.
                     </HistoryNote>
                 </ModalContent>
 
@@ -443,7 +441,7 @@ export function BatchServicesModal({ onClose }: Props) {
             <ConfirmationModal
                 isOpen={confirmDelete !== null}
                 title="Usuń usługę"
-                message={`Usunąć „${confirmDelete?.name}" z listy podpowiedzi? Auta, przy których ta usługa już wystąpiła, pozostaną bez zmian.`}
+                message={`Usunąć „${confirmDelete?.name}” z listy podpowiedzi? Auta, przy których ta usługa już wystąpiła, pozostaną bez zmian.`}
                 variant="danger"
                 confirmText="Usuń"
                 cancelText="Anuluj"

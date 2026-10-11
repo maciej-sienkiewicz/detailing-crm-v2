@@ -162,7 +162,7 @@ export const VehiclePhotoGallery = ({ vehicleId, readOnly, id }: Props) => {
             </PanelHead>
             <PanelBody ref={wrapRef}>
                 {isLoading ? (
-                    <Empty>Wczytywanie zdjęć...</Empty>
+                    <Empty>Wczytywanie zdjęć…</Empty>
                 ) : photos.length === 0 ? (
                     <Empty>Nie ma jeszcze zdjęć. Zdjęcia z wizyt pojawią się tu same.</Empty>
                 ) : (

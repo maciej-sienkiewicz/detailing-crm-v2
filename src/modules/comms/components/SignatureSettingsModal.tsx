@@ -340,9 +340,9 @@ function SignatureDesigner({ signature, onClose }: DesignerProps) {
     );
     const missing = missingImages(design);
     const placeholderHint =
-        missing.length === 2 ? 'Szare pola to miejsca na zdjęcie i logo - bez nich stopka wyjdzie bez tych elementów.'
-            : missing[0] === 'photoUrl' ? 'Szare koło to miejsce na zdjęcie - bez niego stopka wyjdzie bez zdjęcia.'
-                : 'Szare pole to miejsce na logo - bez niego stopka wyjdzie bez logo.';
+        missing.length === 2 ? 'Szare pola to miejsce na zdjęcie i logo. Możesz je pominąć.'
+            : missing[0] === 'photoUrl' ? 'Szare koło to miejsce na zdjęcie. Możesz je pominąć.'
+                : 'Szare pole to miejsce na logo. Możesz je pominąć.';
 
     /**
      * Pierwszy wybór motywu z logo podstawia logo studia z ustawień firmy - to samo, które
@@ -504,7 +504,7 @@ function SignatureDesigner({ signature, onClose }: DesignerProps) {
 
                 <Stage>
                     <StageHead>
-                        <h3>Podgląd na żywo</h3>
+                        <h3>Podgląd</h3>
                         <PillSwitch type="button" role="switch" aria-checked={dark} $on={dark} onClick={() => setDark(!dark)}>
                             <span className="track"><span className="knob" /></span>
                             Ciemne tło
@@ -538,7 +538,6 @@ function SignatureDesigner({ signature, onClose }: DesignerProps) {
                         aria-checked={enabledByDefault}
                         $on={enabledByDefault}
                         onClick={() => setEnabledByDefault(!enabledByDefault)}
-                        title="Czy przełącznik „Dodaj stopkę” przy nowej wiadomości ma startować włączony"
                     >
                         <span className="track"><span className="knob" /></span>
                         Dołączaj stopkę domyślnie
@@ -569,7 +568,7 @@ export function SignatureSettingsModal({ isOpen, onClose }: SignatureSettingsMod
                 <ModalTitleGroup>
                     <ModalTitle>Twoja stopka e-mail</ModalTitle>
                     <Subtitle>
-                        Przypisana do Ciebie, nie do skrzynki - inne osoby w studiu podpisują się własną.
+                        Każdy w studiu ma własną stopkę.
                     </Subtitle>
                 </ModalTitleGroup>
                 <ModalCloseButton type="button" onClick={onClose} aria-label="Zamknij">

@@ -2,7 +2,7 @@
 //
 // Ustawienia → Komunikacja → Dokumenty i podpisy → „Logo na dokumentach".
 //
-// Jeden przełącznik: „Czy umieszczać logo na dokumentach?". Steruje stemplem logo
+// Jeden przełącznik: „Logo na dokumentach". Steruje stemplem logo
 // w nagłówku systemowych protokołów (przyjęcia, wydania) i systemowej zgody
 // marketingowej. Samo logo wgrywa się w „Dane firmy" — ta karta tylko mówi,
 // czy go tam w ogóle jest, i odsyła do właściwego miejsca, gdy brakuje.
@@ -103,7 +103,7 @@ export function DocumentLogoCard() {
         <Card>
             <OptionRow $disabled={!isOwner}>
                 <OptionTexts>
-                    <OptionLabel>Czy umieszczać logo na dokumentach?</OptionLabel>
+                    <OptionLabel>Logo na dokumentach</OptionLabel>
                     <OptionHint>
                         {!hasLogo && !isLoading ? (
                             <>
@@ -115,14 +115,14 @@ export function DocumentLogoCard() {
                         ) : enabled ? (
                             'Po wyłączeniu nowe protokoły i zgody będą generowane bez logo w nagłówku.'
                         ) : (
-                            'Logo nie jest obecnie umieszczane na dokumentach.'
+                            'Nowe dokumenty powstają bez logo.'
                         )}
                     </OptionHint>
                 </OptionTexts>
                 <Toggle
                     checked={enabled}
                     disabled={locked}
-                    ariaLabel="Czy umieszczać logo na dokumentach?"
+                    ariaLabel="Logo na dokumentach"
                     onChange={handleChange}
                 />
             </OptionRow>

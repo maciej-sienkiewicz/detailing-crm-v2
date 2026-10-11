@@ -291,7 +291,7 @@ function MailRow({ thread, folder, phone, active, nested, isForm, onOpen, onArch
             {!phone && (
                 <ArchiveGhost
                     type="button"
-                    aria-label={thread.archived ? 'Przywróć ze schowka' : 'Archiwizuj'}
+                    aria-label={thread.archived ? 'Przywróć z archiwum' : 'Archiwizuj'}
                     title="Archiwizuj"
                     onClick={(event) => { event.stopPropagation(); onArchive(); }}
                 >

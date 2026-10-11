@@ -1,3 +1,4 @@
+import { pluralPl } from '@/common/utils/plural';
 import type { ChannelDraft, ChannelStatus } from '../types';
 
 /**
@@ -40,7 +41,7 @@ export const VAR_LABELS: Record<string, string> = {
   kontrahent: 'kontrahent',
   okres: 'okres',
   kwota_brutto: 'kwota brutto',
-  liczba_wpisow: 'liczba wpisów',
+  liczba_wpisow: 'liczba aut',
 };
 
 const TOKEN = /\{\{\s*(\w+)\s*\}\}/g;
@@ -98,8 +99,8 @@ export function formatOffset(total: number): string {
   const { value, unit } = minutesToValue(total);
   const word =
     unit === 'days' ? (value === 1 ? 'dzień' : 'dni')
-    : unit === 'hours' ? (value === 1 ? 'godzinę' : 'godzin')
-    : (value === 1 ? 'minutę' : 'minut');
+    : unit === 'hours' ? pluralPl(value, 'godzinę', 'godziny', 'godzin')
+    : pluralPl(value, 'minutę', 'minuty', 'minut');
   return `${value} ${word}`;
 }
 

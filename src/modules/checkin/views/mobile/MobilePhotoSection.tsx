@@ -1,5 +1,6 @@
 // src/modules/checkin/views/mobile/MobilePhotoSection.tsx
 
+import { pluralPl } from '@/common/utils/plural';
 import {
     OfflineBanner,
     InfoCard,
@@ -50,7 +51,7 @@ export const MobilePhotoSection = ({ logic }: Props) => {
                     <line x1="1" y1="1" x2="23" y2="23" />
                     <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01" />
                 </svg>
-                Tryb offline, zdjęcia zostaną wysłane po odzyskaniu połączenia
+                Brak internetu. Wyślemy zdjęcia, gdy wróci połączenie.
             </OfflineBanner>
 
             {totalCount > 0 && (
@@ -59,22 +60,20 @@ export const MobilePhotoSection = ({ logic }: Props) => {
                         <ProgressFill $pct={progressPct} />
                     </ProgressBar>
                     <ProgressLabel>
-                        Wysłano {doneCount} z {totalCount} zdjęć
-                        {hasPending && !isOnline ? ' · oczekuje na połączenie' : ''}
+                        Wysłano {doneCount} z {totalCount} {pluralPl(totalCount, 'zdjęcia', 'zdjęć', 'zdjęć')}
+                        {hasPending && !isOnline ? ', reszta czeka na internet' : ''}
                     </ProgressLabel>
                 </>
             )}
 
             {doneCount === totalCount && totalCount > 0 && !hasPending && (
                 <AllDoneCard>
-                    ✓ Wszystkie {totalCount}{' '}
-                    {totalCount === 1 ? 'zdjęcie zostało' : 'zdjęcia zostały'} przesłane pomyślnie
+                    ✓ Wysłano wszystkie zdjęcia ({totalCount})
                 </AllDoneCard>
             )}
 
             <InfoCard>
                 Zrób zdjęcie aparatem lub wybierz gotowe z galerii telefonu.
-                Możesz dodać dowolną liczbę zdjęć.
             </InfoCard>
 
             {/* Two separate inputs: `capture` forces the camera, so the gallery needs its
@@ -127,7 +126,7 @@ export const MobilePhotoSection = ({ logic }: Props) => {
                                 <PhotoCardTitle>Zdjęcie #{photos.length - idx}</PhotoCardTitle>
                                 <StatusBadge $status={photo.status}>
                                     {photo.status === 'done'      && '✓ Wysłane'}
-                                    {photo.status === 'uploading' && '⟳ Wysyłanie...'}
+                                    {photo.status === 'uploading' && '⟳ Wysyłanie…'}
                                     {photo.status === 'pending'   && '◷ Oczekujące'}
                                     {photo.status === 'failed'    && '✗ Błąd'}
                                 </StatusBadge>

@@ -352,7 +352,7 @@ export function DocumentsSection() {
                             </Notice>
                         </LoadState>
                     ) : rulesLoading ? (
-                        <LoadState><Empty role="status">Wczytywanie dokumentów...</Empty></LoadState>
+                        <LoadState><Empty role="status">Wczytywanie dokumentów…</Empty></LoadState>
                     ) : (
                         <Stages>
                             {renderStage('CHECK_IN')}
@@ -388,7 +388,7 @@ export function DocumentsSection() {
                             Sprawdź połączenie z internetem.
                         </Notice>
                     ) : consentsQuery.isLoading ? (
-                        <Empty role="status">Wczytywanie zgód...</Empty>
+                        <Empty role="status">Wczytywanie zgód…</Empty>
                     ) : consents.length === 0 ? (
                         <Empty>Nie zbierasz jeszcze żadnych zgód, np. na kontakt marketingowy.</Empty>
                     ) : (

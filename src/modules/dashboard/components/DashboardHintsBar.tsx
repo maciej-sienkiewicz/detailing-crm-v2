@@ -138,8 +138,8 @@ export const DashboardHintsBar = () => {
                 // Podpowiedź o nieużywanej funkcji znika razem z funkcją.
                 dismiss.mutate(current.key);
                 showSuccess(
-                    'Funkcja wyłączona',
-                    'Śledzenie czasu pracy zostało wyłączone. Możesz je włączyć ponownie w rolach pracowników.'
+                    'Wyłączono śledzenie czasu pracy',
+                    'Włączysz je z powrotem w rolach pracowników.'
                 );
             } catch {
                 showError('Nie udało się wyłączyć funkcji', 'Spróbuj ponownie.');
@@ -157,7 +157,7 @@ export const DashboardHintsBar = () => {
             <HintText>{hint.text}</HintText>
             {hint.action && (
                 <ActionBtn $critical={critical} type="button" onClick={() => runAction(hint)} disabled={busy}>
-                    {busy ? 'Chwila...' : hint.action.label}
+                    {busy ? 'Chwila…' : hint.action.label}
                 </ActionBtn>
             )}
             <CloseBtn

@@ -378,23 +378,21 @@ export const ServiceItem = ({
                         <BreakdownItem>
                             <BreakdownLabel>{t.appointments.invoiceSummary.beforeNet}: </BreakdownLabel>
                             <BreakdownValue $strikethrough>
-                                {formatMoneyAmount(pricing.originalPriceNet)} PLN
+                                {formatMoneyAmount(pricing.originalPriceNet)} zł
                             </BreakdownValue>
                         </BreakdownItem>
-                        <BreakdownItem>•</BreakdownItem>
                     </>
                 )}
                 <BreakdownItem>
                     <BreakdownLabel>{t.appointments.invoiceSummary.net}: </BreakdownLabel>
                     <BreakdownValue>
-                        {formatMoneyAmount(pricing.finalPriceNet)} PLN
+                        {formatMoneyAmount(pricing.finalPriceNet)} zł
                     </BreakdownValue>
                 </BreakdownItem>
-                <BreakdownItem>•</BreakdownItem>
                 <BreakdownItem>
                     <BreakdownLabel>{t.appointments.invoiceSummary.vat} ({item.vatRate}%): </BreakdownLabel>
                     <BreakdownValue>
-                        {formatMoneyAmount(pricing.vatAmount)} PLN
+                        {formatMoneyAmount(pricing.vatAmount)} zł
                     </BreakdownValue>
                 </BreakdownItem>
                 <br />
@@ -403,16 +401,15 @@ export const ServiceItem = ({
                         <BreakdownItem>
                             <BreakdownLabel>{t.appointments.invoiceSummary.beforeGross}: </BreakdownLabel>
                             <BreakdownValue $strikethrough>
-                                {formatMoneyAmount(pricing.originalPriceGross)} PLN
+                                {formatMoneyAmount(pricing.originalPriceGross)} zł
                             </BreakdownValue>
                         </BreakdownItem>
-                        <BreakdownItem>•</BreakdownItem>
                     </>
                 )}
                 <BreakdownItem>
                     <BreakdownLabel>{t.appointments.invoiceSummary.gross}: </BreakdownLabel>
                     <BreakdownValue $highlight={pricing.hasDiscount}>
-                        {formatMoneyAmount(pricing.finalPriceGross)} PLN
+                        {formatMoneyAmount(pricing.finalPriceGross)} zł
                     </BreakdownValue>
                 </BreakdownItem>
             </PriceBreakdown>

@@ -1047,12 +1047,6 @@ const BulkPreviewHeaderLabel = styled.div`
     color: ${st.text};
 `;
 
-const BulkPreviewHeaderCaption = styled.div`
-    font-size: 11px;
-    color: ${st.textMuted};
-    margin-top: 1px;
-`;
-
 const BulkPreviewList = styled.div`
     flex: 1;
     overflow-y: auto;
@@ -1256,10 +1250,10 @@ const BulkModalFooter = styled.div`
 const DISCOUNT_TYPES: { type: AdjustmentType; label: string }[] = [
     // Słowami, nie „−Netto / =Brutto": skróty z symbolami trzeba było odgadywać.
     { type: 'PERCENT', label: 'Procent' },
-    { type: 'FIXED_NET', label: 'Rabat netto' },
-    { type: 'FIXED_GROSS', label: 'Rabat brutto' },
-    { type: 'SET_NET', label: 'Razem netto' },
-    { type: 'SET_GROSS', label: 'Razem brutto' },
+    { type: 'FIXED_NET', label: 'Kwota netto' },
+    { type: 'FIXED_GROSS', label: 'Kwota brutto' },
+    { type: 'SET_NET', label: 'Suma netto' },
+    { type: 'SET_GROSS', label: 'Suma brutto' },
 ];
 
 /* Editor uses only the true discount types; setting a price is done via the price fields */
@@ -2077,7 +2071,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     );
 
     // W trybie edycji dolne paski nawigacji ustępują miejsca paskowi
-    // „Odrzuć / Zaakceptuj", który na telefonie jest przypięty do dołu ekranu.
+    // „Odrzuć zmiany / Zapisz zmiany", który na telefonie jest przypięty do dołu ekranu.
     useHideMobileChrome('visit-services-edit', isInEditMode);
 
     // Na telefonie okno nie zabiera focusu samo z siebie - klawiatura zasłoniłaby
@@ -2287,7 +2281,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                     <DraftBarSmsWrap>
                         <LockedSection
                             locked={!smsFeature.enabled}
-                            message="Twój abonament nie obsługuje powiadomień SMS."
+                            message="Twój pakiet nie obsługuje powiadomień SMS."
                             onLockedClick={() => setUpsellOpen(true)}
                         >
                             <DraftBarCheckboxes>
@@ -2318,10 +2312,10 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                             $highlighting={isHighlighting}
                             title="Zamknij bez zapisywania (Esc)"
                         >
-                            {hasChanges ? 'Odrzuć' : 'Zamknij'}
+                            {hasChanges ? 'Odrzuć zmiany' : 'Zamknij'}
                         </DiscardBtn>
                         <AcceptBtn onClick={acceptDraft} disabled={isSaving || !hasChanges} $highlighting={isHighlighting}>
-                            {isSaving ? 'Zapisywanie...' : 'Zaakceptuj'}
+                            {isSaving ? 'Zapisywanie…' : 'Zapisz zmiany'}
                         </AcceptBtn>
                     </DraftBarActions>
                 </DraftBar>
@@ -2334,10 +2328,10 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                     {canEdit && (
                         <>
                             <MenuItem icon={<Percent />} disabled={bulkEligibleCount === 0} onClick={openBulkDiscountModal}>
-                                Rabatuj całość...
+                                Rabat na całość…
                             </MenuItem>
                             <MenuItem icon={<ReceiptText />} disabled={bulkEligibleCount === 0} onClick={() => setBulkVatOpen(true)}>
-                                VAT dla wszystkich usług...
+                                Zmień VAT wszystkich usług…
                             </MenuItem>
                         </>
                     )}
@@ -2465,7 +2459,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                     $active={edMode === 'DISCOUNT'}
                                     onClick={() => switchEditorMode('DISCOUNT')}
                                 >
-                                    Udziel rabatu
+                                    Rabat
                                 </EditorModeTab>
                             </EditorModeRow>
 
@@ -2611,7 +2605,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                         <DiscountModalHeader>
                             <div>
                                 <DiscountModalTitle id="bulk-vat-title">VAT dla wszystkich usług</DiscountModalTitle>
-                                <DiscountModalSubtitle>{lines.length} {servicesWord(lines.length)} bez zmian czekających na zgodę klienta</DiscountModalSubtitle>
+                                <DiscountModalSubtitle>{lines.length} {servicesWord(lines.length)} (bez tych, które czekają na zgodę klienta)</DiscountModalSubtitle>
                             </div>
                             <DiscountCloseBtn type="button" aria-label="Zamknij" onClick={() => setBulkVatOpen(false)}>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
@@ -2640,7 +2634,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                             <Notice tone="info">
                                 {changing === 0
                                     ? `Wszystkie usługi mają już stawkę ${fmtVat(bulkVatRate)}. Nic się nie zmieni.`
-                                    : `Stawka zmieni się w ${changing} z ${lines.length} usług. Cena wpisana jako brutto zostaje brutto, wpisana jako netto zostaje netto - druga kwota się przeliczy.`}
+                                    : `Stawka zmieni się w ${changing} z ${lines.length} usług. Wpisana kwota zostaje, druga się przeliczy.`}
                             </Notice>
                         </DiscountModalBody>
                         <DiscountModalFooter>
@@ -2697,8 +2691,8 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                     <BulkModalCard onClick={e => e.stopPropagation()}>
                         <BulkModalHeader>
                             <div>
-                                <DiscountModalTitle>Rabatuj całość</DiscountModalTitle>
-                                <DiscountModalSubtitle>{eligible.length} {servicesWord(eligible.length)} bez zmian czekających na zgodę klienta</DiscountModalSubtitle>
+                                <DiscountModalTitle>Rabat na całość</DiscountModalTitle>
+                                <DiscountModalSubtitle>{eligible.length} {servicesWord(eligible.length)} (bez tych, które czekają na zgodę klienta)</DiscountModalSubtitle>
                             </div>
                             <DiscountCloseBtn type="button" aria-label="Zamknij" onClick={() => setBulkDiscountOpen(false)}>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
@@ -2736,7 +2730,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                 </div>
 
                                 <div>
-                                    <DiscountSectionLabel>Wartość rabatu</DiscountSectionLabel>
+                                    <DiscountSectionLabel>Wysokość rabatu</DiscountSectionLabel>
                                     <DiscountValueRow>
                                         <DiscountValueInput
                                             type="text" inputMode="decimal" placeholder="0" autoFocus={autoFocusFields}
@@ -2758,17 +2752,16 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                         </BulkPreviewHeaderIcon>
                                         <BulkPreviewHeaderText>
                                             <BulkPreviewHeaderLabel>Podgląd zmian cen</BulkPreviewHeaderLabel>
-                                            <BulkPreviewHeaderCaption>Rozkład rabatu na poszczególne usługi</BulkPreviewHeaderCaption>
                                         </BulkPreviewHeaderText>
                                     </BulkPreviewHeaderMain>
                                     {hasValidValue && totalSavedGross > 0.001 && (
-                                        <BulkPreviewTotalsSaved>Oszczędność {fmtZl(totalSavedGross)}</BulkPreviewTotalsSaved>
+                                        <BulkPreviewTotalsSaved>Taniej o {fmtZl(totalSavedGross)}</BulkPreviewTotalsSaved>
                                     )}
                                 </BulkPreviewHeader>
 
                                 {previews.length === 0 ? (
                                     <BulkPreviewEmptyState>
-                                        <BulkPreviewEmptyText>Nie ma usług, które można objąć rabatem - te czekające na zgodę klienta są pomijane.</BulkPreviewEmptyText>
+                                        <BulkPreviewEmptyText>Brak usług do rabatu. Pomijamy te, które czekają na zgodę klienta.</BulkPreviewEmptyText>
                                     </BulkPreviewEmptyState>
                                 ) : (
                                     <>
@@ -2866,10 +2859,10 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
             <ModalOverlay ref={bulkConflictOverlayRef} onClick={() => setBulkDiscountConflictOpen(false)}>
                 <ModalCard role="dialog" aria-modal="true" aria-labelledby="bulk-conflict-title" onClick={e => e.stopPropagation()}>
                     <ModalHeader>
-                        <ModalTitle id="bulk-conflict-title">Naniesione poprawki cen</ModalTitle>
+                        <ModalTitle id="bulk-conflict-title">Część cen zmieniono ręcznie</ModalTitle>
                     </ModalHeader>
                     <ModalBody>
-                        Niektóre usługi mają ręcznie zmienione ceny lub stawki VAT. Czy rabat powinien zostać naliczony od zmienionych wartości, czy nadpisać wszystkie dotychczasowe zmiany i naliczyć od cen pierwotnych?
+                        Liczyć rabat od zmienionych cen czy od cen z cennika?
                     </ModalBody>
                     <ModalFooter>
                         <SecondaryBtn onClick={() => {
@@ -2877,13 +2870,13 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                             setBulkDiscountConflictOpen(false);
                             setBulkDiscountValue('');
                             setBulkDiscountOpen(true);
-                        }}>Nadpisz zmiany</SecondaryBtn>
+                        }}>Od cen z cennika</SecondaryBtn>
                         <PrimaryBtn $danger={false} onClick={() => {
                             setBulkDiscountUseEdited(true);
                             setBulkDiscountConflictOpen(false);
                             setBulkDiscountValue('');
                             setBulkDiscountOpen(true);
-                        }}>Uwzględnij poprawki</PrimaryBtn>
+                        }}>Od zmienionych cen</PrimaryBtn>
                     </ModalFooter>
                 </ModalCard>
             </ModalOverlay>
@@ -2894,18 +2887,18 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 <ModalCard role="dialog" aria-modal="true" aria-labelledby="confirm-title">
                     <ModalHeader>
                         <ModalTitle id="confirm-title">
-                            {confirmAction === 'approve' ? 'Potwierdź zmianę' : 'Wycofać zmianę?'}
+                            {confirmAction === 'approve' ? 'Zatwierdzić zmianę?' : 'Wycofać zmianę?'}
                         </ModalTitle>
                     </ModalHeader>
                     <ModalBody>
                         {confirmAction === 'approve' ? (
                             <>
                                 {targetService.pendingOperation === 'DELETE'
-                                    ? 'Zatwierdzenie spowoduje trwałe usunięcie tej usługi z wizyty. Czy na pewno chcesz kontynuować?'
-                                    : 'Zatwierdzenie zmiany spowoduje jej wejście w życie. Czy na pewno chcesz kontynuować?'}
+                                    ? 'Usługa zniknie z wizyty na stałe.'
+                                    : 'Zmiana zacznie obowiązywać od razu.'}
                             </>
                         ) : (
-                            <>Odrzucenie spowoduje przywrócenie ostatniego zatwierdzonego stanu tej usługi. Kontynuować?</>
+                            <>Usługa wróci do ostatniej zatwierdzonej wersji.</>
                         )}
                     </ModalBody>
                     <ModalFooter>

@@ -10,9 +10,9 @@ describe('communicationStatus', () => {
         expect(communicationTone('RECEIVED')).toBe('received');
     });
 
-    it('podpowiedź „wyjdzie o …” tylko dla wpisu w kolejce z terminem', () => {
+    it('podpowiedź „wyjdzie …” tylko dla wpisu w kolejce z terminem', () => {
         const hint = queuedHint({ status: 'QUEUED', scheduledFor: '2026-09-16T10:00:00Z' });
-        expect(hint).toMatch(/^wyjdzie o \d{2}\.\d{2}\.\d{4}, \d{2}:\d{2}$/);
+        expect(hint).toMatch(/^wyjdzie \d{2}\.\d{2}\.\d{4}, \d{2}:\d{2}$/);
         expect(queuedHint({ status: 'QUEUED', scheduledFor: null })).toBeNull();
         expect(queuedHint({ status: 'SENT', scheduledFor: '2026-09-16T10:00:00Z' })).toBeNull();
     });

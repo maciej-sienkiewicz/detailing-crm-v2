@@ -11,6 +11,7 @@ import {
     ModalContent,
 } from '@/common/components/ModalKit';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { pluralPl } from '@/common/utils/plural';
 import { AD_PLATFORM_LABELS, type AdDetail, type AdReachBucket } from '../types';
 import { useAdDetail } from '../hooks/useAds';
 import { CenterState, Spinner, formatExact } from './MetricBits';
@@ -704,8 +705,9 @@ const AdDetailBody: React.FC<{ ad: AdDetail }> = ({ ad }) => {
                         <PyramidFoot>
                             Poza ustawionym wiekiem:{' '}
                             <b>
-                                {formatExact(ad.outOfTargetAgeReach)} osób ·{' '}
-                                {Math.round((ad.outOfTargetAgeReach / total) * 100)}%
+                                {formatExact(ad.outOfTargetAgeReach)}{' '}
+                                {pluralPl(ad.outOfTargetAgeReach, 'osoba', 'osoby', 'osób')} (
+                                {Math.round((ad.outOfTargetAgeReach / total) * 100)}%)
                             </b>
                         </PyramidFoot>
                     )}
@@ -806,8 +808,7 @@ const AdCreative: React.FC<{ ad: AdDetail; hasLinkCard: boolean }> = ({ ad, hasL
             )}
 
             <Missing>
-                Biblioteka reklam Meta udostępnia przez API wyłącznie tekst reklamy — zdjęcia
-                ani wideo nie ma w żadnym polu. Materiał zobaczysz w oryginale u Meta.
+                Meta udostępnia tylko tekst reklamy. Zdjęcia i wideo zobaczysz w oryginale.
             </Missing>
         </Creative>
     );

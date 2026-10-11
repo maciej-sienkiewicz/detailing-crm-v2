@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import styled from 'styled-components';
 import { Mail, MessageSquare, Send } from 'lucide-react';
 import { PLACEHOLDERS } from '../constants';
+import { pluralPl } from '@/common/utils/plural';
 import { smsMeta } from '../utils/sms';
 import { useTestSend } from '../hooks/useCampaigns';
 import { FilterChip, IconButton, TextAreaField, TextField } from './shared';
@@ -71,6 +72,13 @@ const CounterRow = styled.div<{ $warn: boolean }>`
   font-size: 12px;
   color: ${(p) => (p.$warn ? p.theme.colors.warning : p.theme.colors.textMuted)};
   font-variant-numeric: tabular-nums;
+`;
+
+/** Liczba znaków i uwaga o polskich znakach - dwa fakty obok siebie, bez kropki między nimi. */
+const CounterFacts = styled.span`
+  display: inline-flex;
+  gap: 12px;
+  flex-wrap: wrap;
 `;
 
 /** Materiał pomocniczy - na tle strony, bez ramki, cofnięty o plan. */
@@ -225,7 +233,7 @@ export function MessageEditor({ value, onChange }: Props) {
       </ChannelRow>
 
       <TokenSection>
-        <TokenLabel>Zmienne: kliknij, żeby wstawić w miejsce kursora</TokenLabel>
+        <TokenLabel>Dane klienta: kliknij, żeby wstawić</TokenLabel>
         <TokenRow>
           {PLACEHOLDERS.map((p) => (
             <Token key={p.token} type="button" title={p.label} onClick={() => insertToken(p.token)}>
@@ -247,14 +255,17 @@ export function MessageEditor({ value, onChange }: Props) {
               ref={smsRef}
               value={value.smsTemplate}
               onChange={(e) => set({ smsTemplate: e.target.value })}
-              placeholder="Cześć {{imie}}! ..."
+              placeholder="Cześć {{imie}}! …"
             />
             <CounterRow $warn={meta.segments > 1}>
+              <CounterFacts>
+                <span>{meta.length} {pluralPl(meta.length, 'znak', 'znaki', 'znaków')}</span>
+                {meta.encoding === 'UCS-2' && <span>Polskie znaki skracają SMS</span>}
+              </CounterFacts>
               <span>
-                {meta.length} znaków · {meta.encoding}
-                {meta.encoding === 'UCS-2' && ' (polskie znaki skracają SMS)'}
+                {meta.segments} {pluralPl(meta.segments, 'SMS', 'SMS-y', 'SMS-ów')} na odbiorcę,{' '}
+                {meta.segments} {pluralPl(meta.segments, 'kredyt', 'kredyty', 'kredytów')}
               </span>
-              <span>{meta.segments} {meta.segments === 1 ? 'segment' : 'segmenty'} = {meta.segments} kredyt(y) / odbiorcę</span>
             </CounterRow>
           </Field>
         </ChannelCard>
@@ -280,7 +291,7 @@ export function MessageEditor({ value, onChange }: Props) {
               value={value.emailBody}
               onChange={(e) => set({ emailBody: e.target.value })}
               style={{ minHeight: 180 }}
-              placeholder="Dzień dobry {{imie}}, ..."
+              placeholder="Dzień dobry {{imie}}, …"
             />
           </Field>
         </ChannelCard>

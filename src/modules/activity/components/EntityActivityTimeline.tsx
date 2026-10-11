@@ -185,7 +185,7 @@ export function EntityActivityTimeline({ scope }: EntityActivityTimelineProps) {
             {!isLoading && !isError && items.length === 0 && (
                 <StateBox>
                     <Inbox />
-                    <p>Brak zarejestrowanych zdarzeń. Pojawią się tutaj automatycznie.</p>
+                    <p>Jeszcze nic się tu nie wydarzyło.</p>
                 </StateBox>
             )}
 
@@ -207,7 +207,7 @@ export function EntityActivityTimeline({ scope }: EntityActivityTimelineProps) {
                     disabled={isFetchingNextPage}
                 >
                     {isFetchingNextPage && <Loader2 />}
-                    {isFetchingNextPage ? 'Wczytywanie starszych zdarzeń' : 'Pokaż starsze zdarzenia'}
+                    {isFetchingNextPage ? 'Wczytywanie starszych zdarzeń…' : 'Pokaż starsze zdarzenia'}
                 </LoadOlder>
             )}
         </Shell>

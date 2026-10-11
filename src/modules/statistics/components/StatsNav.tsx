@@ -61,11 +61,11 @@ export const StatsNav = () => (
     <Nav>
         <Tab to="/statistics" end>
             <TrendingUp />
-            Przychody i sprzedaż
+            Przychody
         </Tab>
         <Tab to="/statistics/costs">
             <Receipt />
-            Koszta
+            Koszty
         </Tab>
         <Tab to="/statistics/reports">
             <FileText />

@@ -246,7 +246,7 @@ export const ProtocolRuleCard = ({ rule, onEdit, onRefresh }: ProtocolRuleCardPr
     const deleteMutation = useDeleteProtocolRule();
 
     const handleDelete = async () => {
-        if (!confirm(`Czy na pewno chcesz usunąć przypisanie protokołu "${rule.protocolTemplate?.name}"?`)) {
+        if (!confirm(`Czy na pewno chcesz usunąć przypisanie protokołu „${rule.protocolTemplate?.name}”?`)) {
             return;
         }
 
@@ -319,10 +319,6 @@ export const ProtocolRuleCard = ({ rule, onEdit, onRefresh }: ProtocolRuleCardPr
             {showDetails && (
                 <DetailsPanel>
                     <DetailRow>
-                        <DetailLabel>ID reguły:</DetailLabel>
-                        <DetailValue>{rule.id}</DetailValue>
-                    </DetailRow>
-                    <DetailRow>
                         <DetailLabel>Szablon protokołu:</DetailLabel>
                         <DetailValue>{rule.protocolTemplate?.name || 'Brak'}</DetailValue>
                     </DetailRow>
@@ -331,7 +327,7 @@ export const ProtocolRuleCard = ({ rule, onEdit, onRefresh }: ProtocolRuleCardPr
                         <DetailValue>{rule.stage === 'CHECK_IN' ? 'Przyjęcie' : 'Wydanie'}</DetailValue>
                     </DetailRow>
                     <DetailRow>
-                        <DetailLabel>Typ wyzwalacza:</DetailLabel>
+                        <DetailLabel>Kiedy wymagany:</DetailLabel>
                         <DetailValue>
                             {rule.triggerType === 'GLOBAL_ALWAYS' ? 'Globalny - zawsze wymagany' : 'Specyficzny dla usługi'}
                         </DetailValue>

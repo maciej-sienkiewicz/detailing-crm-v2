@@ -92,7 +92,7 @@ export const AddProfileModal = ({ isOpen, onClose }: AddProfileModalProps) => {
             return;
         }
         if (!/^[a-zA-Z0-9._]{1,30}$/.test(trimmed)) {
-            setValidationError('Nazwa użytkownika może zawierać tylko litery, cyfry, kropki i podkreślniki (max 30 znaków).');
+            setValidationError('Nazwa użytkownika może zawierać tylko litery, cyfry, kropki i podkreślniki (maks. 30 znaków).');
             return;
         }
 
@@ -110,7 +110,7 @@ export const AddProfileModal = ({ isOpen, onClose }: AddProfileModalProps) => {
                 <ModalTitleGroup>
                     <ModalTitle>Dodaj profil do obserwowania</ModalTitle>
                     <ModalSubtitle>
-                        Profil trafi do kolejki oczekujących na akceptację managera.
+                        Profil pojawi się po zatwierdzeniu.
                     </ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={handleClose} />
@@ -118,7 +118,7 @@ export const AddProfileModal = ({ isOpen, onClose }: AddProfileModalProps) => {
 
             <ModalContent>
                 <div>
-                    <FieldLabel htmlFor="instagram-username">Nazwa profilu Instagram</FieldLabel>
+                    <FieldLabel htmlFor="instagram-username">Nazwa profilu na Instagramie</FieldLabel>
                     <InputWrapper>
                         <AtSign>@</AtSign>
                         <Input
@@ -145,7 +145,7 @@ export const AddProfileModal = ({ isOpen, onClose }: AddProfileModalProps) => {
                     Anuluj
                 </SharedButton>
                 <SharedButton $variant="primary" $size="sm" onClick={handleSubmit} disabled={isAdding}>
-                    {isAdding ? 'Dodawanie...' : 'Dodaj profil'}
+                    {isAdding ? 'Dodawanie…' : 'Dodaj profil'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

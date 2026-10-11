@@ -96,7 +96,7 @@ interface ListHeaderProps {
     searchPlaceholder: string;
     /** Pozycje menu koła zębatego (MenuItem z ui). */
     menu: (close: () => void) => ReactNode;
-    /** Pasek pod zakładkami (np. „← Sprawy otwarte" w archiwum). */
+    /** Pasek pod zakładkami (np. „← Otwarte sprawy" w archiwum). */
     below?: ReactNode;
 }
 

@@ -221,8 +221,7 @@ export function SignatureConfigCard({
 
             <Body>
                 <Description>
-                    Nakładamy go na protokoły generowane przy przyjęciu pojazdu. Narysuj podpis myszką,
-                    palcem albo rysikiem, albo wyślij sobie link i podpisz się na telefonie.
+                    Trafi na protokoły przyjęcia. Narysuj go tutaj albo wyślij sobie link na telefon.
                 </Description>
 
                 {mode === 'view' && (
@@ -265,7 +264,7 @@ export function SignatureConfigCard({
                             {hasSignature && (
                                 <Button variant="danger" size="sm" onClick={() => setConfirmDelete(true)} disabled={isDeleting}>
                                     <Trash2 aria-hidden="true" />
-                                    {isDeleting ? 'Usuwanie...' : 'Usuń podpis'}
+                                    {isDeleting ? 'Usuwanie…' : 'Usuń podpis'}
                                 </Button>
                             )}
                         </ButtonRow>
@@ -279,7 +278,7 @@ export function SignatureConfigCard({
                         <ButtonRow>
                             <Button variant="primary" size="sm" onClick={handleSave} disabled={isSaving || !hasStrokes}>
                                 <Check aria-hidden="true" />
-                                {isSaving ? 'Zapisywanie...' : 'Zapisz podpis'}
+                                {isSaving ? 'Zapisywanie…' : 'Zapisz podpis'}
                             </Button>
                             <Button variant="ghost" size="sm" onClick={handleCancel} disabled={isSaving}>
                                 <X aria-hidden="true" />
@@ -329,7 +328,7 @@ export function SignatureConfigCard({
                         variant="primary"
                         disabled={isSendingLink || !phoneNumber.trim()}
                     >
-                        {isSendingLink ? 'Wysyłanie...' : 'Wyślij SMS'}
+                        {isSendingLink ? 'Wysyłanie…' : 'Wyślij SMS'}
                     </Button>
                 </ModalFooter>
             </ModalShell>
@@ -337,7 +336,7 @@ export function SignatureConfigCard({
             <ConfirmationModal
                 isOpen={confirmDelete}
                 title="Usunąć Twój podpis?"
-                message="Nowe protokoły przyjęcia będą generowane bez Twojego podpisu. Protokoły już wygenerowane zostają bez zmian."
+                message="Nowe protokoły przyjęcia będą bez Twojego podpisu. Wcześniejsze zostają bez zmian."
                 variant="danger"
                 confirmText="Usuń podpis"
                 cancelText="Zostaw"

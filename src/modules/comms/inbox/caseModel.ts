@@ -100,7 +100,7 @@ export interface CaseStep {
  */
 export function caseNextStep(lead: Lead, urgency: LeadUrgency): CaseStep {
     if (CLOSED_STATUSES.has(lead.status)) return { kind: 'NONE', title: '', hint: '' };
-    if (lead.appointmentId) return { kind: 'APPOINTMENT', title: 'Zobacz termin', hint: 'Rezerwacja stoi w kalendarzu' };
+    if (lead.appointmentId) return { kind: 'APPOINTMENT', title: 'Zobacz rezerwację', hint: 'Rezerwacja stoi w kalendarzu' };
     const phone = leadPhoneNumber(lead);
     if (!lead.threadId && phone && urgency.turn === 'OURS') {
         return { kind: 'CALL', title: 'Zadzwoń', hint: phone, href: `tel:${phone.replace(/\s/g, '')}` };

@@ -242,7 +242,7 @@ export function SimilarVisitsSection({ leadId }: SimilarVisitsSectionProps) {
         // usług), a bez wyjaśnienia wyglądałaby jak niedziałająca funkcja.
         const hint =
             data?.emptyReason === 'SERVICE_NOT_IN_CATALOG'
-                ? 'Klient pyta o usługę spoza Waszego cennika — nie podpowiadamy cen na podstawie innych zleceń.'
+                ? 'Klient pyta o usługę spoza cennika – tu nie podpowiadamy cen.'
                 : data?.emptyReason === 'VEHICLE_UNKNOWN'
                     ? 'Nie znamy auta z tego leada — uzupełnij markę i model, a dobierzemy zlecenia z historii.'
                     : (data?.indexedVisits ?? 0) === 0
@@ -266,7 +266,7 @@ export function SimilarVisitsSection({ leadId }: SimilarVisitsSectionProps) {
                                 <ExternalLink />
                             </Link>
                         </Vehicle>
-                        <Services>{item.services.join(', ') || 'Bez wykazanych usług'}</Services>
+                        <Services>{item.services.join(', ') || 'Bez listy usług'}</Services>
                         {/* Sama data i - gdy trzeba - ostrzeżenie o kwocie. Plakietka
                             rangi dopasowania („ten sam model, ta sama usługa") stąd
                             wypadła: sekcja jest posortowana od najlepszego dopasowania,

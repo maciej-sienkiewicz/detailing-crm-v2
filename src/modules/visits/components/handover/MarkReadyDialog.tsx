@@ -129,13 +129,14 @@ export const MarkReadyDialog = ({ visit, isOpen, onClose, onSuccess }: MarkReady
                             title="SMS nie wyjdzie"
                             action={<Button size="sm" onClick={() => setWizardOpen(true)}>Napraw teraz</Button>}
                         >
-                            {smsGaps.map(g => `${g.label}: ${g.detail}`).join('. ')}.
+                            {/* Każdy brak w osobnej linii: sklejanie kropką dawało „0 szt.." i „zł/mies..". */}
+                            {smsGaps.map(g => <div key={g.id}>{g.label}: {g.detail}</div>)}
                         </Notice>
                     )}
 
                     <LockedSection
                         locked={!comms.enabled}
-                        message="Twój abonament nie obsługuje powiadomień SMS ani e-mail."
+                        message="Twój pakiet nie obsługuje powiadomień SMS ani e-mail."
                         onLockedClick={() => setUpsellOpen(true)}
                     >
                         <ChoiceList>
@@ -171,7 +172,7 @@ export const MarkReadyDialog = ({ visit, isOpen, onClose, onSuccess }: MarkReady
                     })}
                 >
                     {isMarkingReady
-                        ? 'Zapisywanie...'
+                        ? 'Zapisywanie…'
                         : willNotify
                           ? 'Powiadom i oznacz jako gotowe'
                           : 'Oznacz jako gotowe'}

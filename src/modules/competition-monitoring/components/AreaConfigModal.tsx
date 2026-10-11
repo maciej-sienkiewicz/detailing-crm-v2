@@ -306,7 +306,7 @@ const PhrasePicker = ({
     return (
         <Field>
             <FieldLabel>
-                Śledzone frazy <FieldHint>(listę ustala administrator — odznacz to, co Cię nie dotyczy)</FieldHint>
+                Śledzone frazy
             </FieldLabel>
 
             {groups.map(group => {
@@ -445,7 +445,7 @@ export const AreaConfigModal = ({ isOpen, onClose }: Props) => {
                     <ModalTitle>Reklamodawcy w okolicy</ModalTitle>
                     <ModalSubtitle>
                         Wskaż rejon i odznacz frazy, które Cię nie dotyczą. Dane odświeżają się
-                        automatycznie przez całą dobę.
+                        same.
                     </ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />

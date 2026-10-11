@@ -17,6 +17,7 @@ import {
 import { SharedButton } from '@/common/styles';
 import { TagInput } from './TagInput';
 import { TagChip } from './TagChip';
+import { pluralPl } from '@/common/utils/plural';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
@@ -226,7 +227,7 @@ export const PhotoTagEditModal = ({
             <ModalFooter>
                 <TagCount>
                     {localTags.length > 0
-                        ? `${localTags.length} ${localTags.length === 1 ? 'tag' : 'tagi/tagów'}`
+                        ? `${localTags.length} ${pluralPl(localTags.length, 'tag', 'tagi', 'tagów')}`
                         : 'Brak tagów'}
                 </TagCount>
                 <SharedButton
@@ -236,7 +237,7 @@ export const PhotoTagEditModal = ({
                     onClick={handleClose}
                     disabled={isSaving}
                 >
-                    {isSaving ? 'Zapisuję...' : 'Gotowe'}
+                    {isSaving ? 'Zapisywanie…' : 'Gotowe'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

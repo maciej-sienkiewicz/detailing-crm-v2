@@ -156,7 +156,7 @@ export const OwnerSelect = ({ selectedOwnerIds, onChange }: OwnerSelectProps) =>
 
             {selectedOwnerIds.length > 0 && (
                 <SelectedCount>
-                    {selectedOwnerIds.length} {selectedOwnerIds.length === 1 ? 'właściciel' : 'właścicieli'} wybranych
+                    Wybrano: {selectedOwnerIds.length}
                 </SelectedCount>
             )}
 

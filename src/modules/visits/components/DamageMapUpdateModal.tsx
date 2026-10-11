@@ -1,6 +1,6 @@
 // src/modules/visits/components/DamageMapUpdateModal.tsx
 //
-// „Zaktualizuj uszkodzenia" — okno z karty wizyty.
+// „Mapa uszkodzeń" — okno z karty wizyty.
 //
 // Zgłoszenie z produkcji brzmiało tak: w trakcie prac wychodzi rysa, której nie ma
 // w protokole przyjęcia, i nie ma jej gdzie dopisać. Mapa uszkodzeń powstawała raz,
@@ -691,11 +691,11 @@ export const DamageMapUpdateModal = ({
                 onClick={e => e.stopPropagation()}
                 role="dialog"
                 aria-modal="true"
-                aria-label="Aktualizacja mapy uszkodzeń"
+                aria-label="Mapa uszkodzeń"
             >
                 <Header>
                     <HeaderTexts>
-                        <Title>Zaktualizuj uszkodzenia</Title>
+                        <Title>Mapa uszkodzeń</Title>
                         <Subtitle>Wizyta {visitNumber}</Subtitle>
                         {!bodyLoading && (
                             <StepDots aria-hidden="true">
@@ -717,7 +717,7 @@ export const DamageMapUpdateModal = ({
 
                 <Body>
                     {bodyLoading && (
-                        <LoadingRow>Wczytywanie zapisanych oznaczeń...</LoadingRow>
+                        <LoadingRow>Wczytywanie zapisanych oznaczeń…</LoadingRow>
                     )}
 
                     {!bodyLoading && currentStep === 'mode' && (
@@ -747,7 +747,7 @@ export const DamageMapUpdateModal = ({
                                             <line x1="12" y1="18" x2="12" y2="12" />
                                             <line x1="9" y1="15" x2="15" y2="15" />
                                         </svg>
-                                        Wygeneruj nowy plik
+                                        Zapisz jako nową mapę
                                         <OptionBadge>zalecane</OptionBadge>
                                     </OptionTitle>
                                     <OptionDesc>
@@ -771,7 +771,7 @@ export const DamageMapUpdateModal = ({
                                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                         </svg>
-                                        Zaktualizuj istniejący
+                                        Nadpisz obecną mapę
                                     </OptionTitle>
                                     <OptionDesc>
                                         {hasDocument
@@ -790,7 +790,7 @@ export const DamageMapUpdateModal = ({
                                     </svg>
                                     <span>
                                         {hasDocument
-                                            ? 'Ta wizyta jest starsza niż zapis oznaczeń: z przyjęcia został tylko gotowy plik PDF, bez współrzędnych punktów. Mapę trzeba rozrysować od nowa. Otwórz dotychczasowy dokument w sekcji Dokumentacja i przenieś z niego oznaczenia.'
+                                            ? 'Mapa z przyjęcia jest tylko w PDF, więc punktów nie da się wczytać. Narysuj je od nowa, patrząc na starą mapę w sekcji „Zdjęcia i dokumenty”.'
                                             : 'Ta wizyta nie ma jeszcze mapy uszkodzeń, rozrysujesz ją od zera.'}
                                     </span>
                                 </WarnBox>
@@ -944,8 +944,8 @@ export const DamageMapUpdateModal = ({
                                         />
                                     </FieldGroup>
                                     <Hint>
-                                        Nie używaj polskich znaków, żeby zaoszczędzić kredyty SMS.
-                                        {' '}Twój rozmiar wiadomości: {messageLength} {pluralPl(messageLength, 'znak', 'znaki', 'znaków')}
+                                        Bez polskich znaków SMS wyjdzie taniej.
+                                        {' '}Długość: {messageLength} {pluralPl(messageLength, 'znak', 'znaki', 'znaków')}
                                         {' '}({messageSegments} {smsWord(messageSegments)})
                                     </Hint>
                                 </>
@@ -986,7 +986,7 @@ export const DamageMapUpdateModal = ({
                                 : undefined
                             }
                         >
-                            {isSaving ? 'Zapisywanie...' : 'Zapisz mapę uszkodzeń'}
+                            {isSaving ? 'Zapisywanie…' : 'Zapisz mapę uszkodzeń'}
                             {!isSaving && (
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                     <line x1="5" y1="12" x2="19" y2="12" />
@@ -1001,7 +1001,7 @@ export const DamageMapUpdateModal = ({
                             disabled={bodyLoading || isSaving || (currentStep === 'edit' && !diff.hasChanges)}
                             title={currentStep === 'edit' && !diff.hasChanges ? 'Dodaj lub popraw oznaczenie, żeby przejść dalej' : undefined}
                         >
-                            {currentStep === 'mode' ? 'Przejdź do mapy' : 'Podsumowanie'}
+                            {currentStep === 'mode' ? 'Przejdź do mapy' : 'Dalej'}
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                 <line x1="5" y1="12" x2="19" y2="12" />
                                 <polyline points="12 5 19 12 12 19" />

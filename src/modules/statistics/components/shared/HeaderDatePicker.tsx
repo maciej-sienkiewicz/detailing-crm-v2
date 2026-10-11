@@ -358,7 +358,7 @@ export const HeaderDatePicker = ({
                     )}
 
                     <Divider />
-                    <DateLabel>Niestandardowy zakres</DateLabel>
+                    <DateLabel>Własny zakres</DateLabel>
 
                     <RangeRow>
                         <DateInput

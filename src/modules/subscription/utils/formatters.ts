@@ -46,7 +46,7 @@ const FEATURE_LABELS: Record<string, string> = {
     GALLERY: 'Galeria',
     AI_LEADS: 'Asystent AI dla leadów',
     INSTAGRAM_MONITORING: 'Monitoring Instagrama',
-    SMS_EMAIL: 'Automatyzacja SMS i E-mail',
+    SMS_EMAIL: 'Automatyczne SMS-y i e-maile',
     CAMPAIGNS: 'Kampanie marketingowe',
     E_SIGNATURES: 'Podpisy elektroniczne',
     FINANCE: 'Finanse',

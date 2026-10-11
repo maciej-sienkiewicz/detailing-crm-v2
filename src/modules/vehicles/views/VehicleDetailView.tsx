@@ -40,6 +40,7 @@ import { EditOwnersModal } from '../components/EditOwnersModal';
 import { EntityActivityTimeline } from '@/modules/activity';
 import { PageContainer } from '@/common/components/PageContainer';
 import { formatCurrency } from '@/common/utils';
+import { pluralPl } from '@/common/utils/plural';
 import { t } from '@/common/i18n';
 import { useMediaQuery } from '@/common/hooks';
 import {
@@ -406,7 +407,7 @@ export const VehicleDetailView = () => {
                 <ContentArea>
                     <Centered>
                         <Spinner />
-                        <p>Ładowanie danych pojazdu...</p>
+                        <p>Wczytywanie danych pojazdu…</p>
                     </Centered>
                 </ContentArea>
             </ViewContainer>
@@ -525,7 +526,7 @@ export const VehicleDetailView = () => {
                         role="alert"
                         title={`Ten pojazd został usunięty${deletedAtFormatted ? ` ${deletedAtFormatted}` : ''}${vehicle.deletedBy ? ` przez ${vehicle.deletedBy}` : ''}`}
                     >
-                        Operacja jest nieodwracalna. Nie można wprowadzać zmian w tym pojeździe.
+                        Wizyty, dokumenty i zdjęcia zostają, ale tego pojazdu nie można już edytować.
                     </Notice>
                 )}
                 {isArchived && <div style={{ height: 14 }} />}
@@ -579,7 +580,7 @@ export const VehicleDetailView = () => {
                                             label="Łącznie wydano na ten pojazd"
                                             amount={formatCurrency(totalSpent.grossAmount, totalSpent.currency)}
                                             details={totalVisits > 0 && avgCost
-                                                ? `${totalVisits} ${totalVisits === 1 ? 'zakończona wizyta' : 'zakończone wizyty'}, średnio ${formatCurrency(avgCost.grossAmount, avgCost.currency)}`
+                                                ? `${totalVisits} ${pluralPl(totalVisits, 'zakończona wizyta', 'zakończone wizyty', 'zakończonych wizyt')}, średnio ${formatCurrency(avgCost.grossAmount, avgCost.currency)}`
                                                 : 'żadna wizyta nie jest jeszcze zakończona'}
                                         />
                                     )}
@@ -678,7 +679,7 @@ export const VehicleDetailView = () => {
                                     <RailHead>
                                         <SectionTitle id="vehicle-owners-title" count={vehicle.owners.length || undefined}>Właściciele</SectionTitle>
                                         {!isArchived && (
-                                            <Button variant="ghost" size="sm" onClick={() => setIsEditOwnersModalOpen(true)}>Zarządzaj</Button>
+                                            <Button variant="ghost" size="sm" onClick={() => setIsEditOwnersModalOpen(true)}>Zmień</Button>
                                         )}
                                     </RailHead>
                                     {vehicle.owners.length === 0 ? (
@@ -715,7 +716,7 @@ export const VehicleDetailView = () => {
                                     <FieldList style={{ marginTop: 10 }}>
                                         <FieldRow label="Marka">{vehicle.brand || '-'}</FieldRow>
                                         <FieldRow label="Model">{vehicle.model || '-'}</FieldRow>
-                                        {vehicle.licensePlate && <FieldRow label="Tablica">{vehicle.licensePlate}</FieldRow>}
+                                        {vehicle.licensePlate && <FieldRow label="Rejestracja">{vehicle.licensePlate}</FieldRow>}
                                         <FieldRow label="VIN">
                                             {vehicle.vin
                                                 ? <VinText>{vehicle.vin}</VinText>
@@ -745,9 +746,8 @@ export const VehicleDetailView = () => {
                                                     {new Date(lastVisit).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                                                     <LastVisitAgo>, {daysAgo(lastVisit)}</LastVisitAgo>
                                                 </span>
-                                            ) : 'jeszcze nie było'}
+                                            ) : 'jeszcze żadnej'}
                                         </FieldRow>
-                                        <FieldRow label="Numer w systemie">{vehicle.id.slice(0, 8).toUpperCase()}</FieldRow>
                                     </FieldList>
                                 </RailPanel>
                             </Slot>
@@ -795,7 +795,7 @@ export const VehicleDetailView = () => {
             <ConfirmationModal
                 isOpen={showDeleteConfirm}
                 title="Usunąć pojazd?"
-                message={`${vehicleName}${vehicle.licensePlate ? `, ${vehicle.licensePlate},` : ''} trafi do archiwum. Wizyty, dokumenty i zdjęcia zostaną nienaruszone.`}
+                message={`${vehicleName}${vehicle.licensePlate ? `, ${vehicle.licensePlate},` : ''} zniknie z list. Wizyty, dokumenty i zdjęcia zostają. Usunięcia nie da się cofnąć.`}
                 variant="danger"
                 confirmText="Usuń pojazd"
                 cancelText="Zostaw"

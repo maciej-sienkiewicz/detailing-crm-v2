@@ -17,6 +17,7 @@ import { SharedButton } from '@/common/styles';
 import { StatsNav } from '../components/StatsNav';
 import { ReportButton } from '../components/ReportDialog';
 import { st } from '../components/StatisticsTheme';
+import { pluralPl } from '@/common/utils/plural';
 import {
     // layout
     ViewContainer, Section, SectionHeading, SectionTitle, SectionRule,
@@ -707,7 +708,7 @@ const CategoryFormModal = ({ isOpen, onClose, category }: CategoryFormModalProps
                         <FieldGroup>
                             <Label>Opis (opcjonalnie)</Label>
                             <FormTextarea value={description} onChange={e => setDescription(e.target.value)}
-                                placeholder="Krótki opis tej kategorii wydatków..." disabled={isPending} />
+                                placeholder="Krótki opis tej kategorii kosztów…" disabled={isPending} />
                         </FieldGroup>
                         <FieldGroup>
                             <Label>Kolor kategorii</Label>
@@ -723,7 +724,7 @@ const CategoryFormModal = ({ isOpen, onClose, category }: CategoryFormModalProps
                 <ModalFooter>
                     <SharedButton $variant="secondary" type="button" onClick={onClose} disabled={isPending}>Anuluj</SharedButton>
                     <SharedButton $variant="primary" type="submit" disabled={isPending}>
-                        {isPending ? 'Zapisywanie...' : 'Zapisz'}
+                        {isPending ? 'Zapisywanie…' : 'Zapisz'}
                     </SharedButton>
                 </ModalFooter>
             </form>
@@ -757,21 +758,21 @@ const ConfirmAssignModal = ({ isOpen, onClose, onConfirm, itemCount, categoryNam
     <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="440px">
         <ModalHeader>
             <ModalTitleGroup>
-                <ModalTitle>Potwierdź przypisanie</ModalTitle>
+                <ModalTitle>Przypisać do kategorii?</ModalTitle>
             </ModalTitleGroup>
             <CloseBtn onClick={onClose} />
         </ModalHeader>
         <ModalContent>
             <ConfirmText>
-                Czy na pewno chcesz dodać wszystkie{' '}
-                <ConfirmHighlight>{itemCount} {itemCount === 1 ? 'pozycję' : itemCount < 5 ? 'pozycje' : 'pozycji'}</ConfirmHighlight>
-                {' '}do grupy <ConfirmHighlight>„{categoryName}"</ConfirmHighlight>?
+                Przypisać{' '}
+                <ConfirmHighlight>{itemCount} {pluralPl(itemCount, 'pozycję', 'pozycje', 'pozycji')}</ConfirmHighlight>
+                {' '}do kategorii <ConfirmHighlight>„{categoryName}”</ConfirmHighlight>?
             </ConfirmText>
         </ModalContent>
         <ModalFooter>
             <SharedButton $variant="secondary" type="button" onClick={onClose} disabled={isPending}>Anuluj</SharedButton>
             <SharedButton $variant="primary" type="button" onClick={onConfirm} disabled={isPending}>
-                {isPending ? 'Przypisuję...' : 'Tak, przypisz'}
+                {isPending ? 'Przypisywanie…' : 'Tak, przypisz'}
             </SharedButton>
         </ModalFooter>
     </ModalShell>
@@ -858,7 +859,7 @@ const InvoicePreviewModal = ({ invoiceId, allItems, onClose }: InvoicePreviewMod
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>
-                        {head ? documentTitle(head.documentKind, head.invoiceNumber, head.name) : `Dokument (ID ...${invoiceId.slice(-8)})`}
+                        {head ? documentTitle(head.documentKind, head.invoiceNumber, head.name) : `Dokument (ID …${invoiceId.slice(-8)})`}
                     </ModalTitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
@@ -879,7 +880,7 @@ const InvoicePreviewModal = ({ invoiceId, allItems, onClose }: InvoicePreviewMod
                             </InvMetaField>
                         )}
                         <InvMetaField>
-                            <InvMetaLabel>Pozycji</InvMetaLabel>
+                            <InvMetaLabel>Pozycje</InvMetaLabel>
                             <InvMetaValue>{items.length}</InvMetaValue>
                         </InvMetaField>
                         <InvMetaField>
@@ -976,7 +977,10 @@ const AutoRuleFormModal = ({
         e.preventDefault();
         let valid = true;
         const cleanNip = normalizeNip(nip);
-        if (cleanNip.length < 9) { setNipError('Podaj poprawny NIP (min. 9 cyfr)'); valid = false; }
+        // NIP ma dokładnie 10 cyfr - dawny próg „min. 9" przepuszczał numer, z którym reguła
+        // nigdy nie trafiłaby w dokument. W edycji pole jest zablokowane i nie idzie do API,
+        // więc nie sprawdzamy go tam: starej reguły nie da się poprawić, a nie wolno jej zablokować.
+        if (!isEdit && cleanNip.length !== 10) { setNipError('NIP ma 10 cyfr'); valid = false; }
         if (!catId)               { setCatError('Wybierz kategorię'); valid = false; }
         if (!valid) return;
 
@@ -1011,10 +1015,10 @@ const AutoRuleFormModal = ({
                             <Zap style={{ width: 22, height: 22, color: '#16a34a' }} />
                         </div>
                         <div style={{ fontSize: st.fontMd, fontWeight: 700, color: st.text }}>
-                            Przypisano {lastApplied} {lastApplied === 1 ? 'pozycję' : lastApplied < 5 ? 'pozycje' : 'pozycji'}
+                            Przypisano {lastApplied} {pluralPl(lastApplied, 'pozycję', 'pozycje', 'pozycji')}
                         </div>
                         <div style={{ fontSize: st.fontSm, color: st.textMuted }}>
-                            Istniejące dokumenty od tego dostawcy zostały automatycznie skategoryzowane.
+                            Wcześniejsze dokumenty od tego dostawcy też dostały tę kategorię.
                         </div>
                     </div>
                 </ModalContent>
@@ -1029,7 +1033,7 @@ const AutoRuleFormModal = ({
         <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="520px">
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>{isEdit ? 'Edytuj regułę automatyczną' : 'Nowa reguła automatycznego przypisywania'}</ModalTitle>
+                    <ModalTitle>{isEdit ? 'Edytuj regułę' : 'Nowa reguła'}</ModalTitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
@@ -1114,7 +1118,7 @@ const AutoRuleFormModal = ({
                                     onChange={e => setApplyNow(e.target.checked)}
                                     disabled={isPending}
                                 />
-                                Zastosuj teraz do już istniejących dokumentów od tego dostawcy
+                                Przypisz też wcześniejsze dokumenty od tego dostawcy
                             </ApplyNowToggle>
                         )}
                     </RuleFormGrid>
@@ -1122,7 +1126,7 @@ const AutoRuleFormModal = ({
                 <ModalFooter>
                     <SharedButton $variant="secondary" type="button" onClick={onClose} disabled={isPending}>Anuluj</SharedButton>
                     <SharedButton $variant="primary" type="submit" disabled={isPending || categories.length === 0}>
-                        {isPending ? 'Zapisywanie...' : isEdit ? 'Zapisz' : 'Dodaj regułę'}
+                        {isPending ? 'Zapisywanie…' : isEdit ? 'Zapisz' : 'Dodaj regułę'}
                     </SharedButton>
                 </ModalFooter>
             </form>
@@ -1175,7 +1179,7 @@ const PeriodExpensesModal = ({ period, granularity, allItems, onClose }: PeriodE
         <ModalShell isOpen onClose={onClose} maxWidth="820px">
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>Wydatki: {label}</ModalTitle>
+                    <ModalTitle>Koszty: {label}</ModalTitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
@@ -1554,8 +1558,8 @@ export const CostsView = () => {
         const res = await applyRulesMut.mutateAsync();
         setApplyMsg(
             res.assignedItemCount === 0
-                ? 'Brak nieprzypisanych pozycji pasujących do reguł.'
-                : `Przypisano ${res.assignedItemCount} ${res.assignedItemCount === 1 ? 'pozycję' : res.assignedItemCount < 5 ? 'pozycje' : 'pozycji'}.`
+                ? 'Nic nowego do przypisania.'
+                : `Przypisano ${res.assignedItemCount} ${pluralPl(res.assignedItemCount, 'pozycję', 'pozycje', 'pozycji')}.`
         );
         setTimeout(() => setApplyMsg(null), 4000);
     };
@@ -1588,7 +1592,7 @@ export const CostsView = () => {
     };
 
     const handleDeleteCategory = async (cat: CostCategory) => {
-        if (window.confirm(`Czy na pewno chcesz dezaktywować kategorię „${cat.name}"?`)) {
+        if (window.confirm(`Usunąć kategorię „${cat.name}”?`)) {
             if (selectedCategoryId === cat.id) setSelectedCategoryId(null);
             await deleteMut.mutateAsync(cat.id);
         }
@@ -1605,7 +1609,7 @@ export const CostsView = () => {
         <ViewContainer>
             <PageHeader
                 title="Statystyki"
-                subtitle="Analiza kosztów i wydatków studia"
+                subtitle="Na co wydajesz pieniądze"
                 actions={
                     <HdrBtns>
                         <HeaderDatePicker
@@ -1645,7 +1649,7 @@ export const CostsView = () => {
                 <ChartsRow>
                 {/* Category share donut */}
                 <ChartCard>
-                    <ChartTitle>Struktura kosztów wg kategorii</ChartTitle>
+                    <ChartTitle>Koszty według kategorii</ChartTitle>
                     <CategorySharePie
                         slices={pieSlices}
                         isLoading={breakdownFetching}
@@ -1657,7 +1661,7 @@ export const CostsView = () => {
 
                 {/* Cost trend chart */}
                 <TrendChart
-                    title="Rozkład kosztów w czasie"
+                    title="Koszty w czasie"
                     data={chartData.map(d => ({ period: d.period, value: d.totalCostGross, count: d.itemCount }))}
                     valueLabel="Koszt brutto"
                     countLabel="Pozycje"
@@ -1665,7 +1669,7 @@ export const CostsView = () => {
                     countColor="#64748B"
                     formatValue={fmtPLN}
                     formatAxisValue={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v.toFixed(0)}
-                    formatCount={n => `${n} ${n === 1 ? 'pozycja' : n < 5 ? 'pozycje' : 'pozycji'}`}
+                    formatCount={n => `${n} ${pluralPl(n, 'pozycja', 'pozycje', 'pozycji')}`}
                     height={260}
                     isLoading={itemsFetching}
                     onBarClick={setPeriodModal}
@@ -1685,7 +1689,7 @@ export const CostsView = () => {
                     <RulesCardHeader onClick={() => setRulesOpen(o => !o)}>
                         <RulesCardTitle>
                             <Zap />
-                            Automatyczne przypisywanie dokumentów wg dostawcy
+                            Kategoria według dostawcy
                         </RulesCardTitle>
                         <RulesCardMeta>
                             {rules.length > 0 && <RulesCount>{rules.length}</RulesCount>}
@@ -1699,7 +1703,7 @@ export const CostsView = () => {
                             {rulesLoading && <RulesEmptyRow><Spinner /></RulesEmptyRow>}
                             {!rulesLoading && rules.length === 0 && (
                                 <RulesEmptyRow>
-                                    Brak reguł. Dodaj pierwszą, aby dokumenty od danego dostawcy były przypisywane automatycznie.
+                                    Brak reguł. Dodaj regułę, a dokumenty od dostawcy same dostaną kategorię.
                                 </RulesEmptyRow>
                             )}
                             {!rulesLoading && rules.map(rule => (
@@ -1737,7 +1741,7 @@ export const CostsView = () => {
                                         style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                                     >
                                         <RotateCcw style={{ width: 13, height: 13 }} />
-                                        {applyRulesMut.isPending ? 'Przypisuję...' : 'Zastosuj wszystkie reguły teraz'}
+                                        {applyRulesMut.isPending ? 'Przypisywanie…' : 'Przypisz według reguł'}
                                     </SharedButton>
                                 </div>
                             </RulesFooter>
@@ -1783,17 +1787,17 @@ export const CostsView = () => {
                                     <ReceiptText />Dokumenty
                                 </ViewModeBtn>
                                 <ViewModeBtn $active={viewMode === 'NAME'} onClick={() => setViewMode('NAME')}>
-                                    <Tag />Grupy nazw
+                                    <Tag />Według nazwy
                                 </ViewModeBtn>
                             </ViewModeBar>
                             <FilterBar>
                                 <FilterBtn $active={assignmentFilter === 'ALL'} onClick={() => setAssignmentFilter('ALL')}>Wszystkie</FilterBtn>
-                                <FilterBtn $active={assignmentFilter === 'UNASSIGNED'} onClick={() => setAssignmentFilter('UNASSIGNED')}>Nieprzypisane</FilterBtn>
-                                <FilterBtn $active={assignmentFilter === 'ASSIGNED'} onClick={() => setAssignmentFilter('ASSIGNED')}>Przypisane</FilterBtn>
+                                <FilterBtn $active={assignmentFilter === 'UNASSIGNED'} onClick={() => setAssignmentFilter('UNASSIGNED')}>Bez kategorii</FilterBtn>
+                                <FilterBtn $active={assignmentFilter === 'ASSIGNED'} onClick={() => setAssignmentFilter('ASSIGNED')}>Z kategorią</FilterBtn>
                             </FilterBar>
                             <SearchInput
                                 type="text"
-                                placeholder="Szukaj..."
+                                placeholder="Szukaj…"
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
                             />
@@ -1845,8 +1849,8 @@ export const CostsView = () => {
                                             <EyeToggleBtn
                                                 $excluded={cat.excludeFromStats}
                                                 title={cat.excludeFromStats
-                                                    ? 'Kategoria pomijana w statystykach: kliknij, aby ją uwzględnić'
-                                                    : 'Nie uwzględniaj w statystykach'}
+                                                    ? 'Kategoria ukryta ze statystyk: kliknij, aby przywrócić'
+                                                    : 'Ukryj ze statystyk'}
                                                 onClick={() => handleToggleStatsExclusion(cat)}
                                             >
                                                 {cat.excludeFromStats ? <EyeOff /> : <Eye />}
@@ -2047,7 +2051,7 @@ export const CostsView = () => {
                                 <>
                                     <ItemsHeader>
                                         <span>Nazwa pozycji</span>
-                                        <span>Szt.</span>
+                                        <span>Ilość</span>
                                         <span>Brutto</span>
                                         <span>Kategoria</span>
                                         <span />

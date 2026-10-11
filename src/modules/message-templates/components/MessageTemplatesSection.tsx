@@ -67,7 +67,7 @@ type Filter = 'all' | 'on' | 'off';
 
 const FILTERS: { id: Filter; label: string }[] = [
   { id: 'all', label: 'Wszystkie' },
-  { id: 'on', label: 'Aktywne' },
+  { id: 'on', label: 'Włączone' },
   { id: 'off', label: 'Wyłączone' },
 ];
 
@@ -204,7 +204,7 @@ export const MessageTemplatesSection: React.FC = () => {
                 <SearchInput
                   type="search"
                   value={query}
-                  placeholder="Szukaj po nazwie lub treści wiadomości..."
+                  placeholder="Szukaj po nazwie lub treści wiadomości…"
                   aria-label="Szukaj szablonu"
                   onChange={e => setQuery(e.target.value)}
                 />

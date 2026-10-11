@@ -116,7 +116,7 @@ const present = (result: CompleteVisitResponse, ksefMisconfigured: boolean): Pre
             tone: 'ok',
             title: 'Pojazd wydany',
             lead: result.financialDocumentNumber
-                ? 'Dokument został zapisany w module finansów.'
+                ? 'Dokument jest w Finansach.'
                 : 'Wizyta została zakończona.',
         };
     }
@@ -126,7 +126,7 @@ const present = (result: CompleteVisitResponse, ksefMisconfigured: boolean): Pre
         return {
             tone: 'ok',
             title: 'Pojazd wydany',
-            lead: 'Faktura została wystawiona i zapisana, bez wysyłki do KSeF. Możesz pobrać jej plik XML albo wysłać ją później z modułu Finanse → Dokumenty przychodowe.',
+            lead: 'Faktura została wystawiona i zapisana, bez wysyłki do KSeF. Możesz pobrać jej plik XML albo wysłać ją później w Finansach → Dokumenty przychodowe.',
         };
     }
     // Without a token the send failed at authentication, which the dispatcher records
@@ -136,7 +136,7 @@ const present = (result: CompleteVisitResponse, ksefMisconfigured: boolean): Pre
         return {
             tone: 'warn',
             title: 'Pojazd wydany, faktura czeka na wysyłkę',
-            lead: 'Faktura została wystawiona i zapisana, ale nie trafiła do KSeF, bo studio nie ma skonfigurowanego tokenu. Pobierz plik XML i wgraj go ręcznie w KSeF albo skonfiguruj token w Finanse → KSeF i ponów wysyłkę przy fakturze.',
+            lead: 'Faktura jest zapisana, ale nie poszła do KSeF, bo brakuje tokenu. Dodaj go w Ustawieniach → KSeF i wyślij fakturę jeszcze raz albo wgraj plik XML ręcznie.',
         };
     }
 
@@ -147,7 +147,7 @@ const present = (result: CompleteVisitResponse, ksefMisconfigured: boolean): Pre
             return {
                 tone: 'warn',
                 title: 'Pojazd wydany',
-                lead: 'KSeF jest chwilowo niedostępny, faktura zostanie dosłana automatycznie w trybie offline24.',
+                lead: 'KSeF chwilowo nie działa. Wyślemy fakturę sami, gdy wróci.',
             };
         case 'REJECTED':
             // Odrzucona faktura nie istnieje w KSeF i nie da się jej „dosłać”:
@@ -159,18 +159,18 @@ const present = (result: CompleteVisitResponse, ksefMisconfigured: boolean): Pre
                 ? {
                       tone: 'bad',
                       title: 'Faktura odrzucona: duplikat numeru',
-                      lead: 'Pojazd został wydany, ale pod NIP-em firmy istnieje już faktura o tym numerze. Wystaw fakturę ponownie w module Finanse → Dokumenty przychodowe, dostanie kolejny numer w serii.',
+                      lead: 'Pojazd został wydany, ale pod NIP-em firmy istnieje już faktura o tym numerze. Wystaw fakturę ponownie w Finansach → Dokumenty przychodowe, dostanie kolejny numer w serii.',
                   }
                 : {
                       tone: 'bad',
                       title: 'Faktura odrzucona przez KSeF',
-                      lead: 'Pojazd został wydany, ale faktura nie przeszła walidacji. Popraw dane i wystaw ją ponownie w module Finanse → Dokumenty przychodowe.',
+                      lead: 'Pojazd został wydany, ale KSeF odrzucił fakturę. Popraw dane i wystaw ją ponownie w Finansach → Dokumenty przychodowe.',
                   };
         default:
             return {
                 tone: 'warn',
                 title: 'Pojazd wydany',
-                lead: 'Faktura została wysłana i oczekuje na potwierdzenie z KSeF.',
+                lead: 'Faktura została wysłana i czeka na potwierdzenie z KSeF.',
             };
     }
 };
@@ -233,7 +233,7 @@ export const HandoverResultView = ({
         try {
             await ksefRevenueApi.openInvoicePdf(result.ksefInvoiceId);
         } catch {
-            showError('Nie udało się otworzyć faktury', 'Spróbuj ponownie w module Finanse → Dokumenty przychodowe.');
+            showError('Nie udało się otworzyć faktury', 'Spróbuj ponownie w Finansach → Dokumenty przychodowe.');
         } finally {
             setOpeningPdf(false);
         }
@@ -248,7 +248,7 @@ export const HandoverResultView = ({
                 result.ksefInvoiceNumber ?? 'faktura',
             );
         } catch {
-            showError('Nie udało się pobrać pliku', 'Spróbuj ponownie w module Finanse → Dokumenty przychodowe.');
+            showError('Nie udało się pobrać pliku', 'Spróbuj ponownie w Finansach → Dokumenty przychodowe.');
         } finally {
             setDownloading(false);
         }
@@ -307,7 +307,7 @@ export const HandoverResultView = ({
                 )}
                 {status === 'REJECTED' && (
                     <Muted>
-                        {error ?? 'Szczegóły błędu walidacji znajdziesz w module Finanse → Dokumenty przychodowe.'}
+                        {error ?? 'Powód odrzucenia znajdziesz w Finansach → Dokumenty przychodowe.'}
                     </Muted>
                 )}
             </Details>
@@ -316,13 +316,13 @@ export const HandoverResultView = ({
                 {!!result.ksefInvoiceId && (
                     <Button onClick={handleOpenPdf} disabled={openingPdf}>
                         <FileText />
-                        {openingPdf ? 'Otwieranie...' : 'Faktura PDF'}
+                        {openingPdf ? 'Otwieranie…' : 'Faktura PDF'}
                     </Button>
                 )}
                 {canDownloadXml && (
                     <Button onClick={handleDownload} disabled={downloading}>
                         <Download />
-                        {downloading ? 'Pobieranie...' : 'Pobierz plik'}
+                        {downloading ? 'Pobieranie…' : 'Pobierz XML'}
                     </Button>
                 )}
                 <Button variant="primary" onClick={onClose}>

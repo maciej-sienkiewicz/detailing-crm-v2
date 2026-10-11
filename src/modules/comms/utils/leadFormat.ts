@@ -52,6 +52,6 @@ const formatMoment = (iso: string): string => {
  * mapowaniem danych na widok.
  */
 export const describeAppointmentMoment = (iso: string): { lead: string; moment: string } => ({
-    lead: new Date(iso).getTime() > Date.now() ? 'Rezerwacja została zaplanowana na' : 'Rezerwacja była zaplanowana na',
+    lead: new Date(iso).getTime() > Date.now() ? 'Rezerwacja na' : 'Rezerwacja była na',
     moment: formatMoment(iso),
 });

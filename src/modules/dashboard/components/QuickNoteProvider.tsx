@@ -1,6 +1,7 @@
 // src/modules/dashboard/components/QuickNoteProvider.tsx
 //
-// Okno „Nowa notatka" dostępne z KAŻDEGO widoku (skrót Z).
+// Okno „Nowe zadanie" dostępne z KAŻDEGO widoku (skrót Z). Dawniej nazywało się
+// „Nowa notatka", choć tworzy to samo zadanie co panel „Do zrobienia".
 //
 // Montowane raz w Layoucie i nasłuchujące zdarzenia z modułu skrótów, zamiast
 // kontekstu przekazywanego przez pół aplikacji - nasłuch nie zmusza żadnego

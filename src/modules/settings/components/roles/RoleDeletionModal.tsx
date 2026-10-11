@@ -162,7 +162,7 @@ export function RoleDeletionModal({ role, otherRoles, isDeleting, onCancel, onCo
                         <Callout $tone="warn">
                             <CalloutTitle>Zmiana zadziała natychmiast</CalloutTitle>
                             Uprawnienia {peopleGenitive(holderCount)} zmienią się od razu po
-                            zatwierdzeniu. Operacji nie można cofnąć, ale role można przypisać ponownie.
+                            zatwierdzeniu. Tego nie cofniesz, ale role możesz potem przypisać na nowo.
                         </Callout>
                     </>
                 )}
@@ -176,7 +176,7 @@ export function RoleDeletionModal({ role, otherRoles, isDeleting, onCancel, onCo
                     onClick={() => onConfirm(hasHolders && target !== NO_ROLE ? target : null)}
                     disabled={isDeleting}
                 >
-                    {isDeleting ? 'Usuwanie...' : confirmLabel}
+                    {isDeleting ? 'Usuwanie…' : confirmLabel}
                 </DangerBtn>
             </ModalFooter>
         </ModalShell>

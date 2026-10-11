@@ -79,7 +79,7 @@ export const ChangeDateModal = ({
         setError('');
 
         if (!startDateTime || !endDateTime) {
-            setError('Wszystkie pola są wymagane');
+            setError('Wybierz obie daty');
             return;
         }
 
@@ -143,7 +143,7 @@ export const ChangeDateModal = ({
                     Anuluj
                 </SharedButton>
                 <SharedButton $variant="primary" type="button" onClick={handleConfirm} disabled={isUpdating}>
-                    {isUpdating ? 'Zapisywanie...' : 'Zapisz zmiany'}
+                    {isUpdating ? 'Zapisywanie…' : 'Zapisz zmiany'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

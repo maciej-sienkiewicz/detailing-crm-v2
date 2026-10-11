@@ -76,7 +76,7 @@ export const createCustomerSchema = z.object({
         return hasContact;
     },
     {
-        message: 'Wymagany jest co najmniej numer telefonu lub adres email klienta.',
+        message: 'Podaj telefon albo e-mail klienta.',
         path: ['phone'],
     }
 );

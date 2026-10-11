@@ -61,9 +61,9 @@ export const RECIPIENT_STATUS_LABELS: Record<RecipientStatus, string> = {
   FAILED: 'Błąd wysyłki',
   SKIPPED_NO_CONSENT: 'Brak zgody',
   SKIPPED_NO_ADDRESS: 'Brak numeru / adresu',
-  SKIPPED_FREQUENCY_CAP: 'Limit wysyłek',
+  SKIPPED_FREQUENCY_CAP: 'Niedawno kontaktowany',
   SKIPPED_OPTED_OUT: 'Rezygnacja (STOP)',
-  EXCLUDED_MANUALLY: 'Wykluczono ręcznie',
+  EXCLUDED_MANUALLY: 'Odznaczony ręcznie',
   SKIPPED_NO_CREDITS: 'Brak kredytów SMS',
   STOPPED: 'Zatrzymano',
 };

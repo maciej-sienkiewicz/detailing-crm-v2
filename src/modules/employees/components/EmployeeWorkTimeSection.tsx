@@ -33,13 +33,13 @@ export const EmployeeWorkTimeSection = ({ userId }: Props) => {
         );
     }
 
-    if (isLoading) return <Skeleton aria-busy="true" aria-label="Wczytuję karty"><span /><span /><span /></Skeleton>;
+    if (isLoading) return <Skeleton aria-busy="true" aria-label="Wczytywanie kart"><span /><span /><span /></Skeleton>;
 
     if (periods.length === 0) {
         return (
             <Empty>
                 <strong>Brak kart czasu pracy</strong>
-                <span>Pracownik nie uzupełnił jeszcze żadnego miesiąca.</span>
+                <span>Nie ma jeszcze żadnego wypełnionego miesiąca.</span>
             </Empty>
         );
     }

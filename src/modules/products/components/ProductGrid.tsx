@@ -4,6 +4,7 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { ProductListItem } from '../types';
 import { formatLastUsed, formatPackage, formatPrice } from '../utils/productFormat';
 import { ProductRatingCompact } from './ProductRatingStars';
+import { pluralPl } from '@/common/utils/plural';
 
 const Grid = styled.div`
     display: grid;
@@ -57,11 +58,11 @@ export function ProductGrid({ products, canSeeCosts, onOpen }: Props) {
                         {p.ratingValue !== null && <ProductRatingCompact value={p.ratingValue} size={13} />}
                     </Meta>
                     <Meta>
-                        {/* Na kafelku liczy się sam fakt obiegu - „12 wizyt · miesiąc temu"
+                        {/* Na kafelku liczy się sam fakt obiegu - „Użyty 12 razy, ostatnio miesiąc temu"
                             nie zmieści się obok ceny, więc idzie własnym wierszem. */}
                         <span>
                             {p.usageCount > 0
-                                ? `${p.usageCount} × w wizytach${p.lastUsedAt ? ` · ${formatLastUsed(p.lastUsedAt)}` : ''}`
+                                ? `Użyty ${p.usageCount} ${pluralPl(p.usageCount, 'raz', 'razy', 'razy')}${p.lastUsedAt ? `, ostatnio ${formatLastUsed(p.lastUsedAt)}` : ''}`
                                 : 'Nieużywany'}
                         </span>
                     </Meta>

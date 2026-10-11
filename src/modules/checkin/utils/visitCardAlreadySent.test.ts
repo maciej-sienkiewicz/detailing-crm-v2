@@ -16,7 +16,7 @@ describe('describeVisitCardAlreadySent', () => {
         const r = describeVisitCardAlreadySent(link({ lastSmsSentAt: '2026-09-03T10:15:00Z' }));
         expect(r?.sentAt).toBe('2026-09-03T10:15:00Z');
         expect(r?.text).toContain('SMS-em');
-        expect(r?.text).toContain('Kartę Rezerwacji');
+        expect(r?.text).toContain('Kartę rezerwacji');
         expect(r?.text).not.toContain('e-mailem');
     });
 

@@ -51,7 +51,7 @@ const InlineRow = styled.tr`
 /*
  * Jedna komórka na całą szerokość tabeli, a w niej własny układ. Dawniej wiersz
  * miał trzy komórki pod kolumnami tabeli: cena trafiała pod „Kwotę brutto" (210 px),
- * a trzy przyciski „Edytuj / Rabatuj / Usuń" pod kolumnę menu ⋮ (74 px). Przyciski
+ * a trzy przyciski „Edytuj / Rabat / Usuń" pod kolumnę menu ⋮ (74 px). Przyciski
  * wylewały się w lewo na pola cen i wszystko na siebie nachodziło - zgłoszenie
  * „przy edycji ceny rozjeżdżają się wszystkie pola".
  */
@@ -428,7 +428,7 @@ const PriceInput = styled.input`
 
 /**
  * Cena z cennika jest odczytem, nie polem: input z ramką i tłem obiecywał
- * edycję, której nie ma (zmiana ceny idzie przez „Edytuj"/„Rabatuj").
+ * edycję, której nie ma (zmiana ceny idzie przez „Edytuj"/„Rabat").
  */
 const PriceReadValue = styled.span`
     font-size: 13px;
@@ -579,7 +579,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
 
     // Local display strings: typed freely, never re-derived from parent on
     // every keystroke. Parent basePriceNet is updated immediately on each valid
-    // change so "Zaakceptuj" always sees the current value.
+    // change so "Zapisz zmiany" always sees the current value.
     const [netStr, setNetStr] = useState(() =>
         row.basePriceNet > 0 ? fmtPrice(row.basePriceNet) : ''
     );
@@ -748,7 +748,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
                         onChange={e => handleQueryChange(capitalizeFirst(e.target.value))}
                         onFocus={() => query.trim().length > 0 && setOpen(true)}
                         onBlur={handleBlur}
-                        placeholder="Wyszukaj lub wpisz nazwę usługi..."
+                        placeholder="Wyszukaj lub wpisz nazwę usługi…"
                         autoFocus
                         autoComplete="off"
                         autoCorrect="off"
@@ -782,7 +782,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
                                             ref={sheetEditableRef}
                                             contentEditable
                                             suppressContentEditableWarning
-                                            data-placeholder="Szukaj usługi..."
+                                            data-placeholder="Szukaj usługi…"
                                             onInput={e => {
                                                 const text = (e.target as HTMLDivElement).textContent ?? '';
                                                 handleQueryChange(capitalizeFirst(text));
@@ -807,7 +807,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
                                                 type="button"
                                                 onClick={() => { setOpen(false); onAddCustom(query.trim()); }}
                                             >
-                                                + Dodaj „{query.trim()}" jako niestandardową
+                                                + Dodaj nową usługę „{query.trim()}”
                                             </MobileDropItem>
                                         )}
                                     </MobileSheetList>
@@ -830,7 +830,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
                                             $custom
                                             onClick={() => { setOpen(false); onAddCustom(query.trim()); }}
                                         >
-                                            + Dodaj „{query.trim()}" jako niestandardową
+                                            + Dodaj nową usługę „{query.trim()}”
                                         </DropItem>
                                     )}
                                 </DropdownList>
@@ -913,10 +913,10 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
                                 <circle cx="15" cy="15" r="2" />
                                 <line x1="6" y1="18" x2="18" y2="6" />
                             </svg>
-                            {hasDiscount ? 'Rabat ✓' : 'Rabatuj'}
+                            {hasDiscount ? 'Rabat ✓' : 'Rabat'}
                         </DiscountBtn>
                     )}
-                    <RemoveBtn onClick={onRemove} title="Usuń wiersz">
+                    <RemoveBtn onClick={onRemove} title="Usuń usługę">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                             <line x1="18" y1="6" x2="6" y2="18" />
                             <line x1="6" y1="6" x2="18" y2="18" />

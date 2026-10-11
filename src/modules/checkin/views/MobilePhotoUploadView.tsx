@@ -6,7 +6,6 @@ import {
     Header,
     Logo,
     Title,
-    Subtitle,
     TabBar,
     Tab,
     TabBadge,
@@ -63,7 +62,7 @@ export const MobilePhotoUploadView = ({ token }: Props) => {
             <MobileContainer>
                 <LoadingWrap>
                     <Spinner />
-                    <p style={{ color: 'rgba(255,255,255,0.6)', margin: 0 }}>Weryfikacja sesji...</p>
+                    <p style={{ color: 'rgba(255,255,255,0.6)', margin: 0 }}>Sprawdzanie linku…</p>
                 </LoadingWrap>
             </MobileContainer>
         );
@@ -82,10 +81,9 @@ export const MobilePhotoUploadView = ({ token }: Props) => {
                             <line x1="12" y1="16" x2="12.01" y2="16" />
                         </svg>
                     </ExpiredIcon>
-                    <ExpiredTitle>Sesja wygasła</ExpiredTitle>
+                    <ExpiredTitle>Link wygasł</ExpiredTitle>
                     <ExpiredText>
-                        Link do przesyłania wygasł lub jest nieprawidłowy.
-                        Wygeneruj nowy kod QR na stanowisku obsługi.
+                        Poproś o nowy kod QR na komputerze w studiu.
                     </ExpiredText>
                 </ExpiredScreen>
             </MobileContainer>
@@ -106,7 +104,7 @@ export const MobilePhotoUploadView = ({ token }: Props) => {
                     </LockedIcon>
                     <LockedTitle>Wizyta utworzona</LockedTitle>
                     <LockedText>
-                        Wizyta została już utworzona i edycja danych nie jest możliwa.
+                        Wizyta jest już założona, tu nic więcej nie zmienisz.
                     </LockedText>
                 </LockedScreen>
             </MobileContainer>
@@ -127,7 +125,7 @@ export const MobilePhotoUploadView = ({ token }: Props) => {
                     </DoneIcon>
                     <DoneTitle>Gotowe!</DoneTitle>
                     <DoneText>
-                        Dane zostały przekazane. Możesz zamknąć tę stronę lub wrócić i wprowadzić zmiany.
+                        Wysłane. Możesz zamknąć tę stronę albo wrócić i coś poprawić.
                     </DoneText>
                     <DoneActions>
                         <CofnijBtn onClick={photoLogic.handleUndoDone}>
@@ -196,9 +194,6 @@ export const MobilePhotoUploadView = ({ token }: Props) => {
                     {title}
                 </Logo>
                 <Title>{title}</Title>
-                {context && (
-                    <Subtitle>Sesja: {context.checkinId.slice(0, 8)}...</Subtitle>
-                )}
             </Header>
 
             {/* Tab navigation */}
@@ -233,7 +228,7 @@ export const MobilePhotoUploadView = ({ token }: Props) => {
                         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                         <polyline points="22 4 12 14.01 9 11.01" />
                     </svg>
-                    {hasPending ? 'Przesyłanie w toku...' : 'Gotowe'}
+                    {hasPending ? 'Wysyłanie…' : 'Gotowe'}
                 </GotowBtn>
             </GotowFooter>
         </MobileContainer>

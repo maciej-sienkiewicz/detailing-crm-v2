@@ -5,7 +5,7 @@
 // wystarczą, a użytkownik i tak może wiadomość dowolnie poprawić.
 
 /** Fraza doklejana przez backend na końcu każdej takiej wiadomości. */
-export const CONSENT_CALL_TO_ACTION = 'Odpisz TAK aby zaakceptować.';
+export const CONSENT_CALL_TO_ACTION = 'Odpisz TAK, aby zaakceptować.';
 
 const POLISH_TO_ASCII: Record<string, string> = {
     ą: 'a', ć: 'c', ę: 'e', ł: 'l', ń: 'n', ó: 'o', ś: 's', ź: 'z', ż: 'z',

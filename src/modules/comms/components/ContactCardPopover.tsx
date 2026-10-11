@@ -551,11 +551,11 @@ export function ContactCardPopover({
                                 <div>
                                     <div className="label">Ostatnia wizyta</div>
                                     <div className="value">
-                                        {customer.lastVisitAt ? dateOnly(customer.lastVisitAt) : 'Jeszcze nie był'}
+                                        {customer.lastVisitAt ? dateOnly(customer.lastVisitAt) : 'Jeszcze żadnej'}
                                     </div>
                                 </div>
                                 <div>
-                                    <div className="label">Zostawił u nas</div>
+                                    <div className="label">Wydane u nas</div>
                                     <div className="value">{formatGrosze(customer.totalSpentGross)}</div>
                                 </div>
                             </Stats>
@@ -628,15 +628,14 @@ export function ContactCardPopover({
                             </Section>
 
                             <ProfileLink to={`/customers/${customer.id}`} onClick={onClose}>
-                                Otwórz pełen profil →
+                                Otwórz kartę klienta →
                             </ProfileLink>
                         </>
                     )}
 
                     {!isLoading && !customer && !linking && (
                         <Muted>
-                            Tego adresu nie ma w kartotece. Możesz przypiąć go do klienta,
-                            którego już masz, albo założyć nowy profil.
+                            Tego adresu nie ma w żadnej karcie klienta.
                         </Muted>
                     )}
 
@@ -680,7 +679,7 @@ export function ContactCardPopover({
                                             {[replaceFor.firstName, replaceFor.lastName].filter(Boolean).join(' ') || 'Ten klient'}
                                         </strong>{' '}
                                         ma już zapisany adres <code>{replaceFor.contact?.email}</code>.
-                                        Kartoteka trzyma jeden adres, więc zostanie on zastąpiony przez{' '}
+                                        Klient może mieć tylko jeden adres, więc zamienimy go na{' '}
                                         <code>{email}</code>.
                                     </p>
                                     <div className="actions">

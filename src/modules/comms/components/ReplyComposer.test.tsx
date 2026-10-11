@@ -116,7 +116,7 @@ describe('ReplyComposer - adresat odpowiedzi', () => {
         const input = screen.getByPlaceholderText('adres@klienta.pl') as HTMLInputElement;
         expect(input.value).toBe('');
         expect(input.disabled).toBe(false);
-        expect(screen.getByText(/Nie wiemy, kto jest klientem/)).toBeTruthy();
+        expect(screen.getByText(/Wpisz adres klienta \(nie adres studia ani formularza\)/)).toBeTruthy();
 
         fireEvent.change(input, { target: { value: 'klient@gmail.com' } });
         typeAndSend();

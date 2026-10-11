@@ -93,9 +93,8 @@ export function ShortcutsSection() {
     return (
         <Body>
             <Intro>
-                Litera przenosi do widoku, cyfra przełącza zakładkę w sekcji, w której
-                akurat jesteś. Skróty nie działają, gdy piszesz w polu tekstowym albo masz
-                otwarte okno dialogowe, i nie zjadają skrótów przeglądarki (Ctrl / Cmd).
+                Litera otwiera widok, cyfra przełącza zakładkę. Skróty nie działają, gdy piszesz
+                albo masz otwarte okno.
             </Intro>
 
             <SettingSwitchRow

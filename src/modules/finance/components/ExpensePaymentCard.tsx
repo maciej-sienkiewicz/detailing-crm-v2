@@ -185,7 +185,7 @@ export const ExpensePaymentCard: React.FC<Props> = ({ expenseId }) => {
                   {!transfer.accountNumberValid && (
                     <span className="mt-1.5 flex items-start gap-1.5 text-xs font-normal text-amber-800">
                       <AlertTriangle size={14} className="mt-px shrink-0" aria-hidden />
-                      Numer nie przechodzi kontroli sumy. Porównaj go z fakturą.
+                      Ten numer konta wygląda na błędny. Porównaj go z fakturą.
                     </span>
                   )}
                 </>

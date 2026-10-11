@@ -1,10 +1,11 @@
 import type { DoorToDoorCalendarEntry } from '../types';
+import { pluralPl } from '@/common/utils/plural';
 
 type Direction = DoorToDoorCalendarEntry['direction'];
 
-/** Przyjęcie pojazdu od klienta (odbiór na początku rezerwacji). */
+/** Odbiór auta od klienta (na początku rezerwacji). */
 export const D2D_PICKUP_COLOR = '#0ea5e9';
-/** Oddanie pojazdu klientowi (dostawa na koniec rezerwacji albo wizyty). */
+/** Odwiezienie auta do klienta (na koniec rezerwacji albo wizyty). */
 export const D2D_DELIVERY_COLOR = '#ef4444';
 
 export const D2D_DIRECTION_COLOR: Record<Direction, string> = {
@@ -13,30 +14,30 @@ export const D2D_DIRECTION_COLOR: Record<Direction, string> = {
 };
 
 export const D2D_DIRECTION_LABEL: Record<Direction, string> = {
-    PICKUP: 'Przyjęcie',
-    DELIVERY: 'Oddanie',
+    PICKUP: 'Odbiór',
+    DELIVERY: 'Odwiezienie',
 };
 
-/** Ile przyjęć i ile oddań pojazdu wypada danego dnia - osobny samochodzik dla każdego. */
+/** Ile odbiorów i ile odwiezień auta wypada danego dnia - osobny samochodzik dla każdego. */
 export function countByDirection(entries: DoorToDoorCalendarEntry[]): Record<Direction, number> {
     const counts: Record<Direction, number> = { PICKUP: 0, DELIVERY: 0 };
     entries.forEach(e => { counts[e.direction] += 1; });
     return counts;
 }
 
-/** Najpierw przyjęcia, potem oddania - w tej kolejności stoją samochodziki w rogu dnia. */
+/** Najpierw odbiory, potem odwiezienia - w tej kolejności stoją samochodziki w rogu dnia. */
 export function sortByDirection(entries: DoorToDoorCalendarEntry[]): DoorToDoorCalendarEntry[] {
     const rank = (e: DoorToDoorCalendarEntry) => (e.direction === 'PICKUP' ? 0 : 1);
     return [...entries].sort((a, b) => rank(a) - rank(b));
 }
 
-/** Opis znacznika dla czytnika ekranu, np. „Door to Door: przyjęcia 1, oddania 2". */
+/** Opis znacznika dla czytnika ekranu, np. „Door to door: 1 odbiór, 2 odwiezienia”. */
 export function d2dBadgeLabel(counts: Record<Direction, number>): string {
     const parts = [
-        counts.PICKUP > 0 ? `przyjęcia ${counts.PICKUP}` : null,
-        counts.DELIVERY > 0 ? `oddania ${counts.DELIVERY}` : null,
+        counts.PICKUP > 0 ? `${counts.PICKUP} ${pluralPl(counts.PICKUP, 'odbiór', 'odbiory', 'odbiorów')}` : null,
+        counts.DELIVERY > 0 ? `${counts.DELIVERY} ${pluralPl(counts.DELIVERY, 'odwiezienie', 'odwiezienia', 'odwiezień')}` : null,
     ].filter(Boolean);
-    return `Door to Door: ${parts.join(', ')}`;
+    return `Door to door: ${parts.join(', ')}`;
 }
 
 const CAR_ICON =

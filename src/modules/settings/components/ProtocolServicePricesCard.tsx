@@ -79,7 +79,7 @@ export function ProtocolServicePricesCard() {
         <Card>
             <OptionRow $disabled={!isOwner}>
                 <OptionTexts>
-                    <OptionLabel>Czy pokazywać ceny usług na protokole przyjęcia?</OptionLabel>
+                    <OptionLabel>Ceny usług na protokole przyjęcia</OptionLabel>
                     <OptionHint>
                         {!isOwner ? (
                             'Zmienić to ustawienie może tylko właściciel studia.'
@@ -97,7 +97,7 @@ export function ProtocolServicePricesCard() {
                 <Toggle
                     checked={enabled}
                     disabled={locked}
-                    ariaLabel="Czy pokazywać ceny usług na protokole przyjęcia?"
+                    ariaLabel="Ceny usług na protokole przyjęcia"
                     onChange={handleChange}
                 />
             </OptionRow>

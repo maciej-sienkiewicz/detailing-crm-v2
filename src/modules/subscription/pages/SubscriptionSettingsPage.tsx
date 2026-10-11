@@ -1,6 +1,6 @@
 // src/modules/subscription/pages/SubscriptionSettingsPage.tsx
 //
-// Ustawienia → Abonament: bieżący plan, zmiana planu, moduły, historia płatności.
+// Ustawienia → Pakiet: bieżący pakiet, zmiana pakietu, moduły, historia płatności.
 //
 // Przed przebudową sekcja miała:
 //   - własny nadtytuł wersalikami i tytuł „Abonament" pod nagłówkiem ramy, który
@@ -99,20 +99,20 @@ export function SubscriptionSettingsPage() {
     if (!isOwner) {
         return (
             <Notice tone="warn" title="Brak dostępu">
-                Abonamentem zarządza wyłącznie właściciel studia.
+                Pakiet zmienia tylko właściciel studia.
             </Notice>
         );
     }
 
     if (planLoading) {
-        return <Muted>Wczytywanie abonamentu…</Muted>;
+        return <Muted>Wczytywanie pakietu…</Muted>;
     }
 
     if (planError || !myPlan) {
         return (
             <Notice
                 tone="danger"
-                title="Nie udało się wczytać abonamentu"
+                title="Nie udało się wczytać pakietu"
                 action={<Button variant="ghost" size="sm" onClick={() => refetchPlan()}>Spróbuj ponownie</Button>}
             />
         );
@@ -136,7 +136,7 @@ export function SubscriptionSettingsPage() {
                 window.location.assign(order.paymentUrl);
                 return;
             }
-            showSuccess('Abonament przedłużony', 'Twój plan działa przez kolejne 30 dni.');
+            showSuccess('Pakiet przedłużony', 'Twój pakiet działa przez kolejne 30 dni.');
         } catch (err: unknown) {
             toastUnhandledError(showError, err, 'Nie udało się rozpocząć płatności', 'Spróbuj ponownie za chwilę.');
         }
@@ -157,7 +157,7 @@ export function SubscriptionSettingsPage() {
             const preview = await newSubscriptionApi.previewPlanChange(plan.key, { skipErrorToast: true });
             if (preview.changeType === 'NO_CHANGE') {
                 setDialog(null);
-                showInfo('Bez zmian', `Plan ${plan.name} jest już Twoim planem.`);
+                showInfo('Bez zmian', `Masz już pakiet ${plan.name}.`);
                 return;
             }
             setDialog({ type: 'plan', plan, preview, loading: false });
@@ -215,11 +215,11 @@ export function SubscriptionSettingsPage() {
             {isExpired && (
                 <Notice
                     tone="danger"
-                    title="Abonament wygasł"
+                    title="Twój pakiet wygasł"
                     role="alert"
-                    action={renewButton(renewalAmount ? `Odnów za ${renewalAmount}` : 'Odnów abonament')}
+                    action={renewButton(renewalAmount ? `Odnów za ${renewalAmount}` : 'Odnów pakiet')}
                 >
-                    Odnów plan, żeby wrócić do pełnego dostępu. Płatność przez Przelewy24 obejmuje
+                    Odnów pakiet, żeby wrócić do pełnego dostępu. Płatność przez Przelewy24 obejmuje
                     kolejne 30 dni{renewalAmount ? `, ${renewalAmount} brutto` : ''}.
                 </Notice>
             )}
@@ -238,7 +238,7 @@ export function SubscriptionSettingsPage() {
             {isTrial && myPlan.trialEndsAt && (
                 <Notice tone="info" title="Okres próbny">
                     Zostało {daysLabel(myPlan.daysRemaining)}, do {formatDate(myPlan.trialEndsAt)}.
-                    Wybierz plan poniżej, żeby korzystać z systemu dalej.
+                    Wybierz pakiet poniżej, żeby korzystać z systemu dalej.
                 </Notice>
             )}
 
@@ -250,12 +250,12 @@ export function SubscriptionSettingsPage() {
             <Card>
                 <CardBody>
                     <PlanHead>
-                        <SectionTitle size="lg">Plan {myPlan.plan.name}</SectionTitle>
+                        <SectionTitle size="lg">Pakiet {myPlan.plan.name}</SectionTitle>
                         <StatusPill $tone={status.tone} $size="md">{status.label}</StatusPill>
                     </PlanHead>
 
                     <SummaryStrip
-                        label={myPlan.activeAddOns.length > 0 && !isFull ? 'Miesięcznie, plan i moduły' : 'Miesięcznie'}
+                        label={myPlan.activeAddOns.length > 0 && !isFull ? 'Miesięcznie, pakiet i moduły' : 'Miesięcznie'}
                         amount={(
                             <>
                                 {formatCents(myPlan.monthlyCostCents)}
@@ -267,7 +267,7 @@ export function SubscriptionSettingsPage() {
 
                     {myPlan.activeAddOns.length > 0 && !isFull && (
                         <Block>
-                            <SectionTitle as="h3" count={myPlan.activeAddOns.length}>Aktywne moduły</SectionTitle>
+                            <SectionTitle as="h3" count={myPlan.activeAddOns.length}>Włączone moduły</SectionTitle>
                             <AddOnList>
                                 {myPlan.activeAddOns.map(addOn => (
                                     <AddOnRow key={addOn.key}>
@@ -284,7 +284,7 @@ export function SubscriptionSettingsPage() {
                                             disabled={isExpired}
                                             onClick={() => handleDeactivateAddOn(addOn.key, addOn.name)}
                                         >
-                                            Dezaktywuj
+                                            Wyłącz
                                         </Button>
                                     </AddOnRow>
                                 ))}
@@ -296,13 +296,13 @@ export function SubscriptionSettingsPage() {
 
             {/* ── Zmiana planu ──────────────────────────────────────────────────── */}
             <Block>
-                <SectionTitle>Zmień plan</SectionTitle>
+                <SectionTitle>Zmień pakiet</SectionTitle>
                 {featurePlans.isLoading ? (
-                    <Muted>Wczytywanie planów…</Muted>
+                    <Muted>Wczytywanie pakietów…</Muted>
                 ) : featurePlans.isError ? (
                     <Notice
                         tone="danger"
-                        title="Nie udało się wczytać planów"
+                        title="Nie udało się wczytać pakietów"
                         action={<Button variant="ghost" size="sm" onClick={() => featurePlans.refetch()}>Spróbuj ponownie</Button>}
                     />
                 ) : (
@@ -318,7 +318,7 @@ export function SubscriptionSettingsPage() {
                         ))}
                     </PlansGrid>
                 )}
-                {isExpired && <Muted>Plan zmienisz po odnowieniu abonamentu.</Muted>}
+                {isExpired && <Muted>Pakiet zmienisz po jego odnowieniu.</Muted>}
             </Block>
 
             {/* ── Moduły do dokupienia (plan FULL ma wszystkie) ───────────────── */}

@@ -328,7 +328,7 @@ const ALIGN_COMMANDS: { command: AlignCommand; label: string; Icon: typeof Bold 
     { command: 'justifyLeft', label: 'Wyrównaj do lewej', Icon: AlignLeft },
     { command: 'justifyCenter', label: 'Wyśrodkuj', Icon: AlignCenter },
     { command: 'justifyRight', label: 'Wyrównaj do prawej', Icon: AlignRight },
-    { command: 'justifyFull', label: 'Wyjustuj', Icon: AlignJustify },
+    { command: 'justifyFull', label: 'Wyrównaj do obu stron', Icon: AlignJustify },
 ];
 
 const LIST_COMMANDS: { command: Command; label: string; Icon: typeof Bold }[] = [

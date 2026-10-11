@@ -53,7 +53,7 @@ describe('settlementDocumentRows', () => {
                 invoices: [],
             });
             expect(rows).toEqual([expect.objectContaining({
-                number: 'Faktura księgowości', label: 'Faktura od księgowości', ksefStatus: null, totalGross: 190_000,
+                number: 'Faktura księgowości', label: '', ksefStatus: null, totalGross: 190_000,
             })]);
             expect(rows[0].number).not.toContain('FAK/');
         });

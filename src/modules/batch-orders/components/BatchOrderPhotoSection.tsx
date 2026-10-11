@@ -185,11 +185,11 @@ export function BatchOrderPhotoSection({ entryId, contractorId }: Props) {
     async function handleFiles(files: File[]) {
         for (const file of files) {
             if (!ALLOWED_TYPES.includes(file.type)) {
-                showError('Nieobsługiwany format zdjęcia', `„${file.name}": użyj JPEG, PNG albo WebP.`);
+                showError('Nieobsługiwany format zdjęcia', `„${file.name}”: użyj JPEG, PNG albo WebP.`);
                 continue;
             }
             if (file.size > MAX_SIZE) {
-                showError('Zdjęcie jest za duże', `„${file.name}" przekracza 20 MB.`);
+                showError('Zdjęcie jest za duże', `„${file.name}” przekracza 20 MB.`);
                 continue;
             }
 
@@ -203,7 +203,7 @@ export function BatchOrderPhotoSection({ entryId, contractorId }: Props) {
                 await qc.invalidateQueries({ queryKey: ENTRY_PHOTOS_KEY(entryId) });
                 qc.invalidateQueries({ queryKey: ENTRIES_KEY(contractorId) });
             } catch {
-                showError('Nie udało się dodać zdjęcia', `„${file.name}" - spróbuj ponownie.`);
+                showError('Nie udało się dodać zdjęcia', `„${file.name}” - spróbuj ponownie.`);
             } finally {
                 URL.revokeObjectURL(previewUrl);
                 setUploading(prev => prev.filter(u => u.localId !== localId));

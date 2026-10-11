@@ -13,6 +13,13 @@ import { groupByDay, presetToFrom } from '../activityTheme';
 import type { DateRangePreset } from '../activityTheme';
 import { DEFAULT_ACTIVITY_FILTERS } from '../types';
 import type { ActivityFilters } from '../types';
+import { pluralPl } from '@/common/utils/plural';
+
+/** „1 zdarzenie", „3 zdarzenia", „12 zdarzeń" — przy kolejnej stronie „wczytane". */
+const eventsLabel = (count: number, partial: boolean): string =>
+    partial
+        ? pluralPl(count, 'wczytane zdarzenie', 'wczytane zdarzenia', 'wczytanych zdarzeń')
+        : pluralPl(count, 'zdarzenie', 'zdarzenia', 'zdarzeń');
 
 // ─── animations ───────────────────────────────────────────────────────────────
 
@@ -395,14 +402,14 @@ export const ActivityView = () => {
                                 <HeroTitle>Aktywność</HeroTitle>
                                 <HeroSubtitle>
                                     Wszystko, co dzieje się w studiu: kto co zrobił, kiedy i na jaką
-                                    kwotę. Razem z tym, co robią klienci na swoich Kartach Wizyty.
+                                    kwotę. Razem z tym, co robią klienci na swoich Kartach wizyty.
                                 </HeroSubtitle>
                             </HeroText>
 
                             {items.length > 0 && (
                                 <HeroCount>
                                     <strong>{items.length}</strong>
-                                    <span>{hasNextPage ? 'wczytanych zdarzeń' : 'zdarzeń'}</span>
+                                    <span>{eventsLabel(items.length, hasNextPage)}</span>
                                 </HeroCount>
                             )}
                         </HeroInner>
@@ -414,7 +421,7 @@ export const ActivityView = () => {
                         title="Aktywność"
                         subtitle={isLoading
                             ? 'Wczytywanie…'
-                            : <><MobilePageHeaderCountValue>{items.length}</MobilePageHeaderCountValue> {hasNextPage ? 'wczytanych zdarzeń' : 'zdarzeń'}</>}
+                            : <><MobilePageHeaderCountValue>{items.length}</MobilePageHeaderCountValue> {eventsLabel(items.length, hasNextPage)}</>}
                     />
                 )}
 
@@ -452,8 +459,7 @@ export const ActivityView = () => {
                             <AlertCircle />
                             <h3>Nie udało się wczytać historii</h3>
                             <p>
-                                Połączenie z serwerem zostało przerwane. Sprawdź sieć i spróbuj
-                                ponownie.
+                                Sprawdź internet i spróbuj ponownie.
                             </p>
                             <RetryButton type="button" onClick={() => void refetch()}>
                                 Spróbuj ponownie
@@ -464,10 +470,10 @@ export const ActivityView = () => {
                     {!isLoading && !isError && items.length === 0 && (
                         <StateBox>
                             <Inbox />
-                            <h3>Brak zdarzeń dla wybranych filtrów</h3>
+                            <h3>{isDefault ? 'Jeszcze nic się nie wydarzyło' : 'Brak zdarzeń dla wybranych filtrów'}</h3>
                             <p>
                                 {isDefault
-                                    ? 'W tym studiu nie zarejestrowano jeszcze żadnych istotnych zdarzeń. Pojawią się tutaj automatycznie.'
+                                    ? 'Zdarzenia pojawią się tu same.'
                                     : 'Poszerz zakres dat albo zdejmij część filtrów, żeby zobaczyć więcej.'}
                             </p>
                         </StateBox>

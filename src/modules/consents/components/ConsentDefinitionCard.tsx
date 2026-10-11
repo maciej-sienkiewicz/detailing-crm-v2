@@ -42,10 +42,6 @@ export const ConsentDefinitionCard = ({ consent }: ConsentDefinitionCardProps) =
                     <DefinitionInfo>
                         <DefinitionName>{consent.name}</DefinitionName>
                         <DefinitionMeta>
-                            <MetaItem>
-                                <MetaLabel>{t.consents.definition.slug}:</MetaLabel>
-                                <MetaValue>{consent.slug}</MetaValue>
-                            </MetaItem>
                             {consent.description && (
                                 <MetaItem>
                                     <MetaLabel>{t.consents.definition.description}:</MetaLabel>
@@ -66,7 +62,7 @@ export const ConsentDefinitionCard = ({ consent }: ConsentDefinitionCardProps) =
                             type="button"
                             onClick={() => setConfirmDelete(true)}
                             disabled={isDeleting}
-                            title="Usuń definicję zgody"
+                            title="Usuń zgodę"
                         >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <polyline points="3 6 5 6 21 6"/>
@@ -162,12 +158,11 @@ export const ConsentDefinitionCard = ({ consent }: ConsentDefinitionCardProps) =
             {confirmDelete && (
                 <ConfirmOverlay onClick={() => setConfirmDelete(false)}>
                     <ConfirmBox onClick={e => e.stopPropagation()}>
-                        <ConfirmTitle>Usuń definicję zgody</ConfirmTitle>
+                        <ConfirmTitle>Usuń zgodę</ConfirmTitle>
                         <ConfirmDesc>
                             Czy na pewno chcesz usunąć{' '}
-                            <strong>„{consent.name}"</strong>?{' '}
-                            Istniejące podpisane zgody klientów zostaną zachowane jako wpisy
-                            historyczne, ale definicja przestanie być aktywna.
+                            <strong>„{consent.name}”</strong>?{' '}
+                            Podpisane już zgody zostaną w historii klientów.
                         </ConfirmDesc>
                         <ConfirmActions>
                             <Button
@@ -186,7 +181,7 @@ export const ConsentDefinitionCard = ({ consent }: ConsentDefinitionCardProps) =
                                 })}
                                 disabled={isDeleting}
                             >
-                                {isDeleting ? 'Usuwanie...' : 'Usuń definicję'}
+                                {isDeleting ? 'Usuwanie…' : 'Usuń zgodę'}
                             </Button>
                         </ConfirmActions>
                     </ConfirmBox>

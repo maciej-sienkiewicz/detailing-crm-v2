@@ -128,6 +128,9 @@ export function FirstLoginModal({ trialUsed }: Props) {
     const isPending = phase !== 'idle';
     const sortedPlans = (plans ?? []).slice().sort((a, b) => a.displayOrder - b.displayOrder);
     const availableAddOns: AddOnDto[] = addOns ?? [];
+    // Cena BASIC z cennika, zanim przyjdzie wycena koszyka. Wcześniej stała tu kwota
+    // wpisana na sztywno, która rozjeżdżała się z cennikiem.
+    const basicPlanCents = sortedPlans.find(p => p.key === 'BASIC')?.monthlyPriceGrossCents ?? null;
 
     const recalculate = useCallback(async (keys: Set<AddOnKey>) => {
         setPriceLoading(true);
@@ -161,8 +164,8 @@ export function FirstLoginModal({ trialUsed }: Props) {
             await startTrial.mutateAsync();
         } catch (err: unknown) {
             const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-            setError(msg ?? 'Nie udało się aktywować okresu próbnego. Spróbuj ponownie.');
-            showError('Błąd aktywacji triala', msg ?? 'Spróbuj ponownie.');
+            setError(msg ?? 'Nie udało się włączyć okresu próbnego. Spróbuj ponownie.');
+            showError('Nie udało się włączyć okresu próbnego', msg ?? 'Spróbuj ponownie.');
             setPhase('idle');
         }
     };
@@ -182,8 +185,8 @@ export function FirstLoginModal({ trialUsed }: Props) {
             }
         } catch (err: unknown) {
             const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-            setError(msg ?? 'Nie udało się aktywować planu. Spróbuj ponownie.');
-            showError('Błąd aktywacji planu', msg ?? 'Spróbuj ponownie.');
+            setError(msg ?? 'Nie udało się przejść do płatności. Spróbuj ponownie.');
+            showError('Nie udało się przejść do płatności', msg ?? 'Spróbuj ponownie.');
             setPhase('idle');
         }
     };
@@ -203,8 +206,8 @@ export function FirstLoginModal({ trialUsed }: Props) {
             }
         } catch (err: unknown) {
             const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-            setError(msg ?? 'Nie udało się aktywować planu. Spróbuj ponownie.');
-            showError('Błąd aktywacji', msg ?? 'Spróbuj ponownie.');
+            setError(msg ?? 'Nie udało się przejść do płatności. Spróbuj ponownie.');
+            showError('Nie udało się przejść do płatności', msg ?? 'Spróbuj ponownie.');
             setPhase('idle');
         }
     };
@@ -230,23 +233,23 @@ export function FirstLoginModal({ trialUsed }: Props) {
                         <LogoWrap><LogoIcon /></LogoWrap>
                         <WelcomeTitle>Witaj w DetailBoost!</WelcomeTitle>
                         <WelcomeSub>
-                            Twoje konto jest gotowe. Wybierz jak chcesz zacząć: możesz wypróbować system bezpłatnie lub od razu wybrać plan dopasowany do potrzeb studia.
+                            Twoje konto jest gotowe. Wybierz, jak chcesz zacząć: wypróbuj system za darmo albo od razu wybierz pakiet.
                         </WelcomeSub>
                     </CardHeader>
 
                     {isPending && (
                         <LoadingOverlay>
                             <Spinner />
-                            {phase === 'pending-trial' && 'Aktywowanie okresu próbnego...'}
-                            {phase === 'pending-plan' && 'Przekierowywanie do płatności...'}
-                            {phase === 'pending-custom' && 'Przekierowywanie do płatności...'}
+                            {phase === 'pending-trial' && 'Włączanie okresu próbnego…'}
+                            {phase === 'pending-plan' && 'Przekierowywanie do płatności…'}
+                            {phase === 'pending-custom' && 'Przekierowywanie do płatności…'}
                         </LoadingOverlay>
                     )}
 
                     {!isPending && plansLoading && (
                         <LoadingOverlay>
                             <Spinner />
-                            Ładowanie planów...
+                            Wczytywanie pakietów…
                         </LoadingOverlay>
                     )}
 
@@ -265,7 +268,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
                                     <TrialCard $disabled={false} onClick={handleStartTrial}>
                                         <TrialIconWrap><GiftIcon /></TrialIconWrap>
                                         <TrialInfo>
-                                            <TrialTitle>Wypróbuj przez 3 miesiące, bezpłatnie</TrialTitle>
+                                            <TrialTitle>Wypróbuj bezpłatnie przez 3 miesiące</TrialTitle>
                                             <TrialDesc>
                                                 Pełny dostęp do wszystkich funkcji. Bez karty kredytowej, bez zobowiązań.
                                             </TrialDesc>
@@ -276,13 +279,13 @@ export function FirstLoginModal({ trialUsed }: Props) {
                             )}
 
                             {!trialUsed && sortedPlans.length > 0 && (
-                                <Divider>lub wybierz plan od razu</Divider>
+                                <Divider>albo wybierz pakiet od razu</Divider>
                             )}
 
                             {sortedPlans.length > 0 && (
                                 <TrialSection>
                                     <SectionLabel>
-                                        {trialUsed ? 'Wybierz plan' : 'Gotowe pakiety'}
+                                        {trialUsed ? 'Wybierz pakiet' : 'Gotowe pakiety'}
                                     </SectionLabel>
                                     <PlansGrid>
                                         {sortedPlans.map(plan => {
@@ -321,18 +324,20 @@ export function FirstLoginModal({ trialUsed }: Props) {
 
                                     {customOpen && (
                                         <CustomPanel>
-                                            <CustomPanelHeader>Wybierz składniki pakietu</CustomPanelHeader>
+                                            <CustomPanelHeader>Wybierz moduły</CustomPanelHeader>
 
                                             <BasePlanRow>
                                                 <BasePlanCheck><CheckSmall /></BasePlanCheck>
                                                 <AddOnMeta>
                                                     <AddOnName>Pakiet BASIC</AddOnName>
-                                                    <AddOnDesc>Kalendarz i rezerwacje, baza klientów i pojazdów z pełną historią wizyt</AddOnDesc>
+                                                    <AddOnDesc>Kalendarz i rezerwacje, karty klientów i pojazdów z pełną historią wizyt</AddOnDesc>
                                                 </AddOnMeta>
                                                 <AddOnPrice>
                                                     {basePriceCents != null
-                                                        ? formatCents(basePriceCents)
-                                                        : '99,00 zł'}/mies.
+                                                        ? `${formatCents(basePriceCents)}/mies.`
+                                                        : basicPlanCents != null
+                                                            ? `${formatCents(basicPlanCents)}/mies.`
+                                                            : '…'}
                                                 </AddOnPrice>
                                             </BasePlanRow>
 
@@ -377,7 +382,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
                                                     </SummaryLabel>
                                                     <SummaryAmount>
                                                         {priceLoading
-                                                            ? '...'
+                                                            ? '…'
                                                             : totalPriceCents != null
                                                                 ? formatCents(totalPriceCents)
                                                                 : 'Cena do ustalenia'}
@@ -398,7 +403,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
                     )}
 
                     <CardFooter>
-                        Bezpieczne płatności online obsługuje Przelewy24. Możliwość anulowania w dowolnym momencie.
+                        Płatności obsługuje Przelewy24. Zrezygnujesz w każdej chwili.
                         <br />
                         Masz pytania? Napisz do nas: <strong>pomoc@detailboost.pl</strong>
                     </CardFooter>

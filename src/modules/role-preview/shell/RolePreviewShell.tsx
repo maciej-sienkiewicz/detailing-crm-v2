@@ -198,12 +198,15 @@ export function RolePreviewShell({ entryCode, startFailure }: {
         <Shell>
             <Banner role="banner">
                 <BannerText>
-                    <BannerTitle>To jest aplikacja podglądowa do manipulowania uprawnieniami</BannerTitle>
+                    <BannerTitle>Podgląd: tak widzi aplikację pracownik z tą rolą</BannerTitle>
                     {phase.kind === 'ready' && (
                         <BannerMeta>
-                            Rola „{phase.state.roleName}" · dane przykładowe · nic nie wychodzi poza system
-                            {' · '}wygaśnie o {effectiveExpiry(phase.state.expiresAt, phase.state.idleExpiresAt)
-                                .toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}
+                            <span>Rola „{phase.state.roleName}”, dane przykładowe</span>
+                            <span>Nic nie wychodzi na zewnątrz</span>
+                            <span>
+                                Wygasa o {effectiveExpiry(phase.state.expiresAt, phase.state.idleExpiresAt)
+                                    .toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
                         </BannerMeta>
                     )}
                 </BannerText>
@@ -227,7 +230,7 @@ export function RolePreviewShell({ entryCode, startFailure }: {
                             <ChangesBadge state={phase.state} />
                         </BannerBtn>
                         <EndBtn type="button" onClick={endPreview} disabled={ending}>
-                            {ending ? 'Kończenie...' : 'Zakończ podgląd'}
+                            {ending ? 'Kończenie…' : 'Zakończ podgląd'}
                         </EndBtn>
                     </BannerActions>
                 )}
@@ -301,9 +304,8 @@ function StatusCard({ phase }: { phase: Exclude<Phase, { kind: 'ready' }> }) {
                 <Card>
                     <CardTitle>Podgląd roli się zakończył</CardTitle>
                     <CardText>
-                        Podgląd kończy się po wylogowaniu, po dłuższej chwili bez aktywności, a najpóźniej
-                        po upływie jego czasu życia. Jego dane przykładowe są usuwane. Możesz zamknąć to okno
-                        i otworzyć podgląd ponownie z ustawień ról.
+                        Podgląd wygasa po wylogowaniu albo dłuższej przerwie, a dane przykładowe znikają.
+                        Otwórz go ponownie w ustawieniach ról.
                     </CardText>
                 </Card>
             );
@@ -364,7 +366,11 @@ const BannerTitle = styled.strong`
     letter-spacing: 0.01em;
 `;
 
+/* Trzy fakty jako osobne elementy z odstępem, nie ciąg sklejony kropką (CLAUDE.md §4). */
 const BannerMeta = styled.span`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
     font-size: 12px;
     color: #fed7aa;
 `;

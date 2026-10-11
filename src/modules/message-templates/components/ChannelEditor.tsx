@@ -2,6 +2,7 @@ import React, { useId, useLayoutEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { Toggle } from '@/common/components/Toggle';
+import { pluralPl } from '@/common/utils/plural';
 import { insertToken } from '../utils/insertToken';
 import { TIMING_LABEL, type MessageSpec } from '../catalog';
 import {
@@ -195,8 +196,8 @@ const Intro = styled.p`
 `;
 
 const UNITS: { value: Unit; label: string }[] = [
-  { value: 'minutes', label: 'minut' },
-  { value: 'hours', label: 'godzin' },
+  { value: 'minutes', label: 'min' },
+  { value: 'hours', label: 'godz.' },
   { value: 'days', label: 'dni' },
 ];
 
@@ -302,8 +303,8 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({ spec, channel, dra
             <div>Domyślnie zaznacz</div>
             <div>
               {draft.checkedByDefault
-                ? `${choice} startuje zaznaczone. Pracownik może je odznaczyć.`
-                : `${choice} startuje puste. Pracownik zaznacza je, gdy chce wysłać.`}
+                ? `${choice} jest od razu zaznaczone. Pracownik może je odznaczyć.`
+                : `${choice} jest domyślnie puste. Pracownik zaznacza je, gdy chce wysłać.`}
             </div>
           </SwitchText>
           <Toggle
@@ -363,7 +364,7 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({ spec, channel, dra
             id={`${ids}-subject`}
             type="text"
             value={subject}
-            placeholder="Wpisz temat wiadomości..."
+            placeholder="Wpisz temat wiadomości…"
             onChange={e => onPatch({ subject: e.target.value })}
           />
         </Field>
@@ -390,12 +391,12 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({ spec, channel, dra
           id={`${ids}-body`}
           $over={isSms && segments > 2}
           value={draft.body}
-          placeholder={isSms ? 'Wpisz treść wiadomości SMS...' : 'Wpisz treść wiadomości email...'}
+          placeholder={isSms ? 'Wpisz treść wiadomości SMS…' : 'Wpisz treść e-maila…'}
           onChange={e => onPatch({ body: e.target.value })}
         />
         <Meter>
-          <span>{resolvedBody.length} znaków po podstawieniu</span>
-          {isSms && <span>{segments === 0 ? 'brak treści' : `${segments} SMS`}</span>}
+          <span>{resolvedBody.length} {pluralPl(resolvedBody.length, 'znak', 'znaki', 'znaków')} z przykładowymi danymi</span>
+          {isSms && <span>{segments === 0 ? 'brak treści' : `${segments} ${pluralPl(segments, 'SMS', 'SMS-y', 'SMS-ów')}`}</span>}
         </Meter>
       </Field>
 
@@ -403,8 +404,8 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({ spec, channel, dra
         <Warn role="alert">
           <span aria-hidden="true">△</span>
           <span>
-            Ta wiadomość nie zna zmiennych {unknown.map(v => `{{${v}}}`).join(', ')}: usuń je lub
-            wpisz wartość wprost. Zapis zostanie odrzucony.
+            Tej wiadomości nie zapiszesz ze zmiennymi {unknown.map(v => `{{${v}}}`).join(', ')}: usuń je albo
+            wpisz wartość wprost.
           </span>
         </Warn>
       )}

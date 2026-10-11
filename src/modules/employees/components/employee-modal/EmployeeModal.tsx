@@ -68,10 +68,10 @@ export function EmployeeModal({ employeeId, onClose }: Props) {
                 ) : isLoading || !employee ? (
                     <>
                         <Head>
-                            <ModalTitle id={titleId}>Wczytuję…</ModalTitle>
+                            <ModalTitle id={titleId}>Wczytywanie…</ModalTitle>
                             <CloseBtn onClick={onClose} />
                         </Head>
-                        <Skeleton aria-busy="true" aria-label="Wczytuję pracownika"><span /><span /><span /></Skeleton>
+                        <Skeleton aria-busy="true" aria-label="Wczytywanie pracownika"><span /><span /><span /></Skeleton>
                     </>
                 ) : (
                     <Loaded
@@ -137,8 +137,8 @@ function Loaded({ employee, titleId, tab, onTab, onEdit, onClose }: LoadedProps)
             </Head>
 
             <Contacts>
-                <Contact icon={<Phone />} value={employee.phone} label="telefon" />
-                <Contact icon={<Mail />} value={employee.email} label="e-mail" />
+                <Contact icon={<Phone />} value={employee.phone} label="telefon" missing="Brak telefonu" />
+                <Contact icon={<Mail />} value={employee.email} label="e-mail" missing="Brak e-maila" />
                 <EditLink type="button" onClick={onEdit}><Pencil aria-hidden="true" /> Edytuj dane</EditLink>
             </Contacts>
 
@@ -183,7 +183,7 @@ function Presence({ employee }: { employee: EmployeeDetail }) {
     const status = accountStatusOf(account);
     if (status === 'none') return <PresenceText><Dot />Nie loguje się do aplikacji</PresenceText>;
     if (status === 'blocked') return <PresenceText><Dot $tone="danger" />Konto zablokowane</PresenceText>;
-    if (status === 'pending') return <PresenceText><Dot $tone="warn" />Jeszcze nie aktywował konta</PresenceText>;
+    if (status === 'pending') return <PresenceText><Dot $tone="warn" />Konto jeszcze nieaktywowane</PresenceText>;
     const seen = account?.lastSeenAt ?? account?.lastLoginAt;
     if (!seen) return <PresenceText><Dot />Brak danych o ostatniej aktywności</PresenceText>;
     return (
@@ -194,9 +194,9 @@ function Presence({ employee }: { employee: EmployeeDetail }) {
     );
 }
 
-function Contact({ icon, value, label }: { icon: ReactNode; value: string | null; label: string }) {
+function Contact({ icon, value, label, missing }: { icon: ReactNode; value: string | null; label: string; missing: string }) {
     const { showSuccess, showError } = useToast();
-    if (!value) return <ContactItem $empty>{icon}<span>Brak: {label}</span></ContactItem>;
+    if (!value) return <ContactItem $empty>{icon}<span>{missing}</span></ContactItem>;
     const copy = () => {
         navigator.clipboard?.writeText(value)
             .then(() => showSuccess('Skopiowano', value))

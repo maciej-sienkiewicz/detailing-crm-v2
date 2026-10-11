@@ -112,7 +112,7 @@ export function PermissionTreeEditor({
     }
 
     if (catalog.length === 0) {
-        return <EmptyPerms>Nie udało się załadować katalogu uprawnień.</EmptyPerms>;
+        return <EmptyPerms>Nie udało się wczytać listy uprawnień.</EmptyPerms>;
     }
 
     return (

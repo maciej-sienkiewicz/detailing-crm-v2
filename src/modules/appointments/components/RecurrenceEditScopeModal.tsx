@@ -128,7 +128,7 @@ export const RecurrenceEditScopeModal = ({
 
                 {isDateChanged && (
                     <InfoBanner>
-                        ⚠ Zmiana daty/godziny dotyczy tylko tej jednej wizyty. Pozostałe opcje są niedostępne.
+                        ⚠ Nowa data lub godzina dotyczy tylko tej wizyty.
                     </InfoBanner>
                 )}
 
@@ -146,8 +146,8 @@ export const RecurrenceEditScopeModal = ({
                         <OptionText>
                             <OptionTitle>Tylko tę wizytę</OptionTitle>
                             <OptionDesc>
-                                Pozostałe {total - 1} {total - 1 === 1 ? 'wizyta' : 'wizyty/wizyt'} w serii pozostanie bez zmian.
-                                {!recurrenceInfo.isDetached && ' Wizyta zostanie odłączona od serii.'}
+                                Pozostałe wizyty z serii ({total - 1}) zostaną bez zmian.
+                                {!recurrenceInfo.isDetached && ' Ta wizyta odłączy się od serii.'}
                             </OptionDesc>
                         </OptionText>
                     </OptionRow>
@@ -166,7 +166,7 @@ export const RecurrenceEditScopeModal = ({
                             <OptionTitle>Tę i wszystkie następne wizyty</OptionTitle>
                             <OptionDesc>
                                 Zmiana dotyczy tej i {future - 1} {future - 1 === 1 ? 'kolejnej wizyty' : 'kolejnych wizyt'} w serii.
-                                Wizyty indywidualnie edytowane zostaną pominięte.
+                                Pominiemy wizyty zmieniane osobno.
                             </OptionDesc>
                         </OptionText>
                     </OptionRow>
@@ -184,7 +184,7 @@ export const RecurrenceEditScopeModal = ({
                         <OptionText>
                             <OptionTitle>Wszystkie wizyty w serii</OptionTitle>
                             <OptionDesc>
-                                Zmieni wszystkie {total} wizyty. Wizyty indywidualnie edytowane oraz przekonwertowane zostaną pominięte.
+                                Zmieni całą serię ({total}). Pominiemy wizyty zmieniane osobno i już przyjęte.
                             </OptionDesc>
                         </OptionText>
                     </OptionRow>
@@ -196,7 +196,7 @@ export const RecurrenceEditScopeModal = ({
                     Anuluj
                 </SharedButton>
                 <SharedButton $variant="primary" type="button" onClick={handleConfirm} disabled={isSubmitting}>
-                    {isSubmitting ? 'Zapisywanie...' : 'Zapisz zmiany'}
+                    {isSubmitting ? 'Zapisywanie…' : 'Zapisz zmiany'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

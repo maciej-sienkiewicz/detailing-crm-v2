@@ -23,7 +23,7 @@ const COMPACT_MAX_WIDTH = 640;
 const STATUS: Record<string, { label: string; tone: 'ok' | 'neutral' | 'warn' }> = {
     active: { label: 'Aktywny', tone: 'ok' },
     sold: { label: 'Sprzedany', tone: 'warn' },
-    archived: { label: 'W archiwum', tone: 'neutral' },
+    archived: { label: 'Usunięty', tone: 'neutral' },
 };
 
 const Hero = styled.header`
@@ -186,7 +186,7 @@ export function VehicleDetailHeader({ vehicle, isArchived, canEdit, canDelete, o
                             <CarLogoImage brand={vehicle.brand} size="md" />
                         </LogoTile>
                         <IdentText>
-                            <Eyebrow>Pojazd w systemie od {since}</Eyebrow>
+                            <Eyebrow>W bazie od {since}</Eyebrow>
                             <Title>{name}</Title>
                             <Meta>
                                 {vehicle.licensePlate && <Plate>{vehicle.licensePlate}</Plate>}

@@ -42,7 +42,7 @@ export const formatStartDay = (isoDate: string): string =>
 
 export const noveltyBadge = (row: AdvertiserRow, windowDays: number): NoveltyBadge | null => {
     const since = row.latestCampaignStart ? ` od ${formatStartDay(row.latestCampaignStart)}` : '';
-    const fades = `Odznaka gaśnie ${windowDays} dni po starcie emisji.`;
+    const fades = `Odznaka zniknie ${windowDays} dni od startu reklamy.`;
 
     if (row.newAdvertiser) {
         return {
@@ -55,7 +55,10 @@ export const noveltyBadge = (row: AdvertiserRow, windowDays: number): NoveltyBad
         const count = row.newCampaigns === 1 ? '' : `${row.newCampaigns} `;
         return {
             kind: 'CAMPAIGN',
-            label: row.newCampaigns === 1 ? 'Nowa kampania' : `${row.newCampaigns} nowe`,
+            label:
+                row.newCampaigns === 1
+                    ? 'Nowa kampania'
+                    : `${row.newCampaigns} ${fewForm(row.newCampaigns) ? 'nowe' : 'nowych'}`,
             title: `${count}${campaignWord(row.newCampaigns)}${since} u firmy, która już się tu reklamowała. ${fades}`,
         };
     }

@@ -34,7 +34,7 @@ const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 /** Te same plakietki co w kolumnie „Konto" listy zespołu. */
 const ACCOUNT_PILL: Record<AccountStatus, { tone: PillTone; label: string }> = {
     active: { tone: 'ok', label: 'Aktywne' },
-    pending: { tone: 'warn', label: 'Nie aktywował konta' },
+    pending: { tone: 'warn', label: 'Konto nieaktywowane' },
     blocked: { tone: 'danger', label: 'Zablokowane' },
     none: { tone: 'neutral', label: 'Bez konta' },
 };
@@ -137,7 +137,7 @@ export function AccountSettingsPanel({ employee, onEmployeeDeleted }: Props) {
                             <Facts>
                                 <dt>Login</dt><dd>{account.email ?? employee.email}</dd>
                                 <dt>Ostatnie logowanie</dt><dd>{lastLogin ?? <Muted>brak danych</Muted>}</dd>
-                                <dt>Kod PIN</dt><dd>{account.hasPinConfigured ? 'Ustawiony' : <Muted>Nie ustawiony</Muted>}</dd>
+                                <dt>Kod PIN</dt><dd>{account.hasPinConfigured ? 'Ustawiony' : <Muted>Nieustawiony</Muted>}</dd>
                                 {resetSentAt && <><dt>Zmiana hasła</dt><dd>Link wysłany {formatDateTime(resetSentAt)}</dd></>}
                             </Facts>
                             {inline === 'reset' ? (
@@ -149,7 +149,7 @@ export function AccountSettingsPanel({ employee, onEmployeeDeleted }: Props) {
                                     <Actions>
                                         <Button variant="outline" onClick={() => setInline(null)}>Anuluj</Button>
                                         <Button variant="primary" onClick={handleReset} disabled={sendReset.isPending}>
-                                            {sendReset.isPending ? 'Wysyłam…' : 'Wyślij link'}
+                                            {sendReset.isPending ? 'Wysyłanie…' : 'Wyślij link'}
                                         </Button>
                                     </Actions>
                                 </Inline>
@@ -165,10 +165,10 @@ export function AccountSettingsPanel({ employee, onEmployeeDeleted }: Props) {
 
                     {status === 'pending' && account && (
                         <>
-                            <Lead>{first} jeszcze nie aktywował konta. {invitationSummary(account)}</Lead>
+                            <Lead>Konto czeka, aż {first} je aktywuje. {invitationSummary(account)}</Lead>
                             <Actions>
                                 <Button variant="outline" onClick={handleResend} disabled={resendInvitation.isPending}>
-                                    {resendInvitation.isPending ? 'Wysyłam…' : 'Wyślij zaproszenie ponownie'}
+                                    {resendInvitation.isPending ? 'Wysyłanie…' : 'Wyślij zaproszenie ponownie'}
                                 </Button>
                             </Actions>
                         </>
@@ -214,7 +214,7 @@ export function AccountSettingsPanel({ employee, onEmployeeDeleted }: Props) {
                             <Actions>
                                 <Button variant="outline" onClick={() => { setInline(null); setEmailError(null); }}>Anuluj</Button>
                                 <Button variant="primary" onClick={handleCreate} disabled={createAccount.isPending}>
-                                    {createAccount.isPending ? 'Wysyłam…' : 'Utwórz konto i wyślij zaproszenie'}
+                                    {createAccount.isPending ? 'Wysyłanie…' : 'Utwórz konto i wyślij zaproszenie'}
                                 </Button>
                             </Actions>
                         </Inline>
@@ -241,7 +241,7 @@ export function AccountSettingsPanel({ employee, onEmployeeDeleted }: Props) {
                         <DangerRow>
                             <span>
                                 <strong>Zablokuj konto</strong>
-                                <small>{first} nie zaloguje się do aplikacji. Dane zostają, odblokujesz je w każdej chwili.</small>
+                                <small>{first} nie zaloguje się do aplikacji. Dane zostają, a konto odblokujesz w każdej chwili.</small>
                             </span>
                             <Button variant="outline" onClick={() => setConfirm('block')} disabled={setBlocked.isPending}>
                                 <Lock aria-hidden="true" /> Zablokuj konto
@@ -280,7 +280,7 @@ export function AccountSettingsPanel({ employee, onEmployeeDeleted }: Props) {
             <ConfirmationModal
                 isOpen={confirm === 'block'}
                 title="Zablokować konto?"
-                message={`${first} nie zaloguje się do aplikacji. Urlopy, karty i historia zostają. Odblokujesz je w każdej chwili.`}
+                message={`${first} nie zaloguje się do aplikacji. Urlopy, karty i historia zostają, a konto odblokujesz w każdej chwili.`}
                 variant="warning"
                 confirmText="Zablokuj konto"
                 onConfirm={runConfirm}
@@ -289,7 +289,7 @@ export function AccountSettingsPanel({ employee, onEmployeeDeleted }: Props) {
             <ConfirmationModal
                 isOpen={confirm === 'unblock'}
                 title="Odblokować konto?"
-                message={`${first} znowu będzie mógł się logować.`}
+                message={`${first} znowu zaloguje się do aplikacji.`}
                 variant="info"
                 confirmText="Odblokuj konto"
                 onConfirm={runConfirm}

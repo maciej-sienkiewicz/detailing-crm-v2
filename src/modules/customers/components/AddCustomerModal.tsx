@@ -14,7 +14,6 @@ import {
     ModalHeader,
     ModalTitleGroup,
     ModalTitle,
-    ModalSubtitle,
     ModalContent,
     ModalFooter,
     CloseBtn,
@@ -109,7 +108,6 @@ export const AddCustomerModal = ({
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>{t.customers.form.title}</ModalTitle>
-                    <ModalSubtitle>Wypełnij dane nowego klienta</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={handleClose} />
             </ModalHeader>

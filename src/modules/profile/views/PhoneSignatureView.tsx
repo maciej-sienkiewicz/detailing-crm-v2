@@ -461,11 +461,11 @@ export function PhoneSignatureView() {
     if (pageState === 'done') {
         return (
             <CenteredPage>
-                <CenteredLogo>AutoCRM</CenteredLogo>
+                <CenteredLogo>DetailBoost</CenteredLogo>
                 <StatusCard $ok>
                     <StatusIcon $ok><CheckIcon /></StatusIcon>
                     <StatusTitle $ok>Podpis zapisany!</StatusTitle>
-                    <StatusDesc>Twój podpis został pomyślnie skonfigurowany.<br />Możesz zamknąć tę stronę.</StatusDesc>
+                    <StatusDesc>Podpis jest gotowy.<br />Możesz zamknąć tę stronę.</StatusDesc>
                 </StatusCard>
             </CenteredPage>
         );
@@ -474,7 +474,7 @@ export function PhoneSignatureView() {
     if (pageState === 'expired') {
         return (
             <CenteredPage>
-                <CenteredLogo>AutoCRM</CenteredLogo>
+                <CenteredLogo>DetailBoost</CenteredLogo>
                 <StatusCard>
                     <StatusIcon><XIcon /></StatusIcon>
                     <StatusTitle>Link wygasł</StatusTitle>
@@ -487,11 +487,11 @@ export function PhoneSignatureView() {
     if (pageState === 'error') {
         return (
             <CenteredPage>
-                <CenteredLogo>AutoCRM</CenteredLogo>
+                <CenteredLogo>DetailBoost</CenteredLogo>
                 <StatusCard>
                     <StatusIcon><XIcon /></StatusIcon>
-                    <StatusTitle>Błąd</StatusTitle>
-                    <StatusDesc>Nie udało się zapisać podpisu. Zamknij tę stronę i spróbuj ponownie.</StatusDesc>
+                    <StatusTitle>Nie zapisaliśmy podpisu</StatusTitle>
+                    <StatusDesc>Zamknij tę stronę i spróbuj ponownie.</StatusDesc>
                 </StatusCard>
             </CenteredPage>
         );
@@ -500,7 +500,7 @@ export function PhoneSignatureView() {
     return (
         <Page>
             <TopBar>
-                <Logo>AutoCRM</Logo>
+                <Logo>DetailBoost</Logo>
             </TopBar>
 
             <Content>
@@ -508,7 +508,7 @@ export function PhoneSignatureView() {
                     <Heading>Twój podpis</Heading>
                     <Sub>
                         Narysuj podpis palcem lub rysikiem w polu poniżej.
-                        Zostanie on przypisany do Twojego konta i nakładany na protokoły przyjęcia pojazdu.
+                        Pojawi się na protokołach przyjęcia, które podpisujesz.
                     </Sub>
                 </Info>
 
@@ -524,7 +524,7 @@ export function PhoneSignatureView() {
                         onClick={handleSave}
                         disabled={inkPx < MIN_INK_PX || pageState === 'submitting'}
                     >
-                        {pageState === 'submitting' ? 'Zapisywanie...' : 'Zapisz podpis'}
+                        {pageState === 'submitting' ? 'Zapisywanie…' : 'Zapisz podpis'}
                     </Btn>
                     <Btn onClick={handleClear} disabled={pageState === 'submitting'}>
                         Wyczyść

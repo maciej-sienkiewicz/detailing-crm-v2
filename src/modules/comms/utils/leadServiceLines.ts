@@ -83,7 +83,7 @@ export interface LeadQuoteRow {
  *
  * Osobno, bo tej samej arytmetyki używa wiersz sugestii w tabeli wyceny: pozycja
  * ma wyglądać po przyjęciu dokładnie tak, jak wyglądała przed - liczby policzone
- * drugim wzorem drgnęłyby o grosz w chwili kliknięcia „Akceptuj".
+ * drugim wzorem drgnęłyby o grosz w chwili kliknięcia „Dodaj do wyceny".
  */
 export function toQuoteRow(item: LeadServiceItem): LeadQuoteRow {
     const vatRate = item.vatRate ?? DEFAULT_VAT_RATE;

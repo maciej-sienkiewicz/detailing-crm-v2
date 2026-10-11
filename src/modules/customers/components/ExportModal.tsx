@@ -14,6 +14,7 @@ import { SharedButton, SharedButtonGroup } from '@/common/styles';
 import { useToast } from '@/common/components/Toast';
 import { customerApi } from '../api/customerApi';
 import type { CustomerFilters } from '../types';
+import { pluralPl } from '@/common/utils/plural';
 
 type ExportScope = 'all' | 'filtered';
 
@@ -39,8 +40,7 @@ const hasActiveFilters = (f: Omit<CustomerFilters, 'page' | 'limit'>): boolean =
     f.minVisits != null ||
     f.maxVisits != null;
 
-const plural = (n: number) =>
-    n === 1 ? 'klient' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'klientów' : 'klientów';
+const plural = (n: number) => pluralPl(n, 'klient', 'klientów', 'klientów');
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
@@ -146,7 +146,7 @@ export const ExportModal = ({ isOpen, onClose, currentFilters, filteredCount }: 
         } catch (err: unknown) {
             const status = (err as { response?: { status?: number } })?.response?.status;
             if (status === 429) {
-                showError('Za dużo żądań', 'Poczekaj chwilę przed kolejnym eksportem');
+                showError('Za szybko', 'Spróbuj ponownie za chwilę.');
             } else if (status === 422) {
                 showError('Za dużo wyników', 'Zawęź filtry, eksport obsługuje maks. 10 000 klientów');
             } else {
@@ -162,7 +162,7 @@ export const ExportModal = ({ isOpen, onClose, currentFilters, filteredCount }: 
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Eksport klientów</ModalTitle>
-                    <ModalSubtitle>Wybierz zakres danych do pobrania</ModalSubtitle>
+                    <ModalSubtitle>Których klientów pobrać?</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
@@ -178,7 +178,7 @@ export const ExportModal = ({ isOpen, onClose, currentFilters, filteredCount }: 
                         />
                         <OptionBody>
                             <OptionTitle>Wszyscy klienci</OptionTitle>
-                            <OptionDesc>Eksportuje pełną bazę klientów bez żadnych filtrów</OptionDesc>
+                            <OptionDesc>Cała baza, bez filtrów</OptionDesc>
                         </OptionBody>
                     </OptionCard>
 
@@ -196,15 +196,15 @@ export const ExportModal = ({ isOpen, onClose, currentFilters, filteredCount }: 
                         />
                         <OptionBody>
                             <OptionTitle>
-                                Aktualnie odfiltrowano
+                                Według filtrów
                                 {filtersActive && (
                                     <CountBadge>{filteredCount} {plural(filteredCount)}</CountBadge>
                                 )}
                             </OptionTitle>
                             <OptionDesc>
                                 {filtersActive
-                                    ? 'Eksportuje wyniki pasujące do aktywnych filtrów i wyszukiwania'
-                                    : 'Brak aktywnych filtrów, ustaw filtry w widoku listy'}
+                                    ? 'Tylko klienci widoczni na liście'
+                                    : 'Najpierw ustaw filtry na liście.'}
                             </OptionDesc>
                         </OptionBody>
                     </OptionCard>
@@ -214,8 +214,7 @@ export const ExportModal = ({ isOpen, onClose, currentFilters, filteredCount }: 
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" style={{ flexShrink: 0, marginTop: 1 }}>
                         <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                     </svg>
-                    Plik CSV jest zakodowany w&nbsp;UTF-8 z&nbsp;BOM, otwiera się poprawnie w&nbsp;Excelu i&nbsp;LibreOffice.
-                    Maks. 10&nbsp;000 rekordów na eksport.
+                    Plik otworzysz w&nbsp;Excelu albo LibreOffice. Naraz do 10&nbsp;000 klientów.
                 </InfoBox>
             </ModalContent>
 
@@ -230,7 +229,7 @@ export const ExportModal = ({ isOpen, onClose, currentFilters, filteredCount }: 
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.8s linear infinite' }}>
                                     <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                                 </svg>
-                                Pobieranie...
+                                Pobieranie…
                             </>
                         ) : (
                             <>

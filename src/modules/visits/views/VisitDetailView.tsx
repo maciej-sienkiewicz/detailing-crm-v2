@@ -64,6 +64,7 @@ import { EntityActivityTimeline } from '@/modules/activity';
 import { VisitProductsSection, useVisitProducts } from '@/modules/products';
 import { useFeature } from '@/modules/subscription/hooks/useFeature';
 import { formatDateTime } from '@/common/utils';
+import { pluralPl } from '@/common/utils/plural';
 
 // ─── Układ ────────────────────────────────────────────────────────────────────
 
@@ -392,7 +393,7 @@ export const VisitDetailView = () => {
                 <ContentArea>
                     <LoadingContainer>
                         <Spinner />
-                        <LoadingText>Usuwanie wizyty...</LoadingText>
+                        <LoadingText>Usuwanie wizyty…</LoadingText>
                     </LoadingContainer>
                 </ContentArea>
             </ViewContainer>
@@ -405,7 +406,7 @@ export const VisitDetailView = () => {
                 <ContentArea>
                     <LoadingContainer>
                         <Spinner />
-                        <LoadingText>Ładowanie szczegółów wizyty...</LoadingText>
+                        <LoadingText>Wczytywanie wizyty…</LoadingText>
                     </LoadingContainer>
                 </ContentArea>
             </ViewContainer>
@@ -426,9 +427,8 @@ export const VisitDetailView = () => {
                     <ErrorContainer>
                         <NotStartedTitle>Wizyta nie została rozpoczęta</NotStartedTitle>
                         <ErrorMessage>
-                            Przyjęcie tego pojazdu zostało zapisane, ale nie zostało dokończone -
-                            brakuje podpisów i zatwierdzenia, więc wizyta jeszcze nie ruszyła.
-                            Znajdziesz ją w sekcji „Nieukończone przyjęcia".
+                            Przyjęcie auta nie zostało dokończone, brakuje podpisów. Dokończysz je
+                            na liście „Nieukończone przyjęcia".
                         </ErrorMessage>
                         <Button variant="primary" onClick={() => navigate('/operations')}>
                             Przejdź do nieukończonych przyjęć
@@ -444,9 +444,9 @@ export const VisitDetailView = () => {
             <ViewContainer>
                 <ContentArea>
                     <ErrorContainer>
-                        <ErrorTitle>Błąd ładowania</ErrorTitle>
+                        <ErrorTitle>Nie udało się wczytać wizyty</ErrorTitle>
                         <ErrorMessage>
-                            Nie udało się załadować szczegółów wizyty. Spróbuj ponownie.
+                            Sprawdź połączenie z internetem.
                         </ErrorMessage>
                         <Button variant="primary" onClick={() => refetch()}>
                             Spróbuj ponownie
@@ -464,8 +464,8 @@ export const VisitDetailView = () => {
             const pendingCount = visit.services.filter(s => s.status === 'PENDING').length;
             if (pendingCount > 0) {
                 showWarning(
-                    'Nie można oznaczyć wizyty jako gotowej',
-                    `${pendingCount === 1 ? 'Jedna usługa wymaga' : `${pendingCount} usługi wymagają`} potwierdzenia przed zakończeniem.`
+                    'Auto nie może być jeszcze gotowe',
+                    `${pendingCount} ${pluralPl(pendingCount, 'usługa czeka', 'usługi czekają', 'usług czeka')} na zgodę klienta. Zatwierdź albo wycofaj zmianę.`
                 );
                 setHighlightPendingServices(true);
                 setTimeout(() => setHighlightPendingServices(false), 4000);
@@ -674,9 +674,9 @@ export const VisitDetailView = () => {
                             <D2dStrip style={{ order: 0 }}>
                                 <Truck aria-hidden="true" />
                                 <strong>Door to door</strong>
-                                {d2dPickup && <span>Odbiór{d2d.scheduledAt ? ` ${formatDateTime(d2d.scheduledAt)}` : ''}, {d2dPickup}</span>}
+                                {d2dPickup && <span>Odbiór od klienta{d2d.scheduledAt ? ` ${formatDateTime(d2d.scheduledAt)}` : ''}, {d2dPickup}</span>}
                                 {d2dDelivery && (
-                                    <span>{d2dDelivery === d2dPickup ? 'Dostawa pod ten sam adres' : `Dostawa: ${d2dDelivery}`}</span>
+                                    <span>{d2dDelivery === d2dPickup ? 'Odwiezienie pod ten sam adres' : `Odwiezienie: ${d2dDelivery}`}</span>
                                 )}
                                 {d2d.driverName && <span>Kierowca {d2d.driverName}</span>}
                                 {can('VISITS_CREATE') && (
@@ -762,7 +762,7 @@ export const VisitDetailView = () => {
                                             aria-disabled={isUploading || isUploadingPhoto}
                                         >
                                             <Plus />
-                                            {isUploading || isUploadingPhoto ? 'Wysyłanie...' : isPhone ? 'Dodaj' : 'Dodaj plik'}
+                                            {isUploading || isUploadingPhoto ? 'Wysyłanie…' : isPhone ? 'Dodaj' : 'Dodaj plik'}
                                             <input
                                                 ref={docFileInputRef}
                                                 type="file"
@@ -960,10 +960,10 @@ export const VisitDetailView = () => {
                         queryClient.invalidateQueries({ queryKey: visitDetailQueryKey(visit.id) });
                         queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
                         showSuccess(data.enabled
-                            ? 'Door to Door zapisany'
-                            : 'Door to Door wyłączony dla tej wizyty');
+                            ? 'Door to door zapisany'
+                            : 'Door to door wyłączony dla tej wizyty');
                     } catch {
-                        showError('Nie udało się zapisać Door to Door');
+                        showError('Nie udało się zapisać Door to door');
                         throw new Error('door-to-door save failed');
                     }
                 }}

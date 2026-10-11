@@ -2,6 +2,7 @@
 // Mobile-optimised vehicle damage mapper with touch support and dark theme.
 
 import { useState, useRef, useCallback } from 'react';
+import { pluralPl } from '@/common/utils/plural';
 import type { DamagePoint, DamagePointPhoto } from '../../types';
 import type { MobileDamageLogic } from './useMobileDamageLogic';
 import { DamagePhotoAnnotator, AnnotationOverlay } from '../../components/DamagePhotoAnnotator';
@@ -25,7 +26,6 @@ import {
     EmptyDamageState,
     SectionTitle,
     SectionSubtitle,
-    InfoCard,
     VehicleTypeSelectorRow,
     VehicleTypeLabel,
     VehicleTypeSelect,
@@ -59,7 +59,7 @@ const SAVE_LABELS: Record<string, string> = {
     saving:  '⟳ Zapisywanie…',
     saved:   '✓ Zapisano',
     error:   '✗ Błąd zapisu - spróbuj ponownie',
-    offline: '◷ Offline - zostanie zapisane po połączeniu',
+    offline: '◷ Brak internetu, zapiszemy po połączeniu',
 };
 
 export const MobileDamageSection = ({ logic }: Props) => {
@@ -200,8 +200,7 @@ export const MobileDamageSection = ({ logic }: Props) => {
         <DamageMapperWrap>
             <SectionTitle>Mapa uszkodzeń</SectionTitle>
             <SectionSubtitle>
-                Dotknij schemat pojazdu, aby oznaczyć miejsce uszkodzenia, a następnie dodaj opis
-                i zdjęcia. Na każdym zdjęciu możesz zaznaczyć dokładne miejsce uszkodzenia.
+                Dotknij schematu, opisz uszkodzenie i dodaj zdjęcie.
             </SectionSubtitle>
 
             <SaveStatusBadge $status={saveStatus}>
@@ -221,13 +220,6 @@ export const MobileDamageSection = ({ logic }: Props) => {
                     ))}
                 </VehicleTypeSelect>
             </VehicleTypeSelectorRow>
-
-            {damagePoints.length === 0 && (
-                <InfoCard>
-                    Podejdź z klientem do pojazdu i zaznacz uszkodzenia na schemacie poniżej.
-                    Każde oznaczenie możesz opisać w polu notatki.
-                </InfoCard>
-            )}
 
             {/* Vehicle diagram */}
             <DiagramCard>
@@ -258,8 +250,8 @@ export const MobileDamageSection = ({ logic }: Props) => {
                 </OverlayLayer>
                 <DiagramHint>
                     {damagePoints.length === 0
-                        ? 'Dotknij pojazd, aby dodać oznaczenie'
-                        : `${damagePoints.length} ${damagePoints.length === 1 ? 'oznaczenie' : damagePoints.length < 5 ? 'oznaczenia' : 'oznaczeń'} · dotknij, aby dodać kolejne`}
+                        ? 'Dotknij pojazdu, aby dodać oznaczenie'
+                        : `${damagePoints.length} ${pluralPl(damagePoints.length, 'oznaczenie', 'oznaczenia', 'oznaczeń')}. Dotknij, aby dodać kolejne`}
                 </DiagramHint>
             </DiagramCard>
 
@@ -287,7 +279,7 @@ export const MobileDamageSection = ({ logic }: Props) => {
                 {damagePoints.length === 0 ? (
                     <EmptyDamageState>
                         <strong>Brak oznaczeń</strong>
-                        Dotknij schemat pojazdu powyżej, aby oznaczyć uszkodzenie
+                        Dotknij schematu powyżej, aby oznaczyć uszkodzenie
                     </EmptyDamageState>
                 ) : (
                     damagePoints.map(point => (
@@ -417,7 +409,7 @@ export const MobileDamageSection = ({ logic }: Props) => {
                             </DamagePhotoRow>
                             {(point.photos?.length ?? 0) === 0 && (
                                 <DamagePhotoHint>
-                                    Sfotografuj uszkodzenie, a potem dotknij miniaturę, aby zaznaczyć je na zdjęciu.
+                                    Sfotografuj uszkodzenie, a potem dotknij miniatury, aby zaznaczyć je na zdjęciu.
                                 </DamagePhotoHint>
                             )}
                         </DamageItem>

@@ -4,6 +4,7 @@
 // production bug actually lives in - can be unit-tested without mounting the whole modal.
 
 import type { ServiceLineItem } from '@/common/components/ServicesTable';
+import { grossToNet } from '@/common/utils/priceAdjustment';
 import type { Service, ServiceAdjustment } from './types';
 
 export interface ServicesAsLineItemsInput {
@@ -49,16 +50,21 @@ export function buildServicesAsLineItems(input: ServicesAsLineItemsInput): Servi
             if (!svc) return null;
 
             const baseGross = input.servicePrices[id] ?? 0;
+            const baseGrossCents = Math.round(baseGross * 100);
             const vatRate = input.serviceVatRates[id] ?? svc.vatRate ?? 23;
             const exactNet = input.serviceBasePrices[id];
-            const basePriceNet = exactNet ?? Math.round((baseGross / (1 + vatRate / 100)) * 100);
+            // Fallback idzie przez wspólne grossToNet, a nie własny wzór: ten dawny
+            // (`baseGross / (1 + vatRate / 100)`) przy ZW (vatRate = -1) dzielił przez 0,99
+            // i dawał netto WYŻSZE od brutta. Netto jest tu pochodne od brutta, więc kierunek
+            // brutto → netto jest dozwolony (CLAUDE.md §1).
+            const basePriceNet = exactNet ?? grossToNet(baseGrossCents, vatRate);
 
             return {
                 id,
                 serviceId: svc.id || catalogId,
                 serviceName: svc.name,
                 basePriceNet,
-                basePriceGross: Math.round(baseGross * 100),
+                basePriceGross: baseGrossCents,
                 vatRate,
                 adjustment: (input.serviceAdjustments[id] ?? { type: 'PERCENT', value: 0 }) as ServiceAdjustment,
                 note: input.serviceNotes[id] ?? '',

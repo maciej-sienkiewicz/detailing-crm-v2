@@ -23,6 +23,7 @@ import {
 } from '@/common/components/Form';
 import { useIssueRevenueInvoice } from '../hooks/useKsefRevenue';
 import { formatMoney, inputValueToGrosze } from '../utils/formatters';
+import { invoiceDraftTotals } from '../utils/invoiceDraftTotals';
 import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import type { RevenueVatRate } from '../types';
 
@@ -150,8 +151,6 @@ interface ItemDraft {
 
 const emptyItem = (): ItemDraft => ({ name: '', quantity: '1', price: '', vatRate: '23' });
 
-const VAT_MULTIPLIER: Record<RevenueVatRate, number> = { '23': 0.23, '8': 0.08, '5': 0.05, '0': 0, zw: 0 };
-
 const PAYMENT_FORMS = [
   { value: 'GOTOWKA', label: 'Gotówka' },
   { value: 'KARTA',   label: 'Karta' },
@@ -186,18 +185,8 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({ isOpen, on
   const [exemptionBasis, setExemptionBasis] = useState('');
   const [error, setError]             = useState<string | null>(null);
 
-  const totals = useMemo(() => {
-    let net = 0;
-    let vat = 0;
-    for (const item of items) {
-      const qty = parseFloat(item.quantity.replace(',', '.')) || 0;
-      const priceGrosz = inputValueToGrosze(item.price);
-      const lineNet = Math.round(priceGrosz * qty);
-      net += lineNet;
-      vat += Math.round(lineNet * VAT_MULTIPLIER[item.vatRate]);
-    }
-    return { net, vat, gross: net + vat };
-  }, [items]);
+  // Cena wpisywana w netto - brutto liczy wspólne netToGross (utils/invoiceDraftTotals).
+  const totals = useMemo(() => invoiceDraftTotals(items), [items]);
 
   const hasExempt = items.some((i) => i.vatRate === 'zw');
 
@@ -216,17 +205,17 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({ isOpen, on
     if (buyerType === 'B2B' && !/^\d{10}$/.test(nip.replace(/[^0-9]/g, '')))
       return 'NIP nabywcy musi mieć 10 cyfr';
     if (buyerType === 'B2C' && !buyerName.trim())
-      return 'Faktura dla konsumenta wymaga imienia i nazwiska nabywcy';
+      return 'Podaj imię i nazwisko nabywcy';
     if (items.length === 0) return 'Dodaj co najmniej jedną pozycję';
     for (const [i, item] of items.entries()) {
       if (!item.name.trim()) return `Pozycja ${i + 1}: podaj nazwę usługi`;
       if (inputValueToGrosze(item.price) <= 0) return `Pozycja ${i + 1}: podaj cenę netto`;
-      if ((parseFloat(item.quantity.replace(',', '.')) || 0) <= 0) return `Pozycja ${i + 1}: nieprawidłowa ilość`;
+      if ((parseFloat(item.quantity.replace(',', '.')) || 0) <= 0) return `Pozycja ${i + 1}: podaj ilość`;
     }
     if (hasExempt && !exemptionBasis.trim())
-      return 'Stawka „zw" wymaga podania podstawy prawnej zwolnienia';
+      return 'Przy stawce „zw” podaj podstawę zwolnienia z VAT';
     if (!isPaid && paymentForm === 'PRZELEW' && !dueDate)
-      return 'Płatność przelewem wymaga terminu płatności';
+      return 'Przy przelewie podaj termin płatności';
     return null;
   };
 
@@ -270,7 +259,7 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({ isOpen, on
         <ModalTitleGroup>
           <ModalTitle>Wystaw fakturę</ModalTitle>
           <ModalSubtitle>
-            Faktura zostanie automatycznie wysłana do KSeF jako e-Faktura FA(3)
+            Faktura od razu trafi do KSeF
           </ModalSubtitle>
         </ModalTitleGroup>
         <CloseBtn onClick={handleClose} />
@@ -450,7 +439,7 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({ isOpen, on
           Anuluj
         </SharedButton>
         <SharedButton $variant="primary" onClick={handleSubmit} disabled={issueMutation.isPending}>
-          {issueMutation.isPending ? 'Wysyłanie do KSeF...' : 'Wystaw i wyślij do KSeF'}
+          {issueMutation.isPending ? 'Wysyłanie do KSeF…' : 'Wystaw i wyślij do KSeF'}
         </SharedButton>
       </ModalFooter>
     </ModalShell>

@@ -213,9 +213,9 @@ export const PriceInput = ({
                             onKeyDown={handleZeroAwareKeyDown(netValue, handleNetChange)}
                             onFocus={() => { setNetFocused(true); if (parseFloat(netValue.replace(',', '.')) === 0) setNetValue(''); }}
                             onBlur={handleNetBlur}
-                            placeholder="0.00"
+                            placeholder="0,00"
                         />
-                        <Currency>PLN</Currency>
+                        <Currency>zł</Currency>
                     </InputWrapper>
                 </FieldGroup>
 
@@ -230,16 +230,16 @@ export const PriceInput = ({
                             onKeyDown={handleZeroAwareKeyDown(grossValue, handleGrossChange)}
                             onFocus={() => { setGrossFocused(true); if (parseFloat(grossValue.replace(',', '.')) === 0) setGrossValue(''); }}
                             onBlur={handleGrossBlur}
-                            placeholder="0.00"
+                            placeholder="0,00"
                         />
-                        <Currency>PLN</Currency>
+                        <Currency>zł</Currency>
                     </InputWrapper>
                 </FieldGroup>
             </PriceRow>
 
             <VatInfo>
                 <VatLabel>{vatLabel} ({vatRateLabel})</VatLabel>
-                <VatAmount>{formatMoneyAmount(vatAmount)} PLN</VatAmount>
+                <VatAmount>{formatMoneyAmount(vatAmount).replace('.', ',')} zł</VatAmount>
             </VatInfo>
         </Container>
     );

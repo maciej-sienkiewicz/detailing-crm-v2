@@ -288,7 +288,7 @@ export function AppointmentColorsSection() {
                     </Lead>
 
                     {isLoading ? (
-                        <Muted role="status">Wczytywanie kolorów...</Muted>
+                        <Muted role="status">Wczytywanie kolorów…</Muted>
                     ) : isError ? (
                         <Notice
                             tone="danger"

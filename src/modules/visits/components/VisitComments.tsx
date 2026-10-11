@@ -180,7 +180,7 @@ function formatDate(iso: string): string {
 }
 
 const TYPE_LABEL: Record<CommentType, string> = {
-    INTERNAL: 'Wewnętrzny',
+    INTERNAL: 'Dla zespołu',
     FOR_CUSTOMER: 'Dla klienta',
 };
 
@@ -240,7 +240,7 @@ export const VisitComments = ({ visitId, comments, isLoading, id }: VisitComment
             </SectionTitle>
 
             {isLoading ? (
-                <Empty>Wczytywanie komentarzy...</Empty>
+                <Empty>Wczytywanie komentarzy…</Empty>
             ) : ordered.length === 0 ? (
                 <Empty>Brak komentarzy. Notatka dla zespołu albo wiadomość dla klienta - dodaj ją poniżej.</Empty>
             ) : (
@@ -273,7 +273,7 @@ export const VisitComments = ({ visitId, comments, isLoading, id }: VisitComment
                                         <Actions>
                                             <Button variant="ghost" size="sm" onClick={cancelEdit} disabled={isUpdating}>Anuluj</Button>
                                             <Button variant="tinted" size="sm" onClick={() => saveEdit(comment.id)} disabled={isUpdating || !editingContent.trim()}>
-                                                {isUpdating ? 'Zapisywanie...' : 'Zapisz'}
+                                                {isUpdating ? 'Zapisywanie…' : 'Zapisz'}
                                             </Button>
                                         </Actions>
                                     </>
@@ -342,7 +342,7 @@ export const VisitComments = ({ visitId, comments, isLoading, id }: VisitComment
                 />
                 <FormFooter>
                     <Button variant="tinted" onClick={handleAdd} disabled={isAdding || !newContent.trim()}>
-                        {isAdding ? 'Dodawanie...' : 'Dodaj komentarz'}
+                        {isAdding ? 'Dodawanie…' : 'Dodaj komentarz'}
                     </Button>
                 </FormFooter>
             </Form>

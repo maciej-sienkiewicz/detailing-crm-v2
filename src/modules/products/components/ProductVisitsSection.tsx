@@ -7,7 +7,7 @@ import { InputShell, BareInput } from '@/common/components/Form';
 import { useDebounce } from '@/common/hooks/useDebounce';
 import { useProductVisits } from '../hooks/useProducts';
 
-// „Wykorzystano podczas wizyty" — wizyty, do których dopięto ten produkt.
+// „Użyty w wizytach" — wizyty, do których dodano ten produkt.
 // Stronicowana i z wyszukiwarką, bo przy produkcie używanym na co dzień lista rośnie
 // szybciej niż karta produktu jest w stanie pokazać. Klik w wiersz prowadzi do wizyty.
 
@@ -77,7 +77,7 @@ export function ProductVisitsSection({ productId }: { productId: string }) {
     return (
         <Wrap>
             <Head>
-                <Title><CalendarCheck size={16} /> Wykorzystano podczas wizyty</Title>
+                <Title><CalendarCheck size={16} /> Użyty w wizytach</Title>
                 {totalItems > 0 && <Count>{totalItems}</Count>}
             </Head>
 
@@ -92,12 +92,12 @@ export function ProductVisitsSection({ productId }: { productId: string }) {
             </InputShell>
 
             {isLoading && items.length === 0 ? (
-                <Empty>Ładowanie…</Empty>
+                <Empty>Wczytywanie…</Empty>
             ) : items.length === 0 ? (
                 <Empty>
                     {debounced
                         ? 'Żadna wizyta nie pasuje do tej frazy.'
-                        : 'Ten produkt nie został jeszcze dopięty do żadnej wizyty.'}
+                        : 'Ten produkt nie był jeszcze użyty w żadnej wizycie.'}
                 </Empty>
             ) : (
                 <List>
@@ -111,7 +111,7 @@ export function ProductVisitsSection({ productId }: { productId: string }) {
                                 </span>
                             </RowTop>
                             {(v.title || v.note) && <RowSub>{v.title || v.note}</RowSub>}
-                            <RowSub>dopiął: {v.addedByName}</RowSub>
+                            <RowSub>dodał: {v.addedByName}</RowSub>
                         </Row>
                     ))}
                 </List>

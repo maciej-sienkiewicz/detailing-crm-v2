@@ -220,7 +220,7 @@ const STATUS_LABEL: Record<Status, string> = {
   confirmed: 'Zatwierdzona',
   pending: 'Czeka na weryfikację',
   awaiting_document: 'Prześlij upoważnienie',
-  none: 'Wymaga konfiguracji',
+  none: 'Nieustawiona',
 };
 
 const STATUS_ICON: Record<Status, React.ReactNode> = {
@@ -343,7 +343,7 @@ export const SmsSenderNameCard: React.FC = () => {
           <p>
             {needsSetup
               ? 'Dopóki nazwa nie jest ustawiona, SMS-y do klientów wychodzą z przypadkowego numeru - bez informacji, kto pisze.'
-              : 'To ją klient widzi zamiast numeru telefonu przy każdym SMS-ie ze studia.'}
+              : 'Tę nazwę klient widzi zamiast numeru przy każdym SMS-ie ze studia.'}
           </p>
         </Titles>
 

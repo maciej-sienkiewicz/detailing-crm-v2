@@ -15,6 +15,7 @@ import { CreateVehicleModal } from '../components/CreateVehicleModal';
 import { VehicleFilterPanel } from '../components/VehicleFilterPanel';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { t, interpolate } from '@/common/i18n';
+import { pluralPl } from '@/common/utils/plural';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { Car } from 'lucide-react';
 import { PageHeader, PageHeaderPrimaryButton, MobilePageHeader, MobilePageHeaderButton, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
@@ -245,14 +246,6 @@ const ShowDeletedBtn = styled.button<{ $active: boolean }>`
     svg { width: 15px; height: 15px; flex-shrink: 0; }
 `;
 
-/* Eksport i przegląd usuniętych to operacje biurkowe - na telefonie tylko
-   zabierały miejsce w wierszu filtrów. */
-const DesktopOnlyBtn = styled(SecondaryBtn)`
-    @media (max-width: 767px) {
-        display: none;
-    }
-`;
-
 /* Sama ikonka lejka mówi to samo co ikonka z napisem, a zwalnia miejsce,
    żeby wyszukiwarka i filtry zmieściły się w jednym wierszu. */
 const SecondaryBtnLabel = styled.span`
@@ -425,7 +418,7 @@ export const VehicleListView = () => {
                         <>
                             {t.vehicles.subtitle}
                             {pagination && (
-                                <TotalChip>{pagination.totalItems} rekordów</TotalChip>
+                                <TotalChip>{pagination.totalItems} {pluralPl(pagination.totalItems, 'pojazd', 'pojazdy', 'pojazdów')}</TotalChip>
                             )}
                         </>
                     }
@@ -444,7 +437,7 @@ export const VehicleListView = () => {
                     icon={<Car />}
                     title={t.vehicles.title}
                     subtitle={pagination
-                        ? <><MobilePageHeaderCountValue>{pagination.totalItems}</MobilePageHeaderCountValue> rekordów</>
+                        ? <><MobilePageHeaderCountValue>{pagination.totalItems}</MobilePageHeaderCountValue> {pluralPl(pagination.totalItems, 'pojazd', 'pojazdy', 'pojazdów')}</>
                         : 'Wczytywanie…'}
                     actions={canCreate &&
                         <MobilePageHeaderButton onClick={handleAddVehicle}>
@@ -476,16 +469,12 @@ export const VehicleListView = () => {
                                 <FilterBadge>{activeFilterCount}</FilterBadge>
                             )}
                         </SecondaryBtn>
-                        <DesktopOnlyBtn>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                <polyline points="7 10 12 15 17 10" />
-                                <line x1="12" y1="15" x2="12" y2="3" />
-                            </svg>
-                            Eksport
-                        </DesktopOnlyBtn>
+                        {/* Przycisku „Eksport" tu nie ma, bo nie ma API eksportu pojazdów
+                            (jest tylko eksport klientów). Dawny przycisk nie miał onClick
+                            i nic nie robił - wraca razem z endpointem. */}
                         <ShowDeletedBtn
                             $active={showDeleted}
+                            aria-pressed={showDeleted}
                             onClick={() => setShowDeleted(v => !v)}
                         >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -493,7 +482,7 @@ export const VehicleListView = () => {
                                 <path d="M19 6l-1 14H6L5 6"/>
                                 <path d="M9 6V4h6v2"/>
                             </svg>
-                            Pokaż usunięte
+                            {showDeleted ? 'Ukryj usunięte' : 'Pokaż usunięte'}
                         </ShowDeletedBtn>
                     </FilterTopRow>
                 </FilterBar>
@@ -526,8 +515,8 @@ export const VehicleListView = () => {
 
             <ConfirmationModal
                 isOpen={pendingDeleteId !== null}
-                title="Usuń pojazd"
-                message="Pojazd zostanie zarchiwizowany. Powiązane wizyty, dokumenty i zdjęcia pozostaną nienaruszone."
+                title="Usunąć pojazd?"
+                message="Pojazd zniknie z list. Wizyty, dokumenty i zdjęcia zostają. Usunięcia nie da się cofnąć."
                 variant="danger"
                 confirmText="Usuń pojazd"
                 cancelText="Anuluj"

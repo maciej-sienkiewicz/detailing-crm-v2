@@ -119,7 +119,7 @@ export function LeavesPanel({ employeeId }: { employeeId: string }) {
             {!isLoading && leaves.length === 0 && pending.length === 0 && (
                 <Empty>
                     <strong>Brak urlopów</strong>
-                    <span>Tu pojawią się zatwierdzone urlopy i zwolnienia wpisane przez kadry.</span>
+                    <span>Tu pojawią się zatwierdzone urlopy i L4.</span>
                 </Empty>
             )}
 

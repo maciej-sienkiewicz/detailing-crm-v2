@@ -5,13 +5,14 @@
 //     Nowe zapytanie                         ← zdanie, nie status; „Odpisał na wycenę"
 //                                              w kolorze akcentu - to warto otworzyć pierwsze
 //
-// „Czeka na nas" stoi rozwinięte, najdłużej czekające na górze. „Ucichło" i „U klienta"
+// „Czeka na nas" stoi rozwinięte, najdłużej czekające na górze. „Ucichło" i „Czeka na klienta"
 // to zwinięte wiersze z licznikiem - praca, której dziś nie trzeba robić, nie zajmuje
 // ekranu, ale nie znika (jedno kliknięcie i jest).
 import { Fragment, useState } from 'react';
 import styled, { css } from 'styled-components';
 import { ChevronDown, ChevronRight, CircleDot, Trash2, X } from 'lucide-react';
 import { ChoiceModal, ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { pluralPl } from '@/common/utils/plural';
 import type { LeadStatus } from '../types';
 import { useBulkChangeLeadStatus, useBulkDeleteLeads } from '../hooks/useLeads';
 import { LeadStatusPicker } from '../components/LeadStatusPicker';
@@ -280,7 +281,7 @@ export function CaseList({ worklist, query, loading, truncated, activeId, onOpen
                     <Empty>Nikt nie czeka na odpowiedź. Nowe zapytania pojawią się tutaj same.</Empty>
                 )}
                 {fold('SILENT', 'Ucichło', silent, silentOpen)}
-                {fold('CLIENT', 'U klienta', client, clientOpen)}
+                {fold('CLIENT', 'Czeka na klienta', client, clientOpen)}
                 {nothing && needle && <Empty>Nic nie pasuje do „{query.trim()}".</Empty>}
                 {truncated && (
                     <Empty>Otwartych spraw jest więcej, niż mieści jedna strona. Zamknij część zapytań, żeby zobaczyć resztę.</Empty>
@@ -315,8 +316,8 @@ export function CaseList({ worklist, query, loading, truncated, activeId, onOpen
 
             <ConfirmationModal
                 isOpen={confirm === 'delete'}
-                title={selected.size === 1 ? 'Usunąć zaznaczoną sprawę?' : `Usunąć ${selected.size} zaznaczonych spraw?`}
-                message="Tej operacji nie da się cofnąć. Wiadomości w skrzynce zostają nietknięte."
+                title={selected.size === 1 ? 'Usunąć zaznaczoną sprawę?' : `Usunąć ${selected.size} ${pluralPl(selected.size, 'zaznaczoną sprawę', 'zaznaczone sprawy', 'zaznaczonych spraw')}?`}
+                message="Tego nie da się cofnąć. Maile zostaną w skrzynce."
                 variant="danger"
                 confirmText="Usuń"
                 onConfirm={() => runDelete(false)}

@@ -3,7 +3,7 @@
 // Zgody klienta (RODO i marketing) - panel w szynie karty klienta.
 //
 // Każda zgoda to wiersz: nazwa, plakietka stanu, zdanie o podpisie. Jedyna akcja
-// widoczna od razu to „Udziel zgody" przy zgodzie, której brakuje - reszta
+// widoczna od razu to „Zapisz zgodę" przy zgodzie, której brakuje - reszta
 // (podgląd dokumentu, dołączenie skanu, wycofanie) siedzi w menu ⋮ wiersza.
 //
 // Wcześniej zgoda była przełącznikiem, a kliknięcie w niego przy zgodzie
@@ -108,7 +108,7 @@ const STATUS: Record<string, { label: string; tone: PillTone }> = {
 const isGranted = (item: CustomerConsentStatusItem) => item.status === 'VALID' || item.status === 'OUTDATED';
 
 function signedSentence(item: CustomerConsentStatusItem): string {
-    if (!item.signedAt) return item.isDefinitionActive ? 'Zgoda nie została udzielona.' : 'Nigdy nie podpisana.';
+    if (!item.signedAt) return item.isDefinitionActive ? 'Klient jeszcze nie podpisał.' : 'Nigdy nie podpisana.';
     return `Podpisana ${formatDateTime(item.signedAt)}${item.signedVersion ? `, wersja ${item.signedVersion}` : ''}.`;
 }
 
@@ -193,11 +193,11 @@ export const CustomerConsentsSection = ({ customerId, id }: CustomerConsentsSect
             </Head>
 
             {isLoading ? (
-                <Muted>Wczytywanie zgód...</Muted>
+                <Muted>Wczytywanie zgód…</Muted>
             ) : isError ? (
                 <Muted>Nie udało się wczytać zgód. Odśwież stronę.</Muted>
             ) : consents.length === 0 ? (
-                <Muted>W ustawieniach studia nie ma jeszcze zdefiniowanych zgód.</Muted>
+                <Muted>Nie dodano jeszcze żadnych zgód w ustawieniach.</Muted>
             ) : (
                 <List>
                     {consents.map(item => {
@@ -220,7 +220,7 @@ export const CustomerConsentsSection = ({ customerId, id }: CustomerConsentsSect
                                 <RowActions>
                                     {item.isDefinitionActive && !granted && (
                                         <Button variant="tinted" size="sm" disabled={busy} onClick={() => grant(item)}>
-                                            {busy ? 'Zapisywanie...' : 'Udziel zgody'}
+                                            {busy ? 'Zapisywanie…' : 'Zapisz zgodę'}
                                         </Button>
                                     )}
                                     {hasMenu && (
@@ -270,7 +270,7 @@ export const CustomerConsentsSection = ({ customerId, id }: CustomerConsentsSect
                 title="Wycofać zgodę?"
                 message={confirmRevoke ? `Zgoda „${confirmRevoke.definitionName}" przestanie obowiązywać. Tej operacji nie można cofnąć - żeby ją przywrócić, klient musi podpisać ją ponownie.` : ''}
                 variant="danger"
-                confirmText={isRevoking ? 'Wycofywanie...' : 'Wycofaj zgodę'}
+                confirmText={isRevoking ? 'Wycofywanie…' : 'Wycofaj zgodę'}
                 cancelText="Zostaw"
                 onConfirm={revoke}
                 onCancel={() => setConfirmRevoke(null)}

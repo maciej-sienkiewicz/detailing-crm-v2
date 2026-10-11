@@ -554,7 +554,7 @@ export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', o
       {open && isMobile && (
         <SelectSheet
           title="Wybierz markę"
-          placeholder="Szukaj marki..."
+          placeholder="Szukaj marki…"
           query={query}
           onQueryChange={setQuery}
           items={filteredBrands}
@@ -572,7 +572,7 @@ export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', o
             <SearchInput
               ref={searchRef}
               type="text"
-              placeholder="Szukaj marki..."
+              placeholder="Szukaj marki…"
               value={query}
               onChange={e => setQuery(e.target.value)}
             />
@@ -738,7 +738,7 @@ export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz mod
       {open && isMobile && (
         <SelectSheet
           title="Wybierz model"
-          placeholder={brand ? 'Szukaj modelu...' : 'Wybierz markę'}
+          placeholder={brand ? 'Szukaj modelu…' : 'Wybierz markę'}
           searchDisabled={!brand}
           query={query}
           onQueryChange={setQuery}
@@ -757,7 +757,7 @@ export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz mod
             <SearchInput
               ref={searchRef}
               type="text"
-              placeholder={brand ? 'Szukaj modelu...' : 'Wybierz markę'}
+              placeholder={brand ? 'Szukaj modelu…' : 'Wybierz markę'}
               value={query}
               onChange={e => setQuery(e.target.value)}
               disabled={!brand}

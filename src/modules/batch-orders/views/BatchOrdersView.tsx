@@ -100,7 +100,7 @@ export function BatchOrdersView() {
 
     let content: React.ReactNode;
     if (isLoading) {
-        content = <StateBox>Ładowanie kontrahentów…</StateBox>;
+        content = <StateBox>Wczytywanie kontrahentów…</StateBox>;
     } else if (isError) {
         content = (
             <StateBox $error>
@@ -113,8 +113,8 @@ export function BatchOrdersView() {
             <StateBox>
                 <strong>Brak kontrahentów</strong>
                 <p>
-                    Dodaj pierwszego kontrahenta B2B, aby zacząć rejestrować zlecenia zbiorcze
-                    i generować zestawienia do rozliczenia.
+                    Dodaj pierwszego kontrahenta, żeby zapisywać jego auta i rozliczać je jednym
+                    zestawieniem.
                 </p>
                 <SharedButton $variant="primary" type="button" onClick={() => setShowCreate(true)}>Dodaj kontrahenta</SharedButton>
             </StateBox>
@@ -139,10 +139,10 @@ export function BatchOrdersView() {
             {isDesktop ? (
                 <PageHeader
                     title="Zlecenia zbiorcze"
-                    subtitle="Zarządzaj kontrahentami B2B i ich rozliczeniami"
+                    subtitle="Kontrahenci flotowi i ich miesięczne zestawienia"
                     actions={
                         <>
-                            <PageHeaderGhostButton onClick={() => setShowServices(true)} title="Zarządzaj usługami">
+                            <PageHeaderGhostButton onClick={() => setShowServices(true)} title="Cennik usług">
                                 Usługi
                             </PageHeaderGhostButton>
                             <PageHeaderPrimaryButton onClick={() => setShowCreate(true)} title="Dodaj kontrahenta">
@@ -160,7 +160,7 @@ export function BatchOrdersView() {
                         : 'Wczytywanie…'}
                     actions={
                         <>
-                            <MobilePageHeaderIconButton onClick={() => setShowServices(true)} title="Zarządzaj usługami" aria-label="Zarządzaj usługami">
+                            <MobilePageHeaderIconButton onClick={() => setShowServices(true)} title="Cennik usług" aria-label="Cennik usług">
                                 <Settings />
                             </MobilePageHeaderIconButton>
                             <MobilePageHeaderButton onClick={() => setShowCreate(true)}>
@@ -194,7 +194,7 @@ export function BatchOrdersView() {
             <ConfirmationModal
                 isOpen={confirmDelete !== null}
                 title="Usunąć kontrahenta z listy?"
-                message={`„${confirmDelete?.name ?? ''}" zniknie z listy zleceń zbiorczych. Jego auta i zestawienia zostaną zachowane w systemie.`}
+                message={`„${confirmDelete?.name ?? ''}” zniknie z listy zleceń zbiorczych. Jego auta i zestawienia zostaną zachowane.`}
                 variant="danger"
                 confirmText="Usuń z listy"
                 cancelText="Anuluj"

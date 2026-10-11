@@ -220,7 +220,7 @@ export function SettlementHistoryModal({ contractor, onClose }: Props) {
             </ModalHeader>
             <ModalContent>
                 {isLoading ? (
-                    <EmptyMsg>Ładowanie...</EmptyMsg>
+                    <EmptyMsg>Wczytywanie…</EmptyMsg>
                 ) : !records || records.length === 0 ? (
                     <EmptyMsg>Dla tego kontrahenta nie utworzono jeszcze żadnego zestawienia.</EmptyMsg>
                 ) : (

@@ -72,8 +72,8 @@ interface Props {
 
 const TOP_SERVICES = 6;
 
-/** „1 zlecenie", „3 zlecenia", „96 zleceń" - skrót „zl." mylił się z „zł". */
-const orders = (n: number) => `${n.toLocaleString('pl-PL')} ${pluralPl(n, 'zlecenie', 'zlecenia', 'zleceń')}`;
+/** „1 wizyta", „3 wizyty", „96 wizyt" - skrót „zl." mylił się z „zł", a reszta statystyk mówi „wizyty". */
+const orders = (n: number) => `${n.toLocaleString('pl-PL')} ${pluralPl(n, 'wizyta', 'wizyty', 'wizyt')}`;
 
 export const StatsMobileOverview = ({
     chart, points, totals, granularity, categories, unassigned, selectedCategoryId, onSelectCategory,
@@ -158,7 +158,7 @@ export const StatsMobileOverview = ({
                             {fmtPLNFromGrosz(trend.last.totalRevenueGross)}
                             {trend.prev && (
                                 <TrendVs>
-                                    vs {formatPeriodLabel(trend.prev.period, granularity)}{' '}
+                                    Poprzednio {formatPeriodLabel(trend.prev.period, granularity)}:{' '}
                                     {fmtPLNFromGrosz(trend.prev.totalRevenueGross)}
                                 </TrendVs>
                             )}
@@ -170,7 +170,7 @@ export const StatsMobileOverview = ({
                     <InProgress>
                         {formatPeriodLabel(trend.inProgress.period, granularity)} (w toku):{' '}
                         <strong>{fmtPLNFromGrosz(trend.inProgress.totalRevenueGross)}</strong>
-                        {' · '}{orders(trend.inProgress.orderCount)}
+                        {', '}{orders(trend.inProgress.orderCount)}
                     </InProgress>
                 )}
             </Headline>
@@ -208,7 +208,7 @@ export const StatsMobileOverview = ({
                                 </RankBarTrack>
                                 <RankMeta>
                                     {share.toLocaleString('pl-PL', { maximumFractionDigits: 1 })}% przychodu
-                                    {' · '}{orders(row.orders)}
+                                    {', '}{orders(row.orders)}
                                 </RankMeta>
                             </RankRow>
                         );
@@ -229,7 +229,8 @@ export const StatsMobileOverview = ({
                             <ServiceBody>
                                 <ServiceName>{s.serviceName}</ServiceName>
                                 <ServiceMeta>
-                                    {s.categoryName ?? 'Bez kategorii'} · {orders(s.totals.orderCount)}
+                                    <span>{s.categoryName ?? 'Bez kategorii'}</span>
+                                    <span>{orders(s.totals.orderCount)}</span>
                                 </ServiceMeta>
                             </ServiceBody>
                             <ServiceValue>{fmtPLNFromGrosz(s.totals.totalRevenueGross)}</ServiceValue>
@@ -467,12 +468,24 @@ const ServiceName = styled.div`
     white-space: nowrap;
 `;
 
+// Kategoria i liczba wizyt to dwa atrybuty: dwa elementy z odstępem, nie klej z kropki.
 const ServiceMeta = styled.div`
+    display: flex;
+    gap: 8px;
+    min-width: 0;
     font-size: 11.5px;
     color: ${st.textMuted};
-    overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
+
+    & > span:first-child {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    & > span:last-child {
+        flex-shrink: 0;
+    }
 `;
 
 const ServiceValue = styled.span`

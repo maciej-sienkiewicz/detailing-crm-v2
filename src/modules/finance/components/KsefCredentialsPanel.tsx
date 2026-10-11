@@ -254,11 +254,11 @@ const TokenPermissionsBlock: React.FC<{
       <PermsHeader>
         <div>
           <PermsTitle>Uprawnienia tokenu</PermsTitle>
-          {checkedAt && <PermsChecked>Ostatnia weryfikacja: {checkedAt}</PermsChecked>}
-          {!verification && <PermsChecked>Uprawnienia nie zostały jeszcze sprawdzone.</PermsChecked>}
+          {checkedAt && <PermsChecked>Sprawdzono: {checkedAt}</PermsChecked>}
+          {!verification && <PermsChecked>Jeszcze nie sprawdzono.</PermsChecked>}
         </div>
         <Button variant="tinted" size="sm" onClick={onVerify} disabled={isVerifying}>
-          {isVerifying ? 'Weryfikacja w KSeF…' : verification ? 'Sprawdź ponownie' : 'Sprawdź uprawnienia'}
+          {isVerifying ? 'Sprawdzanie…' : verification ? 'Sprawdź ponownie' : 'Sprawdź uprawnienia'}
         </Button>
       </PermsHeader>
       <PermsBody>
@@ -340,7 +340,7 @@ export const KsefCredentialsPanel: React.FC = () => {
       verify();
     } catch (err: unknown) {
       // Formularz zostaje wypełniony: poprawia się jedno pole, a nie wkleja token od nowa.
-      toastUnhandledError(showError, err, 'Nie udało się zapisać konfiguracji KSeF', 'Spróbuj ponownie za chwilę.');
+      toastUnhandledError(showError, err, 'Nie udało się połączyć z KSeF', 'Spróbuj ponownie za chwilę.');
     }
   };
 
@@ -359,8 +359,8 @@ export const KsefCredentialsPanel: React.FC = () => {
       <Card>
         <PanelHeader>
           <HeaderLeft>
-            <PanelTitle>Integracja z KSeF</PanelTitle>
-            <PanelSubtitle>Wczytywanie konfiguracji…</PanelSubtitle>
+            <PanelTitle>Połączenie z KSeF</PanelTitle>
+            <PanelSubtitle>Wczytywanie…</PanelSubtitle>
           </HeaderLeft>
         </PanelHeader>
         <PanelBody>
@@ -374,9 +374,9 @@ export const KsefCredentialsPanel: React.FC = () => {
     <Card>
       <PanelHeader>
         <HeaderLeft>
-          <PanelTitle>Integracja z KSeF</PanelTitle>
+          <PanelTitle>Połączenie z KSeF</PanelTitle>
           <PanelSubtitle>
-            Podaj NIP firmy i token API, aby automatycznie pobierać faktury kosztowe z systemu Ministerstwa Finansów.
+            Podaj NIP i token z KSeF, a faktury kosztowe będą pobierać się same.
           </PanelSubtitle>
         </HeaderLeft>
         {/* Sam stan - NIP stoi niżej jako osobne pole, zamiast doklejony kropką do plakietki. */}
@@ -394,7 +394,6 @@ export const KsefCredentialsPanel: React.FC = () => {
               <FormGroup>
                 <Label as="span">Token KSeF</Label>
                 <ValueBox $mono>{credentials.tokenMasked}</ValueBox>
-                <HelpText>Token jest maskowany ze względów bezpieczeństwa.</HelpText>
               </FormGroup>
             </FormRow>
 
@@ -411,7 +410,7 @@ export const KsefCredentialsPanel: React.FC = () => {
                   setEditMode(true);
                 }}
               >
-                Zmień konfigurację
+                Zmień dane
               </Button>
               <Button
                 variant="danger"
@@ -459,7 +458,7 @@ export const KsefCredentialsPanel: React.FC = () => {
                 onClick={handleSave}
                 disabled={!nip.trim() || !token.trim() || saveCredentials.isPending}
               >
-                {saveCredentials.isPending ? 'Zapisywanie…' : 'Zapisz konfigurację'}
+                {saveCredentials.isPending ? 'Łączenie…' : 'Połącz z KSeF'}
               </Button>
               {editMode && (
                 <Button onClick={() => { setEditMode(false); setNip(''); setToken(''); }}>

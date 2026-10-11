@@ -38,7 +38,7 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
             <Container>
                 <LoadingWrap>
                     <Spinner />
-                    <LoadingText>Łączenie...</LoadingText>
+                    <LoadingText>Łączenie…</LoadingText>
                 </LoadingWrap>
             </Container>
         );
@@ -78,7 +78,7 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
                                 <path d="M4 21c0-4.418 3.582-8 8-8s8 3.582 8 8H4z" />
                             </svg>
                         </FloatIcon>
-                        <FloatLabel>Nowy Lead</FloatLabel>
+                        <FloatLabel>Nowy lead</FloatLabel>
                     </FloatCard>
 
                     <FloatCard $accent="violet" onClick={logic.goToNote} type="button" aria-label="Notatka głosowa">
@@ -177,8 +177,8 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
                         </RecordingTimer>
 
                         <MicStatus $active={logic.recordingState === 'recording'}>
-                            {logic.recordingState === 'requesting' && 'Oczekiwanie na mikrofon...'}
-                            {logic.recordingState === 'recording' && 'Nagrywanie...'}
+                            {logic.recordingState === 'requesting' && 'Oczekiwanie na mikrofon…'}
+                            {logic.recordingState === 'recording' && 'Nagrywanie…'}
                             {logic.recordingState === 'error' && 'Brak dostępu do mikrofonu'}
                         </MicStatus>
                     </MicArea>
@@ -220,7 +220,7 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
                     {logic.sendStatus === 'sending' && (
                         <SendBody>
                             <SpinnerSm />
-                            <LoadingText>Wysyłanie...</LoadingText>
+                            <LoadingText>Wysyłanie…</LoadingText>
                         </SendBody>
                     )}
 
@@ -233,11 +233,11 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
                                     </svg>
                                 </SendIconWrap>
                                 <SendTitle>Zapisano!</SendTitle>
-                                <SendMessage>Dane zostały dodane do systemu.</SendMessage>
+                                <SendMessage>{mode === 'note' ? 'Notatka zapisana.' : 'Lead dodany.'}</SendMessage>
                             </SendBody>
                             <BottomBar>
                                 <PrimaryBtn type="button" onClick={logic.addAnother}>
-                                    Dodaj kolejny
+                                    {mode === 'note' ? 'Dodaj kolejną' : 'Dodaj kolejny'}
                                 </PrimaryBtn>
                             </BottomBar>
                         </>

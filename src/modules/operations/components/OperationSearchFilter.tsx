@@ -55,7 +55,7 @@ export const OperationSearchFilter = ({ value, onChange }: OperationSearchFilter
             </SearchIcon>
             <SearchInput
                 type="text"
-                placeholder="Szukaj po nazwisku, telefonie lub rejestracji..."
+                placeholder="Szukaj po nazwisku, telefonie lub rejestracji…"
                 value={value}
                 onChange={e => onChange(e.target.value)}
             />

@@ -145,7 +145,7 @@ export const VisitFilesQrModal = ({ isOpen, onClose, session }: Props) => {
             </ModalContent>
             <ModalFooter>
                 <SharedButton type="button" $variant="secondary" onClick={() => void start(true)} disabled={isStarting}>
-                    {isExpired ? 'Wygeneruj nowy kod' : 'Nowy kod (unieważnia poprzedni)'}
+                    {isExpired ? 'Wygeneruj nowy kod' : 'Wygeneruj nowy kod (unieważnia poprzedni)'}
                 </SharedButton>
                 <SharedButton type="button" $variant="primary" onClick={onClose}>
                     Gotowe

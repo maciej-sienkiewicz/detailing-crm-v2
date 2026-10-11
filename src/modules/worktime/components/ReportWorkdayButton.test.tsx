@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// „Zaraportuj 8 godzin" na Tablicy: przycisk znika, gdy i tak skończyłby się błędem -
+// „Wpisz 8 godzin za dziś” na Tablicy: przycisk znika, gdy i tak skończyłby się błędem -
 // karta bieżącego miesiąca jest złożona (czeka na decyzję) albo zatwierdzona, albo konto
 // nie liczy czasu pracy.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -42,7 +42,7 @@ describe('ReportWorkdayButton', () => {
     it('karta w trakcie: przycisk jest', async () => {
         serve('DRAFT');
         renderButton();
-        const button = await screen.findByRole('button', { name: /Zaraportuj 8 godzin pracy/ });
+        const button = await screen.findByRole('button', { name: /Wpisz 8 godzin za dziś/ });
         await waitFor(() => expect(button).toBeEnabled());
     });
 

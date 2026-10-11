@@ -707,7 +707,7 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
     }
 
     async function handleSave() {
-        if (!serviceDate) { setError('Data wykonania jest wymagana'); return; }
+        if (!serviceDate) { setError('Podaj datę wykonania'); return; }
         const invalid = validateServices(services);
         if (invalid) { setError(invalid); return; }
         setSaving(true);
@@ -725,7 +725,7 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
             }
             onClose();
         } catch (e) {
-            setError(apiErrorMessage(e, 'Nie udało się zapisać wpisu. Spróbuj ponownie.'));
+            setError(apiErrorMessage(e, 'Nie udało się zapisać auta. Spróbuj ponownie.'));
         } finally {
             setSaving(false);
         }
@@ -736,7 +736,7 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
         <ModalShell isOpen onClose={requestClose} size="lg">
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>{initial ? 'Edytuj wpis' : 'Nowy wpis'}</ModalTitle>
+                    <ModalTitle>{initial ? 'Edytuj auto' : 'Nowe auto'}</ModalTitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={requestClose} />
             </ModalHeader>
@@ -884,7 +884,7 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
                                                     <CreateSuggestionItem
                                                         onMouseDown={() => commitTypedName(idx, svc.name)}
                                                     >
-                                                        <CreateName><Plus />Użyj „{svc.name.trim()}"</CreateName>
+                                                        <CreateName><Plus />Użyj „{svc.name.trim()}”</CreateName>
                                                         <CreateTag>nowa usługa</CreateTag>
                                                     </CreateSuggestionItem>
                                                 )}
@@ -920,7 +920,7 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
                                                                 // zamknięcie arkusza nie gubi nazwy własnej usługi.
                                                                 updateService(idx, { name: text });
                                                             }}
-                                                            placeholder="Szukaj usługi..."
+                                                            placeholder="Szukaj usługi…"
                                                             autoComplete="off"
                                                         />
                                                     </SheetSearchWrap>
@@ -945,7 +945,7 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
                                                                 onClick={() => commitTypedName(idx, sheetQuery)}
                                                             >
                                                                 <SheetCreateLead>
-                                                                    <Plus />Użyj „{sheetQuery.trim()}"
+                                                                    <Plus />Użyj „{sheetQuery.trim()}”
                                                                 </SheetCreateLead>
                                                                 <SheetCreateTag>nowa usługa</SheetCreateTag>
                                                             </SheetCreateItem>
@@ -1038,7 +1038,7 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
                             id="entry-notes"
                             value={notes}
                             onChange={e => setNotes(e.target.value)}
-                            placeholder="Dodatkowe uwagi..."
+                            placeholder="Dodatkowe uwagi…"
                             style={{ minHeight: 64 }}
                         />
                     </InputShellTextArea>
@@ -1048,7 +1048,7 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
             <ModalFooter>
                 <SharedButton $variant="secondary" type="button" onClick={requestClose}>Anuluj</SharedButton>
                 <SharedButton $variant="primary" type="button" onClick={handleSave} disabled={saving}>
-                    {saving ? 'Zapisywanie...' : 'Zapisz'}
+                    {saving ? 'Zapisywanie…' : 'Zapisz'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

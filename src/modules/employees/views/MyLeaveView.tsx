@@ -64,7 +64,7 @@ export function MyLeaveView() {
                 <EmptyState
                     icon={<CalendarOff />}
                     title="Twoje konto nie jest powiązane z pracownikiem"
-                    description="Twoje konto nie jest powiązane z pracownikiem. Poproś właściciela o połączenie."
+                    description="Poproś właściciela, żeby połączył Twoje konto z kartą pracownika."
                 />
             </Page>
         );
@@ -101,14 +101,14 @@ export function MyLeaveView() {
                 block
                 icon={<CalendarPlus />}
                 title="Złóż wniosek o urlop"
-                sub="trafi do akceptacji"
+                sub="trafi do zatwierdzenia"
                 onClick={() => setWizardOpen(true)}
             />
 
             <ListHeading>Twoje wnioski</ListHeading>
 
             {isLoading ? (
-                <Hint>Wczytuję…</Hint>
+                <Hint>Wczytywanie…</Hint>
             ) : !isError && requests.length === 0 ? (
                 <EmptyState
                     icon={<CalendarOff />}
@@ -158,7 +158,7 @@ export function MyLeaveView() {
                                             onClick={() => { void handleDownload(r); }}
                                         >
                                             <Download aria-hidden="true" />
-                                            {downloadingId === r.id ? 'Pobieram…' : 'Pobierz PDF'}
+                                            {downloadingId === r.id ? 'Pobieranie…' : 'Pobierz PDF'}
                                         </Button>
                                     )}
                                 </RowActions>
@@ -174,7 +174,7 @@ export function MyLeaveView() {
                 isOpen={!!withdrawing}
                 title="Wycofać wniosek?"
                 message={withdrawing
-                    ? `Wniosek ${withdrawing.number} (${formatLeaveRange(withdrawing.startDate, withdrawing.endDate)}) nie trafi do decyzji. Dokument zostanie w historii z adnotacją „wycofany".`
+                    ? `Wniosek ${withdrawing.number} (${formatLeaveRange(withdrawing.startDate, withdrawing.endDate)}) nie trafi do decyzji. Dokument zostanie w historii z adnotacją „wycofany”.`
                     : ''}
                 variant="warning"
                 confirmText="Wycofaj wniosek"

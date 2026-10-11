@@ -277,7 +277,7 @@ export const RedirectCard: React.FC = () => {
         </IconWrap>
 
         <Titles>
-          <h3>Przekieruj każdą wiadomość mailową i SMS na moje dane</h3>
+          <h3>Wysyłaj wszystkie SMS-y i e-maile do mnie</h3>
           <p>
             {isLoading
               ? 'Wczytywanie…'
@@ -294,7 +294,7 @@ export const RedirectCard: React.FC = () => {
           checked={enabled}
           onChange={handleToggle}
           disabled={isLoading || updateMutation.isPending}
-          ariaLabel="Przekieruj każdą wiadomość mailową i SMS na moje dane"
+          ariaLabel="Wysyłaj wszystkie SMS-y i e-maile do mnie"
         />
       </Head>
 
@@ -351,8 +351,8 @@ export const RedirectCard: React.FC = () => {
 
         <RehearsalRow>
           <span className="text">
-            Próba generalna: wysyła wszystkie szablony z przykładowymi danymi (Jan Kowalski, Audi RS6, jutro 10:00)
-            na powyższe dane. Wymaga włączonego przekierowania; jeśli którykolwiek szablon ma błąd, nie wychodzi nic.
+            Wyślij sobie wszystkie szablony z przykładowymi danymi. Działa przy włączonym przekierowaniu; jeśli
+            któryś szablon ma błąd, nie wyjdzie nic.
           </span>
           <Button variant="outline" size="sm" disabled={busy} onClick={handlePlan}>
             {planMutation.isPending && !confirmRun ? 'Sprawdzanie…' : 'Sprawdź szablony'}

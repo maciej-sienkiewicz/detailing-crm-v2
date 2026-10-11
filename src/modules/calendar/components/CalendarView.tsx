@@ -60,6 +60,22 @@ import type { DateRange, CalendarView as CalendarViewType, EventCreationData, Ap
 import type { Operation } from '@/modules/operations/types';
 import '../calendar.css';
 import { fromInstantToLocalInput } from '@/common/dateTime';
+import { formatCurrency } from '@/common/utils/formatters';
+
+/**
+ * Zakres urlopu do dymka: „3–7 października", a przy różnych miesiącach
+ * „30 września – 2 października". Daty ISO („2026-10-03") nie są dla człowieka.
+ */
+const formatLeaveRange = (startDate: string, endDate: string): string => {
+    const start = new Date(startDate + 'T00:00:00');
+    const end = new Date(endDate + 'T00:00:00');
+    const dayMonth = (d: Date) => d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long' });
+    if (startDate === endDate) return dayMonth(start);
+    if (start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth()) {
+        return `${start.getDate()}–${dayMonth(end)}`;
+    }
+    return `${dayMonth(start)} – ${dayMonth(end)}`;
+};
 
 const CalendarContainer = styled.div<{ $compact?: boolean }>`
     display: flex;
@@ -2002,7 +2018,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         };
         if (editedStudioEvent) {
             updateStudioEvent.mutate({ id: editedStudioEvent.id, payload }, {
-                onSuccess: () => { showSuccess('Zapisano', 'Wydarzenie zostało zaktualizowane'); onDone(); },
+                onSuccess: () => { showSuccess('Zapisano zmiany wydarzenia'); onDone(); },
                 onError: () => showError('Nie udało się zapisać', 'Spróbuj ponownie za chwilę'),
             });
             return;
@@ -2416,11 +2432,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         setIsSavingEndDate(true);
         try {
             await visitApi.updateEstimatedCompletionDate(popoverEvent.id, new Date(endDateDraft).toISOString());
-            showSuccess('Data zakończenia zaktualizowana');
+            showSuccess('Zmieniono datę zakończenia');
             setEndDateModalOpen(false);
             queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
         } catch {
-            showError('Nie udało się zaktualizować daty');
+            showError('Nie udało się zmienić daty');
         } finally {
             setIsSavingEndDate(false);
         }
@@ -2453,7 +2469,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         try {
             await operationApi.cancelReservation(popoverEvent.id);
             setPopoverOpen(false);
-            showSuccess('Rezerwacja porzucona', 'Rezerwacja została oznaczona jako porzucona.');
+            showSuccess('Rezerwacja porzucona');
             queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
         } catch {
             // TODO: handled error silently
@@ -2469,7 +2485,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         try {
             await operationApi.restoreAppointment(popoverEvent.id);
             setPopoverOpen(false);
-            showSuccess('Rezerwacja przywrócona', 'Rezerwacja została przywrócona.');
+            showSuccess('Rezerwacja przywrócona');
             queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
         } catch {
             // TODO: handled error silently
@@ -2487,7 +2503,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         const isoDate = localDateKey(eventDate);
         const props = event.extendedProps as AppointmentEventData | VisitEventData;
         const price = props.totalPrice
-            ? `${(props.totalPrice / 100).toFixed(2)} ${props.currency ?? 'PLN'}`
+            ? formatCurrency(props.totalPrice / 100, props.currency ?? 'PLN')
             : '-';
 
         _dashboardPendingHighlight = { id: event.id, date: isoDate };
@@ -2537,10 +2553,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 // przerwanego przyjęcia (tylko DRAFT), więc każda inna wizyta wracała
                 // z błędem statusu.
                 await visitApi.deleteVisit(pendingDelete.id);
-                showSuccess('Wizyta usunięta', 'Wizyta została usunięta.');
+                showSuccess('Wizyta usunięta');
             } else {
                 await operationApi.deleteAppointment(pendingDelete.id);
-                showSuccess('Rezerwacja usunięta', 'Rezerwacja została usunięta.');
+                showSuccess('Rezerwacja usunięta');
             }
             setPendingDelete(null);
             setPopoverOpen(false);
@@ -2746,7 +2762,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             {/* Desktop page header: all views; custom week/day views suppress their internal toolbars */}
             <DesktopPageHeader>
                     <div>
-                        <PageCrumb>Główne · Kalendarz</PageCrumb>
+                        <PageCrumb>Kalendarz</PageCrumb>
                         <PageTitle>
                             {calendarTitle
                                 ? calendarTitle.charAt(0).toUpperCase() + calendarTitle.slice(1)
@@ -3356,7 +3372,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     onClose={exitLeaveFlow}
                     onError={message => showError('Nie udało się zapisać urlopu', message)}
                     onSaved={() => {
-                        showSuccess('Urlop zapisany', `${leaveDraft.employeeName}: ${leaveDraftRange.startDate} - ${leaveDraftRange.endDate}`);
+                        showSuccess('Urlop zapisany', `${leaveDraft.employeeName}, ${formatLeaveRange(leaveDraftRange.startDate, leaveDraftRange.endDate)}`);
                         exitLeaveFlow();
                     }}
                 />
@@ -3378,7 +3394,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             {d2dTooltip && (
                 <BadgeTooltip anchor={d2dTooltip.anchor}>
                     <LeaveTooltipTitle>
-                        Door to Door, {new Date(d2dTooltip.date + 'T00:00:00').toLocaleDateString('pl-PL', {
+                        Door to door, {new Date(d2dTooltip.date + 'T00:00:00').toLocaleDateString('pl-PL', {
                             day: 'numeric', month: 'long',
                         })}
                     </LeaveTooltipTitle>
@@ -3559,7 +3575,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 <ModalFooter>
                     <SharedButton $variant="secondary" onClick={() => setEndDateModalOpen(false)}>Anuluj</SharedButton>
                     <SharedButton $variant="primary" onClick={handleSaveEndDate} disabled={!endDateDraft || isSavingEndDate}>
-                        {isSavingEndDate ? 'Zapisywanie...' : 'Zapisz'}
+                        {isSavingEndDate ? 'Zapisywanie…' : 'Zapisz'}
                     </SharedButton>
                 </ModalFooter>
             </ModalShell>

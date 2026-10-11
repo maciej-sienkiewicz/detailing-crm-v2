@@ -32,13 +32,13 @@ const formatWhen = (iso: string): string =>
     });
 
 /**
- * „wyjdzie o 16.09.2026, 12:00" dla wpisu w kolejce; null, gdy wpis nie czeka albo
+ * „wyjdzie 16.09.2026, 12:00” dla wpisu w kolejce; null, gdy wpis nie czeka albo
  * kolejka nie zna już terminu (wtedy pokazujemy samo „W kolejce").
  */
 export const queuedHint = (entry: Pick<CommunicationEntry, 'status' | 'scheduledFor'>): string | null => {
     if (entry.status !== 'QUEUED') return null;
     if (!entry.scheduledFor) return null;
-    return `wyjdzie o ${formatWhen(entry.scheduledFor)}`;
+    return `wyjdzie ${formatWhen(entry.scheduledFor)}`;
 };
 
 /** Kolory plakietki statusu — te same w kartotece klienta, historii wizyty i podglądzie. */

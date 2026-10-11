@@ -91,8 +91,8 @@ export function RolesSection({ onGoToEmployees }: RolesSectionProps = {}) {
             </SettingsHeaderActions>
 
             <Intro>
-                Rola mówi, co pracownik widzi i może zmieniać. Uprawnienie podrzędne wymaga
-                nadrzędnego. Rolę przypisujesz przy zaproszeniu albo w karcie pracownika.
+                Rola mówi, co pracownik widzi i może zmieniać. Niektóre uprawnienia działają
+                tylko razem z innymi. Rolę przypisujesz przy zaproszeniu albo w karcie pracownika.
             </Intro>
 
             {isError ? (

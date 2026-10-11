@@ -59,7 +59,7 @@ export const BuyerEditor = ({ buyer, onChange }: BuyerEditorProps) => {
     return (
         <Wrap>
             <FormField>
-                <FieldLabel htmlFor="handover-buyer-nip">NIP: puste oznacza konsumenta</FieldLabel>
+                <FieldLabel htmlFor="handover-buyer-nip">NIP</FieldLabel>
                 <NipInputWithGus
                     id="handover-buyer-nip"
                     value={buyer.nip}
@@ -126,8 +126,8 @@ export const BuyerEditor = ({ buyer, onChange }: BuyerEditorProps) => {
             </FormGrid>
 
             <Muted>
-                Dane pochodzą z profilu klienta. Zmiana dotyczy wyłącznie tej faktury, profil
-                zostaje bez zmian.
+                Dane pochodzą z karty klienta. Zmiana dotyczy wyłącznie tej faktury, karta
+                klienta zostaje bez zmian.
             </Muted>
         </Wrap>
     );

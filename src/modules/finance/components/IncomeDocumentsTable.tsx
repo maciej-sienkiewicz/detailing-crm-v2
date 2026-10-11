@@ -428,7 +428,7 @@ const KSEF_MARK: Record<KsefRevenueStatus, { on: boolean; title: string }> = {
   },
   ACCEPTED: {
     on: true,
-    title: 'Faktura jest w KSeF — Ministerstwo Finansów potwierdziło przyjęcie i nadało numer KSeF.',
+    title: 'Faktura jest w KSeF i ma numer.',
   },
   PENDING: {
     on: false,
@@ -440,7 +440,7 @@ const KSEF_MARK: Record<KsefRevenueStatus, { on: boolean; title: string }> = {
   },
   SUBMITTED: {
     on: false,
-    title: 'Jeszcze nie ma jej w KSeF — została przyjęta do sesji i czeka na nadanie numeru.',
+    title: 'KSeF ją przyjął, czeka na numer.',
   },
   REJECTED: {
     on: false,
@@ -448,7 +448,7 @@ const KSEF_MARK: Record<KsefRevenueStatus, { on: boolean; title: string }> = {
   },
   QUEUED_RETRY: {
     on: false,
-    title: 'Jeszcze nie ma jej w KSeF — system był niedostępny, faktura zostanie dosłana automatycznie (offline24).',
+    title: 'KSeF nie działał. Wyślemy fakturę później sami.',
   },
   NOT_SENT: {
     on: false,
@@ -458,15 +458,15 @@ const KSEF_MARK: Record<KsefRevenueStatus, { on: boolean; title: string }> = {
 
 const ORIGIN_LABEL: Record<string, string> = {
   CRM:      'CRM',
-  EXTERNAL: 'Zewnętrzny',
+  EXTERNAL: 'Spoza CRM',
   VISIT:    'Wizyta',
   MANUAL:   'Ręcznie',
 };
 
 const PAYMENT_STATUS: Record<string, { label: string; variant: BadgeVariant }> = {
   PAID:    { label: 'Opłacony',        variant: 'green' },
-  PENDING: { label: 'Oczekuje',        variant: 'amber' },
-  OVERDUE: { label: 'Przeterminowany', variant: 'red' },
+  PENDING: { label: 'Nieopłacony',     variant: 'amber' },
+  OVERDUE: { label: 'Po terminie',     variant: 'red' },
 };
 
 // ─── Skeleton / empty ─────────────────────────────────────────────────────────
@@ -579,8 +579,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
       return (
         <EmptyState>
           <strong>Brak wyników dla „{searchTerm}"</strong>
-          Szukamy po nazwie i NIP-ie kontrahenta, nazwach pozycji, numerze dokumentu,
-          numerze KSeF i kwocie. Sprawdź też zakres dat i pozostałe filtry.
+          Sprawdź pisownię, zakres dat i filtry.
         </EmptyState>
       );
     }
@@ -588,8 +587,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
     return (
       <EmptyState>
         <strong>Brak dokumentów przychodowych</strong>
-        Wystaw fakturę (trafi do KSeF) lub dodaj paragon. Faktury sprzedażowe wystawione
-        poza CRM pojawią się tu automatycznie po synchronizacji z KSeF.
+        Wystaw fakturę albo dodaj paragon. Faktury wystawione poza CRM pobierzemy z KSeF same.
       </EmptyState>
     );
   }

@@ -257,7 +257,7 @@ export function ReplyDraftRevise({ threadId, draft, currentText, signatureAppend
                 ref={textareaRef}
                 autoFocus
                 aria-label="Co poprawić w szkicu"
-                placeholder="Co poprawić? Np. krócej, zaproponuj wtorek o 10:00, zapytaj o rocznik auta"
+                placeholder="Np. krócej, zaproponuj wtorek o 10:00, zapytaj o rocznik auta"
                 value={instructions}
                 maxLength={MAX_REVISION_INSTRUCTIONS}
                 onChange={(event) => setInstructions(event.target.value)}

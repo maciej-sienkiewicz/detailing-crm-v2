@@ -60,15 +60,15 @@ interface Props {
 const NARROW_TABLE_WIDTH = 560;
 
 const VAT_RATES = [23, 8, 5, 0, -1] as const;
-const VAT_LABEL = (rate: number) => rate === -1 ? 'ZW' : `${rate}%`;
+const VAT_LABEL = (rate: number) => rate === -1 ? 'zw.' : `${rate}%`;
 
 
 const DISCOUNT_TYPES: { type: AdjustmentType; label: string }[] = [
     { type: 'PERCENT', label: '%' },
-    { type: 'FIXED_NET', label: '−Netto' },
-    { type: 'FIXED_GROSS', label: '−Brutto' },
-    { type: 'SET_NET', label: '=Netto' },
-    { type: 'SET_GROSS', label: '=Brutto' },
+    { type: 'FIXED_NET', label: 'Kwota netto' },
+    { type: 'FIXED_GROSS', label: 'Kwota brutto' },
+    { type: 'SET_NET', label: 'Cena netto' },
+    { type: 'SET_GROSS', label: 'Cena brutto' },
 ];
 
 
@@ -391,7 +391,7 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
                                                 <span>
                                                     {service.newerVersion.requireManualPrice
                                                         ? 'Usługa zmieniła się w cenniku: cena jest teraz ustalana ręcznie'
-                                                        : `Cena usługi uległa zmianie, nowa cena: ${formatVersionPrice(service.newerVersion.basePriceNet)} netto / ${formatVersionPrice(service.newerVersion.basePriceGross)} brutto`}
+                                                        : `Nowa cena w cenniku: ${formatVersionPrice(service.newerVersion.basePriceNet)} netto / ${formatVersionPrice(service.newerVersion.basePriceGross)} brutto`}
                                                 </span>
                                                 <S.PriceChangedAction
                                                     type="button"
@@ -467,7 +467,7 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
                                 {isNoteExpanded && (
                                     <S.ServiceNoteContainer>
                                         <S.ServiceNoteTextarea
-                                            placeholder="Notatka do usługi..."
+                                            placeholder="Notatka do usługi…"
                                             value={service.note || ''}
                                             onChange={(e) => onChange(services.map(s => s.id === service.id
                                                 ? { ...s, note: e.target.value }
@@ -713,7 +713,7 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
                                 onClick={saveEditService}
                                 disabled={editSaving}
                             >
-                                {editSaving ? 'Zapisuję...' : 'Zapisz'}
+                                {editSaving ? 'Zapisywanie…' : 'Zapisz'}
                             </S.EditSaveBtn>
                         </S.BulkDiscountFooter>
                     </S.BulkDiscountCard>

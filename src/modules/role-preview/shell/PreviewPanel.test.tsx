@@ -37,11 +37,11 @@ describe('panel uprawnień podglądu', () => {
         );
 
         fireEvent.click(screen.getByText('Zarządzanie wizytami'));
-        expect(screen.getByText('Niezastosowane zmiany')).toBeInTheDocument();
+        expect(screen.getByText('Zmiany jeszcze nie działają')).toBeInTheDocument();
 
         // Okresowe odświeżenie: nowy obiekt, ta sama rola.
         rerender(<PreviewPanel state={state(['VISITS_VIEW'])} applying={false} applyError={null} onApply={onApply} onClose={() => {}} />);
-        expect(screen.getByText('Niezastosowane zmiany')).toBeInTheDocument();
+        expect(screen.getByText('Zmiany jeszcze nie działają')).toBeInTheDocument();
 
         fireEvent.click(screen.getByText('Zastosuj w podglądzie'));
         expect(onApply).toHaveBeenCalledWith(['VISITS_VIEW', 'VISITS_MANAGE'], false);

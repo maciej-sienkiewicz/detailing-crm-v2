@@ -286,8 +286,8 @@ const VisitMeta = styled.div`
  * Zdania zastępcze dla brakujących danych. Jedno miejsce, bo używa ich zarówno
  * wiersz panelu, jak i kartka lecąca do kalendarza — i mają brzmieć tak samo.
  */
-const NO_CUSTOMER = 'Nie wprowadzono klienta';
-const NO_VEHICLE = 'Nie wprowadzono pojazdu';
+const NO_CUSTOMER = 'Bez klienta';
+const NO_VEHICLE = 'Bez pojazdu';
 
 /**
  * Separator między klientem a pojazdem. Jaśniejszy od treści, bo jest
@@ -301,7 +301,7 @@ const MetaSeparator = styled.span`
 
 /**
  * Brak danych. Kursywa odróżnia zastępcze zdanie od prawdziwej nazwy — bez niej
- * „Nie wprowadzono pojazdu" czyta się jak model auta.
+ * „Bez pojazdu" czyta się jak model auta.
  */
 const MetaMissing = styled.em`
   font-style: italic;
@@ -459,7 +459,7 @@ const VisitRowItem = ({
             onClick={e => e.stopPropagation()}
             disabled={isSaving}
           />
-          <TitleSaveBtn onClick={onSave} title="Zapisz tytuł" disabled={isSaving}>
+          <TitleSaveBtn onClick={onSave} title="Zapisz nazwę" disabled={isSaving}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <polyline points="20 6 9 17 4 12" />
             </svg>
@@ -611,7 +611,7 @@ export const UpcomingVisitsPanel = () => {
       {isError && (
         <Placeholder>
           <AlertCircle />
-          Nie udało się załadować wizyt
+          Nie udało się wczytać wizyt
         </Placeholder>
       )}
 

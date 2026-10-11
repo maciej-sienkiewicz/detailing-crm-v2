@@ -98,7 +98,7 @@ export const PinCard = () => {
                     if (msg?.toLowerCase().includes('hasło') || msg?.toLowerCase().includes('password')) {
                         setErrors(e => ({ ...e, password: 'Nieprawidłowe hasło' }));
                     } else {
-                        showError('Błąd', msg ?? 'Nie udało się ustawić kodu PIN');
+                        showError('Nie udało się ustawić kodu PIN', msg ?? 'Spróbuj ponownie.');
                     }
                 },
             }

@@ -20,7 +20,7 @@ export function InvoicesSection() {
             <RequireCapability
                 capability="FINANCE_KSEF"
                 mode="upsell"
-                message="Integracja z KSeF wymaga modułu Kontrola nad finansami."
+                message="Połączenie z KSeF wymaga modułu „Kontrola nad finansami”."
             >
                 <KsefCredentialsPanel />
                 <KsefSendingDefaultsPanel />

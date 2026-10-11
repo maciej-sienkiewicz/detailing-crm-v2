@@ -545,7 +545,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
     try {
       await action();
     } catch (e: any) {
-      setActionError(e?.response?.data?.message ?? 'Operacja nie powiodła się. Spróbuj ponownie.');
+      setActionError(e?.response?.data?.message ?? 'Nie udało się. Spróbuj ponownie.');
     }
   };
 
@@ -614,9 +614,8 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
             {invoice.duplicateStatus === 'SUSPECTED' && (
               <DuplicateBox>
                 <strong>⚠ Możliwe podwójne fakturowanie</strong>
-                Ta faktura wygląda na duplikat innej faktury (ten sam nabywca, kwota i zbliżona
-                data). Obie faktury są prawnie wiążące, więc jeśli to duplikat, nadmiarowy dokument
-                trzeba skorygować do zera w systemie, w którym powstał.
+                Wygląda na duplikat (ten sam nabywca, kwota i podobna data). Jeśli to duplikat,
+                skoryguj go do zera tam, gdzie powstał.
                 <DuplicateActions>
                   <SharedButton
                     $variant="danger"
@@ -624,7 +623,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
                     disabled={busy}
                     onClick={() => run(() => duplicateMutation.mutateAsync({ id: invoice.id, resolution: 'CONFIRMED_DUPLICATE' }))}
                   >
-                    To duplikat, wyklucz ze statystyk
+                    To duplikat, ukryj ze statystyk
                   </SharedButton>
                   <SharedButton
                     $variant="secondary"
@@ -640,17 +639,15 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
 
             {invoice.ksefStatus === 'NOT_SENT' && (
               <OfflineBox>
-                Faktura została wystawiona bez wysyłki do KSeF - dokument istnieje w CRM,
-                ale nie w KSeF. Możesz pobrać jego plik XML i wgrać go ręcznie albo wysłać
-                fakturę przyciskiem w stopce okna.
+                Tej faktury nie wysłano do KSeF. Wyślij ją przyciskiem na dole albo pobierz XML
+                i wgraj sam.
               </OfflineBox>
             )}
 
             {invoice.ksefStatus === 'QUEUED_RETRY' && (
               <OfflineBox>
-                KSeF był niedostępny w chwili wystawienia (tryb offline24). Faktura zostanie
-                dosłana automatycznie, najpóźniej następnego dnia roboczego. Możesz też ponowić
-                wysyłkę ręcznie.
+                KSeF nie działał przy wystawieniu. Wyślemy fakturę sami, najpóźniej w następny
+                dzień roboczy. Możesz też wysłać ją teraz.
               </OfflineBox>
             )}
 
@@ -698,7 +695,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
                       $tone="amber"
                       title="Pozycje, adresy i dane płatności dociągamy z treści faktury w KSeF"
                     >
-                      Szczegóły w trakcie pobierania
+                      Pobieramy szczegóły
                     </Badge>
                   )}
                   {invoice.duplicateStatus === 'CONFIRMED_DUPLICATE' && (
@@ -735,8 +732,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
                     <ItemsEmpty>
                       {invoice.detailsSynced
                         ? 'Brak pozycji dla tego dokumentu.'
-                        : 'Pozycje zostaną uzupełnione przy najbliższej synchronizacji z KSeF - ' +
-                          'pobranie treści faktury objęte jest limitem żądań, więc idzie osobno od listy.'}
+                        : 'Pozycje pobierzemy z KSeF wkrótce.'}
                     </ItemsEmpty>
                   ) : (
                     <ItemsScroll>
@@ -796,7 +792,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
                     <Eyebrow>Status płatności</Eyebrow>
                     <MetaValue>
                       <Badge $tone={invoice.paymentStatus === 'PAID' ? 'green' : 'amber'}>
-                        {invoice.paymentStatus === 'PAID' ? 'Opłacona' : 'Oczekuje na płatność'}
+                        {invoice.paymentStatus === 'PAID' ? 'Opłacona' : 'Nieopłacona'}
                       </Badge>
                     </MetaValue>
                   </div>
@@ -848,17 +844,14 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
                     <QrCopy>
                       <Eyebrow>Weryfikacja w KSeF</Eyebrow>
                       <div style={{ marginTop: 8 }}>
-                        Zeskanuj kod, aby potwierdzić w Ministerstwie Finansów, że ta faktura
-                        istnieje w KSeF i nie została zmieniona. Ten sam kod umieszcza się na
-                        wizualizacji faktury przekazywanej nabywcy.
+                        Zeskanuj, aby sprawdzić fakturę w KSeF. Ten kod jest też na PDF dla klienta.
                       </div>
                       <QrUrl>{invoice.ksefVerificationUrl}</QrUrl>
                     </QrCopy>
                   </QrPanel>
                 ) : (
                   <QrPending>
-                    Kod QR weryfikacyjny pojawi się, gdy KSeF przyjmie fakturę i nada jej skrót
-                    dokumentu. Dla faktur jeszcze niewysłanych nie ma czego weryfikować.
+                    Kod QR pojawi się, gdy KSeF przyjmie fakturę.
                   </QrPending>
                 )}
               </PaperBody>
@@ -882,7 +875,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
               disabled={busy || !correctionReason.trim()}
               onClick={handleFullCorrection}
             >
-              {correctionMutation.isPending ? 'Wysyłanie korekty...' : 'Wystaw korektę (do zera) i wyślij do KSeF'}
+              {correctionMutation.isPending ? 'Wysyłanie korekty…' : 'Wystaw korektę i wyślij'}
             </SharedButton>
           </>
         ) : (
@@ -919,7 +912,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
               >
                 <RefreshCw size={14} />
                 {retryMutation.isPending
-                  ? 'Wysyłanie...'
+                  ? 'Wysyłanie…'
                   : invoice.ksefStatus === 'NOT_SENT'
                     ? 'Wyślij do KSeF'
                     : 'Ponów wysyłkę do KSeF'}

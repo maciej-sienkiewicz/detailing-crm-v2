@@ -4,6 +4,7 @@ import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { pluralPl } from '@/common/utils/plural';
 import { usePaymentMethodReport } from '../hooks/useFinance';
 import type { ReportGranularity, PaymentMethodEntry } from '../types';
 import { resolveDateRange, type DatePreset } from '../utils/dateRange';
@@ -28,7 +29,7 @@ type Method = keyof typeof METHOD_COLORS;
 
 const fmt = (grosz: number) => {
   const pln = grosz / 100;
-  return pln.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' PLN';
+  return pln.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' zł';
 };
 
 const fmtCompact = (grosz: number): string => {
@@ -488,7 +489,7 @@ const ChartTooltip: React.FC<ChartTooltipProps> = ({ active, payload, isRevenue 
   return (
     <TooltipBox>
       <div style={{ color: item.fill, fontWeight: 700, marginBottom: 2 }}>{item.name}</div>
-      <div>{isRevenue ? fmt(item.value) : `${item.value} płatności`}</div>
+      <div>{isRevenue ? fmt(item.value) : `${item.value} ${pluralPl(item.value, 'płatność', 'płatności', 'płatności')}`}</div>
     </TooltipBox>
   );
 };
@@ -630,7 +631,7 @@ const DonutChart: React.FC<DonutChartProps> = ({
 const RANGE_OPTIONS = [
   { preset: 'currentMonth' as const, label: 'Bieżący miesiąc' },
   { preset: 'previousMonth' as const, label: 'Poprzedni miesiąc' },
-  { preset: 'custom' as const, label: 'Niestandardowy zakres' },
+  { preset: 'custom' as const, label: 'Własny zakres' },
 ];
 
 interface PaymentSummaryTabProps {
@@ -792,12 +793,12 @@ export const PaymentSummaryTab: React.FC<PaymentSummaryTabProps> = ({
             </ChartCard>
 
             <ChartCard>
-              <ChartTitle>Przychód (brutto)</ChartTitle>
+              <ChartTitle>Przychód brutto</ChartTitle>
               <DonutChart
                 data={revenueChartData}
                 centerValue={fmtCompact(totalGross)}
-                centerLabel="PLN brutto"
-                legendFormatter={v => `${fmtCompact(v)} PLN`}
+                centerLabel="zł brutto"
+                legendFormatter={v => `${fmtCompact(v)} zł`}
                 total={totalGross}
                 isRevenue
               />
@@ -834,7 +835,7 @@ export const PaymentSummaryTab: React.FC<PaymentSummaryTabProps> = ({
 
             {totals && (
               <TotalRow>
-                <Td style={{ fontWeight: 700 }}>ŁĄCZNIE</Td>
+                <Td style={{ fontWeight: 700 }}>Razem</Td>
                 {methods.map(m => (
                   <Td key={m}>
                     <TdGross>{fmt(totals[m].totalGross)}</TdGross>
@@ -848,7 +849,7 @@ export const PaymentSummaryTab: React.FC<PaymentSummaryTabProps> = ({
         )}
 
         {!isLoading && report && activePeriods.length === 0 && (
-          <EmptyBox>Brak danych dla wybranego zakresu.</EmptyBox>
+          <EmptyBox>Brak płatności w tym okresie.</EmptyBox>
         )}
 
         {isLoading && (

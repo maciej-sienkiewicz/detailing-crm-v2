@@ -212,7 +212,7 @@ export const InvoiceItemsEditor = ({
                             $compact
                         />
                     </InputShell>
-                    <Muted>Wymagana przez KSeF dla stawki „zw": trafia na fakturę jako pole P_19A.</Muted>
+                    <Muted>Wymagana przy stawce „zw”. Trafi na fakturę.</Muted>
                 </FormField>
             )}
         </Wrap>

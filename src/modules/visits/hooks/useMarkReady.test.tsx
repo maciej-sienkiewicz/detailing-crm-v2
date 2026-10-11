@@ -132,7 +132,7 @@ describe('useMarkReady — konflikt stanu wizyty', () => {
         result.current.markReady({ sms: false, email: false });
 
         await waitFor(() => expect(showError).toHaveBeenCalled());
-        expect(showError.mock.calls[0][0]).toBe('Błąd');
+        expect(showError.mock.calls[0][0]).toBe('Nie udało się oznaczyć auta jako gotowego');
         expect(showInfo).not.toHaveBeenCalled();
     });
 });

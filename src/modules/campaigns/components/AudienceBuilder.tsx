@@ -242,9 +242,9 @@ export function AudienceBuilder({ value, onChange }: AudienceBuilderProps) {
       value.revenueTotalGrossMax != null ? `do ${zloty(value.revenueTotalGrossMax)!.toLocaleString('pl-PL')} zł` : null,
     ].filter((x): x is string => x !== null),
     services: [
-      value.servicesUsedAnyOf.length > 0 ? `korzystał z ${value.servicesUsedAnyOf.length}` : null,
+      value.servicesUsedAnyOf.length > 0 ? `wybrane usługi: ${value.servicesUsedAnyOf.length}` : null,
       value.serviceLastUsedOlderThanDays != null ? `ostatnio ponad ${value.serviceLastUsedOlderThanDays} dni temu` : null,
-      value.servicesUsedNoneOf.length > 0 ? `nie korzystał z ${value.servicesUsedNoneOf.length}` : null,
+      value.servicesUsedNoneOf.length > 0 ? `wykluczone usługi: ${value.servicesUsedNoneOf.length}` : null,
     ].filter((x): x is string => x !== null),
     vehicles: [
       value.vehicleBrands.length > 0
@@ -274,8 +274,8 @@ export function AudienceBuilder({ value, onChange }: AudienceBuilderProps) {
           {active && <ActiveDot />}
           <span className="name">{name}</span>
           {active ? (
-            <span className="summary" title={summaries[id].join(' · ')}>
-              {summaries[id].join(' · ')}
+            <span className="summary" title={summaries[id].join(', ')}>
+              {summaries[id].join(', ')}
             </span>
           ) : (
             <span className="empty">{hint}</span>
@@ -361,7 +361,7 @@ export function AudienceBuilder({ value, onChange }: AudienceBuilderProps) {
             <FilterRow>
               <FilterLabel>
                 Korzystał z usługi
-                <InfoTooltip text="Klient musi mieć w historii co najmniej jedną wizytę z tą usługą. Przy kilku usługach wystarczy jedna z nich (logika LUB)." />
+                <InfoTooltip text="Klient był na tej usłudze co najmniej raz. Przy kilku usługach wystarczy jedna." />
               </FilterLabel>
               <ServiceMultiSelect
                 selectedIds={value.servicesUsedAnyOf}
@@ -371,7 +371,7 @@ export function AudienceBuilder({ value, onChange }: AudienceBuilderProps) {
             <FilterRow>
               <FilterLabel>
                 Ostatnie wykonanie dawniej niż
-                <InfoTooltip text="Dotyczy usług wybranych obok. Filtruje klientów, u których dana usługa była ostatnio wykonana dawniej niż podana liczba dni temu." />
+                <InfoTooltip text="Ile dni minęło od ostatniego wykonania wybranej usługi." />
               </FilterLabel>
               <NumberField
                 value={value.serviceLastUsedOlderThanDays ?? null}
@@ -393,7 +393,7 @@ export function AudienceBuilder({ value, onChange }: AudienceBuilderProps) {
             <FilterRow>
               <FilterLabel>
                 Nigdy nie korzystał z
-                <InfoTooltip text="Wyklucza klientów, którzy mieli w historii którąkolwiek z wybranych usług (logika LUB)." />
+                <InfoTooltip text="Pomija klientów, którzy mieli którąkolwiek z tych usług." />
               </FilterLabel>
               <ServiceMultiSelect
                 selectedIds={value.servicesUsedNoneOf}

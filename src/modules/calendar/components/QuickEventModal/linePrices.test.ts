@@ -38,7 +38,7 @@ describe('catalogLinePrices - pozycja z cennika', () => {
     });
 });
 
-describe('manualLinePrices - cena z okna „Wprowadź cenę"', () => {
+describe('manualLinePrices - cena z okna „Cena usługi”', () => {
     it('brutto wpisane w oknie zostaje dokładne', () => {
         expect(manualLinePrices({ priceNet: NET, priceGross: GROSS }, 23))
             .toEqual({ grossPln: 1900, netCents: NET, vatRate: 23 });

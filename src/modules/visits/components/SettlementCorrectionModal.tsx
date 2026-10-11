@@ -295,7 +295,7 @@ function CorrectionForm({ view, visitId, onClose }: { view: SettlementView; visi
                             {documentRows.map(row => (
                                 <DocRow key={row.key}>
                                     <strong>{row.number}</strong>
-                                    <span>{row.label}</span>
+                                    {row.label && <span>{row.label}</span>}
                                     {row.paymentMethodLabel && <span>{row.paymentMethodLabel}</span>}
                                     {row.ksefStatus && (
                                         <StatusPill $tone={INVOICE_STATUS[row.ksefStatus]?.tone ?? 'neutral'}>
@@ -422,7 +422,10 @@ function CorrectionForm({ view, visitId, onClose }: { view: SettlementView; visi
                                         <strong>{new Date(entry.createdAt).toLocaleString('pl-PL')}</strong>
                                         {entry.createdByName ? `, ${entry.createdByName}` : ''}
                                     </p>
-                                    <p>Kwota {pln(entry.totalGrossBefore)} → {pln(entry.totalGrossAfter)}, {entry.ksefAction.toLowerCase()}.</p>
+                                    <p>Kwota {pln(entry.totalGrossBefore)} → {pln(entry.totalGrossAfter)}.</p>
+                                    {/* Etykieta z serwera ma własną wielką literę i skróty („KSeF"):
+                                        `toLowerCase()` robił z niej „bez faktury ksef". */}
+                                    <p>{entry.ksefAction}.</p>
                                     {entry.reason && <p>Powód: {entry.reason}</p>}
                                     {entry.ksefError && <p style={{ color: ui.dangerInk }}>{entry.ksefError}</p>}
                                 </article>

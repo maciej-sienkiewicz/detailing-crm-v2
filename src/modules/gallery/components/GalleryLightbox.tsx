@@ -511,7 +511,7 @@ export const GalleryLightbox = ({ photo, onClose, onPrev, onNext, position, prel
                                     </svg>
                                 </MetaIcon>
                                 <MetaContent>
-                                    <MetaLabel>Dodał/a</MetaLabel>
+                                    <MetaLabel>Autor</MetaLabel>
                                     <MetaVal>{photo.uploadedByName}</MetaVal>
                                 </MetaContent>
                             </MetaRow>

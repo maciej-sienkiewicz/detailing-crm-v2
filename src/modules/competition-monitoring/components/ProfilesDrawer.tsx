@@ -190,7 +190,7 @@ export const ProfilesDrawer: React.FC<{
                         <a href="#" onClick={e => { e.preventDefault(); onAddProfile(); }}>Dodaj profil</a>
                     </HintText>
 
-                    {isLoading && <HintText>Wczytywanie...</HintText>}
+                    {isLoading && <HintText>Wczytywanie…</HintText>}
                     {!isLoading && profiles.length === 0 && (
                         <HintText>Nie obserwujesz jeszcze żadnych profili.</HintText>
                     )}
@@ -247,7 +247,7 @@ export const ProfilesDrawer: React.FC<{
                                         <ActionBtn
                                             $tone="blue"
                                             onClick={() => markSelf({ id: profile.id, isSelf: !profile.isSelf })}
-                                            title="Własny profil jest punktem odniesienia rankingu"
+                                            title="Z Twoim profilem porównujemy pozostałe"
                                         >
                                             <Star />
                                             {profile.isSelf ? 'To nie mój profil' : 'To mój profil'}

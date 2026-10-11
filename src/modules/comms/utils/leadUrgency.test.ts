@@ -66,7 +66,7 @@ describe('lead mailowy - ruch po stronie klienta', () => {
         const urgency = describeLeadUrgency(waiting(2 * DAY));
 
         expect(urgency.turn).toBe('CLIENT');
-        expect(urgency.label).toBe('U klienta');
+        expect(urgency.label).toBe('Czeka na klienta');
         expect(urgency.tone).toBe('neutral');
         expect(urgency.overdue).toBe(false);
     });
@@ -149,7 +149,7 @@ describe('lead bez wątku - dziura, dla której powstała ta reguła', () => {
         expect(urgency.turn).toBe('CLIENT');
         expect(urgency.tone).toBe('neutral');
         // Dotąd ten lead miał ton neutralny z zupełnie innego powodu: bo w ogóle
-        // nie istniał dla mechanizmu pilności. Teraz jest w segmencie „U klienta".
+        // nie istniał dla mechanizmu pilności. Teraz jest w segmencie „Czeka na klienta".
         expect(leadSegmentOf(called)).toBe('CLIENT');
     });
 

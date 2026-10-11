@@ -27,7 +27,7 @@ export interface GlobalShortcut {
 
 export const GLOBAL_SHORTCUTS: GlobalShortcut[] = [
     { key: 'w', to: '/checkin/new', description: 'Przyjęcie auta - nowa wizyta' },
-    { key: 'r', to: '/calendar', state: { openQuickEvent: true }, description: 'Nowa rezerwacja w kalendarzu (dziś → jutro)' },
+    { key: 'r', to: '/calendar', state: { openQuickEvent: true }, description: 'Nowa rezerwacja' },
     { key: 'k', to: '/calendar', description: 'Kalendarz' },
     { key: 'l', to: '/zapytania', description: 'Zapytania (sprawy)' },
     { key: 'p', to: '/zapytania?view=poczta', description: 'Zapytania (poczta)' },
@@ -80,7 +80,7 @@ export const SCOPED_SHORTCUTS: ScopedShortcutGroup[] = [
         label: 'Statystyki',
         shortcuts: [
             { key: '1', to: '/statistics', description: 'Przychody i sprzedaż' },
-            { key: '2', to: '/statistics/costs', description: 'Koszta' },
+            { key: '2', to: '/statistics/costs', description: 'Koszty' },
             { key: '3', to: '/statistics/reports', description: 'Raporty' },
         ],
     },
@@ -109,7 +109,7 @@ export interface ActionShortcut {
 }
 
 export const ACTION_SHORTCUTS: ActionShortcut[] = [
-    { key: 'z', event: QUICK_NOTE_EVENT, description: 'Nowa notatka - z każdego widoku', requires: 'TASKS_MANAGE' },
+    { key: 'z', event: QUICK_NOTE_EVENT, description: 'Nowe zadanie — z każdego widoku', requires: 'TASKS_MANAGE' },
 ];
 
 /** Skróty aktywne dla danej ścieżki: sekcyjne tej sekcji (jeśli jakaś pasuje). */

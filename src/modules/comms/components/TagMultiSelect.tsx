@@ -331,7 +331,7 @@ export function TagMultiSelect({ options, value, onChange, onCreate, onDelete, i
                                         className="remove"
                                         type="button"
                                         aria-label={`Usuń tag ${option.label}`}
-                                        title="Usuń ze słownika"
+                                        title="Usuń tag z listy"
                                         onClick={() => onDelete(option)}
                                     >
                                         <Trash2 size={13} />

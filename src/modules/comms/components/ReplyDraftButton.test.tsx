@@ -164,7 +164,7 @@ describe('ReplyDraftButton - oferta w odpowiedzi', () => {
         renderButton('lead-7');
 
         fireEvent.click(screen.getByRole('button', { name: /Napisz z AI/ }));
-        expect(screen.getByText(/usługi z wyceny leada/)).toBeTruthy();
+        expect(screen.getByText(/usługi i ceny z wyceny/)).toBeTruthy();
         fireEvent.click(screen.getByRole('button', { name: /Z ofertą/ }));
         fireEvent.click(screen.getByRole('button', { name: 'Dalej' }));
 

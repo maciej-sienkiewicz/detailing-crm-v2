@@ -131,11 +131,11 @@ describe('SmsCreditSection', () => {
         expect(text).toContain('Po zakupie na koncie będzie 3240 kredytów.');
     });
 
-    it('„Kupuję za …" kupuje wybrany pakiet i mówi o tym toastem', async () => {
+    it('„Kup za …" kupuje wybrany pakiet i mówi o tym toastem', async () => {
         renderSection();
         await userEvent.click(await screen.findByRole('radio', { name: /Studio/ }));
         await userEvent.click(screen.getByRole('button', { name: /^Kup 2000/ }));
-        await userEvent.click(await screen.findByRole('button', { name: /Kupuję za 246,00/ }));
+        await userEvent.click(await screen.findByRole('button', { name: /Kup za 246,00/ }));
 
         await waitFor(() => expect(smsCreditApi.purchaseCredits).toHaveBeenCalledWith('k2'));
         expect(await screen.findByText('Kredyty dodane')).toBeTruthy();
@@ -150,7 +150,7 @@ describe('SmsCreditSection', () => {
         renderSection();
         await userEvent.click(await screen.findByRole('radio', { name: /Start/ }));
         await userEvent.click(screen.getByRole('button', { name: /^Kup 500/ }));
-        await userEvent.click(await screen.findByRole('button', { name: /Kupuję za 73,80/ }));
+        await userEvent.click(await screen.findByRole('button', { name: /Kup za 73,80/ }));
 
         expect(await screen.findByText('Zakup się nie udał')).toBeTruthy();
         expect(screen.getByText(/karta odrzucona/)).toBeTruthy();

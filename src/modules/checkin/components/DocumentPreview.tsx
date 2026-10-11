@@ -175,7 +175,7 @@ export const DocumentPreview = ({
             return (
                 <LoadingContainer>
                     <Spinner />
-                    <div>Ładowanie podglądu dokumentu...</div>
+                    <div>Wczytywanie podglądu dokumentu…</div>
                 </LoadingContainer>
             );
         }
@@ -198,9 +198,9 @@ export const DocumentPreview = ({
                             />
                         </svg>
                     </ErrorIcon>
-                    <ErrorMessage>Nie udało się załadować dokumentu</ErrorMessage>
+                    <ErrorMessage>Nie udało się wczytać dokumentu</ErrorMessage>
                     <ErrorDetails>
-                        Wystąpił problem podczas pobierania dokumentu. Spróbuj ponownie później.
+                        Spróbuj ponownie za chwilę.
                     </ErrorDetails>
                 </ErrorContainer>
             );
@@ -250,7 +250,7 @@ export const DocumentPreview = ({
                             />
                         </svg>
                     </ErrorIcon>
-                    <ErrorMessage>Problem z wyświetleniem PDF</ErrorMessage>
+                    <ErrorMessage>Nie można wyświetlić PDF</ErrorMessage>
                     <ErrorDetails>
                         Twoja przeglądarka może nie obsługiwać podglądu PDF.
                         Spróbuj otworzyć dokument w nowej karcie.
@@ -266,7 +266,7 @@ export const DocumentPreview = ({
         return (
             <IframePreview
                 src={`${pdfUrl}#toolbar=0`}
-                title="Document Preview"
+                title="Podgląd dokumentu"
                 onError={handlePdfError}
             />
         );

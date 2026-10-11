@@ -68,7 +68,7 @@ export const UploadPhotoModal = ({ isOpen, onClose, vehicleId }: UploadPhotoModa
                         accept="image/*"
                         preview
                         title="Wybierz zdjęcie albo upuść je tutaj"
-                        hint="JPG albo PNG, prosto z aparatu albo z telefonu"
+                        hint="JPG albo PNG"
                     />
                     <FormField $fullWidth>
                         <FieldLabel htmlFor="photo-description">Opis (opcjonalnie)</FieldLabel>
@@ -88,7 +88,7 @@ export const UploadPhotoModal = ({ isOpen, onClose, vehicleId }: UploadPhotoModa
             <ModalFooter>
                 <Button onClick={close} disabled={isUploading}>Anuluj</Button>
                 <Button type="submit" form="upload-photo-form" variant="primary" disabled={!file || isUploading}>
-                    {isUploading ? 'Wysyłanie...' : 'Dodaj zdjęcie'}
+                    {isUploading ? 'Wysyłanie…' : 'Dodaj zdjęcie'}
                 </Button>
             </ModalFooter>
         </ModalShell>

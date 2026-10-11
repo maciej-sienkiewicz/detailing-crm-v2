@@ -3,7 +3,7 @@
 // Employee-facing manager of "suggested additional services" (upselling) for a
 // single visit or reservation. Suggestions are assigned intentionally, one by
 // one, and appear on the customer's public Visit Card, where the customer can
-// request them (which triggers a consent SMS: "Odpisz TAK...").
+// request them (which triggers a consent SMS: "Odpisz TAK…").
 //
 // UI follows the app-wide patterns: the service picker is the shared
 // ServiceAutocomplete (styled suggestion dropdown), and the discount editor
@@ -625,7 +625,7 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
 
     const handleQuickServiceCreate = (service: { id?: string; name: string; basePriceNet: number; basePriceGross: number; vatRate: VatRate }) => {
         if (!service.id) {
-            setError('Aby dodać sugestię, usługa musi być zapisana w bazie. Zaznacz „Zapisz w bazie danych" w formularzu.');
+            setError('Najpierw zapisz usługę w cenniku: zaznacz „Zapisz w cenniku” w oknie dodawania usługi.');
             return;
         }
         handleSelectService({
@@ -652,7 +652,7 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
     const stageCurrent = (): StagedSuggestion | null => {
         if (!selectedService) return null;
         if (discountOpen && adjustmentInput.trim() !== '' && (Number.isNaN(parsedValue) || parsedValue < 0)) {
-            setError('Wartość rabatu musi być liczbą nieujemną.');
+            setError('Rabat nie może być ujemny.');
             return null;
         }
         const adjustment = discountActive ? toAdjustment() : undefined;
@@ -731,8 +731,7 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
         <Wrap>
             <Heading>Sugerowane usługi dodatkowe</Heading>
             <Hint>
-                Wybrane usługi (z opcjonalnym rabatem) pojawią się na Karcie Wizyty jako propozycje.
-                Gdy klient je wybierze, otrzyma SMS z prośbą o potwierdzenie odpowiedzią „TAK”.
+                Klient zobaczy te usługi na Karcie wizyty. Wybrane potwierdza SMS-em „TAK”.
             </Hint>
 
             {staged.length > 0 && (
@@ -792,7 +791,7 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
                                 />
                             </FieldGroup>
                             <FieldGroup>
-                                <Label>{adjustmentType === 'PERCENT' ? 'Wartość (%)' : 'Wartość (PLN)'}</Label>
+                                <Label>{adjustmentType === 'PERCENT' ? 'Wartość (%)' : 'Wartość (zł)'}</Label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -871,18 +870,16 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
                                     disabled={busy}
                                 />
                                 <NotifyText>
-                                    <NotifyTitle>Czy powiadomić klienta o dodanych usługach?</NotifyTitle>
+                                    <NotifyTitle>Powiadom klienta SMS-em</NotifyTitle>
                                     <NotifyHint>
-                                        Klient dostanie jednego SMS-a z linkiem do Karty Wizyty, wymieniającego
-                                        {pendingCount === 1 ? ' tę usługę' : ` wszystkie ${pendingCount} usługi`}.
-                                        Poza godzinami 12:00–18:00 wiadomość poczeka w kolejce.
+                                        Jeden SMS z linkiem do Karty wizyty. Poza 12:00–18:00 wyślemy go później.
                                     </NotifyHint>
                                 </NotifyText>
                             </NotifyRow>
                         ) : (
                             <TemplateHint>
-                                Jeśli włączysz szablon „Propozycja dodatkowych usług” w Ustawieniach → Szablony
-                                wiadomości, będziesz mógł powiadomić klienta o dodanych usługach.
+                                Chcesz wysłać klientowi SMS? Włącz szablon „Propozycja dodatkowych usług”
+                                (Ustawienia → Szablony wiadomości).
                             </TemplateHint>
                         )
                     )}
@@ -890,7 +887,7 @@ export const UpsellSuggestionsManager = ({ target, active }: UpsellSuggestionsMa
                     <FooterActions>
                         <PrimaryBtn onClick={handleSave} disabled={busy}>
                             {busy
-                                ? 'Zapisywanie...'
+                                ? 'Zapisywanie…'
                                 : pendingCount === 1
                                     ? 'Zapisz sugestię'
                                     : `Zapisz sugestie (${pendingCount})`}

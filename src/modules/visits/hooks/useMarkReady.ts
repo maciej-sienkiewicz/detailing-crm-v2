@@ -51,10 +51,10 @@ export const useMarkReady = (visitId: string, onSuccess?: () => void) => {
                 // rather than "the management panel", which was nowhere in particular.
                 showError(
                     'Brak kredytów SMS',
-                    apiErrorMessage(error, 'Status zmieniony bez SMS-a. Doładuj kredyty w Ustawienia → Kredyty SMS i AI.')
+                    apiErrorMessage(error, 'Status zmieniony bez SMS-a. Doładuj kredyty w Ustawieniach → Kredyty SMS i AI.')
                 );
             } else {
-                showError('Błąd', 'Nie udało się zmienić statusu wizyty.');
+                showError('Nie udało się oznaczyć auta jako gotowego', 'Spróbuj ponownie.');
             }
         },
     });

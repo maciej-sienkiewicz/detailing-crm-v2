@@ -103,7 +103,7 @@ describe('ServiceInlineRow - cena wpisana w wierszu', () => {
     it('usługa wybrana z cennika przynosi brutto z cennika', async () => {
         const onUpdate = renderRow(baseRow({ serviceName: '' }));
 
-        fireEvent.change(screen.getByPlaceholderText('Wyszukaj lub wpisz nazwę usługi...'), { target: { value: 'Powł' } });
+        fireEvent.change(screen.getByPlaceholderText('Wyszukaj lub wpisz nazwę usługi…'), { target: { value: 'Powł' } });
         fireEvent.click(await screen.findByText('Powłoka ceramiczna'));
 
         expect(onUpdate).toHaveBeenLastCalledWith(expect.objectContaining({

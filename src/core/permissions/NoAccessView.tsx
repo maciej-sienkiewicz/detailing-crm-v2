@@ -19,9 +19,9 @@ export function NoAccessView() {
         <Container>
             <EmptyState
                 icon="🔒"
-                title="Brak przypisanych uprawnień"
+                title="Nie masz jeszcze dostępu"
                 description="Twoje konto jest aktywne, ale nie ma jeszcze przypisanej roli z uprawnieniami.
-                    Poproś właściciela lub administratora firmy o nadanie roli w ustawieniach zespołu."
+                    Poproś właściciela studia, żeby nadał Ci rolę w sekcji Pracownicy."
             />
         </Container>
     );

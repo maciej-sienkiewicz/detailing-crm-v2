@@ -108,9 +108,9 @@ export const ProtocolDemoView = () => {
     return (
         <Container>
             <Header>
-                <Title>Demo: Protokoły Dokumentacji</Title>
+                <Title>Demo: protokoły dokumentacji</Title>
                 <Subtitle>
-                    Podgląd systemu protokołów dla technicznych. Ta strona prezentuje, jak wygląda lista protokołów
+                    Podgląd protokołów dla techników. Ta strona pokazuje, jak wygląda lista protokołów
                     wymaganych przy przyjęciu i wydaniu pojazdu dla wizyty.
                 </Subtitle>
             </Header>

@@ -52,14 +52,14 @@ afterEach(() => {
 describe('VisitCardSection', () => {
     it('renders the setting as an accessible switch with the server state', async () => {
         renderSection();
-        expect(await screen.findByRole('switch', { name: 'Czy korzystać z Karty Wizyty?' })).toBeChecked();
+        expect(await screen.findByRole('switch', { name: 'Karta wizyty dla klientów' })).toBeChecked();
         // Stan początkowy wysyłki ustawia „Domyślnie zaznacz" przy wiadomościach - tu już nie ma drugiego przełącznika.
         expect(screen.queryByRole('switch', { name: 'Czy domyślnie wysyłać Kartę Wizyty?' })).toBeNull();
     });
 
     it('saves a switch and confirms it with a toast', async () => {
         renderSection();
-        await userEvent.click(await screen.findByRole('switch', { name: 'Czy korzystać z Karty Wizyty?' }));
+        await userEvent.click(await screen.findByRole('switch', { name: 'Karta wizyty dla klientów' }));
         await waitFor(() => expect(visitCardApi.updateSettings).toHaveBeenCalledWith({ enabled: false }));
         expect(await screen.findByText('Karta wizyty wyłączona')).toBeInTheDocument();
     });
@@ -72,6 +72,6 @@ describe('VisitCardSection', () => {
 
         vi.mocked(visitCardApi.getSettings).mockResolvedValue(settings({ enabled: false }));
         await userEvent.click(screen.getByRole('button', { name: 'Spróbuj ponownie' }));
-        expect(await screen.findByRole('switch', { name: 'Czy korzystać z Karty Wizyty?' })).not.toBeChecked();
+        expect(await screen.findByRole('switch', { name: 'Karta wizyty dla klientów' })).not.toBeChecked();
     });
 });

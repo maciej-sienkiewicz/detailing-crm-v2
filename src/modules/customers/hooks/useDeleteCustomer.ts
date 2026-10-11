@@ -24,7 +24,7 @@ export const useDeleteCustomer = () => {
             queryClient.removeQueries({ queryKey: [customerDetailQueryKey, customerId] });
             showSuccess(
                 'Klient usunięty',
-                'Dane osobowe zostały wymazane. Historia wizyt i podpisane dokumenty zostały zachowane.'
+                'Dane osobowe wymazane. Wizyty i podpisane dokumenty zostają.'
             );
         },
         onError: (error) => {

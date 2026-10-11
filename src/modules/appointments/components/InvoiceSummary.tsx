@@ -288,17 +288,17 @@ export const InvoiceSummary = ({ services, availableServices, onChange }: Invoic
                                         <ServiceName>{service.name}</ServiceName>
                                         {service.requireManualPrice ? (
                                             <PriceInfo>
-                                                <PriceValue style={{ fontWeight: 600, color: '#f59e0b' }}>NIESTANDARDOWA</PriceValue>
+                                                <PriceValue style={{ fontWeight: 600, color: '#f59e0b' }}>Cena do ustalenia</PriceValue>
                                             </PriceInfo>
                                         ) : (
                                             <PriceInfo>
                                                 <PriceItem>
                                                     <PriceLabel>Netto</PriceLabel>
-                                                    <PriceValue>{formatMoneyAmount(priceNet)} PLN</PriceValue>
+                                                    <PriceValue>{formatMoneyAmount(priceNet)} zł</PriceValue>
                                                 </PriceItem>
                                                 <PriceItem>
                                                     <PriceLabel>Brutto</PriceLabel>
-                                                    <PriceValue>{formatMoneyAmount(priceGross)} PLN</PriceValue>
+                                                    <PriceValue>{formatMoneyAmount(priceGross)} zł</PriceValue>
                                                 </PriceItem>
                                             </PriceInfo>
                                         )}
@@ -337,20 +337,20 @@ export const InvoiceSummary = ({ services, availableServices, onChange }: Invoic
                             {totals.hasTotalDiscount && (
                                 <TotalRow>
                                     <TotalLabel>{t.appointments.invoiceSummary.totalBeforeDiscount}:</TotalLabel>
-                                    <TotalValue $strikethrough>{formatMoneyAmount(totals.totalOriginalNet)} PLN</TotalValue>
+                                    <TotalValue $strikethrough>{formatMoneyAmount(totals.totalOriginalNet)} zł</TotalValue>
                                 </TotalRow>
                             )}
                             <TotalRow>
                                 <TotalLabel>{t.appointments.invoiceSummary.totalNet}:</TotalLabel>
-                                <TotalValue>{formatMoneyAmount(totals.totalFinalNet)} PLN</TotalValue>
+                                <TotalValue>{formatMoneyAmount(totals.totalFinalNet)} zł</TotalValue>
                             </TotalRow>
                             <TotalRow>
                                 <TotalLabel>{t.appointments.invoiceSummary.totalVat}:</TotalLabel>
-                                <TotalValue>{formatMoneyAmount(totals.totalVat)} PLN</TotalValue>
+                                <TotalValue>{formatMoneyAmount(totals.totalVat)} zł</TotalValue>
                             </TotalRow>
                             <FinalTotal>
                                 <span>{t.appointments.invoiceSummary.totalToPay}:</span>
-                                <span>{formatMoneyAmount(totals.totalFinalGross)} PLN</span>
+                                <span>{formatMoneyAmount(totals.totalFinalGross)} zł</span>
                             </FinalTotal>
                         </Totals>
                     </>

@@ -21,7 +21,7 @@ describe('describeBulkPaymentStatus', () => {
     it('odmienia liczebnik przy jednym dokumencie', () => {
         const message = describeBulkPaymentStatus(result({ updated: 1 }), 'PENDING');
 
-        expect(message.title).toBe('Oznaczono 1 dokument jako oczekujący');
+        expect(message.title).toBe('Oznaczono 1 dokument jako nieopłacony');
         expect(message.detail).toBeUndefined();
     });
 
@@ -50,7 +50,7 @@ describe('describeBulkPaymentStatus', () => {
             'PENDING',
         );
 
-        expect(message.title).toBe('Oznaczono 2 dokumenty jako oczekujące');
+        expect(message.title).toBe('Oznaczono 2 dokumenty jako nieopłacone');
         expect(message.detail).toBe('Pominięto 2 dokumenty: opłaconego dokumentu nie można cofnąć.');
     });
 

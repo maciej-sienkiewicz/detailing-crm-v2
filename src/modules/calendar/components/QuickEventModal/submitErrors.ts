@@ -1,6 +1,6 @@
 // src/modules/calendar/components/QuickEventModal/submitErrors.ts
 //
-// Dymek przy nieudanym zapisie wizyty z kalendarza.
+// Dymek przy nieudanym zapisie rezerwacji z kalendarza.
 //
 // Kiedyś mówił tylko „Sprawdź zaznaczone pola formularza". Walidacja działa w
 // przeglądarce - do serwera nic nie idzie, więc po zgłoszeniu „nie można zapisać
@@ -8,15 +8,12 @@
 // daleko poza ekranem, zwłaszcza na telefonie. Teraz dymek mówi, czego brakuje,
 // i jest to widoczne na każdym zrzucie ekranu dołączonym do zgłoszenia.
 
+import { pluralPl } from '@/common/utils/plural';
+
 /** Kolejność pól na formularzu - ta sama dla dymka i przewinięcia do pierwszego błędu. */
 export const SUBMIT_ERROR_ORDER = ['startDateTime', 'endDateTime', 'customer', 'services', 'servicePrices', 'color'] as const;
 
-const fieldsWord = (n: number): string => {
-    if (n === 1) return 'pole';
-    const lastTwo = n % 100;
-    const last = n % 10;
-    return last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14) ? 'pola' : 'pól';
-};
+const fieldsWord = (n: number): string => pluralPl(n, 'pole', 'pola', 'pól');
 
 /** Klucz pierwszego błędu w kolejności pól; błąd spoza listy na końcu. */
 export const firstSubmitErrorKey = (errors: Record<string, string>): string | undefined =>

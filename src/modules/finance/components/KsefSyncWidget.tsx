@@ -84,7 +84,7 @@ export const KsefSyncWidget: React.FC = () => {
       <Message>
         {failed ? (
           <>
-            <strong>Synchronizacja z KSeF nie powiodła się.</strong>{' '}
+            <strong>Nie udało się pobrać faktur z KSeF.</strong>{' '}
             Lista może nie zawierać najnowszych faktur.
             {syncStatus.lastError && (
               <Detail title={syncStatus.lastError}>{syncStatus.lastError}</Detail>
@@ -93,7 +93,7 @@ export const KsefSyncWidget: React.FC = () => {
         ) : (
           <>
             <strong>Nie pobrano jeszcze faktur z KSeF.</strong>{' '}
-            Widać tu wyłącznie dokumenty dodane w CRM - sprawdź dane dostępowe KSeF w Ustawieniach.
+            Widać tu wyłącznie dokumenty dodane w CRM - sprawdź połączenie w Ustawieniach, w sekcji KSeF.
           </>
         )}
       </Message>

@@ -54,7 +54,7 @@ export function PreviewPanel({ state, applying, applyError, onApply, onClose }: 
             <Head>
                 <div>
                     <Title>Uprawnienia roli</Title>
-                    <Subtitle>„{state.roleName}"</Subtitle>
+                    <Subtitle>„{state.roleName}”</Subtitle>
                 </div>
                 <CloseBtn type="button" onClick={onClose} aria-label="Zamknij panel uprawnień">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -65,8 +65,7 @@ export function PreviewPanel({ state, applying, applyError, onApply, onClose }: 
 
             <Body>
                 <Note>
-                    Zmiany działają tylko w tym podglądzie. Rola w ustawieniach studia zostaje bez zmian -
-                    jeśli chcesz ją zmienić naprawdę, zrób to w ustawieniach ról.
+                    Zmiany działają tylko w podglądzie. Prawdziwą rolę zmienisz w ustawieniach ról.
                 </Note>
 
                 <DiffCard>
@@ -94,7 +93,7 @@ export function PreviewPanel({ state, applying, applyError, onApply, onClose }: 
                             ))}
                             {trackWorkTimeChanged && (
                                 <DiffItem $kind={draftTrackWorkTime ? 'added' : 'removed'}>
-                                    {draftTrackWorkTime ? '+ Śledzenie czasu pracy' : '− Śledzenie czasu pracy'}
+                                    {draftTrackWorkTime ? '+ Liczony czas pracy' : '− Liczony czas pracy'}
                                 </DiffItem>
                             )}
                         </DiffList>
@@ -118,7 +117,7 @@ export function PreviewPanel({ state, applying, applyError, onApply, onClose }: 
                 {applyError && <ApplyError role="alert">{applyError}</ApplyError>}
                 <FooterRow>
                     <PendingText>
-                        {pending ? 'Niezastosowane zmiany' : 'Podgląd pokazuje te uprawnienia'}
+                        {pending ? 'Zmiany jeszcze nie działają' : 'Podgląd pokazuje te uprawnienia'}
                     </PendingText>
                     <GhostBtn
                         type="button"
@@ -132,7 +131,7 @@ export function PreviewPanel({ state, applying, applyError, onApply, onClose }: 
                         disabled={!pending || applying}
                         onClick={() => apply(draft, draftTrackWorkTime)}
                     >
-                        {applying ? 'Zapisywanie...' : 'Zastosuj w podglądzie'}
+                        {applying ? 'Zapisywanie…' : 'Zastosuj w podglądzie'}
                     </PrimaryBtn>
                 </FooterRow>
             </Footer>
@@ -146,8 +145,7 @@ function Effects({ effects }: { effects: SimulatedEffect[] }) {
             <DiffTitle>Co system wysłałby na zewnątrz</DiffTitle>
             {effects.length === 0 ? (
                 <DiffEmpty>
-                    Nic. Wiadomości do klientów, powiadomienia i zapytania do usług zewnętrznych nie wychodzą
-                    z podglądu - pojawią się tutaj, gdy system by je wysłał.
+                    Nic. Podgląd niczego nie wysyła - SMS-y i powiadomienia, które by wyszły, zobaczysz tutaj.
                 </DiffEmpty>
             ) : (
                 <EffectList>

@@ -31,7 +31,7 @@ export function PlanCard({ plan, currentPlanKey, disabled, onSelect }: Props) {
             <Head>
                 <Name>{plan.name}</Name>
                 {isActive
-                    ? <StatusPill $tone="ok">Twój plan</StatusPill>
+                    ? <StatusPill $tone="ok">Twój pakiet</StatusPill>
                     : isRecommended && <StatusPill $tone="info">Polecany</StatusPill>}
             </Head>
 

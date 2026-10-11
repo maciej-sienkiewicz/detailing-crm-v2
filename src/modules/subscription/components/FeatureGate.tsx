@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useFeature } from '../hooks/useFeature';
 import { newSubscriptionApi } from '../api/subscriptionApi';
+import { useFeaturePlans } from '../api/subscriptionQueries';
 import { AddOnActivationDialog } from './PlanChangeDialog';
 import type { FeatureKey, AddOnKey, AddOnPreview } from '../types';
 import { formatCents } from '../utils/formatters';
@@ -41,6 +42,10 @@ const ZapIcon = () => (
 
 export function FeatureGate({ featureKey, children, demoContent }: Props) {
     const feature = useFeature(featureKey);
+    // Cena FULL z cennika, a nie wpisana na sztywno: stała kwota w tekście rozjeżdżała
+    // się z cennikiem przy każdej zmianie ceny. Gdy cennika brak, zdanie idzie bez kwoty.
+    const { data: plans } = useFeaturePlans();
+    const fullPriceCents = plans?.find(p => p.key === 'FULL')?.monthlyPriceGrossCents;
 
     const [addOnPreview, setAddOnPreview] = useState<AddOnPreview | null>(null);
     const [loadingPreview, setLoadingPreview] = useState(false);
@@ -91,7 +96,7 @@ export function FeatureGate({ featureKey, children, demoContent }: Props) {
                         <LockIcon><LockSvg /></LockIcon>
 
                         <OverlayTitle>
-                            Ten moduł wymaga rozszerzenia
+                            Ten widok jest w module dodatkowym
                             {upsell?.addOnName && (
                                 <><br /><span style={{ color: '#0284c7' }}>{upsell.addOnName}</span></>
                             )}
@@ -103,7 +108,7 @@ export function FeatureGate({ featureKey, children, demoContent }: Props) {
 
                         {upsell?.monthlyPriceGrossCents != null && upsell.isAvailable && (
                             <PriceHint>
-                                Dodaj za {formatCents(upsell.monthlyPriceGrossCents)}/mies.
+                                Dodaj za {formatCents(upsell.monthlyPriceGrossCents)} brutto / mies.
                             </PriceHint>
                         )}
 
@@ -123,8 +128,9 @@ export function FeatureGate({ featureKey, children, demoContent }: Props) {
                         )}
 
                         <UpgradeHint>
-                            Lub przejdź na pakiet <a href="/settings?tab=plan">FULL</a> (299,00 PLN/mies.)
-                            i zyskaj dostęp do wszystkich modułów.
+                            Albo przejdź na pakiet <a href="/settings?tab=plan">FULL</a>
+                            {fullPriceCents ? ` (${formatCents(fullPriceCents)} brutto / mies.)` : ''}
+                            {' '}ze wszystkimi modułami.
                         </UpgradeHint>
                     </OverlayCard>
                 </Overlay>

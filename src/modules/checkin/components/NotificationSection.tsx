@@ -202,8 +202,7 @@ const MissingCustomerEmail = ({ visitId, onSaved }: MissingCustomerEmailProps) =
             <MissingEmailNotice>
                 <MissingEmailIcon><WarningIcon /></MissingEmailIcon>
                 <MissingEmailText>
-                    Wysyłka e-maila jest niedostępna - klient nie ma zapisanego adresu e-mail.
-                    Możesz uzupełnić go tutaj, bez wracania do formularza.
+                    Klient nie ma adresu e-mail. Wpisz go tutaj, żeby wysłać wiadomość.
                 </MissingEmailText>
             </MissingEmailNotice>
 
@@ -222,7 +221,7 @@ const MissingCustomerEmail = ({ visitId, onSaved }: MissingCustomerEmailProps) =
                     }}
                 />
                 <SaveEmailBtn type="submit" disabled={saveEmail.isPending || email.trim().length === 0}>
-                    {saveEmail.isPending ? 'Zapisywanie...' : 'Zapisz adres'}
+                    {saveEmail.isPending ? 'Zapisywanie…' : 'Zapisz adres'}
                 </SaveEmailBtn>
             </MissingEmailForm>
 
@@ -247,7 +246,7 @@ const PhotoSelector = ({ visitId, selectedIds, onTogglePhoto, onSelectAll, onDes
     if (isLoading) {
         return (
             <PhotoGridWrap>
-                <PhotoLoadingPlaceholder>Ładowanie zdjęć...</PhotoLoadingPlaceholder>
+                <PhotoLoadingPlaceholder>Wczytywanie zdjęć…</PhotoLoadingPlaceholder>
             </PhotoGridWrap>
         );
     }
@@ -255,7 +254,7 @@ const PhotoSelector = ({ visitId, selectedIds, onTogglePhoto, onSelectAll, onDes
     if (photos.length === 0) {
         return (
             <PhotoGridWrap>
-                <NoPhotosHint>Brak zdjęć dodanych do tej wizyty</NoPhotosHint>
+                <NoPhotosHint>Ta wizyta nie ma jeszcze zdjęć</NoPhotosHint>
             </PhotoGridWrap>
         );
     }
@@ -332,7 +331,7 @@ const AttachmentCheckbox = ({ icon, label, suffix, checked, disabled, onChange, 
 interface NotifCardToggleProps {
     icon: ReactNode;
     label: string;
-    description: string;
+    description?: string;
     active: boolean;
     disabled?: boolean;
     disabledHint?: string;
@@ -349,7 +348,9 @@ const NotifCardToggle = ({ icon, label, description, active, disabled, disabledH
             <NotifIconWrap $active={active && !disabled}>{icon}</NotifIconWrap>
             <NotifLabelGroup>
                 <NotifLabel $active={active && !disabled}>{label}</NotifLabel>
-                <NotifDescription>{disabled && disabledHint ? disabledHint : description}</NotifDescription>
+                {(disabled && disabledHint ? disabledHint : description) && (
+                    <NotifDescription>{disabled && disabledHint ? disabledHint : description}</NotifDescription>
+                )}
             </NotifLabelGroup>
             <ToggleTrack $on={active && !disabled} />
         </NotifCardHeader>
@@ -460,11 +461,10 @@ export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled,
             <NotifCardToggle
                 icon={<EmailIcon />}
                 label="Wyślij e-mail potwierdzający"
-                description="Szczegółowe potwierdzenie z danymi wizyty"
                 active={sendEmail}
                 disabled={emailDisabled}
                 disabledHint={!visitWelcomeEnabled
-                    ? 'Wyłączone globalnie w konfiguracji e-mail'
+                    ? 'Wyłączone w ustawieniach e-mail'
                     : 'Niedostępne - brak adresu e-mail klienta'}
                 onToggle={() => onChange({ ...options, sendEmail: !sendEmail })}
             >
@@ -517,7 +517,7 @@ export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled,
 
                             <AttachmentCheckbox
                                 icon={<DamageIcon />}
-                                label="Model uszkodzeń pojazdu"
+                                label="Mapa uszkodzeń"
                                 checked={attachDamageMap}
                                 disabled={!hasCustomerEmail}
                                 onChange={v => updateEmailOptions({ attachDamageMap: v })}
@@ -531,18 +531,18 @@ export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled,
             {visitCardActive && (
                 <NotifCardToggle
                     icon={<SmsIcon />}
-                    label="Wyślij SMS z linkiem do Karty Wizyty"
-                    description="Klient otworzy Kartę Wizyty i sam domówi dodatkowe usługi"
+                    label="Wyślij SMS z linkiem do Karty wizyty"
+                    description="Klient otworzy Kartę wizyty i sam domówi dodatkowe usługi"
                     active={sendVisitCard}
                     disabled={!visitCardLinkSmsEnabled}
-                    disabledHint="Wyłączone globalnie w konfiguracji SMS"
+                    disabledHint="Wyłączone w ustawieniach SMS"
                     onToggle={() => onChange({ ...options, sendVisitCard: !sendVisitCard })}
                 />
             )}
             {visitCardActive && alreadySent && (
                 <AlreadySentNotice role="note">
                     {alreadySent.text}
-                    {sendVisitCard && ' Włączyłeś wysyłkę mimo to - klient dostanie link drugi raz.'}
+                    {sendVisitCard && ' Wysyłka i tak jest włączona, więc klient dostanie link drugi raz.'}
                 </AlreadySentNotice>
             )}
             </LockedSection>

@@ -21,40 +21,41 @@ const visibleLegs = (badge: HTMLElement) =>
         .filter(leg => leg.style.display !== 'none')
         .map(leg => `${leg.dataset.direction}:${leg.querySelector('.fc-d2d-count')?.textContent}`);
 
-describe('Door to Door w kalendarzu - przyjęcie niebieskie, oddanie czerwone', () => {
-    it('przyjęcie pojazdu jest niebieskie (jak dotąd), oddanie czerwone', () => {
+describe('Door to door w kalendarzu - odbiór niebieski, odwiezienie czerwone', () => {
+    it('odbiór auta jest niebieski (jak dotąd), odwiezienie czerwone', () => {
         expect(D2D_DIRECTION_COLOR.PICKUP).toBe('#0ea5e9');
         expect(D2D_DIRECTION_COLOR.DELIVERY).toBe('#ef4444');
-        expect(D2D_DIRECTION_LABEL).toEqual({ PICKUP: 'Przyjęcie', DELIVERY: 'Oddanie' });
+        expect(D2D_DIRECTION_LABEL).toEqual({ PICKUP: 'Odbiór', DELIVERY: 'Odwiezienie' });
     });
 
-    it('liczy przyjęcia i oddania osobno', () => {
+    it('liczy odbiory i odwiezienia osobno', () => {
         expect(countByDirection([entry('a', 'PICKUP'), entry('b', 'DELIVERY'), entry('c', 'DELIVERY')]))
             .toEqual({ PICKUP: 1, DELIVERY: 2 });
         expect(countByDirection([])).toEqual({ PICKUP: 0, DELIVERY: 0 });
     });
 
-    it('podpowiedź: najpierw przyjęcia, potem oddania, bez ruszania listy z serwera', () => {
+    it('podpowiedź: najpierw odbiory, potem odwiezienia, bez ruszania listy z serwera', () => {
         const entries = [entry('d1', 'DELIVERY'), entry('p1', 'PICKUP'), entry('d2', 'DELIVERY'), entry('p2', 'PICKUP')];
         expect(sortByDirection(entries).map(e => e.id)).toEqual(['p1', 'p2', 'd1', 'd2']);
         expect(entries.map(e => e.id)).toEqual(['d1', 'p1', 'd2', 'p2']);
     });
 
     it('opis dla czytnika ekranu wymienia tylko kierunki, które są', () => {
-        expect(d2dBadgeLabel({ PICKUP: 1, DELIVERY: 2 })).toBe('Door to Door: przyjęcia 1, oddania 2');
-        expect(d2dBadgeLabel({ PICKUP: 0, DELIVERY: 1 })).toBe('Door to Door: oddania 1');
+        expect(d2dBadgeLabel({ PICKUP: 1, DELIVERY: 2 })).toBe('Door to door: 1 odbiór, 2 odwiezienia');
+        expect(d2dBadgeLabel({ PICKUP: 0, DELIVERY: 1 })).toBe('Door to door: 1 odwiezienie');
+        expect(d2dBadgeLabel({ PICKUP: 5, DELIVERY: 0 })).toBe('Door to door: 5 odbiorów');
     });
 });
 
 describe('znacznik w rogu dnia', () => {
-    it('dzień z przyjęciem i oddaniem ma dwa samochodziki, każdy ze swoją liczbą', () => {
+    it('dzień z odbiorem i odwiezieniem ma dwa samochodziki, każdy ze swoją liczbą', () => {
         const badge = createD2DBadge();
         updateD2DBadge(badge, [entry('a', 'PICKUP'), entry('b', 'DELIVERY'), entry('c', 'DELIVERY')]);
 
         expect(visibleLegs(badge)).toEqual(['PICKUP:1', 'DELIVERY:2']);
         expect(badge.querySelector('.fc-d2d-leg--pickup')?.getAttribute('data-direction')).toBe('PICKUP');
         expect(badge.querySelector('.fc-d2d-leg--delivery')?.getAttribute('data-direction')).toBe('DELIVERY');
-        expect(badge.getAttribute('aria-label')).toBe('Door to Door: przyjęcia 1, oddania 2');
+        expect(badge.getAttribute('aria-label')).toBe('Door to door: 1 odbiór, 2 odwiezienia');
     });
 
     it('sam odbiór - widać tylko niebieski; po zmianie danych samochodziki się przeliczają', () => {

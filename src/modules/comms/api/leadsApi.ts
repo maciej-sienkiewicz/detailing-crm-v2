@@ -198,7 +198,7 @@ export const leadsApi = {
         return data;
     },
 
-    /** [Akceptuj] sugestię. Kwota wymagana dla usługi z wyceną niestandardową bez ceny. */
+    /** [Dodaj do wyceny] sugestię. Kwota wymagana dla usługi z wyceną niestandardową bez ceny. */
     acceptSuggestion: async (leadId: string, itemId: string, priceGross?: number): Promise<Lead> => {
         const { data } = await apiClient.post(
             `/v1/leads/${leadId}/services/suggestions/${itemId}/accept`,
@@ -213,7 +213,7 @@ export const leadsApi = {
         return data;
     },
 
-    /** „Stwórz rezerwację": przenieś wszystkie nieodrzucone sugestie do wyceny (409 gdy któraś bez ceny). */
+    /** „Umów wizytę": przenieś wszystkie nieodrzucone sugestie do wyceny (409 gdy któraś bez ceny). */
     acceptAllSuggestions: async (leadId: string): Promise<Lead> => {
         const { data } = await apiClient.post(`/v1/leads/${leadId}/services/suggestions/accept-all`, {});
         return data;

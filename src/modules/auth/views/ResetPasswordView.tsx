@@ -111,7 +111,7 @@ export const ResetPasswordView = ({ mode = 'reset' }: ResetPasswordViewProps) =>
         <AuthLayout statement={statement}>
             <AuthHeading>
                 <h1>{copy.title}</h1>
-                <p>{copy.subtitle}</p>
+                {copy.subtitle && <p>{copy.subtitle}</p>}
             </AuthHeading>
 
             {apiError && <ErrorAlert message={apiError} />}

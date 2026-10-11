@@ -235,7 +235,7 @@ export function PurchaseConfirmModal({ pkg, currentBalance, isPending, onConfirm
             <ModalFooter>
                 <Button onClick={onClose} disabled={isPending}>Anuluj</Button>
                 <Button variant="primary" onClick={onConfirm} disabled={isPending}>
-                    {isPending ? 'Płatność w toku…' : `Kupuję za ${gross}`}
+                    {isPending ? 'Płatność w toku…' : `Kup za ${gross}`}
                 </Button>
             </ModalFooter>
         </ModalShell>
@@ -422,8 +422,8 @@ function TransactionsPanel() {
                         <Pager>
                             <span>Strona {page + 1} z {totalPages}</span>
                             <PagerButtons>
-                                <Button size="sm" onClick={() => setPage(p => p - 1)} disabled={page === 0}>Wstecz</Button>
-                                <Button size="sm" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages - 1}>Dalej</Button>
+                                <Button size="sm" onClick={() => setPage(p => p - 1)} disabled={page === 0}>Poprzednia</Button>
+                                <Button size="sm" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages - 1}>Następna</Button>
                             </PagerButtons>
                         </Pager>
                     )}

@@ -440,8 +440,8 @@ export const DashboardView = () => {
         <ErrorBox>
           <ErrorIcon />
           <ErrorContent>
-            <ErrorTitle>Nie udało się załadować danych</ErrorTitle>
-            <ErrorMsg>Sprawdź połączenie z serwerem i spróbuj ponownie.</ErrorMsg>
+            <ErrorTitle>Nie udało się wczytać danych</ErrorTitle>
+            <ErrorMsg>Sprawdź internet i spróbuj ponownie.</ErrorMsg>
           </ErrorContent>
           <RetryBtn onClick={() => refetch()}>Spróbuj ponownie</RetryBtn>
         </ErrorBox>

@@ -1,6 +1,6 @@
 // src/modules/statistics/components/ReportNotificationSetting.tsx
 //
-// „Dostępny nowy raport" w Ustawieniach → Tablety, telefon, kontakty → Powiadomienia.
+// „Powiadomienie o nowym raporcie" w Ustawieniach → Tablety, telefon, kontakty → Powiadomienia.
 // Ustawienie należy do osoby (trafia na JEJ telefon), więc każdy z dostępem do
 // raportu ustawia je sam. Push przychodzi w dniu, w którym domknął się okres.
 
@@ -37,7 +37,7 @@ function Setting() {
 
     return (
         <Box>
-            <SectionTitle as="h3">Dostępny nowy raport</SectionTitle>
+            <SectionTitle as="h3">Powiadomienie o nowym raporcie</SectionTitle>
             <Segmented
                 label="Powiadomienie o nowym raporcie"
                 size="sm"

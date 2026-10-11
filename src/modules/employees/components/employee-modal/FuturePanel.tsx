@@ -25,7 +25,7 @@ const COPY: Record<Kind, { icon: typeof Clock; title: string; text: (first: stri
     'no-account-worktime': {
         icon: Clock,
         title: 'Brak kart czasu pracy',
-        text: first => `Bez konta nie ma kart czasu pracy. Po utworzeniu konta w „Ustawieniach" ${first} wypełni je sam.`,
+        text: first => `Utwórz konto w zakładce „Ustawienia”, a ${first} będzie tu wpisywać godziny.`,
     },
 };
 

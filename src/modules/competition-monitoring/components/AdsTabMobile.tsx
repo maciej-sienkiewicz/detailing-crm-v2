@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { AlertCircle, ChevronDown, ChevronRight, ChevronUp, ExternalLink } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { pluralPl } from '@/common/utils/plural';
 import type { AdBar, AdCalendar, AdCalendarRow, UnlinkedProfile } from '../types';
 import { PROFILE_COLORS } from '../types';
 import { CenterState, formatExact } from './MetricBits';
@@ -284,7 +285,7 @@ const ProfileCard: React.FC<{
                 <UserName>@{row.username}</UserName>
                 {row.activeNow > 0 && (
                     <ActivePill>
-                        <ActiveDot /> TRWA {row.activeNow}
+                        <ActiveDot /> Aktywne: {row.activeNow}
                     </ActivePill>
                 )}
             </CardHead>
@@ -295,7 +296,7 @@ const ProfileCard: React.FC<{
                         <ActiveChip key={ad.adId} type="button" onClick={() => onOpenAd(ad.adId)}>
                             <ActiveDot />
                             <ChipTitle>{ad.title ?? 'Kampania'}</ChipTitle>
-                            <ChipMeta>· {activeChipLabel(ad)}</ChipMeta>
+                            <ChipMeta>{activeChipLabel(ad)}</ChipMeta>
                             <ExternalLink size={12} aria-hidden />
                         </ActiveChip>
                     ))}
@@ -314,7 +315,7 @@ const ProfileCard: React.FC<{
                         <HistogramCol
                             key={m}
                             type="button"
-                            aria-label={`${MONTH_NAMES[m]}: ${bucket.daysInMonth} dni sponsorowanych, ${bucket.ads.length} kampanii`}
+                            aria-label={`${MONTH_NAMES[m]}: ${bucket.daysInMonth} ${pluralPl(bucket.daysInMonth, 'dzień sponsorowany', 'dni sponsorowane', 'dni sponsorowanych')}, ${bucket.ads.length} ${pluralPl(bucket.ads.length, 'kampania', 'kampanie', 'kampanii')}`}
                             aria-expanded={hasData ? isExpanded : undefined}
                             disabled={!hasData}
                             $current={isCurrent}
@@ -353,8 +354,8 @@ const ProfileCard: React.FC<{
                     <MonthDrawerHead>
                         <ChevronDown size={14} aria-hidden />
                         <span>
-                            <strong>{MONTH_NAMES[expandedMonth]}</strong> · {buckets[expandedMonth].ads.length}{' '}
-                            {buckets[expandedMonth].ads.length === 1 ? 'kampania' : 'kampanie'}
+                            <strong>{MONTH_NAMES[expandedMonth]}</strong>: {buckets[expandedMonth].ads.length}{' '}
+                            {pluralPl(buckets[expandedMonth].ads.length, 'kampania', 'kampanie', 'kampanii')}
                         </span>
                     </MonthDrawerHead>
                     {buckets[expandedMonth].ads.map(ad => (
@@ -363,8 +364,8 @@ const ProfileCard: React.FC<{
                             <AdRowInfo>
                                 <AdRowTitle>{ad.title ?? 'Kampania'}</AdRowTitle>
                                 <AdRowMeta>
-                                    {formatRange(ad.start, ad.stop)} · {ad.days} dni
-                                    {ad.reach !== null && ` · zasięg ${formatExact(ad.reach)}`}
+                                    {formatRange(ad.start, ad.stop)}, {ad.days} {pluralPl(ad.days, 'dzień', 'dni', 'dni')}
+                                    {ad.reach !== null && `, zasięg ${formatExact(ad.reach)}`}
                                 </AdRowMeta>
                             </AdRowInfo>
                             <ChevronRight size={16} aria-hidden />

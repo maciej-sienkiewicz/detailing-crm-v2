@@ -292,7 +292,7 @@ export const TaskModal = ({ isOpen, onClose, onSave, editingTask }: TaskModalPro
           <ClipboardList />
         </IconWrap>
         <ModalTitleGroup>
-          <ModalTitle>{isEditing ? 'Edytuj notatkę' : 'Nowa notatka'}</ModalTitle>
+          <ModalTitle>{isEditing ? 'Edytuj zadanie' : 'Nowe zadanie'}</ModalTitle>
         </ModalTitleGroup>
         <CloseBtn onClick={onClose} aria-label="Zamknij" />
       </Header>
@@ -320,7 +320,7 @@ export const TaskModal = ({ isOpen, onClose, onSave, editingTask }: TaskModalPro
 
           <FieldGroup>
             <LabelRow>
-              <Label htmlFor="task-meta">Kontekst</Label>
+              <Label htmlFor="task-meta">Szczegóły</Label>
               <LabelNote>Opcjonalne</LabelNote>
             </LabelRow>
             <Textarea
@@ -337,7 +337,7 @@ export const TaskModal = ({ isOpen, onClose, onSave, editingTask }: TaskModalPro
 
           {!isEditing && (
             <FieldGroup>
-              <Label>Widoczność zadania</Label>
+              <Label>Kto widzi</Label>
               <VisibilityTabs>
                 <VisibilityTab
                   type="button"
@@ -412,7 +412,7 @@ export const TaskModal = ({ isOpen, onClose, onSave, editingTask }: TaskModalPro
             Anuluj
           </BtnGhost>
           <BtnPrimary type="submit" disabled={!title.trim() || saving} $loading={saving}>
-            {saving ? 'Zapisuję...' : isEditing ? 'Zapisz zmiany' : 'Dodaj notatkę'}
+            {saving ? 'Zapisywanie…' : isEditing ? 'Zapisz zmiany' : 'Dodaj zadanie'}
           </BtnPrimary>
         </ModalFooter>
       </form>

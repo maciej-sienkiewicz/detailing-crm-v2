@@ -35,7 +35,7 @@ const renderCard = () =>
         </MemoryRouter>,
     );
 
-const toggle = () => screen.getByRole('switch', { name: 'Czy umieszczać logo na dokumentach?' });
+const toggle = () => screen.getByRole('switch', { name: 'Logo na dokumentach' });
 
 describe('DocumentLogoCard', () => {
     beforeEach(() => {
@@ -77,6 +77,6 @@ describe('DocumentLogoCard', () => {
         renderCard();
 
         expect(toggle()).not.toBeChecked();
-        expect(screen.getByText('Logo nie jest obecnie umieszczane na dokumentach.')).toBeInTheDocument();
+        expect(screen.getByText('Nowe dokumenty powstają bez logo.')).toBeInTheDocument();
     });
 });

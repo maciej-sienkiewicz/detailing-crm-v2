@@ -173,7 +173,7 @@ export const DoorToDoorModal = ({
             pickup: pickupState === 'partial' ? 'Podaj miasto i ulicę albo zostaw puste' : null,
             delivery: deliveryState === 'partial' ? 'Podaj miasto i ulicę albo zostaw puste' : null,
             form: noLeg
-                ? 'Podaj adres odbioru, adres dostarczenia albo oba - inaczej nie ma czego przewozić.'
+                ? 'Podaj adres odbioru, adres odwiezienia albo oba - inaczej nie ma czego przewozić.'
                 : null,
         };
     }, [data.enabled, pickupState, deliveryState]);
@@ -182,11 +182,11 @@ export const DoorToDoorModal = ({
 
     const routeSummary =
         pickupState === 'complete' && deliveryState === 'complete'
-            ? 'Odbieramy pojazd i odwozimy go po realizacji.'
+            ? 'Odbieramy pojazd i odwozimy go po usłudze.'
             : pickupState === 'complete'
-                ? 'Odbieramy pojazd. Po realizacji klient odbiera go osobiście w studiu.'
+                ? 'Odbieramy pojazd. Po usłudze klient odbiera go osobiście w studiu.'
                 : deliveryState === 'complete'
-                    ? 'Klient dostarcza pojazd do studia. Po realizacji odwozimy go pod wskazany adres.'
+                    ? 'Klient przywozi pojazd do studia. Po usłudze odwozimy go pod wskazany adres.'
                     : null;
 
     const copyPickupToDelivery = () =>
@@ -236,7 +236,7 @@ export const DoorToDoorModal = ({
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Door to door</ModalTitle>
-                    <ModalSubtitle>Odbiór auta od klienta, odwiezienie po realizacji albo jedno i drugie</ModalSubtitle>
+                    <ModalSubtitle>Odbiór auta od klienta, odwiezienie po usłudze albo jedno i drugie</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
@@ -246,8 +246,8 @@ export const DoorToDoorModal = ({
                     {/* Klient potrafi zrezygnować z dowozu - wyłączenie zachowuje adresy. */}
                     <EnableRow>
                         <EnableText>
-                            <strong>Dowóz i odbiór pojazdu</strong>
-                            <span>{data.enabled ? 'Usługa zlecona dla tej wizyty' : 'Usługa wyłączona'}</span>
+                            <strong>Odbiór i odwiezienie pojazdu</strong>
+                            <span>{data.enabled ? 'Usługa włączona dla tej wizyty' : 'Usługa wyłączona'}</span>
                         </EnableText>
                         <Toggle
                             size="sm"
@@ -279,7 +279,7 @@ export const DoorToDoorModal = ({
 
                             <Leg aria-labelledby="d2d-delivery-title">
                                 <LegHead>
-                                    <SectionTitle as="h3" id="d2d-delivery-title"><House aria-hidden="true" />Dostarczenie po realizacji</SectionTitle>
+                                    <SectionTitle as="h3" id="d2d-delivery-title"><House aria-hidden="true" />Odwiezienie po usłudze</SectionTitle>
                                     {/* „Odwieźcie tam, skąd wzięliście" to najczęstszy wariant. */}
                                     <Button
                                         variant="ghost"
@@ -317,7 +317,7 @@ export const DoorToDoorModal = ({
                                                 });
                                             }}
                                         >
-                                            <option value="">Nieprzypisany</option>
+                                            <option value="">Bez kierowcy</option>
                                             {driverOptions.map(d => (
                                                 <option key={d.id} value={d.id}>{d.label}</option>
                                             ))}
@@ -356,7 +356,7 @@ export const DoorToDoorModal = ({
             <ModalFooter>
                 <Button onClick={onClose}>Anuluj</Button>
                 <Button variant="primary" onClick={handleSave} disabled={isSaving}>
-                    {isSaving ? 'Zapisywanie...' : 'Zapisz'}
+                    {isSaving ? 'Zapisywanie…' : 'Zapisz'}
                 </Button>
             </ModalFooter>
         </ModalShell>

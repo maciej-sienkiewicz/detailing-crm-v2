@@ -421,7 +421,7 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
         try {
             await Promise.all(Array.from(files).map(f => uploadPhoto(f)));
         } catch {
-            alert('Błąd podczas przesyłania zdjęć. Spróbuj ponownie.');
+            alert('Nie udało się przesłać zdjęć. Spróbuj ponownie.');
         }
     };
 
@@ -430,7 +430,7 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
         try {
             await deletePhoto(photoId);
         } catch {
-            alert('Błąd podczas usuwania zdjęcia. Spróbuj ponownie.');
+            alert('Nie udało się usunąć zdjęcia. Spróbuj ponownie.');
         }
     };
 
@@ -519,7 +519,7 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
                                     <polyline points="23 4 23 10 17 10" />
                                     <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
                                 </svg>
-                                {isRefreshing ? 'Odświeżam...' : 'Odśwież'}
+                                {isRefreshing ? 'Odświeżanie…' : 'Odśwież'}
                             </UploadBtn>
                         </UploadActions>
 
@@ -529,7 +529,7 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
                                     <polyline points="23 4 23 10 17 10" />
                                     <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
                                 </svg>
-                                Przesyłanie zdjęć...
+                                Przesyłanie zdjęć…
                             </UploadingLabel>
                         )}
                     </UploadZone>

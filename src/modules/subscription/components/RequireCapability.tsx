@@ -51,7 +51,7 @@ export function RequireCapability({ capability, mode, message, children }: Props
             return null;
         case 'disable':
             return (
-                <span title={cap.lockReason ?? 'Funkcja niedostępna w Twoim planie'} aria-disabled="true">
+                <span title={cap.lockReason ?? 'Tej funkcji nie masz w swoim pakiecie'} aria-disabled="true">
                     <DisabledWrap>{children}</DisabledWrap>
                 </span>
             );

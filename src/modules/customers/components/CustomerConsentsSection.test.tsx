@@ -48,9 +48,9 @@ describe('CustomerConsentsSection', () => {
         expect(document.body.textContent).not.toContain('·');
     });
 
-    it('„Udziel zgody" podpisuje aktualny szablon', () => {
+    it('„Zapisz zgodę" podpisuje aktualny szablon', () => {
         renderIt();
-        fireEvent.click(screen.getByRole('button', { name: 'Udziel zgody' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Zapisz zgodę' }));
         expect(sign).toHaveBeenCalledWith({ templateId: 'tpl-photo' });
     });
 

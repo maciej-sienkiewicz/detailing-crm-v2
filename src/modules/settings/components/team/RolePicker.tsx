@@ -177,7 +177,7 @@ export function RolePicker({ roles, value, onChange, onOpenFullEditor, disabled,
                 aria-haspopup="listbox"
                 aria-expanded={open}
             >
-                <span>{selected ? selected.name : 'Wybierz rolę...'}</span>
+                <span>{selected ? selected.name : 'Wybierz rolę…'}</span>
                 <Caret $open={open} aria-hidden="true">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="6 9 12 15 18 9" />
@@ -228,7 +228,7 @@ export function RolePicker({ roles, value, onChange, onOpenFullEditor, disabled,
                                 </RowMain>
                                 <RowMeta>
                                     {creatingId === entry.template.id
-                                        ? 'Tworzenie...'
+                                        ? 'Tworzenie…'
                                         : entry.existing ? 'już istnieje' : 'utwórz'}
                                 </RowMeta>
                             </MenuRow>

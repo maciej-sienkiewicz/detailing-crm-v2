@@ -7,6 +7,7 @@ import { pageGutter } from '@/common/components/PageContainer';
 import { useMediaQuery } from '@/common/hooks';
 import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
+import { pluralPl } from '@/common/utils/plural';
 
 // ─── outer shell ──────────────────────────────────────────────────────────────
 
@@ -564,11 +565,11 @@ export const GalleryFilterBar = ({
     const isNarrow = useMediaQuery('(max-width: 768px)');
 
     const countLabel = isFetching
-        ? '...'
+        ? '…'
         : `${totalPhotos}`;
     const countSuffix = isFetching
         ? ''
-        : totalPhotos === 1 ? 'zdjęcie' : totalPhotos < 5 && totalPhotos > 0 ? 'zdjęcia' : 'zdjęć';
+        : pluralPl(totalPhotos, 'zdjęcie', 'zdjęcia', 'zdjęć');
 
     return (
         <Bar>
@@ -641,12 +642,12 @@ export const GalleryFilterBar = ({
                                 <DropdownHeader>
                                     <DropdownTitle>Filtruj po tagach</DropdownTitle>
                                     <DropdownLogicNote>
-                                        Zdjęcia muszą posiadać <strong>wszystkie</strong> zaznaczone tagi (AND).
+                                        Pokażemy zdjęcia, które mają <strong>wszystkie</strong> zaznaczone tagi.
                                     </DropdownLogicNote>
                                     <TagSearchInput
                                         ref={tagSearchRef}
                                         type="text"
-                                        placeholder="Szukaj tagu..."
+                                        placeholder="Szukaj tagu…"
                                         value={tagSearch}
                                         onChange={e => setTagSearch(e.target.value)}
                                     />

@@ -95,10 +95,10 @@ export const useUpdateArrivalState = (visitId: string) => {
             queryClient.invalidateQueries({ queryKey: visitDetailQueryKey(visitId) });
             // VIN należy do pojazdu - karta pojazdu i listy mają pokazać nowy numer.
             if (payload.vin !== undefined) queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-            showSuccess('Stan przy przyjęciu zaktualizowany');
+            showSuccess('Zapisano');
         },
         onError: () => {
-            showError('Nie udało się zapisać stanu przy przyjęciu');
+            showError('Nie udało się zapisać zmian');
         },
     });
 
@@ -442,10 +442,10 @@ export const useUpdateVisitTitle = (visitId: string) => {
             queryClient.invalidateQueries({ queryKey: visitDetailQueryKey(visitId) });
             queryClient.invalidateQueries({ queryKey: ['operations'] });
             queryClient.invalidateQueries({ queryKey: ['dashboard', 'upcoming-visits'] });
-            showSuccess('Tytuł wizyty zaktualizowany');
+            showSuccess('Zapisano nazwę wizyty');
         },
         onError: () => {
-            showError('Nie udało się zaktualizować tytułu');
+            showError('Nie udało się zapisać nazwy wizyty');
         },
     });
 
@@ -463,10 +463,10 @@ export const useUpdateEstimatedCompletionDate = (visitId: string) => {
         mutationFn: (date: string) => visitApi.updateEstimatedCompletionDate(visitId, date),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: visitDetailQueryKey(visitId) });
-            showSuccess('Planowana data zakończenia zaktualizowana');
+            showSuccess('Zapisano termin odbioru');
         },
         onError: () => {
-            showError('Nie udało się zaktualizować daty zakończenia');
+            showError('Nie udało się zapisać terminu odbioru');
         },
     });
 
@@ -506,10 +506,10 @@ export const useUpdateTechnicalNote = (visitId: string) => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: visitDetailQueryKey(visitId) });
             queryClient.invalidateQueries({ queryKey: visitTechnicalNoteHistoryQueryKey(visitId) });
-            showSuccess('Notatka techniczna zaktualizowana');
+            showSuccess('Zapisano notatkę techniczną');
         },
         onError: () => {
-            showError('Nie udało się zaktualizować notatki technicznej');
+            showError('Nie udało się zapisać notatki technicznej');
         },
     });
 
@@ -542,7 +542,7 @@ export const visitDamageMapQueryKey = (visitId: string) => ['visit', visitId, 'd
  *
  * `enabled` jest sterowane z zewnątrz, bo tego zapytania nie ma sensu robić przy
  * każdym wejściu w kartę wizyty — interesuje nas dopiero w momencie otwarcia okna
- * „Zaktualizuj uszkodzenia".
+ * okno „Mapa uszkodzeń".
  */
 export const useVisitDamageMap = (visitId: string, enabled = true) => {
     const { data, isLoading, isError, refetch } = useQuery({
@@ -585,11 +585,11 @@ export const useUpdateVisitDamageMap = (visitId: string) => {
                     'Punkty są zapisane, ale nie udało się wygenerować pliku PDF. Spróbuj zapisać mapę ponownie.'
                 );
             } else if (result.notification && !result.notification.emailSent && !result.notification.smsSent) {
-                showWarning('Mapa uszkodzeń zaktualizowana', result.notification.message);
+                showWarning('Zapisano mapę uszkodzeń', result.notification.message);
             } else if (result.notification) {
-                showSuccess('Mapa uszkodzeń zaktualizowana', result.notification.message);
+                showSuccess('Zapisano mapę uszkodzeń', result.notification.message);
             } else {
-                showSuccess('Mapa uszkodzeń zaktualizowana');
+                showSuccess('Zapisano mapę uszkodzeń');
             }
         },
         onError: () => {

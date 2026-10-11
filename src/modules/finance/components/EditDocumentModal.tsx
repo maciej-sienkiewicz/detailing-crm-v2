@@ -269,7 +269,7 @@ const EditDocumentForm: React.FC<{ document: FinancialDocument; onClose: () => v
             return;
         }
         if (form.paymentMethod === PaymentMethod.TRANSFER && !form.dueDate) {
-            setError('Termin płatności jest wymagany dla przelewów.');
+            setError('Przy przelewie podaj termin płatności.');
             return;
         }
 
@@ -313,7 +313,7 @@ const EditDocumentForm: React.FC<{ document: FinancialDocument; onClose: () => v
                         {isIncome ? 'Przychód' : 'Koszt'}
                     </DirectionBadge>
                 </DirectionRow>
-                <DirectionHint>Kierunek dokumentu jest stały. Aby go zmienić, usuń i utwórz nowy.</DirectionHint>
+                <DirectionHint>Przychodu nie zamienisz na koszt (ani odwrotnie). Usuń dokument i dodaj nowy.</DirectionHint>
 
                 <form id="edit-document-form" onSubmit={handleSubmit} autoComplete="off">
                     {isSettlementLocked && (
@@ -327,8 +327,8 @@ const EditDocumentForm: React.FC<{ document: FinancialDocument; onClose: () => v
                     {!isSettlementLocked && isKsefInvoice && (
                         <LockNote>
                             <Notice tone="info" title="Dokument faktury KSeF">
-                                Kwoty, płatność, daty i nabywcę faktury przyjętej w KSeF zmienia się fakturą
-                                korygującą. Tutaj możesz zmienić opis.
+                                Faktura jest już w KSeF, więc kwoty, daty i nabywcę zmienisz tylko korektą.
+                                Tu poprawisz opis.
                             </Notice>
                         </LockNote>
                     )}
@@ -349,7 +349,7 @@ const EditDocumentForm: React.FC<{ document: FinancialDocument; onClose: () => v
                         </FormField>
 
                         <FormField>
-                            <FieldLabel>Metoda płatności</FieldLabel>
+                            <FieldLabel>Forma płatności</FieldLabel>
                             {isKsefInvoice ? (
                                 <ReadOnlyValue>{document.paymentMethodLabel}</ReadOnlyValue>
                             ) : (
@@ -361,7 +361,7 @@ const EditDocumentForm: React.FC<{ document: FinancialDocument; onClose: () => v
                                         { value: PaymentMethod.CARD,          label: 'Karta' },
                                         { value: PaymentMethod.TRANSFER,      label: 'Przelew' },
                                         { value: PaymentMethod.BLIK_NA_NUMER, label: 'BLIK na numer' },
-                                        { value: PaymentMethod.BLIK_TERMINAL, label: 'BLIK terminal' },
+                                        { value: PaymentMethod.BLIK_TERMINAL, label: 'BLIK w terminalu' },
                                         { value: PaymentMethod.OTHER,         label: 'Inne' },
                                     ]}
                                 />
@@ -481,7 +481,7 @@ const EditDocumentForm: React.FC<{ document: FinancialDocument; onClose: () => v
                     form="edit-document-form"
                     disabled={updateDoc.isPending || isSettlementLocked}
                 >
-                    {updateDoc.isPending ? 'Zapisywanie...' : 'Zapisz zmiany'}
+                    {updateDoc.isPending ? 'Zapisywanie…' : 'Zapisz zmiany'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

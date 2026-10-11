@@ -38,7 +38,7 @@ export interface SmsRequirement {
     status: SmsRequirementStatus;
     /** Short name of the thing that is needed. */
     label: string;
-    /** The current state, in the studio's terms: "0 szt.", "39 zł/mies.". */
+    /** The current state, in the studio's terms: "0", "39 zł/mies.". */
     detail: string;
     /** Whether the activation wizard can fix this itself. */
     fixable: boolean;
@@ -117,7 +117,7 @@ export function useSmsReadiness({
                 ? 'Moduł wysyłki wiadomości'
                 : `Moduł ${moduleName || 'wysyłki wiadomości'}`,
             detail: moduleEnabled
-                ? 'aktywny'
+                ? 'włączony'
                 : modulePrice != null
                     ? `${(modulePrice / 100).toFixed(2).replace('.', ',')} zł/mies.`
                     : 'wymagany',
@@ -134,7 +134,7 @@ export function useSmsReadiness({
                 status: !moduleEnabled ? 'unknown' : sendable ? 'ok' : 'missing',
                 label: `Szablon „${templateSpec.name}"`,
                 detail: !moduleEnabled
-                    ? 'sprawdzimy po aktywacji modułu'
+                    ? 'sprawdzimy po włączeniu modułu'
                     : sendable ? 'włączony'
                     : rule?.enabled ? 'włączony, ale pusty: nic nie wyśle'
                     : 'wyłączony',
@@ -152,9 +152,9 @@ export function useSmsReadiness({
                 : credits <= LOW_CREDIT_THRESHOLD ? 'warning'
                 : 'ok',
             label: 'Kredyty SMS',
-            detail: !moduleEnabled ? 'sprawdzimy po aktywacji modułu'
+            detail: !moduleEnabled ? 'sprawdzimy po włączeniu modułu'
                 : credits === null ? '-'
-                : `${credits} szt.`,
+                : `${credits}`,
             fixable: true,
         });
 
@@ -167,7 +167,7 @@ export function useSmsReadiness({
                 id: 'phone',
                 status: hasPhone ? 'ok' : 'missing',
                 label: 'Numer telefonu klienta',
-                detail: hasPhone ? customerPhone!.trim() : 'brak w kartotece',
+                detail: hasPhone ? customerPhone!.trim() : 'brak w karcie klienta',
                 fixable: false,
             });
         }

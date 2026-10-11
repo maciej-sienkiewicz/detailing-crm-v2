@@ -8,5 +8,5 @@ export const SIGNATURE_STEPS: { id: SignatureStepId; label: string }[] = [
     { id: 'details', label: 'Dane' },
     { id: 'style', label: 'Styl' },
     { id: 'images', label: 'Zdjęcie i logo' },
-    { id: 'social', label: 'Social' },
+    { id: 'social', label: 'Social media' },
 ];

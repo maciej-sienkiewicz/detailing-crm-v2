@@ -115,11 +115,11 @@ export const AddEmployeeModal = ({ isOpen, onClose, onSuccess, employee }: Props
 
     const handleSubmit = async () => {
         if (!form.firstName.trim() || !form.lastName.trim()) {
-            setError('Imię i nazwisko są wymagane.');
+            setError('Podaj imię i nazwisko.');
             return;
         }
         if (form.createAccount && !form.email?.trim()) {
-            setError('Adres e-mail jest wymagany przy tworzeniu konta użytkownika.');
+            setError('Podaj e-mail - na ten adres pójdzie zaproszenie.');
             return;
         }
         setError('');
@@ -140,7 +140,7 @@ export const AddEmployeeModal = ({ isOpen, onClose, onSuccess, employee }: Props
             onSuccess();
             onClose();
         } catch {
-            setError('Wystąpił błąd. Spróbuj ponownie.');
+            setError('Nie udało się zapisać. Spróbuj ponownie.');
         }
     };
 
@@ -174,7 +174,7 @@ export const AddEmployeeModal = ({ isOpen, onClose, onSuccess, employee }: Props
                     <ModalSectionTitle>Kontakt</ModalSectionTitle>
                     <Row>
                         <Field>
-                            <Label>Email</Label>
+                            <Label>E-mail</Label>
                             <Input type="email" value={form.email ?? ''} onChange={e => set('email', e.target.value)} placeholder="jan@firma.pl" />
                         </Field>
                         <Field>
@@ -193,11 +193,11 @@ export const AddEmployeeModal = ({ isOpen, onClose, onSuccess, employee }: Props
                                 checked={!!form.createAccount}
                                 onChange={e => set('createAccount', e.target.checked)}
                             />
-                            Utwórz konto użytkownika i wyślij zaproszenie
+                            Załóż konto w aplikacji i wyślij zaproszenie
                         </CheckboxLabel>
                         {form.createAccount && (
                             <Field style={{ marginTop: 12 }}>
-                                <Label>Rola systemowa</Label>
+                                <Label>Rola</Label>
                                 <Select
                                     value={form.roleId ?? ''}
                                     onChange={e => set('roleId', e.target.value || null)}
@@ -218,7 +218,7 @@ export const AddEmployeeModal = ({ isOpen, onClose, onSuccess, employee }: Props
             <ModalFooter>
                 <SharedButton $variant="secondary" type="button" onClick={onClose}>Anuluj</SharedButton>
                 <SharedButton $variant="primary" type="button" onClick={handleSubmit} disabled={isPending}>
-                    {isPending ? 'Zapisywanie...' : isEdit ? 'Zapisz zmiany' : 'Dodaj pracownika'}
+                    {isPending ? 'Zapisywanie…' : isEdit ? 'Zapisz zmiany' : 'Dodaj pracownika'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

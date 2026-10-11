@@ -14,6 +14,7 @@ import type {
 } from '../types';
 import { MAX_ACTIVE_STYLE_RULES, MAX_STYLE_RULE_LENGTH } from '../types';
 import { instagramApi } from '../api/instagramApi';
+import { pluralPl } from '@/common/utils/plural';
 
 // ─── Animations ────────────────────────────────────────────────────────────────
 
@@ -1071,9 +1072,9 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                     <ProgressTrack role="progressbar" aria-label="Generowanie posta" aria-busy="true">
                         <ProgressFill />
                     </ProgressTrack>
-                    <LoadingText>Generuję post na Instagram...</LoadingText>
+                    <LoadingText>Generuję post na Instagram…</LoadingText>
                     {topic && <LoadingEcho>„{topic}"</LoadingEcho>}
-                    <LoadingHint>Model pisze post, sprawdza go względem Twoich reguł i poprawia. Chwilę...</LoadingHint>
+                    <LoadingHint>AI pisze post i sprawdza go z Twoimi regułami. To potrwa chwilę…</LoadingHint>
                 </LoadingWrap>
             );
         }
@@ -1103,7 +1104,8 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                                     </>
                                 ) : (
                                     <>
-                                        Nie udało się spełnić wszystkich reguł po {result.iterations} próbach:
+                                        Nie udało się spełnić wszystkich reguł po {result.iterations}{' '}
+                                        {pluralPl(result.iterations, 'próbie', 'próbach', 'próbach')}:
                                         <VerificationList>
                                             {/* Powód od weryfikatora obok reguły: „łamie regułę «bez emoji»"
                                                 przy poście bez emoji nie daje się ani sprawdzić, ani zgłosić. */}
@@ -1113,7 +1115,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                                             ).map(({ rule, reason }) => (
                                                 <li key={rule}>
                                                     {rule}
-                                                    {reason && <ViolationReason> - {reason}</ViolationReason>}
+                                                    {reason && <ViolationReason> — {reason}</ViolationReason>}
                                                 </li>
                                             ))}
                                         </VerificationList>
@@ -1126,8 +1128,8 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                     <ContentBox>{result.content}</ContentBox>
 
                     <ContentStats>
-                        <ContentStat>{wordCount} słów</ContentStat>
-                        <ContentStat>{charCount} znaków</ContentStat>
+                        <ContentStat>{wordCount} {pluralPl(wordCount, 'słowo', 'słowa', 'słów')}</ContentStat>
+                        <ContentStat>{charCount} {pluralPl(charCount, 'znak', 'znaki', 'znaków')}</ContentStat>
                     </ContentStats>
 
                     {/* Ocena uczy generator stylu tego studia - dlatego pytamy od razu,
@@ -1135,7 +1137,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                     <RatingBar>
                         <RatingLabel>
                             {rating
-                                ? 'Dzięki - kolejne posty będą bliżej Twojego stylu.'
+                                ? 'Dzięki — kolejne posty będą bliżej Twojego stylu.'
                                 : 'Jak oceniasz ten post?'}
                         </RatingLabel>
                         <RatingBtn
@@ -1164,7 +1166,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                         <>
                             <CommentTextarea
                                 autoFocus
-                                placeholder={'Co jest nie tak? Np. „za dużo wykrzykników”, „zbyt sprzedażowy ton”...'}
+                                placeholder={'Co jest nie tak? Np. „za dużo wykrzykników”, „zbyt sprzedażowy ton”…'}
                                 value={comment}
                                 onChange={e => setComment(e.target.value)}
                                 maxLength={1000}
@@ -1181,7 +1183,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
 
                     {rating === 'NEGATIVE' && (
                         <RatingSavedNote>
-                            Uwaga zapisana - generator będzie jej unikał w kolejnych postach.
+                            Zapisane. Kolejne posty będą tego unikać.
                         </RatingSavedNote>
                     )}
                 </ResultWrap>
@@ -1214,7 +1216,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                     <FieldLabel htmlFor="gp-context">Dodatkowy kontekst</FieldLabel>
                     <ContextTextarea
                         id="gp-context"
-                        placeholder="Np. Klient przywiózł auto z zagranicy, zależało mu na ochronie całego przodu. Użyliśmy XPEL Ultimate Plus..."
+                        placeholder="Np. Klient przywiózł auto z zagranicy, zależało mu na ochronie całego przodu. Użyliśmy XPEL Ultimate Plus…"
                         value={context}
                         onChange={e => setContext(e.target.value)}
                         maxLength={800}
@@ -1313,8 +1315,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                     {ruleError && <InlineError><AlertCircle size={13} strokeWidth={2} />{ruleError}</InlineError>}
 
                     <HintText>
-                        Reguły są zapisywane dla studia i obowiązują przy każdym generowaniu.
-                        AI sprawdza je po napisaniu posta i poprawia go, jeśli którejś nie spełnił.
+                        Reguły obowiązują przy każdym poście. AI sprawdza je i w razie potrzeby poprawia tekst.
                     </HintText>
                 </FormSection>
 
@@ -1336,7 +1337,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                     <FooterRight>
                         <RegenerateBtn type="button" onClick={handleRegenerate}>
                             <RotateCcw size={13} strokeWidth={2} />
-                            Zmień parametry
+                            Zmień opis
                         </RegenerateBtn>
                         <CopyBtn
                             type="button"
@@ -1385,7 +1386,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                             <Wand2 size={18} strokeWidth={2} />
                         </IconWrap>
                         <HeaderMeta>
-                            <HeaderTitle>Generator postów Instagram</HeaderTitle>
+                            <HeaderTitle>Generator postów na Instagram</HeaderTitle>
                             <HeaderSub>AI tworzy post na podstawie Twoich realizacji</HeaderSub>
                         </HeaderMeta>
                     </HeaderLeft>

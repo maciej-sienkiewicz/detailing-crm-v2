@@ -102,13 +102,13 @@ const FINANCE_BENEFITS = [
     'Obsługa kas fiskalnych i integracja z KSeF',
 ];
 const STATISTICS_BENEFITS = [
-    'Raporty przychodów i rentowności usług',
+    'Ile zarabiasz na każdej usłudze',
     'Statystyki kategorii i najpopularniejszych usług',
-    'Analiza opóźnień i wąskich gardeł w pracy studia',
+    'Gdzie i dlaczego prace się opóźniają',
 ];
 const CAMPAIGNS_BENEFITS = [
     'Masowe kampanie SMS i e-mail do bazy klientów',
-    'Segmentacja odbiorców i personalizacja treści',
+    'Wiadomości do wybranej grupy klientów',
     'Historia i skuteczność wysyłek',
 ];
 const INSTAGRAM_BENEFITS = [
@@ -122,7 +122,7 @@ const PRODUCTS_BENEFITS = [
     'Powiązania produktów z wizytami — czym było robione to auto',
 ];
 const E_SIGNATURES_BENEFITS = [
-    'Elektroniczne podpisywanie dokumentów na tablecie',
+    'Klient podpisuje dokumenty na tablecie',
     'Zgody i regulaminy podpisywane bez papieru',
     'Bezpieczne archiwum podpisanych dokumentów',
 ];

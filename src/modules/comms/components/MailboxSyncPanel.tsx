@@ -82,10 +82,10 @@ export function MailboxSyncPanel() {
     return (
         <Wrap>
             <RefreshCw />
-            <h3>Trwa synchronizacja Twojej skrzynki pocztowej</h3>
+            <h3>Pobieramy Twoją pocztę</h3>
             <p>
-                Pobieramy Twoją dotychczasową korespondencję i układamy z niej rozmowy.
-                Poczekaj kilka minut i wróć ponownie - wszystko zrobi się samo.
+                Układamy Twoje maile w rozmowy. To potrwa kilka minut, możesz w tym czasie
+                zająć się czymś innym.
             </p>
             {/* Pasek dopiero, gdy backend zgłosił liczbę wiadomości. Zmyślony procent,
                 który doskakuje do 100% i stoi, jest gorszy niż sam spinner. */}

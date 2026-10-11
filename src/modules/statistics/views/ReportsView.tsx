@@ -46,7 +46,7 @@ const LENGTHS: { value: ReportLength; label: string; param: string }[] = [
 
 const COMPARISONS: { value: ReportComparison; label: string; param: string; word: string }[] = [
     { value: 'PREVIOUS', label: 'Poprzedni okres', param: 'poprzedni', word: 'poprzednio' },
-    { value: 'MEDIAN', label: 'Mediana 6 okresów', param: 'mediana', word: 'mediana' },
+    { value: 'MEDIAN', label: 'Typowy wynik z 6 okresów', param: 'mediana', word: 'typowo' },
 ];
 
 const pln = (grosz: number) => formatCurrency(grosz / 100, 'PLN');
@@ -98,7 +98,7 @@ export const ReportsView = () => {
                         <div>
                             <Title id="reports-title">Raporty</Title>
                             {archive.data && (
-                                <Sub>Od {shortDay(archive.data.since)}, dnia założenia konta</Sub>
+                                <Sub>Od {shortDay(archive.data.since)}</Sub>
                             )}
                         </div>
                     </TitleRow>
@@ -161,8 +161,8 @@ export const ReportsView = () => {
                         {full.length === 0 && current && (
                             <Body>
                                 <Empty>
-                                    Pierwszy raport będzie gotowy {shortDay(current.availableOn)}, kiedy skończy się
-                                    trwający okres. Raport powstaje zawsze za pełny okres.
+                                    Pierwszy raport będzie gotowy {shortDay(current.availableOn)}, gdy skończy się
+                                    ten okres.
                                 </Empty>
                             </Body>
                         )}

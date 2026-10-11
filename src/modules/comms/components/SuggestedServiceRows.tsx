@@ -14,7 +14,7 @@
 // Wygląd niesie stan i tylko stan:
 //  - kwota zostaje szara, bo do sumy „Razem" nie wchodzi, dopóki ktoś jej nie
 //    przyjmie. Liczba w kolorze tekstu obiecywałaby, że już się liczy;
-//  - „Akceptuj" jest wypełniony, „Odrzuć" jest cichy. Wcześniej oba były tym
+//  - „Dodaj do wyceny" jest zielony, „Odrzuć" jest cichy. Wcześniej oba były tym
 //    samym szarym przyciskiem z ramką, więc na pytanie „co tu kliknąć" widok
 //    odpowiadał „sam zdecyduj";
 //  - plakietka „Sugerowane" zniknęła z każdego wiersza: nagłówek sekcji mówi to
@@ -136,7 +136,7 @@ const Note = styled.span`
 
 /**
  * Przyciski w osobnym wierszu karty, oddzielone kreską: decyzja jest czymś innym
- * niż opis pozycji, a przy 288 px szyny „Akceptuj" i „Odrzuć" obok nazwy i kwoty
+ * niż opis pozycji, a przy 288 px szyny „Dodaj do wyceny" i „Odrzuć" obok nazwy i kwoty
  * wymuszały szerokość, której panel nie ma.
  */
 const Actions = styled.div`
@@ -298,7 +298,7 @@ export function SuggestedServiceRows({ suggestions, actions }: Props) {
                                     disabled={!canAccept}
                                     onClick={() => onAccept(item)}
                                 >
-                                    <Check /> Akceptuj
+                                    <Check /> Dodaj do wyceny
                                 </AcceptBtn>
                                 <RejectBtn
                                     type="button"

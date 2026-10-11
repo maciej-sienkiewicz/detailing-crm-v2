@@ -35,7 +35,7 @@ const renderCard = () =>
         </StyledThemeProvider>,
     );
 
-const toggle = () => screen.getByRole('switch', { name: 'Czy pokazywać ceny usług na protokole przyjęcia?' });
+const toggle = () => screen.getByRole('switch', { name: 'Ceny usług na protokole przyjęcia' });
 
 describe('ProtocolServicePricesCard', () => {
     beforeEach(() => {

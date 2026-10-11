@@ -83,7 +83,7 @@ const IdleLockCard = () => {
             <CardHead>
                 <CardHeadText>
                     <CardTitle>Blokada po bezczynności</CardTitle>
-                    <CardNote>Dotyczy wszystkich kont w studiu. Odblokowanie kodem PIN lub hasłem.</CardNote>
+                    <CardNote>Dotyczy wszystkich kont w studiu. Odblokujesz kodem PIN albo hasłem.</CardNote>
                 </CardHeadText>
                 <CardActions>
                     {saved && <StateTag $on>Zapisano</StateTag>}
@@ -190,10 +190,10 @@ const ClearAccountCard = () => {
         <Card>
             <CardHead>
                 <CardHeadText>
-                    <CardTitle>Wyczyszczenie konta</CardTitle>
+                    <CardTitle>Wyczyść konto</CardTitle>
                     <CardNote>
                         Bezpowrotnie usuwa klientów, wizyty, pliki i dokumenty. Zostają: Twoje konto,
-                        plan i saldo SMS.
+                        pakiet i saldo SMS.
                     </CardNote>
                 </CardHeadText>
                 <CardActions>

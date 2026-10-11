@@ -212,7 +212,7 @@ export function DetailsStep({ design, onChange, nameInvalid }: {
                                     onChange={event => onChange({ [key]: event.target.value })}
                                 />
                             )}
-                            {invalid && <Help style={{ color: '#dc2626' }}>Imię i nazwisko jest nagłówkiem każdego motywu</Help>}
+                            {invalid && <Help style={{ color: '#dc2626' }}>Wpisz imię i nazwisko</Help>}
                         </Field>
                     );
                 })}

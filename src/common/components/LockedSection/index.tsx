@@ -38,7 +38,7 @@ interface Props {
 export function LockedSection({
     locked,
     message,
-    upgradeHint = 'Rozszerz abonament',
+    upgradeHint = 'Zmień pakiet',
     settingsTab = 'plan',
     onLockedClick,
     children,

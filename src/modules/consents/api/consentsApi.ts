@@ -102,7 +102,7 @@ export const uploadFileToS3 = async (uploadUrl: string, file: File): Promise<voi
         throw new Error('Nie udało się wysłać pliku PDF. Sprawdź połączenie z internetem i spróbuj ponownie.');
     }
     if (!response.ok) {
-        throw new Error(`Serwer plików odrzucił PDF (błąd ${response.status}). Spróbuj ponownie.`);
+        throw new Error('Nie udało się wgrać pliku PDF. Spróbuj ponownie.');
     }
 };
 

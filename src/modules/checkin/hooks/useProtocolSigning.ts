@@ -119,11 +119,11 @@ export const useProtocolSigning = ({
                     queryClient.invalidateQueries({ queryKey: ['visit', visitId] });
                     queryClient.invalidateQueries({ queryKey: ['visit-protocols', visitId] });
                 }
-                showSuccess('Klient pomyślnie podpisał dokument');
+                showSuccess('Klient podpisał dokument');
                 break;
             case 'SIGNATURE_DECLINED':
                 setState(protocolId, { phase: 'declined', requestId, channel });
-                showError('Klient odrzucił dokument. Spróbuj ponownie.');
+                showError('Klient odmówił podpisu.');
                 break;
             case 'SIGNATURE_FAILED':
             case 'SIGNATURE_EXPIRED':

@@ -152,11 +152,6 @@ const Apply = styled.button`
     svg { width: 14px; height: 14px; }
 `;
 
-const Hint = styled.span`
-    font-size: 11.5px;
-    color: ${p => p.theme.colors.textMuted};
-`;
-
 interface PeriodPickerProps {
     value: Period;
     onChange: (period: Period) => void;
@@ -259,7 +254,6 @@ export function PeriodPicker({ value, onChange, variant = 'light' }: PeriodPicke
                             />
                         </label>
                     </Row>
-                    <Hint>Porównanie liczy się do okresu tej samej długości tuż przed wybranym.</Hint>
                     <Apply
                         type="button"
                         disabled={!rangeValid}

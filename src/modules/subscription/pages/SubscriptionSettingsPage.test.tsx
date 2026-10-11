@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 //
-// Abonament: jeden przycisk przedłużenia (a nie dwa wypełnione naraz), zaległość
+// Pakiet: jeden przycisk przedłużenia (a nie dwa wypełnione naraz), zaległość
 // z działającą akcją zamiast samego ostrzeżenia, nieudana wycena mówiąca o sobie
-// toastem zamiast cichego zamknięcia okna, i jedno „Dezaktywuj" na moduł.
+// toastem zamiast cichego zamknięcia okna, i jedno „Wyłącz" na moduł.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -88,21 +88,21 @@ const renewButtons = () => screen.queryAllByRole('button', { name: /przedłuż|o
 describe('SubscriptionSettingsPage', () => {
     it('nie powtarza tytułu sekcji z nagłówka ramy', async () => {
         renderPage();
-        await screen.findByText('Plan Basic');
-        expect(screen.queryByRole('heading', { name: 'Abonament' })).toBeNull();
+        await screen.findByText('Pakiet Basic');
+        expect(screen.queryByRole('heading', { name: 'Pakiet' })).toBeNull();
         expect(screen.queryByText(/konto i rozliczenia/i)).toBeNull();
     });
 
     it('aktywny plan: dokładnie jeden przycisk przedłużenia, z kwotą', async () => {
         renderPage();
-        await screen.findByText('Plan Basic');
+        await screen.findByText('Pakiet Basic');
         expect(renewButtons()).toHaveLength(1);
         expect(renewButtons()[0].textContent?.replace(/\s/g, ' ')).toMatch(/Przedłuż o 30 dni za 172,00 zł/);
     });
 
     it('ceny planów i modułów są oznaczone jako brutto', async () => {
         renderPage();
-        await screen.findByText('Plan Basic');
+        await screen.findByText('Pakiet Basic');
         expect((await screen.findAllByText('brutto / mies.')).length).toBeGreaterThan(0);
     });
 
@@ -119,7 +119,7 @@ describe('SubscriptionSettingsPage', () => {
     it('wygasły plan: jeden przycisk odnowienia w komunikacie', async () => {
         vi.mocked(newSubscriptionApi.getMyPlan).mockResolvedValue(plan({ billingStatus: 'EXPIRED', daysRemaining: 0 }));
         renderPage();
-        expect(await screen.findByText('Abonament wygasł')).toBeTruthy();
+        expect(await screen.findByText('Twój pakiet wygasł')).toBeTruthy();
         expect(renewButtons()).toHaveLength(1);
     });
 
@@ -143,28 +143,28 @@ describe('SubscriptionSettingsPage', () => {
         });
         renderPage();
 
-        await userEvent.click(await screen.findByRole('button', { name: 'Aktywuj' }));
+        await userEvent.click(await screen.findByRole('button', { name: 'Włącz' }));
         expect(await screen.findByText('Nie udało się pobrać wyceny modułu')).toBeTruthy();
         expect(screen.getByText('Moduł niedostępny w tym planie')).toBeTruthy();
     });
 
-    it('aktywny moduł ma jedno „Dezaktywuj" i nie wraca na listę do dokupienia', async () => {
+    it('włączony moduł ma jedno „Wyłącz" i nie wraca na listę do dokupienia', async () => {
         renderPage();
-        await screen.findByText('Plan Basic');
+        await screen.findByText('Pakiet Basic');
         await screen.findByText('Finanse');
-        expect(screen.getAllByRole('button', { name: 'Dezaktywuj' })).toHaveLength(1);
+        expect(screen.getAllByRole('button', { name: 'Wyłącz' })).toHaveLength(1);
         // Komunikacja jest aktywna - do dokupienia zostają tylko Finanse.
-        expect(screen.getAllByRole('button', { name: 'Aktywuj' })).toHaveLength(1);
+        expect(screen.getAllByRole('button', { name: 'Włącz' })).toHaveLength(1);
     });
 
     it('dezaktywacja pyta oknem potwierdzenia, zanim cokolwiek wyłączy', async () => {
         vi.mocked(newSubscriptionApi.deactivateAddOn).mockResolvedValue({} as never);
         renderPage();
-        await userEvent.click(await screen.findByRole('button', { name: 'Dezaktywuj' }));
+        await userEvent.click(await screen.findByRole('button', { name: 'Wyłącz' }));
 
         expect(newSubscriptionApi.deactivateAddOn).not.toHaveBeenCalled();
-        expect(await screen.findByText('Dezaktywować moduł Komunikacja?')).toBeTruthy();
-        const confirm = screen.getAllByRole('button', { name: 'Dezaktywuj' }).at(-1)!;
+        expect(await screen.findByText('Wyłączyć moduł Komunikacja?')).toBeTruthy();
+        const confirm = screen.getAllByRole('button', { name: 'Wyłącz' }).at(-1)!;
         await userEvent.click(confirm);
         await waitFor(() => expect(newSubscriptionApi.deactivateAddOn).toHaveBeenCalledWith('CLIENT_COMMUNICATION'));
     });
@@ -172,7 +172,7 @@ describe('SubscriptionSettingsPage', () => {
     it('błąd wczytania planu to komunikat z ponowieniem', async () => {
         vi.mocked(newSubscriptionApi.getMyPlan).mockRejectedValue(new Error('offline'));
         renderPage();
-        expect(await screen.findByText('Nie udało się wczytać abonamentu')).toBeTruthy();
+        expect(await screen.findByText('Nie udało się wczytać pakietu')).toBeTruthy();
         expect(screen.getByRole('button', { name: 'Spróbuj ponownie' })).toBeTruthy();
     });
 

@@ -302,12 +302,12 @@ export default function InboxPage() {
         // Seria kliknięć niczego nie przyspiesza, a potrafiła wywołać „Przekroczono limit żądań".
         const now = Date.now();
         if (syncAccount.isPending || now - lastSyncAt.current < MANUAL_SYNC_COOLDOWN_MS) {
-            showInfo('Synchronizacja już trwa', 'Nowe wiadomości pojawią się za chwilę');
+            showInfo('Już sprawdzamy pocztę', 'Nowe wiadomości pojawią się za chwilę');
             return;
         }
         lastSyncAt.current = now;
         syncAccount.mutate(activeAccount.id);
-        showInfo('Synchronizuję…', 'Nowe wiadomości pojawią się za chwilę');
+        showInfo('Sprawdzamy pocztę…', 'Nowe wiadomości pojawią się za chwilę');
     }, [activeAccount, syncAccount, showInfo]);
 
     const settingsMenu = (close: () => void) => (
@@ -320,7 +320,7 @@ export default function InboxPage() {
             )}
             {tab === 'sprawy' && (
                 <MenuItem icon={<Archive />} onClick={() => { close(); nav.setArchive(!archive); }}>
-                    {archive ? 'Sprawy otwarte' : 'Zamknięte sprawy'}
+                    {archive ? 'Otwarte sprawy' : 'Zamknięte sprawy'}
                 </MenuItem>
             )}
             {tab === 'poczta' && (
@@ -335,14 +335,14 @@ export default function InboxPage() {
             <MenuItem icon={<PenLine />} onClick={() => { close(); setSettingsModal('signature'); }}>Stopka maila</MenuItem>
             <MenuItem icon={<Sparkles />} onClick={() => { close(); setSettingsModal('draft-style'); }}>Styl szkiców AI</MenuItem>
             <MenuItem icon={<Inbox />} onClick={() => { close(); navigate('/communication/mailboxes'); }}>Skrzynki pocztowe</MenuItem>
-            <MenuItem icon={<BarChart3 />} onClick={() => { close(); navigate('/leads/analytics'); }}>Podsumowanie miesiąca</MenuItem>
+            <MenuItem icon={<BarChart3 />} onClick={() => { close(); navigate('/leads/analytics'); }}>Pieniądze w zapytaniach</MenuItem>
         </>
     );
 
     const modeBar =
         tab === 'sprawy' && archive ? (
             <ModeBar>
-                <button type="button" onClick={() => nav.setArchive(false)}><ArrowLeft /> Sprawy otwarte</button>
+                <button type="button" onClick={() => nav.setArchive(false)}><ArrowLeft /> Otwarte sprawy</button>
                 <span className="what">Zamknięte sprawy</span>
             </ModeBar>
         ) : tab === 'poczta' && rejected ? (
@@ -539,7 +539,7 @@ export default function InboxPage() {
                             },
                         {
                             icon: <Archive />,
-                            label: threadMenu.thread.archived ? 'Przywróć ze schowka' : 'Archiwizuj',
+                            label: threadMenu.thread.archived ? 'Przywróć z archiwum' : 'Archiwizuj',
                             onSelect: () => setArchived.mutate({ threadId: threadMenu.thread.id, archived: !threadMenu.thread.archived }),
                         },
                     ]}

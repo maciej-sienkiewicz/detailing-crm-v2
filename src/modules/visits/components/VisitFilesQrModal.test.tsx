@@ -46,10 +46,10 @@ describe('VisitFilesQrModal', () => {
         expect(screen.getByRole('status')).toHaveTextContent('Odebrano 3 zdjęcia');
     });
 
-    it('„Nowy kod" unieważnia poprzedni', async () => {
+    it('„Wygeneruj nowy kod" unieważnia poprzedni', async () => {
         const s = session();
         renderModal(s);
-        await userEvent.click(screen.getByRole('button', { name: 'Nowy kod (unieważnia poprzedni)' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Wygeneruj nowy kod (unieważnia poprzedni)' }));
         expect(s.start).toHaveBeenCalledWith(true);
     });
 });

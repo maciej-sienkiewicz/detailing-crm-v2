@@ -89,7 +89,7 @@ export const UploadVehicleDocumentModal = ({ isOpen, onClose, vehicleId }: Uploa
             <ModalFooter>
                 <Button onClick={close} disabled={isUploading}>Anuluj</Button>
                 <Button type="submit" form="upload-document-form" variant="primary" disabled={!file || isUploading}>
-                    {isUploading ? 'Wysyłanie...' : 'Dodaj dokument'}
+                    {isUploading ? 'Wysyłanie…' : 'Dodaj dokument'}
                 </Button>
             </ModalFooter>
         </ModalShell>

@@ -44,7 +44,7 @@ const renderModal = (onConfirm = vi.fn()) => {
         </ThemeProvider>
     );
     // Pola netto i brutto dzielą placeholder; kolejność jest stała: [netto, brutto].
-    const [netField, grossField] = screen.getAllByPlaceholderText('0.00');
+    const [netField, grossField] = screen.getAllByPlaceholderText('0,00');
     const confirm = screen.getByRole('button', { name: 'Dodaj usługę' });
     return { onConfirm, netField, grossField, confirm };
 };

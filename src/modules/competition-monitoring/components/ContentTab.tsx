@@ -385,9 +385,7 @@ export const ContentTab: React.FC<{ weeks: WeeksOption }> = ({ weeks }) => {
             <Card style={{ order: isDesktop ? 1 : 2 }}>
                 <CardTitle>Najskuteczniejsze posty w Twojej okolicy</CardTitle>
                 <CardHint $hideOnMobile>
-                    Domyślnie sortujemy po skuteczności (reakcje względem wielkości profilu), nie po dacie:
-                    najpierw widzisz to, co naprawdę zadziałało. Oceniaj posty, a generator AI nauczy się
-                    Twojego gustu.
+                    Najpierw to, co naprawdę zadziałało. Oceniaj posty, a generator AI pozna Twój gust.
                 </CardHint>
 
                 <FilterRow>
@@ -424,7 +422,7 @@ export const ContentTab: React.FC<{ weeks: WeeksOption }> = ({ weeks }) => {
                                     resetPage(() => setTopic(prev => (prev === option.value ? undefined : option.value)))
                                 }
                             >
-                                {option.label} · {option.count}
+                                {option.label} ({option.count})
                             </Pill>
                         ))}
                     </FilterRow>
@@ -444,7 +442,7 @@ export const ContentTab: React.FC<{ weeks: WeeksOption }> = ({ weeks }) => {
                 {content && content.items.length === 0 && (
                     <CenterState>
                         <strong>Brak postów w tym widoku</strong>
-                        <span>Zmień filtry albo poczekaj na najbliższą synchronizację danych.</span>
+                        <span>Zmień filtry albo poczekaj na najbliższe pobranie danych.</span>
                     </CenterState>
                 )}
 
@@ -485,7 +483,7 @@ export const ContentTab: React.FC<{ weeks: WeeksOption }> = ({ weeks }) => {
                                         )}
                                         {item.erPct !== null && (
                                             <ErBadge $hot={item.erPct >= 3} title="Reakcje na 100 obserwujących profilu">
-                                                {item.erPct.toFixed(1)} na 100 obs.
+                                                {item.erPct.toLocaleString('pl-PL', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} na 100 obserwujących
                                             </ErBadge>
                                         )}
                                     </StatRow>
@@ -580,7 +578,7 @@ export const ContentTab: React.FC<{ weeks: WeeksOption }> = ({ weeks }) => {
                                                                 }
                                                                 title={
                                                                     cell
-                                                                        ? `${cell.posts} postów, śr. ${cell.avgEngagement.toFixed(0)} reakcji`
+                                                                        ? `${cell.posts} ${postsWordForm(cell.posts)}, średnio ${cell.avgEngagement.toFixed(0)} reakcji`
                                                                         : 'brak postów'
                                                                 }
                                                             >
@@ -604,20 +602,19 @@ export const ContentTab: React.FC<{ weeks: WeeksOption }> = ({ weeks }) => {
                                 </CardHint>
                             )}
                             {/* Bez tej informacji liczby w komórkach nie zgadzałyby się z tym,
-                                co widać na profilach konkurencji - a użytkownik nie miałby jak
+                                co widać na profilach konkurencji — a użytkownik nie miałby jak
                                 się domyślić, że część postów świadomie pomijamy. Na mobile
                                 ukrywamy — metanotka nie jest tam potrzebna. */}
                             {heatmapQuery.data.excludedOutliers > 0 && (
                                 <CardHint $hideOnMobile style={{ marginTop: 6, marginBottom: 0 }}>
-                                    Pominięto {heatmapQuery.data.excludedOutliers}{' '}
-                                    {postsWordForm(heatmapQuery.data.excludedOutliers)} o skrajnie
-                                    wysokich reakcjach (górne 10%) - oznaczenia znanych kont, płatne
-                                    promocje i virale zaburzałyby wskazanie pory.
+                                    Pominęliśmy {heatmapQuery.data.excludedOutliers}{' '}
+                                    {postsWordForm(heatmapQuery.data.excludedOutliers)} z wyjątkowo dużą
+                                    liczbą reakcji (górne 10%), żeby nie zakłamywały wyniku.
                                 </CardHint>
                             )}
                         </>
                     ) : (
-                        <CardHint>Za mało danych, wróć po najbliższej synchronizacji.</CardHint>
+                        <CardHint>Za mało danych, wróć po najbliższym pobraniu danych.</CardHint>
                     )}
                 </Card>
 
@@ -635,7 +632,7 @@ export const ContentTab: React.FC<{ weeks: WeeksOption }> = ({ weeks }) => {
                                         <strong>#{stat.tag}</strong>
                                         <span>
                                             {stat.uses}× u {stat.profilesCount}{' '}
-                                            {stat.profilesCount === 1 ? 'profilu' : 'profili'} · śr.{' '}
+                                            {stat.profilesCount === 1 ? 'profilu' : 'profili'}, średnio{' '}
                                             {formatNumber(stat.avgEngagement)} reakcji
                                         </span>
                                     </TagRow>
@@ -647,7 +644,7 @@ export const ContentTab: React.FC<{ weeks: WeeksOption }> = ({ weeks }) => {
                             </CopyBtn>
                         </>
                     ) : (
-                        <CardHint>Za mało danych, wróć po najbliższej synchronizacji.</CardHint>
+                        <CardHint>Za mało danych, wróć po najbliższym pobraniu danych.</CardHint>
                     )}
                 </Card>
             </SideGrid>

@@ -617,7 +617,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (window.confirm('Czy na pewno chcesz usunąć tę fakturę? Tej operacji nie można cofnąć.')) {
+    if (window.confirm('Usunąć ten dokument? Tego nie da się cofnąć.')) {
       deleteExpense.mutate(id);
     }
   };
@@ -629,7 +629,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
 
   const handleDeleteNote = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (window.confirm('Czy na pewno chcesz usunąć tę notatkę?')) {
+    if (window.confirm('Usunąć tę notatkę?')) {
       deleteNote.mutate(id);
     }
   };
@@ -682,7 +682,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
       <Wrapper>
         <EmptyState>
           {searchTerm
-            ? `Brak wyników dla „${searchTerm}". Szukamy po nazwie i NIP-ie sprzedawcy, nazwach pozycji, numerze dokumentu, numerze KSeF i kwocie.`
+            ? `Brak wyników dla „${searchTerm}". Sprawdź pisownię, zakres dat i filtry.`
             : 'Brak dokumentów kosztowych dla wybranych filtrów'}
         </EmptyState>
       </Wrapper>
@@ -727,7 +727,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
                 $variant={exp.paymentStatus === 'PAID' ? 'green' : 'amber'}
                 onClick={(e) => handlePaymentClick(exp.id, e)}
               >
-                {exp.paymentStatus === 'PAID' ? 'Opłacona' : 'Oczekuje'}
+                {exp.paymentStatus === 'PAID' ? 'Opłacona' : 'Nieopłacona'}
                 <IconChevron />
               </PaymentStatusBadge>
               {exp.isCorrection && <Badge $variant="amber">Korekta</Badge>}
@@ -745,7 +745,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
                 </ActionBtn>
               )}
               {exp.source === 'MANUAL' && (
-                <ActionBtn $variant="delete" onClick={(e) => handleDelete(exp.id, e)} title="Usuń fakturę ręczną">
+                <ActionBtn $variant="delete" onClick={(e) => handleDelete(exp.id, e)} title="Usuń dokument">
                   <IconTrash />
                 </ActionBtn>
               )}
@@ -883,7 +883,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
                       $variant={currentPaymentStatus === 'PAID' ? 'green' : 'amber'}
                       onClick={(e) => handlePaymentClick(exp.id, e)}
                     >
-                      {currentPaymentStatus === 'PAID' ? 'Opłacona' : 'Oczekuje'}
+                      {currentPaymentStatus === 'PAID' ? 'Opłacona' : 'Nieopłacona'}
                       <IconChevron />
                     </PaymentStatusBadge>
                     {exp.paymentMethodLabel && (
@@ -929,7 +929,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
                         <ActionBtn
                           $variant="delete"
                           onClick={(e) => handleDelete(exp.id, e)}
-                          title="Usuń fakturę ręczną"
+                          title="Usuń dokument"
                         >
                           <IconTrash />
                         </ActionBtn>
@@ -970,7 +970,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
                   $active={expenses.find((e) => e.id === openPaymentId)?.paymentStatus === 'PENDING'}
                   onClick={() => handlePaymentChange(openPaymentId, 'PENDING')}
                 >
-                  Oczekuje na płatność
+                  Nieopłacona
                 </DropdownItem>
               </DropdownBody>
             </Dropdown>

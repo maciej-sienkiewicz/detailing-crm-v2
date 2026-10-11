@@ -191,7 +191,7 @@ type StatusKind = 'active' | 'sold' | 'archived';
 const STATUS_CONFIG: Record<StatusKind, { label: string; bg: string; color: string }> = {
     active:   { label: 'Aktywny',   bg: 'rgba(16,185,129,0.12)',  color: '#059669' },
     sold:     { label: 'Sprzedany', bg: '#f1f5f9',                color: '#475569' },
-    archived: { label: 'Archiwum',  bg: '#f1f5f9',                color: '#64748b' },
+    archived: { label: 'Usunięty',  bg: '#f1f5f9',                color: '#64748b' },
 };
 
 const StatusBadge = styled.span<{ $bg: string; $color: string }>`
@@ -377,7 +377,7 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
                                     {hasLicensePlate ? (
                                         <LicensePlate>{vehicle.licensePlate}</LicensePlate>
                                     ) : (
-                                        <PlaceholderText>Nie wprowadzono danych</PlaceholderText>
+                                        <PlaceholderText>Brak rejestracji</PlaceholderText>
                                     )}
                                 </Td>
 
@@ -402,11 +402,11 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
                                                     <OwnerSecondary><PiiValue value={vehicle.owners[1].customerName} kind="name" /></OwnerSecondary>
                                                 )}
                                                 {vehicle.owners.length > 2 && (
-                                                    <MoreOwners>+{vehicle.owners.length - 2} więcej</MoreOwners>
+                                                    <MoreOwners>i jeszcze {vehicle.owners.length - 2}</MoreOwners>
                                                 )}
                                             </>
                                         ) : (
-                                            <PlaceholderText>Nie wprowadzono danych</PlaceholderText>
+                                            <PlaceholderText>Bez właściciela</PlaceholderText>
                                         )}
                                     </OwnersList>
                                 </Td>
@@ -448,7 +448,8 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
                                         {onDelete && (
                                             <MenuBtn
                                                 onClick={e => toggleMenu(vehicle.id, e)}
-                                                title="Akcje"
+                                                title="Więcej"
+                                                aria-label="Więcej opcji"
                                             >
                                                 <DotsIcon />
                                             </MenuBtn>

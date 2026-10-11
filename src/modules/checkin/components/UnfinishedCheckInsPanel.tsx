@@ -98,12 +98,18 @@ const RowMain = styled.div`
 `;
 
 const RowTitle = styled.span`
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 10px;
     font-size: 13px;
     font-weight: 600;
     color: ${st.text};
 `;
 
 const RowMeta = styled.span<{ $alert: boolean }>`
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 12px;
     font-size: 12px;
     color: ${({ $alert }) => ($alert ? '#B45309' : st.textSecondary)};
 `;
@@ -141,14 +147,13 @@ const formatAge = (minutes: number): string => {
     return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`;
 };
 
-const describe = (draft: OpenDraftVisit): string => {
-    const parts = [
-        `rozpoczęte ${formatAge(draft.ageMinutes)} temu`,
-        draft.createdByName ? `przez: ${draft.createdByName}` : null,
-        draft.customerName,
-    ].filter(Boolean);
-    return parts.join(' · ');
-};
+// Trzy osobne fakty, więc trzy osobne elementy (RowMeta rozdziela je odstępem),
+// a nie jeden ciąg sklejony kropką - patrz CLAUDE.md §4.
+const describe = (draft: OpenDraftVisit): string[] => [
+    `rozpoczęte ${formatAge(draft.ageMinutes)} temu`,
+    draft.createdByName ? `Pracownik: ${draft.createdByName}` : null,
+    draft.customerName ? `Klient: ${draft.customerName}` : null,
+].filter((part): part is string => Boolean(part));
 
 export const UnfinishedCheckInsPanel = () => {
     const { can } = usePermissions();
@@ -196,12 +201,15 @@ export const UnfinishedCheckInsPanel = () => {
                             <Row key={draft.visitId}>
                                 <RowMain>
                                     <RowTitle>
-                                        {draft.vehicleName}
-                                        {draft.licensePlate ? ` (${draft.licensePlate})` : ''}
-                                        {' · '}
-                                        {draft.visitNumber}
+                                        <span>
+                                            {draft.vehicleName}
+                                            {draft.licensePlate ? ` (${draft.licensePlate})` : ''}
+                                        </span>
+                                        <span>{draft.visitNumber}</span>
                                     </RowTitle>
-                                    <RowMeta $alert={draft.stale}>{describe(draft)}</RowMeta>
+                                    <RowMeta $alert={draft.stale}>
+                                        {describe(draft).map(part => <span key={part}>{part}</span>)}
+                                    </RowMeta>
                                 </RowMain>
                                 <ResumeBtn onClick={() => setResuming(draft)}>
                                     Dokończ przyjęcie
@@ -219,7 +227,7 @@ export const UnfinishedCheckInsPanel = () => {
                         // Kartę Wizyty wysłał już backend razem z potwierdzeniem (flaga sendVisitCard).
                         setResuming(null);
                         refresh();
-                        showSuccess(`Wizyta rozpoczęta pomyślnie!`);
+                        showSuccess('Wizyta rozpoczęta');
                         navigate(`/visits/${visitId}`);
                     }}
                     onCancelled={() => { setResuming(null); refresh(); }}

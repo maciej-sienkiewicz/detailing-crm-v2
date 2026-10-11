@@ -82,7 +82,7 @@ export const SmsNotificationsSection = ({
                     />
                     <CheckboxLabel>
                         <CheckboxTitle>Wyślij SMS z potwierdzeniem rezerwacji</CheckboxTitle>
-                        <CheckboxDesc>SMS zostanie wysłany natychmiast po zapisaniu rezerwacji</CheckboxDesc>
+                        <CheckboxDesc>Wyślemy go od razu po zapisaniu</CheckboxDesc>
                     </CheckboxLabel>
                 </CheckboxRow>
 
@@ -94,7 +94,7 @@ export const SmsNotificationsSection = ({
                         onChange={e => onSendReminderSmsChange(e.target.checked)}
                     />
                     <CheckboxLabel>
-                        <CheckboxTitle>Wyślij SMS przypominający o nadchodzącej wizycie</CheckboxTitle>
+                        <CheckboxTitle>Wyślij SMS z przypomnieniem przed wizytą</CheckboxTitle>
                     </CheckboxLabel>
                 </CheckboxRow>
             </CheckboxList>

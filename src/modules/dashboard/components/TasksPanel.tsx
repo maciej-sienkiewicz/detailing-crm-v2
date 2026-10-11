@@ -3,6 +3,7 @@ import { usePermissions } from '@/core/permissions';
 import styled from 'styled-components';
 import { Check, Pencil, Trash2, Plus, ClipboardList, Archive, Users, ShieldCheck } from 'lucide-react';
 import { useBreakpoint } from '@/common/hooks';
+import { pluralPl } from '@/common/utils/plural';
 import { useTasks } from '../hooks/useTasks';
 import { TaskModal } from './TaskModal';
 import { TaskArchiveModal } from './TaskArchiveModal';
@@ -310,7 +311,7 @@ const formatVisibilityLabel = (task: DashboardTask): string => {
     const names = task.visibleToUserNames ?? [];
     if (names.length === 0) return 'Wybrane osoby';
     if (names.length <= 2) return names.join(', ');
-    return `${names[0]} i ${names.length - 1} inne`;
+    return `${names[0]} i ${names.length - 1} ${pluralPl(names.length - 1, 'inna osoba', 'inne osoby', 'innych osób')}`;
   }
   if (task.visibilityType === 'ROLE') {
     return task.visibleToRoleName ? `Rola: ${task.visibleToRoleName}` : 'Wybrana rola';
@@ -432,12 +433,12 @@ export const TasksPanel = () => {
                   {task.meta && <TaskMeta>{task.meta}</TaskMeta>}
                   {(task.createdByUserName || task.createdAt) && (
                     <TaskCreator>
-                      {task.createdByUserName ? `Dodał: ${task.createdByUserName}` : 'Dodano'}
+                      {task.createdByUserName ? `Dodane przez: ${task.createdByUserName}` : 'Dodano'}
                       {task.createdAt && `, ${formatTaskDate(task.createdAt)}`}
                     </TaskCreator>
                   )}
                   {task.done && task.completedAt && (
-                    <ArchiveHint title="Odznacz, jeśli to pomyłka - odliczanie zacznie się od nowa po ponownym odhaczeniu">
+                    <ArchiveHint title="Odznacz, jeśli to pomyłka. Wtedy zadanie nie trafi do archiwum.">
                       <Archive aria-hidden="true" />
                       Do archiwum {formatArchiveAt(task.completedAt)}
                     </ArchiveHint>

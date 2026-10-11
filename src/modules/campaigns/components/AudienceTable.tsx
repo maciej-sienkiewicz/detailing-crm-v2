@@ -372,15 +372,15 @@ export function AudienceTable({
 
             {awaitingTrigger ? (
                 <EmptyHint>
-                    Wybierz usługę w warunku wysyłki - dopiero ona wyznacza, kogo ta kampania
-                    odezwie.
+                    Wybierz usługę w warunku wysyłki - dopiero wtedy zobaczysz, do kogo trafi
+                    kampania.
                 </EmptyHint>
             ) : empty ? (
                 <EmptyHint>
                     {isEstimating
                         ? 'Przeliczam listę…'
                         : searching
-                            ? `Nikt na liście nie pasuje do „${search.trim()}".`
+                            ? `Nikt na liście nie pasuje do „${search.trim()}”.`
                             : includeUnnamed
                                 ? 'Żaden klient nie pasuje do tych kryteriów.'
                                 /* Najczęstszy powód pustej listy w studiu, które

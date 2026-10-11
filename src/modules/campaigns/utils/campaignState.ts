@@ -10,6 +10,7 @@
 // ton ('due' / 'stale' / 'neutral') znaczy tutaj dokładnie to, co tam, więc
 // czerwony pasek przy wierszu kampanii nie wymaga osobnego tłumaczenia od kogoś,
 // kto nauczył się go na liście leadów.
+import { pluralPl } from '@/common/utils/plural';
 import type { Campaign, CampaignStatus } from '../types';
 
 /** 'due' - coś nie wyszło i trzeba zareagować. 'stale' - stoi i czeka na człowieka. */
@@ -31,7 +32,17 @@ export const CLOSED_STATUSES: Set<CampaignStatus> = new Set([
 
 /** „1 wiadomość", „2 wiadomości", „5 wiadomości". */
 export const messageWord = (count: number): string =>
-    count === 1 ? 'wiadomość' : 'wiadomości';
+    pluralPl(count, 'wiadomość', 'wiadomości', 'wiadomości');
+
+/**
+ * „1 wiadomość nie dotarła", „2 wiadomości nie dotarły", „5 wiadomości nie dotarło".
+ * Czasownik odmienia się razem z liczbą - stałe „nie dotarło" dawało „1 wiadomość nie dotarło".
+ */
+export const notDeliveredVerb = (count: number): string =>
+    pluralPl(count, 'nie dotarła', 'nie dotarły', 'nie dotarło');
+
+export const notDeliveredText = (count: number): string =>
+    `${count} ${messageWord(count)} ${notDeliveredVerb(count)}`;
 
 /** „za 3 dni", „jutro", „dziś o 10:00", „12 gru, 10:00". */
 export function describeMoment(iso: string | null): string {
@@ -73,7 +84,7 @@ export function describeCampaign(campaign: Campaign, creditsShort = false): Camp
         return {
             tone: 'due',
             label: `${failed} nie wyszło`,
-            title: `${failed} ${messageWord(failed)} nie dotarło do odbiorców - można ponowić wysyłkę`,
+            title: `${notDeliveredText(failed)} do odbiorców - można ponowić wysyłkę`,
         };
     }
     if (creditsShort && (campaign.status === 'SCHEDULED' || campaign.status === 'ACTIVE')) {
@@ -145,10 +156,16 @@ export function recipientsFigure(campaign: Campaign): { value: string; note: str
         };
     }
     if (campaign.recipientsSent > 0) {
-        return { value: String(campaign.recipientsSent), note: 'wysłanych wiadomości' };
+        return {
+            value: String(campaign.recipientsSent),
+            note: pluralPl(campaign.recipientsSent, 'wysłana wiadomość', 'wysłane wiadomości', 'wysłanych wiadomości'),
+        };
     }
     if (campaign.recipientsTotal > 0) {
-        return { value: String(campaign.recipientsTotal), note: 'odbiorców na liście' };
+        return {
+            value: String(campaign.recipientsTotal),
+            note: pluralPl(campaign.recipientsTotal, 'odbiorca na liście', 'odbiorcy na liście', 'odbiorców na liście'),
+        };
     }
     return { value: '-', note: 'lista powstanie przy wysyłce' };
 }

@@ -73,7 +73,7 @@ export function TabletPairingModal({ onClose }: Props) {
                 {generateCode.isPending && (
                     <LoadingWrap role="status">
                         <Spinner aria-hidden="true" />
-                        <LoadingText>Generowanie kodu...</LoadingText>
+                        <LoadingText>Generowanie kodu…</LoadingText>
                     </LoadingWrap>
                 )}
 
@@ -94,8 +94,8 @@ export function TabletPairingModal({ onClose }: Props) {
                             <ExpiredWrap>
                                 <ExpiredIcon />
                                 <ExpiredTitle>Kod wygasł</ExpiredTitle>
-                                <ExpiredDesc>Kod był ważny 5 minut. Wygeneruj nowy, aby kontynuować.</ExpiredDesc>
-                                <Button variant="primary" size="md" onClick={requestCode}>Generuj nowy kod</Button>
+                                <ExpiredDesc>Kod był ważny 5 minut. Wygeneruj nowy.</ExpiredDesc>
+                                <Button variant="primary" size="md" onClick={requestCode}>Wygeneruj nowy kod</Button>
                             </ExpiredWrap>
                         ) : (
                             <CodeWrap>
@@ -121,7 +121,7 @@ export function TabletPairingModal({ onClose }: Props) {
                             </InstructionStep>
                             <InstructionStep>
                                 <StepNum>2</StepNum>
-                                <span>Wpisz powyższy kod parowania</span>
+                                <span>Wpisz ten kod</span>
                             </InstructionStep>
                             <InstructionStep>
                                 <StepNum>3</StepNum>

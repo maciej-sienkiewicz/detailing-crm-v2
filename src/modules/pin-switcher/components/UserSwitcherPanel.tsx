@@ -426,7 +426,7 @@ export const UserSwitcherPanel = ({ onClose, lockMode = false }: Props) => {
         } catch {
             triggerShake();
             setPin('');
-            setError('Nieprawidłowy kod PIN. Spróbuj ponownie.');
+            setError('Zły PIN. Spróbuj jeszcze raz.');
         } finally {
             setIsSwitching(false);
         }
@@ -500,7 +500,7 @@ export const UserSwitcherPanel = ({ onClose, lockMode = false }: Props) => {
                             </NumBtn>
                         </NumPad>
                         <PasswordLoginLink onClick={handlePasswordLogin}>
-                            Zaloguj podając hasło
+                            Zaloguj się hasłem
                         </PasswordLoginLink>
                     </ModalNumpadSection>
                 </ModalWrap>
@@ -519,15 +519,15 @@ export const UserSwitcherPanel = ({ onClose, lockMode = false }: Props) => {
                 </CloseBtn>
             )}
 
-            <Title>{lockMode ? 'Sesja zablokowana' : 'Wybierz użytkownika'}</Title>
+            <Title>{lockMode ? 'Ekran zablokowany' : 'Wybierz użytkownika'}</Title>
             <Subtitle>
                 {lockMode
-                    ? 'Wprowadź kod PIN, aby wznowić sesję'
-                    : 'Wybierz profil i wprowadź kod PIN, aby się przełączyć'}
+                    ? 'Wpisz PIN, żeby wrócić do pracy'
+                    : 'Kliknij swoje imię i wpisz PIN'}
             </Subtitle>
 
             {isLoading ? (
-                <p style={{ color: '#64748b' }}>Ładowanie...</p>
+                <p style={{ color: '#64748b' }}>Wczytywanie…</p>
             ) : (
                 <ProfileGrid>
                     {profiles.map(profile => (
@@ -542,9 +542,9 @@ export const UserSwitcherPanel = ({ onClose, lockMode = false }: Props) => {
                             }}
                             title={
                                 profile.pinLocked
-                                    ? 'PIN zablokowany: wymagane logowanie hasłem'
+                                    ? 'PIN zablokowany, zaloguj się hasłem'
                                     : !profile.hasPinConfigured
-                                    ? 'Brak kodu PIN: wymagane logowanie hasłem'
+                                    ? 'Brak PIN-u, zaloguj się hasłem'
                                     : undefined
                             }
                         >
@@ -576,11 +576,11 @@ export const UserSwitcherPanel = ({ onClose, lockMode = false }: Props) => {
                                     onClick={(e) => { e.stopPropagation(); handleUnlock(profile.userId); }}
                                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); handleUnlock(profile.userId); } }}
                                 >
-                                    {unlockingId === profile.userId ? 'Odblokowuję…' : 'Odblokuj PIN'}
+                                    {unlockingId === profile.userId ? 'Odblokowywanie…' : 'Odblokuj PIN'}
                                 </UnlockBtn>
                             )}
                             {!profile.pinLocked && !profile.hasPinConfigured && (
-                                <ProfileLockHint style={{ color: '#64748b' }}>Brak PIN</ProfileLockHint>
+                                <ProfileLockHint style={{ color: '#64748b' }}>Brak PIN-u</ProfileLockHint>
                             )}
                         </ProfileCard>
                     ))}
@@ -588,7 +588,7 @@ export const UserSwitcherPanel = ({ onClose, lockMode = false }: Props) => {
             )}
 
             <PasswordLoginLink style={{ marginTop: 28 }} onClick={handlePasswordLogin}>
-                Zaloguj podając hasło
+                Zaloguj się hasłem
             </PasswordLoginLink>
         </Overlay>
     );

@@ -110,14 +110,13 @@ export function ModuleGateCard({
                         Odblokuj moduł
                     </UnlockButton>
                     <FullHint>
-                        Lub przejdź na pakiet <a href="/settings?tab=plan">FULL</a> i
-                        zyskaj dostęp do wszystkich modułów w niższej cenie niż suma pojedynczych.
+                        Albo przejdź na pakiet <a href="/settings?tab=plan">FULL</a>:
+                        wszystkie moduły taniej niż osobno.
                     </FullHint>
                 </>
             ) : (
                 <OwnerOnlyNote>
-                    Moduły może dokupić wyłącznie właściciel studia.
-                    Poproś właściciela o odblokowanie tej funkcji.
+                    Moduł może dokupić tylko właściciel studia. Poproś go o to.
                 </OwnerOnlyNote>
             )}
         </GateCard>
@@ -184,8 +183,8 @@ export function ModuleGate({ featureKey, benefits, title, children }: Props) {
                     title={title ?? addOnName}
                     subtitle={
                         <>
-                            Ten widok jest częścią modułu <strong>{addOnName}</strong>, który nie jest
-                            aktywny w Twoim pakiecie. Poniżej podgląd tego, co zyskasz po odblokowaniu:
+                            Ten widok jest w module <strong>{addOnName}</strong>, którego nie masz
+                            w pakiecie. Poniżej podgląd tego, co zyskasz po odblokowaniu:
                         </>
                     }
                     benefits={benefits}

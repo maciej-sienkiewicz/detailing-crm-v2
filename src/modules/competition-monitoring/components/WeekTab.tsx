@@ -2,6 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { ExternalLink, Lightbulb, Megaphone, Trophy, TrendingUp, Flame, Moon, Minus, Sparkles } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { pluralPl } from '@/common/utils/plural';
 import type { DigestAd, DigestVerdict, ProfileDigest, PulseEvent, WeeklyDigest } from '../types';
 import { FORMAT_LABELS } from '../types';
 import { usePulse } from '../hooks/useAnalytics';
@@ -46,6 +47,13 @@ const WeekTitle = styled.div`
         letter-spacing: -0.2px;
     }
     span { font-size: ${st.fontSm}; color: ${st.textMuted}; }
+`;
+
+/** Liczba profili i własny profil to dwa fakty, więc dwa elementy obok siebie. */
+const WeekMeta = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 12px;
 `;
 
 const RankChip = styled.span`
@@ -354,8 +362,11 @@ const DigestRow: React.FC<{ profile: ProfileDigest; signals: PulseEvent[] }> = (
                                 rel="noopener noreferrer"
                                 $highlight={post === profile.highlight}
                             >
-                                {FORMAT_LABELS[post.format]} · {post.topicLabel} ·{' '}
-                                {formatNumber(post.engagement)} <ExternalLink />
+                                {FORMAT_LABELS[post.format]}, {post.topicLabel}: {formatNumber(post.engagement)}{' '}
+                                {Math.abs(post.engagement) >= 1000
+                                    ? 'reakcji'
+                                    : pluralPl(post.engagement, 'reakcja', 'reakcje', 'reakcji')}{' '}
+                                <ExternalLink />
                             </PostLink>
                         ))}
                     </PostLinks>
@@ -408,8 +419,8 @@ export const WeekTab: React.FC<{ digest: WeeklyDigest | null }> = ({ digest }) =
                 <CenterState>
                     <strong>Zacznij od dodania profili konkurencji</strong>
                     <span>
-                        Kliknij „Profile" i dodaj 3-5 studiów detailingowych z Twojej okolicy oraz własny
-                        profil. Pierwsze dane pojawią się po najbliższej synchronizacji.
+                        Kliknij „Profile" i dodaj 3–5 studiów detailingowych z Twojej okolicy oraz własny
+                        profil. Pierwsze dane pojawią się po najbliższym pobraniu danych.
                     </span>
                 </CenterState>
             </Card>
@@ -424,11 +435,18 @@ export const WeekTab: React.FC<{ digest: WeeklyDigest | null }> = ({ digest }) =
             <WeekBar>
                 <WeekTitle>
                     <strong>Tydzień od {formatDay(digest.weekStart)}</strong>
-                    <span>
-                        {digest.profilesWatched}{' '}
-                        {digest.profilesWatched === 1 ? 'obserwowany profil' : 'obserwowane profile'}
-                        {digest.selfUsername && ` · Twój profil: @${digest.selfUsername}`}
-                    </span>
+                    <WeekMeta>
+                        <span>
+                            {digest.profilesWatched}{' '}
+                            {pluralPl(
+                                digest.profilesWatched,
+                                'obserwowany profil',
+                                'obserwowane profile',
+                                'obserwowanych profili'
+                            )}
+                        </span>
+                        {digest.selfUsername && <span>Twój profil: @{digest.selfUsername}</span>}
+                    </WeekMeta>
                 </WeekTitle>
                 {digest.position && (
                     <RankChip>
@@ -451,13 +469,12 @@ export const WeekTab: React.FC<{ digest: WeeklyDigest | null }> = ({ digest }) =
             <Card>
                 <CardTitle>Co się działo u obserwowanych profili</CardTitle>
                 <CardHint $hideOnMobile>
-                    Każdy profil raz, z tego tygodnia. Liczby porównujemy z normą danego profilu
-                    z ostatniego pół roku, a nie ze średnią całej grupy.
+                    Każdy profil porównujemy z jego własną normą z ostatniego pół roku.
                 </CardHint>
                 {shown.length === 0 ? (
                     <CardHint style={{ marginBottom: 0 }}>
                         {digest.profiles.length === 0
-                            ? 'Żaden z obserwowanych profili nie ma jeszcze danych. Wróć po najbliższej synchronizacji.'
+                            ? 'Żaden z obserwowanych profili nie ma jeszcze danych. Wróć po najbliższym pobraniu danych.'
                             : 'W tym tygodniu nic się nie wydarzyło u obserwowanych profili.'}
                     </CardHint>
                 ) : (
@@ -473,18 +490,18 @@ export const WeekTab: React.FC<{ digest: WeeklyDigest | null }> = ({ digest }) =
                 {hidden > 0 && (
                     <HiddenNote>
                         {hidden === 1
-                            ? 'Jeden profil pominięty: bez publikacji i bez historii, z której dałoby się coś wyczytać.'
-                            : `${hidden} profile pominięte: bez publikacji i bez historii, z której dałoby się coś wyczytać.`}
+                            ? 'Jeden profil pominięty: bez publikacji i bez historii.'
+                            : `${hidden} ${pluralPl(hidden, 'profil pominięty', 'profile pominięte', 'profili pominiętych')}: bez publikacji i bez historii.`}
                     </HiddenNote>
                 )}
             </Card>
 
             {digest.profilesWatched < 4 && (
                 <Card>
-                    <CardTitle>Rozbuduj grupę porównawczą</CardTitle>
+                    <CardTitle>Dodaj więcej konkurentów</CardTitle>
                     <CardHint>
                         Obserwujesz {digest.profilesWatched}{' '}
-                        {digest.profilesWatched === 1 ? 'profil' : 'profile'}. Od 4 profili pokażemy medianę grupy.
+                        {pluralPl(digest.profilesWatched, 'profil', 'profile', 'profili')}. Od 4 profili pokażemy typowy wynik grupy.
                     </CardHint>
                     <SuggestionsSection compact />
                 </Card>

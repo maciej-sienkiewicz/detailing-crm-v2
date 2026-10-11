@@ -75,7 +75,7 @@ export function EmployeesView() {
     return (
         <PageChromeProvider headerActions={headerActions}>
             <Page>
-                <PageHeader title="Pracownicy" subtitle="Zespół, urlopy, czas pracy i listy obecności" />
+                <PageHeader title="Pracownicy" />
 
                 <Toolbar>
                     <TabBar tabs={tabs} activeKey={tab} onChange={goToTab} ariaLabel="Zakładki modułu Pracownicy" />

@@ -140,7 +140,7 @@ describe('LeadTimeline', () => {
             entry({ id: '1', kind: 'OUTBOUND_MESSAGE', at: daysAgo(6), body: 'wycena w załączniku' }),
         ]);
 
-        expect(screen.getByText(/^6 dni temu · /)).toBeTruthy();
+        expect(screen.getByText(/^6 dni temu \(/)).toBeTruthy();
     });
 
     it('kontakt poza pocztą pokazuje notatkę tak samo jak treść wiadomości', () => {

@@ -35,7 +35,7 @@ export const useSignup = () => {
             // Przekieruj na stronę logowania z komunikatem o pomyślnej rejestracji
             navigate('/login', {
                 state: {
-                    message: 'Pomyślnie utworzono konto. Teraz możesz się zalogować.'
+                    message: 'Konto założone. Możesz się zalogować.'
                 }
             });
         },

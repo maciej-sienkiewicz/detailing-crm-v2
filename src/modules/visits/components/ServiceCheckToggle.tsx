@@ -59,7 +59,7 @@ export const ServiceCheckToggle = ({ checked, serviceName, onChange }: Props) =>
         role="checkbox"
         aria-checked={checked}
         aria-label={`Zrobione: ${serviceName}`}
-        title={checked ? 'Odznacz jako niezrobioną' : 'Odhacz jako zrobioną'}
+        title={checked ? 'Oznacz jako niezrobioną' : 'Oznacz jako zrobioną'}
         onClick={e => {
             // Pozycja na telefonie sama jest przyciskiem menu - stuknięcie w pole nie może go otworzyć.
             e.stopPropagation();

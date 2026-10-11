@@ -138,7 +138,7 @@ export function VisitProductsSection({ visitId, canUsage, canManageProducts, can
     return (
         <Wrap>
             {links.length === 0 && (
-                <Empty>Nie dopięto jeszcze żadnego produktu do tej wizyty.</Empty>
+                <Empty>Do tej wizyty nie dodano jeszcze produktów.</Empty>
             )}
             {links.length > 0 && (
                 <List>
@@ -153,7 +153,7 @@ export function VisitProductsSection({ visitId, canUsage, canManageProducts, can
                                 </ItemSub>
                             </ItemMain>
                             {canUsage && (
-                                <RemoveBtn type="button" onClick={() => unlink.mutate(l.id)} aria-label="Usuń powiązanie">
+                                <RemoveBtn type="button" onClick={() => unlink.mutate(l.id)} aria-label="Usuń z wizyty">
                                     <X size={16} />
                                 </RemoveBtn>
                             )}
@@ -167,7 +167,7 @@ export function VisitProductsSection({ visitId, canUsage, canManageProducts, can
                     <InputShell>
                         <LeadIcon><Search size={15} /></LeadIcon>
                         <BareInput
-                            placeholder="Wpisz nazwę produktu, aby dopiąć lub dodać nowy…"
+                            placeholder="Szukaj produktu lub dodaj nowy…"
                             value={search}
                             onChange={e => { setSearch(e.target.value); setOpen(true); }}
                             onFocus={() => setOpen(true)}
@@ -198,7 +198,7 @@ export function VisitProductsSection({ visitId, canUsage, canManageProducts, can
                                 )}
                                 {showAddNew && (
                                     <AddNew type="button" onClick={() => { setAdding({ name: trimmed }); setOpen(false); }}>
-                                        <Plus size={14} /> Dodaj nowy produkt „{trimmed}"
+                                        <Plus size={14} /> Dodaj nowy produkt „{trimmed}”
                                     </AddNew>
                                 )}
                                 {!isLoading && suggestions.length === 0 && !showAddNew && (

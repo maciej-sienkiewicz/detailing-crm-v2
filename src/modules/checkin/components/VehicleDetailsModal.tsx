@@ -128,7 +128,7 @@ export const VehicleDetailsModal = ({
             <ModalContent>
                 {isLoading ? (
                     <LoadingContainer>
-                        Ładowanie danych pojazdu...
+                        Wczytywanie danych pojazdu…
                     </LoadingContainer>
                 ) : (
                     <>

@@ -66,14 +66,13 @@ export function VinEditModal({ vin, onSave, onClose, subtitle, saving }: VinEdit
                         {scanError && <FormErrorMsg>{scanError}</FormErrorMsg>}
                     </FormField>
                     <Hint style={{ marginTop: 10 }}>
-                        Wpisz numer z tabliczki albo dowodu rejestracyjnego, albo kliknij aparat
-                        i zrób zdjęcie telefonem. Numer trafi do karty pojazdu.
+                        Przepisz numer z dowodu rejestracyjnego albo kliknij aparat i zrób zdjęcie.
                     </Hint>
                 </ModalContent>
                 <ModalFooter>
                     <Button onClick={onClose}>Anuluj</Button>
                     <Button type="submit" variant="primary" disabled={saving}>
-                        {saving ? 'Zapisywanie...' : 'Zapisz'}
+                        {saving ? 'Zapisywanie…' : 'Zapisz'}
                     </Button>
                 </ModalFooter>
             </form>

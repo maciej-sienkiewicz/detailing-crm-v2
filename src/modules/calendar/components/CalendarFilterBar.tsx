@@ -6,6 +6,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import type { AppointmentStatus, VisitStatus } from '../types';
+import { pluralPl } from '@/common/utils/plural';
 import { useAppointmentColors } from '@/modules/appointment-colors/hooks/useAppointmentColors';
 
 /* ─────────────────────────────────────────────────────────────────
@@ -23,7 +24,7 @@ const STATUS_META: Record<
     READY_FOR_PICKUP:  { label: 'Gotowe do odbioru', dot: '#10b981', group: 'visit' },
     COMPLETED:         { label: 'Zakończone',        dot: '#16a34a', group: 'visit' },
     REJECTED:          { label: 'Odrzucone',         dot: '#dc2626', group: 'visit' },
-    ARCHIVED:          { label: 'Zarchiwizowane',    dot: '#64748b', group: 'visit' },
+    ARCHIVED:          { label: 'Archiwum',          dot: '#64748b', group: 'visit' },
 };
 
 const ALL_APPOINTMENT_STATUSES: AppointmentStatus[] = ['CREATED', 'ABANDONED', 'CANCELLED'];
@@ -803,7 +804,7 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
                         <ClearButton onClick={resetAll}>Wyczyść</ClearButton>
                     )}
                     {eventsCount !== undefined && (
-                        <CountBadge>{eventsCount} wydarzeń</CountBadge>
+                        <CountBadge>{eventsCount} {pluralPl(eventsCount, 'wydarzenie', 'wydarzenia', 'wydarzeń')}</CountBadge>
                     )}
                 </Spacer>
             </Bar>

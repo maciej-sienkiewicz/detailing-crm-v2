@@ -11,13 +11,15 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { reportProblemApi } from '@/modules/support/api/reportProblemApi';
 import type { Product } from '../types';
 
-// „Zgłoś nieprawidłowość" przy produkcie.
+// „Zgłoś błąd w danych" przy produkcie.
 //
 // Świadomie NIE ma osobnego endpointu: zgłoszenie idzie tą samą drogą co „Zgłoś problem"
 // z menu, więc ląduje w tej samej skrzynce (support.report.recipient-email) bez dublowania
 // konfiguracji poczty. Dokładamy tylko NAGŁÓWEK z tożsamością produktu — bez niego obsługa
 // dostaje „nazwa się nie zgadza" i nie wie, którego wiersza katalogu dotyczy.
 
+// Marka i kod jako dwa elementy obok siebie, bez kropki-kleju (CLAUDE.md §4).
+const ContextMeta = styled.span` display: flex; flex-wrap: wrap; column-gap: 12px; `;
 const Context = styled.div`
     padding: 10px 12px; border-radius: ${st.radiusSm};
     background: ${st.bgCardAlt}; border: 1px solid ${st.border};
@@ -69,7 +71,7 @@ export function ReportProductIssueModal({ product, onClose }: Props) {
         <ModalShell isOpen onClose={onClose} maxWidth="560px">
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>Zgłoś nieprawidłowość</ModalTitle>
+                    <ModalTitle>Zgłoś błąd w danych</ModalTitle>
                     <ModalSubtitle>Napisz, co się nie zgadza w danych tego produktu</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
@@ -77,7 +79,14 @@ export function ReportProductIssueModal({ product, onClose }: Props) {
             <ModalContent>
                 <Context>
                     <Strong>{product.name}</Strong>
-                    <span>{[product.brand, product.gtin].filter(Boolean).join(' · ') || 'bez marki i kodu'}</span>
+                    {product.brand || product.gtin ? (
+                        <ContextMeta>
+                            {product.brand && <span>{product.brand}</span>}
+                            {product.gtin && <span>{product.gtin}</span>}
+                        </ContextMeta>
+                    ) : (
+                        <span>bez marki i kodu</span>
+                    )}
                 </Context>
 
                 <div style={{ marginTop: 14 }}>

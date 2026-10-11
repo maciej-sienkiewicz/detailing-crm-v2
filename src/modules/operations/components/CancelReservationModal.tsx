@@ -89,8 +89,7 @@ export const CancelReservationModal = ({
                         </svg>
                     </WarningIcon>
                     <WarningText>
-                        Anulowana rezerwacja zostanie oznaczona jako anulowana i nie będzie już aktywna.
-                        Nadal będzie widoczna w historii.
+                        Rezerwacja zostanie w historii, ale nie będzie już aktywna.
                     </WarningText>
                 </WarningBox>
             </ModalContent>
@@ -100,7 +99,7 @@ export const CancelReservationModal = ({
                     Wróć
                 </SharedButton>
                 <SharedButton $variant="danger" type="button" onClick={onConfirm} disabled={isCancelling}>
-                    {isCancelling ? 'Anulowanie...' : 'Anuluj rezerwację'}
+                    {isCancelling ? 'Anulowanie…' : 'Anuluj rezerwację'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

@@ -116,8 +116,8 @@ export const KsefSendingDefaultsPanel: React.FC = () => {
         <OptionTexts>
           <OptionLabel>Faktury wystawia księgowość</OptionLabel>
           <OptionHint>
-            Wybór „Faktura” przy wydaniu pojazdu nie tworzy pozycji w module 'Finanse' w CRM. W takiej sytuacji zakończona wizyta od razu zostanie wliczona w moduł statystyk,
-            natomiast pełna odpowiedzialność za spójność w module 'Finanse' leży po stronie użytkownika. Zachęcamy do wystawiania faktur przez CRM.
+            Przy wydaniu pojazdu „Faktura” nie tworzy faktury w CRM. Wizyta od razu liczy się
+            do statystyk, a o zgodność Finansów trzeba zadbać samodzielnie.
           </OptionHint>
           {external && (
             <OptionNote>
@@ -144,9 +144,8 @@ export const KsefSendingDefaultsPanel: React.FC = () => {
           <OptionHint>
             {external
               ? 'Nie dotyczy, gdy faktury wystawia księgowość: CRM nie tworzy wtedy faktur, więc nie ma czego wysyłać.'
-              : 'Ustawia początkową pozycję przełącznika „Wyślij fakturę do KSeF” w oknie wydania pojazdu. ' +
-                'Osoba wydająca pojazd może go zmienić przy każdej fakturze; faktura niewysłana zostaje ' +
-                'zapisana w CRM i można ją wysłać później z listy dokumentów przychodowych.'}
+              : 'Tak ustawi się przełącznik „Wyślij fakturę do KSeF” przy wydaniu pojazdu. ' +
+                'Można go zmienić przy każdej fakturze, a niewysłaną fakturę wysłać później.'}
           </OptionHint>
         </OptionTexts>
         <Toggle

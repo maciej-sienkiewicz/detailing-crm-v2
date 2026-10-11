@@ -101,7 +101,7 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
             <ModalContent>
                 <Form id="edit-vehicle-form" onSubmit={handleSubmit(onSubmit)} autoComplete="off">
                     <Group aria-labelledby="ev-group-identity">
-                        <GroupTitle id="ev-group-identity">Identyfikacja</GroupTitle>
+                        <GroupTitle id="ev-group-identity">Podstawowe dane</GroupTitle>
                         <FormGrid>
                             <FormField>
                                 <FieldLabel htmlFor="ev-brand">Marka</FieldLabel>
@@ -240,7 +240,7 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
             <ModalFooter>
                 <Button onClick={onClose}>Anuluj</Button>
                 <Button type="submit" form="edit-vehicle-form" variant="primary" disabled={isUpdating}>
-                    {isUpdating ? 'Zapisywanie...' : 'Zapisz zmiany'}
+                    {isUpdating ? 'Zapisywanie…' : 'Zapisz zmiany'}
                 </Button>
             </ModalFooter>
         </ModalShell>

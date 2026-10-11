@@ -237,7 +237,7 @@ export function ReplyDraftOfferQuestion({ lead, onChoose, onClose }: ReplyDraftO
     const [withOffer, setWithOffer] = useState<boolean | null>(null);
     const quoteCount = (lead?.services ?? []).filter(item => item.status === 'ACCEPTED').length;
     const offerDescription = quoteCount > 0
-        ? `Asystent wypisze usługi z wyceny leada z cenami. W następnym kroku możesz ją zmienić.`
+        ? 'Asystent wpisze usługi i ceny z wyceny. W następnym kroku możesz je zmienić.'
         : lead
             ? 'Wybierzesz usługi i rabat. Lista zostanie wyceną leada.'
             : 'Wybierzesz usługi i rabat. Rozmowa zostanie leadem z tą wyceną.';

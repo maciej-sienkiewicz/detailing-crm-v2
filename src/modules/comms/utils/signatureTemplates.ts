@@ -62,7 +62,7 @@ export const SIGNATURE_TEXT_FIELDS: Record<SignatureTextKey, SignatureFieldDef> 
     email: { label: 'Adres e-mail', type: 'email', placeholder: 'anna@studio.pl', autoComplete: 'email' },
     website: { label: 'Strona WWW', type: 'url', placeholder: 'www.studio.pl' },
     address: { label: 'Adres firmy', type: 'text', placeholder: 'ul. Piękna 1, 00-001 Warszawa' },
-    disclaimer: { label: 'Stopka prawna (opcjonalnie)', type: 'textarea', placeholder: 'Ta wiadomość może zawierać informacje poufne…' },
+    disclaimer: { label: 'Dopisek prawny (opcjonalnie)', type: 'textarea', placeholder: 'Ta wiadomość może zawierać informacje poufne…' },
 };
 
 export const SIGNATURE_SOCIAL_FIELDS: Record<SignatureSocialKey, SignatureFieldDef> = {

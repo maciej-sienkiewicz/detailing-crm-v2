@@ -7,7 +7,6 @@ import {
     ModalHeader,
     ModalTitleGroup,
     ModalTitle,
-    ModalSubtitle,
     ModalContent,
     ModalFooter,
     CloseBtn,
@@ -110,7 +109,6 @@ export const CreateVehicleModal = ({ isOpen, onClose, onSuccess }: CreateVehicle
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>{t.vehicles.form.title}</ModalTitle>
-                    <ModalSubtitle>Wypełnij dane nowego pojazdu</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={handleClose} />
             </ModalHeader>

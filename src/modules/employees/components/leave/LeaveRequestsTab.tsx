@@ -84,7 +84,7 @@ export function LeaveRequestsTab() {
             ) : queue.isLoading ? (
                 // Szkielet w kształcie wierszy: przy pierwszym wejściu na zakładkę treść nie
                 // skacze z jednej linii tekstu do listy.
-                <ListCard aria-busy="true" aria-label="Wczytuję wnioski">
+                <ListCard aria-busy="true" aria-label="Wczytywanie wniosków">
                     <ul>
                         {Array.from({ length: 3 }).map((_, i) => (
                             <Row key={i} aria-hidden="true">

@@ -87,7 +87,7 @@ export interface Worklist {
 const TITLES: Record<WorklistSectionKey, string> = {
     OURS: 'Czeka na nas',
     SILENT: 'Ucichło',
-    CLIENT: 'U klienta',
+    CLIENT: 'Czeka na klienta',
 };
 
 /** Najdłużej czekające na górze - wiek rośnie sam i nigdy nie przeskakuje. */

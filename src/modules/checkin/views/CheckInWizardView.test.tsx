@@ -26,7 +26,7 @@ vi.mock('../hooks/useCheckInWizard', () => ({
             vehicleData: { brand: 'BMW', model: 'X5' },
             services: [], photos: [{ id: 'p1' }], damagePoints: [],
         },
-        steps: [{ id: 'verification', label: 'Weryfikacja i stan pojazdu' }, { id: 'photos', label: 'Dokumentacja fotograficzna' }],
+        steps: [{ id: 'verification', label: 'Klient, auto i usługi' }, { id: 'photos', label: 'Zdjęcia i uszkodzenia' }],
         updateFormData: vi.fn(),
         nextStep: vi.fn(),
         previousStep: vi.fn(),
@@ -48,7 +48,7 @@ vi.mock('../components/SigningRequirementModal', () => ({
         isCreating: boolean; visitId: string | null; visitNumber: string;
         protocols: { id: string }[]; onBackToForm?: () => void; fromReservation?: boolean;
     }) => (
-        <div role="dialog" aria-label="Dokumentacja i Podpisy">
+        <div role="dialog" aria-label="Dokumenty do podpisu">
             {p.isCreating ? 'tworzenie' : `${p.visitNumber}: ${p.protocols.map(x => x.id).join(',')}`}
             <span>{p.fromReservation ? 'z rezerwacji' : 'walk-in'}</span>
             <button type="button" onClick={p.onBackToForm}>Wróć do formularza</button>

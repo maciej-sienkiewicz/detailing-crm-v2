@@ -1,3 +1,4 @@
+import { pluralPl } from '@/common/utils/plural';
 import type { RehearsalFinding } from '../types';
 
 /**
@@ -15,6 +16,9 @@ const numberIn = (detail: string): number | null => {
   return match ? Number(match[1]) : null;
 };
 
+const smsWord = (n: number) => pluralPl(n, 'SMS', 'SMS-y', 'SMS-ów');
+const charsWord = (n: number) => pluralPl(n, 'znak', 'znaki', 'znaków');
+
 const placeholderIn = (detail: string): string | null => {
   const match = /\{\{\s*([a-z0-9_]+)\s*\}\}/i.exec(detail);
   return match ? match[1] : null;
@@ -26,25 +30,25 @@ export function describeFinding(finding: RehearsalFinding): string {
   switch (rule) {
     case 'sms-too-long': {
       const segments = numberIn(detail);
-      return `Wiadomość jest za długa${segments ? ` (zajęłaby ${segments} SMS-y)` : ''} - skróć treść, żeby zmieściła się w maksymalnie 3 SMS-ach.`;
+      return `Wiadomość jest za długa${segments ? ` (zajęłaby ${segments} ${smsWord(segments)})` : ''} - skróć treść, żeby zmieściła się w maksymalnie 3 SMS-ach.`;
     }
     case 'sms-long': {
       const segments = numberIn(detail);
-      return `Wiadomość jest dość długa${segments ? ` (zajęłaby ${segments} SMS-y)` : ''} - warto ją skrócić, żeby ograniczyć koszt wysyłki.`;
+      return `Wiadomość jest dość długa${segments ? ` (zajęłaby ${segments} ${smsWord(segments)})` : ''} - warto ją skrócić, żeby ograniczyć koszt wysyłki.`;
     }
     case 'body-empty':
       return 'Treść wiadomości jest pusta - nic by nie zostało wysłane. Uzupełnij szablon.';
     case 'subject-empty':
       return 'Temat e-maila jest pusty. Uzupełnij szablon.';
     case 'subject-multiline':
-      return 'Temat e-maila zawiera znak nowej linii, czego nie da się wysłać - popraw temat, żeby zmieścił się w jednej linii.';
+      return 'Temat e-maila musi mieścić się w jednej linii - usuń z niego Enter.';
     case 'subject-long': {
       const chars = numberIn(detail);
-      return `Temat e-maila jest długi${chars ? ` (${chars} znaków)` : ''} - część skrzynek pocztowych obetnie go w podglądzie. Skróć temat.`;
+      return `Temat e-maila jest długi${chars ? ` (${chars} ${charsWord(chars)})` : ''} - część skrzynek pocztowych obetnie go w podglądzie. Skróć temat.`;
     }
     case 'body-suspiciously-short': {
       const chars = numberIn(detail);
-      return `Treść e-maila jest bardzo krótka${chars ? ` (${chars} znaków)` : ''} - sprawdź, czy szablon nie jest niekompletny.`;
+      return `Treść e-maila jest bardzo krótka${chars ? ` (${chars} ${charsWord(chars)})` : ''} - sprawdź, czy szablon nie jest niekompletny.`;
     }
     case 'html-in-sms':
     case 'html-in-plaintext-email':

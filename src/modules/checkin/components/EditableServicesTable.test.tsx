@@ -188,7 +188,7 @@ describe('EditableServicesTable', () => {
             // Na cennik obok tabeli nie ma miejsca, więc droga do usługi jest ta sama
             // co w układzie domyślnym - inaczej użytkownik zostałby bez żadnej.
             expect(screen.queryByLabelText('Szukaj w cenniku')).not.toBeInTheDocument();
-            expect(screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać...')).toBeInTheDocument();
+            expect(screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać…')).toBeInTheDocument();
         });
     });
 
@@ -199,10 +199,10 @@ describe('EditableServicesTable', () => {
             const user = userEvent.setup();
             renderTable([]);
 
-            const input = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać...');
+            const input = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać…');
             await user.type(input, 'xyz');
 
-            expect(await screen.findByText('Wprowadź nową usługę')).toBeInTheDocument();
+            expect(await screen.findByText('Dodaj nową usługę')).toBeInTheDocument();
         });
 
         it('pojawia się na dole listy gdy są wyniki', async () => {
@@ -210,10 +210,10 @@ describe('EditableServicesTable', () => {
             const user = userEvent.setup();
             renderTable([]);
 
-            const input = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać...');
+            const input = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać…');
             await user.type(input, 'Mycie');
 
-            const addBtn = await screen.findByText('Wprowadź nową usługę');
+            const addBtn = await screen.findByText('Dodaj nową usługę');
             expect(addBtn).toBeInTheDocument();
 
             // wyniki są powyżej
@@ -224,23 +224,23 @@ describe('EditableServicesTable', () => {
             const user = userEvent.setup();
             renderTable([]);
 
-            const input = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać...');
+            const input = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać…');
             await user.click(input);
 
-            expect(screen.queryByText('Wprowadź nową usługę')).not.toBeInTheDocument();
+            expect(screen.queryByText('Dodaj nową usługę')).not.toBeInTheDocument();
         });
     });
 
     // ── autocomplete: otwiera QuickServiceModal ───────────────────────────────
 
     describe('QuickServiceModal', () => {
-        it('otwiera się po kliknięciu "Wprowadź nową usługę"', async () => {
+        it('otwiera się po kliknięciu "Dodaj nową usługę"', async () => {
             const user = userEvent.setup();
             renderTable([]);
 
-            const input = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać...');
+            const input = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać…');
             await user.type(input, 'Nowa usługa');
-            await user.click(await screen.findByText('Wprowadź nową usługę'));
+            await user.click(await screen.findByText('Dodaj nową usługę'));
 
             expect(screen.getByTestId('quick-service-modal')).toBeInTheDocument();
         });
@@ -249,9 +249,9 @@ describe('EditableServicesTable', () => {
             const user = userEvent.setup();
             renderTable([]);
 
-            const input = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać...');
+            const input = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać…');
             await user.type(input, 'Polerowanie');
-            await user.click(await screen.findByText('Wprowadź nową usługę'));
+            await user.click(await screen.findByText('Dodaj nową usługę'));
 
             expect(screen.getByTestId('quick-service-initial-name')).toHaveTextContent('Polerowanie');
         });
@@ -260,9 +260,9 @@ describe('EditableServicesTable', () => {
             const user = userEvent.setup();
             const { onChange } = renderTable([]);
 
-            const input = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać...');
+            const input = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać…');
             await user.type(input, 'Polerowanie');
-            await user.click(await screen.findByText('Wprowadź nową usługę'));
+            await user.click(await screen.findByText('Dodaj nową usługę'));
 
             const modal = screen.getByTestId('quick-service-modal');
             await user.click(within(modal).getByText('Utwórz'));
@@ -283,7 +283,7 @@ describe('EditableServicesTable', () => {
             const user = userEvent.setup();
             const { onChange } = renderTable([]);
 
-            const input = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać...');
+            const input = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać…');
             await user.type(input, 'Mycie');
             await user.click(await screen.findByText('Mycie zewnętrzne'));
 
@@ -308,7 +308,7 @@ describe('EditableServicesTable', () => {
             const user = userEvent.setup();
             const { onChange } = renderTable([]);
 
-            const input = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać...');
+            const input = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać…');
             await user.type(input, 'niest');
             await user.click(await screen.findByText('Usługa niestandardowa'));
 
@@ -321,7 +321,7 @@ describe('EditableServicesTable', () => {
             const user = userEvent.setup();
             renderTable([]);
 
-            const input = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać...');
+            const input = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać…');
             await user.type(input, 'niest');
             await user.click(await screen.findByText('Usługa niestandardowa'));
 
@@ -334,7 +334,7 @@ describe('EditableServicesTable', () => {
             const user = userEvent.setup();
             renderTable([]);
 
-            const input = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać...');
+            const input = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać…');
             await user.type(input, 'niest');
             await user.click(await screen.findByText('Usługa niestandardowa'));
 
@@ -348,11 +348,11 @@ describe('EditableServicesTable', () => {
             const user = userEvent.setup();
             const { onChange } = renderTable([]);
 
-            const autocompleteInput = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać...');
+            const autocompleteInput = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać…');
             await user.type(autocompleteInput, 'niest');
             await user.click(await screen.findByText('Usługa niestandardowa'));
 
-            const [netField, grossField] = screen.getAllByPlaceholderText('0.00');
+            const [netField, grossField] = screen.getAllByPlaceholderText('0,00');
             await user.type(netField, '100');
             // 100 netto przy 23% VAT → 123 brutto
             expect(grossField).toHaveValue('123.00');
@@ -371,11 +371,11 @@ describe('EditableServicesTable', () => {
             const user = userEvent.setup();
             const { onChange } = renderTable([]);
 
-            const autocompleteInput = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać...');
+            const autocompleteInput = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać…');
             await user.type(autocompleteInput, 'niest');
             await user.click(await screen.findByText('Usługa niestandardowa'));
 
-            const [netField, grossField] = screen.getAllByPlaceholderText('0.00');
+            const [netField, grossField] = screen.getAllByPlaceholderText('0,00');
             await user.type(grossField, '123');
             expect(netField).toHaveValue('100.00');
 
@@ -392,11 +392,11 @@ describe('EditableServicesTable', () => {
             const user = userEvent.setup();
             const { onChange } = renderTable([]);
 
-            const autocompleteInput = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać...');
+            const autocompleteInput = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać…');
             await user.type(autocompleteInput, 'niest');
             await user.click(await screen.findByText('Usługa niestandardowa'));
 
-            const [netField] = screen.getAllByPlaceholderText('0.00');
+            const [netField] = screen.getAllByPlaceholderText('0,00');
             await user.type(netField, '100');
             await user.selectOptions(screen.getByRole('combobox'), '8');
 
@@ -416,7 +416,7 @@ describe('EditableServicesTable', () => {
             const user = userEvent.setup();
             const { onChange } = renderTable([]);
 
-            const input = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać...');
+            const input = screen.getByPlaceholderText('Wpisz nazwę usługi, aby dodać…');
             await user.type(input, 'niest');
             await user.click(await screen.findByText('Usługa niestandardowa'));
 

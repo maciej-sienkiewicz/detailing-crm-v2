@@ -7,6 +7,8 @@ import { calendarApi } from '../api/calendarApi';
 import { PiiValue, PiiText } from '@/common/pii';
 import type { CalendarEvent, AppointmentEventData, VisitEventData } from '../types';
 import { localDateKey } from '../utils/calendarDates';
+import { formatCurrency } from '@/common/utils/formatters';
+import { pluralPl } from '@/common/utils/plural';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -279,13 +281,22 @@ const ResultTitle = styled.div`
     line-height: 1.4;
 `;
 
+/* Klient, auto i tablica to osobne atrybuty - stoją obok siebie z odstępem,
+   a nie sklejone kropką (CLAUDE.md §4). Każdy przycina się sam. */
 const ResultMeta = styled.div`
+    display: flex;
+    gap: 10px;
     font-size: 12px;
     color: #64748b;
     margin-top: 2px;
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
+
+    & > span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 `;
 
 const ResultPrices = styled.div`
@@ -362,7 +373,7 @@ function formatDayLabel(date: Date): string {
 
 function formatPrice(amount: number | undefined, currency = 'PLN'): string {
     if (!amount) return '-';
-    return `${(amount / 100).toFixed(2)} ${currency}`;
+    return formatCurrency(amount / 100, currency);
 }
 
 const FINISHED_STATUSES = new Set(['COMPLETED', 'ARCHIVED', 'ABANDONED', 'CANCELLED']);
@@ -491,7 +502,7 @@ export const CalendarSearchModal: React.FC<CalendarSearchModalProps> = ({ onClos
                         ref={inputRef}
                         value={query}
                         onChange={e => setQuery(e.target.value)}
-                        placeholder="Szukaj wizyt, rezerwacji, klientów, pojazdów..."
+                        placeholder="Klient, auto, tablica albo tytuł"
                     />
                     {query && (
                         <ClearBtn onClick={() => setQuery('')} aria-label="Wyczyść">
@@ -515,7 +526,7 @@ export const CalendarSearchModal: React.FC<CalendarSearchModalProps> = ({ onClos
                     {isLoading ? (
                         <LoadingRow>
                             <Spinner />
-                            Ładowanie danych...
+                            Wczytywanie…
                         </LoadingRow>
                     ) : query.trim().length < 2 ? (
                         <EmptyState>
@@ -527,8 +538,8 @@ export const CalendarSearchModal: React.FC<CalendarSearchModalProps> = ({ onClos
                                     <line x1="21" y1="21" x2="16.65" y2="16.65" />
                                 </svg>
                             </EmptyIcon>
-                            <EmptyText>Wyszukaj wizytę lub rezerwację</EmptyText>
-                            <HintText>Wpisz co najmniej 2 znaki: tytuł, klient, pojazd lub tablica rejestracyjna</HintText>
+                            <EmptyText>Wyszukaj wizytę albo rezerwację</EmptyText>
+                            <HintText>Wpisz co najmniej 2 znaki</HintText>
                         </EmptyState>
                     ) : filteredResults.length === 0 ? (
                         <EmptyState>
@@ -540,20 +551,18 @@ export const CalendarSearchModal: React.FC<CalendarSearchModalProps> = ({ onClos
                                     <line x1="21" y1="21" x2="16.65" y2="16.65" />
                                 </svg>
                             </EmptyIcon>
-                            <EmptyText>Brak wyników dla „{query}"</EmptyText>
+                            <EmptyText>Brak wyników dla „{query}”</EmptyText>
                             <HintText>Spróbuj innej frazy</HintText>
                         </EmptyState>
                     ) : (
                         <>
-                            <ResultCount>{filteredResults.length} {filteredResults.length === 1 ? 'wynik' : filteredResults.length < 5 ? 'wyniki' : 'wyników'}</ResultCount>
+                            <ResultCount>{filteredResults.length} {pluralPl(filteredResults.length, 'wynik', 'wyniki', 'wyników')}</ResultCount>
                             {grouped.map(group => (
                                 <DayGroup key={group.dayKey}>
                                     <DayLabel>{group.dayLabel}</DayLabel>
                                     {group.results.map(({ event }) => {
                                         const props = event.extendedProps as AppointmentEventData | VisitEventData;
-                                        const vehicle = (props as VisitEventData).licensePlate
-                                            ? `${props.vehicleInfo} · ${(props as VisitEventData).licensePlate}`
-                                            : props.vehicleInfo;
+                                        const licensePlate = (props as VisitEventData).licensePlate;
                                         const muted = isFinished(event);
                                         return (
                                             <ResultRow key={event.id} $muted={muted} onClick={(e) => handleSelect(event, e)}>
@@ -561,7 +570,11 @@ export const CalendarSearchModal: React.FC<CalendarSearchModalProps> = ({ onClos
                                                     <ColorDot $color={event.backgroundColor || '#6366f1'} $muted={muted} />
                                                     <ResultContent>
                                                         <ResultTitle><PiiText value={event.title} kind="name" /></ResultTitle>
-                                                        <ResultMeta><PiiValue value={props.customerName} kind="name" /> · {vehicle}</ResultMeta>
+                                                        <ResultMeta>
+                                                            <span><PiiValue value={props.customerName} kind="name" /></span>
+                                                            {props.vehicleInfo && <span>{props.vehicleInfo}</span>}
+                                                            {licensePlate && <span>{licensePlate}</span>}
+                                                        </ResultMeta>
                                                     </ResultContent>
                                                 </ResultLeft>
                                                 {(props.totalPrice || props.totalNet) ? (

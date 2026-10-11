@@ -178,7 +178,7 @@ export function LeaveRequestWizard({ onClose }: Props) {
             {
                 onSuccess: () => {
                     drafts.settle();
-                    showSuccess('Wniosek wysłany', 'Czeka na akceptację. Dostaniesz powiadomienie.');
+                    showSuccess('Wniosek wysłany', 'Czeka na zatwierdzenie. Dostaniesz powiadomienie.');
                     onClose();
                 },
                 onError: error => {
@@ -249,8 +249,8 @@ export function LeaveRequestWizard({ onClose }: Props) {
                 <FooterPrimary>
                     <PrimaryAction
                         icon={<PenLine />}
-                        title={submit.isPending ? 'Wysyłam…' : 'Podpisz i wyślij wniosek'}
-                        sub="kierownik dostanie powiadomienie"
+                        title={submit.isPending ? 'Wysyłanie…' : 'Podpisz i wyślij wniosek'}
+                        sub="przełożony dostanie powiadomienie"
                         disabled={!canSubmit}
                         onClick={handleSubmit}
                     />
@@ -291,7 +291,7 @@ export function LeaveRequestWizard({ onClose }: Props) {
                     errors={errors}
                     preview={{ data: preview.data, isFetching: preview.isFetching, error: previewError }}
                     absentNames={absentNames}
-                    absentNote="Wniosek możesz złożyć, decyzję podejmie kierownik."
+                    absentNote="Wniosek możesz złożyć, decyzję podejmie przełożony."
                     onPickerOpenChange={setPickerOpen}
                 />
             )}

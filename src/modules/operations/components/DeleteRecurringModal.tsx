@@ -12,6 +12,7 @@ import {
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
+import { pluralPl } from '@/common/utils/plural';
 import type { Operation } from '../types';
 import type { RecurrenceEditScope } from '@/modules/appointments/types';
 
@@ -106,7 +107,8 @@ export const DeleteRecurringModal = ({
     const past = idx;
 
     const customerName = joinPiiName(operation.customerFirstName, operation.customerLastName) ?? '';
-    const title = operation.title ? `"${operation.title}"` : `rezerwacja klienta ${customerName}`;
+    const title = operation.title ? `„${operation.title}”` : `rezerwacja klienta ${customerName}`;
+    const visits = (n: number) => `${n} ${pluralPl(n, 'wizyta', 'wizyty', 'wizyt')}`;
 
     return (
         <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="480px">
@@ -132,7 +134,7 @@ export const DeleteRecurringModal = ({
                         <OptionText>
                             <OptionTitle>Tylko tę wizytę</OptionTitle>
                             <OptionDesc>
-                                Pozostałe {total - 1} {total - 1 === 1 ? 'wizyta zostanie zachowana.' : 'wizyty/wizyt zostanie zachowanych.'}
+                                Reszta serii zostaje: {visits(total - 1)}.
                             </OptionDesc>
                         </OptionText>
                     </OptionRow>
@@ -146,8 +148,8 @@ export const DeleteRecurringModal = ({
                         <OptionText>
                             <OptionTitle>Tę i wszystkie następne wizyty</OptionTitle>
                             <OptionDesc>
-                                Zostanie usuniętych {future} {future === 1 ? 'wizyta' : 'wizyty/wizyt'}.
-                                {past > 0 && <> Wcześniejsze {past} {past === 1 ? 'wizyta zostanie zachowana.' : 'wizyty/wizyt zostanie zachowanych.'}</>}
+                                Do usunięcia: {visits(future)}.
+                                {past > 0 && <> Wcześniejsze zostają: {visits(past)}.</>}
                             </OptionDesc>
                         </OptionText>
                     </OptionRow>
@@ -159,12 +161,12 @@ export const DeleteRecurringModal = ({
                             onChange={() => setScope('ALL')}
                         />
                         <OptionText>
-                            <OptionTitle>Całą serię ({total} wizyt)</OptionTitle>
+                            <OptionTitle>Całą serię ({visits(total)})</OptionTitle>
                             <OptionDesc>
                                 Wszystkie wizyty z tej serii zostaną usunięte.
-                                Wizyty o statusie CONVERTED nie zostaną usunięte.
+                                Wizyty już rozpoczęte nie zostaną usunięte.
                             </OptionDesc>
-                            <WarnNote>⚠ Tej operacji nie można cofnąć.</WarnNote>
+                            <WarnNote>⚠ Tego nie da się cofnąć.</WarnNote>
                         </OptionText>
                     </OptionRow>
                 </OptionList>
@@ -175,7 +177,7 @@ export const DeleteRecurringModal = ({
                     Anuluj
                 </SharedButton>
                 <SharedButton $variant="danger" type="button" onClick={() => onConfirm(scope)} disabled={isDeleting}>
-                    {isDeleting ? 'Usuwanie...' : 'Usuń'}
+                    {isDeleting ? 'Usuwanie…' : 'Usuń'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

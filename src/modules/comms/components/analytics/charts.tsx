@@ -339,7 +339,7 @@ export function IntakeYearChart({ points }: { points: YearPoint[] }) {
                     Złotówki
                 </UnitButton>
                 <UnitButton type="button" $active={!money} aria-pressed={!money} onClick={() => pick('COUNT')}>
-                    Sztuki
+                    Liczba
                 </UnitButton>
             </UnitSwitch>
             <ResponsiveContainer width="100%" height={200}>

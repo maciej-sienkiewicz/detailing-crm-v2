@@ -112,7 +112,7 @@ export const AppointmentColorFormModal = ({
 
         const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
         if (!hexRegex.test(hexColor)) {
-            newErrors.hexColor = 'Nieprawidłowy format koloru HEX (np. #0ea5e9)';
+            newErrors.hexColor = 'Wybierz kolor z palety albo wpisz kod, np. #0ea5e9';
         }
 
         setErrors(newErrors);
@@ -143,7 +143,7 @@ export const AppointmentColorFormModal = ({
             onSuccess?.();
             onClose();
         } catch {
-            setErrors({ submit: 'Wystąpił błąd podczas zapisywania koloru' });
+            setErrors({ submit: 'Nie udało się zapisać koloru' });
         }
     };
 
@@ -158,7 +158,7 @@ export const AppointmentColorFormModal = ({
             <ModalShell isOpen={isOpen} onClose={onClose}>
                 <ModalHeader>
                     <ModalTitleGroup>
-                        <ModalTitle>{color ? 'Edytuj kolor wizyty' : 'Dodaj nowy kolor wizyty'}</ModalTitle>
+                        <ModalTitle>{color ? 'Edytuj kolor wizyty' : 'Nowy kolor wizyty'}</ModalTitle>
                     </ModalTitleGroup>
                     <CloseBtn onClick={onClose} />
                 </ModalHeader>
@@ -171,13 +171,13 @@ export const AppointmentColorFormModal = ({
                                 type="text"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                placeholder="np. Oklejanie PPF, Pilne, Mechanika..."
+                                placeholder="np. Oklejanie PPF, Pilne, Mechanika…"
                             />
                             {errors.name && <ErrorMessage>{errors.name}</ErrorMessage>}
                         </FieldGroup>
 
                         <FieldGroup>
-                            <Label>Kolor (HEX)</Label>
+                            <Label>Kolor</Label>
                             <ColorPickerWrapper>
                                 <ColorInput
                                     type="color"
@@ -210,13 +210,13 @@ export const AppointmentColorFormModal = ({
                         $variant="primary"
                         disabled={isSubmitting}
                     >
-                        {isSubmitting ? 'Zapisywanie...' : color ? 'Zapisz zmiany' : 'Dodaj kolor'}
+                        {isSubmitting ? 'Zapisywanie…' : color ? 'Zapisz zmiany' : 'Dodaj kolor'}
                     </SharedButton>
                 </ModalFooter>
             </ModalShell>
 
             <Toast $show={showToast}>
-                Kolor został pomyślnie zaktualizowany
+                Zapisano kolor
             </Toast>
         </>
     );

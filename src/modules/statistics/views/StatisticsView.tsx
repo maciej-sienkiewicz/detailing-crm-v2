@@ -318,7 +318,7 @@ export const StatisticsView = () => {
         <ViewContainer>
             <PageHeader
                 title={t.statistics.title}
-                subtitle="Analiza przychodów i struktury usług"
+                subtitle="Ile zarabiasz i na czym"
                 actions={
                     <HdrBtns>
                         <HeaderDatePicker
@@ -386,25 +386,25 @@ export const StatisticsView = () => {
                                 <KpiValue>{fmtPLNFromGrosz(displayData.totals.totalRevenueGross)}</KpiValue>
                             </KpiCard>
                             <KpiCard $accent="#0EA5E9">
-                                <KpiLabel>Liczba zleceń</KpiLabel>
+                                <KpiLabel>Liczba wizyt</KpiLabel>
                                 <KpiValue>{displayData.totals.orderCount.toLocaleString('pl-PL')}</KpiValue>
                             </KpiCard>
                             <KpiCard $accent="#8B5CF6">
-                                <KpiLabel>Średnia wartość zlecenia</KpiLabel>
+                                <KpiLabel>Średnia wartość wizyty</KpiLabel>
                                 <KpiValue>{fmtPLNFromGrosz(avgOrderGross)}</KpiValue>
                             </KpiCard>
                         </KpiRow>
 
                         <ChartsRow>
                             <ChartCard>
-                                <ChartTitle>Struktura przychodów wg kategorii</ChartTitle>
+                                <ChartTitle>Przychód według kategorii</ChartTitle>
                                 <CategorySharePie
                                     slices={pieSlices}
                                     isLoading={breakdownLoading}
                                     selectedCategoryId={selectedCategoryId}
                                     onSelectCategory={setSelectedCategoryId}
                                     ariaLabel="Udział kategorii w przychodach"
-                                    countNoun="usł."
+                                    countForms={['usługa', 'usługi', 'usług']}
                                 />
                             </ChartCard>
 
@@ -421,7 +421,7 @@ export const StatisticsView = () => {
             <Section>
                 {isMobile ? (
                     <ManageToggle onClick={() => setManageOpen(v => !v)} $open={manageOpen}>
-                        <span>Zarządzanie kategoriami i usługami</span>
+                        <span>Kategorie i usługi</span>
                         <ManageChevron $open={manageOpen} viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                             <polyline points="6 9 12 15 18 9" />
@@ -436,7 +436,7 @@ export const StatisticsView = () => {
 
                 {isMobile && manageOpen && (
                     <ManageHint>
-                        Przypisywanie usług przeciąganiem działa na komputerze - tutaj użyj menu ⋮ w wierszu usługi.
+                        Kategorię przypiszesz menu ⋮ w wierszu usługi.
                     </ManageHint>
                 )}
 
@@ -467,12 +467,12 @@ export const StatisticsView = () => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                             <FilterBar>
                                 <FilterBtn $active={assignmentFilter === 'ALL'} onClick={() => setAssignmentFilter('ALL')}>Wszystkie</FilterBtn>
-                                <FilterBtn $active={assignmentFilter === 'UNASSIGNED'} onClick={() => setAssignmentFilter('UNASSIGNED')}>Nieprzypisane</FilterBtn>
-                                <FilterBtn $active={assignmentFilter === 'ASSIGNED'} onClick={() => setAssignmentFilter('ASSIGNED')}>Przypisane</FilterBtn>
+                                <FilterBtn $active={assignmentFilter === 'UNASSIGNED'} onClick={() => setAssignmentFilter('UNASSIGNED')}>Bez kategorii</FilterBtn>
+                                <FilterBtn $active={assignmentFilter === 'ASSIGNED'} onClick={() => setAssignmentFilter('ASSIGNED')}>Z kategorią</FilterBtn>
                             </FilterBar>
                             <SearchInput
                                 type="text"
-                                placeholder="Szukaj po nazwie..."
+                                placeholder="Szukaj po nazwie…"
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
                             />
@@ -549,8 +549,8 @@ export const StatisticsView = () => {
                         {!selectedCategoryId && unassignedCount > 0 && (
                             <DragHint>
                                 {isMobile
-                                    ? `⚠ ${unassignedCount} usług bez kategorii - przypisz je menu ⋮ w wierszu.`
-                                    : `⚠ ${unassignedCount} usług bez kategorii, przeciągnij na wybraną kategorię po lewej lub użyj menu ⋮ w wierszu.`}
+                                    ? `⚠ Usługi bez kategorii: ${unassignedCount}. Przypisz je przez menu ⋮ w wierszu.`
+                                    : `⚠ Usługi bez kategorii: ${unassignedCount}. Przeciągnij je na kategorię po lewej albo użyj menu ⋮.`}
                             </DragHint>
                         )}
 
@@ -561,7 +561,7 @@ export const StatisticsView = () => {
                                 <>
                                     <ItemsHeader>
                                         <span>Usługa</span>
-                                        <span>Zlecenia</span>
+                                        <span>Wizyty</span>
                                         <span>Przychód</span>
                                         <span>Kategoria</span>
                                         <span />
@@ -569,7 +569,7 @@ export const StatisticsView = () => {
                                     {filteredServiceRows.length === 0 && (
                                         <TableEmpty>
                                             {search.trim()
-                                                ? 'Brak usług pasujących do wyszukiwanej frazy'
+                                                ? 'Nic nie pasuje do wyszukiwania'
                                                 : assignmentFilter === 'UNASSIGNED'
                                                 ? 'Brak usług bez kategorii'
                                                 : selectedCategoryId

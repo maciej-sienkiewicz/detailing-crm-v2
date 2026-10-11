@@ -178,12 +178,8 @@ const MAX_LOGO_BYTES = 5 * 1024 * 1024;
 
 /** Zalecenia dla właściciela warsztatu; wartości zgodne z walidacją backendu (CompanyLogoProcessor). */
 const LOGO_GUIDANCE =
-    'Wystarczy jeden plik: system sam przygotuje wersję do menu i wersję do druku. ' +
-    'Najlepiej SVG albo PNG z przezroczystym tłem. WebP i JPEG też działają, ale JPEG nie ma przezroczystości. ' +
-    'Dla PNG, WebP i JPEG dłuższy bok powinien mieć co najmniej 300 px, zalecane 1000 px lub więcej, ' +
-    'bo logo trafia do nagłówka dokumentów A4 drukowanych w wysokiej rozdzielczości. Plik do 5 MB. ' +
-    'Poziomy logotyp wygląda najlepiej, sygnet też się zmieści, a logo nigdy nie jest deformowane. ' +
-    'Logo pojawia się w menu bocznym oraz, jeśli włączysz to w sekcji „Dokumenty i podpisy", w nagłówku protokołów i zgód.';
+    'Jeden plik wystarczy. Najlepiej SVG albo PNG z przezroczystym tłem, ' +
+    'dłuższy bok najlepiej 1000 px (co najmniej 300 px), do 5 MB. Logo nie zostanie zniekształcone.';
 
 const gusStreetLine = (data: CompanyInfoResponse): string => {
     const { street, buildingNumber, apartmentNumber } = data.address;
@@ -368,7 +364,7 @@ export function CompanySection() {
     }
 
     if (isLoading || !form || !saved) {
-        return <Card><Loading role="status">Wczytywanie danych firmy...</Loading></Card>;
+        return <Card><Loading role="status">Wczytywanie danych firmy…</Loading></Card>;
     }
 
     const logoUrl = company?.logoUrl?.trim() || null;
@@ -379,7 +375,7 @@ export function CompanySection() {
     const logoStatus = !logoUrl
         ? 'Na protokołach i w nagłówku maili. PNG albo SVG, najlepiej z przezroczystym tłem.'
         : !logoAnalyzed
-            ? 'Logo wgrane przed analizą wyglądu. Wgraj je ponownie, żeby dobrze leżało w menu.'
+            ? 'Wgraj logo jeszcze raz, żeby dobrze wyglądało w menu.'
             : logoPlain
                 ? 'Logo ma własne tło, w menu stoi bez podkładki.'
                 : 'Logo ma przezroczyste tło, w menu stoi na jasnej podkładce.';
@@ -469,7 +465,7 @@ export function CompanySection() {
                                 onClick={() => fileInputRef.current?.click()}
                             >
                                 <Upload aria-hidden="true" />
-                                {logoUploading ? 'Wgrywanie...' : logoUrl ? 'Zmień logo' : 'Dodaj logo'}
+                                {logoUploading ? 'Wgrywanie…' : logoUrl ? 'Zmień logo' : 'Dodaj logo'}
                             </Button>
                             {logoUrl && (
                                 <IconButton
@@ -496,7 +492,7 @@ export function CompanySection() {
                                 inputMode: 'numeric',
                                 suffix: (
                                     <Button variant="tinted" size="sm" disabled={gusLoading} onClick={handleGus}>
-                                        {gusLoading ? 'Pobieranie...' : 'Uzupełnij z GUS'}
+                                        {gusLoading ? 'Pobieranie…' : 'Uzupełnij z GUS'}
                                     </Button>
                                 ),
                                 extra: gusError && <ErrorText role="alert">{gusError}</ErrorText>,

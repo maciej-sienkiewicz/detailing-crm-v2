@@ -122,9 +122,9 @@ function isWeekend(d: Date): boolean {
 }
 
 const STATUS_LABELS: Record<PeriodStatus, string> = {
-    DRAFT: 'Szkic',
+    DRAFT: 'W trakcie',
     SUBMITTED: 'Złożona, czeka na zatwierdzenie',
-    APPROVED: 'Zaakceptowana',
+    APPROVED: 'Zatwierdzona',
     RETURNED: 'Zwrócona do poprawy',
 };
 
@@ -230,7 +230,7 @@ export function WorkTimeView() {
         }
         const minutes = parseTimeInput(editValue);
         if (minutes === null || minutes < 0) {
-            setEditError('Nieprawidłowy format (np. 8, 8:30, 3:50)');
+            setEditError('Wpisz godziny, np. 8 albo 8:30');
             return;
         }
         upsertEntry.mutate({ date: editDay.date, payload: { minutes } }, {
@@ -242,14 +242,14 @@ export function WorkTimeView() {
     const handleFillMonth = () => {
         setShowFillConfirm(false);
         fillMonth.mutate(undefined, {
-            onSuccess: () => showSuccess('Uzupełniono dni robocze (8h)', 'Święta oraz dni urlopu i L4 zostały pominięte.'),
+            onSuccess: () => showSuccess('Miesiąc uzupełniony', 'Wpisano po 8 h, bez świąt, urlopów i L4.'),
             onError: error => showError('Nie udało się uzupełnić miesiąca', messageOf(error)),
         });
     };
 
     const handleStandardToday = () => {
         standardToday.mutate(undefined, {
-            onSuccess: () => showSuccess('Dodano 8h na dzisiaj'),
+            onSuccess: () => showSuccess('Wpisano 8 h za dziś'),
             onError: error => showError('Nie udało się dodać wpisu', messageOf(error)),
         });
     };
@@ -383,15 +383,15 @@ export function WorkTimeView() {
                         <QuickBtn
                             onClick={handleStandardToday}
                             disabled={standardToday.isPending || period !== currentPeriod()}
-                            title={period !== currentPeriod() ? 'Dostępne tylko dla bieżącego miesiąca' : 'Dodaj 8h na dzisiaj'}
+                            title={period !== currentPeriod() ? 'Dostępne tylko dla bieżącego miesiąca' : 'Wpisz 8 h za dziś'}
                         >
                             <ClockIcon />
-                            Standardowa dniówka
+                            Wpisz dziś 8 h
                         </QuickBtn>
                         <QuickBtn
                             onClick={() => setShowFillConfirm(true)}
                             disabled={fillMonth.isPending}
-                            title="Uzupełnij puste dni robocze po 8h (pomija święta, urlop i L4)"
+                            title="Wpisz po 8 h w puste dni robocze (bez świąt, urlopów i L4)"
                         >
                             <CalendarIcon />
                             Uzupełnij miesiąc
@@ -451,7 +451,7 @@ export function WorkTimeView() {
                         onClick={handleSubmit}
                         disabled={submitPeriod.isPending}
                     >
-                        {submitPeriod.isPending ? 'Składanie...' : 'Złóż kartę do zatwierdzenia'}
+                        {submitPeriod.isPending ? 'Składanie…' : 'Złóż kartę do zatwierdzenia'}
                     </SubmitBtn>
                 </StickySubmitBar>
             )}
@@ -459,7 +459,7 @@ export function WorkTimeView() {
             <ConfirmationModal
                 isOpen={showFillConfirm}
                 title="Uzupełnić miesiąc?"
-                message={`Puste dni robocze w miesiącu ${periodInSentence(period)} zostaną uzupełnione po 8 godzin. Święta oraz dni urlopu i L4 zostaną pominięte, a dni z wpisem pozostaną bez zmian.`}
+                message={`Wpiszemy po 8 godzin w puste dni robocze za ${periodInSentence(period)}. Święta, urlopy, L4 i dni z wpisem zostają bez zmian.`}
                 variant="info"
                 confirmText="Uzupełnij"
                 onConfirm={handleFillMonth}
@@ -517,7 +517,7 @@ export function WorkTimeView() {
                                 onClick={handleSave}
                                 disabled={upsertEntry.isPending || deleteEntry.isPending}
                             >
-                                {(upsertEntry.isPending || deleteEntry.isPending) ? 'Zapisuję...' : 'Zapisz'}
+                                {(upsertEntry.isPending || deleteEntry.isPending) ? 'Zapisywanie…' : 'Zapisz'}
                             </SheetSaveBtn>
                         </SheetFooter>
                     </BottomSheet>

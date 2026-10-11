@@ -160,7 +160,7 @@ afterEach(() => {
 describe('AddLeaveModal', () => {
     it('lista pracowników bez siebie; osoba bez konta też jest do wyboru', async () => {
         renderModal();
-        expect(await within(dialog()).findByRole('radio', { name: /Piotr Lis.*bez konta w systemie/ })).toBeTruthy();
+        expect(await within(dialog()).findByRole('radio', { name: /Piotr Lis.*bez konta/ })).toBeTruthy();
         expect(within(dialog()).getByRole('radio', { name: /Anna Nowak/ })).toBeTruthy();
         expect(within(dialog()).queryByRole('radio', { name: /Jan Kowalski/ })).toBeNull();
     });
@@ -238,7 +238,7 @@ describe('AddLeaveModal', () => {
 
         fireEvent.click(within(dialog()).getByRole('button', { name: 'Zamknij' }));
         expect(await screen.findByText('Zamknąć bez decyzji?')).toBeTruthy();
-        expect(screen.getByText(/Zostanie w kolejce „Oczekujące"/)).toBeTruthy();
+        expect(screen.getByText(/Zostanie w kolejce „Oczekujące”/)).toBeTruthy();
         expect(onClose).not.toHaveBeenCalled();
 
         fireEvent.click(screen.getByRole('button', { name: 'Zamknij, rozpatrzę później' }));

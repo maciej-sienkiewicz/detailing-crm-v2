@@ -43,7 +43,7 @@ export class AppErrorBoundary extends Component<Props, State> {
             return (
                 <ErrorScreen
                     title="Nie udało się wczytać aplikacji"
-                    description="Pobranie najnowszej wersji DetailBoost nie powiodło się. Sprawdź połączenie z internetem i odśwież stronę, a jeśli problem się powtarza - skontaktuj się ze wsparciem DetailBoost."
+                    description="Sprawdź internet i odśwież stronę. Jeśli to nie pomoże, skontaktuj się z nami."
                     details={error instanceof Error ? `${error.name}: ${error.message}` : String(error)}
                 />
             );

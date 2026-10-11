@@ -19,6 +19,7 @@ import { PiiValue, joinPiiName, isPiiMasked } from '@/common/pii';
 import type { VehicleInfo, CustomerInfo } from '../types';
 import { VisitCardLinkModal } from '@/modules/visit-card';
 import { usePermissions } from '@/core/permissions';
+import { pluralPl } from '@/common/utils/plural';
 import {
     Button, ButtonLink, FieldList, FieldRow, IconButton, Panel, SectionTitle, StatusPill, ui,
 } from '@/common/components/ui';
@@ -130,7 +131,7 @@ export const CustomerInfoCard = ({ customer, visitId, onViewDetails, compact, ch
         currency: totalSpent.currency || 'PLN',
         minimumFractionDigits: 2,
     }).format(totalSpent.grossAmount / 100) : null;
-    const visitsLabel = `${customer.stats.totalVisits} ${customer.stats.totalVisits === 1 ? 'wizyta' : 'wizyty'}`;
+    const visitsLabel = `${customer.stats.totalVisits} ${pluralPl(customer.stats.totalVisits, 'wizyta', 'wizyty', 'wizyt')}`;
 
     const phoneValue = customer.phone ? (
         phoneUsable
@@ -164,8 +165,8 @@ export const CustomerInfoCard = ({ customer, visitId, onViewDetails, compact, ch
                     {sub && <PersonSub>{sub}</PersonSub>}
                 </NameTitle>
                 {onViewDetails && can('CUSTOMERS_VIEW') && (
-                    <Button variant="ghost" size="sm" onClick={onViewDetails} title="Profil klienta">
-                        Profil<ArrowUpRight />
+                    <Button variant="ghost" size="sm" onClick={onViewDetails} title="Karta klienta">
+                        Karta klienta<ArrowUpRight />
                     </Button>
                 )}
             </Head>
@@ -201,7 +202,7 @@ export const CustomerInfoCard = ({ customer, visitId, onViewDetails, compact, ch
                 </Rows>
             )}
 
-            {/* Karta Wizyty: widok dla klienta. */}
+            {/* Karta wizyty: widok dla klienta. */}
             {visitId && can('VISITS_CREATE') && (
                 <>
                     <Button block style={{ marginTop: 12 }} onClick={() => setIsCardModalOpen(true)}>

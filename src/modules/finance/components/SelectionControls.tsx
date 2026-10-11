@@ -227,7 +227,7 @@ export const BulkPaymentStatusBar: React.FC<BulkPaymentStatusBarProps> = ({
                 Oznacz jako opłacone
             </Action>
             <Action type="button" $tone="pending" disabled={busy} onClick={() => onApply('PENDING')}>
-                Oznacz jako oczekujące
+                Oznacz jako nieopłacone
             </Action>
             <ClearBtn type="button" disabled={busy} onClick={onClear}>
                 Wyczyść

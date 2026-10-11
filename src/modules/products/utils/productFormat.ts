@@ -1,7 +1,6 @@
 // src/modules/products/utils/productFormat.ts
 import type { ProductPrice, UnitOfMeasure } from '../types';
 import { UNIT_LABELS } from '../types';
-import { formatMoneyAmount } from '@/modules/services/utils/priceCalculator';
 
 /** „500 ml", „5 l", „1 szt." — wielkość opakowania w czytelnej formie. */
 export function formatPackage(value: string, unit: UnitOfMeasure): string {
@@ -9,11 +8,22 @@ export function formatPackage(value: string, unit: UnitOfMeasure): string {
     return `${clean} ${UNIT_LABELS[unit]}`;
 }
 
+const PLN_AMOUNT = new Intl.NumberFormat('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/**
+ * Kwota w groszach jako złotówki z polskim przecinkiem: „1900,00". Tylko formatuje
+ * podaną kwotę, niczego nie przelicza. Wcześniej szło przez `toFixed(2)` i na
+ * ekranie stała kropka dziesiętna („1900.00 zł").
+ */
+export function formatAmount(cents: number): string {
+    return PLN_AMOUNT.format(cents / 100);
+}
+
 /** Cena jednostkowa jako złotówki, np. „420,00 zł". Pokazujemy stronę ustaloną przez człowieka. */
 export function formatPrice(price: ProductPrice): string {
     const cents = price.priceEnteredAs === 'GROSS' ? price.unitPriceGross : price.unitPriceNet;
     const suffix = price.priceEnteredAs === 'GROSS' ? 'brutto' : 'netto';
-    return `${formatMoneyAmount(cents)} zł ${suffix}`;
+    return `${formatAmount(cents)} zł ${suffix}`;
 }
 
 /**
