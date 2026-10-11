@@ -2,6 +2,7 @@ import axios from 'axios';
 import { setPiiAccessFromHeader } from '@/common/pii';
 import { isRateLimited, shouldAnnounceRateLimit } from './rateLimit';
 import { SESSION_LOCKED_EVENT, isSessionLockedResponse } from './sessionLock';
+import { isPublicAppPath } from './publicPaths';
 
 /**
  * Per-request opt-out from the global error toast.
@@ -62,14 +63,8 @@ apiClient.interceptors.response.use(
         if (status === 401) {
             const currentPath = window.location.pathname;
             const requestUrl = error.config?.url ?? '';
-            const publicPaths = ['/login', '/signup', '/forgot-password', '/reset-password', '/confirm-password', '/m/upload', '/m/voice', '/m/contacts'];
             // Public token-based pages must never bounce to /login
-            const isPublicPath = publicPaths.includes(currentPath)
-                // The role preview window handles an ended preview itself; /login there leads nowhere.
-                || currentPath === '/podglad'
-                || currentPath.startsWith('/vc/')
-                || currentPath.startsWith('/sign/')
-                || currentPath.startsWith('/m/sig/');
+            const isPublicPath = isPublicAppPath(currentPath);
             // PIN verification endpoints return 401 for wrong PIN; caller handles retries, don't bounce to /login
             const isPinEndpoint = requestUrl.includes('/v1/pin');
             // Background calls the user never made must not eject them from the app.

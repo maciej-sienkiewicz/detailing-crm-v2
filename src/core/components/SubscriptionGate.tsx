@@ -6,31 +6,11 @@ import { useSubscriptionStatus } from '@/modules/settings/hooks/useSubscription'
 import { useCheckout, useMyPlan } from '@/modules/subscription/api/subscriptionQueries';
 import { FirstLoginModal } from '@/modules/subscription/components/FirstLoginModal';
 import { formatCents } from '@/modules/subscription/utils/formatters';
+import { BootSplash } from './BootSplash';
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
 
 const spin = keyframes`from { transform: rotate(0deg); } to { transform: rotate(360deg); }`;
-
-const GateSpinner = styled.div`
-    width: 28px;
-    height: 28px;
-    border: 3px solid #e2e8f0;
-    border-top-color: #0ea5e9;
-    border-radius: 50%;
-    animation: ${spin} 0.7s linear infinite;
-`;
-
-// Full-screen loading used while subscription status is being fetched.
-// Rendered instead of children so no protected API calls fire prematurely.
-const GateLoadingScreen = styled.div`
-    position: fixed;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #eef2f7;
-    z-index: 1;
-`;
 
 const Overlay = styled.div`
     position: fixed;
@@ -257,12 +237,9 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
     // While auth or subscription status is loading, block rendering children.
     // Rendering children here would cause every mounted component to fire its
     // API queries immediately, all returning 403 for NO_PLAN/EXPIRED studios.
+    // Ekran startowy, a nie osobny spinner: to wciąż etap startu aplikacji.
     if (authLoading || statusLoading) {
-        return (
-            <GateLoadingScreen>
-                <GateSpinner />
-            </GateLoadingScreen>
-        );
+        return <BootSplash />;
     }
 
     // No plan yet: new studio on first login.

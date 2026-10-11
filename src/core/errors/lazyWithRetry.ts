@@ -8,7 +8,7 @@ const RETRY_DELAY_MS = 400;
 const wait = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 
 /**
- * `React.lazy` odporny na znikające chunki.
+ * `import()` odporny na znikające chunki.
  *
  * Kolejność ratunkowa:
  *   1. Ponawiamy `import()` raz - to załatwia chwilowy błąd sieci (tunel, Wi-Fi,
@@ -20,29 +20,35 @@ const wait = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms
  *   3. Gdy limit przeładowań jest wyczerpany (albo błąd nie dotyczy chunku),
  *      przepuszczamy błąd dalej - złapie go `errorElement` routera i pokaże
  *      właściwy ekran.
+ *
+ * Osobno od `lazyWithRetry`, bo trasy routera ładują widoki przez `route.lazy`
+ * (core/router.tsx), a nie przez `React.lazy` - ratunek ma być ten sam.
  */
+export async function importWithRetry<M>(factory: () => Promise<M>): Promise<M> {
+    try {
+        return await factory();
+    } catch (error) {
+        if (!isChunkLoadError(error)) throw error;
+
+        try {
+            await wait(RETRY_DELAY_MS);
+            return await factory();
+        } catch (retryError) {
+            if (!isChunkLoadError(retryError)) throw retryError;
+            if (recoverFromChunkError()) return await new Promise<M>(() => {});
+            throw retryError;
+        }
+    }
+}
+
+/** `React.lazy` z ratunkiem `importWithRetry`. */
 /* eslint-disable @typescript-eslint/no-explicit-any -- ComponentType<any> to
    dokładnie ta sama sygnatura, której używa React.lazy; węższy parametr
    uniemożliwiłby przekazanie komponentu z jakimikolwiek propsami. */
 export function lazyWithRetry<T extends ComponentType<any>>(
     factory: () => Promise<{ default: T }>,
 ) {
-    return lazy<T>(async () => {
-        try {
-            return await factory();
-        } catch (error) {
-            if (!isChunkLoadError(error)) throw error;
-
-            try {
-                await wait(RETRY_DELAY_MS);
-                return await factory();
-            } catch (retryError) {
-                if (!isChunkLoadError(retryError)) throw retryError;
-                if (recoverFromChunkError()) return await new Promise<{ default: T }>(() => {});
-                throw retryError;
-            }
-        }
-    });
+    return lazy<T>(() => importWithRetry(factory));
 }
 
 /**

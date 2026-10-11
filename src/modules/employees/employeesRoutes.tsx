@@ -9,21 +9,37 @@
 // `/employees/:employeeId` jest osobną trasą: statyczne dzieci (`leave-requests`, `worktime`…)
 // wygrywają z parametrem w rankingu React Routera.
 
+//
+// Zakładki ładują się na żądanie (`lazy`), jak każdy widok w core/router.tsx - ten plik
+// router importuje statycznie, więc statyczny import zakładek wciągnąłby je do głównego
+// pliku JS ładowanego przy każdym starcie aplikacji.
+
 import { Navigate, type RouteObject } from 'react-router-dom';
 import { RequirePermission } from '@/core/permissions';
+import { importWithRetry } from '@/core/errors';
 import { EMPLOYEES_TABS, type EmployeesTab } from './employeesTabs';
-import { AttendanceTabView, EmployeesIndexView, LeavesTabView, WorktimeTabView } from './views/EmployeesTabViews';
 
 const requires = (key: EmployeesTab) => EMPLOYEES_TABS.find(t => t.key === key)!.requires;
+
+const loadTabViews = () => importWithRetry(() => import('./views/EmployeesTabViews'));
 
 export const employeesTabRoutes: RouteObject[] = [
     // Indeks sam rozstrzyga o uprawnieniu: bez EMPLOYEES_MANAGE przekierowuje na pierwszą
     // dostępną zakładkę, zamiast wyrzucać na stronę startową.
-    { index: true, element: <EmployeesIndexView /> },
+    {
+        index: true,
+        lazy: async () => {
+            const { EmployeesIndexView } = await loadTabViews();
+            return { element: <EmployeesIndexView /> };
+        },
+    },
     {
         // Głęboki link z powiadomienia push: `?request={id}` otwiera okno wniosku.
         path: 'leave-requests',
-        element: <RequirePermission anyOf={requires('leaves')}><LeavesTabView /></RequirePermission>,
+        lazy: async () => {
+            const { LeavesTabView } = await loadTabViews();
+            return { element: <RequirePermission anyOf={requires('leaves')}><LeavesTabView /></RequirePermission> };
+        },
     },
     {
         // Dawna zakładka „Nieobecności" - jej grafik stoi teraz pod wnioskami.
@@ -32,10 +48,16 @@ export const employeesTabRoutes: RouteObject[] = [
     },
     {
         path: 'worktime',
-        element: <RequirePermission anyOf={requires('worktime')}><WorktimeTabView /></RequirePermission>,
+        lazy: async () => {
+            const { WorktimeTabView } = await loadTabViews();
+            return { element: <RequirePermission anyOf={requires('worktime')}><WorktimeTabView /></RequirePermission> };
+        },
     },
     {
         path: 'attendance-sheets',
-        element: <RequirePermission anyOf={requires('attendance')}><AttendanceTabView /></RequirePermission>,
+        lazy: async () => {
+            const { AttendanceTabView } = await loadTabViews();
+            return { element: <RequirePermission anyOf={requires('attendance')}><AttendanceTabView /></RequirePermission> };
+        },
     },
 ];

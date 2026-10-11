@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { useAuth } from '../context/AuthContext';
 import { SubscriptionGate } from './SubscriptionGate';
 import { SessionLockedScreen } from './SessionLockedScreen';
+import { BootSplash } from './BootSplash';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -23,17 +24,10 @@ export function ProtectedRoute({ children, withSubscriptionGate = true }: Protec
     }
   }, [isAuthenticated, isLoading, navigate]);
 
+  // Ten sam ekran co w index.html: mały napis „Ładowanie...” na białym tle
+  // wyglądał na telefonie jak zawieszona aplikacja.
   if (isLoading) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh'
-      }}>
-        <div>Ładowanie...</div>
-      </div>
-    );
+    return <BootSplash />;
   }
 
   if (!isAuthenticated) {

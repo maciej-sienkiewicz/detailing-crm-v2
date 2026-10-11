@@ -5,7 +5,7 @@
 // a „Listy obecności" - wygenerowane listy, których nikt jeszcze nie zatwierdził.
 // Zakładki są trasami-dziećmi jednej ramy: zmiana zakładki nie montuje nagłówka od nowa.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
@@ -95,6 +95,9 @@ const renderAt = (path: string) => {
 };
 
 const tab = (name: RegExp) => screen.getByRole('tab', { name });
+// Zakładki ładują się na żądanie (`lazy` w employeesRoutes.tsx), więc pierwszy obraz
+// i przejście na nieodwiedzoną zakładkę przychodzą asynchronicznie - stąd findBy/waitFor.
+const findTab = (name: RegExp) => screen.findByRole('tab', { name });
 
 beforeEach(() => { auth.user = { permissions: null }; });
 afterEach(() => cleanup());
@@ -120,10 +123,10 @@ describe('EmployeesView - zakładki', () => {
         expect(attendanceApi.listAttendanceSheets).not.toHaveBeenCalled();
     });
 
-    it('kliknięcie w zakładkę zmienia trasę', () => {
+    it('kliknięcie w zakładkę zmienia trasę', async () => {
         const router = renderAt('/employees');
-        fireEvent.click(tab(/^Czas pracy/));
-        expect(router.state.location.pathname).toBe('/employees/worktime');
+        fireEvent.click(await findTab(/^Czas pracy/));
+        await waitFor(() => expect(router.state.location.pathname).toBe('/employees/worktime'));
     });
 
     it('właściciel widzi cztery zakładki, a przy wnioskach liczbę oczekujących', async () => {
@@ -158,18 +161,18 @@ describe('EmployeesView - zakładki', () => {
         expect(screen.queryByRole('tab', { name: /^Listy obecności/ })).toBeNull();
     });
 
-    it('sama kadrowa rola (EMPLOYEES_MANAGE) widzi grafik nieobecności bez kolejki wniosków', () => {
+    it('sama kadrowa rola (EMPLOYEES_MANAGE) widzi grafik nieobecności bez kolejki wniosków', async () => {
         auth.user = { permissions: ['EMPLOYEES_MANAGE'] };
         renderAt('/employees/leave-requests');
-        expect(screen.getByText('grafik nieobecności')).toBeTruthy();
+        expect(await screen.findByText('grafik nieobecności')).toBeTruthy();
         expect(screen.queryByText('kolejka wniosków')).toBeNull();
         expect(tab(/^Wnioski urlopowe/)).toBeTruthy();
         expect(tab(/^Zespół/)).toBeTruthy();
     });
 
-    it('w zakładce „Zespół" nie ma wyszukiwarki', () => {
+    it('w zakładce „Zespół" nie ma wyszukiwarki', async () => {
         renderAt('/employees');
-        expect(screen.getByText('atrapa: zespół')).toBeTruthy();
+        expect(await screen.findByText('atrapa: zespół')).toBeTruthy();
         expect(screen.queryByRole('searchbox')).toBeNull();
         expect(screen.queryByPlaceholderText(/Szukaj/)).toBeNull();
     });
@@ -181,7 +184,7 @@ describe('EmployeesView - zakładki', () => {
         const tabList = screen.getByRole('tablist');
 
         fireEvent.click(tab(/^Zespół/));
-        expect(router.state.location.pathname).toBe('/employees');
+        await waitFor(() => expect(router.state.location.pathname).toBe('/employees'));
         expect(await screen.findByText('atrapa: zespół')).toBeTruthy();
         expect(screen.queryByText('kolejka wniosków')).toBeNull();
         // Ten sam węzeł, nie kopia: rama nie została odmontowana.
@@ -190,16 +193,16 @@ describe('EmployeesView - zakładki', () => {
         expect(heading.isConnected).toBe(true);
 
         fireEvent.click(tab(/^Czas pracy/));
-        expect(screen.getByTestId('month-view')).toBeTruthy();
+        expect(await screen.findByTestId('month-view')).toBeTruthy();
         expect(screen.getByRole('heading', { name: 'Pracownicy' })).toBe(heading);
     });
 
     it('„Czas pracy" zostaje pod /employees/worktime, „Listy obecności" pod /employees/attendance-sheets', async () => {
         const router = renderAt('/employees');
-        fireEvent.click(tab(/^Czas pracy/));
-        expect(router.state.location.pathname).toBe('/employees/worktime');
+        fireEvent.click(await findTab(/^Czas pracy/));
+        await waitFor(() => expect(router.state.location.pathname).toBe('/employees/worktime'));
         fireEvent.click(tab(/^Listy obecności/));
-        expect(router.state.location.pathname).toBe('/employees/attendance-sheets');
+        await waitFor(() => expect(router.state.location.pathname).toBe('/employees/attendance-sheets'));
         expect(await screen.findByTestId('attendance-sheets')).toBeTruthy();
     });
 

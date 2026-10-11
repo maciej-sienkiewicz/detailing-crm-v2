@@ -26,9 +26,73 @@
     <meta name="theme-color" content="#0f172a" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <title>DetailBoost</title>
+    <!-- Ekran startowy. Do niedawna przez cały czas wczytywania kodu i sprawdzania
+         sesji ekran był biały: #root był pusty, a tło <body> ustawia dopiero
+         JavaScript. Ten fragment maluje się w chwili przyjścia HTML-a. React
+         podmienia go przy pierwszym renderze na <BootSplash> o tych samych klasach
+         (src/core/components/BootSplash.tsx), więc dalsze oczekiwanie na sesję
+         i trasę wygląda tak samo, bez mignięcia. Style są tutaj, a nie w CSS
+         z bundla, bo mają działać, zanim ten CSS przyjdzie.
+
+         W zainstalowanej aplikacji (display-mode: standalone) tło jest ciemne jak
+         background_color z manifestu - przejście z systemowego ekranu powitalnego
+         jest wtedy niewidoczne. W karcie przeglądarki jasne jak tło aplikacji. -->
+    <style>
+      .boot-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 28px;
+        background: #eef2f7;
+      }
+      .boot-splash__icon {
+        width: 72px;
+        height: 72px;
+        border-radius: 18px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+      }
+      .boot-splash__bar {
+        position: relative;
+        width: 56px;
+        height: 3px;
+        overflow: hidden;
+        border-radius: 3px;
+        background: rgba(15, 23, 42, 0.1);
+      }
+      .boot-splash__bar::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        width: 40%;
+        border-radius: 3px;
+        background: #0ea5e9;
+        animation: boot-splash-slide 1.1s ease-in-out infinite;
+      }
+      @keyframes boot-splash-slide {
+        from { transform: translateX(-100%); }
+        to { transform: translateX(250%); }
+      }
+      @media (display-mode: standalone) {
+        .boot-splash { background: #0f172a; }
+        .boot-splash__icon { box-shadow: none; }
+        .boot-splash__bar { background: rgba(255, 255, 255, 0.12); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .boot-splash__bar::after { animation: none; width: 100%; opacity: 0.6; }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot-splash" role="status" aria-label="Wczytywanie DetailBoost">
+        <img class="boot-splash__icon" src="/icons/icon-192.png" alt="" width="72" height="72" />
+        <span class="boot-splash__bar"></span>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
