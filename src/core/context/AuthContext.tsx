@@ -1,5 +1,8 @@
 import { createContext, useCallback, useContext, useState, useEffect, ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { authApi } from '@/modules/auth/api/authApi';
+import { prefetchSubscriptionStatus } from '@/modules/settings/hooks/useSubscription';
+import { isPublicAppPath } from '@/core/publicPaths';
 import { disconnectStompClient } from '@/core/socketClient';
 import type { User } from '@/modules/auth/types';
 
@@ -28,6 +31,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [user, setUser] = useState<User | null>(null);
+  const queryClient = useQueryClient();
 
   const checkAuth = async () => {
     try {
@@ -64,10 +68,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  // Sprawdź autentykację przy pierwszym załadowaniu
+  // Sprawdź autentykację przy pierwszym załadowaniu. Status subskrypcji idzie
+  // równolegle (opis przy prefetchSubscriptionStatus) - poza stronami publicznymi,
+  // na których nikt go nie potrzebuje.
   useEffect(() => {
+    if (!isPublicAppPath(window.location.pathname)) {
+      void prefetchSubscriptionStatus(queryClient);
+    }
     checkAuth();
-  }, []);
+  }, [queryClient]);
 
   // Po każdym 403 z API odśwież efektywne uprawnienia (permissions z /auth/me):
   // rola mogła zostać zmieniona w innej sesji, a UI ukrywa to, czego użytkownik

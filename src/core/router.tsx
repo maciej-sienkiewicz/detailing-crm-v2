@@ -1,64 +1,72 @@
 // src/core/router.tsx
-import { ReactNode, Suspense } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import { Navigate, Outlet, createBrowserRouter } from 'react-router-dom';
-import { RouteErrorBoundary, lazyWithRetry, lazyNamedWithRetry } from './errors';
+import { RouteErrorBoundary, importWithRetry } from './errors';
 import { Layout } from '@/widgets/Layout';
-import { CustomerListView } from '@/modules/customers';
-import { CustomerDetailView } from '@/modules/customers/views/CustomerDetailView';
-import { AppointmentCreateView, AppointmentEditView } from '@/modules/appointments';
-import { VehicleDetailView, VehicleListView } from '@/modules/vehicles';
-import { OperationListView } from '@/modules/operations';
-import { VisitDetailView } from '@/modules/visits';
-import { CheckInWizardWrapper } from '@/modules/checkin/views/CheckInWizardWrapper';
-import { WalkInCheckInWrapper } from '@/modules/checkin/views/WalkInCheckInWrapper';
-import { MobilePhotoUploadWrapper } from '@/modules/checkin/views/MobilePhotoUploadWrapper';
-import { MobileContactsImportView } from '@/modules/customers/views/MobileContactsImportView';
-import { MobileVoiceCommandsWrapper, MobileShortcutsView } from '@/modules/voice-commands';
-import { LoginView, SignupView, ForgotPasswordView, ResetPasswordView } from '@/modules/auth';
-import { VisitCardView } from '@/modules/visit-card';
-
-// Lazy: pulls in pdf.js, which must not weigh down the main bundle
-const PublicSigningView = lazyWithRetry(() => import('@/modules/public-signing/views/PublicSigningView'));
-import { ConsentSettingsView } from "@/modules/consents";
-import { CalendarPageView, CalendarReservationLink } from "@/modules/calendar";
-import { ProtocolRulesView, ProtocolDemoView } from "@/modules/protocols";
-import { BatchOrdersView } from "@/modules/batch-orders";
-import { ProductListView, ProductDetailView, MobileProductScanView } from "@/modules/products";
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { BootSplash } from './components/BootSplash';
+import { NavigationProgress } from './components/NavigationProgress';
 import { ScrollLockRouteReset } from './components/ScrollLockRouteReset';
 import { RedirectWithParams } from './components/RedirectWithParams';
 import { RequirePermission, HomeRedirect, NoAccessView, ANY_FINANCE, ANY_DASHBOARD, ANY_EMPLOYEES } from './permissions';
-import { NotificationsView } from '@/modules/notifications';
 import type { PermissionRequirement } from './permissions';
-import {DashboardView} from "@/modules/dashboard";
-import {GrowthEngineView} from "@/modules/growth-engine";
-import {FinanceView} from "@/modules/finance";
-import { StatisticsView, CategoryDetailView, CostsView, ReportsView } from "@/modules/statistics";
-import { CompetitionMonitoringView } from "@/modules/competition-monitoring";
-import { SmsCampaignsView } from "@/modules/sms-campaigns";
-import { CampaignsListView, CampaignWizardView, CampaignDetailsView, CampaignSettingsView } from "@/modules/campaigns";
-// Lazy: a heavy, styled-components-rich module most sessions never open
-const GalleryView = lazyNamedWithRetry(
-    () => import("@/modules/gallery/views/GalleryView"),
-    'GalleryView',
-);
-// Lazy - moduł komunikacji (webmail) i leadów
-// „Leady" i „Poczta" to jedna skrzynka „Zapytania" - stare adresy przekierowują.
-const InboxView = lazyWithRetry(() => import('@/modules/comms/views/InboxView'));
-const MailboxConnectView = lazyWithRetry(() => import('@/modules/comms/views/MailboxConnectView'));
 import { LegacyLeadsRedirect, LegacyMailRedirect } from '@/modules/comms/views/InboxRedirects';
-const LeadAnalyticsView = lazyWithRetry(() => import('@/modules/comms/views/LeadAnalyticsView'));
-import { EmployeesView, MyLeaveView } from '@/modules/employees';
-import { LegacyEmployeeRedirect, LegacyWorkTimeCardRedirect } from '@/modules/employees/views/EmployeesTabViews';
 import { employeesTabRoutes } from '@/modules/employees/employeesRoutes';
-import { WorkTimeView } from '@/modules/worktime';
-import { ActivityView } from '@/modules/activity';
-import { SettingsView } from '@/modules/settings';
-import { PhoneSignatureView } from '@/modules/profile/views/PhoneSignatureView';
-import { CallDeviceView } from '@/modules/push';
-import { PaymentResultPage } from '@/modules/subscription/pages/PaymentResultPage';
 import { ModuleGate } from '@/modules/subscription/components/ModuleGate';
 import type { FeatureKey } from '@/modules/subscription/types';
+
+// ── Widoki ładowane na żądanie ───────────────────────────────────────────────
+//
+// KAŻDY widok trasy wchodzi przez `route.lazy`, żaden przez statyczny import.
+// Wcześniej router importował wprost prawie cały CRM, więc główny plik JS miał
+// 4,8 MB: kalendarz z FullCalendar, wykresy recharts, finanse, statystyki... Telefon
+// parsował i wykonywał to wszystko przy KAŻDYM starcie PWA, także po to, żeby
+// pokazać sam dashboard - 1,5-2,5 s białego ekranu na średnim Androidzie, zanim
+// poszło pierwsze żądanie do serwera.
+//
+// Dlaczego `route.lazy`, a nie `React.lazy` + Suspense: router zaczyna pobierać kod
+// trasy już przy dopasowaniu adresu - przy starcie równolegle z /auth/me, zamiast
+// dopiero po przejściu ProtectedRoute i SubscriptionGate. Przy przejściu między
+// ekranami poprzedni zostaje na miejscu, dopóki kod następnego nie przyjdzie
+// (pasek NavigationProgress), zamiast mignąć pustym ekranem.
+//
+// Importy wskazują plik widoku, a nie barrel modułu (`@/modules/x`): barrel
+// wciąga hooki i komponenty, których widok nie potrzebuje, a gdy coś innego
+// importuje go statycznie, Vite zostawia cały moduł w głównym pliku.
+//
+// `importWithRetry`: brakujący chunk po deployu kończy się jednym przeładowaniem,
+// a nieudane przeładowanie - ekranem RouteErrorBoundary (core/errors).
+
+/**
+ * Trasa, której element powstaje dopiero po załadowaniu kodu widoku.
+ * `render` buduje element wokół widoku (strażnicy, Layout, propsy).
+ */
+function lazyRoute<P extends object>(
+    load: () => Promise<ComponentType<P>>,
+    render: (View: ComponentType<P>) => ReactNode,
+) {
+    return {
+        lazy: async () => {
+            const View = await importWithRetry(load);
+            return { element: render(View) };
+        },
+    };
+}
+
+/** Widok bez strażników i Layoutu: strony publiczne (logowanie, linki z tokenem) i przekierowania. */
+const lazyBare = (load: () => Promise<ComponentType>) => lazyRoute(load, View => <View />);
+
+/** Strona aplikacji - jak `page`, z widokiem ładowanym na żądanie. */
+const lazyPage = (load: () => Promise<ComponentType>, requires?: PermissionRequirement) =>
+    lazyRoute(load, View => page(<View />, requires));
+
+/** Strona modułu płatnego - jak `gatedPage`, z widokiem ładowanym na żądanie. */
+const lazyGatedPage = (
+    load: () => Promise<ComponentType>,
+    featureKey: FeatureKey,
+    benefits: string[],
+    requires?: PermissionRequirement,
+) => lazyRoute(load, View => gatedPage(<View />, featureKey, benefits, requires));
 
 /**
  * Authenticated app page: session guard + optional permission guard + layout.
@@ -131,28 +139,35 @@ export const router = createBrowserRouter([
         // dzieci wyglądają dokładnie tak jak przed zmianą.
         // ScrollLockRouteReset: zwolnienie blokad scrolla po każdej nawigacji
         // (siatka bezpieczeństwa; opis w komponencie).
-        element: <><ScrollLockRouteReset /><Outlet /></>,
+        // NavigationProgress: pasek u góry, gdy kod następnego ekranu jeszcze się pobiera.
+        element: <><ScrollLockRouteReset /><NavigationProgress /><Outlet /></>,
         errorElement: <RouteErrorBoundary />,
+        // Pierwsze wejście czeka na kod widoku z `route.lazy` - w tym czasie ekran
+        // startowy z index.html, a nie pusta strona.
+        hydrateFallbackElement: <BootSplash />,
         children: [
         {
             path: '/login',
-            element: <LoginView />,
+            ...lazyBare(() => import('@/modules/auth/views/LoginView').then(m => m.LoginView)),
         },
         {
             path: '/signup',
-            element: <SignupView />,
+            ...lazyBare(() => import('@/modules/auth/views/SignupView').then(m => m.SignupView)),
         },
         {
             path: '/forgot-password',
-            element: <ForgotPasswordView />,
+            ...lazyBare(() => import('@/modules/auth/views/ForgotPasswordView').then(m => m.ForgotPasswordView)),
         },
         {
             path: '/reset-password',
-            element: <ResetPasswordView />,
+            ...lazyBare(() => import('@/modules/auth/views/ResetPasswordView').then(m => m.ResetPasswordView)),
         },
         {
             path: '/confirm-password',
-            element: <ResetPasswordView mode="setup" />,
+            ...lazyRoute(
+                () => import('@/modules/auth/views/ResetPasswordView').then(m => m.ResetPasswordView),
+                View => <View mode="setup" />,
+            ),
         },
         {
             path: '/',
@@ -163,60 +178,60 @@ export const router = createBrowserRouter([
             // view. Users with only VISITS_VIEW are redirected to /calendar
             // (their getDefaultRoute). Studio owners (null permissions) always pass.
             path: '/dashboard',
-            element: page(<DashboardView />, ANY_DASHBOARD),
+            ...lazyPage(() => import('@/modules/dashboard/views/DashboardView').then(m => m.DashboardView), ANY_DASHBOARD),
         },
 
         // ── Klienci i pojazdy ────────────────────────────────────────────────
         {
             path: '/customers',
-            element: page(<CustomerListView />, 'CUSTOMERS_VIEW'),
+            ...lazyPage(() => import('@/modules/customers/views/CustomerListView').then(m => m.CustomerListView), 'CUSTOMERS_VIEW'),
         },
         {
             path: '/customers/:customerId',
-            element: page(<CustomerDetailView />, 'CUSTOMERS_VIEW'),
+            ...lazyPage(() => import('@/modules/customers/views/CustomerDetailView').then(m => m.CustomerDetailView), 'CUSTOMERS_VIEW'),
         },
         {
             path: '/vehicles',
-            element: page(<VehicleListView />, 'CUSTOMERS_VIEW'),
+            ...lazyPage(() => import('@/modules/vehicles/views/VehicleListView').then(m => m.VehicleListView), 'CUSTOMERS_VIEW'),
         },
         {
             path: '/vehicles/:vehicleId',
-            element: page(<VehicleDetailView />, 'CUSTOMERS_VIEW'),
+            ...lazyPage(() => import('@/modules/vehicles/views/VehicleDetailView').then(m => m.VehicleDetailView), 'CUSTOMERS_VIEW'),
         },
 
         // ── Wizyty i kalendarz ───────────────────────────────────────────────
         {
             path: '/calendar',
-            element: page(<CalendarPageView />, 'VISITS_VIEW'),
+            ...lazyPage(() => import('@/modules/calendar/views/CalendarPageView').then(m => m.CalendarPageView), 'VISITS_VIEW'),
         },
         {
             // Link z powiadomienia push „Nowa rezerwacja" - tłumaczony na stan kalendarza.
             path: '/calendar/rezerwacja/:appointmentId',
-            element: page(<CalendarReservationLink />, 'VISITS_VIEW'),
+            ...lazyPage(() => import('@/modules/calendar/views/CalendarReservationLink').then(m => m.CalendarReservationLink), 'VISITS_VIEW'),
         },
         {
             path: '/operations',
-            element: page(<OperationListView />, 'VISITS_VIEW'),
+            ...lazyPage(() => import('@/modules/operations/views/OperationListView').then(m => m.OperationListView), 'VISITS_VIEW'),
         },
         {
             path: '/visits/:visitId',
-            element: page(<VisitDetailView />, 'VISITS_VIEW'),
+            ...lazyPage(() => import('@/modules/visits/views/VisitDetailView').then(m => m.VisitDetailView), 'VISITS_VIEW'),
         },
         {
             path: '/appointments/create',
-            element: page(<AppointmentCreateView />, 'VISITS_CREATE'),
+            ...lazyPage(() => import('@/modules/appointments/views/AppointmentCreateView').then(m => m.AppointmentCreateView), 'VISITS_CREATE'),
         },
         {
             path: '/appointments/:appointmentId/edit',
-            element: page(<AppointmentEditView />, 'VISITS_CREATE'),
+            ...lazyPage(() => import('@/modules/appointments/views/AppointmentEditView').then(m => m.AppointmentEditView), 'VISITS_CREATE'),
         },
         {
             path: '/checkin/new',
-            element: page(<WalkInCheckInWrapper />, 'VISITS_CREATE'),
+            ...lazyPage(() => import('@/modules/checkin/views/WalkInCheckInWrapper').then(m => m.WalkInCheckInWrapper), 'VISITS_CREATE'),
         },
         {
             path: '/reservations/:reservationId/checkin',
-            element: page(<CheckInWizardWrapper />, 'VISITS_CREATE'),
+            ...lazyPage(() => import('@/modules/checkin/views/CheckInWizardWrapper').then(m => m.CheckInWizardWrapper), 'VISITS_CREATE'),
         },
         {
             // Kolory przeniosły się do Ustawień → Oznaczenia. Adres zostaje, bo
@@ -226,83 +241,69 @@ export const router = createBrowserRouter([
         },
         {
             path: '/gallery',
-            element: page(
-                <Suspense fallback={null}>
-                    <GalleryView />
-                </Suspense>,
-                'VISITS_VIEW'
-            ),
+            ...lazyPage(() => import('@/modules/gallery/views/GalleryView').then(m => m.GalleryView), 'VISITS_VIEW'),
         },
         {
             path: '/protocols',
-            element: page(<ProtocolRulesView />, 'VISITS_CREATE'),
+            ...lazyPage(() => import('@/modules/protocols/views/ProtocolRulesView').then(m => m.ProtocolRulesView), 'VISITS_CREATE'),
         },
         {
             path: '/protocols/demo',
-            element: page(<ProtocolDemoView />, 'VISITS_CREATE'),
+            ...lazyPage(() => import('@/modules/protocols/views/ProtocolDemoView').then(m => m.ProtocolDemoView), 'VISITS_CREATE'),
         },
 
         // ── Mobile (public, token-based) ─────────────────────────────────────
         {
             // Public mobile upload route, no auth required, token via ?t=
             path: '/m/upload',
-            element: <MobilePhotoUploadWrapper />,
+            ...lazyBare(() => import('@/modules/checkin/views/MobilePhotoUploadWrapper').then(m => m.MobilePhotoUploadWrapper)),
         },
         {
             // Publiczny odbiór kontaktów z telefonu, bez logowania; sekret sesji w ?s=
             path: '/m/contacts',
-            element: <MobileContactsImportView />,
+            ...lazyBare(() => import('@/modules/customers/views/MobileContactsImportView').then(m => m.MobileContactsImportView)),
         },
         {
             // Publiczne skanowanie produktu telefonem, bez logowania; token sesji w ?s=
             path: '/m/scan',
-            element: <MobileProductScanView />,
+            ...lazyBare(() => import('@/modules/products/views/MobileProductScanView').then(m => m.MobileProductScanView)),
         },
         {
             // Public voice intake route, no auth required, token via ?token=
             path: '/m/voice',
-            element: <MobileVoiceCommandsWrapper />,
+            ...lazyBare(() => import('@/modules/voice-commands/views/MobileVoiceCommandsWrapper').then(m => m.MobileVoiceCommandsWrapper)),
         },
         {
             // Public customer Visit Card, no auth required, card token in the path
             path: '/vc/:token',
-            element: <VisitCardView />,
+            ...lazyBare(() => import('@/modules/visit-card/views/VisitCardView').then(m => m.VisitCardView)),
         },
         {
             // Public remote document signing (SMS link), no auth, link token in the path
             path: '/sign/:token',
-            element: (
-                <Suspense fallback={null}>
-                    <PublicSigningView />
-                </Suspense>
-            ),
+            ...lazyBare(() => import('@/modules/public-signing/views/PublicSigningView').then(m => m.default)),
         },
         {
             // Personal signature drawing on the user's own phone, no auth, link token in the path
             path: '/m/sig/:token',
-            element: <PhoneSignatureView />,
+            ...lazyBare(() => import('@/modules/profile/views/PhoneSignatureView').then(m => m.PhoneSignatureView)),
         },
         {
             path: '/mobile-shortcuts',
-            element: page(<MobileShortcutsView />, 'VISITS_VIEW'),
+            ...lazyPage(() => import('@/modules/voice-commands/views/MobileShortcutsView').then(m => m.MobileShortcutsView), 'VISITS_VIEW'),
         },
         {
             // Click-to-Call pairing, opened ON THE PHONE (QR in Skróty mobilne).
             // No permission requirement: every logged-in user may pair their own
             // phone - the backend scopes devices and call pushes to the session user.
             path: '/call-device',
-            element: page(<CallDeviceView />),
+            ...lazyPage(() => import('@/modules/push/views/CallDeviceView').then(m => m.CallDeviceView)),
         },
 
         // ── Zapytania: sprawy (dawne Leady) i poczta w jednej skrzynce ─────────
         {
             path: '/zapytania',
-            element: page(
-                <Suspense fallback={null}>
-                    <InboxView />
-                </Suspense>,
-                'LEADS_MANAGE'
-            ),
+            ...lazyPage(() => import('@/modules/comms/views/InboxView').then(m => m.default), 'LEADS_MANAGE'),
         },
         {
             path: '/leads',
@@ -310,12 +311,7 @@ export const router = createBrowserRouter([
         },
         {
             path: '/leads/analytics',
-            element: page(
-                <Suspense fallback={null}>
-                    <LeadAnalyticsView />
-                </Suspense>,
-                'LEADS_MANAGE'
-            ),
+            ...lazyPage(() => import('@/modules/comms/views/LeadAnalyticsView').then(m => m.default), 'LEADS_MANAGE'),
         },
 
         // ── Komunikacja: dawny adres poczty i ustawienia skrzynek ─────────────
@@ -325,79 +321,74 @@ export const router = createBrowserRouter([
         },
         {
             path: '/communication/mailboxes',
-            element: page(
-                <Suspense fallback={null}>
-                    <MailboxConnectView />
-                </Suspense>,
-                'LEADS_MANAGE'
-            ),
+            ...lazyPage(() => import('@/modules/comms/views/MailboxConnectView').then(m => m.default), 'LEADS_MANAGE'),
         },
 
         // ── Finanse ──────────────────────────────────────────────────────────
         {
             path: '/finance',
-            element: gatedPage(<FinanceView />, 'FINANCE', FINANCE_BENEFITS, ANY_FINANCE),
+            ...lazyGatedPage(() => import('@/modules/finance/views/FinanceView').then(m => m.FinanceView), 'FINANCE', FINANCE_BENEFITS, ANY_FINANCE),
         },
         {
             path: '/finances',
-            element: gatedPage(<FinanceView />, 'FINANCE', FINANCE_BENEFITS, ANY_FINANCE),
+            ...lazyGatedPage(() => import('@/modules/finance/views/FinanceView').then(m => m.FinanceView), 'FINANCE', FINANCE_BENEFITS, ANY_FINANCE),
         },
 
         // ── Statystyki i raporty ─────────────────────────────────────────────
         {
             path: '/statistics',
-            element: gatedPage(<StatisticsView />, 'STATISTICS', STATISTICS_BENEFITS, 'STATISTICS_VIEW'),
+            ...lazyGatedPage(() => import('@/modules/statistics/views/StatisticsView').then(m => m.StatisticsView), 'STATISTICS', STATISTICS_BENEFITS, 'STATISTICS_VIEW'),
         },
         {
             path: '/statistics/costs',
-            element: gatedPage(<CostsView />, 'STATISTICS', STATISTICS_BENEFITS, 'STATISTICS_VIEW'),
+            ...lazyGatedPage(() => import('@/modules/statistics/views/CostsView').then(m => m.CostsView), 'STATISTICS', STATISTICS_BENEFITS, 'STATISTICS_VIEW'),
         },
         {
             path: '/statistics/reports',
-            element: gatedPage(<ReportsView />, 'STATISTICS', STATISTICS_BENEFITS, 'STATISTICS_VIEW'),
+            ...lazyGatedPage(() => import('@/modules/statistics/views/ReportsView').then(m => m.ReportsView), 'STATISTICS', STATISTICS_BENEFITS, 'STATISTICS_VIEW'),
         },
         {
             path: '/statistics/categories/:categoryId',
-            element: gatedPage(<CategoryDetailView />, 'STATISTICS', STATISTICS_BENEFITS, 'STATISTICS_VIEW'),
+            ...lazyGatedPage(() => import('@/modules/statistics/views/CategoryDetailView').then(m => m.CategoryDetailView), 'STATISTICS', STATISTICS_BENEFITS, 'STATISTICS_VIEW'),
         },
         {
             path: '/reports',
-            element: gatedPage(<GrowthEngineView />, 'STATISTICS', STATISTICS_BENEFITS, 'STATISTICS_VIEW'),
+            ...lazyGatedPage(() => import('@/modules/growth-engine/views/GrowthEngineView').then(m => m.GrowthEngineView), 'STATISTICS', STATISTICS_BENEFITS, 'STATISTICS_VIEW'),
         },
 
         // ── Komunikacja i marketing ──────────────────────────────────────────
         {
             path: '/campaigns',
-            element: gatedPage(<CampaignsListView />, 'CAMPAIGNS', CAMPAIGNS_BENEFITS, 'COMMUNICATION_SEND'),
+            ...lazyGatedPage(() => import('@/modules/campaigns/views/CampaignsListView').then(m => m.CampaignsListView), 'CAMPAIGNS', CAMPAIGNS_BENEFITS, 'COMMUNICATION_SEND'),
         },
         {
             path: '/campaigns/new',
-            element: gatedPage(<CampaignWizardView />, 'CAMPAIGNS', CAMPAIGNS_BENEFITS, 'COMMUNICATION_SEND'),
+            ...lazyGatedPage(() => import('@/modules/campaigns/views/CampaignWizardView').then(m => m.CampaignWizardView), 'CAMPAIGNS', CAMPAIGNS_BENEFITS, 'COMMUNICATION_SEND'),
         },
         {
             path: '/campaigns/settings',
-            element: gatedPage(<CampaignSettingsView />, 'CAMPAIGNS', CAMPAIGNS_BENEFITS, 'COMMUNICATION_SEND'),
+            ...lazyGatedPage(() => import('@/modules/campaigns/views/CampaignSettingsView').then(m => m.CampaignSettingsView), 'CAMPAIGNS', CAMPAIGNS_BENEFITS, 'COMMUNICATION_SEND'),
         },
         {
             path: '/campaigns/:id',
-            element: gatedPage(<CampaignDetailsView />, 'CAMPAIGNS', CAMPAIGNS_BENEFITS, 'COMMUNICATION_SEND'),
+            ...lazyGatedPage(() => import('@/modules/campaigns/views/CampaignDetailsView').then(m => m.CampaignDetailsView), 'CAMPAIGNS', CAMPAIGNS_BENEFITS, 'COMMUNICATION_SEND'),
         },
         {
             path: '/campaigns/:id/edit',
-            element: gatedPage(<CampaignWizardView />, 'CAMPAIGNS', CAMPAIGNS_BENEFITS, 'COMMUNICATION_SEND'),
+            ...lazyGatedPage(() => import('@/modules/campaigns/views/CampaignWizardView').then(m => m.CampaignWizardView), 'CAMPAIGNS', CAMPAIGNS_BENEFITS, 'COMMUNICATION_SEND'),
         },
         // Legacy: stara ścieżka kampanii SMS prowadzi do nowego modułu
         {
             path: '/sms-campaigns',
-            element: gatedPage(<SmsCampaignsView />, 'CAMPAIGNS', CAMPAIGNS_BENEFITS, 'COMMUNICATION_SEND'),
+            ...lazyGatedPage(() => import('@/modules/sms-campaigns/views/SmsCampaignsView').then(m => m.SmsCampaignsView), 'CAMPAIGNS', CAMPAIGNS_BENEFITS, 'COMMUNICATION_SEND'),
         },
         {
             path: '/instagram',
-            element: gatedPage(<CompetitionMonitoringView />, 'INSTAGRAM_MONITORING', INSTAGRAM_BENEFITS, 'MARKETING_MANAGE'),
+            ...lazyGatedPage(() => import('@/modules/competition-monitoring/views/CompetitionMonitoringView').then(m => m.CompetitionMonitoringView), 'INSTAGRAM_MONITORING', INSTAGRAM_BENEFITS, 'MARKETING_MANAGE'),
         },
         {
             path: '/consents',
-            element: gatedPage(<ConsentSettingsView />, 'E_SIGNATURES', E_SIGNATURES_BENEFITS, 'CUSTOMERS_VIEW'),
+            ...lazyGatedPage(() => import('@/modules/consents/components/ConsentSettingsView').then(m => m.ConsentSettingsView), 'E_SIGNATURES', E_SIGNATURES_BENEFITS, 'CUSTOMERS_VIEW'),
         },
 
         // ── Urlop (samoobsługa pracownika, bez uprawnienia) ──────────────────
@@ -405,19 +396,19 @@ export const router = createBrowserRouter([
         // dostaje ekran „nie jest powiązane", a nie cudze dane.
         {
             path: '/me/leave',
-            element: page(<MyLeaveView />),
+            ...lazyPage(() => import('@/modules/employees/views/MyLeaveView').then(m => m.MyLeaveView)),
         },
 
         // ── Czas pracy (self-service dla pracowników z trackWorkTime) ────────
         {
             path: '/worktime',
-            element: page(<WorkTimeView />),
+            ...lazyPage(() => import('@/modules/worktime/views/WorkTimeView').then(m => m.WorkTimeView)),
         },
 
         // ── Historia aktywności ──────────────────────────────────────────────
         {
             path: '/activity',
-            element: page(<ActivityView />, 'AUDIT_VIEW'),
+            ...lazyPage(() => import('@/modules/activity/views/ActivityView').then(m => m.ActivityView), 'AUDIT_VIEW'),
         },
 
         // ── Pracownicy ───────────────────────────────────────────────────────
@@ -427,19 +418,19 @@ export const router = createBrowserRouter([
         // Dzieci pilnują własnych uprawnień, rama - tylko dostępu do modułu.
         {
             path: '/employees',
-            element: page(<EmployeesView />, ANY_EMPLOYEES),
+            ...lazyPage(() => import('@/modules/employees/views/EmployeesView').then(m => m.EmployeesView), ANY_EMPLOYEES),
             children: employeesTabRoutes,
         },
         {
             // Dawny adres strony pracownika - pracownik jest oknem nad „Zespołem" (`?person=…`).
             path: '/employees/:employeeId',
-            element: <LegacyEmployeeRedirect />,
+            ...lazyBare(() => import('@/modules/employees/views/EmployeesTabViews').then(m => m.LegacyEmployeeRedirect)),
         },
         {
             // Dawny adres strony karty czasu pracy - karta jest znowu oknem nad zakładką
             // „Czas pracy" (`?period=…&card=…`).
             path: '/employees/worktime/:period/:userId',
-            element: <LegacyWorkTimeCardRedirect />,
+            ...lazyBare(() => import('@/modules/employees/views/EmployeesTabViews').then(m => m.LegacyWorkTimeCardRedirect)),
         },
         {
             // Dawny adres karty pracownika - krąży w zakładkach przeglądarki.
@@ -450,7 +441,7 @@ export const router = createBrowserRouter([
         // ── Ustawienia (dodatkowo zakładki filtrowane wewnątrz widoku) ───────
         {
             path: '/settings',
-            element: page(<SettingsView />),
+            ...lazyPage(() => import('@/modules/settings/views/SettingsView').then(m => m.SettingsView)),
         },
 
         // ── Powrót z płatności Przelewy24 ────────────────────────────────────
@@ -458,23 +449,22 @@ export const router = createBrowserRouter([
         // które właśnie opłaciły przedłużenie.
         {
             path: '/payments/result',
-            element: (
-                <ProtectedRoute withSubscriptionGate={false}>
-                    <PaymentResultPage />
-                </ProtectedRoute>
+            ...lazyRoute(
+                () => import('@/modules/subscription/pages/PaymentResultPage').then(m => m.PaymentResultPage),
+                View => <ProtectedRoute withSubscriptionGate={false}><View /></ProtectedRoute>,
             ),
         },
         {
             path: '/batch-orders',
-            element: page(<BatchOrdersView />, 'BATCH_ORDERS'),
+            ...lazyPage(() => import('@/modules/batch-orders/views/BatchOrdersView').then(m => m.BatchOrdersView), 'BATCH_ORDERS'),
         },
         {
             path: '/products',
-            element: gatedPage(<ProductListView />, 'PRODUCTS', PRODUCTS_BENEFITS, 'PRODUCTS_VIEW'),
+            ...lazyGatedPage(() => import('@/modules/products/views/ProductListView').then(m => m.ProductListView), 'PRODUCTS', PRODUCTS_BENEFITS, 'PRODUCTS_VIEW'),
         },
         {
             path: '/products/:id',
-            element: gatedPage(<ProductDetailView />, 'PRODUCTS', PRODUCTS_BENEFITS, 'PRODUCTS_VIEW'),
+            ...lazyGatedPage(() => import('@/modules/products/views/ProductDetailView').then(m => m.ProductDetailView), 'PRODUCTS', PRODUCTS_BENEFITS, 'PRODUCTS_VIEW'),
         },
         // Landing page for users whose role grants no permissions; see getDefaultRoute.
         {
@@ -484,7 +474,7 @@ export const router = createBrowserRouter([
         // Task inbox for roles without dashboard access (self-service backend, no permission).
         {
             path: '/notifications',
-            element: page(<NotificationsView />),
+            ...lazyPage(() => import('@/modules/notifications/views/NotificationsView').then(m => m.NotificationsView)),
         },
 
         {
