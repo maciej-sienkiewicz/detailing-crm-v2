@@ -236,7 +236,7 @@ export function describeLeadUrgency(
                 waitingMs,
                 icon: 'reply',
                 label: 'Obiecana odpowiedź',
-                title: `Po rozmowie zostało coś po naszej stronie — od ${age}`,
+                title: `Obiecaliśmy klientowi odpowiedź – od ${age}`,
             };
         }
         return {
@@ -261,7 +261,7 @@ export function describeLeadUrgency(
         waitingSince: since,
         waitingMs,
         icon: stale ? 'clock' : 'question',
-        label: stale ? 'Bez odzewu' : 'U klienta',
+        label: stale ? 'Bez odzewu' : 'Czeka na klienta',
         title: stale
             ? `Klient milczy od ${age}`
             : `Odpisaliśmy ${age} temu — czekamy na decyzję`,

@@ -171,7 +171,7 @@ export function PaymentResultPage() {
                 {state === 'polling' && (
                     <>
                         <Spinner />
-                        <Title>Przetwarzamy Twoją płatność...</Title>
+                        <Title>Sprawdzamy płatność…</Title>
                         <Text>
                             Czekamy na potwierdzenie z Przelewy24. Zwykle trwa to kilka sekund,
                             nie zamykaj tej strony.
@@ -183,10 +183,10 @@ export function PaymentResultPage() {
                 {state === 'paid' && (
                     <>
                         <IconCircle $bg="#d1fae5"><CheckIcon /></IconCircle>
-                        <Title>Płatność zakończona pomyślnie</Title>
+                        <Title>Płatność przyjęta</Title>
                         <Text>
-                            {order?.typeDisplayName}: {order?.description}. Twoje konto zostało
-                            zaktualizowane, możesz wrócić do pracy.
+                            {order?.typeDisplayName}: {order?.description}. Wszystko gotowe, możesz
+                            wracać do pracy.
                         </Text>
                         {order && <Amount>{formatCents(order.amountCents)}</Amount>}
                         <PrimaryBtn onClick={goToApp}>Przejdź do aplikacji</PrimaryBtn>
@@ -198,7 +198,7 @@ export function PaymentResultPage() {
                         <IconCircle $bg="#fee2e2"><CrossIcon /></IconCircle>
                         <Title>Płatność nie powiodła się</Title>
                         <Text>
-                            {order?.failureReason ?? 'Transakcja została odrzucona lub anulowana. Żadna kwota nie została pobrana, możesz spróbować ponownie.'}
+                            {order?.failureReason ?? 'Płatność odrzucona albo anulowana. Nie pobraliśmy pieniędzy, spróbuj jeszcze raz.'}
                         </Text>
                         <PrimaryBtn onClick={goToApp}>Wróć do ustawień</PrimaryBtn>
                     </>
@@ -207,10 +207,10 @@ export function PaymentResultPage() {
                 {state === 'timeout' && (
                     <>
                         <IconCircle $bg="#fef3c7"><Spinner /></IconCircle>
-                        <Title>Płatność wciąż jest przetwarzana</Title>
+                        <Title>Wciąż sprawdzamy płatność</Title>
                         <Text>
-                            Nie otrzymaliśmy jeszcze potwierdzenia z Przelewy24. Jeśli środki zostały
-                            pobrane, dostęp zostanie aktywowany automatycznie w ciągu kilku minut.
+                            Przelewy24 jeszcze nie potwierdziły płatności. Jeśli pieniądze zeszły
+                            z konta, dostęp włączy się sam w ciągu kilku minut.
                         </Text>
                         <PrimaryBtn onClick={goToApp}>Wróć do aplikacji</PrimaryBtn>
                     </>
@@ -219,7 +219,7 @@ export function PaymentResultPage() {
                 {state === 'missing' && (
                     <>
                         <IconCircle $bg="#fee2e2"><CrossIcon /></IconCircle>
-                        <Title>Brak identyfikatora zamówienia</Title>
+                        <Title>Niepełny link do płatności</Title>
                         <Text>Ten adres jest niekompletny. Wróć do aplikacji i spróbuj ponownie.</Text>
                         <PrimaryBtn onClick={goToApp}>Wróć do aplikacji</PrimaryBtn>
                     </>

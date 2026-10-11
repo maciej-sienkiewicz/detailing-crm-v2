@@ -383,8 +383,8 @@ export const CheckinQRGenerator = ({ appointmentId, onDamageUpdated }: CheckinQR
         <Wrap>
             <QrCard>
                 <QrBox>
-                    {isLoading && <QrSkeleton>Generowanie kodu QR...</QrSkeleton>}
-                    {!isLoading && error && <QrSkeleton>Błąd</QrSkeleton>}
+                    {isLoading && <QrSkeleton>Generowanie kodu QR…</QrSkeleton>}
+                    {!isLoading && error && <QrSkeleton>Nie udało się utworzyć kodu</QrSkeleton>}
                     {!isLoading && !error && qrUrl && !isExpired && (
                         <QRCodeSVG value={qrUrl} size={144} level="M" />
                     )}
@@ -396,8 +396,7 @@ export const CheckinQRGenerator = ({ appointmentId, onDamageUpdated }: CheckinQR
                 <QrInfo>
                     <QrTitle>Zeskanuj, aby przesłać zdjęcia telefonem</QrTitle>
                     <QrSubtitle>
-                        Pracownik może zeskanować kod QR i sfotografować pojazd telefonem.
-                        Zdjęcia pojawią się tu automatycznie.
+                        Zdjęcia z telefonu pojawią się tu same.
                     </QrSubtitle>
 
                     {!isLoading && !error && !isExpired && secondsLeft > 0 && (
@@ -429,7 +428,7 @@ export const CheckinQRGenerator = ({ appointmentId, onDamageUpdated }: CheckinQR
                                 <polyline points="23 4 23 10 17 10" />
                                 <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
                             </svg>
-                            {isLoading ? 'Generowanie...' : 'Odśwież kod QR'}
+                            {isLoading ? 'Generowanie…' : 'Odśwież kod QR'}
                         </RefreshBtn>
                     )}
 

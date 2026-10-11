@@ -104,7 +104,7 @@ describe('AddConsentDocumentModal', () => {
 describe('uploadFileToS3', () => {
     it('rzuca, gdy S3 odrzuci plik (fetch sam nie rzuca przy 4xx/5xx)', async () => {
         vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('denied', { status: 403 }));
-        await expect(uploadFileToS3('https://s3/upload', pdf())).rejects.toThrow(/błąd 403/);
+        await expect(uploadFileToS3('https://s3/upload', pdf())).rejects.toThrow(/Nie udało się wgrać pliku PDF/);
     });
 
     it('przy sukcesie nie rzuca', async () => {

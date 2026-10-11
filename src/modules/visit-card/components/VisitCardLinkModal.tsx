@@ -278,7 +278,7 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
             if (res.smsSent) setLastSmsSentAt(now);
             setIsPickingChannel(false);
         } catch {
-            setSendResult({ success: false, message: 'Nie udało się wysłać Karty Wizyty' });
+            setSendResult({ success: false, message: 'Nie udało się wysłać Karty wizyty' });
         } finally {
             setIsSending(false);
         }
@@ -295,7 +295,7 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
         <ModalShell isOpen={isOpen} onClose={onClose} size="md">
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>Karta Wizyty</ModalTitle>
+                    <ModalTitle>Karta wizyty</ModalTitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
@@ -308,18 +308,18 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
                         </svg>
                         <LockedBannerText>
                             <strong>Wysyłka niedostępna</strong>: {comms.lockReason ?? 'brak modułu automatyzacji'}.
-                            Kliknij, aby rozszerzyć abonament.
+                            Kliknij, aby rozszerzyć pakiet.
                         </LockedBannerText>
                     </LockedBanner>
                 )}
 
-                {loadError && <ErrorText>Nie udało się pobrać linku Karty Wizyty.</ErrorText>}
+                {loadError && <ErrorText>Nie udało się pobrać linku Karty wizyty.</ErrorText>}
 
                 {!loadError && (
                     <LinkRow>
                         <LinkInput
                             readOnly
-                            value={link ?? 'Generowanie linku...'}
+                            value={link ?? 'Generowanie linku…'}
                             onFocus={e => e.currentTarget.select()}
                         />
                         <CopyBtn $copied={copied} onClick={handleCopy} disabled={!link}>
@@ -335,8 +335,8 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
                             <polyline points="22 4 12 14.01 9 11.01" />
                         </svg>
                         <SentBannerText>
-                            <strong>Karta Wizyty została już wysłana</strong> {sentSummary}.
-                            Link jest stały, ponowna wysyłka dostarczy tę samą kartę.
+                            <strong>Karta wizyty została już wysłana</strong> {sentSummary}.
+                            Link się nie zmienia, klient dostanie tę samą kartę.
                         </SentBannerText>
                     </SentBanner>
                 )}
@@ -361,7 +361,7 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
                     disabled={!link || isSending || isPickingChannel || !comms.enabled}
                 >
                     {isSending
-                        ? 'Wysyłanie...'
+                        ? 'Wysyłanie…'
                         : alreadySent ? 'Wyślij kartę ponownie' : 'Wyślij kartę klientowi'}
                 </SharedButton>
             </ModalFooter>
@@ -370,7 +370,7 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
             <ModalShell isOpen={isPickingChannel} onClose={() => setIsPickingChannel(false)} size="sm">
                 <ModalHeader>
                     <ModalTitleGroup>
-                        <ModalTitle>Wyślij Kartę Wizyty</ModalTitle>
+                        <ModalTitle>Wyślij Kartę wizyty</ModalTitle>
                     </ModalTitleGroup>
                     <CloseBtn onClick={() => setIsPickingChannel(false)} />
                 </ModalHeader>

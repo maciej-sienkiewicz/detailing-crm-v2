@@ -10,7 +10,7 @@ import { ProductRatingStars } from '../components/ProductRatingStars';
 import { ProductNotes } from '../components/ProductNotes';
 import { ProductVisitsSection } from '../components/ProductVisitsSection';
 import { ReportProductIssueModal } from '../components/ReportProductIssueModal';
-import { formatPackage, formatPrice } from '../utils/productFormat';
+import { formatAmount, formatPackage, formatPrice } from '../utils/productFormat';
 import { UNIT_LABELS } from '../types';
 
 const View = styled.div` min-height: 100vh; background: ${p => p.theme.colors.background}; `;
@@ -32,7 +32,7 @@ const HeroMain = styled.div` flex: 1; min-width: 0; display: flex; flex-directio
 const HeroTitle = styled.h1` margin: 0; font-size: 22px; font-weight: 700; color: ${st.text}; `;
 const HeroMeta = styled.div` display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 13px; color: ${st.textSecondary}; `;
 // Akcje dotyczące CAŁEGO produktu stoją przy jego nazwie, a nie na końcu kolumny
-// dowodów. „Zgłoś nieprawidłowość" nie odnosi się do ceny ani do wizyt, obok
+// dowodów. „Zgłoś błąd w danych" nie odnosi się do ceny ani do wizyt, obok
 // których leżało - a jako ostatni element lewej kolumny domykało jej czytanie,
 // czyli dostawało pozycję należną wnioskowi.
 const HeroActions = styled.div`
@@ -77,7 +77,9 @@ const Elevated = styled.section`
 `;
 const PriceHead = styled.div` display: flex; flex-direction: column; gap: 2px; `;
 const PriceNumber = styled.div` font-size: 26px; font-weight: 700; color: ${st.text}; `;
-const PriceProof = styled.div` font-size: 12px; color: ${st.textMuted}; `;
+// Netto, stawka i brutto jako trzy osobne elementy: kropka między nimi nie mówiła,
+// jaki jest związek (CLAUDE.md §4).
+const PriceProof = styled.div` display: flex; flex-wrap: wrap; column-gap: 12px; font-size: 12px; color: ${st.textMuted}; `;
 
 const RatingRow = styled.div` display: flex; flex-direction: column; gap: 8px; `;
 /**
@@ -115,7 +117,7 @@ export function ProductDetailView() {
     const rating = useProductRating(id ?? '');
 
     if (isLoading || !product) {
-        return <View><Body><Back onClick={() => navigate('/products')}><ArrowLeft size={16} /> Wróć</Back><p style={{ color: st.textMuted }}>Ładowanie…</p></Body></View>;
+        return <View><Body><Back onClick={() => navigate('/products')}><ArrowLeft size={16} /> Wróć</Back><p style={{ color: st.textMuted }}>Wczytywanie…</p></Body></View>;
     }
 
     return (
@@ -129,7 +131,6 @@ export function ProductDetailView() {
                         <HeroTitle>{product.internalName || product.name}</HeroTitle>
                         <HeroMeta>
                             <span>{product.brand}</span>
-                            <span>·</span>
                             <span>{formatPackage(product.packageSizeValue, product.packageSizeUnit)}</span>
                             {product.rating && (
                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: st.accentAmber }}>
@@ -140,7 +141,7 @@ export function ProductDetailView() {
                     </HeroMain>
                     <HeroActions>
                         <ReportBtn type="button" onClick={() => setReporting(true)}>
-                            <Flag size={14} /> Zgłoś nieprawidłowość
+                            <Flag size={14} /> Zgłoś błąd w danych
                         </ReportBtn>
                     </HeroActions>
                 </Hero>
@@ -154,7 +155,7 @@ export function ProductDetailView() {
                                 <DKey>Opakowanie</DKey><DVal>{formatPackage(product.packageSizeValue, product.packageSizeUnit)}</DVal>
                                 {product.gtin && (<><DKey>Kod (GTIN)</DKey><DVal>{product.gtin}</DVal></>)}
                                 {(product.packageHeightMm || product.packageWidthMm || product.packageDepthMm) && (
-                                    <><DKey>Gabaryty</DKey><DVal>{[product.packageHeightMm, product.packageWidthMm, product.packageDepthMm].filter(Boolean).join(' × ')} mm</DVal></>
+                                    <><DKey>Wymiary</DKey><DVal>{[product.packageHeightMm, product.packageWidthMm, product.packageDepthMm].filter(Boolean).join(' × ')} mm</DVal></>
                                 )}
                                 {product.description && (<><DKey>Opis</DKey><DVal>{product.description}</DVal></>)}
                             </SpecGrid>
@@ -174,9 +175,9 @@ export function ProductDetailView() {
                                 <PriceHead>
                                     <PriceNumber>{formatPrice(product.price)}</PriceNumber>
                                     <PriceProof>
-                                        netto {(product.price.unitPriceNet / 100).toFixed(2)} zł ·
-                                        VAT {product.price.vatRate === -1 ? 'zw.' : `${product.price.vatRate}%`} ·
-                                        brutto {(product.price.unitPriceGross / 100).toFixed(2)} zł
+                                        <span>Netto {formatAmount(product.price.unitPriceNet)} zł</span>
+                                        <span>VAT {product.price.vatRate === -1 ? 'zw.' : `${product.price.vatRate}%`}</span>
+                                        <span>Brutto {formatAmount(product.price.unitPriceGross)} zł</span>
                                     </PriceProof>
                                 </PriceHead>
                             </FlatSection>

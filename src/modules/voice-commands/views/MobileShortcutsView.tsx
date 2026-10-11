@@ -323,9 +323,9 @@ export const MobileShortcutsView = () => {
                                   d="M12 9v3m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
                         </svg>
                     </MobileNoTokenIcon>
-                    <MobileNoTokenTitle>Token mobilny nie jest skonfigurowany</MobileNoTokenTitle>
+                    <MobileNoTokenTitle>Skróty mobilne nie są włączone</MobileNoTokenTitle>
                     <MobileNoTokenMsg>
-                        Skontaktuj się z administratorem lub wejdź w ustawienia konta, żeby wygenerować token dostępu.
+                        Włącz je w ustawieniach konta albo poproś o to właściciela studia.
                     </MobileNoTokenMsg>
                 </MobileNoToken>
             );
@@ -337,7 +337,7 @@ export const MobileShortcutsView = () => {
         <Page>
             <PageTitle>Skróty mobilne</PageTitle>
             <PageSubtitle>
-                Szybki dostęp do dodawania leadów i notatek głosowych z telefonu, bez logowania.
+                Dodawaj leady i notatki głosowe z telefonu, bez logowania.
             </PageSubtitle>
 
             {!mobileToken ? (
@@ -349,10 +349,9 @@ export const MobileShortcutsView = () => {
                         </svg>
                     </NoTokenIcon>
                     <NoTokenText>
-                        <p>Token mobilny nie jest skonfigurowany</p>
+                        <p>Skróty mobilne nie są włączone</p>
                         <p>
-                            Administrator musi wygenerować token dostępu w ustawieniach konta.
-                            Skontaktuj się z obsługą lub sprawdź ustawienia użytkownika w panelu administracyjnym.
+                            Włącz skróty w ustawieniach konta albo poproś o to właściciela studia.
                         </p>
                     </NoTokenText>
                 </NoTokenCard>
@@ -385,7 +384,7 @@ export const MobileShortcutsView = () => {
                                         <polyline points="7 10 12 15 17 10"/>
                                         <line x1="12" y1="15" x2="12" y2="3"/>
                                     </svg>
-                                    Zainstaluj jako PWA
+                                    Dodaj do ekranu telefonu
                                 </InstallBtn>
                             ) : null}
                         </QrPanel>
@@ -422,16 +421,16 @@ export const MobileShortcutsView = () => {
 
                             {platform === 'android' ? (
                                 <InstructionList>
-                                    <li>Zeskanuj QR kod telefonem lub otwórz link ręcznie w <strong>Chrome</strong></li>
+                                    <li>Zeskanuj kod QR telefonem lub otwórz link ręcznie w <strong>Chrome</strong></li>
                                     <li>Dotknij ikony <strong>⋮</strong> (menu) w prawym górnym rogu</li>
-                                    <li>Wybierz <strong>„Dodaj do ekranu głównego"</strong> lub <strong>„Zainstaluj aplikację"</strong></li>
+                                    <li>Wybierz <strong>„Dodaj do ekranu głównego”</strong> lub <strong>„Zainstaluj aplikację”</strong></li>
                                     <li>Potwierdź, ikona pojawi się na ekranie głównym</li>
                                 </InstructionList>
                             ) : (
                                 <InstructionList>
-                                    <li>Zeskanuj QR kod lub otwórz link w <strong>Safari</strong> (inne przeglądarki nie obsługują tej funkcji na iOS)</li>
+                                    <li>Zeskanuj kod QR lub otwórz link w <strong>Safari</strong> (inne przeglądarki nie obsługują tej funkcji na iOS)</li>
                                     <li>Dotknij ikony <strong>Udostępnij</strong> <code>⎋</code> na dole ekranu</li>
-                                    <li>Przewiń w dół i wybierz <strong>„Dodaj do ekranu głównego"</strong></li>
+                                    <li>Przewiń w dół i wybierz <strong>„Dodaj do ekranu głównego”</strong></li>
                                     <li>Nadaj nazwę i zatwierdź, aplikacja pojawi się na pulpicie</li>
                                 </InstructionList>
                             )}
@@ -458,16 +457,16 @@ export const MobileShortcutsView = () => {
                     </QrPanel>
                     <InstructionsPanel>
                         <div>
-                            <InstructionsHeading>Klikasz numer na komputerze - dzwonisz z telefonu</InstructionsHeading>
+                            <InstructionsHeading>Klikasz numer na komputerze, dzwonisz z telefonu</InstructionsHeading>
                             <InstructionsDesc>
-                                Telefon dostaje powiadomienie push z przyciskiem „Zadzwoń", nawet przy zamkniętej przeglądarce
+                                Telefon dostaje powiadomienie z przyciskiem „Zadzwoń”, nawet przy zamkniętej przeglądarce
                             </InstructionsDesc>
                         </div>
                         <InstructionList>
-                            <li>Zeskanuj QR kod telefonem i <strong>zaloguj się</strong> do CRM (jeśli poprosi)</li>
+                            <li>Zeskanuj kod QR telefonem i <strong>zaloguj się</strong> do CRM (jeśli poprosi)</li>
                             <li>Na iPhonie najpierw <strong>dodaj aplikację do ekranu głównego</strong> (Safari wymaga tego dla powiadomień)</li>
-                            <li>Dotknij <strong>„Włącz powiadomienia na tym telefonie"</strong> i zezwól na powiadomienia</li>
-                            <li>Od teraz kliknięcie numeru klienta w CRM na komputerze wyświetli na telefonie powiadomienie - dotknij <strong>„Zadzwoń"</strong>, a numer wskoczy do systemowego dialera</li>
+                            <li>Dotknij <strong>„Włącz powiadomienia na tym telefonie”</strong> i zezwól na powiadomienia</li>
+                            <li>Od teraz, gdy klikniesz numer klienta na komputerze, telefon pokaże powiadomienie. Dotknij <strong>„Zadzwoń”</strong>.</li>
                         </InstructionList>
                     </InstructionsPanel>
                 </SectionLayout>

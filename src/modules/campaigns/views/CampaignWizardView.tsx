@@ -26,6 +26,7 @@ import { AlertTriangle, ArrowLeft, ArrowRight, Coins, Repeat, Send } from 'lucid
 import { WizardSteps } from '../components/WizardSteps';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
 import { InfoTooltip } from '@/common/components/InfoTooltip';
+import { pluralPl } from '@/common/utils/plural';
 import { DateTimePicker } from '@/common/components/DateTimePicker';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import {
@@ -649,7 +650,7 @@ export function CampaignWizardView() {
             )}
             {step !== 'scenario' && estimate && !awaitingTrigger && (
               <>
-                <span><strong>{estimate.eligible}</strong> odbiorców</span>
+                <span>Odbiorcy: <strong>{estimate.eligible}</strong></span>
               </>
             )}
           </HeaderFacts>
@@ -675,7 +676,7 @@ export function CampaignWizardView() {
             <KindCard type="button" onClick={() => pickKind('ONE_TIME')}>
               <Send />
               <h3>Jednorazowa wysyłka</h3>
-              <p>Wyślij raz, teraz lub w wybranym terminie, do wybranej grupy klientów. Idealna do promocji, życzeń i ogłoszeń.</p>
+              <p>Wyślij raz, teraz lub w wybranym terminie, do wybranej grupy klientów. Dobra na promocje, życzenia i ogłoszenia.</p>
             </KindCard>
             <KindCard type="button" onClick={() => pickKind('AUTOMATIC')}>
               <Repeat />
@@ -700,7 +701,7 @@ export function CampaignWizardView() {
                 <FilterRow>
                   <FilterLabel>
                     Po usłudze
-                    <InfoTooltip text="Kampania uruchomi się dla klientów, u których ta usługa była wykonana X dni temu. Przy kilku usługach wystarczy, że klient miał choćby jedną z nich (logika LUB)." />
+                    <InfoTooltip text="Wiadomość dostaną klienci po tej usłudze. Przy kilku usługach wystarczy jedna." />
                   </FilterLabel>
                   <ServiceMultiSelect
                     selectedIds={trigger.serviceIds}
@@ -710,7 +711,7 @@ export function CampaignWizardView() {
                 <FilterRow>
                   <FilterLabel>
                     Wyślij po
-                    <InfoTooltip text="Liczba dni od wykonania usługi. System sprawdza codziennie i wysyła w dniu, w którym wizyta jest stara o dokładnie tyle dni." />
+                    <InfoTooltip text="Wiadomość wyjdzie dokładnie tyle dni po usłudze." />
                   </FilterLabel>
                   <NumberField
                     value={trigger.afterDays}
@@ -736,7 +737,7 @@ export function CampaignWizardView() {
                 <FilterRow>
                   <FilterLabel>
                     Klient wrócił w międzyczasie
-                    <InfoTooltip text="Jeśli klient wrócił do studia między wizytą wyzwalającą a dniem wysyłki (np. na inną usługę), kampania go pominie. Zalecane, bo chroni przed wysyłaniem do klientów, którzy sami wrócili." />
+                    <InfoTooltip text="Jeśli klient był u Ciebie ponownie przed dniem wysyłki, kampania go pominie." />
                   </FilterLabel>
                   <FilterSelect
                     value={trigger.onlyIfNoVisitSince ? 'yes' : 'no'}
@@ -860,8 +861,9 @@ export function CampaignWizardView() {
             <Note $tone="warn">
               <Coins />
               <span>
-                Ta wysyłka zużyje <strong>{estimatedCredits}</strong> kredytów, a na koncie jest
-                ich <strong>{stats?.smsCreditsAvailable}</strong>. Bez doładowania część
+                Ta wysyłka zużyje <strong>{estimatedCredits}</strong>{' '}
+                {pluralPl(estimatedCredits ?? 0, 'kredyt', 'kredyty', 'kredytów')}, a na koncie masz{' '}
+                <strong>{stats?.smsCreditsAvailable}</strong>. Bez doładowania część
                 wiadomości nie wyjdzie.
               </span>
               <span className="spacer" />
@@ -889,12 +891,12 @@ export function CampaignWizardView() {
                   <dd>{audience.excludeCustomerIds.length}</dd>
                 </>
               )}
-              {estimatedCredits != null && (<><dt>Szacowany koszt</dt><dd>{estimatedCredits} kredytów SMS</dd></>)}
+              {estimatedCredits != null && (<><dt>Szacowany koszt</dt><dd>{estimatedCredits} {pluralPl(estimatedCredits, 'kredyt SMS', 'kredyty SMS', 'kredytów SMS')}</dd></>)}
               {kind === 'AUTOMATIC' && (
                 <>
                   <dt>Warunek</dt>
                   <dd>
-                    {trigger.afterDays} dni po: {trigger.serviceIds.map((sid) => serviceNames.get(sid) ?? 'usługa').join(', ') || '-'}
+                    {trigger.afterDays} {pluralPl(trigger.afterDays, 'dzień', 'dni', 'dni')} po: {trigger.serviceIds.map((sid) => serviceNames.get(sid) ?? 'usługa').join(', ') || '-'}
                   </dd>
                 </>
               )}
@@ -981,8 +983,9 @@ export function CampaignWizardView() {
         title="Wyczyścić ręczne odznaczenia?"
         message={
           `Lista odbiorców przeliczyła się po zmianie filtrów, a ${audience.excludeCustomerIds.length} ` +
-          `${audience.excludeCustomerIds.length === 1 ? 'osoba jest' : 'osób jest'} przez Ciebie ` +
-          'odznaczona. Zachowane odznaczenia obowiązują też na nowej liście, również w dniu wysyłki.'
+          `${pluralPl(audience.excludeCustomerIds.length, 'osoba jest', 'osoby są', 'osób jest')} przez Ciebie ` +
+          `${pluralPl(audience.excludeCustomerIds.length, 'odznaczona', 'odznaczone', 'odznaczonych')}. ` +
+          'Zachowane odznaczenia obowiązują też na nowej liście, również w dniu wysyłki.'
         }
         confirmText="Wyczyść odznaczenia"
         cancelText="Zachowaj"

@@ -486,7 +486,7 @@ export const InvoicePreviewModal: React.FC<Props> = ({ expenseId, onClose }) => 
                   <ItemsEmpty>
                     Brak pozycji dla tego dokumentu.
                     {detail.source === 'KSEF' &&
-                      ' Pozycje zostaną uzupełnione przy najbliższej synchronizacji obejmującej datę tej faktury.'}
+                      ' Pozycje pobierzemy z KSeF wkrótce.'}
                   </ItemsEmpty>
                 ) : (
                   <ItemsScroll>
@@ -550,7 +550,7 @@ export const InvoicePreviewModal: React.FC<Props> = ({ expenseId, onClose }) => 
                   <Eyebrow>Status płatności</Eyebrow>
                   <MetaValue>
                     <Badge $tone={detail.payment.status === 'PAID' ? 'green' : 'amber'}>
-                      {detail.payment.status === 'PAID' ? 'Opłacona' : 'Oczekuje na płatność'}
+                      {detail.payment.status === 'PAID' ? 'Opłacona' : 'Nieopłacona'}
                     </Badge>
                   </MetaValue>
                 </div>

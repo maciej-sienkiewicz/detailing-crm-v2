@@ -19,7 +19,7 @@ const mockLogin = async (credentials: LoginCredentials): Promise<AuthResponse> =
                     response: {
                         status: 401,
                         data: {
-                            message: 'Nieprawidłowy email lub hasło',
+                            message: 'Nieprawidłowy e-mail lub hasło',
                         },
                     },
                 });

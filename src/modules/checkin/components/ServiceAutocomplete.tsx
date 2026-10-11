@@ -338,13 +338,13 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
                                 </div>
                                 {service.isPackage && service.packageItems && service.packageItems.length > 0 && (
                                     <PackageItemsHint>
-                                        {service.packageItems.map(i => i.serviceName).join(' · ')}
+                                        {service.packageItems.map(i => i.serviceName).join(', ')}
                                     </PackageItemsHint>
                                 )}
                             </div>
                             {service.requireManualPrice ? (
                                 <PriceInfo>
-                                    <div style={{ fontWeight: 600, color: '#f59e0b' }}>NIESTANDARDOWA</div>
+                                    <div style={{ fontWeight: 600, color: '#f59e0b' }}>Cena do ustalenia</div>
                                 </PriceInfo>
                             ) : (
                                 <PriceInfo>
@@ -374,7 +374,7 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
                         <line x1="12" y1="8" x2="12" y2="16"/>
                         <line x1="8" y1="12" x2="16" y2="12"/>
                     </svg>
-                    <span>Wprowadź nową usługę</span>
+                    <span>Dodaj nową usługę</span>
                 </AddNewButton>
             )}
         </>
@@ -385,7 +385,7 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
         return (
             <>
                 <MobileAddServiceButton type="button" onClick={openSheet}>
-                    <span>Wpisz nazwę usługi, aby dodać...</span>
+                    <span>Wpisz nazwę usługi, aby dodać…</span>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                         <line x1="12" y1="5" x2="12" y2="19" />
                         <line x1="5" y1="12" x2="19" y2="12" />
@@ -420,7 +420,7 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
                                     suppressContentEditableWarning
                                     role="searchbox"
                                     aria-label="Szukaj usługi"
-                                    data-placeholder="Szukaj usługi..."
+                                    data-placeholder="Szukaj usługi…"
                                     inputMode="search"
                                     enterKeyHint="search"
                                     autoCorrect="off"
@@ -462,7 +462,7 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
                             </MobileSheetSearchWrap>
                             <MobileSheetScrollable>
                                 {isLoading ? (
-                                    <EmptyState>Wyszukiwanie...</EmptyState>
+                                    <EmptyState>Wyszukiwanie…</EmptyState>
                                 ) : renderSuggestions()}
                             </MobileSheetScrollable>
                         </MobileBottomSheet>
@@ -479,7 +479,7 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
             <StyledInput
                 ref={inputRef}
                 type="text"
-                placeholder="Wpisz nazwę usługi, aby dodać..."
+                placeholder="Wpisz nazwę usługi, aby dodać…"
                 value={searchQuery}
                 onChange={(e) => handleInputChange(e.target.value)}
                 onFocus={() => setIsOpen(true)}
@@ -493,7 +493,7 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
                     style={{ ...dropdownStyle, visibility: dropdownStyle.width ? 'visible' : 'hidden' }}
                 >
                     {isLoading ? (
-                        <EmptyState>Wyszukiwanie...</EmptyState>
+                        <EmptyState>Wyszukiwanie…</EmptyState>
                     ) : renderSuggestions()}
                 </DropdownContainer>,
                 document.body

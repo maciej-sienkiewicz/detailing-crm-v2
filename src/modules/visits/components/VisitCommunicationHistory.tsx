@@ -101,7 +101,7 @@ interface VisitCommunicationHistoryProps {
 export const VisitCommunicationHistory = ({ entries, isLoading }: VisitCommunicationHistoryProps) => {
     const [selected, setSelected] = useState<CommunicationEntry | null>(null);
 
-    if (isLoading) return <Empty>Wczytywanie komunikacji...</Empty>;
+    if (isLoading) return <Empty>Wczytywanie komunikacji…</Empty>;
     if (entries.length === 0) return <Empty>Do klienta nie wyszła jeszcze żadna wiadomość w tej wizycie.</Empty>;
 
     return (

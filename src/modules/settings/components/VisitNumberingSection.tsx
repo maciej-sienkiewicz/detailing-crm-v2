@@ -62,18 +62,18 @@ const sampleNumber = (format: string, sequenceLength: number, randomLength: numb
 // Plain-language explanation of how the chosen format behaves.
 const behaviorOf = (format: string): string => {
     if (usesRandom(format)) return 'Cyfry są losowane przy każdej wizycie: numer nie zdradza liczby wizyt.';
-    if (format.includes('{DD}')) return 'Licznik rośnie o 1 i resetuje się każdego dnia.';
-    if (format.includes('{MM}')) return 'Licznik rośnie o 1 i resetuje się co miesiąc.';
-    if (format.includes('{YYYY}') || format.includes('{YY}')) return 'Licznik rośnie o 1 i resetuje się co rok.';
-    return 'Licznik rośnie o 1 bez resetowania.';
+    if (format.includes('{DD}')) return 'Licznik rośnie o 1 i co dzień zaczyna od nowa.';
+    if (format.includes('{MM}')) return 'Licznik rośnie o 1 i co miesiąc zaczyna od nowa.';
+    if (format.includes('{YYYY}') || format.includes('{YY}')) return 'Licznik rośnie o 1 i co rok zaczyna od nowa.';
+    return 'Licznik rośnie o 1 i nie zaczyna od nowa.';
 };
 
 // ─── Styles the user picks from ──────────────────────────────────────────────
 
 const STYLES = [
-    { id: 'yearly', name: 'Roczna', format: 'VIS-{YYYY}-{SEQ}', desc: 'reset licznika co rok' },
-    { id: 'monthly', name: 'Miesięczna', format: 'VIS/{YYYY}/{MM}/{SEQ}', desc: 'reset licznika co miesiąc' },
-    { id: 'continuous', name: 'Ciągła', format: 'W/{SEQ}/{YY}', desc: 'licznik bez resetu' },
+    { id: 'yearly', name: 'Roczna', format: 'VIS-{YYYY}-{SEQ}', desc: 'licznik od nowa co rok' },
+    { id: 'monthly', name: 'Miesięczna', format: 'VIS/{YYYY}/{MM}/{SEQ}', desc: 'licznik od nowa co miesiąc' },
+    { id: 'continuous', name: 'Ciągła', format: 'W/{SEQ}/{YY}', desc: 'licznik bez przerwy' },
     { id: 'random', name: 'Losowa', format: 'VIS-{YYYY}-{RAND}', desc: 'nie zdradza liczby wizyt' },
 ] as const;
 
@@ -497,7 +497,7 @@ export const VisitNumberingSection = () => {
     }
 
     if (isLoading || !saved) {
-        return <Panel><Loading role="status">Wczytywanie numeracji wizyt...</Loading></Panel>;
+        return <Panel><Loading role="status">Wczytywanie numeracji wizyt…</Loading></Panel>;
     }
 
     return (
@@ -544,7 +544,7 @@ export const VisitNumberingSection = () => {
                             Własny format
                             <CardCheck $selected={isCustom} aria-hidden="true" />
                         </CardName>
-                        <CardExample>{isCustom && preview ? preview : '...'}</CardExample>
+                        <CardExample>{isCustom && preview ? preview : '…'}</CardExample>
                         <CardDesc>zbuduj z dostępnych znaczników</CardDesc>
                     </StyleCard>
                 </CardGrid>

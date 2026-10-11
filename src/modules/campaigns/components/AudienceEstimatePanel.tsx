@@ -14,6 +14,7 @@
 // nieczytelna, a jako tabela na pełnej szerokości może mieć pola wyboru.
 import styled from 'styled-components';
 import { InfoTooltip } from '@/common/components/InfoTooltip';
+import { pluralPl } from '@/common/utils/plural';
 import type { AudienceEstimate } from '../types';
 
 const Panel = styled.div`
@@ -113,8 +114,8 @@ export function AudienceEstimatePanel({ estimate, isEstimating, showCost, awaiti
     <Panel>
       <BigNumber $dim={isEstimating}>{awaitingTrigger ? '-' : e ? e.eligible : '-'}</BigNumber>
       <BigLabel>
-        {e?.projectionHorizonDays ? 'Odezwiemy się do tylu klientów' : 'Odbiorców dostanie wiadomość'}
-        <InfoTooltip text="Finalna liczba klientów po odjęciu wszystkich wykluczeń systemowych (brak zgody, brak kontaktu, STOP, limit częstości) oraz odznaczonych ręcznie." />
+        {e?.projectionHorizonDays ? 'Odezwiemy się do tylu klientów' : 'Tylu klientów dostanie wiadomość'}
+        <InfoTooltip text="Wszyscy pasujący klienci minus osoby bez zgody, bez kontaktu, wypisane, niedawno kontaktowane i odznaczone przez Ciebie." />
       </BigLabel>
 
       {awaitingTrigger ? (
@@ -125,7 +126,7 @@ export function AudienceEstimatePanel({ estimate, isEstimating, showCost, awaiti
       ) : (
         e?.projectionHorizonDays != null && (
           <HorizonNote>
-            Prognoza na najbliższe <strong>{e.projectionHorizonDays} dni</strong>: tylu klientów
+            Prognoza na najbliższe <strong>{e.projectionHorizonDays} {pluralPl(e.projectionHorizonDays, 'dzień', 'dni', 'dni')}</strong>: tylu klientów
             przejdzie w tym czasie przez warunek. Kampania działa dalej - to nie jest limit.
           </HorizonNote>
         )
@@ -136,7 +137,7 @@ export function AudienceEstimatePanel({ estimate, isEstimating, showCost, awaiti
           <li>
             <BreakdownLabel>
               Pasuje do filtrów
-              <InfoTooltip text="Łączna liczba klientów spełniających ustawione kryteria odbiorców, przed zastosowaniem wykluczeń systemowych." />
+              <InfoTooltip text="Wszyscy klienci pasujący do filtrów, zanim odejmiemy osoby niżej." />
             </BreakdownLabel>
             <strong>{e.matched}</strong>
           </li>
@@ -144,7 +145,7 @@ export function AudienceEstimatePanel({ estimate, isEstimating, showCost, awaiti
             <li>
               <BreakdownLabel>
                 Brak zgody marketingowej
-                <InfoTooltip text="Klient nie wyraził zgody na komunikację marketingową tym kanałem (SMS lub e-mail). Zgody konfiguruje się w Ustawieniach → Zgody." />
+                <InfoTooltip text="Klient nie wyraził zgody na komunikację marketingową tym kanałem (SMS lub e-mail). Zgody ustawisz w Ustawieniach → Zgody." />
               </BreakdownLabel>
               <strong>−{e.noConsent}</strong>
             </li>
@@ -153,7 +154,7 @@ export function AudienceEstimatePanel({ estimate, isEstimating, showCost, awaiti
             <li>
               <BreakdownLabel>
                 Brak numeru / adresu
-                <InfoTooltip text="Dla wysyłki SMS: brak numeru telefonu w profilu klienta. Dla e-mail: brak adresu e-mail." />
+                <InfoTooltip text="Dla wysyłki SMS: brak numeru telefonu w karcie klienta. Dla e-maila: brak adresu e-mail." />
               </BreakdownLabel>
               <strong>−{e.noAddress}</strong>
             </li>
@@ -171,7 +172,7 @@ export function AudienceEstimatePanel({ estimate, isEstimating, showCost, awaiti
             <li>
               <BreakdownLabel>
                 Niedawno kontaktowani
-                <InfoTooltip text="Klient otrzymał wiadomość kampanijną w ciągu ustawionego limitu dni. Chroni przed zbyt częstym spamowaniem. Minimalny odstęp między kampaniami ustawiasz w Ustawieniach → Wysyłka." />
+                <InfoTooltip text="Dostał już kampanię w ostatnich dniach. Odstęp ustawisz w Kampanie → Ustawienia wysyłki." />
               </BreakdownLabel>
               <strong>−{e.frequencyCapped}</strong>
             </li>
@@ -191,7 +192,7 @@ export function AudienceEstimatePanel({ estimate, isEstimating, showCost, awaiti
       {showCost && !awaitingTrigger && e?.estimatedCredits != null && (
         <CostRow>
           <span>Szacowany koszt</span>
-          <span>{e.estimatedCredits} kredytów SMS</span>
+          <span>{e.estimatedCredits} {pluralPl(e.estimatedCredits, 'kredyt SMS', 'kredyty SMS', 'kredytów SMS')}</span>
         </CostRow>
       )}
     </Panel>

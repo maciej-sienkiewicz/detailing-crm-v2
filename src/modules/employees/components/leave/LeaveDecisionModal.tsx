@@ -52,7 +52,7 @@ const SIGNATURE_METHOD: Record<LeaveSignatureMethod, string> = {
     IN_PERSON: 'osobiście na urządzeniu studia',
 };
 
-const NO_PERMISSION = 'Nie masz już uprawnienia do akceptacji wniosków.';
+const NO_PERMISSION = 'Nie możesz już zatwierdzać wniosków.';
 const NOTE_REQUIRED = 'Przy odmowie podaj uzasadnienie - trafi na dokument.';
 
 interface Props {
@@ -153,7 +153,7 @@ export function LeaveDecisionModal({ requestId, onClose }: Props) {
                 <FooterPrimary>
                     <PrimaryAction
                         icon={isReject ? <X /> : <Check />}
-                        title={signing.isPending ? 'Zapisuję…' : isReject ? 'Podpisz odmowę' : 'Podpisz zatwierdzenie'}
+                        title={signing.isPending ? 'Zapisywanie…' : isReject ? 'Podpisz odmowę' : 'Podpisz zatwierdzenie'}
                         sub={isReject ? 'pracownik dostanie uzasadnienie' : 'urlop trafi do kalendarza'}
                         disabled={!signing.ready}
                         onClick={() => signing.confirm(decision, note, message => { setNoteError(message); setStep(DECISION); })}
@@ -165,7 +165,7 @@ export function LeaveDecisionModal({ requestId, onClose }: Props) {
         footer = (
             <>
                 <Button variant="outline" onClick={() => { void handleDownload(); }} disabled={downloading}>
-                    <Download aria-hidden="true" />{downloading ? 'Pobieram…' : 'Pobierz PDF'}
+                    <Download aria-hidden="true" />{downloading ? 'Pobieranie…' : 'Pobierz PDF'}
                 </Button>
                 {request.canCancel && (
                     <FooterPrimary>
@@ -208,7 +208,7 @@ export function LeaveDecisionModal({ requestId, onClose }: Props) {
                 />
             )}
         >
-            {detail.isLoading && <Muted>Wczytuję wniosek…</Muted>}
+            {detail.isLoading && <Muted>Wczytywanie wniosku…</Muted>}
             {detail.isError && (
                 <Notice tone="danger" role="alert" title={notFound ? 'Nie ma takiego wniosku' : 'Nie udało się wczytać wniosku'}>
                     {notFound
@@ -312,7 +312,7 @@ function LeaveFacts({ request }: { request: LeaveRequestDetail }) {
                             : 'brak podpisu'}
                     </FieldRow>
                     {request.origin === 'ON_BEHALF' && request.createdByName && (
-                        <FieldRow label="Wprowadził(a)">{request.createdByName}</FieldRow>
+                        <FieldRow label="Wpisane przez">{request.createdByName}</FieldRow>
                     )}
                     <FieldRow label="Dokument">
                         <Button variant="ghost" size="sm" onClick={() => setPreviewOpen(o => !o)} aria-expanded={previewOpen}>

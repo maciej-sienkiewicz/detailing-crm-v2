@@ -126,7 +126,7 @@ export const ContextHeader = ({
     <HeaderContainer>
       <TitleGroup>
         <Title>Raporty</Title>
-        <Subtitle>Trendy wyszukiwań · {locationName}</Subtitle>
+        <Subtitle>Trendy wyszukiwań: {locationName}</Subtitle>
       </TitleGroup>
 
       <Controls>

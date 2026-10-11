@@ -307,7 +307,7 @@ export const ProtocolChecklist = ({ visitId, stage }: ProtocolChecklistProps) =>
     if (isLoading) {
         return (
             <Container>
-                <EmptyState>Ładowanie protokołów...</EmptyState>
+                <EmptyState>Wczytywanie protokołów…</EmptyState>
             </Container>
         );
     }
@@ -382,7 +382,7 @@ export const ProtocolChecklist = ({ visitId, stage }: ProtocolChecklistProps) =>
                                                 disabled={signingProtocol === protocol.id}
                                             >
                                                 <PenIcon />
-                                                {signingProtocol === protocol.id ? 'Podpisywanie...' : 'Podpisz teraz'}
+                                                {signingProtocol === protocol.id ? 'Podpisywanie…' : 'Podpisz teraz'}
                                             </ActionButton>
                                         </div>
                                     )}

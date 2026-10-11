@@ -116,7 +116,7 @@ export function TeamList({ onGoToRoles }: TeamListProps = {}) {
                     } else {
                         showSuccess(
                             'Pracownik dodany',
-                            'Konto powstało bez roli, przypisz ją, żeby pracownik zobaczył jakikolwiek moduł.',
+                            'Konto nie ma roli. Przypisz ją, żeby pracownik cokolwiek zobaczył.',
                         );
                     }
                     setIsAddOpen(false);
@@ -127,7 +127,7 @@ export function TeamList({ onGoToRoles }: TeamListProps = {}) {
     };
 
     /**
-     * Zapis z okna edycji: dane osobowe, a u osoby bez konta - zaproszenie do systemu.
+     * Zapis z okna edycji: dane osobowe, a u osoby bez konta - zaproszenie do aplikacji.
      * To trzy kroki (dane, konto, rola), bo backend zakłada konto osobnym wywołaniem;
      * każdy krok zgłasza własny błąd, żeby było wiadomo, na którym stanęło.
      */
@@ -211,7 +211,7 @@ export function TeamList({ onGoToRoles }: TeamListProps = {}) {
                         <Button variant="outline" size="sm" onClick={onGoToRoles}>Przejdź do ról</Button>
                     )}
                 >
-                    {'Mogą się zalogować, ale nie zobaczą żadnego modułu: '}
+                    {'Zalogują się, ale nic nie zobaczą: '}
                     {lockedOut.slice(0, 3).map(e => e.fullName).join(', ')}
                     {lockedOut.length > 3 ? ` i ${lockedOut.length - 3} więcej.` : '.'}
                 </Notice>
@@ -248,7 +248,7 @@ export function TeamList({ onGoToRoles }: TeamListProps = {}) {
                     ) : items.length === 0 ? (
                         <Empty>
                             <strong>Nie ma jeszcze pracowników</strong>
-                            <span>Dodaj pierwszą osobę przyciskiem „Dodaj pracownika" u góry.</span>
+                            <span>Dodaj pierwszą osobę przyciskiem „Dodaj pracownika” u góry.</span>
                         </Empty>
                     ) : (
                         <ul>
@@ -303,7 +303,7 @@ export function TeamList({ onGoToRoles }: TeamListProps = {}) {
                         )}
                         {!menuEmployee.hasAccount && (
                             <MenuItem icon={<UserPlus />} onClick={() => openEdit(menuEmployee, true)}>
-                                Zaproś do systemu
+                                Zaproś do aplikacji
                             </MenuItem>
                         )}
                     </>
@@ -352,7 +352,7 @@ interface EmployeeRowProps {
  * zostać przekierowani na kartę pracownika") - edycja danych i zaproszenie są w menu ⋮.
  * Wiersz nie jest `div`-em z onClick: nazwisko jest linkiem, a jego `::after` rozciąga
  * się na wiersz. Dzięki temu wiersz osiąga się Tabem i Enterem, da się go otworzyć
- * w nowej karcie, a przyciski w środku (⋮, „Zaproś do systemu") leżą nad linkiem jako
+ * w nowej karcie, a przyciski w środku (⋮, „Zaproś do aplikacji”) leżą nad linkiem jako
  * osobne cele - kliknięcie w nie nie przechodzi na kartę.
  */
 function EmployeeRow({ employee: emp, tracksWorkTime, menuOpen, onInvite, onMenu }: EmployeeRowProps) {
@@ -384,12 +384,12 @@ function EmployeeRow({ employee: emp, tracksWorkTime, menuOpen, onInvite, onMenu
                 {/* Konto z niewykorzystanym zaproszeniem to jeszcze nie „Aktywne": pracownik
                     nie ustawił hasła ani nie wszedł do aplikacji. */}
                 {emp.accountPending
-                    ? <StatusPill $tone="warn">Nie aktywował konta</StatusPill>
+                    ? <StatusPill $tone="warn">Konto nieaktywowane</StatusPill>
                     : emp.hasAccount
                         ? <StatusPill $tone="ok">Aktywne</StatusPill>
                         // Odcień, nie wypełnienie: przy kilku osobach bez konta byłoby kilka
                         // wypełnionych przycisków przeciw jednemu „Dodaj pracownika" (CLAUDE.md §2).
-                        : <RaisedButton variant="tinted" size="sm" onClick={onInvite}>Zaproś do systemu</RaisedButton>}
+                        : <RaisedButton variant="tinted" size="sm" onClick={onInvite}>Zaproś do aplikacji</RaisedButton>}
                 {/* Pod stanem konta, a nie w osobnej kolumnie: w wąskiej liście też się mieści. */}
                 {emp.hasAccount && !emp.accountPending && emp.lastSeenAt && (
                     <MutedText>Ostatnio {lastSeenShort(emp.lastSeenAt)}</MutedText>

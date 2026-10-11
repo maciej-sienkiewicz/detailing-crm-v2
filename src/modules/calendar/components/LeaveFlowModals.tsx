@@ -117,8 +117,7 @@ export const LeaveSetupModal: React.FC<SetupProps> = ({ onConfirm, onClose }) =>
 
             <ModalContent>
                 <Intro>
-                    Po wybraniu pracownika wrócisz do kalendarza i zaznaczysz dni urlopu tak samo
-                    jak przy wydarzeniu: kliknięciem albo przeciągnięciem po kilku dniach.
+                    Potem zaznaczysz dni w kalendarzu: kliknij dzień albo przeciągnij po kilku.
                 </Intro>
 
                 <Field>
@@ -129,7 +128,7 @@ export const LeaveSetupModal: React.FC<SetupProps> = ({ onConfirm, onClose }) =>
                         onChange={event => setEmployeeId(event.target.value)}
                         disabled={isLoading}
                     >
-                        <option value="">{isLoading ? 'Wczytuję…' : 'Wybierz pracownika'}</option>
+                        <option value="">{isLoading ? 'Wczytywanie…' : 'Wybierz pracownika'}</option>
                         {employees.map(candidate => (
                             <option key={candidate.id} value={candidate.id}>{candidate.fullName}</option>
                         ))}
@@ -203,7 +202,7 @@ export const LeaveConfirmModal: React.FC<ConfirmProps> = ({
             },
             {
                 onSuccess: onSaved,
-                onError: () => onError('Nie udało się zapisać urlopu. Spróbuj ponownie za chwilę.'),
+                onError: () => onError('Sprawdź, czy dni nie zachodzą na wpisany już urlop.'),
             }
         );
     };
@@ -273,7 +272,7 @@ export const LeaveConfirmModal: React.FC<ConfirmProps> = ({
                     Anuluj
                 </SharedButton>
                 <SharedButton type="button" onClick={save} disabled={addLeave.isPending}>
-                    {addLeave.isPending ? 'Zapisuję…' : 'Zapisz urlop'}
+                    {addLeave.isPending ? 'Zapisywanie…' : 'Zapisz urlop'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

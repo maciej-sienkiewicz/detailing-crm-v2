@@ -76,7 +76,7 @@ export function CancelLeaveModal({ request, onClose, onCancelled }: Props) {
             <ModalFooter>
                 <Button variant="ghost" onClick={onClose} disabled={cancel.isPending}>Zostaw urlop</Button>
                 <Button variant="primary" onClick={submit} disabled={cancel.isPending || !reason.trim()}>
-                    {cancel.isPending ? 'Odwołuję…' : 'Odwołaj urlop'}
+                    {cancel.isPending ? 'Odwoływanie…' : 'Odwołaj urlop'}
                 </Button>
             </ModalFooter>
         </ModalShell>

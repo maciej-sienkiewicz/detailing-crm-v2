@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// „Wprowadź nową usługę": zmiana stawki VAT zachowuje stronę ceny, którą wpisał
+// „Nowa usługa”: zmiana stawki VAT zachowuje stronę ceny, którą wpisał
 // człowiek (CLAUDE.md §1). Wcześniej efekt na zmianie stawki liczył brutto zawsze
 // od netta, więc wpisane 1900,00 zł brutto (23% VAT: 154472 gr netto, a
 // 154472 × 1,23 = 190001 gr) po 23% → 8% → 23% wracało jako 1900,01 zł.
@@ -34,7 +34,7 @@ const renderModal = () => {
         </ThemeProvider>
     );
     // Pola netto i brutto dzielą placeholder; kolejność jest stała: [netto, brutto].
-    const [netField, grossField] = screen.getAllByPlaceholderText('0.00');
+    const [netField, grossField] = screen.getAllByPlaceholderText('0,00');
     return {
         onServiceCreate,
         netField,

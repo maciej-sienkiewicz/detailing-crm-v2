@@ -200,7 +200,7 @@ const HistoryLine = styled.div`
 const ACTION_LABELS: Record<ContactNoteAction, string> = {
     CREATED: 'dodał(a) notatkę',
     UPDATED: 'zmienił(a) notatkę',
-    DELETED: 'usunął(-nęła) notatkę',
+    DELETED: 'usunął(a) notatkę',
 };
 
 interface ContactNotesPopoverProps {
@@ -306,7 +306,7 @@ export function ContactNotesPopover({ email, anchor, onClose }: ContactNotesPopo
                     <>
                         {historyLoading && <Muted>Wczytywanie historii…</Muted>}
                         {!historyLoading && (history ?? []).length === 0 && (
-                            <Muted>Brak zmian do pokazania</Muted>
+                            <Muted>Notatek jeszcze nie zmieniano</Muted>
                         )}
                         {(history ?? []).map((entry) => (
                             <HistoryLine key={entry.id}>

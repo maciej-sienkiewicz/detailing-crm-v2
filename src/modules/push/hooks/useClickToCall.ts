@@ -26,11 +26,11 @@ export const useClickToCall = () => {
             // 422 = valid click, no paired phone - an onboarding nudge, not an error.
             if (isAxiosError(error) && error.response?.status === 422) {
                 showInfo(
-                    'Brak sparowanego telefonu. Otwórz „Skróty mobilne" i włącz powiadomienia o połączeniach na swoim telefonie.',
+                    'Nie masz sparowanego telefonu. Włącz powiadomienia na telefonie: Ustawienia → Tablety, telefon, kontakty.',
                 );
                 return;
             }
-            showError('Nie udało się zlecić połączenia.');
+            showError('Nie udało się wysłać numeru na telefon.');
         },
     });
 

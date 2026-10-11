@@ -115,7 +115,7 @@ describe('ReportsView', () => {
         expect(within(top).getAllByText('do dziś')).toHaveLength(2);
 
         expect(within(rows[2]).getByRole('button', { name: 'Pobierz raport PDF za 21 wrz – 27 wrz' })).toBeTruthy();
-        expect(screen.getByText('Od 3 wrz, dnia założenia konta')).toBeTruthy();
+        expect(screen.getByText('Od 3 wrz')).toBeTruthy();
     });
 
     it('kwoty co do grosza i porównanie z napisem z backendu, bez kropek', async () => {
@@ -133,7 +133,7 @@ describe('ReportsView', () => {
         renderView('/statistics/reports?okres=miesiac&porownanie=mediana');
 
         await waitFor(() => expect(api.getArchive).toHaveBeenCalledWith('MONTH', 'MEDIAN'));
-        expect(await screen.findAllByText(/^mediana /)).not.toHaveLength(0);
+        expect(await screen.findAllByText(/^typowo /)).not.toHaveLength(0);
 
         fireEvent.click(screen.getByRole('button', { name: '2 tygodnie' }));
         fireEvent.click(screen.getByRole('button', { name: 'Poprzedni okres' }));

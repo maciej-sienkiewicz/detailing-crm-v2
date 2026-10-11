@@ -981,7 +981,7 @@ export const OperationalDataTable = ({
                                 </svg>
                             </EmptyIcon>
                             <EmptyTitle>Brak wyników</EmptyTitle>
-                            <EmptyDesc>Nie znaleziono wizyt ani rezerwacji spełniających kryteria wyszukiwania.</EmptyDesc>
+                            <EmptyDesc>Nic nie pasuje. Zmień wyszukiwanie lub filtry.</EmptyDesc>
                         </EmptyWrap>
                     ) : (
                         operations.map(op => {
@@ -1026,7 +1026,7 @@ export const OperationalDataTable = ({
                                                     />
                                                     <TitleSaveBtn
                                                         onClick={e => saveTitle(op, e)}
-                                                        title="Zapisz tytuł"
+                                                        title="Zapisz nazwę"
                                                         disabled={isUpdatingTitle}
                                                     >
                                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -1072,21 +1072,21 @@ export const OperationalDataTable = ({
                                                     </RecurrencePill>
                                                 )}
                                                 {!isDeleted && op.type === 'RESERVATION' && op.doorToDoor?.hasPickup && (
-                                                    <DoorToDoorPill title="Door to Door: odbiór pojazdu od klienta">
+                                                    <DoorToDoorPill title="Door to door: odbiór auta od klienta">
                                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                             <circle cx="12" cy="10" r="3" />
                                                             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
                                                         </svg>
-                                                        Z odbiorem pojazdu
+                                                        Odbiór
                                                     </DoorToDoorPill>
                                                 )}
                                                 {!isDeleted && op.type === 'VISIT' && op.doorToDoor?.hasDelivery && (
-                                                    <DoorToDoorPill title="Door to Door: dostarczenie pojazdu do klienta">
+                                                    <DoorToDoorPill title="Door to door: odwiezienie auta do klienta">
                                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                             <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                                                             <polyline points="9 22 9 12 15 12 15 22" />
                                                         </svg>
-                                                        Z dostawą pod drzwi
+                                                        Odwiezienie
                                                     </DoorToDoorPill>
                                                 )}
                                             </RowMeta>
@@ -1238,6 +1238,7 @@ export const OperationalDataTable = ({
                 onClose={() => setDeleteModal({ isOpen: false, op: null })}
                 onConfirm={confirmDelete}
                 isDeleting={isDeleting}
+                kind={deleteModal.op?.type}
                 operationName={
                     deleteModal.op
                         ? `${deleteModal.op.customerFirstName} ${deleteModal.op.customerLastName}`

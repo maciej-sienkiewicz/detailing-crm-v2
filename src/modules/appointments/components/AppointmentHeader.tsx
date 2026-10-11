@@ -35,7 +35,7 @@ export const AppointmentHeader = () => {
     return (
         <Header>
             <Title>{t.appointments.createView.title}</Title>
-            <Subtitle>{t.appointments.createView.subtitle}</Subtitle>
+            {t.appointments.createView.subtitle && <Subtitle>{t.appointments.createView.subtitle}</Subtitle>}
         </Header>
     );
 };

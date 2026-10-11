@@ -145,7 +145,7 @@ function EditModal({ initial, onSave, onClose, isSaving }: {
                 <Button onClick={onClose}>Anuluj</Button>
                 {/* Otwarty edytor przejmuje okno - jego „Zapisz" wolno wypełnić (CLAUDE.md §2). */}
                 <Button variant="primary" onClick={() => onSave(value.trim() || null)} disabled={isSaving}>
-                    {isSaving ? 'Zapisywanie...' : 'Zapisz notatkę'}
+                    {isSaving ? 'Zapisywanie…' : 'Zapisz notatkę'}
                 </Button>
             </ModalFooter>
         </ModalShell>
@@ -165,7 +165,7 @@ function HistoryModal({ entries, isLoading, onClose }: {
             </ModalHeader>
             <ModalContent>
                 {isLoading ? (
-                    <Empty>Wczytywanie historii...</Empty>
+                    <Empty>Wczytywanie historii…</Empty>
                 ) : entries.length === 0 ? (
                     <Empty>Notatka nie była jeszcze zmieniana.</Empty>
                 ) : (

@@ -1,6 +1,6 @@
 // src/modules/subscription/components/AddOnCard.tsx
 //
-// Moduł do dokupienia. Aktywne moduły stoją w karcie „Twój plan" razem z przyciskiem
+// Moduł do dokupienia. Włączone moduły stoją w karcie „Twój pakiet" razem z przyciskiem
 // wyłączenia - wcześniej ten sam moduł miał „Dezaktywuj" dwa razy na jednym ekranie
 // (w liście aktywnych i tu), więc tu wyłączenie jest tylko wtedy, gdy wywołujący
 // o nie poprosi (`onDeactivate`).
@@ -25,7 +25,7 @@ export function AddOnCard({ addOn, isActive, disabled, onActivate, onDeactivate 
         <Panel $unavailable={!addOn.isAvailable && !isActive}>
             <Head>
                 <Name>{addOn.name}</Name>
-                {isActive && <StatusPill $tone="ok">Aktywny</StatusPill>}
+                {isActive && <StatusPill $tone="ok">Włączony</StatusPill>}
                 {!addOn.isAvailable && !isActive && <StatusPill>Wkrótce</StatusPill>}
             </Head>
 
@@ -40,12 +40,12 @@ export function AddOnCard({ addOn, isActive, disabled, onActivate, onDeactivate 
                 {isActive ? (
                     onDeactivate && (
                         <Button variant="danger" size="sm" disabled={disabled} onClick={() => onDeactivate(addOn.key)}>
-                            Dezaktywuj
+                            Wyłącz
                         </Button>
                     )
                 ) : addOn.isAvailable && (
                     <Button variant="tinted" size="sm" disabled={disabled} onClick={() => onActivate(addOn.key)}>
-                        Aktywuj
+                        Włącz
                     </Button>
                 )}
             </Footer>

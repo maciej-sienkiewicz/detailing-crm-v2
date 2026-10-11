@@ -268,7 +268,7 @@ const ClearAllBtn = styled.button`
 
 const FILTERS: { value: FilterStatus; label: string }[] = [
     { value: 'RESERVATIONS',     label: 'Rezerwacje'   },
-    { value: 'IN_PROGRESS',      label: 'W realizacji' },
+    { value: 'IN_PROGRESS',      label: 'W trakcie'    },
     { value: 'READY_FOR_PICKUP', label: 'Do odbioru'   },
     { value: 'COMPLETED',        label: 'Zakończone'   },
     { value: 'REJECTED',         label: 'Odrzucone'    },
@@ -373,7 +373,7 @@ export const OperationFilterBar = ({
                     </SearchIconEl>
                     <SearchInput
                         type="text"
-                        placeholder="Szukaj klienta, pojazdu lub rejestracji..."
+                        placeholder="Szukaj klienta, pojazdu lub rejestracji…"
                         value={search}
                         onChange={e => onSearchChange(e.target.value)}
                     />

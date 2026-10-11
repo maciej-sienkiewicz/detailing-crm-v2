@@ -169,7 +169,7 @@ export function VehicleFieldSettings() {
                             <h3>Pola pojazdu na formularzu</h3>
                             <p>
                                 {canChange
-                                    ? 'Wybierz, co wypełniacie przy przyjęciu. Ukrycie pola nie usuwa zapisanych danych.'
+                                    ? 'Wybierz, co wypełniasz przy przyjęciu. Ukryte pole nie kasuje zapisanych danych.'
                                     : 'Pola wybiera właściciel studia - dotyczą wszystkich stanowisk.'}
                             </p>
                         </PanelHead>

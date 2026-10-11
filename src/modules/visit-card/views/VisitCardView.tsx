@@ -48,8 +48,8 @@ const formatDateTime = (iso: string): string =>
 const STATUS_LABEL: Record<VisitCardStatus, string> = {
     RESERVATION:      'Rezerwacja potwierdzona',
     DRAFT:            'Przyjęcie w toku',
-    IN_PROGRESS:      'W realizacji',
-    READY_FOR_PICKUP: 'Gotowy do odbioru',
+    IN_PROGRESS:      'W trakcie',
+    READY_FOR_PICKUP: 'Gotowe do odbioru',
     COMPLETED:        'Zakończona',
     REJECTED:         'Anulowana',
     ARCHIVED:         'Zakończona',
@@ -57,8 +57,8 @@ const STATUS_LABEL: Record<VisitCardStatus, string> = {
 
 const PAYMENT_LABEL: Record<VisitCardPaymentStatus, string> = {
     PAID:    'Opłacona',
-    PENDING: 'Oczekuje na płatność',
-    OVERDUE: 'Płatność przeterminowana',
+    PENDING: 'Nieopłacona',
+    OVERDUE: 'Minął termin płatności',
 };
 
 // ─── Base layout ──────────────────────────────────────────────────────────────
@@ -754,7 +754,7 @@ export const VisitCardView = () => {
         } catch {
             setUpsellResult({
                 ok: false,
-                message: 'Nie udało się wysłać zgłoszenia. Spróbuj ponownie lub skontaktuj się z serwisem.',
+                message: 'Nie udało się dodać usług. Spróbuj ponownie lub skontaktuj się z nami.',
             });
         } finally {
             setUpsellSending(false);
@@ -777,10 +777,10 @@ export const VisitCardView = () => {
     if (!token || error) {
         return (
             <CenterState>
-                <StateTitle>Nie znaleziono karty wizyty</StateTitle>
+                <StateTitle>Nie znaleziono Karty wizyty</StateTitle>
                 <StateText>
                     Link jest nieprawidłowy lub wizyta nie jest już dostępna.
-                    Skontaktuj się z serwisem, aby otrzymać nowy link.
+                    Skontaktuj się z nami, aby dostać nowy link.
                 </StateText>
             </CenterState>
         );
@@ -790,7 +790,7 @@ export const VisitCardView = () => {
         return (
             <CenterState>
                 <Spinner />
-                <StateText>Wczytywanie karty wizyty...</StateText>
+                <StateText>Wczytywanie Karty wizyty…</StateText>
             </CenterState>
         );
     }
@@ -897,9 +897,9 @@ export const VisitCardView = () => {
 
                 {/* ── Usługi i wycena ── */}
                 <Card>
-                    <CardTitle>Zakres usług i wycena</CardTitle>
+                    <CardTitle>Usługi i cena</CardTitle>
                     {card.services.length === 0 ? (
-                        <EmptyText>Zakres usług jest w trakcie ustalania.</EmptyText>
+                        <EmptyText>Usługi jeszcze ustalamy.</EmptyText>
                     ) : (
                         <ServiceTable>
                             <ServiceHead>
@@ -924,7 +924,7 @@ export const VisitCardView = () => {
                                     <TotalNet>netto {formatPln(card.totals.totalNet)}</TotalNet>
                                     {card.totals.totalDiscountGross > 0 && (
                                         <TotalDiscount>
-                                            udzielony rabat: -{formatPln(card.totals.totalDiscountGross)}
+                                            rabat: -{formatPln(card.totals.totalDiscountGross)}
                                         </TotalDiscount>
                                     )}
                                 </div>
@@ -939,8 +939,8 @@ export const VisitCardView = () => {
                     <Card>
                         <CardTitle>Polecane usługi dodatkowe</CardTitle>
                         <UpsellIntro>
-                            Zaznacz usługi, które chcesz dodać do rezerwacji - wyślemy SMS
-                            z prośbą o potwierdzenie przed doliczeniem czegokolwiek.
+                            Zaznacz, co chcesz dodać. Zanim cokolwiek doliczymy,
+                            poprosimy o potwierdzenie SMS-em.
                         </UpsellIntro>
 
                         {card.upsellSuggestions.map(suggestion => {
@@ -989,7 +989,7 @@ export const VisitCardView = () => {
                                     disabled={selectedUpsell.size === 0 || upsellSending}
                                 >
                                     {upsellSending
-                                        ? 'Wysyłanie...'
+                                        ? 'Wysyłanie…'
                                         : selectedUpsell.size > 1
                                             ? `Dodaj wybrane usługi (${selectedUpsell.size})`
                                             : 'Dodaj wybraną usługę'}
@@ -1031,7 +1031,7 @@ export const VisitCardView = () => {
                 {/* ── Zdjęcia i protokół szkód (po rozpoczęciu) ── */}
                 {inProgress && (inProgress.photos.length > 0 || inProgress.damageMapUrl) && (
                     <Card>
-                        <CardTitle>Dokumentacja zdjęciowa</CardTitle>
+                        <CardTitle>Zdjęcia</CardTitle>
                         {inProgress.photos.length > 0 && (
                             <PhotoGrid>
                                 {inProgress.photos.map((photo, idx) => (
@@ -1060,7 +1060,7 @@ export const VisitCardView = () => {
                                 <DocRow>
                                     <DocInfo>
                                         <DocName>Protokół szkód</DocName>
-                                        <DocMeta>stan pojazdu odnotowany przy przyjęciu</DocMeta>
+                                        <DocMeta>stan auta przy przyjęciu</DocMeta>
                                     </DocInfo>
                                     <TextLink href={inProgress.damageMapUrl} target="_blank" rel="noopener noreferrer">
                                         Zobacz
@@ -1102,8 +1102,7 @@ export const VisitCardView = () => {
                 )}
 
                 <Footer>
-                    Karta wizyty ma charakter informacyjny.
-                    W razie pytań prosimy o kontakt z {company.name || 'serwisem'}.
+                    Masz pytania? Skontaktuj się z nami.
                 </Footer>
             </Shell>
         </Page>

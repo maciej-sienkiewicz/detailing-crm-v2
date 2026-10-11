@@ -648,7 +648,7 @@ export function QualityCertificateModal({ visit, onClose }: Props) {
                             {manualList(extras, setExtras, 'Notatka pod pozycją (opcjonalnie)')}
                             <ProductPicker
                                 placeholder={canProducts
-                                    ? 'Dopisz użyty produkt z katalogu lub z ręki'
+                                    ? 'Dopisz produkt (z katalogu albo własny)'
                                     : 'Dopisz użyty produkt'}
                                 catalog={canProducts}
                                 onPick={entry => setExtras(prev => [...prev, entry])}
@@ -661,7 +661,7 @@ export function QualityCertificateModal({ visit, onClose }: Props) {
                             {manualList(recommended, setRecommended, 'Np. co dwa tygodnie, metodą dwóch wiader')}
                             <ProductPicker
                                 placeholder={canProducts
-                                    ? 'Poleć produkt z katalogu lub z ręki'
+                                    ? 'Poleć produkt (z katalogu albo własny)'
                                     : 'Poleć produkt'}
                                 catalog={canProducts}
                                 onPick={entry => setRecommended(prev => [...prev, entry])}
@@ -673,8 +673,8 @@ export function QualityCertificateModal({ visit, onClose }: Props) {
                         <>
                             {instructions.length === 0 ? (
                                 <Empty>
-                                    Słownik instrukcji jest pusty. Uzupełnisz go w Ustawieniach, w Cenniku
-                                    usług, w zakładce Instrukcje pielęgnacji.
+                                    Nie masz jeszcze instrukcji pielęgnacji. Dodasz je w Ustawieniach →
+                                    Cennik usług → Instrukcje pielęgnacji.
                                 </Empty>
                             ) : (
                                 <CheckList>
@@ -720,7 +720,7 @@ export function QualityCertificateModal({ visit, onClose }: Props) {
                 <Primary type="button" onClick={generate} disabled={busy || nothingSelected}>
                     <span className="glyph"><FileDown /></span>
                     <span className="labels">
-                        <span className="title">{busy ? 'Generuję…' : 'Pobierz certyfikat'}</span>
+                        <span className="title">{busy ? 'Generowanie…' : 'Pobierz certyfikat'}</span>
                         <span className="sub">
                             {nothingSelected
                                 ? 'Zaznacz choć jedną pozycję'

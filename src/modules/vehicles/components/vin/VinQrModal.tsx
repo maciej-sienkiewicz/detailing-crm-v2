@@ -174,7 +174,7 @@ export const VinQrModal = ({ api, onVin, onClose }: Props) => {
             </ModalContent>
             <ModalFooter>
                 <SharedButton type="button" $variant="secondary" onClick={() => void start(true)} disabled={starting}>
-                    {expired ? 'Wygeneruj nowy kod' : 'Nowy kod (unieważnia poprzedni)'}
+                    {expired ? 'Wygeneruj nowy kod' : 'Nowy kod'}
                 </SharedButton>
                 <SharedButton type="button" $variant="secondary" onClick={onClose}>
                     Anuluj

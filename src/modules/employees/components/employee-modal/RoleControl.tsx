@@ -36,7 +36,7 @@ export function RoleControl({ employee }: { employee: EmployeeDetail }) {
                     name ? 'Rola zmieniona' : 'Rola usunięta',
                     name
                         ? `${employee.fullName}: ${name}. Uprawnienia działają od razu.`
-                        : `${employee.fullName} nie ma dostępu do modułów, dopóki nie dostanie roli.`,
+                        : `${employee.fullName} nic nie zobaczy w aplikacji, dopóki nie dostanie roli.`,
                 );
                 // Rola idzie przez API ról, które o karcie pracownika nic nie wie.
                 invalidate(employee.id);
@@ -75,7 +75,7 @@ export function RoleControl({ employee }: { employee: EmployeeDetail }) {
                 <MenuItem icon={!account.roleId ? <Check /> : <Spacer />} aria-checked={!account.roleId} onClick={() => pick(null)}>
                     <RoleLine>
                         <strong>Brak roli</strong>
-                        <span>Zaloguje się, ale nie zobaczy żadnego modułu.</span>
+                        <span>Zaloguje się, ale nic nie zobaczy.</span>
                     </RoleLine>
                 </MenuItem>
             </ActionMenu>

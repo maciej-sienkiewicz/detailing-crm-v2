@@ -17,6 +17,7 @@ import { ImportContactsModal } from '../components/ImportContactsModal';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { EmptyState } from '../components/EmptyState';
 import { t, interpolate } from '@/common/i18n';
+import { pluralPl } from '@/common/utils/plural';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { CustomerAdvancedFilters, CustomerSortField, SortDirection } from '../types';
 import { Users } from 'lucide-react';
@@ -127,34 +128,6 @@ const FilterTopRow = styled.div`
     }
 `;
 
-const TabGroup = styled.div`
-    display: inline-flex;
-    background: #f1f5f9;
-    border-radius: 10px;
-    padding: 3px;
-    gap: 2px;
-    flex-shrink: 0;
-`;
-
-const TabBtn = styled.button<{ $active: boolean }>`
-    border: none;
-    background: ${p => p.$active ? '#fff' : 'transparent'};
-    padding: 6px 14px;
-    border-radius: 8px;
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    color: ${p => p.$active ? '#0f172a' : '#64748b'};
-    cursor: pointer;
-    transition: all 180ms ease;
-    white-space: nowrap;
-    box-shadow: ${p => p.$active ? '0 1px 3px rgba(0,0,0,0.06)' : 'none'};
-
-    &:hover:not([disabled]) {
-        color: ${p => p.$active ? '#0f172a' : '#475569'};
-    }
-`;
-
 const Spacer = styled.div`
     flex: 1;
 
@@ -227,14 +200,6 @@ const DataContainer = styled.div`
     }
 `;
 
-type CustomerTab = 'all' | 'active' | 'overdue' | 'fleet';
-
-const TABS: { id: CustomerTab; label: string }[] = [
-    { id: 'all',     label: 'Wszyscy'    },
-    { id: 'active',  label: 'Aktywni'    },
-    { id: 'overdue', label: 'Zaległości' },
-];
-
 const EMPTY_ADVANCED_FILTERS: CustomerAdvancedFilters = {};
 
 const countActiveFilters = (f: CustomerAdvancedFilters): number => {
@@ -264,7 +229,6 @@ export const CustomerListView = () => {
     const [appliedFilters, setAppliedFilters] = useState<CustomerAdvancedFilters>(EMPTY_ADVANCED_FILTERS);
     const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
     const deleteCustomer = useDeleteCustomer();
-    const [activeTab, setActiveTab] = useState<CustomerTab>('all');
     const [sortBy, setSortBy] = useState<CustomerSortField>('lastActivity');
     const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
     const { searchInput, debouncedSearch, handleSearchChange } = useCustomerSearch();
@@ -367,7 +331,7 @@ export const CustomerListView = () => {
                         <>
                             {t.customers.subtitle}
                             {pagination && (
-                                <TotalChip>{pagination.totalItems} rekordów</TotalChip>
+                                <TotalChip>{pagination.totalItems} {pluralPl(pagination.totalItems, 'klient', 'klientów', 'klientów')}</TotalChip>
                             )}
                         </>
                     }
@@ -386,7 +350,7 @@ export const CustomerListView = () => {
                     icon={<Users />}
                     title={t.customers.title}
                     subtitle={pagination
-                        ? <><MobilePageHeaderCountValue>{pagination.totalItems}</MobilePageHeaderCountValue> rekordów</>
+                        ? <><MobilePageHeaderCountValue>{pagination.totalItems}</MobilePageHeaderCountValue> {pluralPl(pagination.totalItems, 'klient', 'klientów', 'klientów')}</>
                         : 'Wczytywanie…'}
                     actions={canCreate &&
                         <MobilePageHeaderButton onClick={handleOpenModal}>
@@ -492,7 +456,7 @@ export const CustomerListView = () => {
             <ConfirmationModal
                 isOpen={pendingDeleteId !== null}
                 title="Usunąć tego klienta?"
-                message="Dane osobowe (imię i nazwisko, kontakt, adresy) zostaną nieodwracalnie wymazane, a powiązania z pojazdami usunięte. Historia wizyt, statystyki i podpisane dokumenty zostaną zachowane - wymaga tego prawo."
+                message="Imię, nazwisko, kontakt i adresy znikną na zawsze, a pojazdy zostaną odpięte. Wizyty, statystyki i podpisane dokumenty zostają, bo tego wymaga prawo."
                 variant="danger"
                 confirmText="Usuń dane klienta"
                 cancelText="Anuluj"

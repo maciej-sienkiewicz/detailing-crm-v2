@@ -60,7 +60,7 @@ export function PlanChangeDialog({
         try {
             if (isDowngrade) {
                 await changePlan.mutateAsync(newPlanKey);
-                showSuccess('Zmiana zaplanowana', `Plan zostanie zmieniony na ${newPlanName} na koniec okresu rozliczeniowego.`);
+                showSuccess('Zmiana zaplanowana', `Pakiet zmieni się na ${newPlanName} z końcem opłaconego okresu.`);
                 onClose();
                 return;
             }
@@ -70,10 +70,10 @@ export function PlanChangeDialog({
                 window.location.assign(order.paymentUrl);
                 return;
             }
-            showSuccess('Plan zmieniony', `Twój plan został zmieniony na ${newPlanName}.`);
+            showSuccess('Pakiet zmieniony', `Od teraz masz pakiet ${newPlanName}.`);
             onClose();
         } catch (err: unknown) {
-            toastUnhandledError(showError, err, 'Nie udało się zmienić planu', 'Spróbuj ponownie za chwilę.');
+            toastUnhandledError(showError, err, 'Nie udało się zmienić pakietu', 'Spróbuj ponownie za chwilę.');
         }
     };
 
@@ -85,8 +85,8 @@ export function PlanChangeDialog({
                 <ModalTitleGroup>
                     <ModalTitle>
                         {isDowngrade
-                            ? `Obniżenie planu: ${currentPlanName} → ${newPlanName}`
-                            : `Zmiana planu: ${currentPlanName} → ${newPlanName}`
+                            ? `Niższy pakiet: ${currentPlanName} → ${newPlanName}`
+                            : `Zmiana pakietu: ${currentPlanName} → ${newPlanName}`
                         }
                     </ModalTitle>
                 </ModalTitleGroup>
@@ -105,13 +105,13 @@ export function PlanChangeDialog({
                     <>
                         {isDowngrade && (
                             <Notice tone="warn">
-                                Obniżenie planu wejdzie w życie po zakończeniu bieżącego okresu rozliczeniowego.
-                                Do tego czasu zachowujesz pełny dostęp.
+                                Niższy pakiet zacznie działać po końcu opłaconego okresu.
+                                Do tego czasu masz wszystko jak teraz.
                             </Notice>
                         )}
 
                         <FieldList>
-                            <FieldRow label="Nowy plan"><strong>{preview.newPlanName}</strong></FieldRow>
+                            <FieldRow label="Nowy pakiet"><strong>{preview.newPlanName}</strong></FieldRow>
                             <FieldRow label="Od kiedy">
                                 {isDowngrade ? formatDate(preview.effectiveAt) : 'Od razu po opłaceniu'}
                             </FieldRow>
@@ -190,10 +190,10 @@ export function AddOnActivationDialog({
                 window.location.assign(order.paymentUrl);
                 return;
             }
-            showSuccess('Moduł aktywowany', `Moduł ${addOnName} został pomyślnie aktywowany.`);
+            showSuccess('Moduł włączony', `Moduł ${addOnName} już działa.`);
             onClose();
         } catch (err: unknown) {
-            toastUnhandledError(showError, err, 'Nie udało się aktywować modułu', 'Spróbuj ponownie za chwilę.');
+            toastUnhandledError(showError, err, 'Nie udało się włączyć modułu', 'Spróbuj ponownie za chwilę.');
         }
     };
 
@@ -212,7 +212,7 @@ export function AddOnActivationDialog({
         <ModalShell isOpen onClose={onClose} size="sm">
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>Aktywacja modułu: {addOnName}</ModalTitle>
+                    <ModalTitle>Włącz moduł {addOnName}</ModalTitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
@@ -259,7 +259,7 @@ export function AddOnActivationDialog({
                     >
                         {checkout.isPending
                             ? 'Przekierowywanie…'
-                            : isTrial ? 'Aktywuj bezpłatnie' : 'Przejdź do płatności'}
+                            : isTrial ? 'Włącz bezpłatnie' : 'Przejdź do płatności'}
                     </Button>
                 )}
             </ModalFooter>
@@ -284,7 +284,7 @@ export function AddOnDeactivationDialog({ addOnKey, addOnName, onClose }: Deacti
     // a wynik mówi toast - mutacja kończy się także po odmontowaniu okna.
     const handleConfirm = () => {
         deactivateAddOn.mutateAsync(addOnKey)
-            .then(() => showSuccess('Moduł wyłączony', `Moduł ${addOnName} nie jest już aktywny.`))
+            .then(() => showSuccess('Moduł wyłączony', `Moduł ${addOnName} nie działa już w Twoim studiu.`))
             .catch((err: unknown) =>
                 toastUnhandledError(showError, err, 'Nie udało się wyłączyć modułu', 'Spróbuj ponownie za chwilę.'));
     };
@@ -293,9 +293,9 @@ export function AddOnDeactivationDialog({ addOnKey, addOnName, onClose }: Deacti
         <ConfirmationModal
             isOpen
             variant="danger"
-            title={`Dezaktywować moduł ${addOnName}?`}
+            title={`Wyłączyć moduł ${addOnName}?`}
             message="Stracisz dostęp do modułu od razu po potwierdzeniu. Możesz go później włączyć ponownie."
-            confirmText="Dezaktywuj"
+            confirmText="Wyłącz"
             cancelText="Anuluj"
             onConfirm={handleConfirm}
             onCancel={onClose}

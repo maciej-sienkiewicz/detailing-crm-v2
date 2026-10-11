@@ -199,8 +199,13 @@ export const CustomerModal = ({ isOpen, onClose, onSelect, currentCustomerId }: 
                                                 <PickerRowTitle>
                                                     {customer.firstName} {customer.lastName}
                                                 </PickerRowTitle>
-                                                <PickerRowSub>
-                                                    {[customer.phone, customer.email].filter(Boolean).join(' · ') || '-'}
+                                                <PickerRowSub style={{ display: 'flex', flexWrap: 'wrap', columnGap: 12 }}>
+                                                    {customer.phone || customer.email ? (
+                                                        <>
+                                                            {customer.phone && <span>{customer.phone}</span>}
+                                                            {customer.email && <span>{customer.email}</span>}
+                                                        </>
+                                                    ) : '-'}
                                                 </PickerRowSub>
                                             </PickerRowMain>
                                             {customer.id === currentCustomerId && (

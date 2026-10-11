@@ -226,7 +226,7 @@ export const instagramApi = {
     },
 
     /**
-     * „Odznacz nowe" - studio potwierdza, że przejrzało nowości w swoim rejonie.
+     * „Oznacz jako przejrzane" - studio potwierdza, że przejrzało nowości w swoim rejonie.
      * Serwer zapisuje dzień; odznaki gasną wtedy i tu, i w pasku na Tablicy.
      */
     acknowledgeAreaNovelty: async (): Promise<string | null> => {

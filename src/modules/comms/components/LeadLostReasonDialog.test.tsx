@@ -28,8 +28,8 @@ describe('LeadLostReasonDialog - tryb zbiorczy', () => {
             </ThemeProvider>
         );
 
-        expect(screen.getByText('Dlaczego przegraliśmy te zapytania (5)?')).toBeInTheDocument();
-        const confirm = screen.getByRole('button', { name: 'Zamknij jako przegrany' });
+        expect(screen.getByText('Dlaczego te zapytania przepadły (5)?')).toBeInTheDocument();
+        const confirm = screen.getByRole('button', { name: 'Zamknij jako przegrane' });
         expect(confirm).toBeDisabled();
 
         await userEvent.click(screen.getByRole('button', { name: 'Poza ofertą' }));

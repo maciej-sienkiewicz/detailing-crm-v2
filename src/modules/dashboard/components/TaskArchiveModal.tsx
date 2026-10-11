@@ -10,6 +10,7 @@ import {
   ModalContent,
   CloseBtn,
 } from '@/common/components/ModalKit';
+import { pluralPl } from '@/common/utils/plural';
 import { useTaskArchive } from '../hooks/useTaskArchive';
 import type { ArchivedTask } from '../types';
 
@@ -331,7 +332,7 @@ export const TaskArchiveModal = ({ isOpen, onClose }: Props) => {
         </IconWrap>
         <ModalTitleGroup>
           <ModalTitle>Archiwum zadań</ModalTitle>
-          <ModalSubtitle>Historia usuniętych zadań z pełną ścieżką zdarzeń.</ModalSubtitle>
+          <ModalSubtitle>Usunięte i wykonane zadania: kto, co i kiedy.</ModalSubtitle>
         </ModalTitleGroup>
         <CloseBtn onClick={onClose} aria-label="Zamknij" />
       </ModalHeader>
@@ -342,7 +343,7 @@ export const TaskArchiveModal = ({ isOpen, onClose }: Props) => {
           <SearchInput
             value={search}
             onChange={e => handleSearch(e.target.value)}
-            placeholder="Szukaj po tytule..."
+            placeholder="Szukaj po tytule…"
           />
         </SearchRow>
 
@@ -365,7 +366,7 @@ export const TaskArchiveModal = ({ isOpen, onClose }: Props) => {
         ) : items.length === 0 ? (
           <EmptyState>
             <Archive size={32} strokeWidth={1.5} />
-            {debouncedSearch ? 'Brak wyników dla podanej frazy.' : 'Archiwum jest puste.'}
+            {debouncedSearch ? 'Nic nie znaleziono.' : 'Archiwum jest puste.'}
           </EmptyState>
         ) : (
           <ArchiveList>
@@ -376,7 +377,8 @@ export const TaskArchiveModal = ({ isOpen, onClose }: Props) => {
         {pagination && pagination.totalPages > 1 && (
           <Pagination>
             <PaginationInfo>
-              {pagination.total} {pagination.total === 1 ? 'zadanie' : 'zadań'} · strona {pagination.page} z {pagination.totalPages}
+              {pagination.total} {pluralPl(pagination.total, 'zadanie', 'zadania', 'zadań')}, strona {pagination.page} z{' '}
+              {pagination.totalPages}
             </PaginationInfo>
             <PaginationBtns>
               <PageBtn

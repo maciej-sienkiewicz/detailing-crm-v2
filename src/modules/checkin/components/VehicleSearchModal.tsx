@@ -43,6 +43,17 @@ import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
 import type { VehicleListItem } from '@/modules/vehicles/types';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 
+// Tablica, rok i właściciel to osobne atrybuty, więc osobne elementy z odstępem,
+// a nie ciąg sklejony kropką (CLAUDE.md §4).
+const RowSubParts = ({ parts }: { parts: Array<string | number | null | undefined> }) => {
+    const shown = parts.filter((p): p is string | number => p !== null && p !== undefined && p !== '');
+    return (
+        <PickerRowSub style={{ display: 'flex', flexWrap: 'wrap', columnGap: 12 }}>
+            {shown.length > 0 ? shown.map((p, i) => <span key={i}>{p}</span>) : '-'}
+        </PickerRowSub>
+    );
+};
+
 const CarIcon = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M5 17h14M6.5 17a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm14 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" />
@@ -187,7 +198,7 @@ export const VehicleSearchModal = ({
         ? 'Nowy pojazd'
         : (isReplacing ? 'Zmień pojazd' : 'Wybierz pojazd');
     const modalSubtitle = mode === 'new'
-        ? 'Uzupełnij dane - pojazd zostanie utworzony po zapisaniu wizyty.'
+        ? 'Pojazd zapiszemy razem z wizytą.'
         : (isReplacing
             ? 'Wybierz inny pojazd dla tej wizyty lub dodaj nowy.'
             : 'Znajdź pojazd po marce, modelu lub numerze rejestracyjnym.');
@@ -240,9 +251,7 @@ export const VehicleSearchModal = ({
                         <PickerAvatar><CarIcon /></PickerAvatar>
                         <PickerRowMain>
                             <PickerRowTitle>{v.brand} {v.model}</PickerRowTitle>
-                            <PickerRowSub>
-                                {[v.licensePlate, v.year].filter(Boolean).join(' · ') || '-'}
-                            </PickerRowSub>
+                            <RowSubParts parts={[v.licensePlate, v.year]} />
                         </PickerRowMain>
                         {v.id === currentVehicleId && <PickerRowMeta>Obecny</PickerRowMeta>}
                     </PickerRow>
@@ -275,13 +284,13 @@ export const VehicleSearchModal = ({
                 <PickerAvatar><CarIcon /></PickerAvatar>
                 <PickerRowMain>
                     <PickerRowTitle>{vehicle.brand} {vehicle.model}</PickerRowTitle>
-                    <PickerRowSub>
-                        {[
+                    <RowSubParts
+                        parts={[
                             vehicle.licensePlate,
                             vehicle.yearOfProduction,
                             vehicle.owners[0]?.customerName,
-                        ].filter(Boolean).join(' · ') || '-'}
-                    </PickerRowSub>
+                        ]}
+                    />
                 </PickerRowMain>
                 {vehicle.id === currentVehicleId && <PickerRowMeta>Obecny</PickerRowMeta>}
             </PickerRow>
@@ -304,7 +313,7 @@ export const VehicleSearchModal = ({
                         <PickerSearch
                             value={searchQuery}
                             onChange={setSearchQuery}
-                            placeholder="Szukaj po marce, modelu lub numerze rejestracyjnym..."
+                            placeholder="Szukaj po marce, modelu lub numerze rejestracyjnym…"
                             autoFocus
                             loading={hasQuery && isFetching}
                         />
@@ -318,7 +327,6 @@ export const VehicleSearchModal = ({
 
                         <PickerAddRow
                             label="Dodaj nowy pojazd"
-                            hint="Otworzy formularz nowego pojazdu"
                             onClick={() => setMode('new')}
                         />
                     </>

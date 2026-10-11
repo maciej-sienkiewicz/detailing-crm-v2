@@ -225,8 +225,8 @@ export function QuoteAndClient({ lead, contactCard, phone, onEditQuote, onEditCl
                 </div>
                 <EditBtn
                     onClick={(event) => onEditClient(event.currentTarget)}
-                    aria-label={known ? 'Edytuj dane klienta' : 'Dodaj klienta do kartoteki'}
-                    title={known ? 'Edytuj dane klienta' : 'Dodaj klienta do kartoteki'}
+                    aria-label={known ? 'Edytuj dane klienta' : 'Załóż kartę klienta'}
+                    title={known ? 'Edytuj dane klienta' : 'Załóż kartę klienta'}
                 >
                     <Pencil />
                 </EditBtn>
@@ -431,7 +431,7 @@ export function RailSheet({ lead, contactCard, phone, side, onClose, onEditQuote
                     </div>
                     <EditBtn
                         onClick={(event) => onEditClient(event.currentTarget)}
-                        aria-label={clientKnown(lead, contactCard) ? 'Edytuj dane klienta' : 'Dodaj klienta do kartoteki'}
+                        aria-label={clientKnown(lead, contactCard) ? 'Edytuj dane klienta' : 'Załóż kartę klienta'}
                     >
                         <Pencil />
                     </EditBtn>

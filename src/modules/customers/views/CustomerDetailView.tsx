@@ -528,7 +528,7 @@ export const CustomerDetailView = () => {
                 <ContentArea>
                     <Centered>
                         <Spinner />
-                        <p>Ładowanie danych klienta...</p>
+                        <p>Wczytywanie danych klienta…</p>
                     </Centered>
                 </ContentArea>
             </ViewContainer>
@@ -767,7 +767,7 @@ export const CustomerDetailView = () => {
                                     </PanelHead>
                                     <PanelBody>
                                         {monthly.length === 0 ? (
-                                            <Muted style={{ marginTop: 0 }}>Brak danych o przychodzie.</Muted>
+                                            <Muted style={{ marginTop: 0 }}>W ostatnich 12 miesiącach nie było przychodu.</Muted>
                                         ) : (
                                             <Bars aria-label="Przychód miesięcznie">
                                                 {monthly.map((b, i) => (
@@ -834,9 +834,8 @@ export const CustomerDetailView = () => {
                                         <FieldRow label="Ostatnia wizyta">
                                             {customer.lastVisitDate ? (
                                                 <span>{shortDate(customer.lastVisitDate)}<Faint>, {daysAgo(customer.lastVisitDate)}</Faint></span>
-                                            ) : 'jeszcze nie było'}
+                                            ) : 'jeszcze żadnej'}
                                         </FieldRow>
-                                        <FieldRow label="Numer w systemie">{customer.id.slice(0, 8).toUpperCase()}</FieldRow>
                                     </FieldList>
                                     {phoneUsable && (
                                         <ContactActions>
@@ -889,13 +888,13 @@ export const CustomerDetailView = () => {
                                                 aria-pressed={showDeletedVehicles}
                                                 onClick={() => setShowDeletedVehicles(v => !v)}
                                             >
-                                                {showDeletedVehicles ? 'Ukryj usunięte' : 'Usunięte'}
+                                                {showDeletedVehicles ? 'Ukryj usunięte' : 'Pokaż usunięte'}
                                             </Button>
                                             {canEditCustomer && <Button size="sm" onClick={() => setIsAddVehicleOpen(true)}><Plus />Dodaj</Button>}
                                         </RailActions>
                                     </RailHead>
                                     {vehiclesLoading ? (
-                                        <Muted>Wczytywanie pojazdów...</Muted>
+                                        <Muted>Wczytywanie pojazdów…</Muted>
                                     ) : vehicles.length === 0 ? (
                                         <Muted>Klient nie ma jeszcze przypisanego pojazdu.</Muted>
                                     ) : (
@@ -982,7 +981,7 @@ export const CustomerDetailView = () => {
             <ConfirmationModal
                 isOpen={showDeleteConfirm}
                 title={`Usunąć klienta ${fullName}?`}
-                message="Dane osobowe (imię i nazwisko, kontakt, adresy) zostaną nieodwracalnie wymazane, a powiązania z pojazdami usunięte. Historia wizyt, statystyki i podpisane dokumenty zostaną zachowane - wymaga tego prawo."
+                message="Imię, nazwisko, kontakt i adresy znikną na zawsze, a pojazdy zostaną odpięte. Wizyty, statystyki i podpisane dokumenty zostają, bo tego wymaga prawo."
                 variant="danger"
                 confirmText="Usuń dane klienta"
                 cancelText="Anuluj"

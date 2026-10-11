@@ -89,7 +89,7 @@ describe('ReportButton / ReportDialog', () => {
         renderButton();
         fireEvent.click(screen.getByRole('button', { name: /Raport PDF/ }));
         fireEvent.click(await screen.findByRole('button', { name: 'Miesiąc' }));
-        fireEvent.click(screen.getByRole('button', { name: 'Mediana 6 okresów' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Typowy wynik z 6 okresów' }));
 
         await waitFor(() => expect(api.listPeriods).toHaveBeenCalledWith('MONTH'));
         await screen.findByRole('option', { name: '01.08–31.08.2026' });

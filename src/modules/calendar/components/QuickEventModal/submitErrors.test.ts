@@ -5,18 +5,18 @@ import { firstSubmitErrorKey, submitErrorMessage } from './submitErrors';
 // śladu w logach, bo walidacja działa w przeglądarce. Dymek ma mówić, czego brakuje.
 describe('submitErrorMessage - dymek przy nieudanym zapisie wizyty', () => {
     it('mówi, czego brakuje, zamiast odsyłać do zaznaczonych pól', () => {
-        expect(submitErrorMessage({ servicePrices: 'Wprowadź cenę dla usług: Powłoka ceramiczna' }))
-            .toBe('Wprowadź cenę dla usług: Powłoka ceramiczna.');
+        expect(submitErrorMessage({ servicePrices: 'Podaj cenę: Powłoka ceramiczna' }))
+            .toBe('Podaj cenę: Powłoka ceramiczna.');
     });
 
     it('pokazuje pierwszy błąd w kolejności pól i liczy pozostałe', () => {
         const errors = {
-            color: 'Wybierz kolor wizyty lub dodaj nowy',
-            startDateTime: 'Data rozpoczęcia jest wymagana',
+            color: 'Wybierz kolor rezerwacji albo dodaj nowy',
+            startDateTime: 'Podaj datę rozpoczęcia',
             services: 'Dodaj przynajmniej jedną usługę',
         };
         expect(firstSubmitErrorKey(errors)).toBe('startDateTime');
-        expect(submitErrorMessage(errors)).toBe('Data rozpoczęcia jest wymagana. Poza tym do poprawy: 2 pola.');
+        expect(submitErrorMessage(errors)).toBe('Podaj datę rozpoczęcia. Poza tym do poprawy: 2 pola.');
     });
 
     it('odmienia liczbę pól', () => {

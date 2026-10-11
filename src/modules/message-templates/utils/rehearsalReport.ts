@@ -103,7 +103,7 @@ export function sendPlan(report: RehearsalReport): SendPlan {
  */
 export function sendConfirmMessage(plan: SendPlan | null, phone: string, email: string): string {
   if (!plan) {
-    return `Wyślemy każdy szablon z treścią naprawdę: SMS-y na ${phone}, e-maile na ${email}. SMS-y zużyją kredyty jak zwykła wysyłka.`;
+    return `Naprawdę wyślemy każdy szablon z treścią: SMS-y na ${phone}, e-maile na ${email}. SMS-y zużyją kredyty jak zwykła wysyłka.`;
   }
   const parts: string[] = [];
   if (plan.sms > 0) parts.push(`${plan.sms} ${plural(plan.sms, 'SMS', 'SMS-y', 'SMS-ów')} na ${phone}`);

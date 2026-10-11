@@ -43,11 +43,16 @@ export const fieldLabel = (fieldName: string): string =>
     FIELD_LABELS[fieldName] ? `${fieldName} (${FIELD_LABELS[fieldName]})` : fieldName;
 
 /** Zbuduj komunikat o odrzuceniu pliku po weryfikacji pól. */
+// Tytuł okna mówi już, że plik odpadł, więc treść tylko wylicza braki. Odsyłała też
+// do przycisku „Dowiedz się więcej”, którego w aplikacji nie ma.
 export const buildRejectionMessage = (verification: ProtocolTemplateVerification): string => {
-    const details = [
-        ...verification.missingFields.map(f => `brakujące pole: ${fieldLabel(f)}`),
-        ...verification.problems,
-    ];
-    return `Plik nie przeszedł weryfikacji: ${details.join('; ')}. ` +
-        'Popraw plik zgodnie z instrukcją (przycisk „Dowiedz się więcej”) i wgraj go ponownie.';
+    const parts: string[] = [];
+    if (verification.missingFields.length > 0) {
+        parts.push(`Brakuje: ${verification.missingFields.map(fieldLabel).join(', ')}.`);
+    }
+    if (verification.problems.length > 0) {
+        parts.push(`${verification.problems.map(p => p.replace(/\.\s*$/, '')).join('; ')}.`);
+    }
+    parts.push('Popraw plik i wgraj go jeszcze raz.');
+    return parts.join(' ');
 };

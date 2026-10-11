@@ -402,7 +402,7 @@ export function MessageBody({
             $open={quotedShown}
             onClick={() => setQuotedShown((shown) => !shown)}
             aria-expanded={quotedShown}
-            title="Wcześniejsza korespondencja doklejona przez program pocztowy nadawcy"
+            title="Wcześniejsze wiadomości z tej rozmowy"
         >
             {quotedShown ? (
                 <>

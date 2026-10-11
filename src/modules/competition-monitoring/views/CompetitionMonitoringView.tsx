@@ -432,7 +432,7 @@ export const CompetitionMonitoringView = () => {
                 ) : digestQuery.isError ? (
                     <CenterState>
                         <strong>Nie udało się pobrać danych</strong>
-                        <span>Spróbuj odświeżyć stronę, jeśli problem wraca, daj nam znać.</span>
+                        <span>Odśwież stronę. Jeśli problem wraca, daj nam znać.</span>
                     </CenterState>
                 ) : (
                     <WeekTab digest={digestQuery.data ?? null} />
@@ -452,7 +452,7 @@ export const CompetitionMonitoringView = () => {
                 ) : (
                     <CenterState>
                         <strong>Brak danych do porównania</strong>
-                        <span>Dodaj profile konkurencji i poczekaj na pierwszą synchronizację.</span>
+                        <span>Dodaj profile konkurencji i poczekaj na pierwsze pobranie danych.</span>
                     </CenterState>
                 )
             )}

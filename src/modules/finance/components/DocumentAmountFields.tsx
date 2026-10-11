@@ -62,7 +62,7 @@ export function DocumentAmountFields({ idPrefix, value, onChange, disabled }: Pr
             </FormField>
 
             <FormField>
-                <FieldLabel htmlFor={`${idPrefix}-netAmount`}>Kwota netto (PLN)</FieldLabel>
+                <FieldLabel htmlFor={`${idPrefix}-netAmount`}>Kwota netto (zł)</FieldLabel>
                 <InputShell>
                     <BareInput
                         id={`${idPrefix}-netAmount`}
@@ -78,7 +78,7 @@ export function DocumentAmountFields({ idPrefix, value, onChange, disabled }: Pr
             </FormField>
 
             <FormField>
-                <FieldLabel htmlFor={`${idPrefix}-grossAmount`}>Kwota brutto (PLN)</FieldLabel>
+                <FieldLabel htmlFor={`${idPrefix}-grossAmount`}>Kwota brutto (zł)</FieldLabel>
                 <InputShell>
                     <BareInput
                         id={`${idPrefix}-grossAmount`}

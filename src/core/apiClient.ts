@@ -132,7 +132,7 @@ apiClient.interceptors.response.use(
             const method = (error.config?.method ?? 'get').toLowerCase();
             if (method !== 'get' && method !== 'head') {
                 const message: string =
-                    error.response?.data?.message ?? 'Nie masz uprawnień do wykonania tej operacji';
+                    error.response?.data?.message ?? 'Nie masz do tego uprawnień';
                 window.dispatchEvent(new CustomEvent('api:error', { detail: { message } }));
             }
             window.dispatchEvent(new CustomEvent('auth:permissions-stale'));

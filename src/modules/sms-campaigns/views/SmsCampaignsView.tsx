@@ -8,6 +8,7 @@ import { useCampaigns, useDeleteCampaign, useSendCampaign } from '../hooks';
 import type { SmsCampaign } from '../types';
 import { LockedSection } from '@/common/components/LockedSection';
 import { useFeature } from '@/modules/subscription';
+import { pluralPl } from '@/common/utils/plural';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -266,14 +267,14 @@ export const SmsCampaignsView: React.FC = () => {
   return (
     <LockedSection
       locked={!smsFeature.enabled}
-      message="Twój abonament nie obsługuje kampanii SMS."
+      message="Twój pakiet nie obejmuje kampanii SMS."
     >
     <Page>
       {/* ── Header ── */}
       <Header>
         <TitleBlock>
           <PageTitle>Kampanie SMS</PageTitle>
-          <PageSubtitle>Zarządzaj wiadomościami do klientów</PageSubtitle>
+          <PageSubtitle>Wysyłki SMS do Twoich klientów</PageSubtitle>
         </TitleBlock>
         <NewCampaignBtn onClick={() => { setIsCreatorOpen(true); }}>
           <Plus size={14} strokeWidth={2.5} />
@@ -302,7 +303,7 @@ export const SmsCampaignsView: React.FC = () => {
       {/* ── Campaign list ── */}
       {isError ? (
         <ErrorBar>
-          Nie udało się załadować kampanii.
+          Nie udało się wczytać kampanii.
           <RetryBtn onClick={() => refetch()}>Spróbuj ponownie</RetryBtn>
         </ErrorBar>
       ) : (
@@ -323,14 +324,15 @@ export const SmsCampaignsView: React.FC = () => {
               <>
                 <DialogTitle>Wyślij kampanię</DialogTitle>
                 <DialogText>
-                  Czy na pewno chcesz wysłać kampanię <strong>„{confirm.campaign.name}"</strong>?{' '}
-                  SMS zostanie wysłany do <strong>{confirm.campaign.audienceCount}</strong> odbiorców.
-                  Tej akcji nie można cofnąć.
+                  Wyślemy <strong>„{confirm.campaign.name}”</strong> do{' '}
+                  <strong>{confirm.campaign.audienceCount}</strong>{' '}
+                  {pluralPl(confirm.campaign.audienceCount, 'odbiorcy', 'odbiorców', 'odbiorców')}.
+                  Wysłanych SMS-ów nie da się cofnąć.
                 </DialogText>
                 <DialogActions>
                   <CancelBtn onClick={() => setConfirm(null)}>Anuluj</CancelBtn>
                   <ConfirmBtn onClick={handleConfirm} disabled={sendMutation.isPending}>
-                    {sendMutation.isPending ? 'Wysyłanie...' : 'Wyślij'}
+                    {sendMutation.isPending ? 'Wysyłanie…' : 'Wyślij'}
                   </ConfirmBtn>
                 </DialogActions>
               </>
@@ -338,13 +340,12 @@ export const SmsCampaignsView: React.FC = () => {
               <>
                 <DialogTitle>Usuń kampanię</DialogTitle>
                 <DialogText>
-                  Czy na pewno chcesz usunąć kampanię <strong>„{confirm.campaign.name}"</strong>?
-                  Tej akcji nie można cofnąć.
+                  Kampania <strong>„{confirm.campaign.name}”</strong> zniknie na stałe.
                 </DialogText>
                 <DialogActions>
                   <CancelBtn onClick={() => setConfirm(null)}>Anuluj</CancelBtn>
                   <ConfirmBtn $danger onClick={handleConfirm} disabled={deleteMutation.isPending}>
-                    {deleteMutation.isPending ? 'Usuwanie...' : 'Usuń'}
+                    {deleteMutation.isPending ? 'Usuwanie…' : 'Usuń'}
                   </ConfirmBtn>
                 </DialogActions>
               </>

@@ -186,9 +186,7 @@ export const AbandonCheckInDialog = ({
                 </WarningBanner>
 
                 <Description>
-                    Dane przyjęcia są już zapisane, ale dopóki nie zatwierdzisz wizyty, nie trafi
-                    ona na listę wizyt ani do obsługi. Dokończ ją albo anuluj - nie da się jej
-                    zostawić w tym stanie.
+                    Przyjęcie jest zapisane, ale wizyta jeszcze się nie zaczęła. Dokończ ją albo anuluj.
                 </Description>
 
                 <Options>
@@ -209,7 +207,7 @@ export const AbandonCheckInDialog = ({
 
                     <OptionBtn $variant="danger" onClick={onCancelVisit} disabled={isCancelling}>
                         <OptionTitle $variant="danger">
-                            {isCancelling ? 'Anulowanie...' : 'Anuluj wizytę'}
+                            {isCancelling ? 'Anulowanie…' : 'Anuluj wizytę'}
                         </OptionTitle>
                         <OptionDesc>
                             Usuwa przyjęcie razem z wygenerowanymi dokumentami.{' '}

@@ -32,7 +32,7 @@ export function LeavePdf({ bytes, isLoading, isError, onRetry, maxHeight = '46vh
     }
     return (
         <Frame $maxHeight={maxHeight} aria-busy={isLoading || undefined} data-testid="leave-pdf">
-            {isLoading || !bytes ? <Loading>Wczytuję dokument…</Loading> : <PdfPagesViewer data={bytes} />}
+            {isLoading || !bytes ? <Loading>Wczytywanie dokumentu…</Loading> : <PdfPagesViewer data={bytes} />}
         </Frame>
     );
 }

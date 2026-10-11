@@ -66,7 +66,7 @@ export const VisualConditionModal = ({
         <ModalShell isOpen onClose={onCancel} size="md">
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>Zgodność stanu wizualnego</ModalTitle>
+                    <ModalTitle>Czy auto wygląda jak przy przyjęciu?</ModalTitle>
                     <ModalSubtitle>{documentName}</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onCancel} />

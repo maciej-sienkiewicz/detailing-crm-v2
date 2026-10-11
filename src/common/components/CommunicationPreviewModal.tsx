@@ -355,7 +355,7 @@ export const CommunicationPreviewModal = ({ entry, onClose }: Props) => {
                         </ModalChannelIcon>
                         <ModalTitleGroup>
                             <ModalTitle>{entry.messageTypeLabel}</ModalTitle>
-                            <ModalSubtitle>{channelLabel} · {formatCommDate(entry.sentAt)}</ModalSubtitle>
+                            <ModalSubtitle>{channelLabel}</ModalSubtitle>
                         </ModalTitleGroup>
                     </ModalHeaderLeft>
                     <CloseButton onClick={onClose} aria-label="Zamknij podgląd">
@@ -373,7 +373,7 @@ export const CommunicationPreviewModal = ({ entry, onClose }: Props) => {
                     </MetaItem>
                     <MetaItem>
                         <MetaLabel>
-                            {entry.status === 'RECEIVED' ? 'Otrzymano:' : entry.status === 'QUEUED' ? 'Zaplanowany od:' : 'Wysłano:'}
+                            {entry.status === 'RECEIVED' ? 'Otrzymano:' : entry.status === 'QUEUED' ? 'Zaplanowano:' : 'Wysłano:'}
                         </MetaLabel>
                         <MetaValue>{formatCommDate(entry.sentAt)}</MetaValue>
                     </MetaItem>
@@ -381,7 +381,7 @@ export const CommunicationPreviewModal = ({ entry, onClose }: Props) => {
                         <MetaItem>
                             <MetaLabel>Wyjdzie:</MetaLabel>
                             <MetaValue>
-                                {entry.scheduledFor ? formatCommDate(entry.scheduledFor) : 'przy najbliższym otwarciu okna wysyłki'}
+                                {entry.scheduledFor ? formatCommDate(entry.scheduledFor) : 'gdy zacznie się pora wysyłki'}
                             </MetaValue>
                         </MetaItem>
                     )}

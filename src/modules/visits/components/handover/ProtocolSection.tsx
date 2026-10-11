@@ -199,12 +199,12 @@ export const ProtocolSection = ({
         if (protocol.filledPdfUrl) window.open(protocol.filledPdfUrl, '_blank');
     };
 
-    const NO_SIGNER = 'Brak dostępu do danych osobowych klienta, nie można wysłać do podpisu';
+    const NO_SIGNER = 'Nie masz dostępu do danych klienta, więc nie wyślesz do podpisu';
 
     const tabletTitle = (protocolId: string, isSigned: boolean): string => {
         const phase = signing.byProtocol[protocolId]?.phase;
         if (isSigned || phase === 'signed') return 'Klient podpisał dokument';
-        if (phase === 'waiting') return 'Oczekiwanie na podpis klienta...';
+        if (phase === 'waiting') return 'Czekamy na podpis klienta…';
         if (!sigLocal.enabled) return sigLocal.lockReason ?? 'Wymaga modułu Podpisy elektroniczne';
         if (!canSign) return NO_SIGNER;
         if (!hasTablets) return 'Brak sparowanego tabletu';
@@ -215,7 +215,7 @@ export const ProtocolSection = ({
     const phoneTitle = (protocolId: string, isSigned: boolean): string => {
         const phase = signing.byProtocol[protocolId]?.phase;
         if (isSigned || phase === 'signed') return 'Klient podpisał dokument';
-        if (phase === 'waiting') return 'Oczekiwanie na podpis klienta...';
+        if (phase === 'waiting') return 'Czekamy na podpis klienta…';
         if (!sigRemote.enabled) return sigRemote.lockReason ?? 'Wymaga modułów: Podpisy elektroniczne i Automatyzacja kontaktu';
         if (!canSign) return NO_SIGNER;
         if (!customerPhone) return 'Nie podano numeru klienta';
@@ -229,12 +229,12 @@ export const ProtocolSection = ({
             {isPending || generate.isPending ? (
                 <LoadingContainer>
                     <Spinner />
-                    <span>Przygotowuję protokół wydania...</span>
+                    <span>Przygotowywanie protokołu wydania…</span>
                 </LoadingContainer>
             ) : checkOutProtocols.length === 0 ? (
                 <EmptyState>
-                    Brak dokumentu wymaganego przy wydaniu. Dodaj go w Ustawieniach, w sekcji
-                    dokumentów dla etapu „Wydanie pojazdu".
+                    Brak dokumentu wymaganego przy wydaniu. Dodaj go w Ustawieniach → Dokumenty
+                    i podpisy, dla etapu „Wydanie pojazdu”.
                 </EmptyState>
             ) : (
                 <DocumentList>

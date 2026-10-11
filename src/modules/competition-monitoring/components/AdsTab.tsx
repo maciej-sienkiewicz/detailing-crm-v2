@@ -3,9 +3,10 @@ import styled from 'styled-components';
 import { Link2 } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useBreakpoint } from '@/common/hooks';
+import { pluralPl } from '@/common/utils/plural';
 import type { AdCalendar, AdCalendarRow } from '../types';
 import { PROFILE_COLORS } from '../types';
-import { Card, CardTitle, CardHint, CenterState, formatExact, EMPTY } from './MetricBits';
+import { Card, CardTitle, CenterState, formatExact, EMPTY } from './MetricBits';
 import { LinkFacebookPageModal } from './LinkFacebookPageModal';
 import { AdsTabMobile } from './AdsTabMobile';
 import { AreaSection } from './AreaSection';
@@ -430,12 +431,17 @@ const AdsTabDesktop: React.FC<Props> = ({ calendar, onOpenAd }) => {
             ) : (
             <Card>
                 <HeadRow>
-                    <CardTitle>Kalendarz reklam · {year}</CardTitle>
+                    <CardTitle>Kalendarz reklam {year}</CardTitle>
                     {calendar.activeToday > 0 && (
                         <LivePill>
                             <i />
                             {calendar.activeToday}{' '}
-                            {calendar.activeToday === 1 ? 'reklama aktywna dziś' : 'reklamy aktywne dziś'}
+                            {pluralPl(
+                                calendar.activeToday,
+                                'reklama aktywna dziś',
+                                'reklamy aktywne dziś',
+                                'reklam aktywnych dziś'
+                            )}
                         </LivePill>
                     )}
                 </HeadRow>
@@ -504,8 +510,8 @@ const AdsTabDesktop: React.FC<Props> = ({ calendar, onOpenAd }) => {
                                                                         $left={geometry.left}
                                                                         $width={geometry.width}
                                                                         $color={colors.get(row.profileId) ?? st.textMuted}
-                                                                        title={`${ad.title ?? 'Kampania'} · ${ad.days} dni`}
-                                                                        aria-label={`${row.username}: ${ad.title ?? 'kampania'}, ${ad.days} dni`}
+                                                                        title={`${ad.title ?? 'Kampania'}, ${ad.days} ${pluralPl(ad.days, 'dzień', 'dni', 'dni')}`}
+                                                                        aria-label={`${row.username}: ${ad.title ?? 'kampania'}, ${ad.days} ${pluralPl(ad.days, 'dzień', 'dni', 'dni')}`}
                                                                         onClick={() => onOpenAd(ad.adId)}
                                                                     />
                                                                 );
@@ -534,7 +540,6 @@ const AdsTabDesktop: React.FC<Props> = ({ calendar, onOpenAd }) => {
             {rows.length > 0 && (
                 <SummaryCard>
                     <CardTitle>Podsumowanie roku</CardTitle>
-                    <CardHint>Dni liczone dla każdej kampanii osobno.</CardHint>
                     <SumTable>
                         <colgroup>
                             <col />
@@ -572,7 +577,7 @@ const AdsTabDesktop: React.FC<Props> = ({ calendar, onOpenAd }) => {
                         </tbody>
                     </SumTable>
                     <FootNote>
-                        <strong>Dni sponsorowane</strong> — dni każdej kampanii liczone osobno: 4 kampanie
+                        <strong>Dni</strong> — dni każdej kampanii liczone osobno: 4 kampanie
                         od 14 do 16 marca to 4 × 3 = 12 dni.<br />
                         <strong>Zasięg</strong> — szacunkowa liczba kont Meta w Polsce, które zobaczyły
                         reklamę co najmniej raz.
@@ -635,8 +640,8 @@ const SummaryRow: React.FC<{
                     <IconBtn
                         type="button"
                         onClick={onEditPage}
-                        title={row.facebookPageId ? 'Powiązana strona na Facebooku' : 'Wskaż stronę na Facebooku'}
-                        aria-label={row.facebookPageId ? 'Powiązana strona na Facebooku' : 'Wskaż stronę na Facebooku'}
+                        title={row.facebookPageId ? 'Zmień stronę na Facebooku' : 'Wskaż stronę na Facebooku'}
+                        aria-label={row.facebookPageId ? 'Zmień stronę na Facebooku' : 'Wskaż stronę na Facebooku'}
                     >
                         <Link2 />
                     </IconBtn>

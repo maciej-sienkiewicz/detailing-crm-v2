@@ -360,7 +360,7 @@ describe('zatwierdzenie listy obecności - podpis na tym urządzeniu', () => {
     it('lista podpisana wczesniej zatwierdza sie bez nowego podpisu', async () => {
         renderModal({ ...sheet, signed: true, signerName: 'Jan Kowalski' });
 
-        expect(await screen.findByText(/Arkusz jest już podpisany \(Jan Kowalski\)/)).toBeInTheDocument();
+        expect(await screen.findByText(/Lista jest już podpisana \(Jan Kowalski\)/)).toBeInTheDocument();
         expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: 'Zatwierdź' }));
 

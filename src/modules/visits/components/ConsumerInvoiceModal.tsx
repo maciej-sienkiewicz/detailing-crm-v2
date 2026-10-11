@@ -282,7 +282,7 @@ export const ConsumerInvoiceModal = ({ visit, isOpen, onClose, onIssued }: Consu
                 visitId: visit.id,
                 customerId: visit.customer.id,
             });
-            showSuccess('Faktura wystawiona', 'Dokument trafił do modułu finansów.');
+            showSuccess('Faktura wystawiona', 'Znajdziesz ją w Finansach.');
             onIssued();
             onClose();
         } catch (err) {
@@ -310,10 +310,9 @@ export const ConsumerInvoiceModal = ({ visit, isOpen, onClose, onIssued }: Consu
                     <CompanyWarning>
                         <AlertTriangle />
                         <span>
-                            Klient ma w kartotece dane firmowe
-                            {visit.customer.companyNip ? ` (NIP ${visit.customer.companyNip})` : ''} - z tego
-                            miejsca wystawiasz wyłącznie fakturę dla osoby fizycznej, więc nie zostaną one
-                            użyte. Fakturę firmową wystaw w module finansów.
+                            W karcie klienta są dane firmowe
+                            {visit.customer.companyNip ? ` (NIP ${visit.customer.companyNip})` : ''}. Tu
+                            wystawisz tylko fakturę na osobę prywatną. Fakturę na firmę wystaw w Finansach.
                         </span>
                     </CompanyWarning>
                 )}

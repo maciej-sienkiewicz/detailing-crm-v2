@@ -12,6 +12,7 @@ import {
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
 import { t } from '@/common/i18n';
+import type { OperationType } from '../types';
 
 const ModalDescription = styled.p`
     margin: 0;
@@ -26,7 +27,14 @@ interface DeleteOperationModalProps {
     onConfirm: () => void;
     isDeleting: boolean;
     operationName: string;
+    /** Co usuwamy. Bez tego okno mówi ogólnie, bo woła je też kalendarz dla obu rodzajów. */
+    kind?: OperationType;
 }
+
+const KIND_LABEL: Record<OperationType, string> = {
+    VISIT: 'wizytę',
+    RESERVATION: 'rezerwację',
+};
 
 export const DeleteOperationModal = ({
     isOpen,
@@ -34,6 +42,7 @@ export const DeleteOperationModal = ({
     onConfirm,
     isDeleting,
     operationName,
+    kind,
 }: DeleteOperationModalProps) => {
     if (!isOpen) return null;
 
@@ -48,8 +57,8 @@ export const DeleteOperationModal = ({
 
             <ModalContent>
                 <ModalDescription>
-                    Czy na pewno chcesz usunąć operację dla klienta <strong>{operationName}</strong>?
-                    Tej operacji nie można cofnąć.
+                    Usunąć {kind ? KIND_LABEL[kind] : 'wizytę lub rezerwację'} klienta <strong>{operationName}</strong>?
+                    Tego nie da się cofnąć.
                 </ModalDescription>
             </ModalContent>
 
@@ -58,7 +67,7 @@ export const DeleteOperationModal = ({
                     {t.common.cancel}
                 </SharedButton>
                 <SharedButton $variant="danger" type="button" onClick={onConfirm} disabled={isDeleting}>
-                    {isDeleting ? 'Usuwanie...' : t.common.delete}
+                    {isDeleting ? 'Usuwanie…' : t.common.delete}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

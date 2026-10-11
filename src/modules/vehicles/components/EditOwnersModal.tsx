@@ -170,7 +170,7 @@ export const EditOwnersModal = ({ isOpen, onClose, vehicleId, owners }: EditOwne
         if (!toRemove) return;
         const name = toRemove.customerName;
         removeOwner(toRemove.customerId, {
-            onSuccess: () => showSuccess('Właściciel usunięty', `${name} nie jest już przypisany do pojazdu.`),
+            onSuccess: () => showSuccess('Właściciel usunięty', `${name} nie jest już właścicielem tego pojazdu.`),
             onError: () => showError('Nie udało się usunąć właściciela', 'Spróbuj ponownie za chwilę.'),
         });
         setToRemove(null);
@@ -203,7 +203,7 @@ export const EditOwnersModal = ({ isOpen, onClose, vehicleId, owners }: EditOwne
                                         <RowText>
                                             <strong>{owner.customerName}</strong>
                                             <StatusPill $tone={ROLE[owner.role]?.tone ?? 'neutral'}>{ROLE[owner.role]?.label ?? owner.role}</StatusPill>
-                                            {last && <Hint>Jedyny właściciel, najpierw dodaj kolejnego, żeby go usunąć.</Hint>}
+                                            {last && <Hint>To jedyny właściciel. Żeby go usunąć, najpierw dodaj innego.</Hint>}
                                         </RowText>
                                         <Button
                                             variant="danger"
@@ -232,7 +232,7 @@ export const EditOwnersModal = ({ isOpen, onClose, vehicleId, owners }: EditOwne
                         </SearchBox>
                         <Results>
                             {isLoading ? (
-                                <Muted>Szukam klientów...</Muted>
+                                <Muted>Wyszukiwanie klientów…</Muted>
                             ) : candidates.length === 0 ? (
                                 <Muted>{debounced ? `Nikt w kartotece nie pasuje do „${debounced}".` : 'Zacznij pisać, żeby znaleźć klienta.'}</Muted>
                             ) : (
@@ -279,7 +279,7 @@ export const EditOwnersModal = ({ isOpen, onClose, vehicleId, owners }: EditOwne
                 <FooterSplit>
                     <Button variant="ghost" onClick={() => setMode('list')}><ArrowLeft />Wróć</Button>
                     <Button variant="primary" onClick={add} disabled={!picked || isAssigning}>
-                        {isAssigning ? 'Zapisywanie...' : picked ? `Dodaj: ${customerName(picked)}` : 'Wybierz klienta'}
+                        {isAssigning ? 'Zapisywanie…' : picked ? `Dodaj: ${customerName(picked)}` : 'Wybierz klienta'}
                     </Button>
                 </FooterSplit>
             )}
@@ -287,7 +287,7 @@ export const EditOwnersModal = ({ isOpen, onClose, vehicleId, owners }: EditOwne
             <ConfirmationModal
                 isOpen={toRemove !== null}
                 title="Usunąć właściciela?"
-                message={toRemove ? `${toRemove.customerName} przestanie być przypisany do tego pojazdu. Wizyty i dokumenty zostają.` : ''}
+                message={toRemove ? `${toRemove.customerName} nie będzie już właścicielem tego pojazdu. Wizyty i dokumenty zostają.` : ''}
                 variant="danger"
                 confirmText="Usuń właściciela"
                 cancelText="Zostaw"

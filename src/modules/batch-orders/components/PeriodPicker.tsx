@@ -308,7 +308,7 @@ export function PeriodPicker({ value, onChange }: Props) {
                                 if (opt) pick(opt.period);
                             }}
                         >
-                            {!selectedMonth && <option value="">Zakres niestandardowy</option>}
+                            {!selectedMonth && <option value="">Własny zakres</option>}
                             {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                         </Control>
                     </FieldLabel>
@@ -325,7 +325,7 @@ export function PeriodPicker({ value, onChange }: Props) {
                             <DateInput type="date" value={customTo} min={customFrom || undefined} onChange={e => setCustomTo(e.target.value)} />
                         </FieldLabel>
                     </RangeGrid>
-                    {rangeInvalid && <RangeError>Data „od" jest późniejsza niż „do".</RangeError>}
+                    {rangeInvalid && <RangeError>Data „od” jest późniejsza niż „do”.</RangeError>}
                     <ApplyBtn
                         type="button"
                         disabled={!customFrom || !customTo || rangeInvalid}

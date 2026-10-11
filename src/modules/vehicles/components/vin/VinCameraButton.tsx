@@ -69,7 +69,7 @@ export function VinCameraButton({ onVin, onError, api = vehicleVinApi, disabled,
             if (vin) onVin(vin);
             else onError?.('Nie udało się odczytać VIN ze zdjęcia. Spróbuj ponownie lub wpisz ręcznie.');
         } catch {
-            onError?.('Błąd podczas analizy zdjęcia. Spróbuj ponownie.');
+            onError?.('Nie udało się odczytać zdjęcia. Spróbuj ponownie.');
         } finally {
             setReading(false);
         }

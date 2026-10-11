@@ -140,15 +140,15 @@ export function ApproveAttendanceSheetModal({ sheet, onClose }: Props) {
     };
 
     const primaryAction = sheet.signed
-        ? { label: approve.isPending ? 'Zatwierdzanie...' : 'Zatwierdź', onClick: handleApprove, disabled: approve.isPending }
+        ? { label: approve.isPending ? 'Zatwierdzanie…' : 'Zatwierdź', onClick: handleApprove, disabled: approve.isPending }
         : method === 'DEVICE'
             ? {
-                label: approve.isPending ? 'Zatwierdzanie...' : 'Podpisz i zatwierdź',
+                label: approve.isPending ? 'Zatwierdzanie…' : 'Podpisz i zatwierdź',
                 onClick: handleApprove,
                 disabled: !hasInk || approve.isPending,
             }
             : {
-                label: remote.send.isPending ? 'Wysyłanie...' : method === 'TABLET' ? 'Wyślij na tablet' : 'Wyślij SMS',
+                label: remote.send.isPending ? 'Wysyłanie…' : method === 'TABLET' ? 'Wyślij na tablet' : 'Wyślij SMS',
                 onClick: handleSend,
                 disabled: remote.send.isPending || (method === 'TABLET' && tablet === null),
             };
@@ -165,15 +165,15 @@ export function ApproveAttendanceSheetModal({ sheet, onClose }: Props) {
 
             <ModalContent>
                 <Lead>
-                    Zatwierdzona lista jest sprawdzona i gotowa dla księgowości - każdy
-                    administrator zobaczy w Listach obecności, kto i kiedy ją zatwierdził.
+                    Po zatwierdzeniu lista jest gotowa dla księgowości. Każdy administrator
+                    zobaczy, kto i kiedy ją zatwierdził.
                     {!sheet.signed && ' Zatwierdzenie wymaga Twojego podpisu.'}
                 </Lead>
 
                 {sheet.signed ? (
                     <Hint>
-                        Arkusz jest już podpisany{sheet.signerName ? ` (${sheet.signerName})` : ''} - zatwierdzenie
-                        nie wymaga nowego podpisu.
+                        Lista jest już podpisana{sheet.signerName ? ` (${sheet.signerName})` : ''}, nie trzeba
+                        podpisywać jej ponownie.
                     </Hint>
                 ) : awaiting ? (
                     <AwaitingSignature
@@ -202,7 +202,7 @@ export function ApproveAttendanceSheetModal({ sheet, onClose }: Props) {
                             <SignaturePad ref={padRef} onInkChange={setHasInk} height={PAD_HEIGHT} />
                             <PadFooter>
                                 <PadHint>
-                                    Podpis trafi pod tabelę na ostatniej stronie arkusza, razem z Twoim
+                                    Podpis trafi pod tabelę na ostatniej stronie listy, razem z Twoim
                                     imieniem, nazwiskiem i datą.
                                 </PadHint>
                                 <LinkBtn type="button" onClick={() => padRef.current?.clear()} disabled={!hasInk}>

@@ -101,7 +101,7 @@ describe('ExpensePaymentCard', () => {
     });
     render(<ExpensePaymentCard expenseId="e-1" />);
 
-    expect(screen.getByText(/nie przechodzi kontroli sumy/)).toBeInTheDocument();
+    expect(screen.getByText(/numer konta wygląda na błędny/)).toBeInTheDocument();
     expect(screen.queryByRole('img')).toBeNull();
   });
 

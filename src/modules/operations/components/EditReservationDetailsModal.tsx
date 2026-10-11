@@ -16,6 +16,14 @@ import {
 import { SharedButton } from '@/common/styles';
 import type { Operation } from '../types';
 
+// Klient i pojazd jako dwa elementy obok siebie: kropka między nimi nie mówiła,
+// jaki jest związek (CLAUDE.md §4).
+const SubtitleMeta = styled.span`
+  display: inline-flex;
+  flex-wrap: wrap;
+  column-gap: 12px;
+`;
+
 const Grid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -136,10 +144,12 @@ export const EditReservationDetailsModal = ({
     <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="640px">
       <ModalHeader>
         <ModalTitleGroup>
-          <ModalTitle>Edytuj inne informacje</ModalTitle>
+          <ModalTitle>Dane klienta i pojazdu</ModalTitle>
           <ModalSubtitle>
-            {reservation.customerFirstName} {reservation.customerLastName}
-            {reservation.vehicle && ` • ${reservation.vehicle.brand} ${reservation.vehicle.model}`}
+            <SubtitleMeta>
+              <span>{reservation.customerFirstName} {reservation.customerLastName}</span>
+              {reservation.vehicle && <span>{reservation.vehicle.brand} {reservation.vehicle.model}</span>}
+            </SubtitleMeta>
           </ModalSubtitle>
         </ModalTitleGroup>
         <CloseBtn onClick={onClose} />
@@ -181,7 +191,7 @@ export const EditReservationDetailsModal = ({
       <ModalFooter>
         <SharedButton $variant="secondary" type="button" onClick={onClose}>Anuluj</SharedButton>
         <SharedButton $variant="primary" type="button" onClick={handleSubmit} disabled={!!isSaving}>
-          {isSaving ? 'Zapisywanie...' : 'Zapisz zmiany'}
+          {isSaving ? 'Zapisywanie…' : 'Zapisz zmiany'}
         </SharedButton>
       </ModalFooter>
     </ModalShell>

@@ -313,7 +313,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
         return () => cancelAnimationFrame(frame);
     }, [validationAttempt]);
 
-    // „Czy wysłać Kartę Wizyty do klienta?" mieszka w oknie „Dokumentacja i Podpisy".
+    // „Czy wysłać Kartę Wizyty do klienta?" mieszka w oknie „Dokumenty do podpisu".
     // Kartę wysyła backend w żądaniu potwierdzenia wizyty (flaga sendVisitCard) - tu nic
     // nie dosyłamy, bo drugie wywołanie /card-link/send dublowało SMS do klienta.
     const [signingModalState, setSigningModalState] = useState<{
@@ -418,7 +418,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
     const handleSigningModalConfirm = () => {
         if (signingModalState.visitId) {
             const visitNumber = signingModalState.visitNumber || signingModalState.visitId.slice(0, 8);
-            showSuccess(`Wizyta rozpoczęta pomyślnie!`, 'Możesz teraz przejść do obsługi klienta.');
+            showSuccess('Wizyta rozpoczęta');
             setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [], hasPhotos: false, hasDamageMap: false });
             onComplete(signingModalState.visitId);
         }
@@ -500,9 +500,8 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                         {revisingVisit && (
                             <RevisingNotice>
                                 <Notice tone="info" title="Poprawiasz założone przyjęcie" role="status">
-                                    Dodaj albo zmień usługi i zapisz - dokumenty przyjęcia wygenerują się od nowa
-                                    i trzeba je będzie podpisać ponownie. Dane klienta i pojazdu oraz zdjęcia
-                                    zostają takie, jak przy zakładaniu wizyty.
+                                    Zmień usługi i zapisz. Dokumenty utworzą się od nowa i trzeba je podpisać
+                                    jeszcze raz. Klient, pojazd i zdjęcia zostają bez zmian.
                                 </Notice>
                             </RevisingNotice>
                         )}
@@ -560,7 +559,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                                     $disabled={isSubmitting}
                                 >
                                     {isSubmitting ? (
-                                        <>{t.checkin.summary.creating}...</>
+                                        <>{t.checkin.summary.creating}</>
                                     ) : revisingVisit ? (
                                         <>Zapisz usługi i wróć do dokumentów</>
                                     ) : (
@@ -637,7 +636,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                     draft={resumeDraft}
                     onConfirmed={visitId => {
                         setResumeDraft(null);
-                        showSuccess(`Wizyta rozpoczęta pomyślnie!`);
+                        showSuccess('Wizyta rozpoczęta');
                         onComplete(visitId);
                     }}
                     onCancelled={() => {

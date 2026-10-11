@@ -265,7 +265,7 @@ export const ClearAccountModal = ({ isOpen, onClose }: ClearAccountModalProps) =
                         <HintText>
                             Czyszczenie mogło już ruszyć i w takim razie dokończy się po stronie serwera.
                             Sprawdź stan ponownie albo zamknij okno: po ponownym otwarciu zobaczysz postęp
-                            trwającego czyszczenia. Identyfikator operacji: {jobId}.
+                            trwającego czyszczenia. Numer operacji: {jobId}.
                         </HintText>
                     </ProgressWrap>
                 ) : failed ? (
@@ -274,9 +274,8 @@ export const ClearAccountModal = ({ isOpen, onClose }: ClearAccountModalProps) =
                             Czyszczenie konta nie powiodło się{job?.error ? `: ${job.error}` : '.'}
                         </ErrorMsg>
                         <HintText>
-                            Skontaktuj się z pomocą techniczną i podaj identyfikator operacji: {jobId}.
-                            Żadne dane nie zostały częściowo &quot;przywrócone&quot;. Operację można
-                            bezpiecznie wznowić po usunięciu przyczyny błędu.
+                            Skontaktuj się z pomocą techniczną i podaj numer operacji: {jobId}.
+                            Gdy usuniemy przyczynę, czyszczenie można bezpiecznie powtórzyć.
                         </HintText>
                     </ProgressWrap>
                 ) : (
@@ -284,22 +283,21 @@ export const ClearAccountModal = ({ isOpen, onClose }: ClearAccountModalProps) =
                         <WarnBox>
                             <WarnTitle>Zostaną bezpowrotnie usunięte:</WarnTitle>
                             <WarnText>
-                                Wszystkie dane operacyjne studia (klienci, pojazdy, wizyty, pliki,
-                                dokumenty finansowe, komunikacja, pracownicy i ustawienia) zostaną
-                                trwale usunięte. Nie ma możliwości ich odzyskania.
+                                Klienci, pojazdy, wizyty, pliki, dokumenty finansowe, wiadomości,
+                                pracownicy i ustawienia. Nie da się ich odzyskać.
                             </WarnText>
                         </WarnBox>
                         <KeepBox>
                             <KeepTitle>Zostaną zachowane:</KeepTitle>
                             <KeepList>
                                 <li>Twoje konto właściciela i hasło,</li>
-                                <li>plan subskrypcji, historia płatności i saldo SMS,</li>
+                                <li>pakiet, historia płatności i saldo SMS,</li>
                                 <li>dziennik aktywności (z wpisem o tym czyszczeniu).</li>
                             </KeepList>
                         </KeepBox>
                         <LegalNote>
-                            Usunięcie obejmuje dokumenty księgowe studia. Upewnij się, że masz ich kopie
-                            wymagane przepisami. Odpowiedzialność za archiwizację pozostaje po stronie firmy.
+                            Usuniemy też dokumenty księgowe. Zachowaj wcześniej kopie, których wymagają
+                            przepisy. Odpowiedzialność za archiwizację pozostaje po stronie firmy.
                         </LegalNote>
                         <CheckboxRow>
                             <input

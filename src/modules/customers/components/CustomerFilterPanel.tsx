@@ -435,8 +435,8 @@ const ApplyBtn = styled.button`
 
 const CUSTOMER_TYPE_OPTIONS: { id: CustomerTypeFilter; label: string }[] = [
     { id: 'all',        label: 'Wszyscy'      },
-    { id: 'individual', label: 'Indywidualni' },
-    { id: 'business',   label: 'Firmowi'      },
+    { id: 'individual', label: 'Osoby prywatne' },
+    { id: 'business',   label: 'Firmy'          },
 ];
 
 // ─── ServiceMultiSelect ───────────────────────────────────────────────────────
@@ -515,8 +515,8 @@ export const ServiceMultiSelect = ({ selectedIds, onChange }: ServiceMultiSelect
     const label = selectedIds.length === 0
         ? null
         : selectedIds.length === 1
-            ? selectedNames[0] ?? '1 wybrana'
-            : `${selectedIds.length} wybranych`;
+            ? selectedNames[0] ?? 'Wybrano: 1'
+            : `Wybrano: ${selectedIds.length}`;
 
     return (
         <div style={{ position: 'relative' }}>
@@ -536,7 +536,7 @@ export const ServiceMultiSelect = ({ selectedIds, onChange }: ServiceMultiSelect
             >
                 {label
                     ? <ServiceTriggerText>{label}</ServiceTriggerText>
-                    : <ServiceTriggerPlaceholder>{isLoading ? 'Ładowanie...' : 'Wybierz usługi'}</ServiceTriggerPlaceholder>
+                    : <ServiceTriggerPlaceholder>{isLoading ? 'Wczytywanie…' : 'Wybierz usługi'}</ServiceTriggerPlaceholder>
                 }
                 <ServiceCaret $open={open} />
             </ServiceTrigger>
@@ -551,7 +551,7 @@ export const ServiceMultiSelect = ({ selectedIds, onChange }: ServiceMultiSelect
                         <ServiceMenuSearchInput
                             ref={searchRef}
                             type="text"
-                            placeholder="Szukaj usługi..."
+                            placeholder="Szukaj usługi…"
                             value={query}
                             onChange={e => setQuery(e.target.value)}
                         />
@@ -715,7 +715,7 @@ export const CustomerFilterPanel = ({
                         <SectionLabel>Aktywność</SectionLabel>
                         <ActivityRow>
                             <InputRow>
-                                <InputLabel>Odwiedził w przeciągu</InputLabel>
+                                <InputLabel>Był w ciągu ostatnich</InputLabel>
                                 <NumberInput
                                     type="number"
                                     min={1}
@@ -748,7 +748,7 @@ export const CustomerFilterPanel = ({
                     {/* Przychód */}
                     {showRevenue && (
                     <FilterSection>
-                        <SectionLabel>Przychód brutto (PLN)</SectionLabel>
+                        <SectionLabel>Przychód brutto (zł)</SectionLabel>
                         <RevenueRow>
                             <RevenueInput
                                 type="number"

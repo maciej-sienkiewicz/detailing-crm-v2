@@ -54,7 +54,7 @@ const Wrapper = styled.div`
     flex-wrap: wrap;
     width: 100%;
 
-    /* Na telefonie oddaje szerokość przyciskowi „+ Dodaj wpis" obok - chip
+    /* Na telefonie oddaje szerokość przyciskowi „+ Dodaj auto" obok - chip
        okresu kurczy się z wielokropkiem zamiast spychać go poza kartę. */
     @media (max-width: 639px) {
         width: auto;
@@ -217,7 +217,7 @@ export function DateRangeFilter({ onChange }: Props) {
                     const fmt = (s: string) => parseIsoDate(s).toLocaleDateString('pl-PL', { day: '2-digit', month: 'short' });
                     return `${fmt(customFrom)}-${fmt(customTo)}`;
                 }
-                return 'Zakres niestandardowy';
+                return 'Własny zakres';
         }
     }
 
@@ -269,7 +269,7 @@ export function DateRangeFilter({ onChange }: Props) {
             >
                 {/* Bez przedrostka „Okres:" - że chip filtruje okres, widać
                     po treści i po tym, że stoi nad tabelą. Przedrostek kosztował
-                    ~55px, przez co przy 320px „+ Dodaj wpis" nie mieścił się
+                    ~55px, przez co przy 320px „+ Dodaj auto" nie mieścił się
                     w tym samym wierszu. */}
                 <PeriodLabel>{activePeriodLabel()}</PeriodLabel>
                 <ChevronIcon

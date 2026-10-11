@@ -10,6 +10,7 @@
 import { useMemo } from 'react';
 import styled from 'styled-components';
 import { Mail, MessageSquare } from 'lucide-react';
+import { pluralPl } from '@/common/utils/plural';
 import { smsMeta } from '../utils/sms';
 import type { CampaignChannel } from '../types';
 
@@ -101,7 +102,7 @@ const ChannelHead = styled.header`
 const MetaRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 14px;
   flex-wrap: wrap;
   padding: 8px 14px;
   border-top: 1px solid ${(p) => p.theme.colors.border};
@@ -114,13 +115,6 @@ const MetaRow = styled.div`
     font-weight: ${(p) => p.theme.fontWeights.semibold};
     color: ${(p) => p.theme.colors.textSecondary};
   }
-`;
-
-const MetaDot = styled.span`
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: ${(p) => p.theme.colors.border};
 `;
 
 // ─── Podgląd SMS (metafora telefonu) ──────────────────────────────────────────
@@ -358,13 +352,13 @@ export function ContentPreview({
             </PhoneBackdrop>
             {smsInfo && !compact && (
               <MetaRow>
-                <span><strong>{smsInfo.length}</strong> znaków</span>
-                <MetaDot />
-                <span>kodowanie <strong>{smsInfo.encoding}</strong></span>
-                <MetaDot />
+                <span>
+                  <strong>{smsInfo.length}</strong>{' '}
+                  {pluralPl(smsInfo.length, 'znak', 'znaki', 'znaków')}
+                </span>
                 <span>
                   <strong>{smsInfo.segments}</strong>{' '}
-                  {smsInfo.segments === 1 ? 'segment' : 'segmenty'} na odbiorcę
+                  {pluralPl(smsInfo.segments, 'SMS', 'SMS-y', 'SMS-ów')} na odbiorcę
                 </span>
               </MetaRow>
             )}

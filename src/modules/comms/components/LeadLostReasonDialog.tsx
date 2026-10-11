@@ -112,8 +112,8 @@ export function LeadLostReasonDialog({ leadId, bulk, onClose }: LeadLostReasonDi
             <Card onClick={(event) => event.stopPropagation()}>
                 <h4>
                     {bulk && bulk.count > 1
-                        ? `Dlaczego przegraliśmy te zapytania (${bulk.count})?`
-                        : 'Dlaczego przegraliśmy to zapytanie?'}
+                        ? `Dlaczego te zapytania przepadły (${bulk.count})?`
+                        : 'Dlaczego to zapytanie przepadło?'}
                 </h4>
                 {(dictionaries?.lostReasons ?? []).map((option) => (
                     <ReasonOption
@@ -132,7 +132,7 @@ export function LeadLostReasonDialog({ leadId, bulk, onClose }: LeadLostReasonDi
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                     <IconButton onClick={onClose}>Anuluj</IconButton>
                     <PrimaryButton disabled={!reason || changeStatus.isPending || bulk?.pending} onClick={confirm}>
-                        Zamknij jako przegrany
+                        Zamknij jako przegrane
                     </PrimaryButton>
                 </div>
             </Card>

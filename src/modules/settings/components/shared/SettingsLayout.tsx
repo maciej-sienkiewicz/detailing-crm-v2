@@ -333,7 +333,7 @@ export function UnsavedChangesBanner({
             <BarActions>
                 <DiscardButton variant="ghost" onClick={onDiscard} disabled={isSaving}>Cofnij zmiany</DiscardButton>
                 <Button variant="primary" onClick={onSave} disabled={isSaving}>
-                    {isSaving ? 'Zapisywanie...' : 'Zapisz zmiany'}
+                    {isSaving ? 'Zapisywanie…' : 'Zapisz zmiany'}
                 </Button>
             </BarActions>
         </Bar>

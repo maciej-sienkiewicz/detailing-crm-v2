@@ -21,6 +21,7 @@ import { STARTER_SMS } from '@/modules/message-templates/starters';
 import type { MessageKey } from '@/modules/message-templates';
 import type { AddOnKey } from '@/modules/subscription/types';
 import type { SmsReadiness, SmsRequirement, SmsRequirementId } from '../hooks/useSmsReadiness';
+import { pluralPl } from '@/common/utils/plural';
 
 /**
  * Turns "you can't send this" into "here is everything it takes, let's do it".
@@ -71,7 +72,7 @@ export function SmsActivationWizard({
         <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="560px">
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>Uruchom SMS-y dla tej wizyty</ModalTitle>
+                    <ModalTitle>Włącz wysyłkę SMS</ModalTitle>
                     {contextLabel && <ModalSubtitle>{contextLabel}</ModalSubtitle>}
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
@@ -119,8 +120,8 @@ export function SmsActivationWizard({
                                 disabled={plan.length === 0}
                             >
                                 {plan.length === 0
-                                    ? 'Nie ma czego konfigurować'
-                                    : plan.length === 1 ? 'Skonfiguruj, to jeden krok' : `Skonfiguruj w ${plan.length} krokach`}
+                                    ? 'Wszystko gotowe'
+                                    : `Ustaw (${plan.length} ${pluralPl(plan.length, 'krok', 'kroki', 'kroków')})`}
                                 <ArrowRight />
                             </Button>
                         </>
@@ -138,7 +139,7 @@ export function SmsActivationWizard({
                             </Button>
                             {/* The module step finishes in the payment dialog, not here. */}
                             {current?.id === 'module' && (
-                                <Button onClick={goNext}>Moduł już aktywny, dalej</Button>
+                                <Button onClick={goNext}>Moduł już włączony, dalej</Button>
                             )}
                         </>
                     )}
@@ -175,8 +176,8 @@ function Overview({ readiness, plan, unresolvablePhone }: {
 
             {unresolvablePhone && (
                 <Notice tone="danger" title="Ten klient nie ma numeru telefonu">
-                    Uzupełnij numer w kartotece klienta, bez niego nie wyślemy tej wiadomości,
-                    nawet po skonfigurowaniu reszty.
+                    Uzupełnij numer w karcie klienta, bez niego nie wyślemy tej wiadomości,
+                    nawet po ustawieniu reszty.
                 </Notice>
             )}
         </>
@@ -205,12 +206,12 @@ function ModuleStep({ readiness }: { readiness: SmsReadiness }) {
         <>
             <Lede>
                 Wysyłka wiadomości do klientów jest osobnym modułem. Po jego włączeniu
-                wrócisz dokładnie tutaj i dokończysz konfigurację.
+                wrócisz dokładnie tutaj i dokończysz ustawienia.
             </Lede>
 
             <ModuleGateCard
                 title={offer?.addOnName ?? readiness.capabilityDisplayName}
-                subtitle="Odblokowuje SMS-y transakcyjne: przypomnienia, potwierdzenia i powiadomienia o gotowym pojeździe."
+                subtitle="Przypomnienia, potwierdzenia i powiadomienia o gotowym aucie."
                 benefits={[
                     'Przypomnienia przed wizytą i po niej',
                     'Powiadomienie, gdy pojazd jest gotowy do odbioru',
@@ -272,13 +273,13 @@ function TemplateStep({ templateKey, onDone }: { templateKey?: MessageKey; onDon
         },
     });
 
-    if (!spec) return <Lede>Nie znaleziono definicji tej wiadomości.</Lede>;
+    if (!spec) return <Lede>Nie znaleziono tej wiadomości.</Lede>;
 
     return (
         <>
             <Lede>
                 Wybierz treść wiadomości „{spec.name}". Zapisany szablon możesz później
-                dowolnie zmienić w Ustawieniach → Szablony wiadomości.
+                dowolnie zmienić w Ustawieniach → Wiadomości automatyczne.
             </Lede>
 
             <ChoiceList>
@@ -295,7 +296,7 @@ function TemplateStep({ templateKey, onDone }: { templateKey?: MessageKey; onDon
                 ))}
             </ChoiceList>
 
-            <FieldLabel htmlFor="starter-body">Treść (możesz edytować)</FieldLabel>
+            <FieldLabel htmlFor="starter-body">Treść</FieldLabel>
             <InputShellTextArea>
                 <BareTextArea
                     id="starter-body"
@@ -306,7 +307,7 @@ function TemplateStep({ templateKey, onDone }: { templateKey?: MessageKey; onDon
                 />
             </InputShellTextArea>
             <Hint>
-                Dostępne zmienne: {spec.sms?.placeholders.map(p => `{{${p}}}`).join(', ')}
+                Wstawiane automatycznie: {spec.sms?.placeholders.map(p => `{{${p}}}`).join(', ')}
             </Hint>
 
             {/* Krok kreatora ma jedno wypełnienie: to jego akcja, stopka niesie tylko „Wstecz". */}
@@ -316,7 +317,7 @@ function TemplateStep({ templateKey, onDone }: { templateKey?: MessageKey; onDon
                 disabled={!body.trim() || save.isPending}
                 style={{ alignSelf: 'flex-start' }}
             >
-                {save.isPending ? 'Zapisywanie...' : 'Włącz ten szablon'}
+                {save.isPending ? 'Zapisywanie…' : 'Włącz ten szablon'}
             </Button>
         </>
     );
@@ -359,7 +360,7 @@ function CreditsStep({ onDone }: { onDone: () => void }) {
             <Lede>Ostatni krok: doładuj kredyty, z których wyślemy tę i kolejne wiadomości.</Lede>
 
             {isLoading ? (
-                <Lede>Wczytywanie pakietów...</Lede>
+                <Lede>Wczytywanie pakietów…</Lede>
             ) : (
                 <ChoiceList>
                     {(packages ?? []).map(pkg => (
@@ -414,10 +415,9 @@ function DonePanel() {
     return (
         <DoneWrap>
             <DoneMark><Check aria-hidden="true" /></DoneMark>
-            <DoneTitle>Gotowe, SMS-y są uruchomione</DoneTitle>
+            <DoneTitle>Gotowe, wysyłka SMS jest włączona</DoneTitle>
             <Lede>
-                Wracamy do wysyłki dla tej wizyty. Wszystko, co przed chwilą włączyłeś,
-                działa też dla kolejnych wizyt.
+                Działa też przy kolejnych wizytach.
             </Lede>
         </DoneWrap>
     );

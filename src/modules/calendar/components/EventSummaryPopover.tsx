@@ -844,7 +844,7 @@ const AppointmentSmsRow: React.FC<{ appointmentId: string }> = ({ appointmentId 
     // gdy status to SENT, a to gałąź `alreadySent` obsługuje osobno - ale zostawiamy
     // ten wariant na wszelki wypadek, gdyby backend kiedyś dodał inny powód niedostępności.
     const disabledReason = !preVisitEnabled
-        ? 'Przypomnienia SMS przed wizytą są wyłączone w konfiguracji studia. Włącz je w Ustawieniach → Szablony SMS.'
+        ? 'Przypomnienia SMS są wyłączone. Włączysz je w Ustawieniach → Szablony SMS.'
         : !reminderSms.editable
             ? 'Tego przypomnienia nie można już edytować.'
             : null;
@@ -887,7 +887,7 @@ const AppointmentSmsRow: React.FC<{ appointmentId: string }> = ({ appointmentId 
             />
             <ToggleTrack $checked={effectiveChecked} $saving={mutation.isPending} />
             <ToggleValueText $checked={effectiveChecked} $saving={mutation.isPending}>
-                {mutation.isPending ? '...' : effectiveChecked ? 'Wł.' : 'Wył.'}
+                {mutation.isPending ? '…' : effectiveChecked ? 'Wł.' : 'Wył.'}
             </ToggleValueText>
         </ToggleLabel>
     );
@@ -1061,7 +1061,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
             'READY_FOR_PICKUP': 'Gotowe do odbioru',
             'COMPLETED': 'Zakończone',
             'REJECTED': 'Odrzucone',
-            'ARCHIVED': 'Zarchiwizowane',
+            'ARCHIVED': 'Archiwum',
         };
         return statusMap[status] || status;
     };
@@ -1073,9 +1073,9 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
 
     const formatAppointmentStatusDescription = (status: 'ABANDONED' | 'CANCELLED') => {
         if (status === 'ABANDONED') {
-            return 'Rezerwacja była zapisana, ale klient nie przyjechał lub kontakt się urwał.';
+            return 'Klient nie przyjechał albo kontakt się urwał.';
         }
-        return 'Administrator zgodził się na anulowanie rezerwacji.';
+        return 'Rezerwację anulowano.';
     };
 
     const formatEventTime = (startIso: string, endIso: string, isAllDay?: boolean): string => {
@@ -1356,7 +1356,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                             <IconActionButton $variant="primary" onClick={onStartVisitClick} title="Rozpocznij wizytę">ROZPOCZNIJ</IconActionButton>
                                         )}
                                         {can('VISITS_CREATE') && (
-                                            <IconActionButton $variant="danger" onClick={onCancelReservationClick} title="Anuluj rezerwację">PORZUĆ</IconActionButton>
+                                            <IconActionButton $variant="danger" onClick={onCancelReservationClick} title="Oznacz jako porzuconą">PORZUĆ</IconActionButton>
                                         )}
                                     </>
                                 )}
@@ -1367,7 +1367,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                         <rect x="3" y="5" width="18" height="14" rx="2" />
                                         <line x1="3" y1="10" x2="21" y2="10" />
                                     </svg>
-                                    Karta Wizyty
+                                    Karta wizyty
                                 </SecondaryButton>
                             )}
                         </>
@@ -1399,7 +1399,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                         <rect x="3" y="5" width="18" height="14" rx="2" />
                                         <line x1="3" y1="10" x2="21" y2="10" />
                                     </svg>
-                                    Karta Wizyty
+                                    Karta wizyty
                                 </SecondaryButton>
                             )}
                         </>

@@ -218,7 +218,7 @@ export const ProtocolRuleModal = ({
             onSuccess?.();
             onClose();
         } catch {
-            setErrors({ submit: `Wystąpił błąd podczas ${editingRule ? 'aktualizacji' : 'tworzenia'} reguły` });
+            setErrors({ submit: editingRule ? 'Nie udało się zapisać reguły' : 'Nie udało się dodać reguły' });
         }
     };
 
@@ -267,7 +267,7 @@ export const ProtocolRuleModal = ({
                     </FieldGroup>
 
                     <FieldGroup>
-                        <Label>Typ wyzwalacza *</Label>
+                        <Label>Kiedy wymagany *</Label>
                         <RadioGroup>
                             <RadioOption>
                                 <RadioInput
@@ -308,7 +308,7 @@ export const ProtocolRuleModal = ({
                         <FieldGroup>
                             <Label>Wybierz usługi *</Label>
                             {isLoadingServices ? (
-                                <EmptyServices>Ładowanie usług...</EmptyServices>
+                                <EmptyServices>Wczytywanie usług…</EmptyServices>
                             ) : services.length === 0 ? (
                                 <EmptyServices>Brak dostępnych usług</EmptyServices>
                             ) : (
@@ -349,7 +349,7 @@ export const ProtocolRuleModal = ({
                 </SharedButton>
                 <SharedButton type="submit" form="protocol-rule-form" $variant="primary" $size="sm" disabled={isSubmitting}>
                     {isSubmitting
-                        ? (editingRule ? 'Zapisywanie...' : 'Dodawanie...')
+                        ? (editingRule ? 'Zapisywanie…' : 'Dodawanie…')
                         : (editingRule ? 'Zapisz zmiany' : 'Dodaj regułę')}
                 </SharedButton>
             </ModalFooter>

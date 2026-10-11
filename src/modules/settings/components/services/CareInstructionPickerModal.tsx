@@ -67,7 +67,7 @@ export function CareInstructionPickerModal({
         <ModalShell isOpen onClose={onCancel} maxWidth="620px" stableHeight>
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>Instrukcje pielęgnacyjne</ModalTitle>
+                    <ModalTitle>Instrukcje pielęgnacji</ModalTitle>
                     <ModalSubtitle>
                         {serviceName
                             ? `Zaznaczą się na certyfikacie, gdy wizyta obejmie „${serviceName}"`
@@ -95,7 +95,7 @@ export function CareInstructionPickerModal({
 
                 {instructions.length === 0 && (
                     <Empty>
-                        Słownik instrukcji jest pusty. Uzupełnisz go w „Instrukcjach pielęgnacji" obok usług i pakietów.
+                        Nie masz jeszcze instrukcji. Dodasz je w zakładce „Instrukcje pielęgnacji".
                     </Empty>
                 )}
                 {instructions.length > 0 && visible.length === 0 && (

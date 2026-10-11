@@ -587,7 +587,7 @@ export function ReplyComposer({
                     continue;
                 }
                 if (file.size > maxFileBytes) {
-                    showError(`Nie dołączono „${file.name}"`, `Limit to ${formatSize(maxFileBytes)} na plik`);
+                    showError(`Nie dołączono „${file.name}"`, `Plik może mieć najwyżej ${formatSize(maxFileBytes)}`);
                     continue;
                 }
                 if (accepted.length >= maxFiles) {
@@ -758,7 +758,7 @@ export function ReplyComposer({
         ) : null;
 
     const sendDisabled = sendMail.isPending || bodyEmpty || pendingPlaceholders.length > 0;
-    const sendTitle = pendingPlaceholders.length > 0 ? 'Uzupełnij znaczniki w nawiasach kwadratowych' : undefined;
+    const sendTitle = pendingPlaceholders.length > 0 ? 'Uzupełnij miejsca w nawiasach [ ]' : undefined;
 
     if (collapsible && !expanded) {
         return (
@@ -904,8 +904,7 @@ export function ReplyComposer({
             )}
             {recipientUnknown && (
                 <RecipientHint $warn>
-                    Nie wiemy, kto jest klientem w tym wątku - wpisz jego adres. Adres studia
-                    i formularza na stronie nie zostanie przyjęty.
+                    Wpisz adres klienta (nie adres studia ani formularza).
                 </RecipientHint>
             )}
             {requireSubject && (

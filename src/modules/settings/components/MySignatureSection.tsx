@@ -29,7 +29,7 @@ export function MySignatureSection() {
     const reload = useCallback(() => { void refetch(); }, [refetch]);
 
     if (isLoading) {
-        return <Placeholder aria-label="Twój podpis"><p role="status">Wczytywanie podpisu...</p></Placeholder>;
+        return <Placeholder aria-label="Twój podpis"><p role="status">Wczytywanie podpisu…</p></Placeholder>;
     }
 
     if (isError && !data) {

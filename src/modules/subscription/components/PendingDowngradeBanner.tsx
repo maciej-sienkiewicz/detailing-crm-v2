@@ -20,7 +20,7 @@ export function PendingDowngradeBanner({ pendingDowngrade }: Props) {
     const handleCancel = async () => {
         try {
             await cancel.mutateAsync();
-            showSuccess('Zmiana odwołana', 'Zostajesz przy obecnym planie.');
+            showSuccess('Zmiana odwołana', 'Zostajesz przy obecnym pakiecie.');
         } catch (err) {
             toastUnhandledError(showError, err, 'Nie udało się odwołać zmiany', 'Spróbuj ponownie za chwilę.');
         }
@@ -29,15 +29,15 @@ export function PendingDowngradeBanner({ pendingDowngrade }: Props) {
     return (
         <Notice
             tone="warn"
-            title="Zaplanowana zmiana planu"
+            title="Zaplanowana zmiana pakietu"
             action={(
                 <Button size="sm" onClick={handleCancel} disabled={cancel.isPending}>
                     {cancel.isPending ? 'Odwoływanie…' : 'Odwołaj zmianę'}
                 </Button>
             )}
         >
-            Od {formatDate(pendingDowngrade.effectiveAt)} plan zmieni się na {pendingDowngrade.toPlanName}.
-            Do tego dnia masz pełny dostęp do obecnego planu.
+            Od {formatDate(pendingDowngrade.effectiveAt)} pakiet zmieni się na {pendingDowngrade.toPlanName}.
+            Do tego dnia masz pełny dostęp do obecnego pakietu.
         </Notice>
     );
 }

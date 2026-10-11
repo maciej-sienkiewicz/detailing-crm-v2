@@ -109,7 +109,7 @@ export const getFullName = (customer: Customer): string => {
     if (name) return name;
     if (customer.contact?.phone) return formatPhoneNumber(customer.contact.phone);
     if (customer.contact?.email) return customer.contact.email;
-    return 'Klient bezimienny';
+    return 'Klient bez nazwiska';
 };
 
 export const mapFormDataToPayload = (

@@ -28,7 +28,7 @@ const COLUMNS: ColumnDef[] = [
     },
     {
         id: 'in_progress',
-        label: 'W trakcie realizacji',
+        label: 'W trakcie',
         color: '#f59e0b',
         match: (type, status) => type === 'VISIT' && status === 'IN_PROGRESS',
     },
@@ -40,7 +40,7 @@ const COLUMNS: ColumnDef[] = [
     },
     {
         id: 'completed',
-        label: 'Oddane',
+        label: 'Zakończone',
         color: '#64748b',
         match: (type, status) =>
             type === 'VISIT' && (status === 'COMPLETED' || status === 'ARCHIVED' || status === 'REJECTED'),

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 //
 // „Sesja zablokowana" (zgłoszenie z 07.10): z ekranu blokady wychodzi się tylko PIN-em
-// albo hasłem. „Zaloguj podając hasło" dawniej najpierw zdejmowało blokadę, a dopiero
+// albo hasłem. „Zaloguj się hasłem" dawniej najpierw zdejmowało blokadę, a dopiero
 // potem szło na /login - teraz kończy sesję i dalej wpuszcza wyłącznie poprawne hasło.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -56,9 +56,9 @@ afterEach(() => {
 });
 
 describe('UserSwitcherPanel - ekran blokady', () => {
-    it('„Zaloguj podając hasło" kończy sesję zamiast zdejmować blokadę', async () => {
+    it('„Zaloguj się hasłem" kończy sesję zamiast zdejmować blokadę', async () => {
         const { onClose } = renderPanel(true);
-        fireEvent.click(screen.getByRole('button', { name: 'Zaloguj podając hasło' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Zaloguj się hasłem' }));
 
         await waitFor(() => expect(navigate).toHaveBeenCalledWith('/login'));
         expect(authApi.logout).toHaveBeenCalledTimes(1);

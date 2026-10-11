@@ -50,12 +50,6 @@ const Optional = styled.span`
     color: ${ui.textMuted};
 `;
 
-const Hint = styled.span`
-    font-size: 12.5px;
-    line-height: 1.45;
-    color: ${ui.textMuted};
-`;
-
 const Rejection = styled.div`
     white-space: pre-line;
 `;
@@ -227,7 +221,6 @@ function AddDocumentModalBody({ onClose, initialStage = 'CHECK_IN', onSuccess }:
                             onChange={setStage}
                             block
                         />
-                        <Hint>Dokument trafi na listę tego etapu i będzie podpisywany przy każdej wizycie.</Hint>
                     </FormField>
 
                     {submitError && (
@@ -241,7 +234,7 @@ function AddDocumentModalBody({ onClose, initialStage = 'CHECK_IN', onSuccess }:
             <ModalFooter>
                 <Button onClick={onClose}>Anuluj</Button>
                 <Button type="submit" form="add-document-form" variant="primary" disabled={isPending}>
-                    {isPending ? 'Dodawanie...' : 'Dodaj dokument'}
+                    {isPending ? 'Dodawanie…' : 'Dodaj dokument'}
                 </Button>
             </ModalFooter>
         </ModalShell>

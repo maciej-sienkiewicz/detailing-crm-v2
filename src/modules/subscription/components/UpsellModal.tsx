@@ -49,12 +49,12 @@ export function UpsellModal({ onClose, ...props }: UpsellModalProps) {
                         subtitle={
                             missingNames.length > 0 ? (
                                 <>
-                                    Ta funkcja jest częścią modułu{missingNames.length > 1 ? 'ów' : ''}{' '}
-                                    <strong>{missingNames.join(', ')}</strong>, który nie jest aktywny
-                                    w Twoim pakiecie.
+                                    {missingNames.length > 1 ? 'Ta funkcja wymaga modułów' : 'Ta funkcja jest w module'}{' '}
+                                    <strong>{missingNames.join(', ')}</strong>
+                                    {missingNames.length > 1 ? ', których nie masz w pakiecie.' : ', którego nie masz w pakiecie.'}
                                 </>
                             ) : (
-                                'Ta funkcja nie jest dostępna w Twoim pakiecie.'
+                                'Tej funkcji nie masz w swoim pakiecie.'
                             )
                         }
                         addOnKey={(option?.addOnKey as AddOnKey) ?? null}

@@ -97,8 +97,8 @@ const pct = (value: number): string => `${Math.min(100, Math.max(0, Number(value
 const pendingLabel = (service: ServiceLineItem): string | null => {
     const isPending = service.hasPendingChange ?? service.status === 'PENDING';
     if (!isPending) return null;
-    if (service.pendingOperation === 'DELETE') return 'oczekuje na usunięcie';
-    if (service.pendingOperation === 'ADD') return 'oczekuje na akceptację klienta';
+    if (service.pendingOperation === 'DELETE') return 'usunięcie czeka na zgodę klienta';
+    if (service.pendingOperation === 'ADD') return 'czeka na zgodę klienta';
     return null;
 };
 

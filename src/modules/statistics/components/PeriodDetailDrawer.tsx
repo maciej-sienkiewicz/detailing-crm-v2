@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import type { PeriodDetail, PeriodVisit, Granularity } from '../types';
 import { fetchPeriodDetail } from '../api/periodDetailMockApi';
+import { pluralPl } from '@/common/utils/plural';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -188,7 +189,7 @@ const KpiSub = styled.span`
 const DrawerBody = styled.div`
     flex: 1;
     overflow-y: auto;
-    padding: 0 0 72px;
+    padding: 0 0 24px;
     scrollbar-width: thin;
     scrollbar-color: ${p => p.theme.colors.border} transparent;
     &::-webkit-scrollbar { width: 4px; }
@@ -271,15 +272,26 @@ const VisitClient = styled.span`
     margin-bottom: 2px;
 `;
 
-// 12px · 500 (matches CAPTION)
+// 12px · 500 (matches CAPTION). Auto i data to dwa atrybuty, więc dwa elementy
+// z odstępem zamiast sklejenia kropką (CLAUDE.md §4); obcina się auto, data zostaje.
 const VisitMeta = styled.span`
-    display: block;
+    display: flex;
+    gap: 8px;
+    min-width: 0;
     font-size: 12px;
     font-weight: 500;
     color: ${p => p.theme.colors.textMuted};
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+
+    & > span:first-child {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    & > span:last-child {
+        flex-shrink: 0;
+    }
 `;
 
 const VisitRight = styled.div`
@@ -522,24 +534,6 @@ const Spinner = styled.div`
     @keyframes spin { to { transform: rotate(360deg); } }
 `;
 
-// ─── Mock badge ───────────────────────────────────────────────────────────────
-
-const MockBadge = styled.div`
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: 7px 22px;
-    background: ${p => p.theme.colors.surface};
-    border-top: 1px solid ${p => p.theme.colors.surfaceAlt};
-    font-size: 11px;
-    font-weight: 500;
-    color: ${p => p.theme.colors.textMuted};
-    display: flex;
-    align-items: center;
-    gap: 6px;
-`;
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const PLN = (grosz: number) =>
@@ -598,7 +592,10 @@ const VisitItem = ({
                 </VisitAvatar>
                 <VisitInfo>
                     <VisitClient>{visit.clientName}</VisitClient>
-                    <VisitMeta>{visit.vehicleInfo} · {visit.visitDate}</VisitMeta>
+                    <VisitMeta>
+                        <span>{visit.vehicleInfo}</span>
+                        <span>{visit.visitDate}</span>
+                    </VisitMeta>
                 </VisitInfo>
                 <VisitRight>
                     <VisitRevenue>{PLN(visit.totalRevenueGross)}</VisitRevenue>
@@ -609,7 +606,7 @@ const VisitItem = ({
                     )}
                     <VisitServiceCount>
                         {visit.services.length}{' '}
-                        {visit.services.length === 1 ? 'usługa' : visit.services.length < 5 ? 'usługi' : 'usług'}
+                        {pluralPl(visit.services.length, 'usługa', 'usługi', 'usług')}
                     </VisitServiceCount>
                 </VisitRight>
                 <Chevron $expanded={expanded}>▼</Chevron>
@@ -745,7 +742,7 @@ export const PeriodDetailDrawer = ({
                     {isFiltered && (
                         <FilterBanner>
                             <FilterDot />
-                            Filtr aktywny: {categoryName}
+                            Tylko kategoria: {categoryName}
                         </FilterBanner>
                     )}
 
@@ -769,11 +766,11 @@ export const PeriodDetailDrawer = ({
                                 </KpiValue>
                             </KpiTile>
                             <KpiTile>
-                                <KpiLabel>Śr. wizyta</KpiLabel>
+                                <KpiLabel>Średnio na wizytę</KpiLabel>
                                 <KpiValue $color="#d97706">
                                     {PLN(avgPerVisit)}
                                 </KpiValue>
-                                {isFiltered && <KpiSub>z filtra</KpiSub>}
+                                {isFiltered && <KpiSub>w tej kategorii</KpiSub>}
                             </KpiTile>
                         </KpiStrip>
                     )}
@@ -783,7 +780,7 @@ export const PeriodDetailDrawer = ({
                 {loading && (
                     <LoadingState>
                         <Spinner />
-                        <span>Ładowanie wizyt...</span>
+                        <span>Wczytywanie wizyt…</span>
                     </LoadingState>
                 )}
 
@@ -802,13 +799,6 @@ export const PeriodDetailDrawer = ({
                             />
                         ))}
                     </DrawerBody>
-                )}
-
-                {detail && !loading && (
-                    <MockBadge>
-                        ⚠ Mock API · GET /v1/statistics/periods/{'{period}'}/visits
-                        {isFiltered ? `?categoryId=${categoryId}` : ''}
-                    </MockBadge>
                 )}
             </Drawer>
         </>

@@ -106,7 +106,7 @@ export function ReplyDraftOfferModal({ threadId, lead, onClose, onReady }: Reply
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Oferta w odpowiedzi</ModalTitle>
-                    <ModalSubtitle>Asystent wypisze te usługi z cenami, a przy rabacie podaje cenę regularną.</ModalSubtitle>
+                    <ModalSubtitle>Asystent wpisze te usługi z cenami, a przy rabacie poda też cenę regularną.</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>

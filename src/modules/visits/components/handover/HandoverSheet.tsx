@@ -278,7 +278,7 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                     (faktura, paragon, brak) mówi sekcja rozliczenia nad przyciskiem -
                                     etykieta, która to powtarzała, zmieniała się w trakcie klikania
                                     i wydłużała przycisk. */}
-                                {handover.isSubmitting ? 'Wydawanie...' : 'Wydaj pojazd'}
+                                {handover.isSubmitting ? 'Wydawanie…' : 'Wydaj pojazd'}
                             </Button>
                         </>
                     )}

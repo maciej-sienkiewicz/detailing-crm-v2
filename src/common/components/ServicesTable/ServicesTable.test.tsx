@@ -132,7 +132,7 @@ describe('ServicesTable - rabat na pozycji z ceną ręczną', () => {
         // Łącznie przed rabatem liczy pozycję ręczną jej ceną, nie zerem.
         const before = within(screen.getByText('Łącznie przed rabatem').parentElement!);
         expect(before.getByText('3800.00 zł')).toBeInTheDocument();
-        await user.click(screen.getByRole('button', { name: '−Brutto' }));
+        await user.click(screen.getByRole('button', { name: 'Kwota brutto' }));
         await user.type(screen.getByPlaceholderText('0'), '200');
         await user.click(screen.getByRole('button', { name: 'Zastosuj' }));
 

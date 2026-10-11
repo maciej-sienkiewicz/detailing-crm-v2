@@ -203,7 +203,7 @@ const StagnationPanel = () => {
         },
         onError: (error) => {
             if (toastedGlobally(error)) return;
-            showError('Nie udało się zapisać progów', serverMessage(error) ?? 'Spróbuj ponownie. Wpisane liczby czekają w pasku zapisu.');
+            showError('Nie udało się zapisać progów', serverMessage(error) ?? 'Spróbuj ponownie. Wpisane liczby zostały w polach.');
         },
     });
 

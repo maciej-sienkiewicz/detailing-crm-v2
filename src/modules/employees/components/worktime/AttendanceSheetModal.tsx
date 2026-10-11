@@ -98,7 +98,7 @@ export function AttendanceSheetModal({ onClose, onGenerated }: Props) {
             const sheet = await generate.mutateAsync({ period, employeeIds });
             showSuccess(
                 'Lista obecności wygenerowana',
-                `${periodLabel(sheet.period)} czeka na zatwierdzenie na liście.`,
+                `Lista za ${periodLabel(sheet.period).toLowerCase()} czeka na zatwierdzenie.`,
             );
             onGenerated?.(sheet);
             onClose();
@@ -115,7 +115,7 @@ export function AttendanceSheetModal({ onClose, onGenerated }: Props) {
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Wygeneruj listę obecności</ModalTitle>
-                    <ModalSubtitle>Wybierz miesiąc i osoby, których godziny trafią do arkusza.</ModalSubtitle>
+                    <ModalSubtitle>Wybierz miesiąc i osoby, których godziny trafią na listę.</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
@@ -159,7 +159,7 @@ export function AttendanceSheetModal({ onClose, onGenerated }: Props) {
                     </PeopleHead>
 
                     {loading ? (
-                        <Muted>Wczytywanie pracowników...</Muted>
+                        <Muted>Wczytywanie pracowników…</Muted>
                     ) : loadFailed ? (
                         <Notice
                             tone="danger"
@@ -176,8 +176,8 @@ export function AttendanceSheetModal({ onClose, onGenerated }: Props) {
                         />
                     ) : candidates.length === 0 ? (
                         <Notice tone="info" title="Nikt nie ma liczonego czasu pracy">
-                            Lista obecności zbiera godziny z modułu „Czas pracy". Włącz „Liczony czas
-                            pracy" w roli pracowników w widoku „Role".
+                            Lista bierze godziny z kart czasu pracy. Włącz „Liczony czas pracy”
+                            w roli pracownika (ustawienia ról).
                         </Notice>
                     ) : (
                         <PeopleList role="group" aria-labelledby="attendance-people">
@@ -197,9 +197,8 @@ export function AttendanceSheetModal({ onClose, onGenerated }: Props) {
                 </People>
 
                 <Hint>
-                    W arkuszu kolumnami są wybrane osoby, wierszami dni miesiąca, a w komórkach
-                    godziny z ich kart czasu pracy. Gotowa lista pojawi się na liście w tej
-                    zakładce - tam ją podejrzysz, zatwierdzisz i pobierzesz.
+                    Gotowa lista pojawi się w tej zakładce. Tam ją sprawdzisz, zatwierdzisz
+                    i pobierzesz.
                 </Hint>
 
                 {error && <ErrorText role="alert">{error}</ErrorText>}
@@ -213,7 +212,7 @@ export function AttendanceSheetModal({ onClose, onGenerated }: Props) {
                     disabled={generate.isPending || employeeIds.length === 0}
                 >
                     {generate.isPending
-                        ? 'Generowanie...'
+                        ? 'Generowanie…'
                         : employeeIds.length > 0 && !allChosen
                             ? `Wygeneruj listę (${employeesCount(employeeIds.length)})`
                             : 'Wygeneruj listę'}

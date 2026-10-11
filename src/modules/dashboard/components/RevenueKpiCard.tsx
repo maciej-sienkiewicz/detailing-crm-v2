@@ -161,7 +161,7 @@ export const RevenueKpiCard = () => {
         <Number>{formatCurrency(data.currentMonth.grossAmount / 100, currency)}</Number>
         <Delta $positive={positive}>
           {positive ? <TrendingUp /> : <TrendingDown />}
-          {positive ? '+' : ''}{data.deltaPercentage.toFixed(1)}% {comparisonLabel(!!data.previousMonthToDate)}
+          {positive ? '+' : ''}{data.deltaPercentage.toLocaleString('pl-PL', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% {comparisonLabel(!!data.previousMonthToDate)}
         </Delta>
       </Card>
 
@@ -187,7 +187,7 @@ export const RevenueKpiCard = () => {
                 tick={{ fill: '#475569', fontSize: 10 }}
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={v => `${(v / 1000).toFixed(0)}k`}
+                tickFormatter={v => `${(v / 1000).toFixed(0)} tys.`}
               />
               <Tooltip
                 content={({ active, payload, label }) =>

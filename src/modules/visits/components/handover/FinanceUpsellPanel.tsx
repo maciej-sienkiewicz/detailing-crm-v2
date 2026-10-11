@@ -58,7 +58,7 @@ export function FinanceUpsellPanel({ grossAmount, currency }: Props) {
                     </BuyBtn>
                 ) : (
                     <EmployeeHint>
-                        Aktywacja modułu wymaga uprawnień właściciela studia.
+                        Moduł może włączyć tylko właściciel studia.
                     </EmployeeHint>
                 )}
 

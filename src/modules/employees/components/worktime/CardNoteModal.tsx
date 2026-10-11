@@ -79,8 +79,8 @@ export function CardNoteModal({ kind, name, resignWarning, pending, onSubmit, on
                     <Button variant="outline" onClick={onClose} disabled={pending}>Anuluj</Button>
                     <Button variant="primary" onClick={submit} disabled={pending}>
                         {unlock
-                            ? (pending ? 'Odblokowuję…' : 'Odblokuj kartę')
-                            : (pending ? 'Zwracam…' : 'Zwróć kartę')}
+                            ? (pending ? 'Odblokowywanie…' : 'Odblokuj kartę')
+                            : (pending ? 'Zwracanie…' : 'Zwróć kartę')}
                     </Button>
                 </Footer>
             </ModalFooter>

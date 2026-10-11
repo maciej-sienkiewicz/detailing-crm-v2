@@ -152,7 +152,31 @@ describe('buildServicesAsLineItems - obie ceny sa dokladne, zadna nie jest przel
       // serviceBasePrices celowo puste - symuluje stary draft.
     });
 
-    expect(buildServicesAsLineItems(input)[0].basePriceNet).toBe(Math.round((1900 / 1.23) * 100));
+    expect(buildServicesAsLineItems(input)[0].basePriceNet).toBe(154_472);
+  });
+
+  it('bezpiecznik przy ZW (vatRate = -1): netto równa się brutto, a nie brutto / 0,99', () => {
+    // Dawny wzór `baseGross / (1 + vatRate / 100)` dla ZW dzielił przez 0,99:
+    // 1900 zł brutto dawało 191919 gr netto - więcej niż brutto.
+    const input = baseInput({
+      serviceRefs: { 'line-1': 'catalog-1' },
+      services: [{ id: 'catalog-1', name: 'x', basePriceNet: 999_999, vatRate: -1, requireManualPrice: false }],
+      servicePrices: { 'line-1': 1900 },
+    });
+
+    const item = buildServicesAsLineItems(input)[0];
+    expect(item.basePriceNet).toBe(190_000);
+    expect(item.basePriceGross).toBe(190_000);
+  });
+
+  it('bezpiecznik przy 0% VAT: netto równa się brutto', () => {
+    const input = baseInput({
+      serviceRefs: { 'line-1': 'catalog-1' },
+      services: [{ id: 'catalog-1', name: 'x', basePriceNet: 999_999, vatRate: 0, requireManualPrice: false }],
+      servicePrices: { 'line-1': 87.5 },
+    });
+
+    expect(buildServicesAsLineItems(input)[0].basePriceNet).toBe(8_750);
   });
 });
 

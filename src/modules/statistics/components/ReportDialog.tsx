@@ -33,7 +33,7 @@ const LENGTH_OPTIONS = [
 
 const COMPARISON_OPTIONS = [
     { value: 'PREVIOUS' as const, label: 'Poprzedni okres' },
-    { value: 'MEDIAN' as const, label: 'Mediana 6 okresów' },
+    { value: 'MEDIAN' as const, label: 'Typowy wynik z 6 okresów' },
 ];
 
 const NOTIFICATION_SETTINGS = '/settings?tab=mobile-devices&view=notifications';

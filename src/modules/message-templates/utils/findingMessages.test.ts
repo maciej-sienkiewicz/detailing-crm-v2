@@ -10,7 +10,7 @@ describe('describeFinding', () => {
   it('sms-too-long tłumaczy liczbę segmentów na instrukcję skrócenia treści', () => {
     const text = describeFinding({ severity: 'ERROR', rule: 'sms-too-long', detail: '5 segmentów' });
     expect(text).toContain('za długa');
-    expect(text).toContain('5 SMS-y');
+    expect(text).toContain('5 SMS-ów');
     expect(text.toLowerCase()).not.toContain('sms-too-long');
   });
 
@@ -32,7 +32,7 @@ describe('describeFinding', () => {
 
   it('subject-long podaje liczbę znaków', () => {
     const text = describeFinding({ severity: 'WARNING', rule: 'subject-long', detail: '82 znaków' });
-    expect(text).toContain('82 znaków');
+    expect(text).toContain('82 znaki');
     expect(text).toContain('Skróć temat');
   });
 

@@ -148,7 +148,7 @@ describe('WorkTimeView - karta złożona, zwrócona i braki', () => {
         expect(await screen.findByText('Karta złożona, czeka na decyzję przełożonego.')).toBeInTheDocument();
         expect(screen.getByText('Jeśli trzeba coś poprawić, poproś o zwrot.')).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /Uzupełnij miesiąc/ })).toBeNull();
-        expect(screen.queryByRole('button', { name: /Standardowa dniówka/ })).toBeNull();
+        expect(screen.queryByRole('button', { name: /Wpisz dziś 8 h/ })).toBeNull();
         expect(screen.queryByRole('button', { name: /Złóż kartę/ })).toBeNull();
 
         fireEvent.click(screen.getAllByLabelText(/brak wpisu/)[0]);
@@ -207,7 +207,7 @@ describe('WorkTimeView - karta złożona, zwrócona i braki', () => {
     it('„Uzupełnij miesiąc" mówi, że pomija święta i urlop', async () => {
         renderView();
         fireEvent.click(await screen.findByRole('button', { name: /Uzupełnij miesiąc/ }));
-        expect(screen.getByText(/Święta oraz dni urlopu i L4 zostaną pominięte/)).toBeInTheDocument();
+        expect(screen.getByText(/Święta, urlopy, L4 i dni z wpisem zostają bez zmian/)).toBeInTheDocument();
     });
 
     it('`?period` z powiadomienia otwiera wskazany miesiąc, przyszły - bieżący', async () => {

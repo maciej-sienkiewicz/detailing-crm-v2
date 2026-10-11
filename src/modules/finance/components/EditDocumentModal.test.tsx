@@ -83,14 +83,14 @@ describe('EditDocumentModal', () => {
     it('dokument z wydania pojazdu: kwoty zablokowane, reszta do zmiany', () => {
         renderModal(receipt({ source: 'VISIT' }));
         expect(screen.getByText('Dokument z wydania pojazdu')).toBeInTheDocument();
-        expect(screen.getByLabelText('Kwota brutto (PLN)')).toBeDisabled();
+        expect(screen.getByLabelText('Kwota brutto (zł)')).toBeDisabled();
         expect(screen.getByLabelText('Data wystawienia')).toBeEnabled();
     });
 
     it('dokument faktury KSeF: zmienia się tylko opis', () => {
         renderModal(receipt({ ksefInvoiceId: 'inv-1' }));
         expect(screen.getByText('Dokument faktury KSeF')).toBeInTheDocument();
-        expect(screen.getByLabelText('Kwota netto (PLN)')).toBeDisabled();
+        expect(screen.getByLabelText('Kwota netto (zł)')).toBeDisabled();
         expect(screen.getByLabelText('Data wystawienia')).toBeDisabled();
         expect(screen.getByLabelText('Opis / tytuł')).toBeEnabled();
     });

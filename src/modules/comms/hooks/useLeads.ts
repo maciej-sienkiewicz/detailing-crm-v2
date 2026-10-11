@@ -10,6 +10,7 @@ import { useToast } from '@/common/components/Toast';
 import { hasMaskedPii, mergeMaskedPii } from '@/common/pii';
 import { leadsApi } from '../api/leadsApi';
 import { LEAD_STATUS_LABELS } from '../types';
+import { pluralPl } from '@/common/utils/plural';
 import { COMMS_THREADS_KEY } from './useComms';
 import { DEFAULT_STAGNATION, type StagnationThresholds } from '../utils/leadUrgency';
 import type {
@@ -519,7 +520,7 @@ export const useBulkDeleteLeads = () => {
 
             if (result.deleted > 0) {
                 showSuccess(
-                    result.deleted === 1 ? 'Sprawa usunięta' : `Usunięto ${result.deleted} spraw`,
+                    result.deleted === 1 ? 'Sprawa usunięta' : `Usunięto ${result.deleted} ${pluralPl(result.deleted, 'sprawę', 'sprawy', 'spraw')}`,
                     'Korespondencja została w skrzynce'
                 );
             }
@@ -768,7 +769,7 @@ export const useUpdateLeadServices = () => {
 };
 
 /**
- * Akcje na sugestiach AI: [Akceptuj] / [Odrzuć] / „Sprawdź ponownie" / przeniesienie
+ * Akcje na sugestiach AI: [Dodaj do wyceny] / [Odrzuć] / „Sprawdź ponownie" / przeniesienie
  * przy rezerwacji. Każdy endpoint zwraca świeżego leada, więc podmieniamy szczegół
  * w miejscu i unieważniamy listę, analitykę oraz kalendarz (wycena = lista rezerwacji).
  */
@@ -809,7 +810,7 @@ export const useSuggestionActions = (leadId: string, options: { onAccepted?: (le
 };
 
 /**
- * „Stwórz rezerwację" musi najpierw przenieść nieodrzucone sugestie do wyceny.
+ * „Umów wizytę" musi najpierw przenieść nieodrzucone sugestie do wyceny.
  * Serwer zwraca 409 z nazwami, gdy któraś czeka na kwotę — wołający wtedy wymusza
  * kwoty i nie otwiera modalu rezerwacji.
  */

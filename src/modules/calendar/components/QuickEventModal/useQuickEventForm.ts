@@ -568,23 +568,23 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         const newErrors: { [key: string]: string } = {};
 
         if (!customer) {
-            newErrors.customer = 'Wybór klienta jest wymagany';
+            newErrors.customer = 'Wybierz klienta';
         } else if (customer.isNew) {
             const hasPhone = customer.phone && customer.phone.trim().length > 0;
             const hasEmail = customer.email && customer.email.trim().length > 0;
             if (!hasPhone && !hasEmail) {
-                newErrors.customer = 'Podaj co najmniej numer telefonu lub adres email klienta';
+                newErrors.customer = 'Podaj telefon albo e-mail klienta';
             }
         }
 
-        if (!startDateTime) newErrors.startDateTime = 'Data rozpoczęcia jest wymagana';
-        if (!endDateTime) newErrors.endDateTime = 'Data zakończenia jest wymagana';
+        if (!startDateTime) newErrors.startDateTime = 'Podaj datę rozpoczęcia';
+        if (!endDateTime) newErrors.endDateTime = 'Podaj datę zakończenia';
 
         if (startDateTime && endDateTime && new Date(endDateTime) < new Date(startDateTime)) {
             newErrors.endDateTime = 'Data zakończenia musi być późniejsza niż data rozpoczęcia';
         }
 
-        if (!selectedColorId) newErrors.color = 'Wybierz kolor wizyty lub dodaj nowy';
+        if (!selectedColorId) newErrors.color = 'Wybierz kolor rezerwacji albo dodaj nowy';
 
         if (selectedServiceIds.length === 0) {
             newErrors.services = 'Dodaj przynajmniej jedną usługę';
@@ -598,7 +598,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
                 }
             });
             if (servicePriceErrors.length > 0) {
-                newErrors.servicePrices = `Wprowadź cenę dla usług: ${servicePriceErrors.join(', ')}`;
+                newErrors.servicePrices = `Podaj cenę: ${servicePriceErrors.join(', ')}`;
             }
         }
 
@@ -632,7 +632,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         const customerToSubmit = resolveCustomerForSubmit();
         const errs = validateForm(customerToSubmit);
         if (Object.keys(errs).length > 0) {
-            showError('Nie można zapisać wizyty', submitErrorMessage(errs));
+            showError('Nie można zapisać rezerwacji', submitErrorMessage(errs));
             focusFirstError(errs);
             return;
         }
@@ -674,14 +674,16 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
                 recurrence: isRecurring ? recurrenceRule : null,
             }));
         } catch (err: any) {
-            let message = 'Wystąpił nieoczekiwany błąd podczas zapisu.';
+            let message = 'Spróbuj ponownie za chwilę.';
             if (err?.response?.data) {
                 const data = err.response.data;
-                message = data.message || data.error || JSON.stringify(data);
+                // Surowy JSON z serwera nie jest komunikatem dla człowieka - bez `message`
+                // ani `error` zostaje zdanie domyślne.
+                message = data.message || data.error || message;
             } else if (err?.message) {
                 message = err.message;
             }
-            showError('Błąd zapisu wizyty', message);
+            showError('Nie udało się zapisać rezerwacji', message);
         } finally {
             setIsSubmitting(false);
         }
@@ -727,8 +729,8 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     const getCustomerFieldErrors = (_fn: string, _ln: string, ph: string, em: string): Record<string, string> => {
         const errs: Record<string, string> = {};
         if (!ph && !em) {
-            errs.customerPhone = 'Podaj telefon lub email';
-            errs.customerEmail = 'Podaj telefon lub email';
+            errs.customerPhone = 'Podaj telefon albo e-mail';
+            errs.customerEmail = 'Podaj telefon albo e-mail';
         }
         return errs;
     };
@@ -753,7 +755,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
             if (Object.keys(fieldErrors).length > 0) {
                 setErrors(prev => ({ ...prev, ...fieldErrors }));
                 if (!options?.silent) {
-                    showError('Dane klienta', Object.values(fieldErrors)[0]);
+                    showError('Popraw dane klienta', Object.values(fieldErrors)[0]);
                     if (fieldErrors.customerFirstName) customerInputRef.current?.focus();
                     else if (fieldErrors.customerLastName) customerLastNameInputRef.current?.focus();
                     else customerPhoneInputRef.current?.focus();
@@ -794,7 +796,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
             if (Object.keys(fieldErrors).length > 0) {
                 setErrors(prev => ({ ...prev, ...fieldErrors }));
                 if (!options?.silent) {
-                    showError('Dane klienta', Object.values(fieldErrors)[0]);
+                    showError('Popraw dane klienta', Object.values(fieldErrors)[0]);
                     if (fieldErrors.customerFirstName) customerInputRef.current?.focus();
                     else if (fieldErrors.customerLastName) customerLastNameInputRef.current?.focus();
                     else customerPhoneInputRef.current?.focus();
@@ -1039,7 +1041,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
             queryClient.invalidateQueries({ queryKey: ['appointment-colors'] });
             setSelectedColorId(newColor.id);
         } catch (error: any) {
-            showError('Błąd tworzenia koloru', error?.message || 'Nie udało się utworzyć koloru. Spróbuj ponownie.');
+            showError('Nie udało się dodać koloru', error?.response?.data?.message || 'Spróbuj ponownie.');
         }
     };
 

@@ -751,7 +751,7 @@ export const VehicleDamageMapper = ({
   };
 
   const handleClearAll = () => {
-    if (window.confirm('Czy na pewno chcesz usunąć wszystkie zaznaczenia?')) {
+    if (window.confirm('Usunąć wszystkie oznaczenia?')) {
       onChange([]);
     }
   };
@@ -1075,7 +1075,7 @@ export const VehicleDamageMapper = ({
                   <PickerEmpty>
                     {onUploadPhotoFile || renderQrPanel
                       ? 'Brak zdjęć do wyboru. Wyślij plik z komputera albo zrób zdjęcie telefonem, zakładki powyżej.'
-                      : 'Brak zdjęć w dokumentacji. Prześlij zdjęcia w sekcji „Dokumentacja zdjęciowa" powyżej lub użyj telefonu (kod QR), aby dodać zdjęcia bezpośrednio do uszkodzenia.'}
+                      : 'Brak zdjęć. Dodaj je w sekcji „Dokumentacja zdjęciowa” albo telefonem przez kod QR.'}
                   </PickerEmpty>
                 ) : (
                   <PickerGrid>
@@ -1109,7 +1109,7 @@ export const VehicleDamageMapper = ({
                       <polyline points="17 8 12 3 7 8" />
                       <line x1="12" y1="3" x2="12" y2="15" />
                     </svg>
-                    {uploadingFile ? 'Wysyłanie zdjęcia...' : 'Wybierz zdjęcie z komputera'}
+                    {uploadingFile ? 'Wysyłanie zdjęcia…' : 'Wybierz zdjęcie z komputera'}
                     <FileDropHint>
                       Po wysłaniu zdjęcie od razu przypniemy do tego uszkodzenia
                       i otworzymy pisak do zaznaczenia.

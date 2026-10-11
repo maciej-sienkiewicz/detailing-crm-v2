@@ -153,8 +153,7 @@ export const UploadTemplateModal = ({
                                         </svg>
                                     </WarningIcon>
                                     <WarningText>
-                                        Włączenie tej opcji spowoduje, że wszyscy klienci będą musieli
-                                        ponownie podpisać tę zgodę.
+                                        Każdy klient podpisze ją jeszcze raz.
                                     </WarningText>
                                 </WarningBox>
                             )}

@@ -31,7 +31,7 @@ export const isSessionGoneError = (err: unknown): boolean => {
 /** A short, actionable Polish message for a failed photo upload. */
 export const describeUploadError = (err: unknown): string => {
     if (isSessionGoneError(err)) {
-        return 'Sesja wygasła - poproś o nowy kod QR na stanowisku obsługi.';
+        return 'Link wygasł. Poproś o nowy kod QR.';
     }
 
     const status = httpStatus(err);
@@ -44,5 +44,5 @@ export const describeUploadError = (err: unknown): string => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
         return 'Brak połączenia - zdjęcie wyślemy automatycznie po jego odzyskaniu.';
     }
-    return 'Nie udało się wysłać zdjęcia - naciśnij "Ponów".';
+    return 'Nie udało się wysłać zdjęcia. Naciśnij „Ponów”.';
 };

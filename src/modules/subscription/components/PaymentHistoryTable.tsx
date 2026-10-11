@@ -71,7 +71,7 @@ export function PaymentHistoryTable() {
                                 <tr>
                                     <th>Data</th>
                                     <th>Zdarzenie</th>
-                                    <th>Plan</th>
+                                    <th>Pakiet</th>
                                     <th>Moduł</th>
                                     <th className="num">Kwota brutto</th>
                                     <th>Numer transakcji</th>

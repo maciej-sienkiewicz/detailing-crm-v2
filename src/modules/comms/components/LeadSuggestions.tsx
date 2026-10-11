@@ -1,6 +1,6 @@
 // src/modules/comms/components/LeadSuggestions.tsx
 //
-// Sugerowane usługi asystenta przy wycenie leada: wiersze z „Akceptuj"/„Odrzuć"
+// Sugerowane usługi asystenta przy wycenie leada: wiersze z „Dodaj do wyceny"/„Odrzuć"
 // i „Znajdź ponownie" z wyjaśnieniem, co trafiło, a co odpadło i dlaczego.
 //
 // Jeden klocek dla każdego miejsca, w którym widać wycenę leada: panel sprawy, okno

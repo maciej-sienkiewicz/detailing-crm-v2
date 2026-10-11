@@ -164,12 +164,12 @@ export const prepareImageOrExplain = async (
         if (type && !ACCEPTED_UPLOAD_TYPES.includes(type)) {
             return {
                 file: null,
-                error: `Nie można użyć pliku "${file.name}" (${type}). Zrób zdjęcie aparatem lub wybierz plik JPEG/PNG.`,
+                error: `Nie da się użyć pliku „${file.name}”. Zrób zdjęcie aparatem albo wybierz JPG lub PNG.`,
             };
         }
         return {
             file: null,
-            error: `Nie udało się przygotować zdjęcia "${file.name}". Spróbuj wybrać je ponownie.`,
+            error: `Nie udało się przygotować zdjęcia „${file.name}”. Spróbuj wybrać je ponownie.`,
         };
     }
 };

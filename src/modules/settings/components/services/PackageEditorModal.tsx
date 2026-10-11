@@ -297,7 +297,7 @@ export function PackageEditorModal({ target, onClose, onSaved }: Props) {
                 <ModalFooter>
                     <Button onClick={onClose}>Anuluj</Button>
                     <Button type="submit" form="package-editor-form" variant="primary" disabled={saving}>
-                        {saving ? 'Zapisywanie...' : target ? 'Zapisz pakiet' : 'Dodaj pakiet'}
+                        {saving ? 'Zapisywanie…' : target ? 'Zapisz pakiet' : 'Dodaj pakiet'}
                     </Button>
                 </ModalFooter>
             </ModalShell>
@@ -323,7 +323,7 @@ export function PackageEditorModal({ target, onClose, onSaved }: Props) {
                             disabled={createService.isPending}
                             onClick={() => void addCustom(pendingCustomName, true)}
                         >
-                            {createService.isPending ? 'Zapisywanie...' : 'Zapisz w cenniku'}
+                            {createService.isPending ? 'Zapisywanie…' : 'Zapisz w cenniku'}
                         </Button>
                     </ModalFooter>
                 </ModalShell>

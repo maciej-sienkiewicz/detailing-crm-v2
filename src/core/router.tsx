@@ -35,7 +35,6 @@ import {GrowthEngineView} from "@/modules/growth-engine";
 import {FinanceView} from "@/modules/finance";
 import { StatisticsView, CategoryDetailView, CostsView, ReportsView } from "@/modules/statistics";
 import { CompetitionMonitoringView } from "@/modules/competition-monitoring";
-import { SmsCampaignsView } from "@/modules/sms-campaigns";
 import { CampaignsListView, CampaignWizardView, CampaignDetailsView, CampaignSettingsView } from "@/modules/campaigns";
 // Lazy: a heavy, styled-components-rich module most sessions never open
 const GalleryView = lazyNamedWithRetry(
@@ -94,13 +93,13 @@ const FINANCE_BENEFITS = [
     'Obsługa kas fiskalnych i integracja z KSeF',
 ];
 const STATISTICS_BENEFITS = [
-    'Raporty przychodów i rentowności usług',
+    'Ile zarabiasz na każdej usłudze',
     'Statystyki kategorii i najpopularniejszych usług',
-    'Analiza opóźnień i wąskich gardeł w pracy studia',
+    'Gdzie i dlaczego prace się opóźniają',
 ];
 const CAMPAIGNS_BENEFITS = [
     'Masowe kampanie SMS i e-mail do bazy klientów',
-    'Segmentacja odbiorców i personalizacja treści',
+    'Wiadomości do wybranej grupy klientów',
     'Historia i skuteczność wysyłek',
 ];
 const INSTAGRAM_BENEFITS = [
@@ -114,7 +113,7 @@ const PRODUCTS_BENEFITS = [
     'Powiązania produktów z wizytami — czym było robione to auto',
 ];
 const E_SIGNATURES_BENEFITS = [
-    'Elektroniczne podpisywanie dokumentów na tablecie',
+    'Klient podpisuje dokumenty na tablecie',
     'Zgody i regulaminy podpisywane bez papieru',
     'Bezpieczne archiwum podpisanych dokumentów',
 ];
@@ -389,7 +388,7 @@ export const router = createBrowserRouter([
         // Legacy: stara ścieżka kampanii SMS prowadzi do nowego modułu
         {
             path: '/sms-campaigns',
-            element: gatedPage(<SmsCampaignsView />, 'CAMPAIGNS', CAMPAIGNS_BENEFITS, 'COMMUNICATION_SEND'),
+            element: <Navigate to="/campaigns" replace />,
         },
         {
             path: '/instagram',

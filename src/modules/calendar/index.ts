@@ -3,7 +3,6 @@
 export { CalendarPageView } from './views/CalendarPageView';
 export { CalendarReservationLink } from './views/CalendarReservationLink';
 export { CalendarView } from './components/CalendarView';
-export { EventTooltip } from './components/EventTooltip';
 export { QuickEventModal } from './components/QuickEventModal';
 export type { QuickEventInitialData } from './components/QuickEventModal';
 export { BookingFlowModal } from './components/BookingFlowModal';

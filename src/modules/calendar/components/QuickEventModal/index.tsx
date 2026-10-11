@@ -2,6 +2,8 @@
 
 import React, { forwardRef, useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef } from 'react';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
+import { formatCurrency } from '@/common/utils/formatters';
+import { pluralPl } from '@/common/utils/plural';
 import styled from 'styled-components';
 import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -208,18 +210,6 @@ const D2DToggleLabel = styled.span`
     display: flex;
     align-items: center;
     gap: 7px;
-`;
-
-const D2DBadge = styled.span`
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    padding: 2px 7px;
-    border-radius: 999px;
-    background: #f0f9ff;
-    color: #0369a1;
-    border: 1px solid #bae6fd;
 `;
 
 const D2DToggleSwitch = styled.button<{ $active: boolean }>`
@@ -442,7 +432,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                             <S.MobileCustomerSuggestionName>
                                 {(c.firstName || c.lastName)
                                     ? `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim()
-                                    : '(Nie uzupełniono imienia i nazwiska)'}
+                                    : '(bez imienia i nazwiska)'}
                             </S.MobileCustomerSuggestionName>
                             <S.MobileCustomerSuggestionSub $warn={!hasContact}>
                                 {hasContact
@@ -461,7 +451,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         );
     };
 
-    // "Wycofaj zmiany" na mobile: czyści wybór klienta i wszystkie pola,
+    // "Wyczyść" na mobile: czyści wybór klienta i wszystkie pola,
     // wraca do pustego formularza (jak reset sekcji w /checkin/new).
     const handleResetCustomerMobile = useCallback(() => {
         form.setSelectedCustomer(null);
@@ -486,9 +476,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         {
             key: 'confirmation',
             label: 'Potwierdzenie rezerwacji',
-            description: 'Wyślemy zaraz po zapisaniu wizyty.',
+            description: 'Wyślemy zaraz po zapisaniu rezerwacji.',
             checked: form.sendConfirmationSms,
-            disabledReason: form.bookingConfirmationEnabled ? undefined : 'Wyłączone globalnie w konfiguracji SMS',
+            disabledReason: form.bookingConfirmationEnabled ? undefined : 'Wyłączone w ustawieniach SMS',
             onChange: form.setSendConfirmationSms,
         },
         {
@@ -496,7 +486,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             label: 'Przypomnienie przed wizytą',
             description: 'Wyjdzie automatycznie przed terminem.',
             checked: form.sendReminderSms,
-            disabledReason: form.preVisitEnabled ? undefined : 'Wyłączone globalnie w konfiguracji SMS',
+            disabledReason: form.preVisitEnabled ? undefined : 'Wyłączone w ustawieniach SMS',
             onChange: form.setSendReminderSms,
         },
         {
@@ -508,7 +498,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 ? 'Karta wizyty jest wyłączona w ustawieniach'
                 : form.reservationCardLinkSmsEnabled
                     ? undefined
-                    : 'Wyłączone globalnie w konfiguracji SMS',
+                    : 'Wyłączone w ustawieniach SMS',
             onChange: form.setSendVisitCard,
         },
     ];
@@ -517,7 +507,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
     /** Jedno zdanie o tym, co poleci - stan widoczny w chwili zapisu, nie po. */
     const smsSummary = (() => {
-        if (!smsFeature.enabled) return 'SMS niedostępny w abonamencie';
+        if (!smsFeature.enabled) return 'SMS niedostępny w Twoim pakiecie';
         if (!customerPhone) return 'SMS: brak numeru telefonu klienta';
         const active = smsOptions
             .filter(o => o.checked && !o.disabledReason)
@@ -805,8 +795,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                         <S.Header>
                             {isMobile ? (
                                 <S.MobilePageTitle>
-                                    <S.MobilePageTitleName>Nowa wizyta</S.MobilePageTitleName>
-                                    <S.MobilePageTitleSub>Wypełnij i zapisz</S.MobilePageTitleSub>
+                                    <S.MobilePageTitleName>Nowa rezerwacja</S.MobilePageTitleName>
                                 </S.MobilePageTitle>
                             ) : (
                                 <S.HeaderContent>
@@ -833,7 +822,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 <S.Row>
                                     <S.RowHeader>
                                         <S.RowHeaderTitleRow>
-                                            <S.RowHeaderLabel>Tytuł wizyty / rezerwacji</S.RowHeaderLabel>
+                                            <S.RowHeaderLabel>Tytuł rezerwacji</S.RowHeaderLabel>
                                         </S.RowHeaderTitleRow>
                                     </S.RowHeader>
                                     <S.RowContent>
@@ -850,7 +839,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 </S.Row>
                             )}
 
-                            {/* ── 1. Termin wizyty ───────────────────────────────── */}
+                            {/* ── 1. Termin ───────────────────────────────── */}
                             {/* Kolejność sekcji i style nagłówka 1:1 z /checkin/new
                                 (VerificationStep): numeryczna pigułka + tekst label
                                 (BEZ ikony), StatusPill/hint po prawej. */}
@@ -858,7 +847,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 <S.RowHeader>
                                     <S.RowHeaderTitleRow>
                                         <S.RowHeaderNum>1</S.RowHeaderNum>
-                                        <S.RowHeaderLabel>Termin wizyty</S.RowHeaderLabel>
+                                        <S.RowHeaderLabel>Termin</S.RowHeaderLabel>
                                     </S.RowHeaderTitleRow>
                                     <S.RowHeaderHint $required>wymagane</S.RowHeaderHint>
                                 </S.RowHeader>
@@ -877,7 +866,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             <Toggle
                                                 checked={form.isAllDay}
                                                 onChange={form.handleAllDayToggle}
-                                                label="Wizyta całodniowa"
+                                                label="Cały dzień"
                                                 size="sm"
                                             />
                                         </div>
@@ -1017,7 +1006,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 onClick={handleResetCustomerMobile}
                                                 disabled={!hasCustomerData}
                                             >
-                                                Wycofaj zmiany
+                                                Wyczyść
                                             </S.RowHeaderActionBtn>
                                             <S.RowHeaderActionBtn
                                                 type="button"
@@ -1395,7 +1384,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                 >
                                                                     {(c.firstName || c.lastName)
                                                                         ? <span>{c.firstName} {c.lastName}</span>
-                                                                        : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>(Nie uzupełniono imienia i nazwiska)</span>
+                                                                        : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>(bez imienia i nazwiska)</span>
                                                                     }
                                                                     <S.DropdownItemMeta $warning={!hasContact}>
                                                                         {hasContact
@@ -1719,7 +1708,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             Usługi
                                             {form.services.length > 0 && (
                                                 <S.RowHeaderStatus>
-                                                    {form.services.length === 1 ? '1 pozycja' : `${form.services.length} pozycji`}
+                                                    {`${form.services.length} ${pluralPl(form.services.length, 'pozycja', 'pozycje', 'pozycji')}`}
                                                 </S.RowHeaderStatus>
                                             )}
                                         </S.RowHeaderLabel>
@@ -1760,7 +1749,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     }));
                                                 }}
                                             >
-                                                <span>Dodaj usługę...</span>
+                                                <span>Dodaj usługę…</span>
                                                 <IconPlus />
                                             </S.MobileAddServiceButton>
                                         ) : (
@@ -1769,7 +1758,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 <S.Input
                                                     ref={form.serviceInputRef}
                                                     type="text"
-                                                    placeholder="Dodaj usługę..."
+                                                    placeholder="Dodaj usługę…"
                                                     value={form.serviceSearch}
                                                     style={form.serviceSearch ? { paddingRight: 36 } : undefined}
                                                     onChange={(e) => {
@@ -1853,7 +1842,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             <S.ServicePortalDropdown ref={serviceDropdownRef}>
                                                 {form.filteredServices.length === 0 && form.serviceSearch.trim() && (
                                                     <S.ServiceDropdownEmpty>
-                                                        Brak usług pasujących do „{form.serviceSearch.trim()}"
+                                                        Brak usług pasujących do „{form.serviceSearch.trim()}”
                                                     </S.ServiceDropdownEmpty>
                                                 )}
                                                 {form.filteredServices.map((service: Service, idx: number) => (
@@ -1878,8 +1867,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             <S.ServiceDropdownManualBadge>WYCENA</S.ServiceDropdownManualBadge>
                                                         ) : (
                                                             <S.ServiceDropdownPrices>
-                                                                <S.ServiceDropdownGross>{((service.basePriceGross ?? netToGross(service.basePriceNet, service.vatRate)) / 100).toFixed(2)} zł brutto</S.ServiceDropdownGross>
-                                                                <S.ServiceDropdownNet>{(service.basePriceNet / 100).toFixed(2)} zł netto</S.ServiceDropdownNet>
+                                                                <S.ServiceDropdownGross>{formatCurrency((service.basePriceGross ?? netToGross(service.basePriceNet, service.vatRate)) / 100)} brutto</S.ServiceDropdownGross>
+                                                                <S.ServiceDropdownNet>{formatCurrency(service.basePriceNet / 100)} netto</S.ServiceDropdownNet>
                                                             </S.ServiceDropdownPrices>
                                                         )}
                                                     </S.ServiceDropdownItem>
@@ -1896,8 +1885,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     <IconPlus />
                                                     <span>
                                                         {form.serviceSearch.trim()
-                                                            ? `Utwórz „${form.serviceSearch.trim()}"`
-                                                            : 'Wprowadź nową usługę'}
+                                                            ? `Utwórz „${form.serviceSearch.trim()}”`
+                                                            : 'Dodaj nową usługę'}
                                                     </span>
                                                 </S.DropdownAddButton>
                                             </S.ServicePortalDropdown>,
@@ -1938,7 +1927,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             suppressContentEditableWarning
                                                             role="searchbox"
                                                             aria-label="Szukaj usługi"
-                                                            data-placeholder="Szukaj usługi..."
+                                                            data-placeholder="Szukaj usługi…"
                                                             inputMode="search"
                                                             enterKeyHint="search"
                                                             autoCorrect="off"
@@ -1979,7 +1968,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     <S.MobileSheetScrollable>
                                                         {form.filteredServices.length === 0 && form.serviceSearch.trim() && (
                                                             <S.ServiceDropdownEmpty>
-                                                                Brak usług pasujących do „{form.serviceSearch.trim()}"
+                                                                Brak usług pasujących do „{form.serviceSearch.trim()}”
                                                             </S.ServiceDropdownEmpty>
                                                         )}
                                                         {form.filteredServices.map((service: Service) => (
@@ -1999,7 +1988,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                     <S.ServiceDropdownManualBadge>WYCENA</S.ServiceDropdownManualBadge>
                                                                 ) : (
                                                                     <S.ServiceDropdownGross>
-                                                                        {((service.basePriceGross ?? netToGross(service.basePriceNet, service.vatRate)) / 100).toFixed(2)} zł brutto
+                                                                        {formatCurrency((service.basePriceGross ?? netToGross(service.basePriceNet, service.vatRate)) / 100)} brutto
                                                                     </S.ServiceDropdownGross>
                                                                 )}
                                                             </S.ServiceDropdownItem>
@@ -2015,8 +2004,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             <IconPlus />
                                                             <span>
                                                                 {form.serviceSearch.trim()
-                                                                    ? `Utwórz „${form.serviceSearch.trim()}"`
-                                                                    : 'Wprowadź nową usługę'}
+                                                                    ? `Utwórz „${form.serviceSearch.trim()}”`
+                                                                    : 'Dodaj nową usługę'}
                                                             </span>
                                                         </S.DropdownAddButton>
                                                     </S.MobileSheetScrollable>
@@ -2040,7 +2029,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                             </S.Row>
 
                             {/* Kolor w kalendarzu na mobile jest teraz trzecim polem
-                                sekcji "Termin wizyty" (jak w /checkin/new), więc nie ma
+                                sekcji "Termin" (jak w /checkin/new), więc nie ma
                                 już osobnej sekcji koloru. */}
 
                             {/* Advanced toggle (mobile only) */}
@@ -2075,7 +2064,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 </S.IconWrapper>
                                 <S.RowContent>
                                     <S.Textarea
-                                        placeholder="Dodaj notatki..."
+                                        placeholder="Dodaj notatki…"
                                         value={form.notes}
                                         onChange={(e) => form.setNotes(capitalizeFirst(e.target.value))}
                                         rows={3}
@@ -2088,13 +2077,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
                             <S.Divider />
 
-                            {/* ── 6. Door to Door ─────────────────────────────────── */}
+                            {/* ── 6. Door to door ─────────────────────────────────── */}
                             <S.Row>
                                 <S.RowHeader>
                                     <S.RowHeaderTitleRow>
                                         <S.RowHeaderNum>6</S.RowHeaderNum>
                                         <S.RowHeaderLabel>
-                                            Odbiór i dostawa
+                                            Door to door
                                             {form.doorToDoor.enabled && (
                                                 <S.RowHeaderStatus>Włączone</S.RowHeaderStatus>
                                             )}
@@ -2111,8 +2100,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 <S.RowContent>
                                     <D2DToggleRow onClick={() => form.setDoorToDoor(d => ({ ...d, enabled: !d.enabled }))}>
                                         <D2DToggleLabel>
-                                            Door to Door
-                                            <D2DBadge>Odbiór / Dostawa</D2DBadge>
+                                            Odbiór i odwiezienie auta
                                         </D2DToggleLabel>
                                         <D2DToggleSwitch
                                             type="button"
@@ -2138,7 +2126,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 </D2DAddressInputs>
                                             </D2DAddressGroup>
                                             <D2DAddressGroup>
-                                                <D2DAddressLabel>Miejsce dostarczenia</D2DAddressLabel>
+                                                <D2DAddressLabel>Miejsce odwiezienia</D2DAddressLabel>
                                                 <D2DAddressInputs>
                                                     <D2DInput
                                                         placeholder="Miasto"
@@ -2156,7 +2144,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 <D2DAddressLabel>Uwagi</D2DAddressLabel>
                                                 <D2DNotes
                                                     rows={2}
-                                                    placeholder="Dodaj uwagi do usługi door to door..."
+                                                    placeholder="np. klucze w recepcji, dzwonić przed przyjazdem"
                                                     value={form.doorToDoor.notes}
                                                     onChange={e => form.setDoorToDoor(d => ({ ...d, notes: capitalizeFirst(e.target.value) }))}
                                                 />
@@ -2179,7 +2167,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 <S.RowContent>
                                     <LockedSection
                                         locked={!smsFeature.enabled}
-                                        message="Twój abonament nie obsługuje powiadomień SMS."
+                                        message="Twój pakiet nie obsługuje powiadomień SMS."
                                         onLockedClick={() => setUpsellOpen(true)}
                                     >
                                         <SmsCheckList>
@@ -2192,7 +2180,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 <SmsCheckText>
                                                     Wyślij SMS z potwierdzeniem rezerwacji
                                                     {!form.bookingConfirmationEnabled && (
-                                                        <SmsDisabledHint>Wyłączone globalnie w konfiguracji SMS</SmsDisabledHint>
+                                                        <SmsDisabledHint>Wyłączone w ustawieniach SMS</SmsDisabledHint>
                                                     )}
                                                 </SmsCheckText>
                                             </SmsCheckItem>
@@ -2205,7 +2193,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 <SmsCheckText>
                                                     Wyślij SMS przypominający przed wizytą
                                                     {!form.preVisitEnabled && (
-                                                        <SmsDisabledHint>Wyłączone globalnie w konfiguracji SMS</SmsDisabledHint>
+                                                        <SmsDisabledHint>Wyłączone w ustawieniach SMS</SmsDisabledHint>
                                                     )}
                                                 </SmsCheckText>
                                             </SmsCheckItem>
@@ -2217,9 +2205,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         disabled={!form.reservationCardLinkSmsEnabled}
                                                     />
                                                     <SmsCheckText>
-                                                        Wyślij SMS z linkiem do Karty Wizyty.
+                                                        Wyślij SMS z linkiem do karty wizyty
                                                         {!form.reservationCardLinkSmsEnabled && (
-                                                            <SmsDisabledHint>Wyłączone globalnie w konfiguracji SMS</SmsDisabledHint>
+                                                            <SmsDisabledHint>Wyłączone w ustawieniach SMS</SmsDisabledHint>
                                                         )}
                                                     </SmsCheckText>
                                                 </SmsCheckItem>
@@ -2340,7 +2328,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 )}
                                 {isMobile ? (
                                     /* Reużywamy tych samych przycisków co StickyFormFooter
-                                       na /checkin/new - żeby "Zapisz wizytę" wyglądało 1:1
+                                       na /checkin/new - żeby "Zapisz rezerwację" wyglądało 1:1
                                        z "Dalej" na formularzu przyjęcia pojazdu. */
                                     <>
                                         <FooterSecondaryButton type="button" onClick={onClose}>
@@ -2351,7 +2339,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             disabled={form.isSubmitting}
                                             $disabled={form.isSubmitting}
                                         >
-                                            {form.isSubmitting ? 'Zapisywanie...' : 'Zapisz wizytę'}
+                                            {form.isSubmitting ? 'Zapisywanie…' : 'Zapisz rezerwację'}
                                         </FooterPrimaryButton>
                                     </>
                                 ) : (
@@ -2365,7 +2353,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             disabled={form.isSubmitting}
                                             style={{ '--button-bg': form.accentColor, opacity: form.isSubmitting ? 0.7 : 1 } as React.CSSProperties}
                                         >
-                                            {form.isSubmitting ? 'Zapisywanie...' : 'Zapisz wizytę'}
+                                            {form.isSubmitting ? 'Zapisywanie…' : 'Zapisz rezerwację'}
                                         </S.Button>
                                     </>
                                 )}

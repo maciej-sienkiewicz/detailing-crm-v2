@@ -479,7 +479,7 @@ export const ProtocolTemplateModal = ({
     };
 
     const handleDelete = async (template: ProtocolTemplate) => {
-        if (!confirm(`Czy na pewno chcesz usunąć szablon "${template.name}"?`)) return;
+        if (!confirm(`Czy na pewno chcesz usunąć szablon „${template.name}”?`)) return;
         try {
             await deleteMutation.mutateAsync(template.id);
             onSuccess?.();
@@ -570,7 +570,7 @@ export const ProtocolTemplateModal = ({
             resetForm();
             onSuccess?.();
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Wystąpił błąd podczas zapisywania szablonu';
+            const errorMessage = error instanceof Error ? error.message : 'Nie udało się zapisać szablonu';
             setErrors({ submit: errorMessage });
         }
     };
@@ -586,7 +586,7 @@ export const ProtocolTemplateModal = ({
         <ModalShell isOpen={isOpen} onClose={handleClose} maxWidth="640px">
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>Zarządzaj szablonami protokołów</ModalTitle>
+                    <ModalTitle>Szablony protokołów</ModalTitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={handleClose} />
             </ModalHeader>
@@ -669,7 +669,7 @@ export const ProtocolTemplateModal = ({
                                     type="text"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
-                                    placeholder="np. Regulamin ogólny, Zgoda na korektę lakieru..."
+                                    placeholder="np. Regulamin ogólny, Zgoda na korektę lakieru…"
                                 />
                                 {errors.name && <ErrorMessage>{errors.name}</ErrorMessage>}
                             </FormField>
@@ -679,7 +679,7 @@ export const ProtocolTemplateModal = ({
                                 <TextArea
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
-                                    placeholder="Krótki opis szablonu..."
+                                    placeholder="Krótki opis szablonu…"
                                     rows={3}
                                 />
                             </FieldGroup>
@@ -699,8 +699,8 @@ export const ProtocolTemplateModal = ({
                                         onDrop={handleDrop}
                                     >
                                         <UploadIconWrap><UploadCloudIcon /></UploadIconWrap>
-                                        <UploadText>Kliknij aby wybrać plik PDF lub HTML</UploadText>
-                                        <UploadHint>lub przeciągnij i upuść (maks. 10 MB). Po wgraniu plik zostanie zweryfikowany pod kątem wymaganych pól.</UploadHint>
+                                        <UploadText>Kliknij, aby wybrać plik PDF lub HTML</UploadText>
+                                        <UploadHint>lub przeciągnij i upuść (maks. 10 MB). Sprawdzimy, czy plik ma wszystkie pola.</UploadHint>
                                     </FileUploadArea>
                                 ) : selectedFile ? (
                                     <FilePreview>
@@ -753,7 +753,7 @@ export const ProtocolTemplateModal = ({
                         Anuluj
                     </SharedButton>
                     <SharedButton type="submit" form="template-form" $variant="primary" $size="sm" disabled={isSaving}>
-                        {isSaving ? 'Zapisywanie...' : editingTemplate ? 'Zapisz zmiany' : 'Dodaj szablon'}
+                        {isSaving ? 'Zapisywanie…' : editingTemplate ? 'Zapisz zmiany' : 'Dodaj szablon'}
                     </SharedButton>
                 </ModalFooter>
             )}

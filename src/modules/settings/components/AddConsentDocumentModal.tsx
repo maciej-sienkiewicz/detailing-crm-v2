@@ -131,7 +131,7 @@ function AddConsentDocumentModalBody({ onClose, onSuccess }: AddConsentDocumentM
                 setAsActive: true,
             });
             if (!version.pdfUrl) {
-                throw new Error('Serwer nie przygotował miejsca na plik PDF. Spróbuj ponownie.');
+                throw new Error('Nie udało się wysłać pliku PDF. Spróbuj ponownie.');
             }
             await consentsApi.uploadFileToS3(version.pdfUrl, file);
 
@@ -259,7 +259,7 @@ function AddConsentDocumentModalBody({ onClose, onSuccess }: AddConsentDocumentM
             <ModalFooter>
                 <Button onClick={onClose}>Anuluj</Button>
                 <Button type="submit" form="add-consent-form" variant="primary" disabled={isSubmitting}>
-                    {isSubmitting ? 'Dodawanie...' : 'Dodaj zgodę'}
+                    {isSubmitting ? 'Dodawanie…' : 'Dodaj zgodę'}
                 </Button>
             </ModalFooter>
         </ModalShell>

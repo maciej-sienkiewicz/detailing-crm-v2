@@ -273,7 +273,7 @@ export function LeadArchive({
                     </FilterChip>
                 ))}
                 <Totals>
-                    wygrane <strong>{formatMoney(won)}</strong> · przegrane <strong>{formatMoney(lost)}</strong>
+                    Wygrane: <strong>{formatMoney(won)}</strong>, przegrane: <strong>{formatMoney(lost)}</strong>
                 </Totals>
             </Chips>
 
@@ -307,7 +307,8 @@ export function LeadArchive({
                         <OutcomeCell>
                             <Dot $color={LEAD_STATUS_COLORS[lead.status].fg} />
                             {LEAD_STATUS_LABELS[lead.status]}
-                            {lead.lostReasonLabel && <span className="reason">· {lead.lostReasonLabel}</span>}
+                            {lead.lostReasonLabel ? ':' : ''}
+                            {lead.lostReasonLabel && <span className="reason">{lead.lostReasonLabel}</span>}
                         </OutcomeCell>
                         <WhenCell>{formatClosedAt(lead)}</WhenCell>
                     </Row>
@@ -315,8 +316,8 @@ export function LeadArchive({
 
                 {bundle.truncated && (
                     <Truncated>
-                        Pokazujemy pierwsze 100 spraw w każdej kategorii. Zawęź wyszukiwaniem albo
-                        filtrem wyniku, żeby zobaczyć starsze.
+                        Widać 100 najnowszych spraw z każdej kategorii. Starsze znajdziesz
+                        wyszukiwarką albo filtrem.
                     </Truncated>
                 )}
             </div>

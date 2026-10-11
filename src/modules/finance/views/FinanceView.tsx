@@ -65,31 +65,6 @@ const ViewContainer = styled(PageContainer)`
 
 // ─── Hero: wyciągnięty do PageHeader w common/components ─────────────────────
 
-// ─── Section divider ──────────────────────────────────────────────────────────
-
-const SectionLabel = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: -${(p) => p.theme.spacing.md};
-`;
-
-const SectionLabelText = styled.span`
-  font-size: 11px;
-  font-weight: 700;
-  color: ${(p) => p.theme.colors.textMuted};
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  white-space: nowrap;
-`;
-
-const SectionLabelLine = styled.div`
-  flex: 1;
-  height: 1px;
-  background: ${(p) => p.theme.colors.border};
-`;
-
-
 // ─── Panel card (tabs + content) ──────────────────────────────────────────────
 
 const PanelCard = styled.div`
@@ -492,7 +467,7 @@ type HiddenFilter = 'default' | 'all' | 'only';
 
 const HIDDEN_FILTER_OPTIONS: readonly { value: HiddenFilter; label: string }[] = [
   { value: 'default', label: 'Bez ukrytych' },
-  { value: 'all',     label: 'Ukryte' },
+  { value: 'all',     label: 'Wszystkie' },
   { value: 'only',    label: 'Tylko ukryte' },
 ];
 
@@ -669,7 +644,7 @@ const ClearIcon = () => (
 );
 
 /** Pełna lista przeszukiwanych pól - jako tooltip i jako tekst pustego wyniku. */
-const SEARCH_HINT = 'Szukaj po nazwie i NIP-ie kontrahenta, nazwach pozycji, numerze dokumentu, numerze KSeF i kwocie';
+const SEARCH_HINT = 'Szukaj po nazwie, NIP-ie, numerze, pozycji lub kwocie';
 
 /**
  * Placeholder wymienia pola tylko wtedy, gdy cała lista naprawdę się mieści.
@@ -1092,7 +1067,7 @@ const FinHeaderDatePicker: React.FC<FinHeaderDatePickerProps> = ({ preset, custo
           </DPPresetGroup>
 
           <DPDivider />
-          <DPLabel>Niestandardowy zakres</DPLabel>
+          <DPLabel>Własny zakres</DPLabel>
 
           <DPRangeRow>
             <DPDateInput type="date" value={pendingFrom} max={pendingTo || undefined} onChange={e => setPendingFrom(e.target.value)} />
@@ -1377,8 +1352,8 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
           onChange={(val) => setFilter('paymentStatus', val)}
           options={[
             { value: 'PAID',    label: 'Opłacone' },
-            { value: 'PENDING', label: 'Oczekujące' },
-            { value: 'OVERDUE', label: 'Przeterminowane' },
+            { value: 'PENDING', label: 'Nieopłacone' },
+            { value: 'OVERDUE', label: 'Po terminie' },
           ]}
           placeholder="Wszystkie statusy"
         />
@@ -1452,7 +1427,7 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
       {totalPages > 1 && (
         <PaginationFooter>
           <PaginationInfo>
-            Wyświetlanie {(filters.page - 1) * PAGE_SIZE + 1}-{Math.min(filters.page * PAGE_SIZE, total)} z {total}
+            {(filters.page - 1) * PAGE_SIZE + 1}–{Math.min(filters.page * PAGE_SIZE, total)} z {total}
           </PaginationInfo>
           <PaginationBtns>
             <PageBtn
@@ -1557,7 +1532,7 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
           onChange={(val) => setFilter('paymentStatus', val)}
           options={[
             { value: 'PAID',    label: 'Opłacone' },
-            { value: 'PENDING', label: 'Oczekujące' },
+            { value: 'PENDING', label: 'Nieopłacone' },
           ]}
           placeholder="Wszystkie statusy"
         />
@@ -1618,7 +1593,7 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
       {totalPages > 1 && (
         <PaginationFooter>
           <PaginationInfo>
-            Wyświetlanie {(filters.page - 1) * PAGE_SIZE + 1}-{Math.min(filters.page * PAGE_SIZE, total)} z {total}
+            {(filters.page - 1) * PAGE_SIZE + 1}–{Math.min(filters.page * PAGE_SIZE, total)} z {total}
           </PaginationInfo>
           <PaginationBtns>
             <PageBtn
@@ -1704,7 +1679,7 @@ export const FinanceView: React.FC = () => {
     <ViewContainer>
       <PageHeader
         title="Finanse"
-        subtitle="Dokumenty przychodowe, koszty KSeF i raporty"
+        subtitle="Przychody, koszty, kasa i płatności"
         actions={
           <FinHdrActions>
             {/*
@@ -1749,10 +1724,6 @@ export const FinanceView: React.FC = () => {
       {/* Kafle to raport (/finance/summary) - bez prawa do raportów zostawał sam nagłówek. */}
       {canSeeReports && (
       <div>
-        <SectionLabel>
-          <SectionLabelText>Podsumowanie finansowe</SectionLabelText>
-          <SectionLabelLine />
-        </SectionLabel>
         {/* Kafle pokazują ten sam zakres co zakładka pod nimi - inaczej „Przychody"
             nad tabelą filtrowaną do jednego miesiąca dotyczyły czegoś innego niż tabela. */}
         <FinanceSummaryCards
@@ -1764,11 +1735,6 @@ export const FinanceView: React.FC = () => {
       )}
 
       <div>
-        <SectionLabel>
-          <SectionLabelText>Dokumenty i raporty</SectionLabelText>
-          <SectionLabelLine />
-        </SectionLabel>
-
         <PanelCard>
           <TabBar>
             {availableTabs.map(t => (

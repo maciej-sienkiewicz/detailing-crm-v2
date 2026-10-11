@@ -112,7 +112,7 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
                         'Lead utworzony',
                         result.estimatedValue > 0
                             ? `Wartość zapytania: ${formatGrosze(result.estimatedValue)}`
-                            : 'Znajdziesz go w zakładce Leady'
+                            : 'Znajdziesz go w Zapytaniach'
                     );
                     onCreated(result.leadId);
                     onClose();
@@ -140,7 +140,7 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
             <ModalContent>
                 <Body>
                     <Field>
-                        <FieldLabel>Tagi</FieldLabel>
+                        <FieldLabel>O co pyta klient</FieldLabel>
                         <TagMultiSelect
                             options={dictionaries?.tags ?? []}
                             value={tags}

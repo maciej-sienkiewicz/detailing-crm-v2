@@ -42,7 +42,9 @@ export function settlementDocumentRows(
             rows.push({
                 key: doc.id,
                 number: invoiceDoc ? 'Faktura księgowości' : doc.number,
-                label: invoiceDoc ? 'Faktura od księgowości' : `${doc.typeLabel}, faktura do paragonu od księgowości`,
+                // Przy fakturze „Faktura księgowości" stoi już w miejscu numeru - opis
+                // powtarzałby to samo drugi raz w tym samym wierszu.
+                label: invoiceDoc ? '' : `${doc.typeLabel}, faktura do paragonu od księgowości`,
                 paymentMethodLabel: doc.paymentMethodLabel,
                 ksefStatus: null,
                 totalGross: doc.totalGross,

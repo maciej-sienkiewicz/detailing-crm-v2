@@ -498,7 +498,7 @@ export const CashRegisterPanel: React.FC<CashRegisterPanelProps> = ({ dateFrom, 
       setComment('');
       refetch();
     } catch {
-      setAdjustError('Nie udało się zaktualizować kasy.');
+      setAdjustError('Nie udało się zapisać zmiany w kasie.');
     }
   };
 
@@ -528,7 +528,7 @@ export const CashRegisterPanel: React.FC<CashRegisterPanelProps> = ({ dateFrom, 
           <FormHeader>Korekta ręczna</FormHeader>
           <FormBody onSubmit={(e) => e.preventDefault()}>
             <FieldGroup>
-              <FieldLabel>Kwota (PLN)</FieldLabel>
+              <FieldLabel>Kwota (zł)</FieldLabel>
               <Input
                 type="number"
                 step="0.01"
@@ -544,7 +544,7 @@ export const CashRegisterPanel: React.FC<CashRegisterPanelProps> = ({ dateFrom, 
               <FieldLabel>Komentarz</FieldLabel>
               <Input
                 type="text"
-                placeholder="Opis operacji (wymagany)"
+                placeholder="Za co? (wymagane)"
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
               />
@@ -587,7 +587,7 @@ export const CashRegisterPanel: React.FC<CashRegisterPanelProps> = ({ dateFrom, 
 
         <SummaryStrip>
           <SummaryItem>
-            <SummaryLabel>Łącznie wpłat</SummaryLabel>
+            <SummaryLabel>Wpłaty razem</SummaryLabel>
             {/* Przy pierwszym wczytaniu sumy jeszcze nie ma. „0,00 zł" obok
                 szkieletów tabeli czytałoby się jak wynik, a nie jak brak wyniku. */}
             {histLoading
@@ -595,7 +595,7 @@ export const CashRegisterPanel: React.FC<CashRegisterPanelProps> = ({ dateFrom, 
               : <SummaryValue $tone="in">{formatMoney(totalIn)}</SummaryValue>}
           </SummaryItem>
           <SummaryItem>
-            <SummaryLabel>Łącznie wypłat</SummaryLabel>
+            <SummaryLabel>Wypłaty razem</SummaryLabel>
             {histLoading
               ? <Skeleton $h="19px" $w="110px" />
               : <SummaryValue $tone="out">{formatMoney(totalOut)}</SummaryValue>}
@@ -662,7 +662,7 @@ export const CashRegisterPanel: React.FC<CashRegisterPanelProps> = ({ dateFrom, 
           <EmptyHistory>
             {direction === null && !dateFrom && !dateTo
               ? 'Brak operacji kasowych'
-              : 'Brak operacji spełniających wybrane filtry'}
+              : 'Brak operacji dla tych filtrów'}
           </EmptyHistory>
         ) : (
           <HistoryScroll>
@@ -706,7 +706,7 @@ export const CashRegisterPanel: React.FC<CashRegisterPanelProps> = ({ dateFrom, 
               disabled={histFetching}
               onClick={() => setPageSize((size) => Math.min(size + PAGE_STEP, MAX_PAGE_SIZE))}
             >
-              {histFetching ? 'Wczytywanie...' : 'Pokaż więcej'}
+              {histFetching ? 'Wczytywanie…' : 'Pokaż więcej'}
             </MoreBtn>
           </MoreRow>
         )}

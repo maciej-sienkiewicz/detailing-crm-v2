@@ -95,7 +95,7 @@ export const ReportWorkdayButton = () => {
 
   const handleClick = () => {
     standardToday.mutate(undefined, {
-      onSuccess: () => showSuccess('Dzień zaraportowany', 'Zapisano 8 godzin pracy na dziś.'),
+      onSuccess: () => showSuccess('Dzień wpisany', 'Wpisano 8 godzin za dziś.'),
       onError: (error: unknown) => showError(
         'Nie udało się zapisać',
         (error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Spróbuj ponownie za chwilę.',
@@ -111,11 +111,11 @@ export const ReportWorkdayButton = () => {
         disabled={isLoading || alreadyReported || standardToday.isPending}
       >
         {standardToday.isPending ? <Spinner /> : <Clock />}
-        {alreadyReported ? 'Dzień zaraportowany' : 'Zaraportuj 8 godzin pracy'}
+        {alreadyReported ? 'Dzisiejszy dzień wpisany' : 'Wpisz 8 godzin za dziś'}
       </Button>
 
       {alreadyReported && (
-        <DoneMark title="Dzisiejszy dzień pracy jest już zgłoszony" aria-hidden="true">
+        <DoneMark title="Dziś już wpisane" aria-hidden="true">
           <Check />
         </DoneMark>
       )}

@@ -508,7 +508,7 @@ export const DocumentGallery = ({
                     <EmptyState>
                         {activeTagFilter
                             ? `Brak zdjęć z tagiem „${activeTagFilter}"`
-                            : isLoadingPhotos ? 'Wczytywanie zdjęć...'
+                            : isLoadingPhotos ? 'Wczytywanie zdjęć…'
                             : documentsHidden ? 'Nie ma jeszcze zdjęć.' : 'Nie ma jeszcze zdjęć ani dokumentów.'}
                     </EmptyState>
                 )}
@@ -547,7 +547,7 @@ export const DocumentGallery = ({
             <ConfirmationModal
                 isOpen={deleteConfirmModalOpen}
                 title="Usuń plik"
-                message={itemToDelete ? `Czy na pewno chcesz usunąć "${itemToDelete.name}"? Tej operacji nie można cofnąć.` : ''}
+                message={itemToDelete ? `Usunąć „${itemToDelete.name}”? Nie da się tego cofnąć.` : ''}
                 variant="danger"
                 confirmText="Usuń"
                 cancelText="Anuluj"

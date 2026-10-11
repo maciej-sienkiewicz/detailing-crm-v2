@@ -163,7 +163,7 @@ export const TaskVoiceButton = ({ onRecorded, isSending }: TaskVoiceButtonProps)
 
       if (abandonedRef.current) return;
       if (blob.size === 0) {
-        showError('Puste nagranie', 'Nic nie zostało nagrane - spróbuj jeszcze raz.');
+        showError('Puste nagranie', 'Nic nie zostało nagrane — spróbuj jeszcze raz.');
         return;
       }
 

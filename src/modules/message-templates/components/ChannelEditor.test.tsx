@@ -57,7 +57,7 @@ describe('ChannelEditor', () => {
         );
         const toggle = screen.getByRole('switch', { name: 'Domyślnie zaznacz' });
         expect(toggle).not.toBeChecked();
-        expect(screen.getByText(/w oknie nowej rezerwacji startuje puste/)).toBeInTheDocument();
+        expect(screen.getByText(/w oknie nowej rezerwacji jest domyślnie puste/)).toBeInTheDocument();
         await userEvent.click(toggle);
         expect(onPatch).toHaveBeenCalledWith({ checkedByDefault: true });
     });

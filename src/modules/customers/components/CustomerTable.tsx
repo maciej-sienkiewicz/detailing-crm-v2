@@ -5,7 +5,8 @@ import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import type { Customer, CustomerSortField, SortDirection } from '../types';
-import { formatPhoneNumber, formatCurrency } from '../utils/customerMappers';
+import { formatPhoneNumber, formatCurrency, formatDate } from '../utils/customerMappers';
+import { pluralPl } from '@/common/utils/plural';
 import { t } from '@/common/i18n';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { usePortalDropdownPos } from '@/common/hooks/usePortalDropdownPos';
@@ -247,11 +248,7 @@ const DropdownItem = styled.button<{ $danger?: boolean }>`
 const fullName = (c: Customer) =>
     joinPiiName(c.firstName?.trim(), c.lastName?.trim()) ?? '';
 
-const vehicleLabel = (n: number) => {
-    if (n === 1) return '1 pojazd';
-    if (n >= 2 && n <= 4) return `${n} pojazdy`;
-    return `${n} pojazdów`;
-};
+const vehicleLabel = (n: number) => `${n} ${pluralPl(n, 'pojazd', 'pojazdy', 'pojazdów')}`;
 
 // ─── Sort icon ────────────────────────────────────────────────────────────────
 
@@ -351,7 +348,7 @@ export const CustomerTable = ({ customers, sortBy, sortDirection = 'asc', onSort
                                     <CellStack>
                                         {name
                                             ? <CellMain><PiiValue value={name} kind="name" /></CellMain>
-                                            : <CellItalic>Nie wprowadzono danych</CellItalic>
+                                            : <CellItalic>Bez imienia i nazwiska</CellItalic>
                                         }
                                         {customer.company && (
                                             <CellSub>{customer.company.name}</CellSub>
@@ -375,16 +372,14 @@ export const CustomerTable = ({ customers, sortBy, sortDirection = 'asc', onSort
                                 <Td>
                                     <CellMain>{vehicleLabel(customer.vehicleCount)}</CellMain>
                                     {customer.lastVisitDate && (
-                                        <CellSub>ost. wizyta {customer.lastVisitDate.slice(0, 10)}</CellSub>
+                                        <CellSub>ostatnia wizyta {formatDate(customer.lastVisitDate)}</CellSub>
                                     )}
                                 </Td>
 
                                 <Td>
                                     <VisitCount $large>{customer.totalVisits}</VisitCount>
                                     <CellSub>
-                                        {customer.totalVisits === 1 ? 'wizyta'
-                                            : customer.totalVisits >= 2 && customer.totalVisits <= 4 ? 'wizyty'
-                                            : 'wizyt'}
+                                        {pluralPl(customer.totalVisits, 'wizyta', 'wizyty', 'wizyt')}
                                     </CellSub>
                                 </Td>
 
@@ -428,7 +423,7 @@ export const CustomerTable = ({ customers, sortBy, sortDirection = 'asc', onSort
                                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                                                     <circle cx="12" cy="12" r="3"/>
                                                 </svg>
-                                                Zobacz profil
+                                                Otwórz kartę klienta
                                             </DropdownItem>
                                             {onDelete && (
                                                 <DropdownItem
@@ -440,7 +435,7 @@ export const CustomerTable = ({ customers, sortBy, sortDirection = 'asc', onSort
                                                         <path d="M19 6l-1 14H6L5 6"/>
                                                         <path d="M9 6V4h6v2"/>
                                                     </svg>
-                                                    Usuń klienta
+                                                    Usuń dane klienta
                                                 </DropdownItem>
                                             )}
                                         </DropdownMenu>,

@@ -19,6 +19,7 @@ import type { ProductSortKey } from '../types';
 import { ProductTable } from '../components/ProductTable';
 import { ProductGrid } from '../components/ProductGrid';
 import { AddProductModal } from '../components/AddProductModal';
+import { pluralPl } from '@/common/utils/plural';
 
 const ViewContainer = styled.div`
     min-height: 100vh;
@@ -88,7 +89,7 @@ export function ProductListView() {
                         subtitle={
                             <>
                                 Katalog preparatów używanych w studiu
-                                {!isLoading && <TotalChip>{total} rekordów</TotalChip>}
+                                {!isLoading && <TotalChip>{total} {pluralPl(total, 'produkt', 'produkty', 'produktów')}</TotalChip>}
                             </>
                         }
                         actions={canManage && (
@@ -107,7 +108,7 @@ export function ProductListView() {
                         title="Produkty"
                         subtitle={isLoading
                             ? 'Wczytywanie…'
-                            : <><MobilePageHeaderCountValue>{total}</MobilePageHeaderCountValue> rekordów</>}
+                            : <><MobilePageHeaderCountValue>{total}</MobilePageHeaderCountValue> {pluralPl(total, 'produkt', 'produkty', 'produktów')}</>}
                         actions={canManage && (
                             <MobilePageHeaderButton onClick={() => setAdding(true)}>
                                 <span aria-hidden="true">+</span>
@@ -126,13 +127,13 @@ export function ProductListView() {
 
                 <ContentSection>
                     {isLoading ? (
-                        <Loading>Ładowanie…</Loading>
+                        <Loading>Wczytywanie…</Loading>
                     ) : products.length === 0 ? (
                         <EmptyState
                             icon={<Package size={40} />}
                             title={debounced ? 'Nic nie znaleziono' : 'Katalog jest pusty'}
                             description={debounced
-                                ? 'Katalog pokazuje tylko produkty, które dodaliście u siebie. Zeskanuj kod, żeby dodać nowy.'
+                                ? 'Nie masz takiego produktu. Zeskanuj kod, żeby go dodać.'
                                 : 'Dodaj pierwszy produkt — ręcznie, z kodu kreskowego albo skanując telefonem.'}
                         />
                     ) : isDesktop ? (

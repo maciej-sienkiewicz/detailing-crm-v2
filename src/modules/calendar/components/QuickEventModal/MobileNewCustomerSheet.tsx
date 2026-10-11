@@ -3,7 +3,7 @@
 // „Dodaj nowego klienta" na telefonie zapisywało klienta od razu, z samym
 // imieniem wpisanym w wyszukiwarkę - bez telefonu i maila, czyli bez czegokolwiek,
 // czym można go później zawiadomić o wizycie. Zamiast tego pokazujemy krótki
-// formularz: cztery pola, „Zatwierdź" i „X" na wycofanie się z operacji.
+// formularz: cztery pola, „Dodaj klienta” i „X" na wycofanie się z operacji.
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
@@ -34,7 +34,7 @@ export const MobileNewCustomerSheet = ({ initial, onCancel, onConfirm }: Props) 
     const [touched, setTouched] = useState(false);
 
     const sheetRef = useRef<HTMLDivElement>(null);
-    // Pasek „Zatwierdź / Anuluj" siedzi na dole arkusza, więc tu dolna
+    // Pasek „Dodaj klienta / Anuluj” siedzi na dole arkusza, więc tu dolna
     // krawędź musi dojechać nad klawiaturę.
     useVisualViewportSheet(true, sheetRef, { keyboard: 'resize' });
 
@@ -143,7 +143,7 @@ export const MobileNewCustomerSheet = ({ initial, onCancel, onConfirm }: Props) 
 
                 <Footer>
                     <GhostBtn type="button" onClick={onCancel}>Anuluj</GhostBtn>
-                    <PrimaryBtn type="button" onClick={submit} disabled={!canSubmit}>Zatwierdź</PrimaryBtn>
+                    <PrimaryBtn type="button" onClick={submit} disabled={!canSubmit}>Dodaj klienta</PrimaryBtn>
                 </Footer>
             </S.MobileBottomSheet>
         </>,

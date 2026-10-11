@@ -162,7 +162,7 @@ export const ReservationsKpiCard = () => {
         <Number>{data.currentMonth.count}</Number>
         <Delta $positive={positive}>
           {positive ? <TrendingUp /> : <TrendingDown />}
-          {positive ? '+' : ''}{data.deltaPercentage.toFixed(1)}% {comparisonLabel(!!data.previousMonthToDate)}
+          {positive ? '+' : ''}{data.deltaPercentage.toLocaleString('pl-PL', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% {comparisonLabel(!!data.previousMonthToDate)}
         </Delta>
       </Card>
 

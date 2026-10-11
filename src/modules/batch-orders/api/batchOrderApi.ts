@@ -191,7 +191,7 @@ export const batchOrderApi = {
         const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
         const link = document.createElement('a');
         link.href = url;
-        link.download = `rozliczenie-${contractorName.replace(/\s+/g, '-')}-${historyId.slice(0, 8)}.pdf`;
+        link.download = `zestawienie-${contractorName.replace(/\s+/g, '-')}-${historyId.slice(0, 8)}.pdf`;
         link.click();
         window.URL.revokeObjectURL(url);
     },

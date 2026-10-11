@@ -5,7 +5,10 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ServiceChangeSmsModal } from './ServiceChangeSmsModal';
-import { buildServiceChangeSmsMessage, formatSmsAmount, toAscii } from '../utils/serviceChangeSms';
+import { buildServiceChangeSmsMessage, CONSENT_CALL_TO_ACTION, formatSmsAmount, toAscii } from '../utils/serviceChangeSms';
+import { pluralPl } from '@/common/utils/plural';
+
+const charsLabel = (n: number) => `${n} ${pluralPl(n, 'znak', 'znaki', 'znaków')}`;
 
 const summary = {
     addedNames: ['Pranie tapicerki'],
@@ -116,7 +119,7 @@ describe('ServiceChangeSmsModal - polskie znaki', () => {
         const { onConfirm, toggle } = renderModal();
 
         await user.click(toggle);
-        await user.click(screen.getByRole('button', { name: 'Wyślij i zapisz' }));
+        await user.click(screen.getByRole('button', { name: 'Zapisz i wyślij' }));
 
         expect(onConfirm).toHaveBeenCalledWith(buildServiceChangeSmsMessage(summary), true);
     });
@@ -125,7 +128,7 @@ describe('ServiceChangeSmsModal - polskie znaki', () => {
         const user = userEvent.setup();
         const { onConfirm } = renderModal();
 
-        await user.click(screen.getByRole('button', { name: 'Wyślij i zapisz' }));
+        await user.click(screen.getByRole('button', { name: 'Zapisz i wyślij' }));
 
         expect(onConfirm).toHaveBeenCalledWith(toAscii(buildServiceChangeSmsMessage(summary)), false);
     });
@@ -135,7 +138,7 @@ describe('ServiceChangeSmsModal - fraza o potwierdzeniu', () => {
     it('jest widoczna, gdy klient ma potwierdzić zmiany', () => {
         renderModal({ requireConfirmation: true });
 
-        expect(screen.getByText(toAscii('Odpisz TAK aby zaakceptować.'))).toBeInTheDocument();
+        expect(screen.getByText(toAscii('Odpisz TAK, aby zaakceptować.'))).toBeInTheDocument();
     });
 
     it('znika, gdy nie wymagamy potwierdzenia - SMS jest tylko informacyjny', () => {
@@ -148,14 +151,25 @@ describe('ServiceChangeSmsModal - fraza o potwierdzeniu', () => {
         renderModal({ requireConfirmation: false });
 
         const messageOnly = toAscii(buildServiceChangeSmsMessage(summary)).trim();
-        expect(screen.getByText(`${messageOnly.length} znaków`)).toBeInTheDocument();
+        expect(screen.getByText(charsLabel(messageOnly.length))).toBeInTheDocument();
+    });
+
+    // Frazę dokleja backend (SmsConsentService.CONSENT_CALL_TO_ACTION) - licznik musi
+    // liczyć dokładnie to, co pójdzie do klienta, łącznie z przecinkiem przed „aby".
+    it('wlicza frazę z przecinkiem do długości SMS-a, gdy klient ma potwierdzić', () => {
+        renderModal({ requireConfirmation: true });
+
+        expect(CONSENT_CALL_TO_ACTION).toBe('Odpisz TAK, aby zaakceptować.');
+        const messageOnly = toAscii(buildServiceChangeSmsMessage(summary)).trim();
+        const full = messageOnly.length + 1 + toAscii(CONSENT_CALL_TO_ACTION).length;
+        expect(screen.getByText(charsLabel(full))).toBeInTheDocument();
     });
 
     it('nie wysyła frazy w treści, gdy nie wymagamy potwierdzenia', async () => {
         const user = userEvent.setup();
         const { onConfirm } = renderModal({ requireConfirmation: false });
 
-        await user.click(screen.getByRole('button', { name: 'Wyślij i zapisz' }));
+        await user.click(screen.getByRole('button', { name: 'Zapisz i wyślij' }));
 
         const [sentMessage] = onConfirm.mock.calls[0];
         expect(sentMessage).not.toMatch(/Odpisz TAK/);

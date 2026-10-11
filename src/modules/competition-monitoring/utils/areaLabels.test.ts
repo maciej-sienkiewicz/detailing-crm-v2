@@ -41,7 +41,7 @@ describe('odznaka nowości w tabeli reklamodawców', () => {
         expect(badge?.kind).toBe('CAMPAIGN');
         expect(badge?.label).toBe('Nowa kampania');
         expect(badge?.title).toBe(
-            'nowa kampania od 15 wrz u firmy, która już się tu reklamowała. Odznaka gaśnie 14 dni po starcie emisji.'
+            'nowa kampania od 15 wrz u firmy, która już się tu reklamowała. Odznaka zniknie 14 dni od startu reklamy.'
         );
     });
 
@@ -56,6 +56,7 @@ describe('odznaka nowości w tabeli reklamodawców', () => {
             '12 nowych kampanii'
         );
         expect(noveltyBadge(row({ newCampaigns: 3 }), 14)?.label).toBe('3 nowe');
+        expect(noveltyBadge(row({ newCampaigns: 5 }), 14)?.label).toBe('5 nowych');
     });
 
     it('data startu nie przesuwa się o dzień przez strefę czasową', () => {

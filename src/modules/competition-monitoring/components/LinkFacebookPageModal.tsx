@@ -15,6 +15,7 @@ import {
 import { FieldLabel, InputShell, BareInput, FormAlertBanner } from '@/common/components/Form';
 import { SharedButton } from '@/common/styles';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { pluralPl } from '@/common/utils/plural';
 import { useToast } from '@/common/components/Toast';
 import { useLinkFacebookPage, useSearchAdPages, useUnlinkFacebookPage } from '../hooks/useAds';
 
@@ -337,7 +338,7 @@ export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, cu
                                             <Meta>
                                                 <span>
                                                     {candidate.ads > 0
-                                                        ? `${candidate.ads} rekl.${candidate.lastStart ? ` · od ${formatDay(candidate.lastStart)}` : ''}`
+                                                        ? `${candidate.ads} ${pluralPl(candidate.ads, 'reklama', 'reklamy', 'reklam')}${candidate.lastStart ? `, ostatnia od ${formatDay(candidate.lastStart)}` : ''}`
                                                         : 'bez reklam'}
                                                 </span>
                                                 {candidate.pageId === digitsOnly && (
@@ -359,9 +360,8 @@ export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, cu
                                 ) : (
                                     <>
                                         <b>Czego szukamy</b>
-                                        Strony na Facebooku, z której ta firma wykupuje reklamy. Wklej adres jej
-                                        profilu, wpisz nazwę albo numer strony - wyniki pokażą, ile reklam ma
-                                        każda z firm, żeby nie pomylić jej ze zbieżną nazwą.
+                                        Strony na Facebooku, z której firma się reklamuje. Wklej adres, wpisz nazwę
+                                        albo numer. Przy każdym wyniku pokażemy liczbę reklam.
                                         <span>
                                             Numer znajdziesz też w adresie Biblioteki reklam Meta,
                                             po <code>view_all_page_id=</code>.
@@ -375,7 +375,7 @@ export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, cu
 
                 <Section>
                     <ModalSectionTitle>Wybrana strona</ModalSectionTitle>
-                    <FieldLabel htmlFor="fb-page-id">Identyfikator strony</FieldLabel>
+                    <FieldLabel htmlFor="fb-page-id">Numer strony</FieldLabel>
                     <InputShell>
                         <BareInput
                             id="fb-page-id"
@@ -392,21 +392,20 @@ export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, cu
 
                 {currentPageId && (
                     <FormAlertBanner style={{ marginTop: 18 }}>
-                        <b>Zmiana wchodzi w życie do 24 godzin.</b> Ten profil obserwują też inne studia,
-                        a powiązanie i pobrane reklamy są wspólne — dlatego numer sprawdza administrator
-                        i on wprowadza zmianę. Zapisujemy zgłoszenie, nie samą zmianę.
+                        <b>Zmiana zajmie do 24 godzin.</b> Ten profil obserwują też inne studia, więc zmianę
+                        sprawdza administrator.
                     </FormAlertBanner>
                 )}
                 {link.isError && (
                     <FormAlertBanner style={{ marginTop: 10 }}>
                         {currentPageId
-                            ? 'Nie udało się wysłać zgłoszenia. Sprawdź, czy identyfikator to sama liczba z adresu.'
-                            : 'Nie udało się powiązać strony. Sprawdź, czy identyfikator to sama liczba z adresu.'}
+                            ? 'Nie udało się wysłać zgłoszenia. Sprawdź, czy numer to same cyfry z adresu.'
+                            : 'Nie udało się powiązać strony. Sprawdź, czy numer to same cyfry z adresu.'}
                     </FormAlertBanner>
                 )}
                 {unlink.isError && (
                     <FormAlertBanner style={{ marginTop: 10 }}>
-                        Nie udało się wysłać zgłoszenia odpięcia. Spróbuj ponownie.
+                        Nie udało się zgłosić odpięcia. Spróbuj ponownie.
                     </FormAlertBanner>
                 )}
             </ModalContent>

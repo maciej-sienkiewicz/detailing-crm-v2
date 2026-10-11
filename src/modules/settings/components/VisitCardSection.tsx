@@ -2,7 +2,7 @@
 //
 // Ustawienia → Komunikacja z klientem → Karta wizyty.
 //
-// Przełącznik „Czy korzystać z Karty Wizyty?". Stan początkowy pola „wyślij link"
+// Przełącznik „Karta wizyty dla klientów". Stan początkowy pola „wyślij link"
 // przy rezerwacji i przyjęciu ustawia się teraz tak jak przy każdej innej wiadomości:
 // „Domyślnie zaznacz" przy „Linku do Karty Rezerwacji" i „Linku do Karty Wizyty"
 // w Wiadomościach do klientów. Dawny przełącznik „Czy domyślnie wysyłać Kartę
@@ -88,7 +88,7 @@ export const VisitCardSection = () => {
     return (
         <LockedSection
             locked={!smsFeature.enabled}
-            message="Karta Wizyty wymaga wykupionego modułu SMS."
+            message="Karta wizyty wymaga modułu SMS."
         >
             {isError && !known ? (
                 <Notice
@@ -103,7 +103,7 @@ export const VisitCardSection = () => {
                 <Body>
                     <Intro>
                         Strona dla klienta z podsumowaniem rezerwacji, zakresem usług i wyceną, a w trakcie
-                        wizyty także dokumentacją zdjęciową i dokumentami. Link wysyłamy SMS-em lub e-mailem.
+                        wizyty także zdjęciami i dokumentami. Link wysyłamy SMS-em lub e-mailem.
                     </Intro>
 
                     {isPending && !known ? (
@@ -111,16 +111,15 @@ export const VisitCardSection = () => {
                     ) : (
                         <>
                             <SettingSwitchRow
-                                label="Czy korzystać z Karty Wizyty?"
+                                label="Karta wizyty dla klientów"
                                 hint="Po wyłączeniu opcja wysyłki karty zniknie z tworzenia rezerwacji i przyjęcia pojazdu, a linki nie będą wysyłane."
                                 checked={enabled}
                                 disabled={saving}
                                 onChange={next => updateMutation.mutate({ enabled: next })}
                             />
                             <Intro>
-                                Czy pole „Wyślij link do Karty Wizyty” startuje zaznaczone, ustawisz przełącznikiem
-                                „Domyślnie zaznacz” przy wiadomościach „Link do Karty Rezerwacji” i „Link do Karty
-                                Wizyty” w sekcji Wiadomości do klientów.
+                                Czy link ma być domyślnie zaznaczony, ustawisz w Ustawienia → Wiadomości
+                                automatyczne (przełącznik „Domyślnie zaznacz”).
                             </Intro>
                         </>
                     )}

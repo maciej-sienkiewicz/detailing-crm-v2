@@ -2,6 +2,7 @@
 import styled from 'styled-components';
 import { Card, CardHeader, CardTitle } from '@/common/components/Card';
 import { Toggle } from '@/common/components/Toggle';
+import { pluralPl } from '@/common/utils/plural';
 import type { RecurrenceRuleRequest, DayOfWeek } from '../types';
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
@@ -323,9 +324,7 @@ export const RecurrenceSection = ({
 
     const weeklyIntervalLabel = () => {
         const n = rule.intervalWeeks ?? 1;
-        if (n === 1) return 'tygodniu';
-        if (n < 5) return 'tygodnie';
-        return 'tygodni';
+        return pluralPl(n, 'tydzień', 'tygodnie', 'tygodni');
     };
 
     return (
@@ -416,7 +415,7 @@ export const RecurrenceSection = ({
                                     value={rule.dayOfMonth ?? 1}
                                     onChange={e => update({ dayOfMonth: Math.max(1, Math.min(28, Number(e.target.value))) })}
                                 />
-                                <UnitText>dzień miesiąca (maks. 28)</UnitText>
+                                <UnitText>(od 1 do 28)</UnitText>
                             </Row>
                         </div>
                     )}
@@ -473,7 +472,7 @@ export const RecurrenceSection = ({
                                     checked={rule.endType === 'OPEN'}
                                     onChange={() => update({ endType: 'OPEN', maxOccurrences: undefined, endDate: undefined })}
                                 />
-                                <RadioLabel>Bez końca (max. 104 wizyt)</RadioLabel>
+                                <RadioLabel>Bez końca (do 104 wizyt)</RadioLabel>
                             </RadioRow>
                         </EndTypeGroup>
                     </div>
@@ -484,12 +483,16 @@ export const RecurrenceSection = ({
                             <Divider />
                             <PreviewBox>
                                 <PreviewLine>
-                                    Zostanie utworzonych <strong>{preview.count} {preview.count === 1 ? 'wizytę' : preview.count < 5 ? 'wizyty' : 'wizyt'}</strong>
+                                    Zaplanujemy wizyty: <strong>{preview.count}</strong>
                                 </PreviewLine>
                                 <PreviewLine>
                                     Pierwsza: <strong>{preview.first}</strong>
-                                    {preview.count > 1 && <> · Ostatnia: <strong>{preview.last}</strong></>}
                                 </PreviewLine>
+                                {preview.count > 1 && (
+                                    <PreviewLine>
+                                        Ostatnia: <strong>{preview.last}</strong>
+                                    </PreviewLine>
+                                )}
                             </PreviewBox>
                         </>
                     )}

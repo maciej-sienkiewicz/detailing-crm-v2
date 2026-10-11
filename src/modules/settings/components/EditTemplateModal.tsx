@@ -111,7 +111,7 @@ export function EditTemplateModal({ template, onClose }: EditTemplateModalProps)
             <ModalFooter>
                 <Button onClick={onClose}>Anuluj</Button>
                 <Button type="submit" form="edit-template-form" variant="primary" disabled={updateTemplate.isPending}>
-                    {updateTemplate.isPending ? 'Zapisywanie...' : 'Zapisz zmiany'}
+                    {updateTemplate.isPending ? 'Zapisywanie…' : 'Zapisz zmiany'}
                 </Button>
             </ModalFooter>
         </ModalShell>

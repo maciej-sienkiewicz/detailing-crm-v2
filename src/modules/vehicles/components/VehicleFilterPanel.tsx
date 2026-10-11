@@ -462,8 +462,8 @@ const ServiceMultiSelect = ({ selectedIds, onChange }: ServiceMultiSelectProps) 
     const label = selectedIds.length === 0
         ? null
         : selectedIds.length === 1
-            ? selectedNames[0] ?? '1 wybrana'
-            : `${selectedIds.length} wybranych`;
+            ? selectedNames[0] ?? 'Wybrano: 1'
+            : `Wybrano: ${selectedIds.length}`;
 
     return (
         <div style={{ position: 'relative' }}>
@@ -483,7 +483,7 @@ const ServiceMultiSelect = ({ selectedIds, onChange }: ServiceMultiSelectProps) 
             >
                 {label
                     ? <ServiceTriggerText>{label}</ServiceTriggerText>
-                    : <ServiceTriggerPlaceholder>{isLoading ? 'Ładowanie...' : 'Wybierz usługi'}</ServiceTriggerPlaceholder>
+                    : <ServiceTriggerPlaceholder>{isLoading ? 'Wczytywanie…' : 'Wybierz usługi'}</ServiceTriggerPlaceholder>
                 }
                 <ServiceCaret $open={open} />
             </ServiceTrigger>
@@ -498,7 +498,7 @@ const ServiceMultiSelect = ({ selectedIds, onChange }: ServiceMultiSelectProps) 
                         <ServiceMenuSearchInput
                             ref={searchRef}
                             type="text"
-                            placeholder="Szukaj usługi..."
+                            placeholder="Szukaj usługi…"
                             value={query}
                             onChange={e => setQuery(e.target.value)}
                         />
@@ -662,7 +662,7 @@ export const VehicleFilterPanel = ({
                     {/* Przychód */}
                     {showRevenue && (
                     <FilterSection>
-                        <SectionLabel>Przychód brutto (PLN)</SectionLabel>
+                        <SectionLabel>Przychód brutto (zł)</SectionLabel>
                         <RangeRow>
                             <RangeInput
                                 type="number" min={0} placeholder="Od" value={minRevenue}
@@ -686,7 +686,7 @@ export const VehicleFilterPanel = ({
                         />
                         <ActivityRow>
                             <InputRow>
-                                <InputLabel>Wykonano w przeciągu</InputLabel>
+                                <InputLabel>Wykonano w ciągu ostatnich</InputLabel>
                                 <NumberInput
                                     type="number" min={1} placeholder="-"
                                     value={lastServiceWithinDays}

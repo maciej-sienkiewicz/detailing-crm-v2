@@ -32,6 +32,7 @@ import {
     Pause, Pencil, Play, RefreshCw, Send, Square, Trash2, Users,
 } from 'lucide-react';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { pluralPl } from '@/common/utils/plural';
 import {
     CloseBtn,
     ModalContent,
@@ -53,7 +54,7 @@ import { CHANNEL_LABELS, RECIPIENT_STATUS_LABELS, STATUS_COLORS, STATUS_LABELS }
 import { audienceChips, useServiceCatalog } from './AudienceBuilder';
 import { ContentPreview } from './ContentPreview';
 import {
-    CLOSED_STATUSES, describeMoment, messageWord,
+    CLOSED_STATUSES, describeMoment, messageWord, notDeliveredVerb,
 } from '../utils/campaignState';
 import {
     CampaignKindMark, Chip, ChipRow, DangerButton, IconButton,
@@ -706,23 +707,11 @@ const ELIGIBILITY_LABELS: Record<string, string> = {
     FREQUENCY_CAP: 'Niedawno kontaktowany',
 };
 
-/** Polska odmiana po liczbie: 1 osoba, 2-4 osoby, 5+ osób. */
-function peopleWord(n: number) {
-    if (n === 1) return 'osoba';
-    const lastTwo = n % 100;
-    const last = n % 10;
-    if (lastTwo >= 12 && lastTwo <= 14) return 'osób';
-    return last >= 2 && last <= 4 ? 'osoby' : 'osób';
-}
+/** 1 osoba, 2-4 osoby, 5+ osób. */
+const peopleWord = (n: number) => pluralPl(n, 'osoba', 'osoby', 'osób');
 
-/** Polska odmiana po liczbie: 1 kredyt, 2-4 kredyty, 5+ kredytów. */
-function creditWord(n: number) {
-    if (n === 1) return 'kredyt';
-    const lastTwo = n % 100;
-    const last = n % 10;
-    if (lastTwo >= 12 && lastTwo <= 14) return 'kredytów';
-    return last >= 2 && last <= 4 ? 'kredyty' : 'kredytów';
-}
+/** 1 kredyt, 2-4 kredyty, 5+ kredytów. */
+const creditWord = (n: number) => pluralPl(n, 'kredyt', 'kredyty', 'kredytów');
 
 interface OutcomePart {
     key: string;
@@ -762,8 +751,8 @@ function summarizeOutcome(c: Campaign, estimate: AudienceEstimate | undefined): 
             { key: 'optedOut', count: estimate.optedOut, label: 'wypisani', tone: 'muted' },
             { key: 'noConsent', count: estimate.noConsent, label: 'bez zgody', tone: 'muted' },
             { key: 'noAddress', count: estimate.noAddress, label: 'bez numeru', tone: 'muted' },
-            { key: 'cap', count: estimate.frequencyCapped, label: 'niedawno pisaliśmy', tone: 'muted' },
-            { key: 'excluded', count: estimate.excludedManually, label: 'wykluczeni ręcznie', tone: 'muted' },
+            { key: 'cap', count: estimate.frequencyCapped, label: 'niedawno kontaktowani', tone: 'muted' },
+            { key: 'excluded', count: estimate.excludedManually, label: 'odznaczeni ręcznie', tone: 'muted' },
         ].filter((part) => part.count > 0);
 
         return {
@@ -808,7 +797,7 @@ function summarizeOutcome(c: Campaign, estimate: AudienceEstimate | undefined): 
         value: String(c.recipientsSent),
         before: null,
         after: c.recipientsSent === total
-            ? `${messageWord(c.recipientsSent)} dotarło do wszystkich`
+            ? `${messageWord(c.recipientsSent)} ${pluralPl(c.recipientsSent, 'dotarła', 'dotarły', 'dotarło')} do wszystkich`
             : `z ${total} ${messageWord(total)} dotarło`,
         parts,
         total,
@@ -986,7 +975,7 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                             <Note $tone="error">
                                 <AlertTriangle />
                                 <span>
-                                    <strong>{failed}</strong> {messageWord(failed)} nie dotarło do odbiorców.
+                                    <strong>{failed}</strong> {messageWord(failed)} {notDeliveredVerb(failed)} do odbiorców.
                                 </span>
                             </Note>
                         )}
@@ -995,8 +984,8 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                             <Note $tone="warn">
                                 <Coins />
                                 <span>
-                                    Ta wysyłka zużyje <strong>{plannedCredits}</strong> kredytów, a na koncie
-                                    jest ich <strong>{stats?.smsCreditsAvailable}</strong>.
+                                    Ta wysyłka zużyje <strong>{plannedCredits}</strong> {creditWord(plannedCredits ?? 0)}, a na koncie
+                                    masz <strong>{stats?.smsCreditsAvailable}</strong>.
                                 </span>
                                 <span className="spacer" />
                                 <QuietLink type="button" onClick={() => navigate('/settings?tab=credits')}>
@@ -1093,7 +1082,7 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                                     {isProjection && (
                                         <MutedText>
                                             Stan na dziś - ostateczną listę wyliczymy w dniu wysyłki.
-                                            Ręczne wykluczenia zostaną zachowane.
+                                            Ręczne odznaczenia zostaną zachowane.
                                         </MutedText>
                                     )}
 
@@ -1239,7 +1228,7 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                                             Kiedy wychodzi
                                         </SectionHead>
                                         <ConditionText>
-                                            <strong>{c.trigger.afterDays} dni</strong> po usłudze{' '}
+                                            <strong>{c.trigger.afterDays} {pluralPl(c.trigger.afterDays, 'dzień', 'dni', 'dni')}</strong> po usłudze{' '}
                                             <strong>
                                                 {c.trigger.serviceIds
                                                     .map((sid) => serviceNames.get(sid) ?? 'usługa')
@@ -1247,7 +1236,7 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                                             </strong>
                                             , o {c.trigger.sendTime}
                                             {c.trigger.onlyIfNoVisitSince &&
-                                                ', z pominięciem klientów, którzy byli w międzyczasie'}
+                                                ', chyba że klient był u Ciebie w międzyczasie'}
                                             .
                                         </ConditionText>
                                     </FlatSection>
@@ -1440,7 +1429,7 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                     : pending === 'cancel' ? 'Anulować kampanię?'
                     : pending === 'delete' ? 'Usunąć ten szkic?'
                     : c.kind === 'AUTOMATIC' ? 'Aktywować kampanię?'
-                    : c.scheduledAt ? 'Wysłać teraz, z pominięciem terminu?'
+                    : c.scheduledAt ? 'Wysłać teraz, nie czekając na termin?'
                     : 'Wysłać kampanię teraz?'
                 }
                 message={
@@ -1449,10 +1438,10 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                     : pending === 'cancel'
                         ? 'Kampania nie zostanie wysłana. Możesz ją później zduplikować.'
                     : pending === 'delete'
-                        ? `Szkic „${c.name}" zostanie trwale usunięty. Tej operacji nie da się cofnąć.`
+                        ? `Szkic „${c.name}” zostanie trwale usunięty. Tego nie da się cofnąć.`
                     : c.kind === 'AUTOMATIC'
-                        ? `Kampania „${c.name}" zacznie działać i sama wyśle wiadomość każdemu klientowi, który spełni warunek.`
-                        : `Wyślemy „${c.name}" natychmiast. Listę odbiorców wyliczymy teraz, ta operacja pobierze kredyty.`
+                        ? `Kampania „${c.name}” zacznie działać i sama wyśle wiadomość każdemu klientowi, który spełni warunek.`
+                        : `Wyślemy „${c.name}” natychmiast. Listę odbiorców wyliczymy teraz i pobierzemy kredyty.`
                 }
                 confirmText={
                     pending === 'stop' ? 'Zatrzymaj'

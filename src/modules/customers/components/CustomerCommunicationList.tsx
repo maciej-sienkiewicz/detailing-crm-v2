@@ -116,7 +116,7 @@ export const CustomerCommunicationList = ({ entries, isLoading, id }: Props) => 
             </PanelHead>
             <PanelBody>
                 {isLoading ? (
-                    <Empty>Wczytywanie wiadomości...</Empty>
+                    <Empty>Wczytywanie wiadomości…</Empty>
                 ) : sorted.length === 0 ? (
                     <Empty>Do klienta nie wyszła jeszcze żadna wiadomość.</Empty>
                 ) : (

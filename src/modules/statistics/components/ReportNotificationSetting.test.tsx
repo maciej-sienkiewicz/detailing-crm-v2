@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// „Dostępny nowy raport" w panelu Powiadomień: ustawienie osoby z dostępem do raportu.
+// „Powiadomienie o nowym raporcie" w panelu Powiadomień: ustawienie osoby z dostępem do raportu.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -65,7 +65,7 @@ describe('ReportNotificationSetting', () => {
     it('bez dostępu do raportu nie ma czego ustawiać', () => {
         access.allowed = false;
         renderSetting();
-        expect(screen.queryByText('Dostępny nowy raport')).toBeNull();
+        expect(screen.queryByText('Powiadomienie o nowym raporcie')).toBeNull();
         expect(api.getNotification).not.toHaveBeenCalled();
     });
 });

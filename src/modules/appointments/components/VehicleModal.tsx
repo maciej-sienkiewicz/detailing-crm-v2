@@ -179,7 +179,6 @@ export const VehicleModal = ({
                                                 <VehicleDetail>
                                                     {t.appointments.vehicleModal.year}: {vehicle.year}
                                                 </VehicleDetail>
-                                                <VehicleDetail>·</VehicleDetail>
                                                 <VehicleDetail>{vehicle.licensePlate}</VehicleDetail>
                                             </VehicleDetails>
                                         </VehicleCard>

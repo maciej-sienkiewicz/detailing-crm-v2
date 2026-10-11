@@ -73,6 +73,9 @@ const TaskFooter = styled.div`
     font-size: ${p => p.theme.fontSizes.xs};
     color: ${p => p.theme.colors.textMuted};
     margin-top: ${p => p.theme.spacing.xs};
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
 `;
 
 const UnreadDot = styled.span`
@@ -129,8 +132,8 @@ export function NotificationsView() {
                             <TaskTitle $done={task.done}>{task.title}</TaskTitle>
                             {task.meta && <TaskMeta>{task.meta}</TaskMeta>}
                             <TaskFooter>
-                                {task.createdByUserName ? `${task.createdByUserName} · ` : ''}
-                                {formatDateTime(task.createdAt)}
+                                {task.createdByUserName && <span>{task.createdByUserName}</span>}
+                                <span>{formatDateTime(task.createdAt)}</span>
                             </TaskFooter>
                         </Body>
                         {task.unread && !task.done && <UnreadDot aria-label="Nieprzeczytane" />}

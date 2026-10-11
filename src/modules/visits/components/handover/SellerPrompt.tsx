@@ -136,7 +136,7 @@ export const SellerPrompt = ({ company }: SellerPromptProps) => {
                 onClick={() => save.mutate()}
                 style={{ alignSelf: 'flex-start' }}
             >
-                {save.isPending ? 'Zapisywanie...' : 'Zapisz dane firmy'}
+                {save.isPending ? 'Zapisywanie…' : 'Zapisz dane firmy'}
             </Button>
         </Box>
     );

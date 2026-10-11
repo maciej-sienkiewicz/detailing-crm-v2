@@ -245,7 +245,7 @@ export const SigningRequirementModal = ({
             // Wynik wysyłki karty przychodzi razem z potwierdzeniem; nikt nie wysyła jej po raz drugi.
             if (response.visitCard) {
                 if (response.visitCard.emailSent || response.visitCard.smsSent) showSuccess(response.visitCard.message);
-                else showError('Nie udało się wysłać Karty Wizyty', response.visitCard.message);
+                else showError('Nie udało się wysłać Karty wizyty', response.visitCard.message);
             }
             onConfirm({ sendVisitCard: notifOptions.sendVisitCard });
         },
@@ -409,11 +409,11 @@ export const SigningRequirementModal = ({
         switch (outcome) {
             case 'SIGNATURE_COMPLETED':
                 setSigningState(protocolId, { phase: 'signed', requestId, channel });
-                showSuccess('Klient pomyślnie podpisał dokument');
+                showSuccess('Klient podpisał dokument');
                 break;
             case 'SIGNATURE_DECLINED':
                 setSigningState(protocolId, { phase: 'declined', requestId, channel });
-                showError('Klient odrzucił dokument. Spróbuj ponownie.');
+                showError('Klient odmówił podpisu.');
                 break;
             case 'SIGNATURE_FAILED':
             case 'SIGNATURE_EXPIRED':
@@ -451,7 +451,7 @@ export const SigningRequirementModal = ({
     const tabletButtonTitle = (protocol: ProtocolResponse): string => {
         const phase = signingByProtocol[protocol.id]?.phase;
         if (phase === 'signed') return 'Klient podpisał dokument';
-        if (phase === 'waiting') return 'Oczekiwanie na podpis klienta...';
+        if (phase === 'waiting') return 'Oczekiwanie na podpis klienta…';
         if (!sigLocal.enabled) return sigLocal.lockReason ?? 'Wymaga modułu Podpisy elektroniczne';
         if (tablets.length === 0) return 'Brak sparowanego tabletu';
         if (tablets.length === 1) return `Wyślij na tablet: ${tablets[0].deviceName}`;
@@ -461,7 +461,7 @@ export const SigningRequirementModal = ({
     const phoneButtonTitle = (protocol: ProtocolResponse): string => {
         const phase = signingByProtocol[protocol.id]?.phase;
         if (phase === 'signed') return 'Klient podpisał dokument';
-        if (phase === 'waiting') return 'Oczekiwanie na podpis klienta...';
+        if (phase === 'waiting') return 'Oczekiwanie na podpis klienta…';
         if (!sigRemote.enabled) return sigRemote.lockReason ?? 'Wymaga modułów: Podpisy elektroniczne i Automatyzacja kontaktu';
         if (!customerPhone) return 'Nie podano numeru klienta';
         return 'Wyślij prośbę na telefon klienta';
@@ -481,7 +481,7 @@ export const SigningRequirementModal = ({
             >
                 <ModalHeader>
                     <ModalTitleGroup>
-                        <ModalTitle>Dokumentacja i Podpisy</ModalTitle>
+                        <ModalTitle>Dokumenty do podpisu</ModalTitle>
                     </ModalTitleGroup>
                     <CloseBtn onClick={() => setExitPromptOpen(true)} />
                 </ModalHeader>
@@ -491,10 +491,10 @@ export const SigningRequirementModal = ({
                         {isCreating ? (
                             <LoadingContainer>
                                 <Spinner />
-                                <span>Uzupełniam dane na protokole...</span>
+                                <span>Uzupełniam dane na protokole…</span>
                             </LoadingContainer>
                         ) : !protocols || protocols.length === 0 ? (
-                            <EmptyState>Brak wymaganych protokołów dla tej wizyty</EmptyState>
+                            <EmptyState>Ta wizyta nie wymaga protokołów.</EmptyState>
                         ) : (
                             <>
                                 {protocols.length > 1 && sigLocal.enabled && hasTablets && (
@@ -668,7 +668,7 @@ export const SigningRequirementModal = ({
                                     onClick={() => confirmVisitMutation.mutate()}
                                     disabled={!canInteract || isProcessing}
                                 >
-                                    {isProcessing ? 'Przetwarzanie...' : 'Zatwierdź i rozpocznij wizytę'}
+                                    {isProcessing ? 'Zapisywanie…' : 'Zatwierdź i rozpocznij wizytę'}
                                 </ConfirmBtn>
                             </PrimaryActionGroup>
                         </FooterActions>

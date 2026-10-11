@@ -106,7 +106,7 @@ export function CareInstructionsSection({ switcher }: Props) {
                     <Muted>Wczytywanie instrukcji…</Muted>
                 ) : instructions.length === 0 ? (
                     <Empty>
-                        <strong>Słownik jest pusty</strong>
+                        <strong>Nie masz jeszcze instrukcji</strong>
                         <span>Dodaj pierwszą instrukcję przyciskiem „Dodaj instrukcję".</span>
                     </Empty>
                 ) : (
@@ -206,7 +206,7 @@ function CareInstructionEditor({ initial, onClose }: { initial: Draft; onClose: 
             };
             if (draft.id) await update.mutateAsync({ id: draft.id, req });
             else await create.mutateAsync(req);
-            showSuccess(draft.id ? 'Instrukcja zapisana' : 'Instrukcja dodana', `„${req.title}" jest w słowniku.`);
+            showSuccess(draft.id ? 'Instrukcja zapisana' : 'Instrukcja dodana', `„${req.title}" jest na liście.`);
             onClose();
         } catch (error) {
             reportMutationError(showError, error, 'Nie udało się zapisać instrukcji');
@@ -231,7 +231,7 @@ function CareInstructionEditor({ initial, onClose }: { initial: Draft; onClose: 
                     noValidate
                 >
                     <Field>
-                        <FieldLabel htmlFor="care-title">Nazwa (widoczna tylko dla Was)</FieldLabel>
+                        <FieldLabel htmlFor="care-title">Nazwa (klient jej nie zobaczy)</FieldLabel>
                         <InputShell $hasError={showErrors && !!titleError}>
                             <BareInput
                                 id="care-title"
@@ -268,8 +268,8 @@ function CareInstructionEditor({ initial, onClose }: { initial: Draft; onClose: 
                         <CheckText>
                             <strong>Zaznaczaj przy każdym certyfikacie</strong>
                             <span>
-                                Dla zasad prawdziwych niezależnie od wykonanej usługi. Pracownik może je
-                                odznaczyć przy generowaniu.
+                                Dla zaleceń, które pasują do każdej usługi. Pracownik może je odznaczyć
+                                przy tworzeniu certyfikatu.
                             </span>
                         </CheckText>
                     </CheckRow>
@@ -279,7 +279,7 @@ function CareInstructionEditor({ initial, onClose }: { initial: Draft; onClose: 
             <ModalFooter>
                 <Button onClick={onClose}>Anuluj</Button>
                 <Button type="submit" form="care-instruction-form" variant="primary" disabled={busy}>
-                    {busy ? 'Zapisywanie...' : initial.id ? 'Zapisz zmiany' : 'Dodaj instrukcję'}
+                    {busy ? 'Zapisywanie…' : initial.id ? 'Zapisz zmiany' : 'Dodaj instrukcję'}
                 </Button>
             </ModalFooter>
         </ModalShell>

@@ -240,7 +240,7 @@ const PAYMENT_METHODS = [
     { value: 'CZEK',    label: 'Czek' },
     { value: 'BON',     label: 'Bon / voucher' },
     { value: 'KREDYT',  label: 'Kredyt' },
-    { value: 'MOBILNA', label: 'Mobilna' },
+    { value: 'MOBILNA', label: 'Płatność mobilna (BLIK)' },
 ];
 
 const VAT_RATES = [
@@ -414,8 +414,8 @@ export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
             <ModalContent style={{ paddingTop: '8px' }}>
                 <InfoBox>
-                    Każdy dokument trafia do statystyk w <strong>Pozycjach kosztowych</strong>, gdzie przypiszesz mu
-                    kategorię. Faktury z KSeF pobierają się same - tu dodajesz resztę kosztów.
+                    Faktury z KSeF pobierają się same, tu dodasz resztę. Kategorię nadasz
+                    w <strong>Statystykach, w zakładce Koszty</strong>.
                 </InfoBox>
 
                 {error && <FormAlertBanner>{error}</FormAlertBanner>}
@@ -616,7 +616,7 @@ export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
                     form="expense-form"
                     disabled={createExpense.isPending}
                 >
-                    {createExpense.isPending ? 'Zapisywanie...' : 'Zapisz dokument'}
+                    {createExpense.isPending ? 'Zapisywanie…' : 'Zapisz dokument'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

@@ -42,8 +42,8 @@ describe('okno podglądu roli', () => {
 
         render(<React.StrictMode><RolePreviewShell entryCode={code('a')} /></React.StrictMode>);
 
-        expect(await screen.findByText(/Rola „Recepcja"/)).toBeInTheDocument();
-        expect(screen.getByText('To jest aplikacja podglądowa do manipulowania uprawnieniami')).toBeInTheDocument();
+        expect(await screen.findByText(/Rola „Recepcja”/)).toBeInTheDocument();
+        expect(screen.getByText('Podgląd: tak widzi aplikację pracownik z tą rolą')).toBeInTheDocument();
         expect(api.enter).toHaveBeenCalledTimes(1);
         expect(screen.getByTitle('Aplikacja CRM oczami pracownika z podglądaną rolą')).toHaveAttribute('src', '/');
     });

@@ -136,7 +136,7 @@ export function VehicleComments({ vehicleId, id }: Props) {
             </PanelHead>
             <PanelBody>
                 {isLoading ? (
-                    <Empty>Wczytywanie komentarzy...</Empty>
+                    <Empty>Wczytywanie komentarzy…</Empty>
                 ) : comments.length === 0 ? (
                     <Empty>Przy wizytach tego pojazdu nikt nie zostawił komentarza.</Empty>
                 ) : (

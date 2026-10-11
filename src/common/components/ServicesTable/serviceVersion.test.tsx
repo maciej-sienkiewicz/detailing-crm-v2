@@ -40,7 +40,7 @@ describe('pozycja na wygaszonej wersji usługi', () => {
             </ThemeProvider>
         );
 
-        expect(screen.getByText('Cena usługi uległa zmianie, nowa cena: 450,00 zł')).toBeInTheDocument();
+        expect(screen.getByText('Nowa cena w cenniku: 365,85 zł netto / 450,00 zł brutto')).toBeInTheDocument();
         await userEvent.click(screen.getByRole('button', { name: 'Odśwież cenę' }));
 
         const [next] = onChange.mock.calls[0][0] as ServiceLineItem[];

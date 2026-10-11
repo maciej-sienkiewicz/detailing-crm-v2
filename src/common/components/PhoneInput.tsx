@@ -352,7 +352,7 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
                     onChange={handleCountryChange}
                     onBlur={handleBlur}
                     $hasError={hasError}
-                    aria-label="Country code"
+                    aria-label="Numer kierunkowy kraju"
                 >
                     {COUNTRY_CODES.map(country => (
                         <option key={country.code} value={country.code}>

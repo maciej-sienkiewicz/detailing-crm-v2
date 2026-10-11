@@ -35,7 +35,7 @@ export const useCheckInValidation = (formData: CheckInFormData, currentStep: Che
             } else {
                 // Jeśli nie ma pełnych danych, musi być wybór klienta
                 if (!formData.customerData.id) {
-                    validationErrors.customer = 'Musisz wybrać klienta';
+                    validationErrors.customer = 'Wybierz klienta';
                 } else {
                     // Klient istnieje, ale może mieć niekompletne dane: waliduj imię i nazwisko
                     if (!formData.customerData.firstName || formData.customerData.firstName.length < 2) {
@@ -49,7 +49,7 @@ export const useCheckInValidation = (formData: CheckInFormData, currentStep: Che
 
             // Walidacja pojazdu
             if (!formData.vehicleData) {
-                validationErrors.vehicle = 'Pojazd jest wymagany';
+                validationErrors.vehicle = 'Wybierz pojazd';
             }
 
             // Walidacja usług - wymagana przynajmniej jedna usługa
@@ -67,10 +67,10 @@ export const useCheckInValidation = (formData: CheckInFormData, currentStep: Che
                 const handoff = formData.vehicleHandoff.contactPerson;
 
                 if (!handoff.firstName || handoff.firstName.trim().length < 2) {
-                    validationErrors.handoffFirstName = 'Imię osoby przekazującej jest wymagane (min. 2 znaki)';
+                    validationErrors.handoffFirstName = 'Podaj imię osoby przekazującej (min. 2 znaki)';
                 }
                 if (!handoff.lastName || handoff.lastName.trim().length < 2) {
-                    validationErrors.handoffLastName = 'Nazwisko osoby przekazującej jest wymagane (min. 2 znaki)';
+                    validationErrors.handoffLastName = 'Podaj nazwisko osoby przekazującej (min. 2 znaki)';
                 }
 
                 const hasHandoffEmail = !!handoff.email && handoff.email.trim().length > 0;

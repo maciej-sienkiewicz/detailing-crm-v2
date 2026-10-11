@@ -30,7 +30,8 @@ import { PageHeader, PageHeaderGhostButton, PageHeaderPrimaryButton } from '@/co
 import { useCampaignStats, useCampaignsList } from '../hooks/useCampaigns';
 import { CHANNEL_LABELS, LOW_CREDITS_THRESHOLD, STATUS_COLORS, STATUS_LABELS } from '../constants';
 import { CampaignDetailModal } from '../components/CampaignDetailModal';
-import { describeCampaign, messageWord, type CampaignTone } from '../utils/campaignState';
+import { describeCampaign, messageWord, notDeliveredVerb, type CampaignTone } from '../utils/campaignState';
+import { pluralPl } from '@/common/utils/plural';
 import {
     CampaignKindMark,
     EmptyHint,
@@ -378,10 +379,10 @@ export function CampaignsListView() {
                 subtitle={
                     stats ? (
                         <HeaderStats>
-                            <span><strong>{stats.active}</strong> działa</span>
-                            <span><strong>{stats.scheduled}</strong> zaplanowanych</span>
-                            <span><strong>{stats.messagesSentLast30Days}</strong> wiadomości w 30 dni</span>
-                            <span><strong>{credits}</strong> kredytów SMS</span>
+                            <span>Działa: <strong>{stats.active}</strong></span>
+                            <span>Zaplanowane: <strong>{stats.scheduled}</strong></span>
+                            <span>Wysłane w ostatnich 30 dniach: <strong>{stats.messagesSentLast30Days}</strong></span>
+                            <span>Kredyty SMS: <strong>{credits}</strong></span>
                         </HeaderStats>
                     ) : (
                         'Wysyłki SMS i e-mail do Twoich klientów'
@@ -411,7 +412,7 @@ export function CampaignsListView() {
                 >
                     <span className="amount">{failedTotal}</span>
                     <span className="text">
-                        {messageWord(failedTotal)} nie dotarło do odbiorców
+                        {messageWord(failedTotal)} {notDeliveredVerb(failedTotal)} do odbiorców
                         {worstCampaign && worstCampaign.recipientsFailed > 0 && (
                             <> - najwięcej w <strong>{worstCampaign.name}</strong></>
                         )}
@@ -428,9 +429,10 @@ export function CampaignsListView() {
                 >
                     <span className="amount">{credits}</span>
                     <span className="text">
+                        {pluralPl(credits, 'kredyt SMS został', 'kredyty SMS zostały', 'kredytów SMS zostało')} na koncie -{' '}
                         {isOwner
-                            ? <>kredytów SMS zostało na koncie - <strong>doładuj</strong>, zanim ruszy kolejna wysyłka</>
-                            : <>kredytów SMS zostało na koncie - poproś właściciela o <strong>doładowanie</strong>, zanim ruszy kolejna wysyłka</>}
+                            ? <><strong>doładuj</strong>, zanim ruszy kolejna wysyłka</>
+                            : <>poproś właściciela o <strong>doładowanie</strong>, zanim ruszy kolejna wysyłka</>}
                     </span>
                     <Coins />
                 </AlertStrip>
@@ -479,12 +481,12 @@ export function CampaignsListView() {
                                 <span>Kampania</span>
                                 <span>Kanał</span>
                                 <span>Odbiorcy</span>
-                                <span>Koszt</span>
+                                <span>Koszt (kredyty)</span>
                                 <span>Status</span>
                                 <span>Termin</span>
                             </HeadRow>
                             {filtered.length === 0 && (
-                                <EmptyHint>Brak kampanii w tym widoku</EmptyHint>
+                                <EmptyHint>Nie ma tu żadnej kampanii</EmptyHint>
                             )}
                             {filtered.map((c) => {
                                 const marker = describeCampaign(c);
@@ -513,7 +515,7 @@ export function CampaignsListView() {
                                         <span className="num">{recipientsLabel(c)}</span>
 
                                         <span className="num">
-                                            {c.creditsSpent > 0 ? `${c.creditsSpent} kr.` : '-'}
+                                            {c.creditsSpent > 0 ? String(c.creditsSpent) : '-'}
                                         </span>
 
                                         {/* Etap i „co dalej" jedno pod drugim: to dwie odpowiedzi

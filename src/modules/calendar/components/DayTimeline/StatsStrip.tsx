@@ -33,7 +33,7 @@ export const StatsStrip = ({ stats }: StatsStripProps) => {
             </StatCell>
         )}
         <StatCell>
-            <StatLabel>Zdarzeń</StatLabel>
+            <StatLabel>Razem</StatLabel>
             <StatValue>{stats.totalEvents}</StatValue>
         </StatCell>
         <StatCell>

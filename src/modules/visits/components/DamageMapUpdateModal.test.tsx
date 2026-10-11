@@ -116,15 +116,15 @@ describe('DamageMapUpdateModal', () => {
         // Pytanie o plik jest PIERWSZE świadomie: po dorysowaniu dziesięciu punktów
         // nikt nie czyta wyjaśnień o nadpisywaniu podpisanego protokołu.
         expect(screen.getByText(/Co zrobić z dotychczasowym dokumentem/i)).toBeTruthy();
-        expect(screen.getByText(/Wygeneruj nowy plik/i)).toBeTruthy();
-        expect(screen.getByText(/Zaktualizuj istniejący/i)).toBeTruthy();
+        expect(screen.getByText(/Zapisz jako nową mapę/i)).toBeTruthy();
+        expect(screen.getByText(/Nadpisz obecną mapę/i)).toBeTruthy();
         expect(screen.queryByAltText(/Schemat pojazdu/i)).toBeNull();
     });
 
     it('domyślnie wybiera nowy plik — wariant, który nie kasuje mapy z przyjęcia', () => {
         renderModal();
 
-        const newFile = screen.getByRole('button', { name: /Wygeneruj nowy plik/i });
+        const newFile = screen.getByRole('button', { name: /Zapisz jako nową mapę/i });
         expect(newFile.getAttribute('aria-pressed')).toBe('true');
     });
 
@@ -138,7 +138,7 @@ describe('DamageMapUpdateModal', () => {
         renderModal({ hasDocument: false, pointsRecoverable: false, initialPoints: [] });
 
         expect(screen.queryByText(/Co zrobić z dotychczasowym dokumentem/i)).toBeNull();
-        expect(screen.queryByRole('button', { name: /Zaktualizuj istniejący/i })).toBeNull();
+        expect(screen.queryByRole('button', { name: /Nadpisz obecną mapę/i })).toBeNull();
         expect(screen.getByAltText(/Schemat pojazdu/i)).toBeTruthy();
         // Z dwóch kroków pierwszy nie ma już „Wróć".
         expect(screen.queryByRole('button', { name: /^Wróć$/i })).toBeNull();
@@ -149,7 +149,7 @@ describe('DamageMapUpdateModal', () => {
         const { onSubmit } = renderModal({ hasDocument: false, pointsRecoverable: false, initialPoints: [] });
 
         await addPointOnDiagram(user);
-        await user.click(screen.getByRole('button', { name: /Podsumowanie/i }));
+        await user.click(screen.getByRole('button', { name: /Dalej/i }));
         await user.click(screen.getByRole('button', { name: /Nie, powiem osobiście/i }));
         await user.click(screen.getByRole('button', { name: /Zapisz mapę uszkodzeń/i }));
 
@@ -171,7 +171,7 @@ describe('DamageMapUpdateModal', () => {
         // i cicho skasowała wszystkie oznaczenia z przyjęcia.
         renderModal({ pointsRecoverable: false, initialPoints: [], hasDocument: true });
 
-        expect(screen.getByText(/starsza niż zapis oznaczeń/i)).toBeTruthy();
+        expect(screen.getByText(/punktów nie da się wczytać/i)).toBeTruthy();
     });
 
     it('bez żadnej zmiany nie da się przejść dalej ani zapisać', async () => {
@@ -180,7 +180,7 @@ describe('DamageMapUpdateModal', () => {
 
         await user.click(screen.getByRole('button', { name: /Przejdź do mapy/i }));
 
-        const next = screen.getByRole('button', { name: /Podsumowanie/i }) as HTMLButtonElement;
+        const next = screen.getByRole('button', { name: /Dalej/i }) as HTMLButtonElement;
         expect(next.disabled).toBe(true);
         expect(next.title).toMatch(/Dodaj lub popraw oznaczenie/i);
     });
@@ -191,7 +191,7 @@ describe('DamageMapUpdateModal', () => {
 
         await user.click(screen.getByRole('button', { name: /Przejdź do mapy/i }));
         await addPointOnDiagram(user);
-        await user.click(screen.getByRole('button', { name: /Podsumowanie/i }));
+        await user.click(screen.getByRole('button', { name: /Dalej/i }));
 
         const save = screen.getByRole('button', { name: /Zapisz mapę uszkodzeń/i }) as HTMLButtonElement;
         expect(save.disabled).toBe(true);
@@ -215,10 +215,10 @@ describe('DamageMapUpdateModal', () => {
         const user = userEvent.setup();
         const { onSubmit, onClose } = renderModal();
 
-        await user.click(screen.getByRole('button', { name: /Zaktualizuj istniejący/i }));
+        await user.click(screen.getByRole('button', { name: /Nadpisz obecną mapę/i }));
         await user.click(screen.getByRole('button', { name: /Przejdź do mapy/i }));
         await addPointOnDiagram(user);
-        await user.click(screen.getByRole('button', { name: /Podsumowanie/i }));
+        await user.click(screen.getByRole('button', { name: /Dalej/i }));
 
         expect(screen.queryByLabelText(/Treść wiadomości do klienta/i)).toBeNull();
         await user.click(screen.getByRole('button', { name: /Tak, powiadom/i }));
@@ -228,7 +228,7 @@ describe('DamageMapUpdateModal', () => {
         expect(textarea.value).toContain('WIZ/2026/09/001');
         expect(textarea.value).not.toMatch(/[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/);
         // Podpowiedź mówi, ile ta konkretna treść kosztuje, a nie jak działa kodowanie.
-        expect(screen.getByText(/zaoszczędzić kredyty SMS/i)).toBeTruthy();
+        expect(screen.getByText(/Bez polskich znaków SMS wyjdzie taniej/i)).toBeTruthy();
         expect(screen.getByText(new RegExp(`${textarea.value.trim().length} znak`))).toBeTruthy();
 
         await user.clear(textarea);
@@ -263,7 +263,7 @@ describe('DamageMapUpdateModal', () => {
 
             await addPointOnDiagram(user);
             // Krok o kliencie odpada, więc z mapy zapisuje się bezpośrednio.
-            expect(screen.queryByRole('button', { name: /Podsumowanie/i })).toBeNull();
+            expect(screen.queryByRole('button', { name: /Dalej/i })).toBeNull();
             await user.click(screen.getByRole('button', { name: /Zapisz mapę uszkodzeń/i }));
 
             expect(onSubmit.mock.calls[0][0]).toMatchObject({ notifyCustomer: false });
@@ -302,7 +302,7 @@ describe('DamageMapUpdateModal', () => {
 
         await user.click(screen.getByRole('button', { name: /Przejdź do mapy/i }));
         await addPointOnDiagram(user);
-        await user.click(screen.getByRole('button', { name: /Podsumowanie/i }));
+        await user.click(screen.getByRole('button', { name: /Dalej/i }));
         await user.click(screen.getByRole('button', { name: /Nie, powiem osobiście/i }));
         await user.click(screen.getByRole('button', { name: /Zapisz mapę uszkodzeń/i }));
 

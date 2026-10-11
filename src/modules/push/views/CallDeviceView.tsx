@@ -62,9 +62,8 @@ export const CallDeviceView = () => {
         <Page>
             <PageTitle>Powiadomienia na telefon</PageTitle>
             <PageSubtitle>
-                Włącz powiadomienia na tym telefonie: kliknięty na komputerze numer klienta
-                pojawi się tu z przyciskiem „Zadzwoń", a CRM da znać o nowym leadzie,
-                rezerwacji, przyjętym i wydanym aucie oraz o kampanii konkurencji w Twoim rejonie.
+                Włącz powiadomienia na tym telefonie. Numer kliknięty na komputerze pojawi się
+                tu z przyciskiem „Zadzwoń", a CRM da znać o nowych leadach i rezerwacjach.
             </PageSubtitle>
 
             <Card>

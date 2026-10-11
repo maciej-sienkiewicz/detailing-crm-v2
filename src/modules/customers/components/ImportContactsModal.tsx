@@ -152,7 +152,12 @@ const Footer = styled.div`
     flex-wrap: wrap;
 `;
 
+// Licznik i źródło to dwa osobne fakty - stoją obok siebie z odstępem,
+// a nie sklejone kropką (CLAUDE.md §4).
 const SelectionCount = styled.span`
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
     font-size: 12px;
     color: ${st.textSecondary};
 `;
@@ -298,12 +303,12 @@ export const ImportContactsModal = ({ onClose, onImported }: ImportContactsModal
         },
         onSuccess: result => {
             if (result.imported === 0) {
-                showError('Nie zaimportowano żadnego kontaktu', 'Wszystkie zaznaczone pozycje okazały się już istnieć.');
+                showError('Nie zaimportowano żadnego kontaktu', 'Wszyscy zaznaczeni są już w bazie.');
             } else {
                 showSuccess(
                     `Zaimportowano ${result.imported} ${result.imported === 1 ? 'klienta' : 'klientów'}`,
                     result.skipped > 0
-                        ? `${result.skipped} pominięto - w międzyczasie przestały być nowe.`
+                        ? `Pominięto ${result.skipped}, bo w międzyczasie ktoś ich dodał.`
                         : undefined,
                 );
             }
@@ -358,8 +363,7 @@ export const ImportContactsModal = ({ onClose, onImported }: ImportContactsModal
                             </SourceGrid>
 
                             <Note>
-                                Nic nie zostanie zapisane od razu. Najpierw zobaczysz listę
-                                z zaznaczonymi duplikatami i sam zdecydujesz, kogo zaimportować.
+                                Najpierw zobaczysz listę i sam wybierzesz, kogo dodać.
                             </Note>
                         </>
                     )}
@@ -462,8 +466,8 @@ export const ImportContactsModal = ({ onClose, onImported }: ImportContactsModal
 
                             <Footer>
                                 <SelectionCount>
-                                    Zaznaczono {selected.size} z {selectableCount} nowych
-                                    {preview.deviceLabel ? ` · źródło: ${preview.deviceLabel}` : ''}
+                                    <span>Zaznaczono {selected.size} z {selectableCount} nowych</span>
+                                    {preview.deviceLabel && <span>Źródło: {preview.deviceLabel}</span>}
                                 </SelectionCount>
                                 <Actions>
                                     <GhostBtn onClick={onClose} type="button">Anuluj</GhostBtn>
@@ -473,7 +477,7 @@ export const ImportContactsModal = ({ onClose, onImported }: ImportContactsModal
                                         type="button"
                                     >
                                         {commit.isPending
-                                            ? 'Zapisuję…'
+                                            ? 'Zapisywanie…'
                                             : `Zapisz ${selected.size} ${selected.size === 1 ? 'klienta' : 'klientów'}`}
                                     </PrimaryBtn>
                                 </Actions>

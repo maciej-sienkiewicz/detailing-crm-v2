@@ -42,7 +42,7 @@ export function SettlementsSection({ highlightId, onGoToEmployees, onCreateSheet
 
     const handleDelete = (sheet: AttendanceSheet) => {
         deleteSheet.mutate(sheet.id, {
-            onSuccess: () => showSuccess('Lista usunięta', `Lista obecności za ${periodLabel(sheet.period).toLowerCase()} zniknęła z listy.`),
+            onSuccess: () => showSuccess('Lista usunięta', `Usunięto listę obecności za ${periodLabel(sheet.period).toLowerCase()}.`),
             // Bez tego błąd sieci albo serwera wyglądał jak sukces bez dymka - wiersz
             // po prostu zostawał, a nikt nie wiedział dlaczego.
             onError: error => reportMutationError(showError, 'Nie udało się usunąć listy', error),
@@ -59,11 +59,6 @@ export function SettlementsSection({ highlightId, onGoToEmployees, onCreateSheet
                     </Button>
                 </PageHeaderActions>
             )}
-
-            <Intro>
-                Wygenerowane listy obecności. Każdy administrator widzi tu, które są już
-                sprawdzone i zatwierdzone.
-            </Intro>
 
             {isError ? (
                 // Błąd wczytania to nie brak list - pusta tabela kazałaby generować
@@ -97,9 +92,8 @@ export function SettlementsSection({ highlightId, onGoToEmployees, onCreateSheet
                             <EmptyIcon />
                             <EmptyTitle>Nie ma jeszcze list obecności</EmptyTitle>
                             <EmptyDesc>
-                                Kliknij „Wygeneruj listę", wybierz miesiąc i pracowników. Lista pojawi
-                                się tutaj i poczeka na zatwierdzenie. Wybrać można osoby, których rola ma
-                                liczony czas pracy.
+                                Kliknij „Wygeneruj listę”, wybierz miesiąc i osoby. Lista poczeka tu
+                                na zatwierdzenie.
                             </EmptyDesc>
                             {onGoToEmployees && (
                                 <TextBtn type="button" onClick={onGoToEmployees}>Przejdź do pracowników</TextBtn>
@@ -351,13 +345,6 @@ const Actions = styled.div`
     justify-content: flex-end;
     gap: 6px;
     flex-wrap: wrap;
-`;
-
-const Intro = styled.p`
-    margin: 0;
-    font-size: 13.5px;
-    line-height: 1.55;
-    color: #64748b;
 `;
 
 const TextBtn = styled.button`

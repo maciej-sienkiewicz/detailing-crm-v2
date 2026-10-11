@@ -122,7 +122,7 @@ export function LeaveTermStep({
     return (
         <Stack>
             <StepHeading>{kind.title}: kiedy?</StepHeading>
-            <Hint>Na kalendarzu kliknij pierwszy dzień urlopu, a potem ostatni.</Hint>
+            <Hint>W kalendarzu kliknij pierwszy, a potem ostatni dzień urlopu.</Hint>
 
             <DatePair>
                 <Field>
@@ -182,7 +182,7 @@ export function LeaveTermStep({
                     onChange={e => onReasonChange(e.target.value)}
                 />
                 {errors.reason && <FieldError role="alert">{errors.reason}</FieldError>}
-                <Hint>Powód trafi na wniosek, więc jest krótki - mieści się w polu dokumentu.</Hint>
+                <Hint>Wystarczy krótko - powód trafi na wniosek.</Hint>
             </Field>
         </Stack>
     );

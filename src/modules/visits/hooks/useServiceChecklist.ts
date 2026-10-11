@@ -53,7 +53,7 @@ export function useServiceChecklist(visitId: string | undefined, visitStatus: Vi
         },
         onError: (_error, _vars, context) => {
             queryClient.setQueryData(serviceChecksKey(visitId as string), context?.previous);
-            showError('Nie udało się zapisać odhaczenia', 'Znak wrócił do poprzedniego stanu. Spróbuj jeszcze raz.');
+            showError('Nie udało się zapisać', 'Zaznaczenie wróciło do poprzedniego stanu. Spróbuj jeszcze raz.');
         },
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: serviceChecksKey(visitId as string) });

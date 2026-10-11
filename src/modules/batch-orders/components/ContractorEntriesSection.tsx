@@ -17,6 +17,7 @@ import styled from 'styled-components';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useToast } from '@/common/components/Toast';
 import { applyFloatingPlacement } from '@/common/utils/floatingPlacement';
+import { pluralPl } from '@/common/utils/plural';
 import { useContractorEntries, useDeleteEntry, useReopenEntry } from '../hooks/useBatchOrders';
 import { EntryFormModal } from './EntryFormModal';
 import { BatchOrderPhotoSection } from './BatchOrderPhotoSection';
@@ -191,7 +192,7 @@ const FilterRow = styled.div`
     flex-wrap: wrap;
 
     /* Na telefonie to JEDYNY wiersz sterowania nad tabelą: chip okresu po lewej,
-       „+ Dodaj wpis" po prawej. */
+       „+ Dodaj auto" po prawej. */
     @media (max-width: 639px) {
         padding: 10px 14px;
         flex-wrap: nowrap;
@@ -199,7 +200,7 @@ const FilterRow = styled.div`
 `;
 
 /* Jedyna akcja karty, która ma sens z telefonem w ręce przy aucie. Reszta
-   („Rozlicz", „PDF", „Historia") to robota miesięczna przy biurku i siedzi
+   („Nowe zestawienie", „PDF", „Historia") to robota miesięczna przy biurku i siedzi
    pod „⋯". Stoi w wierszu filtrów, żeby nie otwierać własnego wiersza. */
 const MobileAddEntry = styled.div`
     display: none;
@@ -219,7 +220,7 @@ const MobileAddEntry = styled.div`
  *
  * Żaden z nich nie jest WYPEŁNIONY i to jest celowe (CLAUDE.md §2). Wypełnienie
  * niesie priorytet, a krokiem następnym całego okna jest „+ Kontrahent" w
- * nagłówku strony. „+ Dodaj wpis" powtarza się przy KAŻDYM kontrahencie, więc
+ * nagłówku strony. „+ Dodaj auto" powtarza się przy KAŻDYM kontrahencie, więc
  * wypełniony dawał trzy nasycone bloki na jedną listę - dokładnie ten remis,
  * którego reguła zabrania. Odcień zostaje i dalej niesie znaczenie: błękit =
  * główna akcja karty, zieleń = domknięcie, szarość = wydruk i archiwum.
@@ -527,12 +528,12 @@ const StatusMark = styled.span<{ $tone: 'settled' | 'correction' }>`
 `;
 
 const SETTLED_EXPLANATION =
-    'Rozliczone: to auto jest już w zestawieniu dla kontrahenta i nie trafi do kolejnego rozliczenia. ' +
+    'Rozliczone: to auto jest już w zestawieniu dla kontrahenta i nie trafi do kolejnego zestawienia. ' +
     'Żeby coś w nim zmienić, dotknij wiersza i odblokuj je do korekty.';
 
 const CORRECTION_EXPLANATION =
     'Korekta: to auto było już rozliczone i zostało odblokowane do poprawki. ' +
-    'Trafi do najbliższego rozliczenia jako korekta, a wcześniejsze zestawienie zostaje bez zmian.';
+    'Trafi do najbliższego zestawienia jako korekta, a wcześniejsze zestawienie zostaje bez zmian.';
 
 /* ── Vehicle cell ── */
 const VehicleCell = styled.div`
@@ -870,17 +871,9 @@ function formatMoney(cents: number) {
     return new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(cents / 100);
 }
 
-/**
- * Polska odmiana rzeczownika po liczbie: 1 wpis, 2-4 wpisy, 5+ wpisów -
- * z wyjątkiem nastek (12 wpisów, nie „12 wpisy").
- */
+/** 1 auto, 2-4 auta, 5+ aut. */
 function entryCountLabel(count: number) {
-    if (count === 1) return 'wpis';
-    const lastTwo = count % 100;
-    const last = count % 10;
-    if (lastTwo >= 12 && lastTwo <= 14) return 'wpisów';
-    if (last >= 2 && last <= 4) return 'wpisy';
-    return 'wpisów';
+    return pluralPl(count, 'auto', 'auta', 'aut');
 }
 
 function vatLabel(rate: number) {
@@ -963,19 +956,19 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
     async function handleDelete(entry: BatchOrderEntry) {
         try {
             await deleteEntry.mutateAsync(entry.id);
-            showSuccess('Wpis usunięty', vehicleName(entry));
+            showSuccess('Auto usunięte', vehicleName(entry));
         } catch (e) {
-            showError('Nie udało się usunąć wpisu', apiErrorMessage(e, 'Spróbuj ponownie.'));
+            showError('Nie udało się usunąć auta', apiErrorMessage(e, 'Spróbuj ponownie.'));
         }
     }
 
     async function handleReopen(entry: BatchOrderEntry) {
         try {
             const reopened = await reopenEntry.mutateAsync(entry.id);
-            showSuccess('Wpis odblokowany do korekty', 'Po zapisie trafi do następnego rozliczenia.');
+            showSuccess('Auto odblokowane do korekty', 'Po zapisie trafi do następnego zestawienia.');
             setDrawer({ entry: reopened, focusPrice: true });
         } catch (e) {
-            showError('Nie udało się odblokować wpisu', apiErrorMessage(e, 'Spróbuj ponownie.'));
+            showError('Nie udało się odblokować auta', apiErrorMessage(e, 'Spróbuj ponownie.'));
         }
     }
 
@@ -1030,7 +1023,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                 </>
                             )}
                         </ActionBtn>
-                        <ActionBtn $mobileHide $variant="ghost" onClick={() => setShowHistory(true)} title="Historia rozliczeń">
+                        <ActionBtn $mobileHide $variant="ghost" onClick={() => setShowHistory(true)} title="Historia zestawień">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
                                 <circle cx="12" cy="12" r="10" />
                                 <polyline points="12 6 12 12 16 14" />
@@ -1038,10 +1031,10 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                             Historia
                         </ActionBtn>
                         <ActionBtn $mobileHide $variant="success" onClick={() => setShowSettlement(true)}>
-                            Rozlicz
+                            Nowe zestawienie
                         </ActionBtn>
                         <ActionBtn $mobileHide $variant="primary" onClick={() => setDrawer({ entry: null })}>
-                            + Dodaj wpis
+                            + Dodaj auto
                         </ActionBtn>
                         <MoreActionsTrigger
                             $active={showMoreActions}
@@ -1060,7 +1053,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M20 6 9 17l-5-5" />
                         </svg>
-                        Rozlicz okres
+                        Nowe zestawienie
                     </PanelItem>
                     <PanelItem onClick={() => { setShowMoreActions(false); handleDownloadReport(); }} disabled={downloading}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
@@ -1071,7 +1064,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                             <circle cx="12" cy="12" r="10" />
                             <polyline points="12 6 12 12 16 14" />
                         </svg>
-                        Historia rozliczeń
+                        Historia zestawień
                     </PanelItem>
 
                     <PanelDivider />
@@ -1103,17 +1096,17 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                     />
                     <MobileAddEntry>
                         <ActionBtn $variant="primary" onClick={() => setDrawer({ entry: null })}>
-                            + Dodaj wpis
+                            + Dodaj auto
                         </ActionBtn>
                     </MobileAddEntry>
                 </FilterRow>
 
                 {isLoading ? (
-                    <EmptyRow>Ładowanie...</EmptyRow>
+                    <EmptyRow>Wczytywanie…</EmptyRow>
                 ) : isError ? (
-                    <EmptyRow>Błąd ładowania danych</EmptyRow>
+                    <EmptyRow>Nie udało się wczytać aut.</EmptyRow>
                 ) : entries.length === 0 ? (
-                    <EmptyRow>Brak wpisów dla wybranego okresu. Dodaj pierwszy wpis używając przycisku powyżej.</EmptyRow>
+                    <EmptyRow>W tym okresie nie ma jeszcze aut. Dodaj pierwsze przyciskiem „+ Dodaj auto”.</EmptyRow>
                 ) : (
                     <>
                         <TableWrapper>
@@ -1300,7 +1293,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                 </svg>
-                                Edytuj wpis
+                                Edytuj auto
                             </MenuItem>
                             <MenuDivider />
                             <MenuItem
@@ -1316,7 +1309,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                     <path d="M10 11v6M14 11v6" />
                                     <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                                 </svg>
-                                Usuń wpis
+                                Usuń auto
                             </MenuItem>
                         </>
                     )}
@@ -1337,8 +1330,8 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
 
             <ConfirmationModal
                 isOpen={confirmDelete !== null}
-                title="Usuń wpis"
-                message="Czy na pewno chcesz usunąć ten wpis? Operacja jest nieodwracalna."
+                title="Usuń auto"
+                message="Auto zniknie z listy. Tego nie da się cofnąć."
                 variant="danger"
                 confirmText="Usuń"
                 cancelText="Anuluj"
@@ -1347,8 +1340,8 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
             />
             <ConfirmationModal
                 isOpen={confirmReopen !== null}
-                title="Odblokować wpis do korekty?"
-                message="Wpis wróci do listy nierozliczonych i trafi do następnego rozliczenia jako korekta. Rozliczenie, które już powstało, zostaje bez zmian."
+                title="Odblokować auto do korekty?"
+                message="Auto wróci do listy nierozliczonych i trafi do następnego zestawienia jako korekta. Zestawienie, które już powstało, zostaje bez zmian."
                 variant="warning"
                 confirmText="Odblokuj"
                 cancelText="Anuluj"

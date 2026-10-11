@@ -31,7 +31,7 @@ export function ProtectedRoute({ children, withSubscriptionGate = true }: Protec
         alignItems: 'center',
         height: '100vh'
       }}>
-        <div>Ładowanie...</div>
+        <div>Wczytywanie…</div>
       </div>
     );
   }

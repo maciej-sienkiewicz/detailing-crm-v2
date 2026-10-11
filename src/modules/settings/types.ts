@@ -41,7 +41,7 @@ export interface UploadLogoResponse {
 // ─── Logo na dokumentach ──────────────────────────────────────────────────────
 
 export interface DocumentLogoConfig {
-    /** „Czy umieszczać logo na dokumentach?" — nagłówek systemowych protokołów i zgód. */
+    /** „Logo na dokumentach" — nagłówek systemowych protokołów i zgód. */
     showLogoOnDocuments: boolean;
     /** Bez wgranego logo przełącznik nic nie zmienia — UI mówi to wprost. */
     hasLogo: boolean;

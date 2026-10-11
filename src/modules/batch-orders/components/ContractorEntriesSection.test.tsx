@@ -63,10 +63,10 @@ describe('ContractorEntriesSection - dawny wygląd, nowa logika', () => {
         expect(screen.getByRole('dialog')).toHaveTextContent('Edytor: Octavia');
     });
 
-    it('„+ Dodaj wpis" otwiera edytor nowego auta', () => {
+    it('„+ Dodaj auto" otwiera edytor nowego auta', () => {
         renderCard();
         // Dwa przyciski o tej samej treści: w nagłówku karty i pod okresem (telefon).
-        fireEvent.click(screen.getAllByText('+ Dodaj wpis')[0]);
+        fireEvent.click(screen.getAllByText('+ Dodaj auto')[0]);
         expect(screen.getByRole('dialog')).toHaveTextContent('Edytor: nowe auto');
     });
 
@@ -74,21 +74,21 @@ describe('ContractorEntriesSection - dawny wygląd, nowa logika', () => {
         renderCard();
         fireEvent.click(screen.getByRole('button', { name: 'Opcje: Kia Ceed' }));
         expect(screen.getByText('Odblokuj do korekty')).toBeInTheDocument();
-        expect(screen.queryByText('Edytuj wpis')).toBeNull();
-        expect(screen.queryByText('Usuń wpis')).toBeNull();
+        expect(screen.queryByText('Edytuj auto')).toBeNull();
+        expect(screen.queryByText('Usuń auto')).toBeNull();
     });
 
     it('otwarte auto: edycja i usunięcie w menu', () => {
         renderCard();
         fireEvent.click(screen.getByRole('button', { name: 'Opcje: Skoda Octavia' }));
-        expect(screen.getByText('Edytuj wpis')).toBeInTheDocument();
-        expect(screen.getByText('Usuń wpis')).toBeInTheDocument();
+        expect(screen.getByText('Edytuj auto')).toBeInTheDocument();
+        expect(screen.getByText('Usuń auto')).toBeInTheDocument();
     });
 
     it('kliknięcie w rozliczone auto pyta o korektę zamiast otwierać edycję', () => {
         renderCard();
         fireEvent.click(screen.getByText('Kia Ceed'));
-        expect(screen.getByText('Odblokować wpis do korekty?')).toBeInTheDocument();
+        expect(screen.getByText('Odblokować auto do korekty?')).toBeInTheDocument();
         expect(screen.queryByText(/Edytor:/)).toBeNull();
     });
 
@@ -108,7 +108,7 @@ describe('ContractorEntriesSection - dawny wygląd, nowa logika', () => {
 
         fireEvent.click(icons[0]);
         expect(screen.getByRole('tooltip')).toHaveTextContent('jest już w zestawieniu');
-        expect(screen.queryByText('Odblokować wpis do korekty?')).toBeNull();
+        expect(screen.queryByText('Odblokować auto do korekty?')).toBeNull();
 
         fireEvent.click(icons[0]);
         expect(screen.queryByRole('tooltip')).toBeNull();
@@ -125,7 +125,7 @@ describe('ContractorEntriesSection - dawny wygląd, nowa logika', () => {
     it('sumy mówią, ile czeka na rozliczenie, a nie ile jest na liście', () => {
         renderCard();
         expect(screen.getByText('Do rozliczenia')).toBeInTheDocument();
-        expect(screen.getByText(/do rozliczenia, 1 wpis/)).toBeInTheDocument();
+        expect(screen.getByText(/do rozliczenia, 1 auto/)).toBeInTheDocument();
     });
 
     it('korekta: bursztynowa ikona z wyjaśnieniem zamiast plakietki', () => {

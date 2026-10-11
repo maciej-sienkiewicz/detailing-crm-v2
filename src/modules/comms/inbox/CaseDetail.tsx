@@ -418,7 +418,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                 {cardEmail && (
                     <>
                         <MenuDivider />
-                        <MenuItem icon={<UserRound />} onClick={() => { menu.close(); setContactAnchor(menuButtonRef.current); }}>Profil klienta</MenuItem>
+                        <MenuItem icon={<UserRound />} onClick={() => { menu.close(); setContactAnchor(menuButtonRef.current); }}>Karta klienta</MenuItem>
                         <MenuItem icon={<StickyNote />} onClick={() => { menu.close(); setNotesAnchor(menuButtonRef.current); }}>Notatki o kliencie</MenuItem>
                         {thread && (
                             <MenuItem icon={<History />} onClick={() => { menu.close(); setHistoryOpen(true); }}>Wszystkie maile tej osoby</MenuItem>
@@ -428,7 +428,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                 {thread && <MenuDivider />}
                 {thread && (
                     <MenuItem icon={<Archive />} onClick={() => { menu.close(); setArchived.mutate({ threadId: thread.id, archived: !thread.archived }); }}>
-                        {thread.archived ? 'Przywróć rozmowę ze schowka' : 'Archiwizuj rozmowę'}
+                        {thread.archived ? 'Przywróć rozmowę z archiwum' : 'Archiwizuj rozmowę'}
                     </MenuItem>
                 )}
             </ActionMenu>
@@ -493,7 +493,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
             <ConfirmationModal
                 isOpen={deleteStep === 'confirm'}
                 title="Usunąć tę sprawę?"
-                message="Tej operacji nie da się cofnąć. Wiadomości w skrzynce zostają nietknięte."
+                message="Tego nie da się cofnąć. Maile zostaną w skrzynce."
                 variant="danger"
                 confirmText="Usuń"
                 onConfirm={() => (lead.appointmentId ? setDeleteStep('appointment') : performDelete(false))}

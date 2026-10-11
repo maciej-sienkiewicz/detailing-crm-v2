@@ -456,7 +456,7 @@ const ServiceMultiSelect = ({ selectedIds, onChange }: ServiceMultiSelectProps) 
             >
                 {label
                     ? <ServiceTriggerText>{label}</ServiceTriggerText>
-                    : <ServiceTriggerPlaceholder>{isLoading ? 'Ładowanie...' : 'Wybierz usługi'}</ServiceTriggerPlaceholder>
+                    : <ServiceTriggerPlaceholder>{isLoading ? 'Wczytywanie…' : 'Wybierz usługi'}</ServiceTriggerPlaceholder>
                 }
                 <ServiceCaret $open={open} />
             </ServiceTrigger>
@@ -472,7 +472,7 @@ const ServiceMultiSelect = ({ selectedIds, onChange }: ServiceMultiSelectProps) 
                         <ServiceMenuSearchInput
                             ref={searchRef}
                             type="text"
-                            placeholder="Szukaj usługi..."
+                            placeholder="Szukaj usługi…"
                             value={query}
                             onChange={e => setQuery(e.target.value)}
                         />
@@ -604,7 +604,7 @@ export const OperationFilterPanel = ({
 
                     {/* Wartość wizyty */}
                     <FilterSection>
-                        <SectionLabel>Wartość wizyty brutto (PLN)</SectionLabel>
+                        <SectionLabel>Wartość wizyty brutto (zł)</SectionLabel>
                         <RangeRow>
                             <RangeInput
                                 type="number" min={0} placeholder="Od"

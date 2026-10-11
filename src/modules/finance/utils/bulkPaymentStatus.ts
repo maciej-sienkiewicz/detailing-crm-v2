@@ -23,7 +23,7 @@ const documentsWord = (n: number) => pluralPl(n, 'dokument', 'dokumenty', 'dokum
 const targetWord = (target: BulkPaymentStatusTarget, n: number) =>
     target === 'PAID'
         ? pluralPl(n, 'opłacony', 'opłacone', 'opłaconych')
-        : pluralPl(n, 'oczekujący', 'oczekujące', 'oczekujących');
+        : pluralPl(n, 'nieopłacony', 'nieopłacone', 'nieopłaconych');
 
 /** Powody pominięcia zwija do jednego zdania - te same powtarzają się dla wielu pozycji. */
 const skippedDetail = (result: BulkPaymentStatusResult): string | undefined => {

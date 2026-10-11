@@ -102,12 +102,12 @@ export function WorkTimeCardModal({ period, userId, onClose }: Props) {
                     Zwróć do poprawy
                 </Button>
                 <Button variant="success" onClick={handleApprove} disabled={pending}>
-                    {approve.isPending ? 'Zatwierdzam…' : 'Zatwierdź kartę'}
+                    {approve.isPending ? 'Zatwierdzanie…' : 'Zatwierdź kartę'}
                 </Button>
             </>
         );
     } else if (data?.status === 'SUBMITTED') {
-        actions = <ActionNote>Własnej karty nie zatwierdzasz.</ActionNote>;
+        actions = <ActionNote>Swojej karty nie możesz zatwierdzić.</ActionNote>;
     } else if (data?.status === 'APPROVED' && data.canDecide) {
         actions = (
             <Button variant="outline" onClick={() => setNoteFor('unlock')} disabled={pending}>
@@ -124,7 +124,7 @@ export function WorkTimeCardModal({ period, userId, onClose }: Props) {
                     </ActionNote>
                 )}
                 <Button variant="outline" onClick={handleRemind} disabled={reminded || remind.isPending}>
-                    {remind.isPending ? 'Wysyłam…' : 'Przypomnij'}
+                    {remind.isPending ? 'Wysyłanie…' : 'Przypomnij'}
                 </Button>
             </>
         );
@@ -161,7 +161,7 @@ export function WorkTimeCardModal({ period, userId, onClose }: Props) {
                             action={<Button variant="ghost" size="sm" onClick={() => card.refetch()}>Spróbuj ponownie</Button>}
                         />
                     ) : !data ? (
-                        <Skeleton aria-busy="true" aria-label="Wczytuję kartę"><span /><span /><span /></Skeleton>
+                        <Skeleton aria-busy="true" aria-label="Wczytywanie karty"><span /><span /><span /></Skeleton>
                     ) : (
                         <>
                             <Summary>

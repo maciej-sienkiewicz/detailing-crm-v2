@@ -55,6 +55,8 @@ const NoteContent = styled.p`
     min-width: 0;
 `;
 const NoteMeta = styled.div` display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: ${st.textMuted}; `;
+// Autor i data jako dwa elementy obok siebie, bez kropki-kleju (CLAUDE.md §4).
+const NoteByline = styled.span` display: inline-flex; flex-wrap: wrap; column-gap: 8px; `;
 const DeleteBtn = styled.button` background: none; border: none; color: ${st.textMuted}; cursor: pointer; padding: 2px; &:hover { color: ${st.accentRed}; } `;
 const Empty = styled.p` margin: 0; font-size: 13px; color: ${st.textMuted}; `;
 
@@ -87,12 +89,15 @@ export function ProductNotes({ productId, canManage }: Props) {
                     </AddBtn>
                 </Composer>
             )}
-            {notes.length === 0 && <Empty>Brak notatek. Pierwsza obserwacja o tym produkcie zostanie tutaj.</Empty>}
+            {notes.length === 0 && <Empty>Brak notatek. Zapisz, jak sprawdził się ten produkt.</Empty>}
             {notes.map(note => (
                 <NoteRow key={note.id}>
                     <NoteContent>{note.content}</NoteContent>
                     <NoteMeta>
-                        <span>{note.createdByName} · {formatDateTime(note.createdAt)}</span>
+                        <NoteByline>
+                            <span>{note.createdByName}</span>
+                            <span>{formatDateTime(note.createdAt)}</span>
+                        </NoteByline>
                         {canManage && (
                             <DeleteBtn type="button" onClick={() => remove.mutate(note.id)} aria-label="Usuń notatkę">
                                 <Trash2 size={14} />

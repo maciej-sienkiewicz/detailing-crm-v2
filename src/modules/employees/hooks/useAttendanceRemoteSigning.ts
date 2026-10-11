@@ -23,7 +23,7 @@ export interface RemoteSigningBlockers {
     SMS: string | null;
 }
 
-const CHECKING = 'Sprawdzam…';
+const CHECKING = 'Sprawdzanie…';
 
 /**
  * Podpis listy obecności na tablecie studia albo na własnym telefonie.

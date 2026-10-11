@@ -101,7 +101,7 @@ export function AddSickLeaveModal({ employees, onClose }: Props) {
             <ModalFooter>
                 <Button variant="ghost" onClick={onClose} disabled={addLeave.isPending}>Anuluj</Button>
                 <Button variant="primary" onClick={submit} disabled={addLeave.isPending}>
-                    {addLeave.isPending ? 'Zapisuję…' : 'Wpisz zwolnienie'}
+                    {addLeave.isPending ? 'Zapisywanie…' : 'Wpisz zwolnienie'}
                 </Button>
             </ModalFooter>
         </ModalShell>

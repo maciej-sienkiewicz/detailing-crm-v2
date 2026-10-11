@@ -61,8 +61,8 @@ function detectInstallPath(): InstallPath {
 function syncLabel(lastSyncAt: string | null): { text: string; tone: PillTone } {
     if (!lastSyncAt) return { text: 'Oczekuje na instalację', tone: 'neutral' };
     const hours = (Date.now() - new Date(lastSyncAt).getTime()) / 3_600_000;
-    if (hours < 24) return { text: 'Synchronizuje się', tone: 'ok' };
-    return { text: `Ostatnia synchronizacja ${formatDate(lastSyncAt)}`, tone: 'warn' };
+    if (hours < 24) return { text: 'Działa', tone: 'ok' };
+    return { text: `Ostatnie połączenie ${formatDate(lastSyncAt)}`, tone: 'warn' };
 }
 
 export function ContactsSyncSection() {
@@ -224,7 +224,7 @@ export function ContactsSyncSection() {
                     ))
                 ) : accounts.length === 0 ? (
                     <EmptyState>
-                        <strong>Żaden telefon nie synchronizuje jeszcze kontaktów</strong>
+                        <strong>Żaden telefon nie ma jeszcze kontaktów studia</strong>
                         <p>„{setupLabel}" w nagłówku przygotuje profil.</p>
                     </EmptyState>
                 ) : (

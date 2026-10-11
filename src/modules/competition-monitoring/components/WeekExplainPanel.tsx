@@ -141,6 +141,13 @@ const plural = (n: number, one: string, few: string, many: string) => {
     return mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14) ? few : many;
 };
 
+/**
+ * Słowo po liczbie skróconej przez `formatNumber`: od tysiąca liczba ma postać
+ * „1,2 tys.", po której zawsze stoi dopełniacz liczby mnogiej („1,2 tys. reakcji").
+ */
+const countWord = (n: number, one: string, few: string, many: string) =>
+    Math.abs(n) >= 1000 ? many : plural(Math.round(n), one, few, many);
+
 const buildNarrative = (
     posts: WeekDetailPost[],
     spikes: number,
@@ -158,8 +165,8 @@ const buildNarrative = (
 
     let text = `W tym tygodniu profil opublikował ${parts.join(' i ')}`;
     if (spikes > 0) {
-        text += `, w tym ${spikes} ${plural(spikes, 'publikację', 'publikacje', 'publikacji')} z wyraźnym skokiem ` +
-            'oglądalności lub zaangażowania względem mediany profilu';
+        text += `, w tym ${spikes} ${plural(spikes, 'publikację', 'publikacje', 'publikacji')}, ` +
+            `${plural(spikes, 'która poszła', 'które poszły', 'które poszły')} wyraźnie lepiej niż zwykle`;
     }
     text += '.';
     if (followerDelta != null && followerDelta > 0 && spikes > 0) {
@@ -187,14 +194,14 @@ export const WeekExplainPanel: React.FC<WeekExplainPanelProps> = ({ profileId, u
     return (
         <Panel>
             <PanelHead>
-                <strong>@{username} · tydzień od {weekLabel}</strong>
+                <strong>@{username}, tydzień od {weekLabel}</strong>
                 {data?.followerDelta != null && (
                     <span>{data.followerDelta > 0 ? '+' : ''}{formatNumber(data.followerDelta)} obserwujących</span>
                 )}
                 <CloseBtn onClick={onClose} aria-label="Zamknij"><X /></CloseBtn>
             </PanelHead>
 
-            {isLoading && <Narrative>Analizuję tydzień...</Narrative>}
+            {isLoading && <Narrative>Analizuję tydzień…</Narrative>}
             {isError && <Narrative>Nie udało się pobrać szczegółów tego tygodnia.</Narrative>}
 
             {data && (
@@ -219,11 +226,13 @@ export const WeekExplainPanel: React.FC<WeekExplainPanelProps> = ({ profileId, u
                                 {meta.icon}
                                 <PostCaption>{post.caption || `(${meta.label} bez opisu)`}</PostCaption>
                                 {ratio !== null && (
-                                    <SpikeBadge><Sparkles /> {ratio.toFixed(1).replace('.', ',')}× mediana</SpikeBadge>
+                                    <SpikeBadge><Sparkles /> {ratio.toFixed(1).replace('.', ',')}× więcej niż zwykle</SpikeBadge>
                                 )}
                                 <PostStats>
-                                    {post.viewCount != null ? `${formatNumber(post.viewCount)} wyśw. · ` : ''}
-                                    {formatNumber(post.engagement)} reakcji
+                                    {post.viewCount != null
+                                        ? `${formatNumber(post.viewCount)} ${countWord(post.viewCount, 'wyświetlenie', 'wyświetlenia', 'wyświetleń')}, `
+                                        : ''}
+                                    {formatNumber(post.engagement)} {countWord(post.engagement, 'reakcja', 'reakcje', 'reakcji')}
                                 </PostStats>
                                 <ExternalLink />
                             </PostRow>

@@ -11,14 +11,6 @@ import type { MetricTriple } from '../types';
 
 // ─── Formatery ────────────────────────────────────────────────────────────────
 
-export const formatNumber = (value: number | null | undefined, decimals = 0): string => {
-    if (value === null || value === undefined) return '-';
-    if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)} mln`;
-    if (Math.abs(value) >= 10_000) return `${(value / 1000).toFixed(0)} tys.`;
-    if (Math.abs(value) >= 1000) return `${(value / 1000).toFixed(1)} tys.`;
-    return value.toFixed(decimals);
-};
-
 /**
  * JEDEN zapis braku danych w całym module: półpauza.
  *
@@ -28,6 +20,21 @@ export const formatNumber = (value: number | null | undefined, decimals = 0): st
  * szukać różnicy, której nie ma.
  */
 export const EMPTY = '—';
+
+/**
+ * Liczby w module piszemy po polsku: „1,5 tys.", „2,3 mln". `toFixed()` dawało
+ * kropkę dziesiętną („1.5 tys."), która w polskim tekście wygląda jak błąd.
+ */
+const plNumber = (value: number, decimals: number): string =>
+    value.toLocaleString('pl-PL', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+
+export const formatNumber = (value: number | null | undefined, decimals = 0): string => {
+    if (value === null || value === undefined) return EMPTY;
+    if (Math.abs(value) >= 1_000_000) return `${plNumber(value / 1_000_000, 1)} mln`;
+    if (Math.abs(value) >= 10_000) return `${plNumber(value / 1000, 0)} tys.`;
+    if (Math.abs(value) >= 1000) return `${plNumber(value / 1000, 1)} tys.`;
+    return plNumber(value, decimals);
+};
 
 /**
  * Liczba bez zaokrąglania, z grupowaniem tysięcy: „41 200".
@@ -181,10 +188,10 @@ export const MetricCell: React.FC<{
             {showBenchmark && metric.benchmark !== null && (
                 <CellBenchmark $above={above}>
                     {above === null
-                        ? `mediana Twojej grupy: ${formatNumber(metric.benchmark, decimals)}${unit}`
+                        ? `typowo w grupie: ${formatNumber(metric.benchmark, decimals)}${unit}`
                         : above
-                            ? `powyżej mediany Twojej grupy (${formatNumber(metric.benchmark, decimals)}${unit})`
-                            : `poniżej mediany Twojej grupy (${formatNumber(metric.benchmark, decimals)}${unit})`}
+                            ? `więcej niż typowo w grupie (${formatNumber(metric.benchmark, decimals)}${unit})`
+                            : `mniej niż typowo w grupie (${formatNumber(metric.benchmark, decimals)}${unit})`}
                 </CellBenchmark>
             )}
         </CellWrap>

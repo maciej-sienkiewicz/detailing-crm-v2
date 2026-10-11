@@ -83,7 +83,7 @@ export const Layout = ({ children }: LayoutProps) => {
                         klawiatury dla całej zalogowanej aplikacji, wyłączalny
                         w Ustawieniach → Skróty klawiszowe. */}
                     <GlobalShortcuts />
-                    {/* Okno „Nowa notatka" (skrót Z) dostępne z każdego widoku. */}
+                    {/* Okno „Nowe zadanie” (skrót Z) dostępne z każdego widoku. */}
                     <QuickNoteProvider>
                     <LayoutContainer>
                         <Sidebar />

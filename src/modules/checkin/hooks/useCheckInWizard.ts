@@ -59,8 +59,8 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
     });
 
     const steps: Array<{ id: CheckInStep; label: string }> = [
-        { id: 'verification', label: 'Weryfikacja i stan pojazdu' },
-        { id: 'photos', label: 'Dokumentacja fotograficzna' },
+        { id: 'verification', label: 'Klient, auto i usługi' },
+        { id: 'photos', label: 'Zdjęcia i uszkodzenia' },
     ];
 
     useEffect(() => {

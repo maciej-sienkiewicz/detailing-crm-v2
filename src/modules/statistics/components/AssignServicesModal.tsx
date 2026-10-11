@@ -185,7 +185,7 @@ export const AssignServicesModal = ({ isOpen, onClose, category }: AssignService
                     </ServiceList>
 
                     <SelectionInfo>
-                        {selectedIds.size} {t.statistics.assignServices.selected}
+                        Zaznaczono: {selectedIds.size}
                     </SelectionInfo>
                 </ContentInner>
             </ModalContent>

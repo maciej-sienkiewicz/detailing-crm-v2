@@ -291,13 +291,13 @@ export const SmsReminderEditSection = ({
             <SectionBody>
             <LockedSection
                 locked={!smsFeature.enabled}
-                message="Twój abonament nie obsługuje powiadomień SMS."
+                message="Twój pakiet nie obsługuje powiadomień SMS."
             >
                 {!preVisitEnabled && (
                     <Banner>
                         <BannerText>
-                            SMS z przypomnieniami o wizycie są <strong>wyłączone</strong> w konfiguracji systemu.{' '}
-                            Włącz je w <a href="/settings?tab=templates">ustawieniach SMS</a>, żeby planować przypomnienia.
+                            Przypomnienia SMS są <strong>wyłączone</strong>.{' '}
+                            Włącz je w <a href="/settings?tab=templates">ustawieniach SMS</a>.
                         </BannerText>
                     </Banner>
                 )}
@@ -305,11 +305,11 @@ export const SmsReminderEditSection = ({
                 {/* Potwierdzenie */}
                 <Row>
                     <RowInfo>
-                        <RowTitle>SMS potwierdzenia rezerwacji</RowTitle>
+                        <RowTitle>Potwierdzenie rezerwacji</RowTitle>
                         <RowSub>
                             {confirmationSms
                                 ? `Wysłany ${formatDateTime(confirmationSms.sentAt)}`
-                                : 'Nie wysłano: checkbox nie był zaznaczony przy tworzeniu'}
+                                : 'Nie wysłano, bo tej opcji nie zaznaczono przy zapisie'}
                         </RowSub>
                     </RowInfo>
                     <RowRight>
@@ -325,10 +325,10 @@ export const SmsReminderEditSection = ({
                 {/* Przypomnienie */}
                 <Row>
                     <RowInfo>
-                        <RowTitle>SMS przypomnienia o wizycie</RowTitle>
+                        <RowTitle>Przypomnienie o wizycie</RowTitle>
                         <RowSub>
                             {!preVisitEnabled
-                                ? 'Wyłączone globalnie w konfiguracji SMS'
+                                ? 'Wyłączone w ustawieniach SMS'
                                 : !reminderSms.editable
                                     ? (reminderSms.sentAt
                                         ? `Wysłany ${formatDateTime(reminderSms.sentAt)}`
@@ -359,7 +359,7 @@ export const SmsReminderEditSection = ({
                                 />
                                 <ToggleTrack $checked={canEditReminder && reminderChecked} $saving={mutation.isPending} />
                                 <ToggleText $checked={canEditReminder && reminderChecked} $saving={mutation.isPending}>
-                                    {mutation.isPending ? 'Zapisuję...' : (canEditReminder && reminderChecked) ? 'Włączone' : 'Wyłączone'}
+                                    {mutation.isPending ? 'Zapisywanie…' : (canEditReminder && reminderChecked) ? 'Włączone' : 'Wyłączone'}
                                 </ToggleText>
                             </ToggleLabel>
                         )}

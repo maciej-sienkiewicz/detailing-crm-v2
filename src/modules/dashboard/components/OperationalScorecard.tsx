@@ -683,7 +683,7 @@ const StatCellSkeleton = () => (
 interface DrawerData {
   variant: CardVariant;
   label: string;
-  subtitle: string;
+  subtitle?: string;
   visits: VisitDetail[];
   onRowClick?: (id: string, scheduledDate?: string, rect?: DOMRect) => void;
   footerLabel?: string;
@@ -714,7 +714,7 @@ const VisitDrawer = ({
           </DrawerIconWrap>
           <DrawerTitleGroup>
             <DrawerTitle>{data.label}</DrawerTitle>
-            <DrawerSubtitle>{data.subtitle}</DrawerSubtitle>
+            {data.subtitle && <DrawerSubtitle>{data.subtitle}</DrawerSubtitle>}
           </DrawerTitleGroup>
           <DrawerCountBadge>{data.visits.length}</DrawerCountBadge>
           <DrawerCloseBtn onClick={onClose} aria-label="Zamknij">
@@ -800,11 +800,11 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
     if (!activeKey || !stats) return null;
     switch (activeKey) {
       case 'inProgress':
-        return { variant: 'inProgress', label: t.dashboard.stats.inProgress, subtitle: 'Lista wizyt', visits: stats.inProgressDetails ?? [], onRowClick: (id, scheduledDate, rect) => { const v = stats.inProgressDetails?.find(x => x.id === id); if (v) navigateToVisitOrCalendar(v, 'inProgress', rect); } };
+        return { variant: 'inProgress', label: t.dashboard.stats.inProgress, visits: stats.inProgressDetails ?? [], onRowClick: (id, scheduledDate, rect) => { const v = stats.inProgressDetails?.find(x => x.id === id); if (v) navigateToVisitOrCalendar(v, 'inProgress', rect); } };
       case 'readyForPickup':
-        return { variant: 'readyForPickup', label: t.dashboard.stats.readyForPickup, subtitle: 'Lista wizyt', visits: stats.readyForPickupDetails ?? [], onRowClick: (id, scheduledDate, rect) => { const v = stats.readyForPickupDetails?.find(x => x.id === id); if (v) navigateToVisitOrCalendar(v, 'readyForPickup', rect); } };
+        return { variant: 'readyForPickup', label: t.dashboard.stats.readyForPickup, visits: stats.readyForPickupDetails ?? [], onRowClick: (id, scheduledDate, rect) => { const v = stats.readyForPickupDetails?.find(x => x.id === id); if (v) navigateToVisitOrCalendar(v, 'readyForPickup', rect); } };
       case 'incomingToday':
-        return { variant: 'incomingToday', label: t.dashboard.stats.arrivals, subtitle: 'Lista wizyt', visits: stats.incomingTodayDetails ?? [], onRowClick: (id, scheduledDate, rect) => { const v = stats.incomingTodayDetails?.find(x => x.id === id); if (v) navigateToVisitOrCalendar(v, 'incomingToday', rect); } };
+        return { variant: 'incomingToday', label: t.dashboard.stats.arrivals, visits: stats.incomingTodayDetails ?? [], onRowClick: (id, scheduledDate, rect) => { const v = stats.incomingTodayDetails?.find(x => x.id === id); if (v) navigateToVisitOrCalendar(v, 'incomingToday', rect); } };
       case 'abandoned':
         return { variant: 'abandoned', label: t.dashboard.stats.abandoned, subtitle: 'Ostatnie 30 dni, porzucone i anulowane', visits: stats.abandonedDetails ?? [], onRowClick: (id, scheduledDate, rect) => { const v = stats.abandonedDetails?.find(x => x.id === id); if (v) navigateToVisitOrCalendar(v, 'abandoned', rect); }, footerLabel: 'Pokaż rezerwacje', footerPath: '/appointments' };
       default:

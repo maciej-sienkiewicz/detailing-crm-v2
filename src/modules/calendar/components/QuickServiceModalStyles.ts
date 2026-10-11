@@ -1,10 +1,9 @@
 /**
- * QuickServiceModal / QuickCustomerModal / PriceInputModal styles
+ * QuickServiceModal / PriceInputModal styles
  *
  * Shared by:
- *   - QuickServiceModal  ("Wprowadź nową usługę")
- *   - QuickCustomerModal ("Nowy klient")
- *   - PriceInputModal    ("Wprowadź cenę")
+ *   - QuickServiceModal  ("Nowa usługa")
+ *   - PriceInputModal    ("Cena usługi")
  *
  * Modal/form primitives imported from @/common/styles.
  */

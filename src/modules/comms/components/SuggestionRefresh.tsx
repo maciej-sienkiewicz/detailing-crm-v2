@@ -9,7 +9,7 @@
 // rozważonych pozycji z etapem, na którym każda się zatrzymała.
 //
 // Przycisk jest cichy (tekst z ikoną, bez wypełnienia): w oknie leada krokiem
-// następnym jest „Stwórz rezerwację" (CLAUDE.md §2), a to jest narzędzie, nie akcja.
+// następnym jest „Umów wizytę" (CLAUDE.md §2), a to jest narzędzie, nie akcja.
 import styled from 'styled-components';
 import { RefreshCw } from 'lucide-react';
 import type { SuggestionActions } from './SuggestedServiceRows';
@@ -86,7 +86,7 @@ export function SuggestionRefresh({ actions }: { actions: SuggestionActions }) {
                 onClick={() => refresh.mutate()}
                 disabled={busy}
                 aria-busy={refresh.isPending}
-                title="Przelicz dobór usług z cennika od nowa i pokaż, co z tego wyszło"
+                title="Poszukaj usług jeszcze raz"
             >
                 <RefreshCw />
                 {refresh.isPending ? 'Szukam usług od nowa, to trwa kilkanaście sekund…' : 'Znajdź ponownie'}

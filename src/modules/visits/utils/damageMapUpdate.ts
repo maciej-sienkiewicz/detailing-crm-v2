@@ -1,6 +1,6 @@
 // src/modules/visits/utils/damageMapUpdate.ts
 //
-// Logika okna „Zaktualizuj uszkodzenia" odjęta od jego wyglądu.
+// Logika okna „Mapa uszkodzeń" odjęta od jego wyglądu.
 //
 // Powód jest praktyczny: to, CO okno powie użytkownikowi przed zapisem („dodajesz
 // 2 oznaczenia, usuwasz 1"), i to, co pójdzie do API, to jedyne dwie rzeczy, które

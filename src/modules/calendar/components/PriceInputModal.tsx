@@ -88,7 +88,7 @@ export const PriceInputModal: React.FC<PriceInputModalProps> = ({
                 <Form onSubmit={handleSubmit}>
                     <Header>
                         <TitleGroup>
-                            <Title>Wprowadź cenę</Title>
+                            <Title>Cena usługi</Title>
                         </TitleGroup>
                         <CloseButton type="button" onClick={onClose}>
                             <IconX />

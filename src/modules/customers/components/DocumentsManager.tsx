@@ -161,7 +161,7 @@ export const DocumentsManager = ({ customerId, id }: DocumentsManagerProps) => {
                 )}
 
                 {isLoading ? (
-                    <Empty>Wczytywanie dokumentów...</Empty>
+                    <Empty>Wczytywanie dokumentów…</Empty>
                 ) : isError ? (
                     <Empty>
                         Nie udało się wczytać dokumentów.{' '}

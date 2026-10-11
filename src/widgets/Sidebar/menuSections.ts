@@ -114,7 +114,7 @@ export const buildMenuSections = ({
                     badge: newLeadsCount > 0 ? newLeadsCount : unreadMailCount > 0 ? unreadMailCount : undefined,
                     alert: unreadMailCount > 0, requires: 'LEADS_MANAGE', match: ['/leads', '/communication'] },
                 { path: '/customers', label: 'Klienci',   icon: Users, requires: 'CUSTOMERS_VIEW' },
-                { path: '/vehicles',  label: 'Samochody', icon: Car,   requires: 'CUSTOMERS_VIEW' },
+                { path: '/vehicles',  label: 'Pojazdy',   icon: Car,   requires: 'CUSTOMERS_VIEW' },
             ],
         },
         {

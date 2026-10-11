@@ -54,10 +54,10 @@ export function ScanHandoffPanel({ onCodes }: Props) {
                 <Texts>
                     <Title>Zeskanuj telefonem</Title>
                     <Sub>
-                        Zeskanuj ten kod aparatem telefonu. Na telefonie otworzy się aparat —
-                        skieruj go na kod kreskowy produktu, a dane wrócą tutaj.
+                        Zeskanuj ten kod telefonem i skieruj aparat na kod kreskowy produktu.
+                        Dane pojawią się tutaj.
                     </Sub>
-                    {starting && <Waiting><Loader2 size={16} /> Łączę sesję…</Waiting>}
+                    {starting && <Waiting><Loader2 size={16} /> Łączę z telefonem…</Waiting>}
                 </Texts>
             </Row>
             {codes.length > 0 && (

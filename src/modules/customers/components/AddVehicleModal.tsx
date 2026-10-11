@@ -66,7 +66,7 @@ export const AddVehicleModal = ({ customerId, customerName, onClose }: Props) =>
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Dodaj pojazd</ModalTitle>
-                    <ModalSubtitle>{customerName ? `Zostanie przypisany do: ${customerName}` : 'Zostanie przypisany do klienta'}</ModalSubtitle>
+                    <ModalSubtitle>{customerName ? `Dla klienta: ${customerName}` : 'Dla tego klienta'}</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
@@ -132,7 +132,7 @@ export const AddVehicleModal = ({ customerId, customerName, onClose }: Props) =>
             <ModalFooter>
                 <Button onClick={onClose} disabled={isSubmitting}>Anuluj</Button>
                 <Button type="submit" form="add-customer-vehicle-form" variant="primary" disabled={!ready || isSubmitting}>
-                    {isSubmitting ? 'Zapisywanie...' : ready ? 'Dodaj pojazd' : 'Wybierz markę i model'}
+                    {isSubmitting ? 'Zapisywanie…' : ready ? 'Dodaj pojazd' : 'Wybierz markę i model'}
                 </Button>
             </ModalFooter>
         </ModalShell>

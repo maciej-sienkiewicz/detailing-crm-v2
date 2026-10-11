@@ -240,7 +240,7 @@ export const AppointmentEditView = () => {
         mutationFn: (payload: AppointmentCreateRequest) => appointmentApi.updateAppointment(appointmentId!, payload),
         onSuccess: () => {
             navigate('/calendar');
-            showSuccess('Pomyślnie zapisano wprowadzone zmiany', 'Teraz możesz przejść do widoku kalendarza lub wprowadzić kolejne zmiany.');
+            showSuccess('Zapisano zmiany');
             invalidateAll();
         },
     });
@@ -250,7 +250,7 @@ export const AppointmentEditView = () => {
             appointmentApi.updateAppointmentWithScope(appointmentId!, payload, scope),
         onSuccess: () => {
             navigate('/calendar');
-            showSuccess('Pomyślnie zapisano zmiany w serii', 'Zmiany zostały zastosowane do wybranych wizyt.');
+            showSuccess('Zapisano zmiany w serii');
             invalidateAll();
         },
     });
@@ -305,7 +305,7 @@ export const AppointmentEditView = () => {
             <Container>
                 <ContentWrapper>
                     <Header>
-                        <Title>{t.appointments?.createView?.title || 'Edytuj rezerwację'}</Title>
+                        <Title>Edytuj rezerwację</Title>
                         <Actions></Actions>
                     </Header>
                     <LoadingSkeleton />
@@ -320,14 +320,14 @@ export const AppointmentEditView = () => {
         <Container>
             <ContentWrapper>
                 <Header>
-                    <Title>{'Edytuj rezerwację'}</Title>
+                    <Title>Edytuj rezerwację</Title>
                 </Header>
 
                 {recurrenceInfo && (
                     <RecurrenceBanner $detached={recurrenceInfo.isDetached}>
                         <span>
                             {recurrenceInfo.isDetached
-                                ? `Ta wizyta (${recurrenceInfo.recurrenceIndex + 1} z ${recurrenceInfo.totalInSeries}) była indywidualnie edytowana i nie podlega seryjnym zmianom.`
+                                ? `Ta wizyta (${recurrenceInfo.recurrenceIndex + 1} z ${recurrenceInfo.totalInSeries}) była zmieniana osobno, więc zmiany całej serii jej nie obejmą.`
                                 : `Ta wizyta (${recurrenceInfo.recurrenceIndex + 1} z ${recurrenceInfo.totalInSeries}) należy do serii cyklicznej.`
                             }
                         </span>
@@ -373,7 +373,7 @@ export const AppointmentEditView = () => {
                             {t.common.cancel}
                         </FooterSecondaryButton>
                         <FooterPrimaryButton onClick={handleSave} disabled={isAnyMutating} $disabled={isAnyMutating}>
-                            {isAnyMutating ? (t.appointments?.createView?.submitting || 'Zapisywanie...') : 'Zapisz zmiany'}
+                            {isAnyMutating ? 'Zapisywanie…' : 'Zapisz zmiany'}
                         </FooterPrimaryButton>
                     </>
                 }

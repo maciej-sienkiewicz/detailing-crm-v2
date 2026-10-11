@@ -22,7 +22,3 @@ export type {
 
 // Components (if needed for external usage)
 export { OperationalScorecard } from './components/OperationalScorecard';
-export { AnalyticsSection } from './components/AnalyticsSection';
-export { LeadInbox } from './components/LeadInbox';
-export { SocialMediaPlaceholder } from './components/SocialMediaPlaceholder';
-export { GoogleReviewsSection } from './components/GoogleReviewsSection';

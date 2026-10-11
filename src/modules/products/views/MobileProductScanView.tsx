@@ -92,7 +92,7 @@ export function MobileProductScanView() {
             setCount(ctx.scannedCount);
             setLastCode(normalized);
         } catch {
-            setMsg('Nie udało się wysłać. Sesja mogła wygasnąć.');
+            setMsg('Nie udało się wysłać. Link mógł wygasnąć.');
             setExpired(true);
         } finally {
             sendingRef.current = false;
@@ -125,7 +125,7 @@ export function MobileProductScanView() {
                 setMsg('Nie udało się odczytać kodu ze zdjęcia. Zrób je z bliska, ostro i w dobrym świetle.');
             }
         } catch {
-            setMsg('Nie udało się wysłać zdjęcia. Sesja mogła wygasnąć.');
+            setMsg('Nie udało się wysłać zdjęcia. Link mógł wygasnąć.');
         } finally {
             setPhotoBusy(false);
         }
@@ -135,8 +135,8 @@ export function MobileProductScanView() {
         return (
             <Page>
                 <Card>
-                    <Title>Sesja skanowania wygasła</Title>
-                    <Sub>Wróć do komputera i otwórz „Skanuj telefonem" ponownie, aby dostać świeży kod QR.</Sub>
+                    <Title>Link do skanowania wygasł</Title>
+                    <Sub>Wróć do komputera i kliknij „Zeskanuj telefonem”, żeby dostać nowy kod QR.</Sub>
                 </Card>
             </Page>
         );

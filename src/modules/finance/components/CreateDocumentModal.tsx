@@ -13,7 +13,6 @@ import {
     ModalHeader,
     ModalTitleGroup,
     ModalTitle,
-    ModalSubtitle,
     ModalContent,
     ModalFooter,
     ModalSectionTitle,
@@ -232,7 +231,7 @@ const CreateDocumentForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             return;
         }
         if (form.paymentMethod === PaymentMethod.TRANSFER && !form.dueDate) {
-            setError('Termin płatności jest wymagany dla przelewów.');
+            setError('Przy przelewie podaj termin płatności.');
             return;
         }
 
@@ -259,8 +258,7 @@ const CreateDocumentForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         <ModalShell isOpen onClose={onClose} size="md">
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>Nowy dokument przychodowy</ModalTitle>
-                    <ModalSubtitle>Wprowadź dane dokumentu finansowego</ModalSubtitle>
+                    <ModalTitle>Dodaj paragon</ModalTitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
@@ -284,7 +282,7 @@ const CreateDocumentForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         </FormField>
 
                         <FormField>
-                            <FieldLabel>Metoda płatności</FieldLabel>
+                            <FieldLabel>Forma płatności</FieldLabel>
                             <ModalSelect
                                 value={form.paymentMethod}
                                 onChange={setField('paymentMethod')}
@@ -293,7 +291,7 @@ const CreateDocumentForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                     { value: PaymentMethod.CARD,          label: 'Karta' },
                                     { value: PaymentMethod.TRANSFER,      label: 'Przelew' },
                                     { value: PaymentMethod.BLIK_NA_NUMER, label: 'BLIK na numer' },
-                                    { value: PaymentMethod.BLIK_TERMINAL, label: 'BLIK terminal' },
+                                    { value: PaymentMethod.BLIK_TERMINAL, label: 'BLIK w terminalu' },
                                     { value: PaymentMethod.OTHER,         label: 'Inne' },
                                 ]}
                             />
@@ -397,7 +395,7 @@ const CreateDocumentForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     form="create-document-form"
                     disabled={createDoc.isPending}
                 >
-                    {createDoc.isPending ? 'Zapisywanie...' : 'Zapisz dokument'}
+                    {createDoc.isPending ? 'Zapisywanie…' : 'Zapisz dokument'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

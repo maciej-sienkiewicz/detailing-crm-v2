@@ -114,7 +114,7 @@ export const StudioEventModal = ({
                         <ModalSubtitle>
                             {isEdit
                                 ? `Dodane przez ${event!.createdByName}`
-                                : 'Wpis w kalendarzu, który nie jest wizytą ani rezerwacją'}
+                                : 'Dzień wolny, szkolenie, targi'}
                         </ModalSubtitle>
                     </ModalTitleGroup>
                 </HeaderRow>
@@ -155,7 +155,7 @@ export const StudioEventModal = ({
                             id="studio-event-title"
                             value={title}
                             maxLength={200}
-                            placeholder="np. Urlop, szkolenie, dostawa chemii"
+                            placeholder="np. Dzień wolny, szkolenie, dostawa chemii"
                             onChange={e => setTitle(e.target.value)}
                         />
                     </InputShell>
@@ -168,7 +168,7 @@ export const StudioEventModal = ({
                             id="studio-event-description"
                             rows={4}
                             value={description}
-                            placeholder="Szczegóły widoczne po kliknięciu w wydarzenie (opcjonalnie)"
+                            placeholder="Opcjonalnie"
                             onChange={e => setDescription(e.target.value)}
                         />
                     </InputShellTextArea>

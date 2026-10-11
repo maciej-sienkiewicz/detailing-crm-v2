@@ -136,11 +136,11 @@ export const ReportProblemModal = ({ onClose }: ReportProblemModalProps) => {
         const accepted: File[] = [];
         for (const file of incoming) {
             if (!ALLOWED_TYPES.includes(file.type)) {
-                setError(`Nieobsługiwany typ pliku: ${file.name}. Dozwolone: PNG, JPG, WEBP, PDF.`);
+                setError(`Tego pliku nie dodamy: ${file.name}. Wybierz PNG, JPG, WEBP albo PDF.`);
                 continue;
             }
             if (file.size > MAX_FILE_SIZE) {
-                setError(`Plik "${file.name}" przekracza dozwolony rozmiar (maks. 10 MB).`);
+                setError(`Plik „${file.name}” jest za duży. Możesz dodać plik do 10 MB.`);
                 continue;
             }
             accepted.push(file);
@@ -148,7 +148,7 @@ export const ReportProblemModal = ({ onClose }: ReportProblemModalProps) => {
         setFiles(prev => {
             const merged = [...prev, ...accepted];
             if (merged.length > MAX_FILES) {
-                setError(`Można załączyć maksymalnie ${MAX_FILES} plików.`);
+                setError(`Możesz dodać najwyżej ${MAX_FILES} plików.`);
                 return merged.slice(0, MAX_FILES);
             }
             return merged;
@@ -282,7 +282,7 @@ export const ReportProblemModal = ({ onClose }: ReportProblemModalProps) => {
                     $variant="primary"
                     disabled={isSubmitting}
                 >
-                    {isSubmitting ? 'Wysyłanie...' : 'Wyślij zgłoszenie'}
+                    {isSubmitting ? 'Wysyłanie…' : 'Wyślij zgłoszenie'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

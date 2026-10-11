@@ -16,12 +16,12 @@ const Badge = styled.span<{ $bg: string; $fg: string }>`
 `;
 
 const STATUS: Record<KsefRevenueStatus, { label: string; bg: string; fg: string; title?: string }> = {
-  PENDING:      { label: 'Oczekuje',      bg: '#f1f5f9', fg: '#475569' },
-  SENDING:      { label: 'Wysyłanie...',  bg: '#f0f9ff', fg: '#0369a1' },
-  SUBMITTED:    { label: 'Przetwarzanie', bg: '#f0f9ff', fg: '#0369a1', title: 'Przyjęta do sesji KSeF, oczekuje na numer' },
+  PENDING:      { label: 'Czeka na wysłanie', bg: '#f1f5f9', fg: '#475569' },
+  SENDING:      { label: 'Wysyłanie…',   bg: '#f0f9ff', fg: '#0369a1' },
+  SUBMITTED:    { label: 'Czeka na numer', bg: '#f0f9ff', fg: '#0369a1', title: 'KSeF przyjął fakturę, czeka na numer' },
   ACCEPTED:     { label: 'W KSeF',        bg: '#f0fdf4', fg: '#15803d' },
   REJECTED:     { label: 'Odrzucona',     bg: '#fef2f2', fg: '#dc2626' },
-  QUEUED_RETRY: { label: 'Offline24',     bg: '#fffbeb', fg: '#b45309', title: 'KSeF niedostępny: faktura zostanie dosłana automatycznie' },
+  QUEUED_RETRY: { label: 'Wyślemy później', bg: '#fffbeb', fg: '#b45309', title: 'KSeF nie działał. Wyślemy fakturę później sami.' },
   NOT_SENT:     { label: 'Poza KSeF',     bg: '#f8fafc', fg: '#475569', title: 'Faktura wystawiona bez wysyłki do KSeF' },
   CANCELLED:    { label: 'Anulowana',     bg: '#f8fafc', fg: '#64748b', title: 'Anulowana w poprawce rozliczenia wizyty, zanim trafiła do KSeF' },
 };

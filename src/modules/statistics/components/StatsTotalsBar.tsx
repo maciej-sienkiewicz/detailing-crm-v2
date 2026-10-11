@@ -33,7 +33,7 @@ export const StatsTotalsBar = ({ totals }: StatsTotalsBarProps) => (
             icon={CalendarCheck}
             value={totals.orderCount}
             label={t.statistics.totals.orderCount}
-            subContent={<Sub>zleceń w wybranym okresie</Sub>}
+            subContent={<Sub>wizyt w wybranym okresie</Sub>}
         />
         <StatTile
             compact

@@ -67,7 +67,7 @@ export function AttendanceSheetPreviewModal({ sheet, onClose, onApprove }: Props
                         ? <Status role="alert">{error}</Status>
                         : pdf
                             ? <PdfPagesViewer data={pdf.bytes} />
-                            : <Status>Wczytywanie podglądu...</Status>}
+                            : <Status>Wczytywanie podglądu…</Status>}
                 </Sheet>
             </ModalContent>
 

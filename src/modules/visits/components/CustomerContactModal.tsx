@@ -137,7 +137,7 @@ export const CustomerContactModal = ({
                więc bez tego unieważnienia nowy numer pojawiłby się dopiero po
                odświeżeniu strony. */
             if (visitId) queryClient.invalidateQueries({ queryKey: visitDetailQueryKey(visitId) });
-            showSuccess('Dane kontaktowe zaktualizowane');
+            showSuccess('Zapisano dane kontaktowe');
             onClose();
         },
         onError: () => showError('Nie udało się zapisać danych kontaktowych'),
@@ -205,7 +205,7 @@ export const CustomerContactModal = ({
                 <ModalFooter>
                     <BtnGhost type="button" onClick={onClose}>Anuluj</BtnGhost>
                     <BtnPrimary type="submit" disabled={isUpdating}>
-                        {isUpdating ? 'Zapisuję...' : 'Zapisz'}
+                        {isUpdating ? 'Zapisywanie…' : 'Zapisz'}
                     </BtnPrimary>
                 </ModalFooter>
             </form>

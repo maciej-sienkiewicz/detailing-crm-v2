@@ -265,7 +265,7 @@ const formatDateTime = (iso: string): string =>
 const extractApiErrorMessage = (error: unknown): string => {
     const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
     if (apiMessage) return apiMessage;
-    return error instanceof Error ? error.message : 'Wystąpił nieoczekiwany błąd';
+    return error instanceof Error ? error.message : 'Coś poszło nie tak. Spróbuj ponownie.';
 };
 
 type ViewPhase =
@@ -417,14 +417,14 @@ export const PublicSigningView = () => {
             case 'COMPLETED':
                 return { ok: true, title: 'Dokument został już podpisany', text: 'Ten dokument ma już złożony podpis. Nie musisz nic więcej robić.' };
             case 'DECLINED':
-                return { ok: false, title: 'Odmówiono podpisania', text: 'Podpisanie tego dokumentu zostało odrzucone. Jeśli to pomyłka, poproś pracownika o ponowne wysłanie prośby.' };
+                return { ok: false, title: 'Odmówiono podpisania', text: 'Wybrano odmowę podpisu. Jeśli to pomyłka, poproś pracownika o nowy link.' };
             case 'CANCELLED':
-                return { ok: false, title: 'Prośba o podpis została anulowana', text: 'Pracownik wycofał prośbę o podpis. Jeśli to pomyłka, poproś o ponowne wysłanie linku.' };
+                return { ok: false, title: 'Prośba o podpis została anulowana', text: 'Pracownik wycofał prośbę o podpis. Jeśli to pomyłka, poproś go o nowy link.' };
             case 'FAILED':
-                return { ok: false, title: 'Podpisanie nie powiodło się', text: 'Sesja podpisu została przerwana. Poproś pracownika o ponowne wysłanie prośby o podpis.' };
+                return { ok: false, title: 'Podpisanie nie powiodło się', text: 'Podpisywanie zostało przerwane. Poproś pracownika o nowy link.' };
             case 'EXPIRED':
             default:
-                return { ok: false, title: 'Link do podpisu wygasł', text: 'Ten link stracił ważność. Poproś pracownika o ponowne wysłanie prośby o podpis.' };
+                return { ok: false, title: 'Link do podpisu wygasł', text: 'Ten link stracił ważność. Poproś pracownika o nowy link.' };
         }
     }, [phase]);
 
@@ -446,7 +446,7 @@ export const PublicSigningView = () => {
                 <Shell>
                     <StatusCard>
                         <StatusBadge><InfoSvg /></StatusBadge>
-                        <StatusTitle>Nie udało się załadować dokumentu</StatusTitle>
+                        <StatusTitle>Nie udało się wczytać dokumentu</StatusTitle>
                         <StatusText>
                             Wygląda na problem z połączeniem internetowym. Sprawdź zasięg
                             i spróbuj ponownie. Link pozostaje ważny.
@@ -473,8 +473,8 @@ export const PublicSigningView = () => {
                         </StatusTitle>
                         <StatusText>
                             {isIntegrity
-                                ? 'Weryfikacja integralności dokumentu nie powiodła się. Ze względów bezpieczeństwa podpis nie jest możliwy. Poproś pracownika o ponowne wysłanie prośby.'
-                                : 'Sprawdź, czy link z wiadomości SMS został otwarty w całości, lub poproś pracownika o ponowne wysłanie prośby o podpis.'}
+                                ? 'Dokument mógł zostać zmieniony, więc nie można go podpisać. Poproś pracownika o nowy link.'
+                                : 'Sprawdź, czy otworzył się cały link z SMS-a, albo poproś pracownika o nowy link.'}
                         </StatusText>
                     </StatusCard>
                 </Shell>
@@ -489,7 +489,7 @@ export const PublicSigningView = () => {
                     <StatusCard>
                         <StatusBadge $ok><CheckSvg /></StatusBadge>
                         <StatusTitle>Dziękujemy, dokument został podpisany</StatusTitle>
-                        <StatusText>Podpisany egzemplarz został bezpiecznie zapisany. Możesz zamknąć tę stronę.</StatusText>
+                        <StatusText>Zapisaliśmy podpisany dokument. Możesz zamknąć tę stronę.</StatusText>
                     </StatusCard>
                 </Shell>
             </Page>
@@ -503,7 +503,7 @@ export const PublicSigningView = () => {
                     <StatusCard>
                         <StatusBadge><InfoSvg /></StatusBadge>
                         <StatusTitle>Odmowa została zapisana</StatusTitle>
-                        <StatusText>Poinformowaliśmy pracownika o odmowie podpisania dokumentu. Możesz zamknąć tę stronę.</StatusText>
+                        <StatusText>Pracownik wie, że nie podpisujesz dokumentu. Możesz zamknąć tę stronę.</StatusText>
                     </StatusCard>
                 </Shell>
             </Page>
@@ -536,7 +536,7 @@ export const PublicSigningView = () => {
             <Shell>
                 <Card>
                     <DocName>{session.documentName}</DocName>
-                    <SubLine>Do podpisu przez: {session.signerName}</SubLine>
+                    <SubLine>Podpisuje: {session.signerName}</SubLine>
                     <ExpiryLine>Link ważny do {formatDateTime(session.expiresAt)}</ExpiryLine>
                 </Card>
 
@@ -565,7 +565,7 @@ export const PublicSigningView = () => {
 
                     <Actions>
                         <PrimaryBtn onClick={handleSubmit} disabled={!canSubmit}>
-                            {submitting ? 'Przetwarzanie...' : 'Podpisz dokument'}
+                            {submitting ? 'Wysyłanie…' : 'Podpisz dokument'}
                         </PrimaryBtn>
                         <SecondaryBtn onClick={handleDecline} disabled={submitting}>
                             Odmawiam podpisania

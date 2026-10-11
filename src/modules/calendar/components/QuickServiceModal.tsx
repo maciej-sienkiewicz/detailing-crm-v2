@@ -161,7 +161,7 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                 <Form onSubmit={handleSubmit}>
                     <Header>
                         <TitleGroup>
-                            <Title>Wprowadź nową usługę</Title>
+                            <Title>Nowa usługa</Title>
                         </TitleGroup>
                         <CloseButton type="button" onClick={onClose}>
                             <IconX />
@@ -219,10 +219,10 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                                 />
                                 <CheckboxContent>
                                     <CheckboxTitle>
-                                        Czy zapisać usługę w bazie danych?
+                                        Zapisz w cenniku
                                     </CheckboxTitle>
                                     <CheckboxDescription>
-                                        Jeśli zaznaczysz tę opcję, usługa będzie dostępna do użycia w przyszłości
+                                        Wybierzesz ją z listy następnym razem.
                                     </CheckboxDescription>
                                 </CheckboxContent>
                             </CheckboxLabel>
@@ -239,9 +239,6 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                                         <CheckboxTitle>
                                             Cena ustalana ręcznie przy każdej wizycie
                                         </CheckboxTitle>
-                                        <CheckboxDescription>
-                                            Przy dodawaniu tej usługi do wizyty zawsze będzie wymagane ręczne podanie ceny
-                                        </CheckboxDescription>
                                     </CheckboxContent>
                                 </CheckboxLabel>
                             </CheckboxContainer>
@@ -266,7 +263,7 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                             $variant="primary"
                             disabled={isSubmitting}
                         >
-                            {isSubmitting ? 'Zapisywanie...' : 'Dodaj usługę'}
+                            {isSubmitting ? 'Zapisywanie…' : 'Dodaj usługę'}
                         </Button>
                     </Footer>
                 </Form>

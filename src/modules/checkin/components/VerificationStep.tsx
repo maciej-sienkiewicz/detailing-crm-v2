@@ -860,7 +860,7 @@ export const VerificationStep = ({
                 },
             });
         } catch {
-            setGusError('Nie znaleziono firmy o podanym NIP lub wystąpił błąd połączenia z GUS.');
+            setGusError('Nie znaleziono firmy o tym NIP-ie albo GUS nie odpowiada.');
         } finally {
             setIsGusLoading(false);
         }
@@ -1425,7 +1425,7 @@ export const VerificationStep = ({
                             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
-                            Tytuł wizyty / rezerwacji
+                            Nazwa wizyty
                         </SectionLabel>
                     </SectionTitleRow>
                 </SectionHead>
@@ -1665,7 +1665,7 @@ export const VerificationStep = ({
                         >
                             <CollapsibleBtnLeft>
                                 Dane firmowe
-                                {companyHasData && <FilledBadge>Uzupełniony</FilledBadge>}
+                                {companyHasData && <FilledBadge>Uzupełnione</FilledBadge>}
                             </CollapsibleBtnLeft>
                             <ChevronSvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" $open={isCompanyOpen}>
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -1698,7 +1698,7 @@ export const VerificationStep = ({
                                                     <GusBtnSpinner xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                                                         <path d="M12 2a10 10 0 0 1 10 10" />
                                                     </GusBtnSpinner>
-                                                    Pobieranie...
+                                                    Pobieranie…
                                                 </>
                                             ) : (
                                                 <>
@@ -1822,7 +1822,7 @@ export const VerificationStep = ({
 
                     {customerSwapDecisionPending && (
                         <DecisionBanner>
-                            Zmieniono klienta wizyty - zdecyduj, co dzieje się z pojazdem.
+                            Zmieniono klienta. Co z pojazdem?
                             <DecisionBannerBtn type="button" onClick={() => setShowCustomerSwapDecision(true)}>
                                 Wybierz
                             </DecisionBannerBtn>
@@ -1843,7 +1843,7 @@ export const VerificationStep = ({
 
                     {selectedCustomerIdForVehicles && customerVehicles.length > 1 && !vehicleChoiceMade && (
                         <VehicleSuggestionsWrap>
-                            <VehicleSuggestionLabel>Pojazdy klienta, kliknij aby wybrać:</VehicleSuggestionLabel>
+                            <VehicleSuggestionLabel>Pojazdy tego klienta:</VehicleSuggestionLabel>
                             {customerVehicles.map((v) => (
                                 <VehicleSuggestionChip
                                     key={v.id}
@@ -2044,7 +2044,7 @@ export const VerificationStep = ({
                 </SectionBody>
             </SectionCard>
 
-            {/* ── 7. Door to Door ───────────────────────────────────────── */}
+            {/* ── 7. Door to door ───────────────────────────────────────── */}
             <SectionCard>
                 <SectionHead>
                     <SectionTitleRow $keepInline>
@@ -2054,7 +2054,7 @@ export const VerificationStep = ({
                                 <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                                 <polyline points="9 22 9 12 15 12 15 22" />
                             </svg>
-                            Door to Door
+                            Door to door
                             {formData.doorToDoor?.enabled && (
                                 <StatusPill>Aktywna</StatusPill>
                             )}
@@ -2102,7 +2102,7 @@ export const VerificationStep = ({
                                 />
                             </FieldGroup>
                             <FieldGroup>
-                                <Label>Miasto dostarczenia</Label>
+                                <Label>Miasto odwiezienia</Label>
                                 <Input
                                     value={formData.doorToDoor.deliveryAddress.city}
                                     onChange={(e) => onChange({
@@ -2115,7 +2115,7 @@ export const VerificationStep = ({
                                 />
                             </FieldGroup>
                             <FieldGroup>
-                                <Label>Ulica i numer (dostarczenie)</Label>
+                                <Label>Ulica i numer (odwiezienie)</Label>
                                 <Input
                                     value={formData.doorToDoor.deliveryAddress.street}
                                     onChange={(e) => onChange({
@@ -2129,13 +2129,13 @@ export const VerificationStep = ({
                             </FieldGroup>
                         </FormGrid>
                         <FieldGroup style={{ marginTop: 12 }}>
-                            <Label>Uwagi do usługi door to door</Label>
+                            <Label>Uwagi do odbioru i odwiezienia</Label>
                             <TextArea
                                 value={formData.doorToDoor.notes}
                                 onChange={(e) => onChange({
                                     doorToDoor: { ...formData.doorToDoor!, notes: e.target.value },
                                 })}
-                                placeholder="Dodatkowe informacje dotyczące odbioru lub dostarczenia pojazdu..."
+                                placeholder="np. kluczyki u portiera, zadzwonić przed przyjazdem"
                                 style={{ width: '100%', boxSizing: 'border-box', minHeight: '80px' }}
                             />
                         </FieldGroup>
@@ -2152,10 +2152,10 @@ export const VerificationStep = ({
             >
                 <ModalHeader>
                     <ModalTitleGroup>
-                        <ModalTitle>Aktualizacja danych klienta</ModalTitle>
+                        <ModalTitle>Zmienić dane klienta?</ModalTitle>
                         <ModalSubtitle>
-                            Zmieniasz dane klienta, który jest już w bazie. Zapisać zmianę u niego,
-                            czy założyć osobny profil?
+                            Ten klient ma już kartę klienta. Zapisać zmianę w jego karcie
+                            czy dodać nowego klienta?
                         </ModalSubtitle>
                     </ModalTitleGroup>
                     <CloseBtn onClick={() => setShowCustomerChoice(false)} />
@@ -2177,10 +2177,9 @@ export const VerificationStep = ({
             >
                 <ModalHeader>
                     <ModalTitleGroup>
-                        <ModalTitle>Aktualizacja pojazdu</ModalTitle>
+                        <ModalTitle>Zmienić dane pojazdu?</ModalTitle>
                         <ModalSubtitle>
-                            Zmieniasz dane pojazdu, który jest już w bazie. Zapisać zmianę w nim,
-                            czy dodać osobny pojazd?
+                            Ten pojazd jest już zapisany. Zapisać zmianę w nim czy dodać nowy?
                         </ModalSubtitle>
                     </ModalTitleGroup>
                     <CloseBtn onClick={() => setShowVehicleChoice(false)} />

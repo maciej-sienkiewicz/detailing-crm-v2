@@ -39,8 +39,8 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
                 <>
                     <TourDesc>
                         Moduł włącza <strong>wysyłkę wiadomości do klientów</strong>: SMS-y i e-maile
-                        wychodzące automatycznie na kolejnych etapach wizyty, oraz wysyłki ręczne
-                        z poziomu wizyty.
+                        wychodzące automatycznie na kolejnych etapach wizyty, oraz ręczne wysyłki
+                        prosto z wizyty.
                     </TourDesc>
                     <TourBulletList>
                         <TourBullet $color="#0ea5e9">
@@ -75,7 +75,7 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
                         <TourBullet $color="#8b5cf6">
                             <PenLine />
                             <span>
-                                Treści dopasujesz do siebie w <strong>Ustawienia → Szablony wiadomości</strong>
+                                Treści dopasujesz do siebie w <strong>Ustawienia → Wiadomości automatyczne</strong>
                             </span>
                         </TourBullet>
                         <TourBullet $color="#8b5cf6">
@@ -120,8 +120,8 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
                         </TourBullet>
                     </TourBulletList>
                     <TourDesc style={{ marginTop: 14 }}>
-                        Ustawienie działa globalnie: obejmuje wszystkie wiadomości, nie da się
-                        wybrać nadawcy osobno dla pojedynczego szablonu.
+                        Nadawca jest jeden dla wszystkich wiadomości. Nie ustawisz go osobno
+                        dla szablonu.
                     </TourDesc>
                 </>
             ),
@@ -142,16 +142,16 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
                         <TourBullet $color="#d946ef">
                             <FileSignature />
                             <span>
-                                W <strong>Ustawienia → Szablony wiadomości</strong> pobierz wzór
+                                W <strong>Ustawienia → Wiadomości automatyczne</strong> pobierz wzór
                                 upoważnienia, podpisz go i wgraj z powrotem
                             </span>
                         </TourBullet>
                         <TourBullet $color="#f59e0b">
                             <AlertTriangle />
                             <span>
-                                Do czasu weryfikacji przez operatora
-                                <strong> w polu odbiorcy nadal będzie widoczny numer telefonu</strong>,
-                                wiadomości wychodzą normalnie, zmienia się tylko podpis
+                                Dopóki operator nie potwierdzi nazwy,
+                                <strong> klient zobaczy jako nadawcę numer telefonu</strong>.
+                                Wiadomości wychodzą normalnie.
                             </span>
                         </TourBullet>
                         <TourBullet $color="#64748b">
@@ -169,11 +169,11 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
             icon: <Wallet />,
             from: '#d946ef',
             to: '#ec4899',
-            title: 'SMS-y kosztują kredyty, osobno od abonamentu',
+            title: 'SMS-y kosztują kredyty, osobno od opłaty za moduł',
             body: (
                 <>
                     <TourDesc>
-                        Abonament włącza funkcję, ale każdy wysłany SMS zużywa <strong>1 kredyt</strong>.
+                        Moduł włącza funkcję, ale każdy wysłany SMS zużywa <strong>1 kredyt</strong>.
                         Kredyty kupujesz w pakietach i nie wygasają z końcem miesiąca.
                     </TourDesc>
                     <TourBulletList>
@@ -212,7 +212,7 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
                     <TourBulletList>
                         <TourBullet $color="#16a34a">
                             <CheckCircle2 />
-                            <span>Moduł staje się aktywny od razu</span>
+                            <span>Moduł działa od razu</span>
                         </TourBullet>
                         <TourBullet $color="#16a34a">
                             <CheckCircle2 />

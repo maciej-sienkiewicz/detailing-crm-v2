@@ -33,7 +33,7 @@ export function leadPrimaryAction(lead: Lead, urgency: LeadUrgency): LeadPrimary
     // Rezerwacja już stoi w kalendarzu. Drugiej się nie założy (backend odmówi),
     // więc oferowanie jej byłoby ślepą uliczką.
     if (lead.appointmentId) {
-        return { kind: 'APPOINTMENT', label: 'Zobacz termin', shortLabel: 'Termin', emphasis: 'quiet' };
+        return { kind: 'APPOINTMENT', label: 'Zobacz rezerwację', shortLabel: 'Termin', emphasis: 'quiet' };
     }
 
     if (urgency.turn === 'OURS') {
@@ -55,5 +55,5 @@ export function leadPrimaryAction(lead: Lead, urgency: LeadUrgency): LeadPrimary
 
     // Odpisaliśmy i czekamy - następnym krokiem jest umówienie, czyli po co ten
     // moduł w ogóle jest.
-    return { kind: 'BOOK', label: 'Stwórz rezerwację', shortLabel: 'Rezerwacja', emphasis: 'quiet' };
+    return { kind: 'BOOK', label: 'Umów wizytę', shortLabel: 'Rezerwacja', emphasis: 'quiet' };
 }

@@ -194,7 +194,7 @@ export function AwaitingSignature({ request, tablets, phone, cancelling, onCance
             <WaitingText>{progress}</WaitingText>
             <WaitingText>Prośba jest ważna do {until}. Po podpisie lista zatwierdzi się sama.</WaitingText>
             <CancelBtn type="button" onClick={onCancel} disabled={cancelling}>
-                {cancelling ? 'Anulowanie...' : 'Anuluj prośbę'}
+                {cancelling ? 'Anulowanie…' : 'Anuluj prośbę'}
             </CancelBtn>
         </Waiting>
     );

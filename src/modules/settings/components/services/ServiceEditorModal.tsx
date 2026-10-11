@@ -187,7 +187,7 @@ export function ServiceEditorModal({ target, careInstructions, onClose, onSaved 
                 <ModalFooter>
                     <Button onClick={onClose}>Anuluj</Button>
                     <Button type="submit" form="service-editor-form" variant="primary" disabled={saving}>
-                        {saving ? 'Zapisywanie...' : target ? 'Zapisz zmiany' : 'Dodaj usługę'}
+                        {saving ? 'Zapisywanie…' : target ? 'Zapisz zmiany' : 'Dodaj usługę'}
                     </Button>
                 </ModalFooter>
             </ModalShell>

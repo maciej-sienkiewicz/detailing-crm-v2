@@ -144,7 +144,7 @@ export function AddLeaveModal({ onClose, employeeId: presetEmployeeId }: Props) 
                 : `${name} dostanie powiadomienie z uzasadnieniem.`,
         ),
         onAlreadyDecided: message => finish('Wniosek został już rozpatrzony', message ?? 'Ktoś zdążył przed Tobą.'),
-        onForbidden: message => setBlocked(message ?? 'Nie masz już uprawnienia do akceptacji wniosków.'),
+        onForbidden: message => setBlocked(message ?? 'Nie możesz już zatwierdzać wniosków.'),
         refetchDetail: async () => {
             if (!signed) return undefined;
             try { return await leaveRequestsApi.get(signed.id); } catch { return undefined; }
@@ -301,7 +301,7 @@ export function AddLeaveModal({ onClose, employeeId: presetEmployeeId }: Props) 
                 <FooterPrimary>
                     <PrimaryAction
                         icon={<PenLine />}
-                        title={employeeSignature.isPending ? 'Zapisuję podpis…' : 'Podpisuję wniosek'}
+                        title={employeeSignature.isPending ? 'Zapisywanie podpisu…' : 'Podpisuję wniosek'}
                         sub="potem decyzja przełożonego"
                         disabled={!canEmployeeSign}
                         onClick={handleEmployeeSign}
@@ -319,7 +319,7 @@ export function AddLeaveModal({ onClose, employeeId: presetEmployeeId }: Props) 
                 <FooterPrimary>
                     <PrimaryAction
                         icon={isReject ? <X /> : <Check />}
-                        title={signing.isPending ? 'Zapisuję…' : isReject ? 'Podpisz odmowę' : 'Podpisz zatwierdzenie'}
+                        title={signing.isPending ? 'Zapisywanie…' : isReject ? 'Podpisz odmowę' : 'Podpisz zatwierdzenie'}
                         sub={isReject ? 'pracownik dostanie uzasadnienie' : 'urlop trafi do kalendarza'}
                         disabled={!signing.ready || (isReject && !note.trim())}
                         onClick={handleDecide}
@@ -345,7 +345,7 @@ export function AddLeaveModal({ onClose, employeeId: presetEmployeeId }: Props) 
                     isOpen={confirmClose}
                     variant="info"
                     title="Zamknąć bez decyzji?"
-                    message={`${name} już podpisał(a) wniosek. Zostanie w kolejce „Oczekujące" i rozpatrzysz go później.`}
+                    message={`Wniosek jest już podpisany: ${name}. Zostanie w kolejce „Oczekujące” i rozpatrzysz go później.`}
                     confirmText="Zamknij, rozpatrzę później"
                     cancelText="Wróć do decyzji"
                     onConfirm={() => {
@@ -359,7 +359,7 @@ export function AddLeaveModal({ onClose, employeeId: presetEmployeeId }: Props) 
             {step === EMPLOYEE && (
                 <Stack>
                     <StepHeading>Czyj to urlop?</StepHeading>
-                    <Lead>Pracownik nie musi mieć konta w systemie - podpisze wniosek na tym urządzeniu.</Lead>
+                    <Lead>Pracownik nie musi mieć konta w aplikacji - podpisze wniosek na tym urządzeniu.</Lead>
                     {errors.employeeId && <FieldError role="alert">{errors.employeeId}</FieldError>}
                     {employeesFailed ? (
                         <Notice
@@ -369,7 +369,7 @@ export function AddLeaveModal({ onClose, employeeId: presetEmployeeId }: Props) 
                             action={<Button variant="outline" size="sm" onClick={() => refetchEmployees()}>Spróbuj ponownie</Button>}
                         />
                     ) : employeesLoading ? (
-                        <Hint>Wczytuję pracowników…</Hint>
+                        <Hint>Wczytywanie pracowników…</Hint>
                     ) : employees.length === 0 ? (
                         <Hint>Nie ma jeszcze innych pracowników. Dodaj ich w zakładce Zespół.</Hint>
                     ) : (
@@ -382,7 +382,7 @@ export function AddLeaveModal({ onClose, employeeId: presetEmployeeId }: Props) 
                                     checked={employeeId === e.id}
                                     onChange={() => { setEmployeeId(e.id); setErrors({}); }}
                                     title={e.fullName}
-                                    detail={e.hasAccount ? (e.role?.name ?? 'ma konto w systemie') : 'bez konta w systemie'}
+                                    detail={e.hasAccount ? (e.role?.name ?? 'ma konto') : 'bez konta'}
                                     icon={<UserRound />}
                                 />
                             ))}
@@ -457,11 +457,11 @@ export function AddLeaveModal({ onClose, employeeId: presetEmployeeId }: Props) 
             {step === DECIDE && signed && (
                 <Stack>
                     <StepHeading>Twoja decyzja</StepHeading>
-                    <Notice tone="ok" title={`${name} podpisał(a) wniosek`}>
+                    <Notice tone="ok" title={`Wniosek podpisany: ${name}`}>
                         {workingDaysLabel(signed.workingDays)}, {formatLeaveRange(signed.startDate, signed.endDate)}. Urządzenie wraca do Ciebie.
                     </Notice>
                     {blocked ? (
-                        <Notice tone="info">{blocked} Wniosek czeka w kolejce „Oczekujące".</Notice>
+                        <Notice tone="info">{blocked} Wniosek czeka w kolejce „Oczekujące”.</Notice>
                     ) : (
                         <>
                             <DecisionChoice

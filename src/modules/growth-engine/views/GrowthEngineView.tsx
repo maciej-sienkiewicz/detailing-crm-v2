@@ -82,7 +82,7 @@ export const GrowthEngineView = () => {
     <ViewContainer>
       {isError && (
         <ErrorCard>
-          <ErrorTitle>Nie udało się załadować danych</ErrorTitle>
+          <ErrorTitle>Nie udało się wczytać danych</ErrorTitle>
           <ErrorMessage>Sprawdź połączenie i spróbuj ponownie.</ErrorMessage>
           <RetryButton onClick={() => refetch()}>Spróbuj ponownie</RetryButton>
         </ErrorCard>

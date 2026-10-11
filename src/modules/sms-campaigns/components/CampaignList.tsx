@@ -5,6 +5,7 @@ import { Send, Trash2, Users, CheckCircle, FileText, MessageSquare, X, Phone, Ch
 
 import type { SmsCampaign, CampaignStatus, CampaignRecipient } from '../types';
 import { fetchCampaignRecipients } from '../api/smsCampaignsApi';
+import { pluralPl } from '@/common/utils/plural';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -501,12 +502,15 @@ const SmsModal: React.FC<{ campaign: SmsCampaign; onClose: () => void }> = ({ ca
               <MessageSquare size={15} color="#fff" strokeWidth={2} />
             </SmsPhoneIcon>
             <SmsPhoneLabel>
-              <SmsPhoneName>AutoCRM Studio</SmsPhoneName>
+              <SmsPhoneName>Twoje studio</SmsPhoneName>
               <SmsPhoneNum>Wiadomość SMS</SmsPhoneNum>
             </SmsPhoneLabel>
           </SmsPhoneBar>
           <SmsBubble>{campaign.message || '(brak treści)'}</SmsBubble>
-          <SmsCharCount>{campaign.message?.length ?? 0} znaków</SmsCharCount>
+          <SmsCharCount>
+            {campaign.message?.length ?? 0}{' '}
+            {pluralPl(campaign.message?.length ?? 0, 'znak', 'znaki', 'znaków')}
+          </SmsCharCount>
         </SmsPhone>
       </ModalBody>
     </Modal>
@@ -530,8 +534,9 @@ const RecipientsModal: React.FC<{ campaign: SmsCampaign; onClose: () => void }> 
             <ModalTitle>
               {campaign.status === 'SENT' ? 'Odbiorcy - wysłano' : 'Lista odbiorców'}
             </ModalTitle>
+            <ModalSubtitle>{campaign.name}</ModalSubtitle>
             <ModalSubtitle>
-              {campaign.name} · {campaign.audienceCount} {campaign.status === 'SENT' ? 'dostarczono' : 'planowanych'}
+              {campaign.status === 'SENT' ? 'Dostarczono' : 'Zaplanowano'}: {campaign.audienceCount}
             </ModalSubtitle>
           </ModalTitleRow>
           <CloseBtn onClick={onClose}><X size={14} strokeWidth={2} /></CloseBtn>
@@ -631,7 +636,7 @@ export const CampaignList: React.FC<Props> = ({
         <EmptyWrap>
           <EmptyIcon><FileText size={22} /></EmptyIcon>
           <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#475569' }}>Brak kampanii</p>
-          <p style={{ margin: 0, fontSize: 12, color: '#94A3B8' }}>Utwórz pierwszą kampanię klikając „Nowa kampania"</p>
+          <p style={{ margin: 0, fontSize: 12, color: '#94A3B8' }}>Utwórz pierwszą kampanię przyciskiem „Nowa kampania”</p>
         </EmptyWrap>
       </TableWrap>
     );
@@ -695,7 +700,7 @@ export const CampaignList: React.FC<Props> = ({
                       {c.status !== 'SENT' && (
                         <SendBtn onClick={() => onSend(c)} disabled={isSending}>
                           <Send size={12} strokeWidth={2.5} />
-                          {isSending ? 'Wysyłanie...' : 'Wyślij'}
+                          {isSending ? 'Wysyłanie…' : 'Wyślij'}
                         </SendBtn>
                       )}
                       {c.status === 'SENT' && (

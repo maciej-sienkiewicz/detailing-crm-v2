@@ -127,7 +127,7 @@ export const PdfPagesViewer = ({ data, onRenderError }: PdfPagesViewerProps) => 
 
     return (
         <PagesWrap>
-            {state === 'rendering' && <Status>Ładowanie dokumentu...</Status>}
+            {state === 'rendering' && <Status>Wczytywanie dokumentu…</Status>}
             {state === 'error' && (
                 <Status>
                     Nie udało się wyświetlić dokumentu.

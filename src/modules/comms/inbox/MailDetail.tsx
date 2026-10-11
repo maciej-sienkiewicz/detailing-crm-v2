@@ -254,7 +254,7 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
     return (
         <Pane aria-labelledby="mail-title">
             <ConversationHeader title={thread.title ?? thread.subject ?? '(bez tematu)'} subtitle={subtitle} phone={phone} onBack={onBack} titleId="mail-title">
-                <IconBtn aria-label={thread.archived ? 'Przywróć ze schowka' : 'Archiwizuj'} title={thread.archived ? 'Przywróć ze schowka' : 'Archiwizuj'} onClick={archive}>
+                <IconBtn aria-label={thread.archived ? 'Przywróć z archiwum' : 'Archiwizuj'} title={thread.archived ? 'Przywróć z archiwum' : 'Archiwizuj'} onClick={archive}>
                     {thread.archived ? <ArchiveRestore /> : <Archive />}
                 </IconBtn>
                 <IconBtn
@@ -391,7 +391,7 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
                 <MenuItem icon={<FileInput />} onClick={() => { menu.close(); setModal('form'); }}>Zgłoszenie z formularza</MenuItem>
                 <MenuItem icon={<CalendarPlus />} onClick={() => { menu.close(); setModal('booking'); }}>Umów wizytę</MenuItem>
                 <MenuDivider />
-                <MenuItem icon={<UserRound />} onClick={() => { menu.close(); setContactAnchor(menuButtonRef.current); }}>Profil nadawcy</MenuItem>
+                <MenuItem icon={<UserRound />} onClick={() => { menu.close(); setContactAnchor(menuButtonRef.current); }}>Karta klienta</MenuItem>
                 <MenuItem icon={<StickyNote />} onClick={() => { menu.close(); setNotesAnchor(menuButtonRef.current); }}>Notatki o nadawcy</MenuItem>
                 <MenuItem icon={<History />} onClick={() => { menu.close(); setModal('history'); }}>Wszystkie maile tej osoby</MenuItem>
             </ActionMenu>

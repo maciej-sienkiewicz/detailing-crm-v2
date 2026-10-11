@@ -101,7 +101,7 @@ export function MonthView({ onGoToTeam }: Props) {
                     action={<Button variant="ghost" size="sm" onClick={() => month.refetch()}>Spróbuj ponownie</Button>}
                 />
             ) : !data ? (
-                <Card aria-busy="true" aria-label="Wczytuję miesiąc">
+                <Card aria-busy="true" aria-label="Wczytywanie miesiąca">
                     <Summary><SkeletonBar $w="200px" /></Summary>
                     {Array.from({ length: 4 }).map((_, i) => (
                         <SkeletonRow key={i}><SkeletonBar $w={`${40 + (i % 2) * 20}%`} /></SkeletonRow>
@@ -111,7 +111,7 @@ export function MonthView({ onGoToTeam }: Props) {
                 <EmptyState
                     icon={<Users />}
                     title="W tym miesiącu nikt nie liczy czasu pracy"
-                    description="Karty czasu pracy mają osoby, których rola ma włączony liczony czas pracy."
+                    description="Karty pojawią się, gdy w roli pracownika włączysz „Liczony czas pracy”."
                 >
                     {onGoToTeam && <EmptyAction><Button variant="outline" onClick={onGoToTeam}>Przejdź do zespołu</Button></EmptyAction>}
                 </EmptyState>

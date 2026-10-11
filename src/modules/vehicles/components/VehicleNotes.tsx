@@ -162,14 +162,14 @@ export const VehicleNotes = ({ vehicleId, readOnly = false, id }: VehicleNotesPr
                     <FormActions>
                         <Button variant="ghost" size="sm" onClick={() => { setIsAdding(false); setNewContent(''); }}>Anuluj</Button>
                         <Button variant="tinted" size="sm" onClick={handleAdd} disabled={!newContent.trim() || createMutation.isPending}>
-                            {createMutation.isPending ? 'Zapisywanie...' : 'Zapisz notatkę'}
+                            {createMutation.isPending ? 'Zapisywanie…' : 'Zapisz notatkę'}
                         </Button>
                     </FormActions>
                 </Form>
             )}
 
             {isLoading ? (
-                <Empty>Wczytywanie notatek...</Empty>
+                <Empty>Wczytywanie notatek…</Empty>
             ) : notes.length === 0 ? (
                 !isAdding && <Empty>Brak notatek o tym pojeździe.</Empty>
             ) : (
@@ -187,7 +187,7 @@ export const VehicleNotes = ({ vehicleId, readOnly = false, id }: VehicleNotesPr
                                     <FormActions>
                                         <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>Anuluj</Button>
                                         <Button variant="tinted" size="sm" onClick={handleSaveEdit} disabled={!editContent.trim() || updateMutation.isPending}>
-                                            {updateMutation.isPending ? 'Zapisywanie...' : 'Zapisz'}
+                                            {updateMutation.isPending ? 'Zapisywanie…' : 'Zapisz'}
                                         </Button>
                                     </FormActions>
                                 </Form>

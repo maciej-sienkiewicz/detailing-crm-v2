@@ -173,7 +173,7 @@ export default function MailboxConnectView() {
         <Screen>
             <PageHeader
                 title="Skrzynki pocztowe"
-                subtitle="Podłącz pocztę firmową - wykrywamy serwer automatycznie"
+                subtitle="Podłącz pocztę firmową"
                 actions={
                     <Link to="/zapytania?view=poczta">
                         <PageHeaderGhostButton as="span">
@@ -185,8 +185,7 @@ export default function MailboxConnectView() {
 
             <Card>
                 <Helper>
-                    Podaj adres i hasło do swojej skrzynki. Serwer pocztowy wykryjemy automatycznie,
-                    a wiadomości będą synchronizować się w tle - także statusy przeczytania.
+                    Podaj adres i hasło, resztę ustawimy sami.
                 </Helper>
 
                 <Field>
@@ -202,9 +201,8 @@ export default function MailboxConnectView() {
 
                 {oauthProvider && (
                     <ErrorText style={{ background: '#f0f9ff', color: '#075985' }}>
-                        Ta skrzynka ({detection?.providerType === 'GOOGLE_API' ? 'Gmail' : 'Microsoft 365'})
-                        wymaga logowania u dostawcy. Ta metoda będzie dostępna wkrótce - na razie
-                        możesz podłączyć skrzynkę z klasycznego hostingu.
+                        Skrzynkę {detection?.providerType === 'GOOGLE_API' ? 'Gmail' : 'Microsoft 365'} podłączymy
+                        wkrótce. Na razie działa zwykła poczta firmowa z hostingu.
                     </ErrorText>
                 )}
 
@@ -303,8 +301,8 @@ export default function MailboxConnectView() {
                                 {account.emailAddress}
                                 <div className="sub">
                                     {account.lastSyncAt
-                                        ? `Ostatnia synchronizacja: ${formatDateTime(account.lastSyncAt)}`
-                                        : 'Oczekuje na pierwszą synchronizację'}
+                                        ? `Ostatnio pobrano: ${formatDateTime(account.lastSyncAt)}`
+                                        : 'Za chwilę pobierzemy pocztę'}
                                 </div>
                                 {account.status === 'AUTH_FAILED' && (
                                     <div className="err">

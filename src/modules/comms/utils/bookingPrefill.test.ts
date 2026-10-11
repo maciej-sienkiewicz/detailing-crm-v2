@@ -1,4 +1,4 @@
-// „Stwórz rezerwację" z leada przenosi wycenę uzgodnioną w korespondencji do formularza
+// „Umów wizytę" z leada przenosi wycenę uzgodnioną w korespondencji do formularza
 // rezerwacji. Kwota, którą klient dostał w ofercie, ma dojechać co do grosza: 1900,00 zł
 // brutto (23%) to 154472 gr netto, a z tego netta wychodzi 1900,01 zł (CLAUDE.md §1) -
 // dlatego formularz dostaje OBIE kwoty i żadnej nie przelicza z drugiej.

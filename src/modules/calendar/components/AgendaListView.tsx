@@ -283,6 +283,18 @@ const EventMeta = styled.div`
     white-space: nowrap;
 `;
 
+/* Auto i tablica to dwa atrybuty - osobne elementy z odstępem, nie klej z kropki (CLAUDE.md §4). */
+const EventMetaRow = styled(EventMeta)`
+    display: flex;
+    gap: 10px;
+
+    & > span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+`;
+
 const TypeBadge = styled.span<{ $isVisit: boolean }>`
     display: inline-block;
     font-size: 9px;
@@ -300,12 +312,12 @@ const TypeBadge = styled.span<{ $isVisit: boolean }>`
 const STATUS_LABEL: Record<string, string> = {
     CREATED: 'Rezerwacja',
     IN_PROGRESS: 'W trakcie',
-    READY_FOR_PICKUP: 'Do odbioru',
+    READY_FOR_PICKUP: 'Gotowe do odbioru',
     COMPLETED: 'Zakończone',
     REJECTED: 'Odrzucone',
     ABANDONED: 'Porzucona',
     CANCELLED: 'Anulowana',
-    ARCHIVED: 'Zarchiwizowane',
+    ARCHIVED: 'Archiwum',
 };
 
 /* Wydarzenie studia na liście: bursztynowa karta z dzwoneczkiem, na górze dnia.
@@ -433,7 +445,7 @@ export const AgendaListView: React.FC<AgendaListViewProps> = ({
                                 type={onDayAddClick ? 'button' : undefined}
                                 onClick={onDayAddClick ? () => onDayAddClick(day) : undefined}
                                 aria-label={onDayAddClick
-                                    ? `Dodaj rezerwację - ${day.getDate()} ${MONTH_NAMES[day.getMonth()]}, ${DAY_NAMES[day.getDay()]}`
+                                    ? `Dodaj rezerwację na ${DAY_NAMES[day.getDay()].toLowerCase()}, ${day.getDate()} ${MONTH_NAMES[day.getMonth()]}`
                                     : undefined}
                                 $isToday={isToday}
                                 $isEmpty={isEmpty}
@@ -474,8 +486,8 @@ export const AgendaListView: React.FC<AgendaListViewProps> = ({
                                                 <StudioCardTitle>{studioEvent.title}</StudioCardTitle>
                                                 <StudioCardMeta>
                                                     {studioEvent.startDate === studioEvent.endDate
-                                                        ? 'Wydarzenie · cały dzień'
-                                                        : 'Wydarzenie · kilka dni'}
+                                                        ? 'Wydarzenie na cały dzień'
+                                                        : 'Wydarzenie na kilka dni'}
                                                 </StudioCardMeta>
                                                 {studioEvent.description && (
                                                     <StudioCardDesc>{studioEvent.description}</StudioCardDesc>
@@ -493,7 +505,7 @@ export const AgendaListView: React.FC<AgendaListViewProps> = ({
                                         const meta = [
                                             data.vehicleInfo,
                                             isVisit ? (data as VisitEventData).licensePlate : null,
-                                        ].filter(Boolean).join(' · ');
+                                        ].filter((part): part is string => Boolean(part));
 
                                         return (
                                             <EventCard
@@ -521,7 +533,11 @@ export const AgendaListView: React.FC<AgendaListViewProps> = ({
                                                     <EventTitle>
                                                         <PiiText value={event.title} kind="name" />
                                                     </EventTitle>
-                                                    {meta && <EventMeta>{meta}</EventMeta>}
+                                                    {meta.length > 0 && (
+                                                        <EventMetaRow>
+                                                            {meta.map(part => <span key={part}>{part}</span>)}
+                                                        </EventMetaRow>
+                                                    )}
                                                     {statusKey && STATUS_LABEL[statusKey] && (
                                                         <EventMeta style={{ color: isCancelled ? '#ef4444' : '#64748b' }}>
                                                             {STATUS_LABEL[statusKey]}

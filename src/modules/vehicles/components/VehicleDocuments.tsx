@@ -158,7 +158,7 @@ export const VehicleDocuments = ({ vehicleId, readOnly, id }: Props) => {
                 )}
 
                 {isLoading ? (
-                    <Empty>Wczytywanie dokumentów...</Empty>
+                    <Empty>Wczytywanie dokumentów…</Empty>
                 ) : isError ? (
                     <Empty>
                         Nie udało się wczytać dokumentów.{' '}

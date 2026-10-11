@@ -28,6 +28,7 @@ import {
     useMarkMessageAsFormLead,
 } from '../hooks/useComms';
 import { IconButton, PrimaryButton } from './shared';
+import { pluralPl } from '@/common/utils/plural';
 
 const Body = styled.div`
     display: flex;
@@ -91,13 +92,13 @@ export function MarkAsFormLeadModal({ senderEmail, messageId, onClose }: MarkAsF
                     case 'CREATED':
                         showSuccess(
                             'Lead utworzony',
-                            'Znajdziesz go w zakładce Leady. Kolejne maile z tego adresu będą zamieniane automatycznie.'
+                            'Znajdziesz go w Zapytaniach. Kolejne maile z tego adresu dodamy automatycznie.'
                         );
                         onClose();
                         break;
                     case 'ALREADY_PROCESSED':
                         showSuccess(
-                            'Ta wiadomość była już przetworzona',
+                            'Z tej wiadomości jest już lead',
                             'Nadawca pozostaje oznaczony - kolejne maile obsłuży automat.'
                         );
                         onClose();
@@ -158,16 +159,15 @@ export function MarkAsFormLeadModal({ senderEmail, messageId, onClose }: MarkAsF
                                     : '.'}
                             </ActiveNote>
                             <p>
-                                Możesz mimo to utworzyć leada z tej konkretnej wiadomości - na przykład
-                                starszej niż oznaczenie, której automat nie obejmuje.
+                                Możesz też utworzyć lead z tej wiadomości, np. starszej, której automat
+                                nie objął.
                             </p>
                         </>
                     ) : (
                         <p>
-                            Dane klienta zostaną odczytane z <strong>treści</strong> tej wiadomości
-                            i powstanie z nich lead. Od tej chwili <strong>każdy kolejny mail z tego
-                            adresu</strong> będzie zamieniany na leada automatycznie - dokładnie tak
-                            traktuje się powiadomienia formularza ze strony.
+                            Odczytamy dane klienta z <strong>treści</strong> tej wiadomości i utworzymy
+                            lead. <strong>Każdy kolejny mail z tego adresu</strong> też stanie się
+                            leadem, automatycznie.
                         </p>
                     )}
 
@@ -192,19 +192,15 @@ export function MarkAsFormLeadModal({ senderEmail, messageId, onClose }: MarkAsF
                     {mark.isPending
                         ? 'Czytam treść wiadomości…'
                         : isActive
-                          ? 'Utwórz leada z tej wiadomości'
-                          : 'Oznacz i utwórz leada'}
+                          ? 'Utwórz lead z tej wiadomości'
+                          : 'Oznacz i utwórz lead'}
                 </PrimaryButton>
             </ModalFooter>
         </ModalShell>
     );
 }
 
-/** Odmiana „lead/leady/leadów" - komunikat ma brzmieć po polsku. */
+/** Odmiana „lead/leady/leadów" w bierniku („utworzył 1 lead") - komunikat ma brzmieć po polsku. */
 function leadsLabel(count: number): string {
-    if (count === 1) return 'leada';
-    const lastDigit = count % 10;
-    const lastTwo = count % 100;
-    const plural = lastDigit >= 2 && lastDigit <= 4 && (lastTwo < 12 || lastTwo > 14);
-    return plural ? 'leady' : 'leadów';
+    return pluralPl(count, 'lead', 'leady', 'leadów');
 }

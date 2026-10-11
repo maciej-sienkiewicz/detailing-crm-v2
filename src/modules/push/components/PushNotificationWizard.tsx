@@ -50,11 +50,11 @@ function pairingErrorMessage(error: unknown, platform: PushPlatform): string {
             : 'Powiadomienia są zablokowane. Odblokuj je w ustawieniach przeglądarki dla tej strony.';
     }
     if (code === 'sw-unavailable') {
-        return 'Nie udało się uruchomić tła aplikacji. Odśwież stronę i spróbuj ponownie. ' +
+        return 'Nie udało się włączyć powiadomień. Odśwież stronę i spróbuj ponownie. ' +
             'W trybie prywatnym przeglądarki powiadomienia nie działają.';
     }
     if (code === 'subscription-incomplete') {
-        return 'Przeglądarka zwróciła niekompletną subskrypcję. Odśwież stronę i spróbuj ponownie.';
+        return 'Przeglądarka nie dokończyła włączania powiadomień. Odśwież stronę i spróbuj ponownie.';
     }
     return 'Spróbuj ponownie.';
 }
@@ -311,7 +311,7 @@ function BlockedStage({ platform }: { platform: PushPlatform }) {
 // pozycję przytłaczały przycisk. Zdanie mówi wprost, co i kiedy przyjdzie.
 const BENEFITS = [
     { icon: <PhoneIcon />, text: 'Klikniesz numer klienta na komputerze, a telefon zapyta, czy do niego zadzwonić.' },
-    { icon: <WalletIcon />, text: 'Dowiesz się, kiedy ktoś utworzy rezerwację, przyjmie pojazd do salonu albo klient odbierze samochód.' },
+    { icon: <WalletIcon />, text: 'Dowiesz się, kiedy ktoś utworzy rezerwację, przyjmie pojazd do studia albo klient odbierze samochód.' },
     { icon: <InboxIcon />, text: 'Dostaniesz powiadomienie, gdy przyjdzie wiadomość z zapytaniem o usługę.' },
     { icon: <MegaphoneIcon />, text: 'Dowiesz się, kiedy konkurencja doda nową kampanię reklamową wycelowaną w Twoją okolicę.' },
 ];
@@ -374,7 +374,7 @@ function ReadyStage({ push }: { push: PushDeviceState }) {
             await push.sendTest();
             setTestSent(true);
         } catch (error) {
-            showError('Nie udało się wysłać próbnego', serverMessage(error, 'Spróbuj ponownie za chwilę.'));
+            showError('Nie udało się wysłać próbnego powiadomienia', serverMessage(error, 'Spróbuj ponownie za chwilę.'));
         }
     };
 

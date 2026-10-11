@@ -39,7 +39,7 @@ export interface EmployeeFormSubject {
     hasAccount: boolean;
 }
 
-/** Konto zakładane przy okazji edycji („Zaproś do systemu"). */
+/** Konto zakładane przy okazji edycji („Zaproś do aplikacji”). */
 export interface AccountInvite {
     email: string;
     roleId: string | null;
@@ -73,7 +73,7 @@ export type EmployeeFormModalProps = CommonProps & (
          * `invite` - gdy osoba bez konta ma je dostać.
          */
         onSubmitUpdate: (payload: UpdateEmployeePayload | null, invite: AccountInvite | null) => void;
-        /** Otwarte z „Zaproś do systemu": część o koncie od razu zaznaczona i na wierzchu. */
+        /** Otwarte z „Zaproś do aplikacji”: część o koncie od razu zaznaczona i na wierzchu. */
         focusAccount?: boolean;
     }
 );
@@ -199,13 +199,13 @@ export function EmployeeFormModal(props: EmployeeFormModalProps) {
                 <ModalHeader>
                     <ModalTitleGroup>
                         <ModalTitle>{mode === 'add' ? 'Nowy pracownik' : 'Edytuj pracownika'}</ModalTitle>
-                        <ModalSubtitle>
-                            {mode === 'add'
-                                ? 'Konto w systemie jest opcjonalne. Pracownika bez konta możesz zaprosić później.'
-                                : focusAccount
-                                    ? 'Sprawdź adres e-mail i wybierz rolę - zaproszenie trafi na ten adres.'
-                                    : 'Dane kontaktowe pracownika.'}
-                        </ModalSubtitle>
+                        {(mode === 'add' || focusAccount) && (
+                            <ModalSubtitle>
+                                {mode === 'add'
+                                    ? 'Konto nie jest wymagane, zaprosić możesz też później.'
+                                    : 'Sprawdź adres e-mail i wybierz rolę - zaproszenie trafi na ten adres.'}
+                            </ModalSubtitle>
+                        )}
                     </ModalTitleGroup>
                     <CloseBtn onClick={requestClose} />
                 </ModalHeader>
@@ -277,10 +277,10 @@ export function EmployeeFormModal(props: EmployeeFormModalProps) {
                                 </CheckBox>
                                 <AccountTexts>
                                     <AccountBoxTitle>
-                                        {mode === 'add' ? 'Utwórz konto użytkownika' : 'Zaproś do systemu'}
+                                        {mode === 'add' ? 'Załóż konto w aplikacji' : 'Zaproś do aplikacji'}
                                     </AccountBoxTitle>
                                     <HintText>
-                                        Zaproszenie z linkiem do ustawienia hasła trafi na adres e-mail podany wyżej. Link jest ważny 48 godzin.
+                                        Na ten e-mail wyślemy link do ustawienia hasła, ważny 48 godzin.
                                     </HintText>
                                 </AccountTexts>
                             </CheckRow>
@@ -304,7 +304,7 @@ export function EmployeeFormModal(props: EmployeeFormModalProps) {
                 <ModalFooter>
                     <Button variant="outline" onClick={requestClose} disabled={isSaving}>Anuluj</Button>
                     <Button variant="primary" onClick={handleSubmit} disabled={isSaving}>
-                        {isSaving ? 'Zapisywanie...' : submitLabel}
+                        {isSaving ? 'Zapisywanie…' : submitLabel}
                     </Button>
                 </ModalFooter>
             </ModalShell>

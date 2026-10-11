@@ -717,7 +717,7 @@ export const visitApi = {
     },
 
     /**
-     * Punkty uszkodzeń, od których startuje „Zaktualizuj uszkodzenia".
+     * Punkty uszkodzeń, od których startuje okno „Mapa uszkodzeń".
      *
      * Odpowiedź niesie `pointsRecoverable` — dla wizyt sprzed zapisu punktów jest
      * false i UI musi o tym powiedzieć, zanim ktokolwiek zacznie klikać.

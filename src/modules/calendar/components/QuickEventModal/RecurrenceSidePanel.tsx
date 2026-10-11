@@ -2,6 +2,7 @@
 
 import styled from 'styled-components';
 import { FormInput } from '@/common/styles';
+import { pluralPl } from '@/common/utils/plural';
 import type { RecurrenceRuleRequest, DayOfWeek } from '@/modules/appointments/types';
 
 // ─── Panel container ──────────────────────────────────────────────────────────
@@ -310,7 +311,7 @@ export const RecurrenceSidePanel = ({ rule, onChange, startDateTime }: Recurrenc
 
     const intervalLabel = () => {
         const n = rule.intervalWeeks ?? 1;
-        return n === 1 ? 'tydzień' : n < 5 ? 'tygodnie' : 'tygodni';
+        return pluralPl(n, 'tydzień', 'tygodnie', 'tygodni');
     };
 
     return (
@@ -412,7 +413,7 @@ export const RecurrenceSidePanel = ({ rule, onChange, startDateTime }: Recurrenc
                             checked={rule.endType === 'COUNT'}
                             onChange={() => update({ endType: 'COUNT', maxOccurrences: rule.maxOccurrences ?? 12, endDate: undefined })}
                         />
-                        <RadioLabel>Po N wizytach</RadioLabel>
+                        <RadioLabel>Po liczbie rezerwacji</RadioLabel>
                     </RadioRow>
                     {rule.endType === 'COUNT' && (
                         <InlineEndRow>
@@ -423,7 +424,7 @@ export const RecurrenceSidePanel = ({ rule, onChange, startDateTime }: Recurrenc
                                 value={rule.maxOccurrences ?? 12}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => update({ maxOccurrences: Math.max(1, Math.min(104, Number(e.target.value))) })}
                             />
-                            <InputLabel>wizyt (max 104)</InputLabel>
+                            <InputLabel>{pluralPl(rule.maxOccurrences ?? 12, 'rezerwacja', 'rezerwacje', 'rezerwacji')} (maks. 104)</InputLabel>
                         </InlineEndRow>
                     )}
 
@@ -450,7 +451,7 @@ export const RecurrenceSidePanel = ({ rule, onChange, startDateTime }: Recurrenc
                             checked={rule.endType === 'OPEN'}
                             onChange={() => update({ endType: 'OPEN', maxOccurrences: undefined, endDate: undefined })}
                         />
-                        <RadioLabel>Bez końca (max 104)</RadioLabel>
+                        <RadioLabel>Bez daty końca (do 104 rezerwacji)</RadioLabel>
                     </RadioRow>
                 </EndTypeCol>
             </div>
@@ -461,7 +462,7 @@ export const RecurrenceSidePanel = ({ rule, onChange, startDateTime }: Recurrenc
                     <PanelDivider />
                     <PreviewBox>
                         <PreviewLine>
-                            Zostanie utworzonych <strong>{preview.count} {preview.count === 1 ? 'wizytę' : preview.count < 5 ? 'wizyty' : 'wizyt'}</strong>
+                            Utworzymy <strong>{preview.count} {pluralPl(preview.count, 'rezerwację', 'rezerwacje', 'rezerwacji')}</strong>
                         </PreviewLine>
                         <PreviewLine>
                             Od <strong>{preview.first}</strong>

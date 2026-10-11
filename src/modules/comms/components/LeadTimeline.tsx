@@ -320,7 +320,7 @@ export function LeadTimeline({ entries }: LeadTimelineProps) {
                                     którego ta zmiana odchodzi.
                                 */}
                                 <When>
-                                    {agoOf(entry.at)} · {stampOf(entry.at)}
+                                    {agoOf(entry.at)} ({stampOf(entry.at)})
                                     {entry.actorName && showsActor(entry.kind) && (
                                         <>, {entry.actorName}</>
                                     )}

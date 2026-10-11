@@ -168,7 +168,7 @@ export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated, initi
     const runLookup = async (code: string) => {
         const normalized = normalizeGtin(code);
         if (!normalized) {
-            setLookupMsg({ tone: 'error', text: 'Niepoprawny kod — suma kontrolna się nie zgadza.' });
+            setLookupMsg({ tone: 'error', text: 'Ten kod jest błędny, sprawdź cyfry.' });
             return;
         }
         setLooking(true);
@@ -291,7 +291,7 @@ export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated, initi
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Nowy produkt</ModalTitle>
-                    <ModalSubtitle>Wpisz dane; opcjonalnie podaj kod kreskowy, aby pobrać je automatycznie</ModalSubtitle>
+                    <ModalSubtitle>Masz kod kreskowy? Wpisz go, a dane uzupełnimy sami.</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
@@ -391,7 +391,7 @@ export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated, initi
                             <Input value={form.priceValue} onChange={e => set('priceValue', e.target.value)} placeholder="opcjonalnie" inputMode="decimal" />
                         </FieldGroup>
                         <FieldGroup>
-                            <Label>Rodzaj / VAT</Label>
+                            <Label>Netto czy brutto, VAT</Label>
                             <div style={{ display: 'flex', gap: 8 }}>
                                 <Select value={form.priceDirection} onChange={e => set('priceDirection', e.target.value as PriceDirection)}>
                                     <option value="GROSS">brutto</option>

@@ -84,10 +84,10 @@ export const useUpdateAppointmentTitle = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['operations'] });
             queryClient.invalidateQueries({ queryKey: ['dashboard', 'upcoming-visits'] });
-            showSuccess('Tytuł rezerwacji zaktualizowany');
+            showSuccess('Zapisano tytuł rezerwacji');
         },
         onError: () => {
-            showError('Nie udało się zaktualizować tytułu');
+            showError('Nie udało się zapisać tytułu');
         },
     });
 
@@ -112,10 +112,10 @@ export const useUpdateOperationTitle = () => {
             if (vars.type === 'VISIT') {
                 queryClient.invalidateQueries({ queryKey: ['visit', vars.id] });
             }
-            showSuccess(vars.type === 'VISIT' ? 'Tytuł wizyty zaktualizowany' : 'Tytuł rezerwacji zaktualizowany');
+            showSuccess(vars.type === 'VISIT' ? 'Zapisano tytuł wizyty' : 'Zapisano tytuł rezerwacji');
         },
         onError: () => {
-            showError('Nie udało się zaktualizować tytułu');
+            showError('Nie udało się zapisać tytułu');
         },
     });
 

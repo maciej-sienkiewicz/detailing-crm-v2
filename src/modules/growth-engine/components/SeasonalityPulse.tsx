@@ -290,15 +290,15 @@ export const SeasonalityPulse = ({
     <Container>
       <Header>
         <TitleGroup>
-          <SectionTitle>Trendy Wyszukiwań</SectionTitle>
+          <SectionTitle>Popularność w Google</SectionTitle>
           <SectionSubtitle>
-            Indeks popularności zapytań Google (0-100 = relatywny szczyt w wybranym zakresie)
+            Jak często szukano w Google (100 = najwięcej w tym okresie)
           </SectionSubtitle>
         </TitleGroup>
 
         <DropdownWrapper ref={dropdownRef}>
           <DropdownToggle onClick={() => setDropdownOpen(!dropdownOpen)}>
-            Porównaj słowa kluczowe ({effectiveSelected.length})
+            Porównaj frazy ({effectiveSelected.length})
           </DropdownToggle>
 
           <DropdownPanel $open={dropdownOpen}>
@@ -327,7 +327,7 @@ export const SeasonalityPulse = ({
             key={keyword}
             $color={keywordColors[keyword] ?? ge.accentBlue}
             onClick={() => onToggle(keyword)}
-            title="Kliknij aby usunąć"
+            title="Kliknij, aby usunąć"
           >
             <LegendDot $color={keywordColors[keyword] ?? ge.accentBlue} />
             {keyword}
@@ -338,8 +338,8 @@ export const SeasonalityPulse = ({
       <ChartWrapper>
         {chartData.length === 0 ? (
           <EmptyState>
-            <span>Brak danych trendów</span>
-            <span>Wybierz słowa kluczowe z listy powyżej</span>
+            <span>Brak danych</span>
+            <span>Wybierz frazy z listy powyżej</span>
           </EmptyState>
         ) : (
           <ResponsiveContainer width="100%" height="100%">

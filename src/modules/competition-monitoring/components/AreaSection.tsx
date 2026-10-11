@@ -66,7 +66,7 @@ const HeadActions = styled.div`
 `;
 
 /**
- * „Odznacz nowe" — tło i obwódka, NIE wypełnienie.
+ * „Oznacz jako przejrzane" — tło i obwódka, NIE wypełnienie.
  *
  * W oknie wypełniony jest wyłącznie krok następny, a ten przycisk nim nie jest:
  * to sprzątanie po przeczytaniu, czynność drugorzędna i całkowicie opcjonalna.
@@ -291,7 +291,7 @@ const AdvertiserName = ({ row, windowDays }: { row: AdvertiserRow; windowDays: n
                 // faktycznie dodał, a nie to, co wyświetlaliśmy przed kliknięciem.
                 showSuccess(
                     `@${result.username} dodany do obserwowanych`,
-                    'Czeka na zatwierdzenie — dane pojawią się po najbliższej synchronizacji.'
+                    'Czeka na zatwierdzenie. Dane pojawią się po najbliższym pobraniu.'
                 );
             },
             onError: (error: unknown) => {
@@ -556,8 +556,8 @@ const Results = ({ results, page, onPage }: { results: AreaResults; page: number
     if (!results.configured) {
         return (
             <CenterState>
-                <strong>Biblioteka reklam Meta nie jest skonfigurowana</strong>
-                <span>Bez tokena nie da się sprawdzić, kto reklamuje się w okolicy.</span>
+                <strong>Reklamy z okolicy nie są jeszcze dostępne</strong>
+                <span>Czekamy na dostęp do Biblioteki reklam Meta.</span>
             </CenterState>
         );
     }
@@ -567,7 +567,7 @@ const Results = ({ results, page, onPage }: { results: AreaResults; page: number
             {results.advertisers.length === 0 ? (
                 <CenterState>
                     <strong>Nikt się tu nie reklamuje na te frazy</strong>
-                    <span>Nie znaleźliśmy aktywnych reklam z targetowaniem na wskazany rejon.</span>
+                    <span>Nie znaleźliśmy aktywnych reklam skierowanych do tego rejonu.</span>
                 </CenterState>
             ) : (
                 <>
@@ -660,30 +660,30 @@ const Results = ({ results, page, onPage }: { results: AreaResults; page: number
             {results.hiddenAdvertisers > 0 && (
                 <Notice $tone="info">
                     Ukryto <strong>{results.hiddenAdvertisers}</strong>{' '}
-                    {advertiserWord(results.hiddenAdvertisers)} — własnych i odsianych globalnie.
-                    Własne przywrócisz w ustawieniach pod kołem zębatym.
+                    {advertiserWord(results.hiddenAdvertisers)} — przez Ciebie lub administratora. Tych
+                    ukrytych przez Ciebie przywrócisz w ustawieniach rejonu.
                 </Notice>
             )}
             {notVerified && (
                 <Notice $tone="warn">
-                    <strong>Konto Meta niezweryfikowane.</strong> Biblioteka reklam nie zwraca reklam,
-                    dopóki konto nie przejdzie weryfikacji tożsamości (facebook.com/ads/library/api).
+                    <strong>Dostęp do reklam Meta czeka na weryfikację.</strong> Do tego czasu tabela
+                    będzie pusta.
                 </Notice>
             )}
             {rateLimited && (
                 <Notice $tone="warn">
-                    <strong>Chwilowy limit zapytań do Meta.</strong> Część fraz nie odświeżyła się teraz —
+                    <strong>Meta chwilowo wstrzymała pobieranie.</strong> Część fraz nie odświeżyła się teraz —
                     dane mogą być niepełne. Spróbuj ponownie za chwilę.
                 </Notice>
             )}
             {errored && !rateLimited && (
                 <Notice $tone="warn">
-                    <strong>Nie udało się pobrać części fraz.</strong> Tabela może być niepełna —
+                    <strong>Nie udało się sprawdzić części fraz.</strong> Tabela może być niepełna —
                     spróbuj ponownie za chwilę.
                 </Notice>
             )}
             {pending && !rateLimited && !errored && (
-                <Notice $tone="info">Część fraz jest właśnie pobierana — odśwież za moment.</Notice>
+                <Notice $tone="info">Część fraz jeszcze się sprawdza — odśwież za chwilę.</Notice>
             )}
             {truncated.length > 0 && (
                 <Notice $tone="warn">
@@ -723,7 +723,7 @@ export const AreaSection = () => {
                             disabled={acknowledge.isPending}
                             onClick={() => acknowledge.mutate()}
                         >
-                            <Check /> Odznacz nowe
+                            <Check /> Oznacz jako przejrzane
                         </AckButton>
                     )}
                     <GearButton
@@ -781,8 +781,7 @@ export const AreaSection = () => {
             ) : (
                 <>
                     <CardHint>
-                        Kto jeszcze reklamuje się w Twojej okolicy. Frazy pochodzą ze wspólnego katalogu
-                        branżowego — wskaż tylko rejon, w którym mam patrzeć.
+                        Kto jeszcze reklamuje się w Twojej okolicy. Wystarczy wskazać rejon.
                     </CardHint>
                     <CenterState>
                         <strong>Rejon nie jest jeszcze ustawiony</strong>

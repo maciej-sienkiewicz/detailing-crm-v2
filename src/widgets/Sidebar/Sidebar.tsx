@@ -147,7 +147,7 @@ export const Sidebar = () => {
 
     // Dopóki nie ma ani odpowiedzi, ani zapisu lokalnego, w nagłówku zostaje nazwa
     // produktu - pusty pasek albo szkielet migałby przy każdym wejściu do aplikacji.
-    const companyName = (company?.name ?? cachedHeader?.name)?.trim() || 'AutoCRM';
+    const companyName = (company?.name ?? cachedHeader?.name)?.trim() || 'DetailBoost';
 
     /**
      * Studio, które wgrało logo, widzi je w nagłówku zamiast inicjałów - to jego

@@ -315,7 +315,7 @@ describe('bulkVatEdits', () => {
 });
 
 describe('bulkDiscountPlan', () => {
-    it('„Nadpisz zmiany": upust brutto od 1900,00 zł daje 1800,00 zł i wysyła dokładne brutto bazy', () => {
+    it('„Od cen z cennika": upust brutto od 1900,00 zł daje 1800,00 zł i wysyła dokładne brutto bazy', () => {
         const plan = bulkDiscountPlan([exactLine()], {}, 'FIXED_GROSS', 10000, false);
         expect(plan.edits.exact).toEqual({
             basePriceNet: NET, vatRate: 23, adjustment: { type: 'FIXED_GROSS', value: 10000 }, basePriceGross: GROSS,
@@ -323,7 +323,7 @@ describe('bulkDiscountPlan', () => {
         expect(plan.rows[0]).toEqual({ id: 'exact', beforeNet: NET, beforeGross: GROSS, afterNet: grossToNet(180000, 23), afterGross: 180000 });
     });
 
-    it('„Nadpisz zmiany": cena ręczna nie znika pod rabatem i zachowuje dokładne brutto', () => {
+    it('„Od cen z cennika": cena ręczna nie znika pod rabatem i zachowuje dokładne brutto', () => {
         const plan = bulkDiscountPlan([manualGrossLine()], {}, 'PERCENT', 10, false);
         expect(plan.edits.manual.basePriceNet).toBe(grossToNet(GROSS, 23));
         expect(plan.edits.manual.basePriceGross).toBe(GROSS);
@@ -331,7 +331,7 @@ describe('bulkDiscountPlan', () => {
         expect(plan.rows[0].afterNet).toBe(grossToNet(GROSS, 23) - Math.round(grossToNet(GROSS, 23) / 10));
     });
 
-    it('„Uwzględnij poprawki": upust brutto zapisuje SET_GROSS, a nie SET_NET (regresja: 1799,99)', () => {
+    it('„Od zmienionych cen": upust brutto zapisuje SET_GROSS, a nie SET_NET (regresja: 1799,99)', () => {
         const ep: EditedPrice = { basePriceNet: NET, vatRate: 23, adjustment: { type: 'SET_GROSS', value: GROSS } };
         const plan = bulkDiscountPlan([exactLine()], { exact: ep }, 'FIXED_GROSS', 10000, true);
         expect(plan.edits.exact.adjustment).toEqual({ type: 'SET_GROSS', value: 180000 });
@@ -340,7 +340,7 @@ describe('bulkDiscountPlan', () => {
         expect(editedPrice(plan.edits.exact).finalGrossCents).toBe(180000);
     });
 
-    it('„Uwzględnij poprawki": pozycja z zerowym udziałem w rabacie zachowuje dokładne brutto', () => {
+    it('„Od zmienionych cen": pozycja z zerowym udziałem w rabacie zachowuje dokładne brutto', () => {
         // Upust netto 1 gr rozkłada się na dwie pozycje: pierwsza dostaje 0 gr.
         const plan = bulkDiscountPlan([exactLine(), catalogLine({ id: 'big', basePriceNet: 10_000_000, basePriceGross: 12_300_000 })], {}, 'FIXED_NET', 1, true);
         expect(plan.rows[0].afterGross).toBe(GROSS);
@@ -348,7 +348,7 @@ describe('bulkDiscountPlan', () => {
         expect(editedPrice(plan.edits.exact).finalGrossCents).toBe(GROSS);
     });
 
-    it('„Uwzględnij poprawki": rabat procentowy zapisuje netto końcowe', () => {
+    it('„Od zmienionych cen": rabat procentowy zapisuje netto końcowe', () => {
         const plan = bulkDiscountPlan([catalogLine()], {}, 'PERCENT', 10, true);
         expect(plan.edits.catalog.adjustment).toEqual({ type: 'SET_NET', value: 90000 });
     });

@@ -441,11 +441,10 @@ export default function LeadAnalyticsView({
                 <EmptyCard>
                     <h2>Brak zapytań w tym okresie</h2>
                     <p>
-                        Nie ma czego liczyć. Zamiast pustego ekranu można zobaczyć,
-                        jak ten widok wygląda przy pełnych danych.
+                        Możesz zobaczyć, jak ten widok wygląda z danymi.
                     </p>
                     <DemoButton type="button" onClick={() => setDemo(true)}>
-                        <Eye /> Zobacz ten widok na przykładzie
+                        <Eye /> Pokaż przykład
                     </DemoButton>
                 </EmptyCard>
             )}
@@ -457,7 +456,7 @@ export default function LeadAnalyticsView({
                         porównania.
                     </span>
                     <DemoButton type="button" onClick={() => setDemo(true)}>
-                        <Eye /> Zobacz ten widok na przykładzie
+                        <Eye /> Pokaż przykład
                     </DemoButton>
                 </ThinDataBar>
             )}
@@ -483,7 +482,7 @@ export default function LeadAnalyticsView({
                         powrotna, a nie jedna z akcji raportu. */}
                     {onBack && (
                         <BackToStart type="button" onClick={onBack}>
-                            <ArrowLeft /> Kolejka
+                            <ArrowLeft /> Sprawy
                         </BackToStart>
                     )}
                     {/* Pusty element, gdy danych jeszcze nie ma - żeby wybór okresu
@@ -506,7 +505,7 @@ export default function LeadAnalyticsView({
                         <PeriodPicker value={period} onChange={setPeriod} />
                         <Link to="/zapytania">
                             <PageHeaderGhostButton as="span">
-                                <ArrowLeft /> Leady
+                                <ArrowLeft /> Zapytania
                             </PageHeaderGhostButton>
                         </Link>
                     </>
@@ -680,7 +679,7 @@ function SourceCard({ data }: { data: LeadAnalytics }) {
             question="Skąd przychodzą zapytania"
             answer={
                 top && top.count > 0
-                    ? <>Najwięcej zapytań przychodzi przez <strong>{SOURCE_LABELS[top.source] ?? top.source}</strong>.</>
+                    ? <>Najwięcej zapytań: <strong>{SOURCE_LABELS[top.source] ?? top.source}</strong>.</>
                     : 'Za mało zamkniętych zapytań, żeby porównać kanały.'
             }
         >
@@ -727,7 +726,7 @@ function SpeedCard({ data }: { data: LeadAnalytics }) {
                 </>
             );
         }
-        return 'Za mało zamkniętych zapytań, żeby coś stwierdzić. Wróć tu przy szerszym zakresie.';
+        return 'Za mało zamkniętych zapytań. Wybierz dłuższy okres.';
     })();
 
     return <AnalyticsCard question="Czy szybka odpowiedź się opłaca" answer={answer} />;

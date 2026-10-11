@@ -148,7 +148,7 @@ export const QuickColorModal = ({ isOpen, onClose, onColorCreate }: QuickColorMo
 
         const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
         if (!hexRegex.test(hexColor)) {
-            newErrors.hexColor = 'Nieprawidłowy format koloru HEX (np. #3b82f6)';
+            newErrors.hexColor = 'Wpisz kolor w postaci #3b82f6';
         }
 
         setErrors(newErrors);
@@ -179,7 +179,7 @@ export const QuickColorModal = ({ isOpen, onClose, onColorCreate }: QuickColorMo
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                 <ModalHeader>
                     <ModalTitleGroup>
-                        <ModalTitle>Dodaj nowy kolor wizyty</ModalTitle>
+                        <ModalTitle>Nowy kolor</ModalTitle>
                     </ModalTitleGroup>
                 </ModalHeader>
 
@@ -190,14 +190,14 @@ export const QuickColorModal = ({ isOpen, onClose, onColorCreate }: QuickColorMo
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            placeholder="np. Oklejanie PPF, Pilne, Mechanika..."
+                            placeholder="np. Oklejanie PPF, Pilne, Mechanika"
                             autoFocus
                         />
                         {errors.name && <ErrorMessage>{errors.name}</ErrorMessage>}
                     </FieldGroup>
 
                     <FieldGroup>
-                        <Label>Kolor (HEX)</Label>
+                        <Label>Kolor</Label>
                         <ColorPickerWrapper>
                             <ColorInput
                                 type="color"
@@ -215,7 +215,7 @@ export const QuickColorModal = ({ isOpen, onClose, onColorCreate }: QuickColorMo
                     </FieldGroup>
 
                     <FieldGroup>
-                        <Label>Predefiniowane kolory</Label>
+                        <Label>Gotowe kolory</Label>
                         <PresetColors>
                             {PRESET_COLORS.map((color) => (
                                 <PresetColorButton

@@ -4,6 +4,7 @@ import { ArrowRight, RotateCcw, Users, CheckCircle2 } from 'lucide-react';
 import type { AudienceCustomer, AgentAudienceResult } from '../types';
 import { generateAudienceFromPrompt, createCampaign } from '../api/smsCampaignsApi';
 import { DateTimePicker } from '@/common/components/DateTimePicker';
+import { pluralPl } from '@/common/utils/plural';
 
 // ─── Animations ────────────────────────────────────────────────────────────────
 
@@ -113,6 +114,20 @@ const PromptFooter = styled.div`
 const Hint = styled.span`
   font-size: 11px;
   color: #CBD5E1;
+`;
+
+/** Skrót klawiszowy i licznik znaków - dwa fakty obok siebie, bez kropki między nimi. */
+const HintGroup = styled.span`
+  display: inline-flex;
+  gap: 12px;
+  flex-wrap: wrap;
+`;
+
+/** Opis filtrów w osobnej linii pod liczbą znalezionych klientów. */
+const FiltersDescription = styled.span`
+  display: block;
+  color: #64748B;
+  font-weight: 400;
 `;
 
 const SearchBtn = styled.button<{ $active: boolean }>`
@@ -599,7 +614,7 @@ export const AiCampaignCreator: React.FC<Props> = ({ onClose, onSuccess }) => {
           <SparkIcon>✦</SparkIcon>
           <HeroTitle>Utwórz kampanię SMS</HeroTitle>
           <HeroSubtitle>
-            Opisz w języku naturalnym, do jakich klientów chcesz dotrzeć.
+            Opisz własnymi słowami, do kogo chcesz napisać.
             Przeszukamy bazę i zaproponujemy dopasowaną listę odbiorców.
           </HeroSubtitle>
         </PromptHero>
@@ -608,14 +623,17 @@ export const AiCampaignCreator: React.FC<Props> = ({ onClose, onSuccess }) => {
           <PromptTextarea
             ref={textareaRef}
             autoFocus
-            placeholder="Np. klienci posiadający BMW, którzy w ostatnim roku odwiedzili salon i mieli oklejany samochód folią PPF..."
+            placeholder="Np. właściciele BMW, którzy w ostatnim roku robili u nas PPF"
             value={promptText}
             onChange={e => setPromptText(e.target.value)}
             onKeyDown={handleKeyDown}
             maxLength={500}
           />
           <PromptFooter>
-            <Hint>Ctrl+Enter aby wyszukać · {promptText.length}/500</Hint>
+            <HintGroup>
+              <Hint>Ctrl+Enter, żeby wyszukać</Hint>
+              <Hint>{promptText.length}/500</Hint>
+            </HintGroup>
             <SearchBtn
               $active={!!promptText.trim()}
               disabled={!promptText.trim()}
@@ -645,8 +663,8 @@ export const AiCampaignCreator: React.FC<Props> = ({ onClose, onSuccess }) => {
           <Dot $delay="0.18s" />
           <Dot $delay="0.36s" />
         </DotsRow>
-        <LoadingText>Przeszukiwanie bazy klientów...</LoadingText>
-        {lastPrompt && <PromptEcho>„{lastPrompt}"</PromptEcho>}
+        <LoadingText>Przeszukiwanie bazy klientów…</LoadingText>
+        {lastPrompt && <PromptEcho>„{lastPrompt}”</PromptEcho>}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', maxWidth: 560 }}>
           {[90, 75, 82, 65].map((w, i) => (
             <ShimmerRow key={i} $w={`${w}%`} />
@@ -663,7 +681,7 @@ export const AiCampaignCreator: React.FC<Props> = ({ onClose, onSuccess }) => {
         <SuccessCircle><CheckCircle2 size={26} strokeWidth={2} /></SuccessCircle>
         <SuccessTitle>Kampania została zapisana</SuccessTitle>
         <SuccessDesc>
-          „{title}" trafiła do listy kampanii.
+          „{title}” trafiła do listy kampanii.
           {launchDate
             ? ` Zostanie uruchomiona ${fmtDate(launchDate)}.`
             : ' Możesz ją wysłać ręcznie z listy poniżej.'}
@@ -683,9 +701,10 @@ export const AiCampaignCreator: React.FC<Props> = ({ onClose, onSuccess }) => {
         <ResultsSummary>
           <Users size={15} strokeWidth={2} color="#0EA5E9" />
           <span>
-            Znaleziono <strong>{customers.length}</strong> klientów
+            Znaleziono <strong>{customers.length}</strong>{' '}
+            {pluralPl(customers.length, 'klienta', 'klientów', 'klientów')}
             {result?.generatedFiltersDescription && (
-              <> · <span style={{ color: '#64748B', fontWeight: 400 }}>{result.generatedFiltersDescription}</span></>
+              <FiltersDescription>{result.generatedFiltersDescription}</FiltersDescription>
             )}
           </span>
         </ResultsSummary>
@@ -794,7 +813,7 @@ export const AiCampaignCreator: React.FC<Props> = ({ onClose, onSuccess }) => {
             ) : (
               <CheckCircle2 size={14} strokeWidth={2.5} />
             )}
-            {isCreating ? 'Zapisywanie...' : 'Zapisz kampanię'}
+            {isCreating ? 'Zapisywanie…' : 'Zapisz kampanię'}
           </CreateBtn>
         </ConfigBottom>
       </ConfigCard>

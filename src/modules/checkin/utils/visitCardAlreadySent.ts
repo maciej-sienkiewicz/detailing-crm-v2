@@ -26,6 +26,6 @@ export function describeVisitCardAlreadySent(link: VisitCardLinkResponse | null 
     const how = channels.map(c => `${c.label} ${fmt(c.at)}`).join(' oraz ');
     return {
         sentAt: latest.at,
-        text: `Klient dostał już ten link ${how} jako Kartę Rezerwacji. To ta sama karta, więc drugiej wysyłki zwykle nie trzeba.`,
+        text: `Klient dostał już ten link ${how} jako Kartę rezerwacji. To ta sama karta, więc drugiej wysyłki zwykle nie trzeba.`,
     };
 }

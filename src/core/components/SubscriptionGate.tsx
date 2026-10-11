@@ -212,10 +212,9 @@ function ExpiredModal() {
                             <line x1="12" y1="17" x2="12.01" y2="17" />
                         </svg>
                     </IconWrap>
-                    <Title>Twoja subskrypcja wygasła</Title>
+                    <Title>Twój pakiet wygasł</Title>
                     <Subtitle>
-                        Aby kontynuować korzystanie z systemu, przedłuż swój pakiet. Płatność
-                        obsługuje Przelewy24. Wszystkie Twoje dane są bezpieczne.
+                        Przedłuż pakiet, żeby dalej pracować. Twoje dane są bezpieczne.
                     </Subtitle>
                 </Head>
 
@@ -231,12 +230,12 @@ function ExpiredModal() {
 
                 <PurchaseBtn onClick={handleRenew} disabled={!isOwner || checkout.isPending}>
                     {checkout.isPending && <BtnSpinner />}
-                    {checkout.isPending ? 'Przekierowywanie do Przelewy24...' : 'Odnów subskrypcję i zapłać'}
+                    {checkout.isPending ? 'Przekierowywanie do Przelewy24…' : 'Przedłuż pakiet'}
                 </PurchaseBtn>
 
                 {!isOwner && (
                     <OwnerNote>
-                        Odnowienie subskrypcji jest możliwe wyłącznie przez właściciela studia. Skontaktuj się z właścicielem, aby odblokować dostęp.
+                        Pakiet może przedłużyć tylko właściciel studia. Poproś go o to.
                     </OwnerNote>
                 )}
             </Card>

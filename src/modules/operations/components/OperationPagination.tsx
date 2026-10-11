@@ -126,7 +126,7 @@ export const OperationPagination = ({ pagination, onPageChange }: OperationPagin
     return (
         <Container>
             <Info>
-                {startItem}-{endItem} z {totalItems} rekordów
+                {startItem}–{endItem} z {totalItems}
             </Info>
 
             <Controls>
@@ -143,7 +143,7 @@ export const OperationPagination = ({ pagination, onPageChange }: OperationPagin
 
                 {getPages().map((p, i) =>
                     p === '...'
-                        ? <Ellipsis key={`e-${i}`}>···</Ellipsis>
+                        ? <Ellipsis key={`e-${i}`}>…</Ellipsis>
                         : (
                             <PageBtn
                                 key={p}

@@ -166,9 +166,9 @@ const GROUPS: SectionGroup[] = [
         group: 'Konto i płatności',
         items: [
             {
-                id: 'plan', label: 'Abonament', summary: 'Plan, dodatki i płatności', icon: <Crown />,
-                description: 'Twój plan, dodatki i historia płatności.',
-                keywords: 'plan płatność subskrypcja dodatki faktura',
+                id: 'plan', label: 'Pakiet', summary: 'Pakiet, moduły i płatności', icon: <Crown />,
+                description: 'Twój pakiet, moduły i historia płatności.',
+                keywords: 'pakiet abonament plan płatność subskrypcja moduły dodatki faktura',
             },
             {
                 // Kredyty schodzą i przy SMS-ach, i przy funkcjach AI - stąd nazwa z obu.
@@ -177,7 +177,7 @@ const GROUPS: SectionGroup[] = [
                 keywords: 'sms kredyty pakiet zakup ai',
             },
             {
-                // Sekcja pokazuje tylko połączenie z KSeF; historia płatności jest w „Abonamencie".
+                // Sekcja pokazuje tylko połączenie z KSeF; historia płatności jest w „Pakiecie".
                 id: 'invoices', label: 'KSeF', summary: 'Pobieranie faktur, kto je wystawia', icon: <Receipt />, help: INVOICES_HELP,
                 description: 'Połączenie z Krajowym Systemem e-Faktur i to, kto wystawia faktury przy wydaniu pojazdu.',
                 keywords: 'faktury e-faktury ksef księgowość księgowa biuro rachunkowe',

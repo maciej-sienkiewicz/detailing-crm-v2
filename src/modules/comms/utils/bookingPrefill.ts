@@ -1,7 +1,7 @@
 // src/modules/comms/utils/bookingPrefill.ts
 // Zamiana tego, co już wiemy o rozmowie, na wypełniony formularz rezerwacji.
 //
-// Sens przycisku „Stwórz rezerwację" polega na tym, że nikt nie przepisuje ręcznie
+// Sens przycisku „Umów wizytę" polega na tym, że nikt nie przepisuje ręcznie
 // danych, które system ma pod ręką: klienta z kartoteki, auta z jego historii,
 // wyceny uzgodnionej w korespondencji. Tłumaczenie modeli siedzi w jednym miejscu,
 // bo robią to dwa różne widoki - panel leada i podgląd konwersacji.

@@ -99,16 +99,18 @@ export function MessageReaderOverlay({
         return () => window.removeEventListener('keydown', onKeyDown);
     }, [onClose]);
 
+    // Bez imienia nadawcy nazwą jest sam adres - powtórzony w nawiasie byłby szumem.
+    const senderName = message.direction === 'OUTBOUND' ? 'Ty' : message.fromName ?? message.fromEmail;
+
     return (
         <Overlay role="dialog" aria-modal="true" aria-label="Pełny podgląd wiadomości">
             <Header>
                 <div className="titles">
                     <h3>{message.subject ?? '(bez tematu)'}</h3>
                     <div className="sub">
-                        {message.direction === 'OUTBOUND' ? 'Ty' : message.fromName ?? message.fromEmail}
-                        {' · '}
-                        {message.fromEmail}
-                        {' · '}
+                        {senderName}
+                        {senderName !== message.fromEmail && ` (${message.fromEmail})`}
+                        {', '}
                         {formatDateTime(message.sentAt)}
                     </div>
                 </div>

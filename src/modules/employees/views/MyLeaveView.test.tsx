@@ -194,7 +194,7 @@ describe('MyLeaveView - lista i nagłówek', () => {
     it('konto bez rekordu pracownika dostaje wyjaśnienie zamiast listy', async () => {
         api.list.mockRejectedValue({ response: { status: 404, data: { message: 'Twoje konto nie jest powiązane z pracownikiem' } } });
         renderView();
-        expect(await screen.findByText('Twoje konto nie jest powiązane z pracownikiem. Poproś właściciela o połączenie.')).toBeTruthy();
+        expect(await screen.findByText('Poproś właściciela, żeby połączył Twoje konto z kartą pracownika.')).toBeTruthy();
         expect(screen.queryByRole('button', { name: /Złóż wniosek o urlop/ })).toBeNull();
     });
 });
@@ -294,7 +294,7 @@ describe('Okno wniosku - podpis', () => {
             declarationAccepted: true,
         }));
         expect(await screen.findByText('Wniosek wysłany')).toBeTruthy();
-        expect(screen.getByText('Czeka na akceptację. Dostaniesz powiadomienie.')).toBeTruthy();
+        expect(screen.getByText('Czeka na zatwierdzenie. Dostaniesz powiadomienie.')).toBeTruthy();
         await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Wniosek o urlop' })).toBeNull());
         // Wysłany wniosek nie jest szkicem do sprzątnięcia.
         expect(api.withdraw).not.toHaveBeenCalled();

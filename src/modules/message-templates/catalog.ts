@@ -64,7 +64,7 @@ export const MESSAGES: MessageSpec[] = [
     stage: 'booking',
     name: 'Potwierdzenie rezerwacji',
     description:
-      'Wychodzi natychmiast po zapisaniu rezerwacji. Operator może wysłać ją także ręcznie z formularza rezerwacji: wtedy przełącznik jest pomijany, ale treść nadal pochodzi z tego szablonu.',
+      'Wychodzi zaraz po zapisaniu rezerwacji. Wysłana ręcznie z rezerwacji też ma tę treść.',
     trigger: 'Natychmiast po rezerwacji',
     sms: {
       ruleKey: 'bookingConfirmation',
@@ -84,14 +84,14 @@ export const MESSAGES: MessageSpec[] = [
   {
     key: 'reservationCardLink',
     stage: 'booking',
-    name: 'Link do Karty Rezerwacji',
+    name: 'Link do Karty rezerwacji',
     description:
-      'Strona rezerwacji ze szczegółami terminu i zakresem usług z wyceną, wysyłana zanim pojazd trafi do serwisu. Wstaw zmienną link, żeby dodać adres strony. Pojazd bywa jeszcze nieznany na tym etapie - wtedy {{pojazd}} i {{rejestracja}} zostają puste. Numeru wizyty tu nie ma: wizyta powstaje dopiero przy przyjęciu pojazdu.',
-    trigger: 'Przy wysyłce Karty Rezerwacji',
+      'Strona z terminem i wyceną, wysyłana przed przyjęciem auta. Wstaw {{link}}, żeby dodać adres. Auto i numer rejestracyjny mogą być jeszcze puste.',
+    trigger: 'Przy wysyłce Karty rezerwacji',
     sms: {
       ruleKey: 'reservationCardLink',
       placeholders: [...CUSTOMER, ...VEHICLE, ...SCHEDULE, 'link'],
-      choice: 'Pole „Wyślij SMS z linkiem do Karty Wizyty” w oknie nowej rezerwacji',
+      choice: 'Pole „Wyślij SMS z linkiem do Karty wizyty” w oknie nowej rezerwacji',
     },
     email: { ruleKey: 'reservationCardLink', placeholders: [...CUSTOMER_FULL, ...VEHICLE, ...SCHEDULE, 'link'] },
   },
@@ -115,7 +115,7 @@ export const MESSAGES: MessageSpec[] = [
     stage: 'intake',
     name: 'Potwierdzenie przyjęcia pojazdu',
     description:
-      'E-mail potwierdzający przyjęcie auta do serwisu. Załączniki (PDF protokołu, zdjęcia, mapę uszkodzeń) wybiera operator przy wysyłce.',
+      'E-mail potwierdzający przyjęcie auta do serwisu. Załączniki (PDF protokołu, zdjęcia, mapę uszkodzeń) wybiera pracownik przy wysyłce.',
     trigger: 'Przy rozpoczęciu wizyty',
     email: {
       ruleKey: 'visitWelcome',
@@ -126,19 +126,19 @@ export const MESSAGES: MessageSpec[] = [
   {
     key: 'visitCardLink',
     stage: 'intake',
-    name: 'Link do Karty Wizyty',
+    name: 'Link do Karty wizyty',
     description:
-      'Karta z dokumentacją zdjęciową, zakresem usług i dokumentami, dostępna dla klienta przez cały czas trwania wizyty. Wstaw zmienną link, żeby dodać adres karty.',
-    trigger: 'Przy wysyłce Karty Wizyty',
+      'Karta z dokumentacją zdjęciową, zakresem usług i dokumentami, dostępna dla klienta przez cały czas trwania wizyty. Wstaw {{link}}, żeby dodać adres karty.',
+    trigger: 'Przy wysyłce Karty wizyty',
     sms: {
       ruleKey: 'visitCardLink',
       placeholders: [...CUSTOMER, ...VEHICLE, ...VISIT, ...SCHEDULE, 'link'],
-      choice: 'Pole „Wyślij link do Karty Wizyty” przy przyjęciu pojazdu',
+      choice: 'Pole „Wyślij link do Karty wizyty” przy przyjęciu pojazdu',
     },
     email: {
       ruleKey: 'visitCardLink',
       placeholders: [...CUSTOMER_FULL, ...VEHICLE, ...VISIT, ...SCHEDULE, 'link'],
-      choice: 'Pole „Wyślij link do Karty Wizyty” przy przyjęciu pojazdu',
+      choice: 'Pole „Wyślij link do Karty wizyty” przy przyjęciu pojazdu',
     },
   },
 
@@ -147,7 +147,7 @@ export const MESSAGES: MessageSpec[] = [
     stage: 'inWork',
     name: 'Zgoda na dodanie usług',
     description:
-      'Klient sam wybiera dodatkowe usługi z Karty Wizyty i potwierdza je, odpisując TAK. Zachowaj tę instrukcję w treści: bez niej klient nie wie, jak potwierdzić, a usługi nie zostaną dodane.',
+      'Klient sam wybiera dodatkowe usługi z Karty wizyty i potwierdza je, odpisując TAK. Zachowaj tę instrukcję w treści: bez niej klient nie wie, jak potwierdzić, a usługi nie zostaną dodane.',
     trigger: 'Gdy klient zamówi usługi z karty',
     sms: { ruleKey: 'upsellConsent', placeholders: [...CUSTOMER, 'uslugi', 'kwota'] },
   },
@@ -156,12 +156,12 @@ export const MESSAGES: MessageSpec[] = [
     stage: 'inWork',
     name: 'Propozycja dodatkowych usług',
     description:
-      'Upselling: pracownik dodał na Karcie Wizyty propozycję dodatkowych usług i zaznaczył „powiadom klienta”. Klient dostaje informację z linkiem do karty — bez „odpisz TAK”; zgodę potwierdza dopiero wtedy, gdy sam wybierze usługę na karcie. Poza godzinami 12:00–18:00 SMS czeka w kolejce.',
+      'Pracownik dodał na Karcie wizyty propozycję dodatkowych usług i zaznaczył „powiadom klienta”. Klient dostaje informację z linkiem do karty — bez „odpisz TAK”; zgodę potwierdza dopiero wtedy, gdy sam wybierze usługę na karcie. Poza godzinami 12:00–18:00 SMS czeka w kolejce.',
     trigger: 'Gdy pracownik doda propozycję z powiadomieniem',
     sms: {
       ruleKey: 'upsellSuggestion',
       placeholders: [...CUSTOMER, 'uslugi', 'link'],
-      choice: 'Pole „Czy powiadomić klienta o dodanych usługach?” na Karcie Wizyty',
+      choice: 'Pole „Czy powiadomić klienta o dodanych usługach?” na Karcie wizyty',
     },
   },
   {
@@ -169,7 +169,7 @@ export const MESSAGES: MessageSpec[] = [
     stage: 'inWork',
     name: 'Link do podpisu dokumentu',
     description:
-      'Tokenizowany link do dokumentu czekającego na podpis klienta. Bez włączonego szablonu wysyłka dokumentu do podpisu SMS-em nie powiedzie się.',
+      'Link do dokumentu, który klient ma podpisać. Bez tej wiadomości nie wyślesz dokumentu do podpisu SMS-em.',
     trigger: 'Przy wysyłce dokumentu do podpisu',
     sms: { ruleKey: 'signatureRequest', placeholders: [...CUSTOMER, 'dokument', 'link'] },
   },
@@ -184,12 +184,12 @@ export const MESSAGES: MessageSpec[] = [
     sms: {
       ruleKey: 'visitReadyForPickup',
       placeholders: [...CUSTOMER, ...VEHICLE, ...VISIT],
-      choice: 'Wybór „SMS” w oknie „Pojazd gotowy do odbioru”',
+      choice: 'Pole „SMS” w oknie „Pojazd gotowy do odbioru”',
     },
     email: {
       ruleKey: 'visitReadyForPickup',
       placeholders: [...CUSTOMER_FULL, ...VEHICLE, ...VISIT, ...SCHEDULE],
-      choice: 'Wybór „E-mail” w oknie „Pojazd gotowy do odbioru”',
+      choice: 'Pole „E-mail” w oknie „Pojazd gotowy do odbioru”',
     },
   },
 
@@ -198,7 +198,7 @@ export const MESSAGES: MessageSpec[] = [
     stage: 'after',
     name: 'Podziękowanie po wizycie',
     description:
-      'Wysyłane tylko po wizytach faktycznie zakończonych. Godzinę wybiera pracownik przy wydaniu pojazdu (12:00-18:00), a poniższe opóźnienie obowiązuje tylko wtedy, gdy przy wydaniu nikt jej nie ustawił. Rezerwacja, na którą klient się nie stawił, nie dostanie tej wiadomości.',
+      'Tylko po zakończonych wizytach. Godzinę (12:00–18:00) wybiera pracownik przy wydaniu auta; czas poniżej działa, gdy jej nie wybrał.',
     trigger: 'Po odbiorze pojazdu',
     timing: 'afterPickup',
     sms: {
@@ -212,7 +212,7 @@ export const MESSAGES: MessageSpec[] = [
     stage: 'after',
     name: 'Przypomnienie po przerwie',
     description:
-      'Odezwanie się do klienta, który dawno nie był w serwisie. Czas liczymy od odbioru pojazdu: domyślnie 3 miesiące. Można je wyciszyć na pojedynczej wizycie.',
+      'Wiadomość do klienta, który dawno nie był. Czas liczymy od odbioru auta, domyślnie 3 miesiące. Można ją wyłączyć na pojedynczej wizycie.',
     trigger: 'Po odbiorze pojazdu',
     timing: 'afterPickup',
     sms: { ruleKey: 'delayedReminder', placeholders: [...CUSTOMER, ...SCHEDULE] },

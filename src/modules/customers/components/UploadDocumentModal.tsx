@@ -121,7 +121,7 @@ export const UploadDocumentModal = ({
                     variant="primary"
                     disabled={!file || isUploading}
                 >
-                    {isUploading ? 'Wysyłanie...' : 'Dodaj dokument'}
+                    {isUploading ? 'Wysyłanie…' : 'Dodaj dokument'}
                 </Button>
             </ModalFooter>
         </ModalShell>

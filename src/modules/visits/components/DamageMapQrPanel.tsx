@@ -170,7 +170,7 @@ export const DamageMapQrPanel = ({ session, onConnected }: Props) => {
         <Wrap>
             <QrRow>
                 <QrBox>
-                    {isStarting && <QrPlaceholder>Generowanie kodu...</QrPlaceholder>}
+                    {isStarting && <QrPlaceholder>Generowanie kodu…</QrPlaceholder>}
                     {!isStarting && error && <QrPlaceholder>Błąd</QrPlaceholder>}
                     {!isStarting && !error && qrUrl && !isExpired && (
                         <QRCodeSVG value={qrUrl} size={130} level="M" />
@@ -181,9 +181,8 @@ export const DamageMapQrPanel = ({ session, onConnected }: Props) => {
                 <QrTexts>
                     <QrTitle>Zeskanuj telefonem i oznacz uszkodzenia na miejscu</QrTitle>
                     <QrSubtitle>
-                        Telefon otwiera mapę uszkodzeń z aparatem. Zdjęcia i oznaczenia
-                        wchodzą do tego okna na bieżąco, także po zamknięciu tego
-                        wyboru zdjęcia. Zapisuje je dopiero „Zapisz mapę uszkodzeń".
+                        Na telefonie otworzy się mapa z aparatem. Oznaczenia pojawią się
+                        tu od razu. Zapisz je przyciskiem „Zapisz mapę uszkodzeń”.
                     </QrSubtitle>
 
                     <StatusRow>

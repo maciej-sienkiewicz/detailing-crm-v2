@@ -15,6 +15,7 @@ import { PageHeader, PageHeaderPrimaryButton, MobilePageHeader, MobilePageHeader
 import { useBreakpoint } from '@/common/hooks';
 import { PageContainer } from '@/common/components/PageContainer';
 import { UnfinishedCheckInsPanel } from '@/modules/checkin';
+import { pluralPl } from '@/common/utils/plural';
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
@@ -134,9 +135,9 @@ export const OperationListView = () => {
             <PageBody>
             {isDesktop ? (
                 <PageHeader
-                    title="Wizyty i Rezerwacje"
+                    title="Wizyty i rezerwacje"
                     subtitle={
-                        pagination ? <TotalChip>{pagination.totalItems} rekordów</TotalChip> : undefined
+                        pagination ? <TotalChip>{pagination.totalItems} {pluralPl(pagination.totalItems, 'wynik', 'wyniki', 'wyników')}</TotalChip> : undefined
                     }
                     actions={
                         <PageHeaderPrimaryButton onClick={() => navigate('/checkin/new')}>
@@ -153,9 +154,9 @@ export const OperationListView = () => {
                    app-bar (MobilePageHeader) - identyczny na wszystkich listach. */
                 <MobilePageHeader
                     icon={<CalendarCheck />}
-                    title="Wizyty i Rezerwacje"
+                    title="Wizyty i rezerwacje"
                     subtitle={pagination
-                        ? <><MobilePageHeaderCountValue>{pagination.totalItems}</MobilePageHeaderCountValue> rekordów</>
+                        ? <><MobilePageHeaderCountValue>{pagination.totalItems}</MobilePageHeaderCountValue> {pluralPl(pagination.totalItems, 'wynik', 'wyniki', 'wyników')}</>
                         : 'Wczytywanie…'}
                     actions={
                         <MobilePageHeaderButton onClick={() => navigate('/checkin/new')}>

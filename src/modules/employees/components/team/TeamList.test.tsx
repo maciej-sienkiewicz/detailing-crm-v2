@@ -2,7 +2,7 @@
 //
 // Lista zespołu (zakładka „Zespół” modułu Pracownicy): wiersz prowadzi na kartę pracownika
 // (klawiaturą też), edycja danych jest w menu ⋮, osoba bez
-// konta dostaje „Zaproś do systemu", a błąd - zapisu albo wczytania - jest widoczny,
+// konta dostaje „Zaproś do aplikacji", a błąd - zapisu albo wczytania - jest widoczny,
 // zamiast udawać pustą listę albo wracać do przycisku bez słowa.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -110,8 +110,8 @@ describe('TeamList - lista pracowników', () => {
         await screen.findByText('Marta Kowalczyk');
         expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
         expect(screen.getByText('Aktywne')).toBeTruthy();
-        expect(screen.getByText('Nie aktywował konta')).toBeTruthy();
-        expect(screen.getByRole('button', { name: 'Zaproś do systemu' })).toBeTruthy();
+        expect(screen.getByText('Konto nieaktywowane')).toBeTruthy();
+        expect(screen.getByRole('button', { name: 'Zaproś do aplikacji' })).toBeTruthy();
         // Rola z liczonym czasem pracy jest widoczna przy osobie.
         expect(await screen.findByText('Liczony czas pracy')).toBeTruthy();
     });
@@ -125,11 +125,11 @@ describe('TeamList - lista pracowników', () => {
         expect(router.state.location.search).toBe('?person=e1');
     });
 
-    it('menu ⋮ i „Zaproś do systemu" nie przenoszą na kartę', async () => {
+    it('menu ⋮ i „Zaproś do aplikacji" nie przenoszą na kartę', async () => {
         const router = renderSection();
         fireEvent.click(await screen.findByRole('button', { name: 'Więcej akcji: Marta Kowalczyk' }));
         expect(await screen.findByRole('menuitem', { name: /Edytuj dane/ })).toBeTruthy();
-        fireEvent.click(screen.getByRole('button', { name: 'Zaproś do systemu' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Zaproś do aplikacji' }));
         expect(router.state.location.pathname).toBe('/employees');
     });
 
@@ -157,14 +157,14 @@ describe('TeamList - lista pracowników', () => {
         expect(await screen.findByText('Zmiany zapisane')).toBeTruthy();
     });
 
-    it('„Zaproś do systemu" zakłada konto z wybraną rolą', async () => {
+    it('„Zaproś do aplikacji" zakłada konto z wybraną rolą', async () => {
         vi.mocked(teamApi.createAccount).mockResolvedValue({ userId: 'u2' });
         vi.mocked(rolesApi.assignRole).mockResolvedValue();
         renderSection();
 
-        fireEvent.click(await screen.findByRole('button', { name: 'Zaproś do systemu' }));
+        fireEvent.click(await screen.findByRole('button', { name: 'Zaproś do aplikacji' }));
         const dialog = await screen.findByRole('dialog');
-        expect(within(dialog).getByRole('checkbox', { name: /Zaproś do systemu/ }).getAttribute('aria-checked')).toBe('true');
+        expect(within(dialog).getByRole('checkbox', { name: /Zaproś do aplikacji/ }).getAttribute('aria-checked')).toBe('true');
 
         fireEvent.click(within(dialog).getByRole('button', { name: /Wybierz rolę/ }));
         fireEvent.click(await screen.findByRole('option', { name: /Detailer/ }));

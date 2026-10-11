@@ -3,7 +3,7 @@
 // Błąd zapisu w zakładce „Pracownicy i role" ma być WIDOCZNY. Wcześniej mutacje
 // dodania pracownika, zapisu i usunięcia roli nie miały `onError` wcale - przy 4xx
 // ratował je globalny dymek z apiClient, ale przy 5xx albo zerwanym połączeniu
-// okno stało dalej z przyciskiem „Zapisywanie...", który wracał do „Zapisz", i nic
+// okno stało dalej z przyciskiem „Zapisywanie…", który wracał do „Zapisz", i nic
 // nie mówiło, że nic się nie zapisało.
 //
 // Nie wolno przy tym pokazać DWÓCH dymków: interceptor w src/core/apiClient.ts sam

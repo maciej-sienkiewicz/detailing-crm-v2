@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import styled from 'styled-components';
 import { ChevronDown, ChevronRight, Building2, User } from 'lucide-react';
-import { formatCurrency } from '@/common/utils';
+import { formatCurrency, pluralPl } from '@/common/utils';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { CompanySettings } from '@/modules/settings/types';
 import { Toggle } from '@/common/components/Toggle';
@@ -184,7 +184,7 @@ export const InvoiceSection = ({
     // przymusowo, a „wyślesz ją później” byłoby obietnicą bez pokrycia - wysyłka
     // wróci dopiero po naprawie tokenu.
     const ksefLine = ksef.isLoading
-        ? 'Sprawdzamy konfigurację KSeF…'
+        ? 'Sprawdzamy ustawienia KSeF…'
         : !ksef.configured
           ? 'Faktura nie zostanie wysłana do KSeF.'
           : ksef.lacksIssuePermission
@@ -207,7 +207,7 @@ export const InvoiceSection = ({
                     {isCompanyBuyer ? <Building2 /> : <User />}
                     <BuyerText>
                         <BuyerName>
-                            {state.buyer.name.trim() || 'Nabywca nieokreślony'}
+                            {state.buyer.name.trim() || 'Bez nazwy nabywcy'}
                         </BuyerName>
                         <BuyerMeta>
                             {/* Dwa fakty jako dwa elementy, nie ciąg z kropką (CLAUDE.md §4). */}
@@ -258,7 +258,7 @@ export const InvoiceSection = ({
             {/* ── Pozycje ─────────────────────────────────────────────────── */}
             <BoxRow>
                 <RowLabel>
-                    {state.items.length} {state.items.length === 1 ? 'pozycja' : state.items.length % 10 >= 2 && state.items.length % 10 <= 4 && (state.items.length % 100 < 12 || state.items.length % 100 > 14) ? 'pozycje' : 'pozycji'} na{' '}
+                    {state.items.length} {pluralPl(state.items.length, 'pozycja', 'pozycje', 'pozycji')} na{' '}
                     <strong className="num">{fmt(invoiceGross)}</strong>
                     {invoiceGross === visitGross && ', zgodnie z usługami wizyty'}
                 </RowLabel>
@@ -313,7 +313,7 @@ export const InvoiceSection = ({
                             <div>
                                 <KsefNoticeTitle>Brak tokenu KSeF</KsefNoticeTitle>
                                 Fakturę wystawimy i zapiszemy, ale nie wyślemy - plik pobierzesz po
-                                wydaniu pojazdu. Token dodasz w <strong>Ustawienia → Faktury</strong>.
+                                wydaniu pojazdu. Token dodasz w <strong>Ustawieniach → KSeF</strong>.
                             </div>
                         </KsefNotice>
                     )}
@@ -336,7 +336,7 @@ export const InvoiceSection = ({
                                 Fakturę wystawimy i zapiszemy razem z danymi nabywcy - plik
                                 pobierzesz po wydaniu pojazdu, a po naprawie tokenu wyślesz ją
                                 z dokumentów przychodowych. Token z prawem wystawiania faktur
-                                dodasz w <strong>Ustawienia → Faktury</strong>.
+                                dodasz w <strong>Ustawieniach → KSeF</strong>.
                             </div>
                         </KsefNotice>
                     )}
@@ -364,7 +364,7 @@ export const InvoiceSection = ({
                 {balanceState === 'under' && (
                     <>
                         <BalanceRow>
-                            <span>Pozostaje do udokumentowania</span>
+                            <span>Reszta bez dokumentu</span>
                             <strong>{fmt(remainder)}</strong>
                         </BalanceRow>
                         {!state.splitRemainder ? (
@@ -377,9 +377,8 @@ export const InvoiceSection = ({
                         ) : (
                             <>
                                 <span>
-                                    Reszta <strong>{fmt(remainder)}</strong> zostanie ujęta na
-                                    paragonie, osobnym dokumentem przychodowym (przy gotówce
-                                    z wpisem do kasy). Czym klient zapłacił resztę?
+                                    Na resztę (<strong>{fmt(remainder)}</strong>) wystawimy paragon.
+                                    Jak klient ją zapłacił?
                                 </span>
                                 <PaymentMethodPicker
                                     value={state.remainderMethod}

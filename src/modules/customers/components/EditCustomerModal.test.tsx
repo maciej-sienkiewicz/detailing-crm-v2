@@ -6,7 +6,7 @@
 // jest widoczny, a nietknięta firma (także niepełna) nie blokuje zapisu osoby.
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
@@ -135,10 +135,12 @@ describe('EditCustomerModal', () => {
 
     it('shows an address error instead of silently refusing to save', async () => {
         const { onClose } = renderModal();
-        type('Ulica', 'Długa 5');
+        // „Ulica" jest i w adresie zamieszkania, i w danych firmy - celujemy w adres.
+        const address = document.querySelector<HTMLElement>('[aria-labelledby="ec-group-address"]')!;
+        fireEvent.change(within(address).getByLabelText('Ulica'), { target: { value: 'Długa 5' } });
         save();
 
-        expect(await screen.findByText('Nieprawidłowy kod pocztowy (format: XX-XXX)')).toBeInTheDocument();
+        expect(await screen.findByText('Wpisz kod w formacie 00-000')).toBeInTheDocument();
         expect(api.updateCustomer).not.toHaveBeenCalled();
         expect(onClose).not.toHaveBeenCalled();
     });

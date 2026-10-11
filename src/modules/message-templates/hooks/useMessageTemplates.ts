@@ -152,7 +152,7 @@ export function useMessageTemplates(): MessageTemplatesState {
 
   const mutation = useMutation({
     mutationFn: async (next: TemplatesDraft) => {
-      if (!server) throw new Error('Konfiguracja nie została jeszcze wczytana');
+      if (!server) throw new Error('Ustawienia jeszcze się wczytują - spróbuj za chwilę.');
       const writes: Promise<unknown>[] = [];
       if (touched.has('sms')) {
         writes.push(

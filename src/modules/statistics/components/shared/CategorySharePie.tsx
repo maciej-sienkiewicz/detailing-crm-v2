@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { st } from '../StatisticsTheme';
+import { pluralPl } from '@/common/utils/plural';
 import { fmtPLN, fmtPct } from './format';
 import { CatDot, ChartEmpty, Spinner } from './ui';
 import { prefersReducedMotion } from './animations';
@@ -133,8 +134,8 @@ interface CategorySharePieProps {
     selectedCategoryId: string | null;
     onSelectCategory: (categoryId: string | null) => void;
     ariaLabel: string;
-    /** Rzeczownik w legendzie przy liczbie pozycji, np. "poz." / "usł." */
-    countNoun?: string;
+    /** Odmiana rzeczownika przy liczbie pozycji w legendzie: [1, 2–4, 5+], np. usługa/usługi/usług. */
+    countForms?: readonly [string, string, string];
     /** Podpis pod kwotą w środku donuta */
     centerLabel?: string;
 }
@@ -145,7 +146,7 @@ export const CategorySharePie = ({
     selectedCategoryId,
     onSelectCategory,
     ariaLabel,
-    countNoun = 'poz.',
+    countForms = ['pozycja', 'pozycje', 'pozycji'],
     centerLabel = 'Łącznie brutto',
 }: CategorySharePieProps) => {
     const [hoverKey, setHoverKey] = useState<string | null>(null);
@@ -230,7 +231,7 @@ export const CategorySharePie = ({
                         $active={!!s.categoryId && selectedCategoryId === s.categoryId}
                         $clickable={!!s.categoryId}
                         $index={idx}
-                        title={`${s.name}: ${fmtPLN(s.value)} · ${s.itemCount} ${countNoun}`}
+                        title={`${s.name}: ${fmtPLN(s.value)}, ${s.itemCount} ${pluralPl(s.itemCount, ...countForms)}`}
                         onMouseEnter={() => setHoverKey(s.key)}
                         onMouseLeave={() => setHoverKey(k => (k === s.key ? null : k))}
                         onClick={() => handleSliceClick(s)}

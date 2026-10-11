@@ -175,8 +175,7 @@ export function RecordCallbackDialog({ leadId, onClose }: RecordCallbackDialogPr
             <Card onClick={(event) => event.stopPropagation()}>
                 <h4><PhoneCall /> Kontakt poza pocztą</h4>
                 <Hint>
-                    Rozmowa telefoniczna, SMS albo spotkanie. Kontakt trafi na oś czasu
-                    sprawy, tak samo jak wysłany mail.
+                    Telefon, SMS albo spotkanie. Zapiszemy to w przebiegu sprawy.
                 </Hint>
                 <textarea
                     placeholder="Notatka (opcjonalnie) — np. prosił o kontakt po 15…"

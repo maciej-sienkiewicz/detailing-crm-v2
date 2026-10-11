@@ -35,7 +35,6 @@ import {
     ModalHeader,
     ModalTitleGroup,
     ModalTitle,
-    ModalSubtitle,
     ModalContent,
     ModalFooter,
     CloseBtn,
@@ -393,7 +392,6 @@ function EditCustomerDialog({ onClose, customer, initialTab }: DialogProps) {
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Edytuj dane klienta</ModalTitle>
-                    <ModalSubtitle>Osoba i kontakt, adres zamieszkania, firma</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={close} />
             </ModalHeader>
@@ -471,7 +469,7 @@ function EditCustomerDialog({ onClose, customer, initialTab }: DialogProps) {
                             </GroupHead>
                             {/* Resolver pomija adres bez ulicy - lepiej to powiedzieć, niż
                                 pozwolić wpisać samo miasto i patrzeć, jak znika po zapisie. */}
-                            <GroupHint>Adres zapisuje się razem z ulicą. Zostaw ulicę pustą, jeśli klient nie podał adresu.</GroupHint>
+                            <GroupHint>Bez ulicy adres się nie zapisze.</GroupHint>
                             <FormGrid>
                                 <FormField $fullWidth>
                                     <FieldLabel htmlFor="edit-homeAddress.street">
@@ -555,7 +553,7 @@ function EditCustomerDialog({ onClose, customer, initialTab }: DialogProps) {
                                     disabled={busy}
                                 >
                                     <Trash2 aria-hidden="true" />
-                                    {isDeleting ? 'Usuwanie...' : 'Usuń firmę'}
+                                    {isDeleting ? 'Usuwanie…' : 'Usuń firmę'}
                                 </Button>
                             )}
                             {!hasCompany && addingCompany && (
@@ -693,7 +691,7 @@ function EditCustomerDialog({ onClose, customer, initialTab }: DialogProps) {
             <ModalFooter>
                 <Button onClick={close} disabled={saving}>Anuluj</Button>
                 <Button type="submit" form="edit-customer-form" variant="primary" disabled={busy}>
-                    {saving ? 'Zapisywanie...' : 'Zapisz zmiany'}
+                    {saving ? 'Zapisywanie…' : 'Zapisz zmiany'}
                 </Button>
             </ModalFooter>
 
@@ -701,7 +699,7 @@ function EditCustomerDialog({ onClose, customer, initialTab }: DialogProps) {
                 isOpen={confirmingDelete}
                 title="Usunąć firmę klienta?"
                 message={customerDirty
-                    ? 'Klient zostanie w bazie jako osoba prywatna. Niezapisane zmiany w pozostałych polach przepadną, bo okno zamknie się po usunięciu.'
+                    ? 'Klient zostanie w bazie jako osoba prywatna. Niezapisane zmiany w innych polach przepadną.'
                     : 'Klient zostanie w bazie jako osoba prywatna. Dane firmy znikną z jego karty.'}
                 variant="danger"
                 confirmText="Usuń firmę"

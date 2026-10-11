@@ -270,14 +270,14 @@ export interface BulkDiscountPlan {
 }
 
 /**
- * „Rabatuj całość" - podgląd i zmiany z jednego wyliczenia, żeby okno nie
+ * „Rabat na całość" - podgląd i zmiany z jednego wyliczenia, żeby okno nie
  * obiecywało innych kwot niż te, które zapisze.
  *
  * `discountValue`: dla PERCENT procent, dla reszty grosze; null = nic jeszcze nie
  * wpisano (sam podgląd „przed rabatem").
  *
- * „Nadpisz zmiany" (`useEdited = false`) liczy od ceny z cennika z jej dokładnym
- * brutto i wysyła je razem z rabatem. „Uwzględnij poprawki" liczy od ceny po
+ * „Od cen z cennika" (`useEdited = false`) liczy od ceny z cennika z jej dokładnym
+ * brutto i wysyła je razem z rabatem. „Od zmienionych cen" liczy od ceny po
  * zmianach i zapisuje wynik jako cenę ustaloną: SET_GROSS po rabacie od brutto,
  * SET_NET po rabacie od netta - wcześniej zawsze SET_NET, więc 1710,00 zł brutto
  * po upuście wracało jako 1710,01 zł.

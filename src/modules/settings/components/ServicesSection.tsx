@@ -235,8 +235,8 @@ export function ServicesSection({ kind, onKindChange, switcher }: Props) {
                     ))
                 ) : list.services.length === 0 ? (
                     <Empty>
-                        <strong>{debouncedSearch ? 'Nic nie pasuje do wyszukiwania' : labels.empty}</strong>
-                        <span>{debouncedSearch ? `Brak pozycji ze słowem „${debouncedSearch}".` : labels.emptyHint}</span>
+                        <strong>{debouncedSearch ? `Nic nie pasuje do „${debouncedSearch}"` : labels.empty}</strong>
+                        <span>{debouncedSearch ? 'Spróbuj innego słowa.' : labels.emptyHint}</span>
                     </Empty>
                 ) : (
                     list.services.map(service => (
@@ -335,7 +335,7 @@ export function ServicesSection({ kind, onKindChange, switcher }: Props) {
                     ? `„${archiveTarget.name}" zniknie z wyboru przy nowych zleceniach. Wizyty, w których już jest, zostają bez zmian, a pozycję zobaczysz dalej pod „Pokaż archiwalne".`
                     : ''}
                 variant="danger"
-                confirmText={archive.isPending ? 'Archiwizowanie...' : 'Archiwizuj'}
+                confirmText={archive.isPending ? 'Archiwizowanie…' : 'Archiwizuj'}
                 cancelText="Zostaw"
                 onConfirm={() => void confirmArchive()}
                 onCancel={() => setArchiveTarget(null)}

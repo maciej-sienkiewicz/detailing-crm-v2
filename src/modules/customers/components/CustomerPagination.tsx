@@ -121,7 +121,7 @@ export const CustomerPagination = ({
     };
 
     return (
-        <PaginationContainer aria-label="Pagination">
+        <PaginationContainer aria-label="Strony">
             <PaginationInfo>
                 {t.customers.pagination.showing} {startItem}-{endItem} {t.customers.pagination.of} {totalItems} {t.customers.pagination.customers}
             </PaginationInfo>

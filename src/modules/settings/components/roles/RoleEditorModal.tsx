@@ -211,13 +211,13 @@ export function RoleEditorModal({
                                 title="Otwiera CRM w nowym oknie oczami pracownika z tymi uprawnieniami - na danych przykładowych, bez zapisywania roli"
                             >
                                 <PreviewIcon />
-                                {preview.opening ? 'Otwieranie podglądu...' : 'Podgląd roli'}
+                                {preview.opening ? 'Otwieranie podglądu…' : 'Podgląd roli'}
                             </Button>
                         </PreviewSlot>
                     )}
                     <Button variant="outline" onClick={requestClose} disabled={isSaving}>Anuluj</Button>
                     <Button variant="primary" onClick={handleSubmit} disabled={isSaving}>
-                        {isSaving ? 'Zapisywanie...' : mode === 'add' ? 'Dodaj rolę' : 'Zapisz rolę'}
+                        {isSaving ? 'Zapisywanie…' : mode === 'add' ? 'Dodaj rolę' : 'Zapisz rolę'}
                     </Button>
                 </ModalFooter>
             </ModalShell>

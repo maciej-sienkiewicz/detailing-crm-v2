@@ -17,16 +17,13 @@ export const primaryPaymentMethods: PaymentMethodOption[] = [
 export const secondaryPaymentMethods: PaymentMethodOption[] = [
     { value: 'TRANSFER', label: 'Przelew', icon: <ArrowLeftRight size={13} /> },
     { value: 'BLIK_NA_NUMER', label: 'BLIK na numer', icon: <Smartphone size={13} /> },
-    { value: 'BLIK_TERMINAL', label: 'BLIK terminal', icon: <MonitorSmartphone size={13} /> },
+    { value: 'BLIK_TERMINAL', label: 'BLIK w terminalu', icon: <MonitorSmartphone size={13} /> },
 ];
 
 export const paymentMethods: PaymentMethodOption[] = [
     ...primaryPaymentMethods,
     ...secondaryPaymentMethods,
 ];
-
-export const paymentMethodLabel = (method?: PaymentMethod): string =>
-    paymentMethods.find(m => m.value === method)?.label.toLowerCase() ?? 'gotówka';
 
 /**
  * Typy dokumentu. `other` mapuje się na backendzie na DocumentType.OTHER:

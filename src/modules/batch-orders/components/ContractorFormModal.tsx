@@ -53,7 +53,7 @@ export function ContractorFormModal({ initial, onSave, onClose }: Props) {
     }
 
     async function handleSave() {
-        if (!name.trim()) { setNameError('Nazwa kontrahenta jest wymagana'); return; }
+        if (!name.trim()) { setNameError('Wpisz nazwę kontrahenta'); return; }
         setNameError('');
         setApiError('');
         setSaving(true);
@@ -112,7 +112,7 @@ export function ContractorFormModal({ initial, onSave, onClose }: Props) {
 
                 <FormGrid $columns={2}>
                     <FormField>
-                        <FieldLabel htmlFor="co-email">Email</FieldLabel>
+                        <FieldLabel htmlFor="co-email">E-mail</FieldLabel>
                         <InputShell>
                             <BareInput
                                 id="co-email"
@@ -167,7 +167,7 @@ export function ContractorFormModal({ initial, onSave, onClose }: Props) {
                             id="co-notes"
                             value={notes}
                             onChange={e => setNotes(capitalizeFirst(e.target.value))}
-                            placeholder="Dodatkowe informacje..."
+                            placeholder="Dodatkowe informacje…"
                             style={{ minHeight: 72 }}
                         />
                     </InputShellTextArea>
@@ -177,7 +177,7 @@ export function ContractorFormModal({ initial, onSave, onClose }: Props) {
             <ModalFooter>
                 <SharedButton $variant="secondary" type="button" onClick={onClose}>Anuluj</SharedButton>
                 <SharedButton $variant="primary" type="button" onClick={handleSave} disabled={saving}>
-                    {saving ? 'Zapisywanie...' : 'Zapisz'}
+                    {saving ? 'Zapisywanie…' : 'Zapisz'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

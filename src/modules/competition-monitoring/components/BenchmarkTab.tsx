@@ -7,6 +7,7 @@ import {
 import { RefreshCw, Star } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useBreakpoint } from '@/common/hooks';
+import { pluralPl } from '@/common/utils/plural';
 import type { Benchmark, BenchmarkRow } from '../types';
 import { PROFILE_COLORS } from '../types';
 import { useResyncFailedProfiles } from '../hooks/useAnalytics';
@@ -246,6 +247,13 @@ const HintNote = styled.p`
     color: ${st.textMuted};
 `;
 
+/** Legenda formatów: każdy kolor osobnym elementem, bez kropek jako kleju. */
+const FormatLegend = styled(HintNote)`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+`;
+
 const TooltipBox = styled.div`
     background: ${st.bgCard};
     border: 1px solid ${st.border};
@@ -306,6 +314,10 @@ const formatWeekTick = (weekStart: string) =>
 
 const formatDayShort = (date: string) =>
     new Date(`${date}T00:00:00Z`).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
+
+/** Ułamek po polsku: „2,3", nie „2.3" jak z `toFixed()`. */
+const formatDecimal1 = (value: number): string =>
+    value.toLocaleString('pl-PL', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 /** Polska odmiana: 1 profil, 2–4 profile, 5+ profili. */
 const profileWord = (count: number): string => {
@@ -518,9 +530,9 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
             onSuccess: result => {
                 setResyncMessage(
                     result.attempted === 0
-                        ? 'Nie ma już czego ponawiać - dane są aktualne.'
+                        ? 'Nie ma już czego ponawiać — dane są aktualne.'
                         : result.stillFailing === 0
-                            ? `Udało się - odświeżono ${profileWord(result.recovered)}.`
+                            ? `Udało się — odświeżono ${profileWord(result.recovered)}.`
                             : `Odświeżono ${profileWord(result.recovered)}, ${result.stillFailing} nadal bez odpowiedzi. ` +
                               'Sprawdź, czy profil nie zmienił nazwy albo nie jest prywatny.'
                 );
@@ -529,7 +541,7 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                 const response = (err as { response?: { status?: number; data?: { message?: string } } }).response;
                 setResyncMessage(
                     response?.status === 429
-                        ? response.data?.message ?? 'Ponowienie było już uruchamiane przed chwilą.'
+                        ? response.data?.message ?? 'Ponawialiśmy to przed chwilą. Spróbuj za kilka minut.'
                         : 'Nie udało się ponowić. Spróbuj ponownie za chwilę.'
                 );
             },
@@ -565,7 +577,7 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
             <td><MetricCell metric={row.erPct} decimals={1} unit="%" /></td>
             <td><MetricCell metric={row.postsPerWeek} decimals={1} /></td>
             <td>
-                <MixBar title={`Zdjęcia ${row.formatMix.photoPct.toFixed(0)}% · Rolki ${row.formatMix.reelsPct.toFixed(0)}% · Karuzele ${row.formatMix.carouselPct.toFixed(0)}%`}>
+                <MixBar title={`Zdjęcia ${row.formatMix.photoPct.toFixed(0)}%, rolki ${row.formatMix.reelsPct.toFixed(0)}%, karuzele ${row.formatMix.carouselPct.toFixed(0)}%`}>
                     <MixSeg $w={row.formatMix.photoPct} $c={st.accentBlue} />
                     <MixSeg $w={row.formatMix.reelsPct} $c={st.accentAmber} />
                     <MixSeg $w={row.formatMix.carouselPct} $c={st.accentGreen} />
@@ -622,15 +634,13 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                 <CardTitle>Porównanie profili</CardTitle>
                 {isDesktop ? (
                     <CardHint>
-                        Każda liczba ze zmianą vs poprzedni okres. Porównania dotyczą wyłącznie{' '}
-                        <strong>obserwowanej przez Ciebie grupy {benchmark.comparisonGroupSize}{' '}
-                        {benchmark.comparisonGroupSize === 1 ? 'profilu' : 'profili'}</strong>.
+                        Zmiana względem poprzedniego okresu. Kliknij wiersz, by pokazać profil na wykresach
+                        (maks. {MAX_CHART_PROFILES}).
                         {benchmark.comparisonGroupSize < 4 && (
                             <> Dodaj jeszcze {4 - benchmark.comparisonGroupSize}{' '}
-                            {4 - benchmark.comparisonGroupSize === 1 ? 'profil' : 'profile'}, aby odblokować
-                            odniesienie do mediany grupy.</>
-                        )}{' '}
-                        Kliknij wiersz, aby dodać profil do wykresów (maks. {MAX_CHART_PROFILES}).
+                            {pluralPl(4 - benchmark.comparisonGroupSize, 'profil', 'profile', 'profili')}, a pokażemy
+                            typowy wynik grupy.</>
+                        )}
                     </CardHint>
                 ) : (
                     <CardHint>Dotknij kartę, by dodać do porównania.</CardHint>
@@ -655,11 +665,12 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                     <MobileList>{benchmark.rows.map(renderBenchCard)}</MobileList>
                 )}
                 {isDesktop && (
-                    <HintNote>
-                        Formaty: <span style={{ color: st.accentBlue }}>■</span> zdjęcia ·{' '}
-                        <span style={{ color: st.accentAmber }}>■</span> rolki ·{' '}
-                        <span style={{ color: st.accentGreen }}>■</span> karuzele
-                    </HintNote>
+                    <FormatLegend>
+                        <span>Formaty:</span>
+                        <span><span style={{ color: st.accentBlue }}>■</span> zdjęcia</span>
+                        <span><span style={{ color: st.accentAmber }}>■</span> rolki</span>
+                        <span><span style={{ color: st.accentGreen }}>■</span> karuzele</span>
+                    </FormatLegend>
                 )}
 
                 {(failedProfiles.length > 0 || resyncMessage) && (
@@ -670,7 +681,7 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                                     <>
                                         Nie udało się pobrać danych dla{' '}
                                         <strong>{failedProfiles.map(row => `@${row.username}`).join(', ')}</strong>.
-                                        {' '}Kolejna automatyczna próba jutro rano - możesz też ponowić teraz.
+                                        {' '}Kolejna automatyczna próba jutro rano — możesz też ponowić teraz.
                                     </>
                                 ) : (
                                     <>
@@ -698,13 +709,13 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                 <MobileHeadline>
                     {growthHeadline.leader ? (
                         <>
-                            <strong>{growthHeadline.rank}./{growthHeadline.total}</strong> pod względem zdobytych obserwujących.
+                            <strong>{growthHeadline.rank}. miejsce z {growthHeadline.total}</strong> pod względem nowych obserwujących.
                             {growthHeadline.multiple !== null && (
-                                <> Lider @{growthHeadline.leader.username}: <strong>{growthHeadline.multiple.toFixed(1)}× więcej</strong>.</>
+                                <> Lider @{growthHeadline.leader.username}: <strong>{formatDecimal1(growthHeadline.multiple)}× więcej</strong>.</>
                             )}
                         </>
                     ) : (
-                        <>Prowadzisz w liczbie zdobytych obserwujących: <strong>{growthHeadline.rank}./{growthHeadline.total}</strong>.</>
+                        <>Prowadzisz pod względem nowych obserwujących: <strong>{growthHeadline.rank}. miejsce z {growthHeadline.total}</strong>.</>
                     )}
                 </MobileHeadline>
             )}
@@ -804,8 +815,8 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                     {annotations.length > 0 && (
                         <HintNote>
                             Wydarzenia w tym oknie:{' '}
-                            {annotations.slice(0, 3).map(a => a.title).join(' · ')}
-                            {annotations.length > 3 ? ` · +${annotations.length - 3} więcej` : ''}
+                            {annotations.slice(0, 3).map(a => a.title).join(', ')}
+                            {annotations.length > 3 ? `, +${annotations.length - 3} więcej` : ''}
                         </HintNote>
                     )}
                 </Card>
@@ -814,10 +825,8 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                 <Card>
                     <CardTitle>Przyrost obserwujących</CardTitle>
                     <CardHint>
-                        Każdy profil startuje od zera tego samego dnia, a linia pokazuje, ilu
-                        obserwujących przybyło mu od tego momentu. Im bardziej linie się rozjeżdżają,
-                        tym większa różnica w liczbie realnie zdobytych ludzi. Kliknij wykres, aby
-                        zobaczyć, co działo się wtedy na profilu.
+                        Ilu obserwujących zdobył każdy profil, licząc od tego samego dnia. Kliknij wykres,
+                        by zobaczyć, co się wtedy działo.
                     </CardHint>
 
                     {growth.rows.length > 0 && (
@@ -826,19 +835,18 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                                 <HeadStat>
                                     Jesteś{' '}
                                     <strong>{growthHeadline.rank}. z {growthHeadline.total}</strong>{' '}
-                                    pod względem zdobytych obserwujących
+                                    pod względem nowych obserwujących.
                                     {growthHeadline.leader && (
                                         <>
-                                            {' · '}
-                                            @{growthHeadline.leader.username} zdobył{' '}
+                                            {' '}@{growthHeadline.leader.username} zdobył{' '}
                                             {growthHeadline.multiple !== null ? (
-                                                <strong>{growthHeadline.multiple.toFixed(1)}× więcej</strong>
+                                                <strong>{formatDecimal1(growthHeadline.multiple)}× więcej</strong>
                                             ) : (
                                                 <strong>{formatNumber(growthHeadline.leader.gain)}</strong>
                                             )}
                                             {' '}({formatNumber(growthHeadline.leader.gain)} wobec{' '}
-                                            {formatNumber(growthHeadline.self.gain)}) · dystans urósł o{' '}
-                                            <strong>{formatNumber(growthHeadline.gap)}</strong>
+                                            {formatNumber(growthHeadline.self.gain)}), różnica urosła o{' '}
+                                            <strong>{formatNumber(growthHeadline.gap)}</strong>.
                                         </>
                                     )}
                                 </HeadStat>
@@ -847,14 +855,14 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                                 <Pill
                                     $active={growthMode === 'absolute'}
                                     onClick={() => setGrowthMode('absolute')}
-                                    title="Ile osób przybyło - tak wygląda walka o lokalną uwagę"
+                                    title="Ilu obserwujących przybyło"
                                 >
-                                    Zasięg (osoby)
+                                    Osoby
                                 </Pill>
                                 <Pill
                                     $active={growthMode === 'relative'}
                                     onClick={() => setGrowthMode('relative')}
-                                    title="Przyrost w % bazy - tak wygląda skuteczność niezależnie od wielkości konta"
+                                    title="Przyrost w procentach, porównuje małe i duże konta"
                                 >
                                     Tempo (%)
                                 </Pill>
@@ -864,7 +872,7 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
 
                     {growth.rows.length === 0 ? (
                         <HintNote>
-                            Historia obserwujących buduje się od dnia dodania profilu - pierwsze punkty
+                            Historia obserwujących buduje się od dnia dodania profilu — pierwsze punkty
                             pojawią się po 2 dniach zbierania danych.
                         </HintNote>
                     ) : (
@@ -901,7 +909,7 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                                         const row = payload[0]?.payload as Record<string, number | string>;
                                         const show = (value: number) =>
                                             growthMode === 'relative'
-                                                ? `${value > 0 ? '+' : ''}${value.toFixed(1)}%`
+                                                ? `${value > 0 ? '+' : ''}${formatDecimal1(value)}%`
                                                 : `${value > 0 ? '+' : ''}${formatNumber(value)}`;
                                         return (
                                             <TooltipBox>
@@ -926,7 +934,7 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                                                 })}
                                                 {row.median !== undefined && (
                                                     <div style={{ color: st.textMuted, marginTop: 4 }}>
-                                                        mediana grupy: {show(Number(row.median))}
+                                                        typowo w grupie: {show(Number(row.median))}
                                                     </div>
                                                 )}
                                             </TooltipBox>
@@ -965,7 +973,7 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
 
                     {growth.baselineDate && (
                         <WindowNote>
-                            Porównanie od {formatDayShort(growth.baselineDate)} - od tego dnia masz dane
+                            Porównanie od {formatDayShort(growth.baselineDate)} — od tego dnia masz dane
                             dla wszystkich {growth.totals.length}{' '}
                             {growth.totals.length === 1 ? 'wybranego profilu' : 'wybranych profili'}.
                         </WindowNote>
@@ -973,11 +981,9 @@ export const BenchmarkTab: React.FC<{ benchmark: Benchmark }> = ({ benchmark }) 
                     {growth.limiter && (
                         <WindowWarning>
                             <strong>Zakres skrócony o {growth.limiter.gainedDays}{' '}
-                            {growth.limiter.gainedDays === 1 ? 'dzień' : 'dni'} przez @{growth.limiter.username}.</strong>{' '}
-                            Historia tego profilu zaczyna się {formatDayShort(growth.baselineDate ?? '')}, a pozostałe
-                            wybrane profile mają dane już od {formatDayShort(growth.limiter.othersStart)} - porównanie
-                            musi startować od najpóźniejszej wspólnej daty, inaczej nie byłoby uczciwe.
-                            Odznacz ten profil w tabeli powyżej, aby zobaczyć pełną historię pozostałych.
+                            {growth.limiter.gainedDays === 1 ? 'dzień' : 'dni'} przez @{growth.limiter.username}</strong>,
+                            który ma dane dopiero od {formatDayShort(growth.baselineDate ?? '')}. Odznacz go w tabeli,
+                            by zobaczyć pełną historię pozostałych.
                         </WindowWarning>
                     )}
 

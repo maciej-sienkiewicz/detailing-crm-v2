@@ -278,7 +278,7 @@ export const ProtocolRulesView = () => {
         return (
             <ViewContainer>
                 <ErrorContainer>
-                    <p>Nie udało się załadować protokołów dokumentacji</p>
+                    <p>Nie udało się wczytać protokołów</p>
                 </ErrorContainer>
             </ViewContainer>
         );
@@ -289,16 +289,15 @@ export const ProtocolRulesView = () => {
             <ViewHeader>
                 <TitleSection>
                     <TitleContent>
-                        <PageTitle>Centrum Dokumentacji</PageTitle>
+                        <PageTitle>Dokumenty do podpisu</PageTitle>
                         <PageSubtitle>
-                            Zarządzaj protokołami wymaganymi przy przyjęciu i wydaniu pojazdu.
-                            Ustaw reguły globalne i specyficzne dla usług.
+                            Wybierz, co klient podpisuje przy przyjęciu i wydaniu auta.
                         </PageSubtitle>
                     </TitleContent>
                     <ButtonGroup>
                         <SecondaryButton onClick={() => setIsTemplateModalOpen(true)}>
                             <FileTextIcon />
-                            Zarządzaj szablonami
+                            Szablony protokołów
                         </SecondaryButton>
                     </ButtonGroup>
                 </TitleSection>
