@@ -11,33 +11,18 @@
 //
 // Podział na dni („Dziś", „Wczoraj", „5 października") zastępuje czytanie godziny
 // przy każdym wierszu: oko szuka granicy, a nie porównuje dat.
-//
-// Tak samo zwijają się wątki spraw, z których jest już rezerwacja - w zakładce „Sprawy"
-// mają własną sekcję „Rezerwacje", więc w poczcie też nie stoją między zapytaniami,
-// na które trzeba odpowiedzieć. Wiersz „Rezerwacje" stoi tam, gdzie najnowszy z nich:
-// gdy klient z rezerwacją napisze, wiersz sam wraca na górę, pod „Dziś".
 import type { CommThread } from '../types';
-
-/** AUTOMATED - „Powiadomienia i reklamy". BOOKED - „Rezerwacje", wątki spraw z terminem w kalendarzu. */
-export type MailBundleGroup = 'AUTOMATED' | 'BOOKED';
 
 export type MailListRow =
     | { kind: 'day'; key: string; label: string }
     | { kind: 'thread'; key: string; thread: CommThread; nested: boolean }
-    | { kind: 'bundle'; key: string; group: MailBundleGroup; threads: CommThread[]; unread: number; senders: string };
+    | { kind: 'bundle'; key: string; threads: CommThread[]; unread: number; senders: string };
 
 interface Options {
     /** Zwijać automaty w jeden wiersz (zakładka Poczta, bez wyszukiwania). */
     bundleAutomated: boolean;
     /** Wiersz automatów rozwinięty - jego wątki stoją pod nim, wcięte. */
     bundleOpen: boolean;
-    /**
-     * Wątki spraw z rezerwacją (id wątków) - zwijane w wiersz „Rezerwacje". Puste albo brak:
-     * nic się nie zwija (zakładka „Odrzucone", wyszukiwanie).
-     */
-    bookedThreadIds?: ReadonlySet<string>;
-    /** Wiersz „Rezerwacje" rozwinięty. */
-    bookedOpen?: boolean;
     /** Wstrzykiwane w testach; w aplikacji zawsze bieżąca chwila. */
     now?: Date;
 }
@@ -72,23 +57,13 @@ export function sendersLabel(threads: CommThread[]): string {
     return `${names.slice(0, NAMED_SENDERS).join(', ')} i ${rest} ${rest === 1 ? 'inny' : 'innych'}`;
 }
 
-export function buildMailListRows(
-    threads: CommThread[],
-    { bundleAutomated, bundleOpen, bookedThreadIds, bookedOpen = false, now = new Date() }: Options
-): MailListRow[] {
-    const isBooked = (thread: CommThread) => Boolean(bookedThreadIds?.has(thread.id));
-    // Rezerwacja wygrywa z automatem - to rozmowa z klientem, nie newsletter.
-    const booked = threads.filter(isBooked);
-    const automated = bundleAutomated ? threads.filter((thread) => thread.automated && !isBooked(thread)) : [];
+export function buildMailListRows(threads: CommThread[], { bundleAutomated, bundleOpen, now = new Date() }: Options): MailListRow[] {
+    const automated = bundleAutomated ? threads.filter((thread) => thread.automated) : [];
     // Jeden automat to nie „grupa" - zwinięty w osobny wiersz tylko by się schował.
     const bundling = automated.length >= 2;
-    // Rezerwacja zwija się już pojedynczo: jak w „Sprawach", sekcja jest stałym miejscem,
-    // a nie skrótem dla tłumu - wątek nie może raz stać w niej, a raz luzem.
-    const bundlingBooked = booked.length >= 1;
     const rows: MailListRow[] = [];
     let currentDay: string | null = null;
     let bundleEmitted = false;
-    let bookedEmitted = false;
 
     const dayRow = (iso: string) => {
         const label = dayLabel(iso, now);
@@ -98,23 +73,6 @@ export function buildMailListRows(
     };
 
     for (const thread of threads) {
-        if (bundlingBooked && isBooked(thread)) {
-            if (bookedEmitted) continue;
-            bookedEmitted = true;
-            dayRow(thread.lastMessageAt);
-            rows.push({
-                kind: 'bundle',
-                key: 'bundle:booked',
-                group: 'BOOKED',
-                threads: booked,
-                unread: booked.filter((item) => item.unreadCount > 0).length,
-                senders: sendersLabel(booked),
-            });
-            if (bookedOpen) {
-                booked.forEach((item) => rows.push({ kind: 'thread', key: item.id, thread: item, nested: true }));
-            }
-            continue;
-        }
         if (bundling && thread.automated) {
             if (bundleEmitted) continue;
             bundleEmitted = true;
@@ -122,7 +80,6 @@ export function buildMailListRows(
             rows.push({
                 kind: 'bundle',
                 key: 'bundle:automated',
-                group: 'AUTOMATED',
                 threads: automated,
                 unread: automated.filter((item) => item.unreadCount > 0).length,
                 senders: sendersLabel(automated),
