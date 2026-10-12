@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 //
-// „Zaplanowane SMS-y": kampania jako jeden wiersz, anulowany SMS zostaje na liście
-// i można go wznowić, a zmiana treści i terminu idzie do serwera jako instant.
+// „Zaplanowane SMS-y": kampania jako jeden wiersz, anulowanie przez okno potwierdzenia,
+// anulowany SMS w chipie „Anulowane" z wznowieniem, a zmiana treści i terminu wysyła
+// do serwera instant - tak jak na liście wizyt: menu „⋮" i okna ModalShell.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -32,7 +33,7 @@ const campaign = item({
     source: 'CAMPAIGN', id: 'k1', kindLabel: 'Kampania SMS', waitingReason: 'Wysyłka kampanii trwa',
     scheduledFor: inHours(6), customerId: null, customerName: null, phoneNumber: null, appointmentId: null,
     appointmentStart: null, editable: false, cancellable: false,
-    campaign: { id: 'k1', name: 'Jesienny przegląd', status: 'SENDING', pendingCount: 120 },
+    campaign: { id: 'k1', name: 'Jesienny przegląd', status: 'SENDING', pendingCount: 124 },
 });
 const cancelled = item({
     source: 'QUEUE', id: 'q1', kindLabel: 'SMS z potwierdzeniem rezerwacji', state: 'CANCELLED',
@@ -60,6 +61,12 @@ const renderView = () => {
 };
 
 beforeEach(() => {
+    // jsdom nie ma matchMedia; widok pyta o nią przez useBreakpoint (nagłówek komputer / telefon).
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: true, media: query, onchange: null,
+        addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+    }));
     vi.mocked(scheduledSmsApi.list).mockResolvedValue(overview([reminder, campaign, cancelled]));
     vi.mocked(scheduledSmsApi.update).mockResolvedValue();
     vi.mocked(scheduledSmsApi.cancel).mockResolvedValue();
@@ -71,62 +78,74 @@ afterEach(() => {
     vi.clearAllMocks();
 });
 
-const rows = () => screen.getAllByTestId('scheduled-sms-row');
+const rowOf = async (text: string) => (await screen.findByText(text)).closest('[data-testid="scheduled-sms-row"]') as HTMLElement;
+
+// Menu w portalu czeka niewidoczne na pomiar, którego jsdom nie robi, więc pozycji
+// menu szukamy po tekście - dostępna nazwa elementu ukrytego jest pusta.
+const menuItem = (name: string) => screen.getByText(name, { selector: '[role="menuitem"]' });
+
+const openMenu = (row: HTMLElement) => fireEvent.click(within(row).getByRole('button', { name: 'Akcje' }));
 
 describe('ScheduledSmsView', () => {
-    it('kampania jest jednym wierszem z liczbą SMS-ów i bez akcji na pojedynczym SMS-ie', async () => {
+    it('kampania jest jednym wierszem z liczbą SMS-ów, bez zmiany i anulowania', async () => {
         renderView();
 
-        await screen.findByText('Kampania Jesienny przegląd');
-        expect(rows()).toHaveLength(2);
-        const campaignRow = rows().find(r => r.textContent?.includes('Jesienny przegląd'))!;
-        expect(within(campaignRow).getByText('120 SMS-ów czeka')).toBeTruthy();
-        expect(within(campaignRow).queryByRole('button', { name: 'Zmień' })).toBeNull();
-        expect(within(campaignRow).queryByRole('button', { name: 'Anuluj wysyłkę' })).toBeNull();
-        expect(within(campaignRow).getByRole('link', { name: 'Otwórz kampanię' }).getAttribute('href')).toBe('/campaigns/k1');
+        const row = await rowOf('Kampania Jesienny przegląd');
+        expect(screen.getAllByTestId('scheduled-sms-row')).toHaveLength(2);
+        expect(within(row).getByText('124 SMS-y czekają')).toBeTruthy();
+        openMenu(row);
+        expect(menuItem('Otwórz kampanię')).toBeTruthy();
+        expect(screen.queryByText('Zmień treść i termin', { selector: '[role="menuitem"]' })).toBeNull();
+        expect(screen.queryByText('Anuluj wysyłkę', { selector: '[role="menuitem"]' })).toBeNull();
     });
 
-    it('lista nie ma wypełnionego przycisku i nie skleja faktów kropką', async () => {
+    it('nie skleja faktów kropką', async () => {
         renderView();
-        await screen.findByText('Anna Kowalska');
-
-        expect(document.querySelectorAll('[data-variant="primary"], [data-variant="success"]')).toHaveLength(0);
+        await rowOf('Anna Kowalska');
         expect(document.body.textContent).not.toMatch(/[·•]/);
     });
 
-    it('anulowanie pyta o potwierdzenie i wysyła SMS do anulowania', async () => {
+    it('anulowanie idzie przez okno potwierdzenia', async () => {
         renderView();
-        await screen.findByText('Anna Kowalska');
+        openMenu(await rowOf('Anna Kowalska'));
+        fireEvent.click(menuItem('Anuluj wysyłkę'));
 
-        const row = rows().find(r => r.textContent?.includes('Anna Kowalska'))!;
-        fireEvent.click(within(row).getByRole('button', { name: 'Anuluj wysyłkę' }));
-        const dialog = await screen.findByText('Anulować wysyłkę?');
-        expect(dialog).toBeTruthy();
-        const confirmButtons = screen.getAllByRole('button', { name: 'Anuluj wysyłkę' });
-        fireEvent.click(confirmButtons[confirmButtons.length - 1]);
+        expect(await screen.findByText('Anuluj wysyłkę SMS-a')).toBeTruthy();
+        fireEvent.click(screen.getByRole('button', { name: 'Anuluj wysyłkę' }));
 
         await waitFor(() => expect(scheduledSmsApi.cancel).toHaveBeenCalledWith(reminder));
     });
 
-    it('anulowany SMS zostaje w zakładce „Anulowane" i można go wznowić', async () => {
+    it('anulowany SMS jest w chipie „Anulowane" i można go wznowić', async () => {
         renderView();
-        await screen.findByText('Anna Kowalska');
+        await rowOf('Anna Kowalska');
 
         fireEvent.click(screen.getByRole('button', { name: /Anulowane/ }));
-        const row = (await screen.findByText('Jan Nowak')).closest('li')!;
+        const row = await rowOf('Jan Nowak');
         expect(within(row).getByText('Anulowany')).toBeTruthy();
-        fireEvent.click(within(row).getByRole('button', { name: 'Wznów wysyłkę' }));
+        openMenu(row);
+        fireEvent.click(menuItem('Wznów wysyłkę'));
 
         await waitFor(() => expect(scheduledSmsApi.resume).toHaveBeenCalledWith(cancelled));
     });
 
-    it('zmiana treści wysyła nową treść i termin jako instant', async () => {
+    it('filtr rodzaju i szukanie zawężają listę', async () => {
         renderView();
-        await screen.findByText('Anna Kowalska');
+        await rowOf('Anna Kowalska');
 
-        const row = rows().find(r => r.textContent?.includes('Anna Kowalska'))!;
-        fireEvent.click(within(row).getByRole('button', { name: 'Zmień' }));
-        const textarea = await screen.findByLabelText('Treść');
+        fireEvent.click(screen.getByRole('button', { name: 'Kampanie' }));
+        expect(screen.getAllByTestId('scheduled-sms-row')).toHaveLength(1);
+        fireEvent.click(screen.getByRole('button', { name: 'Kampanie' }));
+
+        fireEvent.change(screen.getByLabelText('Szukaj'), { target: { value: 'kowal' } });
+        expect(screen.getAllByTestId('scheduled-sms-row')).toHaveLength(1);
+    });
+
+    it('kliknięcie w wiersz otwiera zmianę, a zapis wysyła treść i termin jako instant', async () => {
+        renderView();
+        fireEvent.click(await rowOf('Anna Kowalska'));
+
+        const textarea = await screen.findByLabelText('Treść wiadomości');
         fireEvent.change(textarea, { target: { value: '  Do zobaczenia jutro o 10:00  ' } });
         fireEvent.click(screen.getByRole('button', { name: 'Zapisz zmiany' }));
 
@@ -134,8 +153,18 @@ describe('ScheduledSmsView', () => {
         const [sent, payload] = vi.mocked(scheduledSmsApi.update).mock.calls[0];
         expect(sent).toBe(reminder);
         expect(payload.messageContent).toBe('Do zobaczenia jutro o 10:00');
-        // Termin z pickera (czas ścienny, co do minuty) wraca jako instant tej samej minuty.
         expect(payload.scheduledFor).toMatch(/Z$/);
         expect(Math.abs(Date.parse(payload.scheduledFor) - Date.parse(reminder.scheduledFor!))).toBeLessThan(60_000);
+    });
+
+    it('błąd zapisu zostaje w oknie, przy formularzu', async () => {
+        vi.mocked(scheduledSmsApi.update).mockRejectedValue({
+            response: { data: { message: 'Przypomnienie musi wyjść przed wizytą (14.10.2026, 10:00).' } },
+        });
+        renderView();
+        fireEvent.click(await rowOf('Anna Kowalska'));
+        fireEvent.click(await screen.findByRole('button', { name: 'Zapisz zmiany' }));
+
+        expect(await screen.findByText('Przypomnienie musi wyjść przed wizytą (14.10.2026, 10:00).')).toBeTruthy();
     });
 });
