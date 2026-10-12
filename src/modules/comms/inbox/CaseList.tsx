@@ -5,9 +5,10 @@
 //     Nowe zapytanie                         ← zdanie, nie status; „Odpisał na wycenę"
 //                                              w kolorze akcentu - to warto otworzyć pierwsze
 //
-// „Czeka na nas" stoi rozwinięte, najdłużej czekające na górze. „Ucichło" i „Czeka na klienta"
-// to zwinięte wiersze z licznikiem - praca, której dziś nie trzeba robić, nie zajmuje
-// ekranu, ale nie znika (jedno kliknięcie i jest).
+// „Czeka na nas" stoi rozwinięte, najdłużej czekające na górze. „Ucichło", „Czeka na klienta"
+// i „Rezerwacje" to zwinięte wiersze z licznikiem - praca, której dziś nie trzeba robić,
+// nie zajmuje ekranu, ale nie znika (jedno kliknięcie i jest). Gdy klient napisał w sprawie
+// z rezerwacją, zwinięty wiersz mówi o tym akcentem - inaczej wiadomość leżałaby pod klapką.
 import { Fragment, useState } from 'react';
 import styled, { css } from 'styled-components';
 import { ChevronDown, ChevronRight, CircleDot, Trash2, X } from 'lucide-react';
@@ -110,6 +111,7 @@ const Fold = styled.button<{ $phone: boolean }>`
     cursor: pointer;
 
     .count { font-weight: 500; color: ${ix.muted}; }
+    .note { font-weight: 600; color: ${ix.accentInk}; }
     svg { margin-left: auto; width: 16px; height: 16px; color: ${ix.muted}; }
     &:hover { background: ${ix.surfaceSoft}; }
     &:focus-visible { outline: 2px solid ${ix.accent}; outline-offset: -2px; }
@@ -166,13 +168,15 @@ interface CaseListProps {
     onStopSelecting: () => void;
 }
 
+type FoldKey = 'SILENT' | 'CLIENT' | 'BOOKED';
+
 const matches = (entry: WorklistEntry, needle: string): boolean =>
     [entry.lead.customerName, entry.lead.contactIdentifier, entry.lead.vehicleBrand, entry.lead.vehicleModel, ...entry.lead.tagLabels]
         .filter(Boolean)
         .some((field) => String(field).toLowerCase().includes(needle));
 
 export function CaseList({ worklist, query, loading, truncated, activeId, onOpen, phone, selecting, onStopSelecting }: CaseListProps) {
-    const [open, setOpen] = useState<{ SILENT: boolean; CLIENT: boolean }>({ SILENT: false, CLIENT: false });
+    const [open, setOpen] = useState<Record<FoldKey, boolean>>({ SILENT: false, CLIENT: false, BOOKED: false });
     const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
     const [confirm, setConfirm] = useState<null | 'delete' | 'appointments' | 'lost'>(null);
     const bulkDelete = useBulkDeleteLeads();
@@ -183,12 +187,16 @@ export function CaseList({ worklist, query, loading, truncated, activeId, onOpen
     const ours = filter(worklist.ours);
     const silent = filter(worklist.silent);
     const client = filter(worklist.client);
+    const booked = filter(worklist.booked);
     // Przy szukaniu sekcje rozwijają się same: szukający „Kowalskiego" nie wie, gdzie on jest.
     const silentOpen = open.SILENT || Boolean(needle);
     const clientOpen = open.CLIENT || Boolean(needle);
+    const bookedOpen = open.BOOKED || Boolean(needle);
+    const bookedReplies = booked.filter((entry) => entry.urgency.turn === 'OURS').length;
 
-    const ordered = [...ours, ...silent, ...client].map((entry) => entry.lead.id).filter((id) => selected.has(id));
-    const withAppointment = [...ours, ...silent, ...client].filter((entry) => selected.has(entry.lead.id) && entry.lead.appointmentId).length;
+    const all = [...ours, ...silent, ...client, ...booked];
+    const ordered = all.map((entry) => entry.lead.id).filter((id) => selected.has(id));
+    const withAppointment = all.filter((entry) => selected.has(entry.lead.id) && entry.lead.appointmentId).length;
 
     const stop = () => {
         setSelected(new Set());
@@ -249,7 +257,7 @@ export function CaseList({ worklist, query, loading, truncated, activeId, onOpen
         );
     };
 
-    const fold = (key: 'SILENT' | 'CLIENT', title: string, entries: WorklistEntry[], isOpen: boolean) =>
+    const fold = (key: FoldKey, title: string, entries: WorklistEntry[], isOpen: boolean, note?: string) =>
         entries.length > 0 && (
             <Fragment key={key}>
                 <Fold
@@ -260,13 +268,14 @@ export function CaseList({ worklist, query, loading, truncated, activeId, onOpen
                     onClick={() => setOpen((current) => ({ ...current, [key]: !current[key] }))}
                 >
                     {title} <span className="count">{entries.length}</span>
+                    {note && <span className="note">{note}</span>}
                     {isOpen ? <ChevronDown aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}
                 </Fold>
                 {isOpen && entries.map((entry) => row(entry, false))}
             </Fragment>
         );
 
-    const nothing = !loading && ours.length + silent.length + client.length === 0;
+    const nothing = !loading && all.length === 0;
 
     return (
         <>
@@ -282,6 +291,15 @@ export function CaseList({ worklist, query, loading, truncated, activeId, onOpen
                 )}
                 {fold('SILENT', 'Ucichło', silent, silentOpen)}
                 {fold('CLIENT', 'Czeka na klienta', client, clientOpen)}
+                {fold(
+                    'BOOKED',
+                    'Rezerwacje',
+                    booked,
+                    bookedOpen,
+                    bookedReplies > 0
+                        ? `${bookedReplies} ${pluralPl(bookedReplies, 'klient napisał', 'klientów napisało', 'klientów napisało')}`
+                        : undefined
+                )}
                 {nothing && needle && <Empty>Nic nie pasuje do „{query.trim()}".</Empty>}
                 {truncated && (
                     <Empty>Otwartych spraw jest więcej, niż mieści jedna strona. Zamknij część zapytań, żeby zobaczyć resztę.</Empty>
