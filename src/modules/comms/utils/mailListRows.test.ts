@@ -104,3 +104,57 @@ describe('buildMailListRows', () => {
         expect(rows.some((row) => row.kind === 'bundle')).toBe(false);
     });
 });
+
+describe('buildMailListRows - Rezerwacje', () => {
+    const base = { bundleAutomated: true, bundleOpen: false, now: NOW };
+
+    it('wątki spraw z rezerwacją zwijają się w jeden wiersz, tam gdzie stałby najnowszy z nich', () => {
+        const list = [
+            thread('nowe', today(14)),
+            thread('rez1', today(12), { leadId: 'l1', unreadCount: 1 }),
+            thread('inne', today(10)),
+            thread('rez2', yesterday(9), { leadId: 'l2' }),
+        ];
+
+        const rows = buildMailListRows(list, { ...base, bookedThreadIds: new Set(['rez1', 'rez2']) });
+
+        expect(rows.map((row) => (row.kind === 'thread' ? row.thread.id : row.key))).toEqual([
+            'day:Dziś', 'nowe', 'bundle:booked', 'inne',
+        ]);
+        const bundle = rows.find((row) => row.kind === 'bundle');
+        expect(bundle).toMatchObject({ group: 'BOOKED', unread: 1 });
+        expect(bundle?.kind === 'bundle' && bundle.threads.map((t) => t.id)).toEqual(['rez1', 'rez2']);
+    });
+
+    it('jedna rezerwacja też ma swój wiersz - sekcja jest stałym miejscem', () => {
+        const rows = buildMailListRows([thread('rez', today(9))], { ...base, bookedThreadIds: new Set(['rez']) });
+
+        expect(rows.filter((row) => row.kind === 'bundle')).toHaveLength(1);
+        expect(rows.filter((row) => row.kind === 'thread')).toHaveLength(0);
+    });
+
+    it('rozwinięty wiersz pokazuje wątki pod sobą, wcięte', () => {
+        const rows = buildMailListRows([thread('rez', today(9))], { ...base, bookedThreadIds: new Set(['rez']), bookedOpen: true });
+
+        expect(rows[rows.length - 1]).toMatchObject({ kind: 'thread', nested: true });
+    });
+
+    it('rezerwacja nie trafia do „Powiadomień i reklam", nawet gdy automat ją tak oznaczył', () => {
+        const list = [
+            thread('a1', today(14), { automated: true }),
+            thread('rez', today(12), { automated: true }),
+            thread('a2', today(10), { automated: true }),
+        ];
+
+        const rows = buildMailListRows(list, { ...base, bookedThreadIds: new Set(['rez']) });
+        const groups = rows.filter((row) => row.kind === 'bundle').map((row) => row.kind === 'bundle' && [row.group, row.threads.length]);
+
+        expect(groups).toEqual([['AUTOMATED', 2], ['BOOKED', 1]]);
+    });
+
+    it('bez listy rezerwacji nic się nie zwija', () => {
+        const rows = buildMailListRows([thread('rez', today(9), { leadId: 'l1' })], base);
+
+        expect(rows.filter((row) => row.kind === 'thread')).toHaveLength(1);
+    });
+});
