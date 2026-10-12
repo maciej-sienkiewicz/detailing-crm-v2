@@ -275,7 +275,7 @@ export const MESSAGE_TEMPLATES_HELP: HelpContent = {
         {
             id: 'sender',
             label: 'Nazwa nadawcy SMS',
-            description: 'Do 11 liter i cyfr widocznych zamiast numeru telefonu, po wgraniu podpisanego upoważnienia. Dopóki operator nie potwierdzi nazwy, SMS-y wychodzą z numeru.',
+            description: 'Do 11 liter i cyfr widocznych zamiast numeru telefonu, po wgraniu podpisanego upoważnienia. Dopóki operator nie potwierdzi nazwy, SMS-y wychodzą z numeru. Prośba o odpowiedź „TAK” zawsze wychodzi z numeru, bo na nazwę nie da się odpisać.',
             usedIn: [
                 'Każdy SMS do klienta',
                 'Kampanie SMS',
