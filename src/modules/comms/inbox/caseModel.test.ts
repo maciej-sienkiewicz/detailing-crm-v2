@@ -66,6 +66,15 @@ describe('zdanie i krok następny sprawy', () => {
         const l = lead({ ...replied, appointmentId: 'a1' });
         expect(caseNextStep(l, urgencyOf(l)).kind).toBe('APPOINTMENT');
     });
+
+    it('rezerwacja: „Termin w kalendarzu", a gdy klient napisał - „Klient napisał" w kolorze', () => {
+        const quiet = lead({ ...replied, status: 'CONFIRMED', replyState: 'AWAITING_CLIENT_REPLY', waitingSince: ago(70 * H), appointmentId: 'a1' });
+        expect(caseSentence(quiet, urgencyOf(quiet))).toEqual({ text: 'Termin w kalendarzu', hot: false });
+
+        const wrote = lead({ ...replied, status: 'CONFIRMED', services: [service(15000)], appointmentId: 'a1' });
+        // Nie „Odpisał na wycenę" - po rezerwacji wycena jest już rozstrzygnięta.
+        expect(caseSentence(wrote, urgencyOf(wrote))).toEqual({ text: 'Klient napisał', hot: true });
+    });
 });
 
 describe('clientLine', () => {

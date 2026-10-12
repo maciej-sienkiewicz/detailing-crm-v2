@@ -101,6 +101,54 @@ describe('podział kolejki na sekcje', () => {
     });
 });
 
+describe('sekcja „Rezerwacje"', () => {
+    /*
+     * Zgłoszenie: sprawa z rezerwacją wisiała w „Czeka na nas", bo klient napisał przed
+     * umówieniem terminu, a potwierdzeniem była sama rezerwacja, nie mail.
+     */
+    it('sprawa z rezerwacją trafia do „Rezerwacji", nie do kolejki - niezależnie od tego, czyj ruch', () => {
+        const ourTurn = lead({ status: 'CONFIRMED', appointmentId: 'a1', estimatedValue: 15_000 });
+        const clientTurn = waitingOnClient(2, { status: 'CONFIRMED', appointmentId: 'a2' });
+        const silent = waitingOnClient(9, { status: 'CONFIRMED', appointmentId: 'a3' });
+        const plain = lead();
+
+        const worklist = buildWorklist([ourTurn, clientTurn, silent, plain]);
+
+        expect(worklist.booked.entries.map((e) => e.lead.id).sort()).toEqual([ourTurn.id, clientTurn.id, silent.id].sort());
+        expect(worklist.ours.entries.map((e) => e.lead.id)).toEqual([plain.id]);
+        expect(worklist.silent.entries).toHaveLength(0);
+        expect(worklist.client.entries).toHaveLength(0);
+        expect(worklist.total).toBe(4);
+        expect(worklist.sections.map((s) => s.key)).toEqual(['OURS', 'BOOKED']);
+        expect(worklist.booked.title).toBe('Rezerwacje');
+    });
+
+    it('rezerwacja nie jest „sprawą, od której zaczyna się dzień" ani zaległością', () => {
+        const booked = lead({ status: 'CONFIRMED', appointmentId: 'a1', waitingSince: ago(5 * DAY) });
+
+        const worklist = buildWorklist([booked]);
+
+        expect(worklist.head).toBeNull();
+        expect(overdueCount(worklist)).toBe(0);
+    });
+
+    it('na górze sprawy, w których klient napisał, potem od najświeższej zmiany', () => {
+        const older = waitingOnClient(2, { status: 'CONFIRMED', appointmentId: 'a1', updatedAt: ago(3 * DAY) });
+        const newer = waitingOnClient(2, { status: 'CONFIRMED', appointmentId: 'a2', updatedAt: ago(1 * HOUR) });
+        const wrote = lead({ status: 'CONFIRMED', appointmentId: 'a3', updatedAt: ago(5 * DAY) });
+
+        const worklist = buildWorklist([older, newer, wrote]);
+
+        expect(worklist.booked.entries.map((e) => e.lead.id)).toEqual([wrote.id, newer.id, older.id]);
+    });
+
+    it('sprawa zamknięta z rezerwacją nadal mieszka w archiwum', () => {
+        const done = lead({ status: 'COMPLETED', appointmentId: 'a1' });
+
+        expect(buildWorklist([done]).booked.entries).toHaveLength(0);
+    });
+});
+
 describe('sprawa, od której zaczyna się dzień', () => {
     it('to najstarsza zaległość, a nie najdroższa sprawa', () => {
         const rich = lead({ waitingSince: ago(2 * HOUR), estimatedValue: 900_000 });

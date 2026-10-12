@@ -28,8 +28,11 @@ import {
     type StagnationThresholds,
 } from './leadUrgency';
 
-/** OURS - klient czeka na nas. SILENT - cisza klienta przekroczyła próg. CLIENT - reszta. */
-export type WorklistSectionKey = 'OURS' | 'SILENT' | 'CLIENT';
+/**
+ * OURS - klient czeka na nas. SILENT - cisza klienta przekroczyła próg. CLIENT - reszta.
+ * BOOKED - sprawa z rezerwacją w kalendarzu, niezależnie od tego, czyj jest ruch.
+ */
+export type WorklistSectionKey = 'OURS' | 'SILENT' | 'CLIENT' | 'BOOKED';
 
 export interface WorklistEntry {
     lead: Lead;
@@ -56,6 +59,7 @@ export interface Worklist {
     ours: WorklistSection;
     silent: WorklistSection;
     client: WorklistSection;
+    booked: WorklistSection;
     /** Do wyrenderowania po kolei; sekcje puste wypadają bez śladu. */
     sections: WorklistSection[];
     /** Wszystkie sprawy otwarte razem - mianownik dla „nic nie czeka". */
@@ -88,20 +92,38 @@ const TITLES: Record<WorklistSectionKey, string> = {
     OURS: 'Czeka na nas',
     SILENT: 'Ucichło',
     CLIENT: 'Czeka na klienta',
+    BOOKED: 'Rezerwacje',
 };
 
 /** Najdłużej czekające na górze - wiek rośnie sam i nigdy nie przeskakuje. */
 const byAge = (a: WorklistEntry, b: WorklistEntry) => b.urgency.waitingMs - a.urgency.waitingMs;
 
-const section = (key: WorklistSectionKey, entries: WorklistEntry[]): WorklistSection => ({
+const section = (
+    key: WorklistSectionKey,
+    entries: WorklistEntry[],
+    order: (a: WorklistEntry, b: WorklistEntry) => number = byAge
+): WorklistSection => ({
     key,
     title: TITLES[key],
-    entries: entries.sort(byAge),
+    entries: entries.sort(order),
     value: entries.reduce((sum, entry) => sum + entry.lead.estimatedValue, 0),
 });
 
 /**
- * Trzy sekcje z listy spraw otwartych.
+ * W „Rezerwacjach" na górze sprawy, w których klient odpisał po umówieniu terminu
+ * (pytanie o godzinę, prośba o przełożenie) - to jedyne, co tam wymaga reakcji.
+ * Reszta od najświeższej zmiany: rezerwacja umówiona przed chwilą jest tą, do której
+ * się wraca, a nie ta sprzed dwóch tygodni.
+ */
+const bookedOrder = (a: WorklistEntry, b: WorklistEntry) => {
+    const aOurs = a.urgency.turn === 'OURS' ? 0 : 1;
+    const bOurs = b.urgency.turn === 'OURS' ? 0 : 1;
+    if (aOurs !== bOurs) return aOurs - bOurs;
+    return new Date(b.lead.updatedAt).getTime() - new Date(a.lead.updatedAt).getTime();
+};
+
+/**
+ * Cztery sekcje z listy spraw otwartych.
  *
  * [now] wstrzykiwane wyłącznie dla testów - w aplikacji zawsze bieżąca chwila.
  */
@@ -113,6 +135,7 @@ export function buildWorklist(
     const ours: WorklistEntry[] = [];
     const silent: WorklistEntry[] = [];
     const client: WorklistEntry[] = [];
+    const booked: WorklistEntry[] = [];
 
     for (const lead of leads) {
         // Sprawa zamknięta nie ma czyjego ruchu i mieszka w archiwum. Filtr jest tu,
@@ -122,7 +145,14 @@ export function buildWorklist(
         const urgency = describeLeadUrgency(lead, thresholds, now);
         const entry = { lead, urgency };
 
-        if (urgency.turn === 'OURS') ours.push(entry);
+        /*
+         * Rezerwacja domyka sprzedaż - sprawa przestaje być pracą do zrobienia w kolejce.
+         * W „Czeka na nas" wisiała dotąd każda, w której klient po potwierdzeniu odpisał
+         * „dziękuję" - i zasłaniała nowe zapytania. Odpowiedź klienta nie ginie: wiersz
+         * mówi „Odpisał" w kolorze akcentu, a sekcja stawia takie sprawy na górze.
+         */
+        if (lead.appointmentId) booked.push(entry);
+        else if (urgency.turn === 'OURS') ours.push(entry);
         else if (urgency.turn === 'CLIENT') {
             // „Ucichło" to nie trzeci rodzaj ruchu, tylko ten sam ruch po przekroczeniu
             // progu studia. Ton wylicza już reguła pilności - nie powtarzamy warunku,
@@ -135,13 +165,15 @@ export function buildWorklist(
     const oursSection = section('OURS', ours);
     const silentSection = section('SILENT', silent);
     const clientSection = section('CLIENT', client);
+    const bookedSection = section('BOOKED', booked, bookedOrder);
 
     return {
         ours: oursSection,
         silent: silentSection,
         client: clientSection,
-        sections: [oursSection, silentSection, clientSection].filter((s) => s.entries.length > 0),
-        total: ours.length + silent.length + client.length,
+        booked: bookedSection,
+        sections: [oursSection, silentSection, clientSection, bookedSection].filter((s) => s.entries.length > 0),
+        total: ours.length + silent.length + client.length + booked.length,
         head: oursSection.entries[0] ?? silentSection.entries[0] ?? null,
     };
 }

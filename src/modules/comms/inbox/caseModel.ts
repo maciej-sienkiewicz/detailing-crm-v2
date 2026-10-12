@@ -54,11 +54,15 @@ export const weReplied = (lead: Pick<Lead, 'lastOutboundAt' | 'firstResponseAt'>
 export function caseSentence(lead: Lead, urgency: LeadUrgency): { text: string; hot: boolean } {
     if (CLOSED_STATUSES.has(lead.status)) return { text: lead.lostReasonLabel ?? 'Zamknięta', hot: false };
     if (urgency.owed) return { text: lead.owedNote ? `Obiecaliśmy: ${lead.owedNote}` : 'Obiecaliśmy odpowiedź', hot: true };
+    // Sprawa z rezerwacją stoi w sekcji „Rezerwacje" - wycena i „nowe zapytanie" są tam już
+    // nieaktualne, liczy się tylko to, czy klient napisał coś, na co nikt nie odpisał.
+    if (lead.appointmentId) {
+        return urgency.turn === 'OURS' ? { text: 'Klient napisał', hot: true } : { text: 'Termin w kalendarzu', hot: false };
+    }
     if (urgency.turn === 'OURS') {
         if (!weReplied(lead)) return { text: 'Nowe zapytanie', hot: false };
         return { text: hasQuote(lead) ? 'Odpisał na wycenę' : 'Odpisał', hot: true };
     }
-    if (lead.appointmentId) return { text: 'Termin w kalendarzu', hot: false };
     return { text: hasQuote(lead) ? 'Wycena wysłana' : 'Czekamy na klienta', hot: false };
 }
 
