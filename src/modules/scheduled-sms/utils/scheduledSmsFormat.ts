@@ -25,7 +25,9 @@ export const formatWhen = (iso: string): string => `${formatDay(iso)}, ${formatT
 
 /**
  * Dzień wysyłki w kolumnie „Wysyłka": „Dziś" i „Jutro" czyta się szybciej niż datę,
- * a to właśnie te dwa dni są powodem, dla którego się tu zagląda.
+ * a to właśnie te dwa dni są powodem, dla którego się tu zagląda. W bieżącym roku
+ * data bez roku („14.10") - na telefonie pełna data z godziną zabierała pół linii
+ * odbiorcy; pełny termin jest w podpowiedzi.
  */
 export const sendDayLabel = (iso: string, now: Date = new Date()): string => {
     const d = new Date(iso);
@@ -33,7 +35,8 @@ export const sendDayLabel = (iso: string, now: Date = new Date()): string => {
     tomorrow.setDate(now.getDate() + 1);
     if (dayKey(d) === dayKey(now)) return 'Dziś';
     if (dayKey(d) === dayKey(tomorrow)) return 'Jutro';
-    return formatDay(iso);
+    if (dayKey(new Date(d.getTime() + 86_400_000)) === dayKey(now)) return 'Wczoraj';
+    return d.getFullYear() === now.getFullYear() ? `${pad(d.getDate())}.${pad(d.getMonth() + 1)}` : formatDay(iso);
 };
 
 

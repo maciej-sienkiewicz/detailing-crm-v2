@@ -4,20 +4,26 @@
 // („Wysłane"): jeden SMS to jedna niska linia, bez pasków koloru, pigułek i kafelek.
 // Na wąskiej liście wiersz łamie się na dwie krótkie linie.
 //
-// Kolumny podaje tabela ($cols), bo historia ma o jedną więcej („Wynik").
+// Kolumny podaje tabela ($cols), bo historia ma o jedną więcej („Wynik"); $midCols to te
+// same kolumny bez kolumny treści - na średniej liście, patrz smsListLayout.ts.
 
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { SMS_LIST_CONTAINER, smsCards } from './smsListLayout';
+import { SMS_LIST_CONTAINER, smsCards, smsNoContent } from './smsListLayout';
 
 export const Outer = styled.div`
     container-type: inline-size;
     container-name: ${SMS_LIST_CONTAINER};
 `;
 
-export const HeaderRow = styled.div<{ $cols: string }>`
+export const HeaderRow = styled.div<{ $cols: string; $midCols: string }>`
     display: grid;
     grid-template-columns: ${p => p.$cols};
+
+    ${smsNoContent} {
+        grid-template-columns: ${p => p.$midCols};
+        > :nth-child(4) { display: none; }
+    }
     gap: 16px;
     padding: 9px 20px;
     background: ${st.bg};
@@ -37,9 +43,14 @@ export const HeaderCell = styled.span`
     white-space: nowrap;
 `;
 
-export const Row = styled.div<{ $cols: string; $clickable: boolean; $cancelled: boolean }>`
+export const Row = styled.div<{ $cols: string; $midCols: string; $clickable: boolean; $cancelled: boolean }>`
     display: grid;
     grid-template-columns: ${p => p.$cols};
+
+    ${smsNoContent} {
+        grid-template-columns: ${p => p.$midCols};
+        > :nth-child(4) { display: none; }
+    }
     gap: 16px;
     align-items: center;
     min-height: 44px;
