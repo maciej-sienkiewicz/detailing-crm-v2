@@ -343,7 +343,7 @@ export const SmsSenderNameCard: React.FC = () => {
           <p>
             {needsSetup
               ? 'Dopóki nazwa nie jest ustawiona, SMS-y do klientów wychodzą z przypadkowego numeru - bez informacji, kto pisze.'
-              : 'Tę nazwę klient widzi zamiast numeru przy każdym SMS-ie ze studia.'}
+              : 'Tę nazwę klient widzi zamiast numeru przy SMS-ach ze studia. Prośba o odpowiedź „TAK” wychodzi z numeru, bo na nazwę nie da się odpisać.'}
           </p>
         </Titles>
 

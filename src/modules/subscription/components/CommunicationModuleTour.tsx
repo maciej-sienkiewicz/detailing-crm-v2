@@ -113,15 +113,15 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
                             <ArrowRight />
                             <span>
                                 <strong>Nazwa firmy</strong> (do 11 znaków), SMS
-                                jednokierunkowy. Wygląda profesjonalnie i buduje rozpoznawalność,
-                                ale <strong>klient nie ma na co odpowiedzieć</strong>, więc zgody
-                                przez „TAK" przestają działać.
+                                jednokierunkowy. Wygląda profesjonalnie i buduje rozpoznawalność.
+                                Na nazwę klient nie odpisze, więc
+                                <strong> prośba o „TAK" zawsze wychodzi z numeru</strong>.
                             </span>
                         </TourBullet>
                     </TourBulletList>
                     <TourDesc style={{ marginTop: 14 }}>
-                        Nadawca jest jeden dla wszystkich wiadomości. Nie ustawisz go osobno
-                        dla szablonu.
+                        Nadawca jest jeden dla wszystkich wiadomości, poza prośbą o odpowiedź
+                        „TAK". Nie ustawisz go osobno dla szablonu.
                     </TourDesc>
                 </>
             ),
