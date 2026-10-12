@@ -2,7 +2,7 @@
 
 import type { AxiosError } from 'axios';
 import { pluralPl } from '@/common/utils/plural';
-import type { ScheduledSmsItem, ScheduledSmsSource, ScheduledSmsState } from '../types';
+import type { ScheduledSmsItem, ScheduledSmsSource } from '../types';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -36,20 +36,14 @@ export const sendDayLabel = (iso: string, now: Date = new Date()): string => {
     return formatDay(iso);
 };
 
-/** Kolory stanu - te same co „Zaplanowana" i „Anulowana" przy rezerwacjach na liście wizyt. */
-export const STATE_COLOR: Record<ScheduledSmsState, string> = {
-    PENDING: '#7C3AED',
-    CANCELLED: '#64748B',
-};
-
 /** Rodzaj wiadomości - chipy filtra nad listą. */
 export type KindFilter = 'reminders' | 'confirmations' | 'afterVisit' | 'campaigns';
 
-export const KIND_FILTERS: { value: KindFilter; label: string; color: string }[] = [
-    { value: 'reminders',     label: 'Przypomnienia', color: '#7C3AED' },
-    { value: 'confirmations', label: 'Potwierdzenia', color: '#0284C7' },
-    { value: 'afterVisit',    label: 'Po wizycie',    color: '#059669' },
-    { value: 'campaigns',     label: 'Kampanie',      color: '#D97706' },
+export const KIND_FILTERS: { value: KindFilter; label: string }[] = [
+    { value: 'reminders',     label: 'Przypomnienia' },
+    { value: 'confirmations', label: 'Potwierdzenia' },
+    { value: 'afterVisit',    label: 'Po wizycie' },
+    { value: 'campaigns',     label: 'Kampanie' },
 ];
 
 const KIND_OF: Record<ScheduledSmsSource, KindFilter> = {
@@ -64,8 +58,6 @@ const KIND_OF: Record<ScheduledSmsSource, KindFilter> = {
 
 export const kindOf = (item: ScheduledSmsItem): KindFilter => KIND_OF[item.source];
 
-export const kindColor = (item: ScheduledSmsItem): string =>
-    KIND_FILTERS.find(k => k.value === kindOf(item))?.color ?? '#94A3B8';
 
 /** Szukanie po kliencie, numerze, treści i nazwie kampanii - bez rozróżniania wielkości liter. */
 export const matchesSearch = (item: ScheduledSmsItem, query: string): boolean => {
@@ -88,9 +80,9 @@ export const contentLimit = (source: ScheduledSmsSource): number => source === '
 export const recipientLabel = (item: ScheduledSmsItem): string =>
     item.campaign?.name ?? item.customerName ?? item.phoneNumber ?? 'Brak danych klienta';
 
-/** „124 SMS-y czekają", „odbiorców ustalimy w dniu wysyłki". */
+/** „124 SMS-y czekają", „Odbiorcy w dniu wysyłki". */
 export const campaignCountLabel = (pendingCount: number | null): string => {
-    if (pendingCount === null) return 'Odbiorców ustalimy w dniu wysyłki';
+    if (pendingCount === null) return 'Odbiorcy w dniu wysyłki';
     return `${pendingCount} ${pluralPl(pendingCount, 'SMS czeka', 'SMS-y czekają', 'SMS-ów czeka')}`;
 };
 

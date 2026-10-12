@@ -122,7 +122,7 @@ describe('ScheduledSmsView', () => {
 
         fireEvent.click(screen.getByRole('button', { name: /Anulowane/ }));
         const row = await rowOf('Jan Nowak');
-        expect(within(row).getByText('Anulowany')).toBeTruthy();
+        expect(screen.queryByText('Anna Kowalska')).toBeNull();
         openMenu(row);
         fireEvent.click(menuItem('Wznów wysyłkę'));
 
