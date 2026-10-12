@@ -14,3 +14,13 @@ export const SMS_CARDS_BELOW = 640;
 
 export const smsCards = `@container ${SMS_LIST_CONTAINER} (max-width: ${SMS_CARDS_BELOW - 1}px)`;
 export const smsTable = `@container ${SMS_LIST_CONTAINER} (min-width: ${SMS_CARDS_BELOW}px)`;
+
+/**
+ * Średnia lista (tablet, laptop z rozwiniętym menu): tabela jeszcze się mieści, ale na
+ * kolumnę „Treść" zostaje kilkadziesiąt pikseli - jej nagłówek wchodził wtedy na
+ * „Wynik". Poniżej tej szerokości treść znika z wiersza (zostaje w podpowiedzi
+ * i w oknie zmiany), a jej miejsce oddajemy pozostałym kolumnom.
+ */
+export const SMS_CONTENT_FROM = 960;
+
+export const smsNoContent = `@container ${SMS_LIST_CONTAINER} (min-width: ${SMS_CARDS_BELOW}px) and (max-width: ${SMS_CONTENT_FROM - 1}px)`;

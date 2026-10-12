@@ -21,13 +21,9 @@ import {
 } from './queueTable';
 
 /** Kiedy | Odbiorca | Rodzaj | Treść | menu */
-const COLS = [
-    'minmax(112px, 140px)',
-    'minmax(140px, 210px)',
-    'minmax(150px, 230px)',
-    'minmax(0, 1fr)',
-    '32px',
-].join(' ');
+const COLS = 'minmax(104px, 130px) minmax(140px, 210px) minmax(150px, 230px) minmax(0, 1fr) 32px';
+/** Średnia lista - bez kolumny treści. */
+const MID_COLS = 'minmax(104px, 130px) minmax(0, 1fr) minmax(0, 1fr) 32px';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -113,7 +109,7 @@ export const ScheduledSmsTable = ({ items, isLoading, emptyTitle, emptyDescripti
 
     return (
         <Outer>
-            <HeaderRow $cols={COLS}>
+            <HeaderRow $cols={COLS} $midCols={MID_COLS}>
                 <HeaderCell>Kiedy</HeaderCell>
                 <HeaderCell>Odbiorca</HeaderCell>
                 <HeaderCell>Rodzaj</HeaderCell>
@@ -131,6 +127,7 @@ export const ScheduledSmsTable = ({ items, isLoading, emptyTitle, emptyDescripti
                     <Row
                         key={key}
                         $cols={COLS}
+                        $midCols={MID_COLS}
                         data-testid="scheduled-sms-row"
                         $clickable={clickable}
                         $cancelled={cancelled}

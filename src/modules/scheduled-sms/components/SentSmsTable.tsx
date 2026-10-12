@@ -25,22 +25,21 @@ import {
 import { smsCards } from './smsListLayout';
 
 /** Wysłano | Odbiorca | Rodzaj | Treść | Wynik | menu */
-const COLS = [
-    'minmax(112px, 140px)',
-    'minmax(140px, 210px)',
-    'minmax(150px, 230px)',
-    'minmax(0, 1fr)',
-    'minmax(84px, 100px)',
-    '32px',
-].join(' ');
+const COLS = 'minmax(104px, 130px) minmax(140px, 210px) minmax(150px, 230px) minmax(0, 1fr) minmax(84px, 100px) 32px';
+/** Średnia lista - bez kolumny treści. */
+const MID_COLS = 'minmax(104px, 130px) minmax(0, 1fr) minmax(0, 1fr) 84px 32px';
 
-/* Na wąskiej liście wynik stoi pod menu, a menu w trzeciej kolumnie pierwszej linii. */
+/*
+ * Na wąskiej liście: w pierwszej linii kiedy i do kogo, w drugiej rodzaj i wynik.
+ * Wynik w pierwszej linii wypychał odbiorcę - na 320 px zostawało z niego jedno „K…".
+ */
 const SentRow = styled(Row)`
     ${smsCards} {
         grid-template-columns: auto minmax(0, 1fr) auto 32px;
 
-        > :nth-child(3) { grid-column: 1 / 4; }
-        > :nth-child(5) { grid-column: 3; grid-row: 1; text-align: right; }
+        > :nth-child(2) { grid-column: 2 / 4; grid-row: 1; }
+        > :nth-child(3) { grid-column: 1 / 3; grid-row: 2; }
+        > :nth-child(5) { grid-column: 3; grid-row: 2; text-align: right; font-size: 12px; }
         > :nth-child(6) { grid-column: 4; grid-row: 1 / 3; }
     }
 `;
@@ -125,7 +124,7 @@ export const SentSmsTable = ({ items, isLoading, emptyTitle, emptyDescription, h
 
     return (
         <Outer>
-            <HeaderRow $cols={COLS}>
+            <HeaderRow $cols={COLS} $midCols={MID_COLS}>
                 <HeaderCell>Wysłano</HeaderCell>
                 <HeaderCell>Odbiorca</HeaderCell>
                 <HeaderCell>Rodzaj</HeaderCell>
@@ -144,6 +143,7 @@ export const SentSmsTable = ({ items, isLoading, emptyTitle, emptyDescription, h
                         key={key}
                         data-testid="sent-sms-row"
                         $cols={COLS}
+                        $midCols={MID_COLS}
                         $clickable={!!item.campaign}
                         $cancelled={false}
                         onClick={() => item.campaign && navigate(`/campaigns/${item.campaign.id}`)}

@@ -13,10 +13,12 @@ const now = new Date(2026, 9, 12, 10, 0);
 const at = (day: number, hour: number) => new Date(2026, 9, day, hour, 0).toISOString();
 
 describe('scheduledSmsFormat', () => {
-    it('dzień wysyłki: dziś, jutro, a dalej data', () => {
+    it('dzień: wczoraj, dziś, jutro, a dalej data bez roku, gdy to ten sam rok', () => {
         expect(sendDayLabel(at(12, 14), now)).toBe('Dziś');
         expect(sendDayLabel(at(13, 9), now)).toBe('Jutro');
-        expect(sendDayLabel(at(14, 9), now)).toBe('14.10.2026');
+        expect(sendDayLabel(at(14, 9), now)).toBe('14.10');
+        expect(sendDayLabel(at(11, 9), now)).toBe('Wczoraj');
+        expect(sendDayLabel(new Date(2027, 0, 5, 9).toISOString(), now)).toBe('05.01.2027');
     });
 
     it('kampania jest jednym wierszem z liczbą SMS-ów', () => {
