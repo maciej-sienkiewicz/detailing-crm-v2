@@ -45,12 +45,12 @@ const InfoBox = styled.div`
     display: flex;
     gap: 12px;
     padding: 12px 16px;
-    background: #f0f9ff;
-    border: 1px solid #bae6fd;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
     border-radius: 8px;
     font-size: 13px;
     line-height: 1.5;
-    color: #075985;
+    color: #475569;
 
     svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
     p { margin: 0; }

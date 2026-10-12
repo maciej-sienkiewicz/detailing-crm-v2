@@ -3,11 +3,13 @@
 // Pasek nad listą - ten sam układ co na liście wizyt (OperationFilterBar): pole
 // szukania w pierwszym rzędzie, chipy w drugim. Pierwsza para chipów to stan wysyłki
 // (zawsze jeden wybrany), za separatorem rodzaj wiadomości (kliknięty drugi raz - zdjęty).
+//
+// Chipy są w jednym kolorze: to prosta kolejka, kolor nie niesie tu żadnej informacji.
 
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { ScheduledSmsState } from '../types';
-import { KIND_FILTERS, STATE_COLOR, type KindFilter } from '../utils/scheduledSmsFormat';
+import { KIND_FILTERS, type KindFilter } from '../utils/scheduledSmsFormat';
 import { SMS_LIST_CONTAINER, smsCards, smsTable } from './smsListLayout';
 
 const Wrapper = styled.div`
@@ -87,15 +89,15 @@ const FiltersRow = styled.div`
     }
 `;
 
-const Chip = styled.button<{ $active: boolean; $color: string }>`
+const Chip = styled.button<{ $active: boolean }>`
     display: inline-flex;
     align-items: center;
     gap: 6px;
     padding: 5px 14px;
-    border: 1.5px solid ${props => props.$active ? props.$color : st.border};
+    border: 1.5px solid ${props => props.$active ? st.accentBlue : st.border};
     border-radius: ${st.radiusFull};
-    background: ${props => props.$active ? `${props.$color}18` : 'transparent'};
-    color: ${props => props.$active ? props.$color : st.textSecondary};
+    background: ${props => props.$active ? st.accentBlueDim : 'transparent'};
+    color: ${props => props.$active ? st.accentBlue : st.textSecondary};
     font-size: 12px;
     font-weight: ${props => props.$active ? 600 : 500};
     cursor: pointer;
@@ -105,18 +107,9 @@ const Chip = styled.button<{ $active: boolean; $color: string }>`
     line-height: 1;
 
     &:hover {
-        border-color: ${props => props.$color};
-        color: ${props => props.$color};
-        background: ${props => `${props.$color}10`};
+        border-color: ${st.accentBlue};
+        color: ${st.accentBlue};
     }
-`;
-
-const ChipDot = styled.span<{ $color: string }>`
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: ${props => props.$color};
-    flex-shrink: 0;
 `;
 
 const ChipCount = styled.span`
@@ -149,8 +142,8 @@ const ClearAllBtn = styled.button`
     transition: all ${st.transition};
 
     &:hover {
-        color: #DC2626;
-        background: rgba(220, 38, 38, 0.08);
+        color: ${st.text};
+        background: ${st.bgCardAlt};
     }
 `;
 
@@ -193,11 +186,9 @@ export const ScheduledSmsFilterBar = ({ search, onSearchChange, state, onStateCh
                     key={s.value}
                     type="button"
                     $active={state === s.value}
-                    $color={STATE_COLOR[s.value]}
                     aria-pressed={state === s.value}
                     onClick={() => onStateChange(s.value)}
                 >
-                    <ChipDot $color={STATE_COLOR[s.value]} />
                     {s.label}
                     <ChipCount>{counts[s.value]}</ChipCount>
                 </Chip>
@@ -210,11 +201,9 @@ export const ScheduledSmsFilterBar = ({ search, onSearchChange, state, onStateCh
                     key={k.value}
                     type="button"
                     $active={kind === k.value}
-                    $color={k.color}
                     aria-pressed={kind === k.value}
                     onClick={() => onKindChange(kind === k.value ? null : k.value)}
                 >
-                    <ChipDot $color={k.color} />
                     {k.label}
                 </Chip>
             ))}

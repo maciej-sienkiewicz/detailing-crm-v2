@@ -5,8 +5,12 @@
  */
 export const SMS_LIST_CONTAINER = 'scheduled-sms-list';
 
-/** Najwęższe kolumny (220 + 150 + 112 + 160 + 44), cztery odstępy po 12 px i padding 2 × 20 px, z zapasem. */
-export const SMS_CARDS_BELOW = 800;
+/**
+ * Poniżej tej szerokości wiersz łamie się na dwie krótkie linie. Najwęższe kolumny
+ * (112 + 140 + 150 + 32), cztery odstępy po 16 px i padding 2 × 20 px dają ~540 px;
+ * zapas zostawia treści choć kawałek miejsca, zanim zniknie.
+ */
+export const SMS_CARDS_BELOW = 640;
 
 export const smsCards = `@container ${SMS_LIST_CONTAINER} (max-width: ${SMS_CARDS_BELOW - 1}px)`;
 export const smsTable = `@container ${SMS_LIST_CONTAINER} (min-width: ${SMS_CARDS_BELOW}px)`;

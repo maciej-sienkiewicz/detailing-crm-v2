@@ -28,7 +28,7 @@ describe('scheduledSmsFormat', () => {
         expect(kindOf(campaign)).toBe('campaigns');
         expect(campaignCountLabel(124)).toBe('124 SMS-y czekają');
         expect(campaignCountLabel(125)).toBe('125 SMS-ów czeka');
-        expect(campaignCountLabel(null)).toBe('Odbiorców ustalimy w dniu wysyłki');
+        expect(campaignCountLabel(null)).toBe('Odbiorcy w dniu wysyłki');
     });
 
     it('rodzaje: przypomnienia, potwierdzenia, po wizycie', () => {

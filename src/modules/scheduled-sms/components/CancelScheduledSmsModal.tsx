@@ -1,7 +1,7 @@
 // src/modules/scheduled-sms/components/CancelScheduledSmsModal.tsx
 //
 // Potwierdzenie anulowania wysyłki - to samo okno co „Anuluj rezerwację" na liście wizyt.
-// Ramka jest bursztynowa, nie czerwona: anulowanie da się cofnąć („Wznów wysyłkę").
+// Notka jest neutralna, nie czerwona: anulowanie da się cofnąć („Wznów wysyłkę").
 
 import styled from 'styled-components';
 import {
@@ -25,8 +25,8 @@ const ModalDescription = styled.p`
 `;
 
 const NoteBox = styled.div`
-    background-color: #fffbeb;
-    border: 1px solid #fde68a;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
     border-radius: 8px;
     padding: 12px 16px;
     display: flex;
@@ -34,7 +34,7 @@ const NoteBox = styled.div`
 `;
 
 const NoteIcon = styled.div`
-    color: #d97706;
+    color: #94a3b8;
     flex-shrink: 0;
 
     svg {
@@ -45,7 +45,7 @@ const NoteIcon = styled.div`
 
 const NoteText = styled.div`
     font-size: 13px;
-    color: #92400e;
+    color: #475569;
     line-height: 1.5;
 `;
 
