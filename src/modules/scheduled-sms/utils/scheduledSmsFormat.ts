@@ -1,17 +1,12 @@
-// Formatowanie i grupowanie listy „Zaplanowane SMS-y".
-//
-// Lista jest ułożona po dniach („Dziś", „Jutro", „środa, 14.10"), bo pytanie, z którym
-// się tu przychodzi, brzmi „co i komu wyjdzie" - a odpowiedź zaczyna się od „kiedy".
+// Formatowanie i filtrowanie listy „Zaplanowane SMS-y".
 
 import type { AxiosError } from 'axios';
 import { pluralPl } from '@/common/utils/plural';
-import type { ScheduledSmsItem, ScheduledSmsSource } from '../types';
+import type { ScheduledSmsItem, ScheduledSmsSource, ScheduledSmsState } from '../types';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
 const dayKey = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-
-const WEEKDAYS = ['niedziela', 'poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota'];
 
 /** „14:05" */
 export const formatTime = (iso: string): string => {
@@ -19,66 +14,68 @@ export const formatTime = (iso: string): string => {
     return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
+/** „14.10.2026" */
+export const formatDay = (iso: string): string => {
+    const d = new Date(iso);
+    return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
+};
+
 /** „14.10.2026, 10:00" */
-export const formatWhen = (iso: string): string => {
-    const d = new Date(iso);
-    return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}, ${formatTime(iso)}`;
-};
-
-/** „Dziś", „Jutro", „środa, 14.10" (z rokiem, gdy to nie ten rok). */
-export const dayLabel = (iso: string, now: Date = new Date()): string => {
-    const d = new Date(iso);
-    const today = dayKey(now);
-    const tomorrow = new Date(now);
-    tomorrow.setDate(now.getDate() + 1);
-    if (dayKey(d) === today) return 'Dziś';
-    if (dayKey(d) === dayKey(tomorrow)) return 'Jutro';
-    const date = d.getFullYear() === now.getFullYear()
-        ? `${pad(d.getDate())}.${pad(d.getMonth() + 1)}`
-        : `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
-    return `${WEEKDAYS[d.getDay()]}, ${date}`;
-};
-
-export interface DayGroup {
-    key: string;
-    label: string;
-    items: ScheduledSmsItem[];
-}
+export const formatWhen = (iso: string): string => `${formatDay(iso)}, ${formatTime(iso)}`;
 
 /**
- * Grupy dni w kolejności terminów. Wiadomość bez terminu (kampania „jak najszybciej")
- * i ta, której termin już minął (czeka na otwarcie okna albo na najbliższy przebieg
- * wysyłki), stoją razem na początku jako „Najbliższa wysyłka" - wyjdą pierwsze.
+ * Dzień wysyłki w kolumnie „Wysyłka": „Dziś" i „Jutro" czyta się szybciej niż datę,
+ * a to właśnie te dwa dni są powodem, dla którego się tu zagląda.
  */
-export const groupByDay = (items: ScheduledSmsItem[], now: Date = new Date()): DayGroup[] => {
-    const groups = new Map<string, DayGroup>();
-    const sorted = [...items].sort((a, b) =>
-        (a.scheduledFor ? Date.parse(a.scheduledFor) : 0) - (b.scheduledFor ? Date.parse(b.scheduledFor) : 0));
-    for (const item of sorted) {
-        const due = !item.scheduledFor || Date.parse(item.scheduledFor) <= now.getTime();
-        const key = due && item.state === 'PENDING' ? 'due' : dayKey(new Date(item.scheduledFor ?? now));
-        const label = key === 'due' ? 'Najbliższa wysyłka' : dayLabel(item.scheduledFor ?? now.toISOString(), now);
-        const group = groups.get(key) ?? { key, label, items: [] };
-        group.items.push(item);
-        groups.set(key, group);
-    }
-    return [...groups.values()];
+export const sendDayLabel = (iso: string, now: Date = new Date()): string => {
+    const d = new Date(iso);
+    const tomorrow = new Date(now);
+    tomorrow.setDate(now.getDate() + 1);
+    if (dayKey(d) === dayKey(now)) return 'Dziś';
+    if (dayKey(d) === dayKey(tomorrow)) return 'Jutro';
+    return formatDay(iso);
 };
 
-export type KindFilter = 'all' | 'reminders' | 'transactional' | 'campaigns';
+/** Kolory stanu - te same co „Zaplanowana" i „Anulowana" przy rezerwacjach na liście wizyt. */
+export const STATE_COLOR: Record<ScheduledSmsState, string> = {
+    PENDING: '#7C3AED',
+    CANCELLED: '#64748B',
+};
 
-const KIND_OF: Record<ScheduledSmsSource, Exclude<KindFilter, 'all'>> = {
+/** Rodzaj wiadomości - chipy filtra nad listą. */
+export type KindFilter = 'reminders' | 'confirmations' | 'afterVisit' | 'campaigns';
+
+export const KIND_FILTERS: { value: KindFilter; label: string; color: string }[] = [
+    { value: 'reminders',     label: 'Przypomnienia', color: '#7C3AED' },
+    { value: 'confirmations', label: 'Potwierdzenia', color: '#0284C7' },
+    { value: 'afterVisit',    label: 'Po wizycie',    color: '#059669' },
+    { value: 'campaigns',     label: 'Kampanie',      color: '#D97706' },
+];
+
+const KIND_OF: Record<ScheduledSmsSource, KindFilter> = {
     PRE_VISIT: 'reminders',
     VISIT_REMINDER: 'reminders',
     DELAYED_REMINDER: 'reminders',
-    QUEUE: 'transactional',
-    THANK_YOU: 'transactional',
-    POST_VISIT: 'transactional',
+    QUEUE: 'confirmations',
+    THANK_YOU: 'afterVisit',
+    POST_VISIT: 'afterVisit',
     CAMPAIGN: 'campaigns',
 };
 
-export const matchesKind = (item: ScheduledSmsItem, filter: KindFilter): boolean =>
-    filter === 'all' || KIND_OF[item.source] === filter;
+export const kindOf = (item: ScheduledSmsItem): KindFilter => KIND_OF[item.source];
+
+export const kindColor = (item: ScheduledSmsItem): string =>
+    KIND_FILTERS.find(k => k.value === kindOf(item))?.color ?? '#94A3B8';
+
+/** Szukanie po kliencie, numerze, treści i nazwie kampanii - bez rozróżniania wielkości liter. */
+export const matchesSearch = (item: ScheduledSmsItem, query: string): boolean => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    const digits = q.replace(/\D/g, '');
+    return [item.customerName, item.messageContent, item.campaign?.name, item.kindLabel]
+        .some(v => v?.toLowerCase().includes(q))
+        || (digits.length >= 3 && !!item.phoneNumber?.replace(/\D/g, '').includes(digits));
+};
 
 /** SMS automatu: bez wiersza, liczony z reguł - zmiana dotyczy tylko tego jednego SMS-a. */
 export const isAutomation = (source: ScheduledSmsSource): boolean =>
@@ -89,9 +86,9 @@ export const contentLimit = (source: ScheduledSmsSource): number => source === '
 
 /** Kto dostanie wiadomość - nazwa klienta, a gdy jej nie ma, numer. */
 export const recipientLabel = (item: ScheduledSmsItem): string =>
-    item.campaign?.name ?? item.customerName ?? item.phoneNumber ?? 'Klient bez nazwy';
+    item.campaign?.name ?? item.customerName ?? item.phoneNumber ?? 'Brak danych klienta';
 
-/** „120 SMS-ów czeka", „odbiorców ustalimy w dniu wysyłki". */
+/** „124 SMS-y czekają", „odbiorców ustalimy w dniu wysyłki". */
 export const campaignCountLabel = (pendingCount: number | null): string => {
     if (pendingCount === null) return 'Odbiorców ustalimy w dniu wysyłki';
     return `${pendingCount} ${pluralPl(pendingCount, 'SMS czeka', 'SMS-y czekają', 'SMS-ów czeka')}`;
