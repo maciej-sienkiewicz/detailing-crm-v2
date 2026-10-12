@@ -13,7 +13,7 @@ import {
     Car,
     TrendingUp,
     MessageSquare,
-    MessageSquareText,
+    CalendarClock,
     FileText,
     Settings,
     Inbox,
@@ -115,8 +115,10 @@ export const buildMenuSections = ({
                     badge: newLeadsCount > 0 ? newLeadsCount : unreadMailCount > 0 ? unreadMailCount : undefined,
                     alert: unreadMailCount > 0, requires: 'LEADS_MANAGE', match: ['/leads', '/communication'] },
                 { path: '/customers', label: 'Klienci',   icon: Users, requires: 'CUSTOMERS_VIEW' },
-                // Komu, co i kiedy wyjdzie SMS-em: przypomnienia, potwierdzenia, kampanie.
-                { path: '/scheduled-sms', label: 'Zaplanowane SMS-y', icon: MessageSquareText, requires: 'COMMUNICATION_SEND' },
+                // Komu, co i kiedy wyjdzie SMS-em albo e-mailem: przypomnienia, potwierdzenia,
+                // kampanie. Stary adres (/scheduled-sms) przekierowuje - jest w `match`.
+                { path: '/scheduled-communication', label: 'Zaplanowana komunikacja', icon: CalendarClock,
+                    requires: 'COMMUNICATION_SEND', match: ['/scheduled-sms'] },
                 { path: '/vehicles',  label: 'Pojazdy',   icon: Car,   requires: 'CUSTOMERS_VIEW' },
             ],
         },

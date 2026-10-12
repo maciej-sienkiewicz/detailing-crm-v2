@@ -1,11 +1,11 @@
-// src/modules/scheduled-sms/components/SentSmsTable.tsx
+// src/modules/scheduled-communication/components/SentMessagesTable.tsx
 //
-// Zakładka „Wysłane": historia SMS-ów od najnowszych, w tym samym wierszu co kolejka
+// Zakładka „Wysłane": historia SMS-ów albo e-maili od najnowszych, w tym samym wierszu co kolejka
 // (queueTable.tsx) i z jedną kolumną więcej - „Wynik". Jedynym kolorem na liście jest
 // czerwony „Nie wysłano": to jedyna informacja, przy której trzeba coś zrobić; powód
 // porażki jest w podpowiedzi.
 //
-// Kampania to jeden wiersz z liczbą wysłanych SMS-ów i prowadzi do swojego widoku.
+// Kampania to jeden wiersz z liczbą wysłanych wiadomości i prowadzi do swojego widoku.
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -14,15 +14,14 @@ import styled from 'styled-components';
 import { PiiValue } from '@/common/pii';
 import { usePortalDropdownPos } from '@/common/hooks/usePortalDropdownPos';
 import { SharedButton } from '@/common/styles';
-import { pluralPl } from '@/common/utils/plural';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import type { SentSmsItem } from '../types';
-import { formatTime, formatWhen, sendDayLabel } from '../utils/scheduledSmsFormat';
+import type { MessageChannel, SentItem } from '../types';
+import { campaignSentLabel, contactOf, formatTime, formatWhen, sendDayLabel } from '../utils/scheduledFormat';
 import {
     Cell, Content, DotsIcon, DropdownItem, DropdownMenu, Empty, HeaderCell, HeaderRow, Kind, Loading, MenuBtn, Outer,
     Recipient, Row, When,
 } from './queueTable';
-import { smsCards } from './smsListLayout';
+import { listCards } from './listLayout';
 
 /** Wysłano | Odbiorca | Rodzaj | Treść | Wynik | menu */
 const COLS = 'minmax(104px, 130px) minmax(140px, 210px) minmax(150px, 230px) minmax(0, 1fr) minmax(84px, 100px) 32px';
@@ -34,7 +33,7 @@ const MID_COLS = 'minmax(104px, 130px) minmax(0, 1fr) minmax(0, 1fr) 84px 32px';
  * Wynik w pierwszej linii wypychał odbiorcę - na 320 px zostawało z niego jedno „K…".
  */
 const SentRow = styled(Row)`
-    ${smsCards} {
+    ${listCards} {
         grid-template-columns: auto minmax(0, 1fr) auto 32px;
 
         > :nth-child(2) { grid-column: 2 / 4; grid-row: 1; }
@@ -56,15 +55,16 @@ const MoreBar = styled.div`
     border-top: 1px solid ${st.border};
 `;
 
-const sentCountLabel = (n: number) => `${n} ${pluralPl(n, 'SMS wysłany', 'SMS-y wysłane', 'SMS-ów wysłanych')}`;
-
-const kindOf = (item: SentSmsItem): string => {
+const kindOf = (item: SentItem, channel: MessageChannel): string => {
     if (!item.campaign) return item.kindLabel;
     const failed = item.campaign.failedCount > 0 ? `, nie wyszło ${item.campaign.failedCount}` : '';
-    return `${sentCountLabel(item.campaign.sentCount)}${failed}`;
+    return `${campaignSentLabel(item.campaign.sentCount, channel)}${failed}`;
 };
 
-const relatedLink = (item: SentSmsItem): { label: string; to: string } | null => {
+/** Przy e-mailu temat - jak w kolejce. */
+const preview = (item: SentItem): string | null => ('subject' in item && item.subject) || item.messageContent;
+
+const relatedLink = (item: SentItem): { label: string; to: string } | null => {
     if (item.campaign) return { label: 'Otwórz kampanię', to: `/campaigns/${item.campaign.id}` };
     if (item.visitId) return { label: 'Otwórz wizytę', to: `/visits/${item.visitId}` };
     if (item.appointmentId) return { label: 'Pokaż rezerwację', to: `/calendar/rezerwacja/${item.appointmentId}` };
@@ -72,7 +72,8 @@ const relatedLink = (item: SentSmsItem): { label: string; to: string } | null =>
 };
 
 interface Props {
-    items: SentSmsItem[];
+    channel: MessageChannel;
+    items: SentItem[];
     isLoading: boolean;
     emptyTitle: string;
     emptyDescription: string;
@@ -81,7 +82,7 @@ interface Props {
     onLoadMore: () => void;
 }
 
-export const SentSmsTable = ({ items, isLoading, emptyTitle, emptyDescription, hasMore, isLoadingMore, onLoadMore }: Props) => {
+export const SentMessagesTable = ({ channel, items, isLoading, emptyTitle, emptyDescription, hasMore, isLoadingMore, onLoadMore }: Props) => {
     const navigate = useNavigate();
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const { menuRef, pos: menuPos, style: menuStyle, open: openDropdownPos, close: closeDropdownPos } = usePortalDropdownPos();
@@ -141,7 +142,7 @@ export const SentSmsTable = ({ items, isLoading, emptyTitle, emptyDescription, h
                 return (
                     <SentRow
                         key={key}
-                        data-testid="sent-sms-row"
+                        data-testid="sent-row"
                         $cols={COLS}
                         $midCols={MID_COLS}
                         $clickable={!!item.campaign}
@@ -157,14 +158,14 @@ export const SentSmsTable = ({ items, isLoading, emptyTitle, emptyDescription, h
                                 ? `Kampania ${item.campaign.name}`
                                 : item.customerName
                                     ? <PiiValue value={item.customerName} kind="name" />
-                                    : item.phoneNumber
-                                        ? <PiiValue value={item.phoneNumber} kind="phone" />
+                                    : contactOf(item)
+                                        ? <PiiValue value={contactOf(item)} kind={channel === 'EMAIL' ? 'email' : 'phone'} />
                                         : 'Brak danych klienta'}
                         </Recipient>
 
-                        <Kind title={kindOf(item)}>{kindOf(item)}</Kind>
+                        <Kind title={kindOf(item, channel)}>{kindOf(item, channel)}</Kind>
 
-                        <Content title={item.messageContent ?? undefined}>{item.messageContent}</Content>
+                        <Content title={item.messageContent ?? undefined}>{preview(item)}</Content>
 
                         <Result $failed={failed} title={failed ? item.errorMessage ?? undefined : undefined}>
                             {failed ? 'Nie wysłano' : 'Wysłano'}

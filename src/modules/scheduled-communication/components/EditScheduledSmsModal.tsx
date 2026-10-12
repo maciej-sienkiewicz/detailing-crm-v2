@@ -1,4 +1,4 @@
-// src/modules/scheduled-sms/components/EditScheduledSmsModal.tsx
+// src/modules/scheduled-communication/components/EditScheduledSmsModal.tsx
 //
 // Zmiana treści i terminu zaplanowanego SMS-a - to samo okno co „Zmień datę rezerwacji"
 // na liście wizyt (ModalShell + DateTimePicker + SharedButton).
@@ -24,7 +24,7 @@ import { DateTimePicker } from '@/common/components/DateTimePicker';
 import { instantToLocalDateTime, localDateTimeToInstant } from '@/common/utils/localDateTime';
 import { smsMeta } from '@/modules/campaigns/utils/sms';
 import type { ScheduledSmsItem } from '../types';
-import { contentLimit, formatWhen, isAutomation, recipientLabel } from '../utils/scheduledSmsFormat';
+import { contentLimit, formatWhen, isAutomation, recipientLabel } from '../utils/scheduledFormat';
 
 const Fields = styled.div`
     display: flex;
