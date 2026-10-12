@@ -1,6 +1,9 @@
 export type CommunicationChannel = 'EMAIL' | 'SMS';
-/** QUEUED: przyjęta, czeka na godziny wysyłki (12:00–18:00); dispatcher zmieni ją w SENT / FAILED. */
-export type CommunicationStatus = 'SENT' | 'RECEIVED' | 'FAILED' | 'QUEUED';
+/**
+ * QUEUED: przyjęta, czeka na godziny wysyłki (12:00–18:00); dispatcher zmieni ją w SENT / FAILED.
+ * CANCELLED: wiadomość z kolejki anulowana w „Zaplanowanych SMS-ach" — nie wyszła; wznowienie wraca do QUEUED.
+ */
+export type CommunicationStatus = 'SENT' | 'RECEIVED' | 'FAILED' | 'QUEUED' | 'CANCELLED';
 
 export interface CommunicationEntry {
     id: string;

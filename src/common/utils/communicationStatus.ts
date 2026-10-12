@@ -1,6 +1,6 @@
 import type { CommunicationEntry, CommunicationStatus } from '@/common/types/communication';
 
-export type CommunicationTone = 'sent' | 'received' | 'queued' | 'failed';
+export type CommunicationTone = 'sent' | 'received' | 'queued' | 'cancelled' | 'failed';
 
 /**
  * Jedno miejsce, które wie, jak czytać status wpisu w dzienniku komunikacji.
@@ -8,12 +8,16 @@ export type CommunicationTone = 'sent' | 'received' | 'queued' | 'failed';
  * QUEUED to wiadomość przyjęta, ale jeszcze niewysłana — czeka na godziny, w których
  * wolno pisać do klienta (12:00–18:00). Dispatcher zmienia ten wpis w SENT albo FAILED
  * po faktycznej wysyłce, więc UI ma go pokazywać jako „w kolejce", nie jako „wysłano".
+ *
+ * CANCELLED to wiadomość z kolejki, którą ktoś anulował w „Zaplanowanych SMS-ach". Domyślna
+ * gałąź („wysłano") byłaby dla niej kłamstwem — stąd osobny ton.
  */
 export const communicationTone = (status: CommunicationStatus): CommunicationTone => {
     switch (status) {
         case 'FAILED':   return 'failed';
         case 'RECEIVED': return 'received';
         case 'QUEUED':   return 'queued';
+        case 'CANCELLED': return 'cancelled';
         default:         return 'sent';
     }
 };
@@ -22,6 +26,7 @@ export const COMMUNICATION_STATUS_LABEL: Record<CommunicationTone, string> = {
     sent: 'Wysłano',
     received: 'Otrzymano',
     queued: 'Zaplanowano',
+    cancelled: 'Anulowano',
     failed: 'Błąd',
 };
 
@@ -46,5 +51,6 @@ export const COMMUNICATION_TONE_STYLE: Record<CommunicationTone, { background: s
     sent:     { background: 'rgba(16,185,129,0.12)', color: '#10b981', border: 'rgba(16,185,129,0.25)' },
     received: { background: 'rgba(14, 165, 233, 0.10)', color: '#0284c7', border: 'rgba(14,165,233,0.25)' },
     queued:   { background: 'rgba(245,158,11,0.12)', color: '#b45309', border: 'rgba(245,158,11,0.30)' },
+    cancelled: { background: 'rgba(100,116,139,0.10)', color: '#475569', border: 'rgba(100,116,139,0.25)' },
     failed:   { background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: 'rgba(239,68,68,0.25)' },
 };
