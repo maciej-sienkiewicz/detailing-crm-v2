@@ -383,8 +383,13 @@ export const router = createBrowserRouter([
             ...lazyGatedPage(() => import('@/modules/campaigns/views/CampaignWizardView').then(m => m.CampaignWizardView), 'CAMPAIGNS', CAMPAIGNS_BENEFITS, 'COMMUNICATION_SEND'),
         },
         {
+            path: '/scheduled-communication',
+            ...lazyGatedPage(() => import('@/modules/scheduled-communication/views/ScheduledCommunicationView').then(m => m.ScheduledCommunicationView), 'SMS_EMAIL', SMS_EMAIL_BENEFITS, 'COMMUNICATION_SEND'),
+        },
+        // Dawny widok „Zaplanowane SMS-y" to zakładka SMS-ów widoku wyżej.
+        {
             path: '/scheduled-sms',
-            ...lazyGatedPage(() => import('@/modules/scheduled-sms/views/ScheduledSmsView').then(m => m.ScheduledSmsView), 'SMS_EMAIL', SMS_EMAIL_BENEFITS, 'COMMUNICATION_SEND'),
+            element: <Navigate to="/scheduled-communication" replace />,
         },
         // Legacy: stara ścieżka kampanii SMS prowadzi do nowego modułu
         {

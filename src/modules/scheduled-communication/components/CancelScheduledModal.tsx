@@ -1,4 +1,4 @@
-// src/modules/scheduled-sms/components/CancelScheduledSmsModal.tsx
+// src/modules/scheduled-communication/components/CancelScheduledModal.tsx
 //
 // Potwierdzenie anulowania wysyłki - to samo okno co „Anuluj rezerwację" na liście wizyt.
 // Notka jest neutralna, nie czerwona: anulowanie da się cofnąć („Wznów wysyłkę").
@@ -14,8 +14,8 @@ import {
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
-import type { ScheduledSmsItem } from '../types';
-import { formatWhen, recipientLabel } from '../utils/scheduledSmsFormat';
+import type { MessageChannel, ScheduledItem } from '../types';
+import { formatWhen, recipientLabel } from '../utils/scheduledFormat';
 
 const ModalDescription = styled.p`
     margin: 0 0 24px;
@@ -49,28 +49,36 @@ const NoteText = styled.div`
     line-height: 1.5;
 `;
 
+/** „SMS-a" / „e-maila" - dopełniacz w zdaniach okna. */
+const NOUN: Record<MessageChannel, { gen: string; nom: string }> = {
+    SMS: { gen: 'SMS-a', nom: 'SMS' },
+    EMAIL: { gen: 'e-maila', nom: 'E-mail' },
+};
+
 interface Props {
-    item: ScheduledSmsItem | null;
+    channel: MessageChannel;
+    item: ScheduledItem | null;
     isCancelling: boolean;
     onConfirm: () => void;
     onClose: () => void;
 }
 
-export const CancelScheduledSmsModal = ({ item, isCancelling, onConfirm, onClose }: Props) => {
+export const CancelScheduledModal = ({ channel, item, isCancelling, onConfirm, onClose }: Props) => {
     if (!item) return null;
+    const noun = NOUN[channel];
 
     return (
         <ModalShell isOpen onClose={onClose} size="sm">
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>Anuluj wysyłkę SMS-a</ModalTitle>
+                    <ModalTitle>Anuluj wysyłkę {noun.gen}</ModalTitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
 
             <ModalContent>
                 <ModalDescription>
-                    Czy na pewno anulować wysyłkę SMS-a do{' '}
+                    Czy na pewno anulować wysyłkę {noun.gen} do{' '}
                     <strong>{recipientLabel(item)}</strong>
                     {item.scheduledFor && <> zaplanowaną na {formatWhen(item.scheduledFor)}</>}?
                 </ModalDescription>
@@ -84,7 +92,7 @@ export const CancelScheduledSmsModal = ({ item, isCancelling, onConfirm, onClose
                         </svg>
                     </NoteIcon>
                     <NoteText>
-                        SMS nie wyjdzie, ale zostanie na liście jako anulowany. W każdej chwili możesz wznowić wysyłkę.
+                        {noun.nom} nie wyjdzie, ale zostanie na liście jako anulowany. W każdej chwili możesz wznowić wysyłkę.
                     </NoteText>
                 </NoteBox>
             </ModalContent>

@@ -1,26 +1,26 @@
-// src/modules/scheduled-sms/components/queueTable.tsx
+// src/modules/scheduled-communication/components/queueTable.tsx
 //
 // Wspólny wygląd obu tabel widoku - kolejki („Zaplanowane", „Anulowane") i historii
-// („Wysłane"): jeden SMS to jedna niska linia, bez pasków koloru, pigułek i kafelek.
+// („Wysłane"): jedna wiadomość to jedna niska linia, bez pasków koloru, pigułek i kafelek.
 // Na wąskiej liście wiersz łamie się na dwie krótkie linie.
 //
 // Kolumny podaje tabela ($cols), bo historia ma o jedną więcej („Wynik"); $midCols to te
-// same kolumny bez kolumny treści - na średniej liście, patrz smsListLayout.ts.
+// same kolumny bez kolumny treści - na średniej liście, patrz listLayout.ts.
 
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { SMS_LIST_CONTAINER, smsCards, smsNoContent } from './smsListLayout';
+import { LIST_CONTAINER, listCards, listNoContent } from './listLayout';
 
 export const Outer = styled.div`
     container-type: inline-size;
-    container-name: ${SMS_LIST_CONTAINER};
+    container-name: ${LIST_CONTAINER};
 `;
 
 export const HeaderRow = styled.div<{ $cols: string; $midCols: string }>`
     display: grid;
     grid-template-columns: ${p => p.$cols};
 
-    ${smsNoContent} {
+    ${listNoContent} {
         grid-template-columns: ${p => p.$midCols};
         > :nth-child(4) { display: none; }
     }
@@ -29,7 +29,7 @@ export const HeaderRow = styled.div<{ $cols: string; $midCols: string }>`
     background: ${st.bg};
     border-bottom: 1px solid ${st.border};
 
-    ${smsCards} {
+    ${listCards} {
         display: none;
     }
 `;
@@ -47,7 +47,7 @@ export const Row = styled.div<{ $cols: string; $midCols: string; $clickable: boo
     display: grid;
     grid-template-columns: ${p => p.$cols};
 
-    ${smsNoContent} {
+    ${listNoContent} {
         grid-template-columns: ${p => p.$midCols};
         > :nth-child(4) { display: none; }
     }
@@ -70,7 +70,7 @@ export const Row = styled.div<{ $cols: string; $midCols: string; $clickable: boo
     }
 
     /* Wąska lista: dwie krótkie linie zamiast kafelki - kiedy i do kogo, pod spodem rodzaj. */
-    ${smsCards} {
+    ${listCards} {
         grid-template-columns: auto minmax(0, 1fr) 32px;
         gap: 2px 12px;
         padding: 8px 14px;
@@ -103,7 +103,7 @@ export const Recipient = styled(Cell)`
 export const Kind = styled(Cell)`
     color: ${st.textSecondary};
 
-    ${smsCards} {
+    ${listCards} {
         font-size: 12px;
     }
 `;

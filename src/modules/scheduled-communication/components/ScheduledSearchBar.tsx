@@ -1,12 +1,17 @@
-// src/modules/scheduled-sms/components/ScheduledSmsSearchBar.tsx
+// src/modules/scheduled-communication/components/ScheduledSearchBar.tsx
 //
-// Pole szukania nad listą - ten sam wygląd co na liście wizyt. Bez chipów filtrów:
-// to prosta kolejka, a stan (zaplanowane, anulowane, wysłane) wybierają zakładki.
+// Pasek nad listą: przełącznik stanu (zaplanowane, anulowane, wysłane) i pole szukania -
+// ten sam wygląd co na liście wizyt. Bez chipów filtrów: to prosta kolejka.
 
+import type { ReactNode } from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
 const Wrapper = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 12px;
     padding: 12px 14px;
     border-bottom: 1px solid ${st.border};
 
@@ -17,6 +22,8 @@ const Wrapper = styled.div`
 
 const SearchWrapper = styled.div`
     position: relative;
+    flex: 1 1 220px;
+    min-width: 0;
 `;
 
 const SearchIconEl = styled.svg`
@@ -55,10 +62,14 @@ const SearchInput = styled.input`
 interface Props {
     value: string;
     onChange: (value: string) => void;
+    placeholder: string;
+    /** Przełącznik stanu listy - przed polem szukania, na telefonie nad nim. */
+    leading?: ReactNode;
 }
 
-export const ScheduledSmsSearchBar = ({ value, onChange }: Props) => (
+export const ScheduledSearchBar = ({ value, onChange, placeholder, leading }: Props) => (
     <Wrapper>
+        {leading}
         <SearchWrapper>
             <SearchIconEl viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <circle cx="11" cy="11" r="8" />
@@ -66,7 +77,7 @@ export const ScheduledSmsSearchBar = ({ value, onChange }: Props) => (
             </SearchIconEl>
             <SearchInput
                 type="text"
-                placeholder="Szukaj klienta, numeru, treści lub kampanii…"
+                placeholder={placeholder}
                 aria-label="Szukaj"
                 value={value}
                 onChange={e => onChange(e.target.value)}

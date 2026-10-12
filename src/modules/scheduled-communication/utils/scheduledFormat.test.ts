@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ScheduledSmsItem } from '../types';
-import { campaignCountLabel, matchesSearch, recipientLabel, sendDayLabel } from './scheduledSmsFormat';
+import { campaignCountLabel, campaignSentLabel, matchesSearch, recipientLabel, sendDayLabel } from './scheduledFormat';
 
 const item = (over: Partial<ScheduledSmsItem>): ScheduledSmsItem => ({
     source: 'QUEUE', id: 'x', kindLabel: 'SMS z potwierdzeniem rezerwacji', waitingReason: '', state: 'PENDING',
@@ -12,7 +12,7 @@ const item = (over: Partial<ScheduledSmsItem>): ScheduledSmsItem => ({
 const now = new Date(2026, 9, 12, 10, 0);
 const at = (day: number, hour: number) => new Date(2026, 9, day, hour, 0).toISOString();
 
-describe('scheduledSmsFormat', () => {
+describe('scheduledFormat', () => {
     it('dzień: wczoraj, dziś, jutro, a dalej data bez roku, gdy to ten sam rok', () => {
         expect(sendDayLabel(at(12, 14), now)).toBe('Dziś');
         expect(sendDayLabel(at(13, 9), now)).toBe('Jutro');
@@ -40,5 +40,21 @@ describe('scheduledSmsFormat', () => {
         expect(matchesSearch(sms, '534 920')).toBe(true);
         expect(matchesSearch(sms, 'Nowak')).toBe(false);
         expect(matchesSearch(sms, '  ')).toBe(true);
+    });
+
+    it('e-mail: liczby kampanii po polsku, szukanie po temacie i adresie', () => {
+        expect(campaignCountLabel(1, 'EMAIL')).toBe('1 e-mail czeka');
+        expect(campaignCountLabel(3, 'EMAIL')).toBe('3 e-maile czekają');
+        expect(campaignCountLabel(12, 'EMAIL')).toBe('12 e-maili czeka');
+        expect(campaignSentLabel(22, 'EMAIL')).toBe('22 e-maile wysłane');
+        expect(campaignSentLabel(87)).toBe('87 SMS-ów wysłanych');
+
+        const mail = {
+            customerName: null, emailAddress: 'jan@firma.pl', subject: 'Twoje auto jest gotowe',
+            messageContent: 'Zapraszamy po odbiór', kindLabel: 'E-mail gotowości do odbioru', campaign: null,
+        };
+        expect(matchesSearch(mail, 'gotowe')).toBe(true);
+        expect(matchesSearch(mail, 'firma.pl')).toBe(true);
+        expect(matchesSearch(mail, 'Kowalski')).toBe(false);
     });
 });

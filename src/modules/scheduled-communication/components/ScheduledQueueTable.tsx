@@ -1,7 +1,7 @@
-// src/modules/scheduled-sms/components/ScheduledSmsTable.tsx
+// src/modules/scheduled-communication/components/ScheduledQueueTable.tsx
 //
-// Kolejka SMS-ów: jeden SMS to jedna linia - kiedy, do kogo, co to za wiadomość
-// i początek treści (wygląd wiersza: queueTable.tsx). Stan i powód czekania nie
+// Kolejka SMS-ów albo e-maili: jedna wiadomość to jedna linia - kiedy, do kogo, co to
+// za wiadomość i początek treści (przy e-mailu temat; wygląd wiersza: queueTable.tsx). Stan i powód czekania nie
 // potrzebują ozdobników: anulowane mają własną zakładkę, a powód jest w podpowiedzi
 // przy rodzaju wiadomości.
 //
@@ -13,8 +13,8 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { PiiValue } from '@/common/pii';
 import { usePortalDropdownPos } from '@/common/hooks/usePortalDropdownPos';
-import type { ScheduledSmsItem } from '../types';
-import { campaignCountLabel, formatTime, formatWhen, sendDayLabel } from '../utils/scheduledSmsFormat';
+import type { MessageChannel, ScheduledItem } from '../types';
+import { campaignCountLabel, contactOf, formatTime, formatWhen, sendDayLabel } from '../utils/scheduledFormat';
 import {
     Content, DotsIcon, DropdownItem, DropdownMenu, Empty, HeaderCell, HeaderRow, Kind, Loading, MenuBtn, Outer,
     Recipient, Row, When,
@@ -27,22 +27,22 @@ const MID_COLS = 'minmax(104px, 130px) minmax(0, 1fr) minmax(0, 1fr) 32px';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const itemKey = (item: ScheduledSmsItem) => `${item.source}:${item.id}`;
+const itemKey = (item: ScheduledItem) => `${item.source}:${item.id}`;
 
 /** „Jutro, 14:30" - jedna linia, bo to jedna informacja. */
-const whenLabel = (item: ScheduledSmsItem): string =>
+const whenLabel = (item: ScheduledItem): string =>
     item.scheduledFor ? `${sendDayLabel(item.scheduledFor)}, ${formatTime(item.scheduledFor)}` : 'Wkrótce';
 
 /** Podpowiedź przy rodzaju: dlaczego czeka i ewentualnie, kiedy anulowano. */
-const kindHint = (item: ScheduledSmsItem): string => {
+const kindHint = (item: ScheduledItem): string => {
     const parts = [item.waitingReason];
-    if (item.appointmentStart) parts.push(`Wizyta ${formatWhen(item.appointmentStart)}`);
+    if ('appointmentStart' in item && item.appointmentStart) parts.push(`Wizyta ${formatWhen(item.appointmentStart)}`);
     if (item.state === 'CANCELLED' && item.cancelledAt) parts.push(`Anulowano ${formatWhen(item.cancelledAt)}`);
     return parts.filter(Boolean).join('. ');
 };
 
 /** Wizyta, rezerwacja albo kampania, której dotyczy wiadomość. */
-const relatedLink = (item: ScheduledSmsItem): { label: string; to: string } | null => {
+const relatedLink = (item: ScheduledItem): { label: string; to: string } | null => {
     if (item.campaign) return { label: 'Otwórz kampanię', to: `/campaigns/${item.campaign.id}` };
     if (item.visitId) return { label: 'Otwórz wizytę', to: `/visits/${item.visitId}` };
     if (item.appointmentId) return { label: 'Pokaż rezerwację', to: `/calendar/rezerwacja/${item.appointmentId}` };
@@ -51,17 +51,28 @@ const relatedLink = (item: ScheduledSmsItem): { label: string; to: string } | nu
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+/** Przy e-mailu w kolumnie „Treść" stoi temat - po nim się maila rozpoznaje; całość w podpowiedzi. */
+const preview = (item: ScheduledItem): string | null =>
+    ('subject' in item && item.subject) || item.messageContent;
+
+const previewHint = (item: ScheduledItem): string | undefined => {
+    if (!('subject' in item)) return item.messageContent ?? undefined;
+    const files = item.attachmentNames.length > 0 ? `\n\nZałączniki: ${item.attachmentNames.join(', ')}` : '';
+    return [item.subject, item.messageContent].filter(Boolean).join('\n\n') + files || undefined;
+};
+
 interface Props {
-    items: ScheduledSmsItem[];
+    channel: MessageChannel;
+    items: ScheduledItem[];
     isLoading: boolean;
     emptyTitle: string;
     emptyDescription: string;
-    onEdit: (item: ScheduledSmsItem) => void;
-    onCancel: (item: ScheduledSmsItem) => void;
-    onResume: (item: ScheduledSmsItem) => void;
+    onEdit: (item: ScheduledItem) => void;
+    onCancel: (item: ScheduledItem) => void;
+    onResume: (item: ScheduledItem) => void;
 }
 
-export const ScheduledSmsTable = ({ items, isLoading, emptyTitle, emptyDescription, onEdit, onCancel, onResume }: Props) => {
+export const ScheduledQueueTable = ({ channel, items, isLoading, emptyTitle, emptyDescription, onEdit, onCancel, onResume }: Props) => {
     const navigate = useNavigate();
     const [openMenuKey, setOpenMenuKey] = useState<string | null>(null);
     const { menuRef, pos: menuPos, style: menuStyle, open: openDropdownPos, close: closeDropdownPos } = usePortalDropdownPos();
@@ -91,7 +102,7 @@ export const ScheduledSmsTable = ({ items, isLoading, emptyTitle, emptyDescripti
         action();
     };
 
-    const handleRowClick = (item: ScheduledSmsItem) => {
+    const handleRowClick = (item: ScheduledItem) => {
         if (item.editable) onEdit(item);
         else if (item.campaign) navigate(`/campaigns/${item.campaign.id}`);
     };
@@ -128,7 +139,7 @@ export const ScheduledSmsTable = ({ items, isLoading, emptyTitle, emptyDescripti
                         key={key}
                         $cols={COLS}
                         $midCols={MID_COLS}
-                        data-testid="scheduled-sms-row"
+                        data-testid="scheduled-row"
                         $clickable={clickable}
                         $cancelled={cancelled}
                         onClick={() => clickable && handleRowClick(item)}
@@ -142,16 +153,16 @@ export const ScheduledSmsTable = ({ items, isLoading, emptyTitle, emptyDescripti
                                 ? `Kampania ${item.campaign.name}`
                                 : item.customerName
                                     ? <PiiValue value={item.customerName} kind="name" />
-                                    : item.phoneNumber
-                                        ? <PiiValue value={item.phoneNumber} kind="phone" />
+                                    : contactOf(item)
+                                        ? <PiiValue value={contactOf(item)} kind={channel === 'EMAIL' ? 'email' : 'phone'} />
                                         : 'Brak danych klienta'}
                         </Recipient>
 
                         <Kind title={kindHint(item)}>
-                            {item.campaign ? campaignCountLabel(item.campaign.pendingCount) : item.kindLabel}
+                            {item.campaign ? campaignCountLabel(item.campaign.pendingCount, channel) : item.kindLabel}
                         </Kind>
 
-                        <Content title={item.messageContent ?? undefined}>{item.messageContent}</Content>
+                        <Content title={previewHint(item)}>{preview(item)}</Content>
 
                         <div onClick={e => e.stopPropagation()}>
                             <MenuBtn type="button" onClick={e => toggleMenu(key, e)} title="Akcje" aria-label="Akcje">
