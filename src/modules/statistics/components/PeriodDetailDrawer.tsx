@@ -1,806 +1,347 @@
 // src/modules/statistics/components/PeriodDetailDrawer.tsx
+//
+// Panel „Szczegóły okresu": klik w słupek wykresu w Statystykach.
+//
+// Odpowiada na pytanie właściciela „co tego dnia złożyło się na X wizyt i Y zł" -
+// LICZBAMI, nie zdaniami. Trzy rzeczy, w kolejności czytania:
+//   1. Wynik: kwota, liczba wizyt i jedna plakietka - ile więcej albo mniej niż zwykle.
+//   2. Na co poszły pieniądze: kategorie (z filtrem - usługi kategorii), kwota i pasek.
+//   3. Wizyty od największej, klik przenosi do wizyty.
+//
+// Historia: dawny panel pokazywał klucz okresu („2026-W40"), trzy liczby w trzech
+// kolorach bez punktu odniesienia i listę wizyt z rozwiniętą pierwszą. Następna wersja
+// dołożyła rozkład różnicy, akapit o największej wizycie i podpowiedzi - biznes odrzucił
+// ją jako przegadaną („za dużo tekstu, za dużo się dzieje"). Nie dokładaj tu zdań.
+//
+// Panel służy do czytania, nie ma kroku następnego - nic nie jest wypełnione kolorem
+// (CLAUDE.md §2). Stoi na SideDrawer: blokada przewijania tła, Escape i telefon w cenie.
 
-import { useState, useEffect, useCallback } from 'react';
-import styled, { keyframes, css } from 'styled-components';
-import type { PeriodDetail, PeriodVisit, Granularity } from '../types';
-import { fetchPeriodDetail } from '../api/periodDetailMockApi';
+import { useId } from 'react';
+import { Link } from 'react-router-dom';
+import styled from 'styled-components';
+import { useQuery } from '@tanstack/react-query';
+import { ChevronRight } from 'lucide-react';
+import {
+    Button,
+    DrawerBody,
+    Notice,
+    SectionTitle,
+    SideDrawer,
+    StatusPill,
+    ui,
+} from '@/common/components/ui';
 import { pluralPl } from '@/common/utils/plural';
+import { fetchPeriodDetail } from '../api/periodDetailApi';
+import type { CategoryBreakdownItem, Granularity, PeriodVisit, StatsDataPoint } from '../types';
+import {
+    PERIOD_NOUN,
+    comparePeriod,
+    composition,
+    coverageDay,
+    isAboutTheSame,
+    periodCoverage,
+    periodTitle,
+} from '../utils/periodInsight';
 
-// ─── Animations ───────────────────────────────────────────────────────────────
+/*
+ * Pełne złote z odstępem tysięcy ZAWSZE. toLocaleString('pl-PL') nie grupuje liczb
+ * czterocyfrowych, więc obok siebie stały „25 860 zł" i „9040 zł" - kolumna kwot
+ * przestawała się czytać.
+ */
+const zl = (grosz: number) =>
+    `${String(Math.abs(Math.round(grosz / 100))).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0')}\u00a0zł`;
 
-const slideIn = keyframes`
-    from { transform: translateX(100%); opacity: 0; }
-    to   { transform: translateX(0);    opacity: 1; }
-`;
+const visitsLabel = (n: number) => `${n} ${pluralPl(n, 'wizyta', 'wizyty', 'wizyt')}`;
 
-const slideOut = keyframes`
-    from { transform: translateX(0);    opacity: 1; }
-    to   { transform: translateX(100%); opacity: 0; }
-`;
+const today = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
-const fadeIn = keyframes`
-    from { opacity: 0; }
-    to   { opacity: 1; }
-`;
+// ─── Wynik ────────────────────────────────────────────────────────────────────
 
-// ─── Shell ────────────────────────────────────────────────────────────────────
-
-const Backdrop = styled.div`
-    position: fixed;
-    inset: 0;
-    z-index: 400;
-    background: rgba(15, 23, 42, 0.35);
-    backdrop-filter: blur(2px);
-    animation: ${fadeIn} 180ms ease;
-    cursor: pointer;
-`;
-
-const Drawer = styled.aside<{ $closing: boolean }>`
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 401;
-    width: min(480px, 95vw);
-    background: ${p => p.theme.colors.surface};
-    box-shadow: -4px 0 24px rgba(15, 23, 42, 0.10), -1px 0 4px rgba(15, 23, 42, 0.06);
+const Result = styled.div`
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
-    animation: ${p => p.$closing
-        ? css`${slideOut} 200ms ease forwards`
-        : css`${slideIn} 240ms cubic-bezier(0.22, 1, 0.36, 1) forwards`};
-`;
-
-// ─── Header ───────────────────────────────────────────────────────────────────
-
-const DrawerHeader = styled.div`
-    flex-shrink: 0;
-    background: ${p => p.theme.colors.surface};
-`;
-
-const HeaderTop = styled.div`
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 20px 22px 14px;
-    border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
-`;
-
-const HeaderMeta = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    min-width: 0;
-`;
-
-// 10px · 600 · uppercase · +0.06em (matches VisitDateLabel in dashboard)
-const Eyebrow = styled.span`
-    font-size: 10px;
-    font-weight: 600;
-    color: ${p => p.theme.colors.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    display: block;
-`;
-
-// 18px · 600 · -0.1px (matches CARD TITLE in design system)
-const DrawerTitle = styled.h2`
-    margin: 0;
-    font-size: 18px;
-    font-weight: 600;
-    color: ${p => p.theme.colors.text};
-    letter-spacing: -0.1px;
-`;
-
-const CloseBtn = styled.button`
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    margin-top: 2px;
-    background: transparent;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.md};
-    font-size: 14px;
-    color: ${p => p.theme.colors.textMuted};
-    cursor: pointer;
-    transition: all ${p => p.theme.transitions.fast};
-    line-height: 1;
-
-    &:hover {
-        background: ${p => p.theme.colors.surfaceAlt};
-        border-color: ${p => p.theme.colors.textMuted};
-        color: ${p => p.theme.colors.text};
-    }
-`;
-
-// ─── Filter context banner ────────────────────────────────────────────────────
-
-const FilterBanner = styled.div`
-    display: flex;
-    align-items: center;
     gap: 6px;
-    padding: 8px 22px;
-    background: rgba(14, 165, 233, 0.07);
-    border-bottom: 1px solid rgba(14, 165, 233, 0.15);
-    font-size: 12px;
-    font-weight: 500;
-    color: #0284c7;
 `;
 
-const FilterDot = styled.span`
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--brand-primary, #0ea5e9);
-    flex-shrink: 0;
-`;
-
-// ─── KPI strip ────────────────────────────────────────────────────────────────
-
-const KpiStrip = styled.div`
+const AmountLine = styled.div`
     display: flex;
-    gap: 1px;
-    background: ${p => p.theme.colors.surfaceAlt};
-    border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 12px;
 `;
 
-const KpiTile = styled.div`
-    flex: 1;
-    padding: 12px 16px;
-    background: ${p => p.theme.colors.surface};
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-`;
-
-// 10px · 600 · uppercase · +0.06em
-const KpiLabel = styled.span`
-    font-size: 10px;
-    font-weight: 600;
-    color: ${p => p.theme.colors.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-`;
-
-// 20px · 700 · -0.3px (between PAGE TITLE and CARD TITLE)
-const KpiValue = styled.span<{ $color: string }>`
-    font-size: 20px;
+const Amount = styled.span`
+    font-size: 30px;
+    line-height: 1.15;
     font-weight: 700;
-    color: ${p => p.$color};
-    letter-spacing: -0.3px;
-    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: ${ui.ink};
     font-variant-numeric: tabular-nums;
 `;
 
-// 12px · 500 (matches CAPTION)
-const KpiSub = styled.span`
-    font-size: 12px;
-    font-weight: 500;
-    color: ${p => p.theme.colors.textMuted};
+const Sub = styled.span`
+    font-size: 14px;
+    color: ${ui.textSecondary};
+    font-variant-numeric: tabular-nums;
 `;
 
-// ─── Scrollable body ──────────────────────────────────────────────────────────
+// ─── Listy ────────────────────────────────────────────────────────────────────
 
-const DrawerBody = styled.div`
-    flex: 1;
-    overflow-y: auto;
-    padding: 0 0 24px;
-    scrollbar-width: thin;
-    scrollbar-color: ${p => p.theme.colors.border} transparent;
-    &::-webkit-scrollbar { width: 4px; }
-    &::-webkit-scrollbar-track { background: transparent; }
-    &::-webkit-scrollbar-thumb { background: ${p => p.theme.colors.border}; border-radius: 4px; }
-`;
-
-// Section label matching dashboard pattern
-const SectionLabel = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 14px 22px 8px;
-    font-size: 10px;
-    font-weight: 600;
-    color: ${p => p.theme.colors.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-`;
-
-const SectionRule = styled.div`
-    flex: 1;
-    height: 1px;
-    background: ${p => p.theme.colors.surfaceAlt};
-`;
-
-// ─── Visit card ───────────────────────────────────────────────────────────────
-
-const VisitCard = styled.div`
-    border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
-    background: ${p => p.theme.colors.surface};
-
-    &:last-child { border-bottom: none; }
-`;
-
-const VisitHeader = styled.button<{ $expanded: boolean }>`
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 13px 22px;
-    background: ${p => p.$expanded ? p.theme.colors.surfaceAlt : 'transparent'};
-    border: none;
-    cursor: pointer;
-    text-align: left;
-    transition: background ${p => p.theme.transitions.fast};
-
-    &:hover { background: ${p => p.theme.colors.surfaceHover}; }
-`;
-
-const VisitAvatar = styled.div<{ $color: string }>`
+const Section = styled.section`
     flex-shrink: 0;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: ${p => p.$color};
     display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 700;
-    color: #fff;
-    letter-spacing: -0.3px;
-`;
-
-const VisitInfo = styled.div`
-    flex: 1;
+    flex-direction: column;
+    gap: 12px;
     min-width: 0;
 `;
 
-// 13px · 600 (matches VisitTitle in dashboard)
-const VisitClient = styled.span`
-    display: block;
-    font-size: 13px;
-    font-weight: 600;
-    color: ${p => p.theme.colors.text};
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-bottom: 2px;
+const Rows = styled.ul`
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
 `;
 
-// 12px · 500 (matches CAPTION). Auto i data to dwa atrybuty, więc dwa elementy
-// z odstępem zamiast sklejenia kropką (CLAUDE.md §4); obcina się auto, data zostaje.
-const VisitMeta = styled.span`
-    display: flex;
-    gap: 8px;
-    min-width: 0;
-    font-size: 12px;
-    font-weight: 500;
-    color: ${p => p.theme.colors.textMuted};
-    white-space: nowrap;
+const ShareRow = styled.li`
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 12px;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
 
-    & > span:first-child {
+    > span:first-child {
         min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
+        white-space: nowrap;
+        color: ${ui.inkSoft};
     }
-
-    & > span:last-child {
-        flex-shrink: 0;
-    }
+    > span:nth-child(2) { font-weight: 700; color: ${ui.ink}; }
 `;
 
-const VisitRight = styled.div`
-    flex-shrink: 0;
+const Track = styled.span`
+    grid-column: 1 / -1;
+    display: block;
+    height: 6px;
+    border-radius: 3px;
+    background: ${ui.surfaceAlt};
+    overflow: hidden;
+`;
+
+/* Kolor kategorii jak w wykresie kołowym obok - ta sama kategoria, ten sam odcień. */
+const Fill = styled.span<{ $pct: number; $color: string | null }>`
+    display: block;
+    height: 100%;
+    width: ${p => Math.max(p.$pct, 2)}%;
+    border-radius: 3px;
+    background: ${p => p.$color ?? ui.lineStrong};
+`;
+
+const VisitList = styled.ul`
+    list-style: none;
+    margin: 0;
+    padding: 0;
+`;
+
+const VisitLink = styled(Link)`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 52px;
+    padding: 8px 4px;
+    border-bottom: 1px solid ${ui.lineFaint};
+    color: inherit;
+    text-decoration: none;
+
+    &:hover { background: ${ui.surfaceSoft}; }
+    &:hover svg { color: ${ui.brandInk}; }
+    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: -2px; border-radius: 8px; }
+
+    svg { flex-shrink: 0; width: 16px; height: 16px; color: ${ui.textFaint}; }
+`;
+
+const VisitText = styled.span`
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
-    gap: 2px;
+
+    > span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    > span:first-child { font-size: 14px; font-weight: 600; color: ${ui.ink}; }
+    > span + span { font-size: 13px; color: ${ui.textMuted}; }
 `;
 
-// Revenue: 14px · 700 · tabular-nums · success color
-const VisitRevenue = styled.span`
+const VisitAmount = styled.span`
+    flex-shrink: 0;
     font-size: 14px;
     font-weight: 700;
-    color: ${p => p.theme.colors.success};
-    letter-spacing: -0.3px;
+    color: ${ui.ink};
     font-variant-numeric: tabular-nums;
 `;
 
-const VisitRevenueAll = styled.span`
-    font-size: 11px;
-    font-weight: 500;
-    color: ${p => p.theme.colors.textMuted};
+const Skeleton = styled.li<{ $w: string }>`
+    height: 14px;
+    width: ${p => p.$w};
+    border-radius: 6px;
+    background: ${ui.surfaceAlt};
 `;
 
-const VisitServiceCount = styled.span`
-    font-size: 11px;
-    font-weight: 500;
-    color: ${p => p.theme.colors.textMuted};
-`;
+const Loading = () => (
+    <Rows aria-label="Wczytywanie">
+        <Skeleton $w="70%" /><Skeleton $w="55%" /><Skeleton $w="40%" />
+    </Rows>
+);
 
-const Chevron = styled.span<{ $expanded: boolean }>`
-    flex-shrink: 0;
-    font-size: 9px;
-    color: ${p => p.theme.colors.textMuted};
-    transform: ${p => p.$expanded ? 'rotate(180deg)' : 'rotate(0deg)'};
-    transition: transform 200ms ease;
-    margin-left: -4px;
-`;
-
-// ─── Services accordion ───────────────────────────────────────────────────────
-
-const ServicesPanel = styled.div<{ $expanded: boolean; $maxH: number }>`
-    max-height: ${p => p.$expanded ? `${p.$maxH}px` : '0'};
-    overflow: hidden;
-    transition: max-height 260ms cubic-bezier(0.4, 0, 0.2, 1);
-    background: ${p => p.theme.colors.surfaceHover};
-    border-top: ${p => p.$expanded ? `1px solid ${p.theme.colors.surfaceAlt}` : 'none'};
-`;
-
-const ServicesInner = styled.div`
-    padding: 10px 22px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-`;
-
-// In-category section label: 10px · 600 · uppercase with left accent bar
-const ServiceSectionLabel = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    padding: 2px 0 6px;
-    font-size: 10px;
-    font-weight: 600;
-    color: ${p => p.theme.colors.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-`;
-
-const ServiceSectionAccent = styled.span`
-    width: 2px;
-    height: 12px;
-    border-radius: 1px;
-    background: ${p => p.theme.colors.success};
-    flex-shrink: 0;
-`;
-
-const ServiceRow = styled.div<{ $dimmed?: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 7px 10px;
-    background: ${p => p.$dimmed ? 'transparent' : p.theme.colors.surface};
-    border: 1px solid ${p => p.$dimmed ? 'transparent' : p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.md};
-    opacity: ${p => p.$dimmed ? 0.5 : 1};
-    transition: opacity ${p => p.theme.transitions.fast};
-`;
-
-const ServiceDot = styled.span<{ $dimmed?: boolean }>`
-    flex-shrink: 0;
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: ${p => p.$dimmed ? p.theme.colors.textMuted : p.theme.colors.success};
-`;
-
-// 13px · 400 (BODY SMALL)
-const ServiceName = styled.span`
-    flex: 1;
-    font-size: 13px;
-    font-weight: 400;
-    color: ${p => p.theme.colors.textSecondary};
-    min-width: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-`;
-
-// 13px · 600 · tabular-nums
-const ServicePrice = styled.span`
-    flex-shrink: 0;
-    font-size: 13px;
-    font-weight: 600;
-    color: ${p => p.theme.colors.text};
-    font-variant-numeric: tabular-nums;
-`;
-
-// Visit summary row (inside services panel)
-const VisitSummaryRow = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 7px 10px 0;
-    margin-top: 4px;
-    border-top: 1px solid ${p => p.theme.colors.border};
-`;
-
-const VisitSummaryLabel = styled.span`
-    font-size: 12px;
-    font-weight: 500;
-    color: ${p => p.theme.colors.textMuted};
-`;
-
-const VisitSummaryValue = styled.span`
-    font-size: 13px;
-    font-weight: 700;
-    color: ${p => p.theme.colors.success};
-    font-variant-numeric: tabular-nums;
-`;
-
-// ─── Contribution bar ─────────────────────────────────────────────────────────
-
-const ContribWrap = styled.div`
-    padding: 8px 0 2px;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-`;
-
-const ContribTrack = styled.div`
-    height: 3px;
-    background: ${p => p.theme.colors.border};
-    border-radius: 2px;
-    overflow: hidden;
-`;
-
-const ContribFill = styled.div<{ $pct: number }>`
-    height: 100%;
-    width: ${p => p.$pct}%;
-    background: ${p => p.theme.colors.success};
-    border-radius: 2px;
-    transition: width 360ms ease;
-`;
-
-const ContribMeta = styled.div`
-    display: flex;
-    justify-content: space-between;
-    font-size: 11px;
-    font-weight: 500;
-    color: ${p => p.theme.colors.textMuted};
-`;
-
-// ─── "Other services" toggle ──────────────────────────────────────────────────
-
-const OthersToggle = styled.button<{ $open: boolean }>`
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    padding: 7px 10px;
-    margin-top: 4px;
-    background: transparent;
-    border: 1px dashed ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.md};
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 500;
-    color: ${p => p.theme.colors.textMuted};
-    text-align: left;
-    transition: all ${p => p.theme.transitions.fast};
-    font-family: inherit;
-
-    &:hover {
-        background: ${p => p.theme.colors.surface};
-        color: ${p => p.theme.colors.textSecondary};
-        border-color: ${p => p.theme.colors.textMuted};
-    }
-`;
-
-const OthersChevron = styled.span<{ $open: boolean }>`
-    font-size: 8px;
-    color: ${p => p.theme.colors.textMuted};
-    transform: ${p => p.$open ? 'rotate(180deg)' : 'rotate(0)'};
-    transition: transform 180ms ease;
-`;
-
-const OthersPanel = styled.div<{ $open: boolean; $count: number }>`
-    max-height: ${p => p.$open ? `${p.$count * 36}px` : '0'};
-    overflow: hidden;
-    transition: max-height 220ms cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    margin-top: ${p => p.$open ? '3px' : '0'};
-`;
-
-// ─── Loading ──────────────────────────────────────────────────────────────────
-
-const LoadingState = styled.div`
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    color: ${p => p.theme.colors.textMuted};
-    font-size: 13px;
-    font-weight: 500;
-`;
-
-const Spinner = styled.div`
-    width: 24px;
-    height: 24px;
-    border: 2px solid ${p => p.theme.colors.border};
-    border-top-color: var(--brand-primary, #0ea5e9);
-    border-radius: 50%;
-    animation: spin 0.65s linear infinite;
-    @keyframes spin { to { transform: rotate(360deg); } }
-`;
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const PLN = (grosz: number) =>
-    (grosz / 100).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN', maximumFractionDigits: 0 });
-
-const AVATAR_COLORS = [
-    '#0ea5e9', '#16a34a', '#d97706', '#8b5cf6',
-    '#dc2626', '#0891b2', '#db2777', '#ea580c',
-];
-
-function avatarColor(name: string): string {
-    let h = 0;
-    for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-    return AVATAR_COLORS[h % AVATAR_COLORS.length];
-}
-
-function initials(name: string): string {
-    return name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
-}
-
-// ─── Visit item ───────────────────────────────────────────────────────────────
-
-const VisitItem = ({
-    visit,
-    index,
-    categoryName,
-}: {
-    visit: PeriodVisit;
-    index: number;
-    categoryName: string | null;
-}) => {
-    const [expanded, setExpanded] = useState(index === 0);
-    const [othersOpen, setOthersOpen] = useState(false);
-
-    const hasFilter = categoryName != null;
-    const inCat = hasFilter ? visit.services.filter(s => s.inCategory) : visit.services;
-    const others = hasFilter ? visit.services.filter(s => !s.inCategory) : [];
-    const isFiltered = hasFilter && visit.totalRevenueGross !== visit.totalRevenueGrossAll;
-
-    const contribPct = isFiltered
-        ? Math.round((visit.totalRevenueGross / visit.totalRevenueGrossAll) * 100)
-        : 100;
-
-    const estimatedH =
-        (inCat.length + (othersOpen ? others.length : 0)) * 36 +
-        (hasFilter && inCat.length > 0 ? 24 : 0) +
-        (isFiltered ? 44 : 0) +
-        (others.length > 0 ? 40 : 0) +
-        56;
-
-    return (
-        <VisitCard>
-            <VisitHeader $expanded={expanded} onClick={() => setExpanded(e => !e)}>
-                <VisitAvatar $color={avatarColor(visit.clientName)}>
-                    {initials(visit.clientName)}
-                </VisitAvatar>
-                <VisitInfo>
-                    <VisitClient>{visit.clientName}</VisitClient>
-                    <VisitMeta>
-                        <span>{visit.vehicleInfo}</span>
-                        <span>{visit.visitDate}</span>
-                    </VisitMeta>
-                </VisitInfo>
-                <VisitRight>
-                    <VisitRevenue>{PLN(visit.totalRevenueGross)}</VisitRevenue>
-                    {isFiltered && (
-                        <VisitRevenueAll title="Łączna wartość wizyty">
-                            {PLN(visit.totalRevenueGrossAll)} łącznie
-                        </VisitRevenueAll>
-                    )}
-                    <VisitServiceCount>
-                        {visit.services.length}{' '}
-                        {pluralPl(visit.services.length, 'usługa', 'usługi', 'usług')}
-                    </VisitServiceCount>
-                </VisitRight>
-                <Chevron $expanded={expanded}>▼</Chevron>
-            </VisitHeader>
-
-            <ServicesPanel $expanded={expanded} $maxH={estimatedH}>
-                <ServicesInner>
-                    {hasFilter && inCat.length > 0 && (
-                        <ServiceSectionLabel>
-                            <ServiceSectionAccent />
-                            {categoryName}
-                        </ServiceSectionLabel>
-                    )}
-
-                    {inCat.map(svc => (
-                        <ServiceRow key={svc.serviceId}>
-                            <ServiceDot />
-                            <ServiceName title={svc.serviceName}>{svc.serviceName}</ServiceName>
-                            <ServicePrice>{PLN(svc.priceGross)}</ServicePrice>
-                        </ServiceRow>
-                    ))}
-
-                    {isFiltered && inCat.length > 0 && (
-                        <ContribWrap>
-                            <ContribTrack>
-                                <ContribFill $pct={contribPct} />
-                            </ContribTrack>
-                            <ContribMeta>
-                                <span>{categoryName}: {PLN(visit.totalRevenueGross)}</span>
-                                <span>{contribPct}% wartości wizyty</span>
-                            </ContribMeta>
-                        </ContribWrap>
-                    )}
-
-                    {hasFilter && others.length > 0 && (
-                        <>
-                            <OthersToggle
-                                $open={othersOpen}
-                                onClick={e => { e.stopPropagation(); setOthersOpen(o => !o); }}
-                            >
-                                <OthersChevron $open={othersOpen}>▼</OthersChevron>
-                                Pozostałe usługi ({others.length}):{' '}
-                                {PLN(others.reduce((s, sv) => s + sv.priceGross, 0))}
-                            </OthersToggle>
-                            <OthersPanel $open={othersOpen} $count={others.length}>
-                                {others.map(svc => (
-                                    <ServiceRow key={svc.serviceId} $dimmed>
-                                        <ServiceDot $dimmed />
-                                        <ServiceName title={svc.serviceName}>{svc.serviceName}</ServiceName>
-                                        <ServicePrice>{PLN(svc.priceGross)}</ServicePrice>
-                                    </ServiceRow>
-                                ))}
-                            </OthersPanel>
-                        </>
-                    )}
-
-                    <VisitSummaryRow>
-                        <VisitSummaryLabel>
-                            {isFiltered ? `${categoryName} w wizycie` : 'Suma wizyty'}
-                        </VisitSummaryLabel>
-                        <VisitSummaryValue>{PLN(visit.totalRevenueGross)}</VisitSummaryValue>
-                    </VisitSummaryRow>
-                </ServicesInner>
-            </ServicesPanel>
-        </VisitCard>
-    );
-};
-
-// ─── Main drawer ──────────────────────────────────────────────────────────────
+// ─── Panel ────────────────────────────────────────────────────────────────────
 
 export interface PeriodDetailDrawerProps {
     period: string | null;
     granularity: Granularity;
+    /** Zakres dat widoku (włącznie) - przycina okres na brzegu i wyznacza „zwykły" okres. */
+    startDate: string;
+    endDate: string;
+    /** Szereg wykresu (przy filtrze kategorii - szereg kategorii). */
+    series: StatsDataPoint[];
+    /** Kategorie z podziału - nazwy i kolory do „Na co poszły pieniądze". */
+    categories: CategoryBreakdownItem[];
     categoryId?: string | null;
     categoryName?: string | null;
     onClose: () => void;
 }
 
-export const PeriodDetailDrawer = ({
-    period,
-    granularity,
-    categoryId,
-    categoryName,
-    onClose,
-}: PeriodDetailDrawerProps) => {
-    const [detail, setDetail] = useState<PeriodDetail | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [closing, setClosing] = useState(false);
+export const PeriodDetailDrawer = (props: PeriodDetailDrawerProps) =>
+    props.period ? <PeriodDetailPanel {...props} period={props.period} /> : null;
 
-    const handleClose = useCallback(() => {
-        setClosing(true);
-        setTimeout(() => { setClosing(false); onClose(); }, 200);
-    }, [onClose]);
+function PeriodDetailPanel({
+    period, granularity, startDate, endDate, series, categories, categoryId, categoryName, onClose,
+}: PeriodDetailDrawerProps & { period: string }) {
+    const titleId = useId();
+    const filtered = !!categoryId;
+    const noun = PERIOD_NOUN[granularity];
 
-    useEffect(() => {
-        if (!period) return;
-        setDetail(null);
-        setLoading(true);
-        fetchPeriodDetail(period, granularity, { categoryId, categoryName })
-            .then(setDetail)
-            .finally(() => setLoading(false));
-    }, [period, granularity, categoryId, categoryName]);
+    const { data: detail, isLoading, isError, refetch, isFetching } = useQuery({
+        queryKey: ['statistics', 'period', period, granularity, categoryId ?? null, startDate, endDate],
+        queryFn: () => fetchPeriodDetail(period, granularity, { categoryId, from: startDate, to: endDate }),
+    });
 
-    useEffect(() => {
-        if (!period) return;
-        const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') handleClose(); };
-        window.addEventListener('keydown', handler);
-        return () => window.removeEventListener('keydown', handler);
-    }, [period, handleClose]);
+    const now = today();
+    const coverage = periodCoverage(period, granularity, startDate, endDate, now);
+    // Niepełny okres (trwa albo ucięty zakresem) nie dostaje porównania - niepełny
+    // tydzień wypadałby zawsze „gorzej niż zwykle".
+    const comparison = comparePeriod(series, period, p => periodCoverage(p, granularity, startDate, endDate, now).kind === 'full');
 
-    if (!period) return null;
+    // Wynik ze słupka, który się kliknęło: stoi od razu, bez czekania na listę wizyt -
+    // a serwer liczy okres tak samo (przycięty do zakresu), więc liczby się zgadzają.
+    const point = series.find(p => p.period === period);
+    const revenue = point?.totalRevenueGross ?? detail?.totalRevenueGross ?? 0;
+    const visitCount = point?.orderCount ?? detail?.orderCount ?? 0;
 
-    const isFiltered = !!categoryId;
-    const avgPerVisit = detail && detail.orderCount > 0
-        ? Math.round(detail.totalRevenueGross / detail.orderCount)
-        : 0;
+    const visits = [...(detail?.visits ?? [])].sort((a, b) => b.totalRevenueGross - a.totalRevenueGross);
+    const shares = composition(visits, categories, filtered);
+    const maxShare = shares[0]?.amount ?? 0;
+
+    const pills = [
+        filtered && <StatusPill key="cat" $tone="info">Kategoria: {categoryName}</StatusPill>,
+        coverage.kind === 'ongoing' && (
+            <StatusPill key="cov" $tone="warn">{noun.nom.charAt(0).toUpperCase() + noun.nom.slice(1)} trwa, dane do {coverageDay(coverage.until)}</StatusPill>
+        ),
+        coverage.kind === 'clipped' && (
+            <StatusPill key="cov" $tone="warn">
+                {coverage.from === coverage.to
+                    ? `Okres niepełny: tylko ${coverageDay(coverage.from)}`
+                    : `Okres niepełny: ${coverageDay(coverage.from)}–${coverageDay(coverage.to)}`}
+            </StatusPill>
+        ),
+    ].filter(Boolean);
 
     return (
-        <>
-            <Backdrop onClick={handleClose} />
-            <Drawer $closing={closing}>
+        <SideDrawer
+            onClose={onClose}
+            title={periodTitle(period, granularity)}
+            titleId={titleId}
+            status={pills.length > 0 ? pills : undefined}
+            width={520}
+        >
+            <DrawerBody>
+                <Result aria-label="Wynik okresu">
+                    <AmountLine>
+                        <Amount>{zl(revenue)}</Amount>
+                        {comparison && (
+                            <StatusPill $tone="neutral" $size="md">
+                                {isAboutTheSame(comparison)
+                                    ? 'tyle co zwykle'
+                                    : `${comparison.diff > 0 ? '+' : '\u2212'}${zl(comparison.diff)} niż zwykle`}
+                            </StatusPill>
+                        )}
+                    </AmountLine>
+                    <Sub>
+                        {visitsLabel(visitCount)}
+                        {comparison && `, zwykle ${zl(comparison.refRevenue)} z ${visitsLabel(Math.round(comparison.refCount))}`}
+                    </Sub>
+                </Result>
 
-                {/* ── Header ──────────────────────────────────── */}
-                <DrawerHeader>
-                    <HeaderTop>
-                        <HeaderMeta>
-                            <Eyebrow>Szczegóły okresu</Eyebrow>
-                            <DrawerTitle>{period}</DrawerTitle>
-                        </HeaderMeta>
-                        <CloseBtn onClick={handleClose} title="Zamknij (Esc)">✕</CloseBtn>
-                    </HeaderTop>
-
-                    {isFiltered && (
-                        <FilterBanner>
-                            <FilterDot />
-                            Tylko kategoria: {categoryName}
-                        </FilterBanner>
-                    )}
-
-                    {detail && (
-                        <KpiStrip>
-                            <KpiTile>
-                                <KpiLabel>
-                                    {isFiltered ? categoryName! : 'Przychód'}
-                                </KpiLabel>
-                                <KpiValue $color="var(--kpi-revenue, #16a34a)">
-                                    {PLN(detail.totalRevenueGross)}
-                                </KpiValue>
-                                {isFiltered && detail.totalRevenueGrossAll !== detail.totalRevenueGross && (
-                                    <KpiSub>{PLN(detail.totalRevenueGrossAll)} łącznie</KpiSub>
-                                )}
-                            </KpiTile>
-                            <KpiTile>
-                                <KpiLabel>Wizyty</KpiLabel>
-                                <KpiValue $color="var(--brand-primary, #0ea5e9)">
-                                    {detail.orderCount}
-                                </KpiValue>
-                            </KpiTile>
-                            <KpiTile>
-                                <KpiLabel>Średnio na wizytę</KpiLabel>
-                                <KpiValue $color="#d97706">
-                                    {PLN(avgPerVisit)}
-                                </KpiValue>
-                                {isFiltered && <KpiSub>w tej kategorii</KpiSub>}
-                            </KpiTile>
-                        </KpiStrip>
-                    )}
-                </DrawerHeader>
-
-                {/* ── Body ────────────────────────────────────── */}
-                {loading && (
-                    <LoadingState>
-                        <Spinner />
-                        <span>Wczytywanie wizyt…</span>
-                    </LoadingState>
+                {isError && (
+                    <Notice
+                        tone="danger"
+                        role="alert"
+                        title="Nie udało się wczytać wizyt"
+                        action={<Button size="sm" onClick={() => refetch()} disabled={isFetching}>Spróbuj ponownie</Button>}
+                    />
                 )}
 
-                {detail && !loading && (
-                    <DrawerBody>
-                        <SectionLabel>
-                            Wizyty ({detail.visits.length})
-                            <SectionRule />
-                        </SectionLabel>
-                        {detail.visits.map((visit, idx) => (
-                            <VisitItem
-                                key={visit.visitId}
-                                visit={visit}
-                                index={idx}
-                                categoryName={detail.categoryName}
-                            />
-                        ))}
-                    </DrawerBody>
+                {!isError && (isLoading || visits.length > 0) && (
+                    <>
+                        <Section aria-labelledby={`${titleId}-shares`}>
+                            <SectionTitle id={`${titleId}-shares`}>Na co poszły pieniądze</SectionTitle>
+                            {isLoading ? <Loading /> : (
+                                <Rows>
+                                    {shares.map(row => (
+                                        <ShareRow key={row.key}>
+                                            <span title={row.name}>{row.name}</span>
+                                            <span>{zl(row.amount)}</span>
+                                            <Track aria-hidden="true">
+                                                <Fill $pct={maxShare > 0 ? (row.amount / maxShare) * 100 : 0} $color={row.color} />
+                                            </Track>
+                                        </ShareRow>
+                                    ))}
+                                </Rows>
+                            )}
+                        </Section>
+
+                        <Section aria-labelledby={`${titleId}-visits`}>
+                            <SectionTitle id={`${titleId}-visits`} count={detail ? visits.length : undefined}>Wizyty</SectionTitle>
+                            {isLoading ? <Loading /> : (
+                                <VisitList>
+                                    {visits.map(visit => <li key={visit.visitId}><VisitRow visit={visit} /></li>)}
+                                </VisitList>
+                            )}
+                        </Section>
+                    </>
                 )}
-            </Drawer>
-        </>
+            </DrawerBody>
+        </SideDrawer>
     );
-};
+}
+
+function VisitRow({ visit }: { visit: PeriodVisit }) {
+    return (
+        <VisitLink to={`/visits/${visit.visitId}`} aria-label={`${visit.clientName}, ${zl(visit.totalRevenueGross)}, otwórz wizytę`}>
+            <VisitText>
+                <span>{visit.clientName}</span>
+                {visit.vehicleInfo && <span>{visit.vehicleInfo}</span>}
+            </VisitText>
+            <VisitAmount>{zl(visit.totalRevenueGross)}</VisitAmount>
+            <ChevronRight aria-hidden="true" />
+        </VisitLink>
+    );
+}
