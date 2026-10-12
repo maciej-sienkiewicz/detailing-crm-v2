@@ -95,6 +95,8 @@ export interface PeriodVisitService {
     priceGross: number;
     /** true when a category filter is active and this service belongs to it */
     inCategory?: boolean;
+    /** Aktywna kategoria usługi - panel rozkłada na nią sprzedaż okresu. */
+    categoryId?: string | null;
 }
 
 export interface PeriodVisit {

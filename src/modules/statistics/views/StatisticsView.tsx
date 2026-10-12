@@ -623,6 +623,10 @@ export const StatisticsView = () => {
             <PeriodDetailDrawer
                 period={drillPeriod}
                 granularity={granularity}
+                startDate={startDate}
+                endDate={endDate}
+                series={displayData?.data ?? []}
+                categories={breakdown?.categories ?? []}
                 categoryId={selectedCategoryId}
                 categoryName={selectedCategory?.name ?? null}
                 onClose={() => setDrillPeriod(null)}
