@@ -352,23 +352,7 @@ export default function InboxPage() {
             </ModeBar>
         ) : null;
 
-    const threads = useMemo(() => threadPage?.items ?? [], [threadPage]);
-    /*
-     * Wątki spraw z rezerwacją - te same, które w „Sprawach" stoją w sekcji „Rezerwacje".
-     * Jedno źródło (worklist), żeby obie zakładki mówiły to samo. Powiązanie czytamy z obu
-     * stron: wątek przypięty do sprawy (`leadId`) albo wątek, który sprawa uważa za swój
-     * (`lead.threadId`) - ale ten drugi tylko wtedy, gdy wątek nie jest przypięty do INNEJ
-     * sprawy; nie chowamy rozmowy z innym klientem pod cudzą rezerwacją.
-     */
-    const bookedThreadIds = useMemo(() => {
-        const leadIds = new Set(worklist.booked.entries.map((entry) => entry.lead.id));
-        const leadThreads = new Set(worklist.booked.entries.map((entry) => entry.lead.threadId).filter(Boolean));
-        return new Set(
-            threads
-                .filter((thread) => (thread.leadId ? leadIds.has(thread.leadId) : leadThreads.has(thread.id)))
-                .map((thread) => thread.id)
-        );
-    }, [worklist.booked.entries, threads]);
+    const threads = threadPage?.items ?? [];
     const listThread = threads.find((item) => item.id === threadId) ?? null;
     const noMailbox = Boolean(accounts) && !activeAccount;
 
@@ -430,7 +414,6 @@ export default function InboxPage() {
                         activeId={threadId}
                         phone={phone}
                         formSenders={formSenders}
-                        bookedThreadIds={bookedThreadIds}
                         onOpen={(id) => {
                             // Wątek sprawy otwiera się jako sprawa - z wyceną i krokiem następnym (makieta).
                             const thread = threads.find((item) => item.id === id);
