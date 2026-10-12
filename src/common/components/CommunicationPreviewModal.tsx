@@ -373,7 +373,7 @@ export const CommunicationPreviewModal = ({ entry, onClose }: Props) => {
                     </MetaItem>
                     <MetaItem>
                         <MetaLabel>
-                            {entry.status === 'RECEIVED' ? 'Otrzymano:' : entry.status === 'QUEUED' ? 'Zaplanowano:' : 'Wysłano:'}
+                            {entry.status === 'RECEIVED' ? 'Otrzymano:' : entry.status === 'QUEUED' || entry.status === 'CANCELLED' ? 'Zaplanowano:' : 'Wysłano:'}
                         </MetaLabel>
                         <MetaValue>{formatCommDate(entry.sentAt)}</MetaValue>
                     </MetaItem>
@@ -391,7 +391,9 @@ export const CommunicationPreviewModal = ({ entry, onClose }: Props) => {
                                 ? <><AlertIcon /> Błąd wysyłki</>
                                 : entry.status === 'QUEUED'
                                     ? <><ClockIcon /> Zaplanowano</>
-                                    : <><CheckIcon /> {COMMUNICATION_STATUS_LABEL[communicationTone(entry.status)]}</>
+                                    : entry.status === 'CANCELLED'
+                                        ? <>Anulowano, nie wyszła</>
+                                        : <><CheckIcon /> {COMMUNICATION_STATUS_LABEL[communicationTone(entry.status)]}</>
                             }
                         </StatusBadge>
                     </MetaItem>

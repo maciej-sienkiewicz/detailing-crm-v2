@@ -111,6 +111,11 @@ const CAMPAIGNS_BENEFITS = [
     'Wiadomości do wybranej grupy klientów',
     'Historia i skuteczność wysyłek',
 ];
+const SMS_EMAIL_BENEFITS = [
+    'Przypomnienia o wizytach i potwierdzenia rezerwacji SMS-em',
+    'Podgląd wszystkich zaplanowanych SMS-ów w jednym miejscu',
+    'Zmiana treści i terminu albo wstrzymanie wysyłki',
+];
 const INSTAGRAM_BENEFITS = [
     'Śledzenie profili konkurencji na Instagramie',
     'Analiza trendów i najpopularniejszych treści',
@@ -376,6 +381,10 @@ export const router = createBrowserRouter([
         {
             path: '/campaigns/:id/edit',
             ...lazyGatedPage(() => import('@/modules/campaigns/views/CampaignWizardView').then(m => m.CampaignWizardView), 'CAMPAIGNS', CAMPAIGNS_BENEFITS, 'COMMUNICATION_SEND'),
+        },
+        {
+            path: '/scheduled-sms',
+            ...lazyGatedPage(() => import('@/modules/scheduled-sms/views/ScheduledSmsView').then(m => m.ScheduledSmsView), 'SMS_EMAIL', SMS_EMAIL_BENEFITS, 'COMMUNICATION_SEND'),
         },
         // Legacy: stara ścieżka kampanii SMS prowadzi do nowego modułu
         {

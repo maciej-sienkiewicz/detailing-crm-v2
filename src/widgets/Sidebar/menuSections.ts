@@ -13,6 +13,7 @@ import {
     Car,
     TrendingUp,
     MessageSquare,
+    MessageSquareText,
     FileText,
     Settings,
     Inbox,
@@ -114,6 +115,8 @@ export const buildMenuSections = ({
                     badge: newLeadsCount > 0 ? newLeadsCount : unreadMailCount > 0 ? unreadMailCount : undefined,
                     alert: unreadMailCount > 0, requires: 'LEADS_MANAGE', match: ['/leads', '/communication'] },
                 { path: '/customers', label: 'Klienci',   icon: Users, requires: 'CUSTOMERS_VIEW' },
+                // Komu, co i kiedy wyjdzie SMS-em: przypomnienia, potwierdzenia, kampanie.
+                { path: '/scheduled-sms', label: 'Zaplanowane SMS-y', icon: MessageSquareText, requires: 'COMMUNICATION_SEND' },
                 { path: '/vehicles',  label: 'Pojazdy',   icon: Car,   requires: 'CUSTOMERS_VIEW' },
             ],
         },

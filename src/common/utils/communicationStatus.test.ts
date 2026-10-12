@@ -10,6 +10,11 @@ describe('communicationStatus', () => {
         expect(communicationTone('RECEIVED')).toBe('received');
     });
 
+    it('anulowana wiadomość z kolejki nie udaje wysłanej', () => {
+        expect(communicationTone('CANCELLED')).toBe('cancelled');
+        expect(COMMUNICATION_STATUS_LABEL.cancelled).toBe('Anulowano');
+    });
+
     it('podpowiedź „wyjdzie …” tylko dla wpisu w kolejce z terminem', () => {
         const hint = queuedHint({ status: 'QUEUED', scheduledFor: '2026-09-16T10:00:00Z' });
         expect(hint).toMatch(/^wyjdzie \d{2}\.\d{2}\.\d{4}, \d{2}:\d{2}$/);

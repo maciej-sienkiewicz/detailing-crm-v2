@@ -93,6 +93,7 @@ const TONE: Record<ReturnType<typeof communicationTone>, PillTone> = {
     sent: 'ok',
     received: 'info',
     queued: 'neutral',
+    cancelled: 'neutral',
     failed: 'danger',
 };
 
