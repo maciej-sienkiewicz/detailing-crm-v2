@@ -60,3 +60,37 @@ export interface UpdateScheduledSmsPayload {
     /** ISO-8601 (instant). */
     scheduledFor: string;
 }
+
+// ── Zakładka „Wysłane" - GET /api/scheduled-sms/sent ────────────────────────
+
+export type SentSmsStatus = 'SENT' | 'FAILED';
+
+export interface SentSmsCampaign {
+    id: string;
+    name: string;
+    sentCount: number;
+    failedCount: number;
+}
+
+export interface SentSmsItem {
+    /** Id wpisu dziennika komunikacji; dla kampanii id kampanii. */
+    id: string;
+    sentAt: string;
+    status: SentSmsStatus;
+    kindLabel: string;
+    messageContent: string | null;
+    customerId: string | null;
+    customerName: string | null;
+    phoneNumber: string | null;
+    visitId: string | null;
+    appointmentId: string | null;
+    /** Powód porażki, gdy status = FAILED. */
+    errorMessage: string | null;
+    campaign: SentSmsCampaign | null;
+}
+
+export interface SentSmsPage {
+    items: SentSmsItem[];
+    /** Kursor następnej strony („starsze niż"); null, gdy starszych już nie ma. */
+    nextBefore: string | null;
+}

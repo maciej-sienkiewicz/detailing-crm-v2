@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { scheduledSmsApi } from '../api/scheduledSmsApi';
 import type { ScheduledSmsItem, UpdateScheduledSmsPayload } from '../types';
 
@@ -13,6 +13,20 @@ export function useScheduledSms(days: number = DEFAULT_HORIZON_DAYS) {
         queryFn: () => scheduledSmsApi.list(days),
         // Lista żyje: dispatchery wysyłają co minutę, a pracownik zostawia ją otwartą.
         refetchInterval: 60_000,
+    });
+}
+
+/**
+ * Zakładka „Wysłane": strony od najnowszych, kolejna („Pokaż starsze") kursorem z poprzedniej.
+ * Pobierana dopiero po otwarciu zakładki - kto patrzy na kolejkę, nie potrzebuje historii.
+ */
+export function useSentSms(enabled: boolean) {
+    return useInfiniteQuery({
+        queryKey: [...KEY, 'sent'],
+        queryFn: ({ pageParam }) => scheduledSmsApi.sent(pageParam),
+        initialPageParam: null as string | null,
+        getNextPageParam: last => last.nextBefore,
+        enabled,
     });
 }
 

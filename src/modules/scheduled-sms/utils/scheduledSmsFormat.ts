@@ -36,31 +36,18 @@ export const sendDayLabel = (iso: string, now: Date = new Date()): string => {
     return formatDay(iso);
 };
 
-/** Rodzaj wiadomości - chipy filtra nad listą. */
-export type KindFilter = 'reminders' | 'confirmations' | 'afterVisit' | 'campaigns';
 
-export const KIND_FILTERS: { value: KindFilter; label: string }[] = [
-    { value: 'reminders',     label: 'Przypomnienia' },
-    { value: 'confirmations', label: 'Potwierdzenia' },
-    { value: 'afterVisit',    label: 'Po wizycie' },
-    { value: 'campaigns',     label: 'Kampanie' },
-];
-
-const KIND_OF: Record<ScheduledSmsSource, KindFilter> = {
-    PRE_VISIT: 'reminders',
-    VISIT_REMINDER: 'reminders',
-    DELAYED_REMINDER: 'reminders',
-    QUEUE: 'confirmations',
-    THANK_YOU: 'afterVisit',
-    POST_VISIT: 'afterVisit',
-    CAMPAIGN: 'campaigns',
-};
-
-export const kindOf = (item: ScheduledSmsItem): KindFilter => KIND_OF[item.source];
-
+/** Pola, po których szuka się na obu listach - zaplanowanych i wysłanych. */
+interface Searchable {
+    customerName: string | null;
+    phoneNumber: string | null;
+    messageContent: string | null;
+    kindLabel: string;
+    campaign: { name: string } | null;
+}
 
 /** Szukanie po kliencie, numerze, treści i nazwie kampanii - bez rozróżniania wielkości liter. */
-export const matchesSearch = (item: ScheduledSmsItem, query: string): boolean => {
+export const matchesSearch = (item: Searchable, query: string): boolean => {
     const q = query.trim().toLowerCase();
     if (!q) return true;
     const digits = q.replace(/\D/g, '');
