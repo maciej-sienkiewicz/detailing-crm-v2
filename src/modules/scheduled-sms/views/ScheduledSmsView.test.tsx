@@ -11,11 +11,11 @@ import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
 import { ToastProvider } from '@/common/components/Toast';
 import { scheduledSmsApi } from '../api/scheduledSmsApi';
-import type { ScheduledSmsItem, ScheduledSmsOverview } from '../types';
+import type { ScheduledSmsItem, ScheduledSmsOverview, SentSmsItem } from '../types';
 import { ScheduledSmsView } from './ScheduledSmsView';
 
 vi.mock('../api/scheduledSmsApi', () => ({
-    scheduledSmsApi: { list: vi.fn(), update: vi.fn(), cancel: vi.fn(), resume: vi.fn() },
+    scheduledSmsApi: { list: vi.fn(), sent: vi.fn(), update: vi.fn(), cancel: vi.fn(), resume: vi.fn() },
 }));
 
 const inHours = (h: number) => new Date(Date.now() + h * 3_600_000).toISOString();
@@ -40,6 +40,19 @@ const cancelled = item({
     customerName: 'Jan Nowak', cancelledAt: inHours(-1), editable: false, cancellable: false, resumable: true,
     appointmentStart: null,
 });
+
+const sentBase: SentSmsItem = {
+    id: 'l1', sentAt: inHours(-1), status: 'SENT', kindLabel: 'Przypomnienie SMS przed wizytą',
+    messageContent: 'Przypominamy o wizycie', customerId: 'c1', customerName: 'Ola Wrona', phoneNumber: '+48600100200',
+    visitId: null, appointmentId: 'a5', errorMessage: null, campaign: null,
+};
+const sentReminder = sentBase;
+const olderCursor = inHours(-48);
+const sentFailed: SentSmsItem = { ...sentBase, id: 'l2', customerName: 'Kamil Bąk', status: 'FAILED', errorMessage: 'Brak kredytów SMS' };
+const sentCampaign: SentSmsItem = {
+    ...sentBase, id: 'k9', customerId: null, customerName: null, phoneNumber: null, kindLabel: 'Kampania SMS',
+    campaign: { id: 'k9', name: 'Wiosenne mycie', sentCount: 87, failedCount: 0 },
+};
 
 const overview = (items: ScheduledSmsItem[]): ScheduledSmsOverview => ({
     items, sendWindowOpensAt: '12:00', sendWindowClosesAt: '18:00', horizonEnd: inHours(24 * 30),
@@ -68,6 +81,7 @@ beforeEach(() => {
         dispatchEvent: vi.fn(),
     }));
     vi.mocked(scheduledSmsApi.list).mockResolvedValue(overview([reminder, campaign, cancelled]));
+    vi.mocked(scheduledSmsApi.sent).mockResolvedValue({ items: [sentReminder, sentFailed, sentCampaign], nextBefore: olderCursor });
     vi.mocked(scheduledSmsApi.update).mockResolvedValue();
     vi.mocked(scheduledSmsApi.cancel).mockResolvedValue();
     vi.mocked(scheduledSmsApi.resume).mockResolvedValue();
@@ -120,7 +134,7 @@ describe('ScheduledSmsView', () => {
         renderView();
         await rowOf('Anna Kowalska');
 
-        fireEvent.click(screen.getByRole('button', { name: /Anulowane/ }));
+        fireEvent.click(screen.getByRole('tab', { name: /Anulowane/ }));
         const row = await rowOf('Jan Nowak');
         expect(screen.queryByText('Anna Kowalska')).toBeNull();
         openMenu(row);
@@ -129,16 +143,32 @@ describe('ScheduledSmsView', () => {
         await waitFor(() => expect(scheduledSmsApi.resume).toHaveBeenCalledWith(cancelled));
     });
 
-    it('filtr rodzaju i szukanie zawężają listę', async () => {
+    it('nad listą nie ma chipów filtrów, tylko zakładki i szukanie', async () => {
         renderView();
         await rowOf('Anna Kowalska');
 
-        fireEvent.click(screen.getByRole('button', { name: 'Kampanie' }));
-        expect(screen.getAllByTestId('scheduled-sms-row')).toHaveLength(1);
-        fireEvent.click(screen.getByRole('button', { name: 'Kampanie' }));
+        expect(screen.getAllByRole('tab').map(t => t.textContent)).toEqual(['Zaplanowane2', 'Anulowane1', 'Wysłane']);
+        expect(screen.queryByRole('button', { name: 'Kampanie' })).toBeNull();
 
         fireEvent.change(screen.getByLabelText('Szukaj'), { target: { value: 'kowal' } });
         expect(screen.getAllByTestId('scheduled-sms-row')).toHaveLength(1);
+    });
+
+    it('zakładka „Wysłane" pokazuje historię z wynikiem i kampanię jednym wierszem', async () => {
+        renderView();
+        await rowOf('Anna Kowalska');
+        expect(scheduledSmsApi.sent).not.toHaveBeenCalled();
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Wysłane' }));
+
+        const failedRow = (await screen.findByText('Kamil Bąk')).closest('[data-testid="sent-sms-row"]') as HTMLElement;
+        expect(within(failedRow).getByText('Nie wysłano').getAttribute('title')).toBe('Brak kredytów SMS');
+        expect(screen.getByText('Kampania Wiosenne mycie')).toBeTruthy();
+        expect(screen.getByText('87 SMS-ów wysłanych')).toBeTruthy();
+        expect(screen.getAllByTestId('sent-sms-row')).toHaveLength(3);
+
+        fireEvent.click(screen.getByRole('button', { name: 'Pokaż starsze' }));
+        await waitFor(() => expect(scheduledSmsApi.sent).toHaveBeenLastCalledWith(olderCursor));
     });
 
     it('kliknięcie w wiersz otwiera zmianę, a zapis wysyła treść i termin jako instant', async () => {

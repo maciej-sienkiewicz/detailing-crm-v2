@@ -4,13 +4,14 @@
 // wszystko, co studio ma jeszcze wysłać - przypomnienia o rezerwacjach, potwierdzenia
 // czekające na godziny wysyłki, podziękowania, SMS-y automatów i kampanie.
 //
-// Układ i mechanika są te same co na liście „Wizyty i rezerwacje": PageHeader
-// (MobilePageHeader na telefonie), karta z paskiem szukania i chipami, tabela
-// z menu „⋮", zmiana i anulowanie w oknach ModalShell, wynik w toaście.
+// Układ jak w module Pracownicy: PageHeader (MobilePageHeader na telefonie), pod nim
+// TabBar - „Zaplanowane", „Anulowane", „Wysłane" - i karta z polem szukania i listą.
+// Mechanika jak na liście wizyt: menu „⋮" na wierszu, zmiana i anulowanie w oknach
+// ModalShell, wynik w toaście.
 //
 // Kampania to JEDEN wiersz („124 SMS-y czekają"), nie 124 wiersze klientów - tu się
 // jej nie zmienia, wiersz prowadzi do widoku kampanii. Anulowany SMS nie znika:
-// przechodzi do chipa „Anulowane", skąd można go wznowić.
+// przechodzi do zakładki „Anulowane", skąd można go wznowić.
 
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
@@ -18,6 +19,7 @@ import { MessageSquareText } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
 import { PageContainer } from '@/common/components/PageContainer';
 import { PageHeader, MobilePageHeader, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
+import { TabBar, type TabDefinition } from '@/common/components/TabBar/TabBar';
 import { useBreakpoint } from '@/common/hooks';
 import { pluralPl } from '@/common/utils/plural';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -25,14 +27,16 @@ import {
     useCancelScheduledSms,
     useResumeScheduledSms,
     useScheduledSms,
+    useSentSms,
     useUpdateScheduledSms,
 } from '../hooks/useScheduledSms';
-import { ScheduledSmsFilterBar } from '../components/ScheduledSmsFilterBar';
+import { ScheduledSmsSearchBar } from '../components/ScheduledSmsSearchBar';
 import { ScheduledSmsTable } from '../components/ScheduledSmsTable';
+import { SentSmsTable } from '../components/SentSmsTable';
 import { EditScheduledSmsModal } from '../components/EditScheduledSmsModal';
 import { CancelScheduledSmsModal } from '../components/CancelScheduledSmsModal';
-import type { ScheduledSmsItem, ScheduledSmsState } from '../types';
-import { apiErrorMessage, kindOf, matchesSearch, recipientLabel, type KindFilter } from '../utils/scheduledSmsFormat';
+import type { ScheduledSmsItem } from '../types';
+import { apiErrorMessage, matchesSearch, recipientLabel } from '../utils/scheduledSmsFormat';
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
@@ -94,6 +98,8 @@ const RetryButton = styled.button`
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+type Tab = 'PENDING' | 'CANCELLED' | 'SENT';
+
 const pendingLabel = (n: number) => `${n} ${pluralPl(n, 'SMS czeka', 'SMS-y czekają', 'SMS-ów czeka')} na wysyłkę`;
 
 export const ScheduledSmsView = () => {
@@ -105,8 +111,8 @@ export const ScheduledSmsView = () => {
     const resume = useResumeScheduledSms();
 
     const [search, setSearch] = useState('');
-    const [state, setState] = useState<ScheduledSmsState>('PENDING');
-    const [kind, setKind] = useState<KindFilter | null>(null);
+    const [tab, setTab] = useState<Tab>('PENDING');
+    const sent = useSentSms(tab === 'SENT');
     const [editing, setEditing] = useState<ScheduledSmsItem | null>(null);
     const [editError, setEditError] = useState<string | null>(null);
     const [cancelling, setCancelling] = useState<ScheduledSmsItem | null>(null);
@@ -117,11 +123,21 @@ export const ScheduledSmsView = () => {
         CANCELLED: items.filter(i => i.state === 'CANCELLED').length,
     }), [items]);
     const visible = useMemo(
-        () => items.filter(i => i.state === state && (!kind || kindOf(i) === kind) && matchesSearch(i, search)),
-        [items, state, kind, search],
+        () => items.filter(i => i.state === tab && matchesSearch(i, search)),
+        [items, tab, search],
+    );
+    const sentItems = useMemo(
+        () => (sent.data?.pages ?? []).flatMap(p => p.items).filter(i => matchesSearch(i, search)),
+        [sent.data, search],
     );
     const sendWindow = data ? { opensAt: data.sendWindowOpensAt, closesAt: data.sendWindowClosesAt } : null;
-    const filtered = !!kind || !!search.trim();
+    const searching = !!search.trim();
+
+    const tabs: TabDefinition<Tab>[] = [
+        { key: 'PENDING', label: 'Zaplanowane', count: data ? counts.PENDING : undefined },
+        { key: 'CANCELLED', label: 'Anulowane', count: data ? counts.CANCELLED : undefined },
+        { key: 'SENT', label: 'Wysłane' },
+    ];
 
     const openEdit = (item: ScheduledSmsItem) => {
         setEditError(null);
@@ -160,12 +176,16 @@ export const ScheduledSmsView = () => {
         });
     };
 
-    const emptyTitle = filtered ? 'Brak wyników' : state === 'PENDING' ? 'Nic nie czeka na wysyłkę' : 'Brak anulowanych SMS-ów';
-    const emptyDescription = filtered
-        ? 'Nic nie pasuje. Zmień wyszukiwanie lub filtry.'
-        : state === 'PENDING'
-            ? 'Przypomnienia, potwierdzenia i kampanie pojawią się tutaj, gdy będą zaplanowane.'
-            : 'Anulowany SMS zostaje tu przez tydzień od swojego terminu i można go wznowić.';
+    const EMPTY: Record<Tab, [string, string]> = {
+        PENDING: ['Nic nie czeka na wysyłkę', 'Przypomnienia, potwierdzenia i kampanie pojawią się tutaj, gdy będą zaplanowane.'],
+        CANCELLED: ['Brak anulowanych SMS-ów', 'Anulowany SMS zostaje tu przez tydzień od swojego terminu i można go wznowić.'],
+        SENT: ['Nie wysłano jeszcze żadnego SMS-a', 'Wysłane SMS-y pojawią się tutaj razem z wynikiem wysyłki.'],
+    };
+    const [emptyTitle, emptyDescription] = searching
+        ? ['Brak wyników', 'Nic nie pasuje do wyszukiwania.']
+        : EMPTY[tab];
+    // Szukanie w „Wysłanych" obejmuje wczytane strony; kolejne dochodzą przyciskiem „Pokaż starsze".
+    const listError = tab === 'SENT' ? sent.isError : isError;
 
     return (
         <ViewContainer>
@@ -192,22 +212,28 @@ export const ScheduledSmsView = () => {
                     />
                 )}
 
-                <ContentCard>
-                    <ScheduledSmsFilterBar
-                        search={search}
-                        onSearchChange={setSearch}
-                        state={state}
-                        onStateChange={setState}
-                        counts={counts}
-                        kind={kind}
-                        onKindChange={setKind}
-                    />
+                <TabBar tabs={tabs} activeKey={tab} onChange={setTab} ariaLabel="Zaplanowane SMS-y" />
 
-                    {isError ? (
+                <ContentCard>
+                    <ScheduledSmsSearchBar value={search} onChange={setSearch} />
+
+                    {listError ? (
                         <ErrorBox role="alert">
-                            <div>Nie udało się wczytać zaplanowanych SMS-ów.</div>
-                            <RetryButton type="button" onClick={() => refetch()}>Spróbuj ponownie</RetryButton>
+                            <div>{tab === 'SENT' ? 'Nie udało się wczytać wysłanych SMS-ów.' : 'Nie udało się wczytać zaplanowanych SMS-ów.'}</div>
+                            <RetryButton type="button" onClick={() => (tab === 'SENT' ? sent.refetch() : refetch())}>
+                                Spróbuj ponownie
+                            </RetryButton>
                         </ErrorBox>
+                    ) : tab === 'SENT' ? (
+                        <SentSmsTable
+                            items={sentItems}
+                            isLoading={sent.isLoading}
+                            emptyTitle={emptyTitle}
+                            emptyDescription={emptyDescription}
+                            hasMore={!!sent.hasNextPage}
+                            isLoadingMore={sent.isFetchingNextPage}
+                            onLoadMore={() => sent.fetchNextPage()}
+                        />
                     ) : (
                         <ScheduledSmsTable
                             items={visible}

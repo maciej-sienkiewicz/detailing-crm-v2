@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ScheduledSmsItem } from '../types';
-import { campaignCountLabel, kindOf, matchesSearch, recipientLabel, sendDayLabel } from './scheduledSmsFormat';
+import { campaignCountLabel, matchesSearch, recipientLabel, sendDayLabel } from './scheduledSmsFormat';
 
 const item = (over: Partial<ScheduledSmsItem>): ScheduledSmsItem => ({
     source: 'QUEUE', id: 'x', kindLabel: 'SMS z potwierdzeniem rezerwacji', waitingReason: '', state: 'PENDING',
@@ -25,20 +25,11 @@ describe('scheduledSmsFormat', () => {
             campaign: { id: 'k', name: 'Jesienny przegląd', status: 'SENDING', pendingCount: 124 },
         });
         expect(recipientLabel(campaign)).toBe('Jesienny przegląd');
-        expect(kindOf(campaign)).toBe('campaigns');
         expect(campaignCountLabel(124)).toBe('124 SMS-y czekają');
         expect(campaignCountLabel(125)).toBe('125 SMS-ów czeka');
         expect(campaignCountLabel(null)).toBe('Odbiorcy w dniu wysyłki');
     });
 
-    it('rodzaje: przypomnienia, potwierdzenia, po wizycie', () => {
-        expect(kindOf(item({ source: 'PRE_VISIT' }))).toBe('reminders');
-        expect(kindOf(item({ source: 'VISIT_REMINDER' }))).toBe('reminders');
-        expect(kindOf(item({ source: 'DELAYED_REMINDER' }))).toBe('reminders');
-        expect(kindOf(item({ source: 'QUEUE' }))).toBe('confirmations');
-        expect(kindOf(item({ source: 'THANK_YOU' }))).toBe('afterVisit');
-        expect(kindOf(item({ source: 'POST_VISIT' }))).toBe('afterVisit');
-    });
 
     it('szuka po kliencie, treści i numerze bez względu na zapis numeru', () => {
         const sms = item({});
