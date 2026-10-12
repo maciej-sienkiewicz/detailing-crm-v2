@@ -6,9 +6,13 @@
 // to za mail, zanim się go otworzy: „Sprawa" (wątek zapytania) i „Klient" (nadawca
 // jest w kartotece). Archiwizacja pod kursorem (komputer) albo przesunięciem w lewo
 // (telefon) - porządki bez otwierania wątku.
+//
+// Wątki spraw z rezerwacją zwijają się w wiersz „Rezerwacje" - jak sekcja w „Sprawach".
+// Nieprzeczytany mail od klienta z rezerwacją nie może zniknąć pod klapką, więc zwinięty
+// wiersz mówi o nim akcentem.
 import { useRef, useState, type TouchEvent } from 'react';
 import styled, { css } from 'styled-components';
-import { Archive, Bell } from 'lucide-react';
+import { Archive, Bell, CalendarCheck } from 'lucide-react';
 import type { CommThread, MailFolder } from '../types';
 import { buildMailListRows } from '../utils/mailListRows';
 import { ix } from './tokens';
@@ -170,6 +174,7 @@ const Bundle = styled.button<{ $phone: boolean }>`
         text-overflow: ellipsis;
     }
     .count { flex: none; font-size: ${p => (p.$phone ? 14 : 13)}px; color: ${ix.muted}; }
+    .note { flex: none; font-size: ${p => (p.$phone ? 14 : 13)}px; font-weight: 600; color: ${ix.accentInk}; }
     &:hover { background: ${ix.surfaceAlt}; }
     &:focus-visible { outline: 2px solid ${ix.accent}; outline-offset: -2px; }
 `;
@@ -312,17 +317,29 @@ interface MailListProps {
     activeId: string | null;
     phone: boolean;
     formSenders: Set<string>;
+    /** Wątki spraw z rezerwacją - zwijane w wiersz „Rezerwacje". */
+    bookedThreadIds: ReadonlySet<string>;
     onOpen: (threadId: string) => void;
     onArchive: (thread: CommThread) => void;
     onContextMenu: (event: React.MouseEvent, thread: CommThread) => void;
     onPrefetch: (threadId: string) => void;
 }
 
-export function MailList({ threads, folder, query, loaded, hasMore, onMore, activeId, phone, formSenders, onOpen, onArchive, onContextMenu, onPrefetch }: MailListProps) {
+export function MailList({
+    threads, folder, query, loaded, hasMore, onMore, activeId, phone, formSenders, bookedThreadIds, onOpen, onArchive, onContextMenu, onPrefetch,
+}: MailListProps) {
     const [bundleOpen, setBundleOpen] = useState(false);
+    const [bookedOpen, setBookedOpen] = useState(false);
+    const searching = Boolean(query.trim());
     // Automaty zwijamy tylko w Odebranych i bez szukania - kto szuka „faktura Allegro",
-    // ma ją dostać wprost, a nie w zwiniętym wierszu.
-    const rows = buildMailListRows(threads, { bundleAutomated: folder === 'INBOX' && !query.trim(), bundleOpen });
+    // ma ją dostać wprost, a nie w zwiniętym wierszu. Rezerwacje także w Wysłanych:
+    // tam też są rozmową już domkniętą, a w Odrzuconych nie ma czego zwijać.
+    const rows = buildMailListRows(threads, {
+        bundleAutomated: folder === 'INBOX' && !searching,
+        bundleOpen,
+        bookedThreadIds: folder !== 'REJECTED' && !searching ? bookedThreadIds : undefined,
+        bookedOpen,
+    });
 
     return (
         <Scroll $phone={phone}>
@@ -339,6 +356,19 @@ export function MailList({ threads, folder, query, loaded, hasMore, onMore, acti
             )}
             {rows.map((row) => {
                 if (row.kind === 'day') return <Day key={row.key} $phone={phone}>{row.label}</Day>;
+                if (row.kind === 'bundle' && row.group === 'BOOKED') {
+                    return (
+                        <Bundle key={row.key} type="button" $phone={phone} aria-expanded={bookedOpen} onClick={() => setBookedOpen((value) => !value)}>
+                            <CalendarCheck aria-hidden="true" />
+                            <span className="texts">
+                                <span className="title">Rezerwacje</span>
+                                <span className="senders">{row.senders}</span>
+                            </span>
+                            {row.unread > 0 && <span className="note">Nieprzeczytane: {row.unread}</span>}
+                            <span className="count">{row.threads.length}</span>
+                        </Bundle>
+                    );
+                }
                 if (row.kind === 'bundle') {
                     return (
                         <Bundle key={row.key} type="button" $phone={phone} aria-expanded={bundleOpen} onClick={() => setBundleOpen((value) => !value)}>
