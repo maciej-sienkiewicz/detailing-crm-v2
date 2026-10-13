@@ -1,20 +1,21 @@
 // @vitest-environment jsdom
 //
-// Blokada po bezczynności zapisuje się od razu po wyborze. Gdy zapis się nie udał,
-// lista zostawała na nowej wartości - wyglądało to na ustawioną blokadę, której
-// serwer nie znał. Test pilnuje powrotu do wartości z serwera i widocznego błędu.
+// Blokada po bezczynności to ustawienie URZĄDZENIA: wybór zapisuje się w tej przeglądarce
+// i nie zmienia innych stanowisk studia. Dopóki urządzenie nie ma własnego ustawienia,
+// lista pokazuje dotychczasową wartość studia - tę, która naprawdę obowiązuje.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
 import { ToastProvider } from '@/common/components/Toast';
+import { getDeviceIdleTimeout } from '@/core/deviceIdleLock';
 import { SecuritySection } from './SecuritySection';
-import { idleTimeoutApi } from '../api/idleTimeoutApi';
 
 vi.mock('@/core/context/AuthContext', () => ({
-    useAuth: () => ({ user: { email: 'owner@studio.pl' }, setUser: vi.fn() }),
+    // idleTimeoutSeconds z /auth/me - dotychczasowa wartość studia.
+    useAuth: () => ({ user: { email: 'owner@studio.pl', idleTimeoutSeconds: 300 }, setUser: vi.fn() }),
 }));
 vi.mock('@/core/permissions', async importOriginal => ({
     ...(await importOriginal<typeof import('@/core/permissions')>()),
@@ -22,53 +23,61 @@ vi.mock('@/core/permissions', async importOriginal => ({
 }));
 vi.mock('./security/PinCard', () => ({ PinCard: () => null }));
 vi.mock('./account/ClearAccountModal', () => ({ ClearAccountModal: () => null }));
-vi.mock('../api/idleTimeoutApi', () => ({
-    idleTimeoutApi: { get: vi.fn(), set: vi.fn() },
-}));
 
-const renderSection = () => {
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-    return render(
-        <QueryClientProvider client={queryClient}>
-            <ThemeProvider theme={theme}>
-                <ToastProvider>
-                    <SecuritySection />
-                </ToastProvider>
-            </ThemeProvider>
-        </QueryClientProvider>,
-    );
-};
+const renderSection = () => render(
+    <QueryClientProvider client={new QueryClient()}>
+        <ThemeProvider theme={theme}>
+            <ToastProvider>
+                <SecuritySection />
+            </ToastProvider>
+        </ThemeProvider>
+    </QueryClientProvider>,
+);
 
 const select = () => screen.getByRole('combobox', { name: /czas bezczynności/i }) as HTMLSelectElement;
 
-beforeEach(() => {
-    vi.mocked(idleTimeoutApi.get).mockResolvedValue({ idleTimeoutSeconds: 300 });
-});
+beforeEach(() => localStorage.clear());
 
 afterEach(() => {
     cleanup();
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
 });
 
-describe('SecuritySection - blokada po bezczynności', () => {
-    it('udany zapis zostawia nową wartość i mówi „Zapisano"', async () => {
-        vi.mocked(idleTimeoutApi.set).mockResolvedValue({ idleTimeoutSeconds: 900 });
+describe('SecuritySection - blokada po bezczynności na tym urządzeniu', () => {
+    it('bez ustawienia na urządzeniu pokazuje wartość studia, która obowiązuje', () => {
         renderSection();
-        await waitFor(() => expect(select().value).toBe('300'));
 
-        await userEvent.selectOptions(select(), '900');
-        expect(await screen.findByText('Zapisano')).toBeTruthy();
-        expect(select().value).toBe('900');
+        expect(select().value).toBe('300');
+        expect(screen.getByText(/Tylko na tym urządzeniu/)).toBeTruthy();
     });
 
-    it('nieudany zapis wraca do wartości z serwera i pokazuje błąd', async () => {
-        vi.mocked(idleTimeoutApi.set).mockRejectedValue({ response: { status: 503, data: {} }, config: {} });
+    it('wybór zapisuje się na tym urządzeniu i mówi „Zapisano"', async () => {
         renderSection();
-        await waitFor(() => expect(select().value).toBe('300'));
 
         await userEvent.selectOptions(select(), '900');
-        expect(await screen.findByText('Nie udało się zmienić blokady ekranu')).toBeTruthy();
-        await waitFor(() => expect(select().value).toBe('300'));
+
+        expect(await screen.findByText('Zapisano')).toBeTruthy();
+        expect(select().value).toBe('900');
+        expect(getDeviceIdleTimeout()).toBe(900);
+    });
+
+    it('wyłączenie na tym urządzeniu to zapisane 0, a nie powrót do wartości studia', async () => {
+        renderSection();
+
+        await userEvent.selectOptions(select(), '0');
+
+        expect(getDeviceIdleTimeout()).toBe(0);
+        expect(select().value).toBe('0');
+    });
+
+    it('gdy przeglądarka nie pozwala zapisać, lista zostaje i jest widoczny błąd', async () => {
+        vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('QuotaExceeded'); });
+        renderSection();
+
+        await userEvent.selectOptions(select(), '900');
+
+        expect(await screen.findByText('Nie udało się zapisać blokady na tym urządzeniu')).toBeTruthy();
+        expect(select().value).toBe('300');
         expect(screen.queryByText('Zapisano')).toBeNull();
     });
 });

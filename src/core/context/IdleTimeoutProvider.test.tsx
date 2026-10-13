@@ -11,6 +11,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router';
 import type { User } from '@/modules/auth/types';
 import { SESSION_LOCKED_EVENT, resetActivityThrottleForTests } from '../sessionLock';
+import { setDeviceIdleTimeout } from '../deviceIdleLock';
 
 const auth = vi.hoisted(() => ({
     value: {
@@ -76,6 +77,33 @@ describe('IdleTimeoutProvider - blokada po bezczynności', () => {
         expect(localStorage.getItem(SIGNAL_KEY)).toMatch(/^locked:/);
         // Aplikacja pod nakładką zostaje - po PIN-ie formularz jest tam, gdzie był.
         expect(screen.getByText('formularz w toku')).toBeTruthy();
+    });
+
+    // Ustawienie per urządzenie: recepcja na widoku klientów blokuje się szybciej niż biuro,
+    // a wartość studia (15 min w /auth/me) obowiązuje tylko tam, gdzie nic nie wybrano.
+    it('ustawienie tego urządzenia wygrywa z wartością studia', () => {
+        setDeviceIdleTimeout(60);
+        renderApp();
+
+        act(() => { vi.advanceTimersByTime(MINUTE); });
+        expect(lockScreen()).not.toBeNull();
+    });
+
+    it('0 na tym urządzeniu wyłącza blokadę, choć studio ma ją ustawioną', () => {
+        setDeviceIdleTimeout(0);
+        renderApp();
+
+        act(() => { vi.advanceTimersByTime(60 * MINUTE); });
+        expect(lockScreen()).toBeNull();
+        expect(authApi.lockSession).not.toHaveBeenCalled();
+    });
+
+    it('zmiana ustawienia urządzenia działa od razu, bez przeładowania', () => {
+        renderApp();
+        act(() => { setDeviceIdleTimeout(120); });
+
+        act(() => { vi.advanceTimersByTime(2 * MINUTE); });
+        expect(lockScreen()).not.toBeNull();
     });
 
     it('praca w innej karcie nie pozwala zablokować sesji karcie leżącej w tle', () => {
