@@ -45,7 +45,7 @@ export { pluralPl } from './plural';
  */
 export { localDateTimeToInstant, instantToLocalDateTime } from './localDateTime';
 
-export { smsSegments, smsWord, hasPolishCharacters } from './smsSegments';
+export { smsSegments, smsWord, hasPolishCharacters, toAscii } from './smsSegments';
 
 export { acquireScrollLock, releaseAllScrollLocks, scrollLockCount } from './scrollLock';
 export type { ScrollLockKind, ReleaseScrollLock } from './scrollLock';

@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { Toggle } from '@/common/components/Toggle';
 import { pluralPl } from '@/common/utils/plural';
+import { toAscii } from '@/common/utils';
 import { insertToken } from '../utils/insertToken';
 import { TIMING_LABEL, type MessageSpec } from '../catalog';
 import {
@@ -55,6 +56,20 @@ const Switch = styled.div`
 const SwitchText = styled.div`
   div:first-child { font-size: 13px; font-weight: 600; color: ${st.text}; }
   div:last-child  { font-size: 12px; color: ${st.textSecondary}; }
+`;
+
+/* Podpowiedź pod zmiennymi: jak działa [...] - bez niej nawiasy wyglądają jak literówka. */
+const FragmentHint = styled.p`
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: ${st.textSecondary};
+
+  code {
+    font-family: inherit;
+    font-weight: 600;
+    color: ${st.text};
+  }
 `;
 
 const TimingRow = styled.div`
@@ -239,6 +254,10 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({ spec, channel, dra
   const placeholders = (isSms ? spec.sms : spec.email)?.placeholders ?? [];
   // Gdzie pracownik zaznacza „wyślij" - tylko te kanały mają stan domyślny do ustawienia.
   const choice = (isSms ? spec.sms : spec.email)?.choice;
+  const smsSpec = isSms ? spec.sms : undefined;
+  const alwaysOn = smsSpec?.alwaysOn;
+  const optionalFragments = smsSpec?.optionalFragments ?? false;
+  const suffix = smsSpec?.suffix;
   const subject = draft.subject ?? '';
   const ids = useId();
 
@@ -271,8 +290,12 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({ spec, channel, dra
     placeholders
   );
 
-  const resolvedBody = resolveTemplate(draft.body);
-  const segments = smsSegments(resolvedBody);
+  // Podgląd i licznik liczą też zdanie, które serwer dokleja sam - inaczej licznik
+  // pokazywałby 1 SMS przy treści, która z doklejką wychodzi jako 2.
+  const resolvedTemplate = resolveTemplate(draft.body, optionalFragments);
+  const resolvedBody = suffix && resolvedTemplate ? `${resolvedTemplate} ${suffix}` : resolvedTemplate;
+  const asciiByDefault = smsSpec?.asciiByDefault ?? false;
+  const segments = smsSegments(asciiByDefault ? toAscii(resolvedBody) : resolvedBody);
   const showTiming = Boolean(spec.timing) && isSms && draft.offsetMinutes !== undefined;
   const { value, unit } = minutesToValue(draft.offsetMinutes ?? 60);
 
@@ -280,6 +303,14 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({ spec, channel, dra
     <Body>
       <Intro>{spec.description}</Intro>
 
+      {alwaysOn ? (
+        <Switch>
+          <SwitchText>
+            <div>Wiadomość jest zawsze włączona</div>
+            <div>{alwaysOn}</div>
+          </SwitchText>
+        </Switch>
+      ) : (
       <Switch>
         <SwitchText>
           <div>{draft.enabled ? 'Wiadomość jest włączona' : 'Wiadomość jest wyłączona'}</div>
@@ -296,6 +327,7 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({ spec, channel, dra
           ariaLabel="Wysyłaj tę wiadomość"
         />
       </Switch>
+      )}
 
       {choice && (
         <Switch>
@@ -386,6 +418,13 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({ spec, channel, dra
             </VarChip>
           ))}
         </Vars>
+        {optionalFragments && (
+          <FragmentHint>
+            Tekst w nawiasach kwadratowych pojawi się tylko wtedy, gdy wszystkie zmienne
+            w środku mają wartość: <code>[Usunięto: {'{{usuniete}}'}.]</code> zniknie, gdy
+            nic nie usunięto.
+          </FragmentHint>
+        )}
         <TextArea
           ref={bodyRef}
           id={`${ids}-body`}
@@ -396,7 +435,12 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({ spec, channel, dra
         />
         <Meter>
           <span>{resolvedBody.length} {pluralPl(resolvedBody.length, 'znak', 'znaki', 'znaków')} z przykładowymi danymi</span>
-          {isSms && <span>{segments === 0 ? 'brak treści' : `${segments} ${pluralPl(segments, 'SMS', 'SMS-y', 'SMS-ów')}`}</span>}
+          {isSms && (
+            <span>
+              {segments === 0 ? 'brak treści' : `${segments} ${pluralPl(segments, 'SMS', 'SMS-y', 'SMS-ów')}`}
+              {asciiByDefault && segments > 0 && ', bez polskich znaków'}
+            </span>
+          )}
         </Meter>
       </Field>
 

@@ -28,6 +28,16 @@ import type {
 } from '../types';
 import type { ServicesChangesPayload } from '../types';
 
+/** Zmiany jeszcze niezapisane - kwoty liczy ekran z dokładnym brutto pozycji. */
+export interface ServiceChangeSmsPreviewRequest {
+    requireConfirmation: boolean;
+    addedNames: string[];
+    removedNames: string[];
+    priceChangedNames: string[];
+    totalGrossBefore: number;
+    totalGrossAfter: number;
+}
+
 const USE_MOCKS = false;
 const BASE_PATH = '/visits';
 
@@ -504,6 +514,21 @@ export const visitApi = {
             `${BASE_PATH}/${visitId}/services/`,
             payload
         );
+    },
+
+    /**
+     * Treść SMS-a o zmianach w usługach - z szablonu studia (Ustawienia komunikacji),
+     * zanim zmiany trafią do bazy. Bez „Odpisz TAK…": tę frazę dokleja serwer przy wysyłce.
+     */
+    previewServiceChangeSms: async (
+        visitId: string,
+        request: ServiceChangeSmsPreviewRequest
+    ): Promise<string> => {
+        const response = await apiClient.post<{ message: string }>(
+            `${BASE_PATH}/${visitId}/services/sms-preview`,
+            request
+        );
+        return response.data.message;
     },
 
     approveServiceChange: async (

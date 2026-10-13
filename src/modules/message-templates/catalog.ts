@@ -37,6 +37,23 @@ export interface ChannelSpec {
    * wyłącznie automatycznie albo jednym przyciskiem nie mają czego zaznaczać.
    */
   choice?: string;
+  /**
+   * Wiadomość bez przełącznika: wysyła ją pracownik z okna aplikacji, więc szablon jest
+   * zawsze włączony. Tekst mówi, skąd wychodzi - w miejscu przełącznika.
+   */
+  alwaysOn?: string;
+  /**
+   * `[...]` to fragment, który znika, gdy którakolwiek zmienna w nim jest pusta.
+   * Mirrors MessageTemplateKind.optionalFragments on the backend.
+   */
+  optionalFragments?: boolean;
+  /** Zdanie doklejane przez serwer na końcu każdej wiadomości - liczy się do długości SMS-a. */
+  suffix?: string;
+  /**
+   * Wychodzi domyślnie bez polskich znaków (pracownik może je włączyć w oknie wysyłki) -
+   * licznik SMS-ów liczy wtedy wersję bez ogonków, bo tyle zapłaci studio.
+   */
+  asciiByDefault?: boolean;
 }
 
 export interface MessageSpec {
@@ -57,6 +74,20 @@ const CUSTOMER_FULL = [...CUSTOMER, 'imie_nazwisko'];
 const SCHEDULE = ['data', 'godzina'];
 const VEHICLE = ['pojazd', 'rejestracja'];
 const VISIT = ['numer_wizyty'];
+
+/**
+ * Klocki SMS-a o zmianach usług. Gotowej zmiennej „opis zmian" nie ma celowo: studio
+ * składa opis samo, a fragment w [...] znika, gdy danej zmiany nie było.
+ */
+const SERVICE_CHANGE = [
+  ...CUSTOMER, ...VEHICLE, ...VISIT,
+  'dodane', 'usuniete', 'zmienione',
+  'liczba_dodanych', 'liczba_usunietych', 'liczba_zmienionych', 'liczba_zmian',
+  'poprzednia_cena', 'nowa_cena', 'roznica',
+  'termin_odbioru', 'link',
+];
+const SERVICE_CHANGE_ORIGIN =
+  'Wysyła ją pracownik przy zapisie zmian w usługach wizyty, gdy zaznaczy powiadomienie klienta. Przed wysłaniem może poprawić treść.';
 
 export const MESSAGES: MessageSpec[] = [
   {
@@ -142,6 +173,37 @@ export const MESSAGES: MessageSpec[] = [
     },
   },
 
+  {
+    key: 'serviceChangeConsent',
+    stage: 'inWork',
+    name: 'Zmiana usług: prośba o zgodę',
+    description:
+      'Pracownik zmienił usługi w trakcie wizyty i klient ma je zaakceptować. Zdanie „Odpisz TAK, aby zaakceptować.” dopisujemy sami na końcu - bez niego klient nie wie, jak potwierdzić, więc nie ma go w szablonie.',
+    trigger: 'Przy zapisie zmian w usługach z potwierdzeniem klienta',
+    sms: {
+      ruleKey: 'serviceChangeConsent',
+      placeholders: SERVICE_CHANGE,
+      alwaysOn: SERVICE_CHANGE_ORIGIN,
+      optionalFragments: true,
+      suffix: 'Odpisz TAK, aby zaakceptować.',
+      asciiByDefault: true,
+    },
+  },
+  {
+    key: 'serviceChangeNotice',
+    stage: 'inWork',
+    name: 'Zmiana usług: informacja',
+    description:
+      'Pracownik zmienił usługi w trakcie wizyty i tylko informuje klienta - bez prośby o odpowiedź.',
+    trigger: 'Przy zapisie zmian w usługach bez potwierdzenia',
+    sms: {
+      ruleKey: 'serviceChangeNotice',
+      placeholders: SERVICE_CHANGE,
+      alwaysOn: SERVICE_CHANGE_ORIGIN,
+      optionalFragments: true,
+      asciiByDefault: true,
+    },
+  },
   {
     key: 'upsellConsent',
     stage: 'inWork',

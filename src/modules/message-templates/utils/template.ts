@@ -23,6 +23,19 @@ export const PREVIEW_VALUES: Record<string, string> = {
   okres: '01.06.2026 - 30.06.2026',
   kwota_brutto: '12 480,00 zł',
   liczba_wpisow: '18',
+  // Zmiana usług w podglądzie: dodano i zmieniono cenę, nic nie usunięto - żeby było
+  // widać, że fragment „[Usunięto: {{usuniete}}.]" znika, gdy danej zmiany nie było.
+  dodane: 'Powłoka ceramiczna',
+  usuniete: '',
+  zmienione: 'Kontrola po zabezpieczeniu',
+  liczba_dodanych: '1 usługa',
+  liczba_usunietych: '',
+  liczba_zmienionych: '1 usługa',
+  liczba_zmian: '2 usługi',
+  poprzednia_cena: '1 200,00 zł',
+  nowa_cena: '3 690,00 zł',
+  roznica: '2 490,00 zł',
+  termin_odbioru: '18.06.2026',
 };
 
 export const VAR_LABELS: Record<string, string> = {
@@ -42,15 +55,42 @@ export const VAR_LABELS: Record<string, string> = {
   okres: 'okres',
   kwota_brutto: 'kwota brutto',
   liczba_wpisow: 'liczba aut',
+  dodane: 'dodane usługi',
+  usuniete: 'usunięte usługi',
+  zmienione: 'usługi ze zmienioną ceną',
+  liczba_dodanych: 'ile dodanych',
+  liczba_usunietych: 'ile usuniętych',
+  liczba_zmienionych: 'ile ze zmienioną ceną',
+  liczba_zmian: 'ile zmian razem',
+  poprzednia_cena: 'cena przed zmianą',
+  nowa_cena: 'cena po zmianie',
+  roznica: 'różnica w cenie',
+  termin_odbioru: 'termin odbioru',
 };
 
 const TOKEN = /\{\{\s*(\w+)\s*\}\}/g;
+const FRAGMENT = /\[([^[\]]*)\]/g;
 
-/** Renders a template with sample data. Unknown tokens are left visible on purpose. */
-export function resolveTemplate(template: string): string {
-  return template.replace(TOKEN, (match, key: string) =>
+/**
+ * Renders a template with sample data. Unknown tokens are left visible on purpose.
+ *
+ * `optionalFragments` - ta sama reguła co MessageTemplateRenderer na serwerze: `[...]`
+ * zostaje bez nawiasów, gdy każda zmienna w środku ma wartość, a znika, gdy któraś jest
+ * pusta. Nawiasy bez zmiennej to zwykły tekst.
+ */
+export function resolveTemplate(template: string, optionalFragments = false): string {
+  const withFragments = optionalFragments
+    ? template.replace(FRAGMENT, (match, inner: string) => {
+        const keys = Array.from(inner.matchAll(TOKEN)).map(m => m[1]);
+        if (keys.length === 0) return match;
+        // Nieznana zmienna zostaje widoczna (patrz niżej), więc fragmentu nie gasi.
+        return keys.every(key => !(key in PREVIEW_VALUES) || PREVIEW_VALUES[key] !== '') ? inner : '';
+      })
+    : template;
+  const resolved = withFragments.replace(TOKEN, (match, key: string) =>
     key in PREVIEW_VALUES ? PREVIEW_VALUES[key] : match
   );
+  return optionalFragments ? resolved.replace(/[ \t]{2,}/g, ' ').trim() : resolved;
 }
 
 /** Tokens the studio typed that this message cannot fill: the backend rejects these. */
