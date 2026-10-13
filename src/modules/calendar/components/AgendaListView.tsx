@@ -417,8 +417,13 @@ export const AgendaListView: React.FC<AgendaListViewProps> = ({
     // Liczymy offset i ustawiamy scrollTop samego kontenera zamiast wołać
     // scrollIntoView: ten przewija KAŻDEGO przewijalnego przodka, więc razem
     // z listą przesuwał całą stronę i chował nad ekranem pasek zakładek.
+    //
+    // Zależność to DZIEŃ docelowy, a nie surowe `focusDate`: kalendarz podawał tu
+    // `new Date().toISOString()`, więc każde przerysowanie (otwarcie i zamknięcie
+    // popovera wizyty) dawało nową wartość i przewijało przewiniętą listę z powrotem
+    // do dziś (zgłoszenie biznesu).
+    const target = focusDate ? toDateKey(new Date(focusDate)) : todayKey;
     useEffect(() => {
-        const target = focusDate ? toDateKey(new Date(focusDate)) : todayKey;
         const el = document.getElementById(`agenda-day-${target}`);
         const container = scrollRef.current;
         if (!el || !container) return;
@@ -426,7 +431,7 @@ export const AgendaListView: React.FC<AgendaListViewProps> = ({
             - container.getBoundingClientRect().top
             + container.scrollTop;
         container.scrollTop = Math.max(0, offset);
-    }, [rangeStart, rangeEnd, focusDate, todayKey]);
+    }, [rangeStart, rangeEnd, target]);
 
     return (
         <Root>

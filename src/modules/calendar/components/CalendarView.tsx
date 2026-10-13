@@ -2965,7 +2965,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             : undefined}
                         rangeStart={dateRange.start}
                         rangeEnd={dateRange.end}
-                        focusDate={new Date().toISOString()}
                         onEventClick={(eventData, anchor) => {
                             setPopoverEvent(eventData);
                             setPopoverAnchor(anchor);
