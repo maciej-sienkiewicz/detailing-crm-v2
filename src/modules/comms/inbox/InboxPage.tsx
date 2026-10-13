@@ -373,16 +373,15 @@ export default function InboxPage() {
                 <div style={{ padding: 16, overflowY: 'auto' }}><MailboxSyncPanel /></div>
             ) : tab === 'sprawy' ? (
                 archive ? (
-                    <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 8px' }}>
-                        <LeadArchive
-                            bundle={archiveBundle}
-                            query={archiveQuery}
-                            onQueryChange={setArchiveQuery}
-                            status={archiveStatus}
-                            onStatusChange={setArchiveStatus}
-                            onOpen={(id) => nav.openCase(id)}
-                        />
-                    </div>
+                    <LeadArchive
+                        bundle={archiveBundle}
+                        query={archiveQuery}
+                        status={archiveStatus}
+                        onStatusChange={setArchiveStatus}
+                        onOpen={(id) => nav.openCase(id)}
+                        activeId={leadId}
+                        phone={phone}
+                    />
                 ) : (
                     <CaseList
                         worklist={worklist}

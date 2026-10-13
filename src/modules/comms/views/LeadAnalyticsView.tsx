@@ -1,505 +1,225 @@
 // src/modules/comms/views/LeadAnalyticsView.tsx
-// Analityka leadów jako RACHUNEK PIENIĘDZY, nie raport ze wskaźnikami.
+// „Pieniądze w zapytaniach" - wynik zapytań z wybranego okresu, prostymi liczbami.
 //
-// ── Dlaczego tak mało ──────────────────────────────────────────────────────
+// Odpowiada na trzy pytania właściciela, w tej kolejności:
+//   1. Ile przyszło zapytań, ile z nich zostało zleceniami i za ile (lejek w jednej karcie).
+//   2. Co z resztą: ile spraw jeszcze trwa, ile przepadło i dlaczego (dwa wiersze,
+//      każdy prowadzi do tych spraw).
+//   3. Jak to wygląda w roku (słupki wartości zleceń miesiąc po miesiącu).
 //
-// Właściciel studia detailingowego dostaje 60–110 zapytań miesięcznie, o cenach
-// od trzystu złotych po dziesięć tysięcy. Przy tym wolumenie prawie każdy wykres
-// rozkładu i skuteczności - macierz dni tygodnia, słupki wygrane/przegrane po
-// usłudze, skuteczność po segmencie auta, po kanale, po czasie odpowiedzi - to
-// szum: trzy-pięć rozstrzygniętych rozmów na słupek, gdzie jedno zlecenie
-// przewraca wynik. Taki wykres wygląda na dane, a niesie przypadek. Dlatego ich
-// tu nie ma. Zostało to, na czym da się podjąć decyzję, i wszystko w złotówkach.
-//
-// FRONT (widać od razu, ~1 ekran, bez klikania):
-//  1. Ile ZAMKNĄŁEŚ w tym okresie - jedna duża kwota (wonValue). Zielona krawędź:
-//     to fakt, nie alarm. Świeże studio bez wygranej dostaje „w toku", nie 0 zł.
-//  2. Wartość zapytań - jedna belka: zamknięte / w toku / ucichło / stracone.
-//  3. Jedno działanie - odezwij się do rozmów, które ucichły (odzysk za 0 zł).
-//
-// SZCZEGÓŁY (zwinięte pod „Zobacz szczegóły", dla ciekawskiego):
-//  • Powody straconych zleceń - w złotówkach, każdy klikalny.
-//  • Skąd przychodzą zapytania - ranking kanałów po liczbie.
-//  • Czy szybka odpowiedź się opłaca - jedno zdanie werdyktu.
-//  • Zamknięte pieniądze miesiąc po miesiącu - jedyny prawdziwy wykres (Recharts),
-//    tylko przy dłuższym zakresie i realnym wolumenie.
-import { useState } from 'react';
+// Poprzednia wersja liczyła to samo, ale pokazywała belkę czterech pojęć („zamknięte,
+// w toku, ucichło, stracone"), kwotę-bohatera bez liczby zapytań, pasek z wezwaniem,
+// wykres liniowy z przełącznikiem jednostki i zwinięte „Zobacz szczegóły" z trzema
+// kolejnymi kartami. Biznes ocenił ją jako nieczytelną - stąd jedna karta, dwa wiersze
+// i jeden wykres, wszystko z samymi liczbami i krótkimi podpisami.
 import { Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import styled from 'styled-components';
-import { ArrowLeft, ArrowRight, ChevronDown, Eye, EyeOff, Sparkles } from 'lucide-react';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { ArrowLeft, ChevronRight, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
+import { Card, SectionTitle, ui } from '@/common/components/ui';
+import { pluralPl } from '@/common/utils/plural';
 import { useLeadAnalytics } from '../hooks/useLeads';
-import type { LeadAnalytics, LeadStatus } from '../types';
-import { EmptyHint } from '../components/shared';
+import type { LeadAnalytics } from '../types';
 import { PeriodPicker } from '../components/analytics/PeriodPicker';
-import { buildPeriod, formatShort, type Period } from '../components/analytics/period';
+import { buildPeriod, type Period } from '../components/analytics/period';
 import { buildDemoAnalytics } from '../components/analytics/demoData';
-import { Hero, LeakList, MoneyLedger } from '../components/analytics/money';
-import { AnalyticsCard, IntakeYearChart, RankedBars, type YearPoint } from '../components/analytics/charts';
-import { SOURCE_LABELS, formatMoney, percent, points } from '../components/analytics/tokens';
+import { formatMinutes, formatMoney } from '../components/analytics/tokens';
 
-// ── Progi ────────────────────────────────────────────────────────────────────
-
-/**
- * Poniżej tylu zapytań większość liczb i tak nic nie znaczy, więc zamiast szczegółów
- * proponujemy podgląd na przykładzie. Kwota zamknięta i belka zostają - są prawdziwe
- * od pierwszego zlecenia; chowa się dopiero sekcja pogłębiona.
- */
+/** Poniżej tylu zapytań procenty skaczą od jednej sprawy - mówimy to wprost. */
 const THIN_DATA_BELOW = 10;
-/** Powody straty mają sens, gdy jest ich z czego złożyć. */
-const MIN_LEADS_FOR_LEAKS = 15;
-/** Ranking kanałów po liczbie zapytań - solidny dopiero od pewnej próby. */
-const MIN_LEADS_FOR_SOURCE = 25;
-/** Poniżej tylu rozstrzygniętych rozmów w kanale jego skuteczność (%) to szum - pokazujemy samą liczbę. */
-const MIN_CLOSED_FOR_SOURCE_RATE = 10;
-/** Werdykt „czy szybka odpowiedź się opłaca" pokazujemy dopiero przy realnym wolumenie. */
-const MIN_LEADS_FOR_SPEED = 40;
 
-/** Stan rozwinięcia sekcji szczegółów - per przeglądarka, przeżywa odświeżenie. */
-const DEEP_OPEN_KEY = 'leadAnalytics.deepOpen';
-
-/** Skróty miesięcy na oś wykresu rocznego. */
 const MONTH_ABBR = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
 
-// ── Obudowa ────────────────────────────────────────────────────────────────
+const orders = (n: number) => `${n} ${pluralPl(n, 'zlecenie', 'zlecenia', 'zleceń')}`;
+const cases = (n: number) => `${n} ${pluralPl(n, 'sprawa', 'sprawy', 'spraw')}`;
 
-const ViewContainer = styled.main`
+// ── Układ ────────────────────────────────────────────────────────────────────
+
+const Page = styled.main`
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    padding: ${p => p.theme.spacing.md};
-    max-width: 1180px;
-    margin: 0 auto;
+    gap: 24px;
     width: 100%;
-    /* Kontener zapytań szerokości: karty w środku patrzą na szerokość widoku,
-       nie okna - ten sam kod stoi raz na pełnym ekranie, raz w wąskim panelu. */
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 16px;
     container-type: inline-size;
 
-    @media (min-width: ${p => p.theme.breakpoints.md}) { padding: ${p => p.theme.spacing.xl}; }
-    @media (min-width: ${p => p.theme.breakpoints.xl}) { padding: ${p => p.theme.spacing.xxl}; }
+    @media (min-width: 768px) { padding: 32px; }
 `;
 
-/**
- * Obudowa analityki wstawionej w panel widoku leadów (desktop): lekki nagłówek
- * z samym wyborem okresu, przewijanie w obrębie panelu, bez linku „← Leady".
- */
-const EmbeddedShell = styled.div`
+const Section = styled.section`
     display: flex;
     flex-direction: column;
-    height: 100%;
-    min-height: 0;
-    /* Szara podłoga aplikacji, nie biel: dopiero na niej białe karty czytają się
-       jako uniesione powierzchnie, a nie płaskie prostokąty na bieli. */
-    background: ${p => p.theme.colors.background};
+    gap: 10px;
+    min-width: 0;
 `;
 
-/**
- * Nagłówek stoi POZA obszarem przewijania: rozwijany wybór okresu jest pozycjonowany
- * absolutnie (bez portalu), więc w kontenerze z overflow zostałby przycięty.
- *
- * Bez tytułu: „Pieniądze w zapytaniach / Podsumowanie za wrzesień" nic nie wnosiło -
- * że to pieniądze w zapytaniach, wiadomo z kolejki obok, a okres i tak mówi wybór
- * okresu oraz kwota-bohater niżej („Zamknięte w tym miesiącu"). Po lewej stoi za to
- * liczba zapytań z wybranego okresu: jedyny fakt o SKALI, którego nie ma nigdzie
- * indziej (kolejka liczy otwarte sprawy, nie zapytania okresu), i mianownik dla
- * kwot niżej - „125 800 zł zamknięte z 63 zapytań" znaczy co innego niż z 6.
- */
-const EmbeddedHeader = styled.header`
+/* Lejek: trzy liczby obok siebie, w wąskiej szerokości jedna pod drugą. */
+const Funnel = styled(Card)`
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    align-items: center;
+    gap: 12px;
+    padding: 24px;
+
+    @container (max-width: 620px) {
+        grid-template-columns: 1fr;
+        gap: 18px;
+        padding: 20px;
+        .arrow { display: none; }
+    }
+
+    .arrow { width: 20px; height: 20px; color: ${ui.textFaint}; }
+`;
+
+const Step = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+
+    .label { font-size: 13px; font-weight: 600; color: ${ui.textSecondary}; }
+    .value {
+        font-size: 30px;
+        line-height: 1.15;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: ${ui.ink};
+        font-variant-numeric: tabular-nums;
+    }
+    .note { font-size: 13px; color: ${ui.textMuted}; font-variant-numeric: tabular-nums; }
+`;
+
+const Rows = styled.div`
+    display: flex;
+    flex-direction: column;
+    border: 1px solid ${ui.line};
+    border-radius: ${ui.radiusPanel};
+    background: ${ui.surface};
+    overflow: hidden;
+`;
+
+const Row = styled.button`
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-shrink: 0;
-    padding: 12px 20px;
-    background: ${p => p.theme.colors.background};
-    border-bottom: 1px solid ${st.border};
-`;
-
-/** Powrót z podsumowania na ekran startowy - ten sam kształt co „Wróć do kolejki". */
-const BackToStart = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 4px 8px 4px 4px;
+    gap: 14px;
+    width: 100%;
+    padding: 14px 18px;
     border: none;
+    border-top: 1px solid ${ui.lineSoft};
     background: transparent;
-    color: ${p => p.theme.colors.primary};
     font-family: inherit;
-    font-size: 13px;
-    font-weight: ${p => p.theme.fontWeights.medium};
+    text-align: left;
+    color: ${ui.ink};
     cursor: pointer;
 
-    &:hover { text-decoration: underline; }
-    &:focus-visible { outline: 2px solid ${p => p.theme.colors.primary}; outline-offset: 1px; }
+    &:first-child { border-top: none; }
+    &:is(button):hover { background: ${ui.surfaceSoft}; }
+    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: -2px; }
+    &:is(div) { cursor: default; }
+
+    .text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .title { font-size: 14.5px; font-weight: 600; }
+    .note {
+        font-size: 13px;
+        color: ${ui.textMuted};
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .amount {
+        flex: none;
+        font-size: 15px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+    }
+    svg { flex: none; width: 16px; height: 16px; color: ${ui.textFaint}; }
+`;
+
+const ChartFrame = styled.div`
+    padding: 16px 12px 8px;
+    border: 1px solid ${ui.line};
+    border-radius: ${ui.radiusPanel};
+    background: ${ui.surface};
+`;
+
+const Banner = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 12px 16px;
+    border: 1px solid ${ui.warnLine};
+    border-radius: ${ui.radiusStrip};
+    background: ${ui.warnTint};
+    color: ${ui.warnInk};
+    font-size: 13.5px;
+
+    > svg { width: 16px; height: 16px; flex: none; }
+    .grow { flex: 1; min-width: 200px; }
+`;
+
+const GhostButton = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border: 1px solid ${ui.line};
+    border-radius: ${ui.radiusControl};
+    background: ${ui.surface};
+    color: ${ui.inkSoft};
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
 
     svg { width: 15px; height: 15px; }
+    &:hover { border-color: ${ui.lineStrong}; }
 `;
 
-const HeaderCount = styled.span`
-    min-width: 0;
-    font-size: 14px;
-    font-weight: ${p => p.theme.fontWeights.semibold};
-    color: ${st.text};
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-`;
-
-/** Sama treść analityki się przewija; nagłówek z wyborem okresu zostaje na miejscu. */
-const EmbeddedBody = styled.div`
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    padding: 4px 20px 40px 20px;
-    /* Kontener zapytań szerokości: karty reagują na szerokość PANELU (~600px),
-       nie okna desktopu - dzięki temu układ się nie rozjeżdża. */
-    container-type: inline-size;
-
-    /*
-     * W kolumnie flex o ustalonej wysokości dzieci domyślnie się KURCZĄ, więc karty
-     * z overflow:hidden były ściskane do jednej linijki. Każda sekcja ma zachować
-     * naturalną wysokość, a nadmiar oddać do przewijania.
-     */
-    & > * {
-        flex-shrink: 0;
-    }
-`;
-
-/**
- * Pusta analityka nie kończy się na „wróć tu potem". Studio, które dopiero zaczyna,
- * widzi tu, po co w ogóle zbierać leady - pusty ekran uczy, że nic nie ma, wypełniony
- * przykładem uczy, co tu będzie.
- */
-const EmptyCard = styled.section`
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    box-shadow: ${st.shadowSm};
-    padding: 40px 32px;
+const Empty = styled.div`
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
+    padding: 24px;
+    border: 1px solid ${ui.line};
+    border-radius: ${ui.radiusPanel};
+    background: ${ui.surface};
 
-    h2 {
-        margin: 0;
-        font-size: 20px;
-        font-weight: ${p => p.theme.fontWeights.semibold};
-        color: ${st.text};
-    }
-    p {
-        margin: 0;
-        font-size: 14px;
-        line-height: 1.55;
-        color: ${st.textSecondary};
-        max-width: 58ch;
-    }
-
-    @media (max-width: ${p => p.theme.breakpoints.sm}) {
-        padding: 28px 18px;
-    }
+    h2 { margin: 0; font-size: 16px; color: ${ui.ink}; }
+    p { margin: 0; font-size: 14px; color: ${ui.textMuted}; }
 `;
 
-/** Zaproszenie do trybu pokazowego przy szczupłych, ale prawdziwych danych. */
-const ThinDataBar = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-    padding: 12px 16px;
-    border-radius: ${st.radius};
-    background: ${st.bgCardAlt};
-    border: 1px solid ${st.border};
-    font-size: 13px;
-    color: ${st.textSecondary};
-
-    .grow { flex: 1; min-width: 200px; }
-`;
-
-/**
- * Pasek trybu pokazowego - jedyne miejsce, w którym zostaje bursztyn, bo jedynym
- * realnym niebezpieczeństwem tej funkcji jest pomylenie przykładu z własnym wynikiem.
- */
-const DemoBanner = styled.div`
-    position: sticky;
-    top: 8px;
-    z-index: 5;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-    padding: 12px 16px;
-    border-radius: ${st.radius};
-    background: ${p => p.theme.colors.warningLight};
-    border: 1px solid ${p => p.theme.colors.warning}55;
-    box-shadow: ${st.shadowSm};
-    font-size: 13px;
-    color: #92400e;
-
-    svg { width: 16px; height: 16px; flex-shrink: 0; }
-    .grow { flex: 1; min-width: 180px; }
-    strong { font-weight: ${p => p.theme.fontWeights.semibold}; }
-`;
-
-const DemoButton = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    border: 1px solid ${st.border};
-    background: ${st.bgCard};
-    color: ${st.text};
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: ${p => p.theme.fontWeights.semibold};
-    padding: 9px 16px;
-    border-radius: ${st.radiusFull};
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 160ms ease;
-
-    svg { width: 15px; height: 15px; }
-    &:hover { border-color: ${st.borderHover}; box-shadow: ${st.shadowSm}; }
-`;
-
-/**
- * Jedyne wezwanie do działania na froncie: odezwij się do rozmów, które ucichły.
- * Zdanie-bohater już nie ma przycisku - rachunek stwierdza, nie rozkazuje. Ale jedno
- * da się naprawić dziś i za zero złotych: rozmowy, które ostygły. Cienka niebieska
- * listwa i strzałka to ten sam język, co klikalne kwoty niżej - zaproszenie, nie alarm.
- */
-const ActionStrip = styled.button`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-    width: 100%;
-    text-align: left;
-    padding: 15px 18px;
-    border: 1px solid ${st.border};
-    border-left: 3px solid ${st.accentBlue};
-    background: ${st.bgCard};
-    border-radius: ${st.radius};
-    box-shadow: ${st.shadowSm};
-    cursor: pointer;
-    font-family: inherit;
+const Muted = styled.p`
+    margin: 0;
     font-size: 14px;
-    line-height: 1.4;
-    color: ${st.textSecondary};
-    transition: border-color 160ms ease, box-shadow 160ms ease;
-
-    strong {
-        color: ${st.text};
-        font-weight: ${p => p.theme.fontWeights.semibold};
-    }
-    .go {
-        width: 18px;
-        height: 18px;
-        flex-shrink: 0;
-        color: ${st.accentBlue};
-        transition: transform 160ms ease;
-    }
-    &:hover { border-color: ${st.borderHover}; box-shadow: ${st.shadowMd}; }
-    &:hover .go { transform: translateX(3px); }
+    color: ${ui.textMuted};
 `;
 
-/**
- * Zastępuje zdanie-bohatera, gdy w okresie nic jeszcze nie zamknięto, A panel stoi
- * OBOK kolejki (desktop). Kwotę „w toku" pokazuje już pasek nad kolejką po lewej -
- * powtórzenie jej tutaj wielką liczbą to ta sama informacja w dwóch panelach naraz.
- * Analityka jest rachunkiem OKRESU (co zamknięto), a nie kopią kolejki, więc bez
- * wygranej mówi to wprost i odsyła do kolejki, zamiast dublować jej liczbę.
- */
-const PipelineCoach = styled.section`
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-left: 3px solid ${st.accentBlue};
-    border-radius: ${st.radius};
-    box-shadow: ${st.shadowSm};
-    padding: 22px 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+// ── Widok ────────────────────────────────────────────────────────────────────
 
-    h3 {
-        margin: 0;
-        font-size: 18px;
-        font-weight: ${p => p.theme.fontWeights.bold};
-        letter-spacing: -0.01em;
-        color: ${st.text};
-    }
-    p {
-        margin: 0;
-        font-size: 14px;
-        line-height: 1.5;
-        color: ${st.textSecondary};
-        max-width: 54ch;
-    }
-    .reward {
-        margin-top: 8px;
-        font-size: 13px;
-        font-weight: ${p => p.theme.fontWeights.semibold};
-        color: #047857;
-    }
-`;
-
-/**
- * Granica między „dziś" a „przy okazji". Szczegóły są domyślnie zwinięte: większość
- * wejść to szybki rzut oka na pieniądze, a nie studiowanie wykresów. Kto chce, rozwija
- * - i stan tego wyboru zostaje zapamiętany.
- */
-const DeepToggle = styled.button`
-    margin-top: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    width: 100%;
-    padding: 15px 18px;
-    border: 1px solid ${st.border};
-    background: ${st.bgCard};
-    border-radius: ${st.radius};
-    box-shadow: ${st.shadowSm};
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: ${p => p.theme.fontWeights.semibold};
-    color: ${st.text};
-    transition: border-color 160ms ease, box-shadow 160ms ease;
-
-    &:hover { border-color: ${st.borderHover}; }
-
-    svg {
-        width: 18px;
-        height: 18px;
-        color: ${st.textSecondary};
-        transition: transform 200ms ease;
-    }
-    svg.open { transform: rotate(180deg); }
-`;
-
-interface LeadAnalyticsViewProps {
-    /**
-     * true = analityka renderowana jako panel w widoku leadów (desktop): bez PageHeadera
-     * i linku powrotu, przewijana w panelu; odnośniki sterują tym samym widokiem.
-     */
-    embedded?: boolean;
-    /** Embedded: wróć do kolejki (zamiast navigate('/leads')). */
-    onOpenQueue?: () => void;
-    /** Embedded: pokaż archiwum, opcjonalnie z filtrem statusu (zamiast navigate('/leads?status=...')). */
-    onOpenArchive?: (status?: LeadStatus) => void;
-    /**
-     * Embedded: wyjście z podsumowania z powrotem na ekran startowy.
-     *
-     * Odkąd analityka nie jest domyślną treścią panelu, musi mieć drzwi: panel
-     * bez wyjścia zostawiałby użytkownika w raporcie, do którego wszedł na chwilę.
-     */
-    onBack?: () => void;
-}
-
-export default function LeadAnalyticsView({
-    embedded = false,
-    onOpenQueue,
-    onOpenArchive,
-    onBack,
-}: LeadAnalyticsViewProps) {
+export default function LeadAnalyticsView() {
     // „Ten miesiąc" domyślnie: właściciel rozlicza się miesiącami (księgowa, podatek, ZUS).
     const [period, setPeriod] = useState<Period>(() => buildPeriod('current', new Date()));
     const [demo, setDemo] = useState(false);
     const { data, isLoading } = useLeadAnalytics(period.from, period.to);
 
-    // Wykres roczny: zawsze pełny bieżący rok (styczeń–grudzień), niezależnie od
-    // wybranego okresu - stąd osobne zapytanie o cały rok.
-    const currentYear = new Date().getFullYear();
-    const yearQuery = useLeadAnalytics(new Date(currentYear, 0, 1), new Date(currentYear, 11, 31, 23, 59, 59, 999));
+    // Wykres zawsze za pełny bieżący rok, niezależnie od wybranego okresu.
+    const year = new Date().getFullYear();
+    const yearQuery = useLeadAnalytics(new Date(year, 0, 1), new Date(year, 11, 31, 23, 59, 59, 999));
 
-    const thin = Boolean(data) && data!.totalCreated < THIN_DATA_BELOW;
     const shown = demo ? buildDemoAnalytics(period.from, period.to) : data;
     const yearSeries = demo ? buildDemoYearSeries() : buildYearSeries(yearQuery.data);
 
-    const body = (
-        <>
-            {isLoading && <EmptyHint>Liczenie…</EmptyHint>}
-
-            {demo && (
-                <DemoBanner role="status">
-                    <Sparkles />
-                    <span className="grow">
-                        <strong>Dane przykładowe.</strong> Tak wygląda ten widok w studiu,
-                        do którego wpływa około stu zapytań miesięcznie. Prawdziwe dane są ukryte.
-                    </span>
-                    <DemoButton type="button" onClick={() => setDemo(false)}>
-                        <EyeOff /> Schowaj
-                    </DemoButton>
-                </DemoBanner>
-            )}
-
-            {!demo && data && data.totalCreated === 0 && (
-                <EmptyCard>
-                    <h2>Brak zapytań w tym okresie</h2>
-                    <p>
-                        Możesz zobaczyć, jak ten widok wygląda z danymi.
-                    </p>
-                    <DemoButton type="button" onClick={() => setDemo(true)}>
-                        <Eye /> Pokaż przykład
-                    </DemoButton>
-                </EmptyCard>
-            )}
-
-            {!demo && thin && data && data.totalCreated > 0 && (
-                <ThinDataBar>
-                    <span className="grow">
-                        {leadCount(data.totalCreated)} w tym okresie. Za mało na wiarygodne
-                        porównania.
-                    </span>
-                    <DemoButton type="button" onClick={() => setDemo(true)}>
-                        <Eye /> Pokaż przykład
-                    </DemoButton>
-                </ThinDataBar>
-            )}
-
-            {shown && (demo || shown.totalCreated > 0) && (
-                <Report
-                    data={shown}
-                    period={period}
-                    yearSeries={yearSeries}
-                    embedded={embedded}
-                    onOpenQueue={onOpenQueue}
-                    onOpenArchive={onOpenArchive}
-                />
-            )}
-        </>
-    );
-
-    if (embedded) {
-        return (
-            <EmbeddedShell>
-                <EmbeddedHeader>
-                    {/* Wyjście stoi po lewej, przed liczbą zapytań: to jest droga
-                        powrotna, a nie jedna z akcji raportu. */}
-                    {onBack && (
-                        <BackToStart type="button" onClick={onBack}>
-                            <ArrowLeft /> Sprawy
-                        </BackToStart>
-                    )}
-                    {/* Pusty element, gdy danych jeszcze nie ma - żeby wybór okresu
-                        został przy prawej krawędzi i nie skakał po doczytaniu. */}
-                    <HeaderCount>{shown ? leadCount(shown.totalCreated) : ''}</HeaderCount>
-                    <PeriodPicker value={period} onChange={setPeriod} variant="light" />
-                </EmbeddedHeader>
-                <EmbeddedBody>{body}</EmbeddedBody>
-            </EmbeddedShell>
-        );
-    }
-
     return (
-        <ViewContainer>
+        <Page>
             <PageHeader
                 title="Pieniądze w zapytaniach"
-                subtitle={`Podsumowanie za ${period.label}`}
+                subtitle={`Zapytania z okresu: ${period.label}`}
                 actions={
                     <>
                         <PeriodPicker value={period} onChange={setPeriod} />
@@ -511,285 +231,201 @@ export default function LeadAnalyticsView({
                     </>
                 }
             />
-            {body}
-        </ViewContainer>
+
+            {isLoading && !demo && <Muted>Liczę…</Muted>}
+
+            {demo && (
+                <Banner role="status">
+                    <Sparkles />
+                    <span className="grow"><strong>Dane przykładowe.</strong> Tak wygląda ten widok w studiu z około stoma zapytaniami miesięcznie.</span>
+                    <GhostButton type="button" onClick={() => setDemo(false)}><EyeOff /> Schowaj</GhostButton>
+                </Banner>
+            )}
+
+            {!demo && data && data.totalCreated === 0 && (
+                <Empty>
+                    <h2>Brak zapytań w tym okresie</h2>
+                    <p>Wybierz inny okres albo zobacz, jak ten widok wygląda z danymi.</p>
+                    <GhostButton type="button" onClick={() => setDemo(true)}><Eye /> Pokaż przykład</GhostButton>
+                </Empty>
+            )}
+
+            {shown && shown.totalCreated > 0 && (
+                <Report data={shown} thin={!demo && shown.totalCreated < THIN_DATA_BELOW} yearSeries={yearSeries} year={year} />
+            )}
+        </Page>
     );
 }
 
-function Report({
-    data,
-    period,
-    yearSeries,
-    embedded = false,
-    onOpenQueue,
-    onOpenArchive,
-}: {
+function Report({ data, thin, yearSeries, year }: {
     data: LeadAnalytics;
-    period: Period;
+    thin: boolean;
     yearSeries: YearPoint[];
-    embedded?: boolean;
-    onOpenQueue?: () => void;
-    onOpenArchive?: (status?: LeadStatus) => void;
+    year: number;
 }) {
     const navigate = useNavigate();
-
-    const goQueue = () => (embedded ? onOpenQueue?.() : navigate('/zapytania'));
-    const goSilent = () => (embedded ? onOpenQueue?.() : navigate('/zapytania'));
-    const goLost = () => (embedded ? onOpenArchive?.('LOST') : navigate('/zapytania?status=LOST'));
-
-    const [deepOpen, setDeepOpen] = useState(() => {
-        try { return localStorage.getItem(DEEP_OPEN_KEY) === '1'; } catch { return false; }
-    });
-    const toggleDeep = () => setDeepOpen((open) => {
-        const next = !open;
-        try { localStorage.setItem(DEEP_OPEN_KEY, next ? '1' : '0'); } catch { /* prywatne okno itp. */ }
-        return next;
-    });
-
-    const total = data.wonValue + data.pipelineValue + data.silentValue + data.lostValue;
-    const hasWins = data.wonValue > 0;
-    const phrase = periodPhrase(period);
-
-    /*
-     * Bezosobowo. Stało tu „domknąłeś" - a polszczyzna nie ma bezrodzajowej drugiej
-     * osoby w czasie przeszłym, więc to zdanie połowie użytkowników mówiło, że
-     * aplikacja ich nie zna. Przy okazji krócej i bez poklepywania po ramieniu.
-     */
-    const reward = data.confirmedValueThisWeek > 0
-        ? `Domknięte w tym tygodniu: ${formatMoney(data.confirmedValueThisWeek)}.`
-        : undefined;
-
-    const showDeep = data.totalCreated >= THIN_DATA_BELOW;
+    const count = (status: string) => data.byStatus[status] ?? 0;
+    const won = count('COMPLETED');
+    const open = count('NEW') + count('IN_PROGRESS') + count('CONFIRMED');
+    const lost = count('LOST') + count('NO_SHOW');
+    const openValue = data.pipelineValue + data.silentValue;
+    const totalValue = data.wonValue + openValue + data.lostValue;
+    const conversion = data.totalCreated > 0 ? Math.round((won / data.totalCreated) * 100) : 0;
+    const reasons = [...data.lostReasons].sort((a, b) => b.count - a.count).slice(0, 3);
 
     return (
         <>
-            {/* ── FRONT · ile zamknąłeś (mała sekcja: etykieta okresu + kwota) ─── */}
-            {hasWins ? (
-                <Hero lead={`Zamknięte ${phrase}`} amount={formatMoney(data.wonValue)} reward={reward} />
-            ) : embedded ? (
-                // Panel obok kolejki: kwotę „w toku" pokazuje już pasek nad kolejką,
-                // więc nie dublujemy jej wielką liczbą - mówimy wprost i odsyłamy tam.
-                <PipelineCoach>
-                    <h3>Nic nie zamknięte {phrase}</h3>
-                    <p>
-                        Zapytania w toku są w kolejce obok. Pierwsze domknięte zlecenie
-                        pojawi się tutaj.
-                    </p>
-                    {reward && <span className="reward">{reward}</span>}
-                </PipelineCoach>
-            ) : (
-                // Pełny ekran (bez kolejki obok): kwota „w toku" jest tu jedyna, więc
-                // pokazujemy ją jako liczbę - nie ma czego dublować.
-                <Hero accent="pipeline" lead={`W toku ${phrase}`} amount={formatMoney(data.pipelineValue)} reward={reward} />
-            )}
+            <Funnel as="section" aria-label="Wynik zapytań">
+                <Step>
+                    <span className="label">Zapytania</span>
+                    <span className="value">{data.totalCreated}</span>
+                    <span className="note">warte {formatMoney(totalValue)}</span>
+                </Step>
+                <ChevronRight className="arrow" aria-hidden="true" />
+                <Step>
+                    <span className="label">Zlecenia</span>
+                    <span className="value">{won}</span>
+                    <span className="note">{conversion}% zapytań{thin ? ', mało danych' : ''}</span>
+                </Step>
+                <ChevronRight className="arrow" aria-hidden="true" />
+                <Step>
+                    <span className="label">Wartość zleceń</span>
+                    <span className="value">{formatMoney(data.wonValue)}</span>
+                    {data.wonValuePrevious > 0 && (
+                        <span className="note">okres wcześniej: {formatMoney(data.wonValuePrevious)}</span>
+                    )}
+                </Step>
+            </Funnel>
 
-            {/* ── FRONT · wartość zapytań (belka) ─────────────────────────────── */}
-            {total === 0 ? (
-                <EmptyHint>W tym okresie nie wpłynęło żadne zapytanie.</EmptyHint>
-            ) : (
-                <MoneyLedger
-                    total={formatMoney(total)}
-                    kept={{ amount: formatMoney(data.wonValue), raw: data.wonValue }}
-                    inPlay={{ amount: formatMoney(data.pipelineValue), raw: data.pipelineValue, onClick: goQueue }}
-                    silent={{ amount: formatMoney(data.silentValue), raw: data.silentValue, onClick: goSilent }}
-                    gone={{ amount: formatMoney(data.lostValue), raw: data.lostValue, onClick: goLost }}
-                />
-            )}
+            <Section aria-labelledby="leads-rest">
+                <SectionTitle id="leads-rest">Co z resztą</SectionTitle>
+                <Rows>
+                    <Row type="button" onClick={() => navigate('/zapytania')}>
+                        <span className="text">
+                            <span className="title">W toku: {cases(open)}</span>
+                            <span className="note">
+                                {data.silentValue > 0
+                                    ? `w tym bez odzewu klienta: ${formatMoney(data.silentValue)}`
+                                    : 'czekają na odpowiedź albo decyzję'}
+                            </span>
+                        </span>
+                        <span className="amount">{formatMoney(openValue)}</span>
+                        <ChevronRight aria-hidden="true" />
+                    </Row>
+                    <Row type="button" onClick={() => navigate('/zapytania?archive=1')}>
+                        <span className="text">
+                            <span className="title">Przegrane: {cases(lost)}</span>
+                            <span className="note">
+                                {reasons.length > 0
+                                    ? reasons.map(r => `${r.label} (${r.count})`).join(', ')
+                                    : 'bez podanych powodów'}
+                            </span>
+                        </span>
+                        <span className="amount">{formatMoney(data.lostValue)}</span>
+                        <ChevronRight aria-hidden="true" />
+                    </Row>
+                    {data.medianFirstResponseMinutes !== null && (
+                        <Row as="div">
+                            <span className="text">
+                                <span className="title">Pierwsza odpowiedź</span>
+                                <span className="note">połowa zapytań dostaje ją szybciej niż w tym czasie</span>
+                            </span>
+                            <span className="amount">{formatMinutes(data.medianFirstResponseMinutes)}</span>
+                        </Row>
+                    )}
+                </Rows>
+            </Section>
 
-            {/* ── FRONT · jedno działanie ─────────────────────────────────────── */}
-            {data.silentValue > 0 && (
-                <ActionStrip type="button" onClick={goSilent}>
-                    {/* Bez straszenia konkurencją i bez trybu rozkazującego: zdanie
-                        podaje kwotę i mówi, gdzie ona leży. Co z tym zrobić, właściciel
-                        wie lepiej niż CRM. */}
-                    <span>
-                        <strong>{formatMoney(data.silentValue)}</strong> w rozmowach bez odzewu.
-                        Zobacz, które to.
-                    </span>
-                    <ArrowRight className="go" />
-                </ActionStrip>
-            )}
-
-            {/* ── FRONT · wszystkie zapytania przez cały rok ──────────────────── */}
-            {/* Bez podpowiedzi „przełącz na sztuki, gdy…": przełącznik stoi nad wykresem
-                i jest podpisany. Instrukcja obsługi widocznego przycisku dokłada zdanie
-                do przeczytania i niczego nie wyjaśnia. */}
-            <AnalyticsCard
-                question="Zapytania miesiąc po miesiącu"
-                answer={`Rok ${new Date().getFullYear()}, od stycznia do grudnia.`}
-            >
-                <IntakeYearChart points={yearSeries} />
-            </AnalyticsCard>
-
-            {/* ── SZCZEGÓŁY (zwinięte) ────────────────────────────────────────── */}
-            {showDeep && (
-                <>
-                    <DeepToggle type="button" aria-expanded={deepOpen} onClick={toggleDeep}>
-                        <span>Zobacz szczegóły</span>
-                        <ChevronDown className={deepOpen ? 'open' : undefined} />
-                    </DeepToggle>
-                    {deepOpen && <DeepSection data={data} goLost={goLost} />}
-                </>
-            )}
+            <Section aria-labelledby="leads-year">
+                <SectionTitle id="leads-year" count={String(year)}>Wartość zleceń miesiąc po miesiącu</SectionTitle>
+                <ChartFrame>
+                    <YearChart points={yearSeries} />
+                </ChartFrame>
+            </Section>
         </>
     );
 }
 
-/**
- * Szczegóły „dla ciekawskiego" - płaska lista, po jednej odpowiedzi na temat, każda
- * pod własnym progiem danych. Bez zakładek, bez sześciu wykresów naraz.
- */
-function DeepSection({ data, goLost }: { data: LeadAnalytics; goLost: () => void }) {
-    return (
-        <>
-            {data.totalCreated >= MIN_LEADS_FOR_LEAKS && data.leaks.length > 0 && (
-                <LeakList
-                    rows={[...data.leaks]
-                        .sort((a, b) => b.value - a.value)
-                        .slice(0, 3)
-                        .map((leak) => ({
-                            code: leak.code,
-                            label: leak.label,
-                            amount: formatMoney(leak.value),
-                            raw: leak.value,
-                            count: leadCount(leak.count),
-                        }))}
-                    note={
-                        data.leaks.length > 3
-                            ? `Trzy największe powody z ${formatMoney(data.leaks.reduce((sum, l) => sum + l.value, 0))} straconych i ucichłych.`
-                            : undefined
-                    }
-                    onPick={goLost}
-                />
-            )}
+// ── Wykres roku ──────────────────────────────────────────────────────────────
 
-            {data.totalCreated >= MIN_LEADS_FOR_SOURCE && <SourceCard data={data} />}
-
-            <SpeedCard data={data} />
-        </>
-    );
+interface YearPoint {
+    month: string;
+    /** Wartość zleceń w groszach; null - miesiąc jeszcze nie nadszedł. */
+    value: number | null;
+    won: number;
+    current: boolean;
 }
 
-/** Skąd przychodzą zapytania - ranking kanałów po LICZBIE (solidnej), skuteczność drobnym drukiem. */
-function SourceCard({ data }: { data: LeadAnalytics }) {
-    const sorted = [...data.bySource].sort((a, b) => b.count - a.count);
-    const top = sorted[0];
-    return (
-        <AnalyticsCard
-            question="Skąd przychodzą zapytania"
-            answer={
-                top && top.count > 0
-                    ? <>Najwięcej zapytań: <strong>{SOURCE_LABELS[top.source] ?? top.source}</strong>.</>
-                    : 'Za mało zamkniętych zapytań, żeby porównać kanały.'
-            }
-        >
-            <RankedBars
-                rows={sorted.map((entry) => ({
-                    key: entry.source,
-                    label: SOURCE_LABELS[entry.source] ?? entry.source,
-                    value: entry.count,
-                    // Skuteczność tylko przy stabilnej próbie: przy pięciu rozstrzygniętych
-                    // rozmowach jedna wygrana to 20 punktów - taki procent kłamie.
-                    meta: entry.closed >= MIN_CLOSED_FOR_SOURCE_RATE
-                        ? `${leadCount(entry.count)}, skuteczność ${percent(entry.winRate)}`
-                        : leadCount(entry.count),
-                }))}
-            />
-        </AnalyticsCard>
-    );
-}
-
-/** Czy szybka odpowiedź się opłaca - jedno zdanie werdyktu, bez wykresu przedziałów. */
-function SpeedCard({ data }: { data: LeadAnalytics }) {
-    const impact = data.responseImpact;
-
-    // Przy braku danych nie pokazujemy nawet zdania „za mało", dopóki nie ma sensownej próby.
-    if (impact.verdict === 'NOT_ENOUGH_DATA' && data.totalCreated < MIN_LEADS_FOR_SPEED) return null;
-
-    const answer = (() => {
-        if (impact.verdict === 'FASTER_WINS') {
-            const gap = (impact.fastWinRate ?? 0) - (impact.slowWinRate ?? 0);
-            return (
-                <>
-                    <strong>Tak.</strong> Odpowiedź w ciągu doby kończy się zleceniem
-                    w {percent(impact.fastWinRate)} rozmów, późniejsza w {percent(impact.slowWinRate)}.
-                    Różnica: {points(gap)}
-                </>
-            );
-        }
-        if (impact.verdict === 'NO_RELATION') {
-            return (
-                <>
-                    Nie widać zależności. Skuteczność przy odpowiedzi w dobę ({percent(impact.fastWinRate)})
-                    i później ({percent(impact.slowWinRate)}) jest podobna — o wyniku decyduje coś innego
-                    niż tempo.
-                </>
-            );
-        }
-        return 'Za mało zamkniętych zapytań. Wybierz dłuższy okres.';
-    })();
-
-    return <AnalyticsCard question="Czy szybka odpowiedź się opłaca" answer={answer} />;
-}
-
-/** Etykieta okresu do zdania-bohatera: „w tym miesiącu" / „w poprzednim miesiącu" / „od … do …". */
-function periodPhrase(period: Period): string {
-    if (period.mode === 'previous') return 'w poprzednim miesiącu';
-    if (period.mode === 'custom') return `od ${formatShort(period.from)} do ${formatShort(period.to)}`;
-    return 'w tym miesiącu';
-}
-
-/**
- * Wartość WSZYSTKICH zapytań, które przyszły w 12 miesiącach bieżącego roku -
- * nie tylko zamkniętych. Kubełek osi czasu trzyma wartość okresu w rozbiciu na
- * wynik, więc suma czterech pól to pełna wartość zapytań danego miesiąca.
- *
- * Miesiące jeszcze nieprzeżyte dostają null (dziura w linii), nie zero - „nic nie
- * przyszło" i „miesiąc nie nadszedł" to dwie różne rzeczy. Sumujemy po miesiącu
- * daty początkowej kubełka, więc działa i przy kubełkach tygodniowych, i miesięcznych.
- */
+/** Zlecenia z zapytań każdego miesiąca bieżącego roku (kubełki osi czasu zsumowane po miesiącu). */
 function buildYearSeries(analytics: LeadAnalytics | undefined): YearPoint[] {
-    const currentMonth = new Date().getMonth();
-    const byMonth = new Array<number>(12).fill(0);
-    const countByMonth = new Array<number>(12).fill(0);
-    if (analytics) {
-        for (const point of analytics.timeline) {
-            const month = new Date(`${point.periodStart}T00:00:00`).getMonth();
-            if (month < 0 || month > 11) continue;
-            byMonth[month] += point.wonValue + point.lostValue + point.openValue + point.silentValue;
-            countByMonth[month] += point.created;
-        }
+    const now = new Date().getMonth();
+    const value = new Array<number>(12).fill(0);
+    const won = new Array<number>(12).fill(0);
+    for (const point of analytics?.timeline ?? []) {
+        const month = new Date(`${point.periodStart}T00:00:00`).getMonth();
+        if (month < 0 || month > 11) continue;
+        value[month] += point.wonValue;
+        won[month] += point.won;
     }
-    return MONTH_ABBR.map((label, index) => ({
-        period: label,
-        value: index > currentMonth ? null : byMonth[index],
-        count: index > currentMonth ? null : countByMonth[index],
+    return MONTH_ABBR.map((month, i) => ({
+        month,
+        value: i > now ? null : value[i],
+        won: won[i],
+        current: i === now,
     }));
 }
 
-/** Przykładowy rok do trybu pokazowego - realistyczny kształt, nie losowy. */
+/**
+ * Przykładowy rok do trybu pokazowego. Dane przykładowe okresu mają oś czasu tylko
+ * dla wybranego okresu, więc pełny rok z nich nie wychodzi - stąd osobne liczby
+ * o realistycznym, nierównym kształcie (sezon wiosną, dołek w wakacje).
+ */
 function buildDemoYearSeries(): YearPoint[] {
-    const currentMonth = new Date().getMonth();
+    const now = new Date().getMonth();
     const values = [
-        24_500_000, 27_800_000, 31_200_000, 28_600_000, 33_400_000, 30_100_000,
-        25_900_000, 29_700_000, 31_860_000, 34_000_000, 36_500_000, 38_000_000,
+        9_800_000, 11_200_000, 13_400_000, 12_100_000, 14_900_000, 13_300_000,
+        9_900_000, 10_800_000, 12_600_000, 12_580_000, 13_900_000, 15_200_000,
     ];
-    // Sztuki nie są proporcjonalne do kwot i w przykładzie też nie mają być:
-    // lipiec z najniższym przychodem ma sporo tanich zapytań o mycie, a listopad
-    // odwrotnie. Przykład, w którym obie linie mają ten sam kształt, uczyłby, że
-    // przełącznik niczego nie zmienia.
-    const counts = [68, 74, 81, 77, 92, 88, 103, 84, 79, 71, 66, 70];
-    return MONTH_ABBR.map((label, index) => ({
-        period: label,
-        value: index > currentMonth ? null : values[index],
-        count: index > currentMonth ? null : counts[index],
+    const won = [31, 35, 42, 38, 46, 41, 30, 33, 39, 41, 44, 47];
+    return MONTH_ABBR.map((month, i) => ({
+        month,
+        value: i > now ? null : values[i],
+        won: won[i],
+        current: i === now,
     }));
 }
 
-/** „1 zapytanie", „3 zapytania", „11 zapytań" - polska odmiana bez zaskoczeń przy 12–14. */
-function leadCount(n: number): string {
-    if (n === 1) return `${n} zapytanie`;
-    const rest = n % 10;
-    const teens = n % 100;
-    return rest >= 2 && rest <= 4 && (teens < 12 || teens > 14) ? `${n} zapytania` : `${n} zapytań`;
+function YearChart({ points }: { points: YearPoint[] }) {
+    return (
+        <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={points} margin={{ top: 8, right: 4, left: 4, bottom: 0 }}>
+                <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 11, fill: ui.textMuted }}
+                    tickLine={false}
+                    axisLine={{ stroke: ui.line }}
+                    interval={0}
+                />
+                <Tooltip
+                    cursor={{ fill: ui.surfaceAlt }}
+                    content={({ active, payload }) => {
+                        const point = payload?.[0]?.payload as YearPoint | undefined;
+                        if (!active || !point || point.value === null) return null;
+                        return (
+                            <div style={{ padding: '8px 10px', background: '#fff', border: `1px solid ${ui.line}`, borderRadius: 8, fontSize: 13 }}>
+                                <strong>{formatMoney(point.value)}</strong>
+                                <div style={{ color: ui.textMuted }}>{orders(point.won)}</div>
+                            </div>
+                        );
+                    }}
+                />
+                <Bar dataKey="value" radius={[4, 4, 0, 0]} isAnimationActive={false}>
+                    {points.map(point => (
+                        <Cell key={point.month} fill={point.current ? ui.brand : ui.brandLineSoft} />
+                    ))}
+                </Bar>
+            </BarChart>
+        </ResponsiveContainer>
+    );
 }
+
