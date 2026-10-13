@@ -6,6 +6,7 @@ import { authApi } from '@/modules/auth/api/authApi';
 import {
     SESSION_LOCKED_EVENT, announceLock, lastSharedActivity, onLockSignal, recordActivity,
 } from '../sessionLock';
+import { useDeviceIdleTimeout } from '../deviceIdleLock';
 
 interface IdleTimeoutContextType {
     resetTimer: () => void;
@@ -52,7 +53,9 @@ export const IdleTimeoutProvider = ({ children }: Props) => {
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastActivityRef = useRef(Date.now());
 
-    const timeoutMs = (user?.idleTimeoutSeconds ?? 0) * 1000;
+    // Ustawienie tego urządzenia wygrywa; bez niego - dotychczasowa wartość studia.
+    const deviceSeconds = useDeviceIdleTimeout();
+    const timeoutMs = (deviceSeconds ?? user?.idleTimeoutSeconds ?? 0) * 1000;
     const isActive = isAuthenticated && timeoutMs > 0;
 
     const setLocked = (value: boolean) => {

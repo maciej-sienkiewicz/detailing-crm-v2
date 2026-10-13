@@ -4,8 +4,7 @@ import { useAuth } from '@/core/context/AuthContext';
 import { useToast } from '@/common/components/Toast';
 import { usePermissions } from '@/core/permissions';
 import { authApi } from '@/modules/auth/api/authApi';
-import { toastUnhandledError } from '@/modules/subscription/utils/apiErrors';
-import { useIdleTimeoutSetting, useSetIdleTimeout } from '../hooks/useIdleTimeout';
+import { setDeviceIdleTimeout, useDeviceIdleTimeout } from '@/core/deviceIdleLock';
 import { ClearAccountModal } from './account/ClearAccountModal';
 import { PinCard } from './security/PinCard';
 import {
@@ -34,48 +33,41 @@ const TIMEOUT_OPTIONS = [
 ];
 
 /**
- * Automatyczna blokada ekranu po bezczynności.
+ * Automatyczna blokada ekranu po bezczynności - ustawienie TEGO urządzenia.
+ *
+ * Dawniej jedna wartość obowiązywała całe studio: komputer w recepcji na widoku klientów
+ * i laptop w biurze blokowały się po tym samym czasie. Teraz każde stanowisko ma swoją
+ * (src/core/deviceIdleLock.ts), wspólną dla wszystkich kont, które na nim pracują.
+ * Dopóki na urządzeniu nic nie wybrano, lista pokazuje dotychczasową wartość studia -
+ * tę, która naprawdę obowiązuje.
  *
  * Zapis idzie od razu po wyborze, bez przycisku „Zapisz": to jedno pole, a osobny przycisk
  * kazał wykonać drugi ruch po decyzji, która już zapadła. Potwierdzeniem jest stan przy
  * liście, nie komunikat do przeczytania.
  */
 const IdleLockCard = () => {
-    const { data, isLoading } = useIdleTimeoutSetting();
-    const { mutate, isPending } = useSetIdleTimeout();
+    const { user } = useAuth();
+    const deviceSeconds = useDeviceIdleTimeout();
     const { showError } = useToast();
-    const [value, setValue] = useState<number | null>(null);
     const [saved, setSaved] = useState(false);
     const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => () => { if (savedTimerRef.current) clearTimeout(savedTimerRef.current); }, []);
 
-    if (isLoading) return null;
-
-    const current = value ?? data?.idleTimeoutSeconds ?? 0;
+    const current = deviceSeconds ?? user?.idleTimeoutSeconds ?? 0;
 
     const change = (next: number) => {
-        setValue(next);
         setSaved(false);
-        mutate(next, {
-            onSuccess: () => {
-                setSaved(true);
-                if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
-                savedTimerRef.current = setTimeout(() => setSaved(false), 2500);
-            },
-            // Lista zostawała na wybranej wartości, choć zapis się nie udał - wyglądało
-            // to na ustawioną blokadę, której serwer nie znał. Wracamy do wartości
-            // z serwera i mówimy dlaczego.
-            onError: err => {
-                setValue(null);
-                toastUnhandledError(
-                    showError,
-                    err,
-                    'Nie udało się zmienić blokady ekranu',
-                    'Zostaje poprzednie ustawienie. Spróbuj ponownie za chwilę.',
-                );
-            },
-        });
+        if (!setDeviceIdleTimeout(next)) {
+            showError(
+                'Nie udało się zapisać blokady na tym urządzeniu',
+                'Przeglądarka nie pozwala zapisywać ustawień (np. okno prywatne). Zostaje poprzednie ustawienie.',
+            );
+            return;
+        }
+        setSaved(true);
+        if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+        savedTimerRef.current = setTimeout(() => setSaved(false), 2500);
     };
 
     return (
@@ -83,14 +75,16 @@ const IdleLockCard = () => {
             <CardHead>
                 <CardHeadText>
                     <CardTitle>Blokada po bezczynności</CardTitle>
-                    <CardNote>Dotyczy wszystkich kont w studiu. Odblokujesz kodem PIN albo hasłem.</CardNote>
+                    <CardNote>
+                        Tylko na tym urządzeniu, dla każdego konta, które na nim pracuje. Każde
+                        stanowisko ustawiasz osobno. Odblokujesz kodem PIN albo hasłem.
+                    </CardNote>
                 </CardHeadText>
                 <CardActions>
                     {saved && <StateTag $on>Zapisano</StateTag>}
                     <Select
-                        aria-label="Czas bezczynności do zablokowania ekranu"
+                        aria-label="Czas bezczynności do zablokowania ekranu na tym urządzeniu"
                         value={current}
-                        disabled={isPending}
                         onChange={e => change(Number(e.target.value))}
                     >
                         {TIMEOUT_OPTIONS.map(opt => (
