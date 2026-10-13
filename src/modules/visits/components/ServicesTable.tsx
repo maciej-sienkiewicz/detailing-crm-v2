@@ -2584,6 +2584,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         {/* ─── Treść SMS-a przed zapisem ─── */}
         {pendingSmsPayload && (
             <ServiceChangeSmsModal
+                visitId={visitId ?? ''}
                 summary={buildSmsSummary()}
                 totalGrossBefore={totals.totalGrossBefore}
                 requireConfirmation={pendingSmsPayload.requireConfirmation}

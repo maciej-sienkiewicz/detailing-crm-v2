@@ -22,6 +22,19 @@ const POLISH_CHARS_RE = /[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/;
 /** Czy tekst zawiera znaki, które wypychają SMS-a do kodowania UCS-2. */
 export const hasPolishCharacters = (text: string): boolean => POLISH_CHARS_RE.test(text);
 
+const POLISH_TO_ASCII: Record<string, string> = {
+    ą: 'a', ć: 'c', ę: 'e', ł: 'l', ń: 'n', ó: 'o', ś: 's', ź: 'z', ż: 'z',
+    Ą: 'A', Ć: 'C', Ę: 'E', Ł: 'L', Ń: 'N', Ó: 'O', Ś: 'S', Ź: 'Z', Ż: 'Z',
+};
+
+/**
+ * Zamiana polskich znaków na ASCII - tańszy SMS (160 znaków na segment zamiast 70).
+ * Ta sama zamiana, którą robi serwer (SmsConsentService.toAscii), gdy pracownik
+ * nie włączy „Polskich znaków" - licznik w ustawieniach musi liczyć to, co wyjdzie.
+ */
+export const toAscii = (text: string): string =>
+    text.replace(/[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/g, ch => POLISH_TO_ASCII[ch] ?? ch);
+
 /**
  * Na ile segmentów operator podzieli wiadomość tej długości.
  *

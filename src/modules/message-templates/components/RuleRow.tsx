@@ -104,7 +104,9 @@ export const RuleRow: React.FC<RuleRowProps> = ({ spec, drafts, accent, onOpen, 
       <Cell>
         <Name>{spec.name}</Name>
         <Snippet $empty={empty}>
-          {empty ? 'Brak treści: nic nie zostanie wysłane' : resolveTemplate(snippetSource)}
+          {empty
+            ? 'Brak treści: nic nie zostanie wysłane'
+            : resolveTemplate(snippetSource, primaryChannel === 'sms' && !!spec.sms?.optionalFragments)}
         </Snippet>
       </Cell>
 
@@ -116,6 +118,7 @@ export const RuleRow: React.FC<RuleRowProps> = ({ spec, drafts, accent, onOpen, 
               label={CHANNEL_LABEL[channel]}
               status={channelStatus(drafts[channel], channel === 'email')}
               onToggle={() => onToggle(channel)}
+              locked={channel === 'sms' && spec.sms?.alwaysOn ? `Zawsze włączona. ${spec.sms.alwaysOn}` : undefined}
             />
           ))}
         </Chips>

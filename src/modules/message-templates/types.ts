@@ -18,6 +18,8 @@ export type MessageKey =
   | 'upsellConsent'
   | 'upsellSuggestion'
   | 'signatureRequest'
+  | 'serviceChangeConsent'
+  | 'serviceChangeNotice'
   | 'visitReadyForPickup'
   | 'postVisit'
   | 'delayedReminder'

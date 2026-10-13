@@ -2,20 +2,22 @@
 //
 // Modal potwierdzenia wysyłki SMS-a o zmianach w usługach.
 //
-// Treść składamy lokalnie z danych, które CRM już ma (nazwy usług + cena końcowa),
-// więc pojawia się natychmiast. Użytkownik może ją dowolnie poprawić.
+// Treść przychodzi z serwera - z szablonu studia (Ustawienia komunikacji → „Zmiana usług"),
+// złożonego z nazw usług i kwot tej zmiany. Dawniej okno sklejało ją samo ze stałych
+// zdań, których studio nie mogło zmienić. Użytkownik może ją dowolnie poprawić.
 // Fraza z prośbą o odpowiedź "TAK" jest doklejana przy wysyłce po stronie serwera
 // i nie da się jej zmienić ani usunąć.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { formatCurrency, shouldAutoFocusInput, smsSegments, smsWord } from '@/common/utils';
 import { pluralPl } from '@/common/utils/plural';
 import { useModalViewport } from '@/common/hooks';
+import { visitApi } from '../api/visitApi';
 import {
     CONSENT_CALL_TO_ACTION,
-    buildServiceChangeSmsMessage,
     hasPolishCharacters,
     toAscii,
 } from '../utils/serviceChangeSms';
@@ -303,6 +305,7 @@ const SendBtn = styled.button`
 `;
 
 interface Props {
+    visitId: string;
     summary: ServiceChangeSummary;
     /** Cena końcowa brutto przed zmianami, w groszach. */
     totalGrossBefore: number;
@@ -314,6 +317,7 @@ interface Props {
 }
 
 export const ServiceChangeSmsModal = ({
+    visitId,
     summary,
     totalGrossBefore,
     requireConfirmation,
@@ -324,8 +328,24 @@ export const ServiceChangeSmsModal = ({
     // Wersja kanoniczna - z ogonkami. To, co widać w polu, zależy od przełącznika:
     // przy wyłączonych polskich znakach pokazujemy transliterację. Dzięki temu
     // przełączanie tam i z powrotem nie gubi treści.
-    const initialMessage = useMemo(() => buildServiceChangeSmsMessage(summary), [summary]);
-    const [message, setMessage] = useState(initialMessage);
+    const preview = useQuery({
+        queryKey: ['visits', visitId, 'service-change-sms', requireConfirmation, summary, totalGrossBefore],
+        queryFn: () => visitApi.previewServiceChangeSms(visitId, {
+            requireConfirmation,
+            addedNames: summary.addedNames,
+            removedNames: summary.removedNames,
+            priceChangedNames: summary.priceChangedNames,
+            totalGrossBefore,
+            totalGrossAfter: summary.totalGrossAfter,
+        }),
+        // Treść z szablonu to propozycja na to jedno otwarcie okna - bez odświeżania
+        // w tle, które nadpisałoby to, co pracownik zaczął poprawiać.
+        staleTime: Infinity,
+        retry: 1,
+    });
+    // null = pracownik jeszcze nie ruszał treści, więc pokazujemy propozycję z szablonu.
+    const [edited, setEdited] = useState<string | null>(null);
+    const message = edited ?? preview.data ?? '';
     const [usePolish, setUsePolish] = useState(false);
 
     useEffect(() => {
@@ -351,18 +371,23 @@ export const ServiceChangeSmsModal = ({
         // Ogonek wpisany przy wyłączonym przełączniku = użytkownik jednak ich chce.
         if (!usePolish && hasPolishCharacters(value)) {
             setUsePolish(true);
-            setMessage(value);
+            setEdited(value);
             return;
         }
         // Bez realnej zmiany trzymamy wersję z ogonkami, żeby przełącznik ją odzyskał.
         if (!usePolish && value === toAscii(message)) return;
-        setMessage(value);
+        setEdited(value);
     };
 
     const trimmed = displayed.trim();
     const fullLength = (trimmed ? trimmed.length : 0) + (suffix ? (trimmed ? 1 : 0) + suffix.length : 0);
     const segments = smsSegments(fullLength, usePolish, false);
-    const canSend = trimmed.length > 0 && !isSaving;
+    const canSend = trimmed.length > 0 && !isSaving && !preview.isLoading;
+    const placeholder = preview.isLoading
+        ? 'Przygotowuję treść z szablonu…'
+        : preview.isError
+            ? 'Nie udało się przygotować treści z szablonu. Wpisz ją ręcznie.'
+            : 'Wpisz treść SMS-a…';
 
     return (
         <Overlay ref={overlayRef} onClick={() => { if (!isSaving) onCancel(); }}>
@@ -400,7 +425,9 @@ export const ServiceChangeSmsModal = ({
                         <FieldGroup $focused={fieldFocused}>
                             <Textarea
                                 value={displayed}
-                                placeholder="Wpisz treść SMS-a…"
+                                placeholder={placeholder}
+                                disabled={preview.isLoading}
+                                aria-busy={preview.isLoading}
                                 onChange={e => handleChange(e.target.value)}
                                 onFocus={() => setFieldFocused(true)}
                                 onBlur={() => setFieldFocused(false)}

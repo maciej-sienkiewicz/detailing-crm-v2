@@ -63,18 +63,20 @@ export interface ChannelChipProps {
   label: string;
   status: ChannelStatus;
   onToggle: () => void;
+  /** Wiadomość bez przełącznika (zawsze włączona) - tekst w dymku zamiast „kliknij, żeby wyłączyć". */
+  locked?: string;
 }
 
 /**
  * The one action people take most often on this screen, kept in the row so turning a
  * message on never requires opening anything.
  */
-export const ChannelChip: React.FC<ChannelChipProps> = ({ label, status, onToggle }) => (
+export const ChannelChip: React.FC<ChannelChipProps> = ({ label, status, onToggle, locked }) => (
   <Chip
     type="button"
     $status={status}
-    disabled={status === 'absent'}
-    title={TITLE[status]}
+    disabled={status === 'absent' || !!locked}
+    title={locked ?? TITLE[status]}
     aria-pressed={status === 'on' || status === 'blank'}
     onClick={e => {
       e.stopPropagation();

@@ -86,7 +86,10 @@ export type SmsRuleKey =
   | 'reservationCardLink'
   | 'upsellConsent'
   | 'upsellSuggestion'
-  | 'signatureRequest';
+  | 'signatureRequest'
+  /** Zmiana usług w trakcie wizyty - z prośbą o „TAK" i sama informacja. Zawsze włączone. */
+  | 'serviceChangeConsent'
+  | 'serviceChangeNotice';
 
 export type SmsAutomationConfig = Record<SmsRuleKey, SmsAutomationRule>;
 
