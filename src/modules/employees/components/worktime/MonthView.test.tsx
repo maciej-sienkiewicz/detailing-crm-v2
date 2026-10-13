@@ -3,7 +3,8 @@
 // Zakładka „Czas pracy" po uproszczeniu (uwagi właściciela: „za dużo labelek, za dużo
 // przycisków, wiele ścieżek do tego samego modalu, badge tylko informacyjne"): jedno
 // zdanie podsumowania i lista osób, w której wiersz jest jedyną drogą do okna karty.
-// Listy obecności mają osobną zakładkę - tu nie ma po nich śladu.
+// Listy obecności mają osobną zakładkę - tu nie ma po nich śladu. Pod listą siatka dni:
+// kto uzupełnił godziny, a kto nie, i „U" w dniach urlopu.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -12,9 +13,10 @@ import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
 import { ToastProvider } from '@/common/components/Toast';
 import {
-    worktimeMonthsApi, type CardDetail, type MonthCardRow, type MonthOverview,
+    worktimeMonthsApi, type CardDay, type CardDetail, type MonthCardRow, type MonthOverview,
 } from '../../api/worktimeMonthsApi';
 import { MonthView } from './MonthView';
+import { cellOf } from './gridCell';
 
 vi.mock('@/core/context/AuthContext', () => ({ useAuth: () => ({ user: { userId: 'me', permissions: null } }) }));
 
@@ -222,5 +224,58 @@ describe('Czas pracy - miesiąc w adresie', () => {
         expect(screen.getByRole('button', { name: 'Następny miesiąc' })).toBeDisabled();
         fireEvent.click(screen.getByRole('button', { name: 'Poprzedni miesiąc' }));
         expect(router.state.location.search).toBe('?period=2026-09');
+    });
+});
+
+describe('Czas pracy - wpisy godzin pod listą', () => {
+    // Wrzesień 2026: 1.09 to wtorek, 5-6.09 weekend.
+    const day = (date: number, overrides: Partial<CardDay> = {}): CardDay => ({
+        date: `2026-09-${String(date).padStart(2, '0')}`,
+        minutes: null,
+        note: null,
+        isWorkingDay: true,
+        holidayName: null,
+        leave: null,
+        missing: false,
+        ...overrides,
+    });
+    const anna = row('anna', 'Anna Nowak', {
+        days: [
+            day(1, { minutes: 480 }),
+            day(2, { minutes: 450 }),
+            day(3, { leave: { type: 'ANNUAL', label: 'Urlop' } }),
+            day(4, { leave: { type: 'SICK', label: 'L4' } }),
+            day(7, { missing: true }),
+        ],
+    });
+
+    it('godziny, urlop jako „U", L4 i brak wpisu - w tabeli osoby × dni', async () => {
+        serve(month({ stage: 'COLLECTING', employees: [anna, row('b', 'Bogdan Lis', { status: 'NOT_STARTED' })] }));
+        renderAt();
+        const table = await screen.findByRole('table', { name: 'Wpisy godzin, wrzesień 2026' });
+        expect(within(table).getAllByRole('columnheader')).toHaveLength(31);
+        expect(within(table).getAllByRole('rowheader').map(h => h.textContent)).toEqual(['Anna Nowak', 'Bogdan Lis']);
+
+        const cell = (label: string) => within(table).getByLabelText(`Anna Nowak, ${label}`);
+        expect(cell('2026-09-01: 8 h')).toHaveTextContent(/^8$/);
+        expect(cell('2026-09-02: 7:30 h')).toHaveTextContent(/^7:30$/);
+        expect(cell('2026-09-03: Urlop')).toHaveTextContent(/^U$/);
+        expect(cell('2026-09-04: L4')).toHaveTextContent(/^L4$/);
+        expect(cell('2026-09-07: brak wpisu')).toHaveTextContent(/^$/);
+        expect(document.body.textContent).not.toMatch(/[·•]/);
+    });
+
+    it('urlop wygrywa z wpisem, a dzień bez niczego nie ma opisu', () => {
+        expect(cellOf(day(3, { minutes: 480, leave: { type: 'UNPAID', label: 'Urlop bezpłatny' } })))
+            .toEqual({ kind: 'leave', text: 'U', description: 'Urlop bezpłatny' });
+        expect(cellOf(day(5, { isWorkingDay: false }))).toEqual({ kind: null, text: '', description: null });
+        expect(cellOf(undefined).kind).toBeNull();
+    });
+
+    it('bez dni w odpowiedzi (starszy backend) siatki nie ma', async () => {
+        serve(month({ stage: 'REVIEWING', employees: [ANNA] }));
+        renderAt();
+        await screen.findAllByTestId('month-row');
+        expect(screen.queryByRole('table')).toBeNull();
     });
 });

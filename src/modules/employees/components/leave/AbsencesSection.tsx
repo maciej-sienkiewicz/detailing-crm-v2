@@ -7,7 +7,7 @@
 //
 // Pełna komórka = nieobecność pewna (urlop zatwierdzony, L4). Kreskowana = wniosek
 // oczekujący, czyli nieobecność jeszcze niepewna - widzi ją tylko ten, kto rozpatruje.
-// Na telefonie przewija się w bok sama siatka, a nie cała strona.
+// Siatka (MonthGrid) jest wspólna z wpisami godzin na zakładce „Czas pracy".
 
 import { useMemo, useState } from 'react';
 import styled, { css } from 'styled-components';
@@ -17,24 +17,19 @@ import { usePermissions } from '@/core/permissions';
 import { useEmployees } from '../../hooks/useEmployees';
 import { useLeaveCalendar } from '../../hooks/useLeaves';
 import { useLeaveRequestQueue } from '../../hooks/useLeaveRequests';
-import { getPolishHolidays, isWeekend } from '../../utils/polishHolidays';
+import { getPolishHolidays } from '../../utils/polishHolidays';
 import { todayIso } from '../../utils/leaveRequestFormat';
+import {
+    DayCell as BaseDayCell, Grid, GridEmpty, GridScroll, MonthGridHead, MonthLegend, NameCell, RowGroup,
+} from '../MonthGrid';
+import { gridColumns, isOffDay, monthDays } from '../monthGridDays';
 import { AddSickLeaveModal } from './AddSickLeaveModal';
 
 const MONTHS = [
     'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
     'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień',
 ];
-const WEEKDAYS = ['nd', 'pn', 'wt', 'śr', 'cz', 'pt', 'sb'];
-
 const pad = (n: number) => String(n).padStart(2, '0');
-
-/** Wszystkie dni miesiąca `YYYY-MM` jako YYYY-MM-DD. */
-function monthDays(month: string): string[] {
-    const [y, m] = month.split('-').map(Number);
-    const count = new Date(y, m, 0).getDate();
-    return Array.from({ length: count }, (_, i) => `${month}-${pad(i + 1)}`);
-}
 
 const shiftMonth = (month: string, delta: number): string => {
     const [y, m] = month.split('-').map(Number);
@@ -113,39 +108,26 @@ export function AbsencesSection() {
                 <IconButton label="Następny miesiąc" variant="ghost" onClick={() => setMonth(p => shiftMonth(p, 1))}>
                     <ChevronRight />
                 </IconButton>
-                <Legend>
+                <MonthLegend>
                     <span><Swatch $state="absent" aria-hidden="true" />nieobecność</span>
                     {canApprove && <span><Swatch $state="pending" aria-hidden="true" />wniosek oczekuje</span>}
-                </Legend>
+                </MonthLegend>
             </MonthBar>
 
             <GridScroll tabIndex={0} aria-label={`Grafik nieobecności, ${MONTHS[m - 1].toLowerCase()} ${y}`}>
-                <Grid role="table" style={{ gridTemplateColumns: `minmax(140px, 180px) repeat(${days.length}, minmax(28px, 1fr))` }}>
-                    <RowGroup role="row">
-                    <HeadCell role="columnheader" $sticky>Osoba</HeadCell>
-                    {days.map(d => {
-                        const off = isWeekend(d) || holidays.has(d);
-                        const dow = new Date(`${d}T00:00:00`).getDay();
-                        return (
-                            <HeadCell key={d} role="columnheader" $off={off} $today={d === today} title={holidays.has(d) ? 'Święto' : undefined}>
-                                <b>{Number(d.slice(8))}</b>
-                                <small>{WEEKDAYS[dow]}</small>
-                            </HeadCell>
-                        );
-                    })}
-                    </RowGroup>
+                <Grid role="table" style={{ gridTemplateColumns: gridColumns(days.length) }}>
+                    <MonthGridHead days={days} holidays={holidays} today={today} />
 
                     {rows.map(r => (
                         <RowGroup key={r.id} role="row">
-                            <NameCell role="rowheader" $sticky>{r.name}</NameCell>
+                            <NameCell role="rowheader">{r.name}</NameCell>
                             {days.map(d => {
                                 const state = r.days.get(d) ?? null;
-                                const off = isWeekend(d) || holidays.has(d);
                                 return (
                                     <DayCell
                                         key={d}
                                         role="cell"
-                                        $off={off}
+                                        $off={isOffDay(d, holidays)}
                                         $state={state}
                                         aria-label={state ? `${r.name}, ${d}: ${state === 'pending' ? 'wniosek oczekuje' : 'nieobecność'}` : undefined}
                                     />
@@ -154,7 +136,7 @@ export function AbsencesSection() {
                         </RowGroup>
                     ))}
                 </Grid>
-                {!isLoading && !anyAbsence && <Empty>W tym miesiącu nikt nie ma zaplanowanej nieobecności.</Empty>}
+                {!isLoading && !anyAbsence && <GridEmpty>W tym miesiącu nikt nie ma zaplanowanej nieobecności.</GridEmpty>}
             </GridScroll>
 
             {sickOpen && <AddSickLeaveModal employees={employees} onClose={() => setSickOpen(false)} />}
@@ -195,16 +177,6 @@ const MonthLabel = styled.h3`
     color: ${ui.ink};
 `;
 
-const Legend = styled.div`
-    margin-left: auto;
-    display: flex;
-    gap: 14px;
-    font-size: 12.5px;
-    color: ${ui.textSecondary};
-
-    span { display: inline-flex; align-items: center; gap: 6px; }
-`;
-
 const cellFill = (state: CellState) => {
     if (state === 'absent') return css`background: #fde68a;`;
     if (state === 'pending') return css`background: repeating-linear-gradient(135deg, #fde68a 0 3px, #ffffff 3px 6px);`;
@@ -219,80 +191,6 @@ const Swatch = styled.span<{ $state: CellState }>`
     ${p => cellFill(p.$state)}
 `;
 
-/* Przewija się sama siatka - strona zostaje w miejscu (także na telefonie). */
-const GridScroll = styled.div`
-    max-width: 100%;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    border: 1px solid ${ui.line};
-    border-radius: ${ui.radiusStrip};
-    background: ${ui.surface};
-
-    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: 2px; }
-`;
-
-/** Wiersz tabeli dla czytnika ekranu, a dla siatki CSS - przezroczysty (komórki są jej dziećmi). */
-const RowGroup = styled.div`
-    display: contents;
-`;
-
-const Grid = styled.div`
-    display: grid;
-    min-width: max-content;
-`;
-
-const sticky = css`
-    position: sticky;
-    left: 0;
-    z-index: 1;
-    background: ${ui.surface};
-    border-right: 1px solid ${ui.line};
-`;
-
-const HeadCell = styled.div<{ $off?: boolean; $today?: boolean; $sticky?: boolean }>`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 1px;
-    padding: 6px 2px;
-    border-bottom: 1px solid ${ui.line};
-    font-size: 12px;
-    font-weight: 600;
-    color: ${p => p.$today ? ui.brandInk : ui.textSecondary};
-    background: ${p => p.$off ? ui.surfaceAlt : ui.surface};
-
-    b { font-weight: 700; ${p => p.$today && css`color: ${ui.brandInk};`} }
-    small { font-size: 10.5px; font-weight: 500; color: ${ui.textMuted}; }
-    ${p => p.$sticky && css`${sticky} align-items: flex-start; padding-left: 12px;`}
-`;
-
-const NameCell = styled.div<{ $sticky?: boolean }>`
-    display: flex;
-    align-items: center;
-    min-height: 34px;
-    padding: 0 12px;
-    border-bottom: 1px solid ${ui.lineFaint};
-    font-size: 13.5px;
-    font-weight: 600;
-    color: ${ui.ink};
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    ${p => p.$sticky && sticky}
-`;
-
-const DayCell = styled.div<{ $off: boolean; $state: CellState }>`
-    min-height: 34px;
-    border-bottom: 1px solid ${ui.lineFaint};
-    border-left: 1px solid ${ui.lineFaint};
-    background: ${p => p.$off ? ui.surfaceAlt : ui.surface};
+const DayCell = styled(BaseDayCell)<{ $state: CellState }>`
     ${p => cellFill(p.$state)}
-`;
-
-const Empty = styled.p`
-    margin: 0;
-    padding: 16px;
-    font-size: 13.5px;
-    color: ${ui.textMuted};
 `;

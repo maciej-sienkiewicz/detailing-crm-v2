@@ -7,7 +7,9 @@
 // ścieżek, które prowadzą do tego samego modalu, badge tylko informacyjne". Teraz:
 //   - jedno zdanie podsumowania („4 z 7 kart zatwierdzonych"),
 //   - lista osób, w której wiersz jest JEDYNĄ drogą do karty - otwiera ją w oknie
-//     (WorkTimeCardModal), z miesiącem przewijanym w środku okna.
+//     (WorkTimeCardModal), z miesiącem przewijanym w środku okna,
+//   - pod listą siatka dni (WorkTimeGrid): kto uzupełnił godziny, kto nie, kto był
+//     na urlopie - ta sama tabela co grafik nieobecności przy wnioskach urlopowych.
 // Status karty jest tekstem w kolorze, nie pastylką: nie da się w niego kliknąć, więc nie
 // może wyglądać jak coś do kliknięcia.
 //
@@ -24,6 +26,7 @@ import type { MonthCardRow } from '../../api/worktimeMonthsApi';
 import { useMonthOverview } from '../../hooks/useWorktimeMonths';
 import { StatusText } from './StatusText';
 import { WorkTimeCardModal } from './WorkTimeCardModal';
+import { WorkTimeGrid } from './WorkTimeGrid';
 import {
     addMonths, approvedSummary, defaultPeriod, hoursOfNorm, isPeriod, missingDaysText,
     monthOptions, periodLabel, periodOf,
@@ -116,12 +119,15 @@ export function MonthView({ onGoToTeam }: Props) {
                     {onGoToTeam && <EmptyAction><Button variant="outline" onClick={onGoToTeam}>Przejdź do zespołu</Button></EmptyAction>}
                 </EmptyState>
             ) : (
-                <Card>
-                    <Summary as="h2">{approvedSummary(data.counts.approved, data.counts.total)}</Summary>
-                    <Rows aria-label={`Karty czasu pracy, ${periodLabel(period)}`}>
-                        {rows.map(row => <MonthRow key={row.userId} row={row} onOpen={() => setCard(row.userId)} />)}
-                    </Rows>
-                </Card>
+                <>
+                    <Card>
+                        <Summary as="h2">{approvedSummary(data.counts.approved, data.counts.total)}</Summary>
+                        <Rows aria-label={`Karty czasu pracy, ${periodLabel(period)}`}>
+                            {rows.map(row => <MonthRow key={row.userId} row={row} onOpen={() => setCard(row.userId)} />)}
+                        </Rows>
+                    </Card>
+                    {rows.some(row => row.days?.length) && <WorkTimeGrid period={period} rows={rows} />}
+                </>
             )}
 
             {openCard && (

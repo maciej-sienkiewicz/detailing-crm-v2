@@ -47,6 +47,11 @@ export interface MonthCardRow {
     canDecide: boolean;
     /** Ostatnie przypomnienie w tym miesiącu. */
     remindedAt: string | null;
+    /**
+     * Wszystkie dni miesiąca - siatka „kto uzupełnił godziny" pod listą osób. Starszy
+     * backend ich nie wysyłał, a wtedy siatki po prostu nie ma.
+     */
+    days?: CardDay[];
 }
 
 export interface MonthSheet {
