@@ -239,7 +239,7 @@ export const InvoiceSection = ({
                 <Divider />
                 <ExternalNote>
                     <strong>Fakturę wystawi księgowość.</strong> CRM zapisze płatność na {fmt(visitGross)}
-                    z tym nabywcą, ale nie tworzy własnej faktury, więc nic nie policzy się dwa razy.
+                     z tym nabywcą, ale nie tworzy własnej faktury, więc nic nie policzy się dwa razy.
                 </ExternalNote>
             </Panel>
         );
