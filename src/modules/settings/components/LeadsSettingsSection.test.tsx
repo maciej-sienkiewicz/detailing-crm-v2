@@ -23,6 +23,8 @@ vi.mock('../api/leadsSettingsApi', () => ({
         updateAutoLeadConfig: vi.fn(),
         getAlertConfig: vi.fn(),
         updateAlertConfig: vi.fn(),
+        getEscalationPolicy: vi.fn(),
+        updateEscalationPolicy: vi.fn(),
     },
 }));
 
@@ -48,6 +50,11 @@ beforeEach(() => {
         leadStagnantClientThresholdHours: 120,
     });
     vi.mocked(leadsSettingsApi.updateAlertConfig).mockImplementation(async config => config);
+    vi.mocked(leadsSettingsApi.getEscalationPolicy).mockResolvedValue({
+        custom: false,
+        policy: { steps: [], workingHours: { alwaysOn: true, fromHour: 8, toHour: 20, days: [] } },
+        people: [],
+    });
 });
 
 afterEach(() => {
