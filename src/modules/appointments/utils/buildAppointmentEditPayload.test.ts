@@ -202,6 +202,28 @@ describe('buildAppointmentEditPayload', () => {
         });
     });
 
+    // Zgłoszenie biznesu: VIN odczytany aparatem w edycji rezerwacji stał w polu, a po
+    // zapisie i ponownym wejściu go nie było - payload nie miał klucza `vin`.
+    it('VIN z formularza idzie w payloadzie pojazdu, istniejącego i nowego', () => {
+        const withVin = { ...baseFormData().vehicleData!, vin: 'WBA3A5G59DNP26082' };
+        const update = buildAppointmentEditPayload({ ...baseFormData(), vehicleData: withVin })!;
+        expect(update.vehicle).toHaveProperty('updateData.vin', 'WBA3A5G59DNP26082');
+
+        const created = buildAppointmentEditPayload({ ...baseFormData(), vehicleData: withVin, isNewVehicle: true })!;
+        expect(created.vehicle).toHaveProperty('newData.vin', 'WBA3A5G59DNP26082');
+    });
+
+    it('nieruszany VIN nie idzie wcale (bez zmian), wyczyszczony idzie jako pusty napis (usunięcie)', () => {
+        const untouched = JSON.parse(JSON.stringify(buildAppointmentEditPayload(baseFormData())));
+        expect(untouched.vehicle.updateData).not.toHaveProperty('vin');
+
+        const cleared = buildAppointmentEditPayload({
+            ...baseFormData(),
+            vehicleData: { ...baseFormData().vehicleData!, vin: '' },
+        })!;
+        expect(cleared.vehicle).toHaveProperty('updateData.vin', '');
+    });
+
     it('vehicle NEW, gdy wybrany pojazd nie ma jeszcze id', () => {
         const payload = buildAppointmentEditPayload({
             ...baseFormData(),

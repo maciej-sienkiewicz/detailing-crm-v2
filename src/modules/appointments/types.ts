@@ -58,6 +58,8 @@ export type VehicleIdentity =
             year?: number;
             licensePlate?: string;
             color?: string;
+            /** Undefined - bez zmian, pusty napis - usunięcie VIN (jak w przyjęciu pojazdu). */
+            vin?: string;
         };
     }
     | {
@@ -69,6 +71,8 @@ export type VehicleIdentity =
             year?: number;
             licensePlate?: string;
             color?: string;
+            /** Undefined - bez zmian, pusty napis - usunięcie VIN (jak w przyjęciu pojazdu). */
+            vin?: string;
         };
     }
     | {

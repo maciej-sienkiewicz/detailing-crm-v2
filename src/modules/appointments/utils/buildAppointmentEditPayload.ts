@@ -90,6 +90,10 @@ export function buildAppointmentEditPayload(formData: CheckInFormData): Appointm
                         year: formData.vehicleData.yearOfProduction,
                         licensePlate: formData.vehicleData.licensePlate || undefined,
                         color: formData.vehicleData.color,
+                        // Okno edycji to formularz przyjęcia - z polem VIN i aparatem. Bez
+                        // tego klucza VIN odczytany ze zdjęcia stał w polu, a po zapisie
+                        // i ponownym wejściu znikał. Undefined (pole nieruszane) - bez zmian.
+                        vin: formData.vehicleData.vin,
                     },
                 }
                 : {
@@ -101,6 +105,10 @@ export function buildAppointmentEditPayload(formData: CheckInFormData): Appointm
                         year: formData.vehicleData.yearOfProduction,
                         licensePlate: formData.vehicleData.licensePlate || undefined,
                         color: formData.vehicleData.color,
+                        // Okno edycji to formularz przyjęcia - z polem VIN i aparatem. Bez
+                        // tego klucza VIN odczytany ze zdjęcia stał w polu, a po zapisie
+                        // i ponownym wejściu znikał. Undefined (pole nieruszane) - bez zmian.
+                        vin: formData.vehicleData.vin,
                     },
                 },
         services: formData.services.map(toApiServiceLineItem),
