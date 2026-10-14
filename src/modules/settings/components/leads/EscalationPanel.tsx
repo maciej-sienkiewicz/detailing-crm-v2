@@ -64,7 +64,7 @@ export function EscalationPanel() {
                     <Muted role="status">Wczytywanie przypomnień…</Muted>
                 ) : (
                     <>
-                        <Lead>Gdy nikt nie odpisze klientowi, kolejne osoby dowiadują się o tym w tej kolejności.</Lead>
+                        <Lead>Powiadomienia i SMS-y, gdy nikt nie odpisze klientowi. Kolejne osoby dowiadują się w tej kolejności.</Lead>
                         {steps.length === 0 ? (
                             <Muted>Przypomnienia są wyłączone - nikt nie dostanie powiadomienia o nowym zapytaniu.</Muted>
                         ) : (

@@ -90,6 +90,14 @@ const Loading = styled.p`
     color: ${ui.textMuted};
 `;
 
+const PanelLead = styled.p`
+    margin: 6px 0 4px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: ${ui.textSecondary};
+    max-width: 68ch;
+`;
+
 const ThresholdRow = styled.div`
     display: flex;
     align-items: center;
@@ -152,8 +160,8 @@ const formatMoment = (iso: string | null): string | null => {
 type ThresholdKey = keyof LeadAlertConfig;
 
 const THRESHOLDS: Array<{ key: ThresholdKey; label: string }> = [
-    { key: 'leadStagnantOurThresholdHours', label: 'Nasza odpowiedź jest spóźniona po' },
-    { key: 'leadStagnantClientThresholdHours', label: 'Klient ucichł po' },
+    { key: 'leadStagnantOurThresholdHours', label: 'Czas czekania na naszą odpowiedź robi się czerwony po' },
+    { key: 'leadStagnantClientThresholdHours', label: 'Sprawa dostaje oznaczenie „Bez odzewu” po' },
 ];
 
 type HoursDraft = Record<ThresholdKey, string>;
@@ -200,7 +208,7 @@ const StagnationPanel = () => {
         onSuccess: (saved) => {
             queryClient.setQueryData(LEAD_ALERT_CONFIG_QUERY_KEY, saved);
             setDraft(null);
-            showSuccess('Progi zapisane', 'Kolejka zapytań dzieli się już według nowych progów.');
+            showSuccess('Progi zapisane', 'Lista zapytań oznacza sprawy według nowych progów.');
         },
         onError: (error) => {
             if (toastedGlobally(error)) return;
@@ -243,7 +251,12 @@ const StagnationPanel = () => {
 
     return (
         <FlatPanel>
-            <SectionTitle as="h3">Kiedy przypominać o kontakcie</SectionTitle>
+            <SectionTitle as="h3">Oznaczenia na liście zapytań</SectionTitle>
+            {/* Dawny tytuł „Kiedy przypominać o kontakcie" obiecywał przypomnienia, a progi
+                niczego nie wysyłają - tylko barwią czas i dają plakietkę na liście. Obok
+                „Przypomnień o odpowiedzi" (które naprawdę wysyłają push i SMS) czytało się
+                to jak dwa sprzeczne ustawienia tego samego. */}
+            <PanelLead>Niczego nie wysyłają, tylko pokazują na liście, które sprawy się przeciągają. Powiadomienia ustawiasz wyżej.</PanelLead>
 
             {isError && !data ? (
                 <ThresholdRow>
