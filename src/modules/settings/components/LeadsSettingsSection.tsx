@@ -22,6 +22,7 @@ import { UnsavedChangesBanner } from './shared/SettingsLayout';
 import { SettingSwitchRow } from './SettingSwitchRow';
 import { serverMessage, toastedGlobally } from './errorToast';
 import { MAX_HOURS, MIN_HOURS, hoursInDays, normalizeHours, parseHours, sanitizeHours } from './leads/hoursField';
+import { EscalationPanel } from './leads/EscalationPanel';
 
 const AUTO_LEAD_CONFIG_QUERY_KEY = ['settings', 'auto-lead-config'] as const;
 const LEAD_ALERT_CONFIG_QUERY_KEY = ['settings', 'lead-alert-config'] as const;
@@ -375,6 +376,10 @@ export const LeadsSettingsSection = () => {
                     </>
                 )}
             </AutoCard>
+
+            {/* Przypomnienia o odpowiedzi: kto i kiedy dowiaduje się o zapytaniu, na które
+                nikt nie odpisał - push, a potem SMS do kierownika i właściciela. */}
+            <EscalationPanel />
 
             {/* Progi stygnięcia stoją pod automatem, bo dotyczą tych samych leadów,
                 tyle że po ich powstaniu: pierwszy ustawia, CO wpada do kolejki,

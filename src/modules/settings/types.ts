@@ -158,3 +158,57 @@ export interface LeadAlertConfig {
     leadStagnantOurThresholdHours: number;
     leadStagnantClientThresholdHours: number;
 }
+
+// ─── Eskalacja czekających zapytań (Ustawienia → Leady) ─────────────────────────
+// Kontrakt: GET/PUT /v1/leads/escalation-policy (backend LeadEscalationPolicyController).
+
+export type EscalationChannel = 'PUSH' | 'SMS';
+
+/** TEAM - każdy obsługujący zapytania (tylko push); USER - osoba z konta; PHONE - numer (tylko SMS). */
+export type EscalationRecipientKind = 'TEAM' | 'USER' | 'PHONE';
+
+export interface EscalationRecipient {
+    kind: EscalationRecipientKind;
+    userId?: string | null;
+    phone?: string | null;
+    label?: string | null;
+}
+
+export interface EscalationStep {
+    id: string;
+    /** 0 = od razu. */
+    afterMinutes: number;
+    channel: EscalationChannel;
+    /** Czas zegarowy, także poza godzinami pracy. */
+    anytime: boolean;
+    recipients: EscalationRecipient[];
+}
+
+export type DayOfWeek = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
+
+export interface EscalationWorkingHours {
+    alwaysOn: boolean;
+    fromHour: number;
+    /** Wyłącznie: 20 = do 19:59, 24 = do północy. */
+    toHour: number;
+    days: DayOfWeek[];
+}
+
+export interface EscalationPolicy {
+    steps: EscalationStep[];
+    workingHours: EscalationWorkingHours;
+}
+
+export interface EscalationPerson {
+    userId: string;
+    name: string;
+    phone: string | null;
+    isOwner: boolean;
+}
+
+export interface EscalationPolicyResponse {
+    /** false = studio działa na polityce domyślnej. */
+    custom: boolean;
+    policy: EscalationPolicy;
+    people: EscalationPerson[];
+}
