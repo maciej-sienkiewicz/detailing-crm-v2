@@ -4,7 +4,16 @@ import { useEffect, useRef } from 'react';
 import type { IMessage } from '@stomp/stompjs';
 import { subscribeToTopic } from '@/core/socketClient';
 import { useAuth } from '@/core';
-import type { CheckinPhotoUploadedEvent, CheckinDamageUpdatedEvent } from '../types';
+import type { AnnotationStroke, CheckinPhotoUploadedEvent, CheckinDamageUpdatedEvent } from '../types';
+
+/** Usterka w kształcie wiadomości WS (CheckinDamageUpdatedWsMessage po stronie serwera). */
+interface WsDamagePoint {
+    id: number;
+    x: number;
+    y: number;
+    note?: string | null;
+    photos?: { photoId: string; thumbnailUrl?: string | null; strokes?: AnnotationStroke[] }[];
+}
 
 interface UseCheckinSocketOptions {
     checkinId: string | null;
@@ -45,14 +54,23 @@ export function useCheckinSocket({
                 if (event.type === 'CHECKIN_PHOTO_UPLOADED') {
                     onPhotoUploadedRef.current(event as CheckinPhotoUploadedEvent);
                 } else if (event.type === 'CHECKIN_DAMAGE_UPDATED') {
-                    // Normalise note: null → '' to match frontend DamagePoint type
+                    // Normalise note: null → '' to match frontend DamagePoint type.
+                    // Zdjęcia usterek MUSZĄ przejść dalej: dawniej ta normalizacja
+                    // wypisywała tylko id, x, y i notatkę, więc usterka z telefonu
+                    // przychodziła na komputer bez zdjęć, a podgląd oznaczeń na zdjęciach
+                    // z telefonu nie miał z czego się zbudować.
                     const normalised: CheckinDamageUpdatedEvent = {
                         ...event,
-                        damagePoints: (event.damagePoints ?? []).map((p: { id: number; x: number; y: number; note?: string | null }) => ({
+                        damagePoints: (event.damagePoints ?? []).map((p: WsDamagePoint) => ({
                             id: p.id,
                             x: p.x,
                             y: p.y,
                             note: p.note ?? '',
+                            photos: (p.photos ?? []).map(photo => ({
+                                photoId: photo.photoId,
+                                strokes: photo.strokes ?? [],
+                                thumbnailUrl: photo.thumbnailUrl ?? undefined,
+                            })),
                         })),
                     };
                     onDamageUpdatedRef.current?.(normalised);

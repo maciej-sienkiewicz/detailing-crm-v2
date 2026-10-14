@@ -413,6 +413,19 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
 
     const uploadedPhotos = formData.photos || [];
 
+    /*
+     * Do usterki można podpiąć zdjęcie zrobione na komputerze ALBO telefonem. Zdjęcia
+     * z telefonu żyją w sesji kodu QR, nie w sesji zdjęć komputera, więc okno wyboru
+     * ich nie widziało - zgłoszenie biznesu: „nie możemy połączyć zdjęć z usterkami".
+     * Do formData.photos ich nie dokładamy: te id idą do wizyty jako zdjęcia sesji
+     * komputera, a zdjęcia z telefonu serwer i tak zabiera sam (finalizePhotos).
+     */
+    const [phonePhotos, setPhonePhotos] = useState<PhotoSlot[]>([]);
+    const damagePhotoChoices = [
+        ...uploadedPhotos,
+        ...phonePhotos.filter(phone => !uploadedPhotos.some(own => own.id === phone.id)),
+    ];
+
     const formatTimestamp = (ts: string) =>
         new Date(ts).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
 
@@ -539,6 +552,7 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
                         <CheckinQRGenerator
                             appointmentId={qrCheckinId}
                             onDamageUpdated={handleDamagePointsChange}
+                            onPhotosChange={setPhonePhotos}
                         />
                     </div>
 
@@ -642,7 +656,7 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
                         <VehicleDamageMapper
                             points={formData.damagePoints || []}
                             onChange={handleDamagePointsChange}
-                            availablePhotos={uploadedPhotos}
+                            availablePhotos={damagePhotoChoices}
                             vehicleType={formData.damageVehicleType ?? 'sedan'}
                             onVehicleTypeChange={type => onChange({ damageVehicleType: type })}
                         />

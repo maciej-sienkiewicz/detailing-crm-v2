@@ -1,6 +1,6 @@
 // src/modules/checkin/components/CheckinQRGenerator.tsx
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { QRCodeSVG } from 'qrcode.react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -8,7 +8,7 @@ import { useCheckinQRToken } from '../hooks/useCheckinQRToken';
 import { useCheckinSocket } from '../hooks/useCheckinSocket';
 import { checkinApi } from '../api/checkinApi';
 import { AnnotationOverlay } from './DamagePhotoAnnotator';
-import type { CheckinPhotoUploadedEvent, CheckinDamageUpdatedEvent, DamagePoint, AnnotationStroke } from '../types';
+import type { CheckinPhotoUploadedEvent, CheckinDamageUpdatedEvent, DamagePoint, AnnotationStroke, PhotoSlot } from '../types';
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
@@ -287,6 +287,11 @@ interface QrPhoto {
 interface CheckinQRGeneratorProps {
     appointmentId?: string;
     onDamageUpdated?: (points: DamagePoint[], vehicleType?: string | null) => void;
+    /**
+     * Zdjęcia z telefonu w kształcie zdjęć przyjęcia - żeby na komputerze dało się je
+     * podpiąć pod usterkę. Serwer rozpoznaje ich id przy tworzeniu wizyty.
+     */
+    onPhotosChange?: (photos: PhotoSlot[]) => void;
 }
 
 /** Live annotation info per phone photo, derived from damage-updated WS events */
@@ -305,7 +310,7 @@ function formatCountdown(seconds: number): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const CheckinQRGenerator = ({ appointmentId, onDamageUpdated }: CheckinQRGeneratorProps) => {
+export const CheckinQRGenerator = ({ appointmentId, onDamageUpdated, onPhotosChange }: CheckinQRGeneratorProps) => {
     const { tokenData, qrUrl, secondsLeft, isExpired, isLoading, error, refresh, rotate } =
         useCheckinQRToken(appointmentId);
 
@@ -317,6 +322,17 @@ export const CheckinQRGenerator = ({ appointmentId, onDamageUpdated }: CheckinQR
 
     const onDamageUpdatedRef = useRef(onDamageUpdated);
     onDamageUpdatedRef.current = onDamageUpdated;
+    const onPhotosChangeRef = useRef(onPhotosChange);
+    onPhotosChangeRef.current = onPhotosChange;
+
+    useEffect(() => {
+        onPhotosChangeRef.current?.(photos.map(photo => ({
+            id: photo.photoId,
+            fileName: photo.fileName,
+            uploadedAt: photo.timestamp,
+            thumbnailUrl: photo.thumbnailUrl,
+        })));
+    }, [photos]);
 
     const handlePhotoUploaded = useCallback((event: CheckinPhotoUploadedEvent) => {
         setPhotos(prev => {
