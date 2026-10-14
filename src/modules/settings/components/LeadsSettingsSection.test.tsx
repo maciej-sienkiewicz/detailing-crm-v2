@@ -41,7 +41,7 @@ const renderSection = () => {
     );
 };
 
-const ourField = () => screen.getByLabelText('Nasza odpowiedź jest spóźniona po') as HTMLInputElement;
+const ourField = () => screen.getByLabelText('Czas czekania na naszą odpowiedź robi się czerwony po') as HTMLInputElement;
 
 beforeEach(() => {
     vi.mocked(leadsSettingsApi.getAutoLeadConfig).mockResolvedValue({ enabled: false, enabledAt: null });
