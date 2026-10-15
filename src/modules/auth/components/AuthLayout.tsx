@@ -172,20 +172,23 @@ const Work = styled.main`
     }
 `;
 
-const Column = styled.div`
+const Column = styled.div<{ $wide: boolean }>`
     width: 100%;
-    max-width: 380px;
+    max-width: ${p => (p.$wide ? 480 : 380)}px;
 `;
 
 export function AuthLayout({
     statement,
     points,
+    wide = false,
     children,
 }: {
     /** Jedno zdanie na ciemnym pasie - bez kropki na końcu, kropkę stawia layout (złotą). */
     statement: string;
     /** Do trzech krótkich faktów pod zdaniem (np. warunki okresu próbnego). */
     points?: readonly string[];
+    /** Szersza kolumna dla treści, która nie jest formularzem (wybór pakietu po rejestracji). */
+    wide?: boolean;
     children: ReactNode;
 }) {
     return (
@@ -214,7 +217,7 @@ export function AuthLayout({
                 <Legal>© {new Date().getFullYear()} M&amp;M Solutions sp. z o.o.</Legal>
             </Brand>
             <Work>
-                <Column>{children}</Column>
+                <Column $wide={wide}>{children}</Column>
             </Work>
         </Shell>
     );
