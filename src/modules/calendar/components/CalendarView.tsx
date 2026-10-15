@@ -1709,13 +1709,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const [calendarTitle, setCalendarTitle] = useState('');
     const [currentView, setCurrentView] = useState<CalendarViewType>('dayGridMonth');
 
-    /* Ustawienia siatki miesiąca, zapamiętywane per urządzenie. */
+    /* Ustawienia siatki miesiąca i listy, zapamiętywane per urządzenie. */
     const {
         showWeekends,
         showAdjacentMonthDays,
-        isDefault: displayIsDefault,
+        showAgendaServices,
+        isMonthDefault,
+        isAgendaDefault,
         setShowWeekends,
         setShowAdjacentMonthDays,
+        setShowAgendaServices,
         reset: resetDisplaySettings,
     } = useCalendarDisplaySettings();
     // Domyślnie na telefonie kalendarz otwiera się w widoku Lista, ale nie wtedy,
@@ -2681,11 +2684,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     </MobileSearchBtn>
                     {!selectionMode && !agendaListActive && currentView === 'dayGridMonth' && (
                         <CalendarDisplaySettings
+                            view="month"
                             showWeekends={showWeekends}
                             showAdjacentMonthDays={showAdjacentMonthDays}
                             onShowWeekendsChange={setShowWeekends}
                             onShowAdjacentMonthDaysChange={setShowAdjacentMonthDays}
-                            isDefault={displayIsDefault}
+                            isDefault={isMonthDefault}
+                            onReset={resetDisplaySettings}
+                        />
+                    )}
+                    {/* Ta sama zębatka na liście - z ustawieniami listy, nie siatki. */}
+                    {!selectionMode && agendaListActive && (
+                        <CalendarDisplaySettings
+                            view="list"
+                            showServices={showAgendaServices}
+                            onShowServicesChange={setShowAgendaServices}
+                            isDefault={isAgendaDefault}
                             onReset={resetDisplaySettings}
                         />
                     )}
@@ -2822,11 +2836,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             tylko wtedy, gdy ta siatka jest na ekranie. */}
                         {!selectionMode && currentView === 'dayGridMonth' && (
                             <CalendarDisplaySettings
+                                view="month"
                                 showWeekends={showWeekends}
                                 showAdjacentMonthDays={showAdjacentMonthDays}
                                 onShowWeekendsChange={setShowWeekends}
                                 onShowAdjacentMonthDaysChange={setShowAdjacentMonthDays}
-                                isDefault={displayIsDefault}
+                                isDefault={isMonthDefault}
                                 onReset={resetDisplaySettings}
                             />
                         )}
@@ -2958,6 +2973,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 {agendaListActive && dateRange && (
                     <AgendaListView
                         events={events}
+                        showServices={showAgendaServices}
                         studioEventsByDay={studioEventDayMap}
                         onStudioEventClick={(event) => { setEventDraftRange(null); setEditedStudioEvent(event); }}
                         onDayAddClick={canCreateVisits

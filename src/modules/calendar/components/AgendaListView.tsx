@@ -237,6 +237,9 @@ const EventCard = styled.div<{ $color: string; $dimmed: boolean; $started: boole
     animation: ${fadeUp} 0.14s ease both;
     transition: box-shadow 0.15s, transform 0.15s;
     overflow: hidden;
+    /* Kolumna usług pyta o szerokość KARTY, nie ekranu - patrz ServicesAside. */
+    container-type: inline-size;
+    container-name: agenda-card;
 
     &:active {
         transform: scale(0.985);
@@ -294,6 +297,61 @@ const EventMetaRow = styled(EventMeta)`
         text-overflow: ellipsis;
     }
 `;
+
+/*
+ * Usługi w pustym dotąd miejscu po prawej stronie karty - same nazwy, bez cen:
+ * lista jest podglądem dnia, kwoty są w szczegółach wizyty.
+ *
+ * Kolumna bierze tyle, ile potrzebuje, ale nie więcej niż ~45% karty, więc nie
+ * odbiera miejsca nazwisku klienta. Nazwa, która się nie mieści, jest ucinana, a nie
+ * zawijana - karta nie rośnie przez usługi. Na karcie tak wąskiej, że po prawej nie
+ * ma wolnego miejsca, kolumna znika w ogóle (zapytanie o kontener, nie o ekran).
+ */
+const ServicesAside = styled.ul`
+    flex: 0 1 auto;
+    max-width: 45%;
+    min-width: 0;
+    margin: 0;
+    padding: 9px 11px 9px 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 3px;
+
+    @container agenda-card (max-width: 300px) {
+        display: none;
+    }
+`;
+
+const ServiceItem = styled.li<{ $more?: boolean }>`
+    max-width: 100%;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: ${p => p.$more ? 'transparent' : '#f1f5f9'};
+    font-size: 11px;
+    font-weight: ${p => p.$more ? 600 : 500};
+    color: ${p => p.$more ? '#94a3b8' : '#475569'};
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+`;
+
+/** Więcej linii niż lewa strona karty i karta zaczęłaby rosnąć przez usługi. */
+const MAX_VISIBLE_SERVICES = 3;
+
+/**
+ * Usługi do pokazania na karcie: całe, gdy się mieszczą, a gdy nie - o jedną mniej
+ * i „+N", żeby ostatnia linia mówiła, ile jeszcze jest, zamiast udawać, że to wszystko.
+ */
+export function visibleServices(names: string[] | undefined): { shown: string[]; more: number } {
+    const clean = (names ?? []).map(n => n.trim()).filter(Boolean);
+    if (clean.length <= MAX_VISIBLE_SERVICES) return { shown: clean, more: 0 };
+    const shown = clean.slice(0, MAX_VISIBLE_SERVICES - 1);
+    return { shown, more: clean.length - shown.length };
+}
 
 const TypeBadge = styled.span<{ $isVisit: boolean }>`
     display: inline-block;
@@ -395,6 +453,8 @@ export interface AgendaListViewProps {
      * nagłówkiem, bez guzika i bez plusika obiecującego akcję, której nie ma.
      */
     onDayAddClick?: (date: Date) => void;
+    /** Nazwy usług po prawej stronie karty - ustawienie per urządzenie (zębatka listy). */
+    showServices?: boolean;
 }
 
 export const AgendaListView: React.FC<AgendaListViewProps> = ({
@@ -406,6 +466,7 @@ export const AgendaListView: React.FC<AgendaListViewProps> = ({
     studioEventsByDay,
     onStudioEventClick,
     onDayAddClick,
+    showServices = false,
 }) => {
     const scrollRef = useRef<HTMLDivElement>(null);
     const todayKey = toDateKey(new Date());
@@ -511,6 +572,9 @@ export const AgendaListView: React.FC<AgendaListViewProps> = ({
                                             data.vehicleInfo,
                                             isVisit ? (data as VisitEventData).licensePlate : null,
                                         ].filter((part): part is string => Boolean(part));
+                                        const services = showServices
+                                            ? visibleServices(data.serviceNames)
+                                            : { shown: [], more: 0 };
 
                                         return (
                                             <EventCard
@@ -549,6 +613,18 @@ export const AgendaListView: React.FC<AgendaListViewProps> = ({
                                                         </EventMeta>
                                                     )}
                                                 </EventContent>
+                                                {services.shown.length > 0 && (
+                                                    <ServicesAside aria-label="Usługi">
+                                                        {services.shown.map((name, i) => (
+                                                            <ServiceItem key={`${name}-${i}`} title={name}>
+                                                                {name}
+                                                            </ServiceItem>
+                                                        ))}
+                                                        {services.more > 0 && (
+                                                            <ServiceItem $more>+{services.more}</ServiceItem>
+                                                        )}
+                                                    </ServicesAside>
+                                                )}
                                             </EventCard>
                                         );
                                     })}

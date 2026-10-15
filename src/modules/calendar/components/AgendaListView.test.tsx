@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
-import { AgendaListView, type AgendaListViewProps } from './AgendaListView';
+import { AgendaListView, visibleServices, type AgendaListViewProps } from './AgendaListView';
 
 const TODAY = new Date(2026, 9, 13, 12, 0);
 /** Nagłówek dzisiejszego dnia leży 600 px poniżej górnej krawędzi listy. */
@@ -80,5 +80,57 @@ describe('AgendaListView - przewijanie do dzisiejszego dnia', () => {
         );
 
         expect(area.scrollTop).toBe(TODAY_OFFSET);
+    });
+});
+
+// Na telefonie po prawej stronie karty było puste miejsce - stoją tam teraz nazwy usług
+// (bez cen), sterowane przełącznikiem „Pokaż listę usług" w zębatce listy.
+describe('AgendaListView - lista usług na karcie', () => {
+    const visit = (serviceNames: string[]) => ({
+        id: 'v1',
+        title: 'Jan Kowalski',
+        start: new Date(2026, 9, 13, 9, 0).toISOString(),
+        end: new Date(2026, 9, 13, 15, 0).toISOString(),
+        extendedProps: {
+            id: 'v1', type: 'VISIT', title: 'Jan Kowalski', customerName: 'Jan Kowalski',
+            vehicleInfo: 'BMW M3', licensePlate: 'PO 12345', status: 'IN_PROGRESS',
+            visitNumber: 'W/1', serviceNames, totalPrice: 190000, colorHex: '#0ea5e9',
+            startTime: '', endTime: '',
+        },
+    }) as unknown as AgendaListViewProps['events'][number];
+
+    it('pokazuje nazwy usług, gdy ustawienie jest włączone - bez kwot', () => {
+        const { getByLabelText } = renderList(props({
+            events: [visit(['Powłoka ceramiczna', 'Pranie tapicerki'])],
+            showServices: true,
+        }));
+        const aside = getByLabelText('Usługi');
+        expect(aside.textContent).toContain('Powłoka ceramiczna');
+        expect(aside.textContent).toContain('Pranie tapicerki');
+        expect(aside.textContent).not.toMatch(/zł|1900/);
+    });
+
+    it('wyłączone ustawienie albo wizyta bez usług - bez kolumny', () => {
+        const off = renderList(props({ events: [visit(['Powłoka ceramiczna'])], showServices: false }));
+        expect(off.queryByLabelText('Usługi')).toBeNull();
+        cleanup();
+
+        const empty = renderList(props({ events: [visit([])], showServices: true }));
+        expect(empty.queryByLabelText('Usługi')).toBeNull();
+    });
+});
+
+describe('visibleServices', () => {
+    it('mieszczące się usługi idą w całości', () => {
+        expect(visibleServices(['A', 'B', 'C'])).toEqual({ shown: ['A', 'B', 'C'], more: 0 });
+    });
+
+    it('nadmiar zamienia ostatnią linię na „+N"', () => {
+        expect(visibleServices(['A', 'B', 'C', 'D', 'E'])).toEqual({ shown: ['A', 'B'], more: 3 });
+    });
+
+    it('puste nazwy i brak listy nie tworzą linii', () => {
+        expect(visibleServices(['  ', 'A'])).toEqual({ shown: ['A'], more: 0 });
+        expect(visibleServices(undefined)).toEqual({ shown: [], more: 0 });
     });
 });

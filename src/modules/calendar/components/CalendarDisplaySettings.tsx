@@ -1,5 +1,6 @@
 /**
- * Ustawienia siatki miesiąca: weekendy i dni z sąsiednich miesięcy.
+ * Ustawienia wyglądu widoku: dla siatki miesiąca weekendy i dni z sąsiednich
+ * miesięcy, dla listy na telefonie - nazwy usług przy wizytach.
  *
  * Osobny przycisk, a nie kolejna kategoria w pasku filtrów: filtr decyduje,
  * KTÓRE wydarzenia widać, a to ustawienie - JAK zbudowana jest siatka. Zlanie
@@ -174,23 +175,32 @@ const GearIcon = () => (
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-interface CalendarDisplaySettingsProps {
-    showWeekends: boolean;
-    showAdjacentMonthDays: boolean;
-    onShowWeekendsChange: (value: boolean) => void;
-    onShowAdjacentMonthDaysChange: (value: boolean) => void;
+interface CommonProps {
     isDefault: boolean;
     onReset: () => void;
 }
 
-export const CalendarDisplaySettings = ({
-    showWeekends,
-    showAdjacentMonthDays,
-    onShowWeekendsChange,
-    onShowAdjacentMonthDaysChange,
-    isDefault,
-    onReset,
-}: CalendarDisplaySettingsProps) => {
+interface MonthSettingsProps extends CommonProps {
+    view: 'month';
+    showWeekends: boolean;
+    showAdjacentMonthDays: boolean;
+    onShowWeekendsChange: (value: boolean) => void;
+    onShowAdjacentMonthDaysChange: (value: boolean) => void;
+}
+
+interface ListSettingsProps extends CommonProps {
+    view: 'list';
+    showServices: boolean;
+    onShowServicesChange: (value: boolean) => void;
+}
+
+/* Każdy widok ma własny zestaw przełączników - unia pilnuje, żeby lista nie
+   dostała przełącznika weekendów, który nic by w niej nie zmienił. */
+type CalendarDisplaySettingsProps = MonthSettingsProps | ListSettingsProps;
+
+export const CalendarDisplaySettings = (props: CalendarDisplaySettingsProps) => {
+    const { isDefault } = props;
+    const title = props.view === 'month' ? 'Ustawienia widoku miesiąca' : 'Ustawienia widoku listy';
     const [open, setOpen] = useState(false);
     const btnRef = useRef<HTMLButtonElement>(null);
     const panelRef = useRef<HTMLDivElement>(null);
@@ -215,8 +225,8 @@ export const CalendarDisplaySettings = ({
                 onClick={() => setOpen(v => !v)}
                 aria-haspopup="dialog"
                 aria-expanded={open}
-                aria-label="Ustawienia widoku miesiąca"
-                title="Ustawienia widoku miesiąca"
+                aria-label={title}
+                title={title}
             >
                 {/* Sam znak, bez podpisu — na telefonie stoi w rzędzie z lupką jako
                     para ikon, a „Widok" rozpychało rząd i tłumaczyło to, co i tak mówi
@@ -228,36 +238,55 @@ export const CalendarDisplaySettings = ({
             {open && (
                 <>
                     <Backdrop onClick={() => setOpen(false)} />
-                    <Panel ref={panelRef} role="dialog" aria-label="Ustawienia widoku miesiąca">
-                        <Row>
-                            <RowText>
-                                <RowLabel htmlFor="cal-weekends">Weekendy</RowLabel>
-                            </RowText>
-                            <ToggleSlot>
-                                <Toggle
-                                    inputId="cal-weekends"
-                                    size="sm"
-                                    checked={showWeekends}
-                                    onChange={onShowWeekendsChange}
-                                    ariaLabel="Pokazuj weekendy"
-                                />
-                            </ToggleSlot>
-                        </Row>
+                    <Panel ref={panelRef} role="dialog" aria-label={title}>
+                        {props.view === 'month' ? (
+                            <>
+                                <Row>
+                                    <RowText>
+                                        <RowLabel htmlFor="cal-weekends">Weekendy</RowLabel>
+                                    </RowText>
+                                    <ToggleSlot>
+                                        <Toggle
+                                            inputId="cal-weekends"
+                                            size="sm"
+                                            checked={props.showWeekends}
+                                            onChange={props.onShowWeekendsChange}
+                                            ariaLabel="Pokazuj weekendy"
+                                        />
+                                    </ToggleSlot>
+                                </Row>
 
-                        <Row>
-                            <RowText>
-                                <RowLabel htmlFor="cal-adjacent">Dni z sąsiednich miesięcy</RowLabel>
-                            </RowText>
-                            <ToggleSlot>
-                                <Toggle
-                                    inputId="cal-adjacent"
-                                    size="sm"
-                                    checked={showAdjacentMonthDays}
-                                    onChange={onShowAdjacentMonthDaysChange}
-                                    ariaLabel="Pokazuj dni z sąsiednich miesięcy"
-                                />
-                            </ToggleSlot>
-                        </Row>
+                                <Row>
+                                    <RowText>
+                                        <RowLabel htmlFor="cal-adjacent">Dni z sąsiednich miesięcy</RowLabel>
+                                    </RowText>
+                                    <ToggleSlot>
+                                        <Toggle
+                                            inputId="cal-adjacent"
+                                            size="sm"
+                                            checked={props.showAdjacentMonthDays}
+                                            onChange={props.onShowAdjacentMonthDaysChange}
+                                            ariaLabel="Pokazuj dni z sąsiednich miesięcy"
+                                        />
+                                    </ToggleSlot>
+                                </Row>
+                            </>
+                        ) : (
+                            <Row>
+                                <RowText>
+                                    <RowLabel htmlFor="cal-list-services">Pokaż listę usług</RowLabel>
+                                </RowText>
+                                <ToggleSlot>
+                                    <Toggle
+                                        inputId="cal-list-services"
+                                        size="sm"
+                                        checked={props.showServices}
+                                        onChange={props.onShowServicesChange}
+                                        ariaLabel="Pokazuj listę usług przy wizytach"
+                                    />
+                                </ToggleSlot>
+                            </Row>
+                        )}
                     </Panel>
                 </>
             )}
