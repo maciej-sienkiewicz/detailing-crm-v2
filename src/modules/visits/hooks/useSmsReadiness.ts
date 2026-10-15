@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { canPurchaseHere } from '@/core/native/platform';
 import { useCapability } from '@/modules/subscription';
 import { useSmsCreditBalance } from '@/modules/settings/hooks/useSmsCredits';
 import { fetchAutomationConfig } from '@/modules/sms-campaigns/api/smsCampaignsApi';
@@ -106,6 +107,11 @@ export function useSmsReadiness({
             || (moduleEnabled && !!templateKey && templatesQuery.isLoading);
 
         const requirements: SmsRequirement[] = [];
+        // Moduł i kredyty kreator załatwia zakupem, a w aplikacji ze sklepu nie wolno
+        // niczego kupić ani pokazywać ceny do zapłaty gdzie indziej (App Store 3.1.1,
+        // Google Play). Brak zostaje na liście, tylko kreator go nie proponuje - tak jak
+        // brak numeru telefonu.
+        const purchasable = canPurchaseHere();
 
         // ── Module ────────────────────────────────────────────────────────────
         const moduleName = comms.missingFeatures.map(f => f.displayName).join(', ');
@@ -118,10 +124,10 @@ export function useSmsReadiness({
                 : `Moduł ${moduleName || 'wysyłki wiadomości'}`,
             detail: moduleEnabled
                 ? 'włączony'
-                : modulePrice != null
+                : modulePrice != null && purchasable
                     ? `${(modulePrice / 100).toFixed(2).replace('.', ',')} zł/mies.`
                     : 'wymagany',
-            fixable: true,
+            fixable: purchasable,
         });
 
         // ── Template ──────────────────────────────────────────────────────────
@@ -155,7 +161,7 @@ export function useSmsReadiness({
             detail: !moduleEnabled ? 'sprawdzimy po włączeniu modułu'
                 : credits === null ? '-'
                 : `${credits}`,
-            fixable: true,
+            fixable: purchasable,
         });
 
         // ── Recipient ─────────────────────────────────────────────────────────

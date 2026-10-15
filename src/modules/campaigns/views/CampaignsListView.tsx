@@ -21,6 +21,7 @@
 //
 // Ciemny „hero" pustego stanu. Drugi czarny prostokąt z gradientem, tuż pod
 // nagłówkiem strony, który jest czarnym prostokątem z gradientem.
+import { canPurchaseHere } from '@/core/native/platform';
 import { usePermissions } from '@/core/permissions';
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -332,6 +333,7 @@ export function CampaignsListView() {
     // Doładowanie kredytów to sekcja tylko dla właściciela - inny pracownik lądował
     // po kliknięciu w zupełnie innej części ustawień.
     const { isOwner } = usePermissions();
+    const canTopUp = isOwner && canPurchaseHere();
     const [searchParams, setSearchParams] = useSearchParams();
     const { campaigns, isLoading } = useCampaignsList();
     const { stats } = useCampaignStats();
@@ -420,19 +422,21 @@ export function CampaignsListView() {
                     <ArrowRight />
                 </AlertStrip>
             ) : creditsLow && !isEmpty ? (
+                // W aplikacji ze sklepu pasek zostaje samą informacją o saldzie: bez
+                // przejścia do kredytów (tej sekcji tam nie ma) i bez zachęty do zakupu.
                 <AlertStrip
                     $tone="stale"
                     type="button"
-                    title={isOwner ? 'Przejdź do doładowania kredytów' : undefined}
-                    disabled={!isOwner}
-                    onClick={isOwner ? () => navigate('/settings?tab=credits') : undefined}
+                    title={canTopUp ? 'Przejdź do doładowania kredytów' : undefined}
+                    disabled={!canTopUp}
+                    onClick={canTopUp ? () => navigate('/settings?tab=credits') : undefined}
                 >
                     <span className="amount">{credits}</span>
                     <span className="text">
-                        {pluralPl(credits, 'kredyt SMS został', 'kredyty SMS zostały', 'kredytów SMS zostało')} na koncie -{' '}
-                        {isOwner
-                            ? <><strong>doładuj</strong>, zanim ruszy kolejna wysyłka</>
-                            : <>poproś właściciela o <strong>doładowanie</strong>, zanim ruszy kolejna wysyłka</>}
+                        {pluralPl(credits, 'kredyt SMS został', 'kredyty SMS zostały', 'kredytów SMS zostało')} na koncie
+                        {canPurchaseHere() && (isOwner
+                            ? <> - <strong>doładuj</strong>, zanim ruszy kolejna wysyłka</>
+                            : <> - poproś właściciela o <strong>doładowanie</strong>, zanim ruszy kolejna wysyłka</>)}
                     </span>
                     <Coins />
                 </AlertStrip>

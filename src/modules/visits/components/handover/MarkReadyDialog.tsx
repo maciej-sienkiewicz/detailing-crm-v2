@@ -127,7 +127,11 @@ export const MarkReadyDialog = ({ visit, isOpen, onClose, onSuccess }: MarkReady
                         <Notice
                             tone="warn"
                             title="SMS nie wyjdzie"
-                            action={<Button size="sm" onClick={() => setWizardOpen(true)}>Napraw teraz</Button>}
+                            // Kredyty w aplikacji ze sklepu nie są do naprawienia tutaj (useSmsReadiness),
+                            // a kreator bez żadnego kroku nie miałby czego pokazać.
+                            action={smsGaps.some(g => g.fixable)
+                                ? <Button size="sm" onClick={() => setWizardOpen(true)}>Napraw teraz</Button>
+                                : undefined}
                         >
                             {/* Każdy brak w osobnej linii: sklejanie kropką dawało „0 szt.." i „zł/mies..". */}
                             {smsGaps.map(g => <div key={g.id}>{g.label}: {g.detail}</div>)}

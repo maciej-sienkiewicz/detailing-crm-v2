@@ -1,7 +1,11 @@
 import { ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { useAuth } from '../context/AuthContext';
+import { canPurchaseHere } from '../native/platform';
 import { useToast } from '@/common/components/Toast';
+import { Button } from '@/common/components/ui';
+import { authApi } from '@/modules/auth/api/authApi';
 import { useSubscriptionStatus } from '@/modules/settings/hooks/useSubscription';
 import { useCheckout, useMyPlan } from '@/modules/subscription/api/subscriptionQueries';
 import { FirstLoginModal } from '@/modules/subscription/components/FirstLoginModal';
@@ -223,6 +227,52 @@ function ExpiredModal() {
     );
 }
 
+// ─── InactiveAccountScreen ────────────────────────────────────────────────────
+
+/**
+ * Konto bez aktywnego pakietu w aplikacji ze sklepu.
+ *
+ * App Store (3.1.1, 3.1.3(b)) i Google Play nie pozwalają tu niczego kupić ani
+ * podpowiadać, gdzie to zrobić - więc zamiast „Przedłuż pakiet" jest sama informacja.
+ * Jedyna akcja to wylogowanie: nakładka przykrywa całą aplikację razem z menu,
+ * a bez niej nie dałoby się nawet przełączyć na inne konto.
+ */
+function InactiveAccountScreen() {
+    const { setAuthenticated } = useAuth();
+    const navigate = useNavigate();
+
+    const handleLogout = async () => {
+        try {
+            await authApi.logout();
+        } catch {
+            // Sesja i tak wygaśnie; ważne, żeby ten ekran zniknął.
+        }
+        setAuthenticated(false);
+        navigate('/login');
+    };
+
+    return (
+        <Overlay>
+            <Card>
+                <Head>
+                    <IconWrap>
+                        <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                    </IconWrap>
+                    <Title>Konto jest nieaktywne</Title>
+                    <Subtitle>
+                        To konto nie ma teraz aktywnego pakietu. Twoje dane są bezpieczne.
+                        Pakietem nie można zarządzać w aplikacji.
+                    </Subtitle>
+                </Head>
+                <Button size="lg" onClick={handleLogout}>Wyloguj się</Button>
+            </Card>
+        </Overlay>
+    );
+}
+
 // ─── Gate ─────────────────────────────────────────────────────────────────────
 
 interface SubscriptionGateProps {
@@ -245,6 +295,11 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
     // Block children entirely: the modal handles everything from here.
     // No children = no protected API calls fire.
     if (!status || status.status === 'NO_PLAN') {
+        // W aplikacji ze sklepu powitanie proponuje już tylko darmowy okres próbny.
+        // Gdy studio go wykorzystało, nie zostaje nic do wybrania.
+        if (!canPurchaseHere() && status?.trialUsed) {
+            return <InactiveAccountScreen />;
+        }
         return <FirstLoginModal trialUsed={status?.trialUsed ?? false} />;
     }
 
@@ -258,7 +313,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
     return (
         <>
             {children}
-            <ExpiredModal />
+            {canPurchaseHere() ? <ExpiredModal /> : <InactiveAccountScreen />}
         </>
     );
 }

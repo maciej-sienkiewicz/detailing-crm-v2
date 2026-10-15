@@ -95,7 +95,6 @@ export function SmsActivationWizard({
                 {!started ? (
                     <Overview
                         readiness={readiness}
-                        plan={plan}
                         unresolvablePhone={unresolvablePhone}
                     />
                 ) : done ? (
@@ -151,17 +150,23 @@ export function SmsActivationWizard({
 
 // ─── Step 0: the whole cost, up front ────────────────────────────────────────
 
-function Overview({ readiness, plan, unresolvablePhone }: {
+function Overview({ readiness, unresolvablePhone }: {
     readiness: SmsReadiness;
-    plan: SmsRequirement[];
     unresolvablePhone: boolean;
 }) {
+    // Brak, którego kreator nie załatwi, to nie tylko telefon (ten ma własne ostrzeżenie
+    // niżej): w aplikacji ze sklepu także moduł i kredyty - patrz useSmsReadiness.
+    // Wtedy „przeprowadzimy Cię przez wszystkie" byłoby nieprawdą.
+    const outOfReach = readiness.blocking.some(r => !r.fixable && r.id !== 'phone');
+
     return (
         <>
             <Lede>
-                {plan.length === 0 && !unresolvablePhone
+                {readiness.blocking.length === 0
                     ? 'Wszystko jest już gotowe, możesz wysyłać wiadomości.'
-                    : 'Aby wysyłać SMS-y, potrzebne są poniższe elementy. Przeprowadzimy Cię przez wszystkie, bez opuszczania wizyty.'}
+                    : outOfReach
+                        ? 'Aby wysyłać SMS-y, potrzebne są poniższe elementy. Część z nich ustawisz tutaj, bez opuszczania wizyty.'
+                        : 'Aby wysyłać SMS-y, potrzebne są poniższe elementy. Przeprowadzimy Cię przez wszystkie, bez opuszczania wizyty.'}
             </Lede>
 
             <CheckList>

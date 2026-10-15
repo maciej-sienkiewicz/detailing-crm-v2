@@ -33,6 +33,7 @@ import { PageContainer } from '@/common/components/PageContainer';
 import { PageChromeProvider } from '@/common/components/PageChrome';
 import { Button, ui } from '@/common/components/ui';
 import { useMediaQuery } from '@/common/hooks';
+import { canPurchaseHere } from '@/core/native/platform';
 import { usePermissions } from '@/core/permissions';
 import type { AccessRequirement } from '@/core/permissions';
 import { CompanySection } from '../components/CompanySection';
@@ -246,6 +247,12 @@ const SECTION_REQUIREMENTS: Partial<Record<SectionId, AccessRequirement>> = {
     credits: 'OWNER_ONLY',
     invoices: 'OWNER_ONLY',
 };
+
+// Pakiet i kredyty to sprzedaż: zakup pakietu, modułów i kredytów SMS. W aplikacji ze
+// sklepu nie wolno w niej niczego kupić ani odsyłać do zakupu (App Store 3.1.1,
+// Google Play), więc obie sekcje znikają tak jak sekcja bez uprawnienia - także
+// `?tab=plan` i `?tab=credits` z dawnych linków spadają na pierwszą widoczną.
+const PURCHASE_SECTIONS = new Set<SectionId>(['plan', 'credits']);
 
 /** Poniżej tej szerokości menu i treść nie mieszczą się obok siebie. */
 const PHONE_QUERY = '(max-width: 900px)';
@@ -498,6 +505,7 @@ export function SettingsView() {
     const isPhone = useMediaQuery(PHONE_QUERY);
 
     const canSee = useCallback((id: SectionId) => {
+        if (PURCHASE_SECTIONS.has(id) && !canPurchaseHere()) return false;
         const requirement = SECTION_REQUIREMENTS[id];
         if (!requirement) return true;
         if (requirement === 'OWNER_ONLY') return isOwner;

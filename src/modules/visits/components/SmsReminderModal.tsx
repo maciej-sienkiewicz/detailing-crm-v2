@@ -13,6 +13,7 @@ import {
   CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
+import { canPurchaseHere } from '@/core/native/platform';
 import { useSmsReadiness } from '../hooks/useSmsReadiness';
 import { SmsActivationWizard } from './SmsActivationWizard';
 import { PiiValue } from '@/common/pii';
@@ -405,6 +406,10 @@ export const SmsReminderModal = ({ isOpen, visitId, customer, existingReminder, 
     // of three things standing in the way.
     const readiness = useSmsReadiness({ enabled: isOpen, customerPhone: customer.phone });
     const [wizardOpen, setWizardOpen] = useState(false);
+    // Braki nie do załatwienia tutaj poza telefonem bywają tylko w aplikacji ze sklepu:
+    // moduł i kredyty kreator załatwia zakupem, a tam zakupów nie ma (useSmsReadiness).
+    const outOfReach = readiness.blocking.some(r => !r.fixable && r.id !== 'phone');
+    const canFixHere = readiness.blocking.some(r => r.fixable);
 
     const isEditMode = !!existingReminder;
 
@@ -506,25 +511,34 @@ export const SmsReminderModal = ({ isOpen, visitId, customer, existingReminder, 
                         <SetupHint>
                             {readiness.blocking.every(r => r.fixable)
                                 ? 'Możemy to ustawić teraz, bez opuszczania tej wizyty.'
-                                : 'Część z tego uzupełnisz w karcie klienta, resztę ustawimy tutaj.'}
+                                : outOfReach
+                                    ? 'Tego nie ustawisz w aplikacji.'
+                                    : 'Część z tego uzupełnisz w karcie klienta, resztę ustawimy tutaj.'}
                         </SetupHint>
-                        <SharedButton
-                            $variant="primary"
-                            onClick={() => setWizardOpen(true)}
-                            disabled={!readiness.blocking.some(r => r.fixable)}
-                        >
-                            Ustaw wysyłkę SMS
-                        </SharedButton>
+                        {(canFixHere || !outOfReach) && (
+                            <SharedButton
+                                $variant="primary"
+                                onClick={() => setWizardOpen(true)}
+                                disabled={!canFixHere}
+                            >
+                                Ustaw wysyłkę SMS
+                            </SharedButton>
+                        )}
                     </SetupPanel>
                 ) : (
                 <>
                 {readiness.warnings.map(warn => (
                     <LowBalance key={warn.id}>
-                        <strong>{creditsLeftPhrase(readiness.availableCredits ?? 0)}</strong>, ta wiadomość zużyje 1.
-                        Możesz dokończyć wysyłkę i doładować później.
-                        <LowBalanceAction type="button" onClick={() => setWizardOpen(true)}>
-                            Doładuj teraz
-                        </LowBalanceAction>
+                        <strong>{creditsLeftPhrase(readiness.availableCredits ?? 0)}</strong>, ta wiadomość zużyje 1.{' '}
+                        {/* W aplikacji ze sklepu nie wolno zachęcać do zakupu - zostaje samo saldo. */}
+                        {canPurchaseHere() ? (
+                            <>
+                                Możesz dokończyć wysyłkę i doładować później.
+                                <LowBalanceAction type="button" onClick={() => setWizardOpen(true)}>
+                                    Doładuj teraz
+                                </LowBalanceAction>
+                            </>
+                        ) : 'Możesz dokończyć wysyłkę.'}
                     </LowBalance>
                 ))}
                 <CustomerRow>

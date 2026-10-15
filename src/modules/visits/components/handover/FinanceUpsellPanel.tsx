@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { canPurchaseHere } from '@/core/native/platform';
 import { usePermissions } from '@/core/permissions/usePermissions';
 import { useCapability } from '@/modules/subscription';
 import { useAddOnUnlock } from '@/modules/subscription/hooks/useAddOnUnlock';
@@ -24,6 +25,11 @@ export function FinanceUpsellPanel({ grossAmount, currency }: Props) {
     const unlock = useAddOnUnlock();
 
     const option = finance.upsell[0];
+
+    // Panel jest wyłącznie propozycją zakupu, a w aplikacji ze sklepu nie wolno jej
+    // pokazać (App Store 3.1.1, Google Play). Wydanie bez dokumentu działa i bez niego,
+    // tak jak przy wizycie bezpłatnej.
+    if (!canPurchaseHere()) return null;
 
     return (
         <>
