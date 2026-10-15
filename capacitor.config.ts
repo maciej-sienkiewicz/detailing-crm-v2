@@ -38,7 +38,10 @@ const config: CapacitorConfig = {
     },
     plugins: {
         // Wcięcia systemowych pasków robi MainActivity (patrz komentarz tam) - wtyczka ich nie dubluje.
-        SystemBars: { insetsHandling: 'disable' },
+        // style: 'DARK' = jasne ikony na ciemnym tle. Domyślne DEFAULT idzie za motywem
+        // telefonu, więc w jasnym motywie zegar i bateria były ciemnoszare na granacie
+        // paska (#0f172a), czyli prawie niewidoczne. Paski są zawsze granatowe.
+        SystemBars: { insetsHandling: 'disable', style: 'DARK' },
         PushNotifications: {
             // Powiadomienie przy otwartej aplikacji też się pokazuje - tak jak w przeglądarce.
             presentationOptions: ['badge', 'sound', 'alert'],
