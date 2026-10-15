@@ -26,6 +26,9 @@ export default defineConfig({
     },
     server: {
         port: 3000,
+        // Budowanie aplikacji (gradlew, xcodebuild) zapisuje tysiące plików w android/ i ios/;
+        // bez tego każde z nich przeładowywało stronę otwartą w emulatorze.
+        watch: { ignored: ['**/android/**', '**/ios/**'] },
         proxy: {
             '/api': {
                 target: 'http://localhost:8080',
