@@ -21,6 +21,9 @@ import { SmsReminderEditSection } from '../components/SmsReminderEditSection';
 import { RecurrenceEditScopeModal } from '../components/RecurrenceEditScopeModal';
 import type { AppointmentSmsInfo, RecurrenceEditScope, RecurrenceInfo } from '../types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { EmptyState } from '@/common/components/EmptyState';
+import { Button } from '@/common/components/ui';
+import { useCanEditAppointment } from '../hooks/useCanEditAppointment';
 
 const SmsSeparator = styled.div`
     height: 1px;
@@ -107,7 +110,41 @@ const toFormAddress = (address: ApiAddress | null | undefined): CheckInFormData[
         }
         : null;
 
+/**
+ * Edycja rezerwacji tylko z danymi osobowymi - patrz useCanEditAppointment. Bez nich
+ * formularz nie rusza nawet odczytu: wypełniłby się gwiazdkami, a zapis nadpisałby
+ * nimi klienta. Wejście wprost z adresu dostaje czytelną odmowę zamiast takiego formularza.
+ */
 export const AppointmentEditView = () => {
+    const canEdit = useCanEditAppointment();
+    const navigate = useNavigate();
+    if (!canEdit) {
+        return (
+            <Container>
+                <ContentWrapper>
+                    <EmptyState
+                        icon="🔒"
+                        title="Nie możesz edytować tej rezerwacji"
+                        description="Edycja rezerwacji wymaga dostępu do danych osobowych klienta. Poproś właściciela studia o to uprawnienie."
+                    >
+                        <NoAccessActions>
+                            <Button variant="outline" onClick={() => navigate('/calendar')}>Wróć do kalendarza</Button>
+                        </NoAccessActions>
+                    </EmptyState>
+                </ContentWrapper>
+            </Container>
+        );
+    }
+    return <AppointmentEditForm />;
+};
+
+const NoAccessActions = styled.div`
+    display: flex;
+    justify-content: center;
+    margin-top: ${props => props.theme.spacing.lg};
+`;
+
+const AppointmentEditForm = () => {
     const { appointmentId } = useParams<{ appointmentId: string }>();
     const navigate = useNavigate();
     const location = useLocation();

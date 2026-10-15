@@ -9,6 +9,7 @@ import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
 import { PiiValue, PiiText, usePiiAccess } from '@/common/pii';
 import { VisitCardLinkModal } from '@/modules/visit-card';
 import { usePermissions } from '@/core/permissions';
+import { useCanEditAppointment } from '@/modules/appointments/hooks/useCanEditAppointment';
 import { useCapability } from '@/modules/subscription';
 import { HoverInfo } from '@/common/components/InfoTooltip';
 import { usePrintServicesList } from '@/modules/visits/hooks/usePrintServicesList';
@@ -1024,6 +1025,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
     // omits the customer object entirely, so there is nothing to display or blur.
     const piiGranted = usePiiAccess();
     const { can } = usePermissions();
+    const canEditAppointment = useCanEditAppointment();
 
     const handleClose = () => {
         if (closing) return;
@@ -1351,7 +1353,9 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                     </>
                                 ) : (
                                     <>
-                                        {can('VISITS_CREATE') && (
+                                        {/* Edycja wysyła klienta w całości - bez danych osobowych
+                                            nadpisałaby go gwiazdkami (useCanEditAppointment). */}
+                                        {canEditAppointment && (
                                             <IconActionButton onClick={onEditReservationClick} title="Edytuj rezerwację">EDYTUJ</IconActionButton>
                                         )}
                                         {can('VISITS_CREATE') && (

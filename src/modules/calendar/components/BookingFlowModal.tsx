@@ -194,6 +194,7 @@ export function BookingFlowModal({
                 initialData={prefill}
                 onClose={onClose}
                 onSave={handleSave}
+                allowRecurrence={!leadId}
             />
         );
     }

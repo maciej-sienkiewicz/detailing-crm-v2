@@ -29,6 +29,11 @@ export const useQuickEventCreation = () => {
             const payload = await buildAppointmentPayload(data);
 
             if (leadId) {
+                // Serwer nie zakłada serii z leada. Formularz chowa wtedy „Cykliczna",
+                // a to jest bezpiecznik: reguła nie może zginąć po cichu.
+                if (data.recurrence) {
+                    throw new Error('Rezerwacji z leada nie można założyć jako cyklicznej.');
+                }
                 const response = await apiClient.post(`/v1/appointments/from-lead/${leadId}`, payload);
                 return response.data;
             }
