@@ -187,7 +187,10 @@ export const VehicleDocuments = ({ vehicleId, readOnly, id }: Props) => {
                                     <IconButton label={`Pobierz ${doc.name || doc.fileName}`} variant="ghost" size="sm" onClick={() => window.open(doc.fileUrl, '_blank')}>
                                         <Download />
                                     </IconButton>
-                                    {!readOnly && (
+                                    {/* Dokument „Z wizyty" (protokół, skan z przyjęcia) należy do wizyty:
+                                        serwer usuwa tu tylko dokumenty pojazdu, a dla takiego odpowiadał
+                                        „Nie znaleziono dokumentu". Usuwa się go w wizycie. */}
+                                    {!readOnly && doc.source !== 'VISIT' && (
                                         <IconButton
                                             label={`Usuń ${doc.name || doc.fileName}`}
                                             variant="danger"

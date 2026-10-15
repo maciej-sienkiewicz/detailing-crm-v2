@@ -1,5 +1,6 @@
 // src/modules/customers/api/customerEditApi.ts
 
+import { putToPresignedUrl } from '@/common/utils/presignedUpload';
 import { apiClient } from '@/core/apiClient';
 import type {
     Customer,
@@ -300,16 +301,17 @@ export const customerEditApi = {
         const { documentId, uploadUrl } = initiateResponse.data;
 
         // Step 2: Upload file binary directly to S3 via presigned URL (no auth headers)
-        const s3Response = await fetch(uploadUrl, {
-            method: 'PUT',
-            body: payload.file,
-            headers: {
-                'Content-Type': payload.file.type || 'application/octet-stream',
-            },
-        });
-
-        if (!s3Response.ok) {
-            throw new Error(`S3 upload failed: ${s3Response.status} ${s3Response.statusText}`);
+        try {
+            await putToPresignedUrl(uploadUrl, payload.file, payload.file.type || 'application/octet-stream');
+        } catch (error) {
+            // Serwer zapisał już rekord dokumentu. Bez sprzątnięcia na liście zostawał
+            // dokument, którego nie da się otworzyć - a użytkownik widział błąd i wgrywał
+            // plik drugi raz, więc pozycje się dublowały.
+            await apiClient.delete(
+                `${CUSTOMERS_BASE_PATH}/${payload.customerId}/documents/${documentId}`,
+                { skipErrorToast: true },
+            ).catch(() => undefined);
+            throw error;
         }
 
         return {

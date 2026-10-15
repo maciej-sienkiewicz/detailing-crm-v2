@@ -22,6 +22,9 @@ export const useUpdatePhotoTags = (options?: {
         onSuccess: (data, variables) => {
             // New tags may have become suggestions, so refresh
             queryClient.invalidateQueries({ queryKey: ['photo-tags', 'suggestions'] });
+            // Galeria filtruje po tagach i trzyma odpowiedź 5 minut: bez tego nowy tag nie
+            // pojawiał się w filtrze, a zdjęcie nie wpadało pod już wybrany.
+            queryClient.invalidateQueries({ queryKey: ['gallery'] });
             options?.onSuccess?.(variables.photoId, data.tags);
         },
     });

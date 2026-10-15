@@ -1,4 +1,5 @@
 import { apiClient } from '@/core';
+import { photoUploadContentType, putToPresignedUrl } from '@/common/utils/presignedUpload';
 import { localDateTimeToInstant } from '@/common/utils';
 import type {
     VisitDetailResponse,
@@ -345,16 +346,19 @@ export const visitApi = {
             requestBody
         );
 
-        const { uploadUrl } = response.data;
+        const { uploadUrl, photoId } = response.data;
 
-        // Step 2: Upload file directly to S3 using presigned URL
-        await fetch(uploadUrl, {
-            method: 'PUT',
-            body: payload.file,
-            headers: {
-                'Content-Type': payload.file.type,
-            },
-        });
+        // Step 2: Upload file directly to S3 using presigned URL. Nagłówek MUSI być tym,
+        // który podpisał serwer (z rozszerzenia nazwy), nie `file.type`.
+        try {
+            await putToPresignedUrl(uploadUrl, payload.file, photoUploadContentType(payload.file.name));
+        } catch (error) {
+            // Serwer dopisał już zdjęcie do wizyty. Bez sprzątnięcia zostawał kafelek bez
+            // pliku, którego nikt nie dodał świadomie.
+            await apiClient.delete(`${BASE_PATH}/${payload.visitId}/photos/${photoId}`, { skipErrorToast: true })
+                .catch(() => undefined);
+            throw error;
+        }
 
         return response.data;
     },

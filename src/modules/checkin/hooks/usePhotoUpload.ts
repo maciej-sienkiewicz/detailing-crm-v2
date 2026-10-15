@@ -46,7 +46,14 @@ export const usePhotoUpload = (appointmentId?: string) => {
             );
 
             // Step 3: Upload directly to S3
-            await checkinApi.uploadToS3(uploadUrlResponse.uploadUrl, file);
+            try {
+                await checkinApi.uploadToS3(uploadUrlResponse.uploadUrl, file);
+            } catch (error) {
+                // Serwer ma już rekord zdjęcia sesji. Zostawiony trafiał do listy, a potem
+                // do zapisu wizyty, który wywracał się na kopiowaniu nieistniejącego pliku.
+                await checkinApi.deletePhoto(uploadSession.sessionId, uploadUrlResponse.photoId).catch(() => undefined);
+                throw error;
+            }
 
             return uploadUrlResponse.photoId;
         },

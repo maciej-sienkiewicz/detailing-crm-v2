@@ -15,6 +15,7 @@ import type {
     UpdateDamageMapPayload,
 } from '../types';
 import {useToast} from "@/common/components/Toast";
+import { isUnannouncedUploadError } from '@/common/utils/presignedUpload';
 
 export const visitDetailQueryKey = (visitId: string) => ['visit', visitId];
 export const visitDocumentsQueryKey = (visitId: string) => ['visit', visitId, 'documents'];
@@ -113,6 +114,7 @@ export const useUploadDocument = (visitId: string) => {
 
 export const useUploadPhoto = (visitId: string) => {
     const queryClient = useQueryClient();
+    const { showError } = useToast();
 
     const { mutate, isPending } = useMutation({
         mutationFn: (payload: UploadPhotoPayload) =>
@@ -121,6 +123,14 @@ export const useUploadPhoto = (visitId: string) => {
             queryClient.invalidateQueries({
                 queryKey: visitPhotosQueryKey(visitId),
             });
+            // Galeria trzyma odpowiedź 5 minut - bez tego nowe zdjęcie pojawiało się tam
+            // dopiero po odświeżeniu strony.
+            queryClient.invalidateQueries({ queryKey: ['gallery'] });
+        },
+        onError: (error) => {
+            // Błąd zapytania do API pokazuje już globalny toast; odrzuconej wysyłki do S3
+            // nie pokazywał nikt i zdjęcie po prostu się nie pojawiało.
+            if (isUnannouncedUploadError(error)) showError('Nie udało się dodać zdjęcia', error.message);
         },
     });
 
@@ -140,6 +150,7 @@ export const useDeletePhoto = (visitId: string) => {
             queryClient.invalidateQueries({
                 queryKey: visitPhotosQueryKey(visitId),
             });
+            queryClient.invalidateQueries({ queryKey: ['gallery'] });
         },
     });
 

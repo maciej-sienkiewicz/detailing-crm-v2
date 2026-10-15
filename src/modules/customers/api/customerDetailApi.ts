@@ -1,5 +1,6 @@
 // src/modules/customers/api/customerDetailApi.ts
 
+import { putToPresignedUrl } from '@/common/utils/presignedUpload';
 import { apiClient } from '@/core/apiClient';
 import type {
     CustomerDetailData,
@@ -559,11 +560,13 @@ export const customerDetailApi = {
         );
     },
 
-    uploadConsentAttachment: async (uploadUrl: string, file: File): Promise<void> => {
-        await fetch(uploadUrl, {
-            method: 'PUT',
-            body: file,
-            headers: { 'Content-Type': 'application/pdf' },
-        });
+    /**
+     * `contentType` musi być tym samym, który poszedł w `attachmentContentType` przy
+     * podpisaniu zgody - serwer podpisał adres pod ten rodzaj pliku. Wcześniej każdy skan
+     * leciał jako `application/pdf`, więc zdjęcie z telefonu S3 odrzucał, a odrzucenia
+     * nikt nie sprawdzał.
+     */
+    uploadConsentAttachment: async (uploadUrl: string, file: File, contentType: string): Promise<void> => {
+        await putToPresignedUrl(uploadUrl, file, contentType);
     },
 };
