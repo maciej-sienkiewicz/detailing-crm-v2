@@ -13,6 +13,7 @@ import { useCapability } from '@/modules/subscription';
 import { HoverInfo } from '@/common/components/InfoTooltip';
 import { usePrintServicesList } from '@/modules/visits/hooks/usePrintServicesList';
 import { formatClockTime, hasClockTime } from '@/common/dateTime';
+import { isNativeApp } from '@/core/native/platform';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -1117,7 +1118,8 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                         </svg>
                     </HeaderCloseButton>
-                    {!isAppointment && (
+                    {/* W aplikacji ze sklepu widok strony nie drukuje - window.print() nic tam nie robi. */}
+                    {!isAppointment && !isNativeApp() && (
                         <HeaderPrintButton
                             type="button"
                             onClick={handlePrintServicesList}

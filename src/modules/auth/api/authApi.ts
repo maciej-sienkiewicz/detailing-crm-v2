@@ -1,5 +1,6 @@
 // src/modules/auth/api/authApi.ts
 import { apiClient } from '@/core';
+import { detachNativePush } from '@/modules/push/native/nativePush';
 import type { LoginCredentials, SignupCredentials, AuthResponse, CheckAuthResponse, DemoAccountResponse, ForgotPasswordRequest, ForgotPasswordResponse, ValidateResetTokenResponse, ResetPasswordRequest, ResetPasswordResponse } from '../types';
 
 const USE_MOCKS = false;
@@ -78,6 +79,9 @@ export const authApi = {
         if (USE_MOCKS) {
             return Promise.resolve();
         }
+        // Każda droga wylogowania (menu, przełącznik osób) przechodzi tędy - odpinamy
+        // telefon z aplikacją, póki sesja jeszcze mówi serwerowi, czyj to telefon.
+        await detachNativePush();
         await apiClient.post(`${BASE_PATH}/logout`);
     },
 

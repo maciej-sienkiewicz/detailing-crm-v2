@@ -6,6 +6,7 @@ import { usePermissions } from '@/core/permissions';
 import { authApi } from '@/modules/auth/api/authApi';
 import { setDeviceIdleTimeout, useDeviceIdleTimeout } from '@/core/deviceIdleLock';
 import { ClearAccountModal } from './account/ClearAccountModal';
+import { DeleteAccountModal } from './account/DeleteAccountModal';
 import { PinCard } from './security/PinCard';
 import {
     Card, CardHead, CardHeadText, CardTitle, CardNote, CardActions, CardValue,
@@ -199,6 +200,28 @@ const ClearAccountCard = () => {
     );
 };
 
+/** Usunięcie konta firmy - na stałe, razem z kontami zespołu. */
+const DeleteAccountCard = () => {
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    return (
+        <Card>
+            <CardHead>
+                <CardHeadText>
+                    <CardTitle>Usuń konto</CardTitle>
+                    <CardNote>
+                        Usuwa firmę, wszystkie dane i konta zespołu. Nikt już się nie zaloguje.
+                    </CardNote>
+                </CardHeadText>
+                <CardActions>
+                    <DangerBtn onClick={() => setIsModalOpen(true)}>Usuń konto…</DangerBtn>
+                </CardActions>
+            </CardHead>
+            <DeleteAccountModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+        </Card>
+    );
+};
+
 export const SecuritySection = () => {
     // To samo źródło właściciela co rama ustawień i reszta aplikacji.
     const { isOwner } = usePermissions();
@@ -212,6 +235,7 @@ export const SecuritySection = () => {
             <PinCard />
             {isOwner && <IdleLockCard />}
             {isOwner && <ClearAccountCard />}
+            {isOwner && <DeleteAccountCard />}
         </Wrap>
     );
 };

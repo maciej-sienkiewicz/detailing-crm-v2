@@ -17,6 +17,7 @@
 // Sprawdzenie to jedno warunkowe żądanie o mały plik - tańsze niż jedno
 // zapytanie do API.
 
+import { isNativeApp } from '@/core/native/platform';
 import { isRolePreviewShellPath } from '@/modules/role-preview/entryCode';
 
 export const SERVICE_WORKER_URL = '/service-worker.js';
@@ -27,9 +28,13 @@ export const SERVICE_WORKER_URL = '/service-worker.js';
  * własnym adresem - worker by ją przeżył, trzymałby jej dane i mógłby zapisać się
  * na push. Sprawdzają to WSZYSTKIE drogi do rejestracji, nie tylko start aplikacji:
  * kreator powiadomień rejestruje workera sam, gdy start się nie powiódł.
+ *
+ * Nie w aplikacji ze sklepu: powiadomienia przychodzą tam przez APNs/FCM, a worker
+ * przechwytujący żądania w widoku aplikacji to tylko ryzyko nieświeżej strony.
  */
 export const isServiceWorkerAllowedHere = (): boolean =>
     'serviceWorker' in navigator &&
+    !isNativeApp() &&
     !isRolePreviewShellPath(window.location.pathname) &&
     window.self === window.top;
 

@@ -36,6 +36,7 @@ import {
     Check, ChevronRight, Clock, MoreHorizontal, MoreVertical, Pencil, Percent, Plus, Printer, ReceiptText, Trash2, Undo2,
 } from 'lucide-react';
 import { useHideMobileChrome } from '@/common/context/MobileChromeContext';
+import { isNativeApp } from '@/core/native/platform';
 
 // Jeden niebieski marki dla całego widoku wizyty - patrz common/components/ui/tokens.
 const BRAND = ui.brand;
@@ -1958,7 +1959,8 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const canEdit = canEditServices && !pricesHidden && (visitStatus === 'IN_PROGRESS' || visitStatus === 'READY_FOR_PICKUP');
     const hasPendingServices = services.some(s => (s.hasPendingChange ?? (s.status === 'PENDING')));
     const showActionsCol = canEdit || (canEditServices && hasPendingServices);
-    const canPrint = !!visitId && services.length > 0;
+    // W aplikacji ze sklepu widok strony nie drukuje - window.print() nic tam nie robi.
+    const canPrint = !!visitId && services.length > 0 && !isNativeApp();
     const canCorrectSettlement = !!onCorrectSettlement && !pricesHidden;
 
     // Wykaz drukuje stan zapisany na serwerze - bez cen i bez niezapisanych zmian z edycji.
