@@ -160,8 +160,8 @@ const formatMoment = (iso: string | null): string | null => {
 type ThresholdKey = keyof LeadAlertConfig;
 
 const THRESHOLDS: Array<{ key: ThresholdKey; label: string }> = [
-    { key: 'leadStagnantOurThresholdHours', label: 'Czas czekania na naszą odpowiedź robi się czerwony po' },
-    { key: 'leadStagnantClientThresholdHours', label: 'Sprawa dostaje oznaczenie „Bez odzewu” po' },
+    { key: 'leadStagnantOurThresholdHours', label: 'Zaznacz na czerwono, gdy klient czeka na odpowiedź dłużej niż' },
+    { key: 'leadStagnantClientThresholdHours', label: 'Oznacz jako „Bez odzewu”, gdy klient nie odpisuje dłużej niż' },
 ];
 
 type HoursDraft = Record<ThresholdKey, string>;
@@ -208,11 +208,11 @@ const StagnationPanel = () => {
         onSuccess: (saved) => {
             queryClient.setQueryData(LEAD_ALERT_CONFIG_QUERY_KEY, saved);
             setDraft(null);
-            showSuccess('Progi zapisane', 'Lista zapytań oznacza sprawy według nowych progów.');
+            showSuccess('Zapisano', 'Lista zapytań pokaże sprawy według nowych ustawień.');
         },
         onError: (error) => {
             if (toastedGlobally(error)) return;
-            showError('Nie udało się zapisać progów', serverMessage(error) ?? 'Spróbuj ponownie. Wpisane liczby zostały w polach.');
+            showError('Nie udało się zapisać', serverMessage(error) ?? 'Spróbuj jeszcze raz. Wpisane liczby nie zniknęły.');
         },
     });
 
@@ -256,19 +256,19 @@ const StagnationPanel = () => {
                 niczego nie wysyłają - tylko barwią czas i dają plakietkę na liście. Obok
                 „Przypomnień o odpowiedzi" (które naprawdę wysyłają push i SMS) czytało się
                 to jak dwa sprzeczne ustawienia tego samego. */}
-            <PanelLead>Niczego nie wysyłają, tylko pokazują na liście, które sprawy się przeciągają. Powiadomienia ustawiasz wyżej.</PanelLead>
+            <PanelLead>Tu nic się nie wysyła. Ustawiasz tylko, kiedy sprawa na liście zapytań zostanie wyróżniona.</PanelLead>
 
             {isError && !data ? (
                 <ThresholdRow>
                     <Notice
                         tone="danger"
                         role="alert"
-                        title="Nie udało się wczytać progów"
+                        title="Nie udało się wczytać ustawień"
                         action={<Button variant="ghost" size="sm" onClick={() => void refetch()}>Spróbuj ponownie</Button>}
                     />
                 </ThresholdRow>
             ) : isPending || !current || !data ? (
-                <Loading role="status">Wczytywanie progów…</Loading>
+                <Loading role="status">Wczytywanie ustawień…</Loading>
             ) : (
                 THRESHOLDS.map(t => {
                     const id = `lead-threshold-${t.key}`;
@@ -308,7 +308,7 @@ const StagnationPanel = () => {
             <UnsavedChangesBanner
                 visible={dirty}
                 changedCount={changed}
-                problem={invalid.length > 0 ? 'Próg wymaga poprawy' : undefined}
+                problem={invalid.length > 0 ? 'Liczba godzin wymaga poprawy' : undefined}
                 onShowProblem={showProblem}
                 onSave={submit}
                 onDiscard={() => setDraft(null)}

@@ -142,7 +142,7 @@ const GROUPS: SectionGroup[] = [
             },
             {
                 id: 'leads', label: 'Leady', summary: 'Automat i przypomnienia o zapytaniach', icon: <Filter />,
-                description: 'Kiedy system zakłada lead sam i kiedy przypomina o nieodpisanym zapytaniu.',
+                description: 'Leady z poczty i przypomnienia, gdy klient czeka na odpowiedź.',
                 keywords: 'zapytania automat alert',
             },
         ],

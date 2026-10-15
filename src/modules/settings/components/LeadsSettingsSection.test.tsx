@@ -41,7 +41,7 @@ const renderSection = () => {
     );
 };
 
-const ourField = () => screen.getByLabelText('Czas czekania na naszą odpowiedź robi się czerwony po') as HTMLInputElement;
+const ourField = () => screen.getByLabelText('Zaznacz na czerwono, gdy klient czeka na odpowiedź dłużej niż') as HTMLInputElement;
 
 beforeEach(() => {
     vi.mocked(leadsSettingsApi.getAutoLeadConfig).mockResolvedValue({ enabled: false, enabledAt: null });
@@ -72,7 +72,7 @@ describe('LeadsSettingsSection', () => {
             expect(field.value).toBe(typed);
         }
         // Pasek zapisu mówi, co blokuje zapis, zanim pole zostanie opuszczone.
-        expect(screen.getByText(/Próg wymaga poprawy/)).toBeInTheDocument();
+        expect(screen.getByText(/Liczba godzin wymaga poprawy/)).toBeInTheDocument();
 
         fireEvent.blur(field);
         expect(field.value).toBe('720');
@@ -97,7 +97,7 @@ describe('LeadsSettingsSection', () => {
             leadStagnantOurThresholdHours: 48,
             leadStagnantClientThresholdHours: 120,
         }));
-        expect(await screen.findByText('Progi zapisane')).toBeInTheDocument();
+        expect(await screen.findByText('Zapisano')).toBeInTheDocument();
     });
 
     it('the auto-lead switch is an accessible switch that reflects the server state', async () => {
