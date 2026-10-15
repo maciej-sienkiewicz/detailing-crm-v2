@@ -21,10 +21,15 @@ public class MainActivity extends BridgeActivity {
      * paski systemowe NIE zachodzą na treść - więc odsuwamy widok strony od pasków
      * (i od klawiatury, która przy rysowaniu pod paskami przestaje sama skracać okno).
      * Strona dostaje wtedy zwykły prostokąt, a env(safe-area-inset-*) wynosi 0.
+     *
+     * Rysowanie pod paskami włączamy sami na każdej wersji Androida. Starsze same
+     * skracały okno o klawiaturę, a odstęp niżej dokładał ją drugi raz - nad klawiaturą
+     * zostawał granatowy pas jej wysokości. Teraz odstępy liczy wyłącznie ten listener.
      */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
 
         View container = (View) getBridge().getWebView().getParent();
         container.setBackgroundColor(BAR_COLOR);
