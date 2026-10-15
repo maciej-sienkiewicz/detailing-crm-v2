@@ -11,6 +11,7 @@
 // czerwony pasek przy wierszu kampanii nie wymaga osobnego tłumaczenia od kogoś,
 // kto nauczył się go na liście leadów.
 import { pluralPl } from '@/common/utils/plural';
+import { canPurchaseHere } from '@/core/native/platform';
 import type { Campaign, CampaignStatus } from '../types';
 
 /** 'due' - coś nie wyszło i trzeba zareagować. 'stale' - stoi i czeka na człowieka. */
@@ -91,7 +92,10 @@ export function describeCampaign(campaign: Campaign, creditsShort = false): Camp
         return {
             tone: 'due',
             label: 'Zabraknie kredytów',
-            title: 'Kredytów SMS nie starczy na tę wysyłkę - doładuj przed terminem',
+            // W aplikacji ze sklepu bez „doładuj": nie wolno tam zachęcać do zakupu.
+            title: canPurchaseHere()
+                ? 'Kredytów SMS nie starczy na tę wysyłkę - doładuj przed terminem'
+                : 'Kredytów SMS nie starczy na tę wysyłkę',
         };
     }
 

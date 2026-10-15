@@ -18,6 +18,7 @@
 //   czego brakuje, i przewija do tego pola;
 // · podgląd przed wysłaniem - treść widać tak, jak zobaczy ją klient, w trakcie
 //   pisania, a nie dopiero po zapisaniu kampanii.
+import { canPurchaseHere } from '@/core/native/platform';
 import { usePermissions } from '@/core/permissions';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -863,17 +864,18 @@ export function CampaignWizardView() {
               <span>
                 Ta wysyłka zużyje <strong>{estimatedCredits}</strong>{' '}
                 {pluralPl(estimatedCredits ?? 0, 'kredyt', 'kredyty', 'kredytów')}, a na koncie masz{' '}
-                <strong>{stats?.smsCreditsAvailable}</strong>. Bez doładowania część
-                wiadomości nie wyjdzie.
+                <strong>{stats?.smsCreditsAvailable}</strong>.{' '}
+                {canPurchaseHere() ? 'Bez doładowania część wiadomości nie wyjdzie.' : 'Część wiadomości nie wyjdzie.'}
               </span>
               <span className="spacer" />
-              {isOwner ? (
+              {/* W aplikacji ze sklepu nie wolno odsyłać do zakupu - zostaje sama informacja. */}
+              {canPurchaseHere() && (isOwner ? (
                 <QuietLink type="button" onClick={() => navigate('/settings?tab=credits')}>
                   Doładuj
                 </QuietLink>
               ) : (
                 <span>Doładowanie: właściciel studia</span>
-              )}
+              ))}
             </Note>
           )}
 

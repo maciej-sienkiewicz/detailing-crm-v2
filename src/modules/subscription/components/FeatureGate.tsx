@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { canPurchaseHere } from '@/core/native/platform';
 import { useFeature } from '../hooks/useFeature';
 import { newSubscriptionApi } from '../api/subscriptionApi';
 import { useFeaturePlans } from '../api/subscriptionQueries';
@@ -58,6 +59,10 @@ export function FeatureGate({ featureKey, children, demoContent }: Props) {
     }
 
     const upsell = feature.upsell;
+    // W aplikacji ze sklepu zostaje sam tytuł „Ten widok jest w module dodatkowym":
+    // bez ceny, „Odblokuj", listy oczekujących i odsyłania do pakietu FULL
+    // (App Store 3.1.1, Google Play).
+    const purchasable = canPurchaseHere();
 
     const handleUnlock = async () => {
         if (!upsell?.addOnKey || !upsell.isAvailable) return;
@@ -102,17 +107,17 @@ export function FeatureGate({ featureKey, children, demoContent }: Props) {
                             )}
                         </OverlayTitle>
 
-                        {upsell?.isAvailable === false && (
+                        {purchasable && upsell?.isAvailable === false && (
                             <SoonBadge>Wkrótce dostępny</SoonBadge>
                         )}
 
-                        {upsell?.monthlyPriceGrossCents != null && upsell.isAvailable && (
+                        {purchasable && upsell?.monthlyPriceGrossCents != null && upsell.isAvailable && (
                             <PriceHint>
                                 Dodaj za {formatCents(upsell.monthlyPriceGrossCents)} brutto / mies.
                             </PriceHint>
                         )}
 
-                        {upsell?.isAvailable ? (
+                        {purchasable && (upsell?.isAvailable ? (
                             <UnlockBtn onClick={handleUnlock}>
                                 <ZapIcon />
                                 Odblokuj moduł
@@ -125,13 +130,15 @@ export function FeatureGate({ featureKey, children, demoContent }: Props) {
                             >
                                 Zapisz się na listę oczekujących
                             </WaitlistBtn>
-                        )}
+                        ))}
 
-                        <UpgradeHint>
-                            Albo przejdź na pakiet <a href="/settings?tab=plan">FULL</a>
-                            {fullPriceCents ? ` (${formatCents(fullPriceCents)} brutto / mies.)` : ''}
-                            {' '}ze wszystkimi modułami.
-                        </UpgradeHint>
+                        {purchasable && (
+                            <UpgradeHint>
+                                Albo przejdź na pakiet <a href="/settings?tab=plan">FULL</a>
+                                {fullPriceCents ? ` (${formatCents(fullPriceCents)} brutto / mies.)` : ''}
+                                {' '}ze wszystkimi modułami.
+                            </UpgradeHint>
+                        )}
                     </OverlayCard>
                 </Overlay>
             </GateWrap>

@@ -26,6 +26,7 @@
 // z „Dokończ".
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { canPurchaseHere } from '@/core/native/platform';
 import styled from 'styled-components';
 import {
     AlertTriangle, CalendarClock, CheckCircle2, ChevronDown, Coins, Copy, Mail, MessageSquare,
@@ -987,10 +988,15 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
                                     Ta wysyłka zużyje <strong>{plannedCredits}</strong> {creditWord(plannedCredits ?? 0)}, a na koncie
                                     masz <strong>{stats?.smsCreditsAvailable}</strong>.
                                 </span>
-                                <span className="spacer" />
-                                <QuietLink type="button" onClick={() => navigate('/settings?tab=credits')}>
-                                    Doładuj
-                                </QuietLink>
+                                {/* W aplikacji ze sklepu nie wolno odsyłać do zakupu kredytów. */}
+                                {canPurchaseHere() && (
+                                    <>
+                                        <span className="spacer" />
+                                        <QuietLink type="button" onClick={() => navigate('/settings?tab=credits')}>
+                                            Doładuj
+                                        </QuietLink>
+                                    </>
+                                )}
                             </Note>
                         )}
 
