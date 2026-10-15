@@ -186,7 +186,14 @@ export const Sidebar = () => {
         <>
             <Overlay $isVisible={isMobileOpen} onClick={closeMobileMenu} />
 
-            <SidebarContainer $isCollapsed={isCollapsed} $isMobileOpen={isMobileOpen}>
+            {/* Wysunięte menu na telefonie to okno modalne: tylko z tym oznaczeniem systemowy
+                „Wstecz" w aplikacji (installNativeShell) najpierw je zamknie, zamiast cofnąć stronę.
+                Na komputerze menu jest stałe, więc bez roli. */}
+            <SidebarContainer
+                $isCollapsed={isCollapsed}
+                $isMobileOpen={isMobileOpen}
+                {...(isMobileOpen ? { role: 'dialog', 'aria-modal': true, 'aria-label': 'Menu' } : {})}
+            >
                 <SidebarHeader $isCollapsed={isCollapsed}>
                     <SidebarBrand
                         isCollapsed={isCollapsed}
