@@ -41,7 +41,7 @@ import type { StudioCalendarEvent, StudioCalendarEventPayload } from '../types';
 import { CalendarSearchModal } from './CalendarSearchModal';
 import { attachMorePopoverPlacement } from '../utils/morePopoverPlacement';
 import { applyFloatingPlacement, type AnchorBox } from '@/common/utils/floatingPlacement';
-import { localDateKey, toFullCalendarEvent } from '../utils/calendarDates';
+import { eventCoversDay, localDateKey, toFullCalendarEvent } from '../utils/calendarDates';
 import {
     D2D_DELIVERY_COLOR,
     D2D_DIRECTION_COLOR,
@@ -55,6 +55,7 @@ import {
 import { WeekKanbanView } from './WeekKanbanView';
 import { DayTimelineView } from './DayTimeline';
 import { AgendaListView } from './AgendaListView';
+import { DayEventsSheet } from './DayEventsSheet';
 import { usePermissions } from '@/core/permissions';
 import type { DateRange, CalendarView as CalendarViewType, EventCreationData, AppointmentEventData, VisitEventData, CalendarEvent, DoorToDoorCalendarEntry } from '../types';
 import type { Operation } from '@/modules/operations/types';
@@ -1930,6 +1931,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     // widoki - tydzień, dzień, lista - biorą dane jak z API: ostatni dzień włącznie.
     const fullCalendarEvents = useMemo(() => events.map(toFullCalendarEvent), [events]);
 
+    /* ── Lista dnia (telefon, siatka miesiąca) ──────────────────────────────
+       Trzymamy sam dzień, nie skopiowane wizyty: po odwołaniu albo przeniesieniu
+       wizyty z jej podglądu lista dnia ma się zmienić razem z kalendarzem. */
+    const [dayListDate, setDayListDate] = useState<Date | null>(null);
+    const dayListEvents = useMemo(() => {
+        if (!dayListDate) return [];
+        const key = localDateKey(dayListDate);
+        return events.filter(event => eventCoversDay(event, key));
+    }, [dayListDate, events]);
+    const closeDayList = useCallback(() => setDayListDate(null), []);
+
     /* ── Wydarzenia studia ──────────────────────────────────────────────────
        Tryb dodawania: kalendarz przestaje być widokiem, z którego otwiera się
        wizyty, a staje się polem wyboru dni. Wizyty i rezerwacje przygasają
@@ -2317,8 +2329,34 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             onRangeSelected?.({ start, end, allDay: Boolean(info.allDay) });
             return;
         }
+        // Dzień, w którym część wizyt schowała się pod „+N": najpierw pokaż, co już na
+        // nim stoi - nowa rezerwacja czeka w stopce listy. Dzień bez przepełnienia widać
+        // w całości w komórce, więc tam dotknięcie dalej od razu zakłada rezerwację.
+        if (info.view.type === 'dayGridMonth' && info.dayEl.querySelector('.fc-daygrid-more-link')) {
+            setDayListDate(start);
+            return;
+        }
         openQuickEvent({ start, end, allDay: Boolean(info.allDay) });
     }, [eventMode, leaveMode, selectionMode, onRangeSelected, openQuickEvent]);
+
+    /**
+     * „+N" na telefonie otwiera tę samą listę dnia zamiast okienka FullCalendara.
+     *
+     * Przechwycenie w fazie capture, bo `moreLinkClick` nie umie „nic nie rób":
+     * funkcja zwracająca cokolwiek poza nazwą widoku i tak otwiera okienko, a nazwa
+     * widoku przeskakuje kalendarzem do klikniętej daty - przy dniu z sąsiedniego
+     * miesiąca zmieniłaby miesiąc. FullCalendar (preact) wiesza obsługę na samym
+     * linku, więc zatrzymane wyżej kliknięcie do niego nie dochodzi.
+     */
+    const handleMoreLinkCapture = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+        if (!isNarrowViewport || selectionMode || eventMode || leaveMode) return;
+        const link = (e.target as HTMLElement).closest('.fc-daygrid-more-link');
+        const iso = link?.closest<HTMLElement>('.fc-daygrid-day')?.dataset.date;
+        if (!iso) return;
+        e.stopPropagation();
+        e.preventDefault();
+        setDayListDate(new Date(`${iso}T00:00:00`));
+    }, [isNarrowViewport, selectionMode, eventMode, leaveMode]);
 
     /**
      * Handle date selection (click or drag) - Open quick modal
@@ -3045,7 +3083,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 {/* FullCalendar: always mounted so its API & state machine stay active.
                     Hidden when custom views are active (height:0 keeps JS running).
                     opacity transition gives a smooth fade during search navigation. */}
-                <div style={currentView === 'timeGridWeek' || currentView === 'timeGridDay' || agendaListActive
+                <div onClickCapture={handleMoreLinkCapture} style={currentView === 'timeGridWeek' || currentView === 'timeGridDay' || agendaListActive
                     ? { height: 0, overflow: 'hidden', pointerEvents: 'none' }
                     : {
                         height: '100%',
@@ -3491,6 +3529,35 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         )}
                     </StudioDaySheet>
                 </>
+            )}
+
+            {dayListDate && (
+                <DayEventsSheet
+                    date={dayListDate}
+                    events={dayListEvents}
+                    studioEvents={studioEventDayMap.get(localDateKey(dayListDate))}
+                    onClose={closeDayList}
+                    closeOnEscape={!popoverOpen}
+                    showServices={showAgendaServices}
+                    onEventClick={(eventData, anchor) => {
+                        setPopoverEvent(eventData);
+                        setPopoverAnchor(anchor);
+                        setPopoverPosition({ x: anchor.right + 10, y: anchor.top });
+                        setPopoverOpen(true);
+                    }}
+                    onStudioEventClick={(event) => {
+                        setDayListDate(null);
+                        setEventDraftRange(null);
+                        setEditedStudioEvent(event);
+                    }}
+                    onAddClick={canCreateVisits
+                        ? () => {
+                            const date = dayListDate;
+                            setDayListDate(null);
+                            openQuickEvent({ start: date, end: date, allDay: true });
+                        }
+                        : undefined}
+                />
             )}
 
             {studioEventTooltip && !studioEventDay && (

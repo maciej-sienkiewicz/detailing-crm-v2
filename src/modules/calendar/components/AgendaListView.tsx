@@ -53,35 +53,35 @@ interface EventSlot {
     isAllDay: boolean;
 }
 
+/** Karty jednego dnia: całodniowe na górze, reszta po godzinie rozpoczęcia. */
+function toEventSlots(events: CalendarEvent[]): EventSlot[] {
+    const slots = events.map(ev => {
+        const isAllDay = !!ev.allDay;
+        return {
+            event: ev,
+            startTime: isAllDay ? '' : formatTime(ev.start as string),
+            endTime: isAllDay ? '' : formatTime(ev.end as string | undefined),
+            isAllDay,
+        };
+    });
+    slots.sort((a, b) => {
+        if (a.isAllDay !== b.isAllDay) return a.isAllDay ? -1 : 1;
+        return a.startTime.localeCompare(b.startTime);
+    });
+    return slots;
+}
+
 function groupEventsByDay(
     events: CalendarEvent[],
     days: Date[],
-): Map<string, EventSlot[]> {
-    const map = new Map<string, EventSlot[]>(days.map(d => [toDateKey(d), []]));
+): Map<string, CalendarEvent[]> {
+    const map = new Map<string, CalendarEvent[]>(days.map(d => [toDateKey(d), []]));
 
     for (const ev of events) {
-        const evStart = parseLocalDate(ev.start as string);
-        const evStartKey = toDateKey(evStart);
-
         // For multi-day / allDay events, place only on the start date if it's in range.
         // For timed events, same logic.
-        if (map.has(evStartKey)) {
-            const isAllDay = !!ev.allDay;
-            map.get(evStartKey)!.push({
-                event: ev,
-                startTime: isAllDay ? '' : formatTime(ev.start as string),
-                endTime: isAllDay ? '' : formatTime(ev.end as string | undefined),
-                isAllDay,
-            });
-        }
-    }
-
-    // Sort each day's events: all-day first, then by start time
-    for (const slots of map.values()) {
-        slots.sort((a, b) => {
-            if (a.isAllDay !== b.isAllDay) return a.isAllDay ? -1 : 1;
-            return a.startTime.localeCompare(b.startTime);
-        });
+        const evStartKey = toDateKey(parseLocalDate(ev.start as string));
+        map.get(evStartKey)?.push(ev);
     }
 
     return map;
@@ -435,6 +435,123 @@ const StudioCardDesc = styled.div`
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+export interface AgendaDayEventListProps {
+    /** Wydarzenia jednego dnia - kolejność ustala lista sama. */
+    events: CalendarEvent[];
+    studioEvents?: StudioCalendarEvent[];
+    onEventClick: (eventData: AppointmentEventData | VisitEventData, anchor: PopoverAnchor) => void;
+    onStudioEventClick?: (event: StudioCalendarEvent) => void;
+    /** Nazwy usług po prawej stronie karty - ustawienie per urządzenie (zębatka listy). */
+    showServices?: boolean;
+}
+
+/**
+ * Karty jednego dnia w wyglądzie listy. Wydzielone, bo tę samą listę pokazuje arkusz
+ * dnia z siatki miesiąca (DayEventsSheet) - dwa wyglądy tej samej wizyty na jednym
+ * telefonie kazałyby uczyć się jej dwa razy.
+ */
+export const AgendaDayEventList: React.FC<AgendaDayEventListProps> = ({
+    events,
+    studioEvents = [],
+    onEventClick,
+    onStudioEventClick,
+    showServices = false,
+}) => (
+    <EventList>
+        {studioEvents.map(studioEvent => (
+            <StudioCard
+                key={`studio-${studioEvent.id}`}
+                type="button"
+                onClick={() => onStudioEventClick?.(studioEvent)}
+            >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                    strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                <StudioCardBody>
+                    <StudioCardTitle>{studioEvent.title}</StudioCardTitle>
+                    <StudioCardMeta>
+                        {studioEvent.startDate === studioEvent.endDate
+                            ? 'Wydarzenie na cały dzień'
+                            : 'Wydarzenie na kilka dni'}
+                    </StudioCardMeta>
+                    {studioEvent.description && (
+                        <StudioCardDesc>{studioEvent.description}</StudioCardDesc>
+                    )}
+                </StudioCardBody>
+            </StudioCard>
+        ))}
+        {toEventSlots(events).map(({ event, startTime, endTime, isAllDay }, idx) => {
+            const data = event.extendedProps as AppointmentEventData | VisitEventData;
+            const isVisit = data.type === 'VISIT';
+            const color = event.backgroundColor || '#6366f1';
+            const statusKey = data.status ?? '';
+            const isCancelled = statusKey === 'CANCELLED' || statusKey === 'ABANDONED';
+
+            const meta = [
+                data.vehicleInfo,
+                isVisit ? (data as VisitEventData).licensePlate : null,
+            ].filter((part): part is string => Boolean(part));
+            const services = showServices
+                ? visibleServices(data.serviceNames)
+                : { shown: [], more: 0 };
+
+            return (
+                <EventCard
+                    key={`${event.id}-${idx}`}
+                    $color={color}
+                    $dimmed={isCancelled}
+                    $started={isStartedVisit(statusKey)}
+                    onClick={e => {
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                        onEventClick(data, { top: rect.top, left: rect.left, right: rect.right, bottom: rect.bottom });
+                    }}
+                >
+                    <EventContent>
+                        <EventTime>
+                            {isAllDay
+                                ? 'Cały dzień'
+                                : endTime
+                                    ? `${startTime}-${endTime}`
+                                    : startTime
+                            }
+                            <TypeBadge $isVisit={isVisit}>
+                                {isVisit ? 'Wizyta' : 'Rezerwacja'}
+                            </TypeBadge>
+                        </EventTime>
+                        <EventTitle>
+                            <PiiText value={event.title} kind="name" />
+                        </EventTitle>
+                        {meta.length > 0 && (
+                            <EventMetaRow>
+                                {meta.map(part => <span key={part}>{part}</span>)}
+                            </EventMetaRow>
+                        )}
+                        {statusKey && STATUS_LABEL[statusKey] && (
+                            <EventMeta style={{ color: isCancelled ? '#ef4444' : '#64748b' }}>
+                                {STATUS_LABEL[statusKey]}
+                            </EventMeta>
+                        )}
+                    </EventContent>
+                    {services.shown.length > 0 && (
+                        <ServicesAside aria-label="Usługi">
+                            {services.shown.map((name, i) => (
+                                <ServiceItem key={`${name}-${i}`} title={name}>
+                                    {name}
+                                </ServiceItem>
+                            ))}
+                            {services.more > 0 && (
+                                <ServiceItem $more>+{services.more}</ServiceItem>
+                            )}
+                        </ServicesAside>
+                    )}
+                </EventCard>
+            );
+        })}
+    </EventList>
+);
+
 export interface AgendaListViewProps {
     events: CalendarEvent[];
     /** ISO date string, the range start from dateRange.start */
@@ -499,10 +616,10 @@ export const AgendaListView: React.FC<AgendaListViewProps> = ({
             <ScrollArea ref={scrollRef}>
                 {days.map(day => {
                     const key = toDateKey(day);
-                    const slots = byDay.get(key) ?? [];
+                    const dayEvents = byDay.get(key) ?? [];
                     const studioEvents = studioEventsByDay?.get(key) ?? [];
                     const isToday = key === todayKey;
-                    const isEmpty = slots.length === 0 && studioEvents.length === 0;
+                    const isEmpty = dayEvents.length === 0 && studioEvents.length === 0;
 
                     return (
                         <DaySection key={key} id={`agenda-day-${key}`}>
@@ -536,99 +653,13 @@ export const AgendaListView: React.FC<AgendaListViewProps> = ({
                             {isEmpty ? (
                                 <EmptyDay>Brak wydarzeń</EmptyDay>
                             ) : (
-                                <EventList>
-                                    {studioEvents.map(studioEvent => (
-                                        <StudioCard
-                                            key={`studio-${studioEvent.id}`}
-                                            type="button"
-                                            onClick={() => onStudioEventClick?.(studioEvent)}
-                                        >
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                                                strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                                                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                                            </svg>
-                                            <StudioCardBody>
-                                                <StudioCardTitle>{studioEvent.title}</StudioCardTitle>
-                                                <StudioCardMeta>
-                                                    {studioEvent.startDate === studioEvent.endDate
-                                                        ? 'Wydarzenie na cały dzień'
-                                                        : 'Wydarzenie na kilka dni'}
-                                                </StudioCardMeta>
-                                                {studioEvent.description && (
-                                                    <StudioCardDesc>{studioEvent.description}</StudioCardDesc>
-                                                )}
-                                            </StudioCardBody>
-                                        </StudioCard>
-                                    ))}
-                                    {slots.map(({ event, startTime, endTime, isAllDay }, idx) => {
-                                        const data = event.extendedProps as AppointmentEventData | VisitEventData;
-                                        const isVisit = data.type === 'VISIT';
-                                        const color = event.backgroundColor || '#6366f1';
-                                        const statusKey = data.status ?? '';
-                                        const isCancelled = statusKey === 'CANCELLED' || statusKey === 'ABANDONED';
-
-                                        const meta = [
-                                            data.vehicleInfo,
-                                            isVisit ? (data as VisitEventData).licensePlate : null,
-                                        ].filter((part): part is string => Boolean(part));
-                                        const services = showServices
-                                            ? visibleServices(data.serviceNames)
-                                            : { shown: [], more: 0 };
-
-                                        return (
-                                            <EventCard
-                                                key={`${event.id}-${idx}`}
-                                                $color={color}
-                                                $dimmed={isCancelled}
-                                                $started={isStartedVisit(statusKey)}
-                                                onClick={e => {
-                                                    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                                                    onEventClick(data, { top: rect.top, left: rect.left, right: rect.right, bottom: rect.bottom });
-                                                }}
-                                            >
-                                                <EventContent>
-                                                    <EventTime>
-                                                        {isAllDay
-                                                            ? 'Cały dzień'
-                                                            : endTime
-                                                                ? `${startTime}-${endTime}`
-                                                                : startTime
-                                                        }
-                                                        <TypeBadge $isVisit={isVisit}>
-                                                            {isVisit ? 'Wizyta' : 'Rezerwacja'}
-                                                        </TypeBadge>
-                                                    </EventTime>
-                                                    <EventTitle>
-                                                        <PiiText value={event.title} kind="name" />
-                                                    </EventTitle>
-                                                    {meta.length > 0 && (
-                                                        <EventMetaRow>
-                                                            {meta.map(part => <span key={part}>{part}</span>)}
-                                                        </EventMetaRow>
-                                                    )}
-                                                    {statusKey && STATUS_LABEL[statusKey] && (
-                                                        <EventMeta style={{ color: isCancelled ? '#ef4444' : '#64748b' }}>
-                                                            {STATUS_LABEL[statusKey]}
-                                                        </EventMeta>
-                                                    )}
-                                                </EventContent>
-                                                {services.shown.length > 0 && (
-                                                    <ServicesAside aria-label="Usługi">
-                                                        {services.shown.map((name, i) => (
-                                                            <ServiceItem key={`${name}-${i}`} title={name}>
-                                                                {name}
-                                                            </ServiceItem>
-                                                        ))}
-                                                        {services.more > 0 && (
-                                                            <ServiceItem $more>+{services.more}</ServiceItem>
-                                                        )}
-                                                    </ServicesAside>
-                                                )}
-                                            </EventCard>
-                                        );
-                                    })}
-                                </EventList>
+                                <AgendaDayEventList
+                                    events={dayEvents}
+                                    studioEvents={studioEvents}
+                                    onEventClick={onEventClick}
+                                    onStudioEventClick={onStudioEventClick}
+                                    showServices={showServices}
+                                />
                             )}
                         </DaySection>
                     );

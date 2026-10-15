@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { localDateKey, nextDateKey, toFullCalendarEvent } from './calendarDates';
+import { eventCoversDay, localDateKey, nextDateKey, toFullCalendarEvent } from './calendarDates';
 import type { AppointmentEventData, CalendarEvent } from '../types';
 
 /*
@@ -101,5 +101,40 @@ describe('toFullCalendarEvent - koniec całodniowej rezerwacji dla FullCalendar'
             allDay: false,
         };
         expect(toFullCalendarEvent(timed)).toBe(timed);
+    });
+});
+
+const timedVisit = (start: string, end: string | undefined): CalendarEvent => ({
+    ...allDayReservation(start, end),
+    allDay: false,
+});
+
+describe('eventCoversDay - lista dnia pokazuje to, co siatka rysuje w komórce', () => {
+    it('całodniowa wielodniowa: pierwszy, środkowy i ostatni dzień, ale nie dzień po', () => {
+        const event = allDayReservation('2026-09-23T22:00:00Z', '2026-09-28T21:45:00Z');
+        expect(eventCoversDay(event, '2026-09-23')).toBe(false);
+        expect(eventCoversDay(event, '2026-09-24')).toBe(true);
+        expect(eventCoversDay(event, '2026-09-26')).toBe(true);
+        expect(eventCoversDay(event, '2026-09-28')).toBe(true);
+        expect(eventCoversDay(event, '2026-09-29')).toBe(false);
+    });
+
+    it('wizyta z godzinami do północy nie zajmuje dnia następnego', () => {
+        const event = timedVisit('2026-10-14T07:00:00Z', '2026-10-14T22:00:00Z');
+        expect(eventCoversDay(event, '2026-10-14')).toBe(true);
+        expect(eventCoversDay(event, '2026-10-15')).toBe(false);
+    });
+
+    it('wizyta z godzinami przez kilka dni stoi na każdym z nich', () => {
+        const event = timedVisit('2026-10-13T07:00:00Z', '2026-10-15T14:00:00Z');
+        expect(eventCoversDay(event, '2026-10-12')).toBe(false);
+        expect(eventCoversDay(event, '2026-10-14')).toBe(true);
+        expect(eventCoversDay(event, '2026-10-15')).toBe(true);
+    });
+
+    it('bez końca: tylko dzień startu', () => {
+        const event = timedVisit('2026-10-14T07:00:00Z', undefined);
+        expect(eventCoversDay(event, '2026-10-14')).toBe(true);
+        expect(eventCoversDay(event, '2026-10-15')).toBe(false);
     });
 });

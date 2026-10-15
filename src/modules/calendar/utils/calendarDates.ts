@@ -42,3 +42,25 @@ export function toFullCalendarEvent(event: CalendarEvent): CalendarEvent {
     const last = event.end ? localDateKey(event.end) : first;
     return { ...event, start: first, end: nextDateKey(last < first ? first : last) };
 }
+
+/**
+ * Czy wydarzenie leży na dniu `key` ('YYYY-MM-DD') - tak, jak rysuje je siatka miesiąca.
+ *
+ * Wielodniowa wizyta stoi w każdej komórce, przez którą przechodzi pasek, więc lista
+ * dnia otwierana z tej komórki musi ją pokazać także w środku i na końcu zakresu.
+ * Koniec całodniowego jest ostatnim dniem włącznie (zapis z API, patrz
+ * toFullCalendarEvent); koniec wydarzenia z godzinami jest wyłączny - wizyta do
+ * północy nie zajmuje dnia następnego, tak jak w FullCalendarze (nextDayThreshold 00:00).
+ */
+export function eventCoversDay(event: CalendarEvent, key: string): boolean {
+    const startMs = new Date(event.start as string).getTime();
+    const first = localDateKey(new Date(startMs));
+    let last = first;
+    if (event.end) {
+        const endMs = new Date(event.end as string).getTime();
+        if (event.allDay) last = localDateKey(new Date(endMs));
+        else if (endMs > startMs) last = localDateKey(new Date(endMs - 1));
+    }
+    if (last < first) last = first;
+    return first <= key && key <= last;
+}
