@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/common/components/Toast';
+import { isNativeApp } from '@/core/native/platform';
 import { rolePreviewApi } from './rolePreviewApi';
 import { openRolePreview, type RolePreviewInput } from './openRolePreview';
 
@@ -16,6 +17,9 @@ function messageOf(error: unknown): string {
 /**
  * „Przejdź do podglądu roli": dostępność (podgląd włączony i skonfigurowany) i otwarcie.
  * Przycisk pokazuje się tylko wtedy, gdy podgląd jest dostępny.
+ *
+ * Nie w aplikacji ze sklepu: podgląd żyje w drugim oknie obok studia, a aplikacja
+ * ma jedno okno - kliknięcie zamieniałoby całą aplikację na piaskownicę.
  */
 export function useRolePreview() {
     const { showError } = useToast();
@@ -25,6 +29,7 @@ export function useRolePreview() {
         queryFn: rolePreviewApi.getConfig,
         staleTime: 1000 * 60 * 5,
         retry: false,
+        enabled: !isNativeApp(),
     });
 
     const previewBaseUrl = config?.enabled ? config.previewBaseUrl : null;

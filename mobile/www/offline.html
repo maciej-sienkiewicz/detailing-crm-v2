@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>DetailBoost</title>
+    <style>
+        :root { color-scheme: dark; }
+        html, body { height: 100%; margin: 0; }
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 24px;
+            box-sizing: border-box;
+            background: #0f172a;
+            color: #e2e8f0;
+            font: 16px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            text-align: center;
+        }
+        h1 { margin: 0; font-size: 20px; color: #fff; }
+        p { margin: 0; max-width: 32ch; color: #94a3b8; }
+        a {
+            margin-top: 8px;
+            padding: 12px 24px;
+            border-radius: 12px;
+            background: #0ea5e9;
+            color: #fff;
+            font-weight: 600;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Pokazywana przez Capacitora, gdy strona z serwera się nie wczytała (brak internetu,
+         przerwa w działaniu). „Spróbuj ponownie" wraca pod adres aplikacji. -->
+    <h1>Brak połączenia</h1>
+    <p>Nie możemy połączyć się z DetailBoost. Sprawdź internet i spróbuj jeszcze raz.</p>
+    <a href="https://detailboost.pl/">Spróbuj ponownie</a>
+</body>
+</html>

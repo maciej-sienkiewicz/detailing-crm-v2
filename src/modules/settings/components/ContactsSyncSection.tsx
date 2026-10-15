@@ -39,6 +39,7 @@ import {
     DeviceMain, DeviceRow, DeviceSide, DeviceText, EmptyState, Intro, ListCard, ListHead, ListNotice,
     PHONE, SkeletonLine, View, formatDate, phonesWord,
 } from './devicesLayout';
+import { isNativeApp } from '@/core/native/platform';
 
 type InstallPath = 'ios-safari' | 'ios-other' | 'desktop';
 
@@ -47,6 +48,8 @@ function detectInstallPath(): InstallPath {
     const ua = navigator.userAgent;
     const isIos = /iphone|ipad|ipod/i.test(ua);
     if (!isIos) return 'desktop';
+    // Aplikacja ze sklepu to nie Safari: profil otwarty w jej widoku nie zainstaluje się.
+    if (isNativeApp()) return 'ios-other';
     const isStandalone =
         window.matchMedia('(display-mode: standalone)').matches ||
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -11,6 +11,7 @@ import { IdleTimeoutProvider } from '@/core/context/IdleTimeoutProvider';
 import { GlobalShortcuts } from '@/common/shortcuts';
 import { QuickNoteProvider } from '@/modules/dashboard/components/QuickNoteProvider';
 import { PushOnboardingPrompt } from '@/modules/push/components/PushOnboardingPrompt';
+import { NativePushBridge } from '@/modules/push/native/NativePushBridge';
 import { viewKeyOf } from './viewKey';
 
 const LayoutContainer = styled.div`
@@ -107,6 +108,7 @@ export const Layout = ({ children }: LayoutProps) => {
                     <BottomNav />
                     {/* Zachęta do powiadomień - tylko na telefonie i tylko gdy jest co zrobić. */}
                     <PushOnboardingPrompt />
+                    <NativePushBridge />
                 </MobileChromeProvider>
                 <CalendarNavigationOverlay />
             </CalendarNavigationProvider>

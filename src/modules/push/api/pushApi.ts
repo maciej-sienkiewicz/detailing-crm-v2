@@ -1,5 +1,5 @@
 import { apiClient } from '@/core/apiClient';
-import type { PushDeviceDto, RequestCallResponse } from '../types';
+import type { NativePushTransport, PushDeviceDto, RequestCallResponse } from '../types';
 
 const BASE_PATH = '/v1/push';
 
@@ -33,6 +33,30 @@ export const pushApi = {
      */
     sendTestPush: async (endpoint: string): Promise<void> => {
         await apiClient.post(`${BASE_PATH}/devices/test`, { endpoint }, { skipErrorToast: true });
+    },
+
+    /** Telefon z aplikacją ze sklepu: token APNs (iPhone) albo FCM (Android). */
+    registerNativeDevice: async (params: {
+        transport: NativePushTransport;
+        token: string;
+        deviceName: string;
+    }): Promise<PushDeviceDto> => {
+        const { data } = await apiClient.post<PushDeviceDto>(`${BASE_PATH}/native-devices`, params);
+        return data;
+    },
+
+    /** Wylogowanie w aplikacji - musi pójść PRZED końcem sesji, bo to ona wskazuje właściciela. */
+    unregisterNativeDevice: async (params: { transport: NativePushTransport; token: string }): Promise<void> => {
+        await apiClient.post(`${BASE_PATH}/native-devices/unregister`, params, { skipErrorToast: true });
+    },
+
+    /** Próbne powiadomienie do telefonu z aplikacją - tą samą drogą co prawdziwe. */
+    sendNativeTestPush: async (params: { transport: NativePushTransport; token: string }): Promise<void> => {
+        await apiClient.post(
+            `${BASE_PATH}/devices/test`,
+            { endpoint: params.token, transport: params.transport },
+            { skipErrorToast: true },
+        );
     },
 
     listDevices: async (): Promise<PushDeviceDto[]> => {

@@ -32,6 +32,14 @@ export const accountResetApi = {
         return response.data;
     },
 
+    /**
+     * Usunięcie konta firmy. Serwer kończy sesje wszystkich osób od razu, a dane kasuje
+     * w tle - dlatego odpowiedź nie niesie postępu, a aplikacja po niej wraca do logowania.
+     */
+    deleteAccount: async (data: { currentPassword: string; confirmationName: string }): Promise<void> => {
+        await apiClient.post(`${BASE_PATH}/delete-account`, data, { skipErrorToast: true });
+    },
+
     // Poll statusu to wywołanie w tle: nie może wybić na /login ani sypać toastami,
     // gdy pojedynczy odczyt się nie powiedzie.
     getStatus: async (jobId: string): Promise<AccountResetJob> => {
