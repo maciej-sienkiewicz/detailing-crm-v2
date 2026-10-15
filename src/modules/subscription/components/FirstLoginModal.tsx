@@ -5,90 +5,31 @@ import { useFeaturePlans, useAddOns, useStartTrial, useCheckout } from '../api/s
 import { newSubscriptionApi } from '../api/subscriptionApi';
 import type { FeaturePlan, AddOnDto, AddOnKey, PlanKey, CalculatePriceResponse } from '../types';
 import { formatCents, featureLabel } from '../utils/formatters';
+import { t } from '@/common/i18n';
+import { AuthLayout } from '@/modules/auth/components/AuthLayout';
 import {
-    Overlay,
-    Card,
-    CardHeader,
-    LogoWrap,
-    WelcomeTitle,
-    WelcomeSub,
-    CardBody,
-    TrialSection,
-    SectionLabel,
-    TrialCard,
-    TrialIconWrap,
-    TrialInfo,
-    TrialTitle,
-    TrialDesc,
-    FreeBadge,
-    Divider,
-    PlansGrid,
-    PlanBtn,
-    RecommendedBadge,
-    PlanBtnName,
-    PlanBtnPrice,
-    PlanBtnPer,
-    PlanBtnFeatures,
-    LoadingOverlay,
-    Spinner,
-    ErrorNote,
-    CardFooter,
+    AuthAnchor, AuthAside, AuthHeading, AuthMeta, AuthPrimaryButton, AuthSecondaryButton,
+} from '@/modules/auth/components/AuthUi';
+import { ErrorAlert } from '@/modules/auth/components/ErrorAlert';
+import {
+    Screen,
+    TrialNote,
+    Section,
+    PlanOption,
+    Recommended,
     CustomToggle,
     CustomPanel,
-    CustomPanelHeader,
-    BasePlanRow,
-    BasePlanCheck,
-    AddOnRow,
-    AddOnCheckbox,
-    AddOnMeta,
-    AddOnName,
-    AddOnDesc,
-    AddOnPrice,
-    AddOnSoonBadge,
+    ModuleRow,
     CustomSummary,
-    SummaryPrice,
-    SummaryLabel,
-    SummaryAmount,
-    CustomConfirmBtn,
+    Pending,
+    Spinner,
 } from './FirstLoginModal.styles';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
-const LogoIcon = () => (
-    <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="white"
-        strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z" />
-    </svg>
-);
-
-const GiftIcon = () => (
-    <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="white"
-        strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="8" width="18" height="13" rx="2" />
-        <path d="M12 8V21M19 8A4 4 0 0 0 11 5a4 4 0 0 0-8 3" />
-    </svg>
-);
-
-const AlertIcon = () => (
-    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" />
-        <line x1="12" y1="8" x2="12" y2="12" />
-        <line x1="12" y1="16" x2="12.01" y2="16" />
-    </svg>
-);
-
-const CheckSmall = () => (
-    <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="white"
-        strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20 6 9 17l-5-5" />
-    </svg>
-);
-
-const ChevronDown = ({ open }: { open: boolean }) => (
+const ChevronDown = () => (
     <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"
-        style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 200ms' }}>
+        strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="m6 9 6 6 6-6" />
     </svg>
 );
@@ -224,192 +165,150 @@ export function FirstLoginModal({ trialUsed }: Props) {
     const totalPriceCents = customPrice?.totalMonthlyPriceCents ?? null;
     const basePriceCents = customPrice?.basePlanMonthlyPriceCents;
 
+    // Ekran po rejestracji stoi w tej samej bramie co logowanie i rejestracja (AuthLayout):
+    // ciemny pas z warunkami po lewej, jasna kolumna z wyborem po prawej. Wypełniony jest
+    // jeden przycisk - krok następny: okres próbny, a gdy już był, płatność za własny pakiet.
+    const pendingLabel = phase === 'pending-trial' ? 'Włączanie okresu próbnego…' : 'Przekierowywanie do płatności…';
+    const ConfirmButton = trialUsed ? AuthPrimaryButton : AuthSecondaryButton;
+
     return createPortal(
-        <>
-            <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-            <Overlay>
-                <Card>
-                    <CardHeader>
-                        <LogoWrap><LogoIcon /></LogoWrap>
-                        <WelcomeTitle>Witaj w DetailBoost!</WelcomeTitle>
-                        <WelcomeSub>
-                            Twoje konto jest gotowe. Wybierz, jak chcesz zacząć: wypróbuj system za darmo albo od razu wybierz pakiet.
-                        </WelcomeSub>
-                    </CardHeader>
+        <Screen>
+            <AuthLayout
+                wide
+                statement={trialUsed ? 'Wybierz pakiet dla studia' : t.auth.gate.signup}
+                points={trialUsed ? undefined : t.auth.gate.signupPoints}
+            >
+                <AuthHeading>
+                    <h1>Witaj w DetailBoost</h1>
+                    <p>
+                        {trialUsed
+                            ? 'Twoje konto jest gotowe. Wybierz pakiet, żeby zacząć pracę.'
+                            : 'Twoje konto jest gotowe. Zacznij od okresu próbnego albo od razu wybierz pakiet.'}
+                    </p>
+                </AuthHeading>
 
-                    {isPending && (
-                        <LoadingOverlay>
-                            <Spinner />
-                            {phase === 'pending-trial' && 'Włączanie okresu próbnego…'}
-                            {phase === 'pending-plan' && 'Przekierowywanie do płatności…'}
-                            {phase === 'pending-custom' && 'Przekierowywanie do płatności…'}
-                        </LoadingOverlay>
-                    )}
+                {error && <ErrorAlert message={error} />}
 
-                    {!isPending && plansLoading && (
-                        <LoadingOverlay>
-                            <Spinner />
-                            Wczytywanie pakietów…
-                        </LoadingOverlay>
-                    )}
+                {isPending || plansLoading ? (
+                    <Pending role="status">
+                        <Spinner aria-hidden="true" />
+                        {isPending ? pendingLabel : 'Wczytywanie pakietów…'}
+                    </Pending>
+                ) : (
+                    <>
+                        {!trialUsed && (
+                            <div style={{ marginTop: error ? 18 : 0 }}>
+                                <AuthPrimaryButton type="button" onClick={handleStartTrial}>
+                                    Wypróbuj bezpłatnie przez 3 miesiące
+                                </AuthPrimaryButton>
+                                <TrialNote>Pełny dostęp do wszystkich funkcji. Bez karty i bez zobowiązań.</TrialNote>
+                            </div>
+                        )}
 
-                    {!isPending && !plansLoading && (
-                        <CardBody>
-                            {error && (
-                                <ErrorNote>
-                                    <AlertIcon />
-                                    {error}
-                                </ErrorNote>
-                            )}
+                        {sortedPlans.length > 0 && (
+                            <Section aria-labelledby="first-login-plans" $first={trialUsed}>
+                                <h2 id="first-login-plans">{trialUsed ? 'Pakiety' : 'Albo wybierz pakiet od razu'}</h2>
+                                {sortedPlans.map(plan => (
+                                    <PlanOption key={plan.key} type="button" onClick={() => handleSelectPlan(plan.key)}>
+                                        <span className="name">
+                                            {plan.name}
+                                            {plan.key === 'FULL' && <Recommended>Polecany</Recommended>}
+                                        </span>
+                                        <span className="price">
+                                            {formatCents(plan.monthlyPriceGrossCents)} <small>/ mies.</small>
+                                        </span>
+                                        <span className="features">{planFeatureSummary(plan)}</span>
+                                    </PlanOption>
+                                ))}
 
-                            {!trialUsed && (
-                                <TrialSection>
-                                    <SectionLabel>Zacznij bez zobowiązań</SectionLabel>
-                                    <TrialCard $disabled={false} onClick={handleStartTrial}>
-                                        <TrialIconWrap><GiftIcon /></TrialIconWrap>
-                                        <TrialInfo>
-                                            <TrialTitle>Wypróbuj bezpłatnie przez 3 miesiące</TrialTitle>
-                                            <TrialDesc>
-                                                Pełny dostęp do wszystkich funkcji. Bez karty kredytowej, bez zobowiązań.
-                                            </TrialDesc>
-                                        </TrialInfo>
-                                        <FreeBadge>Gratis</FreeBadge>
-                                    </TrialCard>
-                                </TrialSection>
-                            )}
-
-                            {!trialUsed && sortedPlans.length > 0 && (
-                                <Divider>albo wybierz pakiet od razu</Divider>
-                            )}
-
-                            {sortedPlans.length > 0 && (
-                                <TrialSection>
-                                    <SectionLabel>
-                                        {trialUsed ? 'Wybierz pakiet' : 'Gotowe pakiety'}
-                                    </SectionLabel>
-                                    <PlansGrid>
-                                        {sortedPlans.map(plan => {
-                                            const isHighlighted = plan.key === 'FULL';
-                                            return (
-                                                <PlanBtn
-                                                    key={plan.key}
-                                                    $highlighted={isHighlighted}
-                                                    $disabled={false}
-                                                    onClick={() => handleSelectPlan(plan.key)}
-                                                >
-                                                    {isHighlighted && (
-                                                        <RecommendedBadge>Polecany</RecommendedBadge>
-                                                    )}
-                                                    <PlanBtnName $light={isHighlighted}>{plan.name}</PlanBtnName>
-                                                    <PlanBtnPrice $light={isHighlighted}>
-                                                        {formatCents(plan.monthlyPriceGrossCents)}
-                                                    </PlanBtnPrice>
-                                                    <PlanBtnPer $light={isHighlighted}>/ miesiąc</PlanBtnPer>
-                                                    <PlanBtnFeatures $light={isHighlighted}>
-                                                        {planFeatureSummary(plan)}
-                                                    </PlanBtnFeatures>
-                                                </PlanBtn>
-                                            );
-                                        })}
-                                    </PlansGrid>
-                                </TrialSection>
-                            )}
-
-                            {availableAddOns.length > 0 && (
-                                <>
-                                    <CustomToggle onClick={() => setCustomOpen(o => !o)} type="button">
-                                        <span>Zbuduj własny pakiet</span>
-                                        <ChevronDown open={customOpen} />
+                                {availableAddOns.length > 0 && (
+                                    <CustomToggle
+                                        type="button"
+                                        aria-expanded={customOpen}
+                                        onClick={() => setCustomOpen(o => !o)}
+                                    >
+                                        Zbuduj własny pakiet
+                                        <ChevronDown />
                                     </CustomToggle>
+                                )}
 
-                                    {customOpen && (
-                                        <CustomPanel>
-                                            <CustomPanelHeader>Wybierz moduły</CustomPanelHeader>
+                                {availableAddOns.length > 0 && customOpen && (
+                                    <CustomPanel>
+                                        <ModuleRow as="div">
+                                            <input type="checkbox" checked readOnly disabled aria-label="Pakiet BASIC, zawsze w cenie" />
+                                            <span className="meta">
+                                                <span className="name">Pakiet BASIC</span>
+                                                <span className="desc">
+                                                    Kalendarz i rezerwacje, karty klientów i pojazdów z pełną historią wizyt
+                                                </span>
+                                            </span>
+                                            <span className="price">
+                                                {basePriceCents != null
+                                                    ? `${formatCents(basePriceCents)}/mies.`
+                                                    : basicPlanCents != null
+                                                        ? `${formatCents(basicPlanCents)}/mies.`
+                                                        : '…'}
+                                            </span>
+                                        </ModuleRow>
 
-                                            <BasePlanRow>
-                                                <BasePlanCheck><CheckSmall /></BasePlanCheck>
-                                                <AddOnMeta>
-                                                    <AddOnName>Pakiet BASIC</AddOnName>
-                                                    <AddOnDesc>Kalendarz i rezerwacje, karty klientów i pojazdów z pełną historią wizyt</AddOnDesc>
-                                                </AddOnMeta>
-                                                <AddOnPrice>
-                                                    {basePriceCents != null
-                                                        ? `${formatCents(basePriceCents)}/mies.`
-                                                        : basicPlanCents != null
-                                                            ? `${formatCents(basicPlanCents)}/mies.`
-                                                            : '…'}
-                                                </AddOnPrice>
-                                            </BasePlanRow>
+                                        {availableAddOns.map(addOn => (
+                                            <ModuleRow key={addOn.key} $disabled={!addOn.isAvailable}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedAddOns.has(addOn.key)}
+                                                    disabled={!addOn.isAvailable}
+                                                    onChange={() => addOn.isAvailable && toggleAddOn(addOn.key)}
+                                                />
+                                                <span className="meta">
+                                                    <span className="name">
+                                                        {addOn.name}
+                                                        {!addOn.isAvailable && <span className="soon">wkrótce</span>}
+                                                    </span>
+                                                    <span className="desc">{addOn.description}</span>
+                                                </span>
+                                                <span className="price">
+                                                    {addOn.monthlyPriceGrossCents != null
+                                                        ? `+${formatCents(addOn.monthlyPriceGrossCents)}/mies.`
+                                                        : 'Cena do ustalenia'}
+                                                </span>
+                                            </ModuleRow>
+                                        ))}
 
-                                            {availableAddOns.map(addOn => (
-                                                <AddOnRow
-                                                    key={addOn.key}
-                                                    $disabled={!addOn.isAvailable}
-                                                    data-disabled={!addOn.isAvailable}
-                                                >
-                                                    <AddOnCheckbox
-                                                        type="checkbox"
-                                                        checked={selectedAddOns.has(addOn.key)}
-                                                        disabled={!addOn.isAvailable}
-                                                        onChange={() => addOn.isAvailable && toggleAddOn(addOn.key)}
-                                                    />
-                                                    <AddOnMeta>
-                                                        <AddOnName>
-                                                            {addOn.name}
-                                                            {!addOn.isAvailable && (
-                                                                <> <AddOnSoonBadge>wkrótce</AddOnSoonBadge></>
-                                                            )}
-                                                        </AddOnName>
-                                                        <AddOnDesc>{addOn.description}</AddOnDesc>
-                                                    </AddOnMeta>
-                                                    <AddOnPrice>
-                                                        {addOn.monthlyPriceGrossCents != null
-                                                            ? `+${formatCents(addOn.monthlyPriceGrossCents)}/mies.`
+                                        <CustomSummary>
+                                            <div className="total">
+                                                Łącznie miesięcznie
+                                                <strong>
+                                                    {priceLoading
+                                                        ? '…'
+                                                        : totalPriceCents != null
+                                                            ? formatCents(totalPriceCents)
                                                             : 'Cena do ustalenia'}
-                                                    </AddOnPrice>
-                                                </AddOnRow>
-                                            ))}
+                                                </strong>
+                                            </div>
+                                            {customPrice?.savingsWithFullCents != null && customPrice.savingsWithFullCents > 0 && (
+                                                <div className="hint">
+                                                    Pakiet FULL byłby tańszy o {formatCents(customPrice.savingsWithFullCents)}/mies.
+                                                </div>
+                                            )}
+                                            <ConfirmButton type="button" onClick={handleCustomConfirm} disabled={priceLoading}>
+                                                Przejdź do płatności
+                                            </ConfirmButton>
+                                        </CustomSummary>
+                                    </CustomPanel>
+                                )}
+                            </Section>
+                        )}
+                    </>
+                )}
 
-                                            <CustomSummary>
-                                                <SummaryPrice>
-                                                    <SummaryLabel>
-                                                        Łącznie miesięcznie
-                                                        {customPrice?.savingsWithFullCents != null && customPrice.savingsWithFullCents > 0 && (
-                                                            <span style={{ display: 'block', fontSize: 11, color: '#d97706', fontWeight: 600 }}>
-                                                                Pakiet FULL byłby tańszy o {formatCents(customPrice.savingsWithFullCents)}/mies.
-                                                            </span>
-                                                        )}
-                                                    </SummaryLabel>
-                                                    <SummaryAmount>
-                                                        {priceLoading
-                                                            ? '…'
-                                                            : totalPriceCents != null
-                                                                ? formatCents(totalPriceCents)
-                                                                : 'Cena do ustalenia'}
-                                                    </SummaryAmount>
-                                                </SummaryPrice>
-                                                <CustomConfirmBtn
-                                                    onClick={handleCustomConfirm}
-                                                    disabled={priceLoading}
-                                                >
-                                                    Przejdź do płatności
-                                                </CustomConfirmBtn>
-                                            </CustomSummary>
-                                        </CustomPanel>
-                                    )}
-                                </>
-                            )}
-                        </CardBody>
-                    )}
-
-                    <CardFooter>
-                        Płatności obsługuje Przelewy24. Zrezygnujesz w każdej chwili.
-                        <br />
-                        Masz pytania? Napisz do nas: <strong>pomoc@detailboost.pl</strong>
-                    </CardFooter>
-                </Card>
-            </Overlay>
-        </>,
+                <AuthAside>
+                    <AuthMeta>Płatności obsługuje Przelewy24. Zrezygnujesz w każdej chwili.</AuthMeta>
+                    <AuthMeta>
+                        Masz pytania? Napisz do nas: <AuthAnchor href="mailto:pomoc@detailboost.pl">pomoc@detailboost.pl</AuthAnchor>
+                    </AuthMeta>
+                </AuthAside>
+            </AuthLayout>
+        </Screen>,
         document.body
     );
 }
