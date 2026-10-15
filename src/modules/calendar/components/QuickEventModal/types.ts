@@ -111,4 +111,10 @@ export interface QuickEventModalProps {
     onClose: () => void;
     onSave: (data: QuickEventFormData) => Promise<void> | void;
     initialData?: QuickEventInitialData;
+    /**
+     * Czy wolno założyć serię. Rezerwacja z leada jest jedna (serwer nie ma serii
+     * powiązanej z leadem), więc tam przełącznik „Cykliczna" znika - inaczej reguła
+     * powtarzania ginęła po cichu i powstawała pojedyncza rezerwacja.
+     */
+    allowRecurrence?: boolean;
 }

@@ -316,6 +316,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     onClose,
     onSave,
     initialData,
+    allowRecurrence = true,
 }, ref) => {
     const form = useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, initialData });
 
@@ -857,12 +858,14 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 <S.RowContent>
                                     {!isMobile && (
                                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px' }}>
-                                            <Toggle
-                                                checked={isRecurring}
-                                                onChange={setIsRecurring}
-                                                label="Cykliczna"
-                                                size="sm"
-                                            />
+                                            {allowRecurrence && (
+                                                <Toggle
+                                                    checked={isRecurring}
+                                                    onChange={setIsRecurring}
+                                                    label="Cykliczna"
+                                                    size="sm"
+                                                />
+                                            )}
                                             <Toggle
                                                 checked={form.isAllDay}
                                                 onChange={form.handleAllDayToggle}
@@ -2364,7 +2367,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 </S.ModalContainer>
 
                 {/* ── Recurrence side panel ──────────────────────────── */}
-                <SidePanelWrapper $visible={isRecurring}>
+                <SidePanelWrapper $visible={allowRecurrence && isRecurring}>
                     <SidePanelInner>
                         <RecurrenceSidePanel
                             rule={recurrenceRule}
