@@ -31,6 +31,12 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
 
+        // Do Androida 14 paski mają kolor z motywu systemu (szary pasek stanu, czarny pasek
+        // nawigacji), a nie granat strony - przy rysowaniu pod paskami i tak widać tylko ten kolor.
+        // Od Androida 15 te dwa wywołania nic nie robią, kolor paska daje tło kontenera niżej.
+        getWindow().setStatusBarColor(BAR_COLOR);
+        getWindow().setNavigationBarColor(BAR_COLOR);
+
         View container = (View) getBridge().getWebView().getParent();
         container.setBackgroundColor(BAR_COLOR);
 
