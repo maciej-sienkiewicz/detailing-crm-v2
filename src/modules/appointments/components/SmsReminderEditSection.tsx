@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { LockedSection } from '@/common/components/LockedSection';
 import { useFeature } from '@/modules/subscription';
 import { appointmentApi } from '../api/appointmentApi';
-import { fetchAutomationConfig } from '@/modules/sms-campaigns/api/smsCampaignsApi';
+import { fetchAutomationConfig } from '@/modules/sms-settings/api/smsSettingsApi';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { AppointmentSmsInfo } from '../types';
 

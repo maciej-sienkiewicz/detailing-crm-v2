@@ -1,5 +1,5 @@
 import type { Channel, MessageKey } from './types';
-import type { SmsRuleKey } from '@/modules/sms-campaigns/types';
+import type { SmsRuleKey } from '@/modules/sms-settings/types';
 import type { EmailRuleKey } from '@/modules/email-campaigns/types';
 
 /**

@@ -126,11 +126,6 @@ const PRODUCTS_BENEFITS = [
     'Notatki i ocena zespołu przy każdym produkcie',
     'Powiązania produktów z wizytami — czym było robione to auto',
 ];
-const E_SIGNATURES_BENEFITS = [
-    'Klient podpisuje dokumenty na tablecie',
-    'Zgody i regulaminy podpisywane bez papieru',
-    'Bezpieczne archiwum podpisanych dokumentów',
-];
 
 export const router = createBrowserRouter([
     {
@@ -356,10 +351,6 @@ export const router = createBrowserRouter([
             path: '/statistics/categories/:categoryId',
             ...lazyGatedPage(() => import('@/modules/statistics/views/CategoryDetailView').then(m => m.CategoryDetailView), 'STATISTICS', STATISTICS_BENEFITS, 'STATISTICS_VIEW'),
         },
-        {
-            path: '/reports',
-            ...lazyGatedPage(() => import('@/modules/growth-engine/views/GrowthEngineView').then(m => m.GrowthEngineView), 'STATISTICS', STATISTICS_BENEFITS, 'STATISTICS_VIEW'),
-        },
 
         // ── Komunikacja i marketing ──────────────────────────────────────────
         {
@@ -391,18 +382,9 @@ export const router = createBrowserRouter([
             path: '/scheduled-sms',
             element: <Navigate to="/scheduled-communication" replace />,
         },
-        // Legacy: stara ścieżka kampanii SMS prowadzi do nowego modułu
-        {
-            path: '/sms-campaigns',
-            ...lazyGatedPage(() => import('@/modules/sms-campaigns/views/SmsCampaignsView').then(m => m.SmsCampaignsView), 'CAMPAIGNS', CAMPAIGNS_BENEFITS, 'COMMUNICATION_SEND'),
-        },
         {
             path: '/instagram',
             ...lazyGatedPage(() => import('@/modules/competition-monitoring/views/CompetitionMonitoringView').then(m => m.CompetitionMonitoringView), 'INSTAGRAM_MONITORING', INSTAGRAM_BENEFITS, 'MARKETING_MANAGE'),
-        },
-        {
-            path: '/consents',
-            ...lazyGatedPage(() => import('@/modules/consents/components/ConsentSettingsView').then(m => m.ConsentSettingsView), 'E_SIGNATURES', E_SIGNATURES_BENEFITS, 'CUSTOMERS_VIEW'),
         },
 
         // ── Urlop (samoobsługa pracownika, bez uprawnienia) ──────────────────

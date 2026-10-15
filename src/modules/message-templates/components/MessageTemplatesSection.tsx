@@ -7,7 +7,7 @@ import { Button, Card, Notice, SectionTitle, Segmented, ui } from '@/common/comp
 import { serverMessage, toastedGlobally } from '@/modules/settings/components/errorToast';
 import { useFeature } from '@/modules/subscription';
 import { UnsavedChangesBanner } from '@/modules/settings/components/shared/SettingsLayout';
-import { SmsSenderNameCard } from '@/modules/sms-campaigns/components/SmsSenderNameCard';
+import { SmsSenderNameCard } from '@/modules/sms-settings/components/SmsSenderNameCard';
 import { RedirectCard } from './RedirectCard';
 import { TemplatesTable } from './TemplatesTable';
 import { RuleDrawer } from './RuleDrawer';

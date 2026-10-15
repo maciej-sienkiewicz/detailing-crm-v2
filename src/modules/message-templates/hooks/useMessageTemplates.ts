@@ -3,12 +3,12 @@ import { useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
 import {
   fetchAutomationConfig,
   updateAutomationConfig,
-} from '@/modules/sms-campaigns/api/smsCampaignsApi';
+} from '@/modules/sms-settings/api/smsSettingsApi';
 import {
   fetchEmailAutomationConfig,
   updateEmailAutomationConfig,
 } from '@/modules/email-campaigns/api/emailCampaignsApi';
-import type { SmsAutomationConfig, SmsRuleKey } from '@/modules/sms-campaigns/types';
+import type { SmsAutomationConfig, SmsRuleKey } from '@/modules/sms-settings/types';
 import type { EmailAutomationConfig, EmailRuleKey } from '@/modules/email-campaigns/types';
 import { DEFAULT_OFFSET_MINUTES, MESSAGES } from '../catalog';
 import type { Channel, ChannelDraft, MessageKey, TemplatesDraft } from '../types';

@@ -12,7 +12,7 @@ import {
   useUploadSenderNameAuthDoc,
   useSignSenderNameAuthDoc,
   useSenderNameDocumentUrl,
-} from '../hooks';
+} from '../hooks/useSmsSenderName';
 
 /**
  * Nazwa nadawcy SMS - to, co klient widzi zamiast numeru telefonu, plus podpisane

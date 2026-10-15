@@ -381,7 +381,7 @@ export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled,
     // że backend i tak nic by nie wysłał (brak skonfigurowanej treści wiadomości).
     const { data: automationConfig } = useQuery({
         queryKey: ['sms-automation-config'],
-        queryFn: () => import('@/modules/sms-campaigns/api/smsCampaignsApi').then(m => m.fetchAutomationConfig()),
+        queryFn: () => import('@/modules/sms-settings/api/smsSettingsApi').then(m => m.fetchAutomationConfig()),
     });
     const visitCardLinkSmsEnabled = automationConfig?.visitCardLink?.enabled ?? true;
     const { sendEmail, sendVisitCard, emailOptions } = options;

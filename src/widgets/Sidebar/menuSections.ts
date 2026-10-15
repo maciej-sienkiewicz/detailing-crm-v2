@@ -132,7 +132,7 @@ export const buildMenuSections = ({
                     requires: ANY_EMPLOYEES, match: ['/employees'],
                     badge: pendingLeaveRequests + pendingWorkTime > 0 ? pendingLeaveRequests + pendingWorkTime : undefined },
                 { path: '/finances',   label: 'Finanse',    icon: FileText,   requires: ANY_FINANCE, match: ['/finance'] },
-                { path: '/statistics', label: 'Statystyki', icon: TrendingUp, requires: 'STATISTICS_VIEW', match: ['/reports'] },
+                { path: '/statistics', label: 'Statystyki', icon: TrendingUp, requires: 'STATISTICS_VIEW' },
                 { path: '/products',   label: 'Produkty',   icon: Package,    requires: 'PRODUCTS_VIEW' },
                 { path: '/activity',   label: 'Aktywność',  icon: Activity,   requires: 'AUDIT_VIEW' }
             ],
@@ -140,7 +140,7 @@ export const buildMenuSections = ({
         {
             title: 'Marketing',
             items: [
-                { path: '/campaigns',      label: 'Kampanie',       icon: MessageSquare, requires: 'COMMUNICATION_SEND', match: ['/sms-campaigns'] },
+                { path: '/campaigns',      label: 'Kampanie',       icon: MessageSquare, requires: 'COMMUNICATION_SEND' },
                 { path: '/instagram',      label: 'Instagram',      icon: Camera, requires: 'MARKETING_MANAGE' }
             ],
         },

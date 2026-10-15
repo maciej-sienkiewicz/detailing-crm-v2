@@ -10,8 +10,8 @@ import type { ReactNode } from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useUpsellNotificationAvailability } from './useUpsellNotificationAvailability';
-import { fetchAutomationConfig } from '@/modules/sms-campaigns/api/smsCampaignsApi';
-import type { SmsAutomationConfig } from '@/modules/sms-campaigns/types';
+import { fetchAutomationConfig } from '@/modules/sms-settings/api/smsSettingsApi';
+import type { SmsAutomationConfig } from '@/modules/sms-settings/types';
 
 const capability = { enabled: true, isLoading: false };
 
@@ -19,7 +19,7 @@ vi.mock('@/modules/subscription', () => ({
     useCapability: () => capability,
 }));
 
-vi.mock('@/modules/sms-campaigns/api/smsCampaignsApi', () => ({
+vi.mock('@/modules/sms-settings/api/smsSettingsApi', () => ({
     fetchAutomationConfig: vi.fn(),
 }));
 

@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { canPurchaseHere } from '@/core/native/platform';
 import { useCapability } from '@/modules/subscription';
 import { useSmsCreditBalance } from '@/modules/settings/hooks/useSmsCredits';
-import { fetchAutomationConfig } from '@/modules/sms-campaigns/api/smsCampaignsApi';
+import { fetchAutomationConfig } from '@/modules/sms-settings/api/smsSettingsApi';
 import { MESSAGES } from '@/modules/message-templates';
 import type { MessageKey } from '@/modules/message-templates';
 import type { CapabilityUpsellOption } from '@/modules/subscription/types';
