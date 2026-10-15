@@ -1,7 +1,6 @@
 /**
- * API client for consent management operations.
- * Admin operations: /api/v1/consents
- * Customer operations: /api/v1/customers/{customerId}/consents
+ * API definicji dokumentów zgód: /api/v1/consents.
+ * Zgody konkretnego klienta (/api/v1/customers/{customerId}/consents) woła moduł `customers`.
  */
 
 import { apiClient } from '@/core/apiClient';
@@ -10,9 +9,6 @@ import type {
     ConsentVersionResponse,
     CreateConsentRequest,
     AddVersionRequest,
-    ConsentStatusResponse,
-    SignConsentRequest,
-    SignConsentResponse,
 } from '../types';
 
 const BASE_PATH = '/v1/consents';
@@ -28,14 +24,6 @@ export const getConsentDefinitions = async (): Promise<ConsentResponse[]> => {
 };
 
 /**
- * Get a single consent definition by ID.
- */
-export const getConsentDefinition = async (id: string): Promise<ConsentResponse> => {
-    const response = await apiClient.get<ConsentResponse>(`${BASE_PATH}/${id}`);
-    return response.data;
-};
-
-/**
  * Create a new consent definition.
  * Slug is auto-generated from the name by the backend.
  */
@@ -43,17 +31,6 @@ export const createConsentDefinition = async (
     request: CreateConsentRequest
 ): Promise<ConsentResponse> => {
     const response = await apiClient.post<ConsentResponse>(BASE_PATH, request);
-    return response.data;
-};
-
-/**
- * Update consent display configuration (name, stage, mandatory, order).
- */
-export const updateConsentDefinition = async (
-    id: string,
-    request: Partial<CreateConsentRequest>
-): Promise<ConsentResponse> => {
-    const response = await apiClient.patch<ConsentResponse>(`${BASE_PATH}/${id}`, request);
     return response.data;
 };
 
@@ -106,55 +83,11 @@ export const uploadFileToS3 = async (uploadUrl: string, file: File): Promise<voi
     }
 };
 
-// ===== Customer Operations =====
-
-/**
- * Get all consent statuses for a customer.
- */
-export const getCustomerConsentStatus = async (customerId: string): Promise<ConsentStatusResponse> => {
-    const response = await apiClient.get<ConsentStatusResponse>(
-        `/v1/customers/${customerId}/consents`
-    );
-    return response.data;
-};
-
-/**
- * Record a customer signature on a specific consent template version.
- */
-export const signCustomerConsent = async (
-    customerId: string,
-    templateId: string,
-    request: SignConsentRequest = {}
-): Promise<SignConsentResponse> => {
-    const response = await apiClient.post<SignConsentResponse>(
-        `/v1/customers/${customerId}/consents/${templateId}/sign`,
-        request
-    );
-    return response.data;
-};
-
-/**
- * Revoke a previously recorded consent.
- */
-export const revokeCustomerConsent = async (
-    customerId: string,
-    consentId: string
-): Promise<void> => {
-    await apiClient.delete(`/v1/customers/${customerId}/consents/${consentId}`);
-};
-
 export const consentsApi = {
     // Admin operations
     getConsentDefinitions,
-    getConsentDefinition,
     createConsentDefinition,
-    updateConsentDefinition,
     deleteConsentDefinition,
     addConsentVersion,
     uploadFileToS3,
-
-    // Customer operations
-    getCustomerConsentStatus,
-    signCustomerConsent,
-    revokeCustomerConsent,
 };

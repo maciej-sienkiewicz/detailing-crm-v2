@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useCapability } from '@/modules/subscription';
-import { fetchAutomationConfig } from '@/modules/sms-campaigns/api/smsCampaignsApi';
+import { fetchAutomationConfig } from '@/modules/sms-settings/api/smsSettingsApi';
 
 const SMS_AUTOMATION_KEY = ['sms-automation'] as const;
 

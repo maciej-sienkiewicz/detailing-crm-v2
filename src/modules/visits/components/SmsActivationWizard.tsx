@@ -15,7 +15,7 @@ import { useAddOnUnlock } from '@/modules/subscription/hooks/useAddOnUnlock';
 import { useSmsCreditBalance, useSmsCreditPackages, usePurchaseCredits } from '@/modules/settings/hooks/useSmsCredits';
 import { PurchaseConfirmModal } from '@/modules/settings/components/SmsCreditSection';
 import { creditsLabel, formatCreditCount, formatGrossCents, packageGrossCents } from '@/modules/settings/components/smsCreditPricing';
-import { fetchAutomationConfig, updateAutomationConfig } from '@/modules/sms-campaigns/api/smsCampaignsApi';
+import { fetchAutomationConfig, updateAutomationConfig } from '@/modules/sms-settings/api/smsSettingsApi';
 import { MESSAGES } from '@/modules/message-templates';
 import { STARTER_SMS } from '@/modules/message-templates/starters';
 import type { MessageKey } from '@/modules/message-templates';

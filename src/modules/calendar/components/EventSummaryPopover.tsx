@@ -830,7 +830,7 @@ const AppointmentSmsRow: React.FC<{ appointmentId: string }> = ({ appointmentId 
 
     const { data: automation } = useQuery({
         queryKey: ['sms-automation-config'],
-        queryFn: () => import('@/modules/sms-campaigns/api/smsCampaignsApi').then(m => m.fetchAutomationConfig()),
+        queryFn: () => import('@/modules/sms-settings/api/smsSettingsApi').then(m => m.fetchAutomationConfig()),
         enabled: comms.enabled,
     });
 

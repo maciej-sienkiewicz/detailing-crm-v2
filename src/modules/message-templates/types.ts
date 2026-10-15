@@ -1,4 +1,4 @@
-import type { SmsAutomationConfig, SmsRuleKey } from '@/modules/sms-campaigns/types';
+import type { SmsAutomationConfig, SmsRuleKey } from '@/modules/sms-settings/types';
 import type { EmailAutomationConfig, EmailRuleKey } from '@/modules/email-campaigns/types';
 
 /**

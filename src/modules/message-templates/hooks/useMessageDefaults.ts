@@ -7,9 +7,9 @@
 // w kod każdego okna osobno i studio co rezerwację klikało to samo.
 import { useCallback, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchAutomationConfig } from '@/modules/sms-campaigns/api/smsCampaignsApi';
+import { fetchAutomationConfig } from '@/modules/sms-settings/api/smsSettingsApi';
 import { fetchEmailAutomationConfig } from '@/modules/email-campaigns/api/emailCampaignsApi';
-import type { SmsRuleKey } from '@/modules/sms-campaigns/types';
+import type { SmsRuleKey } from '@/modules/sms-settings/types';
 import type { EmailRuleKey } from '@/modules/email-campaigns/types';
 
 /*

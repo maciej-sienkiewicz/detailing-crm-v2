@@ -1,35 +1,21 @@
 /**
- * Public API for the consents module.
+ * Public API for the consents module: definicje dokumentów zgód używane w
+ * Ustawieniach → Dokumenty. Dawny osobny ekran /consents usunięto.
  */
-
-// Components
-export { ConsentSettingsView } from './components/ConsentSettingsView';
 
 // Types
 export type {
     ConsentResponse,
     ConsentVersionResponse,
-    ConsentStatus,
-    ConsentStatusItem,
-    ConsentStatusResponse,
     CreateConsentRequest,
     AddVersionRequest,
-    SignConsentRequest,
-    SignConsentResponse,
     ProtocolStage,
 } from './types';
-export { ConsentStatus as ConsentStatusEnum } from './types';
 
 // Hooks
 export {
     useConsentDefinitions,
-    useConsentDefinition,
-    useCreateDefinition,
     useDeleteDefinition,
-    useAddVersion,
-    useCustomerConsents,
-    useSignConsent,
-    useRevokeConsent,
 } from './hooks/useConsents';
 
 // API
