@@ -63,10 +63,10 @@ describe('EscalationPanel', () => {
         renderPanel();
         const timeline = await screen.findByRole('list', { name: 'Kroki przypomnień' });
         expect(within(timeline).getAllByRole('listitem').map(li => li.textContent)).toEqual([
-            'Od razuPowiadomienie do: cały zespółtakże poza godzinami pracy',
-            'Po 2 godz.Powiadomienie do: cały zespół',
+            'Od razuPowiadomienie: cały zespóło każdej porze',
+            'Po 2 godz.Powiadomienie: cały zespół',
         ]);
-        expect(screen.getByText(/Czas liczymy w godzinach pracy: codziennie, 8:00–20:00\. To ustawienia domyślne\./)).toBeInTheDocument();
+        expect(screen.getByText(/Liczymy czas tylko w godzinach pracy: codziennie, 8:00–20:00\. To ustawienia domyślne\./)).toBeInTheDocument();
         expect(document.body.textContent).not.toMatch(/[·•]/);
     });
 
@@ -75,19 +75,19 @@ describe('EscalationPanel', () => {
         fireEvent.click(await screen.findByRole('button', { name: 'Zmień' }));
 
         // Krok 2: z „po 2 godz." robi się „po 1 godz.".
-        fireEvent.change(within(step(2)).getByLabelText('Gdy nikt nie odpisze przez'), { target: { value: '1' } });
+        fireEvent.change(within(step(2)).getByLabelText('Po jakim czasie bez odpowiedzi'), { target: { value: '1' } });
 
         // Krok 3: po 2 godz. SMS na numer kierownika.
         fireEvent.click(screen.getByRole('button', { name: 'Dodaj krok' }));
-        fireEvent.change(within(step(3)).getByLabelText('Gdy nikt nie odpisze przez'), { target: { value: '2' } });
+        fireEvent.change(within(step(3)).getByLabelText('Po jakim czasie bez odpowiedzi'), { target: { value: '2' } });
         fireEvent.click(within(step(3)).getByRole('button', { name: 'SMS' }));
-        fireEvent.click(within(step(3)).getByRole('button', { name: 'Inny numer' }));
-        fireEvent.change(within(step(3)).getByLabelText('Kto to jest'), { target: { value: 'Kierownik' } });
+        fireEvent.click(within(step(3)).getByRole('button', { name: 'Dodaj inny numer' }));
+        fireEvent.change(within(step(3)).getByLabelText('Nazwa'), { target: { value: 'Kierownik' } });
         fireEvent.change(within(step(3)).getByRole('textbox', { name: '' }) as HTMLInputElement, { target: { value: '601234567' } });
 
         // Krok 4: po 4 godz. SMS do właściciela (numer z konta); Anna nie ma numeru.
         fireEvent.click(screen.getByRole('button', { name: 'Dodaj krok' }));
-        fireEvent.change(within(step(4)).getByLabelText('Gdy nikt nie odpisze przez'), { target: { value: '4' } });
+        fireEvent.change(within(step(4)).getByLabelText('Po jakim czasie bez odpowiedzi'), { target: { value: '4' } });
         fireEvent.click(within(step(4)).getByRole('button', { name: 'SMS' }));
         expect(within(step(4)).getByRole('checkbox', { name: /Anna Nowak/ })).toBeDisabled();
         fireEvent.click(within(step(4)).getByRole('checkbox', { name: /Maciej Właściciel/ }));
@@ -110,18 +110,18 @@ describe('EscalationPanel', () => {
     it('krok bez odbiorcy nie idzie do zapisu - komunikat wskazuje, który', async () => {
         renderPanel();
         fireEvent.click(await screen.findByRole('button', { name: 'Zmień' }));
-        fireEvent.click(within(step(2)).getByRole('checkbox', { name: 'Cały zespół obsługujący zapytania' }));
+        fireEvent.click(within(step(2)).getByRole('checkbox', { name: 'Wszyscy, którzy obsługują zapytania' }));
         fireEvent.click(screen.getByRole('button', { name: 'Zapisz' }));
 
         expect(await screen.findByRole('alert')).toHaveTextContent('Krok 2: wybierz, kogo powiadomić.');
         expect(leadsSettingsApi.updateEscalationPolicy).not.toHaveBeenCalled();
     });
 
-    it('„Przywróć domyślne" wysyła null', async () => {
+    it('„Przywróć ustawienia domyślne" wysyła null', async () => {
         vi.mocked(leadsSettingsApi.getEscalationPolicy).mockResolvedValue({ ...DEFAULT, custom: true });
         renderPanel();
         fireEvent.click(await screen.findByRole('button', { name: 'Zmień' }));
-        fireEvent.click(screen.getByRole('button', { name: 'Przywróć domyślne' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Przywróć ustawienia domyślne' }));
         await waitFor(() => expect(leadsSettingsApi.updateEscalationPolicy).toHaveBeenCalledWith(null));
     });
 });

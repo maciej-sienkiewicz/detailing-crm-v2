@@ -44,7 +44,7 @@ export function EscalationPanel() {
     return (
         <Panel aria-labelledby="lead-escalation-title">
             <PanelHead>
-                <SectionTitle as="h3" id="lead-escalation-title">Przypomnienia o odpowiedzi</SectionTitle>
+                <SectionTitle as="h3" id="lead-escalation-title">Przypomnienia o zapytaniach</SectionTitle>
                 {data && (
                     <PanelActions>
                         <Button variant="outline" size="sm" onClick={() => setEditing(true)}>Zmień</Button>
@@ -64,9 +64,9 @@ export function EscalationPanel() {
                     <Muted role="status">Wczytywanie przypomnień…</Muted>
                 ) : (
                     <>
-                        <Lead>Powiadomienia i SMS-y, gdy nikt nie odpisze klientowi. Kolejne osoby dowiadują się w tej kolejności.</Lead>
+                        <Lead>Gdy klient długo czeka na odpowiedź, wyślemy przypomnienie:</Lead>
                         {steps.length === 0 ? (
-                            <Muted>Przypomnienia są wyłączone - nikt nie dostanie powiadomienia o nowym zapytaniu.</Muted>
+                            <Muted>Przypomnienia są wyłączone. Nikt nie dostanie powiadomienia o nowym zapytaniu.</Muted>
                         ) : (
                             <Timeline aria-label="Kroki przypomnień">
                                 {steps.map(step => (
@@ -77,9 +77,9 @@ export function EscalationPanel() {
                                                 {step.channel === 'SMS' ? <MessageSquare /> : <Bell />}
                                             </ChannelBadge>
                                             <span>
-                                                <strong>{step.channel === 'SMS' ? 'SMS' : 'Powiadomienie'}</strong>
-                                                {' do: '}{recipientNames(step, data.people).join(', ')}
-                                                {step.anytime && <Hint>także poza godzinami pracy</Hint>}
+                                                <strong>{step.channel === 'SMS' ? 'SMS' : 'Powiadomienie'}:</strong>
+                                                {' '}{recipientNames(step, data.people).join(', ')}
+                                                {step.anytime && <Hint>o każdej porze</Hint>}
                                             </span>
                                         </What>
                                     </li>
@@ -87,10 +87,12 @@ export function EscalationPanel() {
                             </Timeline>
                         )}
                         <Muted>
-                            Czas liczymy w godzinach pracy: {workingHoursSummary(data.policy.workingHours)}.
+                            {data.policy.workingHours.alwaysOn
+                                ? 'Liczymy czas przez całą dobę.'
+                                : `Liczymy czas tylko w godzinach pracy: ${workingHoursSummary(data.policy.workingHours)}.`}
                             {!data.custom && ' To ustawienia domyślne.'}
                         </Muted>
-                        {usesSms && <Muted>SMS-y zużywają kredyty SMS studia.</Muted>}
+                        {usesSms && <Muted>SMS-y idą z Twoich kredytów SMS.</Muted>}
                     </>
                 )}
             </Body>
@@ -114,12 +116,12 @@ function EscalationDrawer({ data, onClose }: { data: EscalationPolicyResponse; o
         mutationFn: (policy: EscalationPolicy | null) => leadsSettingsApi.updateEscalationPolicy(policy),
         onSuccess: saved => {
             queryClient.setQueryData(ESCALATION_QUERY_KEY, saved);
-            showSuccess('Przypomnienia zapisane', saved.custom ? 'Działają od teraz.' : 'Wrócono do ustawień domyślnych.');
+            showSuccess('Zapisano', saved.custom ? 'Nowe przypomnienia już działają.' : 'Przywróciliśmy ustawienia domyślne.');
             onClose();
         },
         onError: error => {
             if (toastedGlobally(error)) return;
-            showError('Nie udało się zapisać przypomnień', serverMessage(error) ?? 'Spróbuj ponownie. Zmiany zostały w panelu.');
+            showError('Nie udało się zapisać', serverMessage(error) ?? 'Spróbuj jeszcze raz. Twoje zmiany nie zniknęły.');
         },
     });
 
@@ -128,7 +130,7 @@ function EscalationDrawer({ data, onClose }: { data: EscalationPolicyResponse; o
         update({ ...draft, steps: draft.steps.map(s => (s.id === id ? change(s) : s)) });
 
     const close = () => {
-        if (dirty && !window.confirm('Zamknąć bez zapisywania zmian?')) return;
+        if (dirty && !window.confirm('Zamknąć? Zmiany nie zostaną zapisane.')) return;
         onClose();
     };
 
@@ -142,15 +144,15 @@ function EscalationDrawer({ data, onClose }: { data: EscalationPolicyResponse; o
     return (
         <SideDrawer
             onClose={close}
-            title="Przypomnienia o odpowiedzi"
+            title="Przypomnienia o zapytaniach"
             titleId="lead-escalation-drawer"
-            subtitle="Kto i kiedy dowiaduje się o zapytaniu bez odpowiedzi"
+            subtitle="Komu i kiedy przypomnieć, że klient czeka na odpowiedź"
             width={620}
             footer={
                 <>
                     {data.custom && (
                         <Button variant="ghost" onClick={() => save.mutate(null)} disabled={save.isPending}>
-                            Przywróć domyślne
+                            Przywróć ustawienia domyślne
                         </Button>
                     )}
                     <DrawerFooterSpacer />
@@ -187,14 +189,14 @@ function EscalationDrawer({ data, onClose }: { data: EscalationPolicyResponse; o
 
                 <Fieldset>
                     <legend>Godziny pracy</legend>
-                    <HelpText>Poza nimi zegar stoi: zapytanie z 19:30 przy kroku „po 1 godz.” przypomni o 8:30.</HelpText>
+                    <HelpText>Poza godzinami pracy nie liczymy czasu. Zapytanie z 19:30 przy kroku „po 1 godz.” przypomni o 8:30 następnego dnia.</HelpText>
                     <CheckLine>
                         <input
                             type="checkbox"
                             checked={hours.alwaysOn}
                             onChange={e => update({ ...draft, workingHours: { ...hours, alwaysOn: e.target.checked } })}
                         />
-                        Całą dobę, 7 dni w tygodniu
+                        Liczymy czas przez całą dobę
                     </CheckLine>
                     {!hours.alwaysOn && (
                         <>
@@ -280,10 +282,11 @@ function StepEditor({ index, step, people, invalid, onChange, onRemove }: StepEd
             </StepHead>
 
             <TimeRow>
-                <label htmlFor={`${idBase}-time`}>Gdy nikt nie odpisze przez</label>
+                <span aria-hidden="true">Po</span>
                 <TimeFields>
                     <TimeInput
                         id={`${idBase}-time`}
+                        aria-label="Po jakim czasie bez odpowiedzi"
                         type="text"
                         inputMode="numeric"
                         autoComplete="off"
@@ -300,11 +303,11 @@ function StepEditor({ index, step, people, invalid, onChange, onRemove }: StepEd
                         <option value="days">dni</option>
                     </Select>
                 </TimeFields>
-                <Hint>{step.timeText.trim() === '0' ? 'czyli od razu' : ''}</Hint>
+                <span>{step.timeText.trim() === '0' ? 'czyli od razu' : 'bez odpowiedzi'}</span>
             </TimeRow>
 
             <Segmented
-                label="Czym powiadomić"
+                label="Jak przypomnieć"
                 size="sm"
                 value={step.channel}
                 onChange={channel => onChange(s => switchChannel(s, channel))}
@@ -314,7 +317,7 @@ function StepEditor({ index, step, people, invalid, onChange, onRemove }: StepEd
                 ]}
             />
 
-            <Recipients role="group" aria-label={`Kogo powiadomić w kroku ${index + 1}`}>
+            <Recipients role="group" aria-label={`Komu przypomnieć w kroku ${index + 1}`}>
                 {step.channel === 'PUSH' && (
                     <CheckLine>
                         <input
@@ -322,7 +325,7 @@ function StepEditor({ index, step, people, invalid, onChange, onRemove }: StepEd
                             checked={teamChosen}
                             onChange={e => toggle({ kind: 'TEAM' }, e.target.checked, x => x.kind === 'TEAM')}
                         />
-                        Cały zespół obsługujący zapytania
+                        Wszyscy, którzy obsługują zapytania
                     </CheckLine>
                 )}
                 {/* „Cały zespół" obejmuje każdą osobę z listy - pokazywanie jej obok byłoby
@@ -332,7 +335,7 @@ function StepEditor({ index, step, people, invalid, onChange, onRemove }: StepEd
                     const noPhone = step.channel === 'SMS' && !person.phone;
                     const details = [
                         person.isOwner ? 'właściciel' : null,
-                        step.channel === 'SMS' ? (person.phone ? formatPhoneNumber(person.phone) : 'brak numeru w koncie') : null,
+                        step.channel === 'SMS' ? (person.phone ? formatPhoneNumber(person.phone) : 'brak numeru telefonu') : null,
                     ].filter(Boolean).join(', ');
                     return (
                         <CheckLine key={person.userId} $muted={noPhone}>
@@ -356,8 +359,8 @@ function StepEditor({ index, step, people, invalid, onChange, onRemove }: StepEd
                 {step.channel === 'SMS' && phones.map(({ r, i }) => (
                     <PhoneLine key={i}>
                         <LabelInput
-                            aria-label="Kto to jest"
-                            placeholder="Kto to (np. kierownik)"
+                            aria-label="Nazwa"
+                            placeholder="Nazwa, np. Kierownik Marek"
                             value={r.label ?? ''}
                             maxLength={60}
                             onChange={e => onChange(s => ({
@@ -390,7 +393,7 @@ function StepEditor({ index, step, people, invalid, onChange, onRemove }: StepEd
                             size="sm"
                             onClick={() => onChange(s => ({ ...s, recipients: [...s.recipients, { kind: 'PHONE', phone: '', label: '' }] }))}
                         >
-                            <Plus aria-hidden="true" />Inny numer
+                            <Plus aria-hidden="true" />Dodaj inny numer
                         </Button>
                     </div>
                 )}
@@ -402,7 +405,7 @@ function StepEditor({ index, step, people, invalid, onChange, onRemove }: StepEd
                     checked={step.anytime}
                     onChange={e => onChange(s => ({ ...s, anytime: e.target.checked }))}
                 />
-                Także poza godzinami pracy
+                Wysyłaj też w nocy i w dni wolne
             </CheckLine>
         </StepCard>
     );
@@ -539,7 +542,7 @@ const TimeRow = styled.div`
     flex-wrap: wrap;
     gap: 8px;
 
-    label { font-size: 13.5px; color: ${ui.textSecondary}; }
+    > span { font-size: 13.5px; color: ${ui.textSecondary}; }
 `;
 
 const fieldBase = `

@@ -128,14 +128,14 @@ export interface DraftProblem {
 export function draftProblem(draft: Draft): DraftProblem | null {
     for (const [index, step] of draft.steps.entries()) {
         const n = index + 1;
-        if (draftMinutes(step) === null) return { stepId: step.id, message: `Krok ${n}: podaj czas do 7 dni.` };
+        if (draftMinutes(step) === null) return { stepId: step.id, message: `Krok ${n}: wpisz czas (najwyżej 7 dni).` };
         if (step.recipients.length === 0) return { stepId: step.id, message: `Krok ${n}: wybierz, kogo powiadomić.` };
         const badPhone = step.recipients.find(r => r.kind === 'PHONE' && !isPlausiblePhone(r.phone));
         if (badPhone) return { stepId: step.id, message: `Krok ${n}: popraw numer telefonu.` };
     }
     const hours = draft.workingHours;
     if (!hours.alwaysOn && hours.fromHour >= hours.toHour) {
-        return { stepId: null, message: 'Godziny pracy: początek musi być przed końcem.' };
+        return { stepId: null, message: 'Godziny pracy: „od” musi być wcześniej niż „do”.' };
     }
     if (!hours.alwaysOn && hours.days.length === 0) return { stepId: null, message: 'Wybierz co najmniej jeden dzień pracy.' };
     return null;
