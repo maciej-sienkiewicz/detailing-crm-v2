@@ -65,6 +65,17 @@ cd android && ./gradlew assembleDebug   # → app/build/outputs/apk/debug/app-de
 Wersję podbijasz w `android/app/build.gradle` (`versionCode`, `versionName`) i w Xcode
 (`MARKETING_VERSION`, `CURRENT_PROJECT_VERSION`).
 
+### Emulator Androida z lokalnym Vite
+
+Backend wpuszcza przez CORS i WebSocket tylko `localhost`, `192.168.*.*` i detailboost.pl,
+więc strona otwarta z `http://10.0.2.2:3000` dostaje 403 przy logowaniu. Zamiast poluzowania
+backendu przekieruj port emulatora na Maca i buduj na `localhost`:
+
+```bash
+adb reverse tcp:3000 tcp:3000
+CAP_SERVER_URL=http://localhost:3000 npx cap sync android
+```
+
 ## Powiadomienia push: konfiguracja
 
 Backend wysyła je sam (APNs po HTTP/2, FCM HTTP v1), bez dodatkowych bibliotek. Bez kluczy
