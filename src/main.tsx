@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { installChunkErrorHandler } from './core/errors';
+import { installNativeShell } from './core/native/installNativeShell';
 import { isRolePreviewShellPath } from './modules/role-preview/entryCode';
 import {
     isServiceWorkerAllowedHere, keepServiceWorkerFresh, registerAppServiceWorker,
@@ -12,6 +13,9 @@ import './index.css';
 // docierają do żadnego ErrorBoundary (modulepreload Vite, `import()` poza
 // renderem). Bez tego taki błąd kończył się wpisem w konsoli i martwą zakładką.
 installChunkErrorHandler();
+
+// Aplikacja ze sklepu (Capacitor): pliki, linki i „Wstecz" przez system. W przeglądarce nic nie robi.
+installNativeShell();
 
 // Register the application Service Worker: car-logo CacheFirst cache + Web Push
 // (push / notificationclick handlers live in public/service-worker.js).

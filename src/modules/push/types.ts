@@ -11,6 +11,9 @@ export interface PushDeviceDto {
     platform?: 'IOS' | 'ANDROID' | 'DESKTOP' | 'UNKNOWN';
 }
 
+/** Kanał powiadomień aplikacji ze sklepu: Apple (iPhone) albo Firebase (Android). */
+export type NativePushTransport = 'APNS' | 'FCM';
+
 export interface RequestCallResponse {
     requestedDevices: number;
     deliveredDevices: number;

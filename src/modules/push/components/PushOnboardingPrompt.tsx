@@ -25,6 +25,8 @@
 // w oknie kreatora, które na chwilę przejmuje ekran.
 
 import { useEffect, useState } from 'react';
+import { isNativeApp } from '@/core/native/platform';
+import { useToast } from '@/common/components/Toast';
 import { useLocation } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, CloseBtn } from '@/common/components/ModalKit';
@@ -37,6 +39,7 @@ import { detectPushPlatform, readPlatformEnv } from '../utils/pushPlatform';
 import { wizardStage } from '../utils/wizardStage';
 import { PushNotificationWizard } from './PushNotificationWizard';
 import { BellIcon } from './wizardIcons';
+import { enableNativePush, nativePushPermission } from '../native/nativePush';
 
 const SNOOZE_KEY = 'push-onboarding-snoozed-until';
 const SNOOZE_MS = 14 * 24 * 60 * 60 * 1000;
@@ -92,10 +95,60 @@ const isEligibleDevice = (): boolean => {
 };
 
 export function PushOnboardingPrompt() {
-    const [eligible] = useState(() => isEligibleDevice() && readSnoozedUntil() < Date.now());
+    const [eligible] = useState(() => (isNativeApp() || isEligibleDevice()) && readSnoozedUntil() < Date.now());
     const { pathname } = useLocation();
     if (!eligible || HIDDEN_ON.some(prefix => pathname.startsWith(prefix))) return null;
-    return <Prompt />;
+    return isNativeApp() ? <NativePrompt /> : <Prompt />;
+}
+
+/**
+ * W aplikacji ze sklepu nie ma etapów (dodaj do ekranu, otwórz z ikony) - jest jedna
+ * systemowa zgoda. Ta sama karta i ten sam powód pytania NASZĄ kartą: systemowy monit
+ * na iPhonie pada tylko raz, więc pokazujemy go dopiero po „Włącz".
+ */
+function NativePrompt() {
+    const { showError } = useToast();
+    const [visible, setVisible] = useState(false);
+    const [done, setDone] = useState(false);
+
+    useEffect(() => {
+        let timer = 0;
+        nativePushPermission()
+            .then(permission => {
+                if (permission === 'prompt') timer = window.setTimeout(() => setVisible(true), SHOW_DELAY_MS);
+            })
+            .catch(() => {/* bez wtyczki nie ma o co pytać */});
+        return () => window.clearTimeout(timer);
+    }, []);
+
+    const enable = async () => {
+        setDone(true);
+        try {
+            await enableNativePush();
+        } catch {
+            showError('Nie udało się włączyć powiadomień', 'Spróbuj jeszcze raz w Ustawieniach, w zakładce Powiadomienia.');
+        }
+    };
+
+    const dismiss = () => {
+        snooze();
+        setDone(true);
+    };
+
+    if (!visible || done) return null;
+    return (
+        <Card role="region" aria-label="Powiadomienia na telefon">
+            <Tile><BellIcon /></Tile>
+            <Copy>
+                <CardTitle>{CARD_COPY.ask?.title}</CardTitle>
+                <CardText>{CARD_COPY.ask?.text}</CardText>
+            </Copy>
+            <Actions>
+                <Button variant="tinted" size="sm" onClick={enable}>Włącz</Button>
+                <Button variant="ghost" size="sm" onClick={dismiss}>Nie teraz</Button>
+            </Actions>
+        </Card>
+    );
 }
 
 function Prompt() {

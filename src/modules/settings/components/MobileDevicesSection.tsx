@@ -17,6 +17,8 @@ import { Segmented, type SegmentedOption } from '@/common/components/ui';
 import { useCapability } from '@/modules/subscription';
 import { carddavApi, CARDDAV_ACCOUNTS_KEY } from '@/modules/carddav';
 import { PushNotificationsPanel } from '@/modules/push/components/PushNotificationsPanel';
+import { NativePushPanel } from '@/modules/push/native/NativePushPanel';
+import { isNativeApp } from '@/core/native/platform';
 import { useTablets } from '../hooks/useTablets';
 import { TabletsSection } from './TabletsSection';
 import { ServiceChecklistCard } from './ServiceChecklistCard';
@@ -78,7 +80,8 @@ export function MobileDevicesSection({ subView, onSubViewChange }: MobileDevices
             {view === 'notifications' && (
                 <View>
                     {/* Bez wstępu: pięć linii wyliczanki powtarzało listę z kreatora poniżej. */}
-                    <PushNotificationsPanel />
+                    {/* W aplikacji ze sklepu jedna systemowa zgoda zamiast kreatora przeglądarki. */}
+                    {isNativeApp() ? <NativePushPanel /> : <PushNotificationsPanel />}
                 </View>
             )}
 
