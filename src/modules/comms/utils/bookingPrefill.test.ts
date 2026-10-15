@@ -207,7 +207,7 @@ describe('leadToBookingPrefill - klient i auto', () => {
     it('auto z kartoteki pasujące marką i modelem (bez względu na wielkość liter)', () => {
         const prefill = leadToBookingPrefill(lead({ vehicleBrand: 'bmw', vehicleModel: 'x5' }), card());
 
-        expect(prefill.vehicle).toEqual({ id: 'veh-1', brand: 'BMW', model: 'X5', year: 2021, isNew: false });
+        expect(prefill.vehicle).toEqual({ id: 'veh-1', brand: 'BMW', model: 'X5', year: 2021, licensePlate: 'WX 12345', isNew: false });
     });
 
     it('auto spoza kartoteki wchodzi jako nowe', () => {

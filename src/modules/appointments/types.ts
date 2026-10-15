@@ -8,6 +8,24 @@ export interface PriceAdjustment {
     value: number;
 }
 
+/**
+ * Adres w czterech polach, jak w przyjęciu pojazdu. Nigdy jeden napis: serwer wpisywał
+ * napis „ulica, kod miasto" w całości do kolumny ulicy, a każdy zapis edycji doklejał
+ * kod i miasto jeszcze raz.
+ */
+export interface AppointmentAddress {
+    street: string;
+    city: string;
+    postalCode: string;
+    country: string;
+}
+
+/**
+ * Co zrobić z właścicielami pojazdu, gdy klient rezerwacji nie jest jednym z nich
+ * (operator podmienił klienta, a auto zostawił). Brak pola - właściciele bez zmian.
+ */
+export type AppointmentVehicleOwnership = 'ADD_CO_OWNER' | 'TRANSFER_PRIMARY';
+
 export type CustomerIdentity =
     | {
         mode: 'EXISTING';
@@ -24,8 +42,10 @@ export type CustomerIdentity =
                 name: string;
                 nip: string;
                 regon?: string;
-                address: string;
+                address: AppointmentAddress;
             };
+            /** Undefined - bez zmian, same puste pola - usunięcie adresu. */
+            homeAddress?: AppointmentAddress;
         };
     }
     | {
@@ -40,8 +60,10 @@ export type CustomerIdentity =
                 name: string;
                 nip: string;
                 regon?: string;
-                address: string;
+                address: AppointmentAddress;
             };
+            /** Undefined - bez zmian, same puste pola - usunięcie adresu. */
+            homeAddress?: AppointmentAddress;
         };
     };
 
@@ -49,6 +71,7 @@ export type VehicleIdentity =
     | {
         mode: 'EXISTING';
         id: string;
+        ownership?: AppointmentVehicleOwnership;
     }
     | {
         mode: 'NEW';
@@ -65,6 +88,7 @@ export type VehicleIdentity =
     | {
         mode: 'UPDATE';
         id: string;
+        ownership?: AppointmentVehicleOwnership;
         updateData: {
             brand: string;
             model: string;
@@ -200,7 +224,15 @@ export interface SelectedVehicle {
     brand: string;
     model: string;
     year?: number;
+    /**
+     * Tablica z kartoteki. Potrzebna przy zapisie zmian istniejącego pojazdu: serwer
+     * w trybie UPDATE zapisuje tablicę taką, jaka przyszła, więc brak pola ją kasuje.
+     * Undefined - nieznana (wtedy zmian pojazdu nie wysyłamy), null - auto bez tablicy.
+     */
+    licensePlate?: string | null;
     isNew: boolean;
+    /** Operator zmienił markę/model/rok istniejącego pojazdu - zapis idzie jako UPDATE. */
+    hasUpdates?: boolean;
 }
 
 // ─── Recurrence types ─────────────────────────────────────────────────────────

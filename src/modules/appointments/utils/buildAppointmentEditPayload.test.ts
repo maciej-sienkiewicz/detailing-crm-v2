@@ -125,7 +125,9 @@ describe('buildAppointmentEditPayload', () => {
         });
     });
 
-    it('customer UPDATE dołącza dane firmy sklejone w jeden adres', () => {
+    // Dawniej adres firmy szedł jako napis „Polna 1, 00-001 Warszawa", który serwer
+    // wpisywał w całości do kolumny ulicy - a każdy zapis doklejał kod i miasto jeszcze raz.
+    it('customer UPDATE dołącza dane firmy z adresem w czterech polach, nie sklejonym w napis', () => {
         const payload = buildAppointmentEditPayload({
             ...baseFormData(),
             company: {
@@ -142,9 +144,52 @@ describe('buildAppointmentEditPayload', () => {
                     name: 'Detailing Sp. z o.o.',
                     nip: '1234567890',
                     regon: '123456785',
-                    address: 'Polna 1, 00-001 Warszawa',
+                    address: { street: 'Polna 1', city: 'Warszawa', postalCode: '00-001', country: 'PL' },
                 },
             },
+        });
+    });
+
+    it('customer NEW też wysyła adres firmy w czterech polach', () => {
+        const payload = buildAppointmentEditPayload({
+            ...baseFormData(),
+            isNewCustomer: true,
+            company: {
+                name: 'Detailing Sp. z o.o.',
+                nip: '1234567890',
+                regon: '',
+                address: { street: 'Polna 1', city: 'Warszawa', postalCode: '00-001', country: 'Polska' },
+            },
+        })!;
+        expect(payload.customer).toMatchObject({
+            mode: 'NEW',
+            newData: {
+                company: { address: { street: 'Polna 1', city: 'Warszawa', postalCode: '00-001', country: 'Polska' } },
+            },
+        });
+    });
+
+    // Adres domowy jest edytowalny w VerificationStep, ale nie trafiał do payloadu wcale.
+    it('adres domowy z formularza idzie w payloadzie klienta (UPDATE i NEW)', () => {
+        const homeAddress = { street: 'Leśna 3', city: 'Gdańsk', postalCode: '80-001', country: 'Polska' };
+
+        const update = buildAppointmentEditPayload({ ...baseFormData(), homeAddress })!;
+        expect(update.customer).toMatchObject({ mode: 'UPDATE', updateData: { homeAddress } });
+
+        const created = buildAppointmentEditPayload({ ...baseFormData(), isNewCustomer: true, homeAddress })!;
+        expect(created.customer).toMatchObject({ mode: 'NEW', newData: { homeAddress } });
+    });
+
+    it('brak adresu domowego to brak pola (bez zmian), wyczyszczone pola idą puste (usunięcie)', () => {
+        const none = buildAppointmentEditPayload(baseFormData())!;
+        expect(none.customer).not.toHaveProperty('updateData.homeAddress', expect.anything());
+
+        const cleared = buildAppointmentEditPayload({
+            ...baseFormData(),
+            homeAddress: { street: '', city: '', postalCode: '', country: 'Polska' },
+        })!;
+        expect(cleared.customer).toMatchObject({
+            updateData: { homeAddress: { street: '', city: '', postalCode: '', country: 'Polska' } },
         });
     });
 
@@ -186,6 +231,20 @@ describe('buildAppointmentEditPayload', () => {
         // aliasu na "yearOfProduction" - Jackson po cichu odrzuca nieznany klucz i rok
         // produkcji nigdy się nie zapisuje. Ten test pilnuje dokładnego klucza w JSON-ie.
         expect(payload.vehicle).not.toHaveProperty('updateData.yearOfProduction');
+    });
+
+    // „Dopisz jako współwłaściciela" z VerificationStep ginęło w payloadzie edycji.
+    it('decyzja o współwłaścicielu idzie przy pojeździe UPDATE', () => {
+        const payload = buildAppointmentEditPayload({
+            ...baseFormData(),
+            vehicleOwnershipAction: 'ADD_CO_OWNER',
+        })!;
+        expect(payload.vehicle).toMatchObject({ mode: 'UPDATE', id: 'vehicle-1', ownership: 'ADD_CO_OWNER' });
+    });
+
+    it('bez decyzji o właścicielu pola ownership nie ma - właściciele bez zmian', () => {
+        const payload = buildAppointmentEditPayload({ ...baseFormData(), vehicleOwnershipAction: null })!;
+        expect(payload.vehicle).not.toHaveProperty('ownership', expect.anything());
     });
 
     it('vehicle NEW wysyła "year", gdy formData.isNewVehicle=true', () => {

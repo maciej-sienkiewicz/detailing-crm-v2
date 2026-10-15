@@ -94,6 +94,19 @@ const Actions = styled.div`
 `;
 
 
+// Adres z odczytu rezerwacji (pola mogą być puste albo null) -> pola formularza.
+// Brak adresu zostaje null: formularz pokazuje wtedy puste pola, a zapis nic nie rusza.
+type ApiAddress = { street?: string | null; city?: string | null; postalCode?: string | null; country?: string | null };
+const toFormAddress = (address: ApiAddress | null | undefined): CheckInFormData['homeAddress'] =>
+    address
+        ? {
+            street: address.street || '',
+            city: address.city || '',
+            postalCode: address.postalCode || '',
+            country: address.country || 'Polska',
+        }
+        : null;
+
 export const AppointmentEditView = () => {
     const { appointmentId } = useParams<{ appointmentId: string }>();
     const navigate = useNavigate();
@@ -142,8 +155,19 @@ export const AppointmentEditView = () => {
                 }
                 : null,
             isNewVehicle: false,
-            homeAddress: appointment.customer?.homeAddress || null,
-            company: appointment.customer?.company || null,
+            // Serwer zwraca adres domowy i firmę przy odczycie jednej rezerwacji. Wcześniej
+            // ich nie zwracał i okno startowało z pustymi polami - a NIP czy regon bywają
+            // null, więc normalizujemy je do pól formularza zamiast przepisywać obiekt.
+            homeAddress: toFormAddress(appointment.customer?.homeAddress),
+            company: appointment.customer?.company?.name
+                ? {
+                    name: appointment.customer.company.name,
+                    nip: appointment.customer.company.nip || '',
+                    regon: appointment.customer.company.regon || '',
+                    address: toFormAddress(appointment.customer.company.address)
+                        ?? { street: '', city: '', postalCode: '', country: 'Polska' },
+                }
+                : null,
             // Z dokładnym bruttem: bez niego każdy zapis, nawet samej daty, odtwarzał
             // brutto z netta (1900,00 → 1900,01) - patrz toEditServiceLine.
             services: (appointment.services || []).map(toEditServiceLine),

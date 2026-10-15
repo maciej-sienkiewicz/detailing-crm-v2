@@ -1585,7 +1585,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             type="button"
                                                             onMouseDown={(e) => e.preventDefault()}
                                                             onClick={() => {
-                                                                form.handleVehicleSelect({ id: v.id, brand: v.brand, model: v.model, year: v.year, isNew: false });
+                                                                form.handleVehicleSelect({ id: v.id, brand: v.brand, model: v.model, year: v.year, licensePlate: v.licensePlate ?? null, isNew: false });
                                                             }}
                                                             $accentColor={form.accentColor}
                                                         >

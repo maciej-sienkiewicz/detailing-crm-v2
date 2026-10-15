@@ -562,7 +562,7 @@ const mockCreateCustomer = async (payload: CreateCustomerPayload): Promise<Custo
         },
         homeAddress: payload.homeAddress,
         company: payload.companyData ? { id: `c${Date.now()}`, ...payload.companyData } : null,
-        notes: payload.notes,
+        notes: [],
         lastVisitDate: null,
         totalVisits: 0,
         vehicleCount: 0,
@@ -620,7 +620,7 @@ const mockUpdateCustomer = async (
                 ? { id: existingCustomer.company?.id ?? `c${Date.now()}`, ...payload.companyData }
                 : null
             : existingCustomer.company,
-        notes: payload.notes ?? existingCustomer.notes,
+        notes: existingCustomer.notes,
         updatedAt: new Date().toISOString(),
     };
 

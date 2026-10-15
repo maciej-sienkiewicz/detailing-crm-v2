@@ -1,5 +1,6 @@
 // src/modules/calendar/components/CalendarSearchModal.tsx
 
+import { matchesSearch } from '@/common/utils/textSearch';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useBreakpoint, useVisualViewportSheet } from '@/common/hooks';
@@ -384,17 +385,16 @@ function isFinished(event: CalendarEvent): boolean {
 }
 
 function matchesQuery(event: CalendarEvent, q: string): boolean {
-    const lower = q.toLowerCase();
     const props = event.extendedProps as AppointmentEventData | VisitEventData;
-    const fields = [
+    // matchesSearch: „Kowalski BMW" i tablica bez spacji trafiają, choć leżą w różnych polach.
+    return matchesSearch(q, [
         event.title,
         props.customerName,
         props.vehicleInfo,
         (props as VisitEventData).licensePlate,
         (props as VisitEventData).visitNumber,
         (props as AppointmentEventData).serviceNames?.join(' '),
-    ];
-    return fields.some(f => f && f.toLowerCase().includes(lower));
+    ]);
 }
 
 function groupByDay(results: SearchResult[]): GroupedResults[] {

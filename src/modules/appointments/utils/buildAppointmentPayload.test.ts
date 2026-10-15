@@ -226,3 +226,42 @@ describe('buildAppointmentPayload - całodniowa tylko wizyta jednodniowa', () =>
     expect(payload.schedule.isAllDay).toBe(false);
   });
 });
+
+// Szybka rezerwacja: poprawiona marka/model/rok auta z kartoteki zostawała przy
+// { mode: 'EXISTING', id } - serwer dostawał samo id i zmiany znikały.
+describe('buildAppointmentPayload - zmiany istniejącego pojazdu', () => {
+  const existing = { id: 'veh-1', brand: 'BMW', model: 'X5', year: 2020, licensePlate: 'WX 12345', isNew: false };
+
+  it('pojazd bez zmian idzie jako EXISTING', () => {
+    const payload = buildAppointmentPayload(baseData({ vehicle: existing }));
+    expect(payload.vehicle).toEqual({ mode: 'EXISTING', id: 'veh-1' });
+  });
+
+  it('zmieniony pojazd idzie jako UPDATE razem z tablicą z kartoteki', () => {
+    const payload = buildAppointmentPayload(baseData({
+      vehicle: { ...existing, model: 'X6', year: 2021, hasUpdates: true },
+    }));
+    // Tablica MUSI jechać: serwer w trybie UPDATE zapisuje ją taką, jaka przyszła,
+    // a brak pola kasuje ją w kartotece (VehicleIdentity.Update.licensePlate).
+    expect(payload.vehicle).toEqual({
+      mode: 'UPDATE',
+      id: 'veh-1',
+      updateData: { brand: 'BMW', model: 'X6', year: 2021, licensePlate: 'WX 12345' },
+    });
+  });
+
+  it('auto bez tablicy (null) idzie jako UPDATE bez tablicy', () => {
+    const payload = buildAppointmentPayload(baseData({
+      vehicle: { ...existing, licensePlate: null, hasUpdates: true },
+    }));
+    expect(payload.vehicle).toMatchObject({ mode: 'UPDATE', id: 'veh-1' });
+    expect(payload.vehicle).not.toHaveProperty('updateData.licensePlate', expect.anything());
+  });
+
+  it('nieznana tablica (undefined) zostawia EXISTING - nie kasujemy tablicy w kartotece', () => {
+    const payload = buildAppointmentPayload(baseData({
+      vehicle: { ...existing, licensePlate: undefined, hasUpdates: true },
+    }));
+    expect(payload.vehicle).toEqual({ mode: 'EXISTING', id: 'veh-1' });
+  });
+});

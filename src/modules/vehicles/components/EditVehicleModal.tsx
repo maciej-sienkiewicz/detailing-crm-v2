@@ -79,7 +79,15 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
     });
 
     const onSubmit = (data: UpdateVehicleFormData) => {
-        updateVehicle(data, {
+        // Puste pole liczbowe schemat zamienia na undefined, a serwer czyta brak pola
+        // jako „bez zmian" - wyczyszczony rok i przebieg wracały po zapisie. Jawnie:
+        // rok 0 = usuń rok, przebieg wyczyszczony = 0.
+        const payload: UpdateVehicleFormData = {
+            ...data,
+            yearOfProduction: data.yearOfProduction ?? (vehicle.yearOfProduction ? 0 : undefined),
+            currentMileage: data.currentMileage ?? 0,
+        };
+        updateVehicle(payload, {
             onSuccess: () => {
                 showSuccess('Dane pojazdu zapisane', 'Zmiany widać już w karcie pojazdu.');
                 onClose();

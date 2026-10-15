@@ -9,6 +9,7 @@
 // i „Rezerwacje" to zwinięte wiersze z licznikiem - praca, której dziś nie trzeba robić,
 // nie zajmuje ekranu, ale nie znika (jedno kliknięcie i jest). Gdy klient napisał w sprawie
 // z rezerwacją, zwinięty wiersz mówi o tym akcentem - inaczej wiadomość leżałaby pod klapką.
+import { matchesSearch } from '@/common/utils/textSearch';
 import { Fragment, useState } from 'react';
 import styled, { css } from 'styled-components';
 import { ChevronDown, ChevronRight, CircleDot, Trash2, X } from 'lucide-react';
@@ -170,10 +171,13 @@ interface CaseListProps {
 
 type FoldKey = 'SILENT' | 'CLIENT' | 'BOOKED';
 
+// matchesSearch: „BMW X5" i „Kowalski BMW" trafiają mimo osobnych pól, telefon po cyfrach.
 const matches = (entry: WorklistEntry, needle: string): boolean =>
-    [entry.lead.customerName, entry.lead.contactIdentifier, entry.lead.vehicleBrand, entry.lead.vehicleModel, ...entry.lead.tagLabels]
-        .filter(Boolean)
-        .some((field) => String(field).toLowerCase().includes(needle));
+    matchesSearch(
+        needle,
+        [entry.lead.customerName, entry.lead.contactIdentifier, entry.lead.vehicleBrand, entry.lead.vehicleModel, ...entry.lead.tagLabels],
+        [entry.lead.contactIdentifier],
+    );
 
 export function CaseList({ worklist, query, loading, truncated, activeId, onOpen, phone, selecting, onStopSelecting }: CaseListProps) {
     const [open, setOpen] = useState<Record<FoldKey, boolean>>({ SILENT: false, CLIENT: false, BOOKED: false });

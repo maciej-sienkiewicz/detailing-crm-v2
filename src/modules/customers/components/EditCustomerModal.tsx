@@ -24,6 +24,7 @@ import { useUpdateCustomer } from '../hooks/useUpdateCustomer';
 import { useUpdateCompany } from '../hooks/useUpdateCompany';
 import { useDeleteCompany } from '../hooks/useDeleteCompany';
 import { createCustomerSchema, type CreateCustomerFormData } from '../utils/customerValidation';
+import { hasHomeAddressInput } from '../utils/customerMappers';
 import { validatePolishNip, validatePolishRegon } from '../utils/polishValidators';
 import { NipInputWithGus } from '@/common/components/NipInputWithGus';
 import type { CompanyInfoResponse } from '@/common/components/NipInputWithGus';
@@ -164,13 +165,15 @@ const companyDefaults = (company: CompanyDetails | null): CompanyFormData => com
 } : { name: '', nip: '', regon: '', street: '', city: '', postalCode: '', country: 'Polska' };
 
 const toCustomerPayload = (data: CreateCustomerFormData): UpdateCustomerPayload => {
-    const hasAddress = !!(data.homeAddress?.street?.trim());
+    const hasAddress = hasHomeAddressInput(data.homeAddress);
     return {
         firstName: data.firstName ?? null,
         lastName: data.lastName ?? null,
         contact: {
             email: data.email ?? null,
-            phone: data.phone ?? null,
+            // Ten sam zapis co przy tworzeniu („+48123456789"): PhoneInput oddaje numer ze
+            // spacjami, a kontrola duplikatów porównuje kolumnę `phone` dosłownie.
+            phone: data.phone ? data.phone.replace(/[\s-]/g, '') : null,
         },
         homeAddress: hasAddress ? (data.homeAddress ?? null) : null,
     };
@@ -228,7 +231,7 @@ function EditCustomerDialog({ onClose, customer, initialTab }: DialogProps) {
 
     const methods = useForm<CreateCustomerFormData>({
         resolver: (values, context, options) => {
-            const hasAddress = !!(values.homeAddress?.street?.trim());
+            const hasAddress = hasHomeAddressInput(values.homeAddress);
             const dataToValidate = {
                 ...values,
                 homeAddress: hasAddress ? values.homeAddress : null,

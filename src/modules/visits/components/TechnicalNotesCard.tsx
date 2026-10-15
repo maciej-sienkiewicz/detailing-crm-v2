@@ -46,6 +46,17 @@ const NoteText = styled.p`
     overflow-wrap: anywhere;
 `;
 
+/*
+ * Notatka wewnętrzna z przyjęcia leży w tym samym panelu, a nie we własnej karcie:
+ * to druga notatka o tym samym aucie, a nie osobny temat szyny (CLAUDE.md §2 -
+ * jedna wyniesiona sekcja na kolumnę). Oddziela ją odstęp i kreska.
+ */
+const InternalNote = styled.div`
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid ${ui.line};
+`;
+
 const Empty = styled.p`
     margin: 10px 0 0;
     font-size: 13.5px;
@@ -197,11 +208,17 @@ function HistoryModal({ entries, isLoading, onClose }: {
 
 interface TechnicalNotesCardProps {
     notes: string | null | undefined;
+    /**
+     * Notatka wewnętrzna wpisana przy przyjęciu (visits.inspection_notes). Tylko do
+     * odczytu: API nie ma endpointu jej edycji, a dopisywać ma się do notatki
+     * technicznej albo komentarzy. Pusta - sekcji nie ma wcale.
+     */
+    internalNotes?: string | null;
     visitId: string;
     canEdit?: boolean;
 }
 
-export const TechnicalNotesCard = ({ notes, visitId, canEdit = true }: TechnicalNotesCardProps) => {
+export const TechnicalNotesCard = ({ notes, internalNotes, visitId, canEdit = true }: TechnicalNotesCardProps) => {
     const [editOpen, setEditOpen] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
 
@@ -230,6 +247,12 @@ export const TechnicalNotesCard = ({ notes, visitId, canEdit = true }: Technical
                     </HeadActions>
                 </Head>
                 {notes ? <NoteText>{notes}</NoteText> : <Empty>Brak notatki technicznej.</Empty>}
+                {internalNotes?.trim() && (
+                    <InternalNote>
+                        <SectionTitle as="h3">Notatka wewnętrzna z przyjęcia</SectionTitle>
+                        <NoteText>{internalNotes}</NoteText>
+                    </InternalNote>
+                )}
             </RailPanel>
 
             {editOpen && (
