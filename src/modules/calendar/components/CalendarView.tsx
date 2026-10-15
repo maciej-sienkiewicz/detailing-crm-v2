@@ -42,6 +42,7 @@ import { CalendarSearchModal } from './CalendarSearchModal';
 import { attachMorePopoverPlacement } from '../utils/morePopoverPlacement';
 import { applyFloatingPlacement, type AnchorBox } from '@/common/utils/floatingPlacement';
 import { eventCoversDay, localDateKey, toFullCalendarEvent } from '../utils/calendarDates';
+import { dayCellHasHiddenEvents, resolveDayClickTarget } from '../utils/dayClickTarget';
 import {
     D2D_DELIVERY_COLOR,
     D2D_DIRECTION_COLOR,
@@ -1668,10 +1669,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
      * otwieralo formularz, ktorego i tak nie dalo sie zapisac.
      */
     const canCreateVisits = can('VISITS_CREATE');
+    /** Dzień, którego listę wydarzeń pokazuje DayEventsSheet (null = lista zamknięta). */
+    const [dayListDate, setDayListDate] = useState<Date | null>(null);
     /** Urlop to wpis w kartotece pracownika, więc wymaga prawa do kadr, nie do kalendarza. */
     const canManageEmployees = can('EMPLOYEES_MANAGE');
     const openQuickEvent = useCallback((range: { start: Date; end: Date; allDay: boolean }) => {
         if (!canCreateVisits) return;
+        // Okno szybkiej rezerwacji i lista dnia się wykluczają - nigdy nie stoją jedno pod drugim.
+        setDayListDate(null);
         setSelectedEventData(range);
         setQuickModalOpen(true);
     }, [canCreateVisits]);
@@ -1934,7 +1939,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     /* ── Lista dnia (telefon, siatka miesiąca) ──────────────────────────────
        Trzymamy sam dzień, nie skopiowane wizyty: po odwołaniu albo przeniesieniu
        wizyty z jej podglądu lista dnia ma się zmienić razem z kalendarzem. */
-    const [dayListDate, setDayListDate] = useState<Date | null>(null);
     const dayListEvents = useMemo(() => {
         if (!dayListDate) return [];
         const key = localDateKey(dayListDate);
@@ -2304,6 +2308,28 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         }
     }, [onViewChange]);
 
+    /** Owija FullCalendara - z niego czytamy, czy komórka dnia ma „jeszcze N". */
+    const fullCalendarWrapperRef = useRef<HTMLDivElement>(null);
+
+    /**
+     * Klik w dzień: lista dnia ALBO okno szybkiej rezerwacji (resolveDayClickTarget).
+     * Wołają to i `dateClick`, i `select` - na komputerze oba przychodzą z jednego
+     * kliknięcia i dostają tę samą odpowiedź, więc nic nie otwiera się podwójnie.
+     */
+    const openDayOrQuickEvent = useCallback((range: { start: Date; end: Date; allDay: boolean }, viewType: string) => {
+        const target = resolveDayClickTarget({
+            viewType,
+            ...range,
+            hasHiddenEvents: dayCellHasHiddenEvents(fullCalendarWrapperRef.current, localDateKey(range.start)),
+        });
+        if (target === 'dayList') {
+            setQuickModalOpen(false);
+            setDayListDate(range.start);
+            return;
+        }
+        openQuickEvent(range);
+    }, [openQuickEvent]);
+
     /**
      * Handle date click (single tap on mobile touch devices).
      * On desktop the 'select' callback handles single-day selection;
@@ -2332,12 +2358,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         // Dzień, w którym część wizyt schowała się pod „+N": najpierw pokaż, co już na
         // nim stoi - nowa rezerwacja czeka w stopce listy. Dzień bez przepełnienia widać
         // w całości w komórce, więc tam dotknięcie dalej od razu zakłada rezerwację.
-        if (info.view.type === 'dayGridMonth' && info.dayEl.querySelector('.fc-daygrid-more-link')) {
-            setDayListDate(start);
-            return;
-        }
-        openQuickEvent({ start, end, allDay: Boolean(info.allDay) });
-    }, [eventMode, leaveMode, selectionMode, onRangeSelected, openQuickEvent]);
+        openDayOrQuickEvent({ start, end, allDay: Boolean(info.allDay) }, info.view.type);
+    }, [eventMode, leaveMode, selectionMode, onRangeSelected, openDayOrQuickEvent]);
 
     /**
      * „+N" na telefonie otwiera tę samą listę dnia zamiast okienka FullCalendara.
@@ -2390,8 +2412,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             onRangeSelected?.(range);
             return;
         }
-        openQuickEvent(range);
-    }, [eventMode, leaveMode, selectionMode, onRangeSelected, openQuickEvent]);
+        openDayOrQuickEvent(range, selectInfo.view.type);
+    }, [eventMode, leaveMode, selectionMode, onRangeSelected, openDayOrQuickEvent]);
 
     /**
      * Handle event click - Show popover with event summary
@@ -3083,7 +3105,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 {/* FullCalendar: always mounted so its API & state machine stay active.
                     Hidden when custom views are active (height:0 keeps JS running).
                     opacity transition gives a smooth fade during search navigation. */}
-                <div onClickCapture={handleMoreLinkCapture} style={currentView === 'timeGridWeek' || currentView === 'timeGridDay' || agendaListActive
+                <div ref={fullCalendarWrapperRef} onClickCapture={handleMoreLinkCapture} style={currentView === 'timeGridWeek' || currentView === 'timeGridDay' || agendaListActive
                     ? { height: 0, overflow: 'hidden', pointerEvents: 'none' }
                     : {
                         height: '100%',
