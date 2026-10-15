@@ -273,7 +273,9 @@ export const TaskModal = ({ isOpen, onClose, onSave, editingTask }: TaskModalPro
     try {
       const payload: CreateTaskPayload = {
         title: title.trim(),
-        meta: meta.trim() || undefined,
+        // Przy edycji pusty napis czyści szczegóły (serwer: "" → brak). Pominięte pole
+        // znaczyło „bez zmian", więc usunięty tekst wracał po zapisie.
+        meta: isEditing ? meta.trim() : meta.trim() || undefined,
         visibilityType,
         visibleToUserIds: visibilityType === 'USERS' ? selectedUserIds : undefined,
         visibleToRoleId: visibilityType === 'ROLE' ? selectedRoleId || undefined : undefined,

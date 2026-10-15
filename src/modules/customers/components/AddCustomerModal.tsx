@@ -7,7 +7,7 @@ import {
     createCustomerSchema,
     type CreateCustomerFormData,
 } from '../utils/customerValidation';
-import { mapFormDataToPayload } from '../utils/customerMappers';
+import { mapFormDataToPayload, hasHomeAddressInput, hasCompanyInput } from '../utils/customerMappers';
 import { t } from '@/common/i18n';
 import {
     ModalShell,
@@ -40,10 +40,10 @@ export const AddCustomerModal = ({
 }: AddCustomerModalProps) => {
     const methods = useForm<CreateCustomerFormData>({
         resolver: (values, context, options) => {
-            // Include address only if street was filled; include company only if name was filled.
-            // This matches the tab-based UX where unfilled optional tabs are treated as null.
-            const hasAddress = !!(values.homeAddress?.street?.trim());
-            const hasCompany = !!(values.company?.name?.trim());
+            // Nietknięte zakładki adresu i firmy są traktowane jak brak danych. Rozpoczęte
+            // (dowolne pole) idą do walidacji, zamiast znikać przy zapisie bez komunikatu.
+            const hasAddress = hasHomeAddressInput(values.homeAddress);
+            const hasCompany = hasCompanyInput(values.company);
             const dataToValidate = {
                 ...values,
                 homeAddress: hasAddress ? values.homeAddress : null,
@@ -87,8 +87,8 @@ export const AddCustomerModal = ({
     });
 
     const handleSubmit = methods.handleSubmit(data => {
-        const hasAddress = !!(data.homeAddress?.street?.trim());
-        const hasCompany = !!(data.company?.name?.trim());
+        const hasAddress = hasHomeAddressInput(data.homeAddress);
+        const hasCompany = hasCompanyInput(data.company);
         const payload = mapFormDataToPayload({
             ...data,
             homeAddress: hasAddress ? data.homeAddress : null,

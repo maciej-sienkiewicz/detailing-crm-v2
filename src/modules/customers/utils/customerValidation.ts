@@ -68,6 +68,9 @@ export const createCustomerSchema = z.object({
         .or(z.literal('')),
     homeAddress: homeAddressSchema.nullable().optional(),
     company: companyDetailsSchema.nullable().optional(),
+    // Bez klucza w schemacie zod wycinał notatkę przy walidacji - pole w formularzu
+    // było, a wpisany tekst nie docierał nawet do mapowania.
+    notes: z.string().max(2000).optional().or(z.literal('')),
 }).refine(
     (data) => {
         // Wymagane: Przynajmniej jedno z telefonu lub emaila

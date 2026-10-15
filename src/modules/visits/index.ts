@@ -3,7 +3,6 @@ export { VisitDetailView } from './views/VisitDetailView';
 export {
     useVisitDetail,
     visitDetailQueryKey,
-    useUpdateVisit,
     useUploadDocument,
     useDeleteDocument,
     useVisitComments,
@@ -49,7 +48,6 @@ export type {
     ServiceLineItem,
     MoneyAmount,
     VisitDetailResponse,
-    UpdateVisitPayload,
     UploadDocumentPayload,
     AddCommentPayload,
     UpdateCommentPayload,

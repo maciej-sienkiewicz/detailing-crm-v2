@@ -53,7 +53,8 @@ export const AddVehicleModal = ({ customerId, customerName, onClose }: Props) =>
         const ok = await addVehicle({
             make,
             model,
-            year: Number(year) || new Date().getFullYear(),
+            // Wyczyszczony rok to „nie wiem", a nie bieżący rok wpisany za użytkownika.
+            year: Number(year) || null,
             licensePlate: licensePlate.trim(),
             color: color.trim(),
             mileage: Number(mileage) || 0,

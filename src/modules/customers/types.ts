@@ -117,6 +117,8 @@ export interface CreateCustomerPayload {
     phone: string | null;
     homeAddress: HomeAddress | null;
     companyData: Omit<CompanyDetails, 'id'> | null;
+    /** Pierwsza notatka o kliencie; backend zapisuje ją jako notatkę klienta. */
+    notes?: string;
 }
 
 // src/modules/customers/types.ts
@@ -239,7 +241,8 @@ export interface UpdateConsentPayload {
 export interface AddVehiclePayload {
     make: string;
     model: string;
-    year: number;
+    /** `null` = rok nieznany. Backend przyjmuje brak roku. */
+    year: number | null;
     licensePlate: string;
     color: string;
     mileage: number;

@@ -129,7 +129,7 @@ function buildVehicle(
         // dokładnie jedno auto, to prawie na pewno o nie chodzi.
         const only = knownVehicles?.length === 1 ? knownVehicles[0] : null;
         return only
-            ? { id: only.id, brand: only.brand, model: only.model, year: only.year ?? undefined, isNew: false }
+            ? { id: only.id, brand: only.brand, model: only.model, year: only.year ?? undefined, licensePlate: only.licensePlate, isNew: false }
             : undefined;
     }
 
@@ -139,7 +139,7 @@ function buildVehicle(
             (!model || vehicle.model.toLowerCase() === model.toLowerCase())
     );
     if (match) {
-        return { id: match.id, brand: match.brand, model: match.model, year: match.year ?? undefined, isNew: false };
+        return { id: match.id, brand: match.brand, model: match.model, year: match.year ?? undefined, licensePlate: match.licensePlate, isNew: false };
     }
     return { brand, model: model ?? '', isNew: true };
 }

@@ -33,6 +33,7 @@ export interface AppointmentPayload {
     | { mode: 'EXISTING'; id: string };
   vehicle:
     | { mode: 'NEW'; newData: { brand: string; model: string; year?: number } }
+    | { mode: 'UPDATE'; id: string; updateData: { brand: string; model: string; year?: number; licensePlate?: string } }
     | { mode: 'EXISTING'; id: string }
     | { mode: 'NONE' };
   services: ServiceLineItemPayload[];
@@ -94,6 +95,21 @@ export function buildAppointmentPayload(data: QuickEventFormData): AppointmentPa
   if (data.vehicle) {
     if (data.vehicle.isNew) {
       vehicle = { mode: 'NEW', newData: { brand: data.vehicle.brand, model: data.vehicle.model, year: data.vehicle.year } };
+    } else if (data.vehicle.id && data.vehicle.hasUpdates && data.vehicle.licensePlate !== undefined) {
+      // Poprawiona marka/model/rok auta z kartoteki. Serwer w trybie UPDATE zapisuje
+      // tablicę taką, jaka przyszła (brak = usunięcie), więc idzie ta z kartoteki.
+      // Tablica nieznana (undefined, np. szkic sprzed tej zmiany) - zostaje EXISTING:
+      // lepiej nie zapisać poprawki marki niż skasować tablicę.
+      vehicle = {
+        mode: 'UPDATE',
+        id: data.vehicle.id,
+        updateData: {
+          brand: data.vehicle.brand,
+          model: data.vehicle.model,
+          year: data.vehicle.year,
+          licensePlate: data.vehicle.licensePlate || undefined,
+        },
+      };
     } else if (data.vehicle.id) {
       vehicle = { mode: 'EXISTING', id: data.vehicle.id };
     } else {

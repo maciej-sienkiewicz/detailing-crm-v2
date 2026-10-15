@@ -337,7 +337,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         ) {
             vehicleAutoSelectedRef.current = true;
             const v = vehicles[0];
-            setSelectedVehicle({ id: v.id, brand: v.brand ?? '', model: v.model ?? '', year: v.year, isNew: false });
+            setSelectedVehicle({ id: v.id, brand: v.brand ?? '', model: v.model ?? '', year: v.year, licensePlate: v.licensePlate ?? null, isNew: false });
             setVehicleBrand(v.brand ?? '');
             setVehicleModel(v.model ?? '');
             setVehicleYear(v.year ? String(v.year) : '');
@@ -644,7 +644,9 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
             setCustomerEditMode(false);
         }
         setIsSubmitting(true);
-        const vehicleToSubmit = selectedVehicle ?? (
+        // Jak przy kliencie: poprawki w otwartej edycji pojazdu wchodzą do zapisu także
+        // bez kliknięcia „gotowe".
+        const vehicleToSubmit = (selectedVehicle && vehicleEditMode ? applyVehicleEdits(selectedVehicle) : selectedVehicle) ?? (
             (isAddingNewVehicle || vehicles.length === 0) && (vehicleBrand.trim() || vehicleModel.trim())
                 ? { id: '', brand: vehicleBrand.trim(), model: vehicleModel.trim(), year: vehicleYear.trim() ? parseInt(vehicleYear.trim()) : undefined, isNew: true as const }
                 : null
@@ -880,14 +882,26 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         setShowVehicleDropdown(false);
     };
 
+    // Zmiana auta z kartoteki musi dojść do serwera jako UPDATE. Wcześniej pojazd
+    // zostawał „istniejący bez zmian" i zapis wysyłał samo id - poprawiona marka,
+    // model czy rok znikały, choć formularz je pokazywał.
+    const applyVehicleEdits = (vehicle: SelectedVehicle): SelectedVehicle => {
+        const brand = vehicleBrand.trim();
+        const model = vehicleModel.trim();
+        const year = vehicleYear.trim() ? parseInt(vehicleYear.trim()) : undefined;
+        const changed = brand !== vehicle.brand || model !== vehicle.model || year !== vehicle.year;
+        return {
+            ...vehicle,
+            brand,
+            model,
+            year,
+            hasUpdates: !vehicle.isNew && (!!vehicle.hasUpdates || changed),
+        };
+    };
+
     const handleConfirmVehicleEdit = () => {
         if (!selectedVehicle) return;
-        setSelectedVehicle({
-            ...selectedVehicle,
-            brand: vehicleBrand.trim(),
-            model: vehicleModel.trim(),
-            year: vehicleYear.trim() ? parseInt(vehicleYear.trim()) : undefined,
-        });
+        setSelectedVehicle(applyVehicleEdits(selectedVehicle));
         setVehicleEditMode(false);
     };
 

@@ -8,7 +8,7 @@
 // quick-create flow.
 
 import type { CheckInFormData } from '@/modules/checkin/types';
-import type { AppointmentCreateRequest } from '@/modules/appointments/types';
+import type { AppointmentAddress, AppointmentCreateRequest } from '@/modules/appointments/types';
 import { isSameLocalDay, toInstant } from '@/common/dateTime';
 import { toApiServiceLineItem } from '@/common/utils/priceAdjustment';
 
@@ -21,6 +21,32 @@ export const mapTechnicalNotesToPayload = (technicalState: CheckInFormData['tech
     internalNote: technicalState.inspectionNotes || undefined,
     protocolNote: technicalState.protocolNotes || undefined,
 });
+
+// Adres idzie w czterech polach. Dawniej sklejany był w napis „ulica, kod miasto",
+// który serwer wpisywał w całości do kolumny ulicy - miasto i kod zostawały stare,
+// a każdy zapis edycji doklejał je do ulicy jeszcze raz. Null (brak adresu w formularzu)
+// to undefined, czyli „bez zmian"; wyczyszczone pola idą jako puste i usuwają adres.
+export const mapAddressToPayload = (
+    address: CheckInFormData['homeAddress'] | undefined,
+): AppointmentAddress | undefined =>
+    address
+        ? {
+            street: address.street ?? '',
+            city: address.city ?? '',
+            postalCode: address.postalCode ?? '',
+            country: address.country ?? '',
+        }
+        : undefined;
+
+export const mapCompanyToPayload = (company: CheckInFormData['company'] | undefined) =>
+    company
+        ? {
+            name: company.name,
+            nip: company.nip,
+            regon: company.regon,
+            address: mapAddressToPayload(company.address) ?? { street: '', city: '', postalCode: '', country: '' },
+        }
+        : undefined;
 
 export function buildAppointmentEditPayload(formData: CheckInFormData): AppointmentCreateRequest | null {
     let startInstant = '';
@@ -41,14 +67,8 @@ export function buildAppointmentEditPayload(formData: CheckInFormData): Appointm
                     lastName: formData.customerData.lastName,
                     phone: formData.customerData.phone,
                     email: formData.customerData.email,
-                    company: formData.company
-                        ? {
-                            name: formData.company.name,
-                            nip: formData.company.nip,
-                            regon: formData.company.regon,
-                            address: `${formData.company.address.street}, ${formData.company.address.postalCode} ${formData.company.address.city}`,
-                          }
-                        : undefined,
+                    company: mapCompanyToPayload(formData.company),
+                    homeAddress: mapAddressToPayload(formData.homeAddress),
                 },
             }
             : formData.customerData.id
@@ -60,14 +80,8 @@ export function buildAppointmentEditPayload(formData: CheckInFormData): Appointm
                         lastName: formData.customerData.lastName,
                         phone: formData.customerData.phone,
                         email: formData.customerData.email,
-                        company: formData.company
-                            ? {
-                                name: formData.company.name,
-                                nip: formData.company.nip,
-                                regon: formData.company.regon,
-                                address: `${formData.company.address.street}, ${formData.company.address.postalCode} ${formData.company.address.city}`,
-                              }
-                            : undefined,
+                        company: mapCompanyToPayload(formData.company),
+                        homeAddress: mapAddressToPayload(formData.homeAddress),
                     },
                 }
                 : {
@@ -99,6 +113,11 @@ export function buildAppointmentEditPayload(formData: CheckInFormData): Appointm
                 : {
                     mode: 'UPDATE',
                     id: formData.vehicleData.id,
+                    // „Dopisz jako współwłaściciela" z VerificationStep - tylko gdy operator
+                    // podmienił klienta, a auto zostawił. Wcześniej payload go pomijał
+                    // i klient rezerwacji nie był powiązany z autem. Brak pola - właściciele
+                    // bez zmian (tak samo wysyła to przyjęcie pojazdu, useCheckInWizard).
+                    ownership: formData.vehicleOwnershipAction ?? undefined,
                     updateData: {
                         brand: formData.vehicleData.brand,
                         model: formData.vehicleData.model,

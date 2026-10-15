@@ -8,6 +8,7 @@ import { appointmentApi } from '@/modules/appointments';
 import { customerDetailApi } from '@/modules/customers/api/customerDetailApi';
 import { vehicleApi } from '@/modules/vehicles/api/vehicleApi';
 import { fromInstantToLocalInput } from '@/common/dateTime';
+import { reservationTechnicalNotes } from '../utils/reservationNotes';
 import { toCheckInServiceLine } from '../utils/toCheckInServiceLine';
 import type { ServiceLineItem } from '../types';
 
@@ -366,9 +367,9 @@ export const CheckInWizardWrapper = () => {
         // Rezerwacja zwykle ma już kolor; jeśli nie, wchodzi domyślny studia zamiast
         // pustego pola, którego wizard i tak wymaga.
         appointmentColorId: pickInitialColorId(colors, reservation.appointmentColor?.id),
-        technicalState: {
-            inspectionNotes: (reservationData as any)?.note || '',
-        },
+        // Obie notatki rezerwacji - wcześniej szło samo `note`, a notatka do protokołu
+        // ginęła po drodze (patrz reservationTechnicalNotes).
+        technicalState: reservationTechnicalNotes(reservationData),
         visitStartAt: fromInstantToLocalInput(startRaw),
         visitEndAt: fromInstantToLocalInput(endRaw),
         doorToDoor: reservation.doorToDoor ? {

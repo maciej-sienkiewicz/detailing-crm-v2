@@ -4,7 +4,6 @@ import { visitCommentApi } from '../api/visitCommentApi';
 import { communicationApi } from '../api/communicationApi';
 import type {
     UpdateArrivalStatePayload,
-    UpdateVisitPayload,
     UploadDocumentPayload,
     UploadPhotoPayload,
     AddCommentPayload,
@@ -60,25 +59,6 @@ export const useVisitDetail = (visitId: string) => {
 const isVisitNotStarted = (error: unknown): boolean => {
     const response = (error as { response?: { status?: number; data?: { code?: string } } })?.response;
     return response?.status === 404 && response?.data?.code === 'VISIT_NOT_STARTED';
-};
-
-export const useUpdateVisit = (visitId: string) => {
-    const queryClient = useQueryClient();
-
-    const { mutate, isPending } = useMutation({
-        mutationFn: (payload: UpdateVisitPayload) =>
-            visitApi.updateVisit(visitId, payload),
-        onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: visitDetailQueryKey(visitId),
-            });
-        },
-    });
-
-    return {
-        updateVisit: mutate,
-        isUpdating: isPending,
-    };
 };
 
 /**

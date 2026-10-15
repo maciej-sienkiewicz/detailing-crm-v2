@@ -33,7 +33,7 @@ import { ConsumerInvoiceModal } from '../components/ConsumerInvoiceModal';
 import { SettlementCorrectionModal } from '../components/SettlementCorrectionModal';
 import { RevenueInvoiceDetailModal } from '@/modules/finance/components/RevenueInvoiceDetailModal';
 import { useKsefAutomation } from '@/modules/finance/hooks/useKsef';
-import { useUpdateVisit, useUpdateVisitTitle, useUpdateEstimatedCompletionDate, useUpdateArrivalState } from '../hooks';
+import { useUpdateVisitTitle, useUpdateEstimatedCompletionDate, useUpdateArrivalState } from '../hooks';
 import { useUploadDocument, useUploadPhoto, useDeleteDocument, useDeletePhoto } from '../hooks';
 import { useVisitComments, useVisitCommunication } from '../hooks';
 import { VisitHeader } from '../components/VisitHeader';
@@ -350,7 +350,6 @@ export const VisitDetailView = () => {
     const { visitDetail, isLoading, isError, notStarted, refetch } = useVisitDetail(activeVisitId);
     const { documents } = useVisitDocuments(canSeeVisitDocuments ? activeVisitId : '');
     const { photos: visitPhotos, isLoading: isLoadingPhotos } = useVisitPhotos(activeVisitId);
-    const { updateVisit } = useUpdateVisit(visitId!);
     const { updateArrivalState } = useUpdateArrivalState(visitId!);
     const { updateTitle } = useUpdateVisitTitle(visitId!);
     const { updateEstimatedCompletionDate } = useUpdateEstimatedCompletionDate(visitId!);
@@ -476,9 +475,15 @@ export const VisitDetailView = () => {
         } else if (visit.status === 'READY_FOR_PICKUP') {
             setTransitionType('ready_to_completed');
             setIsTransitionWizardOpen(true);
-        } else if (window.confirm('Czy na pewno chcesz zakończyć tę wizytę?')) {
-            updateVisit({ status: 'COMPLETED' });
         }
+        /*
+         * Innych gałęzi nie ma i nie powinno być. Dawny fallback „Czy na pewno chcesz
+         * zakończyć tę wizytę?" wysyłał PATCH /visits/{id} ze statusem - takiego endpointu
+         * API nie ma, więc kończył się cichym 404. Nie miał też czego wołać: wizyta kończy
+         * się wyłącznie wydaniem pojazdu (POST /complete z rozliczeniem, z READY_FOR_PICKUP),
+         * DRAFT nie dociera do tego widoku (404 VISIT_NOT_STARTED), a dla statusów
+         * końcowych VisitHeader nie pokazuje przycisku.
+         */
     };
 
     const closeTransition = () => {
@@ -890,6 +895,7 @@ export const VisitDetailView = () => {
                             <Slot $order={6}>
                                 <TechnicalNotesCard
                                     notes={visit.technicalNotes ?? null}
+                                    internalNotes={visit.inspectionNotes ?? null}
                                     visitId={visit.id}
                                     canEdit={can('VISITS_CREATE')}
                                 />

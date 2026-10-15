@@ -255,8 +255,10 @@ export function CompanySection() {
             city: form.city.trim(),
             phone: form.phone.trim(),
             email: form.email.trim(),
-            website: form.website.trim() || null,
-            bankAccount: form.bankAccount.trim() || null,
+            // Pusty napis, nie null: serwer czyta null jako „bez zmian", więc wyczyszczone
+            // konto bankowe wracało na faktury mimo komunikatu „zapisano".
+            website: form.website.trim(),
+            bankAccount: form.bankAccount.trim(),
         };
         try {
             const updated = await updateMutation.mutateAsync(payload);

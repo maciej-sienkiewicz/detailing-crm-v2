@@ -101,7 +101,9 @@ describe('CompanySection', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Zapisz zmiany' }));
 
         await waitFor(() => expect(showSuccess).toHaveBeenCalledTimes(1));
-        expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ regon: '142836501', website: null }));
+        // Puste pole idzie jako "" (usuń), nie null - null serwer czyta jako „bez zmian",
+        // przez co wyczyszczonego konta bankowego nie dało się usunąć z faktur.
+        expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ regon: '142836501', website: '', bankAccount: '' }));
         expect(screen.queryByRole('region', { name: 'Niezapisane zmiany' })).toBeNull();
     });
 

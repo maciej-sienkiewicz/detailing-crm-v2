@@ -184,6 +184,11 @@ export interface Visit {
         };
     };
     technicalNotes?: string;
+    /**
+     * Notatka wewnętrzna z przyjęcia (dla zespołu, nie trafia na protokół). API zwraca
+     * ją od tej zmiany; starsze odpowiedzi jej nie mają.
+     */
+    inspectionNotes?: string | null;
     colorId: string;
     doorToDoor?: DoorToDoorInfo;
     /** Imię i nazwisko pracownika, który przyjął pojazd (utworzył wizytę) */
@@ -218,15 +223,6 @@ export interface UpdateArrivalStatePayload {
     documentsHandedOver?: boolean;
     /** Poprawia kopię na wizycie i kartę pojazdu; pusty napis - usunięcie VIN. */
     vin?: string;
-}
-
-export interface UpdateVisitPayload {
-    status?: VisitStatus;
-    mileageAtArrival?: number;
-    keysHandedOver?: boolean;
-    documentsHandedOver?: boolean;
-    technicalNotes?: string;
-    doorToDoor?: DoorToDoorInfo;
 }
 
 export interface TechnicalNoteHistoryEntry {

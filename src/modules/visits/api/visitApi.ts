@@ -2,7 +2,6 @@ import { apiClient } from '@/core';
 import { localDateTimeToInstant } from '@/common/utils';
 import type {
     VisitDetailResponse,
-    UpdateVisitPayload,
     VisitDocument,
     UploadDocumentPayload,
     UploadPhotoPayload,
@@ -280,24 +279,6 @@ export const visitApi = {
         }
         const response = await apiClient.get(`${BASE_PATH}/${visitId}/documents`);
         return response.data;
-    },
-
-    updateVisit: async (
-        visitId: string,
-        payload: UpdateVisitPayload
-    ): Promise<void> => {
-        if (USE_MOCKS) {
-            await new Promise(resolve => setTimeout(resolve, 600));
-            return;
-        }
-
-        // Mapuj status z formatu frontendowego (SCREAMING_SNAKE_CASE) na backend (snake_case lowercase)
-        const backendPayload = { ...payload };
-        if (backendPayload.status) {
-            backendPayload.status = backendPayload.status.toLowerCase() as any;
-        }
-
-        await apiClient.patch(`${BASE_PATH}/${visitId}`, backendPayload);
     },
 
     uploadDocument: async (

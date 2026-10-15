@@ -121,7 +121,29 @@ export const mapFormDataToPayload = (
     phone: (data.phone || '').replace(/[\s-]/g, ''),
     homeAddress: data.homeAddress ?? null,
     companyData: data.company ?? null,
+    notes: data.notes?.trim() || undefined,
 });
+
+const filled = (value: string | null | undefined): boolean => !!value?.trim();
+
+/**
+ * Czy użytkownik zaczął wypełniać adres. Dawniej liczyła się tylko ulica: miasto
+ * i kod bez ulicy znikały przy zapisie bez słowa. Teraz dowolne pole (poza krajem,
+ * który ma wartość domyślną) uruchamia walidację, a ta poprosi o brakującą ulicę.
+ */
+export const hasHomeAddressInput = (
+    address: { street?: string; city?: string; postalCode?: string } | null | undefined
+): boolean => !!address && [address.street, address.city, address.postalCode].some(filled);
+
+/** Jak wyżej dla firmy: NIP albo adres bez nazwy to też rozpoczęte dane firmy. */
+export const hasCompanyInput = (
+    company: {
+        name?: string; nip?: string; regon?: string;
+        address?: { street?: string; city?: string; postalCode?: string } | null;
+    } | null | undefined
+): boolean => !!company && (
+    [company.name, company.nip, company.regon].some(filled) || hasHomeAddressInput(company.address)
+);
 
 export const mapBackendVehicleToVehicle = (backendVehicle: BackendVehicle): Vehicle => ({
     id: backendVehicle.id,

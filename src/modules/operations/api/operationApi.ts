@@ -59,6 +59,12 @@ interface AppointmentResponse {
 
 interface AppointmentsListResponse {
     appointments: AppointmentResponse[];
+    pagination?: {
+        currentPage: number;
+        totalPages: number;
+        totalItems: number;
+        itemsPerPage: number;
+    };
 }
 
 // Typ dla odpowiedzi z backendu - Wizyty
@@ -352,6 +358,7 @@ export const operationApi = {
             });
 
             if (filters.status) params.append('status', filters.status);
+            if (filters.search?.trim()) params.append('search', filters.search.trim());
             if (filters.scheduledDate) params.append('scheduledDate', filters.scheduledDate);
             if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
             if (filters.dateTo) params.append('dateTo', filters.dateTo);
@@ -370,20 +377,11 @@ export const operationApi = {
             // Mapuj dane z backendu na format frontend
             const mappedData = response.data.visits.map(mapVisitToOperation);
 
-            // Filtruj po wyszukiwaniu lokalnie (backend nie wspiera tego parametru)
-            let filteredData = mappedData;
-            if (filters.search) {
-                const searchLower = filters.search.toLowerCase();
-                filteredData = mappedData.filter(op =>
-                    op.customerLastName.toLowerCase().includes(searchLower) ||
-                    op.customerFirstName.toLowerCase().includes(searchLower) ||
-                    op.customerPhone.includes(filters.search) ||
-                    (op.vehicle?.licensePlate?.toLowerCase().includes(searchLower) ?? false)
-                );
-            }
-
+            // Wyszukiwanie robi serwer (parametr `search`). Dawniej filtrowano tu lokalnie
+            // tylko bieżącą stronę - wizyta z drugiej strony była „nie do znalezienia",
+            // a „Jan Kowalski" nie pasował, bo imię i nazwisko porównywano osobno.
             return {
-                data: filteredData,
+                data: mappedData,
                 pagination: {
                     currentPage: response.data.pagination.page,
                     totalPages: response.data.pagination.totalPages,
@@ -403,7 +401,7 @@ export const operationApi = {
             // Fetch only CREATED appointments for the Reservations tab
             const createdResponse = await apiClient.get<AppointmentsListResponse>(`/v1/appointments`, {
                 params: {
-                    ...(filters.search && { search: filters.search }),
+                    ...(filters.search?.trim() && { search: filters.search.trim() }),
                     page: filters.page.toString(),
                     limit: filters.limit.toString(),
                     status: 'CREATED',
@@ -414,14 +412,16 @@ export const operationApi = {
             });
 
             const mappedData = (createdResponse.data.appointments || []).map(mapAppointmentToOperation);
+            // Paginacja z serwera: na sztywno „1 strona" ukrywała rezerwacje spoza pierwszej strony.
+            const p = createdResponse.data.pagination;
 
             return {
                 data: mappedData,
                 pagination: {
-                    currentPage: 1,
-                    totalPages: 1,
-                    totalItems: mappedData.length,
-                    itemsPerPage: 20,
+                    currentPage: p?.currentPage ?? filters.page,
+                    totalPages: p?.totalPages ?? 1,
+                    totalItems: p?.totalItems ?? mappedData.length,
+                    itemsPerPage: p?.itemsPerPage ?? filters.limit,
                 },
             };
         }
@@ -437,6 +437,7 @@ export const operationApi = {
                 size: filters.limit.toString(),
             });
 
+            if (filters.search?.trim()) params.append('search', filters.search.trim());
             if (filters.scheduledDate) params.append('scheduledDate', filters.scheduledDate);
             if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
             if (filters.dateTo) params.append('dateTo', filters.dateTo);
@@ -474,7 +475,7 @@ export const operationApi = {
             const [createdResponse, abandonedResponse, cancelledResponse] = await Promise.all([
                 apiClient.get<AppointmentsListResponse>(`/v1/appointments`, {
                     params: {
-                        ...(filters.search && { search: filters.search }),
+                        ...(filters.search?.trim() && { search: filters.search.trim() }),
                         page: filters.page.toString(),
                         limit: filters.limit.toString(),
                         status: 'CREATED',
@@ -485,7 +486,7 @@ export const operationApi = {
                 }),
                 apiClient.get<AppointmentsListResponse>(`/v1/appointments`, {
                     params: {
-                        ...(filters.search && { search: filters.search }),
+                        ...(filters.search?.trim() && { search: filters.search.trim() }),
                         page: filters.page.toString(),
                         limit: filters.limit.toString(),
                         status: 'ABANDONED',
@@ -496,7 +497,7 @@ export const operationApi = {
                 }),
                 apiClient.get<AppointmentsListResponse>(`/v1/appointments`, {
                     params: {
-                        ...(filters.search && { search: filters.search }),
+                        ...(filters.search?.trim() && { search: filters.search.trim() }),
                         page: filters.page.toString(),
                         limit: filters.limit.toString(),
                         status: 'CANCELLED',
@@ -513,14 +514,15 @@ export const operationApi = {
             const allAppointments = [...createdAppointments, ...abandonedAppointments, ...cancelledAppointments];
 
             const mappedData = allAppointments.map(mapAppointmentToOperation);
+            const pages = [createdResponse, abandonedResponse, cancelledResponse].map(r => r.data.pagination);
 
             return {
                 data: mappedData,
                 pagination: {
-                    currentPage: 1,
-                    totalPages: 1,
-                    totalItems: mappedData.length,
-                    itemsPerPage: 20,
+                    currentPage: filters.page,
+                    totalPages: Math.max(1, ...pages.map(p => p?.totalPages ?? 1)),
+                    totalItems: pages.reduce((sum, p) => sum + (p?.totalItems ?? 0), 0) || mappedData.length,
+                    itemsPerPage: filters.limit,
                 },
             };
         };
@@ -533,16 +535,9 @@ export const operationApi = {
         // Połącz dane i posortuj po dacie
         let combinedData = [...visitsResult.data, ...reservationsResult.data];
 
-        // Filtruj po wyszukiwaniu
-        if (filters.search) {
-            const searchLower = filters.search.toLowerCase();
-            combinedData = combinedData.filter(op =>
-                op.customerLastName.toLowerCase().includes(searchLower) ||
-                op.customerFirstName.toLowerCase().includes(searchLower) ||
-                op.customerPhone.includes(filters.search) ||
-                (op.vehicle?.licensePlate?.toLowerCase().includes(searchLower) ?? false)
-            );
-        }
+        // Wyszukiwanie zrobił już serwer w obu źródłach. Drugi, lokalny filtr (imię,
+        // nazwisko, telefon i tablica osobno) wyrzucał trafienia serwera: „Jan Kowalski",
+        // „BMW", tytuł rezerwacji, telefon zapisany ze spacjami.
 
         // Filtruj po statusie
         // Porzucone (ABANDONED) i anulowane (CANCELLED) rezerwacje są wyświetlane razem z odrzuconymi wizytami (REJECTED)
@@ -558,13 +553,17 @@ export const operationApi = {
             return new Date(b.startDateTime).getTime() - new Date(a.startDateTime).getTime();
         });
 
+        // Oba źródła są stronicowane tym samym `page`/`limit`, więc stron jest tyle,
+        // ile ma dłuższe z nich. Dawne „1 strona" ukrywało wszystko poza pierwszą.
         return {
             data: combinedData,
             pagination: {
-                currentPage: 1,
-                totalPages: 1,
-                totalItems: combinedData.length,
-                itemsPerPage: 20,
+                currentPage: filters.page,
+                totalPages: Math.max(visitsResult.pagination.totalPages, reservationsResult.pagination.totalPages, 1),
+                totalItems: filters.status
+                    ? combinedData.length
+                    : visitsResult.pagination.totalItems + reservationsResult.pagination.totalItems,
+                itemsPerPage: filters.limit,
             },
         };
     },
