@@ -4,6 +4,7 @@ import { apiErrorMessage, apiErrorStatus } from '../api/apiError';
 import { visitDetailQueryKey } from './index';
 import { useVisitStateConflict } from './useVisitStateConflict';
 import { useToast } from '@/common/components/Toast';
+import { canPurchaseHere } from '@/core/native/platform';
 import type { NotificationChannels } from '../types/stateTransitions';
 
 /**
@@ -49,9 +50,12 @@ export const useMarkReady = (visitId: string, onSuccess?: () => void) => {
                 // The dialog now pre-checks credits, so this is the narrow race where the
                 // balance ran out between opening it and confirming. Name the exact place
                 // rather than "the management panel", which was nowhere in particular.
+                // W aplikacji ze sklepu sekcji kredytów nie ma i nie wolno odsyłać do zakupu.
                 showError(
                     'Brak kredytów SMS',
-                    apiErrorMessage(error, 'Status zmieniony bez SMS-a. Doładuj kredyty w Ustawieniach → Kredyty SMS i AI.')
+                    apiErrorMessage(error, canPurchaseHere()
+                        ? 'Status zmieniony bez SMS-a. Doładuj kredyty w Ustawieniach → Kredyty SMS i AI.'
+                        : 'Status zmieniony bez SMS-a, bo na koncie zabrakło kredytów.')
                 );
             } else {
                 showError('Nie udało się oznaczyć auta jako gotowego', 'Spróbuj ponownie.');

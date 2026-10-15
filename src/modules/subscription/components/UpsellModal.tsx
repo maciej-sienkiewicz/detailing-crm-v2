@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { canPurchaseHere } from '@/core/native/platform';
 import { SUBMODAL_Z_INDEX } from '@/common/styles';
 import { usePermissions } from '@/core/permissions/usePermissions';
 import { useCapability } from '../hooks/useCapability';
@@ -64,7 +65,7 @@ export function UpsellModal({ onClose, ...props }: UpsellModalProps) {
                         onUnlock={handleUnlock}
                     />
                     <DismissLink type="button" onClick={onClose}>
-                        Nie teraz
+                        {canPurchaseHere() ? 'Nie teraz' : 'Zamknij'}
                     </DismissLink>
                 </CardWrap>
             </Backdrop>

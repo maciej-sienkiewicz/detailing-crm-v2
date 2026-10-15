@@ -1,3 +1,4 @@
+import { canPurchaseHere } from '@/core/native/platform';
 import type { HelpContent } from './components/shared/SettingsLayout';
 
 // Teksty przewodników w nagłówkach sekcji ustawień. Jeden temat to 1-2 zdania: co to jest
@@ -284,11 +285,12 @@ export const MESSAGE_TEMPLATES_HELP: HelpContent = {
         {
             id: 'credits',
             label: 'Kredyty SMS',
-            description: 'SMS do 160 znaków to 1 kredyt, a z polskimi znakami limit spada do 70 znaków; licznik pod treścią pokazuje, ile SMS-ów wyjdzie z wiadomości. Kredyty dokupisz w „Kredyty SMS i AI".',
-            usedIn: [
-                'Licznik SMS-ów pod treścią',
-                'Ustawienia → Kredyty SMS i AI',
-            ],
+            // W aplikacji ze sklepu sekcji kredytów nie ma i nie wolno odsyłać do zakupu.
+            description: 'SMS do 160 znaków to 1 kredyt, a z polskimi znakami limit spada do 70 znaków; licznik pod treścią pokazuje, ile SMS-ów wyjdzie z wiadomości.'
+                + (canPurchaseHere() ? ' Kredyty dokupisz w „Kredyty SMS i AI".' : ''),
+            usedIn: canPurchaseHere()
+                ? ['Licznik SMS-ów pod treścią', 'Ustawienia → Kredyty SMS i AI']
+                : ['Licznik SMS-ów pod treścią'],
         },
     ],
 };

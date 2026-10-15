@@ -1,4 +1,5 @@
 import { useAuth } from '@/core/context/AuthContext';
+import { canPurchaseHere } from '@/core/native/platform';
 import { useFeature } from '../hooks/useFeature';
 import { useAddOnUnlock } from '../hooks/useAddOnUnlock';
 import { useAddOns, useEntitlements } from '../api/subscriptionQueries';
@@ -78,6 +79,19 @@ export function ModuleGateCard({
     isOwner,
     onUnlock,
 }: ModuleGateCardProps) {
+    // W aplikacji ze sklepu karta tylko mówi, że modułu nie ma: bez ceny, listy korzyści,
+    // „Odblokuj" i odsyłania do pakietu FULL (App Store 3.1.1, Google Play). Każda
+    // powierzchnia „brak modułu" stoi na tej karcie, więc wystarczy ten jeden warunek.
+    if (!canPurchaseHere()) {
+        return (
+            <GateCard>
+                <LockBadge><LockSvg /></LockBadge>
+                <GateTitle>{title}</GateTitle>
+                <GateSubtitle>Ten moduł nie jest włączony na Twoim koncie.</GateSubtitle>
+            </GateCard>
+        );
+    }
+
     return (
         <GateCard>
             <LockBadge><LockSvg /></LockBadge>

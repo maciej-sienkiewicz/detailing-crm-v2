@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
+import { canPurchaseHere } from '@/core/native/platform';
 import { usePermissions } from '@/core/permissions/usePermissions';
 import { useAddOnUnlock } from '../hooks/useAddOnUnlock';
 import { AddOnActivationDialog } from './PlanChangeDialog';
@@ -14,6 +15,10 @@ import type { AddOnKey, PaywallErrorResponse } from '../types';
  * deliberate action is rejected because the studio lacks a module, this dialog
  * turns the dead end into a purchase path using the same styled card as the
  * full-page ModuleGate: every "module missing" surface looks identical.
+ *
+ * W aplikacji ze sklepu okno zostaje, ale bez zakupu: ModuleGateCard mówi tylko, że
+ * modułu nie ma, a useAddOnUnlock nie otworzy płatności. Bez okna odrzucona akcja
+ * kończyłaby się bez słowa wyjaśnienia - 402 MODULE_REQUIRED nie daje dymka z błędem.
  */
 export function PaywallListener() {
     const [payload, setPayload] = useState<PaywallErrorResponse | null>(null);
@@ -68,7 +73,7 @@ export function PaywallListener() {
                         onUnlock={handleUnlock}
                     />
                     <DismissLink type="button" onClick={close}>
-                        Nie teraz, wróć do pracy
+                        {canPurchaseHere() ? 'Nie teraz, wróć do pracy' : 'Wróć do pracy'}
                     </DismissLink>
                 </CardWrap>
             </Backdrop>

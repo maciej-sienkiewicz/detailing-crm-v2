@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useToast } from '@/common/components/Toast';
+import { canPurchaseHere } from '@/core/native/platform';
 import { useFeaturePlans, useAddOns, useStartTrial, useCheckout } from '../api/subscriptionQueries';
 import { newSubscriptionApi } from '../api/subscriptionApi';
 import type { FeaturePlan, AddOnDto, AddOnKey, PlanKey, CalculatePriceResponse } from '../types';
@@ -66,9 +67,13 @@ export function FirstLoginModal({ trialUsed }: Props) {
     const [customPrice, setCustomPrice] = useState<CalculatePriceResponse | null>(null);
     const [priceLoading, setPriceLoading] = useState(false);
 
+    // W aplikacji ze sklepu nie wolno kupić pakietu (App Store 3.1.1, Google Play):
+    // zostaje darmowy okres próbny, a pakiety i własny zestaw modułów znikają.
+    // Studio, które próbę już wykorzystało, tu nie trafia - patrz SubscriptionGate.
+    const purchasable = canPurchaseHere();
     const isPending = phase !== 'idle';
-    const sortedPlans = (plans ?? []).slice().sort((a, b) => a.displayOrder - b.displayOrder);
-    const availableAddOns: AddOnDto[] = addOns ?? [];
+    const sortedPlans = purchasable ? (plans ?? []).slice().sort((a, b) => a.displayOrder - b.displayOrder) : [];
+    const availableAddOns: AddOnDto[] = purchasable ? addOns ?? [] : [];
     // Cena BASIC z cennika, zanim przyjdzie wycena koszyka. Wcześniej stała tu kwota
     // wpisana na sztywno, która rozjeżdżała się z cennikiem.
     const basicPlanCents = sortedPlans.find(p => p.key === 'BASIC')?.monthlyPriceGrossCents ?? null;
@@ -181,9 +186,11 @@ export function FirstLoginModal({ trialUsed }: Props) {
                 <AuthHeading>
                     <h1>Witaj w DetailBoost</h1>
                     <p>
-                        {trialUsed
-                            ? 'Twoje konto jest gotowe. Wybierz pakiet, żeby zacząć pracę.'
-                            : 'Twoje konto jest gotowe. Zacznij od okresu próbnego albo od razu wybierz pakiet.'}
+                        {!purchasable
+                            ? 'Twoje konto jest gotowe. Włącz darmowy okres próbny i zacznij pracę.'
+                            : trialUsed
+                                ? 'Twoje konto jest gotowe. Wybierz pakiet, żeby zacząć pracę.'
+                                : 'Twoje konto jest gotowe. Zacznij od okresu próbnego albo od razu wybierz pakiet.'}
                     </p>
                 </AuthHeading>
 
@@ -302,7 +309,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
                 )}
 
                 <AuthAside>
-                    <AuthMeta>Płatności obsługuje Przelewy24. Zrezygnujesz w każdej chwili.</AuthMeta>
+                    {purchasable && <AuthMeta>Płatności obsługuje Przelewy24. Zrezygnujesz w każdej chwili.</AuthMeta>}
                     <AuthMeta>
                         Masz pytania? Napisz do nas: <AuthAnchor href="mailto:pomoc@detailboost.pl">pomoc@detailboost.pl</AuthAnchor>
                     </AuthMeta>

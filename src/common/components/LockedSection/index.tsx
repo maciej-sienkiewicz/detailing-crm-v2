@@ -1,5 +1,6 @@
 import React, { useRef, useState, useLayoutEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { canPurchaseHere } from '@/core/native/platform';
 import { Wrap, Blurred, Overlay, LockBadge, IconClosed, IconOpen, Message, UpgradeHint } from './LockedSection.styles';
 
 const ClosedLockIcon = () => (
@@ -60,14 +61,22 @@ export function LockedSection({
 
     if (!locked) return <>{children}</>;
 
+    // W aplikacji ze sklepu kłódka niczego nie sprzedaje (App Store 3.1.1, Google Play):
+    // bez „Zmień pakiet", bez przejścia do pakietu w ustawieniach (tej sekcji tam nie ma)
+    // i bez „Kup dostęp". Zostaje komunikat, a `onLockedClick` otwiera UpsellModal,
+    // który w aplikacji tylko informuje, że modułu nie ma.
+    const purchasable = canPurchaseHere();
+    const onBadgeClick = onLockedClick ?? (purchasable ? () => navigate(`/settings?tab=${settingsTab}`) : undefined);
+
     return (
         <Wrap ref={wrapRef} $locked>
             <Blurred>{children}</Blurred>
             <Overlay>
                 <LockBadge
                     type="button"
-                    onClick={() => onLockedClick ? onLockedClick() : navigate(`/settings?tab=${settingsTab}`)}
-                    title="Kup dostęp do tej funkcji"
+                    onClick={onBadgeClick}
+                    disabled={!onBadgeClick}
+                    title={purchasable ? 'Kup dostęp do tej funkcji' : undefined}
                 >
                     <IconClosed><ClosedLockIcon /></IconClosed>
                     <IconOpen><OpenLockIcon /></IconOpen>
@@ -80,7 +89,7 @@ export function LockedSection({
                 >
                     {message}
                 </Message>
-                {showHint && <UpgradeHint>{upgradeHint}</UpgradeHint>}
+                {showHint && purchasable && <UpgradeHint>{upgradeHint}</UpgradeHint>}
             </Overlay>
         </Wrap>
     );
