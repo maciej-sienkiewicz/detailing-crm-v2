@@ -43,7 +43,7 @@ export const useRevokeCustomerConsent = (customerId: string) => {
 
 export const useUploadConsentAttachment = () => {
     return useMutation({
-        mutationFn: ({ uploadUrl, file }: { uploadUrl: string; file: File }) =>
-            customerDetailApi.uploadConsentAttachment(uploadUrl, file),
+        mutationFn: ({ uploadUrl, file, contentType }: { uploadUrl: string; file: File; contentType: string }) =>
+            customerDetailApi.uploadConsentAttachment(uploadUrl, file, contentType),
     });
 };

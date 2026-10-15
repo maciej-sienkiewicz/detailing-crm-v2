@@ -385,7 +385,14 @@ export const DocumentGallery = ({
 
     const handleTagsSave = useCallback((photoId: string, tags: string[]) => {
         setLocalTagsMap(prev => ({ ...prev, [photoId]: tags }));
-        updatePhotoTags.mutate({ photoId, tags });
+        updatePhotoTags.mutate({ photoId, tags }, {
+            // Tagi pokazujemy od razu, więc nieudany zapis trzeba cofnąć - inaczej kafelek
+            // mówił „zapisane" aż do odświeżenia strony, po którym tagów nie było.
+            onError: () => setLocalTagsMap(prev => {
+                const { [photoId]: _failed, ...rest } = prev;
+                return rest;
+            }),
+        });
         setEditingPhoto(null);
     }, [updatePhotoTags]);
 
@@ -444,13 +451,19 @@ export const DocumentGallery = ({
                                     <TagCount title={(photo.tags ?? []).join(', ')}><Tag />{(photo.tags ?? []).length}</TagCount>
                                 )}
                                 <TileActions>
-                                    <TileAction type="button" onClick={() => openTagEditor(photo)} title="Tagi zdjęcia" aria-label={`Tagi zdjęcia ${photo.fileName}`}>
-                                        <Tag />
-                                    </TileAction>
+                                    {/* Tagi mają tylko zdjęcia wizyty. Obraz wgrany jako dokument (skan,
+                                        mapa uszkodzeń) serwer odrzucał przy zapisie tagów, a kafelek i tak
+                                        pokazywał je jako zapisane - do pierwszego odświeżenia. */}
+                                    {photo.isVisitPhoto && (
+                                        <TileAction type="button" onClick={() => openTagEditor(photo)} title="Tagi zdjęcia" aria-label={`Tagi zdjęcia ${photo.fileName}`}>
+                                            <Tag />
+                                        </TileAction>
+                                    )}
                                     <TileAction type="button" onClick={() => handleDownload(photo.fullSizeUrl, photo.fileName)} title="Pobierz" aria-label={`Pobierz ${photo.fileName}`}>
                                         <Download />
                                     </TileAction>
-                                    {canDeletePhotos && (
+                                    {/* Obraz-dokument usuwa się jak dokument (VISITS_DELETE), nie jak zdjęcie. */}
+                                    {(photo.isVisitPhoto ? canDeletePhotos : canDeleteDocuments) && (
                                         <TileAction
                                             type="button"
                                             $danger

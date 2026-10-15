@@ -1,3 +1,4 @@
+import { photoUploadContentType, putToPresignedUrl } from '@/common/utils/presignedUpload';
 import { apiClient } from '@/core';
 import type {
     BatchContractor,
@@ -112,14 +113,11 @@ export const batchOrderApi = {
     },
 
     uploadPhotoToS3: async (uploadUrl: string, file: File): Promise<void> => {
-        const response = await fetch(uploadUrl, {
-            method: 'PUT',
-            body: file,
-            headers: { 'Content-Type': file.type || 'image/jpeg' },
-        });
-        // fetch nie rzuca przy 4xx/5xx. Bez tej linijki odrzucony upload wyglądał jak
-        // udany: miniatura znikała, a zdjęcia w dokumentacji nie było.
-        if (!response.ok) throw new Error(`Upload failed: ${response.status}`);
+        // fetch nie rzuca przy 4xx/5xx - putToPresignedUrl tak. Bez tego odrzucony upload
+        // wyglądał jak udany: miniatura znikała, a zdjęcia w dokumentacji nie było.
+        // Nagłówek to ten, który podpisał serwer (z rozszerzenia nazwy, jak
+        // AddBatchOrderPhotoHandler), nie `file.type` - inaczej .heic czy .gif dostawały 403.
+        await putToPresignedUrl(uploadUrl, file, photoUploadContentType(file.name));
     },
 
     deleteEntryPhoto: async (entryId: string, photoId: string): Promise<void> => {

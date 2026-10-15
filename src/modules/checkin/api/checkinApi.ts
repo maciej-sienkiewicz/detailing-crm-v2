@@ -1,5 +1,6 @@
 // src/modules/checkin/api/checkinApi.ts
 
+import { putToPresignedUrl } from '@/common/utils/presignedUpload';
 import { apiClient } from '@/core';
 import type {
     ReservationToVisitPayload,
@@ -211,13 +212,10 @@ export const checkinApi = {
      * Step 3: Upload photo directly to S3 using presigned URL
      */
     uploadToS3: async (uploadUrl: string, file: File): Promise<void> => {
-        await fetch(uploadUrl, {
-            method: 'PUT',
-            body: file,
-            headers: {
-                'Content-Type': file.type,
-            },
-        });
+        // Sesja zdjęć podpisuje dokładnie ten Content-Type, który przyszedł w prośbie
+        // o adres (`file.type`). Odrzucona wysyłka musi rzucić - wcześniej kafelek
+        // wyglądał na wysłany, a przy zapisie wizyty serwer nie znajdował pliku.
+        await putToPresignedUrl(uploadUrl, file, file.type);
     },
 
     /**

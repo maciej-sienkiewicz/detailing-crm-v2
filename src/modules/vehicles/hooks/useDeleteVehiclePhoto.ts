@@ -17,6 +17,8 @@ export const useDeleteVehiclePhoto = (vehicleId: string) => {
             queryClient.invalidateQueries({
                 queryKey: vehicleDetailQueryKey(vehicleId)
             });
+            // Moduł galerii trzyma odpowiedź 5 minut - usunięte zdjęcie wisiało tam dalej.
+            queryClient.invalidateQueries({ queryKey: ['gallery'] });
         },
     });
 

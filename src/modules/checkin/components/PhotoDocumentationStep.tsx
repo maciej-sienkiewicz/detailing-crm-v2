@@ -11,6 +11,7 @@ import { CheckinQRGenerator } from './CheckinQRGenerator';
 import { TagChip } from '@/modules/photos/components/TagChip';
 import { PhotoTagEditModal } from '@/modules/photos/components/PhotoTagEditModal';
 import { useTagSuggestions, useUpdatePhotoTags } from '@/modules/photos/hooks/usePhotoTags';
+import { withLocalTags } from '../utils/sessionPhotos';
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -406,12 +407,12 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
     const { data: suggestions = [] } = useTagSuggestions();
     const updatePhotoTags = useUpdatePhotoTags();
 
+    const uploadedPhotos = formData.photos || [];
+
     useEffect(() => {
-        if (photos && photos.length > 0) onChange({ photos });
+        if (photos && photos.length > 0) onChange({ photos: withLocalTags(photos, uploadedPhotos) });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [photos]);
-
-    const uploadedPhotos = formData.photos || [];
 
     /*
      * Do usterki można podpiąć zdjęcie zrobione na komputerze ALBO telefonem. Zdjęcia
@@ -442,6 +443,10 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
         if (!confirm('Czy na pewno chcesz usunąć to zdjęcie?')) return;
         try {
             await deletePhoto(photoId);
+            // Synchronizacja z sesją wyżej pomija pustą listę, więc usunięcie OSTATNIEGO
+            // zdjęcia zostawiało je w formularzu: kafelek dalej wisiał, a zapis wizyty
+            // odpadał na „Nie znaleziono zdjęcia". Zdejmujemy je stąd wprost.
+            onChange({ photos: uploadedPhotos.filter(p => p.id !== photoId) });
         } catch {
             alert('Nie udało się usunąć zdjęcia. Spróbuj ponownie.');
         }

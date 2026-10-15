@@ -80,8 +80,11 @@ export const newSubscriptionApi = {
         return res.data;
     },
 
-    getOrder: async (orderId: string): Promise<PaymentOrder> => {
-        const res = await apiClient.get<PaymentOrder>(`${BASE}/orders/${orderId}`);
+    // timeoutMs: apiClient nie ma domyślnego limitu czasu, a strona powrotu z P24 odpytuje
+    // w pętli - jedno zawieszone żądanie (telefon wracający z aplikacji banku) wstrzymywało
+    // całą pętlę i widok „Sprawdzamy płatność…" zostawał na zawsze.
+    getOrder: async (orderId: string, timeoutMs?: number): Promise<PaymentOrder> => {
+        const res = await apiClient.get<PaymentOrder>(`${BASE}/orders/${orderId}`, { timeout: timeoutMs });
         return res.data;
     },
 

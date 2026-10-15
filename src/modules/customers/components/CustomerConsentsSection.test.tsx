@@ -13,6 +13,8 @@ import type { CustomerConsentStatusItem } from '../types';
 
 const sign = vi.fn().mockResolvedValue({});
 const revoke = vi.fn().mockResolvedValue(undefined);
+const upload = vi.fn().mockResolvedValue(undefined);
+const showError = vi.fn();
 
 const item = (over: Partial<CustomerConsentStatusItem>): CustomerConsentStatusItem => ({
     consentId: null, definitionId: 'd', definitionSlug: 's', definitionName: 'Zgoda', isDefinitionActive: true,
@@ -31,7 +33,11 @@ vi.mock('../hooks/useCustomerConsents', () => ({
     }),
     useSignCustomerConsent: () => ({ mutateAsync: sign }),
     useRevokeCustomerConsent: () => ({ mutateAsync: revoke, isPending: false }),
-    useUploadConsentAttachment: () => ({ mutateAsync: vi.fn() }),
+    useUploadConsentAttachment: () => ({ mutateAsync: upload }),
+}));
+
+vi.mock('@/common/components/Toast', () => ({
+    useToast: () => ({ showError, showSuccess: vi.fn() }),
 }));
 
 const { CustomerConsentsSection } = await import('./CustomerConsentsSection');
@@ -39,7 +45,7 @@ const { CustomerConsentsSection } = await import('./CustomerConsentsSection');
 const renderIt = () => render(<ThemeProvider theme={theme}><CustomerConsentsSection customerId="cust-1" /></ThemeProvider>);
 
 describe('CustomerConsentsSection', () => {
-    beforeEach(() => { sign.mockClear(); revoke.mockClear(); });
+    beforeEach(() => { sign.mockClear(); revoke.mockClear(); upload.mockReset(); showError.mockClear(); });
 
     it('liczy aktualne zgody i opisuje podpis zdaniem, bez kropki', () => {
         renderIt();
@@ -62,5 +68,36 @@ describe('CustomerConsentsSection', () => {
         expect(await screen.findByText('Wycofać zgodę?')).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: 'Wycofaj zgodę' }));
         expect(revoke).toHaveBeenCalledWith('c1');
+    });
+
+    it('skan-zdjęcie idzie z własnym rodzajem pliku, tym samym przy podpisie i przy wysyłce', async () => {
+        sign.mockResolvedValueOnce({ attachmentUploadUrl: 'https://s3/put' });
+        renderIt();
+        fireEvent.click(screen.getByRole('button', { name: 'Więcej akcji: Publikacja zdjęć' }));
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Dołącz skan podpisu' }));
+        const file = new File(['x'], 'skan.jpg', { type: 'image/jpeg' });
+        fireEvent.change(screen.getByTestId('consent-scan-input'), { target: { files: [file] } });
+
+        await vi.waitFor(() => expect(upload).toHaveBeenCalled());
+        expect(sign).toHaveBeenCalledWith({
+            templateId: 'tpl-photo',
+            payload: { requestAttachmentUpload: true, attachmentContentType: 'image/jpeg' },
+        });
+        expect(upload).toHaveBeenCalledWith({ uploadUrl: 'https://s3/put', file, contentType: 'image/jpeg' });
+    });
+
+    it('odrzucona wysyłka skanu nie przechodzi po cichu', async () => {
+        const { PresignedUploadError } = await import('@/common/utils/presignedUpload');
+        sign.mockResolvedValueOnce({ attachmentUploadUrl: 'https://s3/put' });
+        upload.mockRejectedValueOnce(new PresignedUploadError('odrzucone', 403));
+        renderIt();
+        fireEvent.click(screen.getByRole('button', { name: 'Więcej akcji: Publikacja zdjęć' }));
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Dołącz skan podpisu' }));
+        fireEvent.change(screen.getByTestId('consent-scan-input'), {
+            target: { files: [new File(['%PDF'], 'skan.pdf', { type: 'application/pdf' })] },
+        });
+
+        await vi.waitFor(() => expect(showError).toHaveBeenCalled());
+        expect(showError.mock.calls[0][0]).toBe('Nie udało się dołączyć skanu');
     });
 });

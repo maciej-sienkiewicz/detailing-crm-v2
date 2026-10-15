@@ -226,7 +226,21 @@ export interface AddOnPreview {
 
 export type CheckoutType = 'INITIAL_PURCHASE' | 'RENEWAL' | 'PLAN_UPGRADE' | 'ADD_ON_PURCHASE';
 
-export type PaymentOrderStatus = 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED';
+/**
+ * Lustro `PaymentOrderStatus` z backendu (payments/order/PaymentOrderEntity.kt) - CAŁE.
+ * Dawniej były tu tylko cztery stany, a udany zakup kończy się na FULFILLED: strona
+ * powrotu z P24 czekała na PAID, które mija w ułamku sekundy (webhook od razu realizuje
+ * zamówienie), więc zostawała na „Sprawdzamy płatność…" aż do ręcznego odświeżenia.
+ * Znaczenie stanów dla kupującego rozstrzyga `paymentOutcome` (utils/paymentOrderStatus.ts).
+ */
+export type PaymentOrderStatus =
+    | 'PENDING'
+    | 'PAID'
+    | 'FULFILLED'
+    | 'FAILED'
+    | 'CANCELLED'
+    | 'EXPIRED'
+    | 'REFUND_REQUIRED';
 
 export interface CheckoutRequest {
     type: CheckoutType;

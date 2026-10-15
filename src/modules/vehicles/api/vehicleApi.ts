@@ -1,5 +1,6 @@
 // src/modules/vehicles/api/vehicleApi.ts
 
+import { putToPresignedUrl } from '@/common/utils/presignedUpload';
 import { apiClient } from '@/core/apiClient';
 import type {
     VehicleListResponse,
@@ -8,7 +9,6 @@ import type {
     CreateVehiclePayload,
     UpdateVehiclePayload,
     AssignOwnerPayload,
-    UploadPhotoPayload,
     VehiclePhotoGalleryResponse,
     UploadVehiclePhotoPayload,
     UploadVehiclePhotoResponse,
@@ -426,14 +426,13 @@ export const vehicleApi = {
         const { documentId, uploadUrl } = initiateResponse.data;
 
         // Step 2: Upload file binary directly to S3 (no auth headers)
-        const s3Response = await fetch(uploadUrl, {
-            method: 'PUT',
-            body: payload.file,
-            headers: { 'Content-Type': payload.file.type || 'application/octet-stream' },
-        });
-
-        if (!s3Response.ok) {
-            throw new Error(`S3 upload failed: ${s3Response.status} ${s3Response.statusText}`);
+        try {
+            await putToPresignedUrl(uploadUrl, payload.file, payload.file.type || 'application/octet-stream');
+        } catch (error) {
+            // Rekord dokumentu już jest - bez sprzątnięcia zostawał na liście bez pliku.
+            await apiClient.delete(`${BASE_PATH}/${vehicleId}/documents/${documentId}`, { skipErrorToast: true })
+                .catch(() => undefined);
+            throw error;
         }
 
         return {
@@ -453,20 +452,6 @@ export const vehicleApi = {
             return;
         }
         await apiClient.delete(`${BASE_PATH}/${vehicleId}/documents/${documentId}`);
-    },
-
-    uploadPhoto: async (vehicleId: string, payload: UploadPhotoPayload): Promise<void> => {
-        if (USE_MOCKS) {
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            return;
-        }
-        const formData = new FormData();
-        formData.append('file', payload.file);
-        formData.append('description', payload.description);
-        if (payload.visitId) formData.append('visitId', payload.visitId);
-        await apiClient.post(`${BASE_PATH}/${vehicleId}/photos`, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-        });
     },
 
     // New photo gallery endpoints

@@ -322,6 +322,8 @@ export interface CustomerConsentsStatusResponse {
 
 export interface SignCustomerConsentPayload {
     requestAttachmentUpload?: boolean;
+    /** Rodzaj pliku skanu (PDF albo zdjęcie) - serwer podpisuje pod niego adres wysyłki. */
+    attachmentContentType?: string;
 }
 
 export interface SignCustomerConsentResult {

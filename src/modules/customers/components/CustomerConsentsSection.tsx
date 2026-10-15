@@ -17,6 +17,8 @@ import styled from 'styled-components';
 import { FileText, MoreVertical, Paperclip, ShieldOff } from 'lucide-react';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { formatDateTime } from '@/common/utils';
+import { isUnannouncedUploadError } from '@/common/utils/presignedUpload';
+import { useToast } from '@/common/components/Toast';
 import {
     ActionMenu, Button, IconButton, MenuDivider, MenuItem, Panel, SectionTitle, StatusPill, ui, useActionMenu,
     type PillTone,
@@ -129,6 +131,7 @@ export const CustomerConsentsSection = ({ customerId, id }: CustomerConsentsSect
     const { mutateAsync: signConsent } = useSignCustomerConsent(customerId);
     const { mutateAsync: revokeConsent, isPending: isRevoking } = useRevokeCustomerConsent(customerId);
     const { mutateAsync: uploadAttachment } = useUploadConsentAttachment();
+    const { showError } = useToast();
 
     const consents = data?.consents ?? [];
     const active = consents.filter(c => c.isDefinitionActive);
@@ -155,13 +158,22 @@ export const CustomerConsentsSection = ({ customerId, id }: CustomerConsentsSect
         const item = attachTarget.current;
         if (!file || !item?.currentTemplateId) return;
         setBusyDefinitionId(item.definitionId);
+        // Skan bywa zdjęciem z telefonu. Rodzaj pliku idzie do serwera, który podpisuje
+        // adres wysyłki właśnie pod niego - przy stałym `application/pdf` S3 odrzucał JPG.
+        const contentType = file.type || 'application/pdf';
         try {
             const result = await signConsent({
                 templateId: item.currentTemplateId,
-                payload: { requestAttachmentUpload: true },
+                payload: { requestAttachmentUpload: true, attachmentContentType: contentType },
             });
             if (result.attachmentUploadUrl) {
-                await uploadAttachment({ uploadUrl: result.attachmentUploadUrl, file });
+                await uploadAttachment({ uploadUrl: result.attachmentUploadUrl, file, contentType });
+            }
+        } catch (error) {
+            // Błąd API pokazuje globalny toast. Odrzuconej wysyłki pliku nie pokazywał nikt,
+            // a zgoda zostawała zapisana bez skanu.
+            if (isUnannouncedUploadError(error)) {
+                showError('Nie udało się dołączyć skanu', 'Zgoda jest zapisana, ale skan nie dotarł. Dołącz go jeszcze raz.');
             }
         } finally {
             setBusyDefinitionId(null);
