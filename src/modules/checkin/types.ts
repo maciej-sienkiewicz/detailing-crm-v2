@@ -1,4 +1,5 @@
 // src/modules/checkin/types.ts
+import type { VehicleKind } from '@/modules/vehicles/vehicleKind';
 import type { ServiceVersion } from '@/common/components/ServicesTable/serviceVersion';
 
 export type AdjustmentType = 'PERCENT' | 'FIXED_NET' | 'FIXED_GROSS' | 'SET_NET' | 'SET_GROSS';
@@ -112,6 +113,8 @@ export interface CheckInFormData {
     isNewCustomer: boolean; // Czy klient został utworzony teraz podczas check-in
     vehicleData: {
         id: string;
+        /** Brak - samochód (pojazd sprzed rodzajów albo dane bez tego pola). */
+        kind?: VehicleKind;
         brand: string;
         model: string;
         yearOfProduction?: number;
@@ -242,6 +245,7 @@ export type CheckInVehicleIdentity =
     | {
         mode: 'NEW';
         newData: {
+            kind?: VehicleKind;
             brand: string;
             model: string;
             yearOfProduction?: number;
@@ -255,6 +259,8 @@ export type CheckInVehicleIdentity =
         id: string;
         ownership?: VehicleOwnershipAction;
         updateData: {
+            /** Pominięty - bez zmian. */
+            kind?: VehicleKind;
             brand: string;
             model: string;
             yearOfProduction?: number;

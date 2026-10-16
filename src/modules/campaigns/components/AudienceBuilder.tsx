@@ -414,12 +414,12 @@ export function AudienceBuilder({ value, onChange }: AudienceBuilderProps) {
           <FilterRow>
             <FilterLabel>Marka i model</FilterLabel>
             <BrandRow>
-              <BrandSelect
+              <BrandSelect kind="ALL"
                 value={brandDraft}
                 onChange={(brand) => { setBrandDraft(brand); setModelDraft(''); }}
                 placeholder="Wybierz markę"
               />
-              <ModelSelect
+              <ModelSelect kind="ALL"
                 brand={brandDraft}
                 value={modelDraft}
                 onChange={setModelDraft}

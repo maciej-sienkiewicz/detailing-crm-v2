@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
     VEHICLE_SCHEMATICS,
+    defaultSchematicForKind,
     resolveVehicleSchematic,
     vehicleSchematicImageUrl,
     vehicleSchematicLabel,
@@ -26,6 +27,12 @@ describe('vehicleSchematics', () => {
         expect(resolveVehicleSchematic(null)).toBe('sedan');
         expect(resolveVehicleSchematic('')).toBe('sedan');
         expect(vehicleSchematicImageUrl('../../etc')).toBe('/assets/sedan.webp');
+    });
+
+    it('mapa motocykla startuje od schematu motocykla, auta - od sedana', () => {
+        expect(defaultSchematicForKind('MOTORCYCLE')).toBe('motorcycle');
+        expect(defaultSchematicForKind('CAR')).toBe('sedan');
+        expect(defaultSchematicForKind(undefined)).toBe('sedan');
     });
 
     it('motocykl i skuter wodny mają własne grafiki i nazwy', () => {

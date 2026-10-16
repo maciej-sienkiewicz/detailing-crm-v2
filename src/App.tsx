@@ -8,7 +8,7 @@ import { AppErrorBoundary } from '@/core/errors';
 import { AuthProvider } from '@/core/context/AuthContext';
 import { ToastProvider } from '@/common/components/Toast';
 import { PaywallListener } from '@/modules/subscription/components/PaywallListener';
-import { vehicleMetadataApi } from '@/modules/vehicles/api/vehicleMetadataApi';
+import { vehicleMetadataQuery } from '@/modules/vehicles/hooks/useVehicleMetadata';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -28,10 +28,7 @@ const queryClient = new QueryClient({
 });
 
 // Prefetch vehicle metadata once on app start to enable instant filtering
-queryClient.prefetchQuery({
-    queryKey: ['vehicleMetadata'],
-    queryFn: () => vehicleMetadataApi.getAll(),
-});
+queryClient.prefetchQuery(vehicleMetadataQuery('CAR'));
 
 const App = () => {
     return (

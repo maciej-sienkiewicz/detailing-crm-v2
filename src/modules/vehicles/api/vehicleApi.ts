@@ -321,6 +321,7 @@ export const vehicleApi = {
             ...(filters.sortBy && { sortBy: filters.sortBy }),
             ...(filters.sortDirection && { sortDirection: filters.sortDirection }),
             ...(filters.status && { status: filters.status }),
+            ...(filters.kind && { kind: filters.kind }),
             ...(filters.brand && { brand: filters.brand }),
             ...(filters.model && { model: filters.model }),
             ...(filters.yearFrom != null && { yearFrom: filters.yearFrom.toString() }),

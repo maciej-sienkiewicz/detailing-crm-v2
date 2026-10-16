@@ -795,12 +795,12 @@ export const CustomerFilterPanel = ({
                     <FilterSection>
                         <SectionLabel>Pojazd</SectionLabel>
                         <VehicleRow>
-                            <BrandSelect
+                            <BrandSelect kind="ALL"
                                 value={vehicleBrand}
                                 onChange={handleBrandChange}
                                 placeholder="Wybierz markę"
                             />
-                            <ModelSelect
+                            <ModelSelect kind="ALL"
                                 brand={vehicleBrand}
                                 value={vehicleModel}
                                 onChange={setVehicleModel}

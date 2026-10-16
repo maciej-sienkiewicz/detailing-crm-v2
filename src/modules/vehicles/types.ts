@@ -1,5 +1,9 @@
 // src/modules/vehicles/types.ts
 
+import type { VehicleKind } from './vehicleKind';
+
+export type { VehicleKind } from './vehicleKind';
+
 export type OwnershipRole = 'PRIMARY' | 'CO_OWNER' | 'COMPANY';
 
 export type EngineType = 'GASOLINE' | 'DIESEL' | 'HYBRID' | 'ELECTRIC';
@@ -49,6 +53,8 @@ export interface VehicleFinancialStats {
 
 export interface Vehicle {
     id: string;
+    /** Samochód albo motocykl; brak w odpowiedzi = samochód (patrz normalizeVehicleKind). */
+    kind?: VehicleKind;
     licensePlate: string;
     brand: string;
     model: string;
@@ -69,6 +75,7 @@ export interface Vehicle {
 
 export interface VehicleListItem {
     id: string;
+    kind?: VehicleKind;
     licensePlate: string;
     brand: string;
     model: string;
@@ -123,6 +130,8 @@ export interface VehicleFilters {
     sortBy?: VehicleSortField;
     sortDirection?: SortDirection;
     status?: VehicleStatus;
+    /** Brak - oba rodzaje. */
+    kind?: VehicleKind;
     brand?: string;
     model?: string;
     yearFrom?: number | null;
@@ -138,6 +147,7 @@ export interface VehicleFilters {
 }
 
 export interface CreateVehiclePayload {
+    kind?: VehicleKind;
     licensePlate: string;
     brand: string;
     model: string;
@@ -150,7 +160,12 @@ export interface CreateVehiclePayload {
 }
 
 export interface UpdateVehiclePayload {
+    /** Pominięty - bez zmian. */
+    kind?: VehicleKind;
     licensePlate?: string;
+    brand?: string;
+    model?: string;
+    yearOfProduction?: number;
     /** Pominięty - bez zmian; pusty napis - usunięcie VIN. */
     vin?: string;
     color?: string;

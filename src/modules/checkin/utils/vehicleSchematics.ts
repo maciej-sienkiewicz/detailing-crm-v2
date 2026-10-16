@@ -8,6 +8,8 @@
 // Backend trzyma tę samą listę w `VehicleSchematics.TYPES` (te same rysunki jako PNG
 // do raportu PDF) - dodając typ, dodaj go w obu miejscach.
 
+import type { VehicleKind } from '@/modules/vehicles/vehicleKind';
+
 export type VehicleSchematicType =
     | 'sedan' | 'suv' | 'hatchback' | 'kombi' | 'coupe' | 'cabrio' | 'van'
     | 'motorcycle' | 'jetski';
@@ -39,6 +41,14 @@ export const DEFAULT_VEHICLE_SCHEMATIC: VehicleSchematicType = 'sedan';
 
 export const isVehicleSchematicType = (value: string | null | undefined): value is VehicleSchematicType =>
     VEHICLE_SCHEMATICS.some(option => option.value === value);
+
+/**
+ * Schemat, od którego startuje mapa uszkodzeń, dopóki pracownik nie wybierze innego.
+ * Musi zgadzać się z `VehicleSchematics.defaultFor` w backendzie: raport PDF rysuje
+ * punkty bez wybranego typu właśnie na tym rysunku.
+ */
+export const defaultSchematicForKind = (kind: VehicleKind | null | undefined): VehicleSchematicType =>
+    kind === 'MOTORCYCLE' ? 'motorcycle' : DEFAULT_VEHICLE_SCHEMATIC;
 
 /** Typ do narysowania: nieznany albo pusty (stara mapa, ręcznie zmieniony adres) = sedan. */
 export const resolveVehicleSchematic = (value: string | null | undefined): VehicleSchematicType =>

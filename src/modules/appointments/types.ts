@@ -1,4 +1,5 @@
 // src/modules/appointments/types.ts
+import type { VehicleKind } from '@/modules/vehicles/vehicleKind';
 export type MoneyAmount = number;
 
 export type AdjustmentType = 'PERCENT' | 'FIXED_NET' | 'FIXED_GROSS' | 'SET_NET' | 'SET_GROSS';
@@ -76,6 +77,7 @@ export type VehicleIdentity =
     | {
         mode: 'NEW';
         newData: {
+            kind?: VehicleKind;
             brand: string;
             model: string;
             year?: number;
@@ -90,6 +92,8 @@ export type VehicleIdentity =
         id: string;
         ownership?: AppointmentVehicleOwnership;
         updateData: {
+            /** Pominięty - bez zmian. */
+            kind?: VehicleKind;
             brand: string;
             model: string;
             year?: number;
@@ -194,6 +198,7 @@ export interface Customer {
 
 export interface Vehicle {
     id: string;
+    kind?: VehicleKind;
     brand: string;
     model: string;
     year: number;
@@ -221,6 +226,8 @@ export interface SelectedCustomer {
 
 export interface SelectedVehicle {
     id?: string;
+    /** Brak - samochód. */
+    kind?: VehicleKind;
     brand: string;
     model: string;
     year?: number;

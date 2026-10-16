@@ -582,14 +582,14 @@ export const GalleryFilterBar = ({
                 </SectionLabel>
                 <SectionControls>
                     <SelectWrap>
-                        <BrandSelect
+                        <BrandSelect kind="ALL"
                             value={brand || undefined}
                             onChange={b => { onBrandChange(b); onModelChange(''); }}
                             placeholder={isNarrow ? 'Marka' : 'Marka pojazdu'}
                         />
                     </SelectWrap>
                     <SelectWrap>
-                        <ModelSelect
+                        <ModelSelect kind="ALL"
                             brand={brand || undefined}
                             value={model || undefined}
                             onChange={onModelChange}

@@ -1,3 +1,4 @@
+import { normalizeVehicleKind, type VehicleKind } from '@/modules/vehicles/vehicleKind';
 import type {
     Customer,
     CustomerRevenue,
@@ -16,6 +17,7 @@ import type { CreateCustomerFormData } from './customerValidation';
 // Backend vehicle response type (different from frontend Vehicle type)
 interface BackendVehicle {
     id: string;
+    kind?: VehicleKind;
     brand: string;
     model: string;
     year: number;
@@ -147,6 +149,7 @@ export const hasCompanyInput = (
 
 export const mapBackendVehicleToVehicle = (backendVehicle: BackendVehicle): Vehicle => ({
     id: backendVehicle.id,
+    kind: normalizeVehicleKind(backendVehicle.kind),
     make: backendVehicle.brand,
     model: backendVehicle.model,
     year: backendVehicle.year,

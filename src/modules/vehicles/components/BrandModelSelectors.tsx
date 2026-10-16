@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { createPortal } from 'react-dom';
 import { useBreakpoint, useVisualViewportSheet } from '@/common/hooks';
 import { useVehicleMetadata } from '../hooks/useVehicleMetadata';
+import type { VehicleKindFilter } from '../vehicleKind';
 
 // Reuse ColorDropdown-like styling
 const DropdownContainer = styled.div`
@@ -427,6 +428,8 @@ type MenuStyle = { top?: number; bottom?: number; left: number; width: number; m
 interface BrandSelectProps {
   value?: string;
   onChange: (brand: string) => void;
+  /** Katalog marek: samochody (domyślnie), motocykle albo oba naraz (filtry). */
+  kind?: VehicleKindFilter;
   placeholder?: string;
   onBlur?: () => void;
   autoOpen?: boolean;
@@ -434,8 +437,8 @@ interface BrandSelectProps {
   onDone?: () => void;
 }
 
-export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', onBlur, autoOpen = false, compact = false, onDone }: BrandSelectProps) => {
-  const { data, isLoading } = useVehicleMetadata();
+export const BrandSelect = ({ value, onChange, kind = 'CAR', placeholder = 'Wybierz markę', onBlur, autoOpen = false, compact = false, onDone }: BrandSelectProps) => {
+  const { data, isLoading } = useVehicleMetadata(kind);
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -603,6 +606,8 @@ export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', o
 
 interface ModelSelectProps {
   brand?: string;
+  /** Ten sam katalog co w BrandSelect - modele Hondy-auta i Hondy-motocykla to różne listy. */
+  kind?: VehicleKindFilter;
   value?: string;
   onChange: (model: string) => void;
   placeholder?: string;
@@ -612,8 +617,8 @@ interface ModelSelectProps {
   onDone?: () => void;
 }
 
-export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz model', onBlur, autoOpen = false, compact = false, onDone }: ModelSelectProps) => {
-  const { data, isLoading } = useVehicleMetadata();
+export const ModelSelect = ({ brand, kind = 'CAR', value, onChange, placeholder = 'Wybierz model', onBlur, autoOpen = false, compact = false, onDone }: ModelSelectProps) => {
+  const { data, isLoading } = useVehicleMetadata(kind);
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -629,7 +634,10 @@ export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz mod
 
   const models = useMemo(() => {
     if (!brand || !data) return [] as string[];
-    const found = data.find(b => b.marka === brand);
+    // Bez względu na wielkość liter: katalog samochodów pisze „Bmw", motocykli „BMW",
+    // a pojazd mógł zostać zapisany z jednego, zanim zmieniono mu rodzaj.
+    const key = brand.toLocaleLowerCase('pl');
+    const found = data.find(b => b.marka.toLocaleLowerCase('pl') === key);
     return (found?.modele || []).slice().sort((a, b) => a.localeCompare(b));
   }, [brand, data]);
 

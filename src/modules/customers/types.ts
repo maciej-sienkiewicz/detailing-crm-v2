@@ -1,3 +1,4 @@
+import type { VehicleKind } from '@/modules/vehicles/vehicleKind';
 import type { CommunicationEntry as SharedCommunicationEntry } from '@/common/types/communication';
 
 export interface CompanyDetails {
@@ -137,6 +138,7 @@ export type EngineType = 'GASOLINE' | 'DIESEL' | 'HYBRID' | 'ELECTRIC';
 
 export interface Vehicle {
     id: string;
+    kind?: VehicleKind;
     make: string;
     model: string;
     year: number;
@@ -239,6 +241,7 @@ export interface UpdateConsentPayload {
 }
 
 export interface AddVehiclePayload {
+    kind?: VehicleKind;
     make: string;
     model: string;
     /** `null` = rok nieznany. Backend przyjmuje brak roku. */

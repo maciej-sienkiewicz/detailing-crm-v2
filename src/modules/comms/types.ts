@@ -4,6 +4,7 @@
 
 // ── Skrzynki ─────────────────────────────────────────────────────────────────
 
+import type { VehicleKind } from '@/modules/vehicles/vehicleKind';
 import type { SignatureDesign } from './utils/signatureTemplates';
 export type MailAccountStatus = 'ACTIVE' | 'AUTH_FAILED' | 'DISABLED';
 
@@ -331,6 +332,8 @@ export interface Lead {
     /** Wartości z katalogu pojazdów; null, gdy nie rozpoznano. */
     vehicleBrand: string | null;
     vehicleModel: string | null;
+    /** Katalog, z którego pochodzą marka i model; brak - samochód. */
+    vehicleKind?: VehicleKind;
     /** PENDING = rozpoznanie w toku (spinner w tabeli), DONE = zakończone. */
     vehicleDetectionStatus: 'PENDING' | 'DONE';
     lostReasonCode: string | null;
@@ -850,6 +853,7 @@ export interface ContactCardCustomer {
 
 export interface ContactCardVehicle {
     id: string;
+    kind?: VehicleKind;
     brand: string;
     model: string;
     year: number | null;

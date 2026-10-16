@@ -620,8 +620,8 @@ export const VehicleFilterPanel = ({
                     <FilterSection>
                         <SectionLabel>Marka i model</SectionLabel>
                         <VehicleRow>
-                            <BrandSelect value={brand} onChange={handleBrandChange} placeholder="Wybierz markę" />
-                            <ModelSelect brand={brand} value={model} onChange={setModel} placeholder="Wybierz model" />
+                            <BrandSelect kind="ALL" value={brand} onChange={handleBrandChange} placeholder="Wybierz markę" />
+                            <ModelSelect kind="ALL" brand={brand} value={model} onChange={setModel} placeholder="Wybierz model" />
                         </VehicleRow>
                     </FilterSection>
 

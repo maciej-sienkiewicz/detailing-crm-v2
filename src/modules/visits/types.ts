@@ -1,3 +1,4 @@
+import type { VehicleKind } from '@/modules/vehicles/vehicleKind';
 /* Punkt uszkodzenia jest wspólnym typem przyjęcia i wizyty: mapę rysuje ten sam
    edytor, więc drugi, „prawie taki sam" typ byłby tylko okazją do rozjechania się. */
 // Import z pliku typów, nie z barrel-a: barrel checkinu ciągnie widoki, a te
@@ -108,6 +109,8 @@ export interface ServiceLineItem {
 
 export interface VehicleInfo {
     id: string;
+    /** Brak - samochód; wybiera m.in. domyślny schemat mapy uszkodzeń. */
+    kind?: VehicleKind;
     licensePlate: string;
     brand: string;
     model: string;

@@ -19,6 +19,13 @@ describe('CarLogoImage - logo marki bez pustego obrzeża', () => {
         await waitFor(() => expect(screen.getByAltText('BMW').getAttribute('src')).toBe('blob:trimmed-bmw'));
     });
 
+    it('pojazd bez marki dostaje ikonę swojego rodzaju, a nie zawsze auta', () => {
+        const { container, rerender } = render(<CarLogoImage brand="" kind="MOTORCYCLE" />);
+        expect(container.querySelector('[data-kind="MOTORCYCLE"]')).not.toBeNull();
+        rerender(<CarLogoImage brand="" />);
+        expect(container.querySelector('[data-kind="CAR"]')).not.toBeNull();
+    });
+
     it('gdy przycięcie się nie uda, zostaje oryginał z CDN', async () => {
         render(<CarLogoImage brand="Audi" />);
         await waitFor(() => expect(screen.getByAltText('Audi').getAttribute('src')).toMatch(/logos\/thumb\/audi\.png$/));

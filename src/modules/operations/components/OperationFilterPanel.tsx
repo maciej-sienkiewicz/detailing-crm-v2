@@ -649,8 +649,8 @@ export const OperationFilterPanel = ({
                     <FilterSection>
                         <SectionLabel>Marka i model pojazdu</SectionLabel>
                         <VehicleRow>
-                            <BrandSelect value={brand} onChange={handleBrandChange} placeholder="Wybierz markę" onDone={() => {}} />
-                            <ModelSelect brand={brand} value={model} onChange={setModel} placeholder="Wybierz model" onDone={() => {}} />
+                            <BrandSelect kind="ALL" value={brand} onChange={handleBrandChange} placeholder="Wybierz markę" onDone={() => {}} />
+                            <ModelSelect kind="ALL" brand={brand} value={model} onChange={setModel} placeholder="Wybierz model" onDone={() => {}} />
                         </VehicleRow>
                     </FilterSection>
                 </DrawerBody>
