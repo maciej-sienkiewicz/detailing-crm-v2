@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import styled, { keyframes } from 'styled-components';
 import { useToast } from '@/common/components/Toast';
 import { StickyFormFooter, FooterPrimaryButton, FooterSecondaryButton } from '@/common/components/StickyFormFooter';
 import { useCheckInWizard } from '../hooks/useCheckInWizard';
 import { useCheckInValidation } from '../hooks/useCheckInValidation';
+import { PHOTO_SESSION_CREATE_KEY } from '../hooks/usePhotoUpload';
 import { VerificationStep } from '../components/VerificationStep';
 import { PhotoDocumentationStep } from '../components/PhotoDocumentationStep';
 import { SigningRequirementModal } from '../components/SigningRequirementModal';
@@ -280,6 +282,14 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
     const { errors, isStepValid } = useCheckInValidation(formData, currentStep);
     const { showSuccess } = useToast();
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
+
+    // Sesja zdjęć żyje w cache przez całe przyjęcie (usePhotoUpload) i kończy się
+    // razem z nim: następne przyjęcie tej samej rezerwacji dostaje nową, czystą.
+    useEffect(
+        () => () => queryClient.removeQueries({ queryKey: PHOTO_SESSION_CREATE_KEY }),
+        [queryClient]
+    );
 
     const [showValidationErrors, setShowValidationErrors] = useState(false);
     // Licznik nieudanych prób, nie flaga: użytkownik może poprawić jedno pole i

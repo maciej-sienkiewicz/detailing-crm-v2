@@ -51,8 +51,10 @@ export const companyApi = {
      * własnym dymku z tytułem, a SellerPrompt (wydanie pojazdu) nie ma własnego
      * komunikatu i polega na globalnym.
      */
+    // Pole pominięte (undefined) backend zostawia bez zmian - częściowy zapis, jak
+    // z podpowiedzi danych sprzedawcy przy wydaniu, nie nadpisuje reszty ustawień.
     updateCompanySettings: async (
-        data: UpdateCompanySettingsRequest,
+        data: Partial<UpdateCompanySettingsRequest>,
         options: { skipErrorToast?: boolean } = {},
     ): Promise<CompanySettings> => {
         if (USE_MOCKS) {

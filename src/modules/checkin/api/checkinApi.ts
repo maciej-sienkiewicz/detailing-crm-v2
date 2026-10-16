@@ -211,13 +211,18 @@ export const checkinApi = {
      * Step 3: Upload photo directly to S3 using presigned URL
      */
     uploadToS3: async (uploadUrl: string, file: File): Promise<void> => {
-        await fetch(uploadUrl, {
+        const response = await fetch(uploadUrl, {
             method: 'PUT',
             body: file,
             headers: {
                 'Content-Type': file.type,
             },
         });
+        // fetch nie rzuca przy 4xx/5xx: wygasły podpisany adres albo błąd S3 dawał
+        // „przesłane", a zdjęcia w magazynie nie było.
+        if (!response.ok) {
+            throw new Error(`Przesyłanie zdjęcia do magazynu nie powiodło się (HTTP ${response.status})`);
+        }
     },
 
     /**

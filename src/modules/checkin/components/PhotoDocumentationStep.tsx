@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import { Toggle } from '@/common/components/Toggle';
+import { Button, Notice } from '@/common/components/ui';
 import { usePhotoUpload } from '../hooks/usePhotoUpload';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { CheckInFormData, DamagePoint, PhotoSlot } from '../types';
@@ -393,7 +394,9 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
         isUploading,
         isDeleting,
         isRefreshing,
-    } = usePhotoUpload(reservationId);
+        isSessionError,
+        retrySession,
+    } = usePhotoUpload(reservationId, qrCheckinId);
 
     const [showDamageSection, setShowDamageSection] = useState(false);
     const [editingPhoto, setEditingPhoto] = useState<PhotoSlot | null>(null);
@@ -429,12 +432,18 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
     const formatTimestamp = (ts: string) =>
         new Date(ts).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
 
-    const handleFileSelect = async (files: FileList | null) => {
-        if (!files || files.length === 0) return;
-        try {
-            await Promise.all(Array.from(files).map(f => uploadPhoto(f)));
-        } catch {
-            alert('Nie udało się przesłać zdjęć. Spróbuj ponownie.');
+    const handleFileSelect = async (input: HTMLInputElement) => {
+        const files = input.files ? Array.from(input.files) : [];
+        // Bez wyczyszczenia ponowny wybór TEGO SAMEGO pliku po nieudanym przesłaniu
+        // nie wywołuje onChange i przycisk wygląda na martwy.
+        input.value = '';
+        if (files.length === 0) return;
+        const results = await Promise.allSettled(files.map(f => uploadPhoto(f)));
+        const failed = results.filter(r => r.status === 'rejected').length;
+        if (failed > 0) {
+            alert(failed === files.length
+                ? 'Nie udało się przesłać zdjęć. Wybierz je ponownie.'
+                : `Nie udało się przesłać ${failed} z ${files.length} zdjęć. Wybierz brakujące ponownie.`);
         }
     };
 
@@ -490,6 +499,15 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
                     </SectionTitleRow>
                 </SectionHead>
                 <SectionBody>
+                    {isSessionError && (
+                        <Notice
+                            tone="danger"
+                            title="Nie udało się przygotować przesyłania zdjęć"
+                            action={<Button variant="ghost" size="sm" onClick={() => retrySession()}>Spróbuj ponownie</Button>}
+                        >
+                            Zdjęć z komputera nie da się teraz dodać. Telefon z kodem QR działa niezależnie.
+                        </Notice>
+                    )}
                     <UploadZone>
                         <UploadIcon>
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -616,14 +634,14 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
                         type="file"
                         accept="image/*"
                         multiple
-                        onChange={(e) => handleFileSelect(e.target.files)}
+                        onChange={(e) => handleFileSelect(e.currentTarget)}
                     />
                     <HiddenInput
                         ref={cameraInputRef}
                         type="file"
                         accept="image/*"
                         capture="environment"
-                        onChange={(e) => handleFileSelect(e.target.files)}
+                        onChange={(e) => handleFileSelect(e.currentTarget)}
                     />
                 </SectionBody>
             </SectionCard>

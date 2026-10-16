@@ -7,6 +7,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
 
@@ -58,13 +59,19 @@ vi.mock('../components/SigningRequirementModal', () => ({
 
 import { CheckInWizardView } from './CheckInWizardView';
 
-const renderView = () => render(
-    <MemoryRouter>
-        <ThemeProvider theme={theme}>
-            <CheckInWizardView initialData={{}} colors={[]} onComplete={vi.fn()} />
-        </ThemeProvider>
-    </MemoryRouter>,
+// Kreator kończy sesję zdjęć w cache przy wyjściu (usePhotoUpload), więc w aplikacji
+// zawsze stoi pod QueryClientProvider - tu też.
+const queryClient = new QueryClient();
+const view = () => (
+    <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+            <ThemeProvider theme={theme}>
+                <CheckInWizardView initialData={{}} colors={[]} onComplete={vi.fn()} />
+            </ThemeProvider>
+        </MemoryRouter>
+    </QueryClientProvider>
 );
+const renderView = () => render(view());
 
 beforeEach(() => {
     wizard.currentStep = 'photos';
@@ -88,13 +95,7 @@ describe('CheckInWizardView - „Wróć do formularza"', () => {
 
         // Kreator wraca na formularz z usługami (stan kroku trzyma hook).
         wizard.currentStep = 'verification';
-        rerender(
-            <MemoryRouter>
-                <ThemeProvider theme={theme}>
-                    <CheckInWizardView initialData={{}} colors={[]} onComplete={vi.fn()} />
-                </ThemeProvider>
-            </MemoryRouter>,
-        );
+        rerender(view());
         expect(screen.getByText('Poprawiasz założone przyjęcie')).toBeInTheDocument();
         expect(screen.getByText('formularz z usługami')).toBeInTheDocument();
 

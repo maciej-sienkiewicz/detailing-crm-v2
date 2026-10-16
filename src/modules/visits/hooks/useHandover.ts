@@ -100,12 +100,17 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     // Dane sprzedawcy pobierane RAZEM z otwarciem ekranu, nie dopiero przy
     // edycji faktury: brak NIP-u studia ma być widoczny zanim ktokolwiek
     // zacznie wydawać, a nie w ostatnim kliknięciu przy kliencie u lady.
-    const { data: company, isLoading: isCompanyLoading } = useQuery({
+    const { data: company, isLoading: isCompanyLoading, isError: isCompanyError } = useQuery({
         queryKey: ['company', 'settings'],
         queryFn: () => companyApi.getCompanySettings(),
         enabled: isOpen,
     });
     const sellerComplete = !!company?.name?.trim() && !!company?.taxId?.trim();
+    // Nieudany odczyt ustawień to NIE jest „brak NIP-u". Traktowany tak blokował
+    // „Wydaj pojazd" na fakturę przez chwilowy błąd sieci i podsuwał formularz do
+    // wpisania danych, które w bazie są. Nazwy i NIP-u sprzedawcy pilnuje też backend
+    // (CompleteVisitInvoiceOrchestrator), więc gdy ich nie znamy, rozstrzyga on.
+    const sellerUnknown = isCompanyError && !company;
 
     // ── Kwoty wizyty ─────────────────────────────────────────────────────────
     // Usługa z oczekującą edycją liczy się po cenie sprzed zmiany: zmiana nie
@@ -286,8 +291,13 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         () =>
             isFreeVisit || !canIssueDocuments
                 ? []
-                : validateHandover({ state, visitGross: totals.gross, sellerComplete, invoicedExternally }),
-        [state, totals.gross, sellerComplete, isFreeVisit, canIssueDocuments, invoicedExternally]
+                : validateHandover({
+                    state,
+                    visitGross: totals.gross,
+                    sellerComplete: sellerComplete || sellerUnknown,
+                    invoicedExternally,
+                }),
+        [state, totals.gross, sellerComplete, sellerUnknown, isFreeVisit, canIssueDocuments, invoicedExternally]
     );
 
     const problemsIn = useCallback(
