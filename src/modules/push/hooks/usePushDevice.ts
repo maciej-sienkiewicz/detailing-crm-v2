@@ -10,6 +10,8 @@ import type { PushSupportState } from '../types';
 
 export const pushQueryKeys = {
     devices: ['push', 'devices'] as const,
+    /** Pod `devices`, żeby parowanie i odłączanie odświeżały też ustawienia powiadomień. */
+    notificationSettings: ['push', 'devices', 'notification-settings'] as const,
     swVersion: ['push', 'sw-version'] as const,
 };
 

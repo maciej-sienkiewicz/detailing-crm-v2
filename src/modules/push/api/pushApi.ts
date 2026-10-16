@@ -1,5 +1,12 @@
 import { apiClient } from '@/core/apiClient';
-import type { NativePushTransport, PushDeviceDto, RequestCallResponse } from '../types';
+import type {
+    NativePushTransport,
+    PushDeviceDto,
+    PushDeviceNotifications,
+    PushNotificationCategory,
+    PushNotificationSettings,
+    RequestCallResponse,
+} from '../types';
 
 const BASE_PATH = '/v1/push';
 
@@ -66,6 +73,24 @@ export const pushApi = {
 
     revokeDevice: async (deviceId: string): Promise<void> => {
         await apiClient.delete(`${BASE_PATH}/devices/${deviceId}`);
+    },
+
+    /** Które urządzenie dostaje które powiadomienia: właściciel - całe studio, reszta - swoje. */
+    getNotificationSettings: async (): Promise<PushNotificationSettings> => {
+        const { data } = await apiClient.get<PushNotificationSettings>(`${BASE_PATH}/notification-settings`);
+        return data;
+    },
+
+    /** Pełna lista WŁĄCZONYCH kategorii jednego urządzenia. */
+    updateDeviceNotifications: async (
+        deviceId: string,
+        enabled: PushNotificationCategory[],
+    ): Promise<PushDeviceNotifications> => {
+        const { data } = await apiClient.put<PushDeviceNotifications>(
+            `${BASE_PATH}/devices/${deviceId}/notifications`,
+            { enabled },
+        );
+        return data;
     },
 
     /**
