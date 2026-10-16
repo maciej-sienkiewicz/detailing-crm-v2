@@ -73,6 +73,7 @@ import { CaseRail, RailSheet, type CaseActions } from './CaseRail';
 import { ClientEditor } from './ClientEditor';
 import { Bubbles, ConversationHeader, ConversationScroll } from './Conversation';
 import { downloadAttachmentFile } from './messageFormat';
+import { useAttachmentPreview } from '../components/useAttachmentPreview';
 import { FooterPrimary, IconBtn, StatusChip } from './primitives';
 import { ix } from './tokens';
 
@@ -212,6 +213,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
         (attachmentId: string, fileName: string) => downloadAttachmentFile(commsApi.downloadAttachment, attachmentId, fileName),
         []
     );
+    const attachmentPreview = useAttachmentPreview(commsApi.downloadAttachment);
 
     const urgency = useMemo(() => (lead ? describeLeadUrgency(lead, thresholds) : null), [lead, thresholds]);
     const step: CaseStep | null = lead && urgency ? caseNextStep(lead, urgency) : null;
@@ -376,6 +378,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                         loading={threadLoading || !detailMatches}
                         phone={phone}
                         onDownload={download}
+                        onPreview={attachmentPreview.open}
                         onOpenFull={setFullMessageId}
                         alignBottom
                     />
@@ -389,9 +392,10 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                 {fullMessageId && detailMatches && (() => {
                     const message = detail!.messages.find((item) => item.id === fullMessageId);
                     return message ? (
-                        <MessageReaderOverlay message={message} onClose={() => setFullMessageId(null)} onDownloadAttachment={download} />
+                        <MessageReaderOverlay message={message} onClose={() => setFullMessageId(null)} onDownloadAttachment={download} onPreviewAttachment={attachmentPreview.open} />
                     ) : null;
                 })()}
+                {attachmentPreview.preview}
             </Column>
 
             {railBeside && <CaseRail lead={lead} contactCard={contactCard} phone={phoneNumber} cta={cta} {...actions} />}

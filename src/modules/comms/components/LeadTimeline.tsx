@@ -13,16 +13,16 @@
 // czasu stoi W LINII nazwy zdarzenia, a treść wiadomości jest zwykłym akapitem -
 // bez przycisku, bez cytatu, bez ramki.
 
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import styled, { type DefaultTheme } from 'styled-components';
 import { Paperclip } from 'lucide-react';
 import { commsApi } from '../api/commsApi';
 import {
     LEAD_STATUS_COLORS,
     LEAD_STATUS_LABELS,
-    type LeadTimelineAttachment,
     type LeadTimelineEntry,
 } from '../types';
+import { useAttachmentPreview } from './useAttachmentPreview';
 import { formatAge } from '../utils/leadUrgency';
 
 /**
@@ -258,26 +258,10 @@ interface LeadTimelineProps {
 export function LeadTimeline({ entries }: LeadTimelineProps) {
     /*
      * Pobranie przez blob, a nie przez `<a href>`: załącznik chroniony jest sesją,
-     * więc żądanie musi przejść tą samą drogą co reszta API. Ta sama procedura co
-     * w skrzynce ([MailView]).
+     * więc żądanie musi przejść tą samą drogą co reszta API. PDF, zdjęcia i tekst
+     * otwierają się w podglądzie w CRM-ie - tak jak w skrzynce; resztę się pobiera.
      */
-    const download = useCallback(
-        async (attachment: LeadTimelineAttachment) => {
-            try {
-                const blob = await commsApi.downloadAttachment(attachment.id);
-                const url = URL.createObjectURL(blob);
-                const anchor = document.createElement('a');
-                anchor.href = url;
-                anchor.download = attachment.fileName;
-                anchor.click();
-                URL.revokeObjectURL(url);
-            } catch {
-                // Komunikat pokazuje już przechwytywacz `apiClient` — tu zostaje
-                // tylko zdjęcie odrzuconej obietnicy, żeby nie wisiała w konsoli.
-            }
-        },
-        []
-    );
+    const attachmentPreview = useAttachmentPreview(commsApi.downloadAttachment);
 
     /*
      * Backend oddaje oś rosnąco (`compareBy({ it.at })`), a czyta się ją od końca:
@@ -295,6 +279,8 @@ export function LeadTimeline({ entries }: LeadTimelineProps) {
     }
 
     return (
+        <>
+        {attachmentPreview.preview}
         <Timeline>
             {newestFirst.map((entry) => {
                 const text = entry.body ?? entry.note;
@@ -334,7 +320,7 @@ export function LeadTimeline({ entries }: LeadTimelineProps) {
                                             key={attachment.id}
                                             type="button"
                                             title={attachment.fileName}
-                                            onClick={() => void download(attachment)}
+                                            onClick={() => attachmentPreview.open(attachment, entry.attachments)}
                                         >
                                             <Paperclip size={12} />
                                             <ChipName>{attachment.fileName}</ChipName>
@@ -348,5 +334,6 @@ export function LeadTimeline({ entries }: LeadTimelineProps) {
                 );
             })}
         </Timeline>
+        </>
     );
 }

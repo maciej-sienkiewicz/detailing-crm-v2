@@ -50,7 +50,8 @@ import { ContactCardPopover } from '../components/ContactCardPopover';
 import { ContactNotesPopover } from '../components/ContactNotesPopover';
 import { ThreadHistoryPanel } from '../components/ThreadHistoryPanel';
 import { AttachmentCards, Bubbles, ConversationHeader } from './Conversation';
-import { downloadAttachmentFile, messageMoment, previewAttachmentFile } from './messageFormat';
+import { downloadAttachmentFile, messageMoment } from './messageFormat';
+import { useAttachmentPreview } from '../components/useAttachmentPreview';
 import { IconBtn } from './primitives';
 import { ix } from './tokens';
 
@@ -227,6 +228,7 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
         (attachmentId: string, fileName: string) => downloadAttachmentFile(commsApi.downloadAttachment, attachmentId, fileName),
         []
     );
+    const attachmentPreview = useAttachmentPreview(commsApi.downloadAttachment);
 
     if (!thread) {
         return (
@@ -348,7 +350,7 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
                             <AttachmentCards
                                 attachments={message.attachments}
                                 onDownload={download}
-                                onPreview={(attachment) => { void previewAttachmentFile(commsApi.downloadAttachment, attachment); }}
+                                onPreview={attachmentPreview.open}
                             />
                         </Message>
                     ) : (
@@ -398,8 +400,9 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
 
             {fullMessageId && (() => {
                 const message = messages.find((item) => item.id === fullMessageId);
-                return message ? <MessageReaderOverlay message={message} onClose={() => setFullMessageId(null)} onDownloadAttachment={download} /> : null;
+                return message ? <MessageReaderOverlay message={message} onClose={() => setFullMessageId(null)} onDownloadAttachment={download} onPreviewAttachment={attachmentPreview.open} /> : null;
             })()}
+            {attachmentPreview.preview}
             {modal === 'lead' && (
                 <MarkAsLeadModal threadId={thread.id} onClose={() => setModal(null)} onCreated={(leadId) => { setModal(null); onOpenCase(leadId); }} />
             )}
