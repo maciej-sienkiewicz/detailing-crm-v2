@@ -6,6 +6,7 @@
 
 import { isSameLocalDay, toInstant } from '@/common/dateTime';
 import type { QuickEventFormData, AdjustmentType } from '@/modules/calendar/components/QuickEventModal';
+import { normalizeVehicleKind, type VehicleKind } from '@/modules/vehicles/vehicleKind';
 
 export interface ServiceLineItemPayload {
   id: string;
@@ -32,8 +33,8 @@ export interface AppointmentPayload {
     | { mode: 'UPDATE'; id: string; updateData: { firstName: string; lastName: string; phone: string; email: string } }
     | { mode: 'EXISTING'; id: string };
   vehicle:
-    | { mode: 'NEW'; newData: { brand: string; model: string; year?: number } }
-    | { mode: 'UPDATE'; id: string; updateData: { brand: string; model: string; year?: number; licensePlate?: string } }
+    | { mode: 'NEW'; newData: { kind: VehicleKind; brand: string; model: string; year?: number } }
+    | { mode: 'UPDATE'; id: string; updateData: { kind: VehicleKind; brand: string; model: string; year?: number; licensePlate?: string } }
     | { mode: 'EXISTING'; id: string }
     | { mode: 'NONE' };
   services: ServiceLineItemPayload[];
@@ -94,7 +95,17 @@ export function buildAppointmentPayload(data: QuickEventFormData): AppointmentPa
   let vehicle: AppointmentPayload['vehicle'];
   if (data.vehicle) {
     if (data.vehicle.isNew) {
-      vehicle = { mode: 'NEW', newData: { brand: data.vehicle.brand, model: data.vehicle.model, year: data.vehicle.year } };
+      // Rodzaj idzie zawsze: marka i model pochodzą z katalogu tego rodzaju, a serwer
+      // bez pola założyłby samochód - „Honda CBR" stałaby w kartotece jako auto.
+      vehicle = {
+        mode: 'NEW',
+        newData: {
+          kind: normalizeVehicleKind(data.vehicle.kind),
+          brand: data.vehicle.brand,
+          model: data.vehicle.model,
+          year: data.vehicle.year,
+        },
+      };
     } else if (data.vehicle.id && data.vehicle.hasUpdates && data.vehicle.licensePlate !== undefined) {
       // Poprawiona marka/model/rok auta z kartoteki. Serwer w trybie UPDATE zapisuje
       // tablicę taką, jaka przyszła (brak = usunięcie), więc idzie ta z kartoteki.
@@ -104,6 +115,7 @@ export function buildAppointmentPayload(data: QuickEventFormData): AppointmentPa
         mode: 'UPDATE',
         id: data.vehicle.id,
         updateData: {
+          kind: normalizeVehicleKind(data.vehicle.kind),
           brand: data.vehicle.brand,
           model: data.vehicle.model,
           year: data.vehicle.year,

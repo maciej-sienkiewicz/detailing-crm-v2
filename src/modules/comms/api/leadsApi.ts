@@ -1,5 +1,6 @@
 // src/modules/comms/api/leadsApi.ts
 import { apiClient } from '@/core/apiClient';
+import type { VehicleKind } from '@/modules/vehicles/vehicleKind';
 import type {
     BulkDeleteResult,
     BulkStatusResult,
@@ -233,9 +234,14 @@ export const leadsApi = {
     updateVehicle: async (
         leadId: string,
         vehicleBrand: string | null,
-        vehicleModel: string | null
+        vehicleModel: string | null,
+        /**
+         * Katalog, w którym serwer sprawdza markę i model. Brak = samochód, więc marka
+         * motocykla bez tego pola odbiłaby się od walidacji („Nieznana marka pojazdu").
+         */
+        vehicleKind?: VehicleKind
     ): Promise<Lead> => {
-        const { data } = await apiClient.put(`/v1/leads/${leadId}/vehicle`, { vehicleBrand, vehicleModel });
+        const { data } = await apiClient.put(`/v1/leads/${leadId}/vehicle`, { vehicleBrand, vehicleModel, vehicleKind });
         return data;
     },
 

@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { appointmentApi } from '../api/appointmentApi';
 import type { SelectedCustomer, SelectedVehicle, ServiceLineItem } from '../types';
 import { useAppointmentServices, useAppointmentColors, useCustomerVehicles } from './useAppointmentForm';
+import { normalizeVehicleKind } from '@/modules/vehicles/vehicleKind';
 
 export const useAppointmentEdit = (appointmentId: string) => {
     const navigate = useNavigate();
@@ -52,6 +53,7 @@ export const useAppointmentEdit = (appointmentId: string) => {
         const mappedVehicle: SelectedVehicle | null = appointment.vehicle
             ? {
                 id: appointment.vehicleId,
+                kind: normalizeVehicleKind(appointment.vehicle.kind),
                 brand: appointment.vehicle.brand,
                 model: appointment.vehicle.model,
                 isNew: false,
@@ -116,6 +118,7 @@ export const useAppointmentEdit = (appointmentId: string) => {
                     ? {
                         mode: 'NEW' as const,
                         newData: {
+                            kind: normalizeVehicleKind(selectedVehicle.kind),
                             brand: selectedVehicle.brand,
                             model: selectedVehicle.model,
                         },

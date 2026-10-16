@@ -246,7 +246,7 @@ describe('buildAppointmentPayload - zmiany istniejącego pojazdu', () => {
     expect(payload.vehicle).toEqual({
       mode: 'UPDATE',
       id: 'veh-1',
-      updateData: { brand: 'BMW', model: 'X6', year: 2021, licensePlate: 'WX 12345' },
+      updateData: { kind: 'CAR', brand: 'BMW', model: 'X6', year: 2021, licensePlate: 'WX 12345' },
     });
   });
 
@@ -262,6 +262,38 @@ describe('buildAppointmentPayload - zmiany istniejącego pojazdu', () => {
     const payload = buildAppointmentPayload(baseData({
       vehicle: { ...existing, licensePlate: undefined, hasUpdates: true },
     }));
+    expect(payload.vehicle).toEqual({ mode: 'EXISTING', id: 'veh-1' });
+  });
+});
+
+// Rodzaj pojazdu z szybkiego dodawania (kalendarz, „Umów wizytę" z leada). Marka i model
+// pochodzą z katalogu wybranego rodzaju; serwer bez pola zakłada samochód, więc nowy
+// motocykl bez rodzaju trafiłby do kartoteki jako auto.
+describe('buildAppointmentPayload - rodzaj pojazdu', () => {
+  it('nowy motocykl idzie z rodzajem MOTORCYCLE', () => {
+    const payload = buildAppointmentPayload(baseData({
+      vehicle: { kind: 'MOTORCYCLE', brand: 'Honda', model: 'CBR 650R', year: 2022, isNew: true },
+    }));
+
+    expect(payload.vehicle).toEqual({
+      mode: 'NEW',
+      newData: { kind: 'MOTORCYCLE', brand: 'Honda', model: 'CBR 650R', year: 2022 },
+    });
+  });
+
+  it('nowy pojazd bez rodzaju idzie jako samochód - pole jest zawsze', () => {
+    const payload = buildAppointmentPayload(baseData({
+      vehicle: { brand: 'Audi', model: 'A4', isNew: true },
+    }));
+
+    expect(payload.vehicle).toHaveProperty('newData.kind', 'CAR');
+  });
+
+  it('istniejący pojazd idzie samym id - rodzaj zna kartoteka', () => {
+    const payload = buildAppointmentPayload(baseData({
+      vehicle: { id: 'veh-1', kind: 'MOTORCYCLE', brand: 'Honda', model: 'CBR 650R', isNew: false },
+    }));
+
     expect(payload.vehicle).toEqual({ mode: 'EXISTING', id: 'veh-1' });
   });
 });

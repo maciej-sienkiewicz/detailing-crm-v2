@@ -207,13 +207,13 @@ describe('leadToBookingPrefill - klient i auto', () => {
     it('auto z kartoteki pasujące marką i modelem (bez względu na wielkość liter)', () => {
         const prefill = leadToBookingPrefill(lead({ vehicleBrand: 'bmw', vehicleModel: 'x5' }), card());
 
-        expect(prefill.vehicle).toEqual({ id: 'veh-1', brand: 'BMW', model: 'X5', year: 2021, licensePlate: 'WX 12345', isNew: false });
+        expect(prefill.vehicle).toEqual({ id: 'veh-1', kind: 'CAR', brand: 'BMW', model: 'X5', year: 2021, licensePlate: 'WX 12345', isNew: false });
     });
 
     it('auto spoza kartoteki wchodzi jako nowe', () => {
         const prefill = leadToBookingPrefill(lead({ vehicleBrand: 'Audi', vehicleModel: 'A6' }), card());
 
-        expect(prefill.vehicle).toEqual({ brand: 'Audi', model: 'A6', isNew: true });
+        expect(prefill.vehicle).toEqual({ kind: 'CAR', brand: 'Audi', model: 'A6', isNew: true });
     });
 
     it('bez rozpoznanej marki bierze jedyne auto klienta, a przy kilku - żadnego', () => {
@@ -226,6 +226,61 @@ describe('leadToBookingPrefill - klient i auto', () => {
             ],
         });
         expect(leadToBookingPrefill(lead(), twoCars).vehicle).toBeUndefined();
+    });
+
+    // Rodzaj pojazdu: marka motocykla podpowiadana z katalogu aut nie istnieje, a nowy
+    // pojazd bez rodzaju trafiłby do kartoteki jako samochód.
+    describe('rodzaj pojazdu', () => {
+        it('nowy pojazd z leada o motocykl wchodzi jako motocykl', () => {
+            const prefill = leadToBookingPrefill(
+                lead({ vehicleBrand: 'Honda', vehicleModel: 'CBR 650R', vehicleKind: 'MOTORCYCLE' }),
+                card(),
+            );
+
+            expect(prefill.vehicle).toEqual({ kind: 'MOTORCYCLE', brand: 'Honda', model: 'CBR 650R', isNew: true });
+        });
+
+        it('lead bez pola rodzaju (sprzed rodzajów) to samochód', () => {
+            const prefill = leadToBookingPrefill(lead({ vehicleBrand: 'Audi', vehicleModel: 'A6' }));
+
+            expect(prefill.vehicle?.kind).toBe('CAR');
+        });
+
+        it('pojazd z kartoteki przynosi swój rodzaj', () => {
+            const motorcycles = card({
+                vehicles: [{ id: 'moto-1', kind: 'MOTORCYCLE', brand: 'BMW', model: 'R 1250 GS', year: 2022, licensePlate: null }],
+            });
+
+            const prefill = leadToBookingPrefill(
+                lead({ vehicleBrand: 'BMW', vehicleModel: 'R 1250 GS', vehicleKind: 'MOTORCYCLE' }),
+                motorcycles,
+            );
+
+            expect(prefill.vehicle).toEqual({
+                id: 'moto-1', kind: 'MOTORCYCLE', brand: 'BMW', model: 'R 1250 GS', year: 2022, isNew: false,
+            });
+        });
+
+        it('samochód tej samej marki nie podszywa się pod motocykl z leada', () => {
+            // Z korespondencji wyszła sama marka - „BMW" - i rodzaj. Klient ma w kartotece
+            // BMW X5. Bez rodzaju w dopasowaniu rezerwacja na motocykl poszłaby na auto.
+            const prefill = leadToBookingPrefill(
+                lead({ vehicleBrand: 'BMW', vehicleModel: null, vehicleKind: 'MOTORCYCLE' }),
+                card(),
+            );
+
+            expect(prefill.vehicle).toEqual({ kind: 'MOTORCYCLE', brand: 'BMW', model: '', isNew: true });
+        });
+
+        it('bez marki jedyny pojazd klienta przynosi swój rodzaj', () => {
+            const onlyMotorcycle = card({
+                vehicles: [{ id: 'moto-1', kind: 'MOTORCYCLE', brand: 'Yamaha', model: 'MT-07', year: null, licensePlate: null }],
+            });
+
+            expect(leadToBookingPrefill(lead(), onlyMotorcycle).vehicle).toMatchObject({ id: 'moto-1', kind: 'MOTORCYCLE' });
+            expect(contactToBookingPrefill({ email: 'jan@example.com', participantName: null, contactCard: onlyMotorcycle }).vehicle)
+                .toMatchObject({ id: 'moto-1', kind: 'MOTORCYCLE' });
+        });
     });
 });
 

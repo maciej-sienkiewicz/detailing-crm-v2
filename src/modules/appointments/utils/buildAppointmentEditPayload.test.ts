@@ -252,6 +252,7 @@ describe('buildAppointmentEditPayload', () => {
         expect(payload.vehicle).toEqual({
             mode: 'NEW',
             newData: {
+                kind: 'CAR',
                 brand: 'Audi',
                 model: 'A4',
                 year: 2019,
@@ -289,6 +290,26 @@ describe('buildAppointmentEditPayload', () => {
             vehicleData: { ...baseFormData().vehicleData!, id: '' },
         })!;
         expect(payload.vehicle.mode).toBe('NEW');
+    });
+
+    // Rodzaj pojazdu: marka i model pochodzą z katalogu rodzaju, a serwer bez pola
+    // przyjmuje samochód - motocykl zapisany bez niego stałby w kartotece jako auto.
+    it('rodzaj z formularza idzie w payloadzie pojazdu, istniejącego i nowego', () => {
+        const motorcycle = { ...baseFormData().vehicleData!, kind: 'MOTORCYCLE' as const, brand: 'Honda', model: 'CBR 650R' };
+
+        const update = buildAppointmentEditPayload({ ...baseFormData(), vehicleData: motorcycle })!;
+        expect(update.vehicle).toHaveProperty('updateData.kind', 'MOTORCYCLE');
+
+        const created = buildAppointmentEditPayload({ ...baseFormData(), vehicleData: motorcycle, isNewVehicle: true })!;
+        expect(created.vehicle).toHaveProperty('newData.kind', 'MOTORCYCLE');
+    });
+
+    it('nowy pojazd bez rodzaju idzie jako samochód, istniejący bez rodzaju - bez pola (bez zmian)', () => {
+        const created = buildAppointmentEditPayload({ ...baseFormData(), isNewVehicle: true })!;
+        expect(created.vehicle).toHaveProperty('newData.kind', 'CAR');
+
+        const untouched = JSON.parse(JSON.stringify(buildAppointmentEditPayload(baseFormData())));
+        expect(untouched.vehicle.updateData).not.toHaveProperty('kind');
     });
 
     it('brak tablicy rejestracyjnej zamienia się na undefined, nie na pusty string', () => {
@@ -500,7 +521,7 @@ describe('buildAppointmentEditPayload', () => {
         expect(payload.appointmentColorId).toBe('color-2');
         expect(payload.vehicle).toEqual({
             mode: 'NEW',
-            newData: { brand: 'Audi', model: 'A4', year: 2019, licensePlate: 'WA12345', color: 'czarny' },
+            newData: { kind: 'CAR', brand: 'Audi', model: 'A4', year: 2019, licensePlate: 'WA12345', color: 'czarny' },
         });
         expect(payload.internalNote).toBe('Nowa notatka');
         expect(payload.protocolNote).toBe('Nowy protokół');

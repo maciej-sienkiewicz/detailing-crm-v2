@@ -6,6 +6,7 @@ import { useToast } from '@/common/components/Toast';
 import { useCapability } from '@/modules/subscription';
 import { useCustomerVehicles, useCustomerSearch as useAppointmentCustomerSearch } from '@/modules/appointments/hooks/useAppointmentForm';
 import type { SelectedCustomer, SelectedVehicle, RecurrenceRuleRequest } from '@/modules/appointments/types';
+import { DEFAULT_VEHICLE_KIND, normalizeVehicleKind, type VehicleKind } from '@/modules/vehicles/vehicleKind';
 import { pickInitialColorId } from '@/modules/appointment-colors';
 import { appointmentColorApi } from '@/modules/appointment-colors/api/appointmentColorApi';
 import { useDebounce } from '@/common/hooks';
@@ -99,6 +100,9 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
 
     // ─── Vehicle state ─────────────────────────────────────────────────────────
     const [selectedVehicle, setSelectedVehicle] = useState<SelectedVehicle | null>(null);
+    // Rodzaj pól marki i modelu: z niego BrandSelect/ModelSelect biorą katalog. Nowy
+    // pojazd startuje jako samochód, wybrany z listy przynosi swój rodzaj.
+    const [vehicleKind, setVehicleKind] = useState<VehicleKind>(DEFAULT_VEHICLE_KIND);
     const [vehicleBrand, setVehicleBrand] = useState('');
     const [vehicleModel, setVehicleModel] = useState('');
     const [vehicleYear, setVehicleYear] = useState('');
@@ -337,7 +341,9 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         ) {
             vehicleAutoSelectedRef.current = true;
             const v = vehicles[0];
-            setSelectedVehicle({ id: v.id, brand: v.brand ?? '', model: v.model ?? '', year: v.year, licensePlate: v.licensePlate ?? null, isNew: false });
+            const kind = normalizeVehicleKind(v.kind);
+            setSelectedVehicle({ id: v.id, kind, brand: v.brand ?? '', model: v.model ?? '', year: v.year, licensePlate: v.licensePlate ?? null, isNew: false });
+            setVehicleKind(kind);
             setVehicleBrand(v.brand ?? '');
             setVehicleModel(v.model ?? '');
             setVehicleYear(v.year ? String(v.year) : '');
@@ -388,6 +394,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         setCustomerEditMode(false);
         prefillAwaitingConfirmRef.current = false;
         setShowCustomerDropdown(false);
+        setVehicleKind(DEFAULT_VEHICLE_KIND);
         setVehicleBrand('');
         setVehicleModel('');
         setVehicleYear('');
@@ -442,6 +449,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         if (initialData.vehicle) {
             const v = initialData.vehicle;
             setSelectedVehicle(v);
+            setVehicleKind(normalizeVehicleKind(v.kind));
             setVehicleBrand(v.brand || '');
             setVehicleModel(v.model || '');
             setVehicleYear(v.year ? String(v.year) : '');
@@ -648,7 +656,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         // bez kliknięcia „gotowe".
         const vehicleToSubmit = (selectedVehicle && vehicleEditMode ? applyVehicleEdits(selectedVehicle) : selectedVehicle) ?? (
             (isAddingNewVehicle || vehicles.length === 0) && (vehicleBrand.trim() || vehicleModel.trim())
-                ? { id: '', brand: vehicleBrand.trim(), model: vehicleModel.trim(), year: vehicleYear.trim() ? parseInt(vehicleYear.trim()) : undefined, isNew: true as const }
+                ? { id: '', kind: vehicleKind, brand: vehicleBrand.trim(), model: vehicleModel.trim(), year: vehicleYear.trim() ? parseInt(vehicleYear.trim()) : undefined, isNew: true as const }
                 : null
         );
         try {
@@ -772,6 +780,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         setSelectedCustomer({ id: '', firstName: fn, lastName: ln, phone: ph, email: em, isNew: true });
         setSelectedCustomerId(undefined);
         setSelectedVehicle(null);
+        setVehicleKind(DEFAULT_VEHICLE_KIND);
         setVehicleBrand('');
         setVehicleModel('');
         setVehicleYear('');
@@ -872,9 +881,21 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         const mo = vehicleModel.trim();
         const yr = vehicleYear.trim();
         if (!br && !mo) return;
-        setSelectedVehicle({ id: '', brand: br, model: mo, year: yr ? parseInt(yr) : undefined, isNew: true });
+        setSelectedVehicle({ id: '', kind: vehicleKind, brand: br, model: mo, year: yr ? parseInt(yr) : undefined, isNew: true });
         setShowVehicleDropdown(false);
         setIsAddingNewVehicle(false);
+    };
+
+    /**
+     * Przełącznik „Samochód / Motocykl". Zmiana rodzaju czyści markę i model, tak jak
+     * zmiana marki czyści model: obie wartości pochodzą z katalogu poprzedniego rodzaju
+     * i w nowym mogą nie istnieć (BMW samochodu i BMW motocykla mają inne modele).
+     */
+    const changeVehicleKind = (kind: VehicleKind) => {
+        if (kind === vehicleKind) return;
+        setVehicleKind(kind);
+        setVehicleBrand('');
+        setVehicleModel('');
     };
 
     const handleEnterVehicleEditMode = () => {
@@ -889,9 +910,11 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         const brand = vehicleBrand.trim();
         const model = vehicleModel.trim();
         const year = vehicleYear.trim() ? parseInt(vehicleYear.trim()) : undefined;
-        const changed = brand !== vehicle.brand || model !== vehicle.model || year !== vehicle.year;
+        const changed = vehicleKind !== normalizeVehicleKind(vehicle.kind)
+            || brand !== vehicle.brand || model !== vehicle.model || year !== vehicle.year;
         return {
             ...vehicle,
+            kind: vehicleKind,
             brand,
             model,
             year,
@@ -907,6 +930,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
 
     const handleCancelVehicleEdit = () => {
         if (selectedVehicle) {
+            setVehicleKind(normalizeVehicleKind(selectedVehicle.kind));
             setVehicleBrand(selectedVehicle.brand ?? '');
             setVehicleModel(selectedVehicle.model ?? '');
             setVehicleYear(selectedVehicle.year ? String(selectedVehicle.year) : '');
@@ -918,6 +942,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         setSelectedCustomer(customer);
         setSelectedCustomerId(customer.id);
         setSelectedVehicle(null);
+        setVehicleKind(DEFAULT_VEHICLE_KIND);
         setVehicleBrand('');
         setVehicleModel('');
         setVehicleYear('');
@@ -933,7 +958,11 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     };
 
     const handleVehicleSelect = (vehicle: SelectedVehicle) => {
-        setSelectedVehicle(vehicle);
+        // Wybrany pojazd przynosi swój rodzaj - pola marki i modelu (tryb edycji, telefon)
+        // podpowiadają wtedy z jego katalogu, a nie z katalogu aut.
+        const kind = normalizeVehicleKind(vehicle.kind);
+        setSelectedVehicle({ ...vehicle, kind });
+        setVehicleKind(kind);
         setVehicleBrand(vehicle.brand ?? '');
         setVehicleModel(vehicle.model ?? '');
         setVehicleYear(vehicle.year ? String(vehicle.year) : '');
@@ -1093,6 +1122,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
 
         // Vehicle
         selectedVehicle, setSelectedVehicle,
+        vehicleKind, setVehicleKind, changeVehicleKind,
         vehicleBrand, setVehicleBrand,
         vehicleModel, setVehicleModel,
         vehicleYear, setVehicleYear,

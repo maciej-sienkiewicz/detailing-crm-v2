@@ -30,6 +30,7 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { EmptyState } from '@/common/components/EmptyState';
 import { Button } from '@/common/components/ui';
 import { useCanEditAppointment } from '../hooks/useCanEditAppointment';
+import { normalizeVehicleKind } from '@/modules/vehicles/vehicleKind';
 
 const SmsSeparator = styled.div`
     height: 1px;
@@ -190,6 +191,9 @@ const AppointmentEditForm = () => {
             vehicleData: appointment.vehicle
                 ? {
                     id: appointment.vehicleId,
+                    // Rodzaj z rezerwacji: bez niego formularz pokazałby motocykl jako
+                    // samochód, a zapis przestawiłby go w kartotece na auto.
+                    kind: normalizeVehicleKind(appointment.vehicle.kind),
                     brand: appointment.vehicle.brand,
                     model: appointment.vehicle.model,
                     yearOfProduction: appointment.vehicle.year,

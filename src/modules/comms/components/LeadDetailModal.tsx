@@ -51,6 +51,7 @@ import {
     History,
     Loader2,
     MessagesSquare,
+    Motorbike,
     PanelLeftClose,
     PanelLeftOpen,
     PhoneCall,
@@ -78,6 +79,8 @@ import { EditableServicesTable } from '@/modules/checkin/components/EditableServ
 import type { ServiceLineItem } from '@/common/components/ServicesTable';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { CarLogoImage } from '@/modules/vehicles/components/CarLogoImage';
+import { VehicleKindSwitch } from '@/modules/vehicles/components/VehicleKindSwitch';
+import { normalizeVehicleKind, type VehicleKind } from '@/modules/vehicles/vehicleKind';
 import { BookingFlowModal } from '@/modules/calendar';
 import { usePersonalDataActions } from '@/core/permissions';
 import { useToast } from '@/common/components/Toast';
@@ -1348,7 +1351,8 @@ export function LeadDetailModal({
     const [editingServices, setEditingServices] = useState<ServiceLineItem[] | null>(null);
     // null = podgląd, obiekt = edycja pojazdu. Marka i model wybierane z katalogu,
     // bo wpisane ręcznie „bèemka" psułaby wyszukiwanie tak samo jak surowy tekst z LLM-a.
-    const [editingVehicle, setEditingVehicle] = useState<{ brand: string; model: string } | null>(null);
+    // Rodzaj wybiera katalog obu pól - motocyklowe BMW ma inne modele niż samochodowe.
+    const [editingVehicle, setEditingVehicle] = useState<{ kind: VehicleKind; brand: string; model: string } | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     // „Kontakt poza pocztą": rozmowa czy SMS to kontakt, nie notatka — pyta o niego
     // osobne okno, bo notatka przy nim jest opcjonalna.
@@ -1485,6 +1489,7 @@ export function LeadDetailModal({
                 leadId,
                 vehicleBrand: editingVehicle.brand || null,
                 vehicleModel: editingVehicle.model || null,
+                vehicleKind: editingVehicle.kind,
             },
             {
                 onSuccess: () => {
@@ -1544,6 +1549,8 @@ export function LeadDetailModal({
     if (!lead) return null;
 
     const closed = CLOSED_STATUSES.has(lead.status);
+    // Lead sprzed rodzajów nie ma pola - to samochód.
+    const leadVehicleKind = normalizeVehicleKind(lead.vehicleKind);
     // Jedna reguła dla całego modułu, z progami studia. Obejmuje też leady bez
     // wątku - telefon, formularz, wpis ręczny - które wcześniej nie miały tu nic
     // do pokazania, mimo że klient czekał tak samo.
@@ -1674,6 +1681,7 @@ export function LeadDetailModal({
                                           : 'Kliknij, żeby dodać pojazd'
                                 }
                                 onClick={() => setEditingVehicle({
+                                    kind: leadVehicleKind,
                                     brand: lead.vehicleBrand ?? '',
                                     model: lead.vehicleModel ?? '',
                                 })}
@@ -1681,7 +1689,9 @@ export function LeadDetailModal({
                                 {lead.vehicleDetectionStatus === 'PENDING' && editingVehicle === null ? (
                                     <Loader2 className="spin" />
                                 ) : lead.vehicleBrand ? (
-                                    <CarLogoImage brand={lead.vehicleBrand} size="md" />
+                                    <CarLogoImage brand={lead.vehicleBrand} kind={leadVehicleKind} size="md" />
+                                ) : leadVehicleKind === 'MOTORCYCLE' ? (
+                                    <Motorbike />
                                 ) : (
                                     <Car />
                                 )}
@@ -1875,15 +1885,25 @@ export function LeadDetailModal({
                             pasek i zepchnęły kwotę na drugą linię. */}
                         {editingVehicle !== null && (
                             <Panel>
-                                <h4><Car /> Pojazd</h4>
+                                <h4>{editingVehicle.kind === 'MOTORCYCLE' ? <Motorbike /> : <Car />} Pojazd</h4>
+                                {/* Rodzaj nad marką: zmiana czyści markę i model, bo obie
+                                    wartości pochodzą z katalogu poprzedniego rodzaju. */}
+                                <VehicleKindSwitch
+                                    value={editingVehicle.kind}
+                                    onChange={(kind) => {
+                                        if (kind !== editingVehicle.kind) setEditingVehicle({ kind, brand: '', model: '' });
+                                    }}
+                                />
                                 {/* Ten sam wybierak co przy przyjęciu pojazdu i w rezerwacji:
                                     wyszukiwarka w rozwijanej liście zamiast natywnego <select>
                                     z kilkuset markami, których nie da się przefiltrować. */}
                                 <VehiclePickers>
                                     <BrandSelect
+                                        kind={editingVehicle.kind}
                                         value={editingVehicle.brand}
                                         placeholder="Marka…"
                                         onChange={(brand) => setEditingVehicle({
+                                            kind: editingVehicle.kind,
                                             brand,
                                             // Zmiana marki zeruje model: modele są per marka,
                                             // a zostawiony stary nie przeszedłby walidacji.
@@ -1891,10 +1911,12 @@ export function LeadDetailModal({
                                         })}
                                     />
                                     <ModelSelect
+                                        kind={editingVehicle.kind}
                                         brand={editingVehicle.brand}
                                         value={editingVehicle.model}
                                         placeholder="Model…"
                                         onChange={(model) => setEditingVehicle({
+                                            kind: editingVehicle.kind,
                                             brand: editingVehicle.brand,
                                             model,
                                         })}
