@@ -22,6 +22,7 @@ import styled from 'styled-components';
 import { useQueryClient } from '@tanstack/react-query';
 import { ServicesTable } from '@/common/components/ServicesTable';
 import type { SaveServiceData } from '@/common/components/ServicesTable';
+import { PRICE_SCOPES, type PriceScope } from '@/common/components/ServicePriceModal';
 import { ServiceAutocomplete } from './ServiceAutocomplete';
 import { ServiceCatalogPanel } from './ServiceCatalogPanel';
 import { ManualPriceModal } from './ManualPriceModal';
@@ -85,9 +86,13 @@ export interface EditableServicesTableProps {
      * na cały komponent; przy węższym oknie i tak cofa się do pola.
      */
     layout?: 'stacked' | 'split';
+    /** Gdzie obowiązuje cena pozycji: przyjęcie pojazdu to wizyta, lead - wycena. */
+    scope?: PriceScope;
 }
 
-export const EditableServicesTable = ({ services, onChange, layout = 'stacked' }: EditableServicesTableProps) => {
+export const EditableServicesTable = ({
+    services, onChange, layout = 'stacked', scope = PRICE_SCOPES.visit,
+}: EditableServicesTableProps) => {
     const queryClient = useQueryClient();
 
     const handleSaveService = useCallback(async (serviceId: string, data: SaveServiceData): Promise<string | null> => {
@@ -170,7 +175,7 @@ export const EditableServicesTable = ({ services, onChange, layout = 'stacked' }
     };
 
     const table = (
-        <ServicesTable services={services} onChange={onChange} onSaveService={handleSaveService} />
+        <ServicesTable services={services} onChange={onChange} onSaveService={handleSaveService} scope={scope} />
     );
 
     const stacked = (

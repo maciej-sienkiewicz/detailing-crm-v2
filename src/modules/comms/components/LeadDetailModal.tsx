@@ -76,6 +76,7 @@ import {
     ModalTitleGroup,
 } from '@/common/components/ModalKit';
 import { EditableServicesTable } from '@/modules/checkin/components/EditableServicesTable';
+import { PRICE_SCOPES } from '@/common/components/ServicePriceModal';
 import type { ServiceLineItem } from '@/common/components/ServicesTable';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { CarLogoImage } from '@/modules/vehicles/components/CarLogoImage';
@@ -2047,6 +2048,7 @@ export function LeadDetailModal({
                                             <EditableServicesTable
                                                 services={editingServices}
                                                 onChange={setEditingServices}
+                                                scope={PRICE_SCOPES.quote}
                                                 /* Cennik jako panel obok tabeli. Pole z podpowiedziami
                                                    wymaga, żeby wiedzieć, czego się szuka - a przy wycenie
                                                    zapytania częściej się PRZEGLĄDA, co warsztat robi,

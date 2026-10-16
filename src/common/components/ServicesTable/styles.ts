@@ -186,23 +186,6 @@ export const EditButton = styled.button`
     svg { width: 13px; height: 13px; }
 `;
 
-export const DiscountButton = styled.button<{ $active?: boolean }>`
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 7px;
-    border: none;
-    background: ${p => p.$active ? '#fef3c7' : 'transparent'};
-    color: ${p => p.$active ? '#d97706' : '#b0bec5'};
-    cursor: pointer;
-    transition: all 150ms ease;
-
-    &:hover { background: #fef3c7; color: #d97706; }
-    svg { width: 13px; height: 13px; }
-`;
-
 export const IconButton = styled.button<{ $active?: boolean }>`
     width: 28px;
     height: 28px;
@@ -928,4 +911,80 @@ export const ServicesBlock = styled.div<{ $narrow?: boolean }>`
     &:focus-within { border-color: #bae6fd; }
 
     ${p => p.$narrow && narrowLayout}
+`;
+
+/*
+ * Wiersz z klikalną ceną. Kolumna brutto jest szersza (mieści ołówek i kwotę
+ * pięciocyfrową), a kolumna akcji węższa - zostały w niej dwa przyciski: notatka
+ * i menu ⋯. Osobny komponent, bo ServiceItemRow dzieli też okno usług zleceń
+ * zbiorczych, które ma swój układ (CLAUDE.md §2).
+ *
+ * Zapytanie medialne jest powtórzone: reguła tego komponentu stoi w arkuszu po
+ * regule bazowej, więc bez niego wygrywałaby z bazowym układem telefonu.
+ */
+const PRICED_COLUMNS = '1fr 74px 52px 108px 64px';
+
+export const PricedTableHeader = styled(ServicesTableHeader)`
+    grid-template-columns: ${PRICED_COLUMNS};
+`;
+
+export const PricedItemRow = styled(ServiceItemRow)`
+    grid-template-columns: ${PRICED_COLUMNS};
+
+    @media (max-width: 639px) {
+        grid-template-columns: 1fr auto;
+    }
+`;
+
+/**
+ * Cena, w którą się klika - wzór z PriceButton: ołówek widoczny zawsze, przerywana
+ * ramka marki po najechaniu na wiersz. Klik otwiera „Cena w tej rezerwacji",
+ * a nie cennik.
+ */
+export const PriceCellButton = styled.button`
+    justify-self: end;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    padding: 4px 7px;
+    border: 1px dashed transparent;
+    border-radius: 9px;
+    background: transparent;
+    font-family: inherit;
+    color: inherit;
+    cursor: pointer;
+    transition: background 150ms ease, border-color 150ms ease;
+
+    > svg { width: 12px; height: 12px; flex-shrink: 0; color: #94a3b8; }
+
+    ${ServiceItem}:hover &, &:hover, &:focus-visible {
+        border-color: #7dd3fc;
+        background: #f0f9ff;
+        > svg { color: #0369a1; }
+    }
+    &:focus-visible { outline: 2px solid #38bdf8; outline-offset: 1px; }
+
+    @media (hover: none) and (pointer: coarse) { min-height: 44px; }
+`;
+
+export const PriceCellAmounts = styled.span`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1px;
+    min-width: 0;
+`;
+
+export const PriceChangeTag = styled.span<{ $kind: 'discount' | 'surcharge' }>`
+    align-self: flex-start;
+    margin-top: 3px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.6;
+    white-space: nowrap;
+    color: ${p => p.$kind === 'discount' ? '#15803d' : '#92400e'};
+    background: ${p => p.$kind === 'discount' ? '#dcfce7' : '#fef3c7'};
 `;

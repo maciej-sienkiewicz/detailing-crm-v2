@@ -86,22 +86,35 @@ describe('ServicesTable - zbiorcza zmiana stawki VAT', () => {
     });
 });
 
+type User = ReturnType<typeof userEvent.setup>;
+
+/** Klik w cenę wiersza - jedyna droga do „Cena w tej rezerwacji". */
+const openPrice = (user: User, serviceName: string) =>
+    user.click(screen.getByRole('button', { name: new RegExp(`^Zmień cenę w tej rezerwacji: ${serviceName}`) }));
+
+/** Pozycja menu ⋯ wiersza. */
+const openMenuItem = async (user: User, serviceName: string, item: string) => {
+    await user.click(screen.getByRole('button', { name: `Więcej akcji: ${serviceName}` }));
+    await user.click(screen.getByRole('menuitem', { name: item }));
+};
+
 describe('ServicesTable - rabat na pozycji z ceną ręczną', () => {
-    it('okno rabatu pokazuje ustaloną cenę jako cenę przed rabatem, a nie 0 zł', async () => {
+    it('okno ceny pokazuje ustaloną cenę jako cenę wyjściową, a nie 0 zł', async () => {
         const { user } = renderTable([manualLine()]);
 
-        await user.click(screen.getByTitle('Edytuj rabat'));
+        await openPrice(user, 'Wycena indywidualna');
 
-        const before = within(screen.getByText('Cena przed rabatem').parentElement!);
-        expect(before.getByText('1544.72 zł')).toBeInTheDocument();
-        expect(before.getByText('1900.00 zł')).toBeInTheDocument();
+        const base = within(screen.getByText('Cena ustalona ręcznie').parentElement!);
+        expect(base.getByText(/^1\s?900,00 zł$/)).toBeInTheDocument();
+        expect(base.getByText(/1\s?544,72 zł netto/)).toBeInTheDocument();
     });
 
     it('rabat 10% liczy się od ustalonej ceny, a cena przechodzi do bazy z dokładnym brutto', async () => {
         const { onChange, user } = renderTable([manualLine()]);
 
-        await user.click(screen.getByTitle('Edytuj rabat'));
-        await user.click(screen.getByRole('button', { name: 'Procent' }));
+        await openPrice(user, 'Wycena indywidualna');
+        await user.click(screen.getByRole('button', { name: 'Rabat' }));
+        await user.click(screen.getByRole('button', { name: '%' }));
         await user.type(screen.getByPlaceholderText('0'), '10');
         await user.click(screen.getByRole('button', { name: 'Zastosuj' }));
 
@@ -112,11 +125,27 @@ describe('ServicesTable - rabat na pozycji z ceną ręczną', () => {
         });
     });
 
-    it('„Usuń rabat" zostawia cenę 1900,00 zł, a nie robi z pozycji usługi za 0 zł', async () => {
-        const { onChange, user } = renderTable([manualLine()]);
+    it('pozycja z ceną ręczną bez zmiany nie ma znacznika ani przycisku powrotu', async () => {
+        const { user } = renderTable([manualLine()]);
 
-        await user.click(screen.getByTitle('Edytuj rabat'));
-        await user.click(screen.getByRole('button', { name: 'Usuń rabat' }));
+        expect(screen.queryByText(/^(Rabat|Dopłata) /)).not.toBeInTheDocument();
+        await openPrice(user, 'Wycena indywidualna');
+        expect(screen.queryByRole('button', { name: 'Usuń zmianę ceny' })).not.toBeInTheDocument();
+    });
+
+    it('„Usuń zmianę ceny" zostawia cenę 1900,00 zł, a nie robi z pozycji usługi za 0 zł', async () => {
+        // Stan po rabacie na pozycji z ceną ręczną: ustalona cena siedzi już w bazie.
+        const discounted: ServiceLineItem = {
+            ...manualLine(),
+            basePriceNet: NET,
+            basePriceGross: GROSS,
+            requireManualPrice: true,
+            adjustment: { type: 'PERCENT', value: -10 },
+        };
+        const { onChange, user } = renderTable([discounted]);
+
+        await openPrice(user, 'Wycena indywidualna');
+        await user.click(screen.getByRole('button', { name: 'Usuń zmianę ceny' }));
 
         expect(lastLines(onChange)[0]).toMatchObject({
             basePriceNet: NET,
@@ -142,16 +171,117 @@ describe('ServicesTable - rabat na pozycji z ceną ręczną', () => {
     });
 });
 
-describe('ServicesTable - „Edytuj pozycję"', () => {
+describe('ServicesTable - „Cena w tej rezerwacji" nie rusza cennika', () => {
+    it('„Ustal cenę" 1900,00 zł brutto: dokładnie 190000 gr, cennik nie jest wołany', async () => {
+        const onSaveService = vi.fn();
+        const { onChange, user } = renderTable([catalogLine()], onSaveService);
+
+        await openPrice(user, 'Mycie zewnętrzne');
+        const gross = screen.getByLabelText('Brutto');
+        await user.clear(gross);
+        await user.type(gross, '1900');
+        // Netto liczy się z brutta raz - i to brutto zostaje, nie odtworzone z netta.
+        expect(screen.getByLabelText('Netto')).toHaveValue('1544,72');
+        await user.click(screen.getByRole('button', { name: 'Zastosuj' }));
+
+        expect(onSaveService).not.toHaveBeenCalled();
+        expect(lastLines(onChange)[0]).toMatchObject({
+            serviceId: 'svc-net',
+            basePriceNet: 10_000,
+            basePriceGross: 12_300,
+            adjustment: { type: 'SET_GROSS', value: GROSS },
+        });
+    });
+
+    it('„Dopłata" 300 zł brutto do 1900,00 zł daje równo 2200,00 zł brutto', async () => {
+        const { onChange, user } = renderTable([typedGrossLine()]);
+
+        await openPrice(user, 'Powłoka ceramiczna');
+        await user.click(screen.getByRole('button', { name: 'Dopłata' }));
+        await user.type(screen.getByPlaceholderText('0'), '300');
+        expect(screen.getByText(/Drożej o 300,00 zł/)).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'Zastosuj' }));
+
+        expect(lastLines(onChange)[0]).toMatchObject({
+            basePriceNet: NET,
+            basePriceGross: GROSS,
+            adjustment: { type: 'SET_GROSS', value: 220_000 },
+        });
+    });
+
+    it('„Dopłata" 10% zapisuje procent na plus', async () => {
+        const { onChange, user } = renderTable([catalogLine()]);
+
+        await openPrice(user, 'Mycie zewnętrzne');
+        await user.click(screen.getByRole('button', { name: 'Dopłata' }));
+        await user.click(screen.getByRole('button', { name: '%' }));
+        await user.type(screen.getByPlaceholderText('0'), '10');
+        await user.click(screen.getByRole('button', { name: 'Zastosuj' }));
+
+        expect(lastLines(onChange)[0].adjustment).toEqual({ type: 'PERCENT', value: 10 });
+    });
+
+    it('wiersz mówi, co się stało z ceną: dopłata i rabat mają swoje słowa', () => {
+        renderTable([
+            { ...typedGrossLine(), adjustment: { type: 'SET_GROSS', value: 220_000 } },
+            { ...catalogLine(), adjustment: { type: 'PERCENT', value: -10 } },
+        ]);
+
+        expect(screen.getByText(/^Dopłata 300,00 zł$/)).toBeInTheDocument();
+        expect(screen.getByText('Rabat 10%')).toBeInTheDocument();
+    });
+
+    it('okno ma jeden wypełniony przycisk - „Zastosuj" (CLAUDE.md §2)', async () => {
+        const { user } = renderTable([catalogLine()]);
+
+        await openPrice(user, 'Mycie zewnętrzne');
+
+        const dialog = screen.getByRole('dialog', { name: 'Cena w tej rezerwacji' });
+        const filled = dialog.querySelectorAll('[data-variant="primary"]');
+        expect(filled).toHaveLength(1);
+        expect(filled[0]).toHaveTextContent('Zastosuj');
+        expect(within(dialog).getByText(/Cennik zostaje bez zmian/)).toBeInTheDocument();
+    });
+});
+
+describe('ServicesTable - menu ⋯ wiersza', () => {
+    it('usługa z cennika ma „Zmień w cenniku…", z ostrzeżeniem w oknie', async () => {
+        const { user } = renderTable([catalogLine()]);
+
+        await openMenuItem(user, 'Mycie zewnętrzne', 'Zmień w cenniku…');
+
+        expect(screen.getByText('Zmiana dla wszystkich kolejnych klientów')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Zapisz w cenniku' })).toBeInTheDocument();
+    });
+
+    it('usługa spoza cennika nie ma „Zmień w cenniku…"', async () => {
+        const { user } = renderTable([{ ...catalogLine(), id: 'temp-1', serviceId: 'temp-1' }]);
+
+        await user.click(screen.getByRole('button', { name: 'Więcej akcji: Mycie zewnętrzne' }));
+
+        expect(screen.queryByRole('menuitem', { name: 'Zmień w cenniku…' })).not.toBeInTheDocument();
+        expect(screen.getByRole('menuitem', { name: 'Edytuj usługę…' })).toBeInTheDocument();
+    });
+
+    it('„Usuń z rezerwacji" usuwa pozycję', async () => {
+        const { onChange, user } = renderTable([catalogLine(), typedGrossLine()]);
+
+        await openMenuItem(user, 'Mycie zewnętrzne', 'Usuń z rezerwacji');
+
+        expect(lastLines(onChange)).toEqual([typedGrossLine()]);
+    });
+});
+
+describe('ServicesTable - „Zmień w cenniku"', () => {
     it('wyczyszczone brutto czyści też netto - „Zapisz" nie wysyła połowy pary sprzed zmiany', async () => {
         const { onChange, onSaveService, user } = renderTable([typedGrossLine()]);
 
-        await user.click(screen.getByTitle('Edytuj pozycję'));
+        await openMenuItem(user, 'Powłoka ceramiczna', 'Zmień w cenniku…');
         await user.clear(screen.getByDisplayValue('1900,00'));
 
         expect(screen.queryByDisplayValue('1544,72')).not.toBeInTheDocument();
 
-        await user.click(screen.getByRole('button', { name: 'Zapisz' }));
+        await user.click(screen.getByRole('button', { name: 'Zapisz w cenniku' }));
 
         expect(screen.getByText('Podaj poprawną cenę')).toBeInTheDocument();
         expect(onSaveService).not.toHaveBeenCalled();
@@ -162,13 +292,13 @@ describe('ServicesTable - „Edytuj pozycję"', () => {
         const onSaveService = vi.fn().mockResolvedValue(null);
         const { onChange, user } = renderTable([{ ...catalogLine() }], onSaveService);
 
-        await user.click(screen.getByTitle('Edytuj pozycję'));
+        await openMenuItem(user, 'Mycie zewnętrzne', 'Zmień w cenniku…');
         const grossField = screen.getByDisplayValue('123,00');
         await user.clear(grossField);
         await user.type(grossField, '1900');
         expect(screen.getByDisplayValue('1544,72')).toBeInTheDocument();
 
-        await user.click(screen.getByRole('button', { name: 'Zapisz' }));
+        await user.click(screen.getByRole('button', { name: 'Zapisz w cenniku' }));
 
         expect(onSaveService).toHaveBeenCalledWith('svc-net', expect.objectContaining({
             basePriceNet: NET,
@@ -178,7 +308,7 @@ describe('ServicesTable - „Edytuj pozycję"', () => {
     });
 });
 
-describe('ServicesTable - „Edytuj pozycję" na usłudze spoza cennika', () => {
+describe('ServicesTable - „Edytuj usługę" na usłudze spoza cennika', () => {
     // Stan z produkcji: szybka rezerwacja w kalendarzu, usługa założona w locie
     // (QuickServiceModal bez zapisu do cennika) dostaje id `temp-<Date.now()>`, a pozycja
     // - to samo id jako lineId i serviceId (useQuickEventForm.handleQuickServiceCreate).
@@ -196,7 +326,7 @@ describe('ServicesTable - „Edytuj pozycję" na usłudze spoza cennika', () => 
         const onSaveService = vi.fn().mockRejectedValue(new Error('400 Invalid UUID string'));
         const { onChange, user } = renderTable([tempLine()], onSaveService);
 
-        await user.click(screen.getByTitle('Edytuj pozycję'));
+        await openMenuItem(user, 'powłoka na felgi', 'Edytuj usługę…');
         const grossField = screen.getByDisplayValue('900,00');
         await user.clear(grossField);
         await user.type(grossField, '1900');
@@ -205,7 +335,7 @@ describe('ServicesTable - „Edytuj pozycję" na usłudze spoza cennika', () => 
         expect(onSaveService).not.toHaveBeenCalled();
         expect(screen.queryByText('Nie udało się zapisać. Spróbuj ponownie.')).not.toBeInTheDocument();
         // Okno się zamknęło, a pozycja niesie dokładną parę - 1900,00 zł brutto, nie 1900,01.
-        expect(screen.queryByText('Edytuj pozycję')).not.toBeInTheDocument();
+        expect(screen.queryByText('Edytuj usługę')).not.toBeInTheDocument();
         expect(lastLines(onChange)[0]).toMatchObject({
             id: 'temp-1790326470364',
             serviceId: 'temp-1790326470364',
@@ -218,7 +348,7 @@ describe('ServicesTable - „Edytuj pozycję" na usłudze spoza cennika', () => 
         const onSaveService = vi.fn();
         const { onChange, user } = renderTable([tempLine()], onSaveService);
 
-        await user.click(screen.getByTitle('Edytuj pozycję'));
+        await openMenuItem(user, 'powłoka na felgi', 'Edytuj usługę…');
         const nameField = screen.getByDisplayValue('powłoka na felgi');
         await user.clear(nameField);
         await user.type(nameField, 'Powłoka na felgi 4 szt.');
@@ -232,11 +362,11 @@ describe('ServicesTable - „Edytuj pozycję" na usłudze spoza cennika', () => 
         const onSaveService = vi.fn().mockResolvedValue(null);
         const { user } = renderTable([catalogLine()], onSaveService);
 
-        await user.click(screen.getByTitle('Edytuj pozycję'));
+        await openMenuItem(user, 'Mycie zewnętrzne', 'Zmień w cenniku…');
         const grossField = screen.getByDisplayValue('123,00');
         await user.clear(grossField);
         await user.type(grossField, '1900');
-        await user.click(screen.getByRole('button', { name: 'Zapisz' }));
+        await user.click(screen.getByRole('button', { name: 'Zapisz w cenniku' }));
 
         expect(onSaveService).toHaveBeenCalledTimes(1);
     });

@@ -443,12 +443,12 @@ describe('EditableServicesTable', () => {
             requireManualPrice: true,
         });
 
-        it('pozwala nadać rabat - przycisk rabatu jest dostępny', () => {
+        it('pozwala nadać rabat - cena w wierszu otwiera okno ceny', () => {
             // Po zapisaniu ceny ręcznej pozycja zachowuje się jak każda inna:
             // można jej nadać rabat. Wcześniej cena wpisana ręcznie „ginęła" do zera
             // i rabat nie miał od czego liczyć - to jest sprawdzenie, że już ma.
             renderTable([manualLine()]);
-            expect(screen.getByTitle('Dodaj rabat')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /^Zmień cenę w tej wizycie: Usługa niestandardowa/ })).toBeInTheDocument();
         });
 
         it('pokazuje wpisaną cenę netto i brutto w tabeli', () => {

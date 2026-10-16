@@ -26,6 +26,7 @@ import {
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { EditableServicesTable } from '@/modules/checkin/components/EditableServicesTable';
+import { PRICE_SCOPES } from '@/common/components/ServicePriceModal';
 import type { ServiceLineItem } from '@/common/components/ServicesTable';
 import { useToast } from '@/common/components/Toast';
 import { useMarkThreadAsLead, useUpdateLeadServices } from '../hooks/useLeads';
@@ -128,7 +129,7 @@ export function ReplyDraftOfferModal({ threadId, lead, onClose, onReady }: Reply
                         />
                     </SuggestionsBox>
                 )}
-                <EditableServicesTable services={lines} onChange={setLines} />
+                <EditableServicesTable services={lines} onChange={setLines} scope={PRICE_SCOPES.quote} />
             </ModalContent>
             <ModalFooter>
                 <Total>

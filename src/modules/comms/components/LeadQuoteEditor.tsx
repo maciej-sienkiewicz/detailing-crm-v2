@@ -20,6 +20,7 @@ import {
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { EditableServicesTable } from '@/modules/checkin/components/EditableServicesTable';
+import { PRICE_SCOPES } from '@/common/components/ServicePriceModal';
 import type { ServiceLineItem } from '@/common/components/ServicesTable';
 import { Button } from '@/common/components/ui';
 import { useToast } from '@/common/components/Toast';
@@ -105,7 +106,7 @@ export function LeadQuoteEditor({ lead, subtitle, onClose }: LeadQuoteEditorProp
                 </Suggestions>
                 {/* Cennik jako panel obok tabeli - przy wycenie zapytania częściej się
                     przegląda, co warsztat robi, niż szuka pozycji z nazwy. */}
-                <EditableServicesTable services={lines} onChange={setLines} layout="split" />
+                <EditableServicesTable services={lines} onChange={setLines} layout="split" scope={PRICE_SCOPES.quote} />
             </ModalContent>
             <ModalFooter>
                 <Total>
