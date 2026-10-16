@@ -23,8 +23,12 @@ import {
 } from '@/common/components/Form';
 import { useIssueRevenueInvoice } from '../hooks/useKsefRevenue';
 import { formatMoney, inputValueToGrosze } from '../utils/formatters';
-import { invoiceDraftTotals } from '../utils/invoiceDraftTotals';
+import { invoiceDraftTotals, type InvoicePriceMode } from '../utils/invoiceDraftTotals';
 import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
+import { validatePolishNip } from '@/common/utils/validators';
+import { localIsoDate } from '@/common/utils/localDate';
+import { Segmented } from '@/common/components/ui';
+import { apiErrorMessage } from '@/modules/visits/api/apiError';
 import type { RevenueVatRate } from '../types';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -63,7 +67,7 @@ const ItemsTable = styled.div`
 
 const ItemRow = styled.div`
   display: grid;
-  grid-template-columns: minmax(160px, 2.2fr) 70px 90px 110px 90px 32px;
+  grid-template-columns: minmax(160px, 2.2fr) 70px 80px 110px 90px 32px;
   gap: 8px;
   align-items: center;
 
@@ -82,6 +86,34 @@ const ItemHeaderRow = styled(ItemRow)`
   @media (max-width: 639px) {
     display: none;
   }
+`;
+
+/**
+ * Podpis pola widoczny tylko na telefonie: nagłówek tabeli znika poniżej 640 px, a dwie
+ * kwoty bez podpisu (testy na telefonie) nie mówiły, która jest netto, a która brutto.
+ */
+const CellLabel = styled.span`
+  display: none;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: ${(p) => p.theme.colors.textSecondary};
+
+  @media (max-width: 639px) { display: block; margin-bottom: 3px; }
+`;
+
+const Cell = styled.div`
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+`;
+
+const PriceModeRow = styled.div`
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  font-size: 13px;
+  color: ${(p) => p.theme.colors.textSecondary};
 `;
 
 const RemoveBtn = styled.button`
@@ -145,11 +177,12 @@ const PaidToggleRow = styled.label`
 interface ItemDraft {
   name:     string;
   quantity: string;
-  price:    string;   // netto w PLN (input)
+  unit:     string;
+  price:    string;   // PLN (input) - netto albo brutto, wg wyboru „Ceny wpisuję"
   vatRate:  RevenueVatRate;
 }
 
-const emptyItem = (): ItemDraft => ({ name: '', quantity: '1', price: '', vatRate: '23' });
+const emptyItem = (): ItemDraft => ({ name: '', quantity: '1', unit: 'szt.', price: '', vatRate: '23' });
 
 const PAYMENT_FORMS = [
   { value: 'GOTOWKA', label: 'Gotówka' },
@@ -182,11 +215,20 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({ isOpen, on
   const [isPaid, setIsPaid]           = useState(true);
   const [dueDate, setDueDate]         = useState('');
   const [saleDate, setSaleDate]       = useState('');
+  const [issueDate, setIssueDate]     = useState(localIsoDate());
+  // Którą cenę wpisuje użytkownik. Dopóki nie wybierze sam, idzie za nabywcą: firmie
+  // zwykle podaje się netto, konsumentowi brutto. Wpisane brutto zostaje co do grosza
+  // (CLAUDE.md §1) - wcześniej okno znało tylko netto i 1900,00 zł było nieosiągalne.
+  const [priceModeChoice, setPriceModeChoice] = useState<InvoicePriceMode | null>(null);
+  const priceMode: InvoicePriceMode = priceModeChoice ?? (buyerType === 'B2B' ? 'NET' : 'GROSS');
   const [exemptionBasis, setExemptionBasis] = useState('');
   const [error, setError]             = useState<string | null>(null);
 
-  // Cena wpisywana w netto - brutto liczy wspólne netToGross (utils/invoiceDraftTotals).
-  const totals = useMemo(() => invoiceDraftTotals(items), [items]);
+  // Sumy liczone tym samym wzorem co na serwerze (utils/invoiceDraftTotals).
+  const totals = useMemo(
+    () => invoiceDraftTotals(items.map((item) => ({ ...item, mode: priceMode }))),
+    [items, priceMode]
+  );
 
   const hasExempt = items.some((i) => i.vatRate === 'zw');
 
@@ -196,7 +238,8 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({ isOpen, on
   const reset = () => {
     setBuyerType('B2B'); setNip(''); setBuyerName(''); setAddress1(''); setAddress2('');
     setEmail(''); setItems([emptyItem()]); setPaymentForm('GOTOWKA'); setIsPaid(true);
-    setDueDate(''); setSaleDate(''); setExemptionBasis(''); setError(null);
+    setDueDate(''); setSaleDate(''); setIssueDate(localIsoDate()); setPriceModeChoice(null);
+    setExemptionBasis(''); setError(null);
   };
 
   const handleClose = () => { reset(); onClose(); };
@@ -204,12 +247,16 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({ isOpen, on
   const validate = (): string | null => {
     if (buyerType === 'B2B' && !/^\d{10}$/.test(nip.replace(/[^0-9]/g, '')))
       return 'NIP nabywcy musi mieć 10 cyfr';
+    // Faktura trafia do KSeF na konto podatnika o tym NIP-ie: literówka wysłałaby ją do obcej firmy.
+    if (buyerType === 'B2B' && !validatePolishNip(nip))
+      return 'NIP nabywcy ma błędną sumę kontrolną - sprawdź cyfry';
+    if (!issueDate) return 'Podaj datę wystawienia';
     if (buyerType === 'B2C' && !buyerName.trim())
       return 'Podaj imię i nazwisko nabywcy';
     if (items.length === 0) return 'Dodaj co najmniej jedną pozycję';
     for (const [i, item] of items.entries()) {
       if (!item.name.trim()) return `Pozycja ${i + 1}: podaj nazwę usługi`;
-      if (inputValueToGrosze(item.price) <= 0) return `Pozycja ${i + 1}: podaj cenę netto`;
+      if (inputValueToGrosze(item.price) <= 0) return `Pozycja ${i + 1}: podaj cenę ${priceMode === 'GROSS' ? 'brutto' : 'netto'}`;
       if ((parseFloat(item.quantity.replace(',', '.')) || 0) <= 0) return `Pozycja ${i + 1}: podaj ilość`;
     }
     if (hasExempt && !exemptionBasis.trim())
@@ -234,11 +281,16 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({ isOpen, on
           email:        email.trim() || undefined,
         },
         items: items.map((item) => ({
-          name:         item.name.trim(),
-          quantity:     parseFloat(item.quantity.replace(',', '.')) || 1,
-          unitPriceNet: inputValueToGrosze(item.price),
-          vatRate:      item.vatRate,
+          name:     item.name.trim(),
+          unit:     item.unit.trim() || 'szt.',
+          quantity: parseFloat(item.quantity.replace(',', '.')) || 1,
+          // Wpisana cena idzie w swoim trybie - serwer liczy drugą stronę tym samym wzorem.
+          ...(priceMode === 'GROSS'
+            ? { unitPriceGross: inputValueToGrosze(item.price) }
+            : { unitPriceNet: inputValueToGrosze(item.price) }),
+          vatRate:  item.vatRate,
         })),
+        issueDate,
         saleDate:            saleDate || undefined,
         paymentForm,
         isPaid,
@@ -246,8 +298,8 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({ isOpen, on
         exemptionLegalBasis: hasExempt ? exemptionBasis.trim() : undefined,
       });
       handleClose();
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? 'Nie udało się wystawić faktury. Spróbuj ponownie.');
+    } catch (e: unknown) {
+      setError(apiErrorMessage(e, 'Nie udało się wystawić faktury. Spróbuj ponownie.'));
     }
   };
 
@@ -321,6 +373,12 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({ isOpen, on
             </InputShell>
           </FormField>
           <FormField>
+            <FieldLabel>Data wystawienia *</FieldLabel>
+            <InputShell>
+              <BareInput value={issueDate} onChange={(e) => setIssueDate(e.target.value)} type="date" />
+            </InputShell>
+          </FormField>
+          <FormField>
             <FieldLabel>Data sprzedaży</FieldLabel>
             <InputShell>
               <BareInput value={saleDate} onChange={(e) => setSaleDate(e.target.value)} type="date" />
@@ -329,53 +387,92 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({ isOpen, on
         </FormGrid>
 
         <SectionLabel>Pozycje faktury</SectionLabel>
+        <PriceModeRow>
+          <span>Ceny wpisuję</span>
+          <Segmented
+            label="Ceny wpisuję"
+            size="sm"
+            options={[{ value: 'GROSS', label: 'Brutto' }, { value: 'NET', label: 'Netto' }]}
+            value={priceMode}
+            onChange={(mode) => setPriceModeChoice(mode as InvoicePriceMode)}
+          />
+          <span>
+            {priceMode === 'GROSS'
+              ? 'Kwota brutto zostanie na fakturze co do grosza.'
+              : 'Brutto policzymy z netto.'}
+          </span>
+        </PriceModeRow>
         <ItemsTable>
           <ItemHeaderRow>
             <span>Nazwa usługi / towaru</span>
             <span>Ilość</span>
             <span>J.m.</span>
-            <span>Cena netto</span>
+            <span>{priceMode === 'GROSS' ? 'Cena brutto' : 'Cena netto'}</span>
             <span>VAT</span>
             <span />
           </ItemHeaderRow>
           {items.map((item, index) => (
             <ItemRow key={index}>
-              <InputShell>
-                <BareInput
-                  value={item.name}
-                  onChange={(e) => updateItem(index, { name: e.target.value })}
-                  placeholder="np. Korekta lakieru + powłoka ceramiczna"
-                />
-              </InputShell>
-              <InputShell>
-                <BareInput
-                  value={item.quantity}
-                  onChange={(e) => updateItem(index, { quantity: e.target.value })}
-                  inputMode="decimal"
-                />
-              </InputShell>
-              <InputShell>
-                <BareInput value="szt." disabled readOnly />
-              </InputShell>
-              <InputShell>
-                <BareInput
-                  value={item.price}
-                  onChange={(e) => updateItem(index, { price: e.target.value })}
-                  onKeyDown={handleZeroAwareKeyDown(item.price, v => updateItem(index, { price: v }))}
-                  placeholder="0,00"
-                  inputMode="decimal"
-                />
-              </InputShell>
-              <Select
-                value={item.vatRate}
-                onChange={(e) => updateItem(index, { vatRate: e.target.value as RevenueVatRate })}
-              >
-                <option value="23">23%</option>
-                <option value="8">8%</option>
-                <option value="5">5%</option>
-                <option value="0">0%</option>
-                <option value="zw">zw.</option>
-              </Select>
+              <Cell>
+                <CellLabel>Nazwa</CellLabel>
+                <InputShell>
+                  <BareInput
+                    value={item.name}
+                    onChange={(e) => updateItem(index, { name: e.target.value })}
+                    placeholder="np. Korekta lakieru + powłoka ceramiczna"
+                    aria-label={`Nazwa pozycji ${index + 1}`}
+                  />
+                </InputShell>
+              </Cell>
+              <Cell>
+                <CellLabel>Ilość</CellLabel>
+                <InputShell>
+                  <BareInput
+                    value={item.quantity}
+                    onChange={(e) => updateItem(index, { quantity: e.target.value })}
+                    inputMode="decimal"
+                    aria-label={`Ilość pozycji ${index + 1}`}
+                  />
+                </InputShell>
+              </Cell>
+              <Cell>
+                <CellLabel>J.m.</CellLabel>
+                <InputShell>
+                  <BareInput
+                    value={item.unit}
+                    maxLength={20}
+                    onChange={(e) => updateItem(index, { unit: e.target.value })}
+                    aria-label={`Jednostka pozycji ${index + 1}`}
+                  />
+                </InputShell>
+              </Cell>
+              <Cell>
+                <CellLabel>{priceMode === 'GROSS' ? 'Cena brutto' : 'Cena netto'}</CellLabel>
+                <InputShell>
+                  <BareInput
+                    value={item.price}
+                    onChange={(e) => updateItem(index, { price: e.target.value })}
+                    onKeyDown={handleZeroAwareKeyDown(item.price, v => updateItem(index, { price: v }))}
+                    placeholder="0,00"
+                    inputMode="decimal"
+                    aria-label={`${priceMode === 'GROSS' ? 'Cena brutto' : 'Cena netto'} pozycji ${index + 1}`}
+                  />
+                </InputShell>
+              </Cell>
+              <Cell>
+                <CellLabel>VAT</CellLabel>
+                <Select
+                  value={item.vatRate}
+                  aria-label={`Stawka VAT pozycji ${index + 1}`}
+                  onChange={(e) => updateItem(index, { vatRate: e.target.value as RevenueVatRate })}
+                >
+                  <option value="23">23%</option>
+                  <option value="8">8%</option>
+                  <option value="5">5%</option>
+                  <option value="0">0%</option>
+                  <option value="zw">zw.</option>
+                </Select>
+              </Cell>
               <RemoveBtn
                 onClick={() => setItems((prev) => prev.filter((_, i) => i !== index))}
                 disabled={items.length === 1}

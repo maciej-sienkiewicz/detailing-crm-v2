@@ -69,4 +69,24 @@ describe('invoiceDraftTotals', () => {
     ];
     expect(invoiceDraftTotals(items)).toEqual(legacyTotals(items));
   });
+
+  // Testy KSeF: w oknie „Wystaw fakturę” nie dało się wystawić 1900,00 zł brutto przy 23% -
+  // netto 1544,72 dawało 1900,01, a 1544,71 dawało 1899,99. Cena wpisana w brutto zostaje.
+  it('cena brutto 1900,00 zł przy 23% zostaje 1900,00 (netto 1544,72, VAT 355,28)', () => {
+    expect(invoiceDraftTotals([{ quantity: '1', price: '1900,00', vatRate: '23', mode: 'GROSS' }]))
+      .toEqual({ net: 154472, vat: 35528, gross: 190000 });
+  });
+
+  it('brutto przy ilości: wiersz to wielokrotność ceny jednostkowej, jak na serwerze', () => {
+    // 3 × 33,33 brutto przy 23%: netto jednostkowe 27,10 (33,33 − 6,23), wiersz 81,30 / 99,99
+    expect(invoiceDraftTotals([{ quantity: '3', price: '33,33', vatRate: '23', mode: 'GROSS' }]))
+      .toEqual({ net: 8130, vat: 1869, gross: 9999 });
+  });
+
+  it('brutto przy zw i 0% nie dolicza VAT', () => {
+    expect(invoiceDraftTotals([
+      { quantity: '1', price: '300', vatRate: 'zw', mode: 'GROSS' },
+      { quantity: '2', price: '50', vatRate: '0', mode: 'GROSS' },
+    ])).toEqual({ net: 40000, vat: 0, gross: 40000 });
+  });
 });
