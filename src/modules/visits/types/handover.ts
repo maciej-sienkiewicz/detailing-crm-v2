@@ -410,7 +410,10 @@ export const toInvoicePayload = (
         buyerAddressLine1: state.buyer.addressLine1.trim() || undefined,
         buyerAddressLine2: state.buyer.addressLine2.trim() || undefined,
         buyerEmail: state.buyer.email.trim() || undefined,
-        remainderPaymentMethod: remainder > 0 ? state.remainderMethod : undefined,
+        // „Inny” to zawsze gotówka - ekran o formę zapłaty tej części nie pyta.
+        remainderPaymentMethod: remainder > 0
+            ? (state.remainderWithoutReceipt ? 'CASH' : state.remainderMethod)
+            : undefined,
         remainderWithoutReceipt: remainder > 0 && state.remainderWithoutReceipt ? true : undefined,
         exemptionLegalBasis: state.items.some(i => i.vatRate === 'zw')
             ? state.exemptionBasis.trim()

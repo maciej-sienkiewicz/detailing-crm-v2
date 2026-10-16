@@ -117,7 +117,7 @@ describe('InvoiceSection - Faktura + Inny', () => {
         expect((screen.getByLabelText('Faktura netto') as HTMLInputElement).value).toBe('8130,08');
     });
 
-    it('równanie Wizyta = Faktura + Inny i pytanie o formę zapłaty „Inny”', () => {
+    it('równanie Wizyta = Faktura + Inny, „Inny” zawsze gotówką i bez VAT - bez pytania o formę zapłaty', () => {
         renderSection(
             other({ items: [item('Powłoka ceramiczna', '8823,53', '23'), item('Tapicerka', '1176,47', '8')] }),
             1_000_000,
@@ -128,11 +128,41 @@ describe('InvoiceSection - Faktura + Inny', () => {
         expect(within(equation).getByText('Wizyta').textContent).toMatch(/17\s000,00/);
         expect(within(equation).getByText('Faktura').textContent).toMatch(/10\s000,00/);
         expect(within(equation).getByText('Inny').textContent).toMatch(/7000,00/);
-        expect(screen.getByText(/Jak klient zapłacił „Inny”/)).toBeInTheDocument();
+        expect(screen.queryByText(/Jak klient zapłacił/)).not.toBeInTheDocument();
+        expect(screen.getByText('„Inny” zapisze się jako gotówka, bez VAT.')).toBeInTheDocument();
         expect(screen.queryByText(/zgodnie z usługami wizyty/)).not.toBeInTheDocument();
     });
 
-    it('kwota równa albo wyższa od wizyty: komunikat i bez przeliczania pozycji', () => {
+    it('kwota równa kwocie wizyty: bez błędu, cała wizyta na fakturze, „Inny” nie powstaje', () => {
+        const c = controls();
+        const { unmount } = renderSection(other({ items: [item('Powłoka ceramiczna', '10000,00', '23')] }), 1_000_000, c);
+
+        const gross = screen.getByLabelText('Faktura brutto');
+        fireEvent.focus(gross);
+        fireEvent.change(gross, { target: { value: '17000,00' } });
+
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+        expect(c.setInvoiceAmount).toHaveBeenLastCalledWith(1_700_000);
+        unmount();
+
+        // Po przeliczeniu faktura = wizyta, reszty nie ma.
+        renderSection(other(), 1_700_000, controls());
+        expect(screen.getByText(/„Inny” nie powstanie/)).toBeInTheDocument();
+    });
+
+    it('netto równe netto wizyty też jest w porządku', () => {
+        const c = controls();
+        renderSection(other(), 1_700_000, c);
+
+        const net = screen.getByLabelText('Faktura netto');
+        fireEvent.focus(net);
+        fireEvent.change(net, { target: { value: '14046,68' } });
+
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+        expect(c.setInvoiceNet).toHaveBeenLastCalledWith(1_404_668);
+    });
+
+    it('kwota wyższa od wizyty: komunikat i bez przeliczania pozycji', () => {
         const c = controls();
         renderSection(other(), 1_700_000, c);
 
@@ -140,7 +170,7 @@ describe('InvoiceSection - Faktura + Inny', () => {
         fireEvent.focus(gross);
         fireEvent.change(gross, { target: { value: '18000' } });
 
-        expect(screen.getByRole('alert').textContent).toContain('musi być niższa niż kwota wizyty');
+        expect(screen.getByRole('alert').textContent).toContain('nie może być wyższa niż kwota wizyty');
         expect(c.setInvoiceAmount).not.toHaveBeenCalled();
     });
 

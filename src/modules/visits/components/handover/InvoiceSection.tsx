@@ -9,7 +9,6 @@ import { BoxRow, Divider, GhostAction, Muted, SectionProblems } from './Handover
 import { BuyerEditor } from './BuyerEditor';
 import { InvoiceItemsEditor } from './InvoiceItemsEditor';
 import { SellerPrompt } from './SellerPrompt';
-import { PaymentMethodPicker } from './PaymentMethodPicker';
 import {
     formatNip,
     invoiceNetOf,
@@ -136,20 +135,29 @@ const SplitBlock = styled.div`
     gap: 10px;
 `;
 
+// Netto i brutto zawsze obok siebie, także na telefonie: to jedna kwota w dwóch postaciach.
 const AmountGrid = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
 `;
 
 const AmountRow = styled.label`
     display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px 12px;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
     font-size: ${st.fontSm};
     font-weight: 600;
     color: ${st.text};
+`;
+
+const AmountField = styled.span`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    > input { flex: 1; min-width: 0; width: auto; }
 `;
 
 const AmountInput = styled.input<{ $invalid?: boolean }>`
@@ -297,15 +305,17 @@ export const InvoiceSection = ({
     const [amountDraft, setAmountDraft] = useState<{ field: 'net' | 'gross'; text: string } | null>(null);
     const netText = amountDraft?.field === 'net' ? amountDraft.text : toPln(invoiceNet);
     const grossText = amountDraft?.field === 'gross' ? amountDraft.text : toPln(invoiceGross);
+    // Kwota równa kwocie wizyty jest w porządku: cała wizyta idzie na fakturę, a „Inny”
+    // po prostu nie powstaje. Błąd tylko powyżej kwoty wizyty.
     const tooHigh = amountDraft !== null && (amountDraft.field === 'net'
-        ? parsePln(amountDraft.text) >= controls.visitNet
-        : parsePln(amountDraft.text) >= visitGross);
+        ? parsePln(amountDraft.text) > controls.visitNet
+        : parsePln(amountDraft.text) > visitGross);
     const onAmountChange = (field: 'net' | 'gross', value: string) => {
         if (!isPlnInput(value)) return;
         setAmountDraft({ field, text: value });
         const grosz = parsePln(value);
-        if (field === 'net' && grosz > 0 && grosz < controls.visitNet) controls.setInvoiceNet(grosz);
-        if (field === 'gross' && grosz > 0 && grosz < visitGross) controls.setInvoiceAmount(grosz);
+        if (field === 'net' && grosz > 0 && grosz <= controls.visitNet) controls.setInvoiceNet(grosz);
+        if (field === 'gross' && grosz > 0 && grosz <= visitGross) controls.setInvoiceAmount(grosz);
     };
 
     const fmt = (grosz: number) => formatCurrency(grosz / 100, currency);
@@ -415,34 +425,38 @@ export const InvoiceSection = ({
                         <AmountGrid>
                             <AmountRow>
                                 Faktura netto
-                                <AmountInput
-                                    value={netText}
-                                    inputMode="decimal"
-                                    aria-label="Faktura netto"
-                                    $invalid={tooHigh && amountDraft?.field === 'net'}
-                                    onFocus={() => setAmountDraft({ field: 'net', text: toPln(invoiceNet) })}
-                                    onChange={e => onAmountChange('net', e.target.value)}
-                                    onBlur={() => setAmountDraft(null)}
-                                />
-                                <span>zł</span>
+                                <AmountField>
+                                    <AmountInput
+                                        value={netText}
+                                        inputMode="decimal"
+                                        aria-label="Faktura netto"
+                                        $invalid={tooHigh && amountDraft?.field === 'net'}
+                                        onFocus={() => setAmountDraft({ field: 'net', text: toPln(invoiceNet) })}
+                                        onChange={e => onAmountChange('net', e.target.value)}
+                                        onBlur={() => setAmountDraft(null)}
+                                    />
+                                    <span>zł</span>
+                                </AmountField>
                             </AmountRow>
                             <AmountRow>
                                 Faktura brutto
-                                <AmountInput
-                                    value={grossText}
-                                    inputMode="decimal"
-                                    aria-label="Faktura brutto"
-                                    $invalid={tooHigh && amountDraft?.field === 'gross'}
-                                    onFocus={() => setAmountDraft({ field: 'gross', text: toPln(invoiceGross) })}
-                                    onChange={e => onAmountChange('gross', e.target.value)}
-                                    onBlur={() => setAmountDraft(null)}
-                                />
-                                <span>zł</span>
+                                <AmountField>
+                                    <AmountInput
+                                        value={grossText}
+                                        inputMode="decimal"
+                                        aria-label="Faktura brutto"
+                                        $invalid={tooHigh && amountDraft?.field === 'gross'}
+                                        onFocus={() => setAmountDraft({ field: 'gross', text: toPln(invoiceGross) })}
+                                        onChange={e => onAmountChange('gross', e.target.value)}
+                                        onBlur={() => setAmountDraft(null)}
+                                    />
+                                    <span>zł</span>
+                                </AmountField>
                             </AmountRow>
                         </AmountGrid>
                         {tooHigh && (
                             <FieldError role="alert">
-                                Faktura musi być niższa niż kwota wizyty ({fmt(visitGross)} brutto).
+                                Faktura nie może być wyższa niż kwota wizyty ({fmt(visitGross)} brutto).
                             </FieldError>
                         )}
                         <Equation aria-label="Podział kwoty wizyty">
@@ -452,17 +466,11 @@ export const InvoiceSection = ({
                             <span className="op">+</span>
                             <EquationPart>Inny<strong>{fmt(Math.max(remainder, 0))}</strong></EquationPart>
                         </Equation>
-                        {remainder > 0 ? (
-                            <>
-                                <RowLabel>Jak klient zapłacił „Inny” ({fmt(remainder)})?</RowLabel>
-                                <PaymentMethodPicker
-                                    value={state.remainderMethod}
-                                    onChange={remainderMethod => patch({ remainderMethod })}
-                                />
-                            </>
-                        ) : (
-                            <Muted>Wpisz kwotę faktury, resztę kwoty wizyty obejmie „Inny”.</Muted>
-                        )}
+                        <Muted>
+                            {remainder > 0
+                                ? '„Inny” zapisze się jako gotówka, bez VAT.'
+                                : 'Cała kwota wizyty jest na fakturze, „Inny” nie powstanie.'}
+                        </Muted>
                     </SplitBlock>
 
                     <Divider />

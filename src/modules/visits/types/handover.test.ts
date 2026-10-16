@@ -560,6 +560,12 @@ describe('toInvoicePayload', () => {
         expect(toInvoicePayload(partial, 190_000, true).remainderPaymentMethod).toBeUndefined();
     });
 
+    it('„Inny” zawsze jako gotówka, niezależnie od zapamiętanej formy reszty', () => {
+        const other = state({ items: [item()], splitRemainder: true, remainderWithoutReceipt: true, remainderMethod: 'CARD' });
+
+        expect(toInvoicePayload(other, 250_000, true).remainderPaymentMethod).toBe('CASH');
+    });
+
     it('reszta bez paragonu: flaga idzie tylko wtedy, gdy reszta istnieje', () => {
         const withoutReceipt = state({ items: [item()], splitRemainder: true, remainderWithoutReceipt: true });
 
