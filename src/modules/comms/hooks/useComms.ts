@@ -272,6 +272,12 @@ export const useMarkThreadRead = () => {
         // KAŻDYM otwarciu wiadomości, a więc przerysowanie całej lewej kolumny -
         // to był główny „mrugający" element widoku. Licznik korygujemy lokalnie,
         // bo dokładnie wiemy, o ile spadł.
+        // Lista spraw i plakietka w menu liczą „klient napisał" w rezerwacji z odczytu,
+        // więc po zapisie odczytu muszą się odświeżyć - nie czekamy na echo z gniazda.
+        // Klucz wypisany wprost: `useLeads` importuje stąd, import w drugą stronę zamknąłby cykl.
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['leads', 'list'] }, { cancelRefetch: false });
+        },
         onMutate: async (threadId) => {
             queryClient.setQueryData<CommThreadDetail>(
                 [...COMMS_THREADS_KEY, 'detail', threadId],
@@ -543,7 +549,10 @@ export function useCommsSocket(): void {
                 }
                 case 'COMM_MESSAGE_READ': {
                     const payload = event.payload as CommMessageReadPayload;
-                    batcher.add({ threadLists: true, threadId: payload.threadId });
+                    // Odczyt zmienia też sprawę: w rezerwacji przeczytana wiadomość klienta
+                    // zdejmuje „Klient napisał" i plakietkę w menu - także u innych osób
+                    // i po przeczytaniu w Outlooku.
+                    batcher.add({ threadLists: true, leads: true, threadId: payload.threadId });
                     break;
                 }
                 default:

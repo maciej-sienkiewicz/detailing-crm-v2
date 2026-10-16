@@ -67,6 +67,10 @@ export interface UrgencyInput {
     owedSince?: string | null;
     /** Ostatnia NASZA wiadomość - dowód spłaty długu. */
     lastOutboundAt?: string | null;
+    /** Rezerwacja sprawy - przy niej przeczytana wiadomość klienta nie czeka już na nas. */
+    appointmentId?: string | null;
+    /** Wszystkie wiadomości klienta przeczytane; brak = nie wiadomo, czyli nie. */
+    inboundRead?: boolean;
 }
 
 export interface LeadUrgency {
@@ -169,6 +173,16 @@ function resolveTurn(lead: UrgencyInput): { turn: LeadTurn; since: string | null
          */
         if (respondedAfter(lead.firstResponseAt, lead.waitingSince)) {
             return { turn: 'CLIENT', since: lead.firstResponseAt!, owed: false };
+        }
+        /*
+         * Sprawa z rezerwacją: wiadomość klienta czeka na nas tylko do przeczytania.
+         * Po potwierdzeniu terminu klient najczęściej pisze „dziękuję" - nie ma na co
+         * odpowiadać, a „Klient napisał" w „Rezerwacjach" i plakietka w menu wisiały
+         * bez końca, bo zdejmowała je tylko nasza odpowiedź. Przed rezerwacją przeczytane
+         * zapytanie bez odpowiedzi nadal jest nasze. Lustro LeadTurnResolver w backendzie.
+         */
+        if (lead.inboundRead && lead.appointmentId) {
+            return { turn: 'CLIENT', since: lead.waitingSince, owed: false };
         }
         return { turn: 'OURS', since: lead.waitingSince, owed: false };
     }

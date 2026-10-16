@@ -342,6 +342,12 @@ export interface Lead {
     waitingSince: string | null;
     lastInboundAt: string | null;
     lastOutboundAt: string | null;
+    /**
+     * Wszystkie wiadomości klienta przeczytane. W sprawie z rezerwacją zdejmuje
+     * „Klient napisał" (patrz `resolveTurn` w leadUrgency.ts). Brak pola = nie wiadomo,
+     * czyli jak nieprzeczytane: sprawa nie może zniknąć z kolejki po cichu.
+     */
+    inboundRead?: boolean;
     firstResponseAt: string | null;
     closedAt: string | null;
     /**

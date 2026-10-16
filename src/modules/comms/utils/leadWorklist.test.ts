@@ -123,6 +123,28 @@ describe('sekcja „Rezerwacje"', () => {
         expect(worklist.booked.title).toBe('Rezerwacje');
     });
 
+    /*
+     * Zgłoszenie z produkcji: klient po rezerwacji odpisał „dziękuję". W „Rezerwacjach"
+     * wisiało „1 klient napisał", a plakietka w menu pokazywała jedno zapytanie bez końca,
+     * bo zdejmowała je tylko nasza odpowiedź. Przeczytanie wiadomości ją zdejmuje.
+     */
+    it('w rezerwacji przeczytana wiadomość klienta przestaje czekać na nas', () => {
+        const booked = { status: 'CONFIRMED' as const, appointmentId: 'a1', lastOutboundAt: ago(DAY), firstResponseAt: ago(2 * DAY) };
+        const unread = lead({ ...booked, inboundRead: false });
+        const read = lead({ ...booked, inboundRead: true });
+
+        const worklist = buildWorklist([unread, read]);
+
+        const turnOf = (id: string) => worklist.booked.entries.find((e) => e.lead.id === id)?.urgency.turn;
+        expect(turnOf(unread.id)).toBe('OURS');
+        expect(turnOf(read.id)).toBe('CLIENT');
+    });
+
+    it('przeczytane zapytanie BEZ rezerwacji nadal czeka na nas', () => {
+        const worklist = buildWorklist([lead({ inboundRead: true })]);
+        expect(worklist.ours.entries).toHaveLength(1);
+    });
+
     it('rezerwacja nie jest „sprawą, od której zaczyna się dzień" ani zaległością', () => {
         const booked = lead({ status: 'CONFIRMED', appointmentId: 'a1', waitingSince: ago(5 * DAY) });
 
