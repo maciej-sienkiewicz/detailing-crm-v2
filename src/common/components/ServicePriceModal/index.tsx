@@ -17,7 +17,7 @@ import { useModalViewport } from '@/common/hooks';
 import { shouldAutoFocusInput } from '@/common/utils';
 import { Button, Notice, Segmented } from '@/common/components/ui';
 import {
-    baseGrossOf, counterpart, describeChange, formatPln, fromDiscount, fromSurcharge, fromTypedPrice,
+    baseAtVatRate, baseGrossOf, counterpart, describeChange, formatPln, fromDiscount, fromSurcharge, fromTypedPrice,
     initialMode, priceAfter,
     type AmountUnit, type PriceBase, type PriceMode, type TypedPrice,
 } from './priceDraft';
@@ -52,7 +52,8 @@ export interface ServicePriceModalProps {
     scope?: PriceScope;
     /** Podpis ceny wyjściowej: „Cena z cennika", „Cena ustalona ręcznie". */
     baseLabel?: string;
-    onApply: (adjustment: PriceAdjustment) => void;
+    /** Zmiana ceny i stawka VAT pozycji - stawka bez zmian, gdy nikt jej nie ruszył. */
+    onApply: (adjustment: PriceAdjustment, vatRate: number) => void;
     /** Gdy podane i cena jest zmieniona - przycisk powrotu do ceny wyjściowej. */
     onReset?: () => void;
     resetLabel?: string;
@@ -72,6 +73,10 @@ const UNITS: { value: AmountUnit; label: string }[] = [
 ];
 
 const VAT_LABEL = (rate: number) => rate === -1 ? 'zw.' : `${rate}%`;
+
+const VAT_OPTIONS = [23, 8, 5, 0, -1].map(rate => ({ value: String(rate), label: VAT_LABEL(rate) }));
+
+const NO_CHANGE: PriceAdjustment = { type: 'PERCENT', value: 0 };
 
 /** Pola zakładek „Rabat" i „Dopłata" wypełnione obecną zmianą, jeśli dotyczy tej zakładki. */
 const initialAmount = (adjustment: PriceAdjustment | null | undefined, mode: PriceMode) => {
@@ -97,9 +102,14 @@ export const ServicePriceModal = ({
     resetLabel = 'Przywróć cenę z cennika',
     onClose,
 }: ServicePriceModalProps) => {
-    const base: PriceBase = { netCents: basePriceNet, exactGrossCents: basePriceGross ?? undefined, vatRate };
-    const baseGross = baseGrossOf(base);
-    const current = priceAfter(base, adjustment ?? { type: 'PERCENT', value: 0 });
+    const [rate, setRate] = useState(vatRate);
+    const rateChanged = rate !== vatRate;
+
+    // Cena wyjściowa pokazywana jest taka, jaką ustalono (przy stawce pozycji); rabat,
+    // dopłata i podgląd liczą się od niej przestawionej na wybraną stawkę.
+    const listedBase: PriceBase = { netCents: basePriceNet, exactGrossCents: basePriceGross ?? undefined, vatRate };
+    const base = baseAtVatRate(listedBase, rate);
+    const current = priceAfter(base, adjustment ?? NO_CHANGE);
 
     const [mode, setMode] = useState<PriceMode>(() => initialMode(adjustment));
 
@@ -128,14 +138,23 @@ export const ServicePriceModal = ({
         : mode === 'discount' ? fromDiscount(discount.unit, discount.raw, base)
         : fromSurcharge(surcharge.unit, surcharge.raw, base);
 
-    const shown = draft ? priceAfter(base, draft) : current;
-    const change = describeChange(base, draft ?? adjustment);
-    const isChanged = !!adjustment && describeChange(base, adjustment).kind !== 'none';
+    // Sama zmiana stawki też jest zmianą: obecny rabat przechodzi bez zmian, a jego
+    // strona (brutto przy SET_GROSS i upuście brutto, netto przy reszcie) zostaje.
+    const effective: PriceAdjustment | null = draft ?? (rateChanged ? (adjustment ?? NO_CHANGE) : null);
 
-    const submit = () => { if (draft) onApply(draft); };
+    const shown = effective ? priceAfter(base, effective) : current;
+    const change = describeChange(base, effective ?? adjustment);
+    const isChanged = !!adjustment && describeChange(listedBase, adjustment).kind !== 'none';
+
+    // Która strona ceny przetrwała zmianę stawki - mówimy to wprost, bo od tego
+    // zależy, ile zapłaci klient.
+    const before = priceAfter(listedBase, effective ?? adjustment ?? NO_CHANGE);
+    const keptGross = shown.finalGrossCents === before.finalGrossCents;
+
+    const submit = () => { if (effective) onApply(effective, rate); };
 
     // Pola „Ustal cenę": wpisana strona pokazuje to, co wpisano; druga - pochodną.
-    const typedOther = typed ? counterpart(typed, vatRate) : null;
+    const typedOther = typed ? counterpart(typed, rate) : null;
     const netField = typed?.side === 'net' ? typed.raw
         : typed ? (typedOther !== null ? centsToInput(typedOther) : '')
         : centsToInput(current.finalNetCents);
@@ -179,11 +198,39 @@ export const ServicePriceModal = ({
                         Zmiana dotyczy tylko {scope.of}. Cennik zostaje bez zmian.
                     </Notice>
 
+                    <S.VatBlock>
+                        <S.VatHead>
+                            <S.FieldLabel as="span">Stawka VAT</S.FieldLabel>
+                            <Segmented
+                                size="sm"
+                                label="Stawka VAT"
+                                options={VAT_OPTIONS}
+                                value={String(rate)}
+                                onChange={value => setRate(Number(value))}
+                            />
+                        </S.VatHead>
+                        {rateChanged && (
+                            <S.VatHint role="status">
+                                {keptGross
+                                    ? <>Brutto zostaje <strong>{formatPln(shown.finalGrossCents)}</strong>, netto liczy się przy stawce {VAT_LABEL(rate)}.</>
+                                    : <>Netto zostaje <strong>{formatPln(shown.finalNetCents)}</strong>, brutto liczy się przy stawce {VAT_LABEL(rate)}.</>}
+                            </S.VatHint>
+                        )}
+                    </S.VatBlock>
+
+                    {/* Cena wyjściowa przy WYBRANEJ stawce: od niej liczą się rabat, dopłata
+                        i „Drożej o". Pokazana przy starej stawce mówiła „1500 zł", a różnica
+                        wychodziła od 1317,07 zł - i nikt nie wiedział, skąd 482,93 zł. */}
                     <S.BaseRow>
-                        <S.BaseLabel>{baseLabel}</S.BaseLabel>
+                        <S.BaseLabel>{rateChanged ? `${baseLabel} przy ${VAT_LABEL(rate)}` : baseLabel}</S.BaseLabel>
                         <S.BaseValue>
-                            <S.BaseGross><strong>{formatPln(baseGross)}</strong> brutto</S.BaseGross>
-                            <S.BaseNet>{formatPln(basePriceNet)} netto, VAT {VAT_LABEL(vatRate)}</S.BaseNet>
+                            <S.BaseGross><strong>{formatPln(baseGrossOf(base))}</strong> brutto</S.BaseGross>
+                            <S.BaseNet>{formatPln(base.netCents)} netto, VAT {VAT_LABEL(rate)}</S.BaseNet>
+                            {rateChanged && (
+                                <S.BaseNet>
+                                    przy {VAT_LABEL(vatRate)}: {formatPln(baseGrossOf(listedBase))} brutto
+                                </S.BaseNet>
+                            )}
                         </S.BaseValue>
                     </S.BaseRow>
 
@@ -284,7 +331,7 @@ export const ServicePriceModal = ({
                     )}
                     <S.FooterEnd>
                         <Button variant="outline" onClick={onClose}>Anuluj</Button>
-                        <Button variant="primary" onClick={submit} disabled={!draft}>Zastosuj</Button>
+                        <Button variant="primary" onClick={submit} disabled={!effective}>Zastosuj</Button>
                     </S.FooterEnd>
                 </S.Footer>
             </S.Card>

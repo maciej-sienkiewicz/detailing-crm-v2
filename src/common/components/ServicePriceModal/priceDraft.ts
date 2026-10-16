@@ -10,7 +10,7 @@
 // ukryta pod przyciskiem „Rabat" była nieużywana, a zamiast niej ludzie zmieniali
 // cennik dla wszystkich klientów przez „Edytuj pozycję".
 
-import { applyAdjustment, grossToNet, netToGross } from '@/common/utils/priceAdjustment';
+import { applyAdjustment, grossToNet, netToGross, withVatRate } from '@/common/utils/priceAdjustment';
 import type { PriceAdjustment } from '@/common/utils/priceAdjustment';
 
 export type PriceMode = 'price' | 'discount' | 'surcharge';
@@ -26,6 +26,21 @@ export interface PriceBase {
 
 export const baseGrossOf = (base: PriceBase): number =>
     base.exactGrossCents ?? netToGross(base.netCents, base.vatRate);
+
+/**
+ * Cena wyjściowa przy innej stawce VAT - wspólnym `withVatRate`, tym samym, którym
+ * tabela przestawia pozycję po „Zastosuj". Ta sama stawka nie zmienia niczego.
+ * Brutto wpisane od strony brutto zostaje, a netto liczy się od nowa; w każdym
+ * innym przypadku zostaje netto, a brutto z cennika przestaje być dokładne - cennik
+ * ustalił je przy SWOJEJ stawce (CLAUDE.md §1, `catalogLinePrice` w backendzie).
+ */
+export const baseAtVatRate = (base: PriceBase, vatRate: number): PriceBase => {
+    const line = withVatRate(
+        { basePriceNet: base.netCents, basePriceGross: base.exactGrossCents, vatRate: base.vatRate },
+        vatRate,
+    );
+    return { netCents: line.basePriceNet, exactGrossCents: line.basePriceGross ?? undefined, vatRate };
+};
 
 const parseAmount = (raw: string): number | null => {
     const value = parseFloat(raw.replace(',', '.'));

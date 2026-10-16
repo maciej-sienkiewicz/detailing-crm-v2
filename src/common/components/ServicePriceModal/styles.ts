@@ -95,12 +95,6 @@ export const Body = styled.div`
     gap: 14px;
 `;
 
-export const BaseRow = styled.div`
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 12px;
-`;
 
 export const BaseLabel = styled.span`
     font-size: 13px;
@@ -115,6 +109,20 @@ export const BaseValue = styled.span`
     gap: 2px;
     font-variant-numeric: tabular-nums;
     text-align: right;
+`;
+
+export const BaseRow = styled.div`
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+
+    @media (max-width: 400px) {
+        flex-direction: column;
+        gap: 4px;
+
+        ${BaseValue} { align-items: flex-start; text-align: left; }
+    }
 `;
 
 export const BaseGross = styled.span`
@@ -316,4 +324,33 @@ export const ResetBtn = styled.button`
 
     &:hover { color: ${ui.ink}; }
     ${touch} { min-height: 44px; }
+`;
+
+export const VatBlock = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+`;
+
+export const VatHead = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+
+    @media (max-width: 400px) {
+        > div { display: flex; width: 100%; }
+        > div > button { flex: 1 1 0; padding: 0 4px; }
+    }
+`;
+
+/** Która strona ceny została po zmianie stawki - informacja, nie ostrzeżenie. */
+export const VatHint = styled.p`
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: ${ui.textSecondary};
+
+    strong { font-weight: 700; color: ${ui.ink}; font-variant-numeric: tabular-nums; }
 `;

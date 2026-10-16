@@ -371,3 +371,65 @@ describe('ServicesTable - „Edytuj usługę" na usłudze spoza cennika', () => 
         expect(onSaveService).toHaveBeenCalledTimes(1);
     });
 });
+
+describe('ServicesTable - stawka VAT w oknie ceny', () => {
+    const dialog = () => within(screen.getByRole('dialog', { name: 'Cena w tej rezerwacji' }));
+
+    it('sama zmiana stawki przy cenie od netta: netto zostaje, brutto z cennika przestaje być dokładne', async () => {
+        const { onChange, user } = renderTable([catalogLine()]);
+
+        await openPrice(user, 'Mycie zewnętrzne');
+        await user.click(dialog().getByRole('button', { name: '8%' }));
+        expect(dialog().getByText(/Netto zostaje/)).toBeInTheDocument();
+        await user.click(dialog().getByRole('button', { name: 'Zastosuj' }));
+
+        const [line] = lastLines(onChange);
+        expect(line).toMatchObject({ vatRate: 8, basePriceNet: 10_000, adjustment: { type: 'PERCENT', value: 0 } });
+        expect(line.basePriceGross).toBeUndefined();
+    });
+
+    it('sama zmiana stawki przy cenie wpisanej jako brutto: 1900,00 zł brutto zostaje', async () => {
+        const { onChange, user } = renderTable([typedGrossLine()]);
+
+        await openPrice(user, 'Powłoka ceramiczna');
+        await user.click(dialog().getByRole('button', { name: '8%' }));
+        expect(dialog().getByText(/Brutto zostaje/)).toBeInTheDocument();
+        await user.click(dialog().getByRole('button', { name: 'Zastosuj' }));
+
+        expect(lastLines(onChange)[0]).toMatchObject({ vatRate: 8, basePriceGross: GROSS, basePriceNet: 175_926 });
+    });
+
+    it('cena i stawka naraz: wpisane 1800,00 zł brutto przy 8% zostaje co do grosza', async () => {
+        const { onChange, user } = renderTable([catalogLine()]);
+
+        await openPrice(user, 'Mycie zewnętrzne');
+        await user.click(dialog().getByRole('button', { name: '8%' }));
+        const gross = dialog().getByLabelText('Brutto');
+        await user.clear(gross);
+        await user.type(gross, '1800');
+        expect(dialog().getByLabelText('Netto')).toHaveValue('1666,67');
+        await user.click(dialog().getByRole('button', { name: 'Zastosuj' }));
+
+        expect(lastLines(onChange)[0]).toMatchObject({ vatRate: 8, adjustment: { type: 'SET_GROSS', value: 180_000 } });
+    });
+
+    it('rabat zostaje przy zmianie stawki i liczy się od netta', async () => {
+        const { onChange, user } = renderTable([{ ...catalogLine(), adjustment: { type: 'PERCENT', value: -10 } }]);
+
+        await openPrice(user, 'Mycie zewnętrzne');
+        await user.click(dialog().getByRole('button', { name: 'zw.' }));
+        await user.click(dialog().getByRole('button', { name: 'Zastosuj' }));
+
+        expect(lastLines(onChange)[0]).toMatchObject({ vatRate: -1, basePriceNet: 10_000, adjustment: { type: 'PERCENT', value: -10 } });
+    });
+
+    it('ta sama stawka i nic nie wpisano: nie ma czego zastosować', async () => {
+        const { user } = renderTable([catalogLine()]);
+
+        await openPrice(user, 'Mycie zewnętrzne');
+        await user.click(dialog().getByRole('button', { name: '8%' }));
+        await user.click(dialog().getByRole('button', { name: '23%' }));
+
+        expect(dialog().getByRole('button', { name: 'Zastosuj' })).toBeDisabled();
+    });
+});
