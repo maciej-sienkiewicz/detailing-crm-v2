@@ -2,7 +2,15 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { checkinApi } from '../api/checkinApi';
+import { checkinErrorMessage, type CheckinErrorTexts } from '../utils/checkinErrorMessage';
 import type { QRTokenResponse } from '../types';
+
+// Karta kodu QR pokazuje ten tekst obok „Odśwież kod QR"; zdjęcia z dysku działają dalej.
+const QR_ERROR_TEXTS: CheckinErrorTexts = {
+    offline: 'Brak połączenia z serwerem. Kod QR nie powstał, odśwież go za chwilę.',
+    server: 'Serwer nie utworzył kodu QR. Odśwież kod za chwilę.',
+    fallback: 'Nie udało się utworzyć kodu QR. Odśwież kod za chwilę.',
+};
 
 const REFRESH_BEFORE_EXPIRY_MS = 2 * 60 * 1000; // Refresh 2 minutes before expiry
 
@@ -78,8 +86,8 @@ export function useCheckinQRToken(appointmentId: string | undefined): UseCheckin
             setTokenData(data);
             startCountdown(data.expiresAt);
         } catch (err) {
-            const msg = err instanceof Error ? err.message : 'Błąd generowania tokena QR';
-            setError(msg);
+            // Dawniej `err.message`, czyli angielski tekst axiosa na karcie kodu QR.
+            setError(checkinErrorMessage(err, QR_ERROR_TEXTS));
         } finally {
             setIsLoading(false);
         }

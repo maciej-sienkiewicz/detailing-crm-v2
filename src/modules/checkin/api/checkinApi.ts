@@ -36,6 +36,13 @@ const toDamagePointsPayload = (damagePoints: DamagePoint[]): DamagePoint[] =>
             .map(ph => ({ photoId: ph.photoId, strokes: ph.strokes ?? [] })),
     }));
 const BASE_PATH = '/checkin';
+
+/*
+ * Zapis przyjęcia: błąd pokazuje stopka kreatora (z „Dane formularza są zachowane"),
+ * więc ogólny dymek interceptora mówiłby to samo drugi raz, bez tytułu i bez tego,
+ * co dalej. 403 interceptor i tak pokazuje zawsze - to jego świadoma reguła.
+ */
+const SHOWN_IN_WIZARD = { skipErrorToast: true } as const;
 const PHOTO_SESSIONS_PATH = '/photo-sessions';
 const MOBILE_BASE_PATH = '/mobile/checkin';
 
@@ -141,7 +148,8 @@ export const checkinApi = {
         }
         const response = await apiClient.post(
             `${BASE_PATH}/reservation-to-visit`,
-            { ...payload, damagePoints: toDamagePointsPayload(payload.damagePoints) }
+            { ...payload, damagePoints: toDamagePointsPayload(payload.damagePoints) },
+            SHOWN_IN_WIZARD,
         );
         return response.data;
     },
@@ -154,7 +162,8 @@ export const checkinApi = {
         }
         const response = await apiClient.post(
             `${BASE_PATH}/walk-in`,
-            { ...payload, damagePoints: toDamagePointsPayload(payload.damagePoints) }
+            { ...payload, damagePoints: toDamagePointsPayload(payload.damagePoints) },
+            SHOWN_IN_WIZARD,
         );
         return response.data;
     },
@@ -168,7 +177,7 @@ export const checkinApi = {
         visitId: string,
         services: WalkInVisitPayload['services'],
     ): Promise<CreateVisitFromReservationResponse> => {
-        const response = await apiClient.put(`${BASE_PATH}/drafts/${visitId}/services`, { services });
+        const response = await apiClient.put(`${BASE_PATH}/drafts/${visitId}/services`, { services }, SHOWN_IN_WIZARD);
         return response.data;
     },
 
@@ -264,10 +273,11 @@ export const checkinApi = {
         appointmentId: string,
         options?: { rotate?: boolean },
     ): Promise<QRTokenResponse> => {
+        // skipErrorToast: błąd pokazuje karta kodu QR, z przyciskiem „Odśwież kod QR".
         const response = await apiClient.post(
             `${BASE_PATH}/${appointmentId}/upload-token`,
             null,
-            { params: { rotate: options?.rotate ?? false } },
+            { params: { rotate: options?.rotate ?? false }, skipErrorToast: true },
         );
         return response.data;
     },
