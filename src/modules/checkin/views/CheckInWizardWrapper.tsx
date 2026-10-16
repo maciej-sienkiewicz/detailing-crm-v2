@@ -9,6 +9,8 @@ import { customerDetailApi } from '@/modules/customers/api/customerDetailApi';
 import { vehicleApi } from '@/modules/vehicles/api/vehicleApi';
 import { fromInstantToLocalInput } from '@/common/dateTime';
 import { toCheckInServiceLine } from '../utils/toCheckInServiceLine';
+import { checkinErrorMessage, LOAD_ERROR_TEXTS } from '../utils/checkinErrorMessage';
+import { CheckInLoadError } from '../components/CheckInLoadError';
 import type { ServiceLineItem } from '../types';
 
 const LoadingContainer = styled.div`
@@ -40,47 +42,6 @@ const LoadingText = styled.p`
     font-size: ${props => props.theme.fontSizes.lg};
     font-weight: ${props => props.theme.fontWeights.medium};
     color: ${props => props.theme.colors.text};
-`;
-
-const ErrorContainer = styled.div`
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background-color: ${props => props.theme.colors.background};
-    padding: ${props => props.theme.spacing.xl};
-    text-align: center;
-`;
-
-const ErrorIcon = styled.div`
-    width: 80px;
-    height: 80px;
-    border-radius: ${props => props.theme.radii.full};
-    background-color: ${props => props.theme.colors.errorLight};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: ${props => props.theme.spacing.lg};
-
-    svg {
-        width: 40px;
-        height: 40px;
-        color: ${props => props.theme.colors.error};
-    }
-`;
-
-const ErrorTitle = styled.h1`
-    font-size: ${props => props.theme.fontSizes.xl};
-    font-weight: ${props => props.theme.fontWeights.bold};
-    color: ${props => props.theme.colors.text};
-    margin: 0 0 ${props => props.theme.spacing.sm} 0;
-`;
-
-const ErrorMessage = styled.p`
-    font-size: ${props => props.theme.fontSizes.md};
-    color: ${props => props.theme.colors.textSecondary};
-    margin: 0;
 `;
 
 interface ReservationResponse {
@@ -139,14 +100,26 @@ export const CheckInWizardWrapper = () => {
     const { reservationId } = useParams<{ reservationId: string }>();
     const navigate = useNavigate();
 
-    const { data: reservationData, isLoading, error } = useQuery({
+    const {
+        data: reservationData,
+        isLoading,
+        error: reservationError,
+        refetch: refetchReservation,
+        isFetching: isFetchingReservation,
+    } = useQuery({
         queryKey: ['reservations', reservationId],
         queryFn: () => appointmentApi.getAppointment(reservationId!),
         enabled: !!reservationId,
         retry: 1,
     });
 
-    const { data: colors, isLoading: isLoadingColors } = useQuery({
+    const {
+        data: colors,
+        isLoading: isLoadingColors,
+        error: colorsError,
+        refetch: refetchColors,
+        isFetching: isFetchingColors,
+    } = useQuery({
         queryKey: ['appointmentColors'],
         queryFn: () => appointmentApi.getAppointmentColors(),
     });
@@ -231,35 +204,46 @@ export const CheckInWizardWrapper = () => {
         );
     }
 
-    if (error || !reservation || !colors) {
+    /*
+     * Rezerwacja i kolory to dwa różne błędy z dwoma różnymi ponowieniami. Dawniej oba
+     * kończyły się tym samym „Nie znaleziono rezerwacji" - także gdy rezerwacja wczytała
+     * się dobrze, a zawiodła tylko lista kolorów - i ekranem bez żadnego przycisku.
+     * Rozstrzyga brak danych, nie sam błąd: nieudane odświeżenie w tle zostawia dane z cache.
+     */
+    if (!reservation) {
+        return reservationError ? (
+            <CheckInLoadError
+                title={t.checkin.errors.loadReservationFailed}
+                message={checkinErrorMessage(reservationError, LOAD_ERROR_TEXTS)}
+                onRetry={() => { void refetchReservation(); }}
+                isRetrying={isFetchingReservation}
+            />
+        ) : (
+            <CheckInLoadError
+                title="Nie znaleziono rezerwacji"
+                message="Rezerwacja mogła zostać usunięta albo link jest nieaktualny. Wybierz ją jeszcze raz w kalendarzu."
+            />
+        );
+    }
+
+    if (!colors) {
         return (
-            <ErrorContainer>
-                <ErrorIcon>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </ErrorIcon>
-                <ErrorTitle>{t.checkin.errors.loadReservationFailed}</ErrorTitle>
-                <ErrorMessage>
-                    {error instanceof Error ? error.message : 'Nie znaleziono rezerwacji'}
-                </ErrorMessage>
-            </ErrorContainer>
+            <CheckInLoadError
+                title="Nie udało się wczytać kolorów wizyt"
+                message={`Kolor wizyty jest wymagany, więc bez tej listy nie da się zacząć przyjęcia. ${checkinErrorMessage(colorsError, LOAD_ERROR_TEXTS)}`}
+                onRetry={() => { void refetchColors(); }}
+                isRetrying={isFetchingColors}
+            />
         );
     }
 
     if (reservation.status !== 'CREATED' && reservation.status !== 'SCHEDULED' && reservation.status !== 'CANCELLED') {
         return (
-            <ErrorContainer>
-                <ErrorIcon>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                </ErrorIcon>
-                <ErrorTitle>Tej rezerwacji nie można przyjąć</ErrorTitle>
-                <ErrorMessage>
-                    Przyjąć można tylko rezerwację potwierdzoną albo zaplanowaną.
-                </ErrorMessage>
-            </ErrorContainer>
+            <CheckInLoadError
+                tone="warning"
+                title="Tej rezerwacji nie można przyjąć"
+                message="Przyjąć można tylko rezerwację potwierdzoną albo zaplanowaną."
+            />
         );
     }
 

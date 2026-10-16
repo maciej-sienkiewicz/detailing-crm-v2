@@ -8,6 +8,8 @@ import { t } from '@/common/i18n';
 import { pickInitialColorId } from '@/modules/appointment-colors';
 import { appointmentApi } from '@/modules/appointments';
 import { fromInstantToLocalInput } from '@/common/dateTime';
+import { checkinErrorMessage, LOAD_ERROR_TEXTS } from '../utils/checkinErrorMessage';
+import { CheckInLoadError } from '../components/CheckInLoadError';
 
 const LoadingContainer = styled.div`
     min-height: 100vh;
@@ -67,7 +69,13 @@ export const WalkInCheckInWrapper = () => {
     const prefillCustomer = state?.prefillCustomer;
     const prefillVehicle  = state?.prefillVehicle;
 
-    const { data: colors, isLoading: isLoadingColors } = useQuery({
+    const {
+        data: colors,
+        isLoading: isLoadingColors,
+        error: colorsError,
+        refetch: refetchColors,
+        isFetching: isFetchingColors,
+    } = useQuery({
         queryKey: ['appointmentColors'],
         queryFn: () => appointmentApi.getAppointmentColors(),
     });
@@ -82,6 +90,23 @@ export const WalkInCheckInWrapper = () => {
                 <Spinner />
                 <LoadingText>{t.common.loading}</LoadingText>
             </LoadingContainer>
+        );
+    }
+
+    /*
+     * Bez listy kolorów kreator startował z pustą listą (`colors ?? []`) i żądał „Wybierz
+     * kolor wizyty", którego nie dało się wybrać - przyjęcia nie dało się skończyć, a nic
+     * nie mówiło dlaczego. Nieudane odświeżenie w tle zostawia dane z cache, więc
+     * rozstrzyga brak danych.
+     */
+    if (!colors) {
+        return (
+            <CheckInLoadError
+                title="Nie udało się wczytać kolorów wizyt"
+                message={`Kolor wizyty jest wymagany, więc bez tej listy nie da się zacząć przyjęcia. ${checkinErrorMessage(colorsError, LOAD_ERROR_TEXTS)}`}
+                onRetry={() => { void refetchColors(); }}
+                isRetrying={isFetchingColors}
+            />
         );
     }
 
@@ -107,7 +132,7 @@ export const WalkInCheckInWrapper = () => {
         services: [],
         // Kolor jest polem wymaganym, więc puste pole to zawsze robota do zrobienia:
         // zaczynamy od koloru domyślnego studia.
-        appointmentColorId: pickInitialColorId(colors ?? []),
+        appointmentColorId: pickInitialColorId(colors),
         technicalState: {
             inspectionNotes: '',
         },
@@ -120,7 +145,7 @@ export const WalkInCheckInWrapper = () => {
             reservationId={undefined}
             qrSessionId={qrSessionId}
             initialData={initialData}
-            colors={colors ?? []}
+            colors={colors}
             onComplete={handleComplete}
         />
     );
