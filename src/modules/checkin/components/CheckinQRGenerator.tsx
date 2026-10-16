@@ -4,9 +4,11 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { QRCodeSVG } from 'qrcode.react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { useToast } from '@/common/components/Toast';
 import { useCheckinQRToken } from '../hooks/useCheckinQRToken';
 import { useCheckinSocket } from '../hooks/useCheckinSocket';
 import { checkinApi } from '../api/checkinApi';
+import { isNewerPhoneDamage, normalisePhoneDamagePoints } from '../utils/phoneDamage';
 import { AnnotationOverlay } from './DamagePhotoAnnotator';
 import type { CheckinPhotoUploadedEvent, CheckinDamageUpdatedEvent, DamagePoint, AnnotationStroke, PhotoSlot } from '../types';
 
@@ -286,7 +288,12 @@ interface QrPhoto {
 
 interface CheckinQRGeneratorProps {
     appointmentId?: string;
-    onDamageUpdated?: (points: DamagePoint[], vehicleType?: string | null) => void;
+    /**
+     * Stan uszkodzeń z telefonu - ze zdarzenia WebSocket albo z odczytu z serwera (przy
+     * wejściu w krok i po odzyskaniu połączenia). `savedAt` to znacznik zapisu na serwerze:
+     * odbiorca odrzuca stan, który już ma (patrz isNewerPhoneDamage).
+     */
+    onDamageUpdated?: (points: DamagePoint[], vehicleType?: string | null, savedAt?: string) => void;
     /**
      * Zdjęcia z telefonu w kształcie zdjęć przyjęcia - żeby na komputerze dało się je
      * podpiąć pod usterkę. Serwer rozpoznaje ich id przy tworzeniu wizyty.
@@ -313,6 +320,7 @@ function formatCountdown(seconds: number): string {
 export const CheckinQRGenerator = ({ appointmentId, onDamageUpdated, onPhotosChange }: CheckinQRGeneratorProps) => {
     const { tokenData, qrUrl, secondsLeft, isExpired, isLoading, error, refresh, rotate } =
         useCheckinQRToken(appointmentId);
+    const { showError } = useToast();
 
     const [photos, setPhotos] = useState<QrPhoto[]>([]);
     const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -350,8 +358,14 @@ export const CheckinQRGenerator = ({ appointmentId, onDamageUpdated, onPhotosCha
         }, 3000);
     }, []);
 
+    // Znacznik ostatniego stanu pokazanego w siatce. Odczyt wysłany przed zdarzeniem
+    // potrafi wrócić po nim - starszy stan nie może nadpisać nowszego.
+    const shownDamageAtRef = useRef<string | undefined>(undefined);
+
     const handleDamageUpdated = useCallback((event: CheckinDamageUpdatedEvent) => {
-        onDamageUpdatedRef.current?.(event.damagePoints, event.vehicleType);
+        if (!isNewerPhoneDamage(event.updatedAt, shownDamageAtRef.current)) return;
+        shownDamageAtRef.current = event.updatedAt;
+        onDamageUpdatedRef.current?.(event.damagePoints, event.vehicleType, event.updatedAt);
 
         // Index annotations by photoId for the live photo grid overlay.
         // Also learn about photos we have not seen via photo-uploaded events
@@ -373,10 +387,36 @@ export const CheckinQRGenerator = ({ appointmentId, onDamageUpdated, onPhotosCha
         setDamageByPhotoId(map);
     }, []);
 
+    const checkinId = tokenData?.checkinId ?? null;
+
+    /*
+     * Stan uszkodzeń z serwera, nie tylko ze zdarzeń. Zdarzenie przegapione przed wejściem
+     * w krok zdjęć albo przy zerwanym połączeniu nie przyjdzie już nigdy, a kreator wysłałby
+     * wtedy pustą listę - i nic z telefonu nie trafiłoby do wizyty. Odczyt idzie tą samą
+     * drogą co zdarzenie, więc formularz łączy oba tak samo.
+     */
+    const syncPhoneDamage = useCallback(async () => {
+        if (!checkinId) return;
+        const snapshot = await checkinApi.getAppointmentMobileDamagePoints(checkinId);
+        if (!snapshot) return;
+        handleDamageUpdated({
+            type: 'CHECKIN_DAMAGE_UPDATED',
+            checkinId: snapshot.checkinId,
+            damagePoints: normalisePhoneDamagePoints(snapshot.damagePoints),
+            vehicleType: snapshot.vehicleType,
+            updatedAt: snapshot.savedAt,
+        });
+    }, [checkinId, handleDamageUpdated]);
+
+    useEffect(() => {
+        void syncPhoneDamage();
+    }, [syncPhoneDamage]);
+
     useCheckinSocket({
-        checkinId: tokenData?.checkinId ?? null,
+        checkinId,
         onPhotoUploaded: handlePhotoUploaded,
         onDamageUpdated: handleDamageUpdated,
+        onReconnect: () => { void syncPhoneDamage(); },
         enabled: !!tokenData && !isExpired,
     });
 
@@ -387,7 +427,11 @@ export const CheckinQRGenerator = ({ appointmentId, onDamageUpdated, onPhotosCha
             await checkinApi.deleteCheckinPhoto(tokenData.checkinId, photoId);
             setPhotos(prev => prev.filter(p => p.photoId !== photoId));
         } catch {
-            // Silent fail: photo stays in list
+            // Dawniej bez słowa: × nic nie robiło, a zdjęcie i tak szło do wizyty.
+            showError(
+                'Nie udało się usunąć zdjęcia z telefonu',
+                'Zdjęcie zostaje w przyjęciu i trafi do wizyty. Spróbuj usunąć je ponownie za chwilę.',
+            );
         } finally {
             setDeletingId(null);
         }

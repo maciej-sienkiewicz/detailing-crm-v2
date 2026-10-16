@@ -71,6 +71,12 @@ export interface DamagePoint {
     y: number; // Percentage (0-100)
     note: string;
     photos?: DamagePointPhoto[];
+    /**
+     * Punkt zaznaczony telefonem (kod QR), tylko po stronie klienta - nigdy nie idzie do
+     * serwera (toDamagePointsPayload). Kolejny stan z telefonu zastępuje wyłącznie takie
+     * punkty, a te postawione na komputerze zostają (utils/phoneDamage).
+     */
+    fromPhone?: boolean;
 }
 
 export interface PackageItemSnapshot {
@@ -169,6 +175,13 @@ export interface CheckInFormData {
     damagePoints: DamagePoint[];
     /** Vehicle body type the damage points were placed on (sedan, suv, ...) */
     damageVehicleType?: string;
+    /**
+     * Znacznik zapisu (serwera) ostatniego stanu uszkodzeń z telefonu, który wszedł do
+     * formularza. Krok zdjęć montuje się od nowa przy każdym „Wstecz"/„Dalej" i dociąga
+     * stan z serwera - bez znacznika ten sam, stary stan cofałby zmiany zrobione potem
+     * na komputerze.
+     */
+    phoneDamageSavedAt?: string;
     services: ServiceLineItem[];
     appointmentColorId: string;
     doorToDoor?: DoorToDoorInfo;

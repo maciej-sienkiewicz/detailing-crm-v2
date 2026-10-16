@@ -336,8 +336,10 @@ export const checkinApi = {
      * Delete a QR-uploaded photo by photoId (desktop side).
      */
     deleteCheckinPhoto: async (checkinId: string, photoId: string): Promise<void> => {
+        // skipErrorToast: komunikat z tytułem pokazuje siatka zdjęć z telefonu.
         await apiClient.delete(
-            `${BASE_PATH}/${checkinId}/photos/${photoId}`
+            `${BASE_PATH}/${checkinId}/photos/${photoId}`,
+            { skipErrorToast: true },
         );
     },
 
@@ -377,13 +379,22 @@ export const checkinApi = {
     },
 
     /**
-     * Fetch damage points saved by mobile for a specific appointment (desktop side).
-     * Used by CheckInWizard to pre-populate the damage section.
+     * Uszkodzenia zapisane telefonem dla tego przyjęcia (strona komputera).
+     *
+     * Komputer dostaje je na żywo przez WebSocket, ale zdarzenie przegapione przy
+     * zerwanym połączeniu albo przed wejściem w krok zdjęć przepadało: kreator wysyłał
+     * pustą listę, a serwer dokleja zdjęcia z telefonu tylko do przysłanych punktów -
+     * więc nic z telefonu nie trafiało do wizyty. Dlatego kreator dociąga stan stąd.
+     *
+     * `null` - telefon nic jeszcze nie zapisał albo nie jest połączony (serwer odpowiada
+     * wtedy 404). To odczyt w tle, którego nikt nie kliknął: bez dymka i bez
+     * wyrzucania na logowanie (skipErrorToast, skipAuthRedirect).
      */
     getAppointmentMobileDamagePoints: async (appointmentId: string): Promise<MobileDamagePointsResponse | null> => {
         try {
             const response = await apiClient.get(
                 `${BASE_PATH}/${appointmentId}/mobile-damage-points`,
+                { skipErrorToast: true, skipAuthRedirect: true },
             );
             return response.data;
         } catch {

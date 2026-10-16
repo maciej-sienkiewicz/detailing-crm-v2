@@ -2,23 +2,20 @@
 
 import { useEffect, useRef } from 'react';
 import type { IMessage } from '@stomp/stompjs';
-import { subscribeToTopic } from '@/core/socketClient';
+import { subscribeToTopic, onSocketConnect } from '@/core/socketClient';
 import { useAuth } from '@/core';
-import type { AnnotationStroke, CheckinPhotoUploadedEvent, CheckinDamageUpdatedEvent } from '../types';
-
-/** Usterka w kształcie wiadomości WS (CheckinDamageUpdatedWsMessage po stronie serwera). */
-interface WsDamagePoint {
-    id: number;
-    x: number;
-    y: number;
-    note?: string | null;
-    photos?: { photoId: string; thumbnailUrl?: string | null; strokes?: AnnotationStroke[] }[];
-}
+import { normalisePhoneDamagePoints } from '../utils/phoneDamage';
+import type { CheckinPhotoUploadedEvent, CheckinDamageUpdatedEvent } from '../types';
 
 interface UseCheckinSocketOptions {
     checkinId: string | null;
     onPhotoUploaded: (event: CheckinPhotoUploadedEvent) => void;
     onDamageUpdated?: (event: CheckinDamageUpdatedEvent) => void;
+    /**
+     * Po ponownym połączeniu: zdarzenia z czasu przerwy nie przyjdą już nigdy, więc
+     * wywołujący dociąga stan z serwera. Samo odnowienie subskrypcji tego nie załatwia.
+     */
+    onReconnect?: () => void;
     enabled?: boolean;
 }
 
@@ -26,21 +23,24 @@ interface UseCheckinSocketOptions {
  * Subscribes to the checkin WebSocket topic.
  * Dispatches CHECKIN_PHOTO_UPLOADED and CHECKIN_DAMAGE_UPDATED messages
  * to their respective callbacks. The subscription survives reconnects
- * (handled centrally by the socket client).
+ * (handled centrally by the socket client); [onReconnect] lets the caller re-sync.
  * Topic: /topic/studio.{studioId}.checkin.{checkinId}
  */
 export function useCheckinSocket({
     checkinId,
     onPhotoUploaded,
     onDamageUpdated,
+    onReconnect,
     enabled = true,
 }: UseCheckinSocketOptions): void {
     const { isAuthenticated, user } = useAuth();
     const onPhotoUploadedRef = useRef(onPhotoUploaded);
     const onDamageUpdatedRef = useRef(onDamageUpdated);
+    const onReconnectRef = useRef(onReconnect);
     useEffect(() => {
         onPhotoUploadedRef.current = onPhotoUploaded;
         onDamageUpdatedRef.current = onDamageUpdated;
+        onReconnectRef.current = onReconnect;
     });
 
     useEffect(() => {
@@ -54,24 +54,11 @@ export function useCheckinSocket({
                 if (event.type === 'CHECKIN_PHOTO_UPLOADED') {
                     onPhotoUploadedRef.current(event as CheckinPhotoUploadedEvent);
                 } else if (event.type === 'CHECKIN_DAMAGE_UPDATED') {
-                    // Normalise note: null → '' to match frontend DamagePoint type.
-                    // Zdjęcia usterek MUSZĄ przejść dalej: dawniej ta normalizacja
-                    // wypisywała tylko id, x, y i notatkę, więc usterka z telefonu
-                    // przychodziła na komputer bez zdjęć, a podgląd oznaczeń na zdjęciach
-                    // z telefonu nie miał z czego się zbudować.
+                    // Ta sama normalizacja co przy odczycie z serwera (CheckinQRGenerator):
+                    // obie drogi muszą dać formularzowi identyczny kształt, ze zdjęciami.
                     const normalised: CheckinDamageUpdatedEvent = {
                         ...event,
-                        damagePoints: (event.damagePoints ?? []).map((p: WsDamagePoint) => ({
-                            id: p.id,
-                            x: p.x,
-                            y: p.y,
-                            note: p.note ?? '',
-                            photos: (p.photos ?? []).map(photo => ({
-                                photoId: photo.photoId,
-                                strokes: photo.strokes ?? [],
-                                thumbnailUrl: photo.thumbnailUrl ?? undefined,
-                            })),
-                        })),
+                        damagePoints: normalisePhoneDamagePoints(event.damagePoints),
                     };
                     onDamageUpdatedRef.current?.(normalised);
                 }
@@ -80,6 +67,14 @@ export function useCheckinSocket({
             }
         };
 
-        return subscribeToTopic(topic, handleMessage);
+        const unsubscribe = subscribeToTopic(topic, handleMessage);
+        const removeConnectListener = onSocketConnect(({ isReconnect }) => {
+            if (isReconnect) onReconnectRef.current?.();
+        });
+
+        return () => {
+            unsubscribe();
+            removeConnectListener();
+        };
     }, [isAuthenticated, user?.studioId, checkinId, enabled]);
 }

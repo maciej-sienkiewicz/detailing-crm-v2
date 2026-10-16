@@ -4,7 +4,10 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import { Toggle } from '@/common/components/Toggle';
 import { Button, Notice } from '@/common/components/ui';
+import { useToast } from '@/common/components/Toast';
+import { toastUnhandledError } from '@/modules/subscription/utils/apiErrors';
 import { usePhotoUpload } from '../hooks/usePhotoUpload';
+import { isNewerPhoneDamage, mergePhoneDamage } from '../utils/phoneDamage';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { CheckInFormData, DamagePoint, PhotoSlot } from '../types';
 import { VehicleDamageMapper } from './VehicleDamageMapper';
@@ -398,6 +401,7 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
         retrySession,
     } = usePhotoUpload(reservationId, qrCheckinId);
 
+    const { showError } = useToast();
     const [showDamageSection, setShowDamageSection] = useState(false);
     const [editingPhoto, setEditingPhoto] = useState<PhotoSlot | null>(null);
 
@@ -440,10 +444,15 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
         if (files.length === 0) return;
         const results = await Promise.allSettled(files.map(f => uploadPhoto(f)));
         const failed = results.filter(r => r.status === 'rejected').length;
+        // Dymek zamiast alert(): okno przeglądarki zatrzymywało cały kreator i znikało
+        // jednym kliknięciem, razem z informacją, ile zdjęć trzeba wybrać jeszcze raz.
         if (failed > 0) {
-            alert(failed === files.length
-                ? 'Nie udało się przesłać zdjęć. Wybierz je ponownie.'
-                : `Nie udało się przesłać ${failed} z ${files.length} zdjęć. Wybierz brakujące ponownie.`);
+            showError(
+                'Nie udało się przesłać zdjęć',
+                failed === files.length
+                    ? 'Żadne z wybranych zdjęć nie zostało przesłane. Wybierz je ponownie.'
+                    : `Nie przesłano ${failed} z ${files.length} zdjęć. Wybierz brakujące ponownie.`,
+            );
         }
     };
 
@@ -451,8 +460,9 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
         if (!confirm('Czy na pewno chcesz usunąć to zdjęcie?')) return;
         try {
             await deletePhoto(photoId);
-        } catch {
-            alert('Nie udało się usunąć zdjęcia. Spróbuj ponownie.');
+        } catch (error) {
+            // 4xx pokazał już interceptor - drugi dymek z tym samym zdaniem nic nie dodaje.
+            toastUnhandledError(showError, error, 'Nie udało się usunąć zdjęcia', 'Spróbuj ponownie.');
         }
     };
 
@@ -460,6 +470,20 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
         onChange(vehicleType
             ? { damagePoints: points, damageVehicleType: vehicleType }
             : { damagePoints: points });
+    };
+
+    /*
+     * Stan z telefonu (zdarzenie albo odczyt z serwera). Ten sam stan przychodzi przy
+     * każdym wejściu w krok - wczytany drugi raz cofałby zmiany zrobione potem tutaj,
+     * więc wchodzi tylko nowszy. Punkty postawione na komputerze zostają (mergePhoneDamage).
+     */
+    const handlePhoneDamage = (points: DamagePoint[], vehicleType?: string | null, savedAt?: string) => {
+        if (!isNewerPhoneDamage(savedAt, formData.phoneDamageSavedAt)) return;
+        onChange({
+            damagePoints: mergePhoneDamage(formData.damagePoints ?? [], points),
+            ...(vehicleType ? { damageVehicleType: vehicleType } : {}),
+            ...(savedAt ? { phoneDamageSavedAt: savedAt } : {}),
+        });
     };
 
     // When modal closes, persist tags locally + save to backend
@@ -569,7 +593,7 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
                     <div style={{ marginTop: 16 }}>
                         <CheckinQRGenerator
                             appointmentId={qrCheckinId}
-                            onDamageUpdated={handleDamagePointsChange}
+                            onDamageUpdated={handlePhoneDamage}
                             onPhotosChange={setPhonePhotos}
                         />
                     </div>
