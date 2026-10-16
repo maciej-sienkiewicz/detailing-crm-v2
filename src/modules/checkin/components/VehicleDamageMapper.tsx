@@ -7,7 +7,7 @@ import type { DamagePoint, DamagePointPhoto, PhotoSlot } from '../types';
 import { DamagePhotoAnnotator, AnnotationOverlay } from './DamagePhotoAnnotator';
 import {
   DEFAULT_VEHICLE_SCHEMATIC,
-  VEHICLE_SCHEMATIC_GROUPS,
+  VEHICLE_SCHEMATICS,
   resolveVehicleSchematic,
   vehicleSchematicImageUrl,
   vehicleSchematicLabel,
@@ -848,12 +848,8 @@ export const VehicleDamageMapper = ({
           value={vehicleType}
           onChange={e => setVehicleType(resolveVehicleSchematic(e.target.value))}
         >
-          {VEHICLE_SCHEMATIC_GROUPS.map(group => (
-            <optgroup key={group.label} label={group.label}>
-              {group.options.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </optgroup>
+          {VEHICLE_SCHEMATICS.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </TypeSelect>
       </TypeSelectorRow>

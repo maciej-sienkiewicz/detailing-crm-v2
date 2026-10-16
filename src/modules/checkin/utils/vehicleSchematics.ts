@@ -10,58 +10,29 @@
 
 export type VehicleSchematicType =
     | 'sedan' | 'suv' | 'hatchback' | 'kombi' | 'coupe' | 'cabrio' | 'van'
-    | 'motorcycle_sport' | 'motorcycle_naked' | 'motorcycle_cruiser' | 'motorcycle_touring'
-    | 'motorcycle_adventure' | 'motorcycle_offroad' | 'scooter'
-    | 'jetski_recreational' | 'jetski_compact' | 'jetski_standup';
+    | 'motorcycle' | 'jetski';
 
 export interface VehicleSchematicOption {
     value: VehicleSchematicType;
     label: string;
 }
 
-export interface VehicleSchematicGroup {
-    label: string;
-    options: VehicleSchematicOption[];
-}
-
-/** Grupy do `<optgroup>`: lista ma kilkanaście pozycji i bez grup trudno w niej trafić. */
-export const VEHICLE_SCHEMATIC_GROUPS: VehicleSchematicGroup[] = [
-    {
-        label: 'Samochody',
-        options: [
-            { value: 'sedan', label: 'Sedan' },
-            { value: 'suv', label: 'SUV' },
-            { value: 'hatchback', label: 'Hatchback' },
-            { value: 'kombi', label: 'Kombi' },
-            { value: 'coupe', label: 'Coupe' },
-            { value: 'cabrio', label: 'Kabriolet' },
-            { value: 'van', label: 'Van' },
-        ],
-    },
-    {
-        label: 'Motocykle i skutery',
-        options: [
-            { value: 'motorcycle_sport', label: 'Motocykl sportowy' },
-            { value: 'motorcycle_naked', label: 'Motocykl naked' },
-            { value: 'motorcycle_cruiser', label: 'Cruiser / chopper' },
-            { value: 'motorcycle_touring', label: 'Motocykl turystyczny' },
-            { value: 'motorcycle_adventure', label: 'Motocykl adventure' },
-            { value: 'motorcycle_offroad', label: 'Cross / enduro' },
-            { value: 'scooter', label: 'Skuter' },
-        ],
-    },
-    {
-        label: 'Skutery wodne',
-        options: [
-            { value: 'jetski_recreational', label: 'Skuter wodny rekreacyjny' },
-            { value: 'jetski_compact', label: 'Skuter wodny kompaktowy' },
-            { value: 'jetski_standup', label: 'Skuter wodny stojący' },
-        ],
-    },
+/*
+ * Motocykl i skuter wodny mają po jednym schemacie, bez podziału na rodzaje
+ * (sportowy, cruiser, stojący...) - decyzja biznesu: do wskazania miejsca rysy
+ * jeden rysunek wystarcza, a dłuższa lista tylko utrudnia wybór.
+ */
+export const VEHICLE_SCHEMATICS: VehicleSchematicOption[] = [
+    { value: 'sedan', label: 'Sedan' },
+    { value: 'suv', label: 'SUV' },
+    { value: 'hatchback', label: 'Hatchback' },
+    { value: 'kombi', label: 'Kombi' },
+    { value: 'coupe', label: 'Coupe' },
+    { value: 'cabrio', label: 'Kabriolet' },
+    { value: 'van', label: 'Van' },
+    { value: 'motorcycle', label: 'Motocykl' },
+    { value: 'jetski', label: 'Skuter wodny' },
 ];
-
-export const VEHICLE_SCHEMATICS: VehicleSchematicOption[] =
-    VEHICLE_SCHEMATIC_GROUPS.flatMap(group => group.options);
 
 /** Schemat, gdy żaden nie został wybrany - tak było przed wyborem typu i tak zostaje. */
 export const DEFAULT_VEHICLE_SCHEMATIC: VehicleSchematicType = 'sedan';

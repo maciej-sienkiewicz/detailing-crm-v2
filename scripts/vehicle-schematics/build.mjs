@@ -31,6 +31,8 @@ const TICK = 14;       // o ile znacznik osi schodzi pod podłoże
 const STROKES = { x: 2.6, o: 2.0, d: 1.2, t: 0.8 };
 const COLORS = { x: '#1c2026', o: '#1f2329', d: '#3d444d', t: '#8a919b' };
 
+fs.mkdirSync(path.join(ROOT, 'out'), { recursive: true });
+
 const keys = process.argv.slice(2);
 if (keys.length === 0) {
   console.error('usage: node build.mjs <key> [...]');

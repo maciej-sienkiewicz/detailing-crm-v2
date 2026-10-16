@@ -7,7 +7,7 @@ import type { DamagePoint, DamagePointPhoto } from '../../types';
 import type { MobileDamageLogic } from './useMobileDamageLogic';
 import { DamagePhotoAnnotator, AnnotationOverlay } from '../../components/DamagePhotoAnnotator';
 import {
-    VEHICLE_SCHEMATIC_GROUPS,
+    VEHICLE_SCHEMATICS,
     resolveVehicleSchematic,
     vehicleSchematicImageUrl,
     vehicleSchematicLabel,
@@ -209,12 +209,8 @@ export const MobileDamageSection = ({ logic }: Props) => {
                     value={resolveVehicleSchematic(vehicleType)}
                     onChange={e => setVehicleType(e.target.value)}
                 >
-                    {VEHICLE_SCHEMATIC_GROUPS.map(group => (
-                        <optgroup key={group.label} label={group.label}>
-                            {group.options.map(opt => (
-                                <option key={opt.value} value={opt.value}>{opt.label}</option>
-                            ))}
-                        </optgroup>
+                    {VEHICLE_SCHEMATICS.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
                 </VehicleTypeSelect>
             </VehicleTypeSelectorRow>

@@ -28,9 +28,10 @@ describe('vehicleSchematics', () => {
         expect(vehicleSchematicImageUrl('../../etc')).toBe('/assets/sedan.webp');
     });
 
-    it('typy jednośladów i skuterów wodnych mają własne grafiki i nazwy', () => {
-        expect(vehicleSchematicImageUrl('motorcycle_sport')).toBe('/assets/motorcycle_sport.webp');
-        expect(vehicleSchematicImageUrl('jetski_standup')).toBe('/assets/jetski_standup.webp');
-        expect(vehicleSchematicLabel('scooter')).toBe('Skuter');
+    it('motocykl i skuter wodny mają własne grafiki i nazwy', () => {
+        expect(vehicleSchematicImageUrl('motorcycle')).toBe('/assets/motorcycle.webp');
+        expect(vehicleSchematicImageUrl('jetski')).toBe('/assets/jetski.webp');
+        expect(vehicleSchematicLabel('motorcycle')).toBe('Motocykl');
+        expect(vehicleSchematicLabel('jetski')).toBe('Skuter wodny');
     });
 });

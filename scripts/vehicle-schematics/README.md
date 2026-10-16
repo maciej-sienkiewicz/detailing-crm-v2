@@ -1,6 +1,6 @@
-# Schematy jednośladów i skuterów wodnych do mapy uszkodzeń
+# Schematy motocykla i skutera wodnego do mapy uszkodzeń
 
-Źródła rysunków `public/assets/motorcycle_*.webp`, `scooter.webp` i `jetski_*.webp`
+Źródła rysunków `public/assets/motorcycle.webp` i `jetski.webp`
 (oraz ich kopii PNG w backendzie: `src/main/resources/images/vehicle/`). Rysunki są
 wektorowe i parametryczne: każdy model to skrypt w `models/`, który rysuje widoki
 w prawdziwych wymiarach (milimetry), a `build.mjs` składa z nich arkusz 768×768.
@@ -21,10 +21,10 @@ Wymaga Pythona 3 i Playwrighta z Chromium (jest w `devDependencies`).
 
 ```sh
 cd scripts/vehicle-schematics
-./make.sh motorcycle_sport               # models/<klucz>.py -> out/<klucz>.png + wycinki widoków
+./make.sh motorcycle                     # models/<klucz>.py -> out/<klucz>.png + wycinki widoków
 node export.mjs ../../public/assets \
   ../../../automotive-crm-v2-backend/src/main/resources/images/vehicle \
-  motorcycle_sport                       # WebP 1536 px dla frontu, PNG 768 px dla backendu
+  motorcycle                             # WebP 1536 px dla frontu, PNG 768 px dla backendu
 ```
 
 Gdy Playwright zgłasza brak swojej przeglądarki, a jakiś Chromium jest pod ręką:
