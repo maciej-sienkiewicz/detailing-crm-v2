@@ -16,6 +16,7 @@
 import interLatinUrl from '@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url';
 import interLatinExtUrl from '@fontsource-variable/inter/files/inter-latin-ext-wght-normal.woff2?url';
 import type { DamagePoint, ServiceLineItem, Visit, VisitDamageMapResponse } from '../types';
+import { vehicleSchematicImageUrl } from '@/modules/checkin/utils/vehicleSchematics';
 
 export interface ServicesListPrintData {
     visitNumber: string;
@@ -54,13 +55,9 @@ export type VisitForServicesListPrint = Pick<
     | 'technicalNotes' | 'mileageAtArrival' | 'services'
 >;
 
-const VEHICLE_BODY_TYPES = ['cabrio', 'coupe', 'hatchback', 'kombi', 'sedan', 'suv', 'van'] as const;
-
 /** Ta sama sylwetka co w VehicleDamageMapper; nieznany typ = sedan, jak w edytorze. */
-export const damageMapImagePath = (vehicleType: string | null | undefined): string => {
-    const type = (VEHICLE_BODY_TYPES as readonly string[]).includes(vehicleType ?? '') ? vehicleType : 'sedan';
-    return `/assets/${type}.webp`;
-};
+export const damageMapImagePath = (vehicleType: string | null | undefined): string =>
+    vehicleSchematicImageUrl(vehicleType);
 
 const escapeHtml = (value: string): string =>
     value

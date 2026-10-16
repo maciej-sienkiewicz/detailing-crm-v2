@@ -7,6 +7,12 @@ import type { DamagePoint, DamagePointPhoto } from '../../types';
 import type { MobileDamageLogic } from './useMobileDamageLogic';
 import { DamagePhotoAnnotator, AnnotationOverlay } from '../../components/DamagePhotoAnnotator';
 import {
+    VEHICLE_SCHEMATIC_GROUPS,
+    resolveVehicleSchematic,
+    vehicleSchematicImageUrl,
+    vehicleSchematicLabel,
+} from '../../utils/vehicleSchematics';
+import {
     SaveStatusBadge,
     DamageMapperWrap,
     DiagramCard,
@@ -38,18 +44,6 @@ import {
     DamagePhotoHint,
     HiddenInput,
 } from './MobilePhotoUpload.styles';
-
-// ─── Vehicle types ─────────────────────────────────────────────────────────────
-
-const VEHICLE_BODY_TYPES: { value: string; label: string }[] = [
-    { value: 'sedan',    label: 'Sedan'     },
-    { value: 'suv',      label: 'SUV'       },
-    { value: 'hatchback',label: 'Hatchback' },
-    { value: 'kombi',    label: 'Kombi'     },
-    { value: 'coupe',    label: 'Coupe'     },
-    { value: 'cabrio',   label: 'Kabriolet' },
-    { value: 'van',      label: 'Van'       },
-];
 
 interface Props {
     logic: MobileDamageLogic;
@@ -209,14 +203,18 @@ export const MobileDamageSection = ({ logic }: Props) => {
 
             {/* Vehicle type selector */}
             <VehicleTypeSelectorRow>
-                <VehicleTypeLabel htmlFor="mobile-vehicle-body-type">Typ nadwozia:</VehicleTypeLabel>
+                <VehicleTypeLabel htmlFor="mobile-vehicle-body-type">Typ pojazdu:</VehicleTypeLabel>
                 <VehicleTypeSelect
                     id="mobile-vehicle-body-type"
-                    value={vehicleType}
+                    value={resolveVehicleSchematic(vehicleType)}
                     onChange={e => setVehicleType(e.target.value)}
                 >
-                    {VEHICLE_BODY_TYPES.map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    {VEHICLE_SCHEMATIC_GROUPS.map(group => (
+                        <optgroup key={group.label} label={group.label}>
+                            {group.options.map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                        </optgroup>
                     ))}
                 </VehicleTypeSelect>
             </VehicleTypeSelectorRow>
@@ -225,8 +223,8 @@ export const MobileDamageSection = ({ logic }: Props) => {
             <DiagramCard>
                 <VehicleImage
                     ref={imageRef}
-                    src={`/assets/${vehicleType}.webp`}
-                    alt={`Schemat pojazdu - ${VEHICLE_BODY_TYPES.find(t => t.value === vehicleType)?.label}`}
+                    src={vehicleSchematicImageUrl(vehicleType)}
+                    alt={`Schemat pojazdu: ${vehicleSchematicLabel(vehicleType)}`}
                     draggable={false}
                     onContextMenu={e => e.preventDefault()}
                 />

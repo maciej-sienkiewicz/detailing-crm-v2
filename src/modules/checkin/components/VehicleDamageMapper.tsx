@@ -5,22 +5,14 @@ import type { ReactNode } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import type { DamagePoint, DamagePointPhoto, PhotoSlot } from '../types';
 import { DamagePhotoAnnotator, AnnotationOverlay } from './DamagePhotoAnnotator';
-
-// ─── Vehicle types ────────────────────────────────────────────────────────────
-
-type VehicleBodyType = 'cabrio' | 'coupe' | 'hatchback' | 'kombi' | 'sedan' | 'suv' | 'van';
-
-const VEHICLE_BODY_TYPES: { value: VehicleBodyType; label: string }[] = [
-    { value: 'sedan',    label: 'Sedan'     },
-    { value: 'suv',      label: 'SUV'       },
-    { value: 'hatchback',label: 'Hatchback' },
-    { value: 'kombi',    label: 'Kombi'     },
-    { value: 'coupe',    label: 'Coupe'     },
-    { value: 'cabrio',   label: 'Kabriolet' },
-    { value: 'van',      label: 'Van'       },
-];
-
-const vehicleImageUrl = (type: VehicleBodyType) => `/assets/${type}.webp`;
+import {
+  DEFAULT_VEHICLE_SCHEMATIC,
+  VEHICLE_SCHEMATIC_GROUPS,
+  resolveVehicleSchematic,
+  vehicleSchematicImageUrl,
+  vehicleSchematicLabel,
+} from '../utils/vehicleSchematics';
+import type { VehicleSchematicType } from '../utils/vehicleSchematics';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -704,9 +696,9 @@ export const VehicleDamageMapper = ({
   onUploadPhotoFile,
   renderQrPanel,
 }: VehicleDamageMapperProps) => {
-  const [vehicleTypeLocal, setVehicleTypeLocal] = useState<VehicleBodyType>('sedan');
-  const vehicleType = (vehicleTypeProp ?? vehicleTypeLocal) as VehicleBodyType;
-  const setVehicleType = (type: VehicleBodyType) => {
+  const [vehicleTypeLocal, setVehicleTypeLocal] = useState<VehicleSchematicType>(DEFAULT_VEHICLE_SCHEMATIC);
+  const vehicleType = resolveVehicleSchematic(vehicleTypeProp ?? vehicleTypeLocal);
+  const setVehicleType = (type: VehicleSchematicType) => {
     setVehicleTypeLocal(type);
     onVehicleTypeChange?.(type);
   };
@@ -850,14 +842,18 @@ export const VehicleDamageMapper = ({
     <Container>
       {/* Vehicle type selector */}
       <TypeSelectorRow>
-        <TypeLabel htmlFor="vehicle-body-type">Typ nadwozia:</TypeLabel>
+        <TypeLabel htmlFor="vehicle-body-type">Typ pojazdu:</TypeLabel>
         <TypeSelect
           id="vehicle-body-type"
           value={vehicleType}
-          onChange={e => setVehicleType(e.target.value as VehicleBodyType)}
+          onChange={e => setVehicleType(resolveVehicleSchematic(e.target.value))}
         >
-          {VEHICLE_BODY_TYPES.map(opt => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          {VEHICLE_SCHEMATIC_GROUPS.map(group => (
+            <optgroup key={group.label} label={group.label}>
+              {group.options.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </optgroup>
           ))}
         </TypeSelect>
       </TypeSelectorRow>
@@ -866,8 +862,8 @@ export const VehicleDamageMapper = ({
       <ImageContainer ref={containerRef}>
         <VehicleImage
           ref={imageRef}
-          src={vehicleImageUrl(vehicleType)}
-          alt={`Schemat pojazdu: ${VEHICLE_BODY_TYPES.find(t => t.value === vehicleType)?.label}`}
+          src={vehicleSchematicImageUrl(vehicleType)}
+          alt={`Schemat pojazdu: ${vehicleSchematicLabel(vehicleType)}`}
           draggable={false}
         />
         <OverlayLayer onClick={handleImageClick}>
