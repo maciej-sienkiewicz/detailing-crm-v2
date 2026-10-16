@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import styled from 'styled-components';
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { ArrowLeft, ArrowRight, FileCheck2 } from 'lucide-react';
 import {
     ModalShell,
     ModalHeader,
@@ -11,13 +11,17 @@ import {
     ModalFooter,
     CloseBtn,
 } from '@/common/components/ModalKit';
-import { Button, StepPills } from '@/common/components/ui';
+import { Button, StepPills, ui } from '@/common/components/ui';
+import { formatCurrency } from '@/common/utils';
 import { isPiiMasked, joinPiiName } from '@/common/pii';
 import { usePermissions } from '@/core/permissions';
 import { useHandover } from '../../hooks/useHandover';
 import { useVisitComments } from '../../hooks';
 import { CustomerNotesSection } from './CustomerNotesSection';
 import { SettlementSection } from './SettlementSection';
+import { SettlementSummary } from './SettlementSummary';
+import { handoverAction } from './handoverAction';
+import { paymentMethods } from './paymentOptions';
 import { FinanceUpsellPanel } from './FinanceUpsellPanel';
 import { ProtocolSection } from './ProtocolSection';
 import { ThankYouSmsSection } from './ThankYouSmsSection';
@@ -56,6 +60,84 @@ const ProtocolNote = styled.p`
     color: ${p => p.theme.colors.textSecondary};
 `;
 
+/**
+ * Rozliczenie na dwie kolumny: decyzje po lewej, kwota, podsumowanie i braki po prawej
+ * (wzorzec kasy: rachunek obok płatności). Prawa kolumna przykleja się przy przewijaniu,
+ * żeby podsumowanie było w polu widzenia przy każdej zmianie. Na wąskim ekranie
+ * kolumny schodzą jedna pod drugą - podsumowanie ląduje tuż nad przyciskiem.
+ */
+const SettlementGrid = styled.div`
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 28px;
+    align-items: start;
+
+    > aside {
+        position: sticky;
+        top: 0;
+        padding: 18px;
+        border-radius: 16px;
+        background: ${ui.surfaceSoft};
+        border: 1px solid ${ui.line};
+    }
+
+    @media (max-width: 900px) {
+        grid-template-columns: minmax(0, 1fr);
+        > aside { position: static; padding: 14px; }
+    }
+`;
+
+/**
+ * Jedyny wypełniony element okna (CLAUDE.md §2): dwie linie - co się stanie i na co,
+ * dla kogo - kafelek ikony i cień w kolorze akcji, żeby nie dało się go pomylić
+ * z „Zapisz”. Zieleń jak „Wydaj pojazd” w nagłówku wizyty: wydanie domyka wizytę.
+ */
+const PrimaryAction = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    max-width: 520px;
+    padding: 10px 16px 10px 10px;
+    border: none;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    box-shadow: 0 8px 20px rgba(21, 128, 61, 0.28);
+    color: #ffffff;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
+    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: 2px; }
+
+    > svg:last-child { width: 18px; height: 18px; flex-shrink: 0; }
+`;
+
+const ActionIcon = styled.span`
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    svg { width: 20px; height: 20px; }
+`;
+
+const ActionText = styled.span`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex-grow: 1;
+
+    > span:first-child { font-size: 15px; font-weight: 800; }
+    > span:last-child { font-size: 12.5px; opacity: 0.92; overflow-wrap: anywhere; }
+`;
+
 const HandoverFooter = styled(ModalFooter)`
     justify-content: space-between;
     gap: 12px;
@@ -64,7 +146,7 @@ const HandoverFooter = styled(ModalFooter)`
         flex-direction: column-reverse;
         align-items: stretch;
 
-        > button { width: 100%; }
+        > button { width: 100%; max-width: none; }
     }
 `;
 
@@ -146,8 +228,26 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
             ? defaultThankYouSendAt()
             : null;
 
+    const fmt = (grosz: number) => formatCurrency(grosz / 100, handover.currency);
+    const action = handoverAction({
+        isFreeVisit: handover.isFreeVisit,
+        canIssueDocuments: handover.canIssueDocuments,
+        documentType: handover.state.documentType,
+        hasOtherDocument: handover.state.remainderWithoutReceipt && handover.remainder > 0,
+        invoicedExternally: handover.invoicedExternally,
+        sendToKsef: handover.sendToKsef,
+        gross: fmt(handover.totals.gross),
+        invoiceGross: fmt(handover.invoiceGross),
+        remainder: fmt(handover.remainder),
+        buyerName: handover.state.buyer.name,
+        paymentLabel: paymentMethods.find(m => m.value === handover.state.paymentMethod)?.label ?? 'Inna metoda',
+    });
+    // Dwie kolumny tylko tam, gdzie jest co rozliczać; podpis, wizyta bezpłatna i ekran
+    // wyniku zostają w węższym oknie.
+    const isWide = !handover.result && !isSignatureStep && handover.canIssueDocuments && !handover.isFreeVisit;
+
     return (
-        <ModalShell isOpen={isOpen} onClose={handleClose} size="lg">
+        <ModalShell isOpen={isOpen} onClose={handleClose} size={isWide ? undefined : 'lg'} maxWidth={isWide ? '1080px' : undefined}>
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Wydanie pojazdu</ModalTitle>
@@ -166,6 +266,7 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                         grossAmount={handover.totals.gross}
                         currency={handover.currency}
                         thankYouAt={thankYouAt}
+                        paymentLabel={handover.totals.gross > 0 ? paymentMethods.find(m => m.value === handover.state.paymentMethod)?.label : undefined}
                         remainderWithoutReceipt={handover.state.remainderWithoutReceipt}
                         onClose={onClose}
                     />
@@ -214,31 +315,43 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
 
                         <StepPane $active={!isSignatureStep}>
                             <Body>
-                                {handover.canIssueDocuments ? (
-                                    <SettlementSection
-                                        state={handover.state}
-                                        patch={handover.patch}
-                                        totals={handover.totals}
-                                        currency={handover.currency}
-                                        isFreeVisit={handover.isFreeVisit}
-                                        invoiceGross={handover.invoiceGross}
-                                        remainder={handover.remainder}
-                                        sellerComplete={handover.sellerComplete}
-                                        company={handover.company}
-                                        problemsIn={handover.problemsIn}
-                                        ksef={handover.ksef}
-                                        sendToKsef={handover.sendToKsef}
-                                        canChooseSendToKsef={handover.canChooseSendToKsef}
-                                        onSendToKsefChange={handover.setSendToKsef}
-                                        controls={{
-                                            itemsMatchServices: handover.itemsMatchServices,
-                                            vatMismatch: handover.vatMismatch,
-                                            restoredAt: handover.restoredAt,
-                                            resetItemsToServices: handover.resetItemsToServices,
-                                            setInvoiceOther: handover.setInvoiceOther,
-                                            applyItemsPerRate: handover.applyItemsPerRate,
-                                        }}
-                                    />
+                                {handover.canIssueDocuments && !handover.isFreeVisit ? (
+                                    <SettlementGrid>
+                                        <SettlementSection
+                                            state={handover.state}
+                                            patch={handover.patch}
+                                            currency={handover.currency}
+                                            invoiceGross={handover.invoiceGross}
+                                            remainder={handover.remainder}
+                                            sellerComplete={handover.sellerComplete}
+                                            company={handover.company}
+                                            problemsIn={handover.problemsIn}
+                                            invoicedExternally={handover.invoicedExternally}
+                                            controls={{
+                                                itemsMatchServices: handover.itemsMatchServices,
+                                                vatMismatch: handover.vatMismatch,
+                                                restoredAt: handover.restoredAt,
+                                                resetItemsToServices: handover.resetItemsToServices,
+                                                setInvoiceOther: handover.setInvoiceOther,
+                                                applyItemsPerRate: handover.applyItemsPerRate,
+                                            }}
+                                        />
+                                        <SettlementSummary
+                                            state={handover.state}
+                                            totals={handover.totals}
+                                            currency={handover.currency}
+                                            invoiceGross={handover.invoiceGross}
+                                            remainder={handover.remainder}
+                                            invoicedExternally={handover.invoicedExternally}
+                                            sendToKsef={handover.sendToKsef}
+                                            ksefBlocked={handover.ksefBlocked}
+                                            transferDueDate={handover.transferDueDate}
+                                            problems={handover.problems}
+                                            company={handover.company}
+                                        />
+                                    </SettlementGrid>
+                                ) : handover.isFreeVisit ? (
+                                    <ProtocolNote>Wizyta bez opłat. Dokument sprzedaży nie powstanie.</ProtocolNote>
                                 ) : (
                                     // Moment wysokiej intencji: zamiast sekcji rozliczenia,
                                     // propozycja modułu finansowego, z zachowaną ścieżką
@@ -273,22 +386,20 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                 disabled={handover.isSubmitting}
                                 onClick={() => setStep('signature')}
                             >
-                                <ArrowLeft />Wstecz
+                                <ArrowLeft />Wstecz do protokołu
                             </Button>
-                            {/* Zieleń: wydanie domyka wizytę - ten sam kolor co w nagłówku wizyty. */}
-                            <Button
-                                variant="success"
-                                size="lg"
+                            <PrimaryAction
+                                type="button"
                                 disabled={!handover.canSubmit}
                                 onClick={() => handover.submit()}
                             >
-                                <Check />
-                                {/* Jedna etykieta dla każdej ścieżki: co stanie się z dokumentem
-                                    (faktura, paragon, brak) mówi sekcja rozliczenia nad przyciskiem -
-                                    etykieta, która to powtarzała, zmieniała się w trakcie klikania
-                                    i wydłużała przycisk. */}
-                                {handover.isSubmitting ? 'Wydawanie…' : 'Wydaj pojazd'}
-                            </Button>
+                                <ActionIcon aria-hidden="true"><FileCheck2 /></ActionIcon>
+                                <ActionText>
+                                    <span>{handover.isSubmitting ? 'Wydawanie…' : action.title}</span>
+                                    <span>{action.detail}</span>
+                                </ActionText>
+                                <ArrowRight aria-hidden="true" />
+                            </PrimaryAction>
                         </>
                     )}
                 </HandoverFooter>

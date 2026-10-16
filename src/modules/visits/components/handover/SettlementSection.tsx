@@ -1,99 +1,75 @@
 import styled from 'styled-components';
 import { formatCurrency } from '@/common/utils';
-import { SummaryStrip, ui } from '@/common/components/ui';
+import { ui } from '@/common/components/ui';
 import type { CompanySettings } from '@/modules/settings/types';
-import { Pill, PillRow } from './HandoverKit';
-import { InvoiceSection, type InvoiceControls } from './InvoiceSection';
+import { Pill, PillRow, SectionProblems } from './HandoverKit';
+import { InvoiceBuyer, InvoicePositions, type InvoiceControls } from './InvoiceSection';
 import { PaymentMethodPicker } from './PaymentMethodPicker';
+import { SellerPrompt } from './SellerPrompt';
 import { documentChoices, type DocumentChoice } from './paymentOptions';
 import type { HandoverProblem, HandoverState } from '../../types/handover';
-import type { KsefAutomation } from '@/modules/finance/hooks';
 import type { InvoiceType } from '../../types/stateTransitions';
 
 /*
- * Kwota „Do zapłaty" to ten sam pasek podsumowania co na karcie wizyty i w
- * zleceniach zbiorczych: etykieta, kwota 20px, obok rozpisanie zwykłym zdaniem.
- * Wcześniej była tu osobna wyniesiona karta z gradientem i wypełnionym kafelkiem
- * ikony - drugie wypełnienie w oknie obok „Wydaj pojazd" (CLAUDE.md §2).
+ * Lewa kolumna rozliczenia: same decyzje, w kolejności, w jakiej padają przy ladzie -
+ * dokument i nabywca (NIP musi być znany przed wydrukiem paragonu), potem forma
+ * zapłaty, na końcu pozycje. Kwota, podsumowanie i przycisk stoją w prawej kolumnie
+ * (SettlementSummary), więc tu nie powtarzamy żadnej sumy poza blokiem podziału.
  */
 
-// Płaskie pole na tle: etykieta pismem zdaniowym (nie wersaliki-jedyny-znacznik)
-// nad kontrolką. „Forma zapłaty" i „Dokument" nie są przedmiotem okna, więc nie
-// dostają własnej ramy - rozdziela je odstęp.
-const Field = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-`;
-
-const FieldTitle = styled.span`
-    font-size: 13px;
-    font-weight: 600;
-    color: ${ui.inkSoft};
-`;
-
-// Więcej powietrza niż domyślny odstęp sekcji: przy płaskich polach na tle to
-// odstęp - nie ramka - rozdziela plany (reguła 2: „Reszta leży płasko na tle
-// i rozdziela ją odstęp").
 const Stack = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 26px;
+`;
+
+const Field = styled.section`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+`;
+
+const FieldTitle = styled.h3`
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: ${ui.ink};
 `;
 
 interface SettlementSectionProps {
     state: HandoverState;
     patch: (changes: Partial<HandoverState>) => void;
-    totals: { net: number; vat: number; gross: number };
     currency: string;
-    isFreeVisit: boolean;
     invoiceGross: number;
     remainder: number;
     sellerComplete: boolean;
     company: CompanySettings | undefined;
     problemsIn: (section: HandoverProblem['section']) => HandoverProblem[];
-    ksef: KsefAutomation;
-    sendToKsef: boolean;
-    canChooseSendToKsef: boolean;
-    onSendToKsefChange: (value: boolean) => void;
+    invoicedExternally: boolean;
     controls: InvoiceControls;
 }
 
-/**
- * Rozliczenie wizyty: kwota, forma zapłaty, dokument.
- *
- * Jeden przedmiot okna (kwota), reszta płasko pod nim. Gdy dokumentem jest
- * faktura, cała jej konfiguracja schodzi na jeden zatopiony plan [InvoiceSection]
- * zamiast rozlewać się na kolejne białe karty.
- *
- * Wizyta bezpłatna nie ma czego rozliczać: sekcja zwija się wtedy do jednej
- * informacji, zamiast pokazywać wybory bez znaczenia.
- */
 export const SettlementSection = ({
     state,
     patch,
-    totals,
     currency,
-    isFreeVisit,
     invoiceGross,
     remainder,
     sellerComplete,
     company,
     problemsIn,
-    ksef,
-    sendToKsef,
-    canChooseSendToKsef,
-    onSendToKsefChange,
+    invoicedExternally,
     controls,
 }: SettlementSectionProps) => {
     const fmt = (grosz: number) => formatCurrency(grosz / 100, currency);
     const choice: DocumentChoice =
         state.documentType === 'INVOICE' && state.remainderWithoutReceipt ? 'INVOICE_OTHER' : state.documentType;
-    const isSplit = choice === 'INVOICE_OTHER' && remainder > 0;
+    const isInvoice = state.documentType === 'INVOICE';
+
     const choose = (value: DocumentChoice) => {
         if (value === choice) return;
-        // Z „Faktura + Inny” do czegokolwiek innego: pozycje wracają do usług, żeby
-        // faktura na część kwoty nie wróciła po cichu przy kolejnym wyborze faktury.
+        // Z „Faktura + Inny dokument” do czegokolwiek innego: pozycje wracają do usług,
+        // żeby faktura na część kwoty nie wróciła po cichu przy kolejnym wyborze faktury.
         if (choice === 'INVOICE_OTHER') controls.setInvoiceOther(false);
         if (value === 'INVOICE_OTHER') {
             patch({ documentType: 'INVOICE' });
@@ -103,72 +79,74 @@ export const SettlementSection = ({
         }
     };
 
-    if (isFreeVisit) {
-        return (
-            <Stack>
-                <SummaryStrip
-                    label="Wizyta bezpłatna"
-                    amount={fmt(0)}
-                    details="usługi mają wartość 0 zł, dokument finansowy nie powstanie"
-                />
-            </Stack>
-        );
-    }
+    // Księgowość wystawia faktury poza CRM: podziału na fakturę i inny dokument nie ma
+    // komu wystawić, więc ta opcja znika.
+    const choices = invoicedExternally ? documentChoices.filter(c => c.value !== 'INVOICE_OTHER') : documentChoices;
 
     return (
         <Stack>
-            {/* VAT to RÓŻNICA pokazanych kwot (CLAUDE.md §1): totals.vat = gross - net,
-                liczone w useHandover, tu tylko pokazywane. */}
-            <SummaryStrip
-                label="Do zapłaty"
-                amount={fmt(totals.gross)}
-                details={isSplit
-                    ? `faktura ${fmt(invoiceGross)} + inny ${fmt(remainder)}`
-                    : `netto ${fmt(totals.net)}, VAT ${fmt(totals.vat)}`}
-            />
-
-            <Field>
-                {/* Przy podziale forma zapłaty dotyczy faktury - reszta ma własną niżej. */}
-                <FieldTitle>{isSplit ? 'Forma zapłaty faktury' : 'Forma zapłaty'}</FieldTitle>
-                <PaymentMethodPicker
-                    value={state.paymentMethod}
-                    onChange={paymentMethod => patch({ paymentMethod })}
-                />
-            </Field>
-
-            <Field>
-                <FieldTitle>Dokument</FieldTitle>
-                <PillRow>
-                    {documentChoices.map(type => (
+            <Field id="handover-document">
+                <FieldTitle>Dokument dla klienta</FieldTitle>
+                <PillRow role="group" aria-label="Dokument dla klienta">
+                    {choices.map(type => (
                         <Pill
                             key={type.value}
                             type="button"
                             $selected={choice === type.value}
+                            aria-pressed={choice === type.value}
                             onClick={() => choose(type.value)}
                         >
                             {type.label}
                         </Pill>
                     ))}
                 </PillRow>
+                {isInvoice && !invoicedExternally && !sellerComplete && <SellerPrompt company={company} />}
+                {isInvoice && !invoicedExternally && <SectionProblems problems={problemsIn('seller')} />}
+                {isInvoice && (
+                    <InvoiceBuyer
+                        state={state}
+                        patch={patch}
+                        problemsIn={problemsIn}
+                        invoicedExternally={invoicedExternally}
+                    />
+                )}
             </Field>
 
-            {state.documentType === 'INVOICE' && (
-                <InvoiceSection
+            {isInvoice && !invoicedExternally && state.remainderWithoutReceipt && (
+                <InvoicePositions
                     state={state}
                     patch={patch}
-                    currency={currency}
-                    visitGross={totals.gross}
                     invoiceGross={invoiceGross}
                     remainder={remainder}
-                    sellerComplete={sellerComplete}
                     company={company}
                     problemsIn={problemsIn}
-                    ksef={ksef}
-                    sendToKsef={sendToKsef}
-                    canChooseSendToKsef={canChooseSendToKsef}
-                    onSendToKsefChange={onSendToKsefChange}
                     controls={controls}
+                    fmt={fmt}
                 />
+            )}
+
+            <Field id="handover-payment">
+                <FieldTitle>{choice === 'INVOICE_OTHER' ? 'Forma zapłaty faktury' : 'Forma zapłaty'}</FieldTitle>
+                <PaymentMethodPicker
+                    value={state.paymentMethod}
+                    onChange={paymentMethod => patch({ paymentMethod })}
+                />
+            </Field>
+
+            {isInvoice && !invoicedExternally && !state.remainderWithoutReceipt && (
+                <Field>
+                    <FieldTitle>Pozycje</FieldTitle>
+                    <InvoicePositions
+                        state={state}
+                        patch={patch}
+                        invoiceGross={invoiceGross}
+                        remainder={remainder}
+                        company={company}
+                        problemsIn={problemsIn}
+                        controls={controls}
+                        fmt={fmt}
+                    />
+                </Field>
             )}
         </Stack>
     );
