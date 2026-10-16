@@ -19,6 +19,7 @@ import type { CompleteVisitResponse, PaymentMethod } from '../types/stateTransit
 import {
     invoiceGrossOf,
     invoiceItemFromService,
+    normalizeNip,
     itemsMatch,
     itemsPerRate,
     rateMismatch,
@@ -253,29 +254,28 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     });
 
     /**
-     * Czy wysyłka jest w ogóle w zasięgu tego studia. Bez zapisanego tokenu nie ma
-     * czym wysłać; token BEZ prawa wystawiania faktur (sam odczyt) kończy się
-     * odmową KSeF i fakturą wiszącą w kolejce retry, która nigdy się nie uda.
-     * W obu przypadkach nie ma czego wybierać: przełącznik jest zgaszony
-     * i zablokowany, zamiast obiecywać wysyłkę bez szans powodzenia.
-     * Studio bez modułu KSeF zachowuje się jak dotąd - o wysyłce nie decyduje.
-     */
-    const canChooseSendToKsef =
-        ksef.moduleEnabled && !ksef.isLoading && ksef.configured && !ksef.lacksIssuePermission;
-
-    /**
-     * Rozstrzygnięta odpowiedź na pytanie „wysłać do KSeF?": wybór użytkownika,
-     * a zanim go dokona - domyślna wartość z ustawień studia. Do czasu wczytania
-     * ustawień zakładamy wysyłkę, bo tak działał system, zanim przełącznik powstał.
-     * Wadliwy token wymusza „nie" niezależnie od wyboru i ustawień.
+     * Wysyłka do KSeF nie jest już przełącznikiem na ekranie wydania.
+     *
+     * Faktura na firmę (NIP nabywcy) trafia do KSeF obowiązkowo, więc pole, które
+     * dało się odhaczyć, było pułapką. Faktura dla osoby prywatnej idzie według
+     * ustawienia studia (dla konsumenta KSeF jest dobrowolny). Bez tokenu albo z tokenem
+     * bez prawa wystawiania faktura zostaje zapisana bez wysyłki - podsumowanie mówi to
+     * wprost, zamiast obiecywać wysyłkę bez szans powodzenia.
      */
     const invoicedExternally = ksef.invoicesIssuedExternally;
-    // Faktury wystawia księgowość: CRM nie tworzy faktury, więc nie ma czego wysyłać.
+    const ksefBlocked: 'no-token' | 'no-permission' | null =
+        !ksef.moduleEnabled || ksef.isLoading
+            ? null
+            : !ksef.configured
+              ? 'no-token'
+              : ksef.lacksIssuePermission
+                ? 'no-permission'
+                : null;
+    const buyerHasNip = normalizeNip(state.buyer.nip).length > 0;
     const sendToKsef =
         !invoicedExternally &&
-        !ksef.lacksIssuePermission &&
-        (!ksef.moduleEnabled || ksef.isLoading || ksef.configured) &&
-        (state.sendToKsef ?? ksef.autoSendDefault ?? true);
+        ksefBlocked === null &&
+        (buyerHasNip || (state.sendToKsef ?? ksef.autoSendDefault ?? true));
 
     // ── Draft: zamknięcie okna nie kasuje pracy ──────────────────────────────
     useEffect(() => {
@@ -301,7 +301,6 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         []
     );
 
-    const setSendToKsef = useCallback((value: boolean) => patch({ sendToKsef: value }), [patch]);
 
     // ── Wyliczenia pochodne ──────────────────────────────────────────────────
     const invoiceGross = useMemo(() => invoiceGrossOf(state.items), [state.items]);
@@ -420,8 +419,9 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         thankYouSmsChecked,
         ksef,
         sendToKsef,
-        canChooseSendToKsef,
-        setSendToKsef,
+        ksefBlocked,
+        /** Termin płatności przy przelewie (ISO) - ten sam, który pójdzie na serwer. */
+        transferDueDate: state.paymentMethod === 'TRANSFER' ? defaultDueDate() : null,
         problems,
         problemsIn,
         // Przy fakturze czekamy na ustawienia studia: dopiero one mówią, czy fakturę

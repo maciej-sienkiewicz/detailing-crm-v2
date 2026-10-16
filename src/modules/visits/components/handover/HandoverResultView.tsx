@@ -1,200 +1,190 @@
 import { useState } from 'react';
 import styled from 'styled-components';
-import { CheckCircle2, AlertTriangle, Clock, Download, FileText, MessageSquareHeart } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock, Download, FileText, MessageSquareHeart } from 'lucide-react';
 import { formatCurrency } from '@/common/utils';
 import { useToast } from '@/common/components/Toast';
 import { useKsefAutomation } from '@/modules/finance/hooks';
 import { ksefRevenueApi } from '@/modules/finance/api/ksefRevenueApi';
 import { Button, ui } from '@/common/components/ui';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { Box, BoxRow, Money, Muted } from './HandoverKit';
 import type { CompleteVisitResponse } from '../../types/stateTransitions';
+
+/*
+ * Ekran wyniku ma dwie warstwy. Górna - „Auto wydane” - jest zielona i ostateczna,
+ * niezależna od KSeF: wydanie auta nie czeka na serwer ministerstwa. Dolna to karta
+ * dokumentu z własnym odcieniem statusu (przyjęta, czeka, odrzucona). Dotąd jeden
+ * nagłówek mieszał oba fakty i „Pojazd wydany” stało nad odrzuconą fakturą.
+ */
 
 const Wrap = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 16px;
     align-items: center;
-    text-align: center;
+    gap: 22px;
     padding: 8px 0;
 `;
 
-const Mark = styled.div<{ $tone: 'ok' | 'warn' | 'bad' }>`
-    width: 52px;
-    height: 52px;
+const Head = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+`;
+
+const Mark = styled.div`
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
+    background: ${ui.okTint};
+    border: 1px solid ${ui.okLine};
+    color: ${ui.okInk};
 
-    background: ${p =>
-        p.$tone === 'ok' ? ui.okTint : p.$tone === 'warn' ? ui.warnTint : ui.dangerTint};
-    color: ${p => (p.$tone === 'ok' ? ui.okInk : p.$tone === 'warn' ? '#b45309' : ui.dangerInk)};
-
-    svg { width: 26px; height: 26px; }
+    svg { width: 28px; height: 28px; }
 `;
 
 const Title = styled.h3`
     margin: 0;
-    font-size: ${st.fontXl};
-    font-weight: 700;
-    color: ${st.text};
-    letter-spacing: -0.3px;
+    font-size: 22px;
+    font-weight: 800;
+    color: ${ui.ink};
 `;
 
 const Lead = styled.p`
     margin: 0;
-    font-size: ${st.fontSm};
-    color: ${st.textSecondary};
-    line-height: 1.55;
-    max-width: 46ch;
+    font-size: 14px;
+    color: ${ui.textSecondary};
 `;
 
-const Details = styled(Box)`
+const Cards = styled.div`
     width: 100%;
-    text-align: left;
+    max-width: 560px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 `;
 
-const DocNumber = styled.span`
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    color: ${st.text};
+type Tone = 'ok' | 'warn' | 'bad' | 'neutral';
+
+const TONE: Record<Tone, { bg: string; line: string; ink: string }> = {
+    ok: { bg: '#f0fdf4', line: '#86efac', ink: '#166534' },
+    warn: { bg: '#fffbeb', line: '#fde68a', ink: '#92400e' },
+    bad: { bg: '#fef2f2', line: '#fecaca', ink: '#991b1b' },
+    neutral: { bg: '#f8fafc', line: '#e2e8f0', ink: '#334155' },
+};
+
+const DocCard = styled.section<{ $tone: Tone }>`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px 18px;
+    border-radius: 16px;
+    border: 1px solid ${p => TONE[p.$tone].line};
+    background: ${p => TONE[p.$tone].bg};
+    color: ${p => TONE[p.$tone].ink};
+`;
+
+const DocHead = styled.div`
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+
+    > svg { width: 20px; height: 20px; flex-shrink: 0; margin-top: 1px; }
+`;
+
+const DocTitle = styled.strong`
+    display: block;
+    font-size: 15px;
+    font-weight: 700;
+    color: ${ui.ink};
+`;
+
+const DocText = styled.span`
+    display: block;
+    margin-top: 2px;
+    font-size: 13px;
+    line-height: 1.5;
+`;
+
+const Lines = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 13px;
+    color: ${ui.inkSoft};
     font-variant-numeric: tabular-nums;
 `;
 
-const ThankYouLabel = styled.span`
+const DocActions = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+`;
+
+const Note = styled.p`
+    margin: 0;
+    font-size: 13px;
+    color: ${ui.textSecondary};
+    text-align: center;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
-    font-size: ${st.fontSm};
-    color: ${st.textSecondary};
 
     svg { width: 14px; height: 14px; color: ${ui.brandInk}; }
 `;
-
-const Actions = styled.div`
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    justify-content: center;
-    width: 100%;
-
-    @media (max-width: 480px) {
-        flex-direction: column-reverse;
-        > button { width: 100%; }
-    }
-`;
-
-type Tone = 'ok' | 'warn' | 'bad';
-
-interface Presentation {
-    tone: Tone;
-    title: string;
-    lead: string;
-}
 
 /** KSeF 440: numer dokumentu jest już zajęty pod tym NIP-em. */
 const isDuplicateRejection = (error?: string | null): boolean =>
     !!error && (error.includes('440') || /duplikat/i.test(error));
 
-/**
- * Status KSeF → co pokazać. REJECTED jest wprost nazwane błędem: wizyta jest
- * zakończona, ale faktura wymaga poprawy, a dotąd użytkownik dostawał w tym
- * miejscu komunikat sukcesu i odesłanie do innego modułu.
- */
-const present = (result: CompleteVisitResponse, ksefMisconfigured: boolean): Presentation => {
-    if (result.invoicedExternally) {
-        return {
-            tone: 'ok',
-            title: 'Pojazd wydany',
-            lead: 'Fakturę wystawi księgowość. CRM zapisał płatność, ale nie tworzy własnej faktury.',
-        };
-    }
-    if (!result.ksefInvoiceNumber) {
-        return {
-            tone: 'ok',
-            title: 'Pojazd wydany',
-            lead: result.financialDocumentNumber
-                ? 'Dokument jest w Finansach.'
-                : 'Wizyta została zakończona.',
-        };
-    }
-    // Faktura wystawiona świadomie bez wysyłki - nic nie zawiodło, więc to nie jest
-    // ostrzeżenie. Mówimy tylko, gdzie ją znaleźć, gdy jednak trzeba ją wysłać.
-    if (result.ksefStatus === 'NOT_SENT') {
-        return {
-            tone: 'ok',
-            title: 'Pojazd wydany',
-            lead: 'Faktura została wystawiona i zapisana, bez wysyłki do KSeF. Możesz pobrać jej plik XML albo wysłać ją później w Finansach → Dokumenty przychodowe.',
-        };
-    }
-    // Without a token the send failed at authentication, which the dispatcher records
-    // as a transient failure and queues for offline24 retry. That retry can never
-    // succeed, so promising it would be a lie: say what actually has to happen.
-    if (ksefMisconfigured && result.ksefStatus !== 'ACCEPTED' && result.ksefStatus !== 'REJECTED') {
-        return {
-            tone: 'warn',
-            title: 'Pojazd wydany, faktura czeka na wysyłkę',
-            lead: 'Faktura jest zapisana, ale nie poszła do KSeF, bo brakuje tokenu. Dodaj go w Ustawieniach → KSeF i wyślij fakturę jeszcze raz albo wgraj plik XML ręcznie.',
-        };
-    }
+interface InvoiceCard {
+    tone: Tone;
+    title: string;
+    text: string;
+}
 
+/** Status faktury → karta. Nagłówek „Auto wydane” stoi nad nią zawsze, niezależnie od KSeF. */
+const invoiceCard = (result: CompleteVisitResponse, ksefMisconfigured: boolean): InvoiceCard => {
+    const number = result.ksefInvoiceNumber ?? '';
+    if (result.ksefStatus === 'NOT_SENT') {
+        return { tone: 'neutral', title: `Faktura ${number} wystawiona bez wysyłki do KSeF`, text: 'Wyślesz ją później w Finansach → Dokumenty przychodowe.' };
+    }
+    // Bez tokenu wysyłka nie przejdzie nigdy, więc nie obiecujemy ponowienia.
+    if (ksefMisconfigured && result.ksefStatus !== 'ACCEPTED' && result.ksefStatus !== 'REJECTED') {
+        return { tone: 'warn', title: `Faktura ${number} czeka na wysyłkę`, text: 'Brakuje tokenu KSeF. Dodaj go w Ustawieniach → KSeF i wyślij fakturę z Finansów.' };
+    }
     switch (result.ksefStatus) {
         case 'ACCEPTED':
-            return { tone: 'ok', title: 'Pojazd wydany', lead: 'Faktura została przyjęta przez KSeF.' };
+            return { tone: 'ok', title: `Faktura ${number} przyjęta w KSeF`, text: 'Klient może ją pobrać z KSeF albo dostać PDF.' };
         case 'QUEUED_RETRY':
-            return {
-                tone: 'warn',
-                title: 'Pojazd wydany',
-                lead: 'KSeF chwilowo nie działa. Wyślemy fakturę sami, gdy wróci.',
-            };
+            return { tone: 'warn', title: `Faktura ${number} wystawiona, KSeF chwilowo nie działa`, text: 'Wyślemy ją sami, gdy KSeF wróci.' };
         case 'REJECTED':
-            // Odrzucona faktura nie istnieje w KSeF i nie da się jej „dosłać”:
-            // jej numer jest spalony, a XML zamrożony w chwili wystawienia. Backend
-            // świadomie odmawia ponowienia: jedyną drogą jest nowy dokument.
-            // Duplikat (kod 440) wyróżniamy, bo tam dane są poprawne: zajęty jest
-            // wyłącznie numer i wystawienie od nowa wystarczy.
+            // Odrzucona faktura nie istnieje w KSeF; jej numer jest spalony, a XML zamrożony.
+            // Duplikat (440) wyróżniamy: dane są poprawne, zajęty jest tylko numer.
             return isDuplicateRejection(result.ksefError)
-                ? {
-                      tone: 'bad',
-                      title: 'Faktura odrzucona: duplikat numeru',
-                      lead: 'Pojazd został wydany, ale pod NIP-em firmy istnieje już faktura o tym numerze. Wystaw fakturę ponownie w Finansach → Dokumenty przychodowe, dostanie kolejny numer w serii.',
-                  }
-                : {
-                      tone: 'bad',
-                      title: 'Faktura odrzucona przez KSeF',
-                      lead: 'Pojazd został wydany, ale KSeF odrzucił fakturę. Popraw dane i wystaw ją ponownie w Finansach → Dokumenty przychodowe.',
-                  };
+                ? { tone: 'bad', title: 'KSeF nie przyjął faktury: numer jest zajęty', text: 'Wystaw ją ponownie w Finansach → Dokumenty przychodowe, dostanie kolejny numer.' }
+                : { tone: 'bad', title: 'KSeF nie przyjął faktury', text: result.ksefError ?? 'Popraw dane i wystaw ją ponownie w Finansach → Dokumenty przychodowe.' };
         default:
-            return {
-                tone: 'warn',
-                title: 'Pojazd wydany',
-                lead: 'Faktura została wysłana i czeka na potwierdzenie z KSeF.',
-            };
+            return { tone: 'warn', title: `Faktura ${number} wysłana do KSeF`, text: 'Czekamy na numer KSeF. Status sprawdzimy sami, możesz zamknąć okno.' };
     }
 };
 
 /** Termin podziękowania → „17.09, 16:30”, w tym samym formacie co pole wyboru. */
 const formatThankYouWhen = (date: Date): string =>
-    date.toLocaleString('pl-PL', {
-        day: '2-digit',
-        month: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
+    date.toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
 interface HandoverResultViewProps {
     result: CompleteVisitResponse;
     grossAmount: number;
     currency: string;
-    /**
-     * Kiedy wyjdzie SMS z podziękowaniem, albo `null`, gdy studio go nie wysyła
-     * lub pracownik wyłączył go w kroku 1. Sama decyzja zapada przed wydaniem
-     * (jedzie w payloadzie), tu pokazujemy już tylko jej skutek.
-     */
+    /** Forma zapłaty słowem („Karta”) - do zdania „Płatność … zapisana”. */
+    paymentLabel?: string;
+    /** Kiedy wyjdzie SMS z podziękowaniem; null, gdy nie wyjdzie. */
     thankYouAt: Date | null;
-    /** Reszta zapisana bez paragonu - zapis „DOK/…” nie jest paragonem. */
+    /** Reszta zapisana na innym dokumencie - zapis „DOK/…” nie jest paragonem. */
     remainderWithoutReceipt?: boolean;
     onClose: () => void;
 }
@@ -203,32 +193,27 @@ export const HandoverResultView = ({
     result,
     grossAmount,
     currency,
+    paymentLabel,
     thankYouAt,
     remainderWithoutReceipt = false,
     onClose,
 }: HandoverResultViewProps) => {
+    const fmt = (grosz: number) => formatCurrency(grosz / 100, currency);
     const status = result.ksefStatus ?? null;
-    const error = result.ksefError ?? null;
 
     const ksef = useKsefAutomation({ enabled: !!result.ksefInvoiceId });
     const { showError } = useToast();
     const [downloading, setDownloading] = useState(false);
-
-    // `configured` is false while the answer is still loading, and treating that as
-    // "no token" would flash the wrong explanation at studios that have one.
-    const view = present(result, !ksef.isLoading && ksef.moduleEnabled && !ksef.configured);
-
-    // The XML is worth offering whenever the invoice exists but KSeF has not taken
-    // it, so the studio can upload it by hand. Not for REJECTED: that document failed
-    // validation, so the same file would be rejected again.
-    const canDownloadXml =
-        !!result.ksefInvoiceId && status !== 'ACCEPTED' && status !== 'REJECTED';
-
-    /**
-     * Wizualizacja faktury tuż po rozliczeniu: klient stoi przy ladzie i to jest
-     * moment, w którym prosi o fakturę. XML obok niej zostaje dla księgowości.
-     */
     const [openingPdf, setOpeningPdf] = useState(false);
+
+    // `configured` jest false także w trakcie ładowania - wtedy nie mówimy o braku tokenu.
+    const card = result.ksefInvoiceId
+        ? invoiceCard(result, !ksef.isLoading && ksef.moduleEnabled && !ksef.configured)
+        : null;
+
+    // XML przydaje się, gdy faktura istnieje, a KSeF jej jeszcze nie przyjął (wgranie ręczne).
+    // Nie przy odrzuconej: ten sam plik zostałby odrzucony drugi raz.
+    const canDownloadXml = !!result.ksefInvoiceId && status !== 'ACCEPTED' && status !== 'REJECTED';
 
     const handleOpenPdf = async () => {
         if (!result.ksefInvoiceId) return;
@@ -246,10 +231,7 @@ export const HandoverResultView = ({
         if (!result.ksefInvoiceId) return;
         setDownloading(true);
         try {
-            await ksefRevenueApi.downloadInvoiceXml(
-                result.ksefInvoiceId,
-                result.ksefInvoiceNumber ?? 'faktura',
-            );
+            await ksefRevenueApi.downloadInvoiceXml(result.ksefInvoiceId, result.ksefInvoiceNumber ?? 'faktura');
         } catch {
             showError('Nie udało się pobrać pliku', 'Spróbuj ponownie w Finansach → Dokumenty przychodowe.');
         } finally {
@@ -257,81 +239,75 @@ export const HandoverResultView = ({
         }
     };
 
-    const icon =
-        view.tone === 'ok' ? <CheckCircle2 /> : view.tone === 'warn' ? <Clock /> : <AlertTriangle />;
+    const lead = grossAmount > 0
+        ? `Płatność${paymentLabel ? ` ${paymentLabel.toLowerCase()}` : ''} ${fmt(grossAmount)} zapisana.`
+        : 'Wizyta bez opłat.';
 
     return (
         <Wrap>
-            <Mark $tone={view.tone}>{icon}</Mark>
-            <Title>{view.title}</Title>
-            <Lead>{view.lead}</Lead>
+            <Head>
+                <Mark aria-hidden="true"><CheckCircle2 /></Mark>
+                <Title>Auto wydane</Title>
+                <Lead>{lead}</Lead>
+            </Head>
 
-            <Details>
-                {result.ksefInvoiceNumber && (
-                    <BoxRow>
-                        <span style={{ fontSize: st.fontSm, color: st.textSecondary }}>Faktura</span>
-                        <DocNumber>{result.ksefInvoiceNumber}</DocNumber>
-                    </BoxRow>
+            <Cards>
+                {card && (
+                    <DocCard $tone={card.tone} aria-label="Faktura">
+                        <DocHead>
+                            {card.tone === 'ok' ? <FileText aria-hidden="true" /> : card.tone === 'bad' ? <AlertTriangle aria-hidden="true" /> : <Clock aria-hidden="true" />}
+                            <div>
+                                <DocTitle>{card.title}</DocTitle>
+                                <DocText>{card.text}</DocText>
+                            </div>
+                        </DocHead>
+                        {result.remainderDocumentNumber && (
+                            <Lines>
+                                <span>
+                                    {remainderWithoutReceipt ? 'Inny dokument' : 'Paragon na resztę'} {result.remainderDocumentNumber}
+                                </span>
+                            </Lines>
+                        )}
+                        <DocActions>
+                            <Button onClick={handleOpenPdf} disabled={openingPdf}>
+                                <FileText />
+                                {openingPdf ? 'Otwieranie…' : 'Faktura PDF'}
+                            </Button>
+                            {canDownloadXml && (
+                                <Button onClick={handleDownload} disabled={downloading}>
+                                    <Download />
+                                    {downloading ? 'Pobieranie…' : 'Pobierz XML'}
+                                </Button>
+                            )}
+                        </DocActions>
+                    </DocCard>
                 )}
+
                 {result.invoicedExternally && (
-                    <BoxRow>
-                        <span style={{ fontSize: st.fontSm, color: st.textSecondary }}>Faktura</span>
-                        <DocNumber>wystawi księgowość</DocNumber>
-                    </BoxRow>
+                    <DocCard $tone="neutral" aria-label="Faktura">
+                        <DocTitle>Fakturę wystawi księgowość</DocTitle>
+                        <DocText>W CRM zapisaliśmy płatność i dane nabywcy.</DocText>
+                    </DocCard>
                 )}
-                {/* Numer zapisu płatności (FAK/…) przy fakturze księgowości nie jest numerem
-                    faktury i wyglądałby jak on - nie pokazujemy go tutaj. */}
-                {result.financialDocumentNumber && !result.ksefInvoiceNumber && !result.invoicedExternally && (
-                    <BoxRow>
-                        <span style={{ fontSize: st.fontSm, color: st.textSecondary }}>Dokument</span>
-                        <DocNumber>{result.financialDocumentNumber}</DocNumber>
-                    </BoxRow>
-                )}
-                {result.remainderDocumentNumber && (
-                    <BoxRow>
-                        <span style={{ fontSize: st.fontSm, color: st.textSecondary }}>
-                            {remainderWithoutReceipt ? 'Reszta bez paragonu' : 'Paragon na resztę kwoty'}
-                        </span>
-                        <DocNumber>{result.remainderDocumentNumber}</DocNumber>
-                    </BoxRow>
-                )}
-                <BoxRow>
-                    <span style={{ fontSize: st.fontSm, color: st.textSecondary }}>Rozliczono</span>
-                    <Money>{formatCurrency(grossAmount / 100, currency)}</Money>
-                </BoxRow>
-                {thankYouAt && (
-                    <BoxRow>
-                        <ThankYouLabel>
-                            <MessageSquareHeart aria-hidden="true" />
-                            SMS z podziękowaniem
-                        </ThankYouLabel>
-                        <DocNumber>{formatThankYouWhen(thankYouAt)}</DocNumber>
-                    </BoxRow>
-                )}
-                {status === 'REJECTED' && (
-                    <Muted>
-                        {error ?? 'Powód odrzucenia znajdziesz w Finansach → Dokumenty przychodowe.'}
-                    </Muted>
-                )}
-            </Details>
 
-            <Actions>
-                {!!result.ksefInvoiceId && (
-                    <Button onClick={handleOpenPdf} disabled={openingPdf}>
-                        <FileText />
-                        {openingPdf ? 'Otwieranie…' : 'Faktura PDF'}
-                    </Button>
+                {/* Numer zapisu płatności (FAK/…) przy fakturze księgowości nie jest numerem
+                    faktury i wyglądałby jak on - pokazujemy go tylko przy paragonie i „innym”. */}
+                {!card && !result.invoicedExternally && result.financialDocumentNumber && (
+                    <DocCard $tone="neutral" aria-label="Dokument">
+                        <DocTitle>Dokument {result.financialDocumentNumber}</DocTitle>
+                        <DocText>Znajdziesz go w Finansach.</DocText>
+                    </DocCard>
                 )}
-                {canDownloadXml && (
-                    <Button onClick={handleDownload} disabled={downloading}>
-                        <Download />
-                        {downloading ? 'Pobieranie…' : 'Pobierz XML'}
-                    </Button>
+
+                {status === 'ACCEPTED' && (
+                    <Note>Pomyłka w fakturze? Poprawisz ją na wizycie: Usługi → Popraw rozliczenie.</Note>
                 )}
-                <Button variant="primary" onClick={onClose}>
-                    Wróć do wizyty
-                </Button>
-            </Actions>
+                {thankYouAt && (
+                    <Note><MessageSquareHeart aria-hidden="true" />SMS z podziękowaniem wyjdzie {formatThankYouWhen(thankYouAt)}.</Note>
+                )}
+            </Cards>
+
+            <Button variant="primary" size="lg" onClick={onClose}>Gotowe</Button>
         </Wrap>
     );
 };

@@ -36,7 +36,7 @@ export const documentTypes: Array<{ value: InvoiceType; label: string }> = [
 ];
 
 /**
- * Wybór dokumentu na ekranie wydania. „Faktura + Inny” istnieje tylko tutaj: dla
+ * Wybór dokumentu na ekranie wydania. „Faktura + Inny dokument” istnieje tylko tutaj: dla
  * serwera to faktura (INVOICE) z resztą kwoty zapisaną bez paragonu i bez VAT
  * (remainderWithoutReceipt). Osobny typ zamiast przełączników w sekcji faktury -
  * jeden wybór mówi od razu, czym zostanie rozliczona cała wizyta.
@@ -46,6 +46,6 @@ export type DocumentChoice = InvoiceType | 'INVOICE_OTHER';
 export const documentChoices: Array<{ value: DocumentChoice; label: string }> = [
     { value: 'RECEIPT', label: 'Paragon' },
     { value: 'INVOICE', label: 'Faktura VAT' },
-    { value: 'INVOICE_OTHER', label: 'Faktura + Inny' },
+    { value: 'INVOICE_OTHER', label: 'Faktura + Inny dokument' },
     { value: 'other', label: 'Inne rozliczenie' },
 ];
