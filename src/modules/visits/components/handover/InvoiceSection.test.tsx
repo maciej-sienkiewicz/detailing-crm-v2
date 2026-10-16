@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 //
-// Rozliczenie wizyty dwoma dokumentami: klient prosi o fakturę na część kwoty, resztę
-// płaci za paragonem. Ekran ma prowadzić jednym polem kwoty, a suma obu dokumentów
-// zawsze równa się kwocie wizyty - bez ręcznego przeliczania pozycji.
+// Sekcja faktury przy wydaniu: pozycje jak na dokumencie, dwie kwoty pod nimi i podgląd
+// faktury. Biznes zgłaszał, że ekran „nie sprawia wrażenia bezpiecznego” - pracownik ma
+// widzieć dokładnie to, co pójdzie do KSeF, bez równań i akapitów.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { ThemeProvider } from 'styled-components';
@@ -34,9 +34,6 @@ const controls = (overrides: Partial<InvoiceControls> = {}): InvoiceControls => 
     vatMismatch: null,
     restoredAt: null,
     resetItemsToServices: vi.fn(),
-    setInvoiceAmount: vi.fn(),
-    setInvoiceNet: vi.fn(),
-    visitNet: 1_404_668,
     setInvoiceOther: vi.fn(),
     applyItemsPerRate: vi.fn(),
     ...overrides,
@@ -74,111 +71,88 @@ const renderSection = (
 
 afterEach(cleanup);
 
-describe('InvoiceSection - Faktura + Inny', () => {
+describe('InvoiceSection', () => {
     const other = (overrides: Partial<HandoverState> = {}) =>
         state({ splitRemainder: true, remainderWithoutReceipt: true, ...overrides });
 
-    it('zwykła faktura VAT nie pokazuje pól kwoty ani podziału', () => {
+    it('Faktura VAT: pozycje jak na dokumencie i kwota na fakturze, bez kwoty innego dokumentu', () => {
         renderSection(state(), 1_700_000, controls());
 
-        expect(screen.queryByLabelText('Faktura netto')).not.toBeInTheDocument();
+        const lines = screen.getByRole('list', { name: 'Pozycje faktury' });
+        expect(within(lines).getByText('Powłoka ceramiczna')).toBeInTheDocument();
+        expect(within(lines).getByText('Tapicerka')).toBeInTheDocument();
+        expect(screen.getByText('Kwota na fakturze').parentElement?.textContent).toMatch(/17\s000,00/);
+        expect(screen.queryByText('Kwota do zapłaty na innym dokumencie')).not.toBeInTheDocument();
         expect(screen.queryByLabelText('Faktura brutto')).not.toBeInTheDocument();
         expect(screen.queryByLabelText('Podział kwoty wizyty')).not.toBeInTheDocument();
     });
 
-    it('wpisane brutto przelicza fakturę od brutto', () => {
-        const c = controls();
-        renderSection(other(), 1_700_000, c);
-
-        const gross = screen.getByLabelText('Faktura brutto');
-        fireEvent.focus(gross);
-        fireEvent.change(gross, { target: { value: '10 000,00' } });
-
-        expect(c.setInvoiceAmount).toHaveBeenLastCalledWith(1_000_000);
-        expect(c.setInvoiceNet).not.toHaveBeenCalled();
-    });
-
-    it('wpisane netto przelicza fakturę od netto', () => {
-        const c = controls();
-        renderSection(other(), 1_700_000, c);
-
-        const net = screen.getByLabelText('Faktura netto');
-        fireEvent.focus(net);
-        fireEvent.change(net, { target: { value: '8130,08' } });
-
-        expect(c.setInvoiceNet).toHaveBeenLastCalledWith(813_008);
-        expect(c.setInvoiceAmount).not.toHaveBeenCalled();
-    });
-
-    it('bez fokusu oba pola pokazują sumy pozycji - drugie jest policzone z wpisanego', () => {
+    it('Faktura + Inny: kwota na fakturze i kwota do zapłaty na innym dokumencie, bez dopisków', () => {
         renderSection(other({ items: [item('Powłoka ceramiczna', '10000,00', '23')] }), 1_000_000, controls());
 
-        expect((screen.getByLabelText('Faktura brutto') as HTMLInputElement).value).toBe('10000,00');
-        expect((screen.getByLabelText('Faktura netto') as HTMLInputElement).value).toBe('8130,08');
+        expect(screen.getByText('Kwota na fakturze').parentElement?.textContent).toMatch(/10\s000,00/);
+        expect(screen.getByText('Kwota do zapłaty na innym dokumencie').parentElement?.textContent).toMatch(/7000,00/);
+        expect(screen.queryByText(/gotówka/)).not.toBeInTheDocument();
+        expect(screen.queryByText(/Jak klient zapłacił/)).not.toBeInTheDocument();
     });
 
-    it('równanie Wizyta = Faktura + Inny, „Inny” zawsze gotówką i bez VAT - bez pytania o formę zapłaty', () => {
-        renderSection(
-            other({ items: [item('Powłoka ceramiczna', '8823,53', '23'), item('Tapicerka', '1176,47', '8')] }),
-            1_000_000,
-            controls({ itemsMatchServices: false }),
+    it('wybór „Faktura + Inny” od razu otwiera edycję pozycji - tam ustawia się kwotę faktury', () => {
+        const props = (s: HandoverState) => ({
+            state: s, patch: vi.fn(), currency: 'PLN', visitGross: 1_700_000, invoiceGross: 1_700_000,
+            remainder: 0, sellerComplete: true, company: undefined, problemsIn: () => [], ksef,
+            sendToKsef: false, canChooseSendToKsef: false, onSendToKsefChange: vi.fn(), controls: controls(),
+        });
+        const { rerender } = render(<ThemeProvider theme={theme}><InvoiceSection {...props(state())} /></ThemeProvider>);
+        expect(screen.queryByLabelText('Brutto pozycji 1')).not.toBeInTheDocument();
+
+        rerender(<ThemeProvider theme={theme}><InvoiceSection {...props(other())} /></ThemeProvider>);
+
+        expect(screen.getByLabelText('Brutto pozycji 1')).toBeInTheDocument();
+        expect(screen.getByLabelText('Netto pozycji 1')).toBeInTheDocument();
+    });
+
+    it('„Podgląd faktury” pokazuje sprzedawcę, nabywcę, pozycje i kwotę do zapłaty', () => {
+        const company = {
+            name: 'Detail Studio', taxId: '5261040828', street: 'ul. Zabłocie 23', postalCode: '30-701', city: 'Kraków',
+        } as unknown as Parameters<typeof InvoiceSection>[0]['company'];
+        render(
+            <ThemeProvider theme={theme}>
+                <InvoiceSection
+                    state={state({ paymentMethod: 'CARD' })}
+                    patch={vi.fn()}
+                    currency="PLN"
+                    visitGross={1_700_000}
+                    invoiceGross={1_700_000}
+                    remainder={0}
+                    sellerComplete
+                    company={company}
+                    problemsIn={() => []}
+                    ksef={ksef}
+                    sendToKsef={false}
+                    canChooseSendToKsef={false}
+                    onSendToKsefChange={vi.fn()}
+                    controls={controls()}
+                />
+            </ThemeProvider>,
         );
 
-        const equation = screen.getByLabelText('Podział kwoty wizyty');
-        expect(within(equation).getByText('Wizyta').textContent).toMatch(/17\s000,00/);
-        expect(within(equation).getByText('Faktura').textContent).toMatch(/10\s000,00/);
-        expect(within(equation).getByText('Inny').textContent).toMatch(/7000,00/);
-        expect(screen.queryByText(/Jak klient zapłacił/)).not.toBeInTheDocument();
-        expect(screen.getByText('„Inny” zapisze się jako gotówka, bez VAT.')).toBeInTheDocument();
-        expect(screen.queryByText(/zgodnie z usługami wizyty/)).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Podgląd faktury' }));
+
+        const dialog = screen.getByRole('dialog');
+        expect(within(dialog).getByText('Detail Studio')).toBeInTheDocument();
+        expect(within(dialog).getByText('Auto Serwis sp. z o.o.')).toBeInTheDocument();
+        expect(within(dialog).getByText('NIP 521-301-72-28')).toBeInTheDocument();
+        expect(within(dialog).getByText('Tapicerka')).toBeInTheDocument();
+        expect(within(dialog).getByText('Karta')).toBeInTheDocument();
+        expect(within(dialog).getByText('Do zapłaty').parentElement?.textContent).toMatch(/17\s000,00/);
     });
 
-    it('kwota równa kwocie wizyty: bez błędu, cała wizyta na fakturze, „Inny” nie powstaje', () => {
-        const c = controls();
-        const { unmount } = renderSection(other({ items: [item('Powłoka ceramiczna', '10000,00', '23')] }), 1_000_000, c);
-
-        const gross = screen.getByLabelText('Faktura brutto');
-        fireEvent.focus(gross);
-        fireEvent.change(gross, { target: { value: '17000,00' } });
-
-        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-        expect(c.setInvoiceAmount).toHaveBeenLastCalledWith(1_700_000);
-        unmount();
-
-        // Po przeliczeniu faktura = wizyta, reszty nie ma.
-        renderSection(other(), 1_700_000, controls());
-        expect(screen.getByText(/„Inny” nie powstanie/)).toBeInTheDocument();
-    });
-
-    it('netto równe netto wizyty też jest w porządku', () => {
-        const c = controls();
-        renderSection(other(), 1_700_000, c);
-
-        const net = screen.getByLabelText('Faktura netto');
-        fireEvent.focus(net);
-        fireEvent.change(net, { target: { value: '14046,68' } });
-
-        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-        expect(c.setInvoiceNet).toHaveBeenLastCalledWith(1_404_668);
-    });
-
-    it('kwota wyższa od wizyty: komunikat i bez przeliczania pozycji', () => {
-        const c = controls();
-        renderSection(other(), 1_700_000, c);
-
-        const gross = screen.getByLabelText('Faktura brutto');
-        fireEvent.focus(gross);
-        fireEvent.change(gross, { target: { value: '18000' } });
-
-        expect(screen.getByRole('alert').textContent).toContain('nie może być wyższa niż kwota wizyty');
-        expect(c.setInvoiceAmount).not.toHaveBeenCalled();
-    });
-
-    it('faktura niższa od wizyty przy zwykłej fakturze proponuje „Inny” na resztę', () => {
+    it('faktura niższa od wizyty przy zwykłej fakturze: krótki komunikat i reszta na inny dokument', () => {
         const c = controls({ itemsMatchServices: false });
         renderSection(state({ items: [item('Powłoka ceramiczna', '10000,00', '23')] }), 1_000_000, c);
 
-        fireEvent.click(screen.getByRole('button', { name: 'Resztę rozlicz jako „Inny”' }));
+        expect(screen.getByRole('alert').textContent).toMatch(/niższa niż kwota wizyty o 7000,00/);
+        fireEvent.click(screen.getByRole('button', { name: 'Resztę na inny dokument' }));
 
         expect(c.setInvoiceOther).toHaveBeenCalledWith(true);
     });
@@ -190,8 +164,8 @@ describe('InvoiceSection - Faktura + Inny', () => {
         });
         renderSection(state({ items: [item('Powłoka i tapicerka', '17000,00', '23')] }), 1_700_000, c);
 
-        const warning = screen.getByText('Stawki VAT na fakturze różnią się od usług wizyty.').closest('[role="status"]')!;
-        expect(warning.textContent).toMatch(/VAT na fakturze będzie wyższy o 56,46/);
+        const warning = screen.getByText('Stawki VAT różnią się od usług wizyty.').closest('[role="status"]')!;
+        expect(warning.textContent).toMatch(/VAT wyższy o 56,46/);
         fireEvent.click(within(warning as HTMLElement).getByRole('button', { name: 'Jedna pozycja na każdą stawkę' }));
 
         expect(c.applyItemsPerRate).toHaveBeenCalled();

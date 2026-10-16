@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import styled from 'styled-components';
-import { ChevronDown, ChevronRight, Building2, User } from 'lucide-react';
-import { formatCurrency, pluralPl } from '@/common/utils';
+import { Check, ChevronDown, ChevronRight, Building2, Eye, Pencil, User } from 'lucide-react';
+import { formatCurrency } from '@/common/utils';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { CompanySettings } from '@/modules/settings/types';
 import { Toggle } from '@/common/components/Toggle';
@@ -9,13 +9,11 @@ import { BoxRow, Divider, GhostAction, Muted, SectionProblems } from './Handover
 import { BuyerEditor } from './BuyerEditor';
 import { InvoiceItemsEditor } from './InvoiceItemsEditor';
 import { SellerPrompt } from './SellerPrompt';
+import { InvoiceLines } from './InvoiceLines';
+import { InvoicePreviewModal } from './InvoicePreviewModal';
 import {
     formatNip,
-    invoiceNetOf,
-    isPlnInput,
     normalizeNip,
-    parsePln,
-    toPln,
     type HandoverProblem,
     type HandoverState,
     type RateMismatch,
@@ -71,17 +69,6 @@ const BuyerMeta = styled.span`
     overflow-wrap: anywhere;
 `;
 
-// Wiersz kroju „etykieta po lewej, wartość/akcja po prawej” - wspólny dla
-// nabywcy, pozycji i wysyłki KSeF, żeby cała konfiguracja czytała się jednym
-// rytmem, a nie jako trzy różne języki wizualne.
-const RowLabel = styled.span`
-    font-size: ${st.fontSm};
-    color: ${st.textSecondary};
-
-    strong { color: ${st.text}; font-weight: 600; }
-    strong.num { font-variant-numeric: tabular-nums; }
-`;
-
 const KsefRow = styled.div`
     display: flex;
     align-items: center;
@@ -119,94 +106,45 @@ const Balance = styled.div<{ $state: 'ok' | 'under' | 'over' }>`
     strong { font-variant-numeric: tabular-nums; }
 `;
 
-const BalanceRow = styled.div`
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
-`;
-
-/**
- * „Faktura + Inny”: faktura na kwotę, o którą prosi klient, i zapis „Inny” na resztę.
- * Suma obu to zawsze kwota wizyty - tak samo pilnuje tego backend.
- */
-const SplitBlock = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-`;
-
-// Netto i brutto zawsze obok siebie, także na telefonie: to jedna kwota w dwóch postaciach.
-const AmountGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-`;
-
-const AmountRow = styled.label`
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    min-width: 0;
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    color: ${st.text};
-`;
-
-const AmountField = styled.span`
+const LinesHead = styled.div`
     display: flex;
     align-items: center;
-    gap: 6px;
-
-    > input { flex: 1; min-width: 0; width: auto; }
-`;
-
-const AmountInput = styled.input<{ $invalid?: boolean }>`
-    width: 150px;
-    max-width: 100%;
-    height: 38px;
-    padding: 0 11px;
-    border: 1px solid ${p => (p.$invalid ? '#fca5a5' : st.border)};
-    border-radius: ${st.radiusSm};
-    background: #fff;
-    font: inherit;
-    font-size: 15px;
-    font-weight: 600;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-    color: ${st.text};
-
-    &:focus-visible { outline: 2px solid #38bdf8; outline-offset: 1px; }
-`;
-
-/**
- * „Wizyta = Faktura + Inny” jako trzy kwoty obok siebie: przy ladzie wystarczy
- * jedno spojrzenie, żeby sprawdzić, że nic nie zginęło.
- */
-const Equation = styled.div`
-    display: flex;
+    justify-content: space-between;
     flex-wrap: wrap;
-    align-items: baseline;
-    gap: 6px 10px;
-    padding: 10px 12px;
-    border-radius: ${st.radiusSm};
-    border: 1px solid #bae6fd;
-    background: #f0f9ff;
-    color: #0c4a6e;
-    font-size: ${st.fontSm};
-
-    strong { font-size: 15px; font-variant-numeric: tabular-nums; color: #0c4a6e; }
-    .op { color: #0369a1; font-weight: 700; }
+    gap: 6px 14px;
 `;
 
-const EquationPart = styled.span`
-    display: inline-flex;
+const LinesTitle = styled.span`
+    font-size: 14px;
+    font-weight: 700;
+    color: ${st.text};
+`;
+
+/** Dwie kwoty, po które się wraca: kwota faktury i - przy „Faktura + Inny” - reszta. */
+const Totals = styled.div`
+    display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: 6px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: ${st.bgCardAlt};
 `;
 
-const FieldError = styled.span`
-    font-size: 12.5px;
-    color: #b91c1c;
+const TotalRow = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    font-size: ${st.fontSm};
+    color: ${st.textSecondary};
+
+    strong {
+        font-size: 16px;
+        font-weight: 700;
+        color: ${st.text};
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
 `;
 
 const HintBox = styled.div<{ $tone: 'info' | 'warn' }>`
@@ -236,12 +174,6 @@ export interface InvoiceControls {
     /** ISO chwili zapisu przywróconego draftu z pozycjami innymi niż usługi; null = brak. */
     restoredAt: string | null;
     resetItemsToServices: () => void;
-    /** Faktura na kwotę brutto (brutto wpisane, netto liczone). */
-    setInvoiceAmount: (grosz: number) => void;
-    /** Faktura na kwotę netto (netto wpisane, brutto liczone). */
-    setInvoiceNet: (grosz: number) => void;
-    /** Netto wizyty: górna granica netto faktury. */
-    visitNet: number;
     /** Dokument „Faktura + Inny” włączony / wyłączony. */
     setInvoiceOther: (on: boolean) => void;
     applyItemsPerRate: () => void;
@@ -298,25 +230,17 @@ export const InvoiceSection = ({
     const [isBuyerOpen, setBuyerOpen] = useState(false);
     const [areItemsOpen, setItemsOpen] = useState(false);
 
-    // Pola kwoty faktury: podczas wpisywania własny tekst pola, żeby „10 0” nie
-    // przeskakiwało na „100,00”; bez fokusu (draft = null) oba pokazują aktualne sumy
-    // pozycji - drugie pole jest więc zawsze policzone z tego, które wpisano.
-    const invoiceNet = invoiceNetOf(state.items);
-    const [amountDraft, setAmountDraft] = useState<{ field: 'net' | 'gross'; text: string } | null>(null);
-    const netText = amountDraft?.field === 'net' ? amountDraft.text : toPln(invoiceNet);
-    const grossText = amountDraft?.field === 'gross' ? amountDraft.text : toPln(invoiceGross);
-    // Kwota równa kwocie wizyty jest w porządku: cała wizyta idzie na fakturę, a „Inny”
-    // po prostu nie powstaje. Błąd tylko powyżej kwoty wizyty.
-    const tooHigh = amountDraft !== null && (amountDraft.field === 'net'
-        ? parsePln(amountDraft.text) > controls.visitNet
-        : parsePln(amountDraft.text) > visitGross);
-    const onAmountChange = (field: 'net' | 'gross', value: string) => {
-        if (!isPlnInput(value)) return;
-        setAmountDraft({ field, text: value });
-        const grosz = parsePln(value);
-        if (field === 'net' && grosz > 0 && grosz <= controls.visitNet) controls.setInvoiceNet(grosz);
-        if (field === 'gross' && grosz > 0 && grosz <= visitGross) controls.setInvoiceAmount(grosz);
-    };
+    const [isPreviewOpen, setPreviewOpen] = useState(false);
+
+    // „Faktura + Inny” ustawia się kwotami pozycji, więc przy jego wyborze edytor pozycji
+    // otwiera się sam. Dostosowanie w trakcie renderu, nie efekt (React: „you might not
+    // need an effect”).
+    const isInvoiceOther = state.remainderWithoutReceipt;
+    const [seenInvoiceOther, setSeenInvoiceOther] = useState(isInvoiceOther);
+    if (isInvoiceOther !== seenInvoiceOther) {
+        setSeenInvoiceOther(isInvoiceOther);
+        if (isInvoiceOther) setItemsOpen(true);
+    }
 
     const fmt = (grosz: number) => formatCurrency(grosz / 100, currency);
     const nip = normalizeNip(state.buyer.nip);
@@ -415,75 +339,12 @@ export const InvoiceSection = ({
 
             <Divider />
 
-            {/* ── „Faktura + Inny”: kwota faktury, reszta zapisem „Inny” ──────
-                Tylko dwa pola kwoty faktury i forma zapłaty reszty. Wpisane netto
-                liczy brutto, wpisane brutto liczy netto (CLAUDE.md §1); pozycje
-                przeliczają się same, stawki VAT zostają jak w usługach. */}
-            {state.remainderWithoutReceipt && (
-                <>
-                    <SplitBlock>
-                        <AmountGrid>
-                            <AmountRow>
-                                Faktura netto
-                                <AmountField>
-                                    <AmountInput
-                                        value={netText}
-                                        inputMode="decimal"
-                                        aria-label="Faktura netto"
-                                        $invalid={tooHigh && amountDraft?.field === 'net'}
-                                        onFocus={() => setAmountDraft({ field: 'net', text: toPln(invoiceNet) })}
-                                        onChange={e => onAmountChange('net', e.target.value)}
-                                        onBlur={() => setAmountDraft(null)}
-                                    />
-                                    <span>zł</span>
-                                </AmountField>
-                            </AmountRow>
-                            <AmountRow>
-                                Faktura brutto
-                                <AmountField>
-                                    <AmountInput
-                                        value={grossText}
-                                        inputMode="decimal"
-                                        aria-label="Faktura brutto"
-                                        $invalid={tooHigh && amountDraft?.field === 'gross'}
-                                        onFocus={() => setAmountDraft({ field: 'gross', text: toPln(invoiceGross) })}
-                                        onChange={e => onAmountChange('gross', e.target.value)}
-                                        onBlur={() => setAmountDraft(null)}
-                                    />
-                                    <span>zł</span>
-                                </AmountField>
-                            </AmountRow>
-                        </AmountGrid>
-                        {tooHigh && (
-                            <FieldError role="alert">
-                                Faktura nie może być wyższa niż kwota wizyty ({fmt(visitGross)} brutto).
-                            </FieldError>
-                        )}
-                        <Equation aria-label="Podział kwoty wizyty">
-                            <EquationPart>Wizyta<strong>{fmt(visitGross)}</strong></EquationPart>
-                            <span className="op">=</span>
-                            <EquationPart>Faktura<strong>{fmt(invoiceGross)}</strong></EquationPart>
-                            <span className="op">+</span>
-                            <EquationPart>Inny<strong>{fmt(Math.max(remainder, 0))}</strong></EquationPart>
-                        </Equation>
-                        <Muted>
-                            {remainder > 0
-                                ? '„Inny” zapisze się jako gotówka, bez VAT.'
-                                : 'Cała kwota wizyty jest na fakturze, „Inny” nie powstanie.'}
-                        </Muted>
-                    </SplitBlock>
-
-                    <Divider />
-                </>
-            )}
-
             {/* ── Przywrócony draft ─────────────────────────────────────────── */}
             {controls.restoredAt !== null && (
                 <HintBox $tone="warn" role="status">
                     <span>
-                        <strong>Wróciły wcześniejsze zmiany faktury</strong>
-                        {savedTime(controls.restoredAt) ? ` (zapisane o ${savedTime(controls.restoredAt)})` : ''}.
-                        {' '}Kwoty różnią się od usług wizyty.
+                        <strong>Wróciły zapisane zmiany faktury</strong>
+                        {savedTime(controls.restoredAt) ? ` (${savedTime(controls.restoredAt)})` : ''}
                     </span>
                     <Actions>
                         <GhostAction type="button" onClick={controls.resetItemsToServices}>
@@ -493,20 +354,25 @@ export const InvoiceSection = ({
                 </HintBox>
             )}
 
-            {/* ── Pozycje ─────────────────────────────────────────────────── */}
-            <BoxRow>
-                <RowLabel>
-                    {state.items.length} {pluralPl(state.items.length, 'pozycja', 'pozycje', 'pozycji')} na{' '}
-                    <strong className="num">{fmt(invoiceGross)}</strong>
-                    {controls.itemsMatchServices && ', zgodnie z usługami wizyty'}
-                </RowLabel>
-                <GhostAction type="button" onClick={() => setItemsOpen(open => !open)}>
-                    {areItemsOpen ? <ChevronDown /> : <ChevronRight />}
-                    {areItemsOpen ? 'Zwiń' : 'Edytuj'}
-                </GhostAction>
-            </BoxRow>
+            {/* ── Pozycje ──────────────────────────────────────────────────────
+                Lista jak na dokumencie zamiast licznika „2 pozycje na …”: pracownik
+                widzi, co dokładnie trafi do KSeF, zanim cokolwiek wyśle. Pod nią tylko
+                dwie kwoty, które mają znaczenie przy ladzie. */}
+            <LinesHead>
+                <LinesTitle>Pozycje faktury</LinesTitle>
+                <Actions>
+                    <GhostAction type="button" onClick={() => setItemsOpen(open => !open)}>
+                        {areItemsOpen ? <Check /> : <Pencil />}
+                        {areItemsOpen ? 'Gotowe' : 'Edytuj'}
+                    </GhostAction>
+                    <GhostAction type="button" onClick={() => setPreviewOpen(true)}>
+                        <Eye />
+                        Podgląd faktury
+                    </GhostAction>
+                </Actions>
+            </LinesHead>
 
-            {areItemsOpen && (
+            {areItemsOpen ? (
                 <>
                     <InvoiceItemsEditor
                         items={state.items}
@@ -522,8 +388,33 @@ export const InvoiceSection = ({
                         </Actions>
                     )}
                 </>
+            ) : (
+                <InvoiceLines items={state.items} fmt={fmt} />
             )}
             <SectionProblems problems={problemsIn('items')} />
+
+            <Totals>
+                <TotalRow>
+                    <span>Kwota na fakturze</span>
+                    <strong>{fmt(invoiceGross)}</strong>
+                </TotalRow>
+                {isInvoiceOther && (
+                    <TotalRow>
+                        <span>Kwota do zapłaty na innym dokumencie</span>
+                        <strong>{fmt(Math.max(remainder, 0))}</strong>
+                    </TotalRow>
+                )}
+            </Totals>
+
+            <InvoicePreviewModal
+                isOpen={isPreviewOpen}
+                onClose={() => setPreviewOpen(false)}
+                company={company}
+                buyer={state.buyer}
+                items={state.items}
+                paymentMethod={state.paymentMethod}
+                fmt={fmt}
+            />
 
             {/* ── Stawki VAT inne niż w usługach ───────────────────────────────
                 Scalenie usług o różnych stawkach w jedną pozycję zmienia podatek przy
@@ -532,13 +423,10 @@ export const InvoiceSection = ({
             {controls.vatMismatch && (
                 <HintBox $tone="warn" role="status">
                     <span>
-                        <strong>Stawki VAT na fakturze różnią się od usług wizyty.</strong>{' '}
-                        Usługi: {controls.vatMismatch.serviceRates.join(', ')}. Faktura:{' '}
-                        {controls.vatMismatch.invoiceRates.join(', ')}.
+                        <strong>Stawki VAT różnią się od usług wizyty.</strong>
                         {controls.vatMismatch.vatDifference !== null && controls.vatMismatch.vatDifference !== 0 && (
                             <>
-                                {' '}VAT na fakturze będzie{' '}
-                                {controls.vatMismatch.vatDifference > 0 ? 'wyższy' : 'niższy'} o{' '}
+                                {' '}VAT {controls.vatMismatch.vatDifference > 0 ? 'wyższy' : 'niższy'} o{' '}
                                 <strong>{fmt(Math.abs(controls.vatMismatch.vatDifference))}</strong>.
                             </>
                         )}
@@ -626,9 +514,7 @@ export const InvoiceSection = ({
             {balanceState === 'over' && (
                 <Balance $state="over" role="alert">
                     <span>
-                        Faktura (<strong>{fmt(invoiceGross)}</strong>) jest wyższa niż kwota wizyty
-                        (<strong>{fmt(visitGross)}</strong>). Jeśli klient płaci więcej, zamknij to okno
-                        i zmień cenę w sekcji <strong>Usługi</strong> - faktura przeliczy się sama.
+                        Faktura jest wyższa niż kwota wizyty o <strong>{fmt(-remainder)}</strong>.
                     </span>
                     <Actions>
                         <GhostAction type="button" onClick={controls.resetItemsToServices}>
@@ -639,21 +525,12 @@ export const InvoiceSection = ({
             )}
             {balanceState === 'under' && !state.splitRemainder && (
                 <Balance $state="under" role="alert">
-                    <BalanceRow>
-                        <span>Kwota wizyty</span>
-                        <strong>{fmt(visitGross)}</strong>
-                    </BalanceRow>
-                    <BalanceRow>
-                        <span>Suma faktury</span>
-                        <strong>{fmt(invoiceGross)}</strong>
-                    </BalanceRow>
                     <span>
-                        Brakuje dokumentu na <strong>{fmt(remainder)}</strong>. Jeśli klient płaci tę
-                        kwotę bez faktury, rozlicz ją jako „Inny”. Jeśli dostał rabat, zmień cenę w usługach.
+                        Faktura jest niższa niż kwota wizyty o <strong>{fmt(remainder)}</strong>.
                     </span>
                     <Actions>
                         <GhostAction type="button" onClick={() => controls.setInvoiceOther(true)}>
-                            Resztę rozlicz jako „Inny”
+                            Resztę na inny dokument
                         </GhostAction>
                         <GhostAction type="button" onClick={controls.resetItemsToServices}>
                             Wróć do kwot z usług
