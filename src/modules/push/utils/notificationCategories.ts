@@ -13,58 +13,62 @@ export interface CategoryCopy {
 
 /** Kolejność i grupy ekranu. Kategoria spoza listy (nowszy backend) trafia na koniec. */
 export const GROUPS: { title: string; categories: PushNotificationCategory[] }[] = [
-    { title: 'Leady', categories: ['NEW_LEADS', 'LEADS_WAITING'] },
+    { title: 'Zapytania od klientów', categories: ['NEW_LEADS', 'LEADS_WAITING'] },
     { title: 'Kalendarz i wizyty', categories: ['RESERVATIONS', 'CHECKINS'] },
-    { title: 'Pieniądze', categories: ['EARNINGS', 'REPORTS'] },
+    { title: 'Przychody i raporty', categories: ['EARNINGS', 'REPORTS'] },
     { title: 'Zespół', categories: ['LEAVE_REQUESTS', 'WORKTIME_CARDS', 'MY_MATTERS'] },
-    { title: 'Marketing', categories: ['COMPETITION'] },
-    { title: 'Telefon', categories: ['CLICK_TO_CALL'] },
+    { title: 'Konkurencja', categories: ['COMPETITION'] },
+    { title: 'Dzwonienie', categories: ['CLICK_TO_CALL'] },
 ];
 
+/*
+ * Etykieta mówi, CO przychodzi, opis - KIEDY. Pisane tak, jak właściciel studia
+ * opowiedziałby to pracownikowi: „dostaniesz, gdy…", bez skrótów myślowych.
+ */
 export const CATEGORY_COPY: Record<string, CategoryCopy> = {
     NEW_LEADS: {
-        label: 'Nowy lead',
-        hint: 'Zapytanie z formularza, poczty albo telefonu, także dodane ręcznie.',
+        label: 'Nowe zapytanie',
+        hint: 'Gdy klient napisze przez formularz albo e-mail, zadzwoni, albo ktoś doda zapytanie ręcznie.',
     },
     LEADS_WAITING: {
         label: 'Klient czeka na odpowiedź',
-        hint: 'Przypomnienia, gdy nikt nie odpisał, i poranne podsumowanie czekających zapytań.',
+        hint: 'Przypomnienie, gdy nikt jeszcze nie odpisał, a rano lista zapytań, które wciąż czekają.',
     },
     RESERVATIONS: {
         label: 'Nowa rezerwacja',
-        hint: 'Ktoś inny zapisał wizytę w kalendarzu.',
+        hint: 'Gdy w kalendarzu pojawi się nowa wizyta. O tych, które dodajesz sam, nie powiadamiamy.',
     },
     CHECKINS: {
-        label: 'Przyjęcie pojazdu',
-        hint: 'Protokół przyjęcia podpisany, auto jest w studiu.',
+        label: 'Auto przyjęte do studia',
+        hint: 'Gdy klient podpisze protokół przyjęcia i zostawi auto.',
     },
     EARNINGS: {
-        label: 'Przychód z wydanego auta',
-        hint: 'Kwota wizyty w chwili, gdy auto wraca do klienta.',
+        label: 'Auto wydane klientowi',
+        hint: 'Gdy klient odbierze auto. W powiadomieniu zobaczysz, ile zarobiłeś na tej wizycie.',
     },
     REPORTS: {
         label: 'Nowy raport',
-        hint: 'Gdy domknie się okres raportu. Jak często, ustawia każdy sam w „Powiadomienie o nowym raporcie".',
+        hint: 'Gdy gotowy jest raport za kolejny okres. Jak często, wybierasz wyżej, w „Powiadomieniu o nowym raporcie”.',
     },
     COMPETITION: {
         label: 'Reklamy konkurencji',
-        hint: 'Nowe kampanie firm w obserwowanej okolicy.',
+        hint: 'Gdy firma z obserwowanej okolicy uruchomi nową kampanię reklamową.',
     },
     LEAVE_REQUESTS: {
-        label: 'Wniosek urlopowy do rozpatrzenia',
-        hint: 'Pracownik złożył wniosek i czeka na decyzję.',
+        label: 'Wniosek urlopowy',
+        hint: 'Gdy pracownik złoży wniosek o urlop i czeka na Twoją decyzję.',
     },
     WORKTIME_CARDS: {
-        label: 'Karta czasu pracy do zatwierdzenia',
-        hint: 'Pracownik złożył kartę za miesiąc.',
+        label: 'Karta czasu pracy',
+        hint: 'Gdy pracownik złoży kartę za miesiąc do zatwierdzenia.',
     },
     MY_MATTERS: {
-        label: 'Własne urlopy i karty pracy',
-        hint: 'Decyzja we własnym wniosku, zwrot albo zatwierdzenie karty, przypomnienie o karcie.',
+        label: 'Mój urlop i moja karta pracy',
+        hint: 'Decyzja w Twoim wniosku urlopowym, zatwierdzenie albo zwrot Twojej karty i przypomnienie, żeby ją uzupełnić.',
     },
     CLICK_TO_CALL: {
         label: 'Dzwonienie z komputera',
-        hint: 'Numer kliknięty w CRM na komputerze wybiera się na tym telefonie.',
+        hint: 'Klikasz numer klienta w CRM na komputerze, a ten telefon od razu proponuje połączenie.',
     },
 };
 

@@ -70,8 +70,8 @@ describe('DeviceNotificationSettings', () => {
         renderView();
         expect(await screen.findByText('iPhone Anny')).toBeInTheDocument();
         expect(screen.getByText('Anna Nowak')).toBeInTheDocument();
-        expect(screen.getByLabelText('Nowy lead')).toBeChecked();
-        expect(screen.queryByLabelText('Przychód z wydanego auta')).not.toBeInTheDocument();
+        expect(screen.getByLabelText('Nowe zapytanie')).toBeChecked();
+        expect(screen.queryByLabelText('Auto wydane klientowi')).not.toBeInTheDocument();
         expect(screen.getByText(/rola tej osoby nie ma/)).toBeInTheDocument();
     });
 
