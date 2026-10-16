@@ -376,7 +376,7 @@ export const KsefCredentialsPanel: React.FC = () => {
         <HeaderLeft>
           <PanelTitle>Połączenie z KSeF</PanelTitle>
           <PanelSubtitle>
-            Podaj NIP i token z KSeF, a faktury kosztowe będą pobierać się same.
+            Podaj NIP i token z KSeF. Faktury sprzedażowe wyślemy do KSeF, a kosztowe będą pobierać się same.
           </PanelSubtitle>
         </HeaderLeft>
         {/* Sam stan - NIP stoi niżej jako osobne pole, zamiast doklejony kropką do plakietki. */}
@@ -448,7 +448,10 @@ export const KsefCredentialsPanel: React.FC = () => {
                   autoComplete="off"
                 />
                 <HelpText>
-                  Token znajdziesz w systemie KSeF Ministerstwa Finansów, zakładka API.
+                  {/* „Zakładka API” nie istnieje w Aplikacji Podatnika KSeF - w testach szukaliśmy
+                      jej na próżno. Token bez obu uprawnień wpuszcza tylko w połowę funkcji. */}
+                  Wygenerujesz go w Aplikacji Podatnika KSeF: Tokeny → Generuj token. Zaznacz
+                  uprawnienia „wystawianie faktur” i „przeglądanie faktur”.
                 </HelpText>
               </FormGroup>
             </FormRow>
