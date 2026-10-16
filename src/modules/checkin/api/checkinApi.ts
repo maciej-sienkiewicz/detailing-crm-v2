@@ -252,15 +252,24 @@ export const checkinApi = {
      * Repeat calls return the SAME token with a refreshed TTL, so re-entering the photo
      * step does not invalidate a QR code that a phone has already scanned. Pass
      * `rotate: true` only to deliberately invalidate the previous code.
+     *
+     * `vehicleType` to schemat mapy uszkodzeń widoczny na komputerze. Telefon nie zna
+     * pojazdu, więc bez niego przy motocyklu otwierałby sedana; serwer zasiewa nim
+     * sesję telefonu tylko wtedy, gdy telefon jeszcze niczego nie zapisał.
      */
     generateQRToken: async (
         appointmentId: string,
-        options?: { rotate?: boolean },
+        options?: { rotate?: boolean; vehicleType?: string },
     ): Promise<QRTokenResponse> => {
         const response = await apiClient.post(
             `${BASE_PATH}/${appointmentId}/upload-token`,
             null,
-            { params: { rotate: options?.rotate ?? false } },
+            {
+                params: {
+                    rotate: options?.rotate ?? false,
+                    ...(options?.vehicleType ? { vehicleType: options.vehicleType } : {}),
+                },
+            },
         );
         return response.data;
     },

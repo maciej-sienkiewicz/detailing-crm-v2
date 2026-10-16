@@ -333,6 +333,44 @@ describe('DamageMapUpdateModal', () => {
         }
     });
 
+    it('mapa motocykla bez zapisanego schematu startuje od schematu motocykla i tak się zapisuje', async () => {
+        // Dawniej brak schematu znaczył zawsze sedana: rysa na baku lądowała na
+        // rysunku samochodu, a raport PDF powtarzał ten sam błąd.
+        const user = userEvent.setup();
+        const { onSubmit } = renderModal({
+            hasDocument: false,
+            pointsRecoverable: false,
+            initialPoints: [],
+            initialVehicleType: null,
+            vehicleKind: 'MOTORCYCLE',
+        });
+
+        expect(screen.getByAltText('Schemat pojazdu: Motocykl')).toBeTruthy();
+
+        await addPointOnDiagram(user);
+        await user.click(screen.getByRole('button', { name: /Dalej/i }));
+        await user.click(screen.getByRole('button', { name: /Nie, powiem osobiście/i }));
+        await user.click(screen.getByRole('button', { name: /Zapisz mapę uszkodzeń/i }));
+
+        expect(onSubmit.mock.calls[0][0]).toMatchObject({ vehicleType: 'motorcycle' });
+    });
+
+    it('zapisany schemat wygrywa z rodzajem pojazdu', async () => {
+        // Pracownik mógł świadomie wybrać inny rysunek (np. skuter wodny) - rodzaj
+        // pojazdu jest tylko punktem startu, nie poprawką cudzego wyboru.
+        const user = userEvent.setup();
+        renderModal({ initialVehicleType: 'suv', vehicleKind: 'MOTORCYCLE' });
+        await user.click(screen.getByRole('button', { name: /Przejdź do mapy/i }));
+
+        expect(screen.getByAltText('Schemat pojazdu: SUV')).toBeTruthy();
+    });
+
+    it('bez schematu i bez rodzaju zostaje sedan', () => {
+        renderModal({ hasDocument: false, pointsRecoverable: false, initialPoints: [], initialVehicleType: null });
+
+        expect(screen.getByAltText('Schemat pojazdu: Sedan')).toBeTruthy();
+    });
+
     it('doładowanie punktów z API nie zdmuchuje świeżo postawionego oznaczenia', async () => {
         // Zapytanie o punkty leci dopiero po otwarciu okna, więc propsy zmieniają
         // się już przy otwartym edytorze. Gdyby efekt nadpisywał stan bezwarunkowo,

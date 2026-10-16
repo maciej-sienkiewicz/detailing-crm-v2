@@ -492,7 +492,7 @@ export const VisitHeader = ({
                 <Top>
                     <Identity>
                         <LogoTile title={visit.vehicle.brand || undefined}>
-                            <CarLogoImage brand={visit.vehicle.brand} size="md" />
+                            <CarLogoImage brand={visit.vehicle.brand} kind={visit.vehicle.kind} size="md" />
                         </LogoTile>
                         <IdentText>
                             <Eyebrow>Wizyta {visit.visitNumber}</Eyebrow>

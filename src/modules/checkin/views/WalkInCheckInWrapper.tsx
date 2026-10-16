@@ -8,6 +8,7 @@ import { t } from '@/common/i18n';
 import { pickInitialColorId } from '@/modules/appointment-colors';
 import { appointmentApi } from '@/modules/appointments';
 import { fromInstantToLocalInput } from '@/common/dateTime';
+import type { VehicleKind } from '@/modules/vehicles/vehicleKind';
 
 const LoadingContainer = styled.div`
     min-height: 100vh;
@@ -50,6 +51,8 @@ interface LocationState {
     };
     prefillVehicle?: {
         id: string;
+        /** Rodzaj z karty pojazdu; brak (starsze wejście) - samochód. */
+        kind?: VehicleKind;
         brand: string;
         model: string;
         yearOfProduction?: number;

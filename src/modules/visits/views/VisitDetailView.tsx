@@ -1003,6 +1003,7 @@ export const VisitDetailView = () => {
                     customerPhone={visit.customer.phone ?? null}
                     initialPoints={damageMap?.damagePoints ?? []}
                     initialVehicleType={damageMap?.vehicleType ?? null}
+                    vehicleKind={visit.vehicle.kind}
                     pointsRecoverable={damageMap?.pointsRecoverable ?? false}
                     hasDocument={damageMap?.hasDocument ?? false}
                     visitPhotos={visitPhotos}

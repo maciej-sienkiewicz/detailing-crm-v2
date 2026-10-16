@@ -11,6 +11,7 @@ import { fromInstantToLocalInput } from '@/common/dateTime';
 import { reservationTechnicalNotes } from '../utils/reservationNotes';
 import { toCheckInServiceLine } from '../utils/toCheckInServiceLine';
 import type { ServiceLineItem } from '../types';
+import type { VehicleKind } from '@/modules/vehicles/vehicleKind';
 
 const LoadingContainer = styled.div`
     min-height: 100vh;
@@ -112,6 +113,8 @@ interface ReservationResponse {
     };
     vehicle: {
         id: string;
+        /** Brak - samochód; wybiera katalog marek i domyślny schemat mapy uszkodzeń. */
+        kind?: VehicleKind;
         brand: string;
         model: string;
         yearOfProduction: number;
@@ -196,6 +199,7 @@ export const CheckInWizardWrapper = () => {
         // Użyj pełnych danych pojazdu z vehicleDetailData jeśli są dostępne
         vehicle: vehicleDetailData?.vehicle ? {
             id: vehicleDetailData.vehicle.id,
+            kind: vehicleDetailData.vehicle.kind,
             brand: vehicleDetailData.vehicle.brand,
             model: vehicleDetailData.vehicle.model,
             yearOfProduction: vehicleDetailData.vehicle.yearOfProduction,
@@ -204,6 +208,7 @@ export const CheckInWizardWrapper = () => {
             vin: vehicleDetailData.vehicle.vin ?? undefined,
         } : (reservationData.vehicle ? {
             id: reservationData.vehicleId,
+            kind: reservationData.vehicle.kind,
             brand: reservationData.vehicle.brand,
             model: reservationData.vehicle.model,
             yearOfProduction: reservationData.vehicle.year,
@@ -353,6 +358,7 @@ export const CheckInWizardWrapper = () => {
         isNewCustomer: false, // Dane z rezerwacji - klient już istnieje
         vehicleData: reservation.vehicle ? {
             id: reservation.vehicle.id,
+            kind: reservation.vehicle.kind,
             brand: reservation.vehicle.brand,
             model: reservation.vehicle.model,
             yearOfProduction: reservation.vehicle.yearOfProduction,

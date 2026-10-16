@@ -3,6 +3,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { checkinApi } from '../api/checkinApi';
 import { DASHBOARD_STATS_KEY } from '@/modules/dashboard/hooks/useDashboard';
 import { toApiServiceLineItem } from '@/common/utils/priceAdjustment';
+import { normalizeVehicleKind } from '@/modules/vehicles/vehicleKind';
+import { defaultSchematicForKind } from '../utils/vehicleSchematics';
 import type { CheckInFormData, CheckInStep, ReservationToVisitPayload, WalkInVisitPayload } from '../types';
 
 const DRAFT_STORAGE_KEY = 'checkin_draft';
@@ -215,6 +217,8 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
                 return {
                     mode: 'NEW' as const,
                     newData: {
+                        // Nowy pojazd zawsze dostaje rodzaj: brak w formularzu to samochód.
+                        kind: normalizeVehicleKind(formData.vehicleData!.kind),
                         brand: formData.vehicleData!.brand,
                         model: formData.vehicleData!.model,
                         yearOfProduction: formData.vehicleData!.yearOfProduction,
@@ -232,6 +236,9 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
                 // omitted otherwise so the server leaves the vehicle's owners untouched.
                 ownership: formData.vehicleOwnershipAction ?? undefined,
                 updateData: {
+                    // Tylko znany rodzaj: pominięty serwer zostawia bez zmian, a zgadnięty
+                    // „samochód" przestawiłby motocykl, o którym formularz nic nie wiedział.
+                    ...(formData.vehicleData!.kind ? { kind: formData.vehicleData!.kind } : {}),
                     brand: formData.vehicleData!.brand,
                     model: formData.vehicleData!.model,
                     yearOfProduction: formData.vehicleData!.yearOfProduction,
@@ -262,7 +269,12 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
             technicalState: formData.technicalState,
             photoIds: formData.photos.map(p => p.id),
             damagePoints: formData.damagePoints || [],
-            damageVehicleType: formData.damageVehicleType,
+            /*
+             * Schemat, który pracownik WIDZIAŁ: bez ręcznego wyboru to domyślny dla rodzaju
+             * pojazdu (motocykl - motocykl). Puste pole kazało serwerowi brać ogólny
+             * szablon, więc raport PDF rysował punkty z motocykla na sedanie.
+             */
+            damageVehicleType: formData.damageVehicleType ?? defaultSchematicForKind(formData.vehicleData.kind),
             services: transformedServices,
             appointmentColorId: formData.appointmentColorId,
             doorToDoor: formData.doorToDoor?.enabled ? {

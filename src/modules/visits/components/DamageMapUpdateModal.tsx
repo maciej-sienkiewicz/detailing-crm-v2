@@ -20,6 +20,8 @@ import { useModalViewport } from '@/common/hooks';
    sam edytor mapy. */
 import { VehicleDamageMapper } from '@/modules/checkin/components/VehicleDamageMapper';
 import type { DamagePoint, PhotoSlot } from '@/modules/checkin/types';
+import { defaultSchematicForKind } from '@/modules/checkin/utils/vehicleSchematics';
+import type { VehicleKind } from '@/modules/vehicles/vehicleKind';
 import type { DamageMapUpdateMode, VisitPhoto } from '../types';
 import { DamageMapQrPanel } from './DamageMapQrPanel';
 import { useDamageMapMobileSession } from '../hooks/useDamageMapMobileSession';
@@ -505,6 +507,11 @@ interface Props {
     initialPoints: DamagePoint[];
     initialVehicleType: string | null;
     /**
+     * Rodzaj pojazdu wizyty. Gdy mapa nie ma jeszcze zapisanego schematu, edytor
+     * startuje od domyślnego dla rodzaju - motocykl nie dostaje sedana.
+     */
+    vehicleKind?: VehicleKind;
+    /**
      * false = punktów nie da się odtworzyć (wizyta sprzed zapisu punktów).
      * Okno mówi o tym wprost, bo inaczej „aktualizacja" skasowałaby wszystkie
      * oznaczenia z przyjęcia, i to bez śladu.
@@ -534,6 +541,7 @@ export const DamageMapUpdateModal = ({
     customerPhone,
     initialPoints,
     initialVehicleType,
+    vehicleKind,
     pointsRecoverable,
     hasDocument,
     visitPhotos,
@@ -567,7 +575,7 @@ export const DamageMapUpdateModal = ({
     const [editedPoints, setEditedPoints] = useState<DamagePoint[] | null>(null);
     const [editedVehicleType, setEditedVehicleType] = useState<string | null>(null);
     const points = editedPoints ?? initialPoints;
-    const vehicleType = editedVehicleType ?? initialVehicleType ?? 'sedan';
+    const vehicleType = editedVehicleType ?? initialVehicleType ?? defaultSchematicForKind(vehicleKind);
 
     const overlayRef = useRef<HTMLDivElement>(null);
     useModalViewport(true, overlayRef, isSaving ? undefined : onClose);

@@ -8,6 +8,7 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { CheckInFormData, DamagePoint, PhotoSlot } from '../types';
 import { VehicleDamageMapper } from './VehicleDamageMapper';
 import { CheckinQRGenerator } from './CheckinQRGenerator';
+import { defaultSchematicForKind } from '../utils/vehicleSchematics';
 import { TagChip } from '@/modules/photos/components/TagChip';
 import { PhotoTagEditModal } from '@/modules/photos/components/PhotoTagEditModal';
 import { useTagSuggestions, useUpdatePhotoTags } from '@/modules/photos/hooks/usePhotoTags';
@@ -415,6 +416,13 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
     }, [photos]);
 
     /*
+     * Schemat mapy uszkodzeń: wybrany ręcznie albo domyślny dla rodzaju pojazdu.
+     * Ten sam trafia do telefonu (kod QR) i do zapisu wizyty - raport PDF ma narysować
+     * punkty na rysunku, który pracownik widział.
+     */
+    const damageVehicleType = formData.damageVehicleType ?? defaultSchematicForKind(formData.vehicleData?.kind);
+
+    /*
      * Do usterki można podpiąć zdjęcie zrobione na komputerze ALBO telefonem. Zdjęcia
      * z telefonu żyją w sesji kodu QR, nie w sesji zdjęć komputera, więc okno wyboru
      * ich nie widziało - zgłoszenie biznesu: „nie możemy połączyć zdjęć z usterkami".
@@ -556,6 +564,7 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
                     <div style={{ marginTop: 16 }}>
                         <CheckinQRGenerator
                             appointmentId={qrCheckinId}
+                            vehicleType={damageVehicleType}
                             onDamageUpdated={handleDamagePointsChange}
                             onPhotosChange={setPhonePhotos}
                         />
@@ -662,7 +671,7 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
                             points={formData.damagePoints || []}
                             onChange={handleDamagePointsChange}
                             availablePhotos={damagePhotoChoices}
-                            vehicleType={formData.damageVehicleType ?? 'sedan'}
+                            vehicleType={damageVehicleType}
                             onVehicleTypeChange={type => onChange({ damageVehicleType: type })}
                         />
                     </SectionBody>

@@ -286,6 +286,11 @@ interface QrPhoto {
 
 interface CheckinQRGeneratorProps {
     appointmentId?: string;
+    /**
+     * Schemat mapy uszkodzeń widoczny teraz na komputerze. Telefon otwiera mapę od
+     * niego - inaczej przy motocyklu zaczynałby od sedana.
+     */
+    vehicleType?: string;
     onDamageUpdated?: (points: DamagePoint[], vehicleType?: string | null) => void;
     /**
      * Zdjęcia z telefonu w kształcie zdjęć przyjęcia - żeby na komputerze dało się je
@@ -310,9 +315,9 @@ function formatCountdown(seconds: number): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const CheckinQRGenerator = ({ appointmentId, onDamageUpdated, onPhotosChange }: CheckinQRGeneratorProps) => {
+export const CheckinQRGenerator = ({ appointmentId, vehicleType, onDamageUpdated, onPhotosChange }: CheckinQRGeneratorProps) => {
     const { tokenData, qrUrl, secondsLeft, isExpired, isLoading, error, refresh, rotate } =
-        useCheckinQRToken(appointmentId);
+        useCheckinQRToken(appointmentId, vehicleType);
 
     const [photos, setPhotos] = useState<QrPhoto[]>([]);
     const [deletingId, setDeletingId] = useState<string | null>(null);

@@ -28,6 +28,8 @@ import {
 import { SharedButton } from '@/common/styles';
 import { PhoneInput } from '@/common/components/PhoneInput';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
+import { VehicleKindSwitch } from '@/modules/vehicles/components/VehicleKindSwitch';
+import { normalizeVehicleKind, type VehicleKind } from '@/modules/vehicles/vehicleKind';
 import { VinCameraButton } from '@/modules/vehicles/components/vin/VinCameraButton';
 import { cleanVin, VIN_MAX_LENGTH } from '@/modules/vehicles/components/vin/vinFormat';
 import { vehicleApi } from '@/modules/vehicles/api/vehicleApi';
@@ -433,6 +435,13 @@ const VehicleSuggestionChip = styled.button`
     &:hover {
         background: ${st.accentBlueDim};
     }
+`;
+
+// Rodzaj pojazdu dostaje własny wiersz siatki nad marką: to on wybiera katalog,
+// z którego podpowiadają oba pola pod nim.
+const VehicleKindRow = styled.div`
+    grid-column: 1 / -1;
+    min-width: 0;
 `;
 
 // ─── Customer-swap decision (what happens to the car) ─────────────────────────
@@ -880,6 +889,7 @@ export const VerificationStep = ({
         onChange({
             vehicleData: {
                 id: v.id,
+                kind: v.kind,
                 brand: v.brand,
                 model: v.model,
                 yearOfProduction: v.year,
@@ -1021,6 +1031,7 @@ export const VerificationStep = ({
         (initialVehicleData === null && formData.vehicleData === null) ||
         (initialVehicleData !== null && formData.vehicleData !== null &&
             initialVehicleData.id === formData.vehicleData.id &&
+            normalizeVehicleKind(initialVehicleData.kind) === normalizeVehicleKind(formData.vehicleData.kind) &&
             initialVehicleData.brand === formData.vehicleData.brand &&
             initialVehicleData.model === formData.vehicleData.model &&
             initialVehicleData.yearOfProduction === formData.vehicleData.yearOfProduction &&
@@ -1184,6 +1195,28 @@ export const VerificationStep = ({
             return;
         }
         applyVehicleUpdates({ vin });
+        if (!vehicleChoiceMade) setVehicleChoiceMade(true);
+    };
+
+    /** Rodzaj widoczny w formularzu: także ten czekający na odpowiedź „edytować czy nowy?". */
+    const vehicleKind = normalizeVehicleKind(pendingVehicleUpdates?.kind ?? formData.vehicleData?.kind);
+
+    /**
+     * Rodzaj wybiera katalog marek i modeli, więc jego zmiana czyści markę i model -
+     * tak jak zmiana marki czyści model. Przy pojeździe wybranym z listy pytanie
+     * „edytować ten pojazd czy dodać nowy?" pada od razu, jak przy VIN-ie ze zdjęcia:
+     * przełącznik nie ma wyjścia z pola, na które czeka pytanie przy wpisywaniu.
+     */
+    const handleVehicleKindChange = (kind: VehicleKind) => {
+        if (kind === vehicleKind) return;
+        const updates = { kind, brand: '', model: '' };
+        if (!vehicleChoiceMade && !vehicleWasPreSelected.current && formData.vehicleData?.id) {
+            setPendingVehicleUpdates(prev => ({ ...(prev || {}), ...updates }));
+            setVehiclePromptScheduled(false);
+            setShowVehicleChoice(true);
+            return;
+        }
+        applyVehicleUpdates(updates);
         if (!vehicleChoiceMade) setVehicleChoiceMade(true);
     };
 
@@ -1363,6 +1396,9 @@ export const VerificationStep = ({
         onChange({
             vehicleData: {
                 id: vehicle.id || `temp-${Date.now()}`,
+                // Rodzaj jedzie z wyboru: od niego zależy katalog marek w formularzu
+                // i schemat mapy uszkodzeń na kolejnym kroku.
+                kind: vehicle.kind,
                 brand: vehicle.brand,
                 model: vehicle.model,
                 yearOfProduction: vehicle.yearOfProduction ?? undefined,
@@ -1401,6 +1437,7 @@ export const VerificationStep = ({
         onChange({
             vehicleData: {
                 id: formData.vehicleData?.id || `temp-${Date.now()}`,
+                kind: formData.vehicleData?.kind,
                 brand: data.vehicleData.brand,
                 model: data.vehicleData.model,
                 yearOfProduction: data.vehicleData.yearOfProduction,
@@ -1850,6 +1887,7 @@ export const VerificationStep = ({
                                     type="button"
                                     onClick={() => handleVehicleSelect({
                                         id: v.id,
+                                        kind: v.kind,
                                         brand: v.brand,
                                         model: v.model,
                                         yearOfProduction: v.year,
@@ -1865,9 +1903,17 @@ export const VerificationStep = ({
                     )}
 
                     <FormGrid $columns={3}>
+                        <VehicleKindRow>
+                            <VehicleKindSwitch
+                                value={vehicleKind}
+                                onChange={handleVehicleKindChange}
+                                block={false}
+                            />
+                        </VehicleKindRow>
                         <FieldGroup>
                             <Label>{t.checkin.verification.brand}</Label>
                             <BrandSelect
+                                kind={vehicleKind}
                                 value={(pendingVehicleUpdates?.brand ?? formData.vehicleData?.brand) || ''}
                                 onChange={(val) => handleVehicleFieldChange({ brand: val, model: '' })}
                                 onBlur={handleVehicleFieldBlur}
@@ -1876,6 +1922,7 @@ export const VerificationStep = ({
                         <FieldGroup>
                             <Label>{t.checkin.verification.model}</Label>
                             <ModelSelect
+                                kind={vehicleKind}
                                 brand={(pendingVehicleUpdates?.brand ?? formData.vehicleData?.brand) || ''}
                                 value={(pendingVehicleUpdates?.model ?? formData.vehicleData?.model) || ''}
                                 onChange={(val) => handleVehicleFieldChange({ model: val })}

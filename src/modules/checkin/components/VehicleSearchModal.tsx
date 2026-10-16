@@ -1,6 +1,7 @@
 // src/modules/checkin/components/VehicleSearchModal.tsx
 import { useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { Motorbike } from 'lucide-react';
 import { useDebounce } from '@/common/hooks';
 import {
     ModalShell,
@@ -42,6 +43,8 @@ import { vehicleApi } from '@/modules/vehicles/api/vehicleApi';
 import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
 import type { VehicleListItem } from '@/modules/vehicles/types';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
+import { VehicleKindSwitch } from '@/modules/vehicles/components/VehicleKindSwitch';
+import { DEFAULT_VEHICLE_KIND, type VehicleKind } from '@/modules/vehicles/vehicleKind';
 
 // Tablica, rok i właściciel to osobne atrybuty, więc osobne elementy z odstępem,
 // a nie ciąg sklejony kropką (CLAUDE.md §4).
@@ -62,8 +65,18 @@ const CarIcon = () => (
     </svg>
 );
 
+// Na liście obok siebie stoją auta i motocykle klienta - ikona mówi, który jest który,
+// zanim ktoś doczyta model. Brak rodzaju w danych to samochód.
+const VehicleKindIcon = ({ kind }: { kind?: VehicleKind | null }) => (
+    kind === 'MOTORCYCLE'
+        ? <Motorbike strokeWidth={1.8} aria-hidden="true" data-kind="MOTORCYCLE" />
+        : <CarIcon />
+);
+
 export interface SelectedVehicle {
     id?: string;
+    /** Brak - samochód (źródło wyboru nie zna rodzaju). */
+    kind?: VehicleKind;
     brand: string;
     model: string;
     yearOfProduction: number;
@@ -95,7 +108,15 @@ type VehicleMode = 'search' | 'new';
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 50 }, (_, i) => CURRENT_YEAR - i);
 
-const EMPTY_FORM = {
+const EMPTY_FORM: {
+    kind: VehicleKind;
+    brand: string;
+    model: string;
+    yearOfProduction: number;
+    licensePlate: string;
+    color: string;
+} = {
+    kind: DEFAULT_VEHICLE_KIND,
     brand: '',
     model: '',
     yearOfProduction: CURRENT_YEAR,
@@ -153,6 +174,7 @@ export const VehicleSearchModal = ({
     const handleVehicleClick = (vehicle: VehicleListItem) => {
         onSelect({
             id: vehicle.id,
+            kind: vehicle.kind,
             brand: vehicle.brand,
             model: vehicle.model,
             yearOfProduction: vehicle.yearOfProduction,
@@ -184,6 +206,7 @@ export const VehicleSearchModal = ({
         if (!validateForm()) return;
 
         onSelect({
+            kind: formData.kind,
             brand: formData.brand.trim(),
             model: formData.model.trim(),
             yearOfProduction: formData.yearOfProduction,
@@ -238,6 +261,7 @@ export const VehicleSearchModal = ({
                         onClick={() => {
                             onSelect({
                                 id: v.id,
+                                kind: v.kind,
                                 brand: v.brand,
                                 model: v.model,
                                 yearOfProduction: v.year,
@@ -248,7 +272,7 @@ export const VehicleSearchModal = ({
                             handleClose();
                         }}
                     >
-                        <PickerAvatar><CarIcon /></PickerAvatar>
+                        <PickerAvatar><VehicleKindIcon kind={v.kind} /></PickerAvatar>
                         <PickerRowMain>
                             <PickerRowTitle>{v.brand} {v.model}</PickerRowTitle>
                             <RowSubParts parts={[v.licensePlate, v.year]} />
@@ -281,7 +305,7 @@ export const VehicleSearchModal = ({
                 $selected={vehicle.id === currentVehicleId}
                 onClick={() => handleVehicleClick(vehicle)}
             >
-                <PickerAvatar><CarIcon /></PickerAvatar>
+                <PickerAvatar><VehicleKindIcon kind={vehicle.kind} /></PickerAvatar>
                 <PickerRowMain>
                     <PickerRowTitle>{vehicle.brand} {vehicle.model}</PickerRowTitle>
                     <RowSubParts
@@ -335,9 +359,21 @@ export const VehicleSearchModal = ({
                         <div>
                             <ModalSectionTitle>Dane wymagane</ModalSectionTitle>
                             <FormGrid>
+                                {/* Nad marką, bo wybiera katalog obu pól; zmiana czyści markę i model. */}
+                                <FormField $fullWidth>
+                                    <VehicleKindSwitch
+                                        value={formData.kind}
+                                        onChange={(kind) => setFormData(prev => (
+                                            prev.kind === kind ? prev : { ...prev, kind, brand: '', model: '' }
+                                        ))}
+                                        block={false}
+                                    />
+                                </FormField>
+
                                 <FormField>
                                     <FieldLabel>Marka *</FieldLabel>
                                     <BrandSelect
+                                        kind={formData.kind}
                                         value={formData.brand}
                                         onChange={(val) => setFormData({ ...formData, brand: val, model: '' })}
                                         onBlur={() => {}}
@@ -348,6 +384,7 @@ export const VehicleSearchModal = ({
                                 <FormField>
                                     <FieldLabel>Model *</FieldLabel>
                                     <ModelSelect
+                                        kind={formData.kind}
                                         brand={formData.brand}
                                         value={formData.model}
                                         onChange={(val) => setFormData({ ...formData, model: val })}

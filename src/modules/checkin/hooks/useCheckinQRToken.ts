@@ -28,8 +28,15 @@ export interface UseCheckinQRTokenResult {
  * the phone could no longer upload ("Błąd podczas przesyłania zdjęcia"). Only [rotate]
  * replaces the code.
  */
-export function useCheckinQRToken(appointmentId: string | undefined): UseCheckinQRTokenResult {
+export function useCheckinQRToken(appointmentId: string | undefined, vehicleType?: string): UseCheckinQRTokenResult {
     const [tokenData, setTokenData] = useState<QRTokenResponse | null>(null);
+    /*
+     * Schemat mapy czytany w chwili pobrania tokena, a nie zależność efektu: serwer
+     * zasiewa nim telefon tylko raz (gdy telefon nic jeszcze nie zapisał), więc zmiana
+     * schematu nie jest powodem, żeby prosić o kod od nowa i migać „Generowanie kodu".
+     */
+    const vehicleTypeRef = useRef(vehicleType);
+    vehicleTypeRef.current = vehicleType;
     const [secondsLeft, setSecondsLeft] = useState(Number.MAX_SAFE_INTEGER);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -74,7 +81,10 @@ export function useCheckinQRToken(appointmentId: string | undefined): UseCheckin
         setIsLoading(true);
         setError(null);
         try {
-            const data = await checkinApi.generateQRToken(appointmentId, { rotate: rotateToken });
+            const data = await checkinApi.generateQRToken(appointmentId, {
+                rotate: rotateToken,
+                vehicleType: vehicleTypeRef.current,
+            });
             setTokenData(data);
             startCountdown(data.expiresAt);
         } catch (err) {
