@@ -9,6 +9,7 @@ import { useVisitStateConflict } from './useVisitStateConflict';
 import { companyApi } from '@/modules/settings/api/companyApi';
 import { useServicePricing } from '@/modules/appointments/hooks/useServicePricing';
 import { useToast } from '@/common/components/Toast';
+import { localIsoDate } from '@/common/utils/localDate';
 import { isPiiMasked } from '@/common/pii';
 import { useThankYouSmsAvailability } from './useThankYouSmsAvailability';
 import { useMessageDefaults } from '@/modules/message-templates/hooks/useMessageDefaults';
@@ -18,7 +19,11 @@ import type { CompleteVisitResponse, PaymentMethod } from '../types/stateTransit
 import {
     invoiceGrossOf,
     invoiceItemFromService,
+    itemsMatch,
+    itemsPerRate,
+    rateMismatch,
     restoreDraft,
+    scaleItemsToGross,
     servicesFingerprint,
     toInvoicePayload,
     toPln,
@@ -39,7 +44,8 @@ const draftKey = (visitId: string) => `${DRAFT_PREFIX}${visitId}`;
 const defaultDueDate = (): string => {
     const date = new Date();
     date.setDate(date.getDate() + DUE_DATE_DAYS);
-    return date.toISOString().slice(0, 10);
+    // Data lokalna, nie toISOString(): to drugie liczy w UTC i po północy dawało dzień mniej.
+    return localIsoDate(date);
 };
 
 /**
@@ -187,20 +193,38 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         [visit.services, priceOf]
     );
 
+    // Pozycje faktury dokładnie takie jak usługi wizyty - punkt odniesienia dla
+    // „zgodnie z usługami”, „wróć do kwot z usług” i podziału na fakturę i paragon.
+    const serviceItems = useMemo(() => buildInitialState().items, [buildInitialState]);
+
     // Ekran jest montowany dopiero przy otwarciu, więc odtworzenie draftu
     // wystarczy zrobić raz, w inicjalizatorze stanu.
-    const [state, setState] = useState<HandoverState>(() => {
+    const [initial] = useState<{ state: HandoverState; restoredAt: string | null }>(() => {
         const fresh = buildInitialState();
         try {
             // Drafty sprzed wprowadzenia odcisku usług nie dają się zweryfikować,
             // więc znikają zamiast wracać jako nieaktualne pozycje.
             window.localStorage.removeItem(`${LEGACY_DRAFT_PREFIX}${visit.id}`);
-            return restoreDraft(fresh, window.localStorage.getItem(draftKey(visit.id)), fingerprint);
+            const stored = window.localStorage.getItem(draftKey(visit.id));
+            const restored = restoreDraft(fresh, stored, fingerprint);
+            // Przywrócone pozycje inne niż usługi wizyty dostają baner z godziną zapisu:
+            // w testach okno po cichu wracało z cudzą ceną 240,00 zł zamiast 246,00 zł.
+            let savedAt: string | null = null;
+            try {
+                const draft = stored ? (JSON.parse(stored) as HandoverDraft) : null;
+                if (draft?.servicesFingerprint === fingerprint) savedAt = draft.savedAt ?? '';
+            } catch {
+                savedAt = null;
+            }
+            const restoredAt = savedAt !== null && !itemsMatch(restored.items, fresh.items) ? savedAt : null;
+            return { state: restored, restoredAt };
         } catch {
             // Brak dostępu do localStorage (tryb prywatny) nie może blokować wydania.
-            return fresh;
+            return { state: fresh, restoredAt: null };
         }
     });
+    const [state, setState] = useState<HandoverState>(initial.state);
+    const [restoredAt, setRestoredAt] = useState<string | null>(initial.restoredAt);
     const [result, setResult] = useState<CompleteVisitResponse | null>(null);
 
     // Wystawianie dokumentów (paragon/faktura/KSeF) to moduł finansowy. Bez niego
@@ -256,7 +280,7 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     useEffect(() => {
         if (!isOpen || result) return;
         try {
-            const draft: HandoverDraft = { servicesFingerprint: fingerprint, state };
+            const draft: HandoverDraft = { servicesFingerprint: fingerprint, state, savedAt: new Date().toISOString() };
             window.localStorage.setItem(draftKey(visit.id), JSON.stringify(draft));
         } catch {
             // Brak miejsca / tryb prywatny: draft to wygoda, nie warunek działania.
@@ -281,6 +305,38 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     // ── Wyliczenia pochodne ──────────────────────────────────────────────────
     const invoiceGross = useMemo(() => invoiceGrossOf(state.items), [state.items]);
     const remainder = totals.gross - invoiceGross;
+    const itemsMatchServices = useMemo(() => itemsMatch(state.items, serviceItems), [state.items, serviceItems]);
+    const vatMismatch = useMemo(() => rateMismatch(state.items, serviceItems), [state.items, serviceItems]);
+
+    // ── Podział: faktura na część kwoty, reszta paragonem ─────────────────────
+    /** Pozycje z usług wizyty, faktura na całość. Zdejmuje też baner przywróconego draftu. */
+    const resetItemsToServices = useCallback(() => {
+        patch({ items: serviceItems, splitRemainder: false });
+        setRestoredAt(null);
+    }, [patch, serviceItems]);
+
+    /**
+     * Klient prosi o fakturę na kwotę niższą niż wizyta, resztę płaci za paragonem.
+     * Pozycje liczymy od usług (nie od bieżących pozycji), żeby kolejne wpisania kwoty
+     * nie kumulowały zaokrągleń.
+     */
+    const setInvoiceAmount = useCallback(
+        (grosz: number) => patch({ items: scaleItemsToGross(serviceItems, grosz), splitRemainder: true }),
+        [patch, serviceItems]
+    );
+
+    const setSplit = useCallback(
+        (split: boolean) => (split ? patch({ splitRemainder: true }) : resetItemsToServices()),
+        [patch, resetItemsToServices]
+    );
+
+    /** Jedna pozycja na każdą stawkę VAT - scalenie, które nie zmienia podatku. */
+    const applyItemsPerRate = useCallback(
+        () => patch({
+            items: itemsPerRate(remainder > 0 ? scaleItemsToGross(serviceItems, invoiceGross) : serviceItems),
+        }),
+        [patch, serviceItems, remainder, invoiceGross]
+    );
 
     const problems: HandoverProblem[] = useMemo(
         () =>
@@ -353,6 +409,14 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         isFreeVisit,
         invoiceGross,
         remainder,
+        serviceItems,
+        itemsMatchServices,
+        vatMismatch,
+        restoredAt: restoredAt !== null && !itemsMatchServices ? restoredAt : null,
+        resetItemsToServices,
+        setInvoiceAmount,
+        setSplit,
+        applyItemsPerRate,
         // stan
         state,
         patch,

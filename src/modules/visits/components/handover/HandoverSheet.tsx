@@ -229,6 +229,15 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                         sendToKsef={handover.sendToKsef}
                                         canChooseSendToKsef={handover.canChooseSendToKsef}
                                         onSendToKsefChange={handover.setSendToKsef}
+                                        controls={{
+                                            itemsMatchServices: handover.itemsMatchServices,
+                                            vatMismatch: handover.vatMismatch,
+                                            restoredAt: handover.restoredAt,
+                                            resetItemsToServices: handover.resetItemsToServices,
+                                            setInvoiceAmount: handover.setInvoiceAmount,
+                                            setSplit: handover.setSplit,
+                                            applyItemsPerRate: handover.applyItemsPerRate,
+                                        }}
                                     />
                                 ) : (
                                     // Moment wysokiej intencji: zamiast sekcji rozliczenia,

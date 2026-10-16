@@ -38,6 +38,26 @@ const HeaderRow = styled(Row)`
     @media (max-width: 640px) { display: none; }
 `;
 
+/**
+ * Podpis pola widoczny tylko na telefonie. Nagłówek tabeli znika poniżej 640 px i w
+ * testach na telefonie zostawały dwa pola kwot bez podpisu (jedno wyszarzone) - nie
+ * było wiadomo, które to netto, a które brutto, choć od tego zależy, co jest wpisane.
+ */
+const CellLabel = styled.span`
+    display: none;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: ${st.textSecondary};
+
+    @media (max-width: 640px) { display: block; margin-bottom: 3px; }
+`;
+
+const Cell = styled.div`
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+`;
+
 /** Pole pochodne: wartość wyliczona z pola wpisanego, lekko wyszarzona. */
 const DerivedShell = styled(InputShell)<{ $derived: boolean }>`
     ${p =>
@@ -139,48 +159,60 @@ export const InvoiceItemsEditor = ({
 
             {items.map((item, index) => (
                 <Row key={index}>
-                    <InputShell $compact>
-                        <BareInput
-                            value={item.name}
-                            aria-label={`Nazwa pozycji ${index + 1}`}
-                            onChange={e => updateItem(index, { name: e.target.value })}
+                    <Cell>
+                        <CellLabel>Nazwa pozycji</CellLabel>
+                        <InputShell $compact>
+                            <BareInput
+                                value={item.name}
+                                aria-label={`Nazwa pozycji ${index + 1}`}
+                                onChange={e => updateItem(index, { name: e.target.value })}
+                                $compact
+                            />
+                        </InputShell>
+                    </Cell>
+                    <Cell>
+                        <CellLabel>{item.mode === 'GROSS' ? 'Netto (wyliczone)' : 'Netto'}</CellLabel>
+                        <DerivedShell $derived={item.mode === 'GROSS'} $compact>
+                            <BareInput
+                                value={item.net}
+                                inputMode="decimal"
+                                aria-label={`Netto pozycji ${index + 1}`}
+                                title={item.mode === 'GROSS' ? 'Wyliczone z brutto' : 'Kwota wpisana'}
+                                onChange={e => updateAmount(index, 'net', e.target.value)}
+                                onKeyDown={handleZeroAwareKeyDown(item.net, val => updateAmount(index, 'net', val))}
+                                $compact
+                            />
+                        </DerivedShell>
+                    </Cell>
+                    <Cell>
+                        <CellLabel>{item.mode === 'NET' ? 'Brutto (wyliczone)' : 'Brutto'}</CellLabel>
+                        <DerivedShell $derived={item.mode === 'NET'} $compact>
+                            <BareInput
+                                value={item.gross}
+                                inputMode="decimal"
+                                aria-label={`Brutto pozycji ${index + 1}`}
+                                title={item.mode === 'NET' ? 'Wyliczone z netto' : 'Kwota wpisana'}
+                                onChange={e => updateAmount(index, 'gross', e.target.value)}
+                                onKeyDown={handleZeroAwareKeyDown(item.gross, val => updateAmount(index, 'gross', val))}
+                                $compact
+                            />
+                        </DerivedShell>
+                    </Cell>
+                    <Cell>
+                        <CellLabel>Stawka VAT</CellLabel>
+                        <Select
+                            value={item.vatRate}
+                            aria-label={`Stawka VAT pozycji ${index + 1}`}
+                            onChange={e => updateItem(index, { vatRate: e.target.value as VatRateCode })}
                             $compact
-                        />
-                    </InputShell>
-                    <DerivedShell $derived={item.mode === 'GROSS'} $compact>
-                        <BareInput
-                            value={item.net}
-                            inputMode="decimal"
-                            aria-label={`Netto pozycji ${index + 1}`}
-                            title={item.mode === 'GROSS' ? 'Wyliczone z brutto' : 'Kwota wpisana'}
-                            onChange={e => updateAmount(index, 'net', e.target.value)}
-                            onKeyDown={handleZeroAwareKeyDown(item.net, val => updateAmount(index, 'net', val))}
-                            $compact
-                        />
-                    </DerivedShell>
-                    <DerivedShell $derived={item.mode === 'NET'} $compact>
-                        <BareInput
-                            value={item.gross}
-                            inputMode="decimal"
-                            aria-label={`Brutto pozycji ${index + 1}`}
-                            title={item.mode === 'NET' ? 'Wyliczone z netto' : 'Kwota wpisana'}
-                            onChange={e => updateAmount(index, 'gross', e.target.value)}
-                            onKeyDown={handleZeroAwareKeyDown(item.gross, val => updateAmount(index, 'gross', val))}
-                            $compact
-                        />
-                    </DerivedShell>
-                    <Select
-                        value={item.vatRate}
-                        aria-label={`Stawka VAT pozycji ${index + 1}`}
-                        onChange={e => updateItem(index, { vatRate: e.target.value as VatRateCode })}
-                        $compact
-                    >
-                        <option value="23">23%</option>
-                        <option value="8">8%</option>
-                        <option value="5">5%</option>
-                        <option value="0">0%</option>
-                        <option value="zw">zw.</option>
-                    </Select>
+                        >
+                            <option value="23">23%</option>
+                            <option value="8">8%</option>
+                            <option value="5">5%</option>
+                            <option value="0">0%</option>
+                            <option value="zw">zw.</option>
+                        </Select>
+                    </Cell>
                     <RemoveBtn
                         type="button"
                         disabled={items.length === 1}

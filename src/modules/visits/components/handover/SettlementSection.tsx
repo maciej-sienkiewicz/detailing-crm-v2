@@ -3,7 +3,7 @@ import { formatCurrency } from '@/common/utils';
 import { SummaryStrip, ui } from '@/common/components/ui';
 import type { CompanySettings } from '@/modules/settings/types';
 import { Pill, PillRow } from './HandoverKit';
-import { InvoiceSection } from './InvoiceSection';
+import { InvoiceSection, type InvoiceControls } from './InvoiceSection';
 import { PaymentMethodPicker } from './PaymentMethodPicker';
 import { documentTypes } from './paymentOptions';
 import type { HandoverProblem, HandoverState } from '../../types/handover';
@@ -56,6 +56,7 @@ interface SettlementSectionProps {
     sendToKsef: boolean;
     canChooseSendToKsef: boolean;
     onSendToKsefChange: (value: boolean) => void;
+    controls: InvoiceControls;
 }
 
 /**
@@ -83,8 +84,10 @@ export const SettlementSection = ({
     sendToKsef,
     canChooseSendToKsef,
     onSendToKsefChange,
+    controls,
 }: SettlementSectionProps) => {
     const fmt = (grosz: number) => formatCurrency(grosz / 100, currency);
+    const isSplit = state.documentType === 'INVOICE' && state.splitRemainder && remainder > 0;
 
     if (isFreeVisit) {
         return (
@@ -105,11 +108,14 @@ export const SettlementSection = ({
             <SummaryStrip
                 label="Do zapłaty"
                 amount={fmt(totals.gross)}
-                details={`netto ${fmt(totals.net)}, VAT ${fmt(totals.vat)}`}
+                details={isSplit
+                    ? `faktura ${fmt(invoiceGross)} + paragon ${fmt(remainder)}`
+                    : `netto ${fmt(totals.net)}, VAT ${fmt(totals.vat)}`}
             />
 
             <Field>
-                <FieldTitle>Forma zapłaty</FieldTitle>
+                {/* Przy podziale forma zapłaty dotyczy faktury - paragon ma własną niżej. */}
+                <FieldTitle>{isSplit ? 'Forma zapłaty faktury' : 'Forma zapłaty'}</FieldTitle>
                 <PaymentMethodPicker
                     value={state.paymentMethod}
                     onChange={paymentMethod => patch({ paymentMethod })}
@@ -147,6 +153,7 @@ export const SettlementSection = ({
                     sendToKsef={sendToKsef}
                     canChooseSendToKsef={canChooseSendToKsef}
                     onSendToKsefChange={onSendToKsefChange}
+                    controls={controls}
                 />
             )}
         </Stack>

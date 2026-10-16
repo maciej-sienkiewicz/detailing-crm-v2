@@ -7,14 +7,20 @@ import {
     invoiceRateOf,
     isPlnInput,
     itemAmounts,
+    itemsMatch,
+    itemsPerRate,
+    nipProblem,
     parsePln,
+    rateMismatch,
     restoreDraft,
+    scaleItemsToGross,
     servicesFingerprint,
     toInvoicePayload,
     toPln,
     validateHandover,
     vatFromGross,
     vatFromNet,
+    vatOfItems,
     vatRateCodeOf,
     withDerived,
     type HandoverDraft,
@@ -147,11 +153,13 @@ const item = (overrides: Partial<HandoverItem> = {}): HandoverItem => ({
 });
 
 describe('toPln', () => {
-    it('grosze → złote z dwoma miejscami po kropce', () => {
-        expect(toPln(190_000)).toBe('1900.00');
-        expect(toPln(154_472)).toBe('1544.72');
-        expect(toPln(1)).toBe('0.01');
-        expect(toPln(0)).toBe('0.00');
+    // Polski zapis z przecinkiem: kwota wyliczona przez ekran stoi w tym samym polu co
+    // kwota wpisana ręcznie, więc „1544.72” obok „1900,00” wyglądało jak dwa formaty.
+    it('grosze → złote z dwoma miejscami po przecinku', () => {
+        expect(toPln(190_000)).toBe('1900,00');
+        expect(toPln(154_472)).toBe('1544,72');
+        expect(toPln(1)).toBe('0,01');
+        expect(toPln(0)).toBe('0,00');
     });
 });
 
@@ -267,7 +275,7 @@ describe('withDerived', () => {
         const derived = withDerived(item({ gross: '1900,00', net: '' }));
 
         expect(derived.gross).toBe('1900,00');
-        expect(derived.net).toBe('1544.72');
+        expect(derived.net).toBe('1544,72');
         expect(derived.mode).toBe('GROSS');
     });
 
@@ -275,7 +283,7 @@ describe('withDerived', () => {
         const derived = withDerived(item({ mode: 'NET', net: '1544,72', gross: '' }));
 
         expect(derived.net).toBe('1544,72');
-        expect(derived.gross).toBe('1900.01');
+        expect(derived.gross).toBe('1900,01');
     });
 
     it('zmiana stawki przelicza tylko pole pochodne', () => {
@@ -350,8 +358,8 @@ describe('invoiceItemFromService', () => {
 
         expect(seeded).toEqual({
             name: 'Powłoka ceramiczna',
-            net: '1544.72',
-            gross: '1900.00',
+            net: '1544,72',
+            gross: '1900,00',
             mode: 'GROSS',
             vatRate: '23',
         });
@@ -467,6 +475,14 @@ describe('validateHandover', () => {
         expect(validate({ ...exempt, exemptionBasis: 'art. 43 ust. 1 pkt 29' })).toEqual([]);
     });
 
+    it('NIP z błędną sumą kontrolną blokuje wystawienie - faktura trafiłaby do obcej firmy', () => {
+        const buyer = state().buyer;
+
+        expect(validate({ buyer: { ...buyer, nip: '3669982427' } })).toEqual([
+            { section: 'buyer', message: 'NIP nabywcy ma błędną sumę kontrolną - sprawdź cyfry.' },
+        ]);
+    });
+
     it('NIP nabywcy musi mieć 10 cyfr, a konsument - imię i nazwisko', () => {
         const buyer = state().buyer;
 
@@ -481,7 +497,7 @@ describe('validateHandover', () => {
         const problems = validate({ items: [item({ gross: '1900.01' })] });
 
         expect(problems.map(p => p.section)).toEqual(['balance']);
-        expect(problems[0].message).toContain('przekracza');
+        expect(problems[0].message).toContain('nie może być wyższa niż kwota wizyty');
     });
 
     it('faktura niższa od wizyty wymaga wskazania, czym udokumentować resztę', () => {
@@ -554,5 +570,150 @@ describe('toInvoicePayload', () => {
         expect(payload.buyerAddressLine1).toBeUndefined();
         expect(payload.buyerAddressLine2).toBeUndefined();
         expect(payload.buyerEmail).toBeUndefined();
+    });
+});
+
+// ─── Faktura + paragon ───────────────────────────────────────────────────────
+//
+// Wizyta za 17 000 zł, klient chce fakturę na 10 000 zł, resztę płaci za paragonem.
+// Suma obu dokumentów musi być równa kwocie wizyty co do grosza, a stawki VAT na
+// fakturze mają zostać takie jak w usługach - inaczej zmienia się podatek.
+
+const service = (name: string, gross: string, vatRate: HandoverItem['vatRate']): HandoverItem =>
+    withDerived({ name, net: '', gross, mode: 'GROSS', vatRate });
+
+const grossOf = (items: HandoverItem[]) => items.reduce((sum, i) => sum + itemAmounts(i).gross, 0);
+
+describe('nipProblem', () => {
+    it('pusty NIP to konsument, nie błąd', () => {
+        expect(nipProblem('')).toBeNull();
+        expect(nipProblem('  ')).toBeNull();
+    });
+
+    it('sprawdza długość, a potem sumę kontrolną', () => {
+        expect(nipProblem('123')).toBe('NIP nabywcy musi mieć 10 cyfr.');
+        expect(nipProblem('3669982427')).toBe('NIP nabywcy ma błędną sumę kontrolną - sprawdź cyfry.');
+        expect(nipProblem('521-301-72-28')).toBeNull();
+    });
+});
+
+describe('itemsMatch', () => {
+    const services = [service('Powłoka', '1900,00', '23'), service('Tapicerka', '500,00', '8')];
+
+    it('te same pozycje - zgodne, także gdy brutto zapisano z kropką', () => {
+        expect(itemsMatch(services, [service('Powłoka', '1900.00', '23'), service('Tapicerka ', '500', '8')])).toBe(true);
+    });
+
+    it('ta sama suma po przesunięciu kwot między pozycjami NIE jest zgodna z usługami', () => {
+        const moved = [service('Powłoka', '2000,00', '23'), service('Tapicerka', '400,00', '8')];
+
+        expect(grossOf(moved)).toBe(grossOf(services));
+        expect(itemsMatch(moved, services)).toBe(false);
+    });
+
+    it('zmiana stawki, nazwy albo liczby pozycji - niezgodne', () => {
+        expect(itemsMatch([services[0], service('Tapicerka', '500,00', '23')], services)).toBe(false);
+        expect(itemsMatch([service('Mycie', '1900,00', '23'), services[1]], services)).toBe(false);
+        expect(itemsMatch([services[0]], services)).toBe(false);
+    });
+});
+
+describe('scaleItemsToGross', () => {
+    const services = [service('Powłoka ceramiczna', '15000,00', '23'), service('Tapicerka', '2000,00', '8')];
+
+    it('faktura na 10 000 z wizyty za 17 000 - suma co do grosza, stawki jak w usługach', () => {
+        const invoice = scaleItemsToGross(services, 1_000_000);
+
+        expect(grossOf(invoice)).toBe(1_000_000);
+        expect(invoice.map(i => [i.name, i.gross, i.vatRate, i.mode])).toEqual([
+            ['Powłoka ceramiczna', '8823,53', '23', 'GROSS'],
+            ['Tapicerka', '1176,47', '8', 'GROSS'],
+        ]);
+        // Paragon na resztę: 7000,00 zł - razem dokładnie kwota wizyty.
+        expect(grossOf(services) - grossOf(invoice)).toBe(700_000);
+    });
+
+    it('każda kwota od 1 gr do kwoty wizyty daje fakturę dokładnie na tę kwotę', () => {
+        const three = [service('A', '333,33', '23'), service('B', '333,33', '8'), service('C', '333,34', '5')];
+        for (let target = 1; target < grossOf(three); target += 97) {
+            expect(grossOf(scaleItemsToGross(three, target))).toBe(target);
+        }
+    });
+
+    it('pozycja, której nie przypadł ani grosz, wypada z faktury', () => {
+        const invoice = scaleItemsToGross([service('Duża', '10000,00', '23'), service('Grosz', '0,01', '8')], 100);
+
+        expect(invoice.map(i => i.name)).toEqual(['Duża']);
+        expect(grossOf(invoice)).toBe(100);
+    });
+
+    it('kwota równa albo wyższa od wizyty i kwota zerowa zostawiają usługi bez zmian', () => {
+        expect(scaleItemsToGross(services, 1_700_000)).toBe(services);
+        expect(scaleItemsToGross(services, 2_000_000)).toBe(services);
+        expect(scaleItemsToGross(services, 0)).toBe(services);
+    });
+
+    it('netto pozycji wynika z wpisanego brutto - VAT to różnica', () => {
+        const [coating] = scaleItemsToGross(services, 1_000_000);
+        const { net, gross } = itemAmounts(coating);
+
+        expect(gross).toBe(882_353);
+        expect(gross - net).toBe(vatFromGross(882_353, '23'));
+    });
+});
+
+describe('rateMismatch', () => {
+    const services = [service('Powłoka', '1900,00', '23'), service('Tapicerka', '500,00', '8')];
+
+    it('pozycje z usług - brak ostrzeżenia', () => {
+        expect(rateMismatch(services, services)).toBeNull();
+    });
+
+    it('scalenie 23% + 8% w jedną pozycję 23% zmienia podatek - ostrzeżenie z różnicą VAT', () => {
+        const merged = [service('Powłoka i tapicerka', '2400,00', '23')];
+        const mismatch = rateMismatch(merged, services);
+
+        expect(mismatch).toEqual({
+            serviceRates: ['23%', '8%'],
+            invoiceRates: ['23%'],
+            vatDifference: vatFromGross(240_000, '23') - vatFromGross(190_000, '23') - vatFromGross(50_000, '8'),
+        });
+        expect(mismatch?.vatDifference).toBe(5_646);
+        expect(mismatch?.vatDifference).toBe(vatOfItems(merged) - vatOfItems(services));
+    });
+
+    it('scalenie pozycji z tą samą stawką nie zmienia podatku - brak ostrzeżenia', () => {
+        const sameRate = [service('Mycie', '100,00', '23'), service('Wosk', '200,00', '23')];
+
+        expect(rateMismatch([service('Mycie i wosk', '300,00', '23')], sameRate)).toBeNull();
+    });
+
+    it('faktura na część kwoty: stawki z usług są w porządku, obca stawka już nie', () => {
+        const part = scaleItemsToGross(services, 100_000);
+
+        expect(rateMismatch(part, services)).toBeNull();
+        expect(rateMismatch([service('Powłoka', '1000,00', '5')], services)).toEqual({
+            serviceRates: ['23%', '8%'],
+            invoiceRates: ['5%'],
+            vatDifference: null,
+        });
+    });
+});
+
+describe('itemsPerRate', () => {
+    it('jedna pozycja na stawkę: nazwy usług, suma brutto stawki, bez zmiany podatku', () => {
+        const services = [
+            service('Powłoka', '1000,00', '23'),
+            service('Tapicerka', '500,00', '8'),
+            service('Felgi', '900,00', '23'),
+        ];
+        const merged = itemsPerRate(services);
+
+        expect(merged.map(i => [i.name, i.gross, i.vatRate])).toEqual([
+            ['Powłoka, Felgi', '1900,00', '23'],
+            ['Tapicerka', '500,00', '8'],
+        ]);
+        expect(grossOf(merged)).toBe(grossOf(services));
+        expect(rateMismatch(merged, services)).toBeNull();
     });
 });

@@ -3,12 +3,18 @@ import { FormGrid, FormField, FieldLabel, InputShell, BareInput } from '@/common
 import { NipInputWithGus, type CompanyInfoResponse } from '@/common/components/NipInputWithGus';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { Muted } from './HandoverKit';
-import type { HandoverBuyer } from '../../types/handover';
+import { nipProblem, type HandoverBuyer } from '../../types/handover';
 
 const Wrap = styled.div`
     display: flex;
     flex-direction: column;
     gap: 10px;
+`;
+
+const NipError = styled.div`
+    font-size: 12.5px;
+    color: #b91c1c;
+    line-height: 1.45;
 `;
 
 const ConsumerNote = styled.div`
@@ -68,6 +74,9 @@ export const BuyerEditor = ({ buyer, onChange }: BuyerEditorProps) => {
                     placeholder="np. 5213017228"
                     compact
                 />
+                {/* Od razu pod polem, nie dopiero po kliknięciu „Wydaj": literówka w NIP
+                    wysłałaby fakturę do KSeF innej firmy. */}
+                {nipProblem(buyer.nip) && <NipError role="alert">{nipProblem(buyer.nip)}</NipError>}
             </FormField>
 
             {!buyer.nip.trim() && (

@@ -1,16 +1,26 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import styled from 'styled-components';
 import { ChevronDown, ChevronRight, Building2, User } from 'lucide-react';
 import { formatCurrency, pluralPl } from '@/common/utils';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { CompanySettings } from '@/modules/settings/types';
 import { Toggle } from '@/common/components/Toggle';
+import { Segmented } from '@/common/components/ui';
 import { BoxRow, Divider, GhostAction, Muted, SectionProblems } from './HandoverKit';
 import { BuyerEditor } from './BuyerEditor';
 import { InvoiceItemsEditor } from './InvoiceItemsEditor';
 import { SellerPrompt } from './SellerPrompt';
 import { PaymentMethodPicker } from './PaymentMethodPicker';
-import { formatNip, normalizeNip, type HandoverProblem, type HandoverState } from '../../types/handover';
+import {
+    formatNip,
+    isPlnInput,
+    normalizeNip,
+    parsePln,
+    toPln,
+    type HandoverProblem,
+    type HandoverState,
+    type RateMismatch,
+} from '../../types/handover';
 import type { KsefAutomation } from '@/modules/finance/hooks';
 
 /**
@@ -116,6 +126,114 @@ const BalanceRow = styled.div`
     gap: 16px;
 `;
 
+/**
+ * Rozliczenie wizyty na dwa dokumenty: faktura na kwotę, o którą prosi klient, i paragon
+ * na resztę. Suma obu to zawsze kwota wizyty - tak samo pilnuje tego backend.
+ */
+const SplitBlock = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+`;
+
+const AmountRow = styled.label`
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    color: ${st.text};
+`;
+
+const AmountInput = styled.input<{ $invalid?: boolean }>`
+    width: 150px;
+    max-width: 100%;
+    height: 38px;
+    padding: 0 11px;
+    border: 1px solid ${p => (p.$invalid ? '#fca5a5' : st.border)};
+    border-radius: ${st.radiusSm};
+    background: #fff;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: ${st.text};
+
+    &:focus-visible { outline: 2px solid #38bdf8; outline-offset: 1px; }
+`;
+
+/**
+ * „Wizyta = Faktura + Paragon” jako trzy kwoty obok siebie: przy ladzie wystarczy
+ * jedno spojrzenie, żeby sprawdzić, że nic nie zginęło.
+ */
+const Equation = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 10px;
+    padding: 10px 12px;
+    border-radius: ${st.radiusSm};
+    border: 1px solid #bae6fd;
+    background: #f0f9ff;
+    color: #0c4a6e;
+    font-size: ${st.fontSm};
+
+    strong { font-size: 15px; font-variant-numeric: tabular-nums; color: #0c4a6e; }
+    .op { color: #0369a1; font-weight: 700; }
+`;
+
+const EquationPart = styled.span`
+    display: inline-flex;
+    flex-direction: column;
+    gap: 1px;
+`;
+
+const FieldError = styled.span`
+    font-size: 12.5px;
+    color: #b91c1c;
+`;
+
+const HintBox = styled.div<{ $tone: 'info' | 'warn' }>`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px;
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontSm};
+    line-height: 1.5;
+    ${p => p.$tone === 'warn'
+        ? 'background: #fffbeb; border: 1px solid #fde68a; color: #78350f;'
+        : 'background: #f8fafc; border: 1px solid #e2e8f0; color: #334155;'}
+
+    strong { font-weight: 700; }
+`;
+
+const Actions = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+`;
+
+export interface InvoiceControls {
+    itemsMatchServices: boolean;
+    vatMismatch: RateMismatch | null;
+    /** ISO chwili zapisu przywróconego draftu z pozycjami innymi niż usługi; null = brak. */
+    restoredAt: string | null;
+    resetItemsToServices: () => void;
+    setInvoiceAmount: (grosz: number) => void;
+    setSplit: (split: boolean) => void;
+    applyItemsPerRate: () => void;
+}
+
+const savedTime = (iso: string): string | null => {
+    const date = iso ? new Date(iso) : null;
+    return date && !Number.isNaN(date.getTime())
+        ? date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })
+        : null;
+};
+
 interface InvoiceSectionProps {
     state: HandoverState;
     patch: (changes: Partial<HandoverState>) => void;
@@ -130,6 +248,7 @@ interface InvoiceSectionProps {
     sendToKsef: boolean;
     canChooseSendToKsef: boolean;
     onSendToKsefChange: (value: boolean) => void;
+    controls: InvoiceControls;
 }
 
 /**
@@ -154,9 +273,25 @@ export const InvoiceSection = ({
     sendToKsef,
     canChooseSendToKsef,
     onSendToKsefChange,
+    controls,
 }: InvoiceSectionProps) => {
     const [isBuyerOpen, setBuyerOpen] = useState(false);
     const [areItemsOpen, setItemsOpen] = useState(false);
+
+    // Pole „Kwota na fakturze”: podczas wpisywania własny tekst, żeby „10 0” nie
+    // przeskakiwało na „100,00”; bez fokusu (draft = null) zawsze aktualna suma pozycji,
+    // także po edycji samych pozycji.
+    const amountRef = useRef<HTMLInputElement>(null);
+    const [amountDraft, setAmountDraft] = useState<string | null>(null);
+    const amountText = amountDraft ?? toPln(invoiceGross);
+    const typedAmount = parsePln(amountText);
+    const amountTooHigh = state.splitRemainder && typedAmount >= visitGross;
+    const onAmountChange = (value: string) => {
+        if (!isPlnInput(value)) return;
+        setAmountDraft(value);
+        const grosz = parsePln(value);
+        if (grosz > 0 && grosz < visitGross) controls.setInvoiceAmount(grosz);
+    };
 
     const fmt = (grosz: number) => formatCurrency(grosz / 100, currency);
     const nip = normalizeNip(state.buyer.nip);
@@ -238,8 +373,8 @@ export const InvoiceSection = ({
                 {buyerRow}
                 <Divider />
                 <ExternalNote>
-                    <strong>Fakturę wystawi księgowość.</strong> CRM zapisze płatność na {fmt(visitGross)}
-                     z tym nabywcą, ale nie tworzy własnej faktury, więc nic nie policzy się dwa razy.
+                    <strong>Fakturę wystawi księgowość.</strong> CRM zapisze płatność na {fmt(visitGross)}{' '}
+                    z tym nabywcą, ale nie tworzy własnej faktury, więc nic nie policzy się dwa razy.
                 </ExternalNote>
             </Panel>
         );
@@ -255,12 +390,96 @@ export const InvoiceSection = ({
 
             <Divider />
 
+            {/* ── Rozliczenie: całość fakturą albo faktura + paragon ─────────
+                Najczęstszy przypadek przy ladzie: klient prosi o fakturę na część
+                kwoty, a resztę płaci za paragonem. Jedno pole kwoty zamiast ręcznego
+                przeliczania pozycji; suma obu dokumentów to zawsze kwota wizyty. */}
+            <SplitBlock>
+                <Segmented
+                    block
+                    size="sm"
+                    label="Rozliczenie wizyty"
+                    options={[
+                        { value: 'whole', label: 'Całość na fakturze' },
+                        { value: 'split', label: 'Faktura + paragon' },
+                    ]}
+                    value={state.splitRemainder ? 'split' : 'whole'}
+                    onChange={value => {
+                        controls.setSplit(value === 'split');
+                        if (value === 'split') window.setTimeout(() => amountRef.current?.select(), 0);
+                    }}
+                />
+                {state.splitRemainder && (
+                    <>
+                        <AmountRow>
+                            Kwota na fakturze (brutto)
+                            <AmountInput
+                                ref={amountRef}
+                                value={amountText}
+                                inputMode="decimal"
+                                aria-label="Kwota na fakturze (brutto)"
+                                $invalid={amountTooHigh}
+                                onFocus={() => setAmountDraft(toPln(invoiceGross))}
+                                onChange={e => onAmountChange(e.target.value)}
+                                onBlur={() => setAmountDraft(null)}
+                            />
+                            <span>zł</span>
+                        </AmountRow>
+                        {amountTooHigh && (
+                            <FieldError role="alert">
+                                Kwota na fakturze musi być niższa niż kwota wizyty ({fmt(visitGross)}).
+                            </FieldError>
+                        )}
+                        <Equation aria-label="Podział kwoty wizyty">
+                            <EquationPart>Wizyta<strong>{fmt(visitGross)}</strong></EquationPart>
+                            <span className="op">=</span>
+                            <EquationPart>Faktura<strong>{fmt(invoiceGross)}</strong></EquationPart>
+                            <span className="op">+</span>
+                            <EquationPart>Paragon<strong>{fmt(Math.max(remainder, 0))}</strong></EquationPart>
+                        </Equation>
+                        {remainder > 0 ? (
+                            <>
+                                <RowLabel>Jak klient zapłacił kwotę z paragonu ({fmt(remainder)})?</RowLabel>
+                                <PaymentMethodPicker
+                                    value={state.remainderMethod}
+                                    onChange={remainderMethod => patch({ remainderMethod })}
+                                />
+                                <Muted>
+                                    Pozycje faktury przeliczyliśmy proporcjonalnie do usług, stawki VAT
+                                    zostają. Paragon obejmie resztę każdej usługi.
+                                </Muted>
+                            </>
+                        ) : (
+                            <Muted>Wpisz kwotę faktury niższą niż kwota wizyty, resztę obejmie paragon.</Muted>
+                        )}
+                    </>
+                )}
+            </SplitBlock>
+
+            <Divider />
+
+            {/* ── Przywrócony draft ─────────────────────────────────────────── */}
+            {controls.restoredAt !== null && (
+                <HintBox $tone="warn" role="status">
+                    <span>
+                        <strong>Wróciły wcześniejsze zmiany faktury</strong>
+                        {savedTime(controls.restoredAt) ? ` (zapisane o ${savedTime(controls.restoredAt)})` : ''}.
+                        {' '}Kwoty różnią się od usług wizyty.
+                    </span>
+                    <Actions>
+                        <GhostAction type="button" onClick={controls.resetItemsToServices}>
+                            Wróć do kwot z usług
+                        </GhostAction>
+                    </Actions>
+                </HintBox>
+            )}
+
             {/* ── Pozycje ─────────────────────────────────────────────────── */}
             <BoxRow>
                 <RowLabel>
                     {state.items.length} {pluralPl(state.items.length, 'pozycja', 'pozycje', 'pozycji')} na{' '}
                     <strong className="num">{fmt(invoiceGross)}</strong>
-                    {invoiceGross === visitGross && ', zgodnie z usługami wizyty'}
+                    {controls.itemsMatchServices && ', zgodnie z usługami wizyty'}
                 </RowLabel>
                 <GhostAction type="button" onClick={() => setItemsOpen(open => !open)}>
                     {areItemsOpen ? <ChevronDown /> : <ChevronRight />}
@@ -269,14 +488,52 @@ export const InvoiceSection = ({
             </BoxRow>
 
             {areItemsOpen && (
-                <InvoiceItemsEditor
-                    items={state.items}
-                    onChange={items => patch({ items })}
-                    exemptionBasis={state.exemptionBasis}
-                    onExemptionBasisChange={exemptionBasis => patch({ exemptionBasis })}
-                />
+                <>
+                    <InvoiceItemsEditor
+                        items={state.items}
+                        onChange={items => patch({ items })}
+                        exemptionBasis={state.exemptionBasis}
+                        onExemptionBasisChange={exemptionBasis => patch({ exemptionBasis })}
+                    />
+                    {!controls.itemsMatchServices && controls.restoredAt === null && (
+                        <Actions>
+                            <GhostAction type="button" onClick={controls.resetItemsToServices}>
+                                Wróć do kwot z usług
+                            </GhostAction>
+                        </Actions>
+                    )}
+                </>
             )}
             <SectionProblems problems={problemsIn('items')} />
+
+            {/* ── Stawki VAT inne niż w usługach ───────────────────────────────
+                Scalenie usług o różnych stawkach w jedną pozycję zmienia podatek przy
+                tej samej cenie dla klienta - mówimy o tym i dajemy scalenie, które go
+                nie zmienia. */}
+            {controls.vatMismatch && (
+                <HintBox $tone="warn" role="status">
+                    <span>
+                        <strong>Stawki VAT na fakturze różnią się od usług wizyty.</strong>{' '}
+                        Usługi: {controls.vatMismatch.serviceRates.join(', ')}. Faktura:{' '}
+                        {controls.vatMismatch.invoiceRates.join(', ')}.
+                        {controls.vatMismatch.vatDifference !== null && controls.vatMismatch.vatDifference !== 0 && (
+                            <>
+                                {' '}VAT na fakturze będzie{' '}
+                                {controls.vatMismatch.vatDifference > 0 ? 'wyższy' : 'niższy'} o{' '}
+                                <strong>{fmt(Math.abs(controls.vatMismatch.vatDifference))}</strong>.
+                            </>
+                        )}
+                    </span>
+                    <Actions>
+                        <GhostAction type="button" onClick={controls.applyItemsPerRate}>
+                            Jedna pozycja na każdą stawkę
+                        </GhostAction>
+                        <GhostAction type="button" onClick={controls.resetItemsToServices}>
+                            Wróć do kwot z usług
+                        </GhostAction>
+                    </Actions>
+                </HintBox>
+            )}
 
             {/* ── Wysyłka do KSeF ─────────────────────────────────────────────
                 Wysyłka to część konfiguracji faktury, więc żyje tu, przy nabywcy
@@ -343,59 +600,48 @@ export const InvoiceSection = ({
                 </>
             )}
 
-            {/* ── Bilans ──────────────────────────────────────────────────── */}
-            <Balance $state={balanceState}>
-                <BalanceRow>
-                    <span>Kwota wizyty</span>
-                    <strong>{fmt(visitGross)}</strong>
-                </BalanceRow>
-                <BalanceRow>
-                    <span>Suma faktury</span>
-                    <strong>{fmt(invoiceGross)}</strong>
-                </BalanceRow>
-
-                {balanceState === 'over' && (
+            {/* ── Bilans ──────────────────────────────────────────────────────
+                Jeden komunikat z drogą wyjścia zamiast dwóch powtórzonych (bilans
+                i czerwony baner mówiły to samo). Przy podziale bilans niesie równanie
+                wyżej, więc tu zostają tylko stany wymagające decyzji. */}
+            {balanceState === 'over' && (
+                <Balance $state="over" role="alert">
                     <span>
-                        Faktura przekracza kwotę wizyty o <strong>{fmt(-remainder)}</strong>, obniż
-                        pozycje.
+                        Faktura (<strong>{fmt(invoiceGross)}</strong>) jest wyższa niż kwota wizyty
+                        (<strong>{fmt(visitGross)}</strong>). Jeśli klient płaci więcej, zamknij to okno
+                        i zmień cenę w sekcji <strong>Usługi</strong> - faktura przeliczy się sama.
                     </span>
-                )}
-
-                {balanceState === 'under' && (
-                    <>
-                        <BalanceRow>
-                            <span>Reszta bez dokumentu</span>
-                            <strong>{fmt(remainder)}</strong>
-                        </BalanceRow>
-                        {!state.splitRemainder ? (
-                            <GhostAction
-                                type="button"
-                                onClick={() => patch({ splitRemainder: true })}
-                            >
-                                Resztę udokumentuj paragonem
-                            </GhostAction>
-                        ) : (
-                            <>
-                                <span>
-                                    Na resztę (<strong>{fmt(remainder)}</strong>) wystawimy paragon.
-                                    Jak klient ją zapłacił?
-                                </span>
-                                <PaymentMethodPicker
-                                    value={state.remainderMethod}
-                                    onChange={remainderMethod => patch({ remainderMethod })}
-                                />
-                                <GhostAction
-                                    type="button"
-                                    onClick={() => patch({ splitRemainder: false })}
-                                >
-                                    Anuluj podział, faktura na całość
-                                </GhostAction>
-                            </>
-                        )}
-                    </>
-                )}
-            </Balance>
-            <SectionProblems problems={problemsIn('balance')} />
+                    <Actions>
+                        <GhostAction type="button" onClick={controls.resetItemsToServices}>
+                            Wróć do kwot z usług
+                        </GhostAction>
+                    </Actions>
+                </Balance>
+            )}
+            {balanceState === 'under' && !state.splitRemainder && (
+                <Balance $state="under" role="alert">
+                    <BalanceRow>
+                        <span>Kwota wizyty</span>
+                        <strong>{fmt(visitGross)}</strong>
+                    </BalanceRow>
+                    <BalanceRow>
+                        <span>Suma faktury</span>
+                        <strong>{fmt(invoiceGross)}</strong>
+                    </BalanceRow>
+                    <span>
+                        Brakuje dokumentu na <strong>{fmt(remainder)}</strong>. Jeśli klient płaci tę
+                        kwotę bez faktury, rozlicz ją paragonem. Jeśli dostał rabat, zmień cenę w usługach.
+                    </span>
+                    <Actions>
+                        <GhostAction type="button" onClick={() => controls.setSplit(true)}>
+                            Resztę rozlicz paragonem
+                        </GhostAction>
+                        <GhostAction type="button" onClick={controls.resetItemsToServices}>
+                            Wróć do kwot z usług
+                        </GhostAction>
+                    </Actions>
+                </Balance>
+            )}
         </Panel>
     );
 };
