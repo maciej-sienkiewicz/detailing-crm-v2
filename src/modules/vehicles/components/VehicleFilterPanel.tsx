@@ -7,6 +7,8 @@ import type { VehicleAdvancedFilters } from '../types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { BrandSelect, ModelSelect } from './BrandModelSelectors';
 import { useServices } from '@/modules/services/hooks/useServices';
+import { Segmented } from '@/common/components/ui';
+import type { VehicleKindFilter } from '../vehicleKind';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -525,6 +527,14 @@ const ServiceMultiSelect = ({ selectedIds, onChange }: ServiceMultiSelectProps) 
     );
 };
 
+// ─── Rodzaj pojazdu ───────────────────────────────────────────────────────────
+
+const KIND_OPTIONS: { value: VehicleKindFilter; label: string }[] = [
+    { value: 'ALL', label: 'Wszystkie' },
+    { value: 'CAR', label: 'Samochody' },
+    { value: 'MOTORCYCLE', label: 'Motocykle' },
+];
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface VehicleFilterPanelProps {
@@ -544,6 +554,7 @@ export const VehicleFilterPanel = ({
 }: VehicleFilterPanelProps) => {
     // Bez prawa do cen serwer nie wysyła obrotów i ignoruje filtr po nich - pole znika.
     const showRevenue = usePermissions().can('VISITS_SERVICE_PRICES_VIEW');
+    const [kind, setKind]                         = useState<VehicleKindFilter>(initialFilters.kind ?? 'ALL');
     const [brand, setBrand]                       = useState(initialFilters.brand ?? '');
     const [model, setModel]                       = useState(initialFilters.model ?? '');
     const [yearFrom, setYearFrom]                 = useState(initialFilters.yearFrom?.toString() ?? '');
@@ -558,6 +569,7 @@ export const VehicleFilterPanel = ({
 
     useEffect(() => {
         if (!isOpen) return;
+        setKind(initialFilters.kind ?? 'ALL');
         setBrand(initialFilters.brand ?? '');
         setModel(initialFilters.model ?? '');
         setYearFrom(initialFilters.yearFrom?.toString() ?? '');
@@ -574,6 +586,7 @@ export const VehicleFilterPanel = ({
     const handleBrandChange = (b: string) => { setBrand(b); setModel(''); };
 
     const handleClear = () => {
+        setKind('ALL');
         setBrand(''); setModel('');
         setYearFrom(''); setYearTo('');
         setMinVisits(''); setMaxVisits('');
@@ -584,6 +597,7 @@ export const VehicleFilterPanel = ({
 
     const handleApply = () => {
         onApply({
+            kind:     kind === 'ALL' ? undefined : kind,
             brand:    brand.trim()  || undefined,
             model:    model.trim()  || undefined,
             yearFrom: yearFrom  ? parseInt(yearFrom,  10) : null,
@@ -616,6 +630,20 @@ export const VehicleFilterPanel = ({
                 </DrawerHeader>
 
                 <DrawerBody>
+                    {/* Rodzaj pojazdu. Marka zostaje przy nim nietknięta: w filtrze to
+                        napis do wyszukania z obu katalogów („BMW" to auta i motocykle),
+                        więc nie ma czego czyścić. */}
+                    <FilterSection>
+                        <SectionLabel>Rodzaj pojazdu</SectionLabel>
+                        <Segmented<VehicleKindFilter>
+                            label="Rodzaj pojazdu"
+                            options={KIND_OPTIONS}
+                            value={kind}
+                            onChange={setKind}
+                            block
+                        />
+                    </FilterSection>
+
                     {/* Marka i model */}
                     <FilterSection>
                         <SectionLabel>Marka i model</SectionLabel>

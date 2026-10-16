@@ -184,7 +184,7 @@ export function VehicleDetailHeader({ vehicle, isArchived, canEdit, canDelete, o
                 <Top>
                     <Identity>
                         <LogoTile title={vehicle.brand || undefined}>
-                            <CarLogoImage brand={vehicle.brand} size="md" />
+                            <CarLogoImage brand={vehicle.brand} kind={vehicle.kind} size="md" />
                         </LogoTile>
                         <IdentText>
                             <Eyebrow>W bazie od {since}</Eyebrow>

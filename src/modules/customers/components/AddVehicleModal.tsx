@@ -15,6 +15,8 @@ import {
 import { FormGrid, FormField, FieldLabel, InputShell, BareInput } from '@/common/components/Form';
 import { Button, Notice, ui } from '@/common/components/ui';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
+import { VehicleKindSwitch } from '@/modules/vehicles/components/VehicleKindSwitch';
+import { DEFAULT_VEHICLE_KIND, type VehicleKind } from '@/modules/vehicles/vehicleKind';
 import { useAddVehicle } from '../hooks/useAddVehicle';
 
 const Form = styled.form`
@@ -37,6 +39,7 @@ interface Props {
 }
 
 export const AddVehicleModal = ({ customerId, customerName, onClose }: Props) => {
+    const [kind, setKind] = useState<VehicleKind>(DEFAULT_VEHICLE_KIND);
     const [make, setMake] = useState('');
     const [model, setModel] = useState('');
     const [year, setYear] = useState(String(new Date().getFullYear()));
@@ -47,10 +50,20 @@ export const AddVehicleModal = ({ customerId, customerName, onClose }: Props) =>
 
     const ready = !!make && !!model;
 
+    const changeKind = (next: VehicleKind) => {
+        // Klik w już wybrany rodzaj nie może kasować marki.
+        if (next === kind) return;
+        setKind(next);
+        // Marka i model pochodzą z katalogu innego rodzaju.
+        setMake('');
+        setModel('');
+    };
+
     const submit = async (e: FormEvent) => {
         e.preventDefault();
         if (!ready) return;
         const ok = await addVehicle({
+            kind,
             make,
             model,
             // Wyczyszczony rok to „nie wiem", a nie bieżący rok wpisany za użytkownika.
@@ -75,13 +88,17 @@ export const AddVehicleModal = ({ customerId, customerName, onClose }: Props) =>
             <ModalContent>
                 <Form id="add-customer-vehicle-form" onSubmit={submit} autoComplete="off">
                     <FormGrid>
+                        {/* Rodzaj nad marką: to on wybiera katalog marek i modeli. */}
+                        <FormField $fullWidth>
+                            <VehicleKindSwitch value={kind} onChange={changeKind} block={false} />
+                        </FormField>
                         <FormField>
                             <FieldLabel>Marka</FieldLabel>
-                            <BrandSelect value={make} onChange={brand => { setMake(brand); setModel(''); }} />
+                            <BrandSelect kind={kind} value={make} onChange={brand => { setMake(brand); setModel(''); }} />
                         </FormField>
                         <FormField>
                             <FieldLabel>Model</FieldLabel>
-                            <ModelSelect brand={make} value={model} onChange={setModel} />
+                            <ModelSelect kind={kind} brand={make} value={model} onChange={setModel} />
                         </FormField>
                         <FormField>
                             <FieldLabel htmlFor="av-plate">Numer rejestracyjny</FieldLabel>

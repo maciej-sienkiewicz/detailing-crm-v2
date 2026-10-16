@@ -29,6 +29,9 @@ import {
 import { useCreateVehicle } from '../hooks/useCreateVehicle';
 import { createVehicleSchema, type CreateVehicleFormData } from '../utils/vehicleValidation';
 import { OwnerSelect } from './OwnerSelect';
+import { BrandSelect, ModelSelect } from './BrandModelSelectors';
+import { VehicleKindSwitch } from './VehicleKindSwitch';
+import { DEFAULT_VEHICLE_KIND } from '../vehicleKind';
 import { t } from '@/common/i18n';
 import type { CreateVehiclePayload } from '../types';
 
@@ -49,10 +52,14 @@ export const CreateVehicleModal = ({ isOpen, onClose, onSuccess }: CreateVehicle
         handleSubmit,
         control,
         reset,
+        setValue,
+        watch,
         formState: { errors },
     } = useForm<CreateVehicleFormData>({
         resolver: zodResolver(createVehicleSchema),
         defaultValues: {
+            // Nowy pojazd startuje jako samochód - tak było, zanim pojawiły się motocykle.
+            kind: DEFAULT_VEHICLE_KIND,
             licensePlate: '',
             brand: '',
             model: '',
@@ -75,8 +82,12 @@ export const CreateVehicleModal = ({ isOpen, onClose, onSuccess }: CreateVehicle
         };
     };
 
+    const kind = watch('kind');
+    const brand = watch('brand');
+
     const handleFormSubmit = useCallback((data: CreateVehicleFormData) => {
         const payload: CreateVehiclePayload = {
+            kind: data.kind,
             licensePlate: data.licensePlate,
             brand: data.brand,
             model: data.model,
@@ -138,6 +149,71 @@ export const CreateVehicleModal = ({ isOpen, onClose, onSuccess }: CreateVehicle
 
                     <FormTabPanel $active={activeTab === 'details'}>
                         <FormGrid>
+                            {/* Rodzaj stoi nad marką, bo to on wybiera katalog marek i modeli.
+                                Marka i model idą więc zaraz pod nim (jak w edycji pojazdu),
+                                a rejestracja za nimi: na pierwszym miejscu rozdzielałaby
+                                przełącznik od pola, na które działa. */}
+                            <FormField $fullWidth>
+                                <Controller
+                                    name="kind"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <VehicleKindSwitch
+                                            value={field.value}
+                                            block={false}
+                                            onChange={(next) => {
+                                                // Klik w już wybrany rodzaj nie może kasować marki.
+                                                if (next === field.value) return;
+                                                field.onChange(next);
+                                                // Marka i model pochodzą z katalogu innego rodzaju.
+                                                setValue('brand', '');
+                                                setValue('model', '');
+                                            }}
+                                        />
+                                    )}
+                                />
+                            </FormField>
+
+                            <FormField>
+                                <FieldLabel>{t.vehicles.form.brand}</FieldLabel>
+                                <Controller
+                                    name="brand"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <BrandSelect
+                                            kind={kind}
+                                            value={field.value}
+                                            onChange={(val) => {
+                                                field.onChange(val);
+                                                setValue('model', '');
+                                            }}
+                                        />
+                                    )}
+                                />
+                                {errors.brand && (
+                                    <FormErrorMsg>{errors.brand.message}</FormErrorMsg>
+                                )}
+                            </FormField>
+
+                            <FormField>
+                                <FieldLabel>{t.vehicles.form.model}</FieldLabel>
+                                <Controller
+                                    name="model"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <ModelSelect
+                                            kind={kind}
+                                            brand={brand}
+                                            value={field.value}
+                                            onChange={(val) => field.onChange(val)}
+                                        />
+                                    )}
+                                />
+                                {errors.model && (
+                                    <FormErrorMsg>{errors.model.message}</FormErrorMsg>
+                                )}
+                            </FormField>
+
                             <FormField>
                                 <FieldLabel htmlFor="cv-licensePlate">
                                     {t.vehicles.form.licensePlate}
@@ -152,40 +228,6 @@ export const CreateVehicleModal = ({ isOpen, onClose, onSuccess }: CreateVehicle
                                 </InputShell>
                                 {errors.licensePlate && (
                                     <FormErrorMsg>{errors.licensePlate.message}</FormErrorMsg>
-                                )}
-                            </FormField>
-
-                            <FormField>
-                                <FieldLabel htmlFor="cv-brand">
-                                    {t.vehicles.form.brand}
-                                </FieldLabel>
-                                <InputShell $hasError={!!errors.brand}>
-                                    <BareInput
-                                        id="cv-brand"
-                                        autoComplete="new-password"
-                                        {...register('brand')}
-                                        placeholder={t.vehicles.form.brandPlaceholder}
-                                    />
-                                </InputShell>
-                                {errors.brand && (
-                                    <FormErrorMsg>{errors.brand.message}</FormErrorMsg>
-                                )}
-                            </FormField>
-
-                            <FormField>
-                                <FieldLabel htmlFor="cv-model">
-                                    {t.vehicles.form.model}
-                                </FieldLabel>
-                                <InputShell $hasError={!!errors.model}>
-                                    <BareInput
-                                        id="cv-model"
-                                        autoComplete="new-password"
-                                        {...register('model')}
-                                        placeholder={t.vehicles.form.modelPlaceholder}
-                                    />
-                                </InputShell>
-                                {errors.model && (
-                                    <FormErrorMsg>{errors.model.message}</FormErrorMsg>
                                 )}
                             </FormField>
 

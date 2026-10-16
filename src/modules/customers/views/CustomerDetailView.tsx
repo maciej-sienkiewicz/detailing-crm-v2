@@ -910,7 +910,7 @@ export const CustomerDetailView = () => {
                                                             aria-disabled={archived || undefined}
                                                             onClick={e => { e.preventDefault(); if (!archived) navigate(`/vehicles/${vehicle.id}`); }}
                                                         >
-                                                            <CarLogoImage brand={vehicle.make} size="sm" />
+                                                            <CarLogoImage brand={vehicle.make} kind={vehicle.kind} size="sm" />
                                                             <VehicleText>
                                                                 <strong>
                                                                     {vehicle.make} {vehicle.model}

@@ -21,6 +21,7 @@ import { Car } from 'lucide-react';
 import { PageHeader, PageHeaderPrimaryButton, MobilePageHeader, MobilePageHeaderButton, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
 import { PageContainer } from '@/common/components/PageContainer';
 import type { VehicleAdvancedFilters } from '../types';
+import { countActiveVehicleFilters } from '../utils/vehicleFilters';
 
 // Tło na pełnej szerokości (wrapper prezentacyjny, div).
 // Landmarkiem <main> i nośnikiem szerokości jest PageBody poniżej.
@@ -277,22 +278,6 @@ const DataContainer = styled.div`
 
 const EMPTY_ADVANCED_FILTERS: VehicleAdvancedFilters = {};
 
-const countActiveFilters = (f: VehicleAdvancedFilters): number => {
-    let n = 0;
-    if (f.brand)  n++;
-    if (f.model)  n++;
-    if (f.yearFrom != null) n++;
-    if (f.yearTo   != null) n++;
-    if (f.minVisits != null) n++;
-    if (f.maxVisits != null) n++;
-    if (f.minRevenue != null) n++;
-    if (f.maxRevenue != null) n++;
-    if (f.services?.length) n++;
-    if (f.lastServiceWithinDays != null) n++;
-    if (f.notServicedSinceDays  != null) n++;
-    return n;
-};
-
 export const VehicleListView = () => {
     // Dodawanie to VISITS_CREATE, usuwanie - CUSTOMERS_DELETE; bez nich przyciski kończyły się odmową.
     const { can } = usePermissions();
@@ -311,7 +296,7 @@ export const VehicleListView = () => {
     // Nagłówek jak na Wizytach - mobilny app-bar poniżej md (768px).
     const isDesktopHeader = useBreakpoint('md');
 
-    const activeFilterCount = countActiveFilters(appliedFilters);
+    const activeFilterCount = countActiveVehicleFilters(appliedFilters);
 
     const filters = useMemo(
         () => ({

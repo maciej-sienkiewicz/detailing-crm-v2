@@ -1,22 +1,30 @@
 import { z } from 'zod';
 import { t } from '@/common/i18n';
+import type { VehicleKind } from '../vehicleKind';
 
 const currentYear = new Date().getFullYear();
 
+const vehicleKindSchema = z.enum(['CAR', 'MOTORCYCLE']) satisfies z.ZodType<VehicleKind>;
+
 export const createVehicleSchema = z.object({
+    kind: vehicleKindSchema,
+
     licensePlate: z
         .string()
         .min(1, t.vehicles.validation.licensePlateRequired)
         .regex(/^[A-Z0-9\s]{4,10}$/i, t.vehicles.validation.licensePlateFormat),
 
+    // Marka i model są wybierane z katalogu, więc wystarczy, że są wybrane. Dawne
+    // „co najmniej 2 znaki" pochodziło z czasów wpisywania z ręki i odrzucałoby
+    // prawdziwe pozycje katalogu: Mazda 3, Tesla Y, motocykl BMW R.
     brand: z
         .string()
-        .min(2, t.vehicles.validation.brandMin)
+        .min(1, 'Wybierz markę')
         .max(50),
 
     model: z
         .string()
-        .min(2, t.vehicles.validation.modelMin)
+        .min(1, 'Wybierz model')
         .max(50),
 
     yearOfProduction: z
@@ -51,11 +59,18 @@ const nullToUndefinedNum = (val: unknown) =>
     val === null || val === undefined || Number.isNaN(val as number) ? undefined : val;
 
 export const updateVehicleSchema = z.object({
+    // Okno edycji zawsze zna rodzaj (pojazd bez pola w danych to samochód), więc
+    // zawsze go wysyła. Serwer czyta brak pola jako „bez zmian", a tu zmiana rodzaju
+    // idzie w parze z nową marką i modelem z innego katalogu - nie może się zgubić.
+    kind: vehicleKindSchema,
+
     licensePlate: z.preprocess(nullToUndefinedStr, z.string().optional()),
 
-    brand: z.preprocess(nullToUndefinedStr, z.string().min(1, t.vehicles.validation.brandMin)),
+    // Puste pole bierze się tu z wyczyszczenia przy zmianie rodzaju albo marki -
+    // komunikat mówi, co zrobić, a nie ile znaków brakuje.
+    brand: z.preprocess(nullToUndefinedStr, z.string().min(1, 'Wybierz markę')),
 
-    model: z.preprocess(nullToUndefinedStr, z.string().min(1, t.vehicles.validation.modelMin)),
+    model: z.preprocess(nullToUndefinedStr, z.string().min(1, 'Wybierz model')),
 
     yearOfProduction: z.preprocess(nullToUndefinedNum, z.number().optional()),
 

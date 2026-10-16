@@ -383,7 +383,7 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
 
                                 <Td>
                                     <VehicleMainCell>
-                                        <CarLogoImage brand={vehicle.brand} size="md" />
+                                        <CarLogoImage brand={vehicle.brand} kind={vehicle.kind} size="md" />
                                         <VehicleBlock>
                                             <VehicleNamePrimary>
                                                 {vehicle.brand} {vehicle.model}

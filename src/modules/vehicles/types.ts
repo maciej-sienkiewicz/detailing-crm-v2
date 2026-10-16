@@ -110,6 +110,8 @@ export type VehicleSortField =
 export type SortDirection = 'asc' | 'desc';
 
 export interface VehicleAdvancedFilters {
+    /** Brak - oba rodzaje. */
+    kind?: VehicleKind;
     brand?: string;
     model?: string;
     yearFrom?: number | null;

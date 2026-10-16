@@ -1,6 +1,6 @@
 // src/modules/vehicles/components/EditVehicleModal.tsx
 //
-// Edycja danych pojazdu. Siedem pól mieści się na jednym ekranie, więc okno nie ma
+// Edycja danych pojazdu. Osiem pól mieści się na jednym ekranie, więc okno nie ma
 // już zakładek „Dane identyfikacyjne / Wygląd i stan": druga zakładka miała dwa
 // pola, a błąd walidacji w ukrytej zakładce blokował zapis bez słowa - użytkownik
 // widział tylko, że „Zapisz" nic nie robi. Teraz obie grupy stoją jedna pod drugą,
@@ -20,7 +20,9 @@ import { Button, ui } from '@/common/components/ui';
 import { useUpdateVehicle } from '../hooks/useUpdateVehicle';
 import { updateVehicleSchema, type UpdateVehicleFormData } from '../utils/vehicleValidation';
 import type { Vehicle } from '../types';
+import { normalizeVehicleKind } from '../vehicleKind';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
+import { VehicleKindSwitch } from './VehicleKindSwitch';
 import { VinInput } from './vin/VinInput';
 
 const Form = styled.form`
@@ -68,6 +70,7 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
     } = useForm<UpdateVehicleFormData>({
         resolver: zodResolver(updateVehicleSchema),
         defaultValues: {
+            kind: normalizeVehicleKind(vehicle.kind),
             licensePlate: vehicle.licensePlate,
             brand: vehicle.brand,
             model: vehicle.model,
@@ -77,6 +80,8 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
             vin: vehicle.vin ?? '',
         },
     });
+
+    const kind = watch('kind');
 
     const onSubmit = (data: UpdateVehicleFormData) => {
         // Puste pole liczbowe schemat zamienia na undefined, a serwer czyta brak pola
@@ -111,6 +116,28 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
                     <Group aria-labelledby="ev-group-identity">
                         <GroupTitle id="ev-group-identity">Podstawowe dane</GroupTitle>
                         <FormGrid>
+                            {/* Rodzaj nad marką: to on wybiera katalog marek i modeli. */}
+                            <FormField $fullWidth>
+                                <Controller
+                                    name="kind"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <VehicleKindSwitch
+                                            value={field.value}
+                                            block={false}
+                                            onChange={(next) => {
+                                                // Klik w już wybrany rodzaj nie może kasować marki.
+                                                if (next === field.value) return;
+                                                field.onChange(next);
+                                                // Marka i model pochodzą z katalogu innego rodzaju.
+                                                setValue('brand', '');
+                                                setValue('model', '');
+                                            }}
+                                        />
+                                    )}
+                                />
+                            </FormField>
+
                             <FormField>
                                 <FieldLabel htmlFor="ev-brand">Marka</FieldLabel>
                                 <Controller
@@ -118,6 +145,7 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
                                     control={control}
                                     render={({ field }) => (
                                         <BrandSelect
+                                            kind={kind}
                                             value={field.value}
                                             onChange={(val) => {
                                                 field.onChange(val);
@@ -138,6 +166,7 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
                                     control={control}
                                     render={({ field }) => (
                                         <ModelSelect
+                                            kind={kind}
                                             brand={watch('brand')}
                                             value={field.value}
                                             onChange={(val) => field.onChange(val)}

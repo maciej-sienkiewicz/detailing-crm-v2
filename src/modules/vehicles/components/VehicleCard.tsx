@@ -125,7 +125,7 @@ export const VehicleCard = ({ vehicle, onCardClick }: VehicleCardProps) => (
     <Card onClick={() => onCardClick?.(vehicle.id)}>
         <CardHeader>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <CarLogoImage brand={vehicle.brand} size="md" />
+                <CarLogoImage brand={vehicle.brand} kind={vehicle.kind} size="md" />
                 <div>
                     <LicensePlate>{vehicle.licensePlate}</LicensePlate>
                     <VehicleName>

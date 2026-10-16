@@ -48,6 +48,7 @@ import {
     StatusPill, SummaryStrip, ui, type PillTone,
 } from '@/common/components/ui';
 import type { VehicleOwner } from '../types';
+import { normalizeVehicleKind, VEHICLE_KIND_LABEL } from '../vehicleKind';
 import { toCalendarDate } from '../utils/calendarDeepLink';
 
 // ─── Układ ────────────────────────────────────────────────────────────────────
@@ -460,6 +461,8 @@ export const VehicleDetailView = () => {
     const canSeeDocuments = can('VISITS_CREATE');
     const canSeeHistory = can('AUDIT_VIEW');
 
+    const vehicleKind = normalizeVehicleKind(vehicle.kind);
+
     const startVisit = () => {
         const singleOwner = vehicle.owners.length === 1 ? vehicle.owners[0] : null;
         const nameParts = singleOwner?.customerName.split(' ') ?? [];
@@ -467,6 +470,8 @@ export const VehicleDetailView = () => {
             state: {
                 prefillVehicle: {
                     id: vehicle.id,
+                    // Przyjęcie bierze z rodzaju katalog marek i schemat mapy uszkodzeń.
+                    kind: vehicleKind,
                     brand: vehicle.brand,
                     model: vehicle.model,
                     yearOfProduction: vehicle.yearOfProduction,
@@ -715,6 +720,7 @@ export const VehicleDetailView = () => {
                                         )}
                                     </RailHead>
                                     <FieldList style={{ marginTop: 10 }}>
+                                        <FieldRow label="Rodzaj">{VEHICLE_KIND_LABEL[vehicleKind]}</FieldRow>
                                         <FieldRow label="Marka">{vehicle.brand || '-'}</FieldRow>
                                         <FieldRow label="Model">{vehicle.model || '-'}</FieldRow>
                                         {vehicle.licensePlate && <FieldRow label="Rejestracja">{vehicle.licensePlate}</FieldRow>}
