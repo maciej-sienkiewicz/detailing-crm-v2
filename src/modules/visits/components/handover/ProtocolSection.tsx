@@ -23,6 +23,10 @@ import {
     TabletPickerItem,
     SpinningIconWrapper,
 } from '@/modules/checkin/components/SigningRequirementModal.styles';
+import { Button, Notice } from '@/common/components/ui';
+import { useToast } from '@/common/components/Toast';
+import { toastUnhandledError } from '@/modules/subscription/utils/apiErrors';
+import { apiErrorMessage } from '../../api/apiError';
 import { Section, SectionLabel } from './HandoverKit';
 import { VisualConditionModal } from './VisualConditionModal';
 import type { VisitProtocol } from '@/modules/protocols/types';
@@ -71,6 +75,7 @@ export const ProtocolSection = ({
     onStatusChange,
 }: ProtocolSectionProps) => {
     const queryClient = useQueryClient();
+    const { showError } = useToast();
     const [previewProtocolId, setPreviewProtocolId] = useState<string | null>(null);
     const [tabletPickerProtocolId, setTabletPickerProtocolId] = useState<string | null>(null);
     // Wysyłka do podpisu czeka na odpowiedź o zgodności stanu wizualnego: dokument
@@ -82,28 +87,49 @@ export const ProtocolSection = ({
     >(null);
     const tabletPickerRef = useRef<HTMLDivElement>(null);
 
-    const { data: protocols = [], isPending } = useQuery({
+    const protocolsQuery = useQuery({
         queryKey: ['visit-protocols', visitId],
         queryFn: () => protocolsApi.getVisitProtocols(visitId),
         enabled: isOpen,
     });
+    const { isPending, isSuccess, dataUpdatedAt } = protocolsQuery;
+    const protocols = protocolsQuery.data ?? [];
+    // Lista nieznana, a nie pusta: bez danych po błędzie nie wolno wnioskować
+    // „protokołu nie ma" - ani generować go, ani mówić, że brak go w Ustawieniach.
+    const listFailed = protocolsQuery.isError && protocolsQuery.data === undefined;
 
     const checkOutProtocols = protocols.filter((protocol: VisitProtocol) => protocol.stage === 'CHECK_OUT');
 
-    // Wygenerowanie brakujących protokołów wydania: raz, po pierwszym pobraniu.
+    // Wygenerowanie brakujących protokołów wydania: raz, po pobraniu listy.
     const generate = useMutation({
         mutationFn: () => protocolsApi.generateVisitProtocols(visitId, 'CHECK_OUT'),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['visit-protocols', visitId] }),
     });
     const hasRequestedGeneration = useRef(false);
 
+    // Tylko po UDANYM odczycie. Wcześniej błąd odczytu dawał `protocols = []`, co ten
+    // efekt brał za „nie ma protokołu" i generował go obok istniejących - kolejne
+    // protokoły CHECK_OUT do tej samej wizyty. `dataUpdatedAt` w zależnościach: po
+    // „Spróbuj ponownie" efekt rozstrzyga od nowa na świeżej liście.
     useEffect(() => {
-        if (!isOpen || isPending || hasRequestedGeneration.current) return;
+        if (!isOpen || !isSuccess || hasRequestedGeneration.current) return;
         if (checkOutProtocols.length > 0) return;
         hasRequestedGeneration.current = true;
         generate.mutate();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isOpen, isPending, checkOutProtocols.length]);
+    }, [isOpen, isSuccess, dataUpdatedAt, checkOutProtocols.length]);
+
+    /**
+     * Ponowienie po błędzie odczytu albo generowania. Generowanie to jednorazowy strzał
+     * (ref), więc trzeba go odblokować - ale najpierw odczyt listy: 500 albo zerwane
+     * połączenie mogło przyjść już PO utworzeniu protokołu, a wtedy nie ma czego
+     * generować drugi raz. Efekt wyżej zdecyduje na odświeżonej liście.
+     */
+    const retry = () => {
+        hasRequestedGeneration.current = false;
+        generate.reset();
+        void protocolsQuery.refetch();
+    };
 
     const visualCondition = useMutation({
         mutationFn: ({ protocolId, conditionMatch, remarks }: {
@@ -112,6 +138,15 @@ export const ProtocolSection = ({
             remarks: string | null;
         }) => protocolsApi.setVisualCondition(visitId, protocolId, { conditionMatch, remarks }),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['visit-protocols', visitId] }),
+        // Okno odpowiedzi zostaje otwarte (patrz confirmVisualCondition), ale bez dymka
+        // przycisk „nic nie robił": 5xx i zerwane połączenie nie mają innego komunikatu.
+        onError: (error: unknown) =>
+            toastUnhandledError(
+                showError,
+                error,
+                'Nie udało się zapisać stanu pojazdu',
+                'Dokument nie poszedł do podpisu. Spróbuj ponownie.'
+            ),
     });
 
     const signing = useProtocolSigning({
@@ -184,7 +219,8 @@ export const ProtocolSection = ({
             await visualCondition.mutateAsync({ protocolId: send.protocolId, conditionMatch, remarks });
         } catch {
             // Nieudany zapis nie może skończyć się wysłaniem dokumentu bez zaznaczenia -
-            // okno zostaje otwarte, żeby dało się spróbować ponownie.
+            // okno zostaje otwarte, żeby dało się spróbować ponownie. Komunikat daje
+            // onError mutacji.
             return;
         }
         setPendingSend(null);
@@ -226,7 +262,25 @@ export const ProtocolSection = ({
         <Section>
             <SectionLabel>Protokół wydania</SectionLabel>
 
-            {isPending || generate.isPending ? (
+            {listFailed || generate.isError ? (
+                // Awaria, nie brak dokumentu: „Dodaj go w Ustawieniach" odsyłało studio
+                // z poprawną konfiguracją szukać problemu, którego nie ma. Wydanie zostaje
+                // otwarte - „Przejdź do płatności" w stopce działa bez protokołu.
+                // Odcień „warn", nie „danger": błąd niczego nie blokuje (CLAUDE.md §2, Notice).
+                <Notice
+                    tone="warn"
+                    role="alert"
+                    title={listFailed ? 'Nie udało się pobrać protokołu wydania' : 'Nie udało się przygotować protokołu wydania'}
+                    action={
+                        <Button variant="ghost" size="sm" disabled={protocolsQuery.isFetching} onClick={retry}>
+                            Spróbuj ponownie
+                        </Button>
+                    }
+                >
+                    {apiErrorMessage(listFailed ? protocolsQuery.error : generate.error, 'Sprawdź połączenie z internetem.')}{' '}
+                    Pojazd możesz wydać także bez niego.
+                </Notice>
+            ) : isPending || generate.isPending || (protocolsQuery.isFetching && checkOutProtocols.length === 0) ? (
                 <LoadingContainer>
                     <Spinner />
                     <span>Przygotowywanie protokołu wydania…</span>
