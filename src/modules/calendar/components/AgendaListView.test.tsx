@@ -134,3 +134,42 @@ describe('visibleServices', () => {
         expect(visibleServices(undefined)).toEqual({ shown: [], more: 0 });
     });
 });
+
+describe('AgendaListView - auto wciąż w studiu', () => {
+    const visit = (status: string, start: Date, end: Date) => ({
+        id: `v-${status}`,
+        title: `Wizyta ${status}`,
+        start: start.toISOString(),
+        end: end.toISOString(),
+        allDay: false,
+        extendedProps: {
+            type: 'VISIT',
+            id: `v-${status}`,
+            title: `Wizyta ${status}`,
+            status,
+            customerName: 'Jan Kowalski',
+            vehicleInfo: 'BMW X5',
+            services: [],
+            startTime: start.toISOString(),
+            endTime: end.toISOString(),
+        },
+    }) as unknown as AgendaListViewProps['events'][number];
+
+    const dayCard = (container: HTMLElement, key: string, text: string) =>
+        container.querySelector(`#agenda-day-${key}`)?.textContent?.includes(text);
+
+    it('wizyta w trakcie przyjęta w zeszłym tygodniu jest też w dzisiejszym dniu', () => {
+        const ev = visit('IN_PROGRESS', new Date(2026, 9, 6, 9, 0), new Date(2026, 9, 8, 17, 0));
+        const { container } = renderList(props({ events: [ev] }));
+
+        expect(dayCard(container, '2026-10-13', 'Wizyta IN_PROGRESS')).toBe(true);
+    });
+
+    it('wizyta zakończona zostaje tylko w dniu startu', () => {
+        const ev = visit('COMPLETED', new Date(2026, 9, 6, 9, 0), new Date(2026, 9, 8, 17, 0));
+        const { container } = renderList(props({ events: [ev] }));
+
+        expect(dayCard(container, '2026-10-13', 'Wizyta COMPLETED')).toBe(false);
+        expect(dayCard(container, '2026-10-06', 'Wizyta COMPLETED')).toBe(true);
+    });
+});
