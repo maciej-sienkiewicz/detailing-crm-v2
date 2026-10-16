@@ -1457,9 +1457,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         modelu. */}
                                     {isMobile ? (
                                         <FormGrid>
-                                            <VehicleKindSwitch value={form.vehicleKind} onChange={form.changeVehicleKind} />
                                             <FieldGroup>
-                                                <FormLabel>Marka</FormLabel>
+                                                <S.FieldLabelRow>
+                                                    <FormLabel>Marka</FormLabel>
+                                                    <VehicleKindSwitch iconOnly value={form.vehicleKind} onChange={form.changeVehicleKind} />
+                                                </S.FieldLabelRow>
                                                 <BrandSelect
                                                     kind={form.vehicleKind}
                                                     value={form.vehicleBrand}
@@ -1494,11 +1496,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             <S.CustomerHint style={{ color: '#0ea5e9' }}>
                                                 Edytuj dane pojazdu
                                             </S.CustomerHint>
-                                            <VehicleKindSwitch size="sm" value={form.vehicleKind} onChange={form.changeVehicleKind} />
                                             <S.CustomerInputBlock $focused={form.focusedField === 'vehicle'}>
                                                 <S.VehicleInputRow>
                                                     <S.CustomerFieldGroup $borderRight>
-                                                        <S.CustomerFieldLabel>Marka</S.CustomerFieldLabel>
+                                                        <S.FieldLabelRow>
+                                                            <S.CustomerFieldLabel>Marka</S.CustomerFieldLabel>
+                                                            <VehicleKindSwitch iconOnly value={form.vehicleKind} onChange={form.changeVehicleKind} />
+                                                        </S.FieldLabelRow>
                                                         <BrandSelect
                                                             compact
                                                             kind={form.vehicleKind}
@@ -1648,18 +1652,18 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     </button>
                                                 </S.CustomerHint>
                                             )}
-                                            {/* Rodzaj nad marką: wybiera katalog obu pól pod nim. Bez
-                                                klienta wyszarzony razem z polami, tak jak one. */}
-                                            <div style={!form.selectedCustomer ? { opacity: 0.5, pointerEvents: 'none' } : undefined}>
-                                                <VehicleKindSwitch size="sm" value={form.vehicleKind} onChange={form.changeVehicleKind} />
-                                            </div>
                                             <S.CustomerInputBlock
                                                 $focused={form.focusedField === 'vehicle'}
                                                 style={!form.selectedCustomer ? { opacity: 0.5, pointerEvents: 'none' } : undefined}
                                             >
                                                 <S.VehicleInputRow>
                                                     <S.CustomerFieldGroup $borderRight>
-                                                        <S.CustomerFieldLabel>Marka</S.CustomerFieldLabel>
+                                                        {/* Rodzaj przy marce: wybiera katalog marki i modelu. Bez
+                                                            klienta wyszarzony razem z polami, tak jak one. */}
+                                                        <S.FieldLabelRow>
+                                                            <S.CustomerFieldLabel>Marka</S.CustomerFieldLabel>
+                                                            <VehicleKindSwitch iconOnly value={form.vehicleKind} onChange={form.changeVehicleKind} />
+                                                        </S.FieldLabelRow>
                                                         <BrandSelect
                                                             compact
                                                             kind={form.vehicleKind}

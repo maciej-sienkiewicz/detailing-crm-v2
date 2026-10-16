@@ -257,7 +257,7 @@ describe('leadToBookingPrefill - klient i auto', () => {
             );
 
             expect(prefill.vehicle).toEqual({
-                id: 'moto-1', kind: 'MOTORCYCLE', brand: 'BMW', model: 'R 1250 GS', year: 2022, isNew: false,
+                id: 'moto-1', kind: 'MOTORCYCLE', brand: 'BMW', model: 'R 1250 GS', year: 2022, licensePlate: null, isNew: false,
             });
         });
 
