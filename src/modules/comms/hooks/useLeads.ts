@@ -11,6 +11,7 @@ import { hasMaskedPii, mergeMaskedPii } from '@/common/pii';
 import { leadsApi } from '../api/leadsApi';
 import { LEAD_STATUS_LABELS } from '../types';
 import { pluralPl } from '@/common/utils/plural';
+import type { VehicleKind } from '@/modules/vehicles/vehicleKind';
 import { COMMS_THREADS_KEY } from './useComms';
 import { DEFAULT_STAGNATION, type StagnationThresholds } from '../utils/leadUrgency';
 import type {
@@ -630,11 +631,12 @@ export const useUpdateLeadTags = () => {
 export const useUpdateLeadVehicle = () => {
     const invalidate = useLeadInvalidation();
     return useMutation({
-        mutationFn: ({ leadId, vehicleBrand, vehicleModel }: {
+        mutationFn: ({ leadId, vehicleBrand, vehicleModel, vehicleKind }: {
             leadId: string;
             vehicleBrand: string | null;
             vehicleModel: string | null;
-        }) => leadsApi.updateVehicle(leadId, vehicleBrand, vehicleModel),
+            vehicleKind?: VehicleKind;
+        }) => leadsApi.updateVehicle(leadId, vehicleBrand, vehicleModel, vehicleKind),
         onSuccess: (_lead, variables) => invalidate(variables.leadId),
     });
 };

@@ -25,6 +25,8 @@ import { SmsOptionsSheet, type SmsOption } from './SmsOptionsSheet';
 import { ColorDropdown } from '@/common/components/ColorDropdown';
 import { useQuickEventForm } from './useQuickEventForm';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
+import { VehicleKindSwitch } from '@/modules/vehicles/components/VehicleKindSwitch';
+import { DEFAULT_VEHICLE_KIND, normalizeVehicleKind } from '@/modules/vehicles/vehicleKind';
 import { ServicesTable } from '@/common/components/ServicesTable';
 import type { ServiceLineItem, SaveServiceData } from '@/common/components/ServicesTable';
 import { buildServicesAsLineItems, withRenamedTempServices } from './servicesAsLineItems';
@@ -462,6 +464,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         form.setCustomerPhone('');
         form.setCustomerEmail('');
         form.setSelectedVehicle(null);
+        form.setVehicleKind(DEFAULT_VEHICLE_KIND);
         form.setVehicleBrand('');
         form.setVehicleModel('');
         form.setVehicleYear('');
@@ -1235,6 +1238,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     form.setCustomerPhone('');
                                                     form.setCustomerEmail('');
                                                     form.setSelectedVehicle(null);
+                                                    form.setVehicleKind(DEFAULT_VEHICLE_KIND);
                                                     form.setVehicleBrand('');
                                                     form.setVehicleModel('');
                                                     form.setVehicleYear('');
@@ -1453,9 +1457,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         modelu. */}
                                     {isMobile ? (
                                         <FormGrid>
+                                            <VehicleKindSwitch value={form.vehicleKind} onChange={form.changeVehicleKind} />
                                             <FieldGroup>
                                                 <FormLabel>Marka</FormLabel>
                                                 <BrandSelect
+                                                    kind={form.vehicleKind}
                                                     value={form.vehicleBrand}
                                                     onChange={(brand) => { form.setVehicleBrand(brand); form.setVehicleModel(''); setAutoOpenModel(true); }}
                                                 />
@@ -1463,6 +1469,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             <FieldGroup>
                                                 <FormLabel>Model</FormLabel>
                                                 <ModelSelect
+                                                    kind={form.vehicleKind}
                                                     brand={form.vehicleBrand}
                                                     value={form.vehicleModel}
                                                     onChange={(model) => form.setVehicleModel(model)}
@@ -1487,12 +1494,14 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             <S.CustomerHint style={{ color: '#0ea5e9' }}>
                                                 Edytuj dane pojazdu
                                             </S.CustomerHint>
+                                            <VehicleKindSwitch size="sm" value={form.vehicleKind} onChange={form.changeVehicleKind} />
                                             <S.CustomerInputBlock $focused={form.focusedField === 'vehicle'}>
                                                 <S.VehicleInputRow>
                                                     <S.CustomerFieldGroup $borderRight>
                                                         <S.CustomerFieldLabel>Marka</S.CustomerFieldLabel>
                                                         <BrandSelect
                                                             compact
+                                                            kind={form.vehicleKind}
                                                             value={form.vehicleBrand}
                                                             onChange={(brand) => { form.setVehicleBrand(brand); form.setVehicleModel(''); form.setFocusedField('vehicle'); setAutoOpenModel(true); }}
                                                             onBlur={() => form.setFocusedField(null)}
@@ -1502,6 +1511,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         <S.CustomerFieldLabel>Model</S.CustomerFieldLabel>
                                                         <ModelSelect
                                                             compact
+                                                            kind={form.vehicleKind}
                                                             brand={form.vehicleBrand}
                                                             value={form.vehicleModel}
                                                             onChange={(model) => { form.setVehicleModel(model); form.setFocusedField('vehicle'); }}
@@ -1555,6 +1565,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 type="button"
                                                 onClick={() => {
                                                     form.setSelectedVehicle(null);
+                                                    form.setVehicleKind(DEFAULT_VEHICLE_KIND);
                                                     form.setVehicleBrand('');
                                                     form.setVehicleModel('');
                                                     form.setVehicleYear('');
@@ -1588,7 +1599,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             type="button"
                                                             onMouseDown={(e) => e.preventDefault()}
                                                             onClick={() => {
-                                                                form.handleVehicleSelect({ id: v.id, brand: v.brand, model: v.model, year: v.year, licensePlate: v.licensePlate ?? null, isNew: false });
+                                                                form.handleVehicleSelect({ id: v.id, kind: normalizeVehicleKind(v.kind), brand: v.brand, model: v.model, year: v.year, licensePlate: v.licensePlate ?? null, isNew: false });
                                                             }}
                                                             $accentColor={form.accentColor}
                                                         >
@@ -1627,6 +1638,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         style={{ background: 'none', border: 'none', color: '#0ea5e9', cursor: 'pointer', padding: 0, fontSize: 'inherit' }}
                                                         onClick={() => {
                                                             form.setIsAddingNewVehicle(false);
+                                                            form.setVehicleKind(DEFAULT_VEHICLE_KIND);
                                                             form.setVehicleBrand('');
                                                             form.setVehicleModel('');
                                                             form.setVehicleYear('');
@@ -1636,6 +1648,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     </button>
                                                 </S.CustomerHint>
                                             )}
+                                            {/* Rodzaj nad marką: wybiera katalog obu pól pod nim. Bez
+                                                klienta wyszarzony razem z polami, tak jak one. */}
+                                            <div style={!form.selectedCustomer ? { opacity: 0.5, pointerEvents: 'none' } : undefined}>
+                                                <VehicleKindSwitch size="sm" value={form.vehicleKind} onChange={form.changeVehicleKind} />
+                                            </div>
                                             <S.CustomerInputBlock
                                                 $focused={form.focusedField === 'vehicle'}
                                                 style={!form.selectedCustomer ? { opacity: 0.5, pointerEvents: 'none' } : undefined}
@@ -1645,6 +1662,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         <S.CustomerFieldLabel>Marka</S.CustomerFieldLabel>
                                                         <BrandSelect
                                                             compact
+                                                            kind={form.vehicleKind}
                                                             value={form.vehicleBrand}
                                                             onChange={(brand) => {
                                                                 form.setVehicleBrand(brand);
@@ -1659,6 +1677,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         <S.CustomerFieldLabel>Model</S.CustomerFieldLabel>
                                                         <ModelSelect
                                                             compact
+                                                            kind={form.vehicleKind}
                                                             brand={form.vehicleBrand}
                                                             value={form.vehicleModel}
                                                             onChange={(model) => {

@@ -8,6 +8,7 @@
 import { grossToNet } from '@/common/utils/priceAdjustment';
 import type { QuickEventInitialData } from '@/modules/calendar';
 import type { SelectedCustomer, SelectedVehicle } from '@/modules/appointments/types';
+import { DEFAULT_VEHICLE_KIND, normalizeVehicleKind, type VehicleKind } from '@/modules/vehicles/vehicleKind';
 import type { ContactCard, Lead, LeadServiceItem } from '../types';
 
 /** Stawka dla pozycji sprzed V75, które znały wyłącznie brutto - jak w leadServiceLines. */
@@ -118,10 +119,17 @@ function buildCustomer(params: {
     };
 }
 
-/** Auto z kartoteki, gdy pasuje do rozpoznanej marki i modelu; inaczej nowe. */
+/**
+ * Auto z kartoteki, gdy pasuje do rozpoznanej marki, modelu i rodzaju; inaczej nowe.
+ *
+ * Rodzaj jedzie dalej w obu przypadkach: pojazd z kartoteki przynosi swój, nowy - ten
+ * z leada. Bez niego formularz rezerwacji podpowiadałby markę motocykla z katalogu aut,
+ * a rezerwacja zakładała w kartotece „Hondę" jako samochód.
+ */
 function buildVehicle(
     brand: string | null,
     model: string | null,
+    kind: VehicleKind,
     knownVehicles: ContactCard['vehicles'] | undefined
 ): SelectedVehicle | undefined {
     if (!brand) {
@@ -129,19 +137,38 @@ function buildVehicle(
         // dokładnie jedno auto, to prawie na pewno o nie chodzi.
         const only = knownVehicles?.length === 1 ? knownVehicles[0] : null;
         return only
-            ? { id: only.id, brand: only.brand, model: only.model, year: only.year ?? undefined, licensePlate: only.licensePlate, isNew: false }
+            ? {
+                id: only.id,
+                kind: normalizeVehicleKind(only.kind),
+                brand: only.brand,
+                model: only.model,
+                year: only.year ?? undefined,
+                licensePlate: only.licensePlate,
+                isNew: false,
+            }
             : undefined;
     }
 
+    // Rodzaj należy do dopasowania: BMW samochód klienta to nie BMW motocykl, o który
+    // pyta lead - szczególnie gdy z korespondencji wyszła sama marka, bez modelu.
     const match = knownVehicles?.find(
         (vehicle) =>
+            normalizeVehicleKind(vehicle.kind) === kind &&
             vehicle.brand.toLowerCase() === brand.toLowerCase() &&
             (!model || vehicle.model.toLowerCase() === model.toLowerCase())
     );
     if (match) {
-        return { id: match.id, brand: match.brand, model: match.model, year: match.year ?? undefined, licensePlate: match.licensePlate, isNew: false };
+        return {
+            id: match.id,
+            kind: normalizeVehicleKind(match.kind),
+            brand: match.brand,
+            model: match.model,
+            year: match.year ?? undefined,
+            licensePlate: match.licensePlate,
+            isNew: false,
+        };
     }
-    return { brand, model: model ?? '', isNew: true };
+    return { kind, brand, model: model ?? '', isNew: true };
 }
 
 /** Panel leada → wypełniony formularz rezerwacji. */
@@ -156,7 +183,12 @@ export function leadToBookingPrefill(lead: Lead, contactCard?: ContactCard | nul
     return {
         customer,
         customerEditing,
-        vehicle: buildVehicle(lead.vehicleBrand, lead.vehicleModel, contactCard?.vehicles),
+        vehicle: buildVehicle(
+            lead.vehicleBrand,
+            lead.vehicleModel,
+            normalizeVehicleKind(lead.vehicleKind),
+            contactCard?.vehicles,
+        ),
         ...servicesToPrefill(lead.services),
     };
 }
@@ -177,6 +209,7 @@ export function contactToBookingPrefill(params: {
     return {
         customer,
         customerEditing,
-        vehicle: buildVehicle(null, null, params.contactCard?.vehicles),
+        // Bez marki rodzaj nie bierze udziału w dopasowaniu - jedyny pojazd przynosi swój.
+        vehicle: buildVehicle(null, null, DEFAULT_VEHICLE_KIND, params.contactCard?.vehicles),
     };
 }

@@ -8,6 +8,7 @@ import { isSameLocalDay, toInstant, fromInstantToLocalInput } from '@/common/dat
 import { pickInitialColorId } from '@/modules/appointment-colors';
 import { appointmentApi } from '../api/appointmentApi';
 import { useDefaultChoice, useMessageDefaults } from '@/modules/message-templates/hooks/useMessageDefaults';
+import { normalizeVehicleKind } from '@/modules/vehicles/vehicleKind';
 
 export const useAppointmentCreation = () => {
     const navigate = useNavigate();
@@ -140,6 +141,7 @@ export const useAppointmentCreation = () => {
                     ? {
                         mode: 'NEW' as const,
                         newData: {
+                            kind: normalizeVehicleKind(selectedVehicle.kind),
                             brand: selectedVehicle.brand,
                             model: selectedVehicle.model,
                         },

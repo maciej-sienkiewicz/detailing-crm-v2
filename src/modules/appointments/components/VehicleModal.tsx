@@ -4,6 +4,8 @@ import styled from 'styled-components';
 import { t } from '@/common/i18n';
 import type { Vehicle, SelectedVehicle } from '../types';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
+import { VehicleKindSwitch } from '@/modules/vehicles/components/VehicleKindSwitch';
+import { DEFAULT_VEHICLE_KIND, normalizeVehicleKind, type VehicleKind } from '@/modules/vehicles/vehicleKind';
 import {
     ModalShell,
     ModalHeader,
@@ -93,6 +95,11 @@ const FormGrid = styled.div`
     }
 `;
 
+// Rodzaj nad marką, na całą szerokość siatki: to on wybiera katalog obu pól pod nim.
+const KindRow = styled.div`
+    grid-column: 1 / -1;
+`;
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface VehicleModalProps {
@@ -118,11 +125,27 @@ export const VehicleModal = ({
         if (isOpen) setShowNewForm(initialMode === 'new');
     }, [isOpen, initialMode]);
 
-    const [formData, setFormData] = useState({ brand: '', model: '' });
+    const [formData, setFormData] = useState<{ kind: VehicleKind; brand: string; model: string }>({
+        kind: DEFAULT_VEHICLE_KIND,
+        brand: '',
+        model: '',
+    });
     const [errors, setErrors]     = useState<Record<string, string>>({});
 
+    // Zmiana rodzaju czyści markę i model: pochodzą z katalogu poprzedniego rodzaju
+    // (BMW samochodu i BMW motocykla to różne listy modeli).
+    const handleKindChange = (kind: VehicleKind) => {
+        setFormData(prev => (prev.kind === kind ? prev : { kind, brand: '', model: '' }));
+    };
+
     const handleVehicleClick = (vehicle: Vehicle) => {
-        onSelect({ id: vehicle.id, brand: vehicle.brand, model: vehicle.model, isNew: false });
+        onSelect({
+            id: vehicle.id,
+            kind: normalizeVehicleKind(vehicle.kind),
+            brand: vehicle.brand,
+            model: vehicle.model,
+            isNew: false,
+        });
         onClose();
     };
 
@@ -201,9 +224,14 @@ export const VehicleModal = ({
                     </>
                 ) : (
                     <FormGrid>
+                        <KindRow>
+                            <VehicleKindSwitch value={formData.kind} onChange={handleKindChange} />
+                        </KindRow>
+
                         <FormFieldGroup>
                             <FormLabel>{t.appointments.vehicleModal.brand}</FormLabel>
                             <BrandSelect
+                                kind={formData.kind}
                                 value={formData.brand}
                                 onChange={(val) => setFormData({ ...formData, brand: val, model: '' })}
                                 autoOpen={true}
@@ -214,6 +242,7 @@ export const VehicleModal = ({
                         <FormFieldGroup>
                             <FormLabel>{t.appointments.vehicleModal.model}</FormLabel>
                             <ModelSelect
+                                kind={formData.kind}
                                 brand={formData.brand}
                                 value={formData.model}
                                 onChange={(val) => setFormData({ ...formData, model: val })}

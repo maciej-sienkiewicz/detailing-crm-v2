@@ -17,7 +17,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { Car, Link2, Loader2, Search, UserPlus, X } from 'lucide-react';
+import { Car, Link2, Loader2, Motorbike, Search, UserPlus, X } from 'lucide-react';
+import { normalizeVehicleKind } from '@/modules/vehicles/vehicleKind';
 import { useQueryClient } from '@tanstack/react-query';
 import { customerApi } from '@/modules/customers/api/customerApi';
 import { customerEditApi } from '@/modules/customers/api/customerEditApi';
@@ -587,7 +588,10 @@ export function ContactCardPopover({
                                                 );
                                             }}
                                         >
-                                            <Car size={13} />
+                                            {/* Ikona wg rodzaju - motocykl w kartotece nie udaje auta. */}
+                                            {normalizeVehicleKind(vehicle.kind) === 'MOTORCYCLE'
+                                                ? <Motorbike size={13} />
+                                                : <Car size={13} />}
                                             <span>
                                                 {vehicle.brand} {vehicle.model}
                                                 {vehicle.year && ` (${vehicle.year})`}

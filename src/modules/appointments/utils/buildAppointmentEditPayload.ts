@@ -11,6 +11,7 @@ import type { CheckInFormData } from '@/modules/checkin/types';
 import type { AppointmentAddress, AppointmentCreateRequest } from '@/modules/appointments/types';
 import { isSameLocalDay, toInstant } from '@/common/dateTime';
 import { toApiServiceLineItem } from '@/common/utils/priceAdjustment';
+import { normalizeVehicleKind } from '@/modules/vehicles/vehicleKind';
 
 // CheckInFormData.technicalState (edited in VerificationStep) -> the note fields
 // the API actually persists. Kept as a pure function so the mapping is testable
@@ -94,6 +95,9 @@ export function buildAppointmentEditPayload(formData: CheckInFormData): Appointm
                 ? {
                     mode: 'NEW',
                     newData: {
+                        // Nowy pojazd zawsze z rodzajem - brak pola serwer czyta jako
+                        // samochód, a marka motocykla nie przeszłaby jego katalogu aut.
+                        kind: normalizeVehicleKind(formData.vehicleData.kind),
                         brand: formData.vehicleData.brand,
                         model: formData.vehicleData.model,
                         // Wire key is `year`, not `yearOfProduction` (which is only the
@@ -119,6 +123,8 @@ export function buildAppointmentEditPayload(formData: CheckInFormData): Appointm
                     // bez zmian (tak samo wysyła to przyjęcie pojazdu, useCheckInWizard).
                     ownership: formData.vehicleOwnershipAction ?? undefined,
                     updateData: {
+                        // Pominięty (rodzaj nieznany) - serwer zostawia ten, który pojazd ma.
+                        kind: formData.vehicleData.kind,
                         brand: formData.vehicleData.brand,
                         model: formData.vehicleData.model,
                         year: formData.vehicleData.yearOfProduction,
