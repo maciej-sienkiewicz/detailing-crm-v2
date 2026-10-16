@@ -1,4 +1,5 @@
 import { MAX_2_DECIMALS } from '@/common/utils/moneyInput';
+import { netToGross } from '@/common/utils/priceAdjustment';
 import type { PaymentMethod, InvoiceType, CompleteInvoicePayload } from './stateTransitions';
 
 export type VatRateCode = '23' | '8' | '5' | '0' | 'zw';
@@ -83,10 +84,14 @@ export interface HandoverDraft {
  * a zmiana stawki przy cenie wpisanej w brutto brutta nie zmienia - draft wracałby
  * ze starą stawką. Drafty sprzed dodania stawki mają inny odcisk, więc ich pozycje
  * (w tym „0%" zgadnięte dla usług zwolnionych zamiast „zw") powstają od nowa.
+ *
+ * Ekran wydania liczy odcisk z pozycji ROZLICZENIA (settledPrice), a nie ze wszystkich
+ * usług: zatwierdzenie zmiany czekającej na zgodę klienta zmienia to, co trafia na
+ * fakturę, choć sama lista usług stoi w miejscu.
  */
-export const servicesFingerprint = (
-    services: Array<{ id: string; serviceName: string; vatRate?: number | null }>,
-    grossOf: (service: { id: string; serviceName: string }) => number
+export const servicesFingerprint = <T extends { id: string; serviceName: string; vatRate?: number | null }>(
+    services: T[],
+    grossOf: (service: T) => number
 ): string =>
     services
         .map(service => `${service.id}:${service.serviceName}:${grossOf(service)}:${service.vatRate ?? ''}`)
@@ -243,6 +248,116 @@ export const invoiceItemFromService = (
 
 export const invoiceGrossOf = (items: HandoverItem[]): number =>
     items.reduce((sum, item) => sum + itemAmounts(item).gross, 0);
+
+// ─── Kwota rozliczenia: reguła backendu ───────────────────────────────────────
+
+/** Pola usługi wizyty, od których zależy, czy i za ile wchodzi do rozliczenia. */
+export interface SettlementInput {
+    status: 'CONFIRMED' | 'PENDING' | 'APPROVED' | 'REJECTED';
+    pendingOperation?: 'ADD' | 'EDIT' | 'DELETE' | null;
+    previousPriceNet?: number | null;
+    previousPriceGross?: number | null;
+    vatRate: number | null | undefined;
+}
+
+/** Kwoty, za które usługa wchodzi do rozliczenia, i stawka, przy której obowiązują. */
+export interface SettledPrice {
+    finalPriceNet: number;
+    finalPriceGross: number;
+    /** null = stawki tych kwot nie znamy (patrz previousPriceRate); faktura weźmie ją z proporcji. */
+    vatRate: number | null;
+}
+
+/**
+ * Stawka ceny sprzed zmiany czekającej na zgodę klienta.
+ *
+ * API przysyła z migawki (confirmedSnapshot) tylko KWOTY, a stawka przy usłudze to już
+ * stawka NOWEJ ceny - zmiana mogła ją przestawić. Obecna stawka obowiązuje więc tylko
+ * wtedy, gdy pasuje do kwot sprzed zmiany z tolerancją 1 gr (ten sam niezmiennik pary
+ * netto/brutto co na serwerze: brutto wpisane od strony brutto mija netto × stawka
+ * o najwyżej grosz). Inaczej null, a stawkę pozycji faktury da proporcja kwot.
+ */
+const previousPriceRate = (vatRate: number | null | undefined, net: number, gross: number): number | null =>
+    vatRate != null && Math.abs(netToGross(net, vatRate) - gross) <= 1 ? vatRate : null;
+
+/**
+ * Za ile usługa wchodzi do paragonu albo faktury wydania. To reguła `Visit.settledGross`
+ * (i `calculateTotalNet`) z backendu, 1:1 - na tę kwotę serwer wystawia dokument
+ * i z nią porównuje fakturę („Kwota faktury przekracza kwotę wizyty"):
+ *
+ *  - CONFIRMED, APPROVED → cena bieżąca,
+ *  - PENDING / EDIT      → cena sprzed zmiany (migawka, w API `previousPrice*`): nowej
+ *                          klient jeszcze nie przyjął; bez migawki pozycja wypada, jak na serwerze,
+ *  - PENDING / DELETE    → cena bieżąca: usunięcia też nikt jeszcze nie przyjął,
+ *  - PENDING / ADD, PENDING bez operacji, REJECTED → nie wchodzi (null).
+ *
+ * Ekran wydania sumował wcześniej wszystkie pozycje: pokazywał 2200 zł, sprzedawca tyle
+ * pobierał, a paragon wychodził na 1900 zł. Na fakturze serwer odrzucał wydanie, bo
+ * pozycje zasiane z usług przekraczały kwotę wizyty.
+ *
+ * [current] to cena bieżąca ze wspólnej wyceny (dokładne brutto, CLAUDE.md §1). Status,
+ * a nie `hasPendingChange`, bo to po statusie rozstrzyga serwer.
+ */
+export const settledPrice = (
+    service: SettlementInput,
+    current: { finalPriceNet: number; finalPriceGross: number },
+): SettledPrice | null => {
+    const atCurrentPrice: SettledPrice = {
+        finalPriceNet: current.finalPriceNet,
+        finalPriceGross: current.finalPriceGross,
+        vatRate: service.vatRate ?? null,
+    };
+    switch (service.status) {
+        case 'CONFIRMED':
+        case 'APPROVED':
+            return atCurrentPrice;
+        case 'PENDING': {
+            if (service.pendingOperation === 'DELETE') return atCurrentPrice;
+            if (service.pendingOperation !== 'EDIT') return null;
+            const net = service.previousPriceNet;
+            const gross = service.previousPriceGross;
+            if (net == null || gross == null) return null;
+            return { finalPriceNet: net, finalPriceGross: gross, vatRate: previousPriceRate(service.vatRate, net, gross) };
+        }
+        default:
+            return null;
+    }
+};
+
+/** Pozycja rozliczenia: usługa i kwoty, za które wchodzi do dokumentu. */
+export interface SettledLine<S> {
+    service: S;
+    price: SettledPrice;
+}
+
+/**
+ * Pozycje, które wchodzą do rozliczenia, w kolejności usług wizyty. Sumy, pozycje
+ * faktury i odcisk draftu biorą się z TEJ listy - gdyby każde liczyło po swojemu,
+ * faktura nie domknęłaby się z kwotą wizyty co do grosza.
+ */
+export const settledLines = <S extends SettlementInput>(
+    services: S[],
+    priceOf: (service: S) => { finalPriceNet: number; finalPriceGross: number },
+): SettledLine<S>[] =>
+    services.flatMap(service => {
+        const price = settledPrice(service, priceOf(service));
+        return price ? [{ service, price }] : [];
+    });
+
+/** Sumy rozliczenia; VAT to różnica pokazanych kwot, nie osobne mnożenie (CLAUDE.md §1). */
+export const settledTotals = (lines: Array<{ price: SettledPrice }>): { net: number; gross: number; vat: number } => {
+    const net = lines.reduce((sum, line) => sum + line.price.finalPriceNet, 0);
+    const gross = lines.reduce((sum, line) => sum + line.price.finalPriceGross, 0);
+    return { net, gross, vat: gross - net };
+};
+
+/** Pozycja faktury z pozycji rozliczenia - kwoty i stawka tej ceny, która wchodzi do dokumentu. */
+export const invoiceItemFromSettled = (line: SettledLine<{ serviceName: string }>): HandoverItem =>
+    invoiceItemFromService({ serviceName: line.service.serviceName, vatRate: line.price.vatRate }, line.price);
+
+/** Ile usług czeka na zgodę klienta - ich zmiana nie wchodzi do rozliczenia. */
+export const pendingApprovalCount = (services: Array<{ status: SettlementInput['status'] }>): number =>
+    services.filter(service => service.status === 'PENDING').length;
 
 export const normalizeNip = (value: string): string => value.replace(/[^0-9]/g, '');
 

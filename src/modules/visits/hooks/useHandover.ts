@@ -17,9 +17,12 @@ import type { ServiceLineItem, Visit } from '../types';
 import type { CompleteVisitResponse, PaymentMethod } from '../types/stateTransitions';
 import {
     invoiceGrossOf,
-    invoiceItemFromService,
+    invoiceItemFromSettled,
+    pendingApprovalCount,
     restoreDraft,
     servicesFingerprint,
+    settledLines,
+    settledTotals,
     toInvoicePayload,
     toPln,
     validateHandover,
@@ -113,39 +116,27 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     const sellerUnknown = isCompanyError && !company;
 
     // ── Kwoty wizyty ─────────────────────────────────────────────────────────
-    // Usługa z oczekującą edycją liczy się po cenie sprzed zmiany: zmiana nie
-    // została jeszcze zatwierdzona, więc klient płaci za to, co uzgodniono.
-    const totals = useMemo(() => {
-        let net = 0;
-        let gross = 0;
-        visit.services.forEach(service => {
-            const isPending = service.hasPendingChange ?? service.status === 'PENDING';
-            const isEditPending =
-                isPending &&
-                service.pendingOperation === 'EDIT' &&
-                (service.previousPriceNet ?? null) !== null &&
-                (service.previousPriceGross ?? null) !== null;
-            if (isEditPending) {
-                net += service.previousPriceNet as number;
-                gross += service.previousPriceGross as number;
-            } else {
-                const pricing = priceOf(service);
-                net += pricing.finalPriceNet;
-                gross += pricing.finalPriceGross;
-            }
-        });
-        return { net, gross, vat: gross - net };
-    }, [visit.services, priceOf]);
+    // Do rozliczenia wchodzi dokładnie to, za co backend wystawi dokument
+    // (settledPrice = Visit.settledGross): bez usług dopisanych i czekających na zgodę
+    // klienta i bez odrzuconych, usługa z oczekującą edycją po cenie sprzed zmiany,
+    // a z oczekującym usunięciem nadal w pełnej. Sumy, pozycje faktury i odcisk
+    // draftu idą z tej jednej listy.
+    const settled = useMemo(() => settledLines(visit.services, priceOf), [visit.services, priceOf]);
+    const totals = useMemo(() => settledTotals(settled), [settled]);
+    // Zmiany czekające na zgodę klienta: ekran mówi o nich przy kwocie, bo kwota je pomija.
+    const pendingChanges = useMemo(() => pendingApprovalCount(visit.services), [visit.services]);
 
     const isFreeVisit = totals.gross === 0;
     const currency = visit.totalCost?.currency ?? 'PLN';
 
     // ── Stan początkowy ──────────────────────────────────────────────────────
     const buildInitialState = useCallback((): HandoverState => {
-        // Stawka pozycji z usługi, nie z proporcji kwot - patrz invoiceRateOf.
+        // Stawka pozycji z usługi, nie z proporcji kwot - patrz invoiceRateOf. Pozycje
+        // tylko z tego, co wchodzi do rozliczenia: usługa czekająca na zgodę klienta
+        // dawała fakturę wyższą niż kwota wizyty, a serwer odrzucał całe wydanie.
         const seedItems: HandoverItem[] =
-            visit.services.length > 0
-                ? visit.services.map(service => invoiceItemFromService(service, priceOf(service)))
+            settled.length > 0
+                ? settled.map(invoiceItemFromSettled)
                 : [
                       withDerived({
                           name: 'Usługi detailingowe',
@@ -183,13 +174,22 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
             // ustawienie dociera z sieci, więc tu tylko „pracownik jeszcze nie wybrał".
             thankYouSms: null,
         };
-    }, [visit, priceOf, totals.gross]);
+    }, [visit, settled, totals.gross]);
 
     // Odcisk usług, z których powstały pozycje faktury - decyduje, czy zapisany
     // draft opisuje jeszcze tę samą wizytę (patrz restoreDraft).
     const fingerprint = useMemo(
-        () => servicesFingerprint(visit.services, service => priceOf(service as ServiceLineItem).finalPriceGross),
-        [visit.services, priceOf]
+        () =>
+            servicesFingerprint(
+                settled.map(({ service, price }) => ({
+                    id: service.id,
+                    serviceName: service.serviceName,
+                    vatRate: price.vatRate,
+                    gross: price.finalPriceGross,
+                })),
+                line => line.gross
+            ),
+        [settled]
     );
 
     // Ekran jest montowany dopiero przy otwarciu, więc odtworzenie draftu
@@ -359,6 +359,8 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         isCompanyLoading,
         sellerComplete,
         totals,
+        /** Usługi czekające na zgodę klienta - ich zmiana nie wchodzi do kwoty wydania. */
+        pendingChanges,
         currency,
         isFreeVisit,
         invoiceGross,

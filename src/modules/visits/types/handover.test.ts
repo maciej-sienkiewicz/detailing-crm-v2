@@ -4,12 +4,17 @@ import {
     detectRate,
     invoiceGrossOf,
     invoiceItemFromService,
+    invoiceItemFromSettled,
     invoiceRateOf,
     isPlnInput,
     itemAmounts,
     parsePln,
+    pendingApprovalCount,
     restoreDraft,
     servicesFingerprint,
+    settledLines,
+    settledPrice,
+    settledTotals,
     toInvoicePayload,
     toPln,
     validateHandover,
@@ -20,6 +25,7 @@ import {
     type HandoverDraft,
     type HandoverItem,
     type HandoverState,
+    type SettlementInput,
 } from './handover';
 
 const state = (overrides: Partial<HandoverState> = {}): HandoverState => ({
@@ -554,5 +560,152 @@ describe('toInvoicePayload', () => {
         expect(payload.buyerAddressLine1).toBeUndefined();
         expect(payload.buyerAddressLine2).toBeUndefined();
         expect(payload.buyerEmail).toBeUndefined();
+    });
+});
+
+// ─── Kwota rozliczenia ────────────────────────────────────────────────────────
+//
+// Liczby niżej to wynik backendu (Visit.settledGross / calculateTotalNet) dla tych samych
+// pozycji. Na tę kwotę wychodzi paragon i z nią serwer porównuje fakturę - ekran wydania
+// ma pokazać dokładnie ją, a nie sumę wszystkiego, co stoi w wykazie usług.
+
+const line = (overrides: Partial<SettlementInput> = {}): SettlementInput => ({
+    status: 'CONFIRMED',
+    pendingOperation: null,
+    previousPriceNet: null,
+    previousPriceGross: null,
+    vatRate: 23,
+    ...overrides,
+});
+
+/** Cena bieżąca 800,00 zł brutto przy 23% (netto „w stu"). */
+const current800 = { finalPriceNet: 65_041, finalPriceGross: 80_000 };
+
+describe('settledPrice: ta sama reguła co Visit.settledGross na serwerze', () => {
+    it('CONFIRMED i APPROVED wchodzą po cenie bieżącej', () => {
+        expect(settledPrice(line(), current800)).toEqual({ ...current800, vatRate: 23 });
+        expect(settledPrice(line({ status: 'APPROVED' }), current800)).toEqual({ ...current800, vatRate: 23 });
+    });
+
+    it('PENDING/ADD nie wchodzi: klient nie przyjął jeszcze dopisanej usługi', () => {
+        expect(settledPrice(line({ status: 'PENDING', pendingOperation: 'ADD' }), current800)).toBeNull();
+    });
+
+    it('PENDING/EDIT wchodzi po cenie sprzed zmiany, nie po nowej', () => {
+        const pendingEdit = line({
+            status: 'PENDING',
+            pendingOperation: 'EDIT',
+            previousPriceNet: 40_650,
+            previousPriceGross: 50_000,
+        });
+
+        expect(settledPrice(pendingEdit, current800)).toEqual({
+            finalPriceNet: 40_650,
+            finalPriceGross: 50_000,
+            vatRate: 23,
+        });
+    });
+
+    it('PENDING/EDIT bez kwot sprzed zmiany wypada, jak na serwerze bez migawki', () => {
+        expect(settledPrice(line({ status: 'PENDING', pendingOperation: 'EDIT' }), current800)).toBeNull();
+    });
+
+    it('PENDING/DELETE wchodzi w pełnej cenie: usunięcia też nikt jeszcze nie przyjął', () => {
+        expect(settledPrice(line({ status: 'PENDING', pendingOperation: 'DELETE' }), current800))
+            .toEqual({ ...current800, vatRate: 23 });
+    });
+
+    it('REJECTED i PENDING bez operacji nie wchodzą', () => {
+        expect(settledPrice(line({ status: 'REJECTED' }), current800)).toBeNull();
+        expect(settledPrice(line({ status: 'PENDING', pendingOperation: null }), current800)).toBeNull();
+    });
+
+    it('cena sprzed zmiany wpisana w brutto zachowuje stawkę usługi, choć netto × 1,23 daje 1900,01', () => {
+        const pendingEdit = line({
+            status: 'PENDING',
+            pendingOperation: 'EDIT',
+            previousPriceNet: 154_472,
+            previousPriceGross: 190_000,
+        });
+
+        expect(settledPrice(pendingEdit, current800)?.vatRate).toBe(23);
+    });
+
+    it('edycja, która przestawiła stawkę, nie przenosi nowej stawki na cenę sprzed zmiany', () => {
+        // Stara cena: 1000,00 netto / 1080,00 brutto przy 8%; zmiana czekająca na zgodę
+        // przestawiła usługę na 23%. Faktura za starą cenę musi wyjść z 8%.
+        const pendingEdit = line({
+            status: 'PENDING',
+            pendingOperation: 'EDIT',
+            vatRate: 23,
+            previousPriceNet: 100_000,
+            previousPriceGross: 108_000,
+        });
+        const price = settledPrice(pendingEdit, current800);
+
+        expect(price?.vatRate).toBeNull();
+        expect(invoiceItemFromSettled({ service: { serviceName: 'Mycie' }, price: price! })).toEqual(
+            withDerived({ name: 'Mycie', net: '', gross: '1080.00', mode: 'GROSS', vatRate: '8' })
+        );
+    });
+});
+
+describe('rozliczenie wizyty ze zmianami czekającymi na zgodę klienta', () => {
+    const services = [
+        // 1900,00 zł wpisane jako brutto - zatwierdzone
+        { ...line(), serviceName: 'Powłoka ceramiczna', current: { finalPriceNet: 154_472, finalPriceGross: 190_000 } },
+        // dopisana, czeka na zgodę: 300,00 zł
+        {
+            ...line({ status: 'PENDING', pendingOperation: 'ADD' }),
+            serviceName: 'Czyszczenie felg',
+            current: { finalPriceNet: 24_390, finalPriceGross: 30_000 },
+        },
+        // zmiana 500,00 → 800,00 czeka na zgodę: rozliczamy 500,00
+        {
+            ...line({ status: 'PENDING', pendingOperation: 'EDIT', previousPriceNet: 40_650, previousPriceGross: 50_000 }),
+            serviceName: 'Pranie tapicerki',
+            current: current800,
+        },
+        // odrzucona (stare wizyty): 200,00
+        {
+            ...line({ status: 'REJECTED' }),
+            serviceName: 'Ozonowanie',
+            current: { finalPriceNet: 16_260, finalPriceGross: 20_000 },
+        },
+        // usunięcie czeka na zgodę: nadal 100,00
+        {
+            ...line({ status: 'PENDING', pendingOperation: 'DELETE' }),
+            serviceName: 'Odświeżacz',
+            current: { finalPriceNet: 8_130, finalPriceGross: 10_000 },
+        },
+    ];
+    const lines = settledLines(services, service => service.current);
+
+    it('suma to Visit.calculateTotalGross/Net: 1900 + 500 + 100, VAT jako różnica', () => {
+        expect(settledTotals(lines)).toEqual({ net: 203_252, gross: 250_000, vat: 46_748 });
+    });
+
+    it('pozycje faktury: tylko to, co wchodzi do rozliczenia, zmieniona usługa po starej cenie', () => {
+        expect(lines.map(invoiceItemFromSettled).map(item => [item.name, item.gross, item.vatRate])).toEqual([
+            ['Powłoka ceramiczna', '1900.00', '23'],
+            ['Pranie tapicerki', '500.00', '23'],
+            ['Odświeżacz', '100.00', '23'],
+        ]);
+    });
+
+    it('faktura zasiana z pozycji domyka kwotę wizyty co do grosza - serwer jej nie odrzuci', () => {
+        const items = lines.map(invoiceItemFromSettled);
+
+        expect(invoiceGrossOf(items)).toBe(250_000);
+        expect(validateHandover({ state: state({ items }), visitGross: 250_000, sellerComplete: true })).toEqual([]);
+    });
+
+    it('„2200 na ekranie, 1900 na paragonie": dopisana usługa nie podnosi kwoty do zapłaty', () => {
+        const [confirmed, pendingAdd] = services;
+        expect(settledTotals(settledLines([confirmed, pendingAdd], service => service.current)).gross).toBe(190_000);
+    });
+
+    it('liczy jako czekające tylko PENDING, nie odrzucone', () => {
+        expect(pendingApprovalCount(services)).toBe(3);
     });
 });

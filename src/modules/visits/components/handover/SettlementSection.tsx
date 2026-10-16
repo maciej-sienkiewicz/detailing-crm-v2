@@ -5,6 +5,7 @@ import type { CompanySettings } from '@/modules/settings/types';
 import { Pill, PillRow } from './HandoverKit';
 import { InvoiceSection } from './InvoiceSection';
 import { PaymentMethodPicker } from './PaymentMethodPicker';
+import { PendingChangesNotice } from './PendingChangesNotice';
 import { documentTypes } from './paymentOptions';
 import type { HandoverProblem, HandoverState } from '../../types/handover';
 import type { KsefAutomation } from '@/modules/finance/hooks';
@@ -45,6 +46,8 @@ interface SettlementSectionProps {
     state: HandoverState;
     patch: (changes: Partial<HandoverState>) => void;
     totals: { net: number; vat: number; gross: number };
+    /** Usługi czekające na zgodę klienta - kwota je pomija, więc mówimy o nich przy niej. */
+    pendingChanges?: number;
     currency: string;
     isFreeVisit: boolean;
     invoiceGross: number;
@@ -72,6 +75,7 @@ export const SettlementSection = ({
     state,
     patch,
     totals,
+    pendingChanges = 0,
     currency,
     isFreeVisit,
     invoiceGross,
@@ -94,6 +98,7 @@ export const SettlementSection = ({
                     amount={fmt(0)}
                     details="usługi mają wartość 0 zł, dokument finansowy nie powstanie"
                 />
+                <PendingChangesNotice count={pendingChanges} />
             </Stack>
         );
     }
@@ -107,6 +112,7 @@ export const SettlementSection = ({
                 amount={fmt(totals.gross)}
                 details={`netto ${fmt(totals.net)}, VAT ${fmt(totals.vat)}`}
             />
+            <PendingChangesNotice count={pendingChanges} />
 
             <Field>
                 <FieldTitle>Forma zapłaty</FieldTitle>

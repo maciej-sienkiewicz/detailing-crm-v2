@@ -19,6 +19,7 @@ import { useVisitComments } from '../../hooks';
 import { CustomerNotesSection } from './CustomerNotesSection';
 import { SettlementSection } from './SettlementSection';
 import { FinanceUpsellPanel } from './FinanceUpsellPanel';
+import { PendingChangesNotice } from './PendingChangesNotice';
 import { ProtocolSection } from './ProtocolSection';
 import { ThankYouSmsSection } from './ThankYouSmsSection';
 import { advanceLabel, allProtocolsSigned, type ProtocolSignatureStatus } from './signatureStep';
@@ -218,6 +219,7 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                         state={handover.state}
                                         patch={handover.patch}
                                         totals={handover.totals}
+                                        pendingChanges={handover.pendingChanges}
                                         currency={handover.currency}
                                         isFreeVisit={handover.isFreeVisit}
                                         invoiceGross={handover.invoiceGross}
@@ -234,12 +236,17 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                     // Moment wysokiej intencji: zamiast sekcji rozliczenia,
                                     // propozycja modułu finansowego, z zachowaną ścieżką
                                     // „wydaj pojazd bez faktury" (operacja rdzeniowa BASIC).
-                                    !handover.isFreeVisit && (
-                                        <FinanceUpsellPanel
-                                            grossAmount={handover.totals.gross}
-                                            currency={handover.currency}
-                                        />
-                                    )
+                                    // Kwota w propozycji to ta sama kwota rozliczenia, więc
+                                    // i tu stoi informacja o zmianach, które ją pomijają.
+                                    <>
+                                        <PendingChangesNotice count={handover.pendingChanges} />
+                                        {!handover.isFreeVisit && (
+                                            <FinanceUpsellPanel
+                                                grossAmount={handover.totals.gross}
+                                                currency={handover.currency}
+                                            />
+                                        )}
+                                    </>
                                 )}
                             </Body>
                         </StepPane>
