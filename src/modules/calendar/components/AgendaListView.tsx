@@ -76,12 +76,21 @@ function groupEventsByDay(
     days: Date[],
 ): Map<string, CalendarEvent[]> {
     const map = new Map<string, CalendarEvent[]>(days.map(d => [toDateKey(d), []]));
+    const todayKey = toDateKey(new Date());
 
     for (const ev of events) {
-        // For multi-day / allDay events, place only on the start date if it's in range.
-        // For timed events, same logic.
+        // Zwykłe wydarzenie stoi tylko w dniu startu, o ile mieści się w zakresie.
         const evStartKey = toDateKey(parseLocalDate(ev.start as string));
         map.get(evStartKey)?.push(ev);
+
+        // Auto, które wciąż jest w studiu (w trakcie / do odbioru), nie znika z listy,
+        // gdy dzień startu został za nami: tak jak w widoku operacji zostaje w kolumnie
+        // „w trakcie", dopóki ktoś go nie wyda. Bez tego wizyta przyjęta w zeszłym
+        // tygodniu znikała z listy, choć auto dalej stało w studiu.
+        const props = ev.extendedProps as Partial<VisitEventData> | undefined;
+        if (props?.type !== 'VISIT' || !isStartedVisit(props.status)) continue;
+        if (evStartKey >= todayKey) continue;
+        map.get(todayKey)?.push(ev);
     }
 
     return map;
