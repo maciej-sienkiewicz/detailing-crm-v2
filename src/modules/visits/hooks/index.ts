@@ -16,6 +16,7 @@ import type {
     UpdateDamageMapPayload,
 } from '../types';
 import {useToast} from "@/common/components/Toast";
+import { toastUnhandledError } from '@/modules/subscription/utils/apiErrors';
 
 export const visitDetailQueryKey = (visitId: string) => ['visit', visitId];
 export const visitDocumentsQueryKey = (visitId: string) => ['visit', visitId, 'documents'];
@@ -64,6 +65,7 @@ const isVisitNotStarted = (error: unknown): boolean => {
 
 export const useUpdateVisit = (visitId: string) => {
     const queryClient = useQueryClient();
+    const { showError } = useToast();
 
     const { mutate, isPending } = useMutation({
         mutationFn: (payload: UpdateVisitPayload) =>
@@ -73,6 +75,8 @@ export const useUpdateVisit = (visitId: string) => {
                 queryKey: visitDetailQueryKey(visitId),
             });
         },
+        onError: (error: unknown) =>
+            toastUnhandledError(showError, error, 'Nie udało się zapisać wizyty', 'Zmiana nie została zapisana. Spróbuj ponownie.'),
     });
 
     return {
@@ -111,6 +115,7 @@ export const useUpdateArrivalState = (visitId: string) => {
 
 export const useUploadDocument = (visitId: string) => {
     const queryClient = useQueryClient();
+    const { showError } = useToast();
 
     const { mutate, isPending } = useMutation({
         mutationFn: (payload: UploadDocumentPayload) =>
@@ -123,6 +128,8 @@ export const useUploadDocument = (visitId: string) => {
                 queryKey: visitDocumentsQueryKey(visitId),
             });
         },
+        onError: (error: unknown) =>
+            toastUnhandledError(showError, error, 'Nie udało się dodać dokumentu', 'Plik nie trafił do wizyty. Spróbuj ponownie.'),
     });
 
     return {
@@ -133,6 +140,7 @@ export const useUploadDocument = (visitId: string) => {
 
 export const useUploadPhoto = (visitId: string) => {
     const queryClient = useQueryClient();
+    const { showError } = useToast();
 
     const { mutate, isPending } = useMutation({
         mutationFn: (payload: UploadPhotoPayload) =>
@@ -142,6 +150,8 @@ export const useUploadPhoto = (visitId: string) => {
                 queryKey: visitPhotosQueryKey(visitId),
             });
         },
+        onError: (error: unknown) =>
+            toastUnhandledError(showError, error, 'Nie udało się dodać zdjęcia', 'Zdjęcie nie trafiło do wizyty. Spróbuj ponownie.'),
     });
 
     return {
@@ -152,6 +162,7 @@ export const useUploadPhoto = (visitId: string) => {
 
 export const useDeletePhoto = (visitId: string) => {
     const queryClient = useQueryClient();
+    const { showError } = useToast();
 
     const { mutate, isPending } = useMutation({
         mutationFn: (photoId: string) =>
@@ -161,6 +172,8 @@ export const useDeletePhoto = (visitId: string) => {
                 queryKey: visitPhotosQueryKey(visitId),
             });
         },
+        onError: (error: unknown) =>
+            toastUnhandledError(showError, error, 'Nie udało się usunąć zdjęcia', 'Zdjęcie nadal jest w wizycie. Spróbuj ponownie.'),
     });
 
     return {
@@ -171,6 +184,7 @@ export const useDeletePhoto = (visitId: string) => {
 
 export const useDeleteDocument = (visitId: string) => {
     const queryClient = useQueryClient();
+    const { showError } = useToast();
 
     const { mutate, isPending } = useMutation({
         mutationFn: (documentId: string) =>
@@ -183,6 +197,8 @@ export const useDeleteDocument = (visitId: string) => {
                 queryKey: visitDocumentsQueryKey(visitId),
             });
         },
+        onError: (error: unknown) =>
+            toastUnhandledError(showError, error, 'Nie udało się usunąć dokumentu', 'Dokument nadal jest w wizycie. Spróbuj ponownie.'),
     });
 
     return {
@@ -301,6 +317,7 @@ export const useDeleteComment = (visitId: string) => {
 // Service management hooks
 export const useAddService = (visitId: string) => {
     const queryClient = useQueryClient();
+    const { showError } = useToast();
 
     const { mutate, isPending } = useMutation({
         mutationFn: (payload: AddServicePayload) =>
@@ -310,6 +327,8 @@ export const useAddService = (visitId: string) => {
                 queryKey: visitDetailQueryKey(visitId),
             });
         },
+        onError: (error: unknown) =>
+            toastUnhandledError(showError, error, 'Nie udało się dodać usługi', 'Usługa nie trafiła do wizyty. Spróbuj ponownie.'),
     });
 
     return {
@@ -320,6 +339,7 @@ export const useAddService = (visitId: string) => {
 
 export const useUpdateService = (visitId: string) => {
     const queryClient = useQueryClient();
+    const { showError } = useToast();
 
     const { mutate, isPending } = useMutation({
         mutationFn: ({ serviceLineItemId, payload }: { serviceLineItemId: string; payload: UpdateServicePayload }) =>
@@ -329,6 +349,8 @@ export const useUpdateService = (visitId: string) => {
                 queryKey: visitDetailQueryKey(visitId),
             });
         },
+        onError: (error: unknown) =>
+            toastUnhandledError(showError, error, 'Nie udało się zmienić usługi', 'Zmiana nie została zapisana. Spróbuj ponownie.'),
     });
 
     return {
@@ -339,6 +361,7 @@ export const useUpdateService = (visitId: string) => {
 
 export const useDeleteService = (visitId: string) => {
     const queryClient = useQueryClient();
+    const { showError } = useToast();
 
     const { mutate, isPending } = useMutation({
         mutationFn: ({ serviceLineItemId, payload }: { serviceLineItemId: string; payload: DeleteServicePayload }) =>
@@ -348,6 +371,8 @@ export const useDeleteService = (visitId: string) => {
                 queryKey: visitDetailQueryKey(visitId),
             });
         },
+        onError: (error: unknown) =>
+            toastUnhandledError(showError, error, 'Nie udało się usunąć usługi', 'Usługa nadal jest w wizycie. Spróbuj ponownie.'),
     });
 
     return {
@@ -358,6 +383,7 @@ export const useDeleteService = (visitId: string) => {
 
 export const useUpdateServiceStatus = (visitId: string) => {
     const queryClient = useQueryClient();
+    const { showError } = useToast();
 
     const { mutate, isPending } = useMutation({
         mutationFn: ({ serviceLineItemId, payload }: { serviceLineItemId: string; payload: UpdateServiceStatusPayload }) =>
@@ -367,6 +393,8 @@ export const useUpdateServiceStatus = (visitId: string) => {
                 queryKey: visitDetailQueryKey(visitId),
             });
         },
+        onError: (error: unknown) =>
+            toastUnhandledError(showError, error, 'Nie udało się zmienić statusu usługi', 'Status nie został zapisany. Spróbuj ponownie.'),
     });
 
     return {
@@ -377,6 +405,7 @@ export const useUpdateServiceStatus = (visitId: string) => {
 
 export const useSaveServicesChanges = (visitId: string) => {
     const queryClient = useQueryClient();
+    const { showError } = useToast();
 
     const { mutate, isPending } = useMutation({
         mutationFn: (payload: import('../types').ServicesChangesPayload) =>
@@ -386,6 +415,10 @@ export const useSaveServicesChanges = (visitId: string) => {
                 queryKey: visitDetailQueryKey(visitId),
             });
         },
+        // Wiersze robocze zostają: ServicesTable czyści je tylko w onSuccess zapisu,
+        // więc po błędzie wystarczy kliknąć „Zapisz zmiany” jeszcze raz.
+        onError: (error: unknown) =>
+            toastUnhandledError(showError, error, 'Nie udało się zapisać zmian w usługach', 'Twoje zmiany są nadal w tabeli. Spróbuj zapisać ponownie.'),
     });
 
     return {
@@ -415,6 +448,7 @@ export const useVisitCommunication = (visitId: string) => {
 
 export const useApproveServiceChange = (visitId: string) => {
     const queryClient = useQueryClient();
+    const { showError } = useToast();
 
     const { mutate, isPending } = useMutation({
         mutationFn: (serviceLineItemId: string) =>
@@ -423,6 +457,14 @@ export const useApproveServiceChange = (visitId: string) => {
             queryClient.invalidateQueries({
                 queryKey: visitDetailQueryKey(visitId),
             });
+        },
+        // Bez tego 5xx zamykał okno potwierdzenia bez słowa, usługa zostawała PENDING,
+        // a „Gotowe do odbioru” odmawiało z powodu, którego sprzedawca nie widział.
+        // Wizytę odświeżamy także po błędzie: odmowa 4xx to zwykle zmiana rozstrzygnięta
+        // już w innej karcie albo na tablecie, a ekran ma to pokazać.
+        onError: (error: unknown) => {
+            queryClient.invalidateQueries({ queryKey: visitDetailQueryKey(visitId) });
+            toastUnhandledError(showError, error, 'Nie udało się zatwierdzić zmiany', 'Usługa nadal czeka na decyzję. Spróbuj ponownie.');
         },
     });
 
@@ -478,6 +520,7 @@ export const useUpdateEstimatedCompletionDate = (visitId: string) => {
 
 export const useRejectServiceChange = (visitId: string) => {
     const queryClient = useQueryClient();
+    const { showError } = useToast();
 
     const { mutate, isPending } = useMutation({
         mutationFn: (serviceLineItemId: string) =>
@@ -486,6 +529,11 @@ export const useRejectServiceChange = (visitId: string) => {
             queryClient.invalidateQueries({
                 queryKey: visitDetailQueryKey(visitId),
             });
+        },
+        // Jak przy zatwierdzaniu: komunikat i odświeżenie, okno zostaje do ponowienia.
+        onError: (error: unknown) => {
+            queryClient.invalidateQueries({ queryKey: visitDetailQueryKey(visitId) });
+            toastUnhandledError(showError, error, 'Nie udało się wycofać zmiany', 'Usługa nadal czeka na decyzję. Spróbuj ponownie.');
         },
     });
 

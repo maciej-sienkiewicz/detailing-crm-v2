@@ -2911,10 +2911,13 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                             disabled={(confirmAction === 'approve' && isApproving) || (confirmAction === 'reject' && isRejecting)}
                             onClick={() => {
                                 if (!visitId || !targetService) return;
+                                // Zamykamy dopiero po sukcesie. onSettled zamykał okno także po
+                                // błędzie: usługa zostawała PENDING, a sprzedawca myślał, że
+                                // zatwierdził. Komunikat błędu daje hook (toastUnhandledError).
                                 if (confirmAction === 'approve') {
-                                    approveServiceChange(targetService.id, { onSettled: closeConfirm });
+                                    approveServiceChange(targetService.id, { onSuccess: closeConfirm });
                                 } else if (confirmAction === 'reject') {
-                                    rejectServiceChange(targetService.id, { onSettled: closeConfirm });
+                                    rejectServiceChange(targetService.id, { onSuccess: closeConfirm });
                                 }
                             }}
                         >
