@@ -21,7 +21,7 @@ import styled, { css, keyframes } from 'styled-components';
 import { CalendarDays, Check, FileText, FilePlus, MoreHorizontal, Pencil, Sparkles, Trash2, Truck, X } from 'lucide-react';
 import type { Visit, VisitStatus } from '../types';
 import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, ModalFooter, CloseBtn } from '@/common/components/ModalKit';
-import { usePermissions } from '@/core/permissions';
+import { usePermissions, usePersonalDataActions } from '@/core/permissions';
 import { DateTimePicker } from '@/common/components/DateTimePicker';
 import { CarLogoImage } from '@/modules/vehicles/components/CarLogoImage';
 import { ActionMenu, Button, IconButton, MenuItem, ui, useActionMenu } from '@/common/components/ui';
@@ -371,6 +371,9 @@ export const VisitHeader = ({
     onEstimatedCompletionDateUpdate,
 }: VisitHeaderProps) => {
     const { can } = usePermissions();
+    // Tytuł, termin odbioru i Door to Door to edycja wizyty - z danymi osobowymi
+    // (personalDataActions). Zmiany statusu zostają przy swoich uprawnieniach.
+    const { canEditVisit } = usePersonalDataActions();
     const [heroRef, heroWidth] = useContainerWidth<HTMLElement>();
     const compact = heroWidth === null
         ? typeof window !== 'undefined' && window.innerWidth <= COMPACT_MAX_WIDTH
@@ -391,8 +394,8 @@ export const VisitHeader = ({
     }, [isEditingTitle]);
 
     /** Tytuł da się edytować tylko wtedy, gdy jest i handler, i uprawnienie. */
-    const canEditTitle = Boolean(onTitleUpdate) && can('VISITS_CREATE');
-    const canEditDate = Boolean(onEstimatedCompletionDateUpdate) && can('VISITS_CREATE');
+    const canEditTitle = Boolean(onTitleUpdate) && canEditVisit;
+    const canEditDate = Boolean(onEstimatedCompletionDateUpdate) && canEditVisit;
     const isTerminal = visit.status === 'COMPLETED' || visit.status === 'REJECTED' || visit.status === 'ARCHIVED';
 
     const startEditTitle = () => { setDraftTitle(visit.title ?? ''); setIsEditingTitle(true); };
@@ -453,7 +456,7 @@ export const VisitHeader = ({
         </PrimaryAction>
     ) : null;
 
-    const canUseDoorToDoor = Boolean(onDoorToDoor) && can('VISITS_CREATE');
+    const canUseDoorToDoor = Boolean(onDoorToDoor) && canEditVisit;
     // Generowanie posta to moduł marketingu - bez MARKETING_MANAGE serwer odrzuca każde
     // wywołanie. Menu bez żadnej pozycji nie dostaje przycisku wcale.
     const canGeneratePost = can('MARKETING_MANAGE');

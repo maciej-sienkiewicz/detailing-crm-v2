@@ -22,17 +22,30 @@ const renderMenu = () => render(
 afterEach(cleanup);
 
 describe('ReservationContextMenu - Edytuj', () => {
-    it('jest schowane bez danych osobowych', () => {
+    it('jest schowane bez danych osobowych - razem z rozpoczęciem wizyty', () => {
         permissions = ['VISITS_VIEW', 'VISITS_CREATE'];
         renderMenu();
         expect(screen.queryByText('Edytuj')).toBeNull();
-        expect(screen.getByText('Rozpocznij wizytę')).toBeTruthy();
+        // Przyjęcie każe wpisać klienta, którego bez danych osobowych widać jako `***`.
+        expect(screen.queryByText('Rozpocznij wizytę')).toBeNull();
+    });
+
+    it('pokazuje „Pokaż w kalendarzu", gdy tylko ono zostaje', () => {
+        permissions = ['VISITS_VIEW', 'VISITS_CREATE'];
+        render(
+            <MemoryRouter>
+                <ReservationContextMenu appointmentId="a-1" x={10} y={10} onClose={() => {}} onShowInCalendar={() => {}} />
+            </MemoryRouter>,
+        );
+        expect(screen.queryByText('Rozpocznij wizytę')).toBeNull();
+        expect(screen.getByText('Pokaż w kalendarzu')).toBeTruthy();
     });
 
     it('jest widoczne z rezerwacjami i danymi osobowymi', () => {
         permissions = ['VISITS_VIEW', 'CUSTOMERS_VIEW', 'VISITS_CREATE'];
         renderMenu();
         expect(screen.getByText('Edytuj')).toBeTruthy();
+        expect(screen.getByText('Rozpocznij wizytę')).toBeTruthy();
     });
 
     it('same dane osobowe nie wystarczą', () => {

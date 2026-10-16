@@ -585,11 +585,11 @@ export const operationApi = {
         startDateTime: string,
         endDateTime: string
     ): Promise<void> => {
-        await apiClient.patch(`/v1/appointments/${reservationId}`, {
-            schedule: {
-                startDateTime,
-                endDateTime,
-            },
+        // Własne wejście na termin: PATCH /appointments/{id} umie tylko anulować i na termin
+        // odpowiadał 400, więc „Zmień datę" na liście nie działało nigdy.
+        await apiClient.patch(`/v1/appointments/${reservationId}/schedule`, {
+            startDateTime,
+            endDateTime,
         });
     },
 

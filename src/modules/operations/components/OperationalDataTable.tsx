@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { usePermissions } from '@/core/permissions';
+import { usePermissions, usePersonalDataActions } from '@/core/permissions';
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { useOperations } from '../hooks/useOperations';
@@ -776,6 +776,14 @@ export const OperationalDataTable = ({
 }: OperationalDataTableProps) => {
     const navigate = useNavigate();
     const { can } = usePermissions();
+    // Tytuł i termin to edycja rezerwacji albo wizyty - z danymi osobowymi (personalDataActions).
+    const { canEditAppointment, canEditVisit } = usePersonalDataActions();
+    // Te same prawa co na serwerze (anulowanie i usunięcie rezerwacji: VISITS_CREATE,
+    // usunięcie wizyty: VISITS_DELETE). Dawniej pozycje były widoczne dla każdego,
+    // a kliknięcie kończyło się odmową serwera.
+    const canCancelReservation = can('VISITS_CREATE');
+    const canDeleteReservation = can('VISITS_CREATE');
+    const canDeleteVisit = can('VISITS_DELETE');
 
     const { start: startNavAnim } = useCalendarNavigation();
 
@@ -1047,6 +1055,7 @@ export const OperationalDataTable = ({
                                                     ) : (
                                                         <PlaceholderText>Brak tytułu</PlaceholderText>
                                                     )}
+                                                    {(op.type === 'VISIT' ? canEditVisit : canEditAppointment) && (
                                                     <PencilIconBtn
                                                         data-pencil
                                                         onClick={e => startEditTitle(op, e)}
@@ -1057,6 +1066,7 @@ export const OperationalDataTable = ({
                                                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                                         </svg>
                                                     </PencilIconBtn>
+                                                    )}
                                                 </TitleEditRow>
                                             )}
                                             <RowMeta>
@@ -1198,14 +1208,18 @@ export const OperationalDataTable = ({
                                                 <DropdownDivider />
                                                 {isReservationCreated && (
                                                     <>
-                                                        <DropdownItem onClick={() => openChangeDate(op)}>
-                                                            <EditDateIcon />
-                                                            Zmień datę
-                                                        </DropdownItem>
-                                                        <DropdownItem onClick={() => openCancel(op)}>
-                                                            <XIcon />
-                                                            Anuluj rezerwację
-                                                        </DropdownItem>
+                                                        {canEditAppointment && (
+                                                            <DropdownItem onClick={() => openChangeDate(op)}>
+                                                                <EditDateIcon />
+                                                                Zmień datę
+                                                            </DropdownItem>
+                                                        )}
+                                                        {canCancelReservation && (
+                                                            <DropdownItem onClick={() => openCancel(op)}>
+                                                                <XIcon />
+                                                                Anuluj rezerwację
+                                                            </DropdownItem>
+                                                        )}
                                                         {op.recurrenceInfo && (
                                                             <DropdownItem onClick={() => {
                                                                 setOpenMenuId(null);
@@ -1218,10 +1232,12 @@ export const OperationalDataTable = ({
                                                         <DropdownDivider />
                                                     </>
                                                 )}
-                                                <DropdownItem $danger onClick={() => openDelete(op)}>
-                                                    <TrashIcon />
-                                                    Usuń {isVisit ? 'wizytę' : 'rezerwację'}
-                                                </DropdownItem>
+                                                {(isVisit ? canDeleteVisit : canDeleteReservation) && (
+                                                    <DropdownItem $danger onClick={() => openDelete(op)}>
+                                                        <TrashIcon />
+                                                        Usuń {isVisit ? 'wizytę' : 'rezerwację'}
+                                                    </DropdownItem>
+                                                )}
                                             </DropdownMenu>,
                                             document.body
                                         )}

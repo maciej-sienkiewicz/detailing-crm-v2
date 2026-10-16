@@ -27,7 +27,7 @@ import {
     UserRound,
 } from 'lucide-react';
 import { ActionMenu, MenuDivider, MenuItem, useActionMenu } from '@/common/components/ui';
-import { usePermissions } from '@/core/permissions';
+import { usePermissions, usePersonalDataActions } from '@/core/permissions';
 import { BookingFlowModal } from '@/modules/calendar';
 import { commsApi } from '../api/commsApi';
 import {
@@ -195,6 +195,8 @@ interface MailDetailProps {
 export function MailDetail({ threadId, listThread, phone, onBack, onArchived, onOpenCase }: MailDetailProps) {
     const navigate = useNavigate();
     const { can } = usePermissions();
+    // „Umów wizytę” to nowa rezerwacja - z danymi osobowymi (personalDataActions).
+    const { canCreateAppointment: canBook } = usePersonalDataActions();
     const menu = useActionMenu();
     const menuButtonRef = useRef<HTMLButtonElement>(null);
     const { data: detail } = useThread(threadId);
@@ -389,7 +391,9 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
                     <MenuItem icon={<Tag />} onClick={() => { menu.close(); setModal('lead'); }}>To zapytanie klienta</MenuItem>
                 )}
                 <MenuItem icon={<FileInput />} onClick={() => { menu.close(); setModal('form'); }}>Zgłoszenie z formularza</MenuItem>
-                <MenuItem icon={<CalendarPlus />} onClick={() => { menu.close(); setModal('booking'); }}>Umów wizytę</MenuItem>
+                {canBook && (
+                    <MenuItem icon={<CalendarPlus />} onClick={() => { menu.close(); setModal('booking'); }}>Umów wizytę</MenuItem>
+                )}
                 <MenuDivider />
                 <MenuItem icon={<UserRound />} onClick={() => { menu.close(); setContactAnchor(menuButtonRef.current); }}>Karta klienta</MenuItem>
                 <MenuItem icon={<StickyNote />} onClick={() => { menu.close(); setNotesAnchor(menuButtonRef.current); }}>Notatki o nadawcy</MenuItem>
@@ -406,7 +410,7 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
             {modal === 'form' && (
                 <MarkAsFormLeadModal senderEmail={formRobot ?? thread.participantEmail} messageId={latestInbound?.id ?? null} onClose={() => setModal(null)} />
             )}
-            {modal === 'booking' && (
+            {modal === 'booking' && canBook && (
                 <BookingFlowModal
                     subtitle={contactCard?.customer?.fullName ?? thread.participantName ?? thread.participantEmail}
                     prefill={contactToBookingPrefill({ email: thread.participantEmail, participantName: thread.participantName, contactCard })}

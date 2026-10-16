@@ -79,6 +79,7 @@ import type { ServiceLineItem } from '@/common/components/ServicesTable';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { CarLogoImage } from '@/modules/vehicles/components/CarLogoImage';
 import { BookingFlowModal } from '@/modules/calendar';
+import { usePersonalDataActions } from '@/core/permissions';
 import { useToast } from '@/common/components/Toast';
 import {
     useAddLeadNote,
@@ -1355,6 +1356,9 @@ export function LeadDetailModal({
     // Drugie pytanie przy leadzie z rezerwacją: czy termin w kalendarzu idzie razem z nim.
     const [deleteAppointmentDialogOpen, setDeleteAppointmentDialogOpen] = useState(false);
     const [booking, setBooking] = useState(false);
+    // Umówienie terminu to nowa rezerwacja - z danymi osobowymi (personalDataActions).
+    // Bez nich „Umów wizytę" znika ze stopki, a nie prowadzi do formularza z `***`.
+    const { canCreateAppointment: canBook } = usePersonalDataActions();
     // Wizytówka kontaktu - ta sama co w skrzynce, razem z „połącz" i „załóż".
     const [contactAnchor, setContactAnchor] = useState<HTMLElement | null>(null);
     /*
@@ -1420,6 +1424,7 @@ export function LeadDetailModal({
      * odmawia (409) i wtedy wymuszamy uzupełnienie zamiast wpuścić pozycję bez ceny.
      */
     const openBooking = () => {
+        if (!canBook) return;
         if (suggestedServices.length === 0) {
             setBooking(true);
             return;
@@ -1612,7 +1617,7 @@ export function LeadDetailModal({
     // nałożone nakładki nie pokrywają się geometrycznie - kreator jest przesunięty
     // o szerokość sidebara, okno leada nie - więc jedna z nich przyciemniała kawałek
     // ekranu drugi raz, zostawiając widoczny pionowy szew.
-    if (booking) {
+    if (booking && canBook) {
         return (
             <BookingFlowModal
                 /* Lead z już przypiętą rezerwacją odrzuciłby drugą. */
@@ -2312,9 +2317,11 @@ export function LeadDetailModal({
                         if (replyTone === 'due' && writeToClient) {
                             return (
                                 <>
-                                    <FooterButton type="button" onClick={openBooking}>
-                                        <CalendarPlus size={17} /> Umów wizytę
-                                    </FooterButton>
+                                    {canBook && (
+                                        <FooterButton type="button" onClick={openBooking}>
+                                            <CalendarPlus size={17} /> Umów wizytę
+                                        </FooterButton>
+                                    )}
                                     <FooterPrimary type="button" onClick={writeToClient}>
                                         <span className="glyph"><Reply /></span>
                                         <span className="labels">
@@ -2325,6 +2332,19 @@ export function LeadDetailModal({
                                     </FooterPrimary>
                                 </>
                             );
+                        }
+                        if (!canBook) {
+                            // Bez prawa do rezerwacji krokiem następnym zostaje rozmowa z klientem.
+                            return writeToClient ? (
+                                <FooterPrimary type="button" onClick={writeToClient}>
+                                    <span className="glyph"><Send /></span>
+                                    <span className="labels">
+                                        <span className="title">Napisz wiadomość</span>
+                                        <span className="sub">Termin umówi osoba z dostępem do danych klienta</span>
+                                    </span>
+                                    <ArrowRight className="arrow" />
+                                </FooterPrimary>
+                            ) : null;
                         }
                         return (
                             <FooterPrimary type="button" onClick={openBooking}>

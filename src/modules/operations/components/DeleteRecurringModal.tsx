@@ -177,7 +177,14 @@ export const DeleteRecurringModal = ({
                     Anuluj
                 </SharedButton>
                 <SharedButton $variant="danger" type="button" onClick={() => onConfirm(scope)} disabled={isDeleting}>
-                    {isDeleting ? 'Usuwanie…' : 'Usuń'}
+                    {/* Przycisk mówi, ile usunie - zakres serii nie może przejść niezauważony. */}
+                    {isDeleting
+                        ? 'Usuwanie…'
+                        : scope === 'THIS'
+                            ? 'Usuń tę wizytę'
+                            : scope === 'THIS_AND_FUTURE'
+                                ? `Usuń ${visits(future)}`
+                                : `Usuń całą serię (${visits(total)})`}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

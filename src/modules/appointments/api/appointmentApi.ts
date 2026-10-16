@@ -3,6 +3,7 @@ import type {
     AppointmentCreateRequest,
     Service, Customer, Vehicle, AppointmentColor, AppointmentSmsInfo,
     RecurrenceEditScope, CreateRecurringAppointmentResponse, RecurrenceSeriesResponse,
+    SeriesEditScope, SeriesEditImpact, AppointmentUpdateResponse,
 } from '../types';
 import type { Customer as CustomerFull, CustomerListResponse } from '@/modules/customers/types';
 
@@ -78,7 +79,11 @@ export const appointmentApi = {
         return response.data;
     },
 
-    updateAppointment: async (appointmentId: string, data: AppointmentCreateRequest): Promise<{ id: string }> => {
+    /**
+     * Zapis jednej rezerwacji - BEZ parametru `scope`. Serwer traktuje jego brak jako
+     * „tylko ta" i odłącza rezerwację od serii; inne rezerwacje serii zostają bez zmian.
+     */
+    updateAppointment: async (appointmentId: string, data: AppointmentCreateRequest): Promise<AppointmentUpdateResponse> => {
         const response = await apiClient.put(`/v1/appointments/${appointmentId}`, data);
         return response.data;
     },
@@ -154,15 +159,26 @@ export const appointmentApi = {
         return response.data;
     },
 
+    /**
+     * Zapis z nadpisaniem innych rezerwacji serii - wyłącznie z okna „Zapisz w serii",
+     * w którym operator sam wybrał zakres. Typ nie przyjmuje THIS: pojedyncza edycja
+     * idzie przez [updateAppointment] bez żadnego zakresu.
+     */
     updateAppointmentWithScope: async (
         appointmentId: string,
         data: AppointmentCreateRequest,
-        scope: RecurrenceEditScope
-    ): Promise<{ id: string }> => {
+        scope: SeriesEditScope
+    ): Promise<AppointmentUpdateResponse> => {
         const response = await apiClient.put(
-            `/v1/appointments/${appointmentId}?scope=${scope}`,
-            data
+            `/v1/appointments/${appointmentId}`,
+            data,
+            { params: { scope } }
         );
+        return response.data;
+    },
+
+    getSeriesEditImpact: async (appointmentId: string): Promise<SeriesEditImpact> => {
+        const response = await apiClient.get(`/v1/appointments/${appointmentId}/series-impact`);
         return response.data;
     },
 

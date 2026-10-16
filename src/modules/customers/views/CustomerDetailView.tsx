@@ -29,7 +29,7 @@ import { EntityActivityTimeline } from '@/modules/activity';
 import { CarLogoImage } from '@/modules/vehicles/components/CarLogoImage';
 import { useClickToCall } from '@/modules/push';
 import { useMediaQuery } from '@/common/hooks';
-import { usePermissions } from '@/core/permissions';
+import { usePermissions, usePersonalDataActions } from '@/core/permissions';
 import { t } from '@/common/i18n';
 import {
     Button, Card, FieldList, FieldRow, Notice, Panel, PanelBody, PanelHead, SectionChips, SectionTitle,
@@ -490,6 +490,7 @@ export const CustomerDetailView = () => {
     // Zmiany w kartotece (dane, firma, pojazd, nowa wizyta) to VISITS_CREATE; SMS i usunięcie
     // mają własne uprawnienia. Bez nich przyciski kończyły się odmową serwera.
     const canEditCustomer = can('VISITS_CREATE');
+    const { canCreateVisit } = usePersonalDataActions();
 
     const deleteCustomer = useDeleteCustomer();
     const { requestCall, isRequesting: isRequestingCall } = useClickToCall();
@@ -604,7 +605,7 @@ export const CustomerDetailView = () => {
                     canSms={phoneUsable && can('COMMUNICATION_SEND')}
                     canEdit={canEditCustomer}
                     canDelete={can('CUSTOMERS_DELETE')}
-                    onNewVisit={startVisit}
+                    onNewVisit={canCreateVisit ? startVisit : undefined}
                     onEdit={() => openEdit()}
                     onSms={() => setIsSmsOpen(true)}
                     onDelete={() => setShowDeleteConfirm(true)}

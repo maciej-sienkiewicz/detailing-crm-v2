@@ -149,7 +149,8 @@ interface Props {
     canEdit: boolean;
     /** Usunięcie pojazdu (CUSTOMERS_DELETE). */
     canDelete: boolean;
-    onNewVisit: () => void;
+    /** Brak = bez przycisku nowej wizyty (przyjęcie wymaga też danych osobowych - personalDataActions). */
+    onNewVisit?: () => void;
     onEdit: () => void;
     onOwners: () => void;
     onDelete: () => void;
@@ -171,7 +172,7 @@ export function VehicleDetailHeader({ vehicle, isArchived, canEdit, canDelete, o
         vehicle.color || null,
     ].filter(Boolean).join(', ');
 
-    const primary = canEdit && (
+    const primary = canEdit && onNewVisit && (
         <PrimaryAction variant="primary" onClick={onNewVisit} disabled={isArchived}>
             <CalendarPlus />Nowa wizyta
         </PrimaryAction>

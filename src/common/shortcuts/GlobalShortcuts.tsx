@@ -15,6 +15,7 @@
 //  • dają się wyłączyć w Ustawieniach → Skróty klawiszowe.
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { usePersonalDataActions } from '@/core/permissions';
 import {
     ACTION_SHORTCUTS,
     GLOBAL_SHORTCUTS,
@@ -28,6 +29,7 @@ export function GlobalShortcuts() {
     const navigate = useNavigate();
     const { pathname, search } = useLocation();
     const [enabled] = useShortcutsEnabled();
+    const personalDataActions = usePersonalDataActions();
 
     useEffect(() => {
         if (!enabled) return;
@@ -66,12 +68,13 @@ export function GlobalShortcuts() {
             // 3. Nawigacja globalna (litery).
             const shortcut = GLOBAL_SHORTCUTS.find((entry) => entry.key === key);
             if (!shortcut) return;
+            if (shortcut.requiresAction && !personalDataActions[shortcut.requiresAction]) return;
             event.preventDefault();
             navigate(shortcut.to, shortcut.state ? { state: shortcut.state } : undefined);
         };
         window.addEventListener('keydown', onKeyDown);
         return () => window.removeEventListener('keydown', onKeyDown);
-    }, [enabled, navigate, pathname, search]);
+    }, [enabled, navigate, pathname, search, personalDataActions]);
 
     return null;
 }

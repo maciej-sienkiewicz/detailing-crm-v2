@@ -57,7 +57,7 @@ import { WeekKanbanView } from './WeekKanbanView';
 import { DayTimelineView } from './DayTimeline';
 import { AgendaListView } from './AgendaListView';
 import { DayEventsSheet } from './DayEventsSheet';
-import { usePermissions } from '@/core/permissions';
+import { usePermissions, usePersonalDataActions } from '@/core/permissions';
 import type { DateRange, CalendarView as CalendarViewType, EventCreationData, AppointmentEventData, VisitEventData, CalendarEvent, DoorToDoorCalendarEntry } from '../types';
 import type { Operation } from '@/modules/operations/types';
 import '../calendar.css';
@@ -1664,11 +1664,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const [quickModalOpen, setQuickModalOpen] = useState(false);
 
     /**
-     * Jedyne wejscie do QuickEventModal. Bez prawa do tworzenia wizyt okno w
+     * Jedyne wejscie do QuickEventModal. Bez prawa do nowej rezerwacji okno w
      * ogole sie nie otwiera - wczesniej klikniecie w wolny slot kalendarza
-     * otwieralo formularz, ktorego i tak nie dalo sie zapisac.
+     * otwieralo formularz, ktorego i tak nie dalo sie zapisac. Nowa rezerwacja
+     * i nowa wizyta wymagaja tez danych osobowych (personalDataActions): bez nich
+     * formularz kaze wybrac klienta, ktorego uzytkownik widzi jako `***`.
      */
-    const canCreateVisits = can('VISITS_CREATE');
+    const { canCreateAppointment: canCreateVisits, canCreateVisit: canStartWalkIn } = usePersonalDataActions();
     /** Dzień, którego listę wydarzeń pokazuje DayEventsSheet (null = lista zamknięta). */
     const [dayListDate, setDayListDate] = useState<Date | null>(null);
     /** Urlop to wpis w kartotece pracownika, więc wymaga prawa do kadr, nie do kalendarza. */
@@ -2825,9 +2827,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                     </AddMenu>
                                 )}
                             </AddMenuWrap>
-                            <MobileAddBtn onClick={handleMobileAddClick} aria-label="Dodaj zdarzenie">
-                                +
-                            </MobileAddBtn>
+                            {canCreateVisits && (
+                                <MobileAddBtn onClick={handleMobileAddClick} aria-label="Dodaj zdarzenie">
+                                    +
+                                </MobileAddBtn>
+                            )}
                         </>
                     )}
                 </MobileActions>
@@ -2974,6 +2978,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                     )}
                                 </AddMenuWrap>
 
+                                {canCreateVisits && (
                                 <NewEventBtn onClick={handleMobileAddClick}>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                         strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -2982,7 +2987,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                     </svg>
                                     Rezerwacja
                                 </NewEventBtn>
+                                )}
 
+                                {canStartWalkIn && (
                                 <NewEventBtn onClick={() => navigate('/checkin/new')}>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                         strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -2991,6 +2998,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                     </svg>
                                     Wizyta
                                 </NewEventBtn>
+                                )}
                             </>
                         )}
                     </PageHeaderRight>
@@ -3064,7 +3072,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             setPopoverPosition({ x: anchor.right + 10, y: anchor.top });
                             setPopoverOpen(true);
                         }}
-                        onDayAddClick={(date) => openQuickEvent({ start: date, end: date, allDay: true })}
+                        onDayAddClick={(date) => { if (canCreateVisits) openQuickEvent({ start: date, end: date, allDay: true }); }}
                         onPrev={() => calendarRef.current?.getApi().prev()}
                         onNext={() => calendarRef.current?.getApi().next()}
                         onToday={() => calendarRef.current?.getApi().today()}

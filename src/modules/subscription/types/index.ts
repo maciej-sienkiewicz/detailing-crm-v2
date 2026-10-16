@@ -260,6 +260,11 @@ export interface CheckoutResponse {
     currency: string;
     description: string;
     paymentUrl: string | null;
+    /**
+     * Dlaczego zamówienie bez płatności nie doszło do skutku (CANCELLED, REFUND_REQUIRED).
+     * Brak `paymentUrl` NIE znaczy sukcesu - rozstrzyga `status` (`checkoutNextStep`).
+     */
+    failureReason?: string | null;
 }
 
 export interface PaymentOrder {

@@ -16,6 +16,7 @@ import type { PlanChangePreview, AddOnPreview, AddOnKey, PlanKey } from '../type
 import { CommunicationModuleTour } from './CommunicationModuleTour';
 import { formatDate } from '../utils/formatters';
 import { toastUnhandledError } from '../utils/apiErrors';
+import { toastCheckoutProblem, useCheckoutHandoff } from '../hooks/useCheckoutHandoff';
 import { LoadingRow, Spinner, Explanation, Strong } from './PlanChangeDialog.styles';
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
@@ -50,9 +51,10 @@ export function PlanChangeDialog({
     isLoadingPreview,
     onClose,
 }: PlanDialogProps) {
-    const { showSuccess, showError } = useToast();
+    const { showSuccess, showError, showWarning } = useToast();
     const changePlan = useChangePlan();
     const checkout = useCheckout();
+    const handoff = useCheckoutHandoff();
 
     const isDowngrade = preview?.changeType === 'DOWNGRADE';
 
@@ -65,12 +67,12 @@ export function PlanChangeDialog({
                 return;
             }
             // Upgrade: paid operation, goes through Przelewy24.
-            const order = await checkout.mutateAsync({ type: 'PLAN_UPGRADE', planKey: newPlanKey });
-            if (order.paymentUrl) {
-                window.location.assign(order.paymentUrl);
-                return;
-            }
-            showSuccess('Pakiet zmieniony', `Od teraz masz pakiet ${newPlanName}.`);
+            // Brak adresu płatności to NIE sukces (zamówienie bez płatności mogło zostać anulowane
+            // albo wciąż się włącza) - rozstrzyga stan zamówienia (useCheckoutHandoff).
+            const step = handoff(await checkout.mutateAsync({ type: 'PLAN_UPGRADE', planKey: newPlanKey }));
+            if (step.kind === 'redirect' || step.kind === 'track') return;
+            if (step.kind === 'done') showSuccess('Pakiet zmieniony', `Od teraz masz pakiet ${newPlanName}.`);
+            else toastCheckoutProblem({ showError, showWarning }, step);
             onClose();
         } catch (err: unknown) {
             toastUnhandledError(showError, err, 'Nie udało się zmienić pakietu', 'Spróbuj ponownie za chwilę.');
@@ -175,8 +177,9 @@ export function AddOnActivationDialog({
     isLoadingPreview,
     onClose,
 }: AddOnDialogProps) {
-    const { showSuccess, showError } = useToast();
+    const { showSuccess, showError, showWarning } = useToast();
     const checkout = useCheckout();
+    const handoff = useCheckoutHandoff();
 
     // The communication module is the one add-on whose price is not the whole
     // commitment: it needs message texts and it needs credits. Explaining that here
@@ -185,12 +188,10 @@ export function AddOnActivationDialog({
 
     const handleConfirm = async () => {
         try {
-            const order = await checkout.mutateAsync({ type: 'ADD_ON_PURCHASE', addOnKeys: [addOnKey] });
-            if (order.paymentUrl) {
-                window.location.assign(order.paymentUrl);
-                return;
-            }
-            showSuccess('Moduł włączony', `Moduł ${addOnName} już działa.`);
+            const step = handoff(await checkout.mutateAsync({ type: 'ADD_ON_PURCHASE', addOnKeys: [addOnKey] }));
+            if (step.kind === 'redirect' || step.kind === 'track') return;
+            if (step.kind === 'done') showSuccess('Moduł włączony', `Moduł ${addOnName} już działa.`);
+            else toastCheckoutProblem({ showError, showWarning }, step);
             onClose();
         } catch (err: unknown) {
             toastUnhandledError(showError, err, 'Nie udało się włączyć modułu', 'Spróbuj ponownie za chwilę.');

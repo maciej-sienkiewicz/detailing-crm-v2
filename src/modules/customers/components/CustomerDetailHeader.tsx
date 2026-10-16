@@ -120,7 +120,8 @@ interface Props {
     canEdit: boolean;
     /** Usunięcie danych klienta (CUSTOMERS_DELETE). */
     canDelete: boolean;
-    onNewVisit: () => void;
+    /** Brak = bez przycisku nowej wizyty (przyjęcie wymaga też danych osobowych - personalDataActions). */
+    onNewVisit?: () => void;
     onEdit: () => void;
     onSms: () => void;
     onDelete: () => void;
@@ -134,7 +135,7 @@ export function CustomerDetailHeader({ fullName, companyName, createdAt, canSms,
     const menu = useActionMenu();
     const since = new Date(createdAt).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-    const primary = canEdit && (
+    const primary = canEdit && onNewVisit && (
         <PrimaryAction variant="primary" onClick={onNewVisit}>
             <CalendarPlus />Nowa wizyta
         </PrimaryAction>

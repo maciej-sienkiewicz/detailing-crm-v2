@@ -19,7 +19,13 @@ import { buildAppointmentEditPayload } from '../utils/buildAppointmentEditPayloa
 import { toEditServiceLine } from '../utils/toEditServiceLine';
 import { SmsReminderEditSection } from '../components/SmsReminderEditSection';
 import { RecurrenceEditScopeModal } from '../components/RecurrenceEditScopeModal';
-import type { AppointmentSmsInfo, RecurrenceEditScope, RecurrenceInfo } from '../types';
+import type { AppointmentSmsInfo, RecurrenceInfo, SeriesEditScope } from '../types';
+import {
+    changedSeriesFields,
+    customerRecordEdited,
+    detectIdentitySwap,
+    seriesResultToast,
+} from '../utils/seriesEditSummary';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { EmptyState } from '@/common/components/EmptyState';
 import { Button } from '@/common/components/ui';
@@ -282,11 +288,19 @@ const AppointmentEditForm = () => {
         }
     }, [initialData, formData, appointment]);
 
-    const [scopeModal, setScopeModal] = useState<{
-        isOpen: boolean;
-        pendingPayload: AppointmentCreateRequest | null;
-        isDateChanged: boolean;
-    }>({ isOpen: false, pendingPayload: null, isDateChanged: false });
+    // Okno „Zapisz w serii" otwiera tylko osobny przycisk. Zwykły zapis rezerwacji z serii
+    // idzie bez zakresu, czyli „tylko ta" (serwer ją przy tym odłącza od serii). Dawniej
+    // zwykły zapis otwierał okno wyboru zakresu, a przy zmianie terminu wysyłał THIS bez pytania.
+    const [seriesModal, setSeriesModal] = useState<{ isOpen: boolean; pendingPayload: AppointmentCreateRequest | null }>(
+        { isOpen: false, pendingPayload: null },
+    );
+
+    const { data: seriesImpact, isError: isSeriesImpactError } = useQuery({
+        queryKey: ['appointments', appointmentId, 'series-impact'],
+        queryFn: () => appointmentApi.getSeriesEditImpact(appointmentId!),
+        enabled: !!appointmentId && seriesModal.isOpen,
+        staleTime: 0,
+    });
 
     const invalidateAll = () => {
         queryClient.invalidateQueries({ queryKey: ['appointments'] });
@@ -301,20 +315,33 @@ const AppointmentEditForm = () => {
         mutationFn: (payload: AppointmentCreateRequest) => appointmentApi.updateAppointment(appointmentId!, payload),
         onSuccess: () => {
             navigate('/calendar');
-            showSuccess('Zapisano zmiany');
+            if (currentRecurrenceInfo()) {
+                showSuccess('Zapisano tę rezerwację', 'Pozostałe rezerwacje serii zostały bez zmian.');
+            } else {
+                showSuccess('Zapisano zmiany');
+            }
             invalidateAll();
         },
     });
 
     const updateWithScopeMutation = useMutation({
-        mutationFn: ({ payload, scope }: { payload: AppointmentCreateRequest; scope: RecurrenceEditScope }) =>
+        mutationFn: ({ payload, scope }: { payload: AppointmentCreateRequest; scope: SeriesEditScope }) =>
             appointmentApi.updateAppointmentWithScope(appointmentId!, payload, scope),
-        onSuccess: () => {
+        onSuccess: (response) => {
             navigate('/calendar');
-            showSuccess('Zapisano zmiany w serii');
+            const toast = seriesResultToast(response?.seriesUpdate);
+            showSuccess(toast.title, toast.message);
             invalidateAll();
         },
     });
+
+    const currentRecurrenceInfo = (): RecurrenceInfo | null =>
+        appointment?.recurrenceInfo ?? (location.state as any)?.recurrenceInfo ?? null;
+
+    const isDateChanged = !!formData && !!initialFormDataRef.current && (
+        formData.visitStartAt !== initialFormDataRef.current.visitStartAt
+        || formData.visitEndAt !== initialFormDataRef.current.visitEndAt
+    );
 
     const handleChange = (updates: Partial<CheckInFormData>) => {
         setFormData(prev => (prev ? { ...prev, ...updates } as CheckInFormData : prev));
@@ -324,39 +351,34 @@ const AppointmentEditForm = () => {
         setFormData(prev => (prev ? { ...prev, services } : prev));
     };
 
-    const handleSave = () => {
-        if (!formData) return;
-
+    const buildChangedPayload = (): AppointmentCreateRequest | null => {
+        if (!formData) return null;
         if (JSON.stringify(formData) === JSON.stringify(initialFormDataRef.current)) {
             showInfo('Nie wprowadzono żadnych zmian.');
-            return;
+            return null;
         }
-
-        const payload = buildAppointmentEditPayload(formData);
-        if (!payload) return;
-
-        const recurrenceInfo: RecurrenceInfo | null = appointment?.recurrenceInfo ?? (location.state as any)?.recurrenceInfo ?? null;
-
-        if (recurrenceInfo) {
-            const origStart = initialFormDataRef.current?.visitStartAt ?? '';
-            const origEnd = initialFormDataRef.current?.visitEndAt ?? '';
-            const isDateChanged = formData.visitStartAt !== origStart || formData.visitEndAt !== origEnd;
-
-            if (isDateChanged) {
-                // Date changed → force THIS scope, no dialog
-                updateWithScopeMutation.mutate({ payload, scope: 'THIS' });
-            } else {
-                setScopeModal({ isOpen: true, pendingPayload: payload, isDateChanged: false });
-            }
-        } else {
-            updateMutation.mutate(payload);
-        }
+        return buildAppointmentEditPayload(formData);
     };
 
-    const handleScopeConfirm = (scope: RecurrenceEditScope) => {
-        if (!scopeModal.pendingPayload) return;
-        setScopeModal(prev => ({ ...prev, isOpen: false }));
-        updateWithScopeMutation.mutate({ payload: scopeModal.pendingPayload, scope });
+    /** Zapis TYLKO tej rezerwacji - także gdy należy do serii. Bez parametru `scope`. */
+    const handleSave = () => {
+        const payload = buildChangedPayload();
+        if (!payload) return;
+        updateMutation.mutate(payload);
+    };
+
+    /** Osobna, świadoma ścieżka: okno wyboru zakresu serii. Termin idzie tylko przez zwykły zapis. */
+    const handleOpenSeriesSave = () => {
+        if (isDateChanged) return;
+        const payload = buildChangedPayload();
+        if (!payload) return;
+        setSeriesModal({ isOpen: true, pendingPayload: payload });
+    };
+
+    const handleSeriesConfirm = (scope: SeriesEditScope) => {
+        if (!seriesModal.pendingPayload) return;
+        setSeriesModal(prev => ({ ...prev, isOpen: false }));
+        updateWithScopeMutation.mutate({ payload: seriesModal.pendingPayload, scope });
     };
 
     const isAnyMutating = updateMutation.isPending || updateWithScopeMutation.isPending;
@@ -375,7 +397,8 @@ const AppointmentEditForm = () => {
         );
     }
 
-    const recurrenceInfo: RecurrenceInfo | null = appointment?.recurrenceInfo ?? (location.state as any)?.recurrenceInfo ?? null;
+    const recurrenceInfo = currentRecurrenceInfo();
+    const initialSnapshot = initialFormDataRef.current;
 
     return (
         <Container>
@@ -388,9 +411,11 @@ const AppointmentEditForm = () => {
                     <RecurrenceBanner $detached={recurrenceInfo.isDetached}>
                         <span>
                             {recurrenceInfo.isDetached
-                                ? `Ta wizyta (${recurrenceInfo.recurrenceIndex + 1} z ${recurrenceInfo.totalInSeries}) była zmieniana osobno, więc zmiany całej serii jej nie obejmą.`
-                                : `Ta wizyta (${recurrenceInfo.recurrenceIndex + 1} z ${recurrenceInfo.totalInSeries}) należy do serii cyklicznej.`
+                                ? `Ta rezerwacja (${recurrenceInfo.recurrenceIndex + 1} z ${recurrenceInfo.totalInSeries}) była zmieniana osobno, więc zmiany całej serii jej nie obejmą.`
+                                : `Ta rezerwacja (${recurrenceInfo.recurrenceIndex + 1} z ${recurrenceInfo.totalInSeries}) należy do serii cyklicznej.`
                             }
+                            {' '}Zapis zmienia tylko ją. Inne rezerwacje serii zmienisz wyłącznie przez „Zapisz w serii”.
+                            {isDateChanged && ' Nowy termin dotyczy tylko tej rezerwacji, więc zapis w serii jest teraz wyłączony.'}
                         </span>
                         {recurrenceInfo.isDetached && (
                             <DetachedBadge>✂ Odłączona</DetachedBadge>
@@ -433,8 +458,18 @@ const AppointmentEditForm = () => {
                         <FooterSecondaryButton onClick={() => navigate('/appointments')} disabled={isAnyMutating}>
                             {t.common.cancel}
                         </FooterSecondaryButton>
+                        {recurrenceInfo && (
+                            <FooterSecondaryButton
+                                type="button"
+                                onClick={handleOpenSeriesSave}
+                                disabled={isAnyMutating || isDateChanged}
+                                title={isDateChanged ? 'Nowy termin dotyczy tylko tej rezerwacji' : undefined}
+                            >
+                                Zapisz w serii…
+                            </FooterSecondaryButton>
+                        )}
                         <FooterPrimaryButton onClick={handleSave} disabled={isAnyMutating} $disabled={isAnyMutating}>
-                            {isAnyMutating ? 'Zapisywanie…' : 'Zapisz zmiany'}
+                            {isAnyMutating ? 'Zapisywanie…' : recurrenceInfo ? 'Zapisz tę rezerwację' : 'Zapisz zmiany'}
                         </FooterPrimaryButton>
                     </>
                 }
@@ -442,11 +477,15 @@ const AppointmentEditForm = () => {
 
             {recurrenceInfo && (
                 <RecurrenceEditScopeModal
-                    isOpen={scopeModal.isOpen}
-                    onClose={() => setScopeModal(prev => ({ ...prev, isOpen: false }))}
-                    onConfirm={handleScopeConfirm}
+                    isOpen={seriesModal.isOpen}
+                    onClose={() => setSeriesModal(prev => ({ ...prev, isOpen: false }))}
+                    onConfirm={handleSeriesConfirm}
                     recurrenceInfo={recurrenceInfo}
-                    isDateChanged={scopeModal.isDateChanged}
+                    impact={seriesImpact}
+                    impactError={isSeriesImpactError}
+                    changedFields={initialSnapshot ? changedSeriesFields(initialSnapshot, formData) : []}
+                    identitySwap={initialSnapshot ? detectIdentitySwap(initialSnapshot, formData) : { customer: false, vehicle: false }}
+                    customerRecordEdited={initialSnapshot ? customerRecordEdited(initialSnapshot, formData) : false}
                     isSubmitting={updateWithScopeMutation.isPending}
                 />
             )}

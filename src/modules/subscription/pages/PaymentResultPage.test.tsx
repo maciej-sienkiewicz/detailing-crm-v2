@@ -16,6 +16,8 @@ import { newSubscriptionApi } from '../api/subscriptionApi';
 import {
     CONFIRMATION_TIMEOUT_MS,
     POLL_INTERVAL_MS,
+    REFRESH_FAILED_NOTE,
+    REFRESH_THROTTLED_NOTE,
     REQUEST_TIMEOUT_MS,
     SLOW_POLL_INTERVAL_MS,
 } from '../hooks/usePaymentOrderPolling';
@@ -23,10 +25,14 @@ import { paymentOutcome } from '../utils/paymentOrderStatus';
 import type { PaymentOrder, PaymentOrderStatus } from '../types';
 
 vi.mock('../api/subscriptionApi', () => ({
-    newSubscriptionApi: { getOrder: vi.fn() },
+    newSubscriptionApi: { getOrder: vi.fn(), refreshOrder: vi.fn() },
 }));
 
 const getOrder = vi.mocked(newSubscriptionApi.getOrder);
+const refreshOrder = vi.mocked(newSubscriptionApi.refreshOrder);
+
+/** Błąd w kształcie axiosa - tak, jak apiClient go rzuca. */
+const httpError = (status: number, data: unknown) => Object.assign(new Error(`HTTP ${status}`), { response: { status, data } });
 
 const order = (status: PaymentOrderStatus, overrides: Partial<PaymentOrder> = {}): PaymentOrder => ({
     orderId: 'ord-1',
@@ -64,6 +70,7 @@ beforeEach(() => {
     vi.useFakeTimers();
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     getOrder.mockReset();
+    refreshOrder.mockReset();
 });
 
 afterEach(() => {
@@ -145,11 +152,24 @@ describe('PaymentResultPage', () => {
         expect(screen.getByText('Płatność jeszcze nie potwierdzona')).toBeTruthy();
         expect(screen.queryByText('Sprawdzamy płatność…')).toBeNull();
 
-        // Jedno wypełnienie w oknie (CLAUDE.md §2): „Sprawdź ponownie" jest krokiem następnym.
+        // Jedno wypełnienie w oknie (CLAUDE.md §2): „Odśwież" jest krokiem następnym, a dawne
+        // „Sprawdź ponownie" weszło w nie - nie ma dwóch podobnych akcji.
         const filled = document.querySelectorAll('button[data-variant="primary"], button[data-variant="success"]');
         expect(filled).toHaveLength(1);
-        expect(filled[0].textContent).toBe('Sprawdź ponownie');
+        expect(filled[0].textContent).toBe('Odśwież');
+        expect(screen.queryByRole('button', { name: 'Sprawdź ponownie' })).toBeNull();
         expect(screen.getByRole('button', { name: 'Wróć do aplikacji' })).toBeTruthy();
+    });
+
+    it('w trakcie zwykłego czekania „Odśwież" jest dostępne, ale nic nie jest wypełnione', async () => {
+        getOrder.mockResolvedValue(order('PENDING'));
+        renderPage();
+        await flush();
+
+        expect(screen.getByText('Sprawdzamy płatność…')).toBeTruthy();
+        const refresh = screen.getByRole('button', { name: 'Odśwież' });
+        expect(refresh.getAttribute('data-variant')).toBe('outline');
+        expect(document.querySelectorAll('button[data-variant="primary"], button[data-variant="success"]')).toHaveLength(0);
     });
 
     it('„Wróć do aplikacji" po limicie prowadzi do ustawień', async () => {
@@ -162,7 +182,7 @@ describe('PaymentResultPage', () => {
         expect(screen.getByText('Ustawienia')).toBeTruthy();
     });
 
-    it('„Sprawdź ponownie" pyta od razu, a wolne odpytywanie w tle też domyka sukces', async () => {
+    it('zgubiona notyfikacja: „Odśwież" pyta Przelewy24 przez backend i domyka sukces', async () => {
         getOrder.mockResolvedValue(order('PENDING'));
         renderPage();
         await flush();
@@ -174,11 +194,102 @@ describe('PaymentResultPage', () => {
         await advance(SLOW_POLL_INTERVAL_MS);
         expect(getOrder.mock.calls.length).toBe(before + 1);
 
-        getOrder.mockResolvedValue(order('FULFILLED'));
-        fireEvent.click(screen.getByRole('button', { name: 'Sprawdź ponownie' }));
+        // Baza wciąż mówi PENDING - tylko pytanie P24 może to zmienić.
+        refreshOrder.mockResolvedValue(order('FULFILLED'));
+        const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+        fireEvent.click(screen.getByRole('button', { name: 'Odśwież' }));
         await flush();
-        expect(getOrder.mock.calls.length).toBe(before + 2);
+
+        expect(refreshOrder).toHaveBeenCalledWith('ord-1', REQUEST_TIMEOUT_MS);
         expect(screen.getByText('Płatność przyjęta')).toBeTruthy();
+        expect(invalidate.mock.calls.map(([f]) => JSON.stringify(f?.queryKey))).toContain(JSON.stringify(['subscription', 'my-plan']));
+
+        // Rozstrzygnięte: pętla w tle już nie pyta i nie cofa widoku.
+        const calls = getOrder.mock.calls.length;
+        await advance(SLOW_POLL_INTERVAL_MS * 2);
+        expect(getOrder.mock.calls.length).toBe(calls);
+        expect(screen.getByText('Płatność przyjęta')).toBeTruthy();
+    });
+
+    it('„Odśwież" przy wciąż nieopłaconym zostaje na czekaniu i odpytuje dalej', async () => {
+        getOrder.mockResolvedValue(order('PENDING'));
+        refreshOrder.mockResolvedValue(order('PENDING'));
+        renderPage();
+        await flush();
+        await advance(CONFIRMATION_TIMEOUT_MS);
+
+        fireEvent.click(screen.getByRole('button', { name: 'Odśwież' }));
+        await flush();
+        expect(screen.getByText('Płatność jeszcze nie potwierdzona')).toBeTruthy();
+        expect(screen.queryByRole('alert')).toBeNull();
+
+        const before = getOrder.mock.calls.length;
+        getOrder.mockResolvedValue(order('FULFILLED'));
+        await advance(SLOW_POLL_INTERVAL_MS);
+        expect(getOrder.mock.calls.length).toBe(before + 1);
+        expect(screen.getByText('Płatność przyjęta')).toBeTruthy();
+    });
+
+    it('PAID po „Odśwież" to dalej „włączamy dostęp", nie sukces', async () => {
+        getOrder.mockResolvedValue(order('PENDING'));
+        refreshOrder.mockResolvedValue(order('PAID'));
+        renderPage();
+        await flush();
+        await advance(CONFIRMATION_TIMEOUT_MS);
+
+        fireEvent.click(screen.getByRole('button', { name: 'Odśwież' }));
+        await flush();
+        expect(screen.getByText('Płatność przyjęta, dostęp jeszcze się włącza')).toBeTruthy();
+    });
+
+    it('zbyt częste „Odśwież" (429): pokazuje stan z odpowiedzi i mówi, żeby chwilę poczekać', async () => {
+        getOrder.mockResolvedValue(order('PENDING'));
+        refreshOrder.mockRejectedValue(httpError(429, order('PENDING')));
+        renderPage();
+        await flush();
+        await advance(CONFIRMATION_TIMEOUT_MS);
+
+        fireEvent.click(screen.getByRole('button', { name: 'Odśwież' }));
+        await flush();
+        expect(screen.getByText(REFRESH_THROTTLED_NOTE)).toBeTruthy();
+        expect(screen.getByRole('button', { name: 'Odśwież' })).toBeTruthy();
+    });
+
+    it('429 z już rozstrzygniętym stanem pokazuje wynik bez notki o limicie', async () => {
+        getOrder.mockResolvedValue(order('PENDING'));
+        refreshOrder.mockRejectedValue(httpError(429, order('FULFILLED')));
+        renderPage();
+        await flush();
+        await advance(CONFIRMATION_TIMEOUT_MS);
+
+        fireEvent.click(screen.getByRole('button', { name: 'Odśwież' }));
+        await flush();
+        expect(screen.getByText('Płatność przyjęta')).toBeTruthy();
+        expect(screen.queryByText(REFRESH_THROTTLED_NOTE)).toBeNull();
+    });
+
+    it('P24 nie odpowiada (503): komunikat z backendu, czekanie trwa', async () => {
+        getOrder.mockResolvedValue(order('PENDING'));
+        refreshOrder.mockRejectedValue(httpError(503, { message: 'Nie udało się teraz sprawdzić płatności w Przelewy24.' }));
+        renderPage();
+        await flush();
+        await advance(CONFIRMATION_TIMEOUT_MS);
+
+        fireEvent.click(screen.getByRole('button', { name: 'Odśwież' }));
+        await flush();
+        expect(screen.getByText('Nie udało się teraz sprawdzić płatności w Przelewy24.')).toBeTruthy();
+        expect(screen.getByText('Płatność jeszcze nie potwierdzona')).toBeTruthy();
+    });
+
+    it('zerwane połączenie przy „Odśwież" mówi o tym zamiast milczeć', async () => {
+        getOrder.mockResolvedValue(order('PENDING'));
+        refreshOrder.mockRejectedValue(new Error('Network Error'));
+        renderPage();
+        await flush();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Odśwież' }));
+        await flush();
+        expect(screen.getByText(REFRESH_FAILED_NOTE)).toBeTruthy();
     });
 
     it('błędy sieci nie zatrzymują odpytywania', async () => {

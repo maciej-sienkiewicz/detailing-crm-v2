@@ -42,6 +42,7 @@ import { PaymentHistoryTable } from '../components/PaymentHistoryTable';
 import type { FeaturePlan, AddOnKey, AddOnDto, PlanChangePreview, AddOnPreview, BillingStatus } from '../types';
 import { formatCents, formatDate, monthlyPriceSuffix } from '../utils/formatters';
 import { apiErrorMessage, toastUnhandledError } from '../utils/apiErrors';
+import { toastCheckoutProblem, useCheckoutHandoff } from '../hooks/useCheckoutHandoff';
 import {
     PageWrap,
     CardBody,
@@ -92,7 +93,8 @@ export function SubscriptionSettingsPage() {
     const featurePlans = useFeaturePlans();
     const addOns = useAddOns();
     const checkout = useCheckout();
-    const { showSuccess, showError, showInfo } = useToast();
+    const handoff = useCheckoutHandoff();
+    const { showSuccess, showError, showInfo, showWarning } = useToast();
 
     const [dialog, setDialog] = useState<DialogState>(null);
 
@@ -131,12 +133,11 @@ export function SubscriptionSettingsPage() {
     const handleRenew = async () => {
         if (checkout.isPending) return;
         try {
-            const order = await checkout.mutateAsync({ type: 'RENEWAL' });
-            if (order.paymentUrl) {
-                window.location.assign(order.paymentUrl);
-                return;
-            }
-            showSuccess('Pakiet przedłużony', 'Twój pakiet działa przez kolejne 30 dni.');
+            // Brak adresu płatności to NIE sukces - rozstrzyga stan zamówienia (useCheckoutHandoff).
+            const step = handoff(await checkout.mutateAsync({ type: 'RENEWAL' }));
+            if (step.kind === 'redirect' || step.kind === 'track') return;
+            if (step.kind === 'done') showSuccess('Pakiet przedłużony', 'Twój pakiet działa przez kolejne 30 dni.');
+            else toastCheckoutProblem({ showError, showWarning }, step);
         } catch (err: unknown) {
             toastUnhandledError(showError, err, 'Nie udało się rozpocząć płatności', 'Spróbuj ponownie za chwilę.');
         }
