@@ -1765,6 +1765,15 @@ export const CustomerFieldGroup = styled.div<{ $borderRight?: boolean; $hasError
     transition: background 150ms ease;
 `;
 
+/** Etykieta pola z dodatkiem po prawej (przełącznik rodzaju pojazdu przy marce). */
+export const FieldLabelRow = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+`;
+
 export const CustomerFieldLabel = styled.label<{ $hasError?: boolean }>`
     font-size: 10px;
     font-weight: 700;

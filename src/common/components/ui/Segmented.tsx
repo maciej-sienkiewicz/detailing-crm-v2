@@ -47,6 +47,8 @@ export interface SegmentedOption<T extends string> {
     value: T;
     label: ReactNode;
     count?: number | null;
+    /** Nazwa opcji dla czytnika i dymka, gdy `label` to sama ikona. */
+    ariaLabel?: string;
 }
 
 interface Props<T extends string> {
@@ -70,6 +72,8 @@ export function Segmented<T extends string>({ options, value, onChange, label, b
                     $block={block}
                     $size={size}
                     aria-pressed={o.value === value}
+                    aria-label={o.ariaLabel}
+                    title={o.ariaLabel}
                     onClick={() => onChange(o.value)}
                 >
                     {o.label}
