@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
+import { BookOpen, MoreHorizontal, Pencil, Tag, Trash2 } from 'lucide-react';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import { isCatalogServiceId } from '@/common/utils/catalogServiceId';
 import {
     applyAdjustment, distributeAdjustment, netToGross, resolveBaseGross, resolveBaseNet, withVatRate,
 } from '@/common/utils/priceAdjustment';
 import { MAX_2_DECIMALS, centsToInput, handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
-import { ServiceDiscountModal } from '@/common/components/ServiceDiscountModal';
+import { PRICE_SCOPES, ServicePriceModal, type PriceScope } from '@/common/components/ServicePriceModal';
+import { changeLabel, describeChange } from '@/common/components/ServicePriceModal/priceDraft';
+import { ActionMenu, MenuDivider, MenuItem, Notice, useActionMenu } from '@/common/components/ui';
 import type { AdjustmentType, PriceAdjustment } from '@/common/utils/priceAdjustment';
 import { discountBases, editedPricePair, withAdjustment } from './servicesTablePricing';
 import * as S from './styles';
@@ -49,6 +52,8 @@ interface Props {
     /** Called when user confirms an edit. Returns the new catalog service ID if the
      *  backend created a new version (immutable-update pattern), or null if unchanged. */
     onSaveService?: (serviceId: string, data: SaveServiceData) => Promise<string | null>;
+    /** Gdzie obowiązuje cena pozycji - napisy okna ceny i menu wiersza. */
+    scope?: PriceScope;
 }
 
 /**
@@ -119,13 +124,6 @@ const IconMessageSquare = () => (
     </svg>
 );
 
-const IconTrash = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="3 6 5 6 21 6" />
-        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-    </svg>
-);
-
 const IconX = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
         <line x1="18" y1="6" x2="6" y2="18" />
@@ -139,15 +137,21 @@ const IconCheck = () => (
     </svg>
 );
 
-const IconPencil = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-    </svg>
-);
-
-export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
+/**
+ * Wiersz ma dwie drogi zmiany ceny i celowo wyglądają zupełnie inaczej:
+ *
+ *  - klik w CENĘ → „Cena w tej rezerwacji" (ustal cenę, rabat, dopłata). Zmienia
+ *    wyłącznie tę pozycję; cennik i statystyki cennika zostają nietknięte;
+ *  - menu ⋯ → „Zmień w cenniku…" → nowa wersja usługi dla WSZYSTKICH kolejnych
+ *    rezerwacji, z ostrzeżeniem w oknie.
+ *
+ * Wcześniej stały obok siebie ołówek „Edytuj pozycję" (cennik!) i % „Rabat"
+ * (ta pozycja). Ołówek przy wierszu czytano jako „popraw ten wiersz", a podwyżki
+ * nikt nie szukał pod słowem „rabat" - więc ceny jednej wizyty lądowały w cenniku.
+ */
+export const ServicesTable = ({ services, onChange, onSaveService, scope = PRICE_SCOPES.reservation }: Props) => {
     const { blockRef, isNarrow } = useNarrowTable();
+    const rowMenu = useActionMenu<string>();
 
     const [expandedNote, setExpandedNote] = useState<string | null>(null);
 
@@ -176,13 +180,18 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
 
     const getServicePrice = (service: ServiceLineItem) => {
         const result = applyAdjustment(service.basePriceNet, service.vatRate, service.adjustment, service.basePriceGross);
-        const baseGrossCents = service.basePriceGross ?? netToGross(service.basePriceNet, service.vatRate);
+        // Cena wyjściowa tak, jak liczy ją okno ceny: pozycja z ceną ręczną (baza 0
+        // + SET_*) ma za wyjście ustaloną cenę, a nie zero - inaczej wiersz pokazywał
+        // przekreślone „0.00" i znacznik zmiany, choć nikt niczego nie zmienił.
+        const base = { netCents: resolveBaseNet(service), exactGrossCents: resolveBaseGross(service), vatRate: service.vatRate };
+        const change = describeChange(base, service.adjustment);
+        const baseGrossCents = base.exactGrossCents ?? netToGross(base.netCents, service.vatRate);
         return {
-            baseNet: service.basePriceNet / 100,
+            baseNet: base.netCents / 100,
             baseGross: baseGrossCents / 100,
             finalNet: result.finalNetCents / 100,
             finalGross: result.finalGrossCents / 100,
-            hasDiscount: result.hasDiscount,
+            change,
         };
     };
 
@@ -342,11 +351,26 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
     }, 0)) / 100;
 
     const editService = editModalServiceId ? services.find(s => s.id === editModalServiceId) : null;
+    // Okno edycji ma dwa znaczenia i mówi wprost, które: usługa z cennika zmienia się
+    // DLA WSZYSTKICH (nowa wersja w cenniku), usługa założona w locie - tylko tutaj.
+    const editGoesToCatalog = !!editService && !!onSaveService && isCatalogServiceId(editService.serviceId);
+
+    const menuService = rowMenu.menu ? services.find(s => s.id === rowMenu.menu!.item) : null;
+    const canEditService = (service: ServiceLineItem) => !!service.serviceId && !service.isPackage;
+    const goesToCatalog = (service: ServiceLineItem) => !!onSaveService && isCatalogServiceId(service.serviceId);
+
+    // Cena ręczna wraca z API także bez flagi - jako baza 0 i cena w SET_* (resolveBaseNet).
+    const hasManualPrice = (service: ServiceLineItem) =>
+        !!service.requireManualPrice || resolveBaseNet(service) !== service.basePriceNet;
+    const priceBaseLabel = (service: ServiceLineItem) =>
+        hasManualPrice(service) ? 'Cena ustalona ręcznie'
+        : isCatalogServiceId(service.serviceId) ? 'Cena z cennika'
+        : 'Cena wyjściowa';
 
     return (
         <>
             <S.ServicesBlock ref={blockRef} $narrow={isNarrow}>
-                <S.ServicesTableHeader>
+                <S.PricedTableHeader>
                     <S.ServicesHeaderCell>Usługa</S.ServicesHeaderCell>
                     <S.ServicesHeaderCell>Netto</S.ServicesHeaderCell>
                     <S.VatHeaderCell>
@@ -365,23 +389,27 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
                     </S.VatHeaderCell>
                     <S.ServicesHeaderCell>Brutto</S.ServicesHeaderCell>
                     <S.ServicesHeaderCell />
-                </S.ServicesTableHeader>
+                </S.PricedTableHeader>
 
                 <S.ServicesList>
                     {services.map(service => {
                         const prices = getServicePrice(service);
-                        const { hasDiscount, finalNet, finalGross, baseNet, baseGross } = prices;
+                        const { change, finalNet, finalGross, baseNet, baseGross } = prices;
+                        const isChanged = change.kind !== 'none';
+                        const isCheaper = change.kind === 'discount';
+                        const tag = changeLabel(change);
                         const isNoteExpanded = expandedNote === service.id;
                         const hasNote = !!(service.note && service.note.length > 0);
 
                         return (
-                            <S.ServiceItem key={service.id} $hasDiscount={hasDiscount}>
-                                <S.ServiceItemRow>
+                            <S.ServiceItem key={service.id} $hasDiscount={isChanged}>
+                                <S.PricedItemRow>
                                     <S.ServiceNameWrap>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                             <S.ServiceName title={service.serviceName}>{service.serviceName}</S.ServiceName>
                                             {service.isPackage && <S.PackageBadgeInline>Pakiet</S.PackageBadgeInline>}
                                         </div>
+                                        {tag && change.kind !== 'none' && <S.PriceChangeTag $kind={change.kind}>{tag}</S.PriceChangeTag>}
                                         {hasNote && <S.ServiceNoteInline title={service.note}>{service.note}</S.ServiceNoteInline>}
                                         {service.newerVersion && (
                                             <S.PriceChangedNotice
@@ -404,33 +432,24 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
                                     </S.ServiceNameWrap>
 
                                     <S.PriceDisplay>
-                                        <S.PriceDisplayMain $isDiscounted={hasDiscount}>{finalNet.toFixed(2)}</S.PriceDisplayMain>
-                                        {hasDiscount && <S.PriceDisplayOriginal>{baseNet.toFixed(2)}</S.PriceDisplayOriginal>}
+                                        <S.PriceDisplayMain $isDiscounted={isCheaper}>{finalNet.toFixed(2)}</S.PriceDisplayMain>
+                                        {isChanged && <S.PriceDisplayOriginal>{baseNet.toFixed(2)}</S.PriceDisplayOriginal>}
                                     </S.PriceDisplay>
                                     <S.VatCell>{VAT_LABEL(service.vatRate)}</S.VatCell>
-                                    <S.PriceDisplay>
-                                        <S.PriceDisplayMain $isBrutto $isDiscounted={hasDiscount}>{finalGross.toFixed(2)}</S.PriceDisplayMain>
-                                        {hasDiscount && <S.PriceDisplayOriginal>{baseGross.toFixed(2)}</S.PriceDisplayOriginal>}
-                                    </S.PriceDisplay>
+                                    <S.PriceCellButton
+                                        type="button"
+                                        onClick={() => openDiscountModal(service)}
+                                        title={`Zmień cenę ${scope.here}`}
+                                        aria-label={`Zmień cenę ${scope.here}: ${service.serviceName}, ${finalGross.toFixed(2)} zł brutto`}
+                                    >
+                                        <Pencil aria-hidden="true" />
+                                        <S.PriceCellAmounts>
+                                            <S.PriceDisplayMain $isBrutto $isDiscounted={isCheaper}>{finalGross.toFixed(2)}</S.PriceDisplayMain>
+                                            {isChanged && <S.PriceDisplayOriginal>{baseGross.toFixed(2)}</S.PriceDisplayOriginal>}
+                                        </S.PriceCellAmounts>
+                                    </S.PriceCellButton>
 
                                     <S.ServiceActions>
-                                        {service.serviceId && !service.isPackage && (
-                                            <S.EditButton
-                                                type="button"
-                                                onClick={() => openEditModal(service)}
-                                                title="Edytuj pozycję"
-                                            >
-                                                <IconPencil />
-                                            </S.EditButton>
-                                        )}
-                                        <S.DiscountButton
-                                            type="button"
-                                            onClick={() => openDiscountModal(service)}
-                                            $active={hasDiscount}
-                                            title={hasDiscount ? 'Edytuj rabat' : 'Dodaj rabat'}
-                                        >
-                                            <IconPercent />
-                                        </S.DiscountButton>
                                         <S.IconButton
                                             type="button"
                                             onClick={() => setExpandedNote(isNoteExpanded ? null : service.id)}
@@ -439,17 +458,19 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
                                         >
                                             <IconMessageSquare />
                                         </S.IconButton>
-                                        <S.DeleteButton
+                                        <S.IconButton
                                             type="button"
-                                            onClick={() => {
-                                                onChange(services.filter(s => s.id !== service.id));
-                                                if (expandedNote === service.id) setExpandedNote(null);
-                                            }}
+                                            $active={rowMenu.isOpen(service.id)}
+                                            onClick={(e) => rowMenu.toggle(e, service.id, service.id)}
+                                            title="Więcej"
+                                            aria-label={`Więcej akcji: ${service.serviceName}`}
+                                            aria-haspopup="menu"
+                                            aria-expanded={rowMenu.isOpen(service.id)}
                                         >
-                                            <IconTrash />
-                                        </S.DeleteButton>
+                                            <MoreHorizontal />
+                                        </S.IconButton>
                                     </S.ServiceActions>
-                                </S.ServiceItemRow>
+                                </S.PricedItemRow>
 
                                 {service.isPackage && service.packageItems && service.packageItems.length > 0 && (
                                     <S.PackageSubRows>
@@ -517,16 +538,53 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
                 </S.SummarySection>
             </S.ServicesBlock>
 
-            {/* Per-service discount modal (wspólny komponent) */}
+            <ActionMenu anchor={rowMenu.menu?.anchor ?? null} onClose={rowMenu.close} label="Akcje usługi">
+                {menuService && (
+                    <>
+                        <MenuItem icon={<Tag />} onClick={() => openDiscountModal(menuService)}>
+                            Zmień cenę {scope.here}…
+                        </MenuItem>
+                        {canEditService(menuService) && (
+                            goesToCatalog(menuService) ? (
+                                <MenuItem icon={<BookOpen />} onClick={() => openEditModal(menuService)}>
+                                    Zmień w cenniku…
+                                </MenuItem>
+                            ) : (
+                                <MenuItem icon={<Pencil />} onClick={() => openEditModal(menuService)}>
+                                    Edytuj usługę…
+                                </MenuItem>
+                            )
+                        )}
+                        <MenuDivider />
+                        <MenuItem
+                            danger
+                            icon={<Trash2 />}
+                            onClick={() => {
+                                onChange(services.filter(s => s.id !== menuService.id));
+                                if (expandedNote === menuService.id) setExpandedNote(null);
+                            }}
+                        >
+                            Usuń {scope.from}
+                        </MenuItem>
+                    </>
+                )}
+            </ActionMenu>
+
+            {/* Cena tej pozycji - bez cennika */}
             {discountModalId && discountModalService && (
-                <ServiceDiscountModal
+                <ServicePriceModal
                     serviceName={discountModalService.serviceName}
                     basePriceNet={resolveBaseNet(discountModalService)}
                     basePriceGross={resolveBaseGross(discountModalService)}
                     vatRate={discountModalService.vatRate}
                     adjustment={discountModalService.adjustment}
+                    scope={scope}
+                    baseLabel={priceBaseLabel(discountModalService)}
+                    resetLabel={isCatalogServiceId(discountModalService.serviceId) && !hasManualPrice(discountModalService)
+                        ? 'Przywróć cenę z cennika'
+                        : 'Usuń zmianę ceny'}
                     onApply={applyServiceDiscount}
-                    onRemove={removeServiceDiscount}
+                    onReset={removeServiceDiscount}
                     onClose={closeDiscountModal}
                 />
             )}
@@ -649,7 +707,7 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
                     <S.BulkDiscountCard onClick={(e) => e.stopPropagation()}>
                         <S.BulkDiscountHeader>
                             <div>
-                                <S.BulkDiscountTitle>Edytuj pozycję</S.BulkDiscountTitle>
+                                <S.BulkDiscountTitle>{editGoesToCatalog ? 'Zmień w cenniku' : 'Edytuj usługę'}</S.BulkDiscountTitle>
                                 <S.DiscountModalServiceName>{editService.serviceName}</S.DiscountModalServiceName>
                             </div>
                             <S.CloseIconButton
@@ -660,6 +718,18 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
                             </S.CloseIconButton>
                         </S.BulkDiscountHeader>
                         <S.BulkDiscountBody>
+                            {editGoesToCatalog ? (
+                                <Notice tone="warn" title="Zmiana dla wszystkich kolejnych klientów">
+                                    Nowa nazwa i cena trafią do cennika i będą podpowiadane przy każdej kolejnej
+                                    rezerwacji i wizycie. Ta pozycja też je dostanie, a zapisane wcześniej
+                                    rezerwacje i wizyty zostają przy swojej cenie. Żeby zmienić cenę tylko tutaj,
+                                    kliknij cenę w wierszu.
+                                </Notice>
+                            ) : (
+                                <Notice tone="info">
+                                    Tej usługi nie ma w cenniku, więc zmiana dotyczy tylko {scope.of}.
+                                </Notice>
+                            )}
                             <div>
                                 <S.DiscountSectionLabel>Nazwa</S.DiscountSectionLabel>
                                 <S.EditNameInput
@@ -713,7 +783,7 @@ export const ServicesTable = ({ services, onChange, onSaveService }: Props) => {
                                 onClick={saveEditService}
                                 disabled={editSaving}
                             >
-                                {editSaving ? 'Zapisywanie…' : 'Zapisz'}
+                                {editSaving ? 'Zapisywanie…' : editGoesToCatalog ? 'Zapisz w cenniku' : 'Zapisz'}
                             </S.EditSaveBtn>
                         </S.BulkDiscountFooter>
                     </S.BulkDiscountCard>

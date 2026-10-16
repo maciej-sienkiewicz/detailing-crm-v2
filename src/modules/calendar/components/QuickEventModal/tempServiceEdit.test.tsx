@@ -2,7 +2,7 @@
 //
 // Regresja z produkcji (kalendarz → szybka rezerwacja): usługa założona w locie
 // („powłoka na felgi", 900,00 zł brutto, bez zapisu do cennika) dostaje id
-// `temp-<Date.now()>`. „Edytuj pozycję" → nowa cena → „Zapisz" wysyłało to id do
+// `temp-<Date.now()>`. „Edytuj pozycję" (dziś „⋯ → Edytuj usługę…") → nowa cena → „Zapisz" wysyłało to id do
 // POST /services/update jako `originalServiceId`; backend nie umiał go sparsować
 // jako UUID („Invalid UUID string: temp-…"), oddawał 400 i ceny nie dało się zmienić.
 //
@@ -94,14 +94,16 @@ const Harness = ({ onSaveService, onSubmit }: {
     );
 };
 
-describe('Szybka rezerwacja - „Edytuj pozycję" na usłudze spoza cennika', () => {
+describe('Szybka rezerwacja - „Edytuj usługę" na usłudze spoza cennika', () => {
     it('cena zmienia się w tabeli, bez cennika, a rezerwacja zapisuje nową, dokładną cenę', async () => {
         const onSaveService = vi.fn().mockRejectedValue(new Error('400 Invalid UUID string'));
         const onSubmit = vi.fn();
         const user = userEvent.setup();
         render(<Harness onSaveService={onSaveService} onSubmit={onSubmit} />);
 
-        await user.click(screen.getByTitle('Edytuj pozycję'));
+        // Usługa spoza cennika: „Edytuj usługę…" w menu ⋯ zmienia ją tylko tutaj.
+        await user.click(screen.getByRole('button', { name: 'Więcej akcji: powłoka na felgi' }));
+        await user.click(screen.getByRole('menuitem', { name: 'Edytuj usługę…' }));
         const grossField = screen.getByDisplayValue('900,00');
         await user.clear(grossField);
         await user.type(grossField, '1900');
@@ -130,7 +132,9 @@ describe('Szybka rezerwacja - „Edytuj pozycję" na usłudze spoza cennika', ()
         const user = userEvent.setup();
         render(<Harness onSaveService={vi.fn()} onSubmit={onSubmit} />);
 
-        await user.click(screen.getByTitle('Edytuj pozycję'));
+        // Usługa spoza cennika: „Edytuj usługę…" w menu ⋯ zmienia ją tylko tutaj.
+        await user.click(screen.getByRole('button', { name: 'Więcej akcji: powłoka na felgi' }));
+        await user.click(screen.getByRole('menuitem', { name: 'Edytuj usługę…' }));
         const nameField = screen.getByDisplayValue('powłoka na felgi');
         await user.clear(nameField);
         await user.type(nameField, 'Powłoka na felgi 4 szt.');

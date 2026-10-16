@@ -28,6 +28,7 @@ import {
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { EditableServicesTable } from '@/modules/checkin/components/EditableServicesTable';
+import { PRICE_SCOPES } from '@/common/components/ServicePriceModal';
 import type { ServiceLineItem } from '@/common/components/ServicesTable';
 import { useToast } from '@/common/components/Toast';
 import { useLeadDictionaries, useMarkThreadAsLead } from '../hooks/useLeads';
@@ -158,7 +159,7 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
                                 <Plus /> Dodaj usługi
                             </WideButton>
                         ) : (
-                            <EditableServicesTable services={services} onChange={setServices} />
+                            <EditableServicesTable services={services} onChange={setServices} scope={PRICE_SCOPES.quote} />
                         )}
                     </Field>
                 </Body>
