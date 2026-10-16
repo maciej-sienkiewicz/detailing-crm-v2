@@ -11,6 +11,7 @@
 // Kwoty idą w groszach razem ze stawką i stroną wpisaną przez człowieka - wpisane
 // brutto zostaje brutto (CLAUDE.md §1).
 
+import { localIsoDate } from '@/common/utils/localDate';
 import React, { useState, useEffect, useRef, useId } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
@@ -295,7 +296,7 @@ interface FormState {
     priceSide:      PriceSide;
 }
 
-const today = new Date().toISOString().split('T')[0];
+const today = localIsoDate();
 
 const EMPTY_FORM: FormState = {
     documentKind:   'INVOICE',
@@ -321,7 +322,7 @@ export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
     useEffect(() => {
         if (!isOpen) {
-            setForm({ ...EMPTY_FORM, saleDate: new Date().toISOString().split('T')[0] });
+            setForm({ ...EMPTY_FORM, saleDate: localIsoDate() });
             setError(null);
             setFieldErrors({});
             setActiveTab('document');

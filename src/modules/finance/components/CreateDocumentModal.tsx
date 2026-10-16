@@ -1,3 +1,4 @@
+import { localIsoDate } from '@/common/utils/localDate';
 import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
@@ -179,7 +180,7 @@ interface FormState {
     counterpartyNip:  string;
 }
 
-const today = new Date().toISOString().split('T')[0];
+const today = localIsoDate();
 
 const EMPTY_FORM: FormState = {
     documentType:     DocumentType.RECEIPT,
@@ -204,7 +205,7 @@ const CreateDocumentForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const createDoc = useCreateDocument();
     const [error, setError] = useState<string | null>(null);
     const [form, setForm] = useState<FormState>(() => ({
-        ...EMPTY_FORM, issueDate: new Date().toISOString().split('T')[0],
+        ...EMPTY_FORM, issueDate: localIsoDate(),
     }));
 
     const set = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
