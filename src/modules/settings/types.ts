@@ -67,10 +67,19 @@ export interface VisitViewConfig {
     serviceChecklistEnabled: boolean;
 }
 
-/** Treść protokołu przyjęcia: czy przy każdej usłudze pokazywać jej cenę (domyślnie nie). */
+/** Treść protokołu przyjęcia; oba przełączniki domyślnie wyłączone. */
 export interface ProtocolContentConfig {
+    /** Cena przy każdej usłudze. */
     showServicePrices: boolean;
+    /**
+     * Wiersz „VIN" w ramce pojazdu. Zmienia układ dokumentu: serwer podmienia plik
+     * systemowego szablonu w tej samej operacji, w której zapisuje ustawienie.
+     */
+    showVin: boolean;
 }
+
+/** Zmiana treści protokołu - pominięte pole zostaje bez zmian. */
+export type UpdateProtocolContentConfig = Partial<ProtocolContentConfig>;
 
 // ─── Numeracja wizyt ──────────────────────────────────────────────────────────
 

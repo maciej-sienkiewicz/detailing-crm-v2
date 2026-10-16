@@ -51,7 +51,7 @@ describe('ProtocolServicePricesCard', () => {
     });
 
     it('włączenie zapisuje się od razu po kliknięciu', async () => {
-        config = { showServicePrices: false };
+        config = { showServicePrices: false, showVin: false };
         renderCard();
 
         await userEvent.click(toggle());
@@ -60,7 +60,7 @@ describe('ProtocolServicePricesCard', () => {
     });
 
     it('włączone ceny pokazują przykład, bez kropki jako separatora', () => {
-        config = { showServicePrices: true };
+        config = { showServicePrices: true, showVin: false };
         renderCard();
 
         expect(toggle()).toBeChecked();
