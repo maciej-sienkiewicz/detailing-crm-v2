@@ -196,8 +196,8 @@ export function AttachmentCards({
     attachments: CommAttachment[];
     outbound?: boolean;
     onDownload: (attachmentId: string, fileName: string) => void;
-    /** Podgląd w nowej karcie (PDF, obrazek); bez niego wszystko się pobiera. */
-    onPreview?: (attachment: CommAttachment) => void;
+    /** Podgląd w CRM-ie (PDF, obrazek, tekst) - z listą plików wiadomości do przechodzenia strzałkami; bez niego wszystko się pobiera. */
+    onPreview?: (attachment: CommAttachment, attachments: CommAttachment[]) => void;
 }) {
     if (attachments.length === 0) return null;
     return (
@@ -208,7 +208,7 @@ export function AttachmentCards({
                     <FileCard
                         key={attachment.id}
                         type="button"
-                        onClick={() => (onPreview && previewable(attachment) ? onPreview(attachment) : onDownload(attachment.id, attachment.fileName))}
+                        onClick={() => (onPreview && previewable(attachment) ? onPreview(attachment, attachments) : onDownload(attachment.id, attachment.fileName))}
                         title={attachment.fileName}
                     >
                         <span className="kind" aria-hidden="true">{kind ?? <Paperclip />}</span>
@@ -227,6 +227,8 @@ interface BubblesProps {
     messages: CommMessage[];
     phone: boolean;
     onDownload: (attachmentId: string, fileName: string) => void;
+    /** Podgląd załącznika w CRM-ie; bez niego załączniki się pobiera. */
+    onPreview?: (attachment: CommAttachment, attachments: CommAttachment[]) => void;
     onOpenFull: (messageId: string) => void;
     /** Coś nad rozmową (pasek wizyty, zgłoszenie z formularza). */
     before?: ReactNode;
@@ -239,7 +241,7 @@ interface BubblesProps {
 }
 
 /** Rozmowa jako dymki: klient po lewej z datą, „Ty" po prawej. Otwiera się na końcu. */
-export function Bubbles({ messages, phone, onDownload, onOpenFull, before, loading, alignBottom = true }: BubblesProps) {
+export function Bubbles({ messages, phone, onDownload, onPreview, onOpenFull, before, loading, alignBottom = true }: BubblesProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const lastId = messages[messages.length - 1]?.id;
 
@@ -268,7 +270,7 @@ export function Bubbles({ messages, phone, onDownload, onOpenFull, before, loadi
                                 onOpenFull={() => onOpenFull(message.id)}
                             />
                         </div>
-                        <AttachmentCards attachments={message.attachments} outbound={out} onDownload={onDownload} />
+                        <AttachmentCards attachments={message.attachments} outbound={out} onDownload={onDownload} onPreview={onPreview} />
                         {out && message.sendStatus === 'FAILED' && <p className="failed">Nie wysłano - spróbuj ponownie</p>}
                     </Bubble>
                 );

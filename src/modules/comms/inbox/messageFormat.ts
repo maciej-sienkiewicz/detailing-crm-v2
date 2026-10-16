@@ -1,7 +1,6 @@
 // src/modules/comms/inbox/messageFormat.ts
 // Drobiazgi rozmowy w skrzynce „Zapytania": podpis chwili wiadomości i otwieranie
 // załączników przez API (sesja), a nie przez `<a href>`.
-import type { CommAttachment } from '../types';
 import { dayLabel } from '../utils/mailListRows';
 
 /** „5 października", a dla dziś i wczoraj z godziną: „Dziś, 9:40". */
@@ -18,7 +17,11 @@ export async function downloadAttachmentFile(
     attachmentId: string,
     fileName: string
 ): Promise<void> {
-    const blob = await load(attachmentId);
+    saveBlobAs(await load(attachmentId), fileName);
+}
+
+/** Zapis już pobranego bloba - podgląd ma plik w ręku i nie pyta serwera drugi raz. */
+export function saveBlobAs(blob: Blob, fileName: string): void {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
@@ -28,53 +31,83 @@ export async function downloadAttachmentFile(
 }
 
 /**
- * Typy, które wolno pokazać w nowej karcie. Wyłącznie zamknięta lista: PDF i obrazy
- * RASTROWE. Nie „image/*" - SVG to dokument ze skryptami, a karta z adresem blob:
- * dziedziczy pochodzenie CRM-a, więc SVG z cudzej poczty uruchamiał kod nadawcy w sesji
- * osoby, która kliknęła „Otwórz podgląd". Wszystko spoza listy się pobiera.
+ * Typy, które wolno pokazać w podglądzie w CRM-ie. Wyłącznie zamknięta lista: PDF,
+ * obrazy RASTROWE i zwykły tekst. Nie „image/*" - SVG to dokument ze skryptami;
+ * kiedy podgląd otwierał się w karcie z adresem blob:, ta dziedziczyła pochodzenie
+ * CRM-a i SVG z cudzej poczty uruchamiał kod nadawcy w sesji osoby, która kliknęła
+ * „Otwórz podgląd". Okno w CRM-ie nie zmienia tej zasady: wszystko spoza listy się
+ * pobiera.
+ *
+ * Każdy rodzaj ma bezpieczną drogę na ekran: PDF rysuje pdf.js na kanwie, obraz
+ * idzie przez `<img>` (który skryptów nie wykonuje), tekst jest wstawiany jako
+ * tekst, a nie HTML.
  */
-const PREVIEWABLE_TYPES = new Set([
-    'application/pdf',
-    'image/png',
-    'image/jpeg',
-    'image/gif',
-    'image/webp',
-    'image/avif',
-    'image/bmp',
-]);
+const PREVIEW_KINDS: Record<string, AttachmentPreviewKind> = {
+    'application/pdf': 'pdf',
+    'image/png': 'image',
+    'image/jpeg': 'image',
+    'image/gif': 'image',
+    'image/webp': 'image',
+    'image/avif': 'image',
+    'image/bmp': 'image',
+    'text/plain': 'text',
+    'text/csv': 'text',
+};
 
-const baseType = (contentType: string): string => contentType.split(';')[0].trim().toLowerCase();
+export type AttachmentPreviewKind = 'pdf' | 'image' | 'text';
 
-/** PDF i obrazek rastrowy da się obejrzeć w przeglądarce - reszta się pobiera. */
-export function isPreviewableAttachment(attachment: CommAttachment): boolean {
-    return PREVIEWABLE_TYPES.has(baseType(attachment.contentType));
+/** To, co podgląd musi wiedzieć o pliku - wspólne dla załącznika wiadomości i osi sprawy. */
+export interface PreviewableFile {
+    id: string;
+    fileName: string;
+    contentType: string;
+    sizeBytes: number;
 }
 
+export const baseType = (contentType: string): string => contentType.split(';')[0].trim().toLowerCase();
+
 /**
- * Podgląd załącznika w nowej karcie. Karta otwiera się od razu (w geście kliknięcia),
- * a adres dostaje po pobraniu - inaczej blokada wyskakujących okien ją zatrzyma.
- *
- * Typ bloba ustawiamy sami z listy wyżej, nie bierzemy go z odpowiedzi ani z nazwy
- * pliku: o tym, jak przeglądarka zinterpretuje bajty, decyduje sprawdzony typ.
+ * Typ z rozszerzenia - wyłącznie dla plików, które nadawca wysłał jako „jakieś bajty"
+ * (`application/octet-stream`; tak przychodzi spora część faktur PDF ze starszych
+ * programów). Rozszerzenie nie przesądza o treści, ale tu nie musi: każda z dróg
+ * wyświetlenia wyżej jest bezpieczna dla dowolnych bajtów, najwyżej pokaże błąd.
+ * Typ podany wprost (np. `image/svg+xml`) zawsze wygrywa z nazwą pliku.
  */
-export async function previewAttachmentFile(load: (id: string) => Promise<Blob>, attachment: CommAttachment): Promise<void> {
-    if (!isPreviewableAttachment(attachment)) {
-        await downloadAttachmentFile(load, attachment.id, attachment.fileName);
-        return;
-    }
-    const tab = window.open('', '_blank');
-    // Karta podglądu nie dostaje uchwytu do okna CRM-a.
-    if (tab) tab.opener = null;
-    try {
-        const blob = await load(attachment.id);
-        const typed = new Blob([blob], { type: baseType(attachment.contentType) });
-        const url = URL.createObjectURL(typed);
-        if (tab) tab.location.href = url;
-        else window.open(url, '_blank');
-        // Karta trzyma własną kopię - adres można zwolnić po chwili.
-        setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    } catch (error) {
-        tab?.close();
-        throw error;
-    }
+const EXTENSION_TYPES: Record<string, string> = {
+    pdf: 'application/pdf',
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    gif: 'image/gif',
+    webp: 'image/webp',
+    txt: 'text/plain',
+    csv: 'text/csv',
+};
+
+const GENERIC_TYPES = new Set(['', 'application/octet-stream', 'binary/octet-stream']);
+
+/** Sprawdzony typ pliku z listy wyżej albo `null`, gdy pliku nie pokazujemy. */
+export function previewContentType(file: Pick<PreviewableFile, 'contentType' | 'fileName'>): string | null {
+    const declared = baseType(file.contentType);
+    if (PREVIEW_KINDS[declared]) return declared;
+    if (!GENERIC_TYPES.has(declared)) return null;
+    const extension = file.fileName.split('.').pop()?.toLowerCase() ?? '';
+    return EXTENSION_TYPES[extension] ?? null;
+}
+
+/** Jak pokazać plik w CRM-ie; `null` - nie pokazujemy, tylko pobieramy. */
+export function attachmentPreviewKind(file: Pick<PreviewableFile, 'contentType' | 'fileName'>): AttachmentPreviewKind | null {
+    const type = previewContentType(file);
+    return type ? PREVIEW_KINDS[type] : null;
+}
+
+/** PDF, obrazek rastrowy i tekst da się obejrzeć w CRM-ie - reszta się pobiera. */
+export function isPreviewableAttachment(file: Pick<PreviewableFile, 'contentType' | 'fileName'>): boolean {
+    return attachmentPreviewKind(file) !== null;
+}
+
+/** „12 KB", „3,4 MB" - rozmiar przy nazwie pliku. */
+export function fileSizeLabel(bytes: number): string {
+    if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+    return `${(bytes / (1024 * 1024)).toLocaleString('pl-PL', { maximumFractionDigits: 1 })} MB`;
 }

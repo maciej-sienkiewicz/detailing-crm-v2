@@ -4,8 +4,9 @@
 // tu czyta się je bez walki z listą wątków obok.
 import { useEffect } from 'react';
 import styled from 'styled-components';
-import { Download, X } from 'lucide-react';
-import type { CommMessage } from '../types';
+import { Download, Eye, X } from 'lucide-react';
+import type { CommAttachment, CommMessage } from '../types';
+import { isPreviewableAttachment } from '../inbox/messageFormat';
 import { MessageBody } from './MessageBody';
 import { IconButton, formatDateTime } from './shared';
 
@@ -84,12 +85,15 @@ interface MessageReaderOverlayProps {
     message: CommMessage;
     onClose: () => void;
     onDownloadAttachment: (attachmentId: string, fileName: string) => void;
+    /** Podgląd w CRM-ie dla PDF, obrazów i tekstu; bez niego wszystko się pobiera. */
+    onPreviewAttachment?: (attachment: CommAttachment, attachments: CommAttachment[]) => void;
 }
 
 export function MessageReaderOverlay({
     message,
     onClose,
     onDownloadAttachment,
+    onPreviewAttachment,
 }: MessageReaderOverlayProps) {
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
@@ -132,15 +136,22 @@ export function MessageReaderOverlay({
 
             {message.attachments.length > 0 && (
                 <AttachmentRow>
-                    {message.attachments.map((attachment) => (
-                        <AttachmentChip
-                            key={attachment.id}
-                            onClick={() => onDownloadAttachment(attachment.id, attachment.fileName)}
-                        >
-                            <Download size={12} />
-                            {attachment.fileName}
-                        </AttachmentChip>
-                    ))}
+                    {message.attachments.map((attachment) => {
+                        const preview = onPreviewAttachment && isPreviewableAttachment(attachment);
+                        return (
+                            <AttachmentChip
+                                key={attachment.id}
+                                type="button"
+                                title={preview ? `Otwórz podgląd: ${attachment.fileName}` : `Pobierz: ${attachment.fileName}`}
+                                onClick={() => (preview
+                                    ? onPreviewAttachment(attachment, message.attachments)
+                                    : onDownloadAttachment(attachment.id, attachment.fileName))}
+                            >
+                                {preview ? <Eye size={12} /> : <Download size={12} />}
+                                {attachment.fileName}
+                            </AttachmentChip>
+                        );
+                    })}
                 </AttachmentRow>
             )}
         </Overlay>

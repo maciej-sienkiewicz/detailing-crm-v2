@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 //
-// Podgląd załącznika z cudzej poczty: w karcie tylko PDF i obrazy rastrowe.
-import { afterEach, describe, expect, it, vi } from 'vitest';
+// Podgląd załącznika z cudzej poczty: w CRM-ie tylko PDF, obrazy rastrowe i tekst.
+import { describe, expect, it } from 'vitest';
 import type { CommAttachment } from '../types';
-import { isPreviewableAttachment, previewAttachmentFile } from './messageFormat';
+import { attachmentPreviewKind, isPreviewableAttachment, previewContentType } from './messageFormat';
 
 const attachment = (contentType: string, fileName = 'plik'): CommAttachment => ({
     id: 'a1',
@@ -14,10 +14,11 @@ const attachment = (contentType: string, fileName = 'plik'): CommAttachment => (
 });
 
 describe('isPreviewableAttachment', () => {
-    it('pokazuje PDF i obrazy rastrowe', () => {
+    it('pokazuje PDF, obrazy rastrowe i tekst', () => {
         expect(isPreviewableAttachment(attachment('application/pdf'))).toBe(true);
         expect(isPreviewableAttachment(attachment('image/jpeg'))).toBe(true);
         expect(isPreviewableAttachment(attachment('IMAGE/PNG; name=x.png'))).toBe(true);
+        expect(isPreviewableAttachment(attachment('text/plain; charset=utf-8'))).toBe(true);
     });
 
     // SVG z cudzej poczty otwarty jako karta blob: uruchamiał skrypt nadawcy w sesji CRM-a.
@@ -26,36 +27,18 @@ describe('isPreviewableAttachment', () => {
         expect(isPreviewableAttachment(attachment('text/html', 'faktura.html'))).toBe(false);
         expect(isPreviewableAttachment(attachment('image/x-unknown'))).toBe(false);
     });
-});
 
-describe('previewAttachmentFile', () => {
-    afterEach(() => vi.restoreAllMocks());
-
-    it('SVG pobiera zamiast otwierać w karcie', async () => {
-        const open = vi.spyOn(window, 'open').mockReturnValue(null);
-        const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
-        URL.createObjectURL = vi.fn(() => 'blob:x');
-        URL.revokeObjectURL = vi.fn();
-
-        await previewAttachmentFile(async () => new Blob(['<svg/>'], { type: 'image/svg+xml' }), attachment('image/svg+xml', 'a.svg'));
-
-        expect(open).not.toHaveBeenCalled();
-        expect(click).toHaveBeenCalled();
+    it('podany typ wygrywa z rozszerzeniem: SVG nazwany .png zostaje do pobrania', () => {
+        expect(isPreviewableAttachment(attachment('image/svg+xml', 'zdjecie.png'))).toBe(false);
+        expect(isPreviewableAttachment(attachment('text/html', 'faktura.pdf'))).toBe(false);
     });
 
-    it('typ bloba w karcie pochodzi z listy, nie z odpowiedzi serwera', async () => {
-        const tab = { location: { href: '' }, opener: {} as unknown, close: vi.fn() };
-        vi.spyOn(window, 'open').mockReturnValue(tab as unknown as Window);
-        let created: Blob | undefined;
-        URL.createObjectURL = vi.fn((b: Blob) => {
-            created = b;
-            return 'blob:y';
-        });
-
-        await previewAttachmentFile(async () => new Blob(['x'], { type: 'image/svg+xml' }), attachment('image/png', 'a.png'));
-
-        expect(created?.type).toBe('image/png');
-        expect(tab.opener).toBeNull();
-        expect(tab.location.href).toBe('blob:y');
+    // Starsze programy do faktur wysyłają PDF jako „jakieś bajty".
+    it('plik bez typu rozpoznaje po rozszerzeniu z zamkniętej listy', () => {
+        expect(attachmentPreviewKind(attachment('application/octet-stream', 'FV 12-2026.PDF'))).toBe('pdf');
+        expect(attachmentPreviewKind(attachment('', 'rysa.jpg'))).toBe('image');
+        expect(previewContentType(attachment('application/octet-stream', 'rysa.jpg'))).toBe('image/jpeg');
+        expect(isPreviewableAttachment(attachment('application/octet-stream', 'grafika.svg'))).toBe(false);
+        expect(isPreviewableAttachment(attachment('application/octet-stream', 'strona.html'))).toBe(false);
     });
 });
