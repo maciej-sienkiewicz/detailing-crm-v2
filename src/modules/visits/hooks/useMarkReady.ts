@@ -58,7 +58,10 @@ export const useMarkReady = (visitId: string, onSuccess?: () => void) => {
                         : 'Status zmieniony bez SMS-a, bo na koncie zabrakło kredytów.')
                 );
             } else {
-                showError('Nie udało się oznaczyć auta jako gotowego', 'Spróbuj ponownie.');
+                // Wywołanie idzie z skipErrorToast, więc ten dymek jest JEDYNYM komunikatem.
+                // Stałe „Spróbuj ponownie." gubiło powód z backendu - np. że usługi czekają
+                // na zgodę klienta, czego ponowienie nie naprawi.
+                showError('Nie udało się oznaczyć auta jako gotowego', apiErrorMessage(error, 'Spróbuj ponownie.'));
             }
         },
     });

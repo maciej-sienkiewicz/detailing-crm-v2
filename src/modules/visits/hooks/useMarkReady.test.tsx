@@ -125,6 +125,37 @@ describe('useMarkReady — konflikt stanu wizyty', () => {
         expect(showError).not.toHaveBeenCalled();
     });
 
+    it('odmowa z powodem od backendu pokazuje ten powód, nie stałe „Spróbuj ponownie."', async () => {
+        // Wywołanie idzie ze skipErrorToast: ten dymek jest jedynym komunikatem, więc
+        // powód (np. usługi czekające na zgodę klienta) nie może w nim przepaść.
+        markReadyApi.mockRejectedValue({
+            response: { status: 400, data: { message: '2 usługi czekają na zgodę klienta. Zatwierdź albo wycofaj zmianę.' } },
+        });
+        const { result, onSuccess } = setup();
+
+        result.current.markReady({ sms: false, email: false });
+
+        await waitFor(() => expect(showError).toHaveBeenCalled());
+        expect(showError).toHaveBeenCalledWith(
+            'Nie udało się oznaczyć auta jako gotowego',
+            '2 usługi czekają na zgodę klienta. Zatwierdź albo wycofaj zmianę.'
+        );
+        expect(onSuccess).not.toHaveBeenCalled();
+    });
+
+    it('409 bez kodu konfliktu stanu to zwykła odmowa: powód z backendu, bez „Odświeżyliśmy widok"', async () => {
+        markReadyApi.mockRejectedValue({ response: { status: 409, data: { message: 'Taki wpis już istnieje.' } } });
+        const { result, onSuccess, invalidateQueries } = setup();
+
+        result.current.markReady({ sms: false, email: false });
+
+        await waitFor(() => expect(showError).toHaveBeenCalled());
+        expect(showError).toHaveBeenCalledWith('Nie udało się oznaczyć auta jako gotowego', 'Taki wpis już istnieje.');
+        expect(showInfo).not.toHaveBeenCalled();
+        expect(invalidateQueries).not.toHaveBeenCalled();
+        expect(onSuccess).not.toHaveBeenCalled();
+    });
+
     it('awaria niebędąca konfliktem nadal jest błędem', async () => {
         markReadyApi.mockRejectedValue({ response: { status: 500, data: {} } });
         const { result } = setup();
@@ -133,6 +164,8 @@ describe('useMarkReady — konflikt stanu wizyty', () => {
 
         await waitFor(() => expect(showError).toHaveBeenCalled());
         expect(showError.mock.calls[0][0]).toBe('Nie udało się oznaczyć auta jako gotowego');
+        // Bez komunikatu od serwera zostaje zapasowe zdanie.
+        expect(showError.mock.calls[0][1]).toBe('Spróbuj ponownie.');
         expect(showInfo).not.toHaveBeenCalled();
     });
 });

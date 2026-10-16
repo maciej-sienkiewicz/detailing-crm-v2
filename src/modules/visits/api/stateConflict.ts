@@ -28,5 +28,22 @@ export const apiErrorCode = (error: unknown): string | undefined => {
     return typeof code === 'string' ? code : undefined;
 };
 
-/** Czy to konflikt stanu, a nie zwykła awaria zapisu. */
-export const isStateConflict = (error: unknown): boolean => apiErrorStatus(error) === 409;
+/**
+ * Kody, z którymi backend zwraca konflikt stanu wizyty: `IllegalStateTransitionException`
+ * (VisitStateMachine.CODE_ALREADY_IN_STATE / CODE_STATE_CONFLICT) w GlobalExceptionHandler.
+ */
+const STATE_CONFLICT_CODES: ReadonlySet<string> = new Set([VISIT_ALREADY_IN_STATE, VISIT_STATE_CONFLICT]);
+
+/**
+ * Czy to konflikt stanu, a nie zwykła awaria zapisu.
+ *
+ * Po kodzie, nie po samym 409: ten sam status niesie też inne odmowy (np. `ConflictException`
+ * i naruszenia unikalności przy `/complete`). Brane za konflikt stanu dostawały „Wizyta
+ * zmieniła się w międzyczasie… Odświeżyliśmy widok.", choć wizyta stała w miejscu,
+ * a prawdziwy powód z backendu przepadał.
+ */
+export const isStateConflict = (error: unknown): boolean => {
+    if (apiErrorStatus(error) !== 409) return false;
+    const code = apiErrorCode(error);
+    return code !== undefined && STATE_CONFLICT_CODES.has(code);
+};
