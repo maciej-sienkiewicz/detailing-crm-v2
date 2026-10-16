@@ -287,6 +287,17 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
         || reviseDraftServicesMutation.isPending;
     const submitError = createVisitMutation.error ?? createWalkInMutation.error ?? reviseDraftServicesMutation.error;
 
+    /**
+     * Zdejmuje błąd zapisu ze stopki, gdy sprzedawca wybrał inne wyjście (np. „Wróć do
+     * dokumentów bez zmian"). Inaczej po powrocie do formularza stopka wciąż mówiłaby
+     * o błędzie, którego nikt już nie ponawia.
+     */
+    const resetSubmitError = () => {
+        createVisitMutation.reset();
+        createWalkInMutation.reset();
+        reviseDraftServicesMutation.reset();
+    };
+
     return {
         currentStep,
         completedSteps,
@@ -301,5 +312,6 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
         saveDraft,
         isSubmitting,
         submitError,
+        resetSubmitError,
     };
 };

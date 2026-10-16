@@ -12,9 +12,12 @@ import { PHOTO_SESSION_CREATE_KEY } from '../hooks/usePhotoUpload';
 import { VerificationStep } from '../components/VerificationStep';
 import { PhotoDocumentationStep } from '../components/PhotoDocumentationStep';
 import { SigningRequirementModal } from '../components/SigningRequirementModal';
-import { ResumeCheckInModal } from '../components/ResumeCheckInModal';
-import { visitApi } from '@/modules/visits/api/visitApi';
-import type { OpenDraftVisit } from '@/modules/visits/types';
+import { ResumeCheckInModal, type ResumableDraft } from '../components/ResumeCheckInModal';
+import { AbandonCheckInDialog } from '../components/AbandonCheckInDialog';
+import { DraftConflictNotice, RevisionFailedNotice } from '../components/SubmitRecoveryNotice';
+import { useCancelDraftVisit } from '../hooks/useCancelDraftVisit';
+import { checkinErrorMessage, REVISE_ERROR_TEXTS } from '../utils/checkinErrorMessage';
+import { draftConflictOf, fallbackVisitNumber, resolveConflictDraft } from '../utils/draftConflict';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { t } from '@/common/i18n';
 import { Notice } from '@/common/components/ui';
@@ -277,6 +280,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
         reviseDraftServices,
         isSubmitting,
         submitError,
+        resetSubmitError,
     } = useCheckInWizard(reservationId, initialData, qrCheckinId);
 
     const { errors, isStepValid } = useCheckInValidation(formData, currentStep);
@@ -352,8 +356,34 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
      */
     const [revisingVisit, setRevisingVisit] = useState<{ visitId: string; visitNumber: string } | null>(null);
 
-    /** Wznawiane przyjęcie z bramki 409 - patrz [handleSubmit]. */
-    const [resumeDraft, setResumeDraft] = useState<OpenDraftVisit | null>(null);
+    /**
+     * Okno dokumentów istniejącego szkicu, czytane z serwera: po bramce 409 (patrz
+     * [handleSubmit]) albo po nieudanej poprawce usług. `fromRevision` - formularz jest tego
+     * szkicu, więc z okna wolno wrócić do formularza i spróbować zapisać usługi jeszcze raz.
+     */
+    const [resume, setResume] = useState<{ draft: ResumableDraft; fromRevision: boolean } | null>(null);
+
+    /** 409, ale szkicu nie dało się wskazać - zostaje droga przez listę nieukończonych przyjęć. */
+    const [draftConflictUnresolved, setDraftConflictUnresolved] = useState(false);
+
+    /** „Przerwij przyjęcie" ze stopki po nieudanej poprawce usług - pytanie przed anulowaniem. */
+    const [abandonPromptOpen, setAbandonPromptOpen] = useState(false);
+
+    // Anulowanie znaczy „to przyjęcie się nie odbyło" - wracamy tam, gdzie zostaje po nim
+    // wolny termin (patrz [handleSigningModalCancel]).
+    const cancelDraft = useCancelDraftVisit(() => {
+        setAbandonPromptOpen(false);
+        navigate('/calendar');
+    });
+
+    /** Szkic do okna dokumentów z tego, co wpisano w formularzu - te same dane poszły do serwera. */
+    const draftFromForm = (): Omit<ResumableDraft, 'visitId' | 'visitNumber'> => ({
+        customerName: `${formData.customerData.firstName} ${formData.customerData.lastName}`.trim() || null,
+        customerPhone: formData.customerData.phone || null,
+        customerEmail: formData.customerData.email || null,
+        hasPhotos: (formData.photos?.length ?? 0) > 0,
+        hasDamageMap: (formData.damagePoints?.length ?? 0) > 0,
+    });
 
     const handleNext = () => {
         if (!isStepValid) {
@@ -372,6 +402,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
             return;
         }
 
+        setDraftConflictUnresolved(false);
         setSigningModalState({ isOpen: true, isCreating: true, visitId: null, visitNumber: null, protocols: [], hasPhotos: false, hasDamageMap: false });
 
         if (revisingVisit) {
@@ -388,7 +419,8 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                 });
                 setRevisingVisit(null);
             } catch {
-                // Komunikat serwera pokazuje stopka (submitError); szkic zostaje do poprawy.
+                // revisingVisit ZOSTAJE: szkic istnieje dalej, a stopka (RevisionFailedNotice)
+                // daje wyjścia niezależne od tego zapisu - dokumenty z serwera albo anulowanie.
                 setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [], hasPhotos: false, hasDamageMap: false });
             }
             return;
@@ -400,7 +432,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                 isOpen: true,
                 isCreating: false,
                 visitId: result.visitId,
-                visitNumber: `VIS-${result.visitId.slice(0, 8)}`,
+                visitNumber: result.visitNumber ?? fallbackVisitNumber(result.visitId),
                 protocols: result.protocols || [],
                 hasPhotos: (formData.photos?.length ?? 0) > 0,
                 hasDamageMap: (formData.damagePoints?.length ?? 0) > 0,
@@ -409,25 +441,37 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
             setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [], hasPhotos: false, hasDamageMap: false });
 
             /*
-             * 409: dla tej rezerwacji trwa już nieukończone przyjęcie - najczęściej to
-             * samo, przerwane wcześniej przy dokumentach. Nie zakładamy drugiej wizyty:
-             * wracamy do tamtej, dokładnie w miejscu, w którym została porzucona.
+             * 409: to przyjęcie ma już szkic - przerwany wcześniej przy dokumentach albo
+             * założony przed chwilą, gdy odpowiedź nie doszła (zerwane połączenie, 5xx po
+             * zapisie) i sprzedawca kliknął jeszcze raz. Dotyczy także walk-inu: serwer
+             * rozpoznaje powtórkę po qrCheckinId. Nie zakładamy drugiej wizyty - wracamy do tamtej.
              */
-            if (isDraftConflict(error) && reservationId) {
-                const draft = await visitApi
-                    .getOpenDraftForAppointment(reservationId)
-                    .catch(() => null);
+            const conflict = draftConflictOf(error);
+            if (conflict) {
+                const draft = await resolveConflictDraft(conflict, reservationId, draftFromForm());
                 if (draft) {
-                    setResumeDraft(draft);
+                    setResume({ draft, fromRevision: false });
                     return;
                 }
+                // Dawniej `.catch(() => null)` i cisza: stopka mówiła, że przyjęcie trwa,
+                // i nie mówiła, gdzie je dokończyć.
+                setDraftConflictUnresolved(true);
             }
         }
     };
 
+    /** Poprawka usług się nie zapisała → dokumenty szkicu takie, jakie są na serwerze. */
+    const handleBackToDocumentsUnchanged = () => {
+        if (!revisingVisit) return;
+        resetSubmitError();
+        setResume({
+            draft: { ...draftFromForm(), visitId: revisingVisit.visitId, visitNumber: revisingVisit.visitNumber },
+            fromRevision: true,
+        });
+    };
+
     const handleSigningModalConfirm = () => {
         if (signingModalState.visitId) {
-            const visitNumber = signingModalState.visitNumber || signingModalState.visitId.slice(0, 8);
             showSuccess('Wizyta rozpoczęta');
             setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [], hasPhotos: false, hasDamageMap: false });
             onComplete(signingModalState.visitId);
@@ -598,16 +642,21 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                                     </ValidationErrors>
                                 </div>
                             </ValidationAlert>
+                        ) : submitError && revisingVisit ? (
+                            <RevisionFailedNotice
+                                message={checkinErrorMessage(submitError, REVISE_ERROR_TEXTS)}
+                                onBackToDocuments={handleBackToDocumentsUnchanged}
+                                onAbandon={() => setAbandonPromptOpen(true)}
+                                isAbandoning={cancelDraft.isPending}
+                            />
+                        ) : submitError && draftConflictUnresolved ? (
+                            <DraftConflictNotice
+                                message={checkinErrorMessage(submitError)}
+                                onGoToDrafts={() => navigate('/operations')}
+                            />
                         ) : submitError ? (
-                            <ErrorAlert>
-                                {(() => {
-                                    const anyErr: any = submitError as any;
-                                    const backendMsg = anyErr?.response?.data?.message;
-                                    return (typeof backendMsg === 'string' && backendMsg.trim().length > 0)
-                                        ? backendMsg
-                                        : (anyErr?.message ?? t.checkin.errors.createFailed);
-                                })()}
-                            </ErrorAlert>
+                            // Dawniej w ostateczności `error.message` - angielski tekst axiosa.
+                            <ErrorAlert role="alert">{checkinErrorMessage(submitError)}</ErrorAlert>
                         ) : (
                             <FooterStepHint>
                                 <FooterStepDot />
@@ -641,29 +690,38 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                 />
             )}
 
-            {resumeDraft && (
+            {resume && (
                 <ResumeCheckInModal
-                    draft={resumeDraft}
+                    draft={resume.draft}
+                    fromReservation={!!reservationId}
                     onConfirmed={visitId => {
-                        setResumeDraft(null);
+                        setResume(null);
                         showSuccess('Wizyta rozpoczęta');
                         onComplete(visitId);
                     }}
                     onCancelled={() => {
-                        setResumeDraft(null);
+                        setResume(null);
                         navigate('/calendar');
                     }}
+                    onBackToForm={resume.fromRevision ? () => {
+                        setResume(null);
+                        goToStep('verification');
+                    } : undefined}
+                />
+            )}
+
+            {abandonPromptOpen && revisingVisit && (
+                <AbandonCheckInDialog
+                    isOpen
+                    visitNumber={revisingVisit.visitNumber}
+                    isCancelling={cancelDraft.isPending}
+                    onBack={() => setAbandonPromptOpen(false)}
+                    // Sprzedawca już jest w formularzu - „Wróć do formularza" tylko zamyka pytanie.
+                    onBackToForm={() => setAbandonPromptOpen(false)}
+                    fromReservation={!!reservationId}
+                    onCancelVisit={() => cancelDraft.mutate(revisingVisit.visitId)}
                 />
             )}
         </>
     );
-};
-
-/**
- * Czy błąd to bramka „ta rezerwacja ma już nieukończone przyjęcie" (HTTP 409 z kodem),
- * a nie dowolny inny konflikt.
- */
-const isDraftConflict = (error: unknown): boolean => {
-    const response = (error as { response?: { status?: number; data?: { code?: string } } })?.response;
-    return response?.status === 409 && response?.data?.code === 'DRAFT_VISIT_ALREADY_EXISTS';
 };

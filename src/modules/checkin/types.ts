@@ -481,6 +481,11 @@ export interface ProtocolResponse {
 
 export interface CreateVisitFromReservationResponse {
     visitId: string;
+    /**
+     * Numer szkicu wizyty. Backend jeszcze go tu nie wysyła (ReservationToVisitResponse
+     * ma tylko visitId i protokoły) - do tego czasu kreator pokazuje numer zastępczy.
+     */
+    visitNumber?: string;
     protocols: ProtocolResponse[];
 }
 
