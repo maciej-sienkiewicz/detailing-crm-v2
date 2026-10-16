@@ -56,6 +56,18 @@ describe('IncomeDocumentsTable - dokumenty wycofane poprawką rozliczenia', () =
         expect(screen.getByText('PAR/2026/0007').closest('tr')).toHaveTextContent('Zastąpiony');
     });
 
+    it('reszta wizyty bez paragonu ma własną plakietkę zamiast „Inny”', () => {
+        renderTable([
+            doc({ id: 'd-2', sourceKind: 'FINANCE', documentType: 'OTHER', documentNumber: 'DOK/2026/0003',
+                ksefStatus: null, totalNet: 700_000, totalVat: 0, totalGross: 700_000, withoutReceipt: true }),
+            doc({ id: 'd-3', sourceKind: 'FINANCE', documentType: 'OTHER', documentNumber: 'DOK/2026/0004',
+                ksefStatus: null }),
+        ]);
+        expect(screen.getByText('DOK/2026/0003').closest('tr')).toHaveTextContent('Bez paragonu');
+        expect(screen.getByText('DOK/2026/0004').closest('tr')).toHaveTextContent('Inny');
+        expect(screen.getByText('DOK/2026/0004').closest('tr')).not.toHaveTextContent('Bez paragonu');
+    });
+
     it('obowiązujący dokument nie ma etykiety ani przekreślenia', () => {
         renderTable([doc({ ksefStatus: 'ACCEPTED' })]);
         const row = screen.getByText('FV/2026/0003').closest('tr')!;

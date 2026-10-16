@@ -166,6 +166,7 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                         grossAmount={handover.totals.gross}
                         currency={handover.currency}
                         thankYouAt={thankYouAt}
+                        remainderWithoutReceipt={handover.state.remainderWithoutReceipt}
                         onClose={onClose}
                     />
                 ) : (

@@ -45,6 +45,11 @@ export interface HandoverState {
     /** Faktura pokrywa tylko część kwoty: reszta idzie osobnym dokumentem. */
     splitRemainder: boolean;
     remainderMethod: PaymentMethod;
+    /**
+     * Reszta bez paragonu i bez VAT: serwer zapisuje ją jako „inny” z VAT 0 i flagą
+     * withoutReceipt. false = paragon na resztę.
+     */
+    remainderWithoutReceipt: boolean;
     exemptionBasis: string;
     /** Protokół podpisany papierowo. Trafia do payloadu jako signatureObtained. */
     protocolSigned: boolean;
@@ -401,6 +406,7 @@ export const toInvoicePayload = (
         buyerAddressLine2: state.buyer.addressLine2.trim() || undefined,
         buyerEmail: state.buyer.email.trim() || undefined,
         remainderPaymentMethod: remainder > 0 ? state.remainderMethod : undefined,
+        remainderWithoutReceipt: remainder > 0 && state.remainderWithoutReceipt ? true : undefined,
         exemptionLegalBasis: state.items.some(i => i.vatRate === 'zw')
             ? state.exemptionBasis.trim()
             : undefined,

@@ -49,6 +49,8 @@ export interface CompleteInvoicePayload {
     buyerAddressLine2?: string;
     buyerEmail?: string;
     remainderPaymentMethod?: PaymentMethod;
+    /** Reszta bez paragonu i bez VAT (zapis „inny”, VAT 0). Pominięte = paragon. */
+    remainderWithoutReceipt?: boolean;
     exemptionLegalBasis?: string;
     /**
      * Czy fakturę wysłać do KSeF od razu po wystawieniu. Pominięcie pola oznacza

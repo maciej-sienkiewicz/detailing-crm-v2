@@ -34,6 +34,8 @@ export interface SettlementDocument {
     ksefInvoiceId: string | null;
     /** Fakturę do tego dokumentu wystawia księgowość; sam dokument jest zapisem płatności. */
     invoicedExternally?: boolean;
+    /** Część kwoty wizyty zapłacona bez paragonu i bez VAT (typeLabel „Bez paragonu”). */
+    withoutReceipt?: boolean;
 }
 
 export interface SettlementInvoice {

@@ -390,10 +390,11 @@ export const InvoiceSection = ({
 
             <Divider />
 
-            {/* ── Rozliczenie: całość fakturą albo faktura + paragon ─────────
+            {/* ── Rozliczenie: całość fakturą albo część fakturą + reszta ─────
                 Najczęstszy przypadek przy ladzie: klient prosi o fakturę na część
-                kwoty, a resztę płaci za paragonem. Jedno pole kwoty zamiast ręcznego
-                przeliczania pozycji; suma obu dokumentów to zawsze kwota wizyty. */}
+                kwoty, a resztę płaci osobno - za paragonem albo bez paragonu i VAT.
+                Jedno pole kwoty zamiast ręcznego przeliczania pozycji; faktura
+                i reszta to zawsze razem kwota wizyty. */}
             <SplitBlock>
                 <Segmented
                     block
@@ -401,7 +402,7 @@ export const InvoiceSection = ({
                     label="Rozliczenie wizyty"
                     options={[
                         { value: 'whole', label: 'Całość na fakturze' },
-                        { value: 'split', label: 'Faktura + paragon' },
+                        { value: 'split', label: 'Część na fakturze' },
                     ]}
                     value={state.splitRemainder ? 'split' : 'whole'}
                     onChange={value => {
@@ -430,27 +431,44 @@ export const InvoiceSection = ({
                                 Kwota na fakturze musi być niższa niż kwota wizyty ({fmt(visitGross)}).
                             </FieldError>
                         )}
+                        <Segmented
+                            block
+                            size="sm"
+                            label="Reszta kwoty"
+                            options={[
+                                { value: 'receipt', label: 'Paragon' },
+                                { value: 'none', label: 'Bez paragonu' },
+                            ]}
+                            value={state.remainderWithoutReceipt ? 'none' : 'receipt'}
+                            onChange={value => patch({ remainderWithoutReceipt: value === 'none' })}
+                        />
                         <Equation aria-label="Podział kwoty wizyty">
                             <EquationPart>Wizyta<strong>{fmt(visitGross)}</strong></EquationPart>
                             <span className="op">=</span>
                             <EquationPart>Faktura<strong>{fmt(invoiceGross)}</strong></EquationPart>
                             <span className="op">+</span>
-                            <EquationPart>Paragon<strong>{fmt(Math.max(remainder, 0))}</strong></EquationPart>
+                            <EquationPart>
+                                {state.remainderWithoutReceipt ? 'Bez paragonu' : 'Paragon'}
+                                <strong>{fmt(Math.max(remainder, 0))}</strong>
+                            </EquationPart>
                         </Equation>
                         {remainder > 0 ? (
                             <>
-                                <RowLabel>Jak klient zapłacił kwotę z paragonu ({fmt(remainder)})?</RowLabel>
+                                <RowLabel>Jak klient zapłacił resztę ({fmt(remainder)})?</RowLabel>
                                 <PaymentMethodPicker
                                     value={state.remainderMethod}
                                     onChange={remainderMethod => patch({ remainderMethod })}
                                 />
                                 <Muted>
                                     Pozycje faktury przeliczyliśmy proporcjonalnie do usług, stawki VAT
-                                    zostają. Paragon obejmie resztę każdej usługi.
+                                    zostają.{' '}
+                                    {state.remainderWithoutReceipt
+                                        ? 'Reszta zapisze się bez paragonu i bez VAT, oznaczona w finansach jako „Bez paragonu”.'
+                                        : 'Paragon obejmie resztę każdej usługi.'}
                                 </Muted>
                             </>
                         ) : (
-                            <Muted>Wpisz kwotę faktury niższą niż kwota wizyty, resztę obejmie paragon.</Muted>
+                            <Muted>Wpisz kwotę faktury niższą niż kwota wizyty, resztę zapłaci klient osobno.</Muted>
                         )}
                     </>
                 )}

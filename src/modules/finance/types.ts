@@ -75,6 +75,8 @@ export interface FinancialDocument {
   correctsDocumentId?: string | null;
   /** Dokument zastąpiony w poprawce rozliczenia wizyty - zostaje tylko do odczytu. */
   supersededAt?:       string | null;
+  /** Część kwoty wizyty zapłacona bez paragonu i bez VAT (documentTypeLabel „Bez paragonu”). */
+  withoutReceipt?:     boolean;
 }
 
 export interface FinancialDocumentListResponse {
@@ -574,6 +576,8 @@ export interface IncomeDocument {
    * KSeF, faktura wyzerowana korektą albo dokument zastąpiony nowym. null = obowiązuje.
    */
   settlementState?: IncomeSettlementState | null;
+  /** Część kwoty wizyty zapłacona bez paragonu i bez VAT (typ OTHER, VAT 0). */
+  withoutReceipt?:  boolean;
 }
 
 export type IncomeSettlementState = 'CANCELLED' | 'ZEROED' | 'SUPERSEDED';

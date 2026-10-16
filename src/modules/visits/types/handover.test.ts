@@ -35,6 +35,7 @@ const state = (overrides: Partial<HandoverState> = {}): HandoverState => ({
     items: [{ name: 'Mycie', net: '', gross: '0.00', mode: 'GROSS', vatRate: '23' }],
     splitRemainder: false,
     remainderMethod: 'CASH',
+    remainderWithoutReceipt: false,
     exemptionBasis: '',
     protocolSigned: false,
     sendToKsef: null,
@@ -554,6 +555,18 @@ describe('toInvoicePayload', () => {
 
         expect(toInvoicePayload(partial, 250_000, true).remainderPaymentMethod).toBe('CASH');
         expect(toInvoicePayload(partial, 190_000, true).remainderPaymentMethod).toBeUndefined();
+    });
+
+    it('reszta bez paragonu: flaga idzie tylko wtedy, gdy reszta istnieje', () => {
+        const withoutReceipt = state({ items: [item()], splitRemainder: true, remainderWithoutReceipt: true });
+
+        expect(toInvoicePayload(withoutReceipt, 250_000, true)).toMatchObject({
+            remainderPaymentMethod: 'CASH',
+            remainderWithoutReceipt: true,
+        });
+        expect(toInvoicePayload(withoutReceipt, 190_000, true).remainderWithoutReceipt).toBeUndefined();
+        expect(toInvoicePayload(state({ items: [item()], splitRemainder: true }), 250_000, true).remainderWithoutReceipt)
+            .toBeUndefined();
     });
 
     it('dane nabywcy: NIP bez kresek, puste pola pominięte, decyzja o KSeF wprost', () => {

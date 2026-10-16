@@ -21,6 +21,7 @@ const state = (overrides: Partial<HandoverState> = {}): HandoverState => ({
     items: [item('Powłoka ceramiczna', '15000,00', '23'), item('Tapicerka', '2000,00', '8')],
     splitRemainder: false,
     remainderMethod: 'CASH',
+    remainderWithoutReceipt: false,
     exemptionBasis: '',
     protocolSigned: false,
     sendToKsef: null,
@@ -41,12 +42,18 @@ const controls = (overrides: Partial<InvoiceControls> = {}): InvoiceControls => 
 
 const ksef = { isLoading: false, moduleEnabled: false, configured: false } as unknown as KsefAutomation;
 
-const renderSection = (s: HandoverState, invoiceGross: number, c: InvoiceControls, visitGross = 1_700_000) =>
+const renderSection = (
+    s: HandoverState,
+    invoiceGross: number,
+    c: InvoiceControls,
+    visitGross = 1_700_000,
+    patch: (changes: Partial<HandoverState>) => void = vi.fn(),
+) =>
     render(
         <ThemeProvider theme={theme}>
             <InvoiceSection
                 state={s}
-                patch={vi.fn()}
+                patch={patch}
                 currency="PLN"
                 visitGross={visitGross}
                 invoiceGross={invoiceGross}
@@ -65,15 +72,52 @@ const renderSection = (s: HandoverState, invoiceGross: number, c: InvoiceControl
 
 afterEach(cleanup);
 
-describe('InvoiceSection - faktura + paragon', () => {
-    it('„Faktura + paragon” włącza podział', () => {
+describe('InvoiceSection - część na fakturze, reszta osobno', () => {
+    it('„Część na fakturze” włącza podział', () => {
         const c = controls();
         renderSection(state(), 1_700_000, c);
 
         expect(screen.queryByLabelText('Kwota na fakturze (brutto)')).not.toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: 'Faktura + paragon' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Część na fakturze' }));
 
         expect(c.setSplit).toHaveBeenCalledWith(true);
+    });
+
+    it('„Bez paragonu” ustawia resztę bez paragonu, a równanie i opis mówią, czym jest reszta', () => {
+        const patch = vi.fn();
+        const split = state({ splitRemainder: true, items: [item('Powłoka ceramiczna', '10000,00', '23')] });
+        const { rerender } = renderSection(split, 1_000_000, controls({ itemsMatchServices: false }), 1_700_000, patch);
+
+        const equation = screen.getByLabelText('Podział kwoty wizyty');
+        expect(within(equation).getByText('Paragon')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Bez paragonu' }));
+        expect(patch).toHaveBeenCalledWith({ remainderWithoutReceipt: true });
+
+        rerender(
+            <ThemeProvider theme={theme}>
+                <InvoiceSection
+                    state={{ ...split, remainderWithoutReceipt: true }}
+                    patch={patch}
+                    currency="PLN"
+                    visitGross={1_700_000}
+                    invoiceGross={1_000_000}
+                    remainder={700_000}
+                    sellerComplete
+                    company={undefined}
+                    problemsIn={() => []}
+                    ksef={ksef}
+                    sendToKsef={false}
+                    canChooseSendToKsef={false}
+                    onSendToKsefChange={vi.fn()}
+                    controls={controls({ itemsMatchServices: false })}
+                />
+            </ThemeProvider>,
+        );
+
+        const after = screen.getByLabelText('Podział kwoty wizyty');
+        expect(within(after).getByText('Bez paragonu').textContent).toMatch(/7000,00/);
+        expect(screen.getByText(/bez paragonu i bez VAT/)).toBeInTheDocument();
+        expect(screen.getByText(/Jak klient zapłacił resztę/)).toBeInTheDocument();
     });
 
     it('wpisana kwota faktury trafia do przeliczenia pozycji w groszach', () => {
@@ -96,7 +140,8 @@ describe('InvoiceSection - faktura + paragon', () => {
         expect(within(equation).getByText('Wizyta').textContent).toMatch(/17\s000,00/);
         expect(within(equation).getByText('Faktura').textContent).toMatch(/10\s000,00/);
         expect(within(equation).getByText('Paragon').textContent).toMatch(/7000,00/);
-        expect(screen.getByText(/Jak klient zapłacił kwotę z paragonu/)).toBeInTheDocument();
+        expect(screen.getByText(/Jak klient zapłacił resztę/)).toBeInTheDocument();
+        expect(screen.getByText(/Paragon obejmie resztę każdej usługi/)).toBeInTheDocument();
         // Pozycje po przeliczeniu nie są już „zgodne z usługami” - etykieta tego nie twierdzi.
         expect(screen.queryByText(/zgodnie z usługami wizyty/)).not.toBeInTheDocument();
     });

@@ -109,12 +109,12 @@ export const SettlementSection = ({
                 label="Do zapłaty"
                 amount={fmt(totals.gross)}
                 details={isSplit
-                    ? `faktura ${fmt(invoiceGross)} + paragon ${fmt(remainder)}`
+                    ? `faktura ${fmt(invoiceGross)} + ${state.remainderWithoutReceipt ? 'bez paragonu' : 'paragon'} ${fmt(remainder)}`
                     : `netto ${fmt(totals.net)}, VAT ${fmt(totals.vat)}`}
             />
 
             <Field>
-                {/* Przy podziale forma zapłaty dotyczy faktury - paragon ma własną niżej. */}
+                {/* Przy podziale forma zapłaty dotyczy faktury - reszta ma własną niżej. */}
                 <FieldTitle>{isSplit ? 'Forma zapłaty faktury' : 'Forma zapłaty'}</FieldTitle>
                 <PaymentMethodPicker
                     value={state.paymentMethod}

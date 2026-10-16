@@ -395,6 +395,15 @@ const DOCUMENT_TYPE: Record<IncomeDocumentType, { label: string; variant: BadgeV
 };
 
 /**
+ * Typ w kolumnie. Reszta wizyty zapłacona bez paragonu i bez VAT jest zapisem typu
+ * „inny” - bez własnej plakietki ginęłaby wśród zwykłych dokumentów „inny”.
+ */
+const documentTypeBadge = (doc: IncomeDocument) =>
+  doc.withoutReceipt && doc.documentType === 'OTHER'
+    ? { label: 'Bez paragonu', variant: 'amber' as BadgeVariant }
+    : DOCUMENT_TYPE[doc.documentType] ?? DOCUMENT_TYPE.OTHER;
+
+/**
  * Tooltip ptaszka. Zielony znaczy dokładnie jedno: dokument jest w KSeF i ma nadany numer.
  * Każdy inny stan jest szary, a różnice między nimi (czeka, jedzie, odrzucona, świadomie
  * poza systemem) niesie już zdanie po najeżdżeniu — w kolumnie były siedmioma etykietami,
@@ -600,7 +609,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
               <CardSkeleton key={i}><div style={{ width: '65%' }} /><div style={{ width: '40%' }} /></CardSkeleton>
             ))
           : documents.map((doc) => {
-              const type = DOCUMENT_TYPE[doc.documentType] ?? DOCUMENT_TYPE.OTHER;
+              const type = documentTypeBadge(doc);
               const payment = PAYMENT_STATUS[doc.paymentStatus] ?? PAYMENT_STATUS.PENDING;
               // Ptaszek tylko dla dokumentów, które w ogóle idą do KSeF: przy paragonie
               // szary znaczek sugerowałby zaległość, której nie ma.
@@ -723,7 +732,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                 </SkeletonRow>
               ))
             : documents.map((doc) => {
-                const type = DOCUMENT_TYPE[doc.documentType] ?? DOCUMENT_TYPE.OTHER;
+                const type = documentTypeBadge(doc);
                 const payment = PAYMENT_STATUS[doc.paymentStatus] ?? PAYMENT_STATUS.PENDING;
                 // Ptaszek tylko dla dokumentów, które w ogóle idą do KSeF — paragon nie ma
                 // czego „jeszcze nie mieć" i szary znaczek mówiłby o zaległości, której nie ma.

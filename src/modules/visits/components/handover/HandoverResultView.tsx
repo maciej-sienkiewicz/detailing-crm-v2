@@ -194,6 +194,8 @@ interface HandoverResultViewProps {
      * (jedzie w payloadzie), tu pokazujemy już tylko jej skutek.
      */
     thankYouAt: Date | null;
+    /** Reszta zapisana bez paragonu - zapis „DOK/…” nie jest paragonem. */
+    remainderWithoutReceipt?: boolean;
     onClose: () => void;
 }
 
@@ -202,6 +204,7 @@ export const HandoverResultView = ({
     grossAmount,
     currency,
     thankYouAt,
+    remainderWithoutReceipt = false,
     onClose,
 }: HandoverResultViewProps) => {
     const status = result.ksefStatus ?? null;
@@ -287,7 +290,7 @@ export const HandoverResultView = ({
                 {result.remainderDocumentNumber && (
                     <BoxRow>
                         <span style={{ fontSize: st.fontSm, color: st.textSecondary }}>
-                            Paragon na resztę kwoty
+                            {remainderWithoutReceipt ? 'Reszta bez paragonu' : 'Paragon na resztę kwoty'}
                         </span>
                         <DocNumber>{result.remainderDocumentNumber}</DocNumber>
                     </BoxRow>

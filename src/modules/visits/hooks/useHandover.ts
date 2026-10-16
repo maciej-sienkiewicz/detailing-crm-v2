@@ -177,6 +177,7 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
             items: seedItems,
             splitRemainder: false,
             remainderMethod: 'CASH',
+            remainderWithoutReceipt: false,
             exemptionBasis: '',
             protocolSigned: false,
             sendToKsef: null,
@@ -311,7 +312,7 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     // ── Podział: faktura na część kwoty, reszta paragonem ─────────────────────
     /** Pozycje z usług wizyty, faktura na całość. Zdejmuje też baner przywróconego draftu. */
     const resetItemsToServices = useCallback(() => {
-        patch({ items: serviceItems, splitRemainder: false });
+        patch({ items: serviceItems, splitRemainder: false, remainderWithoutReceipt: false });
         setRestoredAt(null);
     }, [patch, serviceItems]);
 
