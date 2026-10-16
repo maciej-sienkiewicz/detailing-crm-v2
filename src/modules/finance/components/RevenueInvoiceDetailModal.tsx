@@ -27,6 +27,7 @@ import { useExcludeIncomeDocument, useRestoreIncomeDocument } from '../hooks/use
 import { formatMoney, formatMoneyCompact, formatDate, formatBankAccount } from '../utils/formatters';
 import { RevenueStatusBadge } from './RevenueStatusBadge';
 import type { RevenueInvoice, RevenueParty } from '../types';
+import { apiErrorMessage } from '@/modules/visits/api/apiError';
 
 // ─── Wizualizacja dokumentu ──────────────────────────────────────────────────
 // Układ celowo bliźniaczy do podglądu faktury kosztowej: ta sama „kartka",
@@ -529,6 +530,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
 
   const [correctionMode, setCorrectionMode]     = useState(false);
   const [correctionReason, setCorrectionReason] = useState('');
+  const [correctionExemption, setCorrectionExemption] = useState<string | null>(null);
   const [actionError, setActionError]           = useState<string | null>(null);
 
   if (!invoiceId) return null;
@@ -536,6 +538,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
   const close = () => {
     setCorrectionMode(false);
     setCorrectionReason('');
+    setCorrectionExemption(null);
     setActionError(null);
     onClose();
   };
@@ -544,8 +547,8 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
     setActionError(null);
     try {
       await action();
-    } catch (e: any) {
-      setActionError(e?.response?.data?.message ?? 'Nie udało się. Spróbuj ponownie.');
+    } catch (e: unknown) {
+      setActionError(apiErrorMessage(e, 'Nie udało się. Spróbuj ponownie.'));
     }
   };
 
@@ -553,10 +556,16 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
     run(async () => {
       await correctionMutation.mutateAsync({
         id: invoiceId,
-        data: { reason: correctionReason.trim() },
+        data: {
+          reason: correctionReason.trim(),
+          // Korekta faktury z pozycją „zw" powtarza podstawę zwolnienia. Bez niej serwer
+          // odrzucał korektę ogólnym „Niektóre dane są niepoprawne".
+          ...(hasExemptItem && exemption.trim() ? { exemptionLegalBasis: exemption.trim() } : {}),
+        },
       });
       setCorrectionMode(false);
       setCorrectionReason('');
+      setCorrectionExemption(null);
     });
 
   const handleDelete = () =>
@@ -571,6 +580,9 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
     paymentMutation.isPending || excludeMutation.isPending || restoreMutation.isPending;
 
   const items = invoice?.items ?? [];
+  const hasExemptItem = items.some(item => item.vatRate.trim().toLowerCase() === 'zw');
+  // Podstawa z faktury, dopóki ktoś jej nie zmieni w formularzu korekty.
+  const exemption = correctionExemption ?? invoice?.exemptionLegalBasis ?? '';
 
   return (
     <ModalShell isOpen={invoiceId !== null} onClose={close} size="full" fillHeight>
@@ -601,6 +613,18 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
                     placeholder="np. Rezygnacja z usługi / błędne dane"
                   />
                 </InputShell>
+                {hasExemptItem && (
+                  <>
+                    <FieldLabel>Podstawa prawna zwolnienia z VAT *</FieldLabel>
+                    <InputShell>
+                      <BareInput
+                        value={exemption}
+                        onChange={(e) => setCorrectionExemption(e.target.value)}
+                        placeholder="np. art. 43 ust. 1 pkt 29 ustawy o VAT"
+                      />
+                    </InputShell>
+                  </>
+                )}
               </CorrectionBox>
             )}
 
@@ -872,7 +896,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
             </SharedButton>
             <SharedButton
               $variant="primary"
-              disabled={busy || !correctionReason.trim()}
+              disabled={busy || !correctionReason.trim() || (hasExemptItem && !exemption.trim())}
               onClick={handleFullCorrection}
             >
               {correctionMutation.isPending ? 'Wysyłanie korekty…' : 'Wystaw korektę i wyślij'}

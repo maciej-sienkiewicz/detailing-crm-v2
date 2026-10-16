@@ -730,6 +730,10 @@ export interface RevenueInvoice {
   ksefVerificationUrl: string | null;
   createdAt:          string;
   items:              RevenueInvoiceItem[] | null;
+  /** Podstawa zwolnienia z VAT (pozycje „zw"); null dla faktur sprzed jej zapisywania. */
+  exemptionLegalBasis?: string | null;
+  /** Faktura do paragonu (FP = 1). */
+  invoiceToReceipt?:  boolean;
 }
 
 export interface RevenueInvoiceListResponse {
