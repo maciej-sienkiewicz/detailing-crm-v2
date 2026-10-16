@@ -205,9 +205,13 @@ export const ServicesTable = ({ services, onChange, onSaveService, scope = PRICE
 
     // Rabat podmieniany przez withAdjustment: pozycja z ceną ręczną (baza 0 + SET_*)
     // najpierw przenosi ustaloną cenę do bazy, inaczej rabat liczyłby się od zera.
-    const applyServiceDiscount = (adjustment: PriceAdjustment) => {
+    // Potem stawka - tym samym withVatRate, którym okno ceny liczyło podgląd, więc
+    // zapisana pozycja jest dokładnie tą, którą człowiek widział przed „Zastosuj".
+    const applyServiceDiscount = (adjustment: PriceAdjustment, vatRate: number) => {
         if (!discountModalId) return;
-        onChange(services.map(s => s.id === discountModalId ? withAdjustment(s, adjustment) : s));
+        onChange(services.map(s => s.id === discountModalId
+            ? withVatRate(withAdjustment(s, adjustment), vatRate)
+            : s));
         closeDiscountModal();
     };
 

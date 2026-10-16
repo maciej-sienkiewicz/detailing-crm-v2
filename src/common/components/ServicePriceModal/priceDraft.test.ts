@@ -2,7 +2,7 @@
 // Pilnuje CLAUDE.md §1 - cena wpisana jako brutto zostaje brutto co do grosza.
 import { describe, expect, it } from 'vitest';
 import {
-    changeLabel, describeChange, fromDiscount, fromSurcharge, fromTypedPrice, initialMode, priceAfter,
+    baseAtVatRate, changeLabel, describeChange, fromDiscount, fromSurcharge, fromTypedPrice, initialMode, priceAfter,
     type PriceBase,
 } from './priceDraft';
 
@@ -81,5 +81,20 @@ describe('priceDraft - opis zmiany', () => {
         expect(initialMode({ type: 'FIXED_GROSS', value: 500 })).toBe('discount');
         expect(initialMode({ type: 'PERCENT', value: 10 })).toBe('surcharge');
         expect(initialMode({ type: 'SET_GROSS', value: 220_000 })).toBe('price');
+    });
+});
+
+describe('priceDraft - stawka VAT', () => {
+    it('ta sama stawka nie zmienia niczego, z dokładnym brutto', () => {
+        expect(baseAtVatRate(typedGross, 23)).toEqual(typedGross);
+    });
+
+    it('brutto wpisane od strony brutto zostaje, netto liczy się przy nowej stawce', () => {
+        expect(baseAtVatRate(typedGross, 8)).toEqual({ netCents: 175_926, exactGrossCents: 190_000, vatRate: 8 });
+    });
+
+    it('cena od netta: netto zostaje, brutto z cennika nie udaje dokładnego', () => {
+        const catalog: PriceBase = { netCents: 10_000, exactGrossCents: 12_300, vatRate: 23 };
+        expect(baseAtVatRate(catalog, 8)).toEqual({ netCents: 10_000, exactGrossCents: undefined, vatRate: 8 });
     });
 });
