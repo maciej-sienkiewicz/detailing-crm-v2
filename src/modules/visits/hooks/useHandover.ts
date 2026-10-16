@@ -19,11 +19,13 @@ import type { CompleteVisitResponse, PaymentMethod } from '../types/stateTransit
 import {
     invoiceGrossOf,
     invoiceItemFromService,
+    invoiceNetOf,
     itemsMatch,
     itemsPerRate,
     rateMismatch,
     restoreDraft,
     scaleItemsToGross,
+    scaleItemsToNet,
     servicesFingerprint,
     toInvoicePayload,
     toPln,
@@ -326,8 +328,22 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         [patch, serviceItems]
     );
 
-    const setSplit = useCallback(
-        (split: boolean) => (split ? patch({ splitRemainder: true }) : resetItemsToServices()),
+    /** Faktura na kwotę wpisaną w NETTO: netto zostaje, brutto liczy się z niego. */
+    const setInvoiceNet = useCallback(
+        (grosz: number) => patch({ items: scaleItemsToNet(serviceItems, grosz), splitRemainder: true }),
+        [patch, serviceItems]
+    );
+
+    /** Netto wizyty - górna granica kwoty netto faktury przy „Faktura + Inny”. */
+    const visitNet = useMemo(() => invoiceNetOf(serviceItems), [serviceItems]);
+
+    /**
+     * Dokument „Faktura + Inny”: faktura na część kwoty, reszta zapisem „Inny” bez
+     * paragonu i bez VAT. Wyłączenie wraca do faktury na całość z pozycji usług.
+     */
+    const setInvoiceOther = useCallback(
+        (on: boolean) =>
+            on ? patch({ splitRemainder: true, remainderWithoutReceipt: true }) : resetItemsToServices(),
         [patch, resetItemsToServices]
     );
 
@@ -416,7 +432,9 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         restoredAt: restoredAt !== null && !itemsMatchServices ? restoredAt : null,
         resetItemsToServices,
         setInvoiceAmount,
-        setSplit,
+        setInvoiceNet,
+        visitNet,
+        setInvoiceOther,
         applyItemsPerRate,
         // stan
         state,

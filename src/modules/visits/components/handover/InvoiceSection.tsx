@@ -1,11 +1,10 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import styled from 'styled-components';
 import { ChevronDown, ChevronRight, Building2, User } from 'lucide-react';
 import { formatCurrency, pluralPl } from '@/common/utils';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { CompanySettings } from '@/modules/settings/types';
 import { Toggle } from '@/common/components/Toggle';
-import { Segmented } from '@/common/components/ui';
 import { BoxRow, Divider, GhostAction, Muted, SectionProblems } from './HandoverKit';
 import { BuyerEditor } from './BuyerEditor';
 import { InvoiceItemsEditor } from './InvoiceItemsEditor';
@@ -13,6 +12,7 @@ import { SellerPrompt } from './SellerPrompt';
 import { PaymentMethodPicker } from './PaymentMethodPicker';
 import {
     formatNip,
+    invoiceNetOf,
     isPlnInput,
     normalizeNip,
     parsePln,
@@ -127,13 +127,19 @@ const BalanceRow = styled.div`
 `;
 
 /**
- * Rozliczenie wizyty na dwa dokumenty: faktura na kwotę, o którą prosi klient, i paragon
- * na resztę. Suma obu to zawsze kwota wizyty - tak samo pilnuje tego backend.
+ * „Faktura + Inny”: faktura na kwotę, o którą prosi klient, i zapis „Inny” na resztę.
+ * Suma obu to zawsze kwota wizyty - tak samo pilnuje tego backend.
  */
 const SplitBlock = styled.div`
     display: flex;
     flex-direction: column;
     gap: 10px;
+`;
+
+const AmountGrid = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 20px;
 `;
 
 const AmountRow = styled.label`
@@ -165,7 +171,7 @@ const AmountInput = styled.input<{ $invalid?: boolean }>`
 `;
 
 /**
- * „Wizyta = Faktura + Paragon” jako trzy kwoty obok siebie: przy ladzie wystarczy
+ * „Wizyta = Faktura + Inny” jako trzy kwoty obok siebie: przy ladzie wystarczy
  * jedno spojrzenie, żeby sprawdzić, że nic nie zginęło.
  */
 const Equation = styled.div`
@@ -222,8 +228,14 @@ export interface InvoiceControls {
     /** ISO chwili zapisu przywróconego draftu z pozycjami innymi niż usługi; null = brak. */
     restoredAt: string | null;
     resetItemsToServices: () => void;
+    /** Faktura na kwotę brutto (brutto wpisane, netto liczone). */
     setInvoiceAmount: (grosz: number) => void;
-    setSplit: (split: boolean) => void;
+    /** Faktura na kwotę netto (netto wpisane, brutto liczone). */
+    setInvoiceNet: (grosz: number) => void;
+    /** Netto wizyty: górna granica netto faktury. */
+    visitNet: number;
+    /** Dokument „Faktura + Inny” włączony / wyłączony. */
+    setInvoiceOther: (on: boolean) => void;
     applyItemsPerRate: () => void;
 }
 
@@ -278,19 +290,22 @@ export const InvoiceSection = ({
     const [isBuyerOpen, setBuyerOpen] = useState(false);
     const [areItemsOpen, setItemsOpen] = useState(false);
 
-    // Pole „Kwota na fakturze”: podczas wpisywania własny tekst, żeby „10 0” nie
-    // przeskakiwało na „100,00”; bez fokusu (draft = null) zawsze aktualna suma pozycji,
-    // także po edycji samych pozycji.
-    const amountRef = useRef<HTMLInputElement>(null);
-    const [amountDraft, setAmountDraft] = useState<string | null>(null);
-    const amountText = amountDraft ?? toPln(invoiceGross);
-    const typedAmount = parsePln(amountText);
-    const amountTooHigh = state.splitRemainder && typedAmount >= visitGross;
-    const onAmountChange = (value: string) => {
+    // Pola kwoty faktury: podczas wpisywania własny tekst pola, żeby „10 0” nie
+    // przeskakiwało na „100,00”; bez fokusu (draft = null) oba pokazują aktualne sumy
+    // pozycji - drugie pole jest więc zawsze policzone z tego, które wpisano.
+    const invoiceNet = invoiceNetOf(state.items);
+    const [amountDraft, setAmountDraft] = useState<{ field: 'net' | 'gross'; text: string } | null>(null);
+    const netText = amountDraft?.field === 'net' ? amountDraft.text : toPln(invoiceNet);
+    const grossText = amountDraft?.field === 'gross' ? amountDraft.text : toPln(invoiceGross);
+    const tooHigh = amountDraft !== null && (amountDraft.field === 'net'
+        ? parsePln(amountDraft.text) >= controls.visitNet
+        : parsePln(amountDraft.text) >= visitGross);
+    const onAmountChange = (field: 'net' | 'gross', value: string) => {
         if (!isPlnInput(value)) return;
-        setAmountDraft(value);
+        setAmountDraft({ field, text: value });
         const grosz = parsePln(value);
-        if (grosz > 0 && grosz < visitGross) controls.setInvoiceAmount(grosz);
+        if (field === 'net' && grosz > 0 && grosz < controls.visitNet) controls.setInvoiceNet(grosz);
+        if (field === 'gross' && grosz > 0 && grosz < visitGross) controls.setInvoiceAmount(grosz);
     };
 
     const fmt = (grosz: number) => formatCurrency(grosz / 100, currency);
@@ -390,91 +405,69 @@ export const InvoiceSection = ({
 
             <Divider />
 
-            {/* ── Rozliczenie: całość fakturą albo część fakturą + reszta ─────
-                Najczęstszy przypadek przy ladzie: klient prosi o fakturę na część
-                kwoty, a resztę płaci osobno - za paragonem albo bez paragonu i VAT.
-                Jedno pole kwoty zamiast ręcznego przeliczania pozycji; faktura
-                i reszta to zawsze razem kwota wizyty. */}
-            <SplitBlock>
-                <Segmented
-                    block
-                    size="sm"
-                    label="Rozliczenie wizyty"
-                    options={[
-                        { value: 'whole', label: 'Całość na fakturze' },
-                        { value: 'split', label: 'Część na fakturze' },
-                    ]}
-                    value={state.splitRemainder ? 'split' : 'whole'}
-                    onChange={value => {
-                        controls.setSplit(value === 'split');
-                        if (value === 'split') window.setTimeout(() => amountRef.current?.select(), 0);
-                    }}
-                />
-                {state.splitRemainder && (
-                    <>
-                        <AmountRow>
-                            Kwota na fakturze (brutto)
-                            <AmountInput
-                                ref={amountRef}
-                                value={amountText}
-                                inputMode="decimal"
-                                aria-label="Kwota na fakturze (brutto)"
-                                $invalid={amountTooHigh}
-                                onFocus={() => setAmountDraft(toPln(invoiceGross))}
-                                onChange={e => onAmountChange(e.target.value)}
-                                onBlur={() => setAmountDraft(null)}
-                            />
-                            <span>zł</span>
-                        </AmountRow>
-                        {amountTooHigh && (
+            {/* ── „Faktura + Inny”: kwota faktury, reszta zapisem „Inny” ──────
+                Tylko dwa pola kwoty faktury i forma zapłaty reszty. Wpisane netto
+                liczy brutto, wpisane brutto liczy netto (CLAUDE.md §1); pozycje
+                przeliczają się same, stawki VAT zostają jak w usługach. */}
+            {state.remainderWithoutReceipt && (
+                <>
+                    <SplitBlock>
+                        <AmountGrid>
+                            <AmountRow>
+                                Faktura netto
+                                <AmountInput
+                                    value={netText}
+                                    inputMode="decimal"
+                                    aria-label="Faktura netto"
+                                    $invalid={tooHigh && amountDraft?.field === 'net'}
+                                    onFocus={() => setAmountDraft({ field: 'net', text: toPln(invoiceNet) })}
+                                    onChange={e => onAmountChange('net', e.target.value)}
+                                    onBlur={() => setAmountDraft(null)}
+                                />
+                                <span>zł</span>
+                            </AmountRow>
+                            <AmountRow>
+                                Faktura brutto
+                                <AmountInput
+                                    value={grossText}
+                                    inputMode="decimal"
+                                    aria-label="Faktura brutto"
+                                    $invalid={tooHigh && amountDraft?.field === 'gross'}
+                                    onFocus={() => setAmountDraft({ field: 'gross', text: toPln(invoiceGross) })}
+                                    onChange={e => onAmountChange('gross', e.target.value)}
+                                    onBlur={() => setAmountDraft(null)}
+                                />
+                                <span>zł</span>
+                            </AmountRow>
+                        </AmountGrid>
+                        {tooHigh && (
                             <FieldError role="alert">
-                                Kwota na fakturze musi być niższa niż kwota wizyty ({fmt(visitGross)}).
+                                Faktura musi być niższa niż kwota wizyty ({fmt(visitGross)} brutto).
                             </FieldError>
                         )}
-                        <Segmented
-                            block
-                            size="sm"
-                            label="Reszta kwoty"
-                            options={[
-                                { value: 'receipt', label: 'Paragon' },
-                                { value: 'none', label: 'Bez paragonu' },
-                            ]}
-                            value={state.remainderWithoutReceipt ? 'none' : 'receipt'}
-                            onChange={value => patch({ remainderWithoutReceipt: value === 'none' })}
-                        />
                         <Equation aria-label="Podział kwoty wizyty">
                             <EquationPart>Wizyta<strong>{fmt(visitGross)}</strong></EquationPart>
                             <span className="op">=</span>
                             <EquationPart>Faktura<strong>{fmt(invoiceGross)}</strong></EquationPart>
                             <span className="op">+</span>
-                            <EquationPart>
-                                {state.remainderWithoutReceipt ? 'Bez paragonu' : 'Paragon'}
-                                <strong>{fmt(Math.max(remainder, 0))}</strong>
-                            </EquationPart>
+                            <EquationPart>Inny<strong>{fmt(Math.max(remainder, 0))}</strong></EquationPart>
                         </Equation>
                         {remainder > 0 ? (
                             <>
-                                <RowLabel>Jak klient zapłacił resztę ({fmt(remainder)})?</RowLabel>
+                                <RowLabel>Jak klient zapłacił „Inny” ({fmt(remainder)})?</RowLabel>
                                 <PaymentMethodPicker
                                     value={state.remainderMethod}
                                     onChange={remainderMethod => patch({ remainderMethod })}
                                 />
-                                <Muted>
-                                    Pozycje faktury przeliczyliśmy proporcjonalnie do usług, stawki VAT
-                                    zostają.{' '}
-                                    {state.remainderWithoutReceipt
-                                        ? 'Reszta zapisze się bez paragonu i bez VAT, oznaczona w finansach jako „Bez paragonu”.'
-                                        : 'Paragon obejmie resztę każdej usługi.'}
-                                </Muted>
                             </>
                         ) : (
-                            <Muted>Wpisz kwotę faktury niższą niż kwota wizyty, resztę zapłaci klient osobno.</Muted>
+                            <Muted>Wpisz kwotę faktury, resztę kwoty wizyty obejmie „Inny”.</Muted>
                         )}
-                    </>
-                )}
-            </SplitBlock>
+                    </SplitBlock>
 
-            <Divider />
+                    <Divider />
+                </>
+            )}
 
             {/* ── Przywrócony draft ─────────────────────────────────────────── */}
             {controls.restoredAt !== null && (
@@ -648,11 +641,11 @@ export const InvoiceSection = ({
                     </BalanceRow>
                     <span>
                         Brakuje dokumentu na <strong>{fmt(remainder)}</strong>. Jeśli klient płaci tę
-                        kwotę bez faktury, rozlicz ją paragonem. Jeśli dostał rabat, zmień cenę w usługach.
+                        kwotę bez faktury, rozlicz ją jako „Inny”. Jeśli dostał rabat, zmień cenę w usługach.
                     </span>
                     <Actions>
-                        <GhostAction type="button" onClick={() => controls.setSplit(true)}>
-                            Resztę rozlicz paragonem
+                        <GhostAction type="button" onClick={() => controls.setInvoiceOther(true)}>
+                            Resztę rozlicz jako „Inny”
                         </GhostAction>
                         <GhostAction type="button" onClick={controls.resetItemsToServices}>
                             Wróć do kwot z usług

@@ -236,7 +236,9 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                             restoredAt: handover.restoredAt,
                                             resetItemsToServices: handover.resetItemsToServices,
                                             setInvoiceAmount: handover.setInvoiceAmount,
-                                            setSplit: handover.setSplit,
+                                            setInvoiceNet: handover.setInvoiceNet,
+                                            visitNet: handover.visitNet,
+                                            setInvoiceOther: handover.setInvoiceOther,
                                             applyItemsPerRate: handover.applyItemsPerRate,
                                         }}
                                     />

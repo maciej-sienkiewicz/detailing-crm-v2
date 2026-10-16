@@ -5,7 +5,7 @@ import type { CompanySettings } from '@/modules/settings/types';
 import { Pill, PillRow } from './HandoverKit';
 import { InvoiceSection, type InvoiceControls } from './InvoiceSection';
 import { PaymentMethodPicker } from './PaymentMethodPicker';
-import { documentTypes } from './paymentOptions';
+import { documentChoices, type DocumentChoice } from './paymentOptions';
 import type { HandoverProblem, HandoverState } from '../../types/handover';
 import type { KsefAutomation } from '@/modules/finance/hooks';
 import type { InvoiceType } from '../../types/stateTransitions';
@@ -87,7 +87,21 @@ export const SettlementSection = ({
     controls,
 }: SettlementSectionProps) => {
     const fmt = (grosz: number) => formatCurrency(grosz / 100, currency);
-    const isSplit = state.documentType === 'INVOICE' && state.splitRemainder && remainder > 0;
+    const choice: DocumentChoice =
+        state.documentType === 'INVOICE' && state.remainderWithoutReceipt ? 'INVOICE_OTHER' : state.documentType;
+    const isSplit = choice === 'INVOICE_OTHER' && remainder > 0;
+    const choose = (value: DocumentChoice) => {
+        if (value === choice) return;
+        // Z „Faktura + Inny” do czegokolwiek innego: pozycje wracają do usług, żeby
+        // faktura na część kwoty nie wróciła po cichu przy kolejnym wyborze faktury.
+        if (choice === 'INVOICE_OTHER') controls.setInvoiceOther(false);
+        if (value === 'INVOICE_OTHER') {
+            patch({ documentType: 'INVOICE' });
+            controls.setInvoiceOther(true);
+        } else {
+            patch({ documentType: value as InvoiceType });
+        }
+    };
 
     if (isFreeVisit) {
         return (
@@ -109,7 +123,7 @@ export const SettlementSection = ({
                 label="Do zapłaty"
                 amount={fmt(totals.gross)}
                 details={isSplit
-                    ? `faktura ${fmt(invoiceGross)} + ${state.remainderWithoutReceipt ? 'bez paragonu' : 'paragon'} ${fmt(remainder)}`
+                    ? `faktura ${fmt(invoiceGross)} + inny ${fmt(remainder)}`
                     : `netto ${fmt(totals.net)}, VAT ${fmt(totals.vat)}`}
             />
 
@@ -125,12 +139,12 @@ export const SettlementSection = ({
             <Field>
                 <FieldTitle>Dokument</FieldTitle>
                 <PillRow>
-                    {documentTypes.map(type => (
+                    {documentChoices.map(type => (
                         <Pill
                             key={type.value}
                             type="button"
-                            $selected={state.documentType === type.value}
-                            onClick={() => patch({ documentType: type.value as InvoiceType })}
+                            $selected={choice === type.value}
+                            onClick={() => choose(type.value)}
                         >
                             {type.label}
                         </Pill>
