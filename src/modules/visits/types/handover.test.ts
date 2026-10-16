@@ -6,7 +6,6 @@ import {
     invoiceItemFromService,
     invoiceRateOf,
     isPlnInput,
-    invoiceNetOf,
     itemAmounts,
     itemsMatch,
     itemsPerRate,
@@ -15,7 +14,6 @@ import {
     rateMismatch,
     restoreDraft,
     scaleItemsToGross,
-    scaleItemsToNet,
     servicesFingerprint,
     toInvoicePayload,
     toPln,
@@ -637,40 +635,6 @@ describe('itemsMatch', () => {
         expect(itemsMatch([services[0], service('Tapicerka', '500,00', '23')], services)).toBe(false);
         expect(itemsMatch([service('Mycie', '1900,00', '23'), services[1]], services)).toBe(false);
         expect(itemsMatch([services[0]], services)).toBe(false);
-    });
-});
-
-describe('scaleItemsToNet (Faktura + Inny, kwota wpisana w netto)', () => {
-    const services = [service('Powłoka ceramiczna', '15000,00', '23'), service('Tapicerka', '2000,00', '8')];
-
-    it('netto faktury równe wpisanemu co do grosza, pozycje w trybie netto, brutto liczone z netta', () => {
-        const invoice = scaleItemsToNet(services, 800_000);
-
-        expect(invoiceNetOf(invoice)).toBe(800_000);
-        expect(invoice.every(i => i.mode === 'NET')).toBe(true);
-        expect(invoice.map(i => i.vatRate)).toEqual(['23', '8']);
-        invoice.forEach(i => {
-            const { net, gross } = itemAmounts(i);
-            expect(gross).toBe(netToGross(net, Number(i.vatRate)));
-        });
-    });
-
-    it('jedna stawka: 8130,08 netto daje 10 000,00 brutto', () => {
-        const invoice = scaleItemsToNet([service('Powłoka', '17000,00', '23')], 813_008);
-
-        expect(itemAmounts(invoice[0])).toEqual({ net: 813_008, gross: 1_000_000 });
-    });
-
-    it('każda kwota netto od 1 gr do netto wizyty daje fakturę dokładnie na to netto', () => {
-        const total = invoiceNetOf(services);
-        for (let target = 1; target < total; target += 9_973) {
-            expect(invoiceNetOf(scaleItemsToNet(services, target))).toBe(target);
-        }
-    });
-
-    it('netto równe albo wyższe od wizyty i zero zostawiają usługi', () => {
-        expect(scaleItemsToNet(services, invoiceNetOf(services))).toBe(services);
-        expect(scaleItemsToNet(services, 0)).toBe(services);
     });
 });
 

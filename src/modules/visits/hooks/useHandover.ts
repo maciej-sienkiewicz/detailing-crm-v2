@@ -19,13 +19,11 @@ import type { CompleteVisitResponse, PaymentMethod } from '../types/stateTransit
 import {
     invoiceGrossOf,
     invoiceItemFromService,
-    invoiceNetOf,
     itemsMatch,
     itemsPerRate,
     rateMismatch,
     restoreDraft,
     scaleItemsToGross,
-    scaleItemsToNet,
     servicesFingerprint,
     toInvoicePayload,
     toPln,
@@ -319,25 +317,6 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     }, [patch, serviceItems]);
 
     /**
-     * Klient prosi o fakturę na kwotę niższą niż wizyta, resztę płaci za paragonem.
-     * Pozycje liczymy od usług (nie od bieżących pozycji), żeby kolejne wpisania kwoty
-     * nie kumulowały zaokrągleń.
-     */
-    const setInvoiceAmount = useCallback(
-        (grosz: number) => patch({ items: scaleItemsToGross(serviceItems, grosz), splitRemainder: true }),
-        [patch, serviceItems]
-    );
-
-    /** Faktura na kwotę wpisaną w NETTO: netto zostaje, brutto liczy się z niego. */
-    const setInvoiceNet = useCallback(
-        (grosz: number) => patch({ items: scaleItemsToNet(serviceItems, grosz), splitRemainder: true }),
-        [patch, serviceItems]
-    );
-
-    /** Netto wizyty - górna granica kwoty netto faktury przy „Faktura + Inny”. */
-    const visitNet = useMemo(() => invoiceNetOf(serviceItems), [serviceItems]);
-
-    /**
      * Dokument „Faktura + Inny”: faktura na część kwoty, reszta zapisem „Inny” bez
      * paragonu i bez VAT. Wyłączenie wraca do faktury na całość z pozycji usług.
      */
@@ -431,9 +410,6 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         vatMismatch,
         restoredAt: restoredAt !== null && !itemsMatchServices ? restoredAt : null,
         resetItemsToServices,
-        setInvoiceAmount,
-        setInvoiceNet,
-        visitNet,
         setInvoiceOther,
         applyItemsPerRate,
         // stan

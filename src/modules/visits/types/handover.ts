@@ -472,39 +472,6 @@ export const scaleItemsToGross = (seed: HandoverItem[], targetGross: number): Ha
         .filter((_, i) => floors[i] > 0);
 };
 
-/**
- * Pozycje faktury na zadaną kwotę NETTO, proporcjonalnie do netto usług wizyty.
- *
- * Odpowiednik [scaleItemsToGross] dla kwoty wpisanej w netto: netto jest wpisane, więc
- * to ono jest źródłem prawdy (CLAUDE.md §1) - pozycje idą w trybie netto, a brutto każdej
- * liczy się z jej netta. Suma netto równa się wpisanej kwocie co do grosza.
- */
-export const scaleItemsToNet = (seed: HandoverItem[], targetNet: number): HandoverItem[] => {
-    const nets = seed.map(item => itemAmounts(item).net);
-    const total = nets.reduce((sum, n) => sum + n, 0);
-    if (total <= 0 || targetNet <= 0) return seed;
-    if (targetNet >= total) return seed;
-
-    const shares = nets.map(n => (n * targetNet) / total);
-    const floors = shares.map(Math.floor);
-    let left = targetNet - floors.reduce((sum, v) => sum + v, 0);
-    const order = shares
-        .map((share, i) => ({ i, frac: share - Math.floor(share) }))
-        .sort((a, b) => b.frac - a.frac || nets[b.i] - nets[a.i]);
-    for (const { i } of order) {
-        if (left <= 0) break;
-        floors[i] += 1;
-        left -= 1;
-    }
-    return seed
-        .map((item, i) => withDerived({ ...item, mode: 'NET', net: toPln(floors[i]) }))
-        .filter((_, i) => floors[i] > 0);
-};
-
-/** Netto pozycji faktury (grosze). */
-export const invoiceNetOf = (items: HandoverItem[]): number =>
-    items.reduce((sum, item) => sum + itemAmounts(item).net, 0);
-
 /** Brutto pozycji w podziale na stawki VAT. */
 export const grossByRate = (items: HandoverItem[]): Map<VatRateCode, number> => {
     const byRate = new Map<VatRateCode, number>();

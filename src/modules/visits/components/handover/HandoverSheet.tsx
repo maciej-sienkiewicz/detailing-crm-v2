@@ -235,9 +235,6 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                             vatMismatch: handover.vatMismatch,
                                             restoredAt: handover.restoredAt,
                                             resetItemsToServices: handover.resetItemsToServices,
-                                            setInvoiceAmount: handover.setInvoiceAmount,
-                                            setInvoiceNet: handover.setInvoiceNet,
-                                            visitNet: handover.visitNet,
                                             setInvoiceOther: handover.setInvoiceOther,
                                             applyItemsPerRate: handover.applyItemsPerRate,
                                         }}
