@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { applyFloatingPlacement } from '@/common/utils/floatingPlacement';
-import { useCanEditAppointment } from '@/modules/appointments/hooks/useCanEditAppointment';
+import { usePersonalDataActions } from '@/core/permissions/personalDataActions';
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
 
@@ -64,8 +64,11 @@ export interface ReservationContextMenuProps {
 export const ReservationContextMenu = ({ appointmentId, x, y, onClose, onShowInCalendar, visitOnly }: ReservationContextMenuProps) => {
   const navigate = useNavigate();
   const menuRef = useRef<HTMLDivElement>(null);
-  // Bez danych osobowych edycja nadpisałaby klienta gwiazdkami - patrz useCanEditAppointment.
-  const canEdit = useCanEditAppointment();
+  // Edycja i rozpoczęcie wizyty wymagają VISITS_CREATE i danych osobowych - bez nich
+  // edycja nadpisałaby klienta gwiazdkami, a przyjęcie kazałoby uzupełnić klienta,
+  // którego użytkownik nie widzi (personalDataActions). Pozycji wtedy nie ma wcale.
+  const { canEditAppointment: canEdit, canCreateVisit: canStart } = usePersonalDataActions();
+  const hasReservationActions = !visitOnly && (canEdit || canStart);
 
   useEffect(() => {
     const handleMouseDown = (e: MouseEvent) => {
@@ -117,6 +120,10 @@ export const ReservationContextMenu = ({ appointmentId, x, y, onClose, onShowInC
     onShowInCalendar?.();
   };
 
+  // Bez żadnej dozwolonej pozycji menu nie ma czego pokazać - pusta ramka przy kursorze
+  // wyglądałaby na błąd.
+  if (!visitOnly && !hasReservationActions && !onShowInCalendar) return null;
+
   return createPortal(
     <Menu ref={menuRef} onMouseDown={e => e.stopPropagation()}>
       {visitOnly ? (
@@ -139,20 +146,22 @@ export const ReservationContextMenu = ({ appointmentId, x, y, onClose, onShowInC
                 </svg>
                 Edytuj
               </MenuItem>
-              <Divider />
+              {canStart && <Divider />}
             </>
           )}
-          <MenuItem onClick={handleStart}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polygon points="5 3 19 12 5 21 5 3" />
-            </svg>
-            Rozpocznij wizytę
-          </MenuItem>
+          {canStart && (
+            <MenuItem onClick={handleStart}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
+              Rozpocznij wizytę
+            </MenuItem>
+          )}
         </>
       )}
       {onShowInCalendar && (
         <>
-          {!visitOnly && <Divider />}
+          {hasReservationActions && <Divider />}
           <MenuItem onClick={handleShowInCalendar}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />

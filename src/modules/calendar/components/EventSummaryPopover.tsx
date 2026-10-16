@@ -8,8 +8,7 @@ import type { AppointmentEventData, VisitEventData, CalendarSmsInfo } from '../t
 import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
 import { PiiValue, PiiText, usePiiAccess } from '@/common/pii';
 import { VisitCardLinkModal } from '@/modules/visit-card';
-import { usePermissions } from '@/core/permissions';
-import { useCanEditAppointment } from '@/modules/appointments/hooks/useCanEditAppointment';
+import { usePermissions, usePersonalDataActions } from '@/core/permissions';
 import { useCapability } from '@/modules/subscription';
 import { HoverInfo } from '@/common/components/InfoTooltip';
 import { usePrintServicesList } from '@/modules/visits/hooks/usePrintServicesList';
@@ -1025,7 +1024,9 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
     // omits the customer object entirely, so there is nothing to display or blur.
     const piiGranted = usePiiAccess();
     const { can } = usePermissions();
-    const canEditAppointment = useCanEditAppointment();
+    // Edycja rezerwacji, rozpoczęcie wizyty i zmiana terminu wizyty wymagają danych
+    // osobowych obok VISITS_CREATE - patrz personalDataActions.
+    const { canEditAppointment, canCreateVisit, canEditVisit } = usePersonalDataActions();
 
     const handleClose = () => {
         if (closing) return;
@@ -1354,11 +1355,11 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                 ) : (
                                     <>
                                         {/* Edycja wysyła klienta w całości - bez danych osobowych
-                                            nadpisałaby go gwiazdkami (useCanEditAppointment). */}
+                                            nadpisałaby go gwiazdkami (personalDataActions). */}
                                         {canEditAppointment && (
                                             <IconActionButton onClick={onEditReservationClick} title="Edytuj rezerwację">EDYTUJ</IconActionButton>
                                         )}
-                                        {can('VISITS_CREATE') && (
+                                        {canCreateVisit && (
                                             <IconActionButton $variant="primary" onClick={onStartVisitClick} title="Rozpocznij wizytę">ROZPOCZNIJ</IconActionButton>
                                         )}
                                         {can('VISITS_CREATE') && (
@@ -1385,9 +1386,9 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                 </svg>
                                 Przejdź do wizyty
                             </ManageButton>
-                            {/* Zmiana terminu zakończenia edytuje wizytę, więc - jak PORZUĆ
-                                i PRZYWRÓĆ - wymaga prawa do tworzenia wizyt. */}
-                            {onEditEndDateClick && can('VISITS_CREATE') && (
+                            {/* Zmiana terminu zakończenia edytuje wizytę, więc wymaga prawa
+                                do jej edycji - z danymi osobowymi (personalDataActions). */}
+                            {onEditEndDateClick && canEditVisit && (
                                 <SecondaryButton onClick={onEditEndDateClick} style={{ marginTop: 8 }}>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <rect x="3" y="4" width="18" height="18" rx="2" />

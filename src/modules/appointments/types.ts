@@ -247,6 +247,45 @@ export interface SelectedVehicle {
 export type RecurrenceType = 'WEEKLY' | 'MONTHLY';
 export type RecurrenceEndType = 'COUNT' | 'DATE' | 'OPEN';
 export type RecurrenceEditScope = 'THIS' | 'THIS_AND_FUTURE' | 'ALL';
+/**
+ * Zakres, który nadpisuje INNE rezerwacje serii. Edycja zwykła nie wysyła zakresu wcale
+ * (serwer przyjmuje wtedy „tylko ta") - zmiana w serii musi być wybrana wprost.
+ */
+export type SeriesEditScope = Exclude<RecurrenceEditScope, 'THIS'>;
+
+/** GET /v1/appointments/{id}/series-impact - liczone bez edytowanej rezerwacji. */
+export interface SeriesScopeImpact {
+    otherCount: number;
+    skippedDetachedCount: number;
+    skippedConvertedCount: number;
+}
+
+export interface SeriesEditImpact {
+    seriesId: string;
+    recurrenceIndex: number;
+    totalInSeries: number;
+    isDetached: boolean;
+    thisAndFuture: SeriesScopeImpact;
+    all: SeriesScopeImpact;
+}
+
+/** Wynik zapisu w serii; `updatedCount` liczy RAZEM z edytowaną rezerwacją. */
+export interface SeriesUpdateSummary {
+    scope: SeriesEditScope;
+    updatedCount: number;
+    skippedDetachedCount: number;
+    skippedConvertedCount: number;
+}
+
+export interface AppointmentUpdateResponse {
+    id: string;
+    customerId: string;
+    vehicleId: string | null;
+    totalNet: number;
+    totalGross: number;
+    totalVat: number;
+    seriesUpdate?: SeriesUpdateSummary | null;
+}
 
 export type DayOfWeek =
     | 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY'

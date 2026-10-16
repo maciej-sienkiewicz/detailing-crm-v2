@@ -51,7 +51,7 @@ import { GeneratePostModal } from '@/modules/competition-monitoring/components/G
 import type { GeneratePostPrefill } from '@/modules/competition-monitoring/components/GeneratePostModal';
 import type { DocumentType } from '../types';
 import { useToast } from '@/common/components/Toast';
-import { usePermissions } from '@/core/permissions';
+import { usePermissions, usePersonalDataActions } from '@/core/permissions';
 import { useQueryClient } from '@tanstack/react-query';
 import { visitApi } from '../api/visitApi';
 import { DeleteOperationModal } from '@/modules/operations/components/DeleteOperationModal';
@@ -340,6 +340,13 @@ export const VisitDetailView = () => {
 
     const { can } = usePermissions();
     /*
+     * Edycja wizyty (usługi i ceny, tytuł, termin, Door to Door, stan przy przyjęciu,
+     * notatka techniczna, SMS przypominający) wymaga danych osobowych obok VISITS_CREATE
+     * - patrz personalDataActions. Praca na hali (statusy, komentarze, zdjęcia, mapa
+     * uszkodzeń, lista kontrolna) zostaje przy swoich uprawnieniach.
+     */
+    const { canEditVisit } = usePersonalDataActions();
+    /*
      * Dokumenty wizyty (protokoły, PDF-y) i przypomnienie SMS to dane VISITS_CREATE - bez
      * niego serwer odmawia, a karta pokazywała „nie ma dokumentów" i „Zaplanuj SMS", choć
      * jedno i drugie istniało. Wtedy nie pytamy wcale i sekcje mówią tylko o tym, co widać.
@@ -625,7 +632,7 @@ export const VisitDetailView = () => {
             vehicleHandoff={visit.vehicleHandoff}
             onMileageChange={handleMileageChange}
             onVinChange={handleVinChange}
-            canEdit={can('VISITS_CREATE')}
+            canEdit={canEditVisit}
             onKeysToggle={handleKeysToggle}
             onDocumentsToggle={handleDocumentsToggle}
             onViewDetails={() => navigate(`/vehicles/${visit.vehicle.id}`)}
@@ -686,7 +693,7 @@ export const VisitDetailView = () => {
                                     <span>{d2dDelivery === d2dPickup ? 'Odwiezienie pod ten sam adres' : `Odwiezienie: ${d2dDelivery}`}</span>
                                 )}
                                 {d2d.driverName && <span>Kierowca {d2d.driverName}</span>}
-                                {can('VISITS_CREATE') && (
+                                {canEditVisit && (
                                     <D2dChange variant="ghost" size="sm" onClick={() => setIsDoorToDoorOpen(true)}>Zmień</D2dChange>
                                 )}
                             </D2dStrip>
@@ -851,9 +858,11 @@ export const VisitDetailView = () => {
                                         })}
                                     </ReminderWhen>
                                     <ReminderText>{pendingReminder.messageContent}</ReminderText>
-                                    <Button size="sm" onClick={() => { setSmsReminderForEdit(pendingReminder); setIsSmsReminderOpen(true); }}>
-                                        <Pencil />Edytuj
-                                    </Button>
+                                    {canEditVisit && (
+                                        <Button size="sm" onClick={() => { setSmsReminderForEdit(pendingReminder); setIsSmsReminderOpen(true); }}>
+                                            <Pencil />Edytuj
+                                        </Button>
+                                    )}
                                 </RailPanel>
                             </Slot>
                         )}
@@ -864,7 +873,7 @@ export const VisitDetailView = () => {
                             <Slot $order={4}>
                                 <AfterCare>
                                     <Button block onClick={() => setIsCertificateOpen(true)}><Award />Certyfikat jakości</Button>
-                                    {!pendingReminder && canSeeVisitDocuments && (
+                                    {!pendingReminder && canSeeVisitDocuments && canEditVisit && (
                                         <>
                                             {/* Przycisk zawsze coś otwiera - brak numeru wyjaśnia i naprawia okno. */}
                                             <Button block onClick={() => { setSmsReminderForEdit(null); setIsSmsReminderOpen(true); }}>
@@ -899,7 +908,7 @@ export const VisitDetailView = () => {
                                     notes={visit.technicalNotes ?? null}
                                     internalNotes={visit.inspectionNotes ?? null}
                                     visitId={visit.id}
-                                    canEdit={can('VISITS_CREATE')}
+                                    canEdit={canEditVisit}
                                 />
                             </Slot>
                         )}
@@ -940,7 +949,7 @@ export const VisitDetailView = () => {
             {/* Montowany warunkowo: inaczej stan formularza zamraża się przy
                 pierwszym renderze widoku i nie widzi danych wizyty, gdy te
                 doładują się później. */}
-            {can('VISITS_CREATE') && isDoorToDoorOpen && <DoorToDoorModal
+            {canEditVisit && isDoorToDoorOpen && <DoorToDoorModal
                 isOpen
                 initialData={visit.doorToDoor}
                 customerAddress={{

@@ -8,6 +8,7 @@ import { Button } from '@/common/components/ui';
 import { authApi } from '@/modules/auth/api/authApi';
 import { useSubscriptionStatus } from '@/modules/settings/hooks/useSubscription';
 import { useCheckout, useMyPlan } from '@/modules/subscription/api/subscriptionQueries';
+import { toastCheckoutProblem, useCheckoutHandoff } from '@/modules/subscription/hooks/useCheckoutHandoff';
 import { FirstLoginModal } from '@/modules/subscription/components/FirstLoginModal';
 import { formatCents } from '@/modules/subscription/utils/formatters';
 import { BootSplash } from './BootSplash';
@@ -167,19 +168,20 @@ const BtnSpinner = styled.div`
 
 function ExpiredModal() {
     const { user } = useAuth();
-    const { showError } = useToast();
+    const { showError, showWarning } = useToast();
     const { data: myPlan } = useMyPlan();
     const checkout = useCheckout();
+    const handoff = useCheckoutHandoff();
 
     const isOwner = user?.role === 'OWNER';
 
     const handleRenew = async () => {
         if (!isOwner || checkout.isPending) return;
         try {
-            const order = await checkout.mutateAsync({ type: 'RENEWAL' });
-            if (order.paymentUrl) {
-                window.location.assign(order.paymentUrl);
-            }
+            // Brak adresu płatności to NIE sukces - rozstrzyga stan zamówienia. Zrealizowane
+            // odświeża status pakietu (useCheckout) i ta nakładka znika sama.
+            const step = handoff(await checkout.mutateAsync({ type: 'RENEWAL' }));
+            if (step.kind === 'refund' || step.kind === 'failed') toastCheckoutProblem({ showError, showWarning }, step);
         } catch {
             showError('Błąd płatności', 'Nie udało się rozpocząć płatności. Spróbuj ponownie.');
         }

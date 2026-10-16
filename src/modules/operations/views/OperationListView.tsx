@@ -16,6 +16,7 @@ import { useBreakpoint } from '@/common/hooks';
 import { PageContainer } from '@/common/components/PageContainer';
 import { UnfinishedCheckInsPanel } from '@/modules/checkin';
 import { pluralPl } from '@/common/utils/plural';
+import { usePersonalDataActions } from '@/core/permissions';
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
@@ -81,6 +82,8 @@ const SeriesBannerBtn = styled.button`
 
 export const OperationListView = () => {
     const navigate = useNavigate();
+    // „Nowa wizyta" tylko z danymi osobowymi - przyjęcie każe wpisać klienta (personalDataActions).
+    const { canCreateVisit } = usePersonalDataActions();
     const [searchParams] = useSearchParams();
     const seriesIdFilter = searchParams.get('seriesId');
     const { searchInput, debouncedSearch, handleSearchChange } = useOperationSearch();
@@ -139,7 +142,7 @@ export const OperationListView = () => {
                     subtitle={
                         pagination ? <TotalChip>{pagination.totalItems} {pluralPl(pagination.totalItems, 'wynik', 'wyniki', 'wyników')}</TotalChip> : undefined
                     }
-                    actions={
+                    actions={canCreateVisit ? (
                         <PageHeaderPrimaryButton onClick={() => navigate('/checkin/new')}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                 <line x1="12" y1="5" x2="12" y2="19" />
@@ -147,7 +150,7 @@ export const OperationListView = () => {
                             </svg>
                             Nowa wizyta
                         </PageHeaderPrimaryButton>
-                    }
+                    ) : undefined}
                 />
             ) : (
                 /* Mobile: gradient hero znika. Zamiast tego wspólny kompaktowy
@@ -158,12 +161,12 @@ export const OperationListView = () => {
                     subtitle={pagination
                         ? <><MobilePageHeaderCountValue>{pagination.totalItems}</MobilePageHeaderCountValue> {pluralPl(pagination.totalItems, 'wynik', 'wyniki', 'wyników')}</>
                         : 'Wczytywanie…'}
-                    actions={
+                    actions={canCreateVisit ? (
                         <MobilePageHeaderButton onClick={() => navigate('/checkin/new')}>
                             <span aria-hidden="true">+</span>
                             Wizyta
                         </MobilePageHeaderButton>
-                    }
+                    ) : undefined}
                 />
             )}
 

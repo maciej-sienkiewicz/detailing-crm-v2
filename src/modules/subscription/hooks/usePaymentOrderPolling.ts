@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { newSubscriptionApi } from '../api/subscriptionApi';
 import { invalidateSubscriptionData } from '../api/subscriptionQueries';
 import { isFinalOutcome, paymentOutcome, type PaymentOutcome } from '../utils/paymentOrderStatus';
+import { apiErrorMessage } from '../utils/apiErrors';
 import type { PaymentOrder } from '../types';
 
 /** Odpytywanie, póki potwierdzenie z P24 zwykle przychodzi (kilka sekund). */
@@ -19,10 +20,23 @@ export interface PaymentOrderPolling {
     outcome: PaymentOutcome;
     /** Limit czasu minął, a zamówienie wciąż nie jest rozstrzygnięte. Odpytywanie trwa. */
     delayed: boolean;
-    /** Trwa sprawdzenie zlecone ręcznie („Sprawdź ponownie"). */
-    checking: boolean;
-    checkNow: () => void;
+    /** Trwa „Odśwież" - pytanie Przelewy24 o transakcję. */
+    refreshing: boolean;
+    /** Co powiedzieć po „Odśwież", które niczego nie rozstrzygnęło (limit, P24 nie odpowiada). */
+    refreshNote: string | null;
+    refresh: () => void;
 }
+
+/** Odpowiedź 429 na „Odśwież": ciało to bieżący stan zamówienia (backend nie pytał P24). */
+function throttledOrder(error: unknown): PaymentOrder | null {
+    const response = (error as { response?: { status?: number; data?: unknown } } | null)?.response;
+    if (response?.status !== 429) return null;
+    const body = response.data as Partial<PaymentOrder> | undefined;
+    return body && typeof body.status === 'string' ? (body as PaymentOrder) : null;
+}
+
+export const REFRESH_THROTTLED_NOTE = 'Sprawdziliśmy to przed chwilą. Spróbuj ponownie za kilka sekund.';
+export const REFRESH_FAILED_NOTE = 'Nie udało się teraz sprawdzić płatności. Spróbuj ponownie za chwilę.';
 
 /**
  * Odpytuje zamówienie po powrocie z Przelewy24, aż stan się rozstrzygnie.
@@ -33,7 +47,10 @@ export interface PaymentOrderPolling {
  *  - limit czasu liczy osobny zegar, nie pętla - dawniej sprawdzała go dopiero po
  *    powrocie żądania, więc jedno zawieszone żądanie zatrzymywało wszystko;
  *  - po limicie NIE przestaje odpytywać: przechodzi na rzadszy rytm, a kupujący widzi
- *    komunikat z wyjściem i może sprawdzić od razu;
+ *    komunikat z wyjściem;
+ *  - „Odśwież" pyta Przelewy24 przez backend (`refreshOrder`), a nie tylko naszą bazę:
+ *    dawne „Sprawdź ponownie" robiło to samo co pętla, więc przy zgubionej notyfikacji
+ *    kupujący klikał w nieskończoność, a zamówienie czekało 20 minut na worker;
  *  - udany zakup unieważnia dane pakietu (bramka subskrypcji, plan, historia), więc
  *    aplikacja widzi nowy stan bez przeładowania strony.
  */
@@ -42,9 +59,10 @@ export function usePaymentOrderPolling(orderId: string | null): PaymentOrderPoll
     const [order, setOrder] = useState<PaymentOrder | null>(null);
     const [outcome, setOutcome] = useState<PaymentOutcome>('waiting');
     const [delayed, setDelayed] = useState(false);
-    const [checking, setChecking] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+    const [refreshNote, setRefreshNote] = useState<string | null>(null);
     // Uchwyt do pętli z efektu dla przycisku - pętla żyje w efekcie, przycisk poza nim.
-    const pollNow = useRef<() => Promise<void>>(() => Promise.resolve());
+    const refreshNow = useRef<() => Promise<string | null>>(() => Promise.resolve(null));
 
     useEffect(() => {
         if (!orderId) return;
@@ -59,33 +77,63 @@ export function usePaymentOrderPolling(orderId: string | null): PaymentOrderPoll
             timer = setTimeout(() => { void poll(); }, slow ? SLOW_POLL_INTERVAL_MS : POLL_INTERVAL_MS);
         };
 
+        /** Wspólny koniec odczytu i „Odśwież": ten sam zbiór stanów, to samo domknięcie. */
+        const apply = (result: PaymentOrder): PaymentOutcome => {
+            const next = paymentOutcome(result.status);
+            setOrder(result);
+            setOutcome(next);
+            if (isFinalOutcome(next)) {
+                finished = true;
+                clearTimeout(timer);
+                clearTimeout(deadline);
+                if (next === 'done' || next === 'refund') invalidateSubscriptionData(queryClient);
+            }
+            return next;
+        };
+
         const fetchOnce = async () => {
             clearTimeout(timer);
-            let next: PaymentOutcome | null = null;
             try {
                 const result = await newSubscriptionApi.getOrder(orderId, REQUEST_TIMEOUT_MS);
-                if (cancelled) return;
-                next = paymentOutcome(result.status);
-                setOrder(result);
-                setOutcome(next);
+                // Odpowiedź, która przyszła po rozstrzygnięciu („Odśwież" zdążył pierwszy), jest
+                // starsza od niego - nie wolno jej cofnąć widoku z sukcesu do czekania.
+                if (cancelled || finished) return;
+                apply(result);
             } catch {
                 // Błąd przejściowy (sieć, limit czasu żądania) - kolejna próba w następnym takcie.
                 if (cancelled) return;
             }
-            if (next && isFinalOutcome(next)) {
-                finished = true;
-                clearTimeout(deadline);
-                if (next === 'done' || next === 'refund') invalidateSubscriptionData(queryClient);
-                return;
-            }
-            schedule();
+            if (!finished) schedule();
         };
 
-        // Jedno żądanie naraz: ręczne „Sprawdź ponownie" w trakcie taktu dołącza do niego.
+        // Jedno żądanie naraz: takt pętli w trakcie trwającego odczytu dołącza do niego.
         const poll = (): Promise<void> => {
             if (cancelled || finished) return Promise.resolve();
             if (!inFlight) inFlight = fetchOnce().finally(() => { inFlight = null; });
             return inFlight;
+        };
+
+        // „Odśwież" NIE dołącza do odczytu w toku: tamten czyta tylko naszą bazę, a ten każe
+        // backendowi zapytać Przelewy24 (zgubiona notyfikacja). Zwraca notkę dla kupującego,
+        // gdy niczego nie rozstrzygnął z powodu limitu albo awarii.
+        const refreshOnce = async (): Promise<string | null> => {
+            if (cancelled || finished) return null;
+            try {
+                const result = await newSubscriptionApi.refreshOrder(orderId, REQUEST_TIMEOUT_MS);
+                if (cancelled || finished) return null;
+                apply(result);
+                return null;
+            } catch (error) {
+                if (cancelled || finished) return null;
+                const current = throttledOrder(error);
+                if (current) {
+                    apply(current);
+                    return finished ? null : REFRESH_THROTTLED_NOTE;
+                }
+                return apiErrorMessage(error) ?? REFRESH_FAILED_NOTE;
+            } finally {
+                if (!cancelled && !finished) schedule();
+            }
         };
 
         const deadline = setTimeout(() => {
@@ -94,21 +142,24 @@ export function usePaymentOrderPolling(orderId: string | null): PaymentOrderPoll
             setDelayed(true);
         }, CONFIRMATION_TIMEOUT_MS);
 
-        pollNow.current = poll;
+        refreshNow.current = refreshOnce;
         void poll();
 
         return () => {
             cancelled = true;
             clearTimeout(timer);
             clearTimeout(deadline);
-            pollNow.current = () => Promise.resolve();
+            refreshNow.current = () => Promise.resolve(null);
         };
     }, [orderId, queryClient]);
 
-    const checkNow = useCallback(() => {
-        setChecking(true);
-        void pollNow.current().finally(() => setChecking(false));
+    const refresh = useCallback(() => {
+        setRefreshing(true);
+        setRefreshNote(null);
+        void refreshNow.current()
+            .then(setRefreshNote)
+            .finally(() => setRefreshing(false));
     }, []);
 
-    return { order, outcome, delayed, checking, checkNow };
+    return { order, outcome, delayed, refreshing, refreshNote, refresh };
 }

@@ -35,7 +35,7 @@ import {
 import { ConfirmationModal, ChoiceModal } from '@/common/components/ConfirmationModal';
 import { useToast } from '@/common/components/Toast';
 import { ActionMenu, MenuDivider, MenuItem, useActionMenu } from '@/common/components/ui';
-import { usePermissions } from '@/core/permissions';
+import { usePermissions, usePersonalDataActions } from '@/core/permissions';
 import { BookingFlowModal } from '@/modules/calendar';
 import { commsApi } from '../api/commsApi';
 import {
@@ -170,6 +170,8 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
     const navigate = useNavigate();
     const { showError } = useToast();
     const { can } = usePermissions();
+    // „Umów wizytę” to nowa rezerwacja - z danymi osobowymi (personalDataActions).
+    const { canCreateAppointment: canBook } = usePersonalDataActions();
     const menu = useActionMenu();
     const menuButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -229,6 +231,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
      * leada: sugestia bez kwoty blokuje, zamiast wejść do kalendarza bez ceny.
      */
     const openBooking = () => {
+        if (!canBook) return;
         setSheetOpen(false);
         if (!lead || !lead.services.some((item) => item.status === 'SUGGESTED')) {
             setBooking(true);
@@ -287,7 +290,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
     const replyStep = step.kind === 'REPLY';
 
     const cta =
-        step.kind === 'NONE' || replyStep ? null : (
+        step.kind === 'NONE' || replyStep || (step.kind === 'BOOK' && !canBook) ? null : (
             <FooterPrimary
                 block
                 icon={stepIcon(step)}
@@ -411,7 +414,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
 
             <ActionMenu anchor={menu.menu?.anchor ?? null} onClose={menu.close} label="Akcje sprawy">
                 <MenuItem icon={<Info />} onClick={() => { menu.close(); setDetailsOpen('details'); }}>Szczegóły sprawy</MenuItem>
-                {step.kind !== 'BOOK' && !lead.appointmentId && (
+                {canBook && step.kind !== 'BOOK' && !lead.appointmentId && (
                     <MenuItem icon={<CalendarPlus />} onClick={() => { menu.close(); openBooking(); }}>Umów wizytę</MenuItem>
                 )}
                 <MenuItem icon={<PhoneCall />} onClick={() => { menu.close(); setCallbackOpen(true); }}>Kontakt poza pocztą</MenuItem>
@@ -467,7 +470,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                     onDeleted={onClosed}
                 />
             )}
-            {booking && (
+            {booking && canBook && (
                 <BookingFlowModal
                     leadId={lead.appointmentId ? undefined : lead.id}
                     subtitle={lead.customerName ?? lead.contactIdentifier}

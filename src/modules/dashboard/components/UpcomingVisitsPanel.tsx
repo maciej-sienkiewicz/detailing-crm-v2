@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { usePermissions } from '@/core/permissions';
+import { usePersonalDataActions } from '@/core/permissions';
 import styled, { keyframes } from 'styled-components';
 import { CalendarDays, User, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -528,7 +528,8 @@ interface ContextMenuState {
 const VISIBLE_LIMIT = 5;
 
 export const UpcomingVisitsPanel = () => {
-  const canEditTitle = usePermissions().can('VISITS_CREATE');
+  // Zmiana tytułu to edycja rezerwacji/wizyty - z danymi osobowymi (personalDataActions).
+  const canEditTitle = usePersonalDataActions().canEditAppointment;
   const navigate = useNavigate();
   const { data: visits = [], isLoading, isError } = useUpcomingVisits();
   const { updateOperationTitle, isUpdatingTitle, updatingId } = useUpdateOperationTitle();

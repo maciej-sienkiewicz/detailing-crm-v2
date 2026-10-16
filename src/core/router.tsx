@@ -10,6 +10,7 @@ import { ScrollLockRouteReset } from './components/ScrollLockRouteReset';
 import { RedirectWithParams } from './components/RedirectWithParams';
 import { RequirePermission, HomeRedirect, NoAccessView, ANY_FINANCE, ANY_DASHBOARD, ANY_EMPLOYEES } from './permissions';
 import type { PermissionRequirement } from './permissions';
+import { withPersonalDataGate } from './permissions/PersonalDataGate';
 import { LegacyLeadsRedirect, LegacyMailRedirect } from '@/modules/comms/views/InboxRedirects';
 import { employeesTabRoutes } from '@/modules/employees/employeesRoutes';
 import { ModuleGate } from '@/modules/subscription/components/ModuleGate';
@@ -217,9 +218,11 @@ export const router = createBrowserRouter([
             path: '/visits/:visitId',
             ...lazyPage(() => import('@/modules/visits/views/VisitDetailView').then(m => m.VisitDetailView), 'VISITS_VIEW'),
         },
+        // Nowa rezerwacja i przyjęcie pojazdu wymagają danych osobowych obok VISITS_CREATE
+        // (personalDataActions): bez nich widok się nie montuje, a wejście z adresu dostaje odmowę.
         {
             path: '/appointments/create',
-            ...lazyPage(() => import('@/modules/appointments/views/AppointmentCreateView').then(m => m.AppointmentCreateView), 'VISITS_CREATE'),
+            ...lazyPage(() => import('@/modules/appointments/views/AppointmentCreateView').then(m => withPersonalDataGate(m.AppointmentCreateView, 'canCreateAppointment')), 'VISITS_CREATE'),
         },
         {
             path: '/appointments/:appointmentId/edit',
@@ -227,11 +230,11 @@ export const router = createBrowserRouter([
         },
         {
             path: '/checkin/new',
-            ...lazyPage(() => import('@/modules/checkin/views/WalkInCheckInWrapper').then(m => m.WalkInCheckInWrapper), 'VISITS_CREATE'),
+            ...lazyPage(() => import('@/modules/checkin/views/WalkInCheckInWrapper').then(m => withPersonalDataGate(m.WalkInCheckInWrapper, 'canCreateVisit')), 'VISITS_CREATE'),
         },
         {
             path: '/reservations/:reservationId/checkin',
-            ...lazyPage(() => import('@/modules/checkin/views/CheckInWizardWrapper').then(m => m.CheckInWizardWrapper), 'VISITS_CREATE'),
+            ...lazyPage(() => import('@/modules/checkin/views/CheckInWizardWrapper').then(m => withPersonalDataGate(m.CheckInWizardWrapper, 'canCreateVisit')), 'VISITS_CREATE'),
         },
         {
             // Kolory przeniosły się do Ustawień → Oznaczenia. Adres zostaje, bo

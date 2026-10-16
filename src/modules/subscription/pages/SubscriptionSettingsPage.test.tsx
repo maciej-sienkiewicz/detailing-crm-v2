@@ -116,6 +116,27 @@ describe('SubscriptionSettingsPage', () => {
         await waitFor(() => expect(newSubscriptionApi.checkout).toHaveBeenCalledWith({ type: 'RENEWAL' }));
     });
 
+    it('przedłużenie bez płatności: sukces tylko dla FULFILLED', async () => {
+        vi.mocked(newSubscriptionApi.checkout).mockResolvedValue({
+            orderId: 'o1', status: 'FULFILLED', amountCents: 0, currency: 'PLN', description: '', paymentUrl: null,
+        });
+        renderPage();
+        await userEvent.click(await screen.findByRole('button', { name: /Przedłuż o 30 dni/ }));
+        expect(await screen.findByText('Pakiet przedłużony')).toBeTruthy();
+    });
+
+    it('przedłużenie bez płatności, którego nie dało się zastosować: błąd, a nie „Pakiet przedłużony"', async () => {
+        vi.mocked(newSubscriptionApi.checkout).mockResolvedValue({
+            orderId: 'o1', status: 'CANCELLED', amountCents: 0, currency: 'PLN', description: '', paymentUrl: null,
+            failureReason: 'Studio ma już opłacony okres.',
+        });
+        renderPage();
+        await userEvent.click(await screen.findByRole('button', { name: /Przedłuż o 30 dni/ }));
+        expect(await screen.findByText('Nie udało się włączyć zakupu')).toBeTruthy();
+        expect(screen.getByText(/Studio ma już opłacony okres\. Nic nie zostało pobrane/)).toBeTruthy();
+        expect(screen.queryByText('Pakiet przedłużony')).toBeNull();
+    });
+
     it('wygasły plan: jeden przycisk odnowienia w komunikacie', async () => {
         vi.mocked(newSubscriptionApi.getMyPlan).mockResolvedValue(plan({ billingStatus: 'EXPIRED', daysRemaining: 0 }));
         renderPage();

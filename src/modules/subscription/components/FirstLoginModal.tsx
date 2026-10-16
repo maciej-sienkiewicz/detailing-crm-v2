@@ -4,7 +4,8 @@ import { useToast } from '@/common/components/Toast';
 import { canPurchaseHere } from '@/core/native/platform';
 import { useFeaturePlans, useAddOns, useStartTrial, useCheckout } from '../api/subscriptionQueries';
 import { newSubscriptionApi } from '../api/subscriptionApi';
-import type { FeaturePlan, AddOnDto, AddOnKey, PlanKey, CalculatePriceResponse } from '../types';
+import { toastCheckoutProblem, useCheckoutHandoff } from '../hooks/useCheckoutHandoff';
+import type { FeaturePlan, AddOnDto, AddOnKey, PlanKey, CalculatePriceResponse, CheckoutResponse } from '../types';
 import { formatCents, featureLabel } from '../utils/formatters';
 import { t } from '@/common/i18n';
 import { AuthLayout } from '@/modules/auth/components/AuthLayout';
@@ -52,12 +53,13 @@ interface Props {
 type Phase = 'idle' | 'pending-trial' | 'pending-plan' | 'pending-custom';
 
 export function FirstLoginModal({ trialUsed }: Props) {
-    const { showError } = useToast();
+    const { showError, showWarning } = useToast();
 
     const { data: plans, isLoading: plansLoading } = useFeaturePlans();
     const { data: addOns } = useAddOns();
     const startTrial = useStartTrial();
     const checkout = useCheckout();
+    const handoff = useCheckoutHandoff();
 
     const [phase, setPhase] = useState<Phase>('idle');
     const [error, setError] = useState<string | null>(null);
@@ -116,6 +118,20 @@ export function FirstLoginModal({ trialUsed }: Props) {
         }
     };
 
+    /**
+     * Odpowiedź checkoutu: płatność w P24, strona wyniku albo komunikat. Dawniej brak adresu
+     * płatności nie robił tu nic - przycisk zostawał w „trwa…" na zawsze, także gdy backend
+     * zamówienie anulował. Zrealizowany zakup odświeża dane pakietu (useCheckout), a wtedy
+     * SubscriptionGate sam zdejmuje ten ekran.
+     */
+    const settleCheckout = (order: CheckoutResponse) => {
+        const step = handoff(order);
+        if (step.kind === 'redirect' || step.kind === 'track' || step.kind === 'done') return;
+        setError(step.message);
+        toastCheckoutProblem({ showError, showWarning }, step);
+        setPhase('idle');
+    };
+
     const handleSelectPlan = async (planKey: string) => {
         if (isPending) return;
         setError(null);
@@ -126,9 +142,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
                 planKey: planKey as PlanKey,
                 addOnKeys: [],
             });
-            if (order.paymentUrl) {
-                window.location.assign(order.paymentUrl);
-            }
+            settleCheckout(order);
         } catch (err: unknown) {
             const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
             setError(msg ?? 'Nie udało się przejść do płatności. Spróbuj ponownie.');
@@ -147,9 +161,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
                 planKey: 'BASIC',
                 addOnKeys: Array.from(selectedAddOns),
             });
-            if (order.paymentUrl) {
-                window.location.assign(order.paymentUrl);
-            }
+            settleCheckout(order);
         } catch (err: unknown) {
             const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
             setError(msg ?? 'Nie udało się przejść do płatności. Spróbuj ponownie.');

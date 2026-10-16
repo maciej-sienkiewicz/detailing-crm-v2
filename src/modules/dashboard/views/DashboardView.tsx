@@ -2,7 +2,7 @@
  * Dashboard View: Command Center
  */
 
-import { usePermissions } from '@/core/permissions';
+import { usePermissions, usePersonalDataActions } from '@/core/permissions';
 import { useMemo, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { AlertCircle, CalendarPlus, ChevronDown, LineChart, Sparkles } from 'lucide-react';
@@ -345,6 +345,7 @@ export const DashboardView = () => {
    * a przyciski prowadziły na ekran braku dostępu albo kończyły się odmową serwera.
    */
   const { can } = usePermissions();
+  const { canCreateVisit } = usePersonalDataActions();
   const canSeeTasks = can('TASKS_VIEW');
   const { user } = useAuth();
   const [instagramModalOpen, setInstagramModalOpen] = useState(false);
@@ -393,7 +394,7 @@ export const DashboardView = () => {
           <HeroLeft>
               <HeroGreeting>{greeting}{user?.firstName ? `, ${user.firstName}` : ''}!</HeroGreeting>
               <HeroActions>
-              {can('VISITS_CREATE') && (
+              {canCreateVisit && (
                 <HeroBtnPrimary onClick={() => navigate('/checkin/new')}>
                   <CalendarPlus />
                   Nowa wizyta

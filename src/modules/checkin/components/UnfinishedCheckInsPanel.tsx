@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useToast } from '@/common/components/Toast';
-import { usePermissions } from '@/core/permissions';
+import { usePersonalDataActions } from '@/core/permissions';
 import { visitApi } from '@/modules/visits/api/visitApi';
 import type { OpenDraftVisit } from '@/modules/visits/types';
 import { ResumeCheckInModal } from './ResumeCheckInModal';
@@ -156,7 +156,8 @@ const describe = (draft: OpenDraftVisit): string[] => [
 ].filter((part): part is string => Boolean(part));
 
 export const UnfinishedCheckInsPanel = () => {
-    const { can } = usePermissions();
+    // Dokończenie przyjęcia to rozpoczęcie wizyty - z danymi osobowymi (personalDataActions).
+    const { canCreateVisit } = usePersonalDataActions();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { showSuccess } = useToast();
@@ -170,11 +171,11 @@ export const UnfinishedCheckInsPanel = () => {
         // Przyjęcia domykają się także z innych stanowisk - lista ma być świeża,
         // ale nie kosztem odpytywania serwera przy każdym renderze listy wizyt.
         staleTime: 30_000,
-        enabled: can('VISITS_CREATE'),
+        enabled: canCreateVisit,
     });
 
     const drafts = data?.drafts ?? [];
-    if (drafts.length === 0) return null;
+    if (!canCreateVisit || drafts.length === 0) return null;
 
     const refresh = () => queryClient.invalidateQueries({ queryKey: ['open-draft-visits'] });
     const hasStale = drafts.some(draft => draft.stale);

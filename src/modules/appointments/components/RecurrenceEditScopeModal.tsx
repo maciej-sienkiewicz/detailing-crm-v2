@@ -1,5 +1,19 @@
 // src/modules/appointments/components/RecurrenceEditScopeModal.tsx
-import { useState } from 'react';
+//
+// Okno „Zapisz w serii". Otwiera się WYŁĄCZNIE z osobnego przycisku obok zwykłego
+// zapisu - zwykły „Zapisz tę rezerwację" zmienia tylko ją i nie pyta o nic.
+//
+// Wymaganie biznesu: nadpisanie innych rezerwacji serii musi być intencjonalne i jasno
+// zaznaczone. Dlatego:
+// - żadna opcja nie jest zaznaczona z góry (dawniej domyślne było „tylko ta", a jedyny
+//   wypełniony przycisk „Zapisz zmiany" zatwierdzał to, co akurat było wybrane);
+// - zatwierdzenie jest nieaktywne, dopóki operator nie wybierze zakresu, i mówi wprost,
+//   ile rezerwacji nadpisze;
+// - po wyborze okno wypisuje, CO zostanie nadpisane i co zostanie bez zmian - liczby
+//   z serwera (series-impact), z tej samej reguły co zapis;
+// - zatwierdzenie nie jest wypełnione: nadpisanie serii nie jest „krokiem następnym",
+//   tylko świadomą decyzją, którą trzeba przeczytać (bursztyn = „przeczytaj").
+import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import {
     ModalShell,
@@ -11,84 +25,124 @@ import {
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
-import type { RecurrenceEditScope, RecurrenceInfo } from '../types';
+import type { RecurrenceInfo, SeriesEditImpact, SeriesEditScope } from '../types';
+import {
+    type IdentitySwap,
+    reservationsCount,
+    seriesConfirmLabel,
+    seriesOverwriteSentence,
+    seriesSkippedSentence,
+} from '../utils/seriesEditSummary';
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
+
+const Subtitle = styled.p`
+    font-size: 13px;
+    color: #475569;
+    margin: 0 0 14px;
+    line-height: 1.5;
+`;
 
 const OptionList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 6px;
 `;
 
-const OptionRow = styled.label<{ $disabled?: boolean }>`
+const OptionRow = styled.label<{ $disabled?: boolean; $checked?: boolean }>`
     display: flex;
     align-items: flex-start;
     gap: 12px;
     padding: 12px 14px;
     border-radius: 10px;
+    border: 1px solid ${p => p.$checked ? '#fcd34d' : '#e2e8f0'};
+    background: ${p => p.$checked ? '#fffbeb' : 'transparent'};
     cursor: ${p => p.$disabled ? 'not-allowed' : 'pointer'};
-    opacity: ${p => p.$disabled ? 0.45 : 1};
-    transition: background 140ms ease;
-
-    &:hover {
-        background: ${p => p.$disabled ? 'transparent' : 'rgba(14,165,233,0.06)'};
-    }
+    opacity: ${p => p.$disabled ? 0.5 : 1};
+    transition: background 140ms ease, border-color 140ms ease;
 `;
 
 const RadioInput = styled.input.attrs({ type: 'radio' })`
     width: 16px;
     height: 16px;
     margin-top: 2px;
-    accent-color: #0EA5E9;
-    cursor: pointer;
+    accent-color: #d97706;
+    cursor: inherit;
     flex-shrink: 0;
 `;
 
-const OptionText = styled.div``;
-
-const OptionTitle = styled.div`
+const OptionTitle = styled.span`
+    display: block;
     font-size: 14px;
     font-weight: 600;
-    color: #0F172A;
+    color: #0f172a;
     line-height: 1.4;
 `;
 
-const OptionDesc = styled.div`
+const OptionDesc = styled.span`
+    display: block;
     font-size: 12px;
-    color: #64748B;
+    color: #64748b;
     margin-top: 2px;
     line-height: 1.4;
 `;
 
-const InfoBanner = styled.div`
+const Consequences = styled.div`
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid #fcd34d;
+    background: #fffbeb;
+    color: #92400e;
+    font-size: 13px;
+    line-height: 1.5;
     display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    background: rgba(234, 179, 8, 0.08);
-    border: 1px solid rgba(234, 179, 8, 0.3);
-    border-radius: 8px;
+    flex-direction: column;
+    gap: 6px;
+
+    p { margin: 0; }
+    strong { color: #78350f; }
+`;
+
+const InfoNote = styled.p`
+    margin: 12px 0 0;
     padding: 10px 12px;
-    margin-bottom: 12px;
+    border-radius: 8px;
+    border: 1px solid #bae6fd;
+    background: #f0f9ff;
+    color: #075985;
     font-size: 12px;
-    color: #92400E;
     line-height: 1.5;
 `;
 
-const Subtitle = styled.div`
-    font-size: 13px;
-    color: #64748B;
-    margin-bottom: 12px;
+// Akcja świadoma, nie krok następny - odcień bursztynu jako tło i obwódka, bez wypełnienia.
+const ConfirmSeriesButton = styled(SharedButton).attrs({ $variant: 'secondary' as const })`
+    color: #92400e;
+    background: #fffbeb;
+    border: 1.5px solid #f59e0b;
+
+    &:hover:not(:disabled) {
+        color: #78350f;
+        background: #fef3c7;
+        border-color: #d97706;
+    }
 `;
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
-interface RecurrenceEditScopeModalProps {
+export interface RecurrenceEditScopeModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onConfirm: (scope: RecurrenceEditScope) => void;
+    onConfirm: (scope: SeriesEditScope) => void;
     recurrenceInfo: RecurrenceInfo;
-    isDateChanged: boolean;
+    /** Z GET /appointments/{id}/series-impact; undefined w trakcie ładowania. */
+    impact: SeriesEditImpact | undefined;
+    impactError?: boolean;
+    /** Pola zmienione w tej rezerwacji (podpowiedź, nie zakres nadpisania). */
+    changedFields: string[];
+    identitySwap: IdentitySwap;
+    /** Poprawiono dane tego samego klienta - są wspólne niezależnie od wyboru. */
+    customerRecordEdited: boolean;
     isSubmitting: boolean;
 }
 
@@ -99,105 +153,108 @@ export const RecurrenceEditScopeModal = ({
     onClose,
     onConfirm,
     recurrenceInfo,
-    isDateChanged,
+    impact,
+    impactError = false,
+    changedFields,
+    identitySwap,
+    customerRecordEdited,
     isSubmitting,
 }: RecurrenceEditScopeModalProps) => {
-    const [scope, setScope] = useState<RecurrenceEditScope>('THIS');
+    // Celowo bez wartości domyślnej: zakres serii operator wybiera sam, za każdym razem.
+    const [scope, setScope] = useState<SeriesEditScope | null>(null);
+
+    useEffect(() => {
+        if (isOpen) setScope(null);
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
     const idx = recurrenceInfo.recurrenceIndex + 1;
-    const total = recurrenceInfo.totalInSeries;
-    const future = total - recurrenceInfo.recurrenceIndex;
+    const total = impact?.totalInSeries ?? recurrenceInfo.totalInSeries;
+    const selected = scope && impact ? (scope === 'ALL' ? impact.all : impact.thisAndFuture) : null;
+    const skipped = selected ? seriesSkippedSentence(selected) : null;
 
-    const handleConfirm = () => onConfirm(scope);
+    const optionDesc = (scopeImpact: SeriesEditImpact['all'] | undefined) => {
+        if (impactError) return 'Nie udało się policzyć rezerwacji serii.';
+        if (!scopeImpact) return 'Liczymy rezerwacje serii…';
+        return scopeImpact.otherCount === 0
+            ? 'Brak innych rezerwacji do zmiany.'
+            : `Obejmie także ${reservationsCount(scopeImpact.otherCount)} poza tą.`;
+    };
+
+    const options: { value: SeriesEditScope; title: string; impact: SeriesEditImpact['all'] | undefined }[] = [
+        { value: 'THIS_AND_FUTURE', title: 'Ta i następne rezerwacje serii', impact: impact?.thisAndFuture },
+        { value: 'ALL', title: 'Wszystkie rezerwacje serii', impact: impact?.all },
+    ];
 
     return (
-        <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="480px">
+        <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="520px">
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>Edycja wizyty cyklicznej</ModalTitle>
+                    <ModalTitle>Zapisać także w innych rezerwacjach serii?</ModalTitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
 
             <ModalContent>
                 <Subtitle>
-                    Ta wizyta należy do serii ({idx} z {total}). Co chcesz zmienić?
+                    To rezerwacja {idx} z {total} w serii. Zwykły zapis zmienia tylko ją.
+                    Tutaj możesz świadomie nadpisać nią także inne rezerwacje tej serii.
                 </Subtitle>
 
-                {isDateChanged && (
-                    <InfoBanner>
-                        ⚠ Nowa data lub godzina dotyczy tylko tej wizyty.
-                    </InfoBanner>
+                <OptionList role="radiogroup" aria-label="Zakres zmiany w serii">
+                    {options.map(option => {
+                        const disabled = !option.impact || option.impact.otherCount === 0;
+                        return (
+                            <OptionRow key={option.value} $disabled={disabled} $checked={scope === option.value}>
+                                <RadioInput
+                                    name="seriesScope"
+                                    value={option.value}
+                                    checked={scope === option.value}
+                                    onChange={() => setScope(option.value)}
+                                    disabled={disabled}
+                                />
+                                <span>
+                                    <OptionTitle>{option.title}</OptionTitle>
+                                    <OptionDesc>{optionDesc(option.impact)}</OptionDesc>
+                                </span>
+                            </OptionRow>
+                        );
+                    })}
+                </OptionList>
+
+                {scope && selected && (
+                    <Consequences role="status" data-testid="series-consequences">
+                        <p><strong>{seriesOverwriteSentence(scope, selected.otherCount, identitySwap)}</strong></p>
+                        {changedFields.length > 0 && (
+                            <p>Zmieniono w tej rezerwacji: {changedFields.join(', ')}.</p>
+                        )}
+                        <p>Terminy rezerwacji się nie zmieniają.</p>
+                        {skipped && <p>{skipped}</p>}
+                    </Consequences>
                 )}
 
-                <OptionList>
-                    <OptionRow
-                        $disabled={false}
-                        onClick={() => !isDateChanged && setScope('THIS')}
-                    >
-                        <RadioInput
-                            name="scope"
-                            checked={scope === 'THIS'}
-                            onChange={() => setScope('THIS')}
-                            disabled={false}
-                        />
-                        <OptionText>
-                            <OptionTitle>Tylko tę wizytę</OptionTitle>
-                            <OptionDesc>
-                                Pozostałe wizyty z serii ({total - 1}) zostaną bez zmian.
-                                {!recurrenceInfo.isDetached && ' Ta wizyta odłączy się od serii.'}
-                            </OptionDesc>
-                        </OptionText>
-                    </OptionRow>
-
-                    <OptionRow
-                        $disabled={isDateChanged}
-                        onClick={() => !isDateChanged && setScope('THIS_AND_FUTURE')}
-                    >
-                        <RadioInput
-                            name="scope"
-                            checked={scope === 'THIS_AND_FUTURE'}
-                            onChange={() => setScope('THIS_AND_FUTURE')}
-                            disabled={isDateChanged}
-                        />
-                        <OptionText>
-                            <OptionTitle>Tę i wszystkie następne wizyty</OptionTitle>
-                            <OptionDesc>
-                                Zmiana dotyczy tej i {future - 1} {future - 1 === 1 ? 'kolejnej wizyty' : 'kolejnych wizyt'} w serii.
-                                Pominiemy wizyty zmieniane osobno.
-                            </OptionDesc>
-                        </OptionText>
-                    </OptionRow>
-
-                    <OptionRow
-                        $disabled={isDateChanged}
-                        onClick={() => !isDateChanged && setScope('ALL')}
-                    >
-                        <RadioInput
-                            name="scope"
-                            checked={scope === 'ALL'}
-                            onChange={() => setScope('ALL')}
-                            disabled={isDateChanged}
-                        />
-                        <OptionText>
-                            <OptionTitle>Wszystkie wizyty w serii</OptionTitle>
-                            <OptionDesc>
-                                Zmieni całą serię ({total}). Pominiemy wizyty zmieniane osobno i już przyjęte.
-                            </OptionDesc>
-                        </OptionText>
-                    </OptionRow>
-                </OptionList>
+                {customerRecordEdited && (
+                    <InfoNote>
+                        Poprawione dane klienta zapisują się w jego kartotece, więc widać je
+                        we wszystkich jego rezerwacjach, niezależnie od tego wyboru.
+                    </InfoNote>
+                )}
             </ModalContent>
 
             <ModalFooter>
                 <SharedButton $variant="secondary" type="button" onClick={onClose} disabled={isSubmitting}>
                     Anuluj
                 </SharedButton>
-                <SharedButton $variant="primary" type="button" onClick={handleConfirm} disabled={isSubmitting}>
-                    {isSubmitting ? 'Zapisywanie…' : 'Zapisz zmiany'}
-                </SharedButton>
+                <ConfirmSeriesButton
+                    type="button"
+                    onClick={() => scope && onConfirm(scope)}
+                    disabled={!scope || !selected || selected.otherCount === 0 || isSubmitting}
+                >
+                    {isSubmitting
+                        ? 'Zapisywanie…'
+                        : selected ? seriesConfirmLabel(selected.otherCount) : 'Wybierz zakres'}
+                </ConfirmSeriesButton>
             </ModalFooter>
         </ModalShell>
     );

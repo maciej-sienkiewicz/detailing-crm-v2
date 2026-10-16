@@ -1,6 +1,6 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
-import { Button } from '@/common/components/ui';
+import { Button, Notice } from '@/common/components/ui';
 import { usePaymentOrderPolling } from '../hooks/usePaymentOrderPolling';
 import { formatCents } from '../utils/formatters';
 
@@ -15,6 +15,13 @@ import { formatCents } from '../utils/formatters';
  * Kręcące się kółko nie może być stanem końcowym: po limicie czasu kupujący widzi,
  * że płatność nie jest jeszcze potwierdzona, może sprawdzić od razu albo wrócić do
  * aplikacji, a odpytywanie trwa w tle i samo przełączy widok na wynik.
+ *
+ * „Odśwież" to JEDNA akcja ręczna (dawne „Sprawdź ponownie" w nią weszło): każe backendowi
+ * zapytać Przelewy24, więc pomaga także wtedy, gdy notyfikacja zginęła. Dwa przyciski
+ * „sprawdź bazę" i „zapytaj P24" wyglądałyby tak samo, a działał tylko jeden. Wypełnienie
+ * (CLAUDE.md §2): w czasie zwykłego czekania krokiem następnym jest samo czekanie, więc
+ * „Odśwież" jest obwiedzione; po limicie czasu staje się krokiem następnym i jest jedynym
+ * wypełnionym, a „Wróć do aplikacji" zostaje obwiedzione.
  */
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
@@ -120,7 +127,7 @@ export function PaymentResultPage() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const orderId = searchParams.get('orderId');
-    const { order, outcome, delayed, checking, checkNow } = usePaymentOrderPolling(orderId);
+    const { order, outcome, delayed, refreshing, refreshNote, refresh } = usePaymentOrderPolling(orderId);
 
     const goToApp = () => navigate('/settings', { replace: true });
 
@@ -152,6 +159,12 @@ export function PaymentResultPage() {
                                 : 'Czekamy na potwierdzenie z Przelewy24. Zwykle trwa to kilka sekund, nie zamykaj tej strony.'}
                         </Text>
                         {order && <Amount>{order.description}: {formatCents(order.amountCents)}</Amount>}
+                        {refreshNote && <Notice tone="warn">{refreshNote}</Notice>}
+                        <Actions>
+                            <Button variant="outline" size="lg" onClick={refresh} disabled={refreshing}>
+                                {refreshing ? 'Sprawdzam w Przelewy24…' : 'Odśwież'}
+                            </Button>
+                        </Actions>
                     </>
                 )}
 
@@ -166,11 +179,15 @@ export function PaymentResultPage() {
                                 ? 'Pieniądze dotarły, a dostęp włączy się sam w ciągu kilku minut.'
                                 : 'Przelewy24 jeszcze nie przysłały potwierdzenia. Jeśli pieniądze zeszły z konta, dostęp włączy się sam w ciągu kilku minut.'}
                         </Text>
-                        <Text>Sprawdzamy dalej w tle, a ta strona sama pokaże wynik. Możesz też wrócić do aplikacji.</Text>
+                        <Text>
+                            Sprawdzamy dalej w tle, a ta strona sama pokaże wynik. „Odśwież” zapyta Przelewy24
+                            od razu. Możesz też wrócić do aplikacji.
+                        </Text>
                         {order && <Amount>{order.description}: {formatCents(order.amountCents)}</Amount>}
+                        {refreshNote && <Notice tone="warn">{refreshNote}</Notice>}
                         <Actions>
-                            <Button variant="primary" size="lg" onClick={checkNow} disabled={checking}>
-                                {checking ? 'Sprawdzam…' : 'Sprawdź ponownie'}
+                            <Button variant="primary" size="lg" onClick={refresh} disabled={refreshing}>
+                                {refreshing ? 'Sprawdzam w Przelewy24…' : 'Odśwież'}
                             </Button>
                             <Button variant="outline" size="lg" onClick={goToApp}>Wróć do aplikacji</Button>
                         </Actions>

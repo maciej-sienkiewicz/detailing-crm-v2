@@ -6,3 +6,5 @@ export { usePermissions } from './usePermissions';
 export { hasPermission, getDefaultRoute } from './helpers';
 export { PERMISSIONS, ANY_FINANCE, ANY_SETTINGS, ANY_DASHBOARD, ANY_EMPLOYEES } from './catalog';
 export type { AccessRequirement, PermissionCode, PermissionRequirement } from './catalog';
+export { usePersonalDataActions, personalDataActions } from './personalDataActions';
+export type { PersonalDataActions, PersonalDataAction } from './personalDataActions';

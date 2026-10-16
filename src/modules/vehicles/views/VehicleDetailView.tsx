@@ -15,7 +15,7 @@
 //
 // Telefon: jedna kolumna i przypięte skróty do sekcji, jak w wizycie.
 
-import { usePermissions } from '@/core/permissions';
+import { usePermissions, usePersonalDataActions } from '@/core/permissions';
 import { formatClockTime } from '@/common/dateTime';
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -456,6 +456,7 @@ export const VehicleDetailView = () => {
      * a przyciski odmową serwera.
      */
     const canEditVehicle = can('VISITS_CREATE');
+    const { canCreateVisit } = usePersonalDataActions();
     const canSeeDocuments = can('VISITS_CREATE');
     const canSeeHistory = can('AUDIT_VIEW');
 
@@ -536,7 +537,7 @@ export const VehicleDetailView = () => {
                     isArchived={isArchived}
                     canEdit={canEditVehicle}
                     canDelete={can('CUSTOMERS_DELETE')}
-                    onNewVisit={startVisit}
+                    onNewVisit={canCreateVisit ? startVisit : undefined}
                     onEdit={() => setIsEditModalOpen(true)}
                     onOwners={() => setIsEditOwnersModalOpen(true)}
                     onDelete={() => setShowDeleteConfirm(true)}

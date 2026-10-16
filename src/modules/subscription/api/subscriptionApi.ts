@@ -88,6 +88,19 @@ export const newSubscriptionApi = {
         return res.data;
     },
 
+    // „Odśwież" na stronie wyniku: backend pyta Przelewy24 o transakcję OD RAZU (zgubiona
+    // notyfikacja), zamiast czekać na worker, który pyta dopiero po 20 minutach. GET wyżej czyta
+    // tylko naszą bazę, więc sam nie mógł niczego zmienić. 429 (pytano przed chwilą) niesie
+    // w ciele bieżący stan zamówienia; błędy pokazuje strona, stąd skipErrorToast.
+    refreshOrder: async (orderId: string, timeoutMs?: number): Promise<PaymentOrder> => {
+        const res = await apiClient.post<PaymentOrder>(
+            `${BASE}/orders/${orderId}/refresh`,
+            undefined,
+            { timeout: timeoutMs, skipErrorToast: true },
+        );
+        return res.data;
+    },
+
     // ── Free mutations (no payment) ──────────────────────────────────────────────
     /** Schedules a downgrade at period end. Upgrades must go through checkout. */
     changePlan: async (planKey: PlanKey): Promise<EntitlementsResponse> => {

@@ -11,7 +11,7 @@
 // Osobno od komponentu nasłuchu (GlobalShortcuts.tsx), bo z tych definicji
 // korzysta też ściąga w Ustawieniach - a plik eksportujący komponent nie może
 // eksportować stałych bez psucia Fast Refresh.
-import type { PermissionCode } from '@/core/permissions';
+import type { PermissionCode, PersonalDataAction } from '@/core/permissions';
 import { useEffect, useState } from 'react';
 
 export interface GlobalShortcut {
@@ -23,11 +23,16 @@ export interface GlobalShortcut {
     state?: Record<string, unknown>;
     /** Opis do ściągi w Ustawieniach. */
     description: string;
+    /**
+     * Akcja wymagająca danych osobowych (personalDataActions). Bez niej skrót nic nie
+     * robi i nie ma go w ściądze - inaczej „W" prowadziłoby prosto na ekran odmowy.
+     */
+    requiresAction?: PersonalDataAction;
 }
 
 export const GLOBAL_SHORTCUTS: GlobalShortcut[] = [
-    { key: 'w', to: '/checkin/new', description: 'Przyjęcie auta - nowa wizyta' },
-    { key: 'r', to: '/calendar', state: { openQuickEvent: true }, description: 'Nowa rezerwacja' },
+    { key: 'w', to: '/checkin/new', description: 'Przyjęcie auta - nowa wizyta', requiresAction: 'canCreateVisit' },
+    { key: 'r', to: '/calendar', state: { openQuickEvent: true }, description: 'Nowa rezerwacja', requiresAction: 'canCreateAppointment' },
     { key: 'k', to: '/calendar', description: 'Kalendarz' },
     { key: 'l', to: '/zapytania', description: 'Zapytania (sprawy)' },
     { key: 'p', to: '/zapytania?view=poczta', description: 'Zapytania (poczta)' },
