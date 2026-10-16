@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import styled from 'styled-components';
+import { useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, User } from 'lucide-react';
 import {
     ModalShell,
@@ -12,6 +13,7 @@ import {
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { useToast } from '@/common/components/Toast';
+import { Notice } from '@/common/components/ui';
 import { isPiiMasked } from '@/common/pii';
 import { formatCurrency } from '@/common/utils';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -19,8 +21,11 @@ import { ksefRevenueApi } from '@/modules/finance/api/ksefRevenueApi';
 import { useServicePricing } from '@/modules/appointments/hooks/useServicePricing';
 import { InvoiceItemsEditor } from './handover/InvoiceItemsEditor';
 import { PaymentMethodPicker } from './handover/PaymentMethodPicker';
-import { invoiceGrossOf, invoiceItemFromService, parsePln, withDerived } from '../types/handover';
+import { invoiceGrossOf, invoiceItemFromSettled, parsePln, settledLines, withDerived } from '../types/handover';
 import type { HandoverItem } from '../types/handover';
+import { apiErrorMessage, apiErrorStatus } from '../api/apiError';
+import { visitApi } from '../api/visitApi';
+import { visitDetailQueryKey } from '../hooks';
 import type { PaymentMethod } from '../types/stateTransitions';
 import type { Visit } from '../types';
 
@@ -144,16 +149,6 @@ const TotalsRow = styled.div`
     }
 `;
 
-const ErrorBanner = styled.div`
-    padding: 10px 13px;
-    border-radius: ${st.radiusSm};
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    color: #7f1d1d;
-    font-size: ${st.fontXs};
-    line-height: 1.5;
-`;
-
 const BtnPrimary = styled.button`
     padding: 10px 20px;
     background: #0ea5e9;
@@ -183,6 +178,26 @@ const BtnGhost = styled.button`
     &:hover { background: #f8fafc; }
 `;
 
+/**
+ * Czy odmowa jest pewna. Odpowiedź 4xx znaczy „serwer przeczytał i odmówił" - faktury
+ * nie ma. Brak odpowiedzi (504 z bramki, zerwane połączenie) albo 5xx nie mówi nic:
+ * POST /invoices nie ma klucza idempotencji, więc faktura mogła powstać, a ponowne
+ * „Wystaw" dałoby drugą w KSeF.
+ */
+const outcomeUnknown = (error: unknown): boolean => {
+    const status = apiErrorStatus(error);
+    return status === undefined || status >= 500;
+};
+
+type IssueProblem =
+    | { kind: 'failed'; message: string }
+    /** Wynik nieznany: przed ponowieniem trzeba sprawdzić dokumenty wizyty. */
+    | { kind: 'unknown' }
+    /** Sprawdzenie nie dało wyniku (sieć nadal leży). */
+    | { kind: 'checkFailed' }
+    /** Sprawdzone: faktury przy wizycie nie ma, ponowienie jest bezpieczne. */
+    | { kind: 'notIssued' };
+
 /** Maska PII nigdy nie może trafić na dokument - lepiej puste pole do uzupełnienia. */
 const invoiceSafe = (value: string | null | undefined): string =>
     value && !isPiiMasked(value) ? value : '';
@@ -202,7 +217,8 @@ interface ConsumerInvoiceModalProps {
 }
 
 export const ConsumerInvoiceModal = ({ visit, isOpen, onClose, onIssued }: ConsumerInvoiceModalProps) => {
-    const { showSuccess } = useToast();
+    const { showSuccess, showInfo } = useToast();
+    const queryClient = useQueryClient();
     const { calculateServicePrice } = useServicePricing();
 
     // Ta sama rozbieżność typów co w useHandover: wycena pochodzi z modułu
@@ -216,12 +232,16 @@ export const ConsumerInvoiceModal = ({ visit, isOpen, onClose, onIssued }: Consu
     const currency = visit.totalCost?.currency ?? 'PLN';
 
     // Pozycje z usług wizyty; kwota brutto jest autorytatywna, tak jak przy wydaniu.
+    // Ta sama reguła rozliczenia co przy wydaniu (settledLines = Visit.settledGross):
+    // zmiana, która czekała na zgodę klienta w chwili wydania, zostaje w wizycie na
+    // zawsze, a za usługę dopisaną i nieprzyjętą klient nie zapłacił.
     const seedItems = useMemo<HandoverItem[]>(() => {
-        if (visit.services.length === 0) {
+        const settled = settledLines(visit.services, priceOf);
+        if (settled.length === 0) {
             return [withDerived({ name: 'Usługi detailingowe', net: '', gross: '0.00', mode: 'GROSS', vatRate: '23' })];
         }
         // Stawka z usługi, nie z proporcji kwot - patrz invoiceRateOf.
-        return visit.services.map(service => invoiceItemFromService(service, priceOf(service)));
+        return settled.map(invoiceItemFromSettled);
     }, [visit.services, priceOf]);
 
     const [items, setItems] = useState<HandoverItem[]>(seedItems);
@@ -234,8 +254,11 @@ export const ConsumerInvoiceModal = ({ visit, isOpen, onClose, onIssued }: Consu
     const [buyerEmail, setBuyerEmail] = useState(() => invoiceSafe(visit.customer.email));
     const [addressLine1, setAddressLine1] = useState('');
     const [addressLine2, setAddressLine2] = useState('');
-    const [error, setError] = useState<string | null>(null);
+    const [problem, setProblem] = useState<IssueProblem | null>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [isChecking, setIsChecking] = useState(false);
+    // Po nieznanym wyniku „Wystaw fakturę" ustępuje „Sprawdź dokumenty wizyty".
+    const needsCheck = problem?.kind === 'unknown' || problem?.kind === 'checkFailed';
 
     const hasCompanyData = !!(visit.customer.companyNip || visit.customer.companyName);
     const gross = invoiceGrossOf(items);
@@ -248,12 +271,44 @@ export const ConsumerInvoiceModal = ({ visit, isOpen, onClose, onIssued }: Consu
     if (items.some(item => item.vatRate === 'zw') && !exemptionBasis.trim()) {
         problems.push('Stawka „zw" wymaga podstawy zwolnienia.');
     }
-    const canSubmit = problems.length === 0 && !isSaving;
+    const canSubmit = problems.length === 0 && !isSaving && !needsCheck;
+
+    /**
+     * Czy faktura do tej wizyty jednak powstała. Źródłem jest detal wizyty: `settlement.
+     * revenueInvoiceId` to faktura przychodowa przypięta do wizyty (GetVisitDetailHandler),
+     * a ten sam wpis cache steruje przyciskiem w nagłówku. Okno otwiera się tylko przy
+     * wizycie bez faktury, więc każda znaleziona pochodzi z tej próby (albo z drugiej karty)
+     * i drugiej wystawiać nie wolno.
+     */
+    const checkIssued = async () => {
+        setIsChecking(true);
+        try {
+            const detail = await queryClient.fetchQuery({
+                queryKey: visitDetailQueryKey(visit.id),
+                queryFn: () => visitApi.getVisitDetail(visit.id),
+                staleTime: 0,
+            });
+            if (detail.visit.settlement?.revenueInvoiceId) {
+                showInfo(
+                    'Faktura jest już wystawiona',
+                    'Serwer nie potwierdził jej na czas, ale jest przy wizycie. Drugiej nie wystawiliśmy.'
+                );
+                onIssued();
+                onClose();
+                return;
+            }
+            setProblem({ kind: 'notIssued' });
+        } catch {
+            setProblem({ kind: 'checkFailed' });
+        } finally {
+            setIsChecking(false);
+        }
+    };
 
     const handleSubmit = async () => {
         if (!canSubmit) return;
         setIsSaving(true);
-        setError(null);
+        setProblem(null);
         try {
             await ksefRevenueApi.issueInvoice({
                 // NIP celowo nieobecny: z tego poziomu wychodzi wyłącznie faktura
@@ -286,8 +341,20 @@ export const ConsumerInvoiceModal = ({ visit, isOpen, onClose, onIssued }: Consu
             onIssued();
             onClose();
         } catch (err) {
-            const message = err instanceof Error ? err.message : '';
-            setError(message || 'Nie udało się wystawić faktury. Spróbuj ponownie.');
+            if (outcomeUnknown(err)) {
+                setProblem({ kind: 'unknown' });
+                // Nagłówek wizyty też ma się dowiedzieć: gdy faktura jednak powstała,
+                // „Wystaw fakturę konsumencką" zamieni się w „Podgląd faktury" także
+                // wtedy, gdy ktoś zamknie to okno bez sprawdzania.
+                queryClient.invalidateQueries({ queryKey: visitDetailQueryKey(visit.id) });
+            } else {
+                // `err.message` to angielskie zdanie axiosa („Request failed with status
+                // code 400"); powód po polsku jest w odpowiedzi backendu.
+                setProblem({
+                    kind: 'failed',
+                    message: apiErrorMessage(err, 'Nie udało się wystawić faktury. Spróbuj ponownie.'),
+                });
+            }
         } finally {
             setIsSaving(false);
         }
@@ -304,7 +371,27 @@ export const ConsumerInvoiceModal = ({ visit, isOpen, onClose, onIssued }: Consu
             </ModalHeader>
 
             <ModalContent>
-                {error && <ErrorBanner>{error}</ErrorBanner>}
+                {problem?.kind === 'failed' && (
+                    <Notice tone="danger" role="alert" title="Nie udało się wystawić faktury">
+                        {problem.message}
+                    </Notice>
+                )}
+                {problem?.kind === 'unknown' && (
+                    <Notice tone="warn" role="alert" title="Faktura mogła zostać wystawiona">
+                        Serwer nie potwierdził wystawienia. Zanim spróbujesz ponownie, sprawdź dokumenty
+                        wizyty: drugie „Wystaw” dałoby drugą fakturę w KSeF.
+                    </Notice>
+                )}
+                {problem?.kind === 'checkFailed' && (
+                    <Notice tone="warn" role="alert" title="Nie udało się sprawdzić dokumentów wizyty">
+                        Nadal nie wiemy, czy faktura powstała. Sprawdź połączenie i spróbuj za chwilę.
+                    </Notice>
+                )}
+                {problem?.kind === 'notIssued' && (
+                    <Notice tone="info" role="status" title="Przy wizycie nie ma faktury">
+                        Poprzednia próba jej nie wystawiła. Możesz wystawić ją ponownie.
+                    </Notice>
+                )}
 
                 {hasCompanyData && (
                     <CompanyWarning>
@@ -384,9 +471,15 @@ export const ConsumerInvoiceModal = ({ visit, isOpen, onClose, onIssued }: Consu
 
             <ModalFooter>
                 <BtnGhost onClick={onClose} disabled={isSaving}>Anuluj</BtnGhost>
-                <BtnPrimary onClick={handleSubmit} disabled={!canSubmit} title={problems[0]}>
-                    {isSaving ? 'Wystawiam…' : 'Wystaw fakturę'}
-                </BtnPrimary>
+                {needsCheck ? (
+                    <BtnPrimary onClick={checkIssued} disabled={isChecking}>
+                        {isChecking ? 'Sprawdzam…' : 'Sprawdź dokumenty wizyty'}
+                    </BtnPrimary>
+                ) : (
+                    <BtnPrimary onClick={handleSubmit} disabled={!canSubmit} title={problems[0]}>
+                        {isSaving ? 'Wystawiam…' : 'Wystaw fakturę'}
+                    </BtnPrimary>
+                )}
             </ModalFooter>
         </ModalShell>
     );
