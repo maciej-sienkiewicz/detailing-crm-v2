@@ -309,9 +309,10 @@ export const InvoicePositions = ({
         return (
             <SplitPanel id="handover-positions">
                 <Row>
-                    <RowText><strong>Kwoty na fakturze</strong></RowText>
+                    <RowText><strong>Faktura + inny dokument</strong></RowText>
                     <Links>
                         <GhostAction type="button" onClick={() => setPreviewOpen(true)}><Eye />Podgląd faktury</GhostAction>
+                        <GhostAction type="button" onClick={() => controls.setInvoiceOther(false)}>Nie dziel</GhostAction>
                     </Links>
                 </Row>
                 {editor}

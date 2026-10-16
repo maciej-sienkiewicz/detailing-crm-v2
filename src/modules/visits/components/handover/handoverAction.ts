@@ -48,6 +48,6 @@ export const handoverAction = (a: HandoverActionInput): HandoverAction => {
             detail: buyer ? `${a.gross} dla ${buyer}` : a.gross,
         };
     }
-    const document = a.documentType === 'RECEIPT' ? 'Paragon' : 'Inne rozliczenie';
+    const document = a.documentType === 'RECEIPT' ? 'Paragon' : 'Inny dokument';
     return { title: `Wydaj auto i przyjmij ${a.gross}`, detail: `${document}, ${a.paymentLabel.toLowerCase()}` };
 };

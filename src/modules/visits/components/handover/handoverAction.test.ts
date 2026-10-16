@@ -45,7 +45,7 @@ describe('handoverAction - przycisk nazwany skutkiem i kwotą', () => {
             title: 'Wydaj auto i przyjmij 1700,00 zł',
             detail: 'Paragon, karta',
         });
-        expect(handoverAction(input({ documentType: 'other', paymentLabel: 'Gotówka' })).detail).toBe('Inne rozliczenie, gotówka');
+        expect(handoverAction(input({ documentType: 'other', paymentLabel: 'Gotówka' })).detail).toBe('Inny dokument, gotówka');
     });
 
     it('wizyta bezpłatna i studio bez modułu finansów', () => {
