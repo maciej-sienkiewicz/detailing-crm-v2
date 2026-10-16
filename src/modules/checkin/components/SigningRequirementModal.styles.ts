@@ -145,8 +145,26 @@ export const FooterActions = styled.div`
 
 export const PrimaryActionGroup = styled.div`
     display: flex;
+    align-items: center;
+    flex-wrap: wrap;
     gap: ${props => props.theme.spacing.sm};
     justify-content: flex-end;
+`;
+
+/** „Trwa zakładanie wizyty…" - zamiast wyjść, które jeszcze nie mają czego anulować. */
+export const PendingHint = styled.span`
+    margin-right: auto;
+    font-size: ${st.fontSm};
+    color: ${st.textSecondary};
+`;
+
+export const SlowHint = styled.p`
+    margin: 0;
+    max-width: 420px;
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.5;
+    color: ${st.textSecondary};
 `;
 
 export const CancelBtn = styled.button`

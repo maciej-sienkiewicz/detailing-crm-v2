@@ -42,7 +42,10 @@ vi.mock('./NotificationSection', () => ({
 
 import { SigningRequirementModal } from './SigningRequirementModal';
 
-const renderModal = (extra: { onBackToForm?: () => void; fromReservation?: boolean } = {}) => {
+type Extra = Partial<Pick<Parameters<typeof SigningRequirementModal>[0],
+    'onBackToForm' | 'fromReservation' | 'isCreating' | 'visitId' | 'protocols' | 'protocolsError'>>;
+
+const renderModal = (extra: Extra = {}) => {
     const onCancel = vi.fn();
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
@@ -150,5 +153,55 @@ describe('SigningRequirementModal - przerwanie przyjęcia', () => {
         expect(screen.queryByText('Przerwać przyjęcie pojazdu?')).toBeNull();
         expect(onBackToForm).not.toHaveBeenCalled();
         expect(api.cancelDraftVisit).not.toHaveBeenCalled();
+    });
+});
+
+/*
+ * Zgłoszenie: w trakcie zakładania wizyty okno miało już wyjścia, choć nie było czego
+ * anulować - „Wróć do formularza" nic nie robiło, a „Anuluj wizytę" kończyło się
+ * angielskim „No visit to cancel" w dymku.
+ */
+describe('SigningRequirementModal - zanim wizyta powstanie', () => {
+    afterEach(cleanup);
+
+    it('nie pokazuje wyjść, tylko mówi, że wizyta się zakłada', () => {
+        renderModal({ isCreating: true, visitId: null });
+
+        expect(screen.getByText('Trwa zakładanie wizyty…')).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Zamknij' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Przerwij przyjęcie' })).toBeNull();
+        expect(screen.getByRole('button', { name: 'Zatwierdź i rozpocznij wizytę' })).toBeDisabled();
+    });
+
+    it('wyjścia wracają razem z numerem wizyty', () => {
+        renderModal({ isCreating: false });
+
+        expect(screen.queryByText('Trwa zakładanie wizyty…')).toBeNull();
+        expect(screen.getByRole('button', { name: 'Przerwij przyjęcie' })).toBeEnabled();
+    });
+});
+
+/*
+ * Zgłoszenie: nieudany odczyt dokumentów wyglądał jak „Ta wizyta nie wymaga protokołów."
+ * i pozwalał zatwierdzić wizytę bez żadnego podpisu.
+ */
+describe('SigningRequirementModal - dokumentów nie dało się wczytać', () => {
+    afterEach(cleanup);
+
+    it('pokazuje błąd z ponowieniem zamiast „nie wymaga protokołów" i nie pozwala zatwierdzić', () => {
+        const onRetry = vi.fn();
+        renderModal({
+            protocols: [],
+            protocolsError: { title: 'Nie udało się wczytać dokumentów', message: 'Brak połączenia z serwerem.', onRetry },
+        });
+
+        expect(screen.getByRole('alert')).toHaveTextContent('Nie udało się wczytać dokumentów');
+        expect(screen.queryByText('Ta wizyta nie wymaga protokołów.')).toBeNull();
+        expect(screen.getByRole('button', { name: 'Zatwierdź i rozpocznij wizytę' })).toBeDisabled();
+        // Wyjście zostaje - sprzedawca nie utknie w oknie.
+        expect(screen.getByRole('button', { name: 'Przerwij przyjęcie' })).toBeEnabled();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Spróbuj ponownie' }));
+        expect(onRetry).toHaveBeenCalledTimes(1);
     });
 });

@@ -9,9 +9,13 @@ import {
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { useToast } from '@/common/components/Toast';
+import { Button, Notice } from '@/common/components/ui';
 import { useCapability } from '@/modules/subscription';
+import { isHandledGlobally } from '@/modules/subscription/utils/apiErrors';
 import { visitApi } from '@/modules/visits/api/visitApi';
 import { tabletApi } from '../api/tabletApi';
+import { useCancelDraftVisit } from '../hooks/useCancelDraftVisit';
+import { checkinErrorMessage, DOCUMENTS_ERROR_TEXTS } from '../utils/checkinErrorMessage';
 import { useSignatureRequestsSocket } from '../hooks/useSignatureRequestsSocket';
 import type { SignatureRequestSocketEvent } from '../hooks/useSignatureRequestsSocket';
 import { DocumentPreview } from './DocumentPreview';
@@ -45,6 +49,8 @@ import {
     TabletPickerLabel,
     TabletPickerItem,
     SpinningIconWrapper,
+    PendingHint,
+    SlowHint,
 } from './SigningRequirementModal.styles';
 
 /* ─── Icons ─────────────────────────────────────────────────────────────────── */
@@ -98,11 +104,11 @@ type SigningState =
     | { phase: 'declined'; requestId: string; channel?: SigningChannel }
     | { phase: 'failed'; requestId?: string; errorMessage?: string; channel?: SigningChannel };
 
-const extractApiErrorMessage = (error: unknown): string | undefined => {
-    const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
-    if (apiMessage) return apiMessage;
-    return error instanceof Error ? error.message : undefined;
-};
+// Dawniej w ostateczności `error.message`, czyli angielski tekst axiosa w dymku.
+const extractApiErrorMessage = (error: unknown): string => checkinErrorMessage(error, DOCUMENTS_ERROR_TEXTS);
+
+/** Po tylu sekundach zakładania wizyty mówimy, że to trwa dłużej niż zwykle i co dalej. */
+const SLOW_CREATION_MS = 20_000;
 
 /* ─── Props ──────────────────────────────────────────────────────────────────── */
 
@@ -149,6 +155,12 @@ interface SigningRequirementModalProps {
     onConfirm: (result: { sendVisitCard: boolean }) => void;
     hasPhotos?: boolean;
     hasDamageMap?: boolean;
+    /**
+     * Nie udało się wczytać (albo wygenerować) dokumentów. Okno NIE może wtedy mówić „Ta
+     * wizyta nie wymaga protokołów" ani pozwolić zatwierdzić wizyty bez dokumentów - zamiast
+     * tego pokazuje błąd z „Spróbuj ponownie". Wyjście („Przerwij przyjęcie") zostaje.
+     */
+    protocolsError?: { title: string; message: string; onRetry: () => void; isRetrying?: boolean };
 }
 
 /* ─── Component ──────────────────────────────────────────────────────────────── */
@@ -171,6 +183,7 @@ export const SigningRequirementModal = ({
     onConfirm,
     hasPhotos = false,
     hasDamageMap = false,
+    protocolsError,
 }: SigningRequirementModalProps) => {
     const [previewProtocolId, setPreviewProtocolId] = useState<string | null>(null);
     const [tabletPickerProtocolId, setTabletPickerProtocolId] = useState<string | null>(null);
@@ -216,29 +229,23 @@ export const SigningRequirementModal = ({
      */
     const [exitPromptOpen, setExitPromptOpen] = useState(false);
 
-    const cancelVisitMutation = useMutation({
-        mutationFn: () => {
-            if (!visitId) throw new Error('No visit to cancel');
-            return visitApi.cancelDraftVisit(visitId);
-        },
-        onSuccess: ({ reservationKept }) => {
-            setExitPromptOpen(false);
-            showSuccess(
-                'Wizyta została anulowana',
-                reservationKept
-                    ? 'Rezerwacja pozostała w kalendarzu - auto można przyjąć od nowa.'
-                    : 'Przyjęcie usunięte, w kalendarzu nic po nim nie zostało.',
-            );
-            onCancel();
-        },
-        onError: (error: unknown) => {
-            showError('Nie udało się anulować wizyty', extractApiErrorMessage(error));
-        },
+    const cancelVisitMutation = useCancelDraftVisit(() => {
+        setExitPromptOpen(false);
+        onCancel();
     });
+
+    /*
+     * Dopóki serwer zakłada wizytę, nie ma czego anulować ani do czego wracać: „Wróć do
+     * formularza" nic nie robiło, a „Anuluj wizytę" kończyło się angielskim „No visit to
+     * cancel" w dymku. Wyjścia pojawiają się razem z numerem wizyty.
+     */
+    const askToLeave = () => {
+        if (visitId) setExitPromptOpen(true);
+    };
 
     const confirmVisitMutation = useMutation({
         mutationFn: () => {
-            if (!visitId) throw new Error('No visit to confirm');
+            if (!visitId) throw new Error('Wizyta nie jest jeszcze założona');
             return visitApi.confirmDraftVisit(visitId, toConfirmVisitOptions(notifOptions));
         },
         onSuccess: (response) => {
@@ -250,9 +257,24 @@ export const SigningRequirementModal = ({
             onConfirm({ sendVisitCard: notifOptions.sendVisitCard });
         },
         onError: (error: unknown) => {
+            // 4xx pokazał już interceptor; 5xx i brak połączenia przemilcza - te mówimy sami.
+            if (isHandledGlobally(error)) return;
             showError('Nie udało się rozpocząć wizyty', extractApiErrorMessage(error));
         },
     });
+
+    // Zakładanie wizyty nie ma limitu czasu (ponowienie zapisu mogłoby założyć drugą
+    // wizytę), więc przy wolnym serwerze sprzedawca musi wiedzieć, że ma poczekać.
+    const isCreatingVisit = isOpen && isCreating && !visitId;
+    const [isSlowCreation, setIsSlowCreation] = useState(false);
+    useEffect(() => {
+        if (!isCreatingVisit) {
+            setIsSlowCreation(false);
+            return;
+        }
+        const timer = setTimeout(() => setIsSlowCreation(true), SLOW_CREATION_MS);
+        return () => clearTimeout(timer);
+    }, [isCreatingVisit]);
 
     const handleLeaveForLater = () => {
         setExitPromptOpen(false);
@@ -469,13 +491,30 @@ export const SigningRequirementModal = ({
 
     const isProcessing = cancelVisitMutation.isPending || confirmVisitMutation.isPending;
     const canInteract = !isCreating && visitId !== null;
+    // Bez dokumentów, które dało się wczytać, nie ma czego zatwierdzać - zostaje ponowienie albo wyjście.
+    const canConfirm = canInteract && !protocolsError;
     const hasTablets = tablets.length > 0;
+
+    const protocolsErrorNotice = protocolsError && (
+        <Notice
+            tone="danger"
+            role="alert"
+            title={protocolsError.title}
+            action={(
+                <Button size="sm" variant="outline" onClick={protocolsError.onRetry} disabled={protocolsError.isRetrying}>
+                    {protocolsError.isRetrying ? 'Ponawianie…' : 'Spróbuj ponownie'}
+                </Button>
+            )}
+        >
+            {protocolsError.message}
+        </Notice>
+    );
 
     return (
         <>
             <ModalShell
                 isOpen={isOpen}
-                onClose={() => setExitPromptOpen(true)}
+                onClose={askToLeave}
                 maxWidth="680px"
                 dismissible={false}
             >
@@ -483,7 +522,7 @@ export const SigningRequirementModal = ({
                     <ModalTitleGroup>
                         <ModalTitle>Dokumenty do podpisu</ModalTitle>
                     </ModalTitleGroup>
-                    <CloseBtn onClick={() => setExitPromptOpen(true)} />
+                    {visitId && <CloseBtn onClick={askToLeave} />}
                 </ModalHeader>
 
                 <ModalContent>
@@ -492,11 +531,21 @@ export const SigningRequirementModal = ({
                             <LoadingContainer>
                                 <Spinner />
                                 <span>Uzupełniam dane na protokole…</span>
+                                {isSlowCreation && (
+                                    <SlowHint role="status">
+                                        Serwer odpowiada dłużej niż zwykle. Nie zamykaj tej strony: gdy
+                                        odpowie, zobaczysz dokumenty albo informację, co poszło nie tak.
+                                        Dane formularza są zachowane.
+                                    </SlowHint>
+                                )}
                             </LoadingContainer>
+                        ) : protocolsError && (!protocols || protocols.length === 0) ? (
+                            protocolsErrorNotice
                         ) : !protocols || protocols.length === 0 ? (
                             <EmptyState>Ta wizyta nie wymaga protokołów.</EmptyState>
                         ) : (
                             <>
+                                {protocolsErrorNotice}
                                 {protocols.length > 1 && sigLocal.enabled && hasTablets && (
                                     <BatchSendRow>
                                         <TabletPickerWrapper
@@ -661,12 +710,15 @@ export const SigningRequirementModal = ({
 
                         <FooterActions>
                             <PrimaryActionGroup>
-                                <CancelBtn onClick={() => setExitPromptOpen(true)} disabled={!canInteract || isProcessing}>
-                                    Przerwij przyjęcie
-                                </CancelBtn>
+                                {!visitId && <PendingHint role="status">Trwa zakładanie wizyty…</PendingHint>}
+                                {visitId && (
+                                    <CancelBtn onClick={askToLeave} disabled={isProcessing}>
+                                        Przerwij przyjęcie
+                                    </CancelBtn>
+                                )}
                                 <ConfirmBtn
                                     onClick={() => confirmVisitMutation.mutate()}
-                                    disabled={!canInteract || isProcessing}
+                                    disabled={!canConfirm || isProcessing}
                                 >
                                     {isProcessing ? 'Zapisywanie…' : 'Zatwierdź i rozpocznij wizytę'}
                                 </ConfirmBtn>
@@ -676,7 +728,7 @@ export const SigningRequirementModal = ({
                 </ModalContent>
             </ModalShell>
 
-            {exitPromptOpen && (
+            {exitPromptOpen && visitId && (
                 <AbandonCheckInDialog
                     isOpen
                     visitNumber={visitNumber}
@@ -684,7 +736,7 @@ export const SigningRequirementModal = ({
                     onBack={() => setExitPromptOpen(false)}
                     onBackToForm={onBackToForm && (() => { setExitPromptOpen(false); onBackToForm(); })}
                     fromReservation={fromReservation}
-                    onCancelVisit={() => cancelVisitMutation.mutate()}
+                    onCancelVisit={() => cancelVisitMutation.mutate(visitId)}
                     onLeaveForLater={onLeaveForLater && handleLeaveForLater}
                 />
             )}
