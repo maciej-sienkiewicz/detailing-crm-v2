@@ -27,14 +27,14 @@ const view: SettlementView = {
     invoices: [], history: [],
 };
 
-const renderModal = () => {
+const renderModal = (intent?: 'correct' | 'invoice') => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
     const onClose = vi.fn();
     render(
         <QueryClientProvider client={client}>
             <ThemeProvider theme={theme}>
                 <ToastProvider>
-                    <SettlementCorrectionModal visitId="v-1" onClose={onClose} />
+                    <SettlementCorrectionModal visitId="v-1" intent={intent} onClose={onClose} />
                 </ToastProvider>
             </ThemeProvider>
         </QueryClientProvider>,
@@ -110,5 +110,50 @@ describe('SettlementCorrectionModal', () => {
         expect(row).toHaveTextContent('Paragon');
         expect(row).toHaveTextContent('Gotówka');
         expect(row).toHaveTextContent(/1\s?900,00\s*zł/);
+    });
+
+    // Testy KSeF: „Wystaw fakturę konsumencką" kończyło się błędem 400 (kod płatności wizyty
+    // zamiast formy FA(3)) i wystawiałoby zwykłą fakturę zamiast faktury do paragonu.
+    // Teraz ten przycisk otwiera poprawkę w trybie faktury.
+    it('faktura do paragonu: od razu faktura, nabywca z karty klienta, jeden przycisk', async () => {
+        vi.mocked(settlementApi.get).mockResolvedValue({
+            ...view, buyer: { name: 'Rafał Fakturadoparagonu', email: '***' },
+        });
+        vi.mocked(settlementApi.preview).mockResolvedValue({
+            steps: ['Faktura do paragonu na 1900,00 zł. Paragon zostaje, sprzedaż nie liczy się drugi raz.'],
+            blockReason: null, totalGrossBefore: 190_000, totalGrossAfter: 190_000, customerDifference: 0, cashDelta: 0,
+        });
+        const onClose = renderModal('invoice');
+
+        expect(await screen.findByText('Faktura do paragonu')).toBeInTheDocument();
+        expect(screen.getByText('Paragon zostaje')).toBeInTheDocument();
+        expect(screen.getByLabelText('Nazwa albo imię i nazwisko')).toHaveValue('Rafał Fakturadoparagonu');
+        // Maska PII nigdy nie trafia na dokument.
+        expect(screen.getByLabelText('E-mail')).toHaveValue('');
+
+        await waitFor(() => expect(settlementApi.preview).toHaveBeenCalledWith('v-1', expect.objectContaining({
+            documentType: 'INVOICE', services: [], paymentMethod: 'CASH',
+        })));
+        const submit = screen.getByRole('button', { name: 'Wystaw fakturę' });
+        await waitFor(() => expect(submit).toBeEnabled());
+        fireEvent.click(submit);
+
+        await waitFor(() => expect(onClose).toHaveBeenCalled());
+        expect(vi.mocked(settlementApi.correct).mock.calls[0][1]).toMatchObject({
+            documentType: 'INVOICE',
+            buyer: expect.objectContaining({ name: 'Rafał Fakturadoparagonu', email: '' }),
+            reason: 'Klient poprosił o fakturę do paragonu',
+        });
+    });
+
+    it('podstawa zwolnienia i termin przelewu przechodzą z obowiązującej faktury', async () => {
+        vi.mocked(settlementApi.get).mockResolvedValue({
+            ...view, documentType: 'INVOICE', paymentMethod: 'TRANSFER',
+            services: [{ id: 's-1', name: 'Szkolenie', vatRate: -1, netCents: 30_000, grossCents: 30_000, grossTyped: true }],
+            exemptionLegalBasis: 'art. 43 ust. 1 pkt 29 lit. c ustawy o VAT', paymentDueDate: '2026-10-30',
+        });
+        renderModal();
+        expect(await screen.findByDisplayValue('art. 43 ust. 1 pkt 29 lit. c ustawy o VAT')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('2026-10-30')).toBeInTheDocument();
     });
 });

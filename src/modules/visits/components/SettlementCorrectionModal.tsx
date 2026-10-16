@@ -18,6 +18,8 @@ import {
 import { Button, Notice, SectionTitle, Segmented, StatusPill, ui } from '@/common/components/ui';
 import { useToast } from '@/common/components/Toast';
 import { formatCurrency } from '@/common/utils';
+import { isPiiMasked } from '@/common/pii';
+import { localIsoDate } from '@/common/utils/localDate';
 import { MAX_2_DECIMALS } from '@/common/utils/moneyInput';
 import { apiErrorMessage } from '../api/apiError';
 import {
@@ -164,12 +166,23 @@ const History = styled.details`
 
 // ─── Komponent ────────────────────────────────────────────────────────────────
 
+type Intent = 'correct' | 'invoice';
+
 interface Props {
     visitId: string;
+    /**
+     * `invoice` - wejście z „Wystaw fakturę (do paragonu)" w nagłówku wizyty: ta sama
+     * poprawka, ale z wybraną fakturą i językiem tego zadania, a nie „poprawiania".
+     */
+    intent?: Intent;
     onClose: () => void;
 }
 
-export const SettlementCorrectionModal = ({ visitId, onClose }: Props) => {
+const titleOf = (intent: Intent, view: SettlementView | undefined): string =>
+    intent === 'correct' ? 'Popraw rozliczenie'
+        : view?.documentType === 'RECEIPT' ? 'Faktura do paragonu' : 'Wystaw fakturę';
+
+export const SettlementCorrectionModal = ({ visitId, intent = 'correct', onClose }: Props) => {
     const { data, isLoading, isError, refetch } = useQuery({
         queryKey: ['settlement', visitId],
         queryFn: () => settlementApi.get(visitId),
@@ -179,7 +192,7 @@ export const SettlementCorrectionModal = ({ visitId, onClose }: Props) => {
         <ModalShell isOpen onClose={onClose} size="lg">
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>Popraw rozliczenie</ModalTitle>
+                    <ModalTitle>{titleOf(intent, data)}</ModalTitle>
                     <ModalSubtitle>
                         {data ? `Wizyta wydana, ${pln(data.totalGross)} brutto` : 'Wczytywanie rozliczenia'}
                     </ModalSubtitle>
@@ -198,31 +211,47 @@ export const SettlementCorrectionModal = ({ visitId, onClose }: Props) => {
                 </ModalContent>
             )}
             {isLoading && <ModalContent><Totals>Wczytywanie…</Totals></ModalContent>}
-            {data && <CorrectionForm view={data} visitId={visitId} onClose={onClose} />}
+            {data && <CorrectionForm view={data} visitId={visitId} intent={intent} onClose={onClose} />}
         </ModalShell>
     );
 };
 
 const emptyBuyer: HandoverBuyer = { nip: '', name: '', addressLine1: '', addressLine2: '', email: '' };
 
-function CorrectionForm({ view, visitId, onClose }: { view: SettlementView; visitId: string; onClose: () => void }) {
+/** Wartość z serwera nadająca się na fakturę - maska PII (`***`) nigdy nie trafia na dokument. */
+const safe = (value: string | null | undefined): string => (value && !isPiiMasked(value) ? value : '');
+
+const plusDays = (days: number): string => {
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+    return localIsoDate(date);
+};
+
+function CorrectionForm({ view, visitId, intent, onClose }: { view: SettlementView; visitId: string; intent: Intent; onClose: () => void }) {
     const queryClient = useQueryClient();
     const { showSuccess, showWarning } = useToast();
 
     const [lines, setLines] = useState<SettlementLineDraft[]>(() => view.services.map(lineFromService));
-    const [documentType, setDocumentType] = useState<SettlementDocumentType>(view.documentType ?? 'RECEIPT');
+    const toReceipt = intent === 'invoice' && view.documentType === 'RECEIPT';
+    const [documentType, setDocumentType] = useState<SettlementDocumentType>(
+        intent === 'invoice' ? 'INVOICE' : view.documentType ?? 'RECEIPT'
+    );
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(view.paymentMethod ?? 'CASH');
-    const [dueDate, setDueDate] = useState('');
+    // Termin z obowiązującej faktury, a bez niej typowe 14 dni - wcześniej pole było
+    // puste, a poprawka blokowała się na „Płatność przelewem wymaga terminu".
+    const [dueDate, setDueDate] = useState(view.paymentDueDate ?? plusDays(14));
+    // Nabywca z faktury, a bez niej z karty klienta (serwer podaje oba): podpis pod
+    // polami mówi „Dane pochodzą z karty klienta", więc pola nie mogą być puste.
     const [buyer, setBuyer] = useState<HandoverBuyer>(() => ({
         ...emptyBuyer,
-        nip: view.buyer?.nip ?? '',
-        name: view.buyer?.name ?? '',
-        addressLine1: view.buyer?.addressLine1 ?? '',
-        addressLine2: view.buyer?.addressLine2 ?? '',
-        email: view.buyer?.email ?? '',
+        nip: safe(view.buyer?.nip),
+        name: safe(view.buyer?.name),
+        addressLine1: safe(view.buyer?.addressLine1),
+        addressLine2: safe(view.buyer?.addressLine2),
+        email: safe(view.buyer?.email),
     }));
-    const [exemption, setExemption] = useState('');
-    const [reason, setReason] = useState('');
+    const [exemption, setExemption] = useState(view.exemptionLegalBasis ?? '');
+    const [reason, setReason] = useState(toReceipt ? 'Klient poprosił o fakturę do paragonu' : '');
 
     // Faktury wystawia księgowość: podstawę zwolnienia wpisuje ona na swojej fakturze.
     const external = view.invoicesIssuedExternally === true;
@@ -268,7 +297,11 @@ function CorrectionForm({ view, visitId, onClose }: { view: SettlementView; visi
             queryClient.invalidateQueries({ queryKey: ['income-documents'] });
             queryClient.invalidateQueries({ queryKey: ['finance'] });
             if (result.ksefError) {
-                showWarning('Rozliczenie poprawione, KSeF wymaga uwagi', result.ksefError);
+                showWarning(intent === 'invoice' ? 'Faktura zapisana, KSeF wymaga uwagi' : 'Rozliczenie poprawione, KSeF wymaga uwagi', result.ksefError);
+            } else if (intent === 'invoice') {
+                showSuccess('Faktura wystawiona', toReceipt
+                    ? 'Paragon zostaje w historii wizyty, sprzedaż liczy się raz.'
+                    : 'Znajdziesz ją w Finansach i w podglądzie wizyty.');
             } else {
                 showSuccess('Rozliczenie poprawione', 'Stare dokumenty zostały w historii wizyty obok korekt.');
             }
@@ -360,6 +393,13 @@ function CorrectionForm({ view, visitId, onClose }: { view: SettlementView; visi
                         value={documentType}
                         onChange={setDocumentType}
                     />
+                    {toReceipt && documentType === 'INVOICE' && (
+                        <Notice tone="info" title="Paragon zostaje">
+                            Faktura powstanie na kwotę z paragonu i zostanie oznaczona jako faktura do
+                            paragonu, więc sprzedaż nie policzy się drugi raz. Fakturę na firmę wystawisz
+                            tylko wtedy, gdy NIP nabywcy był na paragonie.
+                        </Notice>
+                    )}
                     {documentType === 'INVOICE' && <BuyerEditor buyer={buyer} onChange={setBuyer} />}
                     {documentType === 'INVOICE' && external && (
                         <Notice tone="info" title="Fakturę wystawia księgowość">
@@ -437,7 +477,7 @@ function CorrectionForm({ view, visitId, onClose }: { view: SettlementView; visi
             <ModalFooter>
                 <Button variant="ghost" onClick={onClose}>Anuluj</Button>
                 <Button variant="primary" onClick={() => correct.mutate()} disabled={!canSubmit}>
-                    {correct.isPending ? 'Zapisywanie…' : 'Zatwierdź poprawkę'}
+                    {correct.isPending ? 'Zapisywanie…' : intent === 'invoice' ? 'Wystaw fakturę' : 'Zatwierdź poprawkę'}
                 </Button>
             </ModalFooter>
         </>

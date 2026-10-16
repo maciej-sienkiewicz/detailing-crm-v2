@@ -87,6 +87,10 @@ export interface SettlementView {
     /** Tryb studia: faktura w poprawce trafia do księgowości, CRM jej nie wystawia. */
     invoicesIssuedExternally?: boolean;
     history: SettlementHistoryEntry[];
+    /** Podstawa zwolnienia z VAT z obowiązującej faktury - poprawka ją powtarza. */
+    exemptionLegalBasis?: string | null;
+    /** Termin płatności obowiązującej faktury (YYYY-MM-DD). */
+    paymentDueDate?: string | null;
 }
 
 export interface SettlementServiceLine {

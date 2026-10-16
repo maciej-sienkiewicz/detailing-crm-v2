@@ -29,7 +29,6 @@ import {
 import { useMediaQuery } from '@/common/hooks';
 import { useVisitDetail, useVisitDocuments, useVisitPhotos, visitDetailQueryKey, visitPhotosQueryKey } from '../hooks';
 import { useVisitDamageMap, useUpdateVisitDamageMap } from '../hooks';
-import { ConsumerInvoiceModal } from '../components/ConsumerInvoiceModal';
 import { SettlementCorrectionModal } from '../components/SettlementCorrectionModal';
 import { RevenueInvoiceDetailModal } from '@/modules/finance/components/RevenueInvoiceDetailModal';
 import { useKsefAutomation } from '@/modules/finance/hooks/useKsef';
@@ -319,9 +318,8 @@ export const VisitDetailView = () => {
     const [isGeneratePostOpen, setIsGeneratePostOpen] = useState(false);
     // Rozliczenie wizyty zakończonej: wystawienie brakującej faktury albo
     // podgląd już wystawionej.
-    const [isConsumerInvoiceOpen, setIsConsumerInvoiceOpen] = useState(false);
     const [previewInvoiceId, setPreviewInvoiceId] = useState<string | null>(null);
-    const [isSettlementCorrectionOpen, setIsSettlementCorrectionOpen] = useState(false);
+    const [settlementIntent, setSettlementIntent] = useState<'correct' | 'invoice' | null>(null);
     const [isSmsReminderOpen, setIsSmsReminderOpen] = useState(false);
     const [isCertificateOpen, setIsCertificateOpen] = useState(false);
     const [smsReminderForEdit, setSmsReminderForEdit] = useState<SmsReminderResponse | null>(null);
@@ -653,7 +651,11 @@ export const VisitDetailView = () => {
                 <VisitHeader
                     visit={visit}
                     onCompleteVisit={handleCompleteVisit}
-                    onIssueConsumerInvoice={invoicesIssuedExternally ? undefined : () => setIsConsumerInvoiceOpen(true)}
+                    onIssueConsumerInvoice={
+                        invoicesIssuedExternally || !can('FINANCE_CORRECT_SETTLEMENT')
+                            ? undefined
+                            : () => setSettlementIntent('invoice')
+                    }
                     onPreviewInvoice={() => setPreviewInvoiceId(visit.settlement?.revenueInvoiceId ?? null)}
                     onCancelVisit={handleCancelVisit}
                     onGeneratePost={() => setIsGeneratePostOpen(true)}
@@ -699,7 +701,7 @@ export const VisitDetailView = () => {
                                 settlement={visit.settlement}
                                 onCorrectSettlement={
                                     visit.status === 'COMPLETED' && can('FINANCE_CORRECT_SETTLEMENT')
-                                        ? () => setIsSettlementCorrectionOpen(true)
+                                        ? () => setSettlementIntent('correct')
                                         : undefined
                                 }
                             />
@@ -1015,20 +1017,16 @@ export const VisitDetailView = () => {
                 />
             )}
 
-            {isSettlementCorrectionOpen && visitId && (
-                <SettlementCorrectionModal visitId={visitId} onClose={() => setIsSettlementCorrectionOpen(false)} />
-            )}
-
-            {isConsumerInvoiceOpen && (
-                <ConsumerInvoiceModal
-                    visit={visit}
-                    isOpen
-                    onClose={() => setIsConsumerInvoiceOpen(false)}
-                    onIssued={() => {
-                        // Detal wizyty niesie settlement, więc po wystawieniu przycisk
-                        // sam zamienia się na „Podgląd faktury".
-                        queryClient.invalidateQueries({ queryKey: visitDetailQueryKey(visitId!) });
-                    }}
+            {/* Faktura do wizyty rozliczonej paragonem albo innym dokumentem idzie tą samą
+                drogą co poprawka rozliczenia: paragon → faktura do paragonu (FP), sprzedaż
+                liczy się raz, a wizyta wie o fakturze. Osobne okno „faktury konsumenckiej"
+                wysyłało kod płatności wizyty (CARD) zamiast formy FA(3) i kończyło się
+                błędem 400, a nawet poprawione wystawiałoby zwykłą fakturę zamiast FP. */}
+            {settlementIntent && visitId && (
+                <SettlementCorrectionModal
+                    visitId={visitId}
+                    intent={settlementIntent}
+                    onClose={() => setSettlementIntent(null)}
                 />
             )}
 

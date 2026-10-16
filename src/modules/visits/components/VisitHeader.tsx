@@ -343,7 +343,7 @@ const ScheduleBtn = styled(Button)`
 interface VisitHeaderProps {
     visit: Visit;
     onCompleteVisit: () => void;
-    /** Wizyta zakończona bez faktury: wystawienie faktury konsumenckiej. */
+    /** Wizyta zakończona bez faktury: wystawienie faktury (do paragonu: FP) przez poprawkę rozliczenia. */
     onIssueConsumerInvoice?: () => void;
     /** Wizyta zakończona z fakturą: podgląd wystawionego dokumentu. */
     onPreviewInvoice?: () => void;
@@ -428,7 +428,7 @@ export const VisitHeader = ({
     /*
      * Wizyta zakończona: „Zakończ wizytę" nie ma już czego zrobić. Zastępuje ją akcja
      * wynikająca z tego, czym wizytę rozliczono: faktura w KSeF → podgląd dokumentu,
-     * inny dokument → wystawienie brakującej faktury konsumenckiej. Sprawdzamy
+     * inny dokument → wystawienie brakującej faktury (do paragonu: FP). Sprawdzamy
      * revenueInvoiceId, nie documentType: dokument typu INVOICE może istnieć bez
      * rekordu KSeF (adnotacja bez wysyłki), a wtedy nie ma czego pokazać.
      */
@@ -442,8 +442,10 @@ export const VisitHeader = ({
     // Podgląd faktury czyta ją z KSeF (FINANCE_INVOICES) - bez tego okno zostawało puste.
     const primary = settlementAction === 'preview' && can('FINANCE_INVOICES') ? (
         <PrimaryAction variant="success" onClick={onPreviewInvoice}><FileText />Podgląd faktury</PrimaryAction>
-    ) : settlementAction === 'issue' && can('VISITS_CREATE') ? (
-        <PrimaryAction variant="success" onClick={onIssueConsumerInvoice}><FilePlus />Wystaw fakturę konsumencką</PrimaryAction>
+    ) : settlementAction === 'issue' ? (
+        <PrimaryAction variant="success" onClick={onIssueConsumerInvoice}>
+            <FilePlus />{visit.settlement?.documentType === 'RECEIPT' ? 'Wystaw fakturę do paragonu' : 'Wystaw fakturę'}
+        </PrimaryAction>
     ) : settlementAction === null && can('VISITS_VIEW') && !isTerminal
         // „Wydaj pojazd" to rozliczenie z kwotami usług - bez prawa do cen serwer ich nie
         // wysyła, a ekran wydania nie miałby czego pokazać ani wpisać na paragon.
