@@ -2,11 +2,11 @@ import styled from 'styled-components';
 import { formatCurrency } from '@/common/utils';
 import { ui } from '@/common/components/ui';
 import type { CompanySettings } from '@/modules/settings/types';
-import { Pill, PillRow, SectionProblems } from './HandoverKit';
+import { GhostAction, Pill, PillRow, SectionProblems } from './HandoverKit';
 import { InvoiceBuyer, InvoicePositions, type InvoiceControls } from './InvoiceSection';
 import { PaymentMethodPicker } from './PaymentMethodPicker';
 import { SellerPrompt } from './SellerPrompt';
-import { documentChoices, type DocumentChoice } from './paymentOptions';
+import { documentChoices } from './paymentOptions';
 import type { HandoverProblem, HandoverState } from '../../types/handover';
 import type { InvoiceType } from '../../types/stateTransitions';
 
@@ -27,6 +27,10 @@ const Field = styled.section`
     display: flex;
     flex-direction: column;
     gap: 10px;
+`;
+
+const SplitLink = styled(GhostAction)`
+    align-self: flex-start;
 `;
 
 const FieldTitle = styled.h3`
@@ -62,38 +66,29 @@ export const SettlementSection = ({
     controls,
 }: SettlementSectionProps) => {
     const fmt = (grosz: number) => formatCurrency(grosz / 100, currency);
-    const choice: DocumentChoice =
-        state.documentType === 'INVOICE' && state.remainderWithoutReceipt ? 'INVOICE_OTHER' : state.documentType;
     const isInvoice = state.documentType === 'INVOICE';
+    const isSplit = isInvoice && state.remainderWithoutReceipt;
+    const crmInvoice = isInvoice && !invoicedExternally;
 
-    const choose = (value: DocumentChoice) => {
-        if (value === choice) return;
-        // Z „Faktura + Inny dokument” do czegokolwiek innego: pozycje wracają do usług,
-        // żeby faktura na część kwoty nie wróciła po cichu przy kolejnym wyborze faktury.
-        if (choice === 'INVOICE_OTHER') controls.setInvoiceOther(false);
-        if (value === 'INVOICE_OTHER') {
-            patch({ documentType: 'INVOICE' });
-            controls.setInvoiceOther(true);
-        } else {
-            patch({ documentType: value as InvoiceType });
-        }
+    const choose = (value: InvoiceType) => {
+        if (value === state.documentType) return;
+        // Odejście od faktury zdejmuje podział: pozycje wracają do usług, żeby faktura
+        // na część kwoty nie wróciła po cichu przy kolejnym wyborze faktury.
+        if (isSplit) controls.setInvoiceOther(false);
+        patch({ documentType: value });
     };
-
-    // Księgowość wystawia faktury poza CRM: podziału na fakturę i inny dokument nie ma
-    // komu wystawić, więc ta opcja znika.
-    const choices = invoicedExternally ? documentChoices.filter(c => c.value !== 'INVOICE_OTHER') : documentChoices;
 
     return (
         <Stack>
             <Field id="handover-document">
                 <FieldTitle>Dokument dla klienta</FieldTitle>
                 <PillRow role="group" aria-label="Dokument dla klienta">
-                    {choices.map(type => (
+                    {documentChoices.map(type => (
                         <Pill
                             key={type.value}
                             type="button"
-                            $selected={choice === type.value}
-                            aria-pressed={choice === type.value}
+                            $selected={state.documentType === type.value}
+                            aria-pressed={state.documentType === type.value}
                             onClick={() => choose(type.value)}
                         >
                             {type.label}
@@ -112,30 +107,24 @@ export const SettlementSection = ({
                 )}
             </Field>
 
-            {isInvoice && !invoicedExternally && state.remainderWithoutReceipt && (
-                <InvoicePositions
-                    state={state}
-                    patch={patch}
-                    invoiceGross={invoiceGross}
-                    remainder={remainder}
-                    company={company}
-                    problemsIn={problemsIn}
-                    controls={controls}
-                    fmt={fmt}
-                />
-            )}
-
             <Field id="handover-payment">
-                <FieldTitle>{choice === 'INVOICE_OTHER' ? 'Forma zapłaty faktury' : 'Forma zapłaty'}</FieldTitle>
+                <FieldTitle>{isSplit ? 'Forma zapłaty faktury' : 'Forma zapłaty'}</FieldTitle>
                 <PaymentMethodPicker
                     value={state.paymentMethod}
                     onChange={paymentMethod => patch({ paymentMethod })}
                 />
+                {/* Podział to sposób zapłaty faktury, nie osobny dokument: część kwoty na
+                    fakturze, reszta gotówką na innym dokumencie. */}
+                {crmInvoice && !isSplit && (
+                    <SplitLink type="button" onClick={() => controls.setInvoiceOther(true)}>
+                        Podziel płatność: faktura + inny dokument
+                    </SplitLink>
+                )}
             </Field>
 
-            {isInvoice && !invoicedExternally && !state.remainderWithoutReceipt && (
+            {crmInvoice && (
                 <Field>
-                    <FieldTitle>Pozycje</FieldTitle>
+                    {!isSplit && <FieldTitle>Pozycje</FieldTitle>}
                     <InvoicePositions
                         state={state}
                         patch={patch}

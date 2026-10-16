@@ -1,10 +1,6 @@
-import { useState } from 'react';
 import styled from 'styled-components';
 import { formatCurrency, pluralPl } from '@/common/utils';
 import { ui } from '@/common/components/ui';
-import type { CompanySettings } from '@/modules/settings/types';
-import { GhostAction } from './HandoverKit';
-import { InvoicePreviewModal } from './InvoicePreviewModal';
 import { paymentMethods } from './paymentOptions';
 import { formatNip, normalizeNip, type HandoverProblem, type HandoverState } from '../../types/handover';
 
@@ -13,8 +9,9 @@ import { formatNip, normalizeNip, type HandoverProblem, type HandoverState } fro
  *
  * Zamiast rutynowego okna „Czy na pewno?” (po kilku dniach klikanego odruchowo) stale
  * widoczne podsumowanie odświeża się w trakcie decyzji i pokazuje dokładnie to, co
- * pójdzie na fakturę i do KSeF (GOV.UK „Check answers”). „Zmień” przewija do pola po
- * lewej, zamiast cofać do poprzedniego kroku.
+ * pójdzie na fakturę i do KSeF (GOV.UK „Check answers”). Podsumowanie tylko pokazuje:
+ * nabywcę, pozycje i płatność zmienia się w jednym miejscu, w lewej kolumnie obok -
+ * dwa miejsca edycji tej samej rzeczy myliły, które jest „prawdziwe”.
  */
 
 const Aside = styled.aside`
@@ -51,7 +48,7 @@ const ReviewTitle = styled.h3`
 
 const ReviewRow = styled.div`
     display: grid;
-    grid-template-columns: 92px minmax(0, 1fr) auto;
+    grid-template-columns: 92px minmax(0, 1fr);
     gap: 10px;
     align-items: start;
     padding: 9px 0;
@@ -65,7 +62,7 @@ const ReviewRow = styled.div`
     /* Numer nie łamie się w środku: „502-431-” i „51-66” w dwóch liniach czytały się jak dwa numery. */
     small.nowrap { white-space: nowrap; }
 
-    @media (max-width: 480px) { grid-template-columns: 78px minmax(0, 1fr) auto; }
+    @media (max-width: 480px) { grid-template-columns: 78px minmax(0, 1fr); }
 `;
 
 const Problems = styled.section`
@@ -113,7 +110,6 @@ interface SettlementSummaryProps {
     ksefBlocked: 'no-token' | 'no-permission' | null;
     transferDueDate: string | null;
     problems: HandoverProblem[];
-    company: CompanySettings | undefined;
 }
 
 export const SettlementSummary = ({
@@ -127,9 +123,7 @@ export const SettlementSummary = ({
     ksefBlocked,
     transferDueDate,
     problems,
-    company,
 }: SettlementSummaryProps) => {
-    const [isPreviewOpen, setPreviewOpen] = useState(false);
     const fmt = (grosz: number) => formatCurrency(grosz / 100, currency);
     const isInvoice = state.documentType === 'INVOICE';
     const crmInvoice = isInvoice && !invoicedExternally;
@@ -139,7 +133,7 @@ export const SettlementSummary = ({
     const count = state.items.length;
 
     const documentLine = !isInvoice
-        ? (state.documentType === 'RECEIPT' ? 'Paragon' : 'Inne rozliczenie')
+        ? (state.documentType === 'RECEIPT' ? 'Paragon' : 'Inny dokument')
         : invoicedExternally
             ? 'Faktura od księgowości'
             : 'Faktura VAT';
@@ -170,7 +164,6 @@ export const SettlementSummary = ({
                 <ReviewRow>
                     <span>Dokument</span>
                     <span><strong>{documentLine}</strong>{ksefLine && <small>{ksefLine}</small>}</span>
-                    <GhostAction type="button" onClick={() => jumpTo('handover-document')}>Zmień</GhostAction>
                 </ReviewRow>
                 {isInvoice && (
                     <ReviewRow>
@@ -179,14 +172,12 @@ export const SettlementSummary = ({
                             <strong>{state.buyer.name.trim() || 'Brak nazwy nabywcy'}</strong>
                             <small className="nowrap">{nip ? `NIP ${formatNip(nip)}` : 'Osoba prywatna'}</small>
                         </span>
-                        <GhostAction type="button" onClick={() => jumpTo('handover-buyer')}>Zmień</GhostAction>
                     </ReviewRow>
                 )}
                 {crmInvoice && (
                     <ReviewRow>
                         <span>Data</span>
                         <span>Dziś, {todayLabel()}</span>
-                        <span />
                     </ReviewRow>
                 )}
                 {crmInvoice && (
@@ -196,7 +187,6 @@ export const SettlementSummary = ({
                             <strong>{fmt(invoiceGross)}</strong>
                             <small>{count} {pluralPl(count, 'pozycja', 'pozycje', 'pozycji')}</small>
                         </span>
-                        <GhostAction type="button" onClick={() => setPreviewOpen(true)}>Podgląd</GhostAction>
                     </ReviewRow>
                 )}
                 <ReviewRow>
@@ -209,19 +199,16 @@ export const SettlementSummary = ({
                                 : 'zapłacono'}
                         </small>
                     </span>
-                    <GhostAction type="button" onClick={() => jumpTo('handover-payment')}>Zmień</GhostAction>
                 </ReviewRow>
                 {hasOther && (
                     <ReviewRow>
                         <span>Inny dokument</span>
                         <span><strong>{fmt(remainder)}</strong><small>gotówka</small></span>
-                        <span />
                     </ReviewRow>
                 )}
                 <ReviewRow>
                     <span>Protokół</span>
                     <span>{state.protocolSigned ? 'Podpisany' : 'Bez podpisu klienta'}</span>
-                    <span />
                 </ReviewRow>
             </Review>
 
@@ -238,17 +225,6 @@ export const SettlementSummary = ({
                 </Problems>
             )}
 
-            {crmInvoice && (
-                <InvoicePreviewModal
-                    isOpen={isPreviewOpen}
-                    onClose={() => setPreviewOpen(false)}
-                    company={company}
-                    buyer={state.buyer}
-                    items={state.items}
-                    paymentMethod={state.paymentMethod}
-                    fmt={fmt}
-                />
-            )}
         </Aside>
     );
 };

@@ -81,30 +81,41 @@ const right = (s: HandoverState, opts: { invoiceGross?: number; remainder?: numb
             ksefBlocked={opts.ksefBlocked ?? null}
             transferDueDate={null}
             problems={opts.problems ?? []}
-            company={company}
         />,
     );
 
 afterEach(cleanup);
 
 describe('Lewa kolumna: decyzje', () => {
-    it('cztery dokumenty, w tym od razu „Faktura + Inny dokument”', () => {
+    it('trzy dokumenty: Paragon, Faktura VAT, Inny dokument', () => {
         left(state());
         const group = screen.getByRole('group', { name: 'Dokument dla klienta' });
         expect(within(group).getAllByRole('button').map(b => b.textContent)).toEqual([
-            'Paragon', 'Faktura VAT', 'Faktura + Inny dokument', 'Inne rozliczenie',
+            'Paragon', 'Faktura VAT', 'Inny dokument',
         ]);
     });
 
-    it('wybór „Faktura + Inny dokument” ustawia fakturę i włącza podział', () => {
+    it('podział to sposób zapłaty faktury: link przy formie zapłaty, tylko przy fakturze', () => {
+        const c = controls();
+        left(state(), { c });
+        fireEvent.click(screen.getByRole('button', { name: 'Podziel płatność: faktura + inny dokument' }));
+        expect(c.setInvoiceOther).toHaveBeenCalledWith(true);
+
+        cleanup();
+        left(state({ documentType: 'RECEIPT' }));
+        expect(screen.queryByRole('button', { name: /Podziel płatność/ })).not.toBeInTheDocument();
+    });
+
+    it('„Nie dziel” wraca do faktury na całość; zmiana dokumentu zdejmuje podział', () => {
         const patch = vi.fn();
         const c = controls();
-        left(state({ documentType: 'RECEIPT' }), { patch, c });
+        left(state({ splitRemainder: true, remainderWithoutReceipt: true }), { patch, c, invoiceGross: 120_000, remainder: 50_000 });
 
-        fireEvent.click(screen.getByRole('button', { name: 'Faktura + Inny dokument' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Nie dziel' }));
+        expect(c.setInvoiceOther).toHaveBeenLastCalledWith(false);
 
-        expect(patch).toHaveBeenCalledWith({ documentType: 'INVOICE' });
-        expect(c.setInvoiceOther).toHaveBeenCalledWith(true);
+        fireEvent.click(screen.getByRole('button', { name: 'Paragon' }));
+        expect(patch).toHaveBeenCalledWith({ documentType: 'RECEIPT' });
     });
 
     it('bez etykiety „dlaczego”, bez przełącznika KSeF, bez ostrzeżenia o nieodwracalności', () => {
@@ -126,7 +137,15 @@ describe('Lewa kolumna: decyzje', () => {
         expect(within(screen.getByRole('list', { name: 'Pozycje faktury' })).getByText('Pranie tapicerki')).toBeInTheDocument();
     });
 
-    it('„Faktura + Inny dokument”: edycja kwot otwarta, pod nią dwie kwoty', () => {
+    it('„Podgląd faktury” w lewej kolumnie otwiera wizualizację faktury', () => {
+        left(state());
+        fireEvent.click(screen.getByRole('button', { name: 'Podgląd faktury' }));
+        const dialog = screen.getByRole('dialog');
+        expect(within(dialog).getByText('Detail Studio')).toBeInTheDocument();
+        expect(within(dialog).getByText('Do zapłaty').parentElement?.textContent).toMatch(/1700,00/);
+    });
+
+    it('podział: edycja kwot otwarta, pod nią dwie kwoty', () => {
         left(state({ splitRemainder: true, remainderWithoutReceipt: true, items: [item('Powłoka ceramiczna', '1000,00', '23'), item('Pranie tapicerki', '200,00', '8')] }),
             { invoiceGross: 120_000, remainder: 50_000 });
 
@@ -145,9 +164,9 @@ describe('Lewa kolumna: decyzje', () => {
         expect(c.setInvoiceOther).toHaveBeenCalledWith(true);
     });
 
-    it('księgowość wystawia faktury: bez „Faktura + Inny dokument” i bez pozycji', () => {
+    it('księgowość wystawia faktury: bez podziału i bez pozycji', () => {
         left(state(), { external: true });
-        expect(screen.queryByRole('button', { name: 'Faktura + Inny dokument' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Podziel płatność/ })).not.toBeInTheDocument();
         expect(screen.queryByText(/pozycje,/)).not.toBeInTheDocument();
         expect(screen.getByText(/Fakturę wystawi księgowość/)).toBeInTheDocument();
     });
@@ -192,11 +211,10 @@ describe('Prawa kolumna: kwota, sprawdź przed wysłaniem, braki', () => {
         expect(within(list).getByRole('button', { name: /błędną sumę kontrolną/ })).toBeInTheDocument();
     });
 
-    it('„Podgląd” otwiera wizualizację faktury', () => {
+    it('podsumowanie tylko pokazuje: zmiany nabywcy, pozycji i płatności są tylko w lewej kolumnie', () => {
         right(state());
-        fireEvent.click(screen.getByRole('button', { name: 'Podgląd' }));
-        const dialog = screen.getByRole('dialog');
-        expect(within(dialog).getByText('Detail Studio')).toBeInTheDocument();
-        expect(within(dialog).getByText('Do zapłaty').parentElement?.textContent).toMatch(/1700,00/);
+        const aside = screen.getByLabelText('Podsumowanie rozliczenia');
+        expect(within(aside).queryByRole('button', { name: 'Zmień' })).not.toBeInTheDocument();
+        expect(within(aside).queryByRole('button', { name: /Podgląd/ })).not.toBeInTheDocument();
     });
 });

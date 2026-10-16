@@ -11,7 +11,7 @@ import {
     ModalFooter,
     CloseBtn,
 } from '@/common/components/ModalKit';
-import { Button, StepPills, ui } from '@/common/components/ui';
+import { Button, ui } from '@/common/components/ui';
 import { formatCurrency } from '@/common/utils';
 import { isPiiMasked, joinPiiName } from '@/common/pii';
 import { usePermissions } from '@/core/permissions';
@@ -217,7 +217,6 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
     // Protokoły wydania (pobranie, wygenerowanie, wysyłka do podpisu) to edycja wizyty -
     // VISITS_CREATE. Bez niego sekcja sama generowała protokół i od razu dostawała odmowę.
     const canHandleProtocols = usePermissions().can('VISITS_CREATE');
-    const signatureDone = allProtocolsSigned(signatureStatus);
 
     // Potwierdzenie na ekranie „Pojazd wydany": SMS-a z podziękowaniem NIE da się
     // zaplanować po zakończeniu wizyty (jedzie w payloadzie `complete`), więc sama
@@ -272,14 +271,10 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                     />
                 ) : (
                     <Body>
-                        <StepPills
-                            label="Etapy wydania"
-                            steps={[
-                                { key: 'signature', label: 'Podpis protokołu', state: isSignatureStep ? 'active' : signatureDone ? 'done' : 'todo' },
-                                { key: 'payment', label: 'Rozliczenie', state: isSignatureStep ? 'todo' : 'active' },
-                            ]}
-                        />
-
+                        {/* Bez paska „1 Podpis protokołu, 2 Rozliczenie”: przy dwóch krokach nie
+                            niósł nic, czego nie mówią przycisk kroku 1 („…przejdź do płatności”),
+                            „Wstecz do protokołu” i linia „Protokół” w podsumowaniu - a zabierał
+                            wiersz nad najważniejszą treścią. */}
                         <StepPane $active={isSignatureStep}>
                             <Body>
                                 <CustomerNotesSection comments={customerComments} />
@@ -347,7 +342,6 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                             ksefBlocked={handover.ksefBlocked}
                                             transferDueDate={handover.transferDueDate}
                                             problems={handover.problems}
-                                            company={handover.company}
                                         />
                                     </SettlementGrid>
                                 ) : handover.isFreeVisit ? (
