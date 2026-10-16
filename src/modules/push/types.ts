@@ -11,6 +11,52 @@ export interface PushDeviceDto {
     platform?: 'IOS' | 'ANDROID' | 'DESKTOP' | 'UNKNOWN';
 }
 
+/**
+ * Rodzaj powiadomienia, który włącza się i wyłącza osobno na każdym urządzeniu
+ * (backend: PushNotificationCategory). Nieznany klucz z nowszego backendu też
+ * przejdzie - ekran pokaże go z nazwą techniczną zamiast zgubić.
+ */
+export type PushNotificationCategory =
+    | 'NEW_LEADS'
+    | 'LEADS_WAITING'
+    | 'RESERVATIONS'
+    | 'CHECKINS'
+    | 'EARNINGS'
+    | 'REPORTS'
+    | 'COMPETITION'
+    | 'LEAVE_REQUESTS'
+    | 'WORKTIME_CARDS'
+    | 'MY_MATTERS'
+    | 'CLICK_TO_CALL'
+    | (string & {});
+
+export interface PushCategorySetting {
+    category: PushNotificationCategory;
+    enabled: boolean;
+    /** false = posiadacz urządzenia nie ma uprawnienia, więc i tak tego nie dostanie. */
+    available: boolean;
+}
+
+export interface PushDeviceNotifications {
+    id: string;
+    deviceName: string;
+    platform: 'IOS' | 'ANDROID' | 'DESKTOP' | 'UNKNOWN';
+    transport: 'WEB_PUSH' | 'APNS' | 'FCM';
+    createdAt: string;
+    lastUsedAt: string | null;
+    userId: string;
+    userName: string;
+    /** Urządzenie osoby, która ogląda ekran. */
+    mine: boolean;
+    categories: PushCategorySetting[];
+}
+
+export interface PushNotificationSettings {
+    /** true = właściciel: urządzenia całego studia. Inaczej tylko własne. */
+    manageAll: boolean;
+    devices: PushDeviceNotifications[];
+}
+
 /** Kanał powiadomień aplikacji ze sklepu: Apple (iPhone) albo Firebase (Android). */
 export type NativePushTransport = 'APNS' | 'FCM';
 

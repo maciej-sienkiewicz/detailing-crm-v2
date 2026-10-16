@@ -8,14 +8,14 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { App } from '@capacitor/app';
 import { useToast } from '@/common/components/Toast';
 import { Button, Card, SectionTitle, ui } from '@/common/components/ui';
 import { ReportNotificationSetting } from '@/modules/statistics/components/ReportNotificationSetting';
 import { pushApi } from '../api/pushApi';
 import { pushQueryKeys } from '../hooks/usePushDevice';
-import { PushDeviceList } from '../components/PushDeviceList';
+import { DeviceNotificationSettings } from '../components/DeviceNotificationSettings';
 import { enableNativePush, nativePushPermission, sendNativeTestPush, type NativePushPermission } from './nativePush';
 
 const COPY: Record<NativePushPermission, string> = {
@@ -29,8 +29,6 @@ export function NativePushPanel() {
     const { showSuccess, showError } = useToast();
     const [permission, setPermission] = useState<NativePushPermission | null>(null);
     const [busy, setBusy] = useState(false);
-
-    const devices = useQuery({ queryKey: pushQueryKeys.devices, queryFn: pushApi.listDevices, staleTime: 30_000 });
 
     const recheck = useCallback(() => {
         nativePushPermission().then(setPermission).catch(() => setPermission('prompt'));
@@ -95,12 +93,7 @@ export function NativePushPanel() {
 
             <ReportNotificationSetting />
 
-            {(devices.data?.length ?? 0) > 0 && (
-                <section>
-                    <SectionTitle as="h3" count={String(devices.data?.length)}>Sparowane urządzenia</SectionTitle>
-                    <PushDeviceList devices={devices.data ?? []} onRevoke={revoke} />
-                </section>
-            )}
+            <DeviceNotificationSettings onRevoke={revoke} />
         </Wrap>
     );
 }

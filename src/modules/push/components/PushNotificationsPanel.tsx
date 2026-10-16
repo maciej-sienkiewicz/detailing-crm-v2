@@ -24,7 +24,7 @@ import { Button, Card, Panel, SectionTitle, ui } from '@/common/components/ui';
 import { usePushDevice } from '../hooks/usePushDevice';
 import { isMobileDevice } from '../utils/webPush';
 import { PushNotificationWizard } from './PushNotificationWizard';
-import { PushDeviceList } from './PushDeviceList';
+import { DeviceNotificationSettings } from './DeviceNotificationSettings';
 // Bezpośrednio z pliku, nie z indeksu modułu: indeks ciągnie widoki Statystyk z wykresami.
 import { ReportNotificationSetting } from '@/modules/statistics/components/ReportNotificationSetting';
 
@@ -100,13 +100,8 @@ export function PushNotificationsPanel() {
                 </PhoneBlock>
             )}
 
-            {push.devices.length > 0 && (
-                <DevicesBlock>
-                    <SectionTitle as="h3" count={String(push.devices.length)}>Sparowane urządzenia</SectionTitle>
-                    {/* Komunikat o odłączeniu pokazuje sama lista - inaczej byłyby dwa. */}
-                    <PushDeviceList devices={push.devices} onRevoke={push.revokeDevice} />
-                </DevicesBlock>
-            )}
+            {/* Sparowane urządzenia razem z tym, co do każdego idzie - właściciel widzi całe studio. */}
+            <DeviceNotificationSettings onRevoke={push.revokeDevice} />
         </Wrap>
     );
 }
@@ -135,12 +130,6 @@ const PhoneBlock = styled(Panel)`
     padding: 16px 20px;
 
     @media (max-width: 767px) { padding: 16px; }
-`;
-
-const DevicesBlock = styled.section`
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
 `;
 
 const DesktopNote = styled.p`
