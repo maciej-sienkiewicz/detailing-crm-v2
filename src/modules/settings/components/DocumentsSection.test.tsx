@@ -50,6 +50,7 @@ vi.mock('@/common/components/Toast', () => ({
 vi.mock('./MySignatureSection', () => ({ MySignatureSection: () => null }));
 vi.mock('./DocumentLogoCard', () => ({ DocumentLogoCard: () => null }));
 vi.mock('./ProtocolServicePricesCard', () => ({ ProtocolServicePricesCard: () => null }));
+vi.mock('./ProtocolVinCard', () => ({ ProtocolVinCard: () => null }));
 
 const renderSection = () =>
     render(

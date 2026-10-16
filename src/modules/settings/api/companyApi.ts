@@ -3,6 +3,7 @@ import type {
     CompanySettings,
     DocumentLogoConfig,
     ProtocolContentConfig,
+    UpdateProtocolContentConfig,
     VisitViewConfig,
     VehicleFormConfig,
     UpdateCompanySettingsRequest,
@@ -150,7 +151,7 @@ export const companyApi = {
         return response.data;
     },
 
-    updateProtocolContentConfig: async (data: ProtocolContentConfig): Promise<ProtocolContentConfig> => {
+    updateProtocolContentConfig: async (data: UpdateProtocolContentConfig): Promise<ProtocolContentConfig> => {
         const response = await apiClient.patch<ProtocolContentConfig>(`${BASE_PATH}/protocol-content-config`, data);
         return response.data;
     },

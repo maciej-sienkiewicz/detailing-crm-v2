@@ -1,9 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { companyApi } from '../api/companyApi';
+import { protocolQueryKeys } from '@/modules/protocols/api/useProtocols';
 import type {
     UpdateCompanySettingsRequest,
     UpdateDocumentLogoConfigRequest,
-    ProtocolContentConfig,
+    UpdateProtocolContentConfig,
     VisitViewConfig,
     VehicleFormConfig,
     UpdateVisitNumberingConfigRequest,
@@ -127,9 +128,14 @@ export const useUpdateProtocolContentConfig = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (data: ProtocolContentConfig) => companyApi.updateProtocolContentConfig(data),
-        onSuccess: updated => {
+        mutationFn: (data: UpdateProtocolContentConfig) => companyApi.updateProtocolContentConfig(data),
+        onSuccess: (updated, sent) => {
             queryClient.setQueryData(PROTOCOL_CONTENT_CONFIG_QUERY_KEY, updated);
+            // VIN zmienia plik szablonu, a podgląd PDF w „Dokumentach i podpisach" to
+            // podpisany link do konkretnego pliku - bez odświeżenia pokazywałby stary układ.
+            if (sent.showVin !== undefined) {
+                queryClient.invalidateQueries({ queryKey: protocolQueryKeys.all });
+            }
         },
         onError: () => {
             queryClient.invalidateQueries({ queryKey: PROTOCOL_CONTENT_CONFIG_QUERY_KEY });
