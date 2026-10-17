@@ -10,9 +10,9 @@ import { colorFor } from '../../utils/profileColors';
  * Ranking przyrostu obserwujących w procentach zamiast linii skumulowanych w sztukach.
  *
  * „Jesteś 4. z 4., @autopodrobku zdobył 11× więcej" było prawdą, z której nic nie
- * wynikało: konto ogólnopolskie zawsze wygra w sztukach. W procentach i tylko wśród
- * lokalnych pytanie brzmi tak, jak zadaje je właściciel: czy rosnę szybciej niż studia
- * w moim mieście. Liczba osób zostaje w etykiecie, bo „+3,8%" bez niej nic nie waży.
+ * wynikało: konto ogólnopolskie zawsze wygra w sztukach. W procentach pytanie brzmi tak,
+ * jak zadaje je właściciel: czy rosnę szybciej niż studia, z którymi rywalizuję. Liczba
+ * osób zostaje w etykiecie, bo „+3,8%" bez niej nic nie waży.
  */
 
 const List = styled.ol`
@@ -144,7 +144,7 @@ export const GrowthRanking: React.FC<Props> = ({ profiles, median, colors, perio
                             })}
                         </List>
                         {marker !== null && medianPct && (
-                            <Foot><i /> mediana lokalnych {medianPct}</Foot>
+                            <Foot><i /> mediana konkurencji {medianPct}</Foot>
                         )}
                     </>
                 )}

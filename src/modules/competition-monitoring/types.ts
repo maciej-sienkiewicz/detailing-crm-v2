@@ -10,13 +10,6 @@
 
 export type InstagramProfileStatus = 'PENDING_APPROVAL' | 'ACTIVE' | 'REJECTED';
 
-/**
- * Rola profilu w studiu. LOCAL - konkurent z okolicy: liczy się do mediany i rankingu.
- * INSPIRATION - wzorzec z innego miasta: tylko do Inspiracji, bez ocen. Bez tego podziału
- * jedno konto ogólnopolskie przesuwało wszystkie oceny lokalnego studia.
- */
-export type ProfileRole = 'LOCAL' | 'INSPIRATION';
-
 export interface InstagramProfile {
     id: string;
     profileId: string;
@@ -25,8 +18,6 @@ export interface InstagramProfile {
     apiError: boolean;
     isSelf: boolean;
     addedAt: string;
-    /** Starsze odpowiedzi serwera nie mają roli - traktujemy je jak lokalne. */
-    role?: ProfileRole;
 }
 
 // ─── Metryki ──────────────────────────────────────────────────────────────────
@@ -136,9 +127,8 @@ export interface ContentItem {
     reaction: 'LIKED' | 'DISLIKED' | null;
     /** Ile razy więcej reakcji niż typowy post TEGO profilu; null przy mniej niż 3 postach. */
     relativeToNorm?: number | null;
-    /** Kod posta - po nim dobieramy miniaturę z połączonego konta. */
+    /** Kod posta - po nim osadzamy post (instagram.com/p/{kod}/embed). */
     postCode?: string;
-    role?: ProfileRole;
 }
 
 export interface ContentPage {
@@ -503,22 +493,28 @@ export interface SaveAreaSettings {
 // ─── Przegląd (GET /instagram/home) ───────────────────────────────────────────
 
 export interface PostingPlan {
+    /** Plan studia w postach na tydzień - ustawiany w „Moje konta", domyślnie 3. */
     weeklyGoal: number;
-    /** „październik" - nazwa bieżącego miesiąca. */
+    /** „październiku" - miejscownik, do „Posty w październiku". */
     monthLabel: string;
     postsThisMonth: number;
     monthGoal: number;
     postsThisWeek: number;
     lastPostAt: string | null;
     daysSinceLastPost: number | null;
+    /** false - posty własnego profilu nie są jeszcze pobrane; zero w bazie nie znaczy zero na profilu. */
+    postsSynced: boolean;
 }
 
 export interface FollowersSummary {
     value: number | null;
     gain30d: number | null;
     gain30dPct: number | null;
-    localMedianGain30dPct: number | null;
+    competitorsMedianGain30dPct: number | null;
 }
+
+/** Stan pobrania własnego profilu - dopóki nie READY, Przegląd nie ocenia bio ani planu. */
+export type SelfSyncState = 'READY' | 'PENDING' | 'FAILED';
 
 /**
  * Jedna rzecz do zrobienia. `target` mówi, dokąd prowadzi przycisk - lista jest zamknięta
@@ -609,6 +605,7 @@ export interface InstagramHome {
     insights: OwnInsightsSummary | null;
     leads: InstagramLeadsSummary | null;
     google?: HomeGoogle | null;
+    selfSync?: SelfSyncState | null;
 }
 
 // ─── Konkurencja (GET /instagram/competition) ─────────────────────────────────
@@ -626,7 +623,6 @@ export interface CompetitionProfile {
     profileId: string;
     username: string;
     isSelf: boolean;
-    role: ProfileRole;
     apiError: boolean;
     followers: number | null;
     followersGain: number | null;
@@ -668,6 +664,7 @@ export interface CompetitionResponse {
     /** Poniedziałki, od najstarszego; ostatni tydzień jest w toku. */
     weeks: string[];
     profiles: CompetitionProfile[];
-    localMedian: CompetitionMedian | null;
+    /** Mediana konkurentów (bez własnego studia); null poniżej dwóch z danymi. */
+    median: CompetitionMedian | null;
     events: CompetitionEvent[];
 }

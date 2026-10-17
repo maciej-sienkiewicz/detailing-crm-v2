@@ -2,30 +2,26 @@ import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { ExternalLink, Film, Images, Image as ImageIcon, Sparkles, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { Button, ButtonLink, IconButton, Segmented, StatusPill, ui } from '@/common/components/ui';
-import type { ContentFormat, ContentItem, ProfileRole } from '../../types';
+import type { ContentFormat, ContentItem } from '../../types';
 import { FORMAT_LABELS } from '../../types';
-import { useContent, usePreviews, useReactToPost } from '../../hooks/useAnalytics';
+import { useContent, useReactToPost } from '../../hooks/useAnalytics';
 import { CenterState, Spinner } from '../MetricBits';
 import type { GeneratePostPrefill } from '../GeneratePostModal';
-import { normLabel } from '../../utils/inspiration';
+import { embedUrl, normLabel } from '../../utils/inspiration';
 
 /**
  * Inspiracje: co zadziałało u innych, policzone uczciwie.
  *
  * Skuteczność to krotność typowego posta TEGO SAMEGO profilu („3,4× normy"), a nie
  * reakcje na 100 obserwujących - tamten wskaźnik premiował najmniejsze konta i konkursy
- * „oznacz dwóch znajomych". Konkursy serwer odsyła na koniec listy. Miniatura przychodzi
- * z połączonego konta studia i nie jest nigdzie zapisywana; bez połączenia karta pokazuje
- * sam opis i ikonę formatu.
+ * „oznacz dwóch znajomych". Konkursy serwer odsyła na koniec listy.
+ *
+ * Zdjęcie posta to OFICJALNE OSADZENIE Instagrama (instagram.com/p/{kod}/embed) - to samo,
+ * co „Osadź" pod postem. Niczego nie pobieramy ani nie zapisujemy: obraz serwuje Instagram,
+ * więc działa bez połączonego konta i zgodnie z regulaminem Meta, który zabrania kopiowania
+ * cudzych treści. Ramka jest przycięta do samego zdjęcia (bez paska z nazwą konta i stopki),
+ * a kliknięcie w nią otwiera post - karta ma wyglądać jak miniatura, nie jak drugi Instagram.
  */
-
-type RoleFilter = 'ALL' | ProfileRole;
-
-const ROLE_OPTIONS: { value: RoleFilter; label: string }[] = [
-    { value: 'ALL', label: 'Wszyscy' },
-    { value: 'INSPIRATION', label: 'Wzorce' },
-    { value: 'LOCAL', label: 'Z okolicy' },
-];
 
 type FormatFilter = 'ALL' | ContentFormat;
 
@@ -92,14 +88,43 @@ const Post = styled.li<{ $muted?: boolean }>`
     opacity: ${p => (p.$muted ? 0.72 : 1)};
 `;
 
-const Thumb = styled.a`
+/**
+ * Wysokość paska z nazwą konta na stronie osadzenia. Ramkę przesuwamy o tyle w górę,
+ * żeby karta zaczynała się od zdjęcia - nazwa konta i tak stoi pod spodem w karcie.
+ */
+const EMBED_HEADER_PX = 54;
+
+/*
+ * Kwadrat, bo osadzenie rysuje zdjęcie na całą szerokość ramki w proporcji posta, a pod
+ * nim pasek „Zobacz więcej na Instagramie" z ikonami. Przy 4:5 kwadratowy post (większość
+ * realizacji) odsłaniał ten pasek; w kwadracie post 4:5 traci najwyżej dół zdjęcia.
+ */
+const Thumb = styled.div`
     position: relative;
-    display: block;
-    aspect-ratio: 4 / 5;
+    aspect-ratio: 1 / 1;
     background: ${ui.surfaceAlt};
     overflow: hidden;
 
-    img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    iframe {
+        position: absolute;
+        top: -${EMBED_HEADER_PX}px;
+        left: 0;
+        width: 100%;
+        /* Zapas na stopkę osadzenia - przycina ją dolna krawędź karty. */
+        height: calc(100% + ${EMBED_HEADER_PX + 240}px);
+        border: 0;
+        /* Ramka tylko pokazuje; klik przejmuje warstwa-odnośnik nad nią. */
+        pointer-events: none;
+    }
+`;
+
+/** Przezroczysta warstwa nad ramką: cała miniatura otwiera post w nowej karcie. */
+const ThumbLink = styled.a`
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+
+    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: -2px; }
 `;
 
 const Placeholder = styled.span`
@@ -115,6 +140,7 @@ const Placeholder = styled.span`
 
 const Norm = styled.span<{ $strong: boolean }>`
     position: absolute;
+    z-index: 2;
     left: 10px;
     top: 10px;
     padding: 4px 10px;
@@ -179,7 +205,6 @@ interface Props {
 }
 
 export const InspirationTab: React.FC<Props> = ({ onMakeSimilar }) => {
-    const [role, setRole] = useState<RoleFilter>('ALL');
     const [format, setFormat] = useState<FormatFilter>('ALL');
     const [topic, setTopic] = useState<string>('');
     const [pages, setPages] = useState(1);
@@ -187,18 +212,15 @@ export const InspirationTab: React.FC<Props> = ({ onMakeSimilar }) => {
     const filters = useMemo(() => ({
         weeks: WEEKS as 12,
         sort: 'norm' as const,
-        role: role === 'ALL' ? undefined : role,
         format: format === 'ALL' ? undefined : format,
         topic: topic || undefined,
         page: 0,
         pageSize: PAGE_SIZE * pages,
-    }), [role, format, topic, pages]);
+    }), [format, topic, pages]);
 
     const contentQuery = useContent(filters);
     const react = useReactToPost();
     const items = contentQuery.data?.items ?? [];
-    const previewsQuery = usePreviews(items.map(i => i.username));
-    const previews = previewsQuery.data ?? {};
 
     const reset = (fn: () => void) => { fn(); setPages(1); };
 
@@ -216,8 +238,7 @@ export const InspirationTab: React.FC<Props> = ({ onMakeSimilar }) => {
     return (
         <Layout>
             <Filters>
-                <Segmented label="Czyje posty" options={ROLE_OPTIONS} value={role} onChange={v => reset(() => setRole(v))} />
-                <Segmented label="Format" size="sm" options={FORMAT_OPTIONS} value={format} onChange={v => reset(() => setFormat(v))} />
+                <Segmented label="Format" options={FORMAT_OPTIONS} value={format} onChange={v => reset(() => setFormat(v))} />
                 {contentQuery.data && contentQuery.data.topics.length > 0 && (
                     <TopicSelect
                         aria-label="Temat"
@@ -243,21 +264,36 @@ export const InspirationTab: React.FC<Props> = ({ onMakeSimilar }) => {
             {contentQuery.data && items.length === 0 && (
                 <CenterState>
                     <strong>Brak postów w tym widoku</strong>
-                    <span>Zmień filtry albo dodaj wzorce z innych miast w „Profile”.</span>
+                    <span>Zmień filtry albo dodaj konkurentów w „Profile”.</span>
                 </CenterState>
             )}
 
             {items.length > 0 && (
                 <Grid>
                     {items.map(item => {
-                        const image = item.postCode ? previews[item.postCode] : undefined;
+                        const embed = embedUrl(item.postCode);
                         const norm = normLabel(item.relativeToNorm);
                         return (
                             <Post key={item.postId} $muted={item.isContest}>
-                                <Thumb href={item.permalink} target="_blank" rel="noopener noreferrer" aria-label={`Otwórz post @${item.username}`}>
-                                    {image
-                                        ? <img src={image} alt={item.caption?.slice(0, 120) ?? `Post @${item.username}`} loading="lazy" referrerPolicy="no-referrer" />
-                                        : <Placeholder><FormatIcon format={item.format} /></Placeholder>}
+                                <Thumb>
+                                    {/* Ikona formatu pod ramką: widać ją, zanim osadzenie się wczyta. */}
+                                    <Placeholder><FormatIcon format={item.format} /></Placeholder>
+                                    {embed && (
+                                        <iframe
+                                            src={embed}
+                                            title={`Post @${item.username} z ${shortDate(item.takenAt)}`}
+                                            loading="lazy"
+                                            scrolling="no"
+                                            referrerPolicy="strict-origin-when-cross-origin"
+                                            tabIndex={-1}
+                                        />
+                                    )}
+                                    <ThumbLink
+                                        href={item.permalink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        aria-label={`Otwórz post @${item.username} na Instagramie`}
+                                    />
                                     {norm && <Norm $strong={(item.relativeToNorm ?? 0) >= 1.5}>{norm}</Norm>}
                                 </Thumb>
                                 <Body>

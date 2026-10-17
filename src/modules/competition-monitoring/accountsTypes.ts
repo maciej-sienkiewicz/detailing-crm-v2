@@ -19,7 +19,7 @@ export interface ConnectionCandidate {
 }
 
 export interface InstagramConnection {
-    /** Czy aplikacja Meta jest skonfigurowana w tej instalacji. */
+    /** Czy serwer CRM ma klucze aplikacji Meta (META_APP_ID/SECRET) - bez nich łączenie jest nieaktywne. */
     available: boolean;
     status: ConnectionStatus;
     username: string | null;

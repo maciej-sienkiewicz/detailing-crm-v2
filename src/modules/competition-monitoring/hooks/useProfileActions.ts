@@ -2,7 +2,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { instagramApi } from '../api/instagramApi';
 import { INSTAGRAM_PROFILES_KEY } from './useInstagramProfiles';
 import { invalidateAnalytics } from './useAnalytics';
-import type { ProfileRole } from '../types';
 
 export const useProfileActions = () => {
     const queryClient = useQueryClient();
@@ -29,11 +28,6 @@ export const useProfileActions = () => {
         onSuccess: invalidate,
     });
 
-    const setRole = useMutation({
-        mutationFn: ({ id, role }: { id: string; role: ProfileRole }) => instagramApi.setProfileRole(id, role),
-        onSuccess: invalidate,
-    });
-
     const markSelf = useMutation({
         mutationFn: ({ id, isSelf }: { id: string; isSelf: boolean }) =>
             instagramApi.markSelf(id, isSelf),
@@ -49,7 +43,5 @@ export const useProfileActions = () => {
         isRemoving: remove.isPending,
         markSelf: markSelf.mutate,
         isMarkingSelf: markSelf.isPending,
-        setRole: setRole.mutate,
-        isSettingRole: setRole.isPending,
     };
 };

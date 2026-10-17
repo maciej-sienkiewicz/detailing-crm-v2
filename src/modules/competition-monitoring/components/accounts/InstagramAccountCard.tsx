@@ -115,10 +115,13 @@ export const InstagramAccountCard = ({ connection, isLoading }: Props) => {
         if (isLoading) return <Loading>Sprawdzam połączenie…</Loading>;
         if (!connection) return <Muted>Nie udało się sprawdzić połączenia. Odśwież stronę.</Muted>;
 
+        // Serwer CRM nie ma jeszcze kluczy aplikacji Meta. Właściciel studia nic tu nie
+        // zrobi, więc tekst mówi, czyja to kolej, a nie jak nazywa się brakujący element.
         if (status === 'NOT_CONNECTED' && !connection.available) {
             return (
-                <Notice tone="info" title="Połączenie jeszcze niedostępne">
-                    Ta instalacja nie ma jeszcze aplikacji Meta. Reszta modułu działa bez zmian.
+                <Notice tone="info" title="Łączenie z Instagramem jeszcze nieaktywne">
+                    Włączamy je po naszej stronie, Ty nie musisz nic robić. Konkurencja, Inspiracje
+                    i Przegląd działają już teraz.
                 </Notice>
             );
         }

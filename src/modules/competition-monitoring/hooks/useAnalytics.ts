@@ -13,7 +13,6 @@ export const ANALYTICS_KEYS = {
     digest: 'ig-digest',
     home: 'ig-home',
     competition: 'ig-competition',
-    previews: 'ig-previews',
 } as const;
 
 const STALE_TIME = 5 * 60 * 1000;
@@ -91,14 +90,3 @@ export const useCompetition = (days: CompetitionDays, enabled = true) =>
         placeholderData: keepPreviousData,
         enabled,
     });
-
-/** Miniatury żyją pół godziny po stronie serwera - tyle samo trzymamy je tutaj. */
-export const usePreviews = (usernames: string[], enabled = true) => {
-    const sorted = [...new Set(usernames.map(u => u.toLowerCase()))].sort();
-    return useQuery({
-        queryKey: [ANALYTICS_KEYS.previews, sorted],
-        queryFn: () => instagramApi.getPreviews(sorted),
-        staleTime: 30 * 60 * 1000,
-        enabled: enabled && sorted.length > 0,
-    });
-};

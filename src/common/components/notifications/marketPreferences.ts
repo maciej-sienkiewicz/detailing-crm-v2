@@ -69,7 +69,7 @@ export const MARKET_CATEGORIES: { category: MarketNotificationCategory; copy: Ca
         copy: {
             title: 'Obserwowany konkurent rusza z kampanią',
             labels: { ON: 'Włączone', OFF: 'Wyłączone' },
-            hint: (value) => (value === 'ON' ? 'Tylko profile z listy Lokalni, sprawdzamy raz dziennie.' : 'Tylko profile z listy Lokalni.'),
+            hint: (value) => (value === 'ON' ? 'Konkurenci z Twojej listy, sprawdzamy raz dziennie.' : 'Konkurenci z Twojej listy.'),
         },
     },
 ];

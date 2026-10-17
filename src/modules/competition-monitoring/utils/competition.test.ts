@@ -13,7 +13,7 @@ import {
 import type { CompetitionProfile } from '../types';
 
 const profile = (username: string, over: Partial<CompetitionProfile> = {}): CompetitionProfile => ({
-    studioProfileId: `s-${username}`, profileId: `p-${username}`, username, isSelf: false, role: 'LOCAL',
+    studioProfileId: `s-${username}`, profileId: `p-${username}`, username, isSelf: false,
     apiError: false, followers: 1000, followersGain: 10, followersGainPct: 1, growthFrom: null,
     postsInWindow: 10, postsPerWeek: 1, reactionsPerPost: 100, weeklyPosts: [], regularityPct: 80,
     formatMix: { photo: 50, reels: 30, carousel: 20 }, activeCampaigns: 0, lastPostAt: null, ...over,
@@ -40,17 +40,17 @@ describe('formatery', () => {
 });
 
 describe('ranking przyrostu', () => {
-    it('tylko Ty i lokalni, od największego procentu, bez profili bez pomiaru', () => {
+    it('Ty i wszyscy konkurenci, od największego procentu, bez profili bez pomiaru', () => {
         const rows = growthRanking([
             profile('a', { followersGainPct: 2 }),
             profile('ja', { isSelf: true, followersGainPct: 3.8 }),
-            profile('wzorzec', { role: 'INSPIRATION', followersGainPct: 20 }),
+            profile('duzy', { followersGainPct: 20 }),
             profile('nowy', { followersGainPct: null }),
             profile('spada', { followersGainPct: -1 }),
         ]);
-        expect(rows.map(r => r.profile.username)).toEqual(['ja', 'a', 'spada']);
+        expect(rows.map(r => r.profile.username)).toEqual(['duzy', 'ja', 'a', 'spada']);
         expect(rows[0].width).toBe(100);
-        expect(rows[2].negative).toBe(true);
+        expect(rows[3].negative).toBe(true);
     });
 
     it('kreska mediany na tej samej skali', () => {
@@ -61,16 +61,14 @@ describe('ranking przyrostu', () => {
 });
 
 describe('podział i porównanie z medianą', () => {
-    it('Ty osobno, lokalni od największego, wzorce osobno', () => {
+    it('Ty osobno, konkurenci od największego', () => {
         const split = splitProfiles([
             profile('maly', { followers: 500 }),
             profile('duzy', { followers: 9000 }),
             profile('ja', { isSelf: true }),
-            profile('wzor', { role: 'INSPIRATION' }),
         ]);
         expect(split.self?.username).toBe('ja');
-        expect(split.locals.map(p => p.username)).toEqual(['duzy', 'maly']);
-        expect(split.inspirations.map(p => p.username)).toEqual(['wzor']);
+        expect(split.competitors.map(p => p.username)).toEqual(['duzy', 'maly']);
     });
 
     it('±10% od mediany to norma', () => {

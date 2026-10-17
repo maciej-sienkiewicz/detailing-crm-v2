@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normLabel } from './inspiration';
+import { embedUrl, normLabel } from './inspiration';
 
 describe('normLabel', () => {
     it('krotność normy po polsku, okolice jedynki to norma', () => {
@@ -8,5 +8,17 @@ describe('normLabel', () => {
         expect(normLabel(0.6)).toBe('0,6× normy');
         expect(normLabel(null)).toBeNull();
         expect(normLabel(undefined)).toBeNull();
+    });
+});
+
+describe('embedUrl', () => {
+    it('kod posta daje stronę oficjalnego osadzenia', () => {
+        expect(embedUrl('DPa1x-_')).toBe('https://www.instagram.com/p/DPa1x-_/embed/');
+    });
+
+    it('bez kodu albo z podejrzanym kodem nie ma ramki', () => {
+        expect(embedUrl('')).toBeNull();
+        expect(embedUrl(undefined)).toBeNull();
+        expect(embedUrl('abc/../x')).toBeNull();
     });
 });
