@@ -280,7 +280,8 @@ export interface InsightsAppointment {
 // ── Leady ────────────────────────────────────────────────────────────────────
 
 export type LeadStatus = 'NEW' | 'IN_PROGRESS' | 'CONFIRMED' | 'COMPLETED' | 'LOST' | 'NO_SHOW';
-export type LeadSource = 'PHONE' | 'EMAIL' | 'FORM' | 'MANUAL';
+/** INSTAGRAM - wiadomość prywatna na połączonym koncie studia (webhook Meta). */
+export type LeadSource = 'PHONE' | 'EMAIL' | 'FORM' | 'MANUAL' | 'INSTAGRAM';
 
 export type LeadServiceItemStatus = 'SUGGESTED' | 'ACCEPTED';
 export type LeadServiceItemSource = 'MANUAL' | 'AI';
@@ -590,6 +591,8 @@ export interface LeadSourceStat {
     won: number;
     closed: number;
     winRate: number | null;
+    /** Brutto zrealizowanych spraw z kanału, w groszach - z serwera, bez przeliczania. */
+    wonValue: number;
 }
 
 export type ResponseBucketKey = 'UNDER_1H' | 'UNDER_4H' | 'UNDER_24H' | 'OVER_24H' | 'NO_REPLY';
@@ -996,4 +999,45 @@ export interface SuggestionDiagnostics {
 export interface SuggestionRefreshResult {
     lead: Lead;
     diagnostics: SuggestionDiagnostics;
+}
+
+// ── Instagram: rozmowa leada ─────────────────────────────────────────────────
+
+/** Rozmowa z jedną osobą na Instagramie studia (GET /v1/instagram/dm/by-lead/{leadId}). */
+export interface InstagramDmThread {
+    id: string;
+    username: string | null;
+    displayName: string | null;
+    leadId: string | null;
+    leadStatus: LeadStatus | null;
+    lastMessageAt: string;
+    lastSnippet: string | null;
+    /** Klient napisał ostatni - ruch po stronie studia. */
+    awaitingReply: boolean;
+    unreadCount: number;
+    /** Do kiedy można odpisać z CRM; null - już tylko z aplikacji Instagram. */
+    replyDeadline: string | null;
+}
+
+export interface InstagramDmAttachment {
+    /** image | video | audio | file | share | story_mention | ig_reel … - tak, jak podaje Meta. */
+    type: string;
+    url: string | null;
+}
+
+export interface InstagramDmMessage {
+    id: string;
+    direction: 'INBOUND' | 'OUTBOUND';
+    text: string | null;
+    attachments: InstagramDmAttachment[];
+    sentAt: string;
+    /** Kto odpisał z CRM; null dla klienta i odpowiedzi z aplikacji Instagram. */
+    sentByName: string | null;
+}
+
+export interface InstagramDmConversation {
+    thread: InstagramDmThread;
+    messages: InstagramDmMessage[];
+    canReply: boolean;
+    profileUrl: string | null;
 }

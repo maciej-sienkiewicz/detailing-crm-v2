@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { instagramApi, type ContentFilters } from '../api/instagramApi';
-import type { WeeksOption } from '../types';
+import type { CompetitionDays } from '../types';
 
 /**
  * Hooki analityki v2. Dane zmieniają się raz dziennie (sync), więc queries mają
@@ -8,14 +8,12 @@ import type { WeeksOption } from '../types';
  */
 
 export const ANALYTICS_KEYS = {
-    overview: 'ig-overview',
-    benchmark: 'ig-benchmark',
-    pulse: 'ig-pulse',
     content: 'ig-content',
-    heatmap: 'ig-heatmap',
-    hashtags: 'ig-hashtags',
     suggestions: 'ig-suggestions',
     digest: 'ig-digest',
+    home: 'ig-home',
+    competition: 'ig-competition',
+    previews: 'ig-previews',
 } as const;
 
 const STALE_TIME = 5 * 60 * 1000;
@@ -26,68 +24,12 @@ export const invalidateAnalytics = (queryClient: ReturnType<typeof useQueryClien
     );
 };
 
-export const useOverview = (weeks: WeeksOption) =>
-    useQuery({
-        queryKey: [ANALYTICS_KEYS.overview, weeks],
-        queryFn: () => instagramApi.getOverview(weeks),
-        staleTime: STALE_TIME,
-    });
-
-/**
- * `placeholderData` trzyma poprzednie dane przy zmianie okresu, więc zakładka nie
- * odmontowuje się na czas pobierania. Bez tego komponent montował się od nowa i
- * resetował wybór profili na wykresach - a że backend sortuje profile wg aktywności
- * *w danym oknie*, po zmianie okresu na wykresie potrafiła wylądować inna czwórka
- * i wspólne okno porównania zmieniało się bez wyraźnego powodu.
- */
-export const useBenchmark = (weeks: WeeksOption, enabled = true) =>
-    useQuery({
-        queryKey: [ANALYTICS_KEYS.benchmark, weeks],
-        queryFn: () => instagramApi.getBenchmark(weeks),
-        staleTime: STALE_TIME,
-        placeholderData: keepPreviousData,
-        enabled,
-    });
-
 export const useContent = (filters: ContentFilters, enabled = true) =>
     useQuery({
         queryKey: [ANALYTICS_KEYS.content, filters],
         queryFn: () => instagramApi.getContent(filters),
         staleTime: STALE_TIME,
         enabled,
-    });
-
-export const useHeatmap = (weeks: WeeksOption, enabled = true) =>
-    useQuery({
-        queryKey: [ANALYTICS_KEYS.heatmap, weeks],
-        queryFn: () => instagramApi.getHeatmap(weeks),
-        staleTime: STALE_TIME,
-        enabled,
-    });
-
-export const useHashtags = (weeks: WeeksOption, enabled = true) =>
-    useQuery({
-        queryKey: [ANALYTICS_KEYS.hashtags, weeks],
-        queryFn: () => instagramApi.getHashtags(weeks),
-        staleTime: STALE_TIME,
-        enabled,
-    });
-
-/** Puls konkurencji: liczony w kodzie, więc ładuje się razem z zakładką. */
-export const usePulse = (enabled = true) =>
-    useQuery({
-        queryKey: [ANALYTICS_KEYS.pulse],
-        queryFn: () => instagramApi.getPulse(),
-        staleTime: STALE_TIME,
-        enabled,
-    });
-
-export const useWeekDetail = (profileId: string | null, weekStart: string | null) =>
-    useQuery({
-        queryKey: [ANALYTICS_KEYS.benchmark, 'week-detail', profileId, weekStart],
-        queryFn: () => instagramApi.getWeekDetail(profileId!, weekStart!),
-        staleTime: STALE_TIME,
-        enabled: !!profileId && !!weekStart,
     });
 
 export const useSuggestions = (enabled = true) =>
@@ -130,5 +72,33 @@ export const useReactToPost = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [ANALYTICS_KEYS.content] });
         },
+    });
+};
+
+export const useHome = (enabled = true) =>
+    useQuery({
+        queryKey: [ANALYTICS_KEYS.home],
+        queryFn: instagramApi.getHome,
+        staleTime: STALE_TIME,
+        enabled,
+    });
+
+export const useCompetition = (days: CompetitionDays, enabled = true) =>
+    useQuery({
+        queryKey: [ANALYTICS_KEYS.competition, days],
+        queryFn: () => instagramApi.getCompetition(days),
+        staleTime: STALE_TIME,
+        placeholderData: keepPreviousData,
+        enabled,
+    });
+
+/** Miniatury żyją pół godziny po stronie serwera - tyle samo trzymamy je tutaj. */
+export const usePreviews = (usernames: string[], enabled = true) => {
+    const sorted = [...new Set(usernames.map(u => u.toLowerCase()))].sort();
+    return useQuery({
+        queryKey: [ANALYTICS_KEYS.previews, sorted],
+        queryFn: () => instagramApi.getPreviews(sorted),
+        staleTime: 30 * 60 * 1000,
+        enabled: enabled && sorted.length > 0,
     });
 };

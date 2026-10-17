@@ -4,7 +4,7 @@ import styled, { keyframes } from 'styled-components';
 import {
     X, Copy, Check, RotateCcw, Sparkles, Wand2,
     Award, Cpu, Heart, Coffee, ShieldCheck, ShieldAlert,
-    ThumbsUp, ThumbsDown, Plus, Trash2, AlertCircle,
+    ThumbsUp, ThumbsDown, Plus, Trash2, AlertCircle, Send, ExternalLink,
 } from 'lucide-react';
 import type {
     GeneratedPostRating,
@@ -15,6 +15,12 @@ import type {
 import { MAX_ACTIVE_STYLE_RULES, MAX_STYLE_RULE_LENGTH } from '../types';
 import { instagramApi } from '../api/instagramApi';
 import { pluralPl } from '@/common/utils/plural';
+import { acquireScrollLock } from '@/common/utils/scrollLock';
+import { accountsApi, apiErrorMessage } from '../api/accountsApi';
+import type { PublishResult } from '../accountsTypes';
+import { useInstagramConnection, usePublishVisits } from '../hooks/useAccounts';
+import { PublishSection } from './accounts/PublishSection';
+import { captionProblem, initialSelection, togglePhoto } from './accounts/publishLogic';
 
 // ─── Animations ────────────────────────────────────────────────────────────────
 
@@ -594,17 +600,20 @@ const CommentTextarea = styled.textarea`
   &::placeholder { color: #CBD5E1; }
 `;
 
+// Odcień, nie wypełnienie: ocena to akcja poboczna. Krokiem następnym okna jest
+// kopiowanie albo publikacja w stopce - dwa wypełnienia dawałyby remis (CLAUDE.md §2).
 const CommentSendBtn = styled.button`
   align-self: flex-end;
   padding: 8px 16px;
   font-size: 12.5px;
   font-weight: 600;
-  background: linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%);
-  color: #fff;
-  border: none;
+  background: #F0F9FF;
+  color: #0284C7;
+  border: 1.5px solid #BAE6FD;
   border-radius: 8px;
   cursor: pointer;
 
+  &:hover:not(:disabled) { background: #E0F2FE; }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
@@ -802,23 +811,44 @@ const GenerateBtn = styled.button<{ $disabled: boolean }>`
   }
 `;
 
-const CopyBtn = styled.button<{ $copied: boolean }>`
+/**
+ * Kopiowanie jest krokiem następnym (wypełnione), dopóki nie da się opublikować
+ * z CRM. Gdy są zaznaczone zdjęcia, wypełnienie przechodzi na „Opublikuj",
+ * a kopiowanie zostaje przy odcieniu - jedno wypełnienie w oknie (CLAUDE.md §2).
+ */
+const CopyBtn = styled.button<{ $copied: boolean; $primary: boolean }>`
   display: inline-flex;
   align-items: center;
   gap: 7px;
   padding: 9px 18px;
   font-size: 13px;
-  font-weight: 600;
-  background: ${p => p.$copied ? '#DCFCE7' : '#F0F9FF'};
-  color: ${p => p.$copied ? '#16A34A' : '#0284C7'};
-  border: 1.5px solid ${p => p.$copied ? '#BBF7D0' : '#BAE6FD'};
+  font-weight: ${p => p.$primary && !p.$copied ? 700 : 600};
+  background: ${p => p.$copied ? '#DCFCE7' : p.$primary ? 'linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%)' : '#F0F9FF'};
+  color: ${p => p.$copied ? '#16A34A' : p.$primary ? '#fff' : '#0284C7'};
+  border: ${p => p.$primary && !p.$copied ? 'none' : `1.5px solid ${p.$copied ? '#BBF7D0' : '#BAE6FD'}`};
   border-radius: 8px;
   cursor: pointer;
   transition: all 200ms ease;
+  box-shadow: ${p => p.$primary && !p.$copied ? '0 2px 8px rgba(14, 165, 233, 0.28)' : 'none'};
 
   &:hover {
-    background: ${p => p.$copied ? '#DCFCE7' : '#E0F2FE'};
+    background: ${p => p.$copied ? '#DCFCE7' : p.$primary ? 'linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%)' : '#E0F2FE'};
   }
+`;
+
+/** Link do opublikowanego posta - po publikacji to jest krok następny okna. */
+const ViewPostLink = styled.a`
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 22px;
+  font-size: 13px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%);
+  color: #fff;
+  border-radius: 8px;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
 `;
 
 const RegenerateBtn = styled.button`
@@ -863,6 +893,8 @@ type Phase = 'form' | 'loading' | 'result';
 export interface GeneratePostPrefill {
     topic?: string;
     context?: string;
+    /** Wizyta, z której otwarto generator - jej zdjęcia są od razu zaznaczone do publikacji. */
+    visitId?: string;
 }
 
 interface Props {
@@ -895,11 +927,35 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
     const [commentOpen, setCommentOpen] = useState(false);
     const [ratingBusy, setRatingBusy] = useState(false);
 
+    // Publikacja na połączone konto Instagram (zdjęcia z wizyt + podpis z wygenerowanego tekstu).
+    const [caption, setCaption]           = useState('');
+    const [selectedPhotos, setSelected]   = useState<string[]>([]);
+    const [publishing, setPublishing]     = useState(false);
+    const [publishError, setPublishError] = useState<string | null>(null);
+    const [published, setPublished]       = useState<PublishResult | null>(null);
+    const [selectionSeeded, setSelectionSeeded] = useState(false);
+
     const topicRef    = useRef<HTMLInputElement>(null);
+
+    const connectionQuery = useInstagramConnection();
+    const canPublish = connectionQuery.data?.status === 'CONNECTED';
+    const visitsQuery = usePublishVisits(canPublish && phase === 'result');
+
+    // Zdjęcia wizyty, z której otwarto generator, zaznaczamy raz, gdy lista przyjdzie -
+    // potem decyduje właściciel. Ustawienie w trakcie renderu, nie w efekcie: inaczej
+    // pierwsza klatka pokazałaby pustą siatkę i dopiero druga zaznaczenie.
+    if (!selectionSeeded && visitsQuery.data) {
+        setSelectionSeeded(true);
+        setSelected(initialSelection(visitsQuery.data, prefill?.visitId));
+    }
 
     const activeRuleCount = rules.filter(r => r.active).length;
 
     const canGenerate = topic.trim().length > 0;
+
+    // Własna nakładka (poza ModalShell) - blokada przewijania tła wyłącznie przez moduł
+    // scrollLock (CLAUDE.md §3); okno jest montowane tylko otwarte, więc wystarczy mount.
+    useEffect(() => acquireScrollLock(), []);
 
     // Focus topic on open
     useEffect(() => {
@@ -916,14 +972,15 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
         return () => { cancelled = true; };
     }, []);
 
-    // ESC closes
+    // ESC closes - poza publikacją: zamknięte okno nie przerwie posta po stronie Meta,
+    // a właściciel nie dowiedziałby się, czy post wyszedł.
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose();
+            if (e.key === 'Escape' && !publishing) onClose();
         };
         document.addEventListener('keydown', handler);
         return () => document.removeEventListener('keydown', handler);
-    }, [onClose]);
+    }, [onClose, publishing]);
 
     const handleGenerate = useCallback(async () => {
         if (!canGenerate) return;
@@ -941,6 +998,10 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
             };
             const data = await instagramApi.generatePost(req);
             setResult(data);
+            // Nowy tekst to nowy podpis: wcześniejsza edycja dotyczyła poprzedniej wersji posta.
+            setCaption(data.content);
+            setPublished(null);
+            setPublishError(null);
             setPhase('result');
         } catch (e) {
             // Limit generowań (429) i błędy modelu mają czytelny komunikat z backendu -
@@ -962,6 +1023,20 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
             // Ignore clipboard errors
         }
     }, [result]);
+
+    const handlePublish = useCallback(async () => {
+        if (publishing || selectedPhotos.length === 0 || captionProblem(caption)) return;
+        setPublishing(true);
+        setPublishError(null);
+        try {
+            const done = await accountsApi.publish({ caption: caption.trim() || null, photoIds: selectedPhotos });
+            setPublished(done);
+        } catch (e) {
+            setPublishError(apiErrorMessage(e, 'Nie udało się opublikować. Spróbuj ponownie za chwilę.'));
+        } finally {
+            setPublishing(false);
+        }
+    }, [publishing, selectedPhotos, caption]);
 
     const handleRegenerate = () => {
         setPhase('form');
@@ -1054,7 +1129,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
     };
 
     const handleOverlayClick = (e: React.MouseEvent) => {
-        if (e.target === e.currentTarget && phase !== 'loading') onClose();
+        if (e.target === e.currentTarget && phase !== 'loading' && !publishing) onClose();
     };
 
     const content     = result?.content ?? '';
@@ -1186,6 +1261,21 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                             Zapisane. Kolejne posty będą tego unikać.
                         </RatingSavedNote>
                     )}
+
+                    <PublishSection
+                        connection={connectionQuery.data}
+                        connectionLoading={connectionQuery.isLoading}
+                        visits={visitsQuery.data}
+                        visitsLoading={visitsQuery.isLoading}
+                        selected={selectedPhotos}
+                        onToggle={id => setSelected(prev => togglePhoto(prev, id))}
+                        caption={caption}
+                        onCaptionChange={setCaption}
+                        publishing={publishing}
+                        error={publishError}
+                        result={published}
+                        onGoToConnect={onClose}
+                    />
                 </ResultWrap>
             );
         }
@@ -1329,19 +1419,40 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
         if (phase === 'loading') return null;
 
         if (phase === 'result') {
+            if (published) {
+                return (
+                    <ModalFooter>
+                        <FooterLeft>Post jest na Instagramie</FooterLeft>
+                        <FooterRight>
+                            <CancelBtn type="button" onClick={onClose}>Zamknij</CancelBtn>
+                            {published.permalink && (
+                                <ViewPostLink href={published.permalink} target="_blank" rel="noreferrer">
+                                    <ExternalLink size={14} strokeWidth={2} />
+                                    Zobacz post
+                                </ViewPostLink>
+                            )}
+                        </FooterRight>
+                    </ModalFooter>
+                );
+            }
+
+            // Jedno wypełnienie: „Opublikuj", gdy są zdjęcia i połączone konto; inaczej „Kopiuj".
+            const publishReady = canPublish && selectedPhotos.length > 0;
+            const publishBlocked = publishing || captionProblem(caption) !== null;
             return (
                 <ModalFooter>
                     <FooterLeft>
-                        Gotowe do wklejenia na Instagram
+                        {publishReady ? 'Gotowe do publikacji' : 'Gotowe do wklejenia na Instagram'}
                     </FooterLeft>
                     <FooterRight>
-                        <RegenerateBtn type="button" onClick={handleRegenerate}>
+                        <RegenerateBtn type="button" onClick={handleRegenerate} disabled={publishing}>
                             <RotateCcw size={13} strokeWidth={2} />
                             Zmień opis
                         </RegenerateBtn>
                         <CopyBtn
                             type="button"
                             $copied={copied}
+                            $primary={!publishReady}
                             onClick={handleCopy}
                         >
                             {copied
@@ -1349,6 +1460,18 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                                 : <><Copy size={14} strokeWidth={2} /> Kopiuj post</>
                             }
                         </CopyBtn>
+                        {publishReady && (
+                            <GenerateBtn
+                                type="button"
+                                $disabled={publishBlocked}
+                                disabled={publishBlocked}
+                                aria-busy={publishing}
+                                onClick={() => void handlePublish()}
+                            >
+                                <Send size={14} strokeWidth={2} />
+                                {publishing ? 'Publikuję…' : 'Opublikuj'}
+                            </GenerateBtn>
+                        )}
                     </FooterRight>
                 </ModalFooter>
             );
@@ -1390,7 +1513,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                             <HeaderSub>AI tworzy post na podstawie Twoich realizacji</HeaderSub>
                         </HeaderMeta>
                     </HeaderLeft>
-                    {phase !== 'loading' && (
+                    {phase !== 'loading' && !publishing && (
                         <CloseBtn type="button" onClick={onClose} aria-label="Zamknij">
                             <X size={16} strokeWidth={2} />
                         </CloseBtn>

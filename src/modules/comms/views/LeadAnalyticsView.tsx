@@ -5,7 +5,8 @@
 //   1. Ile przyszło zapytań, ile z nich zostało zleceniami i za ile (lejek w jednej karcie).
 //   2. Co z resztą: ile spraw jeszcze trwa, ile przepadło i dlaczego (dwa wiersze,
 //      każdy prowadzi do tych spraw).
-//   3. Jak to wygląda w roku (słupki wartości zleceń miesiąc po miesiącu).
+//   3. Skąd przychodzą zlecenia (kanał po kanale, z wartością zleceń).
+//   4. Jak to wygląda w roku (słupki wartości zleceń miesiąc po miesiącu).
 //
 // Poprzednia wersja liczyła to samo, ale pokazywała belkę czterech pojęć („zamknięte,
 // w toku, ucichło, stracone"), kwotę-bohatera bez liczby zapytań, pasek z wezwaniem,
@@ -26,6 +27,7 @@ import { PeriodPicker } from '../components/analytics/PeriodPicker';
 import { buildPeriod, type Period } from '../components/analytics/period';
 import { buildDemoAnalytics } from '../components/analytics/demoData';
 import { formatMinutes, formatMoney } from '../components/analytics/tokens';
+import { leadSourceLabel } from '../utils/leadFormat';
 
 /** Poniżej tylu zapytań procenty skaczą od jednej sprawy - mówimy to wprost. */
 const THIN_DATA_BELOW = 10;
@@ -272,6 +274,9 @@ function Report({ data, thin, yearSeries, year }: {
     const totalValue = data.wonValue + openValue + data.lostValue;
     const conversion = data.totalCreated > 0 ? Math.round((won / data.totalCreated) * 100) : 0;
     const reasons = [...data.lostReasons].sort((a, b) => b.count - a.count).slice(0, 3);
+    // Najpierw kanał, który przyniósł najwięcej pieniędzy - o to pyta właściciel
+    // („czy Instagram daje klientów?"), a nie o to, skąd przyszło najwięcej pytań.
+    const sources = [...(data.bySource ?? [])].sort((a, b) => b.wonValue - a.wonValue || b.count - a.count);
 
     return (
         <>
@@ -335,6 +340,24 @@ function Report({ data, thin, yearSeries, year }: {
                     )}
                 </Rows>
             </Section>
+
+            {sources.length > 0 && (
+                <Section aria-labelledby="leads-sources">
+                    <SectionTitle id="leads-sources">Skąd przychodzą zlecenia</SectionTitle>
+                    <Rows>
+                        {sources.map(source => (
+                            <Row as="div" key={source.source}>
+                                <span className="text">
+                                    <span className="title">{leadSourceLabel(source.source)}: {cases(source.count)}</span>
+                                    <span className="note">{orders(source.won)}</span>
+                                </span>
+                                {/* Brutto zleceń z serwera (suma pozycji leada) - bez przeliczania. */}
+                                <span className="amount">{formatMoney(source.wonValue ?? 0)}</span>
+                            </Row>
+                        ))}
+                    </Rows>
+                </Section>
+            )}
 
             <Section aria-labelledby="leads-year">
                 <SectionTitle id="leads-year" count={String(year)}>Wartość zleceń miesiąc po miesiącu</SectionTitle>

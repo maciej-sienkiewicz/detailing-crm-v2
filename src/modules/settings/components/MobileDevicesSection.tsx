@@ -18,6 +18,7 @@ import { useCapability } from '@/modules/subscription';
 import { carddavApi, CARDDAV_ACCOUNTS_KEY } from '@/modules/carddav';
 import { PushNotificationsPanel } from '@/modules/push/components/PushNotificationsPanel';
 import { NativePushPanel } from '@/modules/push/native/NativePushPanel';
+import { MarketNotificationPreferences } from '@/common/components/notifications';
 import { isNativeApp } from '@/core/native/platform';
 import { useTablets } from '../hooks/useTablets';
 import { TabletsSection } from './TabletsSection';
@@ -41,6 +42,10 @@ export function MobileDevicesSection({ subView, onSubViewChange }: MobileDevices
     // tego CUSTOMERS_VIEW, więc kto go nie ma, nie widzi zakładki, zamiast dostać odmowę.
     const { can } = usePermissions();
     const canSyncContacts = can('CUSTOMERS_VIEW');
+    // Wiadomości o rynku reklam dostaje tylko marketing, i tylko w pakiecie z modułem
+    // Instagrama - komu ich nie wyślemy, temu nie pokazujemy przełącznika bez skutku.
+    const instagram = useCapability('INSTAGRAM_MONITOR');
+    const showMarketPreferences = can('MARKETING_MANAGE') && instagram.enabled;
     const view: MobileDevicesSubView = subView === 'contacts' && !canSyncContacts ? 'tablets' : subView;
     const { tablets, loaded: tabletsLoaded } = useTablets({ enabled: signatures.enabled });
     const { data: phones } = useQuery({
@@ -82,6 +87,7 @@ export function MobileDevicesSection({ subView, onSubViewChange }: MobileDevices
                     {/* Bez wstępu: pięć linii wyliczanki powtarzało listę z kreatora poniżej. */}
                     {/* W aplikacji ze sklepu jedna systemowa zgoda zamiast kreatora przeglądarki. */}
                     {isNativeApp() ? <NativePushPanel /> : <PushNotificationsPanel />}
+                    {showMarketPreferences && <MarketNotificationPreferences />}
                 </View>
             )}
 

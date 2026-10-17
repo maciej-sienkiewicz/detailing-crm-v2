@@ -281,10 +281,13 @@ export const buildDemoAnalytics = (from: Date, to: Date): LeadAnalytics => {
         timeline,
 
         bySource: [
-            { source: 'PHONE', count: 38, won: 21, closed: 31, winRate: 0.68 },
-            { source: 'EMAIL', count: 41, won: 16, closed: 34, winRate: 0.47 },
-            { source: 'FORM', count: 24, won: 5, closed: 19, winRate: 0.26 },
-            { source: 'MANUAL', count: 5, won: 2, closed: 4, winRate: 0.5 },
+            // Sumy zgadzają się z liczbami wyżej (108 zapytań, 41 zleceń, 125 800 zł) -
+            // podział na kanały nie może w trybie pokazowym wymyślać drugiego wyniku.
+            { source: 'PHONE', count: 34, won: 15, closed: 26, winRate: 0.58, wonValue: 4_960_000 },
+            { source: 'EMAIL', count: 36, won: 13, closed: 28, winRate: 0.46, wonValue: 4_210_000 },
+            { source: 'INSTAGRAM', count: 14, won: 5, closed: 9, winRate: 0.56, wonValue: 1_540_000 },
+            { source: 'FORM', count: 20, won: 6, closed: 12, winRate: 0.5, wonValue: 1_330_000 },
+            { source: 'MANUAL', count: 4, won: 2, closed: 3, winRate: 0.67, wonValue: 540_000 },
         ],
     };
 };

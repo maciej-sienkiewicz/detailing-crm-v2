@@ -55,7 +55,7 @@ import {
 } from '../hooks/useLeads';
 import type { Lead, LeadStatus } from '../types';
 import { leadToBookingPrefill } from '../utils/bookingPrefill';
-import { leadPhoneNumber } from '../utils/leadPrimaryAction';
+import { leadEmail, leadPhoneNumber } from '../utils/leadPrimaryAction';
 import { describeLeadUrgency } from '../utils/leadUrgency';
 import { ReplyComposer } from '../components/ReplyComposer';
 import type { GalleryPickerContext } from '../components/GalleryPhotoPicker';
@@ -63,6 +63,8 @@ import { LeadDetailModal } from '../components/LeadDetailModal';
 import { LeadQuoteEditor } from '../components/LeadQuoteEditor';
 import { useLeadStatusChange } from '../hooks/useLeadStatusChange';
 import { LeadTimeline } from '../components/LeadTimeline';
+import { InstagramBubbles, InstagramReplyBox } from '../components/InstagramConversation';
+import { useInstagramConversation, useMarkInstagramRead } from '../hooks/useInstagramDm';
 import { MessageReaderOverlay } from '../components/MessageReaderOverlay';
 import { RecordCallbackDialog } from '../components/RecordCallbackDialog';
 import { ContactNotesPopover } from '../components/ContactNotesPopover';
@@ -179,8 +181,12 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
     const detailMatches = Boolean(detail && detail.thread.id === threadId);
     const thread = detailMatches ? detail!.thread : null;
     const thresholds = useStagnationThresholds();
-    const contactEmail = lead?.contactIdentifier?.includes('@') ? lead.contactIdentifier.trim() : null;
+    const contactEmail = leadEmail(lead);
     const cardEmail = contactEmail ?? thread?.participantEmail ?? null;
+    // Sprawa z wiadomości na Instagramie: rozmowa i odpowiedź idą przez Meta, nie przez pocztę.
+    const instagram = lead?.source === 'INSTAGRAM';
+    const { data: igConversation, isLoading: igLoading } = useInstagramConversation(leadId, instagram);
+    const markInstagramRead = useMarkInstagramRead(leadId);
     const { data: contactCard } = useContactCard(cardEmail, { enabled: Boolean(cardEmail) });
     const { data: appointment } = useLeadAppointment(lead?.appointmentId ?? null);
 
@@ -207,6 +213,12 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
         if (thread && thread.unreadCount > 0) markRead.mutate(thread.id);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [thread?.id, thread?.unreadCount]);
+
+    const igThread = igConversation?.thread ?? null;
+    useEffect(() => {
+        if (igThread && igThread.unreadCount > 0) markInstagramRead.mutate(igThread.id);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [igThread?.id, igThread?.unreadCount]);
 
     const download = useCallback(
         (attachmentId: string, fileName: string) => downloadAttachmentFile(commsApi.downloadAttachment, attachmentId, fileName),
@@ -335,7 +347,21 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
         </ConversationHeader>
     );
 
-    const composer = threadId ? (
+    const composer = instagram ? (
+        igConversation ? (
+            <InstagramReplyBox
+                key={igConversation.thread.id}
+                leadId={lead.id}
+                conversation={igConversation}
+                emphasis={replyStep ? 'primary' : 'tint'}
+                phone={phone}
+                barExtra={phone ? cta : undefined}
+                onSent={() => onAdvance?.()}
+            />
+        ) : phone && cta ? (
+            <div style={{ padding: '12px 16px calc(16px + env(safe-area-inset-bottom, 0px))', borderTop: `1px solid ${ix.lineSoft}` }}>{cta}</div>
+        ) : null
+    ) : threadId ? (
         thread ? (
             <ReplyComposer
                 key={`${thread.id}:${detail?.replyAddress ?? ''}`}
@@ -370,7 +396,9 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
         <Pane>
             <Column aria-labelledby="case-title">
                 {header}
-                {threadId ? (
+                {instagram && (igLoading || igConversation) ? (
+                    <InstagramBubbles conversation={igConversation} loading={igLoading} phone={phone} />
+                ) : threadId ? (
                     <Bubbles
                         messages={detailMatches ? detail!.messages : []}
                         loading={threadLoading || !detailMatches}
@@ -524,7 +552,9 @@ function NoThreadBody({ lead, phone }: { lead: Lead; phone: boolean }) {
                 <div className="body">{lead.initialMessage ?? 'Klient nie zostawił treści zapytania.'}</div>
             </Request>
             {(timeline?.length ?? 0) > 0 && <LeadTimeline entries={timeline ?? []} />}
-            {!lead.contactIdentifier.includes('@') && (
+            {lead.source === 'INSTAGRAM' ? (
+                <Hint>Rozmowy z Instagrama nie ma już w CRM - odpisz w aplikacji Instagram i odnotuj kontakt w menu „⋯" (Kontakt poza pocztą).</Hint>
+            ) : !leadEmail(lead) && (
                 <Hint>Ta sprawa nie ma adresu e-mail - zadzwoń i odnotuj rozmowę w menu „⋯" (Kontakt poza pocztą).</Hint>
             )}
         </ConversationScroll>

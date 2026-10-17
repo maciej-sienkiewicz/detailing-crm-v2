@@ -698,6 +698,16 @@ export function useLeadsSocket(): void {
                  */
                 queryClient.invalidateQueries({ queryKey: detailKey });
             }
+
+            /*
+             * Wiadomość z Instagrama nie ma własnego kanału na żywo - serwer ogłasza ją
+             * zmianą leada. Bez tego otwarta sprawa pokazywałaby nową wiadomość klienta
+             * dopiero po minucie, a pole odpowiedzi stałoby nad nieaktualną rozmową.
+             */
+            if (lead.source === 'INSTAGRAM') {
+                queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'instagram-dm', lead.id] });
+                queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'history', lead.id] });
+            }
         },
         [queryClient]
     );

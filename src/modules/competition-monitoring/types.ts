@@ -10,6 +10,13 @@
 
 export type InstagramProfileStatus = 'PENDING_APPROVAL' | 'ACTIVE' | 'REJECTED';
 
+/**
+ * Rola profilu w studiu. LOCAL - konkurent z okolicy: liczy się do mediany i rankingu.
+ * INSPIRATION - wzorzec z innego miasta: tylko do Inspiracji, bez ocen. Bez tego podziału
+ * jedno konto ogólnopolskie przesuwało wszystkie oceny lokalnego studia.
+ */
+export type ProfileRole = 'LOCAL' | 'INSPIRATION';
+
 export interface InstagramProfile {
     id: string;
     profileId: string;
@@ -18,6 +25,8 @@ export interface InstagramProfile {
     apiError: boolean;
     isSelf: boolean;
     addedAt: string;
+    /** Starsze odpowiedzi serwera nie mają roli - traktujemy je jak lokalne. */
+    role?: ProfileRole;
 }
 
 // ─── Metryki ──────────────────────────────────────────────────────────────────
@@ -94,138 +103,12 @@ export interface WeeklyDigest {
     hasSelf: boolean;
 }
 
-// ─── Przegląd ─────────────────────────────────────────────────────────────────
+// ─── Pobieranie danych ────────────────────────────────────────────────────────
 
-export interface MiniRankRow {
-    studioProfileId: string;
-    profileId: string;
-    username: string;
-    isSelf: boolean;
-    followers: number | null;
-    followerDelta30d: number | null;
-    erPct: number | null;
-    postsPerWeek: number | null;
-    activityIndex: number;
-}
-
-export interface Overview {
-    weeks: number;
-    /** Liczebność obserwowanej grupy, wszystkie porównania dotyczą tylko tej grupy. */
-    comparisonGroupSize: number;
-    lastSyncAt: string | null;
-    /** Najbliższa lekka synchronizacja (codzienna). */
-    nextDailySyncAt: string | null;
-    /** Najbliższa pełna synchronizacja (tygodniowa). */
-    nextDeepSyncAt: string | null;
-    profilesCount: number;
-    hasSelf: boolean;
-    selfUsername: string | null;
-    position: { rank: number; total: number } | null;
-    erPct: MetricTriple;
-    postsPerWeek: MetricTriple;
-    activityIndex: MetricTriple;
-    storefront: Storefront | null;
-    miniRanking: MiniRankRow[];
-}
-
-// ─── Porównanie ───────────────────────────────────────────────────────────────
-
-export interface FormatMix {
-    photoPct: number;
-    reelsPct: number;
-    carouselPct: number;
-}
-
-export interface BenchmarkRow {
-    studioProfileId: string;
-    profileId: string;
-    username: string;
-    isSelf: boolean;
-    apiError: boolean;
-    followers: MetricTriple;
-    erPct: MetricTriple;
-    postsPerWeek: MetricTriple;
-    regularityPct: number;
-    formatMix: FormatMix;
-    activityIndex: MetricTriple;
-    storefront: Storefront;
-}
-
-export interface WeeklyChartPoint {
-    weekStart: string;
-    values: Record<string, { posts: number; engagement: number }>;
-}
-
-export interface FollowerSeries {
-    profileId: string;
-    username: string;
-    isSelf: boolean;
-    /** Dzień dodania profilu do obserwacji - wcześniejszej historii nie da się odtworzyć. */
-    observedSince: string;
-    points: { date: string; count: number | null }[];
-}
-
-export interface ChartAnnotation {
-    date: string;
-    profileId: string | null;
-    type: string;
-    title: string;
-}
-
-export interface Benchmark {
-    weeks: number;
-    /** Liczebność obserwowanej grupy, wszystkie porównania dotyczą tylko tej grupy. */
-    comparisonGroupSize: number;
-    rows: BenchmarkRow[];
-    weekly: WeeklyChartPoint[];
-    followers: FollowerSeries[];
-    annotations: ChartAnnotation[];
-}
-
-/** Wynik ręcznego ponowienia pobrania danych dla profili z błędem. */
 export interface ResyncResult {
     attempted: number;
     recovered: number;
     stillFailing: number;
-}
-
-/** Rodzaj zdarzenia w pulsie konkurencji. */
-/**
- * Cztery rodzaje i to jest cały kontrakt.
- *
- * Sześć wcześniejszych - „twój post", „nie opublikowałeś nic", przyspieszenie tempa,
- * post ponad normę, uruchomienie i zakończenie kampanii - mówiło dokładnie to samo,
- * co wiersz profilu w zakładce Tydzień, tyle że w osobnej sekcji i w innej zakładce.
- * Sekcja zniknęła, a razem z nią zdarzenia, które istniały wyłącznie dla niej;
- * backend przestał je liczyć i wysyłać.
- *
- * Te zostają, bo wiersz tygodnia nie zna żadnego z nich: patrzy na posty i ich
- * zaangażowanie, a nie na liczbę obserwujących ani na to, o czym profil zaczął mówić.
- */
-export type PulseEventKind =
-    | 'SLOWDOWN'
-    | 'NEW_TOPIC'
-    | 'FOLLOWER_SPIKE'
-    | 'FOLLOWER_DROP';
-
-export interface PulseEvent {
-    kind: PulseEventKind;
-    isSelf: boolean;
-    username: string;
-    headline: string;
-    detail: string;
-    permalink: string | null;
-    occurredAt: string;
-}
-
-export interface CompetitorPulse {
-    events: PulseEvent[];
-    windowFrom: string;
-    windowTo: string;
-    /** Ile tygodni historii posłużyło za normę, do której porównujemy zdarzenia. */
-    baselineWeeks: number;
-    hasSelfProfile: boolean;
-    profilesWatched: number;
 }
 
 // ─── Treści ───────────────────────────────────────────────────────────────────
@@ -251,6 +134,11 @@ export interface ContentItem {
     erPct: number | null;
     engagement: number;
     reaction: 'LIKED' | 'DISLIKED' | null;
+    /** Ile razy więcej reakcji niż typowy post TEGO profilu; null przy mniej niż 3 postach. */
+    relativeToNorm?: number | null;
+    /** Kod posta - po nim dobieramy miniaturę z połączonego konta. */
+    postCode?: string;
+    role?: ProfileRole;
 }
 
 export interface ContentPage {
@@ -259,33 +147,6 @@ export interface ContentPage {
     pageSize: number;
     totalItems: number;
     topics: { value: string; label: string; count: number }[];
-}
-
-export interface HeatmapCell {
-    dayOfWeek: number; // 1 = poniedziałek ... 7 = niedziela
-    daypart: number;   // 0: 6-11, 1: 11-16, 2: 16-21, 3: 21-6
-    posts: number;
-    avgEngagement: number;
-}
-
-export interface Heatmap {
-    cells: HeatmapCell[];
-    bestDayOfWeek: number | null;
-    bestDaypart: number | null;
-    /**
-     * Posty odrzucone jako wyskoki - powyżej percentyla 90. zaangażowania w całym oknie.
-     * Zwykle oznaczenie kogoś znanego, płatna promocja albo przypadkowy viral: zdarzenia
-     * bez związku z porą publikacji, a zdolne samodzielnie przesądzić o rekomendacji.
-     * Nie ma ich ani w licznikach komórek, ani w średnich.
-     */
-    excludedOutliers: number;
-}
-
-export interface HashtagStat {
-    tag: string;
-    uses: number;
-    profilesCount: number;
-    avgEngagement: number;
 }
 
 // ─── Sugestie podobnych profili ──────────────────────────────────────────────
@@ -299,32 +160,6 @@ export interface ProfileSuggestion {
     recommendedByCount: number;
     similarTo: string;
 }
-
-// ─── Wyjaśnienie tygodnia (klik w słupek przyrostu obserwujących) ────────────
-
-export interface WeekDetailPost {
-    postId: string;
-    permalink: string;
-    takenAt: string;
-    format: ContentFormat;
-    caption: string | null;
-    likeCount: number;
-    commentCount: number;
-    viewCount: number | null;
-    engagement: number;
-}
-
-export interface WeekDetail {
-    profileId: string;
-    username: string;
-    weekStart: string;
-    followerDelta: number | null;
-    medianEngagement: number | null;
-    medianViews: number | null;
-    posts: WeekDetailPost[];
-    insights: { type: string; title: string }[];
-}
-
 
 // ─── Generator AI ─────────────────────────────────────────────────────────────
 
@@ -395,10 +230,6 @@ export interface GeneratedInstagramPost {
     ratedAt: number | null;
 }
 
-// ─── Stałe UI ─────────────────────────────────────────────────────────────────
-
-/** Paleta kolorów przypisywanych profilom na wykresach (self zawsze pierwszy kolor). */
-
 // ─── Reklamy konkurencji (Biblioteka reklam Meta) ─────────────────────────────
 
 /** Jeden pasek w kalendarzu — jedna kampania. */
@@ -414,6 +245,11 @@ export interface AdBar {
     platforms: AdPlatform[];
     /** Tor rysowania: kampanie równoległe leżą jedna pod drugą. */
     lane: number;
+    /**
+     * Ile kreacji składa się na kampanię. Biblioteka Meta nadaje numer każdemu wariantowi
+     * grafiki, więc „3 kampanie od tego samego dnia" były zwykle jedną ofertą w trzech wersjach.
+     */
+    variants?: number;
 }
 
 export type AdPlatform = 'FACEBOOK' | 'INSTAGRAM' | 'MESSENGER' | 'AUDIENCE_NETWORK' | 'THREADS';
@@ -529,29 +365,13 @@ export const AD_PLATFORM_LABELS: Record<AdPlatform, string> = {
     THREADS: 'Threads',
 };
 
-export const PROFILE_COLORS = [
-    '#0ea5e9', '#8b5cf6', '#f59e0b', '#10b981',
-    '#ef4444', '#06b6d4', '#f97316', '#64748b',
-] as const;
-
 export type WeeksOption = 4 | 12 | 26 | 52;
-
-export const WEEKS_OPTIONS: { value: WeeksOption; label: string }[] = [
-    { value: 4, label: 'Miesiąc' },
-    { value: 12, label: 'Kwartał' },
-    { value: 26, label: 'Pół roku' },
-    { value: 52, label: 'Rok' },
-];
 
 export const FORMAT_LABELS: Record<ContentFormat, string> = {
     PHOTO: 'Zdjęcie',
     REELS: 'Rolka',
     CAROUSEL: 'Karuzela',
 };
-
-export const DAYPART_LABELS = ['Rano (6-11)', 'Południe (11-16)', 'Wieczór (16-21)', 'Noc (21-6)'];
-
-export const DAY_LABELS = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Nd'];
 
 // ─── Odkrywanie obszaru (kto reklamuje się na frazy w rejonie) ────────────────
 
@@ -593,6 +413,13 @@ export interface AdvertiserRow {
     newAdvertiser: boolean;
     /** ISO data (bez czasu) startu najświeższej nowej kampanii; null, gdy żadna nie jest nowa. */
     latestCampaignStart: string | null;
+    /** Te same reklamy zgrupowane w kampanie: warianty jednej oferty liczą się raz. */
+    activeCampaigns?: number;
+    /**
+     * SERVICE - studio, realna konkurencja; PRODUCTS - sklep, producent, hurtownia;
+     * UNCERTAIN - do przejrzenia; PENDING - jeszcze nieocenione.
+     */
+    relevance?: 'SERVICE' | 'PRODUCTS' | 'UNCERTAIN' | 'PENDING';
 }
 
 /** Status frazy we wspólnym cache — po nim wiadomo, czemu tabela jest pusta/niepełna. */
@@ -671,4 +498,176 @@ export interface SaveAreaSettings {
     matchMode?: AreaMatchMode;
     /** Frazy ODZNACZONE, nie wybrane — katalog ustala administrator aplikacji. */
     excludedPhraseIds: string[];
+}
+
+// ─── Przegląd (GET /instagram/home) ───────────────────────────────────────────
+
+export interface PostingPlan {
+    weeklyGoal: number;
+    /** „październik" - nazwa bieżącego miesiąca. */
+    monthLabel: string;
+    postsThisMonth: number;
+    monthGoal: number;
+    postsThisWeek: number;
+    lastPostAt: string | null;
+    daysSinceLastPost: number | null;
+}
+
+export interface FollowersSummary {
+    value: number | null;
+    gain30d: number | null;
+    gain30dPct: number | null;
+    localMedianGain30dPct: number | null;
+}
+
+/**
+ * Jedna rzecz do zrobienia. `target` mówi, dokąd prowadzi przycisk - lista jest zamknięta
+ * po stronie serwera, a nieznany cel ekran pomija zamiast pokazać martwy przycisk.
+ */
+export type HomeTodoTarget =
+    | 'GENERATE_POST'
+    | 'OPEN_URL'
+    | 'OPEN_AREA'
+    | 'OPEN_PROFILES'
+    | 'CONNECT'
+    | 'OPEN_LEADS'
+    | 'OPEN_COMPETITION'
+    | 'OPEN_GOOGLE'
+    | 'OPEN_ADS';
+
+export interface HomeTodo {
+    kind: string;
+    title: string;
+    detail: string | null;
+    actionLabel: string;
+    target: HomeTodoTarget | string;
+    url?: string | null;
+    visitId?: string | null;
+}
+
+export interface HomeMarketEvent {
+    kind: string;
+    title: string;
+    /** ISO, sam dzień. */
+    date: string;
+    username: string | null;
+    url: string | null;
+    target: string | null;
+}
+
+export interface HomeConnection {
+    username: string;
+    status: string;
+    lastSyncAt: string | null;
+}
+
+export interface OwnInsightsSummary {
+    days: number;
+    reach: number | null;
+    views: number | null;
+    accountsEngaged: number | null;
+    follows: number | null;
+    unfollows: number | null;
+    contactTaps: Record<string, number>;
+    lastSyncAt: string | null;
+}
+
+export interface InstagramLeadsSummary {
+    days: number;
+    conversations: number;
+    awaitingReply: number;
+    convertedToVisits: number;
+    /** Brutto wygranych spraw w groszach - ta sama liczba co w analityce leadów. */
+    wonValueGrossCents: number;
+}
+
+export interface HomeGoogle {
+    locationTitle: string | null;
+    averageRating: number | null;
+    totalReviews: number | null;
+    days: number;
+    calls: number | null;
+    directions: number | null;
+    websiteClicks: number | null;
+    callsPrevious: number | null;
+    unansweredReviews: number;
+    dataUntil: string | null;
+}
+
+export interface InstagramHome {
+    hasSelf: boolean;
+    selfUsername: string | null;
+    selfStudioProfileId: string | null;
+    profilesWatched: number;
+    pendingApproval: number;
+    plan: PostingPlan | null;
+    followers: FollowersSummary | null;
+    storefrontGaps: string[];
+    todo: HomeTodo[];
+    market: HomeMarketEvent[];
+    connection: HomeConnection | null;
+    insights: OwnInsightsSummary | null;
+    leads: InstagramLeadsSummary | null;
+    google?: HomeGoogle | null;
+}
+
+// ─── Konkurencja (GET /instagram/competition) ─────────────────────────────────
+
+/** Okno porównania. 90 dni to minimum, w którym średnia z 1-3 postów tygodniowo coś znaczy. */
+export type CompetitionDays = 90 | 365;
+
+export const COMPETITION_DAYS_OPTIONS: { value: CompetitionDays; label: string }[] = [
+    { value: 90, label: '90 dni' },
+    { value: 365, label: '12 miesięcy' },
+];
+
+export interface CompetitionProfile {
+    studioProfileId: string;
+    profileId: string;
+    username: string;
+    isSelf: boolean;
+    role: ProfileRole;
+    apiError: boolean;
+    followers: number | null;
+    followersGain: number | null;
+    followersGainPct: number | null;
+    /** Pierwszy pomiar w oknie; późniejszy niż `from`, gdy profil obserwujemy krócej. */
+    growthFrom: string | null;
+    postsInWindow: number;
+    postsPerWeek: number;
+    reactionsPerPost: number | null;
+    /** Posty w każdym tygodniu z `CompetitionResponse.weeks`. */
+    weeklyPosts: number[];
+    regularityPct: number;
+    formatMix: { photo: number; reels: number; carousel: number };
+    /** Null - profil bez wskazanej strony na Facebooku, nie wiemy. */
+    activeCampaigns: number | null;
+    lastPostAt: string | null;
+}
+
+export interface CompetitionMedian {
+    followers: number | null;
+    followersGainPct: number | null;
+    postsPerWeek: number | null;
+    reactionsPerPost: number | null;
+    basedOn: number;
+}
+
+export interface CompetitionEvent {
+    weekStart: string;
+    date: string;
+    profileId: string | null;
+    type: string;
+    title: string;
+}
+
+export interface CompetitionResponse {
+    days: number;
+    from: string;
+    to: string;
+    /** Poniedziałki, od najstarszego; ostatni tydzień jest w toku. */
+    weeks: string[];
+    profiles: CompetitionProfile[];
+    localMedian: CompetitionMedian | null;
+    events: CompetitionEvent[];
 }

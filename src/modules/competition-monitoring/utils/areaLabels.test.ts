@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { AdvertiserRow } from '../types';
-import { activeAdsWord, companiesWord, formatStartDay, noveltyBadge } from './areaLabels';
+import {
+    activeAdsWord,
+    campaignsOf,
+    companiesWord,
+    formatStartDay,
+    noveltyBadge,
+    splitByRelevance,
+} from './areaLabels';
 
 const row = (overrides: Partial<AdvertiserRow> = {}): AdvertiserRow => ({
     pageId: '100',
@@ -75,5 +82,24 @@ describe('odznaka nowości w tabeli reklamodawców', () => {
         expect(activeAdsWord(4)).toBe('aktywne reklamy');
         expect(activeAdsWord(13)).toBe('aktywnych reklam');
         expect(activeAdsWord(73)).toBe('aktywne reklamy');
+    });
+});
+
+describe('podział reklamodawców w okolicy', () => {
+    it('sklepy i producenci osobno, nieocenione zostają przy usługach', () => {
+        const rows = [
+            { pageId: '1', relevance: 'SERVICE' },
+            { pageId: '2', relevance: 'PRODUCTS' },
+            { pageId: '3', relevance: 'PENDING' },
+            { pageId: '4' },
+        ];
+        const { services, products } = splitByRelevance(rows);
+        expect(services.map(r => r.pageId)).toEqual(['1', '3', '4']);
+        expect(products.map(r => r.pageId)).toEqual(['2']);
+    });
+
+    it('liczymy kampanie, a gdy serwer ich nie podał, reklamy', () => {
+        expect(campaignsOf({ activeAds: 3, activeCampaigns: 1 })).toBe(1);
+        expect(campaignsOf({ activeAds: 3 })).toBe(3);
     });
 });
