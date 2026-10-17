@@ -18,3 +18,24 @@ export const embedUrl = (postCode: string | null | undefined): string | null => 
     if (!code || !/^[A-Za-z0-9_-]+$/.test(code)) return null;
     return `https://www.instagram.com/p/${code}/embed/`;
 };
+
+/** Kolejność Inspiracji. Wartości to `sort` endpointu `/content`. */
+export type InspirationSort = 'norm' | 'date' | 'weakest';
+
+export const INSPIRATION_SORT_OPTIONS: { value: InspirationSort; label: string }[] = [
+    { value: 'norm', label: 'Skuteczność' },
+    { value: 'date', label: 'Najnowsze' },
+    { value: 'weakest', label: 'Najsłabsze' },
+];
+
+/**
+ * Podpis obok filtrów: mówi, co znaczy bieżąca kolejność. „Najsłabsze" to najniżej
+ * względem normy WŁASNEGO profilu - słaby post dużego konta może mieć więcej reakcji
+ * niż najlepszy post małego.
+ */
+export const inspirationSortCaption = (sort: InspirationSort, weeks: number): string => {
+    const period = `ostatnie ${weeks} tygodni`;
+    if (sort === 'date') return `${period}, od najnowszych`;
+    if (sort === 'weakest') return `${period}, od najsłabszych względem normy profilu`;
+    return `${period}, od najlepszych względem normy profilu`;
+};

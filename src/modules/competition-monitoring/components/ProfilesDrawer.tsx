@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Star, Check, Trash2, Ban, Plus } from 'lucide-react';
+import { Star, Check, Trash2, Ban, Plus, UserRound } from 'lucide-react';
 import { useAuth } from '@/core/context/AuthContext';
 import { Button, DrawerBody, SideDrawer, StatusPill, ui } from '@/common/components/ui';
 import type { InstagramProfile } from '../types';
@@ -11,6 +11,10 @@ import { SuggestionsSection } from './SuggestionsSection';
 /**
  * Obserwowane profile: Twój profil i konkurenci. Wszyscy konkurenci liczą się tak samo -
  * do mediany, rankingu i Inspiracji (decyzja biznesu: bez podziału na „z okolicy" i „wzorce").
+ *
+ * Twój profil stoi na górze i, dopóki go nie ma, jest jedynym wypełnionym przyciskiem w oknie:
+ * bez niego Przegląd nie policzy planu ani przyrostu. Wcześniej trzeba było dodać własne konto
+ * jak konkurenta i znaleźć przy nim gwiazdkę - nikt nie wiedział, że tak to działa.
  */
 
 const Group = styled.section`
@@ -68,6 +72,22 @@ const Confirm = styled.div`
     gap: 8px;
 `;
 
+const SelfPrompt = styled.div`
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 14px;
+    border: 1px solid ${ui.brandLineSoft};
+    border-radius: ${ui.radiusRow};
+    background: ${ui.brandTint};
+
+    > svg { width: 20px; height: 20px; color: ${ui.brandInk}; flex-shrink: 0; margin-top: 2px; }
+
+    > div { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+    strong { font-size: 14px; color: ${ui.ink}; }
+    p { margin: 0; font-size: 13px; line-height: 1.45; color: ${ui.textSecondary}; }
+`;
+
 const Note = styled.p`
     margin: 0;
     font-size: 12px;
@@ -83,7 +103,8 @@ export const ProfilesDrawer: React.FC<{
     open: boolean;
     onClose: () => void;
     onAddProfile: () => void;
-}> = ({ open, onClose, onAddProfile }) => {
+    onAddSelf: () => void;
+}> = ({ open, onClose, onAddProfile, onAddSelf }) => {
     const { user } = useAuth();
     const isManagerOrOwner = user?.role === 'MANAGER' || user?.role === 'OWNER';
 
@@ -147,7 +168,9 @@ export const ProfilesDrawer: React.FC<{
                             size="sm"
                             variant="ghost"
                             onClick={() => markSelf({ id: profile.id, isSelf: !profile.isSelf })}
-                            title="Z Twoim profilem porównujemy konkurentów"
+                            title={profile.isSelf
+                                ? 'Przenieś do konkurentów'
+                                : 'To konto Twojego studia - porównamy z nim konkurentów'}
                         >
                             <Star size={14} /> {profile.isSelf ? 'To nie mój profil' : 'To mój profil'}
                         </Button>
@@ -170,19 +193,36 @@ export const ProfilesDrawer: React.FC<{
             <DrawerBody>
                 {isLoading && <Note>Wczytywanie…</Note>}
 
+                <Group>
+                    <GroupHead><h3>Twój profil</h3></GroupHead>
+                    {self.length > 0 ? self.map(renderRow) : !isLoading && (
+                        <SelfPrompt>
+                            <UserRound aria-hidden="true" />
+                            <div>
+                                <strong>Dodaj konto swojego studia</strong>
+                                <p>
+                                    Wpisz nazwę swojego profilu na Instagramie. Porównamy go z konkurentami
+                                    i policzymy plan publikacji w Przeglądzie.
+                                </p>
+                                {competitors.length > 0 && (
+                                    <p>Twój profil jest już niżej, wśród konkurentów? Kliknij przy nim „To mój profil”.</p>
+                                )}
+                                <Actions>
+                                    <Button size="sm" variant="primary" onClick={onAddSelf}>
+                                        <UserRound size={14} /> Dodaj swój profil
+                                    </Button>
+                                </Actions>
+                            </div>
+                        </SelfPrompt>
+                    )}
+                </Group>
+
                 {pending.length > 0 && (
                     <Group>
                         <GroupHead><h3>Czekają na akceptację</h3><span>{pending.length}</span></GroupHead>
                         {pending.map(renderRow)}
                     </Group>
                 )}
-
-                <Group>
-                    <GroupHead><h3>Twój profil</h3></GroupHead>
-                    {self.length > 0
-                        ? self.map(renderRow)
-                        : <Note>Oznacz gwiazdką swój profil, a porównamy go z konkurentami.</Note>}
-                </Group>
 
                 <Group>
                     <GroupHead>

@@ -12,7 +12,8 @@ import {
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
-import { useAddProfile } from '../hooks/useAddProfile';
+import { useAddProfile, useAddSelfProfile } from '../hooks/useAddProfile';
+import { useInstagramProfiles } from '../hooks/useInstagramProfiles';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
@@ -67,22 +68,34 @@ const ErrorMsg = styled.p`
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+export type AddProfileMode = 'competitor' | 'self';
+
 interface AddProfileModalProps {
     isOpen: boolean;
     onClose: () => void;
+    /** `self` - własny profil studia: dodaje (jeśli trzeba) i od razu oznacza jako Twój. */
+    mode?: AddProfileMode;
 }
 
-export const AddProfileModal = ({ isOpen, onClose }: AddProfileModalProps) => {
+export const AddProfileModal = ({ isOpen, onClose, mode = 'competitor' }: AddProfileModalProps) => {
     const [username, setUsername] = useState('');
     const [validationError, setValidationError] = useState('');
-    const { addProfile, isAdding, isError, reset } = useAddProfile();
+    const { profiles } = useInstagramProfiles();
+    const competitor = useAddProfile();
+    const self = useAddSelfProfile(profiles);
+    const isSelfMode = mode === 'self';
+    const isAdding = isSelfMode ? self.isAddingSelf : competitor.isAdding;
+    const isError = isSelfMode ? self.isSelfError : competitor.isError;
+    const { reset: resetCompetitor } = competitor;
+    const { resetSelf } = self;
 
     const handleClose = useCallback(() => {
         setUsername('');
         setValidationError('');
-        reset();
+        resetCompetitor();
+        resetSelf();
         onClose();
-    }, [onClose, reset]);
+    }, [onClose, resetCompetitor, resetSelf]);
 
     const handleSubmit = () => {
         const trimmed = username.trim().replace(/^@/, '');
@@ -97,7 +110,8 @@ export const AddProfileModal = ({ isOpen, onClose }: AddProfileModalProps) => {
         }
 
         setValidationError('');
-        addProfile({ username: trimmed }, { onSuccess: handleClose });
+        if (isSelfMode) self.addSelf({ username: trimmed }, { onSuccess: handleClose });
+        else competitor.addProfile({ username: trimmed }, { onSuccess: handleClose });
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -108,9 +122,11 @@ export const AddProfileModal = ({ isOpen, onClose }: AddProfileModalProps) => {
         <ModalShell isOpen={isOpen} onClose={handleClose} maxWidth="440px">
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>Dodaj konkurenta</ModalTitle>
+                    <ModalTitle>{isSelfMode ? 'Dodaj swój profil' : 'Dodaj konkurenta'}</ModalTitle>
                     <ModalSubtitle>
-                        Kierownik i właściciel dodają od razu, pozostali czekają na zatwierdzenie.
+                        {isSelfMode
+                            ? 'Konto Twojego studia. Porównamy je z konkurentami i policzymy plan publikacji.'
+                            : 'Kierownik i właściciel dodają od razu, pozostali czekają na zatwierdzenie.'}
                     </ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={handleClose} />
@@ -118,13 +134,15 @@ export const AddProfileModal = ({ isOpen, onClose }: AddProfileModalProps) => {
 
             <ModalContent>
                 <div>
-                    <FieldLabel htmlFor="instagram-username">Nazwa profilu na Instagramie</FieldLabel>
+                    <FieldLabel htmlFor="instagram-username">
+                        {isSelfMode ? 'Nazwa Twojego profilu na Instagramie' : 'Nazwa profilu na Instagramie'}
+                    </FieldLabel>
                     <InputWrapper>
                         <AtSign>@</AtSign>
                         <Input
                             id="instagram-username"
                             type="text"
-                            placeholder="nazwa_profilu"
+                            placeholder={isSelfMode ? 'np. carslab_pl' : 'nazwa_profilu'}
                             value={username}
                             onChange={e => setUsername(e.target.value)}
                             onKeyDown={handleKeyDown}
@@ -135,7 +153,11 @@ export const AddProfileModal = ({ isOpen, onClose }: AddProfileModalProps) => {
 
                     {validationError && <ErrorMsg>{validationError}</ErrorMsg>}
                     {isError && !validationError && (
-                        <ErrorMsg>Nie udało się dodać profilu. Sprawdź nazwę i spróbuj ponownie.</ErrorMsg>
+                        <ErrorMsg>
+                            {isSelfMode
+                                ? 'Nie udało się zapisać Twojego profilu. Sprawdź nazwę i spróbuj ponownie.'
+                                : 'Nie udało się dodać profilu. Sprawdź nazwę i spróbuj ponownie.'}
+                        </ErrorMsg>
                     )}
                 </div>
             </ModalContent>
@@ -145,7 +167,7 @@ export const AddProfileModal = ({ isOpen, onClose }: AddProfileModalProps) => {
                     Anuluj
                 </SharedButton>
                 <SharedButton $variant="primary" $size="sm" onClick={handleSubmit} disabled={isAdding}>
-                    {isAdding ? 'Dodawanie…' : 'Dodaj konkurenta'}
+                    {isAdding ? 'Zapisuję…' : isSelfMode ? 'To mój profil' : 'Dodaj konkurenta'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

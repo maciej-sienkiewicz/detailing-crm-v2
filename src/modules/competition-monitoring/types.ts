@@ -149,6 +149,10 @@ export interface ProfileSuggestion {
     followerCount: number | null;
     recommendedByCount: number;
     similarTo: string;
+    /** Kategoria profilu z Instagrama („Automotive Service"). */
+    category?: string | null;
+    /** Profil wspomina którąś z Twoich miejscowości (ustawienia „W okolicy"). */
+    nearby?: boolean;
 }
 
 // ─── Generator AI ─────────────────────────────────────────────────────────────

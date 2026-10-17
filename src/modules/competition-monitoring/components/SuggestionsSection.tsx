@@ -1,13 +1,16 @@
 import React from 'react';
 import styled from 'styled-components';
-import { UserPlus, BadgeCheck } from 'lucide-react';
+import { UserPlus, BadgeCheck, MapPin } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useSuggestions } from '../hooks/useAnalytics';
 import { useAddProfile } from '../hooks/useAddProfile';
+import { suggestionCategoryLabel } from '../utils/suggestions';
 
 /**
  * "Zaobserwuj podobne profile": sugestie z algorytmu Instagrama (related-profiles),
- * ranking wg liczby obserwowanych profili, które je polecają. Klik "Dodaj" przechodzi
+ * przefiltrowane na serwerze do publicznych kont firmowych z branży - sam algorytm
+ * Instagrama podsuwał prywatne konta znajomych właściciela. Najpierw konta z miejscowości
+ * studia, potem polecane przez więcej obserwowanych profili. Klik "Dodaj" przechodzi
  * przez normalny flow moderacji (profil trafia do oczekujących).
  */
 
@@ -64,10 +67,27 @@ const Names = styled.div`
 /** Atrybuty sugestii jako osobne elementy z odstępem, bez kropek jako kleju. */
 const Meta = styled.div`
     display: flex;
-    gap: 8px;
+    gap: 4px 8px;
+    flex-wrap: wrap;
     min-width: 0;
 
     span { min-width: 0; }
+`;
+
+const Nearby = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    color: ${st.accentBlue} !important;
+    font-weight: 600;
+
+    svg { width: 11px; height: 11px; }
+`;
+
+const Hint = styled.p`
+    margin: 0;
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
 `;
 
 const AddBtn = styled.button`
@@ -106,6 +126,7 @@ export const SuggestionsSection: React.FC<{ compact?: boolean }> = ({ compact = 
             <Heading>
                 <UserPlus /> Zaobserwuj podobne profile
             </Heading>
+            <Hint>Publiczne konta firm z branży, które Instagram łączy z Twoimi obserwowanymi.</Hint>
             {visible.map(suggestion => (
                 <Row key={suggestion.username}>
                     <Names>
@@ -114,6 +135,8 @@ export const SuggestionsSection: React.FC<{ compact?: boolean }> = ({ compact = 
                             {suggestion.isVerified && <BadgeCheck />}
                         </strong>
                         <Meta>
+                            {suggestion.nearby && <Nearby><MapPin /> w Twojej okolicy</Nearby>}
+                            {suggestionCategoryLabel(suggestion.category) && <span>{suggestionCategoryLabel(suggestion.category)}</span>}
                             {suggestion.fullName && <span>{suggestion.fullName}</span>}
                             {suggestion.followerCount != null && (
                                 <span>
@@ -131,7 +154,7 @@ export const SuggestionsSection: React.FC<{ compact?: boolean }> = ({ compact = 
                     <AddBtn
                         disabled={isAdding}
                         onClick={() => addProfile({ username: suggestion.username })}
-                        title="Dodaj jako konkurenta z okolicy"
+                        title="Dodaj do konkurentów"
                     >
                         <UserPlus /> Dodaj
                     </AddBtn>
