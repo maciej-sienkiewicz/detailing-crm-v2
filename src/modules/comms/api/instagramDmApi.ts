@@ -6,9 +6,16 @@ import type { InstagramDmConversation } from '../types';
 const BASE = '/v1/instagram/dm';
 
 export const instagramDmApi = {
-    /** Null, gdy lead nie ma rozmowy na Instagramie (serwer odpowiada 204). */
+    /**
+     * Null, gdy lead nie ma rozmowy na Instagramie (serwer odpowiada 204). Bez toastu przy
+     * błędzie: rozmowy stoją za modułem Instagrama, a sprawa bez nich pokazuje zgłoszenie
+     * i podpowiedź, co zrobić - komunikat przy każdym otwarciu sprawy byłby tylko szumem.
+     */
     getByLead: async (leadId: string): Promise<InstagramDmConversation | null> => {
-        const response = await apiClient.get<InstagramDmConversation | ''>(`${BASE}/by-lead/${encodeURIComponent(leadId)}`);
+        const response = await apiClient.get<InstagramDmConversation | ''>(
+            `${BASE}/by-lead/${encodeURIComponent(leadId)}`,
+            { skipErrorToast: true }
+        );
         return response.status === 204 || !response.data ? null : response.data;
     },
 
