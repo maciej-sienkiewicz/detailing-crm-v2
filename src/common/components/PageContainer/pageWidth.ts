@@ -20,7 +20,7 @@ export const PAGE_NARROW_MAX_WIDTH = '640px';
 
 /**
  * Wspólny, responsywny gutter POZIOMY całej aplikacji - JEDNO źródło prawdy.
- * Używa go PageContainer, ale też widoki pełnoekranowe (np. Galeria), które nie
+ * Używa go PageContainer, ale też widoki pełnoekranowe, które nie
  * mogą użyć samego PageContainera, a mimo to muszą trzymać treść w tej samej
  * kolumnie. Dzięki temu krawędzie nagłówka i treści są identyczne wszędzie -
  * także 48px na dużych ekranach (≥1280px).
