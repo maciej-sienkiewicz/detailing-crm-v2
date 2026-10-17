@@ -117,7 +117,7 @@ export const buildMenuSections = ({
                 { path: '/customers', label: 'Klienci',   icon: Users, requires: 'CUSTOMERS_VIEW' },
                 // Komu, co i kiedy wyjdzie SMS-em albo e-mailem: przypomnienia, potwierdzenia,
                 // kampanie. Stary adres (/scheduled-sms) przekierowuje - jest w `match`.
-                { path: '/scheduled-communication', label: 'Zaplanowana komunikacja', icon: CalendarClock,
+                { path: '/scheduled-communication', label: 'Zaplanowane treści', icon: CalendarClock,
                     requires: 'COMMUNICATION_SEND', match: ['/scheduled-sms'] },
                 { path: '/vehicles',  label: 'Pojazdy',   icon: Car,   requires: 'CUSTOMERS_VIEW' },
             ],
