@@ -49,6 +49,7 @@ import {
     ChevronDown,
     ExternalLink,
     History,
+    Instagram,
     Loader2,
     MessagesSquare,
     Motorbike,
@@ -108,6 +109,7 @@ import { ContactCardPopover } from './ContactCardPopover';
 import { leadToBookingPrefill } from '../utils/bookingPrefill';
 import { toLeadInputs, toQuoteRows, toServiceLines } from '../utils/leadServiceLines';
 import { CLOSED_STATUSES, describeAppointmentMoment, formatVehicle } from '../utils/leadFormat';
+import { leadEmail } from '../utils/leadPrimaryAction';
 import { describeLeadUrgency, type ReplyTone } from '../utils/leadUrgency';
 import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, type LeadServiceItemInput } from '../types';
 import { TagMultiSelect } from './TagMultiSelect';
@@ -1569,8 +1571,18 @@ export function LeadDetailModal({
      * wymagało wątku, a wątek powstawał wyłącznie z poczty przychodzącej. Teraz pierwsza
      * wiadomość otwiera nową rozmowę i serwer przypina ją do leada.
      */
-    const contactEmail = lead.contactIdentifier?.includes('@') ? lead.contactIdentifier.trim() : null;
+    const contactEmail = leadEmail(lead);
     const canCompose = showThreadLink && !lead.threadId && contactEmail !== null;
+    /*
+     * Sprawa z Instagrama nie ma wątku poczty, a jej kontakt („@login") tylko wygląda
+     * jak adres. Rozmowa i odpowiedź stoją w skrzynce „Zapytania", tak jak przy mailu -
+     * tam CRM odpisuje przez Instagram, w oknie 24 godzin od wiadomości klienta.
+     */
+    const canWriteInstagram = showThreadLink && lead.source === 'INSTAGRAM';
+    const instagramLogin = lead.source === 'INSTAGRAM' && lead.contactIdentifier.startsWith('@')
+        ? lead.contactIdentifier.slice(1).trim()
+        : '';
+    const instagramProfileUrl = instagramLogin ? `https://www.instagram.com/${encodeURIComponent(instagramLogin)}/` : null;
     const openCompose = () =>
         navigate(
             // Sprawa w skrzynce „Zapytania" ma pierwszą wiadomość tuż pod zgłoszeniem.
@@ -1595,7 +1607,7 @@ export function LeadDetailModal({
     // Rozmowa sprawy stoi w skrzynce „Zapytania" obok panelu sprawy.
     const openThread = () => navigate(`/zapytania?lead=${encodeURIComponent(lead.id)}`);
     /** Dokąd prowadzi „Odpisz klientowi": do rozmowy, a bez niej - do nowej wiadomości. */
-    const writeToClient = canWrite ? openThread : canCompose ? openCompose : null;
+    const writeToClient = canWrite || canWriteInstagram ? openThread : canCompose ? openCompose : null;
     /**
      * Kalendarz nie ma trasy per rezerwacja: skacze się do niego z datą, żeby
      * najpierw trafił w odpowiedni miesiąc, a potem podświetlił wydarzenie.
@@ -1716,6 +1728,26 @@ export function LeadDetailModal({
                                     w karcie kontaktu - przy osobie, której dotyczą.
                                 */}
                                 <LeadIdentity>
+                                    {/*
+                                        Sprawa z Instagrama: „ludzik" prowadzi do profilu tej osoby.
+                                        Karta kontaktu jest zbudowana wokół adresu e-mail - z loginem
+                                        w roli adresu proponowałaby zapisanie „@login" w kartotece
+                                        jako e-maila klienta.
+                                    */}
+                                    {lead.source === 'INSTAGRAM' ? (
+                                        <IdentityPerson
+                                            type="button"
+                                            $known={false}
+                                            disabled={!instagramProfileUrl}
+                                            aria-label="Profil na Instagramie"
+                                            title={instagramProfileUrl ? 'Otwórz profil na Instagramie' : 'Instagram nie podał loginu tej osoby'}
+                                            onClick={() => {
+                                                if (instagramProfileUrl) window.open(instagramProfileUrl, '_blank', 'noopener,noreferrer');
+                                            }}
+                                        >
+                                            <Instagram />
+                                        </IdentityPerson>
+                                    ) : (
                                     <IdentityPerson
                                         type="button"
                                         $known={Boolean(customerFacts)}
@@ -1735,6 +1767,7 @@ export function LeadDetailModal({
                                     >
                                         <UserRound />
                                     </IdentityPerson>
+                                    )}
                                     <IdentityName title={identityName}>{identityName}</IdentityName>
                                 </LeadIdentity>
                             </ModalTitleGroup>

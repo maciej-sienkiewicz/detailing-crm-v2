@@ -12,7 +12,9 @@ import {
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
+import { Segmented } from '@/common/components/ui';
 import { useAddProfile } from '../hooks/useAddProfile';
+import type { ProfileRole } from '../types';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
@@ -59,6 +61,19 @@ const Input = styled.input`
     }
 `;
 
+const RoleField = styled.div`
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+`;
+
+const RoleHint = styled.p`
+    margin: 0;
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
+`;
+
 const ErrorMsg = styled.p`
     margin: 8px 0 0;
     font-size: ${st.fontSm};
@@ -70,19 +85,28 @@ const ErrorMsg = styled.p`
 interface AddProfileModalProps {
     isOpen: boolean;
     onClose: () => void;
+    /** Rola zaznaczona na starcie - z grupy, przy której kliknięto „Dodaj". */
+    initialRole?: ProfileRole;
 }
 
-export const AddProfileModal = ({ isOpen, onClose }: AddProfileModalProps) => {
+const ROLE_OPTIONS: { value: ProfileRole; label: string }[] = [
+    { value: 'LOCAL', label: 'Konkurent z okolicy' },
+    { value: 'INSPIRATION', label: 'Wzorzec' },
+];
+
+export const AddProfileModal = ({ isOpen, onClose, initialRole = 'LOCAL' }: AddProfileModalProps) => {
     const [username, setUsername] = useState('');
+    const [role, setRole] = useState<ProfileRole>(initialRole);
     const [validationError, setValidationError] = useState('');
     const { addProfile, isAdding, isError, reset } = useAddProfile();
 
     const handleClose = useCallback(() => {
         setUsername('');
         setValidationError('');
+        setRole(initialRole);
         reset();
         onClose();
-    }, [onClose, reset]);
+    }, [onClose, reset, initialRole]);
 
     const handleSubmit = () => {
         const trimmed = username.trim().replace(/^@/, '');
@@ -97,7 +121,7 @@ export const AddProfileModal = ({ isOpen, onClose }: AddProfileModalProps) => {
         }
 
         setValidationError('');
-        addProfile(trimmed, { onSuccess: handleClose });
+        addProfile({ username: trimmed, role }, { onSuccess: handleClose });
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -110,7 +134,7 @@ export const AddProfileModal = ({ isOpen, onClose }: AddProfileModalProps) => {
                 <ModalTitleGroup>
                     <ModalTitle>Dodaj profil do obserwowania</ModalTitle>
                     <ModalSubtitle>
-                        Profil pojawi się po zatwierdzeniu.
+                        Kierownik i właściciel dodają od razu, pozostali czekają na zatwierdzenie.
                     </ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={handleClose} />
@@ -132,6 +156,22 @@ export const AddProfileModal = ({ isOpen, onClose }: AddProfileModalProps) => {
                             disabled={isAdding}
                         />
                     </InputWrapper>
+
+                    <RoleField>
+                        <Segmented
+                            label="Rola profilu"
+                            options={ROLE_OPTIONS}
+                            value={role}
+                            onChange={setRole}
+                            block
+                            size="sm"
+                        />
+                        <RoleHint>
+                            {role === 'LOCAL'
+                                ? 'Liczy się do mediany i rankingu w Konkurencji.'
+                                : 'Tylko do Inspiracji, bez porównań z Twoim studiem.'}
+                        </RoleHint>
+                    </RoleField>
 
                     {validationError && <ErrorMsg>{validationError}</ErrorMsg>}
                     {isError && !validationError && (

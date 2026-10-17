@@ -535,7 +535,9 @@ export const VisitDetailView = () => {
             serviceCategory ? `Kategoria: ${serviceCategory}.` : '',
         ].filter(Boolean).join(' ');
 
-        return { topic, context };
+        // Zdjęcia tej wizyty są od razu zaznaczone do publikacji - po to otwiera się
+        // generator z wizyty, a nie z modułu Instagrama.
+        return { topic, context, visitId: visit.id };
     };
 
     const handleCancelVisit = () => setIsDeleteModalOpen(true);

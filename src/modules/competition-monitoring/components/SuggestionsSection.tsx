@@ -130,8 +130,8 @@ export const SuggestionsSection: React.FC<{ compact?: boolean }> = ({ compact = 
                     </Names>
                     <AddBtn
                         disabled={isAdding}
-                        onClick={() => addProfile(suggestion.username)}
-                        title="Profil pojawi się po zatwierdzeniu"
+                        onClick={() => addProfile({ username: suggestion.username })}
+                        title="Dodaj jako konkurenta z okolicy"
                     >
                         <UserPlus /> Dodaj
                     </AddBtn>

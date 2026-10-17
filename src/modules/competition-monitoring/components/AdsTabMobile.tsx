@@ -4,10 +4,11 @@ import { AlertCircle, ChevronDown, ChevronRight, ChevronUp, ExternalLink } from 
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { pluralPl } from '@/common/utils/plural';
 import type { AdBar, AdCalendar, AdCalendarRow, UnlinkedProfile } from '../types';
-import { PROFILE_COLORS } from '../types';
 import { CenterState, formatExact } from './MetricBits';
 import { LinkFacebookPageModal } from './LinkFacebookPageModal';
 import { AreaSection } from './AreaSection';
+import { useProfileColors } from '../hooks/useProfileColors';
+import { colorFor } from '../utils/profileColors';
 import { dayOfYear, monthStartDays, yearLength } from '../utils/adCalendar';
 
 /**
@@ -29,6 +30,11 @@ const MONTH_ABBR = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz
 interface Props {
     calendar: AdCalendar;
     onOpenAd: (adId: string) => void;
+    /**
+     * Firmy z rejonu pod kalendarzem. W Konkurencji „W okolicy" ma własny widok, więc
+     * tam ich tu nie dokładamy - ta sama lista dwa razy to ten sam fakt dwa razy.
+     */
+    showArea?: boolean;
 }
 
 interface MonthBucket {
@@ -92,9 +98,8 @@ const activeChipLabel = (ad: AdBar): string => {
     return `do ${stopDate.getUTCDate()} ${MONTH_ABBR[stopDate.getUTCMonth()]}`;
 };
 
-const colorOf = (index: number) => PROFILE_COLORS[index % PROFILE_COLORS.length];
-
-export const AdsTabMobile: React.FC<Props> = ({ calendar, onOpenAd }) => {
+export const AdsTabMobile: React.FC<Props> = ({ calendar, onOpenAd, showArea = true }) => {
+    const colors = useProfileColors();
     const [linking, setLinking] = useState<{
         profileId: string;
         username: string;
@@ -102,8 +107,8 @@ export const AdsTabMobile: React.FC<Props> = ({ calendar, onOpenAd }) => {
     } | null>(null);
 
     const rowsWithColors = useMemo(
-        () => calendar.rows.map((row, index) => ({ row, color: colorOf(index) })),
-        [calendar.rows]
+        () => calendar.rows.map(row => ({ row, color: colorFor(colors, row.username) })),
+        [calendar.rows, colors]
     );
 
     /**
@@ -138,7 +143,7 @@ export const AdsTabMobile: React.FC<Props> = ({ calendar, onOpenAd }) => {
                     <strong>Brak obserwowanych profili</strong>
                     <span>Dodaj profile konkurencji, żeby sprawdzić, kto z nich się reklamuje.</span>
                 </CenterState>
-                <AreaSection />
+                {showArea && <AreaSection />}
             </Layout>
         );
     }
@@ -172,7 +177,7 @@ export const AdsTabMobile: React.FC<Props> = ({ calendar, onOpenAd }) => {
                 />
             ))}
 
-            <AreaSection />
+            {showArea && <AreaSection />}
 
             {linking && (
                 <LinkFacebookPageModal

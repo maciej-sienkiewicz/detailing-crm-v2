@@ -5,26 +5,24 @@ import type {
     AdDetail,
     AreaResults,
     AreaSettings,
-    Benchmark,
     BlockedAdvertiser,
     CatalogPhrase,
-    CompetitorPulse,
+    CompetitionDays,
+    CompetitionResponse,
     ContentPage,
     GenerateInstagramPostRequest,
     GeneratedInstagramPost,
     GeneratedPostRating,
-    HashtagStat,
-    Heatmap,
+    InstagramHome,
     InstagramPostResult,
     InstagramProfile,
     InstagramStyleRule,
-    Overview,
     PageCandidate,
     PageLinkResult,
+    ProfileRole,
     ProfileSuggestion,
     ResyncResult,
     SaveAreaSettings,
-    WeekDetail,
     WeeklyDigest,
     WeeksOption,
 } from '../types';
@@ -36,7 +34,9 @@ const ADS_PATH = '/v1/instagram/ads';
 
 export interface ContentFilters {
     weeks: WeeksOption;
-    sort: 'engagement' | 'date' | 'likes';
+    /** `norm` - względem typowego posta tego samego profilu (Inspiracje). */
+    sort: 'engagement' | 'date' | 'likes' | 'norm';
+    role?: ProfileRole;
     topic?: string;
     format?: string;
     profileId?: string;
@@ -53,9 +53,14 @@ export const instagramApi = {
         return response.data;
     },
 
-    addProfile: async (username: string): Promise<InstagramProfile> => {
-        const response = await apiClient.post<InstagramProfile>(PROFILES_PATH, { username });
+    addProfile: async (username: string, role?: ProfileRole): Promise<InstagramProfile> => {
+        const response = await apiClient.post<InstagramProfile>(PROFILES_PATH, { username, role });
         return response.data;
+    },
+
+    /** Lokalny konkurent albo wzorzec - przestawia tylko porównanie, nie pobieranie danych. */
+    setProfileRole: async (id: string, role: ProfileRole): Promise<void> => {
+        await apiClient.post(`${PROFILES_PATH}/${id}/role`, { role });
     },
 
     approveProfile: async (id: string): Promise<void> => {
@@ -77,14 +82,31 @@ export const instagramApi = {
 
     // ── Analityka v2 ─────────────────────────────────────────────────────────
 
-    getOverview: async (weeks: WeeksOption): Promise<Overview> => {
-        const response = await apiClient.get<Overview>(`${ANALYTICS_PATH}/overview`, { params: { weeks } });
+    /** Przegląd: plan publikacji, obserwujący, do zrobienia, rynek - jedno żądanie na ekran. */
+    getHome: async (): Promise<InstagramHome> => {
+        const response = await apiClient.get<InstagramHome>(`${ANALYTICS_PATH}/home`);
         return response.data;
     },
 
-    getBenchmark: async (weeks: WeeksOption): Promise<Benchmark> => {
-        const response = await apiClient.get<Benchmark>(`${ANALYTICS_PATH}/benchmark`, { params: { weeks } });
+    /** Konkurencja: cztery liczby na profil, kalendarz publikacji, ranking przyrostu. */
+    getCompetition: async (days: CompetitionDays): Promise<CompetitionResponse> => {
+        const response = await apiClient.get<CompetitionResponse>(`${ANALYTICS_PATH}/competition`, {
+            params: { days },
+        });
         return response.data;
+    },
+
+    /**
+     * Miniatury postów obserwowanych profili (kod posta → adres obrazka). Pusta mapa bez
+     * połączonego konta - karty pokazują wtedy sam opis. Adresy wygasają, nie zapisujemy ich.
+     */
+    getPreviews: async (usernames: string[]): Promise<Record<string, string>> => {
+        if (usernames.length === 0) return {};
+        const response = await apiClient.get<Record<string, string>>(`${ANALYTICS_PATH}/previews`, {
+            params: { usernames: usernames.join(',') },
+            skipErrorToast: true,
+        });
+        return response.data ?? {};
     },
 
     /**
@@ -98,37 +120,9 @@ export const instagramApi = {
         return response.data;
     },
 
-    /** Puls: co wydarzyło się u obserwowanych profili w ostatnich dniach. */
-    getPulse: async (weeks = 1): Promise<CompetitorPulse> => {
-        const response = await apiClient.get<CompetitorPulse>(`${ANALYTICS_PATH}/pulse`, {
-            params: { weeks },
-        });
-        return response.data;
-    },
-
-    /** Wyjaśnienie tygodnia: publikacje i zdarzenia stojące za przyrostem obserwujących. */
-    getWeekDetail: async (profileId: string, weekStart: string): Promise<WeekDetail> => {
-        const response = await apiClient.get<WeekDetail>(`${ANALYTICS_PATH}/benchmark/week-detail`, {
-            params: { profileId, weekStart },
-        });
-        return response.data;
-    },
-
     getContent: async (filters: ContentFilters): Promise<ContentPage> => {
         const response = await apiClient.get<ContentPage>(`${ANALYTICS_PATH}/content`, { params: filters });
         return response.data;
-    },
-
-    getHeatmap: async (weeks: WeeksOption): Promise<Heatmap> => {
-        const response = await apiClient.get<Heatmap>(`${ANALYTICS_PATH}/content/heatmap`, { params: { weeks } });
-        return response.data;
-    },
-
-    getHashtags: async (weeks: WeeksOption): Promise<HashtagStat[]> => {
-        const response = await apiClient.get<{ hashtags: HashtagStat[] }>(`${ANALYTICS_PATH}/hashtags`, {
-            params: { weeks },
-        });
-        return response.data.hashtags;
     },
 
     getSuggestions: async (): Promise<ProfileSuggestion[]> => {
@@ -226,7 +220,7 @@ export const instagramApi = {
     },
 
     /**
-     * „Oznacz jako przejrzane" - studio potwierdza, że przejrzało nowości w swoim rejonie.
+     * Nowości w rejonie obejrzane - wołane samo po kilku sekundach na liście (useAutoAcknowledgeNovelty).
      * Serwer zapisuje dzień; odznaki gasną wtedy i tu, i w pasku na Tablicy.
      */
     acknowledgeAreaNovelty: async (): Promise<string | null> => {

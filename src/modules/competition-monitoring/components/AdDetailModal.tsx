@@ -603,13 +603,19 @@ export const AdDetailModal: React.FC<Props> = ({ adId, onClose }) => {
 };
 
 const AdDetailBody: React.FC<{ ad: AdDetail }> = ({ ad }) => {
-    // Treść reklamy startuje zwinięta: stoi przed danymi zasięgu, a bywa dłuższa
-    // niż cała reszta okna razem wzięta.
-    const [creativeOpen, setCreativeOpen] = useState(false);
+    // Najpierw CO i ZA ILE: treść reklamy (oferta, cena, termin) jest tym, po co
+    // właściciel otwiera okno - dawniej stała zwinięta pod „Pokaż", a pół okna zajmowała
+    // piramida wieku. Długą treść i tak przycina AdCreative, więc nie wypycha reszty.
+    // Piramida startuje zwinięta, z jednym zdaniem o najliczniejszej grupie.
+    const [creativeOpen, setCreativeOpen] = useState(true);
+    const [pyramidOpen, setPyramidOpen] = useState(false);
     const buckets = fullBreakdown(ad.breakdown);
     const total = buckets.reduce((sum, bucket) => sum + bucket.male + bucket.female, 0);
     const scale = Math.max(1, ...buckets.map(bucket => Math.max(bucket.male, bucket.female)));
     const platforms = ad.platforms.map(platform => AD_PLATFORM_LABELS[platform] ?? platform);
+    const topBucket = total > 0
+        ? buckets.reduce((best, b) => (b.male + b.female > best.male + best.female ? b : best), buckets[0])
+        : null;
 
     // Przedziały objęte ustawieniem wieku bierzemy z rozbicia, a nie parsujemy „18-65+"
     // jeszcze raz na froncie: backend już to policzył i to on zna regułę.
@@ -654,8 +660,8 @@ const AdDetailBody: React.FC<{ ad: AdDetail }> = ({ ad }) => {
                 {hasCreative && (
                     <Panel>
                         <h4>
-                            Treść reklamy
-                            {creativeOpen && <em>tak widzi ją odbiorca</em>}
+                            Oferta
+                            {creativeOpen && <em>treść reklamy tak, jak widzi ją odbiorca</em>}
                             <PanelToggle
                                 type="button"
                                 onClick={() => setCreativeOpen(open => !open)}
@@ -671,11 +677,28 @@ const AdDetailBody: React.FC<{ ad: AdDetail }> = ({ ad }) => {
                 <Panel>
                     <h4>
                         Zasięg według wieku i płci
-                        <Legend>
-                            <s><i style={{ background: st.accentBlue }} />Mężczyźni</s>
-                            <s><i style={{ background: st.accentAmber }} />Kobiety</s>
-                        </Legend>
+                        {pyramidOpen && (
+                            <Legend>
+                                <s><i style={{ background: st.accentBlue }} />Mężczyźni</s>
+                                <s><i style={{ background: st.accentAmber }} />Kobiety</s>
+                            </Legend>
+                        )}
+                        <PanelToggle
+                            type="button"
+                            onClick={() => setPyramidOpen(open => !open)}
+                            aria-expanded={pyramidOpen}
+                        >
+                            {pyramidOpen ? <ChevronUp /> : <ChevronDown />}
+                            {pyramidOpen ? 'Ukryj' : 'Pokaż'}
+                        </PanelToggle>
                     </h4>
+                    {!pyramidOpen && topBucket && (
+                        <PyramidFoot>
+                            Najwięcej osób w wieku <b>{topBucket.ageRange}</b> (
+                            {Math.round(((topBucket.male + topBucket.female) / total) * 100)}% zasięgu)
+                        </PyramidFoot>
+                    )}
+                    {pyramidOpen && (
                     <Pyramid>
                         {buckets.map(bucket => {
                             const share = total > 0 ? ((bucket.male + bucket.female) / total) * 100 : 0;
@@ -701,7 +724,8 @@ const AdDetailBody: React.FC<{ ad: AdDetail }> = ({ ad }) => {
                             );
                         })}
                     </Pyramid>
-                    {ad.outOfTargetAgeReach > 0 && total > 0 && (
+                    )}
+                    {pyramidOpen && ad.outOfTargetAgeReach > 0 && total > 0 && (
                         <PyramidFoot>
                             Poza ustawionym wiekiem:{' '}
                             <b>

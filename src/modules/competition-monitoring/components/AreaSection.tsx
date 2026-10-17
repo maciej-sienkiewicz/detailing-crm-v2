@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import styled from 'styled-components';
-import { Check, ChevronLeft, ChevronRight, ExternalLink, EyeOff, MapPin, Settings } from 'lucide-react';
+import { Check, ChevronDown, ChevronLeft, ChevronRight, ExternalLink, EyeOff, MapPin, Settings } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { SharedButton } from '@/common/styles';
 import type { AreaResults, AdvertiserRow } from '../types';
@@ -11,12 +11,12 @@ import {
 } from './DataTable';
 import { AreaConfigModal, phraseWord } from './AreaConfigModal';
 import {
-    useAcknowledgeAreaNovelty, useAreaResults, useAreaSettings, useBlockAdvertiser,
+    useAutoAcknowledgeNovelty, useAreaResults, useAreaSettings, useBlockAdvertiser,
     useFollowAdvertiser,
 } from '../hooks/useAreaDiscovery';
 import { useInstagramProfiles } from '../hooks/useInstagramProfiles';
 import { useToast } from '@/common/components/Toast';
-import { activeAdsWord, companiesWord, formatStartDay, noveltyBadge } from '../utils/areaLabels';
+import { activeAdsWord, campaignsOf, companiesWord, formatStartDay, noveltyBadge, splitByRelevance } from '../utils/areaLabels';
 
 /**
  * „Reklamodawcy w okolicy" — kto jeszcze reklamuje się w moim rejonie.
@@ -57,42 +57,11 @@ const GearButton = styled.button`
     svg { width: 17px; height: 17px; }
 `;
 
-/** Dwie akcje nagłówka obok siebie — „odznacz" pojawia się tylko, gdy jest co odznaczać. */
 const HeadActions = styled.div`
     display: inline-flex;
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
-`;
-
-/**
- * „Oznacz jako przejrzane" — tło i obwódka, NIE wypełnienie.
- *
- * W oknie wypełniony jest wyłącznie krok następny, a ten przycisk nim nie jest:
- * to sprzątanie po przeczytaniu, czynność drugorzędna i całkowicie opcjonalna.
- * Bursztyn wiąże go z odznakami, które gasi — człowiek nie musi zgadywać, czego
- * dotyczy, bo kolor już to powiedział.
- */
-const AckButton = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    height: 34px;
-    padding: 0 13px;
-    border-radius: ${st.radiusFull};
-    border: 1px solid ${st.accentAmber};
-    background: ${st.accentAmberDim};
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    color: #92400E;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all ${st.transition};
-
-    &:hover:not(:disabled) { background: rgba(245, 158, 11, 0.22); }
-    &:disabled { opacity: 0.55; cursor: default; }
-    svg { width: 14px; height: 14px; }
 `;
 
 const AreaLine = styled.p`
@@ -539,9 +508,97 @@ const Actions = ({ row, onHide, busy }: { row: AdvertiserRow; onHide: () => void
     </RowActions>
 );
 
+/** Tabela (komputer) i karty (telefon) jednej grupy reklamodawców. */
+const AdvertiserList = ({ rows, windowDays, busy, onHide }: {
+    rows: AdvertiserRow[];
+    windowDays: number;
+    busy: boolean;
+    onHide: (row: AdvertiserRow) => void;
+}) => (
+    <>
+        <AreaTable>
+            <colgroup>
+                <col />
+                <col style={{ width: COL.active }} />
+                <col style={{ width: COL.reach }} />
+                <col style={{ width: COL.act }} />
+            </colgroup>
+            <thead>
+                <tr>
+                    <Th>Firma</Th>
+                    <Th $num>Kampanie</Th>
+                    <Th $num>Zasięg</Th>
+                    <Th $num><HiddenLabel>Akcje</HiddenLabel></Th>
+                </tr>
+            </thead>
+            <tbody>
+                {rows.map(row => (
+                    <Row key={row.pageId}>
+                        <Td>
+                            <AdvertiserName row={row} windowDays={windowDays} />
+                        </Td>
+                        <Td $num>
+                            <NumLive $on={campaignsOf(row) > 0}>{campaignsOf(row)}</NumLive>
+                        </Td>
+                        <Td $num>
+                            {row.reach !== null
+                                ? formatExact(row.reach)
+                                : <NumQuiet>{formatExact(null)}</NumQuiet>}
+                        </Td>
+                        <Td $num>
+                            <Actions row={row} busy={busy} onHide={() => onHide(row)} />
+                        </Td>
+                    </Row>
+                ))}
+            </tbody>
+        </AreaTable>
+
+        <CardList>
+            <CardHead aria-hidden="true">
+                <span>Firma</span>
+                <span>Kampanie</span>
+                <span>Zasięg</span>
+                <span />
+            </CardHead>
+            {rows.map(row => (
+                <AdvertiserCard key={row.pageId}>
+                    <AdvertiserName row={row} windowDays={windowDays} />
+                    <CardNums>
+                        <NumLive $on={campaignsOf(row) > 0}>{campaignsOf(row)}</NumLive>
+                        <span>{formatExact(row.reach)}</span>
+                    </CardNums>
+                    <CardActions>
+                        <Actions row={row} busy={busy} onHide={() => onHide(row)} />
+                    </CardActions>
+                </AdvertiserCard>
+            ))}
+        </CardList>
+    </>
+);
+
+const ProductsToggle = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 12px 0 4px;
+    padding: 6px 0;
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    color: ${st.textSecondary};
+    cursor: pointer;
+
+    &:hover { color: ${st.text}; }
+    svg { width: 15px; height: 15px; }
+`;
+
 const Results = ({ results, page, onPage }: { results: AreaResults; page: number; onPage: (p: number) => void }) => {
     const blockMut = useBlockAdvertiser();
     const hide = (row: AdvertiserRow) => blockMut.mutate({ pageId: row.pageId, pageName: row.companyName });
+    const [showProducts, setShowProducts] = useState(false);
+    const { services, products } = splitByRelevance(results.advertisers);
 
     const notVerified = results.phraseStatuses.some(s => s.status === 'NOT_VERIFIED');
     const rateLimited = results.phraseStatuses.some(s => s.status === 'RATE_LIMITED');
@@ -571,63 +628,18 @@ const Results = ({ results, page, onPage }: { results: AreaResults; page: number
                 </CenterState>
             ) : (
                 <>
-                    <AreaTable>
-                        <colgroup>
-                            <col />
-                            <col style={{ width: COL.active }} />
-                            <col style={{ width: COL.reach }} />
-                            <col style={{ width: COL.act }} />
-                        </colgroup>
-                        <thead>
-                            <tr>
-                                <Th>Firma</Th>
-                                <Th $num>Aktywne</Th>
-                                <Th $num>Zasięg</Th>
-                                <Th $num><HiddenLabel>Akcje</HiddenLabel></Th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {results.advertisers.map(row => (
-                                <Row key={row.pageId}>
-                                    <Td>
-                                        <AdvertiserName row={row} windowDays={results.newWindowDays} />
-                                    </Td>
-                                    <Td $num>
-                                        <NumLive $on={row.activeAds > 0}>{row.activeAds}</NumLive>
-                                    </Td>
-                                    <Td $num>
-                                        {row.reach !== null
-                                            ? formatExact(row.reach)
-                                            : <NumQuiet>{formatExact(null)}</NumQuiet>}
-                                    </Td>
-                                    <Td $num>
-                                        <Actions row={row} busy={blockMut.isPending} onHide={() => hide(row)} />
-                                    </Td>
-                                </Row>
-                            ))}
-                        </tbody>
-                    </AreaTable>
-
-                    <CardList>
-                        <CardHead aria-hidden="true">
-                            <span>Firma</span>
-                            <span>Aktywne</span>
-                            <span>Zasięg</span>
-                            <span />
-                        </CardHead>
-                        {results.advertisers.map(row => (
-                            <AdvertiserCard key={row.pageId}>
-                                <AdvertiserName row={row} windowDays={results.newWindowDays} />
-                                <CardNums>
-                                    <NumLive $on={row.activeAds > 0}>{row.activeAds}</NumLive>
-                                    <span>{formatExact(row.reach)}</span>
-                                </CardNums>
-                                <CardActions>
-                                    <Actions row={row} busy={blockMut.isPending} onHide={() => hide(row)} />
-                                </CardActions>
-                            </AdvertiserCard>
-                        ))}
-                    </CardList>
+                    <AdvertiserList rows={services} windowDays={results.newWindowDays} busy={blockMut.isPending} onHide={hide} />
+                    {products.length > 0 && (
+                        <>
+                            <ProductsToggle type="button" aria-expanded={showProducts} onClick={() => setShowProducts(v => !v)}>
+                                {showProducts ? <ChevronDown /> : <ChevronRight />}
+                                Sklepy, producenci i hurtownie ({products.length}), to nie konkurencja studia
+                            </ProductsToggle>
+                            {showProducts && (
+                                <AdvertiserList rows={products} windowDays={results.newWindowDays} busy={blockMut.isPending} onHide={hide} />
+                            )}
+                        </>
+                    )}
 
                     {pages > 1 && (
                         <Pager>
@@ -703,29 +715,19 @@ export const AreaSection = () => {
     const settings = settingsQuery.data;
     const hasArea = (settings?.locations.length ?? 0) > 0;
     const resultsQuery = useAreaResults(page);
-    const acknowledge = useAcknowledgeAreaNovelty();
     // Liczby dotyczą CAŁEJ tabeli, nie bieżącej strony: nowość bywa na trzeciej
     // stronie, a przycisk ma się pokazać i wtedy. Samych liczb nie wypisujemy —
     // mówią je odznaki przy wierszach, a powtórzone w nagłówku byłyby tą samą
     // informacją drugi raz, tyle że oderwaną od firmy, której dotyczy.
     const hasNovelty =
         ((resultsQuery.data?.newAdvertisers ?? 0) + (resultsQuery.data?.newCampaigns ?? 0)) > 0;
+    useAutoAcknowledgeNovelty(hasNovelty);
 
     return (
         <AreaCard>
             <HeadRow>
                 <CardTitle>Reklamodawcy w okolicy</CardTitle>
                 <HeadActions>
-                    {hasNovelty && (
-                        <AckButton
-                            type="button"
-                            title={'Zgaś odznaki \u201ENowa firma\u201D i \u201ENowa kampania\u201D. Kolejna nowość zapali je znowu.'}
-                            disabled={acknowledge.isPending}
-                            onClick={() => acknowledge.mutate()}
-                        >
-                            <Check /> Oznacz jako przejrzane
-                        </AckButton>
-                    )}
                     <GearButton
                         type="button"
                         aria-label="Ustawienia rejonu"

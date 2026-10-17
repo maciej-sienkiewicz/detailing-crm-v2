@@ -5,11 +5,12 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useBreakpoint } from '@/common/hooks';
 import { pluralPl } from '@/common/utils/plural';
 import type { AdCalendar, AdCalendarRow } from '../types';
-import { PROFILE_COLORS } from '../types';
 import { Card, CardTitle, CenterState, formatExact, EMPTY } from './MetricBits';
 import { LinkFacebookPageModal } from './LinkFacebookPageModal';
 import { AdsTabMobile } from './AdsTabMobile';
 import { AreaSection } from './AreaSection';
+import { useProfileColors } from '../hooks/useProfileColors';
+import { colorFor } from '../utils/profileColors';
 import {
     Table, Th, Td, Row, NameCell, NameText, MetaWarn, NumLive, NumQuiet,
     IconBtn, RowActions, HiddenLabel, INK_MUTED,
@@ -360,11 +361,11 @@ const FootNote = styled.div`
     strong { color: ${st.text}; font-weight: 600; }
 `;
 
-const colorOf = (index: number) => PROFILE_COLORS[index % PROFILE_COLORS.length];
-
 interface Props {
     calendar: AdCalendar;
     onOpenAd: (adId: string) => void;
+    /** Patrz AdsTabMobile: w Konkurencji firmy z rejonu mają własny widok. */
+    showArea?: boolean;
 }
 
 /**
@@ -378,7 +379,8 @@ export const AdsTab: React.FC<Props> = (props) => {
     return isDesktop ? <AdsTabDesktop {...props} /> : <AdsTabMobile {...props} />;
 };
 
-const AdsTabDesktop: React.FC<Props> = ({ calendar, onOpenAd }) => {
+const AdsTabDesktop: React.FC<Props> = ({ calendar, onOpenAd, showArea = true }) => {
+    const profileColors = useProfileColors();
     const [linking, setLinking] = useState<
         { profileId: string; username: string; pageId?: string | null } | null
     >(null);
@@ -401,9 +403,9 @@ const AdsTabDesktop: React.FC<Props> = ({ calendar, onOpenAd }) => {
 
     const colors = useMemo(() => {
         const map = new Map<string, string>();
-        rows.forEach((row, index) => map.set(row.profileId, colorOf(index)));
+        rows.forEach(row => map.set(row.profileId, colorFor(profileColors, row.username)));
         return map;
-    }, [rows]);
+    }, [rows, profileColors]);
 
     if (!calendar.configured) {
         return (
@@ -503,6 +505,9 @@ const AdsTabDesktop: React.FC<Props> = ({ calendar, onOpenAd }) => {
                                                             .filter(ad => ad.lane === lane)
                                                             .map(ad => {
                                                                 const geometry = barGeometry(ad.start, ad.stop, year, today);
+                                                                const variants = ad.variants && ad.variants > 1
+                                                                    ? `, ${ad.variants} ${pluralPl(ad.variants, 'wariant', 'warianty', 'wariantów')}`
+                                                                    : '';
                                                                 return (
                                                                     <Bar
                                                                         key={ad.adId}
@@ -510,8 +515,8 @@ const AdsTabDesktop: React.FC<Props> = ({ calendar, onOpenAd }) => {
                                                                         $left={geometry.left}
                                                                         $width={geometry.width}
                                                                         $color={colors.get(row.profileId) ?? st.textMuted}
-                                                                        title={`${ad.title ?? 'Kampania'}, ${ad.days} ${pluralPl(ad.days, 'dzień', 'dni', 'dni')}`}
-                                                                        aria-label={`${row.username}: ${ad.title ?? 'kampania'}, ${ad.days} ${pluralPl(ad.days, 'dzień', 'dni', 'dni')}`}
+                                                                        title={`${ad.title ?? 'Kampania'}, ${ad.days} ${pluralPl(ad.days, 'dzień', 'dni', 'dni')}${variants}`}
+                                                                        aria-label={`${row.username}: ${ad.title ?? 'kampania'}, ${ad.days} ${pluralPl(ad.days, 'dzień', 'dni', 'dni')}${variants}`}
                                                                         onClick={() => onOpenAd(ad.adId)}
                                                                     />
                                                                 );
@@ -526,7 +531,7 @@ const AdsTabDesktop: React.FC<Props> = ({ calendar, onOpenAd }) => {
                         </CalScroll>
 
                         <Legend>
-                            <span><LegendBar /> jeden pasek = jedna kampania</span>
+                            <span><LegendBar /> jeden pasek = jedna kampania, z wariantami grafiki</span>
                             <span>paski jeden pod drugim = kampanie w tym samym czasie</span>
                             <span><LegendToday /> niebieska linia = dziś</span>
                             <span>kliknij pasek → szczegóły</span>
@@ -585,7 +590,7 @@ const AdsTabDesktop: React.FC<Props> = ({ calendar, onOpenAd }) => {
                 </SummaryCard>
             )}
 
-            <AreaSection />
+            {showArea && <AreaSection />}
             </TwoUp>
 
             {linking && (

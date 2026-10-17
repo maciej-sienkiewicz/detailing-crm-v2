@@ -1,6 +1,6 @@
 // src/modules/comms/utils/leadFormat.ts
 // Drobiazgi, o których tabela leadów i okno szczegółów muszą mówić jednym głosem.
-import type { LeadStatus } from '../types';
+import type { LeadSource, LeadStatus } from '../types';
 import { formatClockTime } from '@/common/dateTime';
 
 /** „Marka Model" albo null, gdy nie rozpoznano - jedno miejsce na tę składankę. */
@@ -10,6 +10,23 @@ export const formatVehicle = (
     lead.vehicleBrand
         ? `${lead.vehicleBrand}${lead.vehicleModel ? ` ${lead.vehicleModel}` : ''}`
         : null;
+
+/**
+ * Skąd przyszło zapytanie - nazwy kanałów takie, jakie widzi właściciel. Klucz
+ * `Record<LeadSource, …>` pilnuje, żeby nowy kanał nie przeszedł bez nazwy: tak samo
+ * nazywa je push o nowym leadzie (PushMessages.sourceLabel po stronie serwera).
+ */
+export const LEAD_SOURCE_LABELS: Record<LeadSource, string> = {
+    PHONE: 'Telefon',
+    EMAIL: 'E-mail',
+    FORM: 'Formularz na stronie',
+    INSTAGRAM: 'Instagram',
+    MANUAL: 'Dodane ręcznie',
+};
+
+/** Etykieta kanału z analityki, gdzie serwer podaje źródło jako zwykły tekst. */
+export const leadSourceLabel = (source: string): string =>
+    LEAD_SOURCE_LABELS[source as LeadSource] ?? source;
 
 /**
  * Statusy, po których rozmowa jest skończona. Plakietka „czyj ruch" na zamkniętym

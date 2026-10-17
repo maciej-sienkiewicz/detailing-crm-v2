@@ -81,3 +81,18 @@ export const activeAdsWord = (n: number): string => {
     if (n === 1) return 'aktywna reklama';
     return fewForm(n) ? 'aktywne reklamy' : 'aktywnych reklam';
 };
+
+/**
+ * Sklepy z kosmetykami i marki powłok to nie konkurencja studia - to dostawcy. Stoją
+ * w osobnej, zwiniętej grupie, żeby lista „kto w okolicy walczy o moich klientów"
+ * nie zaczynała się od nich. Nieocenione zostają przy usługach: lepiej pokazać
+ * o jedną firmę za dużo niż ukryć nowe studio.
+ */
+export const splitByRelevance = <T extends { relevance?: string }>(rows: T[]) => ({
+    services: rows.filter(r => r.relevance !== 'PRODUCTS'),
+    products: rows.filter(r => r.relevance === 'PRODUCTS'),
+});
+
+/** Kampanie, gdy serwer je policzył; dawniej przychodziły same reklamy. */
+export const campaignsOf = (row: { activeAds: number; activeCampaigns?: number }) =>
+    row.activeCampaigns ?? row.activeAds;

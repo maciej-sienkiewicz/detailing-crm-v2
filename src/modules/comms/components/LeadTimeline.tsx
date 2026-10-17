@@ -24,6 +24,7 @@ import {
 } from '../types';
 import { useAttachmentPreview } from './useAttachmentPreview';
 import { formatAge } from '../utils/leadUrgency';
+import { isInstagramEntry } from '../utils/instagramDm';
 
 /**
  * Kolor kropki. Statusy zachowują kolor swojego etapu — ten sam, którym etap
@@ -193,11 +194,15 @@ const Empty = styled.div`
  * odpowiedź na coś, czego nie było.
  */
 const headlineOf = (entry: LeadTimelineEntry, isFirstInbound: boolean): string => {
+    // Wiadomość z Instagrama nazywa swój kanał: „Odpisaliśmy" przy sprawie z mailem
+    // i z Instagramem nie mówi, gdzie szukać odpowiedzi ani gdzie dopisać następną.
+    const instagram = isInstagramEntry(entry);
     switch (entry.kind) {
         case 'INBOUND_MESSAGE':
+            if (instagram) return isFirstInbound ? 'Pierwsza wiadomość na Instagramie' : 'Klient napisał na Instagramie';
             return isFirstInbound ? 'Pierwszy kontakt klienta' : 'Klient odpisał';
         case 'OUTBOUND_MESSAGE':
-            return 'Odpisaliśmy';
+            return instagram ? 'Odpisaliśmy na Instagramie' : 'Odpisaliśmy';
         case 'ATTACHMENTS':
             return 'Klient przysłał pliki';
         case 'CALLBACK':

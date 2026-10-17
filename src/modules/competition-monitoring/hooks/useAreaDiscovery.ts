@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { instagramApi } from '../api/instagramApi';
 import { INSTAGRAM_PROFILES_KEY } from './useInstagramProfiles';
@@ -106,24 +107,6 @@ export const useBlockAdvertiser = () => {
     });
 };
 
-/**
- * Odznaczenie nowości. Unieważnia wszystkie strony wyników (odznaki gasną i wiersze
- * wracają do zwykłej kolejności, więc żadna strona nie zostaje aktualna), ustawienia
- * oraz podpowiedzi Tablicy — pasek liczy nowości z tego samego ustawienia, więc
- * zostawiony bez odświeżenia mówiłby o czymś, czego w tabeli już nie widać.
- */
-export const useAcknowledgeAreaNovelty = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: () => instagramApi.acknowledgeAreaNovelty(),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: [AREA_KEYS.results] });
-            queryClient.invalidateQueries({ queryKey: [AREA_KEYS.settings] });
-            queryClient.invalidateQueries({ queryKey: ['dashboard', 'hints'] });
-        },
-    });
-};
-
 export const useUnblockAdvertiser = () => {
     const queryClient = useQueryClient();
     return useMutation({
@@ -133,4 +116,35 @@ export const useUnblockAdvertiser = () => {
             queryClient.invalidateQueries({ queryKey: [AREA_KEYS.blocks] });
         },
     });
+};
+
+/** Tyle lista musi być na ekranie, żeby uznać nowości za obejrzane. */
+const NOVELTY_SEEN_MS = 4000;
+
+/**
+ * Nowości gasną same, gdy ktoś obejrzał listę - bez przycisku „Oznacz jako przejrzane".
+ *
+ * Przycisk był trzecim kanałem tej samej wiadomości (push, pasek na Tablicy, odznaki)
+ * i jedynym, który wymagał od właściciela sprzątania. Wyniki świadomie NIE są tu
+ * odświeżane: odznaki mają zostać na ekranie, na który ktoś właśnie patrzy - gasną
+ * przy następnym wejściu, a od razu znika tylko pasek na Tablicy i zdarzenie w Przeglądzie.
+ */
+export const useAutoAcknowledgeNovelty = (hasNovelty: boolean) => {
+    const queryClient = useQueryClient();
+    const done = useRef(false);
+
+    useEffect(() => {
+        if (!hasNovelty || done.current) return;
+        const timer = window.setTimeout(() => {
+            done.current = true;
+            instagramApi.acknowledgeAreaNovelty()
+                .then(() => {
+                    queryClient.invalidateQueries({ queryKey: [AREA_KEYS.settings] });
+                    queryClient.invalidateQueries({ queryKey: ['dashboard', 'hints'] });
+                    queryClient.invalidateQueries({ queryKey: ['ig-home'] });
+                })
+                .catch(() => { done.current = false; });
+        }, NOVELTY_SEEN_MS);
+        return () => window.clearTimeout(timer);
+    }, [hasNovelty, queryClient]);
 };

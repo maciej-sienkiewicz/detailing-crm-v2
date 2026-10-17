@@ -202,6 +202,21 @@ describe('LeadTimeline', () => {
         expect(screen.getByText('formularz.jpg')).toBeTruthy();
     });
 
+    it('wiadomości z Instagrama mówią, w którym kanale toczy się rozmowa', () => {
+        // Sprawa z Instagrama nie ma maili - „Odpisaliśmy" bez kanału kazało szukać
+        // odpowiedzi w poczcie, gdzie jej nigdy nie było.
+        renderTimeline([
+            entry({ id: 'instagram-1', kind: 'INBOUND_MESSAGE', subject: 'Instagram', body: 'Ile za PPF na maskę?' }),
+            entry({ id: 'instagram-2', kind: 'OUTBOUND_MESSAGE', subject: 'Instagram', body: 'Dzień dobry, 1800 zł' }),
+            entry({ id: 'instagram-3', kind: 'INBOUND_MESSAGE', subject: 'Instagram', body: 'A w piątek?' }),
+        ]);
+
+        expect(screen.getByText('Pierwsza wiadomość na Instagramie')).toBeTruthy();
+        expect(screen.getByText('Odpisaliśmy na Instagramie')).toBeTruthy();
+        expect(screen.getByText('Klient napisał na Instagramie')).toBeTruthy();
+        expect(screen.getByText('Ile za PPF na maskę?')).toBeTruthy();
+    });
+
     it('pusta oś mówi wprost, że nic się nie wydarzyło', () => {
         renderTimeline([]);
 

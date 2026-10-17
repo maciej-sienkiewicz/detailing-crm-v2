@@ -1,44 +1,36 @@
-import { useCallback, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
+import { Lightbulb, LayoutDashboard, MoreHorizontal, Plus, Sparkles, UserRound, Users } from 'lucide-react';
 import { PageContainer } from '@/common/components/PageContainer';
-import { BarChart3, Calendar, Grid3x3, Megaphone, MoreHorizontal, Plus, Sparkles, Users } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import {
-    PageHeader,
-    PageHeaderGhostButton,
-    PageHeaderPrimaryButton,
-} from '@/common/components/PageHeader/PageHeader';
+import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader/PageHeader';
 import { TabBar as SharedTabBar, type TabDefinition } from '@/common/components/TabBar/TabBar';
 import { useBreakpoint } from '@/common/hooks';
-import { useBenchmark, useDigest } from '../hooks/useAnalytics';
 import { useInstagramProfiles } from '../hooks/useInstagramProfiles';
-import { useAdCalendar } from '../hooks/useAds';
-import { WeekTab } from '../components/WeekTab';
-import { BenchmarkTab } from '../components/BenchmarkTab';
-import { ContentTab } from '../components/ContentTab';
-import { AdsTab } from '../components/AdsTab';
+import { OverviewTab } from '../components/overview/OverviewTab';
+import { CompetitionTab } from '../components/competition/CompetitionTab';
+import { InspirationTab } from '../components/inspiration/InspirationTab';
+import { MyAccountsTab } from '../components/accounts/MyAccountsTab';
 import { AdDetailModal } from '../components/AdDetailModal';
 import { ProfilesDrawer } from '../components/ProfilesDrawer';
 import { AddProfileModal } from '../components/AddProfileModal';
-import { GeneratePostModal } from '../components/GeneratePostModal';
-import { CenterState, Spinner } from '../components/MetricBits';
-import { WEEKS_OPTIONS, type WeeksOption } from '../types';
+import { GeneratePostModal, type GeneratePostPrefill } from '../components/GeneratePostModal';
+import type { CompetitionDays, HomeMarketEvent, HomeTodo, ProfileRole } from '../types';
+import { isCompetitionView, resolveLegacyUrl, type CompetitionView } from '../utils/moduleUrl';
+import { prefillFromTodo } from '../utils/overview';
 
 /**
- * Analiza konkurencji na Instagramie, cztery zakładki:
- *   Tydzień:    co zrobił każdy obserwowany profil w tym tygodniu (domyślna),
- *   Porównanie: tabela benchmarkowa + 2 wykresy z adnotacjami,
- *   Treści:     najskuteczniejsze posty, pory publikacji, hasztagi,
- *   Reklamy:    kalendarz reklam Meta (rok) i podsumowanie.
+ * Moduł Instagram, cztery zakładki według pytań właściciela, nie według źródeł danych:
+ *   Przegląd:    co się zmieniło i co mam zrobić (domyślna),
+ *   Moje konta:  własny Instagram i wizytówka Google - liczby, których scraper nie widzi,
+ *   Konkurencja: profile (tabela, kalendarz publikacji, przyrost), reklamy, firmy w okolicy,
+ *   Inspiracje:  posty, które zadziałały u innych, z „Zrób podobny".
  *
- * Stan (zakładka, okres, rok) trzymany w URL, widoki są linkowalne.
- *
- * Mobile: hero card z gradientem znika w całości — akcje wchodzą w overflow
- * menu w sticky toolbar pod zakładkami, wybór okresu / roku ląduje w drugim
- * rzędzie tego samego toolbara. Reklamy i Porównanie mają osobne mobilne
- * bliźniaki (patrz AdsTabMobile, BenchmarkTabMobile) — tabele desktopowe są
- * fizycznie nieczytelne na 375 px.
+ * Wcześniej cztery zakładki (Tydzień, Porównanie, Treści, Reklamy) opowiadały o tym samym
+ * tygodniu z czterech stron, a przełącznik okresu stał nad zakładką, na którą nie działał.
+ * Stan (zakładka, widok, okres, rok) jest w adresie; stare adresy z powiadomień i zakładek
+ * przeglądarki przekierowujemy na nowe ([resolveLegacyUrl]).
  */
 
 const fadeUp = keyframes`
@@ -53,33 +45,6 @@ const ViewContainer = styled(PageContainer)`
     animation: ${fadeUp} 300ms ease both;
 `;
 
-// Jedna wersja na jasne tło: nagłówek strony nie jest już ciemnym banerem.
-const WeeksBar = styled.div`
-    display: inline-flex;
-    background: rgba(15, 23, 42, 0.06);
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusFull};
-    padding: 3px;
-    gap: 2px;
-`;
-
-const WeeksBtn = styled.button<{ $active: boolean }>`
-    padding: 5px 14px;
-    border-radius: ${st.radiusFull};
-    border: none;
-    font-family: inherit;
-    font-size: ${st.fontSm};
-    font-weight: ${p => (p.$active ? 700 : 500)};
-    background: ${p => (p.$active ? '#fff' : 'transparent')};
-    color: ${p => (p.$active ? st.text : st.textSecondary)};
-    box-shadow: ${p => (p.$active ? st.shadowXs : 'none')};
-    cursor: pointer;
-    transition: all ${st.transition};
-    white-space: nowrap;
-
-    &:hover { color: ${st.text}; }
-`;
-
 const PendingBadge = styled.span`
     background: ${st.accentAmber};
     color: #fff;
@@ -89,7 +54,7 @@ const PendingBadge = styled.span`
     padding: 1px 7px;
 `;
 
-// ─── Mobile sticky toolbar ────────────────────────────────────────────────────
+// ─── Mobile: zakładki i menu w przyklejonym pasku ─────────────────────────────
 
 const MobileToolbar = styled.div`
     position: sticky;
@@ -97,20 +62,17 @@ const MobileToolbar = styled.div`
     z-index: 20;
     background: ${st.bg};
     margin: -16px -16px 0;
-    padding: 8px 16px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    border-bottom: 1px solid ${st.border};
-`;
-
-const ToolbarRow1 = styled.div`
+    padding: 8px 16px 10px;
     display: flex;
     align-items: center;
     gap: 8px;
+    border-bottom: 1px solid ${st.border};
 
-    /* TabBar bierze cały dostępny obszar, menu zostaje z prawej. */
     > nav { flex: 1; min-width: 0; }
+`;
+
+const MenuWrap = styled.div`
+    position: relative;
 `;
 
 const MenuButton = styled.button`
@@ -126,14 +88,8 @@ const MenuButton = styled.button`
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all ${st.transition};
 
-    &:hover, &:focus-visible {
-        border-color: ${st.borderHover};
-        color: ${st.text};
-        outline: none;
-    }
-
+    &:hover, &:focus-visible { border-color: ${st.borderHover}; color: ${st.text}; outline: none; }
     svg { width: 18px; height: 18px; }
 `;
 
@@ -153,15 +109,6 @@ const MenuBadge = styled.span`
     align-items: center;
     justify-content: center;
     border: 2px solid ${st.bg};
-`;
-
-const ToolbarRow2 = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    &::-webkit-scrollbar { display: none; }
 `;
 
 const MenuDropdown = styled.div`
@@ -194,18 +141,9 @@ const MenuItem = styled.button`
     color: ${st.text};
     text-align: left;
     cursor: pointer;
-    transition: background ${st.transition};
 
     &:hover { background: ${st.bgCardAlt}; }
-
     svg { width: 16px; height: 16px; color: ${st.textSecondary}; flex-shrink: 0; }
-`;
-
-const MenuItemPrimary = styled(MenuItem)`
-    color: ${st.accentBlue};
-    font-weight: 600;
-
-    svg { color: ${st.accentBlue}; }
 `;
 
 const MenuBadgeInline = styled.span`
@@ -218,60 +156,54 @@ const MenuBadgeInline = styled.span`
     padding: 1px 7px;
 `;
 
-const MenuWrap = styled.div`
-    position: relative;
-`;
-
 const MenuBackdrop = styled.div`
     position: fixed;
     inset: 0;
     z-index: 25;
 `;
 
-// ─── Zakładki i konfiguracja ──────────────────────────────────────────────────
+// ─── Zakładki ─────────────────────────────────────────────────────────────────
 
-type TabKey = 'tydzien' | 'porownanie' | 'tresci' | 'reklamy';
+type TabKey = 'przeglad' | 'moj' | 'konkurencja' | 'inspiracje';
 
 const TABS: ReadonlyArray<TabDefinition<TabKey>> = [
-    { key: 'tydzien', label: 'Tydzień', icon: <Calendar size={14} /> },
-    { key: 'porownanie', label: 'Porównanie', icon: <BarChart3 size={14} /> },
-    { key: 'tresci', label: 'Treści', icon: <Grid3x3 size={14} /> },
-    { key: 'reklamy', label: 'Reklamy', icon: <Megaphone size={14} /> },
+    { key: 'przeglad', label: 'Przegląd', icon: <LayoutDashboard size={14} /> },
+    { key: 'moj', label: 'Moje konta', icon: <UserRound size={14} /> },
+    { key: 'konkurencja', label: 'Konkurencja', icon: <Users size={14} /> },
+    { key: 'inspiracje', label: 'Inspiracje', icon: <Lightbulb size={14} /> },
 ];
 
 /**
- * Reklamy mierzy się latami, a nie tygodniami: kampania trwa miesiącami, a
- * Biblioteka reklam Meta trzyma dokładnie rok historii. Dlatego ta jedna zakładka
- * ma nad sobą wybór roku zamiast wyboru okresu.
+ * Na telefonie cztery zakładki z ikonami nie mieszczą się w pasku obok menu - ostatnia
+ * chowała się za krawędzią. Bez ikon i z krótszą „Konta" mieszczą się wszystkie.
  */
-const AD_YEARS = 2;
+const MOBILE_TABS: ReadonlyArray<TabDefinition<TabKey>> = TABS.map(({ key, label }) => ({
+    key,
+    label: key === 'moj' ? 'Konta' : label,
+}));
 
 const resolveTab = (raw: string | null): TabKey =>
-    TABS.some(t => t.key === raw) ? (raw as TabKey) : 'tydzien';
+    TABS.some(t => t.key === raw) ? (raw as TabKey) : 'przeglad';
+
+/** Biblioteka reklam Meta trzyma rok historii - dwa lata to wszystko, co da się pokazać. */
+const AD_YEARS = 2;
 
 export const CompetitionMonitoringView = () => {
     const [searchParams, setSearchParams] = useSearchParams();
+    const navigate = useNavigate();
     const isDesktop = useBreakpoint('md');
     const [menuOpen, setMenuOpen] = useState(false);
 
-    const tab = resolveTab(searchParams.get('widok'));
-    const weeksParam = Number(searchParams.get('okres'));
-    const weeks: WeeksOption = ([4, 12, 26, 52] as const).includes(weeksParam as WeeksOption)
-        ? (weeksParam as WeeksOption)
-        : 12;
+    // Stare adresy (powiadomienia, zakładki przeglądarki, podpowiedzi z Tablicy) → nowe.
+    useEffect(() => {
+        const next = resolveLegacyUrl(searchParams);
+        if (next) setSearchParams(next, { replace: true });
+    }, [searchParams, setSearchParams]);
 
-    const setUrlState = useCallback(
-        (next: { tab?: TabKey; weeks?: WeeksOption; year?: number }) => {
-            setSearchParams(prev => {
-                const params = new URLSearchParams(prev);
-                if (next.tab) params.set('widok', next.tab);
-                if (next.weeks) params.set('okres', String(next.weeks));
-                if (next.year) params.set('rok', String(next.year));
-                return params;
-            }, { replace: true });
-        },
-        [setSearchParams]
-    );
+    const tab = resolveTab(searchParams.get('widok'));
+    const viewParam = searchParams.get('pokaz');
+    const competitionView: CompetitionView = isCompetitionView(viewParam) ? viewParam : 'profile';
+    const days: CompetitionDays = searchParams.get('okres') === '365' ? 365 : 90;
 
     const currentYear = new Date().getFullYear();
     const yearParam = Number(searchParams.get('rok'));
@@ -279,211 +211,186 @@ export const CompetitionMonitoringView = () => {
         ? yearParam
         : currentYear;
 
+    const setUrlState = useCallback(
+        (next: { tab?: TabKey; view?: CompetitionView; days?: CompetitionDays; year?: number }) => {
+            setSearchParams(prev => {
+                const params = new URLSearchParams(prev);
+                if (next.tab) params.set('widok', next.tab);
+                if (next.view) params.set('pokaz', next.view);
+                if (next.days) params.set('okres', String(next.days));
+                if (next.year) params.set('rok', String(next.year));
+                // Widok i okres dotyczą wyłącznie Konkurencji - na innych zakładkach to szum w adresie.
+                if (next.tab && next.tab !== 'konkurencja') {
+                    params.delete('pokaz');
+                    params.delete('okres');
+                    params.delete('rok');
+                }
+                return params;
+            }, { replace: true });
+        },
+        [setSearchParams]
+    );
+
     const [openAdId, setOpenAdId] = useState<string | null>(null);
     const [isDrawerOpen, setDrawerOpen] = useState(false);
-    const [isAddOpen, setAddOpen] = useState(false);
-    const [isGenerateOpen, setGenerateOpen] = useState(false);
+    const [addRole, setAddRole] = useState<ProfileRole | null>(null);
+    const [generatePrefill, setGeneratePrefill] = useState<GeneratePostPrefill | null>(null);
 
-    const digestQuery = useDigest(tab === 'tydzien');
-    const benchmarkQuery = useBenchmark(weeks, tab === 'porownanie');
-    const adsQuery = useAdCalendar(year, tab === 'reklamy');
     const { profiles } = useInstagramProfiles();
     const pendingCount = profiles.filter(p => p.status === 'PENDING_APPROVAL').length;
+
+    const openGenerator = (prefill: GeneratePostPrefill = {}) => setGeneratePrefill(prefill);
+    const openExternal = (url: string) => window.open(url, '_blank', 'noopener,noreferrer');
+
+    const handleTodo = (todo: HomeTodo) => {
+        switch (todo.target) {
+            case 'GENERATE_POST':
+                openGenerator(prefillFromTodo(todo));
+                break;
+            case 'OPEN_URL':
+                if (todo.url) openExternal(todo.url);
+                break;
+            case 'OPEN_AREA':
+                setUrlState({ tab: 'konkurencja', view: 'okolica' });
+                break;
+            case 'OPEN_ADS':
+                setUrlState({ tab: 'konkurencja', view: 'reklamy' });
+                break;
+            case 'OPEN_COMPETITION':
+                setUrlState({ tab: 'konkurencja', view: 'profile' });
+                break;
+            case 'OPEN_PROFILES':
+                setDrawerOpen(true);
+                break;
+            case 'CONNECT':
+            case 'OPEN_GOOGLE':
+                setUrlState({ tab: 'moj' });
+                break;
+            case 'OPEN_LEADS':
+                navigate('/leads');
+                break;
+        }
+    };
+
+    const handleMarket = (event: HomeMarketEvent) => {
+        if (event.target === 'OPEN_ADS') setUrlState({ tab: 'konkurencja', view: 'reklamy' });
+        else if (event.target === 'OPEN_AREA') setUrlState({ tab: 'konkurencja', view: 'okolica' });
+        else if (event.url) openExternal(event.url);
+    };
 
     const openMenuAction = (action: () => void) => () => {
         setMenuOpen(false);
         action();
     };
 
-    /** Header i akcje w toolbarze mobilnym pokazują to samo API; oddzielamy tylko szatę graficzną. */
-    const desktopHeader = isDesktop && (
-        <PageHeader
-            title="Konkurencja na Instagramie"
-            subtitle="Co robi konkurencja, co u niej działa i co możesz z tym zrobić"
-            actions={
-                <>
-                    <WeeksBar>
-                        {tab === 'reklamy'
-                            ? Array.from({ length: AD_YEARS }, (_, index) => currentYear - AD_YEARS + 1 + index)
-                                .map(option => (
-                                    <WeeksBtn
-                                        key={option}
-                                        $active={year === option}
-                                        onClick={() => setUrlState({ year: option })}
-                                    >
-                                        {option}
-                                    </WeeksBtn>
-                                ))
-                            : WEEKS_OPTIONS.map(option => (
-                                <WeeksBtn
-                                    key={option.value}
-                                    $active={weeks === option.value}
-                                    onClick={() => setUrlState({ weeks: option.value })}
-                                >
-                                    {option.label}
-                                </WeeksBtn>
-                            ))}
-                    </WeeksBar>
-                    <PageHeaderGhostButton onClick={() => setGenerateOpen(true)}>
-                        <Sparkles /> Generuj post
-                    </PageHeaderGhostButton>
-                    <PageHeaderGhostButton onClick={() => setDrawerOpen(true)}>
-                        <Users /> Profile
-                        {pendingCount > 0 && <PendingBadge>{pendingCount}</PendingBadge>}
-                    </PageHeaderGhostButton>
-                    <PageHeaderPrimaryButton onClick={() => setAddOpen(true)}>
-                        <Plus /> Dodaj profil
-                    </PageHeaderPrimaryButton>
-                </>
-            }
-        />
-    );
-
-    /**
-     * Mobile toolbar: sticky pasek z tabami i menu w rzędzie 1,
-     * wybór okresu/roku w rzędzie 2. Zastępuje gradient hero card, którego
-     * właściciel nie potrzebuje na 5-sekundowy rzut oka do telefonu.
-     */
-    const mobileToolbar = !isDesktop && (
-        <MobileToolbar>
-            <ToolbarRow1>
-                <SharedTabBar
-                    tabs={TABS}
-                    activeKey={tab}
-                    onChange={key => setUrlState({ tab: key })}
-                    ariaLabel="Zakładki widoku Instagram"
-                />
-                <MenuWrap>
-                    <MenuButton
-                        type="button"
-                        aria-label="Więcej akcji"
-                        aria-expanded={menuOpen}
-                        onClick={() => setMenuOpen(open => !open)}
-                    >
-                        <MoreHorizontal />
-                        {pendingCount > 0 && <MenuBadge>{pendingCount}</MenuBadge>}
-                    </MenuButton>
-                    {menuOpen && (
-                        <>
-                            <MenuBackdrop onClick={() => setMenuOpen(false)} />
-                            <MenuDropdown role="menu">
-                                <MenuItemPrimary type="button" role="menuitem" onClick={openMenuAction(() => setAddOpen(true))}>
-                                    <Plus /> Dodaj profil
-                                </MenuItemPrimary>
-                                <MenuItem type="button" role="menuitem" onClick={openMenuAction(() => setDrawerOpen(true))}>
-                                    <Users /> Profile
-                                    {pendingCount > 0 && <MenuBadgeInline>{pendingCount}</MenuBadgeInline>}
-                                </MenuItem>
-                                <MenuItem type="button" role="menuitem" onClick={openMenuAction(() => setGenerateOpen(true))}>
-                                    <Sparkles /> Generuj post
-                                </MenuItem>
-                            </MenuDropdown>
-                        </>
-                    )}
-                </MenuWrap>
-            </ToolbarRow1>
-            <ToolbarRow2>
-                <WeeksBar>
-                    {tab === 'reklamy'
-                        ? Array.from({ length: AD_YEARS }, (_, index) => currentYear - AD_YEARS + 1 + index)
-                            .map(option => (
-                                <WeeksBtn
-                                    key={option}
-                                    $active={year === option}
-                                    onClick={() => setUrlState({ year: option })}
-                                >
-                                    {option}
-                                </WeeksBtn>
-                            ))
-                        : WEEKS_OPTIONS.map(option => (
-                            <WeeksBtn
-                                key={option.value}
-                                $active={weeks === option.value}
-                                onClick={() => setUrlState({ weeks: option.value })}
-                            >
-                                {option.label}
-                            </WeeksBtn>
-                        ))}
-                </WeeksBar>
-            </ToolbarRow2>
-        </MobileToolbar>
-    );
-
-    /** Zakładki na desktopie: pod hero; na mobile są już w toolbarze. */
-    const desktopTabs = isDesktop && (
+    const tabBar = (
         <SharedTabBar
-            tabs={TABS}
+            tabs={isDesktop ? TABS : MOBILE_TABS}
             activeKey={tab}
             onChange={key => setUrlState({ tab: key })}
-            ariaLabel="Zakładki widoku Instagram"
+            ariaLabel="Zakładki modułu Instagram"
         />
     );
 
     return (
         <ViewContainer>
-            {desktopHeader}
-            {mobileToolbar}
-
-            {desktopTabs}
-
-            {tab === 'tydzien' && (
-                digestQuery.isLoading ? (
-                    <CenterState><Spinner /></CenterState>
-                ) : digestQuery.isError ? (
-                    <CenterState>
-                        <strong>Nie udało się pobrać danych</strong>
-                        <span>Odśwież stronę. Jeśli problem wraca, daj nam znać.</span>
-                    </CenterState>
-                ) : (
-                    <WeekTab digest={digestQuery.data ?? null} />
-                )
+            {isDesktop ? (
+                <>
+                    <PageHeader
+                        title="Instagram"
+                        subtitle="Twoje konta, konkurencja w okolicy i pomysły na posty"
+                        actions={
+                            <>
+                                <PageHeaderGhostButton onClick={() => openGenerator()}>
+                                    <Sparkles /> Generuj post
+                                </PageHeaderGhostButton>
+                                <PageHeaderGhostButton onClick={() => setDrawerOpen(true)}>
+                                    <Users /> Profile
+                                    {pendingCount > 0 && <PendingBadge>{pendingCount}</PendingBadge>}
+                                </PageHeaderGhostButton>
+                            </>
+                        }
+                    />
+                    {tabBar}
+                </>
+            ) : (
+                <MobileToolbar>
+                    {tabBar}
+                    <MenuWrap>
+                        <MenuButton
+                            type="button"
+                            aria-label="Więcej akcji"
+                            aria-expanded={menuOpen}
+                            onClick={() => setMenuOpen(open => !open)}
+                        >
+                            <MoreHorizontal />
+                            {pendingCount > 0 && <MenuBadge>{pendingCount}</MenuBadge>}
+                        </MenuButton>
+                        {menuOpen && (
+                            <>
+                                <MenuBackdrop onClick={() => setMenuOpen(false)} />
+                                <MenuDropdown role="menu">
+                                    <MenuItem type="button" role="menuitem" onClick={openMenuAction(() => openGenerator())}>
+                                        <Sparkles /> Generuj post
+                                    </MenuItem>
+                                    <MenuItem type="button" role="menuitem" onClick={openMenuAction(() => setDrawerOpen(true))}>
+                                        <Users /> Profile
+                                        {pendingCount > 0 && <MenuBadgeInline>{pendingCount}</MenuBadgeInline>}
+                                    </MenuItem>
+                                    <MenuItem type="button" role="menuitem" onClick={openMenuAction(() => setAddRole('LOCAL'))}>
+                                        <Plus /> Dodaj profil
+                                    </MenuItem>
+                                </MenuDropdown>
+                            </>
+                        )}
+                    </MenuWrap>
+                </MobileToolbar>
             )}
 
-            {tab === 'porownanie' && (
-                benchmarkQuery.isLoading ? (
-                    <CenterState><Spinner /></CenterState>
-                ) : benchmarkQuery.isError ? (
-                    <CenterState>
-                        <strong>Nie udało się pobrać danych</strong>
-                        <span>Spróbuj odświeżyć stronę.</span>
-                    </CenterState>
-                ) : benchmarkQuery.data && benchmarkQuery.data.rows.length > 0 ? (
-                    <BenchmarkTab benchmark={benchmarkQuery.data} />
-                ) : (
-                    <CenterState>
-                        <strong>Brak danych do porównania</strong>
-                        <span>Dodaj profile konkurencji i poczekaj na pierwsze pobranie danych.</span>
-                    </CenterState>
-                )
+            {tab === 'przeglad' && (
+                <OverviewTab
+                    onTodo={handleTodo}
+                    onMarket={handleMarket}
+                    onOpenProfiles={() => setDrawerOpen(true)}
+                    onOpenAccounts={() => setUrlState({ tab: 'moj' })}
+                />
             )}
 
-            {tab === 'tresci' && <ContentTab weeks={weeks} />}
+            {tab === 'moj' && <MyAccountsTab />}
 
-            {tab === 'reklamy' && (
-                adsQuery.isLoading ? (
-                    <CenterState><Spinner /></CenterState>
-                ) : adsQuery.isError ? (
-                    <CenterState>
-                        <strong>Nie udało się pobrać danych o reklamach</strong>
-                        <span>Spróbuj odświeżyć stronę.</span>
-                    </CenterState>
-                ) : adsQuery.data ? (
-                    <AdsTab calendar={adsQuery.data} onOpenAd={setOpenAdId} />
-                ) : null
+            {tab === 'konkurencja' && (
+                <CompetitionTab
+                    view={competitionView}
+                    days={days}
+                    year={year}
+                    onChange={next => setUrlState({ view: next.view, days: next.days, year: next.year })}
+                    onAddProfile={() => setAddRole('LOCAL')}
+                    onOpenAd={setOpenAdId}
+                />
             )}
+
+            {tab === 'inspiracje' && <InspirationTab onMakeSimilar={openGenerator} />}
 
             {openAdId && <AdDetailModal adId={openAdId} onClose={() => setOpenAdId(null)} />}
 
             <ProfilesDrawer
                 open={isDrawerOpen}
                 onClose={() => setDrawerOpen(false)}
-                onAddProfile={() => {
+                onAddProfile={role => {
                     setDrawerOpen(false);
-                    setAddOpen(true);
+                    setAddRole(role ?? 'LOCAL');
                 }}
             />
-            <AddProfileModal isOpen={isAddOpen} onClose={() => setAddOpen(false)} />
-            {isGenerateOpen && <GeneratePostModal onClose={() => setGenerateOpen(false)} />}
+            <AddProfileModal
+                // Klucz po roli: okno ma zacząć od roli grupy, przy której kliknięto „Dodaj".
+                key={addRole ?? 'closed'}
+                isOpen={addRole !== null}
+                initialRole={addRole ?? 'LOCAL'}
+                onClose={() => setAddRole(null)}
+            />
+            {generatePrefill && (
+                <GeneratePostModal prefill={generatePrefill} onClose={() => setGeneratePrefill(null)} />
+            )}
         </ViewContainer>
     );
 };
