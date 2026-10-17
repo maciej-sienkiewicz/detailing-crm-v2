@@ -40,6 +40,7 @@ import { VisitHeader } from '../components/VisitHeader';
 import { VehicleInfoCard, CustomerInfoCard } from '../components/InfoCards';
 import { TechnicalNotesCard } from '../components/TechnicalNotesCard';
 import { ServicesTable } from '../components/ServicesTable';
+import { VisitCostsSection } from '../components/VisitCostsSection';
 import { DocumentGallery } from '../components/DocumentGallery';
 import { VisitComments } from '../components/VisitComments';
 import { VisitCommunicationHistory } from '../components/VisitCommunicationHistory';
@@ -63,6 +64,7 @@ import { useVisitFilesMobileSession } from '../hooks/useVisitFilesMobileSession'
 import { EntityActivityTimeline } from '@/modules/activity';
 import { VisitProductsSection, useVisitProducts } from '@/modules/products';
 import { useFeature } from '@/modules/subscription/hooks/useFeature';
+import { useCapability } from '@/modules/subscription';
 import { formatDateTime } from '@/common/utils';
 import { pluralPl } from '@/common/utils/plural';
 
@@ -370,6 +372,9 @@ export const VisitDetailView = () => {
     // Sekcja produktów pojawia się tylko, gdy studio ma wykupiony moduł — inaczej
     // API zwróciłoby 402 i sekcja pokazywałaby błąd zamiast treści.
     const productsFeatureEnabled = useFeature('PRODUCTS').enabled;
+    // Koszty i zysk: dokumenty kosztowe są w module KSeF i pod uprawnieniem do faktur -
+    // bez któregoś z nich serwer odmówi, więc sekcji wcale nie pokazujemy.
+    const costDocumentsEnabled = useCapability('FINANCE_KSEF').enabled;
     // Liczba dopiętych produktów zasila licznik w nagłówku sekcji — ten sam klucz
     // zapytania co w VisitProductsSection, więc to odczyt z cache, nie drugi request.
     const { links: visitProductLinks } = useVisitProducts(
@@ -601,6 +606,7 @@ export const VisitDetailView = () => {
 
     const canSeeCustomer = can('CUSTOMERS_VIEW');
     const canSeeProducts = productsFeatureEnabled && can('PRODUCTS_VIEW');
+    const canSeeVisitProfit = costDocumentsEnabled && can('FINANCE_INVOICES');
     const canSeeCommunication = can('COMMUNICATION_SEND');
     // Historia zmian to dziennik aktywności (/audit/feed) - osobne uprawnienie AUDIT_VIEW.
     const canSeeHistory = can('AUDIT_VIEW');
@@ -634,6 +640,7 @@ export const VisitDetailView = () => {
 
     const chips = [
         { id: 'visit-services', label: 'Usługi' },
+        ...(canSeeVisitProfit ? [{ id: 'visit-costs', label: 'Zysk' }] : []),
         { id: 'visit-docs', label: 'Zdjęcia', count: photoCount + pdfCount },
         ...(canSeeCustomer ? [{ id: 'visit-customer', label: 'Klient' }] : []),
         { id: 'visit-comments', label: 'Komentarze', count: visibleCommentCount },
@@ -717,6 +724,14 @@ export const VisitDetailView = () => {
                                         />
                                     </PanelBody>
                                 </Panel>
+                            </Slot>
+                        )}
+
+                        {/* Zaraz pod usługami i produktami: „za ile" ciągnie się dalej w „ile z tego
+                            zostaje". Płaski panel - wyniesiona jest tylko karta usług. */}
+                        {canSeeVisitProfit && (
+                            <Slot id="visit-costs" $order={2}>
+                                <VisitCostsSection visitId={visitId!} />
                             </Slot>
                         )}
 

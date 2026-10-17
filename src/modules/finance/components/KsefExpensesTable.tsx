@@ -1,8 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePortalDropdownPos } from '@/common/hooks/usePortalDropdownPos';
 import { createPortal } from 'react-dom';
+import { Link } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
-import type { KsefExpense, ExpenseStatus } from '../types';
+import type { KsefExpense, KsefExpenseLinkedVisit } from '../types';
 import {
   useExcludeExpense,
   useRestoreExpense,
@@ -172,6 +173,44 @@ const CellSecondary = styled.span`
   white-space: nowrap;
 `;
 
+/*
+ * Koszt przypięty do wizyty: odnośnik do jej karty, gdzie liczy się zysk. Odcień marki
+ * bez wypełnienia - to informacja z przejściem, nie krok następny (CLAUDE.md §2).
+ */
+const VisitLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  max-width: 180px;
+  padding: 2px 8px;
+  border: 1px solid #bae6fd;
+  border-radius: 5px;
+  background: #f0f9ff;
+  color: #075985;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: none;
+
+  &:hover { background: #e0f2fe; }
+  &:focus-visible { outline: 2px solid #38bdf8; outline-offset: 1px; }
+`;
+
+const linkedVisitText = (visit: KsefExpenseLinkedVisit) =>
+  visit.deleted ? `Wizyta #${visit.visitNumber}, usunięta` : `Wizyta #${visit.visitNumber}`;
+
+/** Klik w odnośnik nie może otworzyć przy okazji podglądu faktury z wiersza. */
+const LinkedVisitChip = ({ visit }: { visit: KsefExpenseLinkedVisit }) => (
+  <VisitLink
+    to={`/visits/${visit.visitId}`}
+    title={`Koszt wizyty: ${visit.label}`}
+    onClick={(e) => e.stopPropagation()}
+  >
+    {linkedVisitText(visit)}
+  </VisitLink>
+);
+
 const AmountPrimary = styled.span`
   display: block;
   font-size: 13px;
@@ -259,24 +298,6 @@ const PaymentStatusBadge = styled.button<{ $variant: BadgeVariant }>`
   `}
   &:hover { filter: brightness(0.93); }
 `;
-
-const expenseStatusVariant = (status: ExpenseStatus): BadgeVariant => {
-  switch (status) {
-    case 'ACTIVE':     return 'green';
-    case 'CORRECTED':  return 'slate';
-    case 'CANCELLED':  return 'red';
-    case 'EXCLUDED':   return 'dashed-slate';
-  }
-};
-
-const expenseStatusLabel = (status: ExpenseStatus): string => {
-  switch (status) {
-    case 'ACTIVE':    return 'Aktywna';
-    case 'CORRECTED': return 'Skorygowana';
-    case 'CANCELLED': return 'Anulowana';
-    case 'EXCLUDED':  return 'Ukryta';
-  }
-};
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
@@ -732,6 +753,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
               </PaymentStatusBadge>
               {exp.isCorrection && <Badge $variant="amber">Korekta</Badge>}
               {isExcluded && <Badge $variant="slate">Ukryta</Badge>}
+              {exp.linkedVisit && <LinkedVisitChip visit={exp.linkedVisit} />}
 
               <CardBadgeSpacer />
 
@@ -828,6 +850,9 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
                     </CellSecondary>
                     {exp.isCorrection && (
                       <Badge $variant="amber" style={{ marginTop: 4 }}>Korekta</Badge>
+                    )}
+                    {exp.linkedVisit && (
+                      <div style={{ marginTop: 4 }}><LinkedVisitChip visit={exp.linkedVisit} /></div>
                     )}
                   </Td>
 

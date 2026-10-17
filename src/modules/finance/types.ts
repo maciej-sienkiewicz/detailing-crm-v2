@@ -375,6 +375,17 @@ export interface KsefExpense {
   note:              string | null;
   /** Rodzaj dokumentu; starszy backend go nie zwracał (wtedy faktura). */
   documentKind?:     CostDocumentKind;
+  /** Wizyta, do której przypięto koszt (karta wizyty, „Koszty i zysk"); null = koszt niczyj. */
+  linkedVisit?:      KsefExpenseLinkedVisit | null;
+}
+
+/** Wizyta, do której należy dokument kosztowy. */
+export interface KsefExpenseLinkedVisit {
+  visitId:     string;
+  visitNumber: string;
+  /** Tytuł wizyty albo auto. */
+  label:       string;
+  deleted:     boolean;
 }
 
 /** Strona faktury (sprzedawca / nabywca) z danymi adresowymi. */
@@ -451,6 +462,7 @@ export interface KsefExpenseDetail {
   note:               string | null;
   /** Rodzaj dokumentu; starszy backend go nie zwracał (wtedy faktura). */
   documentKind?:       CostDocumentKind;
+  linkedVisit?:        KsefExpenseLinkedVisit | null;
 }
 
 export interface KsefExpenseListResponse {
