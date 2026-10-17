@@ -5,32 +5,18 @@ import { ChevronDown, ArrowRight, ExternalLink } from 'lucide-react';
 import { PiiText } from '@/common/pii';
 import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
 import { ActivityIcon } from './ActivityIcon';
-import { formatTime, iconTone, severityFlag } from '../activityTheme';
+import { formatTime, iconTone } from '../activityTheme';
 import type { ActivityItem, ActivityReference } from '../types';
 
 // ─── rail + shell ─────────────────────────────────────────────────────────────
 
-const Row = styled.article<{ $bar: string | null; $wash: string | null }>`
+const Row = styled.article`
     position: relative;
     display: grid;
     grid-template-columns: 58px 40px 1fr;
     align-items: start;
     gap: 0 14px;
     padding: 14px 18px 14px 0;
-    background: ${p => p.$wash ?? 'transparent'};
-
-    ${p => p.$bar && css`
-        &::after {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 6px;
-            bottom: 6px;
-            width: 3px;
-            border-radius: 0 3px 3px 0;
-            background: ${p.$bar};
-        }
-    `}
 
     &::before {
         content: '';
@@ -84,60 +70,26 @@ const IconTile = styled.div<{ $edge: string; $solid: string }>`
     }
 `;
 
-// Imię i nazwisko aktora, przy prawej krawędzi, widoczne tylko na hover.
-// Zawsze pozycjonowane absolutnie, więc pojawienie się na hover nie przesuwa
-// niczego w wierszu.
-const hoverActor = css`
-    position: absolute;
-    font-size: 12px;
-    font-weight: 500;
-    color: ${p => p.theme.colors.textMuted};
-    white-space: nowrap;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 150ms ease;
-
-    ${Row}:hover & {
-        opacity: 1;
-    }
-
-    @media (max-width: 720px) {
-        display: none;
-    }
-`;
-
-// Wiersz bez kwoty: nazwisko na wysokości tytułu, przy prawej krawędzi.
-// Kotwiczone do góry wiersza, a nie do środka: przy rozwiniętych szczegółach
-// środek wiersza wypada na tabeli zmian.
-const HoverActor = styled.span`
-    ${hoverActor}
-    top: 18px;
-    right: 18px;
-`;
-
-// Wiersz z kwotą: nazwisko ląduje POD plakietką, obie przy prawej krawędzi.
-// Wcześniej dzieliły tę samą linię, więc plakietka musiała ustąpić im miejsca
-// i odjeżdżała od krawędzi w stronę środka, wyglądało to jak błąd wyrównania,
-// bo powód (nazwisko) był widoczny dopiero po najechaniu.
-const StackedActor = styled.span`
-    ${hoverActor}
-    top: calc(100% + 5px);
-    right: 0;
-    /* Ląduje nad linią opisu, własne tło trzyma czytelność bez rezerwowania
-       miejsca w układzie (na wierszach bez podświetlenia jest niewidoczne). */
-    padding: 1px 6px;
-    margin-right: -6px;
-    border-radius: 7px;
-    background: ${p => p.theme.colors.surface};
-`;
-
-// Kotwica dla StackedActor, pozycjonuje nazwisko dokładnie pod plakietką,
-// niezależnie od jej szerokości.
-const AmountSlot = styled.div`
-    position: relative;
-    margin-left: auto;
-    flex-shrink: 0;
+// Kto to zrobił - zawsze widoczne, pod tytułem. Wcześniej nazwisko pojawiało się
+// dopiero po najechaniu myszą, a na telefonie i tablecie wcale, choć „kto" jest pierwszym
+// pytaniem, z jakim właściciel otwiera ten ekran. Bez inicjałów i bez koloru: nazwisko
+// pismem, a rola i kanał szarym dopiskiem obok (CLAUDE.md §4: osobne elementy, nie kropka).
+const ActorLine = styled.div`
     display: flex;
+    align-items: baseline;
+    gap: 4px 10px;
+    flex-wrap: wrap;
+    font-size: 12.5px;
+    line-height: 1.4;
+`;
+
+const ActorName = styled.span`
+    font-weight: 600;
+    color: ${p => p.theme.colors.text};
+`;
+
+const ActorMeta = styled.span`
+    color: ${p => p.theme.colors.textSecondary};
 `;
 
 // ─── body ─────────────────────────────────────────────────────────────────────
@@ -158,6 +110,7 @@ const TopLine = styled.div`
 `;
 
 const Title = styled.h3`
+    flex: 1 1 260px;
     margin: 0;
     font-size: 14.5px;
     font-weight: 600;
@@ -299,6 +252,65 @@ const NewValue = styled.span`
     font-weight: 600;
 `;
 
+// ─── steps of one gesture ─────────────────────────────────────────────────────
+
+const Steps = styled.div`
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: 12px;
+    background: ${p => p.theme.colors.surfaceHover};
+    overflow: hidden;
+`;
+
+const StepsToggle = styled.button<{ $open: boolean }>`
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 40px;
+    padding: 0 12px;
+    border: none;
+    background: transparent;
+    color: ${p => p.theme.colors.textSecondary};
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+
+    svg {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+        transition: transform 180ms ease;
+        ${p => p.$open && css`transform: rotate(180deg);`}
+    }
+
+    &:hover { color: ${p => p.theme.colors.text}; }
+
+    &:focus-visible {
+        outline: none;
+        box-shadow: inset 0 0 0 2px rgba(14, 165, 233, 0.35);
+    }
+`;
+
+const Step = styled.div`
+    display: flex;
+    gap: 12px;
+    padding: 8px 12px;
+    border-top: 1px solid ${p => p.theme.colors.border};
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: ${p => p.theme.colors.text};
+
+    time {
+        flex-shrink: 0;
+        width: 40px;
+        color: ${p => p.theme.colors.textMuted};
+        font-variant-numeric: tabular-nums;
+    }
+`;
+
 // ─── navigation ───────────────────────────────────────────────────────────────
 
 const NavChip = styled(Link)`
@@ -348,25 +360,48 @@ const subjectPath = (ref: ActivityReference): NavTarget | null => {
     }
 };
 
-/** Maps backend resource codes to navigation button labels. */
+/**
+ * Krótkie etykiety linków - „Wizyta", „Klient". Strzałka przy nich mówi już „przejdź",
+ * a cztery „Przejdź do …" w jednym wierszu zajmowały więcej miejsca niż sam wpis.
+ */
 const subjectLabel = (ref: ActivityReference): string => {
     switch (ref.resource) {
-        case 'VISIT':        return 'Przejdź do wizyty';
-        case 'CUSTOMER':     return 'Przejdź do klienta';
-        case 'VEHICLE':      return 'Przejdź do pojazdu';
-        case 'APPOINTMENT':  return 'Przejdź do rezerwacji';
+        case 'VISIT':        return 'Wizyta';
+        case 'CUSTOMER':     return 'Klient';
+        case 'VEHICLE':      return 'Pojazd';
+        case 'APPOINTMENT':  return 'Rezerwacja';
         default:             return ref.label ?? ref.resource;
     }
+};
+
+/**
+ * Akcje, których „podmiot" nie jest obiektem do otwarcia: import i eksport klientów
+ * dotyczą całej bazy, a ich `entityId` to identyfikator operacji - link „Klient"
+ * prowadził na stronę 404.
+ */
+const WITHOUT_SUBJECT_LINK = new Set(['CUSTOMERS_IMPORTED', 'CUSTOMERS_EXPORTED']);
+
+/** Rola i kanał pod nazwiskiem: „klient", „Karta wizyty"; dla pracownika sam kanał. */
+const actorMeta = (item: ActivityItem): string[] => {
+    const meta: string[] = [];
+    if (item.actor.type === 'CUSTOMER') meta.push('klient');
+    // „System" jako nazwisko i „Automat" jako kanał mówią to samo - kanał wystarczy.
+    if (item.channel.label && item.channel.label !== item.actor.displayName) meta.push(item.channel.label);
+    return meta;
 };
 
 // ─── component ────────────────────────────────────────────────────────────────
 
 interface ActivityRowProps {
     item: ActivityItem;
+    /** Pozostałe wpisy tego samego gestu (np. paragon i SMS przy wydaniu), od najstarszego. */
+    steps?: ActivityItem[];
+    stepsLabel?: string | null;
 }
 
-export const ActivityRow = ({ item }: ActivityRowProps) => {
+export const ActivityRow = ({ item, steps = [], stepsLabel = null }: ActivityRowProps) => {
     const [open, setOpen] = useState(false);
+    const [stepsOpen, setStepsOpen] = useState(false);
     const navigate = useNavigate();
 
     /**
@@ -390,8 +425,8 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
     };
 
     const tone = iconTone(item.icon);
-    const flag = severityFlag(item.severity.code);
     const hasChanges = item.changes.length > 0;
+    const hasSteps = steps.length > 0;
 
     // Once a reservation has been turned into a visit it no longer exists as a
     // reservation, so linking to it would be a business error: hide the chip.
@@ -401,25 +436,25 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
         !(appointmentGone && ref.resource === 'APPOINTMENT');
 
     const navLinks: Array<NavTarget & { label: string }> = [];
-    if (item.subject && linkable(item.subject)) {
-        const target = subjectPath(item.subject);
-        if (target) navLinks.push({ ...target, label: subjectLabel(item.subject) });
-    }
-    item.related?.filter(linkable).forEach(ref => {
+    const seen = new Set<string>();
+    const addLink = (ref: ActivityReference) => {
+        if (!linkable(ref)) return;
         const target = subjectPath(ref);
-        if (target) navLinks.push({ ...target, label: subjectLabel(ref) });
-    });
+        if (!target) return;
+        const key = `${ref.resource}:${ref.id}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        navLinks.push({ ...target, label: subjectLabel(ref) });
+    };
+    if (item.subject && !WITHOUT_SUBJECT_LINK.has(item.action.code)) addLink(item.subject);
+    item.related?.forEach(addLink);
 
-    const actorLabel = item.actor.type === 'CUSTOMER'
-        ? item.actor.displayName  // PiiText handles rendering below
+    const actorName = item.actor.type === 'CUSTOMER'
+        ? <PiiText value={item.actor.displayName} kind="name" />
         : item.actor.displayName;
 
-    const actorContent = item.actor.type === 'CUSTOMER'
-        ? <PiiText value={actorLabel} kind="name" />
-        : actorLabel;
-
     return (
-        <Row $bar={flag.bar} $wash={flag.wash}>
+        <Row>
             <Time>{formatTime(item.occurredAt)}</Time>
 
             <IconTile $edge={tone.edge} $solid={tone.solid}>
@@ -430,15 +465,40 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
                 <TopLine>
                     <Title><PiiText value={item.title} /></Title>
                     {item.amount && (
-                        <AmountSlot>
-                            <Amount $outgoing={Number(item.amount.value) < 0}>{item.amount.display}</Amount>
-                            <StackedActor aria-hidden="true">{actorContent}</StackedActor>
-                        </AmountSlot>
+                        <Amount $outgoing={Number(item.amount.value) < 0}>{item.amount.display}</Amount>
                     )}
                 </TopLine>
 
+                <ActorLine>
+                    <ActorName>{actorName}</ActorName>
+                    {actorMeta(item).map(text => <ActorMeta key={text}>{text}</ActorMeta>)}
+                </ActorLine>
+
                 {item.description && (
                     <Description><PiiText value={item.description} /></Description>
+                )}
+
+                {hasSteps && (
+                    <Steps>
+                        <StepsToggle
+                            type="button"
+                            $open={stepsOpen}
+                            aria-expanded={stepsOpen}
+                            onClick={() => setStepsOpen(v => !v)}
+                        >
+                            <span>{stepsLabel}</span>
+                            <ChevronDown />
+                        </StepsToggle>
+                        {stepsOpen && steps.map(step => (
+                            <Step key={step.id}>
+                                <time dateTime={step.occurredAt}>{formatTime(step.occurredAt)}</time>
+                                <span>
+                                    <PiiText value={step.title} />
+                                    {step.description && <> <PiiText value={step.description} /></>}
+                                </span>
+                            </Step>
+                        ))}
+                    </Steps>
                 )}
 
                 {(navLinks.length > 0 || hasChanges) && (
@@ -455,8 +515,10 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
                                 {label}
                             </NavChip>
                         ))}
+
                         {hasChanges && (
                             <ExpandButton
+                                type="button"
                                 $open={open}
                                 onClick={() => setOpen(v => !v)}
                                 aria-expanded={open}
@@ -470,8 +532,10 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
 
                 {hasChanges && open && (
                     <Changes>
-                        {item.changes.map(change => (
-                            <ChangeRow key={change.field}>
+                        {item.changes.map((change, index) => (
+                            // Indeks, nie nazwa pola: to samo pole potrafi wystąpić dwa razy
+                            // (np. dwie usługi), a zdublowany klucz Reacta gubi wiersz.
+                            <ChangeRow key={`${change.field}-${index}`}>
                                 <ChangeLabel>{change.label}</ChangeLabel>
                                 <ChangeValues>
                                     {change.oldValueDisplay && (
@@ -487,8 +551,6 @@ export const ActivityRow = ({ item }: ActivityRowProps) => {
                     </Changes>
                 )}
             </Body>
-
-            {!item.amount && <HoverActor aria-hidden="true">{actorContent}</HoverActor>}
         </Row>
     );
 };

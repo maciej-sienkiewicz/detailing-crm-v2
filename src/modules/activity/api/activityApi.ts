@@ -1,24 +1,42 @@
 // src/modules/activity/api/activityApi.ts
 
 import { apiClient } from '@/core';
-import type { ActivityFeedPage, ActivityFilterOptions, ActivityFilters } from '../types';
+import type {
+    ActivityActorsResponse,
+    ActivityFeedPage,
+    ActivityFilterOptions,
+    ActivityFilters,
+} from '../types';
+import { employeeOf } from '../types';
 
 const BASE = '/v1/audit';
 
 /**
  * Builds the query string for a feed page.
  *
- * Multi-value filters go over the wire comma-separated; an empty selection is
- * omitted entirely, because the backend reads a missing parameter as "no
- * restriction" and an unknown value as a client error.
+ * An empty selection is omitted entirely, because the backend reads a missing parameter
+ * as "no restriction" and an unknown value as a client error.
+ *
+ * „Kto" mapuje się na dwa różne parametry: pracownik to `actorId` (id użytkownika),
+ * a „Klienci" i „Automaty" to typy aktora - klient nie ma id w przestrzeni użytkowników.
  */
-const buildParams = (filters: ActivityFilters, cursor: string | null, limit: number) => {
-    const params: Record<string, string | number> = { limit };
+export const buildFeedParams = (filters: ActivityFilters, cursor: string | null, limit: number) => {
+    const params: Record<string, string | number | boolean> = { limit };
 
     if (cursor) params.cursor = cursor;
-    if (filters.modules.length) params.modules = filters.modules.join(',');
-    if (filters.actorTypes.length) params.actorTypes = filters.actorTypes.join(',');
-    if (filters.severities.length) params.severities = filters.severities.join(',');
+    if (filters.area) params.areas = filters.area;
+
+    const employeeId = employeeOf(filters.who);
+    if (employeeId) {
+        params.actorId = employeeId;
+        params.actorTypes = 'EMPLOYEE';
+    } else if (filters.who === 'CUSTOMERS') {
+        params.actorTypes = 'CUSTOMER';
+    } else if (filters.who === 'AUTOMATIONS') {
+        params.actorTypes = 'SYSTEM,INTEGRATION';
+    }
+
+    if (filters.hideAutomated) params.hideAutomated = true;
     if (filters.search.trim()) params.search = filters.search.trim();
     if (filters.from) params.from = filters.from;
     if (filters.to) params.to = filters.to;
@@ -33,7 +51,7 @@ export const activityApi = {
         limit = 30,
     ): Promise<ActivityFeedPage> => {
         const res = await apiClient.get<ActivityFeedPage>(`${BASE}/feed`, {
-            params: buildParams(filters, cursor, limit),
+            params: buildFeedParams(filters, cursor, limit),
         });
         return res.data;
     },
@@ -41,6 +59,15 @@ export const activityApi = {
     /** Filter options with their labels; the UI ships no translation table of its own. */
     getFilterOptions: async (): Promise<ActivityFilterOptions> => {
         const res = await apiClient.get<ActivityFilterOptions>(`${BASE}/filters`);
+        return res.data;
+    },
+
+    /** Pracownicy, którzy w okresie coś zrobili, z liczbą zdarzeń. */
+    getActors: async (from: string | null, to: string | null): Promise<ActivityActorsResponse> => {
+        const params: Record<string, string> = {};
+        if (from) params.from = from;
+        if (to) params.to = to;
+        const res = await apiClient.get<ActivityActorsResponse>(`${BASE}/actors`, { params });
         return res.data;
     },
 

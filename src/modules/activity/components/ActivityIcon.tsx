@@ -1,7 +1,7 @@
 // src/modules/activity/components/ActivityIcon.tsx
 
 import {
-    Archive, Banknote, Calendar, Check, Clock, Eye, FileText, GitBranch, GitMerge,
+    Archive, Banknote, Calendar, Check, Clock, Download, Eye, FileText, GitBranch, GitMerge,
     Image, Link2, Megaphone, MessageSquare, Pencil, PenLine, Phone, Plus, RefreshCw,
     RotateCcw, Send, ShieldAlert, StickyNote, Sun, Trash2, User, UserCog, Wallet,
     Wrench, X, ListChecks,
@@ -72,6 +72,7 @@ const ICONS: Record<ActivityIconKey, LucideIcon> = {
     LEAVE: Sun,
     PAYROLL: Wallet,
     LINK: Link2,
+    EXPORT: Download,
 };
 
 interface ActivityIconProps {

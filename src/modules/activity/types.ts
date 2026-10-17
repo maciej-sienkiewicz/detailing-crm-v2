@@ -12,9 +12,15 @@ export type ActivityIconKey =
     | 'NOTE' | 'SERVICE' | 'MONEY' | 'CALENDAR' | 'VEHICLE' | 'CUSTOMER' | 'USER'
     | 'SECURITY' | 'MESSAGE' | 'CAMPAIGN' | 'TIME' | 'SIGNATURE' | 'PHONE'
     | 'TASK' | 'VIEW' | 'APPROVE' | 'REJECT' | 'ARCHIVE' | 'RESTORE' | 'SPLIT'
-    | 'MERGE' | 'LEAVE' | 'PAYROLL' | 'LINK';
+    | 'MERGE' | 'LEAVE' | 'PAYROLL' | 'LINK' | 'EXPORT';
 
 export type ActivitySeverity = 'LOW' | 'NORMAL' | 'HIGH' | 'CRITICAL';
+
+/**
+ * Obszar studia - główny filtr Aktywności. Definicja (które moduły i akcje do niego
+ * należą) mieszka w backendzie (`AuditArea`); tu jest tylko kod.
+ */
+export type ActivityArea = 'VISITS' | 'MONEY' | 'CLIENTS' | 'TEAM';
 
 export type ActivityActorType = 'EMPLOYEE' | 'CUSTOMER' | 'SYSTEM' | 'INTEGRATION';
 
@@ -117,6 +123,7 @@ export interface ActivityActionFilterOption {
 }
 
 export interface ActivityFilterOptions {
+    areas: ActivityFilterOption[];
     modules: ActivityFilterOption[];
     actions: ActivityActionFilterOption[];
     actorTypes: ActivityFilterOption[];
@@ -124,34 +131,54 @@ export interface ActivityFilterOptions {
     channels: ActivityFilterOption[];
 }
 
-/** Query the feed is currently narrowed by. Empty arrays / nulls mean "no filter". */
+/** Pracownik, który w okresie coś zrobił - `GET /audit/actors`. */
+export interface ActivityActorActivity {
+    id: string;
+    displayName: string;
+    eventCount: number;
+    lastActivityAt: string;
+}
+
+export interface ActivityActorsResponse {
+    actors: ActivityActorActivity[];
+}
+
+/**
+ * Kto wykonał akcję: wszyscy, jeden pracownik (jego id), klienci albo automaty.
+ * Jeden napis zamiast obiektu, bo tak siedzi w `<select>` i w kluczu zapytania.
+ */
+export type ActivityWho = 'ALL' | 'CUSTOMERS' | 'AUTOMATIONS' | `user:${string}`;
+
+export const whoForEmployee = (userId: string): ActivityWho => `user:${userId}`;
+
+export const employeeOf = (who: ActivityWho): string | null =>
+    who.startsWith('user:') ? who.slice('user:'.length) : null;
+
+/** Query the feed is currently narrowed by. */
 export interface ActivityFilters {
-    modules: string[];
-    actorTypes: ActivityActorType[];
-    severities: ActivitySeverity[];
+    /** Null = „Wszystko". */
+    area: ActivityArea | null;
+    who: ActivityWho;
+    /** Ukrywa rutynowe wiadomości automatu, które doszły bez błędu. */
+    hideAutomated: boolean;
     search: string;
     /** ISO-8601 instant, inclusive. */
     from: string | null;
     to: string | null;
 }
 
-export const EMPTY_ACTIVITY_FILTERS: ActivityFilters = {
-    modules: [],
-    actorTypes: [],
-    severities: [],
+/**
+ * What the screen opens on: everything, without routine automated messages.
+ *
+ * Bez z góry narzuconego „ważne" - dla każdego studia znaczy to co innego. Jedyne, co
+ * ukrywamy domyślnie, to przypomnienia i automatyczne SMS-y, które doszły bez błędu:
+ * to ich setki zalewały feed. Przełącznik „Pokaż automaty" przywraca je jednym kliknięciem.
+ */
+export const DEFAULT_ACTIVITY_FILTERS: ActivityFilters = {
+    area: null,
+    who: 'ALL',
+    hideAutomated: true,
     search: '',
     from: null,
     to: null,
-};
-
-/**
- * What the screen opens on.
- *
- * Not the unfiltered feed: a working studio produces far more photo uploads and
- * comments than decisions, so landing on everything would bury the events an owner
- * opened this screen to see. "Ważne" is one click away from the full firehose.
- */
-export const DEFAULT_ACTIVITY_FILTERS: ActivityFilters = {
-    ...EMPTY_ACTIVITY_FILTERS,
-    severities: ['HIGH', 'CRITICAL'],
 };
