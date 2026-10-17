@@ -390,6 +390,9 @@ export const CheckInWizardWrapper = () => {
         <CheckInWizardView
             reservationId={reservationId!}
             initialData={initialData}
+            // Prawdziwy termin rezerwacji, bez zastępczego „teraz" - przy rezerwacji
+            // z minionego dnia kreator pyta najpierw, kiedy auto trafiło do studia.
+            plannedStartAt={reservationData?.schedule?.startDateTime || reservationData?.startDateTime}
             colors={colors}
             onComplete={handleComplete}
         />
