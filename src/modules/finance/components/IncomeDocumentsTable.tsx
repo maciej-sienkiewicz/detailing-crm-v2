@@ -31,7 +31,7 @@ const Wrapper = styled.div`
 
 const Table = styled.table`
   width: 100%;
-  min-width: 1264px;
+  min-width: 1040px;
   border-collapse: collapse;
 `;
 
@@ -88,20 +88,24 @@ const Td = styled.td<{ $align?: 'left' | 'right' }>`
   &:last-child  { padding-right: 20px; }
 `;
 
+/* Data i numer w jednej kolumnie: „kiedy" i „który to dokument" czyta się razem,
+   a osobna kolumna numeru zabierała szerokość nabywcy i notatce. Numeru KSeF
+   w wierszu nie ma - jest w szczegółach dokumentu. Krój jak w tabeli kosztów
+   (CellPrimary/CellSecondary), bo to ten sam moduł. */
+const IssueDate = styled.div`
+  font-weight: 500;
+`;
+
 const DocumentNumber = styled.div`
-  font-weight: 600;
-`;
-
-const KsefNumber = styled.div`
-  font-size: 11px;
+  margin-top: 3px;
+  font-size: 12px;
   color: ${(p) => p.theme.colors.textMuted};
-  max-width: 240px;
-  overflow: hidden;
-  text-overflow: ellipsis;
 `;
 
+/* Wąsko celowo: długa nazwa firmy ucina się wielokropkiem (pełna jest w tooltipie),
+   zamiast rozpychać tabelę kosztem kwoty i notatki. */
 const PartyName = styled.div`
-  max-width: 220px;
+  max-width: 170px;
   overflow: hidden;
   text-overflow: ellipsis;
 `;
@@ -266,10 +270,11 @@ const AddNoteBtn = styled.button`
 `;
 
 /* ─── Karta na telefonie ──────────────────────────────────────────────────────
-   Dziewięć kolumn nie mieści się na 390 px, a przewijana w bok tabela pokazuje
+   Osiem kolumn nie mieści się na 390 px, a przewijana w bok tabela pokazuje
    datę i typ - czyli to, czego się nie szuka. Na telefonie zostaje to, po co
    otwiera się listę przychodów: kto, ile, czy zapłacone i który to dokument.
-   Źródło, numer KSeF i status „wszystko w porządku" zostają na desktopie. */
+   Źródło i status „wszystko w porządku" zostają na desktopie, numer KSeF
+   w szczegółach dokumentu. */
 
 const CardList = styled.div`
   display: flex;
@@ -713,7 +718,6 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
             )}
             <Th>Data</Th>
             <Th>Typ</Th>
-            <Th>Numer</Th>
             <Th>Nabywca</Th>
             <Th>Notatka</Th>
             <Th $align="right">Kwota</Th>
@@ -726,7 +730,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
           {isLoading
             ? Array.from({ length: 5 }).map((_, i) => (
                 <SkeletonRow key={i}>
-                  {Array.from({ length: selection ? 10 : 9 }).map((_, j) => (
+                  {Array.from({ length: selection ? 9 : 8 }).map((_, j) => (
                     <td key={j}><div /></td>
                   ))}
                 </SkeletonRow>
@@ -762,7 +766,19 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                         />
                       </SelectCell>
                     )}
-                    <Td>{formatDate(doc.issueDate)}</Td>
+                    <Td>
+                      <IssueDate>{formatDate(doc.issueDate)}</IssueDate>
+                      <DocumentNumber>{doc.documentNumber}</DocumentNumber>
+                      {doc.excluded && (
+                        <Badge
+                          $variant="slate"
+                          title="Dokument nie wchodzi do statystyk ani do kafli podsumowania"
+                          style={{ marginTop: 4 }}
+                        >
+                          Ukryty ze statystyk
+                        </Badge>
+                      )}
+                    </Td>
                     <Td>
                       <TypeCell>
                         <Badge $variant={type.variant}>{type.label}</Badge>
@@ -791,20 +807,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                       )}
                     </Td>
                     <Td>
-                      <DocumentNumber>{doc.documentNumber}</DocumentNumber>
-                      {doc.ksefNumber && <KsefNumber title={doc.ksefNumber}>{doc.ksefNumber}</KsefNumber>}
-                      {doc.excluded && (
-                        <Badge
-                          $variant="slate"
-                          title="Dokument nie wchodzi do statystyk ani do kafli podsumowania"
-                          style={{ marginTop: 4 }}
-                        >
-                          Ukryty ze statystyk
-                        </Badge>
-                      )}
-                    </Td>
-                    <Td>
-                      <PartyName>{doc.counterpartyName ?? '-'}</PartyName>
+                      <PartyName title={doc.counterpartyName ?? undefined}>{doc.counterpartyName ?? '-'}</PartyName>
                       <PartyNip>{doc.counterpartyNip ? `NIP ${doc.counterpartyNip}` : 'Konsument'}</PartyNip>
                     </Td>
                     {/* Notatka — tekst wprost w kolumnie, edycja/usuwanie jak po stronie kosztów. */}

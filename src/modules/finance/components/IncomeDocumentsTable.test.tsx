@@ -75,3 +75,25 @@ describe('IncomeDocumentsTable - dokumenty wycofane poprawką rozliczenia', () =
         expect(getComputedStyle(screen.getByText(/20\s?000,00/)).textDecoration).not.toContain('line-through');
     });
 });
+
+// Kolumny uproszczone na życzenie biznesu: numer dokumentu stoi pod datą, osobnej kolumny
+// „Numer" nie ma, a numer KSeF został w szczegółach dokumentu.
+describe('IncomeDocumentsTable - numer pod datą', () => {
+    afterEach(cleanup);
+
+    it('numer dokumentu jest w komórce daty, bez numeru KSeF i bez kolumny „Numer”', () => {
+        const ksefNumber = '5260250995-20260926-0123456789AB-01';
+        renderTable([doc({ ksefStatus: 'ACCEPTED', ksefNumber })]);
+
+        const cell = screen.getByText('FV/2026/0003').closest('td')!;
+        expect(cell).toHaveTextContent('26.09.2026');
+        expect(screen.queryByText(ksefNumber)).toBeNull();
+        expect(screen.queryByRole('columnheader', { name: 'Numer' })).toBeNull();
+    });
+
+    it('długa nazwa nabywcy ma pełne brzmienie w tooltipie', () => {
+        const name = 'Przedsiębiorstwo Handlowo-Usługowe Auto-Detailing Jan Kowalski i Wspólnicy sp.k.';
+        renderTable([doc({ counterpartyName: name, counterpartyNip: '5270000000' })]);
+        expect(screen.getByText(name)).toHaveAttribute('title', name);
+    });
+});
