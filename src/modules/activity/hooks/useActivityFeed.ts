@@ -6,7 +6,9 @@ import type { ActivityFilters } from '../types';
 
 export const activityKeys = {
     feed: (filters: ActivityFilters) => ['activity', 'feed', filters] as const,
+    newer: (filters: ActivityFilters, since: string | null) => ['activity', 'newer', filters, since] as const,
     entityFeed: (scope: ActivityEntityScope) => ['activity', 'entity-feed', scope] as const,
+    actors: (from: string | null, to: string | null) => ['activity', 'actors', from, to] as const,
     filterOptions: () => ['activity', 'filter-options'] as const,
 };
 
@@ -25,8 +27,42 @@ export function useActivityFeed(filters: ActivityFilters) {
         getNextPageParam: page => (page.hasMore ? page.nextCursor : undefined),
         // The feed is append-only history: entries already on screen never change,
         // so there is nothing to gain from refetching them behind the user's back.
+        // New entries are announced by useNewerActivityCount instead.
         refetchOnWindowFocus: false,
         staleTime: 30_000,
+    });
+}
+
+/** Ile nowych wpisów - limit jednej strony; więcej i tak pokazujemy jako „30+". */
+export const NEWER_PROBE_LIMIT = 30;
+
+/** Co ile sprawdzamy, czy doszło coś nowego. Feed to historia, nie czat - minuta wystarczy. */
+const NEWER_POLL_MS = 60_000;
+
+/**
+ * Liczba wpisów nowszych niż najnowszy na ekranie, przy tych samych filtrach.
+ *
+ * Pytamy tym samym feedem z `from` tuż po najnowszym wpisie, zamiast przeładowywać
+ * listę w tle: przewinięta historia nie skacze pod palcem, a użytkownik sam decyduje,
+ * kiedy wczytać nowe („3 nowe zdarzenia, pokaż"). Pusty ekran mówił wcześniej, że
+ * „zdarzenia pojawią się same", choć nic go nie odświeżało.
+ */
+export function useNewerActivityCount(filters: ActivityFilters, newestOccurredAt: string | null) {
+    const since = newestOccurredAt
+        ? new Date(new Date(newestOccurredAt).getTime() + 1).toISOString()
+        : null;
+
+    return useQuery({
+        queryKey: activityKeys.newer(filters, since),
+        queryFn: async () => {
+            // Ten sam zakres „od" co lista - ale nigdy wcześniej niż najnowszy wpis.
+            const page = await activityApi.getFeed({ ...filters, from: since, to: null }, null, NEWER_PROBE_LIMIT);
+            return { count: page.items.length, more: page.hasMore };
+        },
+        enabled: since !== null && filters.to === null,
+        refetchInterval: NEWER_POLL_MS,
+        refetchIntervalInBackground: false,
+        staleTime: NEWER_POLL_MS,
     });
 }
 
@@ -43,6 +79,15 @@ export function useEntityActivityFeed(scope: ActivityEntityScope) {
         getNextPageParam: page => (page.hasMore ? page.nextCursor : undefined),
         refetchOnWindowFocus: false,
         staleTime: 30_000,
+    });
+}
+
+/** Pracownicy aktywni w okresie - lista „Kto dziś działał" i pozycje filtra „Kto". */
+export function useActivityActors(from: string | null, to: string | null) {
+    return useQuery({
+        queryKey: activityKeys.actors(from, to),
+        queryFn: () => activityApi.getActors(from, to),
+        staleTime: 60_000,
     });
 }
 

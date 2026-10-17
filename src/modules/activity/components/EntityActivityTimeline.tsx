@@ -8,14 +8,15 @@
 // Feed z backendu przychodzi już przetłumaczony, więc tutaj zostaje sam układ.
 //
 // Różnice wobec zakładki są celowe i wynikają z miejsca:
-//  • bez hero, filtrów i wyszukiwarki - kontekst obiektu JEST filtrem;
-//  • starsze zdarzenia pod przyciskiem, nie na scrollu - sekcja siedzi w środku
+//  - bez hero, filtrów i wyszukiwarki - kontekst obiektu JEST filtrem;
+//  - starsze zdarzenia pod przyciskiem, nie na scrollu - sekcja siedzi w środku
 //    strony, która sama się przewija, i sentinel dociągałby historię za każdym
 //    przejściem obok, rozpychając sekcję na całą stronę.
 import styled, { keyframes } from 'styled-components';
 import { AlertCircle, Inbox, Loader2 } from 'lucide-react';
 import { ActivityRow } from './ActivityRow';
 import { groupByDay } from '../activityTheme';
+import { groupByGesture } from '../utils/groupByGesture';
 import { useEntityActivityFeed } from '../hooks/useActivityFeed';
 import type { ActivityEntityScope } from '../api/activityApi';
 
@@ -44,16 +45,23 @@ const DayGroup = styled.div`
     }
 `;
 
+// Nazwa dnia pismem tekstowym, nie wersalikami 11 px - te same powody co w Aktywności.
 const DayHeader = styled.h3`
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
     margin: 0;
-    padding: 10px 20px;
-    background: ${p => p.theme.colors.surfaceHover};
-    border-bottom: 1px solid ${p => p.theme.colors.border};
-    font-size: 11px;
+    padding: 12px 20px 6px;
+    font-size: 14px;
     font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: ${p => p.theme.colors.textSecondary};
+    color: ${p => p.theme.colors.text};
+
+    span {
+        font-size: 12.5px;
+        font-weight: 500;
+        color: ${p => p.theme.colors.textSecondary};
+    }
 `;
 
 const DayRows = styled.div`
@@ -148,7 +156,7 @@ export function EntityActivityTimeline({ scope }: EntityActivityTimelineProps) {
             seenIds.add(item.id);
             return true;
         });
-    const groups = groupByDay(items);
+    const groups = groupByDay(groupByGesture(items));
 
     return (
         <Shell aria-busy={isLoading}>
@@ -191,10 +199,18 @@ export function EntityActivityTimeline({ scope }: EntityActivityTimelineProps) {
 
             {!isLoading && !isError && groups.map(group => (
                 <DayGroup key={group.key}>
-                    <DayHeader>{group.label}</DayHeader>
+                    <DayHeader>
+                        {group.label}
+                        {group.date && <span>{group.date}</span>}
+                    </DayHeader>
                     <DayRows>
-                        {group.items.map(item => (
-                            <ActivityRow key={item.id} item={item} />
+                        {group.items.map(entry => (
+                            <ActivityRow
+                                key={entry.item.id}
+                                item={entry.item}
+                                steps={entry.steps}
+                                stepsLabel={entry.stepsLabel}
+                            />
                         ))}
                     </DayRows>
                 </DayGroup>

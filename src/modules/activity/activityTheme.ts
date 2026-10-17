@@ -1,6 +1,6 @@
 // src/modules/activity/activityTheme.ts
 
-import type { ActivityActorType, ActivityIconKey } from './types';
+import type { ActivityIconKey } from './types';
 
 interface Tone {
     /** Icon glyph colour. */
@@ -61,53 +61,18 @@ const ICON_TONE: Record<ActivityIconKey, keyof typeof TONES> = {
     LEAVE: 'attention',
     PAYROLL: 'money',
     LINK: 'brand',
+    EXPORT: 'attention',
 };
 
 export const iconTone = (icon: string): Tone =>
     TONES[ICON_TONE[icon as ActivityIconKey] ?? 'neutral'];
-
-export interface SeverityFlag {
-    /** Left accent bar; null leaves the row unmarked. */
-    bar: string | null;
-    /** Whole-row wash, reserved for the loudest step. */
-    wash: string | null;
-}
-
-/**
- * Importance is a single warm accent, deliberately neutral about good and bad.
- *
- * Only the top two steps are marked at all. If every row carried a flag the flags
- * would stop meaning anything, so the quiet majority (photos, comments, routine
- * edits) is left completely plain and the eye lands on what is left.
- */
-export const severityFlag = (code: string): SeverityFlag => {
-    if (code === 'CRITICAL') return { bar: '#f59e0b', wash: 'rgba(245, 158, 11, 0.045)' };
-    if (code === 'HIGH') return { bar: 'rgba(245, 158, 11, 0.45)', wash: null };
-    return { bar: null, wash: null };
-};
-
-/**
- * Actor type colours the avatar and nothing else.
- *
- * The point is a single glance answering "was this us, the customer, or an
- * automation?": the question an owner scanning the feed asks first. Customers
- * get the one hue that appears nowhere else in a row.
- */
-export const ACTOR_ACCENT: Record<ActivityActorType, { fg: string; bg: string }> = {
-    EMPLOYEE: { fg: '#334155', bg: 'rgba(51, 65, 85, 0.10)' },
-    CUSTOMER: { fg: '#7c3aed', bg: 'rgba(124, 58, 237, 0.12)' },
-    SYSTEM: { fg: '#0f766e', bg: 'rgba(15, 118, 110, 0.10)' },
-    INTEGRATION: { fg: '#0f766e', bg: 'rgba(15, 118, 110, 0.10)' },
-};
-
-export const actorAccent = (type: string) =>
-    ACTOR_ACCENT[type as ActivityActorType] ?? ACTOR_ACCENT.EMPLOYEE;
 
 // ─── time formatting ─────────────────────────────────────────────────────────
 
 const timeFormat = new Intl.DateTimeFormat('pl-PL', { hour: '2-digit', minute: '2-digit' });
 const dayFormat = new Intl.DateTimeFormat('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
 const weekdayFormat = new Intl.DateTimeFormat('pl-PL', { weekday: 'long' });
+const dayMonthFormat = new Intl.DateTimeFormat('pl-PL', { day: 'numeric', month: 'long' });
 
 export const formatTime = (iso: string): string => timeFormat.format(new Date(iso));
 
@@ -135,8 +100,18 @@ export const formatDayLabel = (iso: string): string => {
 export interface ActivityDayGroup<T> {
     key: string;
     label: string;
+    /** „piątek, 16 października" obok „Wczoraj"; null, gdy etykieta już jest datą. */
+    date: string | null;
     items: T[];
 }
+
+/** Data pod etykietą „Dzisiaj"/„Wczoraj" - nazwa dnia sama w sobie nie mówi, który to dzień. */
+const formatDayDate = (iso: string): string | null => {
+    const label = formatDayLabel(iso);
+    if (label !== 'Dzisiaj' && label !== 'Wczoraj') return null;
+    const date = new Date(iso);
+    return `${weekdayFormat.format(date)}, ${dayMonthFormat.format(date)}`;
+};
 
 /**
  * Splits a chronologically ordered list into day buckets, preserving order.
@@ -154,7 +129,7 @@ export const groupByDay = <T extends { occurredAt: string }>(items: T[]): Activi
         if (last && last.key === key) {
             last.items.push(item);
         } else {
-            groups.push({ key, label: formatDayLabel(item.occurredAt), items: [item] });
+            groups.push({ key, label: formatDayLabel(item.occurredAt), date: formatDayDate(item.occurredAt), items: [item] });
         }
     });
 
@@ -163,24 +138,85 @@ export const groupByDay = <T extends { occurredAt: string }>(items: T[]): Activi
 
 // ─── date range presets ──────────────────────────────────────────────────────
 
-export type DateRangePreset = 'ALL' | 'TODAY' | 'WEEK' | 'MONTH';
+/**
+ * Okres feedu. „Wczoraj" stoi osobno, bo to pierwsze pytanie właściciela, który rano
+ * sprawdza, co działo się dzień wcześniej. `ALL` nie ma przycisku: wchodzi się w niego
+ * z końca listy („Pokaż starsze"), a `CUSTOM` to „Zakres dat".
+ */
+export type DateRangePreset = 'TODAY' | 'YESTERDAY' | 'WEEK' | 'MONTH' | 'CUSTOM' | 'ALL';
 
-export const DATE_RANGE_PRESETS: { value: DateRangePreset; label: string }[] = [
-    { value: 'ALL', label: 'Cały okres' },
+export const DATE_RANGE_PRESETS: { value: Exclude<DateRangePreset, 'CUSTOM' | 'ALL'>; label: string }[] = [
     { value: 'TODAY', label: 'Dzisiaj' },
+    { value: 'YESTERDAY', label: 'Wczoraj' },
     { value: 'WEEK', label: '7 dni' },
     { value: 'MONTH', label: '30 dni' },
 ];
 
-/** Resolves a preset to the `from` instant the API expects; null means no lower bound. */
-export const presetToFrom = (preset: DateRangePreset): string | null => {
-    if (preset === 'ALL') return null;
-
-    const from = new Date();
-    if (preset === 'TODAY') {
-        from.setHours(0, 0, 0, 0);
-    } else {
-        from.setDate(from.getDate() - (preset === 'WEEK' ? 7 : 30));
-    }
-    return from.toISOString();
+/** „Wszystko z 7 dni", „Pieniądze z wczoraj" - nagłówek listy. */
+export const PRESET_PHRASE: Record<DateRangePreset, string> = {
+    TODAY: 'z dzisiaj',
+    YESTERDAY: 'z wczoraj',
+    WEEK: 'z 7 dni',
+    MONTH: 'z 30 dni',
+    CUSTOM: 'z wybranego zakresu',
+    ALL: 'z całego okresu',
 };
+
+export interface DateRange {
+    from: string | null;
+    to: string | null;
+}
+
+const startOfDay = (date: Date): Date => {
+    const copy = new Date(date);
+    copy.setHours(0, 0, 0, 0);
+    return copy;
+};
+
+const endOfDay = (date: Date): Date => {
+    const copy = new Date(date);
+    copy.setHours(23, 59, 59, 999);
+    return copy;
+};
+
+/** Resolves a preset to the instants the API expects; null means no bound. */
+export const presetToRange = (preset: DateRangePreset, now: Date = new Date()): DateRange => {
+    switch (preset) {
+        case 'TODAY':
+            return { from: startOfDay(now).toISOString(), to: null };
+        case 'YESTERDAY': {
+            const yesterday = new Date(now);
+            yesterday.setDate(now.getDate() - 1);
+            return { from: startOfDay(yesterday).toISOString(), to: endOfDay(yesterday).toISOString() };
+        }
+        case 'WEEK':
+        case 'MONTH': {
+            const from = new Date(now);
+            from.setDate(now.getDate() - (preset === 'WEEK' ? 7 : 30));
+            return { from: from.toISOString(), to: null };
+        }
+        default:
+            return { from: null, to: null };
+    }
+};
+
+/**
+ * Własny zakres z dwóch pól `<input type="date">` (YYYY-MM-DD, czas lokalny), oba końce
+ * włącznie - „do 17.10" znaczy do końca tego dnia, a nie do jego północy.
+ */
+export const customRange = (fromDay: string, toDay: string): DateRange => {
+    const parse = (day: string): Date | null => {
+        const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
+        return match ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])) : null;
+    };
+    const from = parse(fromDay);
+    const to = parse(toDay);
+    return {
+        from: from ? startOfDay(from).toISOString() : null,
+        to: to ? endOfDay(to).toISOString() : null,
+    };
+};
+
+/** „sobota, 17 października" - data w nagłówku ekranu. */
+export const formatToday = (now: Date = new Date()): string =>
+    `${weekdayFormat.format(now)}, ${dayMonthFormat.format(now)}`;
