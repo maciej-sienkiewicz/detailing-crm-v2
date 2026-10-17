@@ -4,7 +4,9 @@ android {
     namespace = "pl.detailboost.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "pl.detailboost.app"
+        // Identyfikator w Google Play: aplikacja w Play Console powstała z pakietem pl.mm.detailboost
+        // i tego nie da się już zmienić. namespace (pakiet klas Javy) i iOS zostają przy pl.detailboost.app.
+        applicationId "pl.mm.detailboost"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

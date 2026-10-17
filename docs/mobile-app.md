@@ -104,7 +104,8 @@ ostrzeżenie. Klucze trafiają **wyłącznie** do zmiennych środowiskowych serw
 ### Android (FCM)
 
 1. [Firebase Console](https://console.firebase.google.com) → nowy projekt → dodaj aplikację
-   Android z pakietem `pl.detailboost.app`.
+   Android z pakietem `pl.mm.detailboost` (na Androidzie identyfikator w Google Play jest inny
+   niż na iOS, patrz `applicationId` w `android/app/build.gradle`).
 2. Pobierz `google-services.json` i połóż w `android/app/`. Plik jest w `.gitignore`: trzymaj
    go w sejfie z sekretami i kopiuj przed budowaniem wydania. Bez niego aplikacja się zbuduje,
    ale nie dostanie tokenu FCM.
