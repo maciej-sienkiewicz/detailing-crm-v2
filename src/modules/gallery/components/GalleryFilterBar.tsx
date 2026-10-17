@@ -3,25 +3,21 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { css } from 'styled-components';
-import { pageGutter } from '@/common/components/PageContainer';
+import { ui } from '@/common/components/ui';
 import { useMediaQuery } from '@/common/hooks';
 import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
-import { pluralPl } from '@/common/utils/plural';
 
 // ─── outer shell ──────────────────────────────────────────────────────────────
 
-// Tło paska wypełnia całą kolumnę (FilterWrap), a jego treść trzyma ten sam
-// gutter poziomy co nagłówek i siatka (pageGutter) - dzięki temu krawędzie
-// filtra pokrywają się z resztą widoku.
+// Pasek leży na górze karty galerii (jak wyszukiwarka i filtry na liście
+// klientów), więc odstępy bierze z karty, a nie z gutteru strony.
 const Bar = styled.div`
     display: flex;
-    align-items: stretch;
-    ${pageGutter}
-    background: ${p => p.theme.colors.surface};
-    border-bottom: 1px solid ${p => p.theme.colors.border};
-    min-height: 72px;
-    gap: 0;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 20px;
+    border-bottom: 1px solid ${ui.line};
 
     /*
      * Na telefonie pasek zostaje JEDNYM rzędem: marka, model, tagi i czyszczenie.
@@ -35,11 +31,9 @@ const Bar = styled.div`
      * ich zawartość wprost do tego rzędu (ten sam zabieg co w podglądzie leada).
      */
     @media (max-width: 768px) {
-        align-items: center;
         flex-wrap: nowrap;
-        padding-block: ${p => p.theme.spacing.sm};
+        padding: 12px 14px;
         gap: 8px;
-        min-height: unset;
     }
 `;
 
@@ -47,57 +41,24 @@ const Bar = styled.div`
 
 const FilterSection = styled.div<{ $grow?: boolean }>`
     display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 5px;
-    padding: 10px 0;
-    ${p => p.$grow && css`flex: 1; min-width: 0;`}
+    align-items: center;
+    min-width: 0;
+    ${p => p.$grow && css`flex: 1;`}
 
     @media (max-width: 768px) {
         display: contents;
     }
 `;
 
-const SectionLabel = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: ${p => p.theme.colors.textMuted};
-    user-select: none;
-
-    svg {
-        width: 11px;
-        height: 11px;
-        flex-shrink: 0;
-    }
-
-    /* Nazwa pola mówi to samo, co etykieta sekcji, i robi to bez własnego piętra. */
-    @media (max-width: 768px) {
-        display: none;
-    }
-`;
-
-const LogicHint = styled.span`
-    font-size: 9px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    color: var(--brand-primary);
-    background: rgba(14, 165, 233, 0.08);
-    border: 1px solid rgba(14, 165, 233, 0.2);
-    padding: 1px 6px;
-    border-radius: 9999px;
-    margin-left: 2px;
-`;
-
+/* Etykiety sekcji („POJAZD", „TAGI" 10 px wersalikami) zniknęły też z szerokiego
+   ekranu: były jedyną ramą sekcji, a pola i tak mówią, czym są (CLAUDE.md §2).
+   Zasadę łączenia tagów niesie panel wyboru - tam, gdzie się je zaznacza. */
 const SectionControls = styled.div`
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     flex-wrap: wrap;
+    min-width: 0;
 
     @media (max-width: 768px) {
         display: contents;
@@ -126,9 +87,9 @@ const TagChips = styled.div`
 
 const SectionDivider = styled.div`
     width: 1px;
-    align-self: stretch;
-    margin: 14px 20px;
-    background: ${p => p.theme.colors.border};
+    height: 24px;
+    margin: 0 10px;
+    background: ${ui.line};
     flex-shrink: 0;
 
     @media (max-width: 768px) {
@@ -136,14 +97,13 @@ const SectionDivider = styled.div`
     }
 `;
 
-// ─── right side: count + clear ────────────────────────────────────────────────
+// ─── right side: clear ────────────────────────────────────────────────────────
 
+/* Licznik zdjęć mieszka w nagłówku strony - tu zostaje samo czyszczenie. */
 const RightSide = styled.div`
     display: flex;
     align-items: center;
-    gap: 12px;
     margin-left: auto;
-    padding-left: 20px;
     flex-shrink: 0;
 
     @media (max-width: 768px) {
@@ -151,42 +111,15 @@ const RightSide = styled.div`
     }
 `;
 
-/* Licznik zdjęć żyje tu tylko na szerokim ekranie. Na telefonie tę samą liczbę
-   podaje pasek tytułu („Galeria / 12 zdjęć”), a dwa razy to samo w jednym widoku
-   to nie potwierdzenie, tylko szum. */
-const PhotoCount = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 1px;
-    text-align: right;
-
-    @media (max-width: 768px) {
-        display: none;
-    }
-`;
-
-const CountNumber = styled.span`
-    font-size: ${p => p.theme.fontSizes.lg};
-    font-weight: 700;
-    color: ${p => p.theme.colors.text};
-    line-height: 1;
-`;
-
-const CountLabel = styled.span`
-    font-size: 10px;
-    color: ${p => p.theme.colors.textMuted};
-    line-height: 1;
-`;
-
 const ClearAllBtn = styled.button`
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    padding: 6px 13px;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.md};
-    background: transparent;
+    height: 36px;
+    padding: 0 14px;
+    border: 1px solid ${ui.line};
+    border-radius: ${ui.radiusControl};
+    background: ${ui.surface};
     font-size: ${p => p.theme.fontSizes.xs};
     font-weight: 500;
     color: ${p => p.theme.colors.textMuted};
@@ -223,7 +156,7 @@ const ClearLabel = styled.span`
 // ─── brand / model selects ────────────────────────────────────────────────────
 
 const SelectWrap = styled.div`
-    width: 160px;
+    width: 170px;
 
     @media (max-width: 768px) {
         /* Równy podział rzędu: trzy pola tej samej szerokości czytają się jako
@@ -237,9 +170,13 @@ const SelectWrap = styled.div`
         min-height: 36px;
         box-sizing: border-box;
         padding: 0 12px;
-        border: 1px solid ${p => p.theme.colors.border};
-        border-radius: ${p => p.theme.radii.md};
-        background: ${p => p.theme.colors.surfaceAlt};
+        border: 1px solid ${ui.line};
+        border-radius: ${ui.radiusRow};
+        background: ${ui.surfaceSoft};
+        /* „Wybierz markę" w trzeciej części telefonu łamało się na dwie linie. */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
         font-size: ${p => p.theme.fontSizes.sm};
         color: ${p => p.theme.colors.text};
         transition: all 0.15s ease;
@@ -263,13 +200,13 @@ const TagChip = styled.button`
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    height: 30px;
-    padding: 0 10px;
-    border: 1px solid rgba(14, 165, 233, 0.5);
-    border-radius: ${p => p.theme.radii.md};
-    background: rgba(14, 165, 233, 0.07);
-    color: var(--brand-primary);
-    font-size: 12px;
+    height: 32px;
+    padding: 0 12px;
+    border: 1px solid ${ui.brandLineSoft};
+    border-radius: ${ui.radiusControl};
+    background: ${ui.brandTint};
+    color: ${ui.brandDeep};
+    font-size: 12.5px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -300,14 +237,14 @@ const AddTagBtn = styled.button<{ $hasActive: boolean }>`
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    height: 30px;
-    padding: 0 11px;
-    border: 1px dashed ${p => p.$hasActive ? 'rgba(14,165,233,0.5)' : p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.md};
+    height: 32px;
+    padding: 0 13px;
+    border: 1px dashed ${p => p.$hasActive ? ui.brandLine : ui.lineStrong};
+    border-radius: ${ui.radiusControl};
     background: transparent;
-    color: ${p => p.$hasActive ? 'var(--brand-primary)' : p.theme.colors.textMuted};
-    font-size: 12px;
-    font-weight: 500;
+    color: ${p => p.$hasActive ? ui.brandInk : ui.textSecondary};
+    font-size: 12.5px;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.15s ease;
     white-space: nowrap;
@@ -447,21 +384,6 @@ const NoTagsMsg = styled.p`
 
 // ─── SVG helpers ──────────────────────────────────────────────────────────────
 
-const IconCar = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M5 17H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1l3-4h10l3 4h1a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-2" />
-        <circle cx="7" cy="17" r="2" />
-        <circle cx="17" cy="17" r="2" />
-    </svg>
-);
-
-const IconTag = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-        <line x1="7" y1="7" x2="7.01" y2="7" />
-    </svg>
-);
-
 const IconX = ({ size = 12 }: { size?: number }) => (
     <svg viewBox="0 0 10 10" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
         <line x1="2" y1="2" x2="8" y2="8" />
@@ -486,10 +408,7 @@ interface GalleryFilterBarProps {
     activeTags: string[];
     availableTags: string[];
     onTagToggle: (tag: string) => void;
-    onClearTags: () => void;
     onClearAll: () => void;
-    totalPhotos: number;
-    isFetching: boolean;
 }
 
 export const GalleryFilterBar = ({
@@ -500,10 +419,7 @@ export const GalleryFilterBar = ({
     activeTags,
     availableTags,
     onTagToggle,
-    onClearTags,
     onClearAll,
-    totalPhotos,
-    isFetching,
 }: GalleryFilterBarProps) => {
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [tagSearch, setTagSearch] = useState('');
@@ -564,22 +480,11 @@ export const GalleryFilterBar = ({
     // szerokości ekranu i urywa się w połowie słowa.
     const isNarrow = useMediaQuery('(max-width: 768px)');
 
-    const countLabel = isFetching
-        ? '…'
-        : `${totalPhotos}`;
-    const countSuffix = isFetching
-        ? ''
-        : pluralPl(totalPhotos, 'zdjęcie', 'zdjęcia', 'zdjęć');
-
     return (
         <Bar>
 
             {/* ── POJAZD ── */}
             <FilterSection>
-                <SectionLabel>
-                    <IconCar />
-                    Pojazd
-                </SectionLabel>
                 <SectionControls>
                     <SelectWrap>
                         <BrandSelect kind="ALL"
@@ -603,13 +508,6 @@ export const GalleryFilterBar = ({
 
             {/* ── TAGI ── */}
             <FilterSection $grow>
-                <SectionLabel>
-                    <IconTag />
-                    Tagi
-                    {activeTags.length > 1 && (
-                        <LogicHint>wszystkie wymagane</LogicHint>
-                    )}
-                </SectionLabel>
                 <SectionControls>
                     {/* Pusty kontener zostawiłby po sobie odstęp przed przyciskiem,
                         więc nie renderujemy go, dopóki nie ma czego pokazać. */}
@@ -686,10 +584,6 @@ export const GalleryFilterBar = ({
                         <ClearLabel>Wyczyść filtry</ClearLabel>
                     </ClearAllBtn>
                 )}
-                <PhotoCount>
-                    <CountNumber>{countLabel}</CountNumber>
-                    <CountLabel>{countSuffix || 'zdjęć'}</CountLabel>
-                </PhotoCount>
             </RightSide>
         </Bar>
     );

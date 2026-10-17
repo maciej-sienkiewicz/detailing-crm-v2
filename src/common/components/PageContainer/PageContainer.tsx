@@ -49,7 +49,7 @@ import { pageGutter, pageWidthStyles, type PageWidth } from './pageWidth';
  *   - "full"     — bez limitu szerokości, ale z tym samym gutterem; dla gęstych
  *                  tabel, które muszą wykorzystać całą dostępną przestrzeń.
  *
- * Widoki celowo pełnoekranowe (Kalendarz, Galeria, Poczta, Leady) zarządzają
+ * Widoki celowo pełnoekranowe (Kalendarz, Poczta, Leady) zarządzają
  * własnym układem (100dvh, własne przewijanie kolumn) i NIE korzystają z tego
  * komponentu.
  */
