@@ -15,6 +15,7 @@ import { Camera, ImageUp, Loader2, QrCode } from 'lucide-react';
 import { useMediaQuery } from '@/common/hooks';
 import { ActionMenu, MenuItem, useActionMenu } from '@/common/components/ui';
 import { VinQrModal } from './VinQrModal';
+import { prepareImageForVin } from '@/modules/checkin/services/imageUploadPrep';
 import { vehicleVinApi, type VinApi } from './vinApi';
 
 const Btn = styled.button.attrs({ type: 'button' })`
@@ -65,7 +66,8 @@ export function VinCameraButton({ onVin, onError, api = vehicleVinApi, disabled,
         if (!file) return;
         setReading(true);
         try {
-            const vin = await api.extractVin(file);
+            // Zmniejszone do tego, co model i tak czyta - oryginał z telefonu to sekundy wysyłki.
+            const vin = await api.extractVin(await prepareImageForVin(file));
             if (vin) onVin(vin);
             else onError?.('Nie udało się odczytać VIN ze zdjęcia. Spróbuj ponownie lub wpisz ręcznie.');
         } catch {

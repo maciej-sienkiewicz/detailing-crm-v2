@@ -10,7 +10,7 @@
 
 import { useState } from 'react';
 import { checkinApi } from '../../api/checkinApi';
-import { prepareImageOrExplain } from '../../services/imageUploadPrep';
+import { prepareImageForVin, prepareImageOrExplain } from '../../services/imageUploadPrep';
 import { describeUploadError, isSessionGoneError } from './uploadErrors';
 import {
     AllDoneCard,
@@ -45,7 +45,7 @@ export const MobileVinScanSection = ({ token, onSessionGone }: Props) => {
         if (!picked) return;
         setState({ kind: 'reading' });
         // HEIC z iPhone'a i duże zdjęcia - ta sama obróbka co przy przyjęciu pojazdu.
-        const prepared = await prepareImageOrExplain(picked);
+        const prepared = await prepareImageOrExplain(picked, prepareImageForVin);
         if (!prepared.file) {
             setState({ kind: 'error', message: prepared.error });
             return;
