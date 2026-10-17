@@ -15,6 +15,7 @@ const wizard = vi.hoisted(() => ({
     goToStep: vi.fn(),
     submitCheckIn: vi.fn(),
     reviseDraftServices: vi.fn(),
+    updateFormData: vi.fn(),
 }));
 
 vi.mock('../hooks/useCheckInWizard', () => ({
@@ -24,10 +25,11 @@ vi.mock('../hooks/useCheckInWizard', () => ({
         formData: {
             customerData: { firstName: 'Jan', lastName: 'Kowalski', phone: '', email: '' },
             vehicleData: { brand: 'BMW', model: 'X5' },
+            visitEndAt: '2099-01-01T12:00',
             services: [], photos: [{ id: 'p1' }], damagePoints: [],
         },
         steps: [{ id: 'verification', label: 'Klient, auto i usługi' }, { id: 'photos', label: 'Zdjęcia i uszkodzenia' }],
-        updateFormData: vi.fn(),
+        updateFormData: wizard.updateFormData,
         nextStep: vi.fn(),
         previousStep: vi.fn(),
         goToStep: wizard.goToStep,
@@ -104,5 +106,36 @@ describe('CheckInWizardView - „Wróć do formularza"', () => {
         expect(wizard.submitCheckIn).toHaveBeenCalledTimes(1);
         expect(await screen.findByText(/nowy/)).toBeInTheDocument();
         expect(screen.queryByText('Poprawiasz założone przyjęcie')).toBeNull();
+    });
+});
+
+describe('CheckInWizardView - rezerwacja z minionego dnia', () => {
+    const renderReservation = (plannedStartAt: string) => render(
+        <MemoryRouter>
+            <ThemeProvider theme={theme}>
+                <CheckInWizardView reservationId="r-1" plannedStartAt={plannedStartAt} initialData={{}} colors={[]} onComplete={vi.fn()} />
+            </ThemeProvider>
+        </MemoryRouter>,
+    );
+
+    it('najpierw pyta, kiedy auto trafiło do studia, i wpisuje odpowiedź w datę rozpoczęcia', () => {
+        const planned = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000);
+        planned.setHours(9, 0, 0, 0);
+        renderReservation(planned.toISOString());
+
+        expect(screen.getByText('Kiedy auto trafiło do studia?')).toBeInTheDocument();
+        fireEvent.click(screen.getByText(/Od dnia rezerwacji/));
+        fireEvent.click(screen.getByRole('button', { name: 'Przejdź do przyjęcia' }));
+
+        const pad = (n: number) => String(n).padStart(2, '0');
+        expect(wizard.updateFormData).toHaveBeenCalledWith({
+            visitStartAt: `${planned.getFullYear()}-${pad(planned.getMonth() + 1)}-${pad(planned.getDate())}T09:00`,
+        });
+        expect(screen.queryByText('Kiedy auto trafiło do studia?')).toBeNull();
+    });
+
+    it('rezerwacja z dzisiaj nie pyta o nic', () => {
+        renderReservation(new Date().toISOString());
+        expect(screen.queryByText('Kiedy auto trafiło do studia?')).toBeNull();
     });
 });

@@ -11,6 +11,8 @@ import { VerificationStep } from '../components/VerificationStep';
 import { PhotoDocumentationStep } from '../components/PhotoDocumentationStep';
 import { SigningRequirementModal } from '../components/SigningRequirementModal';
 import { ResumeCheckInModal } from '../components/ResumeCheckInModal';
+import { ArrivalDateModal } from '../components/ArrivalDateModal';
+import { arrivalStartUpdates, needsArrivalDateDecision } from '../utils/arrivalDate';
 import { visitApi } from '@/modules/visits/api/visitApi';
 import type { OpenDraftVisit } from '@/modules/visits/types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -254,11 +256,16 @@ interface CheckInWizardViewProps {
     initialData: Partial<CheckInFormData>;
     colors: AppointmentColor[];
     onComplete: (visitId: string) => void;
+    /**
+     * Początek rezerwacji (Instant). Gdy wypada w minionym dniu, przed formularzem
+     * staje pytanie o prawdziwą datę przyjęcia auta - patrz utils/arrivalDate.
+     */
+    plannedStartAt?: string;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, colors, onComplete }: CheckInWizardViewProps) => {
+export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, colors, onComplete, plannedStartAt }: CheckInWizardViewProps) => {
     // Effective QR checkin ID: reservation ID for booked check-ins, generated UUID for walk-ins
     const qrCheckinId = reservationId ?? qrSessionId;
 
@@ -341,6 +348,11 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
      * szkicu i generuje dokumenty od nowa (PUT /checkin/drafts/{id}/services).
      */
     const [revisingVisit, setRevisingVisit] = useState<{ visitId: string; visitNumber: string } | null>(null);
+
+    /** Pytanie o datę przyjęcia rezerwacji z minionego dnia - raz, przy wejściu w kreator. */
+    const [askArrivalDate, setAskArrivalDate] = useState(
+        () => !!reservationId && needsArrivalDateDecision(plannedStartAt, new Date()),
+    );
 
     /** Wznawiane przyjęcie z bramki 409 - patrz [handleSubmit]. */
     const [resumeDraft, setResumeDraft] = useState<OpenDraftVisit | null>(null);
@@ -628,6 +640,21 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                     onConfirm={handleSigningModalConfirm}
                     hasPhotos={signingModalState.hasPhotos}
                     hasDamageMap={signingModalState.hasDamageMap}
+                />
+            )}
+
+            {askArrivalDate && plannedStartAt && (
+                <ArrivalDateModal
+                    plannedStart={plannedStartAt}
+                    vehicleLabel={[
+                        [formData.vehicleData?.brand, formData.vehicleData?.model].filter(Boolean).join(' '),
+                        formData.vehicleData?.licensePlate,
+                    ].filter(Boolean).join(', ') || undefined}
+                    onConfirm={visitStartAt => {
+                        updateFormData(arrivalStartUpdates(visitStartAt, formData.visitEndAt));
+                        setAskArrivalDate(false);
+                    }}
+                    onBack={() => navigate(-1)}
                 />
             )}
 
