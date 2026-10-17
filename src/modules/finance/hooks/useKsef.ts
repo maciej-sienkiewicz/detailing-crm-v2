@@ -20,6 +20,12 @@ export const KSEF_INVOICING_STATUS_KEY = ['ksef', 'invoicing-status'] as const;
 export const KSEF_SYNC_STATUS_KEY = ['ksef', 'sync', 'status'] as const;
 export const KSEF_EXPENSES_KEY    = ['ksef', 'expenses']       as const;
 export const KSEF_STATISTICS_KEY  = ['ksef', 'statistics']     as const;
+/**
+ * Rachunek zysku wizyt (visits/hooks/useVisitCosts - VISIT_COSTS_KEY). Ukrycie, przywrócenie
+ * i usunięcie dokumentu kosztowego zmienia zysk wizyty, do której go przypięto. Literał,
+ * bo moduł wizyt już importuje stąd klucze - import w drugą stronę zamknąłby cykl.
+ */
+const VISIT_COSTS_KEY = ['visit-costs'] as const;
 
 // ── Credentials ───────────────────────────────────────────────────────────────
 
@@ -250,6 +256,7 @@ export const useExcludeExpense = () => {
       queryClient.invalidateQueries({ queryKey: KSEF_EXPENSES_KEY });
       queryClient.invalidateQueries({ queryKey: KSEF_STATISTICS_KEY });
       queryClient.invalidateQueries({ queryKey: FINANCE_SUMMARY_KEY });
+      queryClient.invalidateQueries({ queryKey: VISIT_COSTS_KEY });
     },
   });
 };
@@ -263,6 +270,7 @@ export const useRestoreExpense = () => {
       queryClient.invalidateQueries({ queryKey: KSEF_EXPENSES_KEY });
       queryClient.invalidateQueries({ queryKey: KSEF_STATISTICS_KEY });
       queryClient.invalidateQueries({ queryKey: FINANCE_SUMMARY_KEY });
+      queryClient.invalidateQueries({ queryKey: VISIT_COSTS_KEY });
     },
   });
 };
@@ -305,6 +313,7 @@ export const useDeleteExpense = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: KSEF_EXPENSES_KEY });
       queryClient.invalidateQueries({ queryKey: KSEF_STATISTICS_KEY });
+      queryClient.invalidateQueries({ queryKey: VISIT_COSTS_KEY });
     },
   });
 };
