@@ -167,6 +167,10 @@ export interface GenerateInstagramPostRequest {
      * Reguły trwałe studia żyją w /style-rules i backend dokłada je sam.
      */
     styleNotes?: string[];
+    /** Realizacja: backend bierze z niej auto i wykonane usługi jako fakty dla modelu. */
+    visitId?: string;
+    /** Zdjęcia tej wizyty, które zobaczy model (najwyżej 6), w kolejności karuzeli. */
+    photoIds?: string[];
 }
 
 /**

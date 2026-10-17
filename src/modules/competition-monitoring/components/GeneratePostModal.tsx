@@ -17,10 +17,18 @@ import { instagramApi } from '../api/instagramApi';
 import { pluralPl } from '@/common/utils/plural';
 import { acquireScrollLock } from '@/common/utils/scrollLock';
 import { accountsApi, apiErrorMessage } from '../api/accountsApi';
-import type { PublishResult } from '../accountsTypes';
+import type { PublishResult, PublishVisit } from '../accountsTypes';
 import { useInstagramConnection, usePublishVisits } from '../hooks/useAccounts';
 import { PublishSection } from './accounts/PublishSection';
-import { captionProblem, initialSelection, togglePhoto } from './accounts/publishLogic';
+import {
+    captionProblem,
+    defaultAiSelection,
+    MAX_AI_PHOTOS,
+    publishSeed,
+    togglePhoto,
+    topicAfterVisitChange,
+} from './accounts/publishLogic';
+import { VisitMaterialSection } from './accounts/VisitMaterialSection';
 
 // ─── Animations ────────────────────────────────────────────────────────────────
 
@@ -893,8 +901,10 @@ type Phase = 'form' | 'loading' | 'result';
 export interface GeneratePostPrefill {
     topic?: string;
     context?: string;
-    /** Wizyta, z której otwarto generator - jej zdjęcia są od razu zaznaczone do publikacji. */
+    /** Wizyta, z której otwarto generator - jej auto, usługi i zdjęcia idą do AI i do publikacji. */
     visitId?: string;
+    /** „Wybierz inną realizację": okno zaczyna od wyboru wizyty, bez podpowiedzianej. */
+    pickVisit?: boolean;
 }
 
 interface Props {
@@ -933,21 +943,40 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
     const [publishing, setPublishing]     = useState(false);
     const [publishError, setPublishError] = useState<string | null>(null);
     const [published, setPublished]       = useState<PublishResult | null>(null);
-    const [selectionSeeded, setSelectionSeeded] = useState(false);
+
+    // Realizacja: wizyta i zdjęcia, które zobaczy AI. Te same zdjęcia startują jako wybór do publikacji.
+    const [visitId, setVisitId]           = useState<string | undefined>(prefill?.pickVisit ? undefined : prefill?.visitId);
+    const [aiPhotos, setAiPhotos]         = useState<string[]>([]);
+    const [aiSeeded, setAiSeeded]         = useState(false);
+    const [publishSeeded, setPublishSeeded] = useState(false);
 
     const topicRef    = useRef<HTMLInputElement>(null);
 
     const connectionQuery = useInstagramConnection();
     const canPublish = connectionQuery.data?.status === 'CONNECTED';
-    const visitsQuery = usePublishVisits(canPublish && phase === 'result');
+    // Wizyty są potrzebne już w formularzu (wybór realizacji), nie dopiero przy publikacji.
+    const visitsQuery = usePublishVisits(true);
 
-    // Zdjęcia wizyty, z której otwarto generator, zaznaczamy raz, gdy lista przyjdzie -
+    // Zdjęcia dla AI z wizyty, z której otwarto generator, zaznaczamy raz, gdy lista przyjdzie -
     // potem decyduje właściciel. Ustawienie w trakcie renderu, nie w efekcie: inaczej
     // pierwsza klatka pokazałaby pustą siatkę i dopiero druga zaznaczenie.
-    if (!selectionSeeded && visitsQuery.data) {
-        setSelectionSeeded(true);
-        setSelected(initialSelection(visitsQuery.data, prefill?.visitId));
+    if (!aiSeeded && visitsQuery.data) {
+        setAiSeeded(true);
+        setAiPhotos(defaultAiSelection(visitsQuery.data.find(v => v.visitId === visitId)));
     }
+
+    // Do publikacji startują zdjęcia, które widział model - tekst opisuje właśnie je. W renderze,
+    // nie przy samym wyniku: lista wizyt mogła przyjść dopiero po kliknięciu „Generuj".
+    if (phase === 'result' && !publishSeeded && visitsQuery.data) {
+        setPublishSeeded(true);
+        setSelected(publishSeed(aiPhotos, visitsQuery.data, visitId));
+    }
+
+    const handleVisitChange = (next: PublishVisit | undefined) => {
+        setVisitId(next?.visitId);
+        setAiPhotos(defaultAiSelection(next));
+        setTopic(prev => topicAfterVisitChange(prev, next));
+    };
 
     const activeRuleCount = rules.filter(r => r.active).length;
 
@@ -957,11 +986,13 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
     // scrollLock (CLAUDE.md §3); okno jest montowane tylko otwarte, więc wystarczy mount.
     useEffect(() => acquireScrollLock(), []);
 
-    // Focus topic on open
+    // Focus topic on open - poza „Wybierz inną realizację": tam pierwszym pytaniem jest wizyta.
+    const pickVisit = prefill?.pickVisit === true;
     useEffect(() => {
+        if (pickVisit) return;
         const t = setTimeout(() => topicRef.current?.focus(), 80);
         return () => clearTimeout(t);
-    }, []);
+    }, [pickVisit]);
 
     // Reguły studia ładujemy raz przy otwarciu - ich brak nie może blokować generowania.
     useEffect(() => {
@@ -995,11 +1026,14 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                 context:    context.trim() || undefined,
                 postTone:   tone   as GenerateInstagramPostRequest['postTone']   ?? undefined,
                 postLength: length as GenerateInstagramPostRequest['postLength'] ?? undefined,
+                visitId,
+                photoIds:   visitId && aiPhotos.length > 0 ? aiPhotos : undefined,
             };
             const data = await instagramApi.generatePost(req);
             setResult(data);
             // Nowy tekst to nowy podpis: wcześniejsza edycja dotyczyła poprzedniej wersji posta.
             setCaption(data.content);
+            setPublishSeeded(false);
             setPublished(null);
             setPublishError(null);
             setPhase('result');
@@ -1011,7 +1045,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
             setGenError(message ?? 'Nie udało się wygenerować posta. Spróbuj ponownie.');
             setPhase('form');
         }
-    }, [canGenerate, topic, context, tone, length]);
+    }, [canGenerate, topic, context, tone, length, visitId, aiPhotos]);
 
     const handleCopy = useCallback(async () => {
         if (!result) return;
@@ -1283,6 +1317,16 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
         // phase === 'form'
         return (
             <>
+                <VisitMaterialSection
+                    visits={visitsQuery.data}
+                    loading={visitsQuery.isLoading}
+                    visitId={visitId}
+                    onVisitChange={handleVisitChange}
+                    aiPhotos={aiPhotos}
+                    onToggleAiPhoto={id => setAiPhotos(prev => togglePhoto(prev, id, MAX_AI_PHOTOS))}
+                    highlight={prefill?.pickVisit === true && !visitId}
+                />
+
                 {/* Topic */}
                 <FormSection>
                     <FieldLabel htmlFor="gp-topic">

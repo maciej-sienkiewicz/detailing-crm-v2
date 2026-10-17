@@ -166,6 +166,15 @@ const TodoText = styled.div`
     span { font-size: 13px; color: ${ui.textMuted}; }
 `;
 
+const TodoActions = styled.div`
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+
+    @media (max-width: 520px) { width: 100%; justify-content: flex-start; }
+`;
+
 const Quiet = styled.p`
     margin: 0;
     padding: 4px 20px 18px;
@@ -235,6 +244,8 @@ const shortDate = (iso: string) =>
 
 export interface OverviewActions {
     onTodo: (todo: HomeTodo) => void;
+    /** „Wybierz inną realizację" przy zadaniu publikacji: generator zaczyna od wyboru wizyty. */
+    onPickVisit: () => void;
     onMarket: (event: HomeMarketEvent) => void;
     onOpenProfiles: () => void;
     onOpenAccounts: () => void;
@@ -433,13 +444,23 @@ export const OverviewTab: React.FC<OverviewActions> = actions => {
                                             <strong>{item.title}</strong>
                                             {item.detail && <span>{item.detail}</span>}
                                         </TodoText>
-                                        <Button
-                                            size="sm"
-                                            variant={index === 0 ? 'primary' : 'outline'}
-                                            onClick={() => actions.onTodo(item)}
-                                        >
-                                            {item.actionLabel}
-                                        </Button>
+                                        <TodoActions>
+                                            {/* Podpowiedziana wizyta to tylko najnowsza ze zdjęciami - nie musi być
+                                                tą, którą właściciel chce pokazać. Bez obwódki: wypełniony zostaje
+                                                wyłącznie krok następny (CLAUDE.md §2). */}
+                                            {item.kind === 'PUBLISH' && item.visitId && (
+                                                <Button size="sm" variant="ghost" onClick={actions.onPickVisit}>
+                                                    Wybierz inną realizację
+                                                </Button>
+                                            )}
+                                            <Button
+                                                size="sm"
+                                                variant={index === 0 ? 'primary' : 'outline'}
+                                                onClick={() => actions.onTodo(item)}
+                                            >
+                                                {item.actionLabel}
+                                            </Button>
+                                        </TodoActions>
                                     </TodoItem>
                                 );
                             })}

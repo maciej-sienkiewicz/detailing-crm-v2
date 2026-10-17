@@ -26,7 +26,7 @@ describe('Przegląd', () => {
 describe('generator z „Do zrobienia"', () => {
     it('realizacja z wizyty ma temat, kontekst i zdjęcia tej wizyty', () => {
         expect(prefillFromTodo({ title: 'Opublikuj realizację: Volvo XC60', detail: '12 zdjęć z wizyty VIS-1', visitId: 'v1' }))
-            .toEqual({ topic: 'Realizacja: Volvo XC60', context: '12 zdjęć z wizyty VIS-1', visitId: 'v1' });
+            .toEqual({ topic: 'Realizacja: Volvo XC60', visitId: 'v1' });
     });
 
     it('zwykłe „Opublikuj post" nie zmyśla tematu', () => {
