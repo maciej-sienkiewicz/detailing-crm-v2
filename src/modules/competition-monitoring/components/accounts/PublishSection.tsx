@@ -48,13 +48,13 @@ const VisitMeta = styled.div`
     strong { font-weight: 650; color: ${ui.ink}; }
 `;
 
-const Thumbs = styled.div`
+export const Thumbs = styled.div`
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
     gap: 6px;
 `;
 
-const Thumb = styled.button<{ $selected: boolean }>`
+export const Thumb = styled.button<{ $selected: boolean }>`
     position: relative;
     aspect-ratio: 1 / 1;
     padding: 0;
@@ -70,7 +70,7 @@ const Thumb = styled.button<{ $selected: boolean }>`
 `;
 
 /** Numer w karuzeli - kolejność zaznaczania jest kolejnością zdjęć w poście. */
-const Order = styled.span`
+export const Order = styled.span`
     position: absolute;
     top: 4px;
     right: 4px;

@@ -13,7 +13,16 @@ import {
     topHours,
     withoutResultParams,
 } from './accountsLogic';
-import { captionProblem, countHashtags, initialSelection, togglePhoto } from './publishLogic';
+import {
+    captionProblem,
+    countHashtags,
+    defaultAiSelection,
+    initialSelection,
+    MAX_AI_PHOTOS,
+    publishSeed,
+    togglePhoto,
+    topicAfterVisitChange,
+} from './publishLogic';
 
 const period = (patch: Partial<OwnPeriod> = {}): OwnPeriod => ({
     reach: 1000, views: 4000, accountsEngaged: 120, totalInteractions: 300,
@@ -151,5 +160,35 @@ describe('publikacja', () => {
         expect(initialSelection(visits, 'v1')).toHaveLength(10);
         expect(initialSelection(visits, 'v2')).toEqual([]);
         expect(initialSelection(visits, undefined)).toEqual([]);
+    });
+});
+
+describe('zdjęcia dla generatora', () => {
+    const visit = (id: string, vehicle: string, photos: number) => ({
+        visitId: id, visitNumber: null, vehicle, date: '2026-10-15T10:00:00Z',
+        photos: Array.from({ length: photos }, (_, i) => ({ id: `${id}-${i}`, thumbnailUrl: '' })),
+    });
+
+    it('domyślnie pierwsze cztery zdjęcia, limit sześciu przy zaznaczaniu', () => {
+        expect(defaultAiSelection(visit('v1', 'BMW X5', 8))).toEqual(['v1-0', 'v1-1', 'v1-2', 'v1-3']);
+        expect(defaultAiSelection(visit('v2', 'Audi', 2))).toEqual(['v2-0', 'v2-1']);
+        expect(defaultAiSelection(undefined)).toEqual([]);
+        const six = ['a', 'b', 'c', 'd', 'e', 'f'];
+        expect(togglePhoto(six, 'g', MAX_AI_PHOTOS)).toEqual(six);
+    });
+
+    it('temat automatyczny idzie za autem, własny zostaje', () => {
+        const x5 = visit('v1', 'BMW X5', 1);
+        const a4 = visit('v2', 'Audi A4', 1);
+        expect(topicAfterVisitChange('Realizacja: BMW X5', a4)).toBe('Realizacja: Audi A4');
+        expect(topicAfterVisitChange('', x5)).toBe('Realizacja: BMW X5');
+        expect(topicAfterVisitChange('Promocja na zimę', a4)).toBe('Promocja na zimę');
+        expect(topicAfterVisitChange('Realizacja: BMW X5', undefined)).toBe('');
+    });
+
+    it('publikacja startuje od zdjęć, które widział model', () => {
+        const visits = [visit('v1', 'BMW X5', 3)];
+        expect(publishSeed(['v1-2', 'v1-0'], visits, 'v1')).toEqual(['v1-2', 'v1-0']);
+        expect(publishSeed([], visits, 'v1')).toEqual(['v1-0', 'v1-1', 'v1-2']);
     });
 });

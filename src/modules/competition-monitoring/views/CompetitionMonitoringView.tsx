@@ -350,6 +350,7 @@ export const CompetitionMonitoringView = () => {
             {tab === 'przeglad' && (
                 <OverviewTab
                     onTodo={handleTodo}
+                    onPickVisit={() => openGenerator({ pickVisit: true })}
                     onMarket={handleMarket}
                     onOpenProfiles={() => setDrawerOpen(true)}
                     onOpenAccounts={() => setUrlState({ tab: 'moj' })}

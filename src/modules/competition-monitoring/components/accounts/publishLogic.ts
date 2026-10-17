@@ -37,3 +37,36 @@ export const initialSelection = (visits: PublishVisit[], visitId: string | undef
     const visit = visits.find(v => v.visitId === visitId);
     return visit ? visit.photos.slice(0, MAX_PUBLISH_PHOTOS).map(p => p.id) : [];
 };
+
+/**
+ * Zdjęcia, które zobaczy generator. Sześć mieści typową karuzelę realizacji, a każde
+ * kolejne to tylko tokeny wejścia - backend przyjmuje najwyżej tyle samo.
+ */
+export const MAX_AI_PHOTOS = 6;
+
+/** Domyślnie pierwsze cztery: dość, żeby model zobaczył auto z kilku stron, bez przepłacania. */
+const DEFAULT_AI_PHOTOS = 4;
+
+export const defaultAiSelection = (visit: PublishVisit | undefined): string[] =>
+    visit ? visit.photos.slice(0, DEFAULT_AI_PHOTOS).map(p => p.id) : [];
+
+export const realizationTopic = (vehicle: string): string => `Realizacja: ${vehicle}`;
+
+/**
+ * Temat po zmianie realizacji. Temat pusty albo nadany automatycznie („Realizacja: BMW X5",
+ * także z „Do zrobienia") idzie za nowym autem; każdy inny zostaje - właściciel mógł już
+ * napisać coś własnego.
+ */
+export const topicAfterVisitChange = (topic: string, next: PublishVisit | undefined): string => {
+    const trimmed = topic.trim();
+    if (trimmed !== '' && !/^realizacja:/i.test(trimmed)) return topic;
+    return next ? realizationTopic(next.vehicle) : '';
+};
+
+/**
+ * Zaznaczenie do publikacji po wygenerowaniu: te same zdjęcia, które widział model -
+ * tekst je opisuje, więc inne zdjęcia w poście rozjechałyby się z podpisem. Bez wyboru
+ * dla modelu wracamy do dawnego zachowania (zdjęcia wizyty, z której otwarto generator).
+ */
+export const publishSeed = (aiPhotos: string[], visits: PublishVisit[], visitId: string | undefined): string[] =>
+    aiPhotos.length > 0 ? aiPhotos.slice(0, MAX_PUBLISH_PHOTOS) : initialSelection(visits, visitId);

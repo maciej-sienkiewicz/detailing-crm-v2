@@ -3,6 +3,9 @@
 // Publikacja z generatora: zdjęcia wizyty, z której otwarto generator, są zaznaczone od
 // razu, podpis to wygenerowany tekst, a po publikacji okno prowadzi do posta. Bez
 // połączonego konta zostaje kopiowanie i link do „Moje konta".
+//
+// Realizacja: wizyta i wybrane zdjęcia idą do generatora (fakty i obrazy dla modelu),
+// a do publikacji startują te same zdjęcia, które widział model.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -47,13 +50,13 @@ const connection = (status: InstagramConnection['status']): InstagramConnection 
     lastError: null, messagingEnabled: true, candidates: [],
 });
 
-const renderModal = (onClose = vi.fn()) => {
+const renderModal = (onClose = vi.fn(), prefill: Parameters<typeof GeneratePostModal>[0]['prefill'] = { topic: 'Powłoka ceramiczna Volvo', visitId: 'v1' }) => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
         <ThemeProvider theme={theme}>
             <QueryClientProvider client={client}>
                 <MemoryRouter>
-                    <GeneratePostModal onClose={onClose} prefill={{ topic: 'Powłoka ceramiczna Volvo', visitId: 'v1' }} />
+                    <GeneratePostModal onClose={onClose} prefill={prefill} />
                 </MemoryRouter>
             </QueryClientProvider>
         </ThemeProvider>,
@@ -92,6 +95,40 @@ describe('GeneratePostModal: publikacja', () => {
         fireEvent.click(screen.getByRole('button', { name: /Generuj post/ }));
         await screen.findByRole('link', { name: /Połącz konto Instagram/ });
         expect(screen.queryByRole('button', { name: /Opublikuj/ })).toBeNull();
-        expect(accountsApi.listPublishVisits).not.toHaveBeenCalled();
+        expect(accountsApi.publish).not.toHaveBeenCalled();
+    });
+
+    it('wizyta i zdjęcia wybrane dla AI idą do generatora, publikacja startuje od nich', async () => {
+        vi.mocked(accountsApi.getConnection).mockResolvedValue(connection('CONNECTED'));
+        renderModal();
+
+        // Oba zdjęcia wizyty są zaznaczone dla AI; drugie odznaczamy przed generowaniem.
+        await waitFor(() => expect(screen.getAllByRole('button', { pressed: true })).toHaveLength(2));
+        fireEvent.click(screen.getByRole('button', { name: /Zdjęcie 2 dla AI/ }));
+        fireEvent.click(screen.getByRole('button', { name: /Generuj post/ }));
+
+        await waitFor(() => expect(instagramApi.generatePost).toHaveBeenCalledWith(
+            expect.objectContaining({ visitId: 'v1', photoIds: ['p1'] }),
+        ));
+        fireEvent.click(await screen.findByRole('button', { name: /Opublikuj/ }));
+        await waitFor(() => expect(accountsApi.publish).toHaveBeenCalledWith(
+            expect.objectContaining({ photoIds: ['p1'] }),
+        ));
+    });
+
+    it('„Wybierz inną realizację" zaczyna bez wizyty, a wybór ustawia temat', async () => {
+        vi.mocked(accountsApi.getConnection).mockResolvedValue(connection('NOT_CONNECTED'));
+        renderModal(vi.fn(), { pickVisit: true });
+
+        const select = await screen.findByRole('combobox', { name: /Wizyta, której dotyczy post/ });
+        expect((select as HTMLSelectElement).value).toBe('');
+        expect(screen.getByText('Wybierz realizację')).toBeTruthy();
+
+        fireEvent.change(select, { target: { value: 'v1' } });
+        expect((screen.getByLabelText(/Temat posta/) as HTMLInputElement).value).toBe('Realizacja: Volvo XC60');
+        fireEvent.click(screen.getByRole('button', { name: /Generuj post/ }));
+        await waitFor(() => expect(instagramApi.generatePost).toHaveBeenCalledWith(
+            expect.objectContaining({ visitId: 'v1', photoIds: ['p1', 'p2'] }),
+        ));
     });
 });
