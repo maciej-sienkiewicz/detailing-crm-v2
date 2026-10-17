@@ -14,7 +14,7 @@ import { InspirationTab } from '../components/inspiration/InspirationTab';
 import { MyAccountsTab } from '../components/accounts/MyAccountsTab';
 import { AdDetailModal } from '../components/AdDetailModal';
 import { ProfilesDrawer } from '../components/ProfilesDrawer';
-import { AddProfileModal } from '../components/AddProfileModal';
+import { AddProfileModal, type AddProfileMode } from '../components/AddProfileModal';
 import { GeneratePostModal, type GeneratePostPrefill } from '../components/GeneratePostModal';
 import type { CompetitionDays, HomeMarketEvent, HomeTodo } from '../types';
 import { isCompetitionView, resolveLegacyUrl, type CompetitionView } from '../utils/moduleUrl';
@@ -233,7 +233,7 @@ export const CompetitionMonitoringView = () => {
 
     const [openAdId, setOpenAdId] = useState<string | null>(null);
     const [isDrawerOpen, setDrawerOpen] = useState(false);
-    const [isAddOpen, setAddOpen] = useState(false);
+    const [addMode, setAddMode] = useState<AddProfileMode | null>(null);
     const [generatePrefill, setGeneratePrefill] = useState<GeneratePostPrefill | null>(null);
 
     const { profiles } = useInstagramProfiles();
@@ -337,8 +337,8 @@ export const CompetitionMonitoringView = () => {
                                         <Users /> Profile
                                         {pendingCount > 0 && <MenuBadgeInline>{pendingCount}</MenuBadgeInline>}
                                     </MenuItem>
-                                    <MenuItem type="button" role="menuitem" onClick={openMenuAction(() => setAddOpen(true))}>
-                                        <Plus /> Dodaj profil
+                                    <MenuItem type="button" role="menuitem" onClick={openMenuAction(() => setAddMode('competitor'))}>
+                                        <Plus /> Dodaj konkurenta
                                     </MenuItem>
                                 </MenuDropdown>
                             </>
@@ -364,7 +364,7 @@ export const CompetitionMonitoringView = () => {
                     days={days}
                     year={year}
                     onChange={next => setUrlState({ view: next.view, days: next.days, year: next.year })}
-                    onAddProfile={() => setAddOpen(true)}
+                    onAddProfile={() => setAddMode('competitor')}
                     onOpenAd={setOpenAdId}
                 />
             )}
@@ -378,10 +378,14 @@ export const CompetitionMonitoringView = () => {
                 onClose={() => setDrawerOpen(false)}
                 onAddProfile={() => {
                     setDrawerOpen(false);
-                    setAddOpen(true);
+                    setAddMode('competitor');
+                }}
+                onAddSelf={() => {
+                    setDrawerOpen(false);
+                    setAddMode('self');
                 }}
             />
-            <AddProfileModal isOpen={isAddOpen} onClose={() => setAddOpen(false)} />
+            <AddProfileModal isOpen={addMode !== null} mode={addMode ?? 'competitor'} onClose={() => setAddMode(null)} />
             {generatePrefill && (
                 <GeneratePostModal prefill={generatePrefill} onClose={() => setGeneratePrefill(null)} />
             )}

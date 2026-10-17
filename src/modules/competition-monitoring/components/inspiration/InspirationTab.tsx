@@ -7,14 +7,21 @@ import { FORMAT_LABELS } from '../../types';
 import { useContent, useReactToPost } from '../../hooks/useAnalytics';
 import { CenterState, Spinner } from '../MetricBits';
 import type { GeneratePostPrefill } from '../GeneratePostModal';
-import { embedUrl, normLabel } from '../../utils/inspiration';
+import {
+    embedUrl,
+    INSPIRATION_SORT_OPTIONS,
+    inspirationSortCaption,
+    normLabel,
+    type InspirationSort,
+} from '../../utils/inspiration';
 
 /**
  * Inspiracje: co zadziałało u innych, policzone uczciwie.
  *
  * Skuteczność to krotność typowego posta TEGO SAMEGO profilu („3,4× normy"), a nie
  * reakcje na 100 obserwujących - tamten wskaźnik premiował najmniejsze konta i konkursy
- * „oznacz dwóch znajomych". Konkursy serwer odsyła na koniec listy.
+ * „oznacz dwóch znajomych". Konkursy serwer odsyła na koniec listy. Kolejność do wyboru:
+ * skuteczność (domyślnie), najnowsze i najsłabsze - te ostatnie mówią, czego nie powtarzać.
  *
  * Zdjęcie posta to OFICJALNE OSADZENIE Instagrama (instagram.com/p/{kod}/embed) - to samo,
  * co „Osadź" pod postem. Niczego nie pobieramy ani nie zapisujemy: obraz serwuje Instagram,
@@ -205,18 +212,19 @@ interface Props {
 }
 
 export const InspirationTab: React.FC<Props> = ({ onMakeSimilar }) => {
+    const [sort, setSort] = useState<InspirationSort>('norm');
     const [format, setFormat] = useState<FormatFilter>('ALL');
     const [topic, setTopic] = useState<string>('');
     const [pages, setPages] = useState(1);
 
     const filters = useMemo(() => ({
         weeks: WEEKS as 12,
-        sort: 'norm' as const,
+        sort,
         format: format === 'ALL' ? undefined : format,
         topic: topic || undefined,
         page: 0,
         pageSize: PAGE_SIZE * pages,
-    }), [format, topic, pages]);
+    }), [sort, format, topic, pages]);
 
     const contentQuery = useContent(filters);
     const react = useReactToPost();
@@ -238,6 +246,7 @@ export const InspirationTab: React.FC<Props> = ({ onMakeSimilar }) => {
     return (
         <Layout>
             <Filters>
+                <Segmented label="Kolejność" options={INSPIRATION_SORT_OPTIONS} value={sort} onChange={v => reset(() => setSort(v))} />
                 <Segmented label="Format" options={FORMAT_OPTIONS} value={format} onChange={v => reset(() => setFormat(v))} />
                 {contentQuery.data && contentQuery.data.topics.length > 0 && (
                     <TopicSelect
@@ -251,7 +260,7 @@ export const InspirationTab: React.FC<Props> = ({ onMakeSimilar }) => {
                         ))}
                     </TopicSelect>
                 )}
-                <Period>ostatnie {WEEKS} tygodni, od najlepszych względem normy profilu</Period>
+                <Period>{inspirationSortCaption(sort, WEEKS)}</Period>
             </Filters>
 
             {contentQuery.isLoading && <CenterState><Spinner /></CenterState>}
@@ -301,7 +310,9 @@ export const InspirationTab: React.FC<Props> = ({ onMakeSimilar }) => {
                                         <strong>@{item.username}</strong>
                                         <span>{shortDate(item.takenAt)}</span>
                                         <span>{FORMAT_LABELS[item.format]}</span>
-                                        {item.topic !== 'INNE' && <span>{item.topicLabel}</span>}
+                                        {item.topic !== 'INNE' && !(item.isPromo && item.topicLabel === 'Promocja') && (
+                                            <span>{item.topicLabel}</span>
+                                        )}
                                         {item.isPromo && <StatusPill $tone="warn" $size="sm">Promocja</StatusPill>}
                                         {item.isContest && <StatusPill $size="sm">Konkurs, poza rankingiem</StatusPill>}
                                     </Meta>

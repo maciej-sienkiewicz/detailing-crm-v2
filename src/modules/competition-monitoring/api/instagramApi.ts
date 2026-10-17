@@ -33,8 +33,8 @@ const ADS_PATH = '/v1/instagram/ads';
 
 export interface ContentFilters {
     weeks: WeeksOption;
-    /** `norm` - względem typowego posta tego samego profilu (Inspiracje). */
-    sort: 'engagement' | 'date' | 'likes' | 'norm';
+    /** `norm` - względem typowego posta tego samego profilu (Inspiracje); `weakest` - odwrotnie. */
+    sort: 'engagement' | 'date' | 'likes' | 'norm' | 'weakest';
     topic?: string;
     format?: string;
     profileId?: string;
