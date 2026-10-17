@@ -233,7 +233,11 @@ export const GoogleBusinessPanel = ({ canUsePrimary }: Props) => {
         if (!data) return <Muted>Nie udało się sprawdzić wizytówki. Odśwież stronę.</Muted>;
 
         if (status === 'NOT_CONNECTED' && !data.available) {
-            return <Notice tone="info">Połączenie z wizytówką Google nie jest jeszcze dostępne w tej instalacji.</Notice>;
+            return (
+                <Notice tone="info" title="Łączenie z wizytówką Google jeszcze nieaktywne">
+                    Włączamy je po naszej stronie, Ty nie musisz nic robić.
+                </Notice>
+            );
         }
         if (status === 'NOT_CONNECTED') {
             return (

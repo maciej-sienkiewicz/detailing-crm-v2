@@ -37,13 +37,13 @@ export interface RankingRow {
 }
 
 /**
- * Ranking przyrostu: Ty i lokalni, od największego przyrostu w procentach. Procent, bo
- * przyrost w sztukach porównuje małe studio z kontem ogólnopolskim i zawsze przegrywa.
+ * Ranking przyrostu: Ty i konkurenci, od największego przyrostu w procentach. Procent, bo
+ * przyrost w sztukach porównuje małe studio z dużym kontem i zawsze przegrywa.
  * Profile bez dwóch pomiarów w oknie nie mają miejsca w rankingu - nie zgadujemy.
  */
 export const growthRanking = (profiles: CompetitionProfile[]): RankingRow[] => {
     const ranked = profiles
-        .filter(p => (p.isSelf || p.role === 'LOCAL') && p.followersGainPct !== null)
+        .filter(p => p.followersGainPct !== null)
         .sort((a, b) => (b.followersGainPct ?? 0) - (a.followersGainPct ?? 0));
     const max = Math.max(0.1, ...ranked.map(p => Math.abs(p.followersGainPct ?? 0)));
     return ranked.map(profile => ({
@@ -60,18 +60,17 @@ export const medianMarker = (rows: RankingRow[], median: CompetitionMedian | nul
     return Math.min(100, Math.round((Math.abs(median.followersGainPct) / max) * 100));
 };
 
-/** Ty na górze, potem lokalni od największego, wzorce osobno. */
+/** Ty na górze, potem konkurenci od największego. */
 export const splitProfiles = (profiles: CompetitionProfile[]) => {
     const byFollowers = (a: CompetitionProfile, b: CompetitionProfile) => (b.followers ?? -1) - (a.followers ?? -1);
     return {
         self: profiles.find(p => p.isSelf) ?? null,
-        locals: profiles.filter(p => !p.isSelf && p.role === 'LOCAL').sort(byFollowers),
-        inspirations: profiles.filter(p => !p.isSelf && p.role === 'INSPIRATION').sort(byFollowers),
+        competitors: profiles.filter(p => !p.isSelf).sort(byFollowers),
     };
 };
 
 /**
- * Porównanie z medianą lokalnych jako kierunek: wyżej, niżej albo „w normie" (±10%).
+ * Porównanie z medianą konkurencji jako kierunek: wyżej, niżej albo „w normie" (±10%).
  * Służy wyłącznie do strzałki obok liczby - zdania pod każdą komórką zniknęły z tabeli.
  */
 export const versusMedian = (value: number | null, median: number | null | undefined): 'above' | 'below' | 'even' | null => {

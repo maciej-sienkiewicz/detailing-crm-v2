@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import {
     ArrowRight,
@@ -6,6 +6,7 @@ import {
     Megaphone,
     MessageCircle,
     Phone,
+    RefreshCw,
     Sparkles,
     Store,
     TrendingDown,
@@ -16,7 +17,7 @@ import { Button, Card, Notice, Panel, PanelBody, PanelHead, SectionTitle, ui } f
 import { formatCurrency } from '@/common/utils/formatters';
 import { pluralPl } from '@/common/utils/plural';
 import type { HomeMarketEvent, HomeTodo, InstagramHome } from '../../types';
-import { useHome } from '../../hooks/useAnalytics';
+import { useHome, useResyncFailedProfiles } from '../../hooks/useAnalytics';
 import { CenterState, Spinner, formatNumber } from '../MetricBits';
 import { formatSignedCount, formatSignedPct } from '../../utils/competition';
 import { contactTapsTotal, isActionableTarget, lastPostLabel } from '../../utils/overview';
@@ -246,12 +247,26 @@ const OwnTiles: React.FC<{ home: InstagramHome } & OverviewActions> = ({ home, o
 
     return (
         <Tiles>
-            {plan ? (
+            {plan && plan.postsSynced ? (
                 <Tile>
                     <TileLabel><CalendarCheck /> Posty w {plan.monthLabel}</TileLabel>
                     <TileValue>{plan.postsThisMonth} <small>z {plan.monthGoal}</small></TileValue>
                     <TileSub $tone={plan.daysSinceLastPost !== null && plan.daysSinceLastPost >= 5 ? 'warn' : 'muted'}>
                         {lastPostLabel(plan.daysSinceLastPost)}
+                    </TileSub>
+                    {/* Sama liczba „z 13" nie mówiła, skąd się wzięła - to plan tygodniowy przeliczony na miesiąc. */}
+                    <TileSub>plan {plan.weeklyGoal} {pluralPl(plan.weeklyGoal, 'post', 'posty', 'postów')} w tygodniu</TileSub>
+                    <TileLink type="button" onClick={onOpenAccounts}>Zmień plan <ArrowRight /></TileLink>
+                </Tile>
+            ) : plan ? (
+                // Zero postów w bazie przed pierwszym pobraniem to brak danych, nie brak postów:
+                // studio z 533 postami widziało tu „0 z 13, jeszcze bez postów".
+                <Tile>
+                    <TileLabel><CalendarCheck /> Posty w {plan.monthLabel}</TileLabel>
+                    <TileSub $tone={home.selfSync === 'FAILED' ? 'warn' : 'muted'}>
+                        {home.selfSync === 'FAILED'
+                            ? `Nie udało się pobrać postów @${home.selfUsername}.`
+                            : `Pobieramy posty @${home.selfUsername}. Plan pokażemy, gdy skończymy.`}
                     </TileSub>
                 </Tile>
             ) : (
@@ -270,9 +285,9 @@ const OwnTiles: React.FC<{ home: InstagramHome } & OverviewActions> = ({ home, o
                         ? <span>{formatSignedCount(followers.gain30d)} w 30 dni</span>
                         : <span>przyrost po dwóch pomiarach</span>}
                 </TileSub>
-                {followers?.localMedianGain30dPct !== null && followers?.localMedianGain30dPct !== undefined && (
+                {followers?.competitorsMedianGain30dPct !== null && followers?.competitorsMedianGain30dPct !== undefined && (
                     <TileSub>
-                        Ty {formatSignedPct(followers.gain30dPct) ?? '0%'}, lokalni {formatSignedPct(followers.localMedianGain30dPct)}
+                        Ty {formatSignedPct(followers.gain30dPct) ?? '0%'}, konkurencja {formatSignedPct(followers.competitorsMedianGain30dPct)}
                     </TileSub>
                 )}
             </Tile>
@@ -332,6 +347,8 @@ const OwnTiles: React.FC<{ home: InstagramHome } & OverviewActions> = ({ home, o
 
 export const OverviewTab: React.FC<OverviewActions> = actions => {
     const homeQuery = useHome();
+    const resync = useResyncFailedProfiles();
+    const [resyncMessage, setResyncMessage] = useState<string | null>(null);
 
     if (homeQuery.isLoading) return <CenterState><Spinner /></CenterState>;
     if (homeQuery.isError || !homeQuery.data) {
@@ -346,6 +363,24 @@ export const OverviewTab: React.FC<OverviewActions> = actions => {
     const home = homeQuery.data;
     const todo = home.todo.filter(t => isActionableTarget(t.target));
 
+    const handleResync = () => {
+        setResyncMessage(null);
+        resync.mutate(undefined, {
+            onSuccess: result => setResyncMessage(
+                result.stillFailing === 0 ? null : 'Nadal bez odpowiedzi. Sprawdź, czy profil nie zmienił nazwy albo nie jest prywatny.'
+            ),
+            onError: (err: unknown) => {
+                // Serwer ma przerwę między ponowieniami - 429 to nie awaria, tylko „za wcześnie".
+                const response = (err as { response?: { status?: number; data?: { message?: string } } }).response;
+                setResyncMessage(
+                    response?.status === 429
+                        ? response.data?.message ?? 'Ponawialiśmy to przed chwilą. Spróbuj za kilka minut.'
+                        : 'Nie udało się ponowić. Spróbuj ponownie za chwilę.'
+                );
+            },
+        });
+    };
+
     return (
         <Layout>
             {home.connection?.status === 'ERROR' && (
@@ -355,6 +390,20 @@ export const OverviewTab: React.FC<OverviewActions> = actions => {
                     action={<Button size="sm" variant="tinted" onClick={actions.onOpenAccounts}>Połącz ponownie</Button>}
                 >
                     Statystyki i wiadomości z Instagrama stoją, dopóki nie połączysz konta jeszcze raz.
+                </Notice>
+            )}
+            {home.selfSync === 'FAILED' && (
+                <Notice
+                    tone="warn"
+                    title={`Nie udało się pobrać Twojego profilu @${home.selfUsername}`}
+                    action={
+                        <Button size="sm" variant="tinted" disabled={resync.isPending} onClick={handleResync}>
+                            <RefreshCw size={14} /> {resync.isPending ? 'Ponawiam…' : 'Spróbuj ponownie'}
+                        </Button>
+                    }
+                >
+                    <span>Dopóki go nie pobierzemy, nie oceniamy opisu profilu ani planu publikacji.</span>
+                    {resyncMessage && <span>{resyncMessage}</span>}
                 </Notice>
             )}
             {home.pendingApproval > 0 && (
@@ -404,8 +453,8 @@ export const OverviewTab: React.FC<OverviewActions> = actions => {
                         {home.market.length === 0 ? (
                             <Quiet style={{ padding: 0 }}>
                                 {home.profilesWatched === 0
-                                    ? 'Dodaj konkurentów z okolicy, a pokażemy tu ich promocje, kampanie i ciszę.'
-                                    : 'Spokojny tydzień u lokalnych konkurentów.'}
+                                    ? 'Dodaj konkurentów, a pokażemy tu ich promocje, kampanie i ciszę.'
+                                    : 'Spokojny tydzień u konkurencji.'}
                             </Quiet>
                         ) : (
                             <MarketList>

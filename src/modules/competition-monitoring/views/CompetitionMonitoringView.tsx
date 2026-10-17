@@ -16,7 +16,7 @@ import { AdDetailModal } from '../components/AdDetailModal';
 import { ProfilesDrawer } from '../components/ProfilesDrawer';
 import { AddProfileModal } from '../components/AddProfileModal';
 import { GeneratePostModal, type GeneratePostPrefill } from '../components/GeneratePostModal';
-import type { CompetitionDays, HomeMarketEvent, HomeTodo, ProfileRole } from '../types';
+import type { CompetitionDays, HomeMarketEvent, HomeTodo } from '../types';
 import { isCompetitionView, resolveLegacyUrl, type CompetitionView } from '../utils/moduleUrl';
 import { prefillFromTodo } from '../utils/overview';
 
@@ -233,7 +233,7 @@ export const CompetitionMonitoringView = () => {
 
     const [openAdId, setOpenAdId] = useState<string | null>(null);
     const [isDrawerOpen, setDrawerOpen] = useState(false);
-    const [addRole, setAddRole] = useState<ProfileRole | null>(null);
+    const [isAddOpen, setAddOpen] = useState(false);
     const [generatePrefill, setGeneratePrefill] = useState<GeneratePostPrefill | null>(null);
 
     const { profiles } = useInstagramProfiles();
@@ -298,7 +298,7 @@ export const CompetitionMonitoringView = () => {
                 <>
                     <PageHeader
                         title="Instagram"
-                        subtitle="Twoje konta, konkurencja w okolicy i pomysły na posty"
+                        subtitle="Twoje konta, konkurencja i pomysły na posty"
                         actions={
                             <>
                                 <PageHeaderGhostButton onClick={() => openGenerator()}>
@@ -337,7 +337,7 @@ export const CompetitionMonitoringView = () => {
                                         <Users /> Profile
                                         {pendingCount > 0 && <MenuBadgeInline>{pendingCount}</MenuBadgeInline>}
                                     </MenuItem>
-                                    <MenuItem type="button" role="menuitem" onClick={openMenuAction(() => setAddRole('LOCAL'))}>
+                                    <MenuItem type="button" role="menuitem" onClick={openMenuAction(() => setAddOpen(true))}>
                                         <Plus /> Dodaj profil
                                     </MenuItem>
                                 </MenuDropdown>
@@ -364,7 +364,7 @@ export const CompetitionMonitoringView = () => {
                     days={days}
                     year={year}
                     onChange={next => setUrlState({ view: next.view, days: next.days, year: next.year })}
-                    onAddProfile={() => setAddRole('LOCAL')}
+                    onAddProfile={() => setAddOpen(true)}
                     onOpenAd={setOpenAdId}
                 />
             )}
@@ -376,18 +376,12 @@ export const CompetitionMonitoringView = () => {
             <ProfilesDrawer
                 open={isDrawerOpen}
                 onClose={() => setDrawerOpen(false)}
-                onAddProfile={role => {
+                onAddProfile={() => {
                     setDrawerOpen(false);
-                    setAddRole(role ?? 'LOCAL');
+                    setAddOpen(true);
                 }}
             />
-            <AddProfileModal
-                // Klucz po roli: okno ma zacząć od roli grupy, przy której kliknięto „Dodaj".
-                key={addRole ?? 'closed'}
-                isOpen={addRole !== null}
-                initialRole={addRole ?? 'LOCAL'}
-                onClose={() => setAddRole(null)}
-            />
+            <AddProfileModal isOpen={isAddOpen} onClose={() => setAddOpen(false)} />
             {generatePrefill && (
                 <GeneratePostModal prefill={generatePrefill} onClose={() => setGeneratePrefill(null)} />
             )}

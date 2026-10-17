@@ -19,7 +19,6 @@ import type {
     InstagramStyleRule,
     PageCandidate,
     PageLinkResult,
-    ProfileRole,
     ProfileSuggestion,
     ResyncResult,
     SaveAreaSettings,
@@ -36,7 +35,6 @@ export interface ContentFilters {
     weeks: WeeksOption;
     /** `norm` - względem typowego posta tego samego profilu (Inspiracje). */
     sort: 'engagement' | 'date' | 'likes' | 'norm';
-    role?: ProfileRole;
     topic?: string;
     format?: string;
     profileId?: string;
@@ -53,14 +51,9 @@ export const instagramApi = {
         return response.data;
     },
 
-    addProfile: async (username: string, role?: ProfileRole): Promise<InstagramProfile> => {
-        const response = await apiClient.post<InstagramProfile>(PROFILES_PATH, { username, role });
+    addProfile: async (username: string): Promise<InstagramProfile> => {
+        const response = await apiClient.post<InstagramProfile>(PROFILES_PATH, { username });
         return response.data;
-    },
-
-    /** Lokalny konkurent albo wzorzec - przestawia tylko porównanie, nie pobieranie danych. */
-    setProfileRole: async (id: string, role: ProfileRole): Promise<void> => {
-        await apiClient.post(`${PROFILES_PATH}/${id}/role`, { role });
     },
 
     approveProfile: async (id: string): Promise<void> => {
@@ -94,19 +87,6 @@ export const instagramApi = {
             params: { days },
         });
         return response.data;
-    },
-
-    /**
-     * Miniatury postów obserwowanych profili (kod posta → adres obrazka). Pusta mapa bez
-     * połączonego konta - karty pokazują wtedy sam opis. Adresy wygasają, nie zapisujemy ich.
-     */
-    getPreviews: async (usernames: string[]): Promise<Record<string, string>> => {
-        if (usernames.length === 0) return {};
-        const response = await apiClient.get<Record<string, string>>(`${ANALYTICS_PATH}/previews`, {
-            params: { usernames: usernames.join(',') },
-            skipErrorToast: true,
-        });
-        return response.data ?? {};
     },
 
     /**

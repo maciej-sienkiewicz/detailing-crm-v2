@@ -8,3 +8,13 @@ export const normLabel = (relativeToNorm: number | null | undefined): string | n
     const value = relativeToNorm.toLocaleString('pl-PL', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
     return `${value}× normy`;
 };
+
+/**
+ * Adres oficjalnego osadzenia posta (ta sama strona, której używa „Osadź" na Instagramie).
+ * Null bez kodu posta - wtedy karta pokazuje ikonę formatu zamiast pustej ramki.
+ */
+export const embedUrl = (postCode: string | null | undefined): string | null => {
+    const code = postCode?.trim();
+    if (!code || !/^[A-Za-z0-9_-]+$/.test(code)) return null;
+    return `https://www.instagram.com/p/${code}/embed/`;
+};

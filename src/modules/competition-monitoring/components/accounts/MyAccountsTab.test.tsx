@@ -95,12 +95,12 @@ describe('MyAccountsTab', () => {
         expect(filled()).toHaveLength(1);
     });
 
-    it('instalacja bez aplikacji Meta nie pokazuje przycisku, tylko informację', async () => {
+    it('serwer bez aplikacji Meta nie pokazuje przycisku, tylko informację', async () => {
         vi.mocked(accountsApi.getConnection).mockResolvedValue(connection({ available: false }));
 
         renderTab();
 
-        await screen.findByText('Połączenie jeszcze niedostępne');
+        await screen.findByText('Łączenie z Instagramem jeszcze nieaktywne');
         expect(screen.queryByRole('button', { name: /Połącz Instagram/ })).toBeNull();
     });
 

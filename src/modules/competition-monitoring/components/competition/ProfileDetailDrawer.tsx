@@ -5,16 +5,14 @@ import {
     Button,
     ButtonLink,
     DrawerBody,
-    Segmented,
     SectionTitle,
     SideDrawer,
     StatusPill,
     ui,
 } from '@/common/components/ui';
 import { pluralPl } from '@/common/utils/plural';
-import type { CompetitionMedian, CompetitionProfile, CompetitionResponse, ProfileRole } from '../../types';
+import type { CompetitionProfile, CompetitionResponse } from '../../types';
 import { useDigest } from '../../hooks/useAnalytics';
-import { useProfileActions } from '../../hooks/useProfileActions';
 import { EMPTY, formatNumber } from '../MetricBits';
 import { calendarLevel, formatPerWeek, formatSignedPct, growthSinceLabel } from '../../utils/competition';
 import { colorFor } from '../../utils/profileColors';
@@ -124,13 +122,8 @@ const PostLinks = styled.ul`
 
 const FORMAT_COLORS = { photo: '#94a3b8', reels: ui.brand, carousel: '#8b5cf6' } as const;
 
-const ROLE_OPTIONS: { value: ProfileRole; label: string }[] = [
-    { value: 'LOCAL', label: 'Konkurent z okolicy' },
-    { value: 'INSPIRATION', label: 'Wzorzec' },
-];
-
 const vsMedian = (value: number | null, median: number | null | undefined, format: (v: number) => string) =>
-    median === null || median === undefined || value === null ? null : `mediana lokalnych ${format(median)}`;
+    median === null || median === undefined || value === null ? null : `mediana konkurencji ${format(median)}`;
 
 const shortDate = (iso: string) =>
     new Date(iso).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
@@ -145,9 +138,8 @@ interface Props {
 
 export const ProfileDetailDrawer: React.FC<Props> = ({ profile, data, colors, onClose, onOpenAds }) => {
     const digestQuery = useDigest(true);
-    const { setRole, isSettingRole } = useProfileActions();
     const digest = digestQuery.data?.profiles.find(p => p.profileId === profile.profileId) ?? null;
-    const median: CompetitionMedian | null = profile.role === 'LOCAL' || profile.isSelf ? data.localMedian : null;
+    const median = data.median;
     const color = colorFor(colors, profile.username);
     const since = growthSinceLabel(profile.growthFrom, data.from);
     const totalFormats = profile.formatMix.photo + profile.formatMix.reels + profile.formatMix.carousel;
@@ -160,9 +152,7 @@ export const ProfileDetailDrawer: React.FC<Props> = ({ profile, data, colors, on
             status={
                 profile.isSelf
                     ? <StatusPill $tone="info">Twój profil</StatusPill>
-                    : <StatusPill $tone={profile.role === 'LOCAL' ? 'neutral' : 'info'}>
-                        {profile.role === 'LOCAL' ? 'Konkurent z okolicy' : 'Wzorzec'}
-                    </StatusPill>
+                    : <StatusPill $tone="neutral">Konkurent</StatusPill>
             }
             width={520}
             footer={
@@ -271,26 +261,6 @@ export const ProfileDetailDrawer: React.FC<Props> = ({ profile, data, colors, on
                             <span><i style={{ background: FORMAT_COLORS.carousel }} />Karuzele {profile.formatMix.carousel}%</span>
                             <span><i style={{ background: FORMAT_COLORS.photo }} />Zdjęcia {profile.formatMix.photo}%</span>
                         </FormatLegend>
-                    </Section>
-                )}
-
-                {!profile.isSelf && (
-                    <Section>
-                        <SectionTitle>Rola</SectionTitle>
-                        <Segmented
-                            label={`Rola @${profile.username}`}
-                            options={ROLE_OPTIONS}
-                            value={profile.role}
-                            onChange={role => setRole({ id: profile.studioProfileId, role })}
-                            block
-                        />
-                        <Evidence>
-                            {isSettingRole
-                                ? 'Zapisuję…'
-                                : profile.role === 'LOCAL'
-                                    ? 'Liczy się do mediany i rankingu.'
-                                    : 'Nie wpływa na porównania, zostaje w Inspiracjach.'}
-                        </Evidence>
                     </Section>
                 )}
 

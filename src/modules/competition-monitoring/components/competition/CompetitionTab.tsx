@@ -22,7 +22,7 @@ import { GrowthRanking } from './GrowthRanking';
 import { ProfileDetailDrawer } from './ProfileDetailDrawer';
 
 /**
- * Konkurencja: kto w okolicy publikuje, rośnie i się reklamuje.
+ * Konkurencja: kto publikuje, rośnie i się reklamuje.
  *
  * Trzy widoki pod jednym przełącznikiem, bo to trzy pytania, a nie trzy źródła danych:
  * Profile (tabela, kalendarz publikacji, ranking przyrostu), Reklamy (kalendarz roku)
@@ -124,19 +124,19 @@ export const CompetitionTab: React.FC<Props> = ({ view, days, year, onChange, on
                 </CenterState>
             );
         }
-        const { self, locals } = splitProfiles(data.profiles);
+        const { self, competitors } = splitProfiles(data.profiles);
         if (data.profiles.length === 0) {
             return (
                 <CenterState>
                     <strong>Nie obserwujesz jeszcze konkurencji</strong>
-                    <span>Dodaj 3-5 studiów z Twojego miasta. Porównanie pojawi się po pierwszym pobraniu danych.</span>
+                    <span>Dodaj 3-5 studiów, z którymi rywalizujesz o klientów. Porównanie pojawi się po pierwszym pobraniu danych.</span>
                     <EmptyActions>
-                        <Button variant="primary" onClick={onAddProfile}><UserPlus size={16} /> Dodaj profil</Button>
+                        <Button variant="primary" onClick={onAddProfile}><UserPlus size={16} /> Dodaj konkurenta</Button>
                     </EmptyActions>
                 </CenterState>
             );
         }
-        const calendarProfiles = [...(self ? [self] : []), ...locals];
+        const calendarProfiles = [...(self ? [self] : []), ...competitors];
         return (
             <>
                 {(failed.length > 0 || resyncMessage) && (
@@ -167,7 +167,7 @@ export const CompetitionTab: React.FC<Props> = ({ view, days, year, onChange, on
                     )}
                     <GrowthRanking
                         profiles={data.profiles}
-                        median={data.localMedian}
+                        median={data.median}
                         colors={colors}
                         periodLabel={periodLabel}
                     />

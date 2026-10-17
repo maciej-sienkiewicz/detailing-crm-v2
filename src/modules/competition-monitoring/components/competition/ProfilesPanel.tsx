@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import styled from 'styled-components';
-import { AlertTriangle, ArrowDown, ArrowUp, ChevronDown, ChevronRight, Minus } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, Minus } from 'lucide-react';
 import { Card, SectionTitle, StatusPill, ui } from '@/common/components/ui';
 import { pluralPl } from '@/common/utils/plural';
 import { useBreakpoint } from '@/common/hooks';
@@ -17,7 +17,7 @@ import {
 
 /**
  * Tabela konkurencji: cztery liczby na profil i JEDEN punkt odniesienia - wiersz
- * „Mediana lokalnych" na dole. Wcześniej każda komórka miała wartość, zmianę i zdanie
+ * „Mediana konkurencji" na dole. Wcześniej każda komórka miała wartość, zmianę i zdanie
  * o medianie grupy (około 150 informacji na 7 profili) i właściciel nie umiał
  * powiedzieć, czy u niego jest dobrze. Strzałki są tylko w Twoim wierszu: to jedyny
  * wiersz, przy którym to pytanie pada.
@@ -146,24 +146,6 @@ const Unknown = styled.span`
     font-weight: 600;
 `;
 
-const GroupToggle = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin: 8px 12px 0;
-    padding: 6px 0;
-    border: none;
-    background: none;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 600;
-    color: ${ui.textSecondary};
-    cursor: pointer;
-
-    &:hover { color: ${ui.ink}; }
-    svg { width: 15px; height: 15px; }
-`;
-
 const ApiError = styled(AlertTriangle)`
     width: 14px;
     height: 14px;
@@ -212,9 +194,9 @@ type Direction = ReturnType<typeof versusMedian>;
 
 const DirectionIcon: React.FC<{ direction: Direction }> = ({ direction }) => {
     if (direction === null) return null;
-    if (direction === 'above') return <ArrowUp aria-label="powyżej mediany lokalnych" color={ui.okInk} />;
-    if (direction === 'below') return <ArrowDown aria-label="poniżej mediany lokalnych" color={ui.warnInk} />;
-    return <Minus aria-label="w medianie lokalnych" color={ui.textFaint} />;
+    if (direction === 'above') return <ArrowUp aria-label="powyżej mediany konkurencji" color={ui.okInk} />;
+    if (direction === 'below') return <ArrowDown aria-label="poniżej mediany konkurencji" color={ui.warnInk} />;
+    return <Minus aria-label="w medianie konkurencji" color={ui.textFaint} />;
 };
 
 const growthTone = (pct: number | null): 'up' | 'down' | 'flat' =>
@@ -311,10 +293,9 @@ interface Props {
 
 export const ProfilesPanel: React.FC<Props> = ({ data, colors, onOpenProfile }) => {
     const isDesktop = useBreakpoint('md');
-    const [showInspirations, setShowInspirations] = useState(false);
-    const { self, locals, inspirations } = splitProfiles(data.profiles);
-    const median = data.localMedian;
-    const rows = [...(self ? [self] : []), ...locals];
+    const { self, competitors } = splitProfiles(data.profiles);
+    const median = data.median;
+    const rows = [...(self ? [self] : []), ...competitors];
 
     const renderRow = (profile: CompetitionProfile, showDirections: boolean) => {
         const props: RowProps = {
@@ -335,7 +316,7 @@ export const ProfilesPanel: React.FC<Props> = ({ data, colors, onOpenProfile }) 
     return (
         <Card>
             <Head>
-                <SectionTitle as="h2" size="lg" count={`${locals.length} ${pluralPl(locals.length, 'konkurent', 'konkurentów', 'konkurentów')} z okolicy`}>
+                <SectionTitle as="h2" size="lg" count={`${competitors.length} ${pluralPl(competitors.length, 'konkurent', 'konkurentów', 'konkurentów')}`}>
                     Ty i konkurencja
                 </SectionTitle>
                 <span>kliknij profil, żeby zobaczyć szczegóły</span>
@@ -357,7 +338,7 @@ export const ProfilesPanel: React.FC<Props> = ({ data, colors, onOpenProfile }) 
                 {isDesktop && median && (
                     <MedianRow>
                         <Name as="span">
-                            Mediana lokalnych
+                            Mediana konkurencji
                             <span style={{ fontSize: 12, fontWeight: 500, color: ui.textMuted }}>
                                 z {median.basedOn} {pluralPl(median.basedOn, 'profilu', 'profili', 'profili')}
                             </span>
@@ -373,19 +354,9 @@ export const ProfilesPanel: React.FC<Props> = ({ data, colors, onOpenProfile }) 
                 )}
                 {!isDesktop && median && (
                     <MobileStats style={{ padding: '4px 4px 0' }}>
-                        <div><dt>Mediana lokalnych, posty na tydzień</dt><dd>{formatPerWeek(median.postsPerWeek) ?? EMPTY}</dd></div>
+                        <div><dt>Mediana konkurencji, posty na tydzień</dt><dd>{formatPerWeek(median.postsPerWeek) ?? EMPTY}</dd></div>
                         <div><dt>Mediana, reakcje na post</dt><dd>{formatNumber(median.reactionsPerPost)}</dd></div>
                     </MobileStats>
-                )}
-
-                {inspirations.length > 0 && (
-                    <>
-                        <GroupToggle type="button" onClick={() => setShowInspirations(v => !v)} aria-expanded={showInspirations}>
-                            {showInspirations ? <ChevronDown /> : <ChevronRight />}
-                            Wzorce ({inspirations.length}), bez porównań
-                        </GroupToggle>
-                        {showInspirations && inspirations.map(profile => renderRow(profile, false))}
-                    </>
                 )}
             </Body>
         </Card>
