@@ -3,7 +3,7 @@ import { usePortalDropdownPos } from '@/common/hooks/usePortalDropdownPos';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
-import type { KsefExpense, KsefExpenseLinkedVisit } from '../types';
+import type { CostDocumentKind, KsefExpense, KsefExpenseLinkedVisit } from '../types';
 import {
   useExcludeExpense,
   useRestoreExpense,
@@ -41,22 +41,12 @@ const Wrapper = styled.div`
 
 const Table = styled.table`
   width: 100%;
-  min-width: 1124px;
+  min-width: 1060px;
   border-collapse: collapse;
-
-  @media (max-width: 639px) {
-    display: block;
-    min-width: 0;
-    tbody { display: block; }
-  }
 `;
 
 const Thead = styled.thead`
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-
-  @media (max-width: 639px) {
-    display: none;
-  }
 `;
 
 const Th = styled.th<{ $align?: 'left' | 'right' | 'center'; $width?: string }>`
@@ -97,31 +87,6 @@ const Tr = styled.tr<{ $excluded?: boolean; $selected?: boolean }>`
       : `
     &:hover { background: ${p.theme.colors.surfaceHover}; }
   `}
-
-  @media (max-width: 639px) {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 0 8px;
-    padding: 12px 14px;
-
-    /* Row 1: Sprzedawca (col 3) | Akcje (col 8) */
-    > :nth-child(3) { grid-column: 1; grid-row: 1; }
-    > :nth-child(8) { grid-column: 2; grid-row: 1; align-self: center; justify-self: end; }
-
-    /* Row 2: Data (col 1) | Kwota (col 5) */
-    > :nth-child(1) { grid-column: 1; grid-row: 2; padding-top: 8px; }
-    > :nth-child(5) { grid-column: 2; grid-row: 2; padding-top: 8px; text-align: right; }
-
-    /* Row 3: Płatność (col 6) | Źródło (col 7) */
-    > :nth-child(6) { grid-column: 1; grid-row: 3; padding-top: 5px; }
-    > :nth-child(7) { grid-column: 2; grid-row: 3; padding-top: 5px; text-align: right; }
-
-    /* Row 4: Notatka (col 4) full width */
-    > :nth-child(4) { grid-column: 1 / 3; grid-row: 4; padding-top: 5px; }
-
-    /* Row 5: Numer dok. (col 2) full width, de-emphasized */
-    > :nth-child(2) { grid-column: 1 / 3; grid-row: 5; padding-top: 4px; opacity: 0.6; }
-  }
 `;
 
 const Td = styled.td<{ $align?: 'left' | 'right' | 'center' }>`
@@ -132,14 +97,6 @@ const Td = styled.td<{ $align?: 'left' | 'right' | 'center' }>`
   text-align: ${(p) => p.$align || 'left'};
   &:first-child { padding-left: 20px; }
   &:last-child  { padding-right: 20px; }
-
-  @media (max-width: 639px) {
-    display: block;
-    padding: 0;
-    text-align: left;
-    &:first-child { padding-left: 0; }
-    &:last-child  { padding-right: 0; }
-  }
 `;
 
 /* Kolumna zaznaczenia: wąska i cicha, bo nie jest treścią wiersza - jest tylko
@@ -171,6 +128,15 @@ const CellSecondary = styled.span`
   font-weight: 400;
   color: ${(p) => p.theme.colors.textMuted};
   white-space: nowrap;
+`;
+
+/* Wąsko celowo: długa nazwa firmy ucina się wielokropkiem (pełna jest w tooltipie),
+   zamiast rozpychać tabelę kosztem kwoty i notatki. Szerokość jak nabywcy
+   w tabeli przychodów. */
+const SellerName = styled(CellPrimary)`
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 /*
@@ -275,6 +241,23 @@ const Badge = styled.span<{ $variant: BadgeVariant }>`
     color: ${BADGE_COLORS[p.$variant as Exclude<BadgeVariant, 'dashed-slate'>].color};
     border: 1px solid ${BADGE_COLORS[p.$variant as Exclude<BadgeVariant, 'dashed-slate'>].border};
   `}
+`;
+
+/* Rodzaj dokumentu jako plakietka, jak typ w tabeli przychodów: faktura niebieska,
+   paragon zielonkawy, reszta szara. Korekta stoi obok, bo to ta sama odpowiedź
+   na „co to za dokument". */
+const KIND_BADGE: Record<CostDocumentKind, BadgeVariant> = {
+  INVOICE: 'blue',
+  RECEIPT: 'teal',
+  BILL:    'slate',
+  OTHER:   'slate',
+};
+
+const TypeCell = styled.div`
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
 `;
 
 const PaymentStatusBadge = styled.button<{ $variant: BadgeVariant }>`
@@ -493,7 +476,7 @@ const IconChevron = () => (
 /* ─── Karta na telefonie ──────────────────────────────────────────────────────
    Osiem kolumn na 390 px to przewijanie w bok po to, żeby zobaczyć kwotę.
    Na telefonie liczy się: od kogo, ile, czy zapłacone i jaki to dokument.
-   Numer KSeF, źródło i edycja notatki zostają na desktopie. */
+   Źródło i edycja notatki zostają na desktopie, numer KSeF w podglądzie faktury. */
 
 const CardList = styled.div`
   display: flex;
@@ -676,15 +659,15 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
           <Thead>
             <tr>
               {selection && <SelectHead />}
-              <Th>Data sprzedaży</Th><Th>Numer dokumentu</Th><Th>Sprzedawca</Th><Th>Notatka</Th>
-              <Th $align="right">Kwota</Th><Th>Płatność</Th><Th>Źródło</Th>
-              <Th $width="80px" />
+              <Th>Data sprzedaży</Th><Th>Typ</Th><Th>Sprzedawca</Th><Th>Notatka</Th>
+              <Th $align="right">Kwota</Th><Th>Źródło</Th><Th>Płatność</Th>
+              <Th $width="120px">Akcje</Th>
             </tr>
           </Thead>
           <tbody>
             {[1, 2, 3, 4, 5].map((i) => (
               <tr key={i} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                {(selection ? [16, 80, 110, 140, 100, 90, 90, 70] : [80, 110, 140, 100, 90, 90, 70]).map((w, j) => (
+                {(selection ? [16, 80, 70, 140, 100, 90, 70, 90] : [80, 70, 140, 100, 90, 70, 90]).map((w, j) => (
                   <td key={j} style={{ padding: '13px 16px' }}>
                     <Skeleton $w={`${w}px`} />
                   </td>
@@ -797,19 +780,20 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
                 </SelectHead>
               )}
               <Th>Data sprzedaży</Th>
-              <Th>Numer dokumentu</Th>
+              <Th>Typ</Th>
               <Th>Sprzedawca</Th>
               <Th>Notatka</Th>
               <Th $align="right">Kwota</Th>
-              <Th>Płatność</Th>
               <Th>Źródło</Th>
-              <Th $width="120px" />
+              <Th>Płatność</Th>
+              <Th $width="120px">Akcje</Th>
             </tr>
           </Thead>
           <tbody>
             {expenses.map((exp) => {
               const isExcluded = exp.status === 'EXCLUDED';
               const currentPaymentStatus = exp.paymentStatus;
+              const kind = costDocumentKindOf(exp.documentKind);
 
               return (
                 <Tr
@@ -829,28 +813,18 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
                     </SelectCell>
                   )}
 
-                  {/* Data sprzedaży */}
+                  {/* Data sprzedaży i numer dokumentu - numer KSeF jest w podglądzie faktury */}
                   <Td>
                     <CellPrimary>{formatDate(exp.saleDate)}</CellPrimary>
-                    {exp.ksefNumber && (
-                      <CellSecondary title={exp.ksefNumber} style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        KSeF: {exp.ksefNumber.slice(-12)}
-                      </CellSecondary>
-                    )}
+                    <CellSecondary>{exp.documentNumber ?? 'Brak numeru'}</CellSecondary>
                   </Td>
 
-                  {/* Numer dokumentu */}
+                  {/* Typ: rodzaj dokumentu, korekta i wizyta, do której przypięto koszt */}
                   <Td>
-                    {exp.documentNumber
-                      ? <CellPrimary>{exp.documentNumber}</CellPrimary>
-                      : <EmDash>-</EmDash>
-                    }
-                    <CellSecondary style={{ marginTop: 4 }}>
-                      {COST_DOCUMENT_KIND_LABEL[costDocumentKindOf(exp.documentKind)]}
-                    </CellSecondary>
-                    {exp.isCorrection && (
-                      <Badge $variant="amber" style={{ marginTop: 4 }}>Korekta</Badge>
-                    )}
+                    <TypeCell>
+                      <Badge $variant={KIND_BADGE[kind]}>{COST_DOCUMENT_KIND_LABEL[kind]}</Badge>
+                      {exp.isCorrection && <Badge $variant="amber">Korekta</Badge>}
+                    </TypeCell>
                     {exp.linkedVisit && (
                       <div style={{ marginTop: 4 }}><LinkedVisitChip visit={exp.linkedVisit} /></div>
                     )}
@@ -860,13 +834,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
                   <Td>
                     {exp.sellerName ? (
                       <>
-                        <CellPrimary
-                          as="span"
-                          title={exp.sellerName}
-                          style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}
-                        >
-                          {exp.sellerName}
-                        </CellPrimary>
+                        <SellerName title={exp.sellerName}>{exp.sellerName}</SellerName>
                         {exp.sellerNip && (
                           <CellSecondary>NIP: {exp.sellerNip}</CellSecondary>
                         )}
@@ -902,6 +870,13 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
                     <AmountSecondary>{formatMoneyFloat(exp.netAmount)} netto</AmountSecondary>
                   </Td>
 
+                  {/* Źródło */}
+                  <Td>
+                    <Badge $variant={exp.source === 'KSEF' ? 'purple' : 'blue'}>
+                      {exp.source === 'KSEF' ? 'KSeF' : 'Ręcznie'}
+                    </Badge>
+                  </Td>
+
                   {/* Płatność: status + metoda */}
                   <Td onClick={(e) => e.stopPropagation()}>
                     <PaymentStatusBadge
@@ -914,13 +889,6 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
                     {exp.paymentMethodLabel && (
                       <CellSecondary style={{ marginTop: 4 }}>{exp.paymentMethodLabel}</CellSecondary>
                     )}
-                  </Td>
-
-                  {/* Źródło */}
-                  <Td>
-                    <Badge $variant={exp.source === 'KSEF' ? 'purple' : 'blue'}>
-                      {exp.source === 'KSEF' ? 'KSeF' : 'Ręcznie'}
-                    </Badge>
                   </Td>
 
                   {/* Akcje */}
