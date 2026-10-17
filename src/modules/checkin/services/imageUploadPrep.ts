@@ -21,6 +21,17 @@ const MAX_EDGE_PX = 2560;
 /** Tried in order until the encoded photo fits under MAX_UPLOAD_BYTES. */
 const JPEG_QUALITIES = [0.85, 0.75, 0.6];
 
+/**
+ * Long edge of a photo sent for VIN reading. The vision model reads it at no more than
+ * 2048 px (detail=high on the backend), so every pixel above that is upload time the
+ * operator waits through for nothing - a 12 Mpx original is 3-10 MB, the same frame
+ * at 2048 px is a few hundred KB.
+ */
+const VIN_MAX_EDGE_PX = 2048;
+
+/** A VIN photo this small is sent untouched - re-encoding would cost more than it saves. */
+const VIN_UNTOUCHED_MAX_BYTES = 700 * 1024;
+
 const EXTENSION_TYPES: Record<string, string> = {
     jpg: 'image/jpeg',
     jpeg: 'image/jpeg',
@@ -118,14 +129,31 @@ const toJpegBlob = (canvas: HTMLCanvasElement, quality: number): Promise<Blob | 
  */
 export const prepareImageForUpload = async (file: File): Promise<File> => {
     if (isUploadReady(file)) return file;
+    return reencodeAsJpeg(file, MAX_EDGE_PX, JPEG_QUALITIES);
+};
 
+/**
+ * A photo for VIN reading: always scaled down to what the model actually reads, because
+ * here the operator waits for the result. Falls back to the regular upload preparation
+ * (and finally to the original) rather than failing - a slower read beats no read.
+ */
+export const prepareImageForVin = async (file: File): Promise<File> => {
+    if (ACCEPTED_UPLOAD_TYPES.includes(resolveFileType(file)) && file.size <= VIN_UNTOUCHED_MAX_BYTES) return file;
+    try {
+        return await reencodeAsJpeg(file, VIN_MAX_EDGE_PX, [0.85]);
+    } catch {
+        return prepareImageForUpload(file).catch(() => file);
+    }
+};
+
+const reencodeAsJpeg = async (file: File, maxEdgePx: number, qualities: number[]): Promise<File> => {
     const decoded = await decode(file);
     const canvas = document.createElement('canvas');
     try {
         const { width, height } = decoded;
         if (!width || !height) throw new UnsupportedImageError('empty image');
 
-        const scale = Math.min(1, MAX_EDGE_PX / Math.max(width, height));
+        const scale = Math.min(1, maxEdgePx / Math.max(width, height));
         canvas.width = Math.max(1, Math.round(width * scale));
         canvas.height = Math.max(1, Math.round(height * scale));
 
@@ -136,7 +164,7 @@ export const prepareImageForUpload = async (file: File): Promise<File> => {
         decoded.release();
     }
 
-    for (const quality of JPEG_QUALITIES) {
+    for (const quality of qualities) {
         const blob = await toJpegBlob(canvas, quality);
         if (!blob) throw new UnsupportedImageError('encode failed');
         if (blob.size <= MAX_UPLOAD_BYTES) {
@@ -156,9 +184,10 @@ export const prepareImageForUpload = async (file: File): Promise<File> => {
  */
 export const prepareImageOrExplain = async (
     file: File,
+    prepare: (file: File) => Promise<File> = prepareImageForUpload,
 ): Promise<{ file: File; error?: undefined } | { file: null; error: string }> => {
     try {
-        return { file: await prepareImageForUpload(file) };
+        return { file: await prepare(file) };
     } catch {
         const type = resolveFileType(file);
         if (type && !ACCEPTED_UPLOAD_TYPES.includes(type)) {
