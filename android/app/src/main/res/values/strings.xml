@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">DetailBoost</string>
     <string name="title_activity_main">DetailBoost</string>
-    <string name="package_name">pl.detailboost.app</string>
+    <string name="package_name">pl.mm.detailboost</string>
     <string name="custom_url_scheme">pl.detailboost.app</string>
 </resources>
