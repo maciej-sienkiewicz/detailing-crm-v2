@@ -357,22 +357,8 @@ const Sheet = styled.section<{ $side: boolean }>`
     .client .who { flex: 1; min-width: 0; }
     .client .name { margin: 0; font-size: 16px; font-weight: 600; }
     .client .line { margin: 2px 0 0; font-size: 14px; color: ${ix.text2}; }
-    .links { display: flex; flex-wrap: wrap; gap: 8px; }
     /* W arkuszu rzędy nie mają wcięcia - status trzyma tę samą krawędź co klient. */
     > ${StatusRow} { padding: 0; }
-`;
-
-const SheetLink = styled.button`
-    height: 40px;
-    padding: 0 14px;
-    border: 1px solid ${ix.line};
-    border-radius: 999px;
-    background: #ffffff;
-    color: ${ix.inkSoft};
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
 `;
 
 interface RailSheetProps extends CaseActions {
@@ -382,12 +368,11 @@ interface RailSheetProps extends CaseActions {
     /** true - wysuwany z prawej (tablet), false - od dołu (telefon). */
     side: boolean;
     onClose: () => void;
-    onDetails: () => void;
     cta?: ReactNode;
 }
 
 /** Arkusz wyceny z makiety „Telefon: arkusz wyceny". */
-export function RailSheet({ lead, contactCard, phone, side, onClose, onEditQuote, onEditClient, onChangeStatus, statusPending, onDelete, onDetails, cta }: RailSheetProps) {
+export function RailSheet({ lead, contactCard, phone, side, onClose, onEditQuote, onEditClient, onChangeStatus, statusPending, onDelete, cta }: RailSheetProps) {
     useEffect(() => acquireScrollLock(), []);
     useEffect(() => {
         const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
@@ -442,9 +427,6 @@ export function RailSheet({ lead, contactCard, phone, side, onClose, onEditQuote
                     )}
                 </div>
                 <CaseStatus status={lead.status} onChange={onChangeStatus} pending={statusPending} />
-                <div className="links">
-                    <SheetLink type="button" onClick={onDetails}>Szczegóły sprawy</SheetLink>
-                </div>
                 {cta}
                 <CaseDelete onDelete={onDelete} />
             </Sheet>

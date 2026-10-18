@@ -5,12 +5,14 @@
 // wymiana zdań z jedną osobą. Poczta (faktura, dostawca) czyta się jak list -
 // tam stoi MailReader w MailDetail. Obie drogi biorą treść z MessageBody: ta sama
 // sanityzacja, ten sam podział na treść i doklejoną historię.
-import { useEffect, useRef, type ReactNode } from 'react';
+import { Fragment, useEffect, useRef, type ReactNode } from 'react';
 import styled from 'styled-components';
 import { ArrowLeft, ChevronLeft, Paperclip } from 'lucide-react';
 import type { CommAttachment, CommMessage } from '../types';
 import { MessageBody } from '../components/MessageBody';
-import { isPreviewableAttachment, messageMoment } from './messageFormat';
+import { isPreviewableAttachment, messageMoment, withEvents, type ConversationEvent } from './messageFormat';
+
+export type { ConversationEvent } from './messageFormat';
 import { ix } from './tokens';
 
 const Header = styled.header<{ $phone: boolean }>`
@@ -238,10 +240,16 @@ interface BubblesProps {
      * odpisał"). Przy rozwiniętym kompozytorze - od góry (makieta „nowe zapytanie").
      */
     alignBottom?: boolean;
+    /**
+     * Zdarzenia spoza poczty wpięte w rozmowę w swoim miejscu na osi czasu - np. pasek
+     * rezerwacji. Wątek pokazuje wtedy całą sprawę, a nie tylko maile.
+     */
+    events?: ConversationEvent[];
 }
 
+
 /** Rozmowa jako dymki: klient po lewej z datą, „Ty" po prawej. Otwiera się na końcu. */
-export function Bubbles({ messages, phone, onDownload, onPreview, onOpenFull, before, loading, alignBottom = true }: BubblesProps) {
+export function Bubbles({ messages, phone, onDownload, onPreview, onOpenFull, before, loading, alignBottom = true, events = [] }: BubblesProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const lastId = messages[messages.length - 1]?.id;
 
@@ -255,7 +263,9 @@ export function Bubbles({ messages, phone, onDownload, onPreview, onOpenFull, be
         <ConversationScroll ref={scrollRef} $phone={phone} $bottom={alignBottom}>
             {before}
             {loading && messages.length === 0 && <p style={{ margin: 'auto', color: ix.muted, fontSize: 14 }}>Wczytywanie rozmowy…</p>}
-            {messages.map((message) => {
+            {withEvents(messages, events).map((item) => {
+                if ('node' in item) return <Fragment key={item.key}>{item.node}</Fragment>;
+                const message = item;
                 const out = message.direction === 'OUTBOUND';
                 return (
                     <Bubble key={message.id} $out={out} $phone={phone}>

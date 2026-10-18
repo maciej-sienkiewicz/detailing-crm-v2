@@ -3,7 +3,7 @@
 // Krok następny w oknie wniosku urlopowego - JEDYNY wypełniony element (CLAUDE.md §2).
 // Dwie linie: co się stanie i dokąd to prowadzi („Złóż wniosek o urlop / trafi do
 // akceptacji"), kafelek ikony, gradient i cień marki, strzałka reagująca na kursor -
-// tak, żeby nie dało się go pomylić z „Zapisz". Wzorzec: FooterPrimary w LeadDetailModal.
+// tak, żeby nie dało się go pomylić z „Zapisz". Wzorzec: FooterPrimary w comms/inbox/primitives.
 
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import styled from 'styled-components';

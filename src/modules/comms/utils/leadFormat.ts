@@ -1,15 +1,7 @@
 // src/modules/comms/utils/leadFormat.ts
-// Drobiazgi, o których tabela leadów i okno szczegółów muszą mówić jednym głosem.
+// Drobiazgi, o których tabela leadów i skrzynka spraw muszą mówić jednym głosem.
 import type { LeadSource, LeadStatus } from '../types';
 import { formatClockTime } from '@/common/dateTime';
-
-/** „Marka Model" albo null, gdy nie rozpoznano - jedno miejsce na tę składankę. */
-export const formatVehicle = (
-    lead: { vehicleBrand: string | null; vehicleModel: string | null }
-): string | null =>
-    lead.vehicleBrand
-        ? `${lead.vehicleBrand}${lead.vehicleModel ? ` ${lead.vehicleModel}` : ''}`
-        : null;
 
 /**
  * Skąd przyszło zapytanie - nazwy kanałów takie, jakie widzi właściciel. Klucz
@@ -50,7 +42,7 @@ const MONTHS_GENITIVE = [
  * Nazwa miesiąca odmieniona ręcznie, bo `toLocaleDateString` daje mianownik
  * („17 sierpień"), którego nie da się wstawić w zdanie po polsku.
  */
-const formatMoment = (iso: string): string => {
+export const formatAppointmentMoment = (iso: string): string => {
     const date = new Date(iso);
     const day = date.getDate();
     const month = MONTHS_GENITIVE[date.getMonth()];
@@ -59,16 +51,3 @@ const formatMoment = (iso: string): string => {
     const time = formatClockTime(date);
     return time ? `${day} ${month}${year}, ${time}` : `${day} ${month}${year}`;
 };
-
-/**
- * Zdanie o terminie rezerwacji, gotowe do wstawienia. Czas przeszły dla terminu,
- * który już minął: „została zaplanowana na wczoraj" brzmi jak niedokończona
- * sprawa, a to zwykle wizyta, która się po prostu odbyła.
- *
- * Arytmetyka czasu siedzi tutaj, poza ciałem komponentu - render zostaje czystym
- * mapowaniem danych na widok.
- */
-export const describeAppointmentMoment = (iso: string): { lead: string; moment: string } => ({
-    lead: new Date(iso).getTime() > Date.now() ? 'Rezerwacja na' : 'Rezerwacja była na',
-    moment: formatMoment(iso),
-});

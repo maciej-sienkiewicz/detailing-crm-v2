@@ -14,10 +14,10 @@ import type {
     LeadServiceItemInput,
     LeadSortDirection,
     LeadStatus,
+    LeadBooking,
     LeadTimelineEntry,
     LeadCallback,
     LeadOverview,
-    SimilarVisits,
     MarkThreadAsLeadRequest,
     SuggestionRefreshResult,
 } from '../types';
@@ -66,41 +66,15 @@ export const leadsApi = {
         return data;
     },
 
+    /** Rezerwacja sprawy; null, gdy sprawa terminu nie ma (serwer odpowiada 204). */
+    getBooking: async (leadId: string): Promise<LeadBooking | null> => {
+        const { data, status } = await apiClient.get(`/v1/leads/${leadId}/booking`);
+        return status === 204 || !data ? null : data;
+    },
+
     getTimeline: async (leadId: string): Promise<LeadTimelineEntry[]> => {
         const { data } = await apiClient.get(`/v1/leads/${leadId}/timeline`);
         return data;
-    },
-
-    /**
-     * Podobne zlecenia z historii studia. Dobór jest policzony w tle przy tworzeniu
-     * leada i ZAPISANY — ten odczyt zwykle tylko go hydratuje kwotami z bazy,
-     * więc może iść od razu przy otwarciu leada.
-     */
-    getSimilarVisits: async (leadId: string): Promise<SimilarVisits> => {
-        const { data } = await apiClient.get(`/v1/leads/${leadId}/similar-visits`, {
-            skipErrorToast: true,
-        });
-        return data;
-    },
-
-    /**
-     * „Sprawdź ponownie": przeliczenie doboru na wyraźne życzenie — np. gdy historia
-     * urosła albo do cennika doszła brakująca usługa. Zwraca świeży wynik.
-     */
-    refreshSimilarVisits: async (leadId: string): Promise<SimilarVisits> => {
-        const { data } = await apiClient.post(
-            `/v1/leads/${leadId}/similar-visits/refresh`,
-            undefined,
-            { skipErrorToast: true }
-        );
-        return data;
-    },
-
-    /** Zdjęcie jednej podpowiedzi z tego leada. Przy innym leadzie zlecenie wraca. */
-    dismissSimilarVisit: async (leadId: string, visitId: string): Promise<void> => {
-        await apiClient.delete(`/v1/leads/${leadId}/similar-visits/${visitId}`, {
-            skipErrorToast: true,
-        });
     },
 
     /**

@@ -1,6 +1,8 @@
 // src/modules/comms/inbox/messageFormat.ts
 // Drobiazgi rozmowy w skrzynce „Zapytania": podpis chwili wiadomości i otwieranie
 // załączników przez API (sesja), a nie przez `<a href>`.
+import type { ReactNode } from 'react';
+import type { CommMessage } from '../types';
 import { dayLabel } from '../utils/mailListRows';
 
 /** „5 października", a dla dziś i wczoraj z godziną: „Dziś, 9:40". */
@@ -110,4 +112,28 @@ export function isPreviewableAttachment(file: Pick<PreviewableFile, 'contentType
 export function fileSizeLabel(bytes: number): string {
     if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
     return `${(bytes / (1024 * 1024)).toLocaleString('pl-PL', { maximumFractionDigits: 1 })} MB`;
+}
+
+/** Zdarzenie sprawy wpięte w rozmowę na osi czasu - np. pasek rezerwacji. */
+export interface ConversationEvent {
+    key: string;
+    at: string;
+    node: ReactNode;
+}
+
+/**
+ * Wiadomości i zdarzenia w jednej kolejności. Zdarzenie z tym samym czasem co
+ * wiadomość idzie PO niej - rezerwacja zakładana „w odpowiedzi" ma stać pod mailem,
+ * na który odpowiada. Bez wiadomości zdarzeń nie pokazujemy: pusta rozmowa z samym
+ * paskiem wyglądałaby jak wczytana do połowy.
+ */
+export function withEvents(messages: CommMessage[], events: ConversationEvent[]): (CommMessage | ConversationEvent)[] {
+    if (messages.length === 0 || events.length === 0) return messages;
+    const merged: (CommMessage | ConversationEvent)[] = [];
+    const queue = [...events].sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+    for (const message of messages) {
+        while (queue.length > 0 && Date.parse(queue[0].at) < Date.parse(message.sentAt)) merged.push(queue.shift()!);
+        merged.push(message);
+    }
+    return [...merged, ...queue];
 }

@@ -499,6 +499,12 @@ interface ReplyComposerProps {
     layout?: 'card' | 'collapsed';
     /** Kreska nad kompozytorem - w poczcie oddziela odpowiedź od czytanej wiadomości. */
     divider?: boolean;
+    /**
+     * Treść podana z zewnątrz, np. potwierdzenie rezerwacji przygotowane z paska w rozmowie.
+     * Nowe `id` = nowa treść: wpada do edytora i rozkłada go; wcześniejszy tekst da się
+     * przywrócić tym samym „Przywróć", co po korekcie.
+     */
+    prefill?: { id: number; text: string } | null;
 }
 
 export function ReplyComposer({
@@ -517,6 +523,7 @@ export function ReplyComposer({
     sendAppearance = 'pill',
     layout = 'card',
     divider = false,
+    prefill = null,
 }: ReplyComposerProps) {
     const [expanded, setExpanded] = useState(false);
     const sheet = collapsible && expanded;
@@ -559,6 +566,16 @@ export function ReplyComposer({
     const recipientUnknown = Boolean(threadId) && !initialTo;
 
     const bodyEmpty = isComposerHtmlEmpty(body);
+
+    // W renderze, nie w efekcie: edytor ma od pierwszej klatki pokazać nową treść,
+    // a nie mignąć starą (ten sam wzorzec co zasiew zdjęć w generatorze postów).
+    const [appliedPrefill, setAppliedPrefill] = useState(prefill?.id);
+    if (prefill && prefill.id !== appliedPrefill) {
+        setAppliedPrefill(prefill.id);
+        setUndoSnapshot(bodyEmpty ? null : { body, title: 'Przywróć treść sprzed potwierdzenia' });
+        setBody(textToComposerHtml(prefill.text));
+        setExpanded(true);
+    }
     const pendingPlaceholders = findPendingPlaceholders(draft, draft ? composerHtmlToText(body) : '');
     const totalAttachmentBytes = attachments.reduce((sum, file) => sum + file.size, 0);
 

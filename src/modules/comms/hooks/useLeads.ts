@@ -22,7 +22,6 @@ import type {
     LeadSortDirection,
     LeadStatus,
     MarkThreadAsLeadRequest,
-    SimilarVisits,
 } from '../types';
 
 export const LEADS_KEY = ['leads'];
@@ -239,6 +238,15 @@ export const useLeadTimeline = (leadId: string | null) =>
         enabled: leadId !== null,
     });
 
+/** Pasek rezerwacji w rozmowie - pyta tylko sprawa, która ma termin. */
+export const useLeadBooking = (leadId: string, enabled: boolean) =>
+    useQuery({
+        queryKey: [...LEADS_KEY, 'booking', leadId],
+        queryFn: () => leadsApi.getBooking(leadId),
+        enabled,
+        staleTime: 60_000,
+    });
+
 export const useLeadDictionaries = () =>
     useQuery({
         queryKey: LEAD_DICTIONARIES_KEY,
@@ -350,52 +358,6 @@ const useLeadInvalidation = () => {
             queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'history', leadId] });
         }
     };
-};
-
-/**
- * Podobne zlecenia z historii studia.
- *
- * Ładowane RAZEM z otwarciem leada: dobór jest policzony w tle przy jego
- * utworzeniu i zapisany na serwerze, więc ten odczyt to hydratacja kwotami
- * z bazy, nie liczenie. `staleTime` długi — zapisany wynik zmienia się tylko
- * przez „Sprawdź ponownie", a to i tak nadpisuje pamięć podręczną wprost.
- */
-export const useSimilarVisits = (leadId: string | null) =>
-    useQuery({
-        queryKey: [...LEADS_KEY, 'similar-visits', leadId],
-        queryFn: () => leadsApi.getSimilarVisits(leadId!),
-        enabled: leadId !== null,
-        staleTime: 10 * 60_000,
-        // Dobór potrafi nie znaleźć niczego i to jest poprawna odpowiedź, nie błąd
-        // do ponowienia.
-        retry: false,
-    });
-
-/**
- * Zdjęcie jednej podpowiedzi. Odpowiedź serwera jest pusta, więc wiersz usuwamy
- * z pamięci podręcznej na miejscu — ma zniknąć od razu, a nie po ponownym
- * policzeniu całej sekcji, które kosztuje osadzenie i przesiew.
- *
- * Serwer dosuwa na zwolnione miejsce następne zlecenie dopiero przy kolejnym
- * odczycie. Tutaj lista po prostu się skraca i to jest uczciwsze: dosunięcie
- * czegoś, czego użytkownik jeszcze nie widział, wyglądałoby jak podmiana wiersza
- * pod ręką.
- */
-export const useDismissSimilarVisit = (leadId: string) => {
-    const queryClient = useQueryClient();
-    const { showError } = useToast();
-    return useMutation({
-        mutationFn: (visitId: string) => leadsApi.dismissSimilarVisit(leadId, visitId),
-        onSuccess: (_result, visitId) => {
-            queryClient.setQueryData<SimilarVisits>(
-                [...LEADS_KEY, 'similar-visits', leadId],
-                (current) => current
-                    ? { ...current, items: current.items.filter((item) => item.visitId !== visitId) }
-                    : current
-            );
-        },
-        onError: () => showError('Nie udało się usunąć podpowiedzi', 'Spróbuj ponownie'),
-    });
 };
 
 /**

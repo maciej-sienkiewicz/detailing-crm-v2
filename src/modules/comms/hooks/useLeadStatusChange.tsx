@@ -3,7 +3,7 @@
 // „jedno kliknięcie, jeden status": przegrana wymaga powodu.
 //
 // Ten wyjątek żyje tu, a nie w każdym wywołującym, bo wywołujących jest już
-// trzech (tabela leadów, okno szczegółów, chmurka edycji komórki), a pytanie
+// trzech (tabela leadów, skrzynka spraw, chmurka edycji komórki), a pytanie
 // o powód musi w każdym z nich wyglądać i działać tak samo.
 import { useState } from 'react';
 import { useToast } from '@/common/components/Toast';

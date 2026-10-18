@@ -1,7 +1,7 @@
 // src/modules/comms/utils/leadPrimaryAction.ts
 // Jedna akcja na karcie w kolejce - ta, którą trzeba wykonać TERAZ.
 //
-// Reguła jest przeniesiona z okna szczegółów (LeadDetailModal), gdzie działała
+// Reguła jest przeniesiona z dawnego okna szczegółów leada, gdzie działała
 // od dawna i była jedyną rzeczą w module, która sama wiedziała, co dalej. Karta
 // w kolejce ma dokładnie ten sam problem, a właściciel z mokrymi rękami ma na
 // niego piętnaście sekund - więc decyzja „co kliknąć" nie może należeć do niego.
@@ -44,7 +44,7 @@ export function leadPhoneNumber(lead: Pick<Lead, 'source' | 'contactIdentifier'>
 }
 
 export function leadPrimaryAction(lead: Lead, urgency: LeadUrgency): LeadPrimaryAction {
-    // Rezerwacja już stoi w kalendarzu. Drugiej się nie założy (backend odmówi),
+    // Rezerwacja jest już w kalendarzu. Drugiej się nie założy (backend odmówi),
     // więc oferowanie jej byłoby ślepą uliczką.
     if (lead.appointmentId) {
         return { kind: 'APPOINTMENT', label: 'Zobacz rezerwację', shortLabel: 'Termin', emphasis: 'quiet' };

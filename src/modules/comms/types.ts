@@ -515,40 +515,25 @@ export interface LeadTimelineEntry {
 }
 
 /**
- * Zlecenie z historii studia dobrane do zapytania klienta.
- *
- * Wszystkie pola pochodzą z bazy — model językowy uczestniczy wyłącznie w doborze
- * i kolejności, nigdy w treści. Dzięki temu najgorsze, co może zrobić, to pokazać
- * zlecenie nie na temat; nie może podać ceny, której nie było.
+ * Rezerwacja sprawy dla paska w rozmowie (`GET /v1/leads/{id}/booking`).
+ * Odpowiada na dwa pytania czytającego wątek: czy termin jest umówiony i czy klient o nim wie.
  */
-export interface SimilarVisit {
-    visitId: string;
-    visitNumber: string;
-    vehicle: string;
+export interface LeadBooking {
+    appointmentId: string;
+    bookedAt: string;
+    bookedByName: string | null;
+    start: string;
+    end: string;
+    allDay: boolean;
+    /** DELETED - usunięta z kalendarza. */
+    status: 'CREATED' | 'CANCELLED' | 'ABANDONED' | 'CONVERTED' | 'DELETED';
     services: string[];
-    totalGross: number;
-    date: string;
-    /** Zlecenie w toku dobiera usługi do wydania auta — kwota jeszcze się zmieni. */
-    priceProvisional: boolean;
-    /** Ranga z kraty auto×usługa — kolejność wartości jest kolejnością jakości dopasowania. */
-    matchTier:
-        | 'SAME_MODEL_SAME_SERVICE'
-        | 'SAME_SEGMENT_SAME_SERVICE'
-        | 'SAME_MODEL_SIMILAR_SERVICE'
-        | 'SAME_SEGMENT_SIMILAR_SERVICE'
-        | 'SAME_MODEL_OTHER_SERVICE'
-        | 'MODEL_HISTORY';
-}
-
-export interface SimilarVisits {
-    items: SimilarVisit[];
-    /** Ile zleceń jest w indeksie — odróżnia „nic nie pasuje" od „nie ma czego szukać". */
-    indexedVisits: number;
-    /**
-     * Powód pustki, gdy nie wynika z ubóstwa historii: robota spoza cennika
-     * (nie podpowiadamy wtedy żadnych cen — decyzja produktowa) albo nierozpoznane auto.
-     */
-    emptyReason?: 'SERVICE_NOT_IN_CATALOG' | 'VEHICLE_UNKNOWN' | null;
+    confirmationSms: {
+        status: 'SENT' | 'QUEUED' | 'FAILED' | 'CANCELLED' | 'NOT_SENT';
+        at: string | null;
+        /** NOT_SENT: NO_PHONE | AUTOMATION_OFF | SKIPPED; FAILED: komunikat bramki. */
+        reason: string | null;
+    };
 }
 
 export interface LeadCallback {

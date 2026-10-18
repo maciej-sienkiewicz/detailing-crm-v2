@@ -24,7 +24,6 @@ import {
     CalendarPlus,
     ChevronRight,
     History,
-    Info,
     MoreHorizontal,
     Phone,
     PhoneCall,
@@ -50,6 +49,7 @@ import {
     useDeleteLead,
     useLead,
     useLeadAppointment,
+    useLeadBooking,
     useLeadTimeline,
     useStagnationThresholds,
 } from '../hooks/useLeads';
@@ -59,7 +59,6 @@ import { leadEmail, leadPhoneNumber } from '../utils/leadPrimaryAction';
 import { describeLeadUrgency } from '../utils/leadUrgency';
 import { ReplyComposer } from '../components/ReplyComposer';
 import type { GalleryPickerContext } from '../components/GalleryPhotoPicker';
-import { LeadDetailModal } from '../components/LeadDetailModal';
 import { LeadQuoteEditor } from '../components/LeadQuoteEditor';
 import { useLeadStatusChange } from '../hooks/useLeadStatusChange';
 import { LeadTimeline } from '../components/LeadTimeline';
@@ -73,7 +72,9 @@ import { ThreadHistoryPanel } from '../components/ThreadHistoryPanel';
 import { caseNextStep, caseStatusChip, caseSubtitle, caseTitle, formatAmount, type CaseStep } from './caseModel';
 import { CaseRail, RailSheet, type CaseActions } from './CaseRail';
 import { ClientEditor } from './ClientEditor';
-import { Bubbles, ConversationHeader, ConversationScroll } from './Conversation';
+import { BookingNote } from './BookingNote';
+import { confirmationDraft } from './bookingNote';
+import { Bubbles, ConversationHeader, ConversationScroll, type ConversationEvent } from './Conversation';
 import { downloadAttachmentFile } from './messageFormat';
 import { useAttachmentPreview } from '../components/useAttachmentPreview';
 import { FooterPrimary, IconBtn, StatusChip } from './primitives';
@@ -192,10 +193,13 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
     const markInstagramRead = useMarkInstagramRead(leadId);
     const { data: contactCard } = useContactCard(cardEmail, { enabled: Boolean(cardEmail) });
     const { data: appointment } = useLeadAppointment(lead?.appointmentId ?? null);
+    const { data: leadBooking } = useLeadBooking(leadId, Boolean(lead?.appointmentId));
+    // Szkic potwierdzenia z paska rezerwacji - nowe `id` wpycha treść do kompozytora.
+    const [confirmationPrefill, setConfirmationPrefill] = useState<{ id: number; text: string } | null>(null);
 
     const [sheetOpen, setSheetOpen] = useState(false);
     const [fullMessageId, setFullMessageId] = useState<string | null>(null);
-    const [detailsOpen, setDetailsOpen] = useState<null | 'details' | 'services'>(null);
+    const [quoteOpen, setQuoteOpen] = useState(false);
     const [booking, setBooking] = useState(false);
     const [callbackOpen, setCallbackOpen] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
@@ -257,7 +261,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                 const names = (err as { response?: { data?: { serviceNames?: string[] } } })?.response?.data?.serviceNames;
                 showError(
                     'Uzupełnij kwoty sugestii',
-                    names?.length ? `Podaj kwotę dla: ${names.join(', ')}` : 'Któraś sugestia czeka na kwotę - podaj ją w szczegółach sprawy.'
+                    names?.length ? `Podaj kwotę dla: ${names.join(', ')}` : 'Któraś sugestia czeka na kwotę - podaj ją w wycenie sprawy.'
                 );
             },
         });
@@ -317,7 +321,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
         );
 
     const actions: CaseActions = {
-        onEditQuote: () => { setSheetOpen(false); setDetailsOpen('services'); },
+        onEditQuote: () => { setSheetOpen(false); setQuoteOpen(true); },
         onEditClient: (anchor) => {
             // Z arkusza ołówek znika razem z nim - wizytówka przypina się wtedy do kwoty w nagłówku.
             setSheetOpen(false);
@@ -352,6 +356,21 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
         </ConversationHeader>
     );
 
+    // Rezerwacja w rozmowie, w chwili jej założenia. Szkic potwierdzenia tylko tam, gdzie
+    // jest kompozytor maila - na Instagramie odpowiedź idzie innym polem.
+    const bookingEvents: ConversationEvent[] = lead.appointmentId && leadBooking ? [{
+        key: `booking-${leadBooking.appointmentId}`,
+        at: leadBooking.bookedAt,
+        node: (
+            <BookingNote
+                booking={leadBooking}
+                onPrepareConfirmation={thread
+                    ? () => setConfirmationPrefill({ id: Date.now(), text: confirmationDraft(leadBooking) })
+                    : undefined}
+            />
+        ),
+    }] : [];
+
     const composer = instagram ? (
         igConversation ? (
             <InstagramReplyBox
@@ -380,6 +399,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                 layout="collapsed"
                 sendAppearance={replyStep ? 'pill' : 'tint'}
                 galleryContext={galleryContext}
+                prefill={confirmationPrefill}
                 onSent={() => onAdvance?.()}
             />
         ) : null
@@ -411,6 +431,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                         onDownload={download}
                         onPreview={attachmentPreview.open}
                         onOpenFull={setFullMessageId}
+                        events={bookingEvents}
                         alignBottom
                     />
                 ) : (
@@ -439,13 +460,11 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                     {...actions}
                     side={!phone}
                     onClose={() => setSheetOpen(false)}
-                    onDetails={() => { setSheetOpen(false); setDetailsOpen('details'); }}
                     cta={cta}
                 />
             )}
 
             <ActionMenu anchor={menu.menu?.anchor ?? null} onClose={menu.close} label="Akcje sprawy">
-                <MenuItem icon={<Info />} onClick={() => { menu.close(); setDetailsOpen('details'); }}>Szczegóły sprawy</MenuItem>
                 {canBook && step.kind !== 'BOOK' && !lead.appointmentId && (
                     <MenuItem icon={<CalendarPlus />} onClick={() => { menu.close(); openBooking(); }}>Umów wizytę</MenuItem>
                 )}
@@ -484,22 +503,12 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
             )}
             {/* Wycena to jedna czynność - samo okno wyboru usług z sugestiami, bez drugiego
                 podglądu leada, który skrzynka i tak pokazuje obok. */}
-            {detailsOpen === 'services' && (
+            {quoteOpen && (
                 <LeadQuoteEditor
                     key={lead.id}
                     lead={lead}
                     subtitle={[caseTitle(lead), lead.customerName].filter(Boolean).join(', ')}
-                    onClose={() => setDetailsOpen(null)}
-                />
-            )}
-            {detailsOpen === 'details' && (
-                <LeadDetailModal
-                    key={lead.id}
-                    leadId={lead.id}
-                    // Rozmowa stoi obok - odnośnik do niej prowadziłby tu, gdzie jesteśmy.
-                    showThreadLink={false}
-                    onClose={() => setDetailsOpen(null)}
-                    onDeleted={onClosed}
+                    onClose={() => setQuoteOpen(false)}
                 />
             )}
             {booking && canBook && (

@@ -205,7 +205,7 @@ Jedyny wypełniony element w oknie wolno — i należy — zbudować tak, żeby 
 się go pomylić z „Zapisz": dwie linie (co się stanie + dokąd to prowadzi), kafelek
 ikony, gradient marki, cień w kolorze marki, strzałka reagująca na kursor. Dopóki
 jest JEDEN, im mocniejszy, tym lepiej działa reguła — bo tym szybciej wzrok kończy
-szukanie. Wzorzec: `FooterPrimary` w `LeadDetailModal.tsx`.
+szukanie. Wzorzec: `FooterPrimary` w `src/modules/comms/inbox/primitives.tsx`.
 
 ### Trzeci nośnik: WYNIESIENIE niesie TEMAT
 
@@ -229,9 +229,8 @@ tekstowym z kafelkiem ikony zamiast podpisu pola) i hierarchia liczby (kwota, po
 którą się wraca, jest nagłówkiem sekcji, a rozpisanie na pozycje — dowodem pod
 nią). Wersaliki 11 px w `textMuted` jako JEDYNY sposób oznaczenia sekcji są w tym
 repozytorium wycofane wszędzie tam, gdzie były jedyną ramą sekcji — w podglądzie
-leada (`LeadDetailModal`, `SuggestedServiceRows`, `SimilarVisitsSection`) nie ma
-już ani jednego. Reszta modułu `comms` jeszcze je ma; przy okazji dotykania tych
-plików idą tą samą drogą.
+leada (`SuggestedServiceRows`) nie ma już ani jednego. Reszta modułu `comms`
+jeszcze je ma; przy okazji dotykania tych plików idą tą samą drogą.
 
 ### Kolejność czytania
 
