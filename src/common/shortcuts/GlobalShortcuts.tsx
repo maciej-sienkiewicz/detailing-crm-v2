@@ -50,6 +50,7 @@ export function GlobalShortcuts() {
                 if (scoped.param) {
                     const params = new URLSearchParams(search);
                     params.set(scoped.param.name, scoped.param.value);
+                    scoped.drop?.forEach((name) => params.delete(name));
                     navigate(`${pathname}?${params.toString()}`, { replace: true });
                 } else if (scoped.to) {
                     navigate(scoped.to, { replace: true });

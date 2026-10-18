@@ -55,6 +55,12 @@ export interface ScopedShortcut {
     key: string;
     /** Parametr adresu do ustawienia, z zachowaniem pozostałych. */
     param?: { name: string; value: string };
+    /**
+     * Parametry, które należą tylko do innej zakładki i mają zniknąć przy skoku - tak samo,
+     * jak znikają przy kliknięciu zakładki myszą. Bez tego „1" z Konkurencji zostawiało
+     * w adresie `pokaz=profile` i okres, które na Przeglądzie nic nie znaczą.
+     */
+    drop?: string[];
     /** Pełny cel nawigacji - dla zakładek będących osobnymi trasami. */
     to?: string;
     description: string;
@@ -68,6 +74,9 @@ export interface ScopedShortcutGroup {
     label: string;
     shortcuts: ScopedShortcut[];
 }
+
+/** Parametry adresu, które znaczą coś tylko na zakładce Konkurencja Instagrama. */
+const COMPETITION_ONLY_PARAMS = ['pokaz', 'okres', 'rok'];
 
 export const SCOPED_SHORTCUTS: ScopedShortcutGroup[] = [
     {
@@ -93,10 +102,14 @@ export const SCOPED_SHORTCUTS: ScopedShortcutGroup[] = [
         path: '/instagram',
         label: 'Instagram',
         shortcuts: [
-            { key: '1', param: { name: 'widok', value: 'tydzien' }, description: 'Tydzień' },
-            { key: '2', param: { name: 'widok', value: 'porownanie' }, description: 'Porównanie' },
-            { key: '3', param: { name: 'widok', value: 'tresci' }, description: 'Treści' },
-            { key: '4', param: { name: 'widok', value: 'reklamy' }, description: 'Reklamy' },
+            // Kolejność i wartości jak zakładki w CompetitionMonitoringView. Dawne wartości
+            // (tydzien, porownanie, tresci, reklamy) przechodziły przez przekierowanie starych
+            // adresów i lądowały w innej kolejności niż pasek zakładek: „2" otwierało Konkurencję,
+            // a „Moje konta" nie miały skrótu wcale.
+            { key: '1', param: { name: 'widok', value: 'przeglad' }, drop: COMPETITION_ONLY_PARAMS, description: 'Przegląd' },
+            { key: '2', param: { name: 'widok', value: 'moj' }, drop: COMPETITION_ONLY_PARAMS, description: 'Moje konta' },
+            { key: '3', param: { name: 'widok', value: 'konkurencja' }, description: 'Konkurencja' },
+            { key: '4', param: { name: 'widok', value: 'inspiracje' }, drop: COMPETITION_ONLY_PARAMS, description: 'Inspiracje' },
         ],
     },
 ];
