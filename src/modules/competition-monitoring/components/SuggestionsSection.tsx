@@ -2,9 +2,12 @@ import React from 'react';
 import styled from 'styled-components';
 import { UserPlus, BadgeCheck, MapPin } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { Button, ui } from '@/common/components/ui';
+import { useBreakpoint } from '@/common/hooks';
 import { useSuggestions } from '../hooks/useAnalytics';
 import { useAddProfile } from '../hooks/useAddProfile';
 import { suggestionCategoryLabel } from '../utils/suggestions';
+import { PHONE } from '../utils/phone';
 
 /**
  * "Zaobserwuj podobne profile": sugestie z algorytmu Instagrama (related-profiles),
@@ -30,6 +33,18 @@ const Heading = styled.h3`
     gap: 6px;
 
     svg { width: 14px; height: 14px; color: ${st.accentBlue}; }
+
+    /*
+     * Na telefonie sekcja stoi w szufladzie pod grupami „Twój profil" i „Konkurenci":
+     * nagłówek i wiersze wyglądają jak tamte, a nie jak dawny motyw statystyk obok nich.
+     */
+    ${PHONE} {
+        margin: 0;
+        font-size: 15px;
+        color: ${ui.ink};
+
+        svg { width: 16px; height: 16px; color: ${ui.brandInk}; }
+    }
 `;
 
 const Row = styled.div`
@@ -41,6 +56,14 @@ const Row = styled.div`
     border: 1px dashed ${st.border};
     border-radius: ${st.radiusSm};
     font-size: ${st.fontSm};
+
+    ${PHONE} {
+        gap: 12px;
+        padding: 10px 12px;
+        background: ${ui.surface};
+        border: 1px solid ${ui.line};
+        border-radius: ${ui.radiusStrip};
+    }
 `;
 
 const Names = styled.div`
@@ -62,6 +85,15 @@ const Names = styled.div`
         text-overflow: ellipsis;
         white-space: nowrap;
     }
+
+    ${PHONE} {
+        gap: 2px;
+
+        strong { display: inline; font-size: 14px; color: ${ui.ink}; }
+        strong svg { display: inline-block; width: 14px; height: 14px; color: ${ui.brandInk}; vertical-align: -2px; margin-left: 4px; }
+        /* Pełne zdania zamiast „podobny do 3 obserwowanych pro…" - miejsca jest na drugą linię. */
+        span { font-size: 12px; color: ${ui.textMuted}; white-space: normal; }
+    }
 `;
 
 /** Atrybuty sugestii jako osobne elementy z odstępem, bez kropek jako kleju. */
@@ -82,12 +114,20 @@ const Nearby = styled.span`
     font-weight: 600;
 
     svg { width: 11px; height: 11px; }
+
+    ${PHONE} {
+        color: ${ui.brandInk} !important;
+
+        svg { width: 12px; height: 12px; }
+    }
 `;
 
 const Hint = styled.p`
     margin: 0;
     font-size: ${st.fontXs};
     color: ${st.textMuted};
+
+    ${PHONE} { font-size: 13px; line-height: 1.45; color: ${ui.textMuted}; }
 `;
 
 const AddBtn = styled.button`
@@ -113,7 +153,25 @@ const AddBtn = styled.button`
     svg { width: 12px; height: 12px; }
 `;
 
+const AddPhone = styled(Button)`
+    margin-left: auto;
+    flex-shrink: 0;
+`;
+
+/**
+ * Uchwyt łamany po „_" i „." zamiast w środku słowa: obok przycisku „Dodaj" długa nazwa
+ * na 360 px kończyła się samotnym „a" w drugiej linii („@auto_kosmetyka_lesznowol / a").
+ */
+const BreakableHandle: React.FC<{ username: string }> = ({ username }) => (
+    <>
+        @{(username.match(/[^._]+[._]*|[._]+/g) ?? [username]).map((part, i) => (
+            <React.Fragment key={i}>{i > 0 && <wbr />}{part}</React.Fragment>
+        ))}
+    </>
+);
+
 export const SuggestionsSection: React.FC<{ compact?: boolean }> = ({ compact = false }) => {
+    const isDesktop = useBreakpoint('md');
     const { data: suggestions } = useSuggestions();
     const { addProfile, isAdding } = useAddProfile();
 
@@ -131,7 +189,7 @@ export const SuggestionsSection: React.FC<{ compact?: boolean }> = ({ compact = 
                 <Row key={suggestion.username}>
                     <Names>
                         <strong>
-                            @{suggestion.username}
+                            {isDesktop ? `@${suggestion.username}` : <BreakableHandle username={suggestion.username} />}
                             {suggestion.isVerified && <BadgeCheck />}
                         </strong>
                         <Meta>
@@ -151,13 +209,27 @@ export const SuggestionsSection: React.FC<{ compact?: boolean }> = ({ compact = 
                             </span>
                         </Meta>
                     </Names>
-                    <AddBtn
-                        disabled={isAdding}
-                        onClick={() => addProfile({ username: suggestion.username })}
-                        title="Dodaj do konkurentów"
-                    >
-                        <UserPlus /> Dodaj
-                    </AddBtn>
+                    {isDesktop ? (
+                        <AddBtn
+                            disabled={isAdding}
+                            onClick={() => addProfile({ username: suggestion.username })}
+                            title="Dodaj do konkurentów"
+                        >
+                            <UserPlus /> Dodaj
+                        </AddBtn>
+                    ) : (
+                        // Pigułka z napisem 11 px, wysoka na 24 px i wypełniana dopiero po najechaniu,
+                        // to pod palcem za mały cel bez stanu: na telefonie przycisk z odcieniem marki, 44 px.
+                        <AddPhone
+                            size="sm"
+                            variant="tinted"
+                            disabled={isAdding}
+                            onClick={() => addProfile({ username: suggestion.username })}
+                            aria-label={`Dodaj @${suggestion.username} do konkurentów`}
+                        >
+                            <UserPlus /> Dodaj
+                        </AddPhone>
+                    )}
                 </Row>
             ))}
         </Wrap>

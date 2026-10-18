@@ -1,19 +1,21 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import styled from 'styled-components';
-import { MoreHorizontal, RefreshCw, Store, Unplug } from 'lucide-react';
+import { ChevronDown, MoreHorizontal, RefreshCw, Store, Unplug } from 'lucide-react';
 import {
-    ActionMenu, Button, ChoiceCard, ChoiceList, IconButton, MenuItem, Notice, Panel, SectionTitle, StatusPill, ui,
-    useActionMenu,
+    ActionMenu, Button, ChoiceCard, ChoiceList, IconButton, MenuItem, Notice, Panel, PanelBody, PanelHead, SectionTitle,
+    StatusPill, ui, useActionMenu,
 } from '@/common/components/ui';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { useBreakpoint } from '@/common/hooks';
 import { apiErrorMessage, apiErrorStatus } from '../../api/accountsApi';
 import { useAccountActions, useGoogleBusiness } from '../../hooks/useAccounts';
 import { GOOGLE_REPLY_MAX, type GoogleReview } from '../../accountsTypes';
+import { PHONE } from '../../utils/phone';
 import { formatDate, formatExact } from '../MetricBits';
-import { sinceLabel, sortReviews } from './accountsLogic';
+import { periodCaption, sinceLabel, sortReviews, splitUrgent } from './accountsLogic';
 import {
     AccountHead, Actions, CardBody, CardHead, HeadText, HeadTitle, IconTile, Kpi, KpiGrid, KpiLabel, KpiValue,
-    List, Loading, Meta, Muted, Section,
+    List, Loading, Meta, Muted, PeriodCaption, PhoneHead, PhoneHeadBar, PhoneHeadFact, PhoneHeadName, Section, ShowMore,
 } from './accountsStyles';
 import { ChangeLine } from './ChangeLine';
 
@@ -24,6 +26,8 @@ import { ChangeLine } from './ChangeLine';
  */
 
 const REVIEWS_SHOWN = 6;
+/** Telefon bez opinii czekających na odpowiedź: tyle najświeższych widać bez „Pokaż". */
+const PHONE_REVIEWS_FALLBACK = 2;
 
 const Stars = styled.span`
     color: #b45309;
@@ -32,6 +36,8 @@ const Stars = styled.span`
     white-space: nowrap;
 `;
 
+/* Na telefonie opinia to płaski wiersz panelu, oddzielony kreską - ramka w ramce
+   zabierała 30 px szerokości z każdej strony tekstu, którego i tak jest dużo. */
 const ReviewItem = styled.li`
     display: flex;
     flex-direction: column;
@@ -41,6 +47,27 @@ const ReviewItem = styled.li`
     border-radius: ${ui.radiusRow};
     background: ${ui.surface};
     min-width: 0;
+
+    ${PHONE} {
+        padding: 14px 0;
+        border: none;
+        border-radius: 0;
+
+        &:first-child { padding-top: 4px; }
+    }
+`;
+
+/** Telefon: kto i kiedy w pierwszej linii, gwiazdki i „bez odpowiedzi" w drugiej. */
+const PhoneReviewHead = styled.div`
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px 12px;
+    min-width: 0;
+    font-size: 13.5px;
+
+    strong { font-weight: 650; color: ${ui.ink}; min-width: 0; }
+    span { flex-shrink: 0; font-size: 12.5px; color: ${ui.textMuted}; font-variant-numeric: tabular-nums; }
 `;
 
 const ReviewTop = styled.div`
@@ -65,6 +92,8 @@ const ReviewText = styled.p`
     overflow: hidden;
 `;
 
+/* Telefon: odpowiedź studia jako wyciszone pole z podpisem zamiast zielonej kreski
+   z lewej - kolorowe paski przy krawędzi to na telefonie wycofany wzorzec. */
 const Reply = styled.p`
     margin: 0;
     padding-left: 10px;
@@ -73,6 +102,21 @@ const Reply = styled.p`
     line-height: 1.5;
     color: ${ui.textSecondary};
     overflow-wrap: anywhere;
+
+    ${PHONE} {
+        padding: 8px 10px;
+        border-left: none;
+        border-radius: ${ui.radiusRow};
+        background: ${ui.surfaceSoft};
+    }
+`;
+
+const ReplyLabel = styled.span`
+    display: block;
+    margin-bottom: 2px;
+    font-size: 12px;
+    font-weight: 600;
+    color: ${ui.textMuted};
 `;
 
 const ReplyBox = styled.textarea`
@@ -89,6 +133,9 @@ const ReplyBox = styled.textarea`
     box-sizing: border-box;
 
     &:focus { outline: 2px solid ${ui.focusRing}; outline-offset: 0; border-color: transparent; }
+
+    /* Poniżej 16 px Safari na iPhonie powiększa stronę przy dotknięciu pola. */
+    ${PHONE} { font-size: 16px; }
 `;
 
 const ReplyActions = styled.div`
@@ -96,6 +143,14 @@ const ReplyActions = styled.div`
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
+`;
+
+/** Pole i przyciski edytora jako jeden blok: to jego dół ma stanąć nad klawiaturą. */
+const Editor = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
 `;
 
 const ErrorText = styled.span`
@@ -112,6 +167,47 @@ const ratingLabel = (rating: number | null, total: number | null) => {
     return total !== null ? `${value} ★ z ${formatExact(total)} opinii` : `${value} ★`;
 };
 
+/** Odstęp dołu edytora od dolnej krawędzi widocznej części: dolny pasek nawigacji, zanim się schowa. */
+const KEYBOARD_CLEARANCE = 80;
+
+/**
+ * Na telefonie „Odpowiedz" otwiera klawiaturę, a ta zabiera pół ekranu: pole
+ * i „Wyślij odpowiedź" lądowały pod nią i pod dolnym paskiem. Przewijamy tak, żeby
+ * dół edytora stał nad klawiaturą - od razu i przy każdej zmianie rozmiaru okna,
+ * póki edytor jest otwarty (Android z `resizes-content` skraca okno, iOS tylko
+ * `visualViewport`). Nigdy wyżej niż góra pola: tekst, który się pisze, jest
+ * ważniejszy niż przycisk.
+ */
+const useRevealAboveKeyboard = (ref: RefObject<HTMLElement | null>, active: boolean) => {
+    useEffect(() => {
+        if (!active) return;
+        const vv = window.visualViewport;
+        let frame = 0;
+        const reveal = () => {
+            cancelAnimationFrame(frame);
+            frame = requestAnimationFrame(() => {
+                const el = ref.current;
+                if (!el) return;
+                const rect = el.getBoundingClientRect();
+                const visibleTop = vv ? vv.offsetTop : 0;
+                const visibleBottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
+                const overflow = rect.bottom + KEYBOARD_CLEARANCE - visibleBottom;
+                const room = rect.top - visibleTop - 16;
+                const by = Math.min(overflow, room);
+                if (by > 0) window.scrollBy({ top: by, behavior: 'smooth' });
+            });
+        };
+        reveal();
+        window.addEventListener('resize', reveal);
+        vv?.addEventListener('resize', reveal);
+        return () => {
+            cancelAnimationFrame(frame);
+            window.removeEventListener('resize', reveal);
+            vv?.removeEventListener('resize', reveal);
+        };
+    }, [ref, active]);
+};
+
 interface ReviewProps {
     review: GoogleReview;
     /** Wypełniony „Wyślij" tylko wtedy, gdy w oknie nie stoi już inny krok następny. */
@@ -125,9 +221,12 @@ interface ReviewProps {
 }
 
 const ReviewRow = ({ review, canUsePrimary, open, setOpen }: ReviewProps) => {
+    const isDesktop = useBreakpoint('md');
     const { replyToReview } = useAccountActions();
     const [text, setText] = useState('');
     const [error, setError] = useState<string | null>(null);
+    const editorRef = useRef<HTMLDivElement>(null);
+    useRevealAboveKeyboard(editorRef, open && !isDesktop);
 
     const send = () => {
         setError(null);
@@ -140,15 +239,63 @@ const ReviewRow = ({ review, canUsePrimary, open, setOpen }: ReviewProps) => {
         );
     };
 
+    const stars = review.starRating !== null && (
+        <Stars aria-label={`${review.starRating} z 5`}>{starsOf(review.starRating)}</Stars>
+    );
+    const unansweredPill = review.replyComment === null && <StatusPill $tone="warn">bez odpowiedzi</StatusPill>;
+
+    const editorFields = (
+        <>
+            <ReplyBox
+                autoFocus
+                aria-label="Odpowiedź na opinię"
+                placeholder="Dziękujemy za opinię…"
+                value={text}
+                maxLength={GOOGLE_REPLY_MAX}
+                onChange={e => setText(e.target.value)}
+            />
+            <ReplyActions>
+                <Button
+                    variant={canUsePrimary ? 'primary' : 'tinted'}
+                    size="sm"
+                    disabled={text.trim().length === 0 || replyToReview.isPending}
+                    onClick={send}
+                >
+                    {replyToReview.isPending ? 'Wysyłam…' : 'Wyślij odpowiedź'}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => { setOpen(false); setError(null); }}>Anuluj</Button>
+                {error && <ErrorText role="alert">{error}</ErrorText>}
+            </ReplyActions>
+        </>
+    );
+
+    if (!isDesktop) {
+        return (
+            <ReviewItem>
+                <PhoneReviewHead>
+                    <strong>{review.reviewerName ?? 'Klient'}</strong>
+                    {review.createdAt && <span>{formatDate(review.createdAt)}</span>}
+                </PhoneReviewHead>
+                {(stars || unansweredPill) && <ReviewTop>{stars}{unansweredPill}</ReviewTop>}
+                {review.comment && <ReviewText>{review.comment}</ReviewText>}
+                {review.replyComment && <Reply><ReplyLabel>Odpowiedź studia</ReplyLabel>{review.replyComment}</Reply>}
+                {review.replyComment === null && !open && (
+                    <ReplyActions>
+                        <Button variant="tinted" size="sm" onClick={() => setOpen(true)}>Odpowiedz</Button>
+                    </ReplyActions>
+                )}
+                {open && <Editor ref={editorRef}>{editorFields}</Editor>}
+            </ReviewItem>
+        );
+    }
+
     return (
         <ReviewItem>
             <ReviewTop>
-                {review.starRating !== null && (
-                    <Stars aria-label={`${review.starRating} z 5`}>{starsOf(review.starRating)}</Stars>
-                )}
+                {stars}
                 <strong>{review.reviewerName ?? 'Klient'}</strong>
                 {review.createdAt && <Muted as="span">{formatDate(review.createdAt)}</Muted>}
-                {review.replyComment === null && <StatusPill $tone="warn">bez odpowiedzi</StatusPill>}
+                {unansweredPill}
             </ReviewTop>
             {review.comment && <ReviewText>{review.comment}</ReviewText>}
             {review.replyComment && <Reply>{review.replyComment}</Reply>}
@@ -158,31 +305,83 @@ const ReviewRow = ({ review, canUsePrimary, open, setOpen }: ReviewProps) => {
                     <Button variant="tinted" size="sm" onClick={() => setOpen(true)}>Odpowiedz</Button>
                 </ReplyActions>
             )}
-            {open && (
-                <>
-                    <ReplyBox
-                        autoFocus
-                        aria-label="Odpowiedź na opinię"
-                        placeholder="Dziękujemy za opinię…"
-                        value={text}
-                        maxLength={GOOGLE_REPLY_MAX}
-                        onChange={e => setText(e.target.value)}
-                    />
-                    <ReplyActions>
-                        <Button
-                            variant={canUsePrimary ? 'primary' : 'tinted'}
-                            size="sm"
-                            disabled={text.trim().length === 0 || replyToReview.isPending}
-                            onClick={send}
-                        >
-                            {replyToReview.isPending ? 'Wysyłam…' : 'Wyślij odpowiedź'}
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => { setOpen(false); setError(null); }}>Anuluj</Button>
-                        {error && <ErrorText role="alert">{error}</ErrorText>}
-                    </ReplyActions>
-                </>
-            )}
+            {open && editorFields}
         </ReviewItem>
+    );
+};
+
+interface ReviewsProps {
+    reviews: GoogleReview[];
+    canUsePrimary: boolean;
+    /**
+     * Telefon: widać opinie bez odpowiedzi, odpowiedziane czekają za „Pokaż". Na
+     * komputerze lista stoi obok statystyk i pokazuje sześć najświeższych od razu.
+     */
+    collapse: boolean;
+}
+
+const ReviewList = ({ reviews, canUsePrimary, collapse }: ReviewsProps) => {
+    const [openReviewId, setOpenReviewId] = useState<string | null>(null);
+    const [expanded, setExpanded] = useState(false);
+    const sorted = sortReviews(reviews);
+    if (sorted.length === 0) return <Muted>Brak opinii do pokazania.</Muted>;
+
+    const { shown, hidden } = collapse
+        ? splitUrgent(sorted, review => review.replyComment === null, PHONE_REVIEWS_FALLBACK)
+        : { shown: sorted.slice(0, REVIEWS_SHOWN), hidden: [] };
+    const visible = expanded ? [...shown, ...hidden] : shown;
+    // Gdy widać tylko te bez odpowiedzi, przycisk mówi, co dojdzie; inaczej - ile jest wszystkich.
+    const onlyUnanswered = shown.every(review => review.replyComment === null);
+
+    return (
+        <>
+            <List>
+                {visible.map(review => (
+                    <ReviewRow
+                        key={review.id}
+                        review={review}
+                        canUsePrimary={canUsePrimary}
+                        open={openReviewId === review.id}
+                        setOpen={open => setOpenReviewId(open ? review.id : null)}
+                    />
+                ))}
+            </List>
+            {hidden.length > 0 && (
+                <ShowMore type="button" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>
+                    {expanded
+                        ? 'Zwiń'
+                        : onlyUnanswered
+                            ? `Pokaż opinie z odpowiedzią (${hidden.length})`
+                            : `Pokaż wszystkie opinie (${sorted.length})`}
+                    <ChevronDown aria-hidden="true" />
+                </ShowMore>
+            )}
+        </>
+    );
+};
+
+/**
+ * Opinie bez odpowiedzi jako osobny panel - tylko na telefonie, gdzie zakładka
+ * układa się według tego, co czeka na reakcję: wiadomości, opinie, dopiero potem
+ * statystyki. Na komputerze opinie są częścią panelu wizytówki.
+ */
+export const GoogleReviewsPanel = ({ canUsePrimary }: { canUsePrimary: boolean }) => {
+    const google = useGoogleBusiness();
+    const data = google.data;
+    if (!data || data.status !== 'CONNECTED') return null;
+    return (
+        <Panel aria-label="Opinie w Google">
+            <PanelHead>
+                <SectionTitle count={data.unansweredReviews > 0 ? `${data.unansweredReviews} bez odpowiedzi` : undefined}>
+                    Opinie w Google
+                </SectionTitle>
+            </PanelHead>
+            <PanelBody>
+                <Section>
+                    <ReviewList reviews={data.reviews} canUsePrimary={canUsePrimary} collapse />
+                </Section>
+            </PanelBody>
+        </Panel>
     );
 };
 
@@ -192,15 +391,17 @@ interface Props {
      * następnym zakładki jest „Połącz Instagram" - wtedy Google zostaje przy odcieniu.
      */
     canUsePrimary: boolean;
+    /** Fałsz, gdy opinie stoją wyżej we własnym panelu (`GoogleReviewsPanel`, telefon). */
+    withReviews?: boolean;
 }
 
-export const GoogleBusinessPanel = ({ canUsePrimary }: Props) => {
+export const GoogleBusinessPanel = ({ canUsePrimary, withReviews = true }: Props) => {
+    const isDesktop = useBreakpoint('md');
     const google = useGoogleBusiness();
     const actions = useAccountActions();
     const menu = useActionMenu();
     const [confirmDisconnect, setConfirmDisconnect] = useState(false);
     const [syncNote, setSyncNote] = useState<string | null>(null);
-    const [openReviewId, setOpenReviewId] = useState<string | null>(null);
     const data = google.data;
     const status = data?.status ?? 'NOT_CONNECTED';
     const connected = status === 'CONNECTED';
@@ -281,12 +482,12 @@ export const GoogleBusinessPanel = ({ canUsePrimary }: Props) => {
 
         const last = data.last30;
         const previous = data.previous30;
-        const reviews = sortReviews(data.reviews).slice(0, REVIEWS_SHOWN);
         return (
             <>
                 {syncNote && <Notice tone="info" role="status">{syncNote}</Notice>}
                 {last ? (
                     <Section>
+                        {!isDesktop && <PeriodCaption>{periodCaption(previous !== null)}</PeriodCaption>}
                         <KpiGrid>
                             <Kpi>
                                 <KpiLabel>Telefony</KpiLabel>
@@ -316,64 +517,78 @@ export const GoogleBusinessPanel = ({ canUsePrimary }: Props) => {
                     <Muted>Pierwsze liczby z wizytówki pojawią się po pobraniu danych, zwykle w kilka minut.</Muted>
                 )}
 
-                <Section>
-                    <SectionTitle
-                        as="h3"
-                        count={data.unansweredReviews > 0
-                            ? `${data.unansweredReviews} bez odpowiedzi`
-                            : undefined}
-                    >
-                        Opinie
-                    </SectionTitle>
-                    {reviews.length === 0 ? (
-                        <Muted>Brak opinii do pokazania.</Muted>
-                    ) : (
-                        <List>
-                            {reviews.map(review => (
-                                <ReviewRow
-                                    key={review.id}
-                                    review={review}
-                                    canUsePrimary={canUsePrimary}
-                                    open={openReviewId === review.id}
-                                    setOpen={open => setOpenReviewId(open ? review.id : null)}
-                                />
-                            ))}
-                        </List>
-                    )}
-                </Section>
+                {withReviews && (
+                    <Section>
+                        <SectionTitle
+                            as="h3"
+                            count={data.unansweredReviews > 0
+                                ? `${data.unansweredReviews} bez odpowiedzi`
+                                : undefined}
+                        >
+                            Opinie
+                        </SectionTitle>
+                        <ReviewList reviews={data.reviews} canUsePrimary={canUsePrimary} collapse={!isDesktop} />
+                    </Section>
+                )}
             </>
         );
     };
 
     const rating = ratingLabel(data?.averageRating ?? null, data?.totalReviews ?? null);
     const synced = sinceLabel(data?.lastSyncAt);
+    const title = connected && data?.locationTitle ? data.locationTitle : 'Wizytówka Google';
+
+    const syncButton = (
+        <Button variant="outline" size="sm" onClick={sync} disabled={actions.syncGoogle.isPending}>
+            <RefreshCw aria-hidden="true" />
+            {actions.syncGoogle.isPending ? 'Odświeżam…' : 'Odśwież'}
+        </Button>
+    );
+    const moreButton = (
+        <IconButton label="Więcej" size="sm" onClick={e => menu.toggle(e, null)}>
+            <MoreHorizontal />
+        </IconButton>
+    );
+
+    const head = !isDesktop ? (
+        <PhoneHead>
+            <PhoneHeadName>
+                <IconTile $tone="google"><Store aria-hidden="true" /></IconTile>
+                <HeadTitle>{title}</HeadTitle>
+            </PhoneHeadName>
+            {connected && (
+                <PhoneHeadBar>
+                    {rating ? <PhoneHeadFact>{rating}</PhoneHeadFact> : <span />}
+                    <Actions>{syncButton}{moreButton}</Actions>
+                </PhoneHeadBar>
+            )}
+            {connected && (data?.locationAddress || synced) && (
+                <Meta>
+                    {data?.locationAddress && <span>{data.locationAddress}</span>}
+                    {synced && <span>odświeżone {synced}</span>}
+                </Meta>
+            )}
+        </PhoneHead>
+    ) : (
+        <CardHead>
+            <AccountHead>
+                <IconTile $tone="google"><Store aria-hidden="true" /></IconTile>
+                <HeadText>
+                    <HeadTitle>{title}</HeadTitle>
+                    <Meta>
+                        {connected && rating && <span>{rating}</span>}
+                        {connected && data?.locationAddress && <span>{data.locationAddress}</span>}
+                        {connected && synced && <span>odświeżone {synced}</span>}
+                    </Meta>
+                </HeadText>
+            </AccountHead>
+            {connected && <Actions>{syncButton}{moreButton}</Actions>}
+        </CardHead>
+    );
 
     return (
         <Panel aria-label="Wizytówka Google">
-            <CardHead>
-                <AccountHead>
-                    <IconTile $tone="google"><Store aria-hidden="true" /></IconTile>
-                    <HeadText>
-                        <HeadTitle>{connected && data?.locationTitle ? data.locationTitle : 'Wizytówka Google'}</HeadTitle>
-                        <Meta>
-                            {connected && rating && <span>{rating}</span>}
-                            {connected && data?.locationAddress && <span>{data.locationAddress}</span>}
-                            {connected && synced && <span>odświeżone {synced}</span>}
-                        </Meta>
-                    </HeadText>
-                </AccountHead>
-                {connected && (
-                    <Actions>
-                        <Button variant="outline" size="sm" onClick={sync} disabled={actions.syncGoogle.isPending}>
-                            <RefreshCw aria-hidden="true" />
-                            {actions.syncGoogle.isPending ? 'Odświeżam…' : 'Odśwież'}
-                        </Button>
-                        <IconButton label="Więcej" size="sm" onClick={e => menu.toggle(e, null)}>
-                            <MoreHorizontal />
-                        </IconButton>
-                    </Actions>
-                )}
-            </CardHead>
+            {head}
             <CardBody>{body()}</CardBody>
 
             <ActionMenu anchor={menu.menu?.anchor ?? null} onClose={menu.close} label="Wizytówka Google">

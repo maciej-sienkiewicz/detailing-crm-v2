@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { Fragment, useMemo, useState } from 'react';
 import styled from 'styled-components';
-import { AlertCircle, ChevronDown, ChevronRight, ChevronUp, ExternalLink } from 'lucide-react';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { ChevronDown, ChevronRight, ChevronUp, Link2, X } from 'lucide-react';
+import { Button, IconButton, Notice, Panel, SectionTitle, StatusPill, ui } from '@/common/components/ui';
 import { pluralPl } from '@/common/utils/plural';
 import type { AdBar, AdCalendar, AdCalendarRow, UnlinkedProfile } from '../types';
 import { CenterState, formatExact } from './MetricBits';
@@ -9,23 +9,27 @@ import { LinkFacebookPageModal } from './LinkFacebookPageModal';
 import { AreaSection } from './AreaSection';
 import { useProfileColors } from '../hooks/useProfileColors';
 import { colorFor } from '../utils/profileColors';
-import { dayOfYear, monthStartDays, yearLength } from '../utils/adCalendar';
+import {
+    MONTH_ABBR,
+    MONTH_NAMES,
+    bucketAdsByMonth,
+    currentMonthIndex,
+    formatAdRange,
+    isAdRunning,
+    runningAdLabel,
+} from '../utils/adCalendar';
 
 /**
  * Mobilny widok Reklamy — twin dla AdsTab (desktop). Zamiast rocznego timeline'a
- * (który na 343 px zamienia 3-dniową kampanię w 3 px słupek) każda karta profilu
- * pokazuje histogram 12 miesięcy z liczbą dni sponsorowanych — czytelne przy każdej
- * szerokości ekranu. Aktualnie aktywne kampanie są przypięte jako klikalne chipy
- * nad histogramem, więc scenariusz „kto reklamuje się DZIŚ" nie wymaga ani jednego
- * tapnięcia poza otwarciem zakładki.
+ * (który na 343 px zamienia 3-dniową kampanię w 3 px słupek) każdy reklamodawca
+ * dostaje panel z histogramem 12 miesięcy: liczba dni reklam w miesiącu, dotknięcie
+ * miesiąca pokazuje jego kampanie. Trwające reklamy stoją na górze panelu jako
+ * wiersze, więc „kto reklamuje się DZIŚ" nie wymaga ani jednego tapnięcia.
+ *
+ * Panele są z tych samych klocków co reszta modułu (`Panel`, `StatusPill`, `Notice`):
+ * dawna wersja na motywie statystyk, z kolorowym paskiem z lewej, pulsującą kropką
+ * i etykietami 10 px wersalikami wyglądała jak wklejona z innej aplikacji.
  */
-
-const MONTH_LETTERS = ['S', 'L', 'M', 'K', 'M', 'C', 'L', 'S', 'W', 'P', 'L', 'G'];
-const MONTH_NAMES = [
-    'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
-    'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień',
-];
-const MONTH_ABBR = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
 
 interface Props {
     calendar: AdCalendar;
@@ -37,112 +41,76 @@ interface Props {
     showArea?: boolean;
 }
 
-interface MonthBucket {
-    /** Suma dni każdej kampanii pokrywającej ten miesiąc — konsystentne z sponsoredDays z API. */
-    daysInMonth: number;
-    /** Kampanie z jakąkolwiek nakładką na miesiąc, posortowane po dacie startu. */
-    ads: AdBar[];
-}
+type Linking = { profileId: string; username: string; pageId?: string | null };
 
 /**
- * Rozłożenie reklam profilu na 12 miesięcy: łączne dni sponsorowane (dokładnie
- * tak jak liczy backend — kampanie równoległe liczą się osobno) plus lista kampanii
- * do rozwijalnego panelu. Nie liczymy przyszłości: dla bieżącego roku odcinamy
- * na dziś.
+ * Nazwa profilu łamie się na `_` i `.`, a nie w środku słowa: „@lustro_detailing_" /
+ * „wilanow" czyta się jak nazwa, „@lustro_detailing_wil" / „anow" już nie.
  */
-const bucketAdsByMonth = (ads: AdBar[], year: number, today: string): MonthBucket[] => {
-    const starts = monthStartDays(year);
-    const length = yearLength(year);
-    const lastDayInYear = today.startsWith(`${year}-`) ? dayOfYear(today) : length;
-    const ends = starts.map((_, i) => (i + 1 < starts.length ? starts[i + 1] - 1 : length));
+const breakableHandle = (username: string): React.ReactNode =>
+    username.split(/([_.])/).map((part, index) =>
+        part === '_' || part === '.' ? <Fragment key={index}>{part}<wbr /></Fragment> : part
+    );
 
-    const buckets: MonthBucket[] = Array.from({ length: 12 }, () => ({ daysInMonth: 0, ads: [] }));
-
-    ads.forEach(ad => {
-        const fromDay = ad.start.startsWith(`${year}-`) ? dayOfYear(ad.start) : 1;
-        const rawStop = ad.stop && ad.stop.startsWith(`${year}-`) ? dayOfYear(ad.stop) : lastDayInYear;
-        const toDay = Math.min(rawStop, lastDayInYear);
-        if (toDay < fromDay) return;
-
-        for (let m = 0; m < 12; m += 1) {
-            const overlapStart = Math.max(fromDay, starts[m]);
-            const overlapEnd = Math.min(toDay, ends[m]);
-            if (overlapEnd >= overlapStart) {
-                buckets[m].daysInMonth += overlapEnd - overlapStart + 1;
-                buckets[m].ads.push(ad);
-            }
-        }
-    });
-
-    buckets.forEach(bucket => {
-        bucket.ads.sort((a, b) => a.start.localeCompare(b.start));
-    });
-
-    return buckets;
-};
-
-const formatRange = (start: string, stop: string | null): string => {
-    const startDate = new Date(`${start}T00:00:00Z`);
-    const startLabel = `${startDate.getUTCDate()} ${MONTH_ABBR[startDate.getUTCMonth()]}`;
-    if (!stop) return `trwa od ${startLabel}`;
-    if (start === stop) return startLabel;
-    const stopDate = new Date(`${stop}T00:00:00Z`);
-    const stopLabel = `${stopDate.getUTCDate()} ${MONTH_ABBR[stopDate.getUTCMonth()]}`;
-    return `${startLabel} – ${stopLabel}`;
-};
-
-/** Krótki opis chipa aktywnej kampanii: „trwa" albo „do 24 mar". */
-const activeChipLabel = (ad: AdBar): string => {
-    if (!ad.stop) return 'trwa';
-    const stopDate = new Date(`${ad.stop}T00:00:00Z`);
-    return `do ${stopDate.getUTCDate()} ${MONTH_ABBR[stopDate.getUTCMonth()]}`;
+/**
+ * Jedno zdanie zamiast trzech etykiet nad liczbami. Twarde spacje trzymają liczbę
+ * z jej słowem, więc na wąskim ekranie zdanie łamie się tylko po przecinku.
+ */
+const summarySentence = (row: AdCalendarRow): React.ReactNode => {
+    const nb = (text: string) => text.replace(/ /g, ' ');
+    return (
+        <>
+            <b>{row.campaigns}</b>{nb(` ${pluralPl(row.campaigns, 'kampania', 'kampanie', 'kampanii')}`)},{' '}
+            <b>{row.sponsoredDays}</b>{nb(` ${pluralPl(row.sponsoredDays, 'dzień reklam', 'dni reklam', 'dni reklam')}`)}
+            {row.reachTotal !== null && (
+                <>, {nb('zasięg ')}<b>{formatExact(row.reachTotal)}</b></>
+            )}
+        </>
+    );
 };
 
 export const AdsTabMobile: React.FC<Props> = ({ calendar, onOpenAd, showArea = true }) => {
     const colors = useProfileColors();
-    const [linking, setLinking] = useState<{
-        profileId: string;
-        username: string;
-        pageId?: string | null;
-    } | null>(null);
-
-    const rowsWithColors = useMemo(
-        () => calendar.rows.map(row => ({ row, color: colorFor(colors, row.username) })),
-        [calendar.rows, colors]
-    );
+    const [linking, setLinking] = useState<Linking | null>(null);
 
     /**
      * Sortowanie: aktywni dziś na górę (właściciel wraca głównie po to), potem
-     * według wolumenu w tym roku, alfabetycznie w razie remisu. Silent-owie schodzą
-     * na dno listy — nie są ważni, ale trzeba wiedzieć, że istnieją.
+     * według wolumenu w tym roku, alfabetycznie w razie remisu. Profile bez reklam
+     * schodzą na dno listy — nie są ważne, ale trzeba wiedzieć, że istnieją.
      */
     const sortedRows = useMemo(() => {
-        return [...rowsWithColors].sort((a, b) => {
-            if ((a.row.activeNow > 0) !== (b.row.activeNow > 0)) return a.row.activeNow > 0 ? -1 : 1;
-            if (a.row.sponsoredDays !== b.row.sponsoredDays) return b.row.sponsoredDays - a.row.sponsoredDays;
-            return a.row.username.localeCompare(b.row.username, 'pl');
-        });
-    }, [rowsWithColors]);
+        return calendar.rows
+            .map(row => ({ row, color: colorFor(colors, row.username) }))
+            .sort((a, b) => {
+                if ((a.row.activeNow > 0) !== (b.row.activeNow > 0)) return a.row.activeNow > 0 ? -1 : 1;
+                if (a.row.sponsoredDays !== b.row.sponsoredDays) return b.row.sponsoredDays - a.row.sponsoredDays;
+                return a.row.username.localeCompare(b.row.username, 'pl');
+            });
+    }, [calendar.rows, colors]);
 
     if (!calendar.configured) {
         return (
-            <CenterState>
-                <strong>Reklamy konkurencji nie są jeszcze podłączone</strong>
-                <span>
-                    Czekamy na dostęp do Biblioteki reklam Meta. Gdy tylko go dostaniemy, zobaczysz tu
-                    kalendarz kampanii obserwowanych profili.
-                </span>
-            </CenterState>
+            <Panel>
+                <CenterState>
+                    <strong>Reklamy konkurencji nie są jeszcze podłączone</strong>
+                    <span>
+                        Czekamy na dostęp do Biblioteki reklam Meta. Gdy tylko go dostaniemy, zobaczysz tu
+                        kalendarz kampanii obserwowanych profili.
+                    </span>
+                </CenterState>
+            </Panel>
         );
     }
 
     if (calendar.rows.length === 0 && calendar.unlinked.length === 0) {
         return (
             <Layout>
-                <CenterState>
-                    <strong>Brak obserwowanych profili</strong>
-                    <span>Dodaj profile konkurencji, żeby sprawdzić, kto z nich się reklamuje.</span>
-                </CenterState>
+                <Panel>
+                    <CenterState>
+                        <strong>Brak obserwowanych profili</strong>
+                        <span>Dodaj profile konkurencji, żeby sprawdzić, kto z nich się reklamuje.</span>
+                    </CenterState>
+                </Panel>
                 {showArea && <AreaSection />}
             </Layout>
         );
@@ -150,17 +118,49 @@ export const AdsTabMobile: React.FC<Props> = ({ calendar, onOpenAd, showArea = t
 
     return (
         <Layout>
+            {calendar.rows.length > 0 && (
+                <Intro>
+                    <SectionTitle
+                        count={calendar.activeToday > 0
+                            ? `${calendar.activeToday} ${pluralPl(
+                                calendar.activeToday,
+                                'reklama aktywna dziś',
+                                'reklamy aktywne dziś',
+                                'reklam aktywnych dziś'
+                            )}`
+                            : undefined}
+                    >
+                        Kalendarz reklam {calendar.year}
+                    </SectionTitle>
+                    <Hint>Słupek to dni reklam w miesiącu. Dotknij miesiąca, żeby zobaczyć jego kampanie.</Hint>
+                </Intro>
+            )}
+
             {calendar.unlinked.length > 0 && (
-                <UnlinkedGroup
+                <UnlinkedNotice
                     profiles={calendar.unlinked}
-                    onLink={profile =>
-                        setLinking({ profileId: profile.profileId, username: profile.username })
-                    }
+                    onLink={profile => setLinking({ profileId: profile.profileId, username: profile.username })}
                 />
             )}
 
+            {/*
+              * Nowe studio ma same niepodpięte profile i poza ostrzeżeniem nie widziało
+              * tu niczego - nie wiadomo było, po co w ogóle wskazywać strony.
+              */}
+            {calendar.rows.length === 0 && (
+                <Panel>
+                    <Explain>
+                        <SectionTitle as="h3">Tu zobaczysz reklamy konkurencji</SectionTitle>
+                        <p>
+                            Dla każdego profilu ze wskazaną stroną pokażemy, które reklamy trwają dziś,
+                            w których miesiącach się reklamował i ile osób zobaczyło jego kampanie.
+                        </p>
+                    </Explain>
+                </Panel>
+            )}
+
             {sortedRows.map(({ row, color }) => (
-                <ProfileCard
+                <AdvertiserPanel
                     key={row.profileId}
                     row={row}
                     color={color}
@@ -168,11 +168,7 @@ export const AdsTabMobile: React.FC<Props> = ({ calendar, onOpenAd, showArea = t
                     today={calendar.today}
                     onOpenAd={onOpenAd}
                     onEditPage={() =>
-                        setLinking({
-                            profileId: row.profileId,
-                            username: row.username,
-                            pageId: row.facebookPageId,
-                        })
+                        setLinking({ profileId: row.profileId, username: row.username, pageId: row.facebookPageId })
                     }
                 />
             ))}
@@ -191,64 +187,79 @@ export const AdsTabMobile: React.FC<Props> = ({ calendar, onOpenAd, showArea = t
     );
 };
 
-// ─── Zbiorcza karta unlinked profili ─────────────────────────────────────────
+// ─── Profile bez strony FB ───────────────────────────────────────────────────
 
 /**
- * Jedna karta na WSZYSTKIE niepodpięte profile — nawet gdy jest ich pięć.
- * W pierwszej iteracji było N osobnych kart z powtarzającym się akapitem
- * „profil nie jest połączony ze stroną na Facebooku — nie wiemy, czy się
- * reklamuje" i pół ekranu bez informacji o reklamach.
+ * Jeden komunikat na WSZYSTKIE niepodpięte profile — nawet gdy jest ich pięć.
+ * W pierwszej iteracji było N osobnych kart z powtarzającym się akapitem i pół
+ * ekranu bez informacji o reklamach.
  *
- * Chip per profil (tap → LinkFacebookPageModal). Karta zwinięta domyślnie
- * gdy profili jest 3+, żeby nie zabierała miejsca — jeden lub dwa chipy
- * pokazujemy od razu, wiele profili chowamy pod chevron.
+ * Przyciski mają ikonę spinacza, nie strzałki „na zewnątrz": otwierają okno
+ * wskazania strony w aplikacji, nie Facebooka. Od trzech profili lista leży
+ * zwinięta, żeby komunikat nie wypychał reklam poza pierwszy ekran.
  */
-const UnlinkedGroup: React.FC<{
+const UnlinkedNotice: React.FC<{
     profiles: UnlinkedProfile[];
     onLink: (profile: UnlinkedProfile) => void;
 }> = ({ profiles, onLink }) => {
+    const single = profiles.length === 1 ? profiles[0] : null;
     const many = profiles.length >= 3;
     const [expanded, setExpanded] = useState(!many);
 
-    return (
-        <Card $variant="unlinked">
-            <UnlinkedGroupHead
-                as={many ? 'button' : 'div'}
-                type={many ? 'button' : undefined}
-                onClick={many ? () => setExpanded(v => !v) : undefined}
-                aria-expanded={many ? expanded : undefined}
+    if (single) {
+        return (
+            <Notice
+                tone="warn"
+                title={<>@{breakableHandle(single.username)} bez strony na Facebooku</>}
+                action={
+                    <Button
+                        size="sm"
+                        onClick={() => onLink(single)}
+                        aria-label={`Wskaż stronę na Facebooku dla @${single.username}`}
+                    >
+                        <Link2 /> Wskaż stronę
+                    </Button>
+                }
             >
-                <UnlinkedIcon>
-                    <AlertCircle size={16} />
-                </UnlinkedIcon>
-                <UnlinkedTitle>
-                    {profiles.length === 1
-                        ? `@${profiles[0].username} bez strony FB`
-                        : `${profiles.length} profili bez strony FB`}
-                </UnlinkedTitle>
-                {many && (expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
-            </UnlinkedGroupHead>
+                <span>Wskaż stronę na Facebooku, a pokażemy jej reklamy.</span>
+            </Notice>
+        );
+    }
+
+    return (
+        <Notice
+            tone="warn"
+            title={`${profiles.length} ${pluralPl(profiles.length, 'profil', 'profile', 'profili')} bez strony na Facebooku`}
+        >
+            <span>Wskaż ich strony na Facebooku, a pokażemy ich reklamy.</span>
             {expanded && (
-                <UnlinkedChips>
+                <LinkList>
                     {profiles.map(profile => (
-                        <UnlinkedChip
+                        <LinkButton
                             key={profile.profileId}
-                            type="button"
+                            size="sm"
                             onClick={() => onLink(profile)}
+                            aria-label={`Wskaż stronę na Facebooku dla @${profile.username}`}
                         >
-                            @{profile.username}
-                            <ExternalLink size={11} aria-hidden />
-                        </UnlinkedChip>
+                            <Link2 />
+                            <span>@{profile.username}</span>
+                        </LinkButton>
                     ))}
-                </UnlinkedChips>
+                </LinkList>
             )}
-        </Card>
+            {many && (
+                <ToggleList type="button" onClick={() => setExpanded(value => !value)} aria-expanded={expanded}>
+                    {expanded ? <ChevronUp size={16} aria-hidden /> : <ChevronDown size={16} aria-hidden />}
+                    {expanded ? 'Zwiń listę' : `Pokaż ${profiles.length} ${pluralPl(profiles.length, 'profil', 'profile', 'profili')}`}
+                </ToggleList>
+            )}
+        </Notice>
     );
 };
 
-// ─── Karta profilu ───────────────────────────────────────────────────────────
+// ─── Panel reklamodawcy ──────────────────────────────────────────────────────
 
-const ProfileCard: React.FC<{
+const AdvertiserPanel: React.FC<{
     row: AdCalendarRow;
     color: string;
     year: number;
@@ -256,139 +267,121 @@ const ProfileCard: React.FC<{
     onOpenAd: (adId: string) => void;
     onEditPage: () => void;
 }> = ({ row, color, year, today, onOpenAd, onEditPage }) => {
-    const [expandedMonth, setExpandedMonth] = useState<number | null>(null);
-    const isSilent = row.ads.length === 0;
+    const [openMonth, setOpenMonth] = useState<number | null>(null);
+    const silent = row.ads.length === 0;
 
     const buckets = useMemo(() => bucketAdsByMonth(row.ads, year, today), [row.ads, year, today]);
-    const maxDays = useMemo(() => Math.max(1, ...buckets.map(b => b.daysInMonth)), [buckets]);
-    const currentMonth = today.startsWith(`${year}-`) ? new Date(`${today}T00:00:00Z`).getUTCMonth() : -1;
-
-    const activeAds = row.ads.filter(ad => {
-        if (!ad.stop) return true;
-        return ad.stop >= today;
-    });
-
-    if (isSilent) {
-        return (
-            <Card>
-                <SilentHead>
-                    <Dot $color={color} />
-                    <UserName>@{row.username}</UserName>
-                    <SilentMuted>bez reklam w {year}</SilentMuted>
-                    <PageActionBtn type="button" onClick={onEditPage}>
-                        strona FB
-                    </PageActionBtn>
-                </SilentHead>
-            </Card>
-        );
-    }
+    const maxDays = Math.max(1, ...buckets.map(bucket => bucket.daysInMonth));
+    const currentMonth = currentMonthIndex(year, today);
+    const running = row.ads.filter(ad => isAdRunning(ad, today));
+    const pageLabel = row.facebookPageId ? 'Zmień stronę na Facebooku' : 'Wskaż stronę na Facebooku';
 
     return (
-        <Card>
-            <CardHead>
-                <Dot $color={color} />
-                <UserName>@{row.username}</UserName>
-                {row.activeNow > 0 && (
-                    <ActivePill>
-                        <ActiveDot /> Aktywne: {row.activeNow}
-                    </ActivePill>
-                )}
-            </CardHead>
+        <AdvPanel aria-label={`@${row.username}`}>
+            <Head>
+                <Dot $color={color} aria-hidden />
+                <Who>
+                    <Name>@{breakableHandle(row.username)}</Name>
+                    <Summary>{silent ? `Bez reklam w ${year}` : summarySentence(row)}</Summary>
+                </Who>
+                <PageButton label={pageLabel} variant="ghost" onClick={onEditPage}>
+                    <Link2 />
+                </PageButton>
+            </Head>
 
-            {activeAds.length > 0 && (
-                <ActiveChipRow>
-                    {activeAds.map(ad => (
-                        <ActiveChip key={ad.adId} type="button" onClick={() => onOpenAd(ad.adId)}>
-                            <ActiveDot />
-                            <ChipTitle>{ad.title ?? 'Kampania'}</ChipTitle>
-                            <ChipMeta>{activeChipLabel(ad)}</ChipMeta>
-                            <ExternalLink size={12} aria-hidden />
-                        </ActiveChip>
-                    ))}
-                </ActiveChipRow>
+            {running.length > 0 && (
+                <Section>
+                    <StatusPill $tone="ok">
+                        <LiveDot aria-hidden />
+                        {running.length} {pluralPl(running.length, 'aktywna reklama', 'aktywne reklamy', 'aktywnych reklam')}
+                    </StatusPill>
+                    <AdList>
+                        {running.map(ad => (
+                            <AdRowButton key={ad.adId} ad={ad} meta={runningAdLabel(ad)} onOpen={onOpenAd} />
+                        ))}
+                    </AdList>
+                </Section>
             )}
 
-            <Histogram role="group" aria-label={`Aktywność reklam ${row.username} w roku ${year}`}>
-                {buckets.map((bucket, m) => {
-                    const height = bucket.daysInMonth > 0
-                        ? Math.max(3, (bucket.daysInMonth / maxDays) * 60)
-                        : 0;
-                    const isCurrent = m === currentMonth;
-                    const isExpanded = expandedMonth === m;
-                    const hasData = bucket.daysInMonth > 0;
-                    return (
-                        <HistogramCol
-                            key={m}
-                            type="button"
-                            aria-label={`${MONTH_NAMES[m]}: ${bucket.daysInMonth} ${pluralPl(bucket.daysInMonth, 'dzień sponsorowany', 'dni sponsorowane', 'dni sponsorowanych')}, ${bucket.ads.length} ${pluralPl(bucket.ads.length, 'kampania', 'kampanie', 'kampanii')}`}
-                            aria-expanded={hasData ? isExpanded : undefined}
-                            disabled={!hasData}
-                            $current={isCurrent}
-                            $active={isExpanded}
-                            onClick={() => setExpandedMonth(prev => (prev === m ? null : m))}
-                        >
-                            <HistogramBarSlot>
-                                <HistogramBar
-                                    style={{ height: `${height}px`, background: color }}
-                                    $active={isExpanded}
-                                />
-                            </HistogramBarSlot>
-                            <MonthLetter $current={isCurrent}>{MONTH_LETTERS[m]}</MonthLetter>
-                        </HistogramCol>
-                    );
-                })}
-            </Histogram>
+            {!silent && (
+                <Section>
+                    <Chart role="group" aria-label={`Dni reklam @${row.username} w kolejnych miesiącach ${year}`}>
+                        {buckets.map((bucket, month) => {
+                            const hasData = bucket.daysInMonth > 0;
+                            const isOpen = openMonth === month;
+                            const height = hasData ? Math.max(4, (bucket.daysInMonth / maxDays) * BAR_MAX) : 0;
+                            return (
+                                <MonthCol
+                                    key={month}
+                                    type="button"
+                                    disabled={!hasData}
+                                    aria-expanded={hasData ? isOpen : undefined}
+                                    aria-current={month === currentMonth ? 'date' : undefined}
+                                    aria-label={`${MONTH_NAMES[month]}: ${bucket.daysInMonth} ${pluralPl(bucket.daysInMonth, 'dzień reklam', 'dni reklam', 'dni reklam')}, ${bucket.ads.length} ${pluralPl(bucket.ads.length, 'kampania', 'kampanie', 'kampanii')}`}
+                                    $open={isOpen}
+                                    onClick={() => setOpenMonth(prev => (prev === month ? null : month))}
+                                >
+                                    <BarSlot $future={currentMonth >= 0 && month > currentMonth}>
+                                        <Bar
+                                            style={{ height: `${height}px`, background: color }}
+                                            $dim={openMonth !== null && !isOpen}
+                                        />
+                                    </BarSlot>
+                                    <MonthLabel $current={month === currentMonth}>{MONTH_ABBR[month]}</MonthLabel>
+                                </MonthCol>
+                            );
+                        })}
+                    </Chart>
 
-            <StatsRow>
-                <StatCell>
-                    <StatLabel>Kampanie</StatLabel>
-                    <StatValue>{row.campaigns}</StatValue>
-                </StatCell>
-                <StatCell>
-                    <StatLabel>Dni</StatLabel>
-                    <StatValue>{row.sponsoredDays}</StatValue>
-                </StatCell>
-                <StatCell>
-                    <StatLabel>Zasięg</StatLabel>
-                    <StatValue>{row.reachTotal !== null ? formatExact(row.reachTotal) : '—'}</StatValue>
-                </StatCell>
-            </StatsRow>
-
-            {expandedMonth !== null && (
-                <MonthDrawer>
-                    <MonthDrawerHead>
-                        <ChevronDown size={14} aria-hidden />
-                        <span>
-                            <strong>{MONTH_NAMES[expandedMonth]}</strong>: {buckets[expandedMonth].ads.length}{' '}
-                            {pluralPl(buckets[expandedMonth].ads.length, 'kampania', 'kampanie', 'kampanii')}
-                        </span>
-                    </MonthDrawerHead>
-                    {buckets[expandedMonth].ads.map(ad => (
-                        <MonthAdRow key={ad.adId} type="button" onClick={() => onOpenAd(ad.adId)}>
-                            <AdRowDot $color={color} />
-                            <AdRowInfo>
-                                <AdRowTitle>{ad.title ?? 'Kampania'}</AdRowTitle>
-                                <AdRowMeta>
-                                    {formatRange(ad.start, ad.stop)}, {ad.days} {pluralPl(ad.days, 'dzień', 'dni', 'dni')}
-                                    {ad.reach !== null && `, zasięg ${formatExact(ad.reach)}`}
-                                </AdRowMeta>
-                            </AdRowInfo>
-                            <ChevronRight size={16} aria-hidden />
-                        </MonthAdRow>
-                    ))}
-                </MonthDrawer>
+                    {openMonth !== null && (
+                        <MonthDetail>
+                            <MonthHead>
+                                <div>
+                                    <strong>{MONTH_NAMES[openMonth]} {year}</strong>
+                                    <span>
+                                        {buckets[openMonth].daysInMonth}{' '}
+                                        {pluralPl(buckets[openMonth].daysInMonth, 'dzień reklam', 'dni reklam', 'dni reklam')},{' '}
+                                        {buckets[openMonth].ads.length}{' '}
+                                        {pluralPl(buckets[openMonth].ads.length, 'kampania', 'kampanie', 'kampanii')}
+                                    </span>
+                                </div>
+                                <CloseMonth label="Zwiń miesiąc" variant="ghost" onClick={() => setOpenMonth(null)}>
+                                    <X />
+                                </CloseMonth>
+                            </MonthHead>
+                            <AdList>
+                                {buckets[openMonth].ads.map(ad => (
+                                    <AdRowButton
+                                        key={ad.adId}
+                                        ad={ad}
+                                        meta={`${formatAdRange(ad.start, ad.stop)}, ${ad.days} ${pluralPl(ad.days, 'dzień', 'dni', 'dni')}${ad.reach !== null ? `, zasięg ${formatExact(ad.reach)}` : ''}`}
+                                        onOpen={onOpenAd}
+                                    />
+                                ))}
+                            </AdList>
+                        </MonthDetail>
+                    )}
+                </Section>
             )}
-
-            <FooterRow>
-                <PageActionBtn type="button" onClick={onEditPage}>
-                    strona FB
-                </PageActionBtn>
-            </FooterRow>
-        </Card>
+        </AdvPanel>
     );
 };
 
+/** Wiersz kampanii: tytuł w dwóch linijkach, pod nim kiedy, a strzałka mówi „otworzy się tutaj". */
+const AdRowButton: React.FC<{ ad: AdBar; meta: string; onOpen: (adId: string) => void }> = ({ ad, meta, onOpen }) => (
+    <AdRow type="button" onClick={() => onOpen(ad.adId)}>
+        <AdText>
+            <AdTitle>{ad.title ?? 'Kampania bez tytułu'}</AdTitle>
+            <AdMeta>{meta}</AdMeta>
+        </AdText>
+        <ChevronRight size={18} aria-hidden />
+    </AdRow>
+);
+
 // ─── Styles ──────────────────────────────────────────────────────────────────
+
+/** Wysokość najwyższego słupka; reszta skaluje się do niej. */
+const BAR_MAX = 56;
 
 const Layout = styled.div`
     display: flex;
@@ -396,396 +389,320 @@ const Layout = styled.div`
     gap: 12px;
 `;
 
-const Card = styled.section<{ $variant?: 'unlinked' }>`
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-left: 4px solid ${p => (p.$variant === 'unlinked' ? st.accentAmber : 'transparent')};
-    border-radius: ${st.radiusSm};
-    box-shadow: ${st.shadowXs};
-    padding: 14px;
+const Intro = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 4px;
+    padding: 4px 2px 0;
 `;
 
-const CardHead = styled.div`
+const Hint = styled.p`
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: ${ui.textMuted};
+`;
+
+const Explain = styled.div`
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px;
+
+    p {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.5;
+        color: ${ui.textSecondary};
+    }
+`;
+
+const LinkList = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
     gap: 8px;
-    min-height: 32px;
+    margin-top: 8px;
+`;
+
+/** Pełna nazwa profilu w przycisku, a przy wyjątkowo długiej - wielokropek zamiast wyjechania poza komunikat. */
+const LinkButton = styled(Button)`
+    max-width: 100%;
+
+    span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+`;
+
+const ToggleList = styled.button`
+    position: relative;
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    padding: 4px 0;
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: inherit;
+    cursor: pointer;
+
+    /* Cel dotykowy 44 px bez rozpychania komunikatu. */
+    &::after {
+        content: '';
+        position: absolute;
+        left: -8px;
+        right: -8px;
+        top: 50%;
+        height: 44px;
+        transform: translateY(-50%);
+    }
+`;
+
+const AdvPanel = styled(Panel)`
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 14px 16px 16px;
+`;
+
+const Head = styled.div`
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    column-gap: 10px;
+    align-items: start;
 `;
 
 const Dot = styled.span<{ $color: string }>`
     width: 10px;
     height: 10px;
+    margin-top: 7px;
     border-radius: 50%;
     background: ${p => p.$color};
-    flex-shrink: 0;
 `;
 
-const UserName = styled.h3`
+const Who = styled.div`
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding-top: 1px;
+`;
+
+const Name = styled.h3`
     margin: 0;
-    font-size: ${st.fontMd};
+    font-size: 16px;
     font-weight: 700;
-    color: ${st.text};
-    letter-spacing: -0.2px;
+    line-height: 1.35;
+    color: ${ui.ink};
+    letter-spacing: -0.01em;
+    overflow-wrap: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    min-width: 0;
-    flex: 1;
 `;
 
-const ActivePill = styled.span`
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 3px 10px;
-    border-radius: ${st.radiusFull};
-    background: ${st.accentGreenDim};
-    color: #047857;
-    font-size: 11.5px;
-    font-weight: 700;
-    white-space: nowrap;
-    flex-shrink: 0;
-`;
-
-const ActiveDot = styled.i`
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: ${st.accentGreen};
-    animation: pulse-dot 2s ease-in-out infinite;
-
-    @keyframes pulse-dot {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.55; }
-    }
-`;
-
-const ActiveChipRow = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-`;
-
-const ActiveChip = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    min-height: 40px;
-    padding: 8px 12px;
-    border-radius: ${st.radiusSm};
-    border: 1px solid ${st.accentGreenDim};
-    background: rgba(16, 185, 129, 0.06);
-    color: ${st.text};
-    font-family: inherit;
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    cursor: pointer;
-    text-align: left;
-    transition: background ${st.transition};
-
-    &:hover, &:focus-visible {
-        background: rgba(16, 185, 129, 0.12);
-        outline: none;
-    }
-
-    > svg { color: ${st.textMuted}; margin-left: auto; flex-shrink: 0; }
-`;
-
-const ChipTitle = styled.span`
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    min-width: 0;
-`;
-
-const ChipMeta = styled.span`
-    color: ${st.textSecondary};
-    font-weight: 500;
-    flex-shrink: 0;
-`;
-
-const Histogram = styled.div`
-    display: grid;
-    grid-template-columns: repeat(12, 1fr);
-    gap: 4px;
-    height: 80px;
-    align-items: end;
-`;
-
-const HistogramCol = styled.button<{ $current: boolean; $active: boolean }>`
-    all: unset;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-end;
-    height: 100%;
-    padding: 4px 0 2px;
-    border-radius: ${st.radiusSm};
-    cursor: pointer;
-    box-sizing: border-box;
-    background: ${p => (p.$active ? st.accentBlueDim : 'transparent')};
-    outline: ${p => (p.$current ? `1.5px solid ${st.accentBlue}` : 'none')};
-    outline-offset: -2px;
-    transition: background ${st.transition};
-
-    &:disabled {
-        cursor: default;
-    }
-
-    &:hover:not(:disabled), &:focus-visible {
-        background: ${p => (p.$active ? st.accentBlueDim : st.bgCardAlt)};
-    }
-`;
-
-const HistogramBarSlot = styled.span`
-    flex: 1;
-    display: flex;
-    align-items: flex-end;
-    width: 100%;
-    padding: 0 3px;
-`;
-
-const HistogramBar = styled.span<{ $active: boolean }>`
-    display: block;
-    width: 100%;
-    min-height: 0;
-    border-radius: 3px 3px 1px 1px;
-    opacity: ${p => (p.$active ? 1 : 0.85)};
-    transition: opacity ${st.transition};
-`;
-
-const MonthLetter = styled.span<{ $current: boolean }>`
-    font-size: 10px;
-    font-weight: ${p => (p.$current ? 700 : 500)};
-    color: ${p => (p.$current ? st.accentBlue : st.textMuted)};
-    letter-spacing: 0.4px;
-    margin-top: 4px;
-`;
-
-const StatsRow = styled.div`
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    padding-top: 4px;
-    border-top: 1px solid ${st.border};
-`;
-
-const StatCell = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-`;
-
-const StatLabel = styled.span`
-    font-size: 10.5px;
-    font-weight: 600;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-`;
-
-const StatValue = styled.span`
-    font-size: ${st.fontMd};
-    font-weight: 700;
-    color: ${st.text};
+const Summary = styled.p`
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: ${ui.textSecondary};
     font-variant-numeric: tabular-nums;
+
+    b { font-weight: 700; color: ${ui.ink}; }
 `;
 
-const MonthDrawer = styled.div`
+/**
+ * Sama ikona bez obwódki, ale cel 44 × 44 także bez ekranu dotykowego. Ujemny
+ * margines stawia ikonę na wysokości pierwszej linijki nazwy, zamiast spychać
+ * nazwę w dół o pół przycisku.
+ */
+const PageButton = styled(IconButton)`
+    width: 44px;
+    height: 44px;
+    margin: -11px -10px 0 0;
+    color: ${ui.textSecondary};
+`;
+
+const Section = styled.div`
     display: flex;
     flex-direction: column;
-    background: ${st.bgCardAlt};
-    border-radius: ${st.radiusSm};
-    padding: 8px;
-    gap: 4px;
-`;
-
-const MonthDrawerHead = styled.div`
-    display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 6px;
-    padding: 4px 6px 8px;
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
 
-    strong { color: ${st.text}; font-weight: 700; font-size: ${st.fontSm}; }
-    svg { color: ${st.textMuted}; }
+    > * { align-self: stretch; }
+    > ${StatusPill} { align-self: flex-start; }
 `;
 
-const MonthAdRow = styled.button`
+/** Kropka „na żywo" bez pulsowania: ruch w nieskończoność męczy na liście i nic nie dodaje. */
+const LiveDot = styled.i`
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #16a34a;
+`;
+
+const AdList = styled.div`
+    display: flex;
+    flex-direction: column;
+`;
+
+const AdRow = styled.button`
     display: flex;
     align-items: center;
     gap: 10px;
-    min-height: 48px;
-    padding: 8px 8px 8px 6px;
+    width: 100%;
+    min-height: 56px;
+    padding: 9px 0;
     border: none;
-    background: ${st.bgCard};
-    border-radius: ${st.radiusSm};
-    cursor: pointer;
-    text-align: left;
-    font-family: inherit;
-    transition: background ${st.transition};
-
-    &:hover, &:focus-visible {
-        background: #F8FAFC;
-        outline: none;
-    }
-
-    > svg:last-child { color: ${st.textMuted}; flex-shrink: 0; }
-`;
-
-const AdRowDot = styled.span<{ $color: string }>`
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: ${p => p.$color};
-    flex-shrink: 0;
-`;
-
-const AdRowInfo = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-    flex: 1;
-`;
-
-const AdRowTitle = styled.span`
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    color: ${st.text};
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-`;
-
-const AdRowMeta = styled.span`
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-    font-variant-numeric: tabular-nums;
-`;
-
-const FooterRow = styled.div`
-    display: flex;
-    justify-content: flex-end;
-`;
-
-const PageActionBtn = styled.button`
-    border: none;
+    border-top: 1px solid ${ui.line};
     background: none;
-    padding: 4px 0;
-    margin: 0;
-    font-family: inherit;
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    color: ${st.textMuted};
-    text-decoration: underline;
-    cursor: pointer;
-
-    &:hover { color: ${st.accentBlue}; }
-`;
-
-const SilentHead = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-height: 40px;
-    width: 100%;
-`;
-
-const SilentMuted = styled.span`
-    font-size: ${st.fontXs};
-    font-weight: 500;
-    color: ${st.textMuted};
-    font-style: italic;
-    margin-left: auto;
-`;
-
-// ─── Unlinked ────────────────────────────────────────────────────────────────
-
-const UnlinkedIcon = styled.span`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    background: ${st.accentAmberDim};
-    color: ${st.accentAmber};
-    flex-shrink: 0;
-`;
-
-const UnlinkedGroupHead = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    min-height: 32px;
-    padding: 0;
-    background: transparent;
-    border: none;
     font-family: inherit;
     text-align: left;
-    cursor: default;
+    color: ${ui.ink};
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
 
-    &[type='button'] {
-        cursor: pointer;
-    }
-
-    > svg:last-child {
-        margin-left: auto;
-        color: ${st.textMuted};
-        flex-shrink: 0;
-    }
+    &:first-child { border-top: none; }
+    &:active { background: ${ui.surfaceSoft}; }
 
     &:focus-visible {
-        outline: 2px solid ${st.accentBlue};
+        outline: 2px solid ${ui.focusRing};
         outline-offset: 2px;
-        border-radius: ${st.radiusSm};
+        border-radius: ${ui.radiusRow};
     }
+
+    > svg { flex-shrink: 0; color: ${ui.textMuted}; }
 `;
 
-const UnlinkedTitle = styled.span`
-    font-size: ${st.fontSm};
-    font-weight: 700;
-    color: ${st.text};
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+const AdText = styled.span`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
     min-width: 0;
     flex: 1;
 `;
 
-const UnlinkedChips = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 4px;
+const AdTitle = styled.span`
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: ${ui.ink};
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 `;
 
-const UnlinkedChip = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    min-height: 36px;
-    padding: 6px 12px;
-    border: 1px solid ${st.accentAmber};
-    border-radius: ${st.radiusFull};
-    background: ${st.accentAmberDim};
-    color: #b45309;
+const AdMeta = styled.span`
+    font-size: 13px;
+    line-height: 1.4;
+    color: ${ui.textMuted};
+    font-variant-numeric: tabular-nums;
+`;
+
+/**
+ * Dwanaście miesięcy bez odstępów: na 360 px kolumna ma ~24 px, a trzyliterowy
+ * skrót ~20 px. Słupki są węższe od kolumny, więc oddech między nimi zostaje.
+ */
+const Chart = styled.div`
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    margin: 0 -2px;
+`;
+
+const MonthCol = styled.button<{ $open: boolean }>`
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    min-width: 0;
+    padding: 6px 0 4px;
+    border: none;
+    border-radius: 8px;
+    /* Wybrany miesiąc na szarości, nie na odcieniu marki - ten niesie „dziś" w podpisie. */
+    background: ${p => (p.$open ? ui.surfaceAlt : 'transparent')};
     font-family: inherit;
-    font-size: 12.5px;
-    font-weight: 700;
     cursor: pointer;
-    transition: background ${st.transition};
+    -webkit-tap-highlight-color: transparent;
 
-    &:hover, &:focus-visible {
-        background: rgba(245, 158, 11, 0.22);
-        outline: none;
+    &:disabled { cursor: default; }
+
+    &:focus-visible {
+        outline: 2px solid ${ui.focusRing};
+        outline-offset: -2px;
     }
+`;
 
-    svg { flex-shrink: 0; }
+/** Miesiące, których jeszcze nie było, są zakreskowane jak przyszłość na osi desktopu - pusty to nie to samo co zero. */
+const BarSlot = styled.span<{ $future: boolean }>`
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    height: ${BAR_MAX}px;
+    margin: 0 2px;
+    border-bottom: 1px solid ${ui.line};
+    border-radius: 4px 4px 0 0;
+    ${p => p.$future && `
+        background: repeating-linear-gradient(
+            45deg,
+            rgba(148, 163, 184, 0.14) 0 4px,
+            transparent 4px 8px
+        );
+    `}
+`;
+
+const Bar = styled.span<{ $dim: boolean }>`
+    display: block;
+    width: 62%;
+    max-width: 16px;
+    border-radius: 3px 3px 0 0;
+    opacity: ${p => (p.$dim ? 0.3 : 1)};
+`;
+
+/** Bieżący miesiąc: pogrubiony skrót na odcieniu marki - na pierwszy rzut oka „tu jest dziś". */
+const MonthLabel = styled.span<{ $current: boolean }>`
+    align-self: center;
+    padding: 1px 3px;
+    border-radius: 5px;
+    font-size: 11px;
+    line-height: 1.3;
+    font-weight: ${p => (p.$current ? 700 : 500)};
+    color: ${p => (p.$current ? ui.brandInk : ui.textMuted)};
+    background: ${p => (p.$current ? ui.brandTintHover : 'transparent')};
+    white-space: nowrap;
+
+    @media (min-width: 400px) { font-size: 12px; }
+`;
+
+const MonthDetail = styled.div`
+    display: flex;
+    flex-direction: column;
+    margin-top: 6px;
+    padding-top: 10px;
+    border-top: 1px solid ${ui.line};
+`;
+
+const MonthHead = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+
+    div { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    strong { font-size: 15px; font-weight: 700; color: ${ui.ink}; }
+    span { font-size: 13px; color: ${ui.textMuted}; font-variant-numeric: tabular-nums; }
+`;
+
+const CloseMonth = styled(IconButton)`
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    margin-right: -10px;
 `;

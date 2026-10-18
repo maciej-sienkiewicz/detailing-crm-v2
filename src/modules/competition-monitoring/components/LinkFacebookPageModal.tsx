@@ -15,9 +15,12 @@ import {
 import { FieldLabel, InputShell, BareInput, FormAlertBanner } from '@/common/components/Form';
 import { SharedButton } from '@/common/styles';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { ui } from '@/common/components/ui';
+import { useBreakpoint } from '@/common/hooks';
 import { pluralPl } from '@/common/utils/plural';
 import { useToast } from '@/common/components/Toast';
 import { useLinkFacebookPage, useSearchAdPages, useUnlinkFacebookPage } from '../hooks/useAds';
+import { PHONE } from '../utils/phone';
 
 /**
  * Wskazanie strony na Facebooku dla obserwowanego profilu.
@@ -62,6 +65,10 @@ const CurrentCopy = styled.div`
         font-variant-numeric: tabular-nums;
         overflow-wrap: anywhere;
     }
+
+    ${PHONE} {
+        span { font-size: 12px; color: ${ui.textMuted}; }
+    }
 `;
 
 const SearchRow = styled.div`
@@ -85,6 +92,15 @@ const Results = styled.div`
     max-height: 288px;
     margin-top: 12px;
     overflow-y: auto;
+
+    /* Na telefonie bez przewijania w przewijaniu: lista rośnie, a przewija się całe okno.
+       Stała wysokość chroniła przed skokiem pod kursorem - pod palcem z klawiaturą
+       ważniejsze jest, żeby ostatni kandydat nie był ucięty w ramce w połowie ekranu. */
+    ${PHONE} {
+        min-height: 0;
+        max-height: none;
+        overflow: visible;
+    }
 `;
 
 const Candidates = styled.ul`
@@ -113,6 +129,19 @@ const Candidate = styled.button<{ $chosen: boolean }>`
     transition: border-color ${st.transition}, background ${st.transition};
 
     &:hover { border-color: ${st.borderHover}; }
+
+    /* Telefon: nazwa firmy dostaje cały wiersz, liczba reklam schodzi pod nią.
+       W jednym rzędzie meta z nowrap ściskała nazwę do trzech linii i łamała handle
+       w pół słowa - a nazwa jest tym, po czym odróżnia się firmę od zbieżnej. */
+    ${PHONE} {
+        position: relative;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+        min-height: 44px;
+        padding: 10px 12px;
+        border-radius: ${ui.radiusRow};
+    }
 `;
 
 const Who = styled.div`
@@ -133,6 +162,14 @@ const Who = styled.div`
         color: ${st.textMuted};
         overflow-wrap: anywhere;
     }
+
+    /* Miejsce na znacznik wyboru w prawym górnym rogu (Chosen). */
+    ${PHONE} {
+        padding-right: 26px;
+
+        strong { font-size: 14px; overflow-wrap: break-word; }
+        em { margin-top: 2px; font-size: 12px; color: ${ui.textMuted}; overflow-wrap: break-word; }
+    }
 `;
 
 const Meta = styled.div`
@@ -147,6 +184,12 @@ const Meta = styled.div`
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
     }
+
+    ${PHONE} {
+        flex-shrink: 1;
+
+        span { font-size: 12px; color: ${ui.textMuted}; white-space: normal; }
+    }
 `;
 
 const Chosen = styled.span`
@@ -158,6 +201,12 @@ const Chosen = styled.span`
     border-radius: ${st.radiusFull};
     background: ${st.accentBlue};
     color: #fff;
+
+    ${PHONE} {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
 `;
 
 /** Puste pole wyników: instrukcja zamiast bieli. */
@@ -185,6 +234,13 @@ const Placeholder = styled.div`
         padding: 1px 5px;
         border-radius: 4px;
     }
+
+    ${PHONE} {
+        padding: 4px 0 0;
+        color: ${ui.textMuted};
+
+        b { color: ${ui.textSecondary}; }
+    }
 `;
 
 const Hint = styled.p`
@@ -200,10 +256,95 @@ const Hint = styled.p`
         padding: 1px 5px;
         border-radius: 4px;
     }
+
+    ${PHONE} {
+        font-size: 12px;
+        color: ${ui.textMuted};
+    }
 `;
 
 const Section = styled.div`
     & + & { margin-top: 22px; }
+`;
+
+/* Na telefonie nagłówek sekcji pismem tekstowym zamiast 11 px wersalikami z kreską
+   (wycofana rama sekcji, CLAUDE.md §2) - jak SectionTitle w reszcie modułu. */
+const SectionHeading = styled(ModalSectionTitle)`
+    ${PHONE} {
+        margin-bottom: 10px;
+        padding-bottom: 0;
+        border-bottom: none;
+        font-size: 15px;
+        color: ${ui.ink};
+        text-transform: none;
+        letter-spacing: -0.005em;
+    }
+`;
+
+/* 36 px widocznie, 44 px pod palcem. */
+const CloseButton = styled(ModalCloseButton)`
+    ${PHONE} {
+        position: relative;
+
+        &::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 44px;
+            height: 44px;
+            transform: translate(-50%, -50%);
+        }
+    }
+`;
+
+/**
+ * Stopka na telefonie. Gdy strona jest już powiązana, „Zgłoś zmianę" dostaje własny
+ * rząd, a „Zgłoś odpięcie" i „Anuluj" dzielą rząd pod nim. Podwójne `&&` - wspólna
+ * stopka okna rozciąga `> button` regułą o wyższej wadze niż jedna klasa.
+ */
+const FooterPrimary = styled(SharedButton)<{ $ownRow?: boolean }>`
+    ${PHONE} {
+        && {
+            flex: ${p => (p.$ownRow ? '1 1 100%' : '2 1 0')};
+            order: ${p => (p.$ownRow ? -1 : 0)};
+            height: 48px;
+            padding: 0 16px;
+            font-size: 15px;
+            white-space: nowrap;
+        }
+    }
+`;
+
+const FooterSecondary = styled(SharedButton)<{ $tall?: boolean }>`
+    ${PHONE} {
+        && {
+            flex: 1 1 0;
+            height: ${p => (p.$tall ? 48 : 44)}px;
+            padding: 0 12px;
+            white-space: nowrap;
+        }
+    }
+`;
+
+/**
+ * Odpięcie na telefonie: czerwień jako odcień, nie wypełnienie - obok „Zgłoś zmianę"
+ * byłyby dwa wypełnienia w jednym oknie (CLAUDE.md §2). Na komputerze zostaje bez zmian.
+ */
+const UnlinkButton = styled(FooterSecondary)`
+    ${PHONE} {
+        && {
+            border: 1px solid ${ui.dangerLine};
+            background: ${ui.dangerTint};
+            color: ${ui.dangerInk};
+            box-shadow: none;
+        }
+        &&:hover:not(:disabled) {
+            background: #fee2e2;
+            box-shadow: none;
+            transform: none;
+        }
+    }
 `;
 
 const formatDay = (iso: string) =>
@@ -224,6 +365,7 @@ export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, cu
     const unlink = useUnlinkFacebookPage();
     const search = useSearchAdPages();
     const { showSuccess, showError } = useToast();
+    const isDesktop = useBreakpoint('md');
 
     const digitsOnly = pageId.trim().replace(/\D/g, '');
     const busy = link.isPending || unlink.isPending;
@@ -281,9 +423,9 @@ export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, cu
                     <ModalTitle>{currentPageId ? 'Zmień stronę na Facebooku' : 'Wskaż stronę na Facebooku'}</ModalTitle>
                     <ModalSubtitle>@{username}</ModalSubtitle>
                 </ModalTitleGroup>
-                <ModalCloseButton type="button" onClick={onClose} aria-label="Zamknij">
+                <CloseButton type="button" onClick={onClose} aria-label="Zamknij">
                     <X />
-                </ModalCloseButton>
+                </CloseButton>
             </ModalHeader>
 
             <ModalContent>
@@ -298,7 +440,7 @@ export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, cu
                 )}
 
                 <Section>
-                    <ModalSectionTitle>Znajdź stronę</ModalSectionTitle>
+                    <SectionHeading>Znajdź stronę</SectionHeading>
                     {/* Jedno pole na wszystko, co człowiek ma pod ręką: wklejony adres strony
                         (z numerem albo z aliasem), sam numer albo nazwę firmy. Facebook pokazuje
                         tę samą stronę raz jako profile.php?id=…, raz jako /CarArtDetailing -
@@ -312,7 +454,13 @@ export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, cu
                                 onChange={event => setQuery(event.target.value)}
                                 onKeyDown={event => event.key === 'Enter' && canSearch && runSearch()}
                                 placeholder="np. facebook.com/CarArtDetailing"
-                                autoFocus
+                                // Na telefonie bez focusu na starcie: klawiatura zasłaniała okno,
+                                // zanim było widać, czego szukamy i gdzie znaleźć numer.
+                                autoFocus={isDesktop}
+                                autoCapitalize="none"
+                                autoCorrect="off"
+                                spellCheck={false}
+                                enterKeyHint="search"
                             />
                         </InputShell>
                         <SharedButton type="button" $variant="secondary" disabled={!canSearch} onClick={runSearch}>
@@ -374,7 +522,7 @@ export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, cu
                 </Section>
 
                 <Section>
-                    <ModalSectionTitle>Wybrana strona</ModalSectionTitle>
+                    <SectionHeading>Wybrana strona</SectionHeading>
                     <FieldLabel htmlFor="fb-page-id">Numer strony</FieldLabel>
                     <InputShell>
                         <BareInput
@@ -415,7 +563,7 @@ export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, cu
                     reklam wspólnych dla wielu studiów, więc nie ma prawa sąsiadować
                     z akcją główną na odległość omyłki. */}
                 {currentPageId && (
-                    <SharedButton
+                    <UnlinkButton
                         type="button"
                         $variant="danger"
                         style={{ marginRight: 'auto' }}
@@ -433,16 +581,16 @@ export const LinkFacebookPageModal: React.FC<Props> = ({ profileId, username, cu
                         }
                     >
                         {unlink.isPending ? 'Zgłaszam…' : 'Zgłoś odpięcie'}
-                    </SharedButton>
+                    </UnlinkButton>
                 )}
-                <SharedButton type="button" $variant="secondary" onClick={onClose}>
+                <FooterSecondary type="button" $variant="secondary" $tall={!currentPageId} onClick={onClose}>
                     Anuluj
-                </SharedButton>
-                <SharedButton type="button" disabled={!canSubmit} onClick={submit}>
+                </FooterSecondary>
+                <FooterPrimary type="button" $ownRow={Boolean(currentPageId)} disabled={!canSubmit} onClick={submit}>
                     {link.isPending
                         ? currentPageId ? 'Zgłaszam…' : 'Sprawdzam reklamy…'
                         : currentPageId ? 'Zgłoś zmianę' : 'Powiąż'}
-                </SharedButton>
+                </FooterPrimary>
             </ModalFooter>
         </ModalShell>
     );

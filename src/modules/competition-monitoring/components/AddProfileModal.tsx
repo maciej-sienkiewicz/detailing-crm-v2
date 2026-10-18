@@ -14,6 +14,7 @@ import {
 import { SharedButton } from '@/common/styles';
 import { useAddProfile, useAddSelfProfile } from '../hooks/useAddProfile';
 import { useInstagramProfiles } from '../hooks/useInstagramProfiles';
+import { PHONE } from '../utils/phone';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
@@ -64,6 +65,19 @@ const ErrorMsg = styled.p`
     margin: 8px 0 0;
     font-size: ${st.fontSm};
     color: ${st.accentRed};
+`;
+
+/* Przyciski `sm` mają ~30 px - na telefonie rosną do 44 px i dzielą rząd po równo.
+   Podwójne `&&`: wspólna stopka okna rozciąga `> button` regułą o wyższej wadze. */
+const FooterButton = styled(SharedButton)`
+    ${PHONE} {
+        && {
+            flex: 1 1 0;
+            height: 44px;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+    }
 `;
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -146,7 +160,14 @@ export const AddProfileModal = ({ isOpen, onClose, mode = 'competitor' }: AddPro
                             value={username}
                             onChange={e => setUsername(e.target.value)}
                             onKeyDown={handleKeyDown}
+                            // Focus zostaje też na telefonie: wpisanie nazwy to jedyny krok tego okna.
+                            // Nazwa profilu to nie zdanie - bez wielkiej litery i bez autokorekty,
+                            // która z „detailing_pl" robiła „Detailing pl".
                             autoFocus
+                            autoCapitalize="none"
+                            autoCorrect="off"
+                            spellCheck={false}
+                            enterKeyHint="go"
                             disabled={isAdding}
                         />
                     </InputWrapper>
@@ -163,12 +184,12 @@ export const AddProfileModal = ({ isOpen, onClose, mode = 'competitor' }: AddPro
             </ModalContent>
 
             <ModalFooter>
-                <SharedButton $variant="secondary" $size="sm" onClick={handleClose} disabled={isAdding}>
+                <FooterButton $variant="secondary" $size="sm" onClick={handleClose} disabled={isAdding}>
                     Anuluj
-                </SharedButton>
-                <SharedButton $variant="primary" $size="sm" onClick={handleSubmit} disabled={isAdding}>
+                </FooterButton>
+                <FooterButton $variant="primary" $size="sm" onClick={handleSubmit} disabled={isAdding}>
                     {isAdding ? 'Zapisuję…' : isSelfMode ? 'To mój profil' : 'Dodaj konkurenta'}
-                </SharedButton>
+                </FooterButton>
             </ModalFooter>
         </ModalShell>
     );

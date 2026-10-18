@@ -3,6 +3,7 @@ import type { AdvertiserRow } from '../types';
 import {
     activeAdsWord,
     campaignsOf,
+    campaignsWord,
     companiesWord,
     formatStartDay,
     noveltyBadge,
@@ -82,6 +83,15 @@ describe('odznaka nowości w tabeli reklamodawców', () => {
         expect(activeAdsWord(4)).toBe('aktywne reklamy');
         expect(activeAdsWord(13)).toBe('aktywnych reklam');
         expect(activeAdsWord(73)).toBe('aktywne reklamy');
+    });
+
+    it('wiersz na telefonie odmienia kampanie', () => {
+        expect(campaignsWord(0)).toBe('kampanii');
+        expect(campaignsWord(1)).toBe('kampania');
+        expect(campaignsWord(2)).toBe('kampanie');
+        expect(campaignsWord(5)).toBe('kampanii');
+        expect(campaignsWord(12)).toBe('kampanii');
+        expect(campaignsWord(22)).toBe('kampanie');
     });
 });
 

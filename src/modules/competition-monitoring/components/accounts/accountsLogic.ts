@@ -97,6 +97,32 @@ export const replyDeadlineLabel = (iso: string, now: Date = new Date()): string 
     return `odpisz do ${day}, ${time}`;
 };
 
+// ─── Telefon ──────────────────────────────────────────────────────────────────
+
+/**
+ * Lista na telefonie: to, co czeka na reakcję, widać od razu, reszta chowa się za
+ * „Pokaż". Na komputerze ta sama lista stoi w bocznej kolumnie i nie zabiera miejsca
+ * niczemu; na telefonie każda pozycja odsuwa „odpisz do 19:20" o kolejne pół ekranu.
+ *
+ * Gdy nic nie czeka, widać `fallback` pierwszych - pusty panel z samym przyciskiem
+ * wyglądałby jak błąd. Lista przychodzi już posortowana (pilne pierwsze).
+ */
+export const splitUrgent = <T,>(items: T[], isUrgent: (item: T) => boolean, fallback: number): { shown: T[]; hidden: T[] } => {
+    const urgent = items.filter(isUrgent);
+    if (urgent.length > 0) return { shown: urgent, hidden: items.filter(item => !isUrgent(item)) };
+    return { shown: items.slice(0, fallback), hidden: items.slice(fallback) };
+};
+
+/**
+ * Uchwyt podzielony za „_" i „.": tam wolno złamać „@detailing_studio_mokotow",
+ * gdy nie zmieści się w wierszu - zamiast w środku słowa.
+ */
+export const handleSegments = (handle: string): string[] => handle.split(/(?<=[_.])/);
+
+/** Podpis okresu nad kaflami na telefonie - raz, zamiast „do poprzednich 30 dni" pod każdym kaflem. */
+export const periodCaption = (hasPrevious: boolean): string =>
+    hasPrevious ? 'Ostatnie 30 dni, zmiana do poprzednich 30' : 'Ostatnie 30 dni';
+
 // ─── Powrót z logowania (Facebook, Google) ────────────────────────────────────
 
 export type ResultTone = 'ok' | 'info' | 'danger';

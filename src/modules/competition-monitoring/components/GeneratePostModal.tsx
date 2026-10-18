@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useId } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
 import {
@@ -16,6 +16,9 @@ import { MAX_ACTIVE_STYLE_RULES, MAX_STYLE_RULE_LENGTH } from '../types';
 import { instagramApi } from '../api/instagramApi';
 import { pluralPl } from '@/common/utils/plural';
 import { acquireScrollLock } from '@/common/utils/scrollLock';
+import { useBreakpoint } from '@/common/hooks';
+import { Button, ButtonLink, ui } from '@/common/components/ui';
+import { PHONE } from '../utils/phone';
 import { accountsApi, apiErrorMessage } from '../api/accountsApi';
 import type { PublishResult, PublishVisit } from '../accountsTypes';
 import { useInstagramConnection, usePublishVisits } from '../hooks/useAccounts';
@@ -47,6 +50,14 @@ const fadeSlide = keyframes`
   to   { opacity: 1; transform: translateY(0); }
 `;
 
+const sheetIn = keyframes`
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
+
+/** Ruch tylko dla tych, którzy go nie wyłączyli w systemie. */
+const PHONE_REDUCED_MOTION = `${PHONE} and (prefers-reduced-motion: reduce)`;
+
 // ─── Shell ─────────────────────────────────────────────────────────────────────
 
 const Overlay = styled.div`
@@ -76,6 +87,15 @@ const Overlay = styled.div`
       max(12px, env(safe-area-inset-bottom, 0px))
       max(12px, env(safe-area-inset-left, 0px));
   }
+
+  /* Telefon: generator to pełny ekran, nie okno z marginesem - formularz, wynik
+     i siatka zdjęć potrzebują każdego piksela szerokości. Wcięcia systemowe
+     przejmują nagłówek (góra) i stopka (dół); rozmycie tła i tak nie byłoby widać. */
+  ${PHONE} {
+    align-items: stretch;
+    padding: 0 env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px);
+    backdrop-filter: none;
+  }
 `;
 
 const Modal = styled.div`
@@ -93,6 +113,23 @@ const Modal = styled.div`
     0 4px 16px rgba(15, 23, 42, 0.08),
     0 0 0 1px rgba(15, 23, 42, 0.04);
   animation: ${modalIn} 280ms cubic-bezier(0.34, 1.4, 0.64, 1);
+
+  /* Pełna wysokość widocznego obszaru (100dvh nakładki), stopka przyklejona do dołu.
+     Przy klawiaturze (interactive-widget=resizes-content) obszar się skraca, a razem
+     z nim środek okna - stopka zostaje nad klawiaturą, przewija się tylko treść. */
+  ${PHONE} {
+    position: relative;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    border-radius: 0;
+    box-shadow: none;
+    animation: ${sheetIn} 220ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  ${PHONE_REDUCED_MOTION} {
+    animation: none;
+  }
 `;
 
 // ─── Header ────────────────────────────────────────────────────────────────────
@@ -104,12 +141,28 @@ const ModalHeader = styled.div`
   padding: 20px 24px 18px;
   border-bottom: 1px solid #F1F5F9;
   flex-shrink: 0;
+
+  /* Zwarty pasek: na telefonie nagłówek jest tylko podpisem okna, a nie treścią. */
+  ${PHONE} {
+    gap: 4px;
+    padding: max(6px, env(safe-area-inset-top, 0px)) 4px 6px 16px;
+    border-bottom-color: ${ui.line};
+  }
 `;
 
 const HeaderLeft = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
+
+  /* Wysokość krzyżyka także wtedy, gdy go nie ma (generowanie, publikacja) - inaczej
+     nagłówek podskakiwał o 12 px między fazami. */
+  ${PHONE} {
+    flex: 1;
+    min-width: 0;
+    min-height: 44px;
+    gap: 10px;
+  }
 `;
 
 const IconWrap = styled.div`
@@ -123,12 +176,23 @@ const IconWrap = styled.div`
   color: #fff;
   flex-shrink: 0;
   box-shadow: 0 3px 10px rgba(14, 165, 233, 0.32);
+
+  ${PHONE} {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    box-shadow: 0 2px 6px rgba(14, 165, 233, 0.28);
+
+    svg { width: 16px; height: 16px; }
+  }
 `;
 
 const HeaderMeta = styled.div`
   display: flex;
   flex-direction: column;
   gap: 2px;
+
+  ${PHONE} { min-width: 0; }
 `;
 
 const HeaderTitle = styled.h2`
@@ -137,12 +201,22 @@ const HeaderTitle = styled.h2`
   font-weight: 700;
   color: #0F172A;
   letter-spacing: -0.2px;
+
+  ${PHONE} {
+    font-size: 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 `;
 
+/* Podtytuł na telefonie znika: mówi to samo co tytuł, a kosztuje drugą linię nagłówka. */
 const HeaderSub = styled.p`
   margin: 0;
   font-size: 12px;
   color: #94A3B8;
+
+  ${PHONE} { display: none; }
 `;
 
 const CloseBtn = styled.button`
@@ -162,6 +236,15 @@ const CloseBtn = styled.button`
   &:hover {
     background: #F1F5F9;
     color: #0F172A;
+  }
+
+  ${PHONE} {
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    color: ${ui.textSecondary};
+
+    svg { width: 20px; height: 20px; }
   }
 `;
 
@@ -218,6 +301,88 @@ const FooterRight = styled.div`
   }
 `;
 
+/**
+ * Stopka na telefonie - osobny układ, nie przeróbka desktopowej. Dawniej trzy przyciski
+ * po 111 px w jednym rzędzie łamały „Zmień opis" i „Kopiuj post" na dwie linie obok
+ * gradientu. Tu krok następny ma własny rząd na całą szerokość, a akcje poboczne
+ * dzielą rząd pod nim po równo i nigdy się nie zawijają.
+ */
+const PhoneFooter = styled.div`
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px max(12px, env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid ${ui.line};
+  background: ${ui.surface};
+`;
+
+const PhoneRow = styled.div<{ $form?: boolean }>`
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  ${p => p.$form && 'grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);'}
+  gap: 8px;
+
+  /* W stopce formularza oba przyciski stoją w jednym rzędzie - jedna wysokość. */
+  ${p => p.$form && 'button { height: 48px; }'}
+`;
+
+const PhonePrimary = styled(Button)`
+  height: 48px;
+  font-size: 15px;
+`;
+
+const PhonePrimaryLink = styled(ButtonLink)`
+  height: 48px;
+  font-size: 15px;
+`;
+
+const PhoneSecondary = styled(Button)`
+  height: 44px;
+`;
+
+// ─── Pytanie przed zamknięciem (telefon) ──────────────────────────────────────
+
+/** Przygaszenie posta pod pytaniem - tapnięcie w nie znaczy „wróć do posta". */
+const ConfirmScrim = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: rgba(15, 23, 42, 0.36);
+  animation: ${overlayIn} 160ms ease;
+
+  ${PHONE_REDUCED_MOTION} { animation: none; }
+`;
+
+/** Pytanie zajmuje miejsce stopki, więc w oknie nadal jest tylko jedno wypełnienie. */
+const ConfirmSheet = styled(PhoneFooter)`
+  gap: 10px;
+  padding-top: 18px;
+  border-top: none;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -12px 32px rgba(15, 23, 42, 0.16);
+  animation: ${fadeSlide} 200ms ease;
+
+  ${PHONE_REDUCED_MOTION} { animation: none; }
+`;
+
+const ConfirmTitle = styled.h3`
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: ${ui.ink};
+`;
+
+const ConfirmText = styled.p`
+  margin: -4px 0 4px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: ${ui.textSecondary};
+`;
+
 // ─── Form sections ─────────────────────────────────────────────────────────────
 
 const FormSection = styled.div`
@@ -236,6 +401,22 @@ const FieldLabel = styled.label`
   display: flex;
   align-items: center;
   gap: 4px;
+
+  /* 11 px wersalikami na telefonie czyta się jak przypis, nie jak pytanie formularza. */
+  ${PHONE} {
+    font-size: 13px;
+    font-weight: 600;
+    color: ${ui.textSecondary};
+    text-transform: none;
+    letter-spacing: normal;
+  }
+`;
+
+/* Na telefonie placeholder w #CBD5E1 ginie (1,5:1) - jaśniejszy od treści, ale czytelny. */
+const phonePlaceholder = `
+  ${PHONE} {
+    &::placeholder { color: ${ui.textFaint}; }
+  }
 `;
 
 const Required = styled.span`
@@ -263,6 +444,12 @@ const TopicInput = styled.input`
   &::placeholder {
     color: #CBD5E1;
   }
+
+  ${PHONE} {
+    min-height: 46px;
+    font-size: 15px;
+  }
+  ${phonePlaceholder}
 `;
 
 const ContextTextarea = styled.textarea`
@@ -289,6 +476,13 @@ const ContextTextarea = styled.textarea`
   &::placeholder {
     color: #CBD5E1;
   }
+
+  /* Wysokość na cały przykład z placeholdera - ucięty w pół zdania nic nie podpowiada. */
+  ${PHONE} {
+    min-height: 124px;
+    font-size: 14px;
+  }
+  ${phonePlaceholder}
 `;
 
 const HintText = styled.p`
@@ -296,6 +490,12 @@ const HintText = styled.p`
   font-size: 11px;
   color: #CBD5E1;
   line-height: 1.4;
+
+  ${PHONE} {
+    margin-top: 2px;
+    font-size: 12px;
+    color: ${ui.textMuted};
+  }
 `;
 
 // ─── Tone select cards ─────────────────────────────────────────────────────────
@@ -307,6 +507,12 @@ const ToneGrid = styled.div`
 
   @media (max-width: 420px) {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Na telefonie siatka 2×2 zamiast czterech kart po 75 px: ton to szybki wybór,
+     nie powód do przewijania. Opis schodzi pod nazwę i ma całą szerokość karty. */
+  ${PHONE} {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 `;
 
@@ -327,6 +533,19 @@ const ToneCard = styled.button<{ $active: boolean }>`
     border-color: ${p => p.$active ? '#0EA5E9' : '#CBD5E1'};
     background: ${p => p.$active ? '#F0F7FF' : '#FAFBFC'};
   }
+
+  /* Wiersze od góry: gdy opis jednej karty złamie się na dwie linie (duża czcionka
+     systemowa), nazwy w rzędzie i tak stoją na jednej wysokości. */
+  ${PHONE} {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    align-items: center;
+    align-content: start;
+    gap: 4px 8px;
+    min-height: 68px;
+    padding: 10px;
+    font-family: inherit;
+  }
 `;
 
 const ToneIconBox = styled.div<{ $active: boolean }>`
@@ -340,6 +559,15 @@ const ToneIconBox = styled.div<{ $active: boolean }>`
   background: ${p => p.$active ? 'rgba(14,165,233,0.12)' : '#F1F5F9'};
   color: ${p => p.$active ? '#0284C7' : '#94A3B8'};
   transition: background 150ms, color 150ms;
+
+  ${PHONE} {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    color: ${p => p.$active ? '#0284C7' : ui.textMuted};
+
+    svg { width: 15px; height: 15px; }
+  }
 `;
 
 const ToneText = styled.div`
@@ -347,6 +575,9 @@ const ToneText = styled.div`
   flex-direction: column;
   gap: 1px;
   min-width: 0;
+
+  /* Nazwa obok ikony, opis w drugim wierszu karty (siatka ToneCard). */
+  ${PHONE} { display: contents; }
 `;
 
 const ToneLabel = styled.span<{ $active: boolean }>`
@@ -354,6 +585,8 @@ const ToneLabel = styled.span<{ $active: boolean }>`
   font-weight: 600;
   color: ${p => p.$active ? '#075985' : '#0F172A'};
   line-height: 1.3;
+
+  ${PHONE} { font-size: 14px; }
 `;
 
 const ToneDesc = styled.span`
@@ -363,6 +596,13 @@ const ToneDesc = styled.span`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+
+  ${PHONE} {
+    grid-column: 1 / -1;
+    font-size: 12px;
+    color: ${ui.textMuted};
+    white-space: normal;
+  }
 `;
 
 // ─── Length segmented control ──────────────────────────────────────────────────
@@ -405,6 +645,11 @@ const SegmentMeta = styled.span<{ $active: boolean }>`
   font-size: 11px;
   color: ${p => p.$active ? '#0EA5E9' : '#94A3B8'};
   transition: color 180ms;
+
+  ${PHONE} {
+    font-size: 12px;
+    color: ${p => p.$active ? ui.brandStrong : ui.textMuted};
+  }
 `;
 
 // ─── Reguły stylistyczne (trwałe, per studio) ─────────────────────────────────
@@ -416,6 +661,13 @@ const RuleCounter = styled.span`
   color: #94A3B8;
   text-transform: none;
   letter-spacing: 0;
+
+  ${PHONE} {
+    font-size: 12px;
+    font-weight: 500;
+    color: ${ui.textMuted};
+    font-variant-numeric: tabular-nums;
+  }
 `;
 
 const RuleList = styled.div`
@@ -439,6 +691,12 @@ const RuleRow = styled.label<{ $active: boolean }>`
   &:hover {
     border-color: ${p => p.$active ? '#7DD3FC' : '#CBD5E1'};
   }
+
+  ${PHONE} {
+    gap: 10px;
+    padding: 10px 6px 10px 12px;
+    border-radius: ${ui.radiusRow};
+  }
 `;
 
 const RuleCheckbox = styled.input`
@@ -446,6 +704,12 @@ const RuleCheckbox = styled.input`
   accent-color: #0EA5E9;
   cursor: pointer;
   flex-shrink: 0;
+
+  ${PHONE} {
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+  }
 `;
 
 const RuleText = styled.span<{ $active: boolean }>`
@@ -454,8 +718,19 @@ const RuleText = styled.span<{ $active: boolean }>`
   line-height: 1.5;
   color: ${p => p.$active ? '#1E293B' : '#94A3B8'};
   word-break: break-word;
+
+  ${PHONE} {
+    font-size: 13.5px;
+    color: ${p => p.$active ? '#1E293B' : ui.textMuted};
+  }
 `;
 
+/**
+ * Na telefonie kosz ma 28 px widocznie i 44 px pod palcem (`::after`). Dawniej była to
+ * goła ikona 13 px w klikalnym wierszu-etykiecie: chybienie o milimetr przełączało
+ * regułę zamiast ją usuwać. Trafienie w `::after` to trafienie w przycisk, a etykieta
+ * nie przełącza pola, gdy kliknięto przycisk w jej środku.
+ */
 const RuleDeleteBtn = styled.button`
   display: flex;
   align-items: center;
@@ -469,6 +744,27 @@ const RuleDeleteBtn = styled.button`
   transition: color 120ms;
 
   &:hover { color: #EF4444; }
+
+  ${PHONE} {
+    position: relative;
+    width: 28px;
+    height: 28px;
+    margin: -4px 0;
+    border-radius: 8px;
+    color: ${ui.textMuted};
+
+    svg { width: 16px; height: 16px; }
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 44px;
+      height: 44px;
+      transform: translate(-50%, -50%);
+    }
+  }
 `;
 
 const RuleAddRow = styled.div`
@@ -494,6 +790,14 @@ const RuleInput = styled.input`
   }
 
   &::placeholder { color: #CBD5E1; }
+
+  /* min-width: 0 - inaczej pole trzyma szerokość domyślną i wypycha „Dodaj" za krawędź. */
+  ${PHONE} {
+    min-width: 0;
+    min-height: 44px;
+    font-size: 14px;
+  }
+  ${phonePlaceholder}
 `;
 
 const RuleAddBtn = styled.button`
@@ -512,6 +816,12 @@ const RuleAddBtn = styled.button`
 
   &:hover:not(:disabled) { background: #E0F2FE; }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  ${PHONE} {
+    flex-shrink: 0;
+    padding: 0 16px;
+    font-size: 13.5px;
+  }
 `;
 
 const InlineError = styled.p`
@@ -555,12 +865,30 @@ const RatingBar = styled.div`
   flex-wrap: wrap;
   padding-top: 4px;
   border-top: 1px dashed #E2E8F0;
+
+  /* Telefon: pytanie w osobnym wierszu, „Dobry" i „Słaby" po równo pod nim -
+     zawijany rząd zostawiał „Słaby" samotnie w nowej linii. */
+  ${PHONE} {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid ${ui.line};
+  }
 `;
 
 const RatingLabel = styled.span`
   font-size: 12px;
   color: #64748B;
   margin-right: auto;
+
+  ${PHONE} {
+    grid-column: 1 / -1;
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: ${ui.textSecondary};
+  }
 `;
 
 const RatingBtn = styled.button<{ $variant: 'up' | 'down'; $active: boolean }>`
@@ -585,6 +913,14 @@ const RatingBtn = styled.button<{ $variant: 'up' | 'down'; $active: boolean }>`
 
   &:hover:not(:disabled) { border-color: #CBD5E1; }
   &:disabled { cursor: default; }
+
+  ${PHONE} {
+    justify-content: center;
+    height: 44px;
+    padding: 0 14px;
+    font-size: 13.5px;
+    border-radius: ${ui.radiusControl};
+  }
 `;
 
 const CommentTextarea = styled.textarea`
@@ -606,6 +942,12 @@ const CommentTextarea = styled.textarea`
   }
 
   &::placeholder { color: #CBD5E1; }
+
+  ${PHONE} {
+    min-height: 92px;
+    font-size: 14px;
+  }
+  ${phonePlaceholder}
 `;
 
 // Odcień, nie wypełnienie: ocena to akcja poboczna. Krokiem następnym okna jest
@@ -623,6 +965,13 @@ const CommentSendBtn = styled.button`
 
   &:hover:not(:disabled) { background: #E0F2FE; }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  ${PHONE} {
+    height: 44px;
+    padding: 0 20px;
+    font-size: 13.5px;
+    border-radius: ${ui.radiusControl};
+  }
 `;
 
 const RatingSavedNote = styled.p`
@@ -641,6 +990,13 @@ const LoadingWrap = styled.div`
   gap: 20px;
   padding: 64px 24px;
   animation: ${fadeSlide} 200ms ease;
+
+  /* Okno ma na telefonie pełną wysokość - oczekiwanie stoi na środku ekranu. */
+  ${PHONE} {
+    box-sizing: border-box;
+    min-height: 100%;
+    padding: 32px 8px;
+  }
 `;
 
 const ProgressTrack = styled.div`
@@ -704,6 +1060,12 @@ const LoadingHint = styled.p`
   font-size: 11px;
   color: #CBD5E1;
   text-align: center;
+
+  ${PHONE} {
+    font-size: 12px;
+    line-height: 1.5;
+    color: ${ui.textMuted};
+  }
 `;
 
 // ─── Result ────────────────────────────────────────────────────────────────────
@@ -736,6 +1098,14 @@ const ResultLabel = styled.p`
   color: #94A3B8;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+
+  ${PHONE} {
+    font-size: 13px;
+    font-weight: 600;
+    color: ${ui.textSecondary};
+    text-transform: none;
+    letter-spacing: normal;
+  }
 `;
 
 const ResultTopicEcho = styled.p`
@@ -757,6 +1127,11 @@ const ContentBox = styled.div`
   word-break: break-word;
   min-height: 160px;
   user-select: text;
+
+  ${PHONE} {
+    padding: 14px 16px;
+    line-height: 1.7;
+  }
 `;
 
 const ContentStats = styled.div`
@@ -769,6 +1144,12 @@ const ContentStats = styled.div`
 const ContentStat = styled.span`
   font-size: 11px;
   color: #94A3B8;
+
+  ${PHONE} {
+    font-size: 12px;
+    color: ${ui.textMuted};
+    font-variant-numeric: tabular-nums;
+  }
 `;
 
 // ─── Buttons ───────────────────────────────────────────────────────────────────
@@ -944,6 +1325,10 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
     const [publishError, setPublishError] = useState<string | null>(null);
     const [published, setPublished]       = useState<PublishResult | null>(null);
 
+    // Telefon: post skopiowany choć raz jest już u właściciela - zamknięcie niczego nie traci.
+    const [copiedOnce, setCopiedOnce]     = useState(false);
+    const [confirmClose, setConfirmClose] = useState(false);
+
     // Realizacja: wizyta i zdjęcia, które zobaczy AI. Te same zdjęcia startują jako wybór do publikacji.
     const [visitId, setVisitId]           = useState<string | undefined>(prefill?.pickVisit ? undefined : prefill?.visitId);
     const [aiPhotos, setAiPhotos]         = useState<string[]>([]);
@@ -951,6 +1336,14 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
     const [publishSeeded, setPublishSeeded] = useState(false);
 
     const topicRef    = useRef<HTMLInputElement>(null);
+    const stayRef     = useRef<HTMLButtonElement>(null);
+
+    const isDesktop = useBreakpoint('md');
+    const titleId = useId();
+    const toneLabelId = useId();
+    const lengthLabelId = useId();
+    const confirmTitleId = useId();
+    const confirmTextId = useId();
 
     const connectionQuery = useInstagramConnection();
     const canPublish = connectionQuery.data?.status === 'CONNECTED';
@@ -987,12 +1380,14 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
     useEffect(() => acquireScrollLock(), []);
 
     // Focus topic on open - poza „Wybierz inną realizację": tam pierwszym pytaniem jest wizyta.
-    const pickVisit = prefill?.pickVisit === true;
+    // Na telefonie nigdy: klawiatura zasłaniała ~36% ekranu, zanim właściciel zobaczył formularz.
+    // Decyzja zapada raz, przy otwarciu - obrót telefonu nie może nagle wyciągnąć klawiatury.
+    const [focusTopicOnOpen] = useState(() => isDesktop && prefill?.pickVisit !== true);
     useEffect(() => {
-        if (pickVisit) return;
+        if (!focusTopicOnOpen) return;
         const t = setTimeout(() => topicRef.current?.focus(), 80);
         return () => clearTimeout(t);
-    }, [pickVisit]);
+    }, [focusTopicOnOpen]);
 
     // Reguły studia ładujemy raz przy otwarciu - ich brak nie może blokować generowania.
     useEffect(() => {
@@ -1003,15 +1398,36 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
         return () => { cancelled = true; };
     }, []);
 
+    /**
+     * Na telefonie gotowy, jeszcze nieskopiowany i nieopublikowany post nie znika po cichu.
+     * Systemowe „Wstecz" przychodzi tu jako Escape (installNativeShell), a dawniej drugie
+     * „Wstecz" po schowaniu klawiatury zamykało okno razem z wygenerowanym tekstem - za
+     * który studio już zapłaciło limitem generowań. Na komputerze zamknięcie zostaje
+     * natychmiastowe: tam nikt nie zamyka okna przypadkiem przyciskiem systemowym.
+     */
+    const guardClose = !isDesktop && phase === 'result' && result !== null && published === null && !copiedOnce;
+    const requestClose = useCallback(() => {
+        if (guardClose) setConfirmClose(true);
+        else onClose();
+    }, [guardClose, onClose]);
+
     // ESC closes - poza publikacją: zamknięte okno nie przerwie posta po stronie Meta,
     // a właściciel nie dowiedziałby się, czy post wyszedł.
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
-            if (e.key === 'Escape' && !publishing) onClose();
+            if (e.key !== 'Escape' || publishing) return;
+            // Drugie „Wstecz" przy otwartym pytaniu znaczy „zostań", nie „zamknij mimo to".
+            if (confirmClose) setConfirmClose(false);
+            else requestClose();
         };
         document.addEventListener('keydown', handler);
         return () => document.removeEventListener('keydown', handler);
-    }, [onClose, publishing]);
+    }, [requestClose, publishing, confirmClose]);
+
+    // Pytanie przejmuje focus: schowa klawiaturę nad podpisem i ustawi czytnik ekranu na pytaniu.
+    useEffect(() => {
+        if (confirmClose) stayRef.current?.focus();
+    }, [confirmClose]);
 
     const handleGenerate = useCallback(async () => {
         if (!canGenerate) return;
@@ -1031,6 +1447,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
             };
             const data = await instagramApi.generatePost(req);
             setResult(data);
+            setCopiedOnce(false);
             // Nowy tekst to nowy podpis: wcześniejsza edycja dotyczyła poprzedniej wersji posta.
             setCaption(data.content);
             setPublishSeeded(false);
@@ -1052,6 +1469,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
         try {
             await navigator.clipboard.writeText(result.content);
             setCopied(true);
+            setCopiedOnce(true);
             setTimeout(() => setCopied(false), 2500);
         } catch {
             // Ignore clipboard errors
@@ -1078,7 +1496,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
         setRating(null);
         setComment('');
         setCommentOpen(false);
-        setTimeout(() => topicRef.current?.focus(), 80);
+        if (isDesktop) setTimeout(() => topicRef.current?.focus(), 80);
     };
 
     // ── Reguły stylistyczne ───────────────────────────────────────────────────
@@ -1163,7 +1581,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
     };
 
     const handleOverlayClick = (e: React.MouseEvent) => {
-        if (e.target === e.currentTarget && phase !== 'loading' && !publishing) onClose();
+        if (e.target === e.currentTarget && phase !== 'loading' && !publishing) requestClose();
     };
 
     const content     = result?.content ?? '';
@@ -1274,7 +1692,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                     {commentOpen && rating === null && (
                         <>
                             <CommentTextarea
-                                autoFocus
+                                autoFocus={isDesktop}
                                 placeholder={'Co jest nie tak? Np. „za dużo wykrzykników”, „zbyt sprzedażowy ton”…'}
                                 value={comment}
                                 onChange={e => setComment(e.target.value)}
@@ -1325,6 +1743,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                     aiPhotos={aiPhotos}
                     onToggleAiPhoto={id => setAiPhotos(prev => togglePhoto(prev, id, MAX_AI_PHOTOS))}
                     highlight={prefill?.pickVisit === true && !visitId}
+                    autoFocus={isDesktop}
                 />
 
                 {/* Topic */}
@@ -1336,7 +1755,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                         id="gp-topic"
                         ref={topicRef}
                         type="text"
-                        placeholder="Np. Nowe oklejanie PPF na BMW M4 Competition"
+                        placeholder={isDesktop ? 'Np. Nowe oklejanie PPF na BMW M4 Competition' : 'Np. Oklejanie PPF na BMW M4'}
                         value={topic}
                         onChange={e => setTopic(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter' && canGenerate) handleGenerate(); }}
@@ -1360,12 +1779,15 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
 
                 {/* Tone */}
                 <FormSection>
-                    <FieldLabel>Ton</FieldLabel>
-                    <ToneGrid>
+                    <FieldLabel id={toneLabelId}>Ton</FieldLabel>
+                    {/* Radio, bo ton jest jeden; drugie tapnięcie w wybrany zdejmuje wybór (ton domyślny). */}
+                    <ToneGrid role="radiogroup" aria-labelledby={toneLabelId}>
                         {TONES.map(t => (
                             <ToneCard
                                 key={t.value}
                                 type="button"
+                                role="radio"
+                                aria-checked={tone === t.value}
                                 $active={tone === t.value}
                                 onClick={() => setTone(prev => prev === t.value ? null : t.value)}
                             >
@@ -1383,12 +1805,14 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
 
                 {/* Length */}
                 <FormSection>
-                    <FieldLabel>Długość</FieldLabel>
-                    <SegmentedWrap>
+                    <FieldLabel id={lengthLabelId}>Długość</FieldLabel>
+                    <SegmentedWrap role="radiogroup" aria-labelledby={lengthLabelId}>
                         {LENGTHS.map(l => (
                             <SegmentBtn
                                 key={l.value}
                                 type="button"
+                                role="radio"
+                                aria-checked={length === l.value}
                                 $active={length === l.value}
                                 onClick={() => setLength(prev => prev === l.value ? null : l.value)}
                             >
@@ -1527,7 +1951,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                     {canGenerate ? 'Gotowe do generowania' : 'Uzupełnij temat posta'}
                 </FooterLeft>
                 <FooterRight>
-                    <CancelBtn type="button" onClick={onClose}>
+                    <CancelBtn type="button" onClick={requestClose}>
                         Anuluj
                     </CancelBtn>
                     <GenerateBtn
@@ -1544,8 +1968,111 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
         );
     };
 
+    /**
+     * Stopka telefonu: jedno wypełnienie (krok następny) w osobnym rzędzie na całą
+     * szerokość, akcje poboczne po równo pod nim. Reguła wyboru kroku następnego jest ta
+     * sama co na komputerze - zmienia się tylko układ.
+     */
+    const renderPhoneFooter = () => {
+        if (phase === 'loading') return null;
+
+        if (confirmClose) {
+            return (
+                <ConfirmSheet role="alertdialog" aria-labelledby={confirmTitleId} aria-describedby={confirmTextId}>
+                    <ConfirmTitle id={confirmTitleId}>Zamknąć generator?</ConfirmTitle>
+                    <ConfirmText id={confirmTextId}>
+                        Wygenerowany post zniknie. Żeby go zachować, wróć i skopiuj go albo opublikuj.
+                    </ConfirmText>
+                    <PhonePrimary ref={stayRef} variant="primary" size="lg" block onClick={() => setConfirmClose(false)}>
+                        Wróć do posta
+                    </PhonePrimary>
+                    <PhoneSecondary variant="tintedDanger" size="lg" block onClick={onClose}>
+                        Zamknij
+                    </PhoneSecondary>
+                </ConfirmSheet>
+            );
+        }
+
+        if (phase === 'result') {
+            if (published) {
+                return (
+                    <PhoneFooter>
+                        {published.permalink && (
+                            <PhonePrimaryLink
+                                href={published.permalink}
+                                target="_blank"
+                                rel="noreferrer"
+                                $variant="primary"
+                                $size="lg"
+                                $block
+                            >
+                                <ExternalLink aria-hidden="true" />
+                                Zobacz post
+                            </PhonePrimaryLink>
+                        )}
+                        <PhoneSecondary variant={published.permalink ? 'outline' : 'primary'} size="lg" block onClick={onClose}>
+                            Zamknij
+                        </PhoneSecondary>
+                    </PhoneFooter>
+                );
+            }
+
+            const publishReady = canPublish && selectedPhotos.length > 0;
+            const publishBlocked = publishing || captionProblem(caption) !== null;
+            const copyLabel = copied
+                ? <><Check aria-hidden="true" /> Skopiowano</>
+                : <><Copy aria-hidden="true" /> Kopiuj post</>;
+            return (
+                <PhoneFooter>
+                    {publishReady ? (
+                        <PhonePrimary
+                            variant="primary"
+                            size="lg"
+                            block
+                            disabled={publishBlocked}
+                            aria-busy={publishing}
+                            onClick={() => void handlePublish()}
+                        >
+                            <Send aria-hidden="true" />
+                            {publishing ? 'Publikuję…' : 'Opublikuj'}
+                        </PhonePrimary>
+                    ) : (
+                        <PhonePrimary variant={copied ? 'tintedSuccess' : 'primary'} size="lg" block onClick={handleCopy}>
+                            {copyLabel}
+                        </PhonePrimary>
+                    )}
+                    <PhoneRow>
+                        <PhoneSecondary variant="outline" size="lg" block onClick={handleRegenerate} disabled={publishing}>
+                            <RotateCcw aria-hidden="true" />
+                            Zmień opis
+                        </PhoneSecondary>
+                        {publishReady && (
+                            <PhoneSecondary variant={copied ? 'tintedSuccess' : 'tinted'} size="lg" block onClick={handleCopy}>
+                                {copyLabel}
+                            </PhoneSecondary>
+                        )}
+                    </PhoneRow>
+                </PhoneFooter>
+            );
+        }
+
+        return (
+            <PhoneFooter>
+                <PhoneRow $form>
+                    <PhoneSecondary variant="outline" size="lg" block onClick={requestClose}>
+                        Anuluj
+                    </PhoneSecondary>
+                    <PhonePrimary variant="primary" size="lg" block disabled={!canGenerate} onClick={handleGenerate}>
+                        <Sparkles aria-hidden="true" />
+                        Generuj post
+                    </PhonePrimary>
+                </PhoneRow>
+            </PhoneFooter>
+        );
+    };
+
     return createPortal(
-        <Overlay onClick={handleOverlayClick}>
+        <Overlay onClick={handleOverlayClick} role="dialog" aria-modal="true" aria-labelledby={titleId}>
             <Modal>
                 <ModalHeader>
                     <HeaderLeft>
@@ -1553,12 +2080,12 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                             <Wand2 size={18} strokeWidth={2} />
                         </IconWrap>
                         <HeaderMeta>
-                            <HeaderTitle>Generator postów na Instagram</HeaderTitle>
+                            <HeaderTitle id={titleId}>Generator postów na Instagram</HeaderTitle>
                             <HeaderSub>AI tworzy post na podstawie Twoich realizacji</HeaderSub>
                         </HeaderMeta>
                     </HeaderLeft>
                     {phase !== 'loading' && !publishing && (
-                        <CloseBtn type="button" onClick={onClose} aria-label="Zamknij">
+                        <CloseBtn type="button" onClick={requestClose} aria-label="Zamknij">
                             <X size={16} strokeWidth={2} />
                         </CloseBtn>
                     )}
@@ -1568,7 +2095,8 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                     {renderBody()}
                 </ModalBody>
 
-                {renderFooter()}
+                {confirmClose && <ConfirmScrim aria-hidden="true" onClick={() => setConfirmClose(false)} />}
+                {isDesktop ? renderFooter() : renderPhoneFooter()}
             </Modal>
         </Overlay>,
         document.body

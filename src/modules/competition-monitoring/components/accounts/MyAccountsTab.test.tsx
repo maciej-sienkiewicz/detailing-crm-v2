@@ -3,15 +3,16 @@
 // Zakładka „Moje konta": bez połączenia jedynym wypełnionym przyciskiem jest „Połącz
 // Instagram" (Google zostaje przy odcieniu), po połączeniu wypełnienie może przejść
 // na wizytówkę Google - nigdy dwa naraz (CLAUDE.md §2). Wynik powrotu z logowania
-// pokazuje się raz i znika z adresu.
+// pokazuje się raz i znika z adresu. Na telefonie zakładka układa się według tego,
+// kto czeka na odpowiedź: wiadomości i opinie nad statystykami.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
 import { accountsApi } from '../../api/accountsApi';
-import type { GoogleBusiness, InstagramConnection } from '../../accountsTypes';
+import type { DmThread, GoogleBusiness, GoogleReview, InstagramConnection, MyInstagram } from '../../accountsTypes';
 import { MyAccountsTab } from './MyAccountsTab';
 
 // Preferencje powiadomień mają własne testy i własne API - tu sprawdzamy same konta.
@@ -55,9 +56,38 @@ const renderTab = (url = '/instagram?widok=moj') => {
     return router;
 };
 
+const thread = (patch: Partial<DmThread> = {}): DmThread => ({
+    id: 't1', username: 'klient', displayName: 'Michał Kwiatkowski', leadId: 'l1', leadStatus: 'NEW',
+    lastMessageAt: new Date().toISOString(), lastSnippet: 'Ile kosztuje korekta?', awaitingReply: true, unreadCount: 1,
+    replyDeadline: null, ...patch,
+});
+
+const review = (patch: Partial<GoogleReview> = {}): GoogleReview => ({
+    id: 'r1', reviewerName: 'Tomasz', starRating: 2, comment: 'Auto odebrane dzień później.',
+    createdAt: '2026-10-15T10:00:00Z', replyComment: null, replyAt: null, ...patch,
+});
+
+const mine = (): MyInstagram => ({
+    connection: connection({ status: 'CONNECTED' }), followers: 3850, last30: null, previous30: null,
+    bestHours: [], cities: [], topPosts: [], syncedAt: null,
+});
+
 const filled = () => document.querySelectorAll('[data-variant="primary"], [data-variant="success"]');
 
+/** Kolejność paneli w DOM: true, gdy `first` stoi przed `second`. */
+const before = (first: Element, second: Element) =>
+    Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING);
+
+// jsdom nie ma matchMedia; zakładka pyta o nią przez useBreakpoint (komputer / telefon).
+let desktop = true;
+
 beforeEach(() => {
+    desktop = true;
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: desktop, media: query, onchange: null,
+        addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+    }));
     vi.mocked(accountsApi.getGoogle).mockResolvedValue(google());
 });
 afterEach(() => {
@@ -112,5 +142,83 @@ describe('MyAccountsTab', () => {
         await screen.findByText('Nie udało się połączyć Instagrama');
         await waitFor(() => expect(router.state.location.search).toBe('?widok=moj'));
         expect(screen.getByText(/firmowym kontem Instagram/)).toBeTruthy();
+    });
+
+    describe('na telefonie', () => {
+        const connectedEverywhere = (threads: DmThread[], reviews: GoogleReview[]) => {
+            desktop = false;
+            vi.mocked(accountsApi.getConnection).mockResolvedValue(connection({
+                status: 'CONNECTED', username: 'studio', pageName: 'Studio', messagingEnabled: true,
+            }));
+            vi.mocked(accountsApi.getMine).mockResolvedValue(mine());
+            vi.mocked(accountsApi.listThreads).mockResolvedValue(threads);
+            vi.mocked(accountsApi.getGoogle).mockResolvedValue(google({
+                status: 'CONNECTED', locationTitle: 'Studio Mokotów', reviews,
+                unansweredReviews: reviews.filter(r => r.replyComment === null).length,
+            }));
+        };
+
+        it('kto czeka na odpowiedź, stoi nad statystykami Instagrama', async () => {
+            connectedEverywhere(
+                [thread(), thread({ id: 't2', displayName: 'Katarzyna Lis', awaitingReply: false })],
+                [review(), review({ id: 'r2', reviewerName: 'Ewa', comment: 'Reflektory jak nowe.', replyComment: 'Dziękujemy!' })],
+            );
+
+            renderTab();
+
+            const messages = await screen.findByRole('region', { name: 'Wiadomości z Instagrama' });
+            const reviews = await screen.findByRole('region', { name: 'Opinie w Google' });
+            const instagram = screen.getByRole('region', { name: 'Konto Instagram' });
+            expect(before(messages, reviews)).toBe(true);
+            expect(before(reviews, instagram)).toBe(true);
+            await screen.findByText('Michał Kwiatkowski');
+            await screen.findByText('Auto odebrane dzień później.');
+        });
+
+        it('odpowiedziane opinie i rozmowy bez czekającego klienta czekają za „Pokaż"', async () => {
+            connectedEverywhere(
+                [thread(), thread({ id: 't2', displayName: 'Katarzyna Lis', awaitingReply: false })],
+                [review(), review({ id: 'r2', reviewerName: 'Ewa', comment: 'Reflektory jak nowe.', replyComment: 'Dziękujemy!' })],
+            );
+
+            renderTab();
+
+            await screen.findByText('Michał Kwiatkowski');
+            expect(screen.queryByText('Katarzyna Lis')).toBeNull();
+            fireEvent.click(screen.getByRole('button', { name: /Pokaż pozostałe rozmowy \(1\)/ }));
+            expect(screen.getByText('Katarzyna Lis')).toBeTruthy();
+
+            await screen.findByText('Auto odebrane dzień później.');
+            expect(screen.queryByText('Reflektory jak nowe.')).toBeNull();
+            fireEvent.click(screen.getByRole('button', { name: /Pokaż opinie z odpowiedzią \(1\)/ }));
+            expect(screen.getByText('Reflektory jak nowe.')).toBeTruthy();
+        });
+
+        it('bez czekających wiadomości i opinii statystyki wracają na górę', async () => {
+            connectedEverywhere(
+                [thread({ awaitingReply: false })],
+                [review({ replyComment: 'Dziękujemy!' })],
+            );
+
+            renderTab();
+
+            const instagram = await screen.findByRole('region', { name: 'Konto Instagram' });
+            const messages = await screen.findByRole('region', { name: 'Wiadomości z Instagrama' });
+            await screen.findByText('Auto odebrane dzień później.');
+            expect(screen.queryByRole('region', { name: 'Opinie w Google' })).toBeNull();
+            expect(before(instagram, messages)).toBe(true);
+        });
+
+        it('bez połączeń nadal jedynym wypełnieniem jest „Połącz Instagram"', async () => {
+            desktop = false;
+            vi.mocked(accountsApi.getConnection).mockResolvedValue(connection());
+
+            renderTab();
+
+            const connect = await screen.findByRole('button', { name: /Połącz Instagram/ });
+            await screen.findByRole('button', { name: /Połącz wizytówkę Google/ });
+            expect(connect.getAttribute('data-variant')).toBe('primary');
+            expect(filled()).toHaveLength(1);
+        });
     });
 });

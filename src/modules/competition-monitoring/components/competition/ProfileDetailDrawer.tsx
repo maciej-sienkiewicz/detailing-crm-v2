@@ -11,11 +11,13 @@ import {
     ui,
 } from '@/common/components/ui';
 import { pluralPl } from '@/common/utils/plural';
+import { useBreakpoint } from '@/common/hooks';
 import type { CompetitionProfile, CompetitionResponse } from '../../types';
 import { useDigest } from '../../hooks/useAnalytics';
 import { EMPTY, formatNumber } from '../MetricBits';
 import { calendarLevel, formatPerWeek, formatSignedPct, growthSinceLabel } from '../../utils/competition';
 import { colorFor } from '../../utils/profileColors';
+import { PHONE } from '../../utils/phone';
 
 /**
  * Wszystko o jednym profilu w jednym miejscu: co zrobił w ostatnim tygodniu (zdanie
@@ -118,6 +120,14 @@ const PostLinks = styled.ul`
     }
     a:hover { text-decoration: underline; }
     span { color: ${ui.textMuted}; white-space: nowrap; }
+
+    /* Odnośniki po 18 px jeden pod drugim to cele nie do trafienia palcem: wiersze listy po 44 px. */
+    ${PHONE} {
+        gap: 0;
+
+        li + li { border-top: 1px solid ${ui.line}; }
+        a { align-items: center; min-height: 44px; font-size: 14px; }
+    }
 `;
 
 const FORMAT_COLORS = { photo: '#94a3b8', reels: ui.brand, carousel: '#8b5cf6' } as const;
@@ -137,6 +147,7 @@ interface Props {
 }
 
 export const ProfileDetailDrawer: React.FC<Props> = ({ profile, data, colors, onClose, onOpenAds }) => {
+    const isDesktop = useBreakpoint('md');
     const digestQuery = useDigest(true);
     const digest = digestQuery.data?.profiles.find(p => p.profileId === profile.profileId) ?? null;
     const median = data.median;
@@ -159,6 +170,7 @@ export const ProfileDetailDrawer: React.FC<Props> = ({ profile, data, colors, on
                 <ButtonLink
                     $variant="outline"
                     $size="md"
+                    $block={!isDesktop}
                     href={`https://www.instagram.com/${profile.username}/`}
                     target="_blank"
                     rel="noopener noreferrer"

@@ -116,4 +116,27 @@ describe('installNativeShell', () => {
         expect(minimizeApp).toHaveBeenCalled();
         expect(escape).toHaveBeenCalledTimes(1);
     });
+
+    it('„Wstecz" przy rozwiniętym menu zamyka menu, zamiast cofać ekran', () => {
+        const back = vi.spyOn(window.history, 'back').mockImplementation(() => {});
+        const menu = document.createElement('div');
+        menu.setAttribute('role', 'menu');
+        menu.setAttribute('data-dismiss-on-back', '');
+        document.body.appendChild(menu);
+        const escape = vi.fn();
+        document.addEventListener('keydown', event => { if (event.key === 'Escape') escape(); });
+
+        backHandler!({ canGoBack: true });
+        expect(escape).toHaveBeenCalledTimes(1);
+        expect(back).not.toHaveBeenCalled();
+
+        // Menu, które nie zgłosiło obsługi Wstecz (nie każde reaguje na Escape), nie blokuje cofania.
+        menu.removeAttribute('data-dismiss-on-back');
+        backHandler!({ canGoBack: true });
+        expect(back).toHaveBeenCalledTimes(1);
+        expect(escape).toHaveBeenCalledTimes(1);
+
+        menu.remove();
+        back.mockRestore();
+    });
 });

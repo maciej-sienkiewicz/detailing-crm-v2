@@ -1,8 +1,14 @@
-import { useState } from 'react';
+import { useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import styled from 'styled-components';
-import { Check, ChevronDown, ChevronLeft, ChevronRight, ExternalLink, EyeOff, MapPin, Settings } from 'lucide-react';
+import {
+    Check, ChevronDown, ChevronLeft, ChevronRight, ExternalLink, EyeOff, MapPin, MoreHorizontal, Plus, Settings,
+} from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { SharedButton } from '@/common/styles';
+import {
+    ActionMenu, Button, IconButton, MenuItem, Notice as UiNotice, ui, useActionMenu,
+} from '@/common/components/ui';
+import { useBreakpoint } from '@/common/hooks';
 import type { AreaResults, AdvertiserRow } from '../types';
 import { Card, CardTitle, CardHint, CenterState, Spinner, formatExact } from './MetricBits';
 import {
@@ -16,7 +22,10 @@ import {
 } from '../hooks/useAreaDiscovery';
 import { useInstagramProfiles } from '../hooks/useInstagramProfiles';
 import { useToast } from '@/common/components/Toast';
-import { activeAdsWord, campaignsOf, companiesWord, formatStartDay, noveltyBadge, splitByRelevance } from '../utils/areaLabels';
+import {
+    activeAdsWord, campaignsOf, campaignsWord, companiesWord, formatStartDay, noveltyBadge, splitByRelevance,
+} from '../utils/areaLabels';
+import { PHONE } from '../utils/phone';
 
 /**
  * „Reklamodawcy w okolicy" — kto jeszcze reklamuje się w moim rejonie.
@@ -27,8 +36,10 @@ import { activeAdsWord, campaignsOf, companiesWord, formatStartDay, noveltyBadge
  * Tabela jest STRONICOWANA: reklamodawców w rejonie potrafi być kilkuset, a karta
  * stoi obok podsumowania roku, więc pełna lista rozciągałaby ekran bez powodu.
  *
- * Na wąskim ekranie tabela zamienia się w listę kart. Cztery kolumny nie mieszczą
+ * Na wąskiej karcie tabela zamienia się w listę kart. Cztery kolumny nie mieszczą
  * się na 390 px w żaden sposób — poziome przewijanie ucinało zasięg w połowie liczby.
+ * Telefon ma jeszcze własny wiersz (`PhoneAdvertiserList`): lista kart z komputera
+ * zostawiała tam na nazwę firmy kilka liter.
  */
 
 const HeadRow = styled.div`
@@ -37,6 +48,9 @@ const HeadRow = styled.div`
     justify-content: space-between;
     gap: 12px;
     margin-bottom: 8px;
+
+    /* Koło ma na telefonie 44 px - tytuł stoi na jego środku, a nie przy górnej krawędzi. */
+    ${PHONE} { align-items: center; }
 `;
 
 const GearButton = styled.button`
@@ -55,6 +69,12 @@ const GearButton = styled.button`
 
     &:hover { border-color: ${st.borderHover}; color: ${st.text}; }
     svg { width: 17px; height: 17px; }
+
+    ${PHONE} {
+        width: 44px;
+        height: 44px;
+        svg { width: 19px; height: 19px; }
+    }
 `;
 
 const HeadActions = styled.div`
@@ -75,7 +95,33 @@ const AreaLine = styled.p`
 
     svg { width: 14px; height: 14px; flex-shrink: 0; color: ${st.textMuted}; }
     strong { color: ${st.text}; font-weight: 600; }
+
+    ${PHONE} {
+        align-items: flex-start;
+        line-height: 20px;
+
+        svg { margin-top: 3px; color: ${ui.textMuted}; }
+    }
 `;
+
+/**
+ * Telefon: miejscowości jednym blokiem, liczba fraz w osobnej linii pod nimi.
+ *
+ * W jednym ciągu „…Lesznowola 42" zostawało na końcu wiersza, a „frazy z katalogu"
+ * spadało samotnie niżej - liczba przyklejona do nazwy miejscowości, której nie dotyczy.
+ */
+const AreaText = styled.span`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+`;
+
+/**
+ * Łącznik w nazwie miejscowości nie może łamać wiersza: „Konstancin-" na końcu linii
+ * i „Jeziorna" na początku następnej czytały się jak dwie miejscowości.
+ */
+const unbreakable = (place: string) => place.replace(/-/g, '\u2011');
 
 
 // ── Akcje wiersza ─────────────────────────────────────────────────────────────
@@ -105,6 +151,9 @@ const AreaLine = styled.p`
 const AreaCard = styled(Card)`
     container-type: inline-size;
     min-width: 0;
+
+    /* Przewinięcie do karty po zmianie strony: nad nią przypięty pasek zakładek. */
+    ${PHONE} { scroll-margin-top: 64px; }
 `;
 
 /**
@@ -125,6 +174,12 @@ const Tally = styled.p`
     font-variant-numeric: tabular-nums;
 
     strong { color: ${st.text}; font-weight: 600; }
+
+    /* Liczba i jej słowo łamią się razem: „65" na końcu jednej linii, a „aktywnych
+       reklam" na początku drugiej, to dwa fakty zamiast jednego. */
+    ${PHONE} {
+        > span { white-space: nowrap; }
+    }
 `;
 
 // ── Nowości ───────────────────────────────────────────────────────────────────
@@ -158,6 +213,13 @@ const NewBadge = styled.span`
     color: #92400E;
     white-space: nowrap;
     cursor: default;
+
+    ${PHONE} {
+        height: 22px;
+        padding: 0 8px;
+        font-size: 12px;
+        letter-spacing: normal;
+    }
 `;
 
 /** Pierwszy rząd komórki nazwy: nazwa (przycinana) i odznaka (nigdy). */
@@ -232,13 +294,10 @@ const FollowedLabel = styled.span`
 `;
 
 /**
- * Komórka nazwy współdzielona przez tabelę i listę kart — jedno miejsce, żeby
- * odznaka i data startu wyglądały identycznie na komputerze i telefonie.
+ * „Obserwuj" przy reklamodawcy — stan i akcja wspólne dla tabeli i wiersza na
+ * telefonie, żeby oba mówiły to samo i tymi samymi komunikatami.
  */
-const AdvertiserName = ({ row, windowDays }: { row: AdvertiserRow; windowDays: number }) => {
-    const badge = noveltyBadge(row, windowDays);
-    const since = badge && row.latestCampaignStart ? `od ${formatStartDay(row.latestCampaignStart)}` : null;
-
+const useFollowRow = (row: AdvertiserRow) => {
     const { profiles } = useInstagramProfiles();
     const follow = useFollowAdvertiser();
     const { showSuccess, showError, showInfo } = useToast();
@@ -280,6 +339,18 @@ const AdvertiserName = ({ row, windowDays }: { row: AdvertiserRow; windowDays: n
         });
     };
 
+    return { alreadyFollowed, handleFollow, pending: follow.isPending };
+};
+
+/**
+ * Komórka nazwy współdzielona przez tabelę i listę kart — jedno miejsce, żeby
+ * odznaka i data startu wyglądały identycznie w obu układach komputera.
+ */
+const AdvertiserName = ({ row, windowDays }: { row: AdvertiserRow; windowDays: number }) => {
+    const badge = noveltyBadge(row, windowDays);
+    const since = badge && row.latestCampaignStart ? `od ${formatStartDay(row.latestCampaignStart)}` : null;
+    const { alreadyFollowed, handleFollow, pending } = useFollowRow(row);
+
     return (
         <NameCell style={{ flex: 1, minWidth: 0 }}>
             <NameLine>
@@ -311,11 +382,11 @@ const AdvertiserName = ({ row, windowDays }: { row: AdvertiserRow; windowDays: n
                     ) : (
                         <FollowBtn
                             type="button"
-                            disabled={follow.isPending}
+                            disabled={pending}
                             onClick={handleFollow}
                             title={`Dodaj @${row.instagram} do obserwowanych profili`}
                         >
-                            {follow.isPending ? 'Dodaję…' : 'Obserwuj'}
+                            {pending ? 'Dodaję…' : 'Obserwuj'}
                         </FollowBtn>
                     )
                 )}
@@ -441,11 +512,18 @@ const Pager = styled.div`
     font-size: ${st.fontSm};
     color: ${st.textMuted};
     font-variant-numeric: tabular-nums;
+
+    ${PHONE} {
+        font-size: 14px;
+        color: ${ui.textSecondary};
+    }
 `;
 
 const PagerButtons = styled.div`
     display: inline-flex;
     gap: 6px;
+
+    ${PHONE} { gap: 8px; }
 `;
 
 const PagerBtn = styled.button`
@@ -464,6 +542,14 @@ const PagerBtn = styled.button`
     &:hover:not(:disabled) { border-color: ${st.borderHover}; color: ${st.text}; }
     &:disabled { opacity: 0.35; cursor: default; }
     svg { width: 16px; height: 16px; }
+
+    /* Okrągłe 44 px jak koło ustawień nad tabelą i przyciski z ikoną w reszcie aplikacji. */
+    ${PHONE} {
+        width: 44px;
+        height: 44px;
+        border-radius: ${ui.radiusControl};
+        svg { width: 18px; height: 18px; }
+    }
 `;
 
 const Notice = styled.div<{ $tone: 'info' | 'warn' }>`
@@ -476,6 +562,34 @@ const Notice = styled.div<{ $tone: 'info' | 'warn' }>`
     color: ${st.text};
     strong { font-weight: 700; }
 `;
+
+const PhoneNotice = styled(UiNotice)`
+    margin-top: 12px;
+`;
+
+/**
+ * Komunikat pod tabelą. Na telefonie wspólny `Notice` — z ikoną i tytułem w osobnej
+ * linii, jak komunikaty w pozostałych zakładkach; komputer zostaje przy swoim pudełku.
+ */
+const AreaNotice = ({ tone, title, children }: { tone: 'info' | 'warn'; title?: string; children?: ReactNode }) => {
+    const isDesktop = useBreakpoint('md');
+    if (!isDesktop) {
+        return (
+            <PhoneNotice tone={tone} title={title}>
+                {/* Jeden element: treść wspólnego Notice to kolumna, a gołe węzły tekstu
+                    z <strong> w środku zdania ustawiłyby się jeden pod drugim. */}
+                {children && <span>{children}</span>}
+            </PhoneNotice>
+        );
+    }
+    return (
+        <Notice $tone={tone}>
+            {title && <strong>{title}</strong>}
+            {title && ' '}
+            {children}
+        </Notice>
+    );
+};
 
 const advertiserWord = (n: number): string => {
     if (n === 1) return 'reklamodawcę';
@@ -508,73 +622,364 @@ const Actions = ({ row, onHide, busy }: { row: AdvertiserRow; onHide: () => void
     </RowActions>
 );
 
-/** Tabela (komputer) i karty (telefon) jednej grupy reklamodawców. */
+// ── Telefon ───────────────────────────────────────────────────────────────────
+
+/**
+ * Wiersz na telefonie: nazwa firmy na całą szerokość, wszystko inne pod nią.
+ *
+ * Lista kart z komputera trzyma liczby w stałych torach (64 + 104 px) i ikony
+ * w kolumnie 72 px. Na 360 px zostawało z tego 46 px na nazwę: „Polerownia…"
+ * kończyła się na „P", przy odznace nie było jej wcale, a „✓ Obserwowany" wchodziło
+ * na liczbę kampanii. Nazwa jest tym, po co się tu przychodzi, więc dostaje wiersz
+ * i dwie linie; liczby schodzą pod nią jako słowa („2 kampanie", „zasięg 228 800"),
+ * dzięki czemu nagłówek kolumn nie jest już potrzebny.
+ */
+const PhoneList = styled.ul`
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid ${ui.line};
+`;
+
+const PhoneRow = styled.li`
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 6px 8px;
+    padding: 14px 0;
+    border-bottom: 1px solid ${ui.line};
+
+    &:last-child { border-bottom: none; }
+`;
+
+const PhoneName = styled.span`
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 20px;
+    color: ${ui.ink};
+    overflow-wrap: break-word;
+`;
+
+/**
+ * Akcje rzadkie — Biblioteka Meta i ukrycie firmy — w menu ⋯ z podpisami. Na dotyku
+ * nie ma dymków, a gołe przekreślone oko obok strzałki nie mówi, co zrobi. Ujemny
+ * margines: cel 44 px nie rozpycha pierwszej linii nazwy.
+ */
+const RowMenuButton = styled(IconButton)`
+    width: 44px;
+    height: 44px;
+    margin: -12px -12px -12px 0;
+    color: ${ui.textSecondary};
+
+    svg { width: 20px; height: 20px; }
+`;
+
+const PhoneMeta = styled.div`
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    font-size: 13px;
+    line-height: 18px;
+`;
+
+const PhoneNums = styled.div`
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 16px;
+    font-size: 13px;
+    line-height: 20px;
+    color: ${ui.textSecondary};
+    font-variant-numeric: tabular-nums;
+
+    > span { white-space: nowrap; }
+
+    /* Pierwszy człon ma stałą szerokość, więc „zasięg" stoi w każdym wierszu w tym
+       samym miejscu i liczby nadal porównuje się jednym spojrzeniem w dół. */
+    > span:first-child { min-width: 104px; }
+
+    strong { font-size: 15px; font-weight: 700; color: ${ui.ink}; }
+`;
+
+const PhoneCount = styled(NumLive)`
+    font-size: 15px;
+`;
+
+const PhoneProfile = styled.div`
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+    min-height: 32px;
+`;
+
+/** Uchwyt prowadzi na Instagram. Padding z ujemnym marginesem daje 44 px celu. */
+const PhoneHandle = styled.a`
+    min-width: 0;
+    padding: 12px 0;
+    margin: -12px 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    line-height: 20px;
+    color: ${ui.textSecondary};
+    text-decoration: none;
+`;
+
+/**
+ * „Obserwuj" na telefonie jest prawdziwym przyciskiem: na komputerze wygląda jak
+ * metadana i dopiero najechanie zdradza, że da się go kliknąć — na dotyku nie ma
+ * czym najechać. Odcień marki bez wypełnienia: wypełniony jest tylko krok następny,
+ * a takich przycisków bywa na liście kilka.
+ */
+const FollowChip = styled.button`
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    height: 32px;
+    padding: 0 12px 0 10px;
+    border: 1px solid ${ui.brandLine};
+    border-radius: ${ui.radiusControl};
+    background: ${ui.brandTint};
+    color: ${ui.brandDeep};
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+
+    svg { width: 15px; height: 15px; }
+
+    &::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 50%;
+        height: 44px;
+        transform: translateY(-50%);
+    }
+
+    &:active:not(:disabled) { background: ${ui.brandTintHover}; }
+    &:disabled { opacity: 0.6; cursor: progress; }
+    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: 2px; }
+`;
+
+/** Stan, nie akcja: bez koloru akcji i bez obwódki, żeby nie udawał przycisku. */
+const PhoneFollowed = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    font-size: 13px;
+    line-height: 20px;
+    color: ${ui.textSecondary};
+
+    svg { width: 15px; height: 15px; color: ${ui.textMuted}; }
+`;
+
+const PhoneAdvertiserRow = ({ row, windowDays, menuOpen, onMenu }: {
+    row: AdvertiserRow;
+    windowDays: number;
+    menuOpen: boolean;
+    onMenu: (e: ReactMouseEvent<HTMLElement>) => void;
+}) => {
+    const badge = noveltyBadge(row, windowDays);
+    const since = badge && row.latestCampaignStart ? `od ${formatStartDay(row.latestCampaignStart)}` : null;
+    const { alreadyFollowed, handleFollow, pending } = useFollowRow(row);
+    const campaigns = campaignsOf(row);
+
+    return (
+        <PhoneRow>
+            <PhoneName title={row.companyName}>{row.companyName}</PhoneName>
+            <RowMenuButton
+                label={`Więcej: ${row.companyName}`}
+                variant="ghost"
+                size="sm"
+                active={menuOpen}
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                onClick={onMenu}
+            >
+                <MoreHorizontal />
+            </RowMenuButton>
+
+            {badge && (
+                <PhoneMeta>
+                    <NewBadge title={badge.title} aria-label={`${badge.label}. ${badge.title}`}>
+                        {badge.label}
+                    </NewBadge>
+                    {since && <SinceText>{since}</SinceText>}
+                </PhoneMeta>
+            )}
+
+            <PhoneNums>
+                <span>
+                    <PhoneCount $on={campaigns > 0}>{campaigns}</PhoneCount> {campaignsWord(campaigns)}
+                </span>
+                <span>
+                    zasięg <strong>{formatExact(row.reach)}</strong>
+                </span>
+            </PhoneNums>
+
+            {row.instagram && (
+                <PhoneProfile>
+                    <PhoneHandle
+                        href={`https://www.instagram.com/${row.instagram}/`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        @{row.instagram}
+                    </PhoneHandle>
+                    {alreadyFollowed ? (
+                        <PhoneFollowed>
+                            <Check aria-hidden="true" /> Obserwowany
+                        </PhoneFollowed>
+                    ) : (
+                        <FollowChip
+                            type="button"
+                            disabled={pending}
+                            onClick={handleFollow}
+                            aria-label={`Obserwuj @${row.instagram}`}
+                        >
+                            <Plus aria-hidden="true" />
+                            {pending ? 'Dodaję…' : 'Obserwuj'}
+                        </FollowChip>
+                    )}
+                </PhoneProfile>
+            )}
+        </PhoneRow>
+    );
+};
+
+/** Jedno menu na listę, nie dziesięć — `useActionMenu` pamięta, który wiersz je otworzył. */
+const PhoneAdvertiserList = ({ rows, windowDays, busy, onHide }: {
+    rows: AdvertiserRow[];
+    windowDays: number;
+    busy: boolean;
+    onHide: (row: AdvertiserRow) => void;
+}) => {
+    const menu = useActionMenu<AdvertiserRow>();
+    const target = menu.menu?.item;
+
+    return (
+        <>
+            <PhoneList>
+                {rows.map(row => (
+                    <PhoneAdvertiserRow
+                        key={row.pageId}
+                        row={row}
+                        windowDays={windowDays}
+                        menuOpen={menu.isOpen(row.pageId)}
+                        onMenu={e => menu.toggle(e, row, row.pageId)}
+                    />
+                ))}
+            </PhoneList>
+            <ActionMenu anchor={menu.menu?.anchor ?? null} onClose={menu.close} label={target?.companyName}>
+                {target && (
+                    <>
+                        <MenuItem
+                            icon={<ExternalLink />}
+                            onClick={() => window.open(target.adLibraryUrl, '_blank', 'noopener,noreferrer')}
+                        >
+                            Reklamy w Bibliotece Meta
+                        </MenuItem>
+                        <MenuItem icon={<EyeOff />} disabled={busy} onClick={() => onHide(target)}>
+                            Ukryj tę firmę
+                        </MenuItem>
+                    </>
+                )}
+            </ActionMenu>
+        </>
+    );
+};
+
+/** Tabela i karty (komputer) albo wiersze telefonu dla jednej grupy reklamodawców. */
 const AdvertiserList = ({ rows, windowDays, busy, onHide }: {
     rows: AdvertiserRow[];
     windowDays: number;
     busy: boolean;
     onHide: (row: AdvertiserRow) => void;
-}) => (
-    <>
-        <AreaTable>
-            <colgroup>
-                <col />
-                <col style={{ width: COL.active }} />
-                <col style={{ width: COL.reach }} />
-                <col style={{ width: COL.act }} />
-            </colgroup>
-            <thead>
-                <tr>
-                    <Th>Firma</Th>
-                    <Th $num>Kampanie</Th>
-                    <Th $num>Zasięg</Th>
-                    <Th $num><HiddenLabel>Akcje</HiddenLabel></Th>
-                </tr>
-            </thead>
-            <tbody>
-                {rows.map(row => (
-                    <Row key={row.pageId}>
-                        <Td>
-                            <AdvertiserName row={row} windowDays={windowDays} />
-                        </Td>
-                        <Td $num>
-                            <NumLive $on={campaignsOf(row) > 0}>{campaignsOf(row)}</NumLive>
-                        </Td>
-                        <Td $num>
-                            {row.reach !== null
-                                ? formatExact(row.reach)
-                                : <NumQuiet>{formatExact(null)}</NumQuiet>}
-                        </Td>
-                        <Td $num>
-                            <Actions row={row} busy={busy} onHide={() => onHide(row)} />
-                        </Td>
-                    </Row>
-                ))}
-            </tbody>
-        </AreaTable>
+}) => {
+    const isDesktop = useBreakpoint('md');
+    if (!isDesktop) {
+        return <PhoneAdvertiserList rows={rows} windowDays={windowDays} busy={busy} onHide={onHide} />;
+    }
+    return (
+        <>
+            <AreaTable>
+                <colgroup>
+                    <col />
+                    <col style={{ width: COL.active }} />
+                    <col style={{ width: COL.reach }} />
+                    <col style={{ width: COL.act }} />
+                </colgroup>
+                <thead>
+                    <tr>
+                        <Th>Firma</Th>
+                        <Th $num>Kampanie</Th>
+                        <Th $num>Zasięg</Th>
+                        <Th $num><HiddenLabel>Akcje</HiddenLabel></Th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {rows.map(row => (
+                        <Row key={row.pageId}>
+                            <Td>
+                                <AdvertiserName row={row} windowDays={windowDays} />
+                            </Td>
+                            <Td $num>
+                                <NumLive $on={campaignsOf(row) > 0}>{campaignsOf(row)}</NumLive>
+                            </Td>
+                            <Td $num>
+                                {row.reach !== null
+                                    ? formatExact(row.reach)
+                                    : <NumQuiet>{formatExact(null)}</NumQuiet>}
+                            </Td>
+                            <Td $num>
+                                <Actions row={row} busy={busy} onHide={() => onHide(row)} />
+                            </Td>
+                        </Row>
+                    ))}
+                </tbody>
+            </AreaTable>
 
-        <CardList>
-            <CardHead aria-hidden="true">
-                <span>Firma</span>
-                <span>Kampanie</span>
-                <span>Zasięg</span>
-                <span />
-            </CardHead>
-            {rows.map(row => (
-                <AdvertiserCard key={row.pageId}>
-                    <AdvertiserName row={row} windowDays={windowDays} />
-                    <CardNums>
-                        <NumLive $on={campaignsOf(row) > 0}>{campaignsOf(row)}</NumLive>
-                        <span>{formatExact(row.reach)}</span>
-                    </CardNums>
-                    <CardActions>
-                        <Actions row={row} busy={busy} onHide={() => onHide(row)} />
-                    </CardActions>
-                </AdvertiserCard>
-            ))}
-        </CardList>
-    </>
-);
+            <CardList>
+                <CardHead aria-hidden="true">
+                    <span>Firma</span>
+                    <span>Kampanie</span>
+                    <span>Zasięg</span>
+                    <span />
+                </CardHead>
+                {rows.map(row => (
+                    <AdvertiserCard key={row.pageId}>
+                        <AdvertiserName row={row} windowDays={windowDays} />
+                        <CardNums>
+                            <NumLive $on={campaignsOf(row) > 0}>{campaignsOf(row)}</NumLive>
+                            <span>{formatExact(row.reach)}</span>
+                        </CardNums>
+                        <CardActions>
+                            <Actions row={row} busy={busy} onHide={() => onHide(row)} />
+                        </CardActions>
+                    </AdvertiserCard>
+                ))}
+            </CardList>
+        </>
+    );
+};
 
 const ProductsToggle = styled.button`
     display: inline-flex;
@@ -592,9 +997,37 @@ const ProductsToggle = styled.button`
 
     &:hover { color: ${st.text}; }
     svg { width: 15px; height: 15px; }
+
+    /* Na telefonie to wiersz na całą szerokość, wyrównany do lewej jak lista nad nim.
+       Wyśrodkowany przycisk łamał zdanie na dwie nierówne, wycentrowane linie. */
+    ${PHONE} {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        width: 100%;
+        min-height: 44px;
+        margin: 0;
+        padding: 12px 0;
+        border-top: 1px solid ${ui.line};
+        text-align: left;
+        color: ${ui.inkSoft};
+
+        svg { width: 18px; height: 18px; margin-top: 1px; color: ${ui.textMuted}; }
+    }
 `;
 
-const Results = ({ results, page, onPage }: { results: AreaResults; page: number; onPage: (p: number) => void }) => {
+const ProductsText = styled.span`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 14px;
+    line-height: 20px;
+
+    small { font-size: 13px; font-weight: 400; color: ${ui.textMuted}; }
+`;
+
+const Results =({ results, page, onPage }: { results: AreaResults; page: number; onPage: (p: number) => void }) => {
+    const isDesktop = useBreakpoint('md');
     const blockMut = useBlockAdvertiser();
     const hide = (row: AdvertiserRow) => blockMut.mutate({ pageId: row.pageId, pageName: row.companyName });
     const [showProducts, setShowProducts] = useState(false);
@@ -633,7 +1066,14 @@ const Results = ({ results, page, onPage }: { results: AreaResults; page: number
                         <>
                             <ProductsToggle type="button" aria-expanded={showProducts} onClick={() => setShowProducts(v => !v)}>
                                 {showProducts ? <ChevronDown /> : <ChevronRight />}
-                                Sklepy, producenci i hurtownie ({products.length}), to nie konkurencja studia
+                                {isDesktop ? (
+                                    <>Sklepy, producenci i hurtownie ({products.length}), to nie konkurencja studia</>
+                                ) : (
+                                    <ProductsText>
+                                        <span>Sklepy, producenci i hurtownie ({products.length})</span>
+                                        <small>To nie konkurencja studia</small>
+                                    </ProductsText>
+                                )}
                             </ProductsToggle>
                             {showProducts && (
                                 <AdvertiserList rows={products} windowDays={results.newWindowDays} busy={blockMut.isPending} onHide={hide} />
@@ -670,47 +1110,63 @@ const Results = ({ results, page, onPage }: { results: AreaResults; page: number
             )}
 
             {results.hiddenAdvertisers > 0 && (
-                <Notice $tone="info">
+                <AreaNotice tone="info">
                     Ukryto <strong>{results.hiddenAdvertisers}</strong>{' '}
                     {advertiserWord(results.hiddenAdvertisers)} — przez Ciebie lub administratora. Tych
                     ukrytych przez Ciebie przywrócisz w ustawieniach rejonu.
-                </Notice>
+                </AreaNotice>
             )}
             {notVerified && (
-                <Notice $tone="warn">
-                    <strong>Dostęp do reklam Meta czeka na weryfikację.</strong> Do tego czasu tabela
-                    będzie pusta.
-                </Notice>
+                <AreaNotice tone="warn" title="Dostęp do reklam Meta czeka na weryfikację.">
+                    Do tego czasu tabela będzie pusta.
+                </AreaNotice>
             )}
             {rateLimited && (
-                <Notice $tone="warn">
-                    <strong>Meta chwilowo wstrzymała pobieranie.</strong> Część fraz nie odświeżyła się teraz —
-                    dane mogą być niepełne. Spróbuj ponownie za chwilę.
-                </Notice>
+                <AreaNotice tone="warn" title="Meta chwilowo wstrzymała pobieranie.">
+                    Część fraz nie odświeżyła się teraz — dane mogą być niepełne. Spróbuj ponownie za chwilę.
+                </AreaNotice>
             )}
             {errored && !rateLimited && (
-                <Notice $tone="warn">
-                    <strong>Nie udało się sprawdzić części fraz.</strong> Tabela może być niepełna —
-                    spróbuj ponownie za chwilę.
-                </Notice>
+                <AreaNotice tone="warn" title="Nie udało się sprawdzić części fraz.">
+                    Tabela może być niepełna — spróbuj ponownie za chwilę.
+                </AreaNotice>
             )}
             {pending && !rateLimited && !errored && (
-                <Notice $tone="info">Część fraz jeszcze się sprawdza — odśwież za chwilę.</Notice>
+                <AreaNotice tone="info">Część fraz jeszcze się sprawdza — odśwież za chwilę.</AreaNotice>
             )}
-            {truncated.length > 0 && (
-                <Notice $tone="warn">
-                    <strong>Fraza zbyt ogólna:</strong> {truncated.join(', ')}. Reklam było więcej, niż zdążyliśmy
-                    przejrzeć — tabela może być niepełna.
-                </Notice>
+            {truncated.length > 0 && isDesktop && (
+                <AreaNotice tone="warn" title="Fraza zbyt ogólna:">
+                    {truncated.join(', ')}. Reklam było więcej, niż zdążyliśmy przejrzeć — tabela może być niepełna.
+                </AreaNotice>
+            )}
+            {/* Na telefonie tytuł stoi w osobnej linii, więc frazy idą do niego — inaczej
+                treść zaczynałaby się małą literą od „detailing samochodowy." */}
+            {truncated.length > 0 && !isDesktop && (
+                <AreaNotice
+                    tone="warn"
+                    title={`${truncated.length === 1 ? 'Fraza zbyt ogólna' : 'Frazy zbyt ogólne'}: ${truncated.join(', ')}`}
+                >
+                    Reklam było więcej, niż zdążyliśmy przejrzeć — tabela może być niepełna.
+                </AreaNotice>
             )}
         </div>
     );
 };
 
 export const AreaSection = () => {
+    const isDesktop = useBreakpoint('md');
     const settingsQuery = useAreaSettings();
     const [page, setPage] = useState(0);
     const [configOpen, setConfigOpen] = useState(false);
+    const cardRef = useRef<HTMLElement>(null);
+
+    // Na telefonie stronicowanie stoi pod dziesięcioma wysokimi wierszami. Bez
+    // przewinięcia następna strona ładuje się nad kciukiem i zaczyna się czytać
+    // od jej końca; na komputerze cała tabela mieści się w oknie.
+    const changePage = (next: number) => {
+        setPage(next);
+        if (!isDesktop) cardRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    };
 
     const settings = settingsQuery.data;
     const hasArea = (settings?.locations.length ?? 0) > 0;
@@ -724,7 +1180,7 @@ export const AreaSection = () => {
     useAutoAcknowledgeNovelty(hasNovelty);
 
     return (
-        <AreaCard>
+        <AreaCard ref={cardRef}>
             <HeadRow>
                 <CardTitle>Reklamodawcy w okolicy</CardTitle>
                 <HeadActions>
@@ -743,11 +1199,21 @@ export const AreaSection = () => {
                 <>
                     <AreaLine>
                         <MapPin />
-                        <span>
-                            <strong>{settings!.locations.join(', ')}</strong>
-                            {'\u2003'}
-                            {settings!.trackedPhraseCount} {phraseWord(settings!.trackedPhraseCount)} z katalogu
-                        </span>
+                        {isDesktop ? (
+                            <span>
+                                <strong>{settings!.locations.join(', ')}</strong>
+                                {'\u2003'}
+                                {settings!.trackedPhraseCount} {phraseWord(settings!.trackedPhraseCount)} z katalogu
+                            </span>
+                        ) : (
+                            <AreaText>
+                                <strong>{settings!.locations.map(unbreakable).join(', ')}</strong>
+                                <span>
+                                    <strong>{settings!.trackedPhraseCount}</strong>{' '}
+                                    {phraseWord(settings!.trackedPhraseCount)} z katalogu
+                                </span>
+                            </AreaText>
+                        )}
                     </AreaLine>
 
                     {resultsQuery.isLoading ? (
@@ -771,7 +1237,7 @@ export const AreaSection = () => {
                                     </span>
                                 </Tally>
                             )}
-                            <Results results={resultsQuery.data} page={page} onPage={setPage} />
+                            <Results results={resultsQuery.data} page={page} onPage={changePage} />
                         </>
                     ) : (
                         <CenterState>
@@ -788,9 +1254,15 @@ export const AreaSection = () => {
                     <CenterState>
                         <strong>Rejon nie jest jeszcze ustawiony</strong>
                         <span>Wskaż miejscowości, a pokażemy, kto reklamuje się na tym terenie.</span>
-                        <SharedButton $variant="primary" $size="sm" onClick={() => setConfigOpen(true)}>
-                            <MapPin size={15} /> Ustaw rejon
-                        </SharedButton>
+                        {isDesktop ? (
+                            <SharedButton $variant="primary" $size="sm" onClick={() => setConfigOpen(true)}>
+                                <MapPin size={15} /> Ustaw rejon
+                            </SharedButton>
+                        ) : (
+                            <Button variant="primary" onClick={() => setConfigOpen(true)}>
+                                <MapPin aria-hidden="true" /> Ustaw rejon
+                            </Button>
+                        )}
                     </CenterState>
                 </>
             )}

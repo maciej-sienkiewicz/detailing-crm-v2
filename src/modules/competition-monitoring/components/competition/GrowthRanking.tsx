@@ -5,6 +5,7 @@ import { pluralPl } from '@/common/utils/plural';
 import type { CompetitionMedian, CompetitionProfile } from '../../types';
 import { formatSignedCount, formatSignedPct, growthRanking, medianMarker } from '../../utils/competition';
 import { colorFor } from '../../utils/profileColors';
+import { PHONE } from '../../utils/phone';
 
 /**
  * Ranking przyrostu obserwujących w procentach zamiast linii skumulowanych w sztukach.
@@ -31,6 +32,19 @@ const Item = styled.li`
     align-items: center;
 
     @media (max-width: 520px) { grid-template-columns: minmax(90px, 120px) 1fr auto; gap: 8px; }
+
+    /*
+     * Nazwa, pasek i liczby w jednym rzędzie zostawiały nazwie 120 px i pełne uchwyty
+     * („@glosswerk_war…") ginęły. Na telefonie nazwa stoi nad paskiem na jego szerokość,
+     * a procent z liczbą osób zajmuje prawą kolumnę obu linii. Kolumna ma stałą
+     * szerokość: każdy wiersz to osobna siatka, a przy „auto" paski miały różne długości
+     * i kreska mediany stała w każdym wierszu gdzie indziej.
+     */
+    ${PHONE} {
+        grid-template-columns: minmax(0, 1fr) 92px;
+        grid-template-areas: 'who value' 'track value';
+        gap: 6px 14px;
+    }
 `;
 
 const Who = styled.span<{ $self?: boolean }>`
@@ -40,6 +54,8 @@ const Who = styled.span<{ $self?: boolean }>`
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+
+    ${PHONE} { grid-area: who; }
 `;
 
 const Track = styled.span`
@@ -47,6 +63,8 @@ const Track = styled.span`
     height: 14px;
     border-radius: 999px;
     background: ${ui.lineFaint};
+
+    ${PHONE} { grid-area: track; }
 `;
 
 const Bar = styled.span<{ $width: number; $color: string; $negative: boolean }>`
@@ -78,6 +96,8 @@ const Value = styled.span`
     color: ${ui.ink};
 
     small { font-size: 12px; font-weight: 500; color: ${ui.textMuted}; white-space: nowrap; }
+
+    ${PHONE} { grid-area: value; align-self: center; }
 `;
 
 const Foot = styled.p`

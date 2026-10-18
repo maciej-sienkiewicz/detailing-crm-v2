@@ -140,6 +140,9 @@ export function ActionMenu({ anchor, onClose, label, children }: ActionMenuProps
             ref={panelRef}
             role="menu"
             aria-label={label}
+            // Systemowe „Wstecz" w aplikacji na Androidzie zamyka najpierw to menu (Escape
+            // niżej), a dopiero kolejne cofa ekran - patrz installNativeShell.ts.
+            data-dismiss-on-back=""
             style={{ top: anchor.bottom + 4, right: 8, visibility: 'hidden' }}
             onClick={e => {
                 // Kliknięcie w pozycję zamyka menu; akcja pozycji wykonuje się w jej onClick.

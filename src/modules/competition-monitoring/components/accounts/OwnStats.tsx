@@ -1,8 +1,11 @@
+import { useState, type PointerEvent } from 'react';
 import styled from 'styled-components';
-import { Bookmark, Eye } from 'lucide-react';
+import { Bookmark, ChevronDown, Eye } from 'lucide-react';
 import { SectionTitle, StatusPill, ui } from '@/common/components/ui';
+import { useBreakpoint } from '@/common/hooks';
 import { pluralPl } from '@/common/utils/plural';
 import type { MyInstagram, OwnPost } from '../../accountsTypes';
+import { PHONE } from '../../utils/phone';
 import { formatExact } from '../MetricBits';
 import {
     CONTACT_BUTTONS,
@@ -10,9 +13,10 @@ import {
     formatHour,
     formatSigned,
     netFollowers,
+    periodCaption,
     topHours,
 } from './accountsLogic';
-import { Chips, Kpi, KpiGrid, KpiLabel, KpiSub, KpiValue, Muted, Section } from './accountsStyles';
+import { Chips, Kpi, KpiGrid, KpiLabel, KpiSub, KpiValue, Muted, PeriodCaption, Section, ShowMore } from './accountsStyles';
 import { ChangeLine } from './ChangeLine';
 
 /**
@@ -36,14 +40,14 @@ const Bars = styled.div`
 `;
 
 /** Jedna seria, jeden odcień: najlepsze godziny ciemniejsze, opisane też słownie nad wykresem. */
-const Bar = styled.span<{ $height: number; $top: boolean }>`
+const Bar = styled.span<{ $height: number; $top: boolean; $picked?: boolean }>`
     display: block;
     height: ${p => Math.max(p.$height, 2)}%;
     border-radius: 4px 4px 0 0;
-    background: ${p => p.$top ? ui.brandStrong : ui.brandLineSoft};
+    background: ${p => p.$picked ? ui.brandDeep : p.$top ? ui.brandStrong : ui.brandLineSoft};
     transition: background 120ms ease;
 
-    &:hover { background: ${p => p.$top ? ui.brandInk : ui.brandLine}; }
+    &:hover { background: ${p => p.$picked ? ui.brandDeep : p.$top ? ui.brandInk : ui.brandLine}; }
 `;
 
 const HourAxis = styled.div`
@@ -52,29 +56,104 @@ const HourAxis = styled.div`
     font-size: 11px;
     color: ${ui.textMuted};
     font-variant-numeric: tabular-nums;
+
+    ${PHONE} { font-size: 12px; }
 `;
 
+/**
+ * Telefon: liczba wybranej godziny nad wykresem. Na komputerze podaje ją dymek
+ * `title` po najechaniu - dotyk dymków nie ma, więc słupek wybiera się palcem.
+ * Wiersz ma stałą wysokość, żeby wykres nie skakał przy pierwszym dotknięciu.
+ */
+const HourReadout = styled.p`
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 20px;
+    margin: 0;
+    font-size: 13px;
+    color: ${ui.ink};
+    font-variant-numeric: tabular-nums;
+
+    strong { font-weight: 650; }
+    span { font-size: 12px; color: ${ui.textMuted}; }
+`;
+
+/** Na telefonie cały pas wykresu reaguje na palec, nie tylko słupek szerokości 10 px. */
+const TouchBars = styled(Bars)`
+    cursor: pointer;
+    touch-action: pan-y;
+    -webkit-tap-highlight-color: transparent;
+`;
+
+const onlineLabel = (hour: number, value: number) =>
+    `${formatHour(hour)}: ${formatExact(value)} ${pluralPl(value, 'osoba', 'osoby', 'osób')} online`;
+
 const BestHours = ({ hours }: { hours: number[] }) => {
+    const isDesktop = useBreakpoint('md');
     const best = topHours(hours);
     const max = Math.max(...hours, 1);
+    // Na start najlepsza godzina: odczyt od razu mówi coś użytecznego, zanim ktoś dotknie.
+    const [picked, setPicked] = useState<number | null>(null);
+    const peak = hours.indexOf(Math.max(...hours));
+    const shownHour = picked ?? (peak >= 0 ? peak : 0);
+
+    const pick = (event: PointerEvent<HTMLDivElement>) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        const index = Math.floor(((event.clientX - rect.left) / rect.width) * hours.length);
+        setPicked(Math.min(hours.length - 1, Math.max(0, index)));
+    };
+
+    const title = (
+        <SectionTitle as="h3" count={best.length ? `najwięcej o ${best.map(formatHour).join(', ')}` : undefined}>
+            Kiedy Twoi obserwujący są online
+        </SectionTitle>
+    );
+    const axis = (
+        <HourAxis aria-hidden="true">
+            {[0, 3, 6, 9, 12, 15, 18, 21].map(h => <span key={h}>{h}</span>)}
+        </HourAxis>
+    );
+    const summary = `Obserwujący online wg godziny. Najwięcej o ${best.map(formatHour).join(', ')}.`;
+
+    if (!isDesktop) {
+        return (
+            <Section>
+                {title}
+                <HourReadout aria-live="polite">
+                    <strong>{onlineLabel(shownHour, hours[shownHour] ?? 0)}</strong>
+                    {picked === null && <span>dotknij słupka</span>}
+                </HourReadout>
+                <TouchBars role="img" aria-label={summary} onPointerDown={pick}>
+                    {hours.map((value, hour) => (
+                        <Bar
+                            key={hour}
+                            $height={(value / max) * 100}
+                            $top={best.includes(hour)}
+                            $picked={picked === hour}
+                        />
+                    ))}
+                </TouchBars>
+                {axis}
+            </Section>
+        );
+    }
+
     return (
         <Section>
-            <SectionTitle as="h3" count={best.length ? `najwięcej o ${best.map(formatHour).join(', ')}` : undefined}>
-                Kiedy Twoi obserwujący są online
-            </SectionTitle>
-            <Bars role="img" aria-label={`Obserwujący online wg godziny. Najwięcej o ${best.map(formatHour).join(', ')}.`}>
+            {title}
+            <Bars role="img" aria-label={summary}>
                 {hours.map((value, hour) => (
                     <Bar
                         key={hour}
                         $height={(value / max) * 100}
                         $top={best.includes(hour)}
-                        title={`${formatHour(hour)}: ${formatExact(value)} ${pluralPl(value, 'osoba', 'osoby', 'osób')} online`}
+                        title={onlineLabel(hour, value)}
                     />
                 ))}
             </Bars>
-            <HourAxis aria-hidden="true">
-                {[0, 3, 6, 9, 12, 15, 18, 21].map(h => <span key={h}>{h}</span>)}
-            </HourAxis>
+            {axis}
         </Section>
     );
 };
@@ -182,42 +261,58 @@ const PostSub = styled.span`
 
 const postScore = (post: OwnPost) => (post.saved ?? 0) + (post.shares ?? 0);
 
-const TopPosts = ({ posts }: { posts: OwnPost[] }) => (
-    <Section>
-        <SectionTitle as="h3" count="zapisy i udostępnienia">Co zadziałało</SectionTitle>
-        <PostGrid>
-            {posts.map(post => (
-                <PostTile
-                    key={post.mediaId}
-                    href={post.permalink ?? undefined}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label={`Post: ${postScore(post)} zapisów i udostępnień`}
-                >
-                    <Thumb>
-                        {post.thumbnailUrl && (
-                            <img
-                                src={post.thumbnailUrl}
-                                alt={post.caption?.slice(0, 120) ?? 'Post na Instagramie'}
-                                loading="lazy"
-                            />
-                        )}
-                    </Thumb>
-                    <PostInfo>
-                        <PostHeadline><Bookmark aria-hidden="true" />{formatExact(postScore(post))}</PostHeadline>
-                        {post.reach !== null && (
-                            <PostSub><Eye aria-hidden="true" />zasięg {formatExact(post.reach)}</PostSub>
-                        )}
-                    </PostInfo>
-                </PostTile>
-            ))}
-        </PostGrid>
-    </Section>
-);
+/** Telefon: dwa rzędy kafli po dwa; dalsze posty za „Pokaż", każdy rząd to pół ekranu. */
+const PHONE_POSTS = 4;
+
+const TopPosts = ({ posts }: { posts: OwnPost[] }) => {
+    const isDesktop = useBreakpoint('md');
+    const [expanded, setExpanded] = useState(false);
+    const collapsible = !isDesktop && posts.length > PHONE_POSTS;
+    const visible = collapsible && !expanded ? posts.slice(0, PHONE_POSTS) : posts;
+    return (
+        <Section>
+            <SectionTitle as="h3" count="zapisy i udostępnienia">Co zadziałało</SectionTitle>
+            <PostGrid>
+                {visible.map(post => (
+                    <PostTile
+                        key={post.mediaId}
+                        href={post.permalink ?? undefined}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label={`Post: ${postScore(post)} zapisów i udostępnień`}
+                    >
+                        <Thumb>
+                            {post.thumbnailUrl && (
+                                <img
+                                    src={post.thumbnailUrl}
+                                    alt={post.caption?.slice(0, 120) ?? 'Post na Instagramie'}
+                                    loading="lazy"
+                                />
+                            )}
+                        </Thumb>
+                        <PostInfo>
+                            <PostHeadline><Bookmark aria-hidden="true" />{formatExact(postScore(post))}</PostHeadline>
+                            {post.reach !== null && (
+                                <PostSub><Eye aria-hidden="true" />zasięg {formatExact(post.reach)}</PostSub>
+                            )}
+                        </PostInfo>
+                    </PostTile>
+                ))}
+            </PostGrid>
+            {collapsible && (
+                <ShowMore type="button" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>
+                    {expanded ? 'Zwiń' : `Pokaż wszystkie posty (${posts.length})`}
+                    <ChevronDown aria-hidden="true" />
+                </ShowMore>
+            )}
+        </Section>
+    );
+};
 
 // ─── Całość ───────────────────────────────────────────────────────────────────
 
 export const OwnStats = ({ mine }: { mine: MyInstagram }) => {
+    const isDesktop = useBreakpoint('md');
     const last = mine.last30;
     const previous = mine.previous30;
 
@@ -230,37 +325,47 @@ export const OwnStats = ({ mine }: { mine: MyInstagram }) => {
     const taps = contactTotal(last);
     const tapButtons = CONTACT_BUTTONS.filter(b => (last.contactTaps[b.key] ?? 0) > 0);
 
+    const kpis = (
+        <KpiGrid>
+            <Kpi>
+                <KpiLabel>Zasięg</KpiLabel>
+                <KpiValue>{formatExact(last.reach)}</KpiValue>
+                <ChangeLine current={last.reach} previous={previous?.reach ?? null} />
+            </Kpi>
+            <Kpi>
+                <KpiLabel>Wyświetlenia</KpiLabel>
+                <KpiValue>{formatExact(last.views)}</KpiValue>
+                <ChangeLine current={last.views} previous={previous?.views ?? null} />
+            </Kpi>
+            <Kpi>
+                <KpiLabel>Obserwujący netto</KpiLabel>
+                <KpiValue>{formatSigned(net)}</KpiValue>
+                <KpiSub>
+                    {netPrevious !== null ? `wcześniej ${formatSigned(netPrevious)}` : `obserwuje ${formatExact(mine.followers)}`}
+                </KpiSub>
+            </Kpi>
+            <Kpi>
+                <KpiLabel>Kliknięcia kontaktu</KpiLabel>
+                <KpiValue>{formatExact(taps)}</KpiValue>
+                <ChangeLine current={taps} previous={contactTotal(previous)} />
+            </Kpi>
+        </KpiGrid>
+    );
+
     return (
         <>
-            <KpiGrid>
-                <Kpi>
-                    <KpiLabel>Zasięg</KpiLabel>
-                    <KpiValue>{formatExact(last.reach)}</KpiValue>
-                    <ChangeLine current={last.reach} previous={previous?.reach ?? null} />
-                </Kpi>
-                <Kpi>
-                    <KpiLabel>Wyświetlenia</KpiLabel>
-                    <KpiValue>{formatExact(last.views)}</KpiValue>
-                    <ChangeLine current={last.views} previous={previous?.views ?? null} />
-                </Kpi>
-                <Kpi>
-                    <KpiLabel>Obserwujący netto</KpiLabel>
-                    <KpiValue>{formatSigned(net)}</KpiValue>
-                    <KpiSub>
-                        {netPrevious !== null ? `wcześniej ${formatSigned(netPrevious)}` : `obserwuje ${formatExact(mine.followers)}`}
-                    </KpiSub>
-                </Kpi>
-                <Kpi>
-                    <KpiLabel>Kliknięcia kontaktu</KpiLabel>
-                    <KpiValue>{formatExact(taps)}</KpiValue>
-                    <ChangeLine current={taps} previous={contactTotal(previous)} />
-                </Kpi>
-            </KpiGrid>
+            {isDesktop ? kpis : (
+                <Section>
+                    <PeriodCaption>{periodCaption(previous !== null)}</PeriodCaption>
+                    {kpis}
+                </Section>
+            )}
 
             {tapButtons.length > 0 && (
                 <Chips aria-label="Kliknięcia przycisków na profilu">
+                    {/* Telefon: mniejsze plakietki - pięć przycisków w dwóch rzędach zamiast trzech. */}
                     {tapButtons.map(button => (
-                        <StatusPill key={button.key} $tone="info" $size="md">
+                        <StatusPill key={button.key} $tone="info" $size={isDesktop ? 'md' : 'sm'}>
                             {button.label} {formatExact(last.contactTaps[button.key] ?? 0)}
                         </StatusPill>
                     ))}

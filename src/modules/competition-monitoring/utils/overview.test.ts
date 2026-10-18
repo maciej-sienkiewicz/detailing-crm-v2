@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { contactTapsTotal, isActionableTarget, lastPostLabel, prefillFromTodo } from './overview';
+import { contactTapsTotal, glueOrphans, isActionableTarget, lastPostLabel, prefillFromTodo } from './overview';
 
 describe('Przegląd', () => {
     it('nieznany cel przycisku nie daje przycisku', () => {
@@ -20,6 +20,16 @@ describe('Przegląd', () => {
         expect(lastPostLabel(1)).toBe('ostatni wczoraj');
         expect(lastPostLabel(6)).toBe('ostatni 6 dni temu');
         expect(lastPostLabel(null)).toBe('jeszcze bez postów');
+    });
+
+    it('jednoliterowe słowo nie zostaje na końcu linii', () => {
+        expect(glueOrphans('Posty w październiku')).toBe('Posty w\u00a0październiku');
+        expect(glueOrphans('zasięg i w domu')).toBe('zasięg i\u00a0w\u00a0domu');
+        expect(glueOrphans('Kliknięcia „Zadzwoń” i „Trasa”')).toBe('Kliknięcia „Zadzwoń” i\u00a0„Trasa”');
+        expect(glueOrphans('z Instagrama')).toBe('z\u00a0Instagrama');
+        expect(glueOrphans('plan 3 posty w tygodniu')).toBe('plan 3\u00a0posty w\u00a0tygodniu');
+        // Dłuższe słowa zostają, jak były.
+        expect(glueOrphans('Telefony od klientów')).toBe('Telefony od klientów');
     });
 });
 

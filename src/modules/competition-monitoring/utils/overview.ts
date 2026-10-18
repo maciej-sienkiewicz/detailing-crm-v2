@@ -33,6 +33,13 @@ export const lastPostLabel = (daysSinceLastPost: number | null | undefined): str
 };
 
 /**
+ * Jednoliterowe „w", „z", „i" i liczby sklejone z następnym słowem twardą spacją.
+ * W wąskim kaflu telefonu łamanie zostawiało je na końcu linii („Posty w /
+ * październiku", „plan 3 / posty") - w polskim składzie to błąd, który widać od razu.
+ */
+export const glueOrphans = (text: string): string => text.replace(/(?<=(?:^|\s)(?:\p{L}|\d+)) /gu, '\u00a0');
+
+/**
  * Generator otwierany z „Do zrobienia" ma od razu temat. Bez niego przycisk „Generuj"
  * był nieaktywny, a właściciel, który kliknął „Przygotuj post: Volvo XC60", musiał
  * wpisać to samo jeszcze raz. Temat to część tytułu po dwukropku („Volvo XC60").

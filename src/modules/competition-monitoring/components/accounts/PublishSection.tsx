@@ -5,6 +5,7 @@ import { buttonStyles, Notice, SectionTitle, ui, type ButtonStyleProps } from '@
 import { pluralPl } from '@/common/utils/plural';
 import type { InstagramConnection, PublishResult, PublishVisit } from '../../accountsTypes';
 import { formatDate } from '../MetricBits';
+import { PHONE } from '../../utils/phone';
 import { captionProblem, countHashtags, MAX_CAPTION, MAX_HASHTAGS, MAX_PUBLISH_PHOTOS } from './publishLogic';
 
 /**
@@ -30,6 +31,14 @@ const Head = styled.div`
     flex-wrap: wrap;
 
     > svg { width: 18px; height: 18px; color: ${ui.brandInk}; }
+
+    /* Ikona przy tytule, nie w osobnej linii nad nim: długi handle zawijał tytuł pod ikonę. */
+    ${PHONE} {
+        flex-wrap: nowrap;
+        align-items: flex-start;
+
+        > svg { flex-shrink: 0; margin-top: 1px; }
+    }
 `;
 
 const VisitGroup = styled.div`
@@ -103,6 +112,8 @@ const Caption = styled.textarea`
 
     &:focus { outline: none; border-color: ${ui.brand}; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12); }
     &:disabled { background: ${ui.surfaceSoft}; }
+
+    ${PHONE} { font-size: 14px; }
 `;
 
 const Limits = styled.div<{ $over: boolean }>`
@@ -126,6 +137,19 @@ const LinkButton = styled(Link)<ButtonStyleProps>`
     ${buttonStyles}
     align-self: flex-start;
     text-decoration: none;
+
+    /* Pigułka z jedną linią tekstu wychodziła przy 360 px poza okno - na telefonie
+       zajmuje całą szerokość i wolno jej się złamać. */
+    ${PHONE} {
+        align-self: stretch;
+        justify-content: flex-start;
+        height: auto;
+        min-height: 44px;
+        padding: 10px 18px;
+        line-height: 1.35;
+        white-space: normal;
+        text-align: left;
+    }
 `;
 
 interface Props {

@@ -7,8 +7,11 @@ import {
     growthRanking,
     growthSinceLabel,
     medianMarker,
+    monthColumns,
+    monthLevel,
     splitProfiles,
     versusMedian,
+    weekRangeLabel,
 } from './competition';
 import type { CompetitionProfile } from '../types';
 
@@ -83,5 +86,42 @@ describe('podział i porównanie z medianą', () => {
         expect(growthSinceLabel('2026-09-27', '2026-07-18')).toMatch(/^od 27/);
         expect(growthSinceLabel('2026-07-18', '2026-07-18')).toBeNull();
         expect(growthSinceLabel(null, '2026-07-18')).toBeNull();
+    });
+});
+
+describe('kalendarz publikacji na telefonie', () => {
+    it('podpis tygodnia od poniedziałku do niedzieli', () => {
+        expect(weekRangeLabel('2026-10-05')).toBe('5–11 paź');
+        expect(weekRangeLabel('2026-09-28')).toBe('28 wrz–4 paź');
+        expect(weekRangeLabel('2025-12-29')).toBe('29 gru–4 sty');
+    });
+
+    it('tydzień należy do miesiąca swojego czwartku', () => {
+        const weeks = ['2026-08-24', '2026-08-31', '2026-09-07', '2026-09-28', '2026-10-05'];
+        expect(monthColumns(weeks)).toEqual([
+            { month: '2026-08-01', weekIndexes: [0] },
+            { month: '2026-09-01', weekIndexes: [1, 2] },
+            { month: '2026-10-01', weekIndexes: [3, 4] },
+        ]);
+    });
+
+    it('rok tygodni to co najwyżej 13 miesięcy, każdy tydzień dokładnie raz', () => {
+        const weeks = Array.from({ length: 53 }, (_, i) => {
+            const d = new Date('2025-10-20T00:00:00');
+            d.setDate(d.getDate() + i * 7);
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        });
+        const columns = monthColumns(weeks);
+        expect(columns.length).toBeLessThanOrEqual(13);
+        expect(columns.flatMap(c => c.weekIndexes)).toEqual(weeks.map((_, i) => i));
+    });
+
+    it('stopień miesiąca to średnia na tydzień w skali tygodnia', () => {
+        expect(monthLevel(0, 4)).toBe(0);
+        expect(monthLevel(1, 4)).toBe(1);
+        expect(monthLevel(4, 4)).toBe(1);
+        expect(monthLevel(8, 4)).toBe(2);
+        expect(monthLevel(12, 4)).toBe(3);
+        expect(monthLevel(3, 0)).toBe(0);
     });
 });

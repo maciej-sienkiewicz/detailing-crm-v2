@@ -9,9 +9,13 @@ import { useEffect, useState } from 'react';
  * footer) visibly detaches and floats over the middle of the screen.
  * `visualViewport` is the only reliable signal for that on iOS.
  *
- * Android Chrome is handled declaratively by `interactive-widget=resizes-content`
- * in the viewport meta, but it reports through the same API, so one hook covers
- * both.
+ * Android jest odwrotnie: Chrome z `interactive-widget=resizes-content` i aplikacja
+ * ze sklepu (MainActivity odsuwa WebView od klawiatury) skracają CAŁE okno -
+ * `innerHeight` spada razem z `visualViewport.height` (zmierzone w aplikacji:
+ * 866 → 554 i 554). Porównanie tych dwóch liczb nie widziało więc klawiatury
+ * nigdy i dolny pasek nawigacji wjeżdżał nad nią, zasłaniając pisane pole.
+ * Dlatego mierzymy od najwyższego okna widzianego przy tej szerokości: spadek
+ * o kawał ekranu to klawiatura, niezależnie od tego, która wysokość zmalała.
  *
  * Returns `true` only while a virtual keyboard is actually up: a plain address
  * bar collapse moves the viewport by far less than the threshold.
@@ -26,17 +30,29 @@ export const useVirtualKeyboard = (): boolean => {
         // A keyboard eats a large slice of the screen; browser chrome does not.
         const THRESHOLD_RATIO = 0.2;
 
+        // Obrót ekranu zmienia szerokość i wysokość naraz - zaczynamy wtedy pomiar od nowa,
+        // inaczej poziome okno (niższe od pionowego) wyglądałoby jak otwarta klawiatura.
+        let width = window.innerWidth;
+        let fullHeight = window.innerHeight;
+
         const sync = () => {
-            const hidden = window.innerHeight - vv.height;
-            setIsOpen(hidden > window.innerHeight * THRESHOLD_RATIO);
+            if (window.innerWidth !== width) {
+                width = window.innerWidth;
+                fullHeight = window.innerHeight;
+            }
+            fullHeight = Math.max(fullHeight, window.innerHeight);
+            const visible = Math.min(window.innerHeight, vv.height);
+            setIsOpen(fullHeight - visible > fullHeight * THRESHOLD_RATIO);
         };
 
         sync();
         vv.addEventListener('resize', sync);
         vv.addEventListener('scroll', sync);
+        window.addEventListener('resize', sync);
         return () => {
             vv.removeEventListener('resize', sync);
             vv.removeEventListener('scroll', sync);
+            window.removeEventListener('resize', sync);
         };
     }, []);
 

@@ -1,7 +1,9 @@
 import React from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { ui } from '@/common/components/ui';
 import type { MetricTriple } from '../types';
+import { PHONE } from '../utils/phone';
 
 /**
  * Współdzielone klocki UI modułu. Zasada: żadna liczba bez kontekstu,
@@ -81,6 +83,12 @@ export const Card = styled.section`
         padding: 14px 14px;
         border-radius: ${st.radiusSm};
     }
+
+    /* Na telefonie karta stoi między panelami z promieniem 16-20 px; 8 px czytało
+       się jak inny, tańszy materiał. Reguła wyżej zostaje dla 768 px (desktop). */
+    ${PHONE} {
+        border-radius: ${ui.radiusPanel};
+    }
 `;
 
 export const CardTitle = styled.h2`
@@ -103,6 +111,11 @@ export const CardHint = styled.p<{ $hideOnMobile?: boolean }>`
        poniżej md. */
     @media (max-width: ${p => p.theme.breakpoints.md}) {
         ${p => p.$hideOnMobile && 'display: none;'}
+    }
+
+    /* #94A3B8 na bieli to 2,6:1 - na telefonie, w słońcu przy aucie, nie do przeczytania. */
+    ${PHONE} {
+        color: ${ui.textMuted};
     }
 `;
 
@@ -212,6 +225,11 @@ export const CenterState = styled.div`
 
     strong { color: ${st.text}; font-size: ${st.fontLg}; }
     span { color: ${st.textMuted}; font-size: ${st.fontSm}; max-width: 440px; line-height: 1.6; }
+
+    /* Ten sam powód co przy CardHint: podpowiedź pustego stanu ma się dać przeczytać. */
+    ${PHONE} {
+        span { color: ${ui.textMuted}; }
+    }
 `;
 
 export const Spinner = styled.div`

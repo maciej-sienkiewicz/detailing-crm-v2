@@ -10,11 +10,13 @@ import {
     ModalCloseButton,
     ModalContent,
 } from '@/common/components/ModalKit';
+import { ui } from '@/common/components/ui';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { pluralPl } from '@/common/utils/plural';
 import { AD_PLATFORM_LABELS, type AdDetail, type AdReachBucket } from '../types';
 import { useAdDetail } from '../hooks/useAds';
 import { CenterState, Spinner, formatExact } from './MetricBits';
+import { PHONE } from '../utils/phone';
 
 /**
  * Szczegóły kampanii. Okno na całą aplikację, nie panel boczny - piramida wieku
@@ -45,6 +47,33 @@ const GENDER_LABELS: Record<string, string> = {
  * backend sprowadza je do jednej i to ją tu tłumaczymy. Nieznany typ zostaje sobą -
  * surowa nazwa jest uczciwsza niż zgadnięta.
  */
+/**
+ * Etykieta pola na telefonie: 13 px zwykłym pismem zamiast 10-11 px wersalikami.
+ * Wersaliki w szarości na ekranie 360 px czyta się jak szum, a nie jak podpis.
+ */
+const phoneLabel = `
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-transform: none;
+    color: ${ui.textSecondary};
+`;
+
+/** Cel dotykowy 44 × 44 bez powiększania tego, co widać. */
+const phoneHitArea = `
+    position: relative;
+
+    &::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: max(100%, 44px);
+        height: max(100%, 44px);
+        transform: translate(-50%, -50%);
+    }
+`;
+
 const LOCATION_TYPE_LABELS: Record<string, string> = {
     country: 'kraj',
     region: 'region',
@@ -76,6 +105,13 @@ const Summary = styled.div`
        bo ściśnięta data łamie się w środku i przestaje być datą. */
     @media (max-width: 560px) {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* Kolorowy pasek z lewej to na telefonie ozdoba bez znaczenia - panele modułu go nie mają. */
+    ${PHONE} {
+        border-left-width: 1px;
+        border-left-color: ${st.border};
+        border-radius: ${ui.radiusPanel};
     }
 `;
 
@@ -115,6 +151,11 @@ const Cell = styled.div<{ $big?: boolean }>`
         border-right: none;
         border-bottom: 1px solid ${st.border};
         &:last-child { border-bottom: none; }
+    }
+
+    ${PHONE} {
+        .k { ${phoneLabel} }
+        .u { font-size: 13px; color: ${ui.textMuted}; }
     }
 `;
 
@@ -189,6 +230,46 @@ const Panel = styled.section<{ $quiet?: boolean }>`
         /* Bez tego „ustawienia reklamodawcy" łamie się na dwie linijki i rozpycha nagłówek. */
         white-space: nowrap;
     }
+
+    /*
+     * Na 360 px „Oferta" + dopisek bez łamania + „Ukryj" potrzebowały ~370 px w 300 px
+     * okna: okno przewijało się w bok, a przełącznik wypadał poza krawędź. Na telefonie
+     * tytuł i przełącznik dzielą pierwszy wiersz, a dopisek (albo legenda) schodzi pod
+     * spód na pełną szerokość.
+     */
+    ${PHONE} {
+        border-radius: ${ui.radiusPanel};
+
+        h4 {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            column-gap: 10px;
+            row-gap: 2px;
+            font-size: 15px;
+            font-weight: 700;
+            line-height: 1.35;
+            letter-spacing: normal;
+            text-transform: none;
+            color: ${ui.ink};
+            /* „Zasięg według wieku / i płci" zamiast sierotki „płci" w drugiej linijce. */
+            text-wrap: balance;
+        }
+
+        h4 > button { grid-column: 2; grid-row: 1; }
+
+        h4 > em, h4 > span {
+            grid-column: 1 / -1;
+            grid-row: 2;
+            margin-left: 0;
+        }
+
+        h4 em {
+            font-size: 13px;
+            font-weight: 400;
+            color: ${ui.textMuted};
+            white-space: normal;
+        }
+    }
 `;
 
 /**
@@ -234,6 +315,13 @@ const Rows = styled.dl`
         dt { padding-top: 0; }
         dd + dt { margin-top: 10px; }
     }
+
+    ${PHONE} {
+        gap: 6px;
+
+        dt { ${phoneLabel} }
+        dd + dt { margin-top: 12px; }
+    }
 `;
 
 /**
@@ -272,6 +360,14 @@ const Chip = styled.span<{ $tone?: 'plain' | 'excluded' | 'active' | 'off' }>`
         font-weight: 500;
         color: ${st.textMuted};
         white-space: nowrap;
+    }
+
+    ${PHONE} {
+        padding: 4px 11px;
+        font-size: 13px;
+        ${p => p.$tone === 'off' && `color: ${ui.textMuted};`}
+
+        u { font-size: 12px; color: ${ui.textMuted}; }
     }
 `;
 
@@ -327,6 +423,11 @@ const MoreButton = styled.button`
     cursor: pointer;
 
     &:hover { text-decoration: underline; }
+
+    ${PHONE} {
+        font-size: 13px;
+        ${phoneHitArea}
+    }
 `;
 
 /**
@@ -369,6 +470,19 @@ const LinkCard = styled.div`
         line-height: 1.4;
         overflow-wrap: anywhere;
     }
+
+    ${PHONE} {
+        border-radius: ${ui.radiusRow};
+
+        .domain {
+            font-size: 12px;
+            letter-spacing: normal;
+            text-transform: none;
+            color: ${ui.textMuted};
+        }
+
+        .desc { font-size: 13px; }
+    }
 `;
 
 /** Wyjaśnienie, czego w podglądzie nie ma i dlaczego — zaraz nad przyciskiem, który to dopełnia. */
@@ -379,6 +493,11 @@ const Missing = styled.p`
     font-size: 11.5px;
     line-height: 1.5;
     color: ${st.textMuted};
+
+    ${PHONE} {
+        font-size: 13px;
+        color: ${ui.textMuted};
+    }
 `;
 
 const Legend = styled.span`
@@ -394,6 +513,8 @@ const Legend = styled.span`
 
     s { text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
     i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+
+    ${PHONE} { font-size: 13px; }
 `;
 
 const Pyramid = styled.div`
@@ -440,6 +561,8 @@ const Num = styled.span<{ $left?: boolean }>`
     font-variant-numeric: tabular-nums;
     min-width: 42px;
     text-align: ${p => (p.$left ? 'right' : 'left')};
+
+    ${PHONE} { font-size: 12px; }
 `;
 
 const Gutter = styled.div`
@@ -448,6 +571,11 @@ const Gutter = styled.div`
 
     b { display: block; font-size: ${st.fontXs}; font-weight: 700; color: ${st.text}; }
     span { display: block; margin-top: 2px; font-size: 10px; color: ${st.textMuted}; font-variant-numeric: tabular-nums; }
+
+    ${PHONE} {
+        b { font-size: 13px; }
+        span { font-size: 12px; color: ${ui.textMuted}; }
+    }
 `;
 
 const PyramidFoot = styled.div`
@@ -459,6 +587,12 @@ const PyramidFoot = styled.div`
     font-variant-numeric: tabular-nums;
 
     b { color: ${st.textSecondary}; }
+
+    ${PHONE} {
+        font-size: 13px;
+        line-height: 1.45;
+        color: ${ui.textMuted};
+    }
 `;
 
 /**
@@ -503,6 +637,16 @@ const PanelToggle = styled.button`
     &:hover { border-color: ${st.accentBlue}; color: ${st.accentBlue}; }
 
     svg { width: 12px; height: 12px; }
+
+    ${PHONE} {
+        padding: 5px 11px;
+        font-size: 13px;
+        ${phoneHitArea}
+
+        /* Po dotknięciu telefon zostawia :hover na przycisku - niebieska obwódka
+           wyglądała jak stan „włączone", którego tu nie ma. */
+        &:hover { border-color: ${st.border}; color: ${st.textSecondary}; }
+    }
 `;
 
 const HeaderActions = styled.div`
@@ -541,6 +685,35 @@ const HeaderSnapshotLink = styled.a`
         padding: 7px 9px;
         span { display: none; }
     }
+
+    /* Na telefonie koło jak „Zamknij" obok - dwa różne kształty przycisków w jednym rogu
+       wyglądały na przypadek - i cel dotykowy 44 px. */
+    ${PHONE} {
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        border-radius: 50%;
+        ${phoneHitArea}
+    }
+`;
+
+const CloseButton = styled(ModalCloseButton)`
+    ${PHONE} { ${phoneHitArea} }
+`;
+
+/**
+ * Nagłówek okna stoi w miejscu, gdy treść się przewija. Tytuł kampanii bywa na
+ * cztery linijki i na telefonie zajmował wtedy piątą część ekranu przez cały czas
+ * czytania - a pełny tytuł i tak stoi zaraz niżej, w pasku odnośnika oferty.
+ */
+const Title = styled(ModalTitle)`
+    ${PHONE} {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
 `;
 
 const formatDay = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('pl-PL');
@@ -565,7 +738,7 @@ export const AdDetailModal: React.FC<Props> = ({ adId, onClose }) => {
         <ModalShell isOpen onClose={onClose} size="xl">
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>{data?.title ?? 'Kampania reklamowa'}</ModalTitle>
+                    <Title>{data?.title ?? 'Kampania reklamowa'}</Title>
                     <ModalSubtitle>
                         {data ? `@${data.username}` : 'Wczytuję szczegóły…'}
                     </ModalSubtitle>
@@ -582,9 +755,9 @@ export const AdDetailModal: React.FC<Props> = ({ adId, onClose }) => {
                             <span>Oryginał w Bibliotece Meta</span>
                         </HeaderSnapshotLink>
                     )}
-                    <ModalCloseButton type="button" onClick={onClose} aria-label="Zamknij">
+                    <CloseButton type="button" onClick={onClose} aria-label="Zamknij">
                         <X />
-                    </ModalCloseButton>
+                    </CloseButton>
                 </HeaderActions>
             </ModalHeader>
 

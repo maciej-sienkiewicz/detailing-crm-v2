@@ -83,10 +83,15 @@ function interceptAnchors(): void {
  * - każde okno modalne już go obsługuje), potem cofa w historii, a na pierwszym
  * ekranie chowa aplikację zamiast ją zamykać: powrót nie wymaga ponownego logowania
  * ani wczytywania.
+ *
+ * Rozwinięte menu też jest „na wierzchu": bez tego Wstecz przy otwartym ⋯ przenosiło
+ * na poprzedni ekran zamiast zamknąć menu. Menu zgłasza się samo atrybutem
+ * `data-dismiss-on-back` (ma go `ActionMenu`), bo nie każde menu w aplikacji reaguje
+ * na Escape - a Wstecz, które nic nie robi, jest gorsze od takiego, które cofa.
  */
 function handleBackButton(): void {
     void App.addListener('backButton', ({ canGoBack }) => {
-        if (document.querySelector('[role="dialog"][aria-modal="true"]')) {
+        if (document.querySelector('[role="dialog"][aria-modal="true"], [data-dismiss-on-back]')) {
             document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
             return;
         }

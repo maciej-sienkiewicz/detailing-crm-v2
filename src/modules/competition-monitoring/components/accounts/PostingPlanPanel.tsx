@@ -1,3 +1,4 @@
+import styled from 'styled-components';
 import { Panel, PanelBody, PanelHead, SectionTitle, Segmented, type SegmentedOption } from '@/common/components/ui';
 import { pluralPl } from '@/common/utils/plural';
 import { usePostingPlan } from '../../hooks/useAccounts';
@@ -11,6 +12,10 @@ import { Loading, Muted } from './accountsStyles';
  * własną opcję, zamiast zniknąć z przełącznika.
  */
 const COMMON = ['1', '2', '3', '4', '5', '6', '7'];
+
+const Note = styled(Muted)`
+    margin-top: 8px;
+`;
 
 export const PostingPlanPanel = () => {
     const { query, save } = usePostingPlan();
@@ -41,9 +46,9 @@ export const PostingPlanPanel = () => {
                             value={String(goal)}
                             onChange={value => save.mutate({ weeklyPostGoal: Number(value) })}
                         />
-                        <Muted style={{ marginTop: 8 }}>
+                        <Note>
                             {save.isError ? 'Nie udało się zapisać planu.' : 'Przegląd pilnuje tego planu co tydzień.'}
-                        </Muted>
+                        </Note>
                     </>
                 )}
             </PanelBody>

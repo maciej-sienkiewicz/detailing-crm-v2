@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { RefreshCw, UserPlus } from 'lucide-react';
 import { Button, Notice, Segmented } from '@/common/components/ui';
+import { useBreakpoint } from '@/common/hooks';
 import { pluralPl } from '@/common/utils/plural';
+import { PHONE } from '../../utils/phone';
 import {
     COMPETITION_DAYS_OPTIONS,
     type CompetitionDays,
@@ -51,6 +53,15 @@ const Bar = styled.div`
     justify-content: space-between;
     gap: 10px;
     flex-wrap: wrap;
+
+    /* Dwa przełączniki obok siebie (249 + 172 px) zawijały się na telefonie nierówno:
+       jeden przy lewej krawędzi, drugi pod nim krótszy. Pod sobą, na całą szerokość,
+       każdy segment to równy cel dla kciuka. */
+    ${PHONE} {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
 `;
 
 const Columns = styled.div`
@@ -84,6 +95,7 @@ export const CompetitionTab: React.FC<Props> = ({ view, days, year, onChange, on
     const resync = useResyncFailedProfiles();
     const [resyncMessage, setResyncMessage] = useState<string | null>(null);
     const [openProfile, setOpenProfile] = useState<CompetitionProfile | null>(null);
+    const isDesktop = useBreakpoint('md');
 
     const handleResync = () => {
         setResyncMessage(null);
@@ -197,23 +209,28 @@ export const CompetitionTab: React.FC<Props> = ({ view, days, year, onChange, on
                     options={VIEW_OPTIONS}
                     value={view}
                     onChange={next => onChange({ view: next })}
+                    block={!isDesktop}
                 />
                 {view === 'profile' && (
                     <Segmented
                         label="Okres"
-                        size="sm"
+                        // Na telefonie ten sam rozmiar co przełącznik widoku nad nim - dwa
+                        // segmenty o różnej wysokości jeden pod drugim wyglądały na przypadek.
+                        size={isDesktop ? 'sm' : 'md'}
                         options={COMPETITION_DAYS_OPTIONS.map(o => ({ value: String(o.value), label: o.label }))}
                         value={String(days)}
                         onChange={next => onChange({ days: next === '365' ? 365 : 90 })}
+                        block={!isDesktop}
                     />
                 )}
                 {view === 'reklamy' && (
                     <Segmented
                         label="Rok"
-                        size="sm"
+                        size={isDesktop ? 'sm' : 'md'}
                         options={years.map(y => ({ value: String(y), label: String(y) }))}
                         value={String(year)}
                         onChange={next => onChange({ year: Number(next) })}
+                        block={!isDesktop}
                     />
                 )}
             </Bar>

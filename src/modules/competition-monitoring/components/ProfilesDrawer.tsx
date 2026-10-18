@@ -3,10 +3,12 @@ import styled from 'styled-components';
 import { Star, Check, Trash2, Ban, Plus, UserRound } from 'lucide-react';
 import { useAuth } from '@/core/context/AuthContext';
 import { Button, DrawerBody, SideDrawer, StatusPill, ui } from '@/common/components/ui';
+import { useBreakpoint } from '@/common/hooks';
 import type { InstagramProfile } from '../types';
 import { useInstagramProfiles } from '../hooks/useInstagramProfiles';
 import { useProfileActions } from '../hooks/useProfileActions';
 import { SuggestionsSection } from './SuggestionsSection';
+import { PHONE } from '../utils/phone';
 
 /**
  * Obserwowane profile: Twój profil i konkurenci. Wszyscy konkurenci liczą się tak samo -
@@ -41,6 +43,9 @@ const Row = styled.div`
     display: flex;
     flex-direction: column;
     gap: 8px;
+
+    /* Ten sam promień co wiersze sugestii pod spodem - na telefonie stoją jedne pod drugimi. */
+    ${PHONE} { border-radius: ${ui.radiusStrip}; }
 `;
 
 const RowTop = styled.div`
@@ -107,6 +112,7 @@ export const ProfilesDrawer: React.FC<{
 }> = ({ open, onClose, onAddProfile, onAddSelf }) => {
     const { user } = useAuth();
     const isManagerOrOwner = user?.role === 'MANAGER' || user?.role === 'OWNER';
+    const isDesktop = useBreakpoint('md');
 
     const { profiles, isLoading } = useInstagramProfiles();
     const { approveProfile, rejectProfile, removeProfile, markSelf } = useProfileActions();
@@ -205,7 +211,10 @@ export const ProfilesDrawer: React.FC<{
                                     i policzymy plan publikacji w Przeglądzie.
                                 </p>
                                 {competitors.length > 0 && (
-                                    <p>Twój profil jest już niżej, wśród konkurentów? Kliknij przy nim „To mój profil”.</p>
+                                    <p>
+                                        Twój profil jest już niżej, wśród konkurentów?{' '}
+                                        {isDesktop ? 'Kliknij' : 'Dotknij'} przy nim „To mój profil”.
+                                    </p>
                                 )}
                                 <Actions>
                                     <Button size="sm" variant="primary" onClick={onAddSelf}>

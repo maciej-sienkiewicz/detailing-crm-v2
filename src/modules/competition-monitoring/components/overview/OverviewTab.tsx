@@ -14,13 +14,15 @@ import {
     Users,
 } from 'lucide-react';
 import { Button, Card, Notice, Panel, PanelBody, PanelHead, SectionTitle, ui } from '@/common/components/ui';
+import { useBreakpoint } from '@/common/hooks';
 import { formatCurrency } from '@/common/utils/formatters';
 import { pluralPl } from '@/common/utils/plural';
 import type { HomeMarketEvent, HomeTodo, InstagramHome } from '../../types';
 import { useHome, useResyncFailedProfiles } from '../../hooks/useAnalytics';
 import { CenterState, Spinner, formatNumber } from '../MetricBits';
 import { formatSignedCount, formatSignedPct } from '../../utils/competition';
-import { contactTapsTotal, isActionableTarget, lastPostLabel } from '../../utils/overview';
+import { contactTapsTotal, glueOrphans, isActionableTarget, lastPostLabel } from '../../utils/overview';
+import { PHONE } from '../../utils/phone';
 
 /**
  * Przegląd: jeden ekran, który odpowiada na „co się zmieniło i co mam zrobić".
@@ -37,14 +39,30 @@ const Layout = styled.div`
     gap: 16px;
 `;
 
+/*
+ * Telefon: zawsze dwie kolumny, a nieparzysty ostatni kafel bierze obie - świeże
+ * studio ma trzy kafle i trzeci stał sam obok pustej połówki.
+ */
 const Tiles = styled.div`
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 12px;
 
     @media (max-width: 520px) { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+
+    ${PHONE} {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+
+        > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+    }
 `;
 
+/*
+ * Na telefonie ciaśniej, a dłuższe linie łamią się na równe połowy (`balance`):
+ * przy 360 px „2 czekają na / odpowiedź" i „poprzednie 30 dni: / 54" zostawiały
+ * jedno słowo albo samą liczbę w drugiej linii.
+ */
 const Tile = styled.div`
     display: flex;
     flex-direction: column;
@@ -54,6 +72,8 @@ const Tile = styled.div`
     border: 1px solid ${ui.line};
     border-radius: ${ui.radiusPanel};
     background: ${ui.surface};
+
+    ${PHONE} { gap: 3px; padding: 12px; }
 `;
 
 const TileLabel = styled.span`
@@ -64,6 +84,8 @@ const TileLabel = styled.span`
     color: ${ui.textSecondary};
 
     svg { width: 15px; height: 15px; color: ${ui.textMuted}; flex-shrink: 0; }
+
+    ${PHONE} { align-items: flex-start; text-wrap: balance; svg { margin-top: 2px; } }
 `;
 
 const TileValue = styled.span`
@@ -84,6 +106,27 @@ const TileSub = styled.span<{ $tone?: 'ok' | 'warn' | 'muted' }>`
     display: flex;
     gap: 4px 8px;
     flex-wrap: wrap;
+
+    /* Bez zawijania elementów: strzałka trendu nie może zostać sama w linii nad tekstem. */
+    ${PHONE} { flex-wrap: nowrap; font-size: 12px; gap: 6px; text-wrap: balance; svg { flex-shrink: 0; margin-top: 2px; } }
+`;
+
+/** Na telefonie palec trafia w 44 px, choć napis ma 18 - bez rozpychania kafla. */
+const touchArea = `
+    ${PHONE} {
+        position: relative;
+
+        &::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: -8px;
+            right: -8px;
+            min-width: 44px;
+            height: 44px;
+            transform: translateY(-50%);
+        }
+    }
 `;
 
 const TileLink = styled.button`
@@ -103,6 +146,8 @@ const TileLink = styled.button`
 
     &:hover { text-decoration: underline; }
     svg { width: 14px; height: 14px; }
+
+    ${touchArea}
 `;
 
 const Columns = styled.div`
@@ -139,6 +184,7 @@ const TodoItem = styled.li`
     & + & { border-top: 1px solid ${ui.lineSoft}; }
 
     @media (max-width: 520px) { flex-wrap: wrap; }
+    ${PHONE} { flex-wrap: wrap; align-items: flex-start; row-gap: 10px; }
 `;
 
 const TodoIcon = styled.span`
@@ -173,6 +219,17 @@ const TodoActions = styled.div`
     justify-content: flex-end;
 
     @media (max-width: 520px) { width: 100%; justify-content: flex-start; }
+
+    /* Telefon: przyciski pod tekstem, nie pod ikoną (36 px ikony + 12 px odstępu),
+       a krok następny pierwszy - zawinięty na drugi wiersz wyglądał na dopisek. */
+    ${PHONE} {
+        width: 100%;
+        box-sizing: border-box;
+        padding-left: 48px;
+        justify-content: flex-start;
+
+        > :last-child { order: -1; }
+    }
 `;
 
 const Quiet = styled.p`
@@ -180,6 +237,11 @@ const Quiet = styled.p`
     padding: 4px 20px 18px;
     font-size: 14px;
     color: ${ui.textMuted};
+`;
+
+/** To samo zdanie w panelu, który ma już własne marginesy. */
+const PanelQuiet = styled(Quiet)`
+    padding: 0;
 `;
 
 const MarketList = styled.ul`
@@ -190,6 +252,11 @@ const MarketList = styled.ul`
     flex-direction: column;
 `;
 
+/*
+ * Telefon: data i „Zobacz" w jednym wierszu nad tekstem, tekst na całą szerokość.
+ * W trzech kolumnach nazwa „Perłowy Połysk – Studio Detailingu i Ochrony Lakieru
+ * Sp. z o.o." miała przy 360 px 170 px i sześć linii.
+ */
 const MarketItem = styled.li`
     display: flex;
     gap: 10px;
@@ -197,6 +264,17 @@ const MarketItem = styled.li`
     align-items: flex-start;
 
     & + & { border-top: 1px solid ${ui.lineSoft}; }
+
+    ${PHONE} {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas: 'date link' 'text text';
+        align-items: center;
+        gap: 2px 12px;
+        padding: 12px 0;
+
+        &:first-child { padding-top: 2px; }
+    }
 `;
 
 const MarketDate = styled.time`
@@ -205,6 +283,8 @@ const MarketDate = styled.time`
     font-size: 12px;
     color: ${ui.textMuted};
     padding-top: 2px;
+
+    ${PHONE} { grid-area: date; width: auto; padding-top: 0; font-weight: 600; }
 `;
 
 const MarketText = styled.div`
@@ -213,6 +293,8 @@ const MarketText = styled.div`
     font-size: 13.5px;
     line-height: 1.45;
     color: ${ui.ink};
+
+    ${PHONE} { grid-area: text; }
 `;
 
 const MarketLink = styled.button`
@@ -227,6 +309,21 @@ const MarketLink = styled.button`
     white-space: nowrap;
 
     &:hover { text-decoration: underline; }
+
+    ${touchArea}
+    ${PHONE} { grid-area: link; }
+`;
+
+/** Telefon: zdanie i zwykły, mały przycisk w jednym wierszu zamiast pigułki na całą szerokość. */
+const PendingRow = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+`;
+
+const PendingText = styled.span`
+    text-wrap: balance;
 `;
 
 const TODO_ICONS: Record<string, React.ComponentType> = {
@@ -251,7 +348,17 @@ export interface OverviewActions {
     onOpenAccounts: () => void;
 }
 
+/**
+ * Twarde spacje po „w", „z", „i" i liczbach - tylko na telefonie, gdzie kafel ma
+ * 130 px, a wiersz listy 290 px i podpisy się łamią. Na komputerze tekst bez zmian.
+ */
+const usePhoneGlue = () => {
+    const isDesktop = useBreakpoint('md');
+    return (text: string) => (isDesktop ? text : glueOrphans(text));
+};
+
 const OwnTiles: React.FC<{ home: InstagramHome } & OverviewActions> = ({ home, onOpenProfiles, onOpenAccounts }) => {
+    const nb = usePhoneGlue();
     const { plan, followers, leads, insights, google, connection } = home;
     const connected = connection?.status === 'CONNECTED';
     const taps = contactTapsTotal(insights?.contactTaps);
@@ -260,20 +367,20 @@ const OwnTiles: React.FC<{ home: InstagramHome } & OverviewActions> = ({ home, o
         <Tiles>
             {plan && plan.postsSynced ? (
                 <Tile>
-                    <TileLabel><CalendarCheck /> Posty w {plan.monthLabel}</TileLabel>
+                    <TileLabel><CalendarCheck /> {nb(`Posty w ${plan.monthLabel}`)}</TileLabel>
                     <TileValue>{plan.postsThisMonth} <small>z {plan.monthGoal}</small></TileValue>
                     <TileSub $tone={plan.daysSinceLastPost !== null && plan.daysSinceLastPost >= 5 ? 'warn' : 'muted'}>
                         {lastPostLabel(plan.daysSinceLastPost)}
                     </TileSub>
                     {/* Sama liczba „z 13" nie mówiła, skąd się wzięła - to plan tygodniowy przeliczony na miesiąc. */}
-                    <TileSub>plan {plan.weeklyGoal} {pluralPl(plan.weeklyGoal, 'post', 'posty', 'postów')} w tygodniu</TileSub>
+                    <TileSub>{nb(`plan ${plan.weeklyGoal} ${pluralPl(plan.weeklyGoal, 'post', 'posty', 'postów')} w tygodniu`)}</TileSub>
                     <TileLink type="button" onClick={onOpenAccounts}>Zmień plan <ArrowRight /></TileLink>
                 </Tile>
             ) : plan ? (
                 // Zero postów w bazie przed pierwszym pobraniem to brak danych, nie brak postów:
                 // studio z 533 postami widziało tu „0 z 13, jeszcze bez postów".
                 <Tile>
-                    <TileLabel><CalendarCheck /> Posty w {plan.monthLabel}</TileLabel>
+                    <TileLabel><CalendarCheck /> {nb(`Posty w ${plan.monthLabel}`)}</TileLabel>
                     <TileSub $tone={home.selfSync === 'FAILED' ? 'warn' : 'muted'}>
                         {home.selfSync === 'FAILED'
                             ? `Nie udało się pobrać postów @${home.selfUsername}.`
@@ -305,7 +412,7 @@ const OwnTiles: React.FC<{ home: InstagramHome } & OverviewActions> = ({ home, o
 
             {leads ? (
                 <Tile>
-                    <TileLabel><MessageCircle /> Zapytania z Instagrama</TileLabel>
+                    <TileLabel><MessageCircle /> {nb('Zapytania z Instagrama')}</TileLabel>
                     <TileValue>{leads.conversations}</TileValue>
                     {leads.awaitingReply > 0 ? (
                         <TileSub $tone="warn">
@@ -320,21 +427,21 @@ const OwnTiles: React.FC<{ home: InstagramHome } & OverviewActions> = ({ home, o
                 </Tile>
             ) : connected && insights ? (
                 <Tile>
-                    <TileLabel><Phone /> Kliknięcia „Zadzwoń” i „Trasa”</TileLabel>
+                    <TileLabel><Phone /> {nb('Kliknięcia „Zadzwoń” i „Trasa”')}</TileLabel>
                     <TileValue>{formatNumber(taps)}</TileValue>
                     <TileSub>zasięg {formatNumber(insights.reach)} w {insights.days} dni</TileSub>
                 </Tile>
             ) : !connected ? (
                 <Tile>
-                    <TileLabel><MessageCircle /> Zapytania z Instagrama</TileLabel>
-                    <TileSub>Po połączeniu konta: wiadomości jako zapytania, zasięg i kliknięcia „Zadzwoń”.</TileSub>
+                    <TileLabel><MessageCircle /> {nb('Zapytania z Instagrama')}</TileLabel>
+                    <TileSub>{nb('Po połączeniu konta: wiadomości jako zapytania, zasięg i kliknięcia „Zadzwoń”.')}</TileSub>
                     <TileLink type="button" onClick={onOpenAccounts}>Połącz konto <ArrowRight /></TileLink>
                 </Tile>
             ) : null}
 
             {google && (
                 <Tile>
-                    <TileLabel><Phone /> Telefony z Google</TileLabel>
+                    <TileLabel><Phone /> {nb('Telefony z Google')}</TileLabel>
                     <TileValue>{formatNumber(google.calls)}</TileValue>
                     <TileSub>
                         {google.averageRating !== null && (
@@ -357,6 +464,8 @@ const OwnTiles: React.FC<{ home: InstagramHome } & OverviewActions> = ({ home, o
 };
 
 export const OverviewTab: React.FC<OverviewActions> = actions => {
+    const isDesktop = useBreakpoint('md');
+    const nb = usePhoneGlue();
     const homeQuery = useHome();
     const resync = useResyncFailedProfiles();
     const [resyncMessage, setResyncMessage] = useState<string | null>(null);
@@ -417,14 +526,25 @@ export const OverviewTab: React.FC<OverviewActions> = actions => {
                     {resyncMessage && <span>{resyncMessage}</span>}
                 </Notice>
             )}
-            {home.pendingApproval > 0 && (
+            {home.pendingApproval > 0 && (isDesktop ? (
                 <Notice
                     tone="info"
                     action={<Button size="sm" variant="outline" onClick={actions.onOpenProfiles}>Przejrzyj</Button>}
                 >
                     {home.pendingApproval} {pluralPl(home.pendingApproval, 'profil czeka', 'profile czekają', 'profili czeka')} na akceptację.
                 </Notice>
-            )}
+            ) : (
+                // Akcja komunikatu rozciąga się na telefonie na całą szerokość - tu to tylko
+                // „przejrzyj, kiedy chcesz", nie krok następny, więc stoi obok zdania.
+                <Notice tone="info">
+                    <PendingRow>
+                        <PendingText>
+                            {home.pendingApproval} {pluralPl(home.pendingApproval, 'profil czeka', 'profile czekają', 'profili czeka')} na akceptację.
+                        </PendingText>
+                        <Button size="sm" variant="outline" onClick={actions.onOpenProfiles}>Przejrzyj</Button>
+                    </PendingRow>
+                </Notice>
+            ))}
 
             <OwnTiles home={home} {...actions} />
 
@@ -441,8 +561,8 @@ export const OverviewTab: React.FC<OverviewActions> = actions => {
                                     <TodoItem key={`${item.kind}-${index}`}>
                                         <TodoIcon><Icon /></TodoIcon>
                                         <TodoText>
-                                            <strong>{item.title}</strong>
-                                            {item.detail && <span>{item.detail}</span>}
+                                            <strong>{nb(item.title)}</strong>
+                                            {item.detail && <span>{nb(item.detail)}</span>}
                                         </TodoText>
                                         <TodoActions>
                                             {/* Podpowiedziana wizyta to tylko najnowsza ze zdjęciami - nie musi być
@@ -472,17 +592,17 @@ export const OverviewTab: React.FC<OverviewActions> = actions => {
                     <PanelHead><SectionTitle count="7 dni">Rynek w tym tygodniu</SectionTitle></PanelHead>
                     <PanelBody>
                         {home.market.length === 0 ? (
-                            <Quiet style={{ padding: 0 }}>
+                            <PanelQuiet>
                                 {home.profilesWatched === 0
                                     ? 'Dodaj konkurentów, a pokażemy tu ich promocje, kampanie i ciszę.'
                                     : 'Spokojny tydzień u konkurencji.'}
-                            </Quiet>
+                            </PanelQuiet>
                         ) : (
                             <MarketList>
                                 {[...home.market].sort((a, b) => b.date.localeCompare(a.date)).map((event, index) => (
                                     <MarketItem key={`${event.kind}-${event.date}-${index}`}>
                                         <MarketDate dateTime={event.date}>{shortDate(event.date)}</MarketDate>
-                                        <MarketText>{event.title}</MarketText>
+                                        <MarketText>{nb(event.title)}</MarketText>
                                         {(event.url || event.target) && isActionableTarget(event.target ?? 'OPEN_URL') && (
                                             <MarketLink type="button" onClick={() => actions.onMarket(event)}>Zobacz</MarketLink>
                                         )}

@@ -4,12 +4,15 @@ import {
     connectionResult,
     contactTotal,
     formatSigned,
+    handleSegments,
     netFollowers,
     percentChange,
+    periodCaption,
     replyDeadlineLabel,
     sinceLabel,
     sortReviews,
     sortThreads,
+    splitUrgent,
     topHours,
     withoutResultParams,
 } from './accountsLogic';
@@ -190,5 +193,31 @@ describe('zdjęcia dla generatora', () => {
         const visits = [visit('v1', 'BMW X5', 3)];
         expect(publishSeed(['v1-2', 'v1-0'], visits, 'v1')).toEqual(['v1-2', 'v1-0']);
         expect(publishSeed([], visits, 'v1')).toEqual(['v1-0', 'v1-1', 'v1-2']);
+    });
+});
+
+describe('telefon', () => {
+    const urgent = (n: number) => n % 2 === 0;
+
+    it('pilne widać od razu, reszta czeka za „Pokaż"', () => {
+        expect(splitUrgent([2, 4, 1, 3], urgent, 3)).toEqual({ shown: [2, 4], hidden: [1, 3] });
+    });
+
+    it('gdy nic nie czeka, widać kilka pierwszych, a nie pusty panel', () => {
+        expect(splitUrgent([1, 3, 5, 7], urgent, 2)).toEqual({ shown: [1, 3], hidden: [5, 7] });
+        expect(splitUrgent([1], urgent, 2)).toEqual({ shown: [1], hidden: [] });
+        expect(splitUrgent([], urgent, 2)).toEqual({ shown: [], hidden: [] });
+    });
+
+    it('uchwyt łamie się za „_" i „.", nie w środku słowa', () => {
+        expect(handleSegments('@detailing_studio_mokotow')).toEqual(['@detailing_', 'studio_', 'mokotow']);
+        expect(handleSegments('@kasia.lis')).toEqual(['@kasia.', 'lis']);
+        expect(handleSegments('@studio')).toEqual(['@studio']);
+        expect(handleSegments('@detailing_studio_mokotow').join('')).toBe('@detailing_studio_mokotow');
+    });
+
+    it('podpis okresu mówi o porównaniu tylko, gdy jest z czym porównać', () => {
+        expect(periodCaption(true)).toBe('Ostatnie 30 dni, zmiana do poprzednich 30');
+        expect(periodCaption(false)).toBe('Ostatnie 30 dni');
     });
 });

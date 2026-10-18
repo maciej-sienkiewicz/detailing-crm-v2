@@ -4,6 +4,7 @@ import { SectionTitle, ui } from '@/common/components/ui';
 import { pluralPl } from '@/common/utils/plural';
 import type { PublishVisit } from '../../accountsTypes';
 import { formatDate } from '../MetricBits';
+import { PHONE } from '../../utils/phone';
 import { Order, Thumb, Thumbs } from './PublishSection';
 import { MAX_AI_PHOTOS } from './publishLogic';
 
@@ -38,6 +39,12 @@ const VisitSelect = styled.select`
     color: ${ui.ink};
 
     &:focus { outline: none; border-color: ${ui.brand}; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12); }
+
+    ${PHONE} {
+        height: 44px;
+        min-width: 0;
+        font-size: 15px;
+    }
 `;
 
 const Hint = styled.p`
@@ -70,10 +77,12 @@ interface Props {
     onToggleAiPhoto: (photoId: string) => void;
     /** Otwarte z „Wybierz inną realizację" - sekcja ma przyciągnąć wzrok, bo to jest pytanie okna. */
     highlight?: boolean;
+    /** Focus na wyborze wizyty przy `highlight`. Okno wyłącza go na telefonie - tam focus daje tylko palec. */
+    autoFocus?: boolean;
 }
 
 export const VisitMaterialSection = ({
-    visits, loading, visitId, onVisitChange, aiPhotos, onToggleAiPhoto, highlight = false,
+    visits, loading, visitId, onVisitChange, aiPhotos, onToggleAiPhoto, highlight = false, autoFocus = true,
 }: Props) => {
     const list = visits ?? [];
     const visit = list.find(v => v.visitId === visitId);
@@ -99,7 +108,7 @@ export const VisitMaterialSection = ({
                     <VisitSelect
                         aria-label="Wizyta, której dotyczy post"
                         value={visitId ?? ''}
-                        autoFocus={highlight}
+                        autoFocus={highlight && autoFocus}
                         onChange={e => onVisitChange(list.find(v => v.visitId === e.target.value))}
                     >
                         <option value="">Bez realizacji, sam temat</option>

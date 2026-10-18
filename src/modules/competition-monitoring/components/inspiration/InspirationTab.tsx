@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { ExternalLink, Film, Images, Image as ImageIcon, Sparkles, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { Button, ButtonLink, IconButton, Segmented, StatusPill, ui } from '@/common/components/ui';
+import { useBreakpoint } from '@/common/hooks';
 import type { ContentFormat, ContentItem } from '../../types';
 import { FORMAT_LABELS } from '../../types';
 import { useContent, useReactToPost } from '../../hooks/useAnalytics';
@@ -14,6 +15,7 @@ import {
     normLabel,
     type InspirationSort,
 } from '../../utils/inspiration';
+import { PHONE } from '../../utils/phone';
 
 /**
  * Inspiracje: co zadziałało u innych, policzone uczciwie.
@@ -39,7 +41,21 @@ const FORMAT_OPTIONS: { value: FormatFilter; label: string }[] = [
     { value: 'PHOTO', label: FORMAT_LABELS.PHOTO },
 ];
 
+/*
+ * Na 360 px „Każdy format" z trzema formatami wychodził poza ekran („Zdjęcie" ucięte).
+ * Telefon dostaje krótszą pierwszą opcję, żeby cały przełącznik zmieścił się w szerokości.
+ */
+const PHONE_FORMAT_OPTIONS: { value: FormatFilter; label: string }[] = [
+    { value: 'ALL', label: 'Wszystkie' },
+    ...FORMAT_OPTIONS.slice(1),
+];
+
 const PAGE_SIZE = 24;
+/**
+ * Post na telefonie to ~560 px (kwadrat osadzenia i opis), więc 24 posty były
+ * szesnastoma ekranami przewijania przed „Pokaż więcej". Na telefonie strona jest krótsza.
+ */
+const PHONE_PAGE_SIZE = 8;
 const WEEKS = 12;
 
 const Layout = styled.div`
@@ -53,6 +69,15 @@ const Filters = styled.div`
     gap: 10px;
     flex-wrap: wrap;
     align-items: center;
+
+    /* Każdy filtr w osobnym rzędzie na całą szerokość; opcje przełączników węższe o padding. */
+    ${PHONE} {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+
+        [role='group'] > button { padding: 0 4px; }
+    }
 `;
 
 const TopicSelect = styled.select`
@@ -64,6 +89,14 @@ const TopicSelect = styled.select`
     font-family: inherit;
     font-size: 13px;
     color: ${ui.ink};
+
+    /* 16 px: mniejsza czcionka w polu każe iOS powiększać stronę przy dotknięciu. */
+    ${PHONE} {
+        width: 100%;
+        height: 44px;
+        padding: 0 14px;
+        font-size: 16px;
+    }
 `;
 
 const Period = styled.span`
@@ -72,6 +105,7 @@ const Period = styled.span`
     color: ${ui.textMuted};
 
     @media (max-width: 640px) { margin-left: 0; width: 100%; }
+    ${PHONE} { margin-left: 0; }
 `;
 
 const Grid = styled.ul`
@@ -176,6 +210,11 @@ const Meta = styled.div`
     color: ${ui.textMuted};
 
     strong { font-size: 13px; color: ${ui.ink}; }
+
+    /* Uchwyt w osobnej linii: inaczej data i format łamały się pod nim w przypadkowym miejscu. */
+    ${PHONE} {
+        strong { flex-basis: 100%; font-size: 14px; overflow-wrap: anywhere; }
+    }
 `;
 
 const Caption = styled.p`
@@ -195,6 +234,17 @@ const Actions = styled.div`
     align-items: center;
     margin-top: auto;
     flex-wrap: wrap;
+
+    /*
+     * Cztery przyciski z napisami potrzebowały ~321 px na 298. Na telefonie „Zrób podobny"
+     * (akcja, po którą się tu przychodzi) zajmuje resztę rzędu, a „Otwórz" i oceny są ikonami.
+     */
+    ${PHONE} {
+        flex-wrap: nowrap;
+        gap: 4px;
+
+        > :first-child { flex: 1 1 auto; min-width: 0; }
+    }
 `;
 
 const More = styled.div`
@@ -212,6 +262,8 @@ interface Props {
 }
 
 export const InspirationTab: React.FC<Props> = ({ onMakeSimilar }) => {
+    const isDesktop = useBreakpoint('md');
+    const pageSize = isDesktop ? PAGE_SIZE : PHONE_PAGE_SIZE;
     const [sort, setSort] = useState<InspirationSort>('norm');
     const [format, setFormat] = useState<FormatFilter>('ALL');
     const [topic, setTopic] = useState<string>('');
@@ -223,8 +275,8 @@ export const InspirationTab: React.FC<Props> = ({ onMakeSimilar }) => {
         format: format === 'ALL' ? undefined : format,
         topic: topic || undefined,
         page: 0,
-        pageSize: PAGE_SIZE * pages,
-    }), [sort, format, topic, pages]);
+        pageSize: pageSize * pages,
+    }), [sort, format, topic, pages, pageSize]);
 
     const contentQuery = useContent(filters);
     const react = useReactToPost();
@@ -246,8 +298,20 @@ export const InspirationTab: React.FC<Props> = ({ onMakeSimilar }) => {
     return (
         <Layout>
             <Filters>
-                <Segmented label="Kolejność" options={INSPIRATION_SORT_OPTIONS} value={sort} onChange={v => reset(() => setSort(v))} />
-                <Segmented label="Format" options={FORMAT_OPTIONS} value={format} onChange={v => reset(() => setFormat(v))} />
+                <Segmented
+                    label="Kolejność"
+                    options={INSPIRATION_SORT_OPTIONS}
+                    value={sort}
+                    onChange={v => reset(() => setSort(v))}
+                    block={!isDesktop}
+                />
+                <Segmented
+                    label="Format"
+                    options={isDesktop ? FORMAT_OPTIONS : PHONE_FORMAT_OPTIONS}
+                    value={format}
+                    onChange={v => reset(() => setFormat(v))}
+                    block={!isDesktop}
+                />
                 {contentQuery.data && contentQuery.data.topics.length > 0 && (
                     <TopicSelect
                         aria-label="Temat"
@@ -318,18 +382,33 @@ export const InspirationTab: React.FC<Props> = ({ onMakeSimilar }) => {
                                     </Meta>
                                     {item.caption && <Caption>{item.caption}</Caption>}
                                     <Actions>
-                                        <Button size="sm" variant="tinted" onClick={() => makeSimilar(item)}>
+                                        <Button size={isDesktop ? 'sm' : 'md'} variant="tinted" onClick={() => makeSimilar(item)}>
                                             <Sparkles size={14} /> Zrób podobny
                                         </Button>
-                                        <ButtonLink
-                                            $variant="ghost"
-                                            $size="sm"
-                                            href={item.permalink}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                        >
-                                            <ExternalLink size={14} /> Otwórz
-                                        </ButtonLink>
+                                        {isDesktop ? (
+                                            <ButtonLink
+                                                $variant="ghost"
+                                                $size="sm"
+                                                href={item.permalink}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                <ExternalLink size={14} /> Otwórz
+                                            </ButtonLink>
+                                        ) : (
+                                            <ButtonLink
+                                                $variant="ghost"
+                                                $size="sm"
+                                                $iconOnly
+                                                href={item.permalink}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                aria-label={`Otwórz post @${item.username} na Instagramie`}
+                                                title="Otwórz na Instagramie"
+                                            >
+                                                <ExternalLink size={14} />
+                                            </ButtonLink>
+                                        )}
                                         <IconButton
                                             label={item.reaction === 'LIKED' ? 'Cofnij: podoba mi się' : 'Podoba mi się, ucz generator'}
                                             variant="ghost"

@@ -9,6 +9,7 @@ import type { PermissionRequirement } from '@/core/permissions';
 import { useNewLeadsCount, useUnreadMailCount } from '@/modules/comms';
 import { usePiiAccess } from '@/common/pii';
 import { useMobileChromeHidden } from '@/common/context/MobileChromeContext';
+import { useVirtualKeyboard } from '@/common/hooks';
 import { BOTTOM_NAV_HEIGHT } from './constants';
 
 // Dolny pasek nawigacji – wyłącznie mobile. Zamiast hamburgera przyklejonego
@@ -127,6 +128,10 @@ export const BottomNav = () => {
     // Edycja z własnym paskiem akcji (np. wykaz usług w wizycie) chowa pasek,
     // żeby przyciski zatwierdzenia nie konkurowały o dolną krawędź ekranu.
     const chromeHidden = useMobileChromeHidden();
+    // Przy klawiaturze pasek wjeżdżał nad nią i przykrywał pisane pole razem z przyciskiem
+    // wysłania (odpowiedź na opinię Google zostawała z ~90 px wysokości). Nawigacja
+    // w trakcie pisania i tak nie jest potrzebna - wraca, gdy klawiatura się schowa.
+    const keyboardOpen = useVirtualKeyboard();
     const unreadMail = useUnreadMailCount({ enabled: can('LEADS_MANAGE') && hasPiiAccess });
     const casesWaiting = useNewLeadsCount({ enabled: can('LEADS_MANAGE') && hasPiiAccess });
 
@@ -150,7 +155,11 @@ export const BottomNav = () => {
     const shortcuts = allShortcuts.filter(s => !s.requires || can(s.requires));
 
     return (
-        <Bar $isHidden={isMobileOpen || chromeHidden} aria-label="Nawigacja główna">
+        <Bar
+            $isHidden={isMobileOpen || chromeHidden || keyboardOpen}
+            aria-hidden={keyboardOpen || undefined}
+            aria-label="Nawigacja główna"
+        >
             <Item type="button" onClick={toggleMobileMenu} aria-expanded={isMobileOpen} aria-label="Otwórz pełne menu">
                 <IconWrap>
                     <Menu aria-hidden="true" />

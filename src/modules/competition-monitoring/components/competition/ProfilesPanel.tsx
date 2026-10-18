@@ -1,12 +1,13 @@
 import React from 'react';
 import styled from 'styled-components';
-import { AlertTriangle, ArrowDown, ArrowUp, Minus } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, ChevronRight, Minus } from 'lucide-react';
 import { Card, SectionTitle, StatusPill, ui } from '@/common/components/ui';
 import { pluralPl } from '@/common/utils/plural';
 import { useBreakpoint } from '@/common/hooks';
 import type { CompetitionMedian, CompetitionProfile, CompetitionResponse } from '../../types';
 import { EMPTY, formatNumber } from '../MetricBits';
 import { colorFor } from '../../utils/profileColors';
+import { PHONE } from '../../utils/phone';
 import {
     formatPerWeek,
     formatSignedPct,
@@ -36,6 +37,7 @@ const Head = styled.div`
     span { font-size: 13px; color: ${ui.textMuted}; }
 
     @media (max-width: 640px) { padding: 16px 16px 4px; }
+    ${PHONE} { padding: 16px 16px 4px; }
 `;
 
 const Table = styled.div`
@@ -153,39 +155,142 @@ const ApiError = styled(AlertTriangle)`
     flex-shrink: 0;
 `;
 
-// ─── Telefon: karty zamiast pięciu kolumn ─────────────────────────────────────
+// ─── Telefon: płaska lista, podpisy kolumn raz ────────────────────────────────
 
-const MobileList = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 4px 12px 14px;
+/*
+ * Wcześniej każdy profil był osobną kartą z czterema podpisanymi liczbami: karta w karcie,
+ * „Obserwujący / Posty na tydzień…" powtórzone przy każdym profilu i pięciu konkurentów
+ * na dwóch i pół ekranach. Teraz wiersz to nazwa i jedna linia liczb pod podpisami
+ * kolumn, które stoją raz nad listą - jak w tabeli na komputerze.
+ */
+const PHONE_COLUMNS = 'minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.85fr) 18px';
+
+const PhoneCaptions = styled.div`
+    display: grid;
+    grid-template-columns: ${PHONE_COLUMNS};
+    column-gap: 8px;
+    align-items: end;
+    padding: 8px 16px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: ${ui.textMuted};
+
+    > span:not(:first-child) { text-align: right; }
 `;
 
-const MobileRow = styled.button<{ $self?: boolean }>`
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+const PhoneRow = styled.button<{ $self?: boolean }>`
+    display: grid;
+    grid-template-columns: ${PHONE_COLUMNS};
+    column-gap: 8px;
+    row-gap: 6px;
+    align-items: start;
     width: 100%;
-    padding: 12px 14px;
-    border: 1px solid ${p => (p.$self ? ui.brandLineSoft : ui.line)};
-    border-radius: ${ui.radiusRow};
-    background: ${p => (p.$self ? ui.brandTint : ui.surface)};
+    padding: 12px 16px;
+    border: none;
+    border-top: 1px solid ${ui.line};
+    background: ${p => (p.$self ? ui.brandTint : 'transparent')};
     font-family: inherit;
     text-align: left;
     color: ${ui.ink};
     cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+
+    &:active { background: ${p => (p.$self ? ui.brandTintHover : ui.surfaceSoft)}; }
+    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: -2px; }
 `;
 
-const MobileStats = styled.dl`
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px 12px;
-    margin: 0;
+const PhoneName = styled.span`
+    grid-column: 1 / 5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    font-size: 15px;
+    font-weight: 600;
 
-    div { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-    dt { font-size: 12px; color: ${ui.textMuted}; }
-    dd { margin: 0; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    /* Nazwa ma całą szerokość wiersza; skrajnie długi uchwyt łamie się na dwie linie. */
+    > b {
+        min-width: 0;
+        font-weight: inherit;
+        overflow-wrap: anywhere;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+`;
+
+const Chevron = styled(ChevronRight)`
+    grid-column: 5;
+    grid-row: 1 / 3;
+    align-self: center;
+    width: 18px;
+    height: 18px;
+    color: ${ui.textFaint};
+`;
+
+const PhoneNum = styled.span<{ $first?: boolean }>`
+    display: flex;
+    flex-direction: column;
+    align-items: ${p => (p.$first ? 'flex-start' : 'flex-end')};
+    gap: 1px;
+    min-width: 0;
+    font-size: 15px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+
+    small {
+        font-size: 12px;
+        font-weight: 600;
+    }
+`;
+
+/** „od 8 wrz" pod procentem, w całości: łamane w środku dawało samotne „wrz" w trzeciej linii. */
+const PhoneSince = styled.span`
+    font-size: 12px;
+    font-weight: 500;
+    color: ${ui.textMuted};
+`;
+
+const PhoneMedian = styled.div`
+    display: grid;
+    grid-template-columns: ${PHONE_COLUMNS};
+    column-gap: 8px;
+    row-gap: 6px;
+    padding: 12px 16px 14px;
+    border-top: 1px solid ${ui.line};
+    background: ${ui.surfaceSoft};
+    color: ${ui.textSecondary};
+
+    ${PhoneNum} { font-weight: 600; }
+    ${PhoneNum} small { color: ${ui.textMuted}; font-weight: 500; }
+`;
+
+const PhoneMedianTitle = styled.span`
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    font-weight: 600;
+
+    span { font-size: 12px; font-weight: 500; color: ${ui.textMuted}; }
+`;
+
+const PhoneNote = styled.p`
+    margin: 0;
+    padding: 10px 16px 14px;
+    border-top: 1px solid ${ui.line};
+    font-size: 12px;
+    line-height: 1.45;
+    color: ${ui.textMuted};
+`;
+
+const PhoneMuted = styled.span`
+    color: ${ui.textMuted};
 `;
 
 // ─── Komórki ──────────────────────────────────────────────────────────────────
@@ -257,31 +362,62 @@ const DesktopRow: React.FC<RowProps> = ({ profile, color, median, windowFrom, sh
     );
 };
 
-const MobileCard: React.FC<RowProps> = ({ profile, color, windowFrom, onOpen }) => {
+/** Reklamy w wąskiej kolumnie: liczba kampanii; „?" ma wyjaśnienie pod listą i dla czytnika. */
+const PhoneAds: React.FC<{ value: number | null }> = ({ value }) => {
+    if (value === null) return <PhoneMuted aria-label="nie wiadomo, brak wskazanej strony na Facebooku">?</PhoneMuted>;
+    if (value === 0) return <PhoneMuted>0</PhoneMuted>;
+    return <StatusPill $tone="info" $size="sm">{value}</StatusPill>;
+};
+
+/*
+ * Podpisy kolumn stoją raz nad listą i czytnik ekranu ich nie zobaczy przy wierszu,
+ * więc wiersz-przycisk dostaje pełne zdanie zamiast ciągu „41 tys. +3,0% 4,2 612 2".
+ */
+const phoneRowLabel = (profile: CompetitionProfile, growth: string | null, since: string | null) => [
+    `@${profile.username}${profile.isSelf ? ', Twój profil' : ''}`,
+    `obserwujący ${formatNumber(profile.followers)}${growth ? ` (${growth}${since ? ` ${since}` : ''})` : ''}`,
+    `posty na tydzień ${formatPerWeek(profile.postsPerWeek) ?? 'brak danych'}`,
+    `reakcje na post ${profile.reactionsPerPost === null ? 'brak danych' : formatNumber(profile.reactionsPerPost)}`,
+    `reklamy teraz ${profile.activeCampaigns === null ? 'nie wiadomo' : campaignsLabel(profile.activeCampaigns)}`,
+    profile.apiError ? 'ostatnie pobranie danych nie powiodło się' : null,
+].filter(Boolean).join(', ');
+
+const PhoneListRow: React.FC<RowProps> = ({ profile, color, median, windowFrom, showDirections, onOpen }) => {
     const since = growthSinceLabel(profile.growthFrom, windowFrom);
     const growth = formatSignedPct(profile.followersGainPct);
     return (
-        <MobileRow type="button" $self={profile.isSelf} onClick={() => onOpen(profile)}>
-            <Name>
+        <PhoneRow
+            type="button"
+            $self={profile.isSelf}
+            onClick={() => onOpen(profile)}
+            aria-label={phoneRowLabel(profile, growth, since)}
+        >
+            <PhoneName>
                 <Dot $color={color} />
                 <b>@{profile.username}</b>
                 {profile.isSelf && <StatusPill $tone="info" $size="sm">Ty</StatusPill>}
-                {profile.apiError && <ApiError aria-label="Ostatnie pobranie danych nie powiodło się" />}
-            </Name>
-            <MobileStats>
-                <div>
-                    <dt>Obserwujący</dt>
-                    <dd>
-                        {formatNumber(profile.followers)}{' '}
-                        {growth && <Growth as="span" $tone={growthTone(profile.followersGainPct)}>{growth}</Growth>}
-                    </dd>
-                    {since && <dt>{since}</dt>}
-                </div>
-                <div><dt>Posty na tydzień</dt><dd>{formatPerWeek(profile.postsPerWeek) ?? EMPTY}</dd></div>
-                <div><dt>Reakcje na post</dt><dd>{formatNumber(profile.reactionsPerPost)}</dd></div>
-                <div><dt>Reklamy teraz</dt><dd><AdsCell value={profile.activeCampaigns} /></dd></div>
-            </MobileStats>
-        </MobileRow>
+                {profile.apiError && <ApiError aria-hidden="true" />}
+            </PhoneName>
+            <Chevron aria-hidden="true" />
+            <PhoneNum $first>
+                {formatNumber(profile.followers)}
+                {growth && <Growth $tone={growthTone(profile.followersGainPct)}>{growth}</Growth>}
+                {growth && since && <PhoneSince>{since}</PhoneSince>}
+            </PhoneNum>
+            <PhoneNum>
+                <Inline>
+                    {showDirections && <DirectionIcon direction={versusMedian(profile.postsPerWeek, median?.postsPerWeek)} />}
+                    {formatPerWeek(profile.postsPerWeek) ?? EMPTY}
+                </Inline>
+            </PhoneNum>
+            <PhoneNum>
+                <Inline>
+                    {showDirections && <DirectionIcon direction={versusMedian(profile.reactionsPerPost, median?.reactionsPerPost)} />}
+                    {formatNumber(profile.reactionsPerPost)}
+                </Inline>
+            </PhoneNum>
+            <PhoneNum><PhoneAds value={profile.activeCampaigns} /></PhoneNum>
+        </PhoneRow>
     );
 };
 
@@ -296,6 +432,7 @@ export const ProfilesPanel: React.FC<Props> = ({ data, colors, onOpenProfile }) 
     const { self, competitors } = splitProfiles(data.profiles);
     const median = data.median;
     const rows = [...(self ? [self] : []), ...competitors];
+    const unknownAds = rows.some(p => p.activeCampaigns === null);
 
     const renderRow = (profile: CompetitionProfile, showDirections: boolean) => {
         const props: RowProps = {
@@ -308,34 +445,73 @@ export const ProfilesPanel: React.FC<Props> = ({ data, colors, onOpenProfile }) 
         };
         return isDesktop
             ? <DesktopRow key={profile.studioProfileId} {...props} />
-            : <MobileCard key={profile.studioProfileId} {...props} />;
+            : <PhoneListRow key={profile.studioProfileId} {...props} />;
     };
 
-    const Body = isDesktop ? Table : MobileList;
+    const title = (
+        <SectionTitle as="h2" size="lg" count={`${competitors.length} ${pluralPl(competitors.length, 'konkurent', 'konkurentów', 'konkurentów')}`}>
+            Ty i konkurencja
+        </SectionTitle>
+    );
+
+    if (!isDesktop) {
+        return (
+            <Card>
+                {/* Bez „kliknij profil…": na telefonie dotyk wiersza zapowiada strzałka w prawo. */}
+                <Head>{title}</Head>
+                <PhoneCaptions aria-hidden="true">
+                    <span>Obserwujący</span>
+                    <span>Posty na tydzień</span>
+                    <span>Reakcje na post</span>
+                    <span>Reklamy teraz</span>
+                </PhoneCaptions>
+                <div role="list" aria-label="Profile, dotknij, żeby zobaczyć szczegóły">
+                    {rows.map(profile => (
+                        <div role="listitem" key={profile.studioProfileId}>
+                            {renderRow(profile, profile.isSelf && median !== null)}
+                        </div>
+                    ))}
+                </div>
+                {median && (
+                    <PhoneMedian>
+                        <PhoneMedianTitle>
+                            Mediana konkurencji
+                            <span>z {median.basedOn} {pluralPl(median.basedOn, 'profilu', 'profili', 'profili')}</span>
+                        </PhoneMedianTitle>
+                        <PhoneNum $first>
+                            {formatNumber(median.followers)}
+                            {formatSignedPct(median.followersGainPct) && <small>{formatSignedPct(median.followersGainPct)}</small>}
+                        </PhoneNum>
+                        <PhoneNum>{formatPerWeek(median.postsPerWeek) ?? EMPTY}</PhoneNum>
+                        <PhoneNum>{formatNumber(median.reactionsPerPost)}</PhoneNum>
+                    </PhoneMedian>
+                )}
+                {unknownAds && (
+                    <PhoneNote>„?” przy reklamach: profil nie ma wskazanej strony na Facebooku, więc nie wiemy, czy się reklamuje.</PhoneNote>
+                )}
+            </Card>
+        );
+    }
 
     return (
         <Card>
             <Head>
-                <SectionTitle as="h2" size="lg" count={`${competitors.length} ${pluralPl(competitors.length, 'konkurent', 'konkurentów', 'konkurentów')}`}>
-                    Ty i konkurencja
-                </SectionTitle>
+                {title}
                 <span>kliknij profil, żeby zobaczyć szczegóły</span>
             </Head>
 
-            <Body>
-                {isDesktop && (
-                    <HeaderRow>
-                        <span>Profil</span>
-                        <span>Obserwujący</span>
-                        <span>Posty na tydzień</span>
-                        <span>Reakcje na post</span>
-                        <span>Reklamy teraz</span>
-                    </HeaderRow>
-                )}
+            <Table>
+                <HeaderRow>
+                    <span>Profil</span>
+                    <span>Obserwujący</span>
+                    <span>Posty na tydzień</span>
+                    <span>Reakcje na post</span>
+                    <span>Reklamy teraz</span>
+                </HeaderRow>
 
                 {rows.map(profile => renderRow(profile, profile.isSelf && median !== null))}
 
-                {isDesktop && median && (
+                {median && (
                     <MedianRow>
                         <Name as="span">
                             Mediana konkurencji
@@ -352,13 +528,7 @@ export const ProfilesPanel: React.FC<Props> = ({ data, colors, onOpenProfile }) 
                         <Num />
                     </MedianRow>
                 )}
-                {!isDesktop && median && (
-                    <MobileStats style={{ padding: '4px 4px 0' }}>
-                        <div><dt>Mediana konkurencji, posty na tydzień</dt><dd>{formatPerWeek(median.postsPerWeek) ?? EMPTY}</dd></div>
-                        <div><dt>Mediana, reakcje na post</dt><dd>{formatNumber(median.reactionsPerPost)}</dd></div>
-                    </MobileStats>
-                )}
-            </Body>
+            </Table>
         </Card>
     );
 };

@@ -6,8 +6,8 @@
 //
 // Realizacja: wizyta i wybrane zdjęcia idą do generatora (fakty i obrazy dla modelu),
 // a do publikacji startują te same zdjęcia, które widział model.
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
@@ -63,9 +63,26 @@ const renderModal = (onClose = vi.fn(), prefill: Parameters<typeof GeneratePostM
     );
 };
 
+// jsdom nie ma matchMedia; okno pyta o nią przez useBreakpoint (komputer / telefon).
+// Szerokość startowa też idzie z okna - useBreakpoint czyta ją przy pierwszym renderze.
+const setScreen = (kind: 'desktop' | 'phone') => {
+    const desktop = kind === 'desktop';
+    vi.stubGlobal('innerWidth', desktop ? 1280 : 400);
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: desktop, media: query, onchange: null,
+        addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+    }));
+};
+
+const pressEscape = () => fireEvent.keyDown(document, { key: 'Escape' });
+
+beforeEach(() => setScreen('desktop'));
+
 afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
 });
 
 describe('GeneratePostModal: publikacja', () => {
@@ -130,5 +147,82 @@ describe('GeneratePostModal: publikacja', () => {
         await waitFor(() => expect(instagramApi.generatePost).toHaveBeenCalledWith(
             expect.objectContaining({ visitId: 'v1', photoIds: ['p1', 'p2'] }),
         ));
+    });
+});
+
+// Telefon: systemowe „Wstecz" w aplikacji przychodzi jako Escape, ale tylko do okna z rolą
+// dialogu (installNativeShell). Dawniej generator jej nie miał - drugie „Wstecz" cofało stronę
+// i gotowy post znikał razem z oknem.
+describe('GeneratePostModal: zamykanie na telefonie i na komputerze', () => {
+    it('jest oknem modalnym, więc „Wstecz" w aplikacji trafia do niego, a nie do historii', () => {
+        vi.mocked(accountsApi.getConnection).mockResolvedValue(connection('NOT_CONNECTED'));
+        renderModal();
+
+        const dialog = screen.getByRole('dialog', { name: 'Generator postów na Instagram' });
+        expect(dialog.getAttribute('aria-modal')).toBe('true');
+    });
+
+    it('na telefonie gotowy post nie znika po cichu: najpierw pytanie, drugie „Wstecz" zostaje przy poście', async () => {
+        setScreen('phone');
+        vi.mocked(accountsApi.getConnection).mockResolvedValue(connection('NOT_CONNECTED'));
+        const onClose = vi.fn();
+        renderModal(onClose);
+
+        fireEvent.click(screen.getByRole('button', { name: /Generuj post/ }));
+        await screen.findByRole('button', { name: /Kopiuj post/ });
+
+        pressEscape();
+        expect(onClose).not.toHaveBeenCalled();
+        expect(screen.getByRole('alertdialog', { name: 'Zamknąć generator?' })).toBeTruthy();
+
+        pressEscape();
+        expect(screen.queryByRole('alertdialog')).toBeNull();
+        expect(onClose).not.toHaveBeenCalled();
+
+        pressEscape();
+        const question = screen.getByRole('alertdialog', { name: 'Zamknąć generator?' });
+        fireEvent.click(within(question).getByRole('button', { name: 'Zamknij' }));
+        expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('na telefonie skopiowany post można zamknąć bez pytania - jest już u właściciela', async () => {
+        setScreen('phone');
+        vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText: vi.fn(async () => {}) } });
+        vi.mocked(accountsApi.getConnection).mockResolvedValue(connection('NOT_CONNECTED'));
+        const onClose = vi.fn();
+        renderModal(onClose);
+
+        fireEvent.click(screen.getByRole('button', { name: /Generuj post/ }));
+        fireEvent.click(await screen.findByRole('button', { name: /Kopiuj post/ }));
+        await screen.findByRole('button', { name: /Skopiowano/ });
+
+        pressEscape();
+        expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('na komputerze Escape zamyka od razu, także z gotowym postem', async () => {
+        vi.mocked(accountsApi.getConnection).mockResolvedValue(connection('NOT_CONNECTED'));
+        const onClose = vi.fn();
+        renderModal(onClose);
+
+        fireEvent.click(screen.getByRole('button', { name: /Generuj post/ }));
+        await screen.findByRole('button', { name: /Kopiuj post/ });
+
+        pressEscape();
+        expect(onClose).toHaveBeenCalledTimes(1);
+        expect(screen.queryByRole('alertdialog')).toBeNull();
+    });
+
+    it('na telefonie temat nie dostaje fokusu przy otwarciu (klawiatura zasłaniała formularz), na komputerze dostaje', async () => {
+        setScreen('phone');
+        vi.mocked(accountsApi.getConnection).mockResolvedValue(connection('NOT_CONNECTED'));
+        renderModal();
+        await new Promise(resolve => setTimeout(resolve, 150));
+        expect(document.activeElement).not.toBe(screen.getByLabelText(/Temat posta/));
+
+        cleanup();
+        setScreen('desktop');
+        renderModal();
+        await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText(/Temat posta/)));
     });
 });

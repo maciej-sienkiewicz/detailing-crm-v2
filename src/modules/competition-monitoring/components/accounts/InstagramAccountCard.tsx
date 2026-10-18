@@ -1,16 +1,20 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import styled from 'styled-components';
 import { Instagram, MessageCircle, MoreHorizontal, PhoneCall, RefreshCw, Send, Unplug } from 'lucide-react';
 import {
     ActionMenu, Button, Card, ChoiceCard, ChoiceList, IconButton, MenuItem, Notice, StatusPill, ui, useActionMenu,
 } from '@/common/components/ui';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { useBreakpoint } from '@/common/hooks';
 import { apiErrorStatus } from '../../api/accountsApi';
 import { useAccountActions, useMyInstagram } from '../../hooks/useAccounts';
 import type { InstagramConnection } from '../../accountsTypes';
 import { formatExact } from '../MetricBits';
-import { sinceLabel } from './accountsLogic';
-import { Actions, AccountHead, CardBody, CardHead, HeadText, HeadTitle, IconTile, Loading, Meta, Muted } from './accountsStyles';
+import { handleSegments, sinceLabel } from './accountsLogic';
+import {
+    Actions, AccountHead, CardBody, CardHead, HeadText, HeadTitle, IconTile, Loading, Meta, Muted, PhoneHead, PhoneHeadBar,
+    PhoneHeadName,
+} from './accountsStyles';
 import { OwnStats } from './OwnStats';
 
 /**
@@ -58,7 +62,17 @@ interface Props {
     isLoading: boolean;
 }
 
+/** „@detailing_studio_mokotow" z miejscami łamania za „_" i „.". */
+const Handle = ({ username }: { username: string }) => (
+    <>
+        {handleSegments(`@${username}`).map((part, i) => (
+            <Fragment key={i}>{i > 0 && <wbr />}{part}</Fragment>
+        ))}
+    </>
+);
+
 export const InstagramAccountCard = ({ connection, isLoading }: Props) => {
+    const isDesktop = useBreakpoint('md');
     const actions = useAccountActions();
     const menu = useActionMenu();
     const [confirmDisconnect, setConfirmDisconnect] = useState(false);
@@ -82,7 +96,43 @@ export const InstagramAccountCard = ({ connection, isLoading }: Props) => {
     const status = connection?.status ?? 'NOT_CONNECTED';
     const synced = sinceLabel(mine.data?.syncedAt ?? connection?.lastSyncAt);
 
-    const head = (
+    const syncButton = (
+        <Button variant="outline" size="sm" onClick={sync} disabled={actions.sync.isPending}>
+            <RefreshCw aria-hidden="true" />
+            {actions.sync.isPending ? 'Odświeżam…' : 'Odśwież'}
+        </Button>
+    );
+    const moreButton = (
+        <IconButton label="Więcej" size="sm" onClick={e => menu.toggle(e, null)}>
+            <MoreHorizontal />
+        </IconButton>
+    );
+
+    const phoneHead = (
+        <PhoneHead>
+            <PhoneHeadName>
+                <IconTile><Instagram aria-hidden="true" /></IconTile>
+                <HeadTitle>{connected && connection?.username ? <Handle username={connection.username} /> : 'Instagram'}</HeadTitle>
+            </PhoneHeadName>
+            {(connected || status === 'ERROR') && (
+                <PhoneHeadBar>
+                    {connected
+                        ? <StatusPill $tone="ok">Połączone</StatusPill>
+                        : <StatusPill $tone="danger">Wymaga ponownego połączenia</StatusPill>}
+                    {connected && <Actions>{syncButton}{moreButton}</Actions>}
+                </PhoneHeadBar>
+            )}
+            {connected && (connection?.pageName || mine.data?.followers != null || synced) && (
+                <Meta>
+                    {connection?.pageName && <span>strona {connection.pageName}</span>}
+                    {mine.data?.followers != null && <span>{formatExact(mine.data.followers)} obserwujących</span>}
+                    {synced && <span>odświeżone {synced}</span>}
+                </Meta>
+            )}
+        </PhoneHead>
+    );
+
+    const head = !isDesktop ? phoneHead : (
         <CardHead>
             <AccountHead>
                 <IconTile><Instagram aria-hidden="true" /></IconTile>
@@ -97,17 +147,7 @@ export const InstagramAccountCard = ({ connection, isLoading }: Props) => {
                     </Meta>
                 </HeadText>
             </AccountHead>
-            {connected && (
-                <Actions>
-                    <Button variant="outline" size="sm" onClick={sync} disabled={actions.sync.isPending}>
-                        <RefreshCw aria-hidden="true" />
-                        {actions.sync.isPending ? 'Odświeżam…' : 'Odśwież'}
-                    </Button>
-                    <IconButton label="Więcej" size="sm" onClick={e => menu.toggle(e, null)}>
-                        <MoreHorizontal />
-                    </IconButton>
-                </Actions>
-            )}
+            {connected && <Actions>{syncButton}{moreButton}</Actions>}
         </CardHead>
     );
 

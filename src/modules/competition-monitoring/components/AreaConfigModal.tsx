@@ -13,6 +13,8 @@ import {
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
+import { Button, ui } from '@/common/components/ui';
+import { useBreakpoint } from '@/common/hooks';
 import type { AreaMatchMode, CatalogPhrase } from '../types';
 import {
     useAreaSettings,
@@ -21,6 +23,7 @@ import {
     useBlockedAdvertisers,
     useUnblockAdvertiser,
 } from '../hooks/useAreaDiscovery';
+import { PHONE } from '../utils/phone';
 
 /**
  * Ustawienia rejonu — jedno okno, jeden zestaw ustawień.
@@ -63,6 +66,17 @@ const SectionLabel = styled.h3`
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: ${st.textMuted};
+
+    /* Na telefonie tak samo jak nagłówki pól obok („Śledzone frazy") - szare
+       wersaliki 11 px jako jedyna rama sekcji są wycofane (CLAUDE.md §2). */
+    ${PHONE} {
+        margin-bottom: 4px;
+        font-size: 13px;
+        font-weight: 600;
+        text-transform: none;
+        letter-spacing: normal;
+        color: ${st.text};
+    }
 `;
 
 const Field = styled.div`
@@ -80,6 +94,8 @@ const FieldLabel = styled.label`
 const FieldHint = styled.span`
     font-weight: 400;
     color: ${st.textMuted};
+
+    ${PHONE} { color: ${ui.textMuted}; }
 `;
 
 const TagBox = styled.div`
@@ -93,6 +109,11 @@ const TagBox = styled.div`
     background: ${st.bgCard};
 
     &:focus-within { border-color: ${st.accentBlue}; }
+
+    ${PHONE} {
+        gap: 8px;
+        padding: 8px;
+    }
 `;
 
 const Tag = styled.span`
@@ -117,6 +138,45 @@ const Tag = styled.span`
         &:hover { opacity: 1; }
     }
     svg { width: 12px; height: 12px; }
+
+    /*
+     * Telefon: „×" ma 12 px i trafić w nie palcem to loteria, a chybienie w sąsiedni
+     * znacznik kasuje nie tę miejscowość. Krzyżyk dostaje własne koło 32 px, a cel
+     * rośnie do 44 px w pionie - w bok tylko o 4 px, czyli nie dalej niż odstęp
+     * do następnego znacznika.
+     */
+    ${PHONE} {
+        height: 36px;
+        padding: 0 2px 0 12px;
+        gap: 2px;
+        font-size: 13px;
+        background: ${ui.brandTint};
+        border: 1px solid ${ui.brandLineSoft};
+        color: ${ui.brandDeep};
+
+        button {
+            position: relative;
+            width: 32px;
+            height: 32px;
+            align-items: center;
+            justify-content: center;
+            border-radius: ${ui.radiusControl};
+            color: ${ui.brandInk};
+            opacity: 1;
+
+            &::after {
+                content: '';
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 40px;
+                height: 44px;
+                transform: translate(-50%, -50%);
+            }
+            &:active { background: ${ui.brandTintHover}; }
+        }
+        svg { width: 16px; height: 16px; }
+    }
 `;
 
 const TextInput = styled.input`
@@ -130,6 +190,12 @@ const TextInput = styled.input`
     color: ${st.text};
 
     &::placeholder { color: ${st.textMuted}; }
+
+    /* 16 px: przy mniejszym iOS powiększa stronę przy każdym dotknięciu pola. */
+    ${PHONE} {
+        min-height: 36px;
+        font-size: 16px;
+    }
 `;
 
 /** Lista miejscowości: Enter albo przecinek dodaje kolejną. */
@@ -145,6 +211,9 @@ const TagField = ({
     onChange: (values: string[]) => void;
 }) => {
     const [draft, setDraft] = useState('');
+    // Na telefonie znaczniki są większe i pole wpisywania spada do własnej linii;
+    // bez podpowiedzi wyglądało jak pusty kawałek ramki, a nie miejsce na kolejną nazwę.
+    const isDesktop = useBreakpoint('md');
 
     const commit = (raw: string) => {
         const value = raw.trim().replace(/,$/, '').trim();
@@ -166,7 +235,11 @@ const TagField = ({
                 ))}
                 <TextInput
                     value={draft}
-                    placeholder={values.length ? '' : placeholder}
+                    placeholder={values.length ? (isDesktop ? '' : 'Dodaj kolejną') : placeholder}
+                    aria-label="Dodaj miejscowość"
+                    autoCapitalize="words"
+                    autoCorrect="off"
+                    spellCheck={false}
                     onChange={e => (e.target.value.endsWith(',') ? commit(e.target.value) : setDraft(e.target.value))}
                     onKeyDown={e => {
                         if (e.key === 'Enter') { e.preventDefault(); commit(draft); }
@@ -199,6 +272,13 @@ const ModeBtn = styled.button<{ $active: boolean }>`
     transition: all ${st.transition};
 
     &:hover { border-color: ${st.borderHover}; }
+
+    ${PHONE} {
+        min-height: 44px;
+        color: ${p => (p.$active ? ui.brandDeep : ui.textSecondary)};
+        border-color: ${p => (p.$active ? ui.brandLine : ui.line)};
+        background: ${p => (p.$active ? ui.brandTint : ui.surface)};
+    }
 `;
 
 // ── Wybór fraz z katalogu ─────────────────────────────────────────────────────
@@ -221,6 +301,14 @@ const PhraseGroupName = styled.span`
     text-transform: uppercase;
     letter-spacing: 0.4px;
     color: ${st.textMuted};
+
+    ${PHONE} {
+        font-size: 13px;
+        font-weight: 600;
+        text-transform: none;
+        letter-spacing: normal;
+        color: ${ui.textSecondary};
+    }
 `;
 
 const GroupToggle = styled.button`
@@ -233,12 +321,24 @@ const GroupToggle = styled.button`
     cursor: pointer;
     white-space: nowrap;
     &:hover { text-decoration: underline; }
+
+    /* 11 px jasnego błękitu nie dało się ani przeczytać, ani trafić. Cel 44 px
+       przez padding z ujemnym marginesem, żeby nagłówek grupy nie urósł. */
+    ${PHONE} {
+        padding: 12px 0 12px 12px;
+        margin: -12px 0;
+        font-size: 13px;
+        font-weight: 600;
+        color: ${ui.brandInk};
+    }
 `;
 
 const PhraseGrid = styled.div`
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+
+    ${PHONE} { gap: 8px; }
 `;
 
 const PhraseChip = styled.button<{ $on: boolean }>`
@@ -260,12 +360,42 @@ const PhraseChip = styled.button<{ $on: boolean }>`
 
     &:hover { border-color: ${p => (p.$on ? st.accentBlue : st.borderHover)}; }
     svg { flex-shrink: 0; }
+
+    /*
+     * Telefon: 36 px wysokości i 8 px odstępu, a cel dotykowy dochodzi do 44 px przez
+     * ::after - wchodzi w odstęp do sąsiada w pionie, nie w samego sąsiada.
+     * Ciemniejszy tekst: jasny błękit i #94A3B8 na bieli nie trzymały kontrastu.
+     */
+    ${PHONE} {
+        position: relative;
+        min-height: 36px;
+        padding: 6px 12px;
+        border-color: ${p => (p.$on ? ui.brandLine : ui.line)};
+        background: ${p => (p.$on ? ui.brandTint : ui.surface)};
+        color: ${p => (p.$on ? ui.brandDeep : ui.textMuted)};
+
+        &::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 44px;
+            transform: translateY(-50%);
+        }
+    }
 `;
 
 const PhraseCount = styled.div`
     margin-top: 10px;
     font-size: ${st.fontXs};
     color: ${st.textMuted};
+
+    ${PHONE} {
+        margin-top: 12px;
+        font-size: 13px;
+        color: ${ui.textSecondary};
+    }
 `;
 
 /**
@@ -373,6 +503,10 @@ const BlockedName = styled.div`
         font-size: ${st.fontXs};
         color: ${st.textMuted};
     }
+
+    ${PHONE} {
+        span { font-size: 12px; color: ${ui.textMuted}; font-variant-numeric: tabular-nums; }
+    }
 `;
 
 const RowAction = styled.button`
@@ -392,6 +526,13 @@ const RowAction = styled.button`
     &:hover:not(:disabled) { border-color: ${st.borderHover}; color: ${st.text}; }
     &:disabled { opacity: 0.4; cursor: default; }
     svg { width: 15px; height: 15px; }
+
+    ${PHONE} {
+        width: 44px;
+        height: 44px;
+        border-radius: ${ui.radiusControl};
+        svg { width: 18px; height: 18px; }
+    }
 `;
 
 interface Props {
@@ -400,6 +541,7 @@ interface Props {
 }
 
 export const AreaConfigModal = ({ isOpen, onClose }: Props) => {
+    const isDesktop = useBreakpoint('md');
     const settingsQuery = useAreaSettings(isOpen);
     const catalogQuery = usePhraseCatalog(isOpen);
     const blocksQuery = useBlockedAdvertisers(isOpen);
@@ -520,15 +662,27 @@ export const AreaConfigModal = ({ isOpen, onClose }: Props) => {
             </ModalContent>
 
             <ModalFooter>
-                <SharedButton $variant="secondary" $size="sm" onClick={onClose}>Anuluj</SharedButton>
-                <SharedButton
-                    $variant="primary"
-                    $size="sm"
-                    onClick={handleSave}
-                    disabled={!canSave || saveMut.isPending}
-                >
-                    <Check size={15} /> Zapisz
-                </SharedButton>
+                {/* Na telefonie wspólne przyciski: 44 px pod palcem zamiast 29 px. */}
+                {isDesktop ? (
+                    <>
+                        <SharedButton $variant="secondary" $size="sm" onClick={onClose}>Anuluj</SharedButton>
+                        <SharedButton
+                            $variant="primary"
+                            $size="sm"
+                            onClick={handleSave}
+                            disabled={!canSave || saveMut.isPending}
+                        >
+                            <Check size={15} /> Zapisz
+                        </SharedButton>
+                    </>
+                ) : (
+                    <>
+                        <Button variant="outline" onClick={onClose}>Anuluj</Button>
+                        <Button variant="primary" onClick={handleSave} disabled={!canSave || saveMut.isPending}>
+                            <Check aria-hidden="true" /> Zapisz
+                        </Button>
+                    </>
+                )}
             </ModalFooter>
         </ModalShell>
     );

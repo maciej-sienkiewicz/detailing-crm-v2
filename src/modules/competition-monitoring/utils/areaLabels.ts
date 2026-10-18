@@ -83,6 +83,15 @@ export const activeAdsWord = (n: number): string => {
 };
 
 /**
+ * „kampania" / „kampanie" / „kampanii" — wiersz na telefonie mówi liczby słowami
+ * („2 kampanie"), bo nie ma tam nagłówka kolumn, który by je podpisał.
+ */
+export const campaignsWord = (n: number): string => {
+    if (n === 1) return 'kampania';
+    return fewForm(n) ? 'kampanie' : 'kampanii';
+};
+
+/**
  * Sklepy z kosmetykami i marki powłok to nie konkurencja studia - to dostawcy. Stoją
  * w osobnej, zwiniętej grupie, żeby lista „kto w okolicy walczy o moich klientów"
  * nie zaczynała się od nich. Nieocenione zostają przy usługach: lepiej pokazać

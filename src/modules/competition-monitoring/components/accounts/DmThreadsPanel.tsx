@@ -1,12 +1,15 @@
+import { useState } from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Panel, PanelBody, PanelHead, SectionTitle, StatusPill, ui } from '@/common/components/ui';
+import { useBreakpoint } from '@/common/hooks';
 import { pluralPl } from '@/common/utils/plural';
 import { useDmThreads } from '../../hooks/useAccounts';
 import type { DmThread } from '../../accountsTypes';
-import { replyDeadlineLabel, sinceLabel, sortThreads } from './accountsLogic';
-import { List, Loading, Meta, Muted, RowText, Snippet } from './accountsStyles';
+import { PHONE } from '../../utils/phone';
+import { replyDeadlineLabel, sinceLabel, sortThreads, splitUrgent } from './accountsLogic';
+import { List, Loading, Meta, Muted, RowText, Section, ShowMore, Snippet } from './accountsStyles';
 
 /**
  * Wiadomości z Instagrama. Odpisuje się w Leadach, bo rozmowa jest częścią zapytania -
@@ -14,6 +17,20 @@ import { List, Loading, Meta, Muted, RowText, Snippet } from './accountsStyles';
  */
 
 const MAX_ROWS = 8;
+/** Telefon, gdy nikt nie czeka: tyle najświeższych rozmów widać bez „Pokaż". */
+const PHONE_FALLBACK_ROWS = 3;
+
+/* Telefon: wiersz rozmowy płasko w panelu, oddzielony kreską listy (ramka w ramce
+   zjadała szerokość, a podgląd wiadomości i tak ucina się po jednej linii). */
+const phoneRow = `
+    ${PHONE} {
+        padding: 12px 0;
+        border: none;
+        border-radius: 0;
+
+        li:first-child > & { padding-top: 4px; }
+    }
+`;
 
 const ThreadLink = styled(Link)`
     display: flex;
@@ -30,6 +47,9 @@ const ThreadLink = styled(Link)`
     &:hover { border-color: ${ui.lineStrong}; }
     &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: 1px; }
     > svg { width: 16px; height: 16px; color: ${ui.textFaint}; flex-shrink: 0; }
+
+    ${phoneRow}
+    ${PHONE} { > svg { color: ${ui.textMuted}; } }
 `;
 
 const ThreadBox = styled.div`
@@ -40,6 +60,8 @@ const ThreadBox = styled.div`
     border: 1px solid ${ui.lineSoft};
     border-radius: ${ui.radiusRow};
     min-width: 0;
+
+    ${phoneRow}
 `;
 
 const who = (thread: DmThread) =>
@@ -72,7 +94,36 @@ const ThreadRow = ({ thread }: { thread: DmThread }) => {
     );
 };
 
+/**
+ * Telefon: rozmowy, w których klient czeka, od razu; reszta za „Pokaż". Na komputerze
+ * lista stoi w bocznej kolumnie i niczego nie odsuwa, więc widać wszystkie.
+ */
+const PhoneThreads = ({ threads }: { threads: DmThread[] }) => {
+    const [expanded, setExpanded] = useState(false);
+    const { shown, hidden } = splitUrgent(threads, thread => thread.awaitingReply, PHONE_FALLBACK_ROWS);
+    const visible = expanded ? [...shown, ...hidden] : shown;
+    const onlyWaiting = shown.every(thread => thread.awaitingReply);
+    return (
+        <Section>
+            <List>
+                {visible.map(thread => <ThreadRow key={thread.id} thread={thread} />)}
+            </List>
+            {hidden.length > 0 && (
+                <ShowMore type="button" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>
+                    {expanded
+                        ? 'Zwiń'
+                        : onlyWaiting
+                            ? `Pokaż pozostałe rozmowy (${hidden.length})`
+                            : `Pokaż wszystkie rozmowy (${threads.length})`}
+                    <ChevronDown aria-hidden="true" />
+                </ShowMore>
+            )}
+        </Section>
+    );
+};
+
 export const DmThreadsPanel = () => {
+    const isDesktop = useBreakpoint('md');
     const threads = useDmThreads(true);
     const sorted = sortThreads(threads.data ?? []);
     const waiting = sorted.filter(t => t.awaitingReply).length;
@@ -87,10 +138,12 @@ export const DmThreadsPanel = () => {
                     <Loading>Wczytuję…</Loading>
                 ) : sorted.length === 0 ? (
                     <Muted>Wiadomości z Instagrama pojawią się tutaj i w Leadach.</Muted>
-                ) : (
+                ) : isDesktop ? (
                     <List>
                         {sorted.slice(0, MAX_ROWS).map(thread => <ThreadRow key={thread.id} thread={thread} />)}
                     </List>
+                ) : (
+                    <PhoneThreads threads={sorted.slice(0, MAX_ROWS)} />
                 )}
             </PanelBody>
         </Panel>
