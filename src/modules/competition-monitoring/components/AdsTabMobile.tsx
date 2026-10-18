@@ -8,6 +8,7 @@ import { CenterState, formatExact } from './MetricBits';
 import { LinkFacebookPageModal } from './LinkFacebookPageModal';
 import { AreaSection } from './AreaSection';
 import { useProfileColors } from '../hooks/useProfileColors';
+import { useSuggestedPageLink } from '../hooks/useSuggestedPageLink';
 import { colorFor } from '../utils/profileColors';
 import {
     MONTH_ABBR,
@@ -202,6 +203,9 @@ const UnlinkedNotice: React.FC<{
     profiles: UnlinkedProfile[];
     onLink: (profile: UnlinkedProfile) => void;
 }> = ({ profiles, onLink }) => {
+    // Profil ze stroną znaną z „W okolicy" łączy się jednym dotknięciem, bez szukania.
+    const suggested = useSuggestedPageLink();
+    const pick = (profile: UnlinkedProfile) => (profile.suggestedPage ? suggested.connect(profile) : onLink(profile));
     const single = profiles.length === 1 ? profiles[0] : null;
     const many = profiles.length >= 3;
     const [expanded, setExpanded] = useState(!many);
@@ -214,14 +218,21 @@ const UnlinkedNotice: React.FC<{
                 action={
                     <Button
                         size="sm"
-                        onClick={() => onLink(single)}
-                        aria-label={`Wskaż stronę na Facebooku dla @${single.username}`}
+                        disabled={suggested.pendingId !== null}
+                        onClick={() => pick(single)}
+                        aria-label={single.suggestedPage
+                            ? `Połącz @${single.username} ze stroną ${single.suggestedPage.pageName}`
+                            : `Wskaż stronę na Facebooku dla @${single.username}`}
                     >
-                        <Link2 /> Wskaż stronę
+                        <Link2 /> {single.suggestedPage ? 'Połącz' : 'Wskaż stronę'}
                     </Button>
                 }
             >
-                <span>Wskaż stronę na Facebooku, a pokażemy jej reklamy.</span>
+                <span>
+                    {single.suggestedPage
+                        ? `W Twojej okolicy reklamuje się jako „${single.suggestedPage.pageName}”. Połącz, a pokażemy jej reklamy.`
+                        : 'Wskaż stronę na Facebooku, a pokażemy jej reklamy.'}
+                </span>
             </Notice>
         );
     }
@@ -238,8 +249,11 @@ const UnlinkedNotice: React.FC<{
                         <LinkButton
                             key={profile.profileId}
                             size="sm"
-                            onClick={() => onLink(profile)}
-                            aria-label={`Wskaż stronę na Facebooku dla @${profile.username}`}
+                            disabled={suggested.pendingId !== null}
+                            onClick={() => pick(profile)}
+                            aria-label={profile.suggestedPage
+                                ? `Połącz @${profile.username} ze stroną ${profile.suggestedPage.pageName}`
+                                : `Wskaż stronę na Facebooku dla @${profile.username}`}
                         >
                             <Link2 />
                             <span>@{profile.username}</span>

@@ -26,6 +26,7 @@ import {
     activeAdsWord, campaignsOf, campaignsWord, companiesWord, formatStartDay, noveltyBadge, splitByRelevance,
 } from '../utils/areaLabels';
 import { PHONE } from '../utils/phone';
+import { followMessage } from '../utils/followMessage';
 
 /**
  * „Reklamodawcy w okolicy" — kto jeszcze reklamuje się w moim rejonie.
@@ -317,10 +318,8 @@ const useFollowRow = (row: AdvertiserRow) => {
             onSuccess: result => {
                 // Nazwa z ODPOWIEDZI, nie z wiersza: pokazujemy to, co serwer
                 // faktycznie dodał, a nie to, co wyświetlaliśmy przed kliknięciem.
-                showSuccess(
-                    `@${result.username} dodany do obserwowanych`,
-                    'Czeka na zatwierdzenie. Dane pojawią się po najbliższym pobraniu.'
-                );
+                const message = followMessage(result);
+                showSuccess(message.title, message.body);
             },
             onError: (error: unknown) => {
                 const response = (error as { response?: { status?: number; data?: { message?: string } } })

@@ -11,6 +11,10 @@ import { AdsTabMobile } from './AdsTabMobile';
 
 vi.mock('../hooks/useProfileColors', () => ({ useProfileColors: () => new Map<string, string>() }));
 
+// Połączenie ze stroną z „W okolicy" idzie do serwera - tu liczy się tylko, KTÓRY profil łączymy.
+const connect = vi.fn();
+vi.mock('../hooks/useSuggestedPageLink', () => ({ useSuggestedPageLink: () => ({ connect, pendingId: null }) }));
+
 vi.mock('./LinkFacebookPageModal', () => ({
     LinkFacebookPageModal: ({ username }: { username: string }) => <div role="dialog">Strona dla @{username}</div>,
 }));
@@ -77,6 +81,17 @@ describe('Reklamy na telefonie', () => {
         expect(screen.getByRole('dialog').textContent).toContain('@autospa_ursynow');
         // Ikona „wyjścia z aplikacji" przy przycisku, który otwiera okno w aplikacji, to fałszywa obietnica.
         expect(container.querySelector('.lucide-external-link')).toBeNull();
+    });
+
+    it('profil, którego strona jest znana z „W okolicy", łączy się jednym dotknięciem, bez okna', () => {
+        const profile = { profileId: 'a', username: 'dbtuning.pl', suggestedPage: { pageId: '100', pageName: 'DB Tuning' } };
+        renderTab(calendar({ unlinked: [profile] }));
+
+        expect(screen.getByText(/W Twojej okolicy reklamuje się jako „DB Tuning”/)).toBeTruthy();
+        fireEvent.click(screen.getByRole('button', { name: 'Połącz @dbtuning.pl ze stroną DB Tuning' }));
+
+        expect(connect).toHaveBeenCalledWith(profile);
+        expect(screen.queryByRole('dialog')).toBeNull();
     });
 
     it('nowe studio bez podpiętych stron widzi, co ta zakładka pokaże', () => {

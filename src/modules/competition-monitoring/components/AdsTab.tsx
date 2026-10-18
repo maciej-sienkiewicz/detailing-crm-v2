@@ -10,6 +10,7 @@ import { LinkFacebookPageModal } from './LinkFacebookPageModal';
 import { AdsTabMobile } from './AdsTabMobile';
 import { AreaSection } from './AreaSection';
 import { useProfileColors } from '../hooks/useProfileColors';
+import { useSuggestedPageLink } from '../hooks/useSuggestedPageLink';
 import { colorFor } from '../utils/profileColors';
 import {
     Table, Th, Td, Row, NameCell, NameText, MetaWarn, NumLive, NumQuiet,
@@ -120,8 +121,24 @@ const Unlinked = styled.div`
     strong { font-weight: 700; }
 `;
 
-const LinkBtn = styled.button`
+/** Połączenie ze stroną z „W okolicy" - odcień z obwódką, bez wypełnienia (CLAUDE.md §2). */
+const SuggestBtn = styled.button`
     margin-left: auto;
+    padding: 5px 12px;
+    border: 1px solid #f59e0b;
+    border-radius: 999px;
+    background: #ffffff;
+    font-family: inherit;
+    font-size: ${st.fontSm};
+    font-weight: 700;
+    color: #b45309;
+    cursor: pointer;
+
+    &:disabled { opacity: 0.6; cursor: default; }
+`;
+
+const LinkBtn = styled.button<{ $after?: boolean }>`
+    margin-left: ${p => (p.$after ? '0' : 'auto')};
     border: none;
     background: none;
     padding: 0;
@@ -381,6 +398,7 @@ export const AdsTab: React.FC<Props> = (props) => {
 
 const AdsTabDesktop: React.FC<Props> = ({ calendar, onOpenAd, showArea = true }) => {
     const profileColors = useProfileColors();
+    const suggested = useSuggestedPageLink();
     const [linking, setLinking] = useState<
         { profileId: string; username: string; pageId?: string | null } | null
     >(null);
@@ -450,15 +468,32 @@ const AdsTabDesktop: React.FC<Props> = ({ calendar, onOpenAd, showArea = true })
 
                 {calendar.unlinked.map(profile => (
                     <Unlinked key={profile.profileId}>
-                        <span>
-                            <strong>@{profile.username}</strong> — profil nie jest połączony ze stroną na
-                            Facebooku, więc nie wiemy, czy się reklamuje
-                        </span>
+                        {profile.suggestedPage ? (
+                            <span>
+                                <strong>@{profile.username}</strong> nie jest połączony ze stroną na Facebooku,
+                                a w Twojej okolicy reklamuje się jako „{profile.suggestedPage.pageName}”
+                            </span>
+                        ) : (
+                            <span>
+                                <strong>@{profile.username}</strong> — profil nie jest połączony ze stroną na
+                                Facebooku, więc nie wiemy, czy się reklamuje
+                            </span>
+                        )}
+                        {profile.suggestedPage && (
+                            <SuggestBtn
+                                type="button"
+                                disabled={suggested.pendingId !== null}
+                                onClick={() => suggested.connect(profile)}
+                            >
+                                {suggested.pendingId === profile.profileId ? 'Łączę…' : 'Połącz z tą stroną'}
+                            </SuggestBtn>
+                        )}
                         <LinkBtn
                             type="button"
+                            $after={Boolean(profile.suggestedPage)}
                             onClick={() => setLinking({ profileId: profile.profileId, username: profile.username })}
                         >
-                            Wskaż stronę FB
+                            {profile.suggestedPage ? 'Wskaż inną' : 'Wskaż stronę FB'}
                         </LinkBtn>
                     </Unlinked>
                 ))}

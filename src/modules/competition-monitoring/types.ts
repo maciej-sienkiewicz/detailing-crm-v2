@@ -294,6 +294,11 @@ export interface PageCandidate {
 export interface UnlinkedProfile {
     profileId: string;
     username: string;
+    /**
+     * Strona z „W okolicy", pod którą ten profil się reklamuje - wtedy wystarczy jedno
+     * kliknięcie zamiast szukania. Brak, gdy w rejonie studia jej nie ma.
+     */
+    suggestedPage?: { pageId: string; pageName: string } | null;
 }
 
 export interface AdCalendar {
@@ -383,6 +388,10 @@ export interface FollowedAdvertiser {
     username: string;
     /** PENDING_APPROVAL zaraz po dodaniu - tak samo jak przy ręcznym wpisaniu nazwy. */
     status: InstagramProfileStatus;
+    /** Strona reklamodawcy z „W okolicy" przypisana do profilu - „Reklamy" nie pytają o nią. */
+    facebookPageLinked?: boolean;
+    /** Ile reklam pobrano od razu; brak, gdy pobrania nie było. */
+    adsFound?: number | null;
 }
 
 export interface AdvertiserRow {

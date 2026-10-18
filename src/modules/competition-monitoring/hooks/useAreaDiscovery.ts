@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { instagramApi } from '../api/instagramApi';
 import { INSTAGRAM_PROFILES_KEY } from './useInstagramProfiles';
+import { ADS_KEYS } from './useAds';
 import type { SaveAreaSettings } from '../types';
 
 /**
@@ -67,6 +68,9 @@ export const useFollowAdvertiser = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [INSTAGRAM_PROFILES_KEY] });
             queryClient.invalidateQueries({ queryKey: [AREA_KEYS.results] });
+            // „Obserwuj" przypina też stronę na Facebooku i pobiera reklamy - kalendarz reklam
+            // ma pokazać profil od razu, a nie jako „nie jest połączony ze stroną".
+            queryClient.invalidateQueries({ queryKey: [ADS_KEYS.calendar] });
         },
     });
 };
