@@ -20,6 +20,7 @@ import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import {
     Archive,
+    BellRing,
     CalendarCheck,
     CalendarPlus,
     ChevronRight,
@@ -57,6 +58,8 @@ import type { Lead, LeadStatus } from '../types';
 import { leadToBookingPrefill } from '../utils/bookingPrefill';
 import { leadEmail, leadPhoneNumber } from '../utils/leadPrimaryAction';
 import { describeLeadUrgency } from '../utils/leadUrgency';
+import { boardColumnOf, canRemindByMail } from '../utils/leadBoard';
+import { LeadReminderDialog } from '../components/LeadReminderDialog';
 import { ReplyComposer } from '../components/ReplyComposer';
 import type { GalleryPickerContext } from '../components/GalleryPhotoPicker';
 import { LeadQuoteEditor } from '../components/LeadQuoteEditor';
@@ -156,7 +159,18 @@ const Muted = styled.p`
 `;
 
 const stepIcon = (step: CaseStep) =>
-    step.kind === 'CALL' ? <Phone /> : step.kind === 'APPOINTMENT' ? <CalendarCheck /> : step.kind === 'BOOK' ? <CalendarPlus /> : <Send />;
+    step.kind === 'CALL' ? <Phone />
+        : step.kind === 'APPOINTMENT' ? <CalendarCheck />
+        : step.kind === 'BOOK' ? <CalendarPlus />
+        : step.kind === 'REMIND' ? <BellRing />
+        : <Send />;
+
+/**
+ * Sprawa w „Wymaga przypomnienia" (3 dni ciszy klienta, bez przypomnienia - leadBoard.ts):
+ * krokiem następnym jest przypomnienie, nie umówienie wizyty. Ta sama reguła co na tablicy,
+ * więc podgląd sprawy z listy i z tablicy proponuje to samo. „Umów wizytę" zostaje w menu „⋯".
+ */
+const REMIND_STEP: CaseStep = { kind: 'REMIND', title: 'Przypomnij się', hint: 'Asystent przygotuje treść' };
 
 interface CaseDetailProps {
     leadId: string;
@@ -236,7 +250,9 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
     const attachmentPreview = useAttachmentPreview(commsApi.downloadAttachment);
 
     const urgency = useMemo(() => (lead ? describeLeadUrgency(lead, thresholds) : null), [lead, thresholds]);
-    const step: CaseStep | null = lead && urgency ? caseNextStep(lead, urgency) : null;
+    const remindable = Boolean(lead && urgency && canRemindByMail(lead) && boardColumnOf(lead, urgency) === 'NEEDS_REMINDER');
+    const step: CaseStep | null = lead && urgency ? (remindable ? REMIND_STEP : caseNextStep(lead, urgency)) : null;
+    const [reminding, setReminding] = useState(false);
 
     const galleryContext: GalleryPickerContext | undefined = can('VISITS_VIEW')
         ? {
@@ -318,7 +334,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                 hint={step.hint}
                 href={step.href}
                 disabled={acceptAllSuggestions.isPending}
-                onClick={step.kind === 'BOOK' ? openBooking : step.kind === 'APPOINTMENT' ? openAppointment : undefined}
+                onClick={step.kind === 'BOOK' ? openBooking : step.kind === 'APPOINTMENT' ? openAppointment : step.kind === 'REMIND' ? () => { setSheetOpen(false); setReminding(true); } : undefined}
             />
         );
 
@@ -536,6 +552,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                 />
             )}
             {status.lostDialog}
+            {reminding && <LeadReminderDialog leads={[lead]} onClose={() => setReminding(false)} />}
             {callbackOpen && <RecordCallbackDialog leadId={lead.id} onClose={() => setCallbackOpen(false)} />}
             <ConfirmationModal
                 isOpen={deleteStep === 'confirm'}

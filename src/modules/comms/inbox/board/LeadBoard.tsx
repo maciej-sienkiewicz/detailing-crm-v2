@@ -1,10 +1,10 @@
 // src/modules/comms/inbox/board/LeadBoard.tsx
 // Tablica spraw - drugi, równoległy widok zakładki „Sprawy" (obok listy).
 //
-// Pięć kolumn: Oczekuje na odpowiedź, Odpowiedzieliśmy, Ucichło, Wymaga przypomnienia,
-// Zakończono. Która sprawa gdzie stoi i co znaczy przeciągnięcie - utils/leadBoard.ts.
-// Tu jest wyłącznie widok: kolumny, karty, miejsce robione karcie w ręce i pytanie
-// o wynik przy zamknięciu.
+// Cztery kolumny: Oczekuje na odpowiedź, Odpowiedzieliśmy, Wymaga przypomnienia, Utrata.
+// Która sprawa gdzie stoi i co znaczy przeciągnięcie - utils/leadBoard.ts. Tu jest
+// wyłącznie widok: kolumny, karty, miejsce robione karcie w ręce i „Przypomnij"
+// w kolumnie, która o to prosi.
 //
 // Podgląd w trakcie przeciągania liczy CAŁĄ tablicę z kartą przesuniętą „na próbę" -
 // tą samą funkcją, którą potem zapisujemy przesunięcie. Miejsce dla karty otwiera się
@@ -12,19 +12,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { css, keyframes } from 'styled-components';
-import { Archive, ArrowRight } from 'lucide-react';
+import { ArrowRight, BellRing } from 'lucide-react';
 import { matchesSearch } from '@/common/utils/textSearch';
 import { pluralPl } from '@/common/utils/plural';
 import { useToast } from '@/common/components/Toast';
-import { ChoiceModal } from '@/common/components/ConfirmationModal';
 import { ActionMenu, MenuItem, useActionMenu } from '@/common/components/ui';
-import { useChangeLeadStatus, useMoveLeadOnBoard, usePatchLeadCache, useStagnationThresholds } from '../../hooks/useLeads';
-import { LeadLostReasonDialog } from '../../components/LeadLostReasonDialog';
+import { useMoveLeadOnBoard, useStagnationThresholds } from '../../hooks/useLeads';
+import { LeadReminderDialog } from '../../components/LeadReminderDialog';
 import type { Lead } from '../../types';
 import {
     BOARD_COLUMNS,
     boardColumnMeta,
     buildBoard,
+    canRemindByMail,
     leadAfterMove,
     planBoardMove,
     type BoardCard,
@@ -134,24 +134,31 @@ const Empty = styled.p`
     text-align: center;
 `;
 
-const LaneFoot = styled.button`
+/**
+ * „Przypomnij" w nagłówku kolumny, która o to prosi. W odcieniu kolumny, bez wypełnienia:
+ * na tablicy nic nie jest wypełnione, a wypełnienie dostaje dopiero „Wyślij" w oknie
+ * przypomnień - tam, gdzie zapada decyzja (CLAUDE.md §2).
+ */
+const RemindButton = styled.button<{ $tint: string; $ink: string; $line: string }>`
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    margin: 0 10px 12px;
-    padding: 9px 12px;
-    border: none;
+    margin: 0 10px 10px;
+    padding: 8px 12px;
+    border: 1px solid ${p => p.$line};
     border-radius: 12px;
-    background: transparent;
+    background: ${p => p.$tint};
     font-family: inherit;
     font-size: 13px;
     font-weight: 600;
-    color: ${ix.text2};
+    color: ${p => p.$ink};
     cursor: pointer;
+    transition: transform 160ms ${EASE_SPRING}, box-shadow 160ms ${EASE_SPRING};
 
     svg { width: 14px; height: 14px; }
-    &:hover { background: rgba(15, 23, 42, 0.05); color: ${ix.ink}; }
+    &:hover { box-shadow: 0 6px 16px -10px ${p => p.$ink}; transform: translateY(-1px); }
+    &:active { transform: scale(0.98); }
     &:focus-visible { outline: 2px solid ${ix.accent}; outline-offset: 2px; }
 `;
 
@@ -245,18 +252,15 @@ interface LeadBoardProps {
     /** Sprawa otwarta w oknie - jej karta „staje się" oknem, więc na tablicy jej nie ma. */
     hiddenId: string | null;
     onOpen: (leadId: string, from: DOMRect) => void;
-    onShowArchive: () => void;
 }
 
-export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, onOpen, onShowArchive }: LeadBoardProps) {
+export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, onOpen }: LeadBoardProps) {
     const { showError } = useToast();
     const thresholds = useStagnationThresholds();
     const now = useMinuteClock();
     const boardRef = useRef<HTMLDivElement>(null);
     const overlayRef = useRef<HTMLDivElement>(null);
     const moveOnBoard = useMoveLeadOnBoard();
-    const changeStatus = useChangeLeadStatus();
-    const patchCache = usePatchLeadCache();
     const moveMenu = useActionMenu<BoardCard>();
 
     /*
@@ -273,8 +277,8 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
         return next;
     }), []);
 
-    const [closing, setClosing] = useState<{ card: BoardCard; optimistic: Lead } | null>(null);
-    const [lostFor, setLostFor] = useState<{ card: BoardCard; optimistic: Lead } | null>(null);
+    /** Sprawy w oknie „Przypomnij się"; null - okno zamknięte. */
+    const [reminding, setReminding] = useState<Lead[] | null>(null);
     const [announcement, setAnnouncement] = useState('');
 
     const base = useMemo(() => {
@@ -286,14 +290,10 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
     const cards = useMemo(() => new Map(board.flatMap((column) => column.cards).map((card) => [card.lead.id, card])), [board]);
 
     const commit = useCallback((card: BoardCard, to: BoardColumnKey) => {
-        const move = planBoardMove(card, to);
+        const move = planBoardMove(card, to, Date.now());
         if (move.kind === 'NONE') return;
         const optimistic = leadAfterMove(card.lead, move, new Date().toISOString());
         hold(optimistic);
-        if (move.kind === 'CLOSE') {
-            setClosing({ card, optimistic });
-            return;
-        }
         setAnnouncement(`${caseTitle(card.lead)}: ${boardColumnMeta(to).title}`);
         moveOnBoard.mutate(
             { leadId: card.lead.id, stage: move.stage, optimistic },
@@ -321,7 +321,7 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
         if (!session) return board;
         const card = cards.get(session.id);
         if (!card) return board;
-        const moved = leadAfterMove(card.lead, planBoardMove(card, session.over ?? session.from), new Date().toISOString());
+        const moved = leadAfterMove(card.lead, planBoardMove(card, session.over ?? session.from, now), new Date().toISOString());
         return buildBoard(base.map((lead) => (lead.id === moved.id ? moved : lead)), thresholds, now);
     }, [session, board, cards, base, thresholds, now]);
 
@@ -365,38 +365,6 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
             inline: 'center',
             block: 'nearest',
         });
-    };
-
-    // ── Zamykanie sprawy upuszczonej w „Zakończono" ──────────────────────────
-    const cancelClose = () => {
-        if (closing) release(closing.card.lead.id);
-        setClosing(null);
-    };
-    const closeAsCompleted = () => {
-        if (!closing) return;
-        const { card, optimistic } = closing;
-        setClosing(null);
-        patchCache(optimistic);
-        setAnnouncement(`${caseTitle(card.lead)}: zrealizowana`);
-        changeStatus.mutate(
-            { leadId: card.lead.id, status: 'COMPLETED' },
-            {
-                onError: (error) => {
-                    patchCache(card.lead);
-                    const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
-                    showError('Nie udało się zamknąć sprawy', message);
-                },
-                onSettled: () => release(card.lead.id),
-            }
-        );
-    };
-    const closeAsLost = () => {
-        if (!closing) return;
-        const lost: Lead = { ...closing.optimistic, status: 'LOST' };
-        // Karta czekająca na powód mówi już „Przegrana", a nie „Zrealizowana" z podglądu.
-        hold(lost);
-        setLostFor({ card: closing.card, optimistic: lost });
-        setClosing(null);
     };
 
     // ── Klawiatura i menu „Przenieś do" - przeciąganie nie może być jedyną drogą ──
@@ -462,6 +430,19 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
                             {column.showsValue && column.value > 0 && (
                                 <LaneValue>{formatAmount(column.value)} w wycenach</LaneValue>
                             )}
+                            {column.key === 'NEEDS_REMINDER' && column.cards.some((card) => canRemindByMail(card.lead)) && (
+                                <RemindButton
+                                    type="button"
+                                    $tint="#ffffff"
+                                    $ink={column.tone.ink}
+                                    $line={`${column.tone.dot}66`}
+                                    disabled={Boolean(session)}
+                                    onClick={() => setReminding(column.cards.map((card) => card.lead))}
+                                >
+                                    <BellRing aria-hidden="true" />
+                                    Przypomnij ({column.cards.filter((card) => canRemindByMail(card.lead)).length})
+                                </RemindButton>
+                            )}
                             <LaneBody data-board-scroll={column.key}>
                                 {loading && total === 0 ? (
                                     <>
@@ -487,7 +468,6 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
                                             <BoardCardView
                                                 key={card.lead.id}
                                                 card={card}
-                                                now={now}
                                                 data-flip={card.lead.id}
                                                 role="button"
                                                 tabIndex={0}
@@ -505,11 +485,7 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
                                     )
                                 )}
                             </LaneBody>
-                            {column.key === 'DONE' && (
-                                <LaneFoot type="button" onClick={onShowArchive}>
-                                    <Archive aria-hidden="true" /> Wszystkie zamknięte sprawy
-                                </LaneFoot>
-                            )}
+
                         </Lane>
                     );
                 })}
@@ -522,7 +498,7 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
 
             {session && draggedCard && createPortal(
                 <DragLayer ref={overlayRef} $width={session.width} data-lifted="false" aria-hidden="true">
-                    <BoardCardView card={draggedCard} now={now} />
+                    <BoardCardView card={draggedCard} />
                 </DragLayer>,
                 document.body
             )}
@@ -543,28 +519,7 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
                 ))}
             </ActionMenu>
 
-            <ChoiceModal
-                isOpen={closing !== null}
-                title="Wynik sprawy"
-                message={closing ? `Jak skończyła się sprawa ${caseTitle(closing.card.lead)}? Przy przegranej zapytamy jeszcze o powód.` : ''}
-                variant="info"
-                primaryText="Zrealizowana"
-                onPrimary={closeAsCompleted}
-                secondaryText="Przegrana"
-                onSecondary={closeAsLost}
-                onDismiss={cancelClose}
-            />
-            {lostFor && (
-                <LeadLostReasonDialog
-                    key={lostFor.card.lead.id}
-                    leadId={lostFor.card.lead.id}
-                    onSaved={() => patchCache(lostFor.optimistic)}
-                    onClose={() => {
-                        release(lostFor.card.lead.id);
-                        setLostFor(null);
-                    }}
-                />
-            )}
+            {reminding && <LeadReminderDialog leads={reminding} onClose={() => setReminding(null)} />}
         </>
     );
 }

@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { Lead } from '../types';
-import { DEFAULT_STAGNATION } from './leadUrgency';
+import { DEFAULT_STAGNATION, describeLeadUrgency } from './leadUrgency';
 import {
-    boardColumnOf,
     buildBoard,
+    canRemindByMail,
     leadAfterMove,
+    leadAfterReminder,
     manualStageInForce,
     planBoardMove,
     type BoardColumnKey,
@@ -12,7 +13,7 @@ import {
 
 const HOUR = 3_600_000;
 const DAY = 86_400_000;
-const NOW = Date.parse('2026-10-18T12:00:00Z');
+const NOW = Date.parse('2026-10-19T12:00:00Z');
 const ago = (ms: number) => new Date(NOW - ms).toISOString();
 
 const lead = (overrides: Partial<Lead> = {}): Lead => ({
@@ -47,61 +48,106 @@ const lead = (overrides: Partial<Lead> = {}): Lead => ({
     owedSince: null,
     owedNote: null,
     closedAt: null,
-    createdAt: ago(3 * DAY),
+    createdAt: ago(30 * DAY),
     updatedAt: ago(2 * HOUR),
     ...overrides,
 });
 
-/** My napisaliśmy ostatni - ruch jest u klienta od `daysAgo`. */
-const waitingOnClient = (daysAgo: number, overrides: Partial<Lead> = {}) =>
+/** Odpisaliśmy `days` dni temu, klient milczy. */
+const replied = (days: number, overrides: Partial<Lead> = {}) =>
     lead({
         replyState: 'AWAITING_CLIENT_REPLY',
-        waitingSince: ago(daysAgo * DAY),
-        lastInboundAt: ago((daysAgo + 1) * DAY),
-        lastOutboundAt: ago(daysAgo * DAY),
-        firstResponseAt: ago((daysAgo + 1) * DAY),
+        waitingSince: ago(days * DAY),
+        lastInboundAt: ago((days + 1) * DAY),
+        lastOutboundAt: ago(days * DAY),
+        firstResponseAt: ago((days + 1) * DAY),
         ...overrides,
     });
 
-const columnOf = (item: Lead): BoardColumnKey => {
-    const board = buildBoard([item], DEFAULT_STAGNATION, NOW);
-    return board.find((column) => column.cards.some((card) => card.lead.id === item.id))!.key;
-};
+/** Odpowiedź `answeredDays` temu, przypomnienie `remindedDays` temu, klient dalej milczy. */
+const reminded = (answeredDays: number, remindedDays: number, overrides: Partial<Lead> = {}) =>
+    replied(answeredDays, { lastOutboundAt: ago(remindedDays * DAY), lastReminderAt: ago(remindedDays * DAY - 60_000), ...overrides });
+
+const columnOf = (item: Lead, now = NOW): BoardColumnKey | null =>
+    buildBoard([item], DEFAULT_STAGNATION, now).find((column) => column.cards.some((card) => card.lead.id === item.id))?.key ?? null;
 
 const cardOf = (item: Lead) =>
     buildBoard([item], DEFAULT_STAGNATION, NOW).flatMap((column) => column.cards).find((card) => card.lead.id === item.id)!;
 
-describe('kolumny z faktów', () => {
-    it('klient napisał ostatni - Oczekuje na odpowiedź', () => {
+describe('przepływ sprawy przez tablicę', () => {
+    it('klient napisał - Oczekuje na odpowiedź', () => {
         expect(columnOf(lead())).toBe('AWAITING_REPLY');
     });
 
-    it('odpisaliśmy niedawno - Odpowiedzieliśmy', () => {
-        expect(columnOf(waitingOnClient(1))).toBe('REPLIED');
+    it('odpisaliśmy - Odpowiedzieliśmy', () => {
+        expect(columnOf(replied(0.1))).toBe('REPLIED');
+        expect(columnOf(replied(2.9))).toBe('REPLIED');
     });
 
-    it('cisza klienta po progu studia - Ucichło', () => {
-        expect(columnOf(waitingOnClient(6))).toBe('SILENT');
+    it('klient dopytuje - znowu Oczekuje na odpowiedź', () => {
+        expect(columnOf(lead({ lastOutboundAt: ago(DAY), firstResponseAt: ago(2 * DAY), waitingSince: ago(HOUR), lastInboundAt: ago(HOUR) }))).toBe('AWAITING_REPLY');
     });
 
-    it('rezerwacja w kalendarzu - Zakończono, chyba że klient napisał po niej', () => {
-        expect(columnOf(waitingOnClient(1, { appointmentId: 'apt-1', status: 'CONFIRMED' }))).toBe('DONE');
-        expect(columnOf(lead({ appointmentId: 'apt-1', status: 'CONFIRMED' }))).toBe('AWAITING_REPLY');
+    it('po 3 dniach ciszy - Wymaga przypomnienia', () => {
+        expect(columnOf(replied(3))).toBe('NEEDS_REMINDER');
+        expect(columnOf(replied(9.9))).toBe('NEEDS_REMINDER');
     });
 
-    it('sprawa zamknięta - Zakończono, ale tylko przez 30 dni', () => {
-        const recent = lead({ status: 'LOST', closedAt: ago(3 * DAY) });
-        const old = lead({ status: 'COMPLETED', closedAt: ago(45 * DAY) });
-        const board = buildBoard([recent, old], DEFAULT_STAGNATION, NOW);
-        const done = board.find((column) => column.key === 'DONE')!;
-        expect(done.cards.map((card) => card.lead.id)).toEqual([recent.id]);
+    it('przypomnieliśmy się - Odpowiedzieliśmy z plakietką przypomnienia', () => {
+        const item = reminded(5, 0.1);
+        expect(columnOf(item)).toBe('REPLIED');
+        expect(cardOf(item).silence?.reminded).toBe(true);
+    });
+
+    it('po przypomnieniu nie prosi o drugie - Utrata dopiero 10 dni po przypomnieniu', () => {
+        expect(columnOf(reminded(9, 6))).toBe('REPLIED');
+        expect(columnOf(reminded(15, 9.9))).toBe('REPLIED');
+        expect(columnOf(reminded(15, 10.01))).toBe('LAPSED');
+    });
+
+    it('bez przypomnienia - Utrata po 10 dniach od odpowiedzi', () => {
+        expect(columnOf(replied(10))).toBe('LAPSED');
+        expect(columnOf(replied(19.9))).toBe('LAPSED');
+    });
+
+    it('po 10 kolejnych dniach karta znika z tablicy', () => {
+        expect(columnOf(replied(20))).toBeNull();
+        expect(columnOf(reminded(30, 20.01))).toBeNull();
+    });
+
+    it('Utrata mówi, za ile karta zniknie', () => {
+        expect(cardOf(replied(14)).vanishesInMs).toBe(6 * DAY);
+    });
+
+    it('klient odpisał po przypomnieniu - Oczekuje, a przypomnienie przestaje liczyć się jako ostatnie słowo', () => {
+        const item = reminded(8, 4, { replyState: 'AWAITING_OUR_REPLY', lastInboundAt: ago(HOUR), waitingSince: ago(HOUR) });
+        expect(columnOf(item)).toBe('AWAITING_REPLY');
+    });
+
+    it('ręczna wiadomość długo po przypomnieniu zaczyna nową ciszę bez plakietki', () => {
+        const item = reminded(12, 8, { lastOutboundAt: ago(4 * DAY) });
+        expect(columnOf(item)).toBe('NEEDS_REMINDER');
+        expect(cardOf(item).silence?.reminded).toBe(false);
+    });
+
+    it('sprawa zamknięta i sprawa z rezerwacją schodzą z tablicy', () => {
+        expect(columnOf(replied(1, { status: 'LOST', closedAt: ago(HOUR) }))).toBeNull();
+        expect(columnOf(replied(1, { status: 'CONFIRMED', appointmentId: 'apt-1' }))).toBeNull();
+        // ...chyba że klient napisał po rezerwacji.
+        expect(columnOf(lead({ status: 'CONFIRMED', appointmentId: 'apt-1' }))).toBe('AWAITING_REPLY');
+    });
+
+    it('sprawa z telefonu bez maila liczy ciszę od odnotowanego kontaktu', () => {
+        const phone = lead({ source: 'PHONE', threadId: null, replyState: 'NO_CONVERSATION', waitingSince: null, lastInboundAt: null, firstResponseAt: ago(4 * DAY) });
+        expect(columnOf(phone)).toBe('NEEDS_REMINDER');
+        expect(canRemindByMail(phone)).toBe(false);
     });
 });
 
 describe('ręczne położenie', () => {
     it('obowiązuje, dopóki w rozmowie nie zdarzy się nic nowego', () => {
-        const item = waitingOnClient(1, { boardStage: 'NEEDS_REMINDER', boardStageAt: ago(HOUR) });
-        expect(columnOf(item)).toBe('NEEDS_REMINDER');
+        const item = replied(1, { boardStage: 'LAPSED', boardStageAt: ago(HOUR) });
+        expect(columnOf(item)).toBe('LAPSED');
         expect(cardOf(item).manual).toBe(true);
     });
 
@@ -111,49 +157,32 @@ describe('ręczne położenie', () => {
         expect(columnOf(item)).toBe('AWAITING_REPLY');
     });
 
-    it('nasza wiadomość i zgłoszony dług też są faktem', () => {
-        const replied = lead({ boardStage: 'SILENT', boardStageAt: ago(5 * HOUR), lastOutboundAt: ago(HOUR) });
-        const owed = waitingOnClient(1, { boardStage: 'REPLIED', boardStageAt: ago(5 * HOUR), owedSince: ago(HOUR) });
-        expect(manualStageInForce(replied)).toBeNull();
-        expect(manualStageInForce(owed)).toBeNull();
+    it('wysłane przypomnienie też jest faktem', () => {
+        const item = replied(4, { boardStage: 'LAPSED', boardStageAt: ago(DAY) });
+        const after = leadAfterReminder(item, new Date(NOW).toISOString());
+        expect(manualStageInForce(after)).toBeNull();
+        expect(columnOf(after)).toBe('REPLIED');
+        expect(cardOf(after).silence?.reminded).toBe(true);
     });
 
-    it('status bije położenie - zamknięta sprawa jest w Zakończono', () => {
-        const item = lead({ status: 'LOST', closedAt: ago(HOUR), boardStage: 'SILENT', boardStageAt: ago(30 * 60_000) });
-        expect(columnOf(item)).toBe('DONE');
-    });
-
-    it('położenie zgodne z faktami nie jest oznaczone jako ręczne', () => {
-        const item = lead({ boardStage: 'AWAITING_REPLY', boardStageAt: ago(HOUR) });
-        expect(cardOf(item).manual).toBe(false);
+    it('ręcznie odłożona Utrata znika po 10 dniach od przesunięcia', () => {
+        const item = replied(11, { boardStage: 'LAPSED', boardStageAt: ago(10 * DAY) });
+        expect(columnOf(item, NOW)).toBeNull();
     });
 });
 
 describe('przeciągnięcie', () => {
     it('ta sama kolumna niczego nie zmienia', () => {
-        expect(planBoardMove(cardOf(lead()), 'AWAITING_REPLY')).toEqual({ kind: 'NONE' });
+        expect(planBoardMove(cardOf(lead()), 'AWAITING_REPLY', NOW)).toEqual({ kind: 'NONE' });
     });
 
     it('do kolumny innej niż z faktów - zapis położenia', () => {
-        expect(planBoardMove(cardOf(waitingOnClient(1)), 'NEEDS_REMINDER')).toEqual({ kind: 'STAGE', stage: 'NEEDS_REMINDER' });
+        expect(planBoardMove(cardOf(replied(1)), 'LAPSED', NOW)).toEqual({ kind: 'STAGE', stage: 'LAPSED' });
     });
 
     it('z powrotem do kolumny z faktów - zdjęcie decyzji, nie przypięcie', () => {
-        const item = waitingOnClient(1, { boardStage: 'NEEDS_REMINDER', boardStageAt: ago(HOUR) });
-        expect(planBoardMove(cardOf(item), 'REPLIED')).toEqual({ kind: 'STAGE', stage: null });
-    });
-
-    it('do Zakończono otwartej sprawy - pytanie o wynik', () => {
-        expect(planBoardMove(cardOf(waitingOnClient(6)), 'DONE')).toEqual({ kind: 'CLOSE' });
-    });
-
-    it('z Zakończono - zapis położenia, serwer otwiera sprawę ponownie', () => {
-        const item = lead({ status: 'LOST', closedAt: ago(DAY) });
-        const move = planBoardMove(cardOf(item), 'REPLIED');
-        expect(move).toEqual({ kind: 'STAGE', stage: 'REPLIED' });
-        const after = leadAfterMove(item, move, new Date(NOW).toISOString());
-        expect(after.status).toBe('IN_PROGRESS');
-        expect(after.closedAt).toBeNull();
+        const item = replied(4, { boardStage: 'REPLIED', boardStageAt: ago(HOUR) });
+        expect(planBoardMove(cardOf(item), 'NEEDS_REMINDER', NOW)).toEqual({ kind: 'STAGE', stage: null });
     });
 
     /**
@@ -162,44 +191,41 @@ describe('przeciągnięcie', () => {
      */
     it('lead po przesunięciu stoi w kolumnie docelowej', () => {
         const nowIso = new Date(NOW).toISOString();
-        const targets: BoardColumnKey[] = ['AWAITING_REPLY', 'REPLIED', 'SILENT', 'NEEDS_REMINDER', 'DONE'];
-        for (const source of [lead(), waitingOnClient(1), waitingOnClient(6), lead({ status: 'COMPLETED', closedAt: ago(DAY) })]) {
+        const targets: BoardColumnKey[] = ['AWAITING_REPLY', 'REPLIED', 'NEEDS_REMINDER', 'LAPSED'];
+        for (const source of [lead(), replied(1), replied(5), replied(12), reminded(6, 1)]) {
             for (const target of targets) {
-                const card = cardOf(source);
-                const moved = leadAfterMove(source, planBoardMove(card, target), nowIso);
-                expect(columnOf(moved)).toBe(target === card.column ? card.column : target);
+                const moved = leadAfterMove(source, planBoardMove(cardOf(source), target, NOW), nowIso);
+                expect(columnOf(moved)).toBe(target);
             }
         }
-    });
-
-    it('nowo odłożone przypomnienie staje na końcu kolejki', () => {
-        const older = waitingOnClient(2, { id: 'older', boardStage: 'NEEDS_REMINDER', boardStageAt: ago(DAY) });
-        const fresh = leadAfterMove(waitingOnClient(1, { id: 'fresh' }), { kind: 'STAGE', stage: 'NEEDS_REMINDER' }, new Date(NOW).toISOString());
-        const column = buildBoard([fresh, older], DEFAULT_STAGNATION, NOW).find((c) => c.key === 'NEEDS_REMINDER')!;
-        expect(column.cards.map((card) => card.lead.id)).toEqual(['older', 'fresh']);
     });
 });
 
 describe('budowa tablicy', () => {
     it('ten sam lead z dwóch odpowiedzi - wygrywa nowszy zapis', () => {
-        const open = lead({ id: 'x', updatedAt: ago(2 * HOUR) });
-        const closed = { ...open, status: 'LOST' as const, closedAt: ago(HOUR), updatedAt: ago(HOUR) };
-        const board = buildBoard([open, closed], DEFAULT_STAGNATION, NOW);
-        expect(board.flatMap((column) => column.cards)).toHaveLength(1);
-        expect(boardColumnOf(closed, cardOf(closed).urgency)).toBe('DONE');
-        expect(board.find((column) => column.key === 'DONE')!.cards).toHaveLength(1);
+        const older = replied(1, { id: 'x', updatedAt: ago(2 * HOUR) });
+        const newer = { ...older, status: 'LOST' as const, closedAt: ago(HOUR), updatedAt: ago(HOUR) };
+        expect(buildBoard([older, newer], DEFAULT_STAGNATION, NOW).flatMap((column) => column.cards)).toHaveLength(0);
     });
 
     it('najdłużej czekające na górze', () => {
-        const fresh = lead({ id: 'fresh', waitingSince: ago(HOUR), lastInboundAt: ago(HOUR) });
-        const old = lead({ id: 'old', waitingSince: ago(20 * HOUR), lastInboundAt: ago(20 * HOUR) });
-        const column = buildBoard([fresh, old], DEFAULT_STAGNATION, NOW).find((c) => c.key === 'AWAITING_REPLY')!;
+        const fresh = replied(4, { id: 'fresh' });
+        const old = replied(8, { id: 'old' });
+        const column = buildBoard([fresh, old], DEFAULT_STAGNATION, NOW).find((c) => c.key === 'NEEDS_REMINDER')!;
         expect(column.cards.map((card) => card.lead.id)).toEqual(['old', 'fresh']);
     });
 
     it('suma wycen bez przeliczania', () => {
-        const a = waitingOnClient(6, { estimatedValue: 190000 });
-        const b = waitingOnClient(7, { estimatedValue: 154471 });
-        expect(buildBoard([a, b], DEFAULT_STAGNATION, NOW).find((c) => c.key === 'SILENT')!.value).toBe(344471);
+        const a = replied(4, { estimatedValue: 190000 });
+        const b = replied(5, { estimatedValue: 154471 });
+        expect(buildBoard([a, b], DEFAULT_STAGNATION, NOW).find((c) => c.key === 'NEEDS_REMINDER')!.value).toBe(344471);
+    });
+
+    it('cisza liczy się od naszej OSTATNIEJ wiadomości, nie od początku oczekiwania', () => {
+        // Serwer podaje waitingSince = pierwsza nasza wiadomość po ostatniej klienta.
+        const item = replied(6, { lastOutboundAt: ago(DAY) });
+        const urgency = describeLeadUrgency(item, DEFAULT_STAGNATION, NOW);
+        expect(urgency.turn).toBe('CLIENT');
+        expect(columnOf(item)).toBe('REPLIED');
     });
 });

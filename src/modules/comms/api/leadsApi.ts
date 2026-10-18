@@ -174,7 +174,13 @@ export const leadsApi = {
         return data;
     },
 
-    /** Przeciągnięcie karty na tablicy spraw; null oddaje kartę faktom. Zamknięta sprawa otwiera się ponownie. */
+    /** „Przypomnij" z tablicy spraw: zatwierdzona treść, wysłana w rozmowie klienta z jego skrzynki studia. */
+    sendReminder: async (leadId: string, request: { bodyHtml: string; appendSignature: boolean }): Promise<Lead> => {
+        const { data } = await apiClient.post(`/v1/leads/${leadId}/reminders`, request, { skipErrorToast: true });
+        return data;
+    },
+
+    /** Przeciągnięcie karty na tablicy spraw; null oddaje kartę faktom. */
     moveOnBoard: async (leadId: string, stage: LeadBoardStage | null): Promise<Lead> => {
         const { data } = await apiClient.put(`/v1/leads/${leadId}/board-stage`, { stage }, {
             skipErrorToast: true,

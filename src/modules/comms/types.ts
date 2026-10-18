@@ -314,9 +314,9 @@ export type LeadReplyState = 'AWAITING_OUR_REPLY' | 'AWAITING_CLIENT_REPLY' | 'N
 
 /**
  * Kolumna tablicy spraw, do której człowiek przeciągnął kartę (PUT /v1/leads/{id}/board-stage).
- * Bez „Zakończono" - tę kolumnę niesie status sprawy, nie położenie karty.
+ * LAPSED to „Utrata" - sam widok, status sprawy się nie zmienia.
  */
-export type LeadBoardStage = 'AWAITING_REPLY' | 'REPLIED' | 'SILENT' | 'NEEDS_REMINDER';
+export type LeadBoardStage = 'AWAITING_REPLY' | 'REPLIED' | 'NEEDS_REMINDER' | 'LAPSED';
 
 export interface Lead {
     id: string;
@@ -376,6 +376,11 @@ export interface Lead {
      */
     boardStage?: LeadBoardStage | null;
     boardStageAt?: string | null;
+    /**
+     * Ostatnie przypomnienie wysłane akcją „Przypomnij" (POST /v1/leads/{id}/reminders).
+     * Gdy to ono jest naszą ostatnią wiadomością, tablica nie prosi o drugie.
+     */
+    lastReminderAt?: string | null;
     createdAt: string;
     updatedAt: string;
 }

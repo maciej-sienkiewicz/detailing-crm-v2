@@ -7,11 +7,11 @@
 //       ⏱ 27 godz.   ✋ przesunięta ręcznie
 //
 // Kolor tylko tam, gdzie coś znaczy: akcent przy „klient odpisał", czerwień przy
-// zaległości po progu studia, zieleń/szarość wyniku w „Zakończono". Karta niczego nie
+// zaległości po progu studia, plakietka przy wysłanym przypomnieniu. Karta niczego nie
 // wypełnia - na tablicy nie ma kroku następnego, jest nim otwarcie sprawy (CLAUDE.md §2).
 import { forwardRef, type HTMLAttributes } from 'react';
 import styled, { css } from 'styled-components';
-import { CalendarCheck, Clock, FileText, Hand, Instagram, Mail, PenLine, Phone } from 'lucide-react';
+import { BellRing, Clock, FileText, Hand, Hourglass, Instagram, Mail, PenLine, Phone } from 'lucide-react';
 import type { LeadSource } from '../../types';
 import type { BoardCard as BoardCardModel } from '../../utils/leadBoard';
 import { caseSentence, caseTitle, formatAmount, rowAge } from '../caseModel';
@@ -124,13 +124,12 @@ export const CardSurface = styled.div<{ $phone?: boolean }>`
     .meta span { display: inline-flex; align-items: center; gap: 4px; }
     .meta svg { width: 12px; height: 12px; }
     .late { color: ${ix.late}; font-weight: 600; }
-    .outcome {
+    .badge {
         padding: 2px 8px;
         border-radius: 999px;
         font-weight: 600;
     }
-    .won { background: ${ix.okTint}; color: ${ix.ok}; }
-    .lost { background: ${ix.surfaceAlt}; color: ${ix.inkSoft}; }
+    .reminded { background: #f3effe; color: #6d28d9; }
 `;
 
 /** Puste miejsce, które czeka na kartę w ręce - w odcieniu kolumny, z jej wysokością. */
@@ -171,36 +170,34 @@ export const DragLayer = styled.div<{ $width: number }>`
     `}
 `;
 
-function outcome(card: BoardCardModel): { label: string; won: boolean } | null {
-    const { lead } = card;
-    if (lead.status === 'COMPLETED') return { label: 'Zrealizowana', won: true };
-    if (lead.status === 'LOST') return { label: lead.lostReasonLabel ? `Przegrana: ${lead.lostReasonLabel}` : 'Przegrana', won: false };
-    if (lead.status === 'NO_SHOW') return { label: 'Nie pojawił się', won: false };
-    if (lead.appointmentId) return { label: 'Termin w kalendarzu', won: true };
-    return null;
+function sentence(card: BoardCardModel): { text: string; hot: boolean } {
+    if (card.column === 'NEEDS_REMINDER') return { text: 'Czas się przypomnieć', hot: false };
+    if (card.column === 'LAPSED') return { text: 'Klient przestał odpowiadać', hot: false };
+    return caseSentence(card.lead, card.urgency);
 }
 
-function sentence(card: BoardCardModel, now: number): { text: string; hot: boolean } {
-    if (card.column === 'NEEDS_REMINDER' && card.lead.boardStageAt) {
-        const since = now - new Date(card.lead.boardStageAt).getTime();
-        return { text: since < 60_000 ? 'Odłożone przed chwilą' : `Odłożone ${rowAge(since)} temu`, hot: false };
-    }
-    return caseSentence(card.lead, card.urgency);
+/** „za 6 dni", „jutro", „dziś" - kiedy karta zniknie z „Utraty". */
+function vanishes(ms: number): string {
+    const days = Math.ceil(ms / 86_400_000);
+    if (days <= 0) return 'znika dziś';
+    if (days === 1) return 'znika jutro';
+    return `znika za ${days} dni`;
 }
 
 interface BoardCardProps extends HTMLAttributes<HTMLDivElement> {
     card: BoardCardModel;
-    now: number;
 }
 
-export const BoardCardView = forwardRef<HTMLDivElement, BoardCardProps>(function BoardCardView({ card, now, ...rest }, ref) {
+export const BoardCardView = forwardRef<HTMLDivElement, BoardCardProps>(function BoardCardView({ card, ...rest }, ref) {
     const { lead, urgency } = card;
     const Icon = SOURCE_ICON[lead.source] ?? Mail;
     const title = caseTitle(lead);
     const person = lead.vehicleBrand ? lead.customerName?.trim() || lead.contactIdentifier : null;
-    const result = card.column === 'DONE' ? outcome(card) : null;
-    const line = sentence(card, now);
-    const showAge = card.column !== 'DONE' && urgency.turn !== 'SETTLED' && urgency.waitingMs > 0;
+    const line = sentence(card);
+    // Po naszej stronie - jak długo klient czeka; po stronie klienta - jak długo milczy.
+    const ageMs = card.silence?.ms ?? urgency.waitingMs;
+    const showAge = urgency.turn !== 'SETTLED' && ageMs > 0;
+    const late = card.column === 'AWAITING_REPLY' && urgency.overdue;
 
     return (
         <CardSurface ref={ref} {...rest}>
@@ -212,18 +209,24 @@ export const BoardCardView = forwardRef<HTMLDivElement, BoardCardProps>(function
                 </div>
                 {lead.estimatedValue > 0 && <span className="amount">{formatAmount(lead.estimatedValue)}</span>}
             </div>
-            {!result && <p className={`sentence${line.hot ? ' hot' : ''}`}>{line.text}</p>}
+            <p className={`sentence${line.hot ? ' hot' : ''}`}>{line.text}</p>
             <div className="meta">
-                {result && (
-                    <span className={`outcome ${result.won ? 'won' : 'lost'}`}>
-                        {lead.appointmentId && lead.status === 'CONFIRMED' && <CalendarCheck aria-hidden="true" />}
-                        {result.label}
+                {card.silence?.reminded && (
+                    <span className="badge reminded" title="Ostatnia nasza wiadomość była przypomnieniem - drugiego tablica nie zaproponuje">
+                        <BellRing aria-hidden="true" />
+                        Przypomnienie wysłane
                     </span>
                 )}
                 {showAge && (
-                    <span className={urgency.overdue ? 'late' : undefined} title={urgency.title}>
+                    <span className={late ? 'late' : undefined} title={card.silence ? `Klient milczy od ${rowAge(ageMs)}` : urgency.title}>
                         <Clock aria-hidden="true" />
-                        {rowAge(urgency.waitingMs)}
+                        {rowAge(ageMs)}
+                    </span>
+                )}
+                {card.vanishesInMs !== null && (
+                    <span title="Karta zniknie z tablicy. Sprawa zostaje otwarta - gdy klient odpisze, wróci do „Oczekuje na odpowiedź”.">
+                        <Hourglass aria-hidden="true" />
+                        {vanishes(card.vanishesInMs)}
                     </span>
                 )}
                 {card.manual && (

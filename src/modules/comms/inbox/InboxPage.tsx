@@ -260,9 +260,6 @@ export default function InboxPage() {
     const open = useLeadsByStatuses(OPEN_LEAD_STATUSES);
     const worklist = useMemo(() => buildWorklist(open.items, thresholds), [open.items, thresholds]);
     const archiveSearch = useDebounce(archiveQuery, 300);
-    // „Zakończono" na tablicy - ostatnie zamknięte sprawy, najnowsze najpierw.
-    const recentlyClosed = useLeadsByStatuses(boardView ? CLOSED_LEAD_STATUSES : [], { sortDirection: 'DESC' });
-    const boardLeads = useMemo(() => [...open.items, ...recentlyClosed.items], [open.items, recentlyClosed.items]);
     const archiveBundle = useLeadsByStatuses(
         tab === 'sprawy' && archive ? (archiveStatus ? [archiveStatus] : CLOSED_LEAD_STATUSES) : [],
         { query: archiveSearch, sortDirection: 'DESC' }
@@ -573,8 +570,8 @@ export default function InboxPage() {
                             onList={() => switchLayout(false)}
                         />
                         <LeadBoard
-                            leads={boardLeads}
-                            loading={open.isLoading || recentlyClosed.isLoading}
+                            leads={open.items}
+                            loading={open.isLoading}
                             truncated={open.truncated}
                             query={query}
                             phone={phone}
@@ -582,10 +579,6 @@ export default function InboxPage() {
                             onOpen={(id, rect) => {
                                 setOpenedFrom({ id, rect });
                                 nav.openCase(id);
-                            }}
-                            onShowArchive={() => {
-                                rememberLayout(false);
-                                nav.setArchive(true);
                             }}
                         />
                     </BoardArea>

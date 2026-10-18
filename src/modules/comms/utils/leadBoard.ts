@@ -1,34 +1,37 @@
 // src/modules/comms/utils/leadBoard.ts
 // Tablica spraw (kanban) - w której kolumnie stoi sprawa i co znaczy przeciągnięcie karty.
 //
-// ── Kolumny wynikają z faktów, przeciągnięcie jest wyjątkiem ───────────────────
+// ── Przepływ (decyzja biznesu 2026-10-19) ─────────────────────────────────────
 //
-// „Oczekuje na odpowiedź", „Odpowiedzieliśmy" i „Ucichło" to te same trzy stany, które
-// lista spraw liczy z korespondencji (leadUrgency.ts: czyj ruch i jak dawno). Tablica
-// NIE jest drugim źródłem prawdy - inaczej klient, który odpisał, wisiałby w
-// „Odpowiedzieliśmy" do chwili, aż ktoś przeciągnie kartę ręką, a tablica zamieniłaby
-// się w drugą listę do pilnowania.
+//   klient napisał                 → Oczekuje na odpowiedź
+//   odpisaliśmy                    → Odpowiedzieliśmy
+//   3 dni ciszy klienta            → Wymaga przypomnienia
+//   przypomnieliśmy się            → Odpowiedzieliśmy, z plakietką przypomnienia
+//   10 dni ciszy                   → Utrata
+//   10 kolejnych dni               → karta znika z tablicy
 //
-// Człowiek wie jednak rzeczy, których rozmowa nie zna: odpisał z prywatnego telefonu,
-// rozmowa ucichła po jednym zdaniu, trzeba się przypomnieć. Przeciągnięcie zapisuje tę
-// wiedzę (boardStage + boardStageAt) i obowiązuje DO NASTĘPNEGO FAKTU - wiadomości
-// w dowolną stronę albo zgłoszonego długu. Ten sam wzorzec co dług studia: kasuje go
-// dowód, nie człowiek.
+// Ciszę liczymy od NASZEJ OSTATNIEJ wiadomości. Przypomnienie jest jedno na jedną ciszę:
+// po nim karta czeka w „Odpowiedzieliśmy" do 10. dnia od przypomnienia i drugi raz o nie
+// nie prosi. Bez przypomnienia - do „Utraty" po 10 dniach od naszej odpowiedzi.
 //
-// „Wymaga przypomnienia" istnieje wyłącznie z decyzji człowieka - z korespondencji nie
-// da się wyczytać, że TERAZ jest dobry moment na przypomnienie.
+// „Utrata" to sam widok: status sprawy zostaje, jaki był. Zamkniętej sprawy nic w systemie
+// nie otwiera ponownie, więc automatyczne zamykanie zgubiłoby wiadomość klienta, który
+// odpisze po trzech tygodniach - a tak jego karta po prostu wraca do „Oczekuje".
 //
-// „Zakończono" niesie status (zrealizowana, przegrana z powodem, rezerwacja w kalendarzu),
-// nie położenie karty. Przeciągnięcie do niej zamyka sprawę, a wyciągnięcie z niej -
-// otwiera ponownie (LeadBoardStageService po stronie serwera).
+// ── Przeciągnięcie jest wyjątkiem ─────────────────────────────────────────────
 //
-// ── Kolejność w kolumnie nie jest ręczna ───────────────────────────────────────
+// Człowiek wie rzeczy, których rozmowa nie zna (odpisał z prywatnego telefonu, sprawa
+// jest już stracona). Przeciągnięcie zapisuje tę wiedzę (boardStage + boardStageAt)
+// i obowiązuje DO NASTĘPNEGO FAKTU - wiadomości w dowolną stronę albo zgłoszonego długu.
+// Ten sam wzorzec co dług studia: kasuje go dowód, nie człowiek.
+//
+// ── Kolejność w kolumnie nie jest ręczna ──────────────────────────────────────
 //
 // Najdłużej czekające na górze, jak w kolejce. Karta upuszczona w kolumnie ląduje tam,
 // gdzie stawia ją ta kolejność - i dokładnie tam robi się dla niej miejsce już w trakcie
 // przeciągania (podgląd liczy tablicę z kartą przesuniętą „na próbę"), więc po
 // upuszczeniu nic nie przeskakuje.
-import type { Lead, LeadBoardStage, LeadStatus } from '../types';
+import type { Lead, LeadBoardStage } from '../types';
 import { CLOSED_STATUSES } from './leadFormat';
 import {
     DEFAULT_STAGNATION,
@@ -37,14 +40,29 @@ import {
     type StagnationThresholds,
 } from './leadUrgency';
 
+const MINUTE_MS = 60_000;
 const DAY_MS = 86_400_000;
 
-export type BoardColumnKey = LeadBoardStage | 'DONE';
+/** Po ilu dniach ciszy klienta trzeba się przypomnieć. */
+export const REMIND_AFTER_DAYS = 3;
+/** Po ilu dniach ciszy (od odpowiedzi albo od przypomnienia) sprawa jest utracona. */
+export const LAPSE_AFTER_DAYS = 10;
+/** Ile dni karta stoi w „Utracie", zanim zniknie z tablicy. */
+export const VANISH_AFTER_DAYS = 10;
+
+/**
+ * Przypomnienie stempluje serwer PO wysłaniu maila, więc stempel bywa o chwilę późniejszy
+ * niż sama wiadomość w rozmowie. Tyle zapasu, żeby przypomnienie nadal było „ostatnią
+ * wiadomością", a ręczny mail dopisany godzinę później już nie.
+ */
+const REMINDER_TOLERANCE_MS = 10 * MINUTE_MS;
+
+export type BoardColumnKey = LeadBoardStage;
 
 export interface BoardColumnMeta {
     key: BoardColumnKey;
     title: string;
-    /** Jedno zdanie pod nagłówkiem pustej kolumny - co tu trafia. */
+    /** Jedno zdanie w pustej kolumnie - co tu trafia. */
     empty: string;
     /** Odcień kolumny: kropka przy nagłówku i plakietka licznika (bez wypełnień, CLAUDE.md §2). */
     tone: { dot: string; tint: string; ink: string };
@@ -68,33 +86,23 @@ export const BOARD_COLUMNS: BoardColumnMeta[] = [
         showsValue: true,
     },
     {
-        key: 'SILENT',
-        title: 'Ucichło',
-        empty: 'Żaden klient nie milczy dłużej niż próg studia.',
+        key: 'NEEDS_REMINDER',
+        title: 'Wymaga przypomnienia',
+        empty: `Tu trafiają sprawy po ${REMIND_AFTER_DAYS} dniach ciszy klienta.`,
         tone: { dot: '#f59e0b', tint: '#fef6e4', ink: '#b45309' },
         showsValue: true,
     },
     {
-        key: 'NEEDS_REMINDER',
-        title: 'Wymaga przypomnienia',
-        empty: 'Przeciągnij tu sprawę, o której trzeba klientowi przypomnieć.',
+        key: 'LAPSED',
+        title: 'Utrata',
+        empty: `Tu trafiają sprawy po ${LAPSE_AFTER_DAYS} dniach ciszy. Po kolejnych ${VANISH_AFTER_DAYS} znikają z tablicy.`,
         tone: { dot: '#f43f5e', tint: '#fff0f2', ink: '#be123c' },
         showsValue: true,
-    },
-    {
-        key: 'DONE',
-        title: 'Zakończono',
-        empty: 'Sprawy z rezerwacją i zamknięte w ostatnich 30 dniach.',
-        tone: { dot: '#22c55e', tint: '#f0fdf4', ink: '#15803d' },
-        showsValue: false,
     },
 ];
 
 export const boardColumnMeta = (key: BoardColumnKey): BoardColumnMeta =>
     BOARD_COLUMNS.find((column) => column.key === key)!;
-
-/** Ile dni zamknięta sprawa stoi jeszcze w „Zakończono" - starsze są w archiwum. */
-export const DONE_WINDOW_DAYS = 30;
 
 const time = (iso: string | null | undefined): number => (iso ? new Date(iso).getTime() : 0);
 
@@ -116,20 +124,56 @@ export function manualStageInForce(lead: Pick<Lead, 'boardStage' | 'boardStageAt
     return facts.some((fact) => fact && time(fact) > placedAt) ? null : lead.boardStage;
 }
 
-/** Kolumna wynikająca z samych faktów - bez ręcznego położenia. */
-export function factColumnOf(lead: Lead, urgency: LeadUrgency): BoardColumnKey {
-    if (CLOSED_STATUSES.has(lead.status)) return 'DONE';
-    // Rezerwacja domyka sprzedaż - chyba że klient napisał po niej coś, na co nikt nie odpisał.
-    if (lead.appointmentId && urgency.turn !== 'OURS') return 'DONE';
-    if (urgency.turn === 'OURS') return 'AWAITING_REPLY';
-    // „Ucichło" to ten sam ruch klienta po przekroczeniu progu studia - ton liczy reguła pilności.
-    return urgency.tone === 'stale' ? 'SILENT' : 'REPLIED';
+/** Cisza klienta: od kiedy (nasza ostatnia wiadomość) i czy tą wiadomością było przypomnienie. */
+export interface Silence {
+    since: number;
+    ms: number;
+    reminded: boolean;
 }
 
-export function boardColumnOf(lead: Lead, urgency: LeadUrgency): BoardColumnKey {
-    // Status bije położenie: zamknięta sprawa stoi w „Zakończono", cokolwiek zapisano wcześniej.
-    if (CLOSED_STATUSES.has(lead.status)) return 'DONE';
-    return manualStageInForce(lead) ?? factColumnOf(lead, urgency);
+/**
+ * Od kiedy milczy klient - liczone od naszej OSTATNIEJ wiadomości.
+ *
+ * `waitingSince` z serwera to początek oczekiwania (pierwsza nasza wiadomość po ostatniej
+ * klienta), a nie ostatnia - po przypomnieniu cisza liczyłaby się od odpowiedzi sprzed
+ * tygodnia. Stąd najpóźniejsza z naszych dat: ostatnia wysłana, przypomnienie (jeśli
+ * późniejsze niż ostatnia wiadomość klienta) i - dla spraw bez rozmowy mailowej - początek
+ * oczekiwania (odnotowany telefon).
+ */
+export function silenceOf(lead: Lead, urgency: LeadUrgency, now: number): Silence | null {
+    if (urgency.turn !== 'CLIENT') return null;
+    const reminder = time(lead.lastReminderAt);
+    const reminderCounts = reminder > 0 && reminder > time(lead.lastInboundAt);
+    const since = Math.max(time(lead.lastOutboundAt), time(urgency.waitingSince), reminderCounts ? reminder : 0);
+    if (since === 0) return null;
+    return {
+        since,
+        ms: Math.max(0, now - since),
+        reminded: reminderCounts && reminder >= since - REMINDER_TOLERANCE_MS,
+    };
+}
+
+/** Kolumna wynikająca z samych faktów i czasu; null - sprawy nie ma na tablicy. */
+export function factColumnOf(lead: Lead, urgency: LeadUrgency, now: number): BoardColumnKey | null {
+    if (CLOSED_STATUSES.has(lead.status)) return null;
+    if (urgency.turn === 'OURS') return 'AWAITING_REPLY';
+    // Rezerwacja domyka sprzedaż - sprawa schodzi z tablicy, chyba że klient napisał po niej.
+    if (lead.appointmentId) return null;
+    const silence = silenceOf(lead, urgency, now);
+    if (!silence) return null;
+    const days = silence.ms / DAY_MS;
+    if (days >= LAPSE_AFTER_DAYS + VANISH_AFTER_DAYS) return null;
+    if (days >= LAPSE_AFTER_DAYS) return 'LAPSED';
+    if (!silence.reminded && days >= REMIND_AFTER_DAYS) return 'NEEDS_REMINDER';
+    return 'REPLIED';
+}
+
+export function boardColumnOf(lead: Lead, urgency: LeadUrgency, now: number = Date.now()): BoardColumnKey | null {
+    // Zamknięta sprawa schodzi z tablicy, cokolwiek zapisano wcześniej.
+    if (CLOSED_STATUSES.has(lead.status)) return null;
+    const manual = manualStageInForce(lead);
+    if (manual === 'LAPSED' && now - time(lead.boardStageAt) >= VANISH_AFTER_DAYS * DAY_MS) return null;
+    return manual ?? factColumnOf(lead, urgency, now);
 }
 
 export interface BoardCard {
@@ -138,6 +182,10 @@ export interface BoardCard {
     column: BoardColumnKey;
     /** Karta stoi tu z decyzji człowieka, nie z faktów - karta mówi o tym jednym słowem. */
     manual: boolean;
+    /** Cisza klienta; null, gdy ruch jest nasz. */
+    silence: Silence | null;
+    /** „Utrata": za ile karta zniknie z tablicy. */
+    vanishesInMs: number | null;
 }
 
 export interface BoardColumn extends BoardColumnMeta {
@@ -146,26 +194,14 @@ export interface BoardColumn extends BoardColumnMeta {
     value: number;
 }
 
-const byWaiting = (a: BoardCard, b: BoardCard) => b.urgency.waitingMs - a.urgency.waitingMs;
-const byPlacement = (a: BoardCard, b: BoardCard) => time(a.lead.boardStageAt) - time(b.lead.boardStageAt);
-const byClosing = (a: BoardCard, b: BoardCard) =>
-    time(b.lead.closedAt ?? b.lead.updatedAt) - time(a.lead.closedAt ?? a.lead.updatedAt);
-
-const ORDER: Record<BoardColumnKey, (a: BoardCard, b: BoardCard) => number> = {
-    AWAITING_REPLY: byWaiting,
-    REPLIED: byWaiting,
-    SILENT: byWaiting,
-    // Przypomnienie odłożone najdawniej na górze; nowo upuszczona karta staje na końcu kolejki.
-    NEEDS_REMINDER: byPlacement,
-    // Najświeższe rozstrzygnięcie na górze - do niego się wraca, nie do sprzed miesiąca.
-    DONE: byClosing,
-};
+const waitingOf = (card: BoardCard) => card.silence?.ms ?? card.urgency.waitingMs;
+const byWaiting = (a: BoardCard, b: BoardCard) => waitingOf(b) - waitingOf(a);
 
 /**
- * Pięć kolumn z leadów otwartych i niedawno zamkniętych.
+ * Cztery kolumny z leadów otwartych.
  *
- * Ten sam lead bywa w dwóch odpowiedziach naraz (zamknięty przed chwilą, a lista
- * otwartych jeszcze się nie odświeżyła) - wygrywa nowszy zapis.
+ * Ten sam lead bywa w dwóch odpowiedziach naraz (zmienił status przed chwilą, a druga
+ * lista jeszcze się nie odświeżyła) - wygrywa nowszy zapis.
  *
  * [now] wstrzykiwane wyłącznie dla testów - w aplikacji zawsze bieżąca chwila.
  */
@@ -181,18 +217,29 @@ export function buildBoard(
     }
 
     const buckets = new Map<BoardColumnKey, BoardCard[]>(BOARD_COLUMNS.map((column) => [column.key, []]));
-    const doneSince = now - DONE_WINDOW_DAYS * DAY_MS;
 
     for (const lead of unique.values()) {
-        if (CLOSED_STATUSES.has(lead.status) && time(lead.closedAt ?? lead.updatedAt) < doneSince) continue;
         const urgency = describeLeadUrgency(lead, thresholds, now);
-        const column = boardColumnOf(lead, urgency);
-        const manual = column !== 'DONE' && manualStageInForce(lead) === column && factColumnOf(lead, urgency) !== column;
-        buckets.get(column)!.push({ lead, urgency, column, manual });
+        const column = boardColumnOf(lead, urgency, now);
+        if (!column) continue;
+        const silence = silenceOf(lead, urgency, now);
+        const manual = manualStageInForce(lead) === column && factColumnOf(lead, urgency, now) !== column;
+        const lapsedAt = column !== 'LAPSED' ? null
+            : manual ? time(lead.boardStageAt)
+            : silence ? silence.since + LAPSE_AFTER_DAYS * DAY_MS
+            : null;
+        buckets.get(column)!.push({
+            lead,
+            urgency,
+            column,
+            manual,
+            silence,
+            vanishesInMs: lapsedAt === null ? null : Math.max(0, lapsedAt + VANISH_AFTER_DAYS * DAY_MS - now),
+        });
     }
 
     return BOARD_COLUMNS.map((meta) => {
-        const cards = buckets.get(meta.key)!.sort(ORDER[meta.key]);
+        const cards = buckets.get(meta.key)!.sort(byWaiting);
         return { ...meta, cards, value: cards.reduce((sum, card) => sum + card.lead.estimatedValue, 0) };
     });
 }
@@ -203,20 +250,15 @@ export function buildBoard(
  *  - NONE  - ta sama kolumna; kolejność w kolumnie nie jest ręczna.
  *  - STAGE - zapis położenia; null, gdy kolumna docelowa jest tą, którą wyznaczają fakty
  *            (przesunięcie „z powrotem" zdejmuje decyzję, zamiast ją przypinać - inaczej
- *            sprawa przypięta do „Odpowiedzieliśmy" nie ucichłaby nigdy sama).
- *  - CLOSE - „Zakończono" dla sprawy, którą fakty trzymają gdzie indziej: trzeba zapytać,
- *            jak się skończyła (wygrana / przegrana z powodem).
+ *            sprawa przypięta do „Odpowiedzieliśmy" nie poprosiłaby nigdy o przypomnienie).
  */
 export type BoardMove =
     | { kind: 'NONE' }
-    | { kind: 'STAGE'; stage: LeadBoardStage | null }
-    | { kind: 'CLOSE' };
+    | { kind: 'STAGE'; stage: LeadBoardStage | null };
 
-export function planBoardMove(card: BoardCard, target: BoardColumnKey): BoardMove {
+export function planBoardMove(card: BoardCard, target: BoardColumnKey, now: number = Date.now()): BoardMove {
     if (target === card.column) return { kind: 'NONE' };
-    const facts = factColumnOf(card.lead, card.urgency);
-    if (target === 'DONE') return facts === 'DONE' ? { kind: 'STAGE', stage: null } : { kind: 'CLOSE' };
-    return { kind: 'STAGE', stage: facts === target ? null : target };
+    return { kind: 'STAGE', stage: factColumnOf(card.lead, card.urgency, now) === target ? null : target };
 }
 
 /**
@@ -225,17 +267,19 @@ export function planBoardMove(card: BoardCard, target: BoardColumnKey): BoardMov
  * Jedna funkcja dla obu, bo to ona gwarantuje, że karta po upuszczeniu stoi dokładnie
  * tam, gdzie zrobiło się dla niej miejsce.
  */
-export function leadAfterMove(lead: Lead, move: BoardMove, nowIso: string, closeAs: LeadStatus = 'COMPLETED'): Lead {
+export function leadAfterMove(lead: Lead, move: BoardMove, nowIso: string): Lead {
     if (move.kind === 'NONE') return lead;
-    if (move.kind === 'CLOSE') {
-        return { ...lead, status: closeAs, closedAt: nowIso, boardStage: null, boardStageAt: null, updatedAt: nowIso };
-    }
-    const reopened = CLOSED_STATUSES.has(lead.status) && move.stage !== null;
-    return {
-        ...lead,
-        ...(reopened ? { status: 'IN_PROGRESS' as LeadStatus, closedAt: null } : {}),
-        boardStage: move.stage,
-        boardStageAt: move.stage ? nowIso : null,
-        updatedAt: nowIso,
-    };
+    return { ...lead, boardStage: move.stage, boardStageAt: move.stage ? nowIso : null, updatedAt: nowIso };
 }
+
+/** Czy można przypomnieć się mailem - w rozmowie, którą ma sprawa. */
+export const canRemindByMail = (lead: Pick<Lead, 'threadId' | 'source'>): boolean =>
+    Boolean(lead.threadId) && lead.source !== 'INSTAGRAM';
+
+/** Lead po wysłanym przypomnieniu - zapis optymistyczny, zanim serwer odpowie. */
+export const leadAfterReminder = (lead: Lead, nowIso: string): Lead => ({
+    ...lead,
+    lastOutboundAt: nowIso,
+    lastReminderAt: nowIso,
+    updatedAt: nowIso,
+});

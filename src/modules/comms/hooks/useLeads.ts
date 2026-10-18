@@ -768,6 +768,28 @@ export const useMoveLeadOnBoard = () => {
 };
 
 /**
+ * „Przypomnij" - jedno przypomnienie, wysłane w rozmowie klienta. Okno zbiorcze woła to
+ * po kolei, sprawa po sprawie: każda ma własną treść, a odmowa jednej nie wstrzymuje reszty.
+ * Lead z odpowiedzi trafia od razu do pamięci - karta przechodzi do „Odpowiedzieliśmy"
+ * z plakietką, zanim lista zdąży się odświeżyć.
+ */
+export const useSendLeadReminder = () => {
+    const queryClient = useQueryClient();
+    const patch = usePatchLeadCache();
+    const invalidate = useLeadInvalidation();
+    return useMutation({
+        mutationFn: ({ leadId, bodyHtml, appendSignature }: { leadId: string; bodyHtml: string; appendSignature: boolean }) =>
+            leadsApi.sendReminder(leadId, { bodyHtml, appendSignature }),
+        onSuccess: (lead) => patch(lead),
+        onSettled: (_lead, _error, { leadId }) => {
+            invalidate(leadId);
+            // Przypomnienie jest nową wiadomością w rozmowie - otwarta sprawa ma ją pokazać.
+            queryClient.invalidateQueries({ queryKey: COMMS_THREADS_KEY });
+        },
+    });
+};
+
+/**
  * Wycena leada i lista usług powiązanej rezerwacji to jedna lista - backend
  * przepisuje jedną w drugą. Dlatego po zapisie unieważniamy też kalendarz:
  * inaczej ten sam użytkownik widziałby w drugiej zakładce swoją poprzednią wersję.

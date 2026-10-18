@@ -80,7 +80,7 @@ export function caseStatusChip(lead: Lead): { label: string; tone: 'accent' | 'n
 export const quoteHeading = (lead: Lead): string =>
     weReplied(lead) ? 'Wycena' : 'Wycena, jeszcze nie wysłana';
 
-export type CaseStepKind = 'REPLY' | 'BOOK' | 'CALL' | 'APPOINTMENT' | 'NONE';
+export type CaseStepKind = 'REPLY' | 'BOOK' | 'CALL' | 'APPOINTMENT' | 'REMIND' | 'NONE';
 
 export interface CaseStep {
     kind: CaseStepKind;
