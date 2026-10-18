@@ -18,6 +18,7 @@ import {
     List, Loading, Meta, Muted, PeriodCaption, PhoneHead, PhoneHeadBar, PhoneHeadFact, PhoneHeadName, Section, ShowMore,
 } from './accountsStyles';
 import { ChangeLine } from './ChangeLine';
+import { LoginRedirectOverlay } from './LoginRedirectOverlay';
 
 /**
  * Wizytówka w Google - dla lokalnego studia zwykle więcej telefonów niż cały Instagram.
@@ -607,6 +608,7 @@ export const GoogleBusinessPanel = ({ canUsePrimary, withReviews = true }: Props
                 onConfirm={() => { setConfirmDisconnect(false); actions.disconnectGoogle.mutate(); }}
                 onCancel={() => setConfirmDisconnect(false)}
             />
+            <LoginRedirectOverlay leavingFor={actions.leavingFor} />
         </Panel>
     );
 };

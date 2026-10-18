@@ -16,6 +16,7 @@ import {
     PhoneHeadName,
 } from './accountsStyles';
 import { OwnStats } from './OwnStats';
+import { LoginRedirectOverlay } from './LoginRedirectOverlay';
 
 /**
  * Karta konta Instagram: połączenie i - po połączeniu - statystyki z oficjalnego API.
@@ -270,6 +271,7 @@ export const InstagramAccountCard = ({ connection, isLoading }: Props) => {
                 onConfirm={() => { setConfirmDisconnect(false); actions.disconnect.mutate(); }}
                 onCancel={() => setConfirmDisconnect(false)}
             />
+            <LoginRedirectOverlay leavingFor={actions.leavingFor} />
         </Card>
     );
 };

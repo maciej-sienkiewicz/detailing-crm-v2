@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { accountsApi } from '../api/accountsApi';
 import type { InstagramStudioSettings } from '../accountsTypes';
@@ -54,13 +55,43 @@ export const usePostingPlan = () => {
     return { query, save };
 };
 
+/** Dokąd okno właśnie przechodzi po logowanie - Facebook (Instagram) albo Google. */
+export type LoginRedirect = 'meta' | 'google';
+
+/**
+ * Stan „przechodzę do logowania" trwa DŁUŻEJ niż samo żądanie: backend oddaje adres
+ * w ułamku sekundy, a przeglądarka potem jeszcze kilka sekund ładuje stronę Meta, zanim
+ * opuści CRM. `isPending` gaśnie już po odpowiedzi, więc w tej luce przycisk wracał do
+ * „Połącz Instagram" i dało się klikać dalej - stąd osobny stan, zdejmowany dopiero
+ * wtedy, gdy strona wróci z pamięci przeglądarki (przycisk „Wstecz" na stronie Meta).
+ */
+const useLoginRedirect = () => {
+    const [redirecting, setRedirecting] = useState<LoginRedirect | null>(null);
+
+    useEffect(() => {
+        if (!redirecting) return;
+        const onPageShow = (event: PageTransitionEvent) => {
+            if (event.persisted) setRedirecting(null);
+        };
+        window.addEventListener('pageshow', onPageShow);
+        return () => window.removeEventListener('pageshow', onPageShow);
+    }, [redirecting]);
+
+    const go = (target: LoginRedirect) => (url: string) => {
+        setRedirecting(target);
+        window.location.assign(url);
+    };
+    return { redirecting, go };
+};
+
 export const useAccountActions = () => {
     const queryClient = useQueryClient();
     const invalidate = () => invalidateAccounts(queryClient);
+    const login = useLoginRedirect();
 
     const connect = useMutation({
         mutationFn: accountsApi.startConnection,
-        onSuccess: url => window.location.assign(url),
+        onSuccess: login.go('meta'),
     });
     const select = useMutation({ mutationFn: accountsApi.selectConnection, onSuccess: invalidate });
     const disconnect = useMutation({ mutationFn: accountsApi.disconnect, onSuccess: invalidate });
@@ -74,7 +105,7 @@ export const useAccountActions = () => {
 
     const connectGoogle = useMutation({
         mutationFn: accountsApi.startGoogle,
-        onSuccess: url => window.location.assign(url),
+        onSuccess: login.go('google'),
     });
     const selectGoogle = useMutation({ mutationFn: accountsApi.selectGoogle, onSuccess: invalidate });
     const disconnectGoogle = useMutation({ mutationFn: accountsApi.disconnectGoogle, onSuccess: invalidate });
@@ -88,5 +119,13 @@ export const useAccountActions = () => {
         onSuccess: () => queryClient.invalidateQueries({ queryKey: GOOGLE_KEY }),
     });
 
-    return { connect, select, disconnect, sync, connectGoogle, selectGoogle, disconnectGoogle, syncGoogle, replyToReview };
+    // Okno blokujące stoi od kliknięcia (żądanie adresu) do opuszczenia strony.
+    const leavingFor: LoginRedirect | null = connect.isPending ? 'meta'
+        : connectGoogle.isPending ? 'google'
+        : login.redirecting;
+
+    return {
+        connect, select, disconnect, sync, connectGoogle, selectGoogle, disconnectGoogle, syncGoogle, replyToReview,
+        leavingFor,
+    };
 };

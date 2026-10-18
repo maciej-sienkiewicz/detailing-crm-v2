@@ -28,6 +28,7 @@ vi.mock('../../api/accountsApi', async importOriginal => {
             listThreads: vi.fn(async () => []),
             getSettings: vi.fn(async () => ({ weeklyPostGoal: 3 })),
             getGoogle: vi.fn(),
+            startConnection: vi.fn(),
         },
     };
 });
@@ -219,6 +220,58 @@ describe('MyAccountsTab', () => {
             await screen.findByRole('button', { name: /Połącz wizytówkę Google/ });
             expect(connect.getAttribute('data-variant')).toBe('primary');
             expect(filled()).toHaveLength(1);
+        });
+    });
+
+    describe('okno „Przechodzę do Facebooka"', () => {
+        const originalLocation = window.location;
+        const assign = vi.fn();
+
+        beforeEach(() => {
+            // jsdom nie nawiguje - podmieniamy samo przejście, reszta adresu zostaje.
+            Object.defineProperty(window, 'location', { configurable: true, value: { ...originalLocation, assign } });
+        });
+        afterEach(() => {
+            Object.defineProperty(window, 'location', { configurable: true, value: originalLocation });
+            document.documentElement.removeAttribute('style');
+            document.body.removeAttribute('style');
+        });
+
+        it('stoi od kliknięcia do opuszczenia strony i połyka klawisze', async () => {
+            vi.mocked(accountsApi.getConnection).mockResolvedValue(connection());
+            let resolveUrl: (url: string) => void = () => {};
+            vi.mocked(accountsApi.startConnection).mockReturnValue(new Promise(resolve => { resolveUrl = resolve; }));
+            renderTab();
+
+            fireEvent.click(await screen.findByRole('button', { name: /Połącz Instagram/ }));
+
+            // Backend jeszcze nie oddał adresu - okno już stoi.
+            const dialog = await screen.findByRole('alertdialog', { name: 'Przechodzę do Facebooka' });
+            expect(dialog.getAttribute('aria-busy')).toBe('true');
+
+            const key = new KeyboardEvent('keydown', { key: '1', bubbles: true, cancelable: true });
+            window.dispatchEvent(key);
+            expect(key.defaultPrevented).toBe(true);
+
+            // Adres przyszedł, przeglądarka ładuje Meta - okno NIE znika, choć żądanie się skończyło.
+            resolveUrl('https://www.facebook.com/dialog/oauth?x=1');
+            await waitFor(() => expect(assign).toHaveBeenCalledWith('https://www.facebook.com/dialog/oauth?x=1'));
+            expect(screen.getByRole('alertdialog', { name: 'Przechodzę do Facebooka' })).toBeTruthy();
+        });
+
+        it('znika, gdy żądanie się nie uda, i oddaje klawiaturę', async () => {
+            vi.mocked(accountsApi.getConnection).mockResolvedValue(connection());
+            vi.mocked(accountsApi.startConnection).mockRejectedValue(new Error('500'));
+            renderTab();
+
+            fireEvent.click(await screen.findByRole('button', { name: /Połącz Instagram/ }));
+
+            await waitFor(() => expect(accountsApi.startConnection).toHaveBeenCalled());
+            await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+            const key = new KeyboardEvent('keydown', { key: '1', bubbles: true, cancelable: true });
+            window.dispatchEvent(key);
+            expect(key.defaultPrevented).toBe(false);
+            expect(assign).not.toHaveBeenCalled();
         });
     });
 });
