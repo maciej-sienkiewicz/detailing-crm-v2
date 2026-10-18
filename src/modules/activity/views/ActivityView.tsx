@@ -447,9 +447,12 @@ const OlderButton = styled.button`
 
 // ─── copy ─────────────────────────────────────────────────────────────────────
 
-/** Co pokazuje obszar - jedno zdanie pod tytułem listy, żeby nikt nie zgadywał. */
-const AREA_HINT: Record<ActivityArea | 'ALL', string> = {
-    ALL: 'Każde zdarzenie w studiu. Przypomnienia i automatyczne wiadomości, które doszły bez błędu, są ukryte, dopóki nie włączysz „Pokaż automaty".',
+/**
+ * Co pokazuje obszar - jedno zdanie pod tytułem listy, żeby nikt nie zgadywał.
+ * „Wszystko" zdania nie ma: tytuł mówi to samo, a opis przełącznika automatów
+ * był najdłuższym tekstem nad listą (decyzja biznesu).
+ */
+const AREA_HINT: Record<ActivityArea, string> = {
     VISITS: 'Przyjęcia, wydania, zmiany w wizytach, terminy rezerwacji i dokumenty wizyt.',
     MONEY: 'Wydania, rabaty, korekty kasy i rozliczeń, ceny w cenniku, faktury i dane do faktur.',
     CLIENTS: 'Co zrobili klienci i co ich dotyczy: akceptacje, odpowiedzi, wiadomości, leady, dane klientów.',
@@ -613,7 +616,9 @@ export const ActivityView = () => {
     }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
     const areaLabel = filters.area
-        ? options?.areas.find(area => area.value === filters.area)?.label ?? 'Wybrany obszar'
+        // `?.` także na liście: starszy backend (front wdrożony przed nim) nie zwraca `areas`,
+        // a TypeError tutaj wywracał cały widok przy każdej zakładce poza „Wszystko".
+        ? options?.areas?.find(area => area.value === filters.area)?.label ?? 'Wybrany obszar'
         : 'Wszystko';
 
     const whoLabel = (() => {
@@ -672,7 +677,7 @@ export const ActivityView = () => {
                             <FeedHead>
                                 <FeedTitle>
                                     <h2>{areaLabel} {PRESET_PHRASE[preset]}</h2>
-                                    <p>{AREA_HINT[filters.area ?? 'ALL']}</p>
+                                    {filters.area && <p>{AREA_HINT[filters.area]}</p>}
                                 </FeedTitle>
                                 {newer && newer.count > 0 && (
                                     <NewerPill type="button" onClick={showNewer}>

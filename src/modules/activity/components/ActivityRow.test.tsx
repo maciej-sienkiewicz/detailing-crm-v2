@@ -56,6 +56,11 @@ describe('ActivityRow', () => {
         expect(screen.getByText('Tablet')).toBeVisible();
     });
 
+    it('nie dopisuje „Panel" przy pracowniku - to kanał prawie każdej czynności', () => {
+        renderRow(<ActivityRow item={item({ id: 'p', channel: { code: 'WEB_PANEL', label: 'Panel' } })} />);
+        expect(screen.queryByText('Panel')).toBeNull();
+    });
+
     it('przy kliencie dopisuje „klient" zwykłym tekstem, bez inicjałów', () => {
         renderRow(<ActivityRow item={item({
             id: 'b',

@@ -381,12 +381,21 @@ const subjectLabel = (ref: ActivityReference): string => {
  */
 const WITHOUT_SUBJECT_LINK = new Set(['CUSTOMERS_IMPORTED', 'CUSTOMERS_EXPORTED']);
 
+/**
+ * Kanał, który nic nie mówi: prawie każda czynność pracownika dzieje się w panelu, więc
+ * „Panel" stał obok każdego nazwiska i był tylko szumem. Kanał zostaje tam, gdzie niesie
+ * informację: tablet, aplikacja mobilna, link dla klienta, automat.
+ */
+const SILENT_CHANNELS = new Set(['WEB_PANEL']);
+
 /** Rola i kanał pod nazwiskiem: „klient", „Karta wizyty"; dla pracownika sam kanał. */
 const actorMeta = (item: ActivityItem): string[] => {
     const meta: string[] = [];
     if (item.actor.type === 'CUSTOMER') meta.push('klient');
     // „System" jako nazwisko i „Automat" jako kanał mówią to samo - kanał wystarczy.
-    if (item.channel.label && item.channel.label !== item.actor.displayName) meta.push(item.channel.label);
+    if (item.channel.label && !SILENT_CHANNELS.has(item.channel.code) && item.channel.label !== item.actor.displayName) {
+        meta.push(item.channel.label);
+    }
     return meta;
 };
 
