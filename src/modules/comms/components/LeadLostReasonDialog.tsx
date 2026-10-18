@@ -74,13 +74,15 @@ interface LeadLostReasonDialogProps {
      */
     bulk?: { count: number; pending: boolean; onSubmit: (reason: string, note?: string) => void };
     onClose: () => void;
+    /** Powód zapisany - przed `onClose`, który pada też przy rezygnacji (tablica spraw odróżnia jedno od drugiego). */
+    onSaved?: () => void;
 }
 
 /**
  * Okno jest otwarte dokładnie wtedy, gdy jest zamontowane - wybrany powód żyje
  * więc tyle, co jedno otwarcie, i nie trzeba go kasować efektem przy następnym.
  */
-export function LeadLostReasonDialog({ leadId, bulk, onClose }: LeadLostReasonDialogProps) {
+export function LeadLostReasonDialog({ leadId, bulk, onClose, onSaved }: LeadLostReasonDialogProps) {
     const [reason, setReason] = useState<string | null>(null);
     const [note, setNote] = useState('');
     const { data: dictionaries } = useLeadDictionaries();
@@ -97,7 +99,10 @@ export function LeadLostReasonDialog({ leadId, bulk, onClose }: LeadLostReasonDi
         changeStatus.mutate(
             { leadId, status: 'LOST', lostReasonCode: reason, lostNote: note || undefined },
             {
-                onSuccess: onClose,
+                onSuccess: () => {
+                    onSaved?.();
+                    onClose();
+                },
                 onError: (error) => {
                     const message =
                         (error as { response?: { data?: { message?: string } } })?.response?.data?.message;

@@ -6,7 +6,7 @@
 // z codzienną pracą o miejsce na ekranie.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import styled from 'styled-components';
-import { Search, Settings, X } from 'lucide-react';
+import { Search, Settings, SquareKanban, X } from 'lucide-react';
 import { ActionMenu, useActionMenu } from '@/common/components/ui';
 import { useNewLeadsCount } from '../hooks/useLeads';
 import { useUnreadMailCount } from '../hooks/useComms';
@@ -98,9 +98,11 @@ interface ListHeaderProps {
     menu: (close: () => void) => ReactNode;
     /** Pasek pod zakładkami (np. „← Otwarte sprawy" w archiwum). */
     below?: ReactNode;
+    /** Przełączenie spraw na tablicę (kanban); brak - przycisku nie ma. */
+    onBoard?: () => void;
 }
 
-export function ListHeader({ tab, onTab, phone, query, onQuery, searchPlaceholder, menu, below }: ListHeaderProps) {
+export function ListHeader({ tab, onTab, phone, query, onQuery, searchPlaceholder, menu, below, onBoard }: ListHeaderProps) {
     const casesWaiting = useNewLeadsCount();
     const unreadMail = useUnreadMailCount();
     const settings = useActionMenu();
@@ -129,6 +131,11 @@ export function ListHeader({ tab, onTab, phone, query, onQuery, searchPlaceholde
                 >
                     <Search />
                 </Icon>
+                {onBoard && (
+                    <Icon aria-label="Pokaż sprawy jako tablicę" title="Tablica spraw" onClick={onBoard}>
+                        <SquareKanban />
+                    </Icon>
+                )}
                 <Icon
                     aria-label="Ustawienia skrzynki"
                     aria-haspopup="menu"

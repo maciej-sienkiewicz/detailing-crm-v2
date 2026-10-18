@@ -312,6 +312,12 @@ export interface LeadServiceItem {
  */
 export type LeadReplyState = 'AWAITING_OUR_REPLY' | 'AWAITING_CLIENT_REPLY' | 'NO_CONVERSATION';
 
+/**
+ * Kolumna tablicy spraw, do której człowiek przeciągnął kartę (PUT /v1/leads/{id}/board-stage).
+ * Bez „Zakończono" - tę kolumnę niesie status sprawy, nie położenie karty.
+ */
+export type LeadBoardStage = 'AWAITING_REPLY' | 'REPLIED' | 'SILENT' | 'NEEDS_REMINDER';
+
 export interface Lead {
     id: string;
     source: LeadSource;
@@ -364,6 +370,12 @@ export interface Lead {
     owedSince: string | null;
     /** Co jesteśmy winni - jedno zdanie z rozmowy; null, gdy nikt nie zanotował. */
     owedNote: string | null;
+    /**
+     * Ręczne położenie karty na tablicy spraw i chwila przesunięcia. Obowiązuje tylko do
+     * następnego faktu w rozmowie (leadBoard.ts). Opcjonalne, bo serwer sprzed V206 ich nie zna.
+     */
+    boardStage?: LeadBoardStage | null;
+    boardStageAt?: string | null;
     createdAt: string;
     updatedAt: string;
 }

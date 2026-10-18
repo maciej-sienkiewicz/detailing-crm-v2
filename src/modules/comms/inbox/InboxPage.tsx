@@ -57,6 +57,9 @@ import { ConversationHeader } from './Conversation';
 import { caseTitle } from './caseModel';
 import { useInboxNav } from './useInboxNav';
 import { ix } from './tokens';
+import { LeadBoard } from './board/LeadBoard';
+import { BoardHeader } from './board/BoardHeader';
+import { BoardCaseModal } from './board/BoardCaseModal';
 
 /** Najkrótszy odstęp między ręcznymi synchronizacjami skrzynki. */
 const MANUAL_SYNC_COOLDOWN_MS = 15_000;
@@ -99,6 +102,29 @@ const Card = styled.div<{ $phone: boolean }>`
         border-radius: 16px;
     `}
 `;
+
+/** Tablica spraw zajmuje całą kartę skrzynki - kolumny potrzebują szerokości, nie listy obok. */
+const BoardArea = styled.div`
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, #ffffff 0%, ${ix.surfaceSoft} 100%);
+`;
+
+/**
+ * Ostatnio wybrany układ spraw - wygoda jednej przeglądarki, nie stan do odtworzenia
+ * (ten mieszka w adresie). Pamięć bywa niedostępna (tryb prywatny), więc każde
+ * sięgnięcie jest w try/catch i brak odpowiedzi znaczy „lista".
+ */
+const LAYOUT_KEY = 'zapytania.sprawy.uklad';
+const rememberLayout = (board: boolean) => {
+    try { localStorage.setItem(LAYOUT_KEY, board ? 'tablica' : 'lista'); } catch { /* bez pamięci - bez wygody */ }
+};
+const rememberedBoard = (): boolean => {
+    try { return localStorage.getItem(LAYOUT_KEY) === 'tablica'; } catch { return false; }
+};
 
 const ListColumn = styled.section<{ $width: number | null }>`
     ${p => (p.$width ? css`flex: 0 0 ${p.$width}px; border-right: 1px solid ${ix.line};` : css`flex: 1 1 auto;`)}
@@ -204,7 +230,10 @@ export default function InboxPage() {
     const { showInfo } = useToast();
     const { can } = usePermissions();
     const nav = useInboxNav();
-    const { tab, leadId, threadId, archive, rejected, compose } = nav.location;
+    const { tab, leadId, threadId, archive, rejected, compose, board } = nav.location;
+    const boardView = tab === 'sprawy' && board;
+    /** Karta, z której wyrosło okno sprawy - żeby okno wiedziało, skąd przyjść i dokąd wrócić. */
+    const [openedFrom, setOpenedFrom] = useState<{ id: string; rect: DOMRect } | null>(null);
     const phone = useMediaQuery('(max-width: 767px)');
     const [cardRef, cardWidth] = useContainerWidth<HTMLDivElement>();
 
@@ -231,6 +260,9 @@ export default function InboxPage() {
     const open = useLeadsByStatuses(OPEN_LEAD_STATUSES);
     const worklist = useMemo(() => buildWorklist(open.items, thresholds), [open.items, thresholds]);
     const archiveSearch = useDebounce(archiveQuery, 300);
+    // „Zakończono" na tablicy - ostatnie zamknięte sprawy, najnowsze najpierw.
+    const recentlyClosed = useLeadsByStatuses(boardView ? CLOSED_LEAD_STATUSES : [], { sortDirection: 'DESC' });
+    const boardLeads = useMemo(() => [...open.items, ...recentlyClosed.items], [open.items, recentlyClosed.items]);
     const archiveBundle = useLeadsByStatuses(
         tab === 'sprawy' && archive ? (archiveStatus ? [archiveStatus] : CLOSED_LEAD_STATUSES) : [],
         { query: archiveSearch, sortDirection: 'DESC' }
@@ -279,7 +311,7 @@ export default function InboxPage() {
 
     // `j` / `k` - następna i poprzednia sprawa bez odrywania ręki od klawiatury.
     useEffect(() => {
-        if (tab !== 'sprawy' || !twoPane || archive) return;
+        if (tab !== 'sprawy' || !twoPane || archive || board) return;
         const onKey = (event: KeyboardEvent) => {
             if (event.key !== 'j' && event.key !== 'k') return;
             if (event.metaKey || event.ctrlKey || event.altKey) return;
@@ -295,7 +327,21 @@ export default function InboxPage() {
         };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
-    }, [tab, twoPane, archive, worklist.ours.entries, leadId, nav]);
+    }, [tab, twoPane, archive, board, worklist.ours.entries, leadId, nav]);
+
+    // Bez niczego w adresie (wejście z menu) - ostatnio wybrany układ spraw.
+    useEffect(() => {
+        if (window.location.search === '' && rememberedBoard()) nav.setBoard(true);
+        // Tylko przy wejściu na stronę - potem układ zmienia wyłącznie przełącznik.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const switchLayout = useCallback((next: boolean) => {
+        rememberLayout(next);
+        setQuery('');
+        setSelecting(false);
+        nav.setBoard(next);
+    }, [nav]);
 
     const refreshMailbox = useCallback(() => {
         if (!activeAccount) return;
@@ -368,6 +414,7 @@ export default function InboxPage() {
                 searchPlaceholder={tab === 'sprawy' ? (archive ? 'Szukaj w zamkniętych' : 'Szukaj: auto, osoba, adres') : 'Szukaj: osoba, temat, treść'}
                 menu={settingsMenu}
                 below={modeBar}
+                onBoard={tab === 'sprawy' && !archive ? () => switchLayout(true) : undefined}
             />
             {mailboxSync.syncing ? (
                 <div style={{ padding: 16, overflowY: 'auto' }}><MailboxSyncPanel /></div>
@@ -512,6 +559,55 @@ export default function InboxPage() {
                 {!noMailbox && <button type="button" onClick={() => nav.openCompose()}>Napisz nową wiadomość</button>}
             </Placeholder>
         );
+
+    if (boardView) {
+        return (
+            <Page $phone={phone}>
+                <Card ref={cardRef} $phone={phone}>
+                    <BoardArea>
+                        <BoardHeader
+                            phone={phone}
+                            total={open.items.length}
+                            query={query}
+                            onQuery={setQuery}
+                            onList={() => switchLayout(false)}
+                        />
+                        <LeadBoard
+                            leads={boardLeads}
+                            loading={open.isLoading || recentlyClosed.isLoading}
+                            truncated={open.truncated}
+                            query={query}
+                            phone={phone}
+                            hiddenId={leadId}
+                            onOpen={(id, rect) => {
+                                setOpenedFrom({ id, rect });
+                                nav.openCase(id);
+                            }}
+                            onShowArchive={() => {
+                                rememberLayout(false);
+                                nav.setArchive(true);
+                            }}
+                        />
+                    </BoardArea>
+                </Card>
+                {leadId && (
+                    <BoardCaseModal
+                        key={leadId}
+                        leadId={leadId}
+                        phone={phone}
+                        origin={openedFrom?.id === leadId ? openedFrom.rect : null}
+                        findCard={(id) => document.querySelector<HTMLElement>(`[data-board-column] [data-flip="${CSS.escape(id)}"]`)}
+                        onClose={() => {
+                            setOpenedFrom(null);
+                            nav.openCase(null);
+                        }}
+                    />
+                )}
+                {settingsModal === 'signature' && <SignatureSettingsModal isOpen onClose={() => setSettingsModal(null)} />}
+                {settingsModal === 'draft-style' && <ReplyDraftStyleSettings onClose={() => setSettingsModal(null)} />}
+            </Page>
+        );
+    }
 
     return (
         <Page $phone={phone}>

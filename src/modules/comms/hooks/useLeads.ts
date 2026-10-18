@@ -17,6 +17,7 @@ import { DEFAULT_STAGNATION, type StagnationThresholds } from '../utils/leadUrge
 import type {
     DashboardSocketEvent,
     Lead,
+    LeadBoardStage,
     LeadPage,
     LeadServiceItemInput,
     LeadSortDirection,
@@ -719,6 +720,50 @@ export const useChangeLeadStatus = () => {
             lostNote?: string;
         }) => leadsApi.changeStatus(leadId, { status, lostReasonCode, lostNote }),
         onSuccess: (_lead, { leadId }) => invalidate(leadId),
+    });
+};
+
+/**
+ * Podmiana leada w pamięci podręcznej - w każdej stronie listy i w szczegółach.
+ *
+ * Dla tablicy spraw: karta upuszczona w kolumnie ma tam stać od razu, a nie wrócić
+ * na stare miejsce na czas żądania i przeskoczyć po odpowiedzi. Podgląd przeciągania
+ * i ten zapis liczą lead tą samą funkcją (leadAfterMove), więc nic się nie przesuwa.
+ */
+export const usePatchLeadCache = () => {
+    const queryClient = useQueryClient();
+    return useCallback(
+        (lead: Lead) => {
+            updateLeadPages(queryClient, (page) => {
+                const index = page.items.findIndex((item) => item.id === lead.id);
+                if (index === -1) return page;
+                const items = [...page.items];
+                items[index] = lead;
+                return { ...page, items };
+            });
+            queryClient.setQueryData<Lead>([...LEADS_KEY, 'detail', lead.id], (cached) => (cached ? { ...cached, ...lead } : cached));
+        },
+        [queryClient]
+    );
+};
+
+/**
+ * Przeciągnięcie karty na tablicy spraw. [optimistic] - lead po przesunięciu, wpisany
+ * do pamięci przed żądaniem; błąd przywraca stan serwera unieważnieniem.
+ */
+export const useMoveLeadOnBoard = () => {
+    const queryClient = useQueryClient();
+    const patch = usePatchLeadCache();
+    const invalidate = useLeadInvalidation();
+    return useMutation({
+        mutationFn: ({ leadId, stage }: { leadId: string; stage: LeadBoardStage | null; optimistic: Lead }) =>
+            leadsApi.moveOnBoard(leadId, stage),
+        onMutate: async ({ optimistic }) => {
+            // Odpowiedź odświeżenia wysłanego przed przesunięciem nadpisałaby kartę starym miejscem.
+            await queryClient.cancelQueries({ queryKey: [...LEADS_KEY, 'list'] });
+            patch(optimistic);
+        },
+        onSettled: (_lead, _error, { leadId }) => invalidate(leadId),
     });
 };
 

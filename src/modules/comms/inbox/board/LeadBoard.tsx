@@ -1,0 +1,570 @@
+// src/modules/comms/inbox/board/LeadBoard.tsx
+// Tablica spraw - drugi, równoległy widok zakładki „Sprawy" (obok listy).
+//
+// Pięć kolumn: Oczekuje na odpowiedź, Odpowiedzieliśmy, Ucichło, Wymaga przypomnienia,
+// Zakończono. Która sprawa gdzie stoi i co znaczy przeciągnięcie - utils/leadBoard.ts.
+// Tu jest wyłącznie widok: kolumny, karty, miejsce robione karcie w ręce i pytanie
+// o wynik przy zamknięciu.
+//
+// Podgląd w trakcie przeciągania liczy CAŁĄ tablicę z kartą przesuniętą „na próbę" -
+// tą samą funkcją, którą potem zapisujemy przesunięcie. Miejsce dla karty otwiera się
+// więc dokładnie tam, gdzie karta stanie, a pozostałe karty rozsuwa useFlip.
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
+import { createPortal } from 'react-dom';
+import styled, { css, keyframes } from 'styled-components';
+import { Archive, ArrowRight } from 'lucide-react';
+import { matchesSearch } from '@/common/utils/textSearch';
+import { pluralPl } from '@/common/utils/plural';
+import { useToast } from '@/common/components/Toast';
+import { ChoiceModal } from '@/common/components/ConfirmationModal';
+import { ActionMenu, MenuItem, useActionMenu } from '@/common/components/ui';
+import { useChangeLeadStatus, useMoveLeadOnBoard, usePatchLeadCache, useStagnationThresholds } from '../../hooks/useLeads';
+import { LeadLostReasonDialog } from '../../components/LeadLostReasonDialog';
+import type { Lead } from '../../types';
+import {
+    BOARD_COLUMNS,
+    boardColumnMeta,
+    buildBoard,
+    leadAfterMove,
+    planBoardMove,
+    type BoardCard,
+    type BoardColumnKey,
+} from '../../utils/leadBoard';
+import { caseTitle, formatAmount } from '../caseModel';
+import { ix } from '../tokens';
+import { BoardCardView, CardSlot, DragLayer } from './BoardCard';
+import { EASE_SPRING, prefersReducedMotion } from './motion';
+import { useBoardDrag } from './useBoardDrag';
+import { useFlip } from './useFlip';
+
+const Scroller = styled.div<{ $phone: boolean }>`
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    gap: ${p => (p.$phone ? 12 : 14)}px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    padding: ${p => (p.$phone ? '4px 16px 16px' : '4px 24px 24px')};
+    scroll-padding: 0 16px;
+    ${p => p.$phone && css`scroll-snap-type: x mandatory;`}
+    -webkit-overflow-scrolling: touch;
+
+    /* Pasek przewijania tylko wtedy, gdy jest po co - jak w Finderze. */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(15, 23, 42, 0.18) transparent;
+`;
+
+const Lane = styled.section<{ $phone: boolean; $over: boolean; $ring: string; $tint: string }>`
+    flex: ${p => (p.$phone ? '0 0 calc(100vw - 52px)' : '1 0 248px')};
+    max-width: ${p => (p.$phone ? 'none' : '360px')};
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    border-radius: 18px;
+    background: ${p => (p.$over ? p.$tint : 'rgba(241, 245, 249, 0.72)')};
+    box-shadow: inset 0 0 0 ${p => (p.$over ? '2px' : '1px')} ${p => (p.$over ? p.$ring : 'rgba(15, 23, 42, 0.04)')};
+    scroll-snap-align: center;
+    transition:
+        background 260ms ${EASE_SPRING},
+        box-shadow 260ms ${EASE_SPRING};
+`;
+
+const LaneHead = styled.header`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 14px 10px 16px;
+
+    .dot { flex: none; width: 8px; height: 8px; border-radius: 999px; }
+    h2 {
+        flex: 1;
+        min-width: 0;
+        margin: 0;
+        font-size: 14px;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+        color: ${ix.ink};
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .count {
+        flex: none;
+        min-width: 22px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+    }
+    `;
+
+/** Kwota pod nagłówkiem, a nie obok - obok zjadała nazwę kolumny („Odpowiedzieliś…"). */
+const LaneValue = styled.p`
+    margin: -6px 14px 8px 32px;
+    font-size: 12px;
+    font-weight: 600;
+    color: ${ix.muted};
+    font-variant-numeric: tabular-nums;
+`;
+
+const LaneBody = styled.div`
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 2px 10px 12px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(15, 23, 42, 0.14) transparent;
+`;
+
+const Empty = styled.p`
+    margin: 4px 6px;
+    padding: 18px 14px;
+    border-radius: 14px;
+    border: 1.5px dashed rgba(15, 23, 42, 0.1);
+    font-size: 13px;
+    line-height: 1.45;
+    color: ${ix.muted};
+    text-align: center;
+`;
+
+const LaneFoot = styled.button`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: 0 10px 12px;
+    padding: 9px 12px;
+    border: none;
+    border-radius: 12px;
+    background: transparent;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: ${ix.text2};
+    cursor: pointer;
+
+    svg { width: 14px; height: 14px; }
+    &:hover { background: rgba(15, 23, 42, 0.05); color: ${ix.ink}; }
+    &:focus-visible { outline: 2px solid ${ix.accent}; outline-offset: 2px; }
+`;
+
+const shimmer = keyframes`
+    from { background-position: -240px 0; }
+    to { background-position: 240px 0; }
+`;
+
+const Skeleton = styled.div`
+    height: 92px;
+    flex: none;
+    border-radius: 14px;
+    background: linear-gradient(90deg, #ffffff 0%, #f8fafc 50%, #ffffff 100%);
+    background-size: 480px 100%;
+    animation: ${shimmer} 1.4s linear infinite;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+
+    @media (prefers-reduced-motion: reduce) { animation: none; }
+`;
+
+/** Telefon: kolumna naraz na ekranie, więc skróty do pozostałych - z licznikami, jak zakładki. */
+const LaneChips = styled.div`
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 0 16px 10px;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
+
+    button {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 34px;
+        padding: 0 12px;
+        border: 1px solid ${ix.line};
+        border-radius: 999px;
+        background: #ffffff;
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        color: ${ix.text2};
+        white-space: nowrap;
+        transition: background 200ms ease, color 200ms ease, border-color 200ms ease;
+    }
+    button[aria-current='true'] { color: ${ix.ink}; border-color: transparent; background: ${ix.surfaceAlt}; }
+    .dot { width: 7px; height: 7px; border-radius: 999px; }
+    .n { font-variant-numeric: tabular-nums; color: ${ix.muted}; }
+`;
+
+const Notice = styled.p`
+    margin: 0 24px 12px;
+    font-size: 12.5px;
+    color: ${ix.muted};
+`;
+
+const VisuallyHidden = styled.div`
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+`;
+
+/** Wiek „27 godz." i progi przesuwają się same - zegar tablicy tyka raz na minutę. */
+function useMinuteClock(): number {
+    const [now, setNow] = useState(() => Date.now());
+    useEffect(() => {
+        const id = window.setInterval(() => setNow(Date.now()), 60_000);
+        return () => window.clearInterval(id);
+    }, []);
+    return now;
+}
+
+const matches = (lead: Lead, needle: string): boolean =>
+    matchesSearch(
+        needle,
+        [lead.customerName, lead.contactIdentifier, lead.vehicleBrand, lead.vehicleModel, ...lead.tagLabels],
+        [lead.contactIdentifier]
+    );
+
+interface LeadBoardProps {
+    /** Sprawy otwarte i zamknięte - „Zakończono" bierze z nich ostatnie 30 dni. */
+    leads: Lead[];
+    loading: boolean;
+    truncated: boolean;
+    query: string;
+    phone: boolean;
+    /** Sprawa otwarta w oknie - jej karta „staje się" oknem, więc na tablicy jej nie ma. */
+    hiddenId: string | null;
+    onOpen: (leadId: string, from: DOMRect) => void;
+    onShowArchive: () => void;
+}
+
+export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, onOpen, onShowArchive }: LeadBoardProps) {
+    const { showError } = useToast();
+    const thresholds = useStagnationThresholds();
+    const now = useMinuteClock();
+    const boardRef = useRef<HTMLDivElement>(null);
+    const overlayRef = useRef<HTMLDivElement>(null);
+    const moveOnBoard = useMoveLeadOnBoard();
+    const changeStatus = useChangeLeadStatus();
+    const patchCache = usePatchLeadCache();
+    const moveMenu = useActionMenu<BoardCard>();
+
+    /*
+     * Przesunięcia w drodze do serwera. Pamięć podręczna dostaje lead po przesunięciu
+     * dopiero po anulowaniu trwających odświeżeń (onMutate jest asynchroniczne), a karta
+     * ma stać na nowym miejscu od pierwszej klatki po upuszczeniu.
+     */
+    const [pending, setPending] = useState<ReadonlyMap<string, Lead>>(new Map());
+    const hold = useCallback((lead: Lead) => setPending((prev) => new Map(prev).set(lead.id, lead)), []);
+    const release = useCallback((id: string) => setPending((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Map(prev);
+        next.delete(id);
+        return next;
+    }), []);
+
+    const [closing, setClosing] = useState<{ card: BoardCard; optimistic: Lead } | null>(null);
+    const [lostFor, setLostFor] = useState<{ card: BoardCard; optimistic: Lead } | null>(null);
+    const [announcement, setAnnouncement] = useState('');
+
+    const base = useMemo(() => {
+        const merged = leads.map((lead) => pending.get(lead.id) ?? lead);
+        return query ? merged.filter((lead) => matches(lead, query)) : merged;
+    }, [leads, pending, query]);
+
+    const board = useMemo(() => buildBoard(base, thresholds, now), [base, thresholds, now]);
+    const cards = useMemo(() => new Map(board.flatMap((column) => column.cards).map((card) => [card.lead.id, card])), [board]);
+
+    const commit = useCallback((card: BoardCard, to: BoardColumnKey) => {
+        const move = planBoardMove(card, to);
+        if (move.kind === 'NONE') return;
+        const optimistic = leadAfterMove(card.lead, move, new Date().toISOString());
+        hold(optimistic);
+        if (move.kind === 'CLOSE') {
+            setClosing({ card, optimistic });
+            return;
+        }
+        setAnnouncement(`${caseTitle(card.lead)}: ${boardColumnMeta(to).title}`);
+        moveOnBoard.mutate(
+            { leadId: card.lead.id, stage: move.stage, optimistic },
+            {
+                onError: (error) => {
+                    const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                    showError('Nie udało się przenieść sprawy', message ?? 'Karta wróciła na poprzednie miejsce');
+                },
+                onSettled: () => release(card.lead.id),
+            }
+        );
+    }, [hold, release, moveOnBoard, showError]);
+
+    const { session, onPointerDown, consumeClick } = useBoardDrag({
+        boardRef,
+        overlayRef,
+        onDrop: (id, _from, to) => {
+            const card = cards.get(id);
+            if (card) commit(card, to);
+        },
+    });
+
+    // Podgląd: tablica z kartą w ręce przestawioną „na próbę" do kolumny pod kursorem.
+    const shown = useMemo(() => {
+        if (!session) return board;
+        const card = cards.get(session.id);
+        if (!card) return board;
+        const moved = leadAfterMove(card.lead, planBoardMove(card, session.over ?? session.from), new Date().toISOString());
+        return buildBoard(base.map((lead) => (lead.id === moved.id ? moved : lead)), thresholds, now);
+    }, [session, board, cards, base, thresholds, now]);
+
+    useFlip(boardRef);
+
+    const draggedCard = session ? cards.get(session.id) ?? null : null;
+
+    // Telefon: która kolumna jest teraz na ekranie - dla podświetlenia skrótu.
+    const [visibleLane, setVisibleLane] = useState<BoardColumnKey>(BOARD_COLUMNS[0].key);
+    useEffect(() => {
+        const scroller = boardRef.current;
+        if (!phone || !scroller) return;
+        let frame = 0;
+        const onScroll = () => {
+            cancelAnimationFrame(frame);
+            frame = requestAnimationFrame(() => {
+                const middle = scroller.getBoundingClientRect().left + scroller.clientWidth / 2;
+                let best: BoardColumnKey = BOARD_COLUMNS[0].key;
+                let distance = Infinity;
+                scroller.querySelectorAll<HTMLElement>('[data-board-column]').forEach((lane) => {
+                    const rect = lane.getBoundingClientRect();
+                    const d = Math.abs(rect.left + rect.width / 2 - middle);
+                    if (d < distance) { distance = d; best = lane.dataset.boardColumn as BoardColumnKey; }
+                });
+                setVisibleLane(best);
+            });
+        };
+        scroller.addEventListener('scroll', onScroll, { passive: true });
+        return () => { cancelAnimationFrame(frame); scroller.removeEventListener('scroll', onScroll); };
+    }, [phone]);
+
+    // Skrót bieżącej kolumny nie może stać za krawędzią paska skrótów.
+    const chipsRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        chipsRef.current?.querySelector('[aria-current="true"]')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+    }, [visibleLane]);
+
+    const showLane = (key: BoardColumnKey) => {
+        boardRef.current?.querySelector(`[data-board-column="${key}"]`)?.scrollIntoView({
+            behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+            inline: 'center',
+            block: 'nearest',
+        });
+    };
+
+    // ── Zamykanie sprawy upuszczonej w „Zakończono" ──────────────────────────
+    const cancelClose = () => {
+        if (closing) release(closing.card.lead.id);
+        setClosing(null);
+    };
+    const closeAsCompleted = () => {
+        if (!closing) return;
+        const { card, optimistic } = closing;
+        setClosing(null);
+        patchCache(optimistic);
+        setAnnouncement(`${caseTitle(card.lead)}: zrealizowana`);
+        changeStatus.mutate(
+            { leadId: card.lead.id, status: 'COMPLETED' },
+            {
+                onError: (error) => {
+                    patchCache(card.lead);
+                    const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                    showError('Nie udało się zamknąć sprawy', message);
+                },
+                onSettled: () => release(card.lead.id),
+            }
+        );
+    };
+    const closeAsLost = () => {
+        if (!closing) return;
+        const lost: Lead = { ...closing.optimistic, status: 'LOST' };
+        // Karta czekająca na powód mówi już „Przegrana", a nie „Zrealizowana" z podglądu.
+        hold(lost);
+        setLostFor({ card: closing.card, optimistic: lost });
+        setClosing(null);
+    };
+
+    // ── Klawiatura i menu „Przenieś do" - przeciąganie nie może być jedyną drogą ──
+    const moveBy = (card: BoardCard, step: number) => {
+        const index = BOARD_COLUMNS.findIndex((column) => column.key === card.column);
+        const target = BOARD_COLUMNS[index + step];
+        if (target) commit(card, target.key);
+    };
+
+    const onCardKey = (event: KeyboardEvent<HTMLDivElement>, card: BoardCard) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onOpen(card.lead.id, event.currentTarget.getBoundingClientRect());
+        } else if (event.shiftKey && (event.key === 'ArrowRight' || event.key === 'ArrowLeft')) {
+            event.preventDefault();
+            moveBy(card, event.key === 'ArrowRight' ? 1 : -1);
+        }
+    };
+
+    const onCardClick = (event: MouseEvent<HTMLDivElement>, card: BoardCard) => {
+        if (consumeClick()) return;
+        onOpen(card.lead.id, event.currentTarget.getBoundingClientRect());
+    };
+
+    const total = board.reduce((sum, column) => sum + column.cards.length, 0);
+
+    return (
+        <>
+            {truncated && (
+                <Notice>Tablica pokazuje pierwsze 100 spraw w każdym statusie. Starsze znajdziesz w zamkniętych sprawach.</Notice>
+            )}
+            {phone && (
+                <LaneChips ref={chipsRef} role="navigation" aria-label="Kolumny tablicy">
+                    {shown.map((column) => (
+                        <button key={column.key} type="button" aria-current={visibleLane === column.key} onClick={() => showLane(column.key)}>
+                            <span className="dot" style={{ background: column.tone.dot }} aria-hidden="true" />
+                            {column.title}
+                            <span className="n">{column.cards.length}</span>
+                        </button>
+                    ))}
+                </LaneChips>
+            )}
+            <Scroller ref={boardRef} $phone={phone} aria-label="Tablica spraw" aria-describedby="board-help">
+                {shown.map((column) => {
+                    const isOver = Boolean(session && !session.landing && session.over === column.key && session.from !== column.key);
+                    return (
+                        <Lane
+                            key={column.key}
+                            data-board-column={column.key}
+                            $phone={phone}
+                            $over={isOver}
+                            $ring={`${column.tone.dot}66`}
+                            $tint={column.tone.tint}
+                            aria-labelledby={`lane-${column.key}`}
+                        >
+                            <LaneHead>
+                                <span className="dot" style={{ background: column.tone.dot }} aria-hidden="true" />
+                                <h2 id={`lane-${column.key}`}>{column.title}</h2>
+                                <span className="count" style={{ background: column.tone.tint, color: column.tone.ink }} aria-label={`${column.cards.length} ${pluralPl(column.cards.length, 'sprawa', 'sprawy', 'spraw')}`}>
+                                    {column.cards.length}
+                                </span>
+                            </LaneHead>
+                            {column.showsValue && column.value > 0 && (
+                                <LaneValue>{formatAmount(column.value)} w wycenach</LaneValue>
+                            )}
+                            <LaneBody data-board-scroll={column.key}>
+                                {loading && total === 0 ? (
+                                    <>
+                                        <Skeleton />
+                                        <Skeleton style={{ opacity: 0.7 }} />
+                                        <Skeleton style={{ opacity: 0.4 }} />
+                                    </>
+                                ) : column.cards.length === 0 ? (
+                                    <Empty>{column.empty}</Empty>
+                                ) : (
+                                    column.cards.map((card) =>
+                                        session?.id === card.lead.id ? (
+                                            <CardSlot
+                                                key={card.lead.id}
+                                                data-flip={card.lead.id}
+                                                data-flip-static=""
+                                                $height={session.height}
+                                                $tone={`${column.tone.dot}99`}
+                                                $tint={`${column.tone.tint}`}
+                                                aria-hidden="true"
+                                            />
+                                        ) : (
+                                            <BoardCardView
+                                                key={card.lead.id}
+                                                card={card}
+                                                now={now}
+                                                data-flip={card.lead.id}
+                                                role="button"
+                                                tabIndex={0}
+                                                aria-label={`${caseTitle(card.lead)}, ${column.title}. Enter otwiera sprawę, Shift i strzałka przenosi do sąsiedniej kolumny.`}
+                                                style={hiddenId === card.lead.id ? { visibility: 'hidden' } : undefined}
+                                                onPointerDown={(event) => onPointerDown(event, card.lead.id, card.column)}
+                                                onClick={(event) => onCardClick(event, card)}
+                                                onKeyDown={(event) => onCardKey(event, card)}
+                                                onContextMenu={(event) => {
+                                                    event.preventDefault();
+                                                    moveMenu.toggle(event, card);
+                                                }}
+                                            />
+                                        )
+                                    )
+                                )}
+                            </LaneBody>
+                            {column.key === 'DONE' && (
+                                <LaneFoot type="button" onClick={onShowArchive}>
+                                    <Archive aria-hidden="true" /> Wszystkie zamknięte sprawy
+                                </LaneFoot>
+                            )}
+                        </Lane>
+                    );
+                })}
+            </Scroller>
+
+            <VisuallyHidden id="board-help">
+                Przeciągnij kartę do innej kolumny albo użyj Shift i strzałek. Przytrzymaj palec na karcie, żeby ją przenieść na telefonie.
+            </VisuallyHidden>
+            <VisuallyHidden aria-live="polite">{announcement}</VisuallyHidden>
+
+            {session && draggedCard && createPortal(
+                <DragLayer ref={overlayRef} $width={session.width} data-lifted="false" aria-hidden="true">
+                    <BoardCardView card={draggedCard} now={now} />
+                </DragLayer>,
+                document.body
+            )}
+
+            <ActionMenu anchor={moveMenu.menu?.anchor ?? null} onClose={moveMenu.close} label="Przenieś sprawę">
+                {moveMenu.menu && BOARD_COLUMNS.filter((column) => column.key !== moveMenu.menu!.item.column).map((column) => (
+                    <MenuItem
+                        key={column.key}
+                        icon={<ArrowRight />}
+                        onClick={() => {
+                            const card = moveMenu.menu!.item;
+                            moveMenu.close();
+                            commit(card, column.key);
+                        }}
+                    >
+                        {column.title}
+                    </MenuItem>
+                ))}
+            </ActionMenu>
+
+            <ChoiceModal
+                isOpen={closing !== null}
+                title="Wynik sprawy"
+                message={closing ? `Jak skończyła się sprawa ${caseTitle(closing.card.lead)}? Przy przegranej zapytamy jeszcze o powód.` : ''}
+                variant="info"
+                primaryText="Zrealizowana"
+                onPrimary={closeAsCompleted}
+                secondaryText="Przegrana"
+                onSecondary={closeAsLost}
+                onDismiss={cancelClose}
+            />
+            {lostFor && (
+                <LeadLostReasonDialog
+                    key={lostFor.card.lead.id}
+                    leadId={lostFor.card.lead.id}
+                    onSaved={() => patchCache(lostFor.optimistic)}
+                    onClose={() => {
+                        release(lostFor.card.lead.id);
+                        setLostFor(null);
+                    }}
+                />
+            )}
+        </>
+    );
+}

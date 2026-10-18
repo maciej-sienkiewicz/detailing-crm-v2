@@ -12,6 +12,8 @@ export interface InboxLocation {
     threadId: string | null;
     /** Zamknięte sprawy (tryb listy w zakładce Sprawy). */
     archive: boolean;
+    /** Sprawy jako tablica (kanban) zamiast listy; otwarta sprawa jest wtedy oknem nad tablicą. */
+    board: boolean;
     /** Odrzucone przez automat (tryb listy w zakładce Poczta). */
     rejected: boolean;
     /** Nowa wiadomość od zera; `to` - adres wpisany z góry. */
@@ -27,6 +29,7 @@ export function useInboxNav() {
             leadId: params.get('lead'),
             threadId: params.get('thread'),
             archive: params.get('archive') === '1',
+            board: params.get('uklad') === 'tablica',
             rejected: params.get('folder') === 'rejected',
             compose: params.get('compose') === '1' ? { to: params.get('to') ?? '' } : null,
         }),
@@ -39,7 +42,8 @@ export function useInboxNav() {
             const out: Record<string, string> = {};
             if (merged.tab !== 'sprawy') out.view = merged.tab;
             if (merged.tab === 'sprawy') {
-                if (merged.archive) out.archive = '1';
+                if (merged.board) out.uklad = 'tablica';
+                else if (merged.archive) out.archive = '1';
                 if (merged.leadId) out.lead = merged.leadId;
             } else {
                 if (merged.rejected && merged.tab === 'poczta') out.folder = 'rejected';
@@ -58,12 +62,14 @@ export function useInboxNav() {
     return {
         location,
         /** Zmiana zakładki zaczyna od czystej listy - otwarte rzeczy należą do poprzedniej. */
-        setTab: (tab: InboxTab) => tab !== location.tab && write({ tab, leadId: null, threadId: null, archive: false, rejected: false, compose: null }),
+        setTab: (tab: InboxTab) => tab !== location.tab && write({ tab, leadId: null, threadId: null, archive: false, board: false, rejected: false, compose: null }),
         openCase: (leadId: string | null) => write({ leadId }),
         openThread: (threadId: string | null) => write({ threadId, compose: null }),
-        setArchive: (archive: boolean) => write({ archive, leadId: null }),
+        setArchive: (archive: boolean) => write({ archive, board: false, leadId: null }),
+        /** Lista ↔ tablica. Otwarta sprawa zostaje otwarta - w drugim układzie też ją widać. */
+        setBoard: (board: boolean) => write({ board, archive: false }),
         setRejected: (rejected: boolean) => write({ rejected, threadId: null }),
-        openCompose: (to = '') => write({ tab: location.tab === 'sprawy' ? 'poczta' : location.tab, compose: { to }, threadId: null }),
+        openCompose: (to = '') => write({ tab: location.tab === 'sprawy' ? 'poczta' : location.tab, board: false, compose: { to }, threadId: null }),
         closeCompose: () => write({ compose: null }),
         /** Po wysłaniu nowej wiadomości: wątek w Wysłanych. */
         showSent: (threadId: string) => write({ tab: 'wyslane', threadId, compose: null, rejected: false }),

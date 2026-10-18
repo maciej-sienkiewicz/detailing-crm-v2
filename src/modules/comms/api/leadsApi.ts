@@ -14,6 +14,7 @@ import type {
     LeadServiceItemInput,
     LeadSortDirection,
     LeadStatus,
+    LeadBoardStage,
     LeadBooking,
     LeadTimelineEntry,
     LeadCallback,
@@ -168,6 +169,14 @@ export const leadsApi = {
         request: { status: LeadStatus; lostReasonCode?: string; lostNote?: string }
     ): Promise<Lead> => {
         const { data } = await apiClient.put(`/v1/leads/${leadId}/status`, request, {
+            skipErrorToast: true,
+        });
+        return data;
+    },
+
+    /** Przeciągnięcie karty na tablicy spraw; null oddaje kartę faktom. Zamknięta sprawa otwiera się ponownie. */
+    moveOnBoard: async (leadId: string, stage: LeadBoardStage | null): Promise<Lead> => {
+        const { data } = await apiClient.put(`/v1/leads/${leadId}/board-stage`, { stage }, {
             skipErrorToast: true,
         });
         return data;

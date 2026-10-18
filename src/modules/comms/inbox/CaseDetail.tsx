@@ -168,9 +168,11 @@ interface CaseDetailProps {
     onAdvance?: () => void;
     /** Po usunięciu sprawy. */
     onClosed: () => void;
+    /** Ostatni przycisk nagłówka - „Zamknij" okna sprawy otwartego z tablicy. */
+    headerAction?: React.ReactNode;
 }
 
-export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClosed }: CaseDetailProps) {
+export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClosed, headerAction }: CaseDetailProps) {
     const navigate = useNavigate();
     const { showError } = useToast();
     const { can } = usePermissions();
@@ -353,6 +355,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                     <MoreHorizontal />
                 </IconBtn>
             )}
+            {headerAction}
         </ConversationHeader>
     );
 
