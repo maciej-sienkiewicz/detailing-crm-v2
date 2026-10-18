@@ -109,6 +109,10 @@ export interface PublishVisit {
     vehicle: string;
     date: string;
     photos: PublishPhoto[];
+    /** Fakty do „Dodatkowego kontekstu" generatora (bez tablicy, klienta i cen). */
+    year?: number | null;
+    color?: string | null;
+    services?: string[];
 }
 
 export interface PublishRequest {

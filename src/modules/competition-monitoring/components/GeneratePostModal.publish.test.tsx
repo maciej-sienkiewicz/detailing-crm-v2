@@ -38,6 +38,7 @@ vi.mock('../api/accountsApi', async importOriginal => {
                 {
                     visitId: 'v1', visitNumber: 'W/2026/41', vehicle: 'Volvo XC60', date: '2026-10-14T10:00:00Z',
                     photos: [{ id: 'p1', thumbnailUrl: 'https://x/1.jpg' }, { id: 'p2', thumbnailUrl: 'https://x/2.jpg' }],
+                    year: 2022, color: 'biały', services: ['Powłoka ceramiczna'],
                 },
             ]),
             publish: vi.fn(async () => ({ mediaId: 'm1', permalink: 'https://www.instagram.com/p/ABC/' })),
@@ -121,11 +122,16 @@ describe('GeneratePostModal: publikacja', () => {
 
         // Oba zdjęcia wizyty są zaznaczone dla AI; drugie odznaczamy przed generowaniem.
         await waitFor(() => expect(screen.getAllByRole('button', { pressed: true })).toHaveLength(2));
-        fireEvent.click(screen.getByRole('button', { name: /Zdjęcie 2 dla AI/ }));
+        fireEvent.click(screen.getByRole('button', { name: /Zdjęcie 2 w poście/ }));
         fireEvent.click(screen.getByRole('button', { name: /Generuj post/ }));
 
+        // Fakty z wizyty są w kontekście, który właściciel widział w polu - tylko tędy idą do modelu.
         await waitFor(() => expect(instagramApi.generatePost).toHaveBeenCalledWith(
-            expect.objectContaining({ visitId: 'v1', photoIds: ['p1'] }),
+            expect.objectContaining({
+                visitId: 'v1',
+                photoIds: ['p1'],
+                context: 'Auto: Volvo XC60, rocznik 2022, kolor biały\nWykonane usługi:\n- Powłoka ceramiczna',
+            }),
         ));
         fireEvent.click(await screen.findByRole('button', { name: /Opublikuj/ }));
         await waitFor(() => expect(accountsApi.publish).toHaveBeenCalledWith(
@@ -137,15 +143,21 @@ describe('GeneratePostModal: publikacja', () => {
         vi.mocked(accountsApi.getConnection).mockResolvedValue(connection('NOT_CONNECTED'));
         renderModal(vi.fn(), { pickVisit: true });
 
-        const select = await screen.findByRole('combobox', { name: /Wizyta, której dotyczy post/ });
-        expect((select as HTMLSelectElement).value).toBe('');
+        // Lista jest od razu otwarta i nic nie jest wybrane.
+        await screen.findByRole('listbox', { name: /Ostatnie realizacje/ });
+        expect(screen.getByRole('button', { name: /Wizyta, której dotyczy post: bez realizacji/ })).toBeTruthy();
         expect(screen.getByText('Wybierz realizację')).toBeTruthy();
 
-        fireEvent.change(select, { target: { value: 'v1' } });
+        fireEvent.click(screen.getByRole('option', { name: /Volvo XC60/ }));
+        expect(screen.queryByRole('listbox')).toBeNull();
         expect((screen.getByLabelText(/Temat posta/) as HTMLInputElement).value).toBe('Realizacja: Volvo XC60');
+        expect((screen.getByLabelText(/Dodatkowy kontekst/) as HTMLTextAreaElement).value).toContain('- Powłoka ceramiczna');
+
+        // Kontekst poprawiony przez właściciela idzie do modelu w jego wersji.
+        fireEvent.change(screen.getByLabelText(/Dodatkowy kontekst/), { target: { value: 'Tylko powłoka na masce' } });
         fireEvent.click(screen.getByRole('button', { name: /Generuj post/ }));
         await waitFor(() => expect(instagramApi.generatePost).toHaveBeenCalledWith(
-            expect.objectContaining({ visitId: 'v1', photoIds: ['p1', 'p2'] }),
+            expect.objectContaining({ visitId: 'v1', photoIds: ['p1', 'p2'], context: 'Tylko powłoka na masce' }),
         ));
     });
 });

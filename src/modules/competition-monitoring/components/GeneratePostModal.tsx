@@ -30,6 +30,8 @@ import {
     publishSeed,
     togglePhoto,
     topicAfterVisitChange,
+    contextAfterVisitChange,
+    visitContext,
 } from './accounts/publishLogic';
 import { VisitMaterialSection } from './accounts/VisitMaterialSection';
 
@@ -454,7 +456,7 @@ const TopicInput = styled.input`
 
 const ContextTextarea = styled.textarea`
   width: 100%;
-  min-height: 80px;
+  min-height: 148px;
   padding: 11px 14px;
   font-size: 13px;
   font-family: inherit;
@@ -1334,6 +1336,8 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
     const [aiPhotos, setAiPhotos]         = useState<string[]>([]);
     const [aiSeeded, setAiSeeded]         = useState(false);
     const [publishSeeded, setPublishSeeded] = useState(false);
+    // Ostatni kontekst wstawiony z wizyty: odróżnia tekst „z automatu" od tekstu właściciela.
+    const [autoContext, setAutoContext]   = useState('');
 
     const topicRef    = useRef<HTMLInputElement>(null);
     const stayRef     = useRef<HTMLButtonElement>(null);
@@ -1355,7 +1359,11 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
     // pierwsza klatka pokazałaby pustą siatkę i dopiero druga zaznaczenie.
     if (!aiSeeded && visitsQuery.data) {
         setAiSeeded(true);
-        setAiPhotos(defaultAiSelection(visitsQuery.data.find(v => v.visitId === visitId)));
+        const seeded = visitsQuery.data.find(v => v.visitId === visitId);
+        setAiPhotos(defaultAiSelection(seeded));
+        const filled = contextAfterVisitChange(context, autoContext, seeded);
+        setContext(filled);
+        setAutoContext(visitContext(seeded));
     }
 
     // Do publikacji startują zdjęcia, które widział model - tekst opisuje właśnie je. W renderze,
@@ -1369,6 +1377,8 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
         setVisitId(next?.visitId);
         setAiPhotos(defaultAiSelection(next));
         setTopic(prev => topicAfterVisitChange(prev, next));
+        setContext(prev => contextAfterVisitChange(prev, autoContext, next));
+        setAutoContext(visitContext(next));
     };
 
     const activeRuleCount = rules.filter(r => r.active).length;
@@ -1772,9 +1782,13 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                         placeholder="Np. Klient przywiózł auto z zagranicy, zależało mu na ochronie całego przodu. Użyliśmy XPEL Ultimate Plus…"
                         value={context}
                         onChange={e => setContext(e.target.value)}
-                        maxLength={800}
+                        maxLength={1500}
                     />
-                    <HintText>Szczegóły realizacji, specyfika klienta, użyte produkty itp.</HintText>
+                    <HintText>
+                        {visitId && context === autoContext && context !== ''
+                            ? 'Uzupełnione z wizyty. Dokładnie o tym będzie post: popraw, usuń albo dopisz szczegóły.'
+                            : 'Szczegóły realizacji, specyfika klienta, użyte produkty itp.'}
+                    </HintText>
                 </FormSection>
 
                 {/* Tone */}

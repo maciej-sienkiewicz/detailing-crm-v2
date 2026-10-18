@@ -70,3 +70,27 @@ export const topicAfterVisitChange = (topic: string, next: PublishVisit | undefi
  */
 export const publishSeed = (aiPhotos: string[], visits: PublishVisit[], visitId: string | undefined): string[] =>
     aiPhotos.length > 0 ? aiPhotos.slice(0, MAX_PUBLISH_PHOTOS) : initialSelection(visits, visitId);
+
+/**
+ * „Dodatkowy kontekst" z wizyty: auto i wykonane usługi, czyli dokładnie to, co dostanie
+ * generator. Właściciel widzi to w polu i może poprawić - dawniej te fakty szły do modelu
+ * po cichu i nie było jak ich zmienić. Pusta lista usług nie dopisuje nic do zgadywania.
+ */
+export const visitContext = (visit: PublishVisit | undefined): string => {
+    if (!visit) return '';
+    const car = [visit.vehicle, visit.year ? `rocznik ${visit.year}` : null, visit.color ? `kolor ${visit.color}` : null]
+        .filter(Boolean)
+        .join(', ');
+    const services = (visit.services ?? []).filter(s => s.trim() !== '');
+    return [
+        `Auto: ${car}`,
+        ...(services.length > 0 ? ['Wykonane usługi:', ...services.map(s => `- ${s}`)] : []),
+    ].join('\n');
+};
+
+/**
+ * Kontekst po zmianie realizacji. Tekst wstawiony z poprzedniej wizyty (albo pusty) idzie za
+ * nową; tekst, który właściciel już zmienił, zostaje - to jego decyzja, o czym jest post.
+ */
+export const contextAfterVisitChange = (context: string, previousAuto: string, next: PublishVisit | undefined): string =>
+    context.trim() === '' || context === previousAuto ? visitContext(next) : context;

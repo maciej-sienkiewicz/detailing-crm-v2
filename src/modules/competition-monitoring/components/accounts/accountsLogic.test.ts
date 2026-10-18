@@ -25,6 +25,8 @@ import {
     publishSeed,
     togglePhoto,
     topicAfterVisitChange,
+    visitContext,
+    contextAfterVisitChange,
 } from './publishLogic';
 
 const period = (patch: Partial<OwnPeriod> = {}): OwnPeriod => ({
@@ -219,5 +221,26 @@ describe('telefon', () => {
     it('podpis okresu mówi o porównaniu tylko, gdy jest z czym porównać', () => {
         expect(periodCaption(true)).toBe('Ostatnie 30 dni, zmiana do poprzednich 30');
         expect(periodCaption(false)).toBe('Ostatnie 30 dni');
+    });
+});
+
+describe('kontekst z wizyty', () => {
+    const visit = (over: Record<string, unknown> = {}) => ({
+        visitId: 'v1', visitNumber: 'W/1', vehicle: 'BMW X5', date: '2026-10-15T10:00:00Z', photos: [],
+        year: 2021, color: 'czarny', services: ['Korekta lakieru', 'Powłoka ceramiczna'], ...over,
+    });
+
+    it('auto i usługi czytelną listą, bez pustych pól', () => {
+        expect(visitContext(visit())).toBe('Auto: BMW X5, rocznik 2021, kolor czarny\nWykonane usługi:\n- Korekta lakieru\n- Powłoka ceramiczna');
+        expect(visitContext(visit({ year: null, color: null, services: [] }))).toBe('Auto: BMW X5');
+        expect(visitContext(undefined)).toBe('');
+    });
+
+    it('zmiana wizyty podmienia tylko kontekst, którego nikt nie ruszał', () => {
+        const auto = visitContext(visit());
+        const other = visit({ vehicle: 'Audi A4', services: ['Pranie tapicerki'] });
+        expect(contextAfterVisitChange(auto, auto, other)).toBe('Auto: Audi A4, rocznik 2021, kolor czarny\nWykonane usługi:\n- Pranie tapicerki');
+        expect(contextAfterVisitChange('', '', other)).toContain('Audi A4');
+        expect(contextAfterVisitChange('Mój opis', auto, other)).toBe('Mój opis');
     });
 });
