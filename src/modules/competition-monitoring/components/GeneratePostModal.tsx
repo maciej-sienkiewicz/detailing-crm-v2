@@ -21,8 +21,10 @@ import { Button, ButtonLink, ui } from '@/common/components/ui';
 import { PHONE } from '../utils/phone';
 import { accountsApi, apiErrorMessage } from '../api/accountsApi';
 import type { PublishResult, PublishVisit } from '../accountsTypes';
-import { useInstagramConnection, usePublishVisits } from '../hooks/useAccounts';
+import { useInstagramConnection, useMyInstagram, usePublishVisits } from '../hooks/useAccounts';
 import { PublishSection } from './accounts/PublishSection';
+import { InstagramPostPreview, PreviewNote } from './accounts/InstagramPostPreview';
+import { sampleLikes } from './accounts/postPreviewLogic';
 import {
     captionProblem,
     defaultAiSelection,
@@ -1117,22 +1119,16 @@ const ResultTopicEcho = styled.p`
   color: #0F172A;
 `;
 
-const ContentBox = styled.div`
-  background: #F8FAFC;
-  border: 1.5px solid #E2E8F0;
-  border-radius: 12px;
-  padding: 20px 22px;
-  font-size: 14px;
-  color: #1E293B;
-  line-height: 1.8;
-  white-space: pre-wrap;
-  word-break: break-word;
-  min-height: 160px;
-  user-select: text;
+/** Tło pod makietą posta - jasna szarość kanału Instagrama, żeby biała karta odcinała się jak w aplikacji. */
+const PreviewStage = styled.div`
+  background: #fafafa;
+  border: 1px solid #efefef;
+  border-radius: 16px;
+  padding: 20px 16px 14px;
 
+  /* Na telefonie okno jest na pełny ekran - karta posta dostaje całą szerokość. */
   ${PHONE} {
-    padding: 14px 16px;
-    line-height: 1.7;
+    padding: 14px 10px 10px;
   }
 `;
 
@@ -1353,6 +1349,8 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
     const canPublish = connectionQuery.data?.status === 'CONNECTED';
     // Wizyty są potrzebne już w formularzu (wybór realizacji), nie dopiero przy publikacji.
     const visitsQuery = usePublishVisits(true);
+    // Skala polubień w podglądzie: mediana własnych postów albo liczba obserwujących.
+    const mineQuery = useMyInstagram(canPublish);
 
     // Zdjęcia dla AI z wizyty, z której otwarto generator, zaznaczamy raz, gdy lista przyjdzie -
     // potem decyduje właściciel. Ustawienie w trakcie renderu, nie w efekcie: inaczej
@@ -1477,14 +1475,15 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
     const handleCopy = useCallback(async () => {
         if (!result) return;
         try {
-            await navigator.clipboard.writeText(result.content);
+            // Kopiujemy podpis po poprawkach właściciela - to on jest w podglądzie, nie surowy wynik.
+            await navigator.clipboard.writeText(caption.trim() ? caption : result.content);
             setCopied(true);
             setCopiedOnce(true);
             setTimeout(() => setCopied(false), 2500);
         } catch {
             // Ignore clipboard errors
         }
-    }, [result]);
+    }, [result, caption]);
 
     const handlePublish = useCallback(async () => {
         if (publishing || selectedPhotos.length === 0 || captionProblem(caption)) return;
@@ -1594,7 +1593,13 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
         if (e.target === e.currentTarget && phase !== 'loading' && !publishing) requestClose();
     };
 
-    const content     = result?.content ?? '';
+    // Zdjęcia w podglądzie: dokładnie te i w tej kolejności, które pójdą do publikacji.
+    const photoUrls = new Map((visitsQuery.data ?? []).flatMap(v => v.photos.map(p => [p.id, p.thumbnailUrl] as const)));
+    const previewPhotos = selectedPhotos
+        .filter(id => photoUrls.has(id))
+        .map(id => ({ id, url: photoUrls.get(id)! }));
+    // Liczniki i podgląd idą za podpisem, który właściciel może poprawić przed publikacją.
+    const content     = caption || (result?.content ?? '');
     const charCount   = content.length;
     const wordCount   = content.trim() ? content.trim().split(/\s+/).length : 0;
 
@@ -1662,7 +1667,18 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                         </VerificationBanner>
                     )}
 
-                    <ContentBox>{result.content}</ContentBox>
+                    <PreviewStage>
+                        <InstagramPostPreview
+                            username={connectionQuery.data?.username ?? 'twoje_studio'}
+                            photos={previewPhotos}
+                            caption={content}
+                            likes={sampleLikes(mineQuery.data?.topPosts, mineQuery.data?.followers)}
+                        />
+                        <PreviewNote>
+                            Tak post ułoży się w kanale Instagrama. Polubienia i komentarze są przykładowe,
+                            w skali Twojego konta.
+                        </PreviewNote>
+                    </PreviewStage>
 
                     <ContentStats>
                         <ContentStat>{wordCount} {pluralPl(wordCount, 'słowo', 'słowa', 'słów')}</ContentStat>
