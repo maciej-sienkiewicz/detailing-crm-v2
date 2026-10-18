@@ -10,7 +10,7 @@ import {
     ModalCloseButton,
     ModalContent,
 } from '@/common/components/ModalKit';
-import { ui } from '@/common/components/ui';
+import { Segmented, ui } from '@/common/components/ui';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { pluralPl } from '@/common/utils/plural';
 import { AD_PLATFORM_LABELS, type AdCreative as AdCreativeData, type AdDetail, type AdReachBucket } from '../types';
@@ -84,6 +84,40 @@ const LOCATION_TYPE_LABELS: Record<string, string> = {
     neighborhood: 'dzielnica',
     location: 'lokalizacja',
 };
+
+/** Pasek wariantów kampanii nad szczegółami - przewijany w bok, bo kampania bywa na kilkanaście wariantów. */
+const VariantBar = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    min-width: 0;
+
+    .label {
+        flex-shrink: 0;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: ${st.textSecondary};
+    }
+
+    .scroll {
+        min-width: 0;
+        overflow-x: auto;
+        scrollbar-width: thin;
+    }
+
+    ${PHONE} {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+`;
+
+/** Poprzedni wariant zostaje widoczny, przygaszony, dopóki nie dojdzie wybrany. */
+const BodyWrap = styled.div<{ $stale: boolean }>`
+    opacity: ${p => (p.$stale ? 0.55 : 1)};
+    transition: opacity 0.15s ease;
+`;
 
 const Summary = styled.div`
     /*
@@ -431,61 +465,6 @@ const MoreButton = styled.button`
     }
 `;
 
-/**
- * Pasek odnośnika — tak, jak układa go Meta pod treścią: domena, nagłówek,
- * zdanie zachęty. Przy braku grafiki to on niesie ofertę.
- */
-const LinkCard = styled.div`
-    margin-top: 12px;
-    padding: 10px 13px;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    background: ${st.bgCard};
-    min-width: 0;
-
-    .domain {
-        display: block;
-        font-size: 10.5px;
-        font-weight: 600;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        color: ${st.textMuted};
-        overflow-wrap: anywhere;
-    }
-
-    strong {
-        display: block;
-        margin-top: 3px;
-        font-size: 13.5px;
-        font-weight: 700;
-        color: ${st.text};
-        line-height: 1.35;
-        overflow-wrap: anywhere;
-    }
-
-    .desc {
-        display: block;
-        margin-top: 3px;
-        font-size: 12px;
-        color: ${st.textSecondary};
-        line-height: 1.4;
-        overflow-wrap: anywhere;
-    }
-
-    ${PHONE} {
-        border-radius: ${ui.radiusRow};
-
-        .domain {
-            font-size: 12px;
-            letter-spacing: normal;
-            text-transform: none;
-            color: ${ui.textMuted};
-        }
-
-        .desc { font-size: 13px; }
-    }
-`;
-
 /** Wyjaśnienie, czego w podglądzie nie ma i dlaczego — zaraz nad przyciskiem, który to dopełnia. */
 const Missing = styled.p`
     margin: 12px 0 0;
@@ -733,7 +712,12 @@ interface Props {
 }
 
 export const AdDetailModal: React.FC<Props> = ({ adId, onClose }) => {
-    const { data, isLoading, isError } = useAdDetail(adId);
+    // Kalendarz łączy warianty tej samej treści w jeden pasek i otwiera ten z największym
+    // zasięgiem. Reklama znaleziona w Bibliotece reklam pod innym numerem „znikała" w środku
+    // paska - przełącznik pokazuje każdy wariant z jego treścią, kreacją i zasięgiem.
+    const [activeAdId, setActiveAdId] = useState(adId);
+    const { data, isLoading, isError, isPlaceholderData } = useAdDetail(activeAdId);
+    const variants = data?.variants ?? [];
 
     return (
         <ModalShell isOpen onClose={onClose} size="xl">
@@ -770,13 +754,33 @@ export const AdDetailModal: React.FC<Props> = ({ adId, onClose }) => {
                         <span>Odśwież stronę i spróbuj ponownie.</span>
                     </CenterState>
                 )}
-                {data && <AdDetailBody ad={data} />}
+                {variants.length > 1 && (
+                    <VariantBar>
+                        <span className="label">
+                            {variants.length} {pluralPl(variants.length, 'wariant', 'warianty', 'wariantów')} tej kampanii
+                        </span>
+                        <div className="scroll">
+                            <Segmented
+                                label="Wariant kampanii"
+                                size="sm"
+                                value={activeAdId}
+                                onChange={setActiveAdId}
+                                options={variants.map((variant, index) => ({
+                                    value: variant.adId,
+                                    label: `Wariant ${index + 1}`,
+                                    ariaLabel: `Wariant ${index + 1}, ${formatDay(variant.start)}–${variant.stop ? formatDay(variant.stop) : 'trwa'}`,
+                                }))}
+                            />
+                        </div>
+                    </VariantBar>
+                )}
+                {data && <AdDetailBody key={data.adId} ad={data} stale={isPlaceholderData} />}
             </ModalContent>
         </ModalShell>
     );
 };
 
-const AdDetailBody: React.FC<{ ad: AdDetail }> = ({ ad }) => {
+const AdDetailBody: React.FC<{ ad: AdDetail; stale?: boolean }> = ({ ad, stale = false }) => {
     // Najpierw CO i ZA ILE: treść reklamy (oferta, cena, termin) jest tym, po co
     // właściciel otwiera okno - dawniej stała zwinięta pod „Pokaż", a pół okna zajmowała
     // piramida wieku. Długą treść i tak przycina AdCreative, więc nie wypycha reszty.
@@ -802,11 +806,10 @@ const AdDetailBody: React.FC<{ ad: AdDetail }> = ({ ad }) => {
     // Grafika dochodzi osobnym żądaniem (przeglądarka po stronie serwera) - tekst nie czeka.
     const creative = useAdCreative(ad.adId);
     const hasMedia = creative.data?.status === 'OK' && creative.data.media.length > 0;
-    const hasCreative = !!(ad.body || ad.title || ad.linkDescription || ad.linkCaption) || hasMedia;
-    const hasLinkCard = !!(ad.linkCaption || ad.title || ad.linkDescription);
+    const hasCreative = !!ad.body || hasMedia || creative.isLoading;
 
     return (
-        <>
+        <BodyWrap $stale={stale} aria-busy={stale}>
             <Summary>
                 <Cell $big>
                     <div className="k">Zasięg</div>
@@ -838,7 +841,6 @@ const AdDetailBody: React.FC<{ ad: AdDetail }> = ({ ad }) => {
                     <Panel>
                         <h4>
                             Oferta
-                            {creativeOpen && <em>treść reklamy tak, jak widzi ją odbiorca</em>}
                             <PanelToggle
                                 type="button"
                                 onClick={() => setCreativeOpen(open => !open)}
@@ -851,7 +853,6 @@ const AdDetailBody: React.FC<{ ad: AdDetail }> = ({ ad }) => {
                         {creativeOpen && (
                             <AdCreative
                                 ad={ad}
-                                hasLinkCard={hasLinkCard}
                                 creative={creative.data}
                                 creativeLoading={creative.isLoading}
                             />
@@ -976,7 +977,7 @@ const AdDetailBody: React.FC<{ ad: AdDetail }> = ({ ad }) => {
                     </Rows>
                 </Panel>
             </Stack>
-        </>
+        </BodyWrap>
     );
 };
 
@@ -989,10 +990,9 @@ const AdDetailBody: React.FC<{ ad: AdDetail }> = ({ ad }) => {
  */
 const AdCreative: React.FC<{
     ad: AdDetail;
-    hasLinkCard: boolean;
     creative: AdCreativeData | undefined;
     creativeLoading: boolean;
-}> = ({ ad, hasLinkCard, creative, creativeLoading }) => {
+}> = ({ ad, creative, creativeLoading }) => {
     const [expanded, setExpanded] = useState(false);
 
     // Przycisk „pokaż całość" tylko wtedy, gdy jest co pokazywać: przy trzech
@@ -1012,16 +1012,9 @@ const AdCreative: React.FC<{
                 </>
             )}
 
-            {/* Kolejność jak w kanale Meta: treść, grafika albo film, pasek odnośnika. */}
+            {/* Treść, a pod nią grafika albo film - jak w kanale Meta. */}
             <AdCreativeMediaView creative={creative} loading={creativeLoading} />
 
-            {hasLinkCard && (
-                <LinkCard>
-                    {ad.linkCaption && <span className="domain">{ad.linkCaption}</span>}
-                    {ad.title && <strong>{ad.title}</strong>}
-                    {ad.linkDescription && <span className="desc">{ad.linkDescription}</span>}
-                </LinkCard>
-            )}
 
             <Missing>
                 {creative?.status === 'OK' && creative.media.length > 0

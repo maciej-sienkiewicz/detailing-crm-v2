@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { instagramApi } from '../api/instagramApi';
 import { ANALYTICS_KEYS } from './useAnalytics';
 import { INSTAGRAM_PROFILES_KEY } from './useInstagramProfiles';
@@ -30,6 +30,9 @@ export const useAdDetail = (adId: string | null) =>
         queryFn: () => instagramApi.getAdDetail(adId!),
         staleTime: STALE_TIME,
         enabled: !!adId,
+        // Przełączenie wariantu kampanii nie może wyczyścić okna do kręciołka - poprzedni
+        // wariant zostaje widoczny, dopóki nie przyjdzie następny.
+        placeholderData: keepPreviousData,
     });
 
 /**

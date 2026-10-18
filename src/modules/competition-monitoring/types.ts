@@ -357,6 +357,16 @@ export interface AdDetail {
     linkCaption: string | null;
     /** Publiczny link do reklamy w Bibliotece Meta. */
     snapshotUrl: string | null;
+    /** Warianty kampanii (od najwcześniejszego); puste, gdy kampania ma jeden. */
+    variants?: AdVariant[];
+}
+
+/** Jeden wariant kampanii - kalendarz łączy warianty tej samej treści w jeden pasek. */
+export interface AdVariant {
+    adId: string;
+    start: string;
+    stop: string | null;
+    reach: number | null;
 }
 
 /** Jeden plik kreacji reklamy - adres na serwerach Meta (`*.fbcdn.net`), osadzany, nie kopiowany. */
