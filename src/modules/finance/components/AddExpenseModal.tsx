@@ -29,7 +29,7 @@ import {
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
 import { Segmented } from '@/common/components/ui';
-import type { CostDocumentKind } from '../types';
+import type { CostDocumentKind, KsefExpense } from '../types';
 import {
     COST_DESCRIPTION_PLACEHOLDER,
     COST_DOCUMENT_KINDS,
@@ -279,6 +279,14 @@ type TabId = 'document' | 'seller';
 interface Props {
     isOpen: boolean;
     onClose: () => void;
+    /**
+     * Zapisany dokument, zanim okno się zamknie - np. wizyta przypina go od razu do siebie.
+     * Okno zamyka się także przy błędzie tego kroku: dokument jest już w finansach, a drugi
+     * „Zapisz" dodałby go drugi raz. Błąd pokazuje wołający.
+     */
+    onCreated?: (expense: KsefExpense) => void | Promise<void>;
+    /** Dopisek pod tytułem, gdy okno otwiera się spoza finansów (np. z wizyty). */
+    subtitle?: string;
 }
 
 interface FormState {
@@ -312,7 +320,7 @@ const EMPTY_FORM: FormState = {
     priceSide:      'net',
 };
 
-export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
+export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose, onCreated, subtitle }) => {
     const createExpense = useCreateExpense();
     const titleId = useId();
     const [activeTab, setActiveTab] = useState<TabId>('document');
@@ -384,7 +392,7 @@ export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
         }
 
         try {
-            await createExpense.mutateAsync({
+            const created = await createExpense.mutateAsync({
                 documentKind:   form.documentKind,
                 saleDate:       dayToInstant(form.saleDate),
                 documentNumber: form.documentNumber.trim() || undefined,
@@ -394,6 +402,11 @@ export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 ...amounts,
                 paymentMethod:  form.paymentMethod      || undefined,
             });
+            try {
+                await onCreated?.(created);
+            } catch {
+                // Dokument jest już zapisany - błąd dalszego kroku pokazuje wołający.
+            }
             onClose();
         } catch (err: unknown) {
             const message = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message;
@@ -408,7 +421,7 @@ export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle id={titleId}>Dodaj dokument kosztowy</ModalTitle>
-                    <ModalSubtitle>Faktura spoza KSeF, paragon, rachunek albo inny koszt</ModalSubtitle>
+                    <ModalSubtitle>{subtitle ?? 'Faktura spoza KSeF, paragon, rachunek albo inny koszt'}</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>

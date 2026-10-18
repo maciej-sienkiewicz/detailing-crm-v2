@@ -13,11 +13,17 @@
 //
 // Koszt należy do jednej wizyty. Dokument przypięty gdzie indziej nie przeskakuje po
 // cichu - okno pyta o przeniesienie i mówi, z której wizyty go zabierze.
+//
+// Przypiąć da się każdy dokument kosztowy - fakturę, paragon, rachunek i inny koszt.
+// Kosztu, którego jeszcze nie ma w finansach (paragon za materiał z hurtowni), nie
+// trzeba dodawać okrężną drogą: „Dodaj koszt" otwiera to samo okno co „Dodaj dokument
+// kosztowy" w finansach, zapisuje dokument TAM (liczy się w kosztach studia) i od razu
+// przypina go do tej wizyty.
 
 import { useState } from 'react';
 import styled from 'styled-components';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { FileText } from 'lucide-react';
+import { FileText, Plus } from 'lucide-react';
 import { useDebounce } from '@/common/hooks';
 import {
     ModalShell,
@@ -43,7 +49,9 @@ import {
     PickerEmpty,
 } from '@/common/components/PickerList';
 import { Button, Notice, StatusPill } from '@/common/components/ui';
+import { AddExpenseModal } from '@/modules/finance/components';
 import { formatDate } from '@/modules/finance/utils/formatters';
+import type { KsefExpense } from '@/modules/finance/types';
 import { visitCostsApi, type CostDocumentCandidate, type VisitCosts } from '../api/visitCostsApi';
 import { apiErrorMessage, apiErrorStatus } from '../api/apiError';
 import { visitCostCandidatesKey } from '../hooks/useVisitCosts';
@@ -72,6 +80,15 @@ const RowAside = styled.span`
     flex-shrink: 0;
 `;
 
+const SearchRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    > :first-child { flex: 1; min-width: 0; }
+    > button { flex-shrink: 0; }
+`;
+
 const NoticeActions = styled.div`
     display: flex;
     gap: 8px;
@@ -92,6 +109,10 @@ export function LinkCostDocumentModal({ isOpen, onClose, visitId, onLink }: Prop
     const [busyId, setBusyId] = useState<string | null>(null);
     // Przypięte w tym oknie - wiersz zmienia stan od razu, zanim lista się odświeży.
     const [linkedHere, setLinkedHere] = useState<ReadonlySet<string>>(new Set());
+    const [addOpen, setAddOpen] = useState(false);
+    // Dodany tu dokument może mieć datę spoza okresu wizyty i nie wejść na listę -
+    // dlatego potwierdzenie mówi wprost, co się z nim stało.
+    const [added, setAdded] = useState<string | null>(null);
 
     const debounced = useDebounce(search, 300).trim();
     const searching = debounced.length > 0;
@@ -110,6 +131,7 @@ export function LinkCostDocumentModal({ isOpen, onClose, visitId, onLink }: Prop
         setPendingMove(null);
         setError(null);
         setLinkedHere(new Set());
+        setAdded(null);
         onClose();
     };
 
@@ -127,6 +149,23 @@ export function LinkCostDocumentModal({ isOpen, onClose, visitId, onLink }: Prop
             setError(apiErrorMessage(e, 'Nie udało się przypiąć dokumentu. Spróbuj jeszcze raz.'));
         } finally {
             setBusyId(null);
+        }
+    };
+
+    const linkCreated = async (expense: KsefExpense) => {
+        const title = documentTitle({
+            documentKind: expense.documentKind ?? 'INVOICE', documentNumber: expense.documentNumber, isCorrection: false,
+        });
+        setError(null);
+        try {
+            await onLink(expense.id, false);
+            setLinkedHere(prev => new Set(prev).add(expense.id));
+            setAdded(`${title} jest w finansach i w kosztach tej wizyty.`);
+            refetch();
+        } catch (e) {
+            setAdded(null);
+            setError(apiErrorMessage(e, `${title} zapisano w finansach, ale nie udało się przypiąć go do wizyty. Wyszukaj go na liście i kliknij.`));
+            throw e;
         }
     };
 
@@ -208,7 +247,7 @@ export function LinkCostDocumentModal({ isOpen, onClose, visitId, onLink }: Prop
             ) : (
                 <PickerEmpty
                     title="Brak kosztów z okresu wizyty"
-                    description="Wyszukaj dokument po sprzedawcy, NIP-ie, numerze albo kwocie."
+                    description="Wyszukaj dokument po sprzedawcy, NIP-ie, numerze albo kwocie. Kosztu, którego nie ma jeszcze w finansach, dodasz przyciskiem „Dodaj koszt”."
                 />
             );
         }
@@ -220,19 +259,26 @@ export function LinkCostDocumentModal({ isOpen, onClose, visitId, onLink }: Prop
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle id="link-cost-title">Przypnij koszt do wizyty</ModalTitle>
-                    <ModalSubtitle>Dokumenty z zakładki „Dokumenty kosztowe". Kliknij, żeby przypiąć.</ModalSubtitle>
+                    <ModalSubtitle>Faktury, paragony, rachunki i inne koszty z zakładki „Dokumenty kosztowe". Kliknij, żeby przypiąć.</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={handleClose} />
             </ModalHeader>
 
             <ModalContent>
-                <PickerSearch
-                    value={search}
-                    onChange={setSearch}
-                    placeholder="Szukaj po sprzedawcy, NIP-ie, numerze albo kwocie…"
-                    autoFocus
-                    loading={isFetching && !isLoading}
-                />
+                <SearchRow>
+                    <PickerSearch
+                        value={search}
+                        onChange={setSearch}
+                        placeholder="Szukaj po sprzedawcy, NIP-ie, numerze albo kwocie…"
+                        autoFocus
+                        loading={isFetching && !isLoading}
+                    />
+                    <Button variant="tinted" onClick={() => { setAdded(null); setAddOpen(true); }}>
+                        <Plus />Dodaj koszt
+                    </Button>
+                </SearchRow>
+
+                {added && <Notice tone="ok" role="status" title="Dodano i przypięto">{added}</Notice>}
 
                 {pendingMove?.linkedVisit && (
                     <Notice
@@ -270,6 +316,13 @@ export function LinkCostDocumentModal({ isOpen, onClose, visitId, onLink }: Prop
             <ModalFooter>
                 <Button variant="primary" onClick={handleClose}>Gotowe</Button>
             </ModalFooter>
+
+            <AddExpenseModal
+                isOpen={addOpen}
+                onClose={() => setAddOpen(false)}
+                onCreated={linkCreated}
+                subtitle="Zapiszemy go w finansach i przypniemy do tej wizyty"
+            />
         </ModalShell>
     );
 }

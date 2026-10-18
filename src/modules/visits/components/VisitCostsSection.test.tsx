@@ -18,6 +18,20 @@ import {
     type VisitCosts,
 } from '../api/visitCostsApi';
 
+// Okno finansów „Dodaj dokument kosztowy" ma własne testy (AddExpenseModal.test.tsx) - tu
+// liczy się tylko to, co wizyta robi z zapisanym dokumentem: przypina go do siebie.
+vi.mock('@/modules/finance/components', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/modules/finance/components')>()),
+    AddExpenseModal: ({ isOpen, onClose, onCreated }: {
+        isOpen: boolean; onClose: () => void; onCreated?: (e: { id: string; documentKind: string; documentNumber: string | null }) => Promise<void>;
+    }) => isOpen ? (
+        <button type="button" onClick={async () => {
+            try { await onCreated?.({ id: 'c-new', documentKind: 'RECEIPT', documentNumber: null }); } catch { /* jak w oknie */ }
+            onClose();
+        }}>Zapisz paragon</button>
+    ) : null,
+}));
+
 vi.mock('../api/visitCostsApi', () => ({
     visitCostsApi: { get: vi.fn(), candidates: vi.fn(), link: vi.fn(), unlink: vi.fn() },
 }));
@@ -153,6 +167,39 @@ describe('VisitCostsSection', () => {
         }));
         renderSection();
 
-        expect(await screen.findByText(/Przypnij faktury kosztowe, które dotyczą tej wizyty/)).toBeInTheDocument();
+        expect(await screen.findByText(/Przypnij koszty tej wizyty: fakturę, paragon albo rachunek/)).toBeInTheDocument();
+    });
+
+    it('„Dodaj koszt" zapisuje dokument w finansach i od razu przypina go do wizyty', async () => {
+        vi.mocked(visitCostsApi.candidates).mockResolvedValue({ candidates: [], total: 0, periodFrom: null, periodTo: null });
+        vi.mocked(visitCostsApi.link).mockResolvedValue(costs());
+        renderSection();
+        await screen.findByText(money(104_472));
+
+        fireEvent.click(screen.getByRole('button', { name: /Przypnij koszt/ }));
+        const dialog = await screen.findByRole('dialog', { name: 'Przypnij koszt do wizyty' });
+        expect(within(dialog).getByText(/Faktury, paragony, rachunki i inne koszty/)).toBeInTheDocument();
+
+        fireEvent.click(within(dialog).getByRole('button', { name: /Dodaj koszt/ }));
+        fireEvent.click(await screen.findByRole('button', { name: 'Zapisz paragon' }));
+
+        await waitFor(() => expect(visitCostsApi.link).toHaveBeenCalledWith('v-1', 'c-new', false));
+        expect(await within(dialog).findByText('Paragon bez numeru jest w finansach i w kosztach tej wizyty.')).toBeInTheDocument();
+        // Okno dodawania się zamyka, okno przypinania zostaje - wizyta ma często kilka kosztów.
+        expect(screen.queryByRole('button', { name: 'Zapisz paragon' })).toBeNull();
+    });
+
+    it('gdy przypięcie nowego kosztu się nie uda, mówi, że dokument jest już w finansach', async () => {
+        vi.mocked(visitCostsApi.candidates).mockResolvedValue({ candidates: [], total: 0, periodFrom: null, periodTo: null });
+        vi.mocked(visitCostsApi.link).mockRejectedValue(new Error('boom'));
+        renderSection();
+        await screen.findByText(money(104_472));
+
+        fireEvent.click(screen.getByRole('button', { name: /Przypnij koszt/ }));
+        const dialog = await screen.findByRole('dialog', { name: 'Przypnij koszt do wizyty' });
+        fireEvent.click(within(dialog).getByRole('button', { name: /Dodaj koszt/ }));
+        fireEvent.click(await screen.findByRole('button', { name: 'Zapisz paragon' }));
+
+        expect(await within(dialog).findByText(/zapisano w finansach, ale nie udało się przypiąć/)).toBeInTheDocument();
     });
 });

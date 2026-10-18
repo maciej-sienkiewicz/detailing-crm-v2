@@ -232,8 +232,8 @@ export function VisitCostsSection({ visitId }: Props) {
 
                 {costs && count === 0 && (
                     <Hint>
-                        Przypnij faktury kosztowe, które dotyczą tej wizyty, na przykład materiał kupiony
-                        pod to auto albo usługę podwykonawcy. Zysk przeliczy się sam.
+                        Przypnij koszty tej wizyty: fakturę, paragon albo rachunek, na przykład za materiał
+                        kupiony pod to auto albo usługę podwykonawcy. Zysk przeliczy się sam.
                     </Hint>
                 )}
 
