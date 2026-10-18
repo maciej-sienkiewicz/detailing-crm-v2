@@ -386,6 +386,9 @@ export const VehicleDetailView = () => {
     const navigate = useNavigate();
     const isPhone = useMediaQuery('(max-width: 767px)');
     const { can } = usePermissions();
+    // Hook - musi stać przed wczesnymi returnami (ładowanie/błąd), inaczej render po
+    // wczytaniu danych ma więcej hooków niż pierwszy i React rzuca błąd #310.
+    const { canCreateVisit } = usePersonalDataActions();
 
     const [isAuditOpen, setIsAuditOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -457,7 +460,6 @@ export const VehicleDetailView = () => {
      * a przyciski odmową serwera.
      */
     const canEditVehicle = can('VISITS_CREATE');
-    const { canCreateVisit } = usePersonalDataActions();
     const canSeeDocuments = can('VISITS_CREATE');
     const canSeeHistory = can('AUDIT_VIEW');
 
