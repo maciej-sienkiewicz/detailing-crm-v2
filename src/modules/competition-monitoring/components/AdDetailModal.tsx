@@ -13,8 +13,9 @@ import {
 import { ui } from '@/common/components/ui';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { pluralPl } from '@/common/utils/plural';
-import { AD_PLATFORM_LABELS, type AdDetail, type AdReachBucket } from '../types';
-import { useAdDetail } from '../hooks/useAds';
+import { AD_PLATFORM_LABELS, type AdCreative as AdCreativeData, type AdDetail, type AdReachBucket } from '../types';
+import { useAdCreative, useAdDetail } from '../hooks/useAds';
+import { AdCreativeMediaView } from './AdCreativeMedia';
 import { CenterState, Spinner, formatExact } from './MetricBits';
 import { PHONE } from '../utils/phone';
 
@@ -798,7 +799,10 @@ const AdDetailBody: React.FC<{ ad: AdDetail }> = ({ ad }) => {
 
     // Reklama bez ani jednego pola tekstowego zdarza się (kreacja czysto graficzna)
     // — wtedy panelu nie rysujemy wcale, zamiast pokazywać pustą ramkę.
-    const hasCreative = !!(ad.body || ad.title || ad.linkDescription || ad.linkCaption);
+    // Grafika dochodzi osobnym żądaniem (przeglądarka po stronie serwera) - tekst nie czeka.
+    const creative = useAdCreative(ad.adId);
+    const hasMedia = creative.data?.status === 'OK' && creative.data.media.length > 0;
+    const hasCreative = !!(ad.body || ad.title || ad.linkDescription || ad.linkCaption) || hasMedia;
     const hasLinkCard = !!(ad.linkCaption || ad.title || ad.linkDescription);
 
     return (
@@ -844,7 +848,14 @@ const AdDetailBody: React.FC<{ ad: AdDetail }> = ({ ad }) => {
                                 {creativeOpen ? 'Ukryj' : 'Pokaż'}
                             </PanelToggle>
                         </h4>
-                        {creativeOpen && <AdCreative ad={ad} hasLinkCard={hasLinkCard} />}
+                        {creativeOpen && (
+                            <AdCreative
+                                ad={ad}
+                                hasLinkCard={hasLinkCard}
+                                creative={creative.data}
+                                creativeLoading={creative.isLoading}
+                            />
+                        )}
                     </Panel>
                 )}
                 <Panel>
@@ -976,7 +987,12 @@ const AdDetailBody: React.FC<{ ad: AdDetail }> = ({ ad }) => {
  * ekran, więc domyślnie przycinamy do siedmiu — rozwinięcie jest o jedno
  * kliknięcie i nie chowa niczego bezpowrotnie.
  */
-const AdCreative: React.FC<{ ad: AdDetail; hasLinkCard: boolean }> = ({ ad, hasLinkCard }) => {
+const AdCreative: React.FC<{
+    ad: AdDetail;
+    hasLinkCard: boolean;
+    creative: AdCreativeData | undefined;
+    creativeLoading: boolean;
+}> = ({ ad, hasLinkCard, creative, creativeLoading }) => {
     const [expanded, setExpanded] = useState(false);
 
     // Przycisk „pokaż całość" tylko wtedy, gdy jest co pokazywać: przy trzech
@@ -996,6 +1012,9 @@ const AdCreative: React.FC<{ ad: AdDetail; hasLinkCard: boolean }> = ({ ad, hasL
                 </>
             )}
 
+            {/* Kolejność jak w kanale Meta: treść, grafika albo film, pasek odnośnika. */}
+            <AdCreativeMediaView creative={creative} loading={creativeLoading} />
+
             {hasLinkCard && (
                 <LinkCard>
                     {ad.linkCaption && <span className="domain">{ad.linkCaption}</span>}
@@ -1005,7 +1024,13 @@ const AdCreative: React.FC<{ ad: AdDetail; hasLinkCard: boolean }> = ({ ad, hasL
             )}
 
             <Missing>
-                Meta udostępnia tylko tekst reklamy. Zdjęcia i wideo zobaczysz w oryginale.
+                {creative?.status === 'OK' && creative.media.length > 0
+                    ? 'Grafika i film wyświetlają się wprost z serwerów Meta - gdy reklamodawca je usunie, znikną też tutaj.'
+                    : creativeLoading || creative?.status === 'BUSY'
+                        ? 'Grafikę pobieramy ze strony reklamy w Bibliotece reklam Meta.'
+                        : creative?.status === 'UNAVAILABLE' || creative?.status === 'EMPTY'
+                            ? 'Meta udostępnia tylko tekst reklamy. Zdjęcia i wideo zobaczysz w oryginale.'
+                            : 'Grafiki tej reklamy nie udało się teraz wczytać. Zdjęcia i wideo zobaczysz w oryginale.'}
             </Missing>
         </Creative>
     );

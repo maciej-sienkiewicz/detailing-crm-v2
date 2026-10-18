@@ -359,6 +359,24 @@ export interface AdDetail {
     snapshotUrl: string | null;
 }
 
+/** Jeden plik kreacji reklamy - adres na serwerach Meta (`*.fbcdn.net`), osadzany, nie kopiowany. */
+export interface AdCreativeMedia {
+    kind: 'IMAGE' | 'VIDEO';
+    url: string;
+    /** Klatka startowa filmu; brak przy grafice. */
+    posterUrl: string | null;
+}
+
+/**
+ * Grafika albo film reklamy (`GET …/ads/{adId}/creative`). Osobno od szczegółów, bo
+ * pierwszy odczyt to przeglądarka po stronie serwera - kilkanaście sekund.
+ * BUSY: serwer właśnie sprawdza inną reklamę, warto zapytać za chwilę.
+ */
+export interface AdCreative {
+    status: 'OK' | 'EMPTY' | 'BLOCKED' | 'TIMEOUT' | 'ERROR' | 'BUSY' | 'UNAVAILABLE';
+    media: AdCreativeMedia[];
+}
+
 /** Nazwy miejsc wyświetlania — skróty FB/IG/MSG/AN nikomu nic nie mówią. */
 export const AD_PLATFORM_LABELS: Record<AdPlatform, string> = {
     FACEBOOK: 'Facebook',

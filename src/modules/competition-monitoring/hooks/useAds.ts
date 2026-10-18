@@ -33,6 +33,21 @@ export const useAdDetail = (adId: string | null) =>
     });
 
 /**
+ * Grafika albo film reklamy. Dochodzi po szczegółach - okno otwiera się od razu z tekstem.
+ * Gdy serwer jest zajęty inną reklamą (BUSY), pytamy ponownie co kilka sekund.
+ */
+export const useAdCreative = (adId: string | null) =>
+    useQuery({
+        queryKey: [ADS_KEYS.detail, adId, 'creative'],
+        queryFn: () => instagramApi.getAdCreative(adId!),
+        enabled: !!adId,
+        // Adresy plików Meta żyją kilka dni, a serwer i tak pilnuje ich wygaśnięcia.
+        staleTime: 30 * 60_000,
+        retry: false,
+        refetchInterval: query => (query.state.data?.status === 'BUSY' ? 8_000 : false),
+    });
+
+/**
  * Wskazanie strony na Facebooku. Po udanym powiązaniu unieważniamy kalendarz
  * i listę profili: profil przestaje być „bez powiązania", ale reklam nabierze
  * dopiero po najbliższej synchronizacji.

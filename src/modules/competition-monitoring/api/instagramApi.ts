@@ -2,6 +2,7 @@ import { apiClient } from '@/core/apiClient';
 import type {
     FollowedAdvertiser,
     AdCalendar,
+    AdCreative,
     AdDetail,
     AreaResults,
     AreaSettings,
@@ -121,6 +122,15 @@ export const instagramApi = {
     getAdCalendar: async (year?: number): Promise<AdCalendar> => {
         const response = await apiClient.get<AdCalendar>(`${ADS_PATH}/calendar`, {
             params: year ? { year } : undefined,
+        });
+        return response.data;
+    },
+
+    /** Kreacja reklamy - pierwszy odczyt trwa do kilkudziesięciu sekund (przeglądarka po stronie serwera). */
+    getAdCreative: async (adId: string): Promise<AdCreative> => {
+        const response = await apiClient.get<AdCreative>(`${ADS_PATH}/${encodeURIComponent(adId)}/creative`, {
+            timeout: 90_000,
+            skipErrorToast: true,
         });
         return response.data;
     },
