@@ -151,18 +151,67 @@ const Statement = styled.div`
     }
 `;
 
-const Legal = styled.p`
+/**
+ * Dane spółki wymagane na stronie internetowej (art. 206 § 1 KSH): firma, siedziba
+ * i adres, sąd rejestrowy, KRS, NIP i kapitał zakładowy. Źródło: odpis z KRS.
+ * Na komputerze stoją na dole ciemnego pasa, na telefonie - pod formularzem.
+ */
+const COMPANY_LINES = [
+    'ul. Poznańska 119, 60-185 Skórzewo',
+    'Sąd Rejonowy Poznań – Nowe Miasto i Wilda w Poznaniu, VIII Wydział Gospodarczy KRS',
+    'KRS 0001267442 · NIP 7773476300 · REGON 545750800',
+    'Kapitał zakładowy 40 000,00 zł',
+] as const;
+
+const Legal = styled.footer`
     display: none;
+    max-width: 26rem;
     font-size: 12px;
+    line-height: 1.55;
     color: rgba(244, 244, 242, 0.4);
+
+    strong {
+        font-weight: 500;
+        color: rgba(244, 244, 242, 0.6);
+    }
 
     @media (min-width: ${props => props.theme.breakpoints.lg}) {
         display: block;
     }
 `;
 
+const MobileLegal = styled.footer`
+    width: 100%;
+    max-width: 380px;
+    margin-top: 40px;
+    font-size: 11px;
+    line-height: 1.55;
+    text-align: center;
+    color: ${props => props.theme.colors.textSecondary};
+
+    strong {
+        font-weight: 500;
+    }
+
+    @media (min-width: ${props => props.theme.breakpoints.lg}) {
+        display: none;
+    }
+`;
+
+function CompanyInfo() {
+    return (
+        <>
+            <strong>© {new Date().getFullYear()} M&amp;M SOLUTIONS SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ</strong>
+            {COMPANY_LINES.map((line) => (
+                <div key={line}>{line}</div>
+            ))}
+        </>
+    );
+}
+
 const Work = styled.main`
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     padding: 40px 24px 56px;
@@ -214,10 +263,15 @@ export function AuthLayout({
                         </ul>
                     )}
                 </Statement>
-                <Legal>© {new Date().getFullYear()} M&amp;M Solutions sp. z o.o.</Legal>
+                <Legal>
+                    <CompanyInfo />
+                </Legal>
             </Brand>
             <Work>
                 <Column $wide={wide}>{children}</Column>
+                <MobileLegal>
+                    <CompanyInfo />
+                </MobileLegal>
             </Work>
         </Shell>
     );
