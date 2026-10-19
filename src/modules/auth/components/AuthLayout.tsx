@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import styled, { keyframes } from 'styled-components';
+import { COMPANY_ADDRESS, COMPANY_CAPITAL, COMPANY_COURT, COMPANY_IDS, COMPANY_NAME } from '@/core/companyLegal';
 import { AuthDotField } from './AuthDotField';
 
 /**
@@ -152,17 +153,9 @@ const Statement = styled.div`
 `;
 
 /**
- * Dane spółki wymagane na stronie internetowej (art. 206 § 1 KSH): firma, siedziba
- * i adres, sąd rejestrowy, KRS, NIP i kapitał zakładowy. Źródło: odpis z KRS.
- * Na komputerze stoją na dole ciemnego pasa, na telefonie - pod formularzem.
+ * Dane spółki z KRS (src/core/companyLegal.ts). Na komputerze stoją na dole ciemnego
+ * pasa, na telefonie - pod formularzem.
  */
-const COMPANY_LINES = [
-    'ul. Poznańska 119, 60-185 Skórzewo',
-    'Sąd Rejonowy Poznań – Nowe Miasto i Wilda w Poznaniu, VIII Wydział Gospodarczy KRS',
-    'KRS 0001267442 · NIP 7773476300 · REGON 545750800',
-    'Kapitał zakładowy 40 000,00 zł',
-] as const;
-
 const Legal = styled.footer`
     display: none;
     max-width: 26rem;
@@ -173,6 +166,12 @@ const Legal = styled.footer`
     strong {
         font-weight: 500;
         color: rgba(244, 244, 242, 0.6);
+    }
+
+    > span {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0 10px;
     }
 
     @media (min-width: ${props => props.theme.breakpoints.lg}) {
@@ -193,6 +192,13 @@ const MobileLegal = styled.footer`
         font-weight: 500;
     }
 
+    > span {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0 10px;
+    }
+
     @media (min-width: ${props => props.theme.breakpoints.lg}) {
         display: none;
     }
@@ -201,10 +207,15 @@ const MobileLegal = styled.footer`
 function CompanyInfo() {
     return (
         <>
-            <strong>© {new Date().getFullYear()} M&amp;M SOLUTIONS SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ</strong>
-            {COMPANY_LINES.map((line) => (
-                <div key={line}>{line}</div>
-            ))}
+            <strong>© {new Date().getFullYear()} {COMPANY_NAME}</strong>
+            <div>{COMPANY_ADDRESS}</div>
+            <div>{COMPANY_COURT}</div>
+            <span>
+                {COMPANY_IDS.map((id) => (
+                    <span key={id}>{id}</span>
+                ))}
+            </span>
+            <div>{COMPANY_CAPITAL}</div>
         </>
     );
 }

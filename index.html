@@ -84,6 +84,22 @@
         .boot-splash__icon { box-shadow: none; }
         .boot-splash__bar { background: rgba(255, 255, 255, 0.12); }
       }
+      .boot-legal {
+        position: fixed;
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+        z-index: 2;
+        margin: 0;
+        font: 11px/1.55 system-ui, -apple-system, 'Segoe UI', sans-serif;
+        text-align: center;
+        color: rgba(15, 23, 42, 0.45);
+      }
+      .boot-legal strong { font-weight: 500; }
+      .boot-legal__ids { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 10px; }
+      @media (display-mode: standalone) {
+        .boot-legal { display: none; }
+      }
       @media (prefers-reduced-motion: reduce) {
         .boot-splash__bar::after { animation: none; width: 100%; opacity: 0.6; }
       }
@@ -95,6 +111,18 @@
         <img class="boot-splash__icon" src="/icons/icon-192.png" alt="" width="72" height="72" />
         <span class="boot-splash__bar"></span>
       </div>
+      <!-- Dane spółki w STATYCZNYM HTML-u (art. 206 KSH). Weryfikacja firmy w Meta szuka
+           oficjalnej nazwy w witrynie i nie uruchamia JavaScriptu - stopka logowania
+           rysowana przez Reacta była dla niej niewidoczna i weryfikację odrzucano.
+           React zdejmuje ten blok przy pierwszym renderze razem z ekranem startowym.
+           Źródło i strażnik zgodności: src/core/companyLegal.ts (+ .test.ts). -->
+      <footer class="boot-legal">
+        <strong>M&amp;M SOLUTIONS SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ</strong>
+        <div>ul. Poznańska 119, 60-185 Skórzewo</div>
+        <div>Sąd Rejonowy Poznań – Nowe Miasto i Wilda w Poznaniu, VIII Wydział Gospodarczy KRS</div>
+        <div class="boot-legal__ids"><span>KRS 0001267442</span><span>NIP 7773476300</span><span>REGON 545750800</span></div>
+        <div>Kapitał zakładowy 40 000,00 zł</div>
+      </footer>
     </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
