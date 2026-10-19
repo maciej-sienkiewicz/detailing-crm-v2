@@ -15,6 +15,10 @@
 // Każde kliknięcie najpierw pyta, czy odpowiedź ma zawierać ofertę (listę usług z cenami).
 // „Z ofertą" otwiera wybór usług (ReplyDraftOfferModal): wycenę leada, jeśli jest, albo
 // pustą listę - wybrana lista zapisuje się na leadzie albo zakłada go z tej rozmowy.
+// „Bez oferty" znaczy naprawdę bez cen: backend nie pokazuje wtedy asystentowi nawet
+// wyceny leada. W tym samym kroku można (nie trzeba) napisać, co odpowiedź ma przekazać -
+// np. „kropek na szybie nie da się usunąć, to odpryski".
+
 import { useState } from 'react';
 import styled from 'styled-components';
 import { Check, Loader2, SlidersHorizontal, Sparkle, Sparkles } from 'lucide-react';
@@ -33,7 +37,7 @@ import { useDraftReply, useReplyDraftPreferences, useSaveReplyDraftPreferences }
 import { useLead } from '../hooks/useLeads';
 import type { DraftOfferLine, Lead, ReplyDraft } from '../types';
 import { ReplyDraftOfferModal } from './ReplyDraftOfferModal';
-import { sentMaterialHint } from '../utils/replyDraft';
+import { MAX_DRAFT_INSTRUCTIONS, sentMaterialHint } from '../utils/replyDraft';
 import { PrimaryButton } from './shared';
 
 const Group = styled.div`
@@ -150,6 +154,40 @@ const Option = styled.button<{ $selected: boolean }>`
     }
 `;
 
+/** Wskazówka dla asystenta - pod wyborem oferty, bo dotyczy treści, nie oferty. */
+const Hint = styled.label`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 18px;
+
+    .label {
+        font-size: 13px;
+        font-weight: ${p => p.theme.fontWeights.semibold};
+        color: ${p => p.theme.colors.text};
+    }
+    .optional { font-weight: ${p => p.theme.fontWeights.normal}; color: ${p => p.theme.colors.textMuted}; }
+
+    textarea {
+        width: 100%;
+        min-height: 72px;
+        resize: vertical;
+        box-sizing: border-box;
+        border: 1px solid ${p => p.theme.colors.border};
+        border-radius: ${p => p.theme.radii.md};
+        padding: 9px 12px;
+        font-family: inherit;
+        font-size: 14px;
+        line-height: 1.45;
+        color: ${p => p.theme.colors.text};
+        background: #ffffff;
+        outline: none;
+
+        &::placeholder { color: ${p => p.theme.colors.textMuted}; }
+        &:focus { border-color: ${p => p.theme.colors.primary}; }
+    }
+`;
+
 const Remember = styled.label`
     display: flex;
     align-items: center;
@@ -228,13 +266,16 @@ export function ReplyDraftStyleDialog({ initialChoice, sentMessageCount, onConfi
 
 interface ReplyDraftOfferQuestionProps {
     lead: Lead | null;
-    onChoose: (withOffer: boolean) => void;
+    /** `instructions` - co odpowiedź ma przekazać; pusta wskazówka to `undefined`. */
+    onChoose: (withOffer: boolean, instructions: string | undefined) => void;
     onClose: () => void;
 }
 
-/** Pierwszy krok „Szkic AI": czy odpowiedź ma zawierać ofertę. */
+/** Pierwszy krok „Szkic AI": czy odpowiedź ma zawierać ofertę i (opcjonalnie) co ma przekazać. */
 export function ReplyDraftOfferQuestion({ lead, onChoose, onClose }: ReplyDraftOfferQuestionProps) {
     const [withOffer, setWithOffer] = useState<boolean | null>(null);
+    const [instructions, setInstructions] = useState('');
+    const choose = () => withOffer !== null && onChoose(withOffer, instructions.trim() || undefined);
     const quoteCount = (lead?.services ?? []).filter(item => item.status === 'ACCEPTED').length;
     const offerDescription = quoteCount > 0
         ? 'Asystent wpisze usługi i ceny z wyceny. W następnym kroku możesz je zmienić.'
@@ -261,7 +302,7 @@ export function ReplyDraftOfferQuestion({ lead, onChoose, onClose }: ReplyDraftO
         <ModalShell isOpen onClose={onClose} size="sm">
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>Dodać ofertę do odpowiedzi?</ModalTitle>
+                    <ModalTitle>Napisz odpowiedź z AI</ModalTitle>
                     <ModalSubtitle>Oferta to lista usług z cenami w treści wiadomości.</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
@@ -269,11 +310,30 @@ export function ReplyDraftOfferQuestion({ lead, onChoose, onClose }: ReplyDraftO
             <ModalContent>
                 <Options role="radiogroup" aria-label="Oferta w odpowiedzi">
                     {option(true, 'Z ofertą', offerDescription)}
-                    {option(false, 'Bez oferty', 'Asystent odpowie na wiadomość bez wypisywania usług i cen.')}
+                    {option(false, 'Bez oferty', 'Asystent odpowie na wiadomość bez podawania usług i cen.')}
                 </Options>
+                <Hint>
+                    <span className="label">
+                        Co przekazać klientowi? <span className="optional">(opcjonalnie)</span>
+                    </span>
+                    <textarea
+                        aria-label="Co przekazać klientowi"
+                        placeholder="Np. kropek na szybie nie da się usunąć, to odpryski"
+                        value={instructions}
+                        maxLength={MAX_DRAFT_INSTRUCTIONS}
+                        onChange={(event) => setInstructions(event.target.value)}
+                        onKeyDown={(event) => {
+                            // Ctrl/⌘+Enter = „Dalej"; sam Enter łamie wiersz.
+                            if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+                                event.preventDefault();
+                                choose();
+                            }
+                        }}
+                    />
+                </Hint>
             </ModalContent>
             <ModalFooter>
-                <PrimaryButton onClick={() => withOffer !== null && onChoose(withOffer)} disabled={withOffer === null}>
+                <PrimaryButton onClick={choose} disabled={withOffer === null}>
                     Dalej
                 </PrimaryButton>
             </ModalFooter>
@@ -285,6 +345,8 @@ export function ReplyDraftOfferQuestion({ lead, onChoose, onClose }: ReplyDraftO
 interface DraftFlow {
     useSentStyle?: boolean;
     offer?: DraftOfferLine[] | null;
+    /** Co odpowiedź ma przekazać klientowi - z pierwszego kroku, opcjonalnie. */
+    instructions?: string;
 }
 
 interface ReplyDraftButtonProps {
@@ -329,10 +391,10 @@ export function ReplyDraftButton({
     const busy = draftReply.isPending;
     const threadLead = leadId ? lead ?? null : null;
 
-    const generate = (useSentStyle: boolean, offer: DraftOfferLine[] | null) => {
+    const generate = (useSentStyle: boolean, offer: DraftOfferLine[] | null, instructions: string | undefined) => {
         if (busy) return;
         draftReply.mutate(
-            { threadId, useSentStyle, signatureAppended, ...(offer ? { offer } : {}) },
+            { threadId, useSentStyle, signatureAppended, ...(offer ? { offer } : {}), ...(instructions ? { instructions } : {}) },
             {
                 // Oferta zostaje przy szkicu - „Popraw" wyśle ją znowu (z rabatami, których
                 // wycena leada nie pamięta).
@@ -354,7 +416,7 @@ export function ReplyDraftButton({
         if (useSentStyle === null) return setStep('style');
         setStep(null);
         setFlow({});
-        generate(useSentStyle, next.offer);
+        generate(useSentStyle, next.offer, next.instructions);
     };
 
     const onMainClick = () => advance({});
@@ -404,7 +466,14 @@ export function ReplyDraftButton({
             {step === 'offer-question' && (
                 <ReplyDraftOfferQuestion
                     lead={threadLead}
-                    onChoose={(withOffer) => (withOffer ? setStep('offer') : advance({ ...flow, offer: null }))}
+                    onChoose={(withOffer, instructions) => {
+                        if (withOffer) {
+                            setFlow({ ...flow, instructions });
+                            setStep('offer');
+                        } else {
+                            advance({ ...flow, offer: null, instructions });
+                        }
+                    }}
                     onClose={close}
                 />
             )}

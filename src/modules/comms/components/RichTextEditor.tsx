@@ -219,7 +219,8 @@ const ContentArea = styled.div<{ $tall?: boolean; $roomy?: boolean }>`
 
 const Editable = styled.div<{ $tall?: boolean }>`
     min-height: 23px;
-    max-height: ${({ $tall }) => ($tall ? 'none' : '40vh')};
+    /* 30vh, nie 40: pod długim szkicem AI rozmowa nad kompozytorem znikała na laptopie. */
+    max-height: ${({ $tall }) => ($tall ? 'none' : '30vh')};
     overflow-y: auto;
     padding: 14px 18px 0;
     font-size: 15px;

@@ -1,4 +1,6 @@
-// src/modules/comms/inbox/bookingNote.ts
+// src/modules/comms/inbox/bookingNoteModel.ts
+// (nie „bookingNote.ts": na macOS system plików nie rozróżnia wielkości liter i Vite
+// rozwiązywał import „./BookingNote" komponentu do tego pliku - skrzynka się wywracała)
 // Treść paska rezerwacji w rozmowie i szkic potwierdzenia dla klienta - czyste funkcje.
 //
 // Pasek powstał po sprawie z formularza: klient poprosił o rezerwację, studio założyło

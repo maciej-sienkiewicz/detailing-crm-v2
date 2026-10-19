@@ -76,7 +76,7 @@ import { caseNextStep, caseStatusChip, caseSubtitle, caseTitle, formatAmount, ty
 import { CaseRail, RailSheet, type CaseActions } from './CaseRail';
 import { ClientEditor } from './ClientEditor';
 import { BookingNote } from './BookingNote';
-import { confirmationDraft } from './bookingNote';
+import { confirmationDraft } from './bookingNoteModel';
 import { Bubbles, ConversationHeader, ConversationScroll, type ConversationEvent } from './Conversation';
 import { downloadAttachmentFile } from './messageFormat';
 import { useAttachmentPreview } from '../components/useAttachmentPreview';

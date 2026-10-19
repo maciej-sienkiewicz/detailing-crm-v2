@@ -3,6 +3,12 @@
 import { pluralPl } from '@/common/utils/plural';
 import type { ReplyDraft } from '../types';
 
+/**
+ * Lustro limitu z backendu (ReplyDraftService.MAX_INSTRUCTIONS_LENGTH) - ten sam dla
+ * wskazówki przy nowym szkicu i dla uwag do poprawki.
+ */
+export const MAX_DRAFT_INSTRUCTIONS = 1000;
+
 /** Ile materiału ma asystent do trybu „w moim stylu" - zdaniem, nie liczbą bez kontekstu. */
 export const sentMaterialHint = (count: number): string =>
     count > 0

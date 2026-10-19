@@ -145,7 +145,7 @@ describe('ReplyComposer - szkic AI', () => {
         expect(editor.value).toContain('zapraszamy na oględziny [proponowany termin].');
         expect(screen.getByText(/na podstawie 1 wysłanej odpowiedzi/)).toBeTruthy();
         expect(screen.getByText(/Uzupełnij przed wysłaniem: \[proponowany termin\]/)).toBeTruthy();
-        expect(screen.getByText(/Sprawdź kwoty, których nie ma w wycenie leada: 350 zł/)).toBeTruthy();
+        expect(screen.getByText(/Sprawdź kwoty, których nie ma w wycenie leada: 350\szł/)).toBeTruthy();
 
         const send = screen.getByRole('button', { name: /Wyślij/ }) as HTMLButtonElement;
         expect(send.disabled).toBe(true);

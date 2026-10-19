@@ -149,6 +149,38 @@ describe('ReplyDraftButton - flaga stylu szkicu', () => {
         skipOffer();
 
         expect(draftMutate.mock.calls[0][0]).not.toHaveProperty('offer');
+        expect(draftMutate.mock.calls[0][0]).not.toHaveProperty('instructions');
+    });
+
+    it('wskazówka z pierwszego kroku idzie do szkicu jako uwagi pracownika', () => {
+        preferences = { useSentStyle: false, sentMessageCount: 10 };
+        renderButton();
+
+        fireEvent.click(screen.getByRole('button', { name: /Napisz z AI/ }));
+        fireEvent.change(screen.getByLabelText('Co przekazać klientowi'), {
+            target: { value: '  kropek na szybie nie da się usunąć, to odpryski  ' },
+        });
+        skipOffer();
+
+        expect(draftMutate.mock.calls[0][0]).toEqual({
+            threadId: 'thread-1',
+            useSentStyle: false,
+            signatureAppended: true,
+            instructions: 'kropek na szybie nie da się usunąć, to odpryski',
+        });
+    });
+
+    it('wskazówka przechodzi przez okno stylu', () => {
+        preferences = { useSentStyle: null, sentMessageCount: 0 };
+        renderButton();
+
+        fireEvent.click(screen.getByRole('button', { name: /Napisz z AI/ }));
+        fireEvent.change(screen.getByLabelText('Co przekazać klientowi'), { target: { value: 'zaproponuj czwartek' } });
+        skipOffer();
+        fireEvent.click(screen.getByRole('button', { name: /Propozycja asystenta/ }));
+        fireEvent.click(screen.getByRole('button', { name: /Napisz szkic/ }));
+
+        expect(draftMutate.mock.calls[0][0]).toMatchObject({ instructions: 'zaproponuj czwartek' });
     });
 });
 
@@ -194,5 +226,20 @@ describe('ReplyDraftButton - oferta w odpowiedzi', () => {
             threadId: 'thread-1', useSentStyle: false, signatureAppended: true, offer: OFFER,
         });
         expect(onDraft).toHaveBeenCalledWith({ bodyText: 'Szkic', offer: OFFER });
+    });
+
+    it('wskazówka idzie razem z ofertą', () => {
+        renderButton(null);
+
+        fireEvent.click(screen.getByRole('button', { name: /Napisz z AI/ }));
+        fireEvent.click(screen.getByRole('button', { name: /Z ofertą/ }));
+        fireEvent.change(screen.getByLabelText('Co przekazać klientowi'), { target: { value: 'rabat tylko do końca miesiąca' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Dalej' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Napisz szkic z ofertą' }));
+
+        expect(draftMutate.mock.calls[0][0]).toEqual({
+            threadId: 'thread-1', useSentStyle: false, signatureAppended: true, offer: OFFER,
+            instructions: 'rabat tylko do końca miesiąca',
+        });
     });
 });

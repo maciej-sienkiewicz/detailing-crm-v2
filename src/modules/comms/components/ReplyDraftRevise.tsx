@@ -11,14 +11,12 @@ import { Loader2, Wand2 } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
 import { useDraftReply } from '../hooks/useReplyDraft';
 import type { ReplyDraft } from '../types';
-
-/** Lustro limitu z backendu (ReplyDraftService.MAX_INSTRUCTIONS_LENGTH). */
-const MAX_REVISION_INSTRUCTIONS = 1000;
+import { MAX_DRAFT_INSTRUCTIONS } from '../utils/replyDraft';
 
 const QUICK_INSTRUCTIONS = ['Krócej', 'Bardziej formalnie', 'Cieplej w tonie', 'Zaproponuj oględziny auta'];
 
 const Toggle = styled.button<{ $plain?: boolean }>`
-    align-self: ${p => (p.$plain ? 'center' : 'flex-start')};
+    align-self: flex-start;
     display: inline-flex;
     align-items: center;
     gap: 5px;
@@ -36,33 +34,34 @@ const Toggle = styled.button<{ $plain?: boolean }>`
     &:disabled { opacity: 0.55; cursor: default; text-decoration: none; }
 `;
 
-/** Odnośnik i dymek - dymek liczy pozycję od odnośnika. */
+/**
+ * Bez własnego pudełka (display: contents): odnośnik i okno są wprost elementami
+ * rzędu notki o szkicu, który się zawija. Odnośnik stoi w pierwszym wierszu, okno
+ * zawija się pod spodem na całą szerokość (order + flex-basis 100%).
+ */
 const Anchor = styled.span`
-    position: relative;
-    display: inline-flex;
+    display: contents;
 `;
 
 /*
- * Dymek nad odnośnikiem, wyrównany do jego prawej krawędzi. Dawniej formularz stawał
- * w miejscu odnośnika - w wąskiej kolumnie obok notki o szkicu, bez własnego tła - i
- * zgniatał jej tekst do kilku słów w wierszu. Nad: pod spodem jest edytor z treścią,
- * którą właśnie się poprawia, więc nie wolno go zasłonić.
+ * Okno poprawki W TREŚCI, między notką a edytorem - nie dymek. Dymek nad odnośnikiem
+ * zasłaniał rozmowę i nagłówek sprawy, a na telefonie (pełnoekranowy edytor, nad
+ * notką tylko pasek „Wróć") wychodził poza górną krawędź ekranu razem z polem do
+ * pisania. Jeszcze wcześniej formularz stał w wąskiej kolumnie obok notki i zgniatał
+ * jej tekst. Edytora pod spodem nie zasłania - przesuwa go niżej.
  */
 const Form = styled.div`
-    position: absolute;
-    right: 0;
-    bottom: calc(100% + 8px);
-    z-index: 40;
-    width: min(420px, calc(100vw - 32px));
+    order: 10;
+    flex: 1 0 100%;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
     gap: 10px;
-    padding: 14px;
+    margin-top: 2px;
+    padding: 12px 14px;
     border: 1px solid ${p => p.theme.colors.border};
     border-radius: 14px;
-    background: #ffffff;
-    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14), 0 1px 3px rgba(15, 23, 42, 0.06);
+    background: #f8fafc;
     text-align: left;
 
     .title { margin: 0; font-size: 13px; font-weight: ${p => p.theme.fontWeights.semibold}; color: ${p => p.theme.colors.text}; }
@@ -78,10 +77,11 @@ const Form = styled.div`
         font-size: 13px;
         line-height: 1.45;
         color: ${p => p.theme.colors.text};
-        background: ${p => p.theme.colors.surface};
+        background: #ffffff;
         outline: none;
         box-sizing: border-box;
 
+        &::placeholder { color: ${p => p.theme.colors.textMuted}; }
         &:focus { border-color: ${p => p.theme.colors.primary}; }
         &:disabled { opacity: 0.6; }
     }
@@ -179,10 +179,11 @@ export function ReplyDraftRevise({ threadId, draft, currentText, signatureAppend
         setInstructions('');
     };
 
-    // Klik poza dymkiem zamyka go bez zmian - jak każdy dymek; w trakcie poprawiania nie.
+    // Klik obok zamyka puste okno. Z wpisanymi uwagami zostaje: okno stoi nad edytorem
+    // i klik w treść szkicu („jeszcze tu poprawię") nie może zgubić tego, co napisano.
     const anchorRef = useRef<HTMLSpanElement>(null);
     useEffect(() => {
-        if (!open || busy) return;
+        if (!open || busy || trimmed) return;
         const onDown = (event: MouseEvent) => {
             if (anchorRef.current && !anchorRef.current.contains(event.target as Node)) {
                 setOpen(false);
@@ -191,7 +192,7 @@ export function ReplyDraftRevise({ threadId, draft, currentText, signatureAppend
         };
         document.addEventListener('mousedown', onDown);
         return () => document.removeEventListener('mousedown', onDown);
-    }, [open, busy]);
+    }, [open, busy, trimmed]);
 
     const submit = () => {
         if (!canSubmit) return;
@@ -259,7 +260,7 @@ export function ReplyDraftRevise({ threadId, draft, currentText, signatureAppend
                 aria-label="Co poprawić w szkicu"
                 placeholder="Np. krócej, zaproponuj wtorek o 10:00, zapytaj o rocznik auta"
                 value={instructions}
-                maxLength={MAX_REVISION_INSTRUCTIONS}
+                maxLength={MAX_DRAFT_INSTRUCTIONS}
                 onChange={(event) => setInstructions(event.target.value)}
                 onKeyDown={onKeyDown}
                 disabled={busy}

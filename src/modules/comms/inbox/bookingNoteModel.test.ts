@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CommMessage, LeadBooking } from '../types';
-import { bookingGone, bookingMoment, bookingSmsLine, confirmationDraft } from './bookingNote';
+import { bookingGone, bookingMoment, bookingSmsLine, confirmationDraft } from './bookingNoteModel';
 import { withEvents } from './messageFormat';
 
 // Zgłoszenie z produkcji: klient z formularza poprosił o rezerwację 2 listopada, termin

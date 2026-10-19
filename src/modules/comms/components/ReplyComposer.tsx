@@ -86,7 +86,7 @@ const grow = keyframes`
     }
 `;
 
-const Composer = styled.div<{ $dragging: boolean; $sheet?: boolean; $divider: boolean; $phone: boolean; $grow?: boolean }>`
+const Composer = styled.div<{ $dragging: boolean; $sheet?: boolean; $divider: boolean; $phone: boolean; $grow?: boolean; $fit?: boolean }>`
     position: relative;
     ${p => p.$grow && css`
         animation: ${grow} 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -96,9 +96,22 @@ const Composer = styled.div<{ $dragging: boolean; $sheet?: boolean; $divider: bo
     flex-direction: column;
     gap: 12px;
     flex-shrink: 0;
-    padding: ${p => (p.$phone ? '12px 16px 16px' : p.$divider ? '16px 28px 24px' : '0 28px 24px')};
+    /* Bez kreski u góry 12 px oddechu: nad kompozytorem stoi wtedy krok następny sprawy
+       („Umów wizytę") albo ostatni dymek - na zero przyklejały się do karty i notki szkicu. */
+    padding: ${p => (p.$phone ? '12px 16px 16px' : p.$divider ? '16px 28px 24px' : '12px 28px 24px')};
     ${p => p.$divider && css`border-top: 1px solid ${ix.lineSoft};`}
     background: #ffffff;
+
+    /* W kolumnie rozmowy: szkic z ostrzeżeniami i oknem „Napisz inaczej" bywa wyższy niż
+       miejsce pod nagłówkiem (laptop, 760 px) - wypychał wtedy „Wyślij" poza kolumnę.
+       Kompozytor oddaje najpierw miejsce rozmowy, a gdy i tego brak, przewija się sam.
+       Nie przy otwartym wyborze zdjęć: ten stoi NAD kartą i przewijanie by go ucięło. */
+    ${p => p.$fit && css`
+        flex-shrink: 1;
+        min-height: 0;
+        overflow-y: auto;
+        > * { flex-shrink: 0; }
+    `}
 
     .spin { animation: composerSpin 900ms linear infinite; }
     @keyframes composerSpin { to { transform: rotate(360deg); } }
@@ -404,6 +417,7 @@ const AttachmentTotal = styled.span<{ $warn: boolean }>`
  */
 const DraftNote = styled.div`
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-start;
     gap: 8px;
     font-size: 13px;
@@ -413,7 +427,9 @@ const DraftNote = styled.div`
     > svg { flex-shrink: 0; width: 16px; height: 16px; margin-top: 2px; color: ${ix.accentInk}; }
     .lines { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
     .warn { color: #b45309; }
-    .side { flex: none; display: inline-flex; align-items: center; gap: 4px; }
+    /* Bez własnego pudełka: „Napisz inaczej" i krzyżyk stoją w pierwszym wierszu, a okno
+       poprawki (ReplyDraftRevise) zawija się pod notkę na całą szerokość karty. */
+    .side { display: contents; }
 
     button.close {
         display: inline-flex;
@@ -831,6 +847,7 @@ export function ReplyComposer({
             $divider={divider}
             $phone={collapsible}
             $grow={layout === 'collapsed' && !collapsible && focusOnOpen}
+            $fit={!sheet && !collapsible && !galleryOpen}
             onDragEnter={onDragEnter}
             onDragOver={(event) => { if (event.dataTransfer.types.includes('Files')) event.preventDefault(); }}
             onDragLeave={onDragLeave}
@@ -860,7 +877,8 @@ export function ReplyComposer({
                         )}
                         {draft.unverifiedAmounts.length > 0 && (
                             <span className="warn">
-                                Sprawdź kwoty, których nie ma w wycenie leada: {draft.unverifiedAmounts.join(', ')}
+                                {/* Twarde spacje: „1 200,00 zł" nie może się złamać na „1" i „200,00 zł". */}
+                                Sprawdź kwoty, których nie ma w wycenie leada: {draft.unverifiedAmounts.map((amount) => amount.replace(/ /g, '\u00a0')).join(', ')}
                             </span>
                         )}
                     </div>

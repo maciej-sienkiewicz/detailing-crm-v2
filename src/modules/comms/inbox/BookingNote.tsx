@@ -10,7 +10,7 @@ import styled from 'styled-components';
 import { CalendarCheck, CalendarX, MessageSquareText, PenLine } from 'lucide-react';
 import { formatAppointmentMoment } from '../utils/leadFormat';
 import type { LeadBooking } from '../types';
-import { bookingGone, bookingMoment, bookingSmsLine, type BookingTone } from './bookingNote';
+import { bookingGone, bookingMoment, bookingSmsLine, type BookingTone } from './bookingNoteModel';
 import { SoftBtn } from './primitives';
 import { ix } from './tokens';
 
