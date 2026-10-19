@@ -5,6 +5,7 @@ import { apiClient } from '@/core';
 import type {
     ReservationToVisitPayload,
     WalkInVisitPayload,
+    ReviseDraftPayload,
     CreateVisitFromReservationResponse,
     MobileUploadSession,
     UploadUrlRequest,
@@ -161,15 +162,19 @@ export const checkinApi = {
     },
 
     /**
-     * „Wróć do formularza" → poprawione usługi: ten sam szkic wizyty (z numerem
-     * i zdjęciami) dostaje nowe usługi i nowe dokumenty przyjęcia - stare znikają
-     * razem z podpisami, bo wypisywały poprzednią listę usług.
+     * „Wróć do formularza" → poprawiony formularz: ten sam szkic wizyty (z numerem
+     * i zdjęciami) dostaje wszystkie dane formularza - klienta, pojazd, stan techniczny,
+     * uszkodzenia, termin, usługi - i nowe dokumenty przyjęcia. Stare znikają razem
+     * z podpisami, bo wypisywały dane sprzed poprawki.
      */
-    reviseDraftServices: async (
+    reviseDraft: async (
         visitId: string,
-        services: WalkInVisitPayload['services'],
+        payload: ReviseDraftPayload,
     ): Promise<CreateVisitFromReservationResponse> => {
-        const response = await apiClient.put(`${BASE_PATH}/drafts/${visitId}/services`, { services });
+        const response = await apiClient.put(
+            `${BASE_PATH}/drafts/${visitId}`,
+            { ...payload, damagePoints: toDamagePointsPayload(payload.damagePoints) }
+        );
         return response.data;
     },
 

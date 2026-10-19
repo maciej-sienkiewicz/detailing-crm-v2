@@ -279,7 +279,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
         previousStep,
         goToStep,
         submitCheckIn,
-        reviseDraftServices,
+        reviseDraft,
         isSubmitting,
         submitError,
     } = useCheckInWizard(reservationId, initialData, qrCheckinId);
@@ -343,9 +343,9 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
 
     /**
      * „Wróć do formularza" z okna dokumentów: szkic wizyty już istnieje (z numerem
-     * i zdjęciami), a użytkownik dopisuje usługę, o którą klient poprosił przy podpisie.
-     * Ponowne „Utwórz wizytę" nie zakłada drugiej wizyty, tylko podmienia usługi tego
-     * szkicu i generuje dokumenty od nowa (PUT /checkin/drafts/{id}/services).
+     * i zdjęciami), a klient przy podpisie zauważył błąd w danych albo dorzuca usługę.
+     * Ponowny zapis nie zakłada drugiej wizyty, tylko zapisuje do szkicu cały poprawiony
+     * formularz i generuje dokumenty od nowa (PUT /checkin/drafts/{id}).
      */
     const [revisingVisit, setRevisingVisit] = useState<{ visitId: string; visitNumber: string } | null>(null);
 
@@ -378,7 +378,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
 
         if (revisingVisit) {
             try {
-                const result = await reviseDraftServices(revisingVisit.visitId);
+                const result = await reviseDraft(revisingVisit.visitId);
                 setSigningModalState({
                     isOpen: true,
                     isCreating: false,
@@ -465,8 +465,10 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
 
     const isFirstStep = currentStep === 'verification';
     const isLastStep = currentStep === 'photos';
-    // Przy poprawianiu szkicu zdjęcia już są w wizycie - zapis idzie od razu z formularza.
+    // Przy poprawianiu szkicu zdjęcia już są w wizycie - zapis idzie od razu z formularza,
+    // a krok zdjęć i uszkodzeń zostaje pod osobnym przyciskiem.
     const showSubmit = isLastStep || !!revisingVisit;
+    const showPhotosStepLink = !!revisingVisit && !isLastStep;
     const visibleErrors = showValidationErrors ? errors : {};
     const hasErrors = showValidationErrors && Object.keys(errors).length > 0;
 
@@ -512,8 +514,8 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                         {revisingVisit && (
                             <RevisingNotice>
                                 <Notice tone="info" title="Poprawiasz założone przyjęcie" role="status">
-                                    Zmień usługi i zapisz. Dokumenty utworzą się od nowa i trzeba je podpisać
-                                    jeszcze raz. Klient, pojazd i zdjęcia zostają bez zmian.
+                                    Popraw dane i zapisz. Dokumenty utworzą się od nowa z poprawionymi danymi
+                                    i trzeba je podpisać jeszcze raz.
                                 </Notice>
                             </RevisingNotice>
                         )}
@@ -557,6 +559,15 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                                 </FooterSecondaryButton>
                             )}
 
+                            {showPhotosStepLink && (
+                                <FooterSecondaryButton onClick={handleNext} disabled={isSubmitting}>
+                                    {steps[1].label}
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <polyline points="9 18 15 12 9 6" />
+                                    </svg>
+                                </FooterSecondaryButton>
+                            )}
+
                             {!showSubmit ? (
                                 <FooterPrimaryButton onClick={handleNext} disabled={false} $disabled={false}>
                                     {t.checkin.actions.nextStep}
@@ -573,7 +584,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                                     {isSubmitting ? (
                                         <>{t.checkin.summary.creating}</>
                                     ) : revisingVisit ? (
-                                        <>Zapisz usługi i wróć do dokumentów</>
+                                        <>Zapisz zmiany i wróć do dokumentów</>
                                     ) : (
                                         <>{t.checkin.summary.createVisit}</>
                                     )}

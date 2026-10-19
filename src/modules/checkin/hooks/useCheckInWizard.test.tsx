@@ -13,7 +13,7 @@ import type { CheckInFormData, WalkInVisitPayload, ReservationToVisitPayload } f
 const api = vi.hoisted(() => ({
     createWalkInVisit: vi.fn(),
     createVisitFromReservation: vi.fn(),
-    reviseDraftServices: vi.fn(),
+    reviseDraft: vi.fn(),
 }));
 vi.mock('../api/checkinApi', () => ({ checkinApi: api }));
 vi.mock('@/modules/dashboard/hooks/useDashboard', () => ({ DASHBOARD_STATS_KEY: ['dashboard', 'stats'] }));
@@ -43,6 +43,7 @@ beforeEach(() => {
     localStorage.clear();
     api.createWalkInVisit.mockResolvedValue({ visitId: 'v-1' });
     api.createVisitFromReservation.mockResolvedValue({ visitId: 'v-1' });
+    api.reviseDraft.mockResolvedValue({ visitId: 'v-1', protocols: [] });
 });
 
 afterEach(() => {
@@ -106,5 +107,71 @@ describe('useCheckInWizard - rodzaj pojazdu w payloadzie przyjęcia', () => {
         const updateData = (payload.vehicle as Extract<typeof payload.vehicle, { mode: 'UPDATE' }>).updateData;
         expect('kind' in updateData).toBe(false);
         expect(payload.damageVehicleType).toBe('sedan');
+    });
+});
+
+/**
+ * Zgłoszenie z 19.10: klient przy podpisie widzi błąd w danych, pracownik poprawia
+ * formularz, a protokół pokazuje stare dane - poprawka szkicu wysyłała same usługi.
+ */
+describe('useCheckInWizard - poprawka szkicu po „Wróć do formularza"', () => {
+    it('wysyła cały poprawiony formularz, nie same usługi', async () => {
+        const { result } = renderHook(() => useCheckInWizard(undefined, {
+            ...base,
+            vehicleData: { id: 'veh-1', brand: 'Audi', model: 'A6', licensePlate: 'PO 12345' },
+        }), { wrapper });
+        await act(() => result.current.submitCheckIn());
+
+        act(() => result.current.updateFormData({
+            customerData: { id: 'cust-1', firstName: 'Jan', lastName: 'Nowak', phone: '+48 600 100 200', email: '' },
+            vehicleData: { id: 'veh-1', brand: 'Audi', model: 'A6', licensePlate: 'PO 54321' },
+            technicalState: {
+                mileage: 121_500, deposit: { keys: true, registrationDocument: true, other: false },
+                inspectionNotes: '', protocolNotes: 'Rysa na zderzaku',
+            },
+        }));
+        await act(() => result.current.reviseDraft('v-1'));
+
+        const [visitId, payload] = api.reviseDraft.mock.calls[0] as [string, WalkInVisitPayload];
+        expect(visitId).toBe('v-1');
+        expect(payload.customer).toMatchObject({ mode: 'UPDATE', id: 'cust-1', updateData: { lastName: 'Nowak' } });
+        expect(payload.vehicle).toMatchObject({ mode: 'UPDATE', id: 'veh-1', updateData: { licensePlate: 'PO 54321' } });
+        expect(payload.technicalState).toMatchObject({ mileage: 121_500, protocolNotes: 'Rysa na zderzaku' });
+        expect(payload.appointmentColorId).toBe('color-1');
+    });
+
+    it('klienta i pojazd założone przy przyjęciu poprawia, zamiast zakładać drugi raz', async () => {
+        api.createWalkInVisit.mockResolvedValue({ visitId: 'v-1', protocols: [], customerId: 'cust-new', vehicleId: 'veh-new' });
+        const { result } = renderHook(() => useCheckInWizard(undefined, {
+            ...base,
+            customerData: { id: '', firstName: 'Anna', lastName: 'Kowalksa', phone: '+48 600 300 400', email: '' },
+            isNewCustomer: true,
+            vehicleData: { id: '', brand: 'Kia', model: 'Ceed' },
+            isNewVehicle: true,
+        }), { wrapper });
+
+        await act(() => result.current.submitCheckIn());
+        expect((api.createWalkInVisit.mock.calls[0][0] as WalkInVisitPayload).customer?.mode).toBe('NEW');
+
+        act(() => result.current.updateFormData({
+            customerData: { id: '', firstName: 'Anna', lastName: 'Kowalska', phone: '+48 600 300 400', email: '' },
+        }));
+        await act(() => result.current.reviseDraft('v-1'));
+
+        const payload = api.reviseDraft.mock.calls[0][1] as WalkInVisitPayload;
+        expect(payload.customer).toMatchObject({ mode: 'UPDATE', id: 'cust-new', updateData: { lastName: 'Kowalska' } });
+        expect(payload.vehicle).toMatchObject({ mode: 'UPDATE', id: 'veh-new', updateData: { brand: 'Kia' } });
+    });
+
+    it('przyjęcie z rezerwacji nie wysyła identyfikatora walk-inu', async () => {
+        const { result } = renderHook(
+            () => useCheckInWizard('r-1', { ...base, vehicleData: { id: 'veh-1', brand: 'Audi', model: 'A6' } }, 'r-1'),
+            { wrapper },
+        );
+        await act(() => result.current.submitCheckIn());
+
+        const payload = api.createVisitFromReservation.mock.calls[0][0] as ReservationToVisitPayload & { qrCheckinId?: string };
+        expect(payload.reservationId).toBe('r-1');
+        expect(payload.qrCheckinId).toBeUndefined();
     });
 });

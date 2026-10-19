@@ -5,7 +5,14 @@ import { DASHBOARD_STATS_KEY } from '@/modules/dashboard/hooks/useDashboard';
 import { toApiServiceLineItem } from '@/common/utils/priceAdjustment';
 import { normalizeVehicleKind } from '@/modules/vehicles/vehicleKind';
 import { defaultSchematicForKind } from '../utils/vehicleSchematics';
-import type { CheckInFormData, CheckInStep, ReservationToVisitPayload, WalkInVisitPayload } from '../types';
+import type {
+    CheckInFormData,
+    CheckInStep,
+    CreateVisitFromReservationResponse,
+    ReservationToVisitPayload,
+    ReviseDraftPayload,
+    WalkInVisitPayload,
+} from '../types';
 
 const DRAFT_STORAGE_KEY = 'checkin_draft';
 
@@ -153,12 +160,28 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
         });
     });
 
-    /** Ponowne „Utwórz wizytę" po „Wróć do formularza": nowe usługi dla istniejącego szkicu. */
-    const reviseDraftServicesMutation = useMutation({
-        mutationFn: (visitId: string) => checkinApi.reviseDraftServices(visitId, apiServices()),
+    /** Ponowny zapis po „Wróć do formularza": cały poprawiony formularz dla istniejącego szkicu. */
+    const reviseDraftMutation = useMutation({
+        mutationFn: ({ visitId, payload }: { visitId: string; payload: ReviseDraftPayload }) =>
+            checkinApi.reviseDraft(visitId, payload),
     });
 
-    const submitCheckIn = async () => {
+    /**
+     * Klient i pojazd, które to przyjęcie samo założyło (tryb NEW). Formularz dalej
+     * pokazuje je jako „nowe", więc poprawka szkicu wysłałaby NEW jeszcze raz i serwer
+     * założyłby drugi rekord - zamiast tego poprawia ten założony (UPDATE).
+     */
+    const [createdRecords, setCreatedRecords] = useState<{ customerId?: string; vehicleId?: string }>({});
+
+    const rememberCreatedRecords = (payload: WalkInVisitPayload, result: CreateVisitFromReservationResponse) => {
+        setCreatedRecords(prev => ({
+            customerId: payload.customer?.mode === 'NEW' ? result.customerId ?? prev.customerId : prev.customerId,
+            vehicleId: payload.vehicle.mode === 'NEW' ? result.vehicleId ?? prev.vehicleId : prev.vehicleId,
+        }));
+    };
+
+    /** Formularz w kształcie API - ten sam przy zakładaniu szkicu i przy jego poprawce. */
+    const buildVisitPayload = async (): Promise<WalkInVisitPayload> => {
         // Walidacja - musi być pojazd
         if (!formData.vehicleData) {
             throw new Error('Pojazd jest wymagany do utworzenia wizyty');
@@ -180,40 +203,47 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
             // TODO: handled error silently
         }
 
+        const customerData = {
+            firstName: formData.customerData.firstName,
+            lastName: formData.customerData.lastName,
+            phone: formData.customerData.phone,
+            email: formData.customerData.email,
+            homeAddress: formData.homeAddress || undefined,
+            company: formData.company || undefined,
+        };
+
         // Build unified Customer/Vehicle Identity (EXISTING/NEW/UPDATE)
         const customerIdentity = (() => {
             const hasId = !!formData.customerData.id;
             if (formData.isNewCustomer || !hasId) {
-                return {
-                    mode: 'NEW' as const,
-                    newData: {
-                        firstName: formData.customerData.firstName,
-                        lastName: formData.customerData.lastName,
-                        phone: formData.customerData.phone,
-                        email: formData.customerData.email,
-                        homeAddress: formData.homeAddress || undefined,
-                        company: formData.company || undefined,
-                    },
-                };
+                if (createdRecords.customerId) {
+                    return { mode: 'UPDATE' as const, id: createdRecords.customerId, updateData: customerData };
+                }
+                return { mode: 'NEW' as const, newData: customerData };
             }
             // Existing customer, send UPDATE so server can recognize changes
-            return {
-                mode: 'UPDATE' as const,
-                id: formData.customerData.id,
-                updateData: {
-                    firstName: formData.customerData.firstName,
-                    lastName: formData.customerData.lastName,
-                    phone: formData.customerData.phone,
-                    email: formData.customerData.email,
-                    homeAddress: formData.homeAddress || undefined,
-                    company: formData.company || undefined,
-                },
-            };
+            return { mode: 'UPDATE' as const, id: formData.customerData.id, updateData: customerData };
         })();
+
+        const vehicleUpdateData = {
+            // Tylko znany rodzaj: pominięty serwer zostawia bez zmian, a zgadnięty
+            // „samochód" przestawiłby motocykl, o którym formularz nic nie wiedział.
+            ...(formData.vehicleData!.kind ? { kind: formData.vehicleData!.kind } : {}),
+            brand: formData.vehicleData!.brand,
+            model: formData.vehicleData!.model,
+            yearOfProduction: formData.vehicleData!.yearOfProduction,
+            licensePlate: formData.vehicleData!.licensePlate || undefined,
+            vin: formData.vehicleData!.vin,
+            color: formData.vehicleData!.color,
+            paintType: formData.vehicleData!.paintType,
+        };
 
         const vehicleIdentity = (() => {
             const hasId = !!formData.vehicleData?.id;
             if (formData.isNewVehicle || !hasId) {
+                if (createdRecords.vehicleId) {
+                    return { mode: 'UPDATE' as const, id: createdRecords.vehicleId, updateData: vehicleUpdateData };
+                }
                 return {
                     mode: 'NEW' as const,
                     newData: {
@@ -235,24 +265,13 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
                 // Only sent when the operator swapped the visit's customer and kept the car;
                 // omitted otherwise so the server leaves the vehicle's owners untouched.
                 ownership: formData.vehicleOwnershipAction ?? undefined,
-                updateData: {
-                    // Tylko znany rodzaj: pominięty serwer zostawia bez zmian, a zgadnięty
-                    // „samochód" przestawiłby motocykl, o którym formularz nic nie wiedział.
-                    ...(formData.vehicleData!.kind ? { kind: formData.vehicleData!.kind } : {}),
-                    brand: formData.vehicleData!.brand,
-                    model: formData.vehicleData!.model,
-                    yearOfProduction: formData.vehicleData!.yearOfProduction,
-                    licensePlate: formData.vehicleData!.licensePlate || undefined,
-                    vin: formData.vehicleData!.vin,
-                    color: formData.vehicleData!.color,
-                    paintType: formData.vehicleData!.paintType,
-                },
+                updateData: vehicleUpdateData,
             };
         })();
 
         const transformedServices = apiServices();
 
-        const sharedPayload = {
+        return {
             title: formData.title || undefined,
             startDateTime: startInstant,
             endDateTime: endInstant,
@@ -284,20 +303,31 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
                 deliveryStreet: formData.doorToDoor.deliveryAddress.street,
                 notes: formData.doorToDoor.notes || undefined,
             } : undefined,
+            qrCheckinId,
         };
+    };
 
-        if (!reservationId) {
-            const walkInPayload: WalkInVisitPayload = { ...sharedPayload, qrCheckinId };
-            return createWalkInMutation.mutateAsync(walkInPayload);
-        }
+    const submitCheckIn = async () => {
+        const visitPayload = await buildVisitPayload();
+        // Przyjęcie z rezerwacji: telefon wysyła zdjęcia pod id rezerwacji, osobnego id walk-inu nie ma.
+        const result = reservationId
+            ? await createVisitMutation.mutateAsync({ ...visitPayload, qrCheckinId: undefined, reservationId } satisfies ReservationToVisitPayload)
+            : await createWalkInMutation.mutateAsync(visitPayload);
+        rememberCreatedRecords(visitPayload, result);
+        return result;
+    };
 
-        const payload: ReservationToVisitPayload = { ...sharedPayload, reservationId };
-        return createVisitMutation.mutateAsync(payload);
+    /** Zapis poprawionego formularza do szkicu - dokumenty przyjęcia powstają od nowa. */
+    const reviseDraft = async (visitId: string) => {
+        const payload = await buildVisitPayload();
+        const result = await reviseDraftMutation.mutateAsync({ visitId, payload });
+        rememberCreatedRecords(payload, result);
+        return result;
     };
 
     const isSubmitting = createVisitMutation.isPending || createWalkInMutation.isPending
-        || reviseDraftServicesMutation.isPending;
-    const submitError = createVisitMutation.error ?? createWalkInMutation.error ?? reviseDraftServicesMutation.error;
+        || reviseDraftMutation.isPending;
+    const submitError = createVisitMutation.error ?? createWalkInMutation.error ?? reviseDraftMutation.error;
 
     return {
         currentStep,
@@ -309,7 +339,7 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
         previousStep,
         goToStep,
         submitCheckIn,
-        reviseDraftServices: reviseDraftServicesMutation.mutateAsync,
+        reviseDraft,
         saveDraft,
         isSubmitting,
         submitError,

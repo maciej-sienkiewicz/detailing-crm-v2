@@ -475,7 +475,16 @@ export interface ProtocolResponse {
 export interface CreateVisitFromReservationResponse {
     visitId: string;
     protocols: ProtocolResponse[];
+    /**
+     * Klient i pojazd szkicu. Gdy przyjęcie zakłada nowego klienta albo pojazd, poprawka
+     * szkicu wysyła potem UPDATE tego id - ponowne NEW założyłoby drugi rekord.
+     */
+    customerId?: string;
+    vehicleId?: string;
 }
+
+/** „Wróć do formularza" → poprawka szkicu: cały formularz, jak przy przyjęciu walk-in. */
+export type ReviseDraftPayload = WalkInVisitPayload;
 
 export type CheckInStep = 'verification' | 'photos';
 

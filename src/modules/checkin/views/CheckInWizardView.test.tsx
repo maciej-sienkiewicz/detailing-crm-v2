@@ -3,7 +3,8 @@
 // Zgłoszenie biznesu z 03.10: klient przy podpisie mówi „dorzućmy jeszcze renowację
 // kierownicy", a z okna dokumentów nie dało się wrócić do formularza. „Wróć do
 // formularza" zamyka okno dokumentów i zostawia szkic; ponowny zapis nie zakłada drugiej
-// wizyty, tylko podmienia usługi tego szkicu i otwiera dokumenty od nowa.
+// wizyty, tylko zapisuje do szkicu poprawiony formularz i otwiera dokumenty od nowa.
+// Zgłoszenie z 19.10: poprawka zapisywała tylko usługi, a protokół pokazywał dane sprzed poprawki.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
@@ -14,7 +15,8 @@ const wizard = vi.hoisted(() => ({
     currentStep: 'photos' as 'verification' | 'photos',
     goToStep: vi.fn(),
     submitCheckIn: vi.fn(),
-    reviseDraftServices: vi.fn(),
+    reviseDraft: vi.fn(),
+    nextStep: vi.fn(),
     updateFormData: vi.fn(),
 }));
 
@@ -30,11 +32,11 @@ vi.mock('../hooks/useCheckInWizard', () => ({
         },
         steps: [{ id: 'verification', label: 'Klient, auto i usługi' }, { id: 'photos', label: 'Zdjęcia i uszkodzenia' }],
         updateFormData: wizard.updateFormData,
-        nextStep: vi.fn(),
+        nextStep: wizard.nextStep,
         previousStep: vi.fn(),
         goToStep: wizard.goToStep,
         submitCheckIn: wizard.submitCheckIn,
-        reviseDraftServices: wizard.reviseDraftServices,
+        reviseDraft: wizard.reviseDraft,
         isSubmitting: false,
         submitError: null,
     }),
@@ -71,7 +73,7 @@ const renderView = () => render(
 beforeEach(() => {
     wizard.currentStep = 'photos';
     wizard.submitCheckIn.mockResolvedValue({ visitId: 'v-1', protocols: [{ id: 'stary' }] });
-    wizard.reviseDraftServices.mockResolvedValue({ visitId: 'v-1', protocols: [{ id: 'nowy' }] });
+    wizard.reviseDraft.mockResolvedValue({ visitId: 'v-1', protocols: [{ id: 'nowy' }] });
 });
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
@@ -101,11 +103,29 @@ describe('CheckInWizardView - „Wróć do formularza"', () => {
         expect(screen.getByText('formularz z usługami')).toBeInTheDocument();
 
         // Zapis idzie od razu z formularza - zdjęcia są już w wizycie.
-        fireEvent.click(screen.getByRole('button', { name: /Zapisz usługi i wróć do dokumentów/ }));
-        await waitFor(() => expect(wizard.reviseDraftServices).toHaveBeenCalledWith('v-1'));
+        fireEvent.click(screen.getByRole('button', { name: /Zapisz zmiany i wróć do dokumentów/ }));
+        await waitFor(() => expect(wizard.reviseDraft).toHaveBeenCalledWith('v-1'));
         expect(wizard.submitCheckIn).toHaveBeenCalledTimes(1);
         expect(await screen.findByText(/nowy/)).toBeInTheDocument();
         expect(screen.queryByText('Poprawiasz założone przyjęcie')).toBeNull();
+    });
+
+    it('przy poprawce da się przejść do zdjęć i uszkodzeń', async () => {
+        const { rerender } = renderView();
+        fireEvent.click(screen.getByRole('button', { name: /Utwórz wizytę/ }));
+        fireEvent.click(await screen.findByRole('button', { name: 'Wróć do formularza' }));
+
+        wizard.currentStep = 'verification';
+        rerender(
+            <MemoryRouter>
+                <ThemeProvider theme={theme}>
+                    <CheckInWizardView initialData={{}} colors={[]} onComplete={vi.fn()} />
+                </ThemeProvider>
+            </MemoryRouter>,
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: /Zdjęcia i uszkodzenia/ }));
+        expect(wizard.nextStep).toHaveBeenCalled();
     });
 });
 
