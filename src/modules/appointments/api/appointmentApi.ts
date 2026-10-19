@@ -1,4 +1,5 @@
 import { apiClient } from '@/core';
+import { fetchWholeCatalog } from '@/modules/services/api/fetchWholeCatalog';
 import type {
     AppointmentCreateRequest,
     Service, Customer, Vehicle, AppointmentColor, AppointmentSmsInfo,
@@ -92,8 +93,7 @@ export const appointmentApi = {
         if (USE_MOCKS) {
             return mockGetServices();
         }
-        const response = await apiClient.get<{ services: Service[] }>('/v1/services');
-        return response.data.services;
+        return fetchWholeCatalog<Service>();
     },
 
     searchCustomers: async (query: string): Promise<Customer[]> => {

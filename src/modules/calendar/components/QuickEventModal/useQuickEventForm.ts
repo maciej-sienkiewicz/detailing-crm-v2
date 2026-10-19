@@ -11,6 +11,7 @@ import { pickInitialColorId } from '@/modules/appointment-colors';
 import { appointmentColorApi } from '@/modules/appointment-colors/api/appointmentColorApi';
 import { useDebounce } from '@/common/hooks';
 import { useDefaultChoice, useMessageDefaults } from '@/modules/message-templates/hooks/useMessageDefaults';
+import { fetchWholeCatalog } from '@/modules/services/api/fetchWholeCatalog';
 import { formatDateTimeLocal, formatDate } from './helpers';
 import { catalogLinePrices, manualLinePrices } from './linePrices';
 import { grossToNet } from '@/common/utils/priceAdjustment';
@@ -206,12 +207,10 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     );
     const vehicles = customerVehicles || [];
 
+    // Całość, nie pierwsza strona: lista niżej filtruje cennik w przeglądarce.
     const { data: services = [] } = useQuery({
         queryKey: ['services'],
-        queryFn: async () => {
-            const response = await apiClient.get('/v1/services');
-            return response.data.services || [];
-        },
+        queryFn: () => fetchWholeCatalog<Service>(),
     });
 
     const { data: appointmentColors = [] } = useQuery({
