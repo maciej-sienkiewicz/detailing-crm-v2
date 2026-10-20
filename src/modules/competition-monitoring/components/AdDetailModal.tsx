@@ -37,6 +37,18 @@ import { PHONE } from '../utils/phone';
 /** Stały podział Meta - trzymamy wszystkie przedziały, żeby kształt dało się porównywać między reklamami. */
 const AGE_BUCKETS = ['13-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
 
+/**
+ * Ustawienie wieku z Biblioteki Meta („25-50", „18-65+", „65+") słowami, jak u Meta:
+ * „od 25 do 50 lat". „65+" na końcu to brak górnej granicy, więc zostaje samo „od 18 lat".
+ */
+function targetAgesLabel(raw: string | null): string {
+    const [low, high] = (raw ?? '').split('-').map(part => part.trim());
+    if (!low) return 'bez ograniczeń';
+    const from = low.replace('+', '');
+    if (!high || high.includes('+')) return `od ${from} lat`;
+    return from === high ? `${from} lat` : `od ${from} do ${high} lat`;
+}
+
 const GENDER_LABELS: Record<string, string> = {
     All: 'Wszyscy',
     Men: 'Mężczyźni',
@@ -795,9 +807,6 @@ const AdDetailBody: React.FC<{ ad: AdDetail; stale?: boolean }> = ({ ad, stale =
         ? buckets.reduce((best, b) => (b.male + b.female > best.male + best.female ? b : best), buckets[0])
         : null;
 
-    // Przedziały objęte ustawieniem wieku bierzemy z rozbicia, a nie parsujemy „18-65+"
-    // jeszcze raz na froncie: backend już to policzył i to on zna regułę.
-    const targetAges = new Set(buckets.filter(bucket => bucket.inTargetAge).map(bucket => bucket.ageRange));
     const included = ad.locations.filter(location => !location.excluded);
     const excluded = ad.locations.filter(location => location.excluded);
 
@@ -934,17 +943,15 @@ const AdDetailBody: React.FC<{ ad: AdDetail; stale?: boolean }> = ({ ad, stale =
                         </dd>
 
                         {/*
-                          * Wiek był wcześniej osobnym panelem pod tym. Mówił dokładnie to samo,
-                          * co przygaszone wiersze piramidy obok — jedno ustawienie pokazane
-                          * dwa razy, w dwóch różnych formach.
+                          * Wiek pokazujemy DOKŁADNIE tak, jak ustawił go reklamodawca („od 25 do 50
+                          * lat", jak w Bibliotece Meta). Wcześniej stało tu siedem chipów przedziałów
+                          * z przygaszonymi tymi spoza ustawienia - wyglądało to jak „wszystkie grupy
+                          * wieku", a 45-54 sugerowało granicę 54 zamiast 50. Przedziały i tak widać
+                          * w piramidzie obok, z przygaszonymi wierszami spoza ustawienia.
                           */}
                         <dt>Wiek</dt>
                         <dd>
-                            {AGE_BUCKETS.map(age => (
-                                <Chip key={age} $tone={targetAges.has(age) ? 'plain' : 'off'}>
-                                    {age}
-                                </Chip>
-                            ))}
+                            <Chip>{targetAgesLabel(ad.targetAges)}</Chip>
                         </dd>
 
                         {included.length > 0 && (

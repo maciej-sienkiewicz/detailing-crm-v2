@@ -63,4 +63,19 @@ describe('AdDetailModal', () => {
         expect(screen.queryByText(/treść reklamy tak, jak widzi ją odbiorca/)).toBeNull();
         expect(screen.queryByText(/wariant/)).toBeNull();
     });
+
+    it('wiek pokazuje dokładnie tak, jak ustawił reklamodawca, a nie przedziały', async () => {
+        vi.mocked(instagramApi.getAdDetail).mockResolvedValue({ ...detail('1', 'Treść'), variants: [], targetAges: '25-50' });
+        renderModal('1');
+
+        expect(await screen.findByText('od 25 do 50 lat')).toBeTruthy();
+        expect(screen.queryByText('13-17')).toBeNull();
+    });
+
+    it('wiek bez górnej granicy („65+") to samo „od"', async () => {
+        vi.mocked(instagramApi.getAdDetail).mockResolvedValue({ ...detail('1', 'Treść'), variants: [], targetAges: '18-65+' });
+        renderModal('1');
+
+        expect(await screen.findByText('od 18 lat')).toBeTruthy();
+    });
 });
