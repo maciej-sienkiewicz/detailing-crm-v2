@@ -570,11 +570,16 @@ interface Props {
   searchTerm?: string;
   /** Zaznaczanie wielu wierszy pod operację grupową; brak = tabela bez pól wyboru. */
   selection?: RowSelection;
+  /**
+   * Status płatności z wyborem Opłacona / Nieopłacona i akcja „Oznacz jako opłaconą".
+   * Studio bez obsługi statusów płatności go nie prowadzi - zostaje sama forma płatności.
+   */
+  showPaymentStatus?: boolean;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, searchTerm, selection }) => {
+export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, searchTerm, selection, showPaymentStatus = true }) => {
   const [openPaymentId, setOpenPaymentId]   = useState<string | null>(null);
   const [noteExpense, setNoteExpense]       = useState<KsefExpense | null>(null);
   const [previewId, setPreviewId]           = useState<string | null>(null);
@@ -727,13 +732,15 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
             {exp.note && <CardNote title={exp.note}>{exp.note}</CardNote>}
 
             <CardBadges onClick={(e) => e.stopPropagation()}>
-              <PaymentStatusBadge
-                $variant={exp.paymentStatus === 'PAID' ? 'green' : 'amber'}
-                onClick={(e) => handlePaymentClick(exp.id, e)}
-              >
-                {exp.paymentStatus === 'PAID' ? 'Opłacona' : 'Nieopłacona'}
-                <IconChevron />
-              </PaymentStatusBadge>
+              {showPaymentStatus && (
+                <PaymentStatusBadge
+                  $variant={exp.paymentStatus === 'PAID' ? 'green' : 'amber'}
+                  onClick={(e) => handlePaymentClick(exp.id, e)}
+                >
+                  {exp.paymentStatus === 'PAID' ? 'Opłacona' : 'Nieopłacona'}
+                  <IconChevron />
+                </PaymentStatusBadge>
+              )}
               {exp.isCorrection && <Badge $variant="amber">Korekta</Badge>}
               {isExcluded && <Badge $variant="slate">Ukryta</Badge>}
               {exp.linkedVisit && <LinkedVisitChip visit={exp.linkedVisit} />}
@@ -877,17 +884,23 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
                     </Badge>
                   </Td>
 
-                  {/* Płatność: status + metoda */}
+                  {/* Płatność: status + metoda; bez obsługi statusów - sama metoda */}
                   <Td onClick={(e) => e.stopPropagation()}>
-                    <PaymentStatusBadge
-                      $variant={currentPaymentStatus === 'PAID' ? 'green' : 'amber'}
-                      onClick={(e) => handlePaymentClick(exp.id, e)}
-                    >
-                      {currentPaymentStatus === 'PAID' ? 'Opłacona' : 'Nieopłacona'}
-                      <IconChevron />
-                    </PaymentStatusBadge>
-                    {exp.paymentMethodLabel && (
-                      <CellSecondary style={{ marginTop: 4 }}>{exp.paymentMethodLabel}</CellSecondary>
+                    {showPaymentStatus ? (
+                      <>
+                        <PaymentStatusBadge
+                          $variant={currentPaymentStatus === 'PAID' ? 'green' : 'amber'}
+                          onClick={(e) => handlePaymentClick(exp.id, e)}
+                        >
+                          {currentPaymentStatus === 'PAID' ? 'Opłacona' : 'Nieopłacona'}
+                          <IconChevron />
+                        </PaymentStatusBadge>
+                        {exp.paymentMethodLabel && (
+                          <CellSecondary style={{ marginTop: 4 }}>{exp.paymentMethodLabel}</CellSecondary>
+                        )}
+                      </>
+                    ) : (
+                      exp.paymentMethodLabel ?? <EmDash>-</EmDash>
                     )}
                   </Td>
 
@@ -927,7 +940,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
                           <IconTrash />
                         </ActionBtn>
                       )}
-                      {currentPaymentStatus === 'PENDING' && !isExcluded && (
+                      {showPaymentStatus && currentPaymentStatus === 'PENDING' && !isExcluded && (
                         <ActionBtn
                           $variant="pay"
                           onClick={(e) => { e.stopPropagation(); handlePaymentChange(exp.id, 'PAID'); }}
@@ -947,7 +960,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading, search
       </Wrapper>
       )}
 
-      {openPaymentId && dropdownPos &&
+      {showPaymentStatus && openPaymentId && dropdownPos &&
         createPortal(
           <>
             <Backdrop onClick={() => setOpenPaymentId(null)} />

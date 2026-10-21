@@ -9,6 +9,7 @@ import {
 import { StatTile, StatTileSkeleton } from '@/common/components/StatTile';
 import { useFinanceSummary } from '../hooks/useFinance';
 import { useOutstandingBasis } from '../hooks/useOutstandingBasis';
+import { usePaymentTracking } from '../hooks/usePaymentTracking';
 import { formatMoney } from '../utils/formatters';
 import { outstandingTile, type OutstandingSide } from '../utils/outstandingTile';
 
@@ -43,18 +44,23 @@ const TILE_CONFIGS = {
 
 // ─── Grid ─────────────────────────────────────────────────────────────────────
 
-const CardsGrid = styled.div`
+const CardsGrid = styled.div<{ $tiles?: 3 | 4 }>`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: ${p => p.theme.spacing.md};
   margin-top: ${p => p.theme.spacing.md};
+
+  /* Trzy kafle (bez należności) w dwóch kolumnach: zysk na całą szerokość pod spodem. */
+  ${p => p.$tiles === 3 && '& > :last-child { grid-column: 1 / -1; }'}
 
   @media (max-width: 639px) {
     gap: ${p => p.theme.spacing.sm};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(${p => p.$tiles ?? 4}, 1fr);
+
+    & > :last-child { grid-column: auto; }
   }
 `;
 
@@ -111,30 +117,35 @@ interface Props {
 export const FinanceSummaryCards: React.FC<Props> = ({ dateFrom, dateTo, outstandingSide = 'receivables' }) => {
   const { summary, isLoading } = useFinanceSummary(dateFrom, dateTo);
   const [basis, setBasis] = useOutstandingBasis();
+  const { enabled: trackingSetting } = usePaymentTracking();
 
   if (isLoading) {
     return (
-      <CardsGrid>
+      <CardsGrid $tiles={trackingSetting ? 4 : 3}>
         <StatTileSkeleton {...TILE_CONFIGS.revenue} compact />
         <StatTileSkeleton {...TILE_CONFIGS.costs} compact />
         <StatTileSkeleton {...TILE_CONFIGS.profit} compact />
-        <StatTileSkeleton {...TILE_CONFIGS.receivables} compact />
+        {trackingSetting && <StatTileSkeleton {...TILE_CONFIGS.receivables} compact />}
       </CardsGrid>
     );
   }
 
   if (!summary) return null;
 
+  // Kwoty liczył serwer - to jego odpowiedź mówi, czy patrzył na status płatności.
+  // Bez obsługi statusów każdy dokument jest już w przychodzie albo koszcie, więc
+  // kafla należności nie ma: nie ma czego do niego doliczać.
+  const tracking = summary.paymentTrackingEnabled !== false;
   const outstanding = outstandingTile(summary, outstandingSide, basis);
 
   return (
-    <CardsGrid>
+    <CardsGrid $tiles={tracking ? 4 : 3}>
       <StatTile
         {...TILE_CONFIGS.revenue}
         compact
         value={formatMoney(summary.totalRevenue)}
         label="Przychody"
-        subContent={<SubText>netto, opłacone faktury / paragony</SubText>}
+        subContent={<SubText>{tracking ? 'netto, opłacone faktury / paragony' : 'netto, wszystkie faktury / paragony'}</SubText>}
       />
 
       <StatTile
@@ -142,7 +153,7 @@ export const FinanceSummaryCards: React.FC<Props> = ({ dateFrom, dateTo, outstan
         compact
         value={formatMoney(summary.totalCosts)}
         label="Koszty"
-        subContent={<SubText>netto, opłacone faktury kosztowe</SubText>}
+        subContent={<SubText>{tracking ? 'netto, opłacone faktury kosztowe' : 'netto, wszystkie faktury kosztowe'}</SubText>}
       />
 
       <StatTile
@@ -153,7 +164,7 @@ export const FinanceSummaryCards: React.FC<Props> = ({ dateFrom, dateTo, outstan
         subContent={<SubText>netto, przychody − koszty</SubText>}
       />
 
-      <StatTile
+      {tracking && <StatTile
         {...TILE_CONFIGS.receivables}
         compact
         value={formatMoney(outstanding.amountCents)}
@@ -173,7 +184,7 @@ export const FinanceSummaryCards: React.FC<Props> = ({ dateFrom, dateTo, outstan
             )}
           </OutstandingSub>
         }
-      />
+      />}
     </CardsGrid>
   );
 };

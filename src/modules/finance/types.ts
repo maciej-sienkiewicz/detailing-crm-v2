@@ -227,6 +227,21 @@ export interface FinanceSummary {
   overdueReceivables:  number;
   /** liczba dokumentów kosztowych po terminie */
   overduePayables:     number;
+  /**
+   * false: studio nie obsługuje statusów płatności - przychód i koszty liczą każdy
+   * dokument, a należności, zobowiązania i „po terminie" są zerowe. Brak u starszego
+   * serwera = obsługa włączona.
+   */
+  paymentTrackingEnabled?: boolean;
+}
+
+/**
+ * Ustawienie studia „Obsługa statusów płatności" (`/v1/company/finance-config`).
+ * Wyłączone: każdy dokument od razu jest przychodem albo kosztem, a status płatności,
+ * należności i akcje „Oznacz jako opłacone" znikają z aplikacji.
+ */
+export interface FinanceConfig {
+  paymentTrackingEnabled: boolean;
 }
 
 export type ReportGranularity = 'MONTHLY' | 'WEEKLY' | 'DAILY';

@@ -18,7 +18,9 @@ import {
     priceFromService,
     restoreDraft,
     servicesFingerprint,
+    newInvoiceLine,
     settlementPlan,
+    toAddedServices,
     toInvoicePayload,
     toPln,
     toPriceChanges,
@@ -271,6 +273,40 @@ describe('podział: faktura + inny dokument', () => {
     it('kwota innego dokumentu, która nie jest kwotą - do poprawienia', () => {
         const problems = validateHandover({ state: split(onInvoice({ c: '7000,00' }), { remainderInput: '12,345' }), sellerComplete: true });
         expect(problems.map(p => p.message)).toContain('Inny dokument: podaj kwotę.');
+    });
+});
+
+describe('pozycje faktury ustalają ceny (bez sekcji „Ceny usług”)', () => {
+    it('kwota pozycji niższa niż usługa to rabat w wizycie - od strony brutto', () => {
+        const lines = linesFromPrices([ceramika, korekta]).map(l => (l.serviceIds[0] === 'c' ? { ...l, partialGross: '7000,00' } : l));
+        const s = state({ prices: [ceramika, korekta], lines });
+        const plan = settlementPlan(s);
+
+        expect(plan.invoiceGross).toBe(1_000_000);
+        expect(toPriceChanges(plan.prices)).toEqual([{ serviceItemId: 'c', netCents: 569_106, grossCents: 700_000, vatRate: 23 }]);
+        expect(validateHandover({ state: s, sellerComplete: true })).toEqual([]);
+    });
+
+    it('nowa pozycja staje się usługą wizyty i idzie na fakturę ze wskazaniem na nią', () => {
+        const { price, line } = newInvoiceLine();
+        const prices = [ceramika, price];
+        const s = state({ prices, lines: [...linesFromPrices([ceramika]), { ...line, name: 'Zawieszka zapachowa', partialGross: '20' }] });
+        const plan = settlementPlan(s);
+        const payload = toInvoicePayload(s, false);
+
+        expect(payload.items.at(-1)).toMatchObject({ name: 'Zawieszka zapachowa', unitPriceGross: 2_000, sourceServiceItemIds: [price.serviceId] });
+        expect(toAddedServices(plan.prices, s.lines)).toEqual([
+            { id: price.serviceId, name: 'Zawieszka zapachowa', netCents: 1_626, grossCents: 2_000, vatRate: 23 },
+        ]);
+        expect(toPriceChanges(plan.prices)).toEqual([]);
+        expect(totalsOf(plan.prices).gross).toBe(802_000);
+    });
+
+    it('nowa pozycja bez kwoty albo bez nazwy - do poprawienia', () => {
+        const { price, line } = newInvoiceLine();
+        const s = state({ prices: [ceramika, price], lines: [...linesFromPrices([ceramika]), line] });
+        expect(validateHandover({ state: s, sellerComplete: true }).map(p => p.message))
+            .toEqual(expect.arrayContaining(['Pozycja 2: podaj nazwę.', 'Pozycja 2: podaj kwotę.']));
     });
 });
 

@@ -1,19 +1,17 @@
 import { useState } from 'react';
 import styled from 'styled-components';
-import { Merge, Split } from 'lucide-react';
-import { InputShell, BareInput, FieldLabel, FormField } from '@/common/components/Form';
+import { Merge, Plus, Split, Trash2 } from 'lucide-react';
+import { InputShell, BareInput, FieldLabel, FormField, Select } from '@/common/components/Form';
 import { ui } from '@/common/components/ui';
 import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import { GhostAction, Muted } from './HandoverKit';
 import {
-    RATE_LABEL,
     isPlnInput,
     lineAmounts,
     lineFullGross,
-    itemAmounts,
-    parsePln,
     type HandoverPrice,
     type InvoiceLine,
+    type VatRateCode,
 } from '../../types/handover';
 
 const Wrap = styled.div`
@@ -24,7 +22,7 @@ const Wrap = styled.div`
 
 const Row = styled.div`
     display: grid;
-    grid-template-columns: 22px minmax(140px, 1fr) 56px 120px 32px;
+    grid-template-columns: 22px minmax(140px, 1fr) 76px 120px 32px;
     gap: 8px;
     align-items: center;
 
@@ -59,27 +57,6 @@ const Sources = styled.small`
     overflow-wrap: anywhere;
 `;
 
-const Rate = styled.span`
-    font-size: 13px;
-    color: ${ui.textSecondary};
-    font-variant-numeric: tabular-nums;
-`;
-
-const Amount = styled.span`
-    font-size: 14px;
-    font-weight: 700;
-    color: ${ui.ink};
-    font-variant-numeric: tabular-nums;
-    text-align: right;
-    white-space: nowrap;
-`;
-
-const Raise = styled.small`
-    font-size: 12px;
-    color: ${ui.warnInk};
-    font-variant-numeric: tabular-nums;
-`;
-
 const IconBtn = styled.button`
     display: flex;
     align-items: center;
@@ -108,12 +85,23 @@ const MergeError = styled.span`
     color: ${ui.dangerInk};
 `;
 
+const RATES: Array<{ value: VatRateCode; label: string }> = [
+    { value: '23', label: '23%' },
+    { value: '8', label: '8%' },
+    { value: '5', label: '5%' },
+    { value: '0', label: '0%' },
+    { value: 'zw', label: 'zw.' },
+];
+
 interface InvoiceItemsEditorProps {
     lines: InvoiceLine[];
     prices: HandoverPrice[];
-    /** „Faktura + inny dokument”: każda pozycja ma pole kwoty na fakturze. */
+    /** „Faktura + inny dokument”: kwota pozycji niższa niż usługi zostawia resztę na innym dokumencie. */
     split: boolean;
     onChangeLine: (index: number, changes: Partial<InvoiceLine>) => void;
+    onChangeRate: (index: number, vatRate: VatRateCode) => void;
+    onAddLine: () => void;
+    onRemoveLine: (index: number) => void;
     onMerge: (indexes: number[]) => string | null;
     onUnmerge: (index: number) => void;
     exemptionBasis: string;
@@ -122,16 +110,19 @@ interface InvoiceItemsEditorProps {
 }
 
 /**
- * Pozycje faktury. Kwota pozycji wynika z cen usług (ceny zmienia się w „Cenach usług”),
- * tu układa się opis: nazwy i scalenie usług tej samej stawki. Wszystkie pozycje idą na
- * fakturę; przy podziale każda ma pole kwoty na fakturze - niższa zostawia resztę na innym
- * dokumencie, wyższa podnosi cenę usług w wizycie (decyzja biznesu z 21.10.2026).
+ * Pozycje faktury: nazwa, stawka VAT i kwota każdej pozycji - tu ustala się, co klient
+ * zapłaci, więc przy fakturze nie ma osobnej sekcji „Ceny usług”. Kwota inna niż cena
+ * usług zmienia cenę w wizycie; przy podziale niższa zostawia resztę na innym dokumencie.
+ * Pozycja dopisana tutaj staje się przy wydaniu usługą wizyty.
  */
 export const InvoiceItemsEditor = ({
     lines,
     prices,
     split,
     onChangeLine,
+    onChangeRate,
+    onAddLine,
+    onRemoveLine,
     onMerge,
     onUnmerge,
     exemptionBasis,
@@ -141,6 +132,7 @@ export const InvoiceItemsEditor = ({
     const [selected, setSelected] = useState<number[]>([]);
     const [mergeError, setMergeError] = useState<string | null>(null);
     const nameOf = (id: string) => prices.find(p => p.serviceId === id)?.name ?? '';
+    const isAdded = (line: InvoiceLine) => line.serviceIds.some(id => prices.find(p => p.serviceId === id)?.added);
     const hasExempt = lines.some(line => lineAmounts(line, prices).vatRate === 'zw');
 
     const toggleSelected = (index: number) => {
@@ -154,7 +146,7 @@ export const InvoiceItemsEditor = ({
         if (!error) setSelected([]);
     };
 
-    const setPartial = (index: number, value: string) => {
+    const setAmount = (index: number, value: string) => {
         if (!isPlnInput(value)) return;
         onChangeLine(index, { partialGross: value });
     };
@@ -162,6 +154,9 @@ export const InvoiceItemsEditor = ({
     return (
         <Wrap>
             <Toolbar>
+                <GhostAction type="button" onClick={() => { setSelected([]); onAddLine(); }}>
+                    <Plus />Dodaj pozycję
+                </GhostAction>
                 <GhostAction type="button" disabled={selected.length < 2} onClick={merge}>
                     <Merge />Scal zaznaczone{selected.length >= 2 ? ` (${selected.length})` : ''}
                 </GhostAction>
@@ -180,10 +175,7 @@ export const InvoiceItemsEditor = ({
                 const item = lineAmounts(line, prices);
                 const full = lineFullGross(line, prices);
                 const merged = line.serviceIds.length > 1;
-                // Nazwa usługi pod pozycją tylko przy scaleniu - pod przemianowaną pozycją
-                // „Usługa: …” powtarzało tylko to, co człowiek właśnie zmienił.
-                const sourceNames = line.serviceIds.map(nameOf);
-                const typed = split && line.partialGross.trim() ? parsePln(line.partialGross) : null;
+                const added = isAdded(line);
                 return (
                     <Row key={line.serviceIds.join('|')}>
                         <input
@@ -196,36 +188,39 @@ export const InvoiceItemsEditor = ({
                             <InputShell $compact>
                                 <BareInput
                                     value={line.name}
+                                    placeholder={added ? 'Nazwa nowej pozycji' : undefined}
                                     aria-label={`Nazwa pozycji ${index + 1}`}
                                     onChange={e => onChangeLine(index, { name: e.target.value })}
                                     $compact
                                 />
                             </InputShell>
-                            {merged && <Sources>Usługi: {sourceNames.join(', ')}</Sources>}
+                            {/* Nazwy usług tylko przy scaleniu - pod jedną usługą powtarzałyby nazwę pozycji. */}
+                            {merged && <Sources>Usługi: {line.serviceIds.map(nameOf).join(', ')}</Sources>}
                         </Cell>
-                        <Rate>{RATE_LABEL[item.vatRate]}</Rate>
-                        {split ? (
-                            <Cell>
-                                <InputShell $compact>
-                                    <BareInput
-                                        value={line.partialGross}
-                                        placeholder={fmt(full)}
-                                        inputMode="decimal"
-                                        aria-label={`Kwota na fakturze, pozycja ${index + 1}`}
-                                        title="Puste = cała kwota usług tej pozycji"
-                                        onChange={e => setPartial(index, e.target.value)}
-                                        onKeyDown={handleZeroAwareKeyDown(line.partialGross, val => setPartial(index, val))}
-                                        $compact
-                                    />
-                                </InputShell>
-                                {typed !== null && typed > full && (
-                                    <Raise>cena usług wzrośnie z {fmt(full)}</Raise>
-                                )}
-                            </Cell>
-                        ) : (
-                            <Amount>{fmt(itemAmounts(item).gross)}</Amount>
-                        )}
-                        {merged ? (
+                        <Select
+                            value={item.vatRate}
+                            aria-label={`Stawka VAT, pozycja ${index + 1}`}
+                            onChange={e => onChangeRate(index, e.target.value as VatRateCode)}
+                            $compact
+                        >
+                            {RATES.map(rate => <option key={rate.value} value={rate.value}>{rate.label}</option>)}
+                        </Select>
+                        <InputShell $compact>
+                            <BareInput
+                                value={line.partialGross}
+                                placeholder={fmt(full)}
+                                inputMode="decimal"
+                                aria-label={split ? `Kwota na fakturze, pozycja ${index + 1}` : `Brutto, pozycja ${index + 1}`}
+                                onChange={e => setAmount(index, e.target.value)}
+                                onKeyDown={handleZeroAwareKeyDown(line.partialGross, val => setAmount(index, val))}
+                                $compact
+                            />
+                        </InputShell>
+                        {added ? (
+                            <IconBtn type="button" title="Usuń pozycję" aria-label={`Usuń pozycję ${index + 1}`} onClick={() => onRemoveLine(index)}>
+                                <Trash2 />
+                            </IconBtn>
+                        ) : merged ? (
                             <IconBtn type="button" title="Rozdziel na usługi" aria-label={`Rozdziel pozycję ${index + 1}`} onClick={() => onUnmerge(index)}>
                                 <Split />
                             </IconBtn>
@@ -233,13 +228,6 @@ export const InvoiceItemsEditor = ({
                     </Row>
                 );
             })}
-
-            {split && (
-                <Muted>
-                    Część kwoty usług ponad wpisaną na fakturze idzie na inny dokument: bez paragonu, bez VAT, gotówką.
-                    Wyższa kwota na fakturze podnosi cenę usług w wizycie.
-                </Muted>
-            )}
 
             {hasExempt && (
                 <FormField>

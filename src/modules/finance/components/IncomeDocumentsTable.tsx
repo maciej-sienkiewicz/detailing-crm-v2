@@ -544,6 +544,11 @@ interface IncomeDocumentsTableProps {
   searchTerm?: string;
   /** Zaznaczanie wielu wierszy pod operację grupową; brak = tabela bez pól wyboru. */
   selection?: RowSelection;
+  /**
+   * Status płatności (Opłacony / Nieopłacony / Po terminie). Studio bez obsługi statusów
+   * płatności go nie prowadzi - w kolumnie zostaje sama forma płatności.
+   */
+  showPaymentStatus?: boolean;
 }
 
 export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
@@ -552,6 +557,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
   onSelect,
   searchTerm,
   selection,
+  showPaymentStatus = true,
 }) => {
   const excludeMutation = useExcludeIncomeDocument();
   const restoreMutation = useRestoreIncomeDocument();
@@ -675,7 +681,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                           </KsefCheck>
                         )}
                       </TypeCell>
-                      <Badge $variant={payment.variant}>{payment.label}</Badge>
+                      {showPaymentStatus && <Badge $variant={payment.variant}>{payment.label}</Badge>}
                       {doc.ksefStatus === 'REJECTED' && <Badge $variant="red">Odrzucona</Badge>}
                       {settled && <Badge $variant="slate" title={settled.title}>{settled.label}</Badge>}
                       {doc.duplicateStatus === 'SUSPECTED' && (
@@ -874,8 +880,14 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                       )}
                     </Td>
                     <Td>
-                      <Badge $variant={payment.variant}>{payment.label}</Badge>
-                      {doc.paymentLabel && <PartyNip>{doc.paymentLabel}</PartyNip>}
+                      {showPaymentStatus ? (
+                        <>
+                          <Badge $variant={payment.variant}>{payment.label}</Badge>
+                          {doc.paymentLabel && <PartyNip>{doc.paymentLabel}</PartyNip>}
+                        </>
+                      ) : (
+                        doc.paymentLabel ?? '–'
+                      )}
                     </Td>
                     <Td $align="right">
                       <ActionsCell>

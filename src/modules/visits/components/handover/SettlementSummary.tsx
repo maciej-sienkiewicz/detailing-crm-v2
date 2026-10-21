@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { formatCurrency, pluralPl } from '@/common/utils';
+import { formatCurrency } from '@/common/utils';
 import { ui } from '@/common/components/ui';
 import { paymentMethods } from './paymentOptions';
 import {
@@ -110,8 +110,8 @@ const dateLabel = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateStrin
 interface SettlementSummaryProps {
     state: HandoverState;
     totals: { net: number; vat: number; gross: number };
-    /** Kwota wizyty przed zmianami cen przy wydaniu. */
-    originalGross: number;
+    /** Kwota wizyty przed zmianami cen przy wydaniu (zmianę pokazuje widok po wydaniu). */
+    originalGross?: number;
     currency: string;
     invoiceItems: HandoverItem[];
     invoiceGross: number;
@@ -128,7 +128,6 @@ interface SettlementSummaryProps {
 export const SettlementSummary = ({
     state,
     totals,
-    originalGross,
     currency,
     invoiceItems,
     invoiceGross,
@@ -144,13 +143,11 @@ export const SettlementSummary = ({
     const isInvoice = state.documentType === 'INVOICE';
     const crmInvoice = isInvoice && !invoicedExternally;
     const hasOther = crmInvoice && state.splitRemainder && remainder > 0;
-    const discount = originalGross - totals.gross;
     // Netto i VAT tego, co trafi na fakturę - przy zmianie stawek albo scaleniu to
     // inne kwoty niż suma usług, a dotąd podsumowanie pokazywało te drugie.
     const invoiceNet = invoiceItems.reduce((sum, item) => sum + itemAmounts(item).net, 0);
     const nip = normalizeNip(state.buyer.nip);
     const payment = paymentMethods.find(m => m.value === state.paymentMethod)?.label ?? 'Inna metoda';
-    const count = invoiceItems.length;
 
     const documentLine = !isInvoice
         ? (state.documentType === 'RECEIPT' ? 'Paragon' : 'Inny dokument')
@@ -172,24 +169,11 @@ export const SettlementSummary = ({
             <Amount>
                 <span>Do zapłaty</span>
                 <strong>{fmt(payable)}</strong>
-                <span>
-                    {hasOther
-                        ? `faktura ${fmt(invoiceGross)}, inny dokument ${fmt(remainder)}`
-                        : crmInvoice
-                            ? `netto ${fmt(invoiceNet)}, VAT ${fmt(invoiceGross - invoiceNet)}`
-                            : `netto ${fmt(totals.net)}, VAT ${fmt(totals.vat)}`}
-                </span>
-                {hasOther && payable < totals.gross && (
-                    <span>
-                        cena usług {fmt(totals.gross)}, bez VAT na innym dokumencie {fmt(totals.gross - payable)} mniej
-                    </span>
-                )}
-                {discount !== 0 && (
-                    <span>
-                        {discount > 0
-                            ? `było ${fmt(originalGross)}, rabat przy wydaniu ${fmt(discount)}`
-                            : `było ${fmt(originalGross)}, dopłata przy wydaniu ${fmt(-discount)}`}
-                    </span>
+                {/* Jedna linia pod kwotą: z czego się składa. Netto faktury stoi niżej, w „Faktura”. */}
+                {hasOther ? (
+                    <span>faktura {fmt(invoiceGross)} + inny dokument {fmt(remainder)}</span>
+                ) : !crmInvoice && (
+                    <span>netto {fmt(totals.net)}, VAT {fmt(totals.vat)}</span>
                 )}
             </Amount>
 
@@ -218,10 +202,8 @@ export const SettlementSummary = ({
                     <ReviewRow>
                         <span>Faktura</span>
                         <span>
-                            <strong>{fmt(invoiceGross)}</strong>
-                            <small>
-                                {count} {pluralPl(count, 'pozycja', 'pozycje', 'pozycji')}, netto {fmt(invoiceNet)}, VAT {fmt(invoiceGross - invoiceNet)}
-                            </small>
+                            <strong>{fmt(invoiceGross)} brutto</strong>
+                            <small>{fmt(invoiceNet)} netto</small>
                         </span>
                     </ReviewRow>
                 )}

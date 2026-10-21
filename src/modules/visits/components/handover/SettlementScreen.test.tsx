@@ -47,6 +47,9 @@ const controls = (overrides: Partial<InvoiceControls> = {}): InvoiceControls => 
     resetLines: vi.fn(),
     setInvoiceOther: vi.fn(),
     setRemainderInput: vi.fn(),
+    changeLineRate: vi.fn(),
+    addLine: vi.fn(),
+    removeLine: vi.fn(),
     changeLine: vi.fn(),
     mergeSelected: vi.fn(() => null),
     unmerge: vi.fn(),
@@ -82,7 +85,6 @@ const left = (s: HandoverState, opts: { remainder?: number; c?: InvoiceControls;
             invoiceGross={items.reduce((sum, i) => sum + Number(i.gross.replace(',', '.')) * 100, 0)}
             remainder={opts.remainder ?? 0}
             remainderAuto={opts.remainder ?? 0}
-            settledGross={totalsOf(s.prices).gross}
             sellerComplete
             company={company}
             problemsIn={() => []}
@@ -199,9 +201,26 @@ describe('Lewa kolumna: decyzje', () => {
         expect(screen.queryByText(/Usługa: Powłoka ceramiczna/)).not.toBeInTheDocument();
     });
 
-    it('ceny usług: zmiana ceny w edytorze to zmiana ceny wizyty, z rabatem widocznym od razu', () => {
+    it('faktura z CRM: bez sekcji „Ceny usług” - kwotę, stawkę i nowe pozycje ustala się w pozycjach faktury', () => {
+        const c = controls();
+        left(state(), { c });
+
+        expect(screen.queryByText('Ceny usług')).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Zmień ceny' })).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Pokaż pozycje' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Edytuj' }));
+        fireEvent.change(screen.getByLabelText('Brutto, pozycja 1'), { target: { value: '1400' } });
+        expect(c.changeLine).toHaveBeenCalledWith(0, { partialGross: '1400' });
+        fireEvent.change(screen.getByLabelText('Stawka VAT, pozycja 2'), { target: { value: '23' } });
+        expect(c.changeLineRate).toHaveBeenCalledWith(1, '23');
+        fireEvent.click(screen.getByRole('button', { name: 'Dodaj pozycję' }));
+        expect(c.addLine).toHaveBeenCalled();
+    });
+
+    it('paragon: ceny usług w osobnej sekcji, z rabatem widocznym od razu', () => {
         const pc = priceControls({ discount: 50_000, totalGross: 120_000 });
-        left(state(), { pc });
+        left(state({ documentType: 'RECEIPT' }), { pc });
 
         expect(screen.getByText('Rabat przy wydaniu 500,00 zł')).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: 'Zmień ceny' }));
@@ -253,16 +272,16 @@ describe('Prawa kolumna: kwota, sprawdź przed wysłaniem, braki', () => {
         right(state({ splitRemainder: true }), { invoiceGross: 120_000, remainder: 40_651 });
         const aside = screen.getByLabelText('Podsumowanie rozliczenia');
         expect(aside.textContent).toMatch(/Do zapłaty1606,51\szł/);
-        expect(aside.textContent).toMatch(/faktura 1200,00\szł, inny dokument 406,51\szł/);
-        expect(aside.textContent).toMatch(/cena usług 1700,00\szł, bez VAT na innym dokumencie 93,49\szł mniej/);
+        expect(aside.textContent).toMatch(/faktura 1200,00\szł \+ inny dokument 406,51\szł/);
+        expect(aside.textContent).not.toMatch(/cena usług|mniej|dopłata|rabat/);
         expect(aside.textContent).toMatch(/Inny dokument406,51\szłbez paragonu, bez VAT, gotówka/);
     });
 
-    it('netto i VAT pokazane z faktury, a rabat przy wydaniu obok kwoty', () => {
+    it('faktura: brutto i netto z faktury, bez liczby pozycji, VAT-u i rabatu', () => {
         right(state(), { originalGross: 180_000 });
         const aside = screen.getByLabelText('Podsumowanie rozliczenia');
-        expect(aside.textContent).toMatch(/netto 1404,70\szł, VAT 295,30\szł/);
-        expect(aside.textContent).toMatch(/było 1800,00\szł, rabat przy wydaniu 100,00\szł/);
+        expect(aside.textContent).toMatch(/Faktura1700,00\szł brutto1404,70\szł netto/);
+        expect(aside.textContent).not.toMatch(/pozycje|VAT 295|rabat przy wydaniu/);
     });
 
     it('paragon: podsumowanie bez nabywcy i bez KSeF', () => {

@@ -19,6 +19,8 @@ import {
     linesFromPrices,
     linesMatchServices,
     mergeLines,
+    newInvoiceLine,
+    toAddedServices,
     normalizeNip,
     originalGrossOf,
     priceChanged,
@@ -37,6 +39,7 @@ import {
     type HandoverProblem,
     type HandoverState,
     type InvoiceLine,
+    type VatRateCode,
 } from '../types/handover';
 
 // v4: pozycje bez „na fakturze / na innym dokumencie” i z kwotą innego dokumentu (21.10.2026).
@@ -279,19 +282,61 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
 
     /** Ceny wracają do tych z wizyty (bez zmian przy wydaniu). */
     const resetPrices = useCallback(() => {
-        setState(prev => ({ ...prev, prices: buildInitialState().prices }));
+        setState(prev => ({ ...prev, prices: [...buildInitialState().prices, ...prev.prices.filter(p => p.added)] }));
         setRestoredAt(null);
     }, [buildInitialState]);
 
     const changeLine = useCallback(
         (index: number, changes: Partial<InvoiceLine>) =>
-            setState(prev => ({ ...prev, lines: prev.lines.map((l, i) => (i === index ? { ...l, ...changes } : l)) })),
+            setState(prev => {
+                const ids = prev.lines[index]?.serviceIds ?? [];
+                return {
+                    ...prev,
+                    lines: prev.lines.map((l, i) => (i === index ? { ...l, ...changes } : l)),
+                    // Nazwa pozycji dopisanej przy wydaniu to nazwa jej usługi w wizycie.
+                    prices: changes.name === undefined ? prev.prices : prev.prices.map(p =>
+                        p.added && ids.includes(p.serviceId) ? { ...p, name: changes.name ?? p.name } : p),
+                };
+            }),
+        []
+    );
+
+    /** Stawka VAT pozycji = stawka jej usług; zmiana zostawia stronę ustaloną ceny. */
+    const changeLineRate = useCallback(
+        (index: number, vatRate: VatRateCode) =>
+            setState(prev => {
+                const ids = prev.lines[index]?.serviceIds ?? [];
+                return { ...prev, prices: prev.prices.map(p => (ids.includes(p.serviceId) ? updatePrice(p, { vatRate }) : p)) };
+            }),
+        []
+    );
+
+    /** Nowa pozycja na fakturze - przy zapisie staje się usługą wizyty. */
+    const addLine = useCallback(() => {
+        const { price, line } = newInvoiceLine();
+        setState(prev => ({ ...prev, prices: [...prev.prices, price], lines: [...prev.lines, line] }));
+    }, []);
+
+    /** Usunięcie pozycji dopisanej przy wydaniu (pozycje usług wizyty się nie usuwa). */
+    const removeLine = useCallback(
+        (index: number) =>
+            setState(prev => {
+                const ids = prev.lines[index]?.serviceIds ?? [];
+                return {
+                    ...prev,
+                    lines: prev.lines.filter((_, i) => i !== index),
+                    prices: prev.prices.filter(p => !(p.added && ids.includes(p.serviceId))),
+                };
+            }),
         []
     );
 
     /** Pozycje faktury jak usługi wizyty: bez scaleń i bez podziału. */
     const resetLines = useCallback(() => {
-        setState(prev => ({ ...prev, lines: linesFromPrices(prev.prices), splitRemainder: false }));
+        setState(prev => {
+            const prices = prev.prices.filter(p => !p.added);
+            return { ...prev, prices, lines: linesFromPrices(prices), splitRemainder: false };
+        });
         setRestoredAt(null);
     }, []);
 
@@ -370,6 +415,7 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
                         ? toInvoicePayload(state, sendToKsef)
                         : undefined,
                 priceChanges: toPriceChanges(plan.prices),
+                addedServices: toAddedServices(plan.prices, state.lines),
                 thankYouSms: buildThankYouSmsPayload({
                     available: thankYouSms.available,
                     send: thankYouSmsChecked,
@@ -420,6 +466,9 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         changePrice,
         resetPrices,
         changeLine,
+        changeLineRate,
+        addLine,
+        removeLine,
         resetLines,
         mergeSelected,
         unmerge,

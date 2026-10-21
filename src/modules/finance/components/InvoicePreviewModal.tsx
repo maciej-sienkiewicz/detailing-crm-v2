@@ -2,6 +2,7 @@ import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import type { KsefExpenseDetail, KsefExpenseParty } from '../types';
 import { useKsefExpenseDetail } from '../hooks/useKsef';
+import { usePaymentTracking } from '../hooks/usePaymentTracking';
 import { formatMoneyFloat, formatMoneyFloatCompact, formatDate, formatBankAccount } from '../utils/formatters';
 import {
   ModalShell,
@@ -378,6 +379,9 @@ interface Props {
 
 export const InvoicePreviewModal: React.FC<Props> = ({ expenseId, onClose }) => {
   const { detail, isLoading, isError } = useKsefExpenseDetail(expenseId);
+  // Bez obsługi statusów płatności faktura kosztowa jest kosztem od razu: status
+  // i karta „Zapłać przelewem" (pokazywana tylko nieopłaconym) znikają.
+  const { enabled: paymentTracking } = usePaymentTracking();
 
   /**
    * Wartość brutto pozycji: z faktury, gdy ją ma (CLAUDE.md §1 - brutto, które ktoś ustalił,
@@ -546,14 +550,16 @@ export const InvoicePreviewModal: React.FC<Props> = ({ expenseId, onClose }) => 
                   <Eyebrow>Forma płatności</Eyebrow>
                   <MetaValue>{detail.payment.methodLabel ?? '-'}</MetaValue>
                 </div>
-                <div>
-                  <Eyebrow>Status płatności</Eyebrow>
-                  <MetaValue>
-                    <Badge $tone={detail.payment.status === 'PAID' ? 'green' : 'amber'}>
-                      {detail.payment.status === 'PAID' ? 'Opłacona' : 'Nieopłacona'}
-                    </Badge>
-                  </MetaValue>
-                </div>
+                {paymentTracking && (
+                  <div>
+                    <Eyebrow>Status płatności</Eyebrow>
+                    <MetaValue>
+                      <Badge $tone={detail.payment.status === 'PAID' ? 'green' : 'amber'}>
+                        {detail.payment.status === 'PAID' ? 'Opłacona' : 'Nieopłacona'}
+                      </Badge>
+                    </MetaValue>
+                  </div>
+                )}
                 <div>
                   <Eyebrow>Termin płatności</Eyebrow>
                   <MetaValue>{formatDate(detail.payment.dueDate)}</MetaValue>
@@ -568,7 +574,7 @@ export const InvoicePreviewModal: React.FC<Props> = ({ expenseId, onClose }) => 
 
               {/* Tylko faktura, którą jeszcze trzeba zapłacić i która ma rachunek - przy
                   zapłaconej albo opłacanej gotówką karta byłaby szumem. */}
-              {detail.payment.status === 'PENDING' && detail.status !== 'CANCELLED' && detail.payment.bankAccount && (
+              {paymentTracking && detail.payment.status === 'PENDING' && detail.status !== 'CANCELLED' && detail.payment.bankAccount && (
                 <ExpensePaymentCard expenseId={detail.id} />
               )}
 

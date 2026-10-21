@@ -8,6 +8,7 @@ import type {
   CashHistoryResponse,
   CashAdjustRequest,
   FinanceSummary,
+  FinanceConfig,
   PaymentMethodReport,
   PaymentMethodReportParams,
 } from '../types';
@@ -95,6 +96,20 @@ export const financeApi = {
     if (params.dateTo)       p.append('dateTo',       params.dateTo);
     if (params.documentType) p.append('documentType', params.documentType);
     const response = await apiClient.get(`${BASE}/payment-method-report?${p}`);
+    return response.data;
+  },
+
+  // ── Ustawienie studia: obsługa statusów płatności ─────────────────────────
+
+  // Ustawienie mieszka przy danych firmy (studio_settings), a czyta je każdy widok
+  // z płatnościami - stąd adres spoza /v1/finance.
+  getFinanceConfig: async (): Promise<FinanceConfig> => {
+    const response = await apiClient.get<FinanceConfig>('/v1/company/finance-config', { skipErrorToast: true });
+    return response.data;
+  },
+
+  updateFinanceConfig: async (data: FinanceConfig): Promise<FinanceConfig> => {
+    const response = await apiClient.patch<FinanceConfig>('/v1/company/finance-config', data);
     return response.data;
   },
 };

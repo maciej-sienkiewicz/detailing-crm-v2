@@ -2,7 +2,7 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { Building2, Check, Eye, Pencil, RotateCcw, User } from 'lucide-react';
 import { pluralPl } from '@/common/utils';
-import { Notice, ui } from '@/common/components/ui';
+import { ui } from '@/common/components/ui';
 import { InputShell, BareInput } from '@/common/components/Form';
 import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import type { CompanySettings } from '@/modules/settings/types';
@@ -15,11 +15,11 @@ import {
     formatNip,
     isPlnInput,
     normalizeNip,
-    totalsOf,
     type HandoverItem,
     type HandoverProblem,
     type HandoverState,
     type InvoiceLine,
+    type VatRateCode,
 } from '../../types/handover';
 
 /**
@@ -169,6 +169,9 @@ export interface InvoiceControls {
     /** Kwota innego dokumentu wpisana ręcznie; '' = wyliczona. */
     setRemainderInput: (value: string) => void;
     changeLine: (index: number, changes: Partial<InvoiceLine>) => void;
+    changeLineRate: (index: number, vatRate: VatRateCode) => void;
+    addLine: () => void;
+    removeLine: (index: number) => void;
     mergeSelected: (indexes: number[]) => string | null;
     unmerge: (index: number) => void;
 }
@@ -229,8 +232,6 @@ interface InvoicePositionsProps {
     remainder: number;
     /** Kwota innego dokumentu wyliczona: netto części usług poza fakturą. */
     remainderAuto: number;
-    /** Brutto wizyty po rozliczeniu (kwota na fakturze albo innym dokumencie może je zmienić). */
-    settledGross: number;
     company: CompanySettings | undefined;
     problemsIn: (section: HandoverProblem['section']) => HandoverProblem[];
     controls: InvoiceControls;
@@ -249,7 +250,6 @@ export const InvoicePositions = ({
     invoiceGross,
     remainder,
     remainderAuto,
-    settledGross,
     company,
     problemsIn,
     controls,
@@ -266,6 +266,9 @@ export const InvoicePositions = ({
             prices={state.prices}
             split={isOther}
             onChangeLine={controls.changeLine}
+            onChangeRate={controls.changeLineRate}
+            onAddLine={controls.addLine}
+            onRemoveLine={controls.removeLine}
             onMerge={controls.mergeSelected}
             onUnmerge={controls.unmerge}
             exemptionBasis={state.exemptionBasis}
@@ -334,21 +337,13 @@ export const InvoicePositions = ({
                                 $compact
                             />
                         </AmountShell>
-                        {state.remainderInput.trim() && remainder !== remainderAuto ? (
+                        {state.remainderInput.trim() && remainder !== remainderAuto && (
                             <GhostAction type="button" onClick={() => controls.setRemainderInput('')}>
                                 <RotateCcw />Wylicz: {fmt(remainderAuto)}
                             </GhostAction>
-                        ) : (
-                            <small>Netto części usług poza fakturą: bez paragonu klient nie płaci VAT.</small>
                         )}
                     </Tile>
                 </Tiles>
-                {settledGross !== totalsOf(state.prices).gross && (
-                    <Notice tone="warn" title="Cena wizyty się zmieni">
-                        Z {fmt(totalsOf(state.prices).gross)} na {fmt(settledGross)} brutto, żeby wizyta
-                        i statystyki zgadzały się z dokumentami.
-                    </Notice>
-                )}
                 {notices}
                 {preview}
             </SplitPanel>

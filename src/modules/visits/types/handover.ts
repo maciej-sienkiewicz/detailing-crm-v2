@@ -1,6 +1,12 @@
 import { MAX_2_DECIMALS } from '@/common/utils/moneyInput';
 import { validatePolishNip } from '@/common/utils/validators';
-import type { PaymentMethod, InvoiceType, CompleteInvoicePayload, HandoverPriceChangePayload } from './stateTransitions';
+import type {
+    PaymentMethod,
+    InvoiceType,
+    CompleteInvoicePayload,
+    HandoverAddedServicePayload,
+    HandoverPriceChangePayload,
+} from './stateTransitions';
 
 export type VatRateCode = '23' | '8' | '5' | '0' | 'zw';
 export type PriceMode = 'NET' | 'GROSS';
@@ -47,6 +53,8 @@ export interface HandoverPrice extends HandoverItem {
     originalNet: number;
     originalGross: number;
     originalRate: VatRateCode;
+    /** Pozycja dopisana na fakturze przy wydaniu - przy zapisie staje się usługą wizyty. */
+    added?: boolean;
 }
 
 /**
@@ -321,9 +329,9 @@ export const updatePrice = (price: HandoverPrice, changes: Partial<Pick<Handover
     return withDerived(next) as HandoverPrice;
 };
 
-/** Zmiany cen do wysłania: tylko usługi, których cena albo stawka się zmieniła. */
+/** Zmiany cen do wysłania: tylko usługi wizyty, których cena albo stawka się zmieniła. */
 export const toPriceChanges = (prices: HandoverPrice[]): HandoverPriceChangePayload[] =>
-    prices.filter(priceChanged).map(price => {
+    prices.filter(price => !price.added && priceChanged(price)).map(price => {
         const { net, gross } = itemAmounts(price);
         return {
             serviceItemId: price.serviceId,
@@ -333,6 +341,43 @@ export const toPriceChanges = (prices: HandoverPrice[]): HandoverPriceChangePayl
             vatRate: vatRateNumberOf(price.vatRate),
         };
     });
+
+/** Pozycje dopisane przy wydaniu do wysłania - backend zakłada z nich usługi wizyty. */
+export const toAddedServices = (prices: HandoverPrice[], lines: InvoiceLine[]): HandoverAddedServicePayload[] =>
+    prices.filter(price => price.added).map(price => {
+        const { net, gross } = itemAmounts(price);
+        const line = lines.find(l => l.serviceIds.includes(price.serviceId));
+        return {
+            id: price.serviceId,
+            name: (line?.name ?? price.name).trim(),
+            netCents: net,
+            grossCents: price.mode === 'GROSS' ? gross : null,
+            vatRate: vatRateNumberOf(price.vatRate),
+        };
+    });
+
+const newId = (): string =>
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+            const r = (Math.random() * 16) | 0;
+            return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+        });
+
+/**
+ * Nowa pozycja na fakturze: pusta usługa (0 zł, 23%) i pozycja, która ją obejmuje.
+ * Kwotę wpisuje się w polu pozycji, tak jak każdą inną (patrz [settlementPlan]).
+ */
+export const newInvoiceLine = (): { price: HandoverPrice; line: InvoiceLine } => {
+    const id = newId();
+    return {
+        price: {
+            serviceId: id, name: '', net: '0,00', gross: '0,00', mode: 'GROSS', vatRate: '23',
+            originalNet: 0, originalGross: 0, originalRate: '23', added: true,
+        },
+        line: { name: '', serviceIds: [id], partialGross: '' },
+    };
+};
 
 // ─── Pozycje faktury ─────────────────────────────────────────────────────────
 
@@ -456,9 +501,25 @@ export const settlementPlan = (state: HandoverState): SettlementPlan => {
             .filter(({ item }) => itemAmounts(item).gross > 0);
 
     if (!state.splitRemainder) {
-        const invoice = invoiceOf(state.prices);
+        // Bez podziału kwota pozycji to cena jej usług: wpisana inna (wyższa albo niższa)
+        // zmienia cenę usług w wizycie - pozycje faktury zastępują tu „Ceny usług”.
+        let prices = state.prices;
+        state.lines.forEach(line => {
+            if (!line.partialGross.trim() || !isPlnInput(line.partialGross)) return;
+            const typed = parsePln(line.partialGross);
+            const sources = sourcesOf(line, prices);
+            const full = sources.reduce((sum, p) => sum + priceAmounts(p).gross, 0);
+            if (sources.length === 0 || typed === full) return;
+            const grosses = sources.map(p => priceAmounts(p).gross);
+            const parts = distributeCents(typed, grosses.every(g => g === 0) ? grosses.map(() => 1) : grosses);
+            prices = prices.map(p => {
+                const i = sources.findIndex(src => src.serviceId === p.serviceId);
+                return i < 0 ? p : updatePrice(p, { gross: toPln(parts[i]) });
+            });
+        });
+        const invoice = invoiceOf(prices);
         return {
-            prices: state.prices,
+            prices,
             invoice,
             invoiceGross: invoice.reduce((sum, { item }) => sum + itemAmounts(item).gross, 0),
             invoiceNet: invoice.reduce((sum, { item }) => sum + itemAmounts(item).net, 0),
@@ -615,13 +676,17 @@ export const validateHandover = ({
         if (!line.name.trim()) {
             problems.push({ section: 'items', message: `Pozycja ${index + 1}: podaj nazwę.` });
         }
+        const added = line.serviceIds.some(id => state.prices.find(p => p.serviceId === id)?.added);
+        if (added && !(parsePln(line.partialGross) > 0)) {
+            problems.push({ section: 'items', message: `Pozycja ${index + 1}: podaj kwotę.` });
+        }
         if (lineRatesMixed(line, state.prices)) {
             problems.push({
                 section: 'items',
                 message: `Pozycja ${index + 1} łączy usługi z różnymi stawkami VAT. Rozdziel ją.`,
             });
         }
-        if (state.splitRemainder && line.partialGross.trim() && !isPlnInput(line.partialGross)) {
+        if (line.partialGross.trim() && !isPlnInput(line.partialGross)) {
             problems.push({ section: 'items', message: `Pozycja ${index + 1}: podaj kwotę na fakturze.` });
         }
     });

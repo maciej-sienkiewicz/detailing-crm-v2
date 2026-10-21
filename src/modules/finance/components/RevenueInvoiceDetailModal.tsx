@@ -24,6 +24,7 @@ import {
   useUpdateRevenuePaymentStatus,
 } from '../hooks/useKsefRevenue';
 import { useExcludeIncomeDocument, useRestoreIncomeDocument } from '../hooks/useIncomeDocuments';
+import { usePaymentTracking } from '../hooks/usePaymentTracking';
 import { formatMoney, formatMoneyCompact, formatDate, formatBankAccount } from '../utils/formatters';
 import { RevenueStatusBadge } from './RevenueStatusBadge';
 import type { RevenueInvoice, RevenueParty } from '../types';
@@ -520,6 +521,9 @@ interface RevenueInvoiceDetailModalProps {
 
 export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps> = ({ invoiceId, onClose }) => {
   const { invoice } = useKsefRevenueInvoiceDetail(invoiceId);
+  // Bez obsługi statusów płatności faktura jest przychodem od razu - status i jego
+  // przełączanie nie mają tu nic do powiedzenia.
+  const { enabled: paymentTracking } = usePaymentTracking();
   const retryMutation      = useRetryRevenueInvoice();
   const deleteMutation     = useDeleteRejectedInvoice();
   const duplicateMutation  = useResolveDuplicate();
@@ -812,14 +816,16 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
 
                 {/* Płatność i dane uzupełniające - każde pole osobno, puste pomijamy */}
                 <MetaGrid>
-                  <div>
-                    <Eyebrow>Status płatności</Eyebrow>
-                    <MetaValue>
-                      <Badge $tone={invoice.paymentStatus === 'PAID' ? 'green' : 'amber'}>
-                        {invoice.paymentStatus === 'PAID' ? 'Opłacona' : 'Nieopłacona'}
-                      </Badge>
-                    </MetaValue>
-                  </div>
+                  {paymentTracking && (
+                    <div>
+                      <Eyebrow>Status płatności</Eyebrow>
+                      <MetaValue>
+                        <Badge $tone={invoice.paymentStatus === 'PAID' ? 'green' : 'amber'}>
+                          {invoice.paymentStatus === 'PAID' ? 'Opłacona' : 'Nieopłacona'}
+                        </Badge>
+                      </MetaValue>
+                    </div>
+                  )}
                   {(invoice.paymentFormLabel ?? invoice.paymentForm) && (
                     <div>
                       <Eyebrow>Forma płatności</Eyebrow>
@@ -942,15 +948,17 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
                     : 'Ponów wysyłkę do KSeF'}
               </SharedButton>
             )}
-            <SharedButton
-              $variant="secondary" $size="sm" disabled={busy}
-              onClick={() => run(() => paymentMutation.mutateAsync({
-                id: invoice.id,
-                paymentStatus: invoice.paymentStatus === 'PAID' ? 'PENDING' : 'PAID',
-              }))}
-            >
-              {invoice.paymentStatus === 'PAID' ? 'Oznacz jako nieopłaconą' : 'Oznacz jako opłaconą'}
-            </SharedButton>
+            {paymentTracking && (
+              <SharedButton
+                $variant="secondary" $size="sm" disabled={busy}
+                onClick={() => run(() => paymentMutation.mutateAsync({
+                  id: invoice.id,
+                  paymentStatus: invoice.paymentStatus === 'PAID' ? 'PENDING' : 'PAID',
+                }))}
+              >
+                {invoice.paymentStatus === 'PAID' ? 'Oznacz jako nieopłaconą' : 'Oznacz jako opłaconą'}
+              </SharedButton>
+            )}
             <SharedButton
               $variant="secondary" $size="sm" disabled={busy}
               title={invoice.excluded

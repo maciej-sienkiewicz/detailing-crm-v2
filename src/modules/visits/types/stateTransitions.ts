@@ -42,6 +42,17 @@ export interface CompleteInvoiceItemPayload {
  * Zmiana ceny przy wydaniu: nowa cena i stawka usługi, które osoba wydająca auto zmieniła
  * na końcu. Trafia do wizyty, więc widzą ją statystyki.
  */
+/** Pozycja dopisana na fakturze przy wydaniu - backend zakłada z niej usługę wizyty. */
+export interface HandoverAddedServicePayload {
+    /** Identyfikator nowej usługi; wskazują na niego pozycje faktury (sourceServiceItemIds). */
+    id: string;
+    name: string;
+    netCents: number;
+    /** Brutto tylko przy cenie ustalonej od strony brutto (CLAUDE.md §1). */
+    grossCents: number | null;
+    vatRate: number;
+}
+
 export interface HandoverPriceChangePayload {
     serviceItemId: string;
     /** Netto w groszach. */
@@ -102,6 +113,8 @@ export interface TransitionToCompletedPayload {
     thankYouSms?: ThankYouSmsPayload;
     /** Zmienione ceny usług (podwyżka, rabat, stawka VAT); pusta lista = bez zmian. */
     priceChanges?: HandoverPriceChangePayload[];
+    /** Pozycje dopisane na fakturze przy wydaniu. */
+    addedServices?: HandoverAddedServicePayload[];
 }
 
 /**

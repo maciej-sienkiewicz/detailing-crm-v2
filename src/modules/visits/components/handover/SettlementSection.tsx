@@ -57,7 +57,6 @@ interface SettlementSectionProps {
     invoiceGross: number;
     remainder: number;
     remainderAuto: number;
-    settledGross: number;
     sellerComplete: boolean;
     company: CompanySettings | undefined;
     problemsIn: (section: HandoverProblem['section']) => HandoverProblem[];
@@ -74,7 +73,6 @@ export const SettlementSection = ({
     invoiceGross,
     remainder,
     remainderAuto,
-    settledGross,
     sellerComplete,
     company,
     problemsIn,
@@ -124,18 +122,22 @@ export const SettlementSection = ({
                 )}
             </Field>
 
-            <Field>
-                <FieldTitle>Ceny usług</FieldTitle>
-                <PricesSection
-                    prices={state.prices}
-                    onChange={priceControls.changePrice}
-                    onReset={priceControls.resetPrices}
-                    discount={priceControls.discount}
-                    totalGross={priceControls.totalGross}
-                    problems={problemsIn('prices')}
-                    fmt={fmt}
-                />
-            </Field>
+            {/* Przy fakturze z CRM ceny ustala się w pozycjach faktury (kwota, stawka, nowa
+                pozycja) - osobna sekcja cen powtarzałaby to samo dwa razy. */}
+            {!crmInvoice && (
+                <Field>
+                    <FieldTitle>Ceny usług</FieldTitle>
+                    <PricesSection
+                        prices={state.prices}
+                        onChange={priceControls.changePrice}
+                        onReset={priceControls.resetPrices}
+                        discount={priceControls.discount}
+                        totalGross={priceControls.totalGross}
+                        problems={problemsIn('prices')}
+                        fmt={fmt}
+                    />
+                </Field>
+            )}
 
             <Field id="handover-payment">
                 <FieldTitle>{isSplit ? 'Forma zapłaty faktury' : 'Forma zapłaty'}</FieldTitle>
@@ -162,7 +164,6 @@ export const SettlementSection = ({
                         invoiceGross={invoiceGross}
                         remainder={remainder}
                         remainderAuto={remainderAuto}
-                        settledGross={settledGross}
                         company={company}
                         problemsIn={problemsIn}
                         controls={controls}

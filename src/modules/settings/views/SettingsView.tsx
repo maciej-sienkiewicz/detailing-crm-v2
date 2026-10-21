@@ -26,7 +26,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { useNavigate, useSearchParams, type Location } from 'react-router-dom';
 import styled from 'styled-components';
 import {
-    Building2, ChevronLeft, ChevronRight, Crown, FileSignature, Filter, HelpCircle, IdCard, Keyboard,
+    Banknote, Building2, ChevronLeft, ChevronRight, Crown, FileSignature, Filter, HelpCircle, IdCard, Keyboard,
     ListChecks, MessageSquare, Receipt, Search, ShieldCheck, TabletSmartphone, Tag, UserCog, Wallet,
 } from 'lucide-react';
 import { PageContainer } from '@/common/components/PageContainer';
@@ -46,6 +46,7 @@ import { SubscriptionSettingsPage } from '@/modules/subscription';
 import { MessageTemplatesSection } from '@/modules/message-templates';
 import { SmsCreditSection } from '../components/SmsCreditSection';
 import { InvoicesSection } from '../components/InvoicesSection';
+import { FinanceSection } from '../components/FinanceSection';
 import { MobileDevicesSection, type MobileDevicesSubView } from '../components/MobileDevicesSection';
 import { VisitCardSection } from '../components/VisitCardSection';
 import { LeadsSettingsSection } from '../components/LeadsSettingsSection';
@@ -70,7 +71,7 @@ type SectionId =
     | 'templates' | 'documents'
     | 'mobile-devices' | 'visit-card' | 'leads'
     | 'shortcuts'
-    | 'plan' | 'credits' | 'invoices' | 'security';
+    | 'plan' | 'credits' | 'finance' | 'invoices' | 'security';
 
 interface SectionDef {
     id: SectionId;
@@ -178,6 +179,11 @@ const GROUPS: SectionGroup[] = [
                 keywords: 'sms kredyty pakiet zakup ai',
             },
             {
+                id: 'finance', label: 'Finanse', summary: 'Statusy płatności', icon: <Banknote />,
+                description: 'Co liczy się do przychodu i kosztów w Finansach.',
+                keywords: 'płatności status opłacone nieopłacone należności zobowiązania przychód koszty przelew',
+            },
+            {
                 // Sekcja pokazuje tylko połączenie z KSeF; historia płatności jest w „Pakiecie".
                 id: 'invoices', label: 'KSeF', summary: 'Pobieranie faktur, kto je wystawia', icon: <Receipt />, help: INVOICES_HELP,
                 description: 'Połączenie z Krajowym Systemem e-Faktur i to, kto wystawia faktury przy wydaniu pojazdu.',
@@ -245,6 +251,9 @@ const SECTION_REQUIREMENTS: Partial<Record<SectionId, AccessRequirement>> = {
     // Rozliczenia z operatorem to domena właściciela: nie ma na nie kodu uprawnienia.
     plan: 'OWNER_ONLY',
     credits: 'OWNER_ONLY',
+    // Zmienia, co liczy się do przychodu i kosztów - backend: PATCH /company/finance-config
+    // jest @RequiresOwner.
+    finance: 'OWNER_ONLY',
     invoices: 'OWNER_ONLY',
 };
 
@@ -627,6 +636,8 @@ export function SettingsView() {
         content = <LeadsSettingsSection />;
     } else if (section === 'shortcuts') {
         content = <ShortcutsSection />;
+    } else if (section === 'finance') {
+        content = <FinanceSection />;
     } else if (section === 'invoices') {
         content = <InvoicesSection />;
     } else {

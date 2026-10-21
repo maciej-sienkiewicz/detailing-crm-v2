@@ -320,7 +320,6 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                             invoiceGross={handover.invoiceGross}
                                             remainder={handover.remainder}
                                             remainderAuto={handover.remainderAuto}
-                                            settledGross={handover.totals.gross}
                                             sellerComplete={handover.sellerComplete}
                                             company={handover.company}
                                             problemsIn={handover.problemsIn}
@@ -332,6 +331,9 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                                 setInvoiceOther: handover.setInvoiceOther,
                                                 setRemainderInput: handover.setRemainderInput,
                                                 changeLine: handover.changeLine,
+                                                changeLineRate: handover.changeLineRate,
+                                                addLine: handover.addLine,
+                                                removeLine: handover.removeLine,
                                                 mergeSelected: handover.mergeSelected,
                                                 unmerge: handover.unmerge,
                                             }}
