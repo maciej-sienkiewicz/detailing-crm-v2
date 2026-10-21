@@ -16,6 +16,8 @@ const capability = { enabled: true, isLoading: false };
 vi.mock('@/modules/subscription', () => ({
     useCapability: () => capability,
 }));
+// Dostęp do ustawień automatyzacji = moduł i uprawnienie COMMUNICATION_SEND; test zakłada uprawnienie.
+vi.mock('@/modules/message-templates/hooks/useMessageAutomationAccess', () => ({ useMessageAutomationAccess: () => capability.enabled }));
 
 vi.mock('@/modules/sms-settings/api/smsSettingsApi', () => ({
     fetchAutomationConfig: vi.fn(),

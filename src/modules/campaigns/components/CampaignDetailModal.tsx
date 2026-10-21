@@ -909,9 +909,10 @@ export function CampaignDetailModal({ campaignId, onClose, onDeleted }: Campaign
 
     const openEditor = () => navigate(`/campaigns/${c.id}/edit`);
 
-    const runDuplicate = async () => {
-        const copy = await duplicate.mutateAsync(c.id);
-        navigate(`/campaigns/${(copy as Campaign).id}/edit`);
+    // `mutate`, nie `mutateAsync`: błąd pokazuje interceptor, a odrzucenie bez obsługi
+    // lądowało w konsoli przeglądarki razem z treścią żądania.
+    const runDuplicate = () => {
+        duplicate.mutate(c.id, { onSuccess: copy => navigate(`/campaigns/${(copy as Campaign).id}/edit`) });
     };
 
     const confirmPending = async () => {

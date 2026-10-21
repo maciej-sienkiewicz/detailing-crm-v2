@@ -1,8 +1,9 @@
 // src/core/publicPaths.ts
 //
 // Strony aplikacji, które działają bez sesji: logowanie i rejestracja, dokumenty prawne
-// oraz strony otwierane z linku z tokenem (zdjęcia i głos z telefonu, karta wizyty
-// klienta, podpis zdalny). Na nich 401 jest normalnym stanem, a nie wygasłą sesją.
+// oraz strony otwierane z linku z tokenem (zdjęcia, głos, kontakty i skan produktu z telefonu,
+// karta wizyty klienta, podpis zdalny). Na nich 401 jest normalnym stanem, a nie wygasłą sesją.
+// Każdą nową gołą trasę z routera dopisz tutaj - pilnuje tego publicPaths.test.ts.
 import { LEGAL_DOCUMENTS, legalPath } from '@/modules/legal/documents';
 
 const PUBLIC_PATHS = [

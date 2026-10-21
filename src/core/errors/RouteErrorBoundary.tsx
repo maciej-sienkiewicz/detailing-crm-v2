@@ -68,7 +68,6 @@ export function RouteErrorBoundary() {
         );
     }
 
-    if (import.meta.env.DEV) console.error('[RouteErrorBoundary]', error);
-
+    // Błąd zgłasza logger: render - `onCaughtError` w main.tsx, ładowanie trasy - `onError` routera w App.tsx.
     return <ErrorScreen details={describeError(error)} />;
 }

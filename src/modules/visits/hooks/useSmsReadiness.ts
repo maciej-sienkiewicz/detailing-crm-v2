@@ -4,6 +4,7 @@ import { canPurchaseHere } from '@/core/native/platform';
 import { useCapability } from '@/modules/subscription';
 import { useSmsCreditBalance } from '@/modules/settings/hooks/useSmsCredits';
 import { fetchAutomationConfig } from '@/modules/sms-settings/api/smsSettingsApi';
+import { useMessageAutomationAccess } from '@/modules/message-templates/hooks/useMessageAutomationAccess';
 import { MESSAGES } from '@/modules/message-templates';
 import type { MessageKey } from '@/modules/message-templates';
 import type { CapabilityUpsellOption } from '@/modules/subscription/types';
@@ -89,10 +90,12 @@ export function useSmsReadiness({
 
     const balanceQuery = useSmsCreditBalance({ enabled: enabled && moduleEnabled });
 
+    // Moduł nie wystarczy: bez uprawnienia COMMUNICATION_SEND serwer odpowiada 403.
+    const canReadAutomation = useMessageAutomationAccess();
     const templatesQuery = useQuery({
         queryKey: SMS_AUTOMATION_KEY,
         queryFn: fetchAutomationConfig,
-        enabled: enabled && moduleEnabled && !!templateKey,
+        enabled: enabled && canReadAutomation && !!templateKey,
     });
 
     const templateSpec = useMemo(

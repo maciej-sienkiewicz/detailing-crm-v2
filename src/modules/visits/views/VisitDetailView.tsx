@@ -371,7 +371,9 @@ export const VisitDetailView = () => {
     const { damageMap, isLoading: isLoadingDamageMap } = useVisitDamageMap(activeVisitId, isDamageMapOpen);
     const { updateDamageMap, isUpdating: isUpdatingDamageMap } = useUpdateVisitDamageMap(visitId!);
     const { showWarning, showSuccess, showError } = useToast();
-    const { pendingReminder } = useSmsReminder(canSeeVisitDocuments ? activeVisitId : '');
+    // Przypomnienie SMS jest za modułem wiadomości: bez niego każda karta wizyty dostawała 402.
+    const smsRemindersEnabled = useCapability('COMM_SEND_TRANSACTIONAL').enabled;
+    const { pendingReminder } = useSmsReminder(canSeeVisitDocuments && smsRemindersEnabled ? activeVisitId : '');
 
     // Sekcja produktów pojawia się tylko, gdy studio ma wykupiony moduł — inaczej
     // API zwróciłoby 402 i sekcja pokazywałaby błąd zamiast treści.

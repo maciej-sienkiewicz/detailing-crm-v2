@@ -581,8 +581,12 @@ export const UpcomingVisitsPanel = () => {
   const handleSave = async (visit: UpcomingVisit, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    await updateOperationTitle({ id: visit.id, type: visit.type, title: draftTitle.trim() });
-    setEditingId(null);
+    try {
+      await updateOperationTitle({ id: visit.id, type: visit.type, title: draftTitle.trim() });
+      setEditingId(null);
+    } catch {
+      // Pole zostaje w edycji; komunikat pokazał onError w useUpdateOperationTitle.
+    }
   };
 
   const handleCancel = (e: React.MouseEvent) => {

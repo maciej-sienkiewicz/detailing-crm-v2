@@ -282,6 +282,9 @@ export const TaskModal = ({ isOpen, onClose, onSave, editingTask }: TaskModalPro
       };
       await onSave(payload);
       onClose();
+    } catch {
+      // Okno zostaje otwarte z wpisaną treścią. Komunikat 4xx pokazał interceptor,
+      // 5xx zgłasza MutationCache (App.tsx).
     } finally {
       setSaving(false);
     }

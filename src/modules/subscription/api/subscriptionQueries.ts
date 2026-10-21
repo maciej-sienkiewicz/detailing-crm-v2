@@ -34,10 +34,11 @@ export const useFeaturePlans = () => {
     });
 };
 
-export const useAddOns = () => {
+export const useAddOns = (options?: { enabled?: boolean }) => {
     return useQuery({
         queryKey: ADD_ONS_KEY,
         queryFn: newSubscriptionApi.getAddOns,
+        enabled: options?.enabled ?? true,
     });
 };
 

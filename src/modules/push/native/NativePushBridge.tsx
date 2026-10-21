@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/core/context/AuthContext';
 import { isNativeApp } from '@/core/native/platform';
+import { describeError, logger } from '@/core/logger';
 import { startNativePush } from './nativePush';
 
 /**
@@ -16,8 +17,9 @@ export function NativePushBridge() {
 
     useEffect(() => {
         if (!isNativeApp() || !userId) return;
+        // describeError: bez treści żądania, czyli bez tokenu FCM/APNs urządzenia.
         startNativePush(url => navigate(url)).catch(error => {
-            console.warn('[push] Nie udało się odświeżyć powiadomień aplikacji', error);
+            logger.warn('push.native_refresh_failed', describeError(error));
         });
     }, [userId, navigate]);
 

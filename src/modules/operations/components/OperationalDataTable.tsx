@@ -5,7 +5,6 @@ import { createPortal } from 'react-dom';
 import { usePermissions, usePersonalDataActions } from '@/core/permissions';
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
-import { useOperations } from '../hooks/useOperations';
 import { useDeleteOperation } from '../hooks/useDeleteOperation';
 import { useUpdateReservationDate, useCancelReservation, useUpdateOperationTitle } from '../hooks/useReservationActions';
 import { OperationStatusBadge, getStatusAccentColor } from './OperationStatusBadge';
@@ -16,7 +15,7 @@ import { CancelReservationModal } from './CancelReservationModal';
 import type { RecurrenceEditScope } from '@/modules/appointments/types';
 import { formatCurrency, formatDate } from '@/common/utils';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import type { Operation, OperationType, OperationStatus, SmsSendStatus } from '../types';
+import type { Operation, SmsSendStatus } from '../types';
 import { CustomerCell } from '@/common/components/CustomerCell';
 import { joinPiiName } from '@/common/pii';
 import { ReservationContextMenu } from '@/common/components/ReservationContextMenu';
@@ -736,28 +735,23 @@ const RepeatIcon = () => (
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
+/**
+ * Wiersze przychodzą od widoku, z tego samego zapytania co licznik i stronicowanie.
+ * Tabela nie pyta serwera sama: jej własne zapytanie pomijało filtry zaawansowane,
+ * więc po ich ustawieniu licznik pokazywał wynik filtra, a tabela - niefiltrowane wiersze.
+ */
 interface OperationalDataTableProps {
-    search: string;
-    page: number;
-    limit: number;
-    type?: OperationType;
-    status?: OperationStatus;
-    scheduledDate?: string;
+    operations: Operation[];
+    isLoading: boolean;
     seriesId?: string;
-    deleted?: boolean;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const OperationalDataTable = ({
-    search,
-    page,
-    limit,
-    type,
-    status,
-    scheduledDate,
+    operations: rawOperations,
+    isLoading,
     seriesId,
-    deleted,
 }: OperationalDataTableProps) => {
     const navigate = useNavigate();
     const { can } = usePermissions();
@@ -801,18 +795,6 @@ export const OperationalDataTable = ({
         isOpen: false, op: null,
     });
 
-    const { operations: rawOperations, isLoading } = useOperations({
-        search,
-        page,
-        limit,
-        type,
-        status,
-        scheduledDate,
-        deleted,
-        sortBy: 'startDateTime',
-        sortDirection: 'desc',
-    });
-
     // Client-side filter by seriesId until backend supports ?seriesId param
     const operations = seriesId
         ? rawOperations.filter(op => op.recurrenceInfo?.seriesId === seriesId)
@@ -849,8 +831,12 @@ export const OperationalDataTable = ({
     const saveTitle = async (op: Operation, e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        await updateOperationTitle({ id: op.id, type: op.type, title: draftTitle.trim() });
-        setEditingTitleId(null);
+        try {
+            await updateOperationTitle({ id: op.id, type: op.type, title: draftTitle.trim() });
+            setEditingTitleId(null);
+        } catch {
+            // Pole zostaje w edycji; komunikat pokazał onError w useUpdateOperationTitle.
+        }
     };
 
     const cancelEditTitle = (e: React.MouseEvent) => {

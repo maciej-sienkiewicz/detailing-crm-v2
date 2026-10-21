@@ -1,5 +1,5 @@
 // src/core/errors/AppErrorBoundary.tsx
-import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { Component, type ReactNode } from 'react';
 import { ErrorScreen, UpdatingScreen } from './ErrorScreen';
 import { isChunkLoadError, recoverFromChunkError } from './chunkError';
 
@@ -26,12 +26,11 @@ export class AppErrorBoundary extends Component<Props, State> {
         return { error };
     }
 
-    componentDidCatch(error: unknown, info: ErrorInfo) {
+    // Pozostałe błędy zgłasza `onCaughtError` korzenia (main.tsx) przez logger.
+    componentDidCatch(error: unknown) {
         if (isChunkLoadError(error)) {
             if (!recoverFromChunkError()) this.setState({ recoveryFailed: true });
-            return;
         }
-        if (import.meta.env.DEV) console.error('[AppErrorBoundary]', error, info.componentStack);
     }
 
     render() {

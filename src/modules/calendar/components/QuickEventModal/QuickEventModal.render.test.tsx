@@ -43,6 +43,8 @@ vi.mock('@/modules/subscription', () => ({
     useFeature: () => ({ enabled: true }),
     UpsellModal: () => null,
 }));
+// Dostęp do ustawień automatyzacji = moduł i uprawnienie COMMUNICATION_SEND; test zakłada uprawnienie.
+vi.mock('@/modules/message-templates/hooks/useMessageAutomationAccess', () => ({ useMessageAutomationAccess: () => false }));
 vi.mock('@/widgets/Sidebar/context/SidebarContext', () => ({ useSidebar: () => ({ isCollapsed: false }) }));
 vi.mock('@/modules/appointment-colors', () => ({
     pickInitialColorId: (colors: { id: string }[], prev: string) => prev || colors[0]?.id || '',

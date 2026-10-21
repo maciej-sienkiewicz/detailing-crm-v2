@@ -438,8 +438,12 @@ export const SmsReminderModal = ({ isOpen, visitId, customer, existingReminder, 
     };
 
     const handleGenerate = async () => {
-        const result = await generateContent(scheduledDateFromDays(days).toISOString());
-        setMessage(result.content);
+        try {
+            const result = await generateContent(scheduledDateFromDays(days).toISOString());
+            setMessage(result.content);
+        } catch {
+            // Treść zostaje bez zmian. Komunikat 4xx pokazał interceptor, 5xx zgłasza MutationCache (App.tsx).
+        }
     };
 
     const handleSubmit = async () => {
@@ -475,8 +479,12 @@ export const SmsReminderModal = ({ isOpen, visitId, customer, existingReminder, 
 
     const handleCancel = async () => {
         if (!existingReminder) return;
-        await cancelReminder(existingReminder.id);
-        onClose();
+        try {
+            await cancelReminder(existingReminder.id);
+            onClose();
+        } catch {
+            // Okno zostaje otwarte. Komunikat 4xx pokazał interceptor, 5xx zgłasza MutationCache (App.tsx).
+        }
     };
 
     return (

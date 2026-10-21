@@ -311,6 +311,10 @@ export const DashboardView = () => {
   const { can } = usePermissions();
   const { canCreateVisit } = usePersonalDataActions();
   const canSeeTasks = can('TASKS_VIEW');
+  // Statystyki, podpowiedzi, rezerwacje i najbliższe wizyty są na serwerze za VISITS_VIEW.
+  // Rola wpuszczona na Tablicę innym uprawnieniem dostawała przy nich 403, a statystyki
+  // co 30 s - razem z kolejnym /auth/me i ramką „Nie udało się wczytać danych".
+  const canSeeVisits = can('VISITS_VIEW');
   const { user } = useAuth();
   const [instagramModalOpen, setInstagramModalOpen] = useState(false);
   const isDesktop = useBreakpoint('md');
@@ -324,7 +328,7 @@ export const DashboardView = () => {
     stats,
     isError,
     refetch,
-  } = useDashboard();
+  } = useDashboard({ enabled: canSeeVisits && hasPiiAccess });
 
     const greeting = useMemo(() => getGreeting(), []);
     const localDate = useMemo(() => capitalize(formatLocalDate()), []);
@@ -367,7 +371,7 @@ export const DashboardView = () => {
     : <MailSetupKpi key="leads" />;
   const kpis = [
     can(['FINANCE_VIEW_REPORTS', 'STATISTICS_VIEW']) && <RevenueKpiCard key="revenue" />,
-    <ReservationsKpiCard key="reservations" />,
+    canSeeVisits && <ReservationsKpiCard key="reservations" />,
     leadsKpi,
   ].filter(Boolean);
   const kpiRow = <KpiRow $cols={kpis.length}>{kpis}</KpiRow>;
@@ -397,7 +401,7 @@ export const DashboardView = () => {
             )}
           </HeroActions>
         </HeroTop>
-        {isDesktop ? kpiRow : (
+        {kpis.length > 0 && (isDesktop ? kpiRow : (
           <>
             <StatsToggle
               $open={heroStatsOpen}
@@ -410,7 +414,7 @@ export const DashboardView = () => {
             </StatsToggle>
             {heroStatsOpen && kpiRow}
           </>
-        )}
+        ))}
       </HeroCard>
       <ActionMenu anchor={moreMenu.menu?.anchor ?? null} onClose={moreMenu.close} label="Więcej akcji">
         <MenuItem icon={<Sparkles />} onClick={() => { moreMenu.close(); setInstagramModalOpen(true); }}>
@@ -420,7 +424,7 @@ export const DashboardView = () => {
 
       {/* Podpowiedzi między powitaniem a kafelkami - komponent sam chowa się
           na telefonie i znika całkiem, gdy nie ma nic do powiedzenia. */}
-      {isDesktop && <DashboardHintsBar hideKinds={canLeads && mailConnected ? ['LEADS_AWAITING'] : []} />}
+      {isDesktop && canSeeVisits && <DashboardHintsBar hideKinds={canLeads && mailConnected ? ['LEADS_AWAITING'] : []} />}
 
       {instagramModalOpen && (
         <GeneratePostModal onClose={() => setInstagramModalOpen(false)} />
@@ -437,20 +441,26 @@ export const DashboardView = () => {
         </ErrorBox>
       )}
 
-      <div>
-        <OperationalScorecard stats={stats} />
-      </div>
+      {canSeeVisits && (
+        <div>
+          <OperationalScorecard stats={stats} />
+        </div>
+      )}
 
-      <TwoColGrid $single={!canSeeTasks}>
-        <VisitsSlot>
-          <UpcomingVisitsPanel />
-        </VisitsSlot>
-        {canSeeTasks && (
-          <TasksSlot>
-            <TasksPanel />
-          </TasksSlot>
-        )}
-      </TwoColGrid>
+      {(canSeeVisits || canSeeTasks) && (
+        <TwoColGrid $single={!(canSeeVisits && canSeeTasks)}>
+          {canSeeVisits && (
+            <VisitsSlot>
+              <UpcomingVisitsPanel />
+            </VisitsSlot>
+          )}
+          {canSeeTasks && (
+            <TasksSlot>
+              <TasksPanel />
+            </TasksSlot>
+          )}
+        </TwoColGrid>
+      )}
 
     </ViewContainer>
   );

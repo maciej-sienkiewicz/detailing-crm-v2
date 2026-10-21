@@ -1,9 +1,12 @@
+import { useState } from 'react';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { useAuth } from '@/core/context/AuthContext';
 import { canPurchaseHere } from '@/core/native/platform';
 import { useFeature } from '../hooks/useFeature';
 import { useAddOnUnlock } from '../hooks/useAddOnUnlock';
 import { useAddOns, useEntitlements } from '../api/subscriptionQueries';
 import { AddOnActivationDialog } from './PlanChangeDialog';
+import { DemoQueryClient } from './demoQueryClient';
 import { formatCents } from '../utils/formatters';
 import type { AddOnKey, FeatureKey } from '../types';
 import {
@@ -164,10 +167,16 @@ export function ModuleGate({ featureKey, benefits, title, children }: Props) {
     const { user } = useAuth();
     const feature = useFeature(featureKey);
     const { isLoading } = useEntitlements();
-    const { data: addOns } = useAddOns();
+    // Katalog dodatków jest potrzebny tylko na karcie odblokowania.
+    const { data: addOns } = useAddOns({ enabled: !feature.enabled && !isLoading });
     const unlock = useAddOnUnlock();
+    const [demoClient] = useState(() => new DemoQueryClient());
 
-    if (feature.enabled || isLoading) {
+    // Do wczytania uprawnień nic: wyrenderowany widok zdążyłby wysłać swoje zapytania,
+    // a dla niekupionego modułu każde kończyło się 402.
+    if (isLoading) return null;
+
+    if (feature.enabled) {
         return <>{children}</>;
     }
 
@@ -189,7 +198,10 @@ export function ModuleGate({ featureKey, benefits, title, children }: Props) {
     return (
         <GatePage>
             <DemoLayer aria-hidden="true">
-                {children}
+                {/* Podgląd bez serwera - opis w demoQueryClient.ts. */}
+                <QueryClientProvider client={demoClient}>
+                    {children}
+                </QueryClientProvider>
             </DemoLayer>
 
             <GateOverlay>

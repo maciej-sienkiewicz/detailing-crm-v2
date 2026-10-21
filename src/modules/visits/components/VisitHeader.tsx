@@ -406,6 +406,8 @@ export const VisitHeader = ({
         try {
             await onTitleUpdate(draftTitle.trim());
             setIsEditingTitle(false);
+        } catch {
+            // Pole zostaje w edycji; komunikat błędu pokazał zapis tytułu.
         } finally {
             setIsSavingTitle(false);
         }
@@ -423,6 +425,8 @@ export const VisitHeader = ({
         try {
             await onEstimatedCompletionDateUpdate(new Date(draftDate).toISOString());
             setIsDateModalOpen(false);
+        } catch {
+            // Okno zostaje otwarte; komunikat błędu pokazał zapis terminu.
         } finally {
             setIsSavingDate(false);
         }

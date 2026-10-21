@@ -28,6 +28,8 @@ vi.mock('@/common/components/Toast', () => ({
     useToast: () => ({ showError: vi.fn(), showSuccess: vi.fn(), showInfo: vi.fn() }),
 }));
 vi.mock('@/modules/subscription', () => ({ useCapability: () => ({ enabled: false }) }));
+// Dostęp do ustawień automatyzacji = moduł i uprawnienie COMMUNICATION_SEND; test zakłada uprawnienie.
+vi.mock('@/modules/message-templates/hooks/useMessageAutomationAccess', () => ({ useMessageAutomationAccess: () => false }));
 vi.mock('@/modules/appointment-colors', () => ({ pickInitialColorId: () => '' }));
 vi.mock('@/modules/appointment-colors/api/appointmentColorApi', () => ({ appointmentColorApi: {} }));
 vi.mock('@/modules/sms-campaigns/api/smsCampaignsApi', () => ({ fetchAutomationConfig: () => never() }));

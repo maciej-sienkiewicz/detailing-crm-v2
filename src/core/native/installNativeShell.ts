@@ -1,4 +1,5 @@
 import { App } from '@capacitor/app';
+import { describeError, logger } from '../logger';
 import { isNativeApp } from './platform';
 import { openNatively, trackObjectUrls } from './nativeFiles';
 
@@ -18,8 +19,9 @@ export function installNativeShell(): void {
     handleBackButton();
 }
 
+// Tylko rodzaj błędu: komunikat wtyczki potrafi nieść nazwę pliku, a w niej dane klienta.
 const report = (error: unknown) => {
-    console.warn('[native] Nie udało się otworzyć pliku lub linku', error);
+    logger.warn('native.open_failed', { kind: describeError(error).kind });
 };
 
 /**

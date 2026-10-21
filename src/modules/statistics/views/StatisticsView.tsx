@@ -281,10 +281,11 @@ export const StatisticsView = () => {
         setIsFormModalOpen(true);
     };
 
-    const handleDeleteCategory = async (category: Category) => {
+    const handleDeleteCategory = (category: Category) => {
         if (window.confirm(t.statistics.categories.deleteConfirm.replace('{name}', category.name))) {
             if (selectedCategoryId === category.id) setSelectedCategoryId(null);
-            await deleteMutation.mutateAsync(category.id);
+            // `mutate` nie odrzuca obietnicy; komunikat 4xx pokazał interceptor.
+            deleteMutation.mutate(category.id);
         }
     };
 

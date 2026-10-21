@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { checkinApi } from '../../api/checkinApi';
 import { prepareImageOrExplain } from '../../services/imageUploadPrep';
-import { describeUploadError } from './uploadErrors';
+import { describeError, logger } from '@/core/logger';
 import type { AnnotationStroke, DamagePoint, DamagePointPhoto } from '../../types';
 import type { SaveStatus } from './MobilePhotoUpload.styles';
 
@@ -259,7 +259,7 @@ export function useMobileDamageLogic(
                         })
                         .catch(err => {
                             markFailed();
-                            console.warn('[mobile-damage] photo upload failed:', describeUploadError(err));
+                            logger.warn('mobile_damage.upload_failed', describeError(err));
                         });
                 })
                 .catch(markFailed);

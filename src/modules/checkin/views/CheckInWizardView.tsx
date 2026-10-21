@@ -9,6 +9,7 @@ import { LeaveGuard } from '@/common/components/LeaveGuard';
 import { checkinApi } from '../api/checkinApi';
 import { useCheckInWizard } from '../hooks/useCheckInWizard';
 import { useCheckInValidation } from '../hooks/useCheckInValidation';
+import { usePhotoSessionScope } from '../hooks/usePhotoUpload';
 import { VerificationStep } from '../components/VerificationStep';
 import { PhotoDocumentationStep } from '../components/PhotoDocumentationStep';
 import { SigningRequirementModal } from '../components/SigningRequirementModal';
@@ -285,6 +286,8 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
         isSubmitting,
         submitError,
     } = useCheckInWizard(reservationId, initialData, qrCheckinId);
+    // Jedna sesja zdjęć na cały kreator, nie na każde wejście w krok zdjęć.
+    const photoSessionScope = usePhotoSessionScope(reservationId);
 
     const { errors, isStepValid } = useCheckInValidation(formData, currentStep);
     const { showSuccess } = useToast();
@@ -577,6 +580,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                         {currentStep === 'photos' && (
                             <PhotoDocumentationStep
                                 formData={formData}
+                                photoSessionScope={photoSessionScope}
                                 reservationId={reservationId}
                                 qrCheckinId={qrCheckinId}
                                 onChange={updateFormData}

@@ -202,6 +202,8 @@ export const DoorToDoorModal = ({
                ekran po nim tylko udawał, że o coś jeszcze pyta. */
             await onConfirm(data);
             onClose();
+        } catch {
+            // Odrzucenie onConfirm znaczy „nie zapisano": wołający pokazał błąd, okno zostaje otwarte.
         } finally {
             setIsSaving(false);
         }

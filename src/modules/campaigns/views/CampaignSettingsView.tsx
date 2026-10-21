@@ -140,8 +140,12 @@ export function CampaignSettingsView() {
           type="button"
           disabled={isSaving}
           onClick={async () => {
-            await save(form);
-            setSaved(true);
+            try {
+              await save(form);
+              setSaved(true);
+            } catch {
+              // Komunikat 4xx pokazał interceptor, 5xx zgłasza MutationCache (App.tsx).
+            }
           }}
         >
           {saved ? <Check /> : <Save />}

@@ -143,6 +143,8 @@ export const CustomerConsentsSection = ({ customerId, id }: CustomerConsentsSect
         setBusyDefinitionId(item.definitionId);
         try {
             await signConsent({ templateId: item.currentTemplateId });
+        } catch {
+            // Komunikat 4xx pokazał interceptor, 5xx zgłasza MutationCache (App.tsx).
         } finally {
             setBusyDefinitionId(null);
         }

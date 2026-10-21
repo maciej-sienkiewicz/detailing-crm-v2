@@ -43,6 +43,7 @@ vi.mock('../hooks/useCheckInWizard', () => ({
 }));
 vi.mock('@/widgets/Sidebar/context/SidebarContext', () => ({ useSidebar: () => ({ isCollapsed: false }) }));
 vi.mock('../hooks/useCheckInValidation', () => ({ useCheckInValidation: () => ({ errors: {}, isStepValid: true }) }));
+vi.mock('../hooks/usePhotoUpload', () => ({ usePhotoSessionScope: () => 'photo-session-scope' }));
 vi.mock('@/common/components/Toast', () => ({ useToast: () => ({ showSuccess: vi.fn(), showError: vi.fn() }) }));
 vi.mock('../components/VerificationStep', () => ({ VerificationStep: () => <p>formularz z usługami</p> }));
 vi.mock('../components/PhotoDocumentationStep', () => ({ PhotoDocumentationStep: () => <p>zdjęcia</p> }));

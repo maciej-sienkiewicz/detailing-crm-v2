@@ -18,6 +18,7 @@ import { DocumentPreview } from './DocumentPreview';
 import { AbandonCheckInDialog } from './AbandonCheckInDialog';
 import { NotificationSection, defaultNotificationOptions, toConfirmVisitOptions } from './NotificationSection';
 import { useMessageDefaults } from '@/modules/message-templates/hooks/useMessageDefaults';
+import { useMessageAutomationAccess } from '@/modules/message-templates/hooks/useMessageAutomationAccess';
 import { useVisitCardSettings } from '@/modules/visit-card/hooks/useVisitCardSettings';
 import type { NotificationOptions } from './NotificationSection';
 import type { ProtocolResponse } from '../types';
@@ -179,16 +180,26 @@ export const SigningRequirementModal = ({
     const tabletPickerRef = useRef<HTMLDivElement>(null);
     const { showSuccess, showError } = useToast();
 
+    // Bez modułu albo uprawnienia serwer odpowiada 402/403 - nie pytamy, a pole działa
+    // jak przy braku ustawień (dawniej: po błędzie zapytania).
+    const canReadAutomation = useMessageAutomationAccess();
     const { data: emailConfig, isPending: emailConfigPending } = useQuery({
         queryKey: ['email-automation-config'],
         queryFn: () => import('@/modules/email-campaigns/api/emailCampaignsApi').then(m => m.fetchEmailAutomationConfig()),
+        enabled: canReadAutomation,
     });
-    const visitWelcomeEnabled = emailConfigPending ? false : (emailConfig?.visitWelcome?.enabled ?? true);
+    const visitWelcomeEnabled = canReadAutomation && emailConfigPending ? false : (emailConfig?.visitWelcome?.enabled ?? true);
 
+    // Tablet = moduł podpisów; telefon klienta to reguła krzyżowa
+    // (podpisy ∧ komunikacja) rozstrzygana przez backend, patrz ProtocolSection.
+    const sigLocal = useCapability('SIGNATURE_LOCAL');
+    const sigRemote = useCapability('SIGNATURE_REMOTE_REQUEST');
+
+    // Lista tabletów jest za modułem podpisów (402 bez niego).
     const { data: tablets = [] } = useQuery({
         queryKey: ['tablets'],
         queryFn: tabletApi.listTablets,
-        enabled: isOpen,
+        enabled: isOpen && sigLocal.enabled,
         staleTime: 30_000,
     });
 
@@ -443,11 +454,6 @@ export const SigningRequirementModal = ({
             });
         },
     });
-
-    // Tablet = moduł podpisów; telefon klienta to reguła krzyżowa
-    // (podpisy ∧ komunikacja) rozstrzygana przez backend, patrz ProtocolSection.
-    const sigLocal = useCapability('SIGNATURE_LOCAL');
-    const sigRemote = useCapability('SIGNATURE_REMOTE_REQUEST');
 
     const tabletButtonTitle = (protocol: ProtocolResponse): string => {
         const phase = signingByProtocol[protocol.id]?.phase;

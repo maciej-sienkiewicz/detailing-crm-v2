@@ -68,6 +68,7 @@ import type {
     SupplierAutoRule,
 } from '../costTypes';
 import { COST_DOCUMENT_KIND_LABEL, costDocumentKindOf } from '@/modules/finance/utils/costDocumentKinds';
+import { logger } from '@/core/logger';
 
 /**
  * Nagłówek dokumentu w statystykach: „Faktura FV/12", „Paragon: Paliwo".
@@ -679,12 +680,16 @@ const CategoryFormModal = ({ isOpen, onClose, category }: CategoryFormModalProps
         if (!name.trim()) { setNameError('Nazwa kategorii jest wymagana'); return; }
         if (name.trim().length < 2) { setNameError('Nazwa musi mieć minimum 2 znaki'); return; }
         const data = { name: name.trim(), description: description.trim() || null, color };
-        if (isEdit && category) {
-            await updateMut.mutateAsync({ categoryId: category.id, data });
-        } else {
-            await createMut.mutateAsync(data);
+        try {
+            if (isEdit && category) {
+                await updateMut.mutateAsync({ categoryId: category.id, data });
+            } else {
+                await createMut.mutateAsync(data);
+            }
+            onClose();
+        } catch {
+            // Okno zostaje otwarte. Komunikat 4xx pokazał interceptor, 5xx zgłasza MutationCache (App.tsx).
         }
-        onClose();
     };
 
     return (
@@ -983,21 +988,25 @@ const AutoRuleFormModal = ({
         if (!catId)               { setCatError('Wybierz kategorię'); valid = false; }
         if (!valid) return;
 
-        if (isEdit && rule) {
-            await updateMut.mutateAsync({ ruleId: rule.id, data: { sellerName: name.trim() || nip, categoryId: catId } });
-            onClose();
-        } else {
-            const res = await createMut.mutateAsync({
-                sellerNip:  cleanNip,
-                sellerName: name.trim() || cleanNip,
-                categoryId: catId,
-                applyNow,
-            });
-            if (applyNow && res.assignedItemCount > 0) {
-                setLastApplied(res.assignedItemCount);
-                return;
+        try {
+            if (isEdit && rule) {
+                await updateMut.mutateAsync({ ruleId: rule.id, data: { sellerName: name.trim() || nip, categoryId: catId } });
+                onClose();
+            } else {
+                const res = await createMut.mutateAsync({
+                    sellerNip:  cleanNip,
+                    sellerName: name.trim() || cleanNip,
+                    categoryId: catId,
+                    applyNow,
+                });
+                if (applyNow && res.assignedItemCount > 0) {
+                    setLastApplied(res.assignedItemCount);
+                    return;
+                }
+                onClose();
             }
-            onClose();
+        } catch {
+            // Okno zostaje otwarte. Komunikat 4xx pokazał interceptor, 5xx zgłasza MutationCache (App.tsx).
         }
     };
 
@@ -1493,11 +1502,13 @@ export const CostsView = () => {
         setConfirmOpen(true);
     };
 
-    const handleConfirmAssign = async () => {
+    const handleConfirmAssign = () => {
         if (!pendingDrop) return;
-        await assignMut.mutateAsync({ categoryId: pendingDrop.categoryId, itemIds: pendingDrop.itemIds });
-        setConfirmOpen(false);
-        setPendingDrop(null);
+        // `mutate` nie odrzuca obietnicy; przy błędzie okno zostaje otwarte.
+        assignMut.mutate(
+            { categoryId: pendingDrop.categoryId, itemIds: pendingDrop.itemIds },
+            { onSuccess: () => { setConfirmOpen(false); setPendingDrop(null); } },
+        );
     };
 
     const handleCloseConfirm = () => {
@@ -1538,9 +1549,15 @@ export const CostsView = () => {
         setCtxMenu(null);
         const assigned = ctxMenu.items.filter(i => i.costCategoryId);
         if (assigned.length === 0) return;
-        await Promise.all(assigned.map(i => costsApi.unassignItem(i.costCategoryId!, i.id)));
-        qc.invalidateQueries({ queryKey: [COST_ITEMS_KEY] });
-        qc.invalidateQueries({ queryKey: [COST_BREAKDOWN_KEY] });
+        try {
+            await Promise.all(assigned.map(i => costsApi.unassignItem(i.costCategoryId!, i.id)));
+        } catch (error) {
+            logger.error('costs.unassign_failed', error);
+        } finally {
+            // Także po błędzie: część pozycji mogła się już odpiąć.
+            qc.invalidateQueries({ queryKey: [COST_ITEMS_KEY] });
+            qc.invalidateQueries({ queryKey: [COST_BREAKDOWN_KEY] });
+        }
     };
 
     const handleCtxPreview = () => {
@@ -1552,15 +1569,18 @@ export const CostsView = () => {
 
     // ── Auto-rules handlers ───────────────────────────────────────────────────
 
-    const handleApplyAllRules = async () => {
+    const handleApplyAllRules = () => {
         setApplyMsg(null);
-        const res = await applyRulesMut.mutateAsync();
-        setApplyMsg(
-            res.assignedItemCount === 0
-                ? 'Nic nowego do przypisania.'
-                : `Przypisano ${res.assignedItemCount} ${pluralPl(res.assignedItemCount, 'pozycję', 'pozycje', 'pozycji')}.`
-        );
-        setTimeout(() => setApplyMsg(null), 4000);
+        applyRulesMut.mutate(undefined, {
+            onSuccess: res => {
+                setApplyMsg(
+                    res.assignedItemCount === 0
+                        ? 'Nic nowego do przypisania.'
+                        : `Przypisano ${res.assignedItemCount} ${pluralPl(res.assignedItemCount, 'pozycję', 'pozycje', 'pozycji')}.`
+                );
+                setTimeout(() => setApplyMsg(null), 4000);
+            },
+        });
     };
 
     const handleEditRule = (rule: SupplierAutoRule) => {
@@ -1568,9 +1588,9 @@ export const CostsView = () => {
         setRuleFormOpen(true);
     };
 
-    const handleDeleteRule = async (rule: SupplierAutoRule) => {
+    const handleDeleteRule = (rule: SupplierAutoRule) => {
         if (window.confirm(`Usuń regułę dla „${rule.sellerName}"?`)) {
-            await deleteRuleMut.mutateAsync(rule.id);
+            deleteRuleMut.mutate(rule.id);
         }
     };
 
@@ -1590,10 +1610,10 @@ export const CostsView = () => {
         statsExclusionMut.mutate({ categoryId: cat.id, excludeFromStats: !cat.excludeFromStats });
     };
 
-    const handleDeleteCategory = async (cat: CostCategory) => {
+    const handleDeleteCategory = (cat: CostCategory) => {
         if (window.confirm(`Usunąć kategorię „${cat.name}”?`)) {
             if (selectedCategoryId === cat.id) setSelectedCategoryId(null);
-            await deleteMut.mutateAsync(cat.id);
+            deleteMut.mutate(cat.id);
         }
     };
 

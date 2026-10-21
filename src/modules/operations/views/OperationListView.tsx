@@ -109,7 +109,8 @@ export const OperationListView = () => {
         [debouncedSearch, page, limit, apiFilters.type, apiFilters.status, apiFilters.deleted, selectedDate, advancedFilters]
     );
 
-    const { pagination } = useOperations(filters);
+    // Jedno zapytanie dla licznika, stronicowania i wierszy tabeli - z filtrami zaawansowanymi.
+    const { operations, pagination, isLoading } = useOperations(filters);
 
     const handleFilterChangeWithReset = (filter: typeof selectedFilter) => {
         handleFilterChange(filter);
@@ -188,13 +189,8 @@ export const OperationListView = () => {
                 />
 
                 <OperationalDataTable
-                    search={debouncedSearch}
-                    page={page}
-                    limit={limit}
-                    type={apiFilters.type}
-                    status={apiFilters.status}
-                    deleted={apiFilters.deleted}
-                    scheduledDate={selectedDate}
+                    operations={operations}
+                    isLoading={isLoading}
                     seriesId={seriesIdFilter ?? undefined}
                 />
 

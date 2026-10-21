@@ -35,7 +35,6 @@ export interface User {
     roleName?: string | null;
     subscriptionStatus: string;
     trialDaysRemaining: number;
-    mobileToken?: string | null;
     /** null = owner (full access). List = user's effective permission codes. */
     permissions?: string[] | null;
     /** True when the user's role has time tracking enabled; shows Czas pracy in sidebar. */
@@ -105,7 +104,6 @@ export interface DemoAccountResponse {
             roleName?: string | null;
             subscriptionStatus: string;
             daysRemaining: number | null;
-            mobileToken: string | null;
         } | null;
     };
 }

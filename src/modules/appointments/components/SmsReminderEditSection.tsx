@@ -6,6 +6,7 @@ import { LockedSection } from '@/common/components/LockedSection';
 import { useFeature } from '@/modules/subscription';
 import { appointmentApi } from '../api/appointmentApi';
 import { fetchAutomationConfig } from '@/modules/sms-settings/api/smsSettingsApi';
+import { useMessageAutomationAccess } from '@/modules/message-templates/hooks/useMessageAutomationAccess';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { AppointmentSmsInfo } from '../types';
 
@@ -253,9 +254,12 @@ export const SmsReminderEditSection = ({
     const smsFeature = useFeature('SMS_EMAIL');
     const { confirmationSms, reminderSms } = smsInfo;
 
+    // Bez modułu albo uprawnienia serwer odpowiada 402/403 - nie pytamy.
+    const canReadAutomation = useMessageAutomationAccess();
     const { data: automation } = useQuery({
         queryKey: ['sms-automation-config'],
         queryFn: fetchAutomationConfig,
+        enabled: canReadAutomation,
     });
 
     const preVisitEnabled = automation?.preVisit?.enabled ?? true;

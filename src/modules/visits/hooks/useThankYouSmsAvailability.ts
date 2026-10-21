@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useCapability } from '@/modules/subscription';
 import { fetchAutomationConfig } from '@/modules/sms-settings/api/smsSettingsApi';
+import { useMessageAutomationAccess } from '@/modules/message-templates/hooks/useMessageAutomationAccess';
 
 const SMS_AUTOMATION_KEY = ['sms-automation'] as const;
 
@@ -35,10 +36,12 @@ export function useThankYouSmsAvailability({
     const comms = useCapability('COMM_SEND_TRANSACTIONAL');
     const moduleEnabled = comms.enabled;
 
+    // Moduł nie wystarczy: bez uprawnienia COMMUNICATION_SEND serwer odpowiada 403.
+    const canReadAutomation = useMessageAutomationAccess();
     const templatesQuery = useQuery({
         queryKey: SMS_AUTOMATION_KEY,
         queryFn: fetchAutomationConfig,
-        enabled: enabled && moduleEnabled,
+        enabled: enabled && canReadAutomation,
     });
 
     const rule = templatesQuery.data?.postVisit;

@@ -1,4 +1,5 @@
 // src/core/errors/installChunkErrorHandler.ts
+import { logger } from '../logger';
 import { isChunkLoadError, recoverFromChunkError, resetChunkReloadGuard } from './chunkError';
 
 /** Po tylu ms bez błędu uznajemy, że aplikacja wstała, i zerujemy licznik prób. */
@@ -25,9 +26,15 @@ export function installChunkErrorHandler(): void {
     });
 
     window.addEventListener('unhandledrejection', event => {
-        if (!isChunkLoadError(event.reason)) return;
+        // Każde odrzucenie, którego nikt nie obsłużył, przeglądarka wypisuje jako
+        // „Uncaught (in promise)" - przy AxiosError razem z treścią żądania i odpowiedzi.
+        // Gasimy to i oddajemy loggerowi; same przyczyny poprawiamy u źródła.
         event.preventDefault();
-        recoverFromChunkError();
+        if (isChunkLoadError(event.reason)) {
+            recoverFromChunkError();
+            return;
+        }
+        logger.error('unhandled.rejection', event.reason);
     });
 
     window.addEventListener('error', event => {

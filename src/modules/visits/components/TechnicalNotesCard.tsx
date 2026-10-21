@@ -226,8 +226,12 @@ export const TechnicalNotesCard = ({ notes, internalNotes, visitId, canEdit = tr
     const { entries, isLoading: isLoadingHistory } = useTechnicalNoteHistory(visitId);
 
     async function handleSave(content: string | null) {
-        await updateTechnicalNote(content);
-        setEditOpen(false);
+        try {
+            await updateTechnicalNote(content);
+            setEditOpen(false);
+        } catch {
+            // Edytor zostaje otwarty z treścią. Komunikat 4xx pokazał interceptor, 5xx zgłasza MutationCache (App.tsx).
+        }
     }
 
     return (

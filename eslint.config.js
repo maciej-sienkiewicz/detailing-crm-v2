@@ -31,6 +31,14 @@ export default defineConfig([
         destructuredArrayIgnorePattern: '^_',
         ignoreRestSiblings: true,
       }],
+      // Konsola przeglądarki ma zostać pusta: błędy i ostrzeżenia idą przez
+      // src/core/logger.ts, który na produkcji konsoli nie dotyka.
+      'no-console': 'error',
+      'no-debugger': 'error',
     },
+  },
+  {
+    files: ['**/*.test.{ts,tsx}', 'src/test/**', 'e2e/**', '*.config.{ts,js}'],
+    rules: { 'no-console': 'off' },
   },
 ])

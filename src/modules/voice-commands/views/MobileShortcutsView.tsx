@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { QRCodeSVG } from 'qrcode.react';
-import { useAuth } from '@/core/context/AuthContext';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { usePWAInstall } from '../hooks/usePWAInstall';
+import { useMobileShortcutToken, useRotateMobileShortcutToken } from '../hooks/useMobileShortcutToken';
 
 const useIsMobile = () => {
     const [isMobile, setIsMobile] = useState(() =>
@@ -106,6 +107,20 @@ const QrLabel = styled.p`
     text-transform: uppercase;
     letter-spacing: 0.06em;
     text-align: center;
+`;
+
+const RotateLink = styled.button`
+    padding: 0;
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: 12px;
+    color: #64748b;
+    text-decoration: underline;
+    cursor: pointer;
+
+    &:hover:not(:disabled) { color: #0f172a; }
+    &:disabled { cursor: default; opacity: 0.6; }
 `;
 
 const InstallBtn = styled.button`
@@ -302,18 +317,21 @@ const NoTokenText = styled.div`
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const MobileShortcutsView = () => {
-    const { user } = useAuth();
     const isMobile = useIsMobile();
     const pwa = usePWAInstall();
     const [platform, setPlatform] = useState<'android' | 'ios'>('android');
+    const [confirmRotate, setConfirmRotate] = useState(false);
 
-    const mobileToken = user?.mobileToken;
-    const voiceUrl = mobileToken
-        ? `${window.location.origin}/m/voice?token=${mobileToken}`
-        : null;
+    const { data: mobileToken, isLoading: isLoadingToken } = useMobileShortcutToken();
+    const rotateToken = useRotateMobileShortcutToken();
+    // Token we fragmencie (#), nie w query stringu: fragment nie trafia do serwera,
+    // więc ani do logów proxy, ani do nagłówka Referer.
+    const voiceHash = mobileToken ? `#token=${encodeURIComponent(mobileToken)}` : '';
+    const voiceUrl = mobileToken ? `${window.location.origin}/m/voice${voiceHash}` : null;
 
     // ── Mobile branch ─────────────────────────────────────────────────────────
     if (isMobile) {
+        if (isLoadingToken) return null;
         if (!mobileToken) {
             return (
                 <MobileNoToken>
@@ -330,7 +348,7 @@ export const MobileShortcutsView = () => {
                 </MobileNoToken>
             );
         }
-        return <Navigate to={`/m/voice?token=${mobileToken}`} replace />;
+        return <Navigate to={{ pathname: '/m/voice', hash: voiceHash }} replace />;
     }
 
     return (
@@ -340,7 +358,7 @@ export const MobileShortcutsView = () => {
                 Dodawaj leady i notatki głosowe z telefonu, bez logowania.
             </PageSubtitle>
 
-            {!mobileToken ? (
+            {isLoadingToken ? null : !mobileToken ? (
                 <NoTokenCard>
                     <NoTokenIcon>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -370,6 +388,9 @@ export const MobileShortcutsView = () => {
                                 />
                             </QrBox>
                             <QrLabel>Zeskanuj aparatem</QrLabel>
+                            <RotateLink type="button" onClick={() => setConfirmRotate(true)} disabled={rotateToken.isPending}>
+                                Unieważnij link
+                            </RotateLink>
                             {pwa.isInstalled ? (
                                 <InstalledBadge>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -471,6 +492,16 @@ export const MobileShortcutsView = () => {
                     </InstructionsPanel>
                 </SectionLayout>
             </SectionCard>
+
+            <ConfirmationModal
+                isOpen={confirmRotate}
+                title="Unieważnić link do skrótów?"
+                message="Dotychczasowy link i kod QR przestaną działać na wszystkich telefonach. Na telefonie zeskanuj potem nowy kod."
+                variant="warning"
+                confirmText="Unieważnij"
+                onConfirm={() => rotateToken.mutate()}
+                onCancel={() => setConfirmRotate(false)}
+            />
         </Page>
     );
 };

@@ -16,11 +16,12 @@ export const DASHBOARD_STATS_KEY = ['dashboard', 'stats'] as const;
  * Hook for fetching dashboard data
  * Implements automatic refetching every 30 seconds (temporary fallback for WebSockets)
  */
-export const useDashboard = () => {
+export const useDashboard = (options?: { enabled?: boolean }) => {
   const { data, isLoading, isFetching, isError, refetch } = useQuery<DashboardData>({
     queryKey: DASHBOARD_STATS_KEY,
     queryFn: () => dashboardApi.getStats(),
     refetchInterval: 30_000, // 30 seconds - temporary fallback for WebSockets
+    enabled: options?.enabled ?? true,
   });
 
   return {

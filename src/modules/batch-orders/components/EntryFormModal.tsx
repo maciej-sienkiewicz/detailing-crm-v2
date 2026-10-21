@@ -570,7 +570,8 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
         let cancelled = false;
         const t = setTimeout(async () => {
             if (vehiclePlate.trim().length >= 2) {
-                const results = await batchOrderApi.searchVehicles(vehiclePlate.trim());
+                // Podpowiedzi są dodatkiem: bez nich formularz działa dalej.
+                const results = await batchOrderApi.searchVehicles(vehiclePlate.trim()).catch(() => []);
                 if (!cancelled) {
                     setPlateSuggestions(results);
                     setShowSuggestions(results.length > 0);
@@ -587,7 +588,7 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
         let cancelled = false;
         const t = setTimeout(async () => {
             if (vehicleVin.trim().length >= 3) {
-                const results = await batchOrderApi.searchVehiclesFromEntries(vehicleVin.trim());
+                const results = await batchOrderApi.searchVehiclesFromEntries(vehicleVin.trim()).catch(() => []);
                 if (!cancelled) {
                     setVinSuggestions(results);
                     setShowVinSuggestions(results.length > 0);

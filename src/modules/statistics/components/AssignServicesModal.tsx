@@ -142,6 +142,8 @@ export const AssignServicesModal = ({ isOpen, onClose, category }: AssignService
                 ...toRemove.map(serviceId => unassignMutation.mutateAsync({ categoryId: category.id, serviceId })),
             ]);
             onClose();
+        } catch {
+            // Okno zostaje otwarte. Komunikat 4xx pokazał interceptor, 5xx zgłasza MutationCache (App.tsx).
         } finally {
             setIsSaving(false);
         }

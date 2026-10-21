@@ -36,6 +36,7 @@ import {
     visitContext,
 } from './accounts/publishLogic';
 import { VisitMaterialSection } from './accounts/VisitMaterialSection';
+import { logger } from '@/core/logger';
 
 // ─── Animations ────────────────────────────────────────────────────────────────
 
@@ -1578,6 +1579,9 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
             await instagramApi.rateGeneratedPost(result.postId, value, commentText);
             setRating(value);
             setCommentOpen(false);
+        } catch (error) {
+            // Ocena zostaje niezapisana i można ją powtórzyć; komunikat 4xx pokazał interceptor.
+            logger.error('instagram.rate_post_failed', error);
         } finally {
             setRatingBusy(false);
         }

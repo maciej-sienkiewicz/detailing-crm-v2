@@ -11,6 +11,7 @@ import { fetchAutomationConfig } from '@/modules/sms-settings/api/smsSettingsApi
 import { fetchEmailAutomationConfig } from '@/modules/email-campaigns/api/emailCampaignsApi';
 import type { SmsRuleKey } from '@/modules/sms-settings/types';
 import type { EmailRuleKey } from '@/modules/email-campaigns/types';
+import { useMessageAutomationAccess } from './useMessageAutomationAccess';
 
 /*
  * Te same klucze, co ekran szablonów (useMessageTemplates): zapis ustawień od razu
@@ -26,10 +27,10 @@ export interface MessageDefaults {
 }
 
 export function useMessageDefaults(): MessageDefaults {
-    // Bez ponawiania: 403 (pracownik bez uprawnień do komunikacji) nie zmieni się po
-    // trzech próbach, a okno i tak ma bezpieczny stan zapasowy.
-    const { data: sms } = useQuery({ queryKey: SMS_KEY, queryFn: fetchAutomationConfig, retry: false, staleTime: 60_000 });
-    const { data: email } = useQuery({ queryKey: EMAIL_KEY, queryFn: fetchEmailAutomationConfig, retry: false, staleTime: 60_000 });
+    // Bez modułu albo uprawnienia nie pytamy wcale (402/403) - okno ma bezpieczny stan zapasowy.
+    const enabled = useMessageAutomationAccess();
+    const { data: sms } = useQuery({ queryKey: SMS_KEY, queryFn: fetchAutomationConfig, enabled, retry: false, staleTime: 60_000 });
+    const { data: email } = useQuery({ queryKey: EMAIL_KEY, queryFn: fetchEmailAutomationConfig, enabled, retry: false, staleTime: 60_000 });
 
     // Brak pola (backend sprzed tej zmiany) to „nie wiadomo", nie „odznaczone" - okno
     // wraca wtedy do swojego dotychczasowego stanu, zamiast po cichu go zmienić.

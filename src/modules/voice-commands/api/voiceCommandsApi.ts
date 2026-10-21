@@ -17,10 +17,11 @@ function getFilename(mimeType: string): string {
 }
 
 export const voiceCommandsApi = {
+    // Token w nagłówku, nie w adresie: adres trafia do logów proxy, a token działa bez sesji.
     getContext: async (token: string): Promise<VoiceContext> => {
         // Ekran „Link nieaktywny" mówi wszystko - bez tostów „nieoczekiwany błąd" pod nim.
         const response = await apiClient.get(`${BASE}/context`, {
-            params: { token },
+            headers: { 'X-Mobile-Token': token },
             skipErrorToast: true,
         });
         return response.data;

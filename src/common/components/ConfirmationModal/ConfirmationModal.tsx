@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useModalViewport } from '@/common/hooks';
+import { logger } from '@/core/logger';
 import * as S from './ConfirmationModalStyles';
 
 const IconX = () => (
@@ -42,7 +43,8 @@ interface ConfirmationModalProps {
     variant?: ConfirmationVariant;
     confirmText?: string;
     cancelText?: string;
-    onConfirm: () => void;
+    /** Może być asynchroniczne: okno zamyka się od razu, a odrzucenie trafia do loggera. */
+    onConfirm: () => void | Promise<unknown>;
     onCancel: () => void;
 }
 
@@ -69,6 +71,15 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     useModalViewport(isOpen, overlayRef);
 
     if (!isOpen) return null;
+
+    // Kolejność jak dotąd: akcja, potem zamknięcie. Odrzucenia asynchronicznej akcji nikt
+    // nie łapał, więc przeglądarka wypisywała je jako „Uncaught (in promise)" razem
+    // z treścią żądania. Komunikat dla użytkownika pokazuje interceptor albo wołający.
+    const handleConfirm = () => {
+        const result = onConfirm();
+        onCancel();
+        if (result instanceof Promise) result.catch(error => logger.error('confirmation.failed', error));
+    };
 
     const icon = variant === 'danger'
         ? <IconTrash />
@@ -98,7 +109,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                     <S.CancelButton type="button" onClick={onCancel}>
                         {cancelText}
                     </S.CancelButton>
-                    <S.ConfirmButton type="button" onClick={() => { onConfirm(); onCancel(); }} $variant={variant}>
+                    <S.ConfirmButton type="button" onClick={handleConfirm} $variant={variant}>
                         {confirmText}
                     </S.ConfirmButton>
                 </S.Footer>

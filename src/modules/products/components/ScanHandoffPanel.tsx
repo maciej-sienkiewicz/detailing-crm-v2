@@ -4,6 +4,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Check, Loader2 } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useScanHandoff } from '../hooks/useScanHandoff';
+import { logger } from '@/core/logger';
 
 // „Skanuj telefonem" — komputer pokazuje kod QR, telefon otwiera aparat, a wykryte kody
 // wracają na żywo. Dokładnie model mapy uszkodzeń (DamageMapQrPanel). Ten panel tylko
@@ -38,7 +39,11 @@ interface Props {
 export function ScanHandoffPanel({ onCodes }: Props) {
     const { session, codes, starting, start, reset } = useScanHandoff();
 
-    useEffect(() => { start(); return () => reset(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // Bez sesji panel zostaje bez kodu QR; komunikat 4xx pokazał interceptor.
+    useEffect(() => {
+        start().catch(error => logger.error('product_scan.start_failed', error));
+        return () => reset();
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
     useEffect(() => { if (codes.length) onCodes(codes); }, [codes, onCodes]);
 
     const url = session ? `${window.location.origin}${session.handoffPath}` : '';

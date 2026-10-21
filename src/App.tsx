@@ -1,5 +1,7 @@
 import { RouterProvider } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { isAxiosError } from 'axios';
+import { logger } from '@/core/logger';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ThemeProvider } from '@/common/theme';
 import { SidebarProvider } from '@/widgets/Sidebar/context/SidebarContext';
@@ -10,7 +12,24 @@ import { ToastProvider } from '@/common/components/Toast';
 import { PaywallListener } from '@/modules/subscription/components/PaywallListener';
 import { vehicleMetadataQuery } from '@/modules/vehicles/hooks/useVehicleMetadata';
 
+/**
+ * Do raportu trafia tylko to, czego nikt się nie spodziewał: brak odpowiedzi, 5xx albo
+ * wyjątek w kodzie. 4xx (walidacja, brak uprawnień, paywall) obsługują dymki i widoki.
+ */
+const isUnexpected = (error: unknown) =>
+    !isAxiosError(error) || error.response === undefined || error.response.status >= 500;
+
 const queryClient = new QueryClient({
+    queryCache: new QueryCache({
+        onError: (error, query) => {
+            if (isUnexpected(error)) logger.error('query.failed', error, { key: String(query.queryKey[0]) });
+        },
+    }),
+    mutationCache: new MutationCache({
+        onError: error => {
+            if (isUnexpected(error)) logger.error('mutation.failed', error);
+        },
+    }),
     defaultOptions: {
         queries: {
             // Never retry auth/permission/paywall failures: a 401/402/403 is
@@ -40,7 +59,15 @@ const App = () => {
                     <ToastProvider>
                         <AuthProvider>
                             <SidebarProvider>
-                                <RouterProvider router={router} />
+                                {/* Bez onError React Router sam wypisuje każdy błąd do konsoli. Błędy
+                                    renderu (z errorInfo) zgłasza już onCaughtError z main.tsx; tu
+                                    zostają błędy ładowania trasy. */}
+                                <RouterProvider
+                                    router={router}
+                                    onError={(error, info) => {
+                                        if (!info.errorInfo) logger.error('router.route', error, { pattern: info.pattern });
+                                    }}
+                                />
                                 {/* Global 402/MODULE_REQUIRED → upsell dialog (safety net for ungated actions) */}
                                 <PaywallListener />
                             </SidebarProvider>

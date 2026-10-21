@@ -1,4 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { usePermissions } from '@/core/permissions';
+import { useCapability } from '@/modules/subscription';
 import { smsCreditApi } from '../api/smsCreditApi';
 
 const KEYS = {
@@ -7,11 +9,15 @@ const KEYS = {
     transactions: (page: number, size: number) => ['sms-credits', 'transactions', page, size] as const,
 };
 
+// Saldo jest na backendzie za modułem z kredytami SMS i uprawnieniem COMMUNICATION_SEND.
+// Bez nich zapytanie kończyło się 402/403 - np. licznik w menu Ustawień przy każdym wejściu.
 export function useSmsCreditBalance(options?: { enabled?: boolean }) {
+    const { can } = usePermissions();
+    const credits = useCapability('COMM_SMS_CREDITS');
     return useQuery({
         queryKey: KEYS.balance,
         queryFn:  smsCreditApi.getBalance,
-        enabled:  options?.enabled ?? true,
+        enabled:  (options?.enabled ?? true) && credits.enabled && can('COMMUNICATION_SEND'),
     });
 }
 

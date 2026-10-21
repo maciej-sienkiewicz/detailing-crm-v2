@@ -154,12 +154,16 @@ export const CategoryFormModal = ({ isOpen, onClose, category }: CategoryFormMod
             color,
         };
 
-        if (isEdit && category) {
-            await updateMutation.mutateAsync({ categoryId: category.id, data });
-        } else {
-            await createMutation.mutateAsync(data);
+        try {
+            if (isEdit && category) {
+                await updateMutation.mutateAsync({ categoryId: category.id, data });
+            } else {
+                await createMutation.mutateAsync(data);
+            }
+            onClose();
+        } catch {
+            // Okno zostaje otwarte. Komunikat 4xx pokazał interceptor, 5xx zgłasza MutationCache (App.tsx).
         }
-        onClose();
     };
 
     return (

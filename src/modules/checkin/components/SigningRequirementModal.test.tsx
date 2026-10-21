@@ -25,6 +25,8 @@ vi.mock('@/common/components/Toast', () => ({ useToast: () => toast }));
 vi.mock('@/modules/subscription', () => ({
     useCapability: () => ({ enabled: true, isLoading: false, missingFeatures: [], upsell: [] }),
 }));
+// Dostęp do ustawień automatyzacji = moduł i uprawnienie COMMUNICATION_SEND; test zakłada uprawnienie.
+vi.mock('@/modules/message-templates/hooks/useMessageAutomationAccess', () => ({ useMessageAutomationAccess: () => true }));
 vi.mock('@/modules/visit-card/hooks/useVisitCardSettings', () => ({
     useVisitCardSettings: () => ({ sendByDefault: false }),
 }));

@@ -4,12 +4,16 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import crypto from 'crypto';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
     plugins: [react()],
     define: {
         // sockjs-client references Node.js `global` - shim it for the browser
         global: 'globalThis',
     },
+    // Build produkcyjny wycina `console.*` i `debugger` z całego bundla, także z bibliotek.
+    // Kod aplikacji i tak pisze tylko przez src/core/logger.ts, który na produkcji konsoli
+    // nie używa; to druga linia obrony. Dev i testy zostają bez zmian.
+    esbuild: mode === 'production' ? { drop: ['console', 'debugger'], legalComments: 'none' } : undefined,
     resolve: {
         alias: {
             '@': path.resolve(__dirname, './src'),
@@ -75,4 +79,4 @@ export default defineConfig({
             }
         }
     }
-});
+}));

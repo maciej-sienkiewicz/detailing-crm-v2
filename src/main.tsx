@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { installChunkErrorHandler } from './core/errors';
+import { describeError, logger } from './core/logger';
 import { installNativeShell } from './core/native/installNativeShell';
 import { isRolePreviewShellPath } from './modules/role-preview/entryCode';
 import {
@@ -40,7 +41,13 @@ if (isServiceWorkerAllowedHere()) {
         .catch(() => {/* SW is an enhancement, silently ignore failures */});
 }
 
-const root = ReactDOM.createRoot(document.getElementById('root')!);
+// Domyślnie React 19 wypisuje do konsoli każdy błąd złapany przez ErrorBoundary - także
+// na produkcji. Błędy idą przez logger, który na produkcji konsoli nie dotyka.
+const root = ReactDOM.createRoot(document.getElementById('root')!, {
+    onCaughtError: error => logger.error('react.caught', error),
+    onUncaughtError: error => logger.error('react.uncaught', error),
+    onRecoverableError: error => logger.warn('react.recoverable', describeError(error)),
+});
 
 if (isRolePreviewShellPath(window.location.pathname)) {
     // The role preview window: its own small app around the real one in a frame.

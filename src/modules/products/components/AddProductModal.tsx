@@ -20,6 +20,7 @@ import { useCreateProduct, useCreateFromDraft } from '../hooks/useProducts';
 import { useBarcodeScanner } from '../hooks/useBarcodeScanner';
 import { fileToCanvas, canvasToJpegFile } from '../utils/imageTools';
 import { ScanHandoffPanel } from './ScanHandoffPanel';
+import { logger } from '@/core/logger';
 
 // Jeden formularz, bez zakładek. Kod kreskowy jest opcjonalnym polem u góry:
 // „Pobierz dane" rozpoznaje produkt po kodzie, a ikona aparatu na desktopie pokazuje
@@ -249,37 +250,42 @@ export function AddProductModal({ isOpen, onClose, canSeeCosts, onCreated, initi
     };
 
     const submit = async () => {
-        // Ścieżka rozpoznana zewnętrznie: zapis kartą z draftu (zachowuje pochodzenie).
-        if (draft) {
-            const saved = await createFromDraft.mutateAsync({
-                ...draft,
+        try {
+            // Ścieżka rozpoznana zewnętrznie: zapis kartą z draftu (zachowuje pochodzenie).
+            if (draft) {
+                const saved = await createFromDraft.mutateAsync({
+                    ...draft,
+                    name: form.name.trim(),
+                    brand: form.brand.trim(),
+                    unitOfMeasure: form.unitOfMeasure,
+                    packageSizeValue: form.packageSizeValue.trim(),
+                    packageSizeUnit: form.packageSizeUnit,
+                    description: form.description.trim() || null,
+                });
+                if (canSeeCosts && priceInput()) {
+                    await productsApi.updateStudio(saved.id, {
+                        isFavourite: false, isHidden: false, price: priceInput(),
+                    });
+                }
+                onCreated(saved.id);
+                return;
+            }
+            const req: CreateProductRequest = {
+                gtin: normalizeGtin(form.gtin || barcode),
                 name: form.name.trim(),
                 brand: form.brand.trim(),
                 unitOfMeasure: form.unitOfMeasure,
                 packageSizeValue: form.packageSizeValue.trim(),
                 packageSizeUnit: form.packageSizeUnit,
                 description: form.description.trim() || null,
-            });
-            if (canSeeCosts && priceInput()) {
-                await productsApi.updateStudio(saved.id, {
-                    isFavourite: false, isHidden: false, price: priceInput(),
-                });
-            }
+                price: priceInput(),
+            };
+            const saved = await create.mutateAsync(req);
             onCreated(saved.id);
-            return;
+        } catch (error) {
+            // Okno zostaje otwarte z danymi. Komunikat 4xx pokazał interceptor.
+            logger.error('product.create_failed', error);
         }
-        const req: CreateProductRequest = {
-            gtin: normalizeGtin(form.gtin || barcode),
-            name: form.name.trim(),
-            brand: form.brand.trim(),
-            unitOfMeasure: form.unitOfMeasure,
-            packageSizeValue: form.packageSizeValue.trim(),
-            packageSizeUnit: form.packageSizeUnit,
-            description: form.description.trim() || null,
-            price: priceInput(),
-        };
-        const saved = await create.mutateAsync(req);
-        onCreated(saved.id);
     };
 
     // Wymagana jest WYŁĄCZNIE nazwa — resztę można uzupełnić później. Produkt dodaje

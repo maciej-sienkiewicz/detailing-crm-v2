@@ -393,6 +393,8 @@ const isMobileDevice = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile
 
 interface PhotoDocumentationStepProps {
     formData: CheckInFormData;
+    /** Sesja zdjęć kreatora (usePhotoSessionScope) - przeżywa powroty do tego kroku. */
+    photoSessionScope: string;
     reservationId?: string;
     qrCheckinId?: string;
     onChange: (updates: Partial<CheckInFormData>) => void;
@@ -400,7 +402,7 @@ interface PhotoDocumentationStepProps {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, onChange }: PhotoDocumentationStepProps) => {
+export const PhotoDocumentationStep = ({ formData, photoSessionScope, reservationId, qrCheckinId, onChange }: PhotoDocumentationStepProps) => {
     const {
         photos,
         uploadPhoto,
@@ -409,7 +411,7 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
         isUploading,
         isDeleting,
         isRefreshing,
-    } = usePhotoUpload(reservationId);
+    } = usePhotoUpload(photoSessionScope, reservationId);
 
     const [showDamageSection, setShowDamageSection] = useState(false);
     const [editingPhoto, setEditingPhoto] = useState<PhotoSlot | null>(null);

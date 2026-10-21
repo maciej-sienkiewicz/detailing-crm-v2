@@ -570,30 +570,38 @@ export function CampaignWizardView() {
 
   const finish = async () => {
     const payload = buildPayload();
-    const saved = isEdit
-      ? await updateCampaign.mutateAsync({ id: editId!, payload })
-      : await createCampaign.mutateAsync(payload);
-    const campaignId = (saved as { id: string }).id ?? editId!;
+    try {
+      const saved = isEdit
+        ? await updateCampaign.mutateAsync({ id: editId!, payload })
+        : await createCampaign.mutateAsync(payload);
+      const campaignId = (saved as { id: string }).id ?? editId!;
 
-    if (kind === 'AUTOMATIC') {
-      if (!isEdit || existing?.status === 'DRAFT') await activateCampaign.mutateAsync(campaignId);
-    } else if (existing?.status !== 'SCHEDULED' || !isEdit) {
-      await scheduleCampaign.mutateAsync({
-        id: campaignId,
-        scheduledAt: scheduleMode === 'AT' && scheduleAt ? new Date(scheduleAt).toISOString() : null,
-      });
+      if (kind === 'AUTOMATIC') {
+        if (!isEdit || existing?.status === 'DRAFT') await activateCampaign.mutateAsync(campaignId);
+      } else if (existing?.status !== 'SCHEDULED' || !isEdit) {
+        await scheduleCampaign.mutateAsync({
+          id: campaignId,
+          scheduledAt: scheduleMode === 'AT' && scheduleAt ? new Date(scheduleAt).toISOString() : null,
+        });
+      }
+      navigate(`/campaigns?campaign=${campaignId}`);
+    } catch {
+      // Zostajemy w kreatorze. Komunikat 4xx pokazał interceptor, 5xx zgłasza MutationCache (App.tsx).
     }
-    navigate(`/campaigns?campaign=${campaignId}`);
   };
 
   const saveDraft = async () => {
     const payload = buildPayload();
-    if (isEdit) {
-      await updateCampaign.mutateAsync({ id: editId!, payload });
-      navigate(`/campaigns?campaign=${editId}`);
-    } else {
-      const saved = await createCampaign.mutateAsync(payload);
-      navigate(`/campaigns?campaign=${(saved as { id: string }).id}`);
+    try {
+      if (isEdit) {
+        await updateCampaign.mutateAsync({ id: editId!, payload });
+        navigate(`/campaigns?campaign=${editId}`);
+      } else {
+        const saved = await createCampaign.mutateAsync(payload);
+        navigate(`/campaigns?campaign=${(saved as { id: string }).id}`);
+      }
+    } catch {
+      // Zostajemy w kreatorze. Komunikat 4xx pokazał interceptor, 5xx zgłasza MutationCache (App.tsx).
     }
   };
 

@@ -371,7 +371,8 @@ export const TasksPanel = () => {
   };
 
   const handleToggle = (task: DashboardTask) => {
-    updateTask(task.id, { done: !task.done });
+    // Cofnięcie optymistycznej zmiany robi onError mutacji w useTasks.
+    updateTask(task.id, { done: !task.done }).catch(() => undefined);
   };
 
   return (

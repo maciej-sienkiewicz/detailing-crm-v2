@@ -10,6 +10,7 @@ import { PiiValue, PiiText, usePiiAccess } from '@/common/pii';
 import { VisitCardLinkModal } from '@/modules/visit-card';
 import { usePermissions, usePersonalDataActions } from '@/core/permissions';
 import { useCapability } from '@/modules/subscription';
+import { useMessageAutomationAccess } from '@/modules/message-templates/hooks/useMessageAutomationAccess';
 import { HoverInfo } from '@/common/components/InfoTooltip';
 import { usePrintServicesList } from '@/modules/visits/hooks/usePrintServicesList';
 import { formatClockTime, hasClockTime } from '@/common/dateTime';
@@ -827,10 +828,12 @@ const AppointmentSmsRow: React.FC<{ appointmentId: string }> = ({ appointmentId 
         enabled: comms.enabled,
     });
 
+    // Moduł nie wystarczy: bez uprawnienia COMMUNICATION_SEND serwer odpowiada 403.
+    const canReadAutomation = useMessageAutomationAccess();
     const { data: automation } = useQuery({
         queryKey: ['sms-automation-config'],
         queryFn: () => import('@/modules/sms-settings/api/smsSettingsApi').then(m => m.fetchAutomationConfig()),
-        enabled: comms.enabled,
+        enabled: canReadAutomation,
     });
 
     const smsInfo: CalendarSmsInfo | undefined = appointment?.smsInfo;

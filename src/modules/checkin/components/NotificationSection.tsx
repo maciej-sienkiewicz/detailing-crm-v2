@@ -3,6 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { LockedSection } from '@/common/components/LockedSection';
 import { useToast } from '@/common/components/Toast';
 import { useCapability } from '@/modules/subscription';
+import { useMessageAutomationAccess } from '@/modules/message-templates/hooks/useMessageAutomationAccess';
 import { visitApi } from '@/modules/visits/api/visitApi';
 import { useVisitPhotos } from '@/modules/visits/hooks';
 import { useVisitCardSettings } from '@/modules/visit-card/hooks/useVisitCardSettings';
@@ -379,9 +380,11 @@ export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled,
     // Ustawieniach → Szablony SMS, domyślnie wyłączony i z pustym szablonem - tak jak
     // świeże/wyczyszczone konto. Bez tego pola przełącznik wyglądał na aktywny, mimo
     // że backend i tak nic by nie wysłał (brak skonfigurowanej treści wiadomości).
+    const canReadAutomation = useMessageAutomationAccess();
     const { data: automationConfig } = useQuery({
         queryKey: ['sms-automation-config'],
         queryFn: () => import('@/modules/sms-settings/api/smsSettingsApi').then(m => m.fetchAutomationConfig()),
+        enabled: canReadAutomation,
     });
     const visitCardLinkSmsEnabled = automationConfig?.visitCardLink?.enabled ?? true;
     const { sendEmail, sendVisitCard, emailOptions } = options;

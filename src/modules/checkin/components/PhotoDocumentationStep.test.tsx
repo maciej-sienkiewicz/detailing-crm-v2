@@ -57,7 +57,7 @@ const renderStep = async (data: CheckInFormData) => {
     const user = userEvent.setup();
     render(
         <ThemeProvider theme={theme}>
-            <PhotoDocumentationStep formData={data} qrCheckinId="chk-1" onChange={vi.fn()} />
+            <PhotoDocumentationStep formData={data} photoSessionScope="scope-1" qrCheckinId="chk-1" onChange={vi.fn()} />
         </ThemeProvider>,
     );
     await user.click(screen.getByRole('switch', { name: 'Rozwiń' }));

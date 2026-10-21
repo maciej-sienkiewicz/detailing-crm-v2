@@ -11,6 +11,7 @@ import { pickInitialColorId } from '@/modules/appointment-colors';
 import { appointmentColorApi } from '@/modules/appointment-colors/api/appointmentColorApi';
 import { useDebounce } from '@/common/hooks';
 import { useDefaultChoice, useMessageDefaults } from '@/modules/message-templates/hooks/useMessageDefaults';
+import { useMessageAutomationAccess } from '@/modules/message-templates/hooks/useMessageAutomationAccess';
 import { fetchWholeCatalog } from '@/modules/services/api/fetchWholeCatalog';
 import { formatDateTimeLocal, formatDate } from './helpers';
 import { catalogLinePrices, manualLinePrices } from './linePrices';
@@ -254,9 +255,12 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref, initialData 
         },
     });
 
+    const canReadAutomation = useMessageAutomationAccess();
     const { data: automationConfig } = useQuery({
         queryKey: ['sms-automation-config'],
         queryFn: () => import('@/modules/sms-settings/api/smsSettingsApi').then(m => m.fetchAutomationConfig()),
+        // Bez modułu albo uprawnienia serwer odpowiada 402/403 - nie pytamy.
+        enabled: canReadAutomation,
     });
     const preVisitEnabled = automationConfig?.preVisit?.enabled ?? true;
     const bookingConfirmationEnabled = automationConfig?.bookingConfirmation?.enabled ?? true;
