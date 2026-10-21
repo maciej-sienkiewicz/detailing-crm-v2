@@ -301,7 +301,7 @@ const DirectionIcon: React.FC<{ direction: Direction }> = ({ direction }) => {
     if (direction === null) return null;
     if (direction === 'above') return <ArrowUp aria-label="powyżej mediany konkurencji" color={ui.okInk} />;
     if (direction === 'below') return <ArrowDown aria-label="poniżej mediany konkurencji" color={ui.warnInk} />;
-    return <Minus aria-label="w medianie konkurencji" color={ui.textFaint} />;
+    return <Minus aria-label="w medianie konkurencji" style={{ color: ui.textFaint }} />;
 };
 
 const growthTone = (pct: number | null): 'up' | 'down' | 'flat' =>

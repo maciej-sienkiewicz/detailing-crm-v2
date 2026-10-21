@@ -5,7 +5,7 @@ import styled, { keyframes, css } from 'styled-components';
 import { CalendarCheck, Car, ChevronLeft, ChevronRight, Grid2x2, Grid3x3, Images, Layers, Square, Tag } from 'lucide-react';
 import { PiiValue } from '@/common/pii';
 import { useBreakpoint, useLocalStorage } from '@/common/hooks';
-import { PageHeader, MobilePageHeader, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
+import { PageHeader, MobilePageHeader, MobilePageHeaderCountValue, PageHeaderCount } from '@/common/components/PageHeader';
 import { PageContainer } from '@/common/components/PageContainer';
 import { Segmented, StatusPill, touch, ui, type SegmentedOption } from '@/common/components/ui';
 import { GalleryFilterBar } from '../components/GalleryFilterBar';
@@ -63,10 +63,6 @@ const PageBody = styled(PageContainer)`
     @media (max-width: 767px) {
         gap: 12px;
     }
-`;
-
-const TotalChip = styled(StatusPill).attrs({ $tone: 'info' as const })`
-    font-variant-numeric: tabular-nums;
 `;
 
 /** Jedyne wyniesienie w kolumnie: filtry, siatka i strony leżą na jednej karcie. */
@@ -355,7 +351,7 @@ const CardTag = styled.span`
     flex-shrink: 0;
     padding: 1px 8px;
     border: 1px solid ${ui.line};
-    border-radius: ${ui.radiusControl};
+    border-radius: ${ui.radiusPill};
     background: ${ui.surfaceSoft};
     color: ${ui.textSecondary};
     font-size: 11px;
@@ -764,7 +760,7 @@ export const GalleryView = () => {
                         subtitle={
                             <>
                                 Zdjęcia z wizyt, pojazdów i zleceń zbiorczych
-                                {pagination && <TotalChip>{totalLabel}</TotalChip>}
+                                {pagination && <PageHeaderCount>{totalLabel}</PageHeaderCount>}
                             </>
                         }
                     />

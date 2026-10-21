@@ -938,10 +938,11 @@ const HdrPickerTrigger = styled.button<{ $active: boolean }>`
   align-items: center;
   gap: 7px;
   padding: 9px 15px;
-  background: ${p => p.$active ? '#f0f9ff' : '#ffffff'};
+  /* Jak wybór okresu w Statystykach: głęboki błękit w tekście, bez jasnobłękitnego tła. */
+  background: #ffffff;
   color: ${p => p.$active ? '#0369a1' : st.text};
-  border: 1px solid ${p => p.$active ? '#7dd3fc' : st.border};
-  border-radius: 9999px;
+  border: 1px solid ${p => p.$active ? 'rgba(3, 105, 161, 0.35)' : st.border};
+  border-radius: 10px;
   font-family: inherit;
   font-size: ${st.fontSm};
   font-weight: 600;
@@ -950,8 +951,8 @@ const HdrPickerTrigger = styled.button<{ $active: boolean }>`
   transition: all ${st.transition};
 
   &:hover {
-    background: ${p => p.$active ? '#e0f2fe' : '#f8fafc'};
-    border-color: ${p => p.$active ? '#38bdf8' : st.borderHover};
+    background: ${p => p.$active ? 'rgba(3, 105, 161, 0.05)' : '#f8fafc'};
+    border-color: ${p => p.$active ? 'rgba(3, 105, 161, 0.5)' : st.borderHover};
   }
   svg { width: 14px; height: 14px; flex-shrink: 0; }
 `;

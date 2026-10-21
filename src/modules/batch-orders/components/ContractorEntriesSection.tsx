@@ -260,19 +260,20 @@ const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' | 'outline' | 
     &:disabled { opacity: 0.55; cursor: not-allowed; }
 
     ${p => p.$variant === 'primary' && `
-        border-color: color-mix(in srgb, var(--brand-primary) 32%, transparent);
-        background: color-mix(in srgb, var(--brand-primary) 10%, transparent);
-        color: ${p.theme.colors.primary};
+        border-color: color-mix(in srgb, var(--brand-ink) 32%, transparent);
+        background: color-mix(in srgb, var(--brand-ink) 10%, transparent);
+        color: var(--brand-ink);
         &:hover:not(:disabled) {
-            border-color: ${p.theme.colors.primary};
-            background: color-mix(in srgb, var(--brand-primary) 18%, transparent);
+            border-color: var(--brand-ink);
+            background: color-mix(in srgb, var(--brand-ink) 18%, transparent);
         }
     `}
     ${p => p.$variant === 'success' && `
-        border-color: #86efac;
-        background: ${p.theme.colors.successLight};
+        /* Zieleń w tekście i delikatnej obwódce, nie miętowe tło z jaskrawą ramką. */
+        border-color: rgba(21, 128, 61, 0.32);
+        background: transparent;
         color: #15803d;
-        &:hover:not(:disabled) { background: #dcfce7; border-color: #4ade80; }
+        &:hover:not(:disabled) { background: rgba(21, 128, 61, 0.06); border-color: rgba(21, 128, 61, 0.55); }
     `}
     ${p => p.$variant === 'danger' && `
         border-color: ${p.theme.colors.border};
@@ -316,9 +317,9 @@ const MoreActionsTrigger = styled.button<{ $active?: boolean }>`
         font-size: 16px;
         line-height: 1;
         cursor: pointer;
-        border: 1px solid ${p => p.$active ? p.theme.colors.primary : p.theme.colors.border};
-        background: ${p => p.$active ? 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' : 'transparent'};
-        color: ${p => p.$active ? p.theme.colors.primary : p.theme.colors.textSecondary};
+        border: 1px solid ${p => p.$active ? 'var(--brand-ink)' : p.theme.colors.border};
+        background: ${p => p.$active ? 'color-mix(in srgb, var(--brand-ink) 10%, transparent)' : 'transparent'};
+        color: ${p => p.$active ? 'var(--brand-ink)' : p.theme.colors.textSecondary};
         transition: border-color ${p => p.theme.transitions.fast}, background ${p => p.theme.transitions.fast}, color ${p => p.theme.transitions.fast};
         -webkit-tap-highlight-color: transparent;
     }

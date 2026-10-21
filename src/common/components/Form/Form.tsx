@@ -37,13 +37,13 @@ export { FormField as FieldGroup };
 // ─── Label ────────────────────────────────────────────────────────────────────
 
 /**
- * Standard field label: 13px semi-bold, slate-700 (#374151).
+ * Standard field label: 13px semi-bold, slate-700 (var(--ui-ink-soft)).
  * Always pair with htmlFor pointing to the input id.
  */
 export const FieldLabel = styled.label`
     font-size: 13px;
     font-weight: 600;
-    color: #374151;
+    color: var(--ui-ink-soft);
     letter-spacing: -0.01em;
     line-height: 1;
 `;
@@ -75,12 +75,12 @@ export const InputShell = styled.div<{ $hasError?: boolean; $compact?: boolean }
     display: flex;
     align-items: center;
     background: white;
-    border: 1.5px solid ${props => props.$hasError ? '#ef4444' : '#e2e8f0'};
+    border: 1.5px solid ${props => props.$hasError ? '#ef4444' : 'var(--ui-line)'};
     border-radius: ${props => props.$compact ? '8px' : '10px'};
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
     &:hover {
-        border-color: ${props => props.$hasError ? '#ef4444' : '#cbd5e1'};
+        border-color: ${props => props.$hasError ? '#ef4444' : 'var(--ui-line-hover)'};
     }
 
     &:focus-within {
@@ -104,11 +104,11 @@ export const BareInput = styled.input<{ $compact?: boolean }>`
     border-radius: ${props => props.$compact ? '8px' : '10px'};
     font-size: ${props => props.$compact ? '13px' : '14px'};
     background: transparent;
-    color: #0f172a;
+    color: var(--ui-ink);
     line-height: 1.5;
 
     &:focus { outline: none; }
-    &::placeholder { color: #94a3b8; }
+    &::placeholder { color: var(--ui-text-faint); }
     &:disabled { opacity: 0.6; cursor: not-allowed; }
 `;
 
@@ -120,14 +120,14 @@ export const BareTextArea = styled.textarea`
     border-radius: 10px;
     font-size: 14px;
     background: transparent;
-    color: #0f172a;
+    color: var(--ui-ink);
     min-height: 100px;
     resize: vertical;
     font-family: inherit;
     line-height: 1.5;
 
     &:focus { outline: none; }
-    &::placeholder { color: #94a3b8; }
+    &::placeholder { color: var(--ui-text-faint); }
     &:disabled { opacity: 0.6; cursor: not-allowed; }
 `;
 
@@ -143,7 +143,7 @@ export const Input = styled.input<{ $hasError?: boolean }>`
     border: 1px solid ${props => (props.$hasError ? props.theme.colors.error : props.theme.colors.border)};
     border-radius: ${props => props.theme.radii.md};
     font-size: ${props => props.theme.fontSizes.sm};
-    background: #F8FAFC;
+    background: var(--ui-surface-soft);
     color: ${props => props.theme.colors.text};
     transition: all ${props => props.theme.transitions.fast};
 
@@ -174,7 +174,7 @@ export const Select = styled.select<{ $compact?: boolean; $hasError?: boolean }>
     border: 1px solid ${props => (props.$hasError ? props.theme.colors.error : props.theme.colors.border)};
     border-radius: ${props => props.$compact ? '8px' : props.theme.radii.md};
     font-size: ${props => props.$compact ? '13px' : props.theme.fontSizes.sm};
-    background: #F8FAFC;
+    background: var(--ui-surface-soft);
     color: ${props => props.theme.colors.text};
     cursor: pointer;
     transition: all ${props => props.theme.transitions.fast};
@@ -200,7 +200,7 @@ export const TextArea = styled.textarea<{ $hasError?: boolean }>`
     border-radius: ${props => props.theme.radii.md};
     font-size: ${props => props.theme.fontSizes.sm};
     font-family: inherit;
-    background: #F8FAFC;
+    background: var(--ui-surface-soft);
     color: ${props => props.theme.colors.text};
     resize: vertical;
     min-height: 100px;
@@ -326,7 +326,7 @@ export const SectionTitleGroup = styled.div`
 export const SectionTitle = styled.legend`
     font-size: 16px;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--ui-ink);
     letter-spacing: -0.01em;
     display: block;
 `;
@@ -334,7 +334,7 @@ export const SectionTitle = styled.legend`
 export const SectionSubtitle = styled.p`
     margin: 2px 0 0;
     font-size: 13px;
-    color: #64748b;
+    color: var(--ui-text-muted);
 `;
 
 interface SectionHeaderProps {
@@ -366,8 +366,8 @@ export const ToggleCard = styled.label<{ $isActive?: boolean }>`
     padding: 16px;
     background: ${props => props.$isActive
         ? 'linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%)'
-        : '#f8fafc'};
-    border: 1.5px solid ${props => props.$isActive ? 'var(--brand-primary)' : '#e2e8f0'};
+        : 'var(--ui-surface-soft)'};
+    border: 1.5px solid ${props => props.$isActive ? 'var(--brand-primary)' : 'var(--ui-line)'};
     border-radius: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -377,10 +377,10 @@ export const ToggleCard = styled.label<{ $isActive?: boolean }>`
     }
 
     &:hover {
-        border-color: ${props => props.$isActive ? 'var(--brand-primary)' : '#cbd5e1'};
+        border-color: ${props => props.$isActive ? 'var(--brand-primary)' : 'var(--ui-line-hover)'};
         background: ${props => props.$isActive
             ? 'linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%)'
-            : '#f1f5f9'};
+            : 'var(--ui-surface-alt)'};
     }
 `;
 
@@ -388,7 +388,7 @@ export const ToggleSwitch = styled.div<{ $isActive?: boolean }>`
     position: relative;
     width: 44px;
     height: 24px;
-    background: ${props => props.$isActive ? 'var(--brand-primary)' : '#cbd5e1'};
+    background: ${props => props.$isActive ? 'var(--brand-primary)' : 'var(--ui-line-hover)'};
     border-radius: 12px;
     transition: background 0.2s ease;
     flex-shrink: 0;
@@ -415,13 +415,13 @@ export const ToggleTitle = styled.span`
     display: block;
     font-size: 14px;
     font-weight: 600;
-    color: #0f172a;
+    color: var(--ui-ink);
 `;
 
 export const ToggleDescription = styled.span`
     display: block;
     font-size: 13px;
-    color: #64748b;
+    color: var(--ui-text-muted);
     margin-top: 2px;
 `;
 
@@ -448,7 +448,7 @@ export const ExpandableContent = styled.div`
 
 export const FormTabBar = styled.div`
     display: flex;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--ui-surface-alt);
     margin-bottom: 24px;
     gap: 0;
 `;
@@ -461,13 +461,13 @@ export const FormTabBtn = styled.button<{ $active?: boolean }>`
     background: none;
     font-size: 13px;
     font-weight: ${p => p.$active ? 600 : 500};
-    color: ${p => p.$active ? 'var(--brand-primary)' : '#64748b'};
+    color: ${p => p.$active ? 'var(--brand-primary)' : 'var(--ui-text-muted)'};
     cursor: pointer;
     transition: color 0.15s ease, border-color 0.15s ease;
     white-space: nowrap;
 
     &:hover {
-        color: ${p => p.$active ? 'var(--brand-primary)' : '#374151'};
+        color: ${p => p.$active ? 'var(--brand-primary)' : 'var(--ui-ink-soft)'};
     }
 `;
 

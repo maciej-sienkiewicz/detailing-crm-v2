@@ -11,7 +11,7 @@ import { OperationFilterBar } from '../components/OperationFilterBar';
 import { OperationFilterPanel } from '../components/OperationFilterPanel';
 import { OperationPagination } from '../components/OperationPagination';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { PageHeader, PageHeaderPrimaryButton, MobilePageHeader, MobilePageHeaderButton, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
+import { PageHeader, PageHeaderPrimaryButton, MobilePageHeader, MobilePageHeaderButton, MobilePageHeaderCountValue, PageHeaderCount } from '@/common/components/PageHeader';
 import { useBreakpoint } from '@/common/hooks';
 import { PageContainer } from '@/common/components/PageContainer';
 import { UnfinishedCheckInsPanel } from '@/modules/checkin';
@@ -31,18 +31,6 @@ const PageBody = styled(PageContainer)`
     display: flex;
     flex-direction: column;
     gap: 20px;
-`;
-
-const TotalChip = styled.span`
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 10px;
-    background: ${st.accentBlueDim};
-    color: ${st.accentBlue};
-    border-radius: ${st.radiusFull};
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.1px;
 `;
 
 const ContentCard = styled.section`
@@ -140,7 +128,7 @@ export const OperationListView = () => {
                 <PageHeader
                     title="Wizyty i rezerwacje"
                     subtitle={
-                        pagination ? <TotalChip>{pagination.totalItems} {pluralPl(pagination.totalItems, 'wynik', 'wyniki', 'wyników')}</TotalChip> : undefined
+                        pagination ? <PageHeaderCount>{pagination.totalItems} {pluralPl(pagination.totalItems, 'wynik', 'wyniki', 'wyników')}</PageHeaderCount> : undefined
                     }
                     actions={canCreateVisit ? (
                         <PageHeaderPrimaryButton onClick={() => navigate('/checkin/new')}>

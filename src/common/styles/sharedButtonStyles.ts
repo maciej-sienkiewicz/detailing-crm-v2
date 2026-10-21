@@ -17,17 +17,17 @@ const variantStyles = (variant: ButtonVariant) => {
         case 'primary':
             return `
                 color: #ffffff;
-                background: #0ea5e9;
-                box-shadow: 0 2px 8px rgba(14,165,233,0.28);
+                background: #0369a1;
+                box-shadow: 0 2px 6px rgba(3,105,161,0.22);
 
                 &:hover:not(:disabled) {
-                    background: #0284c7;
-                    box-shadow: 0 4px 14px rgba(14,165,233,0.38);
+                    background: #075985;
+                    box-shadow: 0 4px 10px rgba(3,105,161,0.28);
                     transform: translateY(-1px);
                 }
                 &:active:not(:disabled) {
                     transform: translateY(0);
-                    box-shadow: 0 2px 6px rgba(14,165,233,0.22);
+                    box-shadow: 0 2px 6px rgba(3,105,161,0.22);
                 }
                 &:disabled {
                     background: #bae6fd;
@@ -38,25 +38,25 @@ const variantStyles = (variant: ButtonVariant) => {
             `;
         case 'secondary':
             return `
-                color: #475569;
-                background: #f1f5f9;
-                border: 1.5px solid #e2e8f0;
+                color: var(--ui-text-secondary);
+                background: var(--ui-surface-alt);
+                border: 1.5px solid var(--ui-line);
 
                 &:hover:not(:disabled) {
-                    background: #e2e8f0;
-                    color: #0f172a;
-                    border-color: #cbd5e1;
+                    background: var(--ui-line);
+                    color: var(--ui-ink);
+                    border-color: var(--ui-line-hover);
                 }
                 &:disabled { opacity: 0.5; cursor: not-allowed; }
             `;
         case 'ghost':
             return `
-                color: #475569;
+                color: var(--ui-text-secondary);
                 background: transparent;
 
                 &:hover:not(:disabled) {
-                    background: #f1f5f9;
-                    color: #0f172a;
+                    background: var(--ui-surface-alt);
+                    color: var(--ui-ink);
                 }
                 &:disabled { opacity: 0.5; cursor: not-allowed; }
             `;
@@ -92,7 +92,7 @@ export const SharedButton = styled.button<{
     cursor: pointer;
     transition: all 180ms ease;
     white-space: nowrap;
-    border-radius: 999px;
+    border-radius: 10px;
     line-height: 1;
 
     ${p => sizeStyles[p.$size ?? 'md']}

@@ -4,28 +4,28 @@
 // renderowania całego panelu (profil, przełącznik użytkowników, gniazdo WebSocket).
 
 import {
-    Bell,
-    LayoutDashboard,
-    Calendar,
-    CalendarCheck,
-    CalendarOff,
-    Users,
-    Car,
-    TrendingUp,
-    MessageSquare,
-    CalendarClock,
-    FileText,
-    Settings,
-    Inbox,
-    Layers,
-    Clock,
-    Images,
-    Activity,
-    CircleAlert,
-    Package,
-    IdCard,
-    Camera,
-} from 'lucide-react';
+    ActivityIcon,
+    BatchOrdersIcon,
+    CalendarIcon,
+    CampaignsIcon,
+    CustomersIcon,
+    DashboardIcon,
+    EmployeesIcon,
+    FinancesIcon,
+    GalleryIcon,
+    InquiriesIcon,
+    InstagramIcon,
+    LeaveIcon,
+    NotificationsIcon,
+    ProductsIcon,
+    ReportProblemIcon,
+    ScheduledContentIcon,
+    SettingsIcon,
+    StatisticsIcon,
+    VehiclesIcon,
+    VisitsIcon,
+    WorkTimeIcon,
+} from './menuIcons';
 import { ANY_FINANCE, ANY_DASHBOARD, ANY_EMPLOYEES } from '@/core/permissions/catalog';
 import type { PermissionRequirement } from '@/core/permissions/catalog';
 import { firstEmployeesTabPath } from '@/modules/employees/employeesTabs';
@@ -78,83 +78,80 @@ export const buildMenuSections = ({
 }: MenuSectionsInput): MenuSection[] => {
     const canSeeDashboard = can(ANY_DASHBOARD);
     const sections: GuardedMenuSection[] = [
-        // Grupy mówią, CZYM się zajmuje dana część pracy. Wcześniej było ich pięć
-        // (Główne, Baza klientów, Studio, Administracja, Portal): „Studio" miało jedną
-        // pozycję, „Portal" nic nie znaczył, a w „Głównych" siedziało siedem rzeczy
-        // naraz, od kalendarza po pocztę. Tablica stoi nad grupami bez nagłówka,
-        // tak samo jak Ustawienia na dole.
+        // Grupy mówią, CZYM się zajmuje dana część pracy (układ z 21.10.2026):
+        // na górze sprawy „moje na dziś”, potem praca w warsztacie, klienci razem
+        // z zapytaniami (zapytanie to przyszły klient), komunikacja wychodząca,
+        // a na końcu liczby i zasoby studia, potrzebne głównie właścicielowi.
         {
             items: [
-                { path: '/dashboard',     label: 'Tablica',           icon: LayoutDashboard, requires: ANY_DASHBOARD },
+                { path: '/dashboard',     label: 'Tablica',       icon: DashboardIcon, requires: ANY_DASHBOARD },
                 // Task inbox replacing the dashboard's "Do zrobienia" for roles without Tablica.
-                { path: '/notifications', label: 'Powiadomienia',     icon: Bell, badge: unreadNotifications > 0 ? unreadNotifications : undefined, alert: unreadNotifications > 0, showWhen: !canSeeDashboard },
-                { path: '/worktime',      label: 'Czas pracy',        icon: Clock,          showWhen: trackWorkTime },
+                { path: '/notifications', label: 'Powiadomienia', icon: NotificationsIcon, badge: unreadNotifications > 0 ? unreadNotifications : undefined, alert: unreadNotifications > 0, showWhen: !canSeeDashboard },
+                { path: '/activity',      label: 'Aktywność',     icon: ActivityIcon, requires: 'AUDIT_VIEW' },
+                { path: '/worktime',      label: 'Czas pracy',    icon: WorkTimeIcon, showWhen: trackWorkTime },
                 // Samoobsługa urlopowa - bez uprawnienia, ale tylko dla konta z rekordem
                 // pracownika: bez niego nie ma kogo pokazać ani za kogo złożyć wniosku.
-                { path: '/me/leave',      label: 'Urlop',             icon: CalendarOff,    showWhen: hasEmployeeRecord },
+                { path: '/me/leave',      label: 'Urlop',         icon: LeaveIcon, showWhen: hasEmployeeRecord },
             ],
         },
         {
             title: 'Praca',
             items: [
-                { path: '/operations',    label: 'Wizyty',            icon: CalendarCheck, requires: 'VISITS_VIEW',
+                { path: '/operations',   label: 'Wizyty',            icon: VisitsIcon, requires: 'VISITS_VIEW',
                     match: ['/visits', '/appointments', '/checkin', '/reservations'] },
-                { path: '/calendar',      label: 'Kalendarz',         icon: Calendar,      requires: 'VISITS_VIEW' },
-                { path: '/batch-orders',  label: 'Zlecenia zbiorcze', icon: Layers, requires: 'BATCH_ORDERS' },
-                { path: '/gallery',       label: 'Galeria',           icon: Images, requires: 'VISITS_VIEW' },
+                { path: '/calendar',     label: 'Kalendarz',         icon: CalendarIcon, requires: 'VISITS_VIEW' },
+                { path: '/batch-orders', label: 'Zlecenia zbiorcze', icon: BatchOrdersIcon, requires: 'BATCH_ORDERS' },
             ],
         },
         {
-            title: 'Klienci i zapytania',
+            title: 'Klienci',
             items: [
                 // „Leady" i „Poczta" to jedna skrzynka „Zapytania" (sprawy, poczta,
-                // wysłane). Licznik mówi, ile spraw czeka na nasz ruch; nieprzeczytana
-                // poczta zapala alert - to nowość, a nie zaległość. Stare adresy są
+                // wysłane). Czerwień (poświata i licznik) tylko przy nowym leadzie - to
+                // ktoś, kto czeka na odpowiedź. Sama nieprzeczytana poczta pokazuje
+                // biały licznik bez poświaty (decyzja z 21.10.2026). Stare adresy są
                 // w `match`, żeby pozycja świeciła także w trakcie przekierowania.
-                { path: '/zapytania', label: 'Zapytania', icon: Inbox,
+                { path: '/zapytania', label: 'Zapytania', icon: InquiriesIcon,
                     badge: newLeadsCount > 0 ? newLeadsCount : unreadMailCount > 0 ? unreadMailCount : undefined,
-                    alert: unreadMailCount > 0, requires: 'LEADS_MANAGE', match: ['/leads', '/communication'] },
-                { path: '/customers', label: 'Klienci',   icon: Users, requires: 'CUSTOMERS_VIEW' },
-                // Komu, co i kiedy wyjdzie SMS-em albo e-mailem: przypomnienia, potwierdzenia,
-                // kampanie. Stary adres (/scheduled-sms) przekierowuje - jest w `match`.
-                { path: '/scheduled-communication', label: 'Zaplanowane treści', icon: CalendarClock,
-                    requires: 'COMMUNICATION_SEND', match: ['/scheduled-sms'] },
-                { path: '/vehicles',  label: 'Pojazdy',   icon: Car,   requires: 'CUSTOMERS_VIEW' },
-            ],
-        },
-        {
-            title: 'Firma',
-            items: [
-                // Ścieżka to pierwsza zakładka, do której użytkownik ma dostęp - kierownik
-                // zmiany bez EMPLOYEES_MANAGE nie może trafić na /employees i przekierowanie.
-                // `Users` jest zajęte przez Klientów, stąd IdCard.
-                { path: firstEmployeesTabPath(can) ?? '/employees', label: 'Pracownicy', icon: IdCard,
-                    requires: ANY_EMPLOYEES, match: ['/employees'],
-                    badge: pendingLeaveRequests + pendingWorkTime > 0 ? pendingLeaveRequests + pendingWorkTime : undefined },
-                { path: '/finances',   label: 'Finanse',    icon: FileText,   requires: ANY_FINANCE, match: ['/finance'] },
-                { path: '/statistics', label: 'Statystyki', icon: TrendingUp, requires: 'STATISTICS_VIEW' },
-                { path: '/products',   label: 'Produkty',   icon: Package,    requires: 'PRODUCTS_VIEW' },
-                { path: '/activity',   label: 'Aktywność',  icon: Activity,   requires: 'AUDIT_VIEW' }
+                    badgeTone: newLeadsCount > 0 ? undefined : 'neutral',
+                    alert: newLeadsCount > 0, requires: 'LEADS_MANAGE', match: ['/leads', '/communication'] },
+                { path: '/customers', label: 'Klienci',   icon: CustomersIcon, requires: 'CUSTOMERS_VIEW' },
+                { path: '/vehicles',  label: 'Pojazdy',   icon: VehiclesIcon, requires: 'CUSTOMERS_VIEW' },
+                // Zdjęcia aut z wizyt i zleceń - stoją przy Pojazdach, nie przy pracy.
+                { path: '/gallery',   label: 'Galeria',   icon: GalleryIcon, requires: 'VISITS_VIEW' },
             ],
         },
         {
             title: 'Marketing',
             items: [
-                { path: '/campaigns',      label: 'Kampanie',       icon: MessageSquare, requires: 'COMMUNICATION_SEND' },
-                { path: '/instagram',      label: 'Instagram',      icon: Camera, requires: 'MARKETING_MANAGE' }
+                { path: '/campaigns', label: 'Kampanie', icon: CampaignsIcon, requires: 'COMMUNICATION_SEND' },
+                // Komu, co i kiedy wyjdzie SMS-em albo e-mailem: przypomnienia, potwierdzenia,
+                // kampanie. Stary adres (/scheduled-sms) przekierowuje - jest w `match`.
+                { path: '/scheduled-communication', label: 'Zaplanowane treści', icon: ScheduledContentIcon,
+                    requires: 'COMMUNICATION_SEND', match: ['/scheduled-sms'] },
+                { path: '/instagram', label: 'Instagram', icon: InstagramIcon, requires: 'MARKETING_MANAGE' },
             ],
         },
         {
-            // Przyklejona do dołu menu: Ustawienia i zgłoszenie problemu mają być
-            // widoczne bez przewijania, niezależnie od liczby modułów wyżej.
-            pinned: true,
+            title: 'Firma',
             items: [
-                // Parowanie telefonu do Click-to-Call przeniosło się stąd do
-                // Ustawień → Urządzenia mobilne, obok tabletów do podpisu:
-                // jedno miejsce na wszystkie urządzenia zamiast pozycji w menu,
-                // którą klikało się raz w życiu.
-                { path: '/settings',   label: 'Ustawienia', icon: Settings },
-                { label: 'Zgłoś problem', icon: CircleAlert, onClick: onReportProblem },
+                { path: '/finances',   label: 'Finanse',    icon: FinancesIcon, requires: ANY_FINANCE, match: ['/finance'] },
+                { path: '/statistics', label: 'Statystyki', icon: StatisticsIcon, requires: 'STATISTICS_VIEW' },
+                // Ścieżka to pierwsza zakładka, do której użytkownik ma dostęp - kierownik
+                // zmiany bez EMPLOYEES_MANAGE nie może trafić na /employees i przekierowanie.
+                { path: firstEmployeesTabPath(can) ?? '/employees', label: 'Pracownicy', icon: EmployeesIcon,
+                    requires: ANY_EMPLOYEES, match: ['/employees'],
+                    badge: pendingLeaveRequests + pendingWorkTime > 0 ? pendingLeaveRequests + pendingWorkTime : undefined },
+                { path: '/products',   label: 'Produkty',   icon: ProductsIcon, requires: 'PRODUCTS_VIEW' },
+            ],
+        },
+        {
+            // Na końcu listy, bez przypinania do dołu (decyzja z 21.10.2026): przy pełnych
+            // uprawnieniach na niskim ekranie trzeba do nich przewinąć menu.
+            // Parowanie telefonu do Click-to-Call jest w Ustawienia → Urządzenia mobilne.
+            items: [
+                { path: '/settings', label: 'Ustawienia', icon: SettingsIcon },
+                { label: 'Zgłoś problem', icon: ReportProblemIcon, onClick: onReportProblem },
             ],
         },
     ];

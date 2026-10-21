@@ -121,7 +121,7 @@ const Note = styled.div<{ $tone: 'info' | 'warn' }>`
     font-size: 13px;
     line-height: 1.5;
     ${p => p.$tone === 'info'
-        ? 'background: #f0f9ff; border: 1px solid #bae6fd; color: #075985;'
+        ? 'background: rgba(3, 105, 161, 0.06); border: 1px solid rgba(3, 105, 161, 0.25); color: #075985;'
         : 'background: #fffbeb; border: 1px solid #fcd34d; color: #92400e;'}
 
     > svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px; }
@@ -133,7 +133,7 @@ const EmailBlock = styled.div<{ $active: boolean }>`
     gap: 10px;
     padding: 14px 16px;
     border-radius: 14px;
-    border: 1.5px solid ${p => p.$active ? '#38bdf8' : p.theme.colors.border};
+    border: 1.5px solid ${p => p.$active ? 'rgba(3, 105, 161, 0.35)' : p.theme.colors.border};
 `;
 
 const CheckLabel = styled.label`
@@ -145,7 +145,7 @@ const CheckLabel = styled.label`
     color: ${p => p.theme.colors.text};
     cursor: pointer;
 
-    input { width: 18px; height: 18px; accent-color: #0284c7; flex-shrink: 0; }
+    input { width: 18px; height: 18px; accent-color: #0369a1; flex-shrink: 0; }
 `;
 
 const EmailInput = styled.input<{ $invalid: boolean }>`
@@ -159,7 +159,7 @@ const EmailInput = styled.input<{ $invalid: boolean }>`
     color: ${p => p.theme.colors.text};
     background: ${p => p.theme.colors.surface};
 
-    &:focus { outline: none; border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15); }
+    &:focus { outline: none; border-color: rgba(3, 105, 161, 0.35); box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.15); }
     @media (min-width: 768px) { font-size: 14px; }
 `;
 

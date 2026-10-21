@@ -1,4 +1,4 @@
-export { PageHeader, PageHeaderPrimaryButton, PageHeaderGhostButton } from './PageHeader';
+export { PageHeader, PageHeaderPrimaryButton, PageHeaderGhostButton, PageHeaderCount } from './PageHeader';
 export type { PageHeaderProps } from './PageHeader';
 export {
     MobilePageHeader,

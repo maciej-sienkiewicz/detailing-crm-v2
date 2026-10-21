@@ -39,13 +39,13 @@ const Icon = styled.div`
     width: 40px;
     height: 40px;
     border-radius: 11px;
-    background: linear-gradient(135deg, rgba(14, 165, 233, 0.14) 0%, rgba(14, 165, 233, 0.06) 100%);
-    color: ${st.accentBlue};
+    background: rgba(3, 105, 161, 0.07);
+    color: #0369a1;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    border: 1px solid rgba(14, 165, 233, 0.16);
+    border: 1px solid rgba(3, 105, 161, 0.14);
 
     svg { width: 20px; height: 20px; stroke-width: 2; }
 `;
@@ -92,29 +92,29 @@ const Actions = styled.div`
     flex-shrink: 0;
 `;
 
-/** Primary CTA - pigułka w kolorze marki. Wewnątrz można dać znak "+" jako
+/** Primary CTA - głęboki błękit marki. Wewnątrz można dać znak "+" jako
     <span aria-hidden="true">+</span> plus etykietę. */
 export const MobilePageHeaderButton = styled.button`
     display: inline-flex;
     align-items: center;
     gap: 6px;
     padding: 9px 15px;
-    background: ${st.accentBlue};
+    background: #0369a1;
     color: #fff;
     border: none;
-    border-radius: 9999px;
+    border-radius: 10px;
     font-size: 13px;
     font-weight: 600;
     font-family: inherit;
     cursor: pointer;
-    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.32);
+    box-shadow: 0 2px 6px rgba(3, 105, 161, 0.22);
     -webkit-tap-highlight-color: transparent;
     flex-shrink: 0;
     transition: background 150ms ease, box-shadow 150ms ease, transform 150ms ease;
 
     &:active {
-        background: #0284c7;
-        box-shadow: 0 1px 4px rgba(14, 165, 233, 0.32);
+        background: #075985;
+        box-shadow: 0 1px 4px rgba(3, 105, 161, 0.28);
         transform: translateY(0.5px);
     }
 

@@ -934,7 +934,7 @@ const EditorSavedChip = styled.span`
     color: ${ui.okInk};
     background: ${ui.okTint};
     border: 1px solid ${ui.okLine};
-    border-radius: ${ui.radiusControl};
+    border-radius: ${ui.radiusPill};
     padding: 2px 9px;
     white-space: nowrap;
     flex-shrink: 0;
@@ -1150,7 +1150,7 @@ const BulkPreviewDiscountChip = styled.span<{ $visible: boolean }>`
     color: ${ui.okInk};
     background: ${ui.okTint};
     border: 1px solid ${ui.okLine};
-    border-radius: ${ui.radiusControl};
+    border-radius: ${ui.radiusPill};
     padding: 1px 8px;
     white-space: nowrap;
     flex-shrink: 0;
@@ -1209,7 +1209,7 @@ const BulkPreviewTotalsSaved = styled.span`
     color: ${ui.okInk};
     background: ${ui.okTint};
     border: 1px solid ${ui.okLine};
-    border-radius: ${ui.radiusControl};
+    border-radius: ${ui.radiusPill};
     padding: 2px 9px;
     white-space: nowrap;
 `;

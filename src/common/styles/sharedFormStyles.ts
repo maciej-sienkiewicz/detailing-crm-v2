@@ -30,7 +30,7 @@ export const FormLabel = styled.label`
     display: block;
     font-size: 13px;
     font-weight: 500;
-    color: #475569;
+    color: var(--ui-text-secondary);
     letter-spacing: 0.01em;
     line-height: 1;
 `;
@@ -41,19 +41,19 @@ export const FormInput = styled.input<{ $hasError?: boolean; $accentColor?: stri
     width: 100%;
     padding: 11px 16px;
     background: #ffffff;
-    border: 1.5px solid ${p => p.$hasError ? '#ef4444' : '#e2e8f0'};
-    border-radius: 12px;
+    border: 1.5px solid ${p => p.$hasError ? '#ef4444' : 'var(--ui-line)'};
+    border-radius: 10px;
     font-size: 15px;
     font-weight: 400;
-    color: #0f172a;
+    color: var(--ui-ink);
     outline: none;
     transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
     font-family: inherit;
 
-    &::placeholder { color: #94a3b8; }
+    &::placeholder { color: var(--ui-text-faint); }
 
     &:hover:not(:focus):not(:disabled) {
-        border-color: #cbd5e1;
+        border-color: var(--ui-line-hover);
     }
 
     &:focus {
@@ -63,10 +63,10 @@ export const FormInput = styled.input<{ $hasError?: boolean; $accentColor?: stri
     }
 
     &:disabled {
-        background: #f8fafc;
-        color: #94a3b8;
+        background: var(--ui-surface-soft);
+        color: var(--ui-text-faint);
         cursor: not-allowed;
-        border-color: #f1f5f9;
+        border-color: var(--ui-surface-alt);
     }
 `;
 
@@ -74,20 +74,20 @@ export const FormTextarea = styled.textarea<{ $hasError?: boolean; $accentColor?
     width: 100%;
     padding: 11px 16px;
     background: #ffffff;
-    border: 1.5px solid ${p => p.$hasError ? '#ef4444' : '#e2e8f0'};
-    border-radius: 12px;
+    border: 1.5px solid ${p => p.$hasError ? '#ef4444' : 'var(--ui-line)'};
+    border-radius: 10px;
     font-size: 14px;
     font-weight: 400;
-    color: #0f172a;
+    color: var(--ui-ink);
     outline: none;
     resize: none;
     transition: border-color 180ms ease, box-shadow 180ms ease;
     font-family: inherit;
     line-height: 1.5;
 
-    &::placeholder { color: #94a3b8; }
+    &::placeholder { color: var(--ui-text-faint); }
 
-    &:hover:not(:focus) { border-color: #cbd5e1; }
+    &:hover:not(:focus) { border-color: var(--ui-line-hover); }
 
     &:focus {
         border-color: ${p => p.$hasError ? '#ef4444' : (p.$accentColor ?? '#0ea5e9')};
@@ -109,13 +109,13 @@ export const FormSelectButton = styled.button<{
     gap: 10px;
     padding: 11px 16px;
     background: #ffffff;
-    border: 1.5px solid ${p => p.$hasError ? '#ef4444' : '#e2e8f0'};
-    border-radius: 12px;
+    border: 1.5px solid ${p => p.$hasError ? '#ef4444' : 'var(--ui-line)'};
+    border-radius: 10px;
     text-align: left;
     cursor: pointer;
     transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
 
-    &:hover:not(:disabled) { border-color: #cbd5e1; }
+    &:hover:not(:disabled) { border-color: var(--ui-line-hover); }
 
     &:focus {
         outline: none;
@@ -129,7 +129,7 @@ export const FormSelectButton = styled.button<{
     span {
         flex: 1;
         font-size: 15px;
-        color: ${p => p.$hasValue ? '#0f172a' : '#94a3b8'};
+        color: ${p => p.$hasValue ? 'var(--ui-ink)' : 'var(--ui-text-faint)'};
         font-weight: ${p => p.$hasValue ? 500 : 400};
         white-space: nowrap;
         overflow: hidden;
@@ -150,7 +150,7 @@ export const FormSubmitError = styled.div`
     padding: 13px 16px;
     background: #fef2f2;
     border: 1px solid rgba(239, 68, 68, 0.2);
-    border-radius: 12px;
+    border-radius: 10px;
     font-size: 14px;
     color: #dc2626;
     font-weight: 500;
@@ -162,12 +162,12 @@ export const FormSelect = styled.select<{ $hasError?: boolean }>`
     width: 100%;
     padding: 11px 16px;
     background: #ffffff;
-    border: 1.5px solid ${p => p.$hasError ? '#ef4444' : '#e2e8f0'};
-    border-radius: 12px;
+    border: 1.5px solid ${p => p.$hasError ? '#ef4444' : 'var(--ui-line)'};
+    border-radius: 10px;
     font-size: 14px;
     font-family: inherit;
     font-weight: 400;
-    color: #0f172a;
+    color: var(--ui-ink);
     outline: none;
     cursor: pointer;
     transition: border-color 180ms ease, box-shadow 180ms ease;
@@ -179,10 +179,10 @@ export const FormSelect = styled.select<{ $hasError?: boolean }>`
     }
 
     &:disabled {
-        background: #f8fafc;
-        color: #94a3b8;
+        background: var(--ui-surface-soft);
+        color: var(--ui-text-faint);
         cursor: not-allowed;
-        border-color: #f1f5f9;
+        border-color: var(--ui-surface-alt);
     }
 `;
 
@@ -190,8 +190,8 @@ export const FormSelect = styled.select<{ $hasError?: boolean }>`
 
 export const FormCheckboxCard = styled.div`
     padding: 14px 16px;
-    background: #f8fafc;
-    border: 1.5px solid #e2e8f0;
+    background: var(--ui-surface-soft);
+    border: 1.5px solid var(--ui-line);
     border-radius: 14px;
     transition: border-color 180ms ease, background 180ms ease;
 
@@ -229,14 +229,14 @@ export const FormCheckboxTitle = styled.span`
     display: block;
     font-size: 14px;
     font-weight: 500;
-    color: #0f172a;
+    color: var(--ui-ink);
     line-height: 1.4;
 `;
 
 export const FormCheckboxDescription = styled.p`
     margin: 0;
     font-size: 13px;
-    color: #64748b;
+    color: var(--ui-text-muted);
     line-height: 1.4;
 `;
 
@@ -244,9 +244,9 @@ export const FormCheckboxDescription = styled.p`
 
 export const FormInfoBox = styled.div`
     padding: 14px 16px;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
+    background: var(--ui-surface-soft);
+    border: 1px solid var(--ui-line);
+    border-radius: 10px;
 `;
 
 export const FormInfoLabel = styled.p`
@@ -255,13 +255,13 @@ export const FormInfoLabel = styled.p`
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: #94a3b8;
+    color: var(--ui-text-faint);
 `;
 
 export const FormInfoValue = styled.p`
     margin: 0;
     font-size: 17px;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--ui-ink);
     letter-spacing: -0.2px;
 `;

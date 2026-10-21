@@ -185,7 +185,7 @@ const Norm = styled.span<{ $strong: boolean }>`
     left: 10px;
     top: 10px;
     padding: 4px 10px;
-    border-radius: ${ui.radiusControl};
+    border-radius: ${ui.radiusPill};
     font-size: 13px;
     font-weight: 700;
     background: ${p => (p.$strong ? ui.okTint : ui.surface)};

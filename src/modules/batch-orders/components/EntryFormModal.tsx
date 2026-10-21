@@ -278,9 +278,9 @@ const SheetSearchInput = styled.input`
     outline: none;
 
     &:focus {
-        border-color: var(--brand-primary);
+        border-color: var(--brand-ink);
         background: #fff;
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-primary) 18%, transparent);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-ink) 18%, transparent);
     }
 `;
 
@@ -363,7 +363,7 @@ const ServiceSuggestionPrice = styled.span`
  * desktopie tak samo.
  */
 const CreateSuggestionItem = styled(ServiceSuggestionItem)`
-    color: var(--brand-primary);
+    color: var(--brand-ink);
     font-weight: 600;
     svg { width: 14px; height: 14px; flex-shrink: 0; }
 `;
@@ -372,16 +372,16 @@ const CreateName = styled(ServiceSuggestionName)`
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    color: var(--brand-primary);
+    color: var(--brand-ink);
 `;
 
 const CreateTag = styled(ServiceSuggestionPrice)`
-    color: var(--brand-primary);
+    color: var(--brand-ink);
     font-weight: 600;
 `;
 
 const SheetCreateItem = styled(SheetItem)`
-    color: var(--brand-primary);
+    color: var(--brand-ink);
     font-weight: 600;
 `;
 
@@ -397,7 +397,7 @@ const SheetCreateTag = styled.span`
     flex-shrink: 0;
     font-size: 12px;
     font-weight: 600;
-    color: var(--brand-primary);
+    color: var(--brand-ink);
 `;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

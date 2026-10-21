@@ -24,12 +24,13 @@ export const BUTTON_SIZES: Record<ButtonSize, { height: number; padding: number;
 };
 
 const VARIANTS: Record<ButtonVariant, ReturnType<typeof css>> = {
+    // Pełny, głębszy błękit bez gradientu: spokojniej niż dawny gradient z dużym cieniem.
     primary: css`
         border-color: transparent;
-        background: linear-gradient(135deg, ${ui.brandStrong}, ${ui.brandInk});
+        background: ${ui.brandInk};
         color: #fff;
-        box-shadow: 0 4px 12px rgba(3, 105, 161, 0.25);
-        &:hover:not(:disabled) { box-shadow: 0 6px 16px rgba(3, 105, 161, 0.32); }
+        box-shadow: 0 2px 6px rgba(3, 105, 161, 0.22);
+        &:hover:not(:disabled) { background: ${ui.brandDeep}; box-shadow: 0 4px 10px rgba(3, 105, 161, 0.28); }
     `,
     success: css`
         border-color: transparent;

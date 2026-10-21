@@ -5,6 +5,7 @@
  * Do not define local Overlay / ModalBox / Header / Footer / CloseButton, use these.
  */
 import styled, { keyframes } from 'styled-components';
+import { warmScope } from '@/common/components/ui/tokens';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -90,7 +91,10 @@ export const ModalOverlay = styled.div<{ $isOpen: boolean; $zIndex?: number }>`
 
 export const ModalBox = styled.div<{ $isOpen: boolean; $maxWidth?: string; $fixedHeight?: string }>`
     background: #ffffff;
-    border-radius: 24px;
+    /* Łagodny, ale nie miękki róg i ciepłe neutralne wewnątrz okna
+       (kierunek „Ciepła · błękit”, 21.10.2026). */
+    border-radius: 20px;
+    ${warmScope}
     box-shadow:
         0 0 0 1px rgba(0, 0, 0, 0.04),
         0 4px 8px -2px rgba(0, 0, 0, 0.06),
@@ -128,7 +132,7 @@ export const ModalHeader = styled.div`
     justify-content: space-between;
     gap: 12px;
     flex-shrink: 0;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--ui-surface-alt);
 
     @media (max-width: 640px) {
         padding: 18px 18px 14px;
@@ -150,10 +154,12 @@ export const ModalTitleGroup = styled.div`
 
 export const ModalTitle = styled.h2`
     margin: 0;
-    font-family: 'Inter', sans-serif;
+    /* Tytuł w Archivo, tym samym kroju co menu boczne - echo logotypu. */
+    font-family: 'Archivo', 'Inter', sans-serif;
+    font-stretch: 106%;
     font-size: 22px;
-    font-weight: 700;
-    color: #0f172a;
+    font-weight: 650;
+    color: var(--ui-ink);
     letter-spacing: -0.3px;
     line-height: 1.2;
     /* Titles are sometimes file names, break them rather than blow out the box. */
@@ -168,7 +174,7 @@ export const ModalSubtitle = styled.p`
     margin: 0;
     font-family: 'Inter', sans-serif;
     font-size: 14px;
-    color: #64748b;
+    color: var(--ui-text-muted);
     font-weight: 400;
     line-height: 1.5;
 `;
@@ -180,17 +186,17 @@ export const ModalCloseButton = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #f1f5f9;
-    border: 1px solid #e2e8f0;
+    background: var(--ui-surface-alt);
+    border: 1px solid var(--ui-line);
     border-radius: 50%;
     cursor: pointer;
-    color: #64748b;
+    color: var(--ui-text-muted);
     transition: all 150ms ease;
 
     &:hover {
-        background: #e2e8f0;
-        color: #0f172a;
-        border-color: #cbd5e1;
+        background: var(--ui-line);
+        color: var(--ui-ink);
+        border-color: var(--ui-line-hover);
     }
 
     svg { width: 16px; height: 16px; }
@@ -203,11 +209,11 @@ export const ModalSectionTitle = styled.p`
     font-family: 'Inter', sans-serif;
     font-size: 11px;
     font-weight: 700;
-    color: #94a3b8;
+    color: var(--ui-text-faint);
     text-transform: uppercase;
     letter-spacing: 0.08em;
     padding-bottom: 8px;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--ui-surface-alt);
 `;
 
 // ─── Scrollable content ───────────────────────────────────────────────────────
@@ -237,18 +243,18 @@ export const ModalContent = styled.div`
     &::-webkit-scrollbar { width: 4px; }
     &::-webkit-scrollbar-track { background: transparent; }
     &::-webkit-scrollbar-thumb {
-        background: #e2e8f0;
+        background: var(--ui-line);
         border-radius: 2px;
     }
-    &::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+    &::-webkit-scrollbar-thumb:hover { background: var(--ui-line-hover); }
 `;
 
 // ─── Footer, always visible above scrollable content ─────────────────────────
 
 export const ModalFooter = styled.div`
     padding: 16px 28px;
-    border-top: 1px solid #f1f5f9;
-    background: #fafbfd;
+    border-top: 1px solid var(--ui-surface-alt);
+    background: var(--ui-surface-soft);
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -279,7 +285,7 @@ export const ModalFooter = styled.div`
 
 export const ModalDivider = styled.div`
     height: 1px;
-    background: #f1f5f9;
+    background: var(--ui-surface-alt);
     margin: 4px 0;
 `;
 

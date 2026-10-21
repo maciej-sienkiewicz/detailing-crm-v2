@@ -112,15 +112,15 @@ const Chip = styled.button<{ $active?: boolean }>`
     height: 34px;
     padding: 0 12px;
     border-radius: ${p => p.theme.radii.full};
-    border: 1px solid ${p => p.$active ? '#38bdf8' : p.theme.colors.border};
-    background: ${p => p.$active ? '#f0f9ff' : 'transparent'};
+    border: 1px solid ${p => p.$active ? 'rgba(3, 105, 161, 0.35)' : p.theme.colors.border};
+    background: ${p => p.$active ? 'rgba(3, 105, 161, 0.06)' : 'transparent'};
     font-family: inherit;
     font-size: 13px;
     font-weight: 600;
     color: ${p => p.$active ? '#075985' : p.theme.colors.textSecondary};
     cursor: pointer;
 
-    &:hover { border-color: #38bdf8; color: #075985; }
+    &:hover { border-color: rgba(3, 105, 161, 0.35); color: #075985; }
     @media (hover: none) and (pointer: coarse) { height: 40px; }
 `;
 
@@ -181,8 +181,8 @@ const ApplyBtn = styled.button`
     height: 36px;
     padding: 0 16px;
     border-radius: ${p => p.theme.radii.full};
-    border: 1px solid #38bdf8;
-    background: #f0f9ff;
+    border: 1px solid rgba(3, 105, 161, 0.35);
+    background: rgba(3, 105, 161, 0.06);
     font-family: inherit;
     font-size: 13px;
     font-weight: 600;
@@ -190,7 +190,7 @@ const ApplyBtn = styled.button`
     cursor: pointer;
 
     &:disabled { opacity: 0.5; cursor: not-allowed; }
-    &:hover:not(:disabled) { background: #e0f2fe; }
+    &:hover:not(:disabled) { background: rgba(3, 105, 161, 0.1); }
 `;
 
 const MONTH_LABELS = [

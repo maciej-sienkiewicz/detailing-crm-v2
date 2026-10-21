@@ -118,8 +118,8 @@ const AddTile = styled.label`
     cursor: pointer;
 
     svg { width: 18px; height: 18px; }
-    &:hover { border-color: #38bdf8; color: #075985; background: #f0f9ff; }
-    &:focus-within { outline: 2px solid #38bdf8; outline-offset: 2px; }
+    &:hover { border-color: rgba(3, 105, 161, 0.35); color: #075985; background: rgba(3, 105, 161, 0.06); }
+    &:focus-within { outline: 2px solid rgba(3, 105, 161, 0.35); outline-offset: 2px; }
 
     input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 `;

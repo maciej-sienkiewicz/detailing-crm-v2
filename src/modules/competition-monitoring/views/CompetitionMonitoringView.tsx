@@ -144,7 +144,7 @@ const MenuBadge = styled.span`
     min-width: 18px;
     height: 18px;
     padding: 0 5px;
-    border-radius: ${ui.radiusControl};
+    border-radius: ${ui.radiusPill};
     background: ${st.accentAmber};
     color: #fff;
     font-size: 11px;
@@ -159,7 +159,7 @@ const MenuBadge = styled.span`
 const MenuCount = styled.span`
     margin-left: auto;
     padding: 1px 8px;
-    border-radius: ${ui.radiusControl};
+    border-radius: ${ui.radiusPill};
     background: ${st.accentAmber};
     color: #fff;
     font-size: 12px;

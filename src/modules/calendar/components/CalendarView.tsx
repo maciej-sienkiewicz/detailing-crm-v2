@@ -1050,16 +1050,16 @@ const MobileAddBtn = styled.button`
     flex-shrink: 0;
     border: none;
     border-radius: 50%;
-    background: #0ea5e9;
+    background: #0369a1;
     color: #fff;
     font-size: 20px;
     font-weight: 300;
     line-height: 1;
     cursor: pointer;
-    box-shadow: 0 2px 6px rgba(14, 165, 233, 0.3);
+    box-shadow: 0 2px 6px rgba(3, 105, 161, 0.22);
     transition: background 0.15s ease;
 
-    &:active { background: #0284c7; }
+    &:active { background: #075985; }
 `;
 
 /* ===================== DESKTOP PAGE HEADER ===================== */
@@ -1204,20 +1204,21 @@ const NewEventBtn = styled.button`
     align-items: center;
     gap: 6px;
     padding: 10px 18px;
-    border-radius: 9999px;
-    background: #0ea5e9;
+    border-radius: 10px;
+    /* Ten sam głęboki błękit co akcja w PageHeader, nie jaskrawe #0ea5e9. */
+    background: #0369a1;
     color: #fff;
     font-size: 13px;
     font-weight: 600;
     border: none;
-    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
+    box-shadow: 0 2px 6px rgba(3, 105, 161, 0.22);
     cursor: pointer;
     font-family: inherit;
     transition: background 150ms ease, box-shadow 150ms ease;
 
     &:hover {
-        background: #0284c7;
-        box-shadow: 0 4px 12px rgba(14, 165, 233, 0.38);
+        background: #075985;
+        box-shadow: 0 4px 10px rgba(3, 105, 161, 0.28);
     }
 
     svg { width: 14px; height: 14px; flex-shrink: 0; }

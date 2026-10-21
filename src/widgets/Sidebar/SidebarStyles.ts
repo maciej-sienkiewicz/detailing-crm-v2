@@ -57,6 +57,11 @@ export const SidebarContainer = styled.aside<{ $isCollapsed: boolean; $isMobileO
     flex-direction: column;
     overflow: hidden;
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08);
+    /* Krój menu: Archivo w lekkim poszerzeniu (index.css). Przyciski i pola nie
+       dziedziczą fontu same z siebie, więc menu ustawia go im wprost. */
+    font-family: 'Archivo', var(--font-family-sans);
+    font-stretch: 108%;
+    button, input { font-family: inherit; font-stretch: inherit; }
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
         width: ${p => p.$isCollapsed ? '64px' : '248px'};
@@ -419,14 +424,18 @@ export const MenuSection = styled.div`
     &:first-child { padding-top: 6px; }
 `;
 
-/* Zwykłe zdanie zamiast wersalików 10 px z rozstrzeleniem: pięć takich etykiet
-   (GŁÓWNE, BAZA KLIENTÓW, STUDIO, ADMINISTRACJA, PORTAL) robiło z menu formularz
-   urzędowy — to ten sam wzorzec, który CLAUDE.md §2 wycofał z treści. */
+/* Nagłówek grupy: Archivo w pełnej szerokości, wersalikami z rozstrzeleniem -
+   to samo pismo co szeroki logotyp DetailBoost (wybór z 21.10.2026). Grup są
+   już tylko cztery i każda mówi, czym się zajmuje, więc wersaliki nie robią
+   z menu formularza jak dawne GŁÓWNE / STUDIO / PORTAL. */
 export const MenuSectionTitle = styled.div<{ $isCollapsed: boolean }>`
     padding: 0 12px 5px;
     color: ${S.sectionLabel};
-    font-size: 11.5px;
+    font-size: 10px;
     font-weight: 600;
+    font-stretch: 125%;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
     white-space: nowrap;
     overflow: hidden;
 
@@ -576,14 +585,15 @@ export const MenuItemText = styled.span<{ $isCollapsed: boolean }>`
     }
 `;
 
-export const MenuItemBadge = styled.span<{ $isCollapsed: boolean; $isActive?: boolean; $hasAlert?: boolean }>`
+export const MenuItemBadge = styled.span<{ $isCollapsed: boolean; $isActive?: boolean; $hasAlert?: boolean; $neutral?: boolean }>`
     margin-left: auto;
     padding: 2px 7px;
-    background: ${p => p.$isActive ? 'rgba(14, 165, 233, 0.25)' : 'rgba(239, 68, 68, 0.22)'};
+    /* Biały licznik informacyjny ($neutral) nie woła o uwagę jak czerwony. */
+    background: ${p => p.$isActive ? 'rgba(14, 165, 233, 0.25)' : p.$neutral ? 'rgba(255, 255, 255, 0.14)' : 'rgba(239, 68, 68, 0.22)'};
     border-radius: 9999px;
     font-size: 10px;
     font-weight: 700;
-    color: ${p => p.$isActive ? '#7dd3fc' : '#fca5a5'};
+    color: ${p => p.$isActive ? '#7dd3fc' : p.$neutral ? '#f8fafc' : '#fca5a5'};
     line-height: 1.5;
     flex-shrink: 0;
 

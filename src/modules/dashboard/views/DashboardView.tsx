@@ -156,25 +156,25 @@ const HeroActions = styled.div`
 `;
 
 const HeroBtnPrimary = styled.button`
-  background: #0ea5e9;
+  background: #0369a1;
   color: #fff;
   border: none;
   cursor: pointer;
   padding: 10px 20px;
-  border-radius: 9999px;
+  border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 2px 8px rgba(14,165,233,0.28);
+  box-shadow: 0 2px 6px rgba(3,105,161,0.28);
   transition: all 180ms ease;
   font-family: inherit;
 
   &:hover {
     background: #0284c7;
     transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(14,165,233,0.36);
+    box-shadow: 0 4px 10px rgba(3,105,161,0.34);
   }
 
   svg { width: 16px; height: 16px; stroke-width: 2; }

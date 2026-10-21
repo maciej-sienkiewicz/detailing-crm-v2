@@ -25,7 +25,7 @@ export interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonEle
 
 const Square = styled(ButtonBase)<{ $square?: boolean; $active?: boolean }>`
     ${p => p.$square && css`border-radius: 10px;`}
-    ${p => p.$active && css`border-color: #94a3b8; background: #f1f5f9;`}
+    ${p => p.$active && css`border-color: var(--ui-text-faint); background: var(--ui-surface-alt);`}
 `;
 
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(

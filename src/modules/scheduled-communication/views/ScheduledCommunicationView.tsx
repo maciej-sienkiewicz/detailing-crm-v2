@@ -21,7 +21,7 @@ import styled from 'styled-components';
 import { CalendarClock } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
 import { PageContainer } from '@/common/components/PageContainer';
-import { PageHeader, MobilePageHeader, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
+import { PageHeader, MobilePageHeader, MobilePageHeaderCountValue, PageHeaderCount } from '@/common/components/PageHeader';
 import { TabBar, type TabDefinition } from '@/common/components/TabBar/TabBar';
 import { Segmented } from '@/common/components/ui';
 import { useBreakpoint } from '@/common/hooks';
@@ -61,18 +61,6 @@ const PageBody = styled(PageContainer)`
     display: flex;
     flex-direction: column;
     gap: 20px;
-`;
-
-const TotalChip = styled.span`
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 10px;
-    background: ${st.accentBlueDim};
-    color: ${st.accentBlue};
-    border-radius: ${st.radiusFull};
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.1px;
 `;
 
 /** Na telefonie przełącznik stanu zajmuje cały wiersz paska; na komputerze stoi obok szukania. */
@@ -307,7 +295,7 @@ export const ScheduledCommunicationView = () => {
                                 {sendWindow
                                     ? `Do klientów wysyłamy między ${sendWindow.opensAt} a ${sendWindow.closesAt}`
                                     : 'Komu, co i kiedy wyślemy'}
-                                {queue.data && <TotalChip>{copy.pending(counts.PENDING)}</TotalChip>}
+                                {queue.data && <PageHeaderCount>{copy.pending(counts.PENDING)}</PageHeaderCount>}
                             </>
                         }
                     />

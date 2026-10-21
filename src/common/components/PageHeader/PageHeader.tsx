@@ -74,27 +74,47 @@ const HeroActions = styled.div`
   }
 `;
 
+// ─── Licznik przy podtytule („142 klientów”) ─────────────────────────────────
+//
+// Jeden dla wszystkich list - wcześniej pięć widoków miało własną kopię w jaskrawym
+// #0ea5e9 na jasnobłękitnym tle, która świeciła mocniej niż tytuł strony.
+
+export const PageHeaderCount = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  background: rgba(3, 105, 161, 0.07);
+  color: #0369a1;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+  font-variant-numeric: tabular-nums;
+`;
+
 // ─── Primary action button, matches Dashboard "Nowa wizyta" style ────────────
 
+// Głęboki, pełny błękit (jak główny przycisk w oknach), nie jaskrawe #0ea5e9 -
+// akcja nagłówka nie musi świecić mocniej niż dane pod nią.
 export const PageHeaderPrimaryButton = styled.button`
-  background: #0ea5e9;
+  background: #0369a1;
   color: #fff;
   border: none;
   cursor: pointer;
   padding: 10px 20px;
-  border-radius: 9999px;
+  border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 1px 2px rgba(14, 165, 233, 0.24);
+  box-shadow: 0 2px 6px rgba(3, 105, 161, 0.22);
   transition: all 180ms ease;
   font-family: inherit;
 
   &:hover {
-    background: #0284c7;
-    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
+    background: #075985;
+    box-shadow: 0 4px 10px rgba(3, 105, 161, 0.28);
   }
 
   &:active {
@@ -123,7 +143,7 @@ export const PageHeaderGhostButton = styled.button`
   border: 1px solid #e2e8f0;
   cursor: pointer;
   padding: 10px 20px;
-  border-radius: 9999px;
+  border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
   display: inline-flex;

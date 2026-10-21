@@ -5,7 +5,7 @@ import { Package } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { PageContainer } from '@/common/components/PageContainer';
 import {
-    PageHeader, PageHeaderPrimaryButton,
+    PageHeader, PageHeaderPrimaryButton, PageHeaderCount,
     MobilePageHeader, MobilePageHeaderButton, MobilePageHeaderCountValue,
 } from '@/common/components/PageHeader';
 import { EmptyState } from '@/common/components/EmptyState';
@@ -29,11 +29,6 @@ const PageBody = styled(PageContainer)` display: flex; flex-direction: column; g
 // Licznik stoi przy podtytule, po LEWEJ — tak samo jak na liście pojazdów.
 // Po prawej zostaje sam krok następny, więc nagłówek czyta się jednakowo
 // w całej aplikacji.
-const TotalChip = styled.span`
-    display: inline-flex; align-items: center; margin-left: 10px; padding: 2px 10px;
-    background: ${st.accentBlueDim}; color: ${st.accentBlue};
-    border-radius: ${st.radiusFull}; font-size: 12px; font-weight: 600;
-`;
 const ContentSection = styled.section`
     background: ${st.bgCard}; border: 1px solid ${st.border};
     border-radius: ${st.radius}; box-shadow: ${st.shadowSm}; overflow: hidden;
@@ -89,7 +84,7 @@ export function ProductListView() {
                         subtitle={
                             <>
                                 Katalog preparatów używanych w studiu
-                                {!isLoading && <TotalChip>{total} {pluralPl(total, 'produkt', 'produkty', 'produktów')}</TotalChip>}
+                                {!isLoading && <PageHeaderCount style={{ marginLeft: 10 }}>{total} {pluralPl(total, 'produkt', 'produkty', 'produktów')}</PageHeaderCount>}
                             </>
                         }
                         actions={canManage && (

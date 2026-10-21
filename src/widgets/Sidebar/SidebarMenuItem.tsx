@@ -1,11 +1,14 @@
-import { type LucideIcon } from 'lucide-react';
+import type { ComponentType } from 'react';
 import { useLocation } from 'react-router-dom';
 import { MenuItemLink, MenuItemButton, MenuItemIcon, MenuItemText, MenuItemBadge } from './SidebarStyles';
 
 export interface MenuItem {
     label: string;
-    icon: LucideIcon;
+    /** Ikona z menuIcons (geometria logo); przyjmie też ikonę lucide-react. */
+    icon: ComponentType<{ className?: string }>;
     badge?: string | number;
+    /** `neutral` - biały licznik informacyjny (np. nieprzeczytana poczta) zamiast czerwonego. */
+    badgeTone?: 'neutral';
     alert?: boolean;
     /** Navigation entry. Mutually exclusive with `onClick`. */
     path?: string;
@@ -69,7 +72,7 @@ export const SidebarMenuItem = ({ item, isCollapsed, onNavigate }: SidebarMenuIt
                 {item.label}
             </MenuItemText>
             {item.badge && (
-                <MenuItemBadge $isCollapsed={isCollapsed} $isActive={isActive} $hasAlert={hasAlert}>
+                <MenuItemBadge $isCollapsed={isCollapsed} $isActive={isActive} $hasAlert={hasAlert} $neutral={item.badgeTone === 'neutral'}>
                     {item.badge}
                 </MenuItemBadge>
             )}

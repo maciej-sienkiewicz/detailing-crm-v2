@@ -87,9 +87,9 @@ const MobileSummaryBtn = styled.button<{ $open: boolean }>`
         white-space: nowrap;
         min-height: 36px;
         min-width: 0;
-        border: 1px solid ${p => p.$open ? p.theme.colors.primary : p.theme.colors.border};
-        background: ${p => p.$open ? 'color-mix(in srgb, var(--brand-primary) 12%, transparent)' : 'transparent'};
-        color: ${p => p.$open ? p.theme.colors.primary : p.theme.colors.text};
+        border: 1px solid ${p => p.$open ? 'var(--brand-ink)' : p.theme.colors.border};
+        background: ${p => p.$open ? 'color-mix(in srgb, var(--brand-ink) 12%, transparent)' : 'transparent'};
+        color: ${p => p.$open ? 'var(--brand-ink)' : p.theme.colors.text};
         transition: border-color 0.15s, color 0.15s, background 0.15s;
     }
 `;
@@ -127,17 +127,17 @@ const Chip = styled.button<{ $active?: boolean }>`
     font-size: ${p => p.theme.fontSizes.xs};
     font-weight: 600;
     cursor: pointer;
-    border: 1px solid ${p => p.$active ? p.theme.colors.primary : p.theme.colors.border};
-    background: ${p => p.$active ? 'color-mix(in srgb, var(--brand-primary) 12%, transparent)' : 'transparent'};
-    color: ${p => p.$active ? p.theme.colors.primary : p.theme.colors.textMuted};
+    border: 1px solid ${p => p.$active ? 'var(--brand-ink)' : p.theme.colors.border};
+    background: ${p => p.$active ? 'color-mix(in srgb, var(--brand-ink) 12%, transparent)' : 'transparent'};
+    color: ${p => p.$active ? 'var(--brand-ink)' : p.theme.colors.textMuted};
     white-space: nowrap;
     transition: border-color 0.15s, color 0.15s, background 0.15s;
     min-height: 30px;
 
     &:hover {
-        border-color: ${p => p.theme.colors.primary};
-        color: ${p => p.theme.colors.primary};
-        background: color-mix(in srgb, var(--brand-primary) 8%, transparent);
+        border-color: var(--brand-ink);
+        color: var(--brand-ink);
+        background: color-mix(in srgb, var(--brand-ink) 8%, transparent);
     }
 
     @media (hover: none) and (pointer: coarse) { min-height: 40px; }
@@ -145,7 +145,7 @@ const Chip = styled.button<{ $active?: boolean }>`
 
 const MonthSelect = styled.select`
     padding: 5px 10px;
-    border: 1px solid ${p => p.theme.colors.primary};
+    border: 1px solid var(--brand-ink);
     border-radius: 6px;
     font-size: ${p => p.theme.fontSizes.xs};
     color: ${p => p.theme.colors.text};
@@ -180,8 +180,8 @@ const ApplyBtn = styled.button`
     font-size: ${p => p.theme.fontSizes.xs};
     font-weight: 600;
     cursor: pointer;
-    border: 1px solid ${p => p.theme.colors.primary};
-    background: ${p => p.theme.colors.primary};
+    border: 1px solid var(--brand-ink);
+    background: var(--brand-ink);
     color: #fff;
     min-height: 32px;
 

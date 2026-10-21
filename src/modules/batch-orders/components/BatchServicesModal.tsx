@@ -47,8 +47,8 @@ const Toolbar = styled.div`
 
 // Wyszukiwarka i przyciski to teraz wspólne prymitywy (InputShell/BareInput,
 // SharedButton, Select) - własne AddBtn/SearchInput/VatSelect w tym module
-// zaszywały sky-blue #0ea5e9 na sztywno (nie szły za kolorem marki klienta)
-// i miały prostokątny kształt obcy pigułkom reszty aplikacji.
+// zaszywały jaskrawe #0ea5e9 na sztywno i miały kształt obcy reszcie aplikacji.
+// Akcent modułu to głęboki błękit marki (--brand-ink), jak w nagłówkach widoków.
 
 /**
  * The editor opens under the row it edits rather than in an overlay: this list already
@@ -59,8 +59,8 @@ const EditPanel = styled.div`
     padding: 10px 14px 12px;
     /* Tint edytora liczony z koloru marki, nie zaszyty sky-blue: idzie za
        kolorem klienta i nie rozjeżdża się z resztą aplikacji. */
-    background: color-mix(in srgb, var(--brand-primary) 6%, #ffffff);
-    border-top: 1px dashed color-mix(in srgb, var(--brand-primary) 40%, #ffffff);
+    background: color-mix(in srgb, var(--brand-ink) 6%, #ffffff);
+    border-top: 1px dashed color-mix(in srgb, var(--brand-ink) 40%, #ffffff);
     display: flex;
     flex-direction: column;
     gap: 10px;

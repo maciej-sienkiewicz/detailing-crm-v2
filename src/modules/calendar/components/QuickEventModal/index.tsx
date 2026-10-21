@@ -1572,7 +1572,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     Wybierz z {form.vehicles.length} {pluralPl(form.vehicles.length, 'pojazdu', 'pojazdów', 'pojazdów')} klienta
                                                 </span>
                                                 <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0 }}>
-                                                    <path d="M1 1l4 4 4-4" stroke={ui.textFaint} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                                    <path d="M1 1l4 4 4-4" style={{ stroke: ui.textFaint }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                                                 </svg>
                                             </S.VehicleSelectButton>
                                             {form.showVehicleDropdown && form.selectedCustomer && createPortal(

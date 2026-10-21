@@ -16,7 +16,7 @@
 //   ghost / danger     - w wierszach i obok treści, bez obwódki
 //   onDark             - tylko w ciemnym nagłówku strony
 //
-// Metryka jest jedna: pigułka, 13-14px, grubość 600, 30 / 36 / 40px,
+// Metryka jest jedna: róg 10px (ui.radiusControl), 13-14px, grubość 600, 30 / 36 / 40px,
 // a pod palcem każdy rozmiar rośnie do 44px.
 
 import { forwardRef, type ButtonHTMLAttributes } from 'react';

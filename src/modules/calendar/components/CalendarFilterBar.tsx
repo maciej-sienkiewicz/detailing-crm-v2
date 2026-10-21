@@ -200,8 +200,8 @@ const ClearButton = styled.button`
 
 const CountBadge = styled.span`
     font-size: 11px;
-    color: #0284c7;
-    background: #e0f2fe;
+    color: #0369a1;
+    background: rgba(3, 105, 161, 0.07);
     padding: 3px 10px;
     border-radius: 9999px;
     font-weight: 600;

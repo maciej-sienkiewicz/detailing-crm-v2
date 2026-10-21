@@ -18,7 +18,7 @@ import { t, interpolate } from '@/common/i18n';
 import { pluralPl } from '@/common/utils/plural';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { Car } from 'lucide-react';
-import { PageHeader, PageHeaderPrimaryButton, MobilePageHeader, MobilePageHeaderButton, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
+import { PageHeader, PageHeaderPrimaryButton, MobilePageHeader, MobilePageHeaderButton, MobilePageHeaderCountValue, PageHeaderCount } from '@/common/components/PageHeader';
 import { PageContainer } from '@/common/components/PageContainer';
 import type { VehicleAdvancedFilters } from '../types';
 import { countActiveVehicleFilters } from '../utils/vehicleFilters';
@@ -34,18 +34,6 @@ const PageBody = styled(PageContainer)`
     display: flex;
     flex-direction: column;
     gap: 20px;
-`;
-
-const TotalChip = styled.span`
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 10px;
-    background: ${st.accentBlueDim};
-    color: ${st.accentBlue};
-    border-radius: ${st.radiusFull};
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.1px;
 `;
 
 const ContentSection = styled.section`
@@ -403,7 +391,7 @@ export const VehicleListView = () => {
                         <>
                             {t.vehicles.subtitle}
                             {pagination && (
-                                <TotalChip>{pagination.totalItems} {pluralPl(pagination.totalItems, 'pojazd', 'pojazdy', 'pojazdów')}</TotalChip>
+                                <PageHeaderCount>{pagination.totalItems} {pluralPl(pagination.totalItems, 'pojazd', 'pojazdy', 'pojazdów')}</PageHeaderCount>
                             )}
                         </>
                     }

@@ -21,7 +21,7 @@ import { pluralPl } from '@/common/utils/plural';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { CustomerAdvancedFilters, CustomerSortField, SortDirection } from '../types';
 import { Users } from 'lucide-react';
-import { PageHeader, PageHeaderPrimaryButton, MobilePageHeader, MobilePageHeaderButton, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
+import { PageHeader, PageHeaderPrimaryButton, MobilePageHeader, MobilePageHeaderButton, MobilePageHeaderCountValue, PageHeaderCount } from '@/common/components/PageHeader';
 import { PageContainer } from '@/common/components/PageContainer';
 
 // Tło sięga od krawędzi do krawędzi (pełna szerokość obszaru
@@ -36,18 +36,6 @@ const PageBody = styled(PageContainer)`
     display: flex;
     flex-direction: column;
     gap: 20px;
-`;
-
-const TotalChip = styled.span`
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 10px;
-    background: ${st.accentBlueDim};
-    color: ${st.accentBlue};
-    border-radius: ${st.radiusFull};
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.1px;
 `;
 
 const ContentSection = styled.section`
@@ -331,7 +319,7 @@ export const CustomerListView = () => {
                         <>
                             {t.customers.subtitle}
                             {pagination && (
-                                <TotalChip>{pagination.totalItems} {pluralPl(pagination.totalItems, 'klient', 'klientów', 'klientów')}</TotalChip>
+                                <PageHeaderCount>{pagination.totalItems} {pluralPl(pagination.totalItems, 'klient', 'klientów', 'klientów')}</PageHeaderCount>
                             )}
                         </>
                     }

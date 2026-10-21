@@ -26,7 +26,7 @@ export const StatusPill = styled.span<{ $tone?: PillTone; $size?: 'sm' | 'md' }>
     gap: 5px;
     padding: ${p => p.$size === 'md' ? '5px 12px' : '2px 9px'};
     border: 1px solid ${p => TONES[p.$tone ?? 'neutral'].line};
-    border-radius: ${ui.radiusControl};
+    border-radius: ${ui.radiusPill};
     background: ${p => TONES[p.$tone ?? 'neutral'].bg};
     color: ${p => TONES[p.$tone ?? 'neutral'].ink};
     font-size: ${p => p.$size === 'md' ? '13px' : '12px'};
