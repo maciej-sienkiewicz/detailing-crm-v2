@@ -8,7 +8,7 @@ import { GalleryLightbox } from './GalleryLightbox';
 import type { GalleryPhoto } from '../types';
 
 const PHOTO: GalleryPhoto = {
-    id: 'p1', fileName: 'przod.jpg', thumbnailUrl: 't/p1', fullSizeUrl: 'f/p1', tags: [],
+    id: 'p1', fileName: 'przod.jpg', thumbnailUrl: 't/p1', previewUrl: 'p/p1', fullSizeUrl: 'f/p1', tags: [],
     uploadedAt: '2026-09-10T08:00:00Z', uploadedBy: 'u1', uploadedByName: 'Krzysztof Niemier', source: 'VISIT',
 };
 
@@ -75,11 +75,18 @@ describe('GalleryLightbox - wczytywanie zdjęcia', () => {
         const view = render(withProviders(PHOTO));
         fireEvent.load(screen.getByAltText('przod.jpg'));
 
-        view.rerender(withProviders({ ...PHOTO, id: 'p2', fileName: 'tyl.jpg', thumbnailUrl: 't/p2', fullSizeUrl: 'f/p2' }));
+        view.rerender(withProviders({ ...PHOTO, id: 'p2', fileName: 'tyl.jpg', thumbnailUrl: 't/p2', previewUrl: 'p/p2', fullSizeUrl: 'f/p2' }));
 
         expect(previewImg()?.getAttribute('src')).toBe('t/p2');
-        expect(screen.getByAltText('tyl.jpg').getAttribute('src')).toBe('f/p2');
+        expect(screen.getByAltText('tyl.jpg').getAttribute('src')).toBe('p/p2');
         expect(screen.getByRole('status')).toBeInTheDocument();
+    });
+
+    it('okno pokazuje lekki podgląd, a oryginał jest tylko pod „Pełna rozdzielczość"', () => {
+        renderLightbox();
+
+        expect(screen.getByAltText('przod.jpg').getAttribute('src')).toBe('p/p1');
+        expect(screen.getByRole('link', { name: /Pełna rozdzielczość/ }).getAttribute('href')).toBe('f/p1');
     });
 
     it('gdy pełna jakość się nie wczyta, zostaje miniatura i komunikat', () => {

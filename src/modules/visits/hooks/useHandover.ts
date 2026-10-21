@@ -18,8 +18,9 @@ import type { CompleteVisitResponse, PaymentMethod } from '../types/stateTransit
 import {
     linesFromPrices,
     linesMatchServices,
-    mergeLines,
     newInvoiceLine,
+    overwrittenLines,
+    pricesWithTypedAmounts,
     toAddedServices,
     normalizeNip,
     originalGrossOf,
@@ -42,9 +43,9 @@ import {
     type VatRateCode,
 } from '../types/handover';
 
-// v4: pozycje bez „na fakturze / na innym dokumencie” i z kwotą innego dokumentu (21.10.2026).
-const DRAFT_PREFIX = 'handover:v4:';
-const LEGACY_DRAFT_PREFIXES = ['handover:v1:', 'handover:v2:', 'handover:v3:'];
+// v5: kwota pozycji wpisywana od netto albo brutto (amount + amountMode, 21.10.2026).
+const DRAFT_PREFIX = 'handover:v5:';
+const LEGACY_DRAFT_PREFIXES = ['handover:v1:', 'handover:v2:', 'handover:v3:', 'handover:v4:'];
 const DUE_DATE_DAYS = 14;
 
 const draftKey = (visitId: string) => `${DRAFT_PREFIX}${visitId}`;
@@ -268,7 +269,10 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     const remainder = plan.remainder;
     /** Ile klient płaci: przy podziale faktura + inny dokument (bez VAT od części poza fakturą). */
     const payable = state.splitRemainder ? invoiceGross + remainder : totals.gross;
-    const linesMatch = linesMatchServices(state.lines, state.prices);
+    /** Pozycje i ceny jak w wizycie - wtedy „Przywróć domyślne” nie ma czego przywracać. */
+    const linesMatch = linesMatchServices(state.lines, state.prices)
+        && !state.prices.some(p => p.added || priceChanged(p))
+        && !state.remainderInput.trim();
 
     // ── Akcje cen i pozycji ──────────────────────────────────────────────────
     const changePrice = useCallback(
@@ -294,8 +298,8 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
                     ...prev,
                     lines: prev.lines.map((l, i) => (i === index ? { ...l, ...changes } : l)),
                     // Nazwa pozycji dopisanej przy wydaniu to nazwa jej usługi w wizycie.
-                    prices: changes.name === undefined ? prev.prices : prev.prices.map(p =>
-                        p.added && ids.includes(p.serviceId) ? { ...p, name: changes.name ?? p.name } : p),
+                    prices: changes.name === undefined || ids.length !== 1 ? prev.prices : prev.prices.map(p =>
+                        p.added && p.serviceId === ids[0] ? { ...p, name: changes.name ?? p.name } : p),
                 };
             }),
         []
@@ -331,24 +335,20 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         []
     );
 
-    /** Pozycje faktury jak usługi wizyty: bez scaleń i bez podziału. */
+    /**
+     * „Przywróć domyślne”: pozycje i ceny jak w wizycie - bez scaleń, wpisanych kwot,
+     * dopisanych pozycji i ręcznej kwoty innego dokumentu. Podział zostaje włączony albo nie.
+     */
     const resetLines = useCallback(() => {
-        setState(prev => {
-            const prices = prev.prices.filter(p => !p.added);
-            return { ...prev, prices, lines: linesFromPrices(prices), splitRemainder: false };
-        });
+        const prices = buildInitialState().prices;
+        setState(prev => ({ ...prev, prices, lines: linesFromPrices(prices), remainderInput: '' }));
         setRestoredAt(null);
-    }, []);
+    }, [buildInitialState]);
 
-    /** Scalenie zaznaczonych pozycji; zwraca komunikat, gdy się nie da. */
-    const mergeSelected = useCallback(
-        (indexes: number[]): string | null => {
-            const merged = mergeLines(state.lines, indexes, state.prices);
-            if (typeof merged === 'string') return merged;
-            patch({ lines: merged });
-            return null;
-        },
-        [state.lines, state.prices, patch]
+    /** „Nadpisz pozycje”: jedna pozycja z całą sumą i pustą nazwą (patrz overwrittenLines). */
+    const overwriteLines = useCallback(
+        () => setState(prev => ({ ...prev, ...overwrittenLines(prev) })),
+        []
     );
 
     const unmerge = useCallback(
@@ -369,7 +369,10 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
                 ...prev,
                 splitRemainder: on,
                 remainderInput: '',
-                lines: on ? prev.lines : prev.lines.map(l => ({ ...l, partialGross: '' })),
+                // Włączenie podziału: kwoty wpisane bez podziału to ceny usług - zostają cenami,
+                // a nie stają się po cichu kwotami na fakturze (niższa dałaby resztę zamiast rabatu).
+                prices: on ? pricesWithTypedAmounts(prev, prev.lines.map((_, i) => i)) : prev.prices,
+                lines: prev.lines.map(l => ({ ...l, amount: '', amountMode: null })),
             })),
         []
     );
@@ -470,7 +473,7 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         addLine,
         removeLine,
         resetLines,
-        mergeSelected,
+        overwriteLines,
         unmerge,
         setRemainderInput,
         setInvoiceOther,

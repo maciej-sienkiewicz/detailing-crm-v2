@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import styled from 'styled-components';
-import { ArrowLeft, ArrowRight, FileCheck2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Eye, FileCheck2 } from 'lucide-react';
 import {
     ModalShell,
     ModalHeader,
@@ -28,6 +28,7 @@ import { ProtocolSection } from './ProtocolSection';
 import { ThankYouSmsSection } from './ThankYouSmsSection';
 import { advanceLabel, allProtocolsSigned, type ProtocolSignatureStatus } from './signatureStep';
 import { HandoverResultView } from './HandoverResultView';
+import { InvoicePreviewModal } from './InvoicePreviewModal';
 import { defaultThankYouSendAt } from './thankYouSms';
 import type { Visit } from '../../types';
 
@@ -139,6 +140,58 @@ const ActionText = styled.span`
     > span:last-child { font-size: 12.5px; opacity: 0.92; overflow-wrap: anywhere; }
 `;
 
+/**
+ * Podgląd faktury obok przycisku wydania: ta sama bryła (promień, kafelek ikony,
+ * wysokość), ale odcień zieleni zamiast wypełnienia - para, w której wygrywa wydanie.
+ */
+const PreviewAction = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px 10px 10px;
+    border: 1px solid ${ui.okLine};
+    border-radius: 14px;
+    background: ${ui.okTint};
+    color: ${ui.okInk};
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 150ms ease, border-color 150ms ease;
+
+    &:hover { background: ${ui.okTintHover}; border-color: #4ade80; }
+    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: 2px; }
+`;
+
+const PreviewIcon = styled.span`
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background: ${ui.surface};
+    border: 1px solid ${ui.okLine};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    svg { width: 18px; height: 18px; }
+`;
+
+/** Prawa strona stopki: podgląd faktury obok przycisku wydania, oba tej samej wysokości. */
+const FooterActions = styled.div`
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+
+    @media (max-width: 560px) {
+        flex-direction: column-reverse;
+        align-items: stretch;
+
+        > button { width: 100%; }
+    }
+`;
+
 const HandoverFooter = styled(ModalFooter)`
     justify-content: space-between;
     gap: 12px;
@@ -229,6 +282,10 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
             : null;
 
     const fmt = (grosz: number) => formatCurrency(grosz / 100, handover.currency);
+    // Podgląd faktury przy przycisku wydania - ostatnie spojrzenie przed wystawieniem.
+    const [isPreviewOpen, setPreviewOpen] = useState(false);
+    const showInvoicePreview = handover.canIssueDocuments && !handover.isFreeVisit
+        && handover.state.documentType === 'INVOICE' && !handover.invoicedExternally;
     const action = handoverAction({
         isFreeVisit: handover.isFreeVisit,
         canIssueDocuments: handover.canIssueDocuments,
@@ -334,7 +391,7 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                                 changeLineRate: handover.changeLineRate,
                                                 addLine: handover.addLine,
                                                 removeLine: handover.removeLine,
-                                                mergeSelected: handover.mergeSelected,
+                                                overwriteLines: handover.overwriteLines,
                                                 unmerge: handover.unmerge,
                                             }}
                                             priceControls={{
@@ -358,6 +415,7 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                             ksefBlocked={handover.ksefBlocked}
                                             transferDueDate={handover.transferDueDate}
                                             problems={handover.problems}
+                                            onBuyerChange={buyer => handover.patch({ buyer })}
                                         />
                                     </SettlementGrid>
                                 ) : handover.isFreeVisit ? (
@@ -411,22 +469,39 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                             >
                                 <ArrowLeft />Wstecz do protokołu
                             </Button>
-                            <PrimaryAction
-                                type="button"
-                                disabled={!handover.canSubmit}
-                                onClick={() => handover.submit()}
-                            >
-                                <ActionIcon aria-hidden="true"><FileCheck2 /></ActionIcon>
-                                <ActionText>
-                                    <span>{handover.isSubmitting ? 'Wydawanie…' : action.title}</span>
-                                    <span>{action.detail}</span>
-                                </ActionText>
-                                <ArrowRight aria-hidden="true" />
-                            </PrimaryAction>
+                            <FooterActions>
+                                {showInvoicePreview && (
+                                    <PreviewAction type="button" onClick={() => setPreviewOpen(true)}>
+                                        <PreviewIcon aria-hidden="true"><Eye /></PreviewIcon>
+                                        Podgląd faktury
+                                    </PreviewAction>
+                                )}
+                                <PrimaryAction
+                                    type="button"
+                                    disabled={!handover.canSubmit}
+                                    onClick={() => handover.submit()}
+                                >
+                                    <ActionIcon aria-hidden="true"><FileCheck2 /></ActionIcon>
+                                    <ActionText>
+                                        <span>{handover.isSubmitting ? 'Wydawanie…' : action.title}</span>
+                                        <span>{action.detail}</span>
+                                    </ActionText>
+                                    <ArrowRight aria-hidden="true" />
+                                </PrimaryAction>
+                            </FooterActions>
                         </>
                     )}
                 </HandoverFooter>
             )}
+            <InvoicePreviewModal
+                isOpen={isPreviewOpen && showInvoicePreview}
+                onClose={() => setPreviewOpen(false)}
+                company={handover.company}
+                buyer={handover.state.buyer}
+                items={handover.invoiceItems}
+                paymentMethod={handover.state.paymentMethod}
+                fmt={fmt}
+            />
         </ModalShell>
     );
 };

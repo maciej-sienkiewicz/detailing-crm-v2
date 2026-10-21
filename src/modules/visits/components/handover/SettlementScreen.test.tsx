@@ -51,7 +51,7 @@ const controls = (overrides: Partial<InvoiceControls> = {}): InvoiceControls => 
     addLine: vi.fn(),
     removeLine: vi.fn(),
     changeLine: vi.fn(),
-    mergeSelected: vi.fn(() => null),
+    overwriteLines: vi.fn(),
     unmerge: vi.fn(),
     ...overrides,
 });
@@ -155,10 +155,9 @@ describe('Lewa kolumna: decyzje', () => {
         expect(screen.queryByText(/nie można edytować ani usunąć/)).not.toBeInTheDocument();
     });
 
-    it('nabywca z NIP-em i adresem, pozycje zwinięte do jednej linii i rozwijane', () => {
+    it('bez karty nabywcy w lewej kolumnie, pozycje zwinięte do jednej linii i rozwijane', () => {
         left(state());
-        expect(screen.getByText('Flota Serwis Sp. z o.o.')).toBeInTheDocument();
-        expect(screen.getByText('NIP 521-301-72-28')).toBeInTheDocument();
+        expect(screen.queryByText('Flota Serwis Sp. z o.o.')).not.toBeInTheDocument();
         expect(screen.getByText(/2 pozycje/).textContent).toMatch(/1700,00\szł brutto/);
         expect(screen.queryByRole('list', { name: 'Pozycje faktury' })).not.toBeInTheDocument();
 
@@ -167,16 +166,15 @@ describe('Lewa kolumna: decyzje', () => {
         expect(within(screen.getByRole('list', { name: 'Pozycje faktury' })).getByText('Pranie tapicerki')).toBeInTheDocument();
     });
 
-    it('„Podgląd faktury” w lewej kolumnie otwiera wizualizację faktury', () => {
+    it('„Podgląd faktury” nie stoi przy pozycjach - jest w stopce obok przycisku wydania', () => {
         left(state());
-        fireEvent.click(screen.getByRole('button', { name: 'Podgląd faktury' }));
-        const dialog = screen.getByRole('dialog');
-        expect(within(dialog).getByText('Detail Studio')).toBeInTheDocument();
-        expect(within(dialog).getByText('Do zapłaty').parentElement?.textContent).toMatch(/1700,00/);
+        expect(screen.queryByRole('button', { name: 'Podgląd faktury' })).not.toBeInTheDocument();
+        left(state({ splitRemainder: true }));
+        expect(screen.queryByRole('button', { name: 'Podgląd faktury' })).not.toBeInTheDocument();
     });
 
     it('podział: każda pozycja na fakturze z polem kwoty, bez kolumny „Dokument”, pod nimi dwie kwoty', () => {
-        const lines = linesFromPrices(prices).map(l => (l.serviceIds[0] === 'p' ? { ...l, partialGross: '0' } : l));
+        const lines = linesFromPrices(prices).map(l => (l.serviceIds[0] === 'p' ? { ...l, amount: '0', amountMode: 'GROSS' } : l));
         const c = controls();
         left(state({ splitRemainder: true, lines }), { remainder: 18_519, c });
 
@@ -190,8 +188,10 @@ describe('Lewa kolumna: decyzje', () => {
 
         fireEvent.change(screen.getByLabelText('Kwota innego dokumentu'), { target: { value: '190' } });
         expect(c.setRemainderInput).toHaveBeenCalledWith('190');
-        fireEvent.change(screen.getByLabelText('Kwota na fakturze, pozycja 2'), { target: { value: '150' } });
-        expect(c.changeLine).toHaveBeenCalledWith(1, { partialGross: '150' });
+        fireEvent.change(screen.getByLabelText('Brutto, pozycja 2'), { target: { value: '150' } });
+        expect(c.changeLine).toHaveBeenCalledWith(1, { amount: '150', amountMode: 'GROSS' });
+        fireEvent.change(screen.getByLabelText('Netto, pozycja 1'), { target: { value: '1000' } });
+        expect(c.changeLine).toHaveBeenCalledWith(0, { amount: '1000', amountMode: 'NET' });
     });
 
     it('podział: pod przemianowaną pozycją nie ma „Usługa: …”', () => {
@@ -211,8 +211,12 @@ describe('Lewa kolumna: decyzje', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Pokaż pozycje' }));
         fireEvent.click(screen.getByRole('button', { name: 'Edytuj' }));
         fireEvent.change(screen.getByLabelText('Brutto, pozycja 1'), { target: { value: '1400' } });
-        expect(c.changeLine).toHaveBeenCalledWith(0, { partialGross: '1400' });
-        fireEvent.change(screen.getByLabelText('Stawka VAT, pozycja 2'), { target: { value: '23' } });
+        expect(c.changeLine).toHaveBeenCalledWith(0, { amount: '1400', amountMode: 'GROSS' });
+        // Stawka z listy w stylu aplikacji, nie z systemowego <select>.
+        fireEvent.click(screen.getByRole('button', { name: 'Stawka VAT, pozycja 2' }));
+        // jsdom nie mierzy menu, więc zostaje w fazie pomiaru (niewidoczne dla zapytań po roli).
+        const menu = document.querySelector<HTMLElement>('[role="listbox"][aria-label="Stawka VAT, pozycja 2"]')!;
+        fireEvent.click(within(menu).getByText('23%'));
         expect(c.changeLineRate).toHaveBeenCalledWith(1, '23');
         fireEvent.click(screen.getByRole('button', { name: 'Dodaj pozycję' }));
         expect(c.addLine).toHaveBeenCalled();
@@ -228,17 +232,16 @@ describe('Lewa kolumna: decyzje', () => {
         expect(pc.changePrice).toHaveBeenCalledWith('c', { gross: '1000,00' });
     });
 
-    it('scalenie zaznaczonych pozycji idzie do akcji, a jej odmowa jest pokazana', () => {
-        const c = controls({ mergeSelected: vi.fn(() => 'Scalić można tylko usługi z tą samą stawką VAT.') });
+    it('„Nadpisz pozycje” zamiast zaznaczania i scalania', () => {
+        const c = controls();
         left(state(), { c });
         fireEvent.click(screen.getByRole('button', { name: 'Pokaż pozycje' }));
         fireEvent.click(screen.getByRole('button', { name: 'Edytuj' }));
-        fireEvent.click(screen.getByLabelText('Zaznacz pozycję 1 do scalenia'));
-        fireEvent.click(screen.getByLabelText('Zaznacz pozycję 2 do scalenia'));
-        fireEvent.click(screen.getByRole('button', { name: /Scal zaznaczone/ }));
 
-        expect(c.mergeSelected).toHaveBeenCalledWith([0, 1]);
-        expect(screen.getByRole('alert').textContent).toMatch(/tą samą stawką VAT/);
+        expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Scal zaznaczone/ })).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Nadpisz pozycje' }));
+        expect(c.overwriteLines).toHaveBeenCalled();
     });
 
     it('księgowość wystawia faktury: bez podziału i bez pozycji', () => {
@@ -282,6 +285,24 @@ describe('Prawa kolumna: kwota, sprawdź przed wysłaniem, braki', () => {
         const aside = screen.getByLabelText('Podsumowanie rozliczenia');
         expect(aside.textContent).toMatch(/Faktura1700,00\szł brutto1404,70\szł netto/);
         expect(aside.textContent).not.toMatch(/pozycje|VAT 295|rabat przy wydaniu/);
+    });
+
+    it('nabywca w podsumowaniu z „Zmień”, które otwiera edycję nabywcy', () => {
+        cleanup();
+        const onBuyerChange = vi.fn();
+        wrap(
+            <SettlementSummary
+                state={state()} totals={totalsOf(state().prices)} currency="PLN"
+                invoiceItems={invoiceItemsOf(state())} invoiceGross={170_000} remainder={0}
+                invoicedExternally={false} sendToKsef ksefBlocked={null} transferDueDate={null}
+                problems={[]} onBuyerChange={onBuyerChange}
+            />,
+        );
+        const aside = screen.getByLabelText('Podsumowanie rozliczenia');
+        expect(aside.textContent).toMatch(/NabywcaFlota Serwis Sp\. z o\.o\.NIP 521-301-72-28/);
+        fireEvent.click(within(aside).getByRole('button', { name: 'Zmień' }));
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+        expect(screen.getByText('Nabywca faktury')).toBeInTheDocument();
     });
 
     it('paragon: podsumowanie bez nabywcy i bez KSeF', () => {

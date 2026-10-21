@@ -12,6 +12,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-001', fileName: 'bmw_x5_przod_przed.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp001/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp001/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp001/1920/1440',
         description: 'Przód pojazdu przed detailingiem',
         tags: ['przód', 'przed', 'lakier'],
@@ -24,6 +25,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-002', fileName: 'bmw_x5_przod_po.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp002/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp002/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp002/1920/1440',
         description: 'Przód pojazdu po detailingu',
         tags: ['przód', 'po', 'ceramika'],
@@ -36,6 +38,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-003', fileName: 'bmw_x5_tyl_zarysowanie.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp003/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp003/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp003/1920/1440',
         description: 'Zarysowanie na tylnym zderzaku',
         tags: ['tył', 'zarysowanie', 'zderzak', 'uszkodzenie'],
@@ -49,6 +52,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-004', fileName: 'audi_a4_lewy_bok.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp004/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp004/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp004/1920/1440',
         description: 'Lewy bok - korekta lakieru',
         tags: ['lewy bok', 'korekta lakieru', 'lakier'],
@@ -61,6 +65,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-005', fileName: 'audi_a4_felga_po.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp005/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp005/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp005/1920/1440',
         description: 'Felga po czyszczeniu',
         tags: ['felga', 'po', 'detailing'],
@@ -73,6 +78,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-006', fileName: 'audi_a4_wnetrze.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp006/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp006/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp006/1920/1440',
         description: 'Wnętrze - pranie tapicerki',
         tags: ['wnętrze', 'detailing'],
@@ -85,6 +91,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-007', fileName: 'merc_c_maska_ppf.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp007/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp007/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp007/1920/1440',
         description: 'Maska - naklejanie PPF',
         tags: ['maska', 'PPF', 'folia'],
@@ -97,6 +104,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-008', fileName: 'merc_c_dach_ppf.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp008/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp008/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp008/1920/1440',
         description: 'Dach - folia ochronna PPF',
         tags: ['dach', 'PPF', 'folia', 'po'],
@@ -109,6 +117,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-009', fileName: 'merc_c_prawy_slupek.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp009/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp009/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp009/1920/1440',
         description: 'Prawy słupek',
         tags: ['prawy bok', 'słupek'],
@@ -121,6 +130,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-010', fileName: 'porsche_cayenne_wnetrze_przed.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp010/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp010/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp010/1920/1440',
         description: 'Wnętrze przed praniem',
         tags: ['wnętrze', 'przed', 'bagażnik'],
@@ -133,6 +143,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-011', fileName: 'porsche_cayenne_wnetrze_po.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp011/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp011/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp011/1920/1440',
         description: 'Wnętrze po praniu',
         tags: ['wnętrze', 'po', 'detailing'],
@@ -145,6 +156,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-012', fileName: 'porsche_cayenne_ceramika_lakier.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp012/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp012/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp012/1920/1440',
         description: 'Nakładanie powłoki ceramicznej',
         tags: ['ceramika', 'lakier', 'po'],
@@ -157,6 +169,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-013', fileName: 'tesla_m3_przod.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp013/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp013/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp013/1920/1440',
         description: 'Przód Tesli po korekcie',
         tags: ['przód', 'po', 'korekta lakieru'],
@@ -169,6 +182,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-014', fileName: 'tesla_m3_szyba.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp014/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp014/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp014/1920/1440',
         description: 'Szyba panoramiczna',
         tags: ['szyba', 'dach'],
@@ -180,6 +194,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-015', fileName: 'tesla_m3_felgi_po.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp015/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp015/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp015/1920/1440',
         description: 'Felgi po renowacji',
         tags: ['felga', 'po', 'detailing'],
@@ -193,6 +208,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-016', fileName: 'volvo_xc60_wgniecenie.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp016/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp016/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp016/1920/1440',
         description: 'Wgniecenie na drzwiach',
         tags: ['lewy bok', 'wgniecenie', 'uszkodzenie'],
@@ -205,6 +221,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-017', fileName: 'volvo_xc60_progowa.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp017/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp017/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp017/1920/1440',
         description: 'Progowa - naklejona folia ochronna',
         tags: ['progowa', 'folia', 'PPF', 'po'],
@@ -217,6 +234,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-018', fileName: 'volvo_xc60_lusterko.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp018/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp018/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp018/1920/1440',
         description: 'Lusterko po lakierowaniu',
         tags: ['lusterko', 'po', 'lakier'],
@@ -229,6 +247,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-019', fileName: 'bmw_m4_tyl_ceramika.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp019/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp019/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp019/1920/1440',
         description: 'Tył po nałożeniu ceramiki',
         tags: ['tył', 'ceramika', 'po'],
@@ -241,6 +260,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-020', fileName: 'bmw_m4_maska_ppf.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp020/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp020/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp020/1920/1440',
         description: 'Maska z PPF matowym',
         tags: ['maska', 'PPF', 'folia', 'po'],
@@ -253,6 +273,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-021', fileName: 'bmw_m4_felga_renowacja.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp021/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp021/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp021/1920/1440',
         description: 'Felga po renowacji proszkowej',
         tags: ['felga', 'po'],
@@ -265,6 +286,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-022', fileName: 'rr_sport_przod_przed.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp022/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp022/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp022/1920/1440',
         description: 'Przód przed korektą',
         tags: ['przód', 'przed', 'lakier'],
@@ -277,6 +299,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-023', fileName: 'rr_sport_przod_po.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp023/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp023/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp023/1920/1440',
         description: 'Przód po korekcie i ceramice',
         tags: ['przód', 'po', 'ceramika', 'korekta lakieru'],
@@ -289,6 +312,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-024', fileName: 'rr_sport_bagaz.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp024/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp024/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp024/1920/1440',
         description: 'Bagażnik - koło zapasowe',
         tags: ['bagażnik', 'koło zapasowe'],
@@ -301,6 +325,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-025', fileName: 'mustang_lewy_bok_zarys.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp025/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp025/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp025/1920/1440',
         description: 'Zarysowanie lakieru - lewy bok',
         tags: ['lewy bok', 'zarysowanie', 'uszkodzenie', 'przed'],
@@ -313,6 +338,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-026', fileName: 'mustang_lewy_bok_po.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp026/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp026/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp026/1920/1440',
         description: 'Lewy bok po korekcie lakieru',
         tags: ['lewy bok', 'po', 'korekta lakieru'],
@@ -325,6 +351,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-027', fileName: 'mustang_opona.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp027/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp027/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp027/1920/1440',
         description: 'Stan opon',
         tags: ['opona', 'felga'],
@@ -337,6 +364,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-028', fileName: 'lexus_is_ceramika_pelna.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp028/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp028/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp028/1920/1440',
         description: 'Pełna powłoka ceramiczna',
         tags: ['ceramika', 'po', 'lakier'],
@@ -348,6 +376,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-029', fileName: 'lexus_is_tyl_przed.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp029/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp029/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp029/1920/1440',
         description: 'Tył przed korektą',
         tags: ['tył', 'przed'],
@@ -360,6 +389,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-030', fileName: 'lexus_is_tyl_po.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp030/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp030/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp030/1920/1440',
         description: 'Tył po korekcie i ceramice',
         tags: ['tył', 'po', 'ceramika', 'korekta lakieru'],
@@ -373,6 +403,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-031', fileName: 'gr86_przod_ppf.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp031/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp031/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp031/1920/1440',
         description: 'Przód - PPF zestaw sportowy',
         tags: ['przód', 'PPF', 'folia', 'po'],
@@ -385,6 +416,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-032', fileName: 'gr86_maska_ppf.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp032/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp032/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp032/1920/1440',
         description: 'Maska po PPF i ceramice',
         tags: ['maska', 'PPF', 'ceramika', 'po'],
@@ -397,6 +429,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-033', fileName: 'gr86_bok_prawy.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp033/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp033/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp033/1920/1440',
         description: 'Prawy bok - widok boczny',
         tags: ['prawy bok', 'po'],
@@ -409,6 +442,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-034', fileName: 'golf_8_przod.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp034/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp034/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp034/1920/1440',
         description: 'Przód po pełnym detailingu',
         tags: ['przód', 'po', 'detailing'],
@@ -421,6 +455,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-035', fileName: 'golf_8_wnetrze_po.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp035/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp035/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp035/1920/1440',
         description: 'Wnętrze po praniu ozonowaniu',
         tags: ['wnętrze', 'po', 'detailing'],
@@ -433,6 +468,7 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
     {
         id: 'gp-036', fileName: 'golf_8_zderzak_tyl.jpg',
         thumbnailUrl: 'https://picsum.photos/seed/gp036/400/300',
+        previewUrl:   'https://picsum.photos/seed/gp036/1600/1200',
         fullSizeUrl:  'https://picsum.photos/seed/gp036/1920/1440',
         description: 'Zderzak tylny - drobne zarysowania',
         tags: ['tył', 'zderzak', 'zarysowanie', 'przed'],

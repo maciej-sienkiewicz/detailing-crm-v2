@@ -59,15 +59,19 @@ export interface HandoverPrice extends HandoverItem {
 
 /**
  * Pozycja faktury: jedna albo kilka usług tej samej stawki (scalenie). Każda pozycja idzie
- * na fakturę. Przy podziale „faktura + inny dokument” pozycja może mieć na fakturze inną
- * kwotę niż jej usługi ([partialGross]): niższa zostawia resztę na innym dokumencie,
- * wyższa podnosi cenę usług w wizycie do tej kwoty (patrz [settlementPlan]).
+ * na fakturę. Kwotę pozycji można wpisać od strony netto albo brutto ([amount], [amountMode]);
+ * wpisana strona jest źródłem prawdy, druga wynika z niej (CLAUDE.md §1). Bez podziału
+ * wpisana kwota to nowa cena usług pozycji; przy „faktura + inny dokument” to kwota na
+ * fakturze - niższa zostawia resztę na innym dokumencie, wyższa podnosi cenę usług
+ * (patrz [settlementPlan]).
  */
 export interface InvoiceLine {
     name: string;
     serviceIds: string[];
-    /** Podział: brutto na fakturze; '' = cała kwota usług pozycji, 0 = nic na fakturze. */
-    partialGross: string;
+    /** Wpisana kwota pozycji w złotych; '' przy [amountMode] = null znaczy „kwota usług”. */
+    amount: string;
+    /** Strona wpisanej kwoty; null = kwota wynika z cen usług. */
+    amountMode: PriceMode | null;
 }
 
 /**
@@ -346,7 +350,8 @@ export const toPriceChanges = (prices: HandoverPrice[]): HandoverPriceChangePayl
 export const toAddedServices = (prices: HandoverPrice[], lines: InvoiceLine[]): HandoverAddedServicePayload[] =>
     prices.filter(price => price.added).map(price => {
         const { net, gross } = itemAmounts(price);
-        const line = lines.find(l => l.serviceIds.includes(price.serviceId));
+        // Nazwa z pozycji tylko wtedy, gdy pozycja to ta jedna usługa; w scalonej - własna.
+        const line = lines.find(l => l.serviceIds.length === 1 && l.serviceIds[0] === price.serviceId);
         return {
             id: price.serviceId,
             name: (line?.name ?? price.name).trim(),
@@ -375,7 +380,7 @@ export const newInvoiceLine = (): { price: HandoverPrice; line: InvoiceLine } =>
             serviceId: id, name: '', net: '0,00', gross: '0,00', mode: 'GROSS', vatRate: '23',
             originalNet: 0, originalGross: 0, originalRate: '23', added: true,
         },
-        line: { name: '', serviceIds: [id], partialGross: '' },
+        line: { name: '', serviceIds: [id], amount: '', amountMode: null },
     };
 };
 
@@ -383,7 +388,7 @@ export const newInvoiceLine = (): { price: HandoverPrice; line: InvoiceLine } =>
 
 /** Jedna pozycja na usługę - punkt wyjścia faktury. */
 export const linesFromPrices = (prices: HandoverPrice[]): InvoiceLine[] =>
-    prices.map(price => ({ name: price.name, serviceIds: [price.serviceId], partialGross: '' }));
+    prices.map(price => ({ name: price.name, serviceIds: [price.serviceId], amount: '', amountMode: null }));
 
 const sourcesOf = (line: InvoiceLine, prices: HandoverPrice[]): HandoverPrice[] =>
     line.serviceIds.map(id => prices.find(p => p.serviceId === id)).filter((p): p is HandoverPrice => Boolean(p));
@@ -392,29 +397,54 @@ const sourcesOf = (line: InvoiceLine, prices: HandoverPrice[]): HandoverPrice[] 
 export const lineFullGross = (line: InvoiceLine, prices: HandoverPrice[]): number =>
     sourcesOf(line, prices).reduce((sum, p) => sum + priceAmounts(p).gross, 0);
 
+/** Suma usług pozycji po wskazanej stronie ceny. */
+const lineSide = (line: InvoiceLine, prices: HandoverPrice[], mode: PriceMode): number =>
+    sourcesOf(line, prices).reduce((sum, p) => sum + (mode === 'NET' ? priceAmounts(p).net : priceAmounts(p).gross), 0);
+
+/** Wpisana kwota pozycji (grosze, po swojej stronie) albo null. Puste pole po wpisaniu = 0. */
+export const typedAmountOf = (line: InvoiceLine): { mode: PriceMode; cents: number } | null =>
+    line.amountMode ? { mode: line.amountMode, cents: parsePln(line.amount) } : null;
+
 /** Pozycja łączy usługi, które mają teraz różne stawki VAT (np. zmieniono stawkę po scaleniu). */
 export const lineRatesMixed = (line: InvoiceLine, prices: HandoverPrice[]): boolean =>
     new Set(sourcesOf(line, prices).map(p => p.vatRate)).size > 1;
 
-/** Kwota pozycji na fakturze przy podziale: wpisana albo null (= cała kwota usług). */
-const partialOf = (line: InvoiceLine, full: number, split: boolean): number | null => {
-    if (!split || !line.partialGross.trim()) return null;
-    const partial = parsePln(line.partialGross);
-    return partial < full ? partial : null;
+/**
+ * Ceny usług pozycji ustawione na wpisaną kwotę: kwota rozłożona na usługi w proporcji
+ * ich dotychczasowych cen (po tej samej stronie), wpisana strona zostaje ustalona.
+ */
+const withLinePrice = (prices: HandoverPrice[], line: InvoiceLine, typed: { mode: PriceMode; cents: number }): HandoverPrice[] => {
+    const sources = sourcesOf(line, prices);
+    if (sources.length === 0) return prices;
+    const weights = sources.map(p => (typed.mode === 'NET' ? priceAmounts(p).net : priceAmounts(p).gross));
+    const parts = distributeCents(typed.cents, weights.every(w => w === 0) ? weights.map(() => 1) : weights);
+    return prices.map(p => {
+        const i = sources.findIndex(src => src.serviceId === p.serviceId);
+        if (i < 0) return p;
+        return updatePrice(p, typed.mode === 'NET' ? { net: toPln(parts[i]) } : { gross: toPln(parts[i]) });
+    });
+};
+
+/** Kwota pozycji na fakturze przy podziale, gdy niższa niż jej usługi; null = cała kwota usług. */
+const partialOf = (line: InvoiceLine, prices: HandoverPrice[], split: boolean): { mode: PriceMode; cents: number } | null => {
+    const typed = typedAmountOf(line);
+    if (!split || !typed) return null;
+    return typed.cents < lineSide(line, prices, typed.mode) ? typed : null;
 };
 
 /**
  * Pozycja faktury jako kwoty. Jedna usługa idzie w swojej stronie ceny (netto usługi
- * zostaje netto faktury); scalenie usług od netta - sumą netto; pozostałe i kwota
- * częściowa - brutto.
+ * zostaje netto faktury); scalenie usług od netta - sumą netto; kwota częściowa - po
+ * stronie, po której ją wpisano; pozostałe - brutto.
  */
 export const lineAmounts = (line: InvoiceLine, prices: HandoverPrice[], split = false): HandoverItem => {
     const sources = sourcesOf(line, prices);
     const vatRate = sources[0]?.vatRate ?? '23';
-    const full = sources.reduce((sum, p) => sum + priceAmounts(p).gross, 0);
-    const partial = partialOf(line, full, split);
+    const partial = partialOf(line, prices, split);
     if (partial !== null) {
-        return withDerived({ name: line.name, net: '', gross: toPln(partial), mode: 'GROSS', vatRate });
+        return withDerived(partial.mode === 'NET'
+            ? { name: line.name, net: toPln(partial.cents), gross: '', mode: 'NET', vatRate }
+            : { name: line.name, net: '', gross: toPln(partial.cents), mode: 'GROSS', vatRate });
     }
     if (sources.length === 1) {
         const { net, gross } = priceAmounts(sources[0]);
@@ -424,6 +454,7 @@ export const lineAmounts = (line: InvoiceLine, prices: HandoverPrice[], split = 
         const net = sources.reduce((sum, p) => sum + priceAmounts(p).net, 0);
         return withDerived({ name: line.name, net: toPln(net), gross: '', mode: 'NET', vatRate });
     }
+    const full = sources.reduce((sum, p) => sum + priceAmounts(p).gross, 0);
     return withDerived({ name: line.name, net: '', gross: toPln(full), mode: 'GROSS', vatRate });
 };
 
@@ -505,17 +536,9 @@ export const settlementPlan = (state: HandoverState): SettlementPlan => {
         // zmienia cenę usług w wizycie - pozycje faktury zastępują tu „Ceny usług”.
         let prices = state.prices;
         state.lines.forEach(line => {
-            if (!line.partialGross.trim() || !isPlnInput(line.partialGross)) return;
-            const typed = parsePln(line.partialGross);
-            const sources = sourcesOf(line, prices);
-            const full = sources.reduce((sum, p) => sum + priceAmounts(p).gross, 0);
-            if (sources.length === 0 || typed === full) return;
-            const grosses = sources.map(p => priceAmounts(p).gross);
-            const parts = distributeCents(typed, grosses.every(g => g === 0) ? grosses.map(() => 1) : grosses);
-            prices = prices.map(p => {
-                const i = sources.findIndex(src => src.serviceId === p.serviceId);
-                return i < 0 ? p : updatePrice(p, { gross: toPln(parts[i]) });
-            });
+            const typed = typedAmountOf(line);
+            if (!typed || !isPlnInput(line.amount) || typed.cents === lineSide(line, prices, typed.mode)) return;
+            prices = withLinePrice(prices, line, typed);
         });
         const invoice = invoiceOf(prices);
         return {
@@ -534,18 +557,10 @@ export const settlementPlan = (state: HandoverState): SettlementPlan => {
     let prices = state.prices;
     const raisedByInvoice: string[] = [];
     state.lines.forEach(line => {
-        if (!line.partialGross.trim()) return;
-        const partial = parsePln(line.partialGross);
-        const sources = sourcesOf(line, prices);
-        const full = sources.reduce((sum, p) => sum + priceAmounts(p).gross, 0);
-        if (sources.length === 0 || partial <= full) return;
-        const grosses = sources.map(p => priceAmounts(p).gross);
-        const parts = distributeCents(partial, grosses.every(g => g === 0) ? grosses.map(() => 1) : grosses);
-        prices = prices.map(p => {
-            const i = sources.findIndex(s => s.serviceId === p.serviceId);
-            return i < 0 ? p : updatePrice(p, { gross: toPln(parts[i]) });
-        });
-        raisedByInvoice.push(...sources.map(p => p.name));
+        const typed = typedAmountOf(line);
+        if (!typed || typed.cents <= lineSide(line, prices, typed.mode)) return;
+        prices = withLinePrice(prices, line, typed);
+        raisedByInvoice.push(...sourcesOf(line, prices).map(p => p.name));
     });
 
     // 2. Faktura - jej kwoty są odtąd ustalone.
@@ -594,9 +609,20 @@ export const invoiceLinesOf = (state: HandoverState): Array<{ line: InvoiceLine;
 
 export const invoiceItemsOf = (state: HandoverState): HandoverItem[] => invoiceLinesOf(state).map(({ item }) => item);
 
+/** Wpisana kwota pozycji przeliczona na brutto (przy stawce jej usług); null bez wpisu. */
+const typedGrossOf = (line: InvoiceLine, prices: HandoverPrice[]): number | null => {
+    const typed = typedAmountOf(line);
+    if (!typed) return null;
+    if (typed.mode === 'GROSS') return typed.cents;
+    const vatRate = sourcesOf(line, prices)[0]?.vatRate ?? '23';
+    return typed.cents + vatFromNet(typed.cents, vatRate);
+};
+
 /**
  * Scalenie zaznaczonych pozycji w jedną. Jedna pozycja ma jedną stawkę, więc scalić
  * można tylko usługi tej samej stawki - scalenie 8% z 23% zmieniało po cichu podatek.
+ * Wpisane kwoty scalanych pozycji sumują się w kwocie nowej pozycji (wcześniej przepadały,
+ * a pozycja dopisana przy wydaniu - z ceną tylko w polu kwoty - zostawała z zerem).
  * Zwraca nowe pozycje albo komunikat, dlaczego się nie da.
  */
 export const mergeLines = (lines: InvoiceLine[], indexes: number[], prices: HandoverPrice[]): InvoiceLine[] | string => {
@@ -605,28 +631,90 @@ export const mergeLines = (lines: InvoiceLine[], indexes: number[], prices: Hand
     const rates = new Set(picked.flatMap(line => sourcesOf(line, prices).map(p => p.vatRate)));
     if (rates.size > 1) return 'Scalić można tylko usługi z tą samą stawką VAT.';
     const names = picked.map(line => line.name.trim()).filter(Boolean).join(', ');
+    const typedModes = new Set(picked.map(line => line.amountMode).filter((m): m is PriceMode => m !== null));
+    let amount = '';
+    let amountMode: PriceMode | null = null;
+    if (typedModes.size > 0) {
+        // Jedna strona wpisu - suma po tej stronie; różne strony - suma brutto.
+        amountMode = typedModes.size === 1 ? [...typedModes][0] : 'GROSS';
+        const mode = amountMode;
+        const sum = picked.reduce((total, line) => {
+            if (line.amountMode === mode) return total + parsePln(line.amount);
+            if (line.amountMode) return total + (typedGrossOf(line, prices) ?? 0);
+            return total + lineSide(line, prices, mode);
+        }, 0);
+        amount = toPln(sum);
+    }
     const merged: InvoiceLine = {
         name: names.length > 200 ? `${names.slice(0, 197)}...` : names,
         serviceIds: picked.flatMap(line => line.serviceIds),
-        partialGross: '',
+        amount,
+        amountMode,
     };
     const first = Math.min(...indexes);
     return lines.flatMap((line, i) => (i === first ? [merged] : indexes.includes(i) ? [] : [line]));
 };
 
-/** Rozdzielenie scalonej pozycji z powrotem na usługi. */
+/**
+ * Rozdzielenie scalonej pozycji z powrotem na usługi. Wpisana kwota rozkłada się na nie
+ * w proporcji ich cen, więc suma się nie zmienia.
+ */
 export const unmergeLine = (lines: InvoiceLine[], index: number, prices: HandoverPrice[]): InvoiceLine[] =>
-    lines.flatMap((line, i) =>
-        i !== index
-            ? [line]
-            : sourcesOf(line, prices).map(p => ({ name: p.name, serviceIds: [p.serviceId], partialGross: '' }))
-    );
+    lines.flatMap((line, i) => {
+        if (i !== index) return [line];
+        const sources = sourcesOf(line, prices);
+        const typed = typedAmountOf(line);
+        const weights = sources.map(p => (typed?.mode === 'NET' ? priceAmounts(p).net : priceAmounts(p).gross));
+        const parts = typed ? distributeCents(typed.cents, weights.every(w => w === 0) ? weights.map(() => 1) : weights) : [];
+        return sources.map((p, j) => ({
+            name: p.name,
+            serviceIds: [p.serviceId],
+            amount: typed ? toPln(parts[j]) : '',
+            amountMode: typed ? typed.mode : null,
+        }));
+    });
 
-/** Pozycje ułożone dokładnie jak usługi (bez scaleń i podziału). */
+/**
+ * Bez podziału wpisane kwoty pozycji to nowe ceny usług. Przed scaleniem trafiają do cen,
+ * żeby każda usługa zachowała swoją cenę (scalona pozycja rozłożyłaby kwotę proporcjonalnie).
+ */
+export const pricesWithTypedAmounts = (state: HandoverState, indexes: number[]): HandoverPrice[] =>
+    indexes.reduce((prices, i) => {
+        const line = state.lines[i];
+        const typed = line ? typedAmountOf(line) : null;
+        return line && typed && isPlnInput(line.amount) ? withLinePrice(prices, line, typed) : prices;
+    }, state.prices);
+
+/**
+ * „Nadpisz pozycje”: zamiast pozycji usług jedna pozycja z całą sumą i pustą nazwą - nazwę
+ * wpisuje człowiek. Jedna pozycja faktury ma jedną stawkę, więc usługi z różnymi stawkami
+ * dają jedną pozycję na stawkę. Bez podziału wpisane kwoty trafiają najpierw do cen usług
+ * (jak przy scaleniu), przy podziale sumują się jako kwota na fakturze.
+ */
+export const overwrittenLines = (state: HandoverState): { lines: InvoiceLine[]; prices: HandoverPrice[] } => {
+    const all = state.lines.map((_, i) => i);
+    const prices = state.splitRemainder ? state.prices : pricesWithTypedAmounts(state, all);
+    const base = state.splitRemainder
+        ? state.lines
+        : state.lines.map(line => ({ ...line, amount: '', amountMode: null }));
+    const groups = new Map<VatRateCode, InvoiceLine[]>();
+    base.forEach(line => {
+        const rate = sourcesOf(line, prices)[0]?.vatRate ?? '23';
+        groups.set(rate, [...(groups.get(rate) ?? []), line]);
+    });
+    const lines = [...groups.values()].flatMap(group => {
+        if (group.length === 1) return [{ ...group[0], name: '' }];
+        const merged = mergeLines(group, group.map((_, i) => i), prices);
+        return typeof merged === 'string' ? group : merged.map(line => ({ ...line, name: '' }));
+    });
+    return { lines, prices };
+};
+
+/** Pozycje ułożone dokładnie jak usługi (bez scaleń, nazw i wpisanych kwot). */
 export const linesMatchServices = (lines: InvoiceLine[], prices: HandoverPrice[]): boolean =>
     lines.length === prices.length &&
     lines.every((line, i) => line.serviceIds.length === 1 && line.serviceIds[0] === prices[i].serviceId &&
-        line.name.trim() === prices[i].name.trim() && !line.partialGross.trim());
+        line.name.trim() === prices[i].name.trim() && line.amountMode === null);
 
 // ─── Walidacja ────────────────────────────────────────────────────────────────
 
@@ -676,8 +764,12 @@ export const validateHandover = ({
         if (!line.name.trim()) {
             problems.push({ section: 'items', message: `Pozycja ${index + 1}: podaj nazwę.` });
         }
-        const added = line.serviceIds.some(id => state.prices.find(p => p.serviceId === id)?.added);
-        if (added && !(parsePln(line.partialGross) > 0)) {
+        // Kwota pozycji: wpisana albo wynikająca z cen usług. Pozycja dopisana przy wydaniu
+        // ma cenę tylko w polu kwoty, więc bez wpisu jest pusta.
+        const typedGross = typedGrossOf(line, state.prices);
+        const effective = typedGross ?? lineFullGross(line, state.prices);
+        const onlyAdded = line.serviceIds.every(id => state.prices.find(p => p.serviceId === id)?.added);
+        if ((line.amountMode && !line.amount.trim()) || (onlyAdded && effective <= 0)) {
             problems.push({ section: 'items', message: `Pozycja ${index + 1}: podaj kwotę.` });
         }
         if (lineRatesMixed(line, state.prices)) {
@@ -686,7 +778,7 @@ export const validateHandover = ({
                 message: `Pozycja ${index + 1} łączy usługi z różnymi stawkami VAT. Rozdziel ją.`,
             });
         }
-        if (line.partialGross.trim() && !isPlnInput(line.partialGross)) {
+        if (line.amountMode && line.amount.trim() && !isPlnInput(line.amount)) {
             problems.push({ section: 'items', message: `Pozycja ${index + 1}: podaj kwotę na fakturze.` });
         }
     });

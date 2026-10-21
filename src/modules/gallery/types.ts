@@ -6,6 +6,9 @@ export interface GalleryPhoto {
     id: string;
     fileName: string;
     thumbnailUrl: string;
+    /** Podgląd (~2048 px, kilkaset KB) do okna podglądu; oryginał, dopóki backend go nie wygeneruje. */
+    previewUrl: string;
+    /** Oryginał z aparatu (często kilka MB) - tylko do „Pełna rozdzielczość". */
     fullSizeUrl: string;
     description?: string;
     tags: string[];

@@ -1,20 +1,19 @@
 import { useState } from 'react';
 import styled from 'styled-components';
-import { Building2, Check, Eye, Pencil, RotateCcw, User } from 'lucide-react';
+import { Check, Pencil, RotateCcw } from 'lucide-react';
 import { pluralPl } from '@/common/utils';
-import { ui } from '@/common/components/ui';
+import { Button, ui } from '@/common/components/ui';
+import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, ModalFooter, CloseBtn } from '@/common/components/ModalKit';
+import { SUBMODAL_Z_INDEX } from '@/common/styles/sharedModalStyles';
 import { InputShell, BareInput } from '@/common/components/Form';
 import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
-import type { CompanySettings } from '@/modules/settings/types';
-import { GhostAction, SectionProblems } from './HandoverKit';
+import { SectionProblems } from './HandoverKit';
 import { BuyerEditor } from './BuyerEditor';
 import { InvoiceItemsEditor } from './InvoiceItemsEditor';
 import { InvoiceLines } from './InvoiceLines';
-import { InvoicePreviewModal } from './InvoicePreviewModal';
 import {
-    formatNip,
     isPlnInput,
-    normalizeNip,
+    type HandoverBuyer,
     type HandoverItem,
     type HandoverProblem,
     type HandoverState,
@@ -44,40 +43,6 @@ const PositionsCard = styled(Card)`
     align-items: stretch;
 `;
 
-const BuyerLine = styled.div`
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    min-width: 0;
-
-    > svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px; color: ${ui.textMuted}; }
-`;
-
-const BuyerText = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-`;
-
-const BuyerName = styled.strong`
-    font-size: 15px;
-    font-weight: 700;
-    color: ${ui.ink};
-    overflow-wrap: anywhere;
-`;
-
-// Dwa fakty jako dwa elementy z odstępem, nie ciąg z kropką (CLAUDE.md §4).
-const BuyerMeta = styled.span`
-    display: flex;
-    flex-wrap: wrap;
-    column-gap: 14px;
-    font-size: 13px;
-    color: ${ui.textSecondary};
-    font-variant-numeric: tabular-nums;
-    overflow-wrap: anywhere;
-`;
-
 const Row = styled.div`
     display: flex;
     align-items: center;
@@ -93,10 +58,11 @@ const RowText = styled.span`
     strong { color: ${ui.ink}; font-variant-numeric: tabular-nums; }
 `;
 
+/** Akcje przy nagłówku pozycji: małe pigułki aplikacji, nie podkreślone linki. */
 const Links = styled.div`
     display: flex;
     flex-wrap: wrap;
-    gap: 6px 18px;
+    gap: 6px 8px;
 `;
 
 /** „Faktura + Inny dokument”: jedyny tintowany blok w lewej kolumnie - to tu ustawia się kwotę. */
@@ -130,6 +96,12 @@ const Tile = styled.div`
     > span { font-size: 12.5px; font-weight: 600; color: ${ui.textMuted}; }
     strong { font-size: 20px; font-weight: 800; color: ${ui.ink}; font-variant-numeric: tabular-nums; }
     small { font-size: 12.5px; color: ${ui.textMuted}; font-variant-numeric: tabular-nums; }
+`;
+
+/** „Wylicz” pod polem kwoty: przy lewej krawędzi kafla, nie na całą szerokość. */
+const RecalcAction = styled(Button)`
+    align-self: flex-start;
+    margin: 4px 0 0 -11px;
 `;
 
 /** Kwota innego dokumentu jako pole: wyliczona podpowiada się w placeholderze. */
@@ -172,7 +144,8 @@ export interface InvoiceControls {
     changeLineRate: (index: number, vatRate: VatRateCode) => void;
     addLine: () => void;
     removeLine: (index: number) => void;
-    mergeSelected: (indexes: number[]) => string | null;
+    /** „Nadpisz pozycje”: wszystkie pozycje w jedną (jedną na stawkę VAT) z pustą nazwą. */
+    overwriteLines: () => void;
     unmerge: (index: number) => void;
 }
 
@@ -185,42 +158,38 @@ const savedTime = (iso: string): string | null => {
 
 // ─── Nabywca ──────────────────────────────────────────────────────────────────
 
-interface InvoiceBuyerProps {
-    state: HandoverState;
-    patch: (changes: Partial<HandoverState>) => void;
-    problemsIn: (section: HandoverProblem['section']) => HandoverProblem[];
-    invoicedExternally: boolean;
+interface BuyerModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    buyer: HandoverBuyer;
+    onChange: (buyer: HandoverBuyer) => void;
 }
 
-/** Nabywca tak, jak trafi na fakturę - z NIP-em z kartoteki, który backend dokleja, gdy pole jest puste. */
-export const InvoiceBuyer = ({ state, patch, problemsIn, invoicedExternally }: InvoiceBuyerProps) => {
-    const [isOpen, setOpen] = useState(false);
-    const nip = normalizeNip(state.buyer.nip);
-    const address = [state.buyer.addressLine1, state.buyer.addressLine2].map(p => p.trim()).filter(Boolean).join(', ');
+/**
+ * Edycja nabywcy faktury w oknie - otwiera ją „Zmień” przy nabywcy w podsumowaniu.
+ * Karta nabywcy w lewej kolumnie powtarzała to, co podsumowanie i tak pokazuje.
+ */
+export const BuyerModal = ({ isOpen, onClose, buyer, onChange }: BuyerModalProps) => (
+    <ModalShell isOpen={isOpen} onClose={onClose} size="md" zIndex={SUBMODAL_Z_INDEX} labelledBy="handover-buyer-title">
+        <ModalHeader>
+            <ModalTitleGroup>
+                <ModalTitle id="handover-buyer-title">Nabywca faktury</ModalTitle>
+            </ModalTitleGroup>
+            <CloseBtn onClick={onClose} />
+        </ModalHeader>
+        <ModalContent>
+            <BuyerEditor buyer={buyer} onChange={onChange} />
+        </ModalContent>
+        <ModalFooter>
+            <Button variant="primary" onClick={onClose}>Gotowe</Button>
+        </ModalFooter>
+    </ModalShell>
+);
 
-    return (
-        <>
-            <Card id="handover-buyer">
-                <BuyerLine>
-                    {nip ? <Building2 aria-hidden="true" /> : <User aria-hidden="true" />}
-                    <BuyerText>
-                        <BuyerName>{state.buyer.name.trim() || 'Brak nazwy nabywcy'}</BuyerName>
-                        <BuyerMeta>
-                            <span>{nip ? `NIP ${formatNip(nip)}` : 'Osoba prywatna'}</span>
-                            {address && <span>{address}</span>}
-                        </BuyerMeta>
-                    </BuyerText>
-                </BuyerLine>
-                <GhostAction type="button" onClick={() => setOpen(open => !open)}>
-                    {isOpen ? 'Gotowe' : 'Zmień'}
-                </GhostAction>
-            </Card>
-            {isOpen && <BuyerEditor buyer={state.buyer} onChange={buyer => patch({ buyer })} />}
-            <SectionProblems problems={problemsIn('buyer')} />
-            {invoicedExternally && <ExternalNote>Fakturę wystawi księgowość. CRM zapisze płatność i nabywcę.</ExternalNote>}
-        </>
-    );
-};
+/** Przy fakturze od księgowości: co CRM zrobi z nabywcą. */
+export const ExternalInvoiceNote = () => (
+    <ExternalNote>Fakturę wystawi księgowość. CRM zapisze płatność i nabywcę.</ExternalNote>
+);
 
 // ─── Pozycje ──────────────────────────────────────────────────────────────────
 
@@ -232,7 +201,6 @@ interface InvoicePositionsProps {
     remainder: number;
     /** Kwota innego dokumentu wyliczona: netto części usług poza fakturą. */
     remainderAuto: number;
-    company: CompanySettings | undefined;
     problemsIn: (section: HandoverProblem['section']) => HandoverProblem[];
     controls: InvoiceControls;
     fmt: (grosz: number) => string;
@@ -250,13 +218,11 @@ export const InvoicePositions = ({
     invoiceGross,
     remainder,
     remainderAuto,
-    company,
     problemsIn,
     controls,
     fmt,
 }: InvoicePositionsProps) => {
     const [mode, setMode] = useState<'collapsed' | 'list' | 'edit'>('collapsed');
-    const [isPreviewOpen, setPreviewOpen] = useState(false);
     const isOther = state.splitRemainder;
     const count = invoiceItems.length;
 
@@ -269,43 +235,31 @@ export const InvoicePositions = ({
             onChangeRate={controls.changeLineRate}
             onAddLine={controls.addLine}
             onRemoveLine={controls.removeLine}
-            onMerge={controls.mergeSelected}
+            onOverwrite={controls.overwriteLines}
             onUnmerge={controls.unmerge}
             exemptionBasis={state.exemptionBasis}
             onExemptionBasisChange={exemptionBasis => patch({ exemptionBasis })}
-            fmt={fmt}
         />
     );
+
+    // „Przywróć domyślne” przy nagłówku pozycji, gdy coś zmieniono - tam, gdzie się zmienia.
+    const restoreDefaults = (
+        <Button variant="outline" size="sm" onClick={controls.resetLines}><RotateCcw />Przywróć domyślne</Button>
+    );
+    // Przy przywróconym szkicu ten sam przycisk stoi w komunikacie pod pozycjami.
+    const changed = !controls.linesMatch && controls.restoredAt === null;
 
     const notices = (
         <>
             {controls.restoredAt !== null && (
                 <Hint $tone="warn" role="status">
                     <span>Wróciły zapisane zmiany cen i pozycji{savedTime(controls.restoredAt) ? ` (${savedTime(controls.restoredAt)})` : ''}.</span>
-                    <Links>
-                        <GhostAction type="button" onClick={controls.resetLines}>Pozycje jak usługi</GhostAction>
-                    </Links>
+                    <Links>{restoreDefaults}</Links>
                 </Hint>
-            )}
-            {!controls.linesMatch && !isOther && (
-                <Links>
-                    <GhostAction type="button" onClick={controls.resetLines}>Pozycje jak usługi</GhostAction>
-                </Links>
             )}
         </>
     );
 
-    const preview = (
-        <InvoicePreviewModal
-            isOpen={isPreviewOpen}
-            onClose={() => setPreviewOpen(false)}
-            company={company}
-            buyer={state.buyer}
-            items={invoiceItems}
-            paymentMethod={state.paymentMethod}
-            fmt={fmt}
-        />
-    );
 
     if (isOther) {
         return (
@@ -313,8 +267,8 @@ export const InvoicePositions = ({
                 <Row>
                     <RowText><strong>Faktura + inny dokument</strong></RowText>
                     <Links>
-                        <GhostAction type="button" onClick={() => setPreviewOpen(true)}><Eye />Podgląd faktury</GhostAction>
-                        <GhostAction type="button" onClick={() => controls.setInvoiceOther(false)}>Nie dziel</GhostAction>
+                        {changed && restoreDefaults}
+                        <Button variant="outline" size="sm" onClick={() => controls.setInvoiceOther(false)}>Nie dziel</Button>
                     </Links>
                 </Row>
                 {editor}
@@ -338,14 +292,13 @@ export const InvoicePositions = ({
                             />
                         </AmountShell>
                         {state.remainderInput.trim() && remainder !== remainderAuto && (
-                            <GhostAction type="button" onClick={() => controls.setRemainderInput('')}>
+                            <RecalcAction variant="ghost" size="sm" onClick={() => controls.setRemainderInput('')}>
                                 <RotateCcw />Wylicz: {fmt(remainderAuto)}
-                            </GhostAction>
+                            </RecalcAction>
                         )}
                     </Tile>
                 </Tiles>
                 {notices}
-                {preview}
             </SplitPanel>
         );
     }
@@ -358,16 +311,16 @@ export const InvoicePositions = ({
                         {count} {pluralPl(count, 'pozycja', 'pozycje', 'pozycji')}, <strong>{fmt(invoiceGross)} brutto</strong>
                     </RowText>
                     <Links>
+                        {changed && restoreDefaults}
                         {mode === 'collapsed' && (
-                            <GhostAction type="button" onClick={() => setMode('list')}>Pokaż pozycje</GhostAction>
+                            <Button variant="outline" size="sm" onClick={() => setMode('list')}>Pokaż pozycje</Button>
                         )}
                         {mode === 'list' && (
-                            <GhostAction type="button" onClick={() => setMode('edit')}><Pencil />Edytuj</GhostAction>
+                            <Button variant="outline" size="sm" onClick={() => setMode('edit')}><Pencil />Edytuj</Button>
                         )}
                         {mode === 'edit' && (
-                            <GhostAction type="button" onClick={() => setMode('list')}><Check />Gotowe</GhostAction>
+                            <Button variant="tinted" size="sm" onClick={() => setMode('list')}><Check />Gotowe</Button>
                         )}
-                        <GhostAction type="button" onClick={() => setPreviewOpen(true)}><Eye />Podgląd faktury</GhostAction>
                     </Links>
                 </Row>
                 {mode === 'list' && <InvoiceLines items={invoiceItems} fmt={fmt} />}
@@ -375,7 +328,6 @@ export const InvoicePositions = ({
             </PositionsCard>
             <SectionProblems problems={[...problemsIn('items'), ...problemsIn('balance')]} />
             {notices}
-            {preview}
         </>
     );
 };

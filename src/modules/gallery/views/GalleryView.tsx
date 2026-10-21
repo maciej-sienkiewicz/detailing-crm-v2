@@ -512,7 +512,7 @@ function buildPageNumbers(current: number, total: number): (number | '...')[] {
     return result;
 }
 
-// Fire-and-forget warmup of the full-size image so the lightbox can show it
+// Fire-and-forget warmup of the preview image so the lightbox can show it
 // instantly. The browser dedupes and caches the request; the Set just avoids
 // re-creating Image objects for cards hovered repeatedly.
 const warmedUrls = new Set<string>();
@@ -571,8 +571,8 @@ const GalleryCard = memo(({ photo, index, density, onSelect }: GalleryCardProps)
             $index={index}
             $density={density}
             onClick={() => onSelect(photo)}
-            onMouseEnter={() => warmImage(photo.fullSizeUrl)}
-            onFocus={() => warmImage(photo.fullSizeUrl)}
+            onMouseEnter={() => warmImage(photo.previewUrl)}
+            onFocus={() => warmImage(photo.previewUrl)}
             aria-label={`Zdjęcie: ${title}`}
             title={density === 'small' ? title : undefined}
         >
@@ -882,7 +882,7 @@ export const GalleryView = () => {
                     } : undefined}
                     preload={[photos[lightboxIndex - 1], photos[lightboxIndex + 1]]
                         .filter((p): p is GalleryPhoto => !!p && lightboxIndex >= 0)
-                        .map(p => p.fullSizeUrl)}
+                        .map(p => p.previewUrl)}
                 />
             )}
         </ViewContainer>

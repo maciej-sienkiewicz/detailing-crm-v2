@@ -3,7 +3,7 @@ import { formatCurrency } from '@/common/utils';
 import { ui } from '@/common/components/ui';
 import type { CompanySettings } from '@/modules/settings/types';
 import { GhostAction, Pill, PillRow, SectionProblems } from './HandoverKit';
-import { InvoiceBuyer, InvoicePositions, type InvoiceControls } from './InvoiceSection';
+import { ExternalInvoiceNote, InvoicePositions, type InvoiceControls } from './InvoiceSection';
 import { PaymentMethodPicker } from './PaymentMethodPicker';
 import { SellerPrompt } from './SellerPrompt';
 import { PricesSection } from './PricesSection';
@@ -112,14 +112,7 @@ export const SettlementSection = ({
                 </PillRow>
                 {isInvoice && !invoicedExternally && !sellerComplete && <SellerPrompt company={company} />}
                 {isInvoice && !invoicedExternally && <SectionProblems problems={problemsIn('seller')} />}
-                {isInvoice && (
-                    <InvoiceBuyer
-                        state={state}
-                        patch={patch}
-                        problemsIn={problemsIn}
-                        invoicedExternally={invoicedExternally}
-                    />
-                )}
+                {isInvoice && invoicedExternally && <ExternalInvoiceNote />}
             </Field>
 
             {/* Przy fakturze z CRM ceny ustala się w pozycjach faktury (kwota, stawka, nowa
@@ -164,7 +157,6 @@ export const SettlementSection = ({
                         invoiceGross={invoiceGross}
                         remainder={remainder}
                         remainderAuto={remainderAuto}
-                        company={company}
                         problemsIn={problemsIn}
                         controls={controls}
                         fmt={fmt}

@@ -378,7 +378,7 @@ interface GalleryLightboxProps {
     onNext?: () => void;
     /** Pozycja w całej galerii; `index` null, gdy strona z tym zdjęciem jeszcze się wczytuje. */
     position?: { index: number | null; total: number };
-    /** Pełne rozdzielczości sąsiednich zdjęć - wczytane w tle, strzałka pokazuje je od razu. */
+    /** Podglądy sąsiednich zdjęć - wczytane w tle, strzałka pokazuje je od razu. */
     preload?: string[];
 }
 
@@ -420,7 +420,7 @@ export const GalleryLightbox = ({ photo, onClose, onPrev, onNext, position, prel
                         się na nią po pobraniu. Wcześniej ten sam <img> podmieniał źródło, bez
                         żadnego sygnału, że coś się jeszcze wczytuje. */}
                     <ProgressiveImage
-                        src={photo.fullSizeUrl}
+                        src={photo.previewUrl}
                         previewSrc={photo.thumbnailUrl}
                         alt={photo.description ?? photo.fileName}
                     />

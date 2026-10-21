@@ -3,7 +3,7 @@ import { isWaitingForPage, photoPosition, shownPhoto, stepLightbox, type Gallery
 import type { GalleryPhoto } from '../types';
 
 const photo = (id: string): GalleryPhoto => ({
-    id, fileName: `${id}.jpg`, thumbnailUrl: `t/${id}`, fullSizeUrl: `f/${id}`, tags: [],
+    id, fileName: `${id}.jpg`, thumbnailUrl: `t/${id}`, previewUrl: `p/${id}`, fullSizeUrl: `f/${id}`, tags: [],
     uploadedAt: '2026-09-10T08:00:00Z', uploadedBy: 'u1', uploadedByName: 'Krzysztof Niemier', source: 'VISIT',
 });
 

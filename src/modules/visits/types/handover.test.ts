@@ -19,6 +19,8 @@ import {
     restoreDraft,
     servicesFingerprint,
     newInvoiceLine,
+    overwrittenLines,
+    pricesWithTypedAmounts,
     settlementPlan,
     toAddedServices,
     toInvoicePayload,
@@ -183,7 +185,7 @@ describe('pozycje faktury', () => {
 
     it('usługi scalone, a potem z różnymi stawkami - pozycja do rozdzielenia', () => {
         const prices = [ceramika, updatePrice(korekta, { vatRate: '8' })];
-        const s = state({ prices, lines: [{ name: 'Usługi', serviceIds: ['c', 'k'], partialGross: '' }] });
+        const s = state({ prices, lines: [{ name: 'Usługi', serviceIds: ['c', 'k'], amount: '', amountMode: null }] });
         expect(validateHandover({ state: s, sellerComplete: true }).map(p => p.message))
             .toContain('Pozycja 1 łączy usługi z różnymi stawkami VAT. Rozdziel ją.');
     });
@@ -197,7 +199,7 @@ describe('podział: faktura + inny dokument', () => {
     const split = (lines: HandoverState['lines'], extra: Partial<HandoverState> = {}, ps = prices) =>
         state({ prices: ps, lines, splitRemainder: true, ...extra });
     const onInvoice = (partials: Record<string, string>, ps = prices) =>
-        linesFromPrices(ps).map(l => (partials[l.serviceIds[0]] !== undefined ? { ...l, partialGross: partials[l.serviceIds[0]] } : l));
+        linesFromPrices(ps).map(l => (partials[l.serviceIds[0]] !== undefined ? { ...l, amount: partials[l.serviceIds[0]], amountMode: 'GROSS' as const } : l));
 
     it('123 zł, 50 zł na fakturze: inny dokument bez VAT to 59,35 zł, a nie 73 zł', () => {
         const s = split(onInvoice({ t: '50,00' }, [test]), {}, [test]);
@@ -278,7 +280,7 @@ describe('podział: faktura + inny dokument', () => {
 
 describe('pozycje faktury ustalają ceny (bez sekcji „Ceny usług”)', () => {
     it('kwota pozycji niższa niż usługa to rabat w wizycie - od strony brutto', () => {
-        const lines = linesFromPrices([ceramika, korekta]).map(l => (l.serviceIds[0] === 'c' ? { ...l, partialGross: '7000,00' } : l));
+        const lines = linesFromPrices([ceramika, korekta]).map(l => (l.serviceIds[0] === 'c' ? { ...l, amount: '7000,00', amountMode: 'GROSS' } : l));
         const s = state({ prices: [ceramika, korekta], lines });
         const plan = settlementPlan(s);
 
@@ -290,7 +292,7 @@ describe('pozycje faktury ustalają ceny (bez sekcji „Ceny usług”)', () => 
     it('nowa pozycja staje się usługą wizyty i idzie na fakturę ze wskazaniem na nią', () => {
         const { price, line } = newInvoiceLine();
         const prices = [ceramika, price];
-        const s = state({ prices, lines: [...linesFromPrices([ceramika]), { ...line, name: 'Zawieszka zapachowa', partialGross: '20' }] });
+        const s = state({ prices, lines: [...linesFromPrices([ceramika]), { ...line, name: 'Zawieszka zapachowa', amount: '20', amountMode: 'GROSS' }] });
         const plan = settlementPlan(s);
         const payload = toInvoicePayload(s, false);
 
@@ -300,6 +302,61 @@ describe('pozycje faktury ustalają ceny (bez sekcji „Ceny usług”)', () => 
         ]);
         expect(toPriceChanges(plan.prices)).toEqual([]);
         expect(totalsOf(plan.prices).gross).toBe(802_000);
+    });
+
+    it('kwota wpisana od netto zostaje netto, brutto wynika z niej', () => {
+        const lines = linesFromPrices([ceramika]).map(l => ({ ...l, amount: '5000,00', amountMode: 'NET' as const }));
+        const plan = settlementPlan(state({ prices: [ceramika], lines }));
+
+        expect(toPriceChanges(plan.prices)).toEqual([{ serviceItemId: 'c', netCents: 500_000, grossCents: null, vatRate: 23 }]);
+        expect(plan.invoiceGross).toBe(615_000);
+    });
+
+    it('scalenie z nową pozycją sumuje kwoty i nie zgłasza „podaj kwotę” (błąd z 21.10.2026)', () => {
+        const { price, line } = newInvoiceLine();
+        // Nazwa dopisanej pozycji trafia do jej ceny przy wpisywaniu (useHandover.changeLine).
+        const prices = [ceramika, korekta, { ...price, name: 'Drygi' }];
+        const s = state({
+            prices,
+            lines: [...linesFromPrices([ceramika, korekta]), { ...line, name: 'Drygi', amount: '100,00', amountMode: 'GROSS' as const }],
+        });
+        // Jak w useHandover.mergeSelected bez podziału: wpisane kwoty trafiają do cen, potem scalenie.
+        const baked = pricesWithTypedAmounts(s, [0, 2]);
+        const cleared = s.lines.map((l, i) => ([0, 2].includes(i) ? { ...l, amount: '', amountMode: null } : l));
+        const merged = mergeLines(cleared, [0, 2], baked) as HandoverState['lines'];
+        const after = { ...s, prices: baked, lines: merged };
+        const plan = settlementPlan(after);
+
+        expect(merged.map(l => l.name)).toEqual(['Powłoka ceramiczna, Drygi', 'Korekta lakieru']);
+        expect(plan.invoiceGross).toBe(800_000 + 10_000 + 300_000);
+        expect(validateHandover({ state: after, sellerComplete: true })).toEqual([]);
+        expect(toAddedServices(plan.prices, after.lines)).toEqual([
+            { id: price.serviceId, name: 'Drygi', netCents: 8_130, grossCents: 10_000, vatRate: 23 },
+        ]);
+    });
+
+    it('przy podziale scalenie sumuje kwoty na fakturze, a rozdzielenie je rozkłada', () => {
+        const lines = linesFromPrices([ceramika, korekta]).map(l => ({ ...l, amount: l.serviceIds[0] === 'c' ? '4000,00' : '1000,00', amountMode: 'GROSS' as const }));
+        const merged = mergeLines(lines, [0, 1], [ceramika, korekta]) as HandoverState['lines'];
+
+        expect(merged).toEqual([{ name: 'Powłoka ceramiczna, Korekta lakieru', serviceIds: ['c', 'k'], amount: '5000,00', amountMode: 'GROSS' }]);
+        expect(unmergeLine(merged, 0, [ceramika, korekta]).map(l => l.amount)).toEqual(['3636,36', '1363,64']);
+    });
+
+    it('„Nadpisz pozycje”: jedna pozycja z całą sumą i pustą nazwą, wpisane kwoty w cenach', () => {
+        const lines = linesFromPrices([ceramika, korekta, pranie]).map(l =>
+            (l.serviceIds[0] === 'k' ? { ...l, amount: '2000,00', amountMode: 'GROSS' as const } : l));
+        const s = state({ prices: [ceramika, korekta, pranie], lines });
+        const after = { ...s, ...overwrittenLines(s) };
+
+        expect(after.lines).toEqual([{ name: '', serviceIds: ['c', 'k', 'p'], amount: '', amountMode: null }]);
+        expect(settlementPlan(after).invoiceGross).toBe(800_000 + 200_000 + 100_000);
+        expect(validateHandover({ state: after, sellerComplete: true }).map(p => p.message)).toContain('Pozycja 1: podaj nazwę.');
+    });
+
+    it('„Nadpisz pozycje” przy różnych stawkach - jedna pozycja na stawkę', () => {
+        const s = state({ prices: [ceramika, ozon, korekta] });
+        expect(overwrittenLines(s).lines.map(l => l.serviceIds)).toEqual([['c', 'k'], ['o']]);
     });
 
     it('nowa pozycja bez kwoty albo bez nazwy - do poprawienia', () => {

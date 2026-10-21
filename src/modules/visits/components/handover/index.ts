@@ -2,7 +2,7 @@ export { HandoverSheet } from './HandoverSheet';
 export { MarkReadyDialog } from './MarkReadyDialog';
 export { CustomerNotesSection } from './CustomerNotesSection';
 export { SettlementSection } from './SettlementSection';
-export { InvoiceBuyer, InvoicePositions } from './InvoiceSection';
+export { BuyerModal, ExternalInvoiceNote, InvoicePositions } from './InvoiceSection';
 export { SettlementSummary } from './SettlementSummary';
 export { InvoiceItemsEditor } from './InvoiceItemsEditor';
 export { BuyerEditor } from './BuyerEditor';

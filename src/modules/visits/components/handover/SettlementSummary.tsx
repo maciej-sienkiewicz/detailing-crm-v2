@@ -1,11 +1,15 @@
+import { useState } from 'react';
 import styled from 'styled-components';
 import { formatCurrency } from '@/common/utils';
 import { ui } from '@/common/components/ui';
 import { paymentMethods } from './paymentOptions';
+import { GhostAction } from './HandoverKit';
+import { BuyerModal } from './InvoiceSection';
 import {
     formatNip,
     itemAmounts,
     normalizeNip,
+    type HandoverBuyer,
     type HandoverItem,
     type HandoverProblem,
     type HandoverState,
@@ -55,7 +59,7 @@ const ReviewTitle = styled.h3`
 
 const ReviewRow = styled.div`
     display: grid;
-    grid-template-columns: 92px minmax(0, 1fr);
+    grid-template-columns: 92px minmax(0, 1fr) auto;
     gap: 10px;
     align-items: start;
     padding: 9px 0;
@@ -69,7 +73,7 @@ const ReviewRow = styled.div`
     /* Numer nie łamie się w środku: „502-431-” i „51-66” w dwóch liniach czytały się jak dwa numery. */
     small.nowrap { white-space: nowrap; }
 
-    @media (max-width: 480px) { grid-template-columns: 78px minmax(0, 1fr); }
+    @media (max-width: 480px) { grid-template-columns: 78px minmax(0, 1fr) auto; }
 `;
 
 const Problems = styled.section`
@@ -123,6 +127,8 @@ interface SettlementSummaryProps {
     ksefBlocked: 'no-token' | 'no-permission' | null;
     transferDueDate: string | null;
     problems: HandoverProblem[];
+    /** Zmiana nabywcy z okna „Zmień” przy nabywcy; bez niej wiersz jest tylko do odczytu. */
+    onBuyerChange?: (buyer: HandoverBuyer) => void;
 }
 
 export const SettlementSummary = ({
@@ -138,7 +144,9 @@ export const SettlementSummary = ({
     ksefBlocked,
     transferDueDate,
     problems,
+    onBuyerChange,
 }: SettlementSummaryProps) => {
+    const [isBuyerOpen, setBuyerOpen] = useState(false);
     const fmt = (grosz: number) => formatCurrency(grosz / 100, currency);
     const isInvoice = state.documentType === 'INVOICE';
     const crmInvoice = isInvoice && !invoicedExternally;
@@ -184,12 +192,15 @@ export const SettlementSummary = ({
                     <span><strong>{documentLine}</strong>{ksefLine && <small>{ksefLine}</small>}</span>
                 </ReviewRow>
                 {isInvoice && (
-                    <ReviewRow>
+                    <ReviewRow id="handover-buyer">
                         <span>Nabywca</span>
                         <span>
                             <strong>{state.buyer.name.trim() || 'Brak nazwy nabywcy'}</strong>
                             <small className="nowrap">{nip ? `NIP ${formatNip(nip)}` : 'Osoba prywatna'}</small>
                         </span>
+                        {onBuyerChange && (
+                            <GhostAction type="button" onClick={() => setBuyerOpen(true)}>Zmień</GhostAction>
+                        )}
                     </ReviewRow>
                 )}
                 {crmInvoice && (
@@ -243,6 +254,14 @@ export const SettlementSummary = ({
                 </Problems>
             )}
 
+            {onBuyerChange && (
+                <BuyerModal
+                    isOpen={isBuyerOpen}
+                    onClose={() => setBuyerOpen(false)}
+                    buyer={state.buyer}
+                    onChange={onBuyerChange}
+                />
+            )}
         </Aside>
     );
 };
