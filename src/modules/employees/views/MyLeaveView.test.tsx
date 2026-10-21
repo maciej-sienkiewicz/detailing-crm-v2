@@ -114,6 +114,7 @@ beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-10-01T10:00:00'));
     api.list.mockResolvedValue({
+        linked: true,
         requests: [
             summary({}),
             summary({ id: 'r2', status: 'REJECTED', decisionNote: 'Szczyt sezonu', startDate: '2026-04-21', endDate: '2026-04-25' }),
@@ -191,8 +192,8 @@ describe('MyLeaveView - lista i nagłówek', () => {
         await waitFor(() => expect(api.withdraw).toHaveBeenCalledWith('r1'));
     });
 
-    it('konto bez rekordu pracownika dostaje wyjaśnienie zamiast listy', async () => {
-        api.list.mockRejectedValue({ response: { status: 404, data: { message: 'Twoje konto nie jest powiązane z pracownikiem' } } });
+    it('konto bez rekordu pracownika dostaje wyjaśnienie zamiast listy (200 z linked: false, nie 404)', async () => {
+        api.list.mockResolvedValue({ linked: false, requests: [], summary: null });
         renderView();
         expect(await screen.findByText('Poproś właściciela, żeby połączył Twoje konto z kartą pracownika.')).toBeTruthy();
         expect(screen.queryByRole('button', { name: /Złóż wniosek o urlop/ })).toBeNull();

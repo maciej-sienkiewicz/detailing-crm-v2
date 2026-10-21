@@ -29,14 +29,15 @@ import {
 
 export function MyLeaveView() {
     const { showSuccess, showError } = useToast();
-    const { data, isLoading, isError, error, refetch } = useMyLeaveRequests();
+    const { data, isLoading, isError, refetch } = useMyLeaveRequests();
     const withdraw = useWithdrawLeaveRequest();
 
     const [wizardOpen, setWizardOpen] = useState(false);
     const [withdrawing, setWithdrawing] = useState<LeaveRequestSummary | null>(null);
     const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
-    const notLinked = isError && leaveApiError(error).status === 404;
+    // Konto bez rekordu pracownika serwer zgłasza jako stan (200, `linked: false`), nie 404.
+    const notLinked = data?.linked === false;
 
     const handleWithdraw = (request: LeaveRequestSummary) => {
         withdraw.mutate(request.id, {

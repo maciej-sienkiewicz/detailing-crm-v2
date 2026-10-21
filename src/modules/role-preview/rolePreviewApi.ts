@@ -72,8 +72,10 @@ export const rolePreviewApi = {
         await apiClient.post(BASE, payload, { skipErrorToast: true });
     },
 
-    enter: async (entryCode: string): Promise<void> => {
-        await apiClient.post(`${BASE}/enter`, { entryCode }, shellCall);
+    /** `'pending'` = 202: piaskownica jeszcze powstaje, okno ponawia wejście za chwilę. */
+    enter: async (entryCode: string): Promise<'entered' | 'pending'> => {
+        const res = await apiClient.post(`${BASE}/enter`, { entryCode }, shellCall);
+        return res.status === 202 ? 'pending' : 'entered';
     },
 
     current: async (): Promise<RolePreviewState> => {

@@ -29,7 +29,7 @@ export const operationsQueryKey = (filters: OperationFilters) => [
 export const useOperations = (filters: OperationFilters) => {
     const { data, isLoading, isError, refetch } = useQuery({
         queryKey: operationsQueryKey(filters),
-        queryFn: () => operationApi.getOperations(filters),
+        queryFn: ({ signal }) => operationApi.getOperations(filters, signal),
     });
 
     return {

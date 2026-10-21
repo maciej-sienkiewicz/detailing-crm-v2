@@ -93,12 +93,9 @@ export const customerDetailApi = {
     },
 
     getCustomerActiveData: async (customerId: string): Promise<{ visits: CustomerVisitsResponse; reservations: CustomerReservationsResponse }> => {
-        const now = new Date();
-        const startDate = new Date(now);
-        startDate.setFullYear(startDate.getFullYear() - 5);
-        const endDate = new Date(now);
-        endDate.setFullYear(endDate.getFullYear() + 1);
-
+        // Cała historia klienta: bez zakresu dat serwer nie tnie po czasie. Dawniej okno
+        // „5 lat wstecz" od teraz - starsze wizyty znikały z karty, a adres był inny przy
+        // każdym wywołaniu (milisekundy w dacie), więc nic nie trafiało w cache.
         const response = await apiClient.get<{ appointments: BackendAppointment[]; visits: VisitResponse[] }>(
             '/v1/calendar/events',
             {
@@ -106,8 +103,6 @@ export const customerDetailApi = {
                     customerId,
                     visitStatuses: 'IN_PROGRESS,READY_FOR_PICKUP,COMPLETED,REJECTED,ARCHIVED',
                     appointmentStatuses: 'ABANDONED,CREATED',
-                    startDate: startDate.toISOString(),
-                    endDate: endDate.toISOString(),
                 },
             }
         );
@@ -119,20 +114,12 @@ export const customerDetailApi = {
     },
 
     getCustomerDeletedVisits: async (customerId: string): Promise<CustomerVisitsResponse> => {
-        const now = new Date();
-        const startDate = new Date(now);
-        startDate.setFullYear(startDate.getFullYear() - 5);
-        const endDate = new Date(now);
-        endDate.setFullYear(endDate.getFullYear() + 1);
-
         const response = await apiClient.get<{ visits: VisitResponse[] }>(
             '/v1/calendar/events',
             {
                 params: {
                     customerId,
                     visitStatuses: 'IN_PROGRESS,READY_FOR_PICKUP,COMPLETED,REJECTED,ARCHIVED',
-                    startDate: startDate.toISOString(),
-                    endDate: endDate.toISOString(),
                     includeDeleted: true,
                 },
             }

@@ -267,6 +267,9 @@ const fetchLegacy = async (
 // Public API
 // ---------------------------------------------------------------------------
 
+/** Ile trafień zwraca wyszukiwarka kalendarza. */
+export const CALENDAR_SEARCH_LIMIT = 50;
+
 export const calendarApi = {
     getCalendarEvents: async (
         dateRange: DateRange,
@@ -288,6 +291,19 @@ export const calendarApi = {
             ...appointments.map(transformAppointment),
             ...visits.map(transformVisit),
         ];
+    },
+
+    /**
+     * Wyszukiwarka kalendarza po stronie serwera: najbliższe trafienia frazy (każde słowo
+     * w którymś polu - klient, auto, tablica, tytuł, numer, usługi). Dawniej okno pobierało
+     * kalendarz z czterech lat i filtrowało go w przeglądarce.
+     */
+    searchCalendarEvents: async (phrase: string, signal?: AbortSignal): Promise<CalendarEvent[]> => {
+        const { data } = await apiClient.get<CalendarEventsResponse>('/v1/calendar/search', {
+            params: { q: phrase, limit: CALENDAR_SEARCH_LIMIT },
+            signal,
+        });
+        return [...data.appointments.map(transformAppointment), ...data.visits.map(transformVisit)];
     },
 
     /** Dzienna liczba wyjazdów Door to Door w zakresie dat (dla badge'a w widoku kalendarza). */

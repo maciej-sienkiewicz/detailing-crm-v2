@@ -1,6 +1,6 @@
 // src/modules/comms/hooks/useLeads.ts
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { QueryClient } from '@tanstack/react-query';
 import type { IMessage } from '@stomp/stompjs';
 import { subscribeToTopic } from '@/core/socketClient';
@@ -52,7 +52,7 @@ export interface LeadBundle {
     total: number;
     isLoading: boolean;
     /**
-     * Któryś ze statusów wypełnił stronę do sufitu, więc lista jest niepełna.
+     * Wynik nie zmieścił się w jednej stronie, więc lista jest niepełna.
      * Widok MUSI to pokazać - ciche gubienie rekordów jest dokładnie tym błędem,
      * który tabela popełniała przez brak paginacji.
      */
@@ -60,55 +60,34 @@ export interface LeadBundle {
 }
 
 /**
- * Leady kilku statusów naraz, złożone w jedną listę.
- *
- * Serwerowy filtr `status` jest jednowartościowy, więc „wszystkie otwarte" to
- * trzy zapytania. Brzmi rozrzutnie, ale przy realnym stanie konta (dziesiątki
- * spraw otwartych) każde z nich jest krótkie, a TanStack trzyma je w pamięci
- * podręcznej pod tym samym prefiksem co reszta modułu - więc WebSocket i
- * unieważnienia mutacji obsługują je za darmo.
- *
- * Kolejność ustala konsument, na scalonym zbiorze: żadne sortowanie serwerowe
- * nie ułoży trzech osobnych odpowiedzi w jedną kolejkę. To świadome odstępstwo
- * od zasady „sortowanie na backendzie" i jest ograniczone: gdy [truncated]
- * zacznie zapalać się u realnych klientów, kolejka musi dostać jedno zapytanie
- * z filtrem wielostatusowym i sortowaniem po stronie serwera.
+ * Leady kilku statusów naraz - jedno zapytanie z listą statusów i porządkiem serwera.
+ * Dawniej osobne zapytanie na każdy status (trzy dla otwartych, trzy dla archiwum)
+ * sklejane w przeglądarce, bo filtr `status` był jednowartościowy.
  */
 export const useLeadsByStatuses = (
     statuses: LeadStatus[],
     options: { query?: string; sortDirection?: LeadSortDirection } = {}
 ): LeadBundle => {
-    const { query, sortDirection } = options;
-
-    const results = useQueries({
-        queries: statuses.map((status) => {
-            const filters = {
-                status,
-                query: query || undefined,
-                sortDirection,
-                page: 0,
-                pageSize: BUNDLE_PAGE_SIZE,
-            };
-            return {
-                queryKey: [...LEADS_KEY, 'list', filters],
-                queryFn: ({ signal }) => leadsApi.getLeads(filters, signal),
-                placeholderData: (previous: LeadPage | undefined) => previous,
-            };
-        }),
+    const filters = {
+        status: statuses,
+        query: options.query || undefined,
+        sortDirection: options.sortDirection,
+        page: 0,
+        pageSize: BUNDLE_PAGE_SIZE,
+    };
+    const { data, isLoading } = useQuery({
+        queryKey: [...LEADS_KEY, 'list', filters],
+        queryFn: ({ signal }) => leadsApi.getLeads(filters, signal),
+        placeholderData: (previous) => previous,
+        enabled: statuses.length > 0,
     });
 
-    return useMemo(() => {
-        const pages = results.map((result) => result.data).filter(Boolean) as LeadPage[];
-        return {
-            items: pages.flatMap((page) => page.items),
-            total: pages.reduce((sum, page) => sum + page.total, 0),
-            isLoading: results.some((result) => result.isLoading),
-            truncated: pages.some((page) => page.items.length >= BUNDLE_PAGE_SIZE),
-        };
-        // Zależność po danych, nie po tablicy wyników: useQueries zwraca nową
-        // tablicę przy każdym renderze, więc referencja niczego nie mówi.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [results.map((r) => r.dataUpdatedAt).join('|'), results.some((r) => r.isLoading)]);
+    return useMemo(() => ({
+        items: data?.items ?? [],
+        total: data?.total ?? 0,
+        isLoading: statuses.length > 0 && isLoading,
+        truncated: (data?.total ?? 0) > (data?.items.length ?? 0),
+    }), [data, isLoading, statuses.length]);
 };
 
 /**

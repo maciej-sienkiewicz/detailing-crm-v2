@@ -524,6 +524,7 @@ export interface UpdateDamageMapResponse {
 
 import type { CommunicationEntry } from '@/common/types/communication';
 export type { CommunicationChannel, CommunicationStatus, CommunicationEntry } from '@/common/types/communication';
+import type { CommunicationEntry } from '@/common/types/communication';
 
 export interface VisitCommunicationResponse {
     visitId: string;
@@ -537,7 +538,7 @@ export interface VisitCommunicationResponse {
  * istnieje w bazie, lecz się nie rozpoczęła.
  *
  * To NIE jest wizyta, którą można otworzyć - szczegóły wizyty odpowiadają na taki
- * rekord 404 (`VISIT_NOT_STARTED`). Jedyne, co można z nim zrobić, to dokończyć
+ * rekord 409 (`VISIT_NOT_STARTED`). Jedyne, co można z nim zrobić, to dokończyć
  * przyjęcie albo je anulować, i po to jest ten typ.
  */
 export interface OpenDraftVisit {

@@ -24,7 +24,8 @@ import type {
 
 export const leadsApi = {
     getLeads: async (filters: {
-        status?: LeadStatus;
+        /** Jeden status albo kilka naraz - serwer przyjmuje listę po przecinku. */
+        status?: LeadStatus | LeadStatus[];
         query?: string;
         /** true = tylko leady, w których ostatnie słowo należy do klienta. */
         awaitingReply?: boolean;
@@ -39,7 +40,8 @@ export const leadsApi = {
         pageSize?: number;
     }, signal?: AbortSignal): Promise<LeadPage> => {
         const params = new URLSearchParams();
-        if (filters.status) params.set('status', filters.status);
+        const statuses = filters.status === undefined ? [] : ([] as LeadStatus[]).concat(filters.status);
+        if (statuses.length) params.set('status', statuses.join(','));
         if (filters.query) params.set('query', filters.query);
         if (filters.awaitingReply) params.set('awaitingReply', 'true');
         if (filters.sortDirection) params.set('sortDirection', filters.sortDirection);

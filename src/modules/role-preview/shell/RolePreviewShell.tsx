@@ -30,8 +30,9 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 type EnterOutcome = { kind: 'entered' } | { kind: 'used' } | { kind: 'failed'; message: string };
 
 /**
- * Wymiana kodu na sesję piaskownicy - z czekaniem, aż piaskownica powstanie (404), bo okno
- * otwiera się, zanim serwer ją założy.
+ * Wymiana kodu na sesję piaskownicy - z czekaniem, aż piaskownica powstanie (202), bo okno
+ * otwiera się, zanim serwer ją założy. Dawniej serwer odpowiadał wtedy 404, czyli czerwonym
+ * wpisem w Network co sekundę.
  */
 async function enterWithRetry(entryCode: string, startFailure?: StartFailureWatch): Promise<EnterOutcome> {
     const started = Date.now();
@@ -40,14 +41,11 @@ async function enterWithRetry(entryCode: string, startFailure?: StartFailureWatc
         const refused = startFailure?.reason();
         if (refused) return { kind: 'failed', message: refused };
         try {
-            await rolePreviewApi.enter(entryCode);
-            return { kind: 'entered' };
+            if (await rolePreviewApi.enter(entryCode) === 'entered') return { kind: 'entered' };
+            await sleep(ENTER_RETRY_MS);
+            continue;
         } catch (error) {
             const status = statusOf(error);
-            if (status === 404) {
-                await sleep(ENTER_RETRY_MS);
-                continue;
-            }
             if (status === 409 || status === 400) return { kind: 'used' };
             return { kind: 'failed', message: messageOf(error) ?? 'Nie udało się wejść do podglądu.' };
         }

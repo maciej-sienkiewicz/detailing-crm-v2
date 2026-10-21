@@ -501,7 +501,7 @@ export const VisitDetailView = () => {
          * zakończyć tę wizytę?" wysyłał PATCH /visits/{id} ze statusem - takiego endpointu
          * API nie ma, więc kończył się cichym 404. Nie miał też czego wołać: wizyta kończy
          * się wyłącznie wydaniem pojazdu (POST /complete z rozliczeniem, z READY_FOR_PICKUP),
-         * DRAFT nie dociera do tego widoku (404 VISIT_NOT_STARTED), a dla statusów
+         * DRAFT nie dociera do tego widoku (409 VISIT_NOT_STARTED), a dla statusów
          * końcowych VisitHeader nie pokazuje przycisku.
          */
     };

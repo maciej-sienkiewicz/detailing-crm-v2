@@ -203,20 +203,12 @@ export const vehicleApi = {
     },
 
     getCalendarEvents: async (vehicleId: string): Promise<CalendarEventsResponse> => {
-        const now = new Date();
-        const startDate = new Date(now);
-        startDate.setFullYear(startDate.getFullYear() - 5);
-        const endDate = new Date(now);
-        endDate.setFullYear(endDate.getFullYear() + 2);
-
-
+        // Cała historia pojazdu - bez okna „5 lat wstecz" liczonego od teraz (patrz karta klienta).
         const response = await apiClient.get<CalendarEventsResponse>('/v1/calendar/events', {
             params: {
                 vehicleId,
                 appointmentStatuses: 'ABANDONED,CREATED',
                 visitStatuses: 'READY_FOR_PICKUP,IN_PROGRESS,COMPLETED',
-                startDate: startDate.toISOString(),
-                endDate: endDate.toISOString(),
             },
         });
         return response.data;

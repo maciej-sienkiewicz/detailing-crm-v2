@@ -33,8 +33,6 @@ export const useMyLeaveRequests = () => {
     return useQuery({
         queryKey: MY_LEAVE_REQUESTS_KEY,
         queryFn: myLeaveRequestsApi.list,
-        // 404 = konto bez rekordu pracownika. To stan, a nie awaria - ponawianie nic nie da.
-        retry: (count, error) => (error as { response?: { status?: number } })?.response?.status !== 404 && count < 2,
     });
 };
 

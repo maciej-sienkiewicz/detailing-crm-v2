@@ -1,9 +1,9 @@
 // src/modules/calendar/components/CalendarSearchModal.tsx
 
-import { matchesSearch } from '@/common/utils/textSearch';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { useBreakpoint, useVisualViewportSheet } from '@/common/hooks';
+import { useBreakpoint, useDebounce, useVisualViewportSheet } from '@/common/hooks';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { calendarApi } from '../api/calendarApi';
 import { PiiValue, PiiText } from '@/common/pii';
 import type { CalendarEvent, AppointmentEventData, VisitEventData } from '../types';
@@ -384,19 +384,6 @@ function isFinished(event: CalendarEvent): boolean {
     return !!status && FINISHED_STATUSES.has(status);
 }
 
-function matchesQuery(event: CalendarEvent, q: string): boolean {
-    const props = event.extendedProps as AppointmentEventData | VisitEventData;
-    // matchesSearch: „Kowalski BMW" i tablica bez spacji trafiają, choć leżą w różnych polach.
-    return matchesSearch(q, [
-        event.title,
-        props.customerName,
-        props.vehicleInfo,
-        (props as VisitEventData).licensePlate,
-        (props as VisitEventData).visitNumber,
-        (props as AppointmentEventData).serviceNames?.join(' '),
-    ]);
-}
-
 function groupByDay(results: SearchResult[]): GroupedResults[] {
     const map = new Map<string, SearchResult[]>();
     for (const r of results) {
@@ -422,41 +409,27 @@ interface CalendarSearchModalProps {
     onSelectEvent: (event: CalendarEvent, sourceRect: DOMRect) => void;
 }
 
+const SEARCH_DEBOUNCE_MS = 250;
+
 export const CalendarSearchModal: React.FC<CalendarSearchModalProps> = ({ onClose, onSelectEvent }) => {
     const [query, setQuery] = useState('');
-    const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const sheetRef = useRef<HTMLDivElement>(null);
-    const fetchedRef = useRef(false);
     const isMobile = !useBreakpoint('sm');
+
+    // Szuka serwer (GET /calendar/search) - dawniej każde otwarcie okna pobierało kalendarz
+    // z czterech lat i filtrowało go tutaj. Klucz pod `calendar-events`, więc zmiana wizyty
+    // albo rezerwacji odświeża też otwarte wyniki.
+    const phrase = useDebounce(query.trim(), SEARCH_DEBOUNCE_MS);
+    const { data: found = [], isLoading } = useQuery({
+        queryKey: ['calendar-events', 'search', phrase],
+        queryFn: ({ signal }) => calendarApi.searchCalendarEvents(phrase, signal),
+        enabled: phrase.length >= 2,
+        placeholderData: keepPreviousData,
+    });
 
     // Przypina arkusz do WIDOCZNEGO obszaru ekranu i oddaje wysokość klawiatury liście.
     useVisualViewportSheet(isMobile, sheetRef);
-
-    // Fetch a wide range of events once on mount
-    useEffect(() => {
-        if (fetchedRef.current) return;
-        fetchedRef.current = true;
-
-        const now = new Date();
-        const start = new Date(now.getFullYear() - 1, 0, 1).toISOString();
-        const end   = new Date(now.getFullYear() + 2, 11, 31).toISOString();
-
-        setIsLoading(true);
-        calendarApi.getCalendarEvents(
-            { start, end },
-            ['CREATED', 'ABANDONED', 'CANCELLED'],
-            ['IN_PROGRESS', 'READY_FOR_PICKUP', 'COMPLETED', 'REJECTED', 'ARCHIVED'],
-            [],
-        ).then(events => {
-            setAllEvents(events);
-        }).catch(() => {
-            // silently ignore errors, user can still see empty state
-        }).finally(() => {
-            setIsLoading(false);
-        });
-    }, []);
 
     useEffect(() => {
         inputRef.current?.focus();
@@ -472,8 +445,7 @@ export const CalendarSearchModal: React.FC<CalendarSearchModalProps> = ({ onClos
     }, [onClose]);
 
     const filteredResults: SearchResult[] = query.trim().length >= 2
-        ? allEvents
-            .filter(e => matchesQuery(e, query))
+        ? found
             .map(e => ({ event: e, date: new Date(e.start as string) }))
             .sort((a, b) => a.date.getTime() - b.date.getTime())
         : [];

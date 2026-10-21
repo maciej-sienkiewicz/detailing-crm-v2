@@ -106,6 +106,12 @@ interface VisitResponse {
     } | null;
 }
 
+/** GET /v1/operations: wizyty i rezerwacje w kształcie ich własnych list. */
+interface CombinedOperationsResponse {
+    items: Array<{ type: 'VISIT' | 'RESERVATION'; visit?: VisitResponse; appointment?: AppointmentResponse }>;
+    pagination: OperationListResponse['pagination'];
+}
+
 interface VisitsListResponse {
     visits: VisitResponse[];
     pagination: {
@@ -196,7 +202,7 @@ const mapVisitToOperation = (visit: VisitResponse): Operation => {
 };
 
 export const operationApi = {
-    getOperations: async (filters: OperationFilters): Promise<OperationListResponse> => {
+    getOperations: async (filters: OperationFilters, signal?: AbortSignal): Promise<OperationListResponse> => {
         // Usunięte wizyty - osobny endpoint
         if (filters.deleted) {
             const params = new URLSearchParams({
@@ -298,137 +304,36 @@ export const operationApi = {
             };
         }
 
-        // Jeśli brak filtru typu - pobierz oba źródła i połącz
-        const fetchVisits = async (): Promise<OperationListResponse> => {
-            const params = new URLSearchParams({
-                page: filters.page.toString(),
-                size: filters.limit.toString(),
-            });
-
-            if (filters.search?.trim()) params.append('search', filters.search.trim());
-            if (filters.scheduledDate) params.append('scheduledDate', filters.scheduledDate);
-            if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
-            if (filters.dateTo) params.append('dateTo', filters.dateTo);
-            if (filters.minAmount != null) params.append('minAmount', filters.minAmount.toString());
-            if (filters.maxAmount != null) params.append('maxAmount', filters.maxAmount.toString());
-            if (filters.serviceCountMin != null) params.append('serviceCountMin', filters.serviceCountMin.toString());
-            if (filters.serviceCountMax != null) params.append('serviceCountMax', filters.serviceCountMax.toString());
-            if (filters.vehicleBrand) params.append('vehicleBrand', filters.vehicleBrand);
-            if (filters.vehicleModel) params.append('vehicleModel', filters.vehicleModel);
-            if (filters.serviceIds?.length) filters.serviceIds.forEach(id => params.append('serviceIds', id));
-
-            const response = await apiClient.get<VisitsListResponse>(
-                `/visits?${params.toString()}`
-            );
-
-            const mappedData = response.data.visits.map(mapVisitToOperation);
-
-            return {
-                data: mappedData,
-                pagination: {
-                    currentPage: response.data.pagination.page,
-                    totalPages: response.data.pagination.totalPages,
-                    totalItems: response.data.pagination.total,
-                    itemsPerPage: response.data.pagination.pageSize,
-                },
-            };
-        };
-
-        const fetchReservations = async (): Promise<OperationListResponse> => {
-            // Fetch CREATED, ABANDONED and CANCELLED appointments in parallel
-            const [createdResponse, abandonedResponse, cancelledResponse] = await Promise.all([
-                apiClient.get<AppointmentsListResponse>(`/v1/appointments`, {
-                    params: {
-                        ...(filters.search?.trim() && { search: filters.search.trim() }),
-                        page: filters.page.toString(),
-                        limit: filters.limit.toString(),
-                        status: 'CREATED',
-                        ...(filters.scheduledDate && { scheduledDate: filters.scheduledDate }),
-                        ...(filters.sortBy && { sortBy: filters.sortBy }),
-                        ...(filters.sortDirection && { sortDirection: filters.sortDirection }),
-                    }
-                }),
-                apiClient.get<AppointmentsListResponse>(`/v1/appointments`, {
-                    params: {
-                        ...(filters.search?.trim() && { search: filters.search.trim() }),
-                        page: filters.page.toString(),
-                        limit: filters.limit.toString(),
-                        status: 'ABANDONED',
-                        ...(filters.scheduledDate && { scheduledDate: filters.scheduledDate }),
-                        ...(filters.sortBy && { sortBy: filters.sortBy }),
-                        ...(filters.sortDirection && { sortDirection: filters.sortDirection }),
-                    }
-                }),
-                apiClient.get<AppointmentsListResponse>(`/v1/appointments`, {
-                    params: {
-                        ...(filters.search?.trim() && { search: filters.search.trim() }),
-                        page: filters.page.toString(),
-                        limit: filters.limit.toString(),
-                        status: 'CANCELLED',
-                        ...(filters.scheduledDate && { scheduledDate: filters.scheduledDate }),
-                        ...(filters.sortBy && { sortBy: filters.sortBy }),
-                        ...(filters.sortDirection && { sortDirection: filters.sortDirection }),
-                    }
-                }),
-            ]);
-
-            const createdAppointments = createdResponse.data.appointments || [];
-            const abandonedAppointments = abandonedResponse.data.appointments || [];
-            const cancelledAppointments = cancelledResponse.data.appointments || [];
-            const allAppointments = [...createdAppointments, ...abandonedAppointments, ...cancelledAppointments];
-
-            const mappedData = allAppointments.map(mapAppointmentToOperation);
-            const pages = [createdResponse, abandonedResponse, cancelledResponse].map(r => r.data.pagination);
-
-            return {
-                data: mappedData,
-                pagination: {
-                    currentPage: filters.page,
-                    totalPages: Math.max(1, ...pages.map(p => p?.totalPages ?? 1)),
-                    totalItems: pages.reduce((sum, p) => sum + (p?.totalItems ?? 0), 0) || mappedData.length,
-                    itemsPerPage: filters.limit,
-                },
-            };
-        };
-
-        const [visitsResult, reservationsResult] = await Promise.all([
-            fetchVisits(),
-            fetchReservations()
-        ]);
-
-        // Połącz dane i posortuj po dacie
-        let combinedData = [...visitsResult.data, ...reservationsResult.data];
-
-        // Wyszukiwanie zrobił już serwer w obu źródłach. Drugi, lokalny filtr (imię,
-        // nazwisko, telefon i tablica osobno) wyrzucał trafienia serwera: „Jan Kowalski",
-        // „BMW", tytuł rezerwacji, telefon zapisany ze spacjami.
-
-        // Filtruj po statusie
-        // Porzucone (ABANDONED) i anulowane (CANCELLED) rezerwacje są wyświetlane razem z odrzuconymi wizytami (REJECTED)
-        if (filters.status) {
-            combinedData = combinedData.filter(op =>
-                op.status === filters.status ||
-                (filters.status === 'REJECTED' && (op.status === 'ABANDONED' || op.status === 'CANCELLED'))
-            );
-        }
-
-        // Sortuj po dacie
-        combinedData.sort((a, b) => {
-            return new Date(b.startDateTime).getTime() - new Date(a.startDateTime).getTime();
+        // „Wszystkie" i „Odrzucone": wizyty i rezerwacje razem, scalone i stronicowane przez
+        // serwer (GET /v1/operations). Dawniej cztery zapytania na stronę sklejane tutaj:
+        // strona miała do czterech razy więcej wierszy niż limit, kolejność między stronami
+        // była zła, a „Odrzucone" brały wizyty bez filtra i filtrowały jedną stronę lokalnie.
+        // Porzucone (ABANDONED) i anulowane (CANCELLED) rezerwacje stoją razem z odrzuconymi
+        // wizytami (REJECTED).
+        const rejected = filters.status === 'REJECTED';
+        const params = new URLSearchParams({
+            page: filters.page.toString(),
+            limit: filters.limit.toString(),
+            appointmentStatuses: (rejected ? ['ABANDONED', 'CANCELLED'] : ['CREATED', 'ABANDONED', 'CANCELLED']).join(','),
         });
+        if (filters.status) params.append('visitStatus', filters.status);
+        if (filters.search?.trim()) params.append('search', filters.search.trim());
+        if (filters.scheduledDate) params.append('scheduledDate', filters.scheduledDate);
+        if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
+        if (filters.dateTo) params.append('dateTo', filters.dateTo);
+        if (filters.minAmount != null) params.append('minAmount', filters.minAmount.toString());
+        if (filters.maxAmount != null) params.append('maxAmount', filters.maxAmount.toString());
+        if (filters.serviceCountMin != null) params.append('serviceCountMin', filters.serviceCountMin.toString());
+        if (filters.serviceCountMax != null) params.append('serviceCountMax', filters.serviceCountMax.toString());
+        if (filters.vehicleBrand) params.append('vehicleBrand', filters.vehicleBrand);
+        if (filters.vehicleModel) params.append('vehicleModel', filters.vehicleModel);
+        if (filters.serviceIds?.length) filters.serviceIds.forEach(id => params.append('serviceIds', id));
 
-        // Oba źródła są stronicowane tym samym `page`/`limit`, więc stron jest tyle,
-        // ile ma dłuższe z nich. Dawne „1 strona" ukrywało wszystko poza pierwszą.
+        const response = await apiClient.get<CombinedOperationsResponse>(`/v1/operations?${params}`, { signal });
         return {
-            data: combinedData,
-            pagination: {
-                currentPage: filters.page,
-                totalPages: Math.max(visitsResult.pagination.totalPages, reservationsResult.pagination.totalPages, 1),
-                totalItems: filters.status
-                    ? combinedData.length
-                    : visitsResult.pagination.totalItems + reservationsResult.pagination.totalItems,
-                itemsPerPage: filters.limit,
-            },
+            data: response.data.items.map(item =>
+                item.visit ? mapVisitToOperation(item.visit) : mapAppointmentToOperation(item.appointment!)),
+            pagination: response.data.pagination,
         };
     },
 

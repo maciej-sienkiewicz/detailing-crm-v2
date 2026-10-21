@@ -465,9 +465,11 @@ export interface SigningSession {
 }
 
 export interface MyLeaveRequestsResponse {
+    /** false = konto bez rekordu pracownika (np. właściciel); wtedy lista jest pusta, a podsumowania nie ma. */
+    linked: boolean;
     /** Bez szkiców, najnowsze pierwsze. */
     requests: LeaveRequestSummary[];
-    summary: { year: number; usedWorkingDays: number; pendingCount: number };
+    summary: { year: number; usedWorkingDays: number; pendingCount: number } | null;
 }
 
 export interface LeaveRequestPreview {

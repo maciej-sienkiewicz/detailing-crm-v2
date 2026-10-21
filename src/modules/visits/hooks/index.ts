@@ -55,11 +55,9 @@ export const useVisitDetail = (visitId: string) => {
     };
 };
 
-/** 404 z kodem `VISIT_NOT_STARTED` - patrz VisitNotStartedException po stronie API. */
-const isVisitNotStarted = (error: unknown): boolean => {
-    const response = (error as { response?: { status?: number; data?: { code?: string } } })?.response;
-    return response?.status === 404 && response?.data?.code === 'VISIT_NOT_STARTED';
-};
+/** 409 z kodem `VISIT_NOT_STARTED` - patrz VisitNotStartedException po stronie API (dawniej 404). */
+const isVisitNotStarted = (error: unknown): boolean =>
+    (error as { response?: { data?: { code?: string } } })?.response?.data?.code === 'VISIT_NOT_STARTED';
 
 /**
  * Poprawka „Stanu przy przyjęciu" (przebieg, kluczyki, dokumenty). Osobny endpoint,

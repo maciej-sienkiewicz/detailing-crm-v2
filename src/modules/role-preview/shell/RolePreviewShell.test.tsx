@@ -37,7 +37,7 @@ describe('okno podglądu roli', () => {
     });
 
     it('wymienia kod raz, także gdy React uruchamia efekty dwukrotnie', async () => {
-        api.enter.mockResolvedValue(undefined);
+        api.enter.mockResolvedValue('entered');
         api.current.mockResolvedValue(state);
 
         render(<React.StrictMode><RolePreviewShell entryCode={code('a')} /></React.StrictMode>);
@@ -68,7 +68,7 @@ describe('okno podglądu roli', () => {
     });
 
     it('przerywa czekanie na piaskownicę, gdy odmowa przyjdzie w trakcie', async () => {
-        api.enter.mockRejectedValue({ response: { status: 404 } });
+        api.enter.mockResolvedValue('pending');
         let refused: string | null = null;
         const startFailure = { reason: () => refused };
 
