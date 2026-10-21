@@ -1,5 +1,6 @@
 // src/modules/statistics/hooks/useCostCategories.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { STALE_TIME } from '@/core/queryStaleTime';
 import { costsApi } from '../api/costsApi';
 import type {
     CreateCostCategoryRequest,
@@ -17,6 +18,7 @@ export const useCostCategories = () => {
     const { data, isLoading, isError, refetch } = useQuery({
         queryKey: [COST_CATEGORIES_KEY],
         queryFn:  () => costsApi.listCategories(),
+        staleTime: STALE_TIME.catalog,
     });
     return { categories: data ?? [], isLoading, isError, refetch };
 };

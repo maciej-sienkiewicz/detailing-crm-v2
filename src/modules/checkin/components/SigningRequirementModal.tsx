@@ -19,6 +19,7 @@ import { AbandonCheckInDialog } from './AbandonCheckInDialog';
 import { NotificationSection, defaultNotificationOptions, toConfirmVisitOptions } from './NotificationSection';
 import { useMessageDefaults } from '@/modules/message-templates/hooks/useMessageDefaults';
 import { useMessageAutomationAccess } from '@/modules/message-templates/hooks/useMessageAutomationAccess';
+import { emailAutomationQuery } from '@/modules/email-campaigns/api/emailAutomationQuery';
 import { useVisitCardSettings } from '@/modules/visit-card/hooks/useVisitCardSettings';
 import type { NotificationOptions } from './NotificationSection';
 import type { ProtocolResponse } from '../types';
@@ -184,8 +185,7 @@ export const SigningRequirementModal = ({
     // jak przy braku ustawień (dawniej: po błędzie zapytania).
     const canReadAutomation = useMessageAutomationAccess();
     const { data: emailConfig, isPending: emailConfigPending } = useQuery({
-        queryKey: ['email-automation-config'],
-        queryFn: () => import('@/modules/email-campaigns/api/emailCampaignsApi').then(m => m.fetchEmailAutomationConfig()),
+        ...emailAutomationQuery(),
         enabled: canReadAutomation,
     });
     const visitWelcomeEnabled = canReadAutomation && emailConfigPending ? false : (emailConfig?.visitWelcome?.enabled ?? true);

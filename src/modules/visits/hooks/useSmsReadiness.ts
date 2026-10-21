@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { canPurchaseHere } from '@/core/native/platform';
 import { useCapability } from '@/modules/subscription';
 import { useSmsCreditBalance } from '@/modules/settings/hooks/useSmsCredits';
-import { fetchAutomationConfig } from '@/modules/sms-settings/api/smsSettingsApi';
+import { smsAutomationQuery } from '@/modules/sms-settings/api/smsAutomationQuery';
 import { useMessageAutomationAccess } from '@/modules/message-templates/hooks/useMessageAutomationAccess';
 import { MESSAGES } from '@/modules/message-templates';
 import type { MessageKey } from '@/modules/message-templates';
@@ -78,7 +78,6 @@ export interface UseSmsReadinessOptions {
 /** Below this the balance is worth flagging before it stops a send mid-week. */
 const LOW_CREDIT_THRESHOLD = 5;
 
-const SMS_AUTOMATION_KEY = ['sms-automation'] as const;
 
 export function useSmsReadiness({
     enabled = true,
@@ -93,8 +92,7 @@ export function useSmsReadiness({
     // Moduł nie wystarczy: bez uprawnienia COMMUNICATION_SEND serwer odpowiada 403.
     const canReadAutomation = useMessageAutomationAccess();
     const templatesQuery = useQuery({
-        queryKey: SMS_AUTOMATION_KEY,
-        queryFn: fetchAutomationConfig,
+        ...smsAutomationQuery(),
         enabled: enabled && canReadAutomation && !!templateKey,
     });
 

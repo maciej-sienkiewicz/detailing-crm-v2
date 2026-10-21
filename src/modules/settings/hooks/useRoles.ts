@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { STALE_TIME } from '@/core/queryStaleTime';
 import { rolesApi } from '../api/rolesApi';
 import { EMPLOYEE_LISTS_KEY } from '@/modules/employees/hooks/useEmployees';
 import type { CreateRoleRequest, UpdateRoleRequest, DeleteRoleOptions } from '../rbacTypes';
@@ -22,6 +23,7 @@ export const useRoles = () => {
     const { data, isLoading, isError, refetch } = useQuery({
         queryKey: ROLES_KEY,
         queryFn: rolesApi.listRoles,
+        staleTime: STALE_TIME.config,
     });
 
     return { roles: data ?? [], isLoading, isError, refetch };

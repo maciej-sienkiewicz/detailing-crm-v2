@@ -1,12 +1,14 @@
 // src/modules/photos/hooks/usePhotoTags.ts
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { STALE_TIME } from '@/core/queryStaleTime';
 import { photoTagsApi } from '../api/photoTagsApi';
 
 export const useTagSuggestions = () => {
     return useQuery({
         queryKey: ['photo-tags', 'suggestions'],
         queryFn: () => photoTagsApi.getTagSuggestions(),
+        staleTime: STALE_TIME.catalog,
         select: (data) => data.suggestions,
     });
 };

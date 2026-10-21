@@ -16,6 +16,7 @@ import { useSmsCreditBalance, useSmsCreditPackages, usePurchaseCredits } from '@
 import { PurchaseConfirmModal } from '@/modules/settings/components/SmsCreditSection';
 import { creditsLabel, formatCreditCount, formatGrossCents, packageGrossCents } from '@/modules/settings/components/smsCreditPricing';
 import { fetchAutomationConfig, updateAutomationConfig } from '@/modules/sms-settings/api/smsSettingsApi';
+import { SMS_AUTOMATION_KEY } from '@/modules/sms-settings/api/smsAutomationQuery';
 import { MESSAGES } from '@/modules/message-templates';
 import { STARTER_SMS } from '@/modules/message-templates/starters';
 import type { MessageKey } from '@/modules/message-templates';
@@ -267,7 +268,7 @@ function TemplateStep({ templateKey, onDone }: { templateKey?: MessageKey; onDon
             return updateAutomationConfig(next);
         },
         onSuccess: result => {
-            qc.setQueryData(['sms-automation'], result);
+            qc.setQueryData(SMS_AUTOMATION_KEY, result);
             onDone();
         },
         onError: (err: unknown) => {

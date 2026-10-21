@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { STALE_TIME } from '@/core/queryStaleTime';
 import { useEffect, useState } from 'react';
 import * as api from '../api/campaignsApi';
 import type {
@@ -129,6 +130,7 @@ export function useCampaignSettings() {
   const { data, isLoading } = useQuery({
     queryKey: KEYS.settings,
     queryFn: api.fetchSettings,
+    staleTime: STALE_TIME.config,
   });
   const mutation = useMutation({
     mutationFn: (settings: CampaignSettings) => api.updateSettings(settings),

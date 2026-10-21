@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { STALE_TIME } from '@/core/queryStaleTime';
 import { newSubscriptionApi } from './subscriptionApi';
 import type { AddOnKey, PlanKey, CheckoutRequest, CheckoutResponse } from '../types';
 
@@ -17,6 +18,8 @@ export const useEntitlements = () => {
         queryKey: ENTITLEMENTS_KEY,
         queryFn: newSubscriptionApi.getEntitlements,
         retry: false,
+        // Zakup i zmiana pakietu unieważniają je same (invalidateSubscriptionData).
+        staleTime: STALE_TIME.entitlements,
     });
 };
 
@@ -31,6 +34,7 @@ export const useFeaturePlans = () => {
     return useQuery({
         queryKey: FEATURE_PLANS_KEY,
         queryFn: newSubscriptionApi.getFeaturePlans,
+        staleTime: STALE_TIME.offer,
     });
 };
 
@@ -38,6 +42,7 @@ export const useAddOns = (options?: { enabled?: boolean }) => {
     return useQuery({
         queryKey: ADD_ONS_KEY,
         queryFn: newSubscriptionApi.getAddOns,
+        staleTime: STALE_TIME.offer,
         enabled: options?.enabled ?? true,
     });
 };

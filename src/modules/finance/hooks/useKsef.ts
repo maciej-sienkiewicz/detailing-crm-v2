@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { STALE_TIME } from '@/core/queryStaleTime';
 import { ksefApi } from '../api/ksefApi';
 import { useCapability } from '@/modules/subscription';
 import { FINANCE_SUMMARY_KEY } from './useFinance';
@@ -62,6 +63,7 @@ export const useKsefAutomation = (options?: { enabled?: boolean }) => {
     queryKey: KSEF_INVOICING_STATUS_KEY,
     queryFn:  () => ksefApi.getInvoicingStatus(),
     enabled,
+    staleTime: STALE_TIME.config,
   });
 
   return {

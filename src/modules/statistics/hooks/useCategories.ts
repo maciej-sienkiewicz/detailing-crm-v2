@@ -1,5 +1,6 @@
 // src/modules/statistics/hooks/useCategories.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { STALE_TIME } from '@/core/queryStaleTime';
 import { categoriesApi } from '../api/categoriesApi';
 import type { CreateCategoryRequest, UpdateCategoryRequest } from '../types';
 import { BREAKDOWN_KEY } from './useStats';
@@ -10,6 +11,7 @@ export const useCategories = () => {
     const { data, isLoading, isError, refetch } = useQuery({
         queryKey: [CATEGORIES_KEY],
         queryFn: () => categoriesApi.list(),
+        staleTime: STALE_TIME.catalog,
     });
 
     return {

@@ -4,6 +4,7 @@ import { LockedSection } from '@/common/components/LockedSection';
 import { useToast } from '@/common/components/Toast';
 import { useCapability } from '@/modules/subscription';
 import { useMessageAutomationAccess } from '@/modules/message-templates/hooks/useMessageAutomationAccess';
+import { smsAutomationQuery } from '@/modules/sms-settings/api/smsAutomationQuery';
 import { visitApi } from '@/modules/visits/api/visitApi';
 import { useVisitPhotos } from '@/modules/visits/hooks';
 import { useVisitCardSettings } from '@/modules/visit-card/hooks/useVisitCardSettings';
@@ -382,8 +383,7 @@ export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled,
     // że backend i tak nic by nie wysłał (brak skonfigurowanej treści wiadomości).
     const canReadAutomation = useMessageAutomationAccess();
     const { data: automationConfig } = useQuery({
-        queryKey: ['sms-automation-config'],
-        queryFn: () => import('@/modules/sms-settings/api/smsSettingsApi').then(m => m.fetchAutomationConfig()),
+        ...smsAutomationQuery(),
         enabled: canReadAutomation,
     });
     const visitCardLinkSmsEnabled = automationConfig?.visitCardLink?.enabled ?? true;

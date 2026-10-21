@@ -1,9 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useCapability } from '@/modules/subscription';
-import { fetchAutomationConfig } from '@/modules/sms-settings/api/smsSettingsApi';
+import { smsAutomationQuery } from '@/modules/sms-settings/api/smsAutomationQuery';
 import { useMessageAutomationAccess } from '@/modules/message-templates/hooks/useMessageAutomationAccess';
-
-const SMS_AUTOMATION_KEY = ['sms-automation'] as const;
 
 export interface UpsellNotificationAvailability {
     /** Dopóki trwa, nie pokazujemy nic: mignięcie pola i jego zniknięcie jest gorsze niż chwila ciszy. */
@@ -34,10 +32,8 @@ export const useUpsellNotificationAvailability = (enabled: boolean): UpsellNotif
     // Moduł nie wystarczy: bez uprawnienia COMMUNICATION_SEND serwer odpowiada 403.
     const canReadAutomation = useMessageAutomationAccess();
     const templatesQuery = useQuery({
-        queryKey: SMS_AUTOMATION_KEY,
-        queryFn: fetchAutomationConfig,
+        ...smsAutomationQuery(),
         enabled: enabled && canReadAutomation,
-        staleTime: 60_000,
     });
 
     const rule = templatesQuery.data?.upsellSuggestion;

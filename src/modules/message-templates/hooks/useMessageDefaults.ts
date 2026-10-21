@@ -7,18 +7,11 @@
 // w kod każdego okna osobno i studio co rezerwację klikało to samo.
 import { useCallback, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchAutomationConfig } from '@/modules/sms-settings/api/smsSettingsApi';
-import { fetchEmailAutomationConfig } from '@/modules/email-campaigns/api/emailCampaignsApi';
+import { smsAutomationQuery } from '@/modules/sms-settings/api/smsAutomationQuery';
+import { emailAutomationQuery } from '@/modules/email-campaigns/api/emailAutomationQuery';
 import type { SmsRuleKey } from '@/modules/sms-settings/types';
 import type { EmailRuleKey } from '@/modules/email-campaigns/types';
 import { useMessageAutomationAccess } from './useMessageAutomationAccess';
-
-/*
- * Te same klucze, co ekran szablonów (useMessageTemplates): zapis ustawień od razu
- * podmienia dane w cache, więc następne otwarte okno widzi nowy stan bez przeładowania.
- */
-const SMS_KEY = ['sms-automation'] as const;
-const EMAIL_KEY = ['email-automation'] as const;
 
 export interface MessageDefaults {
     /** undefined = ustawienia jeszcze się wczytują albo są niedostępne (brak uprawnień, modułu, starszy backend). */
@@ -29,8 +22,10 @@ export interface MessageDefaults {
 export function useMessageDefaults(): MessageDefaults {
     // Bez modułu albo uprawnienia nie pytamy wcale (402/403) - okno ma bezpieczny stan zapasowy.
     const enabled = useMessageAutomationAccess();
-    const { data: sms } = useQuery({ queryKey: SMS_KEY, queryFn: fetchAutomationConfig, enabled, retry: false, staleTime: 60_000 });
-    const { data: email } = useQuery({ queryKey: EMAIL_KEY, queryFn: fetchEmailAutomationConfig, enabled, retry: false, staleTime: 60_000 });
+    // Te same klucze, co ekran szablonów (useMessageTemplates): zapis ustawień od razu
+    // podmienia dane w cache, więc następne otwarte okno widzi nowy stan bez przeładowania.
+    const { data: sms } = useQuery({ ...smsAutomationQuery(), enabled, retry: false });
+    const { data: email } = useQuery({ ...emailAutomationQuery(), enabled, retry: false });
 
     // Brak pola (backend sprzed tej zmiany) to „nie wiadomo", nie „odznaczone" - okno
     // wraca wtedy do swojego dotychczasowego stanu, zamiast po cichu go zmienić.

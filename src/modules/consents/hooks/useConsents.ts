@@ -4,6 +4,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { STALE_TIME } from '@/core/queryStaleTime';
 import { consentsApi } from '../api/consentsApi';
 
 // Query keys
@@ -15,6 +16,7 @@ export const useConsentDefinitions = () => {
     const query = useQuery({
         queryKey: CONSENT_QUERY_KEYS.definitions,
         queryFn: consentsApi.getConsentDefinitions,
+        staleTime: STALE_TIME.config,
     });
 
     return {

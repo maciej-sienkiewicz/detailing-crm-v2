@@ -1,20 +1,13 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
-import {
-  fetchAutomationConfig,
-  updateAutomationConfig,
-} from '@/modules/sms-settings/api/smsSettingsApi';
-import {
-  fetchEmailAutomationConfig,
-  updateEmailAutomationConfig,
-} from '@/modules/email-campaigns/api/emailCampaignsApi';
+import { updateAutomationConfig } from '@/modules/sms-settings/api/smsSettingsApi';
+import { SMS_AUTOMATION_KEY as SMS_KEY, smsAutomationQuery } from '@/modules/sms-settings/api/smsAutomationQuery';
+import { updateEmailAutomationConfig } from '@/modules/email-campaigns/api/emailCampaignsApi';
+import { EMAIL_AUTOMATION_KEY as EMAIL_KEY, emailAutomationQuery } from '@/modules/email-campaigns/api/emailAutomationQuery';
 import type { SmsAutomationConfig, SmsRuleKey } from '@/modules/sms-settings/types';
 import type { EmailAutomationConfig, EmailRuleKey } from '@/modules/email-campaigns/types';
 import { DEFAULT_OFFSET_MINUTES, MESSAGES } from '../catalog';
 import type { Channel, ChannelDraft, MessageKey, TemplatesDraft } from '../types';
-
-const SMS_KEY = ['sms-automation'] as const;
-const EMAIL_KEY = ['email-automation'] as const;
 
 /** Backend → screen: two per-channel configs collapse into one list of messages. */
 function toDraft(sms: SmsAutomationConfig, email: EmailAutomationConfig): TemplatesDraft {
@@ -113,8 +106,9 @@ export function useMessageTemplates(): MessageTemplatesState {
 
   const [smsQuery, emailQuery] = useQueries({
     queries: [
-      { queryKey: SMS_KEY, queryFn: fetchAutomationConfig },
-      { queryKey: EMAIL_KEY, queryFn: fetchEmailAutomationConfig },
+      // Ekran edycji czyta zawsze świeżo - ktoś mógł zmienić szablony w innej karcie.
+      { ...smsAutomationQuery(), staleTime: 0 },
+      { ...emailAutomationQuery(), staleTime: 0 },
     ],
   });
 
