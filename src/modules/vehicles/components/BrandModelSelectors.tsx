@@ -45,8 +45,8 @@ const Trigger = styled.button<{ $disabled?: boolean; $compact?: boolean }>`
     &:focus {
       outline: none;
       background: #ffffff;
-      border-color: var(--brand-primary);
-      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+      border-color: var(--brand-ink);
+      box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.1);
     }
   `}
 `;
@@ -114,9 +114,9 @@ const PortalMenuDoneBtn = styled.button`
   transition: all 150ms ease;
 
   &:hover {
-    border-color: #0ea5e9;
-    color: #0ea5e9;
-    background: rgba(14, 165, 233, 0.06);
+    border-color: #0369a1;
+    color: #0369a1;
+    background: rgba(3, 105, 161, 0.06);
   }
 `;
 
@@ -166,7 +166,7 @@ const SearchInput = styled.input`
 
   &:focus {
     border-color: ${props => props.theme.colors.primary};
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.1);
   }
 `;
 
@@ -275,9 +275,9 @@ const SheetSearchInput = styled.input`
   &::placeholder { color: #94a3b8; }
 
   &:focus {
-    border-color: #0ea5e9;
+    border-color: #0369a1;
     background: #ffffff;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+    box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12);
   }
 
   &:disabled { opacity: 0.6; }
@@ -300,8 +300,8 @@ const SheetItem = styled.button<{ $selected?: boolean }>`
   padding: 14px 20px;
   border: none;
   border-bottom: 1px solid #f1f5f9;
-  background: ${p => p.$selected ? '#f0f9ff' : 'transparent'};
-  color: ${p => p.$selected ? '#0284c7' : '#0f172a'};
+  background: ${p => p.$selected ? 'rgba(3, 105, 161, 0.06)' : 'transparent'};
+  color: ${p => p.$selected ? '#075985' : '#0f172a'};
   font-family: inherit;
   font-size: 15px;
   font-weight: ${p => p.$selected ? 600 : 400};
@@ -310,7 +310,7 @@ const SheetItem = styled.button<{ $selected?: boolean }>`
   -webkit-tap-highlight-color: transparent;
 
   &:last-child { border-bottom: none; }
-  &:active { background: #f0f9ff; }
+  &:active { background: rgba(3, 105, 161, 0.06); }
 `;
 
 const SheetEmpty = styled.div`
@@ -331,7 +331,7 @@ const SheetDoneBtn = styled.button`
   min-height: 46px;
   border: none;
   border-radius: 12px;
-  background: #0ea5e9;
+  background: #0369a1;
   color: #ffffff;
   font-family: inherit;
   font-size: 15px;
@@ -339,7 +339,7 @@ const SheetDoneBtn = styled.button`
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 
-  &:active { background: #0284c7; }
+  &:active { background: #075985; }
 `;
 
 const CloseIcon = () => (

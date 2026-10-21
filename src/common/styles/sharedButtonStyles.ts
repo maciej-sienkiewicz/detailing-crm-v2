@@ -38,25 +38,25 @@ const variantStyles = (variant: ButtonVariant) => {
             `;
         case 'secondary':
             return `
-                color: var(--ui-text-secondary);
-                background: var(--ui-surface-alt);
-                border: 1.5px solid var(--ui-line);
+                color: #475569;
+                background: #f1f5f9;
+                border: 1.5px solid #e2e8f0;
 
                 &:hover:not(:disabled) {
-                    background: var(--ui-line);
-                    color: var(--ui-ink);
-                    border-color: var(--ui-line-hover);
+                    background: #e2e8f0;
+                    color: #0f172a;
+                    border-color: #cbd5e1;
                 }
                 &:disabled { opacity: 0.5; cursor: not-allowed; }
             `;
         case 'ghost':
             return `
-                color: var(--ui-text-secondary);
+                color: #475569;
                 background: transparent;
 
                 &:hover:not(:disabled) {
-                    background: var(--ui-surface-alt);
-                    color: var(--ui-ink);
+                    background: #f1f5f9;
+                    color: #0f172a;
                 }
                 &:disabled { opacity: 0.5; cursor: not-allowed; }
             `;

@@ -30,7 +30,7 @@ export const FormLabel = styled.label`
     display: block;
     font-size: 13px;
     font-weight: 500;
-    color: var(--ui-text-secondary);
+    color: #475569;
     letter-spacing: 0.01em;
     line-height: 1;
 `;
@@ -41,32 +41,32 @@ export const FormInput = styled.input<{ $hasError?: boolean; $accentColor?: stri
     width: 100%;
     padding: 11px 16px;
     background: #ffffff;
-    border: 1.5px solid ${p => p.$hasError ? '#ef4444' : 'var(--ui-line)'};
+    border: 1.5px solid ${p => p.$hasError ? '#ef4444' : '#e2e8f0'};
     border-radius: 10px;
     font-size: 15px;
     font-weight: 400;
-    color: var(--ui-ink);
+    color: #0f172a;
     outline: none;
     transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
     font-family: inherit;
 
-    &::placeholder { color: var(--ui-text-faint); }
+    &::placeholder { color: #94a3b8; }
 
     &:hover:not(:focus):not(:disabled) {
-        border-color: var(--ui-line-hover);
+        border-color: #cbd5e1;
     }
 
     &:focus {
-        border-color: ${p => p.$hasError ? '#ef4444' : (p.$accentColor ?? '#0ea5e9')};
+        border-color: ${p => p.$hasError ? '#ef4444' : (p.$accentColor ?? '#0369a1')};
         box-shadow: 0 0 0 3px ${p =>
-            p.$hasError ? 'rgba(239,68,68,0.12)' : 'rgba(14,165,233,0.14)'};
+            p.$hasError ? 'rgba(239,68,68,0.12)' : 'rgba(3, 105, 161, 0.14)'};
     }
 
     &:disabled {
-        background: var(--ui-surface-soft);
-        color: var(--ui-text-faint);
+        background: #f8fafc;
+        color: #94a3b8;
         cursor: not-allowed;
-        border-color: var(--ui-surface-alt);
+        border-color: #f1f5f9;
     }
 `;
 
@@ -74,25 +74,25 @@ export const FormTextarea = styled.textarea<{ $hasError?: boolean; $accentColor?
     width: 100%;
     padding: 11px 16px;
     background: #ffffff;
-    border: 1.5px solid ${p => p.$hasError ? '#ef4444' : 'var(--ui-line)'};
+    border: 1.5px solid ${p => p.$hasError ? '#ef4444' : '#e2e8f0'};
     border-radius: 10px;
     font-size: 14px;
     font-weight: 400;
-    color: var(--ui-ink);
+    color: #0f172a;
     outline: none;
     resize: none;
     transition: border-color 180ms ease, box-shadow 180ms ease;
     font-family: inherit;
     line-height: 1.5;
 
-    &::placeholder { color: var(--ui-text-faint); }
+    &::placeholder { color: #94a3b8; }
 
-    &:hover:not(:focus) { border-color: var(--ui-line-hover); }
+    &:hover:not(:focus) { border-color: #cbd5e1; }
 
     &:focus {
-        border-color: ${p => p.$hasError ? '#ef4444' : (p.$accentColor ?? '#0ea5e9')};
+        border-color: ${p => p.$hasError ? '#ef4444' : (p.$accentColor ?? '#0369a1')};
         box-shadow: 0 0 0 3px ${p =>
-            p.$hasError ? 'rgba(239,68,68,0.12)' : 'rgba(14,165,233,0.14)'};
+            p.$hasError ? 'rgba(239,68,68,0.12)' : 'rgba(3, 105, 161, 0.14)'};
     }
 `;
 
@@ -109,19 +109,19 @@ export const FormSelectButton = styled.button<{
     gap: 10px;
     padding: 11px 16px;
     background: #ffffff;
-    border: 1.5px solid ${p => p.$hasError ? '#ef4444' : 'var(--ui-line)'};
+    border: 1.5px solid ${p => p.$hasError ? '#ef4444' : '#e2e8f0'};
     border-radius: 10px;
     text-align: left;
     cursor: pointer;
     transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
 
-    &:hover:not(:disabled) { border-color: var(--ui-line-hover); }
+    &:hover:not(:disabled) { border-color: #cbd5e1; }
 
     &:focus {
         outline: none;
-        border-color: ${p => p.$hasError ? '#ef4444' : (p.$accentColor ?? '#0ea5e9')};
+        border-color: ${p => p.$hasError ? '#ef4444' : (p.$accentColor ?? '#0369a1')};
         box-shadow: 0 0 0 3px ${p =>
-            p.$hasError ? 'rgba(239,68,68,0.12)' : 'rgba(14,165,233,0.14)'};
+            p.$hasError ? 'rgba(239,68,68,0.12)' : 'rgba(3, 105, 161, 0.14)'};
     }
 
     &:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -129,7 +129,7 @@ export const FormSelectButton = styled.button<{
     span {
         flex: 1;
         font-size: 15px;
-        color: ${p => p.$hasValue ? 'var(--ui-ink)' : 'var(--ui-text-faint)'};
+        color: ${p => p.$hasValue ? '#0f172a' : '#94a3b8'};
         font-weight: ${p => p.$hasValue ? 500 : 400};
         white-space: nowrap;
         overflow: hidden;
@@ -162,27 +162,27 @@ export const FormSelect = styled.select<{ $hasError?: boolean }>`
     width: 100%;
     padding: 11px 16px;
     background: #ffffff;
-    border: 1.5px solid ${p => p.$hasError ? '#ef4444' : 'var(--ui-line)'};
+    border: 1.5px solid ${p => p.$hasError ? '#ef4444' : '#e2e8f0'};
     border-radius: 10px;
     font-size: 14px;
     font-family: inherit;
     font-weight: 400;
-    color: var(--ui-ink);
+    color: #0f172a;
     outline: none;
     cursor: pointer;
     transition: border-color 180ms ease, box-shadow 180ms ease;
 
     &:focus {
-        border-color: ${p => p.$hasError ? '#ef4444' : '#0ea5e9'};
+        border-color: ${p => p.$hasError ? '#ef4444' : '#0369a1'};
         box-shadow: 0 0 0 3px ${p =>
-            p.$hasError ? 'rgba(239,68,68,0.12)' : 'rgba(14,165,233,0.14)'};
+            p.$hasError ? 'rgba(239,68,68,0.12)' : 'rgba(3, 105, 161, 0.14)'};
     }
 
     &:disabled {
-        background: var(--ui-surface-soft);
-        color: var(--ui-text-faint);
+        background: #f8fafc;
+        color: #94a3b8;
         cursor: not-allowed;
-        border-color: var(--ui-surface-alt);
+        border-color: #f1f5f9;
     }
 `;
 
@@ -190,14 +190,14 @@ export const FormSelect = styled.select<{ $hasError?: boolean }>`
 
 export const FormCheckboxCard = styled.div`
     padding: 14px 16px;
-    background: var(--ui-surface-soft);
-    border: 1.5px solid var(--ui-line);
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
     border-radius: 14px;
     transition: border-color 180ms ease, background 180ms ease;
 
     &:has(input:checked) {
-        border-color: #0ea5e9;
-        background: #f0f9ff;
+        border-color: #0369a1;
+        background: rgba(3, 105, 161, 0.06);
     }
 `;
 
@@ -215,7 +215,7 @@ export const FormCheckbox = styled.input.attrs({ type: 'checkbox' })`
     height: 18px;
     border-radius: 6px;
     cursor: pointer;
-    accent-color: #0ea5e9;
+    accent-color: #0369a1;
 `;
 
 export const FormCheckboxBody = styled.div`
@@ -229,14 +229,14 @@ export const FormCheckboxTitle = styled.span`
     display: block;
     font-size: 14px;
     font-weight: 500;
-    color: var(--ui-ink);
+    color: #0f172a;
     line-height: 1.4;
 `;
 
 export const FormCheckboxDescription = styled.p`
     margin: 0;
     font-size: 13px;
-    color: var(--ui-text-muted);
+    color: #64748b;
     line-height: 1.4;
 `;
 
@@ -244,8 +244,8 @@ export const FormCheckboxDescription = styled.p`
 
 export const FormInfoBox = styled.div`
     padding: 14px 16px;
-    background: var(--ui-surface-soft);
-    border: 1px solid var(--ui-line);
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
     border-radius: 10px;
 `;
 
@@ -255,13 +255,13 @@ export const FormInfoLabel = styled.p`
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: var(--ui-text-faint);
+    color: #94a3b8;
 `;
 
 export const FormInfoValue = styled.p`
     margin: 0;
     font-size: 17px;
     font-weight: 700;
-    color: var(--ui-ink);
+    color: #0f172a;
     letter-spacing: -0.2px;
 `;

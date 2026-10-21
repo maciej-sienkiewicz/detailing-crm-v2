@@ -13,12 +13,18 @@ import { QuickNoteProvider } from '@/modules/dashboard/components/QuickNoteProvi
 import { PushOnboardingPrompt } from '@/modules/push/components/PushOnboardingPrompt';
 import { NativePushBridge } from '@/modules/push/native/NativePushBridge';
 import { viewKeyOf } from './viewKey';
+import { FRAME_COLOR, FRAME_GAP, FRAME_RADIUS } from './frame';
 
 const LayoutContainer = styled.div`
     display: flex;
     min-height: 100vh;
     background-color: ${props => props.theme.colors.background};
     overflow-x: hidden;
+
+    /* Rama (frame.ts): na komputerze tło okna ma kolor menu, treść leży w panelu. */
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        background-color: ${FRAME_COLOR};
+    }
 `;
 
 const ContentWrapper = styled.div<{ $isCollapsed: boolean }>`
@@ -29,7 +35,15 @@ const ContentWrapper = styled.div<{ $isCollapsed: boolean }>`
     position: relative;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
-        margin-left: ${props => props.$isCollapsed ? '64px' : '248px'};
+        margin: ${FRAME_GAP}px ${FRAME_GAP}px ${FRAME_GAP}px ${props => props.$isCollapsed ? '64px' : '248px'};
+        min-height: calc(100vh - ${2 * FRAME_GAP}px);
+        min-height: calc(100dvh - ${2 * FRAME_GAP}px);
+        background-color: ${props => props.theme.colors.background};
+        border-radius: ${FRAME_RADIUS}px;
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 1px 3px rgba(0, 0, 0, 0.3);
+        /* clip, nie hidden: przycina treść do zaokrąglonych rogów, ale nie robi
+           z panelu kontenera przewijania - position: sticky w widokach działa dalej. */
+        overflow: clip;
         transition: margin-left 200ms cubic-bezier(0.4, 0, 0.2, 1);
     }
 
@@ -53,6 +67,7 @@ const RouteFlash = styled.div`
     inset: 0;
     z-index: 500;
     background: ${props => props.theme.colors.background};
+    border-radius: inherit;
     animation: ${fadeOut} 240ms cubic-bezier(0.4, 0, 0.2, 1) both;
     pointer-events: none;
 `;

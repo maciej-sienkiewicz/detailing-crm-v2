@@ -6,15 +6,14 @@ export const theme = {
     colors: {
         background: '#eef2f7',
         surface: '#ffffff',
-        // Neutralne jako zmienne CSS (index.css): chłodne w widokach, ciepłe w oknach (warmScope).
-        surfaceAlt: 'var(--ui-surface-alt)',
-        surfaceHover: 'var(--ui-surface-soft)',
+        surfaceAlt: '#f1f5f9',
+        surfaceHover: '#f8fafc',
 
-        text: 'var(--ui-ink)',
-        textSecondary: 'var(--ui-text-secondary)',
-        textMuted: 'var(--ui-text-faint)',
+        text: '#0f172a',
+        textSecondary: '#475569',
+        textMuted: '#94a3b8',
 
-        border: 'var(--ui-line)',
+        border: '#e2e8f0',
 
         primary: 'var(--brand-primary)',
 

@@ -63,7 +63,7 @@ const PanelTitle = styled.div`
     svg {
         width: 13px;
         height: 13px;
-        color: ${ui.brand};
+        color: ${ui.brandInk};
         flex-shrink: 0;
     }
 `;
@@ -86,9 +86,9 @@ const TypeBtn = styled.button<{ $active: boolean }>`
     flex: 1;
     padding: 7px 0;
     border-radius: 8px;
-    border: 1.5px solid ${p => p.$active ? ui.brand : ui.line};
-    background: ${p => p.$active ? ui.brandTint : ui.surface};
-    color: ${p => p.$active ? ui.brandStrong : ui.textFaint};
+    border: 1.5px solid ${p => p.$active ? ui.brandInk : ui.line};
+    background: ${p => p.$active ? 'rgba(3, 105, 161, 0.06)' : ui.surface};
+    color: ${p => p.$active ? ui.brandDeep : ui.textFaint};
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
@@ -96,9 +96,9 @@ const TypeBtn = styled.button<{ $active: boolean }>`
     font-family: inherit;
 
     &:hover {
-        border-color: ${ui.brand};
-        color: ${ui.brandStrong};
-        background: ${ui.brandTint};
+        border-color: ${ui.brandInk};
+        color: ${ui.brandDeep};
+        background: rgba(3, 105, 161, 0.06);
     }
 `;
 
@@ -112,8 +112,8 @@ const DayPill = styled.button<{ $active: boolean }>`
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    border: 1.5px solid ${p => p.$active ? ui.brand : ui.line};
-    background: ${p => p.$active ? ui.brand : ui.surface};
+    border: 1.5px solid ${p => p.$active ? ui.brandInk : ui.line};
+    background: ${p => p.$active ? ui.brandInk : ui.surface};
     color: ${p => p.$active ? ui.surface : ui.textFaint};
     font-size: 11px;
     font-weight: 700;
@@ -123,9 +123,9 @@ const DayPill = styled.button<{ $active: boolean }>`
     font-family: inherit;
 
     &:hover {
-        border-color: ${ui.brand};
-        color: ${p => p.$active ? ui.surface : ui.brandStrong};
-        background: ${p => p.$active ? ui.brandStrong : ui.brandTint};
+        border-color: ${ui.brandInk};
+        color: ${p => p.$active ? ui.surface : ui.brandDeep};
+        background: ${p => p.$active ? ui.brandDeep : 'rgba(3, 105, 161, 0.06)'};
     }
 `;
 
@@ -168,7 +168,7 @@ const RadioRow = styled.label`
 const StyledRadio = styled.input.attrs({ type: 'radio' })`
     width: 14px;
     height: 14px;
-    accent-color: ${ui.brand};
+    accent-color: ${ui.brandInk};
     cursor: pointer;
     flex-shrink: 0;
 `;
@@ -194,8 +194,8 @@ const PanelDivider = styled.div`
 `;
 
 const PreviewBox = styled.div`
-    background: ${ui.brandTint};
-    border: 1px solid ${ui.brandLineSoft};
+    background: rgba(3, 105, 161, 0.06);
+    border: 1px solid rgba(3, 105, 161, 0.25);
     border-radius: 10px;
     padding: 10px 12px;
 `;

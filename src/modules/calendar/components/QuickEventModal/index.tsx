@@ -49,6 +49,10 @@ import { RecurrenceSidePanel, SidePanelWrapper, SidePanelInner } from './Recurre
 import type { QuickEventModalProps, QuickEventModalRef, AppointmentColor, Service, ServiceAdjustment } from './types';
 import { PiiValue } from '@/common/pii';
 
+/** Fokus i zaznaczenia w oknie: głęboki błękit marki, nie kolor rezerwacji ani jaskrawe
+ *  #0ea5e9 - kolor rezerwacji widać tylko w próbkach kolorów (decyzja z 21.10.2026). */
+const FOCUS_ACCENT = ui.brandInk;
+
 export type { QuickEventFormData, QuickEventInitialData } from './types';
 export type { QuickEventModalRef };
 
@@ -91,7 +95,7 @@ function placeAttachedList(panel: HTMLElement, anchor: HTMLElement, cap: number,
     panel.style.top = `${placement.top}px`;
     panel.style.left = `${placement.left}px`;
     panel.style.maxHeight = `${Math.min(placement.maxHeight, cap)}px`;
-    panel.style.borderTop = placement.above ? `1.5px solid ${ui.brand}` : '';
+    panel.style.borderTop = placement.above ? `1.5px solid ${ui.brandInk}` : '';
     panel.style.borderRadius = placement.above ? '12px' : '';
     return placement.above;
 }
@@ -819,7 +823,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         data-qem-title=""
                                         value={form.title}
                                         onChange={(e) => form.setTitle(e.target.value)}
-                                        $accentColor={form.focusedField === 'title' ? form.accentColor : undefined}
+                                        $accentColor={form.focusedField === 'title' ? FOCUS_ACCENT : undefined}
                                         onFocus={() => form.setFocusedField('title')}
                                         onBlur={() => form.setFocusedField(null)}
                                     />
@@ -870,7 +874,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             data-qem-title=""
                                             value={form.title}
                                             onChange={(e) => form.setTitle(e.target.value)}
-                                            $accentColor={form.focusedField === 'title' ? form.accentColor : undefined}
+                                            $accentColor={form.focusedField === 'title' ? FOCUS_ACCENT : undefined}
                                             onFocus={() => form.setFocusedField('title')}
                                             onBlur={() => form.setFocusedField(null)}
                                         />
@@ -890,7 +894,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     </S.RowHeaderTitleRow>
                                     <S.RowHeaderHint $required>wymagane</S.RowHeaderHint>
                                 </S.RowHeader>
-                                <S.IconWrapper $color={form.focusedField?.startsWith('time') ? form.accentColor : undefined}>
+                                <S.IconWrapper $color={form.focusedField?.startsWith('time') ? FOCUS_ACCENT : undefined}>
                                     <IconClock />
                                 </S.IconWrapper>
                                 <S.RowContent>
@@ -987,7 +991,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     onChange={handleStartDateTimeChange}
                                                     showTime={false}
                                                     placeholder="Wybierz datę"
-                                                    accentColor={form.focusedField === 'time-start' ? form.accentColor : undefined}
+                                                    accentColor={form.focusedField === 'time-start' ? FOCUS_ACCENT : undefined}
                                                     hasError={!!form.errors.startDateTime}
                                                     containerRef={form.startInputRef}
                                                     onFocus={() => form.setFocusedField('time-start')}
@@ -1002,7 +1006,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     onEndChange={form.setEndDateTime}
                                                     showTime
                                                     placeholder="Wybierz datę"
-                                                    accentColor={form.focusedField === 'time-start' ? form.accentColor : undefined}
+                                                    accentColor={form.focusedField === 'time-start' ? FOCUS_ACCENT : undefined}
                                                     hasError={!!form.errors.startDateTime}
                                                     containerRef={form.startInputRef}
                                                     onFocus={() => form.setFocusedField('time-start')}
@@ -1022,7 +1026,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     onEndChange={form.setEndDateTime}
                                                     showTime
                                                     placeholder="Wybierz datę i godzinę"
-                                                    accentColor={form.focusedField === 'time-end' ? form.accentColor : undefined}
+                                                    accentColor={form.focusedField === 'time-end' ? FOCUS_ACCENT : undefined}
                                                     hasError={!!form.errors.endDateTime}
                                                     containerRef={form.endInputRef}
                                                     onFocus={() => form.setFocusedField('time-end')}
@@ -1078,7 +1082,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         <S.RowHeaderHint $required>wymagane</S.RowHeaderHint>
                                     )}
                                 </S.RowHeader>
-                                <S.IconWrapper $color={form.focusedField === 'customer' ? form.accentColor : undefined}>
+                                <S.IconWrapper $color={form.focusedField === 'customer' ? FOCUS_ACCENT : undefined}>
                                     <IconUser />
                                 </S.IconWrapper>
                                 <S.RowContent>
@@ -1424,7 +1428,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                         });
                                                                         form.setShowCustomerDropdown(false);
                                                                     }}
-                                                                    $accentColor={form.accentColor}
+                                                                    $accentColor={FOCUS_ACCENT}
                                                                 >
                                                                     {(c.firstName || c.lastName)
                                                                         ? <span>{c.firstName} {c.lastName}</span>
@@ -1488,7 +1492,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     </S.RowHeaderTitleRow>
                                     <S.RowHeaderHint>opcjonalne</S.RowHeaderHint>
                                 </S.RowHeader>
-                                <S.IconWrapper $color={form.focusedField === 'vehicle' ? form.accentColor : undefined}>
+                                <S.IconWrapper $color={form.focusedField === 'vehicle' ? FOCUS_ACCENT : undefined}>
                                     <IconCar />
                                 </S.IconWrapper>
                                 <S.RowContent ref={form.vehicleSectionRef}>
@@ -1572,7 +1576,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     Wybierz z {form.vehicles.length} {pluralPl(form.vehicles.length, 'pojazdu', 'pojazdów', 'pojazdów')} klienta
                                                 </span>
                                                 <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0 }}>
-                                                    <path d="M1 1l4 4 4-4" style={{ stroke: ui.textFaint }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                                    <path d="M1 1l4 4 4-4" stroke={ui.textFaint} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                                                 </svg>
                                             </S.VehicleSelectButton>
                                             {form.showVehicleDropdown && form.selectedCustomer && createPortal(
@@ -1586,7 +1590,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             onClick={() => {
                                                                 form.handleVehicleSelect({ id: v.id, kind: normalizeVehicleKind(v.kind), brand: v.brand, model: v.model, year: v.year, licensePlate: v.licensePlate ?? null, isNew: false });
                                                             }}
-                                                            $accentColor={form.accentColor}
+                                                            $accentColor={FOCUS_ACCENT}
                                                         >
                                                             <span>{v.brand} {v.model}</span>
                                                             <S.DropdownItemMeta>
@@ -1660,7 +1664,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         tak samo jak „Termin" i „Dane klienta". */}
                                     <S.RowHeaderHint $required>wymagane</S.RowHeaderHint>
                                 </S.RowHeader>
-                                <S.IconWrapper $color={form.focusedField === 'services' ? form.accentColor : undefined}>
+                                <S.IconWrapper $color={form.focusedField === 'services' ? FOCUS_ACCENT : undefined}>
                                     <IconSettings />
                                 </S.IconWrapper>
                                 <S.RowContent>
@@ -1709,7 +1713,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         setHighlightedServiceIdx(-1);
                                                     }}
                                                     aria-invalid={!!form.errors.services || !!form.errors.servicePrices}
-                                                    $accentColor={form.focusedField === 'services' ? form.accentColor : undefined}
+                                                    $accentColor={form.focusedField === 'services' ? FOCUS_ACCENT : undefined}
                                                     $dropdownOpen={form.showServiceDropdown}
                                                     onFocus={() => {
                                                         // Sam fokus (np. tabulatorem) nie otwiera już okna „Nowa usługa" przy
@@ -2001,7 +2005,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     </S.RowHeaderTitleRow>
                                     <S.RowHeaderHint>opcjonalne</S.RowHeaderHint>
                                 </S.RowHeader>
-                                <S.IconWrapper $color={form.focusedField === 'notes' ? form.accentColor : undefined}>
+                                <S.IconWrapper $color={form.focusedField === 'notes' ? FOCUS_ACCENT : undefined}>
                                     <IconNote />
                                 </S.IconWrapper>
                                 <S.RowContent>
@@ -2010,7 +2014,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         value={form.notes}
                                         onChange={(e) => form.setNotes(capitalizeFirst(e.target.value))}
                                         rows={3}
-                                        $accentColor={form.focusedField === 'notes' ? form.accentColor : undefined}
+                                        $accentColor={form.focusedField === 'notes' ? FOCUS_ACCENT : undefined}
                                         onFocus={() => form.setFocusedField('notes')}
                                         onBlur={() => form.setFocusedField(null)}
                                     />
@@ -2033,7 +2037,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     </S.RowHeaderTitleRow>
                                     <S.RowHeaderHint>opcjonalne</S.RowHeaderHint>
                                 </S.RowHeader>
-                                <S.IconWrapper $color={form.doorToDoor.enabled ? ui.brand : undefined}>
+                                <S.IconWrapper $color={form.doorToDoor.enabled ? ui.brandInk : undefined}>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                                         <polyline points="9 22 9 12 15 12 15 22"/>

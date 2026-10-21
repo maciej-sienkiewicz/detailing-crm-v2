@@ -14,12 +14,14 @@ import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 // uprawnienia itd.), co wciąga ten podgraf do zwykłego komponentu UI i potrafi
 // zamknąć cykl importów ("Cannot access 'BOTTOM_NAV_SPACE' before initialization").
 import { BOTTOM_NAV_SPACE } from '@/widgets/BottomNav/constants';
+import { FRAME_GAP } from '@/widgets/Layout/frame';
 
 const FooterShell = styled.footer<{ $sidebarWidth: number }>`
     position: fixed;
     bottom: 0;
     left: ${p => p.$sidebarWidth}px;
-    right: 0;
+    /* Kończy się z prawej razem z panelem treści, nie na ramie okna (frame.ts). */
+    right: ${FRAME_GAP}px;
     background: ${st.bgCard};
     border-top: 1px solid ${st.border};
     box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.08);
@@ -28,6 +30,7 @@ const FooterShell = styled.footer<{ $sidebarWidth: number }>`
 
     @media (max-width: 768px) {
         left: 0;
+        right: 0;
         /* Ponad dolnym paskiem nawigacji – przyciski muszą zostać klikalne. */
         bottom: ${BOTTOM_NAV_SPACE};
     }

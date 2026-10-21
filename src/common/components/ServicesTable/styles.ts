@@ -194,12 +194,12 @@ export const IconButton = styled.button<{ $active?: boolean }>`
     justify-content: center;
     border-radius: 7px;
     border: none;
-    background: ${p => p.$active ? '#e0f2fe' : 'transparent'};
-    color: ${p => p.$active ? '#0284c7' : '#b0bec5'};
+    background: ${p => p.$active ? 'rgba(3, 105, 161, 0.1)' : 'transparent'};
+    color: ${p => p.$active ? '#075985' : '#b0bec5'};
     cursor: pointer;
     transition: all 150ms ease;
 
-    &:hover { background: #e0f2fe; color: #0284c7; }
+    &:hover { background: rgba(3, 105, 161, 0.1); color: #075985; }
     svg { width: 13px; height: 13px; }
 `;
 
@@ -352,8 +352,8 @@ export const ServiceNoteTextarea = styled.textarea`
     &:hover { border-color: #e2e8f0; }
     &:focus {
         background: #ffffff;
-        border-color: #0ea5e9;
-        box-shadow: 0 0 0 2px rgba(14,165,233,0.10);
+        border-color: #0369a1;
+        box-shadow: 0 0 0 2px rgba(3, 105, 161, 0.10);
     }
 `;
 
@@ -665,7 +665,7 @@ export const PackageBadgeInline = styled.span`
     align-items: center;
     padding: 2px 7px;
     background: rgba(37, 99, 235, 0.08);
-    color: #0284c7;
+    color: #075985;
     border: 1px solid rgba(37, 99, 235, 0.18);
     border-radius: 6px;
     font-size: 10px;
@@ -732,7 +732,7 @@ export const VatHeaderBtn = styled.button`
     flex-shrink: 0;
 
     svg { width: 10px; height: 10px; }
-    &:hover { color: #0ea5e9; background: #e0f2fe; }
+    &:hover { color: #0369a1; background: rgba(3, 105, 161, 0.1); }
     &:disabled { opacity: 0.4; cursor: not-allowed; }
 `;
 
@@ -908,7 +908,7 @@ export const ServicesBlock = styled.div<{ $narrow?: boolean }>`
     overflow: hidden;
     transition: border-color 180ms ease;
 
-    &:focus-within { border-color: #bae6fd; }
+    &:focus-within { border-color: rgba(3, 105, 161, 0.25); }
 
     ${p => p.$narrow && narrowLayout}
 `;
@@ -959,11 +959,11 @@ export const PriceCellButton = styled.button`
     > svg { width: 12px; height: 12px; flex-shrink: 0; color: #94a3b8; }
 
     ${ServiceItem}:hover &, &:hover, &:focus-visible {
-        border-color: #7dd3fc;
-        background: #f0f9ff;
+        border-color: rgba(3, 105, 161, 0.35);
+        background: rgba(3, 105, 161, 0.06);
         > svg { color: #0369a1; }
     }
-    &:focus-visible { outline: 2px solid #38bdf8; outline-offset: 1px; }
+    &:focus-visible { outline: 2px solid rgba(3, 105, 161, 0.45); outline-offset: 1px; }
 
     @media (hover: none) and (pointer: coarse) { min-height: 44px; }
 `;

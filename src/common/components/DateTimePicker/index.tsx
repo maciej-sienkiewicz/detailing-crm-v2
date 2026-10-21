@@ -147,9 +147,9 @@ const Trigger = styled.button<{ $accentColor?: string; $hasError?: boolean; $has
 
     &:focus {
         border-color: ${props =>
-            props.$hasError ? '#ef4444' : (props.$accentColor ?? '#0ea5e9')};
+            props.$hasError ? '#ef4444' : (props.$accentColor ?? '#0369a1')};
         box-shadow: 0 0 0 3px ${props =>
-            props.$hasError ? 'rgba(239,68,68,0.12)' : 'rgba(14,165,233,0.14)'};
+            props.$hasError ? 'rgba(239,68,68,0.12)' : 'rgba(3, 105, 161, 0.14)'};
     }
 `;
 

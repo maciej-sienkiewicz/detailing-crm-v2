@@ -42,7 +42,7 @@ const ToggleInput = styled.input`
     position: absolute;
 
     &:checked + span {
-        background: linear-gradient(135deg, ${props => props.theme.colors.primary} 0%, #0284c7 100%);
+        background: linear-gradient(135deg, ${props => props.theme.colors.primary} 0%, #075985 100%);
     }
 
     &:checked + span:before {
@@ -50,7 +50,7 @@ const ToggleInput = styled.input`
     }
 
     &:focus-visible + span {
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.25);
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.25);
     }
 
     &:disabled + span {

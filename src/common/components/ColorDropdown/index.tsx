@@ -42,7 +42,7 @@ const ColorTrigger = styled.button`
 
     &:focus {
         outline: none;
-        border-color: ${st.accentBlue};
+        border-color: #0369a1;
         box-shadow: ${st.shadowBlue};
         background: #ffffff;
     }
@@ -115,7 +115,7 @@ const ColorMenuAddBtn = styled.button`
     cursor: pointer;
     font-size: 13px;
     font-weight: 500;
-    color: ${st.accentBlue};
+    color: #0369a1;
     transition: background ${st.transition};
 
     &:hover {

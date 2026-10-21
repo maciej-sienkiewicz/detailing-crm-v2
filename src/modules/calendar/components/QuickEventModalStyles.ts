@@ -187,7 +187,7 @@ export const TitleInput = styled.input<{ $accentColor?: string; $hasError?: bool
 
     &:focus {
         border-bottom-color: ${p =>
-            p.$hasError ? '#ef4444' : (p.$accentColor ?? ui.brand)};
+            p.$hasError ? '#ef4444' : (p.$accentColor ?? ui.brandInk)};
     }
 
     /* Mobile: sam edytowalny tytuł znika z Headera i przenosi się do sekcji 0
@@ -207,9 +207,9 @@ export const TitleInput = styled.input<{ $accentColor?: string; $hasError?: bool
 
         &:focus {
             border-color: ${p =>
-                p.$hasError ? '#ef4444' : (p.$accentColor ?? ui.brand)};
+                p.$hasError ? '#ef4444' : (p.$accentColor ?? ui.brandInk)};
             background: ${ui.surface};
-            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
+            box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.14);
         }
     }
 `;
@@ -302,7 +302,7 @@ export const RowHeaderTitleRow = styled.div`
     flex: 1;
 `;
 
-/** SectionNum z /checkin/new: numeryczna pigułka w kolorze marki (st.accentBlue = #0EA5E9). */
+/** SectionNum z /checkin/new: numeryczna pigułka w kolorze marki (st.accentBlue = #0369a1). */
 export const RowHeaderNum = styled.span`
     display: inline-flex;
     align-items: center;
@@ -310,7 +310,7 @@ export const RowHeaderNum = styled.span`
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: ${ui.brand};
+    background: ${ui.brandInk};
     color: ${ui.surface};
     font-size: 11px;
     font-weight: 700;
@@ -336,8 +336,8 @@ export const RowHeaderStatus = styled.span`
     display: inline-flex;
     align-items: center;
     padding: 2px 9px;
-    background: rgba(14, 165, 233, 0.12);
-    color: ${ui.brand};
+    background: rgba(3, 105, 161, 0.12);
+    color: ${ui.brandInk};
     border-radius: 9999px;
     font-size: 11px;
     font-weight: 600;
@@ -427,16 +427,16 @@ export const RowHeaderActions = styled.div`
 `;
 
 /** ActionBtn z /checkin/new: 1:1 te same tokeny (border 1.5px, radius 8px,
-    font 12px semibold, primary = accentBlueDim + ${ui.brand}). */
+    font 12px semibold, primary = accentBlueDim + ${ui.brandInk}). */
 export const RowHeaderActionBtn = styled.button<{ $primary?: boolean }>`
     display: inline-flex;
     align-items: center;
     gap: 5px;
     padding: 6px 13px;
-    border: 1.5px solid ${p => p.$primary ? ui.brand : ui.line};
+    border: 1.5px solid ${p => p.$primary ? ui.brandInk : ui.line};
     border-radius: 8px;
-    background: ${p => p.$primary ? 'rgba(14, 165, 233, 0.12)' : ui.surface};
-    color: ${p => p.$primary ? ui.brand : ui.textSecondary};
+    background: ${p => p.$primary ? 'rgba(3, 105, 161, 0.12)' : ui.surface};
+    color: ${p => p.$primary ? ui.brandInk : ui.textSecondary};
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
@@ -445,9 +445,9 @@ export const RowHeaderActionBtn = styled.button<{ $primary?: boolean }>`
     font-family: inherit;
 
     &:hover:not(:disabled) {
-        border-color: ${ui.brand};
-        color: ${ui.brand};
-        background: rgba(14, 165, 233, 0.12);
+        border-color: ${ui.brandInk};
+        color: ${ui.brandInk};
+        background: rgba(3, 105, 161, 0.12);
     }
 
     &:disabled {
@@ -527,9 +527,9 @@ export const Input = styled(FormInput)<{ $dropdownOpen?: boolean }>`
     ${p => p.$dropdownOpen && `
         border-bottom-left-radius: 0;
         border-bottom-right-radius: 0;
-        border-color: ${ui.brand};
+        border-color: ${ui.brandInk};
         border-bottom-color: transparent;
-        box-shadow: 0 0 0 3px rgba(14,165,233,0.14);
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.14);
         clip-path: inset(-4px -4px 0 -4px);
     `}
 `;
@@ -539,7 +539,7 @@ export const Checkbox = styled.input.attrs({ type: 'checkbox' })<{ $accentColor?
     height: 15px;
     border-radius: 4px;
     cursor: pointer;
-    accent-color: ${p => p.$accentColor ?? ui.brand};
+    accent-color: ${p => p.$accentColor ?? ui.brandInk};
 `;
 
 export const CheckboxLabel = styled.label`
@@ -599,12 +599,12 @@ export const Dropdown = styled.div`
     width: 100%;
     margin-top: -1px;
     background: ${ui.surface};
-    border: 1.5px solid ${ui.brand};
+    border: 1.5px solid ${ui.brandInk};
     border-top: none;
     border-radius: 0 0 12px 12px;
     box-shadow:
         0 8px 20px -4px rgba(0,0,0,0.10),
-        0 0 0 3px rgba(14,165,233,0.10);
+        0 0 0 3px rgba(3, 105, 161, 0.10);
     max-height: 220px;
     overflow-y: auto;
     overflow-x: hidden;
@@ -614,12 +614,12 @@ export const ServicePortalDropdown = styled.div`
     position: fixed;
     z-index: 9999;
     background: ${ui.surface};
-    border: 1.5px solid ${ui.brand};
+    border: 1.5px solid ${ui.brandInk};
     border-top: none;
     border-radius: 0 0 12px 12px;
     box-shadow:
         0 8px 20px -4px rgba(0,0,0,0.10),
-        0 0 0 3px rgba(14,165,233,0.10);
+        0 0 0 3px rgba(3, 105, 161, 0.10);
     overflow-y: auto;
     overflow-x: hidden;
     overscroll-behavior: contain;
@@ -635,12 +635,12 @@ export const CustomerPortalDropdown = styled.div`
     position: fixed;
     z-index: 9999;
     background: ${ui.surface};
-    border: 1.5px solid ${ui.brand};
+    border: 1.5px solid ${ui.brandInk};
     border-top: none;
     border-radius: 0 0 12px 12px;
     box-shadow:
         0 8px 20px -4px rgba(0,0,0,0.10),
-        0 0 0 3px rgba(14,165,233,0.10);
+        0 0 0 3px rgba(3, 105, 161, 0.10);
     overflow-y: auto;
     overflow-x: hidden;
     overscroll-behavior: contain;
@@ -710,14 +710,14 @@ export const DropdownAddButton = styled.button`
     transition: background 150ms ease;
     border-radius: 0 0 16px 16px;
 
-    &:hover { background: ${ui.brandTint}; }
+    &:hover { background: rgba(3, 105, 161, 0.06); }
 
-    svg { width: 15px; height: 15px; color: ${ui.brand}; }
+    svg { width: 15px; height: 15px; color: ${ui.brandInk}; }
 
     span {
         font-size: 14px;
         font-weight: 600;
-        color: ${ui.brand};
+        color: ${ui.brandInk};
     }
 `;
 
@@ -763,9 +763,9 @@ export const ServiceDropdownItem = styled.button<{ $isHighlighted?: boolean }>`
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    background: ${p => p.$isHighlighted ? ui.brandTint : 'transparent'};
+    background: ${p => p.$isHighlighted ? 'rgba(3, 105, 161, 0.06)' : 'transparent'};
     border: none;
-    border-left: 3px solid ${p => p.$isHighlighted ? ui.brand : 'transparent'};
+    border-left: 3px solid ${p => p.$isHighlighted ? ui.brandInk : 'transparent'};
     border-bottom: 1px solid ${ui.surfaceAlt};
     text-align: left;
     cursor: pointer;
@@ -774,8 +774,8 @@ export const ServiceDropdownItem = styled.button<{ $isHighlighted?: boolean }>`
     &:last-child { border-bottom: none; }
 
     &:hover {
-        background: ${ui.brandTint};
-        border-left-color: ${ui.brand};
+        background: rgba(3, 105, 161, 0.06);
+        border-left-color: ${ui.brandInk};
     }
 
     @media (max-width: 639px) {
@@ -810,7 +810,7 @@ export const ServiceDropdownName = styled.span`
 
 export const ServiceDropdownHighlight = styled.mark`
     background: none;
-    color: ${ui.brand};
+    color: ${ui.brandInk};
     font-weight: 700;
 `;
 
@@ -948,7 +948,7 @@ export const ChipEdit = styled.button`
     justify-content: center;
     transition: all 150ms ease;
 
-    &:hover { color: ${ui.brand}; background: ${ui.brandTintHover}; }
+    &:hover { color: ${ui.brandInk}; background: rgba(3, 105, 161, 0.1); }
     svg { width: 14px; height: 14px; }
 `;
 
@@ -981,7 +981,7 @@ export const ServicesBlock = styled.div`
     overflow: hidden;
     transition: border-color 180ms ease;
 
-    &:focus-within { border-color: ${ui.brandLineSoft}; }
+    &:focus-within { border-color: rgba(3, 105, 161, 0.25); }
 `;
 
 /** Sticky column-header row */
@@ -1100,8 +1100,8 @@ export const PriceCellInput = styled.input<{ $isBrutto?: boolean }>`
 
     &:focus {
         background: ${ui.surface};
-        border-color: ${ui.brand};
-        box-shadow: 0 0 0 2px rgba(14,165,233,0.14);
+        border-color: ${ui.brandInk};
+        box-shadow: 0 0 0 2px rgba(3, 105, 161, 0.14);
     }
 `;
 
@@ -1138,12 +1138,12 @@ export const IconButton = styled.button<{ $active?: boolean }>`
     justify-content: center;
     border-radius: 7px;
     border: none;
-    background: ${p => p.$active ? ui.brandTintHover : 'transparent'};
-    color: ${p => p.$active ? ui.brandStrong : ui.textFaint};
+    background: ${p => p.$active ? 'rgba(3, 105, 161, 0.1)' : 'transparent'};
+    color: ${p => p.$active ? ui.brandInk : ui.textFaint};
     cursor: pointer;
     transition: all 150ms ease;
 
-    &:hover { background: ${ui.brandTintHover}; color: ${ui.brandStrong}; }
+    &:hover { background: rgba(3, 105, 161, 0.1); color: ${ui.brandInk}; }
     svg { width: 13px; height: 13px; }
 `;
 
@@ -1297,8 +1297,8 @@ export const ServiceNoteTextarea = styled.textarea`
 
     &:focus {
         background: ${ui.surface};
-        border-color: ${ui.brand};
-        box-shadow: 0 0 0 2px rgba(14,165,233,0.10);
+        border-color: ${ui.brandInk};
+        box-shadow: 0 0 0 2px rgba(3, 105, 161, 0.10);
     }
 `;
 
@@ -1554,9 +1554,9 @@ export const AddColorButton = styled.button`
 
     &:hover {
         transform: scale(1.18);
-        border-color: ${ui.brand};
-        background-color: ${ui.brandTint};
-        color: ${ui.brand};
+        border-color: ${ui.brandInk};
+        background-color: rgba(3, 105, 161, 0.06);
+        color: ${ui.brandInk};
     }
 
     svg { width: 12px; height: 12px; }
@@ -1580,9 +1580,9 @@ export const MoreColorsButton = styled.button<{ $active?: boolean }>`
         padding: 0 7px;
     }
     border-radius: 9999px;
-    border: 1.5px solid ${p => p.$active ? ui.brand : ui.line};
-    background: ${p => p.$active ? ui.brandTint : 'transparent'};
-    color: ${p => p.$active ? ui.brand : ui.textMuted};
+    border: 1.5px solid ${p => p.$active ? ui.brandInk : ui.line};
+    background: ${p => p.$active ? 'rgba(3, 105, 161, 0.06)' : 'transparent'};
+    color: ${p => p.$active ? ui.brandInk : ui.textMuted};
     font-size: 11px;
     font-weight: 700;
     font-family: inherit;
@@ -1592,9 +1592,9 @@ export const MoreColorsButton = styled.button<{ $active?: boolean }>`
     flex-shrink: 0;
 
     &:hover {
-        border-color: ${ui.brand};
-        background: ${ui.brandTint};
-        color: ${ui.brand};
+        border-color: ${ui.brandInk};
+        background: rgba(3, 105, 161, 0.06);
+        color: ${ui.brandInk};
     }
 `;
 
@@ -1629,16 +1629,16 @@ export const ColorPanelItem = styled.button<{ $selected: boolean }>`
     padding: 8px 10px;
     border: none;
     border-radius: 8px;
-    background: ${p => p.$selected ? ui.brandTint : 'transparent'};
+    background: ${p => p.$selected ? 'rgba(3, 105, 161, 0.06)' : 'transparent'};
     cursor: pointer;
     font-family: inherit;
     font-size: 13px;
     font-weight: ${p => p.$selected ? 600 : 400};
-    color: ${p => p.$selected ? ui.brandStrong : '#374151'};
+    color: ${p => p.$selected ? ui.brandInk : '#374151'};
     text-align: left;
     transition: background 100ms ease;
 
-    &:hover { background: ${p => p.$selected ? ui.brandTint : ui.surfaceSoft}; }
+    &:hover { background: ${p => p.$selected ? 'rgba(3, 105, 161, 0.06)' : ui.surfaceSoft}; }
 `;
 
 export const ColorPanelSwatch = styled.span<{ $color: string; $selected: boolean }>`
@@ -1676,7 +1676,7 @@ export const ColorPanelAddBtn = styled.button`
     text-align: left;
     transition: background 100ms ease;
 
-    &:hover { background: ${ui.surfaceSoft}; color: ${ui.brand}; }
+    &:hover { background: ${ui.surfaceSoft}; color: ${ui.brandInk}; }
 
     svg { width: 14px; height: 14px; flex-shrink: 0; }
 `;
@@ -1705,11 +1705,11 @@ export const Button = styled(SharedButton)<{ $variant?: 'primary' | 'secondary' 
 // ─── Customer multi-field input block ────────────────────────────────────────
 
 export const CustomerInputBlock = styled.div<{ $focused?: boolean; $hasError?: boolean; $dropdownOpen?: boolean }>`
-    border: 1.5px solid ${p => p.$hasError ? '#ef4444' : p.$focused ? ui.brand : ui.line};
+    border: 1.5px solid ${p => p.$hasError ? '#ef4444' : p.$focused ? ui.brandInk : ui.line};
     border-radius: ${p => p.$dropdownOpen ? '12px 12px 0 0' : '12px'};
     background: ${ui.surface};
     overflow: hidden;
-    box-shadow: ${p => p.$focused ? '0 0 0 3px rgba(14,165,233,0.14)' : 'none'};
+    box-shadow: ${p => p.$focused ? '0 0 0 3px rgba(3, 105, 161, 0.14)' : 'none'};
     ${p => p.$dropdownOpen && `
         border-bottom-color: transparent;
         clip-path: inset(-4px -4px 0 -4px);
@@ -1737,7 +1737,7 @@ export const VehicleSelectButton = styled.button<{ $dropdownOpen?: boolean }>`
     justify-content: space-between;
     padding: 12px 14px;
     background: ${ui.surface};
-    border: 1.5px solid ${p => p.$dropdownOpen ? ui.brand : ui.line};
+    border: 1.5px solid ${p => p.$dropdownOpen ? ui.brandInk : ui.line};
     border-radius: ${p => p.$dropdownOpen ? '12px 12px 0 0' : '12px'};
     cursor: pointer;
     font-family: inherit;
@@ -1747,7 +1747,7 @@ export const VehicleSelectButton = styled.button<{ $dropdownOpen?: boolean }>`
 
     ${p => p.$dropdownOpen && `
         border-bottom-color: transparent;
-        box-shadow: 0 0 0 3px rgba(14,165,233,0.14);
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.14);
         clip-path: inset(-4px -4px 0 -4px);
     `}
 
@@ -1920,8 +1920,8 @@ export const ServicePriceInput = styled.input`
     &:hover { border-color: ${ui.line}; }
     &:focus {
         background: ${ui.surface};
-        border-color: ${ui.brand};
-        box-shadow: 0 0 0 2px rgba(14,165,233,0.14);
+        border-color: ${ui.brandInk};
+        box-shadow: 0 0 0 2px rgba(3, 105, 161, 0.14);
     }
 `;
 
@@ -1959,8 +1959,8 @@ export const SmsSummaryRow = styled.button<{ $muted?: boolean }>`
     width: 100%;
     min-height: 48px;
     padding: 0 14px;
-    background: ${p => (p.$muted ? ui.surfaceSoft : 'rgba(14, 165, 233, 0.08)')};
-    border: 1px solid ${p => (p.$muted ? ui.line : 'rgba(14, 165, 233, 0.28)')};
+    background: ${p => (p.$muted ? ui.surfaceSoft : 'rgba(3, 105, 161, 0.08)')};
+    border: 1px solid ${p => (p.$muted ? ui.line : 'rgba(3, 105, 161, 0.28)')};
     border-radius: 12px;
     font-family: inherit;
     font-size: 13.5px;
@@ -2100,9 +2100,9 @@ export const MobileSheetSearchInput = styled.input`
     &::placeholder { color: ${ui.textFaint}; }
 
     &:focus {
-        border-color: ${ui.brand};
+        border-color: ${ui.brandInk};
         background: ${ui.surface};
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12);
     }
 
     /* suppress native clear button added by type="search" */
@@ -2137,9 +2137,9 @@ export const MobileSheetSearchEditable = styled.div`
     }
 
     &:focus {
-        border-color: ${ui.brand};
+        border-color: ${ui.brandInk};
         background: ${ui.surface};
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12);
     }
 `;
 
@@ -2177,14 +2177,14 @@ export const MobileAddServiceButton = styled.button`
     svg {
         width: 15px;
         height: 15px;
-        color: ${ui.brand};
+        color: ${ui.brandInk};
         flex-shrink: 0;
         margin-left: auto;
     }
 
     &:active {
-        border-color: ${ui.brand};
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+        border-color: ${ui.brandInk};
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12);
     }
 `;
 
@@ -2205,6 +2205,6 @@ export const AdvancedToggleBtn = styled.button`
     font-family: inherit;
     text-align: left;
 
-    svg { width: 14px; height: 14px; color: ${ui.brand}; flex-shrink: 0; }
-    &:active { color: ${ui.brand}; }
+    svg { width: 14px; height: 14px; color: ${ui.brandInk}; flex-shrink: 0; }
+    &:active { color: ${ui.brandInk}; }
 `;
