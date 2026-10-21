@@ -11,6 +11,7 @@ import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { leaveRequestsApi, myLeaveRequestsApi } from '../api/leaveRequestsApi';
 import { useLeaveCalendar } from './useLeaves';
+import { invalidateBadges, useBadge } from '@/modules/badges';
 import type {
     EmployeeSignaturePayload,
     LeaveDecisionPayload,
@@ -24,7 +25,6 @@ const LEAVE_CALENDAR_KEY = ['employees', 'leave-calendar'] as const;
 const LEAVES_KEY = ['employees', 'leaves'] as const;
 
 const queueKey = (status: LeaveRequestQueueStatus) => [...LEAVE_REQUESTS_KEY, 'list', status] as const;
-const pendingCountKey = [...LEAVE_REQUESTS_KEY, 'pending-count'] as const;
 export const leaveRequestDetailKey = (id: string) => [...LEAVE_REQUESTS_KEY, 'detail', id] as const;
 
 // ─── Samoobsługa ─────────────────────────────────────────────────────────────
@@ -113,16 +113,8 @@ export const useLeaveRequestQueue = (status: LeaveRequestQueueStatus, options?: 
 };
 
 /** Licznik przy „Pracownicy" w panelu: wnioski, które TEN użytkownik może rozpatrzyć. */
-export const usePendingLeaveRequestsCount = (enabled: boolean) => {
-    const { data } = useQuery({
-        queryKey: pendingCountKey,
-        queryFn: leaveRequestsApi.pendingCount,
-        enabled,
-        staleTime: 60_000,
-        refetchInterval: enabled ? 5 * 60_000 : false,
-    });
-    return data ?? 0;
-};
+export const usePendingLeaveRequestsCount = (enabled: boolean) =>
+    useBadge('pendingLeaveRequests', { enabled });
 
 export const useLeaveRequestDetail = (id: string | null) => {
     return useQuery({
@@ -143,6 +135,7 @@ export const useInvalidateLeaveRequests = () => {
         void queryClient.invalidateQueries({ queryKey: LEAVE_REQUESTS_KEY });
         void queryClient.invalidateQueries({ queryKey: LEAVE_CALENDAR_KEY });
         void queryClient.invalidateQueries({ queryKey: LEAVES_KEY });
+        void invalidateBadges(queryClient);
     };
 };
 

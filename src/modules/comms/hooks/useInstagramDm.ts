@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { instagramDmApi } from '../api/instagramDmApi';
 import type { InstagramDmConversation } from '../types';
 import { LEADS_KEY } from './useLeads';
+import { invalidateLead } from '../api/leadKeys';
 
 /** Pod prefiksem leadów: unieważnienie sprawy (np. z gniazda) odświeża i rozmowę. */
 export const instagramDmKey = (leadId: string | null) => [...LEADS_KEY, 'instagram-dm', leadId];
@@ -25,9 +26,7 @@ export const useInstagramReply = (leadId: string) => {
             queryClient.setQueryData(instagramDmKey(leadId), conversation);
             // Odpowiedź przesuwa sprawę na „W kontakcie" i stempluje pierwszą reakcję -
             // kolejka, plakietka i oś czasu muszą to zobaczyć od razu.
-            queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'detail', leadId] });
-            queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'history', leadId] });
-            queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'list'] });
+            invalidateLead(queryClient, leadId);
         },
     });
 };

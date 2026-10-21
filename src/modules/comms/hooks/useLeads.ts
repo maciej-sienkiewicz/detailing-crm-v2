@@ -8,6 +8,7 @@ import { useAuth } from '@/core';
 import { useToast } from '@/common/components/Toast';
 import { hasMaskedPii, mergeMaskedPii } from '@/common/pii';
 import { leadsApi } from '../api/leadsApi';
+import { useBadge } from '@/modules/badges';
 import { appointmentDetailKey, appointmentDetailQuery } from '@/modules/appointments/api/appointmentDetailQuery';
 import { leadAlertConfigQuery } from '@/modules/settings/api/leadAlertConfigQuery';
 import { LEAD_STATUS_LABELS } from '../types';
@@ -254,15 +255,8 @@ export const useLeadAnalytics = (from: Date, to: Date) => {
  * `list` - każde unieważnienie listy leadów (mutacje, socket) odświeża i licznik,
  * bez osobnego okablowania.
  */
-export const useNewLeadsCount = (options?: { enabled?: boolean }): number => {
-    const { data } = useQuery({
-        queryKey: [...LEADS_KEY, 'list', 'attention-count'],
-        queryFn: leadsApi.getAttentionCount,
-        enabled: options?.enabled ?? true,
-        staleTime: 60_000,
-    });
-    return Number(data ?? 0);
-};
+export const useNewLeadsCount = (options?: { enabled?: boolean }): number =>
+    useBadge('leadsAttention', options);
 
 // ── Notatki na leadzie ───────────────────────────────────────────────────────
 

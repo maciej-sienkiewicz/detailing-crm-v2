@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 //
 // Moduł „Pracownicy" po wyjściu z Ustawień: zakładki widzi tylko ten, kto ma do nich
-// prawo. „Czas pracy" liczy karty czekające na decyzję (GET /worktime/team/pending-count),
-// a „Listy obecności" - wygenerowane listy, których nikt jeszcze nie zatwierdził.
+// prawo. „Czas pracy" liczy karty czekające na decyzję, a „Listy obecności" - wygenerowane
+// listy, których nikt jeszcze nie zatwierdził; oba liczniki przychodzą z GET /v1/me/badges.
 // Zakładki są trasami-dziećmi jednej ramy: zmiana zakładki nie montuje nagłówka od nowa.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -66,12 +66,11 @@ vi.mock('../api/attendanceApi', async importOriginal => ({
         ]),
     },
 }));
-vi.mock('../api/worktimeMonthsApi', async importOriginal => ({
-    ...(await importOriginal<typeof import('../api/worktimeMonthsApi')>()),
-    worktimeMonthsApi: {
-        pendingCount: vi.fn().mockResolvedValue({ submittedCards: 2, sheetsToSign: 1 }),
-    },
-}));
+const badges = vi.hoisted(() => ({ fetch: vi.fn() }));
+vi.mock('@/modules/badges/badgesQuery', async importOriginal => {
+    const actual = await importOriginal<typeof import('@/modules/badges/badgesQuery')>();
+    return { ...actual, badgesQuery: () => ({ ...actual.badgesQuery(), queryFn: badges.fetch }) };
+});
 
 const renderAt = (path: string) => {
     // Ta sama konfiguracja tras co w aplikacji: rama z zakładkami jako dziećmi.
@@ -99,7 +98,13 @@ const tab = (name: RegExp) => screen.getByRole('tab', { name });
 // i przejście na nieodwiedzoną zakładkę przychodzą asynchronicznie - stąd findBy/waitFor.
 const findTab = (name: RegExp) => screen.findByRole('tab', { name });
 
-beforeEach(() => { auth.user = { permissions: null }; });
+beforeEach(() => {
+    auth.user = { permissions: null };
+    badges.fetch.mockReset().mockResolvedValue({
+        leadsAttention: null, unreadMail: null, pendingLeaveRequests: 1,
+        pendingWorkTimeCards: 2, pendingAttendanceSheets: 2,
+    });
+});
 afterEach(() => cleanup());
 
 describe('EmployeesView - zakładki', () => {
@@ -109,17 +114,17 @@ describe('EmployeesView - zakładki', () => {
         expect(tab(/^Zespół/).getAttribute('aria-selected')).toBe('true');
         expect(await screen.findByRole('tab', { name: /^Czas pracy\s*2$/ })).toBeTruthy();
         expect(await screen.findByRole('tab', { name: /^Listy obecności\s*2$/ })).toBeTruthy();
+        // Oba liczniki z jednego GET /v1/me/badges - bez stu list obecności do policzenia.
+        expect(badges.fetch).toHaveBeenCalledTimes(1);
     });
 
     it('bez prawa do kadr liczniki czasu pracy i list obecności nie są pobierane', async () => {
         auth.user = { permissions: ['EMPLOYEES_LEAVES_APPROVE'] };
-        const { worktimeMonthsApi } = await import('../api/worktimeMonthsApi');
-        vi.mocked(worktimeMonthsApi.pendingCount).mockClear();
         const { attendanceApi } = await import('../api/attendanceApi');
         vi.mocked(attendanceApi.listAttendanceSheets).mockClear();
         renderAt('/employees/leave-requests');
         expect(await screen.findByText('grafik nieobecności')).toBeTruthy();
-        expect(worktimeMonthsApi.pendingCount).not.toHaveBeenCalled();
+        expect(badges.fetch).not.toHaveBeenCalled();
         expect(attendanceApi.listAttendanceSheets).not.toHaveBeenCalled();
     });
 

@@ -108,86 +108,6 @@ export interface DashboardReservationSummary {
 }
 
 /**
- * Business metric with comparison to previous period
- */
-export interface BusinessMetric {
-  /** Current period value */
-  currentValue: number;
-  /** Previous period value for comparison */
-  previousValue: number;
-  /** Percentage change from previous to current period */
-  deltaPercentage: number;
-  /** Unit of measurement (e.g., 'PLN', 'calls') */
-  unit: string;
-}
-
-/**
- * Incoming call record for lead inbox
- */
-export interface IncomingCall {
-  /** Unique identifier for the call */
-  id: string;
-  /** Phone number of the caller */
-  phoneNumber: string;
-  /** Name of the contact (if identified) */
-  contactName?: string;
-  /** ISO timestamp of when the call was received */
-  timestamp: string;
-  /** Optional note about the call */
-  note?: string;
-}
-
-/**
- * Individual Google review
- */
-export interface GoogleReview {
-  /** Unique review identifier */
-  id: string;
-  /** Reviewer name */
-  authorName: string;
-  /** Rating (1-5 stars) */
-  rating: number;
-  /** Review text */
-  text: string;
-  /** ISO timestamp of review */
-  timestamp: string;
-  /** Whether business replied */
-  hasReply: boolean;
-}
-
-/**
- * Competitor ranking data
- */
-export interface CompetitorRanking {
-  /** Business name */
-  name: string;
-  /** Average rating */
-  rating: number;
-  /** Number of reviews */
-  reviewCount: number;
-  /** Position in search results (1-based) */
-  position: number;
-  /** Whether this is our business */
-  isOurs: boolean;
-}
-
-/**
- * Google reviews statistics
- */
-export interface GoogleReviewsData {
-  /** Current average rating */
-  averageRating: number;
-  /** Total number of reviews */
-  totalReviews: number;
-  /** Number of new reviews (last 30 days) */
-  newReviews: number;
-  /** Recent reviews */
-  recentReviews: GoogleReview[];
-  /** Competitor rankings in region */
-  competitors: CompetitorRanking[];
-}
-
-/**
  * Status badge variant for visit rows
  */
 export type VisitStatusKind = 'info' | 'warn' | 'neutral' | 'success' | 'err';
@@ -296,67 +216,10 @@ export interface TaskArchivePage {
 }
 
 /**
- * Complete dashboard data response
+ * Odpowiedź GET /v1/dashboard/stats - same kafelki stanu. Przychód, połączenia i opinie
+ * Google wypadły: pulpit ich nie pokazywał, a front dosztukowywał je atrapą.
  */
 export interface DashboardData {
-  /** Operational statistics */
   stats: OperationalStats;
-  /** Revenue metric with week-over-week comparison (null when the user may not see financial data) */
-  revenue: BusinessMetric | null;
-  /** Call activity metric with week-over-week comparison */
-  callActivity: BusinessMetric;
-  /** Instagram photos posted this week vs last week */
-  instagramPhotos?: BusinessMetric;
-  /** List of recent incoming calls */
-  recentCalls: IncomingCall[];
-  /** Google reviews statistics */
-  googleReviews: GoogleReviewsData;
-  /** To-do task list */
-  tasks?: DashboardTask[];
 }
 
-// ─── WebSocket Event Types ───────────────────────────────────────────────────
-
-/**
- * Supported dashboard event types
- */
-export const DashboardEventType = {
-  NEW_LEAD: 'NEW_LEAD',
-} as const;
-
-export type DashboardEventType = (typeof DashboardEventType)[keyof typeof DashboardEventType];
-
-/**
- * Payload for a new inbound call / lead event.
- * The backend publishes the lead event shape (contactIdentifier /
- * customerName / createdAt); the phone-call field names are kept as
- * optional legacy aliases so either shape is handled.
- */
-export interface InboundCallPayload {
-  /** Unique call identifier */
-  id: string;
-  /** Caller phone number (legacy alias of contactIdentifier) */
-  phoneNumber?: string;
-  /** Phone number or email address of the contact */
-  contactIdentifier?: string;
-  /** Caller name (legacy alias of customerName) */
-  callerName?: string;
-  /** Customer name (if identified) */
-  customerName?: string | null;
-  /** ISO timestamp of when the call was received (legacy alias of createdAt) */
-  receivedAt?: string;
-  /** ISO timestamp of when the lead was created */
-  createdAt?: string;
-}
-
-/**
- * Generic dashboard event wrapper received via WebSocket
- */
-export interface DashboardEvent<T = unknown> {
-  /** Event type discriminator */
-  type: DashboardEventType;
-  /** ISO timestamp of when the event was generated */
-  timestamp: string;
-  /** Event-specific payload */
-  payload: T;
-}

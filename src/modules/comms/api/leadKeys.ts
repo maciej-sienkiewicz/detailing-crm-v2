@@ -2,6 +2,7 @@
 // Bez zależności od hooków: importują go useComms, kalendarz i edycja rezerwacji,
 // a useLeads sam importuje z useComms.
 import type { QueryClient } from '@tanstack/react-query';
+import { invalidateBadges } from '@/modules/badges/badgesQuery';
 
 export const LEADS_KEY = ['leads'];
 export const LEAD_DICTIONARIES_KEY = [...LEADS_KEY, 'dictionaries'];
@@ -24,6 +25,8 @@ export const leadKeys = {
 export const invalidateLead = (queryClient: QueryClient, leadId?: string | null) => {
     queryClient.invalidateQueries({ queryKey: leadKeys.lists });
     queryClient.invalidateQueries({ queryKey: LEAD_ANALYTICS_KEY });
+    // Plakietka „Leady" w menu: nowe plus otwarte z ostatnim słowem klienta.
+    invalidateBadges(queryClient);
     if (leadId) {
         queryClient.invalidateQueries({ queryKey: leadKeys.detail(leadId) });
         queryClient.invalidateQueries({ queryKey: leadKeys.history(leadId) });

@@ -26,7 +26,7 @@ vi.mock('@/common/pii', () => ({ usePiiAccess: () => access.pii }));
 vi.mock('@/modules/worktime', () => ({ ReportWorkdayButton: () => null }));
 vi.mock('@/modules/comms/hooks/useComms', () => ({ useMailAccounts: () => ({ data: undefined }) }));
 vi.mock('@/modules/competition-monitoring/components/GeneratePostModal', () => ({ GeneratePostModal: () => null }));
-vi.mock('../hooks', () => ({ useDashboard, useDashboardSocket: vi.fn() }));
+vi.mock('../hooks', () => ({ useDashboard }));
 vi.mock('../components/OperationalScorecard', () => ({ OperationalScorecard: () => <p>statystyki</p> }));
 vi.mock('../components/UpcomingVisitsPanel', () => ({ UpcomingVisitsPanel: () => <p>najbliższe wizyty</p> }));
 vi.mock('../components/TasksPanel', () => ({ TasksPanel: () => <p>zadania</p> }));

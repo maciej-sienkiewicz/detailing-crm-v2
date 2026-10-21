@@ -92,11 +92,6 @@ export interface BulkResult {
     skipped: { userId: string; reason: string }[];
 }
 
-export interface PendingWorkTimeCount {
-    submittedCards: number;
-    sheetsToSign: number;
-}
-
 export const worktimeMonthsApi = {
     getMonth: async (period: string): Promise<MonthOverview> => {
         const response = await apiClient.get<MonthOverview>(`${BASE}/months/${period}`);
@@ -127,11 +122,6 @@ export const worktimeMonthsApi = {
             `${BASE}/months/${period}/remind`,
             { userIds },
         );
-        return response.data;
-    },
-
-    pendingCount: async (): Promise<PendingWorkTimeCount> => {
-        const response = await apiClient.get<PendingWorkTimeCount>(`${BASE}/pending-count`);
         return response.data;
     },
 };

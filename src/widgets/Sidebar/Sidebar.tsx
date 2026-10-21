@@ -12,6 +12,8 @@ import { useAuth } from '@/core/context/AuthContext';
 import { usePermissions, ANY_DASHBOARD } from '@/core/permissions';
 import { authApi } from '@/modules/auth/api/authApi';
 import { useNewLeadsCount, useUnreadMailCount, useCommsSocket } from '@/modules/comms';
+import { useBadgesSocket } from '@/modules/badges';
+import { useScheduleSocket } from '@/modules/dashboard/hooks/useScheduleSocket';
 import { useMyTasksUnreadCount } from '@/modules/notifications';
 import { SidebarMenu } from './SidebarMenu';
 import { buildMenuSections } from './menuSections';
@@ -67,10 +69,14 @@ export const Sidebar = () => {
 
     // Persistent WebSocket connection for the entire CRM session
     useCommsSocket();
+    // Plakietki menu i widoki wizyt/rezerwacji odświeżane pushem, a nie pollingiem.
+    useBadgesSocket();
+    useScheduleSocket();
     // Licznik wniosków tylko dla tych, którzy je rozpatrują (właściciel zawsze).
     const pendingLeaveRequests = usePendingLeaveRequestsCount(can('EMPLOYEES_LEAVES_APPROVE'));
     // Karty czasu pracy do decyzji i niezatwierdzone listy obecności - tylko dla kadr
     // (EMPLOYEES_MANAGE). Te same liczby stoją przy zakładkach „Czas pracy" i „Listy obecności".
+    // Wszystkie plakietki to jedno zapytanie GET /v1/me/badges (modules/badges).
     const canManageEmployees = can('EMPLOYEES_MANAGE');
     const pendingWorkTime = usePendingCardsCount(canManageEmployees) + usePendingSheetsCount(canManageEmployees);
     const menuSections = buildMenuSections({

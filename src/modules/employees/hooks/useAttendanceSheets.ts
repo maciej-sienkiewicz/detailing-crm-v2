@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { attendanceApi } from '../api/attendanceApi';
-import { pendingCount } from '../components/worktime/settlementFormat';
 import { invalidateWorktimeTeam } from './useWorktimeMonths';
+import { useBadge } from '@/modules/badges';
 
 export const ATTENDANCE_SHEETS_KEY = ['employees', 'attendance-sheets'] as const;
 
@@ -20,10 +20,8 @@ export const useAttendanceSheets = (options?: { enabled?: boolean }) => {
 };
 
 /** Listy wygenerowane i jeszcze niezatwierdzone - licznik zakładki „Listy obecności". */
-export const usePendingSheetsCount = (enabled: boolean) => {
-    const { sheets } = useAttendanceSheets({ enabled });
-    return enabled ? pendingCount(sheets) : 0;
-};
+export const usePendingSheetsCount = (enabled: boolean) =>
+    useBadge('pendingAttendanceSheets', { enabled });
 
 const useInvalidateSheets = () => {
     const queryClient = useQueryClient();

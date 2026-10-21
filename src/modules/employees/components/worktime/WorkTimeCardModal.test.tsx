@@ -25,7 +25,6 @@ vi.mock('../../api/worktimeMonthsApi', async importOriginal => ({
         approveCard: vi.fn(),
         returnCard: vi.fn(),
         remind: vi.fn(),
-        pendingCount: vi.fn(),
     },
 }));
 

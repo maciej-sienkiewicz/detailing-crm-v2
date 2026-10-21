@@ -75,13 +75,12 @@ const responses = (options: Required<AppApiOptions>): Array<[RegExp, unknown]> =
     [/^\/v1\/vehicle-metadata$/, []],
     [/^\/v1\/company$/, { name: 'Studio Błysk', nip: null, address: null, logoUrl: null }],
 
-    // Powłoka: liczniki Sidebara.
-    [/^\/v1\/leads\/attention-count$/, { count: 0 }],
-    [/^\/v1\/comms\/threads$/, { items: [], total: 0, page: 0, pageSize: 1, totalUnread: 0 }],
+    // Powłoka: liczniki Sidebara - jedno zapytanie (dawniej pięć osobnych).
+    [/^\/v1\/me\/badges$/, {
+        leadsAttention: 0, unreadMail: 0, pendingLeaveRequests: 0, pendingWorkTimeCards: 0, pendingAttendanceSheets: 0,
+    }],
+    [/^\/v1\/comms\/threads$/, { items: [], total: 0, page: 0, pageSize: 30, totalUnread: 0 }],
     [/^\/v1\/comms\/accounts$/, []],
-    [/^\/v1\/leave-requests\/pending-count$/, { count: 0 }],
-    [/^\/v1\/worktime\/team\/pending-count$/, { submittedCards: 0, sheetsToSign: 0 }],
-    [/^\/v1\/worktime\/team\/attendance-sheets$/, []],
     [/^\/v1\/my\/tasks\/summary$/, { total: 0, unread: 0 }],
 
     // Pulpit.

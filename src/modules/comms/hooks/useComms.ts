@@ -7,6 +7,7 @@ import { useAuth } from '@/core';
 import { useToast } from '@/common/components/Toast';
 import { commsApi } from '../api/commsApi';
 import { invalidateLead } from '../api/leadKeys';
+import { adjustBadge, invalidateBadges, useBadge } from '@/modules/badges';
 import { createInvalidationBatcher } from '../utils/invalidationBatcher';
 import { isRateLimited, rateLimitRetryAfterMs } from '@/core/rateLimit';
 import type {
@@ -233,15 +234,8 @@ export const useDeleteContactNote = () => {
 };
 
 /** Liczba nieprzeczytanych - do plakietki w menu bocznym. */
-export const useUnreadMailCount = (options?: { enabled?: boolean }): number => {
-    const { data } = useQuery({
-        queryKey: [...COMMS_THREADS_KEY, 'list', { page: 0, pageSize: 1, archived: false }],
-        queryFn: () => commsApi.getThreads({ page: 0, pageSize: 1, archived: false }),
-        select: (page) => page.totalUnread,
-        enabled: options?.enabled ?? true,
-    });
-    return Number(data ?? 0);
-};
+export const useUnreadMailCount = (options?: { enabled?: boolean }): number =>
+    useBadge('unreadMail', options);
 
 export const useMarkThreadRead = () => {
     const queryClient = useQueryClient();
@@ -257,8 +251,17 @@ export const useMarkThreadRead = () => {
         // Klucz wypisany wprost: `useLeads` importuje stąd, import w drugą stronę zamknąłby cykl.
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['leads', 'list'] }, { cancelRefetch: false });
+            // Plakietka „Leady" też liczy „klient napisał" - odczyt może ją zdjąć.
+            invalidateBadges(queryClient);
         },
         onMutate: async (threadId) => {
+            // Ile wiadomości przestaje być nieprzeczytanych - ze szczegółów albo z listy.
+            const unread = queryClient.getQueryData<CommThreadDetail>([...COMMS_THREADS_KEY, 'detail', threadId])?.thread.unreadCount
+                ?? queryClient.getQueriesData<CommThreadPage>({ queryKey: [...COMMS_THREADS_KEY, 'list'] })
+                    .flatMap(([, page]) => page?.items ?? [])
+                    .find((item) => item.id === threadId)?.unreadCount
+                ?? 0;
+            if (unread > 0) adjustBadge(queryClient, 'unreadMail', -unread);
             queryClient.setQueryData<CommThreadDetail>(
                 [...COMMS_THREADS_KEY, 'detail', threadId],
                 (old) =>
@@ -308,6 +311,7 @@ export const useMarkMessageUnread = () => {
                     const target = old.messages.find((m) => m.id === messageId);
                     // Już nieprzeczytana albo wychodząca - nic nie ruszamy (jak backend).
                     if (!target || !target.isRead || target.direction !== 'INBOUND') return old;
+                    adjustBadge(queryClient, 'unreadMail', 1);
                     return {
                         ...old,
                         thread: { ...old.thread, unreadCount: old.thread.unreadCount + 1 },
@@ -337,6 +341,7 @@ export const useMarkMessageUnread = () => {
         onError: (_error, { threadId }) => {
             queryClient.invalidateQueries({ queryKey: [...COMMS_THREADS_KEY, 'detail', threadId] });
             queryClient.invalidateQueries({ queryKey: [...COMMS_THREADS_KEY, 'list'] });
+            invalidateBadges(queryClient);
         },
     });
 };
@@ -355,6 +360,7 @@ export const useMarkThreadUnread = () => {
     return useMutation({
         mutationFn: ({ threadId }: { threadId: string }) => commsApi.markThreadUnread(threadId),
         onMutate: async ({ threadId }) => {
+            adjustBadge(queryClient, 'unreadMail', 1);
             queryClient.setQueriesData<CommThreadPage>(
                 { queryKey: [...COMMS_THREADS_KEY, 'list'] },
                 (page) => {
@@ -375,6 +381,7 @@ export const useMarkThreadUnread = () => {
             // Serwer nic nie cofnął - optymistyczny +1 nie ma pokrycia w bazie.
             if (messageId === null) {
                 queryClient.invalidateQueries({ queryKey: [...COMMS_THREADS_KEY, 'list'] });
+                invalidateBadges(queryClient);
                 return;
             }
             // Otwarta rozmowa musi pokazać tę samą wiadomość jako nieprzeczytaną.
@@ -383,6 +390,7 @@ export const useMarkThreadUnread = () => {
         onError: (_error, { threadId }) => {
             queryClient.invalidateQueries({ queryKey: [...COMMS_THREADS_KEY, 'detail', threadId] });
             queryClient.invalidateQueries({ queryKey: [...COMMS_THREADS_KEY, 'list'] });
+            invalidateBadges(queryClient);
         },
     });
 };
@@ -392,7 +400,11 @@ export const useSetThreadArchived = () => {
     return useMutation({
         mutationFn: ({ threadId, archived }: { threadId: string; archived: boolean }) =>
             commsApi.setThreadArchived(threadId, archived),
-        onSettled: () => queryClient.invalidateQueries({ queryKey: COMMS_THREADS_KEY }),
+        // Nieprzeczytane w archiwum nie liczą się do plakietki.
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: COMMS_THREADS_KEY });
+            invalidateBadges(queryClient);
+        },
     });
 };
 
@@ -490,6 +502,8 @@ export function useCommsSocket(): void {
                 queryClient.invalidateQueries({ queryKey: ['leads', 'detail'] }, refetch);
                 queryClient.invalidateQueries({ queryKey: ['leads', 'history'] }, refetch);
             }
+            // Nieprzeczytana poczta i „klient napisał" - jedno odświeżenie plakietek na paczkę.
+            if (batch.threadLists || batch.leads) invalidateBadges(queryClient);
         }, SOCKET_INVALIDATION_WINDOW_MS),
         [queryClient]
     );
@@ -556,6 +570,7 @@ export function useCommsSocket(): void {
         const removeConnectListener = onSocketConnect(({ isReconnect }) => {
             if (!isReconnect) return;
             queryClient.invalidateQueries({ queryKey: COMMS_KEY }, { cancelRefetch: false });
+            invalidateBadges(queryClient);
         });
 
         return () => {

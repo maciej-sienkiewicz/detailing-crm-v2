@@ -14,20 +14,10 @@ import { hasClockTime } from '@/common/dateTime';
  * Dashboard API methods
  */
 export const dashboardApi = {
-  /**
-   * Fetches current dashboard statistics and metrics
-   * @returns Promise resolving to dashboard data
-   */
+  /** Kafelki stanu pulpitu; odświeżane pushem SCHEDULE_CHANGED, bez pollingu. */
   getStats: async (): Promise<DashboardData> => {
-    const response = await apiClient.get('/v1/dashboard/stats');
-    const data = response.data as DashboardData;
-    return {
-      ...data,
-      stats: {
-        ...data.stats,
-        abandonedDetails: data.stats?.abandonedDetails ?? [],
-      },
-    };
+    const { data } = await apiClient.get<DashboardData>('/v1/dashboard/stats');
+    return { stats: { ...data.stats, abandonedDetails: data.stats?.abandonedDetails ?? [] } };
   },
 
   getRevenueSummary: async (months = 12): Promise<DashboardRevenueSummary> => {
@@ -50,7 +40,12 @@ export const dashboardApi = {
    * Fetches upcoming appointments (CREATED) and active visits (IN_PROGRESS, READY_FOR_PICKUP)
    * for today and tomorrow, using the unified calendar events endpoint.
    */
-  getUpcomingEvents: async (startDate: string, endDate: string): Promise<UpcomingVisit[]> => {
+  getUpcomingEvents: async (
+    startDate: string,
+    endDate: string,
+    limit: number,
+    signal?: AbortSignal,
+  ): Promise<UpcomingVisit[]> => {
     const response = await apiClient.get<{ appointments: AppointmentResponse[]; visits: VisitResponse[] }>(
       '/v1/calendar/events',
       {
@@ -59,7 +54,10 @@ export const dashboardApi = {
           endDate,
           appointmentStatuses: 'CREATED',
           visitStatuses: 'IN_PROGRESS,READY_FOR_PICKUP',
+          // Najbliższe N z wizyt i rezerwacji razem - serwer tnie przed dociąganiem klientów.
+          limit,
         },
+        signal,
       },
     );
 

@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { PiiValue } from '@/common/pii';
 import { formatCurrency } from '@/common/utils/formatters';
 import { ReservationContextMenu } from '@/common/components/ReservationContextMenu';
-import { useUpcomingVisits } from '../hooks/useUpcomingVisits';
+import { UPCOMING_LIMIT, useUpcomingVisits } from '../hooks/useUpcomingVisits';
 import { useUpdateOperationTitle } from '@/modules/operations/hooks/useReservationActions';
 import { useCalendarNavigation } from '@/common/context/CalendarNavigationContext';
 import type { UpcomingVisit, VisitStatusKind } from '../types';
@@ -525,7 +525,6 @@ interface ContextMenuState {
   sourceRect: DOMRect;
 }
 
-const VISIBLE_LIMIT = 5;
 
 export const UpcomingVisitsPanel = () => {
   // Zmiana tytułu to edycja rezerwacji/wizyty - z danymi osobowymi (personalDataActions).
@@ -544,7 +543,7 @@ export const UpcomingVisitsPanel = () => {
     if (editingId) titleInputRef.current?.focus();
   }, [editingId]);
 
-  const visible = visits.slice(0, VISIBLE_LIMIT);
+  const visible = visits.slice(0, UPCOMING_LIMIT);
 
   const handleRowClick = (visit: UpcomingVisit, e: React.MouseEvent) => {
     e.preventDefault();

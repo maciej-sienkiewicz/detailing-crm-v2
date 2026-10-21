@@ -18,6 +18,9 @@ const tzOffset = (d: Date): string => {
   return `${sign}${h}:${min}`;
 };
 
+/** Ile pozycji pokazuje panel „Nadchodzące" - i tyle tylko przychodzi z serwera. */
+export const UPCOMING_LIMIT = 5;
+
 export const useUpcomingVisits = () => {
   const { startDate, endDate } = useMemo(() => {
     const now = new Date();
@@ -31,6 +34,7 @@ export const useUpcomingVisits = () => {
 
   return useQuery<UpcomingVisit[]>({
     queryKey: ['dashboard', 'upcoming-visits', startDate],
-    queryFn: () => dashboardApi.getUpcomingEvents(startDate, endDate),
+    // Dawniej 90 dni pełnych danych kalendarza, żeby pokazać pięć wierszy.
+    queryFn: ({ signal }) => dashboardApi.getUpcomingEvents(startDate, endDate, UPCOMING_LIMIT, signal),
   });
 };

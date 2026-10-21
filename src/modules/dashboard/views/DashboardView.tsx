@@ -23,7 +23,7 @@ import { MailSetupKpi } from '../components/mailSetup/MailSetupKpi';
 import { useMailAccounts } from '@/modules/comms/hooks/useComms';
 import { DashboardHintsBar } from '../components/DashboardHintsBar';
 import { GeneratePostModal } from '@/modules/competition-monitoring/components/GeneratePostModal';
-import { useDashboard, useDashboardSocket } from '../hooks';
+import { useDashboard } from '../hooks';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -301,7 +301,6 @@ const RetryBtn = styled.button`
 // ─── View ─────────────────────────────────────────────────────────────────────
 
 export const DashboardView = () => {
-  useDashboardSocket();
   const navigate = useNavigate();
   /*
    * Pulpit otwiera każde uprawnienie z ANY_DASHBOARD, więc każdy element pilnuje swojego:
@@ -324,11 +323,7 @@ export const DashboardView = () => {
   // i jedyna czynność, jaką taki użytkownik tu wykonuje - raport dnia pracy.
   const hasPiiAccess = usePiiAccess();
 
-  const {
-    stats,
-    isError,
-    refetch,
-  } = useDashboard({ enabled: canSeeVisits && hasPiiAccess });
+  const { stats, isError, refetch } = useDashboard({ enabled: canSeeVisits && hasPiiAccess });
 
     const greeting = useMemo(() => getGreeting(), []);
     const localDate = useMemo(() => capitalize(formatLocalDate()), []);

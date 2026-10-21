@@ -25,8 +25,8 @@ const TOOLING_NOISE = [/^\[vite\]/, /Service Worker registration blocked by Play
  * Obniżaj go razem z poprawkami - nigdy nie podnoś, żeby przepchnąć zmianę.
  */
 const COLD_LOAD_BUDGET = {
-    '/dashboard': 15,
-    '/calendar': 14,
+    '/dashboard': 11,
+    '/calendar': 10,
 } as const;
 
 const watchConsole = (page: Page) => {
@@ -69,6 +69,9 @@ for (const [path, budget] of Object.entries(COLD_LOAD_BUDGET)) {
         expect([...api.unstubbed], 'nowe zapytanie bez odpowiedzi w fixtures/appApi.ts').toEqual([]);
         const calls = withoutAuthCheck(api.calls);
         expect(calls.length, describe(calls).join('\n')).toBeLessThanOrEqual(budget);
+        // Liczniki menu to jedno GET /v1/me/badges - nie pięć osobnych zapytań.
+        const counters = /\/(attention-count|pending-count|attendance-sheets)$/;
+        expect(describe(calls.filter(call => counters.test(call.path)))).toEqual([]);
     });
 }
 
@@ -77,6 +80,8 @@ test('powrót na kalendarz pyta tylko o jego dane, nie o konfigurację i katalog
 
     await page.locator('a[href="/settings"]').first().click();
     await expect(page).toHaveURL(/\/settings$/);
+    // Ustawienia to leniwy chunk: zapytania strony (np. saldo SMS) idą dopiero po jego załadowaniu.
+    await expect(page.getByRole('heading', { level: 1, name: 'Ustawienia' })).toBeVisible();
     await settle(page, api.calls);
     const beforeReturn = api.calls.length;
 

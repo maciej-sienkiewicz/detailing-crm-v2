@@ -7,11 +7,11 @@
 
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { worktimeMonthsApi } from '../api/worktimeMonthsApi';
+import { invalidateBadges, useBadge } from '@/modules/badges';
 
 export const WORKTIME_TEAM_KEY = ['worktime', 'team'] as const;
 const monthKey = (period: string) => [...WORKTIME_TEAM_KEY, 'months', period] as const;
 const cardKey = (period: string, userId: string) => [...WORKTIME_TEAM_KEY, 'months', period, 'cards', userId] as const;
-const pendingKey = [...WORKTIME_TEAM_KEY, 'pending-count'] as const;
 /** Podpowiedź WORKTIME_CARDS_PENDING na Tablicy liczy te same karty. */
 const DASHBOARD_HINTS_KEY = ['dashboard', 'hints'] as const;
 
@@ -19,6 +19,8 @@ const DASHBOARD_HINTS_KEY = ['dashboard', 'hints'] as const;
 export function invalidateWorktimeTeam(queryClient: QueryClient) {
     void queryClient.invalidateQueries({ queryKey: WORKTIME_TEAM_KEY });
     void queryClient.invalidateQueries({ queryKey: DASHBOARD_HINTS_KEY });
+    // Karty i listy obecności liczą się też w plakietce menu (GET /v1/me/badges).
+    void invalidateBadges(queryClient);
 }
 
 const useInvalidate = () => {
@@ -48,16 +50,8 @@ export const useCardDetail = (period: string, userId: string | null) => useQuery
  * także te, dla których nikt jej jeszcze nie wygenerował. Listy obecności generuje się
  * teraz ręcznie w osobnej zakładce, a jej licznik to listy wygenerowane i niezatwierdzone.
  */
-export const usePendingCardsCount = (enabled: boolean) => {
-    const { data } = useQuery({
-        queryKey: pendingKey,
-        queryFn: worktimeMonthsApi.pendingCount,
-        enabled,
-        staleTime: 60_000,
-        refetchInterval: enabled ? 5 * 60_000 : false,
-    });
-    return data?.submittedCards ?? 0;
-};
+export const usePendingCardsCount = (enabled: boolean) =>
+    useBadge('pendingWorkTimeCards', { enabled });
 
 // Po błędzie też odświeżamy: najczęstszy błąd to „ktoś zdecydował przed chwilą", a wtedy
 // widok ma od razu pokazać stan po jego ruchu, a nie stary.

@@ -113,12 +113,6 @@ export const leaveRequestsApi = {
         return res.data;
     },
 
-    /** Oczekujące, które bieżący użytkownik może rozpatrzyć (bez własnych) - licznik w panelu. */
-    pendingCount: async (): Promise<number> => {
-        const res = await apiClient.get<{ count: number }>(`${QUEUE}/pending-count`, { skipAuthRedirect: true });
-        return res.data.count;
-    },
-
     get: async (id: string): Promise<LeaveRequestDetail> => {
         const res = await apiClient.get<LeaveRequestDetail>(`${QUEUE}/${id}`, { skipErrorToast: true });
         return res.data;
