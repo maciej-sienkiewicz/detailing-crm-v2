@@ -151,7 +151,7 @@ interface StickyFormFooterProps {
 
 export const StickyFormFooter = ({ children, actions }: StickyFormFooterProps) => {
     const { isCollapsed } = useSidebar();
-    const sidebarWidth = isCollapsed ? 64 : 240;
+    const sidebarWidth = isCollapsed ? 64 : 248;
 
     return (
         <FooterShell $sidebarWidth={sidebarWidth}>

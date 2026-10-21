@@ -4,6 +4,7 @@
  * Shared primitives (overlay, inputs, buttons) are imported from
  * @/common/styles so the same tokens can be reused elsewhere.
  */
+import { ui } from '@/common/components/ui';
 import styled, { keyframes, css } from 'styled-components';
 import {
     overlayFadeIn,
@@ -123,8 +124,8 @@ export const Header = styled.div`
     @media (max-width: 639px) {
         padding: 14px 16px;
         align-items: center;
-        background: #ffffff;
-        border-bottom: 1px solid #e2e8f0;
+        background: ${ui.surface};
+        border-bottom: 1px solid ${ui.line};
         box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03);
     }
 `;
@@ -146,7 +147,7 @@ export const MobilePageTitleName = styled.h1`
     margin: 0;
     font-size: 15px;
     font-weight: 700;
-    color: #0f172a;
+    color: ${ui.ink};
     letter-spacing: -0.2px;
     line-height: 1.15;
 `;
@@ -154,7 +155,7 @@ export const MobilePageTitleName = styled.h1`
 export const MobilePageTitleSub = styled.p`
     margin: 2px 0 0;
     font-size: 12px;
-    color: #64748b;
+    color: ${ui.textMuted};
     line-height: 1.2;
 `;
 
@@ -171,7 +172,7 @@ export const TitleInput = styled.input<{ $accentColor?: string; $hasError?: bool
        this deliberately oversized title field. */
     && { font-size: 22px; }
     font-weight: 700;
-    color: #0f172a;
+    color: ${ui.ink};
     background: transparent;
     border: none;
     border-bottom: 2px solid ${p =>
@@ -186,7 +187,7 @@ export const TitleInput = styled.input<{ $accentColor?: string; $hasError?: bool
 
     &:focus {
         border-bottom-color: ${p =>
-            p.$hasError ? '#ef4444' : (p.$accentColor ?? '#0ea5e9')};
+            p.$hasError ? '#ef4444' : (p.$accentColor ?? ui.brand)};
     }
 
     /* Mobile: sam edytowalny tytuł znika z Headera i przenosi się do sekcji 0
@@ -197,17 +198,17 @@ export const TitleInput = styled.input<{ $accentColor?: string; $hasError?: bool
         font-weight: 400;
         letter-spacing: 0;
         padding: 10px 12px;
-        background: #f8fafc;
-        border: 1.5px solid #e2e8f0;
+        background: ${ui.surfaceSoft};
+        border: 1.5px solid ${ui.line};
         border-radius: 8px;
-        color: #0f172a;
+        color: ${ui.ink};
 
-        &::placeholder { color: #94a3b8; }
+        &::placeholder { color: ${ui.textFaint}; }
 
         &:focus {
             border-color: ${p =>
-                p.$hasError ? '#ef4444' : (p.$accentColor ?? '#0ea5e9')};
-            background: #ffffff;
+                p.$hasError ? '#ef4444' : (p.$accentColor ?? ui.brand)};
+            background: ${ui.surface};
             box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
         }
     }
@@ -228,7 +229,7 @@ export const ScrollableContent = styled.div`
     &::-webkit-scrollbar { width: 4px; }
     &::-webkit-scrollbar-track { background: transparent; }
     &::-webkit-scrollbar-thumb {
-        background: #e2e8f0;
+        background: ${ui.line};
         border-radius: 2px;
     }
     &::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
@@ -239,7 +240,7 @@ export const ScrollableContent = styled.div`
     @media (max-width: 639px) {
         padding: 16px 12px 24px;
         gap: 16px;
-        background: #f8fafc;
+        background: ${ui.surfaceSoft};
     }
 `;
 
@@ -269,8 +270,8 @@ export const Row = styled.div`
     @media (max-width: 639px) {
         display: block;
         padding: 0;
-        background: #FFFFFF;
-        border: 1px solid #E2E8F0;
+        background: ${ui.surface};
+        border: 1px solid ${ui.line};
         border-radius: 14px;
         box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
     }
@@ -286,8 +287,8 @@ export const RowHeader = styled.div`
         justify-content: space-between;
         gap: 10px;
         padding: 12px 16px;
-        border-bottom: 1px solid #e2e8f0;
-        background: #f8fafc;
+        border-bottom: 1px solid ${ui.line};
+        background: ${ui.surfaceSoft};
         flex-wrap: wrap;
     }
 `;
@@ -309,8 +310,8 @@ export const RowHeaderNum = styled.span`
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: #0EA5E9;
-    color: #fff;
+    background: ${ui.brand};
+    color: ${ui.surface};
     font-size: 11px;
     font-weight: 700;
     flex-shrink: 0;
@@ -322,7 +323,7 @@ export const RowHeaderLabel = styled.h3`
     margin: 0;
     font-size: 14px;
     font-weight: 600;
-    color: #0F172A;
+    color: ${ui.ink};
     display: flex;
     align-items: center;
     gap: 7px;
@@ -336,7 +337,7 @@ export const RowHeaderStatus = styled.span`
     align-items: center;
     padding: 2px 9px;
     background: rgba(14, 165, 233, 0.12);
-    color: #0EA5E9;
+    color: ${ui.brand};
     border-radius: 9999px;
     font-size: 11px;
     font-weight: 600;
@@ -359,7 +360,7 @@ export const RowHeaderIcon = styled.span<{ $color?: string }>`
 export const RowHeaderHint = styled.span<{ $required?: boolean }>`
     font-size: 11px;
     font-weight: 600;
-    color: ${p => p.$required ? '#dc2626' : '#94a3b8'};
+    color: ${p => p.$required ? '#dc2626' : ui.textFaint};
     text-transform: uppercase;
     letter-spacing: 0.05em;
     flex-shrink: 0;
@@ -371,8 +372,8 @@ export const RowHeaderHint = styled.span<{ $required?: boolean }>`
     otwarciu klawiatury i scrollu. Element w normalnym flow zawsze siedzi pod
     polem i przewija się razem z nim. */
 export const MobileCustomerSuggestions = styled.div`
-    background: #FFFFFF;
-    border: 1px solid #E2E8F0;
+    background: ${ui.surface};
+    border: 1px solid ${ui.line};
     border-radius: 8px;
     box-shadow: 0 10px 24px rgba(15, 23, 42, 0.10), 0 4px 8px rgba(15, 23, 42, 0.06);
     overflow: hidden;
@@ -395,19 +396,19 @@ export const MobileCustomerSuggestionItem = styled.button`
     font-family: inherit;
     -webkit-tap-highlight-color: transparent;
 
-    & + & { border-top: 1px solid #F1F5F9; }
-    &:active { background: #F1F5F9; }
+    & + & { border-top: 1px solid ${ui.surfaceAlt}; }
+    &:active { background: ${ui.surfaceAlt}; }
 `;
 
 export const MobileCustomerSuggestionName = styled.span`
     font-size: 13px;
     font-weight: 600;
-    color: #0F172A;
+    color: ${ui.ink};
 `;
 
 export const MobileCustomerSuggestionSub = styled.span<{ $warn?: boolean }>`
     font-size: 11px;
-    color: ${p => p.$warn ? '#B45309' : '#94A3B8'};
+    color: ${p => p.$warn ? '#B45309' : ui.textFaint};
 `;
 
 /** SectionActions z /checkin/new: rząd przycisków akcji po prawej stronie
@@ -426,16 +427,16 @@ export const RowHeaderActions = styled.div`
 `;
 
 /** ActionBtn z /checkin/new: 1:1 te same tokeny (border 1.5px, radius 8px,
-    font 12px semibold, primary = accentBlueDim + #0EA5E9). */
+    font 12px semibold, primary = accentBlueDim + ${ui.brand}). */
 export const RowHeaderActionBtn = styled.button<{ $primary?: boolean }>`
     display: inline-flex;
     align-items: center;
     gap: 5px;
     padding: 6px 13px;
-    border: 1.5px solid ${p => p.$primary ? '#0EA5E9' : '#E2E8F0'};
+    border: 1.5px solid ${p => p.$primary ? ui.brand : ui.line};
     border-radius: 8px;
-    background: ${p => p.$primary ? 'rgba(14, 165, 233, 0.12)' : '#FFFFFF'};
-    color: ${p => p.$primary ? '#0EA5E9' : '#475569'};
+    background: ${p => p.$primary ? 'rgba(14, 165, 233, 0.12)' : ui.surface};
+    color: ${p => p.$primary ? ui.brand : ui.textSecondary};
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
@@ -444,8 +445,8 @@ export const RowHeaderActionBtn = styled.button<{ $primary?: boolean }>`
     font-family: inherit;
 
     &:hover:not(:disabled) {
-        border-color: #0EA5E9;
-        color: #0EA5E9;
+        border-color: ${ui.brand};
+        color: ${ui.brand};
         background: rgba(14, 165, 233, 0.12);
     }
 
@@ -464,7 +465,7 @@ export const RowHeaderActionBtn = styled.button<{ $primary?: boolean }>`
 export const IconWrapper = styled.div<{ $color?: string }>`
     flex-shrink: 0;
     margin-top: 12px;
-    color: ${p => p.$color ?? '#94a3b8'};
+    color: ${p => p.$color ?? ui.textFaint};
     transition: color 150ms ease;
     svg { width: 16px; height: 16px; }
 
@@ -515,7 +516,7 @@ export const Label = styled.label`
     display: block;
     font-size: 12px;
     font-weight: 600;
-    color: #94a3b8;
+    color: ${ui.textFaint};
     text-transform: uppercase;
     letter-spacing: 0.06em;
 `;
@@ -526,7 +527,7 @@ export const Input = styled(FormInput)<{ $dropdownOpen?: boolean }>`
     ${p => p.$dropdownOpen && `
         border-bottom-left-radius: 0;
         border-bottom-right-radius: 0;
-        border-color: #0ea5e9;
+        border-color: ${ui.brand};
         border-bottom-color: transparent;
         box-shadow: 0 0 0 3px rgba(14,165,233,0.14);
         clip-path: inset(-4px -4px 0 -4px);
@@ -538,7 +539,7 @@ export const Checkbox = styled.input.attrs({ type: 'checkbox' })<{ $accentColor?
     height: 15px;
     border-radius: 4px;
     cursor: pointer;
-    accent-color: ${p => p.$accentColor ?? '#0ea5e9'};
+    accent-color: ${p => p.$accentColor ?? ui.brand};
 `;
 
 export const CheckboxLabel = styled.label`
@@ -550,14 +551,14 @@ export const CheckboxLabel = styled.label`
 
     span {
         font-size: 14px;
-        color: #0f172a;
+        color: ${ui.ink};
     }
 `;
 
 export const Divider = styled.div`
     height: 1px;
     margin: 4px 0;
-    background: #f1f5f9;
+    background: ${ui.surfaceAlt};
 
     /* Na mobile sekcje są kartami z materiałem - separują się same, dodatkowa
        linia dividera brudziłaby rytm pionowy między kartami. */
@@ -572,7 +573,7 @@ export const SelectButton = styled(FormSelectButton)``;
 
 export const RemoveButton = styled.div`
     padding: 4px;
-    color: #94a3b8;
+    color: ${ui.textFaint};
     border-radius: 999px;
     transition: all 150ms ease;
     cursor: pointer;
@@ -580,7 +581,7 @@ export const RemoveButton = styled.div`
     align-items: center;
     justify-content: center;
 
-    &:hover { color: #ef4444; background: #fef2f2; }
+    &:hover { color: #ef4444; background: ${ui.dangerTint}; }
     svg { width: 14px; height: 14px; }
 `;
 
@@ -597,8 +598,8 @@ export const Dropdown = styled.div`
     z-index: 2001;
     width: 100%;
     margin-top: -1px;
-    background: #ffffff;
-    border: 1.5px solid #0ea5e9;
+    background: ${ui.surface};
+    border: 1.5px solid ${ui.brand};
     border-top: none;
     border-radius: 0 0 12px 12px;
     box-shadow:
@@ -612,8 +613,8 @@ export const Dropdown = styled.div`
 export const ServicePortalDropdown = styled.div`
     position: fixed;
     z-index: 9999;
-    background: #ffffff;
-    border: 1.5px solid #0ea5e9;
+    background: ${ui.surface};
+    border: 1.5px solid ${ui.brand};
     border-top: none;
     border-radius: 0 0 12px 12px;
     box-shadow:
@@ -633,8 +634,8 @@ export const ServicePortalDropdown = styled.div`
 export const CustomerPortalDropdown = styled.div`
     position: fixed;
     z-index: 9999;
-    background: #ffffff;
-    border: 1.5px solid #0ea5e9;
+    background: ${ui.surface};
+    border: 1.5px solid ${ui.brand};
     border-top: none;
     border-radius: 0 0 12px 12px;
     box-shadow:
@@ -658,19 +659,19 @@ export const DropdownItem = styled.button<{ $accentColor?: string }>`
     gap: 2px;
     background: transparent;
     border: none;
-    border-bottom: 1px solid #f8fafc;
+    border-bottom: 1px solid ${ui.surfaceSoft};
     text-align: left;
     cursor: pointer;
     transition: background 150ms ease;
 
     &:last-child { border-bottom: none; }
-    &:hover { background: #f8fafc; }
+    &:hover { background: ${ui.surfaceSoft}; }
     &:first-child { border-radius: 16px 16px 0 0; }
     &:last-child  { border-radius: 0 0 16px 16px; }
 
     span:first-child {
         font-size: 14px;
-        color: #0f172a;
+        color: ${ui.ink};
         font-weight: 500;
     }
 `;
@@ -678,7 +679,7 @@ export const DropdownItem = styled.button<{ $accentColor?: string }>`
 export const DropdownItemMeta = styled.span<{ $warning?: boolean }>`
     font-size: 12px;
     font-weight: ${p => p.$warning ? 600 : 400};
-    color: ${p => p.$warning ? '#f59e0b' : '#94a3b8'};
+    color: ${p => p.$warning ? '#f59e0b' : ui.textFaint};
     display: flex;
     align-items: center;
     gap: 4px;
@@ -688,11 +689,11 @@ export const DropdownSeparator = styled.div`
     padding: 6px 16px 4px;
     font-size: 11px;
     font-weight: 600;
-    color: #b0bec5;
+    color: ${ui.textFaint};
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    background: #f8fafc;
-    border-top: 1px solid #f1f5f9;
+    background: ${ui.surfaceSoft};
+    border-top: 1px solid ${ui.surfaceAlt};
 `;
 
 export const DropdownAddButton = styled.button`
@@ -703,20 +704,20 @@ export const DropdownAddButton = styled.button`
     gap: 8px;
     background: transparent;
     border: none;
-    border-top: 1px solid #f1f5f9;
+    border-top: 1px solid ${ui.surfaceAlt};
     text-align: left;
     cursor: pointer;
     transition: background 150ms ease;
     border-radius: 0 0 16px 16px;
 
-    &:hover { background: #f0f9ff; }
+    &:hover { background: ${ui.brandTint}; }
 
-    svg { width: 15px; height: 15px; color: #0ea5e9; }
+    svg { width: 15px; height: 15px; color: ${ui.brand}; }
 
     span {
         font-size: 14px;
         font-weight: 600;
-        color: #0ea5e9;
+        color: ${ui.brand};
     }
 `;
 
@@ -737,17 +738,17 @@ export const ServiceSearchClear = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #e2e8f0;
+    background: ${ui.line};
     border: none;
     border-radius: 50%;
     cursor: pointer;
-    color: #64748b;
+    color: ${ui.textMuted};
     padding: 0;
     transition: background 150ms ease, color 150ms ease;
     flex-shrink: 0;
     z-index: 1;
 
-    &:hover { background: #cbd5e1; color: #0f172a; }
+    &:hover { background: #cbd5e1; color: ${ui.ink}; }
     svg { width: 10px; height: 10px; }
 `;
 
@@ -762,10 +763,10 @@ export const ServiceDropdownItem = styled.button<{ $isHighlighted?: boolean }>`
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    background: ${p => p.$isHighlighted ? '#f0f9ff' : 'transparent'};
+    background: ${p => p.$isHighlighted ? ui.brandTint : 'transparent'};
     border: none;
-    border-left: 3px solid ${p => p.$isHighlighted ? '#0ea5e9' : 'transparent'};
-    border-bottom: 1px solid #f1f5f9;
+    border-left: 3px solid ${p => p.$isHighlighted ? ui.brand : 'transparent'};
+    border-bottom: 1px solid ${ui.surfaceAlt};
     text-align: left;
     cursor: pointer;
     transition: background 120ms ease, border-color 120ms ease;
@@ -773,8 +774,8 @@ export const ServiceDropdownItem = styled.button<{ $isHighlighted?: boolean }>`
     &:last-child { border-bottom: none; }
 
     &:hover {
-        background: #f0f9ff;
-        border-left-color: #0ea5e9;
+        background: ${ui.brandTint};
+        border-left-color: ${ui.brand};
     }
 
     @media (max-width: 639px) {
@@ -791,7 +792,7 @@ export const ServiceDropdownItem = styled.button<{ $isHighlighted?: boolean }>`
 export const ServiceDropdownName = styled.span`
     font-size: 14px;
     font-weight: 500;
-    color: #0f172a;
+    color: ${ui.ink};
     flex: 1;
     min-width: 0;
     overflow: hidden;
@@ -809,14 +810,14 @@ export const ServiceDropdownName = styled.span`
 
 export const ServiceDropdownHighlight = styled.mark`
     background: none;
-    color: #0ea5e9;
+    color: ${ui.brand};
     font-weight: 700;
 `;
 
 export const ServiceDropdownEmpty = styled.div`
     padding: 20px 16px;
     text-align: center;
-    color: #94a3b8;
+    color: ${ui.textFaint};
     font-size: 13px;
     line-height: 1.5;
 `;
@@ -832,21 +833,21 @@ export const ServiceDropdownPrices = styled.div`
 export const ServiceDropdownGross = styled.span`
     font-size: 13px;
     font-weight: 600;
-    color: #0f172a;
+    color: ${ui.ink};
     font-feature-settings: 'tnum';
     white-space: nowrap;
 
     @media (max-width: 639px) {
         font-size: 12px;
         font-weight: 500;
-        color: #64748b;
+        color: ${ui.textMuted};
     }
 `;
 
 export const ServiceDropdownNet = styled.span`
     font-size: 11px;
     font-weight: 400;
-    color: #94a3b8;
+    color: ${ui.textFaint};
     font-feature-settings: 'tnum';
     white-space: nowrap;
 
@@ -873,9 +874,9 @@ export const SelectedCustomerChip = styled.div`
     align-items: center;
     gap: 10px;
     padding: 9px 12px;
-    background: #ffffff;
+    background: ${ui.surface};
     border-radius: 12px;
-    border: 1.5px solid #e2e8f0;
+    border: 1.5px solid ${ui.line};
 `;
 
 export const ChipCheck = styled.div`
@@ -883,7 +884,7 @@ export const ChipCheck = styled.div`
     height: 20px;
     border-radius: 50%;
     background: #16a34a;
-    color: #ffffff;
+    color: ${ui.surface};
     display: flex;
     align-items: center;
     justify-content: center;
@@ -905,7 +906,7 @@ export const ChipInfo = styled.div`
 export const ChipName = styled.span`
     font-size: 14px;
     font-weight: 500;
-    color: #0f172a;
+    color: ${ui.ink};
     white-space: nowrap;
     display: flex;
     align-items: center;
@@ -915,7 +916,7 @@ export const ChipName = styled.span`
 export const NewBadge = styled.span`
     font-size: 10px;
     padding: 2px 6px;
-    background: #dcfce7;
+    background: ${ui.okTintHover};
     color: #16a34a;
     border-radius: 999px;
     font-weight: 700;
@@ -925,7 +926,7 @@ export const NewBadge = styled.span`
 
 export const ChipMeta = styled.span`
     font-size: 12px;
-    color: #94a3b8;
+    color: ${ui.textFaint};
     white-space: nowrap;
 `;
 
@@ -937,7 +938,7 @@ export const ChipDot = styled.span`
 export const ChipEdit = styled.button`
     flex-shrink: 0;
     padding: 4px;
-    color: #94a3b8;
+    color: ${ui.textFaint};
     background: none;
     border: none;
     border-radius: 999px;
@@ -947,7 +948,7 @@ export const ChipEdit = styled.button`
     justify-content: center;
     transition: all 150ms ease;
 
-    &:hover { color: #0ea5e9; background: #e0f2fe; }
+    &:hover { color: ${ui.brand}; background: ${ui.brandTintHover}; }
     svg { width: 14px; height: 14px; }
 `;
 
@@ -955,7 +956,7 @@ export const ChipClear = styled.button`
     flex-shrink: 0;
     margin-left: auto;
     padding: 4px;
-    color: #94a3b8;
+    color: ${ui.textFaint};
     background: none;
     border: none;
     border-radius: 999px;
@@ -965,7 +966,7 @@ export const ChipClear = styled.button`
     justify-content: center;
     transition: all 150ms ease;
 
-    &:hover { color: #ef4444; background: #fef2f2; }
+    &:hover { color: #ef4444; background: ${ui.dangerTint}; }
     svg { width: 14px; height: 14px; }
 `;
 
@@ -975,12 +976,12 @@ export const ChipClear = styled.button`
 
 /** Outer container: single border wraps header + rows + summary */
 export const ServicesBlock = styled.div`
-    border: 1.5px solid #e2e8f0;
+    border: 1.5px solid ${ui.line};
     border-radius: 14px;
     overflow: hidden;
     transition: border-color 180ms ease;
 
-    &:focus-within { border-color: #bae6fd; }
+    &:focus-within { border-color: ${ui.brandLineSoft}; }
 `;
 
 /** Sticky column-header row */
@@ -990,14 +991,14 @@ export const ServicesTableHeader = styled.div`
     align-items: center;
     gap: 4px;
     padding: 7px 8px 7px 14px;
-    background: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
+    background: ${ui.surfaceSoft};
+    border-bottom: 1px solid ${ui.line};
 `;
 
 export const ServicesHeaderCell = styled.span`
     font-size: 10px;
     font-weight: 700;
-    color: #b0bec5;
+    color: ${ui.textFaint};
     text-transform: uppercase;
     letter-spacing: 0.08em;
     text-align: right;
@@ -1014,12 +1015,12 @@ export const ServicesList = styled.div`
 `;
 
 export const ServiceItem = styled.div<{ $hasDiscount?: boolean }>`
-    border-bottom: 1px solid #f1f5f9;
-    background: ${p => p.$hasDiscount ? '#fffbeb' : 'transparent'};
+    border-bottom: 1px solid ${ui.surfaceAlt};
+    background: ${p => p.$hasDiscount ? ui.warnTint : 'transparent'};
     transition: background 120ms ease;
 
     &:last-child { border-bottom: none; }
-    &:hover { background: ${p => p.$hasDiscount ? '#fef3c7' : '#fafbfd'}; }
+    &:hover { background: ${p => p.$hasDiscount ? '#fef3c7' : ui.surfaceSoft}; }
 `;
 
 export const ServiceItemRow = styled.div`
@@ -1033,7 +1034,7 @@ export const ServiceItemRow = styled.div`
 export const ServiceName = styled.span`
     font-size: 14px;
     font-weight: 500;
-    color: #0f172a;
+    color: ${ui.ink};
     min-width: 0;
     white-space: nowrap;
     overflow: hidden;
@@ -1061,7 +1062,7 @@ export const PriceDisplay = styled.div`
 export const PriceDisplayMain = styled.span<{ $isBrutto?: boolean; $isDiscounted?: boolean }>`
     font-size: 13px;
     font-weight: ${p => p.$isBrutto ? 600 : 400};
-    color: ${p => p.$isDiscounted ? '#059669' : (p.$isBrutto ? '#0f172a' : '#64748b')};
+    color: ${p => p.$isDiscounted ? '#059669' : (p.$isBrutto ? ui.ink : ui.textMuted)};
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum';
     white-space: nowrap;
@@ -1069,7 +1070,7 @@ export const PriceDisplayMain = styled.span<{ $isBrutto?: boolean; $isDiscounted
 
 export const PriceDisplayOriginal = styled.span`
     font-size: 10px;
-    color: #b0bec5;
+    color: ${ui.textFaint};
     text-decoration: line-through;
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum';
@@ -1085,7 +1086,7 @@ export const PriceCellInput = styled.input<{ $isBrutto?: boolean }>`
     background: transparent;
     border: 1.5px solid transparent;
     border-radius: 8px;
-    color: ${p => p.$isBrutto ? '#0f172a' : '#64748b'};
+    color: ${p => p.$isBrutto ? ui.ink : ui.textMuted};
     outline: none;
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum';
@@ -1093,13 +1094,13 @@ export const PriceCellInput = styled.input<{ $isBrutto?: boolean }>`
     font-family: inherit;
 
     &:hover {
-        border-color: #e2e8f0;
-        background: #f8fafc;
+        border-color: ${ui.line};
+        background: ${ui.surfaceSoft};
     }
 
     &:focus {
-        background: #ffffff;
-        border-color: #0ea5e9;
+        background: ${ui.surface};
+        border-color: ${ui.brand};
         box-shadow: 0 0 0 2px rgba(14,165,233,0.14);
     }
 `;
@@ -1121,7 +1122,7 @@ export const DiscountButton = styled.button<{ $active?: boolean }>`
     border-radius: 7px;
     border: none;
     background: ${p => p.$active ? '#fef3c7' : 'transparent'};
-    color: ${p => p.$active ? '#d97706' : '#b0bec5'};
+    color: ${p => p.$active ? '#d97706' : ui.textFaint};
     cursor: pointer;
     transition: all 150ms ease;
 
@@ -1137,12 +1138,12 @@ export const IconButton = styled.button<{ $active?: boolean }>`
     justify-content: center;
     border-radius: 7px;
     border: none;
-    background: ${p => p.$active ? '#e0f2fe' : 'transparent'};
-    color: ${p => p.$active ? '#0284c7' : '#b0bec5'};
+    background: ${p => p.$active ? ui.brandTintHover : 'transparent'};
+    color: ${p => p.$active ? ui.brandStrong : ui.textFaint};
     cursor: pointer;
     transition: all 150ms ease;
 
-    &:hover { background: #e0f2fe; color: #0284c7; }
+    &:hover { background: ${ui.brandTintHover}; color: ${ui.brandStrong}; }
     svg { width: 13px; height: 13px; }
 `;
 
@@ -1155,11 +1156,11 @@ export const DeleteButton = styled.button`
     border-radius: 7px;
     border: none;
     background: transparent;
-    color: #b0bec5;
+    color: ${ui.textFaint};
     cursor: pointer;
     transition: all 150ms ease;
 
-    &:hover { background: #fef2f2; color: #ef4444; }
+    &:hover { background: ${ui.dangerTint}; color: #ef4444; }
     svg { width: 13px; height: 13px; }
 `;
 
@@ -1172,7 +1173,7 @@ export const DiscountPanel = styled.div`
     overflow: hidden;
     animation: ${slideDown} 200ms ease-out forwards;
     padding: 8px 10px 10px 14px;
-    background: #fffbeb;
+    background: ${ui.warnTint};
     border-top: 1px dashed #fde68a;
     display: flex;
     flex-direction: column;
@@ -1189,7 +1190,7 @@ export const DiscountTypePill = styled.button<{ $selected?: boolean }>`
     padding: 3px 9px;
     font-size: 11px;
     font-weight: ${p => p.$selected ? 700 : 500};
-    color: ${p => p.$selected ? '#92400e' : '#78716c'};
+    color: ${p => p.$selected ? ui.warnInk : '#78716c'};
     background: ${p => p.$selected ? '#fde68a' : '#f5f5f4'};
     border: 1.5px solid ${p => p.$selected ? '#f59e0b' : '#e7e5e4'};
     border-radius: 6px;
@@ -1198,7 +1199,7 @@ export const DiscountTypePill = styled.button<{ $selected?: boolean }>`
     white-space: nowrap;
     font-family: inherit;
 
-    &:hover { background: #fde68a; color: #92400e; border-color: #f59e0b; }
+    &:hover { background: #fde68a; color: ${ui.warnInk}; border-color: #f59e0b; }
 `;
 
 export const DiscountValueRow = styled.div`
@@ -1213,10 +1214,10 @@ export const DiscountValueInput = styled.input`
     font-size: 13px;
     font-weight: 500;
     text-align: right;
-    background: #ffffff;
+    background: ${ui.surface};
     border: 1.5px solid #f59e0b;
     border-radius: 8px;
-    color: #0f172a;
+    color: ${ui.ink};
     outline: none;
     font-variant-numeric: tabular-nums;
     font-family: inherit;
@@ -1229,7 +1230,7 @@ export const DiscountValueInput = styled.input`
 export const DiscountValueSuffix = styled.span`
     font-size: 13px;
     font-weight: 600;
-    color: #92400e;
+    color: ${ui.warnInk};
     min-width: 20px;
 `;
 
@@ -1253,14 +1254,14 @@ export const DiscountRemoveButton = styled.button`
     transition: all 150ms ease;
     white-space: nowrap;
 
-    &:hover { color: #ef4444; border-color: #fca5a5; background: #fef2f2; }
+    &:hover { color: #ef4444; border-color: #fca5a5; background: ${ui.dangerTint}; }
 `;
 
 export const DiscountHideButton = styled.button`
     padding: 3px 9px;
     font-size: 11px;
     font-weight: 500;
-    color: #92400e;
+    color: ${ui.warnInk};
     background: transparent;
     border: 1.5px solid #fde68a;
     border-radius: 6px;
@@ -1279,24 +1280,24 @@ export const ServiceNoteContainer = styled.div`
 export const ServiceNoteTextarea = styled.textarea`
     width: 100%;
     padding: 7px 10px;
-    background: #f8fafc;
-    border: 1.5px solid #f1f5f9;
+    background: ${ui.surfaceSoft};
+    border: 1.5px solid ${ui.surfaceAlt};
     border-radius: 8px;
     font-size: 12.5px;
-    color: #475569;
+    color: ${ui.textSecondary};
     outline: none;
     resize: none;
     transition: all 150ms ease;
     font-family: inherit;
     line-height: 1.45;
 
-    &::placeholder { color: #b0bec5; }
+    &::placeholder { color: ${ui.textFaint}; }
 
-    &:hover { border-color: #e2e8f0; }
+    &:hover { border-color: ${ui.line}; }
 
     &:focus {
-        background: #ffffff;
-        border-color: #0ea5e9;
+        background: ${ui.surface};
+        border-color: ${ui.brand};
         box-shadow: 0 0 0 2px rgba(14,165,233,0.10);
     }
 `;
@@ -1308,8 +1309,8 @@ export const SummarySection = styled.div`
     align-items: center;
     justify-content: space-between;
     padding: 10px 14px;
-    background: #f8fafc;
-    border-top: 1px solid #e2e8f0;
+    background: ${ui.surfaceSoft};
+    border-top: 1px solid ${ui.line};
 `;
 
 export const BulkDiscountTrigger = styled.button`
@@ -1319,7 +1320,7 @@ export const BulkDiscountTrigger = styled.button`
     padding: 4px 10px;
     font-size: 11px;
     font-weight: 600;
-    color: #92400e;
+    color: ${ui.warnInk};
     background: #fef3c7;
     border: 1.5px solid #fde68a;
     border-radius: 7px;
@@ -1343,7 +1344,7 @@ export const SummaryItem = styled.div`
     align-items: baseline;
     gap: 5px;
     padding: 0 14px;
-    border-right: 1px solid #e2e8f0;
+    border-right: 1px solid ${ui.line};
 
     &:last-child { border-right: none; padding-right: 0; }
     &:first-child { padding-left: 0; }
@@ -1352,7 +1353,7 @@ export const SummaryItem = styled.div`
 export const SummaryLabel = styled.span<{ $isTotal?: boolean }>`
     font-size: 11px;
     font-weight: 500;
-    color: #94a3b8;
+    color: ${ui.textFaint};
     text-transform: uppercase;
     letter-spacing: 0.05em;
     white-space: nowrap;
@@ -1360,7 +1361,7 @@ export const SummaryLabel = styled.span<{ $isTotal?: boolean }>`
 
 export const SummaryValue = styled.span<{ $isTotal?: boolean }>`
     font-size: ${p => p.$isTotal ? '15px' : '13px'};
-    color: ${p => p.$isTotal ? '#0f172a' : '#475569'};
+    color: ${p => p.$isTotal ? ui.ink : ui.textSecondary};
     font-weight: ${p => p.$isTotal ? 700 : 500};
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum';
@@ -1384,7 +1385,7 @@ export const BulkDiscountOverlay = styled.div`
 
 export const BulkDiscountCard = styled.div`
     width: 340px;
-    background: #ffffff;
+    background: ${ui.surface};
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0,0,0,0.06);
@@ -1392,7 +1393,7 @@ export const BulkDiscountCard = styled.div`
 
 export const BulkDiscountHeader = styled.div`
     padding: 16px 20px 12px;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid ${ui.surfaceAlt};
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1402,7 +1403,7 @@ export const BulkDiscountTitle = styled.h4`
     margin: 0;
     font-size: 14px;
     font-weight: 700;
-    color: #0f172a;
+    color: ${ui.ink};
 `;
 
 export const BulkDiscountBody = styled.div`
@@ -1414,8 +1415,8 @@ export const BulkDiscountBody = styled.div`
 
 export const BulkDiscountFooter = styled.div`
     padding: 12px 20px;
-    background: #f8fafc;
-    border-top: 1px solid #f1f5f9;
+    background: ${ui.surfaceSoft};
+    border-top: 1px solid ${ui.surfaceAlt};
     display: flex;
     justify-content: flex-end;
     gap: 8px;
@@ -1425,21 +1426,21 @@ export const BulkDiscountCancelBtn = styled.button`
     padding: 8px 16px;
     font-size: 13px;
     font-weight: 500;
-    color: #64748b;
+    color: ${ui.textMuted};
     background: transparent;
-    border: 1.5px solid #e2e8f0;
+    border: 1.5px solid ${ui.line};
     border-radius: 8px;
     cursor: pointer;
     font-family: inherit;
     transition: all 150ms ease;
-    &:hover { background: #f1f5f9; }
+    &:hover { background: ${ui.surfaceAlt}; }
 `;
 
 export const BulkDiscountApplyBtn = styled.button`
     padding: 8px 18px;
     font-size: 13px;
     font-weight: 700;
-    color: #ffffff;
+    color: ${ui.surface};
     background: #d97706;
     border: none;
     border-radius: 8px;
@@ -1454,8 +1455,8 @@ export const BulkDiscountApplyBtn = styled.button`
 
 export const Footer = styled.div`
     padding: 14px 24px;
-    border-top: 1px solid #f1f5f9;
-    background: #fafbfd;
+    border-top: 1px solid ${ui.surfaceAlt};
+    background: ${ui.surfaceSoft};
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -1466,8 +1467,8 @@ export const Footer = styled.div`
        treścią. Tak samo wygląda cały footer na formularzu przyjęcia pojazdu. */
     @media (max-width: 639px) {
         padding: 12px 16px;
-        background: #FFFFFF;
-        border-top: 1px solid #E2E8F0;
+        background: ${ui.surface};
+        border-top: 1px solid ${ui.line};
         box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.08);
     }
 `;
@@ -1486,11 +1487,11 @@ export const ColorPickerSection = styled.div<{ $hasError?: boolean }>`
     padding: 4px 6px;
     border-radius: 10px;
     border: 2px solid ${p => p.$hasError ? '#ef4444' : 'transparent'};
-    background: ${p => p.$hasError ? '#fef2f2' : 'transparent'};
+    background: ${p => p.$hasError ? ui.dangerTint : 'transparent'};
     transition: all 150ms ease;
 
     svg {
-        color: ${p => p.$hasError ? '#ef4444' : '#94a3b8'};
+        color: ${p => p.$hasError ? '#ef4444' : ui.textFaint};
         width: 16px;
         height: 16px;
         flex-shrink: 0;
@@ -1514,7 +1515,7 @@ export const ColorPickerList = styled.div`
 export const SelectedColorName = styled.div`
     font-size: 13px;
     font-weight: 500;
-    color: #475569;
+    color: ${ui.textSecondary};
     white-space: nowrap;
 `;
 
@@ -1549,13 +1550,13 @@ export const AddColorButton = styled.button`
     justify-content: center;
     cursor: pointer;
     transition: all 150ms ease;
-    color: #94a3b8;
+    color: ${ui.textFaint};
 
     &:hover {
         transform: scale(1.18);
-        border-color: #0ea5e9;
-        background-color: #f0f9ff;
-        color: #0ea5e9;
+        border-color: ${ui.brand};
+        background-color: ${ui.brandTint};
+        color: ${ui.brand};
     }
 
     svg { width: 12px; height: 12px; }
@@ -1579,9 +1580,9 @@ export const MoreColorsButton = styled.button<{ $active?: boolean }>`
         padding: 0 7px;
     }
     border-radius: 9999px;
-    border: 1.5px solid ${p => p.$active ? '#0ea5e9' : '#e2e8f0'};
-    background: ${p => p.$active ? '#f0f9ff' : 'transparent'};
-    color: ${p => p.$active ? '#0ea5e9' : '#64748b'};
+    border: 1.5px solid ${p => p.$active ? ui.brand : ui.line};
+    background: ${p => p.$active ? ui.brandTint : 'transparent'};
+    color: ${p => p.$active ? ui.brand : ui.textMuted};
     font-size: 11px;
     font-weight: 700;
     font-family: inherit;
@@ -1591,9 +1592,9 @@ export const MoreColorsButton = styled.button<{ $active?: boolean }>`
     flex-shrink: 0;
 
     &:hover {
-        border-color: #0ea5e9;
-        background: #f0f9ff;
-        color: #0ea5e9;
+        border-color: ${ui.brand};
+        background: ${ui.brandTint};
+        color: ${ui.brand};
     }
 `;
 
@@ -1610,8 +1611,8 @@ export const ColorPanel = styled.div<{ $bottom: number; $left: number }>`
     bottom: ${p => p.$bottom}px;
     left: ${p => p.$left}px;
     z-index: 9999;
-    background: #fff;
-    border: 1px solid #e2e8f0;
+    background: ${ui.surface};
+    border: 1px solid ${ui.line};
     border-radius: 12px;
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14), 0 2px 6px rgba(15, 23, 42, 0.06);
     min-width: 210px;
@@ -1628,16 +1629,16 @@ export const ColorPanelItem = styled.button<{ $selected: boolean }>`
     padding: 8px 10px;
     border: none;
     border-radius: 8px;
-    background: ${p => p.$selected ? '#f0f9ff' : 'transparent'};
+    background: ${p => p.$selected ? ui.brandTint : 'transparent'};
     cursor: pointer;
     font-family: inherit;
     font-size: 13px;
     font-weight: ${p => p.$selected ? 600 : 400};
-    color: ${p => p.$selected ? '#0284c7' : '#374151'};
+    color: ${p => p.$selected ? ui.brandStrong : '#374151'};
     text-align: left;
     transition: background 100ms ease;
 
-    &:hover { background: ${p => p.$selected ? '#f0f9ff' : '#f8fafc'}; }
+    &:hover { background: ${p => p.$selected ? ui.brandTint : ui.surfaceSoft}; }
 `;
 
 export const ColorPanelSwatch = styled.span<{ $color: string; $selected: boolean }>`
@@ -1654,7 +1655,7 @@ export const ColorPanelSwatch = styled.span<{ $color: string; $selected: boolean
 
 export const ColorPanelSeparator = styled.div`
     height: 1px;
-    background: #f1f5f9;
+    background: ${ui.surfaceAlt};
     margin: 4px 0;
 `;
 
@@ -1671,11 +1672,11 @@ export const ColorPanelAddBtn = styled.button`
     font-family: inherit;
     font-size: 13px;
     font-weight: 500;
-    color: #64748b;
+    color: ${ui.textMuted};
     text-align: left;
     transition: background 100ms ease;
 
-    &:hover { background: #f8fafc; color: #0ea5e9; }
+    &:hover { background: ${ui.surfaceSoft}; color: ${ui.brand}; }
 
     svg { width: 14px; height: 14px; flex-shrink: 0; }
 `;
@@ -1704,9 +1705,9 @@ export const Button = styled(SharedButton)<{ $variant?: 'primary' | 'secondary' 
 // ─── Customer multi-field input block ────────────────────────────────────────
 
 export const CustomerInputBlock = styled.div<{ $focused?: boolean; $hasError?: boolean; $dropdownOpen?: boolean }>`
-    border: 1.5px solid ${p => p.$hasError ? '#ef4444' : p.$focused ? '#0ea5e9' : '#e2e8f0'};
+    border: 1.5px solid ${p => p.$hasError ? '#ef4444' : p.$focused ? ui.brand : ui.line};
     border-radius: ${p => p.$dropdownOpen ? '12px 12px 0 0' : '12px'};
-    background: #ffffff;
+    background: ${ui.surface};
     overflow: hidden;
     box-shadow: ${p => p.$focused ? '0 0 0 3px rgba(14,165,233,0.14)' : 'none'};
     ${p => p.$dropdownOpen && `
@@ -1719,7 +1720,7 @@ export const CustomerInputBlock = styled.div<{ $focused?: boolean; $hasError?: b
 export const CustomerInputRow = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid ${ui.surfaceAlt};
 
     &:last-child { border-bottom: none; }
 `;
@@ -1735,13 +1736,13 @@ export const VehicleSelectButton = styled.button<{ $dropdownOpen?: boolean }>`
     align-items: center;
     justify-content: space-between;
     padding: 12px 14px;
-    background: #ffffff;
-    border: 1.5px solid ${p => p.$dropdownOpen ? '#0ea5e9' : '#e2e8f0'};
+    background: ${ui.surface};
+    border: 1.5px solid ${p => p.$dropdownOpen ? ui.brand : ui.line};
     border-radius: ${p => p.$dropdownOpen ? '12px 12px 0 0' : '12px'};
     cursor: pointer;
     font-family: inherit;
     font-size: 14px;
-    color: #0f172a;
+    color: ${ui.ink};
     transition: border-color 150ms ease, border-radius 100ms ease, box-shadow 150ms ease;
 
     ${p => p.$dropdownOpen && `
@@ -1750,18 +1751,18 @@ export const VehicleSelectButton = styled.button<{ $dropdownOpen?: boolean }>`
         clip-path: inset(-4px -4px 0 -4px);
     `}
 
-    &:hover:not(:disabled) { border-color: #94a3b8; }
+    &:hover:not(:disabled) { border-color: ${ui.textFaint}; }
     &:disabled { opacity: 0.5; cursor: not-allowed; }
     &:focus { outline: none; }
 `;
 
 export const CustomerFieldGroup = styled.div<{ $borderRight?: boolean; $hasError?: boolean }>`
     padding: 8px 14px;
-    border-right: ${p => p.$borderRight ? '1px solid #f1f5f9' : 'none'};
+    border-right: ${p => p.$borderRight ? `1px solid ${ui.surfaceAlt}` : 'none'};
     display: flex;
     flex-direction: column;
     gap: 2px;
-    background: ${p => p.$hasError ? '#fef2f2' : 'transparent'};
+    background: ${p => p.$hasError ? ui.dangerTint : 'transparent'};
     transition: background 150ms ease;
 `;
 
@@ -1777,7 +1778,7 @@ export const FieldLabelRow = styled.div`
 export const CustomerFieldLabel = styled.label<{ $hasError?: boolean }>`
     font-size: 10px;
     font-weight: 700;
-    color: ${p => p.$hasError ? '#ef4444' : '#94a3b8'};
+    color: ${p => p.$hasError ? '#ef4444' : ui.textFaint};
     text-transform: uppercase;
     letter-spacing: 0.07em;
     pointer-events: none;
@@ -1787,7 +1788,7 @@ export const CustomerFieldLabel = styled.label<{ $hasError?: boolean }>`
 export const CustomerFieldInput = styled.input<{ $hasError?: boolean }>`
     width: 100%;
     font-size: 14px;
-    color: ${p => p.$hasError ? '#ef4444' : '#0f172a'};
+    color: ${p => p.$hasError ? '#ef4444' : ui.ink};
     background: transparent;
     border: none;
     outline: none;
@@ -1795,7 +1796,7 @@ export const CustomerFieldInput = styled.input<{ $hasError?: boolean }>`
     padding: 0;
     line-height: 1.4;
 
-    &::placeholder { color: ${p => p.$hasError ? '#fca5a5' : '#c8d4e0'}; }
+    &::placeholder { color: ${p => p.$hasError ? '#fca5a5' : ui.textFaint}; }
     transition: color 150ms ease;
 `;
 
@@ -1809,7 +1810,7 @@ export const PhonePrefixInput = styled.input<{ $hasError?: boolean }>`
     width: 44px;
     flex-shrink: 0;
     font-size: 14px;
-    color: ${p => p.$hasError ? '#ef4444' : '#94a3b8'};
+    color: ${p => p.$hasError ? '#ef4444' : ui.textFaint};
     background: transparent;
     border: none;
     outline: none;
@@ -1817,15 +1818,15 @@ export const PhonePrefixInput = styled.input<{ $hasError?: boolean }>`
     font-feature-settings: 'tnum';
     padding: 0 8px 0 0;
     margin-right: 8px;
-    border-right: 1px solid #e2e8f0;
+    border-right: 1px solid ${ui.line};
     line-height: 1.4;
 
-    &::placeholder { color: #c8d4e0; }
+    &::placeholder { color: ${ui.textFaint}; }
 `;
 
 export const CustomerHint = styled.div`
     font-size: 12px;
-    color: #94a3b8;
+    color: ${ui.textFaint};
     padding-bottom: 6px;
 `;
 
@@ -1840,7 +1841,7 @@ export const CustomerEditConfirmBtn = styled.button`
     padding: 8px 14px;
     font-size: 13px;
     font-weight: 600;
-    color: #ffffff;
+    color: ${ui.surface};
     background: #16a34a;
     border: none;
     border-radius: 10px;
@@ -1852,7 +1853,7 @@ export const CustomerEditConfirmBtn = styled.button`
     gap: 6px;
     transition: background 150ms ease;
 
-    &:hover { background: #15803d; }
+    &:hover { background: ${ui.okInk}; }
     svg { width: 14px; height: 14px; }
 `;
 
@@ -1860,15 +1861,15 @@ export const CustomerEditCancelBtn = styled.button`
     padding: 8px 14px;
     font-size: 13px;
     font-weight: 500;
-    color: #64748b;
-    background: #f8fafc;
-    border: 1.5px solid #e2e8f0;
+    color: ${ui.textMuted};
+    background: ${ui.surfaceSoft};
+    border: 1.5px solid ${ui.line};
     border-radius: 10px;
     cursor: pointer;
     font-family: inherit;
     transition: all 150ms ease;
 
-    &:hover { background: #f1f5f9; border-color: #cbd5e1; }
+    &:hover { background: ${ui.surfaceAlt}; border-color: #cbd5e1; }
 `;
 
 // ─── Backwards-compat stubs (still referenced by some JSX) ───────────────────
@@ -1898,7 +1899,7 @@ export const ServicePricesRow = styled.div`
 export const ServicePriceSeparator = styled.div`
     width: 1px;
     height: 18px;
-    background: #e2e8f0;
+    background: ${ui.line};
     flex-shrink: 0;
 `;
 
@@ -1908,31 +1909,31 @@ export const ServicePriceInput = styled.input`
     font-size: 13px;
     font-weight: 500;
     text-align: right;
-    background: #f8fafc;
+    background: ${ui.surfaceSoft};
     border: 1.5px solid transparent;
     border-radius: 8px;
-    color: #0f172a;
+    color: ${ui.ink};
     outline: none;
     font-variant-numeric: tabular-nums;
     font-family: inherit;
     transition: all 150ms ease;
-    &:hover { border-color: #e2e8f0; }
+    &:hover { border-color: ${ui.line}; }
     &:focus {
-        background: #ffffff;
-        border-color: #0ea5e9;
+        background: ${ui.surface};
+        border-color: ${ui.brand};
         box-shadow: 0 0 0 2px rgba(14,165,233,0.14);
     }
 `;
 
 export const ServicePriceLabel = styled.span`
     font-size: 12px;
-    color: #94a3b8;
+    color: ${ui.textFaint};
 `;
 
 export const ServicePriceBadge = styled.span`
     font-size: 10px;
     font-weight: 600;
-    color: #94a3b8;
+    color: ${ui.textFaint};
     text-transform: uppercase;
     letter-spacing: 0.06em;
 `;
@@ -1942,7 +1943,7 @@ export const SummaryRow = styled.div<{ $isTotal?: boolean }>`
     justify-content: space-between;
     align-items: center;
     padding: ${p => p.$isTotal ? '8px 0 0' : '4px 0'};
-    border-top: ${p => p.$isTotal ? '1px solid #e2e8f0' : 'none'};
+    border-top: ${p => p.$isTotal ? `1px solid ${ui.line}` : 'none'};
     margin-top: ${p => p.$isTotal ? '8px' : '0'};
 `;
 
@@ -1958,13 +1959,13 @@ export const SmsSummaryRow = styled.button<{ $muted?: boolean }>`
     width: 100%;
     min-height: 48px;
     padding: 0 14px;
-    background: ${p => (p.$muted ? '#f8fafc' : 'rgba(14, 165, 233, 0.08)')};
-    border: 1px solid ${p => (p.$muted ? '#e2e8f0' : 'rgba(14, 165, 233, 0.28)')};
+    background: ${p => (p.$muted ? ui.surfaceSoft : 'rgba(14, 165, 233, 0.08)')};
+    border: 1px solid ${p => (p.$muted ? ui.line : 'rgba(14, 165, 233, 0.28)')};
     border-radius: 12px;
     font-family: inherit;
     font-size: 13.5px;
     font-weight: 600;
-    color: ${p => (p.$muted ? '#64748b' : '#0369a1')};
+    color: ${p => (p.$muted ? ui.textMuted : ui.brandInk)};
     text-align: left;
     cursor: pointer;
 
@@ -2012,7 +2013,7 @@ export const MobileBottomSheet = styled.div`
     left: 0;
     right: 0;
     z-index: 10000;
-    background: #ffffff;
+    background: ${ui.surface};
     box-shadow: 0 -6px 30px -4px rgba(0, 0, 0, 0.18);
     display: flex;
     flex-direction: column;
@@ -2028,7 +2029,7 @@ export const MobileBottomSheet = styled.div`
 export const MobileSheetHandle = styled.div`
     width: 36px;
     height: 4px;
-    background: #e2e8f0;
+    background: ${ui.line};
     border-radius: 2px;
     margin: 10px auto 0;
     flex-shrink: 0;
@@ -2041,10 +2042,10 @@ export const MobileSheetTitle = styled.div`
     gap: 12px;
     font-size: 15px;
     font-weight: 700;
-    color: #0f172a;
+    color: ${ui.ink};
     padding: 4px 8px 4px 20px;
     flex-shrink: 0;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid ${ui.surfaceAlt};
 `;
 
 /**
@@ -2062,7 +2063,7 @@ export const MobileSheetClose = styled.button`
     border: none;
     border-radius: 12px;
     background: transparent;
-    color: #64748b;
+    color: ${ui.textMuted};
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     transition: background 140ms, color 140ms;
@@ -2070,15 +2071,15 @@ export const MobileSheetClose = styled.button`
     svg { width: 20px; height: 20px; }
 
     &:active {
-        background: #f1f5f9;
-        color: #0f172a;
+        background: ${ui.surfaceAlt};
+        color: ${ui.ink};
     }
 `;
 
 export const MobileSheetSearchWrap = styled.div`
     position: relative;
     padding: 10px 16px;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid ${ui.surfaceAlt};
     flex-shrink: 0;
 `;
 
@@ -2089,18 +2090,18 @@ export const MobileSheetSearchInput = styled.input`
     padding: 0 44px 0 16px;
     /* 16px prevents iOS Safari from auto-zooming on focus */
     font-size: 16px;
-    color: #0f172a;
-    background: #f8fafc;
-    border: 1.5px solid #e2e8f0;
+    color: ${ui.ink};
+    background: ${ui.surfaceSoft};
+    border: 1.5px solid ${ui.line};
     border-radius: 12px;
     outline: none;
     font-family: inherit;
 
-    &::placeholder { color: #94a3b8; }
+    &::placeholder { color: ${ui.textFaint}; }
 
     &:focus {
-        border-color: #0ea5e9;
-        background: #ffffff;
+        border-color: ${ui.brand};
+        background: ${ui.surface};
         box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
     }
 
@@ -2118,9 +2119,9 @@ export const MobileSheetSearchEditable = styled.div`
     padding: 11px 44px 11px 16px;
     font-size: 16px;
     font-family: inherit;
-    color: #0f172a;
-    background: #f8fafc;
-    border: 1.5px solid #e2e8f0;
+    color: ${ui.ink};
+    background: ${ui.surfaceSoft};
+    border: 1.5px solid ${ui.line};
     border-radius: 12px;
     outline: none;
     line-height: 1.35;
@@ -2131,13 +2132,13 @@ export const MobileSheetSearchEditable = styled.div`
 
     &:empty::before {
         content: attr(data-placeholder);
-        color: #94a3b8;
+        color: ${ui.textFaint};
         pointer-events: none;
     }
 
     &:focus {
-        border-color: #0ea5e9;
-        background: #ffffff;
+        border-color: ${ui.brand};
+        background: ${ui.surface};
         box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
     }
 `;
@@ -2163,26 +2164,26 @@ export const MobileAddServiceButton = styled.button`
     align-items: center;
     gap: 10px;
     padding: 12px 14px;
-    background: #ffffff;
-    border: 1.5px solid #e2e8f0;
+    background: ${ui.surface};
+    border: 1.5px solid ${ui.line};
     border-radius: 12px;
     cursor: pointer;
     font-family: inherit;
     font-size: 14px;
-    color: #94a3b8;
+    color: ${ui.textFaint};
     text-align: left;
     transition: border-color 150ms ease, box-shadow 150ms ease;
 
     svg {
         width: 15px;
         height: 15px;
-        color: #0ea5e9;
+        color: ${ui.brand};
         flex-shrink: 0;
         margin-left: auto;
     }
 
     &:active {
-        border-color: #0ea5e9;
+        border-color: ${ui.brand};
         box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
     }
 `;
@@ -2197,13 +2198,13 @@ export const AdvancedToggleBtn = styled.button`
     padding: 12px 0 4px;
     font-size: 13px;
     font-weight: 500;
-    color: #64748b;
+    color: ${ui.textMuted};
     background: none;
     border: none;
     cursor: pointer;
     font-family: inherit;
     text-align: left;
 
-    svg { width: 14px; height: 14px; color: #0ea5e9; flex-shrink: 0; }
-    &:active { color: #0ea5e9; }
+    svg { width: 14px; height: 14px; color: ${ui.brand}; flex-shrink: 0; }
+    &:active { color: ${ui.brand}; }
 `;

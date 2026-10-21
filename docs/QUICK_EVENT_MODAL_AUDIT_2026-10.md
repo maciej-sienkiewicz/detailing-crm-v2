@@ -241,3 +241,38 @@ Przy okazji (poza tym oknem, warte osobnej poprawki):
 4. Czy nowe auto w rezerwacji ma mieć pole na tablicę rejestracyjną?
 5. Czy zmiana danych klienta z kartoteki w rezerwacji ma pytać „Zmienić dane klienta?”, jak
    w edycji rezerwacji?
+
+---
+
+## 10. Stan po poprawkach (21.10.2026, gałąź `fix/rezerwacja-z-kalendarza`)
+
+Decyzje biznesu: usługa za 0 zł bez potwierdzenia — **tak**; skrót „R" — **zawsze cały
+dzień** (dziś); zamknięte okno — **pamięta szkic** z jawnym „Wróć do szkicu"; tablica przy
+nowym aucie — **nie**; zmiana danych klienta z kartoteki — **pyta**.
+
+| Punkt | Co zrobiono |
+|---|---|
+| 3.1 pojazd na telefonie | Telefon ma ten sam przebieg co komputer: lista aut klienta (sama się rozwija przy 2+ autach), chip wybranego auta z ołówkiem i „×", pola tylko dla nowego auta. |
+| 3.2 SMS na telefonie | Numer z pól formularza (`smsPhone`), nie tylko z wybranego klienta. Bez numeru zapis nie wysyła żadnego SMS-a - to samo, co mówi formularz. |
+| 3.3 seria miesięczna | Dzień 1–28 (jak serwer), domyślnie dzień startu, podgląd tylko dla reguły, którą serwer przyjmie, walidacja przed zapisem (`recurrence.ts`), data końca z `DateTimePicker`. |
+| 3.4 Escape | Escape zamyka najpierw listę/kalendarz/wybór marki, dopiero następny - okno. |
+| 3.5 szkic | Zamknięcie odkłada formularz do szkicu i czyści okno; pasek „Niedokończona rezerwacja" przywraca wszystko poza terminem. „Wyczyść wszystko" da się tym samym cofnąć. Tylko w kalendarzu (okno z leada startuje z danych leada). |
+| 4.1–4.3, 4.6, 4.8 | „Usługi: wymagane"; błąd klienta pod polami na komputerze; fokus w usługach nie otwiera „Nowej usługi"; „×" auta to „Usuń pojazd z rezerwacji"; Enter w tytule przechodzi do imienia. |
+| 4.4, 4.5, 4.7 | Bez zmian: 0 zł dozwolone, bez tablicy, skrót „R" - cały dzisiejszy dzień. |
+| Decyzja 5 | „Zmienić dane klienta?" / „Zmienić dane pojazdu?" (te same słowa co w edycji rezerwacji) przy „Zatwierdź zmiany" i przy zapisie. „Dodaj jako nowego" zakłada nowego klienta, a jego auto z kartoteki idzie jako nowe auto. Sam inny zapis numeru (spacje) nie jest zmianą. Telefon: poprawka pól wybranego klienta otwiera edycję, zamiast ginąć. |
+| 5 | Dymek „Rezerwacja zapisana" / „Seria rezerwacji zapisana" z klientem i terminem. Edycja rezerwacji: walidacja (`validateAppointmentEdit`), dymek przy nieudanym zapisie, „Anuluj" wraca tam, skąd przyszedł użytkownik, napisy „rezerwacji" zamiast „wizyty" i zakres ceny „w tej rezerwacji". |
+| 6 | Kolory okna, panelu serii i arkusza SMS na tokenach `ui` (te same wartości). Door to door na `Toggle` + `InputShell`. SMS na komputerze to ta sama lista co w arkuszu na telefonie. „Cena usługi" w portalu z Escape i blokadą przewijania; okno zakłada `acquireScrollLock()`. Przesunięcie od paska bocznego 248 px w 5 miejscach (także stopka przyjęcia pojazdu i `BookingFlowModal`). „Cały dzień" i „Cykliczna" na telefonie. |
+| 7 | Usunięte: `MobileNewCustomerSheet`, no-op `openCustomerSheetFromTap`, martwy arkusz klienta, stara strona `AppointmentCreateView` z 16 plikami tylko dla niej (adres `/appointments/create` otwiera teraz kalendarz z oknem rezerwacji). Edycja auta z kartoteki ma przycisk. |
+
+Sprostowanie do 6.2: przycisk „Zapisz rezerwację" nie zmieniał koloru - `--button-bg`
+nie był przez `SharedButton` czytany. Usunięty martwy styl.
+
+Bez zmian, świadomie: numerowane pigułki sekcji (wzór z przyjęcia pojazdu), zielone
+„Zatwierdź zmiany" otwartej edycji (wyjątek z CLAUDE.md §2), czerwień błędów `#ef4444`
+(ta sama co w zestawie `Form`).
+
+Sprawdzenie: 25 nowych testów (`QuickEventModal.render.test.tsx`, `recordChanges.test.tsx`,
+`recurrence.test.ts`, `validateAppointmentEdit.test.ts`), wszystkie testy kalendarza,
+rezerwacji, przyjęcia pojazdu i wspólnych komponentów zielone; lint bez nowych uwag; ręczny
+przebieg w aplikacji (komputer 1440 px i telefon 390 px). Pełny `tsc` nadal nie mieści się
+w pamięci (znane ograniczenie repo).

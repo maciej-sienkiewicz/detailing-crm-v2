@@ -16,6 +16,7 @@ import { StickyFormFooter, FooterPrimaryButton, FooterSecondaryButton } from '@/
 import { t } from '@/common/i18n';
 import { fromInstantToLocalInput } from '@/common/dateTime';
 import { buildAppointmentEditPayload } from '../utils/buildAppointmentEditPayload';
+import { validateAppointmentEdit } from '../utils/validateAppointmentEdit';
 import { toEditServiceLine } from '../utils/toEditServiceLine';
 import { SmsReminderEditSection } from '../components/SmsReminderEditSection';
 import { RecurrenceEditScopeModal } from '../components/RecurrenceEditScopeModal';
@@ -156,7 +157,7 @@ const AppointmentEditForm = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const queryClient = useQueryClient();
-    const { showSuccess, showInfo } = useToast();
+    const { showSuccess, showInfo, showError } = useToast();
 
     const { data: appointment, isLoading: isLoadingAppointment, isError } = useQuery({
         queryKey: ['appointments', appointmentId],
@@ -315,8 +316,16 @@ const AppointmentEditForm = () => {
         queryClient.invalidateQueries({ queryKey: ['leads'] });
     };
 
+    // Nieudany zapis mówi, co się stało - wcześniej przycisk wracał do „Zapisz zmiany"
+    // bez słowa, a zmiany wyglądały na zapisane.
+    const showSaveError = (err: unknown) => {
+        const data = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
+        showError('Nie udało się zapisać rezerwacji', data?.message || data?.error || 'Spróbuj ponownie za chwilę.');
+    };
+
     const updateMutation = useMutation({
         mutationFn: (payload: AppointmentCreateRequest) => appointmentApi.updateAppointment(appointmentId!, payload),
+        onError: showSaveError,
         onSuccess: () => {
             navigate('/calendar');
             if (currentRecurrenceInfo()) {
@@ -331,6 +340,7 @@ const AppointmentEditForm = () => {
     const updateWithScopeMutation = useMutation({
         mutationFn: ({ payload, scope }: { payload: AppointmentCreateRequest; scope: SeriesEditScope }) =>
             appointmentApi.updateAppointmentWithScope(appointmentId!, payload, scope),
+        onError: showSaveError,
         onSuccess: (response) => {
             navigate('/calendar');
             const toast = seriesResultToast(response?.seriesUpdate);
@@ -355,13 +365,35 @@ const AppointmentEditForm = () => {
         setFormData(prev => (prev ? { ...prev, services } : prev));
     };
 
+    // Błędy pokazujemy od pierwszej próby zapisu, potem na bieżąco - jak w kalendarzu.
+    const [showErrors, setShowErrors] = useState(false);
+    const errors = useMemo(() => (formData ? validateAppointmentEdit(formData) : {}), [formData]);
+
     const buildChangedPayload = (): AppointmentCreateRequest | null => {
         if (!formData) return null;
         if (JSON.stringify(formData) === JSON.stringify(initialFormDataRef.current)) {
             showInfo('Nie wprowadzono żadnych zmian.');
             return null;
         }
+        const problems = Object.values(errors);
+        if (problems.length > 0) {
+            setShowErrors(true);
+            showError('Nie można zapisać rezerwacji', problems.length > 1
+                ? `${problems[0]}. Poza tym do poprawy: ${problems.length - 1}.`
+                : `${problems[0]}.`);
+            return null;
+        }
         return buildAppointmentEditPayload(formData);
+    };
+
+    /**
+     * „Anuluj" wraca tam, skąd przyszedł użytkownik (kalendarz, lista zleceń). Wcześniej
+     * prowadził pod /appointments - takiej strony nie ma, więc lądowało się na stronie
+     * startowej.
+     */
+    const handleCancel = () => {
+        if (window.history.state?.idx > 0) navigate(-1);
+        else navigate('/calendar');
     };
 
     /** Zapis TYLKO tej rezerwacji - także gdy należy do serii. Bez parametru `scope`. */
@@ -429,7 +461,8 @@ const AppointmentEditForm = () => {
 
                 <VerificationStep
                     formData={formData}
-                    errors={{}}
+                    errors={showErrors ? errors : {}}
+                    subject="reservation"
                     onChange={handleChange}
                     onServicesChange={handleServicesChange}
                     colors={colors || []}
@@ -459,7 +492,7 @@ const AppointmentEditForm = () => {
             <StickyFormFooter
                 actions={
                     <>
-                        <FooterSecondaryButton onClick={() => navigate('/appointments')} disabled={isAnyMutating}>
+                        <FooterSecondaryButton onClick={handleCancel} disabled={isAnyMutating}>
                             {t.common.cancel}
                         </FooterSecondaryButton>
                         {recurrenceInfo && (

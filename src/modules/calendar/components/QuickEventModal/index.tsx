@@ -18,10 +18,14 @@ import { FooterPrimaryButton, FooterSecondaryButton } from '@/common/components/
 // Współdzielone komponenty pól z /checkin/new (VerificationStep używa tych samych):
 // dzięki temu układ i stylistyka pól są 1:1 z formularzem przyjęcia pojazdu.
 import { FormGrid, FieldGroup, Label as FormLabel, Input as FormInputField, ErrorMessage as FormFieldError } from '@/common/components/Form';
+import { FieldLabel, InputShell, BareInput, InputShellTextArea, BareTextArea } from '@/common/components/Form';
+import { Button, Notice, ui } from '@/common/components/ui';
+import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle, ModalFooter, CloseBtn } from '@/common/components/ModalKit';
+import { SUBMODAL_Z_INDEX } from '@/common/styles/sharedModalStyles';
+import { acquireScrollLock } from '@/common/utils/scrollLock';
 import { PhoneInput } from '@/common/components/PhoneInput';
 import * as S from '../QuickEventModalStyles';
-import { MobileNewCustomerSheet, type NewCustomerDraft } from './MobileNewCustomerSheet';
-import { SmsOptionsSheet, type SmsOption } from './SmsOptionsSheet';
+import { SmsOptionsSheet, SmsOptionsList, type SmsOption } from './SmsOptionsSheet';
 import { ColorDropdown } from '@/common/components/ColorDropdown';
 import { useQuickEventForm } from './useQuickEventForm';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
@@ -87,7 +91,7 @@ function placeAttachedList(panel: HTMLElement, anchor: HTMLElement, cap: number,
     panel.style.top = `${placement.top}px`;
     panel.style.left = `${placement.left}px`;
     panel.style.maxHeight = `${Math.min(placement.maxHeight, cap)}px`;
-    panel.style.borderTop = placement.above ? '1.5px solid #0ea5e9' : '';
+    panel.style.borderTop = placement.above ? `1.5px solid ${ui.brand}` : '';
     panel.style.borderRadius = placement.above ? '12px' : '';
     return placement.above;
 }
@@ -132,120 +136,16 @@ function useAttachedList(
     }, [open, anchorRef, panelRef, cap, offset, contentKey, onFlip]);
 }
 
-const SmsCheckList = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-`;
-
-const SmsCheckItem = styled.label<{ $disabled?: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    cursor: ${p => p.$disabled ? 'not-allowed' : 'pointer'};
-    opacity: ${p => p.$disabled ? 0.45 : 1};
-    user-select: none;
-`;
-
-const SmsCheckbox = styled.input.attrs({ type: 'checkbox' })`
-    appearance: none;
-    -webkit-appearance: none;
-    flex-shrink: 0;
-    width: 15px;
-    height: 15px;
-    border: 1.5px solid #cbd5e1;
-    border-radius: 4px;
-    background: white;
-    cursor: inherit;
-    transition: background 130ms, border-color 130ms;
-    position: relative;
-
-    &:checked {
-        background: #0ea5e9;
-        border-color: #0ea5e9;
-    }
-
-    &:checked::after {
-        content: '';
-        position: absolute;
-        left: 3px;
-        top: 0px;
-        width: 5px;
-        height: 9px;
-        border: 2px solid white;
-        border-top: none;
-        border-left: none;
-        transform: rotate(45deg);
-    }
-
-    &:disabled {
-        background: #f1f5f9;
-        border-color: #e2e8f0;
-    }
-`;
-
-const SmsCheckText = styled.span`
-    font-size: 13px;
-    color: #334155;
-    line-height: 1.45;
-`;
-
-const SmsDisabledHint = styled.span`
-    display: block;
-    font-size: 11px;
-    color: #94a3b8;
-    margin-top: 2px;
-`;
-
-const D2DToggleRow = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    cursor: pointer;
-    user-select: none;
-`;
-
-const D2DToggleLabel = styled.span`
-    font-size: 13px;
-    font-weight: 600;
-    color: #0f172a;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-`;
-
-const D2DToggleSwitch = styled.button<{ $active: boolean }>`
-    position: relative;
-    width: 36px;
-    height: 20px;
-    border-radius: 999px;
-    border: none;
-    cursor: pointer;
-    background: ${p => p.$active ? '#0ea5e9' : '#cbd5e1'};
-    transition: background 200ms ease;
-    flex-shrink: 0;
-
-    &::after {
-        content: '';
-        position: absolute;
-        top: 2px;
-        left: ${p => p.$active ? '18px' : '2px'};
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        background: #fff;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.18);
-        transition: left 200ms ease;
-    }
-`;
-
+// Door to door na wspólnych polach formularza (InputShell) i wspólnym przełączniku
+// (Toggle) - wcześniej sekcja miała własny przełącznik i własne pola, jedyne takie
+// w aplikacji.
 const D2DFields = styled.div`
     display: flex;
     flex-direction: column;
     gap: 12px;
     margin-top: 10px;
     padding-top: 12px;
-    border-top: 1px solid #f1f5f9;
+    border-top: 1px solid ${ui.lineFaint};
 `;
 
 const D2DAddressGroup = styled.div`
@@ -254,62 +154,40 @@ const D2DAddressGroup = styled.div`
     gap: 6px;
 `;
 
-const D2DAddressLabel = styled.span`
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    color: #64748b;
-`;
-
 const D2DAddressInputs = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
+
+    @media (max-width: 639px) { grid-template-columns: 1fr; }
 `;
 
-const D2DInput = styled.input`
-    width: 100%;
-    box-sizing: border-box;
-    padding: 8px 11px;
-    font-size: 13px;
-    color: #0f172a;
-    background: #ffffff;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 9px;
-    outline: none;
-    font-family: inherit;
-    transition: border-color 150ms ease, box-shadow 150ms ease;
-
-    &::placeholder { color: #b0bec5; }
-
-    &:focus {
-        border-color: #0ea5e9;
-        box-shadow: 0 0 0 3px rgba(14,165,233,0.12);
-    }
+/** Cykliczność na telefonie: w sekcji „Termin", bo panelu bocznego nie ma gdzie postawić. */
+const MobileRecurrenceBox = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 14px;
+    border: 1px solid ${ui.line};
+    border-radius: ${ui.radiusStrip};
+    background: ${ui.surfaceSoft};
 `;
 
-const D2DNotes = styled.textarea`
-    width: 100%;
-    box-sizing: border-box;
-    padding: 8px 11px;
-    font-size: 13px;
-    color: #0f172a;
-    background: #ffffff;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 9px;
-    outline: none;
-    font-family: inherit;
-    resize: none;
-    line-height: 1.45;
-    transition: border-color 150ms ease, box-shadow 150ms ease;
+const LinkButton = styled.button`
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    color: ${ui.brandInk};
+    cursor: pointer;
 
-    &::placeholder { color: #b0bec5; }
+    &:hover { text-decoration: underline; }
+`;
 
-    &:focus {
-        border-color: #0ea5e9;
-        box-shadow: 0 0 0 3px rgba(14,165,233,0.12);
-    }
+const DraftActions = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
 `;
 
 export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalProps>(({
@@ -359,38 +237,12 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const [isMobile, setIsMobile] = useState(false);
     const [showAdvanced, setShowAdvanced] = useState(false);
     const serviceSheetRef = useRef<HTMLDivElement>(null);
-    const customerSheetRef = useRef<HTMLDivElement>(null);
-    // Telefon: „Dodaj nowego klienta" otwiera formularz zamiast zapisywać od razu.
-    const [newCustomerDraft, setNewCustomerDraft] = useState<NewCustomerDraft | null>(null);
     const serviceSheetInputRef = useRef<HTMLDivElement>(null);
-    const customerSheetInputRef = useRef<HTMLDivElement>(null);
 
     const MAX_VISIBLE_COLORS = 5;
     const [colorPanelOpen, setColorPanelOpen] = useState(false);
     const [colorPanelPos, setColorPanelPos] = useState({ bottom: 0, left: 0 });
     const moreColorsBtnRef = useRef<HTMLButtonElement>(null);
-    /**
-     * Telefon: dotknięcie pola klienta otwiera arkusz wyszukiwania w tym samym
-     * geście, z pominięciem fokusu w polu pod spodem. Bez tego iOS najpierw
-     * ustawiał fokus w polu formularza - modal przewijał się do niego, wjeżdżała
-     * klawiatura, a ułamek sekundy później arkusz przykrywał to wszystko. Ten
-     * pośredni stan czytało się właśnie jako przeskok listy podpowiedzi.
-     *
-     * preventDefault zabiera fokus, więc klawiaturę musimy otworzyć sami - iOS
-     * robi to tylko z focus() wywołanego wewnątrz gestu, stąd chwilowe pole
-     * poza ekranem, do którego wchodzimy, zanim arkusz się zamontuje.
-     */
-    // Wcześniej dotknięcie pola klienta na telefonie otwierało osobny arkusz
-    // z wyszukiwarką - pola były wtedy podglądowe, nie dało się w nich pisać
-    // bezpośrednio. Teraz sekcja klienta na mobile działa jak w /checkin/new:
-    // Imię, Nazwisko, Telefon, E-mail są edytowane inline, klawiatura otwiera
-    // się natywnie z fokusu inputa. Handler zostawiony jako no-op, żeby nie
-    // musieć wycinać `onPointerDown`/`onTouchStart` z wszystkich pól -
-    // ale tam gdzie jest podpięty, nic nie robi.
-    const openCustomerSheetFromTap = useCallback(() => {
-        // no-op na obu breakpointach
-    }, []);
-
     // Czy w sekcji klienta jest cokolwiek do wycofania (dane wpisane lub klient wybrany).
     const hasCustomerData = !!(
         form.customerFirstName || form.customerLastName ||
@@ -454,6 +306,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         );
     };
 
+    // Telefon nie ma osobnego „ołówka": pola wybranego klienta są edytowalne od razu.
+    // Pierwsza zmiana otwiera edycję, więc poprawka trafia do zapisu (z pytaniem
+    // „Zmienić dane klienta?"), a nie ginie po cichu jak wcześniej.
+    const editSelectedCustomerMobile = () => {
+        if (form.selectedCustomer && !form.customerEditMode) form.handleEnterEditMode();
+    };
+
     // "Wyczyść" na mobile: czyści wybór klienta i wszystkie pola,
     // wraca do pustego formularza (jak reset sekcji w /checkin/new).
     const handleResetCustomerMobile = useCallback(() => {
@@ -476,7 +335,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
      * poprawna, także „sama karta wizyty". Globalne wyłączenie w konfiguracji
      * studia blokuje pojedynczy przełącznik, nie całą trójkę.
      */
-    const smsOptions: SmsOption[] = [
+    const allSmsOptions: SmsOption[] = [
         {
             key: 'confirmation',
             label: 'Potwierdzenie rezerwacji',
@@ -498,16 +357,15 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             label: 'Karta wizyty',
             description: 'Link, pod którym klient śledzi postęp prac.',
             checked: form.sendVisitCard,
-            disabledReason: !form.visitCardEnabled
-                ? 'Karta wizyty jest wyłączona w ustawieniach'
-                : form.reservationCardLinkSmsEnabled
-                    ? undefined
-                    : 'Wyłączone w ustawieniach SMS',
+            disabledReason: form.reservationCardLinkSmsEnabled ? undefined : 'Wyłączone w ustawieniach SMS',
             onChange: form.setSendVisitCard,
         },
     ];
+    // Karta wizyty tylko w studiu, które jej używa - na obu ekranach tak samo.
+    const smsOptions = allSmsOptions.filter(o => o.key !== 'visitCard' || form.visitCardEnabled);
 
-    const customerPhone = form.selectedCustomer?.phone?.trim() || null;
+    // Numer z pól formularza, nie tylko z wybranego klienta - patrz `smsPhone` w hooku.
+    const customerPhone = form.smsPhone;
 
     /** Jedno zdanie o tym, co poleci - stan widoczny w chwili zapisu, nie po. */
     const smsSummary = (() => {
@@ -619,15 +477,16 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
     // Keep both mobile sheets spanning the visible region: header and search
     // field pinned to the top of the screen, list ending at the keyboard edge.
-    useVisualViewportSheet(
-        isMobile && (form.showServiceDropdown || form.showCustomerDropdown),
-        [serviceSheetRef, customerSheetRef],
-    );
+    useVisualViewportSheet(isMobile && form.showServiceDropdown, [serviceSheetRef]);
+
+    // Tło nie przewija się pod oknem (CLAUDE.md §3). Z leada blokadę zakłada też
+    // BookingFlowModal - licznik referencji w scrollLock łączy obie.
+    useEffect(() => (isOpen ? acquireScrollLock() : undefined), [isOpen]);
 
     // When any mobile sheet is open, set tabindex=-1 on all background inputs
     // so iOS grays out the ^ v navigation arrows (they appear because iOS sees other inputs in the DOM)
     useEffect(() => {
-        if (!isMobile || (!form.showServiceDropdown && !form.showCustomerDropdown)) return;
+        if (!isMobile || !form.showServiceDropdown) return;
 
         const inputs = Array.from(
             document.querySelectorAll<HTMLElement>('input, textarea, select')
@@ -648,36 +507,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 }
             });
         };
-    }, [isMobile, form.showServiceDropdown, form.showCustomerDropdown]);
-
-    // When customer sheet opens: init contenteditable with current search value + transfer focus
-    useEffect(() => {
-        if (!isMobile || !form.showCustomerDropdown) return;
-
-        // Suppress the blur-timer that would close the dropdown immediately after
-        // we programmatically move focus from the inline input to the sheet's search field.
-        form.skipNextCustomerBlurRef.current = true;
-        form.customerInputRef.current?.blur();
-
-        const el = customerSheetInputRef.current;
-        if (!el) return;
-
-        // Pre-fill with whatever the user already typed
-        const current = form.customerFirstName;
-        if (el.innerText !== current) {
-            el.innerText = current;
-            // Move cursor to end
-            const range = document.createRange();
-            const sel = window.getSelection();
-            range.selectNodeContents(el);
-            range.collapse(false);
-            sel?.removeAllRanges();
-            sel?.addRange(range);
-        }
-
-        // Keyboard is already open (user was typing), just transfer focus
-        el.focus();
-    }, [isMobile, form.showCustomerDropdown]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [isMobile, form.showServiceDropdown]);
 
     // Auto-expand advanced sections when editing existing data on mobile
     useEffect(() => {
@@ -717,6 +547,122 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         setCustomerListAbove,
     );
 
+    /**
+     * Pola marki, modelu i roku - te same dla nowego auta i edycji auta z kartoteki.
+     * Telefon: pola pod sobą (FormGrid z /checkin/new), komputer: zwarty blok.
+     */
+    const renderVehicleFields = (mode: 'new' | 'edit') => {
+        const onEnter = (e: React.KeyboardEvent) => {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            if (mode === 'edit') form.handleConfirmVehicleEdit();
+            else form.handleAddNewVehicleDirectly();
+        };
+        const onBrand = (brand: string) => {
+            form.setVehicleBrand(brand);
+            form.setVehicleModel('');
+            form.setFocusedField('vehicle');
+            setAutoOpenModel(true);
+        };
+        const onModel = (model: string) => {
+            form.setVehicleModel(model);
+            form.setFocusedField('vehicle');
+            setAutoOpenModel(false);
+            if (!isMobile) setTimeout(() => form.vehicleYearInputRef.current?.focus(), 0);
+        };
+        const onYear = (value: string) => form.setVehicleYear(value.replace(/\D/g, ''));
+
+        if (isMobile) {
+            return (
+                <FormGrid>
+                    <FieldGroup>
+                        <S.FieldLabelRow>
+                            <FormLabel>Marka</FormLabel>
+                            <VehicleKindSwitch iconOnly value={form.vehicleKind} onChange={form.changeVehicleKind} />
+                        </S.FieldLabelRow>
+                        <BrandSelect kind={form.vehicleKind} value={form.vehicleBrand} onChange={onBrand} />
+                    </FieldGroup>
+                    <FieldGroup>
+                        <FormLabel>Model</FormLabel>
+                        <ModelSelect
+                            kind={form.vehicleKind}
+                            brand={form.vehicleBrand}
+                            value={form.vehicleModel}
+                            onChange={onModel}
+                            autoOpen={autoOpenModel}
+                        />
+                    </FieldGroup>
+                    <FieldGroup>
+                        <FormLabel>Rok produkcji</FormLabel>
+                        <FormInputField
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={4}
+                            placeholder="np. 2021"
+                            value={form.vehicleYear}
+                            onChange={(e) => onYear(e.target.value)}
+                            onKeyDown={onEnter}
+                        />
+                    </FieldGroup>
+                </FormGrid>
+            );
+        }
+
+        // Nowe auto bez klienta jest wyszarzone: pojazd zapisuje się w karcie klienta.
+        const locked = mode === 'new' && !form.selectedCustomer;
+        return (
+            <S.CustomerInputBlock
+                $focused={form.focusedField === 'vehicle'}
+                style={locked ? { opacity: 0.5, pointerEvents: 'none' } : undefined}
+            >
+                <S.VehicleInputRow>
+                    <S.CustomerFieldGroup $borderRight>
+                        {/* Rodzaj przy marce: wybiera katalog marki i modelu. */}
+                        <S.FieldLabelRow>
+                            <S.CustomerFieldLabel>Marka</S.CustomerFieldLabel>
+                            <VehicleKindSwitch iconOnly value={form.vehicleKind} onChange={form.changeVehicleKind} />
+                        </S.FieldLabelRow>
+                        <BrandSelect
+                            compact
+                            kind={form.vehicleKind}
+                            value={form.vehicleBrand}
+                            onChange={onBrand}
+                            onBlur={() => form.setFocusedField(null)}
+                        />
+                    </S.CustomerFieldGroup>
+                    <S.CustomerFieldGroup $borderRight>
+                        <S.CustomerFieldLabel>Model</S.CustomerFieldLabel>
+                        <ModelSelect
+                            compact
+                            kind={form.vehicleKind}
+                            brand={form.vehicleBrand}
+                            value={form.vehicleModel}
+                            onChange={onModel}
+                            onBlur={() => form.setFocusedField(null)}
+                            autoOpen={autoOpenModel}
+                        />
+                    </S.CustomerFieldGroup>
+                    <S.CustomerFieldGroup>
+                        <S.CustomerFieldLabel>Rok</S.CustomerFieldLabel>
+                        <S.CustomerFieldInput
+                            ref={form.vehicleYearInputRef}
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="2021"
+                            maxLength={4}
+                            value={form.vehicleYear}
+                            onChange={(e) => { onYear(e.target.value); form.setFocusedField('vehicle'); }}
+                            onFocus={() => form.setFocusedField('vehicle')}
+                            onBlur={() => form.setFocusedField(null)}
+                            autoComplete="new-password"
+                            onKeyDown={onEnter}
+                        />
+                    </S.CustomerFieldGroup>
+                </S.VehicleInputRow>
+            </S.CustomerInputBlock>
+        );
+    };
+
     if (!eventData && !initialData) return null;
 
     const highlightMatch = (text: string, query: string): React.ReactNode => {
@@ -742,12 +688,32 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                         onSubmit={form.handleSubmit}
                         onKeyDown={(e) => {
                             if (e.key === 'Escape') {
+                                // Escape zamyka najpierw to, co jest otwarte W oknie (lista
+                                // usług, podpowiedzi klienta, wybór auta, kalendarz, marka) -
+                                // dawniej to samo naciśnięcie zamykało od razu całe okno.
+                                if (e.defaultPrevented) return;
+                                if (form.showServiceDropdown || form.showCustomerDropdown || form.showVehicleDropdown || colorPanelOpen) {
+                                    e.preventDefault();
+                                    form.setShowServiceDropdown(false);
+                                    form.setShowCustomerDropdown(false);
+                                    form.setShowVehicleDropdown(false);
+                                    setColorPanelOpen(false);
+                                    return;
+                                }
+                                if (e.currentTarget.querySelector('[aria-expanded="true"]')) return;
                                 e.preventDefault();
                                 onClose();
                                 return;
                             }
                             if (e.key === 'Enter') {
                                 const target = e.target as HTMLInputElement;
+                                // Enter w tytule przechodzi dalej, a nie wysyła formularza
+                                // (wysyłka pustego formularza sypała od razu błędami).
+                                if (target.dataset?.qemTitle !== undefined) {
+                                    e.preventDefault();
+                                    form.customerInputRef.current?.focus();
+                                    return;
+                                }
                                 if (!form.selectedCustomer) {
                                     if (target === form.customerInputRef.current) {
                                         e.preventDefault();
@@ -807,6 +773,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         ref={form.titleInputRef}
                                         type="text"
                                         placeholder="Dodaj tytuł rezerwacji"
+                                        data-qem-title=""
                                         value={form.title}
                                         onChange={(e) => form.setTitle(e.target.value)}
                                         $accentColor={form.focusedField === 'title' ? form.accentColor : undefined}
@@ -821,6 +788,30 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                         </S.Header>
 
                         <S.ScrollableContent>
+                            {/* Szkic poprzedniej, niezapisanej rezerwacji. Formularz startuje
+                                pusty - stare dane wracają tylko na wyraźne życzenie. */}
+                            {form.draft && (
+                                <S.Row>
+                                    <S.RowContent>
+                                        <Notice
+                                            tone="info"
+                                            title="Niedokończona rezerwacja"
+                                            action={(
+                                                <DraftActions>
+                                                    <Button size="sm" variant="tinted" onClick={form.restoreDraft}>
+                                                        Wróć do szkicu
+                                                    </Button>
+                                                    <Button size="sm" variant="ghost" onClick={form.dismissDraft}>
+                                                        Odrzuć szkic
+                                                    </Button>
+                                                </DraftActions>
+                                            )}
+                                        >
+                                            {form.draftSummary}. Wróci w terminie wybranym teraz.
+                                        </Notice>
+                                    </S.RowContent>
+                                </S.Row>
+                            )}
                             {/* ── 0. Tytuł (mobile only) - jak w /checkin/new ─────── */}
                             {isMobile && (
                                 <S.Row>
@@ -833,6 +824,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         <S.TitleInput
                                             type="text"
                                             placeholder="np. Korekta lakieru + powłoka ceramiczna"
+                                            data-qem-title=""
                                             value={form.title}
                                             onChange={(e) => form.setTitle(e.target.value)}
                                             $accentColor={form.focusedField === 'title' ? form.accentColor : undefined}
@@ -859,24 +851,35 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     <IconClock />
                                 </S.IconWrapper>
                                 <S.RowContent>
-                                    {!isMobile && (
-                                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px' }}>
-                                            {allowRecurrence && (
-                                                <Toggle
-                                                    checked={isRecurring}
-                                                    onChange={setIsRecurring}
-                                                    label="Cykliczna"
-                                                    size="sm"
-                                                />
-                                            )}
+                                    {/* „Cały dzień" i „Cykliczna" także na telefonie - wcześniej tam
+                                        ich nie było, więc serii ani wizyty całodniowej nie dało się
+                                        założyć z telefonu. */}
+                                    <div style={{ display: 'flex', justifyContent: isMobile ? 'flex-start' : 'flex-end', flexWrap: 'wrap', gap: '16px' }}>
+                                        {allowRecurrence && (
                                             <Toggle
-                                                checked={form.isAllDay}
-                                                onChange={form.handleAllDayToggle}
-                                                label="Cały dzień"
+                                                checked={isRecurring}
+                                                onChange={setIsRecurring}
+                                                label="Cykliczna"
                                                 size="sm"
                                             />
-                                        </div>
+                                        )}
+                                        <Toggle
+                                            checked={form.isAllDay}
+                                            onChange={form.handleAllDayToggle}
+                                            label="Cały dzień"
+                                            size="sm"
+                                        />
+                                    </div>
+                                    {isMobile && allowRecurrence && isRecurring && (
+                                        <MobileRecurrenceBox>
+                                            <RecurrenceSidePanel
+                                                rule={recurrenceRule}
+                                                onChange={setRecurrenceRule}
+                                                startDateTime={form.startDateTime}
+                                            />
+                                        </MobileRecurrenceBox>
                                     )}
+                                    {form.errors.recurrence && <S.ErrorMessage>{form.errors.recurrence}</S.ErrorMessage>}
                                     {/* Mobile: FormGrid z /checkin/new - trzy pola pod sobą
                                         (Data rozpoczęcia, Data zakończenia, Kolor). Desktop
                                         zostaje przy S.InputGrid, kolor w stopce. */}
@@ -1049,7 +1052,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     <FormInputField
                                                         ref={form.customerInputRef}
                                                         value={form.customerFirstName}
-                                                        onChange={(e) => { form.setCustomerFirstName(e.target.value); form.customerJustSelectedRef.current = false; setMobileSuggestOpen(true); }}
+                                                        onChange={(e) => { editSelectedCustomerMobile(); form.setCustomerFirstName(e.target.value); form.customerJustSelectedRef.current = false; setMobileSuggestOpen(true); }}
                                                         onFocus={() => { setMobileActiveCustomerField('firstName'); setMobileSuggestOpen(true); }}
                                                         $hasError={!!form.errors.customerFirstName}
                                                         autoComplete="new-password"
@@ -1062,7 +1065,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     <FormLabel>Nazwisko</FormLabel>
                                                     <FormInputField
                                                         value={form.customerLastName}
-                                                        onChange={(e) => { form.setCustomerLastName(e.target.value); form.customerJustSelectedRef.current = false; setMobileSuggestOpen(true); }}
+                                                        onChange={(e) => { editSelectedCustomerMobile(); form.setCustomerLastName(e.target.value); form.customerJustSelectedRef.current = false; setMobileSuggestOpen(true); }}
                                                         onFocus={() => { setMobileActiveCustomerField('lastName'); setMobileSuggestOpen(true); }}
                                                         $hasError={!!form.errors.customerLastName}
                                                         autoComplete="new-password"
@@ -1078,6 +1081,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         onFocus={() => { setMobileActiveCustomerField('phone'); setMobileSuggestOpen(true); }}
                                                         value={`${form.customerPhonePrefix || '+48'} ${form.customerPhone}`.trim()}
                                                         onChange={(full) => {
+                                                            editSelectedCustomerMobile();
                                                             const m = full.match(/^(\+\d+)\s*(.*)$/);
                                                             if (m) {
                                                                 form.setCustomerPhonePrefix(m[1]);
@@ -1099,7 +1103,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     <FormInputField
                                                         type="email"
                                                         value={form.customerEmail}
-                                                        onChange={(e) => form.setCustomerEmail(e.target.value)}
+                                                        onChange={(e) => { editSelectedCustomerMobile(); form.setCustomerEmail(e.target.value); }}
                                                         $hasError={!!form.errors.customerEmail}
                                                     />
                                                     {form.errors.customerEmail && <FormFieldError>{form.errors.customerEmail}</FormFieldError>}
@@ -1111,7 +1115,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     {/* ── stan: klient wybrany, tryb edycji ── */}
                                     {form.selectedCustomer && form.customerEditMode ? (
                                         <>
-                                            <S.CustomerHint style={{ color: '#0ea5e9' }}>
+                                            <S.CustomerHint style={{ color: ui.brandInk }}>
                                                 Edytuj dane klienta
                                             </S.CustomerHint>
                                             <S.CustomerInputBlock $focused={form.focusedField === 'customer'}>
@@ -1272,8 +1276,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                     form.setCustomerFirstName(e.target.value);
                                                                     form.setShowCustomerDropdown(true);
                                                                 }}
-                                                                onPointerDown={openCustomerSheetFromTap}
-                                                                onTouchStart={openCustomerSheetFromTap}
                                                                 onFocus={form.handleCustomerFieldFocus}
                                                                 onBlur={form.handleCustomerFieldBlur}
                                                                 autoComplete="new-password"
@@ -1291,8 +1293,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                     form.setCustomerLastName(e.target.value);
                                                                     form.setShowCustomerDropdown(true);
                                                                 }}
-                                                                onPointerDown={openCustomerSheetFromTap}
-                                                                onTouchStart={openCustomerSheetFromTap}
                                                                 onFocus={form.handleCustomerFieldFocus}
                                                                 onBlur={form.handleCustomerFieldBlur}
                                                                 autoComplete="new-password"
@@ -1315,8 +1315,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                             form.setCustomerPhonePrefix(e.target.value);
                                                                             form.setShowCustomerDropdown(true);
                                                                         }}
-                                                                        onPointerDown={openCustomerSheetFromTap}
-                                                                        onTouchStart={openCustomerSheetFromTap}
                                                                         onFocus={form.handleCustomerFieldFocus}
                                                                         onBlur={form.handleCustomerFieldBlur}
                                                                         autoComplete="new-password"
@@ -1331,8 +1329,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                             form.setCustomerPhone(form.formatPhone(e.target.value));
                                                                             form.setShowCustomerDropdown(true);
                                                                         }}
-                                                                        onPointerDown={openCustomerSheetFromTap}
-                                                                        onTouchStart={openCustomerSheetFromTap}
                                                                         onFocus={form.handleCustomerFieldFocus}
                                                                         onBlur={form.handleCustomerFieldBlur}
                                                                         autoComplete="new-password"
@@ -1351,8 +1347,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                         form.setCustomerEmail(e.target.value);
                                                                         form.setShowCustomerDropdown(true);
                                                                     }}
-                                                                    onPointerDown={openCustomerSheetFromTap}
-                                                                    onTouchStart={openCustomerSheetFromTap}
                                                                     onFocus={form.handleCustomerFieldFocus}
                                                                     onBlur={form.handleCustomerFieldBlur}
                                                                     autoComplete="new-password"
@@ -1391,7 +1385,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                 >
                                                                     {(c.firstName || c.lastName)
                                                                         ? <span>{c.firstName} {c.lastName}</span>
-                                                                        : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>(bez imienia i nazwiska)</span>
+                                                                        : <span style={{ color: ui.textFaint, fontStyle: 'italic' }}>(bez imienia i nazwiska)</span>
                                                                     }
                                                                     <S.DropdownItemMeta $warning={!hasContact}>
                                                                         {hasContact
@@ -1431,6 +1425,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 )}
 
                                             </S.DropdownContainer>
+                                            {(form.errors.customer || form.errors.customerPhone) && (
+                                                <S.ErrorMessage>{form.errors.customer || form.errors.customerPhone}</S.ErrorMessage>
+                                            )}
                                         </>
                                     )}
                                     </>
@@ -1452,96 +1449,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     <IconCar />
                                 </S.IconWrapper>
                                 <S.RowContent ref={form.vehicleSectionRef}>
-                                    {/* Mobile: pola pod sobą (FormGrid z /checkin/new) -
-                                        Marka, Model, Rok produkcji. Marka → auto-otwarcie
-                                        modelu. */}
-                                    {isMobile ? (
-                                        <FormGrid>
-                                            <FieldGroup>
-                                                <S.FieldLabelRow>
-                                                    <FormLabel>Marka</FormLabel>
-                                                    <VehicleKindSwitch iconOnly value={form.vehicleKind} onChange={form.changeVehicleKind} />
-                                                </S.FieldLabelRow>
-                                                <BrandSelect
-                                                    kind={form.vehicleKind}
-                                                    value={form.vehicleBrand}
-                                                    onChange={(brand) => { form.setVehicleBrand(brand); form.setVehicleModel(''); setAutoOpenModel(true); }}
-                                                />
-                                            </FieldGroup>
-                                            <FieldGroup>
-                                                <FormLabel>Model</FormLabel>
-                                                <ModelSelect
-                                                    kind={form.vehicleKind}
-                                                    brand={form.vehicleBrand}
-                                                    value={form.vehicleModel}
-                                                    onChange={(model) => form.setVehicleModel(model)}
-                                                    autoOpen={autoOpenModel}
-                                                />
-                                            </FieldGroup>
-                                            <FieldGroup>
-                                                <FormLabel>Rok produkcji</FormLabel>
-                                                <FormInputField
-                                                    type="text"
-                                                    inputMode="numeric"
-                                                    maxLength={4}
-                                                    placeholder="np. 2021"
-                                                    value={form.vehicleYear}
-                                                    onChange={(e) => form.setVehicleYear(e.target.value.replace(/\D/g, ''))}
-                                                />
-                                            </FieldGroup>
-                                        </FormGrid>
-                                    ) : form.selectedVehicle && form.vehicleEditMode ? (
+                                    {form.selectedVehicle && form.vehicleEditMode ? (
                                         /* ── stan: pojazd wybrany, tryb edycji ── */
                                         <>
-                                            <S.CustomerHint style={{ color: '#0ea5e9' }}>
+                                            <S.CustomerHint style={{ color: ui.brandInk }}>
                                                 Edytuj dane pojazdu
                                             </S.CustomerHint>
-                                            <S.CustomerInputBlock $focused={form.focusedField === 'vehicle'}>
-                                                <S.VehicleInputRow>
-                                                    <S.CustomerFieldGroup $borderRight>
-                                                        <S.FieldLabelRow>
-                                                            <S.CustomerFieldLabel>Marka</S.CustomerFieldLabel>
-                                                            <VehicleKindSwitch iconOnly value={form.vehicleKind} onChange={form.changeVehicleKind} />
-                                                        </S.FieldLabelRow>
-                                                        <BrandSelect
-                                                            compact
-                                                            kind={form.vehicleKind}
-                                                            value={form.vehicleBrand}
-                                                            onChange={(brand) => { form.setVehicleBrand(brand); form.setVehicleModel(''); form.setFocusedField('vehicle'); setAutoOpenModel(true); }}
-                                                            onBlur={() => form.setFocusedField(null)}
-                                                        />
-                                                    </S.CustomerFieldGroup>
-                                                    <S.CustomerFieldGroup $borderRight>
-                                                        <S.CustomerFieldLabel>Model</S.CustomerFieldLabel>
-                                                        <ModelSelect
-                                                            compact
-                                                            kind={form.vehicleKind}
-                                                            brand={form.vehicleBrand}
-                                                            value={form.vehicleModel}
-                                                            onChange={(model) => { form.setVehicleModel(model); form.setFocusedField('vehicle'); }}
-                                                            onBlur={() => form.setFocusedField(null)}
-                                                            autoOpen={autoOpenModel}
-                                                        />
-                                                    </S.CustomerFieldGroup>
-                                                    <S.CustomerFieldGroup>
-                                                        <S.CustomerFieldLabel>Rok</S.CustomerFieldLabel>
-                                                        <S.CustomerFieldInput
-                                                            type="text" inputMode="numeric" placeholder="2021" maxLength={4}
-                                                            value={form.vehicleYear}
-                                                            onChange={(e) => form.setVehicleYear(e.target.value.replace(/\D/g, ''))}
-                                                            onFocus={() => form.setFocusedField('vehicle')}
-                                                            onBlur={() => form.setFocusedField(null)}
-                                                            autoComplete="new-password"
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === 'Enter') {
-                                                                    e.preventDefault();
-                                                                    form.handleConfirmVehicleEdit();
-                                                                }
-                                                            }}
-                                                        />
-                                                    </S.CustomerFieldGroup>
-                                                </S.VehicleInputRow>
-                                            </S.CustomerInputBlock>
+                                            {renderVehicleFields('edit')}
                                             <S.CustomerEditActions>
                                                 <S.CustomerEditConfirmBtn type="button" onClick={form.handleConfirmVehicleEdit}>
                                                     <IconCheck />
@@ -1561,10 +1475,25 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     {`${form.selectedVehicle.brand} ${form.selectedVehicle.model}`.trim() || '(Brak danych)'}
                                                     {form.selectedVehicle.isNew && <S.NewBadge>Nowy</S.NewBadge>}
                                                 </S.ChipName>
-                                                {form.selectedVehicle.year && (
-                                                    <S.ChipMeta>{form.selectedVehicle.year}</S.ChipMeta>
+                                                {(form.selectedVehicle.year || form.selectedVehicle.licensePlate) && (
+                                                    <S.ChipMeta>
+                                                        <MetaParts>
+                                                            {form.selectedVehicle.year && <span>{form.selectedVehicle.year}</span>}
+                                                            {form.selectedVehicle.licensePlate && <span>{form.selectedVehicle.licensePlate}</span>}
+                                                        </MetaParts>
+                                                    </S.ChipMeta>
                                                 )}
                                             </S.ChipInfo>
+                                            {/* Ołówek był w kodzie od dawna, ale bez przycisku - edycji
+                                                auta z kartoteki nie dało się otworzyć. */}
+                                            <S.ChipEdit
+                                                type="button"
+                                                onClick={form.handleEnterVehicleEditMode}
+                                                title="Popraw dane pojazdu"
+                                                aria-label="Popraw dane pojazdu"
+                                            >
+                                                <IconPencil />
+                                            </S.ChipEdit>
                                             <S.ChipClear
                                                 type="button"
                                                 onClick={() => {
@@ -1574,13 +1503,17 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     form.setVehicleModel('');
                                                     form.setVehicleYear('');
                                                 }}
-                                                title="Zmień pojazd"
+                                                title="Usuń pojazd z rezerwacji"
+                                                aria-label="Usuń pojazd z rezerwacji"
                                             >
                                                 <IconX />
                                             </S.ChipClear>
                                         </S.SelectedCustomerChip>
                                     ) : form.vehicles.length > 0 && !form.isAddingNewVehicle ? (
-                                        /* ── stan: klient ma pojazdy, wybierz z listy ── */
+                                        /* ── stan: klient ma pojazdy, wybierz z listy ──
+                                            Także na telefonie: wcześniej telefon miał tylko pola
+                                            marki i modelu, a zapis gubił wpisane auto klienta
+                                            z kilkoma pojazdami albo zapisywał jego stare auto. */
                                         <S.DropdownContainer>
                                             <S.VehicleSelectButton
                                                 type="button"
@@ -1588,10 +1521,14 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 disabled={!form.selectedCustomer}
                                                 onClick={form.handleVehicleSelectTriggerClick}
                                                 onBlur={form.handleVehicleFieldBlur}
+                                                aria-haspopup="listbox"
+                                                aria-expanded={form.showVehicleDropdown}
                                             >
-                                                <span style={{ color: '#c8d4e0' }}>Wybierz pojazd</span>
+                                                <span style={{ color: ui.textFaint }}>
+                                                    Wybierz z {form.vehicles.length} {pluralPl(form.vehicles.length, 'pojazdu', 'pojazdów', 'pojazdów')} klienta
+                                                </span>
                                                 <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0 }}>
-                                                    <path d="M1 1l4 4 4-4" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                                    <path d="M1 1l4 4 4-4" stroke={ui.textFaint} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                                                 </svg>
                                             </S.VehicleSelectButton>
                                             {form.showVehicleDropdown && form.selectedCustomer && (
@@ -1637,9 +1574,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         <>
                                             {form.vehicles.length > 0 && (
                                                 <S.CustomerHint>
-                                                    <button
+                                                    <LinkButton
                                                         type="button"
-                                                        style={{ background: 'none', border: 'none', color: '#0ea5e9', cursor: 'pointer', padding: 0, fontSize: 'inherit' }}
                                                         onClick={() => {
                                                             form.setIsAddingNewVehicle(false);
                                                             form.setVehicleKind(DEFAULT_VEHICLE_KIND);
@@ -1649,74 +1585,10 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         }}
                                                     >
                                                         ← Wróć do listy pojazdów
-                                                    </button>
+                                                    </LinkButton>
                                                 </S.CustomerHint>
                                             )}
-                                            <S.CustomerInputBlock
-                                                $focused={form.focusedField === 'vehicle'}
-                                                style={!form.selectedCustomer ? { opacity: 0.5, pointerEvents: 'none' } : undefined}
-                                            >
-                                                <S.VehicleInputRow>
-                                                    <S.CustomerFieldGroup $borderRight>
-                                                        {/* Rodzaj przy marce: wybiera katalog marki i modelu. Bez
-                                                            klienta wyszarzony razem z polami, tak jak one. */}
-                                                        <S.FieldLabelRow>
-                                                            <S.CustomerFieldLabel>Marka</S.CustomerFieldLabel>
-                                                            <VehicleKindSwitch iconOnly value={form.vehicleKind} onChange={form.changeVehicleKind} />
-                                                        </S.FieldLabelRow>
-                                                        <BrandSelect
-                                                            compact
-                                                            kind={form.vehicleKind}
-                                                            value={form.vehicleBrand}
-                                                            onChange={(brand) => {
-                                                                form.setVehicleBrand(brand);
-                                                                form.setVehicleModel('');
-                                                                form.setFocusedField('vehicle');
-                                                                setAutoOpenModel(true);
-                                                            }}
-                                                            onBlur={() => form.setFocusedField(null)}
-                                                        />
-                                                    </S.CustomerFieldGroup>
-                                                    <S.CustomerFieldGroup $borderRight>
-                                                        <S.CustomerFieldLabel>Model</S.CustomerFieldLabel>
-                                                        <ModelSelect
-                                                            compact
-                                                            kind={form.vehicleKind}
-                                                            brand={form.vehicleBrand}
-                                                            value={form.vehicleModel}
-                                                            onChange={(model) => {
-                                                                form.setVehicleModel(model);
-                                                                form.setFocusedField('vehicle');
-                                                                setAutoOpenModel(false);
-                                                                setTimeout(() => form.vehicleYearInputRef.current?.focus(), 0);
-                                                            }}
-                                                            onBlur={() => form.setFocusedField(null)}
-                                                            autoOpen={autoOpenModel}
-                                                        />
-                                                    </S.CustomerFieldGroup>
-                                                    <S.CustomerFieldGroup>
-                                                        <S.CustomerFieldLabel>Rok</S.CustomerFieldLabel>
-                                                        <S.CustomerFieldInput
-                                                            ref={form.vehicleYearInputRef}
-                                                            type="text"
-                                                            inputMode="numeric"
-                                                            placeholder="2021"
-                                                            maxLength={4}
-                                                            value={form.vehicleYear}
-                                                            onChange={(e) => { form.setVehicleYear(e.target.value.replace(/\D/g, '')); form.setFocusedField('vehicle'); }}
-                                                            onFocus={() => form.setFocusedField('vehicle')}
-                                                            onBlur={() => form.setFocusedField(null)}
-                                                            autoComplete="new-password"
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === 'Enter') {
-                                                                    e.preventDefault();
-                                                                    form.handleAddNewVehicleDirectly();
-                                                                }
-                                                            }}
-                                                        />
-                                                    </S.CustomerFieldGroup>
-                                                </S.VehicleInputRow>
-                                            </S.CustomerInputBlock>
+                                            {renderVehicleFields('new')}
                                         </>
                                     )}
                                 </S.RowContent>
@@ -1732,13 +1604,16 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         <S.RowHeaderNum>4</S.RowHeaderNum>
                                         <S.RowHeaderLabel>
                                             Usługi
-                                            {form.services.length > 0 && (
+                                            {servicesAsLineItems.length > 0 && (
                                                 <S.RowHeaderStatus>
-                                                    {`${form.services.length} ${pluralPl(form.services.length, 'pozycja', 'pozycje', 'pozycji')}`}
+                                                    {`${servicesAsLineItems.length} ${pluralPl(servicesAsLineItems.length, 'pozycja', 'pozycje', 'pozycji')}`}
                                                 </S.RowHeaderStatus>
                                             )}
                                         </S.RowHeaderLabel>
                                     </S.RowHeaderTitleRow>
+                                    {/* Bez usługi rezerwacji nie da się zapisać - sekcja mówi to
+                                        tak samo jak „Termin" i „Dane klienta". */}
+                                    <S.RowHeaderHint $required>wymagane</S.RowHeaderHint>
                                 </S.RowHeader>
                                 <S.IconWrapper $color={form.focusedField === 'services' ? form.accentColor : undefined}>
                                     <IconSettings />
@@ -1750,10 +1625,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             <S.MobileAddServiceButton
                                                 type="button"
                                                 onClick={() => {
-                                                    if (form.services.length === 0) {
-                                                        form.setIsQuickServiceModalOpen(true);
-                                                        return;
-                                                    }
                                                     // iOS only opens keyboard from focus() called within a user gesture.
                                                     // Mount a temporary off-screen contenteditable NOW (within the gesture),
                                                     // open the keyboard, then transfer focus after the portal mounts.
@@ -1796,12 +1667,10 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     $accentColor={form.focusedField === 'services' ? form.accentColor : undefined}
                                                     $dropdownOpen={form.showServiceDropdown}
                                                     onFocus={() => {
+                                                        // Sam fokus (np. tabulatorem) nie otwiera już okna „Nowa usługa" przy
+                                                        // pustym cenniku - lista pokazuje wtedy „Dodaj nową usługę".
                                                         form.setFocusedField('services');
-                                                        if (form.services.length === 0) {
-                                                            form.setIsQuickServiceModalOpen(true);
-                                                        } else {
-                                                            form.setShowServiceDropdown(true);
-                                                        }
+                                                        form.setShowServiceDropdown(true);
                                                     }}
                                                     onBlur={() => {
                                                         form.setFocusedField(null);
@@ -1813,6 +1682,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     onKeyDown={(e) => {
                                                         const count = form.filteredServices.length;
                                                         if (e.key === 'Escape') {
+                                                            // Zamknięta lista: Escape idzie dalej i zamyka okno.
+                                                            if (!form.showServiceDropdown) return;
                                                             e.preventDefault();
                                                             form.setShowServiceDropdown(false);
                                                             setHighlightedServiceIdx(-1);
@@ -2117,63 +1988,78 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     </S.RowHeaderTitleRow>
                                     <S.RowHeaderHint>opcjonalne</S.RowHeaderHint>
                                 </S.RowHeader>
-                                <S.IconWrapper $color={form.doorToDoor.enabled ? '#0ea5e9' : undefined}>
+                                <S.IconWrapper $color={form.doorToDoor.enabled ? ui.brand : undefined}>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                                         <polyline points="9 22 9 12 15 12 15 22"/>
                                     </svg>
                                 </S.IconWrapper>
                                 <S.RowContent>
-                                    <D2DToggleRow onClick={() => form.setDoorToDoor(d => ({ ...d, enabled: !d.enabled }))}>
-                                        <D2DToggleLabel>
-                                            Odbiór i odwiezienie auta
-                                        </D2DToggleLabel>
-                                        <D2DToggleSwitch
-                                            type="button"
-                                            $active={form.doorToDoor.enabled}
-                                            onClick={e => { e.stopPropagation(); form.setDoorToDoor(d => ({ ...d, enabled: !d.enabled })); }}
-                                        />
-                                    </D2DToggleRow>
+                                    <Toggle
+                                        checked={form.doorToDoor.enabled}
+                                        onChange={(enabled) => form.setDoorToDoor(d => ({ ...d, enabled }))}
+                                        label="Odbiór i odwiezienie auta"
+                                        size="sm"
+                                    />
                                     {form.doorToDoor.enabled && (
                                         <D2DFields>
                                             <D2DAddressGroup>
-                                                <D2DAddressLabel>Miejsce odbioru</D2DAddressLabel>
+                                                <FieldLabel>Miejsce odbioru</FieldLabel>
                                                 <D2DAddressInputs>
-                                                    <D2DInput
-                                                        placeholder="Miasto"
-                                                        value={form.doorToDoor.pickupAddress.city}
-                                                        onChange={e => form.setDoorToDoor(d => ({ ...d, pickupAddress: { ...d.pickupAddress, city: e.target.value } }))}
-                                                    />
-                                                    <D2DInput
-                                                        placeholder="Ulica i numer"
-                                                        value={form.doorToDoor.pickupAddress.street}
-                                                        onChange={e => form.setDoorToDoor(d => ({ ...d, pickupAddress: { ...d.pickupAddress, street: e.target.value } }))}
-                                                    />
+                                                    <InputShell $compact>
+                                                        <BareInput
+                                                            $compact
+                                                            placeholder="Miasto"
+                                                            aria-label="Miejsce odbioru: miasto"
+                                                            value={form.doorToDoor.pickupAddress.city}
+                                                            onChange={e => form.setDoorToDoor(d => ({ ...d, pickupAddress: { ...d.pickupAddress, city: e.target.value } }))}
+                                                        />
+                                                    </InputShell>
+                                                    <InputShell $compact>
+                                                        <BareInput
+                                                            $compact
+                                                            placeholder="Ulica i numer"
+                                                            aria-label="Miejsce odbioru: ulica i numer"
+                                                            value={form.doorToDoor.pickupAddress.street}
+                                                            onChange={e => form.setDoorToDoor(d => ({ ...d, pickupAddress: { ...d.pickupAddress, street: e.target.value } }))}
+                                                        />
+                                                    </InputShell>
                                                 </D2DAddressInputs>
                                             </D2DAddressGroup>
                                             <D2DAddressGroup>
-                                                <D2DAddressLabel>Miejsce odwiezienia</D2DAddressLabel>
+                                                <FieldLabel>Miejsce odwiezienia</FieldLabel>
                                                 <D2DAddressInputs>
-                                                    <D2DInput
-                                                        placeholder="Miasto"
-                                                        value={form.doorToDoor.deliveryAddress.city}
-                                                        onChange={e => form.setDoorToDoor(d => ({ ...d, deliveryAddress: { ...d.deliveryAddress, city: e.target.value } }))}
-                                                    />
-                                                    <D2DInput
-                                                        placeholder="Ulica i numer"
-                                                        value={form.doorToDoor.deliveryAddress.street}
-                                                        onChange={e => form.setDoorToDoor(d => ({ ...d, deliveryAddress: { ...d.deliveryAddress, street: e.target.value } }))}
-                                                    />
+                                                    <InputShell $compact>
+                                                        <BareInput
+                                                            $compact
+                                                            placeholder="Miasto"
+                                                            aria-label="Miejsce odwiezienia: miasto"
+                                                            value={form.doorToDoor.deliveryAddress.city}
+                                                            onChange={e => form.setDoorToDoor(d => ({ ...d, deliveryAddress: { ...d.deliveryAddress, city: e.target.value } }))}
+                                                        />
+                                                    </InputShell>
+                                                    <InputShell $compact>
+                                                        <BareInput
+                                                            $compact
+                                                            placeholder="Ulica i numer"
+                                                            aria-label="Miejsce odwiezienia: ulica i numer"
+                                                            value={form.doorToDoor.deliveryAddress.street}
+                                                            onChange={e => form.setDoorToDoor(d => ({ ...d, deliveryAddress: { ...d.deliveryAddress, street: e.target.value } }))}
+                                                        />
+                                                    </InputShell>
                                                 </D2DAddressInputs>
                                             </D2DAddressGroup>
                                             <D2DAddressGroup>
-                                                <D2DAddressLabel>Uwagi</D2DAddressLabel>
-                                                <D2DNotes
-                                                    rows={2}
-                                                    placeholder="np. klucze w recepcji, dzwonić przed przyjazdem"
-                                                    value={form.doorToDoor.notes}
-                                                    onChange={e => form.setDoorToDoor(d => ({ ...d, notes: capitalizeFirst(e.target.value) }))}
-                                                />
+                                                <FieldLabel>Uwagi</FieldLabel>
+                                                <InputShellTextArea>
+                                                    <BareTextArea
+                                                        rows={2}
+                                                        placeholder="np. klucze w recepcji, dzwonić przed przyjazdem"
+                                                        aria-label="Uwagi do odbioru i odwiezienia"
+                                                        value={form.doorToDoor.notes}
+                                                        onChange={e => form.setDoorToDoor(d => ({ ...d, notes: capitalizeFirst(e.target.value) }))}
+                                                    />
+                                                </InputShellTextArea>
                                             </D2DAddressGroup>
                                         </D2DFields>
                                     )}
@@ -2182,11 +2068,19 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
                             <S.Divider />
 
-                            {/* ── SMS row (komputer) ─────────────────────────────── */}
-                            {/* Na telefonie te same trzy ustawienia żyją w arkuszu
-                                pod wierszem stanu nad przyciskiem zapisu. */}
+                            {/* ── 7. Powiadomienia SMS (komputer) ───────────────────── */}
+                            {/* Ta sama lista co w arkuszu na telefonie (SmsOptionsList): ten sam
+                                adresat, te same powody wyłączenia. Wcześniej komputer miał własne
+                                checkboksy bez nagłówka i bez wiedzy o numerze klienta. */}
                             {!isMobile && (
                             <S.Row>
+                                <S.RowHeader>
+                                    <S.RowHeaderTitleRow>
+                                        <S.RowHeaderNum>7</S.RowHeaderNum>
+                                        <S.RowHeaderLabel>Powiadomienia SMS</S.RowHeaderLabel>
+                                    </S.RowHeaderTitleRow>
+                                    <S.RowHeaderHint>opcjonalne</S.RowHeaderHint>
+                                </S.RowHeader>
                                 <S.IconWrapper>
                                     <IconMessageSquare />
                                 </S.IconWrapper>
@@ -2196,49 +2090,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         message="Twój pakiet nie obsługuje powiadomień SMS."
                                         onLockedClick={() => setUpsellOpen(true)}
                                     >
-                                        <SmsCheckList>
-                                            <SmsCheckItem $disabled={!form.bookingConfirmationEnabled}>
-                                                <SmsCheckbox
-                                                    checked={form.sendConfirmationSms && form.bookingConfirmationEnabled}
-                                                    onChange={e => form.setSendConfirmationSms(e.target.checked)}
-                                                    disabled={!form.bookingConfirmationEnabled}
-                                                />
-                                                <SmsCheckText>
-                                                    Wyślij SMS z potwierdzeniem rezerwacji
-                                                    {!form.bookingConfirmationEnabled && (
-                                                        <SmsDisabledHint>Wyłączone w ustawieniach SMS</SmsDisabledHint>
-                                                    )}
-                                                </SmsCheckText>
-                                            </SmsCheckItem>
-                                            <SmsCheckItem $disabled={!form.preVisitEnabled}>
-                                                <SmsCheckbox
-                                                    checked={form.sendReminderSms && form.preVisitEnabled}
-                                                    onChange={e => form.setSendReminderSms(e.target.checked)}
-                                                    disabled={!form.preVisitEnabled}
-                                                />
-                                                <SmsCheckText>
-                                                    Wyślij SMS przypominający przed wizytą
-                                                    {!form.preVisitEnabled && (
-                                                        <SmsDisabledHint>Wyłączone w ustawieniach SMS</SmsDisabledHint>
-                                                    )}
-                                                </SmsCheckText>
-                                            </SmsCheckItem>
-                                            {form.visitCardEnabled && (
-                                                <SmsCheckItem $disabled={!form.reservationCardLinkSmsEnabled}>
-                                                    <SmsCheckbox
-                                                        checked={form.sendVisitCard && form.reservationCardLinkSmsEnabled}
-                                                        onChange={e => form.setSendVisitCard(e.target.checked)}
-                                                        disabled={!form.reservationCardLinkSmsEnabled}
-                                                    />
-                                                    <SmsCheckText>
-                                                        Wyślij SMS z linkiem do karty wizyty
-                                                        {!form.reservationCardLinkSmsEnabled && (
-                                                            <SmsDisabledHint>Wyłączone w ustawieniach SMS</SmsDisabledHint>
-                                                        )}
-                                                    </SmsCheckText>
-                                                </SmsCheckItem>
-                                            )}
-                                        </SmsCheckList>
+                                        <SmsOptionsList options={smsOptions} phone={customerPhone} />
                                     </LockedSection>
                                 </S.RowContent>
                             </S.Row>
@@ -2348,7 +2200,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
                             <S.FooterActions>
                                 {!isMobile && (
-                                    <S.Button type="button" onClick={form.clearForm} $variant="ghost" title="Wyczyść wszystkie pola">
+                                    <S.Button type="button" onClick={form.clearAllWithUndo} $variant="ghost" title="Wyczyść wszystkie pola - pasek szkicu pozwala to cofnąć">
                                         Wyczyść wszystko
                                     </S.Button>
                                 )}
@@ -2377,7 +2229,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             type="submit"
                                             $variant="primary"
                                             disabled={form.isSubmitting}
-                                            style={{ '--button-bg': form.accentColor, opacity: form.isSubmitting ? 0.7 : 1 } as React.CSSProperties}
+                                            style={{ opacity: form.isSubmitting ? 0.7 : 1 }}
                                         >
                                             {form.isSubmitting ? 'Zapisywanie…' : 'Zapisz rezerwację'}
                                         </S.Button>
@@ -2390,7 +2242,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 </S.ModalContainer>
 
                 {/* ── Recurrence side panel ──────────────────────────── */}
-                <SidePanelWrapper $visible={allowRecurrence && isRecurring}>
+                <SidePanelWrapper $visible={!isMobile && allowRecurrence && isRecurring}>
                     <SidePanelInner>
                         <RecurrenceSidePanel
                             rule={recurrenceRule}
@@ -2431,30 +2283,37 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 onColorCreate={form.handleQuickColorCreate}
             />
 
-            {newCustomerDraft && (
-                <MobileNewCustomerSheet
-                    initial={newCustomerDraft}
-                    onCancel={() => setNewCustomerDraft(null)}
-                    onConfirm={(draft) => {
-                        form.setCustomerFirstName(draft.firstName);
-                        form.setCustomerLastName(draft.lastName);
-                        form.setCustomerPhonePrefix(draft.phonePrefix);
-                        form.setCustomerPhone(draft.phone);
-                        form.setCustomerEmail(draft.email);
-                        setNewCustomerDraft(null);
-                        // Stany są asynchroniczne, więc zapis klienta wykonujemy na
-                        // wartościach z formularza, nie czekając na przerysowanie.
-                        form.handleAddNewCustomerDirectly({
-                            values: {
-                                firstName: draft.firstName,
-                                lastName: draft.lastName,
-                                phone: draft.phone.trim() ? `${draft.phonePrefix.trim()} ${draft.phone.trim()}` : '',
-                                email: draft.email,
-                            },
-                        });
-                    }}
-                />
-            )}
+            {/* „Zmienić dane klienta/pojazdu?" - te same pytanie i odpowiedzi co w edycji
+                rezerwacji (VerificationStep). Zmiana karty z kartoteki nie idzie po cichu. */}
+            <ModalShell
+                isOpen={!!form.pendingChoice}
+                onClose={form.cancelPendingChoice}
+                size="md"
+                zIndex={SUBMODAL_Z_INDEX}
+                labelledBy="qem-record-choice-title"
+            >
+                <ModalHeader>
+                    <ModalTitleGroup>
+                        <ModalTitle id="qem-record-choice-title">
+                            {form.pendingChoice?.kind === 'vehicle' ? 'Zmienić dane pojazdu?' : 'Zmienić dane klienta?'}
+                        </ModalTitle>
+                        <ModalSubtitle>
+                            {form.pendingChoice?.kind === 'vehicle'
+                                ? 'Ten pojazd jest już zapisany. Zapisać zmianę w nim czy dodać nowy?'
+                                : 'Ten klient ma już kartę klienta. Zapisać zmianę w jego karcie czy dodać nowego klienta?'}
+                        </ModalSubtitle>
+                    </ModalTitleGroup>
+                    <CloseBtn onClick={form.cancelPendingChoice} />
+                </ModalHeader>
+                <ModalFooter>
+                    <Button variant="outline" onClick={() => form.answerPendingChoice('new')}>
+                        {form.pendingChoice?.kind === 'vehicle' ? 'Dodaj jako nowy' : 'Dodaj jako nowego'}
+                    </Button>
+                    <Button variant="primary" onClick={() => form.answerPendingChoice('edit')}>
+                        {form.pendingChoice?.kind === 'vehicle' ? 'Edytuj istniejący' : 'Edytuj istniejącego'}
+                    </Button>
+                </ModalFooter>
+            </ModalShell>
 
             {smsSheetOpen && (
                 <SmsOptionsSheet

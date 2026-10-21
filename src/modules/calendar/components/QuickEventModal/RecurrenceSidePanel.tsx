@@ -1,9 +1,12 @@
 // src/modules/calendar/components/QuickEventModal/RecurrenceSidePanel.tsx
 
+import { ui } from '@/common/components/ui';
 import styled from 'styled-components';
 import { FormInput } from '@/common/styles';
 import { pluralPl } from '@/common/utils/plural';
+import { DateTimePicker } from '@/common/components/DateTimePicker';
 import type { RecurrenceRuleRequest, DayOfWeek } from '@/modules/appointments/types';
+import { MAX_DAY_OF_MONTH, dayOfMonthFrom, recurrenceError } from './recurrence';
 
 // ─── Panel container ──────────────────────────────────────────────────────────
 
@@ -23,8 +26,8 @@ export const SidePanelWrapper = styled.div<{ $visible: boolean }>`
 
 export const SidePanelInner = styled.div`
     width: 280px;
-    background: #f8fafc;
-    border-left: 1px solid #e2e8f0;
+    background: ${ui.surfaceSoft};
+    border-left: 1px solid ${ui.line};
     padding: 20px 18px;
     min-height: 100%;
     display: flex;
@@ -34,12 +37,12 @@ export const SidePanelInner = styled.div`
 
     &::-webkit-scrollbar { width: 3px; }
     &::-webkit-scrollbar-track { background: transparent; }
-    &::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
+    &::-webkit-scrollbar-thumb { background: ${ui.line}; border-radius: 2px; }
 
     @media (max-width: 639px) {
         width: 100%;
         border-left: none;
-        border-top: 1px solid #e2e8f0;
+        border-top: 1px solid ${ui.line};
         min-height: auto;
         padding: 16px;
     }
@@ -50,7 +53,7 @@ export const SidePanelInner = styled.div`
 const PanelTitle = styled.div`
     font-size: 11px;
     font-weight: 700;
-    color: #94a3b8;
+    color: ${ui.textFaint};
     text-transform: uppercase;
     letter-spacing: 0.08em;
     display: flex;
@@ -60,7 +63,7 @@ const PanelTitle = styled.div`
     svg {
         width: 13px;
         height: 13px;
-        color: #0ea5e9;
+        color: ${ui.brand};
         flex-shrink: 0;
     }
 `;
@@ -68,7 +71,7 @@ const PanelTitle = styled.div`
 const SectionLabel = styled.div`
     font-size: 11px;
     font-weight: 600;
-    color: #94a3b8;
+    color: ${ui.textFaint};
     text-transform: uppercase;
     letter-spacing: 0.06em;
     margin-bottom: 7px;
@@ -83,9 +86,9 @@ const TypeBtn = styled.button<{ $active: boolean }>`
     flex: 1;
     padding: 7px 0;
     border-radius: 8px;
-    border: 1.5px solid ${p => p.$active ? '#0ea5e9' : '#e2e8f0'};
-    background: ${p => p.$active ? '#f0f9ff' : '#ffffff'};
-    color: ${p => p.$active ? '#0284c7' : '#94a3b8'};
+    border: 1.5px solid ${p => p.$active ? ui.brand : ui.line};
+    background: ${p => p.$active ? ui.brandTint : ui.surface};
+    color: ${p => p.$active ? ui.brandStrong : ui.textFaint};
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
@@ -93,9 +96,9 @@ const TypeBtn = styled.button<{ $active: boolean }>`
     font-family: inherit;
 
     &:hover {
-        border-color: #0ea5e9;
-        color: #0284c7;
-        background: #f0f9ff;
+        border-color: ${ui.brand};
+        color: ${ui.brandStrong};
+        background: ${ui.brandTint};
     }
 `;
 
@@ -109,9 +112,9 @@ const DayPill = styled.button<{ $active: boolean }>`
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    border: 1.5px solid ${p => p.$active ? '#0ea5e9' : '#e2e8f0'};
-    background: ${p => p.$active ? '#0ea5e9' : '#ffffff'};
-    color: ${p => p.$active ? '#ffffff' : '#94a3b8'};
+    border: 1.5px solid ${p => p.$active ? ui.brand : ui.line};
+    background: ${p => p.$active ? ui.brand : ui.surface};
+    color: ${p => p.$active ? ui.surface : ui.textFaint};
     font-size: 11px;
     font-weight: 700;
     cursor: pointer;
@@ -120,9 +123,9 @@ const DayPill = styled.button<{ $active: boolean }>`
     font-family: inherit;
 
     &:hover {
-        border-color: #0ea5e9;
-        color: ${p => p.$active ? '#ffffff' : '#0284c7'};
-        background: ${p => p.$active ? '#0284c7' : '#f0f9ff'};
+        border-color: ${ui.brand};
+        color: ${p => p.$active ? ui.surface : ui.brandStrong};
+        background: ${p => p.$active ? ui.brandStrong : ui.brandTint};
     }
 `;
 
@@ -139,15 +142,13 @@ const NumInput = styled(FormInput)`
     font-size: 13px;
 `;
 
-const DateInput = styled(FormInput).attrs({ type: 'date' })`
-    width: 150px;
-    color-scheme: light;
-    font-size: 13px;
+const DateField = styled.div`
+    width: 170px;
 `;
 
 const InputLabel = styled.span`
     font-size: 12px;
-    color: #64748b;
+    color: ${ui.textMuted};
     white-space: nowrap;
 `;
 
@@ -167,14 +168,14 @@ const RadioRow = styled.label`
 const StyledRadio = styled.input.attrs({ type: 'radio' })`
     width: 14px;
     height: 14px;
-    accent-color: #0ea5e9;
+    accent-color: ${ui.brand};
     cursor: pointer;
     flex-shrink: 0;
 `;
 
 const RadioLabel = styled.span`
     font-size: 12px;
-    color: #475569;
+    color: ${ui.textSecondary};
     font-weight: 500;
 `;
 
@@ -188,24 +189,24 @@ const InlineEndRow = styled.div`
 
 const PanelDivider = styled.div`
     height: 1px;
-    background: #e2e8f0;
+    background: ${ui.line};
     margin: 2px 0;
 `;
 
 const PreviewBox = styled.div`
-    background: #f0f9ff;
-    border: 1px solid #bae6fd;
+    background: ${ui.brandTint};
+    border: 1px solid ${ui.brandLineSoft};
     border-radius: 10px;
     padding: 10px 12px;
 `;
 
 const PreviewLine = styled.div`
     font-size: 12px;
-    color: #64748b;
+    color: ${ui.textMuted};
     line-height: 1.6;
 
     strong {
-        color: #0f172a;
+        color: ${ui.ink};
         font-weight: 600;
     }
 `;
@@ -307,7 +308,11 @@ export const RecurrenceSidePanel = ({ rule, onChange, startDateTime }: Recurrenc
         if (next.length > 0) update({ daysOfWeek: next });
     };
 
-    const preview = computePreview(rule, startDateTime);
+    // Reguła, której serwer nie przyjmie, nie dostaje podglądu: „Do daty" bez daty
+    // obiecywało wcześniej 104 rezerwacje, a zapis kończył się błędem serwera.
+    const problem = recurrenceError(rule, startDateTime);
+    const preview = problem ? null : computePreview(rule, startDateTime);
+    const startDay = Number(startDateTime.slice(8, 10));
 
     const intervalLabel = () => {
         const n = rule.intervalWeeks ?? 1;
@@ -340,7 +345,7 @@ export const RecurrenceSidePanel = ({ rule, onChange, startDateTime }: Recurrenc
                     <TypeBtn
                         type="button"
                         $active={rule.type === 'MONTHLY'}
-                        onClick={() => update({ type: 'MONTHLY', dayOfMonth: rule.dayOfMonth ?? 1, intervalWeeks: undefined, daysOfWeek: undefined })}
+                        onClick={() => update({ type: 'MONTHLY', dayOfMonth: rule.dayOfMonth ?? dayOfMonthFrom(startDateTime), intervalWeeks: undefined, daysOfWeek: undefined })}
                     >
                         Co miesiąc
                     </TypeBtn>
@@ -377,9 +382,6 @@ export const RecurrenceSidePanel = ({ rule, onChange, startDateTime }: Recurrenc
                                 </DayPill>
                             ))}
                         </DaysRow>
-                        {(!rule.daysOfWeek || rule.daysOfWeek.length === 0) && (
-                            <ValidationNote>Wybierz co najmniej jeden dzień.</ValidationNote>
-                        )}
                     </div>
                 </>
             )}
@@ -392,12 +394,17 @@ export const RecurrenceSidePanel = ({ rule, onChange, startDateTime }: Recurrenc
                         <NumInput
                             type="number"
                             min={1}
-                            max={31}
-                            value={rule.dayOfMonth ?? 1}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => update({ dayOfMonth: Math.max(1, Math.min(31, Number(e.target.value))) })}
+                            max={MAX_DAY_OF_MONTH}
+                            value={rule.dayOfMonth ?? dayOfMonthFrom(startDateTime)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => update({ dayOfMonth: Math.max(1, Math.min(MAX_DAY_OF_MONTH, Number(e.target.value))) })}
                         />
-                        <InputLabel>dzień (maks. 31)</InputLabel>
+                        <InputLabel>dzień (od 1 do {MAX_DAY_OF_MONTH})</InputLabel>
                     </InlineRow>
+                    {startDay > MAX_DAY_OF_MONTH && (
+                        <ValidationNote>
+                            {startDay}. dnia nie ma w każdym miesiącu, więc seria może iść najpóźniej {MAX_DAY_OF_MONTH}. dnia.
+                        </ValidationNote>
+                    )}
                 </div>
             )}
 
@@ -438,10 +445,15 @@ export const RecurrenceSidePanel = ({ rule, onChange, startDateTime }: Recurrenc
                     </RadioRow>
                     {rule.endType === 'DATE' && (
                         <InlineEndRow>
-                            <DateInput
-                                value={rule.endDate ?? ''}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => update({ endDate: e.target.value })}
-                            />
+                            <DateField>
+                                <DateTimePicker
+                                    value={rule.endDate ?? ''}
+                                    onChange={(value) => update({ endDate: value.slice(0, 10) })}
+                                    showTime={false}
+                                    placeholder="Wybierz datę"
+                                    hasError={!rule.endDate}
+                                />
+                            </DateField>
                         </InlineEndRow>
                     )}
 
@@ -455,6 +467,8 @@ export const RecurrenceSidePanel = ({ rule, onChange, startDateTime }: Recurrenc
                     </RadioRow>
                 </EndTypeCol>
             </div>
+
+            {problem && <ValidationNote role="alert">{problem}.</ValidationNote>}
 
             {/* Podgląd */}
             {preview && (

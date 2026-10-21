@@ -221,8 +221,11 @@ export const router = createBrowserRouter([
         // Nowa rezerwacja i przyjęcie pojazdu wymagają danych osobowych obok VISITS_CREATE
         // (personalDataActions): bez nich widok się nie montuje, a wejście z adresu dostaje odmowę.
         {
+            // Dawny pełnoekranowy kreator rezerwacji (AppointmentCreateView) nie miał już żadnego
+            // wejścia w aplikacji. Stary adres otwiera kalendarz z oknem „Nowa rezerwacja",
+            // tym samym co skrót „R".
             path: '/appointments/create',
-            ...lazyPage(() => import('@/modules/appointments/views/AppointmentCreateView').then(m => withPersonalDataGate(m.AppointmentCreateView, 'canCreateAppointment')), 'VISITS_CREATE'),
+            element: <Navigate to="/calendar" replace state={{ openQuickEvent: true }} />,
         },
         {
             path: '/appointments/:appointmentId/edit',

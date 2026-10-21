@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
+import { PRICE_SCOPES } from '@/common/components/ServicePriceModal';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
 import styled from 'styled-components';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
@@ -688,6 +689,12 @@ interface VerificationStepProps {
     initialCompany?: CheckInFormData['company'];
     initialVehicleData?: CheckInFormData['vehicleData'];
     initialIsNewVehicle?: boolean;
+    /**
+     * Czego dotyczy formularz. Edycja rezerwacji (AppointmentEditView) używa tego samego
+     * kroku co przyjęcie pojazdu, a mówiła „Nazwa wizyty", „Termin wizyty" i „cena w tej
+     * wizycie" o rezerwacji. Domyślnie wizyta.
+     */
+    subject?: 'visit' | 'reservation';
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -710,7 +717,9 @@ export const VerificationStep = ({
     initialCompany,
     initialVehicleData,
     initialIsNewVehicle,
+    subject = 'visit',
 }: VerificationStepProps) => {
+    const subjectWord = subject === 'reservation' ? 'rezerwacji' : 'wizyty';
     const queryClient = useQueryClient();
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [isCustomerDetailsModalOpen, setIsCustomerDetailsModalOpen] = useState(false);
@@ -1462,7 +1471,7 @@ export const VerificationStep = ({
                             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
-                            Nazwa wizyty
+                            Nazwa {subjectWord}
                         </SectionLabel>
                     </SectionTitleRow>
                 </SectionHead>
@@ -1484,7 +1493,7 @@ export const VerificationStep = ({
                     <SectionTitleRow>
                         <SectionNum>1</SectionNum>
                         <SectionLabel>
-                            Termin wizyty
+                            Termin {subjectWord}
                         </SectionLabel>
                     </SectionTitleRow>
                 </SectionHead>
@@ -1515,6 +1524,7 @@ export const VerificationStep = ({
                                 placeholder="Wybierz datę i godzinę"
                                 containerRef={endInputRef}
                             />
+                            {errors.schedule && <FieldError>{errors.schedule}</FieldError>}
                         </FieldGroup>
                         <FieldGroup>
                             <Label>Kolor w kalendarzu *</Label>
@@ -2052,6 +2062,7 @@ export const VerificationStep = ({
                     <EditableServicesTable
                         services={formData.services}
                         onChange={onServicesChange}
+                        scope={subject === 'reservation' ? PRICE_SCOPES.reservation : PRICE_SCOPES.visit}
                     />
                     {errors.services && <FieldError>{errors.services}</FieldError>}
                 </SectionBody>

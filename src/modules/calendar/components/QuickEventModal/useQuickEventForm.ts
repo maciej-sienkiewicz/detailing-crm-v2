@@ -49,6 +49,14 @@ const parsePhone = (full: string): { prefix: string; main: string } => {
     }
     return { prefix: '+48', main: formatMainPhone(trimmed) };
 };
+
+/**
+ * Ten sam numer niezależnie od spacji. Kartoteka trzyma „+48123456789", pola formularza
+ * „+48 123 456 789" - porównanie znak po znaku widziało zmianę tam, gdzie nikt niczego
+ * nie ruszał, i pytało „Zmienić dane klienta?" o nic.
+ */
+const samePhone = (a: string | undefined, b: string | undefined): boolean =>
+    (a ?? '').replace(/\s/g, '') === (b ?? '').replace(/\s/g, '');
 import type {
     Service,
     AppointmentColor,
@@ -59,6 +67,21 @@ import type {
     ServiceAdjustment,
 } from './types';
 import { firstSubmitErrorKey, submitErrorMessage } from './submitErrors';
+import { recurrenceError } from './recurrence';
+import { draftSummary, hasDraftContent, type QuickEventDraft } from './draft';
+
+/**
+ * Pytanie „Zmienić dane klienta/pojazdu?" - jak w edycji rezerwacji (VerificationStep).
+ * `resubmit`: pytanie padło przy zapisie, więc po odpowiedzi zapis idzie dalej.
+ */
+type RecordDecision = 'edit' | 'new';
+
+export interface PendingRecordChoice {
+    kind: 'customer' | 'vehicle';
+    resubmit: boolean;
+    /** Odpowiedzi już udzielone w tym zapisie (klient pytany przed pojazdem). */
+    decided?: { customer?: RecordDecision; vehicle?: RecordDecision };
+}
 
 interface UseQuickEventFormOptions {
     isOpen: boolean;
@@ -175,6 +198,16 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     const [isPriceInputModalOpen, setIsPriceInputModalOpen] = useState(false);
     const [isQuickColorModalOpen, setIsQuickColorModalOpen] = useState(false);
     const [pendingService, setPendingService] = useState<Service | null>(null);
+    const [pendingChoice, setPendingChoice] = useState<PendingRecordChoice | null>(null);
+    // Odpowiedź „Edytuj istniejącego" udzielona przy „Zatwierdź zmiany" - zapis nie pyta
+    // o to samo drugi raz. Kasowana, gdy ktoś znów otworzy edycję albo wybierze kogoś innego.
+    const customerUpdateConfirmedRef = useRef(false);
+    const vehicleUpdateConfirmedRef = useRef(false);
+
+    // ─── Draft ─────────────────────────────────────────────────────────────────
+    // Tylko w kalendarzu: okno z leada (initialData) zawsze startuje z danych leada.
+    const draftsEnabled = !initialData;
+    const [draft, setDraft] = useState<QuickEventDraft | null>(null);
 
     // ─── UI state ──────────────────────────────────────────────────────────────
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -410,9 +443,105 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         resetVisitCard();
         setIsRecurring(false);
         setRecurrenceRule({ type: 'WEEKLY', intervalWeeks: 1, daysOfWeek: ['MONDAY'], endType: 'COUNT', maxOccurrences: 12 });
+        setServicePriceInputs({});
+        setErrors({});
+        setPendingChoice(null);
+        customerUpdateConfirmedRef.current = false;
+        vehicleUpdateConfirmedRef.current = false;
     };
 
     useImperativeHandle(ref, () => ({ clearForm }));
+
+    // ─── Draft ─────────────────────────────────────────────────────────────────
+    const captureDraft = (): QuickEventDraft => ({
+        title, notes, doorToDoor, selectedColorId,
+        selectedCustomer, selectedCustomerId,
+        customerFirstName, customerLastName, customerPhonePrefix, customerPhone, customerEmail,
+        customerEditMode,
+        selectedVehicle, vehicleKind, vehicleBrand, vehicleModel, vehicleYear,
+        isAddingNewVehicle, vehicleEditMode,
+        selectedServiceIds, serviceRefs, servicePrices, servicePriceInputs, serviceAdjustments,
+        serviceNotes, serviceVatRates, serviceBasePrices, tempServices,
+        lineIdSeq: lineIdSeqRef.current,
+        sendConfirmationSms, sendReminderSms, sendVisitCard,
+        isRecurring, recurrenceRule,
+    });
+
+    /** Wszystko poza terminem: termin to ten, który użytkownik właśnie wskazał. */
+    const applyDraft = (d: QuickEventDraft) => {
+        clearForm();
+        setTitle(d.title);
+        setNotes(d.notes);
+        setDoorToDoor(d.doorToDoor);
+        if (d.selectedColorId) setSelectedColorId(d.selectedColorId);
+        setSelectedCustomer(d.selectedCustomer);
+        setSelectedCustomerId(d.selectedCustomerId);
+        setCustomerFirstName(d.customerFirstName);
+        setCustomerLastName(d.customerLastName);
+        setCustomerPhonePrefix(d.customerPhonePrefix);
+        setCustomerPhone(d.customerPhone);
+        setCustomerEmail(d.customerEmail);
+        setCustomerEditMode(d.customerEditMode);
+        setSelectedVehicle(d.selectedVehicle);
+        setVehicleKind(d.vehicleKind);
+        setVehicleBrand(d.vehicleBrand);
+        setVehicleModel(d.vehicleModel);
+        setVehicleYear(d.vehicleYear);
+        setIsAddingNewVehicle(d.isAddingNewVehicle);
+        setVehicleEditMode(d.vehicleEditMode);
+        // Szkic wie, jakie auto wybrano (albo że żadnego) - auto-wybór jedynego pojazdu
+        // klienta nie może tego nadpisać.
+        vehicleAutoSelectedRef.current = true;
+        vehicleAutoOpenRef.current = false;
+        setSelectedServiceIds(d.selectedServiceIds);
+        setServiceRefs(d.serviceRefs);
+        setServicePrices(d.servicePrices);
+        setServicePriceInputs(d.servicePriceInputs);
+        setServiceAdjustments(d.serviceAdjustments);
+        setServiceNotes(d.serviceNotes);
+        setServiceVatRates(d.serviceVatRates);
+        setServiceBasePrices(d.serviceBasePrices);
+        setTempServices(d.tempServices);
+        lineIdSeqRef.current = d.lineIdSeq;
+        setSendConfirmationSms(d.sendConfirmationSms);
+        setSendReminderSms(d.sendReminderSms);
+        setSendVisitCard(d.sendVisitCard);
+        setIsRecurring(d.isRecurring);
+        setRecurrenceRule(d.recurrenceRule);
+    };
+
+    /** Odkłada bieżący stan do szkicu (jeśli jest co odkładać) i czyści formularz. */
+    const stashToDraft = () => {
+        const current = captureDraft();
+        if (hasDraftContent(current)) setDraft(current);
+        clearForm();
+    };
+
+    /** „Wróć do szkicu". Bieżąca treść, jeśli jakaś jest, zamienia się ze szkicem miejscami. */
+    const restoreDraft = () => {
+        if (!draft) return;
+        const current = captureDraft();
+        applyDraft(draft);
+        setDraft(hasDraftContent(current) ? current : null);
+    };
+
+    const dismissDraft = () => setDraft(null);
+
+    /** „Wyczyść wszystko": nieodwracalne tylko pozornie - pasek szkicu pozwala to cofnąć. */
+    const clearAllWithUndo = () => {
+        if (draftsEnabled) stashToDraft();
+        else clearForm();
+    };
+
+    // Zamknięcie okna bez zapisu odkłada formularz do szkicu. Po udanym zapisie kalendarz
+    // czyści formularz przed zamknięciem, więc nie ma czego odkładać.
+    const wasOpenRef = useRef(isOpen);
+    useEffect(() => {
+        const justClosed = wasOpenRef.current && !isOpen;
+        wasOpenRef.current = isOpen;
+        if (justClosed && draftsEnabled) stashToDraft();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen]);
 
     // ─── Apply initialData when the modal first opens ──────────────────────────
     const prevIsOpenRef = useRef(false);
@@ -559,7 +688,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
 
         const changed = fn !== (selectedCustomer.firstName ?? '')
             || ln !== (selectedCustomer.lastName ?? '')
-            || ph !== (selectedCustomer.phone ?? '')
+            || !samePhone(ph, selectedCustomer.phone)
             || em !== (selectedCustomer.email ?? '');
         return {
             ...selectedCustomer,
@@ -570,6 +699,26 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
             hasUpdates: !selectedCustomer.isNew && changed,
         };
     };
+
+    /** Pojazd, z którym wychodzimy z formularza - ta sama zasada co przy kliencie. */
+    const resolveVehicleForSubmit = (): SelectedVehicle | null => {
+        if (selectedVehicle) return vehicleEditMode ? applyVehicleEdits(selectedVehicle) : selectedVehicle;
+        if ((isAddingNewVehicle || vehicles.length === 0) && (vehicleBrand.trim() || vehicleModel.trim())) {
+            return {
+                id: '', kind: vehicleKind, brand: vehicleBrand.trim(), model: vehicleModel.trim(),
+                year: vehicleYear.trim() ? parseInt(vehicleYear.trim()) : undefined, isNew: true,
+            };
+        }
+        return null;
+    };
+
+    /**
+     * Numer, na który pójdą SMS-y - z pól formularza, nie tylko z wybranego klienta.
+     * Wcześniej nowy klient wpisany w pola na telefonie był „bez numeru": arkusz SMS
+     * mówił „nie wyślemy żadnej wiadomości" i blokował przełączniki, a zapis i tak
+     * wysyłał wiadomości zaznaczone domyślnie.
+     */
+    const smsPhone = (resolveCustomerForSubmit()?.phone ?? '').trim() || null;
 
     const validateForm = (customer: SelectedCustomer | null): { [key: string]: string } => {
         const newErrors: { [key: string]: string } = {};
@@ -589,6 +738,11 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
 
         if (startDateTime && endDateTime && new Date(endDateTime) < new Date(startDateTime)) {
             newErrors.endDateTime = 'Data zakończenia musi być późniejsza niż data rozpoczęcia';
+        }
+
+        if (isRecurring) {
+            const recurrenceProblem = recurrenceError(recurrenceRule, startDateTime);
+            if (recurrenceProblem) newErrors.recurrence = recurrenceProblem;
         }
 
         if (!selectedColorId) newErrors.color = 'Wybierz kolor rezerwacji albo dodaj nowy';
@@ -632,17 +786,51 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    /** Klient z kartoteki jako NOWY klient z poprawionymi danymi („Dodaj jako nowego"). */
+    const asNewCustomer = (c: SelectedCustomer): SelectedCustomer => ({
+        id: '', firstName: c.firstName, lastName: c.lastName, phone: c.phone, email: c.email, isNew: true,
+    });
+
+    /** Pojazd z kartoteki jako NOWY pojazd z poprawionymi danymi („Dodaj jako nowy"). */
+    const asNewVehicle = (v: SelectedVehicle): SelectedVehicle => ({
+        id: '', kind: v.kind, brand: v.brand, model: v.model, year: v.year, isNew: true,
+    });
+
+    const runSubmit = async (decisions: { customer?: RecordDecision; vehicle?: RecordDecision } = {}) => {
         if (isSubmitting) return;
         setErrors({});
-        const customerToSubmit = resolveCustomerForSubmit();
+        let customerToSubmit = resolveCustomerForSubmit();
         const errs = validateForm(customerToSubmit);
         if (Object.keys(errs).length > 0) {
             showError('Nie można zapisać rezerwacji', submitErrorMessage(errs));
             focusFirstError(errs);
             return;
         }
+        let vehicleToSubmit = resolveVehicleForSubmit();
+        decisions = {
+            customer: decisions.customer ?? (customerUpdateConfirmedRef.current ? 'edit' : undefined),
+            vehicle: decisions.vehicle ?? (vehicleUpdateConfirmedRef.current ? 'edit' : undefined),
+        };
+
+        // Zmiana danych klienta albo pojazdu z kartoteki pyta, co z nią zrobić - tak jak
+        // edycja rezerwacji (decyzja biznesu z 21.10.2026). Bez odpowiedzi nic nie idzie.
+        if (customerToSubmit?.hasUpdates && !decisions.customer) {
+            setPendingChoice({ kind: 'customer', resubmit: true, decided: decisions });
+            return;
+        }
+        if (customerToSubmit && decisions.customer === 'new') {
+            customerToSubmit = asNewCustomer(customerToSubmit);
+            // Auto z kartoteki należy do dotychczasowego klienta, a nowy klient nie ma
+            // jeszcze pojazdów. Rezerwacja zostaje z autem, które widać w formularzu -
+            // jako nowym pojazdem nowego klienta, a nie po cichu bez auta.
+            if (vehicleToSubmit && !vehicleToSubmit.isNew) vehicleToSubmit = asNewVehicle(vehicleToSubmit);
+        }
+        if (vehicleToSubmit?.hasUpdates && !decisions.vehicle) {
+            setPendingChoice({ kind: 'vehicle', resubmit: true, decided: decisions });
+            return;
+        }
+        if (vehicleToSubmit && decisions.vehicle === 'new') vehicleToSubmit = asNewVehicle(vehicleToSubmit);
+
         // Stan podnosimy DOPIERO po udanej walidacji. Wcześniej sekcja klienta zamieniłaby
         // się w podsumowanie i schowała pola, w których trzeba poprawić błąd.
         if (customerToSubmit && customerToSubmit !== selectedCustomer) {
@@ -650,14 +838,13 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
             if (customerToSubmit.isNew) setSelectedCustomerId(undefined);
             setCustomerEditMode(false);
         }
+        if (vehicleToSubmit !== selectedVehicle) {
+            setSelectedVehicle(vehicleToSubmit);
+            setVehicleEditMode(false);
+        }
+        // Bez numeru nie ma SMS-a: to samo, co mówi formularz, idzie do serwera.
+        const canSms = !!(customerToSubmit?.phone ?? '').trim();
         setIsSubmitting(true);
-        // Jak przy kliencie: poprawki w otwartej edycji pojazdu wchodzą do zapisu także
-        // bez kliknięcia „gotowe".
-        const vehicleToSubmit = (selectedVehicle && vehicleEditMode ? applyVehicleEdits(selectedVehicle) : selectedVehicle) ?? (
-            (isAddingNewVehicle || vehicles.length === 0) && (vehicleBrand.trim() || vehicleModel.trim())
-                ? { id: '', kind: vehicleKind, brand: vehicleBrand.trim(), model: vehicleModel.trim(), year: vehicleYear.trim() ? parseInt(vehicleYear.trim()) : undefined, isNew: true as const }
-                : null
-        );
         try {
             await Promise.resolve(onSave({
                 title,
@@ -677,9 +864,9 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
                 colorId: selectedColorId,
                 notes,
                 doorToDoor: doorToDoor.enabled ? doorToDoor : undefined,
-                sendConfirmationSms: bookingConfirmationEnabled && sendConfirmationSms,
-                sendReminderSms: preVisitEnabled && sendReminderSms,
-                sendVisitCard: visitCardEnabled && reservationCardLinkSmsEnabled && sendVisitCard,
+                sendConfirmationSms: canSms && bookingConfirmationEnabled && sendConfirmationSms,
+                sendReminderSms: canSms && preVisitEnabled && sendReminderSms,
+                sendVisitCard: canSms && visitCardEnabled && reservationCardLinkSmsEnabled && sendVisitCard,
                 recurrence: isRecurring ? recurrenceRule : null,
             }));
         } catch (err: any) {
@@ -697,6 +884,30 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
             setIsSubmitting(false);
         }
     };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        await runSubmit();
+    };
+
+    /**
+     * Odpowiedź na „Zmienić dane klienta/pojazdu?". „Edytuj istniejącego" zapisuje zmianę
+     * w kartotece, „Dodaj jako nowego" zakłada nową kartę z poprawionymi danymi. Gdy pytanie
+     * padło przy zapisie, zapis idzie dalej z tą odpowiedzią.
+     */
+    const answerPendingChoice = (decision: RecordDecision) => {
+        const choice = pendingChoice;
+        if (!choice) return;
+        setPendingChoice(null);
+        if (choice.resubmit) {
+            void runSubmit({ ...choice.decided, [choice.kind]: decision });
+            return;
+        }
+        if (choice.kind === 'customer') applyCustomerEdit(decision);
+        else applyVehicleEdit(decision);
+    };
+
+    const cancelPendingChoice = () => setPendingChoice(null);
 
     const handleCustomerFieldFocus = () => {
         if (customerBlurTimerRef.current) {
@@ -790,6 +1001,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     };
 
     const handleEnterEditMode = () => {
+        customerUpdateConfirmedRef.current = false;
         setCustomerEditMode(true);
         setShowCustomerDropdown(false);
         prefillAwaitingConfirmRef.current = false;
@@ -820,16 +1032,41 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         }
         const changed = fn !== (selectedCustomer.firstName ?? '')
             || ln !== (selectedCustomer.lastName ?? '')
-            || ph !== (selectedCustomer.phone ?? '')
+            || !samePhone(ph, selectedCustomer.phone)
             || em !== (selectedCustomer.email ?? '');
-        setSelectedCustomer({
+        if (!selectedCustomer.isNew && changed) {
+            // Zmiana karty klienta z kartoteki pyta „Zmienić dane klienta?". Po cichu
+            // (wyjście z pola) nie pytamy - edycja zostaje otwarta, a pytanie padnie
+            // przy „Zatwierdź zmiany" albo przy zapisie rezerwacji.
+            if (!options?.silent) setPendingChoice({ kind: 'customer', resubmit: false });
+            return;
+        }
+        setSelectedCustomer({ ...selectedCustomer, firstName: fn, lastName: ln, phone: ph, email: em });
+        setCustomerEditMode(false);
+        prefillAwaitingConfirmRef.current = false;
+    };
+
+    /** Odpowiedź na „Zmienić dane klienta?" zadane przy „Zatwierdź zmiany". */
+    const applyCustomerEdit = (decision: RecordDecision) => {
+        if (!selectedCustomer) return;
+        const edited: SelectedCustomer = {
             ...selectedCustomer,
-            firstName: fn,
-            lastName: ln,
-            phone: ph,
-            email: em,
-            hasUpdates: !selectedCustomer.isNew && changed,
-        });
+            firstName: customerFirstName.trim(),
+            lastName: customerLastName.trim(),
+            phone: customerFullPhone,
+            email: customerEmail.trim(),
+            hasUpdates: true,
+        };
+        if (decision === 'edit') {
+            setSelectedCustomer(edited);
+            customerUpdateConfirmedRef.current = true;
+        } else {
+            setSelectedCustomer(asNewCustomer(edited));
+            setSelectedCustomerId(undefined);
+            customerUpdateConfirmedRef.current = false;
+            // Auto z kartoteki zostaje w rezerwacji jako nowy pojazd nowego klienta.
+            if (selectedVehicle && !selectedVehicle.isNew) setSelectedVehicle(asNewVehicle(selectedVehicle));
+        }
         setCustomerEditMode(false);
         prefillAwaitingConfirmRef.current = false;
     };
@@ -898,6 +1135,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     };
 
     const handleEnterVehicleEditMode = () => {
+        vehicleUpdateConfirmedRef.current = false;
         setVehicleEditMode(true);
         setShowVehicleDropdown(false);
     };
@@ -921,9 +1159,33 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         };
     };
 
+    const vehicleFieldsChanged = (vehicle: SelectedVehicle): boolean => {
+        const year = vehicleYear.trim() ? parseInt(vehicleYear.trim()) : undefined;
+        return vehicleKind !== normalizeVehicleKind(vehicle.kind)
+            || vehicleBrand.trim() !== vehicle.brand || vehicleModel.trim() !== vehicle.model || year !== vehicle.year;
+    };
+
     const handleConfirmVehicleEdit = () => {
         if (!selectedVehicle) return;
+        if (!selectedVehicle.isNew && vehicleFieldsChanged(selectedVehicle)) {
+            setPendingChoice({ kind: 'vehicle', resubmit: false });
+            return;
+        }
         setSelectedVehicle(applyVehicleEdits(selectedVehicle));
+        setVehicleEditMode(false);
+    };
+
+    /** Odpowiedź na „Zmienić dane pojazdu?" zadane przy „Zatwierdź zmiany". */
+    const applyVehicleEdit = (decision: RecordDecision) => {
+        if (!selectedVehicle) return;
+        const edited = applyVehicleEdits(selectedVehicle);
+        if (decision === 'edit') {
+            setSelectedVehicle(edited);
+            vehicleUpdateConfirmedRef.current = true;
+        } else {
+            setSelectedVehicle(asNewVehicle(edited));
+            vehicleUpdateConfirmedRef.current = false;
+        }
         setVehicleEditMode(false);
     };
 
@@ -938,6 +1200,8 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     };
 
     const handleCustomerSelect = (customer: SelectedCustomer) => {
+        customerUpdateConfirmedRef.current = false;
+        vehicleUpdateConfirmedRef.current = false;
         setSelectedCustomer(customer);
         setSelectedCustomerId(customer.id);
         setSelectedVehicle(null);
@@ -957,6 +1221,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     };
 
     const handleVehicleSelect = (vehicle: SelectedVehicle) => {
+        vehicleUpdateConfirmedRef.current = false;
         // Wybrany pojazd przynosi swój rodzaj - pola marki i modelu (tryb edycji, telefon)
         // podpowiadają wtedy z jego katalogu, a nie z katalogu aut.
         const kind = normalizeVehicleKind(vehicle.kind);
@@ -1211,5 +1476,19 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         handleQuickServiceCreate,
         handleQuickColorCreate,
         clearForm,
+
+        // Szkic
+        draft: draftsEnabled ? draft : null,
+        draftSummary: draft ? draftSummary(draft) : '',
+        restoreDraft,
+        dismissDraft,
+        clearAllWithUndo,
+
+        // „Zmienić dane klienta/pojazdu?"
+        pendingChoice,
+        answerPendingChoice,
+        cancelPendingChoice,
+
+        smsPhone,
     };
 }

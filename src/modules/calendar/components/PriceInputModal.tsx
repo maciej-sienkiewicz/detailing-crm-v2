@@ -1,6 +1,8 @@
 // src/modules/calendar/components/PriceInputModal.tsx
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useModalViewport } from '@/common/hooks';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { PriceInput } from '@/modules/services/components/PriceInput';
 import { FormInfoBox, FormInfoLabel, FormInfoValue } from '@/common/styles';
@@ -63,12 +65,18 @@ export const PriceInputModal: React.FC<PriceInputModalProps> = ({
     onConfirm,
 }) => {
     const { isCollapsed } = useSidebar();
-    const contentLeft = typeof window !== 'undefined' ? (isCollapsed ? 64 : 240) : 0;
+    const contentLeft = typeof window !== 'undefined' ? (isCollapsed ? 64 : 248) : 0;
     // Pola startują puste i nie mają się z niczym synchronizować: rodzic montuje
     // to okno osobno dla każdej usługi (key), więc kolejna cena zaczyna od czystego
     // stanu bez efektu zerującego. Ten sam wzorzec co w checkin/ManualPriceModal.
     const [priceNet, setPriceNet] = useState(0);
     const [priceGross, setPriceGross] = useState(0);
+
+    // Escape, blokada przewijania tła i portal - jak w bliźniaczym „Nowa usługa"
+    // (QuickServiceModal). Wcześniej to jedno okno nie reagowało na Escape, a tło
+    // przewijało się pod nim.
+    const overlayRef = useRef<HTMLDivElement>(null);
+    useModalViewport(isOpen, overlayRef, onClose);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -78,8 +86,9 @@ export const PriceInputModal: React.FC<PriceInputModalProps> = ({
 
     if (!isOpen) return null;
 
-    return (
+    return createPortal(
         <Overlay
+            ref={overlayRef}
             $isOpen={isOpen}
             $contentLeft={contentLeft}
             onMouseDown={(e) => e.target === e.currentTarget && onClose()}
@@ -126,6 +135,7 @@ export const PriceInputModal: React.FC<PriceInputModalProps> = ({
                     </Footer>
                 </Form>
             </ModalContainer>
-        </Overlay>
+        </Overlay>,
+        document.body
     );
 };

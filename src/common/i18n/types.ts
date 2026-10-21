@@ -345,28 +345,6 @@ export interface TranslationKeys {
         };
     };
     appointments: {
-        createView: {
-            title: string;
-            subtitle: string;
-            reservationDetails: string;
-            appointmentNameLabel: string;
-            appointmentNamePlaceholder: string;
-            colorLabel: string;
-            customerSection: string;
-            addOrSearchCustomer: string;
-            changeCustomer: string;
-            vehicleSection: string;
-            selectOrAddVehicle: string;
-            changeVehicle: string;
-            scheduleSection: string;
-            allDayToggle: string;
-            date: string;
-            startDateTime: string;
-            endDate: string;
-            submitButton: string;
-            submitting: string;
-            createError: string;
-        };
         customerModal: {
             titleSelect: string;
             titleChange: string;

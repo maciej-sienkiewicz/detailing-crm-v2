@@ -11,7 +11,7 @@
 import { pluralPl } from '@/common/utils/plural';
 
 /** Kolejność pól na formularzu - ta sama dla dymka i przewinięcia do pierwszego błędu. */
-export const SUBMIT_ERROR_ORDER = ['startDateTime', 'endDateTime', 'customer', 'services', 'servicePrices', 'color'] as const;
+export const SUBMIT_ERROR_ORDER = ['startDateTime', 'endDateTime', 'recurrence', 'customer', 'services', 'servicePrices', 'color'] as const;
 
 const fieldsWord = (n: number): string => pluralPl(n, 'pole', 'pola', 'pól');
 

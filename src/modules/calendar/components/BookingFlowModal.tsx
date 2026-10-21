@@ -201,7 +201,7 @@ export function BookingFlowModal({
 
     return createPortal(
         <Overlay
-            $contentLeft={isCollapsed ? 64 : 240}
+            $contentLeft={isCollapsed ? 64 : 248}
             onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
         >
             <Sheet onMouseDown={(event) => event.stopPropagation()}>

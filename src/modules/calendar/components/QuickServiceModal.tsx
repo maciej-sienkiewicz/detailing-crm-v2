@@ -58,7 +58,7 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                                                                         contentLeft: contentLeftProp,
                                                                     }) => {
     const { isCollapsed } = useSidebar();
-    const contentLeft = contentLeftProp ?? (typeof window !== 'undefined' ? (isCollapsed ? 64 : 240) : 0);
+    const contentLeft = contentLeftProp ?? (typeof window !== 'undefined' ? (isCollapsed ? 64 : 248) : 0);
     const [serviceName, setServiceName] = useState(initialServiceName);
     const [basePriceNet, setBasePriceNet] = useState(0);
     const [basePriceGross, setBasePriceGross] = useState(0);

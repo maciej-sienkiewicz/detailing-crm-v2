@@ -25,6 +25,7 @@ import { useMediaQuery } from '@/common/hooks';
 import { useCalendarFilters } from '../hooks/useCalendarFilters';
 import { useQuickEventCreation } from '../hooks/useQuickEventCreation';
 import { QuickEventModal, type QuickEventFormData, type QuickEventModalRef } from './QuickEventModal';
+import { savedReservationToast } from './QuickEventModal/savedToast';
 import { EventSummaryPopover } from './EventSummaryPopover';
 import type { PopoverAnchor } from './EventSummaryPopover';
 import { DeleteRecurringModal } from '@/modules/operations/components/DeleteRecurringModal';
@@ -1686,12 +1687,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
     /**
      * Wejście globalnym skrótem „R": /calendar ze stanem { openQuickEvent: true }
-     * otwiera od razu okno szybkiej wizyty z zakresem dziś → jutro.
+     * otwiera od razu okno szybkiej rezerwacji na cały dzisiejszy dzień (decyzja
+     * biznesu z 21.10.2026 - wcześniej skrót zakładał rezerwację dwudniową, dziś
+     * 9:00 → jutro 20:00).
      *
-     * Zakres idzie w konwencji FullCalendara (koniec WYŁĄCZNY - stąd +2 dni
-     * o północy): useQuickEventForm odejmie dzień i pokaże start dziś 9:00,
-     * koniec jutro 20:00. Stan nawigacji czyścimy natychmiast, żeby odświeżenie
-     * strony (stan historii przeżywa F5) nie otwierało okna drugi raz.
+     * Zakres idzie w konwencji FullCalendara (koniec WYŁĄCZNY - stąd +1 dzień
+     * o północy): useQuickEventForm pokaże wtedy jedno pole „Data" z „Cały dzień".
+     * Stan nawigacji czyścimy natychmiast, żeby odświeżenie strony (stan historii
+     * przeżywa F5) nie otwierało okna drugi raz.
      */
     const quickEventFromNav = Boolean((location.state as { openQuickEvent?: boolean } | null)?.openQuickEvent);
     useEffect(() => {
@@ -1700,7 +1703,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         const start = new Date();
         start.setHours(0, 0, 0, 0);
         const end = new Date(start);
-        end.setDate(end.getDate() + 2);
+        end.setDate(end.getDate() + 1);
         openQuickEvent({ start, end, allDay: true });
     }, [quickEventFromNav, navigate, location.pathname, location.search, openQuickEvent]);
 
@@ -2454,7 +2457,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         quickEventModalRef.current?.clearForm();
         setQuickModalOpen(false);
         setSelectedEventData(null);
-    }, [createQuickEventAsync]);
+        const toast = savedReservationToast(data);
+        showSuccess(toast.title, toast.message);
+    }, [createQuickEventAsync, showSuccess]);
 
     /**
      * Handle modal close

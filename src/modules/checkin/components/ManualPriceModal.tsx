@@ -65,7 +65,7 @@ export const ManualPriceModal = ({
     contentLeft: contentLeftProp,
 }: ManualPriceModalProps) => {
     const { isCollapsed } = useSidebar();
-    const contentLeft = contentLeftProp ?? (typeof window !== 'undefined' ? (isCollapsed ? 64 : 240) : 0);
+    const contentLeft = contentLeftProp ?? (typeof window !== 'undefined' ? (isCollapsed ? 64 : 248) : 0);
 
     // Stan startowy bierzemy raz, przy montowaniu: rodzic remontuje modal dla każdej
     // kolejnej usługi (key), więc nie potrzeba efektu synchronizującego pola z propsami.

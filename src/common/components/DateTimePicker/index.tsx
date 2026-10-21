@@ -782,6 +782,8 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
             <Trigger
                 ref={triggerRef}
                 type="button"
+                aria-haspopup="dialog"
+                aria-expanded={isOpen}
                 $accentColor={accentColor}
                 $hasError={hasError}
                 $hasValue={!!displayValue}
