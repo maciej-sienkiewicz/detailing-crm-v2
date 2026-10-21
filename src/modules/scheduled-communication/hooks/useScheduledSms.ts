@@ -1,18 +1,23 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { scheduledSmsApi } from '../api/scheduledSmsApi';
 import type { ScheduledSmsItem, UpdateScheduledSmsPayload } from '../types';
+import { backgroundRequest } from '@/core/backgroundRequest';
 
 const KEY = ['scheduled-sms'] as const;
 
 /** Domyślnie miesiąc w przód - tyle sięga lista wyliczanych przypomnień automatu. */
 export const DEFAULT_HORIZON_DAYS = 30;
 
-export function useScheduledSms(days: number = DEFAULT_HORIZON_DAYS) {
+/**
+ * `poll`: odświeżanie co minutę tylko dla otwartego kanału. Druga zakładka bierze z tej
+ * listy sam licznik - dawniej oba kanały były odpytywane co minutę, cokolwiek było na ekranie.
+ */
+export function useScheduledSms({ days = DEFAULT_HORIZON_DAYS, poll = true }: { days?: number; poll?: boolean } = {}) {
     return useQuery({
         queryKey: [...KEY, days],
-        queryFn: () => scheduledSmsApi.list(days),
+        queryFn: context => scheduledSmsApi.list(days, backgroundRequest(context)),
         // Lista żyje: dispatchery wysyłają co minutę, a pracownik zostawia ją otwartą.
-        refetchInterval: 60_000,
+        refetchInterval: poll ? 60_000 : false,
     });
 }
 

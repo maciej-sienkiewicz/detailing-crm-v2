@@ -209,8 +209,10 @@ export function useMobilePhotoUploadLogic(token: string): MobilePhotoUploadLogic
                     return;
                 }
                 applyStatus(status);
-            } catch {
-                // network error: ignore, will retry next cycle
+            } catch (error) {
+                // Token wygasł albo sesja zniknęła - stan „wygasło" kończy też odpytywanie.
+                // Błąd sieci: próbujemy w następnym cyklu.
+                if (isSessionGoneError(error)) setSessionState('expired');
             }
         };
 

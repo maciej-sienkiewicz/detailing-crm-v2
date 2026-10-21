@@ -2,6 +2,7 @@
 // Rozmowa leada z Instagrama: odczyt, odpowiedź z CRM, odczytanie.
 import { apiClient } from '@/core/apiClient';
 import type { InstagramDmConversation } from '../types';
+import type { BackgroundRequestConfig } from '@/core/backgroundRequest';
 
 const BASE = '/v1/instagram/dm';
 
@@ -11,10 +12,10 @@ export const instagramDmApi = {
      * błędzie: rozmowy stoją za modułem Instagrama, a sprawa bez nich pokazuje zgłoszenie
      * i podpowiedź, co zrobić - komunikat przy każdym otwarciu sprawy byłby tylko szumem.
      */
-    getByLead: async (leadId: string): Promise<InstagramDmConversation | null> => {
+    getByLead: async (leadId: string, config?: BackgroundRequestConfig): Promise<InstagramDmConversation | null> => {
         const response = await apiClient.get<InstagramDmConversation | ''>(
             `${BASE}/by-lead/${encodeURIComponent(leadId)}`,
-            { skipErrorToast: true }
+            { skipErrorToast: true, ...config }
         );
         return response.status === 204 || !response.data ? null : response.data;
     },

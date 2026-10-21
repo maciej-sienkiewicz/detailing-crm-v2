@@ -15,6 +15,7 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { customerImportApi } from '../api/customerImportApi';
 import { ImportContactsTable } from './ImportContactsTable';
 import type { ImportPreview } from '../types';
+import { backgroundRequest } from '@/core/backgroundRequest';
 
 /*
  * Import klientów z telefonu.
@@ -245,7 +246,7 @@ export const ImportContactsModal = ({ onClose, onImported }: ImportContactsModal
      */
     const { data: polled } = useQuery({
         queryKey: ['customer-import-session', handoffSession?.sessionId],
-        queryFn: () => customerImportApi.getSession(handoffSession!.sessionId),
+        queryFn: context => customerImportApi.getSession(handoffSession!.sessionId, backgroundRequest(context)),
         enabled: mode === 'phone' && handoffSession != null,
         refetchInterval: query => (query.state.data?.status === 'READY' ? false : 2000),
     });

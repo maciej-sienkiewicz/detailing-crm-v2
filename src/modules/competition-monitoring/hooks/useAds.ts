@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { instagramApi } from '../api/instagramApi';
 import { ANALYTICS_KEYS } from './useAnalytics';
 import { INSTAGRAM_PROFILES_KEY } from './useInstagramProfiles';
+import { backgroundRequest } from '@/core/backgroundRequest';
 
 /**
  * Reklamy konkurencji. Dane odświeżają się raz na dobę (sync z Biblioteką reklam),
@@ -42,7 +43,7 @@ export const useAdDetail = (adId: string | null) =>
 export const useAdCreative = (adId: string | null) =>
     useQuery({
         queryKey: [ADS_KEYS.detail, adId, 'creative'],
-        queryFn: () => instagramApi.getAdCreative(adId!),
+        queryFn: context => instagramApi.getAdCreative(adId!, backgroundRequest(context)),
         enabled: !!adId,
         // Adresy plików Meta żyją kilka dni, a serwer i tak pilnuje ich wygaśnięcia.
         staleTime: 30 * 60_000,

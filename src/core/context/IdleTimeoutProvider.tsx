@@ -1,5 +1,5 @@
-import { createContext, useEffect, useRef, useState, ReactNode } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
+import { focusManager, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from './AuthContext';
 import { UserSwitcherPanel } from '@/modules/pin-switcher';
 import { authApi } from '@/modules/auth/api/authApi';
@@ -59,6 +59,10 @@ export const IdleTimeoutProvider = ({ children }: Props) => {
     const setLocked = (value: boolean) => {
         lockedRef.current = value;
         setIsLocked(value);
+        // Pod ekranem blokady odpytywanie cykliczne (refetchInterval) i odświeżanie przy
+        // powrocie do karty milkną: każde takie zapytanie kończyło się 423 co kilka sekund.
+        // `undefined` oddaje decyzję widoczności karty, jak zawsze.
+        focusManager.setFocused(value ? false : undefined);
     };
 
     const clearTimer = () => {

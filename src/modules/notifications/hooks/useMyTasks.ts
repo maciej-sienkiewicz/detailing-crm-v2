@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { myTasksApi, type MyTask } from '../api/myTasksApi';
+import { backgroundRequest } from '@/core/backgroundRequest';
 
 export const MY_TASKS_KEY = ['my-tasks'] as const;
 export const MY_TASKS_SUMMARY_KEY = ['my-tasks', 'summary'] as const;
@@ -19,7 +20,7 @@ export function useMyTasks() {
 export function useMyTasksUnreadCount(options?: { enabled?: boolean }): number {
     const { data } = useQuery({
         queryKey: MY_TASKS_SUMMARY_KEY,
-        queryFn: myTasksApi.summary,
+        queryFn: context => myTasksApi.summary(backgroundRequest(context)),
         select: summary => summary.unreadCount,
         refetchInterval: 60_000,
         enabled: options?.enabled ?? true,

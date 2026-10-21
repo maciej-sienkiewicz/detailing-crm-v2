@@ -8,6 +8,7 @@ import type {
     ActivityFilters,
 } from '../types';
 import { employeeOf } from '../types';
+import type { BackgroundRequestConfig } from '@/core/backgroundRequest';
 
 const BASE = '/v1/audit';
 
@@ -49,9 +50,11 @@ export const activityApi = {
         filters: ActivityFilters,
         cursor: string | null,
         limit = 30,
+        config?: BackgroundRequestConfig,
     ): Promise<ActivityFeedPage> => {
         const res = await apiClient.get<ActivityFeedPage>(`${BASE}/feed`, {
             params: buildFeedParams(filters, cursor, limit),
+            ...config,
         });
         return res.data;
     },

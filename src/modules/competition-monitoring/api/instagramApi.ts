@@ -26,6 +26,7 @@ import type {
     WeeklyDigest,
     WeeksOption,
 } from '../types';
+import type { BackgroundRequestConfig } from '@/core/backgroundRequest';
 
 const PROFILES_PATH = '/v1/instagram/profiles';
 const ANALYTICS_PATH = '/v1/instagram';
@@ -127,8 +128,9 @@ export const instagramApi = {
     },
 
     /** Kreacja reklamy - pierwszy odczyt trwa do kilkudziesięciu sekund (przeglądarka po stronie serwera). */
-    getAdCreative: async (adId: string): Promise<AdCreative> => {
+    getAdCreative: async (adId: string, config?: BackgroundRequestConfig): Promise<AdCreative> => {
         const response = await apiClient.get<AdCreative>(`${ADS_PATH}/${encodeURIComponent(adId)}/creative`, {
+            ...config,
             timeout: 90_000,
             skipErrorToast: true,
         });

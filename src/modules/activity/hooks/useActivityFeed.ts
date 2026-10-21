@@ -3,6 +3,7 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { activityApi, type ActivityEntityScope } from '../api/activityApi';
 import type { ActivityFilters } from '../types';
+import { backgroundRequest } from '@/core/backgroundRequest';
 
 export const activityKeys = {
     feed: (filters: ActivityFilters) => ['activity', 'feed', filters] as const,
@@ -54,9 +55,9 @@ export function useNewerActivityCount(filters: ActivityFilters, newestOccurredAt
 
     return useQuery({
         queryKey: activityKeys.newer(filters, since),
-        queryFn: async () => {
+        queryFn: async (context) => {
             // Ten sam zakres „od" co lista - ale nigdy wcześniej niż najnowszy wpis.
-            const page = await activityApi.getFeed({ ...filters, from: since, to: null }, null, NEWER_PROBE_LIMIT);
+            const page = await activityApi.getFeed({ ...filters, from: since, to: null }, null, NEWER_PROBE_LIMIT, backgroundRequest(context));
             return { count: page.items.length, more: page.hasMore };
         },
         enabled: since !== null && filters.to === null,

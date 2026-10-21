@@ -5,6 +5,8 @@
 // the page stays open. Raw axios messages ("Request failed with status code 403") tell
 // the operator nothing, so failures are translated here.
 
+import { isSessionGone } from '@/common/utils/sessionGone';
+
 interface HttpErrorShape {
     response?: { status?: number; data?: { message?: string } };
 }
@@ -21,8 +23,8 @@ const serverMessage = (err: unknown): string | undefined =>
  * and ask for a fresh QR code.
  */
 export const isSessionGoneError = (err: unknown): boolean => {
+    if (isSessionGone(err)) return true;
     const status = httpStatus(err);
-    if (status === 401 || status === 403) return true;
     // No response object (non-axios error): fall back to the message text
     const message = err instanceof Error ? err.message.toLowerCase() : '';
     return status === undefined && (message.includes('403') || message.includes('token'));

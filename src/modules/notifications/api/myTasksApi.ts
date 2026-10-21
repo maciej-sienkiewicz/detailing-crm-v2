@@ -1,4 +1,5 @@
 import { apiClient } from '@/core/apiClient';
+import type { BackgroundRequestConfig } from '@/core/backgroundRequest';
 
 const BASE_PATH = '/v1/my/tasks';
 
@@ -32,8 +33,8 @@ export const myTasksApi = {
         return data;
     },
 
-    summary: async (): Promise<MyTasksSummary> => {
-        const { data } = await apiClient.get<MyTasksSummary>(`${BASE_PATH}/summary`);
+    summary: async (config?: BackgroundRequestConfig): Promise<MyTasksSummary> => {
+        const { data } = await apiClient.get<MyTasksSummary>(`${BASE_PATH}/summary`, config);
         return data;
     },
 

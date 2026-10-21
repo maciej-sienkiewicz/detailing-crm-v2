@@ -4,6 +4,7 @@ import type {
     ImportHandoffSession,
     ImportPreview,
 } from '../types';
+import type { BackgroundRequestConfig } from '@/core/backgroundRequest';
 
 const BASE_PATH = '/v1/customers/import';
 
@@ -35,8 +36,8 @@ export const customerImportApi = {
      * Stan sesji z podglądem. Tym samym zapytaniem panel czeka na kontakty z telefonu
      * i odbiera gotową listę, gdy już przyjdą.
      */
-    getSession: async (sessionId: string): Promise<ImportPreview> => {
-        const response = await apiClient.get(`${BASE_PATH}/sessions/${sessionId}`);
+    getSession: async (sessionId: string, config?: BackgroundRequestConfig): Promise<ImportPreview> => {
+        const response = await apiClient.get(`${BASE_PATH}/sessions/${sessionId}`, config);
         return response.data;
     },
 

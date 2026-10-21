@@ -9,6 +9,7 @@ import type {
   CampaignSettings,
   RecipientStatus,
 } from '../types';
+import { backgroundRequest } from '@/core/backgroundRequest';
 
 const KEYS = {
   list: ['campaigns'] as const,
@@ -37,7 +38,7 @@ export function useCampaignStats() {
 export function useCampaign(id: string | undefined) {
   const { data, isLoading, isError } = useQuery({
     queryKey: KEYS.one(id ?? ''),
-    queryFn: () => api.fetchCampaign(id!),
+    queryFn: context => api.fetchCampaign(id!, backgroundRequest(context)),
     enabled: !!id,
     // Kampania w trakcie wysyłki: odświeżaj licznik na żywo
     refetchInterval: (query) => (query.state.data?.status === 'SENDING' ? 5000 : false),

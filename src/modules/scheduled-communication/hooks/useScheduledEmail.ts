@@ -1,15 +1,19 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { scheduledEmailApi } from '../api/scheduledEmailApi';
 import type { ScheduledEmailItem, UpdateScheduledEmailPayload } from '../types';
+import { backgroundRequest } from '@/core/backgroundRequest';
 
 const KEY = ['scheduled-email'] as const;
 
-/** Zakładka „E-maile" - lista żyje tak samo jak SMS-owa: dispatcher kolejki chodzi co minutę. */
-export function useScheduledEmail() {
+/**
+ * Zakładka „E-maile" - lista żyje tak samo jak SMS-owa: dispatcher kolejki chodzi co minutę.
+ * `poll`: co minutę tylko wtedy, gdy ta zakładka jest otwarta (patrz useScheduledSms).
+ */
+export function useScheduledEmail({ poll = true }: { poll?: boolean } = {}) {
     return useQuery({
         queryKey: KEY,
-        queryFn: () => scheduledEmailApi.list(),
-        refetchInterval: 60_000,
+        queryFn: context => scheduledEmailApi.list(backgroundRequest(context)),
+        refetchInterval: poll ? 60_000 : false,
     });
 }
 

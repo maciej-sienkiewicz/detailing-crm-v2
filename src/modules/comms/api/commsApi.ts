@@ -24,6 +24,7 @@ import type {
     ThreadContactBadges,
     ThreadListFilters,
 } from '../types';
+import type { BackgroundRequestConfig } from '@/core/backgroundRequest';
 
 export const commsApi = {
     // ── Skrzynki (onboarding zostaje pod /mailbox, stan pod /comms) ──────────
@@ -42,8 +43,8 @@ export const commsApi = {
         await apiClient.delete(`/v1/mailbox/accounts/${accountId}`);
     },
 
-    getAccounts: async (): Promise<MailAccountState[]> => {
-        const { data } = await apiClient.get('/v1/comms/accounts');
+    getAccounts: async (config?: BackgroundRequestConfig): Promise<MailAccountState[]> => {
+        const { data } = await apiClient.get('/v1/comms/accounts', config);
         return data;
     },
 

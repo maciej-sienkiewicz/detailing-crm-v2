@@ -1,5 +1,6 @@
 import { apiClient } from '@/core';
 import type { ScheduledEmailItem, ScheduledEmailOverview, SentEmailPage, UpdateScheduledEmailPayload } from '../types';
+import type { BackgroundRequestConfig } from '@/core/backgroundRequest';
 
 const BASE = '/scheduled-email';
 
@@ -9,8 +10,8 @@ const itemPath = (item: Pick<ScheduledEmailItem, 'source' | 'id'>) => `${BASE}/$
 const local = { skipErrorToast: true } as const;
 
 export const scheduledEmailApi = {
-    async list(): Promise<ScheduledEmailOverview> {
-        const { data } = await apiClient.get<ScheduledEmailOverview>(BASE);
+    async list(config?: BackgroundRequestConfig): Promise<ScheduledEmailOverview> {
+        const { data } = await apiClient.get<ScheduledEmailOverview>(BASE, config);
         return data;
     },
 

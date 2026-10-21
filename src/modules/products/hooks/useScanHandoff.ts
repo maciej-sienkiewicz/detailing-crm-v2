@@ -10,6 +10,7 @@ import { subscribeToTopic } from '@/core/socketClient';
 import { useAuth } from '@/core/context/AuthContext';
 import { productsApi } from '../api/productsApi';
 import type { ScanSession } from '../types';
+import { isSessionGone } from '@/common/utils/sessionGone';
 
 const POLL_MS = 3000;
 
@@ -98,7 +99,10 @@ export function useScanHandoff() {
                     const fresh = await productsApi.getScanSession(s.sessionId);
                     mergeCodes(toCodeStrings(fresh.scannedCodes));
                     if (fresh.status !== 'OPEN') stop();
-                } catch { /* sesja mogła wygasnąć — poll zgaśnie z komponentem */ }
+                } catch (error) {
+                    // Sesja wygasła albo zniknęła - koniec odpytywania; błąd sieci: próbujemy dalej.
+                    if (isSessionGone(error)) stop();
+                }
             }, POLL_MS);
 
             return s;

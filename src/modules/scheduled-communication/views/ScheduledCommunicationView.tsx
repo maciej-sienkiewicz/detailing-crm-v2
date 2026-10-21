@@ -163,8 +163,9 @@ export const ScheduledCommunicationView = () => {
     const [state, setState] = useState<ListState>('PENDING');
 
     // Obie listy naraz: liczniki w zakładkach kanałów mają mówić prawdę bez przełączania.
-    const sms = useScheduledSms();
-    const email = useScheduledEmail();
+    // Co minutę odświeża się tylko otwarty kanał - drugi bierze z listy sam licznik.
+    const sms = useScheduledSms({ poll: channel === 'SMS' });
+    const email = useScheduledEmail({ poll: channel === 'EMAIL' });
     const sentSms = useSentSms(channel === 'SMS' && state === 'SENT');
     const sentEmail = useSentEmail(channel === 'EMAIL' && state === 'SENT');
     const updateSms = useUpdateScheduledSms();

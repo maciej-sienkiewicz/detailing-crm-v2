@@ -10,6 +10,7 @@ import type {
   RecipientStatus,
   TestSendRequest,
 } from '../types';
+import type { BackgroundRequestConfig } from '@/core/backgroundRequest';
 
 const BASE = '/v1/campaigns';
 
@@ -30,8 +31,8 @@ export async function fetchCampaignStats(): Promise<CampaignStats> {
   return data;
 }
 
-export async function fetchCampaign(id: string): Promise<Campaign> {
-  const { data } = await apiClient.get<Campaign>(`${BASE}/${id}`);
+export async function fetchCampaign(id: string, config?: BackgroundRequestConfig): Promise<Campaign> {
+  const { data } = await apiClient.get<Campaign>(`${BASE}/${id}`, config);
   return data;
 }
 

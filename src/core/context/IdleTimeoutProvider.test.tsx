@@ -6,7 +6,7 @@
 // (ProtectedRoute pokazuje sam ekran blokady zamiast aplikacji).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, focusManager } from '@tanstack/react-query';
 // ProtectedRoute bierze useNavigate z 'react-router-dom' - router z tego samego pakietu.
 import { MemoryRouter } from 'react-router-dom';
 import type { User } from '@/modules/auth/types';
@@ -142,6 +142,16 @@ describe('IdleTimeoutProvider - blokada po bezczynności', () => {
         });
         expect(lockScreen()).toBeNull();
         expect(auth.value.refreshUser).toHaveBeenCalledTimes(1);
+    });
+
+    it('pod blokadą zapytania cykliczne milkną, po PIN-ie wracają', () => {
+        renderApp();
+        act(() => { window.dispatchEvent(new CustomEvent(SESSION_LOCKED_EVENT)); });
+        // React Query nie odpytuje „niewidocznej" aplikacji - dawniej 423 co kilka sekund.
+        expect(focusManager.isFocused()).toBe(false);
+
+        fireEvent.click(screen.getByRole('button', { name: 'PIN poprawny' }));
+        expect(focusManager.isFocused()).toBe(true);
     });
 
     it('udany PIN w tej karcie zdejmuje nakładkę i liczy bezczynność od nowa', () => {

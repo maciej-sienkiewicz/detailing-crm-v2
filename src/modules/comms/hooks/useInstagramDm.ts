@@ -4,6 +4,7 @@ import { instagramDmApi } from '../api/instagramDmApi';
 import type { InstagramDmConversation } from '../types';
 import { LEADS_KEY } from './useLeads';
 import { invalidateLead } from '../api/leadKeys';
+import { backgroundRequest } from '@/core/backgroundRequest';
 
 /** Pod prefiksem leadów: unieważnienie sprawy (np. z gniazda) odświeża i rozmowę. */
 export const instagramDmKey = (leadId: string | null) => [...LEADS_KEY, 'instagram-dm', leadId];
@@ -11,7 +12,7 @@ export const instagramDmKey = (leadId: string | null) => [...LEADS_KEY, 'instagr
 export const useInstagramConversation = (leadId: string | null, enabled: boolean) =>
     useQuery({
         queryKey: instagramDmKey(leadId),
-        queryFn: () => instagramDmApi.getByLead(leadId!),
+        queryFn: context => instagramDmApi.getByLead(leadId!, backgroundRequest(context)),
         enabled: enabled && leadId !== null,
         // Okno 24 h zamyka się samo, bez żadnego zdarzenia - odświeżenie co minutę
         // pilnuje, żeby pole odpowiedzi nie obiecywało wysyłki, która już nie wyjdzie.

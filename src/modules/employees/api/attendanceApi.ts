@@ -7,6 +7,7 @@
 // w zakładce, gdzie każdy administrator widzi, czy ktoś go już zatwierdził.
 
 import { apiClient } from '@/core/apiClient';
+import type { BackgroundRequestConfig } from '@/core/backgroundRequest';
 
 const BASE = '/v1/worktime/team';
 
@@ -120,9 +121,10 @@ export const attendanceApi = {
     },
 
     /** Najnowsza prośba o podpis tej listy (także zakończona); null, gdy nie było żadnej. */
-    getLatestRemoteSignature: async (sheetId: string): Promise<AttendanceSignatureRequest | null> => {
+    getLatestRemoteSignature: async (sheetId: string, config?: BackgroundRequestConfig): Promise<AttendanceSignatureRequest | null> => {
         const response = await apiClient.get<AttendanceSignatureRequest>(
             `${BASE}/attendance-sheet/${sheetId}/signature-request`,
+            config,
         );
         return response.status === 204 ? null : response.data;
     },

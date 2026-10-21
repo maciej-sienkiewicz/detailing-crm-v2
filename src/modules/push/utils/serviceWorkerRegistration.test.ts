@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+    ONLINE_CHECK_MIN_INTERVAL_MS,
     keepServiceWorkerFresh, UPDATE_CHECK_MIN_INTERVAL_MS, UPDATE_CHECK_PERIOD_MS,
 } from './serviceWorkerRegistration';
 
@@ -73,6 +74,20 @@ describe('keepServiceWorkerFresh', () => {
         const t = setup();
         t.goOnline();
         expect(t.registration.update).toHaveBeenCalledTimes(1);
+    });
+
+    it('mrugająca sieć nie pyta przy każdym `online`, najwyżej raz na minutę', () => {
+        const t = setup();
+        t.goOnline();
+        t.advance(10_000);
+        t.goOnline();
+        t.advance(10_000);
+        t.goOnline();
+        expect(t.registration.update).toHaveBeenCalledTimes(1);
+
+        t.advance(ONLINE_CHECK_MIN_INTERVAL_MS);
+        t.goOnline();
+        expect(t.registration.update).toHaveBeenCalledTimes(2);
     });
 
     it('otwarta cały dzień aplikacja sprawdza co godzinę', () => {

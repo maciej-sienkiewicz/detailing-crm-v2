@@ -19,6 +19,7 @@
 
 import { isNativeApp } from '@/core/native/platform';
 import { isRolePreviewShellPath } from '@/modules/role-preview/entryCode';
+import { isPublicAppPath } from '@/core/publicPaths';
 
 export const SERVICE_WORKER_URL = '/service-worker.js';
 
@@ -31,12 +32,21 @@ export const SERVICE_WORKER_URL = '/service-worker.js';
  *
  * Nie w aplikacji ze sklepu: powiadomienia przychodzą tam przez APNs/FCM, a worker
  * przechwytujący żądania w widoku aplikacji to tylko ryzyko nieświeżej strony.
+ *
+ * Nie na stronach z linku z tokenem (karta wizyty i podpis klienta, zdjęcia i skan z telefonu):
+ * worker CRM w przeglądarce klienta tylko zostawałby tam na stałe. Logowanie i rejestracja
+ * zostają - to wejście do aplikacji pracownika.
  */
 export const isServiceWorkerAllowedHere = (): boolean =>
     'serviceWorker' in navigator &&
     !isNativeApp() &&
     !isRolePreviewShellPath(window.location.pathname) &&
+    !isTokenLinkPage(window.location.pathname) &&
     window.self === window.top;
+
+const ACCOUNT_ENTRY_PATHS = ['/login', '/signup', '/forgot-password', '/reset-password', '/confirm-password'];
+const isTokenLinkPage = (pathname: string): boolean =>
+    isPublicAppPath(pathname) && !ACCOUNT_ENTRY_PATHS.includes(pathname);
 
 /**
  * `updateViaCache: 'none'` - przy sprawdzaniu aktualizacji przeglądarka omija cache
@@ -56,6 +66,8 @@ export const registerAppServiceWorker = (): Promise<ServiceWorkerRegistration> =
 export const UPDATE_CHECK_MIN_INTERVAL_MS = 5 * 60_000;
 /** Aplikacja otwarta cały dzień na tablecie w recepcji też ma dostać nowego workera. */
 export const UPDATE_CHECK_PERIOD_MS = 60 * 60_000;
+/** Mrugające Wi-Fi strzela `online` co kilka sekund - po sieci sprawdzamy najwyżej raz na minutę. */
+export const ONLINE_CHECK_MIN_INTERVAL_MS = 60_000;
 
 interface FreshnessDeps {
     now?: () => number;
@@ -83,6 +95,7 @@ export const keepServiceWorkerFresh = (
 ): (() => void) => {
     // Rejestracja właśnie sprawdziła wersję - liczymy od teraz.
     let lastCheck = now();
+    let lastOnlineCheck = -Infinity;
 
     const check = (force = false) => {
         if (!force && now() - lastCheck < UPDATE_CHECK_MIN_INTERVAL_MS) return;
@@ -92,7 +105,13 @@ export const keepServiceWorkerFresh = (
     };
 
     const onVisibility = () => { if (isVisible()) check(); };
-    const onOnline = () => check(true);
+    // Po odzyskaniu sieci od razu (pominięte sprawdzenia mogły paść offline), ale nie przy
+    // każdym mrugnięciu połączenia - dawniej każde `online` to osobne żądanie.
+    const onOnline = () => {
+        if (now() - lastOnlineCheck < ONLINE_CHECK_MIN_INTERVAL_MS) return;
+        lastOnlineCheck = now();
+        check(true);
+    };
 
     target.addEventListener('visibilitychange', onVisibility);
     windowTarget.addEventListener('online', onOnline);

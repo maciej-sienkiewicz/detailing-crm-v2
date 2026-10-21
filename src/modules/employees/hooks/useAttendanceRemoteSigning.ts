@@ -6,6 +6,7 @@ import {
     type AttendanceSignatureRequest,
     type RemoteSigningChannel,
 } from '../api/attendanceApi';
+import { backgroundRequest } from '@/core/backgroundRequest';
 
 /** Prośba czeka na podpis: dokument wysłany albo już wyświetlony na urządzeniu. */
 export const isAwaitingSignature = (request: AttendanceSignatureRequest | null | undefined): boolean =>
@@ -44,7 +45,7 @@ export function useAttendanceRemoteSigning(sheetId: string) {
 
     const latest = useQuery({
         queryKey: key,
-        queryFn: () => attendanceApi.getLatestRemoteSignature(sheetId),
+        queryFn: context => attendanceApi.getLatestRemoteSignature(sheetId, backgroundRequest(context)),
         refetchInterval: query => (isAwaitingSignature(query.state.data) ? FALLBACK_POLL_MS : false),
     });
 

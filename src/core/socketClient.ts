@@ -20,12 +20,18 @@
  *   the reconnect timer.
  */
 
-import { Client, TickerStrategy } from '@stomp/stompjs';
+import { Client, ReconnectionTimeMode, TickerStrategy } from '@stomp/stompjs';
 import type { IMessage, IStompSocket, StompSubscription, messageCallbackType } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 
 const WS_ENDPOINT = '/ws-registry';
 const RECONNECT_DELAY = 3000;
+/**
+ * Ponowne łączenie rośnie wykładniczo do tego sufitu, a pierwsza przerwa ma losowy rozrzut.
+ * Ze stałymi 3 s po każdym wdrożeniu wszystkie otwarte karty pukały w /ws-registry/info
+ * równocześnie, co 3 s, dopóki serwer nie wstał.
+ */
+const MAX_RECONNECT_DELAY = 30_000;
 const HEARTBEAT_INCOMING = 10000;
 const HEARTBEAT_OUTGOING = 10000;
 
@@ -73,7 +79,9 @@ function ensureClient(): Client {
     // xhr-streaming/polling when a proxy blocks the websocket upgrade)
     webSocketFactory: () => new SockJS(WS_ENDPOINT) as unknown as IStompSocket,
 
-    reconnectDelay: RECONNECT_DELAY,
+    reconnectDelay: RECONNECT_DELAY + Math.floor(Math.random() * RECONNECT_DELAY),
+    reconnectTimeMode: ReconnectionTimeMode.EXPONENTIAL,
+    maxReconnectDelay: MAX_RECONNECT_DELAY,
 
     heartbeatIncoming: HEARTBEAT_INCOMING,
     heartbeatOutgoing: HEARTBEAT_OUTGOING,

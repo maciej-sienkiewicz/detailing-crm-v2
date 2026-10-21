@@ -22,6 +22,7 @@ import type {
     SignatureImageKind,
     ThreadListFilters,
 } from '../types';
+import { backgroundRequest } from '@/core/backgroundRequest';
 
 export const COMMS_KEY = ['comms'];
 export const COMMS_THREADS_KEY = [...COMMS_KEY, 'threads'];
@@ -58,7 +59,7 @@ const SYNC_POLL_MS = 8_000;
 export const useMailboxSyncState = () => {
     const { data: accounts } = useQuery({
         queryKey: COMMS_ACCOUNTS_KEY,
-        queryFn: commsApi.getAccounts,
+        queryFn: context => commsApi.getAccounts(backgroundRequest(context)),
         refetchInterval: (query) => {
             const syncing = query.state.data?.some(
                 (account) => account.initialSyncInProgress && account.status === 'ACTIVE'

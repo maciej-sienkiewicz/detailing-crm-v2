@@ -59,6 +59,7 @@ vi.mock('@stomp/stompjs', () => {
   return {
     Client,
     TickerStrategy: { Worker: 'worker', Interval: 'interval' },
+    ReconnectionTimeMode: { LINEAR: 0, EXPONENTIAL: 1 },
   };
 });
 
@@ -199,5 +200,16 @@ describe('socketClient', () => {
     expect(client.config.heartbeatStrategy).toBe('worker');
     expect(client.config.reconnectDelay).toBeGreaterThan(0);
     expect(typeof client.config.webSocketFactory).toBe('function');
+  });
+
+  it('reconnects with exponential backoff, capped, and a per-tab jitter', async () => {
+    // After a deploy every open tab used to knock on /ws-registry/info every 3 s at once.
+    const { subscribeToTopic } = await loadModule();
+    subscribeToTopic('/topic/a', vi.fn());
+    const client = lastClient();
+    expect(client.config.reconnectTimeMode).toBe(1);
+    expect(client.config.maxReconnectDelay).toBe(30_000);
+    expect(client.config.reconnectDelay).toBeGreaterThanOrEqual(3000);
+    expect(client.config.reconnectDelay).toBeLessThan(6000);
   });
 });
