@@ -12,6 +12,7 @@ import type { ReactNode } from 'react';
 import { theme } from '@/common/theme';
 import { ToastProvider } from '@/common/components/Toast';
 import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
+import { appointmentColorApi } from '@/modules/appointment-colors/api/appointmentColorApi';
 import { CheckInWizardWrapper } from '@/modules/checkin/views/CheckInWizardWrapper';
 import { WalkInCheckInWrapper } from '@/modules/checkin/views/WalkInCheckInWrapper';
 import { withPersonalDataGate } from './PersonalDataGate';
@@ -47,7 +48,7 @@ describe('przyjęcie pojazdu bez danych osobowych', () => {
     it('z rezerwacji: odmowa i żadnego odczytu rezerwacji ani kolorów', () => {
         permissions = ['VISITS_VIEW', 'VISITS_SERVICE_PRICES_VIEW', 'VISITS_CREATE'];
         const getAppointment = vi.spyOn(appointmentApi, 'getAppointment');
-        const getColors = vi.spyOn(appointmentApi, 'getAppointmentColors');
+        const getColors = vi.spyOn(appointmentColorApi, 'getColors');
 
         renderAt('/reservations/a-1/checkin', '/reservations/:reservationId/checkin', <ReservationCheckIn />);
 
@@ -59,7 +60,7 @@ describe('przyjęcie pojazdu bez danych osobowych', () => {
 
     it('„z marszu": odmowa i żadnego zapytania', () => {
         permissions = ['VISITS_VIEW', 'VISITS_SERVICE_PRICES_VIEW', 'VISITS_CREATE'];
-        const getColors = vi.spyOn(appointmentApi, 'getAppointmentColors');
+        const getColors = vi.spyOn(appointmentColorApi, 'getColors');
 
         renderAt('/checkin/new', '/checkin/new', <WalkInCheckIn />);
 
@@ -69,7 +70,7 @@ describe('przyjęcie pojazdu bez danych osobowych', () => {
 
     it('z danymi osobowymi kreator startuje (pobiera kolory), bez odmowy', () => {
         permissions = ['VISITS_VIEW', 'CUSTOMERS_VIEW', 'VISITS_SERVICE_PRICES_VIEW', 'VISITS_CREATE'];
-        const getColors = vi.spyOn(appointmentApi, 'getAppointmentColors').mockReturnValue(new Promise(() => {}));
+        const getColors = vi.spyOn(appointmentColorApi, 'getColors').mockReturnValue(new Promise(() => {}));
 
         renderAt('/checkin/new', '/checkin/new', <WalkInCheckIn />);
 

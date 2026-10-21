@@ -72,6 +72,25 @@ for (const [path, budget] of Object.entries(COLD_LOAD_BUDGET)) {
     });
 }
 
+test('powrót na kalendarz pyta tylko o jego dane, nie o konfigurację i katalogi', async ({ page }) => {
+    const { api, problems } = await open(page, '/calendar');
+
+    await page.locator('a[href="/settings"]').first().click();
+    await expect(page).toHaveURL(/\/settings$/);
+    await settle(page, api.calls);
+    const beforeReturn = api.calls.length;
+
+    await page.locator('a[href="/calendar"]').first().click();
+    await expect(page).toHaveURL(/\/calendar$/);
+    await settle(page, api.calls);
+
+    expect(problems).toEqual([]);
+    const onReturn = api.calls.slice(beforeReturn);
+    // Wizyty i rezerwacje to dane operacyjne - te mają się odświeżyć, reszta jest w cache.
+    expect(onReturn.some(call => call.path === '/v1/calendar/events')).toBe(true);
+    expect(describe(onReturn.filter(call => !/^\/v1\/calendar\//.test(call.path)))).toEqual([]);
+});
+
 test('studio bez modułów nie pyta o to, czego serwer mu odmówi (402)', async ({ page }) => {
     const gated = [
         /^\/v1\/sms-campaigns\/automation$/, /^\/v1\/email-campaigns\/automation$/,

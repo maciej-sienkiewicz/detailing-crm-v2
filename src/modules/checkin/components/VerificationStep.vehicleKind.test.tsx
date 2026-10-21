@@ -22,10 +22,10 @@ const apis = vi.hoisted(() => ({
 }));
 
 vi.mock('@/modules/appointments/api/appointmentApi', () => ({
-    appointmentApi: { searchCustomers: apis.searchCustomers, getCustomerVehicles: apis.getCustomerVehicles },
+    appointmentApi: { searchCustomers: apis.searchCustomers },
 }));
 vi.mock('@/modules/customers/api/customerDetailApi', () => ({
-    customerDetailApi: { getCustomerDetail: apis.getCustomerDetail },
+    customerDetailApi: { getCustomerDetail: apis.getCustomerDetail, getCustomerVehicles: apis.getCustomerVehicles },
 }));
 vi.mock('@/modules/vehicles/api/vehicleApi', () => ({ vehicleApi: { getVehicleDetail: apis.getVehicleDetail } }));
 vi.mock('@/modules/settings/hooks/useCompany', () => ({ useVehicleFormConfig: () => ({ config: undefined }) }));

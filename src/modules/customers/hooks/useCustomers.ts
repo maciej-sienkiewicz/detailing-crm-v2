@@ -9,7 +9,7 @@ export const useCustomers = (filters: CustomerFilters) => {
 
     const query = useQuery({
         queryKey,
-        queryFn: () => customerApi.getCustomers(filters),
+        queryFn: ({ signal }) => customerApi.getCustomers(filters, signal),
     });
 
     return {

@@ -5,7 +5,6 @@ import type {
     BulkDeleteResult,
     BulkStatusResult,
     Lead,
-    LeadAlertConfig,
     LeadAnalytics,
     DictionaryEntry,
     LeadDictionaries,
@@ -38,7 +37,7 @@ export const leadsApi = {
         sortDirection?: LeadSortDirection;
         page?: number;
         pageSize?: number;
-    }): Promise<LeadPage> => {
+    }, signal?: AbortSignal): Promise<LeadPage> => {
         const params = new URLSearchParams();
         if (filters.status) params.set('status', filters.status);
         if (filters.query) params.set('query', filters.query);
@@ -46,19 +45,7 @@ export const leadsApi = {
         if (filters.sortDirection) params.set('sortDirection', filters.sortDirection);
         params.set('page', String(filters.page ?? 0));
         params.set('pageSize', String(filters.pageSize ?? 25));
-        const { data } = await apiClient.get(`/v1/leads?${params}`);
-        return data;
-    },
-
-    /**
-     * Progi stygnięcia studia. Ścieżka jest pod /v1/company, bo to ustawienie
-     * firmy, a nie zasób leada - ale czyta je wyłącznie moduł leadów, więc
-     * wywołanie mieszka tutaj, przy jedynym konsumencie.
-     */
-    getAlertConfig: async (): Promise<LeadAlertConfig> => {
-        const { data } = await apiClient.get('/v1/company/lead-alert-config', {
-            skipErrorToast: true,
-        });
+        const { data } = await apiClient.get(`/v1/leads?${params}`, { signal });
         return data;
     },
 

@@ -5,9 +5,10 @@
 
 import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import styled from 'styled-components';
+import { useQuery } from '@tanstack/react-query';
 import type { AppointmentStatus, VisitStatus } from '../types';
 import { pluralPl } from '@/common/utils/plural';
-import { useAppointmentColors } from '@/modules/appointment-colors/hooks/useAppointmentColors';
+import { appointmentColorsQuery } from '@/modules/appointment-colors';
 
 /* ─────────────────────────────────────────────────────────────────
    Status metadata (colours from design)
@@ -595,7 +596,7 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
     const addButtonRef = useRef<HTMLButtonElement>(null);
     const popupRef = useRef<HTMLDivElement>(null);
 
-    const { colors: availableColors } = useAppointmentColors({ limit: 100 });
+    const { data: availableColors = [] } = useQuery(appointmentColorsQuery());
 
     const activeStatuses = [
         ...selectedAppointmentStatuses,

@@ -20,9 +20,12 @@ const apis = vi.hoisted(() => ({
 const captured = vi.hoisted(() => ({ initialData: null as Partial<CheckInFormData> | null }));
 
 vi.mock('@/modules/appointments', () => ({
-    appointmentApi: { getAppointment: apis.getAppointment, getAppointmentColors: apis.getAppointmentColors },
+    appointmentApi: { getAppointment: apis.getAppointment },
 }));
-vi.mock('@/modules/appointment-colors', () => ({ pickInitialColorId: () => 'color-1' }));
+vi.mock('@/modules/appointment-colors', () => ({
+    pickInitialColorId: () => 'color-1',
+    appointmentColorsQuery: () => ({ queryKey: ['appointment-colors', 'active'], queryFn: apis.getAppointmentColors }),
+}));
 vi.mock('@/modules/customers/api/customerDetailApi', () => ({
     customerDetailApi: { getCustomerDetail: apis.getCustomerDetail },
 }));

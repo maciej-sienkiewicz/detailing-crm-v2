@@ -13,7 +13,8 @@ import type { VisitResponse } from '@/modules/calendar/types';
 import type { CreateCustomerFormData } from './customerValidation';
 
 // Backend vehicle response type (different from frontend Vehicle type)
-interface BackendVehicle {
+/** Pojazd klienta tak, jak oddaje go GET /v1/customers/{id}/vehicles. */
+export interface BackendVehicle {
     id: string;
     kind?: VehicleKind;
     brand: string;

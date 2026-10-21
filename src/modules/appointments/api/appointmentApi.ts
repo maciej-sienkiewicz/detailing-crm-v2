@@ -1,8 +1,7 @@
 import { apiClient } from '@/core';
-import { fetchWholeCatalog } from '@/modules/services/api/fetchWholeCatalog';
 import type {
     AppointmentCreateRequest,
-    Service, Customer, Vehicle, AppointmentColor, AppointmentSmsInfo,
+    Customer, AppointmentSmsInfo,
     RecurrenceEditScope, CreateRecurringAppointmentResponse, RecurrenceSeriesResponse,
     SeriesEditScope, SeriesEditImpact, AppointmentUpdateResponse,
 } from '../types';
@@ -23,17 +22,14 @@ export const appointmentApi = {
         return response.data;
     },
 
-    getServices: async (): Promise<Service[]> => {
-        return fetchWholeCatalog<Service>();
-    },
-
-    searchCustomers: async (query: string): Promise<Customer[]> => {
+    searchCustomers: async (query: string, signal?: AbortSignal): Promise<Customer[]> => {
         const response = await apiClient.get<CustomerListResponse>('/v1/customers', {
             params: {
                 search: query,
                 page: 1,
                 limit: 50
-            }
+            },
+            signal,
         });
 
         // Mapuj pełny Customer z backendu na prosty Customer dla appointments
@@ -44,16 +40,6 @@ export const appointmentApi = {
             phone: customer.contact.phone,
             email: customer.contact.email,
         }));
-    },
-
-    getCustomerVehicles: async (customerId: string): Promise<Vehicle[]> => {
-        const response = await apiClient.get(`/v1/customers/${customerId}/vehicles`);
-        return response.data;
-    },
-
-    getAppointmentColors: async (): Promise<AppointmentColor[]> => {
-        const response = await apiClient.get<{ colors: AppointmentColor[] }>('/v1/appointment-colors');
-        return response.data.colors;
     },
 
     getAppointment: async (appointmentId: string) => {

@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
 import { CheckInWizardView } from './CheckInWizardView';
 import { t } from '@/common/i18n';
-import { pickInitialColorId } from '@/modules/appointment-colors';
+import { appointmentColorsQuery, pickInitialColorId } from '@/modules/appointment-colors';
 import { appointmentApi } from '@/modules/appointments';
 import { fromInstantToLocalInput } from '@/common/dateTime';
 import type { VehicleKind } from '@/modules/vehicles/vehicleKind';
@@ -73,10 +73,7 @@ export const WalkInCheckInWrapper = () => {
     const prefillCustomer = state?.prefillCustomer;
     const prefillVehicle  = state?.prefillVehicle;
 
-    const { data: colors, isLoading: isLoadingColors } = useQuery({
-        queryKey: ['appointmentColors'],
-        queryFn: () => appointmentApi.getAppointmentColors(),
-    });
+    const { data: colors, isLoading: isLoadingColors } = useQuery(appointmentColorsQuery());
 
     const handleComplete = (visitId: string) => {
         navigate(`/visits/${visitId}`);

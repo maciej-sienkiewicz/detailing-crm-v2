@@ -40,7 +40,7 @@ import {
     PickerEmpty,
 } from '@/common/components/PickerList';
 import { vehicleApi } from '@/modules/vehicles/api/vehicleApi';
-import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
+import { customerVehiclesQuery } from '@/modules/customers/api/customerVehiclesQuery';
 import type { VehicleListItem } from '@/modules/vehicles/types';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { VehicleKindSwitch } from '@/modules/vehicles/components/VehicleKindSwitch';
@@ -142,11 +142,11 @@ export const VehicleSearchModal = ({
 
     const { data: vehicleResponse, isLoading, isFetching, isPlaceholderData } = useQuery({
         queryKey: ['vehicles', debouncedQuery],
-        queryFn: () => vehicleApi.getVehicles({
+        queryFn: ({ signal }) => vehicleApi.getVehicles({
             search: debouncedQuery,
             page: 1,
             limit: 50,
-        }),
+        }, signal),
         enabled: isOpen && mode === 'search' && hasQuery,
         // Keep the previous matches visible while the next query runs, so typing does not
         // strobe the list between results and an empty box.
@@ -156,8 +156,7 @@ export const VehicleSearchModal = ({
     // The car the customer already owns is by far the most likely pick, so it is offered
     // before anything is typed instead of hiding behind a search the user has to guess.
     const { data: customerVehicles = [], isLoading: isLoadingCustomerVehicles } = useQuery({
-        queryKey: ['appointments', 'customers', customerId, 'vehicles'],
-        queryFn: () => appointmentApi.getCustomerVehicles(customerId!),
+        ...customerVehiclesQuery(customerId ?? ''),
         enabled: isOpen && mode === 'search' && !!customerId,
     });
 

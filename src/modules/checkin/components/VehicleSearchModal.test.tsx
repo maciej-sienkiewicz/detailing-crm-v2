@@ -16,8 +16,8 @@ const apis = vi.hoisted(() => ({
     getCustomerVehicles: vi.fn(),
 }));
 vi.mock('@/modules/vehicles/api/vehicleApi', () => ({ vehicleApi: { getVehicles: apis.getVehicles } }));
-vi.mock('@/modules/appointments/api/appointmentApi', () => ({
-    appointmentApi: { getCustomerVehicles: apis.getCustomerVehicles },
+vi.mock('@/modules/customers/api/customerDetailApi', () => ({
+    customerDetailApi: { getCustomerVehicles: apis.getCustomerVehicles },
 }));
 
 /*

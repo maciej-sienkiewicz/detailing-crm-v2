@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/common/components/Toast';
 import { tabletApi } from '../api/tabletApi';
+import { tabletsQuery } from '@/modules/settings/hooks/useTablets';
 import { useSignatureRequestsSocket } from './useSignatureRequestsSocket';
 import type { SignatureRequestSocketEvent } from './useSignatureRequestsSocket';
 
@@ -47,12 +48,7 @@ export const useProtocolSigning = ({
     const queryClient = useQueryClient();
     const [byProtocol, setByProtocol] = useState<Record<string, SigningState>>({});
 
-    const { data: tablets = [] } = useQuery({
-        queryKey: ['tablets'],
-        queryFn: tabletApi.listTablets,
-        enabled,
-        staleTime: 30_000,
-    });
+    const { data: tablets = [] } = useQuery({ ...tabletsQuery(), enabled });
 
     const setState = (protocolId: string, state: SigningState) =>
         setByProtocol(prev => ({ ...prev, [protocolId]: state }));

@@ -10,7 +10,7 @@ import type {
 const CUSTOMERS_BASE_PATH = '/v1/customers';
 
 export const customerApi = {
-    getCustomers: async (filters: CustomerFilters): Promise<CustomerListResponse> => {
+    getCustomers: async (filters: CustomerFilters, signal?: AbortSignal): Promise<CustomerListResponse> => {
         const params = new URLSearchParams({
             page: filters.page.toString(),
             limit: filters.limit.toString(),
@@ -40,7 +40,8 @@ export const customerApi = {
         if (filters.maxVisits != null) params.append('maxVisits', filters.maxVisits.toString());
 
         const response = await apiClient.get<CustomerListResponse>(
-            `${CUSTOMERS_BASE_PATH}?${params.toString()}`
+            `${CUSTOMERS_BASE_PATH}?${params.toString()}`,
+            { signal },
         );
         return response.data;
     },

@@ -43,7 +43,9 @@ import { gusApi } from '@/modules/gus/api/gusApi';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { QuickColorModal } from '@/modules/calendar/components/QuickColorModal';
 import { appointmentColorApi } from '@/modules/appointment-colors/api/appointmentColorApi';
+import { APPOINTMENT_COLORS_KEY } from '@/modules/appointment-colors/api/appointmentColorsQuery';
 import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
+import { customerVehiclesQuery } from '@/modules/customers/api/customerVehiclesQuery';
 import { useDebounce } from '@/common/hooks';
 
 // ─── Section Card ─────────────────────────────────────────────────────────────
@@ -730,7 +732,7 @@ export const VerificationStep = ({
     const handleColorCreate = async (color: { name: string; hexColor: string }) => {
         try {
             const newColor = await appointmentColorApi.createColor(color);
-            queryClient.invalidateQueries({ queryKey: ['appointmentColors'] });
+            queryClient.invalidateQueries({ queryKey: APPOINTMENT_COLORS_KEY });
             onChange({ appointmentColorId: newColor.id });
         } catch {
             // creation failure is silent; user can retry by opening the modal again
@@ -837,14 +839,13 @@ export const VerificationStep = ({
 
     const { data: foundCustomers = [] } = useQuery({
         queryKey: ['appointments', 'customers', 'search', debouncedCustomerSearch],
-        queryFn: () => appointmentApi.searchCustomers(debouncedCustomerSearch),
+        queryFn: ({ signal }) => appointmentApi.searchCustomers(debouncedCustomerSearch, signal),
         enabled: debouncedCustomerSearch.length >= customerSearchMinLength,
         staleTime: 30_000,
     });
 
     const { data: customerVehicles = [] } = useQuery({
-        queryKey: ['appointments', 'customers', selectedCustomerIdForVehicles, 'vehicles'],
-        queryFn: () => appointmentApi.getCustomerVehicles(selectedCustomerIdForVehicles!),
+        ...customerVehiclesQuery(selectedCustomerIdForVehicles ?? ''),
         enabled: !!selectedCustomerIdForVehicles,
     });
 

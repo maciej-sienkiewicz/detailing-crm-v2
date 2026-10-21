@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { FormGrid, FormField, FieldLabel, InputShell, BareInput } from '@/common/components/Form';
 import { Button } from '@/common/components/ui';
 import { companyApi } from '@/modules/settings/api/companyApi';
+import { COMPANY_SETTINGS_KEY } from '@/modules/settings/api/companySettingsQuery';
 import type { CompanySettings } from '@/modules/settings/types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
@@ -72,7 +73,8 @@ export const SellerPrompt = ({ company }: SellerPromptProps) => {
                 website: company?.website ?? null,
                 bankAccount: company?.bankAccount ?? null,
             }),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['company', 'settings'] }),
+        // Odpowiedź to zapisane dane firmy - podmieniamy cache zamiast pytać serwer jeszcze raz.
+        onSuccess: updated => queryClient.setQueryData(COMPANY_SETTINGS_KEY, updated),
     });
 
     return (

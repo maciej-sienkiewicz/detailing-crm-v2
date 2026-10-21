@@ -21,7 +21,7 @@ export const useServices = (filters: ServiceListFilters & { enabled?: boolean; k
     const { enabled = true, keepPrevious = false, ...listFilters } = filters;
     const { data, isLoading, isError, refetch } = useQuery({
         queryKey: ['services', listFilters],
-        queryFn: () => servicesApi.getServices(listFilters),
+        queryFn: ({ signal }) => servicesApi.getServices(listFilters, signal),
         enabled,
         placeholderData: keepPrevious ? keepPreviousData : undefined,
     });

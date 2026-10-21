@@ -19,11 +19,13 @@ export const useCalendarEvents = (
 ) => {
     const query = useQuery({
         queryKey: ['calendar-events', dateRange, appointmentStatuses, visitStatuses],
-        queryFn: () => {
+        // `signal`: przy szybkim przewijaniu tygodni poprzedni zakres jest anulowany,
+        // a nie dociągany w tle do cache, którego nikt już nie ogląda.
+        queryFn: ({ signal }) => {
             if (!dateRange) {
                 return Promise.resolve([]);
             }
-            return calendarApi.getCalendarEvents(dateRange, appointmentStatuses, visitStatuses);
+            return calendarApi.getCalendarEvents(dateRange, appointmentStatuses, visitStatuses, [], signal);
         },
         enabled: !!dateRange,
     });

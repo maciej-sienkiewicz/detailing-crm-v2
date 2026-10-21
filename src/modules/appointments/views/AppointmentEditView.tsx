@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/common/components/Toast';
 import { appointmentApi } from '../api/appointmentApi';
+import { appointmentColorsQuery } from '@/modules/appointment-colors';
 import { LoadingSkeleton } from '@/modules/appointments/components/common';
 import { VerificationStep } from '@/modules/checkin/components/VerificationStep';
 import type { CheckInFormData, ServiceLineItem as CheckInServiceLineItem } from '@/modules/checkin/types';
@@ -165,10 +166,7 @@ const AppointmentEditForm = () => {
         enabled: !!appointmentId,
     });
 
-    const { data: colors, isLoading: isLoadingColors } = useQuery({
-        queryKey: ['appointmentColors'],
-        queryFn: () => appointmentApi.getAppointmentColors(),
-    });
+    const { data: colors, isLoading: isLoadingColors } = useQuery(appointmentColorsQuery());
 
     // Prepare initial CheckIn-like form data from appointment
     const initialData: Partial<CheckInFormData> | undefined = useMemo(() => {

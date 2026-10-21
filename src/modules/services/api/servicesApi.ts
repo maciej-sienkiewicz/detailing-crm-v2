@@ -33,7 +33,7 @@ export const toService = (dto: ServiceDto): Service => ({
 
 
 export const servicesApi = {
-    getServices: async (filters: ServiceListFilters): Promise<ServiceListResponse> => {
+    getServices: async (filters: ServiceListFilters, signal?: AbortSignal): Promise<ServiceListResponse> => {
         const params = new URLSearchParams({
             search: filters.search,
             page: String(filters.page),
@@ -44,7 +44,7 @@ export const servicesApi = {
         if (filters.sortDirection) params.append('sortDirection', filters.sortDirection);
         if (filters.isPackage !== undefined) params.append('isPackage', String(filters.isPackage));
 
-        const response = await apiClient.get<{ services: ServiceDto[]; pagination: ServiceListResponse['pagination'] }>(`${BASE_PATH}?${params}`);
+        const response = await apiClient.get<{ services: ServiceDto[]; pagination: ServiceListResponse['pagination'] }>(`${BASE_PATH}?${params}`, { signal });
         return { ...response.data, services: (response.data.services ?? []).map(toService) };
     },
 

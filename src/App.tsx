@@ -1,6 +1,6 @@
 import { RouterProvider } from 'react-router-dom';
-import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { isAxiosError } from 'axios';
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider, isCancelledError } from '@tanstack/react-query';
+import { isAxiosError, isCancel } from 'axios';
 import { logger } from '@/core/logger';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ThemeProvider } from '@/common/theme';
@@ -14,10 +14,12 @@ import { vehicleMetadataQuery } from '@/modules/vehicles/hooks/useVehicleMetadat
 
 /**
  * Do raportu trafia tylko to, czego nikt się nie spodziewał: brak odpowiedzi, 5xx albo
- * wyjątek w kodzie. 4xx (walidacja, brak uprawnień, paywall) obsługują dymki i widoki.
+ * wyjątek w kodzie. 4xx (walidacja, brak uprawnień, paywall) obsługują dymki i widoki,
+ * a anulowanie (dalsze przewinięcie kalendarza, kolejna litera w wyszukiwarce) nie jest błędem.
  */
 const isUnexpected = (error: unknown) =>
-    !isAxiosError(error) || error.response === undefined || error.response.status >= 500;
+    !isCancel(error) && !isCancelledError(error)
+    && (!isAxiosError(error) || error.response === undefined || error.response.status >= 500);
 
 const queryClient = new QueryClient({
     queryCache: new QueryCache({

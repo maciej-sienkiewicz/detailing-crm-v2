@@ -3,10 +3,12 @@ import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
 import { CheckInWizardView } from './CheckInWizardView';
 import { t } from '@/common/i18n';
-import { pickInitialColorId } from '@/modules/appointment-colors';
+import { appointmentColorsQuery, pickInitialColorId } from '@/modules/appointment-colors';
 import { appointmentApi } from '@/modules/appointments';
 import { customerDetailApi } from '@/modules/customers/api/customerDetailApi';
 import { vehicleApi } from '@/modules/vehicles/api/vehicleApi';
+import { vehicleDetailQueryKey } from '@/modules/vehicles/hooks/useVehicleDetail';
+import { customerDetailQueryKey } from '@/modules/customers/hooks/useCustomerDetail';
 import { fromInstantToLocalInput } from '@/common/dateTime';
 import { reservationTechnicalNotes } from '../utils/reservationNotes';
 import { toCheckInServiceLine } from '../utils/toCheckInServiceLine';
@@ -143,22 +145,21 @@ export const CheckInWizardWrapper = () => {
     const { reservationId } = useParams<{ reservationId: string }>();
     const navigate = useNavigate();
 
+    // Klucze jak w edycji rezerwacji i kartotekach klienta/pojazdu: dane otwarte chwilę
+    // wcześniej nie idą z serwera drugi raz, a zapis w kreatorze odświeża je wszędzie.
     const { data: reservationData, isLoading, error } = useQuery({
-        queryKey: ['reservations', reservationId],
+        queryKey: ['appointments', reservationId],
         queryFn: () => appointmentApi.getAppointment(reservationId!),
         enabled: !!reservationId,
         retry: 1,
     });
 
-    const { data: colors, isLoading: isLoadingColors } = useQuery({
-        queryKey: ['appointmentColors'],
-        queryFn: () => appointmentApi.getAppointmentColors(),
-    });
+    const { data: colors, isLoading: isLoadingColors } = useQuery(appointmentColorsQuery());
 
     // Pobierz pełne dane klienta (z homeAddress i company)
     const customerId = reservationData?.customerId;
     const { data: customerDetailData, isLoading: isLoadingCustomerDetail } = useQuery({
-        queryKey: ['customerDetail', customerId],
+        queryKey: [customerDetailQueryKey, customerId],
         queryFn: () => customerDetailApi.getCustomerDetail(customerId!),
         enabled: !!customerId,
         retry: 1,
@@ -167,7 +168,7 @@ export const CheckInWizardWrapper = () => {
     // Pobierz pełne dane pojazdu (z licensePlate, color, etc.)
     const vehicleId = reservationData?.vehicleId;
     const { data: vehicleDetailData, isLoading: isLoadingVehicleDetail } = useQuery({
-        queryKey: ['vehicleDetail', vehicleId],
+        queryKey: vehicleDetailQueryKey(vehicleId ?? ''),
         queryFn: () => vehicleApi.getVehicleDetail(vehicleId!),
         enabled: !!vehicleId,
         retry: 1,

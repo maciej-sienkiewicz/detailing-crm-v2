@@ -1,12 +1,5 @@
 import { apiClient } from '@/core';
 
-export interface TabletInfo {
-    tabletId: string;
-    deviceName: string;
-    pairedAt: string;
-    lastSeenAt: string | null;
-}
-
 export interface SignatureRequestResponse {
     id: string;
     visitId: string;
@@ -18,11 +11,6 @@ export interface SignatureRequestResponse {
 }
 
 export const tabletApi = {
-    listTablets: async (): Promise<TabletInfo[]> => {
-        const response = await apiClient.get('/v1/tablets');
-        return response.data;
-    },
-
     requestTabletSignature: async (
         visitId: string,
         protocolId: string,

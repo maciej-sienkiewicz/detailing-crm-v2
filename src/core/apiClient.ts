@@ -31,9 +31,19 @@ declare module 'axios' {
     }
 }
 
+/**
+ * Limit czasu każdego zapytania. Bez niego zawieszone połączenie (telefon na słabym
+ * zasięgu, padnięte proxy) kręciło się bez końca. Wywołania, które z natury trwają
+ * dłużej (eksport, generowanie postów AI), podają własny `timeout`.
+ */
+export const DEFAULT_TIMEOUT_MS = 60_000;
+/** Wysyłka pliku przez backend (zdjęcia, nagrania, skany) trwa na słabym zasięgu dłużej. */
+export const UPLOAD_TIMEOUT_MS = 120_000;
+
 export const apiClient = axios.create({
     baseURL: '/api',
     withCredentials: true,
+    timeout: DEFAULT_TIMEOUT_MS,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -43,6 +53,7 @@ apiClient.interceptors.request.use(
     config => {
         if (config.data instanceof FormData) {
             delete config.headers['Content-Type'];
+            if (config.timeout === DEFAULT_TIMEOUT_MS) config.timeout = UPLOAD_TIMEOUT_MS;
         }
         return config;
     },

@@ -9,6 +9,7 @@ import { apiClient } from '@/core/apiClient';
 import { useToast } from '@/common/components/Toast';
 import { hasMaskedPii, mergeMaskedPii } from '@/common/pii';
 import { leadsApi } from '../api/leadsApi';
+import { leadAlertConfigQuery } from '@/modules/settings/api/leadAlertConfigQuery';
 import { LEAD_STATUS_LABELS } from '../types';
 import { pluralPl } from '@/common/utils/plural';
 import { COMMS_THREADS_KEY } from './useComms';
@@ -90,7 +91,7 @@ export const useLeadsByStatuses = (
             };
             return {
                 queryKey: [...LEADS_KEY, 'list', filters],
-                queryFn: () => leadsApi.getLeads(filters),
+                queryFn: ({ signal }) => leadsApi.getLeads(filters, signal),
                 placeholderData: (previous: LeadPage | undefined) => previous,
             };
         }),
@@ -116,13 +117,7 @@ export const useLeadsByStatuses = (
  * dane operacyjne; przy braku odpowiedzi (starszy backend, brak uprawnień)
  * konsument sięga po DEFAULT_STAGNATION i widok działa dalej.
  */
-export const useLeadAlertConfig = () =>
-    useQuery({
-        queryKey: [...LEADS_KEY, 'alert-config'],
-        queryFn: leadsApi.getAlertConfig,
-        staleTime: 30 * 60_000,
-        retry: false,
-    });
+export const useLeadAlertConfig = () => useQuery(leadAlertConfigQuery());
 
 /**
  * Para, którą backend zwraca, gdy studio NICZEGO nie ustawiło.

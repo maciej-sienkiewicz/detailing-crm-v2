@@ -7,22 +7,19 @@ import type {
     AppointmentColorUpdateRequest,
 } from '../types';
 
-const QUERY_KEY = 'appointment-colors';
+import { APPOINTMENT_COLORS_KEY } from '../api/appointmentColorsQuery';
 
 /**
- * Kolory są pobierane pod trzema kluczami: 'appointment-colors' (ustawienia i
- * QuickEventModal) oraz 'appointmentColors' (wizard check-inu). Zmiana koloru
- * domyślnego musi ruszyć oba, bo inaczej wizard trzyma poprzedni wybór aż do
- * odświeżenia strony.
+ * Lista w Ustawieniach (z filtrami) i lista do wyboru (`appointmentColorsQuery`) dzielą
+ * prefiks, więc każda zmiana - także koloru domyślnego - odświeża obie naraz.
  */
 const invalidateEverywhere = (queryClient: ReturnType<typeof useQueryClient>) => () => {
-    queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
-    queryClient.invalidateQueries({ queryKey: ['appointmentColors'] });
+    queryClient.invalidateQueries({ queryKey: APPOINTMENT_COLORS_KEY });
 };
 
 export const useAppointmentColors = (filters: AppointmentColorFilters) => {
     const { data, isLoading, isError, refetch } = useQuery({
-        queryKey: [QUERY_KEY, filters],
+        queryKey: [...APPOINTMENT_COLORS_KEY, filters],
         queryFn: () => appointmentColorApi.getColors(filters),
     });
 

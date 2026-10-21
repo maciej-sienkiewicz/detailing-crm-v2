@@ -4,7 +4,6 @@ import { putToPresignedUrl } from '@/common/utils/presignedUpload';
 import { apiClient } from '@/core/apiClient';
 import type {
     CustomerDetailData,
-    CustomerVehiclesResponse,
     CustomerVisitsResponse,
     UpdateConsentPayload,
     AddVehiclePayload,
@@ -16,7 +15,7 @@ import type {
     SignCustomerConsentPayload,
     SignCustomerConsentResult,
 } from '../types';
-import { mapBackendVehiclesResponse, mapBackendReservationsResponse, mapCalendarVisitsToCustomerVisitsResponse } from '../utils/customerMappers';
+import { mapBackendReservationsResponse, mapCalendarVisitsToCustomerVisitsResponse, type BackendVehicle as CustomerVehicleRow } from '../utils/customerMappers';
 import type { VisitResponse } from '@/modules/calendar/types';
 
 const CUSTOMERS_BASE_PATH = '/v1/customers';
@@ -43,17 +42,6 @@ export interface RevenueSummary {
         from: string;
         to: string;
     };
-}
-
-// Backend vehicle response type
-interface BackendVehicle {
-    id: string;
-    brand: string;
-    model: string;
-    year: number;
-    licensePlate: string;
-    color?: string;
-    active?: boolean;
 }
 
 // Backend appointment/reservation response type
@@ -92,12 +80,16 @@ export const customerDetailApi = {
         };
     },
 
-    getCustomerVehicles: async (customerId: string, includeDeleted = false): Promise<CustomerVehiclesResponse> => {
-        const response = await apiClient.get<BackendVehicle[]>(
+    /**
+     * Surowa lista - kartoteka mapuje ją przez `select`, a przyjęcie i rezerwacja biorą
+     * wprost. Dzięki temu obie strony dzielą jeden wpis w cache (customerVehiclesQuery).
+     */
+    getCustomerVehicles: async (customerId: string, includeDeleted = false): Promise<CustomerVehicleRow[]> => {
+        const response = await apiClient.get<CustomerVehicleRow[]>(
             `${CUSTOMERS_BASE_PATH}/${customerId}/vehicles`,
             { params: includeDeleted ? { includeDeleted: true } : undefined }
         );
-        return mapBackendVehiclesResponse(response.data);
+        return response.data;
     },
 
     getCustomerActiveData: async (customerId: string): Promise<{ visits: CustomerVisitsResponse; reservations: CustomerReservationsResponse }> => {

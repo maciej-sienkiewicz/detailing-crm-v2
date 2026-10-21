@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef, useImperativeHandle } from 'react';
 import type React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '@/core';
 import { useToast } from '@/common/components/Toast';
 import { useCapability } from '@/modules/subscription';
 import { useCustomerVehicles, useCustomerSearch as useAppointmentCustomerSearch } from '@/modules/appointments/hooks/useAppointmentForm';
 import type { SelectedCustomer, SelectedVehicle, RecurrenceRuleRequest } from '@/modules/appointments/types';
 import { DEFAULT_VEHICLE_KIND, normalizeVehicleKind, type VehicleKind } from '@/modules/vehicles/vehicleKind';
 import { pickInitialColorId } from '@/modules/appointment-colors';
+import { APPOINTMENT_COLORS_KEY, appointmentColorsQuery } from '@/modules/appointment-colors/api/appointmentColorsQuery';
 import { appointmentColorApi } from '@/modules/appointment-colors/api/appointmentColorApi';
 import { useDebounce } from '@/common/hooks';
 import { useDefaultChoice, useMessageDefaults } from '@/modules/message-templates/hooks/useMessageDefaults';
@@ -257,15 +257,7 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref, initialData 
         staleTime: STALE_TIME.catalog,
     });
 
-    const { data: appointmentColors = [] } = useQuery({
-        queryKey: ['appointment-colors'],
-        queryFn: async () => {
-            const response = await apiClient.get('/v1/appointment-colors');
-            return response.data.colors || [];
-        },
-        enabled: isOpen,
-        staleTime: STALE_TIME.catalog,
-    });
+    const { data: appointmentColors = [] } = useQuery({ ...appointmentColorsQuery(), enabled: isOpen });
 
     const canReadAutomation = useMessageAutomationAccess();
     const { data: automationConfig } = useQuery({
@@ -1360,7 +1352,7 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref, initialData 
     const handleQuickColorCreate = async (color: { name: string; hexColor: string }) => {
         try {
             const newColor = await appointmentColorApi.createColor(color);
-            queryClient.invalidateQueries({ queryKey: ['appointment-colors'] });
+            queryClient.invalidateQueries({ queryKey: APPOINTMENT_COLORS_KEY });
             setSelectedColorId(newColor.id);
         } catch (error: any) {
             showError('Nie udało się dodać koloru', error?.response?.data?.message || 'Spróbuj ponownie.');

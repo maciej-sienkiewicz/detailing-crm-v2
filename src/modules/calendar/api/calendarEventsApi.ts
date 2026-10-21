@@ -10,8 +10,8 @@ const BASE_PATH = '/v1/calendar/events-custom';
 
 export const calendarEventsApi = {
     /** Wydarzenia zahaczające o zakres - także te zaczęte przed jego początkiem. */
-    list: async (from: string, to: string): Promise<StudioCalendarEvent[]> => {
-        const { data } = await apiClient.get<StudioCalendarEvent[]>(BASE_PATH, { params: { from, to } });
+    list: async (from: string, to: string, signal?: AbortSignal): Promise<StudioCalendarEvent[]> => {
+        const { data } = await apiClient.get<StudioCalendarEvent[]>(BASE_PATH, { params: { from, to }, signal });
         return data;
     },
 

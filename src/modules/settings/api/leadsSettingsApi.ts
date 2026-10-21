@@ -20,7 +20,8 @@ export const leadsSettingsApi = {
      * decyzją produktową podjętą przez przypadek.
      */
     getAlertConfig: async (): Promise<LeadAlertConfig> => {
-        const response = await apiClient.get<LeadAlertConfig>(`${BASE_PATH}/lead-alert-config`);
+        // Bez dymka: Ustawienia pokazują błąd w sekcji, a kolejka leadów bierze progi domyślne.
+        const response = await apiClient.get<LeadAlertConfig>(`${BASE_PATH}/lead-alert-config`, { skipErrorToast: true });
         return response.data;
     },
 

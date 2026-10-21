@@ -6,7 +6,7 @@ import { stateTransitionApi } from '../api/stateTransitionApi';
 import { apiErrorMessage } from '../api/apiError';
 import { visitDetailQueryKey } from './index';
 import { useVisitStateConflict } from './useVisitStateConflict';
-import { companyApi } from '@/modules/settings/api/companyApi';
+import { companySettingsQuery } from '@/modules/settings/api/companySettingsQuery';
 import { useToast } from '@/common/components/Toast';
 import { localIsoDate } from '@/common/utils/localDate';
 import { isPiiMasked } from '@/common/pii';
@@ -107,11 +107,7 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     // Dane sprzedawcy pobierane RAZEM z otwarciem ekranu, nie dopiero przy
     // edycji faktury: brak NIP-u studia ma być widoczny zanim ktokolwiek
     // zacznie wydawać, a nie w ostatnim kliknięciu przy kliencie u lady.
-    const { data: company, isLoading: isCompanyLoading } = useQuery({
-        queryKey: ['company', 'settings'],
-        queryFn: () => companyApi.getCompanySettings(),
-        enabled: isOpen,
-    });
+    const { data: company, isLoading: isCompanyLoading } = useQuery({ ...companySettingsQuery(), enabled: isOpen });
     const sellerComplete = !!company?.name?.trim() && !!company?.taxId?.trim();
 
     // ── Usługi wizyty ────────────────────────────────────────────────────────

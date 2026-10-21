@@ -28,7 +28,7 @@ import type { CalendarEventsResponse } from '@/modules/calendar/types';
 const BASE_PATH = '/v1/vehicles';
 
 export const vehicleApi = {
-    getVehicles: async (filters: VehicleFilters): Promise<VehicleListResponse> => {
+    getVehicles: async (filters: VehicleFilters, signal?: AbortSignal): Promise<VehicleListResponse> => {
         const params = new URLSearchParams({
             page: filters.page.toString(),
             limit: filters.limit.toString(),
@@ -50,7 +50,7 @@ export const vehicleApi = {
             ...(filters.notServicedSinceDays != null && { notServicedSinceDays: filters.notServicedSinceDays.toString() }),
             ...(filters.includeDeleted && { includeDeleted: 'true' }),
         });
-        const response = await apiClient.get(`${BASE_PATH}?${params}`);
+        const response = await apiClient.get(`${BASE_PATH}?${params}`, { signal });
         return response.data;
     },
 

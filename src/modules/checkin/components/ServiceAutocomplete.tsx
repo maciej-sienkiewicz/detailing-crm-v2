@@ -253,12 +253,12 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
 
     const { data: servicesResponse, isLoading } = useQuery({
         queryKey: ['services', debouncedQuery],
-        queryFn: () => servicesApi.getServices({
+        queryFn: ({ signal }) => servicesApi.getServices({
             search: debouncedQuery,
             page: 1,
             limit: 50,
             showInactive: false,
-        }),
+        }, signal),
         // Dopiero gdy lista jest otwarta albo coś wpisano - nie przy samym zamontowaniu pola.
         enabled: isOpen || debouncedQuery !== '',
     });

@@ -7,7 +7,7 @@ export const vehiclesQueryKey = (filters: VehicleFilters) => ['vehicles', filter
 export const useVehicles = (filters: VehicleFilters) => {
     const query = useQuery({
         queryKey: vehiclesQueryKey(filters),
-        queryFn: () => vehicleApi.getVehicles(filters),
+        queryFn: ({ signal }) => vehicleApi.getVehicles(filters, signal),
     });
 
     return {

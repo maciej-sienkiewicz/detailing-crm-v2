@@ -58,7 +58,7 @@ describe('PackageEditorModal - wyszukiwanie usługi nie rusza okna', () => {
 
         // Kolejny znak: zapytanie wisi, a lista nie znika (i okno nie zmienia wysokości).
         fireEvent.change(search, { target: { value: 'pol' } });
-        await waitFor(() => expect(api.getServices).toHaveBeenCalledWith(expect.objectContaining({ search: 'pol' })));
+        await waitFor(() => expect(api.getServices).toHaveBeenCalledWith(expect.objectContaining({ search: 'pol' }), expect.any(AbortSignal)));
         expect(screen.getByRole('option', { name: 'Powłoka ceramiczna' })).toBeInTheDocument();
 
         await act(async () => { resolveNext(page(['Polerowanie'])); });
@@ -78,7 +78,7 @@ describe('PackageEditorModal - wyszukiwanie usługi nie rusza okna', () => {
         const search = screen.getByLabelText('Dodaj usługę');
         for (const value of ['m', 'my', 'myc', 'myci', 'mycie']) fireEvent.change(search, { target: { value } });
 
-        await waitFor(() => expect(api.getServices).toHaveBeenCalledWith(expect.objectContaining({ search: 'mycie' })));
+        await waitFor(() => expect(api.getServices).toHaveBeenCalledWith(expect.objectContaining({ search: 'mycie' }), expect.any(AbortSignal)));
         const searched = api.getServices.mock.calls.map(([f]) => (f as { search: string }).search);
         expect(searched).not.toContain('myc');
     });

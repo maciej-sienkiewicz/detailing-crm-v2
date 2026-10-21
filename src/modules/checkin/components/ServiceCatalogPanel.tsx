@@ -287,14 +287,14 @@ export function ServiceCatalogPanel({
     // dzielą pamięć podręczną, więc przełączenie układu nie kosztuje zapytania.
     const { data, isLoading, isError } = useQuery({
         queryKey: ['services', debouncedQuery, 'catalog-panel'],
-        queryFn: () => servicesApi.getServices({
+        queryFn: ({ signal }) => servicesApi.getServices({
             search: debouncedQuery,
             page: 1,
             limit: PAGE_SIZE,
             showInactive: false,
             sortBy: 'name',
             sortDirection: 'asc',
-        }),
+        }, signal),
     });
 
     const services = useMemo(() => data?.services ?? [], [data]);

@@ -207,6 +207,7 @@ const fetchUnified = async (
     appointmentStatuses: AppointmentStatus[],
     visitStatuses: VisitStatus[],
     colorIds: string[],
+    signal?: AbortSignal,
 ): Promise<CalendarEventsResponse> => {
     const params: Record<string, string> = {
         startDate: dateRange.start,
@@ -223,7 +224,7 @@ const fetchUnified = async (
         params.colorIds = colorIds.join(',');
     }
 
-    const response = await apiClient.get<CalendarEventsResponse>('/v1/calendar/events', { params });
+    const response = await apiClient.get<CalendarEventsResponse>('/v1/calendar/events', { params, signal });
     return response.data;
 };
 
@@ -235,16 +236,19 @@ const fetchLegacy = async (
     dateRange: DateRange,
     appointmentStatuses: AppointmentStatus[],
     visitStatuses: VisitStatus[],
+    signal?: AbortSignal,
 ): Promise<{ appointments: AppointmentResponse[]; visits: VisitResponse[] }> => {
     const appointmentRequests = appointmentStatuses.map(status =>
         apiClient.get<{ appointments: AppointmentResponse[] }>('/v1/appointments', {
             params: { startDate: dateRange.start, endDate: dateRange.end, status },
+            signal,
         })
     );
 
     const visitRequests = visitStatuses.map(status =>
         apiClient.get<{ visits: VisitResponse[] }>('/visits', {
             params: { startDate: dateRange.start, endDate: dateRange.end, status },
+            signal,
         })
     );
 
@@ -269,14 +273,16 @@ export const calendarApi = {
         appointmentStatuses: AppointmentStatus[] = [],
         visitStatuses: VisitStatus[] = [],
         colorIds: string[] = [],
+        /** Anuluje pobranie, gdy użytkownik przewinie kalendarz dalej, zanim przyszła odpowiedź. */
+        signal?: AbortSignal,
     ): Promise<CalendarEvent[]> => {
         if (appointmentStatuses.length === 0 && visitStatuses.length === 0) {
             return [];
         }
 
         const { appointments, visits } = USE_UNIFIED_CALENDAR_API
-            ? await fetchUnified(dateRange, appointmentStatuses, visitStatuses, colorIds)
-            : await fetchLegacy(dateRange, appointmentStatuses, visitStatuses);
+            ? await fetchUnified(dateRange, appointmentStatuses, visitStatuses, colorIds, signal)
+            : await fetchLegacy(dateRange, appointmentStatuses, visitStatuses, signal);
 
         return [
             ...appointments.map(transformAppointment),
@@ -285,9 +291,10 @@ export const calendarApi = {
     },
 
     /** Dzienna liczba wyjazdów Door to Door w zakresie dat (dla badge'a w widoku kalendarza). */
-    getDoorToDoorCalendar: async (from: string, to: string): Promise<DoorToDoorCalendarDay[]> => {
+    getDoorToDoorCalendar: async (from: string, to: string, signal?: AbortSignal): Promise<DoorToDoorCalendarDay[]> => {
         const response = await apiClient.get<DoorToDoorCalendarDay[]>('/v1/calendar/door-to-door', {
             params: { from, to },
+            signal,
         });
         return response.data;
     },

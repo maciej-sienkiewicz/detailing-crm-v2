@@ -613,7 +613,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
 
     const { data } = useQuery({
         queryKey: ['svc-inline-search', debouncedQuery],
-        queryFn: () => servicesApi.getServices({ search: debouncedQuery, page: 1, limit: 8, showInactive: false }),
+        queryFn: ({ signal }) => servicesApi.getServices({ search: debouncedQuery, page: 1, limit: 8, showInactive: false }, signal),
         // The mobile sheet opens before anything is typed, so it needs the first
         // page of the catalog to have a list to show.
         enabled: open && (isMobile || debouncedQuery.trim().length >= 1),

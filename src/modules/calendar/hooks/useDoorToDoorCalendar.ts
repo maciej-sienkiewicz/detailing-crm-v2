@@ -14,7 +14,7 @@ import type { DoorToDoorCalendarDay } from '../types';
 export const useDoorToDoorCalendar = (from: string | null, to: string | null) => {
     const { data, isLoading } = useQuery({
         queryKey: ['calendar-events', 'door-to-door', from, to],
-        queryFn: () => calendarApi.getDoorToDoorCalendar(from!, to!),
+        queryFn: ({ signal }) => calendarApi.getDoorToDoorCalendar(from!, to!, signal),
         enabled: !!from && !!to,
         staleTime: 60_000,
     });

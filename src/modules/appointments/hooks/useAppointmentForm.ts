@@ -1,6 +1,7 @@
 // src/modules/appointments/hooks/useAppointmentForm.ts
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { appointmentApi } from '../api/appointmentApi';
+import { customerVehiclesQuery } from '@/modules/customers/api/customerVehiclesQuery';
 
 /**
  * Pusty `query` to przeglądanie listy (okno wyboru klienta); `enabled` pozwala wołającemu
@@ -9,7 +10,7 @@ import { appointmentApi } from '../api/appointmentApi';
 export const useCustomerSearch = (query: string, options?: { enabled?: boolean }) => {
     return useQuery({
         queryKey: ['appointments', 'customers', 'search', query],
-        queryFn: () => appointmentApi.searchCustomers(query),
+        queryFn: ({ signal }) => appointmentApi.searchCustomers(query, signal),
         enabled: options?.enabled ?? true,
         // Hold the previous matches on screen while the next query is in flight: emptying
         // the list between keystrokes makes a search picker flicker and, in a fixed-height
@@ -19,10 +20,5 @@ export const useCustomerSearch = (query: string, options?: { enabled?: boolean }
 };
 
 export const useCustomerVehicles = (customerId: string | undefined) => {
-    return useQuery({
-        queryKey: ['appointments', 'customers', customerId, 'vehicles'],
-        queryFn: () => appointmentApi.getCustomerVehicles(customerId!),
-        enabled: !!customerId,
-    });
+    return useQuery({ ...customerVehiclesQuery(customerId ?? ''), enabled: !!customerId });
 };
-

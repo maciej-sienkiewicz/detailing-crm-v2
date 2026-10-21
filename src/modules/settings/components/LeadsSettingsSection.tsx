@@ -17,6 +17,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/common/components/Toast';
 import { Button, Card, Notice, Panel, SectionTitle, ui } from '@/common/components/ui';
 import { leadsSettingsApi } from '../api/leadsSettingsApi';
+import { LEAD_ALERT_CONFIG_KEY, leadAlertConfigQuery } from '../api/leadAlertConfigQuery';
 import type { AutoLeadConfig, LeadAlertConfig } from '../types';
 import { UnsavedChangesBanner } from './shared/SettingsLayout';
 import { SettingSwitchRow } from './SettingSwitchRow';
@@ -25,7 +26,6 @@ import { MAX_HOURS, MIN_HOURS, hoursInDays, normalizeHours, parseHours, sanitize
 import { EscalationPanel } from './leads/EscalationPanel';
 
 const AUTO_LEAD_CONFIG_QUERY_KEY = ['settings', 'auto-lead-config'] as const;
-const LEAD_ALERT_CONFIG_QUERY_KEY = ['settings', 'lead-alert-config'] as const;
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
 
@@ -196,17 +196,14 @@ const StagnationPanel = () => {
     const queryClient = useQueryClient();
     const inputs = useRef<Partial<Record<ThresholdKey, HTMLInputElement | null>>>({});
 
-    const { data, isPending, isError, refetch } = useQuery({
-        queryKey: LEAD_ALERT_CONFIG_QUERY_KEY,
-        queryFn: leadsSettingsApi.getAlertConfig,
-    });
+    const { data, isPending, isError, refetch } = useQuery(leadAlertConfigQuery());
 
     const [draft, setDraft] = useState<HoursDraft | null>(null);
 
     const save = useMutation({
         mutationFn: (config: LeadAlertConfig) => leadsSettingsApi.updateAlertConfig(config),
         onSuccess: (saved) => {
-            queryClient.setQueryData(LEAD_ALERT_CONFIG_QUERY_KEY, saved);
+            queryClient.setQueryData(LEAD_ALERT_CONFIG_KEY, saved);
             setDraft(null);
             showSuccess('Zapisano', 'Lista zapytań pokaże sprawy według nowych ustawień.');
         },

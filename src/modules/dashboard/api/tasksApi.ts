@@ -78,8 +78,8 @@ export const tasksApi = {
 // ─── Archive API ──────────────────────────────────────────────────────────────
 
 export const taskArchiveApi = {
-  list: async (params: { page: number; size: number; search?: string }): Promise<TaskArchivePage> => {
-    const response = await apiClient.get('/v1/tasks/archive', { params });
+  list: async (params: { page: number; size: number; search?: string }, signal?: AbortSignal): Promise<TaskArchivePage> => {
+    const response = await apiClient.get('/v1/tasks/archive', { params, signal });
     return response.data;
   },
 };

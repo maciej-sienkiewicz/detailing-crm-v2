@@ -53,7 +53,7 @@ export const commsApi = {
 
     // ── Wątki ────────────────────────────────────────────────────────────────
 
-    getThreads: async (filters: ThreadListFilters): Promise<CommThreadPage> => {
+    getThreads: async (filters: ThreadListFilters, signal?: AbortSignal): Promise<CommThreadPage> => {
         const params = new URLSearchParams();
         if (filters.accountId) params.set('accountId', filters.accountId);
         if (filters.archived !== undefined) params.set('archived', String(filters.archived));
@@ -64,7 +64,7 @@ export const commsApi = {
         if (filters.query) params.set('query', filters.query);
         params.set('page', String(filters.page ?? 0));
         params.set('pageSize', String(filters.pageSize ?? 30));
-        const { data } = await apiClient.get(`/v1/comms/threads?${params}`);
+        const { data } = await apiClient.get(`/v1/comms/threads?${params}`, { signal });
         return data;
     },
 

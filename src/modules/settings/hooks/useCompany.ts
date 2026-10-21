@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { STALE_TIME } from '@/core/queryStaleTime';
 import { companyApi } from '../api/companyApi';
+import { COMPANY_SETTINGS_KEY, companySettingsQuery } from '../api/companySettingsQuery';
 import { protocolQueryKeys } from '@/modules/protocols/api/useProtocols';
 import type {
     UpdateCompanySettingsRequest,
@@ -11,7 +12,7 @@ import type {
     UpdateVisitNumberingConfigRequest,
 } from '../types';
 
-const QUERY_KEY = ['settings', 'company'] as const;
+const QUERY_KEY = COMPANY_SETTINGS_KEY;
 const VISIT_NUMBERING_QUERY_KEY = ['settings', 'visit-numbering-config'] as const;
 export const DOCUMENT_LOGO_CONFIG_QUERY_KEY = ['settings', 'document-logo-config'] as const;
 export const VISIT_VIEW_CONFIG_QUERY_KEY = ['settings', 'visit-view-config'] as const;
@@ -19,13 +20,7 @@ export const VEHICLE_FORM_CONFIG_QUERY_KEY = ['settings', 'vehicle-form-config']
 export const PROTOCOL_CONTENT_CONFIG_QUERY_KEY = ['settings', 'protocol-content-config'] as const;
 
 export const useCompanySettings = () => {
-    const { data, isLoading, isError, refetch } = useQuery({
-        queryKey: QUERY_KEY,
-        queryFn: companyApi.getCompanySettings,
-        // Zapis podmienia cache (setQueryData); bez tego każde wejście na kartę wizyty
-        // i każde przemontowanie Sidebara pytało o dane firmy od nowa.
-        staleTime: STALE_TIME.config,
-    });
+    const { data, isLoading, isError, refetch } = useQuery(companySettingsQuery());
 
     return { company: data, isLoading, isError, refetch };
 };

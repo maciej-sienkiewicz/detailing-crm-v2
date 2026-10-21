@@ -33,7 +33,7 @@ vi.mock('@/modules/visit-card/hooks/useVisitCardSettings', () => ({
 vi.mock('@/modules/email-campaigns/api/emailCampaignsApi', () => ({
     fetchEmailAutomationConfig: async () => ({ visitWelcome: { enabled: false } }),
 }));
-vi.mock('../api/tabletApi', () => ({ tabletApi: { listTablets: async () => [] } }));
+vi.mock('@/modules/settings/api/tabletsApi', () => ({ tabletsApi: { listTablets: async () => [] } }));
 vi.mock('../hooks/useSignatureRequestsSocket', () => ({ useSignatureRequestsSocket: () => undefined }));
 vi.mock('./DocumentPreview', () => ({ DocumentPreview: () => null }));
 vi.mock('./NotificationSection', () => ({

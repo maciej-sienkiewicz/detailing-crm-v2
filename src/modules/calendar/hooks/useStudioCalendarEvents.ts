@@ -18,7 +18,7 @@ export const useStudioCalendarEvents = (range: { start: Date; end: Date } | null
 
     return useQuery({
         queryKey: [QUERY_KEY, from, to],
-        queryFn: () => calendarEventsApi.list(from!, to!),
+        queryFn: ({ signal }) => calendarEventsApi.list(from!, to!, signal),
         enabled: !!from && !!to,
     });
 };

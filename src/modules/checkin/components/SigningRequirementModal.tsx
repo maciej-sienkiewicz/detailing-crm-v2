@@ -12,6 +12,7 @@ import { useToast } from '@/common/components/Toast';
 import { useCapability } from '@/modules/subscription';
 import { visitApi } from '@/modules/visits/api/visitApi';
 import { tabletApi } from '../api/tabletApi';
+import { tabletsQuery } from '@/modules/settings/hooks/useTablets';
 import { useSignatureRequestsSocket } from '../hooks/useSignatureRequestsSocket';
 import type { SignatureRequestSocketEvent } from '../hooks/useSignatureRequestsSocket';
 import { DocumentPreview } from './DocumentPreview';
@@ -196,12 +197,7 @@ export const SigningRequirementModal = ({
     const sigRemote = useCapability('SIGNATURE_REMOTE_REQUEST');
 
     // Lista tabletów jest za modułem podpisów (402 bez niego).
-    const { data: tablets = [] } = useQuery({
-        queryKey: ['tablets'],
-        queryFn: tabletApi.listTablets,
-        enabled: isOpen && sigLocal.enabled,
-        staleTime: 30_000,
-    });
+    const { data: tablets = [] } = useQuery({ ...tabletsQuery(), enabled: isOpen && sigLocal.enabled });
 
     const { sendByDefault: visitCardSendByDefault } = useVisitCardSettings();
 

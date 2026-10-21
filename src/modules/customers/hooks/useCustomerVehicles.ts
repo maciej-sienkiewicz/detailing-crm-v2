@@ -1,12 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { customerDetailApi } from '../api/customerDetailApi';
-
-const CUSTOMER_VEHICLES_QUERY_KEY = 'customerVehicles';
+import { CUSTOMER_VEHICLES_KEY, customerVehiclesQuery } from '../api/customerVehiclesQuery';
+import { mapBackendVehiclesResponse } from '../utils/customerMappers';
 
 export const useCustomerVehicles = (customerId: string, includeDeleted = false) => {
     const query = useQuery({
-        queryKey: [CUSTOMER_VEHICLES_QUERY_KEY, customerId, includeDeleted],
-        queryFn: () => customerDetailApi.getCustomerVehicles(customerId, includeDeleted),
+        ...customerVehiclesQuery(customerId, includeDeleted),
+        select: mapBackendVehiclesResponse,
         enabled: !!customerId,
     });
 
@@ -20,4 +19,4 @@ export const useCustomerVehicles = (customerId: string, includeDeleted = false) 
     };
 };
 
-export const customerVehiclesQueryKey = CUSTOMER_VEHICLES_QUERY_KEY;
+export const customerVehiclesQueryKey = CUSTOMER_VEHICLES_KEY;

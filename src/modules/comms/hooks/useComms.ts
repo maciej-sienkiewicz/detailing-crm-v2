@@ -90,7 +90,7 @@ export const useMailboxSyncState = () => {
 export const useThreads = (filters: ThreadListFilters) =>
     useQuery({
         queryKey: [...COMMS_THREADS_KEY, 'list', filters],
-        queryFn: () => commsApi.getThreads(filters),
+        queryFn: ({ signal }) => commsApi.getThreads(filters, signal),
         placeholderData: (previous) => previous,
     });
 

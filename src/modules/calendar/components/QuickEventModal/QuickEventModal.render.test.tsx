@@ -49,7 +49,6 @@ vi.mock('@/widgets/Sidebar/context/SidebarContext', () => ({ useSidebar: () => (
 vi.mock('@/modules/appointment-colors', () => ({
     pickInitialColorId: (colors: { id: string }[], prev: string) => prev || colors[0]?.id || '',
 }));
-vi.mock('@/modules/appointment-colors/api/appointmentColorApi', () => ({ appointmentColorApi: {} }));
 vi.mock('@/modules/services/api/fetchWholeCatalog', () => ({ fetchWholeCatalog: () => Promise.resolve([]) }));
 vi.mock('@/modules/services/api/servicesApi', () => ({ servicesApi: {} }));
 vi.mock('@/modules/sms-settings/api/smsSettingsApi', () => ({ fetchAutomationConfig: () => never() }));
