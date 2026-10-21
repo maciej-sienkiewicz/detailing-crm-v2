@@ -105,6 +105,10 @@ export interface ServiceLineItem {
      * Edytor ceny wypełnia pole brutto TĄ kwotą - netto × stawka dałoby 1900,01 zamiast 1900,00.
      */
     basePriceGross?: number | null;
+    /** Cena uzgodniona przed wydaniem, gdy osoba wydająca auto zmieniła cenę na końcu. */
+    priceBeforeHandoverNet?: number | null;
+    priceBeforeHandoverGross?: number | null;
+    priceBeforeHandoverVatRate?: number | null;
 }
 
 export interface VehicleInfo {
@@ -212,6 +216,22 @@ export interface Visit {
 export interface VisitSettlement {
     documentType: 'INVOICE' | 'RECEIPT' | 'OTHER' | null;
     revenueInvoiceId: string | null;
+    /** Obowiązujące dokumenty wizyty (faktura, zapis bez paragonu, paragon). */
+    documents?: VisitSettlementDocument[];
+    /** Rabat (+) albo dopłata (−) przy wydaniu, brutto; null bez prawa do cen. */
+    handoverDiscountGross?: number | null;
+}
+
+/** Dokument rozliczenia wizyty z usługami, które rozlicza (alokacja usługa × dokument). */
+export interface VisitSettlementDocument {
+    id: string;
+    number: string;
+    type: 'INVOICE' | 'RECEIPT' | 'OTHER';
+    withoutReceipt: boolean;
+    invoicedExternally: boolean;
+    paymentMethod: string;
+    totalGross: number | null;
+    services: Array<{ serviceLineItemId: string; grossCents: number | null }>;
 }
 
 export interface VisitDetailResponse {

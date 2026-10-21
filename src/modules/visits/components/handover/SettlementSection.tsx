@@ -6,8 +6,9 @@ import { GhostAction, Pill, PillRow, SectionProblems } from './HandoverKit';
 import { InvoiceBuyer, InvoicePositions, type InvoiceControls } from './InvoiceSection';
 import { PaymentMethodPicker } from './PaymentMethodPicker';
 import { SellerPrompt } from './SellerPrompt';
+import { PricesSection } from './PricesSection';
 import { documentChoices } from './paymentOptions';
-import type { HandoverProblem, HandoverState } from '../../types/handover';
+import type { HandoverItem, HandoverPrice, HandoverProblem, HandoverState } from '../../types/handover';
 import type { InvoiceType } from '../../types/stateTransitions';
 
 /*
@@ -40,10 +41,19 @@ const FieldTitle = styled.h3`
     color: ${ui.ink};
 `;
 
+export interface PriceControls {
+    changePrice: (serviceId: string, changes: Partial<Pick<HandoverPrice, 'net' | 'gross' | 'vatRate'>>) => void;
+    resetPrices: () => void;
+    /** Rabat (+) albo dopłata (−) przy wydaniu, brutto. */
+    discount: number;
+    totalGross: number;
+}
+
 interface SettlementSectionProps {
     state: HandoverState;
     patch: (changes: Partial<HandoverState>) => void;
     currency: string;
+    invoiceItems: HandoverItem[];
     invoiceGross: number;
     remainder: number;
     sellerComplete: boolean;
@@ -51,12 +61,14 @@ interface SettlementSectionProps {
     problemsIn: (section: HandoverProblem['section']) => HandoverProblem[];
     invoicedExternally: boolean;
     controls: InvoiceControls;
+    priceControls: PriceControls;
 }
 
 export const SettlementSection = ({
     state,
     patch,
     currency,
+    invoiceItems,
     invoiceGross,
     remainder,
     sellerComplete,
@@ -64,10 +76,11 @@ export const SettlementSection = ({
     problemsIn,
     invoicedExternally,
     controls,
+    priceControls,
 }: SettlementSectionProps) => {
     const fmt = (grosz: number) => formatCurrency(grosz / 100, currency);
     const isInvoice = state.documentType === 'INVOICE';
-    const isSplit = isInvoice && state.remainderWithoutReceipt;
+    const isSplit = isInvoice && state.splitRemainder;
     const crmInvoice = isInvoice && !invoicedExternally;
 
     const choose = (value: InvoiceType) => {
@@ -107,6 +120,19 @@ export const SettlementSection = ({
                 )}
             </Field>
 
+            <Field>
+                <FieldTitle>Ceny usług</FieldTitle>
+                <PricesSection
+                    prices={state.prices}
+                    onChange={priceControls.changePrice}
+                    onReset={priceControls.resetPrices}
+                    discount={priceControls.discount}
+                    totalGross={priceControls.totalGross}
+                    problems={problemsIn('prices')}
+                    fmt={fmt}
+                />
+            </Field>
+
             <Field id="handover-payment">
                 <FieldTitle>{isSplit ? 'Forma zapłaty faktury' : 'Forma zapłaty'}</FieldTitle>
                 <PaymentMethodPicker
@@ -128,6 +154,7 @@ export const SettlementSection = ({
                     <InvoicePositions
                         state={state}
                         patch={patch}
+                        invoiceItems={invoiceItems}
                         invoiceGross={invoiceGross}
                         remainder={remainder}
                         company={company}

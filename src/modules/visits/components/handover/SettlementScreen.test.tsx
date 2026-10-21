@@ -8,23 +8,31 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
-import { SettlementSection } from './SettlementSection';
+import { SettlementSection, type PriceControls } from './SettlementSection';
 import { SettlementSummary } from './SettlementSummary';
 import type { InvoiceControls } from './InvoiceSection';
-import { withDerived, type HandoverItem, type HandoverProblem, type HandoverState } from '../../types/handover';
+import {
+    invoiceItemsOf,
+    linesFromPrices,
+    priceFromService,
+    totalsOf,
+    type HandoverProblem,
+    type HandoverState,
+} from '../../types/handover';
 import type { CompanySettings } from '@/modules/settings/types';
 
-const item = (name: string, gross: string, vatRate: HandoverItem['vatRate']): HandoverItem =>
-    withDerived({ name, net: '', gross, mode: 'GROSS', vatRate });
+const prices = [
+    priceFromService({ id: 'c', serviceName: 'Powłoka ceramiczna', vatRate: 23, basePriceGross: 150_000, finalPriceNet: 121_951, finalPriceGross: 150_000 }),
+    priceFromService({ id: 'p', serviceName: 'Pranie tapicerki', vatRate: 8, basePriceGross: 20_000, finalPriceNet: 18_519, finalPriceGross: 20_000 }),
+];
 
 const state = (overrides: Partial<HandoverState> = {}): HandoverState => ({
     paymentMethod: 'CARD',
     documentType: 'INVOICE',
     buyer: { nip: '5213017228', name: 'Flota Serwis Sp. z o.o.', addressLine1: 'ul. Przemysłowa 7', addressLine2: '30-001 Kraków', email: '' },
-    items: [item('Powłoka ceramiczna', '1500,00', '23'), item('Pranie tapicerki', '200,00', '8')],
+    prices,
+    lines: linesFromPrices(prices),
     splitRemainder: false,
-    remainderMethod: 'CASH',
-    remainderWithoutReceipt: false,
     exemptionBasis: '',
     protocolSigned: true,
     sendToKsef: null,
@@ -33,12 +41,22 @@ const state = (overrides: Partial<HandoverState> = {}): HandoverState => ({
 });
 
 const controls = (overrides: Partial<InvoiceControls> = {}): InvoiceControls => ({
-    itemsMatchServices: true,
-    vatMismatch: null,
+    linesMatch: true,
     restoredAt: null,
-    resetItemsToServices: vi.fn(),
+    resetLines: vi.fn(),
     setInvoiceOther: vi.fn(),
-    applyItemsPerRate: vi.fn(),
+    applyLinesPerRate: vi.fn(),
+    changeLine: vi.fn(),
+    mergeSelected: vi.fn(() => null),
+    unmerge: vi.fn(),
+    ...overrides,
+});
+
+const priceControls = (overrides: Partial<PriceControls> = {}): PriceControls => ({
+    changePrice: vi.fn(),
+    resetPrices: vi.fn(),
+    discount: 0,
+    totalGross: 170_000,
     ...overrides,
 });
 
@@ -52,28 +70,34 @@ const wrap = (node: React.ReactNode) => render(
     </QueryClientProvider>,
 );
 
-const left = (s: HandoverState, opts: { invoiceGross?: number; remainder?: number; c?: InvoiceControls; patch?: (c: Partial<HandoverState>) => void; external?: boolean } = {}) =>
-    wrap(
+const left = (s: HandoverState, opts: { remainder?: number; c?: InvoiceControls; pc?: PriceControls; patch?: (c: Partial<HandoverState>) => void; external?: boolean } = {}) => {
+    const items = invoiceItemsOf(s);
+    return wrap(
         <SettlementSection
             state={s}
             patch={opts.patch ?? vi.fn()}
             currency="PLN"
-            invoiceGross={opts.invoiceGross ?? 170_000}
+            invoiceItems={items}
+            invoiceGross={items.reduce((sum, i) => sum + Number(i.gross.replace(',', '.')) * 100, 0)}
             remainder={opts.remainder ?? 0}
             sellerComplete
             company={company}
             problemsIn={() => []}
             invoicedExternally={opts.external ?? false}
             controls={opts.c ?? controls()}
+            priceControls={opts.pc ?? priceControls()}
         />,
     );
+};
 
-const right = (s: HandoverState, opts: { invoiceGross?: number; remainder?: number; problems?: HandoverProblem[]; sendToKsef?: boolean; ksefBlocked?: 'no-token' | 'no-permission' | null; external?: boolean } = {}) =>
+const right = (s: HandoverState, opts: { invoiceGross?: number; remainder?: number; originalGross?: number; problems?: HandoverProblem[]; sendToKsef?: boolean; ksefBlocked?: 'no-token' | 'no-permission' | null; external?: boolean } = {}) =>
     wrap(
         <SettlementSummary
             state={s}
-            totals={{ net: 140_470, vat: 29_530, gross: 170_000 }}
+            totals={totalsOf(s.prices)}
+            originalGross={opts.originalGross ?? 170_000}
             currency="PLN"
+            invoiceItems={invoiceItemsOf(s)}
             invoiceGross={opts.invoiceGross ?? 170_000}
             remainder={opts.remainder ?? 0}
             invoicedExternally={opts.external ?? false}
@@ -109,7 +133,7 @@ describe('Lewa kolumna: decyzje', () => {
     it('„Nie dziel” wraca do faktury na całość; zmiana dokumentu zdejmuje podział', () => {
         const patch = vi.fn();
         const c = controls();
-        left(state({ splitRemainder: true, remainderWithoutReceipt: true }), { patch, c, invoiceGross: 120_000, remainder: 50_000 });
+        left(state({ splitRemainder: true }), { patch, c, remainder: 50_000 });
 
         fireEvent.click(screen.getByRole('button', { name: 'Nie dziel' }));
         expect(c.setInvoiceOther).toHaveBeenLastCalledWith(false);
@@ -145,23 +169,42 @@ describe('Lewa kolumna: decyzje', () => {
         expect(within(dialog).getByText('Do zapłaty').parentElement?.textContent).toMatch(/1700,00/);
     });
 
-    it('podział: edycja kwot otwarta, pod nią dwie kwoty', () => {
-        left(state({ splitRemainder: true, remainderWithoutReceipt: true, items: [item('Powłoka ceramiczna', '1000,00', '23'), item('Pranie tapicerki', '200,00', '8')] }),
-            { invoiceGross: 120_000, remainder: 50_000 });
+    it('podział: pozycje otwarte, przy każdej faktura albo inny dokument, pod nimi dwie kwoty', () => {
+        const lines = linesFromPrices(prices).map(l => (l.serviceIds[0] === 'p' ? { ...l, onInvoice: false } : l));
+        const c = controls();
+        left(state({ splitRemainder: true, lines }), { remainder: 20_000, c });
 
-        expect(screen.getByLabelText('Brutto pozycji 1')).toBeInTheDocument();
-        expect(screen.getByText('Kwota na fakturze').parentElement?.textContent).toMatch(/1200,00/);
-        expect(screen.getByText('Kwota do zapłaty na innym dokumencie').parentElement?.textContent).toMatch(/500,00/);
+        expect(screen.getByLabelText('Pozycja 1 na fakturze')).toBeChecked();
+        expect(screen.getByLabelText('Pozycja 2 na fakturze')).not.toBeChecked();
+        expect(screen.getByText('Kwota na fakturze').parentElement?.textContent).toMatch(/1500,00/);
+        expect(screen.getByText('Inny dokument: bez paragonu, bez VAT, gotówka').parentElement?.textContent).toMatch(/200,00/);
         expect(screen.getByText('Forma zapłaty faktury')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByLabelText('Pozycja 2 na fakturze'));
+        expect(c.changeLine).toHaveBeenCalledWith(1, { onInvoice: true, partialGross: '' });
     });
 
-    it('faktura niższa niż wizyta przy zwykłej fakturze: jedno zdanie i reszta na inny dokument', () => {
-        const c = controls();
-        left(state(), { invoiceGross: 120_000, remainder: 50_000, c });
+    it('ceny usług: zmiana ceny w edytorze to zmiana ceny wizyty, z rabatem widocznym od razu', () => {
+        const pc = priceControls({ discount: 50_000, totalGross: 120_000 });
+        left(state(), { pc });
 
-        expect(screen.getByRole('alert').textContent).toMatch(/niższa niż kwota wizyty o 500,00/);
-        fireEvent.click(screen.getByRole('button', { name: 'Resztę na inny dokument' }));
-        expect(c.setInvoiceOther).toHaveBeenCalledWith(true);
+        expect(screen.getByText('Rabat przy wydaniu 500,00 zł')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Zmień ceny' }));
+        fireEvent.change(screen.getByLabelText('Brutto: Powłoka ceramiczna'), { target: { value: '1000,00' } });
+        expect(pc.changePrice).toHaveBeenCalledWith('c', { gross: '1000,00' });
+    });
+
+    it('scalenie zaznaczonych pozycji idzie do akcji, a jej odmowa jest pokazana', () => {
+        const c = controls({ mergeSelected: vi.fn(() => 'Scalić można tylko usługi z tą samą stawką VAT.') });
+        left(state(), { c });
+        fireEvent.click(screen.getByRole('button', { name: 'Pokaż pozycje' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Edytuj' }));
+        fireEvent.click(screen.getByLabelText('Zaznacz pozycję 1 do scalenia'));
+        fireEvent.click(screen.getByLabelText('Zaznacz pozycję 2 do scalenia'));
+        fireEvent.click(screen.getByRole('button', { name: /Scal zaznaczone/ }));
+
+        expect(c.mergeSelected).toHaveBeenCalledWith([0, 1]);
+        expect(screen.getByRole('alert').textContent).toMatch(/tą samą stawką VAT/);
     });
 
     it('księgowość wystawia faktury: bez podziału i bez pozycji', () => {
@@ -191,11 +234,18 @@ describe('Prawa kolumna: kwota, sprawdź przed wysłaniem, braki', () => {
         expect(screen.getByText(/nie trafi do KSeF: brak tokenu/)).toBeInTheDocument();
     });
 
-    it('„Faktura + Inny dokument”: kwota faktury i inny dokument gotówką', () => {
-        right(state({ splitRemainder: true, remainderWithoutReceipt: true }), { invoiceGross: 120_000, remainder: 50_000 });
+    it('„Faktura + Inny dokument”: kwota faktury i inny dokument gotówką, bez VAT', () => {
+        right(state({ splitRemainder: true }), { invoiceGross: 120_000, remainder: 50_000 });
         const aside = screen.getByLabelText('Podsumowanie rozliczenia');
         expect(aside.textContent).toMatch(/faktura 1200,00\szł, inny dokument 500,00\szł/);
-        expect(aside.textContent).toMatch(/Inny dokument500,00\szłgotówka/);
+        expect(aside.textContent).toMatch(/Inny dokument500,00\szłbez paragonu, bez VAT, gotówka/);
+    });
+
+    it('netto i VAT pokazane z faktury, a rabat przy wydaniu obok kwoty', () => {
+        right(state(), { originalGross: 180_000 });
+        const aside = screen.getByLabelText('Podsumowanie rozliczenia');
+        expect(aside.textContent).toMatch(/netto 1404,70\szł, VAT 295,30\szł/);
+        expect(aside.textContent).toMatch(/było 1800,00\szł, rabat przy wydaniu 100,00\szł/);
     });
 
     it('paragon: podsumowanie bez nabywcy i bez KSeF', () => {

@@ -244,6 +244,8 @@ export interface PaymentMethodPeriod {
   cash:        PaymentMethodEntry;
   card:        PaymentMethodEntry;
   transfer:    PaymentMethodEntry;
+  /** W tym zapisy bez paragonu - już wliczone w formy płatności. */
+  withoutReceipt?: PaymentMethodEntry;
 }
 
 export interface PaymentMethodReport {
@@ -256,6 +258,8 @@ export interface PaymentMethodReport {
     cash:     PaymentMethodEntry;
     card:     PaymentMethodEntry;
     transfer: PaymentMethodEntry;
+    /** W tym zapisy bez paragonu - już wliczone w formy płatności. */
+    withoutReceipt?: PaymentMethodEntry;
   };
 }
 
@@ -590,6 +594,10 @@ export interface IncomeDocument {
   settlementState?: IncomeSettlementState | null;
   /** Część kwoty wizyty zapłacona bez paragonu i bez VAT (typ OTHER, VAT 0). */
   withoutReceipt?:  boolean;
+  /** Numer wizyty, z której pochodzi dokument. */
+  visitNumber?:     string | null;
+  /** Ile obowiązujących dokumentów rozlicza wizytę (2 = faktura + drugi dokument). */
+  visitDocumentCount?: number;
 }
 
 export type IncomeSettlementState = 'CANCELLED' | 'ZEROED' | 'SUPERSEDED';

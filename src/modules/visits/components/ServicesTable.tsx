@@ -11,7 +11,7 @@ import {
 } from '../utils/servicePriceEdits';
 import type { EditedPrice } from '../utils/servicePriceEdits';
 import { formatCurrency, shouldAutoFocusInput } from '@/common/utils';
-import type { ServiceLineItem, VisitSettlement, VisitStatus } from '../types';
+import type { ServiceLineItem, VisitSettlement, VisitSettlementDocument, VisitStatus } from '../types';
 import { usePrintServicesList } from '../hooks/usePrintServicesList';
 import { usePersonalDataActions } from '@/core/permissions';
 import { useServiceChecklist } from '../hooks/useServiceChecklist';
@@ -1460,6 +1460,12 @@ const SETTLEMENT_LABEL: Record<NonNullable<VisitSettlement['documentType']>, str
     OTHER: 'Rozliczona',
 };
 
+/** Krótka nazwa dokumentu rozliczenia przy usłudze: rodzaj, bo numer jest w podpowiedzi. */
+const documentShortLabel = (doc: VisitSettlementDocument): string =>
+    doc.type === 'INVOICE'
+        ? (doc.invoicedExternally ? 'Faktura księgowości' : 'Faktura')
+        : doc.withoutReceipt ? 'Bez paragonu' : doc.type === 'RECEIPT' ? 'Paragon' : 'Inny dokument';
+
 /** 1 usługa, 2 usługi, 5 usług, 22 usługi. */
 function servicesWord(n: number): string {
     if (n === 1) return 'usługa';
@@ -1997,17 +2003,41 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
             : null;
 
         const check = checklist.enabled ? checklist.checkOf(service.id) : undefined;
+        // Cena zmieniona przy wydaniu pojazdu: rabat albo dopłata względem ceny uzgodnionej.
+        const before = pricesHidden ? null : service.priceBeforeHandoverGross ?? null;
+        const handoverDelta = before !== null && service.finalPriceGross !== null ? before - service.finalPriceGross : 0;
+        const handoverPill = before !== null && handoverDelta !== 0 ? {
+            label: handoverDelta > 0
+                ? `Rabat przy wydaniu ${formatCurrency(handoverDelta / 100)}`
+                : `Dopłata przy wydaniu ${formatCurrency(-handoverDelta / 100)}`,
+            title: `Cena przed wydaniem ${formatCurrency(before / 100)}`,
+        } : null;
+        // Dokumenty, którymi rozliczono usługę; przy części usługi na dokumencie - z kwotą.
+        const docsOfService = pricesHidden ? [] : (settlement?.documents ?? [])
+            .map(doc => ({ doc, part: doc.services.find(x => x.serviceLineItemId === service.id) }))
+            .filter(({ part }) => part !== undefined);
+        const serviceDocs = docsOfService.length < 2 && (settlement?.documents?.length ?? 0) < 2 ? [] : docsOfService.map(({ doc, part }) => ({
+            id: doc.id,
+            label: docsOfService.length > 1 && part?.grossCents != null
+                ? `${documentShortLabel(doc)} ${formatCurrency(part.grossCents / 100)}`
+                : documentShortLabel(doc),
+            title: `${doc.number}`,
+        }));
         const name = (
             <NameCell>
                 <ServiceName>{service.serviceName}</ServiceName>
                 {check && <DoneMeta>{doneLabel(check.checkedByName, check.checkedAt)}</DoneMeta>}
-                {(service.isPackage || isPendingRow || isMarkedForDelete || discountPill || (!isPendingRow && hasEditedPrice)) && (
+                {(service.isPackage || isPendingRow || isMarkedForDelete || discountPill || (!isPendingRow && hasEditedPrice) || handoverPill || serviceDocs.length > 0) && (
                     <Pills>
                         {service.isPackage && <StatusPill $tone="neutral">Pakiet</StatusPill>}
                         {isPendingRow && <StatusPill $tone="warn"><Clock />{pendingLabel(service.pendingOperation)}</StatusPill>}
                         {isMarkedForDelete && <StatusPill $tone="danger">Do usunięcia po zapisie</StatusPill>}
                         {discountPill && <StatusPill $tone="ok">{discountPill}</StatusPill>}
                         {!isPendingRow && !discountPill && hasEditedPrice && <StatusPill $tone="info">Cena zmieniona</StatusPill>}
+                        {handoverPill && <StatusPill $tone="info" title={handoverPill.title}>{handoverPill.label}</StatusPill>}
+                        {serviceDocs.map(doc => (
+                            <StatusPill key={doc.id} $tone="neutral" title={doc.title}>{doc.label}</StatusPill>
+                        ))}
                     </Pills>
                 )}
                 {service.note && <ServiceNote>{service.note}</ServiceNote>}
@@ -2067,8 +2097,12 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
     // Stan rozliczenia jako plakietka obok kwoty - to z nią wraca się do wizyty
     // przy wydaniu pojazdu.
+    // Faktura + drugi dokument: oba w plakietce, bo jedna nazwa mówiła tylko o fakturze.
+    const settlementDocs = settlement?.documents ?? [];
     const settlementPill = pricesHidden || services.length === 0 ? null : settlement ? (
-        <StatusPill $tone="ok"><Check />{SETTLEMENT_LABEL[settlement.documentType ?? 'OTHER']}</StatusPill>
+        <StatusPill $tone="ok"><Check />{settlementDocs.length > 1
+            ? `Rozliczona: ${settlementDocs.map(d => documentShortLabel(d).toLowerCase()).join(' + ')}`
+            : SETTLEMENT_LABEL[settlement.documentType ?? 'OTHER']}</StatusPill>
     ) : (
         <StatusPill $tone="neutral">Nierozliczona</StatusPill>
     );

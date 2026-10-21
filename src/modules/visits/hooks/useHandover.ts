@@ -7,7 +7,6 @@ import { apiErrorMessage } from '../api/apiError';
 import { visitDetailQueryKey } from './index';
 import { useVisitStateConflict } from './useVisitStateConflict';
 import { companyApi } from '@/modules/settings/api/companyApi';
-import { useServicePricing } from '@/modules/appointments/hooks/useServicePricing';
 import { useToast } from '@/common/components/Toast';
 import { localIsoDate } from '@/common/utils/localDate';
 import { isPiiMasked } from '@/common/pii';
@@ -18,26 +17,32 @@ import type { ServiceLineItem, Visit } from '../types';
 import type { CompleteVisitResponse, PaymentMethod } from '../types/stateTransitions';
 import {
     invoiceGrossOf,
-    invoiceItemFromService,
+    invoiceItemsOf,
+    linesFromPrices,
+    linesMatchServices,
+    linesPerRate,
+    mergeLines,
     normalizeNip,
-    itemsMatch,
-    itemsPerRate,
-    rateMismatch,
+    originalGrossOf,
+    priceChanged,
+    priceFromService,
     restoreDraft,
-    scaleItemsToGross,
     servicesFingerprint,
     toInvoicePayload,
-    toPln,
+    toPriceChanges,
+    totalsOf,
+    unmergeLine,
+    updatePrice,
     validateHandover,
-    withDerived,
     type HandoverDraft,
-    type HandoverItem,
+    type HandoverPrice,
     type HandoverProblem,
     type HandoverState,
+    type InvoiceLine,
 } from '../types/handover';
 
-const DRAFT_PREFIX = 'handover:v2:';
-const LEGACY_DRAFT_PREFIX = 'handover:v1:';
+const DRAFT_PREFIX = 'handover:v3:';
+const LEGACY_DRAFT_PREFIXES = ['handover:v1:', 'handover:v2:'];
 const DUE_DATE_DAYS = 14;
 
 const draftKey = (visitId: string) => `${DRAFT_PREFIX}${visitId}`;
@@ -87,22 +92,14 @@ interface UseHandoverArgs {
  * z którego widok potwierdzenia buduje akcje domykające (wysyłka do KSeF,
  * ponowna próba przy odrzuceniu).
  */
+/** Usługa liczy się do kwoty wizyty - ta sama reguła co Visit.effectiveGrossAmount na backendzie. */
+const countsTowardTotal = (service: ServiceLineItem): boolean =>
+    service.status === 'CONFIRMED' || service.status === 'APPROVED';
+
 export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     const queryClient = useQueryClient();
     const { showError, showInfo } = useToast();
     const handleStateConflict = useVisitStateConflict(visit.id);
-    const { calculateServicePrice } = useServicePricing();
-
-    // Wycena jest współdzielona z modułem wizyt, ale jej sygnatura pochodzi
-    // z modułu appointments, gdzie ServiceLineItem deklaruje basePriceNet jako
-    // MoneyAmount. Implementacja czyta tę wartość jak liczbę (createMoney), więc
-    // model wizyty pasuje w praktyce, ale nie w typach. Rzutujemy raz, tutaj,
-    // zamiast przy każdym wywołaniu; rozbieżność typów do uporządkowania osobno.
-    const priceOf = useCallback(
-        (service: ServiceLineItem) =>
-            calculateServicePrice(service as unknown as Parameters<typeof calculateServicePrice>[0]),
-        [calculateServicePrice]
-    );
 
     // Dane sprzedawcy pobierane RAZEM z otwarciem ekranu, nie dopiero przy
     // edycji faktury: brak NIP-u studia ma być widoczny zanim ktokolwiek
@@ -114,52 +111,18 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     });
     const sellerComplete = !!company?.name?.trim() && !!company?.taxId?.trim();
 
-    // ── Kwoty wizyty ─────────────────────────────────────────────────────────
-    // Usługa z oczekującą edycją liczy się po cenie sprzed zmiany: zmiana nie
-    // została jeszcze zatwierdzona, więc klient płaci za to, co uzgodniono.
-    const totals = useMemo(() => {
-        let net = 0;
-        let gross = 0;
-        visit.services.forEach(service => {
-            const isPending = service.hasPendingChange ?? service.status === 'PENDING';
-            const isEditPending =
-                isPending &&
-                service.pendingOperation === 'EDIT' &&
-                (service.previousPriceNet ?? null) !== null &&
-                (service.previousPriceGross ?? null) !== null;
-            if (isEditPending) {
-                net += service.previousPriceNet as number;
-                gross += service.previousPriceGross as number;
-            } else {
-                const pricing = priceOf(service);
-                net += pricing.finalPriceNet;
-                gross += pricing.finalPriceGross;
-            }
-        });
-        return { net, gross, vat: gross - net };
-    }, [visit.services, priceOf]);
-
-    const isFreeVisit = totals.gross === 0;
+    // ── Usługi wizyty ────────────────────────────────────────────────────────
+    // Kwoty z backendu (finalPriceNet/Gross), nie przeliczane drugi raz: osobna wycena
+    // na froncie rozjeżdżała się o grosz z backendem i liczyła usługi odrzucone i czekające
+    // na zgodę klienta, więc wydanie kończyło się „faktura przekracza kwotę wizyty".
+    const countedServices = useMemo(() => visit.services.filter(countsTowardTotal), [visit.services]);
+    const pendingServices = useMemo(() => visit.services.filter(s => s.status === 'PENDING'), [visit.services]);
     const currency = visit.totalCost?.currency ?? 'PLN';
 
     // ── Stan początkowy ──────────────────────────────────────────────────────
     const buildInitialState = useCallback((): HandoverState => {
-        // Stawka pozycji z usługi, nie z proporcji kwot - patrz invoiceRateOf.
-        const seedItems: HandoverItem[] =
-            visit.services.length > 0
-                ? visit.services.map(service => invoiceItemFromService(service, priceOf(service)))
-                : [
-                      withDerived({
-                          name: 'Usługi detailingowe',
-                          net: '',
-                          gross: toPln(totals.gross),
-                          mode: 'GROSS',
-                          vatRate: '23',
-                      }),
-                  ];
-
+        const prices = countedServices.map(priceFromService);
         const lines = addressLines(visit);
-
         return {
             paymentMethod: 'CARD',
             documentType: 'INVOICE',
@@ -175,10 +138,9 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
                 addressLine2: lines.line2,
                 email: invoiceSafe(visit.customer.email),
             },
-            items: seedItems,
+            prices,
+            lines: linesFromPrices(prices),
             splitRemainder: false,
-            remainderMethod: 'CASH',
-            remainderWithoutReceipt: false,
             exemptionBasis: '',
             protocolSigned: false,
             sendToKsef: null,
@@ -186,31 +148,22 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
             // ustawienie dociera z sieci, więc tu tylko „pracownik jeszcze nie wybrał".
             thankYouSms: null,
         };
-    }, [visit, priceOf, totals.gross]);
+    }, [visit, countedServices]);
 
-    // Odcisk usług, z których powstały pozycje faktury - decyduje, czy zapisany
-    // draft opisuje jeszcze tę samą wizytę (patrz restoreDraft).
+    // Odcisk usług, z których powstały ceny i pozycje - decyduje, czy zapisany draft
+    // opisuje jeszcze tę samą wizytę (patrz restoreDraft).
     const fingerprint = useMemo(
-        () => servicesFingerprint(visit.services, service => priceOf(service as ServiceLineItem).finalPriceGross),
-        [visit.services, priceOf]
+        () => servicesFingerprint(countedServices, service =>
+            countedServices.find(s => s.id === service.id)?.finalPriceGross ?? 0),
+        [countedServices]
     );
 
-    // Pozycje faktury dokładnie takie jak usługi wizyty - punkt odniesienia dla
-    // „zgodnie z usługami”, „wróć do kwot z usług” i podziału na fakturę i paragon.
-    const serviceItems = useMemo(() => buildInitialState().items, [buildInitialState]);
-
-    // Ekran jest montowany dopiero przy otwarciu, więc odtworzenie draftu
-    // wystarczy zrobić raz, w inicjalizatorze stanu.
     const [initial] = useState<{ state: HandoverState; restoredAt: string | null }>(() => {
         const fresh = buildInitialState();
         try {
-            // Drafty sprzed wprowadzenia odcisku usług nie dają się zweryfikować,
-            // więc znikają zamiast wracać jako nieaktualne pozycje.
-            window.localStorage.removeItem(`${LEGACY_DRAFT_PREFIX}${visit.id}`);
+            LEGACY_DRAFT_PREFIXES.forEach(prefix => window.localStorage.removeItem(`${prefix}${visit.id}`));
             const stored = window.localStorage.getItem(draftKey(visit.id));
             const restored = restoreDraft(fresh, stored, fingerprint);
-            // Przywrócone pozycje inne niż usługi wizyty dostają baner z godziną zapisu:
-            // w testach okno po cichu wracało z cudzą ceną 240,00 zł zamiast 246,00 zł.
             let savedAt: string | null = null;
             try {
                 const draft = stored ? (JSON.parse(stored) as HandoverDraft) : null;
@@ -218,10 +171,9 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
             } catch {
                 savedAt = null;
             }
-            const restoredAt = savedAt !== null && !itemsMatch(restored.items, fresh.items) ? savedAt : null;
-            return { state: restored, restoredAt };
+            const edited = restored.prices.some(priceChanged) || !linesMatchServices(restored.lines, restored.prices);
+            return { state: restored, restoredAt: savedAt !== null && edited ? savedAt : null };
         } catch {
-            // Brak dostępu do localStorage (tryb prywatny) nie może blokować wydania.
             return { state: fresh, restoredAt: null };
         }
     });
@@ -230,37 +182,35 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     const [result, setResult] = useState<CompleteVisitResponse | null>(null);
 
     // Wystawianie dokumentów (paragon/faktura/KSeF) to moduł finansowy. Bez niego
-    // wydanie pojazdu nadal działa, w trybie uproszczonym, bez dokumentu; backend
-    // egzekwuje tę samą regułę (jawna faktura -> 402, paragon pomijany).
+    // wydanie pojazdu nadal działa, w trybie uproszczonym, bez dokumentu.
     const canIssueDocuments = useCapability('FINANCE_INVOICE_ISSUE').enabled;
 
-    // Wybór momentu podziękowania ma sens tylko wtedy, gdy studio takie SMS-y w ogóle
-    // wysyła. Przy wyłączonym szablonie sekcja znika i nic o niej nie idzie do backendu.
+    // ── Kwoty ────────────────────────────────────────────────────────────────
+    const totals = useMemo(() => totalsOf(state.prices), [state.prices]);
+    const originalGross = useMemo(() => originalGrossOf(state.prices), [state.prices]);
+    /** Rabat (+) albo dopłata (−) przy wydaniu, brutto. */
+    const handoverDiscount = originalGross - totals.gross;
+    const pricesChanged = state.prices.some(priceChanged);
+    // Układ ekranu: wizyta bez płatnych usług. Rabat do zera w trakcie wydania nie chowa
+    // edytora cen - do zapłaty jest wtedy 0 zł i dokument nie powstanie (patrz zapis).
+    const isFreeVisit = originalGross === 0;
+    const nothingToPay = totals.gross === 0;
+
     const thankYouSms = useThankYouSmsAvailability({
         enabled: isOpen,
         customerPhone: visit.customer.phone,
     });
-    // „Domyślnie zaznacz" przy „Podziękowaniu po wizycie"; bez dostępu do ustawień -
-    // jak dotąd zaznaczone: podziękowanie jest tym, co studio chce wysłać, problemem
-    // była zawsze pora, a nie sama wiadomość.
     const messageDefaults = useMessageDefaults();
     const thankYouSmsChecked = state.thankYouSms ?? messageDefaults.sms('postVisit') ?? true;
 
-    // Stan integracji z KSeF (token, jego uprawnienia, domyślna odpowiedź studia).
-    // Pytamy tylko wtedy, gdy faktura w ogóle wchodzi w grę - wizyta bezpłatna ani
-    // paragon nie mają czego wysyłać.
     const ksef = useKsefAutomation({
         enabled: canIssueDocuments && !isFreeVisit && state.documentType === 'INVOICE',
     });
 
     /**
-     * Wysyłka do KSeF nie jest już przełącznikiem na ekranie wydania.
-     *
-     * Faktura na firmę (NIP nabywcy) trafia do KSeF obowiązkowo, więc pole, które
-     * dało się odhaczyć, było pułapką. Faktura dla osoby prywatnej idzie według
-     * ustawienia studia (dla konsumenta KSeF jest dobrowolny). Bez tokenu albo z tokenem
-     * bez prawa wystawiania faktura zostaje zapisana bez wysyłki - podsumowanie mówi to
-     * wprost, zamiast obiecywać wysyłkę bez szans powodzenia.
+     * Wysyłka do KSeF nie jest przełącznikiem na ekranie wydania: faktura na firmę idzie
+     * obowiązkowo, dla osoby prywatnej według ustawienia studia; bez tokenu albo z tokenem
+     * bez prawa wystawiania faktura zostaje zapisana bez wysyłki.
      */
     const invoicedExternally = ksef.invoicesIssuedExternally;
     const ksefBlocked: 'no-token' | 'no-permission' | null =
@@ -301,45 +251,87 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         []
     );
 
+    // ── Faktura ──────────────────────────────────────────────────────────────
+    const invoiceItems = useMemo(() => invoiceItemsOf(state), [state]);
+    const invoiceGross = useMemo(() => invoiceGrossOf(invoiceItems), [invoiceItems]);
+    /** Część kwoty na drugim dokumencie (tylko przy podziale). */
+    const remainder = state.splitRemainder ? totals.gross - invoiceGross : 0;
+    const linesMatch = linesMatchServices(state.lines, state.prices);
 
-    // ── Wyliczenia pochodne ──────────────────────────────────────────────────
-    const invoiceGross = useMemo(() => invoiceGrossOf(state.items), [state.items]);
-    const remainder = totals.gross - invoiceGross;
-    const itemsMatchServices = useMemo(() => itemsMatch(state.items, serviceItems), [state.items, serviceItems]);
-    const vatMismatch = useMemo(() => rateMismatch(state.items, serviceItems), [state.items, serviceItems]);
+    // ── Akcje cen i pozycji ──────────────────────────────────────────────────
+    const changePrice = useCallback(
+        (serviceId: string, changes: Partial<Pick<HandoverPrice, 'net' | 'gross' | 'vatRate'>>) =>
+            setState(prev => ({
+                ...prev,
+                prices: prev.prices.map(p => (p.serviceId === serviceId ? updatePrice(p, changes) : p)),
+            })),
+        []
+    );
 
-    // ── Podział: faktura na część kwoty, reszta paragonem ─────────────────────
-    /** Pozycje z usług wizyty, faktura na całość. Zdejmuje też baner przywróconego draftu. */
-    const resetItemsToServices = useCallback(() => {
-        patch({ items: serviceItems, splitRemainder: false, remainderWithoutReceipt: false });
+    /** Ceny wracają do tych z wizyty (bez zmian przy wydaniu). */
+    const resetPrices = useCallback(() => {
+        setState(prev => ({ ...prev, prices: buildInitialState().prices }));
         setRestoredAt(null);
-    }, [patch, serviceItems]);
+    }, [buildInitialState]);
+
+    const changeLine = useCallback(
+        (index: number, changes: Partial<InvoiceLine>) =>
+            setState(prev => ({ ...prev, lines: prev.lines.map((l, i) => (i === index ? { ...l, ...changes } : l)) })),
+        []
+    );
+
+    /** Pozycje faktury jak usługi wizyty: bez scaleń i bez podziału. */
+    const resetLines = useCallback(() => {
+        setState(prev => ({ ...prev, lines: linesFromPrices(prev.prices), splitRemainder: false }));
+        setRestoredAt(null);
+    }, []);
+
+    /** Scalenie zaznaczonych pozycji; zwraca komunikat, gdy się nie da. */
+    const mergeSelected = useCallback(
+        (indexes: number[]): string | null => {
+            const merged = mergeLines(state.lines, indexes, state.prices);
+            if (typeof merged === 'string') return merged;
+            patch({ lines: merged });
+            return null;
+        },
+        [state.lines, state.prices, patch]
+    );
+
+    const unmerge = useCallback(
+        (index: number) => patch({ lines: unmergeLine(state.lines, index, state.prices) }),
+        [state.lines, state.prices, patch]
+    );
+
+    const applyLinesPerRate = useCallback(() => patch({ lines: linesPerRate(state.prices) }), [state.prices, patch]);
 
     /**
-     * Dokument „Faktura + Inny”: faktura na część kwoty, reszta zapisem „Inny” bez
-     * paragonu i bez VAT. Wyłączenie wraca do faktury na całość z pozycji usług.
+     * „Faktura + inny dokument”: część kwoty na fakturze, reszta zapisem bez paragonu
+     * i bez VAT, gotówką. Wyłączenie wraca do faktury na całość.
      */
     const setInvoiceOther = useCallback(
         (on: boolean) =>
-            on ? patch({ splitRemainder: true, remainderWithoutReceipt: true }) : resetItemsToServices(),
-        [patch, resetItemsToServices]
+            setState(prev => ({
+                ...prev,
+                splitRemainder: on,
+                lines: on ? prev.lines : prev.lines.map(l => ({ ...l, onInvoice: true, partialGross: '' })),
+            })),
+        []
     );
 
-    /** Jedna pozycja na każdą stawkę VAT - scalenie, które nie zmienia podatku. */
-    const applyItemsPerRate = useCallback(
-        () => patch({
-            items: itemsPerRate(remainder > 0 ? scaleItemsToGross(serviceItems, invoiceGross) : serviceItems),
-        }),
-        [patch, serviceItems, remainder, invoiceGross]
-    );
-
-    const problems: HandoverProblem[] = useMemo(
-        () =>
-            isFreeVisit || !canIssueDocuments
-                ? []
-                : validateHandover({ state, visitGross: totals.gross, sellerComplete, invoicedExternally }),
-        [state, totals.gross, sellerComplete, isFreeVisit, canIssueDocuments, invoicedExternally]
-    );
+    // ── Walidacja ────────────────────────────────────────────────────────────
+    const problems: HandoverProblem[] = useMemo(() => {
+        // Usługa czekająca na zgodę klienta nie liczy się do kwoty wizyty - najpierw decyzja.
+        const pending: HandoverProblem[] = pendingServices.length > 0
+            ? [{
+                section: 'balance',
+                message: pendingServices.length === 1
+                    ? `Usługa „${pendingServices[0].serviceName}” czeka na zgodę klienta. Zatwierdź ją albo odrzuć w usługach wizyty.`
+                    : `${pendingServices.length} usługi czekają na zgodę klienta. Zatwierdź je albo odrzuć w usługach wizyty.`,
+            }]
+            : [];
+        if (!canIssueDocuments) return pending;
+        return [...pending, ...validateHandover({ state, sellerComplete, invoicedExternally })];
+    }, [pendingServices, state, sellerComplete, canIssueDocuments, invoicedExternally]);
 
     const problemsIn = useCallback(
         (section: HandoverProblem['section']) => problems.filter(p => p.section === section),
@@ -349,7 +341,7 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     // ── Zapis ────────────────────────────────────────────────────────────────
     const { mutate: submit, isPending: isSubmitting } = useMutation({
         mutationFn: () => {
-            const documentType = isFreeVisit
+            const documentType = nothingToPay
                 ? 'other'
                 : canIssueDocuments
                     ? state.documentType
@@ -357,15 +349,16 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
             return stateTransitionApi.complete(visit.id, {
                 signatureObtained: state.protocolSigned,
                 payment: {
-                    method: isFreeVisit ? ('OTHER' as PaymentMethod) : state.paymentMethod,
+                    method: nothingToPay ? ('OTHER' as PaymentMethod) : state.paymentMethod,
                     invoiceType: documentType,
                     amount: totals.gross,
                     dueDate: state.paymentMethod === 'TRANSFER' ? defaultDueDate() : undefined,
                 },
                 invoice:
-                    documentType === 'INVOICE' && canIssueDocuments
-                        ? toInvoicePayload(state, totals.gross, sendToKsef)
+                    documentType === 'INVOICE' && canIssueDocuments && !nothingToPay
+                        ? toInvoicePayload(state, sendToKsef)
                         : undefined,
+                priceChanges: toPriceChanges(state.prices),
                 thankYouSms: buildThankYouSmsPayload({
                     available: thankYouSms.available,
                     send: thankYouSmsChecked,
@@ -377,9 +370,6 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
             queryClient.invalidateQueries({ queryKey: visitDetailQueryKey(visit.id) });
             queryClient.invalidateQueries({ queryKey: ['ksef', 'revenue'] });
             queryClient.invalidateQueries({ queryKey: ['income-documents'] });
-            // Pojazd był już wydany — dokument w odpowiedzi pochodzi z tamtego wydania,
-            // nie został wystawiony drugi raz. Ekran potwierdzenia pokazujemy normalnie
-            // (numer dokumentu jest prawdziwy), ale mówimy, skąd się wziął.
             if (response?.alreadyInTargetState) {
                 showInfo(
                     'Ta wizyta była już wydana',
@@ -400,17 +390,25 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         isCompanyLoading,
         sellerComplete,
         totals,
+        originalGross,
+        handoverDiscount,
+        pricesChanged,
         currency,
         isFreeVisit,
+        invoiceItems,
         invoiceGross,
         remainder,
-        serviceItems,
-        itemsMatchServices,
-        vatMismatch,
-        restoredAt: restoredAt !== null && !itemsMatchServices ? restoredAt : null,
-        resetItemsToServices,
+        linesMatch,
+        restoredAt,
+        // akcje cen i pozycji
+        changePrice,
+        resetPrices,
+        changeLine,
+        resetLines,
+        mergeSelected,
+        unmerge,
+        applyLinesPerRate,
         setInvoiceOther,
-        applyItemsPerRate,
         // stan
         state,
         patch,
@@ -424,8 +422,6 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         transferDueDate: state.paymentMethod === 'TRANSFER' ? defaultDueDate() : null,
         problems,
         problemsIn,
-        // Przy fakturze czekamy na ustawienia studia: dopiero one mówią, czy fakturę
-        // wystawia CRM, czy księgowość - a to zmienia, co w ogóle zostanie zapisane.
         canSubmit:
             problems.length === 0 &&
             !isSubmitting &&

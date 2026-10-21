@@ -2,12 +2,12 @@
 <html lang="pl">
   <head>
     <meta charset="UTF-8" />
-    <!-- Ikona w zakładce: znak DetailBoost na czarnym kafelku. Dwa rozmiary, bo
-         przeglądarka wybiera bliższy docelowemu - 32 px ma znak sięgający niemal
-         krawędzi (w zakładce liczy się każdy piksel), 192 px oddycha tak jak
-         ikona na ekranie głównym. -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+    <!-- Ikona w zakładce: sygnet „D" z paczki marki. SVG sam przełącza się na jasny
+         znak przy ciemnym motywie przeglądarki; .ico i PNG są dla przeglądarek bez
+         ikon SVG (Safari). -->
+    <link rel="icon" href="/favicon.ico?v=2" sizes="48x48" />
+    <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg?v=2" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png?v=2" />
     <!-- interactive-widget=resizes-content: the on-screen keyboard shrinks the layout
          viewport instead of sliding it, so position:fixed chrome (mobile bottom nav,
          modal footers) stays glued to the bottom edge while typing. -->
@@ -24,8 +24,23 @@
          logged in when the app was added to the home screen. -->
     <link rel="manifest" href="/api/v1/pwa/manifest" crossorigin="use-credentials" />
     <meta name="theme-color" content="#0f172a" />
-    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png?v=2" />
     <title>DetailBoost</title>
+    <!-- Podgląd linku (Facebook, WhatsApp, Messenger, Slack, X). Statycznie, bo roboty
+         nie uruchamiają JavaScriptu; og:image musi być pełnym adresem. -->
+    <meta name="description" content="DetailBoost: CRM dla studiów auto detailingu. Kalendarz, przypomnienia SMS, protokoły przyjęcia, faktury w KSeF i baza klientów w jednym systemie." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="DetailBoost" />
+    <meta property="og:locale" content="pl_PL" />
+    <meta property="og:url" content="https://detailboost.pl/" />
+    <meta property="og:title" content="DetailBoost" />
+    <meta property="og:description" content="CRM dla studiów auto detailingu. Kalendarz, przypomnienia SMS, protokoły przyjęcia, faktury w KSeF i baza klientów w jednym systemie." />
+    <meta property="og:image" content="https://detailboost.pl/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Logo DetailBoost" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://detailboost.pl/twitter-card.png" />
     <!-- Weryfikacja domeny detailboost.pl w Meta Business (Facebook). Musi stać w statycznym
          <head> strony głównej - tag dopisany przez JavaScript weryfikacji nie przechodzi. -->
     <meta name="facebook-domain-verification" content="5thjuozdxttknk2eioi6elfpzd6kwh" />
@@ -108,7 +123,7 @@
   <body>
     <div id="root">
       <div class="boot-splash" role="status" aria-label="Wczytywanie DetailBoost">
-        <img class="boot-splash__icon" src="/icons/icon-192.png" alt="" width="72" height="72" />
+        <img class="boot-splash__icon" src="/icons/icon-192.png?v=2" alt="" width="72" height="72" />
         <span class="boot-splash__bar"></span>
       </div>
       <!-- Dane spółki w STATYCZNYM HTML-u (art. 206 KSH). Weryfikacja firmy w Meta szuka

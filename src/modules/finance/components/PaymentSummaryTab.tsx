@@ -164,6 +164,14 @@ const Content = styled.div`
 
 // ─── Method cards ─────────────────────────────────────────────────────────────
 
+const WithoutReceiptNote = styled.p`
+  margin: -4px 0 0;
+  font-size: 13px;
+  color: #475569;
+
+  strong { color: #0f172a; font-variant-numeric: tabular-nums; }
+`;
+
 const CardsRow = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -776,6 +784,14 @@ export const PaymentSummaryTab: React.FC<PaymentSummaryTabProps> = ({
             />
           ))}
         </CardsRow>
+        {/* Część kwot wizyt zapłacona bez paragonu (reszta poza fakturą) - już wliczona
+            w formy płatności wyżej, osobno, żeby było widać, ile sprzedaży przeszło bez paragonu. */}
+        {!isLoading && (totals?.withoutReceipt?.count ?? 0) > 0 && (
+          <WithoutReceiptNote>
+            W tym bez paragonu: <strong>{fmtCompact(totals!.withoutReceipt!.totalGross)} zł</strong> brutto,{' '}
+            {totals!.withoutReceipt!.count} {totals!.withoutReceipt!.count === 1 ? 'zapis' : 'zapisy'} (bez VAT).
+          </WithoutReceiptNote>
+        )}
 
         {/* ── Pie charts ───────────────────────────────────────────────── */}
         {!isLoading && totals && totalCount > 0 && (

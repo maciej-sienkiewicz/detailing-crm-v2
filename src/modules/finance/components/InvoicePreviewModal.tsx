@@ -363,7 +363,7 @@ const statusBadge = (detail: KsefExpenseDetail): { tone: 'green' | 'amber' | 're
   switch (detail.status) {
     case 'CORRECTED': return { tone: 'slate', label: 'Skorygowana' };
     case 'CANCELLED': return { tone: 'red',   label: 'Anulowana' };
-    case 'EXCLUDED':  return { tone: 'slate', label: 'Ukryta ze statystyk' };
+    case 'EXCLUDED':  return { tone: 'slate', label: 'Ukryta w Finansach' };
     default:          return null;
   }
 };

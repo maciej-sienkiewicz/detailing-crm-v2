@@ -7,6 +7,7 @@ import { PageHeader } from '@/common/components/PageHeader';
 import { StatsChart } from '../components/StatsChart';
 import { CategoryFormModal } from '../components/CategoryFormModal';
 import { PeriodDetailDrawer } from '../components/PeriodDetailDrawer';
+import { DocumentationPanel } from '../components/DocumentationPanel';
 import { StatsNav } from '../components/StatsNav';
 import { ReportButton } from '../components/ReportDialog';
 import { StatsMobileOverview } from '../components/StatsMobileOverview';
@@ -415,6 +416,8 @@ export const StatisticsView = () => {
                         </ChartsRow>
                     </ChartArea>
                 )}
+
+                <DocumentationPanel startDate={startDate} endDate={endDate} />
             </Section>
 
             {/* ── Breakdown section ─────────────────────────── */}

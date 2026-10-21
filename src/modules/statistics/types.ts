@@ -97,6 +97,51 @@ export interface PeriodVisitService {
     inCategory?: boolean;
     /** Aktywna kategoria usługi - panel rozkłada na nią sprzedaż okresu. */
     categoryId?: string | null;
+    /** Brutto uzgodnione przed wydaniem, gdy cena zmieniła się przy wydaniu. */
+    priceBeforeHandoverGross?: number | null;
+    /** Dokumenty, którymi rozliczono usługę (id z PeriodVisit.documents) i część brutto. */
+    documents?: Array<{ documentId: string; gross: number }>;
+}
+
+/** Dokument rozliczenia wizyty (faktura, zapis bez paragonu, paragon). */
+export interface PeriodVisitDocument {
+    documentId: string;
+    number: string;
+    type: 'INVOICE' | 'RECEIPT' | 'OTHER' | string;
+    withoutReceipt: boolean;
+    invoicedExternally: boolean;
+    paymentMethod: string;
+    gross: number;
+}
+
+/**
+ * Jak udokumentowano sprzedaż wizyt wydanych w zakresie dat i uzgodnienie netto sprzedaży
+ * z netto dokumentów CRM. Kwoty w groszach.
+ */
+export interface DocumentationSummary {
+    startDate: string;
+    endDate: string;
+    visitCount: number;
+    salesGross: number;
+    salesNet: number;
+    invoiceGross: number;
+    externalInvoiceGross: number;
+    receiptGross: number;
+    withoutReceiptGross: number;
+    otherGross: number;
+    /** Wizyty bez zapisanego podziału na dokumenty (wydane przed wdrożeniem albo bez dokumentu). */
+    unallocatedGross: number;
+    unallocatedVisits: number;
+    documentsNet: number;
+    salesNetDocumented: number;
+    /** VAT usług rozliczonych bez paragonu - różnica oczekiwana. */
+    withoutReceiptVat: number;
+    /** Różnica netto poza VAT-em reszt bez paragonu - grosze, zmiany stawek. */
+    unexplainedNetDifference: number;
+    handoverDiscountGross: number;
+    handoverChangedVisits: number;
+    /** Wizyty, w których dokumenty nie pokrywają kwoty wizyty - powinno być 0. */
+    mismatchedVisits: number;
 }
 
 export interface PeriodVisit {
@@ -109,6 +154,10 @@ export interface PeriodVisit {
     /** Full visit revenue regardless of filter */
     totalRevenueGrossAll: number;
     services: PeriodVisitService[];
+    /** Obowiązujące dokumenty wizyty; puste dla wizyt sprzed zapisu podziału. */
+    documents?: PeriodVisitDocument[];
+    /** Rabat (+) albo dopłata (−) przy wydaniu, brutto. */
+    handoverDiscountGross?: number;
 }
 
 export interface PeriodDetail {

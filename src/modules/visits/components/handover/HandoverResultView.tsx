@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import styled from 'styled-components';
+import { handoverLead } from './handoverLead';
 import { AlertTriangle, CheckCircle2, Clock, Download, FileText, MessageSquareHeart } from 'lucide-react';
 import { formatCurrency } from '@/common/utils';
 import { useToast } from '@/common/components/Toast';
@@ -184,8 +185,6 @@ interface HandoverResultViewProps {
     paymentLabel?: string;
     /** Kiedy wyjdzie SMS z podziękowaniem; null, gdy nie wyjdzie. */
     thankYouAt: Date | null;
-    /** Reszta zapisana na innym dokumencie - zapis „DOK/…” nie jest paragonem. */
-    remainderWithoutReceipt?: boolean;
     onClose: () => void;
 }
 
@@ -195,9 +194,9 @@ export const HandoverResultView = ({
     currency,
     paymentLabel,
     thankYouAt,
-    remainderWithoutReceipt = false,
     onClose,
 }: HandoverResultViewProps) => {
+    const remainderWithoutReceipt = result.remainderWithoutReceipt ?? true;
     const fmt = (grosz: number) => formatCurrency(grosz / 100, currency);
     const status = result.ksefStatus ?? null;
 
@@ -239,16 +238,14 @@ export const HandoverResultView = ({
         }
     };
 
-    const lead = grossAmount > 0
-        ? `Płatność${paymentLabel ? ` ${paymentLabel.toLowerCase()}` : ''} ${fmt(grossAmount)} zapisana.`
-        : 'Wizyta bez opłat.';
+    const lead = handoverLead(result, grossAmount, paymentLabel, fmt);
 
     return (
         <Wrap>
             <Head>
                 <Mark aria-hidden="true"><CheckCircle2 /></Mark>
                 <Title>Auto wydane</Title>
-                <Lead>{lead}</Lead>
+                {lead.map(line => <Lead key={line}>{line}</Lead>)}
             </Head>
 
             <Cards>

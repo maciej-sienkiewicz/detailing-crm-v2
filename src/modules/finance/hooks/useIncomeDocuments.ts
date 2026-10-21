@@ -42,7 +42,7 @@ const useInvalidateIncomeDocuments = () => {
   };
 };
 
-/** Ukrywa dokument przychodowy ze statystyk (zostaje w bazie, wraca po przywróceniu). */
+/** Ukrywa dokument przychodowy z sum w Finansach (zostaje w bazie, wraca po przywróceniu). */
 export const useExcludeIncomeDocument = () => {
   const invalidate = useInvalidateIncomeDocuments();
   return useMutation({
@@ -52,7 +52,7 @@ export const useExcludeIncomeDocument = () => {
   });
 };
 
-/** Przywraca ukryty dokument przychodowy do statystyk. */
+/** Przywraca ukryty dokument przychodowy do sum w Finansach. */
 export const useRestoreIncomeDocument = () => {
   const invalidate = useInvalidateIncomeDocuments();
   return useMutation({

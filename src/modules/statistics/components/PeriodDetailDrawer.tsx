@@ -16,7 +16,7 @@
 // Panel służy do czytania, nie ma kroku następnego - nic nie jest wypełnione kolorem
 // (CLAUDE.md §2). Stoi na SideDrawer: blokada przewijania tła, Escape i telefon w cenie.
 
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { useQuery } from '@tanstack/react-query';
@@ -32,7 +32,7 @@ import {
 } from '@/common/components/ui';
 import { pluralPl } from '@/common/utils/plural';
 import { fetchPeriodDetail } from '../api/periodDetailApi';
-import type { CategoryBreakdownItem, Granularity, PeriodVisit, StatsDataPoint } from '../types';
+import type { CategoryBreakdownItem, Granularity, PeriodVisit, PeriodVisitDocument, StatsDataPoint } from '../types';
 import {
     PERIOD_NOUN,
     comparePeriod,
@@ -189,6 +189,60 @@ const VisitAmount = styled.span`
     font-variant-numeric: tabular-nums;
 `;
 
+const VisitMeta = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 4px 10px;
+`;
+
+const DocChip = styled.span<{ $tone?: 'info' }>`
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: ${p => (p.$tone === 'info' ? ui.brandInk : ui.inkSoft)};
+    background: ${p => (p.$tone === 'info' ? ui.brandTint : ui.surfaceAlt)};
+`;
+
+const ToggleServices = styled.button`
+    border: none;
+    background: transparent;
+    padding: 2px 4px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: ${ui.brandInk};
+    cursor: pointer;
+
+    &:focus-visible { outline: 2px solid ${ui.focusRing}; border-radius: 6px; }
+`;
+
+const ServiceList = styled.ul`
+    list-style: none;
+    margin: 0 0 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: ${ui.surfaceSoft};
+    display: grid;
+    gap: 6px;
+
+    li {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 0 10px;
+        font-size: 13px;
+        color: ${ui.inkSoft};
+    }
+    li > span:last-of-type { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    s { color: ${ui.textFaint}; }
+    strong { color: ${ui.ink}; }
+    small { grid-column: 1 / -1; font-size: 12px; color: ${ui.textMuted}; }
+`;
+
 const Skeleton = styled.li<{ $w: string }>`
     height: 14px;
     width: ${p => p.$w};
@@ -333,15 +387,76 @@ function PeriodDetailPanel({
     );
 }
 
+const PAYMENT_WORD: Record<string, string> = {
+    CASH: 'gotówka', CARD: 'karta', TRANSFER: 'przelew', BLIK_NA_NUMER: 'BLIK', BLIK_TERMINAL: 'BLIK', OTHER: 'inna forma',
+};
+
+/** Rodzaj dokumentu rozliczenia słowem - numer jest w podpowiedzi. */
+const documentWord = (doc: PeriodVisitDocument): string =>
+    doc.type === 'INVOICE'
+        ? (doc.invoicedExternally ? 'Faktura księgowości' : 'Faktura')
+        : doc.withoutReceipt ? 'Bez paragonu' : doc.type === 'RECEIPT' ? 'Paragon' : 'Inny dokument';
+
+/*
+ * Jeden wiersz na wizytę, nawet gdy zapłacono dwoma dokumentami: dokumenty są chipami pod
+ * wierszem, a po rozwinięciu każda usługa pokazuje, którym dokumentem ją rozliczono.
+ * Mnożenie wierszy psuło liczbę wizyt, średnią i sortowanie po kwocie.
+ */
 function VisitRow({ visit }: { visit: PeriodVisit }) {
+    const [open, setOpen] = useState(false);
+    const documents = visit.documents ?? [];
+    const byId = new Map(documents.map(doc => [doc.documentId, doc]));
+    const discount = visit.handoverDiscountGross ?? 0;
     return (
-        <VisitLink to={`/visits/${visit.visitId}`} aria-label={`${visit.clientName}, ${zl(visit.totalRevenueGross)}, otwórz wizytę`}>
-            <VisitText>
-                <span>{visit.clientName}</span>
-                {visit.vehicleInfo && <span>{visit.vehicleInfo}</span>}
-            </VisitText>
-            <VisitAmount>{zl(visit.totalRevenueGross)}</VisitAmount>
-            <ChevronRight aria-hidden="true" />
-        </VisitLink>
+        <>
+            <VisitLink to={`/visits/${visit.visitId}`} aria-label={`${visit.clientName}, ${zl(visit.totalRevenueGross)}, otwórz wizytę`}>
+                <VisitText>
+                    <span>{visit.clientName}</span>
+                    {visit.vehicleInfo && <span>{visit.vehicleInfo}</span>}
+                </VisitText>
+                <VisitAmount>{zl(visit.totalRevenueGross)}</VisitAmount>
+                <ChevronRight aria-hidden="true" />
+            </VisitLink>
+            {(documents.length > 0 || discount !== 0 || visit.services.length > 0) && (
+                <VisitMeta>
+                    {documents.map(doc => (
+                        <DocChip key={doc.documentId} title={doc.number}>
+                            {documentWord(doc)} {zl(doc.gross)}{PAYMENT_WORD[doc.paymentMethod] ? `, ${PAYMENT_WORD[doc.paymentMethod]}` : ''}
+                        </DocChip>
+                    ))}
+                    {discount !== 0 && (
+                        <DocChip $tone="info">{discount > 0 ? `Rabat przy wydaniu ${zl(discount)}` : `Dopłata przy wydaniu ${zl(-discount)}`}</DocChip>
+                    )}
+                    {visit.services.length > 0 && (
+                        <ToggleServices type="button" aria-expanded={open} onClick={() => setOpen(o => !o)}>
+                            {open ? 'Ukryj usługi' : `Usługi (${visit.services.length})`}
+                        </ToggleServices>
+                    )}
+                </VisitMeta>
+            )}
+            {open && (
+                <ServiceList>
+                    {visit.services.map(service => {
+                        const parts = (service.documents ?? []).filter(p => byId.has(p.documentId));
+                        return (
+                            <li key={service.serviceId}>
+                                <span>{service.serviceName}</span>
+                                <span>
+                                    {service.priceBeforeHandoverGross != null && service.priceBeforeHandoverGross !== service.priceGross && (
+                                        <s>{zl(service.priceBeforeHandoverGross)}</s>
+                                    )}{' '}
+                                    <strong>{zl(service.priceGross)}</strong>
+                                </span>
+                                {parts.length > 0 && (
+                                    <small>
+                                        {parts.map(p => `${documentWord(byId.get(p.documentId)!)}${parts.length > 1 ? ` ${zl(p.gross)}` : ''}`).join(' + ')}
+                                    </small>
+                                )}
+                            </li>
+                        );
+                    })}
+                </ServiceList>
+            )}
+        </>
     );
 }

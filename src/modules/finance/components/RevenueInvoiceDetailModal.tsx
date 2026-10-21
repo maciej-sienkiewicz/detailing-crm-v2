@@ -630,7 +630,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
 
             {invoice.excluded && (
               <HiddenBox>
-                Faktura jest ukryta ze statystyk - nie wchodzi do kafli podsumowania ani do
+                Faktura jest ukryta w Finansach - nie wchodzi do kafli podsumowania ani do
                 raportów. Dokument nadal istnieje w KSeF i pozostaje prawnie wiążący.
               </HiddenBox>
             )}
@@ -647,7 +647,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
                     disabled={busy}
                     onClick={() => run(() => duplicateMutation.mutateAsync({ id: invoice.id, resolution: 'CONFIRMED_DUPLICATE' }))}
                   >
-                    To duplikat, ukryj ze statystyk
+                    To duplikat, ukryj w Finansach
                   </SharedButton>
                   <SharedButton
                     $variant="secondary"
@@ -713,7 +713,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
                       Wystawiona poza CRM
                     </Badge>
                   )}
-                  {invoice.excluded && <Badge $tone="slate">Ukryta ze statystyk</Badge>}
+                  {invoice.excluded && <Badge $tone="slate">Ukryta w Finansach</Badge>}
                   {!invoice.detailsSynced && (
                     <Badge
                       $tone="amber"
@@ -955,14 +955,14 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
               $variant="secondary" $size="sm" disabled={busy}
               title={invoice.excluded
                 ? 'Faktura wróci do kafli podsumowania i raportów'
-                : 'Faktura zniknie ze statystyk, ale zostanie w systemie i w KSeF'}
+                : 'Faktura zniknie z sum w Finansach, ale zostanie w systemie i w KSeF'}
               onClick={() => run(() =>
                 (invoice.excluded ? restoreMutation : excludeMutation)
                   .mutateAsync({ sourceKind: 'KSEF', id: invoice.id }))}
             >
               {invoice.excluded
-                ? <><Eye size={14} /> Przywróć do statystyk</>
-                : <><EyeOff size={14} /> Ukryj ze statystyk</>}
+                ? <><Eye size={14} /> Przywróć w Finansach</>
+                : <><EyeOff size={14} /> Ukryj w Finansach</>}
             </SharedButton>
             {invoice.source === 'CRM' && invoice.ksefStatus === 'ACCEPTED' &&
               invoice.invoiceType === 'VAT' && !correctionMode && (

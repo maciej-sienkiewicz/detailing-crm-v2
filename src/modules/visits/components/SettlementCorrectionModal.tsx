@@ -164,6 +164,40 @@ const History = styled.details`
     p { margin: 2px 0; }
 `;
 
+/** Formy płatności przy dokumentach wizyty z podziałem: dokument, kwota i jego forma. */
+const DocMethods = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+`;
+
+const DocMethod = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid ${ui.line};
+    border-radius: 12px;
+
+    > span { font-size: 14px; color: ${ui.inkSoft}; font-variant-numeric: tabular-nums; }
+    strong { color: ${ui.ink}; }
+    small { display: block; font-size: 12.5px; color: ${ui.textMuted}; }
+`;
+
+/** Skutki poprawki dla pieniędzy: kwota dla klienta i zmiana kasy. */
+const Effects = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 20px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: ${ui.surfaceSoft};
+    font-size: 14px;
+    color: ${ui.inkSoft};
+
+    strong { color: ${ui.ink}; font-variant-numeric: tabular-nums; }
+`;
+
 // ─── Komponent ────────────────────────────────────────────────────────────────
 
 type Intent = 'correct' | 'invoice';
@@ -237,6 +271,17 @@ function CorrectionForm({ view, visitId, intent, onClose }: { view: SettlementVi
         intent === 'invoice' ? 'INVOICE' : view.documentType ?? 'RECEIPT'
     );
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(view.paymentMethod ?? 'CASH');
+    // Faktura + drugi dokument: forma płatności przy każdym dokumencie - dotąd jedna forma
+    // dla całej wizyty zmieniała też gotówkową resztę.
+    const activeDocuments = useMemo(
+        () => view.documents.filter(d => d.active && d.type !== 'CORRECTION'),
+        [view.documents]
+    );
+    const initialDocMethods = useMemo(
+        () => Object.fromEntries(activeDocuments.map(d => [d.id, d.paymentMethod as PaymentMethod])),
+        [activeDocuments]
+    );
+    const [docMethods, setDocMethods] = useState<Record<string, PaymentMethod>>(initialDocMethods);
     // Termin z obowiązującej faktury, a bez niej typowe 14 dni - wcześniej pole było
     // puste, a poprawka blokowała się na „Płatność przelewem wymaga terminu".
     const [dueDate, setDueDate] = useState(view.paymentDueDate ?? plusDays(14));
@@ -255,16 +300,20 @@ function CorrectionForm({ view, visitId, intent, onClose }: { view: SettlementVi
 
     // Faktury wystawia księgowość: podstawę zwolnienia wpisuje ona na swojej fakturze.
     const external = view.invoicesIssuedExternally === true;
+    const perDocument = view.perDocument === true && documentType === 'INVOICE';
+    const invoiceDocId = activeDocuments.find(d => d.type === 'INVOICE')?.id;
+    const effectiveMethod: PaymentMethod = perDocument && invoiceDocId ? docMethods[invoiceDocId] ?? paymentMethod : paymentMethod;
     const needsExemption = documentType === 'INVOICE' && !external && lines.some(l => l.vatRate === -1);
     const request = useMemo<SettlementCorrectionRequest>(() => ({
         services: changedServiceLines(lines),
         documentType,
-        paymentMethod,
-        dueDate: paymentMethod === 'TRANSFER' ? dueDate || null : null,
+        paymentMethod: effectiveMethod,
+        dueDate: effectiveMethod === 'TRANSFER' ? dueDate || null : null,
         buyer: documentType === 'INVOICE' ? buyer : null,
         exemptionLegalBasis: needsExemption ? exemption || null : null,
         reason: reason || null,
-    }), [lines, documentType, paymentMethod, dueDate, buyer, needsExemption, exemption, reason]);
+        documentPaymentMethods: perDocument ? docMethods : undefined,
+    }), [lines, documentType, effectiveMethod, dueDate, buyer, needsExemption, exemption, reason, perDocument, docMethods]);
 
     // Podgląd po chwili ciszy: każde naciśnięcie klawisza w cenie nie musi pytać serwera.
     const [debounced, setDebounced] = useState(request);
@@ -279,6 +328,7 @@ function CorrectionForm({ view, visitId, intent, onClose }: { view: SettlementVi
         debounced.services.length === 0 &&
         debounced.documentType === (view.documentType ?? 'RECEIPT') &&
         debounced.paymentMethod === (view.paymentMethod ?? 'CASH') &&
+        Object.entries(debounced.documentPaymentMethods ?? {}).every(([id, m]) => initialDocMethods[id] === m) &&
         debounced.buyer === null;
     const preview = useQuery({
         queryKey: ['settlement-preview', visitId, debounced],
@@ -413,8 +463,28 @@ function CorrectionForm({ view, visitId, intent, onClose }: { view: SettlementVi
                             <input value={exemption} onChange={e => setExemption(e.target.value)} placeholder="np. art. 113 ust. 1 ustawy o VAT" />
                         </Field>
                     )}
-                    <PaymentMethodPicker value={paymentMethod} onChange={setPaymentMethod} />
-                    {paymentMethod === 'TRANSFER' && (
+                    {perDocument ? (
+                        <DocMethods>
+                            {activeDocuments.map(doc => (
+                                <DocMethod key={doc.id}>
+                                    <span>
+                                        <strong>{doc.typeLabel} {doc.number}</strong> {pln(doc.totalGross)}
+                                        {doc.services && doc.services.length > 0 && (
+                                            <small>{doc.services.map(sv => sv.name).join(', ')}</small>
+                                        )}
+                                    </span>
+                                    <PaymentMethodPicker
+                                        value={docMethods[doc.id] ?? (doc.paymentMethod as PaymentMethod)}
+                                        onChange={method => setDocMethods(prev => ({ ...prev, [doc.id]: method }))}
+                                    />
+                                </DocMethod>
+                            ))}
+                            <Totals>Zmiana ceny usługi poprawi tylko dokument, na którym ta usługa jest.</Totals>
+                        </DocMethods>
+                    ) : (
+                        <PaymentMethodPicker value={paymentMethod} onChange={setPaymentMethod} />
+                    )}
+                    {effectiveMethod === 'TRANSFER' && (
                         <Field>
                             Termin płatności
                             <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
@@ -431,9 +501,25 @@ function CorrectionForm({ view, visitId, intent, onClose }: { view: SettlementVi
                     </Field>
                 </Section>
 
-                {/* Bez listy skutków (decyzja biznesu). Serwer nadal sprawdza plan przed
-                    zapisem, więc gdy poprawki nie da się wykonać, mówimy dlaczego —
-                    inaczej nieaktywny przycisk nie miałby wyjaśnienia. */}
+                {/* Bez listy kroków (decyzja biznesu), ale skutek dla pieniędzy zawsze na wierzchu:
+                    kwota dla klienta i zmiana kasy. Poprawka po podziale potrafiła po cichu zabrać
+                    z kasy całą gotówkową resztę - tę liczbę trzeba zobaczyć przed zatwierdzeniem. */}
+                {!pristine && preview.data && !blockReason && (
+                    <Section aria-live="polite">
+                        <Effects>
+                            {preview.data.customerDifference !== 0 && (
+                                <span>
+                                    {preview.data.customerDifference > 0 ? 'Klient dopłaca ' : 'Klient dostaje zwrot '}
+                                    <strong>{pln(Math.abs(preview.data.customerDifference))}</strong>
+                                </span>
+                            )}
+                            <span>
+                                Kasa: <strong>{preview.data.cashDelta === 0 ? 'bez zmian' : `${preview.data.cashDelta > 0 ? '+' : '−'}${pln(Math.abs(preview.data.cashDelta))}`}</strong>
+                            </span>
+                        </Effects>
+                    </Section>
+                )}
+
                 {(blockReason && !pristine) || preview.isError || correct.isError ? (
                     <Section aria-live="polite">
                         {blockReason && !pristine && (

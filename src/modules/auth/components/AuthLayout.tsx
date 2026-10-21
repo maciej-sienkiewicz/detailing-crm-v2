@@ -9,7 +9,7 @@ import { AuthDotField } from './AuthDotField';
  * w aplikacji stoi pasek boczny) i jasna przestrzeń robocza po prawej.
  *
  * Lewy pas to scena strony, z której się przychodzi: czerń, złota poświata, żywa
- * siatka kropek, znak DB i jedno zdanie. Prawa strona to już język aplikacji: jasne
+ * siatka kropek, logo DetailBoost i jedno zdanie. Prawa strona to już język aplikacji: jasne
  * tło CRM, etykiety pól jak w formularzach aplikacji, ciemny przycisk w kolorze
  * jej paska bocznego. Bez karty, kafelka z literą i „lub" - sam formularz.
  *
@@ -83,19 +83,21 @@ const Dots = styled.div`
     -webkit-mask-image: radial-gradient(ellipse 85% 70% at 40% 45%, #000 30%, transparent 85%);
 `;
 
+/** Logo poziome z paczki marki, biała (Paper) wersja na ciemny pas. Proporcje 684,48 × 80,64. */
 const Mark = styled.div`
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 15px;
-    font-weight: 600;
-    letter-spacing: -0.01em;
 
     img {
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
-        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+        display: block;
+        height: 18px;
+        width: auto;
+    }
+
+    @media (min-width: ${props => props.theme.breakpoints.lg}) {
+        img {
+            height: 22px;
+        }
     }
 `;
 
@@ -258,8 +260,7 @@ export function AuthLayout({
                     <AuthDotField strength={0.4} />
                 </Dots>
                 <Mark>
-                    <img src="/icons/icon-192.png" alt="" />
-                    DetailBoost
+                    <img src="/brand/detailboost-horizontal-white.svg" alt="DetailBoost" width={685} height={81} />
                 </Mark>
                 <Statement>
                     <h2>

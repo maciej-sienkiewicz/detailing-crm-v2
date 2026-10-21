@@ -34,12 +34,28 @@ export interface CompleteInvoiceItemPayload {
     unitPriceGross?: number;
     /** 23 | 8 | 5 | 0 | zw */
     vatRate?: string;
+    /** Usługi wizyty, które obejmuje pozycja (scalenie = kilka usług tej samej stawki). */
+    sourceServiceItemIds?: string[];
 }
 
 /**
- * Konfiguracja faktury KSeF przy zakończeniu wizyty (modal „Wprowadź zmiany").
- * Gdy suma pozycji jest niższa niż kwota wizyty, wymagane remainderPaymentMethod:
- * reszta zostaje udokumentowana paragonem (drugim dokumentem przychodowym).
+ * Zmiana ceny przy wydaniu: nowa cena i stawka usługi, które osoba wydająca auto zmieniła
+ * na końcu. Trafia do wizyty, więc widzą ją statystyki.
+ */
+export interface HandoverPriceChangePayload {
+    serviceItemId: string;
+    /** Netto w groszach. */
+    netCents: number;
+    /** Brutto w groszach - tylko przy cenie ustalonej od brutto (CLAUDE.md §1). */
+    grossCents: number | null;
+    /** 23 | 8 | 5 | 0 | -1 (zw.) */
+    vatRate: number;
+}
+
+/**
+ * Faktura KSeF przy wydaniu pojazdu. Pozycje wskazują usługi, które obejmują
+ * (sourceServiceItemIds). Przy podziale „faktura + inny dokument” reszta kwoty idzie
+ * zapisem bez paragonu i bez VAT, gotówką (remainderWithoutReceipt + CASH).
  */
 export interface CompleteInvoicePayload {
     items: CompleteInvoiceItemPayload[];
@@ -82,6 +98,8 @@ export interface TransitionToCompletedPayload {
     payment: PaymentDetails;
     invoice?: CompleteInvoicePayload;
     thankYouSms?: ThankYouSmsPayload;
+    /** Zmienione ceny usług (podwyżka, rabat, stawka VAT); pusta lista = bez zmian. */
+    priceChanges?: HandoverPriceChangePayload[];
 }
 
 /**
@@ -116,4 +134,16 @@ export interface CompleteVisitResponse {
      * „Faktury wystawia księgowość": faktury w CRM nie ma, wystawi ją księgowość.
      */
     invoicedExternally?: boolean;
+    /** Kwota wizyty po wydaniu (po zmianach cen przy wydaniu), w groszach. */
+    totalGross?: number | null;
+    /** Kwota wizyty przed zmianami cen przy wydaniu. */
+    totalGrossBeforeHandover?: number | null;
+    /** Brutto faktury, gdy wydanie wystawiło fakturę z pozycjami. */
+    invoiceGross?: number | null;
+    /** Forma płatności głównego dokumentu. */
+    paymentMethod?: PaymentMethod | null;
+    /** Brutto drugiego dokumentu (reszta poza fakturą); null bez podziału. */
+    remainderGross?: number | null;
+    remainderPaymentMethod?: PaymentMethod | null;
+    remainderWithoutReceipt?: boolean;
 }

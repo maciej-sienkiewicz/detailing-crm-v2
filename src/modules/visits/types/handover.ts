@@ -1,6 +1,6 @@
 import { MAX_2_DECIMALS } from '@/common/utils/moneyInput';
 import { validatePolishNip } from '@/common/utils/validators';
-import type { PaymentMethod, InvoiceType, CompleteInvoicePayload } from './stateTransitions';
+import type { PaymentMethod, InvoiceType, CompleteInvoicePayload, HandoverPriceChangePayload } from './stateTransitions';
 
 export type VatRateCode = '23' | '8' | '5' | '0' | 'zw';
 export type PriceMode = 'NET' | 'GROSS';
@@ -34,6 +34,37 @@ export interface HandoverBuyer {
 }
 
 /**
+ * Cena usługi przy wydaniu pojazdu. Osoba wydająca auto może na końcu zmienić cenę
+ * (podwyżka, rabat) i stawkę VAT usługi - zmiana trafia do wizyty, więc widzą ją
+ * statystyki, a faktura ją przejmuje (decyzja biznesu z 20.10.2026). Pole wpisane
+ * (netto albo brutto, [mode]) jest źródłem prawdy, drugie jest pochodne - jak w każdym
+ * polu ceny (CLAUDE.md §1). Zmiana stawki zostawia stronę ustaloną.
+ */
+export interface HandoverPrice extends HandoverItem {
+    /** Id pozycji wizyty. */
+    serviceId: string;
+    /** Cena, z którą usługa przyszła na ekran wydania (grosze) - do „było” i do wykrycia zmiany. */
+    originalNet: number;
+    originalGross: number;
+    originalRate: VatRateCode;
+}
+
+/**
+ * Pozycja faktury: jedna albo kilka usług tej samej stawki (scalenie). Kwota pozycji
+ * wynika z cen usług - na fakturze nie zmienia się ceny, tylko opis. Przy podziale
+ * „faktura + inny dokument” pozycja idzie na fakturę albo na inny dokument, a może też
+ * objąć tylko część kwoty swoich usług ([partialGross]).
+ */
+export interface InvoiceLine {
+    name: string;
+    serviceIds: string[];
+    /** Podział: pozycja na fakturze (true) albo na innym dokumencie (false). */
+    onInvoice: boolean;
+    /** Podział: brutto na fakturze, gdy niższe niż kwota usług pozycji; '' = całość. */
+    partialGross: string;
+}
+
+/**
  * Pełny stan ekranu wydania. Zapisywany do localStorage, żeby zamknięcie okna
  * nie kasowało pracy: stary kreator czyścił wszystko w handleClose().
  */
@@ -41,40 +72,32 @@ export interface HandoverState {
     paymentMethod: PaymentMethod;
     documentType: InvoiceType;
     buyer: HandoverBuyer;
-    items: HandoverItem[];
-    /** Faktura pokrywa tylko część kwoty: reszta idzie osobnym dokumentem. */
-    splitRemainder: boolean;
-    remainderMethod: PaymentMethod;
+    /** Ceny usług wizyty - zmienione tu zmieniają cenę wizyty. */
+    prices: HandoverPrice[];
+    /** Pozycje faktury zbudowane z usług. */
+    lines: InvoiceLine[];
     /**
-     * Reszta bez paragonu i bez VAT: serwer zapisuje ją jako „inny” z VAT 0 i flagą
-     * withoutReceipt. false = paragon na resztę.
+     * „Faktura + inny dokument”: część kwoty na fakturze, reszta zapisem bez paragonu
+     * i bez VAT, gotówką (decyzja biznesu z 20.10.2026).
      */
-    remainderWithoutReceipt: boolean;
+    splitRemainder: boolean;
     exemptionBasis: string;
     /** Protokół podpisany papierowo. Trafia do payloadu jako signatureObtained. */
     protocolSigned: boolean;
     /**
      * Czy fakturę wysłać do KSeF. `null` = użytkownik nie ruszył przełącznika, więc
-     * obowiązuje domyślna odpowiedź studia z ustawień. Trzymamy `null` zamiast
-     * kopiować domyślną wartość, bo stan powstaje zanim ustawienia się wczytają -
-     * skopiowana wartość byłaby zgadywaniem, które potem trudno odróżnić od wyboru.
+     * obowiązuje domyślna odpowiedź studia z ustawień.
      */
     sendToKsef: boolean | null;
     /**
      * Czy przy wydaniu wysłać klientowi podziękowanie. null = pracownik jeszcze nie
-     * wybierał i obowiązuje „Domyślnie zaznacz" przy wiadomości „Podziękowanie po
-     * wizycie" (patrz useHandover). Studio, które takich SMS-ów nie wysyła, w ogóle nie
-     * zobaczy tego wyboru (patrz useThankYouSmsAvailability).
+     * wybierał i obowiązuje „Domyślnie zaznacz" przy wiadomości „Podziękowanie po wizycie".
      */
     thankYouSms: boolean | null;
 }
 
 // ─── Draft ekranu wydania ─────────────────────────────────────────────────────
 
-/**
- * Draft zapisywany w localStorage: stan wraz z odciskiem usług, na których
- * powstały pozycje faktury.
- */
 export interface HandoverDraft {
     servicesFingerprint: string;
     state: HandoverState;
@@ -84,13 +107,7 @@ export interface HandoverDraft {
 
 /**
  * Odcisk usług wizyty: identyfikator, nazwa, kwota brutto i stawka VAT każdej z nich.
- * Zmiana czegokolwiek z tej listy unieważnia pozycje faktury zapisane w draftcie,
- * bo to właśnie z tej listy powstały.
- *
- * Stawka należy do odcisku, bo pozycja faktury bierze ją z usługi (invoiceRateOf),
- * a zmiana stawki przy cenie wpisanej w brutto brutta nie zmienia - draft wracałby
- * ze starą stawką. Drafty sprzed dodania stawki mają inny odcisk, więc ich pozycje
- * (w tym „0%" zgadnięte dla usług zwolnionych zamiast „zw") powstają od nowa.
+ * Zmiana czegokolwiek z tej listy unieważnia ceny i pozycje zapisane w draftcie.
  */
 export const servicesFingerprint = (
     services: Array<{ id: string; serviceName: string; vatRate?: number | null }>,
@@ -101,14 +118,8 @@ export const servicesFingerprint = (
         .join('|');
 
 /**
- * Stan początkowy ekranu z uwzględnieniem zapisanego draftu.
- *
- * Draft odtwarzamy w całości tylko wtedy, gdy dotyczy tej samej listy usług.
- * Inaczej pozycje sprzed zmiany wracałyby jako obraz wizyty, której już nie ma:
- * dopisanie usługi za 1200 zł kończyło się komunikatem „wizyta ma jedną pozycję
- * za 0 zł", bo odtwarzaliśmy nieaktualne pozycje zamiast przeliczyć je od nowa.
- * Zachowujemy z draftu tylko to, czego usługi nie dotyczą - nabywcę i wybory
- * dotyczące zapłaty - żeby ręcznie wpisane dane nie przepadały.
+ * Stan początkowy z uwzględnieniem zapisanego draftu. Draft wraca w całości tylko dla
+ * tej samej listy usług; inaczej zostaje z niego nabywca i wybory dotyczące zapłaty.
  */
 export const restoreDraft = (
     fresh: HandoverState,
@@ -121,34 +132,23 @@ export const restoreDraft = (
     try {
         draft = JSON.parse(stored) as HandoverDraft;
     } catch {
-        // Uszkodzony draft nie może blokować wydania, startujemy od nowa.
         return fresh;
     }
     if (!draft?.state) return fresh;
+    // Draft sprzed cen przy wydaniu (bez prices/lines) nie opisuje już ekranu.
+    const complete = Array.isArray(draft.state.prices) && Array.isArray(draft.state.lines);
 
-    if (draft.servicesFingerprint !== fingerprint) {
+    if (draft.servicesFingerprint !== fingerprint || !complete) {
         return {
             ...fresh,
             buyer: draft.state.buyer ?? fresh.buyer,
             paymentMethod: draft.state.paymentMethod ?? fresh.paymentMethod,
             documentType: draft.state.documentType ?? fresh.documentType,
             sendToKsef: draft.state.sendToKsef ?? fresh.sendToKsef,
-            // Decyzja o podziękowaniu nie zależy od pozycji faktury, więc przeżywa
-            // także wtedy, gdy usługi wizyty zmieniły się od zapisania draftu.
             thankYouSms: draft.state.thankYouSms ?? fresh.thankYouSms,
         };
     }
-    /*
-     * Sam wybór „wysyłać / nie wysyłać" przeżywa draft bez zastrzeżeń — to decyzja
-     * człowieka. Termin nie przeżywał i nie musi już przeżywać: nie ma go w stanie,
-     * bo wylicza go serwer w chwili wydania pojazdu.
-     */
-    const restored = { ...fresh, ...draft.state };
-    // Podział „faktura + paragon” nie ma już przełącznika na ekranie (zostały „Faktura VAT”
-    // i „Faktura + Inny”). Taki draft wraca jako zwykła faktura - bilans powie, co dalej.
-    return restored.splitRemainder && !restored.remainderWithoutReceipt
-        ? { ...restored, splitRemainder: false }
-        : restored;
+    return { ...fresh, ...draft.state };
 };
 
 // ─── Arytmetyka kwot (grosze) ─────────────────────────────────────────────────
@@ -240,24 +240,6 @@ export const vatRateCodeOf = (vatRate: number | null | undefined): VatRateCode |
 export const invoiceRateOf = (vatRate: number | null | undefined, net: number, gross: number): VatRateCode =>
     vatRateCodeOf(vatRate) ?? detectRate(net, gross);
 
-/**
- * Pozycja faktury z usługi wizyty. Autorytatywne jest brutto końcowe usługi (tryb GROSS),
- * czyli kwota uzgodniona z klientem; netto wynika z niego „w stu", jak na backendzie.
- * Przy 5/8/23% daje to z powrotem dokładnie netto usługi, także gdy jej brutto policzono
- * z netta, więc żadna ze stron ceny nie drgnie.
- */
-export const invoiceItemFromService = (
-    service: { serviceName: string; vatRate: number | null | undefined },
-    pricing: { finalPriceNet: number; finalPriceGross: number }
-): HandoverItem =>
-    withDerived({
-        name: service.serviceName,
-        net: '',
-        gross: toPln(pricing.finalPriceGross),
-        mode: 'GROSS',
-        vatRate: invoiceRateOf(service.vatRate, pricing.finalPriceNet, pricing.finalPriceGross),
-    });
-
 export const invoiceGrossOf = (items: HandoverItem[]): number =>
     items.reduce((sum, item) => sum + itemAmounts(item).gross, 0);
 
@@ -270,41 +252,228 @@ export const formatNip = (value: string): string => {
     return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6, 8)}-${digits.slice(8)}`;
 };
 
+
+// ─── Ceny usług przy wydaniu ──────────────────────────────────────────────────
+
+/** Stawka kodu faktury → stawka usługi w procentach (-1 = zwolniona), jak w API wizyt. */
+export const vatRateNumberOf = (code: VatRateCode): number => (code === 'zw' ? -1 : VAT_PERCENT[code]);
+
+/**
+ * Cena usługi na ekranie wydania. Strona ustalona: usługa z ceną wpisaną od brutto
+ * (basePriceGross) startuje w trybie GROSS, pozostałe w NET - zmiana stawki zostawi
+ * tę stronę, którą ustalił człowiek (CLAUDE.md §1). Kwoty z backendu, nie przeliczane.
+ */
+export const priceFromService = (service: {
+    id: string;
+    serviceName: string;
+    vatRate: number | null | undefined;
+    basePriceGross?: number | null;
+    finalPriceNet: number | null;
+    finalPriceGross: number | null;
+}): HandoverPrice => {
+    const net = service.finalPriceNet ?? 0;
+    const gross = service.finalPriceGross ?? 0;
+    const vatRate = invoiceRateOf(service.vatRate, net, gross);
+    return {
+        serviceId: service.id,
+        name: service.serviceName,
+        net: toPln(net),
+        gross: toPln(gross),
+        mode: service.basePriceGross != null ? 'GROSS' : 'NET',
+        vatRate,
+        originalNet: net,
+        originalGross: gross,
+        originalRate: vatRate,
+    };
+};
+
+/** Czy cena albo stawka usługi różni się od tej, z którą przyszła na ekran. */
+export const priceChanged = (price: HandoverPrice): boolean =>
+    price.vatRate !== price.originalRate ||
+    (price.mode === 'GROSS' ? parsePln(price.gross) !== price.originalGross : parsePln(price.net) !== price.originalNet);
+
+/** Kwoty usługi w groszach; bez zmiany dokładnie te z backendu. */
+export const priceAmounts = (price: HandoverPrice): { net: number; gross: number } =>
+    priceChanged(price) ? itemAmounts(price) : { net: price.originalNet, gross: price.originalGross };
+
+/** Suma cen usług (to, co klient zapłaci). */
+export const totalsOf = (prices: HandoverPrice[]): { net: number; gross: number; vat: number } => {
+    const net = prices.reduce((sum, p) => sum + priceAmounts(p).net, 0);
+    const gross = prices.reduce((sum, p) => sum + priceAmounts(p).gross, 0);
+    return { net, gross, vat: gross - net };
+};
+
+/** Suma cen sprzed zmian przy wydaniu. */
+export const originalGrossOf = (prices: HandoverPrice[]): number =>
+    prices.reduce((sum, p) => sum + p.originalGross, 0);
+
+/**
+ * Edycja ceny usługi: wpisane netto → NET, brutto → GROSS; zmiana stawki zostawia
+ * stronę ustaloną i przelicza drugą.
+ */
+export const updatePrice = (price: HandoverPrice, changes: Partial<Pick<HandoverPrice, 'net' | 'gross' | 'vatRate'>>): HandoverPrice => {
+    const next: HandoverPrice = { ...price, ...changes };
+    if (changes.net !== undefined) next.mode = 'NET';
+    if (changes.gross !== undefined) next.mode = 'GROSS';
+    return withDerived(next) as HandoverPrice;
+};
+
+/** Zmiany cen do wysłania: tylko usługi, których cena albo stawka się zmieniła. */
+export const toPriceChanges = (prices: HandoverPrice[]): HandoverPriceChangePayload[] =>
+    prices.filter(priceChanged).map(price => {
+        const { net, gross } = itemAmounts(price);
+        return {
+            serviceItemId: price.serviceId,
+            netCents: net,
+            // Brutto tylko wtedy, gdy człowiek ustalił cenę od strony brutto (CLAUDE.md §1).
+            grossCents: price.mode === 'GROSS' ? gross : null,
+            vatRate: vatRateNumberOf(price.vatRate),
+        };
+    });
+
+// ─── Pozycje faktury ─────────────────────────────────────────────────────────
+
+/** Jedna pozycja na usługę - punkt wyjścia faktury. */
+export const linesFromPrices = (prices: HandoverPrice[]): InvoiceLine[] =>
+    prices.map(price => ({ name: price.name, serviceIds: [price.serviceId], onInvoice: true, partialGross: '' }));
+
+const sourcesOf = (line: InvoiceLine, prices: HandoverPrice[]): HandoverPrice[] =>
+    line.serviceIds.map(id => prices.find(p => p.serviceId === id)).filter((p): p is HandoverPrice => Boolean(p));
+
+/** Brutto wszystkich usług pozycji. */
+export const lineFullGross = (line: InvoiceLine, prices: HandoverPrice[]): number =>
+    sourcesOf(line, prices).reduce((sum, p) => sum + priceAmounts(p).gross, 0);
+
+/** Pozycja łączy usługi, które mają teraz różne stawki VAT (np. zmieniono stawkę po scaleniu). */
+export const lineRatesMixed = (line: InvoiceLine, prices: HandoverPrice[]): boolean =>
+    new Set(sourcesOf(line, prices).map(p => p.vatRate)).size > 1;
+
+/** Część pozycji na fakturze przy podziale: kwota częściowa albo całość. */
+const partialOf = (line: InvoiceLine, full: number, split: boolean): number | null => {
+    if (!split || !line.partialGross.trim()) return null;
+    const partial = parsePln(line.partialGross);
+    return partial > 0 && partial < full ? partial : null;
+};
+
+/**
+ * Pozycja faktury jako kwoty. Jedna usługa idzie w swojej stronie ceny (netto usługi
+ * zostaje netto faktury); scalenie usług od netta - sumą netto; pozostałe i kwota
+ * częściowa - brutto.
+ */
+export const lineAmounts = (line: InvoiceLine, prices: HandoverPrice[], split = false): HandoverItem => {
+    const sources = sourcesOf(line, prices);
+    const vatRate = sources[0]?.vatRate ?? '23';
+    const full = sources.reduce((sum, p) => sum + priceAmounts(p).gross, 0);
+    const partial = partialOf(line, full, split);
+    if (partial !== null) {
+        return withDerived({ name: line.name, net: '', gross: toPln(partial), mode: 'GROSS', vatRate });
+    }
+    if (sources.length === 1) {
+        const { net, gross } = priceAmounts(sources[0]);
+        return { name: line.name, net: toPln(net), gross: toPln(gross), mode: sources[0].mode, vatRate };
+    }
+    if (sources.length > 0 && sources.every(p => p.mode === 'NET')) {
+        const net = sources.reduce((sum, p) => sum + priceAmounts(p).net, 0);
+        return withDerived({ name: line.name, net: toPln(net), gross: '', mode: 'NET', vatRate });
+    }
+    return withDerived({ name: line.name, net: '', gross: toPln(full), mode: 'GROSS', vatRate });
+};
+
+/** Pozycje, które trafią na fakturę (przy podziale: tylko zaznaczone), z usługami. */
+export const invoiceLinesOf = (state: HandoverState): Array<{ line: InvoiceLine; item: HandoverItem }> =>
+    state.lines
+        .filter(line => !state.splitRemainder || line.onInvoice)
+        .map(line => ({ line, item: lineAmounts(line, state.prices, state.splitRemainder) }))
+        .filter(({ item }) => itemAmounts(item).gross > 0);
+
+export const invoiceItemsOf = (state: HandoverState): HandoverItem[] => invoiceLinesOf(state).map(({ item }) => item);
+
+/**
+ * Scalenie zaznaczonych pozycji w jedną. Jedna pozycja ma jedną stawkę, więc scalić
+ * można tylko usługi tej samej stawki - scalenie 8% z 23% zmieniało po cichu podatek.
+ * Zwraca nowe pozycje albo komunikat, dlaczego się nie da.
+ */
+export const mergeLines = (lines: InvoiceLine[], indexes: number[], prices: HandoverPrice[]): InvoiceLine[] | string => {
+    const picked = indexes.map(i => lines[i]).filter(Boolean);
+    if (picked.length < 2) return 'Zaznacz co najmniej dwie pozycje.';
+    const rates = new Set(picked.flatMap(line => sourcesOf(line, prices).map(p => p.vatRate)));
+    if (rates.size > 1) return 'Scalić można tylko usługi z tą samą stawką VAT.';
+    const names = picked.map(line => line.name.trim()).filter(Boolean).join(', ');
+    const merged: InvoiceLine = {
+        name: names.length > 200 ? `${names.slice(0, 197)}...` : names,
+        serviceIds: picked.flatMap(line => line.serviceIds),
+        onInvoice: picked.some(line => line.onInvoice),
+        partialGross: '',
+    };
+    const first = Math.min(...indexes);
+    return lines.flatMap((line, i) => (i === first ? [merged] : indexes.includes(i) ? [] : [line]));
+};
+
+/** Rozdzielenie scalonej pozycji z powrotem na usługi. */
+export const unmergeLine = (lines: InvoiceLine[], index: number, prices: HandoverPrice[]): InvoiceLine[] =>
+    lines.flatMap((line, i) =>
+        i !== index
+            ? [line]
+            : sourcesOf(line, prices).map(p => ({ name: p.name, serviceIds: [p.serviceId], onInvoice: line.onInvoice, partialGross: '' }))
+    );
+
+/** Jedna pozycja na każdą stawkę VAT - scalenie, które nie zmienia podatku. */
+export const linesPerRate = (prices: HandoverPrice[]): InvoiceLine[] => {
+    const groups = new Map<VatRateCode, HandoverPrice[]>();
+    prices.forEach(p => groups.set(p.vatRate, [...(groups.get(p.vatRate) ?? []), p]));
+    return [...groups.values()].map(group => {
+        const names = group.map(p => p.name.trim()).filter(Boolean).join(', ');
+        return {
+            name: names.length > 200 ? `${names.slice(0, 197)}...` : names,
+            serviceIds: group.map(p => p.serviceId),
+            onInvoice: true,
+            partialGross: '',
+        };
+    });
+};
+
+/** Pozycje ułożone dokładnie jak usługi (bez scaleń i podziału). */
+export const linesMatchServices = (lines: InvoiceLine[], prices: HandoverPrice[]): boolean =>
+    lines.length === prices.length &&
+    lines.every((line, i) => line.serviceIds.length === 1 && line.serviceIds[0] === prices[i].serviceId &&
+        line.name.trim() === prices[i].name.trim() && line.onInvoice && !line.partialGross.trim());
+
 // ─── Walidacja ────────────────────────────────────────────────────────────────
 
 export interface HandoverProblem {
     /** Sekcja, przy której należy pokazać komunikat, nie w banerze na górze. */
-    section: 'seller' | 'buyer' | 'items' | 'balance';
+    section: 'seller' | 'buyer' | 'prices' | 'items' | 'balance';
     message: string;
 }
 
 interface ValidateArgs {
     state: HandoverState;
-    visitGross: number;
     sellerComplete: boolean;
-    /**
-     * „Faktury wystawia księgowość": CRM nie wystawia faktury, więc nie sprawdza
-     * danych sprzedawcy, pozycji ani bilansu - fakturę na kwotę wizyty układa księgowość.
-     * Zostaje nabywca, bo to jemu księgowość wystawi fakturę.
-     */
+    /** „Faktury wystawia księgowość": CRM nie wystawia faktury - zostaje nabywca i ceny. */
     invoicedExternally?: boolean;
 }
 
+/** Ceny usług: każda musi być kwotą (zero to usługa gratis, ujemnej nie ma). */
+export const priceProblems = (prices: HandoverPrice[]): HandoverProblem[] =>
+    prices.flatMap(price => {
+        const typed = price.mode === 'GROSS' ? price.gross : price.net;
+        return !typed.trim() || !isPlnInput(typed)
+            ? [{ section: 'prices' as const, message: `${price.name}: podaj cenę.` }]
+            : [];
+    });
+
 /**
- * Zwraca wszystkie realne przeszkody w wydaniu. Pusta lista = przycisk aktywny.
- * Walidacja jest identyczna z backendową (CompleteVisitInvoiceOrchestrator),
- * żeby użytkownik nie dowiadywał się o problemie dopiero z odpowiedzi serwera.
+ * Wszystkie realne przeszkody w wydaniu. Pusta lista = przycisk aktywny. Walidacja
+ * odpowiada backendowej (CompleteVisitInvoiceOrchestrator).
  */
 export const validateHandover = ({
     state,
-    visitGross,
     sellerComplete,
     invoicedExternally = false,
 }: ValidateArgs): HandoverProblem[] => {
-    if (state.documentType !== 'INVOICE') return [];
-    if (invoicedExternally) return buyerProblems(state);
-
-    const problems: HandoverProblem[] = [];
+    const problems: HandoverProblem[] = [...priceProblems(state.prices)];
+    if (state.documentType !== 'INVOICE') return problems;
+    if (invoicedExternally) return [...problems, ...buyerProblems(state)];
 
     if (!sellerComplete) {
         problems.push({
@@ -313,40 +482,44 @@ export const validateHandover = ({
         });
     }
 
-    state.items.forEach((item, index) => {
-        const missing = [
-            !item.name.trim() && 'nazwę',
-            itemAmounts(item).gross <= 0 && 'kwotę',
-        ].filter((part): part is string => Boolean(part));
-
-        if (missing.length > 0) {
-            problems.push({ section: 'items', message: `Pozycja ${index + 1}: podaj ${missing.join(' i ')}.` });
+    state.lines.forEach((line, index) => {
+        if (!line.name.trim()) {
+            problems.push({ section: 'items', message: `Pozycja ${index + 1}: podaj nazwę.` });
+        }
+        if (lineRatesMixed(line, state.prices)) {
+            problems.push({
+                section: 'items',
+                message: `Pozycja ${index + 1} łączy usługi z różnymi stawkami VAT. Rozdziel ją.`,
+            });
+        }
+        if (state.splitRemainder && line.onInvoice && line.partialGross.trim()) {
+            const partial = parsePln(line.partialGross);
+            if (partial <= 0 || partial > lineFullGross(line, state.prices)) {
+                problems.push({
+                    section: 'items',
+                    message: `Pozycja ${index + 1}: kwota na fakturze musi być większa od zera i nie wyższa niż cena usług.`,
+                });
+            }
         }
     });
 
-    if (state.items.some(item => item.vatRate === 'zw') && !state.exemptionBasis.trim()) {
+    const invoiceItems = invoiceItemsOf(state);
+    if (invoiceItems.some(item => item.vatRate === 'zw') && !state.exemptionBasis.trim()) {
         problems.push({
             section: 'items',
             message: 'Stawka „zw" wymaga podania podstawy prawnej zwolnienia z VAT.',
         });
     }
-
-    problems.push(...buyerProblems(state));
-
-    const remainder = visitGross - invoiceGrossOf(state.items);
-    // Suma faktury i paragonu na resztę to zawsze kwota wizyty (backend pilnuje tego samego).
-    if (remainder < 0) {
+    if (invoiceItems.length === 0 && totalsOf(state.prices).gross > 0) {
         problems.push({
             section: 'balance',
-            message: 'Faktura nie może być wyższa niż kwota wizyty. Wyższą cenę ustawisz w usługach wizyty.',
-        });
-    } else if (remainder > 0 && !state.splitRemainder) {
-        problems.push({
-            section: 'balance',
-            message: 'Faktura jest niższa niż kwota wizyty. Wybierz dokument „Faktura + Inny” albo wróć do kwot z usług.',
+            message: state.splitRemainder
+                ? 'Zaznacz co najmniej jedną pozycję na fakturze.'
+                : 'Faktura musi mieć co najmniej jedną pozycję z kwotą.',
         });
     }
 
+    problems.push(...buyerProblems(state));
     return problems;
 };
 
@@ -380,97 +553,39 @@ const buyerProblems = (state: HandoverState): HandoverProblem[] => {
 };
 
 /**
- * Stan ekranu → payload faktury dla POST /visits/{id}/complete.
- *
- * [sendToKsef] przekazujemy jawnie (rozwiązane już z domyślnej wartości studia),
- * żeby na serwer poszła decyzja widoczna na ekranie, a nie druga interpretacja
- * tego samego ustawienia.
+ * Stan ekranu → payload faktury dla POST /visits/{id}/complete. Pozycje wskazują usługi,
+ * które obejmują (alokacja usługa × dokument). Reszta przy podziale to zawsze zapis bez
+ * paragonu i bez VAT, gotówką (decyzja biznesu z 20.10.2026).
  */
-export const toInvoicePayload = (
-    state: HandoverState,
-    visitGross: number,
-    sendToKsef: boolean
-): CompleteInvoicePayload => {
-    const remainder = visitGross - invoiceGrossOf(state.items);
+export const toInvoicePayload = (state: HandoverState, sendToKsef: boolean): CompleteInvoicePayload => {
+    const lines = invoiceLinesOf(state);
+    const invoiceGross = invoiceGrossOf(lines.map(l => l.item));
+    const remainder = totalsOf(state.prices).gross - invoiceGross;
     const nip = normalizeNip(state.buyer.nip);
 
     return {
-        // Kwota autorytatywna idzie w swoim trybie, backend liczy identycznie,
-        // więc wpisana wartość nigdy nie „przeskakuje"
-        items: state.items.map(item => ({
+        items: lines.map(({ line, item }) => ({
             name: item.name.trim(),
             quantity: 1,
             ...(item.mode === 'GROSS'
                 ? { unitPriceGross: parsePln(item.gross) }
                 : { unitPriceNet: parsePln(item.net) }),
             vatRate: item.vatRate,
+            sourceServiceItemIds: line.serviceIds,
         })),
         buyerNip: nip || undefined,
         buyerName: state.buyer.name.trim() || undefined,
         buyerAddressLine1: state.buyer.addressLine1.trim() || undefined,
         buyerAddressLine2: state.buyer.addressLine2.trim() || undefined,
         buyerEmail: state.buyer.email.trim() || undefined,
-        // „Inny” to zawsze gotówka - ekran o formę zapłaty tej części nie pyta.
-        remainderPaymentMethod: remainder > 0
-            ? (state.remainderWithoutReceipt ? 'CASH' : state.remainderMethod)
-            : undefined,
-        remainderWithoutReceipt: remainder > 0 && state.remainderWithoutReceipt ? true : undefined,
-        exemptionLegalBasis: state.items.some(i => i.vatRate === 'zw')
-            ? state.exemptionBasis.trim()
-            : undefined,
+        remainderPaymentMethod: remainder > 0 ? 'CASH' : undefined,
+        remainderWithoutReceipt: remainder > 0 ? true : undefined,
+        exemptionLegalBasis: lines.some(({ item }) => item.vatRate === 'zw') ? state.exemptionBasis.trim() : undefined,
         sendToKsef,
     };
 };
 
-
-// ─── Podział wizyty na fakturę i paragon ─────────────────────────────────────
-
-/**
- * Czy pozycje faktury są tymi samymi pozycjami co usługi wizyty: ta sama liczba,
- * nazwy, kwoty brutto i netto oraz stawki. Etykieta „zgodnie z usługami wizyty”
- * pokazywała się dotąd, gdy zgadzała się sama SUMA - także po przesunięciu kwot
- * między pozycjami i zmianie stawki.
- */
-export const itemsMatch = (a: HandoverItem[], b: HandoverItem[]): boolean =>
-    a.length === b.length &&
-    a.every((item, i) => {
-        const other = b[i];
-        const x = itemAmounts(item);
-        const y = itemAmounts(other);
-        return item.name.trim() === other.name.trim() && item.vatRate === other.vatRate &&
-            x.gross === y.gross && x.net === y.net;
-    });
-
-/**
- * Pozycje faktury na zadaną kwotę brutto, proporcjonalnie do usług wizyty.
- *
- * Klient prosi o fakturę na część kwoty, a resztę płaci za paragonem. Każda usługa
- * dostaje swoją część kwoty faktury, więc stawki VAT zostają takie jak w usługach
- * (a paragon na resztę niesie resztę każdej stawki). Grosze z zaokrągleń trafiają
- * do pozycji z największą częścią ułamkową - suma jest równa kwocie co do grosza.
- * Pozycje, którym nie przypadł ani grosz, wypadają z faktury.
- */
-export const scaleItemsToGross = (seed: HandoverItem[], targetGross: number): HandoverItem[] => {
-    const grosses = seed.map(item => itemAmounts(item).gross);
-    const total = grosses.reduce((sum, g) => sum + g, 0);
-    if (total <= 0 || targetGross <= 0) return seed;
-    if (targetGross >= total) return seed;
-
-    const shares = grosses.map(g => (g * targetGross) / total);
-    const floors = shares.map(Math.floor);
-    let left = targetGross - floors.reduce((sum, v) => sum + v, 0);
-    const order = shares
-        .map((share, i) => ({ i, frac: share - Math.floor(share) }))
-        .sort((a, b) => b.frac - a.frac || grosses[b.i] - grosses[a.i]);
-    for (const { i } of order) {
-        if (left <= 0) break;
-        floors[i] += 1;
-        left -= 1;
-    }
-    return seed
-        .map((item, i) => withDerived({ ...item, mode: 'GROSS', gross: toPln(floors[i]) }))
-        .filter((_, i) => floors[i] > 0);
-};
+// ─── Stawki ──────────────────────────────────────────────────────────────────
 
 /** Brutto pozycji w podziale na stawki VAT. */
 export const grossByRate = (items: HandoverItem[]): Map<VatRateCode, number> => {
@@ -487,62 +602,3 @@ export const vatOfItems = (items: HandoverItem[]): number =>
     }, 0);
 
 export const RATE_LABEL: Record<VatRateCode, string> = { '23': '23%', '8': '8%', '5': '5%', '0': '0%', zw: 'zw.' };
-
-export interface RateMismatch {
-    /** Stawki usług wizyty, np. ['23%', '8%']. */
-    serviceRates: string[];
-    /** Stawki na fakturze. */
-    invoiceRates: string[];
-    /**
-     * Różnica VAT (faktura − usługi) w groszach, gdy faktura obejmuje całą wizytę;
-     * null przy fakturze na część kwoty, gdzie porównanie kwot nie ma sensu.
-     */
-    vatDifference: number | null;
-}
-
-/**
- * Czy stawki VAT na fakturze rozkładają się inaczej niż w usługach wizyty.
- *
- * Scalenie „powłoka 23% + tapicerka 8%” w jedną pozycję 23% przechodziło po cichu,
- * a zmieniało podatek (w testach KSeF: VAT 551,63 zł zamiast 517,75 zł przy tej samej
- * cenie). Przy fakturze na całość porównujemy kwoty każdej stawki, przy fakturze na
- * część - same stawki (faktura nie może mieć stawki, której nie ma żadna usługa).
- */
-export const rateMismatch = (items: HandoverItem[], services: HandoverItem[]): RateMismatch | null => {
-    const inv = grossByRate(items);
-    const svc = grossByRate(services);
-    const invoiceTotal = [...inv.values()].reduce((a, b) => a + b, 0);
-    const servicesTotal = [...svc.values()].reduce((a, b) => a + b, 0);
-    const whole = invoiceTotal === servicesTotal;
-    const ratesDiffer = [...inv.keys()].some(rate => !svc.has(rate)) ||
-        (whole && [...svc.keys()].some(rate => !inv.has(rate)));
-    const amountsDiffer = whole && [...svc.entries()].some(([rate, gross]) => (inv.get(rate) ?? 0) !== gross);
-    if (!ratesDiffer && !amountsDiffer) return null;
-    const order: VatRateCode[] = ['23', '8', '5', '0', 'zw'];
-    const labels = (map: Map<VatRateCode, number>) => order.filter(rate => map.has(rate)).map(rate => RATE_LABEL[rate]);
-    return {
-        serviceRates: labels(svc),
-        invoiceRates: labels(inv),
-        vatDifference: whole ? vatOfItems(items) - vatOfItems(services) : null,
-    };
-};
-
-/**
- * Jedna pozycja na każdą stawkę VAT usług: suma brutto stawki zostaje, nazwa to nazwy
- * usług z tą stawką. Podpowiedź dla „chcę jedną pozycję”, która nie zmienia podatku.
- */
-export const itemsPerRate = (services: HandoverItem[]): HandoverItem[] => {
-    const groups = new Map<VatRateCode, HandoverItem[]>();
-    services.forEach(item => groups.set(item.vatRate, [...(groups.get(item.vatRate) ?? []), item]));
-    return [...groups.entries()].map(([vatRate, group]) => {
-        const names = group.map(item => item.name.trim()).filter(Boolean).join(', ');
-        const gross = group.reduce((sum, item) => sum + itemAmounts(item).gross, 0);
-        return withDerived({
-            name: names.length > 200 ? `${names.slice(0, 197)}...` : names,
-            net: '',
-            gross: toPln(gross),
-            mode: 'GROSS',
-            vatRate,
-        });
-    });
-};

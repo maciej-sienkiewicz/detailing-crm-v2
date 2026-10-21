@@ -12,9 +12,10 @@ import { InvoicePreviewModal } from './InvoicePreviewModal';
 import {
     formatNip,
     normalizeNip,
+    type HandoverItem,
     type HandoverProblem,
     type HandoverState,
-    type RateMismatch,
+    type InvoiceLine,
 } from '../../types/handover';
 
 /**
@@ -148,14 +149,17 @@ const ExternalNote = styled.p`
 `;
 
 export interface InvoiceControls {
-    itemsMatchServices: boolean;
-    vatMismatch: RateMismatch | null;
-    /** ISO chwili zapisu przywróconego draftu z pozycjami innymi niż usługi; null = brak. */
+    /** Pozycje ułożone dokładnie jak usługi (bez scaleń, nazw i podziału). */
+    linesMatch: boolean;
+    /** ISO chwili zapisu przywróconego draftu ze zmianami; null = brak. */
     restoredAt: string | null;
-    resetItemsToServices: () => void;
+    resetLines: () => void;
     /** Dokument „Faktura + Inny dokument” włączony / wyłączony. */
     setInvoiceOther: (on: boolean) => void;
-    applyItemsPerRate: () => void;
+    applyLinesPerRate: () => void;
+    changeLine: (index: number, changes: Partial<InvoiceLine>) => void;
+    mergeSelected: (indexes: number[]) => string | null;
+    unmerge: (index: number) => void;
 }
 
 const savedTime = (iso: string): string | null => {
@@ -209,6 +213,7 @@ export const InvoiceBuyer = ({ state, patch, problemsIn, invoicedExternally }: I
 interface InvoicePositionsProps {
     state: HandoverState;
     patch: (changes: Partial<HandoverState>) => void;
+    invoiceItems: HandoverItem[];
     invoiceGross: number;
     remainder: number;
     company: CompanySettings | undefined;
@@ -218,13 +223,14 @@ interface InvoicePositionsProps {
 }
 
 /**
- * Pozycje faktury. Przy zwykłej fakturze zwinięte do jednej linii, bo zwykle są
- * zgodne z usługami; przy „Faktura + Inny dokument” to jedyne miejsce, w którym
- * ustawia się kwotę faktury, więc edycja jest otwarta, a pod nią dwie kwoty.
+ * Pozycje faktury. Przy zwykłej fakturze zwinięte do jednej linii, bo zwykle są zgodne
+ * z usługami; przy „Faktura + Inny dokument” edycja jest otwarta - tu wskazuje się, które
+ * usługi idą na fakturę - a pod nią dwie kwoty.
  */
 export const InvoicePositions = ({
     state,
     patch,
+    invoiceItems,
     invoiceGross,
     remainder,
     company,
@@ -234,15 +240,21 @@ export const InvoicePositions = ({
 }: InvoicePositionsProps) => {
     const [mode, setMode] = useState<'collapsed' | 'list' | 'edit'>('collapsed');
     const [isPreviewOpen, setPreviewOpen] = useState(false);
-    const isOther = state.remainderWithoutReceipt;
-    const count = state.items.length;
+    const isOther = state.splitRemainder;
+    const count = invoiceItems.length;
 
     const editor = (
         <InvoiceItemsEditor
-            items={state.items}
-            onChange={items => patch({ items })}
+            lines={state.lines}
+            prices={state.prices}
+            split={isOther}
+            onChangeLine={controls.changeLine}
+            onMerge={controls.mergeSelected}
+            onUnmerge={controls.unmerge}
+            onLinesPerRate={controls.applyLinesPerRate}
             exemptionBasis={state.exemptionBasis}
             onExemptionBasisChange={exemptionBasis => patch({ exemptionBasis })}
+            fmt={fmt}
         />
     );
 
@@ -250,45 +262,16 @@ export const InvoicePositions = ({
         <>
             {controls.restoredAt !== null && (
                 <Hint $tone="warn" role="status">
-                    <span>Wróciły zapisane zmiany pozycji{savedTime(controls.restoredAt) ? ` (${savedTime(controls.restoredAt)})` : ''}.</span>
+                    <span>Wróciły zapisane zmiany cen i pozycji{savedTime(controls.restoredAt) ? ` (${savedTime(controls.restoredAt)})` : ''}.</span>
                     <Links>
-                        <GhostAction type="button" onClick={controls.resetItemsToServices}>Wróć do kwot z usług</GhostAction>
+                        <GhostAction type="button" onClick={controls.resetLines}>Pozycje jak usługi</GhostAction>
                     </Links>
                 </Hint>
             )}
-            {controls.vatMismatch && (
-                <Hint $tone="warn" role="status">
-                    <span>
-                        <strong>Stawki VAT różnią się od usług wizyty.</strong>
-                        {controls.vatMismatch.vatDifference !== null && controls.vatMismatch.vatDifference !== 0 && (
-                            <>
-                                {' '}VAT {controls.vatMismatch.vatDifference > 0 ? 'wyższy' : 'niższy'} o{' '}
-                                <strong>{fmt(Math.abs(controls.vatMismatch.vatDifference))}</strong>.
-                            </>
-                        )}
-                    </span>
-                    <Links>
-                        <GhostAction type="button" onClick={controls.applyItemsPerRate}>Jedna pozycja na każdą stawkę</GhostAction>
-                        <GhostAction type="button" onClick={controls.resetItemsToServices}>Wróć do kwot z usług</GhostAction>
-                    </Links>
-                </Hint>
-            )}
-            {remainder < 0 && (
-                <Hint $tone="bad" role="alert">
-                    <span>Faktura jest wyższa niż kwota wizyty o <strong>{fmt(-remainder)}</strong>.</span>
-                    <Links>
-                        <GhostAction type="button" onClick={controls.resetItemsToServices}>Wróć do kwot z usług</GhostAction>
-                    </Links>
-                </Hint>
-            )}
-            {remainder > 0 && !state.splitRemainder && (
-                <Hint $tone="warn" role="alert">
-                    <span>Faktura jest niższa niż kwota wizyty o <strong>{fmt(remainder)}</strong>.</span>
-                    <Links>
-                        <GhostAction type="button" onClick={() => controls.setInvoiceOther(true)}>Resztę na inny dokument</GhostAction>
-                        <GhostAction type="button" onClick={controls.resetItemsToServices}>Wróć do kwot z usług</GhostAction>
-                    </Links>
-                </Hint>
+            {!controls.linesMatch && !isOther && (
+                <Links>
+                    <GhostAction type="button" onClick={controls.resetLines}>Pozycje jak usługi</GhostAction>
+                </Links>
             )}
         </>
     );
@@ -299,7 +282,7 @@ export const InvoicePositions = ({
             onClose={() => setPreviewOpen(false)}
             company={company}
             buyer={state.buyer}
-            items={state.items}
+            items={invoiceItems}
             paymentMethod={state.paymentMethod}
             fmt={fmt}
         />
@@ -316,14 +299,14 @@ export const InvoicePositions = ({
                     </Links>
                 </Row>
                 {editor}
-                <SectionProblems problems={problemsIn('items')} />
+                <SectionProblems problems={[...problemsIn('items'), ...problemsIn('balance')]} />
                 <Tiles>
                     <Tile>
                         <span>Kwota na fakturze</span>
                         <strong>{fmt(invoiceGross)}</strong>
                     </Tile>
                     <Tile>
-                        <span>Kwota do zapłaty na innym dokumencie</span>
+                        <span>Inny dokument: bez paragonu, bez VAT, gotówka</span>
                         <strong>{fmt(Math.max(remainder, 0))}</strong>
                     </Tile>
                 </Tiles>
@@ -353,10 +336,10 @@ export const InvoicePositions = ({
                         <GhostAction type="button" onClick={() => setPreviewOpen(true)}><Eye />Podgląd faktury</GhostAction>
                     </Links>
                 </Row>
-                {mode === 'list' && <InvoiceLines items={state.items} fmt={fmt} />}
+                {mode === 'list' && <InvoiceLines items={invoiceItems} fmt={fmt} />}
                 {mode === 'edit' && editor}
             </PositionsCard>
-            <SectionProblems problems={problemsIn('items')} />
+            <SectionProblems problems={[...problemsIn('items'), ...problemsIn('balance')]} />
             {notices}
             {preview}
         </>

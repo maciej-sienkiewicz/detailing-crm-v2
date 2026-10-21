@@ -20,6 +20,7 @@ import { useVisitComments } from '../../hooks';
 import { CustomerNotesSection } from './CustomerNotesSection';
 import { SettlementSection } from './SettlementSection';
 import { SettlementSummary } from './SettlementSummary';
+import { PricesSection } from './PricesSection';
 import { handoverAction } from './handoverAction';
 import { paymentMethods } from './paymentOptions';
 import { FinanceUpsellPanel } from './FinanceUpsellPanel';
@@ -232,7 +233,7 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
         isFreeVisit: handover.isFreeVisit,
         canIssueDocuments: handover.canIssueDocuments,
         documentType: handover.state.documentType,
-        hasOtherDocument: handover.state.remainderWithoutReceipt && handover.remainder > 0,
+        hasOtherDocument: handover.state.splitRemainder && handover.remainder > 0,
         invoicedExternally: handover.invoicedExternally,
         sendToKsef: handover.sendToKsef,
         gross: fmt(handover.totals.gross),
@@ -266,7 +267,6 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                         currency={handover.currency}
                         thankYouAt={thankYouAt}
                         paymentLabel={handover.totals.gross > 0 ? paymentMethods.find(m => m.value === handover.state.paymentMethod)?.label : undefined}
-                        remainderWithoutReceipt={handover.state.remainderWithoutReceipt}
                         onClose={onClose}
                     />
                 ) : (
@@ -316,6 +316,7 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                             state={handover.state}
                                             patch={handover.patch}
                                             currency={handover.currency}
+                                            invoiceItems={handover.invoiceItems}
                                             invoiceGross={handover.invoiceGross}
                                             remainder={handover.remainder}
                                             sellerComplete={handover.sellerComplete}
@@ -323,18 +324,28 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                             problemsIn={handover.problemsIn}
                                             invoicedExternally={handover.invoicedExternally}
                                             controls={{
-                                                itemsMatchServices: handover.itemsMatchServices,
-                                                vatMismatch: handover.vatMismatch,
+                                                linesMatch: handover.linesMatch,
                                                 restoredAt: handover.restoredAt,
-                                                resetItemsToServices: handover.resetItemsToServices,
+                                                resetLines: handover.resetLines,
                                                 setInvoiceOther: handover.setInvoiceOther,
-                                                applyItemsPerRate: handover.applyItemsPerRate,
+                                                applyLinesPerRate: handover.applyLinesPerRate,
+                                                changeLine: handover.changeLine,
+                                                mergeSelected: handover.mergeSelected,
+                                                unmerge: handover.unmerge,
+                                            }}
+                                            priceControls={{
+                                                changePrice: handover.changePrice,
+                                                resetPrices: handover.resetPrices,
+                                                discount: handover.handoverDiscount,
+                                                totalGross: handover.totals.gross,
                                             }}
                                         />
                                         <SettlementSummary
                                             state={handover.state}
                                             totals={handover.totals}
+                                            originalGross={handover.originalGross}
                                             currency={handover.currency}
+                                            invoiceItems={handover.invoiceItems}
                                             invoiceGross={handover.invoiceGross}
                                             remainder={handover.remainder}
                                             invoicedExternally={handover.invoicedExternally}
@@ -351,10 +362,23 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                     // propozycja modułu finansowego, z zachowaną ścieżką
                                     // „wydaj pojazd bez faktury" (operacja rdzeniowa BASIC).
                                     !handover.isFreeVisit && (
-                                        <FinanceUpsellPanel
-                                            grossAmount={handover.totals.gross}
-                                            currency={handover.currency}
-                                        />
+                                        <>
+                                            {/* Cenę na końcu zmienia osoba, która wydaje auto - także
+                                                bez modułu Finanse: zmiana trafia do wizyty. */}
+                                            <PricesSection
+                                                prices={handover.state.prices}
+                                                onChange={handover.changePrice}
+                                                onReset={handover.resetPrices}
+                                                discount={handover.handoverDiscount}
+                                                totalGross={handover.totals.gross}
+                                                problems={handover.problemsIn('prices')}
+                                                fmt={fmt}
+                                            />
+                                            <FinanceUpsellPanel
+                                                grossAmount={handover.totals.gross}
+                                                currency={handover.currency}
+                                            />
+                                        </>
                                     )
                                 )}
                             </Body>

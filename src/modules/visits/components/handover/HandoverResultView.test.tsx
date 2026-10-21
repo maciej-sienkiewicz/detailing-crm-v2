@@ -14,6 +14,7 @@ vi.mock('@/modules/finance/hooks', () => ({
 }));
 
 import { HandoverResultView } from './HandoverResultView';
+import { handoverLead } from './handoverLead';
 import type { CompleteVisitResponse } from '../../types/stateTransitions';
 
 const result = (overrides: Partial<CompleteVisitResponse> = {}): CompleteVisitResponse => ({
@@ -55,5 +56,25 @@ describe('HandoverResultView', () => {
         renderView(result({ ksefInvoiceId: null, ksefInvoiceNumber: null, ksefStatus: null, invoicedExternally: true }));
         expect(screen.getByText('Fakturę wystawi księgowość')).toBeInTheDocument();
         expect(screen.queryByText(/FAK\/2026/)).not.toBeInTheDocument();
+    });
+});
+
+describe('handoverLead', () => {
+    const fmt = (grosz: number) => `${(grosz / 100).toFixed(2).replace('.', ',')} zł`;
+    const base = { visitId: 'v', newStatus: 'completed', message: '', financialDocumentId: null, financialDocumentNumber: null };
+
+    it('podział: faktura i drugi dokument osobno, każdy ze swoją formą zapłaty', () => {
+        expect(handoverLead(
+            { ...base, totalGross: 1_100_000, invoiceGross: 1_000_000, paymentMethod: 'CARD', remainderGross: 100_000, remainderPaymentMethod: 'CASH', totalGrossBeforeHandover: 1_200_000 },
+            1_100_000, 'Karta', fmt
+        )).toEqual([
+            'Faktura 10000,00 zł, karta.',
+            'Inny dokument 1000,00 zł, gotówka, bez paragonu i bez VAT.',
+            'Cena wizyty zmieniona przy wydaniu: 12000,00 zł → 11000,00 zł.',
+        ]);
+    });
+
+    it('bez podziału: jedno zdanie o płatności', () => {
+        expect(handoverLead({ ...base, totalGross: 272_300 }, 272_300, 'Karta', fmt)).toEqual(['Płatność karta 2723,00 zł zapisana.']);
     });
 });

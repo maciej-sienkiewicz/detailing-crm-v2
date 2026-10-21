@@ -36,6 +36,8 @@ export interface SettlementDocument {
     invoicedExternally?: boolean;
     /** Część kwoty wizyty zapłacona bez paragonu i bez VAT (typeLabel „Bez paragonu”). */
     withoutReceipt?: boolean;
+    /** Usługi rozliczone tym dokumentem (alokacja usługa × dokument). */
+    services?: Array<{ serviceLineItemId: string; name: string; grossCents: number }>;
 }
 
 export interface SettlementInvoice {
@@ -93,6 +95,11 @@ export interface SettlementView {
     exemptionLegalBasis?: string | null;
     /** Termin płatności obowiązującej faktury (YYYY-MM-DD). */
     paymentDueDate?: string | null;
+    /**
+     * Faktura + drugi dokument z zapisanym podziałem: poprawka działa per dokument -
+     * zmiana ceny usługi koryguje dokument tej usługi, każdy dokument ma swoją formę płatności.
+     */
+    perDocument?: boolean;
 }
 
 export interface SettlementServiceLine {
@@ -111,6 +118,8 @@ export interface SettlementCorrectionRequest {
     buyer?: SettlementBuyer | null;
     exemptionLegalBasis?: string | null;
     reason?: string | null;
+    /** Wizyta z podziałem: forma płatności każdego dokumentu (id dokumentu → forma). */
+    documentPaymentMethods?: Record<string, PaymentMethod>;
 }
 
 export interface SettlementPreview {

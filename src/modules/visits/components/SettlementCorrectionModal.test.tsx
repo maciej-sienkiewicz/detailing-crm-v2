@@ -3,7 +3,7 @@
 // Okno „Popraw rozliczenie": podgląd skutków z serwera przed zapisem, blokada, gdy
 // serwer mówi, że się nie da, i zapis z wpisanym brutto co do grosza (CLAUDE.md §1).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
@@ -72,6 +72,35 @@ describe('SettlementCorrectionModal', () => {
 
         await waitFor(() => expect(onClose).toHaveBeenCalled());
         expect(vi.mocked(settlementApi.correct).mock.calls[0][1].services[0].grossCents).toBe(170_000);
+    });
+
+    it('linia kasy i kwoty dla klienta jest widoczna przed zatwierdzeniem', async () => {
+        renderModal();
+        fireEvent.change(await screen.findByLabelText('Brutto: Przygotowanie do sprzedaży'), { target: { value: '1700,00' } });
+        expect((await screen.findByText(/Klient dostaje zwrot/)).textContent).toMatch(/200,00/);
+        expect(screen.getByText(/^Kasa:/).textContent).toMatch(/−200,00/);
+    });
+
+    it('wizyta z podziałem: forma płatności przy każdym dokumencie, zmiana tylko reszty', async () => {
+        vi.mocked(settlementApi.get).mockResolvedValue({
+            ...view,
+            documentType: 'INVOICE', paymentMethod: 'CARD', perDocument: true,
+            buyer: { name: 'Jan Kowalski' },
+            documents: [
+                { ...view.documents[0], id: 'd-fv', number: 'FAK/2026/0001', type: 'INVOICE', typeLabel: 'Faktura', paymentMethod: 'CARD', paymentMethodLabel: 'Karta', totalGross: 160_000,
+                  services: [{ serviceLineItemId: 's-1', name: 'Przygotowanie do sprzedaży', grossCents: 160_000 }] },
+                { ...view.documents[0], id: 'd-rest', number: 'DOK/2026/0002', type: 'OTHER', typeLabel: 'Bez paragonu', paymentMethod: 'CASH', paymentMethodLabel: 'Gotówka', totalGross: 30_000, withoutReceipt: true,
+                  services: [{ serviceLineItemId: 's-1', name: 'Przygotowanie do sprzedaży', grossCents: 30_000 }] },
+            ],
+        });
+        renderModal();
+        const rest = (await screen.findByText('Bez paragonu DOK/2026/0002')).closest('div')!;
+        fireEvent.click(within(rest).getByRole('button', { name: /Karta/ }));
+
+        await waitFor(() => expect(settlementApi.preview).toHaveBeenLastCalledWith('v-1', expect.objectContaining({
+            paymentMethod: 'CARD',
+            documentPaymentMethods: { 'd-fv': 'CARD', 'd-rest': 'CARD' },
+        })));
     });
 
     it('gdy serwer blokuje poprawkę, pokazuje powód i nie pozwala zatwierdzić', async () => {

@@ -1,5 +1,6 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
+import { Link } from 'react-router-dom';
 import { Check, Eye, EyeOff, FileText, Pencil, Trash2 } from 'lucide-react';
 import { useMediaQuery } from '@/common/hooks';
 import type { RowSelection } from '@/common/hooks';
@@ -151,6 +152,19 @@ const BADGE_COLORS: Record<BadgeVariant, { bg: string; color: string; border: st
   red:    { bg: '#fee2e2', color: '#991b1b', border: '#fca5a5' },
   slate:  { bg: '#f1f5f9', color: '#475569', border: '#cbd5e1' },
 };
+
+const VisitRef = styled(Link)`
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #0369a1;
+  text-decoration: none;
+  font-variant-numeric: tabular-nums;
+
+  span { color: #64748b; }
+  &:hover { text-decoration: underline; }
+`;
 
 const Badge = styled.span<{ $variant: BadgeVariant }>`
   display: inline-flex;
@@ -686,7 +700,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                         $variant={doc.excluded ? 'restore' : 'exclude'}
                         disabled={busy}
                         onClick={(e) => toggleExcluded(e, doc)}
-                        title={doc.excluded ? 'Przywróć do statystyk' : 'Ukryj ze statystyk'}
+                        title={doc.excluded ? 'Przywróć w Finansach' : 'Ukryj w Finansach'}
                       >
                         {doc.excluded ? <Eye size={15} /> : <EyeOff size={15} />}
                       </ActionBtn>
@@ -772,10 +786,10 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                       {doc.excluded && (
                         <Badge
                           $variant="slate"
-                          title="Dokument nie wchodzi do statystyk ani do kafli podsumowania"
+                          title="Dokument nie wchodzi do sum Finansów ani do kafli podsumowania. Statystyki sprzedaży liczą się z cen wizyt"
                           style={{ marginTop: 4 }}
                         >
-                          Ukryty ze statystyk
+                          Ukryty w Finansach
                         </Badge>
                       )}
                     </Td>
@@ -850,6 +864,14 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                     </Td>
                     <Td>
                       <Badge $variant="slate">{ORIGIN_LABEL[doc.origin ?? ''] ?? '-'}</Badge>
+                      {/* Części jednej sprzedaży (faktura + bez paragonu) są osobnymi wierszami
+                          rejestru - numer wizyty i liczba jej dokumentów je spina. */}
+                      {doc.visitId && doc.visitNumber && (
+                        <VisitRef to={`/visits/${doc.visitId}`} onClick={e => e.stopPropagation()}>
+                          {doc.visitNumber}
+                          {(doc.visitDocumentCount ?? 0) > 1 && <span>{doc.visitDocumentCount} dokumenty wizyty</span>}
+                        </VisitRef>
+                      )}
                     </Td>
                     <Td>
                       <Badge $variant={payment.variant}>{payment.label}</Badge>
@@ -874,7 +896,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                           $variant={doc.excluded ? 'restore' : 'exclude'}
                           disabled={busy}
                           onClick={(e) => toggleExcluded(e, doc)}
-                          title={doc.excluded ? 'Przywróć do statystyk' : 'Ukryj ze statystyk'}
+                          title={doc.excluded ? 'Przywróć w Finansach' : 'Ukryj w Finansach'}
                         >
                           {doc.excluded ? <Eye size={15} /> : <EyeOff size={15} />}
                         </ActionBtn>
