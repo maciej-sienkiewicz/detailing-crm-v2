@@ -192,7 +192,7 @@ const ExpandButton = styled.button<{ $open: boolean }>`
 
     &:focus-visible {
         outline: none;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.25);
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.25);
     }
 `;
 
@@ -290,7 +290,7 @@ const StepsToggle = styled.button<{ $open: boolean }>`
 
     &:focus-visible {
         outline: none;
-        box-shadow: inset 0 0 0 2px rgba(14, 165, 233, 0.35);
+        box-shadow: inset 0 0 0 2px rgba(3, 105, 161, 0.35);
     }
 `;
 
@@ -337,7 +337,7 @@ const NavChip = styled(Link)`
 
     &:focus-visible {
         outline: none;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.25);
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.25);
     }
 `;
 

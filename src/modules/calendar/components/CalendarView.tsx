@@ -150,11 +150,11 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
 
     /* Today highlighting */
     .fc-day-today {
-        background-color: rgba(14, 165, 233, 0.03) !important;
+        background-color: rgba(3, 105, 161, 0.03) !important;
     }
 
     .fc-day-today .fc-daygrid-day-number {
-        background: #0ea5e9;
+        background: #0369a1;
         color: #fff;
         border-radius: 50%;
         width: 20px;
@@ -164,7 +164,7 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
         justify-content: center;
         font-weight: 700;
         font-size: 12px;
-        box-shadow: 0 2px 6px rgba(14, 165, 233, 0.35);
+        box-shadow: 0 2px 6px rgba(3, 105, 161, 0.35);
     }
 
     /* Day numbers.
@@ -190,8 +190,8 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
     }
 
     .fc-daygrid-day-number:hover {
-        background: rgba(14, 165, 233, 0.1);
-        color: #0ea5e9;
+        background: rgba(3, 105, 161, 0.1);
+        color: #0369a1;
     }
 
     .fc-daygrid-day-top {
@@ -541,7 +541,7 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
         position: absolute;
         inset: -2px;
         border-radius: 7px;
-        background-color: #0ea5e9;
+        background-color: #0369a1;
         animation: fc-search-pulse 1.0s ease-in-out 7;
         z-index: 1;
         pointer-events: none;
@@ -617,8 +617,8 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
     }
 
     .fc-daygrid-more-link:hover {
-        background: rgba(14, 165, 233, 0.08);
-        color: #0ea5e9;
+        background: rgba(3, 105, 161, 0.08);
+        color: #0369a1;
     }
 
     /* ===================== MORE POPOVER ===================== */
@@ -718,7 +718,7 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
 
     /* Selection highlighting */
     .fc-highlight {
-        background: rgba(14, 165, 233, 0.07);
+        background: rgba(3, 105, 161, 0.07);
         border-radius: 4px;
     }
 
@@ -1205,7 +1205,7 @@ const NewEventBtn = styled.button`
     gap: 6px;
     padding: 10px 18px;
     border-radius: 10px;
-    /* Ten sam głęboki błękit co akcja w PageHeader, nie jaskrawe #0ea5e9. */
+    /* Ten sam głęboki błękit co akcja w PageHeader, nie jaskrawe #0369a1. */
     background: #0369a1;
     color: #fff;
     font-size: 13px;

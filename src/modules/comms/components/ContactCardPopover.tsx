@@ -157,7 +157,7 @@ const VehicleLine = styled.button<{ $active?: boolean }>`
     text-align: left;
     border: 1px solid ${({ $active, theme }) => ($active ? theme.colors.primary : 'transparent')};
     border-radius: ${p => p.theme.radii.sm};
-    background: ${({ $active }) => ($active ? '#f0f9ff' : 'transparent')};
+    background: ${({ $active }) => ($active ? '#f0f6f9' : 'transparent')};
     padding: 3px 5px;
     margin: 0 -5px;
     cursor: pointer;

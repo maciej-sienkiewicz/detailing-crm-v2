@@ -6,7 +6,7 @@ import styled from 'styled-components';
  * Wcześniej każda z czterech kart była budowana osobno: dwa promienie (12 i 14 px),
  * dwa rozmiary tytułu, jedna z kafelkiem ikony, jedna z czerwoną obwódką, i dwa różne
  * przyciski główne w dwóch różnych kolorach — indygo (#6366f1) obok błękitu marki
- * (#0ea5e9). Indygo nie występuje nigdzie indziej w aplikacji; wzięło się z kopiowania
+ * (#0369a1). Indygo nie występuje nigdzie indziej w aplikacji; wzięło się z kopiowania
  * przykładu, nie z decyzji.
  *
  * Paleta zakładki to teraz cztery barwy i ani jednej więcej: tusz, szarość, obwódka
@@ -92,17 +92,17 @@ export const OutlineBtn = styled.button`
     border: 1px solid #e2e8f0;
     color: #0f172a;
 
-    &:hover:not(:disabled) { border-color: #0ea5e9; color: #0ea5e9; background: rgba(14, 165, 233, 0.04); }
+    &:hover:not(:disabled) { border-color: #0369a1; color: #0369a1; background: rgba(3, 105, 161, 0.04); }
 `;
 
 /** Wypełniony wyłącznie w otwartym edytorze — patrz komentarz na górze pliku. */
 export const PrimaryBtn = styled.button`
     ${buttonBase}
-    background: #0ea5e9;
-    border: 1px solid #0ea5e9;
+    background: #0369a1;
+    border: 1px solid #0369a1;
     color: #fff;
 
-    &:hover:not(:disabled) { background: #0284c7; border-color: #0284c7; }
+    &:hover:not(:disabled) { background: #075985; border-color: #075985; }
 `;
 
 export const GhostBtn = styled.button`
@@ -162,7 +162,7 @@ export const Select = styled.select`
     background: #fff;
     cursor: pointer;
 
-    &:focus { outline: none; border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12); }
+    &:focus { outline: none; border-color: #0369a1; box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12); }
 
     @media (hover: none) and (pointer: coarse) { min-height: 44px; }
 `;
@@ -179,7 +179,7 @@ export const Input = styled.input<{ $error?: boolean }>`
     outline: none;
     transition: border-color 150ms, box-shadow 150ms;
 
-    &:focus { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12); }
+    &:focus { border-color: #0369a1; box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12); }
 `;
 
 export const FieldError = styled.p`

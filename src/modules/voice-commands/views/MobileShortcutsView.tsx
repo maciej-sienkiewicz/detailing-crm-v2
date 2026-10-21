@@ -114,7 +114,7 @@ const InstallBtn = styled.button`
     justify-content: center;
     gap: 7px;
     padding: 9px 16px;
-    background: #0ea5e9;
+    background: #0369a1;
     color: white;
     border: none;
     border-radius: 10px;
@@ -123,11 +123,11 @@ const InstallBtn = styled.button`
     font-weight: 600;
     cursor: pointer;
     width: 100%;
-    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.22);
+    box-shadow: 0 2px 8px rgba(3, 105, 161, 0.22);
     transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
 
     svg { width: 15px; height: 15px; flex-shrink: 0; }
-    &:hover { background: #0284c7; box-shadow: 0 4px 10px rgba(14, 165, 233, 0.32); transform: translateY(-1px); }
+    &:hover { background: #075985; box-shadow: 0 4px 10px rgba(3, 105, 161, 0.32); transform: translateY(-1px); }
     &:active { transform: scale(0.98); }
 `;
 
@@ -186,9 +186,9 @@ const PlatformTab = styled.button<{ $active: boolean }>`
     gap: 6px;
     padding: 7px 14px;
     border-radius: 8px;
-    border: 1.5px solid ${p => p.$active ? '#0ea5e9' : '#e2e8f0'};
-    background: ${p => p.$active ? '#f0f9ff' : '#f8fafc'};
-    color: ${p => p.$active ? '#0284c7' : '#64748b'};
+    border: 1.5px solid ${p => p.$active ? '#0369a1' : '#e2e8f0'};
+    background: ${p => p.$active ? '#f0f6f9' : '#f8fafc'};
+    color: ${p => p.$active ? '#075985' : '#64748b'};
     font-family: inherit;
     font-size: 13px;
     font-weight: ${p => p.$active ? 600 : 500};
@@ -196,7 +196,7 @@ const PlatformTab = styled.button<{ $active: boolean }>`
     transition: all 0.15s;
 
     svg { width: 15px; height: 15px; }
-    &:hover { border-color: #0ea5e9; color: #0284c7; }
+    &:hover { border-color: #0369a1; color: #075985; }
 `;
 
 const InstructionList = styled.ol`

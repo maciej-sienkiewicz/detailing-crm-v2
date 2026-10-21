@@ -70,7 +70,7 @@ const DraftButton = styled.button<{ $joined: boolean; $h: number; $iconOnly: boo
     svg { width: 16px; height: 16px; color: #0e6fa0; }
     &:hover:not(:disabled) { background: #f8fafc; }
     &:disabled { opacity: 0.55; cursor: default; }
-    &:focus-visible { outline: 2px solid #0ea5e9; outline-offset: 2px; }
+    &:focus-visible { outline: 2px solid #0369a1; outline-offset: 2px; }
 
     .spin { animation: draftSpin 900ms linear infinite; }
     @keyframes draftSpin { to { transform: rotate(360deg); } }
@@ -112,7 +112,7 @@ const Option = styled.button<{ $selected: boolean }>`
     width: 100%;
     text-align: left;
     border: 1.5px solid ${({ $selected, theme }) => ($selected ? theme.colors.primary : theme.colors.border)};
-    background: ${({ $selected }) => ($selected ? '#f0f9ff' : '#ffffff')};
+    background: ${({ $selected }) => ($selected ? '#f0f6f9' : '#ffffff')};
     border-radius: ${p => p.theme.radii.md};
     padding: 14px 16px;
     font-family: inherit;

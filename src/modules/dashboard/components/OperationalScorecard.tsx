@@ -38,7 +38,7 @@ import { useCalendarNavigation } from '@/common/context/CalendarNavigationContex
 type CardVariant = 'inProgress' | 'readyForPickup' | 'incomingToday' | 'abandoned';
 
 /** Jedyny akcent kafelków - stan interakcji, nie kategoria. */
-const ACCENT = 'var(--brand-primary, #0ea5e9)';
+const ACCENT = 'var(--brand-primary)';
 
 /** Ikony zostają wyłącznie w nagłówku szuflady, gdzie identyfikują kontekst. */
 const CARD_ICON: Record<CardVariant, LucideIcon> = {
@@ -441,7 +441,7 @@ const ViewAllBtn = styled.button`
   gap: 4px;
   font-size: 12px;
   font-weight: 500;
-  color: #0284c7;
+  color: #075985;
   background: none;
   border: none;
   cursor: pointer;

@@ -30,7 +30,7 @@ const variantStyles = (variant: ButtonVariant) => {
                     box-shadow: 0 2px 6px rgba(3,105,161,0.22);
                 }
                 &:disabled {
-                    background: #bae6fd;
+                    background: #c0d9e8;
                     box-shadow: none;
                     cursor: not-allowed;
                     transform: none;

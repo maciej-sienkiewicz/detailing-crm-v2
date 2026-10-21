@@ -48,18 +48,18 @@ const CheckboxLabel = styled.label<{ $onDark?: boolean }>`
     `}
 
     &:hover ${Box} {
-        border-color: #38bdf8;
+        border-color: #8ebbd5;
     }
 
     input:focus-visible + ${Box} {
-        outline: 2px solid #0ea5e9;
+        outline: 2px solid #0369a1;
         outline-offset: 2px;
     }
 
     input:checked + ${Box},
     input:indeterminate + ${Box} {
-        background: #0ea5e9;
-        border-color: #0ea5e9;
+        background: #0369a1;
+        border-color: #0369a1;
         color: #ffffff;
     }
 `;
@@ -135,8 +135,8 @@ const Bar = styled.div`
     flex-wrap: wrap;
     gap: 10px;
     padding: 10px 16px;
-    background: #f0f9ff;
-    border-bottom: 1px solid #bae6fd;
+    background: #f0f6f9;
+    border-bottom: 1px solid #c0d9e8;
 
     @media (max-width: 639px) {
         padding: 10px 12px;
@@ -198,7 +198,7 @@ const ClearBtn = styled.button`
     cursor: pointer;
     border-radius: 8px;
 
-    &:hover:not(:disabled) { background: #e0f2fe; }
+    &:hover:not(:disabled) { background: #e6f0f6; }
     &:disabled { opacity: 0.55; cursor: not-allowed; }
 `;
 

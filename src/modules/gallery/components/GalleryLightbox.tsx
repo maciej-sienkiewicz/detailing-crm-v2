@@ -116,7 +116,7 @@ const SourceBadgeImg = styled.span<{ $source: 'VEHICLE' | 'VISIT' | 'BATCH_ORDER
         background: rgba(245,158,11,0.85);
         color: white;
     ` : `
-        background: rgba(14,165,233,0.85);
+        background: rgba(3, 105, 161, 0.85);
         color: white;
     `}
 `;
@@ -328,7 +328,7 @@ const LinkButton = styled.button`
     width: 100%;
 
     &:hover {
-        background: rgba(14, 165, 233, 0.06);
+        background: rgba(3, 105, 161, 0.06);
         border-color: var(--brand-primary);
         color: var(--brand-primary);
     }

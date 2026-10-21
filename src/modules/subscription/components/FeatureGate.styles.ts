@@ -64,7 +64,7 @@ export const OverlaySubtitle = styled.div`
 export const PriceHint = styled.div`
     font-size: 13.5px;
     font-weight: 700;
-    color: #0284c7;
+    color: #075985;
 `;
 
 export const UnlockBtn = styled.button`
@@ -74,7 +74,7 @@ export const UnlockBtn = styled.button`
     padding: 10px 22px;
     border-radius: 9px;
     border: none;
-    background: #0ea5e9;
+    background: #0369a1;
     color: white;
     font-size: 13px;
     font-weight: 700;
@@ -84,7 +84,7 @@ export const UnlockBtn = styled.button`
     width: 100%;
     justify-content: center;
 
-    &:hover { background: #0284c7; }
+    &:hover { background: #075985; }
 `;
 
 export const WaitlistBtn = styled.button`
@@ -116,7 +116,7 @@ export const UpgradeHint = styled.div`
     line-height: 1.5;
 
     a {
-        color: #0284c7;
+        color: #075985;
         text-decoration: none;
         font-weight: 600;
         &:hover { text-decoration: underline; }

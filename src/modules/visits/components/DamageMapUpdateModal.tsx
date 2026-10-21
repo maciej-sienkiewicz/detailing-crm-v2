@@ -33,8 +33,8 @@ import {
 } from '../utils/damageMapUpdate';
 import { hasPolishCharacters, pluralPl, smsSegments, smsWord } from '@/common/utils';
 
-const BRAND = '#0ea5e9';
-const BRAND_DARK = '#0284c7';
+const BRAND = '#0369a1';
+const BRAND_DARK = '#075985';
 
 type Step = 'mode' | 'edit' | 'notify';
 
@@ -143,7 +143,7 @@ const StepDot = styled.span<{ $state: 'done' | 'current' | 'todo' }>`
     border-radius: 999px;
     transition: all 200ms ease;
     ${p => p.$state === 'current' && css`width: 26px; background: ${BRAND};`}
-    ${p => p.$state === 'done' && css`width: 14px; background: rgba(14, 165, 233, 0.4);`}
+    ${p => p.$state === 'done' && css`width: 14px; background: rgba(3, 105, 161, 0.4);`}
     ${p => p.$state === 'todo' && css`width: 14px; background: ${st.border};`}
 `;
 
@@ -184,7 +184,7 @@ const SectionIcon = styled.span`
     width: 30px;
     height: 30px;
     border-radius: 9px;
-    background: rgba(14, 165, 233, 0.1);
+    background: rgba(3, 105, 161, 0.1);
     color: ${BRAND_DARK};
 
     svg { width: 16px; height: 16px; }
@@ -302,13 +302,13 @@ const OptionTile = styled.button<{ $selected: boolean; $tone: 'brand' | 'amber' 
 
     ${p => {
         const accent = p.$tone === 'amber' ? st.accentAmber : BRAND;
-        const tint = p.$tone === 'amber' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(14, 165, 233, 0.07)';
+        const tint = p.$tone === 'amber' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(3, 105, 161, 0.07)';
         const strong = p.$tone === 'amber' ? '#b45309' : BRAND_DARK;
         return p.$selected
             ? css`
                 border: 1.5px solid ${accent};
                 background: ${tint};
-                box-shadow: 0 0 0 3px ${p.$tone === 'amber' ? 'rgba(245,158,11,0.14)' : 'rgba(14,165,233,0.14)'};
+                box-shadow: 0 0 0 3px ${p.$tone === 'amber' ? 'rgba(245,158,11,0.14)' : 'rgba(3, 105, 161, 0.14)'};
                 color: ${strong};
             `
             : css`
@@ -348,8 +348,8 @@ const OptionBadge = styled.span`
     letter-spacing: 0.02em;
     padding: 2px 7px;
     border-radius: 999px;
-    border: 1px solid rgba(14, 165, 233, 0.35);
-    background: rgba(14, 165, 233, 0.08);
+    border: 1px solid rgba(3, 105, 161, 0.35);
+    background: rgba(3, 105, 161, 0.08);
     color: ${BRAND_DARK};
 `;
 
@@ -394,7 +394,7 @@ const FieldGroup = styled.div<{ $focused?: boolean }>`
     background: ${st.bgCard};
     overflow: hidden;
     transition: border-color 180ms;
-    ${p => p.$focused && css`box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);`}
+    ${p => p.$focused && css`box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12);`}
 `;
 
 const Textarea = styled.textarea`
@@ -476,13 +476,13 @@ const PrimaryBtn = styled.button`
     border: none;
     border-radius: 9px;
     cursor: pointer;
-    box-shadow: 0 3px 12px rgba(14, 165, 233, 0.3);
+    box-shadow: 0 3px 12px rgba(3, 105, 161, 0.3);
     transition: all 160ms ease;
 
     svg { width: 14px; height: 14px; }
 
     &:hover:not(:disabled) {
-        box-shadow: 0 5px 16px rgba(14, 165, 233, 0.38);
+        box-shadow: 0 5px 16px rgba(3, 105, 161, 0.38);
         transform: translateY(-1px);
     }
     &:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; transform: none; }

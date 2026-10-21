@@ -27,9 +27,9 @@ export const StatsTotalsBar = ({ totals }: StatsTotalsBarProps) => (
     <Bar>
         <StatTile
             compact
-            accentColor="#0EA5E9"
-            bgGradient="linear-gradient(135deg, #fff 0%, rgba(14,165,233,0.04) 100%)"
-            iconBg="rgba(14,165,233,0.10)"
+            accentColor="#0369A1"
+            bgGradient="linear-gradient(135deg, #fff 0%, rgba(3, 105, 161, 0.04) 100%)"
+            iconBg="rgba(3, 105, 161, 0.10)"
             icon={CalendarCheck}
             value={totals.orderCount}
             label={t.statistics.totals.orderCount}

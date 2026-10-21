@@ -74,9 +74,9 @@ const Tr = styled.tr<{ $excluded?: boolean; $selected?: boolean }>`
   ${(p) =>
     p.$selected
       ? `
-    background: #f0f9ff;
+    background: #f0f6f9;
     opacity: ${p.$excluded ? 0.55 : 1};
-    &:hover { background: #e0f2fe; }
+    &:hover { background: #e6f0f6; }
   `
       : p.$excluded
       ? `
@@ -148,9 +148,9 @@ const VisitLink = styled(Link)`
   align-items: center;
   max-width: 180px;
   padding: 2px 8px;
-  border: 1px solid #bae6fd;
+  border: 1px solid #c0d9e8;
   border-radius: 5px;
-  background: #f0f9ff;
+  background: #f0f6f9;
   color: #075985;
   font-size: 11px;
   font-weight: 600;
@@ -159,8 +159,8 @@ const VisitLink = styled(Link)`
   text-overflow: ellipsis;
   text-decoration: none;
 
-  &:hover { background: #e0f2fe; }
-  &:focus-visible { outline: 2px solid #38bdf8; outline-offset: 1px; }
+  &:hover { background: #e6f0f6; }
+  &:focus-visible { outline: 2px solid #8ebbd5; outline-offset: 1px; }
 `;
 
 const linkedVisitText = (visit: KsefExpenseLinkedVisit) =>
@@ -310,7 +310,7 @@ const ActionBtn = styled.button<{ $variant: 'exclude' | 'restore' | 'delete' | '
       case 'delete':  return `&:hover { background: #fee2e2; color: #ef4444; border-color: #fca5a5; }`;
       case 'pay':     return `&:hover { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }`;
       case 'edit':    return `&:hover { background: #eef2ff; color: #4f46e5; border-color: #c7d2fe; }`;
-      case 'preview': return `&:hover { background: #f0f9ff; color: #0369a1; border-color: #bae6fd; }`;
+      case 'preview': return `&:hover { background: #f0f6f9; color: #0369a1; border-color: #c0d9e8; }`;
     }
   }}
 
@@ -489,12 +489,12 @@ const Card = styled.div<{ $muted?: boolean; $selected?: boolean }>`
   gap: 7px;
   padding: 14px 16px;
   border-bottom: 1px solid #e5e7eb;
-  background: ${(p) => (p.$selected ? '#f0f9ff' : 'transparent')};
+  background: ${(p) => (p.$selected ? '#f0f6f9' : 'transparent')};
   cursor: pointer;
   opacity: ${(p) => (p.$muted ? 0.6 : 1)};
 
   &:last-child { border-bottom: none; }
-  &:active { background: ${(p) => (p.$selected ? '#e0f2fe' : '#f8fafc')}; }
+  &:active { background: ${(p) => (p.$selected ? '#e6f0f6' : '#f8fafc')}; }
 `;
 
 const CardTop = styled.div`

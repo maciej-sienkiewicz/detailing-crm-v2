@@ -169,7 +169,7 @@ const GenerateBtn = styled.button<{ $loading?: boolean }>`
     opacity: ${p => p.$loading ? 0.65 : 1};
     background: transparent;
     color: ${st.accentBlue};
-    border: 1px solid rgba(14,165,233,0.35);
+    border: 1px solid rgba(3, 105, 161, 0.35);
     transition: all ${st.transition};
     align-self: flex-start;
 

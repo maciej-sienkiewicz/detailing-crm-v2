@@ -2,7 +2,7 @@
 //
 // Notatka techniczna wizyty - panel w szynie bocznej.
 //
-// „Edytuj" było tu wypełnionym niebieskim przyciskiem #0EA5E9 - drugim niebieskim
+// „Edytuj" było tu wypełnionym niebieskim przyciskiem #0369A1 - drugim niebieskim
 // na ekranie i jednym z czterech stale wypełnionych przycisków w oknie wizyty.
 // Teraz jest obrysowane (CLAUDE.md §2): notatkę poprawia się rzadko, a wypełnienie
 // należy do kroku następnego w nagłówku.
@@ -77,7 +77,7 @@ const Textarea = styled.textarea`
     font-size: 14px;
     line-height: 1.6;
 
-    &:focus { outline: none; border-color: ${ui.focusRing}; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15); }
+    &:focus { outline: none; border-color: ${ui.focusRing}; box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.15); }
 `;
 
 const HistoryList = styled.ol`

@@ -493,18 +493,18 @@ const HiddenFilterBtn = styled.button<{ $active: boolean }>`
   padding: 0 12px;
   font-size: 13px;
   font-weight: ${p => (p.$active ? 600 : 500)};
-  background: ${p => (p.$active ? '#f0f9ff' : 'white')};
+  background: ${p => (p.$active ? '#f0f6f9' : 'white')};
   color: ${p => (p.$active ? '#0369a1' : '#475569')};
   border: none;
   border-right: 1.5px solid #e2e8f0;
-  box-shadow: ${p => (p.$active ? 'inset 0 -2px 0 #0ea5e9' : 'none')};
+  box-shadow: ${p => (p.$active ? 'inset 0 -2px 0 #0369a1' : 'none')};
   cursor: pointer;
   white-space: nowrap;
   font-family: inherit;
   transition: all 150ms;
 
   &:last-child { border-right: none; }
-  &:hover:not(:disabled) { background: ${p => (p.$active ? '#f0f9ff' : '#f8fafc')}; }
+  &:hover:not(:disabled) { background: ${p => (p.$active ? '#f0f6f9' : '#f8fafc')}; }
 `;
 
 const HiddenCheck = () => (
@@ -1153,7 +1153,7 @@ const DPPresetBtn = styled.button<{ $active: boolean }>`
   justify-content: space-between;
   width: 100%;
   padding: 7px 10px;
-  background: ${(p) => p.$active ? '#f0f9ff' : 'transparent'};
+  background: ${(p) => p.$active ? '#f0f6f9' : 'transparent'};
   color: ${(p) => p.$active ? st.accentBlue : st.text};
   border: none;
   border-radius: 6px;
@@ -1164,9 +1164,9 @@ const DPPresetBtn = styled.button<{ $active: boolean }>`
   cursor: pointer;
   transition: background ${st.transition}, color ${st.transition};
 
-  &:hover { background: ${(p) => p.$active ? '#e0f2fe' : p.theme.colors.surfaceHover}; }
+  &:hover { background: ${(p) => p.$active ? '#e6f0f6' : p.theme.colors.surfaceHover}; }
 
-  span.hint { font-size: 11px; color: ${(p) => p.$active ? '#7dd3fc' : st.textMuted}; font-weight: 400; }
+  span.hint { font-size: 11px; color: ${(p) => p.$active ? '#a7cadd' : st.textMuted}; font-weight: 400; }
 `;
 
 const DPDivider = styled.div`
@@ -1219,7 +1219,7 @@ const DPApplyBtn = styled.button`
   font-weight: 600;
   cursor: pointer;
   transition: background ${st.transition};
-  &:hover { background: #0284c7; }
+  &:hover { background: #075985; }
   &:disabled { background: #94a3b8; cursor: not-allowed; }
 `;
 

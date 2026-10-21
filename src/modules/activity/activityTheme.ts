@@ -13,7 +13,7 @@ interface Tone {
 
 const TONES = {
     neutral: { solid: '#64748b', tint: 'rgba(100, 116, 139, 0.10)', edge: 'rgba(100, 116, 139, 0.20)' },
-    brand: { solid: '#0284c7', tint: 'rgba(14, 165, 233, 0.10)', edge: 'rgba(14, 165, 233, 0.22)' },
+    brand: { solid: '#075985', tint: 'rgba(3, 105, 161, 0.10)', edge: 'rgba(3, 105, 161, 0.22)' },
     positive: { solid: '#059669', tint: 'rgba(16, 185, 129, 0.11)', edge: 'rgba(16, 185, 129, 0.24)' },
     negative: { solid: '#dc2626', tint: 'rgba(239, 68, 68, 0.10)', edge: 'rgba(239, 68, 68, 0.22)' },
     money: { solid: '#0f766e', tint: 'rgba(15, 118, 110, 0.10)', edge: 'rgba(15, 118, 110, 0.20)' },

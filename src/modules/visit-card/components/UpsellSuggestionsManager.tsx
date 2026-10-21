@@ -113,7 +113,7 @@ const ExtraToggle = styled.button`
     background: none;
     font-size: 12.5px;
     font-weight: 600;
-    color: #0284c7;
+    color: #075985;
     cursor: pointer;
 
     &:hover { text-decoration: underline; }
@@ -142,8 +142,8 @@ const DropdownTrigger = styled.button`
     &:hover:not(:disabled) { border-color: #cbd5e1; }
     &:focus {
         outline: none;
-        border-color: #0ea5e9;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        border-color: #0369a1;
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.1);
     }
     &:disabled { opacity: 0.6; cursor: not-allowed; }
 `;
@@ -180,7 +180,7 @@ const DropdownItem = styled.button<{ $selected: boolean }>`
     gap: 10px;
     padding: 8px 12px;
     border: none;
-    background: ${p => (p.$selected ? '#f0f9ff' : 'transparent')};
+    background: ${p => (p.$selected ? '#f0f6f9' : 'transparent')};
     color: #0f172a;
     font-family: inherit;
     font-size: 13px;
@@ -189,13 +189,13 @@ const DropdownItem = styled.button<{ $selected: boolean }>`
     cursor: pointer;
     transition: background 120ms ease;
 
-    &:hover { background: ${p => (p.$selected ? '#f0f9ff' : '#f8fafc')}; }
+    &:hover { background: ${p => (p.$selected ? '#f0f6f9' : '#f8fafc')}; }
 
     svg {
         flex-shrink: 0;
         width: 13px;
         height: 13px;
-        color: #0ea5e9;
+        color: #0369a1;
     }
 `;
 
@@ -443,7 +443,7 @@ const NotifyCheck = styled.input`
     margin-top: 2px;
     width: 16px;
     height: 16px;
-    accent-color: #0ea5e9;
+    accent-color: #0369a1;
     cursor: pointer;
     flex-shrink: 0;
 `;

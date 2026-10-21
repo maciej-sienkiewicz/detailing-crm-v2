@@ -464,7 +464,7 @@ const Row = styled.li`
     transition: background 150ms;
     &:last-child { border-bottom: none; }
     &:hover { background: #f8fafc; }
-    &:has(a:focus-visible) { background: #f0f9ff; }
+    &:has(a:focus-visible) { background: #f0f6f9; }
 
     /* Wąska lista: nazwisko i ⋮ w pierwszej linii, pod nimi kontakt, a na dole
        rola i stan konta obok siebie. Cztery kolumny się tu nie mieszczą. */
@@ -504,7 +504,7 @@ const NameLink = styled(Link)`
     /* Rozciągnięty cel kliknięcia: cały wiersz otwiera okno pracownika. */
     &::after { content: ''; position: absolute; inset: 0; }
     &:focus-visible { outline: none; }
-    &:focus-visible::after { outline: 2px solid #38bdf8; outline-offset: -2px; border-radius: 4px; }
+    &:focus-visible::after { outline: 2px solid #8ebbd5; outline-offset: -2px; border-radius: 4px; }
 `;
 
 const Meta = styled.div`

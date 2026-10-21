@@ -13,7 +13,7 @@ import { resolveDateRange, type DatePreset } from '../utils/dateRange';
 
 const METHOD_COLORS = {
   cash:     '#10B981',
-  card:     '#0EA5E9',
+  card:     '#0369A1',
   transfer: '#8B5CF6',
 } as const;
 

@@ -32,7 +32,7 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
     const steps: TourStep[] = [
         {
             icon: <MessageSquare />,
-            from: '#0ea5e9',
+            from: '#0369a1',
             to: '#6366f1',
             title: 'Co daje moduł komunikacji',
             body: (
@@ -43,15 +43,15 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
                         prosto z wizyty.
                     </TourDesc>
                     <TourBulletList>
-                        <TourBullet $color="#0ea5e9">
+                        <TourBullet $color="#0369a1">
                             <Send />
                             <span>Potwierdzenie rezerwacji i przypomnienie przed wizytą</span>
                         </TourBullet>
-                        <TourBullet $color="#0ea5e9">
+                        <TourBullet $color="#0369a1">
                             <Send />
                             <span>Powiadomienie, gdy <strong>pojazd jest gotowy do odbioru</strong></span>
                         </TourBullet>
-                        <TourBullet $color="#0ea5e9">
+                        <TourBullet $color="#0369a1">
                             <Send />
                             <span>Link do podpisu dokumentów wysyłany SMS-em</span>
                         </TourBullet>
@@ -101,7 +101,7 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
                         <strong> czy klient może odpisać</strong>.
                     </TourDesc>
                     <TourBulletList>
-                        <TourBullet $color="#0ea5e9">
+                        <TourBullet $color="#0369a1">
                             <ArrowLeftRight />
                             <span>
                                 <strong>Numer telefonu</strong> (ustawienie domyślne), SMS

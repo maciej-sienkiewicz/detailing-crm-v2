@@ -60,8 +60,8 @@ import {
 
 const InfoBox = styled.div`
     padding: 10px 14px;
-    background: #f0f9ff;
-    border: 1px solid #bae6fd;
+    background: #f0f6f9;
+    border: 1px solid #c0d9e8;
     border-radius: 10px;
     font-size: 12px;
     color: #075985;
@@ -108,7 +108,7 @@ const SelectTrigger = styled.button`
 
     &:focus {
         border-color: var(--brand-primary);
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.1);
     }
 `;
 

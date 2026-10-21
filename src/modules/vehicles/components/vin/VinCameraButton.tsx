@@ -31,16 +31,16 @@ const Btn = styled.button.attrs({ type: 'button' })`
     border-left: 1px solid #e2e8f0;
     border-radius: 0 10px 10px 0;
     background: none;
-    color: var(--brand-primary, #0ea5e9);
+    color: var(--brand-primary);
     cursor: pointer;
     transition: background 0.15s ease;
 
     svg { width: 16px; height: 16px; }
     .spin { animation: vinSpin 0.9s linear infinite; }
     @keyframes vinSpin { to { transform: rotate(360deg); } }
-    &:hover:not(:disabled) { background: #f0f9ff; }
+    &:hover:not(:disabled) { background: #f0f6f9; }
     &:disabled { color: #94a3b8; cursor: not-allowed; }
-    &:focus-visible { outline: 2px solid var(--brand-primary, #0ea5e9); outline-offset: -2px; }
+    &:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: -2px; }
 `;
 
 interface Props {

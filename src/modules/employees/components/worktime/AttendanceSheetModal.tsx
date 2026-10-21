@@ -257,8 +257,8 @@ const Select = styled.select`
     transition: border-color 150ms, box-shadow 150ms;
 
     &:focus {
-        border-color: #0ea5e9;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
+        border-color: #0369a1;
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.14);
     }
 `;
 
@@ -303,7 +303,7 @@ const Person = styled.label`
     cursor: pointer;
     & + & { border-top: 1px solid #f1f5f9; }
 
-    input { width: 16px; height: 16px; margin: 0; accent-color: #0284c7; cursor: pointer; flex-shrink: 0; }
+    input { width: 16px; height: 16px; margin: 0; accent-color: #075985; cursor: pointer; flex-shrink: 0; }
     > span:first-of-type { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 `;
 

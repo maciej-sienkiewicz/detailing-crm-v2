@@ -43,13 +43,13 @@
 }
 
 :root {
-  --brand-primary: #0ea5e9;
+  --brand-primary: #0369a1;
   /* Głęboki błękit marki: akcje, fokus i zaznaczenia tam, gdzie jaskrawe
      --brand-primary świeciło mocniej niż treść (nagłówki widoków, formularze,
      okno rezerwacji, zlecenia zbiorcze). */
   --brand-ink: #0369a1;
-  --brand-primary-dark: #0284c7;
-  --brand-primary-light: #38bdf8;
+  --brand-primary-dark: #075985;
+  --brand-primary-light: #8ebbd5;
 }
 
 /* Tailwind v4 compatibility - Force initialize CSS variables */

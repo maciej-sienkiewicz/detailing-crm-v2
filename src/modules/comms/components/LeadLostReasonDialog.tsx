@@ -52,7 +52,7 @@ const Card = styled.div`
 
 const ReasonOption = styled.button<{ $active: boolean }>`
     border: 1px solid ${({ $active, theme }) => ($active ? theme.colors.primary : theme.colors.border)};
-    background: ${({ $active }) => ($active ? 'rgba(14, 165, 233, 0.06)' : 'transparent')};
+    background: ${({ $active }) => ($active ? 'rgba(3, 105, 161, 0.06)' : 'transparent')};
     color: ${p => p.theme.colors.textSecondary};
     border-radius: ${p => p.theme.radii.md};
     padding: 9px 12px;

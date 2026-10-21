@@ -416,7 +416,7 @@ const Field = styled.div`
         font-size: 14px;
         color: ${ui.ink};
     }
-    input:focus, select:focus { outline: none; border-color: ${ui.brand}; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14); }
+    input:focus, select:focus { outline: none; border-color: ${ui.brand}; box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.14); }
     input[aria-invalid='true'] { border-color: ${ui.dangerInk}; }
 `;
 

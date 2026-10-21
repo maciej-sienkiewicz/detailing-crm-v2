@@ -37,7 +37,7 @@ const InFieldBtn = styled.button`
     font-family: inherit; font-size: 12px; font-weight: 600;
     color: var(--brand-primary); cursor: pointer; white-space: nowrap; flex-shrink: 0;
     transition: background 0.15s ease;
-    &:hover:not(:disabled) { background: #f0f9ff; }
+    &:hover:not(:disabled) { background: #f0f6f9; }
     &:disabled { color: #94a3b8; cursor: not-allowed; }
 `;
 const InFieldIconBtn = styled(InFieldBtn)`

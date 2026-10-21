@@ -76,7 +76,7 @@ export const Table = styled.table`
  * the only stage where the message asks the customer to decide something.
  */
 export const STAGE_ACCENT: Record<string, { base: string; deep: string; tint: string }> = {
-  booking: { base: '#0EA5E9', deep: '#0369A1', tint: 'rgba(14, 165, 233, 0.09)' },
+  booking: { base: '#0369A1', deep: '#0369A1', tint: 'rgba(3, 105, 161, 0.09)' },
   intake:  { base: '#6366F1', deep: '#4338CA', tint: 'rgba(99, 102, 241, 0.09)' },
   inWork:  { base: '#F59E0B', deep: '#B45309', tint: 'rgba(245, 158, 11, 0.11)' },
   pickup:  { base: '#10B981', deep: '#047857', tint: 'rgba(16, 185, 129, 0.10)' },

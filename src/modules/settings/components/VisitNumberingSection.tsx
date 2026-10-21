@@ -175,8 +175,8 @@ const StyleCard = styled.button<{ $selected: boolean }>`
     text-align: left;
     padding: 12px 14px;
     border-radius: 10px;
-    border: 1.5px solid ${p => (p.$selected ? '#0ea5e9' : '#e2e8f0')};
-    background: ${p => (p.$selected ? '#f0f9ff' : 'white')};
+    border: 1.5px solid ${p => (p.$selected ? '#0369a1' : '#e2e8f0')};
+    background: ${p => (p.$selected ? '#f0f6f9' : 'white')};
     cursor: pointer;
     transition: border-color 150ms, background 150ms, box-shadow 150ms;
     display: flex;
@@ -184,12 +184,12 @@ const StyleCard = styled.button<{ $selected: boolean }>`
     gap: 4px;
 
     &:hover {
-        border-color: ${p => (p.$selected ? '#0ea5e9' : '#bae6fd')};
+        border-color: ${p => (p.$selected ? '#0369a1' : '#c0d9e8')};
     }
 
     &:focus-visible {
         outline: none;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.2);
     }
 `;
 
@@ -287,7 +287,7 @@ const StepBtn = styled.button`
     cursor: pointer;
     transition: background 120ms;
 
-    &:hover:not(:disabled) { background: #e0f2fe; color: #0369a1; }
+    &:hover:not(:disabled) { background: #e6f0f6; color: #0369a1; }
     &:disabled { color: #cbd5e1; cursor: default; }
 `;
 
@@ -319,8 +319,8 @@ const Input = styled.input<{ $error?: boolean }>`
     transition: border-color 180ms, box-shadow 180ms;
 
     &:focus {
-        border-color: ${p => (p.$error ? '#ef4444' : '#0ea5e9')};
-        box-shadow: 0 0 0 3px ${p => (p.$error ? 'rgba(239,68,68,0.12)' : 'rgba(14,165,233,0.14)')};
+        border-color: ${p => (p.$error ? '#ef4444' : '#0369a1')};
+        box-shadow: 0 0 0 3px ${p => (p.$error ? 'rgba(239,68,68,0.12)' : 'rgba(3, 105, 161, 0.14)')};
     }
 `;
 
@@ -350,8 +350,8 @@ const TokenChip = styled.button`
     }
 
     &:hover {
-        border-color: #0ea5e9;
-        background: #f0f9ff;
+        border-color: #0369a1;
+        background: #f0f6f9;
         color: #0369a1;
 
         code { color: #0369a1; }

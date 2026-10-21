@@ -41,7 +41,7 @@ import { isNativeApp } from '@/core/native/platform';
 // Jeden niebieski marki dla całego widoku wizyty - patrz common/components/ui/tokens.
 const BRAND = ui.brand;
 const BRAND_DARK = ui.brandStrong;
-const BRAND_DIM = 'rgba(14, 165, 233, 0.10)';
+const BRAND_DIM = 'rgba(3, 105, 161, 0.10)';
 
 const pendingPulse = keyframes`
     0%   { background-color: rgba(245,158,11,0.04); }
@@ -68,7 +68,7 @@ const EditorVatSelect = styled.select`
 
     &:focus {
         border-color: ${BRAND};
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12);
     }
 `;
 
@@ -188,7 +188,7 @@ const SecondaryBtn = styled.button`
 const PrimaryBtn = styled.button<{ $danger?: boolean }>`
     padding: 7px 14px;
     border-radius: ${st.radiusFull};
-    border: 1px solid ${props => props.$danger ? `${st.accentRed}44` : 'rgba(14,165,233,0.3)'};
+    border: 1px solid ${props => props.$danger ? `${st.accentRed}44` : 'rgba(3, 105, 161, 0.3)'};
     background: ${props => props.$danger ? st.accentRedDim : BRAND_DIM};
     color: ${props => props.$danger ? st.accentRed : BRAND_DARK};
     font-size: ${st.fontSm};
@@ -197,7 +197,7 @@ const PrimaryBtn = styled.button<{ $danger?: boolean }>`
     transition: all ${st.transition};
 
     &:hover:not(:disabled) {
-        background: ${props => props.$danger ? '#fee2e2' : 'rgba(14,165,233,0.18)'};
+        background: ${props => props.$danger ? '#fee2e2' : 'rgba(3, 105, 161, 0.18)'};
         transform: translateY(-1px);
     }
 
@@ -624,7 +624,7 @@ const DiscountValueRow = styled.div`
 
     &:focus-within {
         border-color: ${BRAND};
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.14);
     }
 `;
 
@@ -769,7 +769,7 @@ const EditorPriceInput = styled.input`
 
     &:focus {
         border-color: ${BRAND};
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12);
     }
 `;
 
@@ -895,7 +895,7 @@ const EditorInputWrap = styled.div`
 
     &:focus-within {
         border-color: ${BRAND};
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12);
     }
 `;
 
@@ -1291,9 +1291,9 @@ const discardBtnAttention = keyframes`
 `;
 
 const acceptBtnAttention = keyframes`
-    0%, 100% { transform: scale(1);    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28); }
-    35%       { transform: scale(1.09); box-shadow: 0 0 0 5px rgba(14, 165, 233, 0.5), 0 4px 24px rgba(14, 165, 233, 0.45); }
-    65%       { transform: scale(1.04); box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.3), 0 2px 14px rgba(14, 165, 233, 0.3); }
+    0%, 100% { transform: scale(1);    box-shadow: 0 2px 8px rgba(3, 105, 161, 0.28); }
+    35%       { transform: scale(1.09); box-shadow: 0 0 0 5px rgba(3, 105, 161, 0.5), 0 4px 24px rgba(3, 105, 161, 0.45); }
+    65%       { transform: scale(1.04); box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.3), 0 2px 14px rgba(3, 105, 161, 0.3); }
 `;
 
 const FocusWrapper = styled.div<{ $active?: boolean }>`
@@ -1301,8 +1301,8 @@ const FocusWrapper = styled.div<{ $active?: boolean }>`
     z-index: ${p => p.$active ? 1051 : 'auto'};
     border-radius: ${p => p.$active ? '12px' : '0'};
     box-shadow: ${p => p.$active
-        ? `0 0 0 3px rgba(14,165,233,.55), 0 0 18px 9px rgba(14,165,233,.18), 0 0 52px 26px rgba(14,165,233,.05), 0 0 0 9999px rgba(15,23,42,.52)`
-        : `0 0 0 0 rgba(14,165,233,0), 0 0 0 0 rgba(14,165,233,0), 0 0 0 0 rgba(14,165,233,0), 0 0 0 0 rgba(15,23,42,0)`
+        ? `0 0 0 3px rgba(3, 105, 161, .55), 0 0 18px 9px rgba(3, 105, 161, .18), 0 0 52px 26px rgba(3, 105, 161, .05), 0 0 0 9999px rgba(15,23,42,.52)`
+        : `0 0 0 0 rgba(3, 105, 161, 0), 0 0 0 0 rgba(3, 105, 161, 0), 0 0 0 0 rgba(3, 105, 161, 0), 0 0 0 0 rgba(15,23,42,0)`
     };
     transition: box-shadow 350ms ease, border-radius 300ms ease;
 `;
@@ -1313,8 +1313,8 @@ const DraftBar = styled.div`
     justify-content: space-between;
     gap: 12px;
     padding: 12px 20px;
-    background: rgba(14, 165, 233, 0.05);
-    border-top: 1px solid rgba(14, 165, 233, 0.18);
+    background: rgba(3, 105, 161, 0.05);
+    border-top: 1px solid rgba(3, 105, 161, 0.18);
 
     @media (max-width: 767px) {
         flex-direction: column;
@@ -1374,7 +1374,7 @@ const DraftBarActions = styled.div`
             calc(10px + env(safe-area-inset-bottom, 0px))
             max(14px, env(safe-area-inset-right, 0px));
         background: ${st.bgCard};
-        border-top: 1px solid rgba(14, 165, 233, 0.25);
+        border-top: 1px solid rgba(3, 105, 161, 0.25);
         box-shadow: 0 -6px 20px rgba(15, 23, 42, 0.12);
     }
 `;
@@ -1420,11 +1420,11 @@ const AcceptBtn = styled.button<{ $highlighting?: boolean }>`
     font-weight: 600;
     cursor: pointer;
     transition: all ${st.transition};
-    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
+    box-shadow: 0 2px 8px rgba(3, 105, 161, 0.28);
 
     &:hover:not(:disabled) {
         background: ${BRAND_DARK};
-        box-shadow: 0 4px 14px rgba(14, 165, 233, 0.36);
+        box-shadow: 0 4px 14px rgba(3, 105, 161, 0.36);
         transform: translateY(-1px);
     }
 

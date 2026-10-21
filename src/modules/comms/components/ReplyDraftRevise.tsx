@@ -120,7 +120,7 @@ const SubmitButton = styled.button`
     align-items: center;
     gap: 6px;
     border: 1px solid ${p => p.theme.colors.primary};
-    background: #f0f9ff;
+    background: #f0f6f9;
     color: ${p => p.theme.colors.primary};
     border-radius: ${p => p.theme.radii.full};
     padding: 5px 12px;

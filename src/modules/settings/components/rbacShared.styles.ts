@@ -66,8 +66,8 @@ export const SearchInput = styled.input`
     transition: border-color 180ms, box-shadow 180ms;
 
     &:focus {
-        border-color: #0ea5e9;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
+        border-color: #0369a1;
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.14);
     }
     &::placeholder { color: #94a3b8; }
 `;
@@ -80,9 +80,9 @@ export const ToggleFilterBtn = styled.button<{ $on: boolean }>`
     padding: 0 14px;
     font-size: 13px;
     font-weight: ${p => (p.$on ? 600 : 500)};
-    background: ${p => (p.$on ? 'rgba(14,165,233,0.08)' : 'white')};
-    color: ${p => (p.$on ? '#0ea5e9' : '#475569')};
-    border: 1.5px solid ${p => (p.$on ? 'rgba(14,165,233,0.4)' : '#e2e8f0')};
+    background: ${p => (p.$on ? 'rgba(3, 105, 161, 0.08)' : 'white')};
+    color: ${p => (p.$on ? '#0369a1' : '#475569')};
+    border: 1.5px solid ${p => (p.$on ? 'rgba(3, 105, 161, 0.4)' : '#e2e8f0')};
     border-radius: 9px;
     cursor: pointer;
     white-space: nowrap;
@@ -90,7 +90,7 @@ export const ToggleFilterBtn = styled.button<{ $on: boolean }>`
     font-family: inherit;
     transition: all 150ms;
 
-    &:hover { border-color: #0ea5e9; color: #0ea5e9; }
+    &:hover { border-color: #0369a1; color: #0369a1; }
 `;
 
 export const AddButton = styled.button`
@@ -101,7 +101,7 @@ export const AddButton = styled.button`
     padding: 0 18px;
     font-size: 13px;
     font-weight: 600;
-    background: #0ea5e9;
+    background: #0369a1;
     color: #fff;
     border: none;
     border-radius: 9px;
@@ -152,7 +152,7 @@ export const SegmentedBtn = styled.button<{ $active: boolean }>`
     font-size: 13px;
     font-family: inherit;
     font-weight: ${p => (p.$active ? 600 : 500)};
-    color: ${p => (p.$active ? '#0284c7' : '#64748b')};
+    color: ${p => (p.$active ? '#075985' : '#64748b')};
     background: ${p => (p.$active ? 'white' : 'transparent')};
     border: none;
     border-radius: 8px;
@@ -161,7 +161,7 @@ export const SegmentedBtn = styled.button<{ $active: boolean }>`
     transition: all 150ms;
     box-shadow: ${p => (p.$active ? '0 1px 3px rgba(15,23,42,0.08)' : 'none')};
 
-    &:hover { color: ${p => (p.$active ? '#0284c7' : '#0f172a')}; }
+    &:hover { color: ${p => (p.$active ? '#075985' : '#0f172a')}; }
 
     svg { flex-shrink: 0; }
 `;
@@ -171,8 +171,8 @@ export const SegmentedCount = styled.span<{ $active: boolean }>`
     font-weight: 700;
     padding: 1px 7px;
     border-radius: 9999px;
-    background: ${p => (p.$active ? 'rgba(14,165,233,0.12)' : '#e2e8f0')};
-    color: ${p => (p.$active ? '#0284c7' : '#64748b')};
+    background: ${p => (p.$active ? 'rgba(3, 105, 161, 0.12)' : '#e2e8f0')};
+    color: ${p => (p.$active ? '#075985' : '#64748b')};
 `;
 
 // ─── Card / list ────────────────────────────────────────────────────────────
@@ -208,7 +208,7 @@ export const Badge = styled.span<{ $variant?: 'green' | 'amber' | 'red' | 'blue'
             case 'green': return 'background: rgba(16,185,129,0.1); color: #059669;';
             case 'amber': return 'background: rgba(245,158,11,0.12); color: #d97706;';
             case 'red':   return 'background: rgba(239,68,68,0.1); color: #dc2626;';
-            case 'blue':  return 'background: rgba(14,165,233,0.1); color: #0284c7;';
+            case 'blue':  return 'background: rgba(3, 105, 161, 0.1); color: #075985;';
             default:      return 'background: #f1f5f9; color: #64748b;';
         }
     }}
@@ -290,9 +290,9 @@ export const PagerBtn = styled.button<{ $active?: boolean }>`
     font-family: inherit;
     font-weight: ${p => (p.$active ? 700 : 500)};
     border-radius: 7px;
-    border: 1px solid ${p => (p.$active ? 'rgba(14,165,233,0.3)' : '#e2e8f0')};
-    background: ${p => (p.$active ? 'rgba(14,165,233,0.08)' : 'white')};
-    color: ${p => (p.$active ? '#0ea5e9' : '#475569')};
+    border: 1px solid ${p => (p.$active ? 'rgba(3, 105, 161, 0.3)' : '#e2e8f0')};
+    background: ${p => (p.$active ? 'rgba(3, 105, 161, 0.08)' : 'white')};
+    color: ${p => (p.$active ? '#0369a1' : '#475569')};
     cursor: pointer;
     transition: all 150ms;
 
@@ -427,8 +427,8 @@ export const FieldInput = styled.input<{ $error?: boolean }>`
     transition: border-color 180ms, box-shadow 180ms;
 
     &:focus {
-        border-color: ${p => (p.$error ? '#ef4444' : '#0ea5e9')};
-        box-shadow: 0 0 0 3px ${p => (p.$error ? 'rgba(239,68,68,0.12)' : 'rgba(14,165,233,0.14)')};
+        border-color: ${p => (p.$error ? '#ef4444' : '#0369a1')};
+        box-shadow: 0 0 0 3px ${p => (p.$error ? 'rgba(239,68,68,0.12)' : 'rgba(3, 105, 161, 0.14)')};
     }
     &::placeholder { color: #94a3b8; }
     &:disabled { background: #f8fafc; color: #94a3b8; cursor: not-allowed; }
@@ -450,8 +450,8 @@ export const FieldTextarea = styled.textarea<{ $error?: boolean }>`
     transition: border-color 180ms, box-shadow 180ms;
 
     &:focus {
-        border-color: #0ea5e9;
-        box-shadow: 0 0 0 3px rgba(14,165,233,0.14);
+        border-color: #0369a1;
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.14);
     }
     &::placeholder { color: #94a3b8; }
 `;
@@ -475,7 +475,7 @@ export const FieldSelect = styled.select`
     background-position: right 12px center;
     transition: border-color 180ms, box-shadow 180ms;
 
-    &:focus { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14,165,233,0.14); }
+    &:focus { border-color: #0369a1; box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.14); }
     &:disabled { background-color: #f8fafc; color: #94a3b8; cursor: not-allowed; }
 `;
 
@@ -516,7 +516,7 @@ export const SubmitBtn = styled.button`
     padding: 8px 18px;
     font-size: 13px;
     font-weight: 600;
-    background: #0ea5e9;
+    background: #0369a1;
     color: #fff;
     border: none;
     border-radius: 9px;
@@ -594,7 +594,7 @@ export const CheckRow = styled.div<{ $disabled?: boolean }>`
     opacity: ${p => (p.$disabled ? 0.6 : 1)};
     min-height: 20px;
 
-    &:focus-visible { outline: 2px solid #38bdf8; outline-offset: 3px; border-radius: 6px; }
+    &:focus-visible { outline: 2px solid #8ebbd5; outline-offset: 3px; border-radius: 6px; }
 `;
 
 export const CheckBox = styled.span<{ $checked: boolean }>`
@@ -603,8 +603,8 @@ export const CheckBox = styled.span<{ $checked: boolean }>`
     flex-shrink: 0;
     margin-top: 1px;
     border-radius: 5px;
-    border: 1.5px solid ${p => (p.$checked ? '#0ea5e9' : '#cbd5e1')};
-    background: ${p => (p.$checked ? '#0ea5e9' : 'white')};
+    border: 1.5px solid ${p => (p.$checked ? '#0369a1' : '#cbd5e1')};
+    background: ${p => (p.$checked ? '#0369a1' : 'white')};
     display: flex;
     align-items: center;
     justify-content: center;

@@ -58,8 +58,8 @@ const Input = styled.input`
 
     &:focus {
         outline: none;
-        border-color: #0ea5e9;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+        border-color: #0369a1;
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12);
     }
 
     &::placeholder { color: #94a3b8; }
@@ -73,7 +73,7 @@ const FieldError = styled.p`
 
 const BtnPrimary = styled.button`
     padding: 10px 20px;
-    background: #0ea5e9;
+    background: #0369a1;
     color: #fff;
     border: none;
     border-radius: 10px;
@@ -83,7 +83,7 @@ const BtnPrimary = styled.button`
     cursor: pointer;
     transition: background 150ms ease;
 
-    &:hover:not(:disabled) { background: #0284c7; }
+    &:hover:not(:disabled) { background: #075985; }
     &:disabled { opacity: 0.6; cursor: not-allowed; }
 `;
 

@@ -103,7 +103,7 @@ const FormInner = styled.div`
 const COLOR_OPTIONS = [
     '#EF4444', '#F97316', '#EAB308', '#22C55E',
     '#3B82F6', '#8B5CF6', '#EC4899', '#14B8A6',
-    '#6B7280', '#0EA5E9', '#A855F7', '#F43F5E',
+    '#6B7280', '#0369A1', '#A855F7', '#F43F5E',
 ];
 
 interface CategoryFormModalProps {

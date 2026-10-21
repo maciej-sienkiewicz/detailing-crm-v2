@@ -56,13 +56,13 @@ const Item = styled.button<{ $isActive?: boolean }>`
     padding: 0;
     background: none;
     border: none;
-    color: ${p => (p.$isActive ? '#0ea5e9' : p.theme.colors.textSecondary)};
+    color: ${p => (p.$isActive ? '#0369a1' : p.theme.colors.textSecondary)};
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     transition: color 150ms ease;
 
     &:active {
-        color: #0ea5e9;
+        color: #0369a1;
     }
 `;
 
@@ -76,7 +76,7 @@ const IconWrap = styled.span<{ $isActive?: boolean }>`
     width: 44px;
     height: 26px;
     border-radius: 13px;
-    background: ${p => (p.$isActive ? 'rgba(14, 165, 233, 0.12)' : 'transparent')};
+    background: ${p => (p.$isActive ? 'rgba(3, 105, 161, 0.12)' : 'transparent')};
     transition: background 150ms ease;
 
     svg {

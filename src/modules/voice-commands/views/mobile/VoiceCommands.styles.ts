@@ -12,9 +12,9 @@ const c = {
     text:         '#0F172A',
     textSub:      '#64748B',
     textMuted:    '#94A3B8',
-    accent:       '#0284C7',
-    accentLight:  '#E0F2FE',
-    accentRing:   'rgba(14, 165, 233, 0.22)',
+    accent:       '#075985',
+    accentLight:  '#E6F0F6',
+    accentRing:   'rgba(3, 105, 161, 0.22)',
     success:      '#059669',
     successLight: '#ECFDF5',
     error:        '#DC2626',
@@ -358,7 +358,7 @@ export const MicRing = styled.div<{ $delay?: string }>`
     position: absolute;
     inset: -16px;
     border-radius: 50%;
-    border: 2px solid rgba(14, 165, 233, 0.35);
+    border: 2px solid rgba(3, 105, 161, 0.35);
     animation: ${pulseRing1} 2s ease-in-out infinite;
     animation-delay: ${p => p.$delay ?? '0s'};
 `;
@@ -367,7 +367,7 @@ export const MicRingOuter = styled.div`
     position: absolute;
     inset: -32px;
     border-radius: 50%;
-    border: 1.5px solid rgba(14, 165, 233, 0.18);
+    border: 1.5px solid rgba(3, 105, 161, 0.18);
     animation: ${pulseRing2} 2s ease-in-out infinite;
     animation-delay: 0.4s;
 `;
@@ -382,7 +382,7 @@ export const MicCircle = styled.div<{ $active: boolean }>`
     justify-content: center;
     transition: background 0.3s ease, box-shadow 0.3s ease;
     box-shadow: ${p => p.$active
-        ? `0 8px 24px rgba(14, 165, 233, 0.30), 0 2px 8px rgba(14, 165, 233, 0.20)`
+        ? `0 8px 24px rgba(3, 105, 161, 0.30), 0 2px 8px rgba(3, 105, 161, 0.20)`
         : `0 2px 8px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(15, 23, 42, 0.05)`
     };
     border: ${p => p.$active ? 'none' : `1.5px solid ${c.border}`};

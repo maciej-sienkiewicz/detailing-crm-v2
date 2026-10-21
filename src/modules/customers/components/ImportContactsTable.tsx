@@ -138,7 +138,7 @@ const StatusPill = styled.span<{ $status: ImportRowStatus }>`
     white-space: nowrap;
     background: ${({ $status }) =>
         $status === 'NEW' ? 'rgba(34, 197, 94, 0.12)'
-        : $status === 'EXISTING' ? 'rgba(14, 165, 233, 0.12)'
+        : $status === 'EXISTING' ? 'rgba(3, 105, 161, 0.12)'
         : $status === 'DUPLICATE_IN_FILE' ? 'rgba(234, 179, 8, 0.14)'
         : 'rgba(148, 163, 184, 0.14)'};
     color: ${({ $status }) =>

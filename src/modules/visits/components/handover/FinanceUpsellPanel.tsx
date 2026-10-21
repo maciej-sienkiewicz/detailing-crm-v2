@@ -92,9 +92,9 @@ const Panel = styled.div`
     align-items: center;
     gap: 12px;
     padding: 28px 24px;
-    border: 1.5px dashed #bae6fd;
+    border: 1.5px dashed #c0d9e8;
     border-radius: 12px;
-    background: #f0f9ff;
+    background: #f0f6f9;
     text-align: center;
 `;
 
@@ -102,8 +102,8 @@ const LockBadge = styled.div`
     width: 42px;
     height: 42px;
     border-radius: 50%;
-    background: #e0f2fe;
-    color: #0284c7;
+    background: #e6f0f6;
+    color: #075985;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -141,7 +141,7 @@ const BuyBtn = styled.button`
     padding: 10px 18px;
     border: none;
     border-radius: 9px;
-    background: #0284c7;
+    background: #075985;
     color: #fff;
     font-size: 14px;
     font-weight: 600;

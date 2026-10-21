@@ -42,7 +42,7 @@ const Input = styled.input`
     &:focus {
         background: ${props => props.theme.colors.surface};
         border-color: ${props => props.theme.colors.primary};
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.1);
     }
 `;
 

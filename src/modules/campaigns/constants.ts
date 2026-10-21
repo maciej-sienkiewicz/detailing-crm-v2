@@ -30,7 +30,7 @@ export const STATUS_LABELS: Record<CampaignStatus, string> = {
 export const STATUS_COLORS: Record<CampaignStatus, string> = {
   DRAFT: '#94a3b8',
   SCHEDULED: '#d97706',
-  SENDING: '#0284c7',
+  SENDING: '#075985',
   COMPLETED: '#15803d',
   CANCELLED: '#94a3b8',
   FAILED: '#b91c1c',

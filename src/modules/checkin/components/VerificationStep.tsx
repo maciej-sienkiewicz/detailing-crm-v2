@@ -312,11 +312,11 @@ const GusBtn = styled.button`
     transition: background ${st.transition}, color ${st.transition};
 
     &:hover:not(:disabled) {
-        background: rgba(14, 165, 233, 0.2);
+        background: rgba(3, 105, 161, 0.2);
     }
 
     &:active:not(:disabled) {
-        background: rgba(14, 165, 233, 0.28);
+        background: rgba(3, 105, 161, 0.28);
     }
 
     &:disabled {
@@ -407,7 +407,7 @@ const VehicleSuggestionsWrap = styled.div`
     margin-bottom: 14px;
     padding: 10px 12px;
     background: ${st.accentBlueDim};
-    border: 1px solid rgba(14, 165, 233, 0.2);
+    border: 1px solid rgba(3, 105, 161, 0.2);
     border-radius: ${st.radiusSm};
 `;
 
@@ -482,7 +482,7 @@ const DecisionOption = styled.button`
     &:focus-visible {
         outline: none;
         border-color: ${st.accentBlue};
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.18);
     }
 `;
 
@@ -539,7 +539,7 @@ const DecisionBanner = styled.div`
 /** Blue confirmation of the "keep the car, add the customer as an owner" decision. */
 const DecisionResolvedNote = styled(DecisionBanner)`
     background: ${st.accentBlueDim};
-    border-color: rgba(14, 165, 233, 0.28);
+    border-color: rgba(3, 105, 161, 0.28);
 `;
 
 const DecisionBannerBtn = styled.button`

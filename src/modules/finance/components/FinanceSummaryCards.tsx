@@ -29,9 +29,9 @@ const TILE_CONFIGS = {
     icon: TrendingDown,
   },
   profit: {
-    accentColor: '#0ea5e9',
-    bgGradient: 'linear-gradient(140deg, #f0f9ff 0%, #ffffff 55%)',
-    iconBg: 'rgba(14, 165, 233, 0.1)',
+    accentColor: '#0369a1',
+    bgGradient: 'linear-gradient(140deg, #f0f6f9 0%, #ffffff 55%)',
+    iconBg: 'rgba(3, 105, 161, 0.1)',
     icon: BarChart2,
   },
   receivables: {

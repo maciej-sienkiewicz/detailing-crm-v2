@@ -27,10 +27,10 @@ const TriggerBtn = styled.button<{ $open: boolean; $modified: boolean }>`
     height: 36px;
     min-width: 36px;
     padding: 0 9px;
-    border: 1px solid ${p => p.$open ? 'var(--brand-primary, #0ea5e9)' : '#e2e8f0'};
+    border: 1px solid ${p => p.$open ? 'var(--brand-primary)' : '#e2e8f0'};
     border-radius: 8px;
-    background: ${p => p.$open ? 'color-mix(in srgb, var(--brand-primary, #0ea5e9) 8%, #fff)' : '#fff'};
-    color: ${p => p.$open ? 'var(--brand-primary, #0ea5e9)' : '#64748b'};
+    background: ${p => p.$open ? 'color-mix(in srgb, var(--brand-primary) 8%, #fff)' : '#fff'};
+    color: ${p => p.$open ? 'var(--brand-primary)' : '#64748b'};
     font-family: inherit;
     cursor: pointer;
     flex-shrink: 0;
@@ -54,7 +54,7 @@ const ModifiedDot = styled.span`
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: var(--brand-primary, #0ea5e9);
+    background: var(--brand-primary);
     box-shadow: 0 0 0 2px #fff;
 `;
 

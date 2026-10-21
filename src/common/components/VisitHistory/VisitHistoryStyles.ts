@@ -76,7 +76,7 @@ export const SearchInput = styled.div`
         &:focus {
             outline: none;
             border-color: var(--brand-primary);
-            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+            box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.1);
         }
 
         &::placeholder { color: ${props => props.theme.colors.textMuted}; }
@@ -176,7 +176,7 @@ export const VisitTypeBadge = styled.span<{ $isReservation?: boolean }>`
     border-radius: ${props => props.theme.radii.sm};
     font-size: 11px;
     font-weight: 500;
-    background: ${props => props.$isReservation ? '#ede9fe' : '#e0f2fe'};
+    background: ${props => props.$isReservation ? '#ede9fe' : '#e6f0f6'};
     color: ${props => props.$isReservation ? '#5b21b6' : '#075985'};
     text-transform: uppercase;
     letter-spacing: 0.3px;
@@ -234,7 +234,7 @@ export const ActionBtn = styled.button<{ $primary?: boolean }>`
         &:hover {
             border-color: var(--brand-primary);
             color: var(--brand-primary);
-            background: rgba(14, 165, 233, 0.04);
+            background: rgba(3, 105, 161, 0.04);
         }
     `}
 
@@ -275,7 +275,7 @@ export const VisitStatusBadge = styled.span<{ $status: string }>`
     ${props => {
         const s = props.$status.toUpperCase();
         if (s === 'COMPLETED' || s === 'CONVERTED') return 'background: #dcfce7; color: #166534;';
-        if (s === 'IN-PROGRESS' || s === 'IN_PROGRESS') return 'background: #e0f2fe; color: #075985;';
+        if (s === 'IN-PROGRESS' || s === 'IN_PROGRESS') return 'background: #e6f0f6; color: #075985;';
         if (s === 'READY-FOR-PICKUP' || s === 'READY_FOR_PICKUP') return 'background: #d1fae5; color: #065f46;';
         if (s === 'SCHEDULED' || s === 'CREATED') return 'background: #fef3c7; color: #92400e;';
         if (s === 'CANCELLED' || s === 'ABANDONED') return 'background: #fee2e2; color: #991b1b;';

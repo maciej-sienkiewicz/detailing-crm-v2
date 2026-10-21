@@ -766,9 +766,9 @@ const QuickBtn = styled.button`
     transition: all 150ms;
 
     &:not(:disabled):hover {
-        border-color: #0284c7;
-        color: #0284c7;
-        background: #f0f9ff;
+        border-color: #075985;
+        color: #075985;
+        background: #f0f6f9;
     }
 
     &:disabled {
@@ -799,7 +799,7 @@ const DayRow = styled.div<{ $weekend: boolean; $today: boolean; $missing?: boole
     padding: 13px 16px;
     border-bottom: 1px solid #f1f5f9;
     cursor: ${p => p.$approved ? 'default' : 'pointer'};
-    background: ${p => p.$missing ? '#fffbeb' : p.$today ? '#f0f9ff' : p.$weekend ? '#fafafa' : 'transparent'};
+    background: ${p => p.$missing ? '#fffbeb' : p.$today ? '#f0f6f9' : p.$weekend ? '#fafafa' : 'transparent'};
     ${p => p.$missing && css`box-shadow: inset 3px 0 0 #f59e0b;`}
     transition: background 120ms;
 
@@ -829,8 +829,8 @@ const DayLeft = styled.div`
 const DayTag = styled.span<{ $leave?: boolean; $missing?: boolean }>`
     padding: 1px 8px;
     border-radius: 999px;
-    border: 1px solid ${p => p.$missing ? '#fcd34d' : p.$leave ? '#bae6fd' : '#e2e8f0'};
-    background: ${p => p.$missing ? '#fef3c7' : p.$leave ? '#f0f9ff' : '#f1f5f9'};
+    border: 1px solid ${p => p.$missing ? '#fcd34d' : p.$leave ? '#c0d9e8' : '#e2e8f0'};
+    background: ${p => p.$missing ? '#fef3c7' : p.$leave ? '#f0f6f9' : '#f1f5f9'};
     color: ${p => p.$missing ? '#92400e' : p.$leave ? '#075985' : '#475569'};
     font-size: 12px;
     font-weight: 600;
@@ -849,7 +849,7 @@ const DayShort = styled.span<{ $weekend: boolean }>`
 const DayDate = styled.span<{ $today: boolean }>`
     font-size: 14px;
     font-weight: ${p => p.$today ? '700' : '400'};
-    color: ${p => p.$today ? '#0284c7' : '#334155'};
+    color: ${p => p.$today ? '#075985' : '#334155'};
 `;
 
 const DayRight = styled.div`
@@ -887,7 +887,7 @@ const StickySubmitBar = styled.div`
 const SubmitBtn = styled.button`
     width: 100%;
     padding: 16px;
-    background: #0284c7;
+    background: #075985;
     color: white;
     border: none;
     border-radius: 12px;
@@ -998,7 +998,7 @@ const TimeInput = styled.input<{ $error: boolean }>`
 
     &:focus {
         outline: none;
-        border-color: ${p => p.$error ? '#ef4444' : '#0284c7'};
+        border-color: ${p => p.$error ? '#ef4444' : '#075985'};
     }
 `;
 
@@ -1039,7 +1039,7 @@ const SheetSaveBtn = styled.button`
     padding: 14px;
     border: none;
     border-radius: 12px;
-    background: #0284c7;
+    background: #075985;
     color: white;
     font-size: 15px;
     font-weight: 700;

@@ -17,7 +17,7 @@ import type { AnnotationStroke, AnnotationPoint } from '../types';
 const COLORS = [
     { value: '#EF4444', label: 'Czerwony' },
     { value: '#FBBF24', label: 'Żółty' },
-    { value: '#38BDF8', label: 'Niebieski' },
+    { value: '#8EBBD5', label: 'Niebieski' },
     { value: '#FFFFFF', label: 'Biały' },
 ];
 
@@ -155,7 +155,7 @@ const WidthBtn = styled.button<{ $active: boolean }>`
     height: 32px;
     padding: 0 10px;
     border-radius: 8px;
-    border: 1.5px solid ${p => p.$active ? '#38BDF8' : 'rgba(255,255,255,0.18)'};
+    border: 1.5px solid ${p => p.$active ? '#8EBBD5' : 'rgba(255,255,255,0.18)'};
     background: ${p => p.$active ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.06)'};
     color: #fff;
     cursor: pointer;
@@ -181,8 +181,8 @@ const ActionBtn = styled.button<{ $variant?: 'primary' | 'ghost' }>`
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    border: 1.5px solid ${p => p.$variant === 'primary' ? '#0EA5E9' : 'rgba(255,255,255,0.18)'};
-    background: ${p => p.$variant === 'primary' ? '#0EA5E9' : 'rgba(255,255,255,0.06)'};
+    border: 1.5px solid ${p => p.$variant === 'primary' ? '#0369A1' : 'rgba(255,255,255,0.18)'};
+    background: ${p => p.$variant === 'primary' ? '#0369A1' : 'rgba(255,255,255,0.06)'};
     color: #fff;
 
     &:disabled {

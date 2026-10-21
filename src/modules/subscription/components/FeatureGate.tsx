@@ -103,7 +103,7 @@ export function FeatureGate({ featureKey, children, demoContent }: Props) {
                         <OverlayTitle>
                             Ten widok jest w module dodatkowym
                             {upsell?.addOnName && (
-                                <><br /><span style={{ color: '#0284c7' }}>{upsell.addOnName}</span></>
+                                <><br /><span style={{ color: '#075985' }}>{upsell.addOnName}</span></>
                             )}
                         </OverlayTitle>
 

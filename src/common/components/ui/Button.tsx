@@ -3,7 +3,7 @@
 // Jeden przycisk dla widoku wizyty i zleceń zbiorczych.
 //
 // Zanim powstał, sama karta wizyty miała ~18 odmian przycisków: pastylki 6px
-// i 9px, prostokąty z promieniem 6px, wypełnione sky, wypełnione #0EA5E9,
+// i 9px, prostokąty z promieniem 6px, wypełnione sky, wypełnione #0369A1,
 // wypełnione zielone. Cztery z nich były wypełnione na stałe w jednym oknie,
 // więc nic nie wygrywało (CLAUDE.md §2).
 //

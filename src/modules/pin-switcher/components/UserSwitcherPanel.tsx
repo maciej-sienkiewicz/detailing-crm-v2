@@ -132,7 +132,7 @@ const Avatar = styled.div<{ $locked?: boolean }>`
     width: 76px;
     height: 76px;
     border-radius: 12px;
-    background: ${({ $locked }) => ($locked ? '#334155' : 'linear-gradient(135deg, #0ea5e9, #6366f1)')};
+    background: ${({ $locked }) => ($locked ? '#334155' : 'linear-gradient(135deg, #0369a1, #6366f1)')};
     display: flex;
     align-items: center;
     justify-content: center;
@@ -197,16 +197,16 @@ const UnlockBtn = styled.span`
     margin-top: 6px;
     padding: 4px 10px;
     border-radius: 999px;
-    background: #f0f9ff;
-    color: #0284c7;
+    background: #f0f6f9;
+    color: #075985;
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
     user-select: none;
     transition: background 150ms;
 
-    &:hover { background: #e0f2fe; }
-    &:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 1px; }
+    &:hover { background: #e6f0f6; }
+    &:focus-visible { outline: 2px solid #a7cadd; outline-offset: 1px; }
 `;
 
 // ─── PIN entry view ───────────────────────────────────────────────────────────
@@ -250,7 +250,7 @@ const ModalNumpadSection = styled.div`
 const ModalAvatar = styled.div`
     width: 68px; height: 68px;
     border-radius: 12px;
-    background: linear-gradient(135deg, #0ea5e9, #6366f1);
+    background: linear-gradient(135deg, #0369a1, #6366f1);
     display: flex; align-items: center; justify-content: center;
     font-size: 22px; font-weight: 700; color: #fff;
 
@@ -276,8 +276,8 @@ const PinDots = styled.div<{ $shake?: boolean }>`
 const PinDot = styled.div<{ $filled: boolean }>`
     width: 15px; height: 15px;
     border-radius: 50%;
-    background: ${({ $filled }) => ($filled ? '#0ea5e9' : 'rgba(255,255,255,0.15)')};
-    border: 2px solid ${({ $filled }) => ($filled ? '#0ea5e9' : 'rgba(255,255,255,0.25)')};
+    background: ${({ $filled }) => ($filled ? '#0369a1' : 'rgba(255,255,255,0.15)')};
+    border: 2px solid ${({ $filled }) => ($filled ? '#0369a1' : 'rgba(255,255,255,0.25)')};
     transition: all 150ms ease;
 `;
 

@@ -108,8 +108,8 @@ const InfoNote = styled.p`
     margin: 12px 0 0;
     padding: 10px 12px;
     border-radius: 8px;
-    border: 1px solid #bae6fd;
-    background: #f0f9ff;
+    border: 1px solid #c0d9e8;
+    background: #f0f6f9;
     color: #075985;
     font-size: 12px;
     line-height: 1.5;

@@ -83,7 +83,7 @@ const TypeSelect = styled.select`
   &:focus {
     outline: none;
     border-color: ${props => props.theme.colors.primary};
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+    box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12);
   }
 `;
 
@@ -230,7 +230,7 @@ const DamageItem = styled.div<{ $isHovered: boolean }>`
   flex-direction: column;
   gap: ${props => props.theme.spacing.sm};
   padding: ${props => props.theme.spacing.md};
-  background-color: ${props => props.$isHovered ? 'rgba(14, 165, 233, 0.05)' : props.theme.colors.surfaceAlt};
+  background-color: ${props => props.$isHovered ? 'rgba(3, 105, 161, 0.05)' : props.theme.colors.surfaceAlt};
   border-radius: ${props => props.theme.radii.md};
   border: 2px solid ${props => props.$isHovered ? props.theme.colors.primary : 'transparent'};
   transition: all ${props => props.theme.transitions.normal};
@@ -238,7 +238,7 @@ const DamageItem = styled.div<{ $isHovered: boolean }>`
   min-width: 0;
 
   &:hover {
-    background-color: rgba(14, 165, 233, 0.05);
+    background-color: rgba(3, 105, 161, 0.05);
     border-color: ${props => props.theme.colors.primary};
   }
 `;
@@ -271,7 +271,7 @@ const DamageInput = styled.input`
   &:focus {
     outline: none;
     border-color: ${props => props.theme.colors.primary};
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.1);
   }
 
   &::placeholder {
@@ -352,7 +352,7 @@ const DamagePhotoThumb = styled.button`
 
   &:hover {
     border-color: ${props => props.theme.colors.primary};
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+    box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12);
   }
 `;
 
@@ -384,7 +384,7 @@ const DamagePhotoAnnotatedBadge = styled.span`
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: rgba(14, 165, 233, 0.92);
+  background: rgba(3, 105, 161, 0.92);
   color: #fff;
 
   svg {
@@ -433,7 +433,7 @@ const AttachPhotoBtn = styled.button`
   &:hover {
     border-color: ${props => props.theme.colors.primary};
     color: ${props => props.theme.colors.primary};
-    background: rgba(14, 165, 233, 0.05);
+    background: rgba(3, 105, 161, 0.05);
   }
 `;
 
@@ -528,17 +528,17 @@ const PickerTab = styled.button<{ $active: boolean }>`
   font-family: inherit;
   font-size: 12.5px;
   font-weight: ${props => (props.$active ? 700 : 500)};
-  color: ${props => (props.$active ? '#0284c7' : props.theme.colors.textSecondary)};
+  color: ${props => (props.$active ? '#075985' : props.theme.colors.textSecondary)};
   background: transparent;
   border: none;
-  border-bottom: 2px solid ${props => (props.$active ? '#0ea5e9' : 'transparent')};
+  border-bottom: 2px solid ${props => (props.$active ? '#0369a1' : 'transparent')};
   cursor: pointer;
   transition: all ${props => props.theme.transitions.normal};
   white-space: nowrap;
 
   svg { width: 14px; height: 14px; flex-shrink: 0; }
 
-  &:hover:not(:disabled) { color: ${props => (props.$active ? '#0284c7' : props.theme.colors.text)}; }
+  &:hover:not(:disabled) { color: ${props => (props.$active ? '#075985' : props.theme.colors.text)}; }
 `;
 
 const FileDropLabel = styled.label<{ $busy: boolean }>`
@@ -564,7 +564,7 @@ const FileDropLabel = styled.label<{ $busy: boolean }>`
   &:hover {
     ${props => !props.$busy && css`
       border-color: ${props.theme.colors.primary};
-      background: rgba(14, 165, 233, 0.05);
+      background: rgba(3, 105, 161, 0.05);
     `}
   }
 `;
@@ -617,7 +617,7 @@ const PickerPhoto = styled.button<{ $attached: boolean }>`
   &:hover {
     ${props => !props.$attached && css`
       border-color: ${props.theme.colors.primary};
-      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+      box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12);
     `}
   }
 `;
@@ -627,7 +627,7 @@ const PickerAttachedLabel = styled.span`
   bottom: 4px;
   left: 4px;
   right: 4px;
-  background: rgba(14, 165, 233, 0.9);
+  background: rgba(3, 105, 161, 0.9);
   color: #fff;
   font-size: 10px;
   font-weight: 700;

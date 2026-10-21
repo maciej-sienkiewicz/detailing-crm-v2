@@ -67,7 +67,7 @@ const DayNum = styled.span<{ $isToday: boolean }>`
     font-weight: 700;
     line-height: 1;
     letter-spacing: -0.5px;
-    color: ${p => p.$isToday ? '#0284c7' : '#0f172a'};
+    color: ${p => p.$isToday ? '#075985' : '#0f172a'};
 `;
 
 const DayMeta = styled.div`
@@ -81,7 +81,7 @@ const DayMeta = styled.div`
 const DayName = styled.span<{ $isToday: boolean }>`
     font-size: 14px;
     font-weight: 700;
-    color: ${p => p.$isToday ? '#0284c7' : '#0f172a'};
+    color: ${p => p.$isToday ? '#075985' : '#0f172a'};
     text-transform: capitalize;
 `;
 

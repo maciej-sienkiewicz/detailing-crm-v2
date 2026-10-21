@@ -292,7 +292,7 @@ const LinkBtn = styled.button`
     font-family: inherit;
     font-size: 12px;
     font-weight: 600;
-    color: #0284c7;
+    color: #075985;
     cursor: pointer;
 
     &:hover:not(:disabled) { text-decoration: underline; }
@@ -407,7 +407,7 @@ const PrimaryBtn = styled.button`
     font-weight: 600;
     font-family: inherit;
     color: white;
-    background: #0ea5e9;
+    background: #0369a1;
     border: none;
     border-radius: 9px;
     cursor: pointer;

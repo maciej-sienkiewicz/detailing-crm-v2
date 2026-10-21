@@ -12,8 +12,8 @@ const Box = styled.div`
     flex-direction: column;
     gap: 12px;
     padding: 14px;
-    background: #f0f9ff;
-    border: 1px solid #bae6fd;
+    background: #f0f6f9;
+    border: 1px solid #c0d9e8;
     border-radius: ${st.radiusSm};
 
     h4 { margin: 0; font-size: ${st.fontMd}; color: #0c4a6e; }

@@ -160,7 +160,7 @@ const Spinner = styled.div`
     width: 32px;
     height: 32px;
     border: 3px solid #e2e8f0;
-    border-top-color: #0ea5e9;
+    border-top-color: #0369a1;
     border-radius: 50%;
     animation: ${spin} 0.7s linear infinite;
 `;
@@ -188,7 +188,7 @@ const CodeGroup = styled.span`
     font-size: clamp(40px, 12vw, 52px);
     font-weight: 800;
     letter-spacing: 0.12em;
-    color: #0ea5e9;
+    color: #0369a1;
     font-variant-numeric: tabular-nums;
     line-height: 1;
 `;

@@ -183,12 +183,12 @@ const SelectWrap = styled.div`
 
         &:hover:not(:disabled) {
             background: #ffffff;
-            border-color: rgba(14, 165, 233, 0.4);
+            border-color: rgba(3, 105, 161, 0.4);
         }
         &:focus {
             outline: none;
             border-color: var(--brand-primary);
-            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+            box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12);
             background: #ffffff;
         }
     }
@@ -266,7 +266,7 @@ const AddTagBtn = styled.button<{ $hasActive: boolean }>`
         border-style: solid;
         border-color: var(--brand-primary);
         color: var(--brand-primary);
-        background: rgba(14, 165, 233, 0.04);
+        background: rgba(3, 105, 161, 0.04);
     }
 `;
 
@@ -334,7 +334,7 @@ const TagSearchInput = styled.input`
     &:focus {
         outline: none;
         border-color: var(--brand-primary);
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.1);
         background: #ffffff;
     }
 `;
@@ -369,7 +369,7 @@ const TagPill = styled.button<{ $active: boolean }>`
 
     &:hover {
         border-color: var(--brand-primary);
-        background: ${p => p.$active ? 'var(--brand-primary-dark)' : 'rgba(14,165,233,0.07)'};
+        background: ${p => p.$active ? 'var(--brand-primary-dark)' : 'rgba(3, 105, 161, 0.07)'};
         color: ${p => p.$active ? 'white' : 'var(--brand-primary)'};
     }
 `;

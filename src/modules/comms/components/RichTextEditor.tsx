@@ -89,7 +89,7 @@ const Select = styled.select`
     cursor: pointer;
 
     &:disabled { opacity: 0.5; cursor: default; }
-    &:focus-visible { outline: 2px solid #0ea5e9; outline-offset: 2px; }
+    &:focus-visible { outline: 2px solid #0369a1; outline-offset: 2px; }
 `;
 
 /* „A" z paskiem w ostatnio użytym kolorze - jak w edytorach biurowych. */
@@ -119,7 +119,7 @@ const ToolButton = styled.button<{ $active?: boolean }>`
 
     &:hover { background: ${({ $active }) => ($active ? '#e2e8f0' : '#f1f5f9')}; color: #0f172a; }
     &:disabled { opacity: 0.4; cursor: default; }
-    &:focus-visible { outline: 2px solid #0ea5e9; outline-offset: 2px; }
+    &:focus-visible { outline: 2px solid #0369a1; outline-offset: 2px; }
 
     svg { width: 16px; height: 16px; }
 `;
@@ -351,7 +351,7 @@ const FONT_SIZES: { px: number }[] = [{ px: 12 }, { px: 14 }, { px: 16 }, { px: 
  * wyglądają dobrze w tym oknie i znikają u odbiorcy.
  */
 const TEXT_COLORS = [
-    '#111827', '#dc2626', '#ea580c', '#16a34a', '#0284c7', '#7c3aed',
+    '#111827', '#dc2626', '#ea580c', '#16a34a', '#075985', '#7c3aed',
 ];
 
 /**

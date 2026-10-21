@@ -64,8 +64,8 @@ const Input = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #0ea5e9;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+    border-color: #0369a1;
+    box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12);
   }
 
   &::placeholder { color: #94a3b8; }
@@ -87,8 +87,8 @@ const Textarea = styled.textarea`
 
   &:focus {
     outline: none;
-    border-color: #0ea5e9;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+    border-color: #0369a1;
+    box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12);
   }
 
   &::placeholder { color: #94a3b8; }
@@ -98,18 +98,18 @@ const IconWrap = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  background: #f0f9ff;
+  background: #f0f6f9;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: #0ea5e9;
+  color: #0369a1;
   svg { width: 20px; height: 20px; }
 `;
 
 const BtnPrimary = styled.button<{ $loading?: boolean }>`
   padding: 10px 20px;
-  background: ${p => p.$loading ? '#7dd3fc' : '#0ea5e9'};
+  background: ${p => p.$loading ? '#a7cadd' : '#0369a1'};
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -119,7 +119,7 @@ const BtnPrimary = styled.button<{ $loading?: boolean }>`
   cursor: ${p => p.$loading ? 'not-allowed' : 'pointer'};
   transition: background 150ms ease;
 
-  &:hover:not(:disabled) { background: #0284c7; }
+  &:hover:not(:disabled) { background: #075985; }
   &:disabled { opacity: 0.6; cursor: not-allowed; }
 `;
 
@@ -169,7 +169,7 @@ const VisibilityTab = styled.button<{ $active: boolean }>`
   cursor: pointer;
   transition: all 150ms ease;
   background: ${p => p.$active ? '#fff' : 'transparent'};
-  color: ${p => p.$active ? '#0ea5e9' : '#64748b'};
+  color: ${p => p.$active ? '#0369a1' : '#64748b'};
   box-shadow: ${p => p.$active ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'};
 
   svg { width: 13px; height: 13px; flex-shrink: 0; }
@@ -194,13 +194,13 @@ const PickerItem = styled.label<{ $selected: boolean }>`
   border-radius: 8px;
   cursor: pointer;
   transition: background 100ms ease;
-  background: ${p => p.$selected ? '#f0f9ff' : 'transparent'};
-  border: 1.5px solid ${p => p.$selected ? '#bae6fd' : 'transparent'};
+  background: ${p => p.$selected ? '#f0f6f9' : 'transparent'};
+  border: 1.5px solid ${p => p.$selected ? '#c0d9e8' : 'transparent'};
 
-  &:hover { background: ${p => p.$selected ? '#f0f9ff' : '#f8fafc'}; }
+  &:hover { background: ${p => p.$selected ? '#f0f6f9' : '#f8fafc'}; }
 
   input[type="checkbox"], input[type="radio"] {
-    accent-color: #0ea5e9;
+    accent-color: #0369a1;
     width: 15px;
     height: 15px;
     flex-shrink: 0;

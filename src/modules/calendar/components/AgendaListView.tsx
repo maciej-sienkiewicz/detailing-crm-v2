@@ -138,15 +138,15 @@ const DayHeader = styled.div<{ $isToday: boolean; $isEmpty: boolean; $clickable:
     font: inherit;
     text-align: left;
     border: none;
-    border-bottom: 1px solid ${p => p.$isToday ? 'rgba(14,165,233,0.15)' : 'rgba(15,23,42,0.06)'};
-    background: ${p => p.$isToday ? '#f0f9ff' : '#f8fafc'};
+    border-bottom: 1px solid ${p => p.$isToday ? 'rgba(3, 105, 161, 0.15)' : 'rgba(15,23,42,0.06)'};
+    background: ${p => p.$isToday ? '#f0f6f9' : '#f8fafc'};
     opacity: ${p => p.$isEmpty ? (p.$clickable ? 0.6 : 0.45) : 1};
     cursor: ${p => p.$clickable ? 'pointer' : 'default'};
     -webkit-tap-highlight-color: transparent;
     transition: background 0.15s;
 
     &:active {
-        background: ${p => p.$clickable ? (p.$isToday ? '#e0f2fe' : '#eef2f7') : undefined};
+        background: ${p => p.$clickable ? (p.$isToday ? '#e6f0f6' : '#eef2f7') : undefined};
     }
 `;
 
@@ -177,7 +177,7 @@ const DayNum = styled.span<{ $isToday: boolean }>`
     font-size: 22px;
     font-weight: 700;
     line-height: 1;
-    color: ${p => p.$isToday ? '#0284c7' : '#0f172a'};
+    color: ${p => p.$isToday ? '#075985' : '#0f172a'};
     min-width: 28px;
     letter-spacing: -0.5px;
 `;
@@ -190,7 +190,7 @@ const DayMeta = styled.div`
 const DayName = styled.span<{ $isToday: boolean }>`
     font-size: 12px;
     font-weight: 600;
-    color: ${p => p.$isToday ? '#0ea5e9' : '#475569'};
+    color: ${p => p.$isToday ? '#0369a1' : '#475569'};
     line-height: 1.2;
     text-transform: capitalize;
 `;
@@ -205,7 +205,7 @@ const DayMonthYear = styled.span`
 const TodayPill = styled.span`
     font-size: 10px;
     font-weight: 700;
-    background: #0284c7;
+    background: #075985;
     color: #fff;
     padding: 2px 7px;
     border-radius: 10px;

@@ -27,8 +27,8 @@ const Block = styled.div<{ $clickable?: boolean }>`
   flex-direction: column;
   ${({ $clickable }) => $clickable && `
     cursor: pointer;
-    &:hover ${Name} { color: #7dd3fc; }
-    &:hover ${Sub}  { color: #7dd3fc; opacity: 0.6; }
+    &:hover ${Name} { color: #a7cadd; }
+    &:hover ${Sub}  { color: #a7cadd; opacity: 0.6; }
   `}
 `;
 

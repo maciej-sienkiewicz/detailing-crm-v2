@@ -2,8 +2,8 @@
 //
 // Jedno źródło kolorów dla wspólnych komponentów (Button, StatusPill, Card…).
 //
-// Wcześniej każdy plik widoku wizyty definiował sobie `const BRAND = '#0ea5e9'`
-// i do tego sięgał po drugi niebieski (#0EA5E9) z motywu statystyk - na jednym
+// Wcześniej każdy plik widoku wizyty definiował sobie `const BRAND = '#0369a1'`
+// i do tego sięgał po drugi niebieski (#0369A1) z motywu statystyk - na jednym
 // ekranie stały obok siebie dwa różne „brandowe" niebieskie. Tu jest jeden.
 //
 // Odcień niesie ZNACZENIE (CLAUDE.md §2): sky = marka / informacja, zielony =
@@ -25,15 +25,19 @@ export const ui = {
     lineFaint: '#f1f5f9',
     lineStrong: '#94a3b8',
 
-    brand: '#0ea5e9',
-    brandStrong: '#0284c7',
+    // Głęboki błękit marki zamiast jaskrawego #0369a1 (decyzja z 21.10.2026): akcje,
+    // zaznaczenia i fokus nie świecą mocniej niż treść. Jasne odcienie to ten sam
+    // błękit na białym tle (6/10/25/35/45%), zapisane jako hex, bo bywają sklejane
+    // z przezroczystością.
+    brand: '#0369a1',
+    brandStrong: '#075985',
     brandInk: '#0369a1',
     brandDeep: '#075985',
-    brandTint: '#f0f9ff',
-    brandTintHover: '#e0f2fe',
-    brandLine: '#7dd3fc',
-    brandLineSoft: '#bae6fd',
-    focusRing: '#38bdf8',
+    brandTint: '#f0f6f9',
+    brandTintHover: '#e6f0f6',
+    brandLine: '#a7cadd',
+    brandLineSoft: '#c0d9e8',
+    focusRing: '#8ebbd5',
 
     okInk: '#15803d',
     okTint: '#f0fdf4',

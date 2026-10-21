@@ -77,7 +77,7 @@ const HeroActions = styled.div`
 // ─── Licznik przy podtytule („142 klientów”) ─────────────────────────────────
 //
 // Jeden dla wszystkich list - wcześniej pięć widoków miało własną kopię w jaskrawym
-// #0ea5e9 na jasnobłękitnym tle, która świeciła mocniej niż tytuł strony.
+// #0369a1 na jasnobłękitnym tle, która świeciła mocniej niż tytuł strony.
 
 export const PageHeaderCount = styled.span`
   display: inline-flex;
@@ -94,7 +94,7 @@ export const PageHeaderCount = styled.span`
 
 // ─── Primary action button, matches Dashboard "Nowa wizyta" style ────────────
 
-// Głęboki, pełny błękit (jak główny przycisk w oknach), nie jaskrawe #0ea5e9 -
+// Głęboki, pełny błękit (jak główny przycisk w oknach), nie jaskrawe #0369a1 -
 // akcja nagłówka nie musi świecić mocniej niż dane pod nią.
 export const PageHeaderPrimaryButton = styled.button`
   background: #0369a1;

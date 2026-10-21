@@ -14,7 +14,7 @@ import { BOTTOM_NAV_SPACE } from '@/widgets/BottomNav';
 import { useVirtualKeyboard } from '@/common/hooks';
 import { useMobileChromeHidden } from '@/common/context/MobileChromeContext';
 
-const BRAND = '#0ea5e9';
+const BRAND = '#0369a1';
 
 /**
  * Sekcja widoku: na telefonie widoczna tylko dla swojej zakładki, na desktopie
@@ -98,7 +98,7 @@ const IconWrap = styled.span<{ $active: boolean }>`
     max-width: 100%;
     height: 30px;
     border-radius: 15px;
-    background: ${p => p.$active ? 'rgba(14, 165, 233, 0.12)' : 'transparent'};
+    background: ${p => p.$active ? 'rgba(3, 105, 161, 0.12)' : 'transparent'};
     transition: background 0.2s ease;
 
     svg { width: 20px; height: 20px; flex-shrink: 0; }

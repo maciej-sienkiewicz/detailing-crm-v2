@@ -184,7 +184,7 @@ export const Input = styled.input`
     font-variant-numeric: tabular-nums;
     transition: border-color 150ms ease, box-shadow 150ms ease;
 
-    &:focus { border-color: ${ui.brand}; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.16); }
+    &:focus { border-color: ${ui.brand}; box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.16); }
     &[aria-invalid='true'] { border-color: ${ui.dangerLine}; }
     &::placeholder { color: ${ui.textFaint}; font-weight: 500; }
 `;

@@ -258,7 +258,7 @@ const PeopleToggle = styled.button`
     font-family: inherit;
     font-size: 12.5px;
     font-weight: 600;
-    color: #0284c7;
+    color: #075985;
     cursor: pointer;
 
     &:hover { text-decoration: underline; }

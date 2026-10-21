@@ -20,7 +20,7 @@ const SearchInput = styled.input`
     &:focus {
         outline: none;
         border-color: ${props => props.theme.colors.primary};
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.1);
     }
 `;
 
@@ -43,11 +43,11 @@ const CustomerItem = styled.div<{ $selected: boolean }>`
     border-radius: ${props => props.theme.radii.md};
     cursor: pointer;
     transition: all ${props => props.theme.transitions.fast};
-    background: ${props => props.$selected ? 'rgba(14, 165, 233, 0.1)' : props.theme.colors.surface};
+    background: ${props => props.$selected ? 'rgba(3, 105, 161, 0.1)' : props.theme.colors.surface};
     border: 1px solid ${props => props.$selected ? props.theme.colors.primary : props.theme.colors.border};
 
     &:hover {
-        background: ${props => props.$selected ? 'rgba(14, 165, 233, 0.15)' : props.theme.colors.surfaceHover};
+        background: ${props => props.$selected ? 'rgba(3, 105, 161, 0.15)' : props.theme.colors.surfaceHover};
     }
 `;
 

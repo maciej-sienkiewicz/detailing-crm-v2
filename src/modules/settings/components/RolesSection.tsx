@@ -314,7 +314,7 @@ const NameButton = styled.button`
 
     &::after { content: ''; position: absolute; inset: 0; }
     &:focus-visible { outline: none; }
-    &:focus-visible::after { outline: 2px solid #38bdf8; outline-offset: -2px; border-radius: 4px; }
+    &:focus-visible::after { outline: 2px solid #8ebbd5; outline-offset: -2px; border-radius: 4px; }
 `;
 
 const Desc = styled.p`
@@ -345,7 +345,7 @@ const UsageLink = styled.button`
     cursor: pointer;
 
     &:hover { text-decoration: underline; }
-    &:focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; border-radius: 4px; }
+    &:focus-visible { outline: 2px solid #8ebbd5; outline-offset: 2px; border-radius: 4px; }
 `;
 
 const Chips = styled.div`

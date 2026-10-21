@@ -87,8 +87,8 @@ const PlansGrid = styled.div`
 
 const PlanCard = styled.button<{ $highlighted: boolean; $disabled: boolean }>`
     position: relative;
-    background: ${p => p.$highlighted ? 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)' : '#f8fafc'};
-    border: 2px solid ${p => p.$highlighted ? '#0ea5e9' : '#e2e8f0'};
+    background: ${p => p.$highlighted ? 'linear-gradient(135deg, #0369a1 0%, #075985 100%)' : '#f8fafc'};
+    border: 2px solid ${p => p.$highlighted ? '#0369a1' : '#e2e8f0'};
     border-radius: 14px;
     padding: 20px;
     text-align: left;
@@ -102,7 +102,7 @@ const PlanCard = styled.button<{ $highlighted: boolean; $disabled: boolean }>`
 
     &:hover:not(:disabled) {
         transform: translateY(-2px);
-        box-shadow: 0 8px 24px ${p => p.$highlighted ? 'rgba(14,165,233,0.3)' : 'rgba(15,23,42,0.1)'};
+        box-shadow: 0 8px 24px ${p => p.$highlighted ? 'rgba(3, 105, 161, 0.3)' : 'rgba(15,23,42,0.1)'};
     }
 `;
 
@@ -135,7 +135,7 @@ const PurchaseBtn = styled.button`
     padding: 13px 20px;
     border-radius: 10px;
     border: none;
-    background: #0ea5e9;
+    background: #0369a1;
     color: white;
     font-size: 14px;
     font-weight: 700;
@@ -143,7 +143,7 @@ const PurchaseBtn = styled.button`
     font-family: inherit;
     transition: background 150ms;
 
-    &:hover { background: #0284c7; }
+    &:hover { background: #075985; }
     &:disabled { opacity: 0.6; cursor: not-allowed; }
 `;
 

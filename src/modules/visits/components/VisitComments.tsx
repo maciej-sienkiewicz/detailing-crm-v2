@@ -150,7 +150,7 @@ const Textarea = styled.textarea<{ $small?: boolean }>`
     line-height: 1.5;
     resize: vertical;
 
-    &:focus { outline: none; border-color: ${ui.focusRing}; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15); }
+    &:focus { outline: none; border-color: ${ui.focusRing}; box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.15); }
     &::placeholder { color: ${ui.textFaint}; }
     &:disabled { opacity: 0.6; }
 `;

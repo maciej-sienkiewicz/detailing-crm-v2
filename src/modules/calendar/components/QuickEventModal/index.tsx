@@ -50,7 +50,7 @@ import type { QuickEventModalProps, QuickEventModalRef, AppointmentColor, Servic
 import { PiiValue } from '@/common/pii';
 
 /** Fokus i zaznaczenia w oknie: głęboki błękit marki, nie kolor rezerwacji ani jaskrawe
- *  #0ea5e9 - kolor rezerwacji widać tylko w próbkach kolorów (decyzja z 21.10.2026). */
+ *  #0369a1 - kolor rezerwacji widać tylko w próbkach kolorów (decyzja z 21.10.2026). */
 const FOCUS_ACCENT = ui.brandInk;
 
 export type { QuickEventFormData, QuickEventInitialData } from './types';

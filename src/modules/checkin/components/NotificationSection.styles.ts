@@ -269,7 +269,7 @@ export const PhotoItem = styled.div<{ $selected: boolean }>`
 
     &:hover {
         transform: scale(1.03);
-        border-color: ${props => props.$selected ? st.accentBlue : '#7DD3FC'};
+        border-color: ${props => props.$selected ? st.accentBlue : '#A7CADD'};
     }
 `;
 

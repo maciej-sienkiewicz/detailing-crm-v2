@@ -47,7 +47,7 @@ const CountryCodeSelect = styled.select<{ $hasError?: boolean }>`
     &:focus {
         outline: none;
         border-color: ${props => props.$hasError ? '#ef4444' : 'var(--brand-primary)'};
-        box-shadow: 0 0 0 3px ${props => props.$hasError ? 'rgba(239, 68, 68, 0.1)' : 'rgba(14, 165, 233, 0.1)'};
+        box-shadow: 0 0 0 3px ${props => props.$hasError ? 'rgba(239, 68, 68, 0.1)' : 'rgba(3, 105, 161, 0.1)'};
     }
 `;
 
@@ -69,7 +69,7 @@ const PhoneNumberInput = styled.input<{ $hasError?: boolean }>`
     &:focus {
         outline: none;
         border-color: ${props => props.$hasError ? '#ef4444' : 'var(--brand-primary)'};
-        box-shadow: 0 0 0 3px ${props => props.$hasError ? 'rgba(239, 68, 68, 0.1)' : 'rgba(14, 165, 233, 0.1)'};
+        box-shadow: 0 0 0 3px ${props => props.$hasError ? 'rgba(239, 68, 68, 0.1)' : 'rgba(3, 105, 161, 0.1)'};
     }
 
     &::placeholder {

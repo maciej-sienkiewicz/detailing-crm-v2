@@ -28,17 +28,17 @@ const Button = styled.button`
   padding: 10px 20px;
   border: none;
   border-radius: 9999px;
-  background: #0ea5e9;
+  background: #0369a1;
   color: #fff;
   font-family: inherit;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
+  box-shadow: 0 2px 8px rgba(3, 105, 161, 0.28);
   transition: background 180ms ease, opacity 180ms ease;
   -webkit-tap-highlight-color: transparent;
 
-  &:hover:not(:disabled) { background: #0284c7; }
+  &:hover:not(:disabled) { background: #075985; }
 
   &:disabled {
     background: rgba(255, 255, 255, 0.08);

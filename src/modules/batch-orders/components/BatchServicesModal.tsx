@@ -47,7 +47,7 @@ const Toolbar = styled.div`
 
 // Wyszukiwarka i przyciski to teraz wspólne prymitywy (InputShell/BareInput,
 // SharedButton, Select) - własne AddBtn/SearchInput/VatSelect w tym module
-// zaszywały jaskrawe #0ea5e9 na sztywno i miały kształt obcy reszcie aplikacji.
+// zaszywały jaskrawe #0369a1 na sztywno i miały kształt obcy reszcie aplikacji.
 // Akcent modułu to głęboki błękit marki (--brand-ink), jak w nagłówkach widoków.
 
 /**

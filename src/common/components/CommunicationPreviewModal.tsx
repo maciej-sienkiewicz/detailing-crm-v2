@@ -8,8 +8,8 @@ import { COMMUNICATION_STATUS_LABEL, COMMUNICATION_TONE_STYLE, communicationTone
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { CommunicationEntry, CommunicationStatus } from '@/common/types/communication';
 
-const BRAND      = '#0ea5e9';
-const BRAND_DIM  = 'rgba(14, 165, 233, 0.10)';
+const BRAND      = '#0369a1';
+const BRAND_DIM  = 'rgba(3, 105, 161, 0.10)';
 
 // ─── Animations ──────────────────────────────────────────────────────────────
 

@@ -1,0 +1,16 @@
+/*
+ * Tryb osadzenia animacji na podstronie „Poznaj program" (klasa `osadzona` na <html>,
+ * ustawiana tylko w ramce, razem z jasnym motywem). Tytuł i wstęp stoją na stronie
+ * nad ramką, więc w ramce zostaje sam odtwarzacz z rozdziałami, na białym tle karty.
+ */
+:root.osadzona[data-theme] {
+    --bg: #ffffff;
+}
+.osadzona body {
+    padding: 0 0 2px;
+    background: #ffffff;
+}
+.osadzona .wrap > header,
+.osadzona .lede {
+    display: none;
+}

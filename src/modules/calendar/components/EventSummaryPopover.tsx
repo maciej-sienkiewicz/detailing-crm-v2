@@ -644,7 +644,7 @@ const ToggleTrack = styled.span<{ $checked: boolean; $saving?: boolean }>`
     width: 34px;
     height: 20px;
     border-radius: 10px;
-    background: ${p => p.$saving ? '#e2e8f0' : p.$checked ? '#0EA5E9' : '#cbd5e1'};
+    background: ${p => p.$saving ? '#e2e8f0' : p.$checked ? '#0369A1' : '#cbd5e1'};
     transition: background 200ms ease;
     flex-shrink: 0;
 
@@ -666,7 +666,7 @@ const ToggleValueText = styled.span<{ $checked: boolean; $saving?: boolean }>`
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.2px;
-    color: ${p => p.$saving ? '#94a3b8' : p.$checked ? '#0EA5E9' : '#94a3b8'};
+    color: ${p => p.$saving ? '#94a3b8' : p.$checked ? '#0369A1' : '#94a3b8'};
     transition: color 200ms ease;
 `;
 
@@ -679,8 +679,8 @@ const SmsRow = styled.div`
     gap: 10px;
     padding: 8px 12px;
     border-radius: 10px;
-    background: rgba(14, 165, 233, 0.05);
-    border: 1px solid rgba(14, 165, 233, 0.12);
+    background: rgba(3, 105, 161, 0.05);
+    border: 1px solid rgba(3, 105, 161, 0.12);
     margin-bottom: 16px;
 `;
 
@@ -1115,7 +1115,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
         <>
             <Overlay $closing={closing} onClick={handleClose}>
             <PopoverContainer ref={containerRef} $x={coords.x} $y={coords.y} $closing={closing} onClick={e => e.stopPropagation()}>
-                <PopoverHeader $color={event.colorHex || '#0ea5e9'}>
+                <PopoverHeader $color={event.colorHex || '#0369a1'}>
                     <HeaderCloseButton type="button" onClick={handleClose} title="Zamknij (Esc)">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>

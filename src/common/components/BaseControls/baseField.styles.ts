@@ -22,8 +22,8 @@ export const field = {
 
     border: '#e2e8f0',
     borderHover: '#cbd5e1',
-    focus: '#0ea5e9',
-    focusRing: 'rgba(14, 165, 233, 0.12)',
+    focus: '#0369a1',
+    focusRing: 'rgba(3, 105, 161, 0.12)',
 
     error: '#ef4444',
     errorRing: 'rgba(239, 68, 68, 0.12)',

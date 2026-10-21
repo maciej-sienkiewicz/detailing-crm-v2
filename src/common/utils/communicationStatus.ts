@@ -49,7 +49,7 @@ export const queuedHint = (entry: Pick<CommunicationEntry, 'status' | 'scheduled
 /** Kolory plakietki statusu — te same w kartotece klienta, historii wizyty i podglądzie. */
 export const COMMUNICATION_TONE_STYLE: Record<CommunicationTone, { background: string; color: string; border: string }> = {
     sent:     { background: 'rgba(16,185,129,0.12)', color: '#10b981', border: 'rgba(16,185,129,0.25)' },
-    received: { background: 'rgba(14, 165, 233, 0.10)', color: '#0284c7', border: 'rgba(14,165,233,0.25)' },
+    received: { background: 'rgba(3, 105, 161, 0.10)', color: '#075985', border: 'rgba(3, 105, 161, 0.25)' },
     queued:   { background: 'rgba(245,158,11,0.12)', color: '#b45309', border: 'rgba(245,158,11,0.30)' },
     cancelled: { background: 'rgba(100,116,139,0.10)', color: '#475569', border: 'rgba(100,116,139,0.25)' },
     failed:   { background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: 'rgba(239,68,68,0.25)' },

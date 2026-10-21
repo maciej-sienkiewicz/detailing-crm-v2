@@ -3,9 +3,9 @@ import { theme, Theme } from './theme';
 
 const GlobalStyles = createGlobalStyle`
   :root {
-    --brand-primary: #0ea5e9;
-    --brand-primary-dark: #0284c7;
-    --brand-primary-light: #38bdf8;
+    --brand-primary: #0369a1;
+    --brand-primary-dark: #075985;
+    --brand-primary-light: #8ebbd5;
   }
 
   /* Reset w warstwie base, nie luzem. Styl spoza warstwy zawsze wygrywa z warstwowym,

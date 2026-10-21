@@ -65,7 +65,7 @@ export const CloseButton = styled.button`
 const iconPalette: Record<ConfirmationVariant, { bg: string; color: string }> = {
     danger:  { bg: '#fee2e2', color: '#dc2626' },
     warning: { bg: '#fef3c7', color: '#d97706' },
-    info:    { bg: '#e0f2fe', color: '#0ea5e9' },
+    info:    { bg: '#e6f0f6', color: '#0369a1' },
 };
 
 /**
@@ -107,7 +107,7 @@ export const Message = styled.p`
 const confirmPalette: Record<ConfirmationVariant, { bg: string; hover: string }> = {
     danger:  { bg: '#dc2626', hover: '#b91c1c' },
     warning: { bg: '#d97706', hover: '#b45309' },
-    info:    { bg: '#0ea5e9', hover: '#0284c7' },
+    info:    { bg: '#0369a1', hover: '#075985' },
 };
 
 /*

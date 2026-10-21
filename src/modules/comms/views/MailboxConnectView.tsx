@@ -200,7 +200,7 @@ export default function MailboxConnectView() {
                 </Field>
 
                 {oauthProvider && (
-                    <ErrorText style={{ background: '#f0f9ff', color: '#075985' }}>
+                    <ErrorText style={{ background: '#f0f6f9', color: '#075985' }}>
                         Skrzynkę {detection?.providerType === 'GOOGLE_API' ? 'Gmail' : 'Microsoft 365'} podłączymy
                         wkrótce. Na razie działa zwykła poczta firmowa z hostingu.
                     </ErrorText>

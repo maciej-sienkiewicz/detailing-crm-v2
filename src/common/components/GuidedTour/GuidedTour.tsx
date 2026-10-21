@@ -204,9 +204,9 @@ const Dot = styled.button<{ $active: boolean }>`
   border: none;
   padding: 0;
   cursor: pointer;
-  background: ${p => p.$active ? '#0ea5e9' : '#cbd5e1'};
+  background: ${p => p.$active ? '#0369a1' : '#cbd5e1'};
   transition: all 220ms ease;
-  &:hover { background: ${p => p.$active ? '#0ea5e9' : '#94a3b8'}; }
+  &:hover { background: ${p => p.$active ? '#0369a1' : '#94a3b8'}; }
 `;
 
 const NavBtns = styled.div`
@@ -221,7 +221,7 @@ const NavBtn = styled.button<{ $primary?: boolean }>`
   padding: ${p => p.$primary ? '9px 18px' : '9px 14px'};
   border-radius: 9999px;
   border: ${p => p.$primary ? 'none' : '1.5px solid #e2e8f0'};
-  background: ${p => p.$primary ? '#0ea5e9' : '#fff'};
+  background: ${p => p.$primary ? '#0369a1' : '#fff'};
   color: ${p => p.$primary ? '#fff' : '#475569'};
   font-size: 13px;
   font-weight: 600;
@@ -231,7 +231,7 @@ const NavBtn = styled.button<{ $primary?: boolean }>`
   transition: all 150ms ease;
 
   &:hover {
-    background: ${p => p.$primary ? '#0284c7' : '#f8fafc'};
+    background: ${p => p.$primary ? '#075985' : '#f8fafc'};
     ${p => !p.$primary && 'border-color: #cbd5e1; color: #0f172a;'}
   }
   svg { width: 15px; height: 15px; }

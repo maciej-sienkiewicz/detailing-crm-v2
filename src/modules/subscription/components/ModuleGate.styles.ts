@@ -59,12 +59,12 @@ export const LockBadge = styled.div`
     width: 56px;
     height: 56px;
     border-radius: 16px;
-    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 8px 20px rgba(14, 165, 233, 0.35);
+    box-shadow: 0 8px 20px rgba(3, 105, 161, 0.35);
 `;
 
 export const GateEyebrow = styled.div`
@@ -72,7 +72,7 @@ export const GateEyebrow = styled.div`
     font-weight: 800;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #0284c7;
+    color: #075985;
 `;
 
 export const GateTitle = styled.h2`
@@ -141,7 +141,7 @@ export const UnlockButton = styled.button`
     padding: 13px 24px;
     border-radius: 11px;
     border: none;
-    background: #0ea5e9;
+    background: #0369a1;
     color: white;
     font-size: 14px;
     font-weight: 700;
@@ -149,7 +149,7 @@ export const UnlockButton = styled.button`
     font-family: inherit;
     transition: background 150ms;
 
-    &:hover { background: #0284c7; }
+    &:hover { background: #075985; }
     &:disabled { opacity: 0.6; cursor: not-allowed; }
 `;
 
@@ -159,7 +159,7 @@ export const FullHint = styled.div`
     line-height: 1.5;
 
     a {
-        color: #0284c7;
+        color: #075985;
         font-weight: 700;
         text-decoration: none;
 

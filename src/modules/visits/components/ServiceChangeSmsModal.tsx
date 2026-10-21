@@ -23,8 +23,8 @@ import {
 } from '../utils/serviceChangeSms';
 import type { ServiceChangeSummary } from '../utils/serviceChangeSms';
 
-const BRAND = '#0ea5e9';
-const BRAND_DARK = '#0284c7';
+const BRAND = '#0369a1';
+const BRAND_DARK = '#075985';
 
 /* Bez polskich znaków SMS mieści się w GSM-7 (160 znaków na segment, 153 przy
    dzieleniu). Z ogonkami operator przechodzi na UCS-2 i segment ma 70 znaków. */
@@ -142,7 +142,7 @@ const FieldGroup = styled.div<{ $focused?: boolean }>`
     background: ${st.bgCard};
     overflow: hidden;
     transition: border-color 180ms;
-    ${p => p.$focused && `box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);`}
+    ${p => p.$focused && `box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12);`}
 `;
 
 const Textarea = styled.textarea`

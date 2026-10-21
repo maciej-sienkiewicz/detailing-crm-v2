@@ -159,8 +159,8 @@ const ChannelButton = styled.button`
     transition: all 140ms ease;
 
     &:hover:not(:disabled) {
-        border-color: #0ea5e9;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.08);
+        border-color: #0369a1;
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.08);
     }
     &:disabled { opacity: 0.6; cursor: not-allowed; }
 `;

@@ -32,7 +32,7 @@ export const Button = styled.button<{
     switch (props.$variant) {
         case 'primary':
             return `
-                    background: linear-gradient(135deg, ${props.theme.colors.primary} 0%, #0284c7 100%);
+                    background: linear-gradient(135deg, ${props.theme.colors.primary} 0%, #075985 100%);
                     color: white;
                     box-shadow: ${props.theme.shadows.md};
 

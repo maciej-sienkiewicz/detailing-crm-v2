@@ -19,9 +19,9 @@ import { servicesApi } from '@/modules/services/api/servicesApi';
 import type { Service } from '@/modules/services/types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
-const BRAND = '#0ea5e9';
-const BRAND_DARK = '#0284c7';
-const BRAND_RING = '0 0 0 3px rgba(14, 165, 233, 0.14)';
+const BRAND = '#0369a1';
+const BRAND_DARK = '#075985';
+const BRAND_RING = '0 0 0 3px rgba(3, 105, 161, 0.14)';
 
 /* ─── Types ───────────────────────────────────────────────────────────────── */
 
@@ -44,7 +44,7 @@ export interface NewRow {
 /* ─── Styled components ───────────────────────────────────────────────────── */
 
 const InlineRow = styled.tr`
-    background: rgba(14, 165, 233, 0.04);
+    background: rgba(3, 105, 161, 0.04);
     border-bottom: 1px solid ${st.border};
 `;
 
@@ -301,7 +301,7 @@ const MobileSheetEditable = styled.div`
     &:focus {
         border-color: ${BRAND};
         background: #ffffff;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12);
     }
 `;
 
@@ -335,7 +335,7 @@ const MobileDropItem = styled.button<{ $custom?: boolean }>`
     transition: background 120ms;
 
     &:last-child { border-bottom: none; }
-    &:active { background: #f0f9ff; }
+    &:active { background: #f0f6f9; }
 `;
 
 const PriceHint = styled.span`
@@ -474,9 +474,9 @@ const RemoveBtn = styled(ActionBtnBase)`
 
 const EditBtn = styled(ActionBtnBase)`
     &:hover {
-        background: rgba(14,165,233,0.07);
-        border-color: rgba(14,165,233,0.35);
-        color: #0284c7;
+        background: rgba(3, 105, 161, 0.07);
+        border-color: rgba(3, 105, 161, 0.35);
+        color: #075985;
     }
 `;
 

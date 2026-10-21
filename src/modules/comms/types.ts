@@ -913,7 +913,7 @@ export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
 };
 
 export const LEAD_STATUS_COLORS: Record<LeadStatus, { bg: string; fg: string }> = {
-    NEW: { bg: '#f0f9ff', fg: '#0369a1' },
+    NEW: { bg: '#f0f6f9', fg: '#0369a1' },
     IN_PROGRESS: { bg: '#fefce8', fg: '#a16207' },
     CONFIRMED: { bg: '#f0fdf4', fg: '#15803d' },
     COMPLETED: { bg: '#ecfdf5', fg: '#047857' },

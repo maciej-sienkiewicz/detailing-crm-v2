@@ -69,7 +69,7 @@ const PrimaryButton = styled.button`
     padding: 16px;
     border: none;
     border-radius: 12px;
-    background: #0ea5e9;
+    background: #0369a1;
     color: #fff;
     font-size: 16px;
     font-weight: 700;
@@ -90,15 +90,15 @@ const Notice = styled.div<{ $tone: 'info' | 'error' | 'success' }>`
     background: ${({ $tone }) =>
         $tone === 'error' ? 'rgba(239, 68, 68, 0.12)'
         : $tone === 'success' ? 'rgba(34, 197, 94, 0.12)'
-        : 'rgba(14, 165, 233, 0.12)'};
+        : 'rgba(3, 105, 161, 0.12)'};
     border: 1px solid ${({ $tone }) =>
         $tone === 'error' ? 'rgba(239, 68, 68, 0.35)'
         : $tone === 'success' ? 'rgba(34, 197, 94, 0.35)'
-        : 'rgba(14, 165, 233, 0.35)'};
+        : 'rgba(3, 105, 161, 0.35)'};
     color: ${({ $tone }) =>
         $tone === 'error' ? '#fecaca'
         : $tone === 'success' ? '#bbf7d0'
-        : '#bae6fd'};
+        : '#c0d9e8'};
 `;
 
 const Hint = styled.p`

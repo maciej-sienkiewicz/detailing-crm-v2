@@ -40,13 +40,13 @@ const InputWrapper = styled.div<{ $hasError?: boolean; $focused?: boolean }>`
     background: #ffffff;
     border: 1.5px solid ${p =>
         p.$hasError ? '#ef4444' :
-        p.$focused ? '#0ea5e9' :
+        p.$focused ? '#0369a1' :
         '#e2e8f0'};
     border-radius: 12px;
     transition: border-color 180ms ease, box-shadow 180ms ease;
     box-shadow: ${p =>
         p.$hasError ? '0 0 0 3px rgba(239,68,68,0.12)' :
-        p.$focused ? '0 0 0 3px rgba(14,165,233,0.14)' :
+        p.$focused ? '0 0 0 3px rgba(3, 105, 161, 0.14)' :
         'none'};
 
     &:hover:not(:focus-within) {

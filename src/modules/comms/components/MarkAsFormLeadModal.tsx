@@ -60,8 +60,8 @@ const Sender = styled.div`
 const ActiveNote = styled.div`
     padding: 10px 12px;
     border-radius: ${p => p.theme.radii.md};
-    border: 1px solid #bae6fd;
-    background: #f0f9ff;
+    border: 1px solid #c0d9e8;
+    background: #f0f6f9;
     color: #0369a1;
     font-size: 12.5px;
     line-height: 1.5;

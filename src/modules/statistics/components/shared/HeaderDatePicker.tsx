@@ -63,7 +63,7 @@ const PresetBtn = styled.button<{ $active: boolean }>`
     justify-content: space-between;
     width: 100%;
     padding: 8px 12px;
-    background: ${p => p.$active ? '#f0f9ff' : 'transparent'};
+    background: ${p => p.$active ? '#f0f6f9' : 'transparent'};
     color: ${p => p.$active ? st.accentBlue : st.text};
     border: none;
     border-radius: 6px;
@@ -73,8 +73,8 @@ const PresetBtn = styled.button<{ $active: boolean }>`
     text-align: left;
     cursor: pointer;
     transition: background ${st.transition}, color ${st.transition};
-    &:hover { background: ${p => p.$active ? '#e0f2fe' : st.bg}; }
-    span.hint { font-size: 11px; color: ${p => p.$active ? '#7dd3fc' : st.textMuted}; font-weight: 400; }
+    &:hover { background: ${p => p.$active ? '#e6f0f6' : st.bg}; }
+    span.hint { font-size: 11px; color: ${p => p.$active ? '#a7cadd' : st.textMuted}; font-weight: 400; }
 `;
 
 const Divider = styled.div`
@@ -127,7 +127,7 @@ const ApplyBtn = styled.button`
     font-weight: 600;
     cursor: pointer;
     transition: background ${st.transition};
-    &:hover { background: #0284c7; }
+    &:hover { background: #075985; }
     &:disabled { background: #94a3b8; cursor: not-allowed; }
 `;
 

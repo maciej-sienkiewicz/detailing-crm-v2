@@ -69,14 +69,14 @@ const StepCircle = styled.div<{ $active: boolean; $completed: boolean }>`
     ${props => {
     if (props.$completed) {
         return `
-                background: linear-gradient(135deg, ${props.theme.colors.primary} 0%, #0284c7 100%);
+                background: linear-gradient(135deg, ${props.theme.colors.primary} 0%, #075985 100%);
                 color: white;
                 box-shadow: ${props.theme.shadows.md};
             `;
     }
     if (props.$active) {
         return `
-                background: linear-gradient(135deg, ${props.theme.colors.primary} 0%, #0284c7 100%);
+                background: linear-gradient(135deg, ${props.theme.colors.primary} 0%, #075985 100%);
                 color: white;
                 box-shadow: ${props.theme.shadows.lg};
                 transform: scale(1.1);

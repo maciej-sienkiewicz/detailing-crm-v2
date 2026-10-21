@@ -194,7 +194,7 @@ const ToggleRow = styled.button`
     cursor: pointer;
     user-select: none;
 
-    &:focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
+    &:focus-visible { outline: 2px solid #8ebbd5; outline-offset: 2px; }
 `;
 
 const ToggleLabel = styled.span`
@@ -220,7 +220,7 @@ const ToggleSwitch = styled.span<{ $on: boolean }>`
     width: 40px;
     height: 22px;
     border-radius: 11px;
-    background: ${p => (p.$on ? '#0284c7' : '#cbd5e1')};
+    background: ${p => (p.$on ? '#075985' : '#cbd5e1')};
     transition: background 200ms;
     flex-shrink: 0;
 
@@ -264,7 +264,7 @@ const ModuleHead = styled.button<{ $disabled?: boolean }>`
     cursor: ${p => (p.$disabled ? 'not-allowed' : 'pointer')};
     user-select: none;
 
-    &:focus-visible { outline: 2px solid #38bdf8; outline-offset: -2px; }
+    &:focus-visible { outline: 2px solid #8ebbd5; outline-offset: -2px; }
 `;
 
 const ModuleName = styled.span`

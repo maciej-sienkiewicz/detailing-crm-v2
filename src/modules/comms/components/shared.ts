@@ -92,12 +92,12 @@ export const PrimaryButton = styled(IconButton)`
     background: ${p => p.theme.colors.primary};
     border-color: transparent;
     color: #ffffff;
-    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
+    box-shadow: 0 2px 8px rgba(3, 105, 161, 0.28);
 
     &:hover {
-        background: #0284c7;
+        background: #075985;
         border-color: transparent;
-        box-shadow: 0 4px 14px rgba(14, 165, 233, 0.36);
+        box-shadow: 0 4px 14px rgba(3, 105, 161, 0.36);
     }
 `;
 

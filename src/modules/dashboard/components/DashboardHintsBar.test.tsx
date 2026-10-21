@@ -53,3 +53,33 @@ describe('DashboardHintsBar - WORKTIME_CARDS_PENDING', () => {
         expect(router.state.location.search).toBe('?period=2026-09');
     });
 });
+
+describe('DashboardHintsBar - hideKinds', () => {
+    it('pomija podpowiedź, o której Tablica mówi gdzie indziej, i pokazuje następną', async () => {
+        hints.list = [
+            {
+                key: 'LEADS_AWAITING_1', kind: 'LEADS_AWAITING', text: '7 zapytań czeka na Twoją odpowiedź',
+                action: null, permanentDismiss: false, severity: 'CRITICAL',
+            },
+            {
+                key: 'KSEF_UPSELL_1', kind: 'KSEF_UPSELL', text: 'Podłącz KSeF',
+                action: null, permanentDismiss: false, severity: 'INFO',
+            },
+        ];
+        const router = createMemoryRouter([
+            { path: '/dashboard', element: <DashboardHintsBar hideKinds={['LEADS_AWAITING']} /> },
+        ], { initialEntries: ['/dashboard'] });
+        render(
+            <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+                <ThemeProvider theme={theme}>
+                    <ToastProvider>
+                        <RouterProvider router={router} />
+                    </ToastProvider>
+                </ThemeProvider>
+            </QueryClientProvider>,
+        );
+
+        expect(await screen.findByText('Podłącz KSeF')).toBeInTheDocument();
+        expect(screen.queryByText('7 zapytań czeka na Twoją odpowiedź')).not.toBeInTheDocument();
+    });
+});

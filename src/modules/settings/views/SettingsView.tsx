@@ -315,7 +315,7 @@ const SearchBox = styled.label`
     background: ${ui.surface};
     color: ${ui.textFaint};
 
-    &:focus-within { border-color: ${ui.focusRing}; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12); }
+    &:focus-within { border-color: ${ui.focusRing}; box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12); }
     svg { width: 15px; height: 15px; flex-shrink: 0; }
     input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; font-family: inherit; font-size: 16px; color: ${ui.ink}; }
     @media (min-width: 768px) { input { font-size: 13.5px; } }

@@ -554,7 +554,7 @@ const fieldBase = `
     color: ${ui.ink};
     background: ${ui.surface};
 
-    &:focus { outline: none; border-color: ${ui.focusRing}; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12); }
+    &:focus { outline: none; border-color: ${ui.focusRing}; box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12); }
     @media (min-width: 768px) { font-size: 14px; }
 `;
 

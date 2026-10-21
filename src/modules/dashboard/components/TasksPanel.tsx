@@ -83,9 +83,9 @@ const AddButton = styled.button`
   align-items: center;
   gap: 5px;
   padding: 5px 11px;
-  background: #f0f9ff;
+  background: #f0f6f9;
   color: #0369a1;
-  border: 1px solid #bae6fd;
+  border: 1px solid #c0d9e8;
   border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
@@ -94,8 +94,8 @@ const AddButton = styled.button`
   transition: background 150ms ease, transform 150ms ease;
 
   &:hover {
-    background: #e0f2fe;
-    border-color: #7dd3fc;
+    background: #e6f0f6;
+    border-color: #a7cadd;
   }
 
   svg { width: 13px; height: 13px; stroke-width: 2.5; }
@@ -194,9 +194,9 @@ const VisibilityBadge = styled.div<{ $type: 'USERS' | 'ROLE' }>`
   width: fit-content;
 
   ${p => p.$type === 'USERS' ? `
-    background: #f0f9ff;
-    border: 1px solid #bae6fd;
-    color: #0284c7;
+    background: #f0f6f9;
+    border: 1px solid #c0d9e8;
+    color: #075985;
   ` : `
     background: #f5f3ff;
     border: 1px solid #ddd6fe;

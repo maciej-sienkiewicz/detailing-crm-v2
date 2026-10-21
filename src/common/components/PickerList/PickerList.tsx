@@ -34,8 +34,8 @@ const SearchWrap = styled.div`
     &:hover { border-color: #cbd5e1; }
 
     &:focus-within {
-        border-color: var(--brand-primary, #0ea5e9);
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        border-color: var(--brand-primary);
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.1);
     }
 
     svg {
@@ -87,7 +87,7 @@ const Spinner = styled.span`
     height: 15px;
     margin-right: 13px;
     border: 2px solid #e2e8f0;
-    border-top-color: var(--brand-primary, #0ea5e9);
+    border-top-color: var(--brand-primary);
     border-radius: 50%;
     animation: ${spin} 700ms linear infinite;
 
@@ -202,8 +202,8 @@ export const PickerRow = styled.button<{ $selected?: boolean }>`
     padding: 12px 14px;
     text-align: left;
     font-family: inherit;
-    background: ${p => p.$selected ? 'rgba(14, 165, 233, 0.06)' : '#ffffff'};
-    border: 1.5px solid ${p => p.$selected ? 'var(--brand-primary, #0ea5e9)' : '#e2e8f0'};
+    background: ${p => p.$selected ? 'rgba(3, 105, 161, 0.06)' : '#ffffff'};
+    border: 1.5px solid ${p => p.$selected ? 'var(--brand-primary)' : '#e2e8f0'};
     border-radius: 12px;
     cursor: pointer;
     transition: background 150ms ease, border-color 150ms ease;
@@ -215,8 +215,8 @@ export const PickerRow = styled.button<{ $selected?: boolean }>`
 
     &:focus-visible {
         outline: none;
-        border-color: var(--brand-primary, #0ea5e9);
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+        border-color: var(--brand-primary);
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.15);
     }
 
     @media (max-width: 480px) {
@@ -313,15 +313,15 @@ const AddRowBtn = styled.button`
     transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
 
     &:hover {
-        background: rgba(14, 165, 233, 0.05);
-        border-color: var(--brand-primary, #0ea5e9);
-        color: var(--brand-primary, #0ea5e9);
+        background: rgba(3, 105, 161, 0.05);
+        border-color: var(--brand-primary);
+        color: var(--brand-primary);
     }
 
     &:focus-visible {
         outline: none;
-        border-color: var(--brand-primary, #0ea5e9);
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+        border-color: var(--brand-primary);
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.15);
     }
 `;
 
@@ -333,8 +333,8 @@ const AddRowIcon = styled.span`
     width: 26px;
     height: 26px;
     border-radius: 50%;
-    background: rgba(14, 165, 233, 0.12);
-    color: var(--brand-primary, #0ea5e9);
+    background: rgba(3, 105, 161, 0.12);
+    color: var(--brand-primary);
 
     svg { width: 14px; height: 14px; }
 `;

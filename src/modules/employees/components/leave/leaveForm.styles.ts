@@ -47,7 +47,7 @@ const control = css<{ $invalid?: boolean }>`
     outline: none;
     transition: border-color 150ms, box-shadow 150ms;
 
-    &:focus { border-color: ${ui.brand}; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14); }
+    &:focus { border-color: ${ui.brand}; box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.14); }
     &:disabled { background: ${ui.surfaceSoft}; color: ${ui.textMuted}; }
     @media (min-width: 768px) { font-size: 14px; }
 `;

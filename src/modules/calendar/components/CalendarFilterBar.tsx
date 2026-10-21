@@ -17,7 +17,7 @@ const STATUS_META: Record<
     AppointmentStatus | VisitStatus,
     { label: string; dot: string; group: 'appointment' | 'visit' }
 > = {
-    CREATED:           { label: 'Potwierdzone',      dot: '#0ea5e9', group: 'appointment' },
+    CREATED:           { label: 'Potwierdzone',      dot: '#0369a1', group: 'appointment' },
     ABANDONED:         { label: 'Porzucone',         dot: '#94a3b8', group: 'appointment' },
     CANCELLED:         { label: 'Anulowane',         dot: '#ef4444', group: 'appointment' },
     IN_PROGRESS:       { label: 'W trakcie',         dot: '#f59e0b', group: 'visit' },
@@ -126,13 +126,13 @@ const AddButton = styled.button<{ $active?: boolean }>`
     padding: 4px 10px;
     border-radius: 8px;
     background: ${p => p.$active
-        ? 'color-mix(in srgb, var(--brand-primary, #0ea5e9) 10%, #fff)'
+        ? 'color-mix(in srgb, var(--brand-primary) 10%, #fff)'
         : 'transparent'};
     border: 1px ${p => p.$active ? 'solid' : 'dashed'} ${p => p.$active
-        ? 'color-mix(in srgb, var(--brand-primary, #0ea5e9) 45%, transparent)'
+        ? 'color-mix(in srgb, var(--brand-primary) 45%, transparent)'
         : '#cbd5e1'};
     font-size: 12px;
-    color: ${p => p.$active ? '#0284c7' : '#64748b'};
+    color: ${p => p.$active ? '#075985' : '#64748b'};
     font-weight: 600;
     cursor: pointer;
     font-family: inherit;
@@ -141,11 +141,11 @@ const AddButton = styled.button<{ $active?: boolean }>`
 
     &:hover {
         border-color: ${p => p.$active
-            ? 'color-mix(in srgb, var(--brand-primary, #0ea5e9) 70%, transparent)'
+            ? 'color-mix(in srgb, var(--brand-primary) 70%, transparent)'
             : '#94a3b8'};
         color: ${p => p.$active ? '#0369a1' : '#475569'};
         background: ${p => p.$active
-            ? 'color-mix(in srgb, var(--brand-primary, #0ea5e9) 16%, #fff)'
+            ? 'color-mix(in srgb, var(--brand-primary) 16%, #fff)'
             : '#f8fafc'};
     }
 
@@ -164,7 +164,7 @@ const FilterCountBadge = styled.span`
     height: 16px;
     padding: 0 4px;
     border-radius: 9999px;
-    background: var(--brand-primary, #0ea5e9);
+    background: var(--brand-primary);
     color: #fff;
     font-size: 10px;
     font-weight: 700;
@@ -279,12 +279,12 @@ const CategoryRow = styled.div<{ $active: boolean }>`
     padding: 10px 10px;
     border-radius: 10px;
     cursor: pointer;
-    background: ${p => (p.$active ? '#f0f9ff' : 'transparent')};
+    background: ${p => (p.$active ? '#f0f6f9' : 'transparent')};
     transition: background 120ms ease;
     user-select: none;
 
     &:hover {
-        background: ${p => (p.$active ? '#e0f2fe' : '#f8fafc')};
+        background: ${p => (p.$active ? '#e6f0f6' : '#f8fafc')};
     }
 `;
 
@@ -312,8 +312,8 @@ const CategoryLabel = styled.span`
 const CategoryCount = styled.span<{ $partial: boolean }>`
     font-size: 11px;
     font-weight: 600;
-    color: ${p => (p.$partial ? '#0284c7' : '#94a3b8')};
-    background: ${p => (p.$partial ? '#e0f2fe' : '#f1f5f9')};
+    color: ${p => (p.$partial ? '#075985' : '#94a3b8')};
+    background: ${p => (p.$partial ? '#e6f0f6' : '#f1f5f9')};
     padding: 2px 7px;
     border-radius: 9999px;
     flex-shrink: 0;
@@ -402,7 +402,7 @@ const PopupSectionTitle = styled.span`
 const SectionAllBtn = styled.button`
     font-size: 10px;
     font-weight: 600;
-    color: #0284c7;
+    color: #075985;
     background: none;
     border: none;
     cursor: pointer;
@@ -413,7 +413,7 @@ const SectionAllBtn = styled.button`
     flex-shrink: 0;
 
     &:hover {
-        background: #e0f2fe;
+        background: #e6f0f6;
     }
 `;
 
@@ -434,9 +434,9 @@ const OnlyBtn = styled.button`
     line-height: 1.4;
 
     &:hover {
-        background: #0284c7;
+        background: #075985;
         color: #fff;
-        border-color: #0284c7;
+        border-color: #075985;
     }
 `;
 
@@ -447,12 +447,12 @@ const PopupRow = styled.div<{ $active: boolean }>`
     padding: 8px 10px;
     border-radius: 8px;
     cursor: pointer;
-    background: ${p => (p.$active ? '#f0f9ff' : 'transparent')};
+    background: ${p => (p.$active ? '#f0f6f9' : 'transparent')};
     transition: background 120ms ease;
     user-select: none;
 
     &:hover {
-        background: ${p => (p.$active ? '#e0f2fe' : '#f8fafc')};
+        background: ${p => (p.$active ? '#e6f0f6' : '#f8fafc')};
     }
 
     &:hover ${OnlyBtn} {
@@ -475,7 +475,7 @@ const PopupDot = styled.span<{ $color: string }>`
 `;
 
 const PopupCheck = styled.span`
-    color: #0284c7;
+    color: #075985;
     display: flex;
     flex-shrink: 0;
 
@@ -763,7 +763,7 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
                     <>
                         <ShowLabel>Pokaż:</ShowLabel>
                         <AllChip>
-                            <ChipDot $color="#0ea5e9" />
+                            <ChipDot $color="#0369a1" />
                             Wszystkie wydarzenia
                         </AllChip>
                     </>

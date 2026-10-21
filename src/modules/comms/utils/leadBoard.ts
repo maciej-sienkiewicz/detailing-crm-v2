@@ -75,7 +75,7 @@ export const BOARD_COLUMNS: BoardColumnMeta[] = [
         key: 'AWAITING_REPLY',
         title: 'Oczekuje na odpowiedź',
         empty: 'Nikt nie czeka na naszą odpowiedź.',
-        tone: { dot: '#0ea5e9', tint: '#e7f6fd', ink: '#0e6fa0' },
+        tone: { dot: '#0369a1', tint: '#e7f6fd', ink: '#0e6fa0' },
         showsValue: false,
     },
     {

@@ -8,13 +8,13 @@
 //   accentLine  = mix(akcent 45%, #ffffff)  - obwódka przycisku z obwódką
 //   gradFrom/To = mix(akcent 70% / 54%, #0f172a) - jedyne wypełnienie w oknie
 export const ix = {
-    accent: '#0ea5e9',
+    accent: '#0369a1',
     accentInk: '#0e6fa0',
     accentTint: '#e7f6fd',
     accentLine: '#93d7f5',
     gradFrom: '#0e7ab0',
     gradTo: '#0e6491',
-    accentShadow: 'rgba(14, 165, 233, 0.75)',
+    accentShadow: 'rgba(3, 105, 161, 0.75)',
 
     ink: '#0f172a',
     inkSoft: '#334155',
@@ -34,7 +34,7 @@ export const ix = {
     font: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     /** Gradient jedynego wypełnionego elementu w oknie (CLAUDE.md §2). */
     primaryGradient: 'linear-gradient(135deg, #0e7ab0 0%, #0e6491 100%)',
-    primaryShadow: '0 12px 24px -12px rgba(14, 165, 233, 0.75)',
+    primaryShadow: '0 12px 24px -12px rgba(3, 105, 161, 0.75)',
     cardShadow: '0 1px 2px rgba(15, 23, 42, 0.06), 0 16px 40px rgba(15, 23, 42, 0.08)',
 } as const;
 

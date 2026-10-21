@@ -173,19 +173,19 @@ const IconWrap = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 11px;
-  background: linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%);
+  background: linear-gradient(135deg, #0369A1 0%, #6366F1 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
   flex-shrink: 0;
-  box-shadow: 0 3px 10px rgba(14, 165, 233, 0.32);
+  box-shadow: 0 3px 10px rgba(3, 105, 161, 0.32);
 
   ${PHONE} {
     width: 32px;
     height: 32px;
     border-radius: 9px;
-    box-shadow: 0 2px 6px rgba(14, 165, 233, 0.28);
+    box-shadow: 0 2px 6px rgba(3, 105, 161, 0.28);
 
     svg { width: 16px; height: 16px; }
   }
@@ -441,8 +441,8 @@ const TopicInput = styled.input`
   transition: border-color 150ms, box-shadow 150ms;
 
   &:focus {
-    border-color: #0EA5E9;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+    border-color: #0369A1;
+    box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12);
   }
 
   &::placeholder {
@@ -473,8 +473,8 @@ const ContextTextarea = styled.textarea`
   transition: border-color 150ms, box-shadow 150ms;
 
   &:focus {
-    border-color: #0EA5E9;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+    border-color: #0369A1;
+    box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12);
   }
 
   &::placeholder {
@@ -529,12 +529,12 @@ const ToneCard = styled.button<{ $active: boolean }>`
   cursor: pointer;
   text-align: left;
   transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
-  border: 1.5px solid ${p => p.$active ? '#0EA5E9' : '#E2E8F0'};
+  border: 1.5px solid ${p => p.$active ? '#0369A1' : '#E2E8F0'};
   background: ${p => p.$active ? '#F0F7FF' : '#fff'};
-  box-shadow: ${p => p.$active ? '0 0 0 3px rgba(14,165,233,0.10)' : '0 1px 2px rgba(15,23,42,0.04)'};
+  box-shadow: ${p => p.$active ? '0 0 0 3px rgba(3, 105, 161, 0.10)' : '0 1px 2px rgba(15,23,42,0.04)'};
 
   &:hover {
-    border-color: ${p => p.$active ? '#0EA5E9' : '#CBD5E1'};
+    border-color: ${p => p.$active ? '#0369A1' : '#CBD5E1'};
     background: ${p => p.$active ? '#F0F7FF' : '#FAFBFC'};
   }
 
@@ -560,15 +560,15 @@ const ToneIconBox = styled.div<{ $active: boolean }>`
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: ${p => p.$active ? 'rgba(14,165,233,0.12)' : '#F1F5F9'};
-  color: ${p => p.$active ? '#0284C7' : '#94A3B8'};
+  background: ${p => p.$active ? 'rgba(3, 105, 161, 0.12)' : '#F1F5F9'};
+  color: ${p => p.$active ? '#075985' : '#94A3B8'};
   transition: background 150ms, color 150ms;
 
   ${PHONE} {
     width: 28px;
     height: 28px;
     border-radius: 8px;
-    color: ${p => p.$active ? '#0284C7' : ui.textMuted};
+    color: ${p => p.$active ? '#075985' : ui.textMuted};
 
     svg { width: 15px; height: 15px; }
   }
@@ -647,7 +647,7 @@ const SegmentLabel = styled.span<{ $active: boolean }>`
 
 const SegmentMeta = styled.span<{ $active: boolean }>`
   font-size: 11px;
-  color: ${p => p.$active ? '#0EA5E9' : '#94A3B8'};
+  color: ${p => p.$active ? '#0369A1' : '#94A3B8'};
   transition: color 180ms;
 
   ${PHONE} {
@@ -686,14 +686,14 @@ const RuleRow = styled.label<{ $active: boolean }>`
   align-items: flex-start;
   gap: 10px;
   padding: 8px 10px;
-  border: 1px solid ${p => p.$active ? '#BAE6FD' : '#E2E8F0'};
+  border: 1px solid ${p => p.$active ? '#C0D9E8' : '#E2E8F0'};
   background: ${p => p.$active ? '#F8FBFF' : '#FFFFFF'};
   border-radius: 9px;
   cursor: pointer;
   transition: border-color 150ms, background 150ms;
 
   &:hover {
-    border-color: ${p => p.$active ? '#7DD3FC' : '#CBD5E1'};
+    border-color: ${p => p.$active ? '#A7CADD' : '#CBD5E1'};
   }
 
   ${PHONE} {
@@ -705,7 +705,7 @@ const RuleRow = styled.label<{ $active: boolean }>`
 
 const RuleCheckbox = styled.input`
   margin: 2px 0 0;
-  accent-color: #0EA5E9;
+  accent-color: #0369A1;
   cursor: pointer;
   flex-shrink: 0;
 
@@ -789,8 +789,8 @@ const RuleInput = styled.input`
   transition: border-color 150ms, box-shadow 150ms;
 
   &:focus {
-    border-color: #0EA5E9;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+    border-color: #0369A1;
+    box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12);
   }
 
   &::placeholder { color: #CBD5E1; }
@@ -811,14 +811,14 @@ const RuleAddBtn = styled.button`
   padding: 0 14px;
   font-size: 12.5px;
   font-weight: 600;
-  background: #F0F9FF;
-  color: #0284C7;
-  border: 1.5px solid #BAE6FD;
+  background: #F0F6F9;
+  color: #075985;
+  border: 1.5px solid #C0D9E8;
   border-radius: 9px;
   cursor: pointer;
   transition: background 150ms;
 
-  &:hover:not(:disabled) { background: #E0F2FE; }
+  &:hover:not(:disabled) { background: #E6F0F6; }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 
   ${PHONE} {
@@ -941,8 +941,8 @@ const CommentTextarea = styled.textarea`
   transition: border-color 150ms, box-shadow 150ms;
 
   &:focus {
-    border-color: #0EA5E9;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+    border-color: #0369A1;
+    box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12);
   }
 
   &::placeholder { color: #CBD5E1; }
@@ -961,13 +961,13 @@ const CommentSendBtn = styled.button`
   padding: 8px 16px;
   font-size: 12.5px;
   font-weight: 600;
-  background: #F0F9FF;
-  color: #0284C7;
-  border: 1.5px solid #BAE6FD;
+  background: #F0F6F9;
+  color: #075985;
+  border: 1.5px solid #C0D9E8;
   border-radius: 8px;
   cursor: pointer;
 
-  &:hover:not(:disabled) { background: #E0F2FE; }
+  &:hover:not(:disabled) { background: #E6F0F6; }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 
   ${PHONE} {
@@ -1034,7 +1034,7 @@ const ProgressFill = styled.div`
   height: 100%;
   width: 0;
   border-radius: 999px;
-  background: linear-gradient(90deg, #0EA5E9 0%, #6366F1 100%);
+  background: linear-gradient(90deg, #0369A1 0%, #6366F1 100%);
   animation: ${grow} 25s cubic-bezier(0.05, 0.7, 0.1, 1) forwards;
 `;
 
@@ -1180,17 +1180,17 @@ const GenerateBtn = styled.button<{ $disabled: boolean }>`
   padding: 9px 22px;
   font-size: 13px;
   font-weight: 700;
-  background: ${p => p.$disabled ? '#F1F5F9' : 'linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%)'};
+  background: ${p => p.$disabled ? '#F1F5F9' : 'linear-gradient(135deg, #0369A1 0%, #6366F1 100%)'};
   color: ${p => p.$disabled ? '#94A3B8' : '#fff'};
   border: none;
   border-radius: 8px;
   cursor: ${p => p.$disabled ? 'not-allowed' : 'pointer'};
   transition: all 150ms ease;
-  box-shadow: ${p => p.$disabled ? 'none' : '0 2px 8px rgba(14, 165, 233, 0.28)'};
+  box-shadow: ${p => p.$disabled ? 'none' : '0 2px 8px rgba(3, 105, 161, 0.28)'};
 
   &:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.36);
+    box-shadow: 0 4px 12px rgba(3, 105, 161, 0.36);
   }
 
   &:active:not(:disabled) {
@@ -1210,16 +1210,16 @@ const CopyBtn = styled.button<{ $copied: boolean; $primary: boolean }>`
   padding: 9px 18px;
   font-size: 13px;
   font-weight: ${p => p.$primary && !p.$copied ? 700 : 600};
-  background: ${p => p.$copied ? '#DCFCE7' : p.$primary ? 'linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%)' : '#F0F9FF'};
-  color: ${p => p.$copied ? '#16A34A' : p.$primary ? '#fff' : '#0284C7'};
-  border: ${p => p.$primary && !p.$copied ? 'none' : `1.5px solid ${p.$copied ? '#BBF7D0' : '#BAE6FD'}`};
+  background: ${p => p.$copied ? '#DCFCE7' : p.$primary ? 'linear-gradient(135deg, #0369A1 0%, #6366F1 100%)' : '#F0F6F9'};
+  color: ${p => p.$copied ? '#16A34A' : p.$primary ? '#fff' : '#075985'};
+  border: ${p => p.$primary && !p.$copied ? 'none' : `1.5px solid ${p.$copied ? '#BBF7D0' : '#C0D9E8'}`};
   border-radius: 8px;
   cursor: pointer;
   transition: all 200ms ease;
-  box-shadow: ${p => p.$primary && !p.$copied ? '0 2px 8px rgba(14, 165, 233, 0.28)' : 'none'};
+  box-shadow: ${p => p.$primary && !p.$copied ? '0 2px 8px rgba(3, 105, 161, 0.28)' : 'none'};
 
   &:hover {
-    background: ${p => p.$copied ? '#DCFCE7' : p.$primary ? 'linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%)' : '#E0F2FE'};
+    background: ${p => p.$copied ? '#DCFCE7' : p.$primary ? 'linear-gradient(135deg, #0369A1 0%, #6366F1 100%)' : '#E6F0F6'};
   }
 `;
 
@@ -1231,11 +1231,11 @@ const ViewPostLink = styled.a`
   padding: 9px 22px;
   font-size: 13px;
   font-weight: 700;
-  background: linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%);
+  background: linear-gradient(135deg, #0369A1 0%, #6366F1 100%);
   color: #fff;
   border-radius: 8px;
   text-decoration: none;
-  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
+  box-shadow: 0 2px 8px rgba(3, 105, 161, 0.28);
 `;
 
 const RegenerateBtn = styled.button`

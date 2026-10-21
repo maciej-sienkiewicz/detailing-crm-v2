@@ -149,7 +149,7 @@ const ServiceTrigger = styled.button<{ $open: boolean }>`
     align-items: center;
     gap: 8px;
     padding: 9px 12px;
-    border: 1.5px solid ${p => p.$open ? '#0ea5e9' : '#e2e8f0'};
+    border: 1.5px solid ${p => p.$open ? '#0369a1' : '#e2e8f0'};
     border-radius: 9px;
     background: ${st.bgCard};
     color: ${st.text};
@@ -158,7 +158,7 @@ const ServiceTrigger = styled.button<{ $open: boolean }>`
     cursor: pointer;
     text-align: left;
     transition: border-color 150ms ease, box-shadow 150ms ease;
-    box-shadow: ${p => p.$open ? '0 0 0 3px rgba(14,165,233,0.12)' : 'none'};
+    box-shadow: ${p => p.$open ? '0 0 0 3px rgba(3, 105, 161, 0.12)' : 'none'};
 
     &:hover { border-color: #cbd5e1; }
 `;
@@ -233,7 +233,7 @@ const ServiceMenuSearchInput = styled.input`
 
     &:focus {
         outline: none;
-        border-color: #0ea5e9;
+        border-color: #0369a1;
         background: #fff;
     }
 
@@ -254,16 +254,16 @@ const ServiceMenuItem = styled.label<{ $checked: boolean }>`
     gap: 10px;
     padding: 8px 12px;
     cursor: pointer;
-    background: ${p => p.$checked ? 'rgba(14,165,233,0.06)' : 'transparent'};
+    background: ${p => p.$checked ? 'rgba(3, 105, 161, 0.06)' : 'transparent'};
     transition: background 100ms ease;
 
-    &:hover { background: ${p => p.$checked ? 'rgba(14,165,233,0.10)' : '#f8fafc'}; }
+    &:hover { background: ${p => p.$checked ? 'rgba(3, 105, 161, 0.10)' : '#f8fafc'}; }
 `;
 
 const ServiceMenuCheckbox = styled.input`
     width: 15px;
     height: 15px;
-    accent-color: #0ea5e9;
+    accent-color: #0369a1;
     cursor: pointer;
     flex-shrink: 0;
 `;
@@ -319,8 +319,8 @@ const NumberInput = styled.input`
 
     &:focus {
         outline: none;
-        border-color: #0ea5e9;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+        border-color: #0369a1;
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12);
     }
 
     &::-webkit-inner-spin-button,
@@ -356,8 +356,8 @@ const RevenueInput = styled.input`
 
     &:focus {
         outline: none;
-        border-color: #0ea5e9;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+        border-color: #0369a1;
+        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12);
     }
 
     &::-webkit-inner-spin-button,
@@ -416,18 +416,18 @@ const ApplyBtn = styled.button`
     padding: 10px;
     border: none;
     border-radius: 9999px;
-    background: #0ea5e9;
+    background: #0369a1;
     font-family: inherit;
     font-size: 13px;
     font-weight: 600;
     color: #fff;
     cursor: pointer;
     transition: all 150ms ease;
-    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
+    box-shadow: 0 2px 8px rgba(3, 105, 161, 0.28);
 
     &:hover {
-        background: #0284c7;
-        box-shadow: 0 4px 12px rgba(14, 165, 233, 0.36);
+        background: #075985;
+        box-shadow: 0 4px 12px rgba(3, 105, 161, 0.36);
     }
 `;
 

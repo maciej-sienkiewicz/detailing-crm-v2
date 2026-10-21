@@ -44,7 +44,7 @@ const VisitButton = styled.button<{ $open: boolean }>`
     border: 1.5px solid ${p => (p.$open ? ui.brand : ui.line)};
     border-radius: 12px;
     background: ${ui.surface};
-    box-shadow: ${p => (p.$open ? '0 0 0 3px rgba(14, 165, 233, 0.12)' : 'none')};
+    box-shadow: ${p => (p.$open ? '0 0 0 3px rgba(3, 105, 161, 0.12)' : 'none')};
     font-family: inherit;
     text-align: left;
     color: ${ui.ink};
@@ -52,7 +52,7 @@ const VisitButton = styled.button<{ $open: boolean }>`
     transition: border-color 0.15s ease;
 
     &:hover { border-color: ${p => (p.$open ? ui.brand : ui.lineStrong)}; }
-    &:focus-visible { outline: none; border-color: ${ui.brand}; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12); }
+    &:focus-visible { outline: none; border-color: ${ui.brand}; box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12); }
 
     > svg:last-child {
         width: 18px;

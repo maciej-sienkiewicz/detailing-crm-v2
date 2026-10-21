@@ -17,6 +17,7 @@ import {
     useDismissDashboardHint,
     useDisableWorkTimeTracking,
     type DashboardHint,
+    type DashboardHintKind,
 } from '../hooks/useDashboardHints';
 
 const slideIn = keyframes`
@@ -39,7 +40,7 @@ const Bar = styled.div<{ $critical: boolean }>`
         padding: 12px 18px;
         background: ${p => (p.$critical ? '#fffbeb' : p.theme.colors.surface)};
         border: 1px solid ${p => (p.$critical ? '#fcd34d' : p.theme.colors.border)};
-        border-left: 3px solid ${p => (p.$critical ? '#d97706' : '#0ea5e9')};
+        border-left: 3px solid ${p => (p.$critical ? '#d97706' : '#0369a1')};
         border-radius: ${p => p.theme.radii.lg};
         animation: ${slideIn} 220ms ease both;
     }
@@ -53,7 +54,7 @@ const HintIcon = styled.span<{ $critical: boolean }>`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: ${p => (p.$critical ? '#fef3c7' : '#e0f2fe')};
+    background: ${p => (p.$critical ? '#fef3c7' : '#e6f0f6')};
     color: ${p => (p.$critical ? '#b45309' : '#0369a1')};
 
     svg { width: 16px; height: 16px; }
@@ -83,8 +84,8 @@ const ActionBtn = styled.button<{ $critical: boolean }>`
     transition: all 150ms ease;
 
     &:hover:not(:disabled) {
-        border-color: ${p => (p.$critical ? '#d97706' : '#0ea5e9')};
-        background: ${p => (p.$critical ? '#fef3c7' : '#f0f9ff')};
+        border-color: ${p => (p.$critical ? '#d97706' : '#0369a1')};
+        background: ${p => (p.$critical ? '#fef3c7' : '#f0f6f9')};
     }
     &:disabled { opacity: 0.6; cursor: default; }
 `;
@@ -106,7 +107,15 @@ const CloseBtn = styled.button`
     svg { width: 14px; height: 14px; }
 `;
 
-export const DashboardHintsBar = () => {
+interface DashboardHintsBarProps {
+    /**
+     * Rodzaje podpowiedzi, których pasek nie pokazuje, bo Tablica mówi o nich gdzie
+     * indziej - np. czekające zapytania ma już wskaźnik w karcie powitania.
+     */
+    hideKinds?: DashboardHintKind[];
+}
+
+export const DashboardHintsBar = ({ hideKinds = [] }: DashboardHintsBarProps) => {
     const navigate = useNavigate();
     const { showSuccess, showError } = useToast();
     const { hints } = useDashboardHints();
@@ -114,7 +123,7 @@ export const DashboardHintsBar = () => {
     const disableWorkTime = useDisableWorkTimeTracking();
     const [busy, setBusy] = useState(false);
 
-    const hint = hints[0];
+    const hint = hints.find(h => !hideKinds.includes(h.kind));
     if (!hint) return null;
 
     const critical = hint.severity === 'CRITICAL';

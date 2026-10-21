@@ -35,7 +35,7 @@ const Zone = styled.button<{ $dragging: boolean }>`
     transition: border-color 150ms ease, background 150ms ease;
 
     &:hover, &:focus-visible { border-color: ${ui.brand}; background: ${ui.brandTint}; outline: none; }
-    &:focus-visible { box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18); }
+    &:focus-visible { box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.18); }
     &:disabled { cursor: not-allowed; opacity: 0.6; }
 
     ${p => p.$dragging && css`border-color: ${ui.brand}; background: ${ui.brandTintHover};`}

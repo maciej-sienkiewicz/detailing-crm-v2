@@ -26,11 +26,11 @@ const DropZone = styled.div<{ $isDragging?: boolean }>`
     border-radius: 10px;
     padding: 16px;
     text-align: center;
-    background: ${p => p.$isDragging ? '#f0f9ff' : '#f8fafc'};
+    background: ${p => p.$isDragging ? '#f0f6f9' : '#f8fafc'};
     transition: all 0.15s ease;
     cursor: pointer;
 
-    &:hover { border-color: var(--brand-primary); background: #f0f9ff; }
+    &:hover { border-color: var(--brand-primary); background: #f0f6f9; }
 `;
 
 const DropText = styled.p`

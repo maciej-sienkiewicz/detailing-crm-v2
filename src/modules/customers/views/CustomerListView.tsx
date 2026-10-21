@@ -174,7 +174,7 @@ const FilterBadge = styled.span`
     min-width: 18px;
     height: 18px;
     padding: 0 5px;
-    background: #0ea5e9;
+    background: #0369a1;
     color: #fff;
     border-radius: 9999px;
     font-size: 10px;

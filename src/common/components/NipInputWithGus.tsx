@@ -25,7 +25,7 @@ const GusBtn = styled.button<{ $compact?: boolean }>`
     flex-shrink: 0;
 
     &:hover:not(:disabled) {
-        background: #f0f9ff;
+        background: #f0f6f9;
     }
 
     &:disabled {

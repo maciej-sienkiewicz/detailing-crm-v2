@@ -230,7 +230,7 @@ const TitleInput = styled.input`
     font-weight: 700;
     color: ${st.text};
     background: ${st.bgCardAlt};
-    border: 1.5px solid rgba(14, 165, 233, 0.45);
+    border: 1.5px solid rgba(3, 105, 161, 0.45);
     border-radius: 5px;
     padding: 2px 6px;
     outline: none;
@@ -238,7 +238,7 @@ const TitleInput = styled.input`
     width: 180px;
     max-width: 100%;
 
-    &:focus { border-color: rgba(14, 165, 233, 0.8); }
+    &:focus { border-color: rgba(3, 105, 161, 0.8); }
 `;
 
 const TitleActionBtn = styled.button`
@@ -590,7 +590,7 @@ const DoorToDoorPill = styled.span`
     font-size: 10px;
     font-weight: 600;
     letter-spacing: 0.2px;
-    background: rgba(14, 165, 233, 0.10);
+    background: rgba(3, 105, 161, 0.10);
     color: #0284C7;
     flex-shrink: 0;
 

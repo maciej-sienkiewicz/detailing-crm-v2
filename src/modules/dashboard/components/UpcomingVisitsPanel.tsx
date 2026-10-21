@@ -23,7 +23,7 @@ function parseChip(isoDate: string): { day: string; month: string } {
 // ─── Badge config ─────────────────────────────────────────────────────────────
 
 const BADGE_CONFIG: Record<VisitStatusKind, { bg: string; color: string }> = {
-  info:    { bg: 'rgba(14,165,233,0.12)',  color: '#0369a1' },
+  info:    { bg: 'rgba(3, 105, 161, 0.12)',  color: '#0369a1' },
   warn:    { bg: 'rgba(245,158,11,0.12)',  color: '#d97706' },
   neutral: { bg: '#f1f5f9',               color: '#475569' },
   success: { bg: 'rgba(16,185,129,0.12)', color: '#059669' },
@@ -141,18 +141,18 @@ const CalChipWrap = styled.div<{ $today: boolean }>`
 const CalChipCard = styled.div<{ $today: boolean }>`
   width: 44px;
   border-radius: 8px;
-  border: 1px solid ${p => p.$today ? '#7dd3fc' : '#e2e8f0'};
+  border: 1px solid ${p => p.$today ? '#a7cadd' : '#e2e8f0'};
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(15,23,42,0.07);
 `;
 
 const CalChipHeader = styled.div<{ $today: boolean }>`
-  background: ${p => p.$today ? '#0ea5e9' : '#334155'};
+  background: ${p => p.$today ? '#0369a1' : '#334155'};
   height: 7px;
 `;
 
 const CalChipBody = styled.div<{ $today: boolean }>`
-  background: ${p => p.$today ? '#f0f9ff' : '#ffffff'};
+  background: ${p => p.$today ? '#f0f6f9' : '#ffffff'};
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -210,14 +210,14 @@ const TitleInput = styled.input`
   font-weight: 600;
   color: #0f172a;
   background: #f8fafc;
-  border: 1.5px solid rgba(14,165,233,0.45);
+  border: 1.5px solid rgba(3, 105, 161, 0.45);
   border-radius: 5px;
   padding: 2px 6px;
   outline: none;
   min-width: 0;
   width: 160px;
   max-width: 100%;
-  &:focus { border-color: rgba(14,165,233,0.8); }
+  &:focus { border-color: rgba(3, 105, 161, 0.8); }
 `;
 
 const TitleIconBtn = styled.button`

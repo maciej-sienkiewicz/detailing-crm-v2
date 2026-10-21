@@ -55,9 +55,9 @@ const OptionCard = styled.label<{ $active: boolean; $disabled?: boolean }>`
     align-items: flex-start;
     gap: 14px;
     padding: 16px 18px;
-    border: 1.5px solid ${p => p.$active ? '#0ea5e9' : '#e2e8f0'};
+    border: 1.5px solid ${p => p.$active ? '#0369a1' : '#e2e8f0'};
     border-radius: 14px;
-    background: ${p => p.$active ? '#f0f9ff' : '#ffffff'};
+    background: ${p => p.$active ? '#f0f6f9' : '#ffffff'};
     cursor: ${p => p.$disabled ? 'not-allowed' : 'pointer'};
     transition: border-color 180ms ease, background 180ms ease;
     opacity: ${p => p.$disabled ? 0.45 : 1};
@@ -75,7 +75,7 @@ const Radio = styled.input`
     flex-shrink: 0;
     width: 17px;
     height: 17px;
-    accent-color: #0ea5e9;
+    accent-color: #0369a1;
     cursor: inherit;
 `;
 
@@ -102,7 +102,7 @@ const CountBadge = styled.span`
     display: inline-flex;
     align-items: center;
     padding: 1px 8px;
-    background: #0ea5e9;
+    background: #0369a1;
     color: #fff;
     border-radius: 9999px;
     font-size: 11px;
