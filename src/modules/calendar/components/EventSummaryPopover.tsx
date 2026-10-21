@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AppointmentEventData, VisitEventData, CalendarSmsInfo } from '../types';
 import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
+import { appointmentDetailKey, appointmentDetailQuery } from '@/modules/appointments/api/appointmentDetailQuery';
 import { PiiValue, PiiText, usePiiAccess } from '@/common/pii';
 import { VisitCardLinkModal } from '@/modules/visit-card';
 import { usePermissions, usePersonalDataActions } from '@/core/permissions';
@@ -824,8 +825,7 @@ const AppointmentSmsRow: React.FC<{ appointmentId: string }> = ({ appointmentId 
     const comms = useCapability('COMM_SEND_TRANSACTIONAL');
 
     const { data: appointment, isLoading } = useQuery({
-        queryKey: ['appointments', appointmentId],
-        queryFn: () => appointmentApi.getAppointment(appointmentId),
+        ...appointmentDetailQuery(appointmentId),
         enabled: comms.enabled,
     });
 
@@ -862,7 +862,7 @@ const AppointmentSmsRow: React.FC<{ appointmentId: string }> = ({ appointmentId 
     const mutation = useMutation({
         mutationFn: (value: boolean) => appointmentApi.updateSmsPreferences(appointmentId, value),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['appointments', appointmentId] });
+            queryClient.invalidateQueries({ queryKey: appointmentDetailKey(appointmentId) });
         },
     });
 

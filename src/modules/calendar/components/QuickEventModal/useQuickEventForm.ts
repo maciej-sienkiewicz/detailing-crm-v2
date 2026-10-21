@@ -15,6 +15,7 @@ import { useMessageAutomationAccess } from '@/modules/message-templates/hooks/us
 import { smsAutomationQuery } from '@/modules/sms-settings/api/smsAutomationQuery';
 import { STALE_TIME } from '@/core/queryStaleTime';
 import { fetchWholeCatalog } from '@/modules/services/api/fetchWholeCatalog';
+import { serviceKeys } from '@/modules/services/api/serviceKeys';
 import { formatDateTimeLocal, formatDate } from './helpers';
 import { catalogLinePrices, manualLinePrices } from './linePrices';
 import { grossToNet } from '@/common/utils/priceAdjustment';
@@ -251,7 +252,7 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref, initialData 
     // Całość, nie pierwsza strona: lista niżej filtruje cennik w przeglądarce.
     // Zapytania okna dopiero po jego otwarciu - zamknięte wysyłało ich osiem.
     const { data: services = [] } = useQuery({
-        queryKey: ['services'],
+        queryKey: serviceKeys.catalog(),
         queryFn: () => fetchWholeCatalog<Service>(),
         enabled: isOpen,
         staleTime: STALE_TIME.catalog,
@@ -1319,9 +1320,6 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref, initialData 
     };
 
     const handleQuickServiceCreate = (service: { id?: string; name: string; basePriceNet: number; basePriceGross?: number; vatRate: number }) => {
-        if (service.id) {
-            queryClient.invalidateQueries({ queryKey: ['services'] });
-        }
         const serviceId = service.id || `temp-${Date.now()}`;
         setSelectedServiceIds(prev => [...prev, serviceId]);
         const prices = catalogLinePrices(service);

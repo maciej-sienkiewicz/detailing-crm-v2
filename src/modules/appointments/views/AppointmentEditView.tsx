@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/common/components/Toast';
 import { appointmentApi } from '../api/appointmentApi';
+import { appointmentDetailQuery } from '../api/appointmentDetailQuery';
 import { appointmentColorsQuery } from '@/modules/appointment-colors';
 import { LoadingSkeleton } from '@/modules/appointments/components/common';
 import { VerificationStep } from '@/modules/checkin/components/VerificationStep';
@@ -161,8 +162,7 @@ const AppointmentEditForm = () => {
     const { showSuccess, showInfo, showError } = useToast();
 
     const { data: appointment, isLoading: isLoadingAppointment, isError } = useQuery({
-        queryKey: ['appointments', appointmentId],
-        queryFn: () => appointmentApi.getAppointment(appointmentId!),
+        ...appointmentDetailQuery(appointmentId ?? ''),
         enabled: !!appointmentId,
     });
 

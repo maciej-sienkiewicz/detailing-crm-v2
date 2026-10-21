@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { LockedSection } from '@/common/components/LockedSection';
 import { useFeature } from '@/modules/subscription';
 import { appointmentApi } from '../api/appointmentApi';
+import { appointmentDetailKey } from '../api/appointmentDetailQuery';
 import { smsAutomationQuery } from '@/modules/sms-settings/api/smsAutomationQuery';
 import { useMessageAutomationAccess } from '@/modules/message-templates/hooks/useMessageAutomationAccess';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -269,7 +270,7 @@ export const SmsReminderEditSection = ({
     const mutation = useMutation({
         mutationFn: (value: boolean) => appointmentApi.updateSmsPreferences(appointmentId, value),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['appointments', appointmentId] });
+            queryClient.invalidateQueries({ queryKey: appointmentDetailKey(appointmentId) });
         },
     });
 

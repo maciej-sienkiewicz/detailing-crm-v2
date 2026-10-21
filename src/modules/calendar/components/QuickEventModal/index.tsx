@@ -38,6 +38,7 @@ import { formPricesFromLineItems } from './linePrices';
 import { netToGross } from '@/common/utils/priceAdjustment';
 import { mobileBottomReserve, placeFloating, visibleViewport } from '@/common/utils/floatingPlacement';
 import { servicesApi } from '@/modules/services/api/servicesApi';
+import { serviceKeys } from '@/modules/services/api/serviceKeys';
 import type { VatRate, Service as CatalogService } from '@/modules/services/types';
 import {
     IconClock, IconUser, IconCar, IconSettings, IconNote,
@@ -457,8 +458,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             requireManualPrice: data.requireManualPrice,
         });
         // Replace old service entry with new one in cache (synchronous, no refetch flicker).
-        queryClient.setQueryData<CatalogService[]>(['services'], (old = []) =>
-            old.map(s => s.id === serviceId ? updatedService : s)
+        queryClient.setQueryData<CatalogService[]>(serviceKeys.catalog(), old =>
+            old?.map(s => s.id === serviceId ? updatedService : s)
         );
         // Return the new ID so the caller can update its line-item references.
         return updatedService.id !== serviceId ? updatedService.id : null;

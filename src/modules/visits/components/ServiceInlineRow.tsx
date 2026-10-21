@@ -16,6 +16,7 @@ import { grossToNet } from '@/common/utils/priceAdjustment';
 import type { AdjustmentType } from '@/common/utils/priceAdjustment';
 import { draftRowGross, formatZlField, parseZlCents } from '../utils/servicePriceEdits';
 import { servicesApi } from '@/modules/services/api/servicesApi';
+import { serviceKeys } from '@/modules/services/api/serviceKeys';
 import type { Service } from '@/modules/services/types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
@@ -612,7 +613,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
     }, [row.basePriceNet, row.basePriceGross, row.vatRate]);
 
     const { data } = useQuery({
-        queryKey: ['svc-inline-search', debouncedQuery],
+        queryKey: serviceKeys.search('inline', debouncedQuery),
         queryFn: ({ signal }) => servicesApi.getServices({ search: debouncedQuery, page: 1, limit: 8, showInactive: false }, signal),
         // The mobile sheet opens before anything is typed, so it needs the first
         // page of the catalog to have a list to show.

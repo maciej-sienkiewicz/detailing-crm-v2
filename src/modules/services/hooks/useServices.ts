@@ -1,6 +1,7 @@
 // src/modules/services/hooks/useServices.ts
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { servicesApi } from '../api/servicesApi';
+import { serviceKeys } from '../api/serviceKeys';
 import type {
     ServiceListFilters,
     CreateServiceRequest,
@@ -20,7 +21,7 @@ export const useServices = (filters: ServiceListFilters & { enabled?: boolean; k
     // i wracała po chwili, a okno, w którym stoi, skakało razem z nią.
     const { enabled = true, keepPrevious = false, ...listFilters } = filters;
     const { data, isLoading, isError, refetch } = useQuery({
-        queryKey: ['services', listFilters],
+        queryKey: serviceKeys.list(listFilters),
         queryFn: ({ signal }) => servicesApi.getServices(listFilters, signal),
         enabled,
         placeholderData: keepPrevious ? keepPreviousData : undefined,
@@ -41,7 +42,7 @@ export const useCreateService = () => {
     return useMutation({
         mutationFn: (data: CreateServiceRequest) => servicesApi.createService(data),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['services'] });
+            queryClient.invalidateQueries({ queryKey: serviceKeys.all });
         },
     });
 };
@@ -52,7 +53,7 @@ export const useUpdateService = () => {
     return useMutation({
         mutationFn: (data: UpdateServiceRequest) => servicesApi.updateService(data),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['services'] });
+            queryClient.invalidateQueries({ queryKey: serviceKeys.all });
         },
     });
 };
@@ -63,7 +64,7 @@ export const useArchiveService = () => {
     return useMutation({
         mutationFn: (serviceId: string) => servicesApi.archiveService(serviceId),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['services'] });
+            queryClient.invalidateQueries({ queryKey: serviceKeys.all });
         },
     });
 };
@@ -74,7 +75,7 @@ export const useCreatePackage = () => {
     return useMutation({
         mutationFn: (data: CreatePackageRequest) => servicesApi.createPackage(data),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['services'] });
+            queryClient.invalidateQueries({ queryKey: serviceKeys.all });
         },
     });
 };
@@ -85,7 +86,7 @@ export const useUpdatePackage = () => {
     return useMutation({
         mutationFn: (data: UpdatePackageRequest) => servicesApi.updatePackage(data),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['services'] });
+            queryClient.invalidateQueries({ queryKey: serviceKeys.all });
         },
     });
 };
@@ -97,7 +98,7 @@ export const useSyncItemName = () => {
         mutationFn: ({ packageId, data }: { packageId: string; data: SyncItemNameRequest }) =>
             servicesApi.syncItemName(packageId, data),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['services'] });
+            queryClient.invalidateQueries({ queryKey: serviceKeys.all });
         },
     });
 };

@@ -24,6 +24,7 @@ import { useDebounce } from '@/common/hooks';
 import { formatCurrency } from '@/common/utils';
 import { netToGross } from '@/common/utils/priceAdjustment';
 import { servicesApi } from '@/modules/services/api/servicesApi';
+import { serviceKeys } from '@/modules/services/api/serviceKeys';
 import type { Service } from '@/modules/services/types';
 
 /** Ile pozycji ściągamy na raz. Powyżej tego szukajka przestaje być opcjonalna. */
@@ -286,7 +287,7 @@ export function ServiceCatalogPanel({
     // Ten sam kształt klucza co w ServiceAutocomplete - obie drogi do cennika
     // dzielą pamięć podręczną, więc przełączenie układu nie kosztuje zapytania.
     const { data, isLoading, isError } = useQuery({
-        queryKey: ['services', debouncedQuery, 'catalog-panel'],
+        queryKey: serviceKeys.search('catalog-panel', debouncedQuery),
         queryFn: ({ signal }) => servicesApi.getServices({
             search: debouncedQuery,
             page: 1,

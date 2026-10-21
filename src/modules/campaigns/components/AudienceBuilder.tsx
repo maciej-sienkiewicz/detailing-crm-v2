@@ -16,9 +16,8 @@
 // więc stanu filtra nie trzeba trzymać w głowie.
 import { useState } from 'react';
 import styled from 'styled-components';
-import { useQuery } from '@tanstack/react-query';
 import { ChevronDown } from 'lucide-react';
-import { servicesApi } from '@/modules/services/api/servicesApi';
+import { useServices } from '@/modules/services/hooks/useServices';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { ServiceMultiSelect } from '@/modules/customers/components/CustomerFilterPanel';
 import { InfoTooltip } from '@/common/components/InfoTooltip';
@@ -203,11 +202,8 @@ interface AudienceBuilderProps {
 type SectionId = 'visits' | 'revenue' | 'services' | 'vehicles' | 'customer';
 
 export function useServiceCatalog() {
-  const { data } = useQuery({
-    queryKey: ['campaigns', 'service-catalog'],
-    queryFn: () => servicesApi.getServices({ search: '', page: 1, limit: 200 }),
-  });
-  const services = data?.services ?? [];
+  // Te same parametry co filtry list klientów i pojazdów - jeden wpis w cache zamiast dwóch.
+  const { services } = useServices({ search: '', page: 1, limit: 200, showInactive: false });
   const names = new Map(services.map((s) => [s.id, s.name]));
   return { services, serviceNames: names };
 }

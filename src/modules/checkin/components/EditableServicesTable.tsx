@@ -31,6 +31,7 @@ import { QuickServiceModal } from '@/modules/calendar/components/QuickServiceMod
 import type { ServiceLineItem } from '../types';
 import type { Service, VatRate } from '@/modules/services/types';
 import { servicesApi } from '@/modules/services/api/servicesApi';
+import { serviceKeys } from '@/modules/services/api/serviceKeys';
 
 /** Tabela z lewej, cennik z prawej. Panel ma stałą szerokość - to źródło, nie treść. */
 const CATALOG_WIDTH = 300;
@@ -104,8 +105,8 @@ export const EditableServicesTable = ({
             vatRate: data.vatRate as VatRate,
             requireManualPrice: data.requireManualPrice,
         });
-        queryClient.setQueryData<Service[]>(['services'], (old = []) =>
-            old.map(s => s.id === serviceId ? updatedService : s)
+        queryClient.setQueryData<Service[]>(serviceKeys.catalog(), old =>
+            old?.map(s => s.id === serviceId ? updatedService : s)
         );
         return updatedService.id !== serviceId ? updatedService.id : null;
     }, [queryClient]);
@@ -213,7 +214,6 @@ export const EditableServicesTable = ({
                 onClose={() => setIsQuickServiceModalOpen(false)}
                 initialServiceName={quickServiceInitialName}
                 onServiceCreate={(s) => {
-                    if (s.id) queryClient.invalidateQueries({ queryKey: ['services'] });
                     onChange([...services, {
                         id: `temp_${Date.now()}`,
                         serviceId: s.id || null,

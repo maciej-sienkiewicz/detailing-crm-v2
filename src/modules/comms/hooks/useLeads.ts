@@ -5,10 +5,10 @@ import type { QueryClient } from '@tanstack/react-query';
 import type { IMessage } from '@stomp/stompjs';
 import { subscribeToTopic } from '@/core/socketClient';
 import { useAuth } from '@/core';
-import { apiClient } from '@/core/apiClient';
 import { useToast } from '@/common/components/Toast';
 import { hasMaskedPii, mergeMaskedPii } from '@/common/pii';
 import { leadsApi } from '../api/leadsApi';
+import { appointmentDetailQuery } from '@/modules/appointments/api/appointmentDetailQuery';
 import { leadAlertConfigQuery } from '@/modules/settings/api/leadAlertConfigQuery';
 import { LEAD_STATUS_LABELS } from '../types';
 import { pluralPl } from '@/common/utils/plural';
@@ -191,16 +191,10 @@ export const useLead = (leadId: string | null) =>
  */
 export const useLeadAppointment = (appointmentId: string | null) =>
     useQuery({
-        queryKey: ['lead-appointment', appointmentId],
-        // Wprost przez apiClient z wyciszonym globalnym toastem: rezerwacji mogło
-        // już nie być, a „Rezerwacja nie została znaleziona" wyskakujące przy
-        // otwieraniu leada to nie jest błąd użytkownika, tylko brak daty do pokazania.
-        queryFn: async () => {
-            const { data } = await apiClient.get(`/v1/appointments/${appointmentId}`, {
-                skipErrorToast: true,
-            });
-            return data as { schedule?: { startDateTime?: string } };
-        },
+        // Klucz rezerwacji z kalendarza - otwarta tam przed chwilą nie idzie drugi raz.
+        // `quiet`: rezerwacji mogło już nie być, a „Rezerwacja nie została znaleziona"
+        // przy otwieraniu leada to nie błąd użytkownika, tylko brak daty do pokazania.
+        ...appointmentDetailQuery(appointmentId ?? '', { quiet: true }),
         enabled: appointmentId !== null,
         staleTime: 60_000,
         // Rezerwacji mogło już nie być (usunięta poza CRM-em) - bez ponawiania.

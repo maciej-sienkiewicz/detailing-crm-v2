@@ -1,7 +1,7 @@
 import { apiClient } from '@/core';
 import type {
     AppointmentCreateRequest,
-    Customer, AppointmentSmsInfo,
+    Customer,
     RecurrenceEditScope, CreateRecurringAppointmentResponse, RecurrenceSeriesResponse,
     SeriesEditScope, SeriesEditImpact, AppointmentUpdateResponse,
 } from '../types';
@@ -42,8 +42,8 @@ export const appointmentApi = {
         }));
     },
 
-    getAppointment: async (appointmentId: string) => {
-        const response = await apiClient.get(`/v1/appointments/${appointmentId}`);
+    getAppointment: async (appointmentId: string, config?: { signal?: AbortSignal; skipErrorToast?: boolean }) => {
+        const response = await apiClient.get(`/v1/appointments/${appointmentId}`, config);
         return response.data;
     },
 
@@ -53,11 +53,6 @@ export const appointmentApi = {
 
     updateSmsPreferences: async (appointmentId: string, sendReminderSms: boolean): Promise<void> => {
         await apiClient.patch(`/v1/appointments/${appointmentId}/sms-preferences`, { sendReminderSms });
-    },
-
-    getSmsInfo: async (appointmentId: string): Promise<AppointmentSmsInfo> => {
-        const response = await apiClient.get(`/v1/appointments/${appointmentId}`);
-        return response.data.smsInfo;
     },
 
     createRecurringAppointment: async (

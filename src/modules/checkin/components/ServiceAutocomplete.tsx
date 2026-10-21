@@ -8,6 +8,7 @@ import { Input } from '@/common/components/Form';
 import { formatCurrency } from '@/common/utils';
 import { netToGross } from '@/common/utils/priceAdjustment';
 import { servicesApi } from '@/modules/services/api/servicesApi';
+import { serviceKeys } from '@/modules/services/api/serviceKeys';
 import type { Service } from '@/modules/services/types';
 // Mobile bottom-sheet primitives shared with QuickEventModal, so the service
 // picker looks and behaves identically in both places.
@@ -252,7 +253,7 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
     }, [isMobile, isOpen]);
 
     const { data: servicesResponse, isLoading } = useQuery({
-        queryKey: ['services', debouncedQuery],
+        queryKey: serviceKeys.search('autocomplete', debouncedQuery),
         queryFn: ({ signal }) => servicesApi.getServices({
             search: debouncedQuery,
             page: 1,

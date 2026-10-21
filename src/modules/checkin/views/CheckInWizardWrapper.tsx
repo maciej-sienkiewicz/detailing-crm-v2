@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import { CheckInWizardView } from './CheckInWizardView';
 import { t } from '@/common/i18n';
 import { appointmentColorsQuery, pickInitialColorId } from '@/modules/appointment-colors';
-import { appointmentApi } from '@/modules/appointments';
+import { appointmentDetailQuery } from '@/modules/appointments';
 import { customerDetailApi } from '@/modules/customers/api/customerDetailApi';
 import { vehicleApi } from '@/modules/vehicles/api/vehicleApi';
 import { vehicleDetailQueryKey } from '@/modules/vehicles/hooks/useVehicleDetail';
@@ -148,8 +148,7 @@ export const CheckInWizardWrapper = () => {
     // Klucze jak w edycji rezerwacji i kartotekach klienta/pojazdu: dane otwarte chwilę
     // wcześniej nie idą z serwera drugi raz, a zapis w kreatorze odświeża je wszędzie.
     const { data: reservationData, isLoading, error } = useQuery({
-        queryKey: ['appointments', reservationId],
-        queryFn: () => appointmentApi.getAppointment(reservationId!),
+        ...appointmentDetailQuery(reservationId ?? ''),
         enabled: !!reservationId,
         retry: 1,
     });

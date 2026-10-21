@@ -1,6 +1,7 @@
 // src/modules/appointments/index.ts
 export { AppointmentEditView } from './views/AppointmentEditView';
 export { appointmentApi } from './api/appointmentApi';
+export { appointmentDetailQuery, appointmentDetailKey } from './api/appointmentDetailQuery';
 export {
     useCustomerSearch,
     useCustomerVehicles,
