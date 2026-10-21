@@ -67,8 +67,8 @@ export const VehicleDetailsModal = ({
     fallbackData,
     onSave,
 }: VehicleDetailsModalProps) => {
-    // Pobierz dane z API jeśli vehicleId istnieje
-    const { vehicleDetail, isLoading } = useVehicleDetail(vehicleId || '');
+    // Pobierz dane z API jeśli vehicleId istnieje - dopiero przy otwartym oknie (jak w CustomerDetailsModal).
+    const { vehicleDetail, isLoading } = useVehicleDetail(isOpen ? vehicleId || '' : '');
 
     const [localVehicleData, setLocalVehicleData] = useState({
         brand: '',

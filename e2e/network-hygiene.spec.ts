@@ -25,8 +25,8 @@ const TOOLING_NOISE = [/^\[vite\]/, /Service Worker registration blocked by Play
  * Obniżaj go razem z poprawkami - nigdy nie podnoś, żeby przepchnąć zmianę.
  */
 const COLD_LOAD_BUDGET = {
-    '/dashboard': 16,
-    '/calendar': 21,
+    '/dashboard': 15,
+    '/calendar': 14,
 } as const;
 
 const watchConsole = (page: Page) => {

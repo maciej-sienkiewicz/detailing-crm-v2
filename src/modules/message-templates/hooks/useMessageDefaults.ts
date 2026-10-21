@@ -19,9 +19,10 @@ export interface MessageDefaults {
     email: (key: EmailRuleKey) => boolean | undefined;
 }
 
-export function useMessageDefaults(): MessageDefaults {
+/** `enabled: false` - okno jest zamknięte i jeszcze nie potrzebuje ustawień. */
+export function useMessageDefaults(options?: { enabled?: boolean }): MessageDefaults {
     // Bez modułu albo uprawnienia nie pytamy wcale (402/403) - okno ma bezpieczny stan zapasowy.
-    const enabled = useMessageAutomationAccess();
+    const enabled = useMessageAutomationAccess() && (options?.enabled ?? true);
     // Te same klucze, co ekran szablonów (useMessageTemplates): zapis ustawień od razu
     // podmienia dane w cache, więc następne otwarte okno widzi nowy stan bez przeładowania.
     const { data: sms } = useQuery({ ...smsAutomationQuery(), enabled, retry: false });

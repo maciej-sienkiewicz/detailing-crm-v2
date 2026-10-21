@@ -13,6 +13,7 @@ import { useDebounce } from '@/common/hooks';
 import { useDefaultChoice, useMessageDefaults } from '@/modules/message-templates/hooks/useMessageDefaults';
 import { useMessageAutomationAccess } from '@/modules/message-templates/hooks/useMessageAutomationAccess';
 import { smsAutomationQuery } from '@/modules/sms-settings/api/smsAutomationQuery';
+import { STALE_TIME } from '@/core/queryStaleTime';
 import { fetchWholeCatalog } from '@/modules/services/api/fetchWholeCatalog';
 import { formatDateTimeLocal, formatDate } from './helpers';
 import { catalogLinePrices, manualLinePrices } from './linePrices';
@@ -121,7 +122,12 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref, initialData 
     const customerSearchQuery = [customerFirstName, customerLastName, customerFullPhone, customerEmail]
         .filter(s => s.trim().length > 0).join(' ').trim();
     const debouncedCustomerSearch = useDebounce(customerSearchQuery, 300);
-    const { data: foundCustomers = [] } = useAppointmentCustomerSearch(debouncedCustomerSearch);
+    // Podpowiedzi klientów tylko przy otwartym oknie i wpisanym tekście. Okno jest stale
+    // zamontowane w kalendarzu (trzyma szkic), więc bez tego każde wejście do kalendarza
+    // pobierało 50 klientów z danymi osobowymi.
+    const { data: foundCustomers = [] } = useAppointmentCustomerSearch(debouncedCustomerSearch, {
+        enabled: isOpen && debouncedCustomerSearch.length > 0,
+    });
     const hasCustomerSearchQuery = customerSearchQuery.length > 0;
 
     // ─── Vehicle state ─────────────────────────────────────────────────────────
@@ -243,9 +249,12 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref, initialData 
     const vehicles = customerVehicles || [];
 
     // Całość, nie pierwsza strona: lista niżej filtruje cennik w przeglądarce.
+    // Zapytania okna dopiero po jego otwarciu - zamknięte wysyłało ich osiem.
     const { data: services = [] } = useQuery({
         queryKey: ['services'],
         queryFn: () => fetchWholeCatalog<Service>(),
+        enabled: isOpen,
+        staleTime: STALE_TIME.catalog,
     });
 
     const { data: appointmentColors = [] } = useQuery({
@@ -254,13 +263,15 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref, initialData 
             const response = await apiClient.get('/v1/appointment-colors');
             return response.data.colors || [];
         },
+        enabled: isOpen,
+        staleTime: STALE_TIME.catalog,
     });
 
     const canReadAutomation = useMessageAutomationAccess();
     const { data: automationConfig } = useQuery({
         ...smsAutomationQuery(),
         // Bez modułu albo uprawnienia serwer odpowiada 402/403 - nie pytamy.
-        enabled: canReadAutomation,
+        enabled: isOpen && canReadAutomation,
     });
     const preVisitEnabled = automationConfig?.preVisit?.enabled ?? true;
     const bookingConfirmationEnabled = automationConfig?.bookingConfirmation?.enabled ?? true;
@@ -273,6 +284,7 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref, initialData 
     const { data: visitCardSettings } = useQuery({
         queryKey: ['visit-card-settings'],
         queryFn: () => import('@/modules/visit-card/api/visitCardApi').then(m => m.visitCardApi.getSettings()),
+        enabled: isOpen,
         staleTime: 60_000,
     });
     // Checkbox visible only when the studio uses the Visit Card AND has the
@@ -287,7 +299,7 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref, initialData 
     // (Ustawienia → Wiadomości do klientów). Gdy ustawień nie da się wczytać, okno
     // zachowuje się jak dotąd: potwierdzenie i przypomnienie puste, karta według
     // ustawienia Karty Wizyty.
-    const messageDefaults = useMessageDefaults();
+    const messageDefaults = useMessageDefaults({ enabled: isOpen });
     const [sendConfirmationSms, setSendConfirmationSms, resetConfirmationSms] =
         useDefaultChoice(messageDefaults.sms('bookingConfirmation'), false);
     const [sendReminderSms, setSendReminderSms, resetReminderSms] =

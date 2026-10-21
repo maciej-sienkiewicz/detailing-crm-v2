@@ -68,7 +68,7 @@ export const MarkReadyDialog = ({ visit, isOpen, onClose, onSuccess }: MarkReady
     // oba zaznaczone. Bez modułu komunikacji albo bez adresu e-mail kanał jest pusty
     // niezależnie od wyboru: blur na sekcji nie zeruje stanu, a zaznaczone pole poszłoby
     // do API mimo blokady (backend odrzuciłby je z 402).
-    const messageDefaults = useMessageDefaults();
+    const messageDefaults = useMessageDefaults({ enabled: isOpen });
     const [smsChoice, setSmsChoice] = useDefaultChoice(messageDefaults.sms('visitReadyForPickup'), true);
     const [emailChoice, setEmailChoice] = useDefaultChoice(messageDefaults.email('visitReadyForPickup'), true);
     const channels: NotificationChannels = {

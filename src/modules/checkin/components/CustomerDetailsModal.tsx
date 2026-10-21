@@ -102,8 +102,9 @@ export const CustomerDetailsModal = ({
     fallbackData,
     onSave,
 }: CustomerDetailsModalProps) => {
-    // Pobierz dane z API jeśli customerId istnieje
-    const { customerDetail, isLoading } = useCustomerDetail(customerId || '');
+    // Pobierz dane z API jeśli customerId istnieje - dopiero przy otwartym oknie: krok
+    // przyjęcia trzyma je zamontowane i dawniej pobierał klienta drugi raz na zapas.
+    const { customerDetail, isLoading } = useCustomerDetail(isOpen ? customerId || '' : '');
 
     const [includeHomeAddress, setIncludeHomeAddress] = useState(false);
     const [includeCompany, setIncludeCompany] = useState(false);

@@ -64,7 +64,7 @@ export const CustomerModal = ({ isOpen, onClose, onSelect, currentCustomerId }: 
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const debouncedQuery = useDebounce(searchQuery, 200);
-    const { data: customers, isLoading, isFetching, isPlaceholderData } = useCustomerSearch(debouncedQuery);
+    const { data: customers, isLoading, isFetching, isPlaceholderData } = useCustomerSearch(debouncedQuery, { enabled: isOpen });
 
     // Reopening the modal must not resurrect the previous session's half-typed search
     // or a form the user abandoned, so every close path clears it. ModalShell routes

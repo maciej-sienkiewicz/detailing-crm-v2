@@ -307,7 +307,7 @@ export const TaskArchiveModal = ({ isOpen, onClose }: Props) => {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { items, pagination, isLoading } = useTaskArchive(page, debouncedSearch);
+  const { items, pagination, isLoading } = useTaskArchive(page, debouncedSearch, isOpen);
 
   useEffect(() => {
     if (!isOpen) {

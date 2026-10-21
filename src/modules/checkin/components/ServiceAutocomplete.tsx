@@ -259,6 +259,8 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
             limit: 50,
             showInactive: false,
         }),
+        // Dopiero gdy lista jest otwarta albo coś wpisano - nie przy samym zamontowaniu pola.
+        enabled: isOpen || debouncedQuery !== '',
     });
 
     const services = servicesResponse?.services || [];

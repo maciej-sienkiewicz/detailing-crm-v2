@@ -209,7 +209,7 @@ export const SigningRequirementModal = ({
     // Bez dostępu do ustawień - jak dotąd: e-mail zaznaczony, gdy wiadomość jest
     // włączona, a Karta według ustawienia Karty Wizyty. Kartę wysyłamy kanałem studia
     // (SMS, e-mail albo oba), więc wystarczy, że zaznaczony jest którykolwiek z nich.
-    const messageDefaults = useMessageDefaults();
+    const messageDefaults = useMessageDefaults({ enabled: isOpen });
     const welcomeDefault = messageDefaults.email('visitWelcome');
     const sendEmailByDefault = visitWelcomeEnabled && (welcomeDefault ?? true);
     const cardSms = messageDefaults.sms('visitCardLink');

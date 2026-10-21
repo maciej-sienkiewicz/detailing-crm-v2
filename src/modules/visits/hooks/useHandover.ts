@@ -211,7 +211,7 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         enabled: isOpen,
         customerPhone: visit.customer.phone,
     });
-    const messageDefaults = useMessageDefaults();
+    const messageDefaults = useMessageDefaults({ enabled: isOpen });
     const thankYouSmsChecked = state.thankYouSms ?? messageDefaults.sms('postVisit') ?? true;
 
     const ksef = useKsefAutomation({
