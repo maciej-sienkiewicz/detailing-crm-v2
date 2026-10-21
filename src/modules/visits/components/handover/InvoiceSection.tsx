@@ -13,6 +13,7 @@ import { InvoiceItemsEditor } from './InvoiceItemsEditor';
 import { InvoiceLines } from './InvoiceLines';
 import {
     isPlnInput,
+    itemAmounts,
     type HandoverBuyer,
     type HandoverItem,
     type HandoverProblem,
@@ -95,6 +96,7 @@ const Tile = styled.div`
 
     > span { font-size: 12.5px; font-weight: 600; color: ${ui.textMuted}; }
     strong { font-size: 20px; font-weight: 800; color: ${ui.ink}; font-variant-numeric: tabular-nums; }
+    strong em { font-size: 13px; font-weight: 600; font-style: normal; color: ${ui.textMuted}; }
     small { font-size: 12.5px; color: ${ui.textMuted}; font-variant-numeric: tabular-nums; }
 `;
 
@@ -225,6 +227,7 @@ export const InvoicePositions = ({
     const [mode, setMode] = useState<'collapsed' | 'list' | 'edit'>('collapsed');
     const isOther = state.splitRemainder;
     const count = invoiceItems.length;
+    const invoiceNet = invoiceItems.reduce((sum, item) => sum + itemAmounts(item).net, 0);
 
     const editor = (
         <InvoiceItemsEditor
@@ -276,7 +279,8 @@ export const InvoicePositions = ({
                 <Tiles>
                     <Tile>
                         <span>Kwota na fakturze</span>
-                        <strong>{fmt(invoiceGross)}</strong>
+                        <strong>{fmt(invoiceGross)} <em>brutto</em></strong>
+                        <small>{fmt(invoiceNet)} netto</small>
                     </Tile>
                     <Tile>
                         <span>Inny dokument: bez paragonu, bez VAT, gotówka</span>

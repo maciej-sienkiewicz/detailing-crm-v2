@@ -110,6 +110,13 @@ export const SettlementSection = ({
                         </Pill>
                     ))}
                 </PillRow>
+                {/* Podział przy wyborze dokumentu: część kwoty na fakturze, reszta gotówką
+                    na innym dokumencie. */}
+                {crmInvoice && !isSplit && (
+                    <SplitLink type="button" onClick={() => controls.setInvoiceOther(true)}>
+                        Podziel płatność: faktura + inny dokument
+                    </SplitLink>
+                )}
                 {isInvoice && !invoicedExternally && !sellerComplete && <SellerPrompt company={company} />}
                 {isInvoice && !invoicedExternally && <SectionProblems problems={problemsIn('seller')} />}
                 {isInvoice && invoicedExternally && <ExternalInvoiceNote />}
@@ -138,13 +145,6 @@ export const SettlementSection = ({
                     value={state.paymentMethod}
                     onChange={paymentMethod => patch({ paymentMethod })}
                 />
-                {/* Podział to sposób zapłaty faktury, nie osobny dokument: część kwoty na
-                    fakturze, reszta gotówką na innym dokumencie. */}
-                {crmInvoice && !isSplit && (
-                    <SplitLink type="button" onClick={() => controls.setInvoiceOther(true)}>
-                        Podziel płatność: faktura + inny dokument
-                    </SplitLink>
-                )}
             </Field>
 
             {crmInvoice && (

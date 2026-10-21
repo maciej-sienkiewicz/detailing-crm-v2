@@ -125,9 +125,12 @@ describe('Lewa kolumna: decyzje', () => {
         ]);
     });
 
-    it('podział to sposób zapłaty faktury: link przy formie zapłaty, tylko przy fakturze', () => {
+    it('podział: link pod wyborem dokumentu, nie przy formie zapłaty, tylko przy fakturze', () => {
         const c = controls();
-        left(state(), { c });
+        const { container } = left(state(), { c });
+        const link = screen.getByRole('button', { name: 'Podziel płatność: faktura + inny dokument' });
+        expect(container.querySelector('#handover-document')).toContainElement(link);
+        expect(container.querySelector('#handover-payment')).not.toContainElement(link);
         fireEvent.click(screen.getByRole('button', { name: 'Podziel płatność: faktura + inny dokument' }));
         expect(c.setInvoiceOther).toHaveBeenCalledWith(true);
 
@@ -181,7 +184,7 @@ describe('Lewa kolumna: decyzje', () => {
         expect(screen.queryByText('Dokument')).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Jedna pozycja na każdą stawkę' })).not.toBeInTheDocument();
         expect(screen.queryByLabelText('Pozycja 2 na fakturze')).not.toBeInTheDocument();
-        expect(screen.getByText('Kwota na fakturze').parentElement?.textContent).toMatch(/1500,00/);
+        expect(screen.getByText('Kwota na fakturze').parentElement?.textContent).toMatch(/1500,00.*brutto.*1219,51.*netto/);
         // Inny dokument to pole z kwotą wyliczoną (netto prania, bez VAT) w podpowiedzi.
         expect(screen.getByLabelText('Kwota innego dokumentu')).toHaveAttribute('placeholder', expect.stringMatching(/185,19/));
         expect(screen.getByText('Forma zapłaty faktury')).toBeInTheDocument();

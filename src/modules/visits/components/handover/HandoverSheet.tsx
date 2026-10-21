@@ -15,7 +15,7 @@ import { Button, ui } from '@/common/components/ui';
 import { formatCurrency } from '@/common/utils';
 import { isPiiMasked, joinPiiName } from '@/common/pii';
 import { usePermissions } from '@/core/permissions';
-import { useHandover } from '../../hooks/useHandover';
+import { defaultDueDate, useHandover } from '../../hooks/useHandover';
 import { useVisitComments } from '../../hooks';
 import { CustomerNotesSection } from './CustomerNotesSection';
 import { SettlementSection } from './SettlementSection';
@@ -142,25 +142,25 @@ const ActionText = styled.span`
 
 /**
  * Podgląd faktury obok przycisku wydania: ta sama bryła (promień, kafelek ikony,
- * wysokość), ale odcień zieleni zamiast wypełnienia - para, w której wygrywa wydanie.
+ * wysokość), ale stonowana - biała z obwódką, żeby zieleń została tylko przy wydaniu.
  */
 const PreviewAction = styled.button`
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 10px 16px 10px 10px;
-    border: 1px solid ${ui.okLine};
+    border: 1px solid ${ui.line};
     border-radius: 14px;
-    background: ${ui.okTint};
-    color: ${ui.okInk};
+    background: ${ui.surface};
+    color: ${ui.inkSoft};
     font-family: inherit;
     font-size: 14px;
     font-weight: 700;
     white-space: nowrap;
     cursor: pointer;
-    transition: background 150ms ease, border-color 150ms ease;
+    transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
 
-    &:hover { background: ${ui.okTintHover}; border-color: #4ade80; }
+    &:hover { border-color: ${ui.lineStrong}; color: ${ui.ink}; }
     &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: 2px; }
 `;
 
@@ -169,8 +169,8 @@ const PreviewIcon = styled.span`
     height: 38px;
     flex-shrink: 0;
     border-radius: 10px;
-    background: ${ui.surface};
-    border: 1px solid ${ui.okLine};
+    background: ${ui.surfaceAlt};
+    color: ${ui.textSecondary};
     display: flex;
     align-items: center;
     justify-content: center;
@@ -500,7 +500,7 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                 buyer={handover.state.buyer}
                 items={handover.invoiceItems}
                 paymentMethod={handover.state.paymentMethod}
-                fmt={fmt}
+                dueDate={handover.state.paymentMethod === 'TRANSFER' ? defaultDueDate() : undefined}
             />
         </ModalShell>
     );

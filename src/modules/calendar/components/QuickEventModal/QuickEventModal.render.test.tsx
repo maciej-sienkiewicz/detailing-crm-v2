@@ -226,6 +226,24 @@ describe('QuickEventModal - render', () => {
         expect(within(list).getByText('Audi A4')).toBeInTheDocument();
     });
 
+    it('Escape zamyka okno z wybranym klientem i autem, choć fokus spadł poza okno', async () => {
+        const user = userEvent.setup();
+        const { onClose } = setup();
+        await ready();
+
+        await user.type(screen.getByPlaceholderText('Jan'), 'Jan');
+        await user.click(await screen.findByText('Jan Kowalski'));
+        const list = await screen.findByRole('listbox', { name: 'Pojazdy klienta' });
+        await user.click(within(list).getByText('BMW X5'));
+        await waitFor(() => expect(screen.queryByRole('listbox', { name: 'Pojazdy klienta' })).not.toBeInTheDocument());
+
+        // Pole wyboru auta zniknęło razem z fokusem - klawisz trafia do <body>.
+        (document.activeElement as HTMLElement | null)?.blur();
+        expect(document.activeElement).toBe(document.body);
+        await user.keyboard('{Escape}');
+        expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
     it('telefon: „Cały dzień" i „Cykliczna" są dostępne', async () => {
         setWidth(375);
         setup();

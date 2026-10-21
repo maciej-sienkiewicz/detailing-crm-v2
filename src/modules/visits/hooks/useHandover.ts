@@ -50,7 +50,7 @@ const DUE_DATE_DAYS = 14;
 
 const draftKey = (visitId: string) => `${DRAFT_PREFIX}${visitId}`;
 
-const defaultDueDate = (): string => {
+export const defaultDueDate = (): string => {
     const date = new Date();
     date.setDate(date.getDate() + DUE_DATE_DAYS);
     // Data lokalna, nie toISOString(): to drugie liczy w UTC i po północy dawało dzień mniej.

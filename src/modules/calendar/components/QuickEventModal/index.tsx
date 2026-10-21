@@ -244,6 +244,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
     const MAX_VISIBLE_COLORS = 5;
     const [colorPanelOpen, setColorPanelOpen] = useState(false);
+    const formRef = useRef<HTMLFormElement>(null);
     const [colorPanelPos, setColorPanelPos] = useState({ bottom: 0, left: 0 });
     const moreColorsBtnRef = useRef<HTMLButtonElement>(null);
     // Czy w sekcji klienta jest cokolwiek do wycofania (dane wpisane lub klient wybrany).
@@ -486,6 +487,46 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     // BookingFlowModal - licznik referencji w scrollLock łączy obie.
     useEffect(() => (isOpen ? acquireScrollLock() : undefined), [isOpen]);
 
+    // Escape zamyka najpierw to, co jest otwarte W oknie (lista usług, podpowiedzi
+    // klienta, wybór auta, kalendarz, marka) - dawniej to samo naciśnięcie zamykało od
+    // razu całe okno. Dopiero gdy nic nie jest otwarte, zamyka okno.
+    const handleEscape = (e: { defaultPrevented: boolean; preventDefault: () => void }, root: Element | null) => {
+        if (e.defaultPrevented) return;
+        if (form.showServiceDropdown || form.showCustomerDropdown || form.showVehicleDropdown || colorPanelOpen) {
+            e.preventDefault();
+            form.setShowServiceDropdown(false);
+            form.setShowCustomerDropdown(false);
+            form.setShowVehicleDropdown(false);
+            setColorPanelOpen(false);
+            return;
+        }
+        if (root?.querySelector('[aria-expanded="true"]')) return;
+        e.preventDefault();
+        onClose();
+    };
+    const escapeRef = useRef(handleEscape);
+    escapeRef.current = handleEscape;
+    const subWindowOpen = smsSheetOpen || upsellOpen || !!form.pendingChoice
+        || form.isQuickServiceModalOpen || form.isPriceInputModalOpen || form.isQuickColorModalOpen;
+    const subWindowOpenRef = useRef(subWindowOpen);
+    subWindowOpenRef.current = subWindowOpen;
+
+    // Escape bez fokusu w oknie. Wybór klienta albo auta z listy podmienia pole na kartę,
+    // fokus spada wtedy na <body>, a onKeyDown formularza nie dostaje klawisza - okno
+    // z wybranym klientem i autem nie zamykało się Escape'em. Okienka nad tym oknem
+    // (SMS, nowa usługa, cena, pytanie o dane klienta) obsługują Escape same.
+    useEffect(() => {
+        if (!isOpen) return;
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key !== 'Escape') return;
+            if (e.target !== document.body && e.target !== document.documentElement) return;
+            if (subWindowOpenRef.current) return;
+            escapeRef.current(e, formRef.current);
+        };
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [isOpen]);
+
     // When any mobile sheet is open, set tabindex=-1 on all background inputs
     // so iOS grays out the ^ v navigation arrows (they appear because iOS sees other inputs in the DOM)
     useEffect(() => {
@@ -701,23 +742,10 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 <S.ModalContainer $isOpen={isOpen}>
                     <form
                         onSubmit={form.handleSubmit}
+                        ref={formRef}
                         onKeyDown={(e) => {
                             if (e.key === 'Escape') {
-                                // Escape zamyka najpierw to, co jest otwarte W oknie (lista
-                                // usług, podpowiedzi klienta, wybór auta, kalendarz, marka) -
-                                // dawniej to samo naciśnięcie zamykało od razu całe okno.
-                                if (e.defaultPrevented) return;
-                                if (form.showServiceDropdown || form.showCustomerDropdown || form.showVehicleDropdown || colorPanelOpen) {
-                                    e.preventDefault();
-                                    form.setShowServiceDropdown(false);
-                                    form.setShowCustomerDropdown(false);
-                                    form.setShowVehicleDropdown(false);
-                                    setColorPanelOpen(false);
-                                    return;
-                                }
-                                if (e.currentTarget.querySelector('[aria-expanded="true"]')) return;
-                                e.preventDefault();
-                                onClose();
+                                handleEscape(e, e.currentTarget);
                                 return;
                             }
                             if (e.key === 'Enter') {
