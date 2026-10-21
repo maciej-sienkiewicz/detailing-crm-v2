@@ -231,6 +231,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const customerDropdownRef = useRef<HTMLDivElement>(null);
     // Lista klientów nad polem: pole nie może wtedy udawać, że lista wychodzi z jego dołu.
     const [customerListAbove, setCustomerListAbove] = useState(false);
+    const vehicleButtonRef = useRef<HTMLButtonElement>(null);
+    const vehicleDropdownRef = useRef<HTMLDivElement>(null);
+    const [vehicleListAbove, setVehicleListAbove] = useState(false);
     const [autoOpenModel, setAutoOpenModel] = useState(false);
 
     // Mobile-specific UX state
@@ -536,6 +539,18 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         const items = serviceDropdownRef.current.querySelectorAll<HTMLElement>('[data-service-item]');
         items[highlightedServiceIdx]?.scrollIntoView({ block: 'nearest' });
     }, [highlightedServiceIdx]);
+
+    // Lista aut klienta też w portalu, doklejona do pola: w przewijanej treści okna wychodziła
+    // pod stopkę („Wyczyść wszystko”, kolory) i ucinała ostatnie pozycje. Telefon tak samo.
+    useAttachedList(
+        form.showVehicleDropdown && !!form.selectedCustomer,
+        vehicleButtonRef,
+        vehicleDropdownRef,
+        320,
+        0,
+        form.vehicles.length,
+        setVehicleListAbove,
+    );
 
     useAttachedList(
         !isMobile && form.showCustomerDropdown,
@@ -1516,8 +1531,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             z kilkoma pojazdami albo zapisywał jego stare auto. */
                                         <S.DropdownContainer>
                                             <S.VehicleSelectButton
+                                                ref={vehicleButtonRef}
                                                 type="button"
-                                                $dropdownOpen={form.showVehicleDropdown}
+                                                $dropdownOpen={form.showVehicleDropdown && !vehicleListAbove}
                                                 disabled={!form.selectedCustomer}
                                                 onClick={form.handleVehicleSelectTriggerClick}
                                                 onBlur={form.handleVehicleFieldBlur}
@@ -1531,8 +1547,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     <path d="M1 1l4 4 4-4" stroke={ui.textFaint} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                                                 </svg>
                                             </S.VehicleSelectButton>
-                                            {form.showVehicleDropdown && form.selectedCustomer && (
-                                                <S.Dropdown>
+                                            {form.showVehicleDropdown && form.selectedCustomer && createPortal(
+                                                <S.CustomerPortalDropdown ref={vehicleDropdownRef} role="listbox" aria-label="Pojazdy klienta">
                                                     <S.DropdownSeparator>Pojazdy klienta</S.DropdownSeparator>
                                                     {form.vehicles.map(v => (
                                                         <S.DropdownItem
@@ -1566,7 +1582,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         <IconPlus />
                                                         <span>Dodaj nowy pojazd</span>
                                                     </S.DropdownAddButton>
-                                                </S.Dropdown>
+                                                </S.CustomerPortalDropdown>,
+                                                document.body
                                             )}
                                         </S.DropdownContainer>
                                     ) : (

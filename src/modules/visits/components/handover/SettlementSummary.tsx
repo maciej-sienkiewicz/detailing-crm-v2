@@ -116,6 +116,8 @@ interface SettlementSummaryProps {
     invoiceItems: HandoverItem[];
     invoiceGross: number;
     remainder: number;
+    /** Ile klient płaci: przy podziale faktura + inny dokument. */
+    payable?: number;
     invoicedExternally: boolean;
     sendToKsef: boolean;
     ksefBlocked: 'no-token' | 'no-permission' | null;
@@ -131,6 +133,7 @@ export const SettlementSummary = ({
     invoiceItems,
     invoiceGross,
     remainder,
+    payable = totals.gross,
     invoicedExternally,
     sendToKsef,
     ksefBlocked,
@@ -168,7 +171,7 @@ export const SettlementSummary = ({
         <Aside aria-label="Podsumowanie rozliczenia">
             <Amount>
                 <span>Do zapłaty</span>
-                <strong>{fmt(totals.gross)}</strong>
+                <strong>{fmt(payable)}</strong>
                 <span>
                     {hasOther
                         ? `faktura ${fmt(invoiceGross)}, inny dokument ${fmt(remainder)}`
@@ -176,6 +179,11 @@ export const SettlementSummary = ({
                             ? `netto ${fmt(invoiceNet)}, VAT ${fmt(invoiceGross - invoiceNet)}`
                             : `netto ${fmt(totals.net)}, VAT ${fmt(totals.vat)}`}
                 </span>
+                {hasOther && payable < totals.gross && (
+                    <span>
+                        cena usług {fmt(totals.gross)}, bez VAT na innym dokumencie {fmt(totals.gross - payable)} mniej
+                    </span>
+                )}
                 {discount !== 0 && (
                     <span>
                         {discount > 0

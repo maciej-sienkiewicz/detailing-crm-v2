@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import styled from 'styled-components';
-import { Building2, Check, Eye, Pencil, User } from 'lucide-react';
+import { Building2, Check, Eye, Pencil, RotateCcw, User } from 'lucide-react';
 import { pluralPl } from '@/common/utils';
-import { ui } from '@/common/components/ui';
+import { Notice, ui } from '@/common/components/ui';
+import { InputShell, BareInput } from '@/common/components/Form';
+import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import type { CompanySettings } from '@/modules/settings/types';
 import { GhostAction, SectionProblems } from './HandoverKit';
 import { BuyerEditor } from './BuyerEditor';
@@ -11,7 +13,9 @@ import { InvoiceLines } from './InvoiceLines';
 import { InvoicePreviewModal } from './InvoicePreviewModal';
 import {
     formatNip,
+    isPlnInput,
     normalizeNip,
+    totalsOf,
     type HandoverItem,
     type HandoverProblem,
     type HandoverState,
@@ -123,8 +127,14 @@ const Tile = styled.div`
     border-radius: 12px;
     background: ${ui.surface};
 
-    span { font-size: 12.5px; font-weight: 600; color: ${ui.textMuted}; }
+    > span { font-size: 12.5px; font-weight: 600; color: ${ui.textMuted}; }
     strong { font-size: 20px; font-weight: 800; color: ${ui.ink}; font-variant-numeric: tabular-nums; }
+    small { font-size: 12.5px; color: ${ui.textMuted}; font-variant-numeric: tabular-nums; }
+`;
+
+/** Kwota innego dokumentu jako pole: wyliczona podpowiada się w placeholderze. */
+const AmountShell = styled(InputShell)`
+    input { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
 `;
 
 const Hint = styled.div<{ $tone: 'warn' | 'bad' }>`
@@ -156,7 +166,8 @@ export interface InvoiceControls {
     resetLines: () => void;
     /** Dokument „Faktura + Inny dokument” włączony / wyłączony. */
     setInvoiceOther: (on: boolean) => void;
-    applyLinesPerRate: () => void;
+    /** Kwota innego dokumentu wpisana ręcznie; '' = wyliczona. */
+    setRemainderInput: (value: string) => void;
     changeLine: (index: number, changes: Partial<InvoiceLine>) => void;
     mergeSelected: (indexes: number[]) => string | null;
     unmerge: (index: number) => void;
@@ -216,6 +227,10 @@ interface InvoicePositionsProps {
     invoiceItems: HandoverItem[];
     invoiceGross: number;
     remainder: number;
+    /** Kwota innego dokumentu wyliczona: netto części usług poza fakturą. */
+    remainderAuto: number;
+    /** Brutto wizyty po rozliczeniu (kwota na fakturze albo innym dokumencie może je zmienić). */
+    settledGross: number;
     company: CompanySettings | undefined;
     problemsIn: (section: HandoverProblem['section']) => HandoverProblem[];
     controls: InvoiceControls;
@@ -233,6 +248,8 @@ export const InvoicePositions = ({
     invoiceItems,
     invoiceGross,
     remainder,
+    remainderAuto,
+    settledGross,
     company,
     problemsIn,
     controls,
@@ -251,7 +268,6 @@ export const InvoicePositions = ({
             onChangeLine={controls.changeLine}
             onMerge={controls.mergeSelected}
             onUnmerge={controls.unmerge}
-            onLinesPerRate={controls.applyLinesPerRate}
             exemptionBasis={state.exemptionBasis}
             onExemptionBasisChange={exemptionBasis => patch({ exemptionBasis })}
             fmt={fmt}
@@ -307,9 +323,32 @@ export const InvoicePositions = ({
                     </Tile>
                     <Tile>
                         <span>Inny dokument: bez paragonu, bez VAT, gotówka</span>
-                        <strong>{fmt(Math.max(remainder, 0))}</strong>
+                        <AmountShell $compact>
+                            <BareInput
+                                value={state.remainderInput}
+                                placeholder={fmt(remainderAuto)}
+                                inputMode="decimal"
+                                aria-label="Kwota innego dokumentu"
+                                onChange={e => isPlnInput(e.target.value) && controls.setRemainderInput(e.target.value)}
+                                onKeyDown={handleZeroAwareKeyDown(state.remainderInput, controls.setRemainderInput)}
+                                $compact
+                            />
+                        </AmountShell>
+                        {state.remainderInput.trim() && remainder !== remainderAuto ? (
+                            <GhostAction type="button" onClick={() => controls.setRemainderInput('')}>
+                                <RotateCcw />Wylicz: {fmt(remainderAuto)}
+                            </GhostAction>
+                        ) : (
+                            <small>Netto części usług poza fakturą: bez paragonu klient nie płaci VAT.</small>
+                        )}
                     </Tile>
                 </Tiles>
+                {settledGross !== totalsOf(state.prices).gross && (
+                    <Notice tone="warn" title="Cena wizyty się zmieni">
+                        Z {fmt(totalsOf(state.prices).gross)} na {fmt(settledGross)} brutto, żeby wizyta
+                        i statystyki zgadzały się z dokumentami.
+                    </Notice>
+                )}
                 {notices}
                 {preview}
             </SplitPanel>

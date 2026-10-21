@@ -16,11 +16,8 @@ import { buildThankYouSmsPayload } from '../components/handover/thankYouSms';
 import type { ServiceLineItem, Visit } from '../types';
 import type { CompleteVisitResponse, PaymentMethod } from '../types/stateTransitions';
 import {
-    invoiceGrossOf,
-    invoiceItemsOf,
     linesFromPrices,
     linesMatchServices,
-    linesPerRate,
     mergeLines,
     normalizeNip,
     originalGrossOf,
@@ -28,6 +25,7 @@ import {
     priceFromService,
     restoreDraft,
     servicesFingerprint,
+    settlementPlan,
     toInvoicePayload,
     toPriceChanges,
     totalsOf,
@@ -41,8 +39,9 @@ import {
     type InvoiceLine,
 } from '../types/handover';
 
-const DRAFT_PREFIX = 'handover:v3:';
-const LEGACY_DRAFT_PREFIXES = ['handover:v1:', 'handover:v2:'];
+// v4: pozycje bez „na fakturze / na innym dokumencie” i z kwotą innego dokumentu (21.10.2026).
+const DRAFT_PREFIX = 'handover:v4:';
+const LEGACY_DRAFT_PREFIXES = ['handover:v1:', 'handover:v2:', 'handover:v3:'];
 const DUE_DATE_DAYS = 14;
 
 const draftKey = (visitId: string) => `${DRAFT_PREFIX}${visitId}`;
@@ -141,6 +140,7 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
             prices,
             lines: linesFromPrices(prices),
             splitRemainder: false,
+            remainderInput: '',
             exemptionBasis: '',
             protocolSigned: false,
             sendToKsef: null,
@@ -186,11 +186,18 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     const canIssueDocuments = useCapability('FINANCE_INVOICE_ISSUE').enabled;
 
     // ── Kwoty ────────────────────────────────────────────────────────────────
-    const totals = useMemo(() => totalsOf(state.prices), [state.prices]);
+    // Rozliczenie (faktura, inny dokument i wynikające z nich ceny wizyty). Bez podziału
+    // ceny wizyty to te z „Cen usług”; przy podziale kwota na fakturze albo na innym
+    // dokumencie może je zmienić (patrz settlementPlan).
+    const plan = useMemo(() => settlementPlan(state), [state]);
+    const totals = useMemo(() => totalsOf(plan.prices), [plan.prices]);
     const originalGross = useMemo(() => originalGrossOf(state.prices), [state.prices]);
     /** Rabat (+) albo dopłata (−) przy wydaniu, brutto. */
     const handoverDiscount = originalGross - totals.gross;
-    const pricesChanged = state.prices.some(priceChanged);
+    const pricesChanged = plan.prices.some(priceChanged);
+    /** Suma i rabat z „Cen usług” - tego, co człowiek ustawił w cenach, przed rozliczeniem. */
+    const pricesGross = useMemo(() => totalsOf(state.prices).gross, [state.prices]);
+    const pricesDiscount = originalGross - pricesGross;
     // Układ ekranu: wizyta bez płatnych usług. Rabat do zera w trakcie wydania nie chowa
     // edytora cen - do zapłaty jest wtedy 0 zł i dokument nie powstanie (patrz zapis).
     const isFreeVisit = originalGross === 0;
@@ -252,10 +259,12 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     );
 
     // ── Faktura ──────────────────────────────────────────────────────────────
-    const invoiceItems = useMemo(() => invoiceItemsOf(state), [state]);
-    const invoiceGross = useMemo(() => invoiceGrossOf(invoiceItems), [invoiceItems]);
-    /** Część kwoty na drugim dokumencie (tylko przy podziale). */
-    const remainder = state.splitRemainder ? totals.gross - invoiceGross : 0;
+    const invoiceItems = useMemo(() => plan.invoice.map(({ item }) => item), [plan]);
+    const invoiceGross = plan.invoiceGross;
+    /** Kwota innego dokumentu (tylko przy podziale): bez paragonu, bez VAT. */
+    const remainder = plan.remainder;
+    /** Ile klient płaci: przy podziale faktura + inny dokument (bez VAT od części poza fakturą). */
+    const payable = state.splitRemainder ? invoiceGross + remainder : totals.gross;
     const linesMatch = linesMatchServices(state.lines, state.prices);
 
     // ── Akcje cen i pozycji ──────────────────────────────────────────────────
@@ -302,7 +311,8 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         [state.lines, state.prices, patch]
     );
 
-    const applyLinesPerRate = useCallback(() => patch({ lines: linesPerRate(state.prices) }), [state.prices, patch]);
+    /** Kwota innego dokumentu wpisana ręcznie; '' wraca do wyliczonej. */
+    const setRemainderInput = useCallback((remainderInput: string) => patch({ remainderInput }), [patch]);
 
     /**
      * „Faktura + inny dokument”: część kwoty na fakturze, reszta zapisem bez paragonu
@@ -313,7 +323,8 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
             setState(prev => ({
                 ...prev,
                 splitRemainder: on,
-                lines: on ? prev.lines : prev.lines.map(l => ({ ...l, onInvoice: true, partialGross: '' })),
+                remainderInput: '',
+                lines: on ? prev.lines : prev.lines.map(l => ({ ...l, partialGross: '' })),
             })),
         []
     );
@@ -351,14 +362,14 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
                 payment: {
                     method: nothingToPay ? ('OTHER' as PaymentMethod) : state.paymentMethod,
                     invoiceType: documentType,
-                    amount: totals.gross,
+                    amount: payable,
                     dueDate: state.paymentMethod === 'TRANSFER' ? defaultDueDate() : undefined,
                 },
                 invoice:
                     documentType === 'INVOICE' && canIssueDocuments && !nothingToPay
                         ? toInvoicePayload(state, sendToKsef)
                         : undefined,
-                priceChanges: toPriceChanges(state.prices),
+                priceChanges: toPriceChanges(plan.prices),
                 thankYouSms: buildThankYouSmsPayload({
                     available: thankYouSms.available,
                     send: thankYouSmsChecked,
@@ -392,12 +403,17 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         totals,
         originalGross,
         handoverDiscount,
+        pricesGross,
+        pricesDiscount,
         pricesChanged,
         currency,
         isFreeVisit,
         invoiceItems,
         invoiceGross,
         remainder,
+        remainderAuto: plan.remainderAuto,
+        raisedByInvoice: plan.raisedByInvoice,
+        payable,
         linesMatch,
         restoredAt,
         // akcje cen i pozycji
@@ -407,7 +423,7 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         resetLines,
         mergeSelected,
         unmerge,
-        applyLinesPerRate,
+        setRemainderInput,
         setInvoiceOther,
         // stan
         state,

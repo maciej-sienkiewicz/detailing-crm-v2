@@ -236,7 +236,7 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
         hasOtherDocument: handover.state.splitRemainder && handover.remainder > 0,
         invoicedExternally: handover.invoicedExternally,
         sendToKsef: handover.sendToKsef,
-        gross: fmt(handover.totals.gross),
+        gross: fmt(handover.payable),
         invoiceGross: fmt(handover.invoiceGross),
         remainder: fmt(handover.remainder),
         buyerName: handover.state.buyer.name,
@@ -319,6 +319,8 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                             invoiceItems={handover.invoiceItems}
                                             invoiceGross={handover.invoiceGross}
                                             remainder={handover.remainder}
+                                            remainderAuto={handover.remainderAuto}
+                                            settledGross={handover.totals.gross}
                                             sellerComplete={handover.sellerComplete}
                                             company={handover.company}
                                             problemsIn={handover.problemsIn}
@@ -328,7 +330,7 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                                 restoredAt: handover.restoredAt,
                                                 resetLines: handover.resetLines,
                                                 setInvoiceOther: handover.setInvoiceOther,
-                                                applyLinesPerRate: handover.applyLinesPerRate,
+                                                setRemainderInput: handover.setRemainderInput,
                                                 changeLine: handover.changeLine,
                                                 mergeSelected: handover.mergeSelected,
                                                 unmerge: handover.unmerge,
@@ -336,8 +338,8 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                             priceControls={{
                                                 changePrice: handover.changePrice,
                                                 resetPrices: handover.resetPrices,
-                                                discount: handover.handoverDiscount,
-                                                totalGross: handover.totals.gross,
+                                                discount: handover.pricesDiscount,
+                                                totalGross: handover.pricesGross,
                                             }}
                                         />
                                         <SettlementSummary
@@ -348,6 +350,7 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                             invoiceItems={handover.invoiceItems}
                                             invoiceGross={handover.invoiceGross}
                                             remainder={handover.remainder}
+                                            payable={handover.payable}
                                             invoicedExternally={handover.invoicedExternally}
                                             sendToKsef={handover.sendToKsef}
                                             ksefBlocked={handover.ksefBlocked}

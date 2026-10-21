@@ -33,6 +33,7 @@ const state = (overrides: Partial<HandoverState> = {}): HandoverState => ({
     prices,
     lines: linesFromPrices(prices),
     splitRemainder: false,
+    remainderInput: '',
     exemptionBasis: '',
     protocolSigned: true,
     sendToKsef: null,
@@ -45,7 +46,7 @@ const controls = (overrides: Partial<InvoiceControls> = {}): InvoiceControls => 
     restoredAt: null,
     resetLines: vi.fn(),
     setInvoiceOther: vi.fn(),
-    applyLinesPerRate: vi.fn(),
+    setRemainderInput: vi.fn(),
     changeLine: vi.fn(),
     mergeSelected: vi.fn(() => null),
     unmerge: vi.fn(),
@@ -80,6 +81,8 @@ const left = (s: HandoverState, opts: { remainder?: number; c?: InvoiceControls;
             invoiceItems={items}
             invoiceGross={items.reduce((sum, i) => sum + Number(i.gross.replace(',', '.')) * 100, 0)}
             remainder={opts.remainder ?? 0}
+            remainderAuto={opts.remainder ?? 0}
+            settledGross={totalsOf(s.prices).gross}
             sellerComplete
             company={company}
             problemsIn={() => []}
@@ -100,6 +103,7 @@ const right = (s: HandoverState, opts: { invoiceGross?: number; remainder?: numb
             invoiceItems={invoiceItemsOf(s)}
             invoiceGross={opts.invoiceGross ?? 170_000}
             remainder={opts.remainder ?? 0}
+            payable={s.splitRemainder ? (opts.invoiceGross ?? 170_000) + (opts.remainder ?? 0) : undefined}
             invoicedExternally={opts.external ?? false}
             sendToKsef={opts.sendToKsef ?? true}
             ksefBlocked={opts.ksefBlocked ?? null}
@@ -169,19 +173,30 @@ describe('Lewa kolumna: decyzje', () => {
         expect(within(dialog).getByText('Do zapłaty').parentElement?.textContent).toMatch(/1700,00/);
     });
 
-    it('podział: pozycje otwarte, przy każdej faktura albo inny dokument, pod nimi dwie kwoty', () => {
-        const lines = linesFromPrices(prices).map(l => (l.serviceIds[0] === 'p' ? { ...l, onInvoice: false } : l));
+    it('podział: każda pozycja na fakturze z polem kwoty, bez kolumny „Dokument”, pod nimi dwie kwoty', () => {
+        const lines = linesFromPrices(prices).map(l => (l.serviceIds[0] === 'p' ? { ...l, partialGross: '0' } : l));
         const c = controls();
-        left(state({ splitRemainder: true, lines }), { remainder: 20_000, c });
+        left(state({ splitRemainder: true, lines }), { remainder: 18_519, c });
 
-        expect(screen.getByLabelText('Pozycja 1 na fakturze')).toBeChecked();
-        expect(screen.getByLabelText('Pozycja 2 na fakturze')).not.toBeChecked();
+        expect(screen.queryByText('Dokument')).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Jedna pozycja na każdą stawkę' })).not.toBeInTheDocument();
+        expect(screen.queryByLabelText('Pozycja 2 na fakturze')).not.toBeInTheDocument();
         expect(screen.getByText('Kwota na fakturze').parentElement?.textContent).toMatch(/1500,00/);
-        expect(screen.getByText('Inny dokument: bez paragonu, bez VAT, gotówka').parentElement?.textContent).toMatch(/200,00/);
+        // Inny dokument to pole z kwotą wyliczoną (netto prania, bez VAT) w podpowiedzi.
+        expect(screen.getByLabelText('Kwota innego dokumentu')).toHaveAttribute('placeholder', expect.stringMatching(/185,19/));
         expect(screen.getByText('Forma zapłaty faktury')).toBeInTheDocument();
 
-        fireEvent.click(screen.getByLabelText('Pozycja 2 na fakturze'));
-        expect(c.changeLine).toHaveBeenCalledWith(1, { onInvoice: true, partialGross: '' });
+        fireEvent.change(screen.getByLabelText('Kwota innego dokumentu'), { target: { value: '190' } });
+        expect(c.setRemainderInput).toHaveBeenCalledWith('190');
+        fireEvent.change(screen.getByLabelText('Kwota na fakturze, pozycja 2'), { target: { value: '150' } });
+        expect(c.changeLine).toHaveBeenCalledWith(1, { partialGross: '150' });
+    });
+
+    it('podział: pod przemianowaną pozycją nie ma „Usługa: …”', () => {
+        const lines = linesFromPrices(prices).map(l => (l.serviceIds[0] === 'c' ? { ...l, name: 'Pozycja na fakturze' } : l));
+        left(state({ splitRemainder: true, lines }));
+
+        expect(screen.queryByText(/Usługa: Powłoka ceramiczna/)).not.toBeInTheDocument();
     });
 
     it('ceny usług: zmiana ceny w edytorze to zmiana ceny wizyty, z rabatem widocznym od razu', () => {
@@ -234,11 +249,13 @@ describe('Prawa kolumna: kwota, sprawdź przed wysłaniem, braki', () => {
         expect(screen.getByText(/nie trafi do KSeF: brak tokenu/)).toBeInTheDocument();
     });
 
-    it('„Faktura + Inny dokument”: kwota faktury i inny dokument gotówką, bez VAT', () => {
-        right(state({ splitRemainder: true }), { invoiceGross: 120_000, remainder: 50_000 });
+    it('„Faktura + Inny dokument”: do zapłaty faktura + inny dokument, bez VAT od części poza fakturą', () => {
+        right(state({ splitRemainder: true }), { invoiceGross: 120_000, remainder: 40_651 });
         const aside = screen.getByLabelText('Podsumowanie rozliczenia');
-        expect(aside.textContent).toMatch(/faktura 1200,00\szł, inny dokument 500,00\szł/);
-        expect(aside.textContent).toMatch(/Inny dokument500,00\szłbez paragonu, bez VAT, gotówka/);
+        expect(aside.textContent).toMatch(/Do zapłaty1606,51\szł/);
+        expect(aside.textContent).toMatch(/faktura 1200,00\szł, inny dokument 406,51\szł/);
+        expect(aside.textContent).toMatch(/cena usług 1700,00\szł, bez VAT na innym dokumencie 93,49\szł mniej/);
+        expect(aside.textContent).toMatch(/Inny dokument406,51\szłbez paragonu, bez VAT, gotówka/);
     });
 
     it('netto i VAT pokazane z faktury, a rabat przy wydaniu obok kwoty', () => {

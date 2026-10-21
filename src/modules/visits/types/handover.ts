@@ -50,17 +50,15 @@ export interface HandoverPrice extends HandoverItem {
 }
 
 /**
- * Pozycja faktury: jedna albo kilka usług tej samej stawki (scalenie). Kwota pozycji
- * wynika z cen usług - na fakturze nie zmienia się ceny, tylko opis. Przy podziale
- * „faktura + inny dokument” pozycja idzie na fakturę albo na inny dokument, a może też
- * objąć tylko część kwoty swoich usług ([partialGross]).
+ * Pozycja faktury: jedna albo kilka usług tej samej stawki (scalenie). Każda pozycja idzie
+ * na fakturę. Przy podziale „faktura + inny dokument” pozycja może mieć na fakturze inną
+ * kwotę niż jej usługi ([partialGross]): niższa zostawia resztę na innym dokumencie,
+ * wyższa podnosi cenę usług w wizycie do tej kwoty (patrz [settlementPlan]).
  */
 export interface InvoiceLine {
     name: string;
     serviceIds: string[];
-    /** Podział: pozycja na fakturze (true) albo na innym dokumencie (false). */
-    onInvoice: boolean;
-    /** Podział: brutto na fakturze, gdy niższe niż kwota usług pozycji; '' = całość. */
+    /** Podział: brutto na fakturze; '' = cała kwota usług pozycji, 0 = nic na fakturze. */
     partialGross: string;
 }
 
@@ -81,6 +79,11 @@ export interface HandoverState {
      * i bez VAT, gotówką (decyzja biznesu z 20.10.2026).
      */
     splitRemainder: boolean;
+    /**
+     * Kwota innego dokumentu wpisana przez człowieka; '' = wyliczona (netto części usług
+     * poza fakturą, bo bez paragonu nie ma VAT-u). Inna niż wyliczona zmienia cenę wizyty.
+     */
+    remainderInput: string;
     exemptionBasis: string;
     /** Protokół podpisany papierowo. Trafia do payloadu jako signatureObtained. */
     protocolSigned: boolean;
@@ -148,7 +151,7 @@ export const restoreDraft = (
             thankYouSms: draft.state.thankYouSms ?? fresh.thankYouSms,
         };
     }
-    return { ...fresh, ...draft.state };
+    return { ...fresh, ...draft.state, remainderInput: draft.state.remainderInput ?? '' };
 };
 
 // ─── Arytmetyka kwot (grosze) ─────────────────────────────────────────────────
@@ -335,7 +338,7 @@ export const toPriceChanges = (prices: HandoverPrice[]): HandoverPriceChangePayl
 
 /** Jedna pozycja na usługę - punkt wyjścia faktury. */
 export const linesFromPrices = (prices: HandoverPrice[]): InvoiceLine[] =>
-    prices.map(price => ({ name: price.name, serviceIds: [price.serviceId], onInvoice: true, partialGross: '' }));
+    prices.map(price => ({ name: price.name, serviceIds: [price.serviceId], partialGross: '' }));
 
 const sourcesOf = (line: InvoiceLine, prices: HandoverPrice[]): HandoverPrice[] =>
     line.serviceIds.map(id => prices.find(p => p.serviceId === id)).filter((p): p is HandoverPrice => Boolean(p));
@@ -348,11 +351,11 @@ export const lineFullGross = (line: InvoiceLine, prices: HandoverPrice[]): numbe
 export const lineRatesMixed = (line: InvoiceLine, prices: HandoverPrice[]): boolean =>
     new Set(sourcesOf(line, prices).map(p => p.vatRate)).size > 1;
 
-/** Część pozycji na fakturze przy podziale: kwota częściowa albo całość. */
+/** Kwota pozycji na fakturze przy podziale: wpisana albo null (= cała kwota usług). */
 const partialOf = (line: InvoiceLine, full: number, split: boolean): number | null => {
     if (!split || !line.partialGross.trim()) return null;
     const partial = parsePln(line.partialGross);
-    return partial > 0 && partial < full ? partial : null;
+    return partial < full ? partial : null;
 };
 
 /**
@@ -379,12 +382,154 @@ export const lineAmounts = (line: InvoiceLine, prices: HandoverPrice[], split = 
     return withDerived({ name: line.name, net: '', gross: toPln(full), mode: 'GROSS', vatRate });
 };
 
-/** Pozycje, które trafią na fakturę (przy podziale: tylko zaznaczone), z usługami. */
+/**
+ * Rozkład kwoty na części proporcjonalne do wag metodą największej reszty - suma części
+ * równa kwocie co do grosza (ten sam rozkład co SettlementAllocator.distribute na backendzie).
+ * Wagi zerowe dostają zero; gdy wszystkie są zerowe, całość dostaje pierwsza pozycja.
+ */
+export const distributeCents = (total: number, weights: number[]): number[] => {
+    if (weights.length === 0) return [];
+    const sign = total < 0 ? -1 : 1;
+    const amount = Math.abs(total);
+    const sum = weights.reduce((a, b) => a + b, 0);
+    if (sum === 0) return weights.map((_, i) => (i === 0 ? total : 0));
+    const exact = weights.map(w => (amount * w) / sum);
+    const parts = exact.map(Math.floor);
+    let left = amount - parts.reduce((a, b) => a + b, 0);
+    const order = exact.map((e, i) => ({ i, r: e - Math.floor(e) })).sort((a, b) => b.r - a.r);
+    for (const { i } of order) {
+        if (left <= 0) break;
+        if (weights[i] === 0) continue;
+        parts[i] += 1;
+        left -= 1;
+    }
+    return parts.map(p => p * sign);
+};
+
+/**
+ * Rozliczenie „faktura + inny dokument”: co trafi na fakturę, ile na inny dokument i jakie
+ * ceny usług wizyty z tego wynikają.
+ *
+ * Zasady (decyzja biznesu z 21.10.2026):
+ *  - wszystkie pozycje idą na fakturę; pozycja może mieć kwotę niższą albo wyższą niż jej usługi,
+ *  - wyższa kwota na fakturze podnosi cenę usług wizyty do tej kwoty,
+ *  - inny dokument jest bez paragonu i bez VAT, więc domyślnie niesie NETTO części usług poza
+ *    fakturą (123 zł brutto, 50 zł na fakturze → 59,35 zł, a nie 73 zł),
+ *  - kwotę innego dokumentu można wpisać; inna niż wyliczona zmienia cenę wizyty tak, żeby
+ *    netto faktury + inny dokument = netto wizyty (tak samo liczy backend).
+ */
+export interface SettlementPlan {
+    /** Ceny usług wizyty po rozliczeniu - to one idą jako zmiany cen przy wydaniu. */
+    prices: HandoverPrice[];
+    /** Pozycje faktury z kwotami, ustalone przed zmianą cen przez kwotę innego dokumentu. */
+    invoice: Array<{ line: InvoiceLine; item: HandoverItem }>;
+    invoiceGross: number;
+    invoiceNet: number;
+    /** Kwota innego dokumentu (bez VAT). */
+    remainder: number;
+    /** Kwota wyliczona: netto części usług poza fakturą. */
+    remainderAuto: number;
+    /** Nazwy usług, których cenę podnosi wyższa kwota na fakturze. */
+    raisedByInvoice: string[];
+    /** Problem, przez który rozliczenia nie da się wykonać; null = w porządku. */
+    problem: string | null;
+}
+
+/** Brutto każdej usługi na fakturze: kwota pozycji rozłożona na jej usługi jak na backendzie. */
+const invoicedGrossByService = (
+    invoice: Array<{ line: InvoiceLine; item: HandoverItem }>,
+    prices: HandoverPrice[],
+): Map<string, number> => {
+    const byService = new Map<string, number>();
+    invoice.forEach(({ line, item }) => {
+        const sources = sourcesOf(line, prices);
+        const parts = distributeCents(itemAmounts(item).gross, sources.map(p => priceAmounts(p).gross));
+        sources.forEach((p, i) => byService.set(p.serviceId, (byService.get(p.serviceId) ?? 0) + parts[i]));
+    });
+    return byService;
+};
+
+export const settlementPlan = (state: HandoverState): SettlementPlan => {
+    const invoiceOf = (prices: HandoverPrice[]) =>
+        state.lines
+            .map(line => ({ line, item: lineAmounts(line, prices, state.splitRemainder) }))
+            .filter(({ item }) => itemAmounts(item).gross > 0);
+
+    if (!state.splitRemainder) {
+        const invoice = invoiceOf(state.prices);
+        return {
+            prices: state.prices,
+            invoice,
+            invoiceGross: invoice.reduce((sum, { item }) => sum + itemAmounts(item).gross, 0),
+            invoiceNet: invoice.reduce((sum, { item }) => sum + itemAmounts(item).net, 0),
+            remainder: 0,
+            remainderAuto: 0,
+            raisedByInvoice: [],
+            problem: null,
+        };
+    }
+
+    // 1. Kwota na fakturze wyższa niż usługi pozycji podnosi ich cenę do tej kwoty.
+    let prices = state.prices;
+    const raisedByInvoice: string[] = [];
+    state.lines.forEach(line => {
+        if (!line.partialGross.trim()) return;
+        const partial = parsePln(line.partialGross);
+        const sources = sourcesOf(line, prices);
+        const full = sources.reduce((sum, p) => sum + priceAmounts(p).gross, 0);
+        if (sources.length === 0 || partial <= full) return;
+        const grosses = sources.map(p => priceAmounts(p).gross);
+        const parts = distributeCents(partial, grosses.every(g => g === 0) ? grosses.map(() => 1) : grosses);
+        prices = prices.map(p => {
+            const i = sources.findIndex(s => s.serviceId === p.serviceId);
+            return i < 0 ? p : updatePrice(p, { gross: toPln(parts[i]) });
+        });
+        raisedByInvoice.push(...sources.map(p => p.name));
+    });
+
+    // 2. Faktura - jej kwoty są odtąd ustalone.
+    const invoice = invoiceOf(prices);
+    const invoiceGross = invoice.reduce((sum, { item }) => sum + itemAmounts(item).gross, 0);
+    const invoiceNet = invoice.reduce((sum, { item }) => sum + itemAmounts(item).net, 0);
+    const remainderAuto = Math.max(0, totalsOf(prices).net - invoiceNet);
+
+    // 3. Kwota innego dokumentu wpisana przez człowieka.
+    const typed = (state.remainderInput ?? '').trim();
+    const remainder = typed ? parsePln(typed) : remainderAuto;
+    if (remainder === remainderAuto) {
+        return { prices, invoice, invoiceGross, invoiceNet, remainder, remainderAuto, raisedByInvoice, problem: null };
+    }
+
+    const invoiced = invoicedGrossByService(invoice, prices);
+    const uncovered = prices.map(p => Math.max(0, priceAmounts(p).gross - (invoiced.get(p.serviceId) ?? 0)));
+    if (remainder === 0) {
+        // Nic na innym dokumencie: usługi kosztują dokładnie tyle, ile mają na fakturze.
+        prices = prices.map((p, i) =>
+            uncovered[i] > 0 ? updatePrice(p, { gross: toPln(invoiced.get(p.serviceId) ?? 0) }) : p);
+    } else {
+        // Różnica idzie na usługi poza fakturą (a gdy takich nie ma - na wszystkie), od strony
+        // netto: kwota innego dokumentu jest netto, więc netto wizyty zgadza się co do grosza.
+        const weights = uncovered.some(u => u > 0) ? uncovered : prices.map(p => priceAmounts(p).gross);
+        const shifts = distributeCents(remainder - remainderAuto, weights);
+        prices = prices.map((p, i) =>
+            shifts[i] === 0 ? p : updatePrice(p, { net: toPln(priceAmounts(p).net + shifts[i]) }));
+    }
+    const negative = prices.find(p => priceAmounts(p).net < 0);
+    return {
+        prices,
+        invoice,
+        invoiceGross,
+        invoiceNet,
+        remainder,
+        remainderAuto,
+        raisedByInvoice,
+        problem: negative ? `Kwota innego dokumentu jest za niska: cena „${negative.name}” spadłaby poniżej zera.` : null,
+    };
+};
+
+/** Pozycje, które trafią na fakturę, z usługami. */
 export const invoiceLinesOf = (state: HandoverState): Array<{ line: InvoiceLine; item: HandoverItem }> =>
-    state.lines
-        .filter(line => !state.splitRemainder || line.onInvoice)
-        .map(line => ({ line, item: lineAmounts(line, state.prices, state.splitRemainder) }))
-        .filter(({ item }) => itemAmounts(item).gross > 0);
+    settlementPlan(state).invoice;
 
 export const invoiceItemsOf = (state: HandoverState): HandoverItem[] => invoiceLinesOf(state).map(({ item }) => item);
 
@@ -402,7 +547,6 @@ export const mergeLines = (lines: InvoiceLine[], indexes: number[], prices: Hand
     const merged: InvoiceLine = {
         name: names.length > 200 ? `${names.slice(0, 197)}...` : names,
         serviceIds: picked.flatMap(line => line.serviceIds),
-        onInvoice: picked.some(line => line.onInvoice),
         partialGross: '',
     };
     const first = Math.min(...indexes);
@@ -414,29 +558,14 @@ export const unmergeLine = (lines: InvoiceLine[], index: number, prices: Handove
     lines.flatMap((line, i) =>
         i !== index
             ? [line]
-            : sourcesOf(line, prices).map(p => ({ name: p.name, serviceIds: [p.serviceId], onInvoice: line.onInvoice, partialGross: '' }))
+            : sourcesOf(line, prices).map(p => ({ name: p.name, serviceIds: [p.serviceId], partialGross: '' }))
     );
-
-/** Jedna pozycja na każdą stawkę VAT - scalenie, które nie zmienia podatku. */
-export const linesPerRate = (prices: HandoverPrice[]): InvoiceLine[] => {
-    const groups = new Map<VatRateCode, HandoverPrice[]>();
-    prices.forEach(p => groups.set(p.vatRate, [...(groups.get(p.vatRate) ?? []), p]));
-    return [...groups.values()].map(group => {
-        const names = group.map(p => p.name.trim()).filter(Boolean).join(', ');
-        return {
-            name: names.length > 200 ? `${names.slice(0, 197)}...` : names,
-            serviceIds: group.map(p => p.serviceId),
-            onInvoice: true,
-            partialGross: '',
-        };
-    });
-};
 
 /** Pozycje ułożone dokładnie jak usługi (bez scaleń i podziału). */
 export const linesMatchServices = (lines: InvoiceLine[], prices: HandoverPrice[]): boolean =>
     lines.length === prices.length &&
     lines.every((line, i) => line.serviceIds.length === 1 && line.serviceIds[0] === prices[i].serviceId &&
-        line.name.trim() === prices[i].name.trim() && line.onInvoice && !line.partialGross.trim());
+        line.name.trim() === prices[i].name.trim() && !line.partialGross.trim());
 
 // ─── Walidacja ────────────────────────────────────────────────────────────────
 
@@ -492,18 +621,18 @@ export const validateHandover = ({
                 message: `Pozycja ${index + 1} łączy usługi z różnymi stawkami VAT. Rozdziel ją.`,
             });
         }
-        if (state.splitRemainder && line.onInvoice && line.partialGross.trim()) {
-            const partial = parsePln(line.partialGross);
-            if (partial <= 0 || partial > lineFullGross(line, state.prices)) {
-                problems.push({
-                    section: 'items',
-                    message: `Pozycja ${index + 1}: kwota na fakturze musi być większa od zera i nie wyższa niż cena usług.`,
-                });
-            }
+        if (state.splitRemainder && line.partialGross.trim() && !isPlnInput(line.partialGross)) {
+            problems.push({ section: 'items', message: `Pozycja ${index + 1}: podaj kwotę na fakturze.` });
         }
     });
 
-    const invoiceItems = invoiceItemsOf(state);
+    const plan = settlementPlan(state);
+    if (state.splitRemainder && (state.remainderInput ?? '').trim() && !isPlnInput(state.remainderInput)) {
+        problems.push({ section: 'balance', message: 'Inny dokument: podaj kwotę.' });
+    }
+    if (plan.problem) problems.push({ section: 'balance', message: plan.problem });
+
+    const invoiceItems = plan.invoice.map(({ item }) => item);
     if (invoiceItems.some(item => item.vatRate === 'zw') && !state.exemptionBasis.trim()) {
         problems.push({
             section: 'items',
@@ -514,7 +643,7 @@ export const validateHandover = ({
         problems.push({
             section: 'balance',
             message: state.splitRemainder
-                ? 'Zaznacz co najmniej jedną pozycję na fakturze.'
+                ? 'Wpisz kwotę na fakturze przynajmniej w jednej pozycji.'
                 : 'Faktura musi mieć co najmniej jedną pozycję z kwotą.',
         });
     }
@@ -555,12 +684,12 @@ const buyerProblems = (state: HandoverState): HandoverProblem[] => {
 /**
  * Stan ekranu → payload faktury dla POST /visits/{id}/complete. Pozycje wskazują usługi,
  * które obejmują (alokacja usługa × dokument). Reszta przy podziale to zawsze zapis bez
- * paragonu i bez VAT, gotówką (decyzja biznesu z 20.10.2026).
+ * paragonu i bez VAT, gotówką (decyzja biznesu z 20.10.2026), na kwotę z [settlementPlan].
  */
 export const toInvoicePayload = (state: HandoverState, sendToKsef: boolean): CompleteInvoicePayload => {
-    const lines = invoiceLinesOf(state);
-    const invoiceGross = invoiceGrossOf(lines.map(l => l.item));
-    const remainder = totalsOf(state.prices).gross - invoiceGross;
+    const plan = settlementPlan(state);
+    const lines = plan.invoice;
+    const remainder = plan.remainder;
     const nip = normalizeNip(state.buyer.nip);
 
     return {
@@ -580,6 +709,8 @@ export const toInvoicePayload = (state: HandoverState, sendToKsef: boolean): Com
         buyerEmail: state.buyer.email.trim() || undefined,
         remainderPaymentMethod: remainder > 0 ? 'CASH' : undefined,
         remainderWithoutReceipt: remainder > 0 ? true : undefined,
+        // Kwota, którą widział człowiek - backend sprawdza ją z cenami wizyty (±1 gr).
+        remainderAmount: remainder > 0 ? remainder : undefined,
         exemptionLegalBasis: lines.some(({ item }) => item.vatRate === 'zw') ? state.exemptionBasis.trim() : undefined,
         sendToKsef,
     };

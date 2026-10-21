@@ -10,7 +10,6 @@ import {
     itemAmounts,
     lineAmounts,
     linesFromPrices,
-    linesPerRate,
     mergeLines,
     nipProblem,
     parsePln,
@@ -19,6 +18,7 @@ import {
     priceFromService,
     restoreDraft,
     servicesFingerprint,
+    settlementPlan,
     toInvoicePayload,
     toPln,
     toPriceChanges,
@@ -50,6 +50,7 @@ const state = (overrides: Partial<HandoverState> = {}): HandoverState => {
         prices,
         lines: linesFromPrices(prices),
         splitRemainder: false,
+        remainderInput: '',
         exemptionBasis: '',
         protocolSigned: false,
         sendToKsef: null,
@@ -178,13 +179,9 @@ describe('pozycje faktury', () => {
         expect(unmergeLine(merged, 0, prices).map(l => l.serviceIds)).toEqual([['c'], ['k']]);
     });
 
-    it('jedna pozycja na stawkę', () => {
-        expect(linesPerRate([ceramika, ozon, korekta]).map(l => l.serviceIds)).toEqual([['c', 'k'], ['o']]);
-    });
-
     it('usługi scalone, a potem z różnymi stawkami - pozycja do rozdzielenia', () => {
         const prices = [ceramika, updatePrice(korekta, { vatRate: '8' })];
-        const s = state({ prices, lines: [{ name: 'Usługi', serviceIds: ['c', 'k'], onInvoice: true, partialGross: '' }] });
+        const s = state({ prices, lines: [{ name: 'Usługi', serviceIds: ['c', 'k'], partialGross: '' }] });
         expect(validateHandover({ state: s, sellerComplete: true }).map(p => p.message))
             .toContain('Pozycja 1 łączy usługi z różnymi stawkami VAT. Rozdziel ją.');
     });
@@ -193,32 +190,71 @@ describe('pozycje faktury', () => {
 describe('podział: faktura + inny dokument', () => {
     const rabat = updatePrice(korekta, { gross: '2000,00' });
     const prices = [ceramika, rabat, pranie];
+    /** Usługa za 123 zł brutto (100 zł netto) - przykład z decyzji biznesu z 21.10.2026. */
+    const test = priceFromService({ id: 't', serviceName: 'Test', vatRate: 23, basePriceGross: 12_300, finalPriceNet: 10_000, finalPriceGross: 12_300 });
+    const split = (lines: HandoverState['lines'], extra: Partial<HandoverState> = {}, ps = prices) =>
+        state({ prices: ps, lines, splitRemainder: true, ...extra });
+    const onInvoice = (partials: Record<string, string>, ps = prices) =>
+        linesFromPrices(ps).map(l => (partials[l.serviceIds[0]] !== undefined ? { ...l, partialGross: partials[l.serviceIds[0]] } : l));
 
-    it('wizyta 12 000: rabat 1000, faktura 10 000 na ceramikę i korektę, 1000 bez paragonu', () => {
-        const lines = linesFromPrices(prices).map(l => (l.serviceIds[0] === 'p' ? { ...l, onInvoice: false } : l));
-        const s = state({ prices, lines, splitRemainder: true });
+    it('123 zł, 50 zł na fakturze: inny dokument bez VAT to 59,35 zł, a nie 73 zł', () => {
+        const s = split(onInvoice({ t: '50,00' }, [test]), {}, [test]);
+        const plan = settlementPlan(s);
+
+        expect(plan.invoiceGross).toBe(5_000);
+        expect(plan.remainder).toBe(5_935);
+        expect(plan.remainderAuto).toBe(5_935);
+        expect(toPriceChanges(plan.prices)).toEqual([]);
+        expect(toInvoicePayload(s, false)).toMatchObject({ remainderAmount: 5_935, remainderWithoutReceipt: true, remainderPaymentMethod: 'CASH' });
+        expect(validateHandover({ state: s, sellerComplete: true })).toEqual([]);
+    });
+
+    it('wpisana kwota innego dokumentu zmienia cenę wizyty od strony netto, faktura zostaje', () => {
+        const s = split(onInvoice({ t: '50,00' }, [test]), { remainderInput: '60,00' }, [test]);
+        const plan = settlementPlan(s);
+
+        expect(plan.remainder).toBe(6_000);
+        expect(plan.invoiceGross).toBe(5_000);
+        expect(toPriceChanges(plan.prices)).toEqual([{ serviceItemId: 't', netCents: 10_065, grossCents: null, vatRate: 23 }]);
+        expect(totalsOf(plan.prices).net - plan.invoiceNet).toBe(6_000);
+        expect(toInvoicePayload(s, false).items.map(i => i.unitPriceGross)).toEqual([5_000]);
+    });
+
+    it('inny dokument 0 zł: usługa kosztuje dokładnie tyle, ile jest na fakturze', () => {
+        const plan = settlementPlan(split(onInvoice({ t: '50,00' }, [test]), { remainderInput: '0' }, [test]));
+
+        expect(plan.remainder).toBe(0);
+        expect(toPriceChanges(plan.prices)).toEqual([{ serviceItemId: 't', netCents: 4_065, grossCents: 5_000, vatRate: 23 }]);
+    });
+
+    it('wizyta 12 000: rabat 1000, faktura 10 000, pranie poza fakturą - 813,01 zł netto bez paragonu', () => {
+        const s = split(onInvoice({ p: '0' }));
         const payload = toInvoicePayload(s, false);
 
         expect(payload.items.map(i => [i.sourceServiceItemIds, i.unitPriceGross])).toEqual([
             [['c'], 800_000],
             [['k'], 200_000],
         ]);
-        expect(payload.remainderPaymentMethod).toBe('CASH');
-        expect(payload.remainderWithoutReceipt).toBe(true);
+        expect(payload.remainderAmount).toBe(81_301);
         expect(validateHandover({ state: s, sellerComplete: true })).toEqual([]);
     });
 
-    it('część kwoty usługi na fakturze, reszta na innym dokumencie', () => {
-        const lines = linesFromPrices(prices).map(l => (l.serviceIds[0] === 'c' ? { ...l, partialGross: '7000,00' } : l));
-        const s = state({ prices, lines, splitRemainder: true });
+    it('część kwoty usługi na fakturze, reszta netto na innym dokumencie', () => {
+        const s = split(onInvoice({ c: '7000,00' }));
         expect(invoiceGrossOf(invoiceItemsOf(s))).toBe(700_000 + 200_000 + 100_000);
-        expect(toInvoicePayload(s, false).remainderWithoutReceipt).toBe(true);
+        // 1000 zł brutto ceramiki poza fakturą: 650 406,... netto usługi − netto 7000 zł na fakturze.
+        expect(settlementPlan(s).remainder).toBe(650_407 - (700_000 - vatFromGross(700_000, '23')));
     });
 
-    it('kwota na fakturze wyższa niż usługa - do poprawienia', () => {
-        const lines = linesFromPrices(prices).map(l => (l.serviceIds[0] === 'p' ? { ...l, partialGross: '1500,00' } : l));
-        const problems = validateHandover({ state: state({ prices, lines, splitRemainder: true }), sellerComplete: true });
-        expect(problems.some(p => p.section === 'items')).toBe(true);
+    it('kwota na fakturze wyższa niż usługa podnosi cenę usługi w wizycie', () => {
+        const s = split(onInvoice({ p: '1500,00' }));
+        const plan = settlementPlan(s);
+
+        expect(validateHandover({ state: s, sellerComplete: true })).toEqual([]);
+        expect(plan.raisedByInvoice).toEqual(['Pranie tapicerki']);
+        expect(plan.remainder).toBe(0);
+        expect(toPriceChanges(plan.prices)).toContainEqual({ serviceItemId: 'p', netCents: 121_951, grossCents: 150_000, vatRate: 23 });
+        expect(toInvoicePayload(s, false).remainderPaymentMethod).toBeUndefined();
     });
 
     it('bez podziału faktura obejmuje całą kwotę i nie ma reszty', () => {
@@ -227,10 +263,14 @@ describe('podział: faktura + inny dokument', () => {
         expect(invoiceGrossOf(invoiceLinesOf(state({ prices })).map(l => l.item))).toBe(1_100_000);
     });
 
-    it('podział bez żadnej pozycji na fakturze - do poprawienia', () => {
-        const lines = linesFromPrices(prices).map(l => ({ ...l, onInvoice: false }));
-        const problems = validateHandover({ state: state({ prices, lines, splitRemainder: true }), sellerComplete: true });
-        expect(problems.map(p => p.message)).toContain('Zaznacz co najmniej jedną pozycję na fakturze.');
+    it('nic na fakturze - do poprawienia', () => {
+        const problems = validateHandover({ state: split(onInvoice({ c: '0', k: '0', p: '0' })), sellerComplete: true });
+        expect(problems.map(p => p.message)).toContain('Wpisz kwotę na fakturze przynajmniej w jednej pozycji.');
+    });
+
+    it('kwota innego dokumentu, która nie jest kwotą - do poprawienia', () => {
+        const problems = validateHandover({ state: split(onInvoice({ c: '7000,00' }), { remainderInput: '12,345' }), sellerComplete: true });
+        expect(problems.map(p => p.message)).toContain('Inny dokument: podaj kwotę.');
     });
 });
 

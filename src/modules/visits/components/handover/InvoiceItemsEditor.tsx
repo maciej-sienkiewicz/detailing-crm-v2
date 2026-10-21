@@ -11,6 +11,7 @@ import {
     lineAmounts,
     lineFullGross,
     itemAmounts,
+    parsePln,
     type HandoverPrice,
     type InvoiceLine,
 } from '../../types/handover';
@@ -21,9 +22,9 @@ const Wrap = styled.div`
     gap: 8px;
 `;
 
-const Row = styled.div<{ $split: boolean }>`
+const Row = styled.div`
     display: grid;
-    grid-template-columns: 22px minmax(140px, 1fr) 56px ${p => (p.$split ? '150px 110px' : '110px')} 32px;
+    grid-template-columns: 22px minmax(140px, 1fr) 56px 120px 32px;
     gap: 8px;
     align-items: center;
 
@@ -73,13 +74,10 @@ const Amount = styled.span`
     white-space: nowrap;
 `;
 
-const Toggle = styled.label`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    color: ${ui.inkSoft};
-    cursor: pointer;
+const Raise = styled.small`
+    font-size: 12px;
+    color: ${ui.warnInk};
+    font-variant-numeric: tabular-nums;
 `;
 
 const IconBtn = styled.button`
@@ -113,12 +111,11 @@ const MergeError = styled.span`
 interface InvoiceItemsEditorProps {
     lines: InvoiceLine[];
     prices: HandoverPrice[];
-    /** „Faktura + inny dokument”: pozycja na fakturze albo na innym dokumencie, z kwotą częściową. */
+    /** „Faktura + inny dokument”: każda pozycja ma pole kwoty na fakturze. */
     split: boolean;
     onChangeLine: (index: number, changes: Partial<InvoiceLine>) => void;
     onMerge: (indexes: number[]) => string | null;
     onUnmerge: (index: number) => void;
-    onLinesPerRate: () => void;
     exemptionBasis: string;
     onExemptionBasisChange: (value: string) => void;
     fmt: (grosz: number) => string;
@@ -126,8 +123,9 @@ interface InvoiceItemsEditorProps {
 
 /**
  * Pozycje faktury. Kwota pozycji wynika z cen usług (ceny zmienia się w „Cenach usług”),
- * tu układa się opis: nazwy, scalenie usług tej samej stawki i - przy podziale - które
- * pozycje idą na fakturę, a które na inny dokument.
+ * tu układa się opis: nazwy i scalenie usług tej samej stawki. Wszystkie pozycje idą na
+ * fakturę; przy podziale każda ma pole kwoty na fakturze - niższa zostawia resztę na innym
+ * dokumencie, wyższa podnosi cenę usług w wizycie (decyzja biznesu z 21.10.2026).
  */
 export const InvoiceItemsEditor = ({
     lines,
@@ -136,7 +134,6 @@ export const InvoiceItemsEditor = ({
     onChangeLine,
     onMerge,
     onUnmerge,
-    onLinesPerRate,
     exemptionBasis,
     onExemptionBasisChange,
     fmt,
@@ -144,7 +141,7 @@ export const InvoiceItemsEditor = ({
     const [selected, setSelected] = useState<number[]>([]);
     const [mergeError, setMergeError] = useState<string | null>(null);
     const nameOf = (id: string) => prices.find(p => p.serviceId === id)?.name ?? '';
-    const hasExempt = lines.some(line => (!split || line.onInvoice) && lineAmounts(line, prices).vatRate === 'zw');
+    const hasExempt = lines.some(line => lineAmounts(line, prices).vatRate === 'zw');
 
     const toggleSelected = (index: number) => {
         setMergeError(null);
@@ -168,17 +165,13 @@ export const InvoiceItemsEditor = ({
                 <GhostAction type="button" disabled={selected.length < 2} onClick={merge}>
                     <Merge />Scal zaznaczone{selected.length >= 2 ? ` (${selected.length})` : ''}
                 </GhostAction>
-                <GhostAction type="button" onClick={() => { setSelected([]); onLinesPerRate(); }}>
-                    Jedna pozycja na każdą stawkę
-                </GhostAction>
                 {mergeError && <MergeError role="alert">{mergeError}</MergeError>}
             </Toolbar>
 
-            <HeaderRow $split={split}>
+            <HeaderRow>
                 <span />
                 <span>Nazwa pozycji</span>
                 <span>VAT</span>
-                {split && <span>Dokument</span>}
                 <span style={{ textAlign: 'right' }}>{split ? 'Na fakturze' : 'Brutto'}</span>
                 <span />
             </HeaderRow>
@@ -187,11 +180,12 @@ export const InvoiceItemsEditor = ({
                 const item = lineAmounts(line, prices);
                 const full = lineFullGross(line, prices);
                 const merged = line.serviceIds.length > 1;
+                // Nazwa usługi pod pozycją tylko przy scaleniu - pod przemianowaną pozycją
+                // „Usługa: …” powtarzało tylko to, co człowiek właśnie zmienił.
                 const sourceNames = line.serviceIds.map(nameOf);
-                const showSources = merged || sourceNames[0]?.trim() !== line.name.trim();
-                const onInvoice = !split || line.onInvoice;
+                const typed = split && line.partialGross.trim() ? parsePln(line.partialGross) : null;
                 return (
-                    <Row key={line.serviceIds.join('|')} $split={split}>
+                    <Row key={line.serviceIds.join('|')}>
                         <input
                             type="checkbox"
                             aria-label={`Zaznacz pozycję ${index + 1} do scalenia`}
@@ -207,21 +201,10 @@ export const InvoiceItemsEditor = ({
                                     $compact
                                 />
                             </InputShell>
-                            {showSources && <Sources>{merged ? 'Usługi: ' : 'Usługa: '}{sourceNames.join(', ')}</Sources>}
+                            {merged && <Sources>Usługi: {sourceNames.join(', ')}</Sources>}
                         </Cell>
                         <Rate>{RATE_LABEL[item.vatRate]}</Rate>
-                        {split && (
-                            <Toggle>
-                                <input
-                                    type="checkbox"
-                                    checked={line.onInvoice}
-                                    aria-label={`Pozycja ${index + 1} na fakturze`}
-                                    onChange={e => onChangeLine(index, { onInvoice: e.target.checked, partialGross: '' })}
-                                />
-                                {line.onInvoice ? 'Faktura' : 'Inny dokument'}
-                            </Toggle>
-                        )}
-                        {split && onInvoice ? (
+                        {split ? (
                             <Cell>
                                 <InputShell $compact>
                                     <BareInput
@@ -235,9 +218,12 @@ export const InvoiceItemsEditor = ({
                                         $compact
                                     />
                                 </InputShell>
+                                {typed !== null && typed > full && (
+                                    <Raise>cena usług wzrośnie z {fmt(full)}</Raise>
+                                )}
                             </Cell>
                         ) : (
-                            <Amount>{onInvoice ? fmt(itemAmounts(item).gross) : fmt(full)}</Amount>
+                            <Amount>{fmt(itemAmounts(item).gross)}</Amount>
                         )}
                         {merged ? (
                             <IconBtn type="button" title="Rozdziel na usługi" aria-label={`Rozdziel pozycję ${index + 1}`} onClick={() => onUnmerge(index)}>
@@ -250,7 +236,8 @@ export const InvoiceItemsEditor = ({
 
             {split && (
                 <Muted>
-                    Pozycje na innym dokumencie i część kwoty ponad wpisaną na fakturze idą na zapis bez paragonu i bez VAT, gotówką.
+                    Część kwoty usług ponad wpisaną na fakturze idzie na inny dokument: bez paragonu, bez VAT, gotówką.
+                    Wyższa kwota na fakturze podnosi cenę usług w wizycie.
                 </Muted>
             )}
 

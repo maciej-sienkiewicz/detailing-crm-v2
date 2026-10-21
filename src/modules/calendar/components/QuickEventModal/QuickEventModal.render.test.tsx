@@ -6,7 +6,7 @@
 
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from 'styled-components';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -211,6 +211,19 @@ describe('QuickEventModal - render', () => {
 
         expect(await screen.findByText('Wybierz z 2 pojazdów klienta')).toBeInTheDocument();
         expect(screen.queryByLabelText('Marka')).not.toBeInTheDocument();
+    });
+
+    it('lista aut klienta stoi w portalu, nad treścią i stopką okna', async () => {
+        const user = userEvent.setup();
+        setup();
+        await ready();
+
+        await user.type(screen.getByPlaceholderText('Jan'), 'Jan');
+        await user.click(await screen.findByText('Jan Kowalski'));
+
+        const list = await screen.findByRole('listbox', { name: 'Pojazdy klienta' });
+        expect(list.parentElement).toBe(document.body);
+        expect(within(list).getByText('Audi A4')).toBeInTheDocument();
     });
 
     it('telefon: „Cały dzień" i „Cykliczna" są dostępne', async () => {

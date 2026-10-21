@@ -56,6 +56,8 @@ interface SettlementSectionProps {
     invoiceItems: HandoverItem[];
     invoiceGross: number;
     remainder: number;
+    remainderAuto: number;
+    settledGross: number;
     sellerComplete: boolean;
     company: CompanySettings | undefined;
     problemsIn: (section: HandoverProblem['section']) => HandoverProblem[];
@@ -71,6 +73,8 @@ export const SettlementSection = ({
     invoiceItems,
     invoiceGross,
     remainder,
+    remainderAuto,
+    settledGross,
     sellerComplete,
     company,
     problemsIn,
@@ -157,6 +161,8 @@ export const SettlementSection = ({
                         invoiceItems={invoiceItems}
                         invoiceGross={invoiceGross}
                         remainder={remainder}
+                        remainderAuto={remainderAuto}
+                        settledGross={settledGross}
                         company={company}
                         problemsIn={problemsIn}
                         controls={controls}

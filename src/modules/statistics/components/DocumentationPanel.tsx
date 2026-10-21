@@ -115,6 +115,7 @@ export function DocumentationPanel({ startDate, endDate }: { startDate: string; 
     // Grosz na wizytę to zaokrąglenia „w stu” przy scaleniach - więcej to sygnał do sprawdzenia.
     const unexplainedAlarm = Math.abs(summary.unexplainedNetDifference) > summary.visitCount;
     const netDifference = summary.documentsNet - summary.salesNetDocumented;
+    const vatWaived = summary.withoutReceiptVatWaived ?? 0;
 
     return (
         <Card aria-labelledby="documentation-title">
@@ -145,7 +146,9 @@ export function DocumentationPanel({ startDate, endDate }: { startDate: string; 
                     <span>Netto dokumentów a netto sprzedaży</span>
                     <strong>{netDifference >= 0 ? '+' : '−'}{zl(Math.abs(netDifference))}</strong>
                     <span>
-                        w tym VAT zapisów bez paragonu <strong>{zl(summary.withoutReceiptVat)}</strong> (tak ma być),
+                        {summary.withoutReceiptVat !== 0 && (
+                            <>w tym zapisy bez paragonu z kwotą brutto (sprzed 21.10.2026) <strong>{zl(summary.withoutReceiptVat)}</strong>, </>
+                        )}
                         inne różnice <strong>{zl(summary.unexplainedNetDifference)}</strong>
                     </span>
                     {summary.mismatchedVisits > 0 && (
@@ -155,6 +158,13 @@ export function DocumentationPanel({ startDate, endDate }: { startDate: string; 
                         </span>
                     )}
                 </Tile>
+                {vatWaived > 0 && (
+                    <Tile>
+                        <span>VAT niezapłacony na zapisach bez paragonu</span>
+                        <strong>{zl(vatWaived)}</strong>
+                        <span>Zapis bez paragonu niesie netto: klient płaci mniej o VAT tej części usług.</span>
+                    </Tile>
+                )}
             </Tiles>
 
             {summary.unallocatedVisits > 0 && (

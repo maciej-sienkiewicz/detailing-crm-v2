@@ -134,8 +134,13 @@ export interface DocumentationSummary {
     unallocatedVisits: number;
     documentsNet: number;
     salesNetDocumented: number;
-    /** VAT usług rozliczonych bez paragonu - różnica oczekiwana. */
+    /**
+     * VAT w kwotach zapisów bez paragonu sprzed 21.10.2026 - niosły wtedy brutto usług.
+     * Nowe zapisy niosą netto, więc dają tu 0.
+     */
     withoutReceiptVat: number;
+    /** VAT, którego klienci nie zapłacili na zapisach bez paragonu (brutto usług − kwota zapisu). */
+    withoutReceiptVatWaived?: number;
     /** Różnica netto poza VAT-em reszt bez paragonu - grosze, zmiany stawek. */
     unexplainedNetDifference: number;
     handoverDiscountGross: number;
