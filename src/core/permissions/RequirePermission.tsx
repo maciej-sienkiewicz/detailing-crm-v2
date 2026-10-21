@@ -5,8 +5,11 @@ import type { AccessRequirement } from './catalog';
 import { getDefaultRoute, hasPermission } from './helpers';
 
 interface RequirePermissionProps {
-    /** Single code, ANY-OF list, or 'OWNER_ONLY' the user must hold to see this route. */
-    anyOf: AccessRequirement;
+    /**
+     * Single code, ANY-OF list, or 'OWNER_ONLY' the user must hold to see this route.
+     * Brak = strona dla każdego zalogowanego (bramka przepuszcza zawsze).
+     */
+    anyOf?: AccessRequirement;
     children: ReactNode;
 }
 
@@ -24,7 +27,7 @@ interface RequirePermissionProps {
 export function RequirePermission({ anyOf, children }: RequirePermissionProps) {
     const { user } = useAuth();
 
-    if (!hasPermission(user, anyOf)) {
+    if (anyOf !== undefined && !hasPermission(user, anyOf)) {
         return <Navigate to={getDefaultRoute(user)} replace />;
     }
 

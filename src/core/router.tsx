@@ -75,12 +75,15 @@ const lazyGatedPage = (
  * When `requires` is missing the page is available to every logged-in user.
  * Users lacking the permission are silently redirected to their default
  * route (no "access denied" screen), including manual URL entry.
+ *
+ * Każda strona ma ten sam układ: ProtectedRoute > RequirePermission > Layout, także bez
+ * `requires`. Dawniej strony bez wymagań pomijały RequirePermission, więc typ elementu
+ * na tej pozycji się zmieniał i przejście np. Kalendarz → Ustawienia montowało Layout
+ * i Sidebar od nowa - z ich zapytaniami i ponowną subskrypcją gniazda.
  */
-const page = (view: ReactNode, requires?: PermissionRequirement) => (
+export const page = (view: ReactNode, requires?: PermissionRequirement) => (
     <ProtectedRoute>
-        {requires
-            ? <RequirePermission anyOf={requires}><Layout>{view}</Layout></RequirePermission>
-            : <Layout>{view}</Layout>}
+        <RequirePermission anyOf={requires}><Layout>{view}</Layout></RequirePermission>
     </ProtectedRoute>
 );
 
