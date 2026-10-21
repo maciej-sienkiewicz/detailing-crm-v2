@@ -226,6 +226,28 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
     // Inny wątek - od nowa: zwinięcia należą do rozmowy, w której je zrobiono.
     useEffect(() => setExpanded({}), [threadId]);
 
+    // Nieprzeczytane z chwili otwarcia. Samo `isRead` nie wystarcza: wątek zaraz
+    // oznacza się jako przeczytany i wiadomość zwinęłaby się w trakcie czytania.
+    // Liczone w renderze, nie w efekcie - przewinięcie niżej musi już widzieć rozwinięte.
+    const [unreadOnOpen, setUnreadOnOpen] = useState<{ threadId: string; ids: Set<string> } | null>(null);
+    if (detailMatches && unreadOnOpen?.threadId !== threadId) {
+        setUnreadOnOpen({ threadId, ids: new Set(detail!.messages.filter((m) => !m.isRead).map((m) => m.id)) });
+    }
+    const unreadIds = unreadOnOpen?.threadId === threadId ? unreadOnOpen.ids : null;
+    const firstOpenIndex = messages.findIndex((m, index) => index === messages.length - 1 || unreadIds?.has(m.id));
+
+    // Otwarcie wątku - do pierwszej rozwiniętej (nowej) wiadomości, bo to na nią się
+    // odpowiada. Starsze stoją nad nią zwinięte do linijki, kontekst jest kliknięcie wyżej.
+    const readerRef = useRef<HTMLDivElement>(null);
+    const firstOpenRef = useRef<HTMLElement>(null);
+    const latestId = messages[messages.length - 1]?.id;
+    useEffect(() => {
+        const reader = readerRef.current;
+        const target = firstOpenRef.current;
+        if (reader && target && messages.length > 1) reader.scrollTop = target.offsetTop - reader.offsetTop - 12;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [threadId, latestId]);
+
     const download = useCallback(
         (attachmentId: string, fileName: string) => downloadAttachmentFile(commsApi.downloadAttachment, attachmentId, fileName),
         []
@@ -250,8 +272,11 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
     const subtitle = `${who}, ${moment.replace(', ', ' ').replace(/^./, (first) => first.toLowerCase())}`;
     const multi = messages.length > 1;
     const conversational = Boolean(contactCard?.customer) || Boolean(thread.leadId);
+    // Rozwinięta jest najnowsza i to, czego nikt jeszcze nie czytał. Dawniej przy dwóch
+    // wiadomościach rozwinięte były obie: stara z podpisem i stopką zajmowała cały ekran,
+    // a nowa odpowiedź stała pod nią - wątek czytał się od końca.
     const isOpen = (message: CommMessage, index: number) =>
-        expanded[message.id] ?? (index === messages.length - 1 || !message.isRead || messages.length <= 2);
+        expanded[message.id] ?? (index === messages.length - 1 || Boolean(unreadIds?.has(message.id)));
 
     const archive = () => setArchived.mutate({ threadId: thread.id, archived: !thread.archived }, { onSuccess: onArchived });
 
@@ -306,7 +331,7 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
                     </>}
                 />
             ) : (
-            <Reader $phone={phone}>
+            <Reader ref={readerRef} $phone={phone}>
                 {visit && (
                     <VisitBar href={`/visits/${visit.id}`} onClick={(event) => { event.preventDefault(); navigate(`/visits/${visit.id}`); }}>
                         <Car aria-hidden="true" />
@@ -330,7 +355,7 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
                 {!detailMatches && <p style={{ margin: 0, color: ix.muted, fontSize: 14 }}>Wczytywanie treści…</p>}
                 {messages.map((message, index) =>
                     isOpen(message, index) ? (
-                        <Message key={message.id} $multi={multi}>
+                        <Message key={message.id} ref={index === firstOpenIndex ? firstOpenRef : undefined} $multi={multi}>
                             {multi && (
                                 <MessageHead
                                     aria-expanded="true"

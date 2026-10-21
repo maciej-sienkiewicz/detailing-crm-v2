@@ -12,6 +12,21 @@ const textOf = (html: string): string =>
         .trim();
 
 describe('splitQuotedHistory', () => {
+    it('odcina historię Outlooka po <hr> z nagłówkiem „Od: / Wysłane: / Do:"', () => {
+        // Outlook (Hansa-Flex): odpowiedź, podpis, <hr> i cała poprzednia wiadomość pod nim.
+        const { mainHtml, quotedHtml } = splitQuotedHistory(
+            '<div>Dzień dobry,</div><div>przesuwamy jednak termin oklejania samochodów, dlatego proszę o przesłanie wstępnej wyceny.</div>' +
+            '<div><div>Pozdrawiam serdecznie</div><div><b>Monika Korowajska</b></div></div>' +
+            '<div><br></div><hr style="display: inline-block; width: 98%;">' +
+            '<div><div style="direction: ltr;"><b>Od:</b> Korowajska, Monika<br><b>Wysłane:</b> poniedziałek, 19 października 2026 14:19<br>' +
+            '<b>Do:</b> biuro@carslab.pl &lt;biuro@carslab.pl&gt;<br><b>Temat:</b> Oklejenie samochodu</div><div>&nbsp;</div></div>' +
+            '<div>Dzień dobry,</div><div>w zawiązaniu do rozmowy telefonicznej przesyłam zdjęcia pojazdów z nowym docelowym oklejeniem.</div>'
+        );
+        expect(textOf(mainHtml)).toContain('przesuwamy jednak termin');
+        expect(textOf(mainHtml)).not.toContain('w zawiązaniu do rozmowy');
+        expect(textOf(quotedHtml ?? '')).toContain('w zawiązaniu do rozmowy');
+    });
+
     it('odcina kontener cytatu Gmaila', () => {
         const { mainHtml, quotedHtml } = splitQuotedHistory(
             '<div>Dzień dobry, potwierdzam termin.</div>' +
