@@ -56,21 +56,38 @@ export interface OperationalStats {
 /**
  * Revenue summary from dedicated endpoint
  */
-export interface DashboardRevenueBucket {
-  /** Pierwszy dzień miesiąca, ISO. */
-  monthStart: string;
-  grossAmount: number;
+/**
+ * Przychód miesiąca w groszach: ta sama liczba co kafel „Przychody" w Finansach
+ * (dokumenty przychodowe netto, z ustawieniem obsługi statusów płatności).
+ *
+ * `netAmount` brak w starszym backendzie - ten sumował w `grossAmount` ceny brutto
+ * wydanych wizyt. Nowy backend wysyła w `grossAmount` to samo co w `netAmount`,
+ * tylko dla frontu sprzed zmiany. Czytaj przez `revenueAmount`.
+ */
+export interface DashboardRevenueAmount {
+  netAmount?: number;
+  /** @deprecated stara nazwa; czytaj przez `revenueAmount` */
+  grossAmount?: number;
   currency: string;
 }
 
+export interface DashboardRevenueBucket extends DashboardRevenueAmount {
+  /** Pierwszy dzień miesiąca, ISO. */
+  monthStart: string;
+}
+
 export interface DashboardRevenueSummary {
-  currentMonth: { grossAmount: number; currency: string };
-  previousMonth: { grossAmount: number; currency: string };
+  currentMonth: DashboardRevenueAmount;
+  previousMonth: DashboardRevenueAmount;
   /** Poprzedni miesiąc do tego samego dnia - baza deltaPercentage (brak w starszym backendzie). */
-  previousMonthToDate?: { grossAmount: number; currency: string };
+  previousMonthToDate?: DashboardRevenueAmount;
   deltaPercentage: number;
   buckets: DashboardRevenueBucket[];
 }
+
+/** Kwota przychodu w groszach, także z odpowiedzi starszego backendu. */
+export const revenueAmount = (amount: DashboardRevenueAmount): number =>
+  amount.netAmount ?? amount.grossAmount ?? 0;
 
 /**
  * Reservation count summary from dedicated endpoint

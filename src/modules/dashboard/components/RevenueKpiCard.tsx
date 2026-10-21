@@ -7,6 +7,7 @@ import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 import { formatCurrency } from '@/common/utils/formatters';
 import { useDashboardRevenue } from '../hooks/useDashboardRevenue';
 import { comparisonLabel } from '../utils/comparisonLabel';
+import { revenueAmount } from '../types';
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
 
@@ -124,7 +125,7 @@ export const RevenueKpiCard = () => {
     if (!data) return [];
     return data.buckets.map(b => ({
       monthLabel: monthLabel(b.monthStart),
-      value: b.grossAmount / 100,
+      value: revenueAmount(b) / 100,
     }));
   }, [data]);
 
@@ -140,8 +141,9 @@ export const RevenueKpiCard = () => {
       onMouseLeave={() => setHovered(false)}
     >
       <Card>
-        <Eyebrow>Przychód w tym miesiącu</Eyebrow>
-        <Number>{formatCurrency(data.currentMonth.grossAmount / 100, currency)}</Number>
+        {/* Ta sama liczba co kafel „Przychody" w Finansach za bieżący miesiąc - stąd netto. */}
+        <Eyebrow>Przychód netto w tym miesiącu</Eyebrow>
+        <Number>{formatCurrency(revenueAmount(data.currentMonth) / 100, currency)}</Number>
         <Delta $positive={positive}>
           {positive ? <TrendingUp /> : <TrendingDown />}
           {positive ? '+' : ''}{data.deltaPercentage.toLocaleString('pl-PL', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% {comparisonLabel(!!data.previousMonthToDate)}
@@ -150,7 +152,7 @@ export const RevenueKpiCard = () => {
 
       {hovered && createPortal(
         <ChartPopover ref={popoverRef}>
-          <ChartTitle>Ostatnie 12 miesięcy</ChartTitle>
+          <ChartTitle>Przychód netto, ostatnie 12 miesięcy</ChartTitle>
           <ResponsiveContainer width="100%" height={110}>
             <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
               <defs>
