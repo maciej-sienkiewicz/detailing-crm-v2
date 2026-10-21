@@ -57,11 +57,6 @@ export const ownerReportApi = {
         return response.data;
     },
 
-    listPeriods: async (length: ReportLength): Promise<ReportPeriod[]> => {
-        const response = await apiClient.get<ReportPeriod[]>(`${BASE}/periods`, { params: { length } });
-        return response.data;
-    },
-
     downloadPdf: async (length: ReportLength, from: string, compare: ReportComparison): Promise<Blob> => {
         const response = await apiClient.get(`${BASE}/pdf`, {
             params: { length, from, compare },

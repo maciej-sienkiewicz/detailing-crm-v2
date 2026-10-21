@@ -114,41 +114,6 @@ export interface PeriodVisitDocument {
     gross: number;
 }
 
-/**
- * Jak udokumentowano sprzedaż wizyt wydanych w zakresie dat i uzgodnienie netto sprzedaży
- * z netto dokumentów CRM. Kwoty w groszach.
- */
-export interface DocumentationSummary {
-    startDate: string;
-    endDate: string;
-    visitCount: number;
-    salesGross: number;
-    salesNet: number;
-    invoiceGross: number;
-    externalInvoiceGross: number;
-    receiptGross: number;
-    withoutReceiptGross: number;
-    otherGross: number;
-    /** Wizyty bez zapisanego podziału na dokumenty (wydane przed wdrożeniem albo bez dokumentu). */
-    unallocatedGross: number;
-    unallocatedVisits: number;
-    documentsNet: number;
-    salesNetDocumented: number;
-    /**
-     * VAT w kwotach zapisów bez paragonu sprzed 21.10.2026 - niosły wtedy brutto usług.
-     * Nowe zapisy niosą netto, więc dają tu 0.
-     */
-    withoutReceiptVat: number;
-    /** VAT, którego klienci nie zapłacili na zapisach bez paragonu (brutto usług − kwota zapisu). */
-    withoutReceiptVatWaived?: number;
-    /** Różnica netto poza VAT-em reszt bez paragonu - grosze, zmiany stawek. */
-    unexplainedNetDifference: number;
-    handoverDiscountGross: number;
-    handoverChangedVisits: number;
-    /** Wizyty, w których dokumenty nie pokrywają kwoty wizyty - powinno być 0. */
-    mismatchedVisits: number;
-}
-
 export interface PeriodVisit {
     visitId: string;
     visitDate: string;

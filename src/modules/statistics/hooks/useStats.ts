@@ -19,15 +19,6 @@ export const useBreakdown = (
     return { breakdown: data, isLoading, isFetching, isError, refetch };
 };
 
-export const useDocumentationSummary = (startDate: string, endDate: string) => {
-    const { data, isLoading, isError } = useQuery({
-        queryKey: ['statistics-documentation', startDate, endDate],
-        queryFn: () => statsApi.getDocumentation(startDate, endDate),
-        enabled: !!startDate && !!endDate,
-    });
-    return { summary: data, isLoading, isError };
-};
-
 export const useCategoryStats = (
     categoryId: string,
     granularity: Granularity,

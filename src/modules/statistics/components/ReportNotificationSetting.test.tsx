@@ -11,7 +11,6 @@ import { ReportNotificationSetting } from './ReportNotificationSetting';
 
 vi.mock('../api/ownerReportApi', () => ({
     ownerReportApi: {
-        listPeriods: vi.fn(),
         downloadPdf: vi.fn(),
         getNotification: vi.fn(),
         updateNotification: vi.fn(),

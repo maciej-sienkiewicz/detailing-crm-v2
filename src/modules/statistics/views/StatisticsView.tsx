@@ -1,5 +1,6 @@
 // src/modules/statistics/views/StatisticsView.tsx
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { t } from '@/common/i18n';
@@ -7,9 +8,8 @@ import { PageHeader } from '@/common/components/PageHeader';
 import { StatsChart } from '../components/StatsChart';
 import { CategoryFormModal } from '../components/CategoryFormModal';
 import { PeriodDetailDrawer } from '../components/PeriodDetailDrawer';
-import { DocumentationPanel } from '../components/DocumentationPanel';
 import { StatsNav } from '../components/StatsNav';
-import { ReportButton } from '../components/ReportDialog';
+import { legacyReportLink } from '../utils/legacyReportLink';
 import { StatsMobileOverview } from '../components/StatsMobileOverview';
 import { useMediaQuery } from '@/common/hooks';
 import { useCategories, useDeleteCategory, useAssignService, useUnassignService } from '../hooks/useCategories';
@@ -139,6 +139,14 @@ type ServiceCtxMenu = {
 };
 
 export const StatisticsView = () => {
+    // Stary link z powiadomienia „Dostępny nowy raport" - raport jest na zakładce „Raporty".
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const reportLink = legacyReportLink(searchParams);
+    useEffect(() => {
+        if (reportLink) navigate(reportLink, { replace: true });
+    }, [reportLink, navigate]);
+
     // Domyślnie ostatnie trzy miesiące w podziale tygodniowym. Bieżący miesiąc dziennie
     // odpowiadał na pytanie „ile dziś", a nie na to, po które się tu wchodzi: czy idzie
     // lepiej niż wcześniej. Kwartał pokazuje sezon, a tydzień to najdrobniejszy podział,
@@ -330,7 +338,6 @@ export const StatisticsView = () => {
                             onGranularityChange={setGranularity}
                             granularity={granularity}
                         />
-                        <ReportButton />
                         <StatsNav />
                     </HdrBtns>
                 }
@@ -416,8 +423,6 @@ export const StatisticsView = () => {
                         </ChartsRow>
                     </ChartArea>
                 )}
-
-                <DocumentationPanel startDate={startDate} endDate={endDate} />
             </Section>
 
             {/* ── Breakdown section ─────────────────────────── */}

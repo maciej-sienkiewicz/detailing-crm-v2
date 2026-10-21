@@ -24,7 +24,6 @@ vi.mock('../api/ownerReportApi', async importOriginal => ({
     ...(await importOriginal<typeof import('../api/ownerReportApi')>()),
     ownerReportApi: {
         getArchive: vi.fn(),
-        listPeriods: vi.fn(),
         downloadPdf: vi.fn(),
         getNotification: vi.fn(),
         updateNotification: vi.fn(),

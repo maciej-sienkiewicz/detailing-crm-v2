@@ -1,6 +1,6 @@
 // src/modules/statistics/api/statsApi.ts
 import { apiClient } from '@/core';
-import type { CategoryStats, BreakdownStats, DocumentationSummary, Granularity } from '../types';
+import type { CategoryStats, BreakdownStats, Granularity } from '../types';
 
 const BASE_PATH = '/v1/statistics';
 
@@ -13,15 +13,6 @@ export const statsApi = {
         const response = await apiClient.get<BreakdownStats>(
             `${BASE_PATH}/breakdown`,
             { params: { granularity, startDate, endDate } }
-        );
-        return response.data;
-    },
-
-    /** Jak udokumentowano sprzedaż w zakresie dat (faktura, paragon, bez paragonu) i uzgodnienie. */
-    getDocumentation: async (startDate: string, endDate: string): Promise<DocumentationSummary> => {
-        const response = await apiClient.get<DocumentationSummary>(
-            `${BASE_PATH}/documentation`,
-            { params: { startDate, endDate } }
         );
         return response.data;
     },
