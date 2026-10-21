@@ -12,6 +12,8 @@ import { AuthAside, AuthForm, AuthHeading, AuthLink, AuthMeta, AuthPrimaryButton
 import { authApi } from '../api/authApi';
 import { t } from '@/common/i18n';
 import { Label, FieldGroup, ErrorMessage } from '@/common/components/Form';
+import { legalPath } from '@/modules/legal/documents';
+import { LegalNotice } from '../components/LegalNotice';
 
 type TokenState = 'loading' | 'valid' | 'invalid';
 type ViewMode = 'reset' | 'setup';
@@ -162,6 +164,17 @@ export const ResetPasswordView = ({ mode = 'reset' }: ResetPasswordViewProps) =>
                     <AuthPrimaryButton type="submit" disabled={resetPasswordMutation.isPending}>
                         {resetPasswordMutation.isPending ? copy.submitting : copy.submitButton}
                     </AuthPrimaryButton>
+
+                    {/* Pracownik dostaje konto z zaproszenia i nie przechodzi przez rejestrację -
+                        tu po raz pierwszy podaje dane, więc tu spełniamy obowiązek informacyjny. */}
+                    {mode === 'setup' && (
+                        <LegalNotice>
+                            {t.auth.confirmPassword.privacyNotice}{' '}
+                            <a href={legalPath('klauzula-informacyjna')} target="_blank" rel="noopener noreferrer">
+                                {t.auth.confirmPassword.clauseLink}
+                            </a>.
+                        </LegalNotice>
+                    )}
                 </AuthForm>
             )}
         </AuthLayout>

@@ -1,0 +1,281 @@
+[
+ {
+  "t": "p",
+  "text": "Umowa zostaje zawarta pomiędzy Licencjobiorcą, zwanym dalej **Administratorem**, a M&M SOLUTIONS spółka z ograniczoną odpowiedzialnością z siedzibą w Skórzewie (ul. Poznańska 119, 60-185 Skórzewo), wpisana do rejestru przedsiębiorców Krajowego Rejestru Sądowego pod numerem KRS 0001267442 (Sąd Rejonowy Poznań – Nowe Miasto i Wilda w Poznaniu, VIII Wydział Gospodarczy KRS), NIP 7773476300, REGON 545750800, zwaną dalej **Procesorem**. Umowa jest zawierana w chwili akceptacji OWU w Aplikacji DetailBoost CRM i obowiązuje przez czas trwania umowy licencyjnej."
+ },
+ {
+  "t": "h",
+  "text": "§ 1. Przedmiot umowy"
+ },
+ {
+  "t": "p",
+  "n": "1.",
+  "text": "Administrator powierza Procesorowi przetwarzanie danych osobowych w zakresie i celu określonym w § 2, na zasadach art. 28 rozporządzenia (UE) 2016/679 (RODO)."
+ },
+ {
+  "t": "p",
+  "n": "2.",
+  "text": "Procesor przetwarza powierzone dane wyłącznie w celu świadczenia usług Aplikacji na rzecz Administratora i wyłącznie na jego udokumentowane polecenie. Za polecenie uważa się OWU wraz z załącznikami oraz korzystanie przez Administratora i jego Użytkowników z funkcji Aplikacji."
+ },
+ {
+  "t": "p",
+  "n": "3.",
+  "text": "Procesor niezwłocznie informuje Administratora, jeżeli jego zdaniem wydane polecenie narusza RODO lub inne przepisy o ochronie danych."
+ },
+ {
+  "t": "h",
+  "text": "§ 2. Zakres i charakter przetwarzania"
+ },
+ {
+  "t": "p",
+  "n": "1.",
+  "text": "**Kategorie osób:**"
+ },
+ {
+  "t": "li",
+  "n": "a)",
+  "text": "klienci Administratora (osoby fizyczne, w tym przedsiębiorcy, oraz osoby reprezentujące klientów będących firmami);"
+ },
+ {
+  "t": "li",
+  "n": "b)",
+  "text": "osoby kontaktujące się z Administratorem (zapytania z formularzy, e-maili, SMS, wiadomości z Instagrama) oraz autorzy opinii w Profilu Firmy w Google;"
+ },
+ {
+  "t": "li",
+  "n": "c)",
+  "text": "pracownicy i współpracownicy Administratora w zakresie danych o czasie pracy, urlopach i zadaniach."
+ },
+ {
+  "t": "p",
+  "n": "2.",
+  "text": "**Kategorie danych:** dane identyfikacyjne i kontaktowe; dane pojazdów (marka, model, numer rejestracyjny, VIN); zdjęcia pojazdów i dokumentów, w tym dowodów rejestracyjnych; historia wizyt, usług i płatności; dane do faktur; treść korespondencji (e-mail, SMS, wiadomości z Instagrama) i notatek; podpisy złożone na dokumentach wraz z danymi uwierzytelniającymi (data, adres IP, informacja o urządzeniu); zgody marketingowe; dane o czasie pracy i urlopach pracowników."
+ },
+ {
+  "t": "p",
+  "n": "3.",
+  "text": "Administrator nie powinien wprowadzać do Aplikacji szczególnych kategorii danych (art. 9 RODO) ani danych dotyczących wyroków skazujących."
+ },
+ {
+  "t": "p",
+  "n": "4.",
+  "text": "**Charakter i cel przetwarzania:** przechowywanie, porządkowanie, przeglądanie, generowanie dokumentów i protokołów, wysyłka wiadomości SMS i e-mail, automatyczna analiza treści z użyciem usług sztucznej inteligencji, synchronizacja z usługami Google i Meta połączonymi przez Administratora, eksport i usuwanie danych."
+ },
+ {
+  "t": "p",
+  "n": "5.",
+  "text": "Przetwarzanie odbywa się w sposób ciągły przez czas trwania umowy licencyjnej."
+ },
+ {
+  "t": "h",
+  "text": "§ 3. Obowiązki Procesora"
+ },
+ {
+  "t": "p",
+  "n": "1.",
+  "text": "Procesor dopuszcza do przetwarzania danych wyłącznie osoby upoważnione, zobowiązane do zachowania ich w tajemnicy."
+ },
+ {
+  "t": "p",
+  "n": "2.",
+  "text": "Procesor stosuje środki techniczne i organizacyjne, o których mowa w art. 32 RODO, opisane w Załączniku A."
+ },
+ {
+  "t": "p",
+  "n": "3.",
+  "text": "Procesor, w miarę możliwości, pomaga Administratorowi wywiązywać się z obowiązku odpowiadania na żądania osób, których dane dotyczą, w szczególności udostępniając w Aplikacji funkcje wglądu, poprawiania, eksportu i usuwania danych klientów."
+ },
+ {
+  "t": "p",
+  "n": "4.",
+  "text": "Procesor pomaga Administratorowi wywiązywać się z obowiązków z art. 32–36 RODO, z uwzględnieniem charakteru przetwarzania i dostępnych mu informacji."
+ },
+ {
+  "t": "p",
+  "n": "5.",
+  "text": "Procesor zgłasza Administratorowi naruszenie ochrony danych osobowych bez zbędnej zwłoki, nie później niż w ciągu 48 godzin od jego stwierdzenia, przekazując informacje, o których mowa w art. 33 ust. 3 RODO, w zakresie, w jakim są mu znane."
+ },
+ {
+  "t": "p",
+  "n": "6.",
+  "text": "Procesor prowadzi rejestr kategorii czynności przetwarzania, o którym mowa w art. 30 ust. 2 RODO."
+ },
+ {
+  "t": "h",
+  "text": "§ 4. Dalsze powierzenie (podprocesorzy)"
+ },
+ {
+  "t": "p",
+  "n": "1.",
+  "text": "Administrator udziela Procesorowi ogólnej zgody na korzystanie z usług dalszych podmiotów przetwarzających. Aktualna lista podprocesorów stanowi Załącznik B i jest dostępna pod adresem https://detailboost.pl/umowa-powierzenia."
+ },
+ {
+  "t": "p",
+  "n": "2.",
+  "text": "O zamiarze dodania lub zmiany podprocesora Procesor informuje Administratora e-mailem lub w Aplikacji co najmniej 14 dni wcześniej. Administrator może w tym terminie zgłosić sprzeciw; jeżeli strony nie dojdą do porozumienia, Administrator może rozwiązać umowę licencyjną ze skutkiem natychmiastowym."
+ },
+ {
+  "t": "p",
+  "n": "3.",
+  "text": "Procesor nakłada na podprocesorów obowiązki ochrony danych nie niższe niż wynikające z niniejszej umowy i odpowiada wobec Administratora za ich wykonanie."
+ },
+ {
+  "t": "p",
+  "n": "4.",
+  "text": "Przekazanie danych poza Europejski Obszar Gospodarczy odbywa się wyłącznie na podstawie decyzji Komisji Europejskiej stwierdzającej odpowiedni stopień ochrony (w tym EU-US Data Privacy Framework) lub standardowych klauzul umownych."
+ },
+ {
+  "t": "h",
+  "text": "§ 5. Kontrola"
+ },
+ {
+  "t": "p",
+  "n": "1.",
+  "text": "Procesor udostępnia Administratorowi informacje niezbędne do wykazania spełnienia obowiązków z art. 28 RODO."
+ },
+ {
+  "t": "p",
+  "n": "2.",
+  "text": "Administrator może przeprowadzić audyt nie częściej niż raz w roku, po uprzedzeniu Procesora z co najmniej 14-dniowym wyprzedzeniem, w pierwszej kolejności w formie pisemnych pytań i wglądu w dokumentację. Audyt na miejscu prowadzi Administrator lub upoważniony przez niego audytor zobowiązany do zachowania poufności, na koszt Administratora i bez zakłócania działalności Procesora."
+ },
+ {
+  "t": "h",
+  "text": "§ 6. Zakończenie powierzenia"
+ },
+ {
+  "t": "p",
+  "n": "1.",
+  "text": "Przed usunięciem Konta Administrator może wyeksportować dane klientów do pliku CSV oraz pobrać dokumenty; na żądanie Procesor przekazuje pozostałe dane w terminie 30 dni."
+ },
+ {
+  "t": "p",
+  "n": "2.",
+  "text": "Z chwilą usunięcia Konta przez Administratora Procesor usuwa powierzone dane z Aplikacji. Jeżeli umowa wygaśnie bez usunięcia Konta, Procesor usuwa dane po upływie 12 miesięcy od wygaśnięcia, uprzedzając o tym Administratora e-mailem."
+ },
+ {
+  "t": "p",
+  "n": "3.",
+  "text": "Obowiązek usunięcia nie dotyczy danych, których dalsze przechowywanie jest wymagane przepisami prawa lub niezbędne do ustalenia, dochodzenia lub obrony roszczeń, w szczególności dziennika zdarzeń (audit log) przechowywanego przez okres przedawnienia roszczeń."
+ },
+ {
+  "t": "h",
+  "text": "§ 7. Postanowienia końcowe"
+ },
+ {
+  "t": "p",
+  "n": "1.",
+  "text": "Odpowiedzialność stron za szkody wyrządzone naruszeniem przepisów o ochronie danych określa art. 82 RODO, a w pozostałym zakresie – OWU."
+ },
+ {
+  "t": "p",
+  "n": "2.",
+  "text": "W sprawach nieuregulowanych stosuje się OWU oraz przepisy RODO. W razie sprzeczności z OWU w zakresie ochrony danych pierwszeństwo ma niniejsza umowa."
+ },
+ {
+  "t": "h",
+  "text": "Załącznik A – Środki techniczne i organizacyjne"
+ },
+ {
+  "t": "p",
+  "n": "1.",
+  "text": "Szyfrowanie połączeń (TLS) pomiędzy urządzeniami użytkowników a Aplikacją."
+ },
+ {
+  "t": "p",
+  "n": "2.",
+  "text": "Hasła przechowywane wyłącznie w postaci skrótu BCrypt; blokada konta po 5 nieudanych próbach logowania na 15 minut; ograniczenie liczby żądań (rate limiting)."
+ },
+ {
+  "t": "p",
+  "n": "3.",
+  "text": "Sesje po stronie serwera z ciasteczkiem HttpOnly, Secure, SameSite=Lax, wygasające po 7 dniach bezczynności; blokada ekranu PIN na urządzeniach współdzielonych."
+ },
+ {
+  "t": "p",
+  "n": "4.",
+  "text": "Szyfrowanie AES-256-GCM haseł do skrzynek pocztowych oraz tokenów dostępu do usług Google i Meta."
+ },
+ {
+  "t": "p",
+  "n": "5.",
+  "text": "Kontrola dostępu oparta na rolach i uprawnieniach sprawdzanych po stronie serwera; maskowanie danych osobowych klientów dla użytkowników bez uprawnienia do ich wglądu."
+ },
+ {
+  "t": "p",
+  "n": "6.",
+  "text": "Logiczna separacja danych poszczególnych Licencjobiorców (każdy rekord przypisany do studia) wraz z wykrywaniem prób dostępu do danych innego studia."
+ },
+ {
+  "t": "p",
+  "n": "7.",
+  "text": "Dziennik zdarzeń (audit log) rejestrujący operacje na danych klientów, w tym eksport danych."
+ },
+ {
+  "t": "p",
+  "n": "8.",
+  "text": "Przechowywanie danych i plików w centrach danych w Unii Europejskiej (OVH – Francja, AWS – Frankfurt)."
+ },
+ {
+  "t": "h",
+  "text": "Załącznik B – Lista podprocesorów"
+ },
+ {
+  "t": "table",
+  "rows": [
+   [
+    "Podmiot",
+    "Cel",
+    "Miejsce przetwarzania",
+    "Podstawa transferu"
+   ],
+   [
+    "OVH SAS",
+    "hosting serwerów Aplikacji i bazy danych",
+    "Francja (UE)",
+    "–"
+   ],
+   [
+    "Amazon Web Services EMEA SARL",
+    "przechowywanie plików: zdjęć, dokumentów, podpisanych PDF",
+    "Niemcy, Frankfurt (UE)",
+    "–"
+   ],
+   [
+    "Cloudflare, Inc.",
+    "ochrona i przekazywanie ruchu sieciowego, routing poczty przychodzącej",
+    "globalnie, w tym USA",
+    "DPF / SCC"
+   ],
+   [
+    "OpenAI",
+    "odczyt VIN ze zdjęć, transkrypcja nagrań, klasyfikacja wiadomości, propozycje odpowiedzi i treści",
+    "USA",
+    "DPF / SCC"
+   ],
+   [
+    "SMSAPI",
+    "wysyłka wiadomości SMS do klientów Administratora",
+    "Polska (UE)",
+    "–"
+   ],
+   [
+    "home.pl S.A.",
+    "wysyłka wiadomości e-mail z Aplikacji",
+    "Polska (UE)",
+    "–"
+   ],
+   [
+    "Google (Firebase Cloud Messaging)",
+    "powiadomienia push na urządzenia z Androidem (bez danych klientów w treści)",
+    "UE / USA",
+    "DPF / SCC"
+   ],
+   [
+    "Apple Inc. (APNs)",
+    "powiadomienia push na urządzenia z iOS (bez danych klientów w treści)",
+    "USA",
+    "DPF / SCC"
+   ]
+  ]
+ }
+]

@@ -1,0 +1,502 @@
+[
+ {
+  "t": "p",
+  "text": "Celem niniejszej Polityki Prywatności jest wyjaśnienie zasad, na jakich przetwarzane są Państwa dane osobowe, zwane dalej **Danymi Osobowymi**, oraz omówienie Państwa podstawowych praw związanych z przetwarzaniem przez nas Państwa Danych Osobowych."
+ },
+ {
+  "t": "p",
+  "text": "W związku z wejściem w życie z dniem 25 maja 2018 roku na terytorium państw członkowskich Unii Europejskiej, w tym na terytorium Polski, rozporządzenia Parlamentu Europejskiego i Rady (UE) 2016/679 z dnia 27 kwietnia 2016 roku w sprawie ochrony osób fizycznych w związku z przetwarzaniem danych osobowych i w sprawie swobodnego przepływu takich danych oraz uchylenia dyrektywy 95/46/WE (ogólne rozporządzenie o ochronie danych) (Dz. U. UE seria „L” z 2016 roku, Nr 119, poz. 1 z dnia 04 maja 2016 roku), zwanego dalej **RODO**, zobowiązujemy się do przestrzegania obowiązujących przepisów prawa dotyczących ochrony danych osobowych poprzez dbanie o Państwa prywatność oraz zachowanie Państwa Danych Osobowych w poufności i zabezpieczenie ich przed niepowołanym dostępem osób trzecich."
+ },
+ {
+  "t": "p",
+  "n": "1.",
+  "text": "W ramach funkcjonowania Aplikacji, Spółka występuje w dwóch różnych rolach prawnych:"
+ },
+ {
+  "t": "li",
+  "n": "a)",
+  "text": "ADMINISTRATOR DANYCH: Spółka jest Administratorem Danych Osobowych swoich bezpośrednich klientów - Licencjobiorców."
+ },
+ {
+  "t": "li",
+  "n": "b)",
+  "text": "PODMIOT PRZETWARZAJĄCY (PROCESOR): Spółka nie jest Administratorem danych osobowych klientów końcowych wprowadzanych do Aplikacji przez Licencjobiorców. Administratorem tych danych są Licencjobiorcy. Spółka przetwarza te dane wyłącznie w imieniu Licencjobiorcy na podstawie zawartej Umowy Powierzenia Przetwarzania Danych. Poniższe postanowienia Polityki Prywatności dotyczą przetwarzania danych przez Spółkę jako Administratora."
+ },
+ {
+  "t": "p",
+  "n": "2.",
+  "text": "Administratorem Państwa Danych Osobowych, jest spółka pod firmą: **M&M SOLUTIONS spółka z ograniczoną odpowiedzialnością** z siedzibą w Skórzewie (adres: ul. Poznańska 119, 60-185 Skórzewo), wpisana do rejestru przedsiębiorców Krajowego Rejestru Sądowego pod numerem KRS: 0001267442 (sąd rejestrowy: Sąd Rejonowy Poznań - Nowe Miasto i Wilda w Poznaniu, VIII Wydział Gospodarczy Krajowego Rejestru Sądowego); NIP: 7773476300, REGON: 545750800."
+ },
+ {
+  "t": "p",
+  "n": "3.",
+  "text": "Nie powołaliśmy Inspektora Ochrony Danych, jednakże wszelkie wyjaśnienia w sprawach związanych z ochroną Danych Osobowych możecie Państwo uzyskać kontaktując się z nami w następujący sposób:"
+ },
+ {
+  "t": "li",
+  "n": "a)",
+  "text": "za pośrednictwem poczty elektronicznej przesłanej na adres: biuro@detailboost.pl;"
+ },
+ {
+  "t": "li",
+  "n": "b)",
+  "text": "za pośrednictwem formularza kontaktowego (dostępnego na stronie: https://detailboost.pl);"
+ },
+ {
+  "t": "li",
+  "n": "c)",
+  "text": "za pośrednictwem poczty tradycyjnej przesłanej na adres:"
+ },
+ {
+  "t": "p",
+  "text": "**M&M SOLUTIONS sp. z o.o.**"
+ },
+ {
+  "t": "p",
+  "text": "**ul. Poznańska 119**"
+ },
+ {
+  "t": "p",
+  "text": "**60-185 Skórzewo**"
+ },
+ {
+  "t": "p",
+  "n": "4.",
+  "text": "Zobowiązujemy się podjąć odpowiednie działania mające na celu ochronę Państwa Danych Osobowych przed nieupoważnionym dostępem podmiotów trzecich lub nieuprawnionym ujawnieniem podmiotom trzecim. Informujemy, iż bazy danych aplikacji DETAILBOOST CRM są zabezpieczone przed wglądem i dostępem nieupoważnionych osób trzecich."
+ },
+ {
+  "t": "p",
+  "n": "5.",
+  "text": "Informujemy, że Państwa Dane Osobowe są przetwarzane w celu:"
+ },
+ {
+  "t": "li",
+  "n": "a)",
+  "text": "przygotowania, zawarcia i wykonania umowy, w tym zapewnienia obsługi realizacji umowy, rozwiązywania problemów, wyjaśniania zagadnień i realizacji Państwa próśb, które do nas Państwo kierują - ponieważ przetwarzanie Danych Osobowych jest niezbędne do przygotowania, zawarcia i realizacji umowy (art. 6 ust. 1 lit. b RODO);"
+ },
+ {
+  "t": "li",
+  "n": "b)",
+  "text": "świadczenia usług drogą elektroniczną i przesyłania informacji handlowych - na podstawie Państwa zgody (art. 6 ust. 1 lit. a RODO w zw. właściwymi przepisami prawa krajowego);"
+ },
+ {
+  "t": "li",
+  "n": "c)",
+  "text": "marketingu bezpośredniego produktów lub usług, w tym nawiązania kontaktu, przedstawiania oferty, zapisywania danych w plikach cookies oraz gromadzenia danych ze stron www i aplikacji mobilnych - na podstawie Państwa zgody (art. 6 ust. 1 lit. a RODO w zw. właściwymi przepisami prawa krajowego);"
+ },
+ {
+  "t": "li",
+  "n": "d)",
+  "text": "spełnienia ciążących na nas obowiązków prawnych wynikających z bezwzględnie obowiązujących przepisów prawa Unii Europejskiej lub prawa polskiego (np. wobec Prezesa Urzędu Ochrony Konkurencji i Konsumentów, urzędów skarbowych) - ponieważ przetwarzanie Danych Osobowych jest niezbędne do wypełnienia wymogów prawnych, którym podlegamy (art. 6 ust. 1 lit. c RODO);"
+ },
+ {
+  "t": "li",
+  "n": "e)",
+  "text": "zapewnienia obsługi usług płatniczych, zapewnienia bezpieczeństwa usług, które świadczymy drogą elektroniczną, obsługi Państwa próśb przekazywanych np. poprzez formularz kontaktowy w sytuacji, gdy nie są one związane wprost z wykonaniem umowy, windykacji należności, prowadzenia postępowań sądowych, zabezpieczających, egzekucyjnych, administracyjnych i mediacyjnych, przechowywania danych dla celów archiwalnych oraz zapewnienia rozliczalności (spełnienia obowiązków wynikających z bezwzględnie obowiązujących przepisów prawa Unii Europejskiej lub prawa polskiego) - ponieważ przetwarzanie Danych Osobowych jest niezbędne do realizacji naszego prawnie uzasadnionego interesu jakim jest obsługa świadczonych usług, realizacja Państwa próśb, możliwość ustalenia, dochodzenia lub obrony przed roszczeniami, archiwizacja danych (art. 6 ust. 1 lit. f RODO);"
+ },
+ {
+  "t": "li",
+  "n": "f)",
+  "text": "realizacji prawnie uzasadnionego interesu Administratora, w tym weryfikacji prawidłowości korzystania z licencji, przeprowadzania audytów systemowych, dochodzenia roszczeń lub obrony przed roszczeniami wynikającymi z zawartych umów, weryfikacji umocowania osób reprezentujących Licencjobiorcę (art. 6 ust. 1 lit f RODO);"
+ },
+ {
+  "t": "li",
+  "n": "g)",
+  "text": "umożliwienia korzystania z funkcji aparatu fotograficznego oraz galerii urządzenia w celu dokumentacji stanu pojazdów, rejestracji ich numerów rejestracyjnych oraz numerów VIN, a także przechowywania ich w Aplikacji - ponieważ przetwarzanie jest niezbędne do wykonania umowy licencyjnej (art. 6 ust. 1 lit. b RODO), a w odniesieniu do Użytkowników niebędących stroną tej umowy – do realizacji naszego prawnie uzasadnionego interesu, jakim jest umożliwienie im korzystania z funkcji Aplikacji (art. 6 ust. 1 lit. f RODO); dostęp do aparatu i galerii Użytkownik udostępnia w ustawieniach przeglądarki internetowej lub systemu operacyjnego urządzenia i może go w każdej chwili cofnąć; numer VIN może być odczytywany ze zdjęcia automatycznie, z wykorzystaniem usług dostawcy rozwiązań sztucznej inteligencji;"
+ },
+ {
+  "t": "li",
+  "n": "h)",
+  "text": "umożliwienia korzystania z mikrofonu urządzenia w celu nagrywania notatek i poleceń głosowych, które są automatycznie zamieniane na tekst z wykorzystaniem usług dostawcy rozwiązań sztucznej inteligencji (samo nagranie nie jest zapisywane w Aplikacji – zapisywany jest wyłącznie tekst transkrypcji) – ponieważ przetwarzanie jest niezbędne do wykonania umowy licencyjnej (art. 6 ust. 1 lit. b RODO), a w odniesieniu do Użytkowników niebędących stroną tej umowy – do realizacji naszego prawnie uzasadnionego interesu, jakim jest umożliwienie im korzystania z funkcji Aplikacji (art. 6 ust. 1 lit. f RODO); dostęp do mikrofonu Użytkownik udostępnia w ustawieniach urządzenia lub przeglądarki i może go w każdej chwili cofnąć;"
+ },
+ {
+  "t": "li",
+  "n": "i)",
+  "text": "umożliwienia importu wybranych przez Użytkownika kontaktów z książki adresowej urządzenia do bazy klientów Licencjobiorcy oraz synchronizacji kontaktów klientów z urządzeniem – Aplikacja odczytuje wyłącznie kontakty wskazane przez Użytkownika, a zaimportowane dane stają się danymi klientów Licencjobiorcy, które przetwarzamy w jego imieniu na podstawie umowy powierzenia przetwarzania danych osobowych (art. 28 RODO);"
+ },
+ {
+  "t": "li",
+  "n": "j)",
+  "text": "wysyłania powiadomień push na urządzenie Użytkownika (np. o nowych wizytach, wiadomościach i zadaniach), w tym przetwarzania identyfikatora urządzenia (tokenu powiadomień) przekazywanego operatorom usług powiadomień (Google Firebase Cloud Messaging, Apple Push Notification service lub dostawcy przeglądarki internetowej); powiadomienia domyślnie nie zawierają danych osobowych klientów – ponieważ przetwarzanie jest niezbędne do wykonania umowy licencyjnej (art. 6 ust. 1 lit. b RODO), a w odniesieniu do Użytkowników niebędących stroną tej umowy – do realizacji naszego prawnie uzasadnionego interesu, jakim jest umożliwienie im korzystania z funkcji Aplikacji (art. 6 ust. 1 lit. f RODO); zgodę na otrzymywanie powiadomień Użytkownik wyraża i cofa w ustawieniach urządzenia lub przeglądarki;"
+ },
+ {
+  "t": "li",
+  "n": "k)",
+  "text": "umożliwienia autoryzacji czynności serwisowych, potwierdzania przyjęcia oraz wydania pojazdów poprzez zapisanie w profilu Użytkownika wzoru jego podpisu, który Aplikacja nanosi na generowane dokumenty (np. protokoły przyjęcia i wydania pojazdu), a także rejestrowanie podpisów składanych przez Użytkownika w Aplikacji wraz z datą, adresem IP i informacją o urządzeniu - ponieważ przetwarzanie jest niezbędne do realizacji naszego prawnie uzasadnionego interesu, jakim jest zapewnienie rozliczalności działań Użytkowników w Aplikacji oraz ochrona przed roszczeniami (art. 6 ust. 1 lit. f RODO)."
+ },
+ {
+  "t": "p",
+  "text": "Podpisy składane przez klientów Licencjobiorcy (na tablecie w studiu lub za pośrednictwem linku przesłanego SMS-em) nie są objęte niniejszym dokumentem: ich administratorem jest Licencjobiorca, a Spółka przetwarza je wyłącznie w jego imieniu, na podstawie umowy powierzenia przetwarzania danych osobowych."
+ },
+ {
+  "t": "p",
+  "n": "6.",
+  "text": "Wskazujemy, że odbiorcami Państwa Danych Osobowych mogą być:"
+ },
+ {
+  "t": "li",
+  "n": "a)",
+  "text": "podmioty uprawnione do uzyskania Danych Osobowych na podstawie bezwzględnie obowiązujących przepisów prawa Unii Europejskiej lub prawa polskiego np. sądy, prokuratura, Policja, organy administracji publicznej, organy państwowe, Prezesowi Urzędu Ochrony Danych Osobowych, Prezesowi Urzędu Ochrony Konkurencji i Konsumentów, Prezesowi Urzędu Komunikacji Elektronicznej,"
+ },
+ {
+  "t": "li",
+  "n": "b)",
+  "text": "podmioty będące dostawcami usług niezbędnych do prawidłowego funkcjonowania i rozwoju Aplikacji,"
+ },
+ {
+  "t": "li",
+  "n": "c)",
+  "text": "podmioty świadczące usługi IT oraz dostarczające oprogramowanie informatyczne,"
+ },
+ {
+  "t": "li",
+  "n": "d)",
+  "text": "biura rachunkowe świadczące usługi finansowo-księgowo-kadrowe,"
+ },
+ {
+  "t": "li",
+  "n": "e)",
+  "text": "biegli rewidenci lub firmy audytorskie wykonujące audyt sprawozdań finansowych,"
+ },
+ {
+  "t": "li",
+  "n": "f)",
+  "text": "kancelarie prawne świadczące usługi doradztwa prawnego,"
+ },
+ {
+  "t": "li",
+  "n": "g)",
+  "text": "pełnomocnicy reprezentujący Spółkę w realizacji obsługi klienta i zawieranych umów,"
+ },
+ {
+  "t": "li",
+  "n": "h)",
+  "text": "operatorzy pocztowi i podmioty świadczące usługi kurierskie;"
+ },
+ {
+  "t": "li",
+  "n": "i)",
+  "text": "dostawcy usług wysyłki wiadomości SMS oraz e-mail (bramki powiadomień) zintegrowani Aplikacją;"
+ },
+ {
+  "t": "li",
+  "n": "j)",
+  "text": "OVH SAS – hosting serwerów Aplikacji i bazy danych w centrum danych we Francji (Unia Europejska);"
+ },
+ {
+  "t": "li",
+  "n": "k)",
+  "text": "OpenAI – dostawca usług sztucznej inteligencji, z których korzystamy przy odczycie numeru VIN ze zdjęć tabliczki znamionowej lub dowodu rejestracyjnego, transkrypcji nagrań głosowych, klasyfikacji przychodzących wiadomości oraz przygotowywaniu propozycji odpowiedzi; dane mogą być przetwarzane w Stanach Zjednoczonych;"
+ },
+ {
+  "t": "li",
+  "n": "l)",
+  "text": "PayPro S.A., operator serwisu Przelewy24 – obsługa płatności za abonament; w zakresie danych płatnika PayPro S.A. działa również jako odrębny administrator, na zasadach opisanych we własnej polityce prywatności;"
+ },
+ {
+  "t": "li",
+  "n": "m)",
+  "text": "Cloudflare, Inc. – przekazywanie (routing) wiadomości e-mail kierowanych na adresy studiów w Aplikacji oraz usługi sieciowe zapewniające bezpieczeństwo i dostępność Aplikacji; dane mogą być przetwarzane w Stanach Zjednoczonych;"
+ },
+ {
+  "t": "li",
+  "n": "n)",
+  "text": "Amazon Web Services EMEA SARL – przechowywanie plików (m.in. zdjęć i dokumentów) w centrum danych we Frankfurcie nad Menem (Niemcy, Unia Europejska);"
+ },
+ {
+  "t": "li",
+  "n": "o)",
+  "text": "SMSAPI – wysyłka wiadomości SMS;"
+ },
+ {
+  "t": "li",
+  "n": "p)",
+  "text": "home.pl S.A. – wysyłka wiadomości e-mail z Aplikacji;"
+ },
+ {
+  "t": "li",
+  "n": "q)",
+  "text": "Google (Google Ireland Limited, Google LLC) – integracja z Profilem Firmy w Google połączonym przez Licencjobiorcę oraz usługa powiadomień push Firebase Cloud Messaging;"
+ },
+ {
+  "t": "li",
+  "n": "r)",
+  "text": "Meta Platforms Ireland Limited – integracja z kontem Instagram i stroną na Facebooku połączonymi przez Licencjobiorcę;"
+ },
+ {
+  "t": "li",
+  "n": "s)",
+  "text": "Apple Inc. – usługa powiadomień push (Apple Push Notification service) na urządzeniach z systemem iOS;"
+ },
+ {
+  "t": "li",
+  "n": "t)",
+  "text": "Minister Finansów, za pośrednictwem Krajowego Systemu e-Faktur (KSeF) – wystawianie i odbieranie faktur ustrukturyzowanych;"
+ },
+ {
+  "t": "li",
+  "n": "u)",
+  "text": "Prezes Głównego Urzędu Statystycznego, za pośrednictwem bazy REGON – pobieranie danych rejestrowych przedsiębiorców na podstawie numeru NIP;"
+ },
+ {
+  "t": "p",
+  "text": "przy czym takie podmioty przetwarzają Dane Osobowe na podstawie umowy, w tym umowy powierzenia przetwarzania Danych Osobowych zawartej ze Spółką, bądź w oparciu o przepisy prawa."
+ },
+ {
+  "t": "p",
+  "n": "7.",
+  "text": "Podajemy, że Państwa Dane Osobowe przechowywane będą w następujących przedziałach czasowych:"
+ },
+ {
+  "t": "li",
+  "n": "a)",
+  "text": "Dane Osobowe przetwarzane w celu przygotowania, zawarcia i wykonania umowy - do czasu zakończenia wykonywania, rozwiązania lub wygaśnięcia danej umowy, z tym zastrzeżeniem, że czasami Dane Osobowe mogą być przetwarzane również po zakończeniu wykonywania, rozwiązaniu lub wygaśnięciu tej umowy, jednak wyłącznie jeżeli jest to dozwolone lub wymagane w świetle bezwzględnie obowiązujących przepisów prawa np. przedawnienia potencjalnych roszczeń z umowy lub przedawnienia zobowiązań podatkowych, w celu przetwarzania w celach statystycznych, rozliczeniowych;"
+ },
+ {
+  "t": "li",
+  "n": "b)",
+  "text": "Dane Osobowe przetwarzane w celu świadczenia usług drogą elektroniczną i przesyłania informacji handlowych - do czasu wycofania zgody;"
+ },
+ {
+  "t": "li",
+  "n": "c)",
+  "text": "Dane Osobowe przetwarzane w celu marketingu bezpośredniego usług, w tym nawiązania kontaktu, przedstawiania oferty, prowadzenie pomiarów i analiz, obejmujących profilowanie, zapisywania danych w plikach cookies oraz gromadzenia danych ze stron www i aplikacji mobilnych - do czasu wycofania zgody albo do momentu wniesienia sprzeciwu;"
+ },
+ {
+  "t": "li",
+  "n": "d)",
+  "text": "Dane Osobowe przetwarzane w celu spełnienia ciążących na nas obowiązków prawnych wynikających z bezwzględnie obowiązujących przepisów prawa Unii Europejskiej lub prawa polskiego - do czasu wygaśnięcia obowiązków przechowywania danych wynikających z przepisów prawa;"
+ },
+ {
+  "t": "li",
+  "n": "e)",
+  "text": "Dane Osobowe przetwarzane w celu zapewnienia obsługi usług płatniczych, zapewnienia bezpieczeństwa usług, które świadczymy drogą elektroniczną, obsługi Państwa próśb przekazywanych np. poprzez formularz kontaktowy w sytuacji, gdy nie są one związane wprost z wykonaniem umowy, windykacji należności, prowadzenia postępowań sądowych, egzekucyjnych, administracyjnych i mediacyjnych, przechowywanie danych dla celów archiwalnych oraz zapewnienie rozliczalności - do momentu przedawnienia wszystkich roszczeń wynikających z umowy lub roszczeń związanych z przetwarzaniem Danych Osobowych albo do momentu wniesienia sprzeciwu;"
+ },
+ {
+  "t": "li",
+  "n": "f)",
+  "text": "Dane Osobowe przetwarzane w celu realizacji prawnie uzasadnionego interesu Administratora, w tym weryfikacji prawidłowości korzystania z licencji, przeprowadzania audytów systemowych, dochodzenia roszczeń lub obrony przed roszczeniami wynikającymi z zawartych umów, weryfikacji umocowania osób reprezentujących Licencjobiorcę (art. 6 ust. 1 lit f RODO) - do momentu przedawnienia wszystkich roszczeń wynikających z umowy lub roszczeń związanych z przetwarzaniem Danych Osobowych;"
+ },
+ {
+  "t": "li",
+  "n": "g)",
+  "text": "Dane Osobowe przetwarzane w celu umożliwienia korzystania z funkcji aparatu fotograficznego oraz galerii urządzenia w celu dokumentacji stanu pojazdów, rejestracji ich numerów rejestracyjnych oraz numerów VIN, a także przechowywania ich w Aplikacji – do momentu usunięcia zdjęć z Aplikacji przez Użytkownika lub Licencjobiorcę albo do czasu usunięcia konta Licencjobiorcy w Aplikacji; cofnięcie dostępu do aparatu lub galerii w ustawieniach urządzenia uniemożliwia wykonywanie nowych zdjęć, ale nie powoduje usunięcia zdjęć już zapisanych;"
+ },
+ {
+  "t": "li",
+  "n": "h)",
+  "text": "Nagrania głosowe – nie są zapisywane w Aplikacji; są przekazywane do transkrypcji, a dostawca tej usługi może je przechowywać przez ograniczony czas (co do zasady do 30 dni) wyłącznie w celu zapobiegania nadużyciom; tekst transkrypcji przechowujemy tak jak pozostałe dane wprowadzone do Aplikacji;"
+ },
+ {
+  "t": "li",
+  "n": "i)",
+  "text": "Identyfikator urządzenia do powiadomień push – do czasu wyłączenia powiadomień, wyrejestrowania urządzenia lub usunięcia konta Użytkownika;"
+ },
+ {
+  "t": "li",
+  "n": "j)",
+  "text": "Wzór podpisu zapisany w profilu Użytkownika – do czasu jego usunięcia przez Użytkownika lub usunięcia konta Użytkownika; podpisy złożone przez Użytkownika na dokumentach – przez okres posiadania konta w Aplikacji lub do momentu przedawnienia roszczeń związanych z realizacją zleceń, w których dany podpis został użyty."
+ },
+ {
+  "t": "p",
+  "n": "8.",
+  "text": "Informujemy, że przysługują Państwu następujące uprawnienia:"
+ },
+ {
+  "t": "li",
+  "n": "a)",
+  "text": "prawo dostępu do treści swoich Danych Osobowych, w tym uzyskania kopii danych;"
+ },
+ {
+  "t": "li",
+  "n": "b)",
+  "text": "prawo zmiany Danych Osobowych (sprostowania, uzupełniania, aktualizacji);"
+ },
+ {
+  "t": "li",
+  "n": "c)",
+  "text": "prawo wycofania zgody co do przetwarzania Danych Osobowych w dowolnym momencie w przypadkach przetwarzania Danych Osobowych na podstawie udzielonej uprzednio zgody;"
+ },
+ {
+  "t": "p",
+  "text": "W każdej chwili możecie Państwo cofnąć zgodę na przetwarzanie tych danych osobowych, które przetwarzamy na podstawie Państwa zgody. Cofnięcie zgody nie będzie wpływać na zgodność z prawem przetwarzania, którego dokonano na podstawie Państwa zgody przed jej wycofaniem."
+ },
+ {
+  "t": "li",
+  "n": "d)",
+  "text": "prawo ograniczenia przetwarzania Danych Osobowych w dowolnej chwili, ze względu na szczególną sytuację, chyba że przetwarzanie Danych Osobowych jest wymagane zgodnie z przepisami prawa;"
+ },
+ {
+  "t": "p",
+  "text": "Macie Państwo prawo, abyśmy ograniczyli przetwarzanie Państwa danych osobowych wyłącznie do ich przechowywania lub wykonywania uzgodnionych z Państwem działań, jeżeli Państwa zdaniem posiadamy nieprawidłowe dane na Państwa temat lub przetwarzamy je bezpodstawnie; lub nie chcecie Państwo, aby zostały usunięte, bo są Państwu potrzebne do ustalenia, dochodzenia lub obrony roszczeń; lub na czas wniesionego przez Państwa sprzeciwu względem przetwarzania danych."
+ },
+ {
+  "t": "li",
+  "n": "e)",
+  "text": "prawo wniesienia sprzeciwu wobec przetwarzania Danych Osobowych;"
+ },
+ {
+  "t": "p",
+  "text": "**Sprzeciw „marketingowy”**. Macie Państwo prawo sprzeciwu wobec przetwarzania Państwa danych w celu prowadzenia marketingu bezpośredniego. Jeżeli skorzystacie Państwo z tego prawa - zaprzestaniemy przetwarzania danych w tym celu."
+ },
+ {
+  "t": "p",
+  "text": "**Sprzeciw z uwagi na szczególną sytuację**. Macie Państwo także prawo sprzeciwu wobec przetwarzania Państwa danych na podstawie prawnie uzasadnionego interesu w celach innych niż marketing bezpośredni, a także, gdy przetwarzanie jest nam niezbędne do wykonania zadania realizowanego w interesie publicznym lub do sprawowania powierzonej nam władzy publicznej. Powinniście Państwo wtedy wskazać nam Państwa szczególną sytuację, która Państwa zdaniem uzasadnia zaprzestanie przez nas przetwarzania objętego sprzeciwem. Wówczas przestaniemy przetwarzać Państwa dane w tych celach, chyba że wykażemy, że podstawy przetwarzania przez nas Państwa danych są nadrzędne wobec Państwa praw lub też Państwa dane są nam niezbędne do ustalenia, dochodzenia lub obrony roszczeń."
+ },
+ {
+  "t": "li",
+  "n": "f)",
+  "text": "prawo żądania usunięcia Danych Osobowych;"
+ },
+ {
+  "t": "p",
+  "text": "Jeżeli Państwa zdaniem nie ma podstaw do tego, abyśmy przetwarzali Państwa dane, możecie Państwo zażądać, aby zostały usunięte."
+ },
+ {
+  "t": "li",
+  "n": "g)",
+  "text": "prawo przenoszenia Danych Osobowych;"
+ },
+ {
+  "t": "p",
+  "text": "Macie Państwo prawo otrzymać od nas w ustrukturyzowanym, powszechnie używanym formacie nadającym się do odczytu maszynowego dane osobowe Państwa dotyczące, które zostały przez Państwa dostarczone na podstawie umowy lub Państwa zgody, gdy przetwarzanie odbywa się w sposób zautomatyzowany. Możecie Państwo też zlecić nam przesłanie tych danych bezpośrednio innemu podmiotowi."
+ },
+ {
+  "t": "p",
+  "text": "W celu skorzystania z wyżej wymienionych uprawnień prosimy Państwa o kontakt w jeden ze sposobów wskazanych w pkt. 3 powyżej."
+ },
+ {
+  "t": "p",
+  "n": "9.",
+  "text": "Przysługuje Państwu także uprawnienie do wniesienia skargi do organu nadzorczego zajmującego się ochroną danych osobowych, którym jest Prezes Urzędu Ochrony Danych Osobowych (adres: ul. Moniuszki 1a, 00-014 Warszawa, Polska)."
+ },
+ {
+  "t": "p",
+  "n": "10.",
+  "text": "Podanie Danych Osobowych jest dobrowolne, ale niezbędne do przygotowania, zawarcia i wykonania łączącej/łączących nas umowy/umów. Odmowa podania przez Państwa Danych Osobowych może skutkować odmową odpowiedzi na zapytanie, odmową przygotowania, zawarcia i realizacji umowy."
+ },
+ {
+  "t": "p",
+  "n": "11.",
+  "text": "Dane Osobowe zbierane przy wykorzystaniu formularza kontaktowego lub rejestracyjnego w wersji papierowej lub elektronicznej, formularza kontaktowego lub rejestracyjnego na stronie internetowej https://detailboost.pl, w trakcie wymiany korespondencji elektronicznej za pośrednictwem wiadomości e-mail przesłanych pocztą elektroniczną, w trakcie rozmowy osobistej lub za pośrednictwem telefonu nie podlegają zautomatyzowanym decyzjom i nie są profilowane."
+ },
+ {
+  "t": "p",
+  "n": "12.",
+  "text": "Państwa Dane Osobowe mogą być przekazywane poza Europejski Obszar Gospodarczy (EOG) w związku z korzystaniem przez Licencjodawcę z rozwiązań chmurowych oraz zewnętrznych dostawców usług IT, w szczególności OpenAI, Cloudflare, Google, Meta i Apple. Przekazywanie to odbywa się z zapewnieniem odpowiedniego stopnia ochrony danych, w szczególności w oparciu o Standardowe Klauzule Umowne zatwierdzone przez Komisję Europejską lub decyzje Komisji Europejskiej stwierdzające odpowiedni stopień ochrony (w tym EU-US Data Privacy Framework)."
+ },
+ {
+  "t": "p",
+  "n": "13.",
+  "text": "**Integracje z usługami Google i Meta. **Licencjobiorca może połączyć z Aplikacją swój Profil Firmy w Google oraz konto Instagram i stronę na Facebooku. Połączenie następuje wyłącznie z inicjatywy Licencjobiorcy, przez zalogowanie się w serwisie Google lub Meta i udzielenie Aplikacji wskazanych tam uprawnień. W ramach integracji:"
+ },
+ {
+  "t": "li",
+  "n": "a)",
+  "text": "**z Google (Google Business Profile API) **pobieramy dane lokalizacji firmy (nazwa, adres), opinie o firmie wraz z nazwą wyświetlaną autora, oceną, treścią, datą i odpowiedzią właściciela, a także statystyki profilu (m.in. wyświetlenia w Mapach i wyszukiwarce, połączenia, prośby o wskazówki dojazdu, kliknięcia w stronę). Dane te służą do wyświetlania opinii i statystyk w Aplikacji oraz do publikowania odpowiedzi na opinie w imieniu Licencjobiorcy. Dane są aktualizowane raz na dobę i przechowywane do czasu odłączenia integracji lub usunięcia konta Licencjobiorcy. Dane otrzymane z Google nie są przekazywane dostawcom usług sztucznej inteligencji;"
+ },
+ {
+  "t": "li",
+  "n": "b)",
+  "text": "**z Meta (Instagram Graph API, Facebook Graph API) **pobieramy dane połączonego konta Instagram (profil, opublikowane posty z opisami i statystykami, statystyki konta), wiadomości prywatne (Direct) wraz z nazwą użytkownika i nazwą wyświetlaną nadawcy, treścią i załącznikami, a także publikujemy posty przygotowane przez Licencjobiorcę w Aplikacji. Wiadomości prywatne mogą zostać zapisane w Aplikacji jako zapytania (leady) Licencjobiorcy. Z publicznej Biblioteki reklam Meta pobieramy informacje o reklamach innych firm na wskazanym przez Licencjobiorcę obszarze (funkcja monitorowania rynku);"
+ },
+ {
+  "t": "li",
+  "n": "c)",
+  "text": "**przekazywanie danych do dostawcy usług sztucznej inteligencji: **treść i załączniki wiadomości prywatnych z Instagrama mogą być przekazywane do OpenAI w celu rozpoznania zapytania, odczytania danych pojazdu i zaproponowania oznaczeń, a opisy postów – w celu przygotowania podsumowań, propozycji nowych postów i analizy treści. Zgodnie z warunkami usług API dostawcy dane te nie są wykorzystywane do trenowania jego modeli;"
+ },
+ {
+  "t": "li",
+  "n": "d)",
+  "text": "**rola Spółki: **w zakresie danych osób trzecich otrzymanych w ramach integracji (autorów opinii, nadawców wiadomości) administratorem jest Licencjobiorca, a Spółka przetwarza je w jego imieniu na podstawie umowy powierzenia przetwarzania danych osobowych;"
+ },
+ {
+  "t": "li",
+  "n": "e)",
+  "text": "**okres przechowywania: **historyczne zrzuty postów i statystyk z Instagrama przechowujemy przez 24 miesiące, a statystyki konta przez 12 miesięcy; wiadomości prywatne, opublikowane posty i zapytania – do czasu ich usunięcia na żądanie lub usunięcia konta Licencjobiorcy;"
+ },
+ {
+  "t": "li",
+  "n": "f)",
+  "text": "**odłączenie i usunięcie danych: **integrację można w każdej chwili odłączyć w ustawieniach Aplikacji – odbieramy wtedy Aplikacji dostęp w serwisie Google lub Meta; po odłączeniu Profilu Firmy w Google usuwamy pobrane z niego opinie i statystyki. Dostęp można też odebrać w ustawieniach konta Google lub Meta. Usunięcia pozostałych danych otrzymanych z Google lub Meta można zażądać, pisząc na adres biuro@detailboost.pl; szczegółowa instrukcja jest dostępna pod adresem https://detailboost.pl/usuwanie-danych;"
+ },
+ {
+  "t": "li",
+  "n": "g)",
+  "text": "**zasady Google: **wykorzystywanie i przekazywanie do innych aplikacji informacji otrzymanych z interfejsów API Google jest zgodne z Zasadami dotyczącymi danych użytkownika w usługach Google API (Google API Services User Data Policy), w tym z wymaganiami dotyczącymi ograniczonego użytkowania (Limited Use)."
+ },
+ {
+  "t": "p",
+  "n": "14.",
+  "text": "Pragniemy podkreślić, że Aplikacja, gromadzi informacje zawarte w plikach cookies oraz z wykorzystaniem innych technologii lokalnego przechowywania danych. Pliki cookies to niewielkie pliki wysyłane do urządzenia końcowego użytkownika identyfikujące go w sposób potrzebny do uproszczenia i przyspieszenia działania Aplikacji. Pliki cookies oraz technologie pamięci podręcznej zazwyczaj zawierają nazwę systemu, z którego pochodzą, czas przechowywania ich na urządzeniu końcowym oraz unikalny numer. Pliki te wykorzystywane są w celu:"
+ },
+ {
+  "t": "li",
+  "n": "a)",
+  "text": "dostosowania zawartości Aplikacji do preferencji Użytkownika oraz optymalizacji korzystania z niej, a w szczególności pozwalają rozpoznać urządzenie Użytkownika i odpowiednio wyświetlić interfejs dostosowany do jego indywidualnych potrzeb;"
+ },
+ {
+  "t": "li",
+  "n": "b)",
+  "text": "tworzenia statystyk, które pomagają zrozumieć, w jaki sposób Użytkownicy korzystają z Aplikacji, co umożliwia ulepszanie jej struktury i zawartości;"
+ },
+ {
+  "t": "li",
+  "n": "c)",
+  "text": "utrzymania sesji Użytkownika (brak konieczności ponownego logowania po każdym zamknięciu programu)."
+ },
+ {
+  "t": "p",
+  "n": "15.",
+  "text": "Wskazujemy również, że w ramach Aplikacji stosowane są następujące rodzaje plików cookies:"
+ },
+ {
+  "t": "li",
+  "n": "a)",
+  "text": "„niezbędne” pliki cookies, umożliwiające korzystanie z usług dostępnych w ramach Aplikacji, np. uwierzytelniające pliki cookies wykorzystywane do usług wymagających uwierzytelniania w ramach Aplikacji;"
+ },
+ {
+  "t": "li",
+  "n": "b)",
+  "text": "pliki cookies służące do zapewnienia bezpieczeństwa, np. wykorzystywane do wykrywania nadużyć w zakresie uwierzytelniania w ramach Aplikacji;"
+ },
+ {
+  "t": "li",
+  "n": "c)",
+  "text": "„wydajnościowe” pliki cookies, umożliwiające zbieranie informacji o sposobie korzystania z Aplikacji;"
+ },
+ {
+  "t": "li",
+  "n": "d)",
+  "text": "„funkcjonalne” pliki cookies, umożliwiające „zapamiętanie” wybranych przez użytkownika Aplikacji ustawień i personalizację interfejsu użytkownika, np. w zakresie wybranego regionu, z którego pochodzi użytkownik, rozmiaru czcionki, wyglądu Aplikacji, itp.;"
+ },
+ {
+  "t": "li",
+  "n": "e)",
+  "text": "„reklamowe” pliki cookies, umożliwiające dostarczanie użytkownikom treści reklamowych bardziej dostosowanych do ich zainteresowań;"
+ },
+ {
+  "t": "li",
+  "n": "f)",
+  "text": "„statystyczne” pliki cookies, umożliwiające dostarczanie anonimowych danych statystycznych, które pozwalają identyfikować sposób korzystania użytkowników ze Aplikacji."
+ },
+ {
+  "t": "p",
+  "n": "16.",
+  "text": "Przeglądarki internetowe (oprogramowanie Licencjobiorcy) domyślnie dopuszczają przechowywanie w urządzeniu końcowym plików cookies i danych w pamięci lokalnej. Licencjobiorca oraz Użytkownik wyrażają zgodę na korzystanie z plików cookies analitycznych, funkcjonalnych i marketingowych za pośrednictwem dedykowanego baneru informacyjnego wyświetlanego przy pierwszym wejściu do Aplikacji. Niezbędne pliki cookies, wymagane do prawidłowego działania Aplikacji i świadczenia usług, są wykorzystywane na podstawie prawnie uzasadnionego interesu Spółki. Użytkownik może w każdej chwili zmienić swoje ustawienia dotyczące plików cookies z poziomu Aplikacji lub przeglądarki. Ograniczenia stosowania plików cookies mogą wpłynąć na funkcjonalność Aplikacji. Pliki cookies zamieszczane w urządzeniu końcowym Licencjobiorcy mogą być wykorzystywane również przez współpracujących ze Spółką reklamodawców oraz partnerów biznesowych Spółki. Podmiotem odpowiedzialnym za zamieszczanie plików cookies na urządzeniu końcowym Licencjobiorcy jednocześnie posiadającym do nich dostęp jest Spółka."
+ },
+ {
+  "t": "p",
+  "n": "17.",
+  "text": "Informujemy także, że w ramach Aplikacji nie stosujemy narzędzi analitycznych ani reklamowych podmiotów trzecich (takich jak Google Analytics, Google Ads czy Meta Pixel). W ramach Aplikacji przetwarzane są natomiast:"
+ },
+ {
+  "t": "li",
+  "n": "a)",
+  "text": "logi serwera:"
+ },
+ {
+  "t": "p",
+  "text": "Korzystanie z Aplikacji wiąże się z przesyłaniem zapytań do serwera, na którym przechowywana jest Aplikacji. Każde zapytanie skierowane do serwera zapisywane jest w logach serwera. Logi obejmują m.in. adres IP użytkownika Aplikacji, datę i czas logowania do serwera, informacje o przeglądarce internetowej i systemie operacyjnym, z jakiego korzysta użytkownik Aplikacji. Logi zapisywane i przechowywane są na serwerze, na którym przechowywana jest Aplikacja. Dane zapisane w logach serwera nie są kojarzone z konkretnymi osobami korzystającymi z Aplikacji i nie są wykorzystywane przez Spółkę w celu identyfikacji użytkownika Aplikacji. Logi serwera stanowią wyłącznie materiał pomocniczy służący do administrowania Aplikacją, a ich zawartość nie jest ujawniana nikomu poza osobami upoważnionymi do administrowania serwerem, na którym przechowywana jest Aplikacja."
+ }
+]

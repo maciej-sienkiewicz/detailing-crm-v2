@@ -68,7 +68,10 @@ export interface TranslationKeys {
             acceptTerms: string;
             termsLink: string;
             and: string;
+            dpaLink: string;
+            privacyNotice: string;
             privacyLink: string;
+            clauseLink: string;
             submitButton: string;
             submitting: string;
             hasAccount: string;
@@ -122,6 +125,8 @@ export interface TranslationKeys {
             expiredTitle: string;
             expiredMessage: string;
             expiredAction: string;
+            privacyNotice: string;
+            clauseLink: string;
         };
         validation: {
             emailRequired: string;

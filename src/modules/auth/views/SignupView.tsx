@@ -13,6 +13,8 @@ import { t } from '@/common/i18n';
 import { Label, FieldGroup, ErrorMessage, FormGrid } from '@/common/components/Form';
 import { AuthLayout } from '../components/AuthLayout';
 import { AuthAside, AuthForm, AuthHeading, AuthLink, AuthMeta, AuthPrimaryButton } from '../components/AuthUi';
+import { LEGAL_VERSION, legalPath } from '@/modules/legal/documents';
+import { LegalNotice } from '../components/LegalNotice';
 
 // Linki do regulaminu i polityki w treści zgody - jak pozostałe linki bramy.
 const TermsLabel = styled.span`
@@ -70,7 +72,7 @@ export const SignupView = () => {
         }
 
         try {
-            await signupMutation.mutateAsync({ ...formData, confirmPassword: formData.password });
+            await signupMutation.mutateAsync({ ...formData, confirmPassword: formData.password, legalVersion: LEGAL_VERSION });
         } catch (error: any) {
             const message = error?.response?.data?.message || t.auth.errors.serverError;
             setApiError(message);
@@ -163,17 +165,27 @@ export const SignupView = () => {
                         label={
                             <TermsLabel>
                                 {t.auth.signup.acceptTerms}{' '}
-                                <a href="/terms" target="_blank" rel="noopener noreferrer">
+                                <a href={legalPath('regulamin')} target="_blank" rel="noopener noreferrer">
                                     {t.auth.signup.termsLink}
                                 </a>{' '}
                                 {t.auth.signup.and}{' '}
-                                <a href="/privacy" target="_blank" rel="noopener noreferrer">
-                                    {t.auth.signup.privacyLink}
+                                <a href={legalPath('umowa-powierzenia')} target="_blank" rel="noopener noreferrer">
+                                    {t.auth.signup.dpaLink}
                                 </a>
                             </TermsLabel>
                         }
                     />
                     {errors.acceptTerms && <ErrorMessage>{errors.acceptTerms}</ErrorMessage>}
+                    <LegalNotice>
+                        {t.auth.signup.privacyNotice}{' '}
+                        <a href={legalPath('polityka-prywatnosci')} target="_blank" rel="noopener noreferrer">
+                            {t.auth.signup.privacyLink}
+                        </a>{' '}
+                        {t.auth.signup.and}{' '}
+                        <a href={legalPath('klauzula-informacyjna')} target="_blank" rel="noopener noreferrer">
+                            {t.auth.signup.clauseLink}
+                        </a>.
+                    </LegalNotice>
                 </FieldGroup>
 
                 <AuthPrimaryButton type="submit" disabled={signupMutation.isPending}>

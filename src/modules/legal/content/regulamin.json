@@ -1,0 +1,405 @@
+[
+ {
+  "t": "h",
+  "text": "§ 1. Postanowienia ogólne"
+ },
+ {
+  "t": "p",
+  "n": "1.",
+  "text": "Niniejszy Regulamin określa zasady zakupu abonamentu na korzystanie z aplikacji DetailBoost CRM, dokonywania płatności, rezygnacji, odstąpienia od umowy oraz składania reklamacji."
+ },
+ {
+  "t": "p",
+  "n": "2.",
+  "text": "Usługodawcą (Licencjodawcą) jest M&M SOLUTIONS spółka z ograniczoną odpowiedzialnością z siedzibą w Skórzewie (ul. Poznańska 119, 60-185 Skórzewo), wpisana do rejestru przedsiębiorców Krajowego Rejestru Sądowego pod numerem KRS 0001267442 (Sąd Rejonowy Poznań – Nowe Miasto i Wilda w Poznaniu, VIII Wydział Gospodarczy KRS), NIP 7773476300, REGON 545750800. Kontakt: biuro@detailboost.pl."
+ },
+ {
+  "t": "p",
+  "n": "3.",
+  "text": "W sprawach nieuregulowanych w Regulaminie stosuje się Ogólne Warunki Umowy licencyjnej (OWU) wraz z załącznikami. W razie sprzeczności w zakresie płatności, cen i reklamacji pierwszeństwo ma Regulamin."
+ },
+ {
+  "t": "p",
+  "n": "4.",
+  "text": "Regulamin jest dostępny nieodpłatnie pod adresem https://detailboost.pl/regulamin w formie umożliwiającej jego pobranie, utrwalenie i wydrukowanie."
+ },
+ {
+  "t": "h",
+  "text": "§ 2. Definicje"
+ },
+ {
+  "t": "p",
+  "n": "1.",
+  "text": "**Aplikacja** – oprogramowanie DetailBoost CRM udostępniane w przeglądarce internetowej, jako aplikacja mobilna (Android, iOS) oraz w aplikacji tabletowej do podpisów."
+ },
+ {
+  "t": "p",
+  "n": "2.",
+  "text": "**Licencjobiorca** – przedsiębiorca, który założył Konto i korzysta z Aplikacji na podstawie umowy z Usługodawcą."
+ },
+ {
+  "t": "p",
+  "n": "3.",
+  "text": "**Przedsiębiorca na prawach konsumenta** – osoba fizyczna zawierająca umowę bezpośrednio związaną z jej działalnością gospodarczą, gdy z treści umowy wynika, że nie posiada ona dla niej charakteru zawodowego, wynikającego w szczególności z przedmiotu wykonywanej działalności, udostępnionego na podstawie przepisów o CEIDG."
+ },
+ {
+  "t": "p",
+  "n": "4.",
+  "text": "**Konto** – konto studia w Aplikacji, do którego właściciel może dodawać Użytkowników (pracowników); liczba Użytkowników nie wpływa na cenę."
+ },
+ {
+  "t": "p",
+  "n": "5.",
+  "text": "**Abonament** – odpłatny dostęp do wybranego Planu i Modułów dodatkowych na Okres rozliczeniowy."
+ },
+ {
+  "t": "p",
+  "n": "6.",
+  "text": "**Okres rozliczeniowy** – 30 kolejnych dni, liczonych od dnia zaksięgowania płatności."
+ },
+ {
+  "t": "p",
+  "n": "7.",
+  "text": "**Plan** – zakres funkcji Aplikacji (BASIC albo FULL); **Moduł dodatkowy** – płatne rozszerzenie Planu BASIC."
+ },
+ {
+  "t": "p",
+  "n": "8.",
+  "text": "**Pakiet SMS** – jednorazowo kupowana pula wiadomości SMS wysyłanych z Aplikacji."
+ },
+ {
+  "t": "h",
+  "text": "§ 3. Wymagania techniczne"
+ },
+ {
+  "t": "p",
+  "n": "1.",
+  "text": "Do korzystania z Aplikacji potrzebne są: urządzenie z dostępem do internetu, aktualna wersja przeglądarki Chrome, Safari, Edge lub Firefox z włączoną obsługą JavaScript i plików cookies niezbędnych do utrzymania sesji, a także aktywny adres e-mail."
+ },
+ {
+  "t": "p",
+  "n": "2.",
+  "text": "Aplikacja mobilna wymaga systemu Android lub iOS w wersji wspieranej przez sklep z aplikacjami. Niektóre funkcje (aparat, mikrofon, powiadomienia push, import kontaktów) wymagają udzielenia uprawnień w ustawieniach urządzenia."
+ },
+ {
+  "t": "h",
+  "text": "§ 4. Konto i okres próbny"
+ },
+ {
+  "t": "p",
+  "n": "1.",
+  "text": "Założenie Konta jest bezpłatne i wymaga akceptacji Regulaminu, OWU oraz zapoznania się z Polityką Prywatności."
+ },
+ {
+  "t": "p",
+  "n": "2.",
+  "text": "Każde studio może jednorazowo skorzystać z bezpłatnego okresu próbnego trwającego 3 miesiące (90 dni). Okres próbny nie wymaga podania danych karty płatniczej."
+ },
+ {
+  "t": "p",
+  "n": "3.",
+  "text": "W okresie próbnym Licencjobiorca może bezpłatnie włączyć Plan FULL oraz Moduły dodatkowe."
+ },
+ {
+  "t": "p",
+  "n": "4.",
+  "text": "Po zakończeniu okresu próbnego bez opłacenia Abonamentu dostęp do Aplikacji zostaje zablokowany, z wyjątkiem funkcji pozwalających opłacić Abonament. Dane Konta są przechowywane przez 12 miesięcy, po czym zostają usunięte. Opłacenie Abonamentu w tym czasie przywraca pełny dostęp."
+ },
+ {
+  "t": "h",
+  "text": "§ 5. Plany i ceny"
+ },
+ {
+  "t": "p",
+  "n": "1.",
+  "text": "Ceny Planów i Modułów dodatkowych za Okres rozliczeniowy (30 dni):"
+ },
+ {
+  "t": "table",
+  "rows": [
+   [
+    "Plan",
+    "Zakres",
+    "Cena brutto",
+    "Cena netto"
+   ],
+   [
+    "BASIC",
+    "kalendarz i rezerwacje, wizyty, baza klientów i pojazdów z historią, dokumenty, galeria",
+    "99,00 zł",
+    "80,49 zł"
+   ],
+   [
+    "FULL",
+    "wszystkie moduły Aplikacji",
+    "299,00 zł",
+    "243,09 zł"
+   ]
+  ]
+ },
+ {
+  "t": "table",
+  "rows": [
+   [
+    "Moduł dodatkowy (do Planu BASIC)",
+    "Cena brutto",
+    "Cena netto"
+   ],
+   [
+    "Asystent AI przy obsłudze leadów",
+    "49,00 zł",
+    "39,84 zł"
+   ],
+   [
+    "Monitoring konkurencji na Instagramie",
+    "32,00 zł",
+    "26,02 zł"
+   ],
+   [
+    "Automatyzacja kontaktu z klientem (SMS i e-mail)",
+    "49,00 zł",
+    "39,84 zł"
+   ],
+   [
+    "Kampanie marketingowe SMS i e-mail",
+    "29,00 zł",
+    "23,58 zł"
+   ],
+   [
+    "Podpisy elektroniczne",
+    "29,00 zł",
+    "23,58 zł"
+   ],
+   [
+    "Kontrola nad finansami (dokumenty, faktury, KSeF)",
+    "49,00 zł",
+    "39,84 zł"
+   ],
+   [
+    "Statystyki",
+    "19,00 zł",
+    "15,45 zł"
+   ],
+   [
+    "Produkty w studiu",
+    "29,00 zł",
+    "23,58 zł"
+   ]
+  ]
+ },
+ {
+  "t": "p",
+  "text": "Ceny brutto zawierają podatek VAT w stawce 23%. Aktualne ceny są prezentowane w Aplikacji przed dokonaniem płatności i na stronie https://detailboost.pl. Zmiana cen nie dotyczy Okresów rozliczeniowych już opłaconych."
+ },
+ {
+  "t": "h",
+  "text": "§ 6. Płatności i faktury"
+ },
+ {
+  "t": "p",
+  "n": "1.",
+  "text": "Płatności obsługuje serwis Przelewy24, którego operatorem jest PayPro S.A. Dostępne metody płatności (m.in. przelew, BLIK, karta płatnicza) są prezentowane na stronie płatności."
+ },
+ {
+  "t": "p",
+  "n": "2.",
+  "text": "Płatność za Okres rozliczeniowy ma charakter jednorazowy. Usługodawca **nie pobiera płatności automatycznie** – aby przedłużyć dostęp, Licencjobiorca opłaca kolejny Okres w Aplikacji."
+ },
+ {
+  "t": "p",
+  "n": "3.",
+  "text": "Dostęp do opłaconego Planu lub Modułu jest aktywowany niezwłocznie po potwierdzeniu płatności przez Przelewy24, co do zasady w ciągu kilku minut."
+ },
+ {
+  "t": "p",
+  "n": "4.",
+  "text": "Po upływie opłaconego Okresu rozliczeniowego Aplikacja działa jeszcze przez 7 dni (okres karencji). Brak płatności w tym czasie skutkuje zablokowaniem dostępu na zasadach z § 4 ust. 4."
+ },
+ {
+  "t": "p",
+  "n": "5.",
+  "text": "Przejście na wyższy Plan lub włączenie Modułu w trakcie Okresu rozliczeniowego wymaga dopłaty proporcjonalnej do liczby dni pozostałych do końca Okresu. Przejście na niższy Plan lub wyłączenie Modułu następuje z końcem opłaconego Okresu; za niewykorzystaną część Okresu opłata nie jest zwracana."
+ },
+ {
+  "t": "p",
+  "n": "6.",
+  "text": "Za każdą płatność Usługodawca wystawia fakturę VAT w Krajowym Systemie e-Faktur (KSeF) i udostępnia ją Licencjobiorcy na adres e-mail Konta. Licencjobiorca odpowiada za poprawność danych do faktury."
+ },
+ {
+  "t": "h",
+  "text": "§ 7. Pakiety SMS"
+ },
+ {
+  "t": "p",
+  "n": "1.",
+  "text": "Wiadomości SMS wysyłane z Aplikacji pomniejszają saldo Pakietów SMS. Wraz z modułem komunikacji Licencjobiorca otrzymuje jednorazowy pakiet startowy: 30 wiadomości w Planie BASIC i 150 w Planie FULL."
+ },
+ {
+  "t": "p",
+  "n": "2.",
+  "text": "Ceny Pakietów SMS (płatność jednorazowa):"
+ },
+ {
+  "t": "table",
+  "rows": [
+   [
+    "Liczba wiadomości",
+    "Cena brutto",
+    "Cena netto"
+   ],
+   [
+    "50",
+    "19,99 zł",
+    "16,25 zł"
+   ],
+   [
+    "100",
+    "34,99 zł",
+    "28,45 zł"
+   ],
+   [
+    "250",
+    "79,99 zł",
+    "65,03 zł"
+   ],
+   [
+    "500",
+    "149,99 zł",
+    "121,94 zł"
+   ],
+   [
+    "1000",
+    "249,99 zł",
+    "203,24 zł"
+   ],
+   [
+    "2500",
+    "499,99 zł",
+    "406,50 zł"
+   ]
+  ]
+ },
+ {
+  "t": "p",
+  "text": "Niewykorzystane wiadomości z zakupionych Pakietów SMS nie wygasają. Za treść wiadomości oraz posiadanie zgód odbiorców na komunikację marketingową odpowiada Licencjobiorca."
+ },
+ {
+  "t": "h",
+  "text": "§ 8. Rezygnacja i usunięcie Konta"
+ },
+ {
+  "t": "p",
+  "n": "1.",
+  "text": "Umowa nie przewiduje okresu wypowiedzenia ani minimalnego okresu korzystania. Aby zrezygnować, wystarczy nie opłacać kolejnego Okresu rozliczeniowego."
+ },
+ {
+  "t": "p",
+  "n": "2.",
+  "text": "Właściciel Konta może w każdej chwili usunąć Konto w Ustawieniach Aplikacji (sekcja Bezpieczeństwo), po potwierdzeniu hasłem. Usunięcie jest nieodwracalne i obejmuje dane klientów, wizyty, dokumenty i zdjęcia."
+ },
+ {
+  "t": "p",
+  "n": "3.",
+  "text": "Przed usunięciem Konta Licencjobiorca może wyeksportować listę klientów do pliku CSV oraz pobrać dokumenty; na żądanie Usługodawca przekazuje pozostałe dane w terminie 30 dni."
+ },
+ {
+  "t": "p",
+  "n": "4.",
+  "text": "Po usunięciu Konta Usługodawca przechowuje wyłącznie dane wymagane przepisami prawa lub niezbędne do ustalenia, dochodzenia lub obrony roszczeń, w szczególności historię płatności i dziennik zdarzeń (audit log)."
+ },
+ {
+  "t": "h",
+  "text": "§ 9. Prawo odstąpienia od umowy"
+ },
+ {
+  "t": "p",
+  "n": "1.",
+  "text": "Przedsiębiorcy na prawach konsumenta przysługuje prawo odstąpienia od umowy zawartej na odległość, bez podania przyczyny, w terminie 14 dni od dnia jej zawarcia. Do zachowania terminu wystarczy wysłanie oświadczenia przed jego upływem na adres biuro@detailboost.pl."
+ },
+ {
+  "t": "p",
+  "n": "2.",
+  "text": "Usługodawca zwraca otrzymane płatności niezwłocznie, nie później niż w terminie 14 dni od otrzymania oświadczenia, przy użyciu takiego samego sposobu płatności, jakiego użył Licencjobiorca."
+ },
+ {
+  "t": "p",
+  "n": "3.",
+  "text": "Okres próbny jest bezpłatny i nie rodzi zobowiązań – Licencjobiorca może z niego zrezygnować w każdej chwili."
+ },
+ {
+  "t": "h",
+  "text": "§ 10. Reklamacje"
+ },
+ {
+  "t": "p",
+  "n": "1.",
+  "text": "Reklamacje dotyczące działania Aplikacji lub płatności można składać na adres biuro@detailboost.pl."
+ },
+ {
+  "t": "p",
+  "n": "2.",
+  "text": "Reklamacja powinna zawierać nazwę studia, adres e-mail Konta, opis problemu oraz – w przypadku płatności – datę i kwotę transakcji."
+ },
+ {
+  "t": "p",
+  "n": "3.",
+  "text": "Usługodawca rozpatruje reklamację w terminie 14 dni od jej otrzymania i informuje o wyniku na adres e-mail, z którego ją wysłano."
+ },
+ {
+  "t": "p",
+  "n": "4.",
+  "text": "Jeżeli płatność została pobrana, a Abonament nie mógł zostać aktywowany, Usługodawca zwraca płatność w terminie 14 dni."
+ },
+ {
+  "t": "h",
+  "text": "§ 11. Dostępność i odpowiedzialność"
+ },
+ {
+  "t": "p",
+  "n": "1.",
+  "text": "Usługodawca dokłada starań, aby Aplikacja działała bez przerw. Zastrzega sobie prawo do krótkich przerw technicznych, o planowanych pracach informując z wyprzedzeniem w Aplikacji lub e-mailem."
+ },
+ {
+  "t": "p",
+  "n": "2.",
+  "text": "Licencjobiorca odpowiada za zgodność z prawem danych wprowadzanych do Aplikacji, posiadanie podstaw prawnych do przetwarzania danych swoich klientów i pracowników, zgody na komunikację marketingową oraz za treść protokołów i dokumentów przekazywanych klientom."
+ },
+ {
+  "t": "p",
+  "n": "3.",
+  "text": "Odpowiedzialność Usługodawcy wobec Licencjobiorcy jest ograniczona do szkody rzeczywistej i do kwoty opłat uiszczonych przez Licencjobiorcę w okresie 12 miesięcy poprzedzających zdarzenie wywołujące szkodę. Ograniczenie nie dotyczy szkody wyrządzonej umyślnie oraz – w zakresie, w jakim wyłączają to bezwzględnie obowiązujące przepisy – Przedsiębiorcy na prawach konsumenta."
+ },
+ {
+  "t": "h",
+  "text": "§ 12. Dane osobowe"
+ },
+ {
+  "t": "p",
+  "n": "1.",
+  "text": "Zasady przetwarzania danych osobowych Licencjobiorców i Użytkowników określają Polityka Prywatności (zał. nr 05 do OWU) oraz Klauzula informacyjna dla Użytkowników (zał. nr 02 do OWU)."
+ },
+ {
+  "t": "p",
+  "n": "2.",
+  "text": "W zakresie danych klientów i pracowników Licencjobiorcy wprowadzanych do Aplikacji Licencjobiorca jest administratorem, a Usługodawca podmiotem przetwarzającym na podstawie Umowy powierzenia przetwarzania danych osobowych (https://detailboost.pl/umowa-powierzenia)."
+ },
+ {
+  "t": "h",
+  "text": "§ 13. Zmiany Regulaminu i postanowienia końcowe"
+ },
+ {
+  "t": "p",
+  "n": "1.",
+  "text": "Usługodawca może zmienić Regulamin z ważnych przyczyn (zmiana przepisów, zmiana zakresu usług, względy bezpieczeństwa), informując Licencjobiorców e-mailem lub w Aplikacji co najmniej 14 dni przed wejściem zmian w życie. Licencjobiorca, który nie akceptuje zmian, może przed tym dniem usunąć Konto; zmiany nie dotyczą Okresów rozliczeniowych już opłaconych."
+ },
+ {
+  "t": "p",
+  "n": "2.",
+  "text": "W sprawach nieuregulowanych stosuje się przepisy prawa polskiego. Spory z Licencjobiorcami niebędącymi Przedsiębiorcami na prawach konsumenta rozstrzyga sąd właściwy dla siedziby Usługodawcy."
+ },
+ {
+  "t": "p",
+  "n": "3.",
+  "text": "Regulamin obowiązuje od dnia 21 października 2026 r."
+ }
+]

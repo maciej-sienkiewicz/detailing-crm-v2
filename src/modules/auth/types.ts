@@ -13,6 +13,8 @@ export interface SignupCredentials {
     password: string;
     confirmPassword: string;
     acceptTerms: boolean;
+    /** Wersja dokumentów pokazanych przy zgodzie - backend zapisuje ją jako dowód akceptacji. */
+    legalVersion?: string;
 }
 
 export interface AuthResponse {

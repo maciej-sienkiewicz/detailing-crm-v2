@@ -15,6 +15,7 @@ import { LegacyLeadsRedirect, LegacyMailRedirect } from '@/modules/comms/views/I
 import { employeesTabRoutes } from '@/modules/employees/employeesRoutes';
 import { ModuleGate } from '@/modules/subscription/components/ModuleGate';
 import type { FeatureKey } from '@/modules/subscription/types';
+import { LEGAL_DOCUMENTS, legalPath } from '@/modules/legal/documents';
 
 // ── Widoki ładowane na żądanie ───────────────────────────────────────────────
 //
@@ -155,6 +156,16 @@ export const router = createBrowserRouter([
             path: '/signup',
             ...lazyBare(() => import('@/modules/auth/views/SignupView').then(m => m.SignupView)),
         },
+        // Dokumenty prawne - publiczne, pod adresami podanymi w Google, Mecie i Przelewy24
+        ...LEGAL_DOCUMENTS.map(doc => ({
+            path: legalPath(doc.slug),
+            ...lazyRoute(
+                () => import('@/modules/legal/views/LegalDocumentView').then(m => m.LegalDocumentView),
+                View => <View slug={doc.slug} />,
+            ),
+        })),
+        { path: '/terms', element: <Navigate to={legalPath('regulamin')} replace /> },
+        { path: '/privacy', element: <Navigate to={legalPath('polityka-prywatnosci')} replace /> },
         {
             path: '/forgot-password',
             ...lazyBare(() => import('@/modules/auth/views/ForgotPasswordView').then(m => m.ForgotPasswordView)),
