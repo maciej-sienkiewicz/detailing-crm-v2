@@ -9,7 +9,7 @@ import { customerVehiclesQuery } from '@/modules/customers/api/customerVehiclesQ
  */
 export const useCustomerSearch = (query: string, options?: { enabled?: boolean }) => {
     return useQuery({
-        queryKey: ['appointments', 'customers', 'search', query],
+        queryKey: ['customers', 'search', query],
         queryFn: ({ signal }) => appointmentApi.searchCustomers(query, signal),
         enabled: options?.enabled ?? true,
         // Hold the previous matches on screen while the next query is in flight: emptying

@@ -6,6 +6,7 @@ import { onSocketConnect, subscribeToTopic } from '@/core/socketClient';
 import { useAuth } from '@/core';
 import { useToast } from '@/common/components/Toast';
 import { commsApi } from '../api/commsApi';
+import { invalidateLead } from '../api/leadKeys';
 import { createInvalidationBatcher } from '../utils/invalidationBatcher';
 import { isRateLimited, rateLimitRetryAfterMs } from '@/core/rateLimit';
 import type {
@@ -409,9 +410,8 @@ export const useSendMail = () => {
             });
             queryClient.invalidateQueries({ queryKey: [...COMMS_THREADS_KEY, 'list'] });
             // Pierwsza wiadomość z leada bez wątku przypięła mu wątek - lead ma to
-            // zobaczyć (odtąd „Odpisz klientowi" prowadzi do tej rozmowy). Klucz wprost,
-            // bez importu z useLeads, który sam importuje stąd.
-            if (request.leadId) queryClient.invalidateQueries({ queryKey: ['leads'] });
+            // zobaczyć (odtąd „Odpisz klientowi" prowadzi do tej rozmowy).
+            if (request.leadId) invalidateLead(queryClient, request.leadId);
         },
     });
 };

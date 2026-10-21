@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { stateTransitionApi } from '../api/stateTransitionApi';
 import { apiErrorMessage, apiErrorStatus } from '../api/apiError';
-import { visitDetailQueryKey } from './index';
+import { visitKeys } from './index';
 import { useVisitStateConflict } from './useVisitStateConflict';
 import { useToast } from '@/common/components/Toast';
 import { canPurchaseHere } from '@/core/native/platform';
@@ -28,7 +28,9 @@ export const useMarkReady = (visitId: string, onSuccess?: () => void) => {
                 email: channels.email,
             }),
         onSuccess: response => {
-            queryClient.invalidateQueries({ queryKey: visitDetailQueryKey(visitId) });
+            queryClient.invalidateQueries({ queryKey: visitKeys.detail(visitId) });
+            // Powiadomienie „gotowe do odbioru" (SMS, e-mail) trafia do historii komunikacji.
+            queryClient.invalidateQueries({ queryKey: visitKeys.communication(visitId) });
             // Backend przyjął żądanie, ale wizyta była już gotowa do odbioru — ktoś
             // zdążył pierwszy. Nie udajemy, że to my ją teraz oznaczyliśmy (SMS do
             // klienta poszedł przy pierwszym razie albo wcale), tylko mówimy wprost.

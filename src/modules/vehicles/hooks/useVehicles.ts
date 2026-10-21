@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { vehicleApi } from '../api/vehicleApi';
+import { vehicleKeys } from '../api/vehicleKeys';
 import type { VehicleFilters } from '../types';
 
-export const vehiclesQueryKey = (filters: VehicleFilters) => ['vehicles', filters];
+export const vehiclesQueryKey = vehicleKeys.list;
 
 export const useVehicles = (filters: VehicleFilters) => {
     const query = useQuery({

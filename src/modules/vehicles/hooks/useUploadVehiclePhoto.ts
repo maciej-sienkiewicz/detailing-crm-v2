@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { vehicleApi } from '../api/vehicleApi';
 import { photoUploadContentType, putToPresignedUrl } from '@/common/utils/presignedUpload';
-import { vehicleDetailQueryKey } from './useVehicleDetail';
+import { vehicleKeys } from '../api/vehicleKeys';
 
 interface UploadPhotoParams {
     file: File;
@@ -34,13 +34,9 @@ export const useUploadVehiclePhoto = (vehicleId: string) => {
         },
         onSuccess: () => {
             // Invalidate all photo gallery queries for this vehicle
-            queryClient.invalidateQueries({
-                queryKey: ['vehicle', vehicleId, 'photos', 'gallery']
-            });
-            // Also invalidate vehicle detail to refresh mini gallery
-            queryClient.invalidateQueries({
-                queryKey: vehicleDetailQueryKey(vehicleId)
-            });
+            queryClient.invalidateQueries({ queryKey: vehicleKeys.gallery(vehicleId) });
+            // Szczegóły niosą miniatury - osobny klucz, więc galeria nie idzie drugi raz.
+            queryClient.invalidateQueries({ queryKey: vehicleKeys.detail(vehicleId) });
             // Moduł galerii trzyma odpowiedź 5 minut.
             queryClient.invalidateQueries({ queryKey: ['gallery'] });
         },

@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { STALE_TIME } from '@/core/queryStaleTime';
 import { newSubscriptionApi } from './subscriptionApi';
-import type { AddOnKey, PlanKey, CheckoutRequest, CheckoutResponse } from '../types';
+import type { AddOnKey, PlanKey, CheckoutRequest, CheckoutResponse, EntitlementsResponse } from '../types';
 
 // ─── Query keys ───────────────────────────────────────────────────────────────
 
@@ -67,6 +67,17 @@ export const invalidateSubscriptionData = (queryClient: ReturnType<typeof useQue
 };
 
 /**
+ * Zmiana pakietu i wyłączenie dodatku odpowiadają nowymi uprawnieniami (ten sam kształt
+ * co GET /v1/me/entitlements) - kładziemy je do cache zamiast pytać serwer drugi raz.
+ */
+const applyEntitlements = (queryClient: ReturnType<typeof useQueryClient>) => (entitlements: EntitlementsResponse) => {
+    queryClient.setQueryData(ENTITLEMENTS_KEY, entitlements);
+    queryClient.invalidateQueries({ queryKey: MY_PLAN_KEY });
+    queryClient.invalidateQueries({ queryKey: PAYMENT_HISTORY_KEY });
+    queryClient.invalidateQueries({ queryKey: STATUS_KEY });
+};
+
+/**
  * Creates a payment order. When the response carries a paymentUrl the caller
  * must redirect the browser to Przelewy24 (`window.location.assign(paymentUrl)`);
  * when paymentUrl is null the order was fulfilled instantly (zero amount) and
@@ -95,7 +106,7 @@ export const useChangePlan = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (planKey: PlanKey) => newSubscriptionApi.changePlan(planKey),
-        onSuccess: () => invalidateSubscriptionData(queryClient),
+        onSuccess: applyEntitlements(queryClient),
     });
 };
 
@@ -103,7 +114,7 @@ export const useDeactivateAddOn = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (addOnKey: AddOnKey) => newSubscriptionApi.deactivateAddOn(addOnKey),
-        onSuccess: () => invalidateSubscriptionData(queryClient),
+        onSuccess: applyEntitlements(queryClient),
     });
 };
 

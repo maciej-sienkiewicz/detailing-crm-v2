@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { vehicleApi } from '../api/vehicleApi';
+import { vehicleKeys } from '../api/vehicleKeys';
 import type { AppointmentResponse, VisitResponse } from '@/modules/calendar/types';
 
 export interface VehicleHistoryEvent {
@@ -46,7 +47,7 @@ function mapVisit(v: VisitResponse): VehicleHistoryEvent {
 
 export const useVehicleHistory = (vehicleId: string) => {
     const { data, isLoading, isError } = useQuery({
-        queryKey: ['vehicle', vehicleId, 'history-events'],
+        queryKey: vehicleKeys.historyEvents(vehicleId),
         queryFn: () => vehicleApi.getCalendarEvents(vehicleId),
         enabled: !!vehicleId,
     });

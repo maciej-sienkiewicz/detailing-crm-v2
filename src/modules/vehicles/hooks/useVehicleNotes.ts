@@ -2,9 +2,9 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { vehicleApi } from '../api/vehicleApi';
+import { vehicleKeys } from '../api/vehicleKeys';
 
-export const vehicleNotesQueryKey = (vehicleId: string) =>
-    ['vehicle', vehicleId, 'notes'] as const;
+export const vehicleNotesQueryKey = vehicleKeys.notes;
 
 export const useVehicleNotes = (vehicleId: string) => {
     const { data, isLoading, isError } = useQuery({

@@ -41,6 +41,7 @@ import {
 } from '@/common/components/PickerList';
 import { vehicleApi } from '@/modules/vehicles/api/vehicleApi';
 import { customerVehiclesQuery } from '@/modules/customers/api/customerVehiclesQuery';
+import { vehicleKeys } from '@/modules/vehicles/api/vehicleKeys';
 import type { VehicleListItem } from '@/modules/vehicles/types';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { VehicleKindSwitch } from '@/modules/vehicles/components/VehicleKindSwitch';
@@ -141,7 +142,7 @@ export const VehicleSearchModal = ({
     const hasQuery = debouncedQuery.trim().length > 0;
 
     const { data: vehicleResponse, isLoading, isFetching, isPlaceholderData } = useQuery({
-        queryKey: ['vehicles', debouncedQuery],
+        queryKey: vehicleKeys.search(debouncedQuery),
         queryFn: ({ signal }) => vehicleApi.getVehicles({
             search: debouncedQuery,
             page: 1,

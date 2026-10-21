@@ -19,7 +19,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/common/components/Toast';
 import { visitApi } from '../api/visitApi';
-import { visitDetailQueryKey } from './index';
+import { visitKeys } from './index';
 
 export const useDeleteVisit = (visitId: string) => {
     const navigate = useNavigate();
@@ -57,7 +57,7 @@ export const useDeleteVisit = (visitId: string) => {
         // Tu zapytania wizyty są już wygaszone, więc usunięcie ich z cache nie wywoła
         // ani jednego żądania. Szczegół musi zniknąć: inaczej powrót pod ten adres
         // pokazuje przez moment wizytę, której nie ma.
-        queryClient.removeQueries({ queryKey: visitDetailQueryKey(deletedVisitId) });
+        queryClient.removeQueries({ queryKey: visitKeys.scope(deletedVisitId) });
         queryClient.invalidateQueries({ queryKey: ['operations'] });
         queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
         // `replace`: do usuniętej wizyty nie ma po co wracać przyciskiem „wstecz".

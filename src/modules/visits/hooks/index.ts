@@ -12,10 +12,13 @@ import type {
 } from '../types';
 import {useToast} from "@/common/components/Toast";
 import { isUnannouncedUploadError } from '@/common/utils/presignedUpload';
+import { visitKeys } from '../api/visitKeys';
+import { vehicleKeys } from '@/modules/vehicles/api/vehicleKeys';
 
-export const visitDetailQueryKey = (visitId: string) => ['visit', visitId];
-export const visitDocumentsQueryKey = (visitId: string) => ['visit', visitId, 'documents'];
-export const visitPhotosQueryKey = (visitId: string) => ['visit', visitId, 'photos'];
+export { visitKeys };
+export const visitDetailQueryKey = visitKeys.detail;
+export const visitDocumentsQueryKey = visitKeys.documents;
+export const visitPhotosQueryKey = visitKeys.photos;
 
 export const useVisitDetail = (visitId: string) => {
     const { data, isLoading, isError, error, refetch } = useQuery({
@@ -71,7 +74,10 @@ export const useUpdateArrivalState = (visitId: string) => {
         onSuccess: (_data, payload) => {
             queryClient.invalidateQueries({ queryKey: visitDetailQueryKey(visitId) });
             // VIN należy do pojazdu - karta pojazdu i listy mają pokazać nowy numer.
-            if (payload.vin !== undefined) queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+            if (payload.vin !== undefined) {
+                queryClient.invalidateQueries({ queryKey: vehicleKeys.lists });
+                queryClient.invalidateQueries({ queryKey: vehicleKeys.details });
+            }
             showSuccess('Zapisano');
         },
         onError: () => {
@@ -211,7 +217,7 @@ export const useVisitPhotos = (visitId: string) => {
 };
 
 // Comments hooks
-export const visitCommentsQueryKey = (visitId: string) => ['visit', visitId, 'comments'];
+export const visitCommentsQueryKey = visitKeys.comments;
 
 export const useVisitComments = (visitId: string) => {
     const { data, isLoading, isError, refetch } = useQuery({
@@ -305,7 +311,7 @@ export const useSaveServicesChanges = (visitId: string) => {
 };
 
 // Communication history hooks
-export const visitCommunicationQueryKey = (visitId: string) => ['visit', visitId, 'communication'];
+export const visitCommunicationQueryKey = visitKeys.communication;
 
 export const useVisitCommunication = (visitId: string) => {
     const { data, isLoading, isError, refetch } = useQuery({
@@ -405,7 +411,7 @@ export const useRejectServiceChange = (visitId: string) => {
     };
 };
 
-export const visitTechnicalNoteHistoryQueryKey = (visitId: string) => ['visit', visitId, 'technical-note-history'];
+export const visitTechnicalNoteHistoryQueryKey = visitKeys.technicalNoteHistory;
 
 export const useUpdateTechnicalNote = (visitId: string) => {
     const queryClient = useQueryClient();
@@ -445,7 +451,7 @@ export const useTechnicalNoteHistory = (visitId: string) => {
 
 // ─── Mapa uszkodzeń ───────────────────────────────────────────────────────────
 
-export const visitDamageMapQueryKey = (visitId: string) => ['visit', visitId, 'damage-map'];
+export const visitDamageMapQueryKey = visitKeys.damageMap;
 
 /**
  * Punkty, od których startuje edycja mapy.

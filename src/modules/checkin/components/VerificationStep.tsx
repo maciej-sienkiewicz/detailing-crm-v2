@@ -838,7 +838,7 @@ export const VerificationStep = ({
     const debouncedCustomerSearch = useDebounce(customerSearchQuery, 300);
 
     const { data: foundCustomers = [] } = useQuery({
-        queryKey: ['appointments', 'customers', 'search', debouncedCustomerSearch],
+        queryKey: ['customers', 'search', debouncedCustomerSearch],
         queryFn: ({ signal }) => appointmentApi.searchCustomers(debouncedCustomerSearch, signal),
         enabled: debouncedCustomerSearch.length >= customerSearchMinLength,
         staleTime: 30_000,

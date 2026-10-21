@@ -36,7 +36,7 @@ import { BuyerEditor } from './handover/BuyerEditor';
 import { PaymentMethodPicker } from './handover/PaymentMethodPicker';
 import type { HandoverBuyer } from '../types/handover';
 import type { PaymentMethod } from '../types/stateTransitions';
-import { visitDetailQueryKey } from '../hooks';
+import { visitKeys } from '../hooks';
 import { settlementDocumentRows } from '../utils/settlementDocumentRows';
 
 const pln = (cents: number) => formatCurrency(cents / 100);
@@ -341,7 +341,8 @@ function CorrectionForm({ view, visitId, intent, onClose }: { view: SettlementVi
     const correct = useMutation({
         mutationFn: () => settlementApi.correct(visitId, request),
         onSuccess: result => {
-            queryClient.invalidateQueries({ queryKey: visitDetailQueryKey(visitId) });
+            // Korekta zmienia kwoty, dokumenty rozliczenia i może wysłać fakturę - całość wizyty.
+            queryClient.invalidateQueries({ queryKey: visitKeys.scope(visitId) });
             queryClient.invalidateQueries({ queryKey: ['settlement', visitId] });
             queryClient.invalidateQueries({ queryKey: ['ksef', 'revenue'] });
             queryClient.invalidateQueries({ queryKey: ['income-documents'] });

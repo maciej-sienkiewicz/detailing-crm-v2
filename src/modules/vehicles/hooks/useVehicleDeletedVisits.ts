@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { vehicleApi } from '../api/vehicleApi';
+import { vehicleKeys } from '../api/vehicleKeys';
 import type { VehicleHistoryEvent } from './useVehicleHistory';
 
 export const useVehicleDeletedVisits = (vehicleId: string, enabled: boolean) => {
     const { data, isLoading, isError } = useQuery({
-        queryKey: ['vehicle', vehicleId, 'deleted-visits'],
+        queryKey: vehicleKeys.deletedVisits(vehicleId),
         queryFn: () => vehicleApi.getDeletedVisits(vehicleId),
         enabled: !!vehicleId && enabled,
     });

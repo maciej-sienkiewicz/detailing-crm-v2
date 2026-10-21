@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { stateTransitionApi } from '../api/stateTransitionApi';
 import { apiErrorMessage } from '../api/apiError';
-import { visitDetailQueryKey } from './index';
+import { visitKeys } from './index';
 import { useVisitStateConflict } from './useVisitStateConflict';
 import { companySettingsQuery } from '@/modules/settings/api/companySettingsQuery';
 import { useToast } from '@/common/components/Toast';
@@ -423,7 +423,8 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         },
         onSuccess: response => {
             clearDraft();
-            queryClient.invalidateQueries({ queryKey: visitDetailQueryKey(visit.id) });
+            // Wydanie zmienia status, dokumenty (protokół, faktura) i komunikację (SMS) naraz.
+            queryClient.invalidateQueries({ queryKey: visitKeys.scope(visit.id) });
             queryClient.invalidateQueries({ queryKey: ['ksef', 'revenue'] });
             queryClient.invalidateQueries({ queryKey: ['income-documents'] });
             if (response?.alreadyInTargetState) {

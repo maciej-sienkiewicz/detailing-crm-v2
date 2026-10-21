@@ -8,6 +8,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/common/components/Toast';
 import { appointmentApi } from '../api/appointmentApi';
 import { appointmentDetailQuery } from '../api/appointmentDetailQuery';
+import { invalidateLead, leadKeys } from '@/modules/comms/api/leadKeys';
 import { appointmentColorsQuery } from '@/modules/appointment-colors';
 import { LoadingSkeleton } from '@/modules/appointments/components/common';
 import { VerificationStep } from '@/modules/checkin/components/VerificationStep';
@@ -306,12 +307,15 @@ const AppointmentEditForm = () => {
     });
 
     const invalidateAll = () => {
+        // Wszystkie rezerwacje, nie tylko ta: zapis serii zmienia też pozostałe terminy.
         queryClient.invalidateQueries({ queryKey: ['appointments'] });
         queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
         queryClient.invalidateQueries({ queryKey: ['operations'] });
         // Rezerwacja z leada niesie jego wycenę - backend przepisuje jedną listę
         // usług w drugą, więc lead w pamięci podręcznej jest po tym zapisie nieaktualny.
-        queryClient.invalidateQueries({ queryKey: ['leads'] });
+        // Którego leada - rezerwacja nie mówi, stąd wszystkie szczegóły (bez słowników i przeglądu).
+        invalidateLead(queryClient);
+        queryClient.invalidateQueries({ queryKey: leadKeys.details });
     };
 
     // Nieudany zapis mówi, co się stało - wcześniej przycisk wracał do „Zapisz zmiany"

@@ -463,7 +463,7 @@ export const CashRegisterPanel: React.FC<CashRegisterPanelProps> = ({ dateFrom, 
     [dateFrom, dateTo, direction],
   );
 
-  const { cashRegister, isLoading: cashLoading, refetch } = useCashRegister();
+  const { cashRegister, isLoading: cashLoading } = useCashRegister();
   const {
     operations,
     total: historyTotal,
@@ -496,7 +496,6 @@ export const CashRegisterPanel: React.FC<CashRegisterPanelProps> = ({ dateFrom, 
       await adjustCash.mutateAsync({ amount: grosz, comment: comment.trim() });
       setAmountDisplay('');
       setComment('');
-      refetch();
     } catch {
       setAdjustError('Nie udało się zapisać zmiany w kasie.');
     }

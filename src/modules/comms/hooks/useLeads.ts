@@ -8,7 +8,7 @@ import { useAuth } from '@/core';
 import { useToast } from '@/common/components/Toast';
 import { hasMaskedPii, mergeMaskedPii } from '@/common/pii';
 import { leadsApi } from '../api/leadsApi';
-import { appointmentDetailQuery } from '@/modules/appointments/api/appointmentDetailQuery';
+import { appointmentDetailKey, appointmentDetailQuery } from '@/modules/appointments/api/appointmentDetailQuery';
 import { leadAlertConfigQuery } from '@/modules/settings/api/leadAlertConfigQuery';
 import { LEAD_STATUS_LABELS } from '../types';
 import { pluralPl } from '@/common/utils/plural';
@@ -25,10 +25,9 @@ import type {
     MarkThreadAsLeadRequest,
 } from '../types';
 
-export const LEADS_KEY = ['leads'];
-export const LEAD_DICTIONARIES_KEY = [...LEADS_KEY, 'dictionaries'];
-export const LEAD_ANALYTICS_KEY = [...LEADS_KEY, 'analytics'];
-export const LEAD_OVERVIEW_KEY = [...LEADS_KEY, 'overview'];
+import { LEADS_KEY, LEAD_ANALYTICS_KEY, LEAD_DICTIONARIES_KEY, LEAD_OVERVIEW_KEY, invalidateLead } from '../api/leadKeys';
+
+export { LEADS_KEY, LEAD_ANALYTICS_KEY, LEAD_DICTIONARIES_KEY, LEAD_OVERVIEW_KEY };
 
 /**
  * Pola leada, które backend maskuje przy serializacji (@Pii po stronie serwera).
@@ -296,14 +295,7 @@ const updateLeadPages = (
 
 const useLeadInvalidation = () => {
     const queryClient = useQueryClient();
-    return (leadId?: string) => {
-        queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'list'] });
-        queryClient.invalidateQueries({ queryKey: LEAD_ANALYTICS_KEY });
-        if (leadId) {
-            queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'detail', leadId] });
-            queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'history', leadId] });
-        }
-    };
+    return (leadId?: string) => invalidateLead(queryClient, leadId);
 };
 
 /**
@@ -723,10 +715,10 @@ export const useUpdateLeadServices = () => {
     return useMutation({
         mutationFn: ({ leadId, services }: { leadId: string; services: LeadServiceItemInput[] }) =>
             leadsApi.updateServices(leadId, services),
-        onSuccess: (_lead, { leadId }) => {
+        onSuccess: (lead, { leadId }) => {
             invalidate(leadId);
             queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
-            queryClient.invalidateQueries({ queryKey: ['appointments'] });
+            if (lead?.appointmentId) queryClient.invalidateQueries({ queryKey: appointmentDetailKey(lead.appointmentId) });
             queryClient.invalidateQueries({ queryKey: ['operations'] });
         },
     });
@@ -749,7 +741,7 @@ export const useSuggestionActions = (leadId: string, options: { onAccepted?: (le
         queryClient.setQueryData<Lead>([...LEADS_KEY, 'detail', leadId], lead);
         invalidate(leadId);
         queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
-        queryClient.invalidateQueries({ queryKey: ['appointments'] });
+        if (lead.appointmentId) queryClient.invalidateQueries({ queryKey: appointmentDetailKey(lead.appointmentId) });
     };
 
     const accept = useMutation({

@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/common/components/Toast';
 import { apiErrorMessage } from '../api/apiError';
 import { VISIT_ALREADY_IN_STATE, apiErrorCode, isStateConflict } from '../api/stateConflict';
-import { visitDetailQueryKey } from './index';
+import { visitKeys } from './index';
 
 /**
  * Reakcja na konflikt stanu wizyty: odśwież widok i powiedz, co się stało.
@@ -28,7 +28,8 @@ export const useVisitStateConflict = (visitId: string) => {
         (error: unknown): boolean => {
             if (!isStateConflict(error)) return false;
 
-            queryClient.invalidateQueries({ queryKey: visitDetailQueryKey(visitId) });
+            // Wizytę zmienił ktoś inny - nie wiemy co, więc odświeżamy wszystko o niej.
+            queryClient.invalidateQueries({ queryKey: visitKeys.scope(visitId) });
             queryClient.invalidateQueries({ queryKey: ['operations'] });
 
             const alreadyDone = apiErrorCode(error) === VISIT_ALREADY_IN_STATE;

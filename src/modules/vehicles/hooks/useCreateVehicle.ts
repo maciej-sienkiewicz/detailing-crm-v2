@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { vehicleApi } from '../api/vehicleApi';
+import { vehicleKeys } from '../api/vehicleKeys';
 import type { CreateVehiclePayload } from '../types';
 
 export const useCreateVehicle = () => {
@@ -8,7 +9,7 @@ export const useCreateVehicle = () => {
     const mutation = useMutation({
         mutationFn: (payload: CreateVehiclePayload) => vehicleApi.createVehicle(payload),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+            queryClient.invalidateQueries({ queryKey: vehicleKeys.lists });
         },
     });
 

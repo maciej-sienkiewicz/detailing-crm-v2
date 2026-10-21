@@ -1,9 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { smsReminderApi, type SmsReminderResponse } from '../api/smsReminderApi';
+import { visitKeys } from '../api/visitKeys';
 
 export type { SmsReminderResponse };
 
-export const smsReminderQueryKey = (visitId: string) => ['visit', visitId, 'sms-reminder'];
+export const smsReminderQueryKey = visitKeys.smsReminder;
 
 export const useSmsReminder = (visitId: string) => {
     const queryClient = useQueryClient();

@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { operationApi } from '../api/operationApi';
 import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
+import { visitKeys } from '@/modules/visits/api/visitKeys';
 import { useToast } from '@/common/components/Toast';
 
 export const useUpdateReservationDate = () => {
@@ -66,7 +67,7 @@ export const useUpdateOperationTitle = () => {
             queryClient.invalidateQueries({ queryKey: ['operations'] });
             queryClient.invalidateQueries({ queryKey: ['dashboard', 'upcoming-visits'] });
             if (vars.type === 'VISIT') {
-                queryClient.invalidateQueries({ queryKey: ['visit', vars.id] });
+                queryClient.invalidateQueries({ queryKey: visitKeys.detail(vars.id) });
             }
             showSuccess(vars.type === 'VISIT' ? 'Zapisano tytuł wizyty' : 'Zapisano tytuł rezerwacji');
         },

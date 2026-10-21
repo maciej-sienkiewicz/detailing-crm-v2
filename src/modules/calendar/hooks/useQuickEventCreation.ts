@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/core';
+import { invalidateLead } from '@/modules/comms/api/leadKeys';
 import type { QuickEventFormData } from '../components/QuickEventModal';
 import { buildAppointmentPayload } from '@/modules/appointments/utils/buildAppointmentPayload';
 
@@ -18,10 +19,11 @@ interface CreateBookingArgs {
 export const useQuickEventCreation = () => {
     const queryClient = useQueryClient();
 
-    const invalidate = () => {
+    const invalidate = (_data: unknown, { leadId }: CreateBookingArgs) => {
         queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
         queryClient.invalidateQueries({ queryKey: ['operations'] });
-        queryClient.invalidateQueries({ queryKey: ['leads'] });
+        // Rezerwacja z leada przestawia go w „Rezerwacja" - zwykła nie rusza leadów wcale.
+        if (leadId) invalidateLead(queryClient, leadId);
     };
 
     const createBooking = useMutation({

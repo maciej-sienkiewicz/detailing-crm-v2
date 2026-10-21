@@ -2,10 +2,10 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { vehicleApi } from '../api/vehicleApi';
+import { vehicleKeys } from '../api/vehicleKeys';
 import type { UploadVehicleDocumentPayload } from '../types';
 
-export const vehicleDocumentsQueryKey = (vehicleId: string) =>
-    ['vehicle', vehicleId, 'documents'] as const;
+export const vehicleDocumentsQueryKey = vehicleKeys.documents;
 
 export const useVehicleDocuments = (vehicleId: string) => {
     const { data, isLoading, isError, refetch } = useQuery({

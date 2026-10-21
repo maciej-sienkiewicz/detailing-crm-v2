@@ -104,8 +104,10 @@ export const useAdjustCash = () => {
 
   return useMutation({
     mutationFn: (data: CashAdjustRequest) => financeApi.adjustCash(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: FINANCE_CASH_KEY });
+    // Odpowiedź to stan kasy po korekcie - podmieniamy go, a odświeżamy tylko historię.
+    onSuccess: register => {
+      queryClient.setQueryData(FINANCE_CASH_KEY, register);
+      queryClient.invalidateQueries({ queryKey: [...FINANCE_CASH_KEY, 'history'] });
     },
   });
 };

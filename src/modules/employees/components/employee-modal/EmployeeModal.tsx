@@ -90,7 +90,8 @@ export function EmployeeModal({ employeeId, onClose }: Props) {
                     isOpen
                     employee={employee}
                     onClose={() => setEditing(false)}
-                    onSuccess={() => { setEditing(false); void refetch(); }}
+                    // Zapis sam odświeża pracownika (useUpdateEmployee) - bez drugiego refetch().
+                    onSuccess={() => setEditing(false)}
                 />
             )}
         </>
