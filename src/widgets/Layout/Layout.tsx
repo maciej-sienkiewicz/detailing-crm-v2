@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { createGlobalStyle, keyframes } from 'styled-components';
 import { useLocation } from 'react-router-dom';
 import { Sidebar } from '@/widgets/Sidebar';
 import { BottomNav, BOTTOM_NAV_SPACE } from '@/widgets/BottomNav';
@@ -24,6 +24,24 @@ const LayoutContainer = styled.div`
     /* Rama (frame.ts): na komputerze tło okna ma kolor menu, treść leży w panelu. */
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         background-color: ${FRAME_COLOR};
+    }
+`;
+
+/*
+ * Rama stoi w miejscu. Gładzik (macOS) przy dociągnięciu strony za górną albo dolną
+ * krawędź odbijał cały dokument: rama zjeżdżała razem z treścią, a w szczelinie
+ * wychodziło jasne tło body. overscroll-behavior-y na html wyłącza to odbicie dla
+ * przewijania okna (oś x zostaje - dwa palce w bok dalej cofają stronę). Tło html
+ * w kolorze ramy to siatka dla przeglądarek, które odbicia nie wyłączą: szczelina
+ * ma wtedy kolor ramy, a nie biały. Styl globalny żyje tylko z Layoutem, więc
+ * logowanie i strony publiczne go nie dostają.
+ */
+const FrameViewport = createGlobalStyle`
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        html {
+            background-color: ${FRAME_COLOR};
+            overscroll-behavior-y: none;
+        }
     }
 `;
 
@@ -101,6 +119,7 @@ export const Layout = ({ children }: LayoutProps) => {
                     <GlobalShortcuts />
                     {/* Okno „Nowe zadanie” (skrót Z) dostępne z każdego widoku. */}
                     <QuickNoteProvider>
+                    <FrameViewport />
                     <LayoutContainer>
                         <Sidebar />
                         <ContentWrapper $isCollapsed={isCollapsed}>

@@ -149,6 +149,9 @@ export async function stubVisitDetailApi(
             if (path.endsWith('/communication')) return json(route, { visitId: VISIT_ID, entries: [] });
             if (path.endsWith('/sms-reminder')) return json(route, []);
             if (path.endsWith('/products')) return json(route, []);
+            // Licznik list obecności w menu (useAttendanceSheets) - bez tablicy
+            // `sheets.filter is not a function` wywracał cały widok.
+            if (path.endsWith('/attendance-sheets')) return json(route, []);
             if (path.endsWith('/technical-note/history')) return json(route, { entries: [] });
             if (path.startsWith('/v1/audit/feed')) {
                 return json(route, { items: [], total: 0, page: 0, pageSize: 20 });
