@@ -107,7 +107,6 @@ export function PushNotificationWizard({ push, onDismiss }: Props) {
             )}
             {stage === 'blocked' && <BlockedStage platform={platform} />}
             {stage === 'ask' && <AskStage push={push} onDismiss={onDismiss} />}
-            {stage === 'repair' && <RepairStage push={push} />}
             {stage === 'ready' && <ReadyStage push={push} />}
         </Wrap>
     );
@@ -335,6 +334,19 @@ function AskStage({ push, onDismiss }: { push: PushDeviceState; onDismiss?: () =
 
     return (
         <>
+            {/* Urządzenie właśnie rozparował serwer (usePushDevice.unpairHere) - bez tego zdania
+                wyglądałoby, jakby ekran sam z siebie „zapomniał" włączonych powiadomień. */}
+            {push.unpairedByServer && (
+                <Notice $tone="warn">
+                    <WarnIcon />
+                    <span>
+                        CRM nie rozpoznał już tego urządzenia, więc powiadomienia są tu wyłączone.
+                        Mogło zostać odłączone na liście urządzeń albo powiadomienia włączyło w tej
+                        przeglądarce inne konto.
+                    </span>
+                </Notice>
+            )}
+
             <Lead>
                 <Title>Włącz powiadomienia na tym urządzeniu</Title>
                 <Text>Przychodzą także wtedy, gdy CRM jest zamknięty.</Text>
@@ -359,46 +371,6 @@ function AskStage({ push, onDismiss }: { push: PushDeviceState; onDismiss?: () =
             <Muted>
                 Gdy telefon zapyta, wybierz <strong>{allowLabel}</strong>. Odmowy nie da się cofnąć z aplikacji.
             </Muted>
-        </>
-    );
-}
-
-// ─── Etap: przestało odbierać ─────────────────────────────────────────────────
-
-/**
- * Przeglądarka ma subskrypcję, a serwer jej nie uznaje. Zgłoszenie: ekran mówił
- * „to urządzenie odbiera powiadomienia", a próbne kończyło się „nie jest sparowane".
- * Zgoda przeglądarki już jest, więc „Włącz ponownie" nie pokaże systemowego okna -
- * wyśle tylko istniejącą subskrypcję na serwer jeszcze raz.
- */
-function RepairStage({ push }: { push: PushDeviceState }) {
-    const { showError, showSuccess } = useToast();
-
-    const handleRepair = async () => {
-        try {
-            await push.enable();
-            showSuccess('Powiadomienia włączone ponownie', 'Wyślij próbne, żeby sprawdzić, czy dochodzą.');
-        } catch (error) {
-            showError('Nie udało się włączyć powiadomień', pairingErrorMessage(error, push.platform));
-        }
-    };
-
-    return (
-        <>
-            <Notice $tone="warn">
-                <WarnIcon />
-                <span>To urządzenie przestało odbierać powiadomienia z CRM.</span>
-            </Notice>
-            <Text>
-                Ktoś mógł je odłączyć na liście urządzeń albo w tej przeglądarce włączyło
-                powiadomienia inne konto. Włącz je ponownie, a znów będą tu przychodzić.
-            </Text>
-            <Footer>
-                <Button variant="primary" size="lg" block onClick={handleRepair} disabled={push.isEnabling}>
-                    <BellIcon />
-                    {push.isEnabling ? 'Włączam…' : 'Włącz ponownie'}
-                </Button>
-            </Footer>
         </>
     );
 }

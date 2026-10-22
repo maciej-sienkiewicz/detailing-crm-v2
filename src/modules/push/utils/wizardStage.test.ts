@@ -43,13 +43,6 @@ describe('wizardStage', () => {
         expect(wizardTrailIndex(stage, platform)).toBe(wizardTrail(platform).length - 1);
     });
 
-    it('subskrypcja, której serwer nie uznaje, wraca na krok zgody zamiast stać na „sprawdź"', () => {
-        const platform = { kind: 'android', installed: true } as const;
-        const stage = wizardStage({ platform, support: 'supported', isSubscribedHere: false, needsRepair: true });
-        expect(stage).toBe('repair');
-        expect(wizardTrailIndex(stage, platform)).toBe(wizardTrail(platform).length - 2);
-    });
-
     it('stary iOS i przeglądarka wbudowana wychodzą poza ścieżkę', () => {
         expect(wizardStage({ platform: { kind: 'ios-update' }, support: 'unsupported', isSubscribedHere: false }))
             .toBe('update-os');

@@ -63,12 +63,6 @@ const CARD_COPY: Partial<Record<ReturnType<typeof wizardStage>, { title: string;
         title: 'Włącz powiadomienia',
         text: 'Telefon da znać o nowym leadzie, rezerwacji, przyjętym i wydanym aucie.',
     },
-    // Telefon ma subskrypcję, której serwer już nie uznaje - bez tej karty milczałby,
-    // a jego właściciel myślałby, że powiadomienia działają.
-    repair: {
-        title: 'Powiadomienia przestały przychodzić',
-        text: 'Ten telefon nie odbiera już powiadomień z CRM. Włącz je ponownie.',
-    },
 };
 
 /** Tam kreator już jest na ekranie - druga droga do niego tylko by przeszkadzała. */
@@ -168,7 +162,7 @@ function Prompt() {
     // „open-installed") - bez czekania na nią karta mogła zmienić treść pod palcem.
     const devicesPending = push.platform.kind === 'ios-install' && push.isLoadingDevices;
     const actionable = !devicesPending &&
-        (stage === 'install' || stage === 'open-installed' || stage === 'ask' || stage === 'repair');
+        (stage === 'install' || stage === 'open-installed' || stage === 'ask');
     const justInstalled = push.platform.kind === 'ios-app';
 
     useEffect(() => {
@@ -200,7 +194,7 @@ function Prompt() {
                     </Copy>
                     <Actions>
                         <Button variant="tinted" size="sm" onClick={() => setWizardOpen(true)}>
-                            {stage === 'ask' || stage === 'repair' ? 'Włącz' : 'Pokaż jak'}
+                            {stage === 'ask' ? 'Włącz' : 'Pokaż jak'}
                         </Button>
                         <Button variant="ghost" size="sm" onClick={dismiss}>Nie teraz</Button>
                     </Actions>

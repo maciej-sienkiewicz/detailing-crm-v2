@@ -2,10 +2,11 @@
 //
 // „To urządzenie odbiera powiadomienia" musi zgadzać się z serwerem, nie tylko z przeglądarką.
 //
-// Zgłoszenie: ekran pokazywał „odbiera powiadomienia z CRM", a próbne kończyło się
-// „To urządzenie nie jest sparowane". Przeglądarka trzymała subskrypcję, której serwer
-// już nie uznawał (odłączona na liście, wygasła po 410, przejęta przez inne konto
-// zalogowane w tej samej przeglądarce) - a hook ufał samej przeglądarce.
+// Zgłoszenia: ekran pokazywał „odbiera powiadomienia z CRM", a próbne kończyło się
+// „To urządzenie nie jest sparowane" - a po odświeżeniu strony znów „odbiera". Przeglądarka
+// trzymała subskrypcję, której serwer już nie uznawał (odłączona na liście, wygasła po 410,
+// przejęta przez inne konto w tej samej przeglądarce). Teraz pierwsza odmowa serwera
+// zdejmuje subskrypcję także w przeglądarce: urządzenie jest niesparowane na stałe.
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import type { ReactNode } from 'react';
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
@@ -15,12 +16,17 @@ import { usePushDevice } from './usePushDevice';
 
 const ENDPOINT = 'https://fcm.googleapis.com/fcm/send/abc';
 
+// Przeglądarka jak prawdziwa: po unsubscribe() getSubscription() zwraca null także po odświeżeniu.
+let browserHasSubscription = true;
 const subscription = {
     endpoint: ENDPOINT,
-    unsubscribe: vi.fn(async () => true),
+    unsubscribe: vi.fn(async () => {
+        browserHasSubscription = false;
+        return true;
+    }),
 };
 const registration = {
-    pushManager: { getSubscription: vi.fn(async () => subscription as unknown as PushSubscription | null) },
+    pushManager: { getSubscription: vi.fn(async () => (browserHasSubscription ? subscription : null)) },
 };
 
 vi.mock('../utils/webPush', () => ({
@@ -43,7 +49,8 @@ vi.mock('../api/pushApi', () => ({
 
 const api = vi.mocked(pushApi);
 
-function renderPush() {
+/** Każde wywołanie to „otwarcie strony" od nowa - świeża pamięć zapytań, ta sama przeglądarka. */
+function openPage() {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
     const wrapper = ({ children }: { children: ReactNode }) => (
         <QueryClientProvider client={client}>{children}</QueryClientProvider>
@@ -52,7 +59,7 @@ function renderPush() {
 }
 
 beforeEach(() => {
-    registration.pushManager.getSubscription.mockResolvedValue(subscription as unknown as PushSubscription);
+    browserHasSubscription = true;
 });
 
 afterEach(() => {
@@ -63,55 +70,54 @@ afterEach(() => {
 describe('usePushDevice - stan „to urządzenie"', () => {
     it('subskrypcja uznana przez serwer: odbiera, a wiersz urządzenia jest znany', async () => {
         api.getCurrentDevice.mockResolvedValue({ paired: true, deviceId: 'dev-1' });
-        const { result } = renderPush();
+        const { result } = openPage();
 
         await waitFor(() => expect(result.current.isSubscribedHere).toBe(true));
-        expect(result.current.needsRepair).toBe(false);
         expect(result.current.currentDeviceId).toBe('dev-1');
+        expect(result.current.unpairedByServer).toBe(false);
         expect(api.getCurrentDevice).toHaveBeenCalledWith(ENDPOINT);
     });
 
-    it('subskrypcja, której serwer nie uznaje: nie odbiera i trzeba włączyć ponownie', async () => {
+    it('serwer nie uznaje subskrypcji: urządzenie rozparowuje się od razu, także w przeglądarce', async () => {
         api.getCurrentDevice.mockResolvedValue({ paired: false, deviceId: null });
-        const { result } = renderPush();
+        const { result } = openPage();
 
-        await waitFor(() => expect(result.current.needsRepair).toBe(true));
+        await waitFor(() => expect(result.current.unpairedByServer).toBe(true));
         expect(result.current.isSubscribedHere).toBe(false);
+        expect(subscription.unsubscribe).toHaveBeenCalledTimes(1);
     });
 
     it('póki serwer nie odpowiedział, ekran sprawdza zamiast od razu mówić „odbiera"', async () => {
         api.getCurrentDevice.mockReturnValue(new Promise(() => {}));
-        const { result } = renderPush();
+        const { result } = openPage();
 
         await waitFor(() => expect(api.getCurrentDevice).toHaveBeenCalled());
         expect(result.current.isSubscribedHere).toBeNull();
     });
 
-    it('backend bez tego pytania: zostaje stan przeglądarki, jak dawniej', async () => {
-        api.getCurrentDevice.mockResolvedValue(null);
-        const { result } = renderPush();
-
-        await waitFor(() => expect(result.current.isSubscribedHere).toBe(true));
-        expect(result.current.needsRepair).toBe(false);
-    });
-
-    it('próbne odrzucone jako „nie jest sparowane" od razu zmienia stan na „włącz ponownie"', async () => {
+    it('próbne odrzucone jako „nie jest sparowane" rozparowuje na stałe - po odświeżeniu też', async () => {
+        // Backend bez pytania o stan (jak dev przed wdrożeniem /devices/current): tylko próbne mówi prawdę.
         api.getCurrentDevice.mockResolvedValue(null);
         api.sendTestPush.mockRejectedValue({ response: { status: 404 } });
-        const { result } = renderPush();
-        await waitFor(() => expect(result.current.isSubscribedHere).toBe(true));
+        const first = openPage();
+        await waitFor(() => expect(first.result.current.isSubscribedHere).toBe(true));
 
         await act(async () => {
-            await expect(result.current.sendTest()).rejects.toBeTruthy();
+            await expect(first.result.current.sendTest()).rejects.toBeTruthy();
         });
 
-        await waitFor(() => expect(result.current.needsRepair).toBe(true));
-        expect(result.current.isSubscribedHere).toBe(false);
+        await waitFor(() => expect(first.result.current.isSubscribedHere).toBe(false));
+        expect(subscription.unsubscribe).toHaveBeenCalledTimes(1);
+        first.unmount();
+
+        // Odświeżenie strony: nie wraca „odbiera powiadomienia".
+        const second = openPage();
+        await waitFor(() => expect(second.result.current.isSubscribedHere).toBe(false));
     });
 
     it('wyłączenie odłącza urządzenie także na serwerze, żeby lista nie pokazywała go jako aktywnego', async () => {
         api.getCurrentDevice.mockResolvedValue({ paired: true, deviceId: 'dev-1' });
-        const { result } = renderPush();
+        const { result } = openPage();
         await waitFor(() => expect(result.current.currentDeviceId).toBe('dev-1'));
 
         await act(async () => {

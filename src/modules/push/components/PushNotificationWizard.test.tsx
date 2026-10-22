@@ -25,7 +25,7 @@ const pushState = (over: Partial<PushDeviceState>): PushDeviceState => ({
     platform: { kind: 'android', installed: false },
     support: 'supported',
     isSubscribedHere: false,
-    needsRepair: false,
+    unpairedByServer: false,
     currentDeviceId: null,
     appLikelyOnHomeScreen: false,
     devices: [],
@@ -102,17 +102,16 @@ describe('PushNotificationWizard', () => {
         expect(screen.queryByRole('button', { name: /Włącz powiadomienia/ })).toBeNull();
     });
 
-    it('subskrypcja, której serwer nie uznaje: „przestało odbierać" i jedno „Włącz ponownie", bez próbnego', () => {
+    it('urządzenie rozparowane przez serwer wraca do „Włącz powiadomienia" i mówi dlaczego', () => {
         // Zgłoszenie: ekran mówił „odbiera powiadomienia", a próbne kończyło się „nie jest sparowane".
-        const push = pushState({ isSubscribedHere: false, needsRepair: true });
+        const push = pushState({ isSubscribedHere: false, unpairedByServer: true });
         render(<PushNotificationWizard push={push} />);
 
-        expect(screen.getByText('To urządzenie przestało odbierać powiadomienia z CRM.')).toBeTruthy();
-        expect(screen.queryByText(/odbiera powiadomienia z CRM\.$/)).toBeNull();
+        expect(screen.getByText(/CRM nie rozpoznał już tego urządzenia/)).toBeTruthy();
+        expect(screen.queryByText('To urządzenie odbiera powiadomienia z CRM.')).toBeNull();
         expect(screen.queryByRole('button', { name: /Wyślij powiadomienie próbne/ })).toBeNull();
 
-        fireEvent.click(screen.getByRole('button', { name: /Włącz ponownie/ }));
-        // Też w obsłudze gestu - na iPhonie po wyczyszczeniu zgody pytanie musi paść od razu.
+        fireEvent.click(screen.getByRole('button', { name: /Włącz powiadomienia/ }));
         expect(push.enable).toHaveBeenCalledTimes(1);
     });
 

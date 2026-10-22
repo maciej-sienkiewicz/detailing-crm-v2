@@ -45,13 +45,16 @@ function Setting() {
     return (
         <Row>
             <RowTitle>Nowy raport</RowTitle>
-            <Segmented
-                label="Powiadomienie o nowym raporcie"
-                size="sm"
-                options={OPTIONS}
-                value={value}
-                onChange={frequency => { if (frequency !== value) update.mutate(frequency); }}
-            />
+            {/* Cztery opcje nie mieszczą się w szerokości telefonu - przewijane, a nie ucięte. */}
+            <Scroll>
+                <Segmented
+                    label="Powiadomienie o nowym raporcie"
+                    size="sm"
+                    options={OPTIONS}
+                    value={value}
+                    onChange={frequency => { if (frequency !== value) update.mutate(frequency); }}
+                />
+            </Scroll>
             <Hint>Przychodzi rano, gdy skończy się wybrany okres: tydzień, 2 tygodnie albo miesiąc.</Hint>
         </Row>
     );
@@ -63,6 +66,15 @@ const Row = styled.div`
     align-items: flex-start;
     gap: 8px;
     max-width: 100%;
+`;
+
+const Scroll = styled.div`
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar { display: none; }
+    > * { flex-shrink: 0; }
 `;
 
 const RowTitle = styled.span`

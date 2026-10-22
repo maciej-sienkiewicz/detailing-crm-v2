@@ -26,6 +26,17 @@ interface Options {
     withDevices?: boolean;
 }
 
+/** Zdejmuje subskrypcję tej przeglądarki, której serwer już nie uznaje. */
+async function dropBrowserSubscription() {
+    try {
+        const registration = await waitForServiceWorker();
+        const subscription = await registration.pushManager.getSubscription();
+        if (subscription) await subscription.unsubscribe();
+    } catch {
+        // Nieudane zdjęcie nie zmienia tego, co mówi serwer - ekran i tak pokazuje „włącz".
+    }
+}
+
 /**
  * Pairing the CURRENT device (the phone) as a receiver of the studio's push
  * notifications - click-to-call requests, closed visits, new leads.
@@ -146,19 +157,45 @@ export const usePushDevice = ({ withDevices = true }: Options = {}) => {
         retry: 1,
     });
     const serverSays: CurrentPushDevice | null | undefined = currentQuery.data;
+    // Próbne wróciło „nie jest sparowane" - kreator mówi wtedy, dlaczego trzeba włączyć od nowa.
+    const [testSaysUnpaired, setTestSaysUnpaired] = useState(false);
+    const serverRejected = serverSays?.paired === false;
+    const unpairedByServer = testSaysUnpaired || serverRejected;
+
+    /**
+     * Serwer nie uznaje subskrypcji tej przeglądarki → zdejmujemy ją od razu, także tutaj.
+     *
+     * Wcześniej ekran tylko pokazywał „przestało odbierać", a subskrypcja zostawała:
+     * na backendzie bez pytania o stan (POST /devices/current) po odświeżeniu znów było
+     * „odbiera powiadomienia", choć próbne przed chwilą wróciło „nie jest sparowane".
+     * Po zdjęciu subskrypcji urządzenie jest po prostu niesparowane - w każdej wersji
+     * backendu i po każdym odświeżeniu. Jeśli subskrypcja należała na serwerze do innego
+     * konta w tej przeglądarce, ono też ją tu traci; serwer i tak przypisuje ją temu,
+     * kto włączy powiadomienia ostatni (RegisterPushDeviceHandler).
+     *
+     * Efekt dotyka tylko przeglądarki; to, co pokazuje ekran, wynika wprost z odpowiedzi
+     * serwera (isSubscribedHere niżej), więc nie czeka na zdjęcie subskrypcji.
+     */
+    useEffect(() => {
+        if (serverRejected) void dropBrowserSubscription();
+    }, [serverRejected]);
+
+    const unpairAfterTest = useCallback(() => {
+        setTestSaysUnpaired(true);
+        setLocalEndpoint(null);
+        void dropBrowserSubscription();
+    }, []);
 
     /**
      * true - odbiera; false - nie; null - jeszcze sprawdzam. Bez odpowiedzi serwera
-     * (backend sprzed tego pytania albo błąd sieci) zostaje stan przeglądarki, jak dawniej:
-     * lepiej wtedy pokazać „odbiera" niż kazać włączać coś, co może działać.
+     * (backend sprzed tego pytania albo błąd sieci) zostaje stan przeglądarki - ale pierwsze
+     * „nie jest sparowane" z próbnego i tak rozparowuje urządzenie (testMutation).
      */
     const isSubscribedHere: boolean | null =
         localEndpoint === undefined ? null
             : localEndpoint === null ? false
                 : serverSays === undefined && currentQuery.isPending ? null
                     : serverSays?.paired !== false;
-    /** Przeglądarka ma subskrypcję, a serwer jej nie uznaje - jedno „Włącz ponownie" to naprawia. */
-    const needsRepair = Boolean(localEndpoint) && serverSays?.paired === false;
     const currentDeviceId = serverSays?.paired ? serverSays.deviceId : null;
 
     const enableMutation = useMutation({
@@ -198,6 +235,7 @@ export const usePushDevice = ({ withDevices = true }: Options = {}) => {
         },
         onSuccess: ({ endpoint, device }) => {
             queryClient.setQueryData<CurrentPushDevice>(pushQueryKeys.current(endpoint), { paired: true, deviceId: device.id });
+            setTestSaysUnpaired(false);
             setLocalEndpoint(endpoint);
             queryClient.invalidateQueries({ queryKey: pushQueryKeys.devices });
         },
@@ -238,11 +276,9 @@ export const usePushDevice = ({ withDevices = true }: Options = {}) => {
             await pushApi.sendTestPush(subscription.endpoint);
         },
         // „Nie jest sparowane" z serwera to ten sam fakt co odpowiedź na pytanie o urządzenie -
-        // ekran ma od razu pokazać „Włącz ponownie", a nie dalej twierdzić, że odbiera.
+        // urządzenie rozparowuje się od razu, a nie dalej twierdzi, że odbiera.
         onError: error => {
-            if (problemStatus(error) === 404 && localEndpoint) {
-                queryClient.setQueryData<CurrentPushDevice>(pushQueryKeys.current(localEndpoint), { paired: false, deviceId: null });
-            }
+            if (problemStatus(error) === 404) unpairAfterTest();
         },
     });
 
@@ -258,7 +294,8 @@ export const usePushDevice = ({ withDevices = true }: Options = {}) => {
         platform,
         support,
         isSubscribedHere,
-        needsRepair,
+        /** Ta sesja rozparowała urządzenie, bo serwer go nie uznawał. */
+        unpairedByServer,
         /** Wiersz tego urządzenia na liście urządzeń (null, póki nie wiadomo albo nie jest sparowane). */
         currentDeviceId,
         appLikelyOnHomeScreen,

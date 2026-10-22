@@ -16,16 +16,21 @@
 // każdej części (CLAUDE.md §2, wycofane). Teraz: „To urządzenie" leży na jedynej
 // wyniesionej powierzchni (to tu się coś robi), kod QR i lista urządzeń płasko.
 //
-// Kolejność to kolejność pytań: czy TO urządzenie odbiera → jak dodać telefon → co
-// przychodzi na które urządzenie. Ustawienie raportu stało tu między „To urządzenie"
-// a kodem QR, a podsumowania reklam pod całością - widok skakał między „gdzie"
-// i „jak często". Ustawienia „jak często" są teraz razem, pod tym panelem (PhoneSetups).
+// Kolejność to kolejność pytań: skąd się parujesz → co przychodzi na które urządzenie.
+// Ustawienie raportu stało tu między „To urządzenie" a kodem QR, a podsumowania reklam
+// pod całością - widok skakał między „gdzie" i „jak często". Ustawienia „jak często"
+// są teraz razem, pod tym panelem (PhoneSetups).
+//
+// Na komputerze nie ma kreatora „Włącz powiadomienia na tym urządzeniu": powiadomienia
+// mają przychodzić na telefon, więc pierwsza i jedyna wyniesiona karta to kod QR.
+// Komputer, który już je kiedyś włączył, nadal jest kolumną w tabeli rodzajów
+// (z oznaczeniem „To urządzenie") i tam się go odłącza.
 
 import { useState } from 'react';
 import styled from 'styled-components';
 import { QRCodeSVG } from 'qrcode.react';
 import { useToast } from '@/common/components/Toast';
-import { Button, Card, Panel, SectionTitle, ui } from '@/common/components/ui';
+import { Button, Card, SectionTitle, ui } from '@/common/components/ui';
 import { usePushDevice } from '../hooks/usePushDevice';
 import { isMobileDevice } from '../utils/webPush';
 import { PushNotificationWizard } from './PushNotificationWizard';
@@ -56,17 +61,20 @@ export function PushNotificationsPanel() {
 
     return (
         <Wrap>
-            <PairingBlock>
-                <SectionTitle as="h3">To urządzenie</SectionTitle>
-                <PushNotificationWizard push={push} />
-            </PairingBlock>
-
-            {/* Na telefonie nie da się zeskanować własnego ekranu - kod QR zostaje
-                dla komputera, jako sposób przeniesienia się na telefon. */}
-            {!onPhone && (
-                <PhoneBlock>
+            {/* Na telefonie nie da się zeskanować własnego ekranu - tam parowanie dzieje się
+                tutaj, w kreatorze. Na komputerze kod QR to droga na telefon. */}
+            {onPhone ? (
+                <PairingBlock>
+                    <SectionTitle as="h3">Ten telefon</SectionTitle>
+                    <PushNotificationWizard push={push} />
+                </PairingBlock>
+            ) : (
+                <PairingBlock>
                     <SectionTitle as="h3">Dodaj telefon</SectionTitle>
-                    <BlockLead>Powiadomienia najlepiej sprawdzają się na telefonie, który masz przy sobie.</BlockLead>
+                    <BlockLead>
+                        Powiadomienia przychodzą na telefon. Zeskanuj kod telefonem, który masz przy sobie,
+                        i włącz na nim powiadomienia. Tak samo dodasz kolejne telefony.
+                    </BlockLead>
                     <Layout>
                         <QrPanel>
                             <QrBox>
@@ -94,11 +102,17 @@ export function PushNotificationsPanel() {
                             </CopyRow>
                         </Steps>
                     </Layout>
-                </PhoneBlock>
+                </PairingBlock>
             )}
 
-            {/* Sparowane urządzenia razem z tym, co do każdego idzie - właściciel widzi całe studio. */}
-            <DeviceNotificationSettings onRevoke={push.revokeDevice} currentDeviceId={push.currentDeviceId} />
+            {/* Co przychodzi na które urządzenie - właściciel widzi całe studio. */}
+            <DeviceNotificationSettings
+                onRevoke={push.revokeDevice}
+                currentDeviceId={push.currentDeviceId}
+                emptyHint={onPhone
+                    ? 'Włącz powiadomienia wyżej, a ten telefon pojawi się tutaj.'
+                    : 'Zeskanuj kod wyżej telefonem, a pojawi się tutaj.'}
+            />
         </Wrap>
     );
 }
@@ -116,15 +130,6 @@ const PairingBlock = styled(Card)`
     flex-direction: column;
     gap: 12px;
     padding: 18px 20px 20px;
-
-    @media (max-width: 767px) { padding: 16px; }
-`;
-
-const PhoneBlock = styled(Panel)`
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 16px 20px;
 
     @media (max-width: 767px) { padding: 16px; }
 `;

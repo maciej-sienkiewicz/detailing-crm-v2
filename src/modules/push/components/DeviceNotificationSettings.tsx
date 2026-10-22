@@ -1,42 +1,49 @@
 // src/modules/push/components/DeviceNotificationSettings.tsx
 //
-// Ustawienia → Telefon → Powiadomienia: który telefon dostaje
-// które powiadomienia.
+// Ustawienia → Telefon → Powiadomienia: „Rodzaje powiadomień" - które urządzenie
+// dostaje które powiadomienia.
 //
 // W studiu jedni chcą wiedzieć o wszystkim, inni tylko o nowych leadach, jeszcze inni
 // tylko o przychodach. Ustawienie należy do URZĄDZENIA, nie do osoby - ten sam człowiek
 // może chcieć leadów w kieszeni, a przychodów tylko na tablecie w biurze. Właściciel
 // widzi wszystkie urządzenia studia (to on ustawia telefon recepcji), reszta - swoje.
 //
-// Zastępuje w ustawieniach dawną listę „Sparowane urządzenia": nazwa urządzenia,
-// odłączanie i to, co do niego idzie, to jedna rzecz, a dwie listy tych samych
-// telefonów jedna pod drugą kazały je sobie dopasowywać wzrokiem.
+// Tabela: rodzaje w wierszach (pogrupowane jak w GROUPS), urządzenia w kolumnach.
+// Poprzednio każde urządzenie było zwijanym wierszem z własną listą przełączników -
+// przy dwóch urządzeniach albo wszystko było rozwinięte (kilkanaście przełączników
+// jeden pod drugim), albo zwinięte, i wtedy ustawienia „znikały" z ekranu: właściciel
+// pytał, gdzie się podziały leady i zakończone wizyty. W tabeli wszystko jest widać
+// naraz, a porównanie „co idzie na telefon, a co na komputer" jest jednym spojrzeniem.
+// Gdy kolumny się nie mieszczą (telefon, dużo urządzeń), zostaje jedna kolumna i wybór
+// urządzenia nad nią.
 //
 // Kategorie, których posiadacz urządzenia i tak nie dostanie (brak uprawnienia w roli),
 // nie mają przełącznika - przełącznik, który niczego nie zmienia, kłamie. Zostaje po
-// nich jedno zdanie, żeby nikt nie szukał „przychodów" na telefonie detailera.
+// nich kreska i jedno zdanie pod tabelą.
 //
-// Płasko, bez wyniesienia: jedyna karta w tej kolumnie to „To urządzenie" nad spodem
+// Płasko, bez wyniesienia: jedyna karta w tej kolumnie to karta parowania nad spodem
 // (CLAUDE.md §2), a przełączniki są stanem, nie krokiem następnym.
 
-import { useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronDown } from 'lucide-react';
+import { BellOff, BellRing, MoreHorizontal, Unlink } from 'lucide-react';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useToast } from '@/common/components/Toast';
-import { Button, Panel, SectionTitle, ui } from '@/common/components/ui';
-import { SettingSwitchRow } from '@/modules/settings/components/SettingSwitchRow';
+import { Toggle } from '@/common/components/Toggle';
+import {
+    ActionMenu, Button, IconButton, MenuDivider, MenuItem, Notice, Panel, SectionTitle, ui, useActionMenu,
+} from '@/common/components/ui';
+import { useContainerWidth } from '@/common/hooks';
+import { problemStatus } from '@/core/problem';
 import { pushApi } from '../api/pushApi';
 import { pushQueryKeys } from '../hooks/usePushDevice';
 import { copyOf, GROUPS, summaryOf } from '../utils/notificationCategories';
 import type {
-    PushCategorySetting,
     PushDeviceNotifications,
     PushNotificationCategory,
     PushNotificationSettings,
 } from '../types';
-import { problemStatus } from '@/core/problem';
 
 const PLATFORM_LABEL: Record<PushDeviceNotifications['platform'], string> = {
     IOS: 'iPhone',
@@ -45,98 +52,73 @@ const PLATFORM_LABEL: Record<PushDeviceNotifications['platform'], string> = {
     UNKNOWN: 'Urządzenie',
 };
 
-const channelLabel = (device: PushDeviceNotifications): string =>
-    device.transport === 'WEB_PUSH' ? 'przeglądarka' : 'aplikacja';
+/** Kolumna rodzajów potrzebuje miejsca na nazwę i zdanie opisu; kolumna urządzenia - na nazwę. */
+const LABEL_MIN_WIDTH = 300;
+const DEVICE_COLUMN_WIDTH = 152;
 
 const toastedGlobally = (error: unknown): boolean => {
     const status = problemStatus(error);
     return status !== undefined && status >= 400 && status < 500;
 };
 
+const nameOf = (device: PushDeviceNotifications) => device.deviceName || PLATFORM_LABEL[device.platform];
+
+/** To urządzenie pierwsze, potem własne, potem reszta studia - kolejność, w której się ich szuka. */
+const ordered = (devices: PushDeviceNotifications[], currentDeviceId: string | null) =>
+    [...devices].sort((a, b) =>
+        Number(b.id === currentDeviceId) - Number(a.id === currentDeviceId)
+        || Number(b.mine) - Number(a.mine)
+        || nameOf(a).localeCompare(nameOf(b), 'pl'));
+
 interface Props {
     /** Odłączenie własnego urządzenia; cudzych nie odłącza się stąd (tylko na nich samych). */
     onRevoke: (deviceId: string) => Promise<void>;
     /**
-     * Wiersz urządzenia, na którym otwarto ekran. Bez oznaczenia lista i karta
-     * „To urządzenie" nad nią wyglądały jak dwie niezwiązane rzeczy.
+     * Kolumna urządzenia, na którym otwarto ekran. Bez oznaczenia tabela i karta
+     * parowania nad nią wyglądały jak dwie niezwiązane rzeczy.
      */
     currentDeviceId?: string | null;
+    /** Co zrobić, żeby urządzenie się tu pojawiło - inne na komputerze (kod QR) i na telefonie. */
+    emptyHint?: string;
 }
 
-export function DeviceNotificationSettings({ onRevoke, currentDeviceId = null }: Props) {
+export function DeviceNotificationSettings({ onRevoke, currentDeviceId = null, emptyHint }: Props) {
+    const queryClient = useQueryClient();
+    const { showError, showSuccess } = useToast();
     const settings = useQuery({
         queryKey: pushQueryKeys.notificationSettings,
         queryFn: pushApi.getNotificationSettings,
         staleTime: 30_000,
     });
+    const [rootRef, width] = useContainerWidth<HTMLElement>();
+    const [pickedId, setPickedId] = useState<string | null>(null);
+    const [toRevoke, setToRevoke] = useState<PushDeviceNotifications | null>(null);
+    const [revokingId, setRevokingId] = useState<string | null>(null);
+    const menu = useActionMenu<PushDeviceNotifications>();
 
-    const devices = settings.data?.devices ?? [];
-    if (devices.length === 0) return null;
-
-    const title = settings.data?.manageAll ? 'Urządzenia w studiu' : 'Twoje urządzenia';
-
-    return (
-        <Section>
-            <Head>
-                <SectionTitle as="h3" count={String(devices.length)}>{title}</SectionTitle>
-                <Lead>
-                    {settings.data?.manageAll
-                        ? 'Wybierz, o czym ma dawać znać każde urządzenie. Nowe rodzaje powiadomień włączają się same.'
-                        : 'Wybierz, o czym ma dawać znać każde z Twoich urządzeń.'}
-                </Lead>
-            </Head>
-            <List>
-                {devices.map(device => (
-                    <DeviceRow
-                        key={device.id}
-                        device={device}
-                        isCurrent={device.id === currentDeviceId}
-                        showOwner={settings.data?.manageAll ?? false}
-                        // Rozwinięte tylko jedyne urządzenie na liście. Dwa rozwinięte wiersze to
-                        // kilkanaście przełączników jeden pod drugim, a sekcja „Raporty
-                        // i podsumowania" lądowała ekran niżej - widok się rozłaził. Zwinięty
-                        // wiersz mówi skrótem („4 z 8 rodzajów"), co w nim jest.
-                        defaultOpen={devices.length === 1}
-                        onRevoke={onRevoke}
-                    />
-                ))}
-            </List>
-        </Section>
+    const manageAll = settings.data?.manageAll ?? false;
+    const devices = useMemo(
+        () => ordered(settings.data?.devices ?? [], currentDeviceId),
+        [settings.data, currentDeviceId],
     );
-}
-
-interface DeviceRowProps {
-    device: PushDeviceNotifications;
-    isCurrent: boolean;
-    showOwner: boolean;
-    defaultOpen: boolean;
-    onRevoke: (deviceId: string) => Promise<void>;
-}
-
-function DeviceRow({ device, isCurrent, showOwner, defaultOpen, onRevoke }: DeviceRowProps) {
-    const queryClient = useQueryClient();
-    const { showError, showSuccess } = useToast();
-    const [open, setOpen] = useState(defaultOpen);
-    const [confirmRevoke, setConfirmRevoke] = useState(false);
-    const [revoking, setRevoking] = useState(false);
-    const bodyId = `push-device-${device.id}`;
 
     const update = useMutation({
-        mutationFn: (enabled: PushNotificationCategory[]) => pushApi.updateDeviceNotifications(device.id, enabled),
+        mutationFn: ({ deviceId, enabled }: { deviceId: string; enabled: PushNotificationCategory[] }) =>
+            pushApi.updateDeviceNotifications(deviceId, enabled),
         // Od razu na ekranie: przełącznik, który czeka na serwer, wygląda na zepsuty.
-        onMutate: async enabled => {
+        onMutate: async ({ deviceId, enabled }) => {
             await queryClient.cancelQueries({ queryKey: pushQueryKeys.notificationSettings });
             const previous = queryClient.getQueryData<PushNotificationSettings>(pushQueryKeys.notificationSettings);
             queryClient.setQueryData<PushNotificationSettings>(pushQueryKeys.notificationSettings, old => old && {
                 ...old,
-                devices: old.devices.map(d => d.id !== device.id ? d : {
+                devices: old.devices.map(d => d.id !== deviceId ? d : {
                     ...d,
                     categories: d.categories.map(c => ({ ...c, enabled: enabled.includes(c.category) })),
                 }),
             });
             return { previous };
         },
-        onError: (error, _enabled, context) => {
+        onError: (error, _variables, context) => {
             if (context?.previous) queryClient.setQueryData(pushQueryKeys.notificationSettings, context.previous);
             if (!toastedGlobally(error)) showError('Nie udało się zapisać', 'Sprawdź internet i spróbuj jeszcze raz.');
         },
@@ -148,136 +130,270 @@ function DeviceRow({ device, isCurrent, showOwner, defaultOpen, onRevoke }: Devi
         },
     });
 
-    const enabledNow = device.categories.filter(c => c.enabled).map(c => c.category);
-    const toggle = (category: PushNotificationCategory, next: boolean) => {
+    const toggle = (device: PushDeviceNotifications, category: PushNotificationCategory, next: boolean) => {
+        const enabledNow = device.categories.filter(c => c.enabled).map(c => c.category);
         const enabled = next
             ? [...enabledNow.filter(c => c !== category), category]
             : enabledNow.filter(c => c !== category);
-        update.mutate(enabled);
+        update.mutate({ deviceId: device.id, enabled });
     };
 
-    const setAll = (next: boolean) => {
+    const setAll = (device: PushDeviceNotifications, next: boolean) => {
         // Kategorie niedostępne dla roli zostają, jak są - nikt ich tu nie widzi.
         const hidden = device.categories.filter(c => !c.available && c.enabled).map(c => c.category);
         const visible = device.categories.filter(c => c.available).map(c => c.category);
-        update.mutate(next ? [...hidden, ...visible] : hidden);
+        update.mutate({ deviceId: device.id, enabled: next ? [...hidden, ...visible] : hidden });
     };
 
-    const handleRevoke = async () => {
-        setConfirmRevoke(false);
-        setRevoking(true);
+    const handleRevoke = async (device: PushDeviceNotifications) => {
+        setToRevoke(null);
+        setRevokingId(device.id);
         try {
             await onRevoke(device.id);
-            showSuccess('Urządzenie odłączone', `„${device.deviceName}" nie będzie już dostawać powiadomień.`);
+            showSuccess('Urządzenie odłączone', `„${nameOf(device)}" nie będzie już dostawać powiadomień.`);
         } catch (error) {
             if (!toastedGlobally(error)) showError('Nie udało się odłączyć', 'Spróbuj ponownie.');
         } finally {
-            setRevoking(false);
+            setRevokingId(null);
         }
     };
 
-    const available = device.categories.filter(c => c.available);
-    const unavailableCount = device.categories.length - available.length;
-    const allOn = available.length > 0 && available.every(c => c.enabled);
-    const allOff = available.every(c => !c.enabled);
-    const grouped = groupCategories(available);
+    const head = (
+        <Head>
+            <SectionTitle as="h3" count={devices.length > 0 ? String(devices.length) : undefined}>
+                Rodzaje powiadomień
+            </SectionTitle>
+            <Lead>
+                {manageAll
+                    ? 'Wybierz, o czym ma dawać znać każde urządzenie w studiu. Nowe rodzaje powiadomień włączają się same.'
+                    : 'Wybierz, o czym ma dawać znać każde z Twoich urządzeń. Nowe rodzaje powiadomień włączają się same.'}
+            </Lead>
+        </Head>
+    );
+
+    if (settings.isLoading) {
+        return (
+            <Section ref={rootRef} aria-busy="true">
+                {head}
+                <Box>{[70, 55, 62].map(w => <SkeletonLine key={w} $w={`${w}%`} />)}</Box>
+            </Section>
+        );
+    }
+
+    if (settings.isError && !settings.data) {
+        return (
+            <Section ref={rootRef}>
+                {head}
+                <Notice
+                    tone="danger"
+                    role="alert"
+                    title="Nie udało się wczytać ustawień powiadomień"
+                    action={<Button variant="ghost" size="sm" onClick={() => void settings.refetch()}>Spróbuj ponownie</Button>}
+                />
+            </Section>
+        );
+    }
+
+    if (devices.length === 0) {
+        return (
+            <Section ref={rootRef}>
+                {head}
+                <Box>
+                    <Empty>
+                        <strong>Żadne urządzenie nie odbiera jeszcze powiadomień</strong>
+                        {emptyHint && <span>{emptyHint}</span>}
+                    </Empty>
+                </Box>
+            </Section>
+        );
+    }
+
+    // Kolumny, póki się mieszczą; inaczej jedna kolumna i wybór urządzenia. Bez pomiaru
+    // (jsdom, ukryta karta) zakładamy szerokość komputera.
+    const fits = devices.length > 1 && (width === null || width === 0
+        ? devices.length <= 3
+        : width >= LABEL_MIN_WIDTH + DEVICE_COLUMN_WIDTH * devices.length);
+    const columns = fits ? devices : [devices.find(d => d.id === pickedId) ?? devices[0]];
+    const single = columns.length === 1;
+
+    // Wiersz tylko dla rodzaju, który dostanie choć jedno z pokazanych urządzeń.
+    const visibleKeys = new Set(columns.flatMap(d => d.categories.filter(c => c.available).map(c => c.category)));
+    const groups = groupCategories([...visibleKeys]);
+    const settingOf = (device: PushDeviceNotifications, category: PushNotificationCategory) =>
+        device.categories.find(c => c.category === category);
+    // Kreska w komórce: rodzaj jest w tabeli, ale tego urządzenia nie dotyczy.
+    const dashes = columns.some(d => [...visibleKeys].some(key => !settingOf(d, key)?.available));
+    // Rodzaj bez wiersza: żadne z pokazanych urządzeń go nie dostanie.
+    const hiddenRows = columns.some(d => d.categories.some(c => !visibleKeys.has(c.category)));
+    const restricted = columns.filter(d => d.categories.some(c => !c.available));
+    const onlyMine = restricted.every(d => d.mine);
+    const role = onlyMine ? 'Twoja rola' : 'rola tej osoby';
+    const footnote = [
+        dashes && `„—" znaczy, że ${role} nie ma uprawnienia do tego powiadomienia.`,
+        hiddenRows && `Pozostałe powiadomienia wymagają uprawnień, których ${role} nie ma.`,
+        (dashes || hiddenRows) && !onlyMine && 'Uprawnienia zmienisz w Ustawieniach, w Rolach.',
+    ].filter(Boolean).join(' ');
+
+    // „To urządzenie" mówi już, czyje jest - serwer uznaje je tylko za urządzenie oglądającego.
+    const deviceMeta = (device: PushDeviceNotifications) => (
+        <Meta>
+            {device.id === currentDeviceId
+                ? <ThisDevice>To urządzenie</ThisDevice>
+                : manageAll && <Owner>{device.mine ? 'Ty' : device.userName}</Owner>}
+            <span>{PLATFORM_LABEL[device.platform]}</span>
+        </Meta>
+    );
+
+    const menuButton = (device: PushDeviceNotifications) => (
+        <IconButton
+            label={`Więcej: ${nameOf(device)}`}
+            variant="ghost"
+            size="sm"
+            aria-haspopup="menu"
+            aria-expanded={menu.isOpen(device.id)}
+            disabled={revokingId === device.id}
+            onClick={e => menu.toggle(e, device, device.id)}
+        >
+            <MoreHorizontal />
+        </IconButton>
+    );
+
+    const template = single ? 'minmax(0, 1fr) 72px' : `minmax(0, 1fr) repeat(${columns.length}, ${DEVICE_COLUMN_WIDTH}px)`;
+    const menuDevice = menu.menu?.item ?? null;
 
     return (
-        <DevicePanel>
-            <DeviceHead
-                type="button"
-                aria-expanded={open}
-                aria-controls={bodyId}
-                onClick={() => setOpen(o => !o)}
-            >
-                <DeviceTexts>
-                    <DeviceName>{device.deviceName || PLATFORM_LABEL[device.platform]}</DeviceName>
-                    <Meta>
-                        {isCurrent && <ThisDevice>To urządzenie</ThisDevice>}
-                        {showOwner && <Owner>{device.mine ? 'Ty' : device.userName}</Owner>}
-                        <span>{PLATFORM_LABEL[device.platform]}, {channelLabel(device)}</span>
-                        <Summary $muted={allOff && available.length > 0}>{summaryOf(device.categories)}</Summary>
-                    </Meta>
-                </DeviceTexts>
-                <Chevron $open={open} aria-hidden="true" />
-            </DeviceHead>
+        <Section ref={rootRef}>
+            {head}
 
-            {open && (
-                <Body id={bodyId}>
-                    {available.length > 0 && (
-                        <Bulk>
-                            <Button variant="ghost" size="sm" disabled={allOn} onClick={() => setAll(true)}>
-                                Włącz wszystkie
-                            </Button>
-                            <Button variant="ghost" size="sm" disabled={allOff} onClick={() => setAll(false)}>
-                                Wyłącz wszystkie
-                            </Button>
-                        </Bulk>
-                    )}
-
-                    {grouped.map(group => (
-                        <Group key={group.title} aria-label={group.title}>
-                            <GroupTitle>{group.title}</GroupTitle>
-                            {group.categories.map(c => (
-                                <SettingSwitchRow
-                                    key={c.category}
-                                    label={copyOf(c.category).label}
-                                    hint={copyOf(c.category).hint || undefined}
-                                    checked={c.enabled}
-                                    onChange={next => toggle(c.category, next)}
-                                />
-                            ))}
-                        </Group>
-                    ))}
-
-                    {unavailableCount > 0 && (
-                        <Note>
-                            {device.mine
-                                ? 'Pozostałe powiadomienia wymagają uprawnień, których Twoja rola nie ma.'
-                                : 'Pozostałe powiadomienia wymagają uprawnień, których rola tej osoby nie ma. Zmienisz to w Ustawieniach, w Rolach.'}
-                        </Note>
-                    )}
-
-                    {device.mine && (
-                        <RevokeRow>
-                            <Button
-                                variant="tintedDanger"
-                                size="sm"
-                                onClick={() => setConfirmRevoke(true)}
-                                disabled={revoking}
-                            >
-                                {revoking ? 'Odłączam…' : 'Odłącz urządzenie'}
-                            </Button>
-                        </RevokeRow>
-                    )}
-                </Body>
+            {!fits && devices.length > 1 && (
+                <Picker>
+                    <label htmlFor="push-device-picker">Urządzenie</label>
+                    <select
+                        id="push-device-picker"
+                        value={columns[0].id}
+                        onChange={e => setPickedId(e.target.value)}
+                    >
+                        {devices.map(d => (
+                            <option key={d.id} value={d.id}>
+                                {nameOf(d)}
+                                {d.id === currentDeviceId ? ' (to urządzenie)' : manageAll && !d.mine ? ` (${d.userName})` : ''}
+                            </option>
+                        ))}
+                    </select>
+                </Picker>
             )}
 
+            <Box role="table" aria-label="Rodzaje powiadomień na urządzeniach">
+                {single ? (
+                    <DeviceBar>
+                        <DeviceTexts>
+                            <DeviceName title={nameOf(columns[0])}>{nameOf(columns[0])}</DeviceName>
+                            {deviceMeta(columns[0])}
+                        </DeviceTexts>
+                        <Summary $muted={summaryOf(columns[0].categories) === 'Wszystkie wyłączone'}>
+                            {summaryOf(columns[0].categories)}
+                        </Summary>
+                        {menuButton(columns[0])}
+                    </DeviceBar>
+                ) : (
+                    <HeaderRow role="row" style={{ gridTemplateColumns: template }}>
+                        <Corner role="columnheader">Powiadomienie</Corner>
+                        {columns.map(device => (
+                            <DeviceHead key={device.id} role="columnheader">
+                                <DeviceHeadTop>
+                                    <DeviceName title={nameOf(device)}>{nameOf(device)}</DeviceName>
+                                    {menuButton(device)}
+                                </DeviceHeadTop>
+                                {deviceMeta(device)}
+                            </DeviceHead>
+                        ))}
+                    </HeaderRow>
+                )}
+
+                {groups.map(group => (
+                    <Fragment key={group.title}>
+                        <GroupRow role="row">
+                            <GroupTitle role="rowheader">{group.title}</GroupTitle>
+                        </GroupRow>
+                        {group.categories.map(category => {
+                            const copy = copyOf(category);
+                            return (
+                                <Row key={category} role="row" style={{ gridTemplateColumns: template }}>
+                                    <LabelCell role="rowheader">
+                                        <Name>{copy.label}</Name>
+                                        {copy.hint && <Hint>{copy.hint}</Hint>}
+                                    </LabelCell>
+                                    {columns.map(device => {
+                                        const setting = settingOf(device, category);
+                                        return (
+                                            <Cell key={device.id} role="cell">
+                                                {setting?.available ? (
+                                                    <Toggle
+                                                        size="sm"
+                                                        checked={setting.enabled}
+                                                        onChange={next => toggle(device, category, next)}
+                                                        ariaLabel={single ? copy.label : `${copy.label}, ${nameOf(device)}`}
+                                                    />
+                                                ) : (
+                                                    <Unavailable title="Rola posiadacza tego urządzenia nie ma uprawnienia do tego powiadomienia">—</Unavailable>
+                                                )}
+                                            </Cell>
+                                        );
+                                    })}
+                                </Row>
+                            );
+                        })}
+                    </Fragment>
+                ))}
+            </Box>
+
+            {footnote && <Footnote>{footnote}</Footnote>}
+
+            <ActionMenu anchor={menu.menu?.anchor ?? null} onClose={menu.close} label="Akcje urządzenia">
+                {menuDevice && (
+                    <>
+                        <MenuItem icon={<BellRing />} onClick={() => { setAll(menuDevice, true); menu.close(); }}>
+                            Włącz wszystkie
+                        </MenuItem>
+                        <MenuItem icon={<BellOff />} onClick={() => { setAll(menuDevice, false); menu.close(); }}>
+                            Wyłącz wszystkie
+                        </MenuItem>
+                        {menuDevice.mine && (
+                            <>
+                                <MenuDivider />
+                                <MenuItem icon={<Unlink />} danger onClick={() => { setToRevoke(menuDevice); menu.close(); }}>
+                                    Odłącz urządzenie
+                                </MenuItem>
+                            </>
+                        )}
+                    </>
+                )}
+            </ActionMenu>
+
             <ConfirmationModal
-                isOpen={confirmRevoke}
+                isOpen={toRevoke !== null}
                 title="Odłączyć urządzenie?"
-                message={`„${device.deviceName}" przestanie dostawać powiadomienia z CRM. Żeby je przywrócić, trzeba je włączyć od nowa na tym urządzeniu.`}
+                message={toRevoke
+                    ? `„${nameOf(toRevoke)}" przestanie dostawać powiadomienia z CRM. Żeby je przywrócić, trzeba je włączyć od nowa na tym urządzeniu.`
+                    : ''}
                 variant="danger"
                 confirmText="Odłącz"
                 cancelText="Anuluj"
-                onConfirm={() => { void handleRevoke(); }}
-                onCancel={() => setConfirmRevoke(false)}
+                onConfirm={() => { if (toRevoke) void handleRevoke(toRevoke); }}
+                onCancel={() => setToRevoke(null)}
             />
-        </DevicePanel>
+        </Section>
     );
 }
 
-function groupCategories(categories: PushCategorySetting[]) {
+/** Rodzaje w kolejności i grupach ekranu; nieznane (nowszy backend) w „Inne" na końcu. */
+function groupCategories(keys: PushNotificationCategory[]) {
+    const present = new Set(keys);
     const known = new Set(GROUPS.flatMap(g => g.categories));
     const groups = GROUPS
-        .map(g => ({
-            title: g.title,
-            categories: g.categories
-                .map(key => categories.find(c => c.category === key))
-                .filter((c): c is PushCategorySetting => c !== undefined),
-        }))
+        .map(g => ({ title: g.title, categories: g.categories.filter(key => present.has(key)) }))
         .filter(g => g.categories.length > 0);
-    const rest = categories.filter(c => !known.has(c.category));
+    const rest = keys.filter(key => !known.has(key));
     return rest.length > 0 ? [...groups, { title: 'Inne', categories: rest }] : groups;
 }
 
@@ -287,6 +403,7 @@ const Section = styled.section`
     display: flex;
     flex-direction: column;
     gap: 10px;
+    min-width: 0;
 `;
 
 const Head = styled.div`
@@ -303,34 +420,86 @@ const Lead = styled.p`
     max-width: 68ch;
 `;
 
-const List = styled.div`
+const Box = styled(Panel)`
     display: flex;
     flex-direction: column;
-    gap: 8px;
-`;
-
-const DevicePanel = styled(Panel)`
     overflow: hidden;
 `;
 
-const DeviceHead = styled.button`
+const Picker = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+
+    label { font-size: 13px; font-weight: 600; color: ${ui.inkSoft}; }
+
+    select {
+        flex: 1;
+        min-width: 0;
+        max-width: 360px;
+        height: 40px;
+        padding: 0 12px;
+        border: 1px solid ${ui.line};
+        border-radius: ${ui.radiusRow};
+        background: ${ui.surface};
+        font: inherit;
+        font-size: 14px;
+        color: ${ui.ink};
+    }
+`;
+
+const HeaderRow = styled.div`
+    display: grid;
+    align-items: end;
+    border-bottom: 1px solid ${ui.line};
+    background: ${ui.surfaceSoft};
+`;
+
+const Corner = styled.div`
+    padding: 12px 20px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: ${ui.textMuted};
+
+    @media (max-width: 767px) { padding: 12px 16px; }
+`;
+
+const DeviceHead = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    padding: 10px 6px 10px 12px;
+    border-left: 1px solid ${ui.lineFaint};
+`;
+
+const DeviceHeadTop = styled.div`
+    display: flex;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
+
+    /* Nazwa w kolumnie na dwie linie zamiast ucięcia „Mac, Chro…". */
+    > span {
+        white-space: normal;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        line-height: 1.3;
+        padding-top: 6px;
+    }
+`;
+
+const DeviceBar = styled.div`
     display: flex;
     align-items: center;
     gap: 12px;
-    width: 100%;
-    min-height: 56px;
-    padding: 12px 20px;
-    background: none;
-    border: none;
-    text-align: left;
-    cursor: pointer;
-    font: inherit;
-    color: inherit;
+    padding: 12px 12px 12px 20px;
+    border-bottom: 1px solid ${ui.line};
+    background: ${ui.surfaceSoft};
 
-    &:hover { background: ${ui.surfaceSoft}; }
-    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: -2px; }
-
-    @media (max-width: 767px) { padding: 12px 16px; }
+    @media (max-width: 767px) { padding: 12px 8px 12px 16px; }
 `;
 
 const DeviceTexts = styled.div`
@@ -342,16 +511,21 @@ const DeviceTexts = styled.div`
 `;
 
 const DeviceName = styled.span`
+    flex: 1;
+    min-width: 0;
     font-size: 14px;
     font-weight: 600;
     color: ${ui.ink};
-    overflow-wrap: anywhere;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 `;
 
 const Meta = styled.span`
     display: flex;
     flex-wrap: wrap;
-    gap: 2px 12px;
+    align-items: center;
+    gap: 2px 8px;
     font-size: 12px;
     color: ${ui.textMuted};
 `;
@@ -369,60 +543,96 @@ const ThisDevice = styled.span`
     background: ${ui.brandTint};
     color: ${ui.brandInk};
     font-weight: 600;
+    white-space: nowrap;
 `;
 
 const Summary = styled.span<{ $muted?: boolean }>`
-    color: ${p => (p.$muted ? ui.warnInk : ui.brandInk)};
-    font-weight: 500;
-`;
-
-const Chevron = styled(ChevronDown)<{ $open: boolean }>`
     flex-shrink: 0;
-    width: 18px;
-    height: 18px;
-    color: ${ui.textFaint};
-    transform: rotate(${p => (p.$open ? '180deg' : '0deg')});
-    transition: transform 0.15s ease;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: ${p => (p.$muted ? ui.warnInk : ui.brandInk)};
+
+    @media (max-width: 480px) { display: none; }
 `;
 
-const Body = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding: 0 20px 16px;
-    border-top: 1px solid ${ui.lineFaint};
+const GroupRow = styled.div`
+    padding: 16px 20px 4px;
 
-    @media (max-width: 767px) { padding: 0 16px 14px; }
+    &:not(:first-child) { border-top: 1px solid ${ui.lineFaint}; }
+
+    @media (max-width: 767px) { padding: 14px 16px 4px; }
 `;
 
-const Bulk = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding-top: 10px;
-`;
-
-const Group = styled.section`
-    display: flex;
-    flex-direction: column;
-    padding-top: 8px;
-`;
-
-const GroupTitle = styled.h4`
-    margin: 0;
+const GroupTitle = styled.div`
     font-size: 13px;
     font-weight: 700;
     color: ${ui.inkSoft};
 `;
 
-const Note = styled.p`
-    margin: 4px 0 0;
-    font-size: 13px;
+const Row = styled.div`
+    display: grid;
+    align-items: stretch;
+`;
+
+const LabelCell = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    padding: 10px 16px 10px 20px;
+
+    @media (max-width: 767px) { padding: 10px 12px 10px 16px; }
+`;
+
+const Name = styled.span`
+    font-size: 14px;
+    font-weight: 600;
+    color: ${ui.ink};
+`;
+
+const Hint = styled.span`
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: ${ui.textSecondary};
+`;
+
+const Cell = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-left: 1px solid ${ui.lineFaint};
+`;
+
+const Unavailable = styled.span`
+    font-size: 14px;
+    color: ${ui.textFaint};
+    cursor: help;
+`;
+
+const Footnote = styled.p`
+    margin: 0;
+    font-size: 12.5px;
     line-height: 1.5;
     color: ${ui.textMuted};
     max-width: 68ch;
 `;
 
-const RevokeRow = styled.div`
-    padding-top: 10px;
+const Empty = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 24px 20px;
+    text-align: center;
+    font-size: 13px;
+    color: ${ui.textMuted};
+
+    strong { font-size: 14px; color: ${ui.ink}; }
+`;
+
+const SkeletonLine = styled.div<{ $w: string }>`
+    width: ${p => p.$w};
+    height: 12px;
+    margin: 16px 20px;
+    border-radius: 6px;
+    background: ${ui.lineFaint};
 `;

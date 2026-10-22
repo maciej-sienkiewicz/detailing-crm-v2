@@ -55,7 +55,7 @@ function PushSetup() {
                         <SectionTitle as="h3">Raporty i podsumowania</SectionTitle>
                         <SummariesLead>
                             Ustaw, jak często mają przychodzić. Na które urządzenia trafiają, wybierasz
-                            wyżej, przy każdym urządzeniu.
+                            wyżej, w tabeli „Rodzaje powiadomień”.
                         </SummariesLead>
                     </SummariesHead>
                     {showReport && <ReportNotificationSetting />}
@@ -75,7 +75,7 @@ function DialSetup() {
     return (
         <Stack>
             <Lead>
-                Sparuj telefon, który nosisz przy sobie. Przy urządzeniu niżej zostaw włączone
+                Sparuj telefon, który nosisz przy sobie. W tabeli niżej zostaw przy nim włączone
                 „Dzwonienie z komputera”, a numer kliknięty na karcie klienta pojawi się na telefonie
                 z przyciskiem „Zadzwoń”.
             </Lead>
@@ -247,7 +247,7 @@ const Lead = styled.p`
     color: ${ui.textSecondary};
 `;
 
-// Płasko jak lista urządzeń nad nią: jedyną wyniesioną kartą w kolumnie jest „To urządzenie" (CLAUDE.md §2).
+// Płasko jak tabela nad nią: jedyną wyniesioną kartą w kolumnie jest blok parowania (CLAUDE.md §2).
 const Summaries = styled(Panel)`
     display: flex;
     flex-direction: column;
