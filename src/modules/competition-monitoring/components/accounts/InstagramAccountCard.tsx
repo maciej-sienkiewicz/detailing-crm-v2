@@ -6,7 +6,6 @@ import {
 } from '@/common/components/ui';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useBreakpoint } from '@/common/hooks';
-import { apiErrorStatus } from '../../api/accountsApi';
 import { useAccountActions, useMyInstagram } from '../../hooks/useAccounts';
 import type { InstagramConnection } from '../../accountsTypes';
 import { formatExact } from '../MetricBits';
@@ -17,6 +16,7 @@ import {
 } from './accountsStyles';
 import { OwnStats } from './OwnStats';
 import { LoginRedirectOverlay } from './LoginRedirectOverlay';
+import { problemStatus } from '@/core/problem';
 
 /**
  * Karta konta Instagram: połączenie i - po połączeniu - statystyki z oficjalnego API.
@@ -83,12 +83,12 @@ export const InstagramAccountCard = ({ connection, isLoading }: Props) => {
 
     // 403 dostaje dymek z interceptora - tu tylko krótka podpowiedź obok przycisku, kto może.
     const forbidden = [actions.connect.error, actions.select.error, actions.disconnect.error]
-        .some(error => apiErrorStatus(error) === 403);
+        .some(error => problemStatus(error) === 403);
 
     const sync = () => {
         setSyncNote(null);
         actions.sync.mutate(undefined, {
-            onError: error => setSyncNote(apiErrorStatus(error) === 429
+            onError: error => setSyncNote(problemStatus(error) === 429
                 ? 'Odświeżone przed chwilą. Spróbuj za kilka minut.'
                 : 'Nie udało się odświeżyć. Spróbuj ponownie za chwilę.'),
         });

@@ -36,6 +36,7 @@ import { BoardCardView, CardSlot, DragLayer } from './BoardCard';
 import { EASE_SPRING, prefersReducedMotion } from './motion';
 import { useBoardDrag } from './useBoardDrag';
 import { useFlip } from './useFlip';
+import { problemDetail } from '@/core/problem';
 
 const Scroller = styled.div<{ $phone: boolean }>`
     flex: 1;
@@ -299,7 +300,7 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
             { leadId: card.lead.id, stage: move.stage, optimistic },
             {
                 onError: (error) => {
-                    const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                    const message = problemDetail(error);
                     showError('Nie udało się przenieść sprawy', message ?? 'Karta wróciła na poprzednie miejsce');
                 },
                 onSettled: () => release(card.lead.id),

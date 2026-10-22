@@ -48,7 +48,8 @@ import { EditScheduledSmsModal } from '../components/EditScheduledSmsModal';
 import { EditScheduledEmailModal } from '../components/EditScheduledEmailModal';
 import { CancelScheduledModal } from '../components/CancelScheduledModal';
 import type { MessageChannel, ScheduledEmailItem, ScheduledItem, ScheduledSmsItem, SentItem } from '../types';
-import { apiErrorMessage, matchesSearch, recipientLabel } from '../utils/scheduledFormat';
+import { matchesSearch, recipientLabel } from '../utils/scheduledFormat';
+import { problemDetail } from '@/core/problem';
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
@@ -224,7 +225,7 @@ export const ScheduledCommunicationView = () => {
     };
     // Błąd zostaje w oknie, przy formularzu - użytkownik ma go poprawić, a nie złapać w toaście.
     const onEditFailed = (err: unknown) =>
-        setEditError(apiErrorMessage(err, 'Nie udało się zapisać zmian. Spróbuj ponownie za chwilę.'));
+        setEditError(problemDetail(err, 'Nie udało się zapisać zmian. Spróbuj ponownie za chwilę.'));
 
     const confirmSmsEdit = (payload: { messageContent: string; scheduledFor: string }) => {
         if (!editing) return;
@@ -246,7 +247,7 @@ export const ScheduledCommunicationView = () => {
                 setCancelling(null);
                 showSuccess(`Anulowano wysyłkę ${copy.gen}`, `Wiadomość do: ${recipientLabel(item)} jest teraz w „Anulowanych".`);
             },
-            onError: (err: unknown) => showError('Nie udało się anulować wysyłki', apiErrorMessage(err, 'Spróbuj ponownie za chwilę.')),
+            onError: (err: unknown) => showError('Nie udało się anulować wysyłki', problemDetail(err, 'Spróbuj ponownie za chwilę.')),
         };
         if (channel === 'SMS') cancelSms.mutate(item as ScheduledSmsItem, handlers);
         else cancelEmail.mutate(item as ScheduledEmailItem, handlers);
@@ -255,7 +256,7 @@ export const ScheduledCommunicationView = () => {
     const handleResume = (item: ScheduledItem) => {
         const handlers = {
             onSuccess: () => showSuccess(`Wznowiono wysyłkę ${copy.gen}`, `Wiadomość do: ${recipientLabel(item)} znów czeka na wysyłkę.`),
-            onError: (err: unknown) => showError('Nie udało się wznowić wysyłki', apiErrorMessage(err, 'Spróbuj ponownie za chwilę.')),
+            onError: (err: unknown) => showError('Nie udało się wznowić wysyłki', problemDetail(err, 'Spróbuj ponownie za chwilę.')),
         };
         if (channel === 'SMS') resumeSms.mutate(item as ScheduledSmsItem, handlers);
         else resumeEmail.mutate(item as ScheduledEmailItem, handlers);

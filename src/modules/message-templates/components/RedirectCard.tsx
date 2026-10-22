@@ -14,6 +14,7 @@ import {
   useRunRehearsal,
   useUpdateCommunicationRedirect,
 } from '../hooks/useCommunicationRedirect';
+import { problemDetail } from '@/core/problem';
 
 /**
  * „Przekieruj każdą wiadomość mailową i SMS na moje dane".
@@ -202,7 +203,7 @@ export const RedirectCard: React.FC = () => {
   };
 
   const errorMessage = (e: unknown, fallback: string) => {
-    const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+    const msg = problemDetail(e);
     return msg || fallback;
   };
 

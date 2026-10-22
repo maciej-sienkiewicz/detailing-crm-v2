@@ -23,6 +23,7 @@ import type { MessageKey } from '@/modules/message-templates';
 import type { AddOnKey } from '@/modules/subscription/types';
 import type { SmsReadiness, SmsRequirement, SmsRequirementId } from '../hooks/useSmsReadiness';
 import { pluralPl } from '@/common/utils/plural';
+import { problemDetail } from '@/core/problem';
 
 /**
  * Turns "you can't send this" into "here is everything it takes, let's do it".
@@ -273,7 +274,7 @@ function TemplateStep({ templateKey, onDone }: { templateKey?: MessageKey; onDon
         },
         onError: (err: unknown) => {
             const message =
-                (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+                problemDetail(err)
                 ?? 'Nie udało się włączyć szablonu.';
             showError('Szablon niezapisany', message);
         },
@@ -354,7 +355,7 @@ function CreditsStep({ onDone }: { onDone: () => void }) {
             },
             onError: (err: unknown) => {
                 const message =
-                    (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+                    problemDetail(err)
                     ?? 'Nie udało się doładować kredytów.';
                 showError('Doładowanie nieudane', message);
             },

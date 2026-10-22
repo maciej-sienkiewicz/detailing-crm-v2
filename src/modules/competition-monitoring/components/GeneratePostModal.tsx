@@ -19,7 +19,7 @@ import { acquireScrollLock } from '@/common/utils/scrollLock';
 import { useBreakpoint } from '@/common/hooks';
 import { Button, ButtonLink, ui } from '@/common/components/ui';
 import { PHONE } from '../utils/phone';
-import { accountsApi, apiErrorMessage } from '../api/accountsApi';
+import { accountsApi } from '../api/accountsApi';
 import type { PublishResult, PublishVisit } from '../accountsTypes';
 import { useInstagramConnection, useMyInstagram, usePublishVisits } from '../hooks/useAccounts';
 import { PublishSection } from './accounts/PublishSection';
@@ -37,6 +37,7 @@ import {
 } from './accounts/publishLogic';
 import { VisitMaterialSection } from './accounts/VisitMaterialSection';
 import { logger } from '@/core/logger';
+import { problemDetail } from '@/core/problem';
 
 // ─── Animations ────────────────────────────────────────────────────────────────
 
@@ -1466,8 +1467,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
         } catch (e) {
             // Limit generowań (429) i błędy modelu mają czytelny komunikat z backendu -
             // pokazujemy go przy formularzu, żeby nie zniknął razem z toastem.
-            const message = (e as { response?: { data?: { message?: string } } })
-                ?.response?.data?.message;
+            const message = problemDetail(e);
             setGenError(message ?? 'Nie udało się wygenerować posta. Spróbuj ponownie.');
             setPhase('form');
         }
@@ -1494,7 +1494,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
             const done = await accountsApi.publish({ caption: caption.trim() || null, photoIds: selectedPhotos });
             setPublished(done);
         } catch (e) {
-            setPublishError(apiErrorMessage(e, 'Nie udało się opublikować. Spróbuj ponownie za chwilę.'));
+            setPublishError(problemDetail(e, 'Nie udało się opublikować. Spróbuj ponownie za chwilę.'));
         } finally {
             setPublishing(false);
         }
@@ -1531,7 +1531,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
             setRules(prev => [...prev, created]);
             setRuleInput('');
         } catch (e) {
-            const message = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            const message = problemDetail(e);
             setRuleError(message ?? 'Nie udało się zapisać reguły.');
         } finally {
             setRuleBusy(false);
@@ -1547,7 +1547,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
             setRules(prev => prev.map(r => r.id === rule.id ? updated : r));
         } catch (e) {
             setRules(prev => prev.map(r => r.id === rule.id ? rule : r));
-            const message = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            const message = problemDetail(e);
             setRuleError(message ?? 'Nie udało się zmienić reguły.');
         }
     }, []);

@@ -16,7 +16,6 @@ import { ArrowLeft, ArrowRight, ImageIcon, LayoutTemplate, Loader2, Trash2, Type
 import { ModalFooter, ModalHeader, ModalShell, ModalSubtitle, ModalTitle, ModalTitleGroup } from '@/common/components/ModalKit';
 import { ModalCloseButton } from '@/common/styles';
 import { useToast } from '@/common/components/Toast';
-import { apiErrorMessage } from '@/modules/visits/api/apiError';
 import {
     useCopyCompanyLogoToSignature,
     useDeleteMailSignature,
@@ -44,6 +43,7 @@ import { SignaturePreview } from './signature/SignaturePreview';
 import { DetailsStep, ImagesStep, SocialStep, StyleStep, TemplateStep } from './signature/SignatureSteps';
 import { SIGNATURE_STEPS, type SignatureStepId } from './signature/designerSteps';
 import { PillSwitch, StepHeader, StepHint, StepIcon, StepTitle, TextArea, brandTint } from './signature/designerStyles';
+import { problemDetail } from '@/core/problem';
 
 // ── Układ okna ───────────────────────────────────────────────────────────────
 
@@ -362,7 +362,7 @@ function SignatureDesigner({ signature, onClose }: DesignerProps) {
 
     const submit = () => {
         const onError = (error: unknown) =>
-            showError('Nie udało się zapisać stopki', apiErrorMessage(error, 'Spróbuj ponownie za chwilę'));
+            showError('Nie udało się zapisać stopki', problemDetail(error, 'Spróbuj ponownie za chwilę'));
         const onSuccess = () => {
             showSuccess('Stopka zapisana', 'Dołączysz ją przełącznikiem przy wysyłce');
             onClose();

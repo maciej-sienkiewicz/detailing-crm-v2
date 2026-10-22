@@ -41,7 +41,7 @@ import { PendingDowngradeBanner } from '../components/PendingDowngradeBanner';
 import { PaymentHistoryTable } from '../components/PaymentHistoryTable';
 import type { FeaturePlan, AddOnKey, AddOnDto, PlanChangePreview, AddOnPreview, BillingStatus } from '../types';
 import { formatCents, formatDate, monthlyPriceSuffix } from '../utils/formatters';
-import { apiErrorMessage, toastUnhandledError } from '../utils/apiErrors';
+import { toastUnhandledError } from '../utils/apiErrors';
 import { toastCheckoutProblem, useCheckoutHandoff } from '../hooks/useCheckoutHandoff';
 import {
     PageWrap,
@@ -55,6 +55,7 @@ import {
     AddOnRowText,
     Muted,
 } from './SubscriptionSettingsPage.styles';
+import { problemDetail } from '@/core/problem';
 
 // ─── Billing status ──────────────────────────────────────────────────────────
 
@@ -173,7 +174,7 @@ export function SubscriptionSettingsPage() {
         } catch (err) {
             // Wcześniej okno po prostu znikało - wyglądało, jakby kliknięcie nie zadziałało.
             setDialog(null);
-            showError('Nie udało się pobrać wyceny', apiErrorMessage(err) ?? 'Spróbuj ponownie za chwilę.');
+            showError('Nie udało się pobrać wyceny', problemDetail(err) ?? 'Spróbuj ponownie za chwilę.');
         }
     };
 
@@ -187,7 +188,7 @@ export function SubscriptionSettingsPage() {
             setDialog({ type: 'addon-activate', key: addOn.key, name: addOn.name, preview, loading: false });
         } catch (err) {
             setDialog(null);
-            showError('Nie udało się pobrać wyceny modułu', apiErrorMessage(err) ?? 'Spróbuj ponownie za chwilę.');
+            showError('Nie udało się pobrać wyceny modułu', problemDetail(err) ?? 'Spróbuj ponownie za chwilę.');
         }
     };
 

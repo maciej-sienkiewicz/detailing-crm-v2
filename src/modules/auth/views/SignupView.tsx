@@ -15,6 +15,7 @@ import { AuthLayout } from '../components/AuthLayout';
 import { AuthAside, AuthForm, AuthHeading, AuthLink, AuthMeta, AuthPrimaryButton } from '../components/AuthUi';
 import { LEGAL_VERSION, legalPath } from '@/modules/legal/documents';
 import { LegalNotice } from '../components/LegalNotice';
+import { problemDetail } from '@/core/problem';
 
 // Linki do regulaminu i polityki w treści zgody - jak pozostałe linki bramy.
 const TermsLabel = styled.span`
@@ -74,7 +75,7 @@ export const SignupView = () => {
         try {
             await signupMutation.mutateAsync({ ...formData, confirmPassword: formData.password, legalVersion: LEGAL_VERSION });
         } catch (error: any) {
-            const message = error?.response?.data?.message || t.auth.errors.serverError;
+            const message = problemDetail(error) || t.auth.errors.serverError;
             setApiError(message);
         }
     };

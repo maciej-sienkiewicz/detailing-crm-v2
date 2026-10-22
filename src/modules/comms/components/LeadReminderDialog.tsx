@@ -27,6 +27,7 @@ import { canRemindByMail, silenceOf } from '../utils/leadBoard';
 import { describeLeadUrgency } from '../utils/leadUrgency';
 import { caseTitle, rowAge } from '../inbox/caseModel';
 import { ix } from '../inbox/tokens';
+import { problemDetail } from '@/core/problem';
 
 /**
  * Uwagi dla asystenta. Prompt sam pisze przypomnienie, gdy ostatnie słowo należy do studia -
@@ -51,7 +52,7 @@ type Row =
     | { phase: 'sendError'; text: string; message: string };
 
 const messageOf = (error: unknown, fallback: string): string =>
-    (error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? fallback;
+    problemDetail(error) ?? fallback;
 
 const remindersWord = (n: number) => pluralPl(n, 'przypomnienie', 'przypomnienia', 'przypomnień');
 

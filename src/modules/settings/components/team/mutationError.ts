@@ -10,30 +10,28 @@
 // zgłasza każdy 4xx (poza 401) i 403 przy mutacji, chyba że żądanie ma
 // `skipErrorToast`. Tu zgłaszamy dokładnie to, czego on nie zgłosi.
 
-type ApiErrorShape = {
-    response?: { status?: number; data?: { message?: string; code?: string } };
+import { isProblem, problemDetail, problemStatus } from '@/core/problem';
+
+type RequestConfigLike = {
     config?: { skipErrorToast?: boolean };
 };
 
-const shape = (error: unknown): ApiErrorShape => (error ?? {}) as ApiErrorShape;
-
 /** Komunikat z odpowiedzi serwera, jeśli jest. */
 export function serverMessage(error: unknown): string | null {
-    return shape(error).response?.data?.message ?? null;
+    return problemDetail(error) ?? null;
 }
 
 /** Czy globalny interceptor już pokazał (albo celowo przemilczał) ten błąd. */
 export function handledGlobally(error: unknown): boolean {
-    const { response, config } = shape(error);
-    const status = response?.status;
+    const status = problemStatus(error);
     // Brak odpowiedzi (sieć, CORS, timeout) i 5xx - interceptor milczy.
     if (status === undefined || status >= 500) return false;
     // 401 kończy się przejściem do logowania, 402 z MODULE_REQUIRED otwiera okno zakupu.
     if (status === 401) return true;
-    if (status === 402 && response?.data?.code === 'MODULE_REQUIRED') return true;
+    if (status === 402 && isProblem(error, 'MODULE_REQUIRED')) return true;
     // 403 przy mutacji interceptor zgłasza zawsze, resztę 4xx - o ile nikt nie wypisał się flagą.
     if (status === 403) return true;
-    return config?.skipErrorToast !== true;
+    return (error as RequestConfigLike | null)?.config?.skipErrorToast !== true;
 }
 
 /**
@@ -46,7 +44,7 @@ export function reportMutationError(
     error: unknown,
 ): void {
     if (handledGlobally(error)) return;
-    const status = shape(error).response?.status;
+    const status = problemStatus(error);
     const message = serverMessage(error)
         ?? (status === undefined
             ? 'Brak połączenia z serwerem. Sprawdź internet i spróbuj ponownie.'

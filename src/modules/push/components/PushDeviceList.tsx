@@ -12,6 +12,7 @@ import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useToast } from '@/common/components/Toast';
 import { Button, ui } from '@/common/components/ui';
 import type { PushDeviceDto } from '../types';
+import { problemStatus } from '@/core/problem';
 
 /*
  * 4xx pokazuje już globalny interceptor (src/core/apiClient.ts) z powodem od serwera -
@@ -19,7 +20,7 @@ import type { PushDeviceDto } from '../types';
  * zgłaszamy sami.
  */
 const toastedGlobally = (error: unknown): boolean => {
-    const status = (error as { response?: { status?: number } })?.response?.status;
+    const status = problemStatus(error);
     return status !== undefined && status >= 400 && status < 500;
 };
 

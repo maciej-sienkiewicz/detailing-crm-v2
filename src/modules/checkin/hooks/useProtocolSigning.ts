@@ -6,6 +6,7 @@ import { tabletsQuery } from '@/modules/settings/hooks/useTablets';
 import { visitKeys } from '@/modules/visits/api/visitKeys';
 import { useSignatureRequestsSocket } from './useSignatureRequestsSocket';
 import type { SignatureRequestSocketEvent } from './useSignatureRequestsSocket';
+import { problemDetail } from '@/core/problem';
 
 export type SigningChannel = 'tablet' | 'sms';
 
@@ -17,7 +18,7 @@ export type SigningState =
     | { phase: 'failed'; requestId?: string; errorMessage?: string; channel?: SigningChannel };
 
 const extractApiErrorMessage = (error: unknown): string | undefined => {
-    const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+    const apiMessage = problemDetail(error);
     if (apiMessage) return apiMessage;
     return error instanceof Error ? error.message : undefined;
 };

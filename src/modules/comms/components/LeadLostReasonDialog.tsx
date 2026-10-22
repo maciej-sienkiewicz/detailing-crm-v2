@@ -11,6 +11,7 @@ import styled from 'styled-components';
 import { useToast } from '@/common/components/Toast';
 import { useChangeLeadStatus, useLeadDictionaries } from '../hooks/useLeads';
 import { IconButton, PrimaryButton } from './shared';
+import { problemDetail } from '@/core/problem';
 
 const Backdrop = styled.div`
     position: fixed;
@@ -105,7 +106,7 @@ export function LeadLostReasonDialog({ leadId, bulk, onClose, onSaved }: LeadLos
                 },
                 onError: (error) => {
                     const message =
-                        (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                        problemDetail(error);
                     showError('Nie udało się zamknąć leada', message ?? 'Spróbuj ponownie');
                 },
             }

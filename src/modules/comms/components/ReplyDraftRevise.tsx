@@ -12,6 +12,7 @@ import { useToast } from '@/common/components/Toast';
 import { useDraftReply } from '../hooks/useReplyDraft';
 import type { ReplyDraft } from '../types';
 import { MAX_DRAFT_INSTRUCTIONS } from '../utils/replyDraft';
+import { problemDetail } from '@/core/problem';
 
 const QUICK_INSTRUCTIONS = ['Krócej', 'Bardziej formalnie', 'Cieplej w tonie', 'Zaproponuj oględziny auta'];
 
@@ -212,7 +213,7 @@ export function ReplyDraftRevise({ threadId, draft, currentText, signatureAppend
                 },
                 onError: (error) => {
                     const message =
-                        (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                        problemDetail(error);
                     showError('Nie udało się poprawić szkicu', message ?? 'Spróbuj ponownie za chwilę');
                 },
             }

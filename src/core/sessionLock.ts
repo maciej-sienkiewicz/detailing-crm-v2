@@ -14,6 +14,8 @@
 //  - aktywność jest wspólna: kto pracuje w jednej karcie, ten nie zostanie
 //    zablokowany przez kartę leżącą w tle, która od dawna nie widziała myszy.
 
+import { isProblem, problemStatus } from './problem';
+
 const SIGNAL_KEY = 'crm_session_lock_signal';
 const ACTIVITY_KEY = 'crm_last_activity';
 /** Zapis aktywności co najwyżej raz na tyle ms - mousemove strzela setki razy na sekundę. */
@@ -24,8 +26,9 @@ export const SESSION_LOCKED_EVENT = 'auth:session-locked';
 
 export const HTTP_LOCKED = 423;
 
-export const isSessionLockedResponse = (status: number | undefined, data: unknown): boolean =>
-    status === HTTP_LOCKED && (data as { code?: unknown } | undefined)?.code === 'SESSION_LOCKED';
+/** Czy błąd żądania to 423 z kodem SESSION_LOCKED - inny 423 (np. zablokowany zasób) nim nie jest. */
+export const isSessionLocked = (error: unknown): boolean =>
+    problemStatus(error) === HTTP_LOCKED && isProblem(error, 'SESSION_LOCKED');
 
 // localStorage potrafi rzucić (tryb prywatny, zablokowane dane witryny) - blokada
 // na serwerze działa i bez tego, traci się tylko natychmiastowość w innych kartach.

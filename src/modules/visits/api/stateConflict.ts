@@ -1,4 +1,4 @@
-import { apiErrorStatus } from './apiError';
+import { problemStatus } from '@/core/problem';
 
 /**
  * Konflikt stanu wizyty (HTTP 409) — czyli „ekran pokazywał nieaktualny status".
@@ -16,15 +16,5 @@ import { apiErrorStatus } from './apiError';
 /** Wizyta jest już w stanie, o który prosiliśmy — nie ma czego naprawiać. */
 export const VISIT_ALREADY_IN_STATE = 'VISIT_ALREADY_IN_STATE';
 
-interface ApiErrorBody {
-    response?: { data?: { code?: unknown } };
-}
-
-/** Maszynowy kod błędu z odpowiedzi API, o ile backend go podał. */
-export const apiErrorCode = (error: unknown): string | undefined => {
-    const code = (error as ApiErrorBody)?.response?.data?.code;
-    return typeof code === 'string' ? code : undefined;
-};
-
 /** Czy to konflikt stanu, a nie zwykła awaria zapisu. */
-export const isStateConflict = (error: unknown): boolean => apiErrorStatus(error) === 409;
+export const isStateConflict = (error: unknown): boolean => problemStatus(error) === 409;

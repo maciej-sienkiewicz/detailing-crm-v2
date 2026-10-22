@@ -38,10 +38,11 @@ import type { BatchOrderEntry, BatchService, EntryRequest, VehicleSuggestion } f
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useToast } from '@/common/components/Toast';
 import { emptyService, serviceToForm, toServiceItems, validateServices, type ServiceFormItem } from '../utils/entryForm';
-import { apiErrorMessage, formatMoney } from '../utils/format';
+import { formatMoney } from '../utils/format';
 import { todayIso } from '../utils/period';
 import { VinCameraButton } from '../../vehicles/components/vin/VinCameraButton';
 import { vinApiAt } from '../../vehicles/components/vin/vinApi';
+import { problemDetail } from '@/core/problem';
 
 // Odczyt VIN pod uprawnieniem zleceń zbiorczych - kto rozlicza kontrahentów, nie musi
 // mieć prawa edycji pojazdów.
@@ -726,7 +727,7 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
             }
             onClose();
         } catch (e) {
-            setError(apiErrorMessage(e, 'Nie udało się zapisać auta. Spróbuj ponownie.'));
+            setError(problemDetail(e, 'Nie udało się zapisać auta. Spróbuj ponownie.'));
         } finally {
             setSaving(false);
         }

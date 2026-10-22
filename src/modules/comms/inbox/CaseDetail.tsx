@@ -82,6 +82,7 @@ import { downloadAttachmentFile } from './messageFormat';
 import { useAttachmentPreview } from '../components/useAttachmentPreview';
 import { FooterPrimary, IconBtn, StatusChip } from './primitives';
 import { ix } from './tokens';
+import { problemOf } from '@/core/problem';
 
 const Pane = styled.div`
     position: relative;
@@ -276,10 +277,12 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
         acceptAllSuggestions.mutate(undefined, {
             onSuccess: () => setBooking(true),
             onError: (err: unknown) => {
-                const names = (err as { response?: { data?: { serviceNames?: string[] } } })?.response?.data?.serviceNames;
+                const names = problemOf(err)?.serviceNames;
                 showError(
                     'Uzupełnij kwoty sugestii',
-                    names?.length ? `Podaj kwotę dla: ${names.join(', ')}` : 'Któraś sugestia czeka na kwotę - podaj ją w wycenie sprawy.'
+                    Array.isArray(names) && names.length
+                        ? `Podaj kwotę dla: ${names.join(', ')}`
+                        : 'Któraś sugestia czeka na kwotę - podaj ją w wycenie sprawy.'
                 );
             },
         });

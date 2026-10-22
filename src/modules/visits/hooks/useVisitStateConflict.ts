@@ -1,9 +1,9 @@
 import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/common/components/Toast';
-import { apiErrorMessage } from '../api/apiError';
-import { VISIT_ALREADY_IN_STATE, apiErrorCode, isStateConflict } from '../api/stateConflict';
+import { VISIT_ALREADY_IN_STATE, isStateConflict } from '../api/stateConflict';
 import { visitKeys } from './index';
+import { problemDetail, problemCode } from '@/core/problem';
 
 /**
  * Reakcja na konflikt stanu wizyty: odśwież widok i powiedz, co się stało.
@@ -32,10 +32,10 @@ export const useVisitStateConflict = (visitId: string) => {
             queryClient.invalidateQueries({ queryKey: visitKeys.scope(visitId) });
             queryClient.invalidateQueries({ queryKey: ['operations'] });
 
-            const alreadyDone = apiErrorCode(error) === VISIT_ALREADY_IN_STATE;
+            const alreadyDone = problemCode(error) === VISIT_ALREADY_IN_STATE;
             showInfo(
                 alreadyDone ? 'To już zostało zrobione' : 'Wizyta zmieniła się w międzyczasie',
-                `${apiErrorMessage(error, 'Status wizyty zmienił się w międzyczasie.')} Odświeżyliśmy widok.`
+                `${problemDetail(error, 'Status wizyty zmienił się w międzyczasie.')} Odświeżyliśmy widok.`
             );
             return true;
         },

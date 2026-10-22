@@ -8,6 +8,7 @@ import { ROLE_TEMPLATES, toCreateRoleRequest } from '../../roleTemplates';
 import type { RoleTemplate } from '../../roleTemplates';
 import type { Role } from '../../rbacTypes';
 import { permissionsLabel } from './teamPlural';
+import { problemDetail } from '@/core/problem';
 
 /**
  * Role field that can produce the role it needs.
@@ -149,7 +150,7 @@ export function RolePicker({ roles, value, onChange, onOpenFullEditor, disabled,
             pick(roleId);
         } catch (err) {
             const message =
-                (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+                problemDetail(err)
                 ?? 'Nie udało się utworzyć roli. Spróbuj ponownie.';
             setCreateError(message);
         } finally {

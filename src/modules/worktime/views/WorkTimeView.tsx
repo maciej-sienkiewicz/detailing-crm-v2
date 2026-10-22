@@ -28,6 +28,7 @@ import {
     useDeleteEntry,
 } from '../hooks/useWorkTime';
 import type { CardDay, PeriodStatus, WorkTimeEntry } from '../types';
+import { problemDetail } from '@/core/problem';
 
 // ─── utils ───────────────────────────────────────────────────────────────────
 
@@ -80,7 +81,7 @@ const isPeriod = (value: string | null): value is string => !!value && /^\d{4}-(
 
 /** Komunikat serwera (np. 409 „Karta za wrzesień 2026 czeka na decyzję przełożonego…"). */
 const messageOf = (error: unknown): string | undefined =>
-    (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+    problemDetail(error);
 
 function missingDaysLabel(count: number): string {
     return count === 1 ? '1 dniu roboczym' : `${count} dniach roboczych`;

@@ -30,6 +30,7 @@ import type {
     SigningSession,
     SubmitLeaveRequestPayload,
 } from '../types';
+import { problemDetail, problemField, problemStatus } from '@/core/problem';
 
 const MY = '/v1/me/leave-requests';
 const QUEUE = '/v1/leave-requests';
@@ -193,14 +194,9 @@ export interface LeaveApiError {
 }
 
 export function leaveApiError(error: unknown): LeaveApiError {
-    const response = (error as { response?: { status?: number; data?: unknown } })?.response;
-    const data = response?.data;
-    const body = data && typeof data === 'object' && !(data instanceof ArrayBuffer) && !(data instanceof Blob)
-        ? data as { message?: unknown; field?: unknown }
-        : {};
     return {
-        status: response?.status ?? null,
-        message: typeof body.message === 'string' ? body.message : null,
-        field: typeof body.field === 'string' ? body.field : null,
+        status: problemStatus(error) ?? null,
+        message: problemDetail(error) ?? null,
+        field: problemField(error) ?? null,
     };
 }

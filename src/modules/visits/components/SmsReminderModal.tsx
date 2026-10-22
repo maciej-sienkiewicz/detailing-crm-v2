@@ -18,6 +18,7 @@ import { useSmsReadiness } from '../hooks/useSmsReadiness';
 import { SmsActivationWizard } from './SmsActivationWizard';
 import { PiiValue } from '@/common/pii';
 import { pluralPl } from '@/common/utils/plural';
+import { isProblem, problemDetail } from '@/core/problem';
 
 /* Czasownik odmienia się razem z liczebnikiem: „został 1 kredyt", „zostały 2 kredyty",
    „zostało 5 kredytów". Wcześniej szło tu `detail` z jednostką („5 szt."), więc ekran
@@ -459,18 +460,15 @@ export const SmsReminderModal = ({ isOpen, visitId, customer, existingReminder, 
             }
             onClose();
         } catch (err: unknown) {
-            const body = (err as { response?: { data?: { code?: string; message?: string } } })
-                ?.response?.data;
-
             // A credit shortfall is a state the studio can fix in ten seconds, so it
             // opens the top-up step rather than printing the backend's dead-end text.
-            if (body?.code === 'INSUFFICIENT_CREDITS') {
+            if (isProblem(err, 'INSUFFICIENT_CREDITS')) {
                 setWizardOpen(true);
                 return;
             }
 
             setSubmitError(
-                body?.message
+                problemDetail(err)
                 ?? (err instanceof Error ? err.message : null)
                 ?? 'Nie udało się zaplanować SMS-a. Spróbuj ponownie.',
             );

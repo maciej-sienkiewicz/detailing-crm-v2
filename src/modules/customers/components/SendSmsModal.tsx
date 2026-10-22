@@ -18,6 +18,7 @@ import { useProofread } from '@/modules/comms/hooks/useComms';
 import { hasPolishCharacters, smsSegments, smsWord } from '@/common/utils';
 import { customerEditApi } from '../api/customerEditApi';
 import { Button, ui } from '@/common/components/ui';
+import { problemDetail } from '@/core/problem';
 
 /* Bez polskich znaków SMS mieści się w GSM-7 (160 znaków na segment, 153 przy
    dzieleniu). Z ogonkami operator przechodzi na UCS-2 i segment ma 70 znaków. */
@@ -85,7 +86,7 @@ export const SendSmsModal = ({ customerId, customerName, phone, onClose }: SendS
                 showSuccess('Poprawiono', 'Przejrzyj zmiany przed wysłaniem');
             },
             onError: (error) => {
-                const detail = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                const detail = problemDetail(error);
                 showError('Nie udało się poprawić treści', detail ?? 'Spróbuj ponownie za chwilę');
             },
         });
@@ -99,7 +100,7 @@ export const SendSmsModal = ({ customerId, customerName, phone, onClose }: SendS
                 onClose();
             },
             onError: (error) => {
-                const detail = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                const detail = problemDetail(error);
                 showError('Nie udało się wysłać SMS-a', detail ?? 'Spróbuj ponownie za chwilę');
             },
         });

@@ -22,6 +22,7 @@ import {
 } from '../api/publicSigningApi';
 import { PdfPagesViewer } from '../components/PdfPagesViewer';
 import { SignaturePad, type SignaturePadHandle } from '@/common/components/SignaturePad';
+import { problemDetail, problemStatus } from '@/core/problem';
 
 // ─── Palette (aligned with VisitCardView) ─────────────────────────────────────
 
@@ -263,7 +264,7 @@ const formatDateTime = (iso: string): string =>
     });
 
 const extractApiErrorMessage = (error: unknown): string => {
-    const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+    const apiMessage = problemDetail(error);
     if (apiMessage) return apiMessage;
     return error instanceof Error ? error.message : 'Coś poszło nie tak. Spróbuj ponownie.';
 };
@@ -334,7 +335,7 @@ const PublicSigningView = () => {
                     return;
                 } catch (error) {
                     if (cancelled) return;
-                    const status = (error as { response?: { status?: number } })?.response?.status;
+                    const status = problemStatus(error);
                     if (status === 404) {
                         setPhase({ kind: 'invalid' });
                         return;

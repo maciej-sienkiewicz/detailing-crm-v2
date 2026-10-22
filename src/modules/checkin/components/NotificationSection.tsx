@@ -52,6 +52,7 @@ import {
     SaveEmailBtn,
     MissingEmailError,
 } from './NotificationSection.styles';
+import { problemDetail } from '@/core/problem';
 
 /* ─── Types ─────────────────────────────────────────────────────────────────── */
 
@@ -183,7 +184,7 @@ const MissingCustomerEmail = ({ visitId, onSaved }: MissingCustomerEmailProps) =
             onSaved(result.email);
         },
         onError: (err: unknown) => {
-            const apiMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            const apiMessage = problemDetail(err);
             setError(apiMessage ?? 'Nie udało się zapisać adresu e-mail. Spróbuj jeszcze raz.');
         },
     });

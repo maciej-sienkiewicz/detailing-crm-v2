@@ -16,6 +16,7 @@ import {
 } from '../hooks/useComms';
 import type { ProviderDetectResult } from '../types';
 import { IconButton, PrimaryButton, formatDateTime } from '../components/shared';
+import { problemDetail } from '@/core/problem';
 
 const Screen = styled.div`
     max-width: 760px;
@@ -159,8 +160,7 @@ export default function MailboxConnectView() {
                     );
                 },
                 onError: (err) => {
-                    const message = (err as { response?: { data?: { message?: string } } })
-                        ?.response?.data?.message;
+                    const message = problemDetail(err);
                     setError(message ?? 'Nie udało się połączyć ze skrzynką. Sprawdź dane i spróbuj ponownie.');
                 },
             }

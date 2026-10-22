@@ -1,6 +1,7 @@
 import { generateEntryCode, previewWindowUrl } from './entryCode';
 import { rolePreviewApi } from './rolePreviewApi';
 import { sendStartFailed } from './startFailure';
+import { problemDetail } from '@/core/problem';
 
 export interface RolePreviewInput {
     roleName: string;
@@ -46,7 +47,7 @@ export function openRolePreview(previewBaseUrl: string, input: RolePreviewInput,
 }
 
 const serverMessageOf = (error: unknown) =>
-    (error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? '';
+    problemDetail(error) ?? '';
 
 export class PreviewWindowBlockedError extends Error {
     constructor() {

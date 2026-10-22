@@ -26,7 +26,6 @@ import {
 } from '@/common/components/ModalKit';
 import { usePermissions } from '@/core/permissions';
 import { useCapability } from '@/modules/subscription';
-import { apiErrorMessage } from '@/modules/subscription/utils/apiErrors';
 import {
     useSmsCreditBalance,
     useSmsCreditPackages,
@@ -35,6 +34,7 @@ import {
 } from '../hooks/useSmsCredits';
 import type { SmsCreditPackage, SmsCreditTransactionType } from '../types';
 import { creditsLabel, formatCreditCount, formatGrossCents, packagePrice, pricePerSmsLabel } from './smsCreditPricing';
+import { problemDetail } from '@/core/problem';
 
 // ─── Słowniki ────────────────────────────────────────────────────────────────
 
@@ -271,7 +271,7 @@ function CreditsCard({ isOwner }: { isOwner: boolean }) {
             },
             // Okno zostaje otwarte: odrzucona płatność to moment na „spróbuj ponownie"
             // albo „anuluj", a nie na szukanie od nowa, który pakiet był wybrany.
-            onError: err => showError('Zakup się nie udał', apiErrorMessage(err) ?? 'Nie udało się kupić kredytów. Spróbuj ponownie.'),
+            onError: err => showError('Zakup się nie udał', problemDetail(err) ?? 'Nie udało się kupić kredytów. Spróbuj ponownie.'),
         });
     };
 

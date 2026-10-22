@@ -8,8 +8,10 @@
 // zapis kończący się 500 zostawiał otwarty formularz bez słowa wyjaśnienia.
 // Pokazanie własnego toastu przy 4xx dałoby za to dwa komunikaty o tym samym.
 
+import { problemStatus } from '@/core/problem';
+
 export function shownByApiClient(error: unknown): boolean {
-    const status = (error as { response?: { status?: number } } | null)?.response?.status;
+    const status = problemStatus(error);
     return status !== undefined && status >= 400 && status < 500;
 }
 

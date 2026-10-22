@@ -35,6 +35,7 @@ import { toDraftOffer } from '../utils/draftOffer';
 import type { DraftOfferLine, Lead } from '../types';
 import { PrimaryButton, formatGrosze } from './shared';
 import { LeadSuggestions } from './LeadSuggestions';
+import { problemDetail } from '@/core/problem';
 
 const Intro = styled.p`
     margin: 0 0 12px;
@@ -95,7 +96,7 @@ export function ReplyDraftOfferModal({ threadId, lead, onClose, onReady }: Reply
                 await markAsLead.mutateAsync({ threadId, request: { tags: [], services } });
             }
         } catch (error) {
-            const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            const message = problemDetail(error);
             showError(lead ? 'Nie udało się zapisać wyceny' : 'Nie udało się utworzyć leada', message ?? 'Spróbuj ponownie');
             return;
         }

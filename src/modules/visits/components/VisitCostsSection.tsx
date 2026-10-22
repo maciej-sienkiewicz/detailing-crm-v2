@@ -23,10 +23,10 @@ import { pluralPl } from '@/common/utils/plural';
 import { formatMoney, formatDate } from '@/modules/finance/utils/formatters';
 import { InvoicePreviewModal } from '@/modules/finance/components/InvoicePreviewModal';
 import { useVisitCosts } from '../hooks/useVisitCosts';
-import { apiErrorMessage } from '../api/apiError';
 import type { LinkedCostDocument } from '../api/visitCostsApi';
 import { EXCLUSION_LABEL, documentAmount, documentTitle, profitDetails, profitLabel } from '../utils/visitCosts';
 import { LinkCostDocumentModal } from './LinkCostDocumentModal';
+import { problemDetail } from '@/core/problem';
 
 const Body = styled(PanelBody)`
     display: flex;
@@ -147,7 +147,7 @@ export function VisitCostsSection({ visitId }: Props) {
 
     const handleUnlink = (entry: LinkedCostDocument) => {
         unlink.mutate(entry.document.id, {
-            onError: e => showError('Nie udało się odpiąć dokumentu', apiErrorMessage(e, 'Spróbuj jeszcze raz.')),
+            onError: e => showError('Nie udało się odpiąć dokumentu', problemDetail(e, 'Spróbuj jeszcze raz.')),
         });
     };
 

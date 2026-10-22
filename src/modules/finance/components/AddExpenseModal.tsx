@@ -55,6 +55,7 @@ import {
     FormTabBtn,
     FormTabPanel,
 } from '@/common/components/Form';
+import { problemDetail } from '@/core/problem';
 
 // ─── Info box ─────────────────────────────────────────────────────────────────
 
@@ -409,7 +410,7 @@ export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose, onCreated, s
             }
             onClose();
         } catch (err: unknown) {
-            const message = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message;
+            const message = problemDetail(err);
             setError(typeof message === 'string' && message.trim()
                 ? message
                 : 'Nie udało się zapisać dokumentu. Spróbuj ponownie.');

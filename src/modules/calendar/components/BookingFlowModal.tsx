@@ -22,6 +22,7 @@ import { CalendarView, type CalendarRangeSelection } from './CalendarView';
 import { QuickEventModal, type QuickEventFormData, type QuickEventInitialData } from './QuickEventModal';
 import { useQuickEventCreation } from '../hooks/useQuickEventCreation';
 import type { EventCreationData } from '../types';
+import { problemDetail } from '@/core/problem';
 
 const Overlay = styled.div<{ $contentLeft: number }>`
     position: fixed;
@@ -177,7 +178,7 @@ export function BookingFlowModal({
             onBooked?.();
             onClose();
         } catch (error) {
-            const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            const message = problemDetail(error);
             showError('Nie udało się utworzyć rezerwacji', message ?? 'Spróbuj ponownie');
             // Formularz zostaje otwarty: wpisane dane są warte więcej niż czysty stan
             throw error;

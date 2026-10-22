@@ -5,7 +5,7 @@ import { usePermissions } from '@/core/permissions/usePermissions';
 import { useAddOnUnlock } from '../hooks/useAddOnUnlock';
 import { AddOnActivationDialog } from './PlanChangeDialog';
 import { ModuleGateCard } from './ModuleGate';
-import type { AddOnKey, PaywallErrorResponse } from '../types';
+import type { AddOnKey, PaywallProblem } from '../types';
 
 /**
  * Global safety net for the HTTP 402 MODULE_REQUIRED contract.
@@ -21,13 +21,13 @@ import type { AddOnKey, PaywallErrorResponse } from '../types';
  * kończyłaby się bez słowa wyjaśnienia - 402 MODULE_REQUIRED nie daje dymka z błędem.
  */
 export function PaywallListener() {
-    const [payload, setPayload] = useState<PaywallErrorResponse | null>(null);
+    const [payload, setPayload] = useState<PaywallProblem | null>(null);
     const { isOwner } = usePermissions();
     const unlock = useAddOnUnlock();
 
     useEffect(() => {
         const handler = (event: Event) => {
-            const detail = (event as CustomEvent<PaywallErrorResponse>).detail;
+            const detail = (event as CustomEvent<PaywallProblem>).detail;
             if (detail?.code === 'MODULE_REQUIRED') setPayload(detail);
         };
         window.addEventListener('api:paywall', handler);
@@ -40,8 +40,9 @@ export function PaywallListener() {
 
     // The card sells ONE module; for cross-module rules the first purchasable
     // option is offered and the subtitle names every missing module.
-    const option = payload.upsell.find(o => o.isAvailable) ?? payload.upsell[0] ?? null;
-    const missingNames = payload.missingFeatures.map(f => f.displayName);
+    const upsell = payload.upsell ?? [];
+    const option = upsell.find(o => o.isAvailable) ?? upsell[0] ?? null;
+    const missingNames = (payload.missingFeatures ?? []).map(f => f.displayName);
     const title = payload.capabilityDisplayName ?? option?.addOnName ?? 'Funkcja dodatkowa';
 
     const handleUnlock = () => {
@@ -63,7 +64,7 @@ export function PaywallListener() {
                                     {missingNames.length > 1 ? ', których nie masz w pakiecie.' : ', którego nie masz w pakiecie.'}
                                 </>
                             ) : (
-                                payload.message
+                                payload.detail
                             )
                         }
                         addOnKey={(option?.addOnKey as AddOnKey) ?? null}

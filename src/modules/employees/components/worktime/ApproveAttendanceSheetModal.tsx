@@ -35,6 +35,7 @@ import {
     type SigningMethod,
 } from './SigningMethods';
 import { employeesLabel, periodLabel } from './monthFormat';
+import { problemDetail, problemStatus } from '@/core/problem';
 
 interface Props {
     sheet: AttendanceSheet;
@@ -132,7 +133,7 @@ export function ApproveAttendanceSheetModal({ sheet, onClose }: Props) {
                 // Komunikat (np. „już zatwierdzona") pokazuje globalny dymek; okno zamykamy
                 // tylko wtedy, gdy nie ma już czego zatwierdzać.
                 onError: (error: unknown) => {
-                    const status = (error as { response?: { status?: number } })?.response?.status;
+                    const status = problemStatus(error);
                     if (status === 404 || status === 409) onClose();
                 },
             },
@@ -247,7 +248,7 @@ export function ApproveAttendanceSheetModal({ sheet, onClose }: Props) {
 
 /** Komunikat z odpowiedzi serwera (np. „Na Twoim koncie nie ma numeru telefonu"). */
 const messageOf = (error: unknown): string | null =>
-    (error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? null;
+    problemDetail(error) ?? null;
 
 /** Co się stało z prośbą, na którą okno czekało, jeśli nie skończyła się podpisem. */
 function endedNotice(request: AttendanceSignatureRequest): string {

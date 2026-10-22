@@ -8,6 +8,7 @@ import type { SmsAutomationConfig, SmsRuleKey } from '@/modules/sms-settings/typ
 import type { EmailAutomationConfig, EmailRuleKey } from '@/modules/email-campaigns/types';
 import { DEFAULT_OFFSET_MINUTES, MESSAGES } from '../catalog';
 import type { Channel, ChannelDraft, MessageKey, TemplatesDraft } from '../types';
+import { problemDetail } from '@/core/problem';
 
 /** Backend → screen: two per-channel configs collapse into one list of messages. */
 function toDraft(sms: SmsAutomationConfig, email: EmailAutomationConfig): TemplatesDraft {
@@ -175,7 +176,7 @@ export function useMessageTemplates(): MessageTemplatesState {
       // The backend rejects a template using a placeholder the message cannot fill; that
       // message names the offending token, so it is worth showing verbatim.
       const detail =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        problemDetail(err) ??
         (err as Error)?.message;
       setSaveError(detail || 'Nie udało się zapisać zmian');
       throw err;

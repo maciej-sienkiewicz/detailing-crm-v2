@@ -1,6 +1,7 @@
 // src/core/logger.ts
 /* eslint-disable no-console -- jedyne miejsce w aplikacji, które może pisać do konsoli */
 import { isAxiosError } from 'axios';
+import { problemCode } from './problem';
 
 /**
  * Jedyna droga zapisu błędów i ostrzeżeń w aplikacji.
@@ -33,13 +34,12 @@ export const urlTemplate = (url: string): string =>
 
 export const describeError = (error: unknown): LogContext => {
     if (isAxiosError(error)) {
-        const body = error.response?.data as { code?: unknown } | undefined;
         return {
             kind: 'http',
             method: error.config?.method?.toUpperCase(),
             url: error.config?.url ? urlTemplate(error.config.url) : undefined,
             status: error.response?.status,
-            code: typeof body?.code === 'string' ? body.code : error.code,
+            code: problemCode(error) ?? error.code,
         };
     }
     if (error instanceof Error) return { kind: error.name, message: error.message.slice(0, 200) };

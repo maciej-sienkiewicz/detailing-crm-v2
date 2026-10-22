@@ -39,6 +39,7 @@ import type { DraftOfferLine, Lead, ReplyDraft } from '../types';
 import { ReplyDraftOfferModal } from './ReplyDraftOfferModal';
 import { MAX_DRAFT_INSTRUCTIONS, sentMaterialHint } from '../utils/replyDraft';
 import { PrimaryButton } from './shared';
+import { problemDetail } from '@/core/problem';
 
 const Group = styled.div`
     display: inline-flex;
@@ -401,7 +402,7 @@ export function ReplyDraftButton({
                 onSuccess: (draft) => onDraft(offer ? { ...draft, offer } : draft),
                 onError: (error) => {
                     const message =
-                        (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                        problemDetail(error);
                     showError('Nie udało się przygotować szkicu', message ?? 'Spróbuj ponownie za chwilę');
                 },
             }

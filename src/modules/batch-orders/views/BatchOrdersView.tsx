@@ -26,7 +26,7 @@ import { ContractorEntriesSection } from '../components/ContractorEntriesSection
 import { ContractorFormModal } from '../components/ContractorFormModal';
 import { BatchServicesModal } from '../components/BatchServicesModal';
 import type { BatchContractor, ContractorRequest } from '../types';
-import { apiErrorMessage } from '../utils/format';
+import { problemDetail } from '@/core/problem';
 
 const ViewContainer = styled(PageContainer)`
     display: flex;
@@ -91,7 +91,7 @@ export function BatchOrdersView() {
             await deleteContractor.mutateAsync(contractor.id);
             showSuccess('Kontrahent usunięty z listy', contractor.name);
         } catch (e) {
-            showError('Nie udało się usunąć kontrahenta', apiErrorMessage(e, 'Spróbuj ponownie.'));
+            showError('Nie udało się usunąć kontrahenta', problemDetail(e, 'Spróbuj ponownie.'));
         }
     }
 

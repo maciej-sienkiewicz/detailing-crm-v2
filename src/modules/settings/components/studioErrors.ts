@@ -12,16 +12,16 @@
 // Reguła: własny dymek tylko wtedy, gdy globalnego nie było - z uwzględnieniem
 // `skipErrorToast`, którym wywołanie mówi „komunikat pokażę sam".
 
-interface HttpishError {
-    message?: string;
+import { problemDetail, problemStatus } from '@/core/problem';
+
+interface RequestConfigLike {
     config?: { skipErrorToast?: boolean; method?: string };
-    response?: { status?: number; data?: { message?: string } };
 }
 
 /** Czy interceptor (src/core/apiClient.ts) pokazał już dymek dla tego błędu. */
 export function shownByInterceptor(error: unknown): boolean {
-    const e = error as HttpishError | undefined;
-    const status = e?.response?.status;
+    const e = error as RequestConfigLike | undefined;
+    const status = problemStatus(error);
     if (status === undefined) return false;
     // 401 przenosi do logowania - dymek nic by nie dał.
     if (status === 401) return true;
@@ -34,10 +34,9 @@ export function shownByInterceptor(error: unknown): boolean {
     return status >= 400 && status < 500;
 }
 
-/** Zdanie z backendu (`message`), jeśli przyszło - konkretniejsze niż nasz ogólnik. */
+/** Zdanie z backendu (`detail` problemu), jeśli przyszło - konkretniejsze niż nasz ogólnik. */
 export function backendMessage(error: unknown): string | undefined {
-    const message = (error as HttpishError | undefined)?.response?.data?.message;
-    return typeof message === 'string' && message.trim() ? message : undefined;
+    return problemDetail(error);
 }
 
 /**
@@ -48,8 +47,7 @@ export function backendMessage(error: unknown): string | undefined {
 export function readableError(error: unknown, fallback: string): string {
     const fromBackend = backendMessage(error);
     if (fromBackend) return fromBackend;
-    const e = error as HttpishError | undefined;
-    if (e?.response) return fallback;
+    if (problemStatus(error) !== undefined) return fallback;
     const message = error instanceof Error ? error.message : undefined;
     if (!message || /^Request failed with status code/i.test(message) || message === 'Network Error') return fallback;
     return message;

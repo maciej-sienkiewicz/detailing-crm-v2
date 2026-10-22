@@ -34,6 +34,7 @@ import {
     BellIcon, CheckIcon, InboxIcon, IosAddIcon, IosShareIcon, MegaphoneIcon, MoreIcon, PhoneIcon, SendIcon,
     WalletIcon, WarnIcon,
 } from './wizardIcons';
+import { problemDetail } from '@/core/problem';
 
 interface Props {
     push: PushDeviceState;
@@ -61,7 +62,7 @@ function pairingErrorMessage(error: unknown, platform: PushPlatform): string {
 
 /** Zdanie z serwera (422 niesie powód po ludzku) albo zapasowe. */
 function serverMessage(error: unknown, fallback: string): string {
-    const message = (error as { response?: { data?: { message?: unknown } } })?.response?.data?.message;
+    const message = problemDetail(error);
     return typeof message === 'string' && message.trim() ? message : fallback;
 }
 

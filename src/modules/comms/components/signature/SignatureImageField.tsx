@@ -8,13 +8,13 @@ import { useRef, useState } from 'react';
 import styled from 'styled-components';
 import { Building2, ImageOff, ImagePlus, Link2, Loader2, Trash2, User } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
-import { apiErrorMessage } from '@/modules/visits/api/apiError';
 import { useCopyCompanyLogoToSignature, useUploadSignatureImage } from '../../hooks/useComms';
 import type { SignatureImageKind } from '../../types';
 import { shrinkLogo, validateSignatureImageFile } from '../../utils/signatureImage';
 import { IconButton } from '../shared';
 import { PhotoCropDialog } from './PhotoCropDialog';
 import { Field, FieldLabel, Help, Input, brandTint } from './designerStyles';
+import { problemDetail } from '@/core/problem';
 
 /** Miniatura zawsze obok przycisków - przy czterech przyciskach zawijają się one, nie cały wiersz. */
 const Row = styled.div`
@@ -94,7 +94,7 @@ export function SignatureImageField({ kind, label, help, value, onChange, compan
             { file: blob, kind },
             {
                 onSuccess: url => onChange(url),
-                onError: error => showError('Nie udało się dodać obrazka', apiErrorMessage(error, 'Spróbuj ponownie za chwilę')),
+                onError: error => showError('Nie udało się dodać obrazka', problemDetail(error, 'Spróbuj ponownie za chwilę')),
             }
         );
 
@@ -129,7 +129,7 @@ export function SignatureImageField({ kind, label, help, value, onChange, compan
     const useCompanyLogo = () =>
         copyCompanyLogo.mutate(undefined, {
             onSuccess: url => onChange(url),
-            onError: error => showError('Nie udało się użyć logo firmy', apiErrorMessage(error, 'Spróbuj ponownie za chwilę')),
+            onError: error => showError('Nie udało się użyć logo firmy', problemDetail(error, 'Spróbuj ponownie za chwilę')),
         });
 
     const Placeholder = kind === 'photo' ? User : Building2;

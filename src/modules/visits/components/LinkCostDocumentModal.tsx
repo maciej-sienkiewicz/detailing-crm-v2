@@ -53,9 +53,9 @@ import { AddExpenseModal } from '@/modules/finance/components';
 import { formatDate } from '@/modules/finance/utils/formatters';
 import type { KsefExpense } from '@/modules/finance/types';
 import { visitCostsApi, type CostDocumentCandidate, type VisitCosts } from '../api/visitCostsApi';
-import { apiErrorMessage, apiErrorStatus } from '../api/apiError';
 import { visitCostCandidatesKey } from '../hooks/useVisitCosts';
 import { documentAmount, documentTitle } from '../utils/visitCosts';
+import { problemDetail, problemStatus } from '@/core/problem';
 
 const CandidateRow = styled(PickerRow)`
     &:disabled {
@@ -145,8 +145,8 @@ export function LinkCostDocumentModal({ isOpen, onClose, visitId, onLink }: Prop
             setPendingMove(null);
         } catch (e) {
             // 409: ktoś w międzyczasie przypiął dokument gdzie indziej - lista ma to pokazać.
-            if (apiErrorStatus(e) === 409) refetch();
-            setError(apiErrorMessage(e, 'Nie udało się przypiąć dokumentu. Spróbuj jeszcze raz.'));
+            if (problemStatus(e) === 409) refetch();
+            setError(problemDetail(e, 'Nie udało się przypiąć dokumentu. Spróbuj jeszcze raz.'));
         } finally {
             setBusyId(null);
         }
@@ -164,7 +164,7 @@ export function LinkCostDocumentModal({ isOpen, onClose, visitId, onLink }: Prop
             refetch();
         } catch (e) {
             setAdded(null);
-            setError(apiErrorMessage(e, `${title} zapisano w finansach, ale nie udało się przypiąć go do wizyty. Wyszukaj go na liście i kliknij.`));
+            setError(problemDetail(e, `${title} zapisano w finansach, ale nie udało się przypiąć go do wizyty. Wyszukaj go na liście i kliknij.`));
             throw e;
         }
     };

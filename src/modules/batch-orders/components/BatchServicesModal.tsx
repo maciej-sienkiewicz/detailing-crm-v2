@@ -31,6 +31,7 @@ import {
     useDeleteBatchService,
 } from '../hooks/useBatchOrders';
 import type { BatchService } from '../types';
+import { problemDetail } from '@/core/problem';
 
 const VAT_RATES = [23, 8, 5, 0, -1] as const;
 const vatLabel = (rate: number) => (rate === -1 ? 'ZW' : `${rate}%`);
@@ -262,7 +263,7 @@ export function BatchServicesModal({ onClose }: Props) {
             }
             closeEditor();
         } catch (e: unknown) {
-            const message = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            const message = problemDetail(e);
             setError(message || 'Nie udało się zapisać. Spróbuj ponownie.');
         } finally {
             setSaving(false);

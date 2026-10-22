@@ -3,6 +3,7 @@ import { Check, Clock, Loader2 } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
 import { useAuth } from '@/core/context/AuthContext';
 import { usePeriodDetail, useStandardToday } from '../hooks/useWorkTime';
+import { problemDetail } from '@/core/problem';
 
 // Zgłoszenie standardowego dnia pracy jednym dotknięciem. Dla pracownika bez
 // dostępu do danych osobowych to jedyna czynność, jaką wykonuje na ekranie
@@ -98,7 +99,7 @@ export const ReportWorkdayButton = () => {
       onSuccess: () => showSuccess('Dzień wpisany', 'Wpisano 8 godzin za dziś.'),
       onError: (error: unknown) => showError(
         'Nie udało się zapisać',
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Spróbuj ponownie za chwilę.',
+        problemDetail(error) ?? 'Spróbuj ponownie za chwilę.',
       ),
     });
   };

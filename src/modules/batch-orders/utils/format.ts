@@ -22,12 +22,3 @@ export const grossForCars = (count: number, netCents: number): string =>
 /** Marka i model wpisu albo myślnik - wiersz tabeli nigdy nie zostaje pusty. */
 export const vehicleName = (e: { vehicleMake: string | null; vehicleModel: string | null }): string =>
     [e.vehicleMake, e.vehicleModel].filter(Boolean).join(' ') || 'Pojazd bez nazwy';
-
-/**
- * Komunikat błędu z odpowiedzi API albo zapasowy. Backend tłumaczy odmowy na ludzki
- * język („Wpis jest rozliczony…"), więc pokazujemy JEGO zdanie, a nie ogólnik.
- */
-export const apiErrorMessage = (error: unknown, fallback: string): string => {
-    const message = (error as { response?: { data?: { message?: unknown } } })?.response?.data?.message;
-    return typeof message === 'string' && message.trim() ? message : fallback;
-};

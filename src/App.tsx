@@ -10,6 +10,7 @@ import { AppErrorBoundary } from '@/core/errors';
 import { AuthProvider } from '@/core/context/AuthContext';
 import { ToastProvider } from '@/common/components/Toast';
 import { PaywallListener } from '@/modules/subscription/components/PaywallListener';
+import { problemStatus } from '@/core/problem';
 
 /**
  * Do raportu trafia tylko to, czego nikt się nie spodziewał: brak odpowiedzi, 5xx albo
@@ -38,7 +39,7 @@ const queryClient = new QueryClient({
             // 429 też nie: ponowienie po sekundzie trafia w ten sam pełny licznik
             // i tylko przedłuża „Przekroczono limit żądań" (patrz core/rateLimit).
             retry: (failureCount, error) => {
-                const status = (error as { response?: { status?: number } })?.response?.status;
+                const status = problemStatus(error);
                 if (status === 401 || status === 402 || status === 403 || status === 429) return false;
                 return failureCount < 1;
             },

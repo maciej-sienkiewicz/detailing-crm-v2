@@ -30,6 +30,7 @@ import { COMMS_CONTACT_CARD_KEY, COMMS_INSIGHTS_KEY, useContactCard } from '../h
 import { VehiclePhotosPopover } from './VehiclePhotosPopover';
 import { formatGrosze } from './shared';
 import { PiiValue } from '@/common/pii';
+import { problemDetail } from '@/core/problem';
 
 // Pozycję, szerokość i wysokość nadaje useFloatingPanel po pomiarze. Dawniej chmurka
 // zakładała 360 px wysokości: z trzema autami, trzema wizytami i linkiem do profilu jest
@@ -495,7 +496,7 @@ export function ContactCardPopover({
             setLinking(false);
             setReplaceFor(null);
         } catch (error) {
-            const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            const message = problemDetail(error);
             showError('Nie udało się powiązać klienta', message ?? 'Spróbuj ponownie');
         } finally {
             setSaving(false);

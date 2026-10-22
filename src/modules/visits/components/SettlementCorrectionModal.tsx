@@ -21,7 +21,6 @@ import { formatCurrency } from '@/common/utils';
 import { isPiiMasked } from '@/common/pii';
 import { localIsoDate } from '@/common/utils/localDate';
 import { MAX_2_DECIMALS } from '@/common/utils/moneyInput';
-import { apiErrorMessage } from '../api/apiError';
 import {
     settlementApi,
     type SettlementCorrectionRequest,
@@ -38,6 +37,7 @@ import type { HandoverBuyer } from '../types/handover';
 import type { PaymentMethod } from '../types/stateTransitions';
 import { visitKeys } from '../hooks';
 import { settlementDocumentRows } from '../utils/settlementDocumentRows';
+import { problemDetail } from '@/core/problem';
 
 const pln = (cents: number) => formatCurrency(cents / 100);
 
@@ -528,12 +528,12 @@ function CorrectionForm({ view, visitId, intent, onClose }: { view: SettlementVi
                         )}
                         {preview.isError && (
                             <Notice tone="danger" title="Nie udało się sprawdzić poprawki">
-                                {apiErrorMessage(preview.error, 'Spróbuj ponownie za chwilę.')}
+                                {problemDetail(preview.error, 'Spróbuj ponownie za chwilę.')}
                             </Notice>
                         )}
                         {correct.isError && (
                             <Notice tone="danger" title="Poprawka nie została zapisana">
-                                {apiErrorMessage(correct.error, 'Spróbuj ponownie.')}
+                                {problemDetail(correct.error, 'Spróbuj ponownie.')}
                             </Notice>
                         )}
                     </Section>

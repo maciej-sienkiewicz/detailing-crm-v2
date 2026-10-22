@@ -64,6 +64,7 @@ import type { DateRange, CalendarView as CalendarViewType, EventCreationData, Ap
 import '../calendar.css';
 import { fromInstantToLocalInput } from '@/common/dateTime';
 import { formatCurrency } from '@/common/utils/formatters';
+import { problemDetail, problemStatus } from '@/core/problem';
 
 /**
  * Zakres urlopu do dymka: „3–7 października", a przy różnych miesiącach
@@ -2636,9 +2637,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         } catch (error) {
             // Nieudane usunięcie musi być widoczne: po cichu połkniety błąd wyglądał
             // dokładnie jak sukces, tyle że wpis zostawał w kalendarzu.
-            const response = (error as { response?: { status?: number; data?: { message?: string } } })?.response;
-            if (response?.status !== 403) {
-                showError('Nie udało się usunąć', response?.data?.message ?? 'Spróbuj ponownie.');
+            if (problemStatus(error) !== 403) {
+                showError('Nie udało się usunąć', problemDetail(error, 'Spróbuj ponownie.'));
             }
         } finally {
             setIsConfirmDeleting(false);

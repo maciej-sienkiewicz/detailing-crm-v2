@@ -8,6 +8,7 @@
 import { useCreateLeadTag, useDeleteLeadTag } from './useLeads';
 import { useToast } from '@/common/components/Toast';
 import type { TagOption } from '../components/TagMultiSelect';
+import { problemDetail } from '@/core/problem';
 
 /**
  * Domyślne podpięcie do słownika studia: dodaje, kasuje i melduje o wyniku.
@@ -20,7 +21,7 @@ export function useTagCatalogActions(onSelect?: (code: string) => void) {
     const { showSuccess, showError } = useToast();
 
     const message = (error: unknown) =>
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+        problemDetail(error);
 
     return {
         isCreating: createTag.isPending,

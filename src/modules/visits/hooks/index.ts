@@ -14,6 +14,7 @@ import {useToast} from "@/common/components/Toast";
 import { isUnannouncedUploadError } from '@/common/utils/presignedUpload';
 import { visitKeys } from '../api/visitKeys';
 import { vehicleKeys } from '@/modules/vehicles/api/vehicleKeys';
+import { isProblem } from '@/core/problem';
 
 export { visitKeys };
 export const visitDetailQueryKey = visitKeys.detail;
@@ -56,8 +57,7 @@ export const useVisitDetail = (visitId: string) => {
 };
 
 /** 409 z kodem `VISIT_NOT_STARTED` - patrz VisitNotStartedException po stronie API (dawniej 404). */
-const isVisitNotStarted = (error: unknown): boolean =>
-    (error as { response?: { data?: { code?: string } } })?.response?.data?.code === 'VISIT_NOT_STARTED';
+const isVisitNotStarted = (error: unknown): boolean => isProblem(error, 'VISIT_NOT_STARTED');
 
 /**
  * Poprawka „Stanu przy przyjęciu" (przebieg, kluczyki, dokumenty). Osobny endpoint,

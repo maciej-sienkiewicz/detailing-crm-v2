@@ -27,8 +27,8 @@ import { DateRangeFilter } from './DateRangeFilter';
 import { TapInfo } from '@/common/components/InfoTooltip';
 import { currentMonthPeriod } from '../utils/period';
 import { batchOrderApi } from '../api/batchOrderApi';
-import { apiErrorMessage } from '../utils/format';
 import type { BatchContractor, BatchOrderEntry } from '../types';
+import { problemDetail } from '@/core/problem';
 
 const Section = styled.div`
     background: ${p => p.theme.colors.surface};
@@ -959,7 +959,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
             await deleteEntry.mutateAsync(entry.id);
             showSuccess('Auto usunięte', vehicleName(entry));
         } catch (e) {
-            showError('Nie udało się usunąć auta', apiErrorMessage(e, 'Spróbuj ponownie.'));
+            showError('Nie udało się usunąć auta', problemDetail(e, 'Spróbuj ponownie.'));
         }
     }
 
@@ -969,7 +969,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
             showSuccess('Auto odblokowane do korekty', 'Po zapisie trafi do następnego zestawienia.');
             setDrawer({ entry: reopened, focusPrice: true });
         } catch (e) {
-            showError('Nie udało się odblokować auta', apiErrorMessage(e, 'Spróbuj ponownie.'));
+            showError('Nie udało się odblokować auta', problemDetail(e, 'Spróbuj ponownie.'));
         }
     }
 

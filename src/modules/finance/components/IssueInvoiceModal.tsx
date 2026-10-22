@@ -28,8 +28,8 @@ import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import { validatePolishNip } from '@/common/utils/validators';
 import { localIsoDate } from '@/common/utils/localDate';
 import { Segmented } from '@/common/components/ui';
-import { apiErrorMessage } from '@/modules/visits/api/apiError';
 import type { RevenueVatRate } from '../types';
+import { problemDetail } from '@/core/problem';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
@@ -299,7 +299,7 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({ isOpen, on
       });
       handleClose();
     } catch (e: unknown) {
-      setError(apiErrorMessage(e, 'Nie udało się wystawić faktury. Spróbuj ponownie.'));
+      setError(problemDetail(e, 'Nie udało się wystawić faktury. Spróbuj ponownie.'));
     }
   };
 

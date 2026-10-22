@@ -50,6 +50,7 @@ import {
     SpinningIconWrapper,
 } from './SigningRequirementModal.styles';
 import { openInNewTab } from '@/common/utils/safeUrl';
+import { problemDetail } from '@/core/problem';
 
 /* ─── Icons ─────────────────────────────────────────────────────────────────── */
 
@@ -103,7 +104,7 @@ type SigningState =
     | { phase: 'failed'; requestId?: string; errorMessage?: string; channel?: SigningChannel };
 
 const extractApiErrorMessage = (error: unknown): string | undefined => {
-    const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+    const apiMessage = problemDetail(error);
     if (apiMessage) return apiMessage;
     return error instanceof Error ? error.message : undefined;
 };

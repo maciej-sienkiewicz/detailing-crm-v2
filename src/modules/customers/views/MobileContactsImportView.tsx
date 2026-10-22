@@ -9,6 +9,7 @@ import {
 } from '@/common/components/PhonePage';
 import { pluralPl } from '@/common/utils/plural';
 import { mobileContactImportApi, type PickedContact } from '../api/customerImportApi';
+import { problemOf } from '@/core/problem';
 
 /*
  * Ekran, który widzi telefon po zeskanowaniu kodu QR z komputera.
@@ -54,10 +55,10 @@ type ErrorReason = 'CLOSED' | 'EXPIRED' | 'OTHER';
 interface ServerError { message: string; reason: ErrorReason }
 
 const serverError = (error: unknown): ServerError | null => {
-    const data = (error as { response?: { data?: { message?: string; reason?: string } } })?.response?.data;
-    if (!data?.message) return null;
-    const reason: ErrorReason = data.reason === 'CLOSED' ? 'CLOSED' : data.reason === 'EXPIRED' ? 'EXPIRED' : 'OTHER';
-    return { message: data.message, reason };
+    const problem = problemOf(error);
+    if (!problem?.detail) return null;
+    const reason: ErrorReason = problem.reason === 'CLOSED' ? 'CLOSED' : problem.reason === 'EXPIRED' ? 'EXPIRED' : 'OTHER';
+    return { message: problem.detail, reason };
 };
 
 /** Co użytkownik zrobił na tym ekranie; stan pobierania kontekstu trzyma react-query. */

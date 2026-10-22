@@ -29,6 +29,7 @@ import { toLeadInputs, toServiceLines, totalGrossOf } from '../utils/leadService
 import type { Lead } from '../types';
 import { LeadSuggestions } from './LeadSuggestions';
 import { formatGrosze } from './shared';
+import { problemDetail } from '@/core/problem';
 
 const Suggestions = styled.section`
     margin-bottom: 18px;
@@ -81,7 +82,7 @@ export function LeadQuoteEditor({ lead, subtitle, onClose }: LeadQuoteEditorProp
                     onClose();
                 },
                 onError: (error) => {
-                    const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                    const message = problemDetail(error);
                     showError('Nie udało się zapisać wyceny', message ?? 'Spróbuj ponownie');
                 },
             }

@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { apiClient } from './apiClient';
 import {
-    SESSION_LOCKED_EVENT, isSessionLockedResponse, lastSharedActivity, onLockSignal,
+    SESSION_LOCKED_EVENT, isSessionLocked, lastSharedActivity, onLockSignal,
     recordActivity, resetActivityThrottleForTests,
 } from './sessionLock';
 
@@ -71,8 +71,9 @@ describe('apiClient - 423 SESSION_LOCKED', () => {
     });
 
     it('inny 423 to nie blokada sesji', () => {
-        expect(isSessionLockedResponse(423, { code: 'SESSION_LOCKED' })).toBe(true);
-        expect(isSessionLockedResponse(423, { code: 'RESOURCE_LOCKED' })).toBe(false);
-        expect(isSessionLockedResponse(403, { code: 'SESSION_LOCKED' })).toBe(false);
+        const failure = (status: number, code: string) => ({ response: { status, data: { status, code, detail: '' } } });
+        expect(isSessionLocked(failure(423, 'SESSION_LOCKED'))).toBe(true);
+        expect(isSessionLocked(failure(423, 'RESOURCE_LOCKED'))).toBe(false);
+        expect(isSessionLocked(failure(403, 'SESSION_LOCKED'))).toBe(false);
     });
 });

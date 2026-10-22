@@ -27,6 +27,7 @@ import type {
 
 import { LEADS_KEY, LEAD_ANALYTICS_KEY, LEAD_DICTIONARIES_KEY, LEAD_OVERVIEW_KEY, invalidateLead } from '../api/leadKeys';
 import type { Page } from '@/core/page';
+import { problemDetail } from '@/core/problem';
 
 export { LEADS_KEY, LEAD_ANALYTICS_KEY, LEAD_DICTIONARIES_KEY, LEAD_OVERVIEW_KEY };
 
@@ -301,7 +302,7 @@ export const useRecordLeadCallback = () => {
         },
         onError: (error) => {
             const message =
-                (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                problemDetail(error);
             showError('Nie udało się zapisać kontaktu', message ?? 'Spróbuj ponownie');
         },
     });
@@ -345,7 +346,7 @@ export const useDeleteLead = () => {
         },
         onError: (error) => {
             const message =
-                (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                problemDetail(error);
             showError('Nie udało się usunąć leada', message ?? 'Spróbuj ponownie');
         },
     });
@@ -407,7 +408,7 @@ export const useBulkDeleteLeads = () => {
         },
         onError: (error) => {
             const message =
-                (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                problemDetail(error);
             showError('Nie udało się usunąć zaznaczonych spraw', message ?? 'Spróbuj ponownie');
         },
     });
@@ -457,7 +458,7 @@ export const useBulkChangeLeadStatus = () => {
         },
         onError: (error) => {
             const message =
-                (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                problemDetail(error);
             showError('Nie udało się zmienić statusu zaznaczonych spraw', message ?? 'Spróbuj ponownie');
         },
     });

@@ -21,6 +21,7 @@ import {
 } from '../components/AuthUi';
 import { t } from '@/common/i18n';
 import { Label, FieldGroup, ErrorMessage } from '@/common/components/Form';
+import { problemDetail } from '@/core/problem';
 
 const RememberMeRow = styled.div`
     display: flex;
@@ -37,7 +38,7 @@ const getLoginErrorMessage = (error: any): string => {
     if (error?.response?.status === 502) {
         return t.auth.errors.maintenance;
     }
-    return error?.response?.data?.message || t.auth.errors.serverError;
+    return problemDetail(error) || t.auth.errors.serverError;
 };
 
 export const LoginView = () => {

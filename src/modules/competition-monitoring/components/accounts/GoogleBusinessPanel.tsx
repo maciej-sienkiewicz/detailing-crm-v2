@@ -7,7 +7,6 @@ import {
 } from '@/common/components/ui';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useBreakpoint } from '@/common/hooks';
-import { apiErrorMessage, apiErrorStatus } from '../../api/accountsApi';
 import { useAccountActions, useGoogleBusiness } from '../../hooks/useAccounts';
 import { GOOGLE_REPLY_MAX, type GoogleReview } from '../../accountsTypes';
 import { PHONE } from '../../utils/phone';
@@ -19,6 +18,7 @@ import {
 } from './accountsStyles';
 import { ChangeLine } from './ChangeLine';
 import { LoginRedirectOverlay } from './LoginRedirectOverlay';
+import { problemDetail, problemStatus } from '@/core/problem';
 
 /**
  * Wizytówka w Google - dla lokalnego studia zwykle więcej telefonów niż cały Instagram.
@@ -235,7 +235,7 @@ const ReviewRow = ({ review, canUsePrimary, open, setOpen }: ReviewProps) => {
             { reviewId: review.id, comment: text.trim() },
             {
                 onSuccess: () => { setOpen(false); setText(''); },
-                onError: e => setError(apiErrorMessage(e, 'Google nie przyjął odpowiedzi. Spróbuj ponownie.')),
+                onError: e => setError(problemDetail(e, 'Google nie przyjął odpowiedzi. Spróbuj ponownie.')),
             },
         );
     };
@@ -407,13 +407,13 @@ export const GoogleBusinessPanel = ({ canUsePrimary, withReviews = true }: Props
     const status = data?.status ?? 'NOT_CONNECTED';
     const connected = status === 'CONNECTED';
     const forbidden = [actions.connectGoogle.error, actions.selectGoogle.error, actions.disconnectGoogle.error]
-        .some(error => apiErrorStatus(error) === 403);
+        .some(error => problemStatus(error) === 403);
     const connectVariant = canUsePrimary ? 'primary' : 'tinted';
 
     const sync = () => {
         setSyncNote(null);
         actions.syncGoogle.mutate(undefined, {
-            onError: error => setSyncNote(apiErrorStatus(error) === 429
+            onError: error => setSyncNote(problemStatus(error) === 429
                 ? 'Odświeżone przed chwilą. Spróbuj za kilka minut.'
                 : 'Nie udało się odświeżyć. Spróbuj ponownie za chwilę.'),
         });

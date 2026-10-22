@@ -14,6 +14,7 @@ import { t } from '@/common/i18n';
 import { Label, FieldGroup, ErrorMessage } from '@/common/components/Form';
 import { legalPath } from '@/modules/legal/documents';
 import { LegalNotice } from '../components/LegalNotice';
+import { problemDetail } from '@/core/problem';
 
 type TokenState = 'loading' | 'valid' | 'invalid';
 type ViewMode = 'reset' | 'setup';
@@ -76,7 +77,7 @@ export const ResetPasswordView = ({ mode = 'reset' }: ResetPasswordViewProps) =>
             await resetPasswordMutation.mutateAsync({ token, ...formData });
             setSuccess(true);
         } catch (error: any) {
-            const message = error?.response?.data?.message || t.auth.errors.serverError;
+            const message = problemDetail(error) || t.auth.errors.serverError;
             setApiError(message);
         }
     };

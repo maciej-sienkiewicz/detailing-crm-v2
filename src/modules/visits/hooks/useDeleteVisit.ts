@@ -20,6 +20,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/common/components/Toast';
 import { visitApi } from '../api/visitApi';
 import { visitKeys } from './index';
+import { problemDetail, problemStatus } from '@/core/problem';
 
 export const useDeleteVisit = (visitId: string) => {
     const navigate = useNavigate();
@@ -44,11 +45,10 @@ export const useDeleteVisit = (visitId: string) => {
             setDeletedVisitId(visitId);
         },
         onError: (error: unknown) => {
-            const response = (error as { response?: { status?: number; data?: { message?: string } } })?.response;
             // 403 objaśnia już globalny interceptor („Nie masz uprawnień…"); drugi dymek
             // o tym samym tylko hałasuje.
-            if (response?.status === 403) return;
-            showWarning(response?.data?.message ?? 'Nie udało się usunąć wizyty. Spróbuj ponownie.');
+            if (problemStatus(error) === 403) return;
+            showWarning(problemDetail(error, 'Nie udało się usunąć wizyty. Spróbuj ponownie.'));
         },
     });
 

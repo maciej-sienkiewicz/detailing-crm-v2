@@ -69,6 +69,7 @@ import { galleryPhotoKey } from '../utils/galleryPhotoKey';
 import { SignatureSettingsModal } from './SignatureSettingsModal';
 import { PillPrimary, TintBtn, ToolBtn } from '../inbox/primitives';
 import { ix } from '../inbox/tokens';
+import { problemDetail } from '@/core/problem';
 
 /*
  * Rozsunięcie z przycisku „Odpisz": karta odsłania się od prawego dolnego rogu,
@@ -685,7 +686,7 @@ export function ReplyComposer({
             },
             onError: (error) => {
                 const message =
-                    (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                    problemDetail(error);
                 showError('Nie udało się poprawić treści', message ?? 'Spróbuj ponownie za chwilę');
             },
         });
@@ -751,7 +752,7 @@ export function ReplyComposer({
                 },
                 onError: (error) => {
                     const message =
-                        (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                        problemDetail(error);
                     showError('Nie udało się wysłać', message ?? 'Spróbuj ponownie za chwilę');
                 },
                 onSettled: () => setUploadProgress(null),

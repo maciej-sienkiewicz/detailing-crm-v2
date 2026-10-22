@@ -4,12 +4,13 @@ import { useToast } from '@/common/components/Toast';
 import { isNativeApp } from '@/core/native/platform';
 import { rolePreviewApi } from './rolePreviewApi';
 import { openRolePreview, type RolePreviewInput } from './openRolePreview';
+import { problemDetail } from '@/core/problem';
 
 const CONFIG_KEY = ['role-preview', 'config'] as const;
 
 /** Komunikat z odpowiedzi serwera albo z samego błędu. */
 function messageOf(error: unknown): string {
-    const serverMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+    const serverMessage = problemDetail(error);
     if (serverMessage) return serverMessage;
     return error instanceof Error ? error.message : 'Spróbuj ponownie za chwilę.';
 }

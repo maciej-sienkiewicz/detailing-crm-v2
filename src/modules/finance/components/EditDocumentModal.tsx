@@ -6,7 +6,6 @@ import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 import { PaymentMethod, DocumentDirection, type FinancialDocument } from '../types';
 import { useUpdateDocument } from '../hooks/useFinance';
 import { documentAmountsFrom, documentAmountsToCents, type DocumentAmounts } from '../utils/amountInputs';
-import { apiErrorMessage } from '@/modules/visits/api/apiError';
 import { Notice } from '@/common/components/ui';
 import { DocumentAmountFields } from './DocumentAmountFields';
 import {
@@ -32,6 +31,7 @@ import {
     FormAlertBanner,
 } from '@/common/components/Form';
 import { NipInputWithGus, type CompanyInfoResponse } from '@/common/components/NipInputWithGus';
+import { problemDetail } from '@/core/problem';
 
 // ─── Direction badge ──────────────────────────────────────────────────────────
 
@@ -291,7 +291,7 @@ const EditDocumentForm: React.FC<{ document: FinancialDocument; onClose: () => v
             });
             onClose();
         } catch (e) {
-            setError(apiErrorMessage(e, 'Nie udało się zapisać zmian. Spróbuj ponownie.'));
+            setError(problemDetail(e, 'Nie udało się zapisać zmian. Spróbuj ponownie.'));
         }
     };
 

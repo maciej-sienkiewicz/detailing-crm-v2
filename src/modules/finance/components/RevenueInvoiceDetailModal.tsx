@@ -28,7 +28,7 @@ import { usePaymentTracking } from '../hooks/usePaymentTracking';
 import { formatMoney, formatMoneyCompact, formatDate, formatBankAccount } from '../utils/formatters';
 import { RevenueStatusBadge } from './RevenueStatusBadge';
 import type { RevenueInvoice, RevenueParty } from '../types';
-import { apiErrorMessage } from '@/modules/visits/api/apiError';
+import { problemDetail } from '@/core/problem';
 
 // ─── Wizualizacja dokumentu ──────────────────────────────────────────────────
 // Układ celowo bliźniaczy do podglądu faktury kosztowej: ta sama „kartka",
@@ -552,7 +552,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
     try {
       await action();
     } catch (e: unknown) {
-      setActionError(apiErrorMessage(e, 'Nie udało się. Spróbuj ponownie.'));
+      setActionError(problemDetail(e, 'Nie udało się. Spróbuj ponownie.'));
     }
   };
 

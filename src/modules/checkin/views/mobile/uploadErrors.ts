@@ -6,16 +6,8 @@
 // the operator nothing, so failures are translated here.
 
 import { isSessionGone } from '@/common/utils/sessionGone';
+import { problemDetail, problemStatus } from '@/core/problem';
 
-interface HttpErrorShape {
-    response?: { status?: number; data?: { message?: string } };
-}
-
-const httpStatus = (err: unknown): number | undefined =>
-    (err as HttpErrorShape | null)?.response?.status;
-
-const serverMessage = (err: unknown): string | undefined =>
-    (err as HttpErrorShape | null)?.response?.data?.message;
 
 /**
  * True when the upload token is no longer valid - the QR session was replaced,
@@ -24,7 +16,7 @@ const serverMessage = (err: unknown): string | undefined =>
  */
 export const isSessionGoneError = (err: unknown): boolean => {
     if (isSessionGone(err)) return true;
-    const status = httpStatus(err);
+    const status = problemStatus(err);
     // No response object (non-axios error): fall back to the message text
     const message = err instanceof Error ? err.message.toLowerCase() : '';
     return status === undefined && (message.includes('403') || message.includes('token'));
@@ -36,11 +28,11 @@ export const describeUploadError = (err: unknown): string => {
         return 'Link wygasł. Poproś o nowy kod QR.';
     }
 
-    const status = httpStatus(err);
+    const status = problemStatus(err);
     if (status === 413) return 'Zdjęcie jest zbyt duże - zrób je ponownie w niższej rozdzielczości.';
     if (status !== undefined && status >= 500) return 'Błąd serwera - spróbujemy ponownie za chwilę.';
 
-    const fromServer = serverMessage(err);
+    const fromServer = problemDetail(err);
     if (fromServer) return fromServer;
 
     if (typeof navigator !== 'undefined' && !navigator.onLine) {

@@ -8,7 +8,6 @@ import { DocumentType, PaymentMethod, DocumentDirection } from '../types';
 import { useCreateDocument } from '../hooks/useFinance';
 import { EMPTY_DOCUMENT_AMOUNTS, documentAmountsToCents, type DocumentAmounts } from '../utils/amountInputs';
 import { DocumentAmountFields } from './DocumentAmountFields';
-import { apiErrorMessage } from '@/modules/visits/api/apiError';
 import {
     ModalShell,
     ModalHeader,
@@ -31,6 +30,7 @@ import {
     FormAlertBanner,
 } from '@/common/components/Form';
 import { NipInputWithGus, type CompanyInfoResponse } from '@/common/components/NipInputWithGus';
+import { problemDetail } from '@/core/problem';
 
 // ─── Custom Select (portal-based) ────────────────────────────────────────────
 
@@ -251,7 +251,7 @@ const CreateDocumentForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             });
             onClose();
         } catch (e) {
-            setError(apiErrorMessage(e, 'Nie udało się zapisać dokumentu. Spróbuj ponownie.'));
+            setError(problemDetail(e, 'Nie udało się zapisać dokumentu. Spróbuj ponownie.'));
         }
     };
 

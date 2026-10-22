@@ -27,6 +27,7 @@ import {
     useStartAccountReset,
 } from '../../hooks/useAccountReset';
 import { LegalNote, WarnBox, WarnText, WarnTitle } from './dangerZone.styles';
+import { problemDetail } from '@/core/problem';
 
 const KeepBox = styled.div`
     background: #f8fafc;
@@ -172,9 +173,8 @@ export const ClearAccountModal = ({ isOpen, onClose }: ClearAccountModalProps) =
             {
                 onSuccess: started => setStartedJobId(started.jobId),
                 onError: (error: unknown) => {
-                    const err = error as { response?: { data?: { message?: string } } };
                     setFormError(
-                        err?.response?.data?.message ??
+                        problemDetail(error) ??
                             'Nie udało się rozpocząć czyszczenia konta. Spróbuj ponownie.'
                     );
                 },

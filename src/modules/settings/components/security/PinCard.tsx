@@ -6,6 +6,7 @@ import {
     Card, CardHead, CardHeadText, CardTitle, CardNote, CardActions,
     OutlineBtn, PrimaryBtn, GhostBtn, StateTag, Input, FieldError,
 } from './SecurityCard';
+import { problemDetail } from '@/core/problem';
 
 /**
  * Kod PIN do szybkiego przełączania kont.
@@ -94,7 +95,7 @@ export const PinCard = () => {
                     reset();
                 },
                 onError: (err: unknown) => {
-                    const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                    const msg = problemDetail(err);
                     if (msg?.toLowerCase().includes('hasło') || msg?.toLowerCase().includes('password')) {
                         setErrors(e => ({ ...e, password: 'Nieprawidłowe hasło' }));
                     } else {

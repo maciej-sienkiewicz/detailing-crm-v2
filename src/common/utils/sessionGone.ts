@@ -1,5 +1,7 @@
 // src/common/utils/sessionGone.ts
 
+import { problemStatus } from '@/core/problem';
+
 /**
  * Statusy, po których sesja z linku (skan, przyjęcie z telefonu) już nie wróci: token
  * nieważny (401/403), nieznany (404) albo zamknięty (410).
@@ -12,4 +14,4 @@ const GONE_STATUSES = new Set([401, 403, 404, 410]);
  * zamknięcia karty.
  */
 export const isSessionGone = (error: unknown): boolean =>
-    GONE_STATUSES.has((error as { response?: { status?: number } })?.response?.status ?? 0);
+    GONE_STATUSES.has(problemStatus(error) ?? 0);

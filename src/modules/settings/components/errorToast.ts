@@ -9,17 +9,15 @@
 // kliknięcie „Usuń" czy przełącznik kończyły się ciszą. Stąd reguła: własny dymek
 // tylko wtedy, gdy globalnego nie było.
 
-interface HttpishError {
-    response?: { status?: number; data?: { message?: string } };
-}
+import { problemDetail, problemStatus } from '@/core/problem';
 
 export function toastedGlobally(error: unknown): boolean {
-    const status = (error as HttpishError)?.response?.status;
+    const status = problemStatus(error);
     if (status === undefined) return false;
     return status >= 400 && status < 500;
 }
 
 /** Komunikat serwera, jeśli jest - brzmi konkretniej niż nasz ogólnik. */
 export function serverMessage(error: unknown): string | undefined {
-    return (error as HttpishError)?.response?.data?.message || undefined;
+    return problemDetail(error);
 }

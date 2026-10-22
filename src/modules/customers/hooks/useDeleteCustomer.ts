@@ -3,6 +3,7 @@ import { useToast } from '@/common/components/Toast';
 import { customerApi } from '../api/customerApi';
 import { customersQueryKey } from './useCustomers';
 import { customerDetailQueryKey } from './useCustomerDetail';
+import { problemDetail } from '@/core/problem';
 
 /**
  * Usunięcie klienta - po stronie backendu anonimizacja RODO: dane osobowe znikają,
@@ -29,7 +30,7 @@ export const useDeleteCustomer = () => {
         },
         onError: (error) => {
             const message =
-                (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                problemDetail(error);
             showError('Nie udało się usunąć klienta', message ?? 'Spróbuj ponownie');
         },
     });

@@ -28,6 +28,7 @@ import {
 import { PHONE } from '../utils/phone';
 import { followMessage } from '../utils/followMessage';
 import { openInNewTab } from '@/common/utils/safeUrl';
+import { problemDetail, problemStatus } from '@/core/problem';
 
 /**
  * „Reklamodawcy w okolicy" — kto jeszcze reklamuje się w moim rejonie.
@@ -323,18 +324,13 @@ const useFollowRow = (row: AdvertiserRow) => {
                 showSuccess(message.title, message.body);
             },
             onError: (error: unknown) => {
-                const response = (error as { response?: { status?: number; data?: { message?: string } } })
-                    .response;
-                if (response?.status === 409) {
+                if (problemStatus(error) === 409) {
                     // Ktoś dodał ten profil wcześniej albo z drugiej karty. To nie jest
                     // błąd użytkownika, tylko stan, którego jeszcze nie widział.
-                    showInfo('Ten profil jest już obserwowany', response.data?.message ?? '');
+                    showInfo('Ten profil jest już obserwowany', problemDetail(error, ''));
                     return;
                 }
-                showError(
-                    'Nie udało się dodać profilu',
-                    response?.data?.message ?? 'Spróbuj ponownie za chwilę.'
-                );
+                showError('Nie udało się dodać profilu', problemDetail(error, 'Spróbuj ponownie za chwilę.'));
             },
         });
     };

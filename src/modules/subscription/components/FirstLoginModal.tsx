@@ -28,6 +28,7 @@ import {
     Pending,
     Spinner,
 } from './FirstLoginModal.styles';
+import { problemDetail } from '@/core/problem';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -114,7 +115,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
         try {
             await startTrial.mutateAsync();
         } catch (err: unknown) {
-            const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            const msg = problemDetail(err);
             setError(msg ?? 'Nie udało się włączyć okresu próbnego. Spróbuj ponownie.');
             showError('Nie udało się włączyć okresu próbnego', msg ?? 'Spróbuj ponownie.');
             setPhase('idle');
@@ -148,7 +149,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
             });
             settleCheckout(order);
         } catch (err: unknown) {
-            const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            const msg = problemDetail(err);
             setError(msg ?? 'Nie udało się przejść do płatności. Spróbuj ponownie.');
             showError('Nie udało się przejść do płatności', msg ?? 'Spróbuj ponownie.');
             setPhase('idle');
@@ -168,7 +169,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
             });
             settleCheckout(order);
         } catch (err: unknown) {
-            const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            const msg = problemDetail(err);
             setError(msg ?? 'Nie udało się przejść do płatności. Spróbuj ponownie.');
             showError('Nie udało się przejść do płatności', msg ?? 'Spróbuj ponownie.');
             setPhase('idle');

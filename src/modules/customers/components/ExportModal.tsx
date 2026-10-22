@@ -15,6 +15,7 @@ import { useToast } from '@/common/components/Toast';
 import { customerApi } from '../api/customerApi';
 import type { CustomerFilters } from '../types';
 import { pluralPl } from '@/common/utils/plural';
+import { problemStatus } from '@/core/problem';
 
 type ExportScope = 'all' | 'filtered';
 
@@ -145,7 +146,7 @@ export const ExportModal = ({ isOpen, onClose, currentFilters, filteredCount }: 
             showSuccess('Eksport gotowy', 'Plik CSV został pobrany');
             onClose();
         } catch (err: unknown) {
-            const status = (err as { response?: { status?: number } })?.response?.status;
+            const status = problemStatus(err);
             if (status === 429) {
                 showError('Za szybko', 'Spróbuj ponownie za chwilę.');
             } else if (status === 422) {

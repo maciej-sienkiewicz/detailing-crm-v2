@@ -73,6 +73,7 @@ import type {
 import { firstSubmitErrorKey, submitErrorMessage } from './submitErrors';
 import { recurrenceError } from './recurrence';
 import { draftSummary, hasDraftContent, type QuickEventDraft } from './draft';
+import { problemDetail, problemStatus } from '@/core/problem';
 
 /**
  * Pytanie „Zmienić dane klienta/pojazdu?" - jak w edycji rezerwacji (VerificationStep).
@@ -877,17 +878,13 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref, initialData 
                 sendVisitCard: canSms && visitCardEnabled && reservationCardLinkSmsEnabled && sendVisitCard,
                 recurrence: isRecurring ? recurrenceRule : null,
             }));
-        } catch (err: any) {
-            let message = 'Spróbuj ponownie za chwilę.';
-            if (err?.response?.data) {
-                const data = err.response.data;
-                // Surowy JSON z serwera nie jest komunikatem dla człowieka - bez `message`
-                // ani `error` zostaje zdanie domyślne.
-                message = data.message || data.error || message;
-            } else if (err?.message) {
-                message = err.message;
-            }
-            showError('Nie udało się zapisać rezerwacji', message);
+        } catch (err: unknown) {
+            // Surowy JSON z serwera nie jest komunikatem dla człowieka - bez `detail`
+            // zostaje zdanie domyślne.
+            const fallback = problemStatus(err) === undefined && err instanceof Error && err.message
+                ? err.message
+                : 'Spróbuj ponownie za chwilę.';
+            showError('Nie udało się zapisać rezerwacji', problemDetail(err, fallback));
         } finally {
             setIsSubmitting(false);
         }
@@ -1353,7 +1350,7 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref, initialData 
             queryClient.invalidateQueries({ queryKey: APPOINTMENT_COLORS_KEY });
             setSelectedColorId(newColor.id);
         } catch (error: any) {
-            showError('Nie udało się dodać koloru', error?.response?.data?.message || 'Spróbuj ponownie.');
+            showError('Nie udało się dodać koloru', problemDetail(error) || 'Spróbuj ponownie.');
         }
     };
 

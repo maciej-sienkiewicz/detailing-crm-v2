@@ -3,7 +3,6 @@ import { useKsefAutomation } from '@/modules/finance/hooks';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { stateTransitionApi } from '../api/stateTransitionApi';
-import { apiErrorMessage } from '../api/apiError';
 import { visitKeys } from './index';
 import { useVisitStateConflict } from './useVisitStateConflict';
 import { companySettingsQuery } from '@/modules/settings/api/companySettingsQuery';
@@ -42,6 +41,7 @@ import {
     type InvoiceLine,
     type VatRateCode,
 } from '../types/handover';
+import { problemDetail } from '@/core/problem';
 
 // v5: kwota pozycji wpisywana od netto albo brutto (amount + amountMode, 21.10.2026).
 const DRAFT_PREFIX = 'handover:v5:';
@@ -437,7 +437,7 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         },
         onError: (error: unknown) => {
             if (handleStateConflict(error)) return;
-            showError('Nie udało się wydać pojazdu', apiErrorMessage(error, 'Spróbuj ponownie.'));
+            showError('Nie udało się wydać pojazdu', problemDetail(error, 'Spróbuj ponownie.'));
         },
     });
 

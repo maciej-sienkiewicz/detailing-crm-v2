@@ -13,7 +13,9 @@ import { describe, expect, it } from 'vitest';
  *  - żadnej ze starych ścieżek z listy [LEGACY_PATHS],
  *  - zakres dat to `from`/`to` (nie `dateFrom`, `startDate`…), fraza to `search`,
  *  - lista to `Page<T>` z `@/core/page` (P2-18) - żaden typ nie trzyma już dawnych kształtów
- *    stron (`pagination`, `itemsPerPage`, `nextBefore`, springowe `totalElements`).
+ *    stron (`pagination`, `itemsPerPage`, `nextBefore`, springowe `totalElements`),
+ *  - błąd to `ApiProblem` z `@/core/problem` (P2-19) - ekran nie czyta ciała błędu sam
+ *    i nie rzutuje go na własny kształt, tylko pyta `problemDetail`, `problemCode`…
  */
 
 const SRC = fileURLToPath(new URL('..', import.meta.url));
@@ -56,6 +58,33 @@ const PARAMS_OBJECT = /\bparams:\s*\{([^{}]*)\}/g;
 const OLD_PAGE_FIELD = /^\s+(itemsPerPage|nextBefore|totalElements)\??:/m;
 /** `pagination` wolno tylko jako właściwość komponentu typu `PageMeta`. */
 const OLD_PAGINATION = /^\s+pagination\??:[ \t]*(?!PageMeta\b)\S/gm;
+
+/** Jedyne miejsca, które czytają surowe ciało błędu. */
+const ERROR_BODY_READERS = [
+    'core/problem.ts',
+    // Błąd żądania o `responseType: 'blob'` przychodzi jako Blob - tu jest parsowany i oddany parserowi.
+    'common/utils/blobFile.ts',
+];
+/** `error.response?.data`, `(err as …)?.response?.data` - odczyt ciała błędu z pominięciem parsera. */
+const RAW_ERROR_BODY = /\.response\??\.data\b/;
+/** Własny kształt błędu: `(error as { response?: … })` albo `AxiosError<{ message?: string }>`. */
+const AD_HOC_ERROR_SHAPE = /as\s+\{\s*response\?:|AxiosError<\s*\{/;
+/** Kopie parsera błędu sprzed P2-19. */
+const LOCAL_ERROR_HELPER = /\b(?:const|function)\s+(apiErrorMessage|apiErrorStatus|apiErrorCode)\b/;
+
+const scanErrors = () => {
+    const violations: string[] = [];
+    for (const file of sourceFiles(SRC)) {
+        const where = relative(SRC, file);
+        if (ERROR_BODY_READERS.includes(where)) continue;
+        const source = readFileSync(file, 'utf8');
+        if (RAW_ERROR_BODY.test(source)) violations.push(`${where}: ciało błędu czytane z pominięciem @/core/problem`);
+        if (AD_HOC_ERROR_SHAPE.test(source)) violations.push(`${where}: własny kształt błędu - użyj ApiProblem`);
+        const helper = source.match(LOCAL_ERROR_HELPER);
+        if (helper) violations.push(`${where}: ${helper[1]} - to już jest w @/core/problem`);
+    }
+    return violations;
+};
 
 const scan = () => {
     const violations: string[] = [];
@@ -111,5 +140,9 @@ describe('kontrakt API', () => {
         // Skaner, który nic nie znalazł, przepuściłby wszystko.
         expect(calls).toBeGreaterThan(500);
         expect(violations).toEqual([]);
+    });
+
+    it('błąd API czyta się jednym typem - ApiProblem z @/core/problem', () => {
+        expect(scanErrors()).toEqual([]);
     });
 });

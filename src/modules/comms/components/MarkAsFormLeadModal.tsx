@@ -29,6 +29,7 @@ import {
 } from '../hooks/useComms';
 import { IconButton, PrimaryButton } from './shared';
 import { pluralPl } from '@/common/utils/plural';
+import { problemDetail } from '@/core/problem';
 
 const Body = styled.div`
     display: flex;
@@ -115,7 +116,7 @@ export function MarkAsFormLeadModal({ senderEmail, messageId, onClose }: MarkAsF
             },
             onError: (error) => {
                 const message =
-                    (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                    problemDetail(error);
                 showError('Nie udało się oznaczyć wiadomości', message ?? 'Spróbuj ponownie');
             },
         });

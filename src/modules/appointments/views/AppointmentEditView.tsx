@@ -35,6 +35,7 @@ import { EmptyState } from '@/common/components/EmptyState';
 import { Button } from '@/common/components/ui';
 import { useCanEditAppointment } from '../hooks/useCanEditAppointment';
 import { normalizeVehicleKind } from '@/modules/vehicles/vehicleKind';
+import { problemDetail } from '@/core/problem';
 
 const SmsSeparator = styled.div`
     height: 1px;
@@ -321,8 +322,7 @@ const AppointmentEditForm = () => {
     // Nieudany zapis mówi, co się stało - wcześniej przycisk wracał do „Zapisz zmiany"
     // bez słowa, a zmiany wyglądały na zapisane.
     const showSaveError = (err: unknown) => {
-        const data = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
-        showError('Nie udało się zapisać rezerwacji', data?.message || data?.error || 'Spróbuj ponownie za chwilę.');
+        showError('Nie udało się zapisać rezerwacji', problemDetail(err, 'Spróbuj ponownie za chwilę.'));
     };
 
     const updateMutation = useMutation({

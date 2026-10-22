@@ -1,9 +1,10 @@
 import axios from 'axios';
 import { setPiiAccessFromHeader } from '@/common/pii';
 import { isRateLimited, shouldAnnounceRateLimit } from './rateLimit';
-import { SESSION_LOCKED_EVENT, isSessionLockedResponse } from './sessionLock';
+import { SESSION_LOCKED_EVENT, isSessionLocked } from './sessionLock';
 import { isPublicAppPath } from './publicPaths';
 import { PAGE_FORMAT, PAGE_FORMAT_HEADER } from './page';
+import { problemDetail, problemOf } from './problem';
 
 /**
  * Per-request opt-out from the global error toast.
@@ -92,7 +93,7 @@ apiClient.interceptors.response.use(
 
         // „Sesja zablokowana" (sessionLock.ts): serwer odmawia danych, dopóki ktoś nie
         // wpisze PIN-u. To nie błąd do pokazania dymkiem - karta ma pokazać ekran blokady.
-        if (isSessionLockedResponse(status, error.response?.data)) {
+        if (isSessionLocked(error)) {
             window.dispatchEvent(new CustomEvent(SESSION_LOCKED_EVENT));
             return Promise.reject(error);
         }
@@ -106,11 +107,11 @@ apiClient.interceptors.response.use(
             // clicked something and gets a purchase path instead of a raw error.
             // Other codes (INSUFFICIENT_CREDITS) fall through to the generic toast
             // unless a call site handles them.
-            const body = error.response?.data;
-            if (body?.code === 'MODULE_REQUIRED') {
+            const problem = problemOf(error);
+            if (problem?.code === 'MODULE_REQUIRED') {
                 const method = (error.config?.method ?? 'get').toLowerCase();
                 if (method !== 'get' && method !== 'head') {
-                    window.dispatchEvent(new CustomEvent('api:paywall', { detail: body }));
+                    window.dispatchEvent(new CustomEvent('api:paywall', { detail: problem }));
                 }
                 return Promise.reject(error);
             }
@@ -128,7 +129,7 @@ apiClient.interceptors.response.use(
             && status !== undefined && status >= 400 && status < 500
             && status !== 401 && status !== 403
         ) {
-            const message: string = error.response?.data?.message ?? 'Wystąpił nieoczekiwany błąd';
+            const message = problemDetail(error, 'Wystąpił nieoczekiwany błąd');
             window.dispatchEvent(new CustomEvent('api:error', { detail: { message } }));
         }
 
@@ -141,8 +142,7 @@ apiClient.interceptors.response.use(
             // Either way, re-sync the permission set so the UI hides the capability.
             const method = (error.config?.method ?? 'get').toLowerCase();
             if (method !== 'get' && method !== 'head') {
-                const message: string =
-                    error.response?.data?.message ?? 'Nie masz do tego uprawnień';
+                const message = problemDetail(error, 'Nie masz do tego uprawnień');
                 window.dispatchEvent(new CustomEvent('api:error', { detail: { message } }));
             }
             window.dispatchEvent(new CustomEvent('auth:permissions-stale'));

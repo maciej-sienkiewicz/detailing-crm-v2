@@ -127,10 +127,3 @@ export const accountsApi = {
         return response.data;
     },
 };
-
-/** Komunikat z odpowiedzi backendu (409/400 niosą polskie zdanie dla właściciela). */
-export const apiErrorMessage = (error: unknown, fallback: string): string =>
-    (error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? fallback;
-
-export const apiErrorStatus = (error: unknown): number | undefined =>
-    (error as { response?: { status?: number } })?.response?.status;

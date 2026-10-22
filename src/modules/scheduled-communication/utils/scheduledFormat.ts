@@ -1,6 +1,5 @@
 // Formatowanie i filtrowanie list widoku „Zaplanowana komunikacja" - SMS-ów i e-maili.
 
-import type { AxiosError } from 'axios';
 import { pluralPl } from '@/common/utils/plural';
 import type { MessageChannel, ScheduledItem, ScheduledSmsSource } from '../types';
 
@@ -89,9 +88,3 @@ export const campaignSentLabel = (sentCount: number, channel: MessageChannel = '
     channel === 'EMAIL'
         ? `${sentCount} ${pluralPl(sentCount, 'e-mail wysłany', 'e-maile wysłane', 'e-maili wysłanych')}`
         : `${sentCount} ${pluralPl(sentCount, 'SMS wysłany', 'SMS-y wysłane', 'SMS-ów wysłanych')}`;
-
-/** Komunikat serwera z odpowiedzi błędu; serwer pisze je po polsku i dla ludzi. */
-export const apiErrorMessage = (error: unknown, fallback: string): string => {
-    const message = (error as AxiosError<{ message?: string }>)?.response?.data?.message;
-    return typeof message === 'string' && message.trim() ? message : fallback;
-};

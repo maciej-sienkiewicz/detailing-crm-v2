@@ -27,8 +27,9 @@ import { pluralPl } from '@/common/utils/plural';
 import { useContractorEntries, useSettle, useSettlementHistory } from '../hooks/useBatchOrders';
 import { useMessageDefaults } from '@/modules/message-templates/hooks/useMessageDefaults';
 import type { BatchContractor, SettlementMode } from '../types';
-import { apiErrorMessage, carsLabel, formatMoney, grossForCars, vehicleName } from '../utils/format';
+import { carsLabel, formatMoney, grossForCars, vehicleName } from '../utils/format';
 import { formatDayShort, formatInstantDay, periodPhrase, type Period } from '../utils/period';
+import { problemDetail } from '@/core/problem';
 
 const Preview = styled.div`
     display: flex;
@@ -267,7 +268,7 @@ export function SettlementModal({ contractor, period, onClose }: Props) {
             }
             onClose();
         } catch (e) {
-            setError(apiErrorMessage(e, 'Nie udało się utworzyć zestawienia. Spróbuj ponownie.'));
+            setError(problemDetail(e, 'Nie udało się utworzyć zestawienia. Spróbuj ponownie.'));
         }
     }
 

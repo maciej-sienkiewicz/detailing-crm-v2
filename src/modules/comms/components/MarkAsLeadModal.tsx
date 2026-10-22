@@ -36,6 +36,7 @@ import { toLeadInputs, totalGrossOf } from '../utils/leadServiceLines';
 import { TagMultiSelect } from './TagMultiSelect';
 import { useTagCatalogActions } from '../hooks/useTagCatalogActions';
 import { IconButton, PrimaryButton, formatGrosze } from './shared';
+import { problemDetail } from '@/core/problem';
 
 const Body = styled.div`
     display: flex;
@@ -120,7 +121,7 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
                 },
                 onError: (error) => {
                     const message =
-                        (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                        problemDetail(error);
                     showError('Nie udało się utworzyć leada', message ?? 'Spróbuj ponownie');
                 },
             }

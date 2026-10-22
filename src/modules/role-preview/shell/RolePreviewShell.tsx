@@ -6,6 +6,7 @@ import { PreviewPanel } from './PreviewPanel';
 import {
     changeCount, DEVICE_LABEL, DEVICE_WIDTH, diffCodes, effectiveExpiry, frameLostSession, type DeviceMode,
 } from './previewModel';
+import { problemDetail, problemStatus } from '@/core/problem';
 
 type Phase =
     | { kind: 'entering'; slow: boolean }
@@ -22,9 +23,9 @@ const ENTER_RETRY_MS = 1_000;
 const SLOW_AFTER_MS = 15_000;
 const REFRESH_MS = 30_000;
 
-const statusOf = (error: unknown) => (error as { response?: { status?: number } })?.response?.status;
+const statusOf = (error: unknown) => problemStatus(error);
 const messageOf = (error: unknown) =>
-    (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+    problemDetail(error);
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 type EnterOutcome = { kind: 'entered' } | { kind: 'used' } | { kind: 'failed'; message: string };

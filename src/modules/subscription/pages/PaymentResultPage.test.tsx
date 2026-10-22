@@ -33,6 +33,11 @@ const refreshOrder = vi.mocked(newSubscriptionApi.refreshOrder);
 
 /** Błąd w kształcie axiosa - tak, jak apiClient go rzuca. */
 const httpError = (status: number, data: unknown) => Object.assign(new Error(`HTTP ${status}`), { response: { status, data } });
+/** 429 na „Odśwież": problem RFC 9457 z bieżącym stanem zamówienia w `order`. */
+const throttled = (current: PaymentOrder) => httpError(429, {
+    type: 'urn:detailboost:problem:refresh-throttled', title: 'Za często', status: 429,
+    detail: 'Sprawdziliśmy to przed chwilą. Spróbuj ponownie za kilka sekund.', code: 'REFRESH_THROTTLED', order: current,
+});
 
 const order = (status: PaymentOrderStatus, overrides: Partial<PaymentOrder> = {}): PaymentOrder => ({
     orderId: 'ord-1',
@@ -244,7 +249,7 @@ describe('PaymentResultPage', () => {
 
     it('zbyt częste „Odśwież" (429): pokazuje stan z odpowiedzi i mówi, żeby chwilę poczekać', async () => {
         getOrder.mockResolvedValue(order('PENDING'));
-        refreshOrder.mockRejectedValue(httpError(429, order('PENDING')));
+        refreshOrder.mockRejectedValue(throttled(order('PENDING')));
         renderPage();
         await flush();
         await advance(CONFIRMATION_TIMEOUT_MS);
@@ -257,7 +262,7 @@ describe('PaymentResultPage', () => {
 
     it('429 z już rozstrzygniętym stanem pokazuje wynik bez notki o limicie', async () => {
         getOrder.mockResolvedValue(order('PENDING'));
-        refreshOrder.mockRejectedValue(httpError(429, order('FULFILLED')));
+        refreshOrder.mockRejectedValue(throttled(order('FULFILLED')));
         renderPage();
         await flush();
         await advance(CONFIRMATION_TIMEOUT_MS);

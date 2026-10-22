@@ -1,3 +1,5 @@
+import type { ApiProblem } from '@/core/problem';
+
 export type BillingStatus = 'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'EXPIRED';
 
 export type PlanKey = 'BASIC' | 'FULL';
@@ -107,12 +109,10 @@ export interface EntitlementsResponse {
 // ─── Paywall (HTTP 402 contract) ──────────────────────────────────────────────
 
 
-export interface PaywallErrorResponse {
-    code: string;
-    error: string;
-    message: string;
-    capability: CapabilityKey | null;
-    capabilityDisplayName: string | null;
+/** Problem 402 `MODULE_REQUIRED`: obok pól RFC 9457 niesie gotową ofertę dodatku. */
+export interface PaywallProblem extends ApiProblem {
+    capability?: CapabilityKey;
+    capabilityDisplayName?: string;
     missingFeatures: CapabilityMissingFeature[];
     upsell: CapabilityUpsellOption[];
 }

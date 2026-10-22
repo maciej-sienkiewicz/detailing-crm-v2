@@ -15,6 +15,7 @@ import { CancelBtn, DangerBtn, ErrorMsg, FieldInput, FieldLabel, FormField } fro
 import { useCompanySettings } from '../../hooks/useCompany';
 import { accountResetApi } from '../../api/accountResetApi';
 import { LegalNote, WarnBox, WarnText, WarnTitle } from './dangerZone.styles';
+import { problemDetail } from '@/core/problem';
 
 interface DeleteAccountModalProps {
     isOpen: boolean;
@@ -46,7 +47,7 @@ export const DeleteAccountModal = ({ isOpen, onClose }: DeleteAccountModalProps)
     const nameMatches = companyName.length > 0 && confirmationName.trim() === companyName;
     const canSubmit = nameMatches && password.length > 0 && !deletion.isPending;
     const errorMessage = deletion.isError
-        ? (deletion.error as { response?: { data?: { message?: string } } })?.response?.data?.message
+        ? problemDetail(deletion.error)
             ?? 'Nie udało się usunąć konta. Spróbuj jeszcze raz.'
         : null;
 

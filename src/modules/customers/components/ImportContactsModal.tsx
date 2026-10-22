@@ -16,6 +16,7 @@ import { customerImportApi } from '../api/customerImportApi';
 import { ImportContactsTable } from './ImportContactsTable';
 import type { ImportPreview } from '../types';
 import { backgroundRequest } from '@/core/backgroundRequest';
+import { problemDetail } from '@/core/problem';
 
 /*
  * Import klientów z telefonu.
@@ -275,8 +276,7 @@ export const ImportContactsModal = ({ onClose, onImported }: ImportContactsModal
         mutationFn: (file: File) => customerImportApi.uploadVCard(file),
         onSuccess: () => setErrorMessage(null),
         onError: (error: unknown) => {
-            const message = (error as { response?: { data?: { message?: string } } })
-                ?.response?.data?.message;
+            const message = problemDetail(error);
             setErrorMessage(message ?? 'Nie udało się odczytać pliku.');
         },
     });
@@ -332,8 +332,7 @@ export const ImportContactsModal = ({ onClose, onImported }: ImportContactsModal
             onClose();
         },
         onError: (error: unknown) => {
-            const message = (error as { response?: { data?: { message?: string } } })
-                ?.response?.data?.message;
+            const message = problemDetail(error);
             showError('Nie udało się zapisać importu', message);
         },
     });

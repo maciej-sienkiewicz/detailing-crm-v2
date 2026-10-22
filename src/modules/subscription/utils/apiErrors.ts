@@ -6,27 +6,20 @@
 // dwa razy. A ekran, który nie dołoży żadnego, zostawia 5xx i zerwane połączenie
 // bez słowa: przycisk po prostu „nic nie robi". Stąd jedna reguła w jednym miejscu.
 
-type ApiErrorLike = {
-    response?: { status?: number; data?: { message?: string } };
-    config?: { skipErrorToast?: boolean };
-    message?: string;
-};
+import { problemDetail, problemStatus } from '@/core/problem';
 
-/** Komunikat z backendu, jeśli go przysłał. */
-export function apiErrorMessage(error: unknown): string | undefined {
-    const msg = (error as ApiErrorLike | null)?.response?.data?.message;
-    return typeof msg === 'string' && msg.trim() ? msg : undefined;
-}
+type RequestConfigLike = {
+    config?: { skipErrorToast?: boolean };
+};
 
 /**
  * Czy interceptor już o tym błędzie powiedział (albo zrobił coś zamiast toastu:
  * 401 przekierowuje na logowanie, 402 otwiera okno dokupienia modułu).
  */
 export function isHandledGlobally(error: unknown): boolean {
-    const e = error as ApiErrorLike | null;
-    const status = e?.response?.status;
+    const status = problemStatus(error);
     if (status === undefined) return false;
-    if (e?.config?.skipErrorToast === true) return false;
+    if ((error as RequestConfigLike | null)?.config?.skipErrorToast === true) return false;
     return status >= 400 && status < 500;
 }
 
@@ -38,5 +31,5 @@ export function toastUnhandledError(
     fallback: string,
 ): void {
     if (isHandledGlobally(error)) return;
-    showError(title, apiErrorMessage(error) ?? fallback);
+    showError(title, problemDetail(error, fallback));
 }

@@ -36,6 +36,7 @@ import type {
     PushNotificationCategory,
     PushNotificationSettings,
 } from '../types';
+import { problemStatus } from '@/core/problem';
 
 const PLATFORM_LABEL: Record<PushDeviceNotifications['platform'], string> = {
     IOS: 'iPhone',
@@ -48,7 +49,7 @@ const channelLabel = (device: PushDeviceNotifications): string =>
     device.transport === 'WEB_PUSH' ? 'przeglądarka' : 'aplikacja';
 
 const toastedGlobally = (error: unknown): boolean => {
-    const status = (error as { response?: { status?: number } })?.response?.status;
+    const status = problemStatus(error);
     return status !== undefined && status >= 400 && status < 500;
 };
 

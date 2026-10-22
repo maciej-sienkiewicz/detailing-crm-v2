@@ -27,6 +27,7 @@ import { ConversationScroll } from '../inbox/Conversation';
 import { messageMoment } from '../inbox/messageFormat';
 import { PillPrimary, TintBtn } from '../inbox/primitives';
 import { ix } from '../inbox/tokens';
+import { problemDetail } from '@/core/problem';
 
 const Bubble = styled.div<{ $out: boolean; $phone: boolean }>`
     align-self: ${p => (p.$out ? 'flex-end' : 'flex-start')};
@@ -222,7 +223,7 @@ interface ReplyBoxProps {
 const COUNTER_FROM = 800;
 
 const errorMessage = (error: unknown): string =>
-    (error as { response?: { data?: { message?: string } } })?.response?.data?.message
+    problemDetail(error)
     ?? 'Nie udało się wysłać. Spróbuj ponownie albo odpisz w aplikacji Instagram.';
 
 export function InstagramReplyBox({ leadId, conversation, emphasis, phone, barExtra, onSent }: ReplyBoxProps) {

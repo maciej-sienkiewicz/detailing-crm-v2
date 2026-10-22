@@ -12,7 +12,7 @@ import { useAddOnUnlock } from './hooks/useAddOnUnlock';
 import { ModuleGateCard } from './components/ModuleGate';
 import { PaywallListener } from './components/PaywallListener';
 import { newSubscriptionApi } from './api/subscriptionApi';
-import type { PaywallErrorResponse } from './types';
+import type { PaywallProblem } from './types';
 
 const platform = vi.hoisted(() => ({ purchasable: false }));
 
@@ -44,15 +44,18 @@ const card = (
     </ThemeProvider>
 );
 
-const paywall: PaywallErrorResponse = {
+const paywall: PaywallProblem = {
+    type: 'urn:detailboost:problem:module-required',
+    title: 'Moduł niedostępny w Twoim pakiecie',
+    status: 402,
+    detail: 'Ta funkcja wymaga modułu',
     code: 'MODULE_REQUIRED',
-    error: 'Payment Required',
-    message: 'Ta funkcja wymaga modułu',
+    fieldErrors: [],
     capability: 'COMM_SEND_TRANSACTIONAL',
     capabilityDisplayName: 'Wysyłka SMS',
     missingFeatures: [],
     upsell: [{ addOnKey: 'CLIENT_COMMUNICATION', addOnName: 'Komunikacja', monthlyPriceGrossCents: 4900, isAvailable: true }],
-} as unknown as PaywallErrorResponse;
+} as unknown as PaywallProblem;
 
 beforeEach(() => {
     vi.mocked(newSubscriptionApi.previewAddOn).mockReset().mockResolvedValue({} as never);

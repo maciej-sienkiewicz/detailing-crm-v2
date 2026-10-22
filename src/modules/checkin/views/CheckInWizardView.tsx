@@ -23,6 +23,7 @@ import { t } from '@/common/i18n';
 import { Notice } from '@/common/components/ui';
 import type { CheckInFormData, CheckInInitialData, CheckInStep, ProtocolResponse } from '../types';
 import type { AppointmentColor } from '@/modules/appointments/types';
+import { problemDetail, isProblem, problemStatus } from '@/core/problem';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -658,7 +659,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                             <ErrorAlert>
                                 {(() => {
                                     const anyErr: any = submitError as any;
-                                    const backendMsg = anyErr?.response?.data?.message;
+                                    const backendMsg = problemDetail(anyErr);
                                     return (typeof backendMsg === 'string' && backendMsg.trim().length > 0)
                                         ? backendMsg
                                         : (anyErr?.message ?? t.checkin.errors.createFailed);
@@ -748,7 +749,5 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
  * Czy błąd to bramka „ta rezerwacja ma już nieukończone przyjęcie" (HTTP 409 z kodem),
  * a nie dowolny inny konflikt.
  */
-const isDraftConflict = (error: unknown): boolean => {
-    const response = (error as { response?: { status?: number; data?: { code?: string } } })?.response;
-    return response?.status === 409 && response?.data?.code === 'DRAFT_VISIT_ALREADY_EXISTS';
-};
+const isDraftConflict = (error: unknown): boolean =>
+    problemStatus(error) === 409 && isProblem(error, 'DRAFT_VISIT_ALREADY_EXISTS');

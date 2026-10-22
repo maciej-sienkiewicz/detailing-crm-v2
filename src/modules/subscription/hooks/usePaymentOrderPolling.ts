@@ -3,8 +3,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { newSubscriptionApi } from '../api/subscriptionApi';
 import { invalidateSubscriptionData } from '../api/subscriptionQueries';
 import { isFinalOutcome, paymentOutcome, type PaymentOutcome } from '../utils/paymentOrderStatus';
-import { apiErrorMessage } from '../utils/apiErrors';
 import type { PaymentOrder } from '../types';
+import { problemDetail, problemOf, problemStatus } from '@/core/problem';
 
 /** Odpytywanie, póki potwierdzenie z P24 zwykle przychodzi (kilka sekund). */
 export const POLL_INTERVAL_MS = 2500;
@@ -27,12 +27,11 @@ export interface PaymentOrderPolling {
     refresh: () => void;
 }
 
-/** Odpowiedź 429 na „Odśwież": ciało to bieżący stan zamówienia (backend nie pytał P24). */
+/** Odpowiedź 429 na „Odśwież": problem niesie w `order` bieżący stan zamówienia (backend nie pytał P24). */
 function throttledOrder(error: unknown): PaymentOrder | null {
-    const response = (error as { response?: { status?: number; data?: unknown } } | null)?.response;
-    if (response?.status !== 429) return null;
-    const body = response.data as Partial<PaymentOrder> | undefined;
-    return body && typeof body.status === 'string' ? (body as PaymentOrder) : null;
+    if (problemStatus(error) !== 429) return null;
+    const order = problemOf(error)?.order as Partial<PaymentOrder> | undefined;
+    return order && typeof order.status === 'string' ? (order as PaymentOrder) : null;
 }
 
 export const REFRESH_THROTTLED_NOTE = 'Sprawdziliśmy to przed chwilą. Spróbuj ponownie za kilka sekund.';
@@ -130,7 +129,7 @@ export function usePaymentOrderPolling(orderId: string | null): PaymentOrderPoll
                     apply(current);
                     return finished ? null : REFRESH_THROTTLED_NOTE;
                 }
-                return apiErrorMessage(error) ?? REFRESH_FAILED_NOTE;
+                return problemDetail(error) ?? REFRESH_FAILED_NOTE;
             } finally {
                 if (!cancelled && !finished) schedule();
             }

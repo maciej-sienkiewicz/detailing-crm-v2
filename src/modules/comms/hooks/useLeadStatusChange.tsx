@@ -10,6 +10,7 @@ import { useToast } from '@/common/components/Toast';
 import { LeadLostReasonDialog } from '../components/LeadLostReasonDialog';
 import { useChangeLeadStatus } from './useLeads';
 import type { LeadStatus } from '../types';
+import { problemDetail } from '@/core/problem';
 
 export interface LeadStatusChange {
     /** Przestaw status; „przegrany" najpierw zapyta o powód. */
@@ -35,8 +36,7 @@ export function useLeadStatusChange(): LeadStatusChange {
             { leadId, status },
             {
                 onError: (error) => {
-                    const message = (error as { response?: { data?: { message?: string } } })
-                        ?.response?.data?.message;
+                    const message = problemDetail(error);
                     showError('Nie udało się zmienić statusu', message);
                 },
             }

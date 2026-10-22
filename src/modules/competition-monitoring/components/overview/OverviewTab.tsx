@@ -23,6 +23,7 @@ import { CenterState, Spinner, formatNumber } from '../MetricBits';
 import { formatSignedCount, formatSignedPct } from '../../utils/competition';
 import { contactTapsTotal, glueOrphans, isActionableTarget, lastPostLabel } from '../../utils/overview';
 import { PHONE } from '../../utils/phone';
+import { problemDetail, problemStatus } from '@/core/problem';
 
 /**
  * Przegląd: jeden ekran, który odpowiada na „co się zmieniło i co mam zrobić".
@@ -491,10 +492,9 @@ export const OverviewTab: React.FC<OverviewActions> = actions => {
             ),
             onError: (err: unknown) => {
                 // Serwer ma przerwę między ponowieniami - 429 to nie awaria, tylko „za wcześnie".
-                const response = (err as { response?: { status?: number; data?: { message?: string } } }).response;
                 setResyncMessage(
-                    response?.status === 429
-                        ? response.data?.message ?? 'Ponawialiśmy to przed chwilą. Spróbuj za kilka minut.'
+                    problemStatus(err) === 429
+                        ? problemDetail(err, 'Ponawialiśmy to przed chwilą. Spróbuj za kilka minut.')
                         : 'Nie udało się ponowić. Spróbuj ponownie za chwilę.'
                 );
             },
