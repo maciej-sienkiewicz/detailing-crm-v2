@@ -2,7 +2,7 @@ import { apiClient } from '@/core';
 import type { ScheduledEmailItem, ScheduledEmailOverview, SentEmailPage, UpdateScheduledEmailPayload } from '../types';
 import type { BackgroundRequestConfig } from '@/core/backgroundRequest';
 
-const BASE = '/scheduled-email';
+const BASE = '/v1/scheduled-email';
 
 const itemPath = (item: Pick<ScheduledEmailItem, 'source' | 'id'>) => `${BASE}/${item.source}/${item.id}`;
 

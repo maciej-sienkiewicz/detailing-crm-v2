@@ -86,13 +86,13 @@ export interface CostDocumentCandidates {
 
 export const visitCostsApi = {
     get: async (visitId: string): Promise<VisitCosts> => {
-        const response = await apiClient.get<VisitCosts>(`/visits/${visitId}/costs`);
+        const response = await apiClient.get<VisitCosts>(`/v1/visits/${visitId}/costs`);
         return response.data;
     },
 
     candidates: async (visitId: string, search: string): Promise<CostDocumentCandidates> => {
         const params = search.trim() ? { search: search.trim() } : undefined;
-        const response = await apiClient.get<CostDocumentCandidates>(`/visits/${visitId}/costs/candidates`, { params });
+        const response = await apiClient.get<CostDocumentCandidates>(`/v1/visits/${visitId}/costs/candidates`, { params });
         return response.data;
     },
 
@@ -103,7 +103,7 @@ export const visitCostsApi = {
      */
     link: async (visitId: string, costDocumentId: string, reassign = false): Promise<VisitCosts> => {
         const response = await apiClient.put<VisitCosts>(
-            `/visits/${visitId}/costs/${costDocumentId}`,
+            `/v1/visits/${visitId}/costs/${costDocumentId}`,
             { reassign },
             { skipErrorToast: true },
         );
@@ -112,7 +112,7 @@ export const visitCostsApi = {
 
     unlink: async (visitId: string, costDocumentId: string): Promise<VisitCosts> => {
         const response = await apiClient.delete<VisitCosts>(
-            `/visits/${visitId}/costs/${costDocumentId}`,
+            `/v1/visits/${visitId}/costs/${costDocumentId}`,
             { skipErrorToast: true },
         );
         return response.data;

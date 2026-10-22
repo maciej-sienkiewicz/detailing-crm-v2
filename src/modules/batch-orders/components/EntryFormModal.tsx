@@ -45,7 +45,7 @@ import { vinApiAt } from '../../vehicles/components/vin/vinApi';
 
 // Odczyt VIN pod uprawnieniem zleceń zbiorczych - kto rozlicza kontrahentów, nie musi
 // mieć prawa edycji pojazdów.
-const batchVinApi = vinApiAt('/batch-orders/vin');
+const batchVinApi = vinApiAt('/v1/batch-orders/vin');
 
 // ─── Service card ─────────────────────────────────────────────────────────────
 

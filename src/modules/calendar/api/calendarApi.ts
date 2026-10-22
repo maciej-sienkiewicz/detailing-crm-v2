@@ -246,7 +246,7 @@ const fetchLegacy = async (
     );
 
     const visitRequests = visitStatuses.map(status =>
-        apiClient.get<{ visits: VisitResponse[] }>('/visits', {
+        apiClient.get<{ visits: VisitResponse[] }>('/v1/visits', {
             params: { startDate: dateRange.start, endDate: dateRange.end, status },
             signal,
         })

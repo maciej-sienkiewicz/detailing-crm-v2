@@ -5,8 +5,6 @@ import type { OperationListResponse, OperationFilters, Operation, AppointmentSta
 import type { RecurrenceEditScope } from '@/modules/appointments/types';
 
 
-const BASE_PATH = '/operations';
-
 // Typ dla odpowiedzi z backendu - Rezerwacje
 interface AppointmentResponse {
     id: string;
@@ -213,7 +211,7 @@ export const operationApi = {
             if (filters.scheduledDate) params.append('scheduledDate', filters.scheduledDate);
 
             const response = await apiClient.get<VisitsListResponse>(
-                `/visits/deleted?${params.toString()}`
+                `/v1/visits/deleted?${params.toString()}`
             );
 
             const p = response.data.pagination as any;
@@ -253,7 +251,7 @@ export const operationApi = {
             if (filters.serviceIds?.length) filters.serviceIds.forEach(id => params.append('serviceIds', id));
 
             const response = await apiClient.get<VisitsListResponse>(
-                `/visits?${params.toString()}`
+                `/v1/visits?${params.toString()}`
             );
 
             // Mapuj dane z backendu na format frontend
@@ -337,12 +335,8 @@ export const operationApi = {
         };
     },
 
-    deleteOperation: async (id: string): Promise<void> => {
-        await apiClient.delete(`${BASE_PATH}/${id}`);
-    },
-
     deleteVisit: async (visitId: string): Promise<void> => {
-        await apiClient.delete(`/visits/${visitId}`);
+        await apiClient.delete(`/v1/visits/${visitId}`);
     },
 
     updateReservationDate: async (

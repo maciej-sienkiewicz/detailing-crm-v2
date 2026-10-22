@@ -8,7 +8,7 @@ import type {
     CreateVoiceItemResponse,
 } from '../types';
 
-const BASE = '/mobile/voice';
+const BASE = '/v1/mobile/voice';
 
 function getFilename(mimeType: string): string {
     if (mimeType.startsWith('audio/mp4')) return 'audio.m4a';

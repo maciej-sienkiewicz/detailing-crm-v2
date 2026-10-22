@@ -2,7 +2,7 @@ import { apiClient } from '@/core';
 import type { ScheduledSmsItem, ScheduledSmsOverview, SentSmsPage, UpdateScheduledSmsPayload } from '../types';
 import type { BackgroundRequestConfig } from '@/core/backgroundRequest';
 
-const BASE = '/scheduled-sms';
+const BASE = '/v1/scheduled-sms';
 
 const itemPath = (item: Pick<ScheduledSmsItem, 'source' | 'id'>) => `${BASE}/${item.source}/${item.id}`;
 

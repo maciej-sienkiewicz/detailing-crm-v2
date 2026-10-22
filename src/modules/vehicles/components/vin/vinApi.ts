@@ -3,8 +3,8 @@
 // VIN ze zdjęcia - trzy operacje, z których składa się przycisk aparatu przy polu VIN:
 // odczyt zdjęcia z komputera, kod QR dla telefonu i wynik przysłany z telefonu.
 //
-// Ten sam kształt mają dwa zestawy endpointów: ogólny (`/vin`, uprawnienie edycji
-// pojazdu - przyjęcie, karta pojazdu, wizyta) i zleceń zbiorczych (`/batch-orders/vin`,
+// Ten sam kształt mają dwa zestawy endpointów: ogólny (`/v1/vin`, uprawnienie edycji
+// pojazdu - przyjęcie, karta pojazdu, wizyta) i zleceń zbiorczych (`/v1/batch-orders/vin`,
 // ich własne uprawnienie). Komponent dostaje zestaw z zewnątrz, więc działa w obu.
 // Wprost z pliku, nie z '@/core': tamten indeks ciągnie router, a router - widoki,
 // które importują ten moduł (cykl kończył się „vinApiAt is not a function").
@@ -51,4 +51,4 @@ export const vinApiAt = (base: string): VinApi => ({
 });
 
 /** Pojazd: przyjęcie, karta pojazdu, wizyta. */
-export const vehicleVinApi = vinApiAt('/vin');
+export const vehicleVinApi = vinApiAt('/v1/vin');

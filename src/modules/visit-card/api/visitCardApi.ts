@@ -17,20 +17,20 @@ import type {
 export const visitCardApi = {
     /** Public, tokenized endpoint: no session required (permitAll on the backend). */
     getPublicCard: async (token: string): Promise<VisitCard> => {
-        const response = await apiClient.get<VisitCard>(`/public/visit-card/${encodeURIComponent(token)}`);
+        const response = await apiClient.get<VisitCard>(`/v1/public/visit-card/${encodeURIComponent(token)}`);
         return response.data;
     },
 
     /** Employee endpoint: stable shareable link for the visit's card. */
     getCardLink: async (visitId: string): Promise<VisitCardLinkResponse> => {
-        const response = await apiClient.get<VisitCardLinkResponse>(`/visits/${visitId}/card-link`);
+        const response = await apiClient.get<VisitCardLinkResponse>(`/v1/visits/${visitId}/card-link`);
         return response.data;
     },
 
     /** Employee endpoint: send the card link to the customer over the chosen channel. */
     sendCardLink: async (visitId: string, channel?: VisitCardSendChannel, resend = false): Promise<VisitCardSendResponse> => {
         const response = await apiClient.post<VisitCardSendResponse>(
-            `/visits/${visitId}/card-link/send`,
+            `/v1/visits/${visitId}/card-link/send`,
             { ...(channel ? { channel } : {}), resend },
         );
         return response.data;
@@ -40,7 +40,7 @@ export const visitCardApi = {
 
     /** Employee endpoint: stable shareable link for a reservation's card. */
     getAppointmentCardLink: async (appointmentId: string): Promise<VisitCardLinkResponse> => {
-        const response = await apiClient.get<VisitCardLinkResponse>(`/appointments/${appointmentId}/card-link`);
+        const response = await apiClient.get<VisitCardLinkResponse>(`/v1/appointments/${appointmentId}/card-link`);
         return response.data;
     },
 
@@ -51,7 +51,7 @@ export const visitCardApi = {
         resend = false,
     ): Promise<VisitCardSendResponse> => {
         const response = await apiClient.post<VisitCardSendResponse>(
-            `/appointments/${appointmentId}/card-link/send`,
+            `/v1/appointments/${appointmentId}/card-link/send`,
             { ...(channel ? { channel } : {}), resend },
         );
         return response.data;
@@ -76,7 +76,7 @@ export const visitCardApi = {
     /** Public endpoint: customer requests adding selected suggested services (triggers consent SMS). */
     requestUpsellServices: async (token: string, suggestionIds: string[]): Promise<RequestUpsellResponse> => {
         const response = await apiClient.post<RequestUpsellResponse>(
-            `/public/visit-card/${encodeURIComponent(token)}/upsell/request`,
+            `/v1/public/visit-card/${encodeURIComponent(token)}/upsell/request`,
             { suggestionIds },
         );
         return response.data;
@@ -114,5 +114,5 @@ export type UpsellTarget =
 
 const upsellBasePath = (target: UpsellTarget): string =>
     target.kind === 'visit'
-        ? `/visits/${target.id}/upsell-suggestions`
-        : `/appointments/${target.id}/upsell-suggestions`;
+        ? `/v1/visits/${target.id}/upsell-suggestions`
+        : `/v1/appointments/${target.id}/upsell-suggestions`;

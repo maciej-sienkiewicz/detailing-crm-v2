@@ -139,36 +139,36 @@ export const productsApi = {
 // ── Powiązania produktów z wizytą (pod /visits/{id}/products) ──
 export const visitProductsApi = {
     list: async (visitId: string): Promise<VisitProductLink[]> => {
-        const { data } = await apiClient.get(`/visits/${visitId}/products`);
+        const { data } = await apiClient.get(`/v1/visits/${visitId}/products`);
         return data;
     },
     link: async (visitId: string, productId: string, note?: string): Promise<VisitProductLink> => {
-        const { data } = await apiClient.post(`/visits/${visitId}/products`, { productId, note });
+        const { data } = await apiClient.post(`/v1/visits/${visitId}/products`, { productId, note });
         return data;
     },
     updateNote: async (visitId: string, linkId: string, note: string | null): Promise<void> => {
-        await apiClient.patch(`/visits/${visitId}/products/${linkId}`, { note });
+        await apiClient.patch(`/v1/visits/${visitId}/products/${linkId}`, { note });
     },
     unlink: async (visitId: string, linkId: string): Promise<void> => {
-        await apiClient.delete(`/visits/${visitId}/products/${linkId}`);
+        await apiClient.delete(`/v1/visits/${visitId}/products/${linkId}`);
     },
 };
 
 // ── Publiczna trasa telefonu (bez logowania, po tokenie handoffu) ──
 export const mobileScanApi = {
     context: async (token: string): Promise<{ status: string; scannedCount: number; expiresAt: string }> => {
-        const { data } = await apiClient.get(`/mobile/products/scan/${token}`, { skipAuthRedirect: true, skipErrorToast: true });
+        const { data } = await apiClient.get(`/v1/mobile/products/scan/${token}`, { skipAuthRedirect: true, skipErrorToast: true });
         return data;
     },
     submit: async (token: string, codes: string[]): Promise<{ status: string; scannedCount: number; expiresAt: string }> => {
-        const { data } = await apiClient.post(`/mobile/products/scan/${token}`, { codes }, { skipAuthRedirect: true, skipErrorToast: true });
+        const { data } = await apiClient.post(`/v1/mobile/products/scan/${token}`, { codes }, { skipAuthRedirect: true, skipErrorToast: true });
         return data;
     },
     /** Zapas: zdjęcie kodu → model wizyjny czyta cyfry → kod trafia do sesji jak przy skanie na żywo. */
     submitPhoto: async (token: string, file: File): Promise<{ gtin: string | null; status: string; scannedCount: number; expiresAt: string }> => {
         const formData = new FormData();
         formData.append('image', file);
-        const { data } = await apiClient.post(`/mobile/products/scan/${token}/photo`, formData, {
+        const { data } = await apiClient.post(`/v1/mobile/products/scan/${token}/photo`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
             skipAuthRedirect: true,
             skipErrorToast: true,

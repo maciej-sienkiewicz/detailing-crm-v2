@@ -34,9 +34,9 @@ const toDamagePointsPayload = (damagePoints: DamagePoint[]): DamagePoint[] =>
             .filter(ph => ph.status !== 'uploading' && ph.status !== 'failed' && !ph.photoId.startsWith('local-'))
             .map(ph => ({ photoId: ph.photoId, strokes: ph.strokes ?? [] })),
     }));
-const BASE_PATH = '/checkin';
-const PHOTO_SESSIONS_PATH = '/photo-sessions';
-const MOBILE_BASE_PATH = '/mobile/checkin';
+const BASE_PATH = '/v1/checkin';
+const PHOTO_SESSIONS_PATH = '/v1/photo-sessions';
+const MOBILE_BASE_PATH = '/v1/mobile/checkin';
 
 export const checkinApi = {
     createVisitFromReservation: async (

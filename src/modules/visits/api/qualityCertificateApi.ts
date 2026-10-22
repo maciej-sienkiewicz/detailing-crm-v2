@@ -31,7 +31,7 @@ export const qualityCertificateApi = {
      */
     generate: async (visitId: string, request: GenerateCertificateRequest, visitNumber: string): Promise<void> => {
         const response = await apiClient.post(
-            `/visits/${visitId}/quality-certificate`,
+            `/v1/visits/${visitId}/quality-certificate`,
             request,
             { responseType: 'blob', skipErrorToast: true },
         );

@@ -38,7 +38,7 @@ export interface ServiceChangeSmsPreviewRequest {
     totalGrossAfter: number;
 }
 
-const BASE_PATH = '/visits';
+const BASE_PATH = '/v1/visits';
 
 // Mapowanie statusu z backendu (snake_case lowercase) na frontend (SCREAMING_SNAKE_CASE)
 const mapVisitStatus = (backendStatus: string): string => {
@@ -77,7 +77,7 @@ export const visitApi = {
         }
 
         const response = await apiClient.post(
-            '/documents/external',
+            '/v1/documents/external',
             formData,
             {
                 headers: {
@@ -124,11 +124,11 @@ export const visitApi = {
     },
 
     deleteDocument: async (_visitId: string, documentId: string): Promise<void> => {
-        await apiClient.delete(`/documents/${documentId}`);
+        await apiClient.delete(`/v1/documents/${documentId}`);
     },
 
     getDocumentDownloadUrl: async (documentId: string): Promise<string> => {
-        const response = await apiClient.get(`/documents/${documentId}/download-url`);
+        const response = await apiClient.get(`/v1/documents/${documentId}/download-url`);
         return response.data.url;
     },
 

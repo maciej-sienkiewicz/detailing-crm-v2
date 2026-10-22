@@ -432,7 +432,7 @@ export function PhoneSignatureView() {
 
     useEffect(() => {
         if (!token) { setPageState('expired'); return; }
-        apiClient.get<{ status: string }>(`/public/user-signature/${token}`)
+        apiClient.get<{ status: string }>(`/v1/public/user-signature/${token}`)
             .then(res => {
                 setPageState(res.data.status === 'PENDING' ? 'ready' : 'expired');
             })
@@ -444,7 +444,7 @@ export function PhoneSignatureView() {
         if (!base64 || !token) return;
         setPageState('submitting');
         try {
-            await apiClient.post(`/public/user-signature/${token}/submit`, { signatureImageBase64: base64 });
+            await apiClient.post(`/v1/public/user-signature/${token}/submit`, { signatureImageBase64: base64 });
             setPageState('done');
         } catch {
             setPageState('error');

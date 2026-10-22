@@ -13,13 +13,13 @@ export interface ServiceCheck {
 
 export const serviceChecksApi = {
     list: async (visitId: string): Promise<ServiceCheck[]> => {
-        const response = await apiClient.get<{ checks: ServiceCheck[] }>(`/visits/${visitId}/service-checks`);
+        const response = await apiClient.get<{ checks: ServiceCheck[] }>(`/v1/visits/${visitId}/service-checks`);
         return response.data.checks;
     },
 
     set: async (visitId: string, serviceItemId: string, done: boolean): Promise<ServiceCheck | null> => {
         const response = await apiClient.put<{ check: ServiceCheck | null }>(
-            `/visits/${visitId}/service-checks/${serviceItemId}`,
+            `/v1/visits/${visitId}/service-checks/${serviceItemId}`,
             { done },
             { skipErrorToast: true },
         );

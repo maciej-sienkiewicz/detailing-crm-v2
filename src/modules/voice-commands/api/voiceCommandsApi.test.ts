@@ -19,7 +19,7 @@ describe('voiceCommandsApi.getContext', () => {
         await voiceCommandsApi.getContext('abc123');
 
         const [url, config] = get.mock.calls[0];
-        expect(url).toBe('/mobile/voice/context');
+        expect(url).toBe('/v1/mobile/voice/context');
         expect(config.headers).toEqual({ 'X-Mobile-Token': 'abc123' });
         expect(config.params).toBeUndefined();
     });

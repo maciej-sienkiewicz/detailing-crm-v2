@@ -124,7 +124,7 @@ export const customerEditApi = {
 
     getDocumentDownload: async (documentId: string): Promise<string> => {
         const response = await apiClient.get<{ url: string }>(
-            `/documents/${documentId}/download-url`
+            `/v1/documents/${documentId}/download-url`
         );
         return response.data.url;
     },

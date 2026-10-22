@@ -138,7 +138,7 @@ export interface SettlementCorrectionResult {
     ksefError: string | null;
 }
 
-const base = (visitId: string) => `/visits/${visitId}/settlement`;
+const base = (visitId: string) => `/v1/visits/${visitId}/settlement`;
 
 export const settlementApi = {
     get: async (visitId: string): Promise<SettlementView> =>

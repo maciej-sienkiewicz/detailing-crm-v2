@@ -20,7 +20,7 @@ import type {
     VehicleSuggestion,
 } from '../types';
 
-const BASE = '/batch-orders';
+const BASE = '/v1/batch-orders';
 
 export const batchOrderApi = {
     listContractors: async (): Promise<BatchContractor[]> => {

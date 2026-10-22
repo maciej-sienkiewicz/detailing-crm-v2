@@ -10,6 +10,7 @@ import { stubAppApi, type ApiCall, type AppApiOptions } from './fixtures/appApi'
  *  - konsola przeglądarki zostaje pusta (żadnego error, warning ani nieobsłużonego wyjątku),
  *  - główne trasy mieszczą się w budżecie zapytań do API,
  *  - studio bez modułów i rola bez uprawnienia nie pytają o to, czego serwer im odmówi.
+ *  - każde zapytanie idzie pod /api/v1 (stare adresy bez wersji to tylko aliasy backendu).
  *
  * Testy biegną na serwerze deweloperskim z React.StrictMode, który uruchamia efekty
  * dwa razy - dlatego `/auth/me` liczymy osobno (na produkcji idzie raz).
@@ -69,6 +70,7 @@ for (const [path, budget] of Object.entries(COLD_LOAD_BUDGET)) {
         expect([...api.unstubbed], 'nowe zapytanie bez odpowiedzi w fixtures/appApi.ts').toEqual([]);
         const calls = withoutAuthCheck(api.calls);
         expect(calls.length, describe(calls).join('\n')).toBeLessThanOrEqual(budget);
+        expect(describe(api.calls.filter(call => !call.path.startsWith('/v1/'))), 'zapytanie spoza /api/v1').toEqual([]);
         // Liczniki menu to jedno GET /v1/me/badges - nie pięć osobnych zapytań.
         const counters = /\/(attention-count|pending-count|attendance-sheets)$/;
         expect(describe(calls.filter(call => counters.test(call.path)))).toEqual([]);

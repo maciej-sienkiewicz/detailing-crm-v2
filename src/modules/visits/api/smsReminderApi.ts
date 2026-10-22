@@ -22,7 +22,7 @@ export interface GeneratedSmsContentResponse {
 export const smsReminderApi = {
     generateContent: async (visitId: string, scheduledFor: string): Promise<GeneratedSmsContentResponse> => {
         const { data } = await apiClient.post<GeneratedSmsContentResponse>(
-            `/visits/${visitId}/sms-reminder/generate`,
+            `/v1/visits/${visitId}/sms-reminder/generate`,
             { scheduledFor }
         );
         return data;
@@ -34,7 +34,7 @@ export const smsReminderApi = {
         scheduledFor: string | null
     ): Promise<SmsReminderResponse> => {
         const { data } = await apiClient.post<SmsReminderResponse>(
-            `/visits/${visitId}/sms-reminder`,
+            `/v1/visits/${visitId}/sms-reminder`,
             { messageContent, scheduledFor }
         );
         return data;
@@ -42,7 +42,7 @@ export const smsReminderApi = {
 
     list: async (visitId: string): Promise<SmsReminderResponse[]> => {
         const { data } = await apiClient.get<SmsReminderResponse[]>(
-            `/visits/${visitId}/sms-reminder`
+            `/v1/visits/${visitId}/sms-reminder`
         );
         return data;
     },
@@ -54,13 +54,13 @@ export const smsReminderApi = {
         scheduledFor: string
     ): Promise<SmsReminderResponse> => {
         const { data } = await apiClient.put<SmsReminderResponse>(
-            `/visits/${visitId}/sms-reminder/${reminderId}`,
+            `/v1/visits/${visitId}/sms-reminder/${reminderId}`,
             { messageContent, scheduledFor }
         );
         return data;
     },
 
     cancel: async (visitId: string, reminderId: string): Promise<void> => {
-        await apiClient.delete(`/visits/${visitId}/sms-reminder/${reminderId}`);
+        await apiClient.delete(`/v1/visits/${visitId}/sms-reminder/${reminderId}`);
     },
 };

@@ -32,7 +32,7 @@ describe('checkinApi.generateQRToken - schemat mapy dla telefonu', () => {
         await checkinApi.generateQRToken('c-1', { vehicleType: 'motorcycle' });
 
         expect(post).toHaveBeenCalledWith(
-            '/checkin/c-1/upload-token',
+            '/v1/checkin/c-1/upload-token',
             null,
             { params: { rotate: false, vehicleType: 'motorcycle' } },
         );

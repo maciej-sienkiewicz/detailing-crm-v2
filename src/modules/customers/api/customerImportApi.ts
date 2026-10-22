@@ -77,7 +77,7 @@ export const mobileContactImportApi = {
     /** Czy kod jest jeszcze ważny i do jakiego studia prowadzi. */
     getContext: async (handoffToken: string): Promise<MobileImportContext> => {
         // Błędy pokazuje sam ekran telefonu - bez tosta z tym samym zdaniem.
-        const response = await apiClient.get(`/mobile/contacts/${handoffToken}`, { skipErrorToast: true });
+        const response = await apiClient.get(`/v1/mobile/contacts/${handoffToken}`, { skipErrorToast: true });
         return response.data;
     },
 
@@ -86,7 +86,7 @@ export const mobileContactImportApi = {
         contacts: PickedContact[],
         deviceLabel?: string,
     ): Promise<{ received: number }> => {
-        const response = await apiClient.post(`/mobile/contacts/${handoffToken}`, {
+        const response = await apiClient.post(`/v1/mobile/contacts/${handoffToken}`, {
             contacts,
             deviceLabel,
         }, { skipErrorToast: true });

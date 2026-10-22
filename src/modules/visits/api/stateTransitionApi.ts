@@ -6,7 +6,7 @@ import type {
     CompleteVisitResponse,
 } from '../types/stateTransitions';
 
-const BASE_PATH = '/visits';
+const BASE_PATH = '/v1/visits';
 
 export const stateTransitionApi = {
     /**

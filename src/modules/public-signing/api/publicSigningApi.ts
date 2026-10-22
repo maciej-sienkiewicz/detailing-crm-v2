@@ -41,7 +41,7 @@ export interface PublicSubmitSignaturePayload {
 export const publicSigningApi = {
     getSession: async (token: string): Promise<PublicSigningSession> => {
         const response = await apiClient.get<PublicSigningSession>(
-            `/public/signing/${encodeURIComponent(token)}`,
+            `/v1/public/signing/${encodeURIComponent(token)}`,
             // Explicit timeout: without one a stalled mobile connection spins forever
             // and the customer never reaches the retry path
             { timeout: 15_000 },
@@ -52,7 +52,7 @@ export const publicSigningApi = {
     /** The EXACT PDF bytes awaiting signature (WYSIWYS: hash them client-side). */
     getDocument: async (token: string): Promise<ArrayBuffer> => {
         const response = await apiClient.get<ArrayBuffer>(
-            `/public/signing/${encodeURIComponent(token)}/document`,
+            `/v1/public/signing/${encodeURIComponent(token)}/document`,
             { responseType: 'arraybuffer', timeout: 60_000 },
         );
         return response.data;
@@ -60,7 +60,7 @@ export const publicSigningApi = {
 
     submit: async (token: string, payload: PublicSubmitSignaturePayload): Promise<{ status: string }> => {
         const response = await apiClient.post<{ status: string }>(
-            `/public/signing/${encodeURIComponent(token)}/submit`,
+            `/v1/public/signing/${encodeURIComponent(token)}/submit`,
             payload,
             // Server-side sealing + timestamping can take up to ~10 s on its own
             { timeout: 90_000 },
@@ -70,7 +70,7 @@ export const publicSigningApi = {
 
     decline: async (token: string, reason?: string): Promise<{ status: string }> => {
         const response = await apiClient.post<{ status: string }>(
-            `/public/signing/${encodeURIComponent(token)}/decline`,
+            `/v1/public/signing/${encodeURIComponent(token)}/decline`,
             { reason: reason ?? null },
         );
         return response.data;

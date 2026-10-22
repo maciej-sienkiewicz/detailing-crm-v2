@@ -62,7 +62,7 @@ describe('apiClient - 423 SESSION_LOCKED', () => {
         window.addEventListener(SESSION_LOCKED_EVENT, locked);
         window.addEventListener('api:error', toast);
 
-        await expect(apiClient.get('/visits', { adapter: lockedAdapter })).rejects.toBeTruthy();
+        await expect(apiClient.get('/v1/visits', { adapter: lockedAdapter })).rejects.toBeTruthy();
 
         expect(locked).toHaveBeenCalledTimes(1);
         expect(toast).not.toHaveBeenCalled();
