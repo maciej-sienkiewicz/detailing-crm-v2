@@ -1,16 +1,20 @@
 // @vitest-environment jsdom
 //
 // Odłączenie KSeF pytało systemowym `window.confirm`, a nieudana weryfikacja tokenu
-// nie mówiła nic. Te testy pilnują okna potwierdzenia i widocznych błędów.
+// nie mówiła nic. Te testy pilnują okna potwierdzenia i widocznych błędów, a także
+// tego, że NIP przychodzi z Danych firmy, a nie z drugiego pola w tym panelu.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
 import { ToastProvider } from '@/common/components/Toast';
 import { KsefCredentialsPanel } from './KsefCredentialsPanel';
 import { ksefApi } from '../api/ksefApi';
+import { companyApi } from '@/modules/settings/api/companyApi';
+import type { CompanySettings } from '@/modules/settings/types';
 
 vi.mock('../api/ksefApi', () => ({
     ksefApi: {
@@ -21,13 +25,21 @@ vi.mock('../api/ksefApi', () => ({
     },
 }));
 
+vi.mock('@/modules/settings/api/companyApi', () => ({
+    companyApi: { getCompanySettings: vi.fn() },
+}));
+
+const companyWithNip = (taxId: string) => ({ name: 'Studio Lśnij', taxId }) as CompanySettings;
+
 const renderPanel = () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
     return render(
         <QueryClientProvider client={queryClient}>
             <ThemeProvider theme={theme}>
                 <ToastProvider>
-                    <KsefCredentialsPanel />
+                    <MemoryRouter>
+                        <KsefCredentialsPanel />
+                    </MemoryRouter>
                 </ToastProvider>
             </ThemeProvider>
         </QueryClientProvider>,
@@ -43,6 +55,7 @@ beforeEach(() => {
         verification: null,
     });
     vi.mocked(ksefApi.deleteCredentials).mockResolvedValue(undefined);
+    vi.mocked(companyApi.getCompanySettings).mockResolvedValue(companyWithNip('5271234567'));
 });
 
 afterEach(() => {
@@ -93,5 +106,57 @@ describe('KsefCredentialsPanel', () => {
         await userEvent.click(await screen.findByRole('button', { name: 'Sprawdź uprawnienia' }));
         await waitFor(() => expect(ksefApi.verifyCredentials).toHaveBeenCalled());
         expect(screen.queryByText('Nie udało się sprawdzić tokenu')).toBeNull();
+    });
+});
+
+describe('KsefCredentialsPanel - NIP z Danych firmy', () => {
+    beforeEach(() => {
+        vi.mocked(ksefApi.getCredentials).mockResolvedValue(null);
+    });
+
+    it('bez NIP w Danych firmy nie ma formularza, tylko droga do Danych firmy', async () => {
+        vi.mocked(companyApi.getCompanySettings).mockResolvedValue(companyWithNip(''));
+        renderPanel();
+
+        const link = await screen.findByRole('link', { name: 'Danych firmy' });
+        expect(link.getAttribute('href')).toBe('/settings?tab=company');
+        expect(screen.getByText(/W Danych firmy nie ma jeszcze NIP/)).toBeTruthy();
+        expect(screen.queryByLabelText('Token API KSeF')).toBeNull();
+        expect(screen.queryByLabelText('NIP firmy')).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Połącz z KSeF' })).toBeNull();
+    });
+
+    it('NIP krótszy niż 10 cyfr to też brak NIP - KSeF by go odrzucił', async () => {
+        vi.mocked(companyApi.getCompanySettings).mockResolvedValue(companyWithNip('527-123'));
+        renderPanel();
+
+        expect(await screen.findByText(/nie ma 10 cyfr/)).toBeTruthy();
+        expect(screen.queryByRole('button', { name: 'Połącz z KSeF' })).toBeNull();
+    });
+
+    it('łączy tylko tokenem, a NIP bierze z Danych firmy (bez kresek)', async () => {
+        vi.mocked(companyApi.getCompanySettings).mockResolvedValue(companyWithNip('527-123-45-67'));
+        vi.mocked(ksefApi.saveCredentials).mockResolvedValue({
+            nip: '5271234567', tokenMasked: '••••1234', createdAt: '', updatedAt: '', verification: null,
+        });
+        vi.mocked(ksefApi.verifyCredentials).mockResolvedValue(undefined as never);
+        renderPanel();
+
+        await userEvent.type(await screen.findByLabelText('Token API KSeF'), 'tok-123');
+        expect(screen.queryByLabelText('NIP firmy')).toBeNull();
+        expect(screen.getByText(/Połączymy KSeF dla NIP 5271234567/)).toBeTruthy();
+        await userEvent.click(screen.getByRole('button', { name: 'Połącz z KSeF' }));
+
+        await waitFor(() => expect(ksefApi.saveCredentials).toHaveBeenCalledWith({ nip: '5271234567', ksefToken: 'tok-123' }));
+    });
+
+    it('NIP zmieniony w Danych firmy po połączeniu - panel o tym mówi', async () => {
+        vi.mocked(ksefApi.getCredentials).mockResolvedValue({
+            nip: '5271234567', tokenMasked: '••••1234', createdAt: '', updatedAt: '', verification: null,
+        });
+        vi.mocked(companyApi.getCompanySettings).mockResolvedValue(companyWithNip('9512345678'));
+        renderPanel();
+
+        expect(await screen.findByText(/jest teraz NIP 9512345678, a KSeF połączono dla NIP 5271234567/)).toBeTruthy();
     });
 });

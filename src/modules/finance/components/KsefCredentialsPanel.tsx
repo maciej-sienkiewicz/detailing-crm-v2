@@ -1,6 +1,11 @@
 // src/modules/finance/components/KsefCredentialsPanel.tsx
 //
-// Połączenie z KSeF: NIP + token API, a po zapisie sprawdzenie uprawnień tokenu.
+// Połączenie z KSeF: token API, a po zapisie sprawdzenie uprawnień tokenu.
+//
+// NIP nie jest tu polem formularza: bierzemy go z Ustawienia → Dane firmy, gdzie
+// i tak musi być (faktury, protokoły). Dawniej wpisywało się go drugi raz tutaj,
+// a dwa miejsca na ten sam numer prędzej czy później się rozjeżdżają. Bez NIP
+// w danych firmy panel mówi, gdzie go uzupełnić, zamiast pokazywać formularz.
 //
 // Wcześniej odłączenie pytało systemowym `window.confirm`, status był sklejony
 // kropką („Połączono · NIP …"), błąd zapisu wisiał czerwonym blokiem nad formularzem
@@ -10,11 +15,13 @@
 // operacja mówi o sobie toastem.
 
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useToast } from '@/common/components/Toast';
 import { Button, Card, Notice, StatusPill, ui } from '@/common/components/ui';
 import { useSettingsDirty } from '@/modules/settings/components/shared/settingsChrome';
+import { useCompanySettings } from '@/modules/settings/hooks/useCompany';
 import { toastUnhandledError } from '@/modules/subscription/utils/apiErrors';
 import {
   useKsefCredentials,
@@ -300,23 +307,32 @@ const TokenPermissionsBlock: React.FC<{
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+/** NIP z Danych firmy w postaci, której chce KSeF: same cyfry. Kreski i spacje są tam dozwolone. */
+const companyNipDigits = (taxId: string | null | undefined): string => (taxId ?? '').replace(/[\s-]/g, '');
+
+const isValidNip = (nip: string): boolean => /^\d{10}$/.test(nip);
+
+const CompanyDataLink = () => <Link to="/settings?tab=company">Danych firmy</Link>;
+
 export const KsefCredentialsPanel: React.FC = () => {
   const { credentials, isLoading } = useKsefCredentials();
+  const { company, isLoading: isCompanyLoading, isError: isCompanyError, refetch: refetchCompany } = useCompanySettings();
   const saveCredentials   = useSaveKsefCredentials();
   const deleteCredentials = useDeleteKsefCredentials();
   const verifyToken       = useVerifyKsefToken();
   const { showSuccess, showError } = useToast();
 
-  const [nip, setNip]         = useState('');
   const [token, setToken]     = useState('');
   const [editMode, setEditMode] = useState(false);
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
   const isConfigured = !!credentials && !editMode;
+  const companyNip = companyNipDigits(company?.taxId);
+  const companyNipReady = isValidNip(companyNip);
 
-  // Wpisany token (albo zmieniony NIP) ginął po cichu przy przejściu do innej
-  // sekcji ustawień. Poza ramą ustawień hook nic nie robi.
-  const dirty = !isConfigured && (token.trim() !== '' || nip.trim() !== (credentials?.nip ?? ''));
+  // Wpisany token ginął po cichu przy przejściu do innej sekcji ustawień.
+  // Poza ramą ustawień hook nic nie robi.
+  const dirty = !isConfigured && token.trim() !== '';
   useSettingsDirty(dirty);
 
   const verify = () => {
@@ -327,10 +343,9 @@ export const KsefCredentialsPanel: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!nip.trim() || !token.trim()) return;
+    if (!companyNipReady || !token.trim()) return;
     try {
-      await saveCredentials.mutateAsync({ nip: nip.trim(), ksefToken: token.trim() });
-      setNip('');
+      await saveCredentials.mutateAsync({ nip: companyNip, ksefToken: token.trim() });
       setToken('');
       setEditMode(false);
       showSuccess('Połączono z KSeF', 'Sprawdzamy teraz uprawnienia tokenu.');
@@ -354,7 +369,7 @@ export const KsefCredentialsPanel: React.FC = () => {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || isCompanyLoading) {
     return (
       <Card>
         <PanelHeader>
@@ -376,7 +391,7 @@ export const KsefCredentialsPanel: React.FC = () => {
         <HeaderLeft>
           <PanelTitle>Połączenie z KSeF</PanelTitle>
           <PanelSubtitle>
-            Podaj NIP i token z KSeF. Faktury sprzedażowe wyślemy do KSeF, a kosztowe będą pobierać się same.
+            Wklej token z KSeF. Faktury sprzedażowe wyślemy do KSeF, a kosztowe będą pobierać się same.
           </PanelSubtitle>
         </HeaderLeft>
         {/* Sam stan - NIP stoi niżej jako osobne pole, zamiast doklejony kropką do plakietki. */}
@@ -397,6 +412,15 @@ export const KsefCredentialsPanel: React.FC = () => {
               </FormGroup>
             </FormRow>
 
+            {/* NIP żyje w Danych firmy, więc może się zmienić już po połączeniu - a token
+                KSeF działa tylko dla NIP, dla którego go wygenerowano. */}
+            {companyNipReady && companyNip !== credentials.nip && (
+              <Notice tone="warn">
+                W <CompanyDataLink /> jest teraz NIP {companyNip}, a KSeF połączono dla NIP {credentials.nip}.
+                Wygeneruj w KSeF token dla nowego NIP i zapisz go przyciskiem „Zmień token”.
+              </Notice>
+            )}
+
             <TokenPermissionsBlock
               verification={credentials.verification}
               isVerifying={verifyToken.isPending}
@@ -404,13 +428,8 @@ export const KsefCredentialsPanel: React.FC = () => {
             />
 
             <BtnRow>
-              <Button
-                onClick={() => {
-                  setNip(credentials.nip);
-                  setEditMode(true);
-                }}
-              >
-                Zmień dane
+              <Button onClick={() => setEditMode(true)}>
+                Zmień token
               </Button>
               <Button
                 variant="danger"
@@ -421,50 +440,64 @@ export const KsefCredentialsPanel: React.FC = () => {
               </Button>
             </BtnRow>
           </>
+        ) : isCompanyError ? (
+          // Bez danych firmy nie wiemy, dla jakiego NIP łączyć - a „uzupełnij NIP"
+          // byłoby nieprawdą, gdy NIP jest, tylko nie doszedł.
+          <>
+            <Notice tone="danger">
+              Nie udało się wczytać Danych firmy, a z nich bierzemy NIP do połączenia z KSeF.
+            </Notice>
+            <BtnRow>
+              <Button onClick={() => { void refetchCompany(); }}>Spróbuj ponownie</Button>
+            </BtnRow>
+          </>
+        ) : !companyNipReady ? (
+          <>
+            <Notice tone="warn">
+              {companyNip
+                ? `NIP w Danych firmy (${company?.taxId}) nie ma 10 cyfr. `
+                : 'W Danych firmy nie ma jeszcze NIP. '}
+              Żeby połączyć KSeF, uzupełnij go w <CompanyDataLink />. Token KSeF działa tylko dla NIP
+              firmy, więc wpisujemy go w jednym miejscu.
+            </Notice>
+            {editMode && (
+              <BtnRow>
+                <Button onClick={() => { setEditMode(false); setToken(''); }}>Anuluj</Button>
+              </BtnRow>
+            )}
+          </>
         ) : (
           <>
-            <FormRow>
-              <FormGroup>
-                <Label htmlFor="ksef-nip">NIP firmy</Label>
-                <Input
-                  id="ksef-nip"
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="1234567890"
-                  value={nip}
-                  onChange={(e) => setNip(e.target.value)}
-                  maxLength={10}
-                />
-                <HelpText>10-cyfrowy numer NIP bez spacji i kresek.</HelpText>
-              </FormGroup>
-              <FormGroup>
-                <Label htmlFor="ksef-token">Token API KSeF</Label>
-                <Input
-                  id="ksef-token"
-                  type="password"
-                  placeholder="Wklej token z systemu KSeF"
-                  value={token}
-                  onChange={(e) => setToken(e.target.value)}
-                  autoComplete="off"
-                />
-                <HelpText>
-                  {/* „Zakładka API” nie istnieje w Aplikacji Podatnika KSeF - w testach szukaliśmy
-                      jej na próżno. Token bez obu uprawnień wpuszcza tylko w połowę funkcji. */}
-                  Wygenerujesz go w Aplikacji Podatnika KSeF: Tokeny → Generuj token. Zaznacz
-                  uprawnienia „wystawianie faktur” i „przeglądanie faktur”.
-                </HelpText>
-              </FormGroup>
-            </FormRow>
+            <FormGroup>
+              <Label htmlFor="ksef-token">Token API KSeF</Label>
+              <Input
+                id="ksef-token"
+                type="password"
+                placeholder="Wklej token z systemu KSeF"
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
+                autoComplete="off"
+              />
+              <HelpText>
+                {/* „Zakładka API” nie istnieje w Aplikacji Podatnika KSeF - w testach szukaliśmy
+                    jej na próżno. Token bez obu uprawnień wpuszcza tylko w połowę funkcji. */}
+                Wygenerujesz go w Aplikacji Podatnika KSeF: Tokeny → Generuj token. Zaznacz
+                uprawnienia „wystawianie faktur” i „przeglądanie faktur”.
+              </HelpText>
+              <HelpText>
+                Połączymy KSeF dla NIP {companyNip} z <CompanyDataLink />.
+              </HelpText>
+            </FormGroup>
             <BtnRow>
               <Button
                 variant="primary"
                 onClick={handleSave}
-                disabled={!nip.trim() || !token.trim() || saveCredentials.isPending}
+                disabled={!token.trim() || saveCredentials.isPending}
               >
                 {saveCredentials.isPending ? 'Łączenie…' : 'Połącz z KSeF'}
               </Button>
               {editMode && (
-                <Button onClick={() => { setEditMode(false); setNip(''); setToken(''); }}>
+                <Button onClick={() => { setEditMode(false); setToken(''); }}>
                   Anuluj
                 </Button>
               )}

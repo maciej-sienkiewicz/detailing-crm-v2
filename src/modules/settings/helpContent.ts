@@ -349,7 +349,7 @@ export const INVOICES_HELP: HelpContent = {
         {
             id: 'credentials',
             label: 'Dane logowania do KSeF',
-            description: 'NIP i token z KSeF; po zapisie sprawdzamy, co token pozwala zrobić. Gdy zmienisz token w KSeF, wpisz nowy także tutaj.',
+            description: 'Token z KSeF; NIP bierzemy z Danych firmy, więc bez niego połączenia nie da się zapisać. Po zapisie sprawdzamy, co token pozwala zrobić. Gdy zmienisz token w KSeF, wpisz nowy także tutaj.',
             usedIn: [
                 'Połączenie z KSeF',
             ],
